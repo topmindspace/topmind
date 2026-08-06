@@ -1,0 +1,27 @@
+{
+  "templateId": "balanced",
+  "version": "4.0.0",
+  "name": "平衡知识型",
+  "description": "适合知识工作者：动态、专题，兼顾低摩擦记录与知识沉淀。",
+  "categories": {
+    "00": { "name": "收件箱", "role": "buffer", "required": true },
+    "10": { "name": "动态", "role": "loose-stream", "specialBehavior": "flat-default" },
+    "20": { "name": "专题", "role": "deep-work" },
+    "88": { "name": "输出", "role": "delivery", "required": true },
+    "99": { "name": "归档", "role": "system", "required": true }
+  },
+  "stream": {
+    "packing": "weekly",
+    "appendHeading": "day"
+  },
+  "memory": {
+    "dir": "memory",
+    "profileFile": "profile.md"
+  },
+  "connectorHints": {
+    "weread": { "preferSlot": "20", "preferRole": "deep-work", "nameKeywords": ["专题", "阅读", "读书"] },
+    "x": { "preferSlot": "20", "preferRole": "deep-work", "nameKeywords": ["专题", "social", "素材"] }
+  },
+  "defaultViews": ["stream", "category", "timeline", "tags"],
+  "separator": "-"
+}

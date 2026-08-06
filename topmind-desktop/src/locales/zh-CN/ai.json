@@ -1,0 +1,68 @@
+{
+  "panel": {
+    "title": "AI",
+    "placeholder": "输入消息或 / 唤起 Skills…",
+    "send": "发送",
+    "stop": "停止",
+    "thinking": "思考中…",
+    "processing": "处理中…",
+    "empty": "开始对话 · AI 可读写工作区",
+    "contextPills": "上下文",
+    "addContext": "添加上下文",
+    "clearChat": "清空对话",
+    "copyMessage": "复制消息",
+    "agentMode": "Agent 模式",
+    "agentSteps": "Agent 步数",
+    "runtimeReady": "AI 就绪",
+    "runtimeNotReady": "AI 未就绪",
+    "selectModel": "选择模型",
+    "noModel": "未选择模型",
+    "writebackMode": "写回模式"
+  },
+  "tool": {
+    "running": "执行中",
+    "done": "完成",
+    "error": "出错",
+    "viewPath": "查看文件"
+  },
+  "skill": {
+    "title": "Skills",
+    "enabled": "已启用",
+    "disabled": "已禁用",
+    "toggle": "开关",
+    "catalog": "目录",
+    "loadSkill": "加载 Skill",
+    "noSkills": "暂无 Skills"
+  },
+  "store": {
+    "newSession": "新对话",
+    "steerInjected": "已注入中途指示",
+    "focusHintTopic": "专题 {{topicId}}",
+    "focusHintFile": "文件 {{name}}",
+    "generationFailed": "AI 生成失败",
+    "runtimeUnavailable": "AI 运行时不可用"
+  },
+  "slash": {
+    "captureLabel": "记一下",
+    "captureTip": "默认进本周动态",
+    "capturePrompt": "帮我记一下下面内容（先 load_skill capture，默认追加到动态周期本）：",
+    "organizeLabel": "整理本周",
+    "organizeTip": "理顺流水 / 专题",
+    "organizePrompt": "整理本周：理顺当前动态周期本（合并状态、去重、更新进行中），并列出可写入「我的情况」或专题的候选（先 load_skill organize）。",
+    "writeLabel": "写出来",
+    "writeTip": "起草 / 润色 / 交付",
+    "writePrompt": "帮我基于当前专题写出来或润色，需要时写回（先 load_skill write）。",
+    "memoryLabel": "我的情况",
+    "memoryTip": "偏好 / 目标 / 专题结论",
+    "memoryPrompt": "把已确认内容写入「我的情况」或专题结论（先 load_skill memory；关于我→我的情况，关于专题→topic.md）。",
+    "maintainLabel": "检查一下",
+    "maintainTip": "快速诊断",
+    "maintainPrompt": "检查一下工作区健康并说明问题（先 load_skill maintain）。",
+    "loopLabel": "全面看看",
+    "loopTip": "整体健康巡检",
+    "loopPrompt": "全面看看工作区，总结问题与建议（先 load_skill loop）。",
+    "topmindLabel": "帮我判断",
+    "topmindTip": "不知道用哪个流程时",
+    "topmindPrompt": "帮我判断该用哪个流程并处理（记一下 / 整理本周 / 写出来 / 我的情况）："
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "templateId": "simple",
+  "version": "1.0.0",
+  "name": "简单工作台",
+  "description": "最少心智：收件箱、动态（流水）、专题、输出、归档。日常默认按周记在一本上；适合大多数个人场景。",
+  "categories": {
+    "00": { "name": "收件箱", "role": "buffer", "required": true },
+    "10": { "name": "动态", "role": "loose-stream", "specialBehavior": "flat-default" },
+    "20": { "name": "专题", "role": "deep-work" },
+    "88": { "name": "输出", "role": "delivery", "required": true },
+    "99": { "name": "归档", "role": "system", "required": true }
+  },
+  "stream": {
+    "packing": "weekly",
+    "appendHeading": "day"
+  },
+  "memory": {
+    "dir": null,
+    "profileFile": "我的情况.md"
+  },
+  "connectorHints": {
+    "weread": { "preferSlot": "20", "preferRole": "deep-work", "nameKeywords": ["专题", "阅读", "读书"] },
+    "x": { "preferSlot": "20", "preferRole": "deep-work", "nameKeywords": ["专题", "social", "素材"] }
+  },
+  "defaultViews": ["category", "timeline"],
+  "separator": "-"
+}

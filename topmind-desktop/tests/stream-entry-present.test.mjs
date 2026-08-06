@@ -1,0 +1,117 @@
+/**
+ * Stream feed presentation — expand accuracy + day row grouping + article cards.
+ */
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+import { pathToFileURL } from "node:url";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const mod = await import(
+  pathToFileURL(path.join(__dirname, "../src/lib/stream-entry-present.ts")).href
+);
+const {
+  classifyStreamEntry,
+  streamEntryNeedsExpand,
+  groupDayFeedRows,
+  streamArticleTitle,
+  streamArticleSummary,
+  STREAM_EXPAND_CHAR_BUDGET,
+} = mod;
+
+describe("stream-entry-present", () => {
+  it("short single-line moment does not need expand", () => {
+    assert.equal(
+      streamEntryNeedsExpand({
+        body: "- 10:00 记一下短句",
+        rest: "",
+        preview: "记一下短句",
+      }),
+      false,
+    );
+  });
+
+  it("long multi-line body needs expand", () => {
+    const body = Array.from({ length: 8 }, (_, i) => `line ${i} extra words here`).join("\n");
+    assert.equal(
+      streamEntryNeedsExpand({ body, rest: "more", preview: "line 0" }),
+      true,
+    );
+  });
+
+  it("short body with many nested appends needs expand", () => {
+    assert.equal(
+      streamEntryNeedsExpand(
+        { body: "- 10:00 short", rest: "", preview: "short" },
+        { nestedAppendCount: 3 },
+      ),
+      true,
+    );
+  });
+
+  it("classifies day bullet as moment and named section as article", () => {
+    assert.equal(
+      classifyStreamEntry({
+        heading: "08-03 周一",
+        body: "- 10:00 hello",
+        preview: "hello",
+      }),
+      "moment",
+    );
+    assert.equal(
+      classifyStreamEntry({
+        heading: "产品方案草稿",
+        body: "这是一篇长笔记正文，用来讨论方案细节与边界。\n\n第二段内容。",
+        preview: "这是一篇长笔记",
+      }),
+      "article",
+    );
+  });
+
+  it("groups appends under previous moment", () => {
+    const rows = groupDayFeedRows([
+      {
+        index: 0,
+        heading: "08-03",
+        body: "- 10:00 a",
+        preview: "a",
+        rest: "",
+        sortKey: "a",
+      },
+      {
+        index: 1,
+        heading: "08-03",
+        body: "#### 续 · x\nfollow",
+        preview: "follow",
+        rest: "",
+        sortKey: "b",
+        isAppend: true,
+      },
+      {
+        index: 2,
+        heading: "08-03",
+        body: "- 11:00 b",
+        preview: "b",
+        rest: "",
+        sortKey: "c",
+      },
+    ]);
+    assert.equal(rows.length, 2);
+    assert.equal(rows[0].appends.length, 1);
+    assert.equal(rows[0].kind, "moment");
+    assert.equal(rows[1].kind, "moment");
+  });
+
+  it("article title + summary helpers", () => {
+    const entry = {
+      heading: "研究笔记",
+      body: "研究笔记\n\n这是摘要正文部分，用于预览。",
+      preview: "研究笔记",
+      rest: "这是摘要正文部分，用于预览。",
+    };
+    assert.equal(streamArticleTitle(entry), "研究笔记");
+    assert.ok(streamArticleSummary(entry).includes("摘要"));
+    assert.ok(STREAM_EXPAND_CHAR_BUDGET >= 180);
+  });
+});

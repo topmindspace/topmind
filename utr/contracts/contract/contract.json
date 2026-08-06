@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "kind": "contract",
+  "skill": "contract",
+  "label": "契约工具",
+  "description": "工作区契约校验与管理。",
+  "execution": {
+    "runtime": "node",
+    "cwd_mode": "engine_root",
+    "script": "utr/tools/contract.mjs",
+    "args_template": [
+      "--categories-root",
+      "{categories_root}",
+      "--inbox-root",
+      "{inbox_root}",
+      "--archive-root",
+      "{archive_root}",
+      "--format",
+      "json",
+      "{command}"
+    ]
+  },
+  "commands": {
+    "validate": {
+      "label": "校验契约",
+      "description": "校验工作区 topmind.yaml schema、8 类规约白名单、与 FS 一致性。",
+      "group": "maintenance",
+      "risk_level": "low",
+      "review_policy": "auto",
+      "requires_topic": false,
+      "idempotent": true,
+      "supports_dry_run": false,
+      "destructive": false,
+      "inputs": {},
+      "reads": [
+        "topmind.yaml"
+      ],
+      "writes": [],
+      "exposure": "primary"
+    }
+  },
+  "review_overrides": {}
+}

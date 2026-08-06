@@ -1,0 +1,28 @@
+{
+  "templateId": "research",
+  "version": "4.0.0",
+  "name": "学术研究型",
+  "description": "适合深度研究：动态、专题、研究、参考资料，强调来源追踪与深度整理。",
+  "categories": {
+    "00": { "name": "收件箱", "role": "buffer", "required": true },
+    "10": { "name": "动态", "role": "loose-stream", "specialBehavior": "flat-default" },
+    "20": { "name": "专题", "role": "deep-work" },
+    "30": { "name": "研究", "role": "deep-work" },
+    "40": { "name": "参考资料", "role": "reference" },
+    "88": { "name": "输出", "role": "delivery", "required": true },
+    "99": { "name": "归档", "role": "system", "required": true }
+  },
+  "stream": {
+    "packing": "weekly",
+    "appendHeading": "day"
+  },
+  "memory": {
+    "dir": "memory",
+    "profileFile": "profile.md"
+  },
+  "connectorHints": {
+    "weread": { "preferSlot": "30", "preferRole": "deep-work", "nameKeywords": ["研究", "文献", "阅读"] }
+  },
+  "defaultViews": ["category", "stream", "tags"],
+  "separator": "-"
+}

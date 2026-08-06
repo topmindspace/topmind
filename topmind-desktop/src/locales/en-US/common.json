@@ -1,0 +1,140 @@
+{
+  "app": {
+    "name": "topmind",
+    "tagline": "Quick note · Stream · Ship it · Find again"
+  },
+  "action": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "close": "Close",
+    "open": "Open",
+    "cut": "Cut",
+    "copy": "Copy",
+    "paste": "Paste",
+    "copied": "Copied",
+    "retry": "Retry",
+    "reset": "Reset",
+    "refresh": "Refresh",
+    "loading": "Loading…",
+    "saving": "Saving",
+    "autoSave": "Auto-save",
+    "search": "Search",
+    "filter": "Filter",
+    "noResults": "No results",
+    "yes": "Yes",
+    "no": "No",
+    "enable": "Enable",
+    "disable": "Disable",
+    "add": "Add",
+    "remove": "Remove",
+    "rename": "Rename",
+    "edit": "Edit",
+    "view": "View",
+    "ok": "Got it",
+    "select": "Select…",
+    "noOptions": "No options",
+    "noHistory": "No history",
+    "loadFailed": "Failed to load: {{message}}",
+    "configured": "Configured",
+    "clearKey": "Clear Key",
+    "clear": "Clear",
+    "getKey": "Get API Key",
+    "help": "Help",
+    "newTopic": "New Topic",
+    "newNote": "New Note",
+    "all": "All",
+    "new": "New"
+  },
+  "placeholder": {
+    "filter": "Filter notes…"
+  },
+  "status": {
+    "ready": "Ready",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning",
+    "info": "Info",
+    "running": "Running",
+    "stopped": "Stopped",
+    "disabled": "Disabled",
+    "enabled": "Enabled",
+    "loading": "Loading…",
+    "preset": "Preset",
+    "live": "Live",
+    "failed": "Failed"
+  },
+  "time": {
+    "justNow": "just now",
+    "minutesAgo": "{{count}} min ago",
+    "hoursAgo": "{{count}} hr ago",
+    "daysAgo": "{{count}} days ago",
+    "lastOpened": "Last {{time}}"
+  },
+  "greeting": {
+    "lateNight": "Burning the midnight oil",
+    "morning": "Good morning",
+    "afternoon": "Good afternoon",
+    "evening": "Good evening"
+  },
+  "category": {
+    "inbox": "Inbox",
+    "stream": "Stream",
+    "topic": "Topics",
+    "outputs": "Outputs",
+    "archive": "Archive",
+    "reference": "Reference",
+    "memory": "Memory"
+  },
+  "shortcut": {
+    "globalCapture": "Global quick capture (any app)",
+    "capture": "Note it",
+    "commandPalette": "Command palette",
+    "search": "Global search",
+    "settings": "Settings",
+    "inbox": "Go to Inbox",
+    "home": "Go to Stream",
+    "todo": "Todo list",
+    "stream": "Go to Stream",
+    "kanban": "Sidebar kanban view",
+    "outputs": "Go to Outputs",
+    "archive": "Go to Archive",
+    "workspaceSwitcher": "Switch workspace",
+    "closeTab": "Close current file tab",
+    "closeAllTabs": "Close all unpinned tabs",
+    "back": "Back",
+    "forward": "Forward",
+    "focusMode": "Focus mode (hide sidebar / AI / status bar)",
+    "escape": "Close overlay / exit focus"
+  },
+  "streamStatus": {
+    "tool": "Tool",
+    "thinking": "Thinking",
+    "preparing": "Preparing",
+    "organizingContext": "Organizing context",
+    "contextAdded": "Context added",
+    "responding": "Responding",
+    "completed": "Completed",
+    "session": "Session",
+    "msgCount": "{{count}} msgs"
+  },
+  "writeback": {
+    "backup": "Backup {{path}}",
+    "etcItems": " and {{count}} more",
+    "multiFileWriteSuccess": "✓ Multi-file written to {{count}} locations"
+  },
+  "noteMeta": {
+    "untitled": "Untitled",
+    "priorityNone": "None",
+    "dueOverdue": "Overdue",
+    "dueToday": "Today",
+    "dueWeek": "This Week",
+    "dueLater": "Later",
+    "dueNone": "No Due"
+  },
+  "clip": {
+    "bridgeSuccess": "✓ Browser clip · {{name}}",
+    "bridgeSuccessNoPath": "✓ Browser clip successful"
+  }
+}

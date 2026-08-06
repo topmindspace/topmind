@@ -1,0 +1,71 @@
+/**
+ * Semantic theme aliases — shadcn/ui vocabulary on Paper Mind Workbench tokens.
+ *
+ * tokens.css (truth): brand-deep/mid/aqua, surface ladder, accent-*, status-*.
+ * This file only adds non-conflicting shadcn names: card, popover, primary,
+ * muted, destructive, foreground, input, ring, secondary, chrome.
+ *
+ * Usage:
+ * - Solid CTA: `bg-primary` / `bg-accent-color` + `text-primary-foreground`
+ * - Subtle fill: `bg-accent-muted` / `bg-accent-bg-subtle` (never solid wash for chrome)
+ * - Brand moments: `bg-brand-deep` / mid / aqua (rare; prefer semantic accent)
+ */
+@layer base {
+  :root,
+  .dark {
+    --card: var(--color-surface);
+    --card-foreground: var(--color-text-primary);
+    --popover: var(--color-surface-elevated);
+    --popover-foreground: var(--color-text-primary);
+    --primary: var(--color-accent-color);
+    --primary-foreground: var(--color-text-on-accent);
+    --secondary: var(--color-surface-muted);
+    --secondary-foreground: var(--color-text-primary);
+    --muted: var(--color-surface-muted);
+    --muted-foreground: var(--color-text-tertiary);
+    --destructive: var(--color-status-error);
+    --destructive-foreground: #ffffff;
+    --border-semantic: var(--color-border-subtle);
+    --input: var(--color-surface-inset);
+    --ring: var(--color-accent-color);
+    --foreground: var(--color-text-primary);
+    --chrome: var(--color-app-chrome);
+  }
+}
+
+@theme {
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border-semantic: var(--border-semantic);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-foreground: var(--foreground);
+  --color-chrome: var(--chrome);
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /* z-index semantic scale — maps to --z-* tokens in tokens.css */
+  --z-index-local: var(--z-local);
+  --z-index-shell-rail: var(--z-shell-rail);
+  --z-index-header: var(--z-header);
+  --z-index-popover: var(--z-popover);
+  --z-index-floating: var(--z-floating);
+  --z-index-overlay: var(--z-overlay);
+  --z-index-modal: var(--z-modal);
+  --z-index-notification: var(--z-notification);
+  --z-index-toast: var(--z-toast);
+  --z-index-menu: var(--z-menu);
+}

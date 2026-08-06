@@ -1,0 +1,140 @@
+{
+  "app": {
+    "name": "topmind",
+    "tagline": "记一下 · 动态 · 写出来 · 找回"
+  },
+  "action": {
+    "save": "保存",
+    "cancel": "取消",
+    "confirm": "确认",
+    "delete": "删除",
+    "close": "关闭",
+    "open": "打开",
+    "cut": "剪切",
+    "copy": "复制",
+    "paste": "粘贴",
+    "copied": "已复制",
+    "retry": "重试",
+    "reset": "重置",
+    "refresh": "刷新",
+    "loading": "加载中…",
+    "saving": "保存中",
+    "autoSave": "自动保存",
+    "search": "搜索",
+    "filter": "筛选",
+    "noResults": "无匹配",
+    "yes": "是",
+    "no": "否",
+    "enable": "启用",
+    "disable": "禁用",
+    "add": "添加",
+    "remove": "移除",
+    "rename": "重命名",
+    "edit": "编辑",
+    "view": "查看",
+    "ok": "知道了",
+    "select": "选择…",
+    "noOptions": "暂无选项",
+    "noHistory": "暂无历史",
+    "loadFailed": "加载失败: {{message}}",
+    "configured": "已配置",
+    "clearKey": "清除 Key",
+    "clear": "清除",
+    "getKey": "获取 API Key",
+    "help": "帮助",
+    "newTopic": "新专题",
+    "newNote": "新笔记",
+    "all": "全部",
+    "new": "新建"
+  },
+  "placeholder": {
+    "filter": "筛选笔记…"
+  },
+  "status": {
+    "ready": "就绪",
+    "error": "错误",
+    "success": "成功",
+    "warning": "警告",
+    "info": "信息",
+    "running": "运行中",
+    "stopped": "已停止",
+    "disabled": "已禁用",
+    "enabled": "已启用",
+    "loading": "加载中…",
+    "preset": "预设",
+    "live": "实时",
+    "failed": "失败"
+  },
+  "time": {
+    "justNow": "刚刚",
+    "minutesAgo": "{{count}} 分钟前",
+    "hoursAgo": "{{count}} 小时前",
+    "daysAgo": "{{count}} 天前",
+    "lastOpened": "上次 {{time}}"
+  },
+  "greeting": {
+    "lateNight": "夜深了",
+    "morning": "早上好",
+    "afternoon": "下午好",
+    "evening": "晚上好"
+  },
+  "category": {
+    "inbox": "收件箱",
+    "stream": "动态",
+    "topic": "专题",
+    "outputs": "输出",
+    "archive": "归档",
+    "reference": "参考资料",
+    "memory": "记忆"
+  },
+  "shortcut": {
+    "globalCapture": "全局快速捕获（任意应用）",
+    "capture": "记一下",
+    "commandPalette": "命令面板",
+    "search": "全局搜索",
+    "settings": "设置",
+    "inbox": "转到收件箱",
+    "home": "转到动态",
+    "todo": "待办清单",
+    "stream": "转到动态",
+    "kanban": "侧栏看板视图",
+    "outputs": "转到写出来",
+    "archive": "转到归档",
+    "workspaceSwitcher": "切换工作区",
+    "closeTab": "关闭当前文件标签",
+    "closeAllTabs": "关闭全部未固定标签",
+    "back": "后退",
+    "forward": "前进",
+    "focusMode": "专注模式（隐藏侧栏 / AI / 状态栏）",
+    "escape": "关闭浮层 / 退出专注"
+  },
+  "streamStatus": {
+    "tool": "工具",
+    "thinking": "思考中",
+    "preparing": "准备中",
+    "organizingContext": "整理上下文",
+    "contextAdded": "已补充",
+    "responding": "回复中",
+    "completed": "完成",
+    "session": "会话",
+    "msgCount": "{{count}} 条"
+  },
+  "writeback": {
+    "backup": "备份 {{path}}",
+    "etcItems": " 等{{count}}项",
+    "multiFileWriteSuccess": "✓ 多文件写入 {{count}} 处"
+  },
+  "noteMeta": {
+    "untitled": "未命名",
+    "priorityNone": "无",
+    "dueOverdue": "已逾期",
+    "dueToday": "今天",
+    "dueWeek": "本周",
+    "dueLater": "更晚",
+    "dueNone": "无日期"
+  },
+  "clip": {
+    "bridgeSuccess": "✓ 浏览器剪藏 · {{name}}",
+    "bridgeSuccessNoPath": "✓ 浏览器剪藏成功"
+  }
+}

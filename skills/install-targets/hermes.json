@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "package": "topmind",
+  "target": "hermes",
+  "daily_entry": "topmind",
+  "metadata": {
+    "license": "MIT",
+    "authors": [
+      "TopMindSpace"
+    ],
+    "repository": "https://github.com/topmindspace/topmind",
+    "homepage": "https://github.com/topmindspace/topmind#readme"
+  },
+  "skills": [
+    "topmind",
+    "topmind-capture",
+    "topmind-organize",
+    "topmind-write",
+    "topmind-memory",
+    "topmind-maintain",
+    "topmind-loop",
+    "topmind-weread",
+    "topmind-x"
+  ],
+  "install_strategy": "symlink-or-copy",
+  "target_root_hint": "hermes-skills-root",
+  "capabilities": [
+    "skills",
+    "cli",
+    "mcp"
+  ],
+  "content_truth": "topmind-workspace/categories-and-topics",
+  "host_must_not": [
+    "change-content-truth",
+    "add-daily-entrypoints",
+    "fork-skill-semantics",
+    "persist-content-in-agent-state",
+    "introduce-legacy-project-naming",
+    "introduce-project_type-field"
+  ],
+  "config_shape": {
+    "skills_root": "host-provided",
+    "workspace_root": "host-provided",
+    "utr": "optional"
+  },
+  "notes": [
+    "Keep topmind skills as portable Markdown bundles.",
+    "Hermes may call UTR through CLI or MCP, but the skill pack must still work with host file tools.",
+    "Categories use 10-60/88/99 spaced number prefix (dynamic discovery); topics use YYYY-主题 kebab-case; do not introduce YYYY-类型-项目名.",
+    "v4.3 progressive disclosure: name+description discovery; SKILL.md on activation; shared/ and references/ on demand. Single daily entry topmind."
+  ],
+  "install": {
+    "script": "scripts/install-skills.mjs",
+    "docs": "skills/INSTALL.md",
+    "from_git": "node scripts/install-skills.mjs --from-git --host hermes",
+    "from_release": "node scripts/install-skills.mjs --from-release latest --host hermes"
+  }
+}

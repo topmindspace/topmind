@@ -1,0 +1,322 @@
+{
+  "schema_version": 1,
+  "kind": "workspace-read",
+  "skill": "workspace-read",
+  "label": "工作区读取工具",
+  "description": "读取类别、专题、文件、Inbox（不写入）。",
+  "execution": {
+    "runtime": "node",
+    "cwd_mode": "engine_root",
+    "script": "utr/tools/workspace-read.mjs",
+    "args_template": [
+      "--categories-root",
+      "{categories_root}",
+      "--inbox-root",
+      "{inbox_root}",
+      "--archive-root",
+      "{archive_root}",
+      "--format",
+      "json",
+      "{command}"
+    ]
+  },
+  "commands": {
+    "list-categories": {
+      "label": "列出大类",
+      "description": "列出工作区中所有动态发现的大类（默认模板 simple：00-收件箱 / 10-动态 / 20-专题 / 88-输出 / 99-归档）。用户可扩展任意 {NN-Name}/ 目录。",
+      "group": "assistive",
+      "exposure": "primary",
+      "risk_level": "low",
+      "review_policy": "auto",
+      "requires_topic": false,
+      "idempotent": true,
+      "supports_dry_run": false,
+      "destructive": false,
+      "inputs": {},
+      "reads": [
+        "00-收件箱/",
+        "{category}/",
+        "88-输出/",
+        "99-归档/"
+      ],
+      "writes": [],
+      "contexts": [
+        "workspace",
+        "categories"
+      ]
+    },
+    "list-topics": {
+      "label": "列出专题",
+      "description": "列出所有大类的所有专题；可选按 category 过滤；返回 `{category}/{topic}` 路径 + `YYYY-主题` 命名一致性。",
+      "group": "assistive",
+      "exposure": "primary",
+      "risk_level": "low",
+      "review_policy": "auto",
+      "requires_topic": false,
+      "idempotent": true,
+      "supports_dry_run": false,
+      "destructive": false,
+      "inputs": {
+        "category": {
+          "type": "category",
+          "label": "大类（可选过滤）",
+          "required": false,
+          "hint": "不传则全工作区 walk；传则只列该大类下的专题。"
+        }
+      },
+      "args_extra": [
+        "--category",
+        "{category}"
+      ],
+      "reads": [
+        "00-收件箱/**",
+        "{category}/"
+      ],
+      "writes": [],
+      "contexts": [
+        "workspace",
+        "topics"
+      ]
+    },
+    "inspect-topic": {
+      "label": "检查专题",
+      "description": "读取单个专题的 topic.md（可选）+ 根层笔记（v3.4 不再有 专题根）+ 88-输出/ 中该专题的交付物，按专题结构汇总。",
+      "group": "assistive",
+      "exposure": "primary",
+      "risk_level": "low",
+      "review_policy": "auto",
+      "requires_topic": true,
+      "idempotent": true,
+      "supports_dry_run": false,
+      "destructive": false,
+      "inputs": {
+        "category": {
+          "type": "category",
+          "label": "大类",
+          "required": true,
+          "hint": "如 '20-研究'"
+        },
+        "topic": {
+          "type": "topic",
+          "label": "专题",
+          "required": true,
+          "hint": "如 '2026-示例记录'"
+        }
+      },
+      "args_extra": [
+        "--category",
+        "{category}",
+        "--topic",
+        "{topic}",
+        "--category-root",
+        "{category_root}",
+        "--topic-root",
+        "{topic_root}"
+      ],
+      "reads": [
+        "{category_root}/{topic}/topic.md",
+        "{category_root}/{topic}/*.md",
+        "88-输出/**",
+        "{category_root}/{topic}/sections/**",
+        "{category_root}/{topic}/articles/**",
+        "{category_root}/{topic}/sections/*-memo.md",
+        "{category_root}/{topic}/articles/*-memo.md",
+        "{category_root}/{topic}/entities/**"
+      ],
+      "writes": [],
+      "contexts": [
+        "topic"
+      ]
+    },
+    "list-topic-files": {
+      "label": "列出专题文件",
+      "description": "按物理结构列出专题首页、根层笔记（无强制 notes/）+ 交付层（role:delivery，常为 88-输出/）中该专题相关文件；若存在历史 sections/、articles/、entities/ 子树也会一并列出。",
+      "group": "assistive",
+      "exposure": "primary",
+      "risk_level": "low",
+      "review_policy": "auto",
+      "requires_topic": true,
+      "idempotent": true,
+      "supports_dry_run": false,
+      "destructive": false,
+      "inputs": {
+        "category": {
+          "type": "category",
+          "label": "大类",
+          "required": true
+        },
+        "topic": {
+          "type": "topic",
+          "label": "专题",
+          "required": true
+        },
+        "scope": {
+          "type": "select",
+          "label": "文件范围",
+          "default": "all",
+          "options": [
+            {
+              "value": "all",
+              "label": "全部"
+            },
+            {
+              "value": "home",
+              "label": "专题首页"
+            },
+            {
+              "value": "notes",
+              "label": "笔记"
+            },
+            {
+              "value": "outputs",
+              "label": "交付物"
+            },
+            {
+              "value": "sections",
+              "label": "段落"
+            },
+            {
+              "value": "articles",
+              "label": "文章"
+            },
+            {
+              "value": "memos",
+              "label": "备注"
+            },
+            {
+              "value": "entities",
+              "label": "实体"
+            }
+          ]
+        }
+      },
+      "args_extra": [
+        "--category",
+        "{category}",
+        "--topic",
+        "{topic}",
+        "--category-root",
+        "{category_root}",
+        "--topic-root",
+        "{topic_root}",
+        "--scope",
+        "{scope}"
+      ],
+      "reads": [
+        "{category_root}/{topic}/**"
+      ],
+      "writes": [],
+      "contexts": [
+        "topic",
+        "files"
+      ]
+    },
+    "list-inbox": {
+      "label": "列出收件箱",
+      "description": "列出 00-收件箱/ 中尚未归属到大类的捕获文件。",
+      "group": "assistive",
+      "exposure": "primary",
+      "risk_level": "low",
+      "review_policy": "auto",
+      "requires_topic": false,
+      "idempotent": true,
+      "supports_dry_run": false,
+      "destructive": false,
+      "inputs": {
+        "limit": {
+          "type": "number",
+          "label": "最大数量",
+          "default": 100,
+          "min": 1,
+          "max": 500
+        }
+      },
+      "args_extra": [
+        "--limit",
+        "{limit}"
+      ],
+      "reads": [
+        "00-收件箱/**"
+      ],
+      "writes": [],
+      "contexts": [
+        "workspace",
+        "inbox"
+      ]
+    },
+    "list-recent-captures": {
+      "label": "列出最近捕获",
+      "description": "从 00-收件箱/ 和各大类专题 notes/ 读取最近捕获，帮助回答“刚才收哪去了”。",
+      "group": "assistive",
+      "exposure": "advanced",
+      "risk_level": "low",
+      "review_policy": "auto",
+      "requires_topic": false,
+      "idempotent": true,
+      "supports_dry_run": false,
+      "destructive": false,
+      "inputs": {
+        "limit": {
+          "type": "number",
+          "label": "最大数量",
+          "default": 20,
+          "min": 1,
+          "max": 100
+        }
+      },
+      "args_extra": [
+        "--limit",
+        "{limit}"
+      ],
+      "reads": [
+        "00-收件箱/**",
+        "{10-60 大类}/{YYYY-专题}/*.md"
+      ],
+      "writes": [],
+      "contexts": [
+        "workspace",
+        "inbox",
+        "topics",
+        "receipts"
+      ]
+    },
+    "list-safety-receipts": {
+      "label": "列出恢复记录",
+      "description": "列出备份、回收项、归档专题和专题内修订版文件，帮助定位可恢复的写入记录。",
+      "group": "assistive",
+      "exposure": "advanced",
+      "risk_level": "low",
+      "review_policy": "auto",
+      "requires_topic": false,
+      "idempotent": true,
+      "supports_dry_run": false,
+      "destructive": false,
+      "inputs": {
+        "limit": {
+          "type": "number",
+          "label": "最大数量",
+          "default": 20,
+          "min": 1,
+          "max": 100
+        }
+      },
+      "args_extra": [
+        "--limit",
+        "{limit}"
+      ],
+      "reads": [
+        "99-归档/backups/**",
+        "99-归档/trash/**",
+        "99-归档/*",
+        "{10-60 大类}/{YYYY-专题}/**"
+      ],
+      "writes": [],
+      "contexts": [
+        "workspace",
+        "archive",
+        "receipts",
+        "recovery"
+      ]
+    }
+  }
+}

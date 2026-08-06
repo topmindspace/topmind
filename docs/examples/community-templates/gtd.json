@@ -1,0 +1,31 @@
+{
+  "templateId": "gtd",
+  "version": "1.0.0",
+  "name": "GTD 行动型",
+  "description": "按行动状态分类：下一步行动、等待中、项目、日程。适合任务驱动的工作流管理。",
+  "categories": {
+    "00": { "name": "收件箱", "role": "buffer", "required": true },
+    "10": { "name": "下一步行动", "role": "deep-work" },
+    "20": { "name": "等待中", "role": "deep-work" },
+    "30": { "name": "项目", "role": "deep-work" },
+    "40": { "name": "日程", "role": "loose-stream", "specialBehavior": "flat-default" },
+    "50": { "name": "参考资料", "role": "reference", "referenceOnly": true },
+    "60": { "name": "也许以后", "role": "fallback", "catchAll": true, "retentionDays": 60 },
+    "88": { "name": "输出", "role": "delivery", "required": true },
+    "99": { "name": "归档", "role": "system", "required": true }
+  },
+  "connectorHints": {
+    "weread": { "preferSlot": "50", "preferRole": "reference", "nameKeywords": ["参考", "阅读", "读书"] },
+    "x": { "preferSlot": "50", "preferRole": "reference", "nameKeywords": ["参考", "social", "素材"] }
+  },
+  "stream": {
+    "packing": "weekly",
+    "appendHeading": "day"
+  },
+  "memory": {
+    "dir": null,
+    "profileFile": "我的情况.md"
+  },
+  "defaultViews": ["category", "kanban"],
+  "separator": "-"
+}

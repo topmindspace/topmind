@@ -1,0 +1,738 @@
+@import "tailwindcss";
+
+/**
+ * topmind Design Tokens — Design System 2.0 "纸感智识工作台 / Paper Mind Workbench"
+ *
+ * Brand source (logo / favicon.svg):
+ *   ink deep #31548e → ink mid #5a7fb8 → capture teal #2fa89a
+ *
+ * Aesthetic: warm paper neutrals + single strong ink-blue primary.
+ * Aqua/teal is RESERVED for capture actions only (titlebar capture, inbox identity).
+ * Density: Linear; reading comfort: Craft; object feel: filesystem.
+ * Solid CTA uses Ink Deep (best contrast). Mid/Teal only for glow, skills, capture moments.
+ *
+ * Consistency rules:
+ * - Elevation: shadow hairline OR border, not both stacked thickly
+ * - Surfaces: chrome (rails) → background (canvas) → surface (cards) → elevated (popovers)
+ * - Motion: opacity-first, short enter (≤160ms); never full-viewport backdrop-filter
+ * - Scroll: overscroll-behavior contain on panel scrollers; avoid blur on sticky chrome
+ * - One solid CTA per region; selection fills stay ≤ ~10% accent alpha (low visual load)
+ *
+ * Light: warm stone rails → warm paper canvas → warm-white surface → elevated
+ * Dark: warm graphite ink base → lifted panels → soft ink-blue accent glow
+ *
+ * Surface ladder (must stay distinct — never collapse elevated into surface):
+ *   app-chrome → background → surface → surface-elevated
+ */
+@theme {
+  /* ── Brand stops (Design System 2.0; prefer semantic accent-* in UI) ── */
+  --color-brand-deep: #31548e;
+  --color-brand-mid: #5a7fb8;
+  --color-brand-aqua: #2fa89a;
+  /* Soft brand wash for landing / empty states only — never full chrome fills */
+  --color-brand-wash: color-mix(in srgb, var(--color-brand-mid) 6%, transparent);
+
+  /* ── Colors (light) ──
+     Hierarchy: chrome warmer/slightly darker → warm paper canvas → warm-white surface → elevated.
+     Neutrals are warm stone (hue ~45–55°, low chroma) — paper feel, not office gray.
+     Reading comfort leans Obsidian/Notion: quieter hairlines, soft paper canvas. */
+  --color-app-chrome: #edeae2;
+  --color-app-chrome-muted: #e4e0d5;
+  --color-background: #f6f4ef;
+  --color-surface: #fffefb;
+  /* Elevated must stay distinct from surface in light — warm white + mandatory float on overlays */
+  --color-surface-elevated: #fdfcf8;
+  --color-surface-muted: #f0ede5;
+  --color-surface-inset: #e8e4d9;
+  /* Ink hierarchy — primary for body, secondary chrome, tertiary/quaternary for meta (lighter = less noise) */
+  --color-text-primary: #2b2822;
+  --color-text-secondary: #57524a;
+  --color-text-tertiary: #7c766b;
+  --color-text-quaternary: #a29b8d;
+  /* Prose body on paper — slightly softer than pure ink for long reading */
+  --color-text-prose: #33302a;
+  /* Hairlines: readable structure without heavy grids (Notion/Obsidian quiet style) */
+  --color-border-subtle: rgba(62, 54, 38, 0.10);
+  --color-border-subtle-dim: rgba(62, 54, 38, 0.065);
+  --color-border-strong: rgba(62, 54, 38, 0.17);
+
+  /* Ink Deep accent — solid CTA; muted fills for selection (low visual pressure) */
+  --color-accent-project: var(--color-brand-deep);
+  /* Inbox / capture identity: teal family, darkened for text contrast on light paper */
+  --color-accent-inbox: #12897b;
+  --color-accent-color: var(--color-brand-deep);
+  --color-accent-hover: #294878;
+  --color-accent-active: #223c65;
+  --color-accent-muted: rgba(49, 84, 142, 0.09);
+  --color-focus-ring: rgba(49, 84, 142, 0.85);
+  --color-focus-soft: rgba(49, 84, 142, 0.13);
+  --color-status-success: #1a7f53;
+  --color-success: var(--color-status-success);
+  --color-status-success-bg: rgba(26, 127, 83, 0.09);
+  --color-status-success-glow: rgba(26, 127, 83, 0.28);
+  --color-status-warning: #b3760e;
+  --color-warning: var(--color-status-warning);
+  --color-status-warning-bg: rgba(179, 118, 14, 0.09);
+  --color-status-warning-glow: rgba(179, 118, 14, 0.28);
+  --color-status-error: #c03d2e;
+  --color-error: var(--color-status-error);
+  --color-status-error-bg: rgba(192, 61, 46, 0.09);
+  --color-status-error-glow: rgba(192, 61, 46, 0.32);
+  /* Info follows Ink Mid — secondary signal, not CTA purple */
+  --color-status-info: var(--color-brand-mid);
+  --color-status-info-bg: rgba(90, 127, 184, 0.09);
+  --color-status-info-glow: rgba(90, 127, 184, 0.32);
+  --color-status-accent: var(--color-accent-color);
+  --color-status-accent-glow: rgba(49, 84, 142, 0.36);
+  --color-inset-glow-subtle: rgba(255, 255, 255, 0.06);
+  --color-inset-glow-hover: rgba(255, 255, 255, 0.1);
+  --color-accent-border-subtle: rgba(49, 84, 142, 0.18);
+  --color-accent-bg-subtle: rgba(49, 84, 142, 0.08);
+  --color-accent-bg-faint: rgba(49, 84, 142, 0.04);
+  --color-accent-inset-border: rgba(49, 84, 142, 0.26);
+  --color-scrim: rgba(42, 36, 24, 0.36);
+  --color-kbd-bg: rgba(42, 36, 24, 0.05);
+  --color-surface-elevated-glass: color-mix(in srgb, var(--color-surface-elevated) 90%, transparent);
+  --color-app-chrome-glass: color-mix(in srgb, var(--color-app-chrome) 82%, transparent);
+  --shadow-premium: 0 8px 28px rgba(42, 36, 24, 0.06), 0 0 0 1px var(--color-border-subtle);
+  --shadow-premium-hover: 0 14px 40px rgba(42, 36, 24, 0.09), 0 0 0 1px var(--color-border-strong);
+  /* Skill identity — stay on brand axis (no purple drift) */
+  --color-skill-capture: var(--color-accent-inbox);
+  --color-skill-organize: var(--color-brand-deep);
+  --color-skill-write: var(--color-brand-mid);
+  --color-skill-memory: #46689b;
+  --color-skill-loop: #c98a12;
+
+  /* Ambient glow — soft ink-blue, never loud */
+  --color-glow-primary: rgba(49, 84, 142, 0.05);
+  --color-glow-primary-hover: rgba(49, 84, 142, 0.10);
+  --color-glow-accent: rgba(90, 127, 184, 0.12);
+
+  /* Surface interaction states */
+  --color-surface-hover: var(--color-surface-muted);
+  --color-surface-elevated-hover: #f1eee6;
+  --color-border-subtle-hover: rgba(42, 36, 24, 0.16);
+  --color-surface-active: var(--color-surface-inset);
+  /* Slightly stronger wash so selected rows stay readable under bright ambient light */
+  --color-surface-selected: rgba(49, 84, 142, 0.11);
+  --color-surface-accent-subtle: rgba(49, 84, 142, 0.06);
+  --color-border-focus: var(--color-accent-color);
+  --color-border-accent-hairline: color-mix(in srgb, var(--color-accent-color) 20%, transparent);
+  --color-border-accent-hairline-strong: color-mix(in srgb, var(--color-accent-color) 30%, transparent);
+  --color-text-on-accent: #ffffff;
+  /* Dialog / overlay semantic aliases */
+  --color-dialog-bg: var(--color-surface-elevated);
+  --color-dialog-header: color-mix(in srgb, var(--color-surface-muted) 48%, var(--color-surface-elevated));
+
+  /* Object identity */
+  --color-object-project: var(--color-accent-project);
+  --color-object-inbox: var(--color-accent-inbox);
+  --color-object-project-bg: rgba(49, 84, 142, 0.08);
+  --color-object-inbox-bg: rgba(18, 137, 123, 0.09);
+
+  /* ── Spacing (4px base) ── */
+  --space-1: 4px;
+  --space-1h: 6px;
+  --space-2: 8px;
+  --space-2h: 10px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+  --space-10: 64px;
+  --space-1h5: 5px;
+  --space-1h75: 7px;
+  --space-2h25: 9px;
+  --space-3h5: 14px;
+  --space-4h5: 18px;
+  --space-5h5: 22px;
+  --space-6h5: 28px;
+
+  /* ── Radius — soft modern, still dense-app friendly ── */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-full: 9999px;
+
+  /* ── Elevation (soft first; hairline only on floating overlays) ── */
+  --shadow-border: 0 0 0 1px var(--color-border-subtle);
+  --shadow-xs: 0 1px 2px rgba(42, 36, 24, 0.05);
+  --shadow-sm: 0 2px 8px rgba(42, 36, 24, 0.06), 0 1px 2px rgba(42, 36, 24, 0.035);
+  --shadow-md: 0 6px 18px rgba(42, 36, 24, 0.08), 0 2px 4px rgba(42, 36, 24, 0.035);
+  --shadow-lg: 0 12px 32px rgba(42, 36, 24, 0.10);
+  --shadow-xl: 0 20px 48px rgba(42, 36, 24, 0.12);
+  /* Feed / list cards — weaker than overlays so popovers float above content */
+  --shadow-card: 0 1px 2px rgba(42, 36, 24, 0.04);
+  /* Inset field wash — single source for input/textarea/select inner shadow */
+  --shadow-input-inset: inset 0 1px 2px rgba(42, 36, 24, 0.04);
+  /* Primary button: quiet lift + soft brand glow on hover (not neon) */
+  --shadow-button: 0 1px 2px rgba(42, 36, 24, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  --shadow-button-hover: 0 3px 12px rgba(49, 84, 142, 0.14), 0 1px 2px rgba(49, 84, 142, 0.08);
+  --shadow-divider-top: 0 -1px 0 0 var(--color-border-subtle-dim);
+  --shadow-divider-right: 1px 0 0 0 var(--color-border-subtle-dim);
+  --shadow-divider-bottom: 0 1px 0 0 var(--color-border-subtle-dim);
+  --shadow-divider-left: -1px 0 0 0 var(--color-border-subtle-dim);
+  --shadow-accent-ring: inset 0 0 0 1px var(--color-focus-soft);
+  --shadow-overlay: 0 24px 64px rgba(42, 36, 24, 0.16), 0 8px 20px rgba(42, 36, 24, 0.07), 0 0 0 1px var(--color-border-subtle);
+  --shadow-float: 0 10px 28px rgba(42, 36, 24, 0.10), 0 0 0 1px var(--color-border-subtle);
+  /* Elevated panels: depth + optional top hairline (light: soft; dark: inset glow) */
+  --shadow-elevated-hairline: var(--shadow-float);
+  --shadow-overlay-hairline: var(--shadow-overlay);
+
+  /* ── Transition shorthands ── */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-interactive: color var(--duration-fast) var(--ease-default),
+    background-color var(--duration-fast) var(--ease-default),
+    border-color var(--duration-fast) var(--ease-default),
+    box-shadow var(--duration-fast) var(--ease-default),
+    transform var(--duration-fast) var(--ease-spring),
+    opacity var(--duration-fast) var(--ease-default);
+
+  /* ── Typography ──
+     System-first UI (no unhosted webfont). CJK-first for editor body.
+     Display stays sans (workbench, not editorial magazine). */
+  /* UI: system stack (Obsidian/Notion workbench). Editor: CJK-first long-read. */
+  --font-family-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI Variable', 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Helvetica Neue', sans-serif;
+  --font-family-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Helvetica Neue', sans-serif;
+  --font-family-editor-sans: 'PingFang SC', 'SF Pro Text', 'Hiragino Sans GB', 'Microsoft YaHei', 'Segoe UI', 'Helvetica Neue', 'Noto Sans CJK SC', -apple-system, sans-serif;
+  --font-family-editor-serif: 'Source Han Serif SC', 'Noto Serif SC', 'Songti SC', 'STSong', 'Georgia', 'Times New Roman', serif;
+  --font-family-mono: 'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+  --font-sans: var(--font-family-ui);
+  --font-mono: var(--font-family-mono);
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
+  /* Tracking: refined for CJK+Latin mixed UI (Obsidian/Linear standard) */
+  --letter-spacing-tighter: -0.024em;
+  --letter-spacing-tight: -0.015em;
+  --letter-spacing-normal: 0.005em;
+  --letter-spacing-wide: 0.04em;
+  --letter-spacing-wide-plus: 0.06em;
+  --letter-spacing-wide-strong: 0.08em;
+
+  /* Semantic type roles — calm workbench density with distinct hierarchy scale */
+  --type-size-caption: 12px;
+  --type-size-control: 12.5px;
+  --type-size-ui: 13px;
+  --type-size-body: 14px;
+  --type-size-minor-title: 14.5px;
+  --type-size-title: 15px;
+  --type-size-subtitle: 16px;
+  --type-size-section-title: 18px;
+  --type-size-page-title: 24px;
+  --type-size-display: 28px;
+
+  /* Layout density — workbench-first (tighter chrome, airy content) */
+  --density-page-x: 28px;
+  --density-page-y: 24px;
+  --density-section: 28px;
+  --density-card: 14px;
+  --density-row: 6px;
+  --density-chrome-y: 38px;
+  /* 26px status meta — readable without chrome clutter */
+  --density-status-y: 26px;
+  --density-sidebar-pad-x: 8px;
+  --density-tree-row: 28px;
+  --density-editor-toolbar-y: 32px;
+
+  --icon-xs: 12px;
+  --icon-sm: 15px;
+  --icon-md: 18px;
+  --icon-lg: 22px;
+  --icon-xl: 28px;
+  --icon-micro: 11px;
+
+  /* Control heights — comfortable hit targets */
+  --control-h-xs: 26px;
+  /* Chip / badge row height (FilterChip, capture mode chips) — below control floor */
+  --control-h-chip: 22px;
+  --control-h-sm: 30px;
+  --control-h-md: 34px;
+  --control-h-lg: 40px;
+  --type-weight-regular: var(--font-weight-normal);
+  --type-weight-medium: var(--font-weight-medium);
+  --type-weight-strong: var(--font-weight-semibold);
+
+  --type-leading-compact: 1.38;
+  --type-leading-ui: 1.48;
+  --type-leading-body: 1.68;
+  --type-leading-heading-tight: 1.22;
+  --type-leading-heading: 1.3;
+  --type-leading-prose-code: 1.62;
+  --type-tracking-display: var(--letter-spacing-tighter);
+  --type-tracking-page-title: var(--letter-spacing-tight);
+  --type-tracking-ui: var(--letter-spacing-normal);
+
+  /* Tracking utilities mapped to Obsidian letter-spacing tokens */
+  --tracking-tighter: var(--letter-spacing-tighter);
+  --tracking-tight: var(--letter-spacing-tight);
+  --tracking-normal: var(--letter-spacing-normal);
+  --tracking-wide: var(--letter-spacing-wide);
+
+  /* Micro type scale
+     Policy (Obsidian / long-read): UI copy ≥12px (text-2xs).
+     text-5xs/4xs for kbd glyphs & non-essential chrome flourishes. */
+  --text-5xs: 10px;
+  --text-5xs--line-height: var(--type-leading-compact);
+  --text-4xs: 11px;
+  --text-4xs--line-height: var(--type-leading-compact);
+  --text-3xs: 11.5px;
+  --text-3xs--line-height: var(--type-leading-compact);
+  --text-2xs: 12px;
+  --text-2xs--line-height: var(--type-leading-compact);
+  --text-xs: 12.5px;
+  --text-xs--line-height: var(--type-leading-ui);
+  --text-sm: 13px;
+  --text-sm--line-height: var(--type-leading-ui);
+  --text-base: 14px;
+  --text-base--line-height: var(--type-leading-body);
+  --text-md: 14.5px;
+  --text-md--line-height: var(--type-leading-ui);
+  --text-lg: 15px;
+  --text-lg--line-height: var(--type-leading-compact);
+  --text-xl: 16px;
+  --text-xl--line-height: var(--type-leading-compact);
+  --text-2xl: 18px;
+  --text-2xl--line-height: var(--type-leading-heading);
+  --text-3xl: 24px;
+  --text-3xl--line-height: var(--type-leading-heading);
+  --text-4xl: 28px;
+  --text-4xl--line-height: var(--type-leading-heading-tight);
+
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.7;
+
+  /* ── Layout ── */
+  --content-max-width: 1120px;
+  --content-max-width-narrow: 720px;
+  --content-max-width-dashboard: 880px;
+  /* Comfortable reading column (~65–75 CJK chars / ~70 Latin) */
+  /* Editor reading column — default wider than classic 42rem for better space use */
+  --content-max-width-prose: 52rem;
+  --content-max-width-prose-compact: 40rem;
+  --content-max-width-prose-reading: 52rem;
+  --content-max-width-prose-wide: 72rem;
+  --z-local: 1;
+  --z-shell-rail: 10;
+  --z-header: 20;
+  --z-popover: 30;
+  --z-floating: 50;
+  --z-overlay: 70;
+  --z-modal: 80;
+  --z-notification: 90;
+  --z-toast: 100;
+  /* Open menus/listboxes must paint above tooltips (see DESIGN § dropdown) */
+  --z-menu: 110;
+  /* Popovers that must paint above open menus (e.g. todo popover over dropdowns) */
+  --z-popover-overlay: 120;
+  --z-skip-link: 1000;
+
+  /* ── Animation — snappy workbench (avoid long enter delays) ── */
+  --duration-instant: 60ms;
+  --duration-quick: 100ms;
+  --duration-fast: 140ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+  --duration-enter: 160ms;
+  --duration-exit: 120ms;
+  --ease-default: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+
+  /* ── Blur — small surfaces only; never full-viewport scrim ── */
+  --blur-sm: 6px;
+  --blur-md: 12px;
+  --blur-lg: 18px;
+  --blur-glass: 14px;
+}
+
+/* Unified focus ring */
+@theme {
+  --shadow-focus: 0 0 0 1px var(--color-accent-color), 0 0 0 4px var(--color-focus-soft);
+  --shadow-focus-inset: inset 0 0 0 1px var(--color-accent-color), inset 0 0 0 4px var(--color-focus-soft);
+}
+
+@layer base, layout, components;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  body[data-mode='inbox'] {
+    --color-accent-color: var(--color-accent-inbox);
+    --color-accent-muted: rgba(18, 137, 123, 0.11);
+    --color-accent-hover: #0f7568;
+    --color-accent-active: #0d6459;
+    --color-accent-border-subtle: rgba(18, 137, 123, 0.20);
+    --color-accent-bg-subtle: rgba(18, 137, 123, 0.09);
+    --color-focus-ring: rgba(18, 137, 123, 0.88);
+    --color-focus-soft: rgba(18, 137, 123, 0.14);
+  }
+
+  .dark {
+    color-scheme: dark;
+    /* Warm graphite ink hierarchy: quiet chrome → soft canvas → elevated panels */
+    --color-app-chrome: #181613;
+    --color-app-chrome-muted: #1c1a16;
+    --color-background: #201e19;
+    --color-surface: #282520;
+    --color-surface-elevated: #302d26;
+    --color-surface-muted: #2c2923;
+    --color-surface-inset: #181613;
+    /* High contrast, eye-comfortable text hierarchy (AA+ standard) */
+    --color-text-primary: #f0ede4;
+    --color-text-secondary: #d0cabd;
+    --color-text-tertiary: #a49c8c;
+    --color-text-quaternary: #847d6e;
+    --color-text-prose: #f0ede4;
+    --color-border-subtle: rgba(255, 248, 235, 0.10);
+    --color-border-subtle-dim: rgba(255, 248, 235, 0.055);
+    --color-border-strong: rgba(255, 248, 235, 0.18);
+    --color-dialog-bg: var(--color-surface-elevated);
+    --color-dialog-header: color-mix(in srgb, var(--color-surface-muted) 55%, var(--color-surface-elevated));
+    /* Dark accent = lifted ink blue (readable on warm graphite, still brand-true) */
+    --color-accent-project: #7f9fd4;
+    --color-accent-inbox: #4fc2b0;
+    --color-accent-color: #7f9fd4;
+      --color-accent-hover: #93aede;
+    --color-accent-active: #a7bde6;
+    --color-accent-muted: rgba(127, 159, 212, 0.16);
+    --color-accent-border-subtle: rgba(127, 159, 212, 0.28);
+    --color-accent-bg-subtle: rgba(127, 159, 212, 0.14);
+    --color-accent-bg-faint: rgba(127, 159, 212, 0.06);
+    --color-accent-inset-border: rgba(127, 159, 212, 0.35);
+    --color-status-accent: var(--color-accent-color);
+    --color-status-accent-glow: rgba(127, 159, 212, 0.40);
+    --color-focus-ring: rgba(127, 159, 212, 0.90);
+    --color-focus-soft: rgba(127, 159, 212, 0.16);
+    --color-status-success: #4ec996;
+    --color-status-success-bg: rgba(78, 201, 150, 0.12);
+    --color-status-warning: #e3ae4a;
+    --color-warning: var(--color-status-warning);
+    --color-status-warning-bg: rgba(227, 174, 74, 0.12);
+    --color-status-error: #e57368;
+    --color-status-error-bg: rgba(229, 115, 104, 0.12);
+    --color-status-info: #93aede;
+    --color-status-info-bg: rgba(127, 159, 212, 0.12);
+    --color-scrim: rgba(0, 0, 0, 0.56);
+    --color-kbd-bg: rgba(255, 248, 235, 0.08);
+
+    --color-glow-primary: rgba(127, 159, 212, 0.06);
+    --color-glow-primary-hover: rgba(127, 159, 212, 0.12);
+    --color-glow-accent: rgba(79, 194, 176, 0.10);
+
+    --color-surface-hover: #2e2b24;
+    --color-surface-elevated-hover: #37332b;
+    --color-border-subtle-hover: rgba(255, 248, 235, 0.16);
+    --color-surface-active: var(--color-surface-inset);
+    --color-surface-selected: rgba(127, 159, 212, 0.16);
+    --color-surface-accent-subtle: rgba(127, 159, 212, 0.10);
+    --color-border-focus: var(--color-accent-color);
+    --color-text-on-accent: #12100c;
+    --color-app-chrome-glass: color-mix(in srgb, var(--color-app-chrome) 78%, transparent);
+    --color-surface-elevated-glass: color-mix(in srgb, var(--color-surface-elevated) 90%, transparent);
+    --shadow-premium: 0 10px 36px rgba(0, 0, 0, 0.38), 0 0 0 1px var(--color-border-subtle);
+    --shadow-premium-hover: 0 16px 48px rgba(0, 0, 0, 0.46), 0 0 0 1px var(--color-border-strong);
+    --color-skill-capture: var(--color-accent-inbox);
+    --color-skill-organize: var(--color-accent-project);
+    --color-skill-write: #93aede;
+    --color-skill-memory: #6f92c8;
+    --color-skill-loop: #e3ae4a;
+
+    --color-object-project: #7f9fd4;
+    --color-object-inbox: #4fc2b0;
+    --color-object-project-bg: rgba(127, 159, 212, 0.12);
+    --color-object-inbox-bg: rgba(79, 194, 176, 0.10);
+
+    --shadow-border: 0 0 0 1px var(--color-border-subtle);
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.30);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.34);
+    --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.38);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.44);
+    --shadow-xl: 0 20px 48px rgba(0, 0, 0, 0.50);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.28);
+    --shadow-input-inset: inset 0 1px 2px rgba(0, 0, 0, 0.28);
+    --shadow-button: 0 1px 2px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.10);
+    --shadow-button-hover: 0 4px 14px rgba(127, 159, 212, 0.30);
+    --shadow-overlay: 0 28px 72px rgba(0, 0, 0, 0.54), 0 10px 24px rgba(0, 0, 0, 0.32), 0 0 0 1px var(--color-border-subtle);
+    --shadow-float: 0 12px 32px rgba(0, 0, 0, 0.42), 0 0 0 1px var(--color-border-subtle);
+    /* Raycast/Linear-style dark polish: outer hairline + 1px top inset glow */
+    --shadow-elevated-hairline:
+      var(--shadow-float),
+      0 0 0 1px color-mix(in srgb, #fff 6%, transparent),
+      inset 0 1px 0 0 var(--color-inset-glow-subtle);
+    --shadow-overlay-hairline:
+      var(--shadow-overlay),
+      0 0 0 1px color-mix(in srgb, #fff 7%, transparent),
+      inset 0 1px 0 0 var(--color-inset-glow-subtle);
+    --color-inset-glow-subtle: rgba(255, 255, 255, 0.07);
+    --color-inset-glow-hover: rgba(255, 255, 255, 0.11);
+    --shadow-divider-top: 0 -1px 0 0 var(--color-border-subtle);
+    --shadow-divider-right: 1px 0 0 0 var(--color-border-subtle);
+    --shadow-divider-bottom: 0 1px 0 0 var(--color-border-subtle);
+    --shadow-divider-left: -1px 0 0 0 var(--color-border-subtle);
+    --shadow-accent-ring: inset 0 0 0 1px var(--color-focus-soft);
+  }
+
+  .dark body[data-mode='inbox'] {
+    --color-accent-color: var(--color-accent-inbox);
+    --color-accent-muted: rgba(79, 194, 176, 0.15);
+    --color-accent-hover: #6fd4c2;
+    --color-accent-active: #8fe0d0;
+    --color-accent-border-subtle: rgba(79, 194, 176, 0.26);
+    --color-accent-bg-subtle: rgba(79, 194, 176, 0.11);
+    --color-focus-ring: rgba(79, 194, 176, 0.88);
+    --color-focus-soft: rgba(79, 194, 176, 0.14);
+    --color-text-on-accent: #12100c;
+  }
+}
+
+.dark.high-contrast {
+  --color-background: #000000;
+  --color-surface: #000000;
+  --color-surface-elevated: #111111;
+  --color-surface-muted: #222222;
+  --color-surface-inset: #1a1a1a;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #e0e0e0;
+  --color-text-tertiary: #cccccc;
+  --color-text-quaternary: #aaaaaa;
+  --color-border-subtle: #ffffff;
+  --color-border-strong: #ffffff;
+  --color-accent-color: #93aede;
+  --color-accent-muted: rgba(147, 174, 222, 0.22);
+}
+
+/* ── Base resets ── */
+@layer base {
+
+html {
+  scroll-behavior: auto;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-size-body);
+  font-weight: var(--type-weight-regular);
+  line-height: var(--type-leading-body);
+  letter-spacing: var(--type-tracking-ui);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "kern" 1, "liga" 1, "ss01" on, "cv11" on, "calt" on;
+}
+
+code,
+pre,
+kbd,
+samp,
+.font-mono {
+  font-family: var(--font-family-mono);
+}
+
+a {
+  color: var(--color-accent-color);
+  text-decoration: underline;
+  text-underline-offset: 2.5px;
+  text-decoration-thickness: 1px;
+  transition: color var(--duration-fast) var(--ease-default);
+}
+
+a:hover {
+  color: var(--color-accent-hover);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-accent-color) 22%, transparent);
+  color: var(--color-text-primary);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  touch-action: manipulation;
+}
+
+button {
+  cursor: pointer;
+  transition: var(--transition-interactive);
+}
+
+button:active:not(:disabled),
+.interactive-scale:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--color-focus-soft);
+}
+
+/* Base scrollbar — slightly roomy for general surfaces (lists, dialogs) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-text-tertiary) 40%, transparent) transparent;
+}
+
+::-webkit-scrollbar,
+.custom-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track,
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb,
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-text-tertiary) 36%, transparent);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background-color var(--duration-fast) var(--ease-default);
+}
+
+::-webkit-scrollbar-thumb:hover,
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--color-text-tertiary) 58%, transparent);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+::-webkit-scrollbar-thumb:active,
+.custom-scrollbar::-webkit-scrollbar-thumb:active {
+  background: color-mix(in srgb, var(--color-text-tertiary) 72%, transparent);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+} /* end @layer base */
+
+/* Motion: opacity-first, micro translate — cheaper than large transforms */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fade-in-scale {
+  from { opacity: 0; transform: scale(0.985); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, 4px) scale(0.98); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+.animate-fade-in {
+  animation: fade-in var(--duration-enter) var(--ease-out);
+}
+
+.animate-fade-in-scale {
+  animation: fade-in-scale var(--duration-enter) var(--ease-out);
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up var(--duration-enter) var(--ease-out);
+}
+
+.animate-toast-in {
+  animation: toast-in var(--duration-enter) var(--ease-spring);
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-surface-muted) 70%, transparent) 25%,
+    color-mix(in srgb, var(--color-surface-elevated) 95%, var(--color-accent-muted)) 50%,
+    color-mix(in srgb, var(--color-surface-muted) 70%, transparent) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+.animate-spin {
+  animation: spin 0.65s linear infinite;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 1.8s ease-in-out infinite;
+}
+
+/* Stagger — short cascade; only first few items delay (lists stay scrollable) */
+.stagger-children > * {
+  animation: fade-in var(--duration-fast) var(--ease-out) both;
+}
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 20ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 40ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 55ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 70ms; }
+.stagger-children > *:nth-child(n+6) { animation-delay: 80ms; }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  button:active:not(:disabled),
+  .interactive-scale:active:not(:disabled) {
+    transform: none;
+  }
+  .stagger-children > * {
+    animation: none !important;
+  }
+}

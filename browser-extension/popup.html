@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>topmind Clip</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="popup-shell">
+      <header class="app-header">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">M</span>
+          <strong>topmind Clip</strong>
+        </div>
+        <span id="status" class="pill muted">检测中…</span>
+      </header>
+
+      <!-- First-run setup (hidden when configured) -->
+      <div id="setup-card" class="setup-card" hidden>
+        <p class="setup-title" data-i18n="setup_title">完成一次配置即可剪藏</p>
+        <ol class="setup-steps">
+          <li>
+            <strong data-i18n="setup_step1">Desktop Bridge（推荐）</strong><br />
+            <span data-i18n="setup_step1_detail">Desktop → 设置 → 通用 → 浏览器剪藏 → 启用并复制 Token</span>
+          </li>
+          <li>
+            <strong data-i18n="setup_step2">本机工作区（可不启 Desktop）</strong><br />
+            <span data-i18n="setup_step2_detail">在设置页授权 topmind-workspace 根目录</span>
+          </li>
+        </ol>
+        <button id="open-setup" type="button" class="btn-primary" data-i18n="setup_open">打开设置完成配置</button>
+      </div>
+
+      <div class="page-card" id="page-card" hidden>
+        <label class="label" for="page-title-input" data-i18n="label_title">标题</label>
+        <input id="page-title-input" class="title-input" type="text" autocomplete="off" placeholder="页面标题" />
+        <p class="page-url" id="page-url"></p>
+        <div class="meta-row" id="meta-row" hidden>
+          <span id="meta-mode" class="chip">正文</span>
+          <span id="meta-words" class="chip muted"></span>
+          <span id="meta-author" class="chip muted" hidden></span>
+        </div>
+        <div class="mode-row" role="radiogroup" aria-label="剪藏模式" data-i18n-aria-label="clip_mode">
+          <button type="button" class="mode-btn active" data-mode="article" id="mode-article" data-i18n="mode_article">正文</button>
+          <button type="button" class="mode-btn" data-mode="selection" id="mode-selection" data-i18n="mode_selection">选区</button>
+          <button type="button" class="mode-btn" data-mode="highlights" id="mode-highlights" data-i18n="mode_highlights">高亮</button>
+        </div>
+        <label class="label" for="dest-select" data-i18n="label_dest">落点</label>
+        <select id="dest-select" class="dest-select">
+          <option value="inbox" data-i18n="dest_inbox">收件箱 Inbox</option>
+        </select>
+        <p class="field-hint dest-hint" id="dest-hint" hidden></p>
+        <div class="preview-box" id="preview-box" hidden>
+          <p class="label" data-i18n="label_preview">预览</p>
+          <pre id="preview-text" class="preview-text"></pre>
+        </div>
+      </div>
+
+      <p class="hint" id="hint" data-i18n="hint_default">剪藏当前页或选区到 topmind 收件箱（Bridge 或本机工作区）。</p>
+
+      <div class="actions-row">
+        <button id="hl-toggle" type="button" class="btn-secondary" hidden title="高亮模式" data-i18n-title="btn_highlight" data-i18n="btn_highlight">高亮模式</button>
+        <button id="clip" type="button" class="btn-primary btn-capture" data-i18n="btn_clip" data-capture-cta>剪藏到 topmind</button>
+      </div>
+      <p id="msg" class="msg" role="status"></p>
+
+      <div class="footer-row">
+        <a id="opts" class="link" href="options.html" data-i18n="footer_options">配置 Bridge / 工作区 / 模板</a>
+        <span id="kbd" class="kbd" title="快捷键" data-i18n-title="kbd_shortcut">⌘⇧M</span>
+      </div>
+    </div>
+    <script src="popup.js" defer></script>
+  </body>
+</html>

@@ -1,0 +1,431 @@
+{
+  "ext_name": {
+    "message": "topmind Clip",
+    "description": "Extension name"
+  },
+  "ext_description": {
+    "message": "Clip to topmind: preview · highlights · templates · destinations · image localization · Desktop Bridge / workspace.",
+    "description": "Extension description for manifest"
+  },
+  "action_title": {
+    "message": "Clip to topmind",
+    "description": "Browser action tooltip"
+  },
+  "command_clip_selection": {
+    "message": "Clip selection or page to topmind",
+    "description": "Keyboard shortcut description"
+  },
+  "ctx_clip": {
+    "message": "Clip to topmind",
+    "description": "Context menu item"
+  },
+  "ctx_clip_selection": {
+    "message": "Clip selection to topmind",
+    "description": "Context menu item for selection"
+  },
+  "status_detecting": {
+    "message": "Detecting…"
+  },
+  "status_online": {
+    "message": "Online"
+  },
+  "status_workspace": {
+    "message": "Workspace"
+  },
+  "status_offline": {
+    "message": "Offline"
+  },
+  "status_not_configured": {
+    "message": "Not configured"
+  },
+  "status_no_workspace": {
+    "message": "No workspace"
+  },
+  "status_needs_auth": {
+    "message": "Needs auth"
+  },
+  "status_failed": {
+    "message": "Failed"
+  },
+  "setup_title": {
+    "message": "Configure once to start clipping"
+  },
+  "setup_step1": {
+    "message": "Desktop Bridge (recommended)"
+  },
+  "setup_step1_detail": {
+    "message": "Desktop → Settings → General → Browser Clip → Enable and copy Token"
+  },
+  "setup_step2": {
+    "message": "Local workspace (Desktop not required)"
+  },
+  "setup_step2_detail": {
+    "message": "Authorize topmind-workspace root folder in settings"
+  },
+  "setup_open": {
+    "message": "Open settings to configure"
+  },
+  "label_title": {
+    "message": "Title"
+  },
+  "label_dest": {
+    "message": "Destination"
+  },
+  "label_preview": {
+    "message": "Preview"
+  },
+  "mode_article": {
+    "message": "Article"
+  },
+  "mode_selection": {
+    "message": "Selection"
+  },
+  "mode_highlights": {
+    "message": "Highlights"
+  },
+  "hint_default": {
+    "message": "Clip current page or selection to topmind Inbox (Bridge or local workspace)."
+  },
+  "hint_article": {
+    "message": "Will clip full article (Readability) to Inbox"
+  },
+  "hint_selection": {
+    "message": "Will clip current selection · title stays as page"
+  },
+  "hint_highlights": {
+    "message": "Will clip highlighted passages (enable highlight mode first)"
+  },
+  "hint_configured_once": {
+    "message": "Configure once for one-click clip to Inbox"
+  },
+  "hint_needs_auth": {
+    "message": "Local mode: browser will re-confirm directory permission on first clip"
+  },
+  "btn_clip": {
+    "message": "Clip to topmind"
+  },
+  "btn_highlight": {
+    "message": "Highlight mode"
+  },
+  "btn_exit_highlight": {
+    "message": "Exit highlight"
+  },
+  "msg_not_configured": {
+    "message": "Please configure Desktop Token or authorize workspace"
+  },
+  "msg_ws_needs_auth": {
+    "message": "Workspace selected · click \"Clip\" to grant write permission (once)"
+  },
+  "msg_will_write_ws": {
+    "message": "Will write to local workspace (Desktop optional)"
+  },
+  "msg_set_token_or_ws": {
+    "message": "Set Token (Bridge) or authorize workspace folder"
+  },
+  "msg_preparing": {
+    "message": "Preparing…"
+  },
+  "msg_confirm_perm": {
+    "message": "Confirming workspace permission…"
+  },
+  "msg_clipping": {
+    "message": "Clipping…"
+  },
+  "msg_clipping_bg": {
+    "message": "Still clipping in background… Check toolbar badge ✓ / ✕"
+  },
+  "err_missing_token": {
+    "message": "Please configure Desktop Token or authorize workspace folder in settings"
+  },
+  "err_offline_no_ws": {
+    "message": "Desktop offline and no workspace — open settings to configure one"
+  },
+  "err_bridge_unreachable": {
+    "message": "Desktop Bridge unreachable — switch to \"Local Workspace\" mode"
+  },
+  "err_empty_content": {
+    "message": "No content available — select some text first then clip"
+  },
+  "err_no_highlights": {
+    "message": "No highlights yet — click \"Highlight mode\" and select on page"
+  },
+  "err_no_tab": {
+    "message": "No tab to clip"
+  },
+  "err_permission_denied": {
+    "message": "Workspace write permission not active — click \"Clip\" again or re-select folder in settings"
+  },
+  "err_stale_workspace": {
+    "message": "Workspace folder is stale (moved or deleted) — please re-select folder in settings"
+  },
+  "err_extension_internal": {
+    "message": "Extension error (please reload extension)"
+  },
+  "err_failed": {
+    "message": "Failed: $1"
+  },
+  "clip_via": {
+    "message": "$1"
+  },
+  "clip_success_path": {
+    "message": "✓ $1 · $2 $3"
+  },
+  "clip_success_no_path": {
+    "message": "✓ Written ($1)$2"
+  },
+  "mode_label_readability": {
+    "message": "Article"
+  },
+  "mode_label_heuristic": {
+    "message": "Heuristic"
+  },
+  "mode_label_selection": {
+    "message": "Selection"
+  },
+  "word_count": {
+    "message": "~$1 words"
+  },
+  "highlight_count_suffix": {
+    "message": " · $1 highlights"
+  },
+  "template_tooltip": {
+    "message": "Template: $1 ($2)"
+  },
+  "no_title": {
+    "message": "(Untitled)"
+  },
+  "restricted_page": {
+    "message": "Restricted page"
+  },
+  "hl_start_hint": {
+    "message": "Drag-select on page to highlight · Alt+click to remove"
+  },
+  "hl_count_msg": {
+    "message": "$1 highlights"
+  },
+  "hl_unsupported": {
+    "message": "Cannot enable highlights on this page (system page)"
+  },
+  "dest_inbox": {
+    "message": "Inbox"
+  },
+  "dest_category": {
+    "message": "Category · $1"
+  },
+  "dest_topic": {
+    "message": "Topic · $1"
+  },
+  "dest_hint_offline": {
+    "message": "Destinations unavailable (Bridge offline) · default Inbox"
+  },
+  "dest_hint_generic": {
+    "message": "Destinations unavailable · default Inbox"
+  },
+  "clip_mode": {
+    "message": "Clip mode"
+  },
+  "kbd_shortcut": {
+    "message": "Shortcut"
+  },
+  "footer_options": {
+    "message": "Configure Bridge / Workspace / Templates"
+  },
+  "options_title": {
+    "message": "topmind Clip Settings"
+  },
+  "options_lead": {
+    "message": "Two write paths: Desktop Clip Bridge (recommended, Desktop runtime) or local workspace folder (no Desktop process required, writes Inbox per topmind conventions)."
+  },
+  "options_status_detecting": {
+    "message": "Status detecting…"
+  },
+  "options_write_mode": {
+    "message": "Write mode"
+  },
+  "options_mode_auto": {
+    "message": "Auto (prefer Bridge, fall back to workspace)"
+  },
+  "options_mode_bridge": {
+    "message": "Desktop Bridge only"
+  },
+  "options_mode_workspace": {
+    "message": "Local workspace only"
+  },
+  "options_mode_hint": {
+    "message": "Auto mode: Desktop online uses Bridge (better HTML→MD); offline uses authorized workspace folder."
+  },
+  "options_bridge_title": {
+    "message": "A · Desktop Clip Bridge"
+  },
+  "options_bridge_step1": {
+    "message": "topmind Desktop → Settings → General → Browser Clip"
+  },
+  "options_bridge_step2": {
+    "message": "Enable Clip Bridge, copy Token"
+  },
+  "options_bridge_step3": {
+    "message": "Paste below and test"
+  },
+  "options_port": {
+    "message": "Bridge port"
+  },
+  "options_port_default_hint": {
+    "message": "Default 19827"
+  },
+  "options_token": {
+    "message": "Bearer Token"
+  },
+  "options_token_placeholder": {
+    "message": "Copy from Desktop settings"
+  },
+  "options_save": {
+    "message": "Save Bridge"
+  },
+  "options_test": {
+    "message": "Test Bridge"
+  },
+  "options_ws_title": {
+    "message": "B · Local Workspace (no Desktop required)"
+  },
+  "options_ws_hint": {
+    "message": "Select your topmind-workspace root folder (containing 00-Inbox etc.). Browser will request read/write permission; notes are written to Inbox per conventions, frontmatter matches capture."
+  },
+  "options_ws_status_unconfigured": {
+    "message": "Workspace: not configured"
+  },
+  "options_ws_perm_granted": {
+    "message": "Writable"
+  },
+  "options_ws_perm_prompt": {
+    "message": "Click \"Re-authorize\" or confirm in popup"
+  },
+  "options_ws_perm_unknown": {
+    "message": "?"
+  },
+  "options_ws_status_format": {
+    "message": "Workspace: $1 · $2"
+  },
+  "options_ws_pick": {
+    "message": "Select workspace folder…"
+  },
+  "options_ws_reauth": {
+    "message": "Re-authorize write"
+  },
+  "options_ws_clear": {
+    "message": "Clear workspace auth"
+  },
+  "options_ws_perm_hint": {
+    "message": "Requires Chromium (Chrome / Edge). After selecting folder, click \"Re-authorize write\" on this page or click \"Clip\" in popup — browser remembers permission; Service Worker cannot prompt on its own. Local mode uses lightweight HTML→MD; Bridge mode reuses Desktop pipeline."
+  },
+  "options_tpl_title": {
+    "message": "C · Clip Templates"
+  },
+  "options_tpl_hint": {
+    "message": "Auto-match by URL (not full Obsidian DSL). Built-in: article · selection · bookmark · github · zhihu. Variables: title url author published site content selection highlights."
+  },
+  "options_tpl_status_format": {
+    "message": "Custom templates: $1 · Built-in: $2"
+  },
+  "options_tpl_import_label": {
+    "message": "Import custom template JSON"
+  },
+  "options_tpl_import": {
+    "message": "Import / Merge"
+  },
+  "options_tpl_export": {
+    "message": "Export current custom"
+  },
+  "options_tpl_clear": {
+    "message": "Clear custom"
+  },
+  "options_tpl_hint2": {
+    "message": "You can also paste {\"templates\":[...]}. Custom templates take priority over built-in domain matching (same id overwrites). When Bridge is online, popup can select Inbox / Category / Topic destination."
+  },
+  "options_port_range_error": {
+    "message": "Port must be 1024–65535"
+  },
+  "options_saved_msg": {
+    "message": "Saved · mode $1 · port $2 $3"
+  },
+  "options_mode_changed": {
+    "message": "Write mode: $1"
+  },
+  "options_testing": {
+    "message": "Testing Bridge…"
+  },
+  "options_need_token": {
+    "message": "Please enter Token first (or switch to \"Local Workspace\" mode)"
+  },
+  "options_bridge_ok": {
+    "message": "✓ Bridge connected, workspace ready"
+  },
+  "options_bridge_no_ws": {
+    "message": "Bridge online, but Desktop workspace not open"
+  },
+  "options_bridge_fail": {
+    "message": "✗ Bridge unreachable: $1"
+  },
+  "options_picking": {
+    "message": "Selecting folder…"
+  },
+  "options_pick_ok": {
+    "message": "✓ Workspace \"$1\" authorized · writable · can clip without Desktop"
+  },
+  "options_pick_need_reauth": {
+    "message": "✓ Selected \"$1\" · click \"Re-authorize write\" or open popup and click \"Clip\" to confirm permission"
+  },
+  "options_cancelled": {
+    "message": "Cancelled"
+  },
+  "options_unsupported_browser": {
+    "message": "Browser doesn't support directory auth (use Chrome/Edge)"
+  },
+  "options_pick_fail": {
+    "message": "Failed: $1"
+  },
+  "options_requesting_perm": {
+    "message": "Requesting write permission…"
+  },
+  "options_perm_ok": {
+    "message": "✓ Workspace \"$1\" writable"
+  },
+  "options_perm_need_folder": {
+    "message": "Please select workspace folder first"
+  },
+  "options_perm_failed": {
+    "message": "Permission not granted — allow in browser dialog or re-select folder"
+  },
+  "options_cleared": {
+    "message": "Workspace auth cleared"
+  },
+  "options_tpl_invalid": {
+    "message": "Invalid template: $1"
+  },
+  "options_tpl_imported": {
+    "message": "✓ Merged $1 templates · total $2"
+  },
+  "options_tpl_exported_clipboard": {
+    "message": "Exported $1 custom templates to text box and copied"
+  },
+  "options_tpl_exported": {
+    "message": "Exported $1 to text box"
+  },
+  "options_tpl_cleared": {
+    "message": "Custom templates cleared"
+  },
+  "tpl_article": {
+    "message": "Article"
+  },
+  "tpl_selection": {
+    "message": "Selection / Highlights"
+  },
+  "tpl_bookmark": {
+    "message": "Bookmark"
+  },
+  "tpl_github": {
+    "message": "GitHub"
+  },
+  "tpl_zhihu": {
+    "message": "Zhihu"
+  }
+}

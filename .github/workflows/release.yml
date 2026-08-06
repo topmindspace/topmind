@@ -1,0 +1,661 @@
+# Publish surface-scoped artifacts on version tags, then auto-create a GitHub Release.
+# Tags: v1.0.2 | skills-v1.0.0 | desktop-v1.0.2 | extension-v1.0.0
+#
+# Surface matrix:
+#   skills-v*     → skills pack only
+#   extension-v*  → browser extension only
+#   desktop-v*    → desktop matrix only
+#   v*            → skills + extension + desktop
+#
+# Flow: cleanup → plan → create-release → pack-* (upload directly to release) → finalize-release
+#
+# Architecture: Pack jobs upload directly to the GitHub Release via `gh release upload`,
+# bypassing GitHub Actions artifact storage entirely. This avoids storage quota limits
+# that previously caused release failures (~1.2GB desktop installers exceeded 500MB free tier).
+#
+# # Behaviour notes
+#
+# workflow_dispatch:
+#   - pack_skills / pack_extension / pack_desktop checkboxes control surface builds
+#   - create_release=true (default) requires a non-empty `release_tag`.
+#     Empty `release_tag` with `create_release=true` is a hard error (the plan job
+#     fails before any pack starts). This avoids silent skips that leave you with
+#     green checkmarks but no release.
+#   - Dispatch always publishes a DRAFT release (DRAFT=true) by design: you inspect
+#     the draft on the Releases page then click "Publish release" once happy.
+#     Tag-pushed releases publish immediately (DRAFT=false).
+#
+# Desktop signing (optional repo secrets — never commit certs):
+#   CSC_LINK / CSC_KEY_PASSWORD (mac)
+#   WIN_CSC_LINK / WIN_CSC_KEY_PASSWORD (win)
+# Without secrets: unsigned host-arch installers (CI-safe).
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+      - "skills-v*"
+      - "desktop-v*"
+      - "extension-v*"
+  workflow_dispatch:
+    inputs:
+      pack_skills:
+        description: "Build Skills pack"
+        type: boolean
+        default: true
+      pack_extension:
+        description: "Build browser extension pack"
+        type: boolean
+        default: true
+      pack_desktop:
+        description: "Build Desktop installers (slow multi-OS matrix)"
+        type: boolean
+        default: false
+      create_release:
+        description: "Create a draft GitHub Release (uses release_tag input)"
+        type: boolean
+        default: true
+      release_tag:
+        description: "Tag name for draft release (workflow_dispatch only; e.g. v1.0.0)"
+        type: string
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+jobs:
+  # ── Purge stale CI artifacts before building (prevents storage quota overflow) ─
+  cleanup-artifacts:
+    name: cleanup old artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Delete all previous workflow artifacts
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            let deleted = 0;
+            let page = 1;
+            while (true) {
+              const res = await github.rest.actions.listArtifactsForRepo({
+                owner, repo, per_page: 100, page,
+              });
+              if (res.data.artifacts.length === 0) break;
+              for (const art of res.data.artifacts) {
+                if (art.workflow_run?.id === context.runId) continue;
+                try {
+                  await github.rest.actions.deleteArtifact({ owner, repo, artifact_id: art.id });
+                  deleted++;
+                  core.info(`Deleted artifact #${art.id} "${art.name}" (${Math.round(art.size_in_bytes / 1024 / 1024)}MB)`);
+                } catch (e) {
+                  if (e.status !== 404) core.warning(`Failed to delete artifact #${art.id}: ${e.message}`);
+                }
+              }
+              if (res.data.artifacts.length < 100) break;
+              page++;
+            }
+            core.info(`Total artifacts deleted: ${deleted}`);
+
+  # ── Resolve which surfaces this tag/dispatch should ship ──────────────────
+  plan:
+    name: plan surfaces
+    needs: cleanup-artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      skills: ${{ steps.plan.outputs.skills }}
+      extension: ${{ steps.plan.outputs.extension }}
+      desktop: ${{ steps.plan.outputs.desktop }}
+      tag: ${{ steps.plan.outputs.tag }}
+      create_release: ${{ steps.plan.outputs.create_release }}
+    steps:
+      - id: plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          SKILLS=false
+          EXTENSION=false
+          DESKTOP=false
+          TAG=""
+          CREATE_RELEASE=false
+          NEEDS_VALIDATION=false
+
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF_NAME}"
+            CREATE_RELEASE=true
+            if [[ "${TAG}" == skills-v* ]]; then
+              SKILLS=true
+            elif [[ "${TAG}" == extension-v* ]]; then
+              EXTENSION=true
+            elif [[ "${TAG}" == desktop-v* ]]; then
+              DESKTOP=true
+            elif [[ "${TAG}" == v* ]]; then
+              SKILLS=true
+              EXTENSION=true
+              DESKTOP=true
+            fi
+          else
+            INPUT_SKILLS="${{ inputs.pack_skills }}"
+            INPUT_EXTENSION="${{ inputs.pack_extension }}"
+            INPUT_DESKTOP="${{ inputs.pack_desktop }}"
+            INPUT_CREATE="${{ inputs.create_release }}"
+            INPUT_TAG="${{ inputs.release_tag }}"
+            INPUT_TAG="${INPUT_TAG#refs/tags/}"
+
+            if [[ "${INPUT_CREATE}" == "true" && -z "${INPUT_TAG}" ]]; then
+              echo "ERROR: create_release is true but release_tag is empty." >&2
+              echo "       Fill 'release_tag' (e.g. v4.11.0) or uncheck create_release" >&2
+              echo "       to build-only without publishing." >&2
+              NEEDS_VALIDATION=true
+            fi
+
+            TAG="${INPUT_TAG}"
+            CREATE_RELEASE="${INPUT_CREATE}"
+            SKILLS="${INPUT_SKILLS}"
+            EXTENSION="${INPUT_EXTENSION}"
+            DESKTOP="${INPUT_DESKTOP}"
+          fi
+
+          {
+            echo "skills=${SKILLS}"
+            echo "extension=${EXTENSION}"
+            echo "desktop=${DESKTOP}"
+            echo "tag=${TAG}"
+            echo "create_release=${CREATE_RELEASE}"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### Release plan"
+            echo ""
+            echo "| Surface | Build |"
+            echo "|---------|-------|"
+            echo "| Skills | ${SKILLS} |"
+            echo "| Extension | ${EXTENSION} |"
+            echo "| Desktop | ${DESKTOP} |"
+            echo "| Tag | \`${TAG}\` |"
+            echo "| Create release | ${CREATE_RELEASE} |"
+            echo ""
+            echo "Resolved \`ref=${{ github.ref }} event=${{ github.event_name }}\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ "${NEEDS_VALIDATION}" == "true" ]]; then
+            exit 1
+          fi
+
+  # ── Create GitHub Release (empty, so pack jobs can upload directly) ──────
+  create-release:
+    name: create release
+    needs: plan
+    if: needs.plan.outputs.create_release == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+      name: ${{ steps.meta.outputs.name }}
+      draft: ${{ steps.meta.outputs.draft }}
+      prerelease: ${{ steps.meta.outputs.prerelease }}
+      make_latest: ${{ steps.meta.outputs.make_latest }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release metadata
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF_NAME}"
+            DRAFT="false"
+          else
+            TAG="${{ inputs.release_tag }}"
+            TAG="${TAG#refs/tags/}"
+            if [[ -z "${TAG}" ]]; then
+              echo "ERROR: release_tag is required for workflow_dispatch create_release"
+              exit 1
+            fi
+            DRAFT="true"
+          fi
+
+          PRERELEASE="false"
+          if [[ "${TAG}" =~ (alpha|beta|rc|pre)([.-]|$) ]]; then
+            PRERELEASE="true"
+          fi
+
+          MAKE_LATEST="false"
+          if [[ "${DRAFT}" == "false" && "${PRERELEASE}" == "false" && "${TAG}" == v* && "${TAG}" != skills-v* && "${TAG}" != desktop-v* && "${TAG}" != extension-v* ]]; then
+            MAKE_LATEST="true"
+          fi
+
+          if [[ "${TAG}" == skills-v* ]]; then
+            NAME="topmind Skills ${TAG#skills-}"
+          elif [[ "${TAG}" == extension-v* ]]; then
+            NAME="topmind Clip Extension ${TAG#extension-}"
+          elif [[ "${TAG}" == desktop-v* ]]; then
+            NAME="topmind Desktop ${TAG#desktop-}"
+          else
+            NAME="topmind ${TAG}"
+          fi
+
+          {
+            echo "tag=${TAG}"
+            echo "draft=${DRAFT}"
+            echo "prerelease=${PRERELEASE}"
+            echo "make_latest=${MAKE_LATEST}"
+            echo "name=${NAME}"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Resolved: tag=${TAG} name=${NAME} draft=${DRAFT} prerelease=${PRERELEASE}"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.meta.outputs.tag }}"
+          NAME="${{ steps.meta.outputs.name }}"
+          DRAFT="${{ steps.meta.outputs.draft }}"
+          PRERELEASE="${{ steps.meta.outputs.prerelease }}"
+          MAKE_LATEST="${{ steps.meta.outputs.make_latest }}"
+
+          # Create release; if it already exists (retry/re-trigger), just update it.
+          # NEVER use --cleanup-tag: deleting the tag mid-workflow breaks checkout
+          # and causes all downstream jobs to fail.
+          #
+          # gh release create supports --latest and --latest=false only.
+          # Surface tags (skills-v* / desktop-v* / extension-v*) set MAKE_LATEST=false
+          # so they do not steal the repo "Latest" badge from full v* product tags.
+          NOTES="Release ${TAG} — assets uploading..."
+          ARGS=(--title "${NAME}" --notes "${NOTES}" --target "${{ github.sha }}")
+          if [[ "${DRAFT}" == "true" ]]; then
+            ARGS+=(--draft)
+          elif [[ "${PRERELEASE}" == "true" ]]; then
+            ARGS+=(--prerelease)
+          elif [[ "${MAKE_LATEST}" == "true" ]]; then
+            ARGS+=(--latest)
+          else
+            # Explicit non-latest: surface tags and any other non-umbrella publish
+            ARGS+=(--latest=false)
+          fi
+
+          # Probe existence first — never swallow create stderr as "already exists".
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            echo "Release ${TAG} already exists — updating metadata..."
+            EDIT_ARGS=(--title "${NAME}" --notes "${NOTES}")
+            if [[ "${DRAFT}" == "true" ]]; then
+              EDIT_ARGS+=(--draft)
+            elif [[ "${PRERELEASE}" == "true" ]]; then
+              EDIT_ARGS+=(--prerelease)
+            elif [[ "${MAKE_LATEST}" == "true" ]]; then
+              EDIT_ARGS+=(--latest)
+            else
+              EDIT_ARGS+=(--latest=false)
+            fi
+            gh release edit "${TAG}" "${EDIT_ARGS[@]}"
+          else
+            gh release create "${TAG}" "${ARGS[@]}"
+            echo "Release created: ${TAG}"
+          fi
+
+  # ── Pack Skills (upload directly to GitHub Release) ──────────────────────
+  pack-skills:
+    name: skills pack
+    needs: [plan, create-release]
+    if: needs.plan.outputs.skills == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - run: npm ci --ignore-scripts
+      - run: node scripts/check-secrets.mjs
+      - run: npm run skills:pack
+
+      - name: List skills artifacts
+        run: ls -lah dist/topmind-skills-* 2>/dev/null || ls -lah dist/
+
+      - name: Upload to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ needs.plan.outputs.tag }}"
+          # Upload all skills artifacts directly to the release
+          gh release upload "${TAG}" dist/topmind-skills-*.tar.gz dist/topmind-skills-*.zip dist/topmind-skills-*-manifest.json dist/topmind-skills-*.SHA256SUMS --clobber
+
+  # ── Pack Extension (upload directly to GitHub Release) ───────────────────
+  pack-extension:
+    name: extension pack
+    needs: [plan, create-release]
+    if: needs.plan.outputs.extension == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - run: npm ci --ignore-scripts
+      - run: node scripts/check-secrets.mjs
+      - run: npm run extension:pack
+
+      - name: Upload to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ needs.plan.outputs.tag }}"
+          gh release upload "${TAG}" dist/topmind-clip-extension-*.zip dist/topmind-clip-extension-*.SHA256SUMS --clobber
+
+  # ── Pack Desktop (upload directly to GitHub Release) ──────────────────────
+  pack-desktop:
+    name: desktop (${{ matrix.os }})
+    needs: [plan, create-release]
+    if: needs.plan.outputs.desktop == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            pack: pack:mac:ci
+            artifact: desktop-macos
+            label: "macOS (host arch)"
+          - os: ubuntu-latest
+            pack: pack:linux:ci
+            artifact: desktop-linux-x64
+            label: "Linux x64"
+          - os: ubuntu-24.04-arm
+            pack: pack:linux:ci
+            artifact: desktop-linux-arm64
+            label: "Linux arm64"
+          - os: windows-latest
+            pack: pack:win:ci
+            artifact: desktop-windows
+            label: "Windows x64"
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: topmind-desktop/package-lock.json
+
+      - name: Install Desktop deps
+        working-directory: topmind-desktop
+        run: npm ci
+
+      - name: Packaging dependency gate (zod / AI peers)
+        working-directory: topmind-desktop
+        run: npm run deps:packaging
+
+      - name: Linux pack dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            fakeroot dpkg \
+            libopenjp2-tools \
+            xvfb \
+            || true
+          sudo apt-get install -y --no-install-recommends rpm || true
+
+      - name: Build + prepare engine + pack + integrity verify
+        working-directory: topmind-desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run ${{ matrix.pack }}
+
+      - name: List release outputs
+        if: always()
+        shell: bash
+        working-directory: topmind-desktop
+        run: |
+          echo "runner arch: $(uname -m) · ${{ matrix.label }}"
+          ls -la release 2>/dev/null || echo "no release dir"
+          find release -type f 2>/dev/null | head -80 || true
+
+      - name: SHA256SUMS for installers
+        if: success()
+        shell: bash
+        working-directory: topmind-desktop
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          (
+            cd release
+            if command -v shasum >/dev/null 2>&1; then
+              find . -type f \( -name 'topmind-*.dmg' -o -name 'topmind-*.zip' -o -name 'topmind-*.AppImage' -o -name 'topmind-*.deb' -o -name 'topmind-*.tar.gz' -o -name 'topmind-*.exe' \) -print0 \
+                | sort -z \
+                | xargs -0 shasum -a 256 > "topmind-SHA256SUMS-${{ matrix.artifact }}.txt" || true
+            elif command -v sha256sum >/dev/null 2>&1; then
+              find . -type f \( -name 'topmind-*.dmg' -o -name 'topmind-*.zip' -o -name 'topmind-*.AppImage' -o -name 'topmind-*.deb' -o -name 'topmind-*.tar.gz' -o -name 'topmind-*.exe' \) -print0 \
+                | sort -z \
+                | xargs -0 sha256sum > "topmind-SHA256SUMS-${{ matrix.artifact }}.txt" || true
+            fi
+            ls -la topmind-SHA256SUMS-*.txt 2>/dev/null || echo "no checksums"
+          )
+
+      - name: Upload installers to GitHub Release
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        working-directory: topmind-desktop
+        run: |
+          set -euo pipefail
+          TAG="${{ needs.plan.outputs.tag }}"
+          # Collect user-facing installer files (skip .blockmap / builder yml noise)
+          files=()
+          while IFS= read -r f; do
+            [[ -n "$f" ]] && files+=("$f")
+          done < <(find release -type f \( \
+            -name 'topmind-*.dmg' -o -name 'topmind-*.zip' \
+            -o -name 'topmind-*.AppImage' -o -name 'topmind-*.deb' \
+            -o -name 'topmind-*.tar.gz' -o -name 'topmind-*.exe' \
+            -o -name 'topmind-SHA256SUMS-*.txt' \
+          \) 2>/dev/null)
+
+          if [[ ${#files[@]} -eq 0 ]]; then
+            echo "ERROR: no installer files found to upload"
+            exit 1
+          fi
+
+          echo "Uploading ${#files[@]} files to release ${TAG}..."
+          for f in "${files[@]}"; do
+            echo "  uploading: $(basename "$f") ($(du -h "$f" | cut -f1))"
+          done
+          gh release upload "${TAG}" "${files[@]}" --clobber
+
+  # ── Finalize: write latest.json + generate release notes ─────────────────
+  finalize-release:
+    name: finalize release
+    needs: [plan, create-release, pack-skills, pack-extension, pack-desktop]
+    if: >
+      always() &&
+      !cancelled() &&
+      needs.plan.result == 'success' &&
+      needs.create-release.result == 'success' &&
+      (
+        needs.pack-skills.result == 'success' ||
+        needs.pack-extension.result == 'success' ||
+        needs.pack-desktop.result == 'success' ||
+        needs.pack-desktop.result == 'failure'
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Generate latest.json + release body
+        id: assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="${{ needs.plan.outputs.tag }}"
+          REPO="${{ github.repository }}"
+
+          # Query the GitHub Release API for all uploaded assets
+          ASSETS_JSON=$(gh api "repos/${REPO}/releases/tags/${TAG}" --jq '.assets')
+          echo "=== Release assets ==="
+          echo "${ASSETS_JSON}" | jq -r '.[] | "\(.name) \(.size)"' | while read name size; do
+            echo "  ${name} ($(numfmt --to=iec ${size} 2>/dev/null || echo "${size}B"))"
+          done
+
+          # Generate latest.json (Desktop checks this without GitHub API)
+          DESKTOP_VER=$(node -p "require('./topmind-desktop/package.json').version" 2>/dev/null || echo "")
+          SKILLS_VER=$(node -p "require('./skills/topmind-pack.json').version" 2>/dev/null || echo "")
+          EXT_VER=$(node -p "require('./browser-extension/manifest.json').version" 2>/dev/null || echo "")
+
+          # Build latest.json from actual release assets
+          LATEST_JSON=$(node -e "
+            const assets = ${ASSETS_JSON};
+            const tag = process.argv[1];
+            const repo = process.argv[2];
+            const desktopVer = process.argv[3];
+            const skillsVer = process.argv[4];
+            const extVer = process.argv[5];
+            const out = {
+              productTag: tag,
+              desktop: desktopVer || null,
+              skills: skillsVer || null,
+              extension: extVer || null,
+              releaseUrl: 'https://github.com/' + repo + '/releases/tag/' + tag,
+              publishedAt: new Date().toISOString(),
+              assets: assets.map(a => ({
+                name: a.name,
+                size: a.size,
+                browser_download_url: a.browser_download_url
+              }))
+            };
+            process.stdout.write(JSON.stringify(out, null, 2));
+          " "${TAG}" "${REPO}" "${DESKTOP_VER}" "${SKILLS_VER}" "${EXT_VER}")
+
+          echo "${LATEST_JSON}" > latest.json
+          echo "=== latest.json ==="
+          cat latest.json
+
+          # Upload latest.json to the release
+          gh release upload "${TAG}" latest.json --clobber
+
+          ASSET_COUNT=$(echo "${ASSETS_JSON}" | jq 'length')
+          echo "count=${ASSET_COUNT}" >> "$GITHUB_OUTPUT"
+
+          # Generate release body
+          skills_list=$(echo "${ASSETS_JSON}" | jq -r '.[] | select(.name | startswith("topmind-skills-")) | "- `\(.name)` (\(.size / 1048576 | floor)MB)"' | sort)
+          ext_list=$(echo "${ASSETS_JSON}" | jq -r '.[] | select(.name | startswith("topmind-clip-extension-")) | "- `\(.name)` (\(.size / 1048576 | floor)MB)"' | sort)
+          desktop_list=$(echo "${ASSETS_JSON}" | jq -r '.[] | select(.name | startswith("topmind-") and (startswith("topmind-skills-") or startswith("topmind-clip-extension-")) | not) | "- `\(.name)` (\(.size / 1048576 | floor)MB)"' | sort)
+
+          {
+            echo "### What to download"
+            echo ""
+            echo "Automated release from workflow run [\`${{ github.run_id }}\`](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
+            echo ""
+            echo "| Trigger | Tag | Draft | Prerelease |"
+            echo "|---------|-----|-------|------------|"
+            echo "| \`${{ github.event_name }}\` | \`${TAG}\` | ${{ needs.create-release.outputs.draft }} | ${{ needs.create-release.outputs.prerelease }} |"
+            echo ""
+            echo "| Surface | Who needs it | Files |"
+            echo "|---------|--------------|-------|"
+            echo "| **Skills** | Agent hosts (Claude / Codex / OpenCode) | \`topmind-skills-*.{zip,tar.gz}\` |"
+            echo "| **Clip Extension** | Browser clip → Desktop | \`topmind-clip-extension-*.zip\` |"
+            echo "| **Desktop** | Native app installers | \`topmind-<ver>-<os>-<arch>.{dmg,exe,AppImage,deb}\` |"
+            echo ""
+
+            if [[ -n "${skills_list}" ]]; then
+              echo "#### Skills pack"
+              echo ""
+              echo "| File | Size |"
+              echo "|------|------|"
+              echo "${skills_list}" | sed 's/- \(.*\) (\([0-9]*\)MB)/| `\1` | \2MB |/'
+              echo ""
+            fi
+
+            if [[ -n "${ext_list}" ]]; then
+              echo "#### Browser extension"
+              echo ""
+              echo "| File | Size |"
+              echo "|------|------|"
+              echo "${ext_list}" | sed 's/- \(.*\) (\([0-9]*\)MB)/| `\1` | \2MB |/'
+              echo ""
+            fi
+
+            if [[ -n "${desktop_list}" ]]; then
+              echo "#### Desktop installers"
+              echo ""
+              echo "| Platform | Prefer |"
+              echo "|----------|--------|"
+              echo "| macOS | \`.dmg\` (or \`.zip\` portable) |"
+              echo "| Windows | \`.exe\` (NSIS installer) |"
+              echo "| Linux x64 / arm64 | \`.AppImage\` portable, \`.deb\` apt, \`.tar.gz\` unpack |"
+              echo ""
+              echo "| File | Size |"
+              echo "|------|------|"
+              echo "${desktop_list}" | sed 's/- \(.*\) (\([0-9]*\)MB)/| `\1` | \2MB |/'
+              echo ""
+            fi
+
+            echo "See [docs/PACKAGING.md](https://github.com/${REPO}/blob/main/docs/PACKAGING.md)."
+          } > release-body.md
+
+          cat release-body.md
+
+          # Update release notes
+          gh release edit "${TAG}" --notes-file release-body.md
+
+      - name: Summary
+        shell: bash
+        run: |
+          {
+            echo "## GitHub Release finalized"
+            echo ""
+            echo "| Field | Value |"
+            echo "|-------|-------|"
+            echo "| Tag | \`${{ needs.plan.outputs.tag }}\` |"
+            echo "| Name | ${{ needs.create-release.outputs.name }} |"
+            echo "| Draft | ${{ needs.create-release.outputs.draft }} |"
+            echo "| Prerelease | ${{ needs.create-release.outputs.prerelease }} |"
+            echo "| Assets | ${{ steps.assets.outputs.count }} |"
+            echo "| URL | https://github.com/${{ github.repository }}/releases/tag/${{ needs.plan.outputs.tag }} |"
+          } >> "$GITHUB_STEP_SUMMARY"

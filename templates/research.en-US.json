@@ -1,0 +1,17 @@
+{
+  "templateId": "research",
+  "name": "Academic Research",
+  "description": "For deep research: Stream, Topics, Research, References, emphasizing source tracking.",
+  "categories": {
+    "00": { "name": "Inbox" },
+    "10": { "name": "Stream" },
+    "20": { "name": "Topics" },
+    "30": { "name": "Research" },
+    "40": { "name": "References" },
+    "88": { "name": "Outputs" },
+    "99": { "name": "Archive" }
+  },
+  "memory": {
+    "profileFile": "profile.md"
+  }
+}

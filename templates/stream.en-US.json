@@ -1,0 +1,15 @@
+{
+  "templateId": "stream",
+  "name": "Stream (Default)",
+  "description": "Minimal friction: Inbox, Stream (Journal), Topics, Outputs, Archive. Daily entries stream weekly.",
+  "categories": {
+    "00": { "name": "Inbox" },
+    "10": { "name": "Stream" },
+    "20": { "name": "Topics" },
+    "88": { "name": "Outputs" },
+    "99": { "name": "Archive" }
+  },
+  "memory": {
+    "profileFile": "profile.md"
+  }
+}

@@ -1,0 +1,169 @@
+# Continuous integration — unit tests, docs contract, secret scan, packaging gates.
+# Does not build signed Desktop installers (see release.yml).
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  # Manual trigger: dry-run the release.yml plan logic without building/publishing.
+  # Useful to validate dispatch inputs surface-routing before kicking a real release.
+  workflow_dispatch:
+    inputs:
+      pack_skills:
+        description: "Simulate pack_skills=true"
+        type: boolean
+        default: true
+      pack_extension:
+        description: "Simulate pack_extension=true"
+        type: boolean
+        default: true
+      pack_desktop:
+        description: "Simulate pack_desktop=true"
+        type: boolean
+        default: false
+      release_tag:
+        description: "Simulated release_tag (dispatch test only)"
+        type: string
+        required: false
+        default: ""
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Dry-run duplicate of release.yml plan job — runs only on workflow_dispatch.
+  # Confirms dispatch inputs resolve to the expected surfaces without doing any real packing.
+  plan-dryrun:
+    name: plan dry-run (dispatch only)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Resolve surfaces (mirror release.yml plan)
+        shell: bash
+        run: |
+          set -euo pipefail
+          SKILLS=false; EXTENSION=false; DESKTOP=false; TAG=""
+          CREATE_RELEASE=false
+          NEEDS_VALIDATION=false
+
+          # No tag push in dispatch — only simulate dispatch branch.
+          INPUT_SKILLS="${{ inputs.pack_skills }}"
+          INPUT_EXTENSION="${{ inputs.pack_extension }}"
+          INPUT_DESKTOP="${{ inputs.pack_desktop }}"
+          INPUT_TAG="${{ inputs.release_tag }}"
+          INPUT_TAG="${INPUT_TAG#refs/tags/}"
+
+          # Mirror release.yml validation: empty tag with create_release=true would fail plan.
+          # Here we only emit a warning since CI dry-run shouldn't hard-fail on user input.
+          if [[ -z "${INPUT_TAG}" ]]; then
+            echo "WARNING: release_tag is empty — release.yml would skip github-release" >&2
+          fi
+
+          TAG="${INPUT_TAG}"
+          SKILLS="${INPUT_SKILLS}"
+          EXTENSION="${INPUT_EXTENSION}"
+          DESKTOP="${INPUT_DESKTOP}"
+
+          {
+            echo "### CI plan dry-run (mirrors release.yml plan)"
+            echo ""
+            echo "| Surface | Build |"
+            echo "|---------|-------|"
+            echo "| Skills | ${SKILLS} |"
+            echo "| Extension | ${EXTENSION} |"
+            echo "| Desktop | ${DESKTOP} |"
+            echo "| Tag | \`${TAG}\` |"
+            echo ""
+            echo "Release.yml would $([[ -z \"${TAG}\" ]] && echo 'SKIP github-release (validation error)' || echo 'run github-release')."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  validate:
+    name: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            topmind-desktop/package-lock.json
+
+      - name: Install root (scripts only)
+        run: npm ci --ignore-scripts
+
+      - name: Install Desktop deps
+        working-directory: topmind-desktop
+        run: npm ci
+
+      - name: Secret / PII scan
+        run: node scripts/check-secrets.mjs
+
+      - name: Docs redesign contract
+        run: npm run docs:guard
+
+      - name: Root + Skills + UTR tests
+        run: |
+          npm run root:test
+          npm run skills:test
+          npm run utr:test
+          npm run utr:doctor:engine
+
+      - name: Desktop packaging deps gate (zod / AI peers)
+        working-directory: topmind-desktop
+        run: npm run deps:packaging
+
+      - name: Desktop validate
+        working-directory: topmind-desktop
+        run: npm run validate
+        # includes deps:packaging, tests, build, pack:verify (source + staged-engine guards)
+
+      - name: Desktop pack:dir smoke (host OS integrity)
+        working-directory: topmind-desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: |
+          # Unpacked app only — catches asar main-load failures (e.g. monorepo lib import)
+          # that unit tests miss. Timeout-friendly: --dir, no DMG/NSIS.
+          npm run pack:dir
+
+      - name: Pack skills (smoke)
+        run: npm run skills:pack
+
+      - name: Pack browser extension (smoke)
+        run: npm run extension:pack
+
+      - name: Assert surface-prefixed artifact names
+        shell: bash
+        run: |
+          set -euo pipefail
+          ls dist/topmind-skills-*.tar.gz dist/topmind-skills-*.zip
+          ls dist/topmind-clip-extension-*.zip
+          # Legacy ambiguous skills name must not reappear
+          if compgen -G "dist/topmind-[0-9]*.zip" > /dev/null; then
+            echo "ERROR: legacy dist/topmind-<ver>.zip found; use topmind-skills-<ver>"
+            ls dist/
+            exit 1
+          fi
+
+      - name: Upload pack artifacts (PR smoke)
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v5
+        with:
+          name: pack-smoke
+          path: |
+            dist/topmind-skills-*.tar.gz
+            dist/topmind-skills-*.zip
+            dist/topmind-clip-extension-*.zip
+            dist/*.SHA256SUMS
+          if-no-files-found: warn
+          retention-days: 3

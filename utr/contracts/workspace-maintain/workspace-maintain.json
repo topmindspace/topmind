@@ -1,0 +1,213 @@
+{
+  "schema_version": 1,
+  "kind": "workspace-maintain",
+  "skill": "workspace-maintain",
+  "label": "工作区维护工具",
+  "description": "工作区维护：诊断、归档、恢复、清理。",
+  "execution": {
+    "runtime": "node",
+    "cwd_mode": "engine_root",
+    "script": "utr/tools/workspace-maintain.mjs",
+    "args_template": [
+      "--categories-root",
+      "{categories_root}",
+      "--inbox-root",
+      "{inbox_root}",
+      "--archive-root",
+      "{archive_root}",
+      "--format",
+      "json",
+      "{command}"
+    ]
+  },
+  "commands": {
+    "doctor-workspace": {
+      "label": "诊断工作区",
+      "description": "报告 v3.4 category-first 工作区健康状态。",
+      "group": "maintenance",
+      "risk_level": "low",
+      "review_policy": "auto",
+      "requires_topic": false,
+      "idempotent": true,
+      "supports_dry_run": false,
+      "destructive": false,
+      "inputs": {},
+      "reads": [
+        "00-收件箱/",
+        "{10-60 大类}/",
+        "99-归档/"
+      ],
+      "writes": [],
+      "exposure": "primary"
+    },
+    "archive-topic": {
+      "label": "归档专题",
+      "description": "把 {category}/{topic}/ 移入 99-归档/；遵循保存设置，自动归档后返回回执，需要核对时进入审阅入口。",
+      "group": "danger",
+      "exposure": "danger",
+      "risk_level": "high",
+      "review_policy": "preview_or_auto",
+      "requires_topic": true,
+      "idempotent": false,
+      "supports_dry_run": true,
+      "destructive": true,
+      "inputs": {
+        "category": {
+          "type": "category",
+          "label": "大类",
+          "required": true
+        },
+        "topic": {
+          "type": "topic",
+          "label": "专题",
+          "required": true
+        },
+        "reason": {
+          "type": "text",
+          "label": "归档理由",
+          "required": true
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动归档并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
+        },
+        "dryRun": {
+          "type": "toggle",
+          "label": "仅预览",
+          "default": true
+        }
+      },
+      "args_extra": [
+        "--category",
+        "{category}",
+        "--topic",
+        "{topic}",
+        "--category-root",
+        "{category_root}",
+        "--topic-root",
+        "{topic_root}",
+        "--reason",
+        "{reason}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [
+        "{category_root}/{topic}/**"
+      ],
+      "writes": [
+        "99-归档/{category}/{topic}-*/**",
+        "{category_root}/{topic}/**"
+      ],
+      "workflow_note": "High-risk archive uses global writebackMode. In auto mode it moves the topic into archive with a receipt and without a second confirmation gate."
+    },
+    "restore-safety-receipt": {
+      "label": "恢复记录",
+      "description": "从备份、回收项或归档专题目录恢复写入记录；默认只预览，自动保存时直接恢复并返回回执。",
+      "group": "danger",
+      "exposure": "danger",
+      "risk_level": "high",
+      "review_policy": "preview_or_auto",
+      "requires_topic": false,
+      "idempotent": false,
+      "supports_dry_run": true,
+      "destructive": false,
+      "inputs": {
+        "receiptPath": {
+          "type": "path",
+          "label": "记录路径",
+          "required": true,
+          "hint": "来自恢复记录列表的 relativePath"
+        },
+        "reason": {
+          "type": "text",
+          "label": "恢复理由",
+          "required": true
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动恢复并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
+        },
+        "dryRun": {
+          "type": "toggle",
+          "label": "仅预览",
+          "default": true
+        }
+      },
+      "args_extra": [
+        "--receipt-path",
+        "{receiptPath}",
+        "--reason",
+        "{reason}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [
+        "99-归档/backups/**",
+        "99-归档/trash/**",
+        "99-归档/*"
+      ],
+      "writes": [
+        "{10-60 大类}/**",
+        "00-收件箱/**",
+        "99-归档/**"
+      ],
+      "workflow_note": "Restores only recognized safety receipt paths. Existing targets are never overwritten; conflicting file targets create a readable restored copy."
+    },
+    "cleanup-empty-dirs": {
+      "label": "清理空目录",
+      "description": "查找空目录，默认只预览。",
+      "group": "maintenance",
+      "risk_level": "medium",
+      "review_policy": "preview_or_auto",
+      "requires_topic": false,
+      "idempotent": true,
+      "supports_dry_run": true,
+      "destructive": false,
+      "inputs": {
+        "dryRun": {
+          "type": "toggle",
+          "label": "仅预览",
+          "default": true
+        }
+      },
+      "args_extra": [
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [
+        "{10-60 大类}/**",
+        "00-收件箱/**",
+        "99-归档/**"
+      ],
+      "writes": [
+        "{10-60 大类}/**",
+        "00-收件箱/**",
+        "99-归档/**"
+      ],
+      "exposure": "advanced"
+    }
+  },
+  "review_overrides": {}
+}
