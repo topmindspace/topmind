@@ -61,19 +61,21 @@ test("Stream compose solid submit uses composeSubmit (记下), not L1 capture co
   const stream = read("src/plugins/topmind-workspace/views/StreamDetailView.tsx");
   assert.match(stream, /data-stream-compose-submit/);
   assert.match(stream, /streamDetail\.composeSubmit/);
-  assert.match(stream, /streamDetail\.composeLabel/);
+  // Composer meta rows removed (降噪 2026-08): placeholder carries the guidance
+  assert.match(stream, /streamDetail\.composePlaceholder/);
+  assert.doesNotMatch(stream, /streamDetail\.composeLabel/);
   // Must not put titleBar.capture or solid capture class on compose submit
   assert.doesNotMatch(stream, /v4-titlebar-btn-capture/);
   assert.doesNotMatch(stream, /titleBar\.capture/);
 });
 
-test("Stream composeLabel is not L1 记一下 / Note it vocabulary", () => {
+test("Stream composer copy avoids L1 记一下 / Note it vocabulary", () => {
   const zh = loadJson("src/locales/zh-CN/workspace.json");
   const en = loadJson("src/locales/en-US/workspace.json");
-  assert.equal(typeof zh.streamDetail.composeLabel, "string");
-  assert.equal(typeof en.streamDetail.composeLabel, "string");
-  assert.notEqual(zh.streamDetail.composeLabel, "记一下");
-  assert.notEqual(en.streamDetail.composeLabel, "Note it");
+  assert.equal(typeof zh.streamDetail.composePlaceholder, "string");
+  assert.equal(typeof en.streamDetail.composePlaceholder, "string");
+  assert.notEqual(zh.streamDetail.composePlaceholder, "记一下");
+  assert.notEqual(en.streamDetail.composePlaceholder, "Note it");
   // Submit stays 记下 / Save path
   assert.equal(zh.streamDetail.composeSubmit, "记下");
   assert.ok(en.streamDetail.composeSubmit.length > 0);
@@ -99,7 +101,8 @@ test("light tokens: surface and surface-elevated are distinct fills", () => {
 test("light tokens: hairline dim is stronger than collapsed 0.045 and shadow-card exists", () => {
   const tokens = read("src/styles/tokens.css");
   const lightBlock = tokens.split(/\.dark\s*\{/u)[0];
-  assert.match(lightBlock, /--color-border-subtle-dim:\s*rgba\(62,\s*54,\s*38,\s*0\.0[6-9]/u);
+  // 2026-08-07: alpha range widened to 0.05-0.09 (was 0.06-0.09) for calmer chrome
+assert.match(lightBlock, /--color-border-subtle-dim:\s*rgba\(60,\s*58,\s*50,\s*0\.0[5-9]/u);
   assert.match(lightBlock, /--shadow-card:/u);
   assert.match(lightBlock, /--shadow-elevated-hairline:/u);
   assert.match(lightBlock, /--shadow-float:/u);
@@ -160,8 +163,8 @@ test("Todo maintain idle is ghost, gradient only while maintaining", () => {
 test("AI empty state limits multi-CTA prompts", () => {
   const panel = read("src/components/ai/AiPanel.tsx");
   assert.match(panel, /data-ai-empty/);
-  // Single contextual prompt — one-element array, no multi-CTA list
-  assert.match(panel, /const prompts = \[quickPromptFor\(/);
+  // Up to 2 contextual prompts — enough to suggest actions without overwhelming
+  assert.match(panel, /const prompts = quickPromptsFor\(/);
 });
 
 // ── AC5: Editor chrome + i18n tooltip ───────────────────────────────────

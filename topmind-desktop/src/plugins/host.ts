@@ -76,6 +76,7 @@ void (async () => {
       /* ignore */
     }
   });
+  subscribe("update:available", (p) => eventBus.emit("update:available", p));
   subscribe("clip-bridge:clipped", (p) => {
     eventBus.emit("clip-bridge:clipped", p);
     eventBus.emit("workspace:file-changed", p);

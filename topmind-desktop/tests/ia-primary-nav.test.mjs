@@ -243,7 +243,8 @@ describe("Desktop primary IA target", () => {
   it("StatusBar has no living home case", () => {
     const src = read("src/components/shell/StatusBar.tsx");
     assert.doesNotMatch(src, /case "home":/);
-    assert.match(src, /case "stream":/);
+    // 降噪 2026-08: center hint is file-only — non-file views self-identify via PageHeader/nav
+    assert.match(src, /selection\.kind !== "file"/);
   });
 
   it("lifecycle archive applySuggestion is wired through Kernel executeArchive", () => {
@@ -257,5 +258,32 @@ describe("Desktop primary IA target", () => {
     assert.match(suggest, /case "catch_all"/);
     // no review-only dead-end for lifecycle apply
     assert.doesNotMatch(suggest, /review only — no automatic archive/);
+  });
+
+  it("OnboardingScreen has template selection step with template list and confirm", () => {
+    const src = read("src/components/shell/OnboardingScreen.tsx");
+    // Template state and loading
+    assert.match(src, /pickedPath/);
+    assert.match(src, /selectedTemplate/);
+    assert.match(src, /api\.sys\.listTemplates/);
+    // Template selection UI with data-landing-template-select
+    assert.match(src, /data-landing-template-select/);
+    assert.match(src, /data-landing-template-cta/);
+    // Template confirm calls openOrCreateWorkspace with selectedTemplate
+    assert.match(src, /openOrCreateWorkspace\(pickedPath, selectedTemplate\)/);
+    // Back button returns to landing
+    assert.match(src, /handleBackToLanding/);
+  });
+
+  it("OnboardingScreen i18n has template selection keys in both locales", () => {
+    const zh = JSON.parse(read("src/locales/zh-CN/shell.json"));
+    const en = JSON.parse(read("src/locales/en-US/shell.json"));
+    const keys = ["templateTitle", "templateConfirm", "templateStreamName", "templateStreamDesc",
+      "templateBalancedName", "templateBalancedDesc", "templateResearchName", "templateResearchDesc",
+      "templatePeriodicName", "templatePeriodicDesc"];
+    for (const k of keys) {
+      assert.equal(typeof zh.onboarding[k], "string", `zh onboarding.${k} missing`);
+      assert.equal(typeof en.onboarding[k], "string", `en onboarding.${k} missing`);
+    }
   });
 });

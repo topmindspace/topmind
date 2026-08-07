@@ -1009,6 +1009,14 @@ export const api = {
         targetPath: string;
         reason?: string;
       }>("workspace.cleanupStaleTodos"),
+    archiveStale: () =>
+      invoke<{
+        ok: boolean;
+        items: import("../types").TodoItem[];
+        archived: import("../types").TodoItem[];
+        targetPath: string;
+        reason?: string;
+      }>("workspace.archiveStaleTodos"),
   },
 
   // ── AI Operations (unified engine) ───────────────────────────────────────

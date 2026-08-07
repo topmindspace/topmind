@@ -51,6 +51,26 @@ export async function buildDesktopAiTools(ctx) {
     ctx._batchCollector = batch;
     const tools = {};
 
+    /** Per-turn read cache — avoids re-reading the same file/search within a single agent loop.
+     *  Invalidated on any write (edit/save/delete/move) to prevent stale reads. */
+    const readCache = new Map();
+    const makeCacheKey = (toolName, args) => `${toolName}:${JSON.stringify(args ?? {})}`;
+
+    /** Wrap a read-only tool with session-level caching. */
+    const wrapRead = (fn) => async (args) => {
+      const key = makeCacheKey(fn.name || "anon", args);
+      if (readCache.has(key)) return readCache.get(key);
+      const result = await fn(args);
+      // Only cache successful non-error results under 20KB to avoid memory bloat
+      if (result && !result.error) {
+        try {
+          const size = typeof result === "string" ? result.length : JSON.stringify(result).length;
+          if (size < 20000) readCache.set(key, result);
+        } catch { /* skip uncacheable */ }
+      }
+      return result;
+    };
+
     /** AI write opts: always actor=ai; confirmed=false when Desktop settings writebackMode=confirm */
     const aiWriteOpts = () => ({
       actor: "ai",
@@ -58,6 +78,8 @@ export async function buildDesktopAiTools(ctx) {
     });
 
     const wrapWrite = (toolName, fn) => async (args) => {
+      // Invalidate read cache on any write — prevents stale reads after edit/save
+      readCache.clear();
       try {
         const raw = await fn({ ...args, ...aiWriteOpts() });
         const result = normalizeWriteResult(toolName, raw);
@@ -219,7 +241,7 @@ export async function buildDesktopAiTools(ctx) {
       description:
         "一次性获取工作区全貌：类别列表(含专题数) + 收件箱待处理数 + 最近动态周期本 + 输出数。减少多次 list_* 调用。系统提示词已内联部分概览，此工具获取更完整实时数据。",
       inputSchema: jsonSchema({ type: "object", properties: {} }),
-      async execute() {
+      execute: wrapRead(async function workspace_overview() {
         const [cats, inbox, outputs, streamCtx] = await Promise.all([
           WorkspaceService.listCategories({}, ctx),
           WorkspaceService.listInbox({}, ctx),
@@ -256,7 +278,7 @@ export async function buildDesktopAiTools(ctx) {
           streamPeriodTitle: streamCtx?.periodTitle || null,
           streamPacking: streamCtx?.packing || null,
         });
-      },
+      }),
     });
 
     tools.list_topics = tool({
@@ -313,7 +335,7 @@ export async function buildDesktopAiTools(ctx) {
         },
         required: ["relativePath"],
       }),
-      async execute({ relativePath, offset, limit }) {
+      execute: wrapRead(async function read_file({ relativePath, offset, limit }) {
         // Windowed read protects context: default 400 lines unless caller sets limit.
         const hasExplicitLimit = limit != null && limit !== "";
         const win = await WorkspaceService.readPathWindow({
@@ -322,7 +344,7 @@ export async function buildDesktopAiTools(ctx) {
           limit: hasExplicitLimit ? limit : 400,
         }, ctx);
         return summarizeForModel(win, 14000);
-      },
+      }),
     });
 
     tools.search = tool({
@@ -352,7 +374,7 @@ export async function buildDesktopAiTools(ctx) {
         },
         required: ["query"],
       }),
-      async execute({ query, scope, maxResults, regex, includeArchive, context }) {
+      execute: wrapRead(async function search({ query, scope, maxResults, regex, includeArchive, context }) {
         return summarizeForModel(
           await WorkspaceService.grepWorkspace({
             pattern: query,
@@ -364,7 +386,7 @@ export async function buildDesktopAiTools(ctx) {
           }, ctx),
           12000,
         );
-      },
+      }),
     });
 
     tools.list_inbox = tool({
@@ -410,11 +432,12 @@ export async function buildDesktopAiTools(ctx) {
     });
 
     tools.workspace_health = tool({
-      description: "工作区健康巡检（loop skill）。Desktop 原生，不依赖 UTR。",
+      description:
+        "工作区健康巡检（loop skill）。返回结构化 JSON：{ ok, checks: [{ name, status, detail }], summary, recommendations }。可用于程序化判断工作区状态。",
       inputSchema: jsonSchema({ type: "object", properties: {} }),
-      async execute() {
-        return summarizeForModel(await WorkspaceService.workspaceHealth({}, ctx));
-      },
+      execute: wrapRead(async function workspace_health() {
+        return summarizeForModel(await WorkspaceService.workspaceHealth({}, ctx), 10000);
+      }),
     });
 
     if (allowWrite) {

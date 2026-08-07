@@ -951,6 +951,38 @@ if (!hasLock) { app.quit(); } else {
         w.destroy();
       }
     }
+    // Background update check (30s delay, non-blocking, silent on failure).
+    // Only checks Desktop surface — skills/extension are bundled with Desktop.
+    setTimeout(async () => {
+      try {
+        const { checkAllSurfaces, readRunningAppVersion } = await import("./lib/update-check.mjs");
+        const result = await checkAllSurfaces({
+          currentVersion: readRunningAppVersion(),
+          retries: 1,
+          timeoutMs: 10_000,
+        });
+        if (result.desktop?.updateAvailable) {
+          logInfo("main", "update available", {
+            current: result.desktop.currentVersion,
+            latest: result.desktop.latestVersion,
+            tag: result.desktop.tagName,
+          });
+          emitToRenderer(mainWindow, "update:available", {
+            currentVersion: result.desktop.currentVersion,
+            latestVersion: result.desktop.latestVersion,
+            releaseUrl: result.desktop.releaseUrl,
+            tagName: result.desktop.tagName,
+            notes: result.desktop.notes,
+            publishedAt: result.desktop.publishedAt,
+          });
+        }
+      } catch (e) {
+        // Silent — never bother user on background check failure
+        logInfo("main", "background update check skipped", {
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }, 30_000);
   }).catch((e) => {
     showBootError(
       "topmind failed to start",

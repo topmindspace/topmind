@@ -15,7 +15,6 @@ import {
   SLASH_TO_SKILL,
 } from "./lib/skills-runtime.mjs";
 import { describeWritebackModeForPrompt } from "./lib/writeback-mode-copy.mjs";
-import { AI_TOOL_NAMES_READ, AI_TOOL_NAMES_WRITE } from "./lib/ai-tool-names.mjs";
 
 /**
  * @param {object} opts
@@ -105,10 +104,6 @@ export function buildSystemPrompt(opts = {}) {
     }
   }
 
-  const names = Array.isArray(toolNames) && toolNames.length > 0
-    ? toolNames
-    : DEFAULT_TOOL_NAMES;
-
   if (skillsEnabled !== false) {
     let catalog = [];
     try {
@@ -147,19 +142,35 @@ export function buildSystemPrompt(opts = {}) {
 
   parts.push(
     "",
-    "## 工具",
-    names.map((n) => `- \`${n}\``).join("\n"),
+    "## 工具（按工作流阶段）",
+    "### Skills",
+    "- `list_skills` / `load_skill` / `load_skill_resource`：技能发现与激活（路由起点）",
+    "### 收集",
+    "- `capture_to_inbox`：记一下（默认动态周期本；forceInbox→收件箱；forceAtom→单文件）",
+    "- `fetch_url`：抓网页正文→Markdown（render=true 增强 SPA）",
+    "### 浏览",
+    "- `workspace_overview`：一次获取全貌（类别+收件箱+动态+输出），减少多次 list 调用",
+    "- `list_categories` / `list_topics` / `list_topic_files` / `get_topic`：层级浏览（专题先读 topic.md）",
+    "- `list_inbox` / `list_outputs`：收件箱与交付物",
+    "### 读取",
+    "- `read_file`：分页读（offset+limit，默认400行）；先看 truncated/note",
+    "- `search`：关键词搜索（scope 可限范围；默认跳过 Archive；regex=true 支持正则）",
+    "### 写入",
+    "- `edit_file`：精确局部替换（**首选**；oldText 须唯一匹配；不写 Archive）",
+    "- `save_file`：整文件覆盖（仅新建/大段重写）",
+    "- `save_note`：专题下新建笔记",
+    "- `create_topic`：建专题（YYYY-主题）",
+    "- `capture_to_inbox` / `move_to_topic` / `publish_to_outputs`：流转",
+    "- `append_topic_memory` / `append_core_memory`：沉淀结论（仅用户明确时）",
+    "- `reconcile_week`：确定性整理周期本（去重/完成检测）",
+    "- `delete_path` / `rename_path`：删除（可逆）与重命名",
+    "### 诊断",
+    "- `workspace_health`：工作区健康巡检",
     "",
     "## 习惯",
-    "- 上方已内联工作区概览/我的情况/专题首页时直接用，勿重复 read",
-    "- 找：`search`（scope 可限范围；默认跳过 Archive）",
-    "- 读：`read_file` 分页（offset+limit）；先看 truncated/note；专题先读 topic.md",
-    "- 改：优先 `edit_file`（精确片段替换）；整篇才 `save_file`",
-    "- 收：`capture_to_inbox` / `save_note`；链：`fetch_url`",
-    "- 整：organize 落盘专题笔记（留痕）；memory 仅用户明确时 `append_topic_memory`",
-    "- 交：`publish_to_outputs`；记：`append_topic_memory`",
-    "- 文件名/路径用工作区相对路径；不创建系统目录",
+    "- 上方已内联概览/我的情况/专题首页时直接用，勿重复 read",
     "- 多文件操作集中一轮完成；每步有路径回执",
+    "- 文件名/路径用工作区相对路径；不创建系统目录",
     "",
     "## 质量",
     "- 少问多做；合理默认即可动手",
@@ -167,14 +178,13 @@ export function buildSystemPrompt(opts = {}) {
     "- 写/删前一句话说明目标",
     "- 中途指示优先遵从；中文简洁",
     "- edit_file 的 oldText 必须精确匹配文件内容（含缩进/换行）；不确定时先 read_file",
+    "- 工具失败：检查参数重试一次；仍失败则告知用户原因，不静默跳过",
   );
 
   return parts.join("\n");
 }
 
-const DEFAULT_TOOL_NAMES = [...AI_TOOL_NAMES_READ, ...AI_TOOL_NAMES_WRITE];
-
-export function assembleContext({ files, maxChars = 28000 }) {
+export function assembleContext({ files, maxChars = 40000 }) {
   const mounted = [];
   let total = 0;
   const list = Array.isArray(files) ? files : [];

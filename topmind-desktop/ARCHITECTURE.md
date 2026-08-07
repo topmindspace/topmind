@@ -107,7 +107,7 @@ contextBridge.exposeInMainWorld('topmind', {
 | 模块 | 职责 |
 |------|------|
 | `ai-model.mjs` | 多 provider 解析（AI SDK v7） |
-| `ai-provider-adapter.mjs` | 桥接 Desktop AI SDK → Kernel `AiProvider` 接口（`generate(prompt, context)`）；`suggest-engine` / `derived-builder` 通过此适配器真实调 LLM |
+| `ai-provider-adapter.mjs` | 桥接 Desktop AI SDK → Kernel `AiProvider` 接口（`generate(prompt, context)`）；根据 `context.operation` 动态调整 `maxOutputTokens`（topic_summary → 8K、period/digest/todo → 4K、memory_extract/topic_classify → 2K）+ `temperature`（提取类 0.3 / 分析类 0.5）+ `systemPrompt`（结构化输出操作）；瞬态错误（timeout/429/503）自动重试 1 次（800ms 退避）；`suggest-engine` / `derived-builder` 通过此适配器真实调 LLM |
 | `ai-prompts.mjs` | **skill-first 协议** + Skills Discovery 目录 + 真实 tool 名 |
 | `lib/skills-runtime.mjs` | engine `skills/` + `ai.extraSkillsRoots` / `topmind_SKILLS_EXTRA`（catalog / body / resource） |
 | `lib/skills-extra.mjs` | Desktop 管理目录 `skills-extra/` 安装 · 回执 · pack summary |
@@ -118,7 +118,7 @@ contextBridge.exposeInMainWorld('topmind', {
 | `lib/inline-ai-result.mjs` | 行内结果清洗纯函数（主进程 + 单测）；渲染层 `src/lib/inline-ai-result.ts` 镜像 |
 | `ai-service.mjs` | invoke 默认 `useTools!==false`；`steerStream` / `queueFollowUp`；skills catalog |
 | `lib/ai-tool-evidence.mjs` | 写回回执归一化 + 工具摘要（路径/备份） |
-| `lib/ai-session-compact.mjs` | token 估算 + 工具时间线折叠 + 中间摘要 |
+| `lib/ai-session-compact.mjs` | token 估算 + 工具时间线折叠 + 中间摘要（maxMessages 40 / keepRecent 16 / maxChars 80K — 适配 128K+ 现代模型） |
 
 **工作循环（默认）**：Route（对照 catalog）→ Activate（`load_skill`）→ Execute（Workspace 工具）→ Receipt。  
 **设置**：`Settings → Skills`（`ai.skillsEnabled` / `enabledSkillIds` / `extraSkillsRoots`；回执与扩展根 summary）。  
@@ -271,21 +271,21 @@ ADR：`docs/adr/2026-07-16-desktop-agent-harness-upgrade.md`。
 
 ## Shell 结构
 
-> UI 像素与 IA 真源：`DESIGN.md` §0.0 / §0（**Design System 2.0 · 纸感智识工作台**；token 数值真源 `src/styles/tokens.css`，旧 Brand Horizon 已退役——见 `../docs/adr/2026-08-02-design-system-2-paper-mind.md`）。本节约架构职责 + **现状/目标**。
+> UI 像素与 IA 真源：`DESIGN.md` §0.0 / §0（**Design System 2.1 · Modern Warm-Neutral**；token 数值真源 `src/styles/tokens.css`；2.0 纸感米黄已被 2.1 取代、旧 Brand Horizon 已退役——见 `../docs/adr/2026-08-02-design-system-2-paper-mind.md` · `../docs/adr/2026-08-07-desktop-single-entry-dedupe.md` · `../docs/adr/2026-08-07-comprehensive-design-optimization.md`）。本节约架构职责 + **现状/目标**。
 
-### 目标 IA（Product target · **Done** Wave F+G）
+### 目标 IA（Product target · **Done** Wave F–G + 2026-08-07 优化）
 
 ```
 Shell
 ├── TitleBar
-│   ├── 左: 侧栏 + 前进/后退 + 标识 + WorkspaceSwitcher（⌘⇧W）
+│   ├── 左: 侧栏 + 前进/后退 + WorkspaceSwitcher（⌘⇧W）— 品牌芯片已移除（2026-08-07）
 │   ├── 中: PrimaryNav — **动态（默认）** · **收件箱** · **写出来** + 归档图标 + ⌘K
 │   └── 右: **记一下**（⌘N）+ 搜索 + 设置 + 主题 + AI
 ├── Sidebar — 默认动态流；二级专题树 / 记忆 / 我的情况 / 归档；高级 tags/kanban/plugins
 ├── EditorArea — 默认动态主表面或 ViewSlot 编辑
 ├── AiPanel — 副驾：compact ActionBar（跳转）+ 对话区 + Composer
 ├── SuggestPopover — **全局建议确认面**（标题栏 💡 / strip / openSuggestSurface）
-├── StatusBar
+├── StatusBar — 健康即沉默；路径不常驻（2026-08-07 移除）；AI pill 唯一主控件
 └── OverlayHost（QuickCapture · ⌘K · Search · Settings）
 ```
 

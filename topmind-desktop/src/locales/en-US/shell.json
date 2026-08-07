@@ -25,7 +25,17 @@
     "footerLine3": "Files stay yours · Desktop is a smart view",
     "healthOk": "OK",
     "healthEmpty": "Empty",
-    "healthBroken": "Unavailable"
+    "healthBroken": "Unavailable",
+    "templateTitle": "Choose a template",
+    "templateConfirm": "Continue",
+    "templateStreamName": "Minimal Stream",
+    "templateStreamDesc": "Minimal: Inbox · Stream · Topics · Output · Archive",
+    "templateBalancedName": "Balanced Knowledge",
+    "templateBalancedDesc": "Low-friction capture with knowledge sink",
+    "templateResearchName": "Academic Research",
+    "templateResearchDesc": "Deep research · source tracking · references",
+    "templatePeriodicName": "Periodic Review",
+    "templatePeriodicDesc": "Strong periodic review · memory sink"
   },
   "shell": {
     "loadingAi": "Loading AI…",
@@ -66,7 +76,6 @@
     "forwardAriaLabel": "Forward",
     "commandPaletteTip": "Command palette · ⌘K",
     "commandPaletteAriaLabel": "Command palette",
-    "command": "Command",
     "captureTip": "Note it · ⌘N (this week’s stream by default)\nGlobal ⌘⇧N from any app",
     "capture": "Note it",
     "searchTip": "Full-text search · ⌘P",
@@ -75,8 +84,6 @@
     "settingsTip": "Settings · ⌘,",
     "settingsAriaLabel": "Settings",
     "settingsLabel": "Settings",
-    "themeTip": "Theme: {{label}} · Click to cycle",
-    "themeAriaLabel": "Theme {{label}}",
     "themeMenuItem": "Theme · {{label}}",
     "themeAuto": "Follow system",
     "themeLight": "Light",
@@ -90,7 +97,8 @@
     "todoTip": "Todo list · ⌘⇧T",
     "todoAriaLabel": "Todo list",
     "suggestTip": "Suggestions · confirm before write (≠ personal list)",
-    "suggestAriaLabel": "Open suggestions"
+    "suggestAriaLabel": "Open suggestions",
+    "commandField": "Commands · Jump"
   },
   "taskPanel": {
     "title": "AI Tasks",
@@ -150,7 +158,6 @@
     "inboxTipActive": "Inbox {{count}} items to organize · ⌘⇧I",
     "inboxTipIdle": "Inbox is empty · ⌘⇧I",
     "outputs": "Ship it",
-    "outputsTipActive": "Ship it {{count}} · ⌘⇧O",
     "outputsTipIdle": "Ship it · ⌘⇧O",
     "archiveTip": "Archive & recovery · ⌘⇧A",
     "archiveAriaLabel": "Archive"
@@ -185,11 +192,6 @@
     "todoMaintainingTip": "Extracting/updating personal list from stream · takes a few seconds",
     "suggestLoading": "Preparing suggestions",
     "suggestLoadingTip": "Scanning tidy-up candidates and generating suggestions · click to view",
-    "suggestCount": "{{count}} ideas",
-    "suggestCountTip": "{{count}} suggestions to review · click to view",
-    "suggestHighTip": "{{count}} suggestions (high priority) · click to view",
-    "suggestCountAria": "{{count}} suggestions",
-    "suggestHideTip": "Hide suggestion panel",
     "inlineAiWorking": "AI working",
     "inlineAiWorkingTip": "Polish / inline rewrite in progress · leaving may cancel this result · click does nothing",
     "inlineAiLeaveTitle": "Leave will cancel AI work",
@@ -197,19 +199,9 @@
     "inlineAiLeaveConfirmWithLabel": "“{{label}}” is still running or has an unapplied result. Leaving will cancel this AI work.",
     "inlineAiLeaveForce": "Leave anyway",
     "inlineAiLeaveStay": "Keep waiting",
-    "selectionStream": "Stream",
-    "selectionStreamTip": "Current: this week's stream",
-    "selectionInbox": "Inbox",
-    "selectionInboxTip": "Current: Inbox",
-    "selectionOutputs": "Ship it",
-    "selectionOutputsTip": "Current: Ship it",
-    "selectionArchive": "Archive",
-    "selectionArchiveTip": "Current: Archive",
-    "selectionWeread": "WeRead",
-    "selectionConnectorTip": "Connector · Click to go back to workspace",
     "revealWorkspaceTip": "Click to reveal in Finder",
     "revealFileTip": "Click to reveal in file manager",
-    "unknown": "Unknown"
+    "updateAvailable": "v{{version}} available · click to download"
   },
   "editorArea": {
     "loadingWorkspace": "Loading workspace…",
@@ -284,7 +276,11 @@
       "dropHintTopic": "Release to move into this topic",
       "loadingFiles": "Loading files…",
       "emptyCategory": "Empty category · Click to create topic (YYYY-Topic)",
-      "emptyTopic": "No notes · Click to create"
+      "emptyTopic": "No notes · Click to create",
+      "tooltipPath": "Path",
+      "tooltipModified": "Modified",
+      "tooltipFileCount": "{{count}} notes",
+      "tooltipTopicCount": "{{count}} topics"
     },
     "timeline": {
       "weekThis": "This week {{key}}",
@@ -511,6 +507,9 @@
     "cleanupStaleConfirm": "Will remove {{count}} completed todos older than 7 days. Continue?",
     "cleanupDone": "Cleaned up {{count}} stale todos",
     "healthOverdue": "{{count}} overdue",
-    "healthStale": "{{count}} stale"
+    "healthStale": "{{count}} stale",
+    "archiveStale": "Archive stale todos",
+    "archiveStaleConfirm": "Will archive {{count}} todos older than 30 days to history snapshot. Continue?",
+    "archiveDone": "Archived {{count}} stale todos"
   }
 }

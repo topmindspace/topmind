@@ -1,12 +1,15 @@
 @import "tailwindcss";
 
 /**
- * topmind Design Tokens — Design System 2.0 "纸感智识工作台 / Paper Mind Workbench"
+ * topmind Design Tokens — Design System 2.1 "Modern Warm-Neutral"
+ * (2.1: removed the 2.0 yellow-beige cast — read as「老旧」— 2026-08-07)
  *
  * Brand source (logo / favicon.svg):
  *   ink deep #31548e → ink mid #5a7fb8 → capture teal #2fa89a
  *
- * Aesthetic: warm paper neutrals + single strong ink-blue primary.
+ * Aesthetic: near-neutral surfaces with a whisper of warmth + single ink-blue primary.
+ * Neither 米黄 (dated) nor 冷蓝灰 (sterile, forbidden) — low-chroma warm neutral that
+ * keeps the ink-blue brand fresh and stays comfortable for long reading sessions.
  * Aqua/teal is RESERVED for capture actions only (titlebar capture, inbox identity).
  * Density: Linear; reading comfort: Craft; object feel: filesystem.
  * Solid CTA uses Ink Deep (best contrast). Mid/Teal only for glow, skills, capture moments.
@@ -18,8 +21,8 @@
  * - Scroll: overscroll-behavior contain on panel scrollers; avoid blur on sticky chrome
  * - One solid CTA per region; selection fills stay ≤ ~10% accent alpha (low visual load)
  *
- * Light: warm stone rails → warm paper canvas → warm-white surface → elevated
- * Dark: warm graphite ink base → lifted panels → soft ink-blue accent glow
+ * Light: neutral-warm rails → clean paper-white canvas → near-white surface → pure-white elevated
+ * Dark: neutral graphite base (breath of warmth, not brown) → lifted panels → ink-blue glow
  *
  * Surface ladder (must stay distinct — never collapse elevated into surface):
  *   app-chrome → background → surface → surface-elevated
@@ -33,28 +36,29 @@
   --color-brand-wash: color-mix(in srgb, var(--color-brand-mid) 6%, transparent);
 
   /* ── Colors (light) ──
-     Hierarchy: chrome warmer/slightly darker → warm paper canvas → warm-white surface → elevated.
-     Neutrals are warm stone (hue ~45–55°, low chroma) — paper feel, not office gray.
-     Reading comfort leans Obsidian/Notion: quieter hairlines, soft paper canvas. */
-  --color-app-chrome: #edeae2;
-  --color-app-chrome-muted: #e4e0d5;
-  --color-background: #f6f4ef;
-  --color-surface: #fffefb;
+     Hierarchy: chrome slightly deeper → clean canvas → near-white surface → pure-white elevated.
+     Neutrals are near-neutral warm (2.1: chroma cut ~50% vs 2.0 beige — fresh, not dated).
+     Reading comfort leans Notion/Linear: quiet hairlines, clean paper-white canvas. */
+  --color-app-chrome: #efeeeb;
+  --color-app-chrome-muted: #e5e4e0;
+  --color-background: #f7f6f4;
+  --color-surface: #fdfdfc;
   /* Elevated must stay distinct from surface in light — warm white + mandatory float on overlays */
-  --color-surface-elevated: #fdfcf8;
-  --color-surface-muted: #f0ede5;
-  --color-surface-inset: #e8e4d9;
+  --color-surface-elevated: #ffffff;
+  --color-surface-muted: #f2f1ed;
+  --color-surface-inset: #eae9e5;
   /* Ink hierarchy — primary for body, secondary chrome, tertiary/quaternary for meta (lighter = less noise) */
-  --color-text-primary: #2b2822;
-  --color-text-secondary: #57524a;
-  --color-text-tertiary: #7c766b;
-  --color-text-quaternary: #a29b8d;
+  --color-text-primary: #2b2b27;
+  --color-text-secondary: #585852;
+  --color-text-tertiary: #7d7d77;
+  --color-text-quaternary: #a3a39c;
   /* Prose body on paper — slightly softer than pure ink for long reading */
-  --color-text-prose: #33302a;
-  /* Hairlines: readable structure without heavy grids (Notion/Obsidian quiet style) */
-  --color-border-subtle: rgba(62, 54, 38, 0.10);
-  --color-border-subtle-dim: rgba(62, 54, 38, 0.065);
-  --color-border-strong: rgba(62, 54, 38, 0.17);
+  --color-text-prose: #34342f;
+  /* Hairlines: readable structure without heavy grids (Notion/Obsidian quiet style)
+     2026-08-07: dimmed further for calmer chrome (0.065 → 0.055) */
+  --color-border-subtle: rgba(60, 58, 50, 0.09);
+  --color-border-subtle-dim: rgba(60, 58, 50, 0.055);
+  --color-border-strong: rgba(60, 58, 50, 0.16);
 
   /* Ink Deep accent — solid CTA; muted fills for selection (low visual pressure) */
   --color-accent-project: var(--color-brand-deep);
@@ -90,12 +94,12 @@
   --color-accent-bg-subtle: rgba(49, 84, 142, 0.08);
   --color-accent-bg-faint: rgba(49, 84, 142, 0.04);
   --color-accent-inset-border: rgba(49, 84, 142, 0.26);
-  --color-scrim: rgba(42, 36, 24, 0.36);
-  --color-kbd-bg: rgba(42, 36, 24, 0.05);
+  --color-scrim: rgba(31, 29, 26, 0.36);
+  --color-kbd-bg: rgba(31, 29, 26, 0.05);
   --color-surface-elevated-glass: color-mix(in srgb, var(--color-surface-elevated) 90%, transparent);
   --color-app-chrome-glass: color-mix(in srgb, var(--color-app-chrome) 82%, transparent);
-  --shadow-premium: 0 8px 28px rgba(42, 36, 24, 0.06), 0 0 0 1px var(--color-border-subtle);
-  --shadow-premium-hover: 0 14px 40px rgba(42, 36, 24, 0.09), 0 0 0 1px var(--color-border-strong);
+  --shadow-premium: 0 8px 28px rgba(31, 29, 26, 0.06), 0 0 0 1px var(--color-border-subtle);
+  --shadow-premium-hover: 0 14px 40px rgba(31, 29, 26, 0.09), 0 0 0 1px var(--color-border-strong);
   /* Skill identity — stay on brand axis (no purple drift) */
   --color-skill-capture: var(--color-accent-inbox);
   --color-skill-organize: var(--color-brand-deep);
@@ -108,10 +112,10 @@
   --color-glow-primary-hover: rgba(49, 84, 142, 0.10);
   --color-glow-accent: rgba(90, 127, 184, 0.12);
 
-  /* Surface interaction states */
-  --color-surface-hover: var(--color-surface-muted);
-  --color-surface-elevated-hover: #f1eee6;
-  --color-border-subtle-hover: rgba(42, 36, 24, 0.16);
+  /* Surface interaction states — softer hover for calmer feel (2026-08-07) */
+  --color-surface-hover: color-mix(in srgb, var(--color-surface-muted) 72%, transparent);
+  --color-surface-elevated-hover: color-mix(in srgb, var(--color-surface-muted) 50%, var(--color-surface-elevated));
+  --color-border-subtle-hover: rgba(45, 43, 38, 0.16);
   --color-surface-active: var(--color-surface-inset);
   /* Slightly stronger wash so selected rows stay readable under bright ambient light */
   --color-surface-selected: rgba(49, 84, 142, 0.11);
@@ -162,25 +166,26 @@
 
   /* ── Elevation (soft first; hairline only on floating overlays) ── */
   --shadow-border: 0 0 0 1px var(--color-border-subtle);
-  --shadow-xs: 0 1px 2px rgba(42, 36, 24, 0.05);
-  --shadow-sm: 0 2px 8px rgba(42, 36, 24, 0.06), 0 1px 2px rgba(42, 36, 24, 0.035);
-  --shadow-md: 0 6px 18px rgba(42, 36, 24, 0.08), 0 2px 4px rgba(42, 36, 24, 0.035);
-  --shadow-lg: 0 12px 32px rgba(42, 36, 24, 0.10);
-  --shadow-xl: 0 20px 48px rgba(42, 36, 24, 0.12);
-  /* Feed / list cards — weaker than overlays so popovers float above content */
-  --shadow-card: 0 1px 2px rgba(42, 36, 24, 0.04);
+  --shadow-xs: 0 1px 2px rgba(31, 29, 26, 0.05);
+  --shadow-sm: 0 2px 8px rgba(31, 29, 26, 0.06), 0 1px 2px rgba(31, 29, 26, 0.035);
+  --shadow-md: 0 6px 18px rgba(31, 29, 26, 0.08), 0 2px 4px rgba(31, 29, 26, 0.035);
+  --shadow-lg: 0 12px 32px rgba(31, 29, 26, 0.10);
+  --shadow-xl: 0 20px 48px rgba(31, 29, 26, 0.12);
+  /* Feed / list cards — subtle lift + faint hairline for refined "floating" feel
+     2026-08-07: added faint outer ring for cleaner edge definition */
+  --shadow-card: 0 1px 3px rgba(31, 29, 26, 0.05), 0 0 0 0.5px rgba(31, 29, 26, 0.03);
   /* Inset field wash — single source for input/textarea/select inner shadow */
-  --shadow-input-inset: inset 0 1px 2px rgba(42, 36, 24, 0.04);
+  --shadow-input-inset: inset 0 1px 2px rgba(31, 29, 26, 0.04);
   /* Primary button: quiet lift + soft brand glow on hover (not neon) */
-  --shadow-button: 0 1px 2px rgba(42, 36, 24, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  --shadow-button: 0 1px 2px rgba(31, 29, 26, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.16);
   --shadow-button-hover: 0 3px 12px rgba(49, 84, 142, 0.14), 0 1px 2px rgba(49, 84, 142, 0.08);
   --shadow-divider-top: 0 -1px 0 0 var(--color-border-subtle-dim);
   --shadow-divider-right: 1px 0 0 0 var(--color-border-subtle-dim);
   --shadow-divider-bottom: 0 1px 0 0 var(--color-border-subtle-dim);
   --shadow-divider-left: -1px 0 0 0 var(--color-border-subtle-dim);
   --shadow-accent-ring: inset 0 0 0 1px var(--color-focus-soft);
-  --shadow-overlay: 0 24px 64px rgba(42, 36, 24, 0.16), 0 8px 20px rgba(42, 36, 24, 0.07), 0 0 0 1px var(--color-border-subtle);
-  --shadow-float: 0 10px 28px rgba(42, 36, 24, 0.10), 0 0 0 1px var(--color-border-subtle);
+  --shadow-overlay: 0 24px 64px rgba(45, 43, 38, 0.16), 0 8px 20px rgba(31, 29, 26, 0.07), 0 0 0 1px var(--color-border-subtle);
+  --shadow-float: 0 10px 28px rgba(31, 29, 26, 0.10), 0 0 0 1px var(--color-border-subtle);
   /* Elevated panels: depth + optional top hairline (light: soft; dark: inset glow) */
   --shadow-elevated-hairline: var(--shadow-float);
   --shadow-overlay-hairline: var(--shadow-overlay);
@@ -230,15 +235,16 @@
   --type-size-page-title: 24px;
   --type-size-display: 28px;
 
-  /* Layout density — workbench-first (tighter chrome, airy content) */
+  /* Layout density — workbench-first (tighter chrome, airy content)
+     2026-08-07: chrome-y 38→36 for slimmer titlebar; status-y 26→24 */
   --density-page-x: 28px;
   --density-page-y: 24px;
   --density-section: 28px;
   --density-card: 14px;
   --density-row: 6px;
-  --density-chrome-y: 38px;
-  /* 26px status meta — readable without chrome clutter */
-  --density-status-y: 26px;
+  --density-chrome-y: 36px;
+  /* 24px status meta — slimmer, still readable (2026-08-07: 26→24) */
+  --density-status-y: 24px;
   --density-sidebar-pad-x: 8px;
   --density-tree-row: 28px;
   --density-editor-toolbar-y: 32px;
@@ -382,26 +388,27 @@
 
   .dark {
     color-scheme: dark;
-    /* Warm graphite ink hierarchy: quiet chrome → soft canvas → elevated panels */
-    --color-app-chrome: #181613;
-    --color-app-chrome-muted: #1c1a16;
-    --color-background: #201e19;
-    --color-surface: #282520;
-    --color-surface-elevated: #302d26;
-    --color-surface-muted: #2c2923;
-    --color-surface-inset: #181613;
+    /* Neutral graphite hierarchy (breath of warmth, no brown cast): quiet chrome → soft canvas → elevated panels */
+    --color-app-chrome: #171715;
+    --color-app-chrome-muted: #1b1b19;
+    --color-background: #1e1e1c;
+    --color-surface: #262624;
+    --color-surface-elevated: #2e2e2b;
+    --color-surface-muted: #2a2a27;
+    --color-surface-inset: #171715;
     /* High contrast, eye-comfortable text hierarchy (AA+ standard) */
-    --color-text-primary: #f0ede4;
-    --color-text-secondary: #d0cabd;
-    --color-text-tertiary: #a49c8c;
-    --color-text-quaternary: #847d6e;
-    --color-text-prose: #f0ede4;
-    --color-border-subtle: rgba(255, 248, 235, 0.10);
-    --color-border-subtle-dim: rgba(255, 248, 235, 0.055);
-    --color-border-strong: rgba(255, 248, 235, 0.18);
+    --color-text-primary: #ecece8;
+    --color-text-secondary: #cbccc6;
+    --color-text-tertiary: #a3a49d;
+    --color-text-quaternary: #83847e;
+    --color-text-prose: #ecece8;
+    /* 2026-08-07: dimmed dark hairlines for calmer graphite */
+    --color-border-subtle: rgba(255, 255, 255, 0.09);
+    --color-border-subtle-dim: rgba(255, 255, 255, 0.045);
+    --color-border-strong: rgba(255, 255, 255, 0.16);
     --color-dialog-bg: var(--color-surface-elevated);
     --color-dialog-header: color-mix(in srgb, var(--color-surface-muted) 55%, var(--color-surface-elevated));
-    /* Dark accent = lifted ink blue (readable on warm graphite, still brand-true) */
+    /* Dark accent = lifted ink blue (readable on neutral graphite, still brand-true) */
     --color-accent-project: #7f9fd4;
     --color-accent-inbox: #4fc2b0;
     --color-accent-color: #7f9fd4;
@@ -426,15 +433,15 @@
     --color-status-info: #93aede;
     --color-status-info-bg: rgba(127, 159, 212, 0.12);
     --color-scrim: rgba(0, 0, 0, 0.56);
-    --color-kbd-bg: rgba(255, 248, 235, 0.08);
+    --color-kbd-bg: rgba(255, 255, 255, 0.08);
 
     --color-glow-primary: rgba(127, 159, 212, 0.06);
     --color-glow-primary-hover: rgba(127, 159, 212, 0.12);
     --color-glow-accent: rgba(79, 194, 176, 0.10);
 
-    --color-surface-hover: #2e2b24;
-    --color-surface-elevated-hover: #37332b;
-    --color-border-subtle-hover: rgba(255, 248, 235, 0.16);
+    --color-surface-hover: color-mix(in srgb, #2c2c29 72%, transparent);
+    --color-surface-elevated-hover: #343431;
+    --color-border-subtle-hover: rgba(255, 255, 255, 0.16);
     --color-surface-active: var(--color-surface-inset);
     --color-surface-selected: rgba(127, 159, 212, 0.16);
     --color-surface-accent-subtle: rgba(127, 159, 212, 0.10);
@@ -461,7 +468,7 @@
     --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.38);
     --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.44);
     --shadow-xl: 0 20px 48px rgba(0, 0, 0, 0.50);
-    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.28);
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.30), 0 0 0 0.5px rgba(0, 0, 0, 0.15);
     --shadow-input-inset: inset 0 1px 2px rgba(0, 0, 0, 0.28);
     --shadow-button: 0 1px 2px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.10);
     --shadow-button-hover: 0 4px 14px rgba(127, 159, 212, 0.30);
@@ -583,7 +590,8 @@ button {
 
 button:active:not(:disabled),
 .interactive-scale:active:not(:disabled) {
-  transform: scale(0.985);
+  /* 2026-08-07: subtle press feedback (0.985 → 0.992 for refined feel) */
+  transform: scale(0.992);
 }
 
 button:focus-visible,

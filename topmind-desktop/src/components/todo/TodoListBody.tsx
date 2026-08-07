@@ -34,6 +34,7 @@ export function TodoListBody() {
   const toggle = useTodoStore((s) => s.toggle);
   const clearCompleted = useTodoStore((s) => s.clearCompleted);
   const cleanupStale = useTodoStore((s) => s.cleanupStale);
+  const archiveStale = useTodoStore((s) => s.archiveStale);
 
   const [newItemText, setNewItemText] = useState("");
   const [showCompleted, setShowCompleted] = useState(false);
@@ -140,6 +141,15 @@ export function TodoListBody() {
                 className="underline hover:no-underline"
               >
                 {t("todo.cleanupStale")}
+              </button>
+            ) : null}
+            {staleCount > 0 ? (
+              <button
+                type="button"
+                onClick={() => void archiveStale()}
+                className="underline hover:no-underline"
+              >
+                {t("todo.archiveStale")}
               </button>
             ) : null}
             <button
@@ -299,12 +309,15 @@ function formatDueDate(dueDate: string, t: (key: string, opts?: Record<string, u
   };
 }
 
-/** Check if an item is stale (created > 30 days ago and not done). */
-function isStale(item: TodoItem): boolean {
-  if (!item.createdAt || item.done) return false;
+/** Check staleness level: 0 fresh, 1 warning (8-14d), 2 urgent (15-30d), 3 stale (30+d). */
+function staleLevel(item: TodoItem): number {
+  if (!item.createdAt || item.done) return 0;
   const today = new Date().toISOString().slice(0, 10);
   const days = Math.round((new Date(today).getTime() - new Date(item.createdAt).getTime()) / 86400000);
-  return days > 30;
+  if (days > 30) return 3;
+  if (days > 14) return 2;
+  if (days > 7) return 1;
+  return 0;
 }
 
 function TodoItemRow({
@@ -360,7 +373,7 @@ function TodoItemRow({
   };
 
   const isAi = item.source === "ai";
-  const isOld = isStale(item);
+  const sLevel = staleLevel(item);
   const dueInfo = item.dueDate ? formatDueDate(item.dueDate, t) : null;
 
   return (
@@ -410,10 +423,15 @@ function TodoItemRow({
                 className="mr-0.5 inline shrink-0 text-accent-color/60"
               />
             ) : null}
-            {isOld && !item.done ? (
+            {sLevel > 0 && !item.done ? (
               <Clock
                 size={ICON.nano}
-                className="mr-0.5 inline shrink-0 text-warning/70"
+                className={cn(
+                  "mr-0.5 inline shrink-0",
+                  sLevel === 1 && "text-warning/50",
+                  sLevel === 2 && "text-warning/70",
+                  sLevel === 3 && "text-error/70",
+                )}
               />
             ) : null}
             {item.text}

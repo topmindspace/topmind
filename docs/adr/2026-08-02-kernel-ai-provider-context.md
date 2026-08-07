@@ -15,6 +15,17 @@
 - 多工作区/并行安全；测试可注入 fake provider 而不污染全局。
 - Desktop 后续可迁移到 per-window `createKernelContext`（非本次范围）。
 
+## Update（2026-08-07）：Context-based maxOutputTokens
+
+`createKernelAiProvider` 的 `generate(prompt, context)` 现在根据 `context` 动态决定 `maxOutputTokens`：
+
+- `context.maxOutputTokens`（显式覆盖，最高优先）
+- `context.operation`（操作类型映射：`topic_summary` → 8192、`period_analysis` / `period_digest` / `inbox_organize` / `memory_organize` / `todo_extract` / `todo_maintain` → 4096、`memory_extract` / `topic_classify` → 2048）
+- 启发式回退（`context.topicPath` → 8192、`context.period` → 4096、prompt 长度 > 6000 → 4096）
+- 默认 4096（原硬编码 2048 已废弃——过小导致结构化输出截断）
+
+Kernel 引擎调用点已全部传递 `context.operation`（suggest-engine / derived-builder / todo-engine / ai-operation-engine）。
+
 ## Verification
 
 `tests/kernel-api.test.mjs`（createKernelContext binds workspace + per-call AI provider）；`tests/derived-builder.test.mjs` 全绿。

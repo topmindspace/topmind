@@ -56,12 +56,12 @@ export function markdownBodyToHtmlDocument(
     max-width: 42rem;
     margin: 2rem auto;
     padding: 0 1.25rem 3rem;
-    color: #2b2822;
-    background: #f6f4ef;
+    color: #2b2b27;
+    background: #f7f6f4;
   }
   @media (prefers-color-scheme: dark) {
-    body { color: #f0ede4; background: #201e19; }
-    pre, code { background: #2c2923; }
+    body { color: #ecece8; background: #1e1e1c; }
+    pre, code { background: #2a2a27; }
     a { color: #7f9fd4; }
   }
   h1,h2,h3 { line-height: 1.3; margin-top: 1.4em; }
@@ -82,8 +82,8 @@ export function markdownBodyToHtmlDocument(
   }
   @media (prefers-color-scheme: dark) {
     blockquote { border-left-color: rgba(127, 159, 212, 0.5); color: #d0cabd; }
-    pre { background: #2c2923; }
-    :not(pre) > code { background: #2c2923; }
+    pre { background: #2a2a27; }
+    :not(pre) > code { background: #2a2a27; }
   }
   a { color: #31548e; }
   .meta { font-size: 0.85rem; color: #7c766b; }

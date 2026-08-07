@@ -25,6 +25,78 @@ function stripMdExt(label: string): string {
   return String(label || "").replace(/\.md$/u, "");
 }
 
+/** Format an ISO mtime string into a readable "YYYY-MM-DD HH:mm" string. */
+function formatMtime(mtime: unknown): string | null {
+  if (typeof mtime !== "string" || !mtime) return null;
+  const d = new Date(mtime);
+  if (isNaN(d.getTime())) return null;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** Relative time like "刚刚" / "3 分钟前" / "2 天前" for compact display. */
+function relativeTime(mtime: unknown): string | null {
+  if (typeof mtime !== "string" || !mtime) return null;
+  const d = new Date(mtime);
+  if (isNaN(d.getTime())) return null;
+  const diff = Date.now() - d.getTime();
+  const sec = Math.floor(diff / 1000);
+  if (sec < 60) return null; // too fresh — don't show "刚刚"
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min} min`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr} h`;
+  const day = Math.floor(hr / 24);
+  if (day < 30) return `${day} d`;
+  return formatMtime(mtime); // fallback to absolute for old dates
+}
+
+/** Build a rich multi-line tooltip string from node metadata. */
+function buildNodeTooltip(node: TreeNode, t: (key: string, opts?: Record<string, unknown>) => string): string {
+  const lines: string[] = [];
+  const mtime = formatMtime(node.meta?.mtime);
+  const relTime = relativeTime(node.meta?.mtime);
+  const fileCount = node.meta?.fileCount as number | undefined;
+
+  if (node.kind === "file") {
+    // Full filename (with extension) as title
+    lines.push(node.label);
+    if (node.selection?.kind === "file" && node.selection.topicId) {
+      lines.push(`${t("sidebar.treeView.tooltipPath")}: ${node.selection.topicId}`);
+    } else if (node.selection?.kind === "file" && node.selection.path) {
+      lines.push(`${t("sidebar.treeView.tooltipPath")}: ${node.selection.path}`);
+    }
+    if (mtime) {
+      const rel = relTime ? ` (${relTime})` : "";
+      lines.push(`${t("sidebar.treeView.tooltipModified")}: ${mtime}${rel}`);
+    }
+  } else if (node.kind === "topic" || node.kind === "folder") {
+    lines.push(node.label);
+    if (typeof fileCount === "number" && fileCount > 0) {
+      lines.push(t("sidebar.treeView.tooltipFileCount", { count: fileCount }));
+    }
+    if (mtime) {
+      const rel = relTime ? ` (${relTime})` : "";
+      lines.push(`${t("sidebar.treeView.tooltipModified")}: ${mtime}${rel}`);
+    }
+  } else if (node.kind === "category") {
+    lines.push(node.label);
+    const childCount = node.children?.length ?? 0;
+    if (childCount > 0) {
+      lines.push(t("sidebar.treeView.tooltipTopicCount", { count: childCount }));
+    }
+  } else if (node.kind === "group") {
+    lines.push(node.label);
+    if (typeof fileCount === "number" && fileCount > 0) {
+      lines.push(t("sidebar.treeView.tooltipFileCount", { count: fileCount }));
+    }
+  } else {
+    lines.push(node.label);
+  }
+
+  return lines.join("\n");
+}
+
 /** Render category/group labels with muted PARA number prefix (e.g. "00-" in "00-收件箱"). */
 function renderCategoryLabel(label: string): React.ReactNode {
   const m = String(label || "").match(/^(\d{2}-)(.+)$/u);
@@ -47,7 +119,7 @@ interface Props {
   nodes: TreeNode[];
   depth?: number;
   onRefresh?: () => void;
-  loadChildren?: (node: TreeNode) => Promise<void>;
+  loadChildren?: (node: TreeNode, opts?: { force?: boolean }) => Promise<void>;
   childrenCache?: Map<string, TreeNode[]>;
   loadingNodes?: Set<string>;
   /** Sibling sort under each parent (default mtime-desc). */
@@ -58,7 +130,7 @@ interface NodeProps {
   node: TreeNode;
   depth: number;
   onRefresh?: () => void;
-  loadChildren?: (node: TreeNode) => Promise<void>;
+  loadChildren?: (node: TreeNode, opts?: { force?: boolean }) => Promise<void>;
   childrenCache?: Map<string, TreeNode[]>;
   loadingNodes?: Set<string>;
   sortMode?: TreeSortMode;
@@ -175,6 +247,25 @@ function TreeViewNode({
       el.scrollIntoView({ block: "nearest", behavior: "smooth" });
     });
   }, [isActive, node.id]);
+
+  // Auto-reload stale cache: when a lazy topic/folder is expanded but the cache
+  // entry is missing (cleared during refresh) and should have files
+  // (fileCount > 0), silently trigger a reload instead of showing "暂无笔记".
+  // Guard: only reload when cache entry is MISSING — not when it exists but is
+  // empty (empty = no files match the current filter, which is correct).
+  const cacheHasEntry = Boolean(childrenCache?.has(node.id));
+  useEffect(() => {
+    if (
+      expanded &&
+      node.meta?.lazy &&
+      !cacheHasEntry &&
+      !isLoading &&
+      (node.meta?.fileCount as number) > 0 &&
+      loadChildren
+    ) {
+      void loadChildren(node, { force: true });
+    }
+  }, [expanded, node, cacheHasEntry, isLoading, loadChildren]);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -471,7 +562,7 @@ function TreeViewNode({
           <span className="w-[11px] shrink-0" />
         )}
         <TreeNodeIcon node={node} expanded={expanded} isActive={isActive} />
-        <Tooltip content={node.kind === "file" ? stripMdExt(node.label) : node.label} side="right" sideOffset={4}>
+        <Tooltip content={buildNodeTooltip(node, t)} side="right" sideOffset={4}>
           <span className="min-w-0 flex-1 truncate">
             {node.kind === "file"
               ? stripMdExt(node.label)
@@ -549,6 +640,20 @@ function TreeViewNode({
             loadingNodes={loadingNodes}
             sortMode={sortMode}
           />
+        ) : (node.kind === "topic" || node.kind === "category") &&
+          node.meta?.lazy &&
+          (node.meta?.fileCount as number) > 0 &&
+          !childrenCache?.has(node.id) ? (
+          /* Stale cache guard: lazy topic/category with fileCount > 0 but cache
+             entry is missing (cleared during refresh). Show loading instead of
+             "暂无笔记" and auto-trigger a reload via the effect above. */
+          <div
+            className="flex items-center gap-1.5 py-1 text-3xs text-text-tertiary"
+            style={{ paddingLeft: `${20 + depth * 12}px` }}
+            role="status"
+          >
+            <Loader2 size={ICON.micro} className="animate-spin" aria-hidden /> {t("sidebar.treeView.loadingFiles")}
+          </div>
         ) : node.kind === "topic" || node.kind === "category" ? (
           <div
             className="mx-2 mb-1 mt-0.5 rounded-[var(--radius-md)] border border-dashed border-border-subtle bg-surface-muted/25 px-2 py-2 text-3xs text-text-quaternary"

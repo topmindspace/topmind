@@ -115,9 +115,9 @@ export function FilePreviewView({ path }: Props) {
     const root = document.documentElement;
     const cs = getComputedStyle(root);
     const fg = cs.getPropertyValue("--color-text-primary").trim()
-      || (dark ? "#f0ede4" : "#2b2822");
+      || (dark ? "#ecece8" : "#2b2b27");
     const bg = cs.getPropertyValue("--color-surface").trim()
-      || (dark ? "#282520" : "#fffefb");
+      || (dark ? "#262624" : "#fdfdfc");
     return `<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="color-scheme" content="${dark ? "dark" : "light"}"/><style>html,body{margin:0;padding:12px;font:14px/1.55 system-ui,sans-serif;color:${fg};background:${bg};word-break:break-word}img,video{max-width:100%;height:auto}</style></head><body>${content}</body></html>`;
   }, [isHtml, content, dark]);
 

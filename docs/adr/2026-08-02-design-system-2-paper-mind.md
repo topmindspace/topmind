@@ -1,7 +1,7 @@
 # ADR: Design System 2.0 — 纸感智识工作台（Paper Mind Workbench）
 
 **Date:** 2026-08-02  
-**Status:** Accepted（已落地 tokens.css / v4.css / browser-extension / favicon）  
+**Status:** Superseded（中性色阶由 Design System 2.1 Modern Warm-Neutral 取代，2026-08-07，见 `2026-08-07-desktop-single-entry-dedupe.md` Round 3；品牌墨蓝/teal 身份与 token 架构仍生效）  
 **Context:** 旧视觉 "Brand Horizon"（#0a50d0 deep → #1a9ce0 mid → #3de0c8 aqua 双色系 + 冷蓝灰中性）与产品「个人智识工作台 · 长时阅读」定位不完全匹配；且存在散布的硬编码色值（输入框 inset rgba、raw px 字号）。用户批准全新视觉识别，方向「纸感智识工作台」；候选 A 暖纸+墨蓝 / B 冷瓷+黛青 / C 米白+赭石，用户离场后按推荐选定 **A**。
 
 ## Decision

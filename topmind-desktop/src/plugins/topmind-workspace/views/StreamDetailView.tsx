@@ -19,7 +19,6 @@ import {
   Send,
   Sparkles,
   MessageSquarePlus,
-  ListTodo,
 } from "lucide-react";
 import { api } from "../../../services/api";
 import { emitLocal, onLocal } from "../../../plugins/host";
@@ -453,7 +452,6 @@ export function StreamDetailView() {
 
   const select = useViewStore((s) => s.select);
   const todoMaintaining = useTodoStore((s) => s.maintaining === "maintaining");
-  const todoActiveCount = useTodoStore((s) => s.items.filter((i) => !i.done).length);
   const todoEverLoaded = useTodoStore((s) => s.everLoaded);
   const aiReady = useAiStore((s) => s.runtimeStatus?.ready ?? false);
 
@@ -670,14 +668,6 @@ export function StreamDetailView() {
     });
   }, []);
 
-  /** Open personal list only (memory/todo.md) — not AI maintain, not ActionBar 建议. */
-  const handleOpenPersonalTodos = useCallback(() => {
-    emitLocal("todo:open-popover");
-    if (!useTodoStore.getState().everLoaded) {
-      void useTodoStore.getState().refresh();
-    }
-  }, []);
-
   /** AI maintain todos from stream; open todo panel so results/force-retry are visible. */
   const handleMaintainTodos = useCallback(() => {
     emitLocal("todo:open-popover");
@@ -857,22 +847,11 @@ export function StreamDetailView() {
 
   /**
    * Header actions: no second「记一下」(title bar is the only L1 capture).
-   * 个人清单 (ListTodo + count) · AI 提取待办 · 整理 · refresh.
-   * 个人清单 ≠ ActionBar 建议；不把清单嵌进 feed。
+   * 个人清单不在此处重复（降噪 2026-08）——唯一入口是标题栏 ListTodo / ⌘⇧T。
+   * AI 待办 · 整理 · refresh 为情境动作；个人清单 ≠ ActionBar 建议。
    */
   const headerActions = useMemo((): ChromeAction[] => {
     return [
-      {
-        id: "personal-todos",
-        label:
-          todoActiveCount > 0
-            ? t("workspace:streamDetail.personalTodosCount", { count: todoActiveCount })
-            : t("workspace:streamDetail.personalTodos"),
-        title: t("workspace:streamDetail.personalTodosTip"),
-        icon: <ListTodo size={ICON.xs} />,
-        priority: 5,
-        onClick: handleOpenPersonalTodos,
-      },
       {
         id: "ai-todos",
         label: t("workspace:streamDetail.aiMaintainTodos"),
@@ -914,13 +893,11 @@ export function StreamDetailView() {
     t,
     reconciling,
     todoMaintaining,
-    todoActiveCount,
     aiReady,
     activePath,
     loadPeriodContent,
     handleReconcile,
     handleMaintainTodos,
-    handleOpenPersonalTodos,
   ]);
 
   const toggleExpand = useCallback((idx: number) => {
@@ -1096,25 +1073,16 @@ export function StreamDetailView() {
         本视图不挂第二套建议列表（data-stream-suggestions-quiet 在全局 strip）。
       */}
 
-      {/* Inline composer — primary capture path: 润色 → 记下 */}
+      {/* Inline composer — primary capture path: 润色 → 记下。
+          无 label/hint meta 行（降噪 2026-08）：placeholder 承担引导，计数在 PageHeader subtitle。 */}
       <div
         className={cn(
-          "v4-stream-composer mb-2.5 rounded-[var(--radius-lg)] border border-border-subtle-dim",
+          "v4-stream-composer mb-2.5 rounded-[var(--radius-lg)]",
           "bg-surface-elevated shadow-[var(--shadow-card)]",
           "px-3 py-2",
         )}
         data-stream-inline-composer
       >
-        <div className="mb-0.5 flex items-center justify-between gap-2">
-          <span className="text-3xs font-medium text-text-quaternary">
-            {t("workspace:streamDetail.composeLabel")}
-          </span>
-          {entries.length > 0 ? (
-            <span className="tabular-nums text-3xs text-text-quaternary/80">
-              {t("workspace:streamDetail.composeEntryCount", { count: entries.length })}
-            </span>
-          ) : null}
-        </div>
         <label className="sr-only" htmlFor="stream-inline-compose">
           {t("workspace:streamDetail.composePlaceholder")}
         </label>
@@ -1138,14 +1106,8 @@ export function StreamDetailView() {
             "outline-none border-0 focus:ring-0",
           )}
         />
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-border-subtle-dim/70 pt-2">
+        <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2 border-t border-border-subtle-dim/70 pt-1.5">
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="text-3xs text-text-quaternary">
-              {t("workspace:streamDetail.composeHint")}
-            </span>
-            <span className="text-3xs text-text-quaternary/50" aria-hidden>
-              ·
-            </span>
             {/* Tertiary: full capture lives in title bar「记一下」 */}
             <button
               type="button"

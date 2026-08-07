@@ -19,25 +19,10 @@ import { Tooltip } from "../ui/tooltip";
 import { PanelToggleIcon } from "../ui/PanelToggleIcon";
 import { ICON, ICON_STROKE } from "../../lib/icons";
 import { TodoPopover } from "../todo/TodoPopover";
-import { useTodoStore } from "../../stores/todo-store";
 import { useActionStore } from "../../stores/action-store";
 import { toggleSuggestSurface } from "../../lib/suggest-surface";
 
 type ThemeMode = Theme;
-
-/** Badge showing active todo count on the TitleBar icon. */
-function TodoBadge() {
-  const count = useTodoStore((s) => s.items.filter((i) => !i.done).length);
-  if (count === 0) return null;
-  return (
-    <span
-      className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[0.875rem] items-center justify-center rounded-full bg-accent-color px-0.5 text-5xs font-bold leading-none tabular-nums text-text-on-accent"
-      aria-hidden
-    >
-      {count > 9 ? "9+" : count}
-    </span>
-  );
-}
 
 /** Badge for global 建议 count (ActionStore). */
 function SuggestBadge() {
@@ -294,8 +279,9 @@ function PrimaryNav() {
   const { t } = useTranslation(["shell", "common"]);
   const selection = useViewStore((s) => s.selection);
   const select = useViewStore((s) => s.select);
-  // Stream stays quiet (no misleading "in progress" badge). Inbox / ship-it only.
-  const [badges, setBadges] = useState({ inboxCount: 0, outputCount: 0 });
+  // Badge discipline (2026-08): badges only when action is required.
+  // Inbox = triage queue (badge). Outputs = inventory, not actionable → no badge.
+  const [inboxCount, setInboxCount] = useState(0);
   /**
    * Show text labels from window width (not self-measure — label presence changes
    * own width and would thrash ResizeObserver).
@@ -315,15 +301,9 @@ function PrimaryNav() {
     let cancelled = false;
     const refresh = async () => {
       try {
-        const [inboxData, outputs] = await Promise.all([
-          api.ws.inbox().catch(() => ({ files: [] as { relativePath: string }[] })),
-          api.ws.outputs().catch(() => ({ files: [] as unknown[] })),
-        ]);
+        const inboxData = await api.ws.inbox().catch(() => ({ files: [] as { relativePath: string }[] }));
         if (cancelled) return;
-        setBadges({
-          inboxCount: inboxData.files?.length ?? 0,
-          outputCount: outputs.files?.length ?? 0,
-        });
+        setInboxCount(inboxData.files?.length ?? 0);
       } catch {
         /* ignore */
       }
@@ -367,11 +347,11 @@ function PrimaryNav() {
       key: "inbox",
       icon: Inbox,
       label: t("primaryNav.inbox"),
-      badge: badges.inboxCount,
+      badge: inboxCount,
       badgeTone: "warning" as const,
       title:
-        badges.inboxCount > 0
-          ? t("primaryNav.inboxTipActive", { count: badges.inboxCount })
+        inboxCount > 0
+          ? t("primaryNav.inboxTipActive", { count: inboxCount })
           : t("primaryNav.inboxTipIdle"),
       active: selection.kind === "inbox",
       action: () => select({ kind: "inbox" }),
@@ -380,12 +360,9 @@ function PrimaryNav() {
       key: "outputs",
       icon: Layers,
       label: t("primaryNav.outputs"),
-      badge: badges.outputCount,
+      badge: 0,
       badgeTone: "accent" as const,
-      title:
-        badges.outputCount > 0
-          ? t("primaryNav.outputsTipActive", { count: badges.outputCount })
-          : t("primaryNav.outputsTipIdle"),
+      title: t("primaryNav.outputsTipIdle"),
       active: selection.kind === "outputs",
       action: () => select({ kind: "outputs" }),
     },
@@ -403,7 +380,7 @@ function PrimaryNav() {
             type="button"
             onClick={a.action}
             className={cn(
-              "v4-nav-pill relative flex h-7 items-center gap-1 rounded-[var(--radius-md)] px-2 text-3xs font-medium",
+              "v4-nav-pill relative flex h-7 items-center gap-1 rounded-[var(--radius-md)] px-2.5 text-3xs font-medium",
               !a.active && "text-text-tertiary",
             )}
             data-active={a.active}
@@ -427,13 +404,13 @@ function PrimaryNav() {
           </button>
         </Tooltip>
       ))}
-      <span className="v4-chrome-sep mx-0.5 hidden sm:block" aria-hidden />
+      {/* 2026-08-07: separator removed — gap spacing suffices for visual grouping */}
       <Tooltip content={t("primaryNav.archiveTip")}>
         <button
           type="button"
           onClick={() => select({ kind: "archive" })}
           className={cn(
-            "v4-nav-pill flex h-7 w-7 items-center justify-center rounded-[var(--radius-md)]",
+            "v4-nav-pill ml-0.5 flex h-7 w-7 items-center justify-center rounded-[var(--radius-md)]",
             selection.kind !== "archive" && "text-text-tertiary",
           )}
           data-active={selection.kind === "archive"}
@@ -485,8 +462,9 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
   useLayoutEffect(() => {
     const el = rightRailRef.current;
     if (!el || typeof ResizeObserver === "undefined") return;
-    // ~ capture(90) + 4 icons(32*4) + gaps ≈ 250; below that → compact
-    const COMPACT_BELOW = 280;
+  // 2026-08-07: raised threshold 280→360 so search/settings/theme go into
+  // overflow more often on medium screens — cleaner right rail by default.
+  const COMPACT_BELOW = 360;
     const ro = new ResizeObserver((entries) => {
       const w = entries[0]?.contentRect.width ?? el.clientWidth;
       const next = w < COMPACT_BELOW;
@@ -526,7 +504,7 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
     return (
       <header
         className={cn(
-          "v4-drag v4-titlebar-glass relative flex h-[var(--density-chrome-y,40px)] items-center justify-between gap-2 px-2 text-text-secondary select-none sm:px-3",
+          "v4-drag v4-titlebar-glass relative flex h-[var(--density-chrome-y,36px)] items-center justify-between gap-2 px-2 text-text-secondary select-none sm:px-3",
           isWindows && "v4-win-titlebar-pad",
         )}
       >
@@ -552,7 +530,7 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
   return (
     <header
       className={cn(
-        "v4-drag v4-titlebar-glass relative flex h-[var(--density-chrome-y,40px)] items-center justify-between gap-2 px-2 text-text-secondary select-none sm:px-3",
+        "v4-drag v4-titlebar-glass relative flex h-[var(--density-chrome-y,36px)] items-center justify-between gap-2 px-2 text-text-secondary select-none sm:px-3",
         isWindows && "v4-win-titlebar-pad",
       )}
     >
@@ -583,18 +561,12 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
           </Tooltip>
         </div>
 
-        {/* Brand mark only — home lives in PrimaryNav (no double Home) */}
-        <div className="v4-brand-mark hidden items-center gap-1.5 min-[720px]:flex" aria-hidden>
-          <span className="v4-icon-chip-accent flex h-5 w-5 items-center justify-center rounded-[var(--radius-sm)]">
-            <Zap size={ICON.xs} />
-          </span>
-          <span className="text-3xs font-semibold tracking-tight text-text-primary">topmind</span>
-        </div>
-        <span className="v4-chrome-sep hidden min-[720px]:block" aria-hidden />
+        {/* Brand chip removed (2026-08-07): window/taskbar already identify app;
+            the decorative icon consumed prime left-rail real estate. */}
         <WorkspaceSwitcher currentRoot={workspaceRoot} />
       </div>
 
-      {/* Center: primary nav + command */}
+      {/* Center: primary nav + command field (Linear-style quiet well, not a button row) */}
       <div className="v4-no-drag flex shrink-0 items-center gap-1.5">
         <PrimaryNav />
         <Tooltip content={t("titleBar.commandPaletteTip")}>
@@ -602,12 +574,12 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
             type="button"
             onMouseEnter={() => warmOverlay("command-palette")}
             onClick={() => emitLocal("overlay:open", { kind: "command-palette" })}
-            className="v4-cmd-trigger group flex h-7 items-center gap-1.5 rounded-[var(--radius-md)] px-2.5 text-3xs font-medium text-text-tertiary"
+            className="v4-cmd-trigger group flex h-7 items-center gap-1.5 rounded-[var(--radius-md)] px-2.5 text-3xs font-medium text-text-tertiary xl:min-w-[10.5rem]"
             aria-label={t("titleBar.commandPaletteAriaLabel")}
           >
-            <Command size={ICON.xs} {...stroke} className="transition-colors group-hover:text-accent-color" />
-            <span className="hidden xl:inline">{t("titleBar.command")}</span>
-            <kbd className="v4-kbd">⌘K</kbd>
+            <Command size={ICON.xs} {...stroke} className="shrink-0 transition-colors group-hover:text-accent-color" />
+            <span className="hidden min-w-0 flex-1 truncate text-left xl:inline">{t("titleBar.commandField")}</span>
+            <kbd className="v4-kbd ml-auto">⌘K</kbd>
           </button>
         </Tooltip>
       </div>
@@ -664,7 +636,6 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
                 aria-pressed={todoOpen}
               >
                 <ListTodo size={ICON.sm} {...stroke} />
-                <TodoBadge />
               </button>
             </Tooltip>
           </TodoPopover>
@@ -696,16 +667,7 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
                   <Settings size={ICON.sm} {...stroke} />
                 </button>
               </Tooltip>
-              <Tooltip content={t("titleBar.themeTip", { label: themeLabel })}>
-                <button
-                  type="button"
-                  className="v4-titlebar-btn"
-                  onClick={cycleTheme}
-                  aria-label={t("titleBar.themeAriaLabel", { label: themeLabel })}
-                >
-                  {themeIcon()}
-                </button>
-              </Tooltip>
+              {/* 主题切换不在标题栏常驻（低频设置行为）——设置 ⌘, / 窄屏 ⋯ 菜单可达 */}
             </>
           ) : (
             <DropdownMenu

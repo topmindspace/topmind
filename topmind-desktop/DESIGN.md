@@ -2,7 +2,7 @@
 
 > **理念**：精准、安静、对象优先、**长时阅读友好**、可审查、**可扩展的富工作台**。  
 > **产品北极星**：最低摩擦个人动态流；导航与概念**清晰简单**；AI **内生副驾**（建议默认 · 确认执行）。  
-> **美学**：**Design System 2.0 — 纸感智识工作台 / Paper Mind Workbench** — 暖纸中性色 + 单一墨蓝主色（Linear 密度 × Craft 阅读 × 文件对象感）。  
+> **美学**：**Design System 2.1 — Modern Warm-Neutral（现代微暖中性）** — 近中性低彩度中性色 + 单一墨蓝主色（Linear 密度 × Craft 阅读 × 文件对象感）。2.1 去除 2.0 米黄陈旧感：不米黄、不冷蓝灰，长读清爽。  
 > **栈**：Tailwind 4 · shadcn 风格 · Radix · Lucide · Design Tokens。  
 > **品牌色**：`#31548e` ink deep → `#5a7fb8` ink mid → `#2fa89a` capture teal（teal 仅限捕获动作）。  
 > **实施锁**：[`../docs/ARCHITECTURE-RESET.md`](../docs/ARCHITECTURE-RESET.md) · 产品原则：[`../DESIGN.md`](../DESIGN.md)
@@ -34,7 +34,7 @@
 | **AI 建议** | 工作区整理候选 · 确认后写入 | **标题栏灯泡** + 有条目时画布顶 strip → **`SuggestPopover` 确认面** | 嵌进 Stream 卡片；仅藏在 AI 聊天轨里才可操作；空态永久占位条 |
 | **增补** | 对已有动态条目续写（评论感 · 同文件） | 动态卡片上的增补入口 + 续写徽章 | 平行评论 DB / 新真源 |
 
-**动态页主路径**：输入 →（可选润色）→ **记下**；对旧条 **增补**；链接/文档走顶栏「记一下」。页头 **清单 · AI 待办 · 整理 · 刷新**。  
+**动态页主路径**：输入 →（可选润色）→ **记下**；对旧条 **增补**；链接/文档走顶栏「记一下」。页头 **AI 待办 · 整理 · 刷新**（**个人清单不在页头重复**——唯一入口是标题栏 ListTodo / ⌘⇧T）。  
 **统一建议入口（全局）**：标题栏 💡（始终可点）+ 有 `items` 时画布顶 `SuggestEntryStrip`（**count=0 自动隐藏**）；点击 → `openSuggestSurface()` → **`SuggestPopover`**。  
 **唯一确认面**：`SuggestPopover`（接受 / 忽略 / 待确认写入）· 与 AI 聊天轨解耦；AI 轨 `ActionBar` 仅为计数跳转，不挂第二套完整列表。  
 **会话稳定**：软刷新 / 15s 轮询不得因 kernel 空 regenerate 清空已展示建议（`sessionSuggestionCache` + `mergeSuggestRefreshItems`）；dismiss/apply 仍可移除。  
@@ -98,15 +98,17 @@
 - **视图**：标题栏图标弹层 `TodoPopover`（`⌘⇧T`）；未 pin 时为右侧浮层（点击外部 / **面板外**滚动 / Esc 关闭；**面板内列表滚动不关闭**——与 DropdownMenu 共用 `shouldCloseOnScroll`）；pin 后变为可拖动浮动面板（不阻塞编辑器交互）；进行中在上（按截止日期排序），已完成折叠；AI 来源项带 ✨ 标记
 - **过长处理**：已完成项默认折叠；「清除已完成」一键清理；活跃项上限 50
 
-## 0. 视觉与认知原则（Design System 2.0 · 纸感智识工作台 · 2026-08）
+## 0. 视觉与认知原则（Design System 2.1 · Modern Warm-Neutral · 2026-08）
+
+> **2026-08-07 全面优化**：标题栏品牌 chip 移除；chrome-y 38→36px、status-y 26→24px（更纤细）；border alpha 降低（0.065→0.055）；card shadow 增加微 hairline（更精致浮起感）；hover 用 surface-hover 半透明（更柔和）；nav-pill active 改用 accent-bg-faint + font-weight 500（更安静）；titlebar-btn 过渡 duration 140→100ms（更跟手）；active scale 0.985→0.992（更微妙）；chrome-sep 高度 14→13px（更纤细）；侧栏 ViewSwitcher 行去 border-b 改用留白；Landing 移除 workflow 教育 chips + 底部文案精简；状态栏移除路径常驻按钮（workspace switcher tooltip 已承担）。
 
 | 原则 | 落地 |
 |------|------|
 | **品牌对齐** | 主 CTA / focus / 选中条 = Brand Deep；info / skill-write = Brand Mid；**记一下** capture = aqua（`.v4-titlebar-btn-capture` · 全局唯一实心捕获）；AI 按钮 = deep→mid→aqua 轴；**禁止** indigo/purple 渐变 |
-| **安静 chrome** | 标题栏 / 状态栏 solid `app-chrome` + `border-subtle-dim`；侧栏与 AI 轨同色；**禁止**工作区主壳营销渐变；渐变仅 logo / boot 弱光晕 / Landing 品牌时刻 |
-| **Surface 阶梯** | light：`app-chrome` `#edeae2` → `background` `#f6f4ef` → `surface` `#fffefb` → **`surface-elevated` `#fdfcf8`**（禁止同色塌陷；elevated 弹层必须叠 `--shadow-float` / hairline）；dark：`#181613` → `#201e19` → `#282520` → `#302d26`。Feed 卡用 **`--shadow-card`**（弱于 overlay） |
-| **低视觉负担** | 选中/hover 用浅 brand wash（`accent-bg-subtle` / `surface-selected`）；每区一个实心 CTA；边框优先 `border-subtle-dim`（light `rgba(62,54,38,0.065)` · dark `rgba(255,248,235,0.055)`）；避免多重 box-shadow + 边框叠厚；**侧栏树隐藏 `.md` 后缀**（`stripMdExt`）；**PARA 编号弱化**（`renderCategoryLabel`：`00-` 用 `text-quaternary/70`）；**卡片优先 bg + shadow 而非 border**（`--shadow-card` token）；**今日卡片 accent ring**（`ring-1 ring-inset ring-accent-color/15`） |
-| **弹层与对比度** | `.v4-overlay-sheet` / Dialog 用 `surface-elevated` + `border-subtle`；**浮动弹窗**（`TodoPopover` / `SuggestPopover` / `TaskPanel`）采用 **毛玻璃质感**（`backdrop-blur-[var(--blur-glass)] backdrop-saturate-150` + `bg-surface-elevated/90` + `border-border-subtle` + `shadow-[var(--shadow-elevated-hairline)]`）；**交互一致**：点击外部 + 外部滚动 + Esc 关闭（内部列表滚动不关）；文本对比度达 WCAG AA 4.5:1+ (dark Primary `#f0ede4` · Secondary `#d0cabd` · Tertiary `#a49c8c` · Quaternary `#847d6e`) |
+| **安静 chrome** | 标题栏 / 状态栏 solid `app-chrome` + `border-subtle-dim`；侧栏与 AI 轨同色；**禁止**工作区主壳营销渐变；渐变仅 logo / boot 弱光晕 / Landing 品牌时刻；**标题栏扁平**（纯色 + 单 hairline，无渐变/高光叠层）；**品牌字标不进标题栏**（窗口/任务栏已标识，仅留 logo chip） |
+| **Surface 阶梯** | light：`app-chrome` `#efeeeb` → `background` `#f7f6f4` → `surface` `#fdfdfc` → **`surface-elevated` `#ffffff`**（禁止同色塌陷；elevated 弹层必须叠 `--shadow-float` / hairline）；dark：`#171715` → `#1e1e1c` → `#262624` → `#2e2e2b`。Feed 卡用 **`--shadow-card`**（弱于 overlay） |
+| **低视觉负担** | 选中/hover 用浅 brand wash（`accent-bg-subtle` / `surface-selected`）；每区一个实心 CTA；边框优先 `border-subtle-dim`（light `rgba(60,58,50,0.065)` · dark `rgba(255,255,255,0.055)`）；避免多重 box-shadow + 边框叠厚；**侧栏树隐藏 `.md` 后缀**（`stripMdExt`）；**PARA 编号弱化**（`renderCategoryLabel`：`00-` 用 `text-quaternary/70`）；**卡片优先 bg + shadow 而非 border**（`--shadow-card` token）；**今日卡片 accent ring**（`ring-1 ring-inset ring-accent-color/15`） |
+| **弹层与对比度** | `.v4-overlay-sheet` / Dialog 用 `surface-elevated` + `border-subtle`；**浮动弹窗**（`TodoPopover` / `SuggestPopover` / `TaskPanel`）采用 **毛玻璃质感**（`backdrop-blur-[var(--blur-glass)] backdrop-saturate-150` + `bg-surface-elevated/90` + `border-border-subtle` + `shadow-[var(--shadow-elevated-hairline)]`）；**交互一致**：点击外部 + 外部滚动 + Esc 关闭（内部列表滚动不关）；文本对比度达 WCAG AA 4.5:1+ (dark Primary `#ecece8` · Secondary `#cbccc6` · Tertiary `#a3a49d` · Quaternary `#83847e`) |
 | **玻璃面边界** | 暗色 `.v4-menu-surface` 内置 glass+hairline（Dropdown/ContextMenu）；可选 `.v4-glass-panel` 工具类；主壳 / 侧栏 / 编辑画布保持 solid |
 | **一条主路径** | 标题栏主叙事 **动态（默认）** · 收件箱 · 写出来 + **记一下**；搜索/AI 可达；深度动作放 ⌘K / 二级；右侧工具 **图标 XOR「更多」**（禁止同动作双入口） |
 | **控件分层** | **一级**常显 · **二级**折叠 · **三级**「更多」/ Tooltip / `/slash`（见 §0.1） |
@@ -115,14 +117,14 @@
 | **列表 / 下拉** | 门户 `DropdownMenu`/`MenuSelect` / ContextMenu 共用 `.v4-menu-surface`；**先 hidden 测量再显示**（无打开闪跳）；**滚动即关**；`z-menu(110)` > tooltip(100) |
 | **空态** | `EmptyState`：图标芯片 + 一句原因 + **一个主 CTA**（侧栏 compact 同构）；时间线/标签空态须有下一步 |
 | **侧栏树** | 图标 `tree-node-icons` · 右键 `tree-node-context-menu` · 展开/排序 `tree-toolbar` · 路径 `lib/tree-path`；**文件名隐藏 `.md` 后缀**（`stripMdExt`）；**PARA 编号弱化渲染**（`renderCategoryLabel`：`00-` 前缀用 `text-text-quaternary/70`） |
-| **少硬分割线** | 编辑器常驻 ≤2 条 full-width 分割（工具栏 + 可选属性）；避免斑马纹；**Recent tab strip 无底边框**（`.v4-editor-recents` transparent + `shadow-divider-bottom`）；**标题栏 cluster 透明**（`.v4-titlebar-cluster` 无背景无 inset）；**命令触发器 ghost pill**（`.v4-cmd-trigger` 无边框透明）；**侧栏双分割线合并**（ViewSwitcher 底线 `/50` alpha + pins 行无边框） |
+| **少硬分割线** | 编辑器常驻 ≤2 条 full-width 分割（工具栏 + 可选属性）；避免斑马纹；**Recent tab strip 无底边框**（`.v4-editor-recents` transparent + `shadow-divider-bottom`）；**标题栏 cluster 透明**（`.v4-titlebar-cluster` 无背景无 inset）；**命令触发器为搜索框式浅井**（`.v4-cmd-trigger`：muted well + inset shadow + kbd 右置，Linear 式焦点，非按钮排）；**侧栏双分割线合并**（ViewSwitcher 底线 `/50` alpha + pins 行无边框） |
 | **长时阅读** | UI ≥12px；正文默认 16px / 1.7；列宽 `--content-max-width-prose`；专注模式 ⌘⌥F；边框 alpha 足以勾勒结构、避免糊成一片 |
 | **动效克制** | `duration-fast` 140ms · `duration-enter` 160ms；列表 stagger ≤8；`prefers-reduced-motion` 全关 |
 | **性能** | `content-visibility` 列表、panel `contain`、AI 面板 lazy、流式滚动尊重用户上滑 |
 | **响应式 chrome** | 操作按钮按宽度 **铺开 ↔ ⋯ 溢出**（`ChromeOverflowActions`）；TitleBar 右轨 ResizeObserver 互斥；主锚文案按窗口宽度（≥960）显示，窄屏 **tooltip + aria-label 必在**；编辑器右侧发布/AI/专注同轨溢出；禁止同动作双入口 |
-| **StatusBar 可交互** | 路径 / 选区 / **AI 就绪 pill（唯一主控件）**：离线->设置 · 就绪->toggle AI 面板；流式时 pill 显示会话态；**命名 busy 单路径**（`deriveStatusBarBusy`：tasks > todo > suggest > **inline** 最多一颗命名 chip；todo/suggest/inline 独占时 AI pill 不显示「工作中」）；**进度动效**：每个 busy chip 附带 `v4-ai-progress-dot` 脉动指示器；tooltip 含预期时长（todo: 数秒 · suggest: 点此查看 · task: 详情和进度 · inline: 切换页面可能取消） |
-| **TitleBar 右轨分层** | **L1** capture 实心 + AI 轨开关（`.v4-titlebar-btn-ai`）· **L2** 建议 💡 + 清单（`.v4-titlebar-tier-l2` 安静图标）· **L3** 搜索/设置/主题 cluster / overflow；`data-chrome-tier` |
-| **建议入口降噪** | 画布顶 `SuggestEntryStrip` 有 count/preparing 时，AI 轨 `ActionBar` **demote 隐藏**（专注模式除外）；禁止 strip + 轨 chip + 状态栏 三处等权 |
+| **StatusBar 可交互** | **健康即沉默**：工作区正常仅一颗绿点（详情在 tooltip），异常才出文字；路径（xl 安静按钮）/ **AI 就绪 pill（唯一主控件）**：离线->设置 · 就绪->toggle AI 面板；流式时 pill 显示会话态；**命名 busy 单路径**（`deriveStatusBarBusy`：tasks > todo > suggest > **inline** 最多一颗命名 chip；todo/suggest/inline 独占时 AI pill 不显示「工作中」）；**进度动效**：每个 busy chip 附带 `v4-ai-progress-dot` 脉动指示器；tooltip 含预期时长。**中央位置 hint 仅 file 选择时显示**（点击 reveal）；其余 kind 由画布 PageHeader + PrimaryNav active 自明，不重复占位。**建议计数不在状态栏常驻**（见「建议入口降噪」），仅保留生成中 busy chip |
+| **TitleBar 右轨分层** | **L1** capture 实心 + AI 轨开关（`.v4-titlebar-btn-ai`）· **L2** 建议 💡 + 清单（`.v4-titlebar-tier-l2` 安静图标）· **L3** 搜索/设置 cluster / 窄屏 overflow；`data-chrome-tier`；**主题不在标题栏常驻**（低频设置行为：⌘, 设置 / 窄屏 ⋯ 可达）；**badge 纪律：仅在需要行动时出现**——收件箱（分诊队列）+ 建议 💡 保留；写出来计数（库存非行动）与清单常驻数字点（恒非零）已移除 |
+| **建议入口降噪** | 建议计数**恰好两处**：标题栏 💡 badge + 画布顶 `SuggestEntryStrip`（count>0 才出现）；AI 轨 `ActionBar` **demote 隐藏**（专注模式除外）；状态栏**仅生成中 busy chip**，不挂常驻计数。禁止 strip + 轨 chip + 状态栏 三处等权 |
 | **编辑器默认 chrome** | 格式工具条 **默认折叠**（`showFormat=false`）；展开为二级；常驻 ≤2 条 full-width 分割 + 可选 suggest strip |
 | **Todo idle** | `TodoPopover` 维护按钮 idle = ghost Sparkles；**仅 maintaining 时** `.v4-ai-chip-gradient` |
 | **侧栏扩展** | 连接器/插件槽 `PluginSlotsSection` **默认折叠**（`data-sidebar-plugins-collapsed=true`）；不抢 stream 主轨 |
@@ -130,8 +132,8 @@
 | **连接器 Hub** | `ConnectorHubHeader` 与 `PageHeader` 同级标题（`text-xl font-semibold`）；actions 区禁止 solid「记一下」捕获（outline 打开捕获） |
 | **FilterChip** | 高度 22px chip 语言（`data-filter-chip`）；禁止实心按钮高度 |
 | **AI 建议生命周期** | `autoPrepare` 关：不调 kernel 生成，仍拉 pending writes。开：冷启动/软刷新走 `decideSuggestRefresh`（4s 软节流；force 清 session cache）。**活动指纹** 持久化在 `.topmind/suggest-fingerprints.json`（系统平面）——活动窗口未变则**跨进程跳过 AI 重跑**，避免每次启动 thrash。Session merge（`mergeSuggestRefreshItems`）防中途闪没。**个人清单** `memory/todo.md` ≠ 建议。确认后写入仍经 writeback。 |
-| **动态密度** | 周期 chip ≤6、22px；日分组弱标签；卡内操作 hover 显；composer `shadow-card` 轻量；主路径仍 写下→润色(ghost)→**记下**；**日分组卡无边框**（`bg-surface` + `shadow-[0_1px_3px_rgba(0,0,0,0.04)]`）；**今日 accent ring**（`ring-1 ring-inset ring-accent-color/15`）；**日 header 无 border-b**（`bg-surface-muted/25` 区分） |
-| **侧栏 pin** | 本周周期 pin 可截断；我的情况窄宽图标化 + aria-label；ViewSwitcher 已有 icon-only / 更多 |
+| **动态密度** | 周期 chip ≤6、22px；日分组弱标签；卡内操作 hover 显；composer `shadow-card` 轻量（**无 label/hint meta 行**——placeholder 承担引导，计数在 PageHeader subtitle；卡片去 border 纯阴影）；主路径仍 写下→润色(ghost)→**记下**；**日分组卡无边框**（`bg-surface` + `shadow-[0_1px_3px_rgba(0,0,0,0.04)]`）；**今日 accent ring**（`ring-1 ring-inset ring-accent-color/15`）；**日 header 无 border-b**（`bg-surface-muted/25` 区分） |
+| **侧栏 pin** | 本周周期 pin 可截断，**仅在 timeline/tags/kanban 视图渲染**（stream 视图由 StreamView 自带周期头承担；category 视图并入 DataSource 头行）；**我的情况上移到 ViewSwitcher 行**（全局可达 · 图标化 + aria-label，不再单列 pins 行）；ViewSwitcher 已有 icon-only / 更多 |
 
 ### 0.1 控件分层（强制）
 
@@ -241,7 +243,7 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 └──────────────────────────────────────────────────────────────┘
 ```
 
-- **标题栏**（`--density-chrome-y` 40px solid chrome）  
+- **标题栏**（`--density-chrome-y` 36px solid chrome — 2026-08-07: 38→36 纤细化） 
   - 左：导航控制 + 应用标识 + 工作区切换器  
   - 中：`PrimaryNav` — **动态（默认）** · **收件箱** · **写出来**（角标可选）+ 归档图标（弱）+ ⌘K  
   - 右：**记一下**（唯一主捕获）+ 搜索 + 设置 + 主题 + AI  
@@ -275,7 +277,8 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 
 **右侧**:
 - **记一下**（⌘N / 全局 ⌘⇧N）— 唯一醒目捕获；默认本周动态  
-- 搜索 · 设置 · 主题 · AI 面板  
+- 建议 💡 · 清单（安静图标对）· 搜索 · 设置 · AI 面板  
+- 主题不进标题栏（⌘, 设置 / 窄屏 ⋯）；badge 仅在需要行动时出现（收件箱 · 建议）
 
 ### 2.2 侧栏树
 
@@ -377,7 +380,7 @@ topmind 设计系统原生支持多语言排版（Simplified Chinese / English�
 - **模型**：`provider/modelId`；按提供商分组。
 - **Skill pin**：`<select class="v4-chip v4-chip-select">` 固定本会话 skill；空 = 自动路由。
 - **Agent / 写回**：同为 `.v4-chip`；写回两态 `auto | confirm` 循环，持久化 `settings.writebackMode`。
-- **EmptyConversation**：短文案 + 按选区 3 条快捷提示；stagger 入场。
+- **EmptyConversation**：短文案 + 按选区最多 2 条上下文快捷提示；stagger 入场。
 - **离线 composer**：单 CTA「前往设置」，无冗长说明。
 - **工具时间线**：助手消息内 `toolCalls` 卡片（running/done + 路径跳转 + `edit_file` diff 内联）。
 - **ActionBar（轨内）**：有建议时 compact「建议 · N 条」→ 打开 `SuggestPopover`；无项隐藏。完整列表不在 AI 轨内展开。
@@ -394,6 +397,8 @@ topmind 设计系统原生支持多语言排版（Simplified Chinese / English�
 |----|------|
 | 模型 | 多 provider（OpenAI/Anthropic/Google/xAI/DeepSeek/Moonshot/Zhipu/MiniMax/Ollama/Custom）+ models.dev 社区目录 |
 | 工具 | `electron/ai-tools.mjs` → WorkspaceService（读/写/抓 URL/健康）|
+| 系统提示 | skill-first 协议 + **按工作流阶段分组的工具描述**（Skills → 收集 → 浏览 → 读取 → 写入 → 诊断）+ 预加载上下文（概览/我的情况/专题首页）+ 写回策略 + 质量纪律 |
+| 读缓存 | `read_file` / `search` / `workspace_overview` / `workspace_health` 结果在单轮 agent loop 内缓存；写操作自动失效缓存 |
 | 改稿 | **优先** `edit_file`（不进 Archive）；整文件 `save_file` 才备份；长文分页读 |
 | 搜索 | 受控 `search`/grep（可 scope；默认不搜 Archive；无 shell）|
 | 步骤 | `maxAgentSteps`（默认 12）；近上限自动收尾提示 |
@@ -515,7 +520,7 @@ IA 分组（左侧 nav）：
 
 > **说明**：若密钥已在磁盘 `secureStorage` 被写成空，无法从应用内恢复，需重新填写。优化代码本身不会迁移/删除 `~/topmind` 目录；换机或重装 macOS 钥匙串可能导致 safeStorage 密文无法解密。
 
-## 5. 设计令牌（Design System 2.0 · 纸感智识工作台）
+## 5. 设计令牌（Design System 2.1 · Modern Warm-Neutral）
 
 定义在 `src/styles/tokens.css` 的 `@theme` 块。浅色 + 深色（`.dark` 类）。语义别名见 `tailwind-theme.css`。
 
@@ -529,7 +534,7 @@ IA 分组（左侧 nav）：
 | `--color-accent-color` | = brand-deep（dark = 抬高墨蓝 `#7f9fd4`） | 全应用语义强调 |
 | `--color-accent-inbox` | teal 系加深 `#12897b`（可读） | Inbox 模式 / capture skill |
 
-**中性色**：暖纸石色（色相 ~45–55° 低彩度）；light 纸面 `#f6f4ef`，dark 暖墨石墨 `#201e19`；禁止回退冷蓝灰。
+**中性色**：近中性微暖（低彩度，2.1 去米黄化）；light 画布 `#f7f6f4`，dark 中性石墨 `#1e1e1c`；**两极都禁**：米黄陈旧感 ✗ · 冷蓝灰 ✗。想读暖纸可用编辑器 `paper` / `sepia` 纸张色（仅画布，不改全局）。
 
 **Dark**：accent 抬到可读的墨蓝（`#7f9fd4` 量级），`text-on-accent` 用深墨保证对比；**禁止**回退 lavender indigo。
 
@@ -538,7 +543,7 @@ IA 分组（左侧 nav）：
 ### 5.1 色彩层级
 
 ```
-chrome（暖石框架）→ background（暖纸张）→ surface（工作面板）
+chrome（微暖框架）→ background（净白画布）→ surface（工作面板）
 → surface-elevated（弹层 / 菜单 / 对话框）→ surface-inset（凹陷输入）
 ```
 
@@ -571,8 +576,8 @@ chrome（暖石框架）→ background（暖纸张）→ surface（工作面板�
 
 | Token | 默认 | 用途 |
 |-------|------|------|
-| `--density-chrome-y` | 40px | 标题栏 |
-| `--density-status-y` | 26px | 状态栏 |
+| `--density-chrome-y` | 36px | 标题栏（2026-08-07: 38→36 更纤细） |
+| `--density-status-y` | 24px | 状态栏（2026-08-07: 26→24 更纤细） |
 | `--density-tree-row` | 28px | 侧栏树行 |
 | `--density-editor-toolbar-y` | 36px | 编辑器顶栏 |
 | `--content-max-width-prose` | 42rem | 正文列宽 |
@@ -665,7 +670,27 @@ chrome（暖石框架）→ background（暖纸张）→ surface（工作面板�
 
 ## 变更摘要
 
-### Design System 2.0 · 纸感智识工作台（2026-08）
+### 控制塔瘦身 · badge 纪律 · 健康即沉默（2026-08-07 Round 2）
+- **标题栏对象 16→11**：删品牌字标（窗口/任务栏已标识）；主题移出标题栏（⌘, / 窄屏 ⋯）；⌘K 触发器升级为 Linear 式搜索框浅井（`.v4-cmd-trigger`：muted well + inset shadow + kbd 右置）——标题栏从「一排按钮」变为「nav + 一个焦点框」
+- **badge 纪律：仅在需要行动时出现**——保留收件箱（分诊队列）+ 💡 建议；移除写出来计数（库存非行动）与清单常驻数字点（恒非零 = 永久噪音）
+- **健康即沉默**：状态栏工作区正常仅一颗绿点（tooltip 详情），异常才出文字
+- **视觉扁平**：标题栏去渐变 + 顶部高光（纯色 + 单 hairline）；nav active 去 inset ring 只留 wash；capture 实心按钮补上 `--shadow-button` 与主按钮同语言
+
+### 降噪 · 单入口纪律（2026-08）
+- **建议计数恰好两处**：标题栏 💡 badge + 画布顶 strip；状态栏常驻计数 chip 移除（仅保留生成中 busy chip），落实「禁止三处等权」
+- **个人清单单入口**：唯一入口 = 标题栏 ListTodo / ⌘⇧T；动态页头「清单」动作移除（页头保留情境动作：AI 待办 · 整理 · 刷新）
+- **状态栏中央位置 hint 仅 file 选择显示**（点击 reveal）；其余 kind 由 PageHeader + PrimaryNav 自明
+- **动态 composer 去 meta**：删 label 行 + 底部 hint（placeholder 引导 · 计数在 subtitle · kbd 在按钮上）；卡片去 border 纯阴影
+- **侧栏少一条带**：我的情况上移 ViewSwitcher 行（全局可达）；周期 pins 行仅 timeline/tags/kanban 渲染（stream 视图由 StreamView 周期头承担）
+
+### Design System 2.1 · Modern Warm-Neutral（2026-08-07）
+- 中性阶去米黄化：light `#f7f6f4` 系 / dark `#1e1e1c` 系（近中性微暖，chroma 砍半；不米黄、不冷蓝灰）
+- elevated 弹层纯白 `#ffffff`；文字墨色去黄（`#2b2b27` 系 / dark `#ecece8` 系）
+- 边框/阴影色调去棕：light `rgba(60,58,50,…)` + `rgba(31,29,26,…)`；dark `rgba(255,255,255,…)`
+- 镜像面同步：browser-extension `--mh-*` · 导出 HTML · FilePreview 兜底；纸张色 `paper`/`sepia` 保留为编辑器可选暖读主题
+- 品牌 accent 不变（logo 锁定）；2.0 米黄阶见下条历史记录
+
+### Design System 2.0 · 纸感智识工作台（2026-08，中性色已被 2.1 取代）
 - 全新视觉识别：暖纸石色中性阶（light `#f6f4ef` 系 · dark `#201e19` 系）+ 单一墨蓝主色 `#31548e`（dark `#7f9fd4`）
 - **teal 仅限捕获**：`brand-aqua #2fa89a` / `accent-inbox #12897b`（记一下 CTA / inbox 模式）
 - 阴影黑基调 / hairline 转暖（`rgba(42,36,24,…)` / `rgba(62,54,38,…)`）；状态色转暖

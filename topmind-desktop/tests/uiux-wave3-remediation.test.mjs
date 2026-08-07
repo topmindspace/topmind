@@ -162,7 +162,7 @@ test("no-regress: landing + extension brand still present", () => {
   assert.match(onboarding, /data-landing-primary-cta/);
   const css = read("browser-extension/popup.css", repoRoot);
   assert.match(css, /--mh-capture:\s*#12897b/i);
-  assert.match(css, /--mh-elevated:\s*#fdfcf8/i);
+  assert.match(css, /--mh-elevated:\s*#ffffff/i);
   assert.ok(existsSync(path.join(repoRoot, "browser-extension/popup.html")));
 });
 

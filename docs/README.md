@@ -33,9 +33,9 @@
 
 | 路径 | 用途 |
 |------|------|
-| [`ARCHITECTURE-RESET.md`](./ARCHITECTURE-RESET.md) | 架构决策锁与实施诚实表（唯一实施真源） |
-| [`stream-first-optimization-scheme.md`](./stream-first-optimization-scheme.md) | Stream-first **Done/Shipped**：现行产品真理 + 决策锁 + 历史分析（§2–§3 为合闸前快照） |
-| [`quality-audit-2026-08.md`](./quality-audit-2026-08.md) | 2026-08 质量审查 · TestWS 夹具说明 · fix/intentional/non-goal |
+| [`ARCHITECTURE-RESET.md`](./ARCHITECTURE-RESET.md) | 架构决策锁与实施诚实表（唯一实施真源 · 2026-08-07 精简） |
+| [`stream-first-optimization-scheme.md`](./stream-first-optimization-scheme.md) | Stream-first **Shipped**：现行产品真理 + 理想使用模型（2026-08-07 精简） |
+| [`quality-audit-2026-08.md`](./quality-audit-2026-08.md) | 2026-08 质量审查摘要（已归档 · 所有发现已处置） |
 | [`PACKAGING.md`](./PACKAGING.md) | 打包 · Actions · 安装包命名 · 标签矩阵 |
 | [`capture-clip-matrix.md`](./capture-clip-matrix.md) | 捕获 · Clip · 知识加工能力矩阵 |
 | [`topmind-vs-others.md`](./topmind-vs-others.md) | 与 Notion / Obsidian 等对比 |
@@ -69,9 +69,12 @@
 | [2026-07-22 stream + memory](./adr/2026-07-22-stream-packing-and-core-memory.md) | 周期本 + 记忆 |
 | [2026-08-02 AI provider context](./adr/2026-08-02-kernel-ai-provider-context.md) | per-call aiProvider + `createKernelContext` |
 | [2026-08-02 workspace-model 拆分](./adr/2026-08-02-workspace-model-split.md) | facade + model-core/topic/stream/memory |
-| [2026-08-02 Design System 2.0](./adr/2026-08-02-design-system-2-paper-mind.md) | 纸感智识工作台 · 暖纸 + 墨蓝 |
+| [2026-08-02 Design System 2.0](./adr/2026-08-02-design-system-2-paper-mind.md) | 纸感智识工作台（中性色已被 2.1 取代，见 2026-08-07 ADR Round 3） |
 | [2026-08-02 ConnectorBridge](./adr/2026-08-02-connector-bridge.md) | Desktop 连接器共享契约 |
 | [2026-08-06 Phase D hardening](./adr/2026-08-06-phase-d-desktop-hardening.md) | 组件拆分 · 事件类型化 · 单队列 · RPC 校验 · AI 输出单闸 |
+| [2026-08-07 单入口降噪](./adr/2026-08-07-desktop-single-entry-dedupe.md) | 建议计数两处 · 清单单入口 · composer 去 meta · 侧栏少一条带 |
+| [2026-08-07 综合设计优化](./adr/2026-08-07-comprehensive-design-optimization.md) | 标题栏品牌chip移除 · chrome纤细化(36/24px) · border/hover/shadow精炼 · 侧栏头部统一 · Landing去教育噪音 · 状态栏路径移除 |
+| [2026-08-07 引擎硬化](./adr/2026-08-07-engine-hardening-writeback-ai.md) | 回执轮转 `RECEIPT_KEEP=50` · 智能回执 · 目录归档原子 rename + 校验 · AI Provider 动态 temperature/systemPrompt/maxTokens · 瞬态错误重试 · 会话压缩 80K/40 · 默认模型更新 |
 
 摘要亦见 `ARCHITECTURE-RESET.md` §6。
 

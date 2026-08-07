@@ -12,9 +12,9 @@ export function resolveModel(s, req) {
   const pref = s?.ai?.sourcePreference || "";
   const defaultModel = s?.ai?.defaultModel || null;
   const providers = [
-    { source: "openai", k: m.openAiKey, mk: () => createOpenAI({ apiKey: m.openAiKey }), d: "gpt-4o-mini" },
+    { source: "openai", k: m.openAiKey, mk: () => createOpenAI({ apiKey: m.openAiKey }), d: "gpt-4.1-mini" },
     { source: "anthropic", k: m.anthropicKey, mk: () => createAnthropic({ apiKey: m.anthropicKey }), d: "claude-sonnet-4-20250514" },
-    { source: "google", k: m.googleKey, mk: () => createGoogleGenerativeAI({ apiKey: m.googleKey }), d: "gemini-2.0-flash" },
+    { source: "google", k: m.googleKey, mk: () => createGoogleGenerativeAI({ apiKey: m.googleKey }), d: "gemini-2.5-flash" },
     { source: "deepseek", k: m.deepseekKey, mk: () => createOpenAICompatible({ name: "deepseek", apiKey: m.deepseekKey, baseURL: "https://api.deepseek.com/v1" }), d: "deepseek-chat" },
     { source: "moonshot", k: m.moonshotKey, mk: () => createOpenAICompatible({ name: "moonshot", apiKey: m.moonshotKey, baseURL: "https://api.moonshot.cn/v1" }), d: "moonshot-v1-8k" },
     { source: "zhipu", k: m.zhipuKey, mk: () => createOpenAICompatible({ name: "zhipu", apiKey: m.zhipuKey, baseURL: "https://open.bigmodel.cn/api/paas/v4" }), d: "glm-4-flash" },

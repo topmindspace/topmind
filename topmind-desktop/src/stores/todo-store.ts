@@ -47,6 +47,7 @@ interface TodoStore {
   clearCompleted: () => Promise<void>;
   maintain: (opts?: { force?: boolean }) => Promise<void>;
   cleanupStale: () => Promise<void>;
+  archiveStale: () => Promise<void>;
   refreshHealth: () => Promise<void>;
 
   // Internal
@@ -268,6 +269,17 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
   cleanupStale: async () => {
     try {
       const result = await api.todo.cleanupStale();
+      if (result.items) set({ items: result.items });
+      emitSelfFileChanged();
+      await get().refreshHealth();
+    } catch {
+      /* ignore */
+    }
+  },
+
+  archiveStale: async () => {
+    try {
+      const result = await api.todo.archiveStale();
       if (result.items) set({ items: result.items });
       emitSelfFileChanged();
       await get().refreshHealth();

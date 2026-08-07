@@ -62,6 +62,13 @@ export interface LocalEventMap {
   "x:open-prompt": { mode?: string; text?: string } | null;
   /** Plugin settings changed; host re-activates as needed. */
   "plugins:settings-changed": null;
+  /** Background update check found a new Desktop version. */
+  "update:available": {
+    currentVersion: string;
+    latestVersion: string;
+    releaseUrl: string | null;
+    tagName: string | null;
+  };
 }
 
 export type LocalEventName = keyof LocalEventMap;

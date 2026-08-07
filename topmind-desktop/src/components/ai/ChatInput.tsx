@@ -478,29 +478,35 @@ export function ChatInput() {
           </span>
         </Tooltip>
 
+        {/* Skills toggle — doubles as loaded-skills badge carrier */}
         <Tooltip content={showSkills ? t("ai.skillsTooltip") : t("ai.skillsTooltipExpand")}>
           <button
             type="button"
             onClick={() => setShowSkills((v) => !v)}
             data-active={showSkills}
-            className="v4-chip shrink-0"
+            className="v4-chip relative shrink-0"
             aria-expanded={showSkills}
             aria-label={t("ai.skillsLabel")}
           >
             <Sparkles size={ICON.nano} />
+            {sessionLoadedSkills.length > 0 ? (
+              <span
+                className="absolute -right-1 -top-1 flex h-3 min-w-3 items-center justify-center rounded-full bg-accent-color px-0.5 text-5xs font-bold leading-none text-primary-foreground"
+                aria-hidden
+              >
+                {sessionLoadedSkills.length}
+              </span>
+            ) : null}
           </button>
         </Tooltip>
-
         {sessionLoadedSkills.length > 0 ? (
           <Tooltip content={t("ai.loadedSkillsTooltip", { skills: sessionLoadedSkills.join(", ") })}>
-            <span className="text-3xs tabular-nums text-text-quaternary">
-              {sessionLoadedSkills.length}
-            </span>
+            <span className="sr-only">{sessionLoadedSkills.length}</span>
           </Tooltip>
         ) : null}
 
-        {/* Model chip sits on the same row — not a wasteful solo footer line */}
-        <div className="ml-auto min-w-0 max-w-[min(100%,11.5rem)] shrink">
+        {/* Model chip — right-aligned, compact */}
+        <div className="ml-auto min-w-0 max-w-[min(100%,10rem)] shrink">
           {ready && modelGroups.length > 0 ? (
             <MenuSelect
               variant="chip"

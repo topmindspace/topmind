@@ -247,6 +247,10 @@ export const WorkspaceService = {
     const { kernelCleanupStaleTodos } = await import("./lib/kernel-api.mjs");
     return kernelCleanupStaleTodos({}, ctx);
   },
+  async archiveStaleTodos(_p, ctx) {
+    const { kernelArchiveStaleTodos } = await import("./lib/kernel-api.mjs");
+    return kernelArchiveStaleTodos({}, ctx);
+  },
 
   // ── AI Operations (unified engine) ───────────────────────────────────────
   async listOperationTypes(_p, ctx) {

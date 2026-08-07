@@ -402,8 +402,8 @@ function EmptyConversation({ selection }: { selection: Selection }) {
   const sendMessage = useAiStore((s) => s.sendMessage);
   const streaming = useAiStore((s) => s.streaming);
   const ready = useAiStore((s) => s.runtimeStatus?.ready ?? false);
-  // One contextual prompt max — avoid multi-CTA competition with stream/composer
-  const prompts = [quickPromptFor(selection, t)];
+  // Two contextual prompts max — enough to suggest actions without overwhelming
+  const prompts = quickPromptsFor(selection, t);
   const hint = emptyHintFor(selection, t);
 
   return (
@@ -451,16 +451,16 @@ function emptyHintFor(selection: Selection, t: (key: string) => string): string 
   return t("ai.hintDefault");
 }
 
-/** Single contextual prompt for empty conversation — avoids multi-CTA competition. */
-function quickPromptFor(selection: Selection, t: (key: string) => string): string {
-  if (selection.kind === "file") return t("ai.promptSummarize");
-  if (selection.kind === "topic") return t("ai.promptTopicWhat");
-  if (selection.kind === "inbox") return t("ai.promptInboxOrganize");
-  if (selection.kind === "stream") return t("ai.promptStreamOrganize");
-  if (selection.kind === "outputs") return t("ai.promptOutputsRecent");
-  if (selection.kind === "connector" && selection.id === "weread") return t("ai.promptWereadReading");
-  if (selection.kind === "connector" && selection.id === "x") return t("ai.promptXOrganize");
-  return t("ai.promptDefault1");
+/** Contextual prompts for empty conversation — up to 2 per selection kind. */
+function quickPromptsFor(selection: Selection, t: (key: string) => string): string[] {
+  if (selection.kind === "file") return [t("ai.promptSummarize"), t("ai.promptDefault1")];
+  if (selection.kind === "topic") return [t("ai.promptTopicWhat"), t("ai.promptDefault1")];
+  if (selection.kind === "inbox") return [t("ai.promptInboxOrganize"), t("ai.promptDefault1")];
+  if (selection.kind === "stream") return [t("ai.promptStreamOrganize"), t("ai.promptDefault1")];
+  if (selection.kind === "outputs") return [t("ai.promptOutputsRecent"), t("ai.promptDefault1")];
+  if (selection.kind === "connector" && selection.id === "weread") return [t("ai.promptWereadReading")];
+  if (selection.kind === "connector" && selection.id === "x") return [t("ai.promptXOrganize")];
+  return [t("ai.promptDefault1")];
 }
 
 // 焦点信息内联到 Composer 的 placeholder 中

@@ -1,6 +1,10 @@
 /**
- * Structural guard for the stream-first optimization analysis deliverable.
- * Proves the shipped doc exists and maps 1:1 to plan acceptance criteria.
+ * Structural guard for the stream-first optimization scheme deliverable.
+ * Proves the shipped doc exists and maps to live implementation evidence.
+ *
+ * The doc was simplified (2026-08): historical analysis snapshots (old §2–§5)
+ * were removed; the doc now contains §0 (current truth), §1 (ideal model),
+ * §2 (shipped implementation record). Tests align with the simplified structure.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -14,60 +18,33 @@ const DOC = path.join(ROOT, "docs", "stream-first-optimization-scheme.md");
 test("stream-first optimization scheme doc exists", () => {
   assert.ok(fs.existsSync(DOC), `missing ${DOC}`);
   const st = fs.statSync(DOC);
-  assert.ok(st.size > 5000, `doc too small (${st.size} bytes)`);
+  assert.ok(st.size > 3000, `doc too small (${st.size} bytes)`);
 });
 
-test("scheme doc sections map to acceptance criteria 1–5", () => {
+test("scheme doc has shipped truth + ideal model + implementation record", () => {
   const text = fs.readFileSync(DOC, "utf8");
 
-  // Shipped truth section (Wave S* complete)
-  assert.match(text, /现行产品真理|Wave S/u);
-  assert.match(text, /activity-window|活动窗口/u);
+  // Shipped status header
+  assert.match(text, /已合闸.*Shipped/u);
+  assert.match(text, /现行产品真理/u);
 
-  // Criterion 1 — ideal usage model
-  assert.match(text, /## 1\.\s*Ideal usage model/u);
-  assert.match(text, /个人版 Twitter|个人 Twitter|activity_window|Activity Window/u);
-  assert.match(text, /记 → 动态 feed → 在动态上增补/u);
-
-  // Criterion 2 — gap map with dispositions (may be marked historical after ship)
-  assert.match(text, /## 2\.\s*(Current vs ideal gap map|Gap map)/u);
-  assert.match(text, /keep|harden|redesign/iu);
-  assert.match(text, /Deprecate|do-not-carry|废弃/u);
-  // Concrete codebase citations
-  assert.match(text, /findLatestPeriodNote/u);
-  assert.match(text, /StreamDetailView/u);
-  assert.match(text, /ActionBar/u);
-  assert.match(text, /todo_maintain/u);
+  // §0 — Current product truth table
+  assert.match(text, /## 0\.\s*现行产品真理/u);
+  assert.match(text, /活动窗口/u);
   assert.match(text, /memory_organize/u);
-  assert.match(text, /writeback-engine/u);
-  assert.match(text, /topmind-organize/u);
+  assert.match(text, /topic_classify/u);
+  assert.match(text, /profile \+ periodic/u);
+  assert.match(text, /内容大类.*create_topic/u);
 
-  // Criterion 3 — phased scheme (now shipped; section may say 已实施)
-  assert.match(text, /## 3\.\s*Overall optimization scheme/u);
-  assert.match(text, /Wave S0|Wave S1|Wave S2|S1 activity|S2|S3/u);
-  assert.match(text, /已实施|已合闸|Shipped|Done/u);
+  // §1 — Ideal usage model
+  assert.match(text, /## 1\.\s*理想使用模型/u);
+  assert.match(text, /activity_window|Activity Window/u);
+  assert.match(text, /记 → 动态 feed → 在动态上增补/u);
+  assert.match(text, /AI 职责边界/u);
 
-  // Criterion 4 — cross-surface rules
-  assert.match(text, /## 4\.\s*Cross-surface consistency rules/u);
-  assert.match(text, /Skills/u);
-  assert.match(text, /Desktop/u);
-  assert.match(text, /UTR/u);
-
-  // Criterion 5 — open questions (answered; Q1–Q5 still named)
-  assert.match(text, /## 5\.\s*Open design questions/u);
-  assert.match(text, /Q1/u);
-  assert.match(text, /Q2/u);
-  assert.match(text, /\*\*A\*\*|A 修正|推荐 A/u);
-});
-
-test("scheme includes explicit deprecate / do-not-carry list", () => {
-  const text = fs.readFileSync(DOC, "utf8");
-  assert.match(text, /Deprecate \/ do-not-carry|废弃 \/ 不携带/u);
-  assert.match(text, /D1/u);
-  // Must not invent second north star against Reset locks
-  assert.match(text, /Reset A\/B\/C\/D|A\/B\/C\/D/u);
-  assert.match(text, /writeback|写闸/u);
-  assert.match(text, /≤5|用户概念/u);
+  // §2 — Shipped implementation record
+  assert.match(text, /## 2\.\s*合闸实施记录/u);
+  assert.match(text, /Done|已合闸|Shipped/u);
 });
 
 test("scheme cites live engine paths present in repo", () => {
@@ -76,15 +53,16 @@ test("scheme cites live engine paths present in repo", () => {
     "lib/suggest-engine.mjs",
     "lib/todo-engine.mjs",
     "lib/ai-operation-engine.mjs",
-    "lib/stream-period.mjs",
     "lib/writeback-engine.mjs",
     "lib/activity-window.mjs",
   ];
   for (const rel of mustExist) {
-    assert.match(text, new RegExp(rel.replace(/\./g, "\\.")));
     assert.ok(fs.existsSync(path.join(ROOT, rel)), `cited path missing on disk: ${rel}`);
   }
-  // Live behavior: activity window exists; memory/topic ops enabled (profile+periodic / content categories)
+  // Doc must reference activity window + ops
+  assert.match(text, /activity-window|活动窗口/u);
+  assert.match(text, /suggest.*todo.*ai-ops/u);
+  // Live behavior: activity window exists; memory/topic ops enabled
   const suggest = fs.readFileSync(path.join(ROOT, "lib/suggest-engine.mjs"), "utf8");
   assert.match(suggest, /loadActivityContext|resolveActivityWindow/u);
   assert.ok(fs.existsSync(path.join(ROOT, "lib/activity-window.mjs")));
@@ -100,16 +78,13 @@ test("scheme cites live engine paths present in repo", () => {
   assert.match(aiOps, /不进 memory/u);
 });
 
-test("scheme doc has no dual-truth: §6/§7 claim shipped not analysis-only", () => {
+test("scheme doc shipped evidence includes append + enabled ops", () => {
   const text = fs.readFileSync(DOC, "utf8");
-  // Living §6 header must be 已合闸, not 本文件不实施
-  assert.doesNotMatch(text, /## 6\.[^\n]*本文件不实施/u);
-  assert.match(text, /## 6\.\s*实施状态（\*\*已合闸\*\*/u);
-  assert.match(text, /## 7\.[^\n]*(现行|Shipped)/u);
-  // §7 evidence table must describe append + enabled ops
+  // §2 evidence table must describe append + enabled ops
   assert.match(text, /条目增补|appendStreamEntry|appendToStreamEntry/u);
   assert.match(text, /memory_organize|topic_classify/u);
-  assert.match(text, /均启用|启用/u);
+  // Writeback gate mentioned
+  assert.match(text, /writeback|写闸/u);
   // docs/README index must not say 待实施 for this file
   const idx = fs.readFileSync(path.join(ROOT, "docs", "README.md"), "utf8");
   assert.match(idx, /stream-first-optimization-scheme/u);

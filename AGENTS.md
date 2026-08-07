@@ -9,7 +9,7 @@ topmind 是父工作区下的项目工作区，不是 agent 的个人 home works
 改 / 删 / 重构前跑质量门；fail 必须当场修。
 
 ```bash
-# Desktop 完整质量门（deps → typecheck → electron → dead-code → test → build → pack:verify）
+# Desktop 完整质量门（deps → typecheck → electron → dead-code → i18n → test → build → pack:verify）
 npm run desktop:quality
 # 或
 npm run --prefix topmind-desktop check:quality
@@ -75,7 +75,7 @@ contract · workspace-model · stream · memory · lifecycle · **writeback（�
 > **ai-operation-engine**：统一 AI 操作注册框架（`lib/ai-operation-engine.mjs`），自注册 `todo_maintain` · `memory_organize`（profile + periodic）· `topic_classify`（内容大类专题，非 memory），支持 force 重处理、状态追踪（`.topmind/ai-ops.json` 系统平面）、可扩展注册。  
 > **activity-window**：`lib/activity-window.mjs` — 建议/待办/AI ops 共用「近期活动窗口」（周期本 ∪ mtime ∪ 增补 parent）。
 
-**诚实状态**：引擎在 `lib/`；Desktop / UTR / AI 耐久 `.md` **主写经 writeback-engine**；Memory · 建议条 · 待确认写入 · 待办 · AI 操作框架 · 活动窗口 · 动态条目增补 · 剪藏图片本地化 · i18n 门禁 **Done**。备份：用户保存可跳过、AI 旋转备份（`BACKUP_KEEP=3`）、`permanent` 彻底删除。仍 **Intentional Partial**：`edit` skipBackup（减噪）、contract 未强制全 Surface UI。embedding / 全库 Ask 等见 Reset Non-goal。
+**诚实状态**：引擎在 `lib/`；Desktop / UTR / AI 耐久 `.md` **主写经 writeback-engine**；Memory · 建议条 · 待确认写入 · 待办 · AI 操作框架 · 活动窗口 · 动态条目增补 · 剪藏图片本地化 · i18n 门禁 **Done**。备份：用户保存可跳过、AI 旋转备份（`BACKUP_KEEP=3`）、`permanent` 彻底删除。回执：智能分层（仅高影响写入）+ 轮转（`RECEIPT_KEEP=50`）。AI Provider：per-operation 动态 temperature/systemPrompt/maxTokens + 瞬态错误重试；会话压缩 80K/40 适配现代模型。仍 **Intentional Partial**：`edit` skipBackup（减噪）、contract 未强制全 Surface UI。embedding / 全库 Ask 等见 Reset Non-goal。
 
 默认模板 4 种：`stream`（默认）· `balanced` · `research` · `periodic`。
 
@@ -178,13 +178,15 @@ Desktop AI 写回走 WorkspaceService，不经 UTR `executeTool`。
 
 ## Commands
 
-Root scripts from repo root:
+Root scripts from repo root（Node `>=20.11`）:
 
 ```bash
 npm run validate              # secrets + docs + tests + desktop validate
+npm run docs:guard            # redesign 契约 / 文档一致性
 npm run versions              # print surface versions from truth sources only
 npm run secrets:scan
-npm test
+npm test                      # 聚合四套件：root + skills + utr + desktop（较重，含 Desktop tsx）
+npm run root:test             # 仅根 tests/*.test.mjs
 npm run skills:test
 npm run utr:test
 npm run utr:doctor
@@ -206,6 +208,15 @@ npm run desktop:pack:dir      # optional installers: pack:mac / pack:linux / pac
 ```bash
 node utr/bin/topmind-cli.mjs doctor --json --mcp
 node utr/bin/topmind-cli.mjs tool list
+```
+
+### 单个测试文件
+
+```bash
+node --test tests/foo.test.mjs                                             # root
+node --test skills/tests/foo.test.mjs                                      # skills
+node --test utr/tests/unit/foo.test.mjs                                    # utr
+cd topmind-desktop && npx tsx --test --test-force-exit tests/foo.test.mjs  # Desktop（Windows 必须 --test-force-exit）
 ```
 
 ---

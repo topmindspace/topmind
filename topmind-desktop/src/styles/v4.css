@@ -418,7 +418,7 @@ html[data-platform="linux"] .v4-titlebar-glass {
 }
 :root[data-theme="dark"] .v4-editor-shell[data-paper="soft"] .v4-editor-canvas,
 html.dark .v4-editor-shell[data-paper="soft"] .v4-editor-canvas {
-  background: color-mix(in srgb, var(--color-surface) 88%, #2b2822);
+  background: color-mix(in srgb, var(--color-surface) 88%, #2b2b27);
 }
 :root[data-theme="dark"] .v4-editor-shell[data-paper="paper"] .v4-editor-canvas,
 html.dark .v4-editor-shell[data-paper="paper"] .v4-editor-canvas {
@@ -902,15 +902,11 @@ button.v4-dash-card:active,
   background: var(--color-app-chrome);
   border-color: var(--color-border-subtle-dim);
 }
-/* Softer titlebar (Notion/Obsidian calm chrome) */
+/* Softer titlebar (Notion/Obsidian calm chrome) — flat solid + single hairline.
+   2026-08: removed gradient + top highlight (3 stacked effects → 1; calmer, cheaper paint) */
 .v4-titlebar-glass {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--color-app-chrome) 94%, var(--color-surface-elevated)) 0%,
-    var(--color-app-chrome) 100%
-  );
+  background: var(--color-app-chrome);
   border-bottom: 1px solid var(--color-border-subtle-dim);
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-surface-elevated) 40%, transparent);
 }
 
 /* Titlebar control cluster — transparent group (no inset frame noise) */
@@ -923,14 +919,15 @@ button.v4-dash-card:active,
   background: transparent;
   box-shadow: none;
 }
-/* L2 suggest/todo — quiet peer icons; not solid, not inset cluster */
+/* L2 suggest/todo — quiet peer icons; not solid, not inset cluster
+   2026-08-07: slightly raised idle opacity for better discoverability */
 .v4-titlebar-tier-l2 {
   display: inline-flex;
   align-items: center;
   gap: 0;
 }
 .v4-titlebar-tier-l2 .v4-titlebar-btn {
-  color: var(--color-text-quaternary);
+  color: var(--color-text-tertiary);
 }
 .v4-titlebar-tier-l2 .v4-titlebar-btn:hover:not(:disabled) {
   color: var(--color-text-secondary);
@@ -957,12 +954,12 @@ button.v4-dash-card:active,
   color: var(--color-text-tertiary);
   cursor: pointer;
   transition:
-    background-color var(--duration-fast) var(--ease-default),
-    color var(--duration-fast) var(--ease-default);
+    background-color var(--duration-quick, 100ms) var(--ease-default),
+    color var(--duration-quick, 100ms) var(--ease-default);
 }
 .v4-titlebar-btn:hover:not(:disabled) {
-  background: var(--color-surface-muted);
-  color: var(--color-text-primary);
+  background: var(--color-surface-hover);
+  color: var(--color-text-secondary);
 }
 .v4-titlebar-btn:disabled {
   opacity: 0.35;
@@ -1019,15 +1016,19 @@ button.v4-dash-card:active,
   color: var(--color-text-on-accent, #fff);
   border: 1px solid color-mix(in srgb, var(--color-accent-inbox, #12897b) 88%, #000 12%);
   cursor: pointer;
-  box-shadow: none;
+  /* Same quiet lift as the primary button language (was shadow-none → looked adrift) */
+  box-shadow: var(--shadow-button);
   transition:
     background var(--duration-fast) var(--ease-default),
     border-color var(--duration-fast) var(--ease-default),
+    box-shadow var(--duration-fast) var(--ease-default),
     opacity var(--duration-fast) var(--ease-default);
 }
 .v4-titlebar-btn-capture:hover {
   background: color-mix(in srgb, var(--color-accent-inbox, #12897b) 90%, #000 10%);
   border-color: color-mix(in srgb, var(--color-accent-inbox, #12897b) 78%, #000 22%);
+  box-shadow: 0 3px 12px color-mix(in srgb, var(--color-accent-inbox, #12897b) 22%, transparent),
+    0 1px 2px rgba(42, 36, 24, 0.08);
 }
 .v4-titlebar-btn-capture:active {
   opacity: 0.92;
@@ -1568,36 +1569,39 @@ html[data-menu-open] [data-radix-tooltip-content] {
     box-shadow var(--duration-fast) var(--ease-default);
 }
 .v4-nav-pill[data-active="true"] {
-  /* Active = soft brand wash + hairline — not a heavy filled block */
-  background: var(--color-accent-bg-subtle);
-  color: var(--color-accent-color);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent-color) 16%, transparent);
-  font-weight: 600;
+/* Active = soft brand wash + semibold (2026-08: dropped inset hairline — wash alone reads clean)
+   2026-08-07: softer wash (faint) + medium weight for calmer active state */
+background: var(--color-accent-bg-faint);
+color: var(--color-accent-color);
+font-weight: 500;
 }
 .v4-nav-pill:not([data-active="true"]):hover {
   background: color-mix(in srgb, var(--color-surface) 70%, transparent);
   color: var(--color-text-secondary);
 }
 
-/* Command palette trigger — ghost pill (not competing with nav/CTA) */
+/* Command palette trigger — quiet search-field well (Linear-style focal point).
+   Reads as "type here", not as another button: inset wash + hairline + kbd right.
+   2026-08-07: softer inset for calmer feel */
 .v4-cmd-trigger {
-  border: 1px solid transparent;
-  background: transparent;
+  border: 1px solid var(--color-border-subtle-dim);
+  background: color-mix(in srgb, var(--color-surface-muted) 40%, transparent);
+  box-shadow: var(--shadow-input-inset);
   transition:
-    background-color var(--duration-fast) var(--ease-default),
-    color var(--duration-fast) var(--ease-default);
+    background-color var(--duration-quick, 100ms) var(--ease-default),
+    border-color var(--duration-quick, 100ms) var(--ease-default),
+    color var(--duration-quick, 100ms) var(--ease-default);
 }
 .v4-cmd-trigger:hover {
-  border-color: transparent;
-  background: var(--color-surface-muted);
+  border-color: var(--color-border-subtle);
+  background: color-mix(in srgb, var(--color-surface-muted) 60%, transparent);
   color: var(--color-text-secondary);
-  box-shadow: none;
 }
 
-/* Quiet hairline divider in chrome toolbars */
+/* Quiet hairline divider in chrome toolbars — slimmer (2026-08-07) */
 .v4-chrome-sep {
   width: 1px;
-  height: 14px;
+  height: 13px;
   flex-shrink: 0;
   background: var(--color-border-subtle-dim);
   margin: 0 2px;

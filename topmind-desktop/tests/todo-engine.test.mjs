@@ -29,6 +29,8 @@ const {
   setTodoDueDate,
   getTodoHealth,
   cleanupStaleTodos,
+  archiveStaleTodos,
+  snapshotTodoList,
   TODO_REL_PATH,
 } = mod;
 
@@ -452,5 +454,88 @@ dismissed: []
       options: { force: true },
     });
     assert.equal(result2.ok, true);
+  });
+
+  it("archiveStaleTodos moves stale active items to history and removes from list", () => {
+    ensureTodoFile(tmpDir);
+
+    // Add items — one old (stale), one fresh
+    const oldDate = new Date(Date.now() - 35 * 86400000).toISOString().slice(0, 10);
+    const todoPath = path.join(tmpDir, TODO_REL_PATH);
+    fs.writeFileSync(todoPath, `---
+title: 我的待办
+memory_layer: global
+protection: open
+processed_periods: []
+dismissed: []
+---
+
+# 我的待办
+
+<!-- created: ${oldDate} -->
+- [ ] 旧任务很久没处理
+
+<!-- created: ${new Date().toISOString().slice(0, 10)} -->
+- [ ] 新任务今天创建
+`, "utf8");
+
+    const result = archiveStaleTodos(tmpDir);
+    assert.equal(result.ok, true);
+    assert.equal(result.archived.length, 1);
+    assert.equal(result.items.length, 1); // Only fresh item remains
+    assert.equal(result.items[0].text, "新任务今天创建");
+
+    // Archive file should exist
+    const archiveDir = path.join(tmpDir, "memory", "periodic", "todo-history");
+    const files = fs.existsSync(archiveDir) ? fs.readdirSync(archiveDir) : [];
+    assert.ok(files.some(f => f.endsWith("-archived.md")), "archive file should exist");
+  });
+
+  it("archiveStaleTodos does nothing when no stale items", () => {
+    ensureTodoFile(tmpDir);
+
+    // Only fresh items
+    addTodoItem(tmpDir, "fresh task");
+
+    const result = archiveStaleTodos(tmpDir);
+    assert.equal(result.ok, true);
+    assert.equal(result.archived.length, 0);
+    assert.equal(result.reason, "nothing-to-archive");
+  });
+
+  it("snapshotTodoList writes a snapshot for the period", () => {
+    ensureTodoFile(tmpDir);
+    addTodoItem(tmpDir, "task to snapshot");
+
+    const items = readTodoList(tmpDir).items;
+    snapshotTodoList(tmpDir, items, "2026-W32");
+
+    const snapshotPath = path.join(tmpDir, "memory", "periodic", "todo-history", "2026-W32.md");
+    assert.ok(fs.existsSync(snapshotPath), "snapshot file should exist");
+
+    const content = fs.readFileSync(snapshotPath, "utf8");
+    assert.match(content, /待办快照 2026-W32/);
+    assert.match(content, /task to snapshot/);
+  });
+
+  it("snapshotTodoList is idempotent — does not overwrite existing snapshot", () => {
+    ensureTodoFile(tmpDir);
+    addTodoItem(tmpDir, "first task");
+
+    const items1 = readTodoList(tmpDir).items;
+    snapshotTodoList(tmpDir, items1, "2026-W33");
+
+    // Add another item and snapshot again
+    addTodoItem(tmpDir, "second task");
+    const items2 = readTodoList(tmpDir).items;
+    snapshotTodoList(tmpDir, items2, "2026-W33");
+
+    const content = fs.readFileSync(
+      path.join(tmpDir, "memory", "periodic", "todo-history", "2026-W33.md"),
+      "utf8",
+    );
+    // Should only contain first task (first snapshot wins)
+    assert.match(content, /first task/);
+    assert.doesNotMatch(content, /second task/);
   });
 });

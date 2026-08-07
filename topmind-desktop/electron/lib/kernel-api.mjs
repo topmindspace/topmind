@@ -279,6 +279,12 @@ export async function kernelCleanupStaleTodos(_p, ctx) {
   return kernel.cleanupStaleTodos(workspaceRoot);
 }
 
+export async function kernelArchiveStaleTodos(_p, ctx) {
+  const kernel = await loadKernelApi();
+  const workspaceRoot = workspaceRootOf(ctx.workspaceRoot);
+  return kernel.archiveStaleTodos(workspaceRoot);
+}
+
 // ── AI Operations (unified engine) ─────────────────────────────────────────
 
 export async function kernelListOperationTypes(ctx) {

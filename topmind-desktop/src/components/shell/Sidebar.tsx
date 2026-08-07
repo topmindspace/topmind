@@ -248,17 +248,21 @@ export function Sidebar() {
 
   return (
     <div className="v4-panel-contain v4-sidebar-rail flex h-full min-h-0 flex-col">
-      {/* Single fixed header: ViewSwitcher (consolidated from 3 rows → 1 fixed + 1 contextual) */}
-      <div className="shrink-0 border-b border-border-subtle-dim/50">
+      {/* 2026-08-07: removed border-b — use padding for cleaner visual separation */}
+      <div className="flex shrink-0 items-center pb-1">
         <ErrorBoundary label={t("sidebar.viewSwitcher.ariaTablist")}>
           <ViewSwitcher active={viewMode} onChange={handleViewModeChange} enabled={enabledViews} />
         </ErrorBoundary>
+        <span className="shrink-0 py-1 pr-1.5">
+          <ProfileButton />
+        </span>
       </div>
-      {/* Contextual pins bar for non-category views (category view has merged header in DataSourceSection) */}
-      {viewMode !== "category" ? (
+      {/* Contextual period pin — timeline/tags/kanban only (降噪 2026-08).
+          Stream view has its own period header inside StreamView; category view
+          merges the pin into the DataSourceSection header row. */}
+      {viewMode !== "category" && viewMode !== "stream" ? (
         <div className="flex shrink-0 items-center gap-1 px-1.5 py-1" data-sidebar-pins>
           <PeriodPill pins={pins} />
-          <ProfileButton />
         </div>
       ) : null}
       <div className="v4-sidebar-scroll min-h-0 flex-1 overflow-auto px-1 py-1">
@@ -267,6 +271,7 @@ export function Sidebar() {
         </ErrorBoundary>
       </div>
       {/* Plugin sidebar slots — sticky at bottom, driven by registry */}
+      {/* 2026-08-07: removed border from plugin section — cleaner bottom edge */}
       {sidebarSlots.length > 0 ? <PluginSlotsSection slots={sidebarSlots} /> : null}
     </div>
   );
@@ -350,6 +355,11 @@ function DataSourceSection({
   const [loadingNodes, setLoadingNodes] = useState<Set<string>>(new Set());
   const bootstrappedExpand = useRef(false);
 
+  // Ref mirror of childrenCache so loadChildren / effects don't depend on the
+  // ever-changing Map reference — eliminates cascading re-renders on every cache update.
+  const childrenCacheRef = useRef(childrenCache);
+  childrenCacheRef.current = childrenCache;
+
   const selection = useViewStore((s) => s.selection);
   const expandedNodeIds = useViewStore((s) => s.expandedNodeIds);
   const expandNodes = useViewStore((s) => s.expandNodes);
@@ -382,8 +392,8 @@ function DataSourceSection({
    * “fileCount updates but topic files stay old after organize / move / refresh”.
    *
    * When payload carries a relativePath (e.g. auto-save), do a targeted refresh:
-   * only reload children for the topic containing that file — avoids flicker from
-   * clearing all caches and rebuilding the entire tree on every keystroke save.
+   * only reload children for the topic containing that file — skip full tree rebuild
+   * entirely to avoid flicker (topology doesn't change on content-only saves).
    */
   const softRefresh = useCallback(async (payload?: unknown) => {
     const changedRel =
@@ -391,20 +401,17 @@ function DataSourceSection({
         ? String((payload as { relativePath?: string }).relativePath || "")
         : "";
 
-    // Targeted refresh: only reload the topic that contains the changed file
+    // Targeted refresh (content-only save): skip full tree rebuild entirely.
+    // Topology hasn't changed — only mtime of the saved file. Rebuilding the tree
+    // replaces all node object references, causing the entire TreeView to re-render
+    // and visually flicker. Instead, just reload the affected topic's children.
     if (changedRel) {
       try {
-        // Determine which expanded topic the changed file belongs to
         const parts = changedRel.split("/");
         const topicId = parts.length >= 2 ? `${parts[0]}/${parts[1]}` : "";
         const expanded = useViewStore.getState().expandedNodeIds;
 
-        // Reload tree topology silently (no cache clear) so fileCount/mtime updates
-        const t = await dataSource.getTree();
-        applyTree(t);
-        setError(null);
-
-        // Only reload children for the specific topic that changed
+        // Only reload children for the specific topic that changed (updates mtime in cache)
         if (topicId && expanded.has(topicId)) {
           const lazyPath = topicId;
           setLoadingNodes((prev) => new Set(prev).add(topicId));
@@ -429,6 +436,7 @@ function DataSourceSection({
             });
           }
         }
+        setError(null);
       } catch (e) {
         // Keep previous tree visible on transient errors during soft refresh
         if (!hasTreeRef.current) {
@@ -438,14 +446,15 @@ function DataSourceSection({
       return;
     }
 
-    // Full refresh: rebuild tree + clear all caches + reload all expanded topics
+    // Full refresh: rebuild tree + reload all expanded topics.
+    // NOTE: do NOT clear entire childrenCache upfront — that causes a visual gap
+    // where expanded topics momentarily show "暂无笔记" before rehydrate finishes.
+    // Old cache entries stay valid until each topic is reloaded atomically.
     try {
       const t = await dataSource.getTree();
       applyTree(t);
       setError(null);
       const expanded = useViewStore.getState().expandedNodeIds;
-      // Drop entire children cache — expanded nodes rehydrate below with fresh FS list
-      setChildrenCache(new Map());
       // Collect lazy nodes that are currently expanded (from new tree + known expanded ids)
       const toReload: TreeNode[] = [];
       const walk = (nodes: TreeNode[]) => {
@@ -586,11 +595,12 @@ function DataSourceSection({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataSource.id]);
 
-  /** Lazy-load topic / folder children when expanded (real FS subdirs + filtered files). */
+  /** Lazy-load topic / folder children when expanded (real FS subdirs + filtered files).
+   *  Stable callback (no deps) — uses childrenCacheRef to avoid cascading re-renders. */
   const loadChildren = useCallback(async (node: TreeNode, opts?: { force?: boolean }) => {
     const force = Boolean(opts?.force);
     if (!node.meta?.lazy && !force && !idLooksLikeTopicPath(node.id)) return;
-    if (!force && childrenCache.has(node.id)) return;
+    if (!force && childrenCacheRef.current.has(node.id)) return;
 
     const lazyPath = nodeLazyPath(node);
     if (!lazyPath) return;
@@ -619,7 +629,7 @@ function DataSourceSection({
         return next;
       });
     }
-  }, [childrenCache]);
+  }, []);
 
   /** File filter change: persist to settings, clear cache, hard refresh, notify other views. */
   const handleFileFilterChange = useCallback(async (f: FileFilterMode) => {
@@ -634,7 +644,8 @@ function DataSourceSection({
     emitLocal("sidebar:file-filter-changed", f);
   }, [hardRefresh]);
 
-  // Reveal: expand ancestors + lazy-load topic files for the active selection
+  // Reveal: expand ancestors + lazy-load topic files for the active selection.
+  // Uses childrenCacheRef so the effect doesn't re-run on every cache update.
   useEffect(() => {
     const ids = expandIdsForSelection(selection);
     if (ids.length) expandNodes(ids);
@@ -644,7 +655,7 @@ function DataSourceSection({
       if (id.startsWith("cat/") || id.startsWith("section/")) continue;
       // Topic ids look like "10-日常/2024-主题"
       if (!id.includes("/")) continue;
-      if (childrenCache.has(id)) continue;
+      if (childrenCacheRef.current.has(id)) continue;
       const topicNode: TreeNode = {
         id,
         label: id,
@@ -654,14 +665,15 @@ function DataSourceSection({
       };
       void loadChildren(topicNode);
     }
-  }, [selection, expandNodes, childrenCache, loadChildren]);
+  }, [selection, expandNodes, loadChildren]);
 
   const treeSortMode = useViewStore((s) => s.treeSortMode);
   const setTreeSortMode = useViewStore((s) => s.setTreeSortMode);
 
   return (
     <div className="mb-2">
-      {/* Unified header: pins (left) + tree tools & file filter (right) + profile */}
+      {/* Unified header: pins (left) + tree tools & file filter (right).
+          我的情况 lives on the ViewSwitcher row (global) — not duplicated here. */}
       <div className="flex items-center gap-0.5 px-1.5 pb-1 pt-0.5">
         <PeriodPill pins={pins} />
         <div className="min-w-0 flex-1" />
@@ -686,7 +698,6 @@ function DataSourceSection({
             <RefreshCw size={ICON.nano} className={loading ? "animate-spin" : ""} />
           </button>
         </Tooltip>
-        <ProfileButton />
       </div>
       {/* Multi-DS: show label eyebrow below merged header */}
       {!compactHeader ? (
@@ -737,7 +748,7 @@ function PluginSlotsSection({ slots }: { slots: SidebarSlot[] }) {
 
   return (
     <div
-      className="shrink-0 border-t border-border-subtle-dim/50 bg-app-chrome/30"
+      className="shrink-0 border-t border-border-subtle-dim/40 bg-app-chrome/20"
       data-sidebar-plugins-section
       data-sidebar-plugins-collapsed={collapsed ? "true" : "false"}
     >

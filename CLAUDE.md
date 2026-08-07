@@ -29,7 +29,7 @@ topmind = Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR
 - Skills：唯一入口 `topmind`；Host 文件工具为主；UTR 可选  
 - Desktop：**富工作台**；导航变薄；不硬依赖 UTR  
 - UTR：可选 CLI/MCP（**8 域 / 25 命令**；MCP 默认 17）  
-- Kernel 写闸 · Memory · 建议条/待确认写入 · 待办 · AI 操作框架 · **活动窗口 / 动态增补**：**Done** — 见 `docs/ARCHITECTURE-RESET.md` §2 · `docs/stream-first-optimization-scheme.md`
+- Kernel 写闸 · Memory · 建议条/待确认写入 · 待办 · AI 操作框架 · **活动窗口 / 动态增补** · **回执轮转 + AI Provider 动态参数**：**Done** — 见 `docs/ARCHITECTURE-RESET.md` §2 · `docs/adr/2026-08-07-engine-hardening-writeback-ai.md`
 
 ## Commands
 

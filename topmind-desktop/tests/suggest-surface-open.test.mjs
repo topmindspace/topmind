@@ -47,11 +47,16 @@ test("TitleBar uses toggleSuggestSurface; strip / ActionBar call openSuggestSurf
   assert.match(bar, /openSuggestSurface/);
 });
 
-test("StatusBar suggest count chip uses toggleSuggestSurface", () => {
+test("StatusBar keeps suggest busy chip only; count lives on TitleBar badge + strip (降噪 2026-08)", () => {
   const sb = read("src/components/shell/StatusBar.tsx");
-  assert.match(sb, /toggleSuggestSurface/);
-  assert.match(sb, /data-status-suggest-count/);
-  assert.match(sb, /aria-pressed/);
+  // Loading/busy state stays; the persistent third count chip is removed
+  assert.match(sb, /data-status-suggest-busy/);
+  assert.doesNotMatch(sb, /data-status-suggest-count/);
+  // Count surfaces: TitleBar 💡 badge + canvas strip (exactly two, per DESIGN 禁止三处等权)
+  const title = read("src/components/shell/TitleBar.tsx");
+  assert.match(title, /data-suggest-header-badge/);
+  const strip = read("src/components/ai/SuggestEntryStrip.tsx");
+  assert.match(strip, /data-suggest-entry-state/);
 });
 
 test("SuggestPopover mounts in Shell and positions on open", () => {

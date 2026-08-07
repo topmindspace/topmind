@@ -154,8 +154,8 @@ export function Shell({ settings }: ShellProps) {
   const showSidebar = !focusMode && !sidebarCollapsed;
   const showAiPanel = !focusMode && aiPanelOpen;
   const gridRows = focusMode
-    ? "grid-rows-[var(--density-chrome-y,40px)_minmax(0,1fr)]"
-    : "grid-rows-[var(--density-chrome-y,40px)_minmax(0,1fr)_var(--density-status-y,26px)]";
+    ? "grid-rows-[var(--density-chrome-y,36px)_minmax(0,1fr)]"
+    : "grid-rows-[var(--density-chrome-y,36px)_minmax(0,1fr)_var(--density-status-y,24px)]";
 
   const chrome = (
     <div className={cn("grid h-screen bg-chrome text-text-primary", gridRows)}>

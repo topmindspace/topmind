@@ -1,9 +1,9 @@
 import {
-  CheckCircle2, AlertCircle, Loader2, MessageSquare, FileText, FolderOpen,
-  Inbox, Layers, Archive, Bot, CalendarDays, ListTodo, Lightbulb, ListChecks,
-  Sparkles,
+  AlertCircle, Loader2, FileText, Bot, ListTodo, Lightbulb, ListChecks,
+  Download,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useEffect, useState } from "react";
 import { useViewStore } from "../../stores/view-store";
 import { useAiStore } from "../../stores/ai-store";
 import { useTaskStore } from "../../stores/task-store";
@@ -18,12 +18,19 @@ import { deriveStatusBarBusy } from "../../lib/status-bar-busy";
 import { useInlineAiStore } from "../../lib/inline-ai-busy";
 import { Tooltip } from "../ui/tooltip";
 import type { Selection } from "../../types";
-import { emitLocal } from "../../plugins/host";
+import { emitLocal, onLocal } from "../../plugins/host";
 
 interface EngineHealth {
   ok: boolean;
   engineRoot: string | null;
   workspaceRoot: string | null;
+}
+
+interface UpdateBadgeInfo {
+  currentVersion: string;
+  latestVersion: string;
+  releaseUrl: string | null;
+  tagName: string | null;
 }
 
 interface StatusBarProps {
@@ -48,9 +55,18 @@ export function StatusBar({ health }: StatusBarProps) {
   const tasks = useTaskStore((s) => s.tasks);
   const todoMaintaining = useTodoStore((s) => s.maintaining === "maintaining");
   const suggestLoading = useActionStore((s) => s.loading);
-  const suggestCount = useActionStore((s) => s.items.length);
-  const suggestHasHigh = useActionStore((s) => s.items.some((i) => i.priority === "high"));
   const suggestPanelOpen = useActionStore((s) => s.panelOpen);
+  const [updateInfo, setUpdateInfo] = useState<UpdateBadgeInfo | null>(null);
+
+  // Subscribe to background update:available events from main process
+  useEffect(() => {
+    const unsub = onLocal("update:available", (payload) => {
+      if (payload && typeof payload === "object" && "latestVersion" in payload) {
+        setUpdateInfo(payload as UpdateBadgeInfo);
+      }
+    });
+    return () => { unsub(); };
+  }, []);
   const inlineSessions = useInlineAiStore((s) => s.sessions);
   const inlineBusy = inlineSessions.length > 0;
   const inlineLabel =
@@ -98,13 +114,9 @@ export function StatusBar({ health }: StatusBarProps) {
           ? t("statusBar.aiPanelHideTip", { defaultValue: "收起 AI 面板" })
           : t("statusBar.aiPanelShowTip", { defaultValue: "展开 AI 面板" });
 
-  const pathTip = health?.workspaceRoot
-    ? t("statusBar.workspacePath", { root: health.workspaceRoot })
-    : t("statusBar.workspacePathLabel");
-
   return (
     <div
-      className="v4-shell-chrome grid h-[var(--density-status-y,26px)] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 border-t border-border-subtle-dim px-2.5 text-3xs text-text-quaternary select-none sm:gap-1.5 sm:px-3"
+      className="v4-shell-chrome grid h-[var(--density-status-y,24px)] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 border-t border-border-subtle-dim px-2.5 text-3xs text-text-quaternary select-none sm:gap-1.5 sm:px-3"
       role="contentinfo"
       aria-label={t("statusBar.ariaLabel")}
       data-status-bar
@@ -117,6 +129,7 @@ export function StatusBar({ health }: StatusBarProps) {
             <span className="hidden sm:inline">{t("common:status.loading")}</span>
           </span>
         ) : health.ok ? (
+          /* Healthy = silent (2026-08): a quiet dot, details in tooltip. Text only on error. */
           <Tooltip
             content={
               [
@@ -127,9 +140,12 @@ export function StatusBar({ health }: StatusBarProps) {
                 .join("\n") || t("statusBar.workspaceOkTip")
             }
           >
-            <span className="flex shrink-0 items-center gap-1 text-success/90">
-              <CheckCircle2 size={ICON.micro} aria-hidden />
-              <span className="hidden sm:inline">{t("statusBar.workspaceOk")}</span>
+            <span
+              className="flex shrink-0 items-center px-0.5"
+              role="status"
+              aria-label={t("statusBar.workspaceOk")}
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-success/80" aria-hidden />
             </span>
           </Tooltip>
         ) : (
@@ -145,28 +161,8 @@ export function StatusBar({ health }: StatusBarProps) {
             {slot.render()}
           </span>
         ))}
-        {health?.workspaceRoot ? (
-          <>
-            <StatusDivider />
-            <Tooltip content={`${pathTip}\n${t("statusBar.revealWorkspaceTip", { defaultValue: "Click to reveal in Finder" })}`}>
-              <button
-                type="button"
-                className={cn(
-                  "hidden min-w-0 max-w-[12rem] truncate rounded-[var(--radius-sm)] px-1 text-left text-text-quaternary xl:inline",
-                  "transition-colors hover:bg-surface-muted hover:text-text-secondary",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
-                )}
-                onClick={() => {
-                  void api.sys.reveal(health.workspaceRoot!).catch(() => {
-                    void api.sys.openPath(health.workspaceRoot!).catch(() => {/* ignore */});
-                  });
-                }}
-              >
-                {shortPath(health.workspaceRoot)}
-              </button>
-            </Tooltip>
-          </>
-        ) : null}
+        {/* 2026-08-07: path button removed — workspace switcher tooltip already
+            shows the full path; this was redundant chrome noise. */}
       </div>
 
       {/* Center: current selection (orientation anchor) — clickable */}
@@ -182,6 +178,33 @@ export function StatusBar({ health }: StatusBarProps) {
           </span>
         ))}
         {rightSlots.length > 0 ? <StatusDivider /> : null}
+
+        {/* Update available badge — silent green dot, click opens release page */}
+        {updateInfo ? (
+          <Tooltip content={t("statusBar.updateAvailable", { version: updateInfo.latestVersion, defaultValue: `v${updateInfo.latestVersion} available` })}>
+            <button
+              type="button"
+              data-status-update-badge
+              onClick={() => {
+                if (updateInfo.releaseUrl) {
+                  void api.sys.openUrl(updateInfo.releaseUrl);
+                }
+              }}
+              className={cn(
+                "flex shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 py-0.5",
+                "bg-success/10 text-success",
+                "transition-colors hover:bg-success/20",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
+              )}
+              aria-label={t("statusBar.updateAvailable", { version: updateInfo.latestVersion, defaultValue: `v${updateInfo.latestVersion} available` })}
+            >
+              <Download size={ICON.micro} aria-hidden />
+              <span className="hidden tabular-nums sm:inline">
+                v{updateInfo.latestVersion}
+              </span>
+            </button>
+          </Tooltip>
+        ) : null}
 
         {/* Named busy chips only — never dual with generic「AI 工作中」for todo/suggest-only */}
         {busy.showTaskChip ? (
@@ -240,46 +263,8 @@ export function StatusBar({ health }: StatusBarProps) {
             </button>
           </Tooltip>
         ) : null}
-        {/* Suggestion count chip — toggle button: click opens, click again closes.
-            Behavior parity with TitleBar Lightbulb and AI Todo trigger. */}
-        {!busy.showSuggestChip && suggestCount > 0 ? (
-          <Tooltip content={
-            suggestPanelOpen
-              ? t("statusBar.suggestHideTip", { defaultValue: "收起建议面板" })
-              : suggestHasHigh
-                ? t("statusBar.suggestHighTip", { count: suggestCount, defaultValue: "{{count}} 条建议待确认（含高优先级）· 点击查看" })
-                : t("statusBar.suggestCountTip", { count: suggestCount, defaultValue: "{{count}} 条建议待确认 · 点击查看" })
-          }>
-            <button
-              type="button"
-              data-status-suggest-count
-              onClick={() => {
-                void import("../../lib/suggest-surface").then(({ toggleSuggestSurface }) => {
-                  toggleSuggestSurface();
-                });
-              }}
-              className={cn(
-                "flex shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 py-0.5 transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
-                suggestHasHigh
-                  ? "bg-warning/10 text-warning hover:bg-warning/15"
-                  : "bg-skill-loop/10 text-skill-loop hover:bg-skill-loop/15",
-                suggestPanelOpen && "ring-1 ring-inset ring-accent-border-subtle",
-              )}
-              aria-label={t("statusBar.suggestCountAria", { count: suggestCount, defaultValue: "{{count}} 条建议" })}
-              aria-pressed={suggestPanelOpen}
-            >
-              {suggestHasHigh ? (
-                <Lightbulb size={ICON.micro} className="animate-pulse-soft" aria-hidden />
-              ) : (
-                <Sparkles size={ICON.micro} aria-hidden />
-              )}
-              <span className="hidden tabular-nums sm:inline">
-                {t("statusBar.suggestCount", { count: suggestCount, defaultValue: "{{count}} 建议" })}
-              </span>
-            </button>
-          </Tooltip>
-        ) : null}
+        {/* 建议计数常驻 chip 已移除（降噪 2026-08）：计数由标题栏 💡 badge + 画布顶 strip 承担，
+            状态栏只保留「生成中」busy 态 —— DESIGN「禁止三处等权」。 */}
         {busy.showInlineChip ? (
           <Tooltip content={t("statusBar.inlineAiWorkingTip")}>
             <span
@@ -295,6 +280,7 @@ export function StatusBar({ health }: StatusBarProps) {
           </Tooltip>
         ) : null}
 
+        {/* 2026-08-07: divider removed when no busy chips — cleaner right rail */}
         {busy.hasNamedBusyChip ? <StatusDivider /> : null}
 
         <Tooltip content={aiTip}>
@@ -340,105 +326,35 @@ export function StatusBar({ health }: StatusBarProps) {
   );
 }
 
-function shortPath(p: string): string {
-  const parts = p.replace(/\\/g, "/").split("/").filter(Boolean);
-  if (parts.length <= 2) return parts.join("/") || p;
-  return `…/${parts.slice(-2).join("/")}`;
-}
-
+/**
+ * Center orientation hint — **file selections only** (click = reveal in OS file manager).
+ * Non-file views are already identified by the canvas PageHeader + active PrimaryNav
+ * pill, so repeating them here was pure noise (降噪 2026-08).
+ */
 function SelectionHint({ selection }: { selection: Selection }) {
   const { t } = useTranslation(["shell", "common"]);
   const select = useViewStore((s) => s.select);
-  const config = (() => {
-    switch (selection.kind) {
-      case "stream":
-        return {
-          icon: CalendarDays,
-          label: t("statusBar.selectionStream"),
-          tip: t("statusBar.selectionStreamTip"),
-          onClick: () => select({ kind: "stream" }),
-        };
-      case "inbox":
-        return {
-          icon: Inbox,
-          label: t("statusBar.selectionInbox"),
-          tip: t("statusBar.selectionInboxTip"),
-          onClick: () => select({ kind: "inbox" }),
-        };
-      case "category":
-        return {
-          icon: FolderOpen,
-          label: selection.category,
-          tip: selection.category,
-          onClick: () => select({ kind: "category", category: selection.category }),
-        };
-      case "topic":
-        return {
-          icon: FolderOpen,
-          label: selection.topicId.split("/").pop() ?? selection.topicId,
-          tip: selection.topicId,
-          onClick: () => select({ kind: "topic", topicId: selection.topicId }),
-        };
-      case "file":
-        return {
-          icon: FileText,
-          label: selection.path.split("/").pop() ?? selection.path,
-          tip: `${selection.path}\n${t("statusBar.revealFileTip", { defaultValue: "Click to reveal · double-intent: copy path via ⌘C in editor" })}`,
-          onClick: () => {
-            void api.ws.reveal(selection.path).catch(() => {
-              select({ kind: "file", path: selection.path });
-            });
-          },
-        };
-      case "outputs":
-        return {
-          icon: Layers,
-          label: t("statusBar.selectionOutputs"),
-          tip: t("statusBar.selectionOutputsTip"),
-          onClick: () => select({ kind: "outputs" }),
-        };
-      case "archive":
-        return {
-          icon: Archive,
-          label: t("statusBar.selectionArchive"),
-          tip: t("statusBar.selectionArchiveTip"),
-          onClick: () => select({ kind: "archive" }),
-        };
-      case "connector":
-        return {
-          icon: selection.id === "weread" ? FileText : MessageSquare,
-          label: selection.id === "weread" ? t("statusBar.selectionWeread") : selection.id === "x" ? "X" : selection.id,
-          tip: t("statusBar.selectionConnectorTip"),
-          onClick: () => select({ kind: "connector", id: selection.id }),
-        };
-      default:
-        return { icon: FolderOpen, label: t("statusBar.unknown"), tip: "unknown", onClick: null as (() => void) | null };
-    }
-  })();
-  const Icon = config.icon;
-  const className =
-    "flex max-w-full items-center gap-1 truncate rounded-[var(--radius-sm)] px-1.5 py-0.5 text-text-quaternary";
+  if (selection.kind !== "file") return null;
+  const label = selection.path.split("/").pop() ?? selection.path;
+  const tip = `${selection.path}\n${t("statusBar.revealFileTip", { defaultValue: "Click to reveal · double-intent: copy path via ⌘C in editor" })}`;
   return (
-    <Tooltip content={config.tip}>
-      {config.onClick ? (
-        <button
-          type="button"
-          onClick={config.onClick}
-          className={cn(
-            className,
-            "transition-colors hover:bg-surface-muted hover:text-text-secondary",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
-          )}
-        >
-          <Icon size={ICON.micro} className="shrink-0" aria-hidden />
-          <span className="truncate">{config.label}</span>
-        </button>
-      ) : (
-        <span className={className}>
-          <Icon size={ICON.micro} className="shrink-0" aria-hidden />
-          <span className="truncate">{config.label}</span>
-        </span>
-      )}
+    <Tooltip content={tip}>
+      <button
+        type="button"
+        onClick={() => {
+          void api.ws.reveal(selection.path).catch(() => {
+            select({ kind: "file", path: selection.path });
+          });
+        }}
+        className={cn(
+          "flex max-w-full items-center gap-1 truncate rounded-[var(--radius-sm)] px-1.5 py-0.5 text-text-quaternary",
+          "transition-colors hover:bg-surface-muted hover:text-text-secondary",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
+        )}
+      >
+        <FileText size={ICON.micro} className="shrink-0" aria-hidden />
+        <span className="truncate">{label}</span>
+      </button>
     </Tooltip>
   );
 }

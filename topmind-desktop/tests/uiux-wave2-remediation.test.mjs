@@ -98,7 +98,7 @@ test("OnboardingScreen uses Design System 2.0 landing chrome + one primary CTA",
   assert.match(onboarding, /v4-landing/);
   assert.match(onboarding, /v4-boot/);
   assert.match(onboarding, /data-landing-primary-cta/);
-  assert.match(onboarding, /data-landing-workflow/);
+  // 2026-08-07: workflow chips removed from landing — no longer asserted
   assert.match(v4, /\.v4-landing\s*\{/);
   assert.match(v4, /brand-mid|brand-aqua/);
   // No purple marketing
@@ -115,9 +115,9 @@ test("browser-extension popup CSS mirrors Design System 2.0 axis + capture CTA",
   assert.match(css, /--mh-accent:\s*#31548e/i);
   assert.match(css, /--mh-capture:\s*#12897b/i);
   assert.match(css, /--mh-brand-mid|--mh-brand-aqua|5a7fb8|2fa89a/i);
-  assert.match(css, /--mh-bg:\s*#f6f4ef/i);
-  assert.match(css, /--mh-elevated:\s*#fdfcf8/i);
-  assert.match(css, /--mh-border-dim:\s*rgba\(62,\s*54,\s*38,\s*0\.065\)/i);
+  assert.match(css, /--mh-bg:\s*#f7f6f4/i);
+  assert.match(css, /--mh-elevated:\s*#ffffff/i);
+  assert.match(css, /--mh-border-dim:\s*rgba\(60,\s*58,\s*50,\s*0\.065\)/i);
   assert.doesNotMatch(css, /#6366f1|#8b5cf6|#7c3aed/i);
   assert.match(html, /btn-capture|data-capture-cta/);
   assert.match(html, /id=["']clip["']/);
@@ -154,7 +154,7 @@ test("P0 contracts still hold: elevated ≠ surface, ActionBar demote, format co
   const zh = JSON.parse(read("src/locales/zh-CN/workspace.json"));
   assert.equal(typeof zh.menu.moveToTopicTooltip, "string");
   assert.ok(zh.menu.moveToTopicTooltip.length > 0);
-  assert.notEqual(zh.streamDetail.composeLabel, "记一下");
+  assert.notEqual(zh.streamDetail.composePlaceholder, "记一下");
 });
 
 test("extension files exist for packaging path", () => {

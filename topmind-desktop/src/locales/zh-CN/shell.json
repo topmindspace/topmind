@@ -25,7 +25,17 @@
     "footerLine3": "文件永远是你的 · Desktop 是智能视图",
     "healthOk": "可用",
     "healthEmpty": "空目录",
-    "healthBroken": "不可用"
+    "healthBroken": "不可用",
+    "templateTitle": "选择一个模板",
+    "templateConfirm": "选择并继续",
+    "templateStreamName": "极简流式",
+    "templateStreamDesc": "最少心智：收件箱 · 动态 · 专题 · 输出 · 归档",
+    "templateBalancedName": "平衡知识型",
+    "templateBalancedDesc": "兼顾低摩擦记录与知识沉淀",
+    "templateResearchName": "学术研究型",
+    "templateResearchDesc": "深度研究 · 来源追踪 · 参考资料",
+    "templatePeriodicName": "周期回顾型",
+    "templatePeriodicDesc": "强周期复盘 · 记忆沉淀"
   },
   "shell": {
     "loadingAi": "加载 AI…",
@@ -66,7 +76,6 @@
     "forwardAriaLabel": "前进",
     "commandPaletteTip": "命令面板 · ⌘K",
     "commandPaletteAriaLabel": "命令面板",
-    "command": "命令",
     "captureTip": "记一下 · ⌘N（默认进本周动态）\n全局任意应用 ⌘⇧N",
     "capture": "记一下",
     "searchTip": "全文搜索 · ⌘P",
@@ -75,8 +84,6 @@
     "settingsTip": "设置 · ⌘,",
     "settingsAriaLabel": "设置",
     "settingsLabel": "设置",
-    "themeTip": "主题：{{label}} · 点击切换",
-    "themeAriaLabel": "主题 {{label}}",
     "themeMenuItem": "主题 · {{label}}",
     "themeAuto": "跟随系统",
     "themeLight": "浅色",
@@ -90,7 +97,8 @@
     "todoTip": "待办清单 · ⌘⇧T",
     "todoAriaLabel": "待办清单",
     "suggestTip": "建议 · 确认后写入（≠ 个人清单）",
-    "suggestAriaLabel": "打开建议"
+    "suggestAriaLabel": "打开建议",
+    "commandField": "命令 · 跳转"
   },
   "taskPanel": {
     "title": "AI 任务",
@@ -150,7 +158,6 @@
     "inboxTipActive": "收件箱 {{count}} 条待整理 · ⌘⇧I",
     "inboxTipIdle": "收件箱为空 · ⌘⇧I",
     "outputs": "写出来",
-    "outputsTipActive": "写出来 {{count}} · ⌘⇧O",
     "outputsTipIdle": "写出来 · ⌘⇧O",
     "archiveTip": "归档与恢复 · ⌘⇧A",
     "archiveAriaLabel": "归档"
@@ -185,11 +192,6 @@
     "todoMaintainingTip": "正在从动态提取/更新个人清单 · 通常需要数秒",
     "suggestLoading": "准备建议中",
     "suggestLoadingTip": "正在扫描可整理项并生成建议 · 点此查看",
-    "suggestCount": "{{count}} 建议",
-    "suggestCountTip": "{{count}} 条建议待确认 · 点击查看",
-    "suggestHighTip": "{{count}} 条建议待确认（含高优先级）· 点击查看",
-    "suggestCountAria": "{{count}} 条建议",
-    "suggestHideTip": "收起建议面板",
     "inlineAiWorking": "AI 处理中",
     "inlineAiWorkingTip": "润色 / 行内改写进行中 · 切换页面可能取消本次结果 · 点此不做任何操作",
     "inlineAiLeaveTitle": "离开将取消 AI 工作",
@@ -197,19 +199,9 @@
     "inlineAiLeaveConfirmWithLabel": "「{{label}}」仍在进行或有未应用结果。强制离开将取消本次 AI 工作。",
     "inlineAiLeaveForce": "强制离开",
     "inlineAiLeaveStay": "继续等待",
-    "selectionStream": "动态",
-    "selectionStreamTip": "当前：本周动态",
-    "selectionInbox": "收件箱",
-    "selectionInboxTip": "当前：收件箱",
-    "selectionOutputs": "写出来",
-    "selectionOutputsTip": "当前：写出来",
-    "selectionArchive": "归档",
-    "selectionArchiveTip": "当前：归档",
-    "selectionWeread": "微信读书",
-    "selectionConnectorTip": "连接器 · 点击回动态",
     "revealWorkspaceTip": "点击在文件管理器中显示",
     "revealFileTip": "点击在文件管理器中显示",
-    "unknown": "未知"
+    "updateAvailable": "新版本 v{{version}} 可用 · 点击下载"
   },
   "editorArea": {
     "loadingWorkspace": "正在加载工作区…",
@@ -284,7 +276,11 @@
       "dropHintTopic": "松开以移入此专题",
       "loadingFiles": "加载文件…",
       "emptyCategory": "空类别 · 点击新建专题（YYYY-主题）",
-      "emptyTopic": "暂无笔记 · 点击新建"
+      "emptyTopic": "暂无笔记 · 点击新建",
+      "tooltipPath": "路径",
+      "tooltipModified": "修改",
+      "tooltipFileCount": "{{count}} 篇笔记",
+      "tooltipTopicCount": "{{count}} 个专题"
     },
     "timeline": {
       "weekThis": "本周 {{key}}",
@@ -511,6 +507,9 @@
     "cleanupStaleConfirm": "将清除 {{count}} 条已完成超过 7 天的待办，确定？",
     "cleanupDone": "已清理 {{count}} 条过期待办",
     "healthOverdue": "{{count}} 条已逾期",
-    "healthStale": "{{count}} 条过期未处理"
+    "healthStale": "{{count}} 条过期未处理",
+    "archiveStale": "归档过期待办",
+    "archiveStaleConfirm": "将归档 {{count}} 条超过 30 天的待办到历史快照，确定？",
+    "archiveDone": "已归档 {{count}} 条过期待办"
   }
 }

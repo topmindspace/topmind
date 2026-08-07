@@ -6,7 +6,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   FolderOpen, Plus, Loader2, AlertCircle, ArrowRight,
-  Clock, Layers, Zap, Radio, X, CheckCircle2, AlertTriangle,
+  Clock, X, CheckCircle2, AlertTriangle,
 } from "lucide-react";
 import { api } from "../../services/api";
 import { Button } from "../ui/Button";
@@ -64,6 +64,27 @@ export function OnboardingScreen({
     dedupeRecentWorkspaces(recentProp) as RecentWorkspace[],
   );
   const [healthByPath, setHealthByPath] = useState<Record<string, RecentHealth>>({});
+  const [pickedPath, setPickedPath] = useState<string | null>(null);
+  const [templates, setTemplates] = useState<Array<{ id: string; name: string; description: string }>>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("stream");
+
+  // Load templates on mount
+  useEffect(() => {
+    void (async () => {
+      try {
+        const list = await api.sys.listTemplates();
+        setTemplates(list || []);
+      } catch {
+        // Fallback: use default templates
+        setTemplates([
+          { id: "stream", name: t("shell:onboarding.templateStreamName"), description: t("shell:onboarding.templateStreamDesc") },
+          { id: "balanced", name: t("shell:onboarding.templateBalancedName"), description: t("shell:onboarding.templateBalancedDesc") },
+          { id: "research", name: t("shell:onboarding.templateResearchName"), description: t("shell:onboarding.templateResearchDesc") },
+          { id: "periodic", name: t("shell:onboarding.templatePeriodicName"), description: t("shell:onboarding.templatePeriodicDesc") },
+        ]);
+      }
+    })();
+  }, [t]);
 
   // Server-side dedupe + prune forbidden/missing; then classify for badges
   useEffect(() => {
@@ -155,13 +176,40 @@ export function OnboardingScreen({
         setBusy(null);
         return;
       }
-      setBusy("opening");
-      await api.sys.openOrCreateWorkspace(path);
+      // Check if this is an existing workspace (has topmind dirs or contract)
+      const health = await api.sys.classifyWorkspace(path).catch(() => ({ kind: "empty", suitable: true }));
+      if (health.kind === "healthy") {
+        // Existing workspace — open directly
+        setBusy("opening");
+        await api.sys.openOrCreateWorkspace(path);
+        onWorkspaceSwitched();
+      } else {
+        // New/empty folder — show template selection
+        setPickedPath(path);
+        setBusy(null);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setBusy(null);
+    }
+  };
+
+  const handleCreateWithTemplate = async () => {
+    if (!pickedPath) return;
+    setBusy("opening");
+    setError(null);
+    try {
+      await api.sys.openOrCreateWorkspace(pickedPath, selectedTemplate);
       onWorkspaceSwitched();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setBusy(null);
     }
+  };
+
+  const handleBackToLanding = () => {
+    setPickedPath(null);
+    setError(null);
   };
 
   // Full-screen wait after successful open (reload in flight)
@@ -198,9 +246,9 @@ export function OnboardingScreen({
   return (
     <TooltipProvider>
       <div className="v4-landing v4-drag flex h-screen flex-col items-center justify-center p-6">
-        <div className="v4-no-drag w-full max-w-[420px]">
+        <div className="v4-no-drag w-full max-w-[400px]">
           {/* Brand — logo-aligned mark; gradient reserved for brand title moment */}
-          <div className="mb-8 text-center">
+          <div className="mb-10 text-center">
             <div className="v4-brand-mark mx-auto mb-4 flex h-14 w-14 items-center justify-center overflow-hidden rounded-[var(--radius-2xl)] bg-surface-elevated shadow-[var(--shadow-md)] ring-1 ring-border-subtle-dim">
               <img
                 src="./favicon.svg"
@@ -232,161 +280,222 @@ export function OnboardingScreen({
             ) : null}
           </div>
 
-          {/* Workflow chips — quiet education only; not CTAs */}
-          <div className="mb-6 flex flex-wrap items-center justify-center gap-1.5" data-landing-workflow>
-            {(
-              [
-                { icon: Zap, label: t("shell:onboarding.workflowCapture"), tip: t("shell:onboarding.workflowCaptureTip") },
-                { icon: Radio, label: t("shell:onboarding.workflowOrganize"), tip: t("shell:onboarding.workflowOrganizeTip") },
-                { icon: Layers, label: t("shell:onboarding.workflowDeliver"), tip: t("shell:onboarding.workflowDeliverTip") },
-                { icon: Clock, label: t("shell:onboarding.workflowRetrieve"), tip: t("shell:onboarding.workflowRetrieveTip") },
-              ] as const
-            ).map(({ icon: Icon, label, tip }) => (
-              <Tooltip key={label} content={tip}>
-                <span className="inline-flex cursor-help items-center gap-1 rounded-full bg-surface-muted/55 px-2.5 py-1 text-3xs text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-tertiary">
-                  <Icon size={ICON.xs} className="opacity-70 text-accent-color" aria-hidden />
-                  {label}
-                </span>
-              </Tooltip>
-            ))}
-          </div>
-
-          {error ? (
-            <div className="mb-4 flex items-center gap-2 rounded-[var(--radius-lg)] border border-error/30 bg-status-error-bg px-3 py-2.5 text-3xs text-error" role="alert">
-              <AlertCircle size={ICON.sm} className="shrink-0" aria-hidden />
-              <span className="flex-1">{error}</span>
-            </div>
-          ) : null}
-
-          {/* Recent */}
-          {recent.length > 0 ? (
-            <div className="mb-4">
-              <div className="mb-2 flex items-center gap-1.5 px-0.5 text-3xs font-semibold tracking-wide text-text-quaternary">
-                <Clock size={ICON.xs} aria-hidden />
-                {t("shell:onboarding.recentWorkspaces")}
+          {/* Template selection view (when folder picked but not yet opened) */}
+          {pickedPath ? (
+            <div data-landing-template-select>
+              <div className="mb-3 px-0.5">
+                <div className="mb-1 text-3xs font-semibold tracking-wide text-text-tertiary">
+                  {t("shell:onboarding.templateTitle")}
+                </div>
+                <div className="truncate font-mono text-3xs text-text-quaternary">
+                  {pickedPath}
+                </div>
               </div>
-              <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
-                {recent.slice(0, 6).map((w) => {
-                  const active = busy === w.rootPath;
-                  const health = healthByPath[w.rootPath];
-                  const broken = health && health.suitable === false;
-                  return (
-                    <li key={w.rootPath}>
-                      <Tooltip content={health?.message || w.rootPath} side="right">
-                        <button
-                          type="button"
-                          disabled={!!busy || broken}
-                          onClick={() => void handleSwitch(w.rootPath)}
-                          className={cn(
-                            "group flex w-full items-center gap-3 rounded-[var(--radius-xl)] border border-border-subtle-dim bg-surface-elevated px-3.5 py-3.5 text-left shadow-[var(--shadow-card)]",
-                            "transition-[border-color,box-shadow,transform,background-color] duration-[var(--duration-fast)]",
-                            "hover:border-border-subtle hover:shadow-[var(--shadow-sm)] hover:-translate-y-px",
-                            "disabled:opacity-60",
-                            active && "border-accent-border-subtle bg-accent-bg-subtle/40",
-                            broken && "border-error/25 bg-status-error-bg/30",
-                          )}
-                          data-landing-recent
-                        >
-                          <span className="v4-icon-chip v4-icon-chip-accent flex h-9 w-9 shrink-0">
-                            <FolderOpen size={ICON.sm} />
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex min-w-0 items-center gap-1.5">
-                              <span className="truncate text-sm font-medium text-text-primary">
-                                {shortName(w.rootPath)}
-                              </span>
-                              {health?.kind === "healthy" ? (
-                                <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-success/10 px-1.5 py-px text-3xs font-medium text-success">
-                                  <CheckCircle2 size={ICON.micro} aria-hidden />
-                                  {t("shell:onboarding.healthOk")}
-                                </span>
-                              ) : null}
-                              {health?.kind === "empty" ? (
-                                <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-surface-muted px-1.5 py-px text-3xs text-text-quaternary">
-                                  {t("shell:onboarding.healthEmpty")}
-                                </span>
-                              ) : null}
-                              {broken ? (
-                                <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-error/10 px-1.5 py-px text-3xs font-medium text-error">
-                                  <AlertTriangle size={ICON.micro} aria-hidden />
-                                  {t("shell:onboarding.healthBroken")}
-                                </span>
-                              ) : null}
-                            </div>
-                            <div className="mt-0.5 truncate font-mono text-3xs text-text-quaternary">
-                              {w.rootPath}
-                            </div>
-                            {w.lastOpenedAt ? (
-                              <div className="mt-0.5 text-3xs text-text-quaternary">
-                                {t("common:time.lastOpened", { time: formatOpened(w.lastOpenedAt, i18n.language) })}
-                              </div>
-                            ) : null}
-                          </div>
-                          {active ? (
-                            <Loader2 size={ICON.sm} className="shrink-0 animate-spin text-accent-color" aria-label={t("shell:shell.opening")} />
-                          ) : (
-                            <>
-                              <Tooltip content={t("shell:onboarding.removeFromList")}>
-                                <span
-                                  role="button"
-                                  tabIndex={0}
-                                  aria-label={t("shell:onboarding.removeLabel", { name: shortName(w.rootPath) })}
-                                  className="rounded p-1 text-text-quaternary opacity-0 transition-opacity hover:bg-surface-muted hover:text-error group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
-                                  onClick={(ev) => void handleRemoveRecent(w.rootPath, ev)}
-                                  onKeyDown={(ev) => {
-                                    if (ev.key === "Enter" || ev.key === " ") {
-                                      void handleRemoveRecent(w.rootPath, ev as unknown as React.MouseEvent);
-                                    }
-                                  }}
-                                >
-                                  <X size={ICON.xs} />
-                                </span>
-                              </Tooltip>
-                              <ArrowRight
-                                size={ICON.sm}
-                                className="shrink-0 text-text-quaternary transition-transform group-hover:translate-x-0.5 group-hover:text-accent-color"
-                              />
-                            </>
-                          )}
-                        </button>
-                      </Tooltip>
-                    </li>
-                  );
-                })}
-              </ul>
+              {error ? (
+                <div className="mb-3 flex items-center gap-2 rounded-[var(--radius-lg)] border border-error/30 bg-status-error-bg px-3 py-2.5 text-3xs text-error" role="alert">
+                  <AlertCircle size={ICON.sm} className="shrink-0" aria-hidden />
+                  <span className="flex-1">{error}</span>
+                </div>
+              ) : null}
+              <div className="mb-4 flex flex-col gap-1.5">
+                {templates.map((tmpl) => (
+                  <button
+                    key={tmpl.id}
+                    type="button"
+                    onClick={() => setSelectedTemplate(tmpl.id)}
+                    className={cn(
+                      "flex items-start gap-2.5 rounded-[var(--radius-xl)] border px-3 py-2.5 text-left transition-[border-color,background-color] duration-[var(--duration-fast)]",
+                      selectedTemplate === tmpl.id
+                        ? "border-accent-border-subtle bg-accent-bg-subtle/40"
+                        : "border-border-subtle-dim bg-surface-elevated hover:border-border-subtle",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors",
+                        selectedTemplate === tmpl.id
+                          ? "border-accent-color bg-accent-color"
+                          : "border-border-subtle",
+                      )}
+                    >
+                      {selectedTemplate === tmpl.id ? (
+                        <CheckCircle2 size={ICON.nano} className="text-text-on-accent" />
+                      ) : null}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-medium text-text-primary">{tmpl.name}</div>
+                      <div className="mt-0.5 text-3xs leading-relaxed text-text-quaternary">
+                        {tmpl.description}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-3xs"
+                  onClick={handleBackToLanding}
+                  disabled={!!busy}
+                >
+                  {t("common:action.back")}
+                </Button>
+                <Button
+                  onClick={() => void handleCreateWithTemplate()}
+                  disabled={!!busy}
+                  className="h-8 flex-1 justify-center text-3xs"
+                  data-landing-template-cta
+                >
+                  {busy === "opening" ? (
+                    <Loader2 size={ICON.sm} className="animate-spin" aria-hidden />
+                  ) : (
+                    <ArrowRight size={ICON.sm} aria-hidden />
+                  )}
+                  {t("shell:onboarding.templateConfirm")}
+                </Button>
+              </div>
             </div>
           ) : (
-            <div className="mb-4 rounded-[var(--radius-xl)] border border-dashed border-border-subtle bg-surface/50 px-4 py-6 text-center">
-              <p className="text-sm text-text-tertiary">{t("shell:onboarding.noWorkspaceTitle")}</p>
-              <p className="mt-1 text-3xs text-text-quaternary">{t("shell:onboarding.noWorkspaceHint")}</p>
-            </div>
+            <>
+            {/* 2026-08-07: workflow chips removed — users know the flow;
+                repeating education on every landing adds visual noise. */}
+
+            {error ? (
+                <div className="mb-4 flex items-center gap-2 rounded-[var(--radius-lg)] border border-error/30 bg-status-error-bg px-3 py-2.5 text-3xs text-error" role="alert">
+                  <AlertCircle size={ICON.sm} className="shrink-0" aria-hidden />
+                  <span className="flex-1">{error}</span>
+                </div>
+              ) : null}
+
+              {/* Recent */}
+              {recent.length > 0 ? (
+                <div className="mb-5">
+                  <div className="mb-2 flex items-center gap-1.5 px-0.5 text-3xs font-semibold tracking-wide text-text-quaternary">
+                    <Clock size={ICON.xs} aria-hidden />
+                    {t("shell:onboarding.recentWorkspaces")}
+                  </div>
+                  <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
+                    {recent.slice(0, 6).map((w) => {
+                      const active = busy === w.rootPath;
+                      const health = healthByPath[w.rootPath];
+                      const broken = health && health.suitable === false;
+                      return (
+                        <li key={w.rootPath}>
+                          <Tooltip content={health?.message || w.rootPath} side="right">
+                            <button
+                              type="button"
+                              disabled={!!busy || broken}
+                              onClick={() => void handleSwitch(w.rootPath)}
+                              className={cn(
+                                "group flex w-full items-center gap-3 rounded-[var(--radius-xl)] border border-border-subtle-dim bg-surface-elevated px-3.5 py-3.5 text-left shadow-[var(--shadow-card)]",
+                                "transition-[border-color,box-shadow,transform,background-color] duration-[var(--duration-normal)] [transition-timing-function:var(--ease-spring)]",
+                                "hover:border-accent-border-subtle hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5 hover:bg-surface-elevated-hover",
+                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
+                                "disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:border-border-subtle-dim",
+                                active && "border-accent-border-subtle bg-accent-bg-subtle/40",
+                                broken && "border-error/25 bg-status-error-bg/30",
+                              )}
+                              data-landing-recent
+                            >
+                              <span className="v4-icon-chip v4-icon-chip-accent flex h-9 w-9 shrink-0">
+                                <FolderOpen size={ICON.sm} />
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex min-w-0 items-center gap-1.5">
+                                  <span className="truncate text-sm font-medium text-text-primary">
+                                    {shortName(w.rootPath)}
+                                  </span>
+                                  {health?.kind === "healthy" ? (
+                                    <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-success/10 px-1.5 py-px text-3xs font-medium text-success">
+                                      <CheckCircle2 size={ICON.micro} aria-hidden />
+                                      {t("shell:onboarding.healthOk")}
+                                    </span>
+                                  ) : null}
+                                  {health?.kind === "empty" ? (
+                                    <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-surface-muted px-1.5 py-px text-3xs text-text-quaternary">
+                                      {t("shell:onboarding.healthEmpty")}
+                                    </span>
+                                  ) : null}
+                                  {broken ? (
+                                    <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-error/10 px-1.5 py-px text-3xs font-medium text-error">
+                                      <AlertTriangle size={ICON.micro} aria-hidden />
+                                      {t("shell:onboarding.healthBroken")}
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <div className="mt-0.5 truncate font-mono text-3xs text-text-quaternary">
+                                  {w.rootPath}
+                                </div>
+                                {w.lastOpenedAt ? (
+                                  <div className="mt-0.5 text-3xs text-text-quaternary">
+                                    {t("common:time.lastOpened", { time: formatOpened(w.lastOpenedAt, i18n.language) })}
+                                  </div>
+                                ) : null}
+                              </div>
+                              {active ? (
+                                <Loader2 size={ICON.sm} className="shrink-0 animate-spin text-accent-color" aria-label={t("shell:shell.opening")} />
+                              ) : (
+                                <>
+                                  <Tooltip content={t("shell:onboarding.removeFromList")}>
+                                    <span
+                                      role="button"
+                                      tabIndex={0}
+                                      aria-label={t("shell:onboarding.removeLabel", { name: shortName(w.rootPath) })}
+                                      className="rounded p-1 text-text-quaternary opacity-0 transition-opacity hover:bg-surface-muted hover:text-error group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+                                      onClick={(ev) => void handleRemoveRecent(w.rootPath, ev)}
+                                      onKeyDown={(ev) => {
+                                        if (ev.key === "Enter" || ev.key === " ") {
+                                          void handleRemoveRecent(w.rootPath, ev as unknown as React.MouseEvent);
+                                        }
+                                      }}
+                                    >
+                                      <X size={ICON.xs} />
+                                    </span>
+                                  </Tooltip>
+                                  <ArrowRight
+                                    size={ICON.sm}
+                                    className="shrink-0 text-text-quaternary transition-transform group-hover:translate-x-0.5 group-hover:text-accent-color"
+                                  />
+                                </>
+                              )}
+                            </button>
+                          </Tooltip>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ) : (
+                <div className="mb-4 rounded-[var(--radius-xl)] border border-dashed border-border-subtle bg-surface/50 px-4 py-6 text-center">
+                  <p className="text-sm text-text-tertiary">{t("shell:onboarding.noWorkspaceTitle")}</p>
+                  <p className="mt-1 text-3xs text-text-quaternary">{t("shell:onboarding.noWorkspaceHint")}</p>
+                </div>
+              )}
+
+              {/* Sole solid CTA on landing */}
+              <div className="flex flex-col gap-2" data-landing-primary>
+                <Tooltip content={t("shell:onboarding.selectFolderTip")}>
+                  <Button
+                    onClick={() => void handlePickFolder()}
+                    disabled={!!busy}
+                    className="h-10 w-full justify-center rounded-[var(--radius-xl)] text-sm"
+                    data-landing-primary-cta
+                  >
+                    {busy === "picking" ? (
+                      <Loader2 size={ICON.sm} className="animate-spin" aria-hidden />
+                    ) : (
+                      <Plus size={ICON.sm} aria-hidden />
+                    )}
+                    {t("shell:onboarding.selectFolder")}
+                  </Button>
+                </Tooltip>
+              </div>
+            </>
           )}
 
-          {/* Sole solid CTA on landing */}
-          <div className="flex flex-col gap-2" data-landing-primary>
-            <Tooltip content={t("shell:onboarding.selectFolderTip")}>
-              <Button
-                onClick={() => void handlePickFolder()}
-                disabled={!!busy}
-                className="h-10 w-full justify-center rounded-[var(--radius-xl)] text-sm"
-                data-landing-primary-cta
-              >
-                {busy === "picking" ? (
-                  <Loader2 size={ICON.sm} className="animate-spin" aria-hidden />
-                ) : (
-                  <Plus size={ICON.sm} aria-hidden />
-                )}
-                {t("shell:onboarding.selectFolder")}
-              </Button>
-            </Tooltip>
-          </div>
-
-          <p className="mt-8 text-center text-3xs leading-relaxed text-text-quaternary">
+          <p className="mt-10 text-center text-3xs leading-relaxed text-text-quaternary">
             {t("shell:onboarding.footerLine1")}
-            <br />
-            {t("shell:onboarding.footerLine2")}
-            <br />
-            {t("shell:onboarding.footerLine3")}
           </p>
         </div>
       </div>
