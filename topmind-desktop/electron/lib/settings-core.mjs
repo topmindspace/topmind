@@ -77,8 +77,8 @@ const UI_LOCALES = new Set(["auto", "zh-CN", "en-US"]);
 // MAX_RECENT_WORKSPACES imported from workspace-path-id.mjs
 /** Agent multi-step loop bounds (inclusive). */
 const AGENT_STEPS_MIN = 3;
-const AGENT_STEPS_MAX = 24;
-const AGENT_STEPS_DEFAULT = 12;
+const AGENT_STEPS_MAX = 50;
+const AGENT_STEPS_DEFAULT = 20;
 
 function clone(value) {
   return structuredClone(value);

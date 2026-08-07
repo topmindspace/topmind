@@ -1254,59 +1254,60 @@ function defaultModelsFor(source) {
       return [
         { id: "gpt-4o-mini", label: "GPT-4o mini" },
         { id: "gpt-4o", label: "GPT-4o" },
-        { id: "gpt-4.1-mini", label: "GPT-4.1 mini" },
-        { id: "gpt-4.1-nano", label: "GPT-4.1 nano" },
-        { id: "gpt-4.1", label: "GPT-4.1" },
-        { id: "o3-mini", label: "o3-mini" },
+        { id: "gpt-5.6-luna", label: "GPT-5.6 Luna" },
+        { id: "gpt-5.6-sol", label: "GPT-5.6 Sol" },
+        { id: "o3", label: "o3" },
         { id: "o4-mini", label: "o4-mini" },
       ];
     case "anthropic":
       return [
-        { id: "claude-sonnet-4-20250514", label: "Claude Sonnet 4" },
-        { id: "claude-opus-4-20250514", label: "Claude Opus 4" },
+        { id: "claude-sonnet-5", label: "Claude Sonnet 5" },
+        { id: "claude-opus-5", label: "Claude Opus 5" },
+        { id: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5" },
         { id: "claude-3-7-sonnet-20250219", label: "Claude 3.7 Sonnet" },
-        { id: "claude-3-5-sonnet-20241022", label: "Claude 3.5 Sonnet" },
-        { id: "claude-3-5-haiku-20241022", label: "Claude 3.5 Haiku" },
       ];
     case "google":
       return [
-        { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
+        { id: "gemini-3.6-flash", label: "Gemini 3.6 Flash" },
+        { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash" },
+        { id: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro Preview" },
         { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
-        { id: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite" },
         { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
       ];
     case "deepseek":
       return [
-        { id: "deepseek-chat", label: "DeepSeek-V3 (Chat)" },
-        { id: "deepseek-reasoner", label: "DeepSeek-R1 (Reasoner)" },
+        { id: "deepseek-chat", label: "DeepSeek Chat (V4)" },
+        { id: "deepseek-v4-flash", label: "DeepSeek V4 Flash" },
+        { id: "deepseek-v4-pro", label: "DeepSeek V4 Pro" },
+        { id: "deepseek-reasoner", label: "DeepSeek Reasoner" },
       ];
     case "moonshot":
       return [
-        { id: "kimi-k2-0905", label: "Kimi K2" },
-        { id: "moonshot-v1-8k", label: "Moonshot V1 8K" },
-        { id: "moonshot-v1-32k", label: "Moonshot V1 32K" },
+        { id: "kimi-k2.5", label: "Kimi K2.5" },
+        { id: "kimi-k3", label: "Kimi K3 (1M)" },
+        { id: "kimi-k2.6", label: "Kimi K2.6" },
         { id: "moonshot-v1-128k", label: "Moonshot V1 128K" },
       ];
     case "zhipu":
       return [
-        { id: "glm-4-flash", label: "GLM-4 Flash" },
-        { id: "glm-4-flashx", label: "GLM-4 FlashX" },
-        { id: "glm-4-air", label: "GLM-4 Air" },
-        { id: "glm-4-plus", label: "GLM-4 Plus" },
-        { id: "glm-4", label: "GLM-4" },
+        { id: "glm-4.7-flash", label: "GLM-4.7 Flash" },
+        { id: "glm-5.2", label: "GLM-5.2 (1M)" },
+        { id: "glm-5", label: "GLM-5" },
+        { id: "glm-4.5-flash", label: "GLM-4.5 Flash" },
       ];
     case "minimax":
       return [
-        { id: "MiniMax-M1", label: "MiniMax M1" },
+        { id: "MiniMax-M2.5", label: "MiniMax M2.5" },
+        { id: "MiniMax-M3", label: "MiniMax M3 (1M)" },
+        { id: "MiniMax-M2.7", label: "MiniMax M2.7" },
         { id: "MiniMax-Text-01", label: "MiniMax Text 01" },
-        { id: "abab6.5s-chat", label: "ABAB 6.5s Chat" },
       ];
     case "xai":
       return [
-        { id: "grok-4", label: "Grok 4" },
-        { id: "grok-3", label: "Grok 3" },
         { id: "grok-3-mini", label: "Grok 3 Mini" },
-        { id: "grok-2", label: "Grok 2" },
+        { id: "grok-4.5", label: "Grok 4.5" },
+        { id: "grok-4.3", label: "Grok 4.3 (1M)" },
+        { id: "grok-3", label: "Grok 3" },
       ];
     case "ollama":
       return [

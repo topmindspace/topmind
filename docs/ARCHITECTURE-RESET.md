@@ -1,6 +1,6 @@
 # Architecture Reset — 理想架构与实施计划
 
-> **状态**：Accepted · **日期**：2026-07-25 · **最后更新**：2026-08-07（全面设计优化 + 引擎硬化 + 文档治理）  
+> **状态**：Accepted · **日期**：2026-07-25 · **最后更新**：2026-08-07（全面设计优化 + 引擎硬化 + 文档治理 + 独立版本策略）  
 > **角色**：架构决策锁 + 实施诚实表（唯一实施真源）  
 > **取代**：`architecture-refactor-proposal-2026-07.md` · `adr/2026-07-24-implementation-progress.md` · 平行 UIUX 提案  
 > **内容/边界真源仍为**：`PROJECT-MODEL.md` · `PRODUCT-BOUNDARIES.md`  
@@ -129,7 +129,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | stream packing（周期本） | stream-period · capture |
 | 写回伦理理念（备份/回执） | writeback-engine（回执轮转 `RECEIPT_KEEP=50`；智能回执仅高影响写入） |
 | Skills 纯 Markdown + 三级降级 | skills/ |
-| skill-first Desktop agent | ai-prompts · skills-runtime（AI SDK v7；会话压缩 80K/40；默认模型 gpt-4.1-mini / gemini-2.5-flash / claude-sonnet-4 / grok-3-mini） |
+| skill-first Desktop agent | ai-prompts · skills-runtime（AI SDK v7；会话压缩 240K/60；默认模型 gpt-4o-mini / gemini-3.6-flash / claude-sonnet-5 / grok-3-mini） |
 | 捕获 / Clip / 文档 ingest 队列 | Desktop + extension |
 | 质量门 · pack 纪律 | scripts · CI |
 | 拒 coding-agent 内核（Pi） | ADR 2026-07-21 |
@@ -190,7 +190,8 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 > **2026-08-06 增量**：全量重构 Phase 0–G——workspace-model 拆 4 模块 + facade · `createKernelContext` / `validateAiOutput` 集中化 · connector-bridge · Design System 2.0→2.1 · 组件拆分 · 事件类型化 · 单队列 · RPC 校验（ADR `adr/2026-08-06-phase-d-desktop-hardening.md`）。
 
 > **2026-08-07 增量**：全面设计优化——chrome 纤细化(36/24px) · 品牌chip移除 · border/hover/shadow精炼 · 侧栏头部统一 · Landing去教育噪音 · 状态栏路径移除 · 死代码清理（ADR `adr/2026-08-07-comprehensive-design-optimization.md`）。  
-> **2026-08-07 引擎硬化**：writeback 回执轮转（`RECEIPT_KEEP=50` · `pruneOldReceipts`）· 备份旋转（`BACKUP_KEEP=3`）· 目录归档原子 rename + 文件计数校验 · 智能回执（仅高影响写入）· AI Provider 动态参数（per-operation temperature/systemPrompt/maxTokens）· 瞬态错误自动重试 · 会话压缩适配现代模型（80K chars / 40 messages）· 默认模型更新（gpt-4.1-mini · gemini-2.5-flash · grok-3-mini · claude-sonnet-4）。
+> **2026-08-07 引擎硬化**：writeback 回执轮转（`RECEIPT_KEEP=50` · `pruneOldReceipts`）· 备份旋转（`BACKUP_KEEP=3`）· 目录归档原子 rename + 文件计数校验 · 智能回执（仅高影响写入）· AI Provider 动态参数（per-operation temperature/systemPrompt/maxTokens）· 瞬态错误自动重试 · 会话压缩适配现代模型（240K chars / 60 messages）· 默认模型更新（gpt-4o-mini · gemini-3.6-flash · grok-3-mini · claude-sonnet-5）。
+> **v2.1.0 增量**：maxTokens 操作限制全面提升（默认 12288）· Agent 步数扩展（20/50）· derived-builder 上下文扩容（48K）· StatusBar/TitleBar UI 统一动画 · 独立版本策略（大版本对齐，小版本独立；UTR 跟随 Desktop；Obsidian Plugin 预留）。
 
 ### 2.4 完成度分数卡
 

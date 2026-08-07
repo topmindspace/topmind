@@ -20,9 +20,9 @@ const TIMEOUT_MS = 240_000;       // 4 min hard cap (multi-step agent)
 const IDLE_TIMEOUT_MS = 120_000;  // 120s idle — tool chains (fetch + multi-write)
 const IDLE_CHECK_INTERVAL = 10_000;
 /** Default multi-tool agent loops; keep in sync with settings.mjs AGENT_STEPS_DEFAULT. */
-export const DEFAULT_MAX_AGENT_STEPS = 12;
+export const DEFAULT_MAX_AGENT_STEPS = 20;
 const AGENT_STEPS_MIN = 3;
-const AGENT_STEPS_MAX = 24;
+const AGENT_STEPS_MAX = 50;
 
 function clampAgentSteps(value) {
   const n = Number(value);

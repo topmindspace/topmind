@@ -220,8 +220,8 @@ export function StatusBar({ health }: StatusBarProps) {
               )}
               aria-label={t("statusBar.taskRunning", { count: activeTasks.length })}
             >
-              <ListTodo size={ICON.micro} className="animate-pulse-soft" aria-hidden />
-              <span className="hidden tabular-nums sm:inline">
+              <ListTodo size={ICON.micro} className="v4-ai-busy-icon" aria-hidden />
+              <span className="v4-ai-busy-text hidden tabular-nums sm:inline">
                 {t("statusBar.taskRunning", { count: activeTasks.length })}
               </span>
               <span className="v4-ai-progress-dot" aria-hidden />
@@ -236,8 +236,9 @@ export function StatusBar({ health }: StatusBarProps) {
               data-status-todo-busy
               className="flex shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 py-0.5 bg-accent-bg-faint text-accent-color"
             >
-              <ListChecks size={ICON.micro} className="animate-pulse-soft" aria-hidden />
-              <span className="hidden sm:inline">{t("statusBar.todoMaintaining")}</span>
+              <ListChecks size={ICON.micro} className="v4-ai-busy-icon" aria-hidden />
+              <span className="v4-ai-busy-text hidden sm:inline">{t("statusBar.todoMaintaining")}</span>
+              <span className="v4-ai-progress-dot" aria-hidden />
             </span>
           </Tooltip>
         ) : null}
@@ -258,8 +259,9 @@ export function StatusBar({ health }: StatusBarProps) {
               )}
               aria-pressed={suggestPanelOpen}
             >
-              <Lightbulb size={ICON.micro} className="animate-pulse-soft" aria-hidden />
-              <span className="hidden sm:inline">{t("statusBar.suggestLoading")}</span>
+              <Lightbulb size={ICON.micro} className="v4-ai-busy-icon" aria-hidden />
+              <span className="v4-ai-busy-text hidden sm:inline">{t("statusBar.suggestLoading")}</span>
+              <span className="v4-ai-progress-dot" aria-hidden />
             </button>
           </Tooltip>
         ) : null}
@@ -274,7 +276,7 @@ export function StatusBar({ health }: StatusBarProps) {
               className="flex shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 py-0.5 bg-accent-bg-faint text-accent-color"
             >
               <Loader2 size={ICON.micro} className="animate-spin" aria-hidden />
-              <span className="hidden max-w-[7.5rem] truncate sm:inline">{inlineLabel}</span>
+              <span className="v4-ai-busy-text hidden max-w-[7.5rem] truncate sm:inline">{inlineLabel}</span>
               <span className="v4-ai-progress-dot" aria-hidden />
             </span>
           </Tooltip>
@@ -318,7 +320,8 @@ export function StatusBar({ health }: StatusBarProps) {
             ) : (
               <Bot size={ICON.micro} aria-hidden />
             )}
-            <span className="hidden max-w-[9rem] truncate md:inline">{aiLabel}</span>
+            <span className={cn("hidden max-w-[9rem] truncate md:inline", busy.aiPillBusy && "v4-ai-busy-text")}>{aiLabel}</span>
+            {busy.aiPillBusy ? <span className="v4-ai-progress-dot" aria-hidden /> : null}
           </button>
         </Tooltip>
       </div>

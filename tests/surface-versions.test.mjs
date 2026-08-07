@@ -1,6 +1,9 @@
 /**
- * Unified product cuts (umbrella v* tags) require all four surface truth sources
- * to report the same semver. Prevents accidental partial bumps before ship.
+ * Version policy tests (v2.1+):
+ * - All surfaces share the same MAJOR version (breaking-change alignment)
+ * - UTR version follows Desktop exactly (same installer)
+ * - Skills / Extension have independent minor/patch (no cross-surface equality required)
+ * - Skill SKILL.md frontmatter versions follow pack truth source
  */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -18,16 +21,46 @@ function readTrim(rel) {
   return fs.readFileSync(path.join(repoRoot, rel), "utf8").trim();
 }
 
-test("all four surface version truth sources match (unified product stamp)", () => {
+/** Extract major version number from semver string. */
+function majorOf(v) {
+  return parseInt(String(v).split(".")[0], 10);
+}
+
+test("all surface versions are valid semver", () => {
   const skills = readJson("skills/topmind-pack.json").version;
   const desktop = readJson("topmind-desktop/package.json").version;
   const extension = readJson("browser-extension/manifest.json").version;
   const utr = readTrim("utr/VERSION");
 
   assert.match(skills, /^\d+\.\d+\.\d+$/u);
-  assert.equal(desktop, skills, `Desktop ${desktop} must equal Skills ${skills}`);
-  assert.equal(extension, skills, `Extension ${extension} must equal Skills ${skills}`);
-  assert.equal(utr, skills, `UTR ${utr} must equal Skills ${skills}`);
+  assert.match(desktop, /^\d+\.\d+\.\d+$/u);
+  assert.match(extension, /^\d+\.\d+\.\d+$/u);
+  assert.match(utr, /^\d+\.\d+\.\d+$/u);
+});
+
+test("all surfaces share the same MAJOR version (breaking-change alignment)", () => {
+  const skills = readJson("skills/topmind-pack.json").version;
+  const desktop = readJson("topmind-desktop/package.json").version;
+  const extension = readJson("browser-extension/manifest.json").version;
+  const utr = readTrim("utr/VERSION");
+
+  const skillsMajor = majorOf(skills);
+  const desktopMajor = majorOf(desktop);
+  const extensionMajor = majorOf(extension);
+  const utrMajor = majorOf(utr);
+
+  assert.equal(desktopMajor, skillsMajor,
+    `Desktop major ${desktopMajor} must equal Skills major ${skillsMajor}`);
+  assert.equal(extensionMajor, skillsMajor,
+    `Extension major ${extensionMajor} must equal Skills major ${skillsMajor}`);
+  assert.equal(utrMajor, skillsMajor,
+    `UTR major ${utrMajor} must equal Skills major ${skillsMajor}`);
+});
+
+test("UTR version follows Desktop exactly (same installer)", () => {
+  const desktop = readJson("topmind-desktop/package.json").version;
+  const utr = readTrim("utr/VERSION");
+  assert.equal(utr, desktop, `UTR ${utr} must equal Desktop ${desktop}`);
 });
 
 test("skill SKILL.md frontmatter versions follow pack truth source", () => {

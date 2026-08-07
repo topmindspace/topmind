@@ -291,10 +291,10 @@ html[data-platform="linux"] .v4-titlebar-glass {
   animation: v4-ai-progress-slide 1.4s ease-in-out infinite;
 }
 
-/* ── AI progress dot — small pulsing dot for inline AI busy chips ── */
+/* ── AI progress dot — small pulsing dot for ALL AI busy chips (unified) ── */
 @keyframes v4-ai-progress-dot-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.7); }
+  50% { opacity: 0.3; transform: scale(0.6); }
 }
 .v4-ai-progress-dot {
   display: inline-block;
@@ -303,6 +303,24 @@ html[data-platform="linux"] .v4-titlebar-glass {
   border-radius: var(--radius-full);
   background: currentColor;
   animation: v4-ai-progress-dot-pulse 1.2s ease-in-out infinite;
+}
+
+/* ── AI busy icon — unified noticeable pulse for semantic icons in busy chips ── */
+@keyframes v4-ai-busy-icon-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+.v4-ai-busy-icon {
+  animation: v4-ai-busy-icon-pulse 1.4s ease-in-out infinite;
+}
+
+/* ── AI busy text — subtle opacity pulse for status labels (conveys "working") ── */
+@keyframes v4-ai-busy-text-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+.v4-ai-busy-text {
+  animation: v4-ai-busy-text-pulse 1.6s ease-in-out infinite;
 }
 
 /* ── Reasoning block smooth expand/collapse ── */

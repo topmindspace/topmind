@@ -156,12 +156,15 @@ graph TD
 
 版本数字**只**维护在真源文件；`npm run versions`。
 
-| 层 | 真源文件 |
-|----|----------|
-| Skills Pack | `skills/topmind-pack.json` |
-| Desktop | `topmind-desktop/package.json` |
-| Clip Extension | `browser-extension/manifest.json` |
-| UTR（可选） | `utr/VERSION` |
+**独立版本策略**：各表面有独立版本号，大版本对齐，小版本独立。详见 `AGENTS.md` §版本层。
+
+| 层 | 真源文件 | 策略 |
+|----|----------|------|
+| Skills Pack | `skills/topmind-pack.json` | 独立 |
+| Desktop | `topmind-desktop/package.json` | 独立 |
+| Clip Extension | `browser-extension/manifest.json` | 独立 |
+| UTR（可选） | `utr/VERSION` | 跟随 Desktop |
+| Obsidian Plugin（未来） | `obsidian-plugin/manifest.json` | 预留 |
 
 ---
 

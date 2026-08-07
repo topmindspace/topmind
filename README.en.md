@@ -25,14 +25,15 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR
             agent skill pack     rich workbench        CLI / MCP
 ```
 
-The three surfaces share **content conventions and behavior contracts only** — no hard runtime binding. Version numbers live only in truth sources: `npm run versions`.
+The three surfaces share **content conventions and behavior contracts only** — no hard runtime binding. Each surface has an independent version number (major aligned, minor independent): `npm run versions`.
 
-| Surface | Truth source | Role |
-|---------|--------------|------|
-| **Skills** | [`skills/topmind-pack.json`](./skills/topmind-pack.json) | Agent skill semantics & routing |
-| **Desktop** | [`topmind-desktop/package.json`](./topmind-desktop/package.json) | Local rich workbench / installers |
-| **Clip** | [`browser-extension/manifest.json`](./browser-extension/manifest.json) | One-click browser clipper |
-| **UTR** | [`utr/VERSION`](./utr/VERSION) | Optional CLI / MCP (deterministic tools) |
+| Surface | Truth source | Role | Version policy |
+|---------|--------------|------|----------------|
+| **Skills** | [`skills/topmind-pack.json`](./skills/topmind-pack.json) | Agent skill semantics & routing | Independent |
+| **Desktop** | [`topmind-desktop/package.json`](./topmind-desktop/package.json) | Local rich workbench / installers | Independent |
+| **Clip** | [`browser-extension/manifest.json`](./browser-extension/manifest.json) | One-click browser clipper | Independent |
+| **UTR** | [`utr/VERSION`](./utr/VERSION) | Optional CLI / MCP (deterministic tools) | Follows Desktop |
+| Obsidian Plugin (future) | `obsidian-plugin/manifest.json` | Obsidian plugin | Reserved |
 
 [Releases](https://github.com/topmindspace/topmind/releases) · [Repo](https://github.com/topmindspace/topmind)
 

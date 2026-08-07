@@ -75,7 +75,7 @@ contract · workspace-model · stream · memory · lifecycle · **writeback（�
 > **ai-operation-engine**：统一 AI 操作注册框架（`lib/ai-operation-engine.mjs`），自注册 `todo_maintain` · `memory_organize`（profile + periodic）· `topic_classify`（内容大类专题，非 memory），支持 force 重处理、状态追踪（`.topmind/ai-ops.json` 系统平面）、可扩展注册。  
 > **activity-window**：`lib/activity-window.mjs` — 建议/待办/AI ops 共用「近期活动窗口」（周期本 ∪ mtime ∪ 增补 parent）。
 
-**诚实状态**：引擎在 `lib/`；Desktop / UTR / AI 耐久 `.md` **主写经 writeback-engine**；Memory · 建议条 · 待确认写入 · 待办 · AI 操作框架 · 活动窗口 · 动态条目增补 · 剪藏图片本地化 · i18n 门禁 **Done**。备份：用户保存可跳过、AI 旋转备份（`BACKUP_KEEP=3`）、`permanent` 彻底删除。回执：智能分层（仅高影响写入）+ 轮转（`RECEIPT_KEEP=50`）。AI Provider：per-operation 动态 temperature/systemPrompt/maxTokens + 瞬态错误重试；会话压缩 80K/40 适配现代模型。仍 **Intentional Partial**：`edit` skipBackup（减噪）、contract 未强制全 Surface UI。embedding / 全库 Ask 等见 Reset Non-goal。
+**诚实状态**：引擎在 `lib/`；Desktop / UTR / AI 耐久 `.md` **主写经 writeback-engine**；Memory · 建议条 · 待确认写入 · 待办 · AI 操作框架 · 活动窗口 · 动态条目增补 · 剪藏图片本地化 · i18n 门禁 **Done**。备份：用户保存可跳过、AI 旋转备份（`BACKUP_KEEP=3`）、`permanent` 彻底删除。回执：智能分层（仅高影响写入）+ 轮转（`RECEIPT_KEEP=50`）。AI Provider：per-operation 动态 temperature/systemPrompt/maxTokens + 瞬态错误重试；会话压缩 240K/60 适配现代模型。仍 **Intentional Partial**：`edit` skipBackup（减噪）、contract 未强制全 Surface UI。embedding / 全库 Ask 等见 Reset Non-goal。
 
 默认模板 4 种：`stream`（默认）· `balanced` · `research` · `periodic`。
 
@@ -95,12 +95,20 @@ contract · workspace-model · stream · memory · lifecycle · **writeback（�
 
 版本数字**只**写在下列真源；文档只链路径。查看：`npm run versions`。
 
-| 层 | 真源 |
-|----|------|
-| Skills Pack | `skills/topmind-pack.json` |
-| Desktop | `topmind-desktop/package.json` |
-| Clip Extension | `browser-extension/manifest.json` |
-| UTR（可选） | `utr/VERSION` |
+**独立版本策略（v2.1+）**：各表面有独立版本号，不必完全一致。规则：
+1. **大版本对齐**：所有表面共享同一大版本号（如 2.x）；breaking change 全体 bump。
+2. **小版本独立**：每个表面只在自己有改动时 bump minor/patch；无改动不 bump。
+3. **UTR 跟随 Desktop**：UTR 版本与 Desktop 完全一致（同一安装包分发）。
+4. **未来表面**（Obsidian Plugin 等）：预留独立真源和版本号，遵循同一策略。
+5. **Tag 命名**：`v*` = 全量发布；`{surface}-v*` = 单表面发布；仅 re-package 版本号实际变化的表面。
+
+| 层 | 真源 | 策略 |
+|----|------|------|
+| Skills Pack | `skills/topmind-pack.json` | 独立 |
+| Desktop | `topmind-desktop/package.json` | 独立 |
+| Clip Extension | `browser-extension/manifest.json` | 独立 |
+| UTR（可选） | `utr/VERSION` | 跟随 Desktop |
+| Obsidian Plugin（未来） | `obsidian-plugin/manifest.json` | 预留 |
 
 ---
 

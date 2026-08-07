@@ -125,11 +125,15 @@ Manual fallback: [GitHub Releases](https://github.com/topmindspace/topmind/relea
 
 Tag releases independently when needed（版本数字取真源，`npm run versions`）：
 
+**独立版本策略**：各表面有独立版本号，大版本对齐，小版本独立。仅 re-package 版本号实际变化的表面。UTR 跟随 Desktop（同一安装包）；未来 Obsidian Plugin 将有独立 tag。
+
 ```text
 v{desktop}            # full portable + desktop — topmind-desktop/package.json
 skills-v{skills}      # skills pack only — skills/topmind-pack.json
 extension-v{extension}# clip extension only — browser-extension/manifest.json
 desktop-v{desktop}    # desktop matrix only (icon / UI without bumping Skills)
+# Future:
+# obsidian-v{obsidian}  # obsidian plugin only — obsidian-plugin/manifest.json
 ```
 
 ## GitHub Actions

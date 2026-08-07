@@ -25,14 +25,15 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR
             可移植 AI 技能包      富工作台（可选）       CLI / MCP（可选）
 ```
 
-三者**只共享内容约定与行为契约**，无强制运行时绑定。版本数字只写在各表面真源里：`npm run versions`。
+三者**只共享内容约定与行为契约**，无强制运行时绑定。各表面有独立版本号（大版本对齐，小版本独立）：`npm run versions`。
 
-| 表面 | 真源 | 作用 |
-|------|------|------|
-| **Skills** | [`skills/topmind-pack.json`](./skills/topmind-pack.json) | Agent 技能语义与路由 |
-| **Desktop** | [`topmind-desktop/package.json`](./topmind-desktop/package.json) | 本地富工作台 / 安装包 |
-| **剪藏扩展** | [`browser-extension/manifest.json`](./browser-extension/manifest.json) | 浏览器一键剪藏 |
-| **UTR** | [`utr/VERSION`](./utr/VERSION) | 可选 CLI / MCP（确定性命令） |
+| 表面 | 真源 | 作用 | 版本策略 |
+|------|------|------|----------|
+| **Skills** | [`skills/topmind-pack.json`](./skills/topmind-pack.json) | Agent 技能语义与路由 | 独立 |
+| **Desktop** | [`topmind-desktop/package.json`](./topmind-desktop/package.json) | 本地富工作台 / 安装包 | 独立 |
+| **剪藏扩展** | [`browser-extension/manifest.json`](./browser-extension/manifest.json) | 浏览器一键剪藏 | 独立 |
+| **UTR** | [`utr/VERSION`](./utr/VERSION) | 可选 CLI / MCP（确定性命令） | 跟随 Desktop |
+| Obsidian Plugin（未来） | `obsidian-plugin/manifest.json` | Obsidian 插件 | 预留 |
 
 [Releases](https://github.com/topmindspace/topmind/releases) · [仓库](https://github.com/topmindspace/topmind)
 

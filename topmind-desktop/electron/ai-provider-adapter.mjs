@@ -41,30 +41,30 @@ function resolveMaxTokens(context, promptLen = 0) {
 
   // Operation-type-based defaults
   const OP_LIMITS = {
-    topic_summary: 8192,      // Multi-file summaries can be long
-    period_analysis: 4096,    // Structured Markdown with 4 sections
-    period_digest: 4096,      // Structured Markdown with 3 sections
-    inbox_organize: 4096,     // JSON array with multiple items
-    memory_extract: 2048,     // 1-3 short lines
-    memory_organize: 4096,    // JSON with profile array + periodic text
-    todo_extract: 4096,       // Todo list items
-    todo_maintain: 4096,      // Todo maintenance operations
-    topic_classify: 2048,     // Small JSON array (max 3 items)
+    topic_summary: 16384,     // Multi-file summaries can be long
+    period_analysis: 12288,    // Structured Markdown with 4 sections
+    period_digest: 12288,      // Structured Markdown with 3 sections
+    inbox_organize: 12288,     // JSON array with multiple items
+    memory_extract: 4096,      // 1-3 short lines
+    memory_organize: 12288,    // JSON with profile array + periodic text
+    todo_extract: 12288,       // Todo list items
+    todo_maintain: 12288,      // Todo maintenance operations
+    topic_classify: 4096,      // Small JSON array (max 3 items)
   };
   if (context.operation && OP_LIMITS[context.operation]) {
     return OP_LIMITS[context.operation];
   }
 
   // Heuristic: infer from context shape (backward compat for callers without `operation`)
-  if (context.topicPath) return 8192;   // Topic summary path
-  if (context.periodFile) return 4096;  // Period digest path
-  if (context.period || context.sourcePath === "activity-window") return 4096;
+  if (context.topicPath) return 16384;  // Topic summary path
+  if (context.periodFile) return 12288;  // Period digest path
+  if (context.period || context.sourcePath === "activity-window") return 12288;
 
   // Prompt-length heuristic: long prompts likely need more output space
-  if (promptLen > 6000) return 4096;
+  if (promptLen > 6000) return 12288;
 
-  // Default: 4096 (up from original 2048 — prevents truncation of structured output)
-  return 4096;
+  // Default: 12288 (prevents truncation of structured output for high-output 2026 models)
+  return 12288;
 }
 
 /**

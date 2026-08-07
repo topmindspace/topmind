@@ -19,6 +19,7 @@ import { Tooltip } from "../ui/tooltip";
 import { PanelToggleIcon } from "../ui/PanelToggleIcon";
 import { ICON, ICON_STROKE } from "../../lib/icons";
 import { TodoPopover } from "../todo/TodoPopover";
+import { useTodoStore } from "../../stores/todo-store";
 import { useActionStore } from "../../stores/action-store";
 import { toggleSuggestSurface } from "../../lib/suggest-surface";
 
@@ -39,6 +40,21 @@ function SuggestBadge() {
       data-suggest-header-badge
     >
       {count > 9 ? "9+" : count}
+    </span>
+  );
+}
+
+/** Badge for active todo count (TodoStore) — shows unresolved items on ListTodo icon. */
+function TodoBadge() {
+  const activeCount = useTodoStore((s) => s.items.filter((i) => !i.done).length);
+  if (activeCount === 0) return null;
+  return (
+    <span
+      className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[0.875rem] items-center justify-center rounded-[var(--radius-xs)] bg-accent-color px-0.5 text-5xs font-bold leading-none tabular-nums text-text-on-accent"
+      aria-hidden
+      data-todo-header-badge
+    >
+      {activeCount > 9 ? "9+" : activeCount}
     </span>
   );
 }
@@ -442,10 +458,14 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
   const suggestPanelOpen = useActionStore((s) => s.panelOpen);
   const suggestCount = useActionStore((s) => s.items.length);
 
-  // ⌘⇧T: toggle todo popover
+  // ⌘⇧T: toggle todo popover + load todo count for TitleBar badge on mount
   useEffect(() => {
     const unToggle = onLocal("todo:toggle-popover", () => setTodoOpen((v) => !v));
     const unOpen = onLocal("todo:open-popover", () => setTodoOpen(true));
+    // Load todo items on mount so the TodoBadge count shows before popover opens
+    if (!useTodoStore.getState().everLoaded) {
+      void useTodoStore.getState().refresh();
+    }
     return () => {
       unToggle();
       unOpen();
@@ -635,8 +655,9 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
                 aria-label={t("titleBar.todoAriaLabel")}
                 aria-pressed={todoOpen}
               >
-                <ListTodo size={ICON.sm} {...stroke} />
-              </button>
+              <ListTodo size={ICON.sm} {...stroke} />
+              <TodoBadge />
+            </button>
             </Tooltip>
           </TodoPopover>
         </div>

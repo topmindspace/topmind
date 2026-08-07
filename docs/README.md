@@ -7,12 +7,15 @@
 
 数字**只**写在真源；用 `npm run versions` 查看。**勿在文档中抄写版本号。**
 
-| 层 | 真源 |
-|----|------|
-| Skills Pack | [`../skills/topmind-pack.json`](../skills/topmind-pack.json) |
-| Desktop | [`../topmind-desktop/package.json`](../topmind-desktop/package.json) |
-| Clip Extension | [`../browser-extension/manifest.json`](../browser-extension/manifest.json) |
-| UTR | [`../utr/VERSION`](../utr/VERSION) |
+**独立版本策略**：各表面有独立版本号（大版本对齐，小版本独立）。UTR 跟随 Desktop；未来 Obsidian Plugin 预留独立版本。详见 `AGENTS.md` §版本层。
+
+| 层 | 真源 | 策略 |
+|----|------|------|
+| Skills Pack | [`../skills/topmind-pack.json`](../skills/topmind-pack.json) | 独立 |
+| Desktop | [`../topmind-desktop/package.json`](../topmind-desktop/package.json) | 独立 |
+| Clip Extension | [`../browser-extension/manifest.json`](../browser-extension/manifest.json) | 独立 |
+| UTR | [`../utr/VERSION`](../utr/VERSION) | 跟随 Desktop |
+| Obsidian Plugin（未来） | `obsidian-plugin/manifest.json` | 预留 |
 
 ---
 
@@ -74,7 +77,7 @@
 | [2026-08-06 Phase D hardening](./adr/2026-08-06-phase-d-desktop-hardening.md) | 组件拆分 · 事件类型化 · 单队列 · RPC 校验 · AI 输出单闸 |
 | [2026-08-07 单入口降噪](./adr/2026-08-07-desktop-single-entry-dedupe.md) | 建议计数两处 · 清单单入口 · composer 去 meta · 侧栏少一条带 |
 | [2026-08-07 综合设计优化](./adr/2026-08-07-comprehensive-design-optimization.md) | 标题栏品牌chip移除 · chrome纤细化(36/24px) · border/hover/shadow精炼 · 侧栏头部统一 · Landing去教育噪音 · 状态栏路径移除 |
-| [2026-08-07 引擎硬化](./adr/2026-08-07-engine-hardening-writeback-ai.md) | 回执轮转 `RECEIPT_KEEP=50` · 智能回执 · 目录归档原子 rename + 校验 · AI Provider 动态 temperature/systemPrompt/maxTokens · 瞬态错误重试 · 会话压缩 80K/40 · 默认模型更新 |
+| [2026-08-07 引擎硬化](./adr/2026-08-07-engine-hardening-writeback-ai.md) | 回执轮转 `RECEIPT_KEEP=50` · 智能回执 · 目录归档原子 rename + 校验 · AI Provider 动态 temperature/systemPrompt/maxTokens · 瞬态错误重试 · 会话压缩 240K/60 · 默认模型更新 · **v2.1.0 增量**：maxTokens 提升 · Agent 步数扩展 · derived 上下文扩容 · 独立版本策略 |
 
 摘要亦见 `ARCHITECTURE-RESET.md` §6。
 

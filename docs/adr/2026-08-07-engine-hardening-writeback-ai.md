@@ -107,3 +107,68 @@
 - [x] Desktop 测试 45/45 通过（todo-engine + suggest-surface + uiux）
 - [x] `RECEIPT_KEEP` / `BACKUP_KEEP` / `pruneOldReceipts` / `pruneOldBackups` 均有测试覆盖
 - [x] `resolveTemperature` / `resolveSystemPrompt` / `resolveMaxTokens` / `isTransientError` 实现完整
+
+---
+
+## 增量更新（v2.1.0 · 2026-08-07）
+
+本节记录引擎硬化 ADR 发布后的进一步调优。
+
+### 会话压缩再次调优
+
+| 参数 | v2.0.7 | v2.1.0 | 原因 |
+|------|--------|--------|------|
+| `maxMessages` | 40 | **60** | 现代 128K+ 模型支持更深对话 |
+| `keepRecent` | 16 | **24** | 更广工作记忆 |
+| `maxChars` | 80K | **240K** | ~80K tokens；现代模型窗口充裕 |
+| `maxPerMessage` | 8000 | **16000** | 单条更完整 |
+| `maxTokens` 估算 | /3.5 | **/3** | 更准确的 token-char 比 |
+
+### Agent 步数扩展
+
+| 参数 | v2.0.7 | v2.1.0 |
+|------|--------|--------|
+| `DEFAULT_MAX_AGENT_STEPS` | 12 | **20** |
+| `AGENT_STEPS_MAX` | 24 | **50** |
+
+### maxTokens 操作限制提升
+
+| 操作 | v2.0.7 | v2.1.0 |
+|------|--------|--------|
+| `topic_summary` | 8192 | **16384** |
+| `period_analysis` | 4096 | **12288** |
+| `period_digest` | 4096 | **12288** |
+| `inbox_organize` | 4096 | **12288** |
+| `memory_organize` | 4096 | **12288** |
+| `todo_extract` | 4096 | **12288** |
+| `todo_maintain` | 4096 | **12288** |
+| `topic_classify` | 2048 | **4096** |
+| 默认值 | 4096 | **12288** |
+
+### 默认模型再次更新（适配 2026 下半年模型）
+
+| Provider | v2.0.7 | v2.1.0 |
+|----------|--------|--------|
+| OpenAI | gpt-4.1-mini | **gpt-4o-mini** |
+| Anthropic | claude-sonnet-4-20250514 | **claude-sonnet-5** |
+| Google | gemini-2.5-flash | **gemini-3.6-flash** |
+| Moonshot | moonshot-v1-8k | **kimi-k2.5** |
+| Zhipu | glm-4-flash | **glm-4.7-flash** |
+| MiniMax | MiniMax-Text-01 | **MiniMax-M2.5** |
+
+### derived-builder 上下文扩容
+
+- `MAX_TOPIC_CONTEXT`: 12000 → **48000**（多文件摘要更完整）
+
+### UI 改进
+
+- StatusBar 统一 `v4-ai-busy-icon` + `v4-ai-busy-text` 动画（取代 `animate-pulse-soft`）
+- TitleBar 新增 `TodoBadge`（未完成待办计数 badge）
+- 所有 AI busy chip 统一 `v4-ai-progress-dot`
+
+### 独立版本策略
+
+- 各表面版本号独立（大版本对齐，小版本独立）
+- UTR 跟随 Desktop；Skills / Extension 独立
+- 未来 Obsidian Plugin 预留独立版本
+- 仅 re-package 版本号实际变化的表面

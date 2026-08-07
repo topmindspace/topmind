@@ -47,27 +47,39 @@ test("ActionStore navigates to target file after inbox_organize apply", () => {
   assert.match(src, /inbox_review[\s\S]*?stale_topic[\s\S]*?catch_all[\s\S]*?select[\s\S]*?kind.*stream/);
 });
 
-test("StatusBar uses progress dot for busy chips", () => {
+test("StatusBar uses progress dot for ALL busy chips (unified)", () => {
   const src = read("src/components/shell/StatusBar.tsx");
   assert.match(src, /v4-ai-progress-dot/);
   // Task chip has progress dot
   assert.match(src, /showTaskChip[\s\S]*?v4-ai-progress-dot/);
+  // Todo chip has progress dot
+  assert.match(src, /showTodoChip[\s\S]*?v4-ai-progress-dot/);
+  // Suggest chip has progress dot
+  assert.match(src, /showSuggestChip[\s\S]*?v4-ai-progress-dot/);
   // Inline chip has progress dot
   assert.match(src, /showInlineChip[\s\S]*?v4-ai-progress-dot/);
 });
 
-test("StatusBar uses pulse-soft for todo chip (not spin)", () => {
+test("StatusBar uses unified v4-ai-busy-icon for todo/suggest chips", () => {
   const src = read("src/components/shell/StatusBar.tsx");
-  // Todo chip should use animate-pulse-soft (not animate-spin — spin is for loaders)
-  assert.match(src, /showTodoChip[\s\S]*?animate-pulse-soft/);
+  // Todo chip should use v4-ai-busy-icon (unified animation, not animate-pulse-soft)
+  assert.match(src, /showTodoChip[\s\S]*?v4-ai-busy-icon/);
+  // Suggest chip should use v4-ai-busy-icon
+  assert.match(src, /showSuggestChip[\s\S]*?v4-ai-busy-icon/);
   // Suggest chip should have accent background (not text-tertiary)
   assert.match(src, /showSuggestChip[\s\S]*?bg-accent-bg-faint/);
+  // All busy chips should have v4-ai-busy-text on label
+  assert.match(src, /v4-ai-busy-text/);
 });
 
-test("CSS defines v4-ai-progress-dot animation", () => {
+test("CSS defines v4-ai-progress-dot and v4-ai-busy-icon animations", () => {
   const css = read("src/styles/v4.css");
   assert.match(css, /\.v4-ai-progress-dot/);
   assert.match(css, /v4-ai-progress-dot-pulse/);
+  assert.match(css, /\.v4-ai-busy-icon/);
+  assert.match(css, /v4-ai-busy-icon-pulse/);
+  assert.match(css, /\.v4-ai-busy-text/);
+  assert.match(css, /v4-ai-busy-text-pulse/);
 });
 
 test("i18n keys exist for inbox_organize chip in zh-CN and en-US", () => {

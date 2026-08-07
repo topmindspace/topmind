@@ -19,7 +19,35 @@ function readText(rel) {
   return readFileSync(path.join(root, rel), "utf8").trim();
 }
 
-/** Canonical map — single place for *where* versions live (not the values). */
+/**
+ * Canonical map — single place for *where* versions live (not the values).
+ *
+ * Version Policy (v2.1+):
+ * ────────────────────────────────────────────────────────────
+ * Each surface has an INDEPENDENT version number — they do not
+ * need to be identical. The rules are:
+ *
+ * 1. MAJOR version alignment: all surfaces share the same major
+ *    version (e.g., 2.x). A breaking change in any surface bumps
+ *    the major for ALL surfaces.
+ * 2. MINOR/PATCH independence: each surface bumps its own minor
+ *    or patch when it has changes. Surfaces with no changes stay
+ *    at their current version — they are NOT auto-bumped.
+ * 3. UTR follows Desktop: UTR version tracks Desktop's version
+ *    exactly (they ship together in the same installer).
+ * 4. Future surfaces (e.g., Obsidian Plugin) will have their own
+ *    truth source and version, following the same policy.
+ * 5. Tag naming: `v*` = full release; `{surface}-v*` = surface-only.
+ *    Only re-package surfaces whose version actually changed.
+ *
+ * Surface version truth sources:
+ *   Skills Pack  → skills/topmind-pack.json        (independent)
+ *   Desktop     → topmind-desktop/package.json    (independent)
+ *   Clip Ext    → browser-extension/manifest.json  (independent)
+ *   UTR         → utr/VERSION                      (follows Desktop)
+ *   Obsidian    → obsidian-plugin/manifest.json    (future, reserved)
+ * ────────────────────────────────────────────────────────────
+ */
 export const VERSION_TRUTH = [
   {
     id: "skills",
@@ -45,6 +73,13 @@ export const VERSION_TRUTH = [
     source: "utr/VERSION",
     read: () => readText("utr/VERSION"),
   },
+  // ── Future surface (reserved, not yet active) ──
+  // {
+  //   id: "obsidian",
+  //   label: "Obsidian Plugin",
+  //   source: "obsidian-plugin/manifest.json",
+  //   read: () => readJson("obsidian-plugin/manifest.json").version,
+  // },
 ];
 
 export function readAllVersions() {
