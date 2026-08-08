@@ -25,12 +25,12 @@ topmind 是 Agent 时代的本地优先工作台，按需组合四条独立能�
 **共享**：
 
 1. 内容约定（`PROJECT-MODEL.md`：三平面、`topic.md`、Frontmatter、6 条规约）
-2. 行为契约（`topmind.yaml`：保护/生命周期/记忆/写回/Ingest/Agent 等）
+2. 行为契约（工作区根 **`topmind.yaml` v4 唯一真源**：保护/生命周期/记忆/写回/Ingest/Agent 等）— Desktop / UTR / Skills / Obsidian **同一路径同一契约**；缺失由 Kernel `ensureContract` 创建，可修则自动修复，损坏不可修则诊断 + `reseedContract`（备份坏文件，不删内容目录）
 3. 工作流语言（`收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整`）
 4. 写回伦理（可逆备份、路径回执、`writeback.mode` auto|confirm、open/locked protection）
 5. **用户概念 ≤5**：记一下 · 动态 · 专题 · 我的情况 · 写出来
 
-**不共享**：运行时进程、IPC、store、强制 tool 调用链。对比：[`docs/topmind-vs-others.md`](./docs/topmind-vs-others.md)。
+**不共享**：运行时进程、IPC、store、强制 tool 调用链；**表面本地 UI 偏好**（Desktop `app-settings.json`、Obsidian plugin data）— 不得 fork 工作区行为键（locale/template/writeback/stream 等）。对比：[`docs/topmind-vs-others.md`](./docs/topmind-vs-others.md)。
 
 ---
 
@@ -46,9 +46,9 @@ topmind 是 Agent 时代的本地优先工作台，按需组合四条独立能�
 
 | 引擎 | 职责 | 实现状态（诚实） |
 |------|------|------------------|
-| contract-engine | 规约加载/校验/迁移/求值 | **Done 主路径** — 写闸/model/suggest/lifecycle 加载；**Intentional Partial** 非全 Surface 契约 UI |
+| contract-engine | 规约加载/校验/迁移/ensure/repair/reseed/求值 | **Done 主路径** — 写闸/model/suggest/lifecycle + 全表面 open 路径 `ensureContract`；**Intentional Partial** 非全 Surface 契约 UI |
 | workspace-model | 类别/专题/路径 | **Done** — Desktop/UTR 共用 |
-| stream-engine | 周期本/reconcile + **活动窗口** | **Done** — packing · reconcile · `activity-window`（suggest/todo/ops 共用）· 条目增补 |
+| stream-engine | 周期本/reconcile + **活动窗口** | **Done** — packing · reconcile · `activity-window`（suggest/todo/ops 共用）· 条目增补；todo skip hash = 活动 corpus 非仅周期 raw；Desktop 多路 AI 见 `topmind-desktop/DESIGN.md` §0.0.3（prep lane · agent 独立） |
 | memory-engine | 分层记忆/提升物理操作 | **Done** — profile + **periodic**；建议 apply；**非**专题默认落点（专题在内容大类） |
 | lifecycle-engine | 归档/清理/回顾扫描 | **Done** — scan→建议条；确认 apply 经 `executeArchive` 写闸 |
 | writeback-engine | 保护/影子/回执/备份（**唯一写闸**） | **Done** — Desktop 主写 + UTR + AI `actor:"ai"` 经 Kernel；settings confirm 覆盖 gate；备份/回执仅高影响（locked 覆盖 · delete/archive · `BACKUP_KEEP=3`/`RECEIPT_KEEP=50` · `permanent` 彻底删除） |
@@ -65,7 +65,7 @@ topmind 是 Agent 时代的本地优先工作台，按需组合四条独立能�
 |------|------|
 | Desktop 必须调 UTR 才能保存 / 捕获 / AI 写回？ | **否** — WorkspaceService → Kernel writeback-engine |
 | Skills 必须调 UTR？ | **否** — Host 文件工具 + 内容约定 |
-| 全部 UTR 命令日常必需？ | **否** — 注册表 25，MCP 默认 17 |
+| 全部 UTR 命令日常必需？ | **否** — 注册表 27，MCP 默认 18 |
 | 无 UTR 时是否可用？ | **是** |
 | 保留 UTR 的理由？ | Agent Host / CI / doctor / 脚本的确定性命令面（Kernel adapter） |
 
@@ -126,7 +126,7 @@ UTR = 软探测；写回不经 UTR
 
 面向无 Desktop、有 agent/脚本的确定性命令面。
 
-- **8 域 / 25 命令**；MCP 默认 **17**
+- **8 域 / 27 命令**；MCP 默认 **18**
 - 完整表：`TOOLS.md`
 - 目标：薄 adapter，业务在 Kernel
 

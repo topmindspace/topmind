@@ -53,13 +53,42 @@ export function workspaceRootOf(wsOrCtx) {
  * @param {object} [opts]
  */
 /**
- * Effective writeback mode for Desktop: explicit opts > app settings > contract (engine).
+ * Effective writeback mode for Desktop durable writes.
+ * Workspace truth is topmind.yaml `writeback.mode` (Kernel default when undefined).
+ * Only explicit per-call opts (AI panel badge / tool) may override — never app-settings.
  */
-function desktopWritebackMode(ctx, opts = {}) {
+function desktopWritebackMode(_ctx, opts = {}) {
   if (opts.writebackMode === "confirm" || opts.writebackMode === "auto") return opts.writebackMode;
-  const s = ctx?.appSettings?.writebackMode;
-  if (s === "confirm" || s === "auto") return s;
   return undefined; // let Kernel use topmind.yaml
+}
+
+/**
+ * Resolve writeback mode for AI tools / UI that need the effective value.
+ * Order: explicit opts → workspace topmind.yaml → "auto". Never app-settings alone.
+ * @param {object} ctx
+ * @param {{ writebackMode?: string }} [opts]
+ * @returns {Promise<"auto"|"confirm">}
+ */
+export async function resolveWorkspaceWritebackMode(ctx, opts = {}) {
+  if (opts.writebackMode === "confirm" || opts.writebackMode === "auto") {
+    return opts.writebackMode;
+  }
+  // Explicit per-call passed via ctx flag (AI service sets only when user/session chose)
+  if (ctx?.explicitWritebackMode === "confirm" || ctx?.explicitWritebackMode === "auto") {
+    return ctx.explicitWritebackMode;
+  }
+  try {
+    const kernel = await loadKernelApi();
+    const root = workspaceRootOf(ctx?.workspaceRoot);
+    if (root) {
+      const contract = kernel.loadContract(root);
+      const mode = contract?.writeback?.mode;
+      if (mode === "confirm" || mode === "auto") return mode;
+    }
+  } catch {
+    /* fall through */
+  }
+  return "auto";
 }
 
 export async function kernelDurableWrite(p, ctx, opts = {}) {
@@ -114,6 +143,23 @@ export async function kernelDurableDelete(p, ctx, opts = {}) {
 export async function kernelLoadContract(workspaceRoot) {
   const kernel = await loadKernelApi();
   return kernel.loadContract(workspaceRootOf(workspaceRoot));
+}
+
+/** Ensure/repair on-disk topmind.yaml via Kernel (shared with UTR/Obsidian). */
+export async function kernelEnsureContract(workspaceRoot, options = {}) {
+  const kernel = await loadKernelApi();
+  return kernel.ensureContract(workspaceRootOf(workspaceRoot), options);
+}
+
+/** User-triggered recovery: backup bad contract + reseed defaults. */
+export async function kernelReseedContract(workspaceRoot, options = {}) {
+  const kernel = await loadKernelApi();
+  return kernel.reseedContract(workspaceRootOf(workspaceRoot), options);
+}
+
+export async function kernelInspectContract(workspaceRoot) {
+  const kernel = await loadKernelApi();
+  return kernel.inspectContract(workspaceRootOf(workspaceRoot));
 }
 
 export async function kernelGenerateSuggestions(workspaceRoot, engineRoot, aiProvider, opts = {}) {

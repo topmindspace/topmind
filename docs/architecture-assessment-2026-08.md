@@ -20,9 +20,9 @@
 | 废弃 / 冗余 | **局部清理** | v3 community-templates 无引用；ADR 验收框未勾；其余 ADR 与 Reset 保留 |
 | 质量门 | **以验证为准** | secrets / docs:guard / dead-code / validate 见本目标证据 |
 
-**总评（架构师）**：实现与决策锁高度对齐（完成度分数卡 ~98–99% 主路径可信）。本轮不是重做架构，而是**消弥剩余写闸缝隙、文档措辞漂移、历史残留**。
+**总评（架构师）**：实现与决策锁高度对齐（完成度分数卡 ~99% 主路径可信）。2026-08-08 续：写闸/contract 清洁、todo corpus hash、多路 AI 并发策略、捕获词汇与 StatusBar 语义均已合闸；本文件 findings 均有处置。
 
-**总评（用户）**：主路径（记一下 → 动态 → 建议确认 → 写出来）产品化完成；不需要新功能堆叠。清理与文档诚实比「全面重写」更提升可信度。
+**总评（用户）**：主路径（记一下 → 动态 → 建议确认 → 写出来）可用；多 AI 同时工作时有排队与诚实状态栏；中英「记下/记一下」不混。清理与诚实比堆功能更重要。
 
 ---
 
@@ -101,6 +101,11 @@ PROJECT-MODEL 仍为内容约定唯一真源；skills 共享 `project-model-brie
 | **F11** | info | `skills/shared/project-model-brief.md` 文件名 | legacy 词 Project；内容正确 | **intentional keep** |
 | **F12** | info | UTR 无 activity-window 一等命令 | 薄 adapter 可选；quality-audit F6 | **non-goal** |
 | **F13** | info | 写闸主路径 save/delete/AI/connectors | 经 kernelDurableWrite / executeWrite | **intentional keep** |
+| **F14** | **med** | contract-engine `loadContract()` | 返回前注入 v3 flat 别名（categoryExtensions/categoryOverrides/template/categorySeparator）为顶层键，`validateContract()` 白名单不含别名 → 外部工作区 `contract validate` 恒误报「Unknown top-level contract key」 | **fixed** — `loadContract()` 返回 clean v4；Kernel consumers 用 `normalizeConfig()`；Desktop `projectConfigAliases` 在 `loadWorkspaceConfig(Sync)` 统一投影；autoRepair 只写 v4 nested；dead-code 护栏 |
+| **F15** | low | Desktop todo 手动 ✨ | 侧栏/画布/标题栏 maintain 首次尊重 skip hash（正确），但「已处理」后再次点 ✨ 仍 skip，只能点 body「强制重试」— 与 progressive 期望不一致 | **fixed** — `maintainReason === all-periods-processed` 时再点 ✨ progressive `force:true`（auto 路径仍不 force） |
+| **F16** | **med** | StatusBar 图标语义 | 后台 Task chip 误用 `ListTodo`（DESIGN 保留给个人清单）；Todo busy 用 `ListChecks` 且不可点，与 Suggest busy 可点不一致 | **fixed** — Task=`Loader2` · Todo=`ListTodo`+`todo:open-popover` · tip 写「点此打开」 |
+| **F17** | **med** | EN 捕获词汇 | `composeSubmit=Save` · URL CTA=`Quick Capture` · skills.capture 含 Quick Capture，与 zh「记下/记一下」及 DESIGN 对译漂移 | **fixed** — Log it / Note it 全链路 + DESIGN 强制对译 + IA 测试护栏 |
+| **F18** | **med** | 多路 AI 并发 | 建议 LLM + 待办 maintain + agent 可同时打 API；StatusBar 在 streaming 时隐藏 suggest；自动待办与 autoPrepare 启动踩踏 | **fixed** — `ai-background-lane` 串行 prep；soft suggest 在 `agent_busy` 让路；auto-todo 让路；StatusBar multiActive + `AI ×N` tip；DESIGN §0.0.3 |
 
 ### 用户视角补充（非独立 finding）
 

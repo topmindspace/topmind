@@ -441,7 +441,7 @@ export function StreamDetailView() {
   const [composing, setComposing] = useState(false);
   const [polishing, setPolishing] = useState(false);
   const polishSessionRef = useRef<string | null>(null);
-  /** Compose URL detection — when true, show hint to use Quick Capture for fetch. */
+  /** Compose URL detection — when true, show hint to open Note it (记一下) for fetch. */
   const composeIsUrl = useMemo(
     () => /^https?:\/\/\S+$/iu.test(composeText.trim()),
     [composeText],
@@ -674,14 +674,17 @@ export function StreamDetailView() {
     });
   }, []);
 
-  /** AI maintain todos from stream; open todo panel so results/force-retry are visible. */
+  /** AI maintain todos from stream; open todo panel so results / progressive force are visible. */
   const handleMaintainTodos = useCallback(() => {
     emitLocal("todo:open-popover");
     if (!aiReady) {
       emitLocal("toast:show", t("workspace:streamDetail.suggestionsAiOffline"));
       return;
     }
-    void useTodoStore.getState().maintain();
+    // First click respects skip hash; second click after already-processed forces re-scan.
+    const st = useTodoStore.getState();
+    const force = st.maintainReason === "all-periods-processed";
+    void st.maintain(force ? { force: true } : undefined);
   }, [aiReady, t]);
 
   /** Comment-like append under a stream entry (same Markdown period note). */
@@ -1088,9 +1091,7 @@ export function StreamDetailView() {
         >
           <Link size={ICON.nano} className="shrink-0 text-accent-color" aria-hidden />
           <span className="min-w-0 flex-1 text-3xs text-text-secondary">
-            {t("workspace:streamDetail.composeUrlHint", {
-              defaultValue: "检测到链接，建议使用快速捕获抓取正文到收件箱",
-            })}
+            {t("workspace:streamDetail.composeUrlHint")}
           </span>
           <button
             type="button"
@@ -1100,7 +1101,7 @@ export function StreamDetailView() {
             }}
             className="shrink-0 rounded-full bg-accent-bg-subtle px-2 py-0.5 text-3xs font-medium text-accent-color hover:bg-accent-bg-faint/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
           >
-            {t("workspace:streamDetail.composeUrlAction", { defaultValue: "快速捕获" })}
+            {t("workspace:streamDetail.composeUrlAction")}
           </button>
         </div>
       ) : null}

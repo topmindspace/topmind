@@ -53,6 +53,23 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Opti
    ```
 2. Detailed guide: [`skills/INSTALL.md`](./skills/INSTALL.md) · [`SKILL-ARCHITECTURE.md`](./SKILL-ARCHITECTURE.md)
 
+### ✂️ Scenario 4: Browser Clip Extension
+1. Download `topmind-clip-extension-<ver>.zip` from [Releases](https://github.com/topmindspace/topmind/releases), unzip, and load as an unpacked extension in Chrome/Edge.
+2. Configure Desktop Clip Bridge (recommended) or a local workspace folder.
+3. Guide: [`browser-extension/README.md`](./browser-extension/README.md)
+
+### 🔄 How to upgrade
+
+| Surface | Upgrade path |
+|---------|--------------|
+| **Desktop** | Install newer package from Releases, or in-app **Check for updates**; workspace files stay |
+| **Obsidian** | Replace files under `plugins/topmind-stream/` / BRAT update; vault content stays |
+| **Skills** | `npm run skills:update` or `npx skills update -g -y` (see [`skills/INSTALL.md`](./skills/INSTALL.md)) |
+| **Clip** | Replace extension folder from new zip, then reload in `chrome://extensions` |
+| **UTR** | Ships inside Desktop; source uses repo `utr/` |
+
+Full product tag **`v*`** packs Skills + Extension + **Obsidian** + Desktop; surface tags `skills-v*` / `extension-v*` / `obsidian-v*` / `desktop-v*` build only that surface. See [`docs/PACKAGING.md`](./docs/PACKAGING.md).
+
 ---
 
 ## 🧩 Product entry matrix (four cores + Clip distribution)
@@ -201,7 +218,7 @@ npm run skills:test
 
 # UTR CLI/MCP doctor & tool list
 npm run utr:doctor
-npm run utr:list            # list UTR domains and commands (8 domains / 25 commands)
+npm run utr:list            # list UTR domains and commands (8 domains / 27 commands)
 
 # Start Obsidian Plugin dev server
 npm run obsidian:dev

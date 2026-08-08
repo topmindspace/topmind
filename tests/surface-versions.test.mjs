@@ -30,29 +30,41 @@ test("all surface versions are valid semver", () => {
   const skills = readJson("skills/topmind-pack.json").version;
   const desktop = readJson("topmind-desktop/package.json").version;
   const extension = readJson("browser-extension/manifest.json").version;
+  const obsidian = readJson("obsidian-plugin/manifest.json").version;
+  const obsidianPkg = readJson("obsidian-plugin/package.json").version;
+  const extPkg = readJson("browser-extension/package.json").version;
   const utr = readTrim("utr/VERSION");
 
   assert.match(skills, /^\d+\.\d+\.\d+$/u);
   assert.match(desktop, /^\d+\.\d+\.\d+$/u);
   assert.match(extension, /^\d+\.\d+\.\d+$/u);
+  assert.match(obsidian, /^\d+\.\d+\.\d+$/u);
+  assert.match(obsidianPkg, /^\d+\.\d+\.\d+$/u);
+  assert.match(extPkg, /^\d+\.\d+\.\d+$/u);
   assert.match(utr, /^\d+\.\d+\.\d+$/u);
+  assert.equal(obsidianPkg, obsidian, "obsidian package.json version must match manifest.json");
+  assert.equal(extPkg, extension, "extension package.json version must match manifest.json");
 });
 
 test("all surfaces share the same MAJOR version (breaking-change alignment)", () => {
   const skills = readJson("skills/topmind-pack.json").version;
   const desktop = readJson("topmind-desktop/package.json").version;
   const extension = readJson("browser-extension/manifest.json").version;
+  const obsidian = readJson("obsidian-plugin/manifest.json").version;
   const utr = readTrim("utr/VERSION");
 
   const skillsMajor = majorOf(skills);
   const desktopMajor = majorOf(desktop);
   const extensionMajor = majorOf(extension);
+  const obsidianMajor = majorOf(obsidian);
   const utrMajor = majorOf(utr);
 
   assert.equal(desktopMajor, skillsMajor,
     `Desktop major ${desktopMajor} must equal Skills major ${skillsMajor}`);
   assert.equal(extensionMajor, skillsMajor,
     `Extension major ${extensionMajor} must equal Skills major ${skillsMajor}`);
+  assert.equal(obsidianMajor, skillsMajor,
+    `Obsidian major ${obsidianMajor} must equal Skills major ${skillsMajor}`);
   assert.equal(utrMajor, skillsMajor,
     `UTR major ${utrMajor} must equal Skills major ${skillsMajor}`);
 });

@@ -79,7 +79,7 @@ test("release.yml probes release existence before edit", () => {
 
 test("MAKE_LATEST is true only for full product v* tags (not surface tags)", () => {
   const src = loadReleaseWorkflow();
-  // plan/meta logic: MAKE_LATEST true only when tag is v* and not skills-/desktop-/extension-v*
+  // plan/meta logic: MAKE_LATEST true only when tag is v* and not skills-/desktop-/extension-/obsidian-v*
   assert.match(
     src,
     /MAKE_LATEST="true"/u,
@@ -90,6 +90,7 @@ test("MAKE_LATEST is true only for full product v* tags (not surface tags)", () 
   );
   assert.match(src, /desktop-v\*/u);
   assert.match(src, /extension-v\*/u);
+  assert.match(src, /obsidian-v\*/u);
   // Surface desktop tags must resolve make_latest false via the exclusion
   const meta = src.slice(src.indexOf("MAKE_LATEST="));
   assert.match(
@@ -97,4 +98,43 @@ test("MAKE_LATEST is true only for full product v* tags (not surface tags)", () 
     /desktop-v\*/u,
     "desktop-v* must be excluded from MAKE_LATEST=true",
   );
+  assert.match(
+    meta,
+    /obsidian-v\*/u,
+    "obsidian-v* must be excluded from MAKE_LATEST=true",
+  );
+});
+
+test("release.yml packs Obsidian on full v* and supports obsidian-v* surface tags", () => {
+  const src = loadReleaseWorkflow();
+  // Tag triggers include obsidian-v*
+  assert.match(src, /-\s*"obsidian-v\*"/u, "on.push.tags must include obsidian-v*");
+  // Plan resolves OBSIDIAN for full v* and surface tag
+  assert.match(src, /OBSIDIAN=true/u, "plan must set OBSIDIAN=true for matching tags");
+  assert.match(
+    src,
+    /elif \[\[ "\$\{TAG\}" == obsidian-v\* \]\]; then/u,
+    "plan must handle obsidian-v* surface tag",
+  );
+  // Full v* enables skills + extension + desktop + obsidian
+  const fullProductBlock = src.slice(
+    src.indexOf('elif [[ "${TAG}" == v* ]]; then'),
+    src.indexOf("fi", src.indexOf('elif [[ "${TAG}" == v* ]]; then')) + 20,
+  );
+  assert.match(fullProductBlock, /SKILLS=true/u);
+  assert.match(fullProductBlock, /EXTENSION=true/u);
+  assert.match(fullProductBlock, /DESKTOP=true/u);
+  assert.match(fullProductBlock, /OBSIDIAN=true/u);
+  // Dedicated pack job
+  assert.match(src, /pack-obsidian:/u, "must define pack-obsidian job");
+  assert.match(src, /needs\.plan\.outputs\.obsidian == 'true'/u);
+  assert.match(src, /topmind-obsidian-\*\.zip/u, "upload must target Obsidian zip artifacts");
+  // Finalize depends on pack-obsidian
+  assert.match(
+    src,
+    /needs:\s*\[[^\]]*pack-obsidian[^\]]*\]/u,
+    "finalize-release must wait on pack-obsidian",
+  );
+  // Dispatch checkbox
+  assert.match(src, /pack_obsidian:/u, "workflow_dispatch must expose pack_obsidian");
 });

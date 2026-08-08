@@ -1,11 +1,12 @@
 # Publish surface-scoped artifacts on version tags, then auto-create a GitHub Release.
-# Tags: v1.0.2 | skills-v1.0.0 | desktop-v1.0.2 | extension-v1.0.0
+# Tags: v1.0.2 | skills-v1.0.0 | desktop-v1.0.2 | extension-v1.0.0 | obsidian-v1.0.0
 #
 # Surface matrix:
 #   skills-v*     → skills pack only
 #   extension-v*  → browser extension only
 #   desktop-v*    → desktop matrix only
-#   v*            → skills + extension + desktop
+#   obsidian-v*   → Obsidian plugin only
+#   v*            → skills + extension + desktop + obsidian
 #
 # Flow: cleanup → plan → create-release → pack-* (upload directly to release) → finalize-release
 #
@@ -16,7 +17,7 @@
 # # Behaviour notes
 #
 # workflow_dispatch:
-#   - pack_skills / pack_extension / pack_desktop checkboxes control surface builds
+#   - pack_skills / pack_extension / pack_desktop / pack_obsidian checkboxes control surface builds
 #   - create_release=true (default) requires a non-empty `release_tag`.
 #     Empty `release_tag` with `create_release=true` is a hard error (the plan job
 #     fails before any pack starts). This avoids silent skips that leave you with
@@ -38,6 +39,7 @@ on:
       - "skills-v*"
       - "desktop-v*"
       - "extension-v*"
+      - "obsidian-v*"
   workflow_dispatch:
     inputs:
       pack_skills:
@@ -52,6 +54,10 @@ on:
         description: "Build Desktop installers (slow multi-OS matrix)"
         type: boolean
         default: false
+      pack_obsidian:
+        description: "Build Obsidian plugin pack"
+        type: boolean
+        default: true
       create_release:
         description: "Create a draft GitHub Release (uses release_tag input)"
         type: boolean
@@ -120,6 +126,7 @@ jobs:
       skills: ${{ steps.plan.outputs.skills }}
       extension: ${{ steps.plan.outputs.extension }}
       desktop: ${{ steps.plan.outputs.desktop }}
+      obsidian: ${{ steps.plan.outputs.obsidian }}
       tag: ${{ steps.plan.outputs.tag }}
       create_release: ${{ steps.plan.outputs.create_release }}
     steps:
@@ -130,6 +137,7 @@ jobs:
           SKILLS=false
           EXTENSION=false
           DESKTOP=false
+          OBSIDIAN=false
           TAG=""
           CREATE_RELEASE=false
           NEEDS_VALIDATION=false
@@ -143,15 +151,19 @@ jobs:
               EXTENSION=true
             elif [[ "${TAG}" == desktop-v* ]]; then
               DESKTOP=true
+            elif [[ "${TAG}" == obsidian-v* ]]; then
+              OBSIDIAN=true
             elif [[ "${TAG}" == v* ]]; then
               SKILLS=true
               EXTENSION=true
               DESKTOP=true
+              OBSIDIAN=true
             fi
           else
             INPUT_SKILLS="${{ inputs.pack_skills }}"
             INPUT_EXTENSION="${{ inputs.pack_extension }}"
             INPUT_DESKTOP="${{ inputs.pack_desktop }}"
+            INPUT_OBSIDIAN="${{ inputs.pack_obsidian }}"
             INPUT_CREATE="${{ inputs.create_release }}"
             INPUT_TAG="${{ inputs.release_tag }}"
             INPUT_TAG="${INPUT_TAG#refs/tags/}"
@@ -168,12 +180,14 @@ jobs:
             SKILLS="${INPUT_SKILLS}"
             EXTENSION="${INPUT_EXTENSION}"
             DESKTOP="${INPUT_DESKTOP}"
+            OBSIDIAN="${INPUT_OBSIDIAN}"
           fi
 
           {
             echo "skills=${SKILLS}"
             echo "extension=${EXTENSION}"
             echo "desktop=${DESKTOP}"
+            echo "obsidian=${OBSIDIAN}"
             echo "tag=${TAG}"
             echo "create_release=${CREATE_RELEASE}"
           } >> "$GITHUB_OUTPUT"
@@ -186,6 +200,7 @@ jobs:
             echo "| Skills | ${SKILLS} |"
             echo "| Extension | ${EXTENSION} |"
             echo "| Desktop | ${DESKTOP} |"
+            echo "| Obsidian | ${OBSIDIAN} |"
             echo "| Tag | \`${TAG}\` |"
             echo "| Create release | ${CREATE_RELEASE} |"
             echo ""
@@ -238,7 +253,7 @@ jobs:
           fi
 
           MAKE_LATEST="false"
-          if [[ "${DRAFT}" == "false" && "${PRERELEASE}" == "false" && "${TAG}" == v* && "${TAG}" != skills-v* && "${TAG}" != desktop-v* && "${TAG}" != extension-v* ]]; then
+          if [[ "${DRAFT}" == "false" && "${PRERELEASE}" == "false" && "${TAG}" == v* && "${TAG}" != skills-v* && "${TAG}" != desktop-v* && "${TAG}" != extension-v* && "${TAG}" != obsidian-v* ]]; then
             MAKE_LATEST="true"
           fi
 
@@ -248,6 +263,8 @@ jobs:
             NAME="topmind Clip Extension ${TAG#extension-}"
           elif [[ "${TAG}" == desktop-v* ]]; then
             NAME="topmind Desktop ${TAG#desktop-}"
+          elif [[ "${TAG}" == obsidian-v* ]]; then
+            NAME="topmind Obsidian Plugin ${TAG#obsidian-}"
           else
             NAME="topmind ${TAG}"
           fi
@@ -279,7 +296,7 @@ jobs:
           # and causes all downstream jobs to fail.
           #
           # gh release create supports --latest and --latest=false only.
-          # Surface tags (skills-v* / desktop-v* / extension-v*) set MAKE_LATEST=false
+          # Surface tags (skills-v* / desktop-v* / extension-v* / obsidian-v*) set MAKE_LATEST=false
           # so they do not steal the repo "Latest" badge from full v* product tags.
           NOTES="Release ${TAG} — assets uploading..."
           ARGS=(--title "${NAME}" --notes "${NOTES}" --target "${{ github.sha }}")
@@ -374,6 +391,73 @@ jobs:
           set -euo pipefail
           TAG="${{ needs.plan.outputs.tag }}"
           gh release upload "${TAG}" dist/topmind-clip-extension-*.zip dist/topmind-clip-extension-*.SHA256SUMS --clobber
+
+  # ── Pack Obsidian plugin (upload directly to GitHub Release) ──────────────
+  pack-obsidian:
+    name: obsidian pack
+    needs: [plan, create-release]
+    if: needs.plan.outputs.obsidian == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            obsidian-plugin/package-lock.json
+
+      - name: Install root deps
+        run: npm ci --ignore-scripts
+
+      - name: Install Obsidian plugin deps
+        working-directory: obsidian-plugin
+        run: npm ci
+
+      - run: node scripts/check-secrets.mjs
+
+      - name: Typecheck + build + pack + verify
+        run: |
+          set -euo pipefail
+          npm run --prefix obsidian-plugin typecheck
+          npm run --prefix obsidian-plugin build
+          npm run --prefix obsidian-plugin pack:verify
+          npm run --prefix obsidian-plugin pack
+
+      - name: List Obsidian artifacts
+        run: |
+          ls -lah dist/topmind-obsidian-* 2>/dev/null || true
+          ls -lah obsidian-plugin/release/topmind-obsidian-* 2>/dev/null || true
+          find dist obsidian-plugin/release -name 'topmind-obsidian-*' -type f 2>/dev/null || true
+
+      - name: Upload to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ needs.plan.outputs.tag }}"
+          # pack-plugin may write under dist/ (repo root) or obsidian-plugin/release/
+          files=()
+          while IFS= read -r f; do
+            [[ -n "$f" ]] && files+=("$f")
+          done < <(find dist obsidian-plugin/release -type f \( \
+            -name 'topmind-obsidian-*.zip' -o -name 'topmind-obsidian-*.SHA256SUMS' \
+          \) 2>/dev/null | sort -u)
+
+          if [[ ${#files[@]} -eq 0 ]]; then
+            echo "ERROR: no Obsidian plugin artifacts found to upload"
+            exit 1
+          fi
+
+          echo "Uploading ${#files[@]} Obsidian artifacts to release ${TAG}..."
+          for f in "${files[@]}"; do
+            echo "  uploading: $(basename "$f") ($(du -h "$f" | cut -f1))"
+          done
+          gh release upload "${TAG}" "${files[@]}" --clobber
 
   # ── Pack Desktop (upload directly to GitHub Release) ──────────────────────
   pack-desktop:
@@ -505,7 +589,7 @@ jobs:
   # ── Finalize: write latest.json + generate release notes ─────────────────
   finalize-release:
     name: finalize release
-    needs: [plan, create-release, pack-skills, pack-extension, pack-desktop]
+    needs: [plan, create-release, pack-skills, pack-extension, pack-obsidian, pack-desktop]
     if: >
       always() &&
       !cancelled() &&
@@ -514,6 +598,7 @@ jobs:
       (
         needs.pack-skills.result == 'success' ||
         needs.pack-extension.result == 'success' ||
+        needs.pack-obsidian.result == 'success' ||
         needs.pack-desktop.result == 'success' ||
         needs.pack-desktop.result == 'failure'
       )
@@ -547,6 +632,7 @@ jobs:
           DESKTOP_VER=$(node -p "require('./topmind-desktop/package.json').version" 2>/dev/null || echo "")
           SKILLS_VER=$(node -p "require('./skills/topmind-pack.json').version" 2>/dev/null || echo "")
           EXT_VER=$(node -p "require('./browser-extension/manifest.json').version" 2>/dev/null || echo "")
+          OBS_VER=$(node -p "require('./obsidian-plugin/manifest.json').version" 2>/dev/null || echo "")
 
           # Build latest.json from actual release assets
           LATEST_JSON=$(node -e "
@@ -556,11 +642,13 @@ jobs:
             const desktopVer = process.argv[3];
             const skillsVer = process.argv[4];
             const extVer = process.argv[5];
+            const obsVer = process.argv[6];
             const out = {
               productTag: tag,
               desktop: desktopVer || null,
               skills: skillsVer || null,
               extension: extVer || null,
+              obsidian: obsVer || null,
               releaseUrl: 'https://github.com/' + repo + '/releases/tag/' + tag,
               publishedAt: new Date().toISOString(),
               assets: assets.map(a => ({
@@ -570,7 +658,7 @@ jobs:
               }))
             };
             process.stdout.write(JSON.stringify(out, null, 2));
-          " "${TAG}" "${REPO}" "${DESKTOP_VER}" "${SKILLS_VER}" "${EXT_VER}")
+          " "${TAG}" "${REPO}" "${DESKTOP_VER}" "${SKILLS_VER}" "${EXT_VER}" "${OBS_VER}")
 
           echo "${LATEST_JSON}" > latest.json
           echo "=== latest.json ==="
@@ -585,7 +673,8 @@ jobs:
           # Generate release body
           skills_list=$(echo "${ASSETS_JSON}" | jq -r '.[] | select(.name | startswith("topmind-skills-")) | "- `\(.name)` (\(.size / 1048576 | floor)MB)"' | sort)
           ext_list=$(echo "${ASSETS_JSON}" | jq -r '.[] | select(.name | startswith("topmind-clip-extension-")) | "- `\(.name)` (\(.size / 1048576 | floor)MB)"' | sort)
-          desktop_list=$(echo "${ASSETS_JSON}" | jq -r '.[] | select(.name | startswith("topmind-") and (startswith("topmind-skills-") or startswith("topmind-clip-extension-")) | not) | "- `\(.name)` (\(.size / 1048576 | floor)MB)"' | sort)
+          obsidian_list=$(echo "${ASSETS_JSON}" | jq -r '.[] | select(.name | startswith("topmind-obsidian-")) | "- `\(.name)` (\(.size / 1048576 | floor)MB)"' | sort)
+          desktop_list=$(echo "${ASSETS_JSON}" | jq -r '.[] | select(.name | startswith("topmind-") and (startswith("topmind-skills-") or startswith("topmind-clip-extension-") or startswith("topmind-obsidian-")) | not) | "- `\(.name)` (\(.size / 1048576 | floor)MB)"' | sort)
 
           {
             echo "### What to download"
@@ -600,6 +689,7 @@ jobs:
             echo "|---------|--------------|-------|"
             echo "| **Skills** | Agent hosts (Claude / Codex / OpenCode) | \`topmind-skills-*.{zip,tar.gz}\` |"
             echo "| **Clip Extension** | Browser clip → Desktop | \`topmind-clip-extension-*.zip\` |"
+            echo "| **Obsidian Plugin** | Vault embed (stream workbench) | \`topmind-obsidian-*.zip\` |"
             echo "| **Desktop** | Native app installers | \`topmind-<ver>-<os>-<arch>.{dmg,exe,AppImage,deb}\` |"
             echo ""
 
@@ -618,6 +708,17 @@ jobs:
               echo "| File | Size |"
               echo "|------|------|"
               echo "${ext_list}" | sed 's/- \(.*\) (\([0-9]*\)MB)/| `\1` | \2MB |/'
+              echo ""
+            fi
+
+            if [[ -n "${obsidian_list}" ]]; then
+              echo "#### Obsidian plugin"
+              echo ""
+              echo "| File | Size |"
+              echo "|------|------|"
+              echo "${obsidian_list}" | sed 's/- \(.*\) (\([0-9]*\)MB)/| `\1` | \2MB |/'
+              echo ""
+              echo "Install: unzip into \`<vault>/.obsidian/plugins/topmind-stream/\` then enable in Obsidian settings."
               echo ""
             fi
 

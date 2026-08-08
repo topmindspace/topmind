@@ -21,9 +21,10 @@
 
 1. **动态优先导航** — 概念不堆砌；收件箱 / 写出来 / 我的情况清晰可达  
 2. **Quiet Paper** — 字号 / 行距 / 栏宽 / 纸张 · 专注 ⌘⌥F  
-3. **AI 副驾** — skill-first · `auto | confirm` 写回 · 建议默认可生成、确认后执行  
+3. **AI 副驾** — skill-first · `auto | confirm` 写回 · 建议默认可生成、确认后执行；多路 AI 时 prep 串行、对话独立（见 `DESIGN.md` §0.0.3）  
 4. **多源加工** — Word · PDF · Excel · PPT · 邮件 → Markdown  
 5. **可组合** — 与 Skills / 剪藏扩展 / 可选 UTR 共享内容约定，无强制运行时绑定  
+6. **捕获词汇** — **记一下**（完整捕获 · EN Note it）≠ **记下**（动态主区 · EN Log it）
 
 ---
 
@@ -173,6 +174,25 @@
 - 默认 `auto`：按 OS / `navigator.language` 匹配 `zh-CN` 或 `en-US`  
 - 主窗与 `CaptureSurface` 浮窗同步切换  
 - 语言包：`src/locales/{zh-CN,en-US}/`  
+
+---
+
+## 安装 / 升级
+
+### 安装
+1. 从 [Releases](https://github.com/topmindspace/topmind/releases) 下载对应系统安装包：`topmind-<ver>-<os>-<arch>.{dmg,exe,AppImage,deb}`  
+   （完整产品标签 `v*` 与表面标签 `desktop-v*` 都会构建 Desktop 矩阵）
+2. 安装并打开；首次选择或创建本地工作区文件夹（内容真源）
+3. 可选：设置 → AI 配置 Provider；设置 → 通用 → 浏览器剪藏 启用 Clip Bridge
+
+### 升级
+| 方式 | 操作 |
+|------|------|
+| 应用内检查 | About / 设置 → **检查更新**（读公开 `latest.json`，无需 GitHub token） |
+| 手动安装包 | 下载新版 installer，覆盖安装；工作区文件夹与 `app-settings.json` 保留 |
+| 源码开发 | `git pull` → `npm run desktop:dev`；版本真源本目录 `package.json` |
+
+工作区 Markdown / `topmind.yaml` / `memory/` **不**随 Desktop 升级被覆盖。UTR 版本跟随 Desktop（同一安装包内 engine）。详见 [`../docs/PACKAGING.md`](../docs/PACKAGING.md)。
 
 ---
 

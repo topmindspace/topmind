@@ -11,6 +11,7 @@ import {
   discoverCategories,
   getWorkspaceModel,
 } from "./workspace-context.mjs";
+import { inspectContract } from "../../lib/kernel-api.mjs";
 
 const V2_DEFAULT_ANCHOR_FILES = new Set(["outline.md", "setting.md", "style.md"]);
 const FORBIDDEN_FILE_SUFFIXES = new Set([".tmp", ".clean"]);
@@ -68,7 +69,9 @@ async function iterCategories(categoriesRoot) {
       name: entry.name,
       path: path.join(categoriesRoot, entry.name),
       // Reserved = system / delivery / buffer roles (resolved later when model available)
-      isReserved: /^(00|88|99)[ -]/.test(entry.name),
+      // + semantic-plane fixed name `memory/` (PROJECT-MODEL §1.4: 语义平面固化名，不随 locale 变化)
+      isReserved:
+        /^(00|88|99)[ -]/.test(entry.name) || entry.name === "memory",
     }))
     .sort((left, right) => compareStrings(left.name, right.name));
 }
@@ -92,6 +95,58 @@ export async function auditWorkspace(categoriesRoot, inboxRootPath, archiveRootP
     { label: "archiveRoot", path: archiveRootPath },
   ];
   const issues = [];
+
+  // 0. Contract health (shared Kernel inspect — honest on-disk status)
+  let contractHealth = null;
+  try {
+    contractHealth = inspectContract(workspaceRoot);
+    if (contractHealth.state === "missing") {
+      pushIssue(
+        issues,
+        "error",
+        "contract-missing",
+        "Missing topmind.yaml — run contract.ensure or open workspace via Desktop/Obsidian to auto-create.",
+        { path: contractHealth.path, recovery: "contract.ensure" },
+      );
+    } else if (contractHealth.state === "legacy_v3") {
+      pushIssue(
+        issues,
+        "warning",
+        "contract-legacy-v3",
+        "Legacy .topmind-config.json present — run contract.ensure to migrate to topmind.yaml v4.",
+        { path: contractHealth.path, recovery: "contract.ensure" },
+      );
+    } else if (contractHealth.state === "repairable") {
+      pushIssue(
+        issues,
+        "warning",
+        "contract-repairable",
+        `topmind.yaml needs repair: ${(contractHealth.errors || []).join("; ") || "schema drift"}. Run contract.ensure.`,
+        { path: contractHealth.path, recovery: "contract.ensure", warnings: contractHealth.warnings },
+      );
+    } else if (contractHealth.state === "corrupt" || contractHealth.state === "unreadable") {
+      pushIssue(
+        issues,
+        "error",
+        "contract-unrepairable",
+        `topmind.yaml is ${contractHealth.state} — cannot safely auto-fix. Run contract.reseed (backs up bad file; content dirs kept) or repair manually.`,
+        {
+          path: contractHealth.path,
+          recovery: "contract.reseed",
+          parseError: contractHealth.parseError,
+          errors: contractHealth.errors,
+        },
+      );
+    }
+  } catch (err) {
+    pushIssue(
+      issues,
+      "warning",
+      "contract-inspect-failed",
+      `Could not inspect topmind.yaml: ${err?.message || err}`,
+      { path: path.join(workspaceRoot, "topmind.yaml") },
+    );
+  }
 
   // 1. Top-level root check
   for (const item of items) {
@@ -325,6 +380,16 @@ export async function auditWorkspace(categoriesRoot, inboxRootPath, archiveRootP
     }))),
     issues,
     categories,
+    contract: contractHealth
+      ? {
+          state: contractHealth.state,
+          onDiskValid: contractHealth.onDiskValid,
+          path: contractHealth.path,
+          needsRewrite: contractHealth.needsRewrite,
+          errors: contractHealth.errors,
+          warnings: contractHealth.warnings,
+        }
+      : null,
     slots: await buildSlots(categoriesRoot),
     summary: {
       topicCount: topicsScanned,

@@ -110,6 +110,24 @@ export const SystemService = {
         { secretAdapter: secretAdapterFromCtx(ctx) },
       );
     }
+    // writebackMode is workspace behavior truth (topmind.yaml), not app-settings alone.
+    // Mirror UI preference into Kernel contract when an active workspace exists.
+    if (
+      patch?.writebackMode !== undefined &&
+      (patch.writebackMode === "auto" || patch.writebackMode === "confirm") &&
+      ctx.workspaceRoot?.userWorkspaceRoot
+    ) {
+      try {
+        await SystemService.updateWorkspaceConfig(
+          { writebackMode: patch.writebackMode },
+          ctx,
+        );
+      } catch (e) {
+        logError("system", "mirror writebackMode to workspace contract failed", {
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
     // CRITICAL: sync the in-memory appSettings so the window-bounds persist
     // function doesn't overwrite freshly-saved keys with stale values.
     if (typeof ctx.updateAppSettingsInMemory === "function") {
@@ -945,92 +963,158 @@ export const SystemService = {
     };
   },
 
+  /**
+   * Patch workspace behavior contract and write via Kernel only
+   * (`writeContract` + `sanitizeContract`). Never surface-private yaml.dump —
+   * that left flat aliases / camelCase keys and made on-disk repairable.
+   */
   async updateWorkspaceConfig({ categorySeparator, template, views, connectorDefaults, stream, memory, writebackMode }, ctx) {
     if (!ctx.workspaceRoot?.userWorkspaceRoot) throw new Error("No active workspace.");
     const resolvedRoot = ctx.workspaceRoot.userWorkspaceRoot;
 
-    const config = await loadWorkspaceConfig(resolvedRoot);
+    const { loadKernelApi } = await import("./lib/kernel-api.mjs");
+    const kernel = await loadKernelApi();
 
-    // Ensure v4 nested structures exist
-    if (!config.workspace) config.workspace = {};
-    if (!config.writeback) config.writeback = {};
-    if (!config.presentation) config.presentation = {};
-    if (!config.ingest) config.ingest = {};
-    if (!config.categories) config.categories = {};
-    if (!config.memory) config.memory = {};
-    if (!config.stream) config.stream = {};
+    // Start from clean Kernel contract (not projectConfigAliases flat projection)
+    const base = kernel.loadContract(resolvedRoot) || kernel.buildDefaultContract();
+    const next = {
+      ...base,
+      workspace: { ...(base.workspace || {}) },
+      writeback: { ...(base.writeback || {}) },
+      presentation: { ...(base.presentation || {}) },
+      ingest: { ...(base.ingest || {}) },
+      categories: {
+        extensions: { ...(base.categories?.extensions || {}) },
+        overrides: { ...(base.categories?.overrides || {}) },
+      },
+      stream: { ...(base.stream || {}) },
+      memory: { ...(base.memory || {}) },
+    };
 
     if (categorySeparator !== undefined) {
       if (categorySeparator !== "-" && categorySeparator !== " ") {
         throw new Error("Invalid separator. Only '-' or ' ' are allowed.");
       }
-      config.workspace.category_separator = categorySeparator;
+      next.workspace.category_separator = categorySeparator;
     }
     if (template !== undefined) {
-      config.workspace.template = template;
+      next.workspace.template = template;
     }
     if (views !== undefined) {
-      config.presentation.views = views;
+      next.presentation.views = views;
     }
     if (connectorDefaults !== undefined) {
-      config.ingest.connectors = connectorDefaults;
+      next.ingest.connectors = connectorDefaults;
     }
     if (stream !== undefined && stream && typeof stream === "object") {
+      const prevPacking = next.stream?.packing || "weekly";
+      const prevAppend =
+        next.stream?.append_heading === "none" || next.stream?.append_heading === "day"
+          ? next.stream.append_heading
+          : next.stream?.appendHeading === "none" || next.stream?.appendHeading === "day"
+            ? next.stream.appendHeading
+            : "day";
       const packing = ["atom", "daily", "weekly", "monthly"].includes(stream.packing)
         ? stream.packing
-        : config.stream?.packing || "weekly";
+        : prevPacking;
+      // Accept camelCase from UI; persist snake_case for v4 YAML
+      const appendRaw =
+        stream.append_heading ?? stream.appendHeading ?? prevAppend;
       const appendHeading =
-        stream.appendHeading === "none" || stream.appendHeading === "day"
-          ? stream.appendHeading
-          : config.stream?.appendHeading || "day";
-      config.stream = { packing, appendHeading };
+        appendRaw === "none" || appendRaw === "day" ? appendRaw : "day";
+      next.stream = {
+        packing,
+        append_heading: appendHeading,
+      };
     }
     if (memory !== undefined && memory && typeof memory === "object") {
+      const prevLayers = next.memory?.layers || {};
       const files = Array.isArray(memory.files)
         ? memory.files
             .filter((f) => typeof f === "string" && f.trim())
             .map((f) => String(f).trim().replace(/^\/+/u, ""))
             .filter((f) => f.endsWith(".md") && !f.includes("/") && !f.includes(".."))
-        : config.memory?.files || [];
-      config.memory = {
-        dir: memory.dir === null || memory.dir === ""
-          ? null
+        : next.memory?.files || [];
+      const profileFile =
+        typeof memory.profileFile === "string" && memory.profileFile.trim()
+          ? memory.profileFile.trim()
+          : prevLayers.global?.file || "profile.md";
+      const dir =
+        memory.dir === null || memory.dir === ""
+          ? "memory"
           : typeof memory.dir === "string"
             ? memory.dir
-            : config.memory?.dir ?? null,
-        profileFile:
-          typeof memory.profileFile === "string" && memory.profileFile.trim()
-            ? memory.profileFile.trim()
-            : config.memory?.profileFile || "profile.md",
-        files,
+            : next.memory?.dir || "memory";
+      next.memory = {
+        dir,
+        layers: {
+          ...prevLayers,
+          global: {
+            ...(prevLayers.global || {}),
+            file: profileFile,
+            update: prevLayers.global?.update || "on-suggest",
+          },
+        },
+        promotion: next.memory?.promotion,
+        // files is Desktop UI convenience; not a forbidden top-level key if nested under memory
+        ...(files.length ? { files } : {}),
       };
     }
     if (writebackMode !== undefined) {
       if (!["auto", "confirm"].includes(writebackMode)) {
         throw new Error("Invalid writebackMode. Only 'auto' or 'confirm' are allowed.");
       }
-      config.writeback.mode = writebackMode;
+      next.writeback.mode = writebackMode;
     }
-    // Ensure categories nested structure
-    if (!config.categories.extensions) config.categories.extensions = {};
-    if (!config.categories.overrides) config.categories.overrides = {};
-    config.contract_version = 4;
 
-    // Clean up v3 flat fields (migrated to v4 nested above)
-    delete config.categorySeparator;
-    delete config.template;
-    delete config.writebackMode;
-    delete config.views;
-    delete config.connectorDefaults;
-    delete config.categoryExtensions;
-    delete config.categoryOverrides;
-    delete config.schemaVersion;
+    // Kernel sanitize strips unknown tops + fills defaults; writeContract is only write path
+    const clean = kernel.sanitizeContract
+      ? kernel.sanitizeContract(next)
+      : next;
+    kernel.writeContract(resolvedRoot, clean);
+    await autoRepairWorkspace(resolvedRoot).catch(() => {});
 
-    // Write to topmind.yaml (v4 single source of truth)
-    const yamlPath = path.join(resolvedRoot, "topmind.yaml");
-    await fs.writeFile(yamlPath, yaml.dump(config, { lineWidth: -1, noRefs: true }), "utf8");
-    await autoRepairWorkspace(resolvedRoot);
-    return { ok: true };
+    // Verify on-disk health (no silent lie)
+    const inspection = kernel.inspectContract
+      ? kernel.inspectContract(resolvedRoot)
+      : { onDiskValid: true, state: "ok" };
+    return {
+      ok: inspection.onDiskValid !== false,
+      onDiskValid: inspection.onDiskValid !== false,
+      state: inspection.state || "ok",
+      writebackMode: clean.writeback?.mode || next.writeback?.mode,
+    };
+  },
+
+  /**
+   * User recovery: backup corrupt topmind.yaml + reseed valid v4. Content dirs kept.
+   */
+  async reseedWorkspaceContract({ templateId, locale } = {}, ctx) {
+    if (!ctx.workspaceRoot?.userWorkspaceRoot) throw new Error("No active workspace.");
+    const root = ctx.workspaceRoot.userWorkspaceRoot;
+    const { kernelReseedContract } = await import("./lib/kernel-api.mjs");
+    const result = await kernelReseedContract(root, {
+      templateId,
+      locale,
+    });
+    // Clear unrepairable launch status when reseed succeeds so next boot is healthy
+    if (result.onDiskValid === true && typeof ctx.clearContractLaunchFailure === "function") {
+      ctx.clearContractLaunchFailure(root);
+    } else if (result.onDiskValid === true && typeof ctx.activateWorkspace === "function") {
+      // Re-activate to refresh launchStatus after successful reseed
+      try {
+        await ctx.activateWorkspace(root, { createIfMissing: false });
+      } catch {
+        /* non-fatal */
+      }
+    }
+    return {
+      ok: result.onDiskValid === true,
+      status: result.status,
+      backupPath: result.backupPath || null,
+      onDiskValid: result.onDiskValid === true,
+      errors: result.errors || [],
+    };
   },
 
   /**
@@ -1129,11 +1213,20 @@ export const SystemService = {
     const allowCreate = createIfMissing === true;
 
     try {
-      const { context, settings } = await ctx.activateWorkspace(resolved, {
+      const { context, settings, launchStatus } = await ctx.activateWorkspace(resolved, {
         createIfMissing: allowCreate,
       });
       logInfo("system", "workspace switched", { to: context.userWorkspaceRoot });
-      return { ok: true, workspaceRoot: context.userWorkspaceRoot, settings };
+      // Pass through contract health — do not invent ok when unrepairable
+      const contractOk = launchStatus?.contractOnDiskValid !== false && launchStatus?.ok !== false;
+      return {
+        ok: contractOk,
+        workspaceRoot: context.userWorkspaceRoot,
+        settings: { ...settings, launchStatus: launchStatus || settings?.launchStatus },
+        launchStatus: launchStatus || null,
+        contractOnDiskValid: launchStatus?.contractOnDiskValid !== false,
+        recovery: launchStatus?.recovery || null,
+      };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       const code = e && typeof e === "object" && "code" in e ? e.code : "";

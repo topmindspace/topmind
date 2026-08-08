@@ -53,6 +53,7 @@ export async function resolveCategoryRoles(workspaceRoot) {
     return map;
   } catch {
     // Fallback: template-only map
+    // loadWorkspaceConfig projects v4 nested → flat aliases
     const config = await loadWorkspaceConfig(root);
     const templateId = config.template || "stream";
     const template = loadTemplateJson(templateId);
@@ -67,7 +68,6 @@ export async function resolveCategoryRoles(workspaceRoot) {
         map.set(spaceName, { slot, role: def.role, ...def, source: "fs+template" });
       }
     }
-    // Merge categoryExtensions from config
     for (const [slot, ext] of Object.entries(config.categoryExtensions || {})) {
       if (!ext?.name) continue;
       const dir = `${slot}${sep}${ext.name}`;

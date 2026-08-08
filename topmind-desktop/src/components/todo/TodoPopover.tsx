@@ -193,7 +193,14 @@ export function TodoPopover({ open, onOpenChange, children }: TodoPopoverProps) 
         <Tooltip content={t("todo.maintainTip")}>
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); void maintain(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              // Progressive force: first click respects skip hash; second click after
+              // "already processed" re-scans (parity with body force-retry CTA).
+              const st = useTodoStore.getState();
+              const force = st.maintainReason === "all-periods-processed";
+              void maintain(force ? { force: true } : undefined);
+            }}
             disabled={maintaining === "maintaining"}
             className={cn(
               "flex h-5 w-5 items-center justify-center rounded-[var(--radius-sm)] disabled:opacity-40",

@@ -48,13 +48,30 @@ Extension (Mozilla Readability on live DOM)
 ```bash
 # 仓库根
 npm run pack:extension   # dist/topmind-clip-extension-<version>.zip
+# 或随 pack:all（skills + extension + obsidian）
 ```
+
+完整产品标签 `v*` 与表面标签 `extension-v*` 都会在 GitHub Release 上传该 zip。版本真源：[`manifest.json`](./manifest.json)（`npm run versions`）。
 
 ---
 
-## 开发安装
+## 安装 / 升级
 
-1. Chrome / Edge → `chrome://extensions` → 开发者模式 → **加载已解压的扩展** → 选 `browser-extension/`  
+### 从 Release 安装（推荐用户）
+
+1. 下载 [Releases](https://github.com/topmindspace/topmind/releases) 中的 `topmind-clip-extension-<ver>.zip`
+2. 解压到本地任意目录
+3. Chrome / Edge → `chrome://extensions` → 开发者模式 → **加载已解压的扩展** → 选解压目录
+
+### 升级
+
+1. 下载新版 zip，解压覆盖本地扩展目录（或解压到新目录）
+2. 在 `chrome://extensions` 点该扩展的 **重新加载**
+3. Token / 工作区目录授权一般会保留；若 Bridge 连不上，到选项页重新粘贴 Token 并测试
+
+### 开发安装
+
+1. Chrome / Edge → `chrome://extensions` → 开发者模式 → **加载已解压的扩展** → 选 monorepo 内 `browser-extension/`  
 2. 打开工具栏扩展：未配置时会进入 **Setup 引导**  
 3. 在扩展 **选项** 配置其一或两者：  
    - **Bridge**：Desktop 设置 → 通用 → 浏览器剪藏 → 启用 → 复制 Token → 粘贴到扩展并测试  

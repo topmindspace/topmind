@@ -319,10 +319,14 @@ export const AiService = {
       });
     }
 
-    // Prefer per-call writebackMode (AI panel badge) over saved settings.
-    const effectiveMode = writebackMode || settings?.writebackMode || "auto";
+    // Per-call writebackMode (AI panel badge) only — workspace truth is topmind.yaml.
+    // Do not prefer app-settings as a second source of truth for durable writes.
+    const effectiveMode =
+      writebackMode === "confirm" || writebackMode === "auto" ? writebackMode : undefined;
     const toolCtx = {
       ...c,
+      explicitWritebackMode: effectiveMode,
+      // Clear app-settings writeback so tools resolve from topmind.yaml when no override
       appSettings: { ...settings, writebackMode: effectiveMode },
     };
 
@@ -364,7 +368,8 @@ export const AiService = {
       workspaceContext: c.workspaceRoot,
       topicId,
       mountedFiles: ctxFiles,
-      writebackMode: effectiveMode,
+      // Prompt description: explicit mode or "auto" label (actual writes still honor contract)
+      writebackMode: effectiveMode || "auto",
       toolNames,
       skillsEnabled,
       enabledSkillIds: settings?.ai?.enabledSkillIds || null,

@@ -30,6 +30,11 @@ async function main() {
       "# 2026-validate\n",
       "utf8",
     );
+    // Kernel single-truth: clean engine doctor fixture must include valid v4 contract
+    const { writeContract, buildDefaultContract } = await import(
+      path.join(repoRoot, "lib", "contract-engine.mjs")
+    );
+    writeContract(workspaceRoot, buildDefaultContract());
 
     const code = await new Promise((resolve, reject) => {
       const child = spawn(

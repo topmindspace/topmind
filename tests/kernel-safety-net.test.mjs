@@ -180,7 +180,8 @@ describe("contract-engine migration & validation", () => {
       );
       const contract = loadContract(ws);
       assert.equal(contract.workspace.template, "balanced");
-      assert.equal(contract.template, "balanced");
+      // loadContract() returns clean v4 — flat alias NOT injected (use normalizeConfig for that)
+      assert.equal(contract.template, undefined);
       assert.equal(contract.contract_version, CONTRACT_VERSION);
     } finally {
       fs.rmSync(ws, { recursive: true, force: true });
@@ -204,6 +205,25 @@ describe("contract-engine migration & validation", () => {
     const r = validateContract(bad);
     assert.equal(r.valid, false);
     assert.equal(r.errors.length, 2);
+  });
+
+  it("loadContract result passes validateContract (no false alias errors)", () => {
+    // Regression: loadContract() used to inject v3 flat aliases
+    // (categoryExtensions/categoryOverrides/template/categorySeparator) as
+    // top-level keys, which validateContract() would flag as "unknown".
+    const ws = fs.mkdtempSync(path.join(os.tmpdir(), "topmind-validate-"));
+    try {
+      fs.writeFileSync(
+        path.join(ws, "topmind.yaml"),
+        "contract_version: 4\nworkspace:\n  template: stream\n  category_separator: \"-\"\ncategories:\n  extensions: {}\n  overrides: {}\n",
+        "utf8",
+      );
+      const contract = loadContract(ws);
+      const result = validateContract(contract);
+      assert.equal(result.valid, true, `Expected valid, got errors: ${result.errors.join("; ")}`);
+    } finally {
+      fs.rmSync(ws, { recursive: true, force: true });
+    }
   });
 
   it("resolveProtection: .topmind/ machine state is always open", () => {

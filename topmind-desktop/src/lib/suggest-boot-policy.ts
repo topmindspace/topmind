@@ -23,6 +23,7 @@ export type SuggestRefreshDecision = {
   reason:
     | "auto_prepare_off"
     | "soft_throttled"
+    | "agent_busy"
     | "cold_or_soft_refresh"
     | "force_refresh";
 };
@@ -39,6 +40,11 @@ export function decideSuggestRefresh(opts: {
   everLoaded: boolean;
   itemCount: number;
   throttleMs?: number;
+  /**
+   * Agent stream in progress — soft/auto ticks skip kernel suggest (token + UI).
+   * Force (user 💡 refresh) still runs.
+   */
+  agentStreaming?: boolean;
 }): SuggestRefreshDecision {
   const force = opts.force === true;
   const now = opts.now ?? Date.now();
@@ -74,6 +80,16 @@ export function decideSuggestRefresh(opts: {
       runPendingWrites,
       soft: false,
       reason: "force_refresh",
+    };
+  }
+
+  // Soft path yields to user-primary agent stream (poll / boot / events)
+  if (opts.agentStreaming === true) {
+    return {
+      runKernelSuggest: false,
+      runPendingWrites,
+      soft: true,
+      reason: "agent_busy",
     };
   }
 

@@ -76,6 +76,25 @@ describe("Desktop primary IA target", () => {
     assert.match(en.primaryNav.stream, /Stream/i);
   });
 
+  it("capture vocabulary: 记下=Log it · 记一下=Note it (no Save / Quick Capture masquerade)", () => {
+    const zhWs = JSON.parse(read("src/locales/zh-CN/workspace.json"));
+    const enWs = JSON.parse(read("src/locales/en-US/workspace.json"));
+    const zhShell = JSON.parse(read("src/locales/zh-CN/shell.json"));
+    const enShell = JSON.parse(read("src/locales/en-US/shell.json"));
+    // Stream compose = 记下 / Log it (not full capture)
+    assert.equal(zhWs.streamDetail.composeSubmit, "记下");
+    assert.match(enWs.streamDetail.composeSubmit, /Log it/i);
+    assert.doesNotMatch(enWs.streamDetail.composeSubmit, /^Save$/i);
+    // URL CTA opens full capture under product name 记一下 / Note it
+    assert.equal(zhWs.streamDetail.composeUrlAction, "记一下");
+    assert.match(enWs.streamDetail.composeUrlAction, /Note it/i);
+    assert.doesNotMatch(enWs.streamDetail.composeUrlAction, /Quick Capture/i);
+    assert.doesNotMatch(zhWs.streamDetail.composeUrlAction, /快速捕获/);
+    // Title-bar capture
+    assert.equal(zhShell.titleBar.capture, "记一下");
+    assert.match(enShell.titleBar.capture, /Note it/i);
+  });
+
   it("path ops durable writes go through kernelDurableWrite", () => {
     const src = read("electron/lib/workspace-path-ops.mjs");
     assert.match(src, /kernelDurableWrite/);

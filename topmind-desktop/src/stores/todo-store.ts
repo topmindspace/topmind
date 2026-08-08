@@ -223,9 +223,28 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
 
   maintain: async (opts?: { force?: boolean }) => {
     if (get().maintaining === "maintaining") return;
-    set({ maintaining: "maintaining", maintainMessage: null });
+    // Mark busy immediately so StatusBar shows todo chip while waiting on background lane
+    set({
+      maintaining: "maintaining",
+      maintainMessage: null,
+      maintainReason: null,
+    });
     try {
-      const result = await api.todo.maintain(opts);
+      // Serialize with suggest prepare (and other background AI) — not with agent stream
+      const { enqueueBackgroundAi, getBackgroundAiSnapshot } = await import(
+        "../lib/ai-background-lane"
+      );
+      const snap = getBackgroundAiSnapshot();
+      if (snap.busy && snap.active && snap.active !== "todo") {
+        set({ maintainMessage: i18n.t("shell:todo.maintainQueued") });
+      }
+      const result = await enqueueBackgroundAi("todo", async () => {
+        // Lane slot acquired — drop "queued" banner so StatusBar/body show real maintain work
+        if (get().maintainMessage) {
+          set({ maintainMessage: null });
+        }
+        return api.todo.maintain(opts);
+      });
       if (result.ok) {
         await get().refresh();
         const parts: string[] = [];

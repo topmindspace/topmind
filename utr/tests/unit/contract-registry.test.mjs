@@ -13,7 +13,7 @@ let registry;
 test("loadContractRegistry loads only category-first tool domains", async () => {
   registry = await loadContractRegistry();
   assert.equal(registry.toolCount, 8);
-  assert.equal(registry.commandCount, 25);
+  assert.equal(registry.commandCount, 27);
   assert.deepEqual(Array.from(registry.byKind.keys()).sort(), CATEGORY_DOMAINS);
 });
 
@@ -140,9 +140,9 @@ test("primary MCP surface is smaller than full registry (agent-friendly)", () =>
   const all = listCommands(registry);
   const primary = all.filter((c) => c.exposure === "primary" || c.exposure === "danger");
   const advanced = all.filter((c) => c.exposure === "advanced");
-  assert.equal(all.length, 25);
-  assert.equal(primary.length, 17);
-  assert.equal(advanced.length, 8);
+  assert.equal(all.length, 27);
+  assert.equal(primary.length, 18);
+  assert.equal(advanced.length, 9);
   assert.ok(primary.some((c) => c.command === "capture-note"));
   assert.ok(advanced.some((c) => c.command === "migrate-v4"));
   assert.throws(() => getCommand(registry, "workspace-transform", "normalize-topic"), /未知|Unknown|不存在|command/iu);

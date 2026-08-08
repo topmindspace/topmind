@@ -19,6 +19,10 @@ on:
         description: "Simulate pack_extension=true"
         type: boolean
         default: true
+      pack_obsidian:
+        description: "Simulate pack_obsidian=true"
+        type: boolean
+        default: true
       pack_desktop:
         description: "Simulate pack_desktop=true"
         type: boolean
@@ -46,13 +50,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          SKILLS=false; EXTENSION=false; DESKTOP=false; TAG=""
+          SKILLS=false; EXTENSION=false; DESKTOP=false; OBSIDIAN=false; TAG=""
           CREATE_RELEASE=false
           NEEDS_VALIDATION=false
 
           # No tag push in dispatch — only simulate dispatch branch.
           INPUT_SKILLS="${{ inputs.pack_skills }}"
           INPUT_EXTENSION="${{ inputs.pack_extension }}"
+          INPUT_OBSIDIAN="${{ inputs.pack_obsidian }}"
           INPUT_DESKTOP="${{ inputs.pack_desktop }}"
           INPUT_TAG="${{ inputs.release_tag }}"
           INPUT_TAG="${INPUT_TAG#refs/tags/}"
@@ -66,6 +71,7 @@ jobs:
           TAG="${INPUT_TAG}"
           SKILLS="${INPUT_SKILLS}"
           EXTENSION="${INPUT_EXTENSION}"
+          OBSIDIAN="${INPUT_OBSIDIAN}"
           DESKTOP="${INPUT_DESKTOP}"
 
           {
@@ -75,6 +81,7 @@ jobs:
             echo "|---------|-------|"
             echo "| Skills | ${SKILLS} |"
             echo "| Extension | ${EXTENSION} |"
+            echo "| Obsidian | ${OBSIDIAN} |"
             echo "| Desktop | ${DESKTOP} |"
             echo "| Tag | \`${TAG}\` |"
             echo ""

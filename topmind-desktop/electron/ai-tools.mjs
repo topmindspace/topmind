@@ -42,7 +42,11 @@ function summarizeForModel(value, max = 6000) {
  */
 export async function buildDesktopAiTools(ctx) {
   try {
-    const writebackMode = ctx.appSettings?.writebackMode || "auto";
+    // Workspace topmind.yaml is truth; per-call explicit only (never app-settings fork)
+    const { resolveWorkspaceWritebackMode } = await import("./lib/kernel-api.mjs");
+    const writebackMode = await resolveWorkspaceWritebackMode(ctx, {
+      writebackMode: ctx.explicitWritebackMode,
+    });
     // Always expose write tools; confirm mode requires confirmed:true via write gate pending
     const allowWrite = true;
     const needsUserConfirm = writebackMode === "confirm";

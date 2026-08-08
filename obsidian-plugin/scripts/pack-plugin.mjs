@@ -9,15 +9,18 @@
 // Usage: npm run pack
 
 import { existsSync, readdirSync, statSync, readFileSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile, copyFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { deflateRawSync } from "node:zlib";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
+const repoRoot = path.resolve(root, "..");
 const distDir = path.join(root, "dist");
 const releaseDir = path.join(root, "release");
+const monorepoDist = path.join(repoRoot, "dist");
 
 // ── Minimal ZIP writer (cross-platform, no native deps) ───────────────────
 // ZIP format spec: https://pkware.cachefly.net/webdoc/casestudy/casestudy.html
@@ -172,7 +175,8 @@ async function main() {
     }
   }
 
-  const outputPath = path.join(releaseDir, `topmind-obsidian-${version}.zip`);
+  const zipName = `topmind-obsidian-${version}.zip`;
+  const outputPath = path.join(releaseDir, zipName);
 
   console.log(`[pack] Files to include:`);
   for (const f of files) {
@@ -188,9 +192,21 @@ async function main() {
   const zipBuffer = createZip(zipFiles);
   await writeFile(outputPath, zipBuffer);
 
+  // Mirror to monorepo dist/ (same as skills/extension) + SHA256SUMS for release upload
+  if (!existsSync(monorepoDist)) {
+    await mkdir(monorepoDist, { recursive: true });
+  }
+  const monorepoZip = path.join(monorepoDist, zipName);
+  await copyFile(outputPath, monorepoZip);
+  const sha = createHash("sha256").update(zipBuffer).digest("hex");
+  const sumsBody = `${sha}  ${zipName}\n`;
+  await writeFile(path.join(releaseDir, `topmind-obsidian-${version}.SHA256SUMS`), sumsBody);
+  await writeFile(path.join(monorepoDist, `topmind-obsidian-${version}.SHA256SUMS`), sumsBody);
+
   console.log(`[pack] ✓ Created ${outputPath}`);
+  console.log(`[pack] ✓ Mirrored ${monorepoZip}`);
   console.log(`[pack] Size: ${Math.ceil(zipBuffer.length / 1024)}KB`);
-  console.log(`[pack] Install: copy dist/* to <vault>/.obsidian/plugins/topmind-stream/`);
+  console.log(`[pack] Install: unzip into <vault>/.obsidian/plugins/topmind-stream/`);
 }
 
 main().catch((err) => {

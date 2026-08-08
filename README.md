@@ -53,6 +53,23 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Opti
    ```
 2. 详细指南：[`skills/INSTALL.md`](./skills/INSTALL.md) · [`SKILL-ARCHITECTURE.md`](./SKILL-ARCHITECTURE.md)
 
+### ✂️ 场景 4：浏览器剪藏 (Clip Extension)
+1. 从 [Releases](https://github.com/topmindspace/topmind/releases) 下载 `topmind-clip-extension-<ver>.zip`，解压后在 Chrome/Edge 以「已解压扩展」加载。
+2. 配置 Desktop Clip Bridge（推荐）或本机工作区目录直写。
+3. 详细指南：[`browser-extension/README.md`](./browser-extension/README.md)
+
+### 🔄 升级怎么做
+
+| 表面 | 升级路径 |
+|------|----------|
+| **Desktop** | Releases 新安装包覆盖安装，或应用内「检查更新」；工作区文件保留 |
+| **Obsidian** | 新 zip 覆盖 `plugins/topmind-stream/` / BRAT 更新；Vault 内容保留 |
+| **Skills** | `npm run skills:update` 或 `npx skills update -g -y`（见 [`skills/INSTALL.md`](./skills/INSTALL.md)） |
+| **Clip** | 新 zip 覆盖扩展目录后在 `chrome://extensions` 重新加载 |
+| **UTR** | 随 Desktop 安装包；源码用仓库 `utr/` |
+
+完整产品标签 **`v*`** 会打包 Skills + Extension + **Obsidian** + Desktop；表面标签 `skills-v*` / `extension-v*` / `obsidian-v*` / `desktop-v*` 只构建对应表面。详见 [`docs/PACKAGING.md`](./docs/PACKAGING.md)。
+
 ---
 
 ## 🧩 产品入口矩阵（四体核心 + Clip 分发）
@@ -201,7 +218,7 @@ npm run skills:test
 
 # UTR 工具链诊断（可选 CLI / MCP）
 npm run utr:doctor
-npm run utr:list            # 查看当前 UTR 动作域和命令（8 域 / 25 命令）
+npm run utr:list            # 查看当前 UTR 动作域和命令（8 域 / 27 命令）
 
 # 启动 Obsidian 插件开发环境
 npm run obsidian:dev

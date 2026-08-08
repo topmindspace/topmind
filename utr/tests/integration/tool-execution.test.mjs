@@ -109,7 +109,7 @@ test("contract registry loads the eight category-first tool domains", () => {
   assert.ok(registry.byKind.has("memory"));
   assert.ok(registry.byKind.has("lifecycle"));
   assert.ok(registry.byKind.has("derived"));
-  assert.equal(registry.commandCount, 25);
+  assert.equal(registry.commandCount, 27);
 });
 
 test("executeTool blocks workspace-write capture-note without manual review in confirm mode", async () => {

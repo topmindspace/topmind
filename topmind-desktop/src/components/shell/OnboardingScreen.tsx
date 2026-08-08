@@ -133,14 +133,51 @@ export function OnboardingScreen({
     if (launchReason === "closed") return t("shell:onboarding.statusClosed");
     if (launchReason === "invalid-workspace") return t("shell:onboarding.statusInvalid");
     if (launchReason === "no-workspace") return t("shell:onboarding.statusNoWorkspace");
+    if (launchReason === "contract-unrepairable") {
+      return t("shell:onboarding.statusContractUnrepairable", {
+        defaultValue:
+          "工作区 topmind.yaml 损坏且无法自动修复。可备份后重建契约（不删除笔记内容）。",
+      });
+    }
     return null;
   }, [launchReason, t]);
+
+  const handleReseedContract = async () => {
+    setBusy("reseed");
+    setError(null);
+    try {
+      const res = await api.sys.reseedWorkspaceContract();
+      if (!res.ok) {
+        setError(
+          (res.errors && res.errors[0]) ||
+            t("shell:onboarding.reseedFailed", { defaultValue: "重建契约失败" }),
+        );
+        setBusy(null);
+        return;
+      }
+      onWorkspaceSwitched();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setBusy(null);
+    }
+  };
 
   const handleSwitch = async (rootPath: string) => {
     setBusy(rootPath);
     setError(null);
     try {
-      await api.sys.switchWorkspace(rootPath, { createIfMissing: false });
+      const res = await api.sys.switchWorkspace(rootPath, { createIfMissing: false });
+      if (res.ok === false && res.launchStatus?.reason === "contract-unrepairable") {
+        setError(
+          res.launchStatus.errorMessage ||
+            t("shell:onboarding.statusContractUnrepairable", {
+              defaultValue:
+                "工作区 topmind.yaml 损坏且无法自动修复。可备份后重建契约（不删除笔记内容）。",
+            }),
+        );
+        setBusy(null);
+        return;
+      }
       // Keep busy=true — parent shows full-screen loading until reload
       onWorkspaceSwitched();
     } catch (e) {
@@ -277,6 +314,32 @@ export function OnboardingScreen({
             </p>
             {statusHint ? (
               <p className="mt-2 text-3xs text-text-quaternary">{statusHint}</p>
+            ) : null}
+            {launchReason === "contract-unrepairable" ? (
+              <div className="mt-3 flex flex-col items-center gap-2">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="h-8 text-3xs"
+                  disabled={!!busy}
+                  onClick={() => void handleReseedContract()}
+                  data-reseed-contract
+                >
+                  {busy === "reseed" ? (
+                    <Loader2 size={ICON.xs} className="animate-spin" aria-hidden />
+                  ) : (
+                    <AlertTriangle size={ICON.xs} aria-hidden />
+                  )}
+                  {t("shell:onboarding.reseedContract", {
+                    defaultValue: "备份并重建 topmind.yaml",
+                  })}
+                </Button>
+                <p className="max-w-sm text-center text-3xs text-text-quaternary">
+                  {t("shell:onboarding.reseedContractHint", {
+                    defaultValue: "坏文件会备份到归档/contract 或 .topmind/contract-backups；笔记目录不会删除。",
+                  })}
+                </p>
+              </div>
             ) : null}
           </div>
 

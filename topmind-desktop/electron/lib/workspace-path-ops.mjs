@@ -154,7 +154,7 @@ export const pathOps = {
         confirmed: writeActor === "user" ? true : confirmed === true,
         operation: "update",
         frontmatter: merged,
-        writebackMode: ctx.appSettings?.writebackMode,
+        writebackMode: ctx.explicitWritebackMode,
       },
     );
     if (!ev.pending && !ev.needsConfirm) bumpWorkspaceIndex(relativePath);
@@ -282,7 +282,7 @@ export const pathOps = {
         actor: writeActor,
         confirmed: writeActor === "user" ? true : confirmed === true,
         operation: "edit",
-        writebackMode: ctx.appSettings?.writebackMode,
+        writebackMode: ctx.explicitWritebackMode,
       },
     );
     if (ev.pending || ev.needsConfirm) {
@@ -343,7 +343,7 @@ export const pathOps = {
         // Gate owns high-impact backup/receipt (locked overwrite only).
         // Explicit skipBackup only when caller forces skip (escape hatch).
         ...(explicitSkipBackup === true ? { skipBackup: true, skipReceipt: true } : {}),
-        writebackMode: ctx.appSettings?.writebackMode,
+        writebackMode: ctx.explicitWritebackMode,
       },
     );
     if (!ev.pending && !ev.needsConfirm) {
@@ -628,7 +628,7 @@ export const pathOps = {
         frontmatter: fm,
         // Gate owns high-impact backup/receipt; explicit skip only when forced.
         ...(explicitSkipBackup === true ? { skipBackup: true, skipReceipt: true } : {}),
-        writebackMode: ctx.appSettings?.writebackMode,
+        writebackMode: ctx.explicitWritebackMode,
       },
     );
     if (!ev.pending && !ev.needsConfirm) bumpWorkspaceIndex(relativePath);
@@ -639,8 +639,11 @@ export const pathOps = {
     S(category, "category"); S(name, "name");
     if (!/^\d{4}-.+/u.test(name)) throw new Error("专题名需以 YYYY- 开头，如 2026-示例研究");
 
-    // Respect confirm gate: AI-created topics need user confirmation in confirm mode
-    const writebackMode = ctx.appSettings?.writebackMode;
+    // Respect confirm gate from workspace contract (not app-settings fork)
+    const { resolveWorkspaceWritebackMode } = await import("./kernel-api.mjs");
+    const writebackMode = await resolveWorkspaceWritebackMode(ctx, {
+      writebackMode: ctx.explicitWritebackMode,
+    });
     if (writebackMode === "confirm" && !confirmed && actor === "ai") {
       const topicId = buildTopicId(category, name);
       return {
@@ -825,7 +828,7 @@ export const pathOps = {
         actor: writeActor,
         confirmed: writeActor === "user" ? true : confirmed === true,
         operation: "update",
-        writebackMode: ctx.appSettings?.writebackMode,
+        writebackMode: ctx.explicitWritebackMode,
       },
     );
     if (!ev.pending && !ev.needsConfirm) bumpWorkspaceIndex(relativePath);
@@ -993,7 +996,7 @@ export const pathOps = {
         confirmed: writeActor === "user" ? true : confirmed === true,
         operation: "update",
         role: "memory",
-        writebackMode: ctx.appSettings?.writebackMode,
+        writebackMode: ctx.explicitWritebackMode,
       },
     );
     if (!ev.pending && !ev.needsConfirm) bumpWorkspaceIndex(relativePath);

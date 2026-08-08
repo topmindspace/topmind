@@ -15,6 +15,10 @@
 
 import type { TopmindSettings } from "../types";
 import { AI_PROVIDER_PRESETS } from "../constants";
+import { isTransientError } from "../utils";
+
+// Re-export for callers that previously imported from this module
+export { isTransientError };
 
 export interface AiProvider {
   generate(prompt: string, context?: unknown): Promise<string>;
@@ -184,7 +188,6 @@ async function fetchWithRetry(
   init: { method: string; headers: Record<string, string>; body: string },
   operation: string,
 ): Promise<Record<string, unknown>> {
-  const startTime = Date.now();
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -212,11 +215,8 @@ async function fetchWithRetry(
         throw new Error(`AI request failed (${res.status}): ${errText}`);
       }
 
-      const data = await res.json();
-      console.debug(
-        `[topmind] AI ${operation} done: attempt=${attempt + 1} ${Date.now() - startTime}ms`,
-      );
-      return data as Record<string, unknown>;
+      // Success path: no console noise (Obsidian plugin guidelines).
+      return (await res.json()) as Record<string, unknown>;
     } catch (err) {
       // Retry on network errors
       if (attempt < MAX_RETRIES && isTransientError(err)) {
@@ -224,22 +224,13 @@ async function fetchWithRetry(
         await sleep(RETRY_BASE_DELAY * Math.pow(2, attempt));
         continue;
       }
+      // Real failures only — avoid success-path console spam
       console.error(`[topmind] AI ${operation} failed:`, err);
       throw err;
     }
   }
 
   throw lastError || new Error("AI request failed after retries");
-}
-
-function isTransientError(err: unknown): boolean {
-  if (err instanceof TypeError) return true; // network error
-  if (err instanceof Error) {
-    const msg = err.message.toLowerCase();
-    // Check for transient error indicators including abort/timeout
-    return msg.includes("fetch") || msg.includes("network") || msg.includes("timeout") || msg.includes("abort");
-  }
-  return false;
 }
 
 function sleep(ms: number): Promise<void> {

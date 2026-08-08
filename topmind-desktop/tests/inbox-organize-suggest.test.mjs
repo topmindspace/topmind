@@ -91,12 +91,12 @@ test("i18n keys exist for inbox_organize chip in zh-CN and en-US", () => {
   assert.equal(typeof en.ai.kindChipOrganize, "string", "en missing kindChipOrganize");
 });
 
-test("StatusBar tooltips have duration/expectation hints (zh + en)", () => {
+test("StatusBar tooltips have action/expectation hints (zh + en)", () => {
   const zh = JSON.parse(read("src/locales/zh-CN/shell.json"));
   const en = JSON.parse(read("src/locales/en-US/shell.json"));
-  // Todo tip should mention time expectation
-  assert.match(zh.statusBar.todoMaintainingTip, /秒|数/);
-  assert.match(en.statusBar.todoMaintainingTip, /second|few/i);
+  // Todo tip: open personal list (clickable chip) — not only duration prose
+  assert.match(zh.statusBar.todoMaintainingTip, /点此|打开|清单/);
+  assert.match(en.statusBar.todoMaintainingTip, /click|open|list/i);
   // Suggest tip should mention "click to view"
   assert.match(zh.statusBar.suggestLoadingTip, /查看|点此/);
   assert.match(en.statusBar.suggestLoadingTip, /view|click/i);

@@ -120,9 +120,12 @@ export function StreamView({ onNavigate }: StreamViewProps) {
   }, []);
 
   const handleMaintainTodos = useCallback(() => {
-    // Open todo panel so maintain results + force-retry are visible
+    // Open todo panel so maintain results + progressive force-retry are visible.
+    // First click respects skip hash; if last result was already-processed, re-click forces.
     emitLocal("todo:open-popover");
-    void useTodoStore.getState().maintain();
+    const st = useTodoStore.getState();
+    const force = st.maintainReason === "all-periods-processed";
+    void st.maintain(force ? { force: true } : undefined);
   }, []);
 
   const dayGroups = useMemo(

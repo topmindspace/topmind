@@ -14,7 +14,8 @@
 | AI 分层（会话 / 行内 / 建议规则 / AI 建议 / ops） | **健康** | 与 Reset §1 AI 能力分层一致；无第二写闸 |
 | 写回 + confirm | **健康** | 耐久 AI 写经 writeback；high-impact 经 `suggestion-gate` |
 | activity-window 共用 | **健康** | suggest / todo / ai-ops 同一窗口语义 |
-| fingerprint / force / hash | **健康** | suggest 指纹 + todo `processedHashes` + ops force |
+| fingerprint / force / hash | **健康** | suggest 指纹 + todo `processedHashes`（**prompt corpus**＝周期∪活动 extras，非 raw-only）+ ops force |
+| 多路 AI 并发（agent · suggest · todo） | **健康** | background lane 串行 prep；agent 独立；soft `agent_busy`；StatusBar multiActive |
 | sanitize / 空 AI 诚实 | **健康** | `ai-content-sanitize` + 失败不写 / reason 码 |
 | Agent 人设 + 渐进上下文 | **健康** | skill-first prompts · context-loader · session compact 240K/60 |
 | **todo complete 匹配** | **有缺口 → fix** | 拉丁词碎片回退可误标完成 |
@@ -35,7 +36,7 @@
 | Agent 会话 `ai.invoke` | Desktop `ai-service` + `ai-prompts` + tools | tool → WorkspaceService → writeback | Done |
 | 行内 AI | `inline-complete-prompt` + `sanitizeInlineAiResult` | 回填编辑器；落盘走 save | Done |
 | 建议条规则 + AI | `lib/suggest-engine` + ActionStore | apply + gate | Done |
-| todo maintain / extract | `lib/todo-engine` + TodoStore | executeWrite actor ai/user | Done（F1 匹配） |
+| todo maintain / extract | `lib/todo-engine` + TodoStore | executeWrite actor ai/user | Done（corpus hash · force · extras 排除 memory/todo · Desktop progressive force 再点 ✨） |
 | memory_organize / topic_classify | `lib/ai-operation-engine` | writeback | Done |
 | activity-window | `lib/activity-window` | 只读窗口 | Done |
 | fingerprint | `lib/suggest-fingerprint` | 系统平面 | Done |

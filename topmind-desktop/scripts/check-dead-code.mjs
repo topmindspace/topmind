@@ -285,6 +285,22 @@ const DEAD_PATTERNS = [
     ],
     allowIn: ["scripts/check-dead-code.mjs"],
   },
+  {
+    id: "contract-engine-no-v3-alias-injection",
+    description:
+      "loadContract() must return clean v4 (only VALID_CONTRACT_TOP_KEYS) — no v3 flat alias injection (categoryExtensions/categoryOverrides/template/categorySeparator as top-level keys breaks validateContract)",
+    regex: /contract\.(categoryExtensions|categoryOverrides|template|categorySeparator)\s*=/u,
+    scope: ["../lib/contract-engine.mjs"],
+    allowIn: ["scripts/check-dead-code.mjs"],
+  },
+  {
+    id: "desktop-no-private-contract-seed-blob",
+    description:
+      "Desktop must not reintroduce private topmind.yaml seed blobs — contract lifecycle is Kernel ensureContract/writeContract only",
+    regex: /contract_version:\s*4[\s\S]{0,200}categories:\s*\{\s*extensions:\s*\{\}/u,
+    scope: ["electron/lib/workspace-home.mjs"],
+    allowIn: ["scripts/check-dead-code.mjs"],
+  },
 ];
 
 /**

@@ -1,5 +1,6 @@
 /**
- * Product path: Desktop appSettings.writebackMode=confirm → AI save pending → accept writes.
+ * Product path: workspace topmind.yaml writeback.mode=confirm → AI save pending → accept writes.
+ * (writeback is workspace truth — not app-settings fork.)
  * Drives real kernelDurableWrite + pathOps.savePath/editPath (not a reimplementation).
  */
 import { describe, it, before, after } from "node:test";
@@ -25,10 +26,10 @@ before(async () => {
   ws = path.join(tmp, "ws");
   fs.mkdirSync(path.join(ws, "10-动态"), { recursive: true });
   fs.mkdirSync(path.join(ws, "99-归档", "backups"), { recursive: true });
-  // Contract default is auto — UI must override via appSettings
+  // Workspace contract is the writeback truth
   fs.writeFileSync(
     path.join(ws, "topmind.yaml"),
-    "contract_version: 4\nworkspace:\n  template: stream\nwriteback:\n  mode: auto\n  backup_to: 99-归档/backups\n  receipts: 99-归档/receipts\n",
+    "contract_version: 4\nworkspace:\n  template: stream\nwriteback:\n  mode: confirm\n  backup_to: 99-归档/backups\n  receipts: 99-归档/receipts\n",
     "utf8",
   );
   const home = await import(pathToFileURL(path.join(electronLib, "workspace-home.mjs")).href);
@@ -42,9 +43,10 @@ before(async () => {
   pending = await import(pathToFileURL(path.join(electronLib, "pending-writes.mjs")).href);
 
   // Desktop path ops require WorkspaceContext { engineRoot, userWorkspaceRoot }
+  // appSettings.writebackMode intentionally auto — must NOT override workspace confirm
   ctx = {
     workspaceRoot: { engineRoot: root, userWorkspaceRoot: ws },
-    appSettings: { writebackMode: "confirm" },
+    appSettings: { writebackMode: "auto" },
     engineRoot: root,
   };
 });
@@ -57,8 +59,8 @@ after(() => {
   }
 });
 
-describe("Desktop settings writebackMode drives Kernel gate", () => {
-  it("yaml auto + appSettings confirm + AI unconfirmed → pending, no disk write", async () => {
+describe("Workspace writeback.mode drives Kernel gate (not app-settings)", () => {
+  it("yaml confirm + appSettings auto + AI unconfirmed → pending, no disk write", async () => {
     kernelApi.resetKernelApiCache();
     const rel = "10-动态/confirm-ai.md";
     const content = "---\ntitle: t\nprotection: open\n---\n\nhello\n";
@@ -122,12 +124,20 @@ describe("Desktop settings writebackMode drives Kernel gate", () => {
   });
 
   it("executeWrite with writebackModeOverride=confirm and yaml auto yields pending", async () => {
+    // temp auto contract for override-only case
+    const autoWs = path.join(tmp, "auto-ws");
+    fs.mkdirSync(path.join(autoWs, "10-动态"), { recursive: true });
+    fs.writeFileSync(
+      path.join(autoWs, "topmind.yaml"),
+      "contract_version: 4\nwriteback:\n  mode: auto\n  backup_to: 99-归档/backups\n  receipts: 99-归档/receipts\n",
+      "utf8",
+    );
     const { executeWrite } = await import(pathToFileURL(path.join(root, "lib/writeback-engine.mjs")).href);
-    const target = path.join(ws, "10-动态/override.md");
+    const target = path.join(autoWs, "10-动态/override.md");
     const pendingEv = executeWrite({
       targetPath: target,
       content: "---\ntitle: o\n---\n\nx\n",
-      workspaceRoot: ws,
+      workspaceRoot: autoWs,
       actor: "ai",
       confirmed: false,
       writebackModeOverride: "confirm",
@@ -245,5 +255,36 @@ describe("Desktop settings writebackMode drives Kernel gate", () => {
       ws,
     );
     assert.equal(again.previewContent, body);
+  });
+
+  it("explicitWritebackMode session override can force confirm over yaml auto", async () => {
+    const autoWs = path.join(tmp, "explicit-ws");
+    fs.mkdirSync(path.join(autoWs, "10-动态"), { recursive: true });
+    fs.mkdirSync(path.join(autoWs, "99-归档", "backups"), { recursive: true });
+    fs.writeFileSync(
+      path.join(autoWs, "topmind.yaml"),
+      "contract_version: 4\nwriteback:\n  mode: auto\n  backup_to: 99-归档/backups\n  receipts: 99-归档/receipts\n",
+      "utf8",
+    );
+    kernelApi.resetKernelApiCache();
+    const localCtx = {
+      workspaceRoot: { engineRoot: root, userWorkspaceRoot: autoWs },
+      appSettings: { writebackMode: "auto" },
+      explicitWritebackMode: "confirm",
+      engineRoot: root,
+    };
+    const rel = "10-动态/explicit.md";
+    const ev = await pathOps.savePath(
+      {
+        relativePath: rel,
+        content: "---\ntitle: x\n---\n\nbody\n",
+        actor: "ai",
+        confirmed: false,
+        writebackMode: "confirm",
+      },
+      localCtx,
+    );
+    assert.equal(ev.pending || ev.needsConfirm, true, JSON.stringify(ev));
+    assert.ok(!fs.existsSync(path.join(autoWs, rel)));
   });
 });

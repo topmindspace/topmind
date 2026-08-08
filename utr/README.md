@@ -27,7 +27,7 @@ workspace-read · workspace-write · workspace-transform · workspace-maintain
 contract · memory · lifecycle · derived
 ```
 
-**8 域 / 25 命令** · MCP 默认 **17**（primary + danger）· advanced 8 折叠（`topmind_MCP_ALL=1` 全开）
+**8 域 / 27 命令** · MCP 默认 **18**（primary + danger）· advanced 8 折叠（`topmind_MCP_ALL=1` 全开）
 
 | Kind | Primary / Danger | Advanced |
 |------|------------------|----------|

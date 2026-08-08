@@ -34,7 +34,7 @@
 | **AI 建议** | 工作区整理候选 · 确认后写入 | **标题栏灯泡** + 有条目时画布顶 strip → **`SuggestPopover` 确认面** | 嵌进 Stream 卡片；仅藏在 AI 聊天轨里才可操作；空态永久占位条 |
 | **增补** | 对已有动态条目续写（评论感 · 同文件） | 动态卡片上的增补入口 + 续写徽章 | 平行评论 DB / 新真源 |
 
-**动态页主路径**：输入 →（可选润色）→ **记下**；对旧条 **增补**；链接/文档走顶栏「记一下」。页头 **AI 待办 · 整理 · 刷新**（**个人清单不在页头重复**——唯一入口是标题栏 ListTodo / ⌘⇧T）。  
+**动态页主路径**：输入 →（可选润色）→ **记下**（EN: Log it）；对旧条 **增补**；链接/文档走顶栏「记一下」（EN: Note it）。链接检测 CTA 亦用「记一下」而非「快速捕获」。页头 **AI 待办 · 整理 · 刷新**（**个人清单不在页头重复**——唯一入口是标题栏 ListTodo / ⌘⇧T；状态栏 Todo busy 可点开同一弹层）。  
 **统一建议入口（全局）**：标题栏 💡（始终可点）+ 有 `items` 时画布顶 `SuggestEntryStrip`（**count=0 自动隐藏**）；点击 → `openSuggestSurface()` → **`SuggestPopover`**。  
 **唯一确认面**：`SuggestPopover`（接受 / 忽略 / 待确认写入）· 与 AI 聊天轨解耦；AI 轨 `ActionBar` 仅为计数跳转，不挂第二套完整列表。  
 **会话稳定**：软刷新 / 15s 轮询不得因 kernel 空 regenerate 清空已展示建议（`sessionSuggestionCache` + `mergeSuggestRefreshItems`）；dismiss/apply 仍可移除。  
@@ -69,8 +69,29 @@
 | **Zap** | 「记一下」完整捕获 | 用于 AI 润色 / 待办 |
 | **Sparkles** | AI 润色 · AI 待办 · 建议条 AI 动作 | 用于普通保存 |
 | **Send** | 「记下」写入周期本 | 与 Zap 混用为捕获 |
-| **ListTodo** | 标题栏个人待办清单 | 与 ActionBar 建议混称 |
+| **ListTodo** | 标题栏个人待办清单 · 状态栏「AI 整理待办中」chip（可点开清单） | 与 ActionBar 建议混称；**禁止**用于后台 Task 面板 |
+| **Loader2** | 后台任务 busy · AI 轨 TaskBadge · 通用 spinner | 与 ListTodo 混用表示个人清单 |
 | **Wand2** | 整理本周 / 确定性 reconcile | 与 AI 润色混用 |
+
+**捕获英文对译（强制）**：`记一下` = **Note it**（完整捕获）；`记下` = **Log it**（动态主区写入周期本）。禁止用 Save 冒充「记下」、用 Quick Capture 冒充「记一下」。
+
+### 0.0.3 多路 AI 并发（强制 · 安静诚实）
+
+| 路径 | 优先级 | 车道 | 用户提示 |
+|------|--------|------|----------|
+| **Agent 对话** `ai.invoke` | 用户主路径 | 独立（单 stream） | AI pill「工作中」；可取消 |
+| **行内 / 润色** `ai.complete` | 用户短路径 | 独立 | 专用 chip；离开页确认 |
+| **准备建议** | 后台 prep | **background lane**（串行） | 建议 chip · 可点开 SuggestPopover |
+| **AI 整理待办** | 后台 prep | **background lane**（串行） | 待办 chip · 可点开清单；排队时文案「排队等待…」 |
+| **引擎 Task** reconcile 等 | 后台 | TaskStore 队列 | Task chip → TaskPanel |
+
+**规则**
+
+1. **后台 prep 串行**（`ai-background-lane`）：suggest 与 todo maintain **不同时打 LLM**，防 token 踩踏与限流。  
+2. **Agent 不进 lane**：对话与 prep 可并行；软刷新建议在 **streaming 时跳过 kernel AI**（`agent_busy`），用户强制刷新 💡 仍执行。  
+3. **自动待办让路**：`autoMaintainTodos` 等待 agent 空闲 + suggest 非 loading（最多 ~45s）再跑。  
+4. **StatusBar**：同路径不双标；**多路径**时 `multiActive` + tip「同时进行：对话 · 准备建议…」；pill 可显示 `AI ×N`。  
+5. **禁止**静默改 locked / 未经确认的高影响批写（既有写闸）。
 
 | 原则 | 落地 |
 |------|------|
@@ -93,7 +114,7 @@
 | **TaskStore / TaskPanel** | 后台引擎任务（reconcile / ai_digest） | 运行时态 |
 
 - **存储**：`memory/todo.md` — 简洁 Markdown 清单（`- [ ]` / `- [x]`）；经 writeback-engine 写入（唯一写闸）
-- **AI 提取**：点 ✨ 按钮 → AI 分析**活动窗口**（近期动态 + 相关改动笔记）→ 提取可执行事项 → 去重后写入清单；标记 `source: ai` + `sourcePeriod`
+- **AI 提取 / 维护**：点 ✨ → AI 分析**活动窗口 prompt corpus**（周期正文 ∪ 折叠 extras；截断时优先保留 extras；排除 `memory/` 尤其 `memory/todo.md`）→ 提取/勾完/改写 → 去重后经 writeback 写入；`processedHashes` 对 budgeted corpus；自动维护尊重 skip，手动 ✨ 在「已处理」后再点一次 progressive force 重扫
 - **用户操作**：勾选完成 · 内联添加 · 双击编辑 · 悬停删除 · 清除已完成
 - **视图**：标题栏图标弹层 `TodoPopover`（`⌘⇧T`）；未 pin 时为右侧浮层（点击外部 / **面板外**滚动 / Esc 关闭；**面板内列表滚动不关闭**——与 DropdownMenu 共用 `shouldCloseOnScroll`）；pin 后变为可拖动浮动面板（不阻塞编辑器交互）；进行中在上（按截止日期排序），已完成折叠；AI 来源项带 ✨ 标记
 - **过长处理**：已完成项默认折叠；「清除已完成」一键清理；活跃项上限 50

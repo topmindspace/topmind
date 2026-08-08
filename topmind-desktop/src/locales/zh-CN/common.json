@@ -89,7 +89,7 @@
     "memory": "记忆"
   },
   "shortcut": {
-    "globalCapture": "全局快速捕获（任意应用）",
+    "globalCapture": "全局记一下（任意应用）",
     "capture": "记一下",
     "commandPalette": "命令面板",
     "search": "全局搜索",

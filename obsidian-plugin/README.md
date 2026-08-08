@@ -5,7 +5,7 @@
 [![Obsidian Plugin](https://img.shields.io/badge/Obsidian-Plugin-purple?style=flat-square&logo=obsidian)](https://obsidian.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 [![Minimum Obsidian Version](https://img.shields.io/badge/Obsidian-%E2%89%A51.5.0-informational?style=flat-square)](https://obsidian.md)
-[![Version](https://img.shields.io/badge/version-2.0.1-green.svg?style=flat-square)](manifest.json)
+[![Version](https://img.shields.io/badge/version-2.2.0-green.svg?style=flat-square)](manifest.json)
 
 > **Main-area Stream Workbench + Background AI Copilot for Obsidian**  
 > Capture thoughts instantly, let AI propose organized updates in the background, review & confirm before saving — your Markdown files always remain yours.
@@ -70,10 +70,19 @@ Topmind Stream reduces mental overhead by focusing on 5 plain-language concepts:
 4. Enable **Topmind Stream**.
 
 #### Option C: Manual Installation
-1. Download `topmind-obsidian-<version>.zip` from [Releases](https://github.com/topmindspace/topmind/releases).
+1. Download `topmind-obsidian-<version>.zip` from [Releases](https://github.com/topmindspace/topmind/releases) (full `v*` product tags and `obsidian-v*` surface tags both ship this artifact).
 2. Extract `main.js`, `manifest.json`, `styles.css`, and `templates/` to:
    `<your-vault>/.obsidian/plugins/topmind-stream/`
 3. Reload Obsidian, navigate to **Settings ➔ Community plugins**, and enable **Topmind Stream**.
+
+#### Upgrade
+| Method | How |
+|--------|-----|
+| Community / BRAT | Update from the plugin list / BRAT “Check for updates” |
+| Manual zip | Download the newer `topmind-obsidian-<ver>.zip`, replace files under `plugins/topmind-stream/`, reload Obsidian |
+| From source | `npm run obsidian:pack` → install zip as above |
+
+Your vault files (`topmind.yaml`, `10-动态/`, `memory/`) are **not** replaced by the plugin upgrade. Version truth: [`manifest.json`](./manifest.json) (`npm run versions`).
 
 ---
 
@@ -102,9 +111,11 @@ Navigate to **Settings ➔ Topmind Stream ➔ AI Copilot**:
 
 ### 4. Daily Usage
 
-- `Cmd/Ctrl + Shift + S` ➔ Open Quick Capture modal (*Keybinding configurable in Obsidian Settings ➔ Hotkeys*).
+- Command palette ➔ **Topmind: Note it** (*bind a hotkey in Obsidian Settings ➔ Hotkeys*).
 - `Cmd/Ctrl + P` ➔ **Topmind: Open Stream Workbench** to open the timeline tab.
-- Click the **Waves icon** in the left ribbon to trigger quick capture instantly.
+- Click the **Waves icon** in the left ribbon to open **Note it** instantly.
+
+Product vocabulary (aligned with Desktop): **Note it** / 记一下 · **Log it** / 记下 · stream · topic · My profile · write out.
 
 ---
 
@@ -113,9 +124,9 @@ Navigate to **Settings ➔ Topmind Stream ➔ AI Copilot**:
 | Command Name | Description |
 |--------------|-------------|
 | `Topmind: Open Stream Workbench` | Open the main timeline workbench tab |
-| `Topmind: Quick Capture` | Open modal to capture a note or snippet |
-| `Topmind: Reconcile Stream` | Reconcile weekly log & refresh action items |
-| `Topmind: Extract Todos` | Run AI todo extraction on recent activities |
+| `Topmind: Note it` | Capture a note or snippet (default: this week’s stream) |
+| `Topmind: Organize This Week` | Reconcile weekly log & refresh suggestions |
+| `Topmind: AI Maintain Todos` | Run AI todo extraction on recent activities |
 
 ---
 

@@ -94,62 +94,95 @@ export function resolveWorkspaceStatePaths(desktopStateHome, userWorkspaceRoot) 
   };
 }
 
+/**
+ * Project clean v4 nested contract keys onto flat convenience aliases (in-memory only).
+ * Kernel `loadContract()` no longer injects these aliases (validateContract whitelist);
+ * Desktop loaders must project so path-model / connectors keep working on pure v4 YAML.
+ * Does not mutate the input object.
+ * @param {object|null|undefined} raw
+ * @returns {object}
+ */
+export function projectConfigAliases(raw) {
+  const config = raw && typeof raw === "object" && !Array.isArray(raw) ? { ...raw } : {};
+  if (config.workspace?.template && !config.template) {
+    config.template = config.workspace.template;
+  }
+  if (config.workspace?.category_separator && !config.categorySeparator) {
+    config.categorySeparator = config.workspace.category_separator;
+  }
+  if (config.workspace?.locale && !config.locale) {
+    config.locale = config.workspace.locale;
+  }
+  if (config.categories?.extensions && !config.categoryExtensions) {
+    config.categoryExtensions = config.categories.extensions;
+  }
+  if (config.categories?.overrides && !config.categoryOverrides) {
+    config.categoryOverrides = config.categories.overrides;
+  }
+  return config;
+}
+
+/**
+ * Load workspace behavior contract via Kernel (async open paths).
+ * Projects clean v4 → flat aliases in-memory only (UI/path-model convenience).
+ * App-local prefs stay in app-settings.json — never forked here.
+ */
 export async function loadWorkspaceConfig(workspaceRoot) {
   const root = path.resolve(workspaceRoot);
-  // v4: topmind.yaml is the primary source
+  try {
+    const { kernelLoadContract } = await import("./kernel-api.mjs");
+    const contract = await kernelLoadContract(root);
+    return projectConfigAliases(contract || {});
+  } catch {
+    // Fallback when engine root unavailable (tests / broken install)
+    return loadWorkspaceConfigLocal(root);
+  }
+}
+
+/**
+ * Local yaml/json read + project aliases. Used by sync path-model and as
+ * engine-unavailable fallback. Prefer Kernel loadWorkspaceConfig / ensure on open.
+ */
+function loadWorkspaceConfigLocal(workspaceRoot) {
+  const root = path.resolve(workspaceRoot);
   const yamlPath = path.join(root, "topmind.yaml");
-  if (await exists(yamlPath)) {
+  if (existsSync(yamlPath)) {
     try {
-      const raw = await fs.readFile(yamlPath, "utf8");
-      return yaml.load(raw) || {};
+      const raw = readFileSync(yamlPath, "utf8");
+      return projectConfigAliases(yaml.load(raw) || {});
     } catch {
       // Fall through to legacy
     }
   }
-  // Legacy fallback: .topmind-config.json (v3)
   const configPath = path.join(root, ".topmind-config.json");
   try {
-    const data = await fs.readFile(configPath, "utf8");
-    return JSON.parse(data);
+    const data = readFileSync(configPath, "utf8");
+    return projectConfigAliases(JSON.parse(data));
   } catch {
-    return {};
+    return projectConfigAliases({});
   }
 }
 
 /** Synchronous workspace config loader — for use in sync path-model functions. */
 export function loadWorkspaceConfigSync(workspaceRoot) {
-  const root = path.resolve(workspaceRoot);
-  // v4: topmind.yaml is the primary source
-  const yamlPath = path.join(root, "topmind.yaml");
-  if (existsSync(yamlPath)) {
-    try {
-      const raw = readFileSync(yamlPath, "utf8");
-      return yaml.load(raw) || {};
-    } catch {
-      // Fall through to legacy
-    }
-  }
-  // Legacy fallback: .topmind-config.json (v3)
-  const configPath = path.join(root, ".topmind-config.json");
-  try {
-    const data = readFileSync(configPath, "utf8");
-    return JSON.parse(data);
-  } catch {
-    return {};
-  }
+  return loadWorkspaceConfigLocal(workspaceRoot);
 }
 
+/**
+ * FS-only separator alignment for category dirs. Contract write goes through Kernel
+ * ensureContract (via ensureRequiredStructure) — no second YAML seed blob.
+ */
 export async function autoRepairWorkspace(workspaceRoot) {
   const resolved = path.resolve(workspaceRoot);
   const config = await loadWorkspaceConfig(resolved);
-  
+
   const entries = await fs.readdir(resolved, { withFileTypes: true }).catch(() => []);
   const discovered = entries
     .filter((e) => e.isDirectory() && /^\d{2}[ -].+/.test(e.name))
     .map((e) => e.name);
 
-  let targetSeparator = config.categorySeparator;
-  let shouldWriteConfig = false;
+  let targetSeparator = config.categorySeparator || config.workspace?.category_separator;
+  let shouldWriteSeparator = false;
 
   if (!targetSeparator) {
     const hasHyphen = discovered.some((name) => name.charAt(2) === "-");
@@ -159,8 +192,7 @@ export async function autoRepairWorkspace(workspaceRoot) {
     } else {
       targetSeparator = " ";
     }
-    config.categorySeparator = targetSeparator;
-    shouldWriteConfig = true;
+    shouldWriteSeparator = true;
   }
 
   let renamedAny = false;
@@ -207,10 +239,30 @@ export async function autoRepairWorkspace(workspaceRoot) {
     }
   }
 
-  if (shouldWriteConfig || renamedAny) {
-    const yamlPath = path.join(resolved, "topmind.yaml");
-    const yamlContent = yaml.dump(config, { lineWidth: -1, noRefs: true });
-    await fs.writeFile(yamlPath, yamlContent, "utf8").catch(() => {});
+  // Persist separator via Kernel writeContract (not a surface-private dump)
+  if (shouldWriteSeparator || renamedAny) {
+    try {
+      const { loadKernelApi } = await import("./kernel-api.mjs");
+      const kernel = await loadKernelApi();
+      const ensured = kernel.ensureContract(resolved, {
+        categorySeparator: targetSeparator,
+        templateId: config.template || config.workspace?.template,
+        locale: config.locale || config.workspace?.locale,
+      });
+      // If already ok, still force separator into contract when inferred
+      if (ensured.onDiskValid && ensured.contract && shouldWriteSeparator) {
+        const next = {
+          ...ensured.contract,
+          workspace: {
+            ...(ensured.contract.workspace || {}),
+            category_separator: targetSeparator,
+          },
+        };
+        kernel.writeContract(resolved, next);
+      }
+    } catch {
+      // Engine unavailable — leave dirs renamed; next open will ensure contract
+    }
   }
 }
 
@@ -218,9 +270,11 @@ export async function autoRepairWorkspace(workspaceRoot) {
  * Ensure workspace has required role dirs (buffer/delivery/system) and v4 contract.
  * Does NOT recreate optional template categories the user deleted.
  * On first init (empty workspace), seeds full template categories once.
+ * Contract lifecycle is Kernel-only (ensureContract via ensureRequiredStructure).
  */
 export async function ensureWorkspaceStructure(workspaceRoot, templateId = "stream") {
   const resolved = path.resolve(workspaceRoot);
+  await fs.mkdir(resolved, { recursive: true });
   await autoRepairWorkspace(resolved).catch(() => {});
 
   const config = await loadWorkspaceConfig(resolved);
@@ -233,7 +287,7 @@ export async function ensureWorkspaceStructure(workspaceRoot, templateId = "stre
   const isFirstInit = discovered.length === 0;
 
   if (isFirstInit) {
-    // Brand-new workspace: seed full template once so users get a useful default layout
+    // Brand-new workspace: seed full template category dirs once (UX layout only)
     let targetSeparator = config.categorySeparator || config.workspace?.category_separator;
     if (!targetSeparator) targetSeparator = "-";
     const template = loadTemplateJson(effectiveTemplateId);
@@ -251,72 +305,64 @@ export async function ensureWorkspaceStructure(workspaceRoot, templateId = "stre
       ];
     }
     await Promise.all(dirs.map((dir) => fs.mkdir(path.join(resolved, dir), { recursive: true })));
-    // Seed v4 contract on brand-new workspace
-    const yamlPath = path.join(resolved, "topmind.yaml");
-    if (!(await exists(yamlPath))) {
-      const tmpl = template || loadTemplateJson(effectiveTemplateId);
-      const seed = {
-        contract_version: 4,
-        workspace: {
-          name: "我的 topmind",
-          locale: "zh-CN",
-          template: effectiveTemplateId,
-          category_separator: targetSeparator,
-        },
-        categories: { extensions: {}, overrides: {} },
-        stream: config.stream || tmpl?.stream || { packing: "weekly", append_heading: "day" },
-        memory: { dir: "memory", layers: { global: { file: "profile.md", update: "on-suggest" }, periodic: { dir: "periodic", cadence: "weekly", style: "brief" }, topics: { dir: "topics", auto_create: false } } },
-        protection: { defaults: { by_role: { buffer: "open", "loose-stream": "open", "deep-work": "open", memory: "open", delivery: "open", system: "locked" } } },
-        lifecycle: { inbox: { review_after_days: 7 }, catch_all: { retention_days: 30 }, stream: { digest_after_periods: 4 }, topic: { stale_after_days: 90, suggest_archive: true }, output: { lock_after_days: 30 } },
-        writeback: { mode: "auto", shadow: true, backup_to: "99-归档/backups", receipts: "99-归档/receipts" },
-        ingest: { default_target: "stream", url: { renderer: "auto" } },
-        agent: { skills_entry: "topmind", confirm_by_default: false },
-        presentation: { views: { default: "stream", enabled: ["stream", "category", "timeline", "tags", "kanban"] } },
-      };
-      await fs.writeFile(yamlPath, yaml.dump(seed, { lineWidth: -1, noRefs: true }), "utf8").catch(() => {});
-    }
   }
 
-  // Unified model: only ensure required roles (won't revive deleted optional categories)
+  // Unified Kernel path: ensureContract + required roles (no surface seed YAML).
+  // Always return contract health — callers must not invent "healthy" when unrepairable.
+  let contractStatus = "unknown";
+  let contractOnDiskValid = false;
+  let contractErrors = [];
+  let contractActions = [];
+  let recovery = null;
+
   try {
     const { ensureRequiredStructure } = await import("./workspace-model-api.mjs");
-    await ensureRequiredStructure(resolved, {
+    const result = await ensureRequiredStructure(resolved, {
       engineRoot: ENGINE_ROOT,
       templateId: effectiveTemplateId,
     });
+    contractStatus = result.contractStatus || "ok";
+    contractOnDiskValid = result.contractOnDiskValid !== false;
+    contractErrors = Array.isArray(result.contractErrors) ? result.contractErrors : [];
+    contractActions = Array.isArray(result.contractActions) ? result.contractActions : [];
+    if (!contractOnDiskValid) {
+      recovery = "system.reseedWorkspaceContract";
+    }
   } catch {
-    // Fallback if engine lib missing: ensure 00/88/99 only
+    // Last resort when engine lib missing: required role dirs only + Kernel ensure if possible
     const sep = config.categorySeparator || config.workspace?.category_separator || "-";
     const sepChar = sep === " " ? " " : "-";
     for (const dir of [`00${sepChar}收件箱`, `88${sepChar}输出`, `99${sepChar}归档`]) {
       await fs.mkdir(path.join(resolved, dir), { recursive: true });
     }
-    // Seed v4 contract if missing
-    const yamlPath = path.join(resolved, "topmind.yaml");
-    if (!(await exists(yamlPath))) {
-      const seed = {
-        contract_version: 4,
-        workspace: {
-          name: "我的 topmind",
-          locale: "zh-CN",
-          template: effectiveTemplateId,
-          category_separator: sepChar,
-        },
-        categories: { extensions: {}, overrides: {} },
-        stream: { packing: "weekly", append_heading: "day" },
-        memory: { dir: "memory", layers: { global: { file: "profile.md", update: "on-suggest" }, periodic: { dir: "periodic", cadence: "weekly", style: "brief" }, topics: { dir: "topics", auto_create: false } } },
-        protection: { defaults: { by_role: { buffer: "open", "loose-stream": "open", "deep-work": "open", memory: "open", delivery: "open", system: "locked" } } },
-        lifecycle: { inbox: { review_after_days: 7 }, catch_all: { retention_days: 30 }, stream: { digest_after_periods: 4 }, topic: { stale_after_days: 90, suggest_archive: true }, output: { lock_after_days: 30 } },
-        writeback: { mode: "auto", shadow: true, backup_to: "99-归档/backups", receipts: "99-归档/receipts" },
-        ingest: { default_target: "stream", url: { renderer: "auto" } },
-        agent: { skills_entry: "topmind", confirm_by_default: false },
-        presentation: { views: { default: "stream", enabled: ["stream", "category", "timeline", "tags", "kanban"] } },
-      };
-      await fs.writeFile(yamlPath, yaml.dump(seed, { lineWidth: -1, noRefs: true }), "utf8").catch(() => {});
+    try {
+      const { loadKernelApi } = await import("./kernel-api.mjs");
+      const kernel = await loadKernelApi();
+      const ensured = kernel.ensureContract(resolved, {
+        templateId: effectiveTemplateId,
+        categorySeparator: sepChar,
+      });
+      contractStatus = ensured.status;
+      contractOnDiskValid = ensured.onDiskValid === true;
+      contractErrors = Array.isArray(ensured.errors) ? ensured.errors : [];
+      contractActions = Array.isArray(ensured.actions) ? ensured.actions : [];
+      if (!contractOnDiskValid) recovery = "system.reseedWorkspaceContract";
+    } catch (err) {
+      contractStatus = "unknown";
+      contractOnDiskValid = false;
+      contractErrors = [err instanceof Error ? err.message : String(err)];
+      recovery = "system.reseedWorkspaceContract";
     }
   }
 
-  return resolved;
+  return {
+    root: resolved,
+    contractStatus,
+    contractOnDiskValid,
+    contractErrors,
+    contractActions,
+    recovery,
+  };
 }
 
 export async function isUserWorkspaceInitialized(workspaceRoot) {

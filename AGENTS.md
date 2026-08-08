@@ -70,14 +70,18 @@ topmind = Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Option
 
 contract · workspace-model · stream · memory · lifecycle · **writeback（唯一写闸）** · derived · ingest。
 
+> **契约生命周期（全表面共享）**：工作区根 `topmind.yaml` v4 为唯一行为契约。`ensureContract` 缺失创建 / 可修则合并默认重写；损坏不可修 → 结构化 `unrepairable` + `reseedContract`（先备份坏文件，不删内容目录）。Desktop 打开 · Obsidian vault init · UTR `contract.ensure`/`reseed`/`doctor` 均走 Kernel；UI 偏好（Desktop `app-settings.json` 等）不 fork workspace 行为键。
+
 > **workspace-model 拆分（2026-08）**：`lib/workspace-model.mjs` 为稳定门面（导入面不变），实现拆到 `model-core / model-topic / model-stream / model-memory`；外部只 import 门面。见 ADR `docs/adr/2026-08-02-workspace-model-split.md`。  
 > **AI provider 注入**：derived/suggest 支持 per-call `aiProvider` + `createKernelContext(…)` 工厂（多工作区安全）；`setAiProvider` 单例仍兼容。见 ADR `docs/adr/2026-08-02-kernel-ai-provider-context.md`。
 
 > **todo-engine**：个人待办清单引擎（`memory/todo.md` 解析/写入/AI 提取），经 writeback-engine 写入，已纳入 Kernel 扩展。  
 > **ai-operation-engine**：统一 AI 操作注册框架（`lib/ai-operation-engine.mjs`），自注册 `todo_maintain` · `memory_organize`（profile + periodic）· `topic_classify`（内容大类专题，非 memory），支持 force 重处理、状态追踪（`.topmind/ai-ops.json` 系统平面）、可扩展注册。  
-> **activity-window**：`lib/activity-window.mjs` — 建议/待办/AI ops 共用「近期活动窗口」（周期本 ∪ mtime ∪ 增补 parent）。
+> **activity-window**：`lib/activity-window.mjs` — 建议/待办/AI ops 共用「近期活动窗口」（周期本 ∪ mtime ∪ 增补 parent）。  
+> **todo 上下文 / 跳过语义**：`extractTodosFromStream` · `maintainTodos` 对 **budgeted prompt corpus**（周期正文 ∪ 折叠活动材料；截断时**优先保留 extras**）做 `processedHashes`；非仅周期文件 raw。`force` 清除将扫描周期的 processed + hash。折叠 extras **排除** `memory/`（尤其 `memory/todo.md`）。Desktop/Obsidian 只经 Kernel（`force` 透传），无第二套活动语料加载。  
+> **Desktop 多路 AI**：用户主路径 Agent 流独立；后台 prep（建议 · 待办 maintain）走 `ai-background-lane` **串行**；soft 建议在 agent streaming 时 `agent_busy` 让路；`autoMaintainTodos` 等 agent/suggest 空闲；StatusBar `multiActive` / `AI ×N` 诚实展示（见 `topmind-desktop/DESIGN.md` §0.0.3）。
 
-**诚实状态**：引擎在 `lib/`；Desktop / UTR / AI 耐久 `.md` **主写经 writeback-engine**；Memory · 建议条 · 待确认写入 · 待办 · AI 操作框架 · 活动窗口 · 动态条目增补 · 剪藏图片本地化 · i18n 门禁 **Done**。备份/回执：**仅高影响**——`locked` 既有文件覆盖、非 `permanent` 的 delete/archive（trash 副本）；常规 open 文件 AI/user 更新不备份不写回执；`permanent` 彻底删除；高影响产物旋转（`BACKUP_KEEP=3` · `RECEIPT_KEEP=50`）。AI Provider：per-operation 动态 temperature/systemPrompt/maxTokens + 瞬态错误重试；会话压缩 240K/60 适配现代模型。仍 **Intentional Partial**：contract 未强制全 Surface UI。embedding / 全库 Ask 等见 Reset Non-goal。
+**诚实状态**：引擎在 `lib/`；Desktop / UTR / AI 耐久 `.md` **主写经 writeback-engine**；Memory · 建议条 · 待确认写入 · 待办 · AI 操作框架 · 活动窗口 · 动态条目增补 · 剪藏图片本地化 · i18n 门禁 · **多路 AI 并发策略** **Done**。备份/回执：**仅高影响**——`locked` 既有文件覆盖、非 `permanent` 的 delete/archive（trash 副本）；常规 open 文件 AI/user 更新不备份不写回执；`permanent` 彻底删除；高影响产物旋转（`BACKUP_KEEP=3` · `RECEIPT_KEEP=50`）。AI Provider：per-operation 动态 temperature/systemPrompt/maxTokens + 瞬态错误重试；会话压缩 240K/60 适配现代模型。仍 **Intentional Partial**：contract 未强制全 Surface UI。embedding / 全库 Ask 等见 Reset Non-goal。
 
 默认模板 4 种：`stream`（默认）· `balanced` · `research` · `periodic`。
 
@@ -89,7 +93,8 @@ contract · workspace-model · stream · memory · lifecycle · **writeback（�
 - Service：Workspace / Ai / System / Tool / Ingest；可选 Weread / X  
 - **不硬依赖 UTR**：AI 工具 → WorkspaceService → Kernel writeback  
 - 主动 AI：**建议默认可生成 · 确认后执行 · 可选手动**（Reset D Done）  
-- 捕获：⌘N / 全局⌘⇧N · 默认周期本 · ingest 队列  
+- 多路 AI：Agent 独立 · prep lane 串行 · StatusBar 多任务诚实（§0.0.3）  
+- 捕获：⌘N / 全局⌘⇧N · 默认周期本 · ingest 队列 · 词汇 **记一下/Note it** · **记下/Log it**
 
 详见 `topmind-desktop/{README,ARCHITECTURE,DESIGN}.md` · `docs/ARCHITECTURE-RESET.md`。
 
@@ -167,7 +172,7 @@ Frontmatter schema：`SKILL-ARCHITECTURE.md`。
 ## Tool Boundary
 
 UTR **可选**。域：`workspace-read` · `write` · `transform` · `maintain` · `memory` · `lifecycle` · `contract` · `derived`。  
-MCP 默认 **17**；注册表 **25**（8 域 / 25 命令）。见 `TOOLS.md`。  
+MCP 默认 **18**；注册表 **27**（8 域 / 27 命令）。见 `TOOLS.md`。  
 写回：`writeback_mode: auto | confirm`，受保护级别（open/locked）判定约束。  
 Desktop AI 写回走 WorkspaceService，不经 UTR `executeTool`。
 

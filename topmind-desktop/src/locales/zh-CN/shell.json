@@ -35,7 +35,11 @@
     "templateResearchName": "学术研究型",
     "templateResearchDesc": "深度研究 · 来源追踪 · 参考资料",
     "templatePeriodicName": "周期回顾型",
-    "templatePeriodicDesc": "强周期复盘 · 记忆沉淀"
+    "templatePeriodicDesc": "强周期复盘 · 记忆沉淀",
+    "statusContractUnrepairable": "工作区 topmind.yaml 损坏且无法自动修复。可备份后重建契约（不删除笔记内容）。",
+    "reseedContract": "备份并重建 topmind.yaml",
+    "reseedContractHint": "坏文件会备份到归档/contract 或 .topmind/contract-backups；笔记目录不会删除。",
+    "reseedFailed": "重建契约失败"
   },
   "shell": {
     "loadingAi": "加载 AI…",
@@ -186,10 +190,17 @@
     "sessionMessageCount": "当前会话消息数",
     "aiWorking": "AI 工作中",
     "aiWorkingTip": "对话生成 / 后台任务进行中 · 点此切换 AI 面板",
+    "aiMultiWorking": "AI ×{{count}}",
+    "aiMultiWorkingTip": "同时进行：{{jobs}} · 点此切换 AI 面板",
+    "jobAgent": "对话",
+    "jobTask": "后台任务",
+    "jobTodo": "整理待办",
+    "jobSuggest": "准备建议",
+    "jobInline": "行内 AI",
     "taskRunning": "{{count}} 个后台任务",
     "taskRunningTip": "后台任务进行中 · 点此查看详情和进度",
     "todoMaintaining": "AI 整理待办中",
-    "todoMaintainingTip": "正在从动态提取/更新个人清单 · 通常需要数秒",
+    "todoMaintainingTip": "正在从动态提取/更新个人清单 · 点此打开清单",
     "suggestLoading": "准备建议中",
     "suggestLoadingTip": "正在扫描可整理项并生成建议 · 点此查看",
     "inlineAiWorking": "AI 处理中",
@@ -440,13 +451,13 @@
     }
   },
   "captureSurface": {
-    "preparing": "准备快速捕获…",
-    "launchFailed": "捕获窗启动失败",
+    "preparing": "准备记一下…",
+    "launchFailed": "记一下窗口启动失败",
     "close": "关闭",
     "needWorkspace": "需要工作区",
     "openMainWindow": "打开主窗口",
     "pleaseOpenWorkspace": "请先在主窗口打开工作区",
-    "pleaseOpenWorkspaceHint": "请先在主窗口打开工作区，再使用快速捕获"
+    "pleaseOpenWorkspaceHint": "请先在主窗口打开工作区，再使用记一下"
   },
   "fileDropZone": {
     "releaseToImport": "松开以导入知识",
@@ -492,6 +503,7 @@
     "maintainCompleted": "完成 {{count}} 条",
     "maintainUpdated": "更新 {{count}} 条",
     "maintainAlreadyProcessed": "该周期已处理过，点击「强制重试」重新分析",
+    "maintainQueued": "排队等待其他 AI 准备完成…",
     "maintainForceRetry": "强制重试",
     "maintainForceTip": "清除已处理标记，重新分析周期本",
     "setDueDate": "设置截止日期",

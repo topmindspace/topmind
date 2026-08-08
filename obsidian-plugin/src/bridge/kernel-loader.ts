@@ -4,65 +4,172 @@
 // esbuild. We import from the relative path to the engine root's lib/
 // directory. esbuild resolves and bundles these into main.js.
 //
-// The yaml-bridge.mjs is shimmed by an esbuild plugin (see esbuild.config.mjs)
-// to use static import instead of dynamic createRequire, so the 'yaml' npm
-// package is properly bundled.
+// Types below must match lib/kernel-api.mjs (+ model-stream / stream-period)
+// — wrong shapes here hide real call bugs from tsc.
 
-import type { TopmindSettings } from "../types";
 import type { AiProvider } from "./ai-provider";
 import { getVaultBasePath, getEngineRoot } from "./vault-bridge";
 
 // Import Kernel API — esbuild bundles this from ../../lib/kernel-api.mjs
-// All transitive imports (contract-engine, writeback-engine, etc.) are bundled.
-// node:fs, node:path, node:crypto are kept as external require() calls.
 // @ts-expect-error — kernel-api.mjs is a plain ESM file without .d.ts types;
 // esbuild bundles the actual implementation at build time.
 import * as kernelApi from "../../../lib/kernel-api.mjs";
 
-// ── Kernel API type surface ────────────────────────────────────────────────
-// Manually typed to match lib/kernel-api.mjs exports.
+// ── Kernel result shapes (aligned with lib/) ───────────────────────────────
+
+/** lib/model-stream.mjs resolveStreamTarget */
+export interface StreamTargetResult {
+  packing: string;
+  appendHeading: string;
+  yearDir?: boolean;
+  streamCategory: { directory: string; role: string; path?: string; [key: string]: unknown } | null;
+  periodStem: string | null;
+  periodFileName: string | null;
+  periodAbsPath: string | null;
+  periodRelPath: string | null;
+  title: string | null;
+}
+
+/** lib/model-stream.mjs listStreamPeriods item */
+export interface ListedStreamPeriod {
+  relPath: string;
+  fileName: string;
+  mtime: string | null;
+  title: string | null;
+  reconciled: boolean;
+}
+
+/** lib/stream-period.mjs reconcilePeriodBody return */
+export interface ReconcilePeriodResult {
+  body: string;
+  changed: boolean;
+  changes: string[];
+  candidates: { core: string[]; topics: string[] };
+}
+
+/** lib/suggest-engine.mjs applySuggestion return (subset) */
+export interface ApplySuggestionResult {
+  ok?: boolean;
+  operation?: string;
+  wroteFiles?: boolean;
+  targetPath?: string;
+  note?: string;
+  reason?: string;
+  pending?: boolean;
+  needsConfirm?: boolean;
+  [key: string]: unknown;
+}
 
 export interface KernelContext {
   workspaceRoot: string;
   engineRoot?: string;
   contract: unknown;
   aiProvider: unknown;
-  /**
-   * Generate suggestion cards (safe to call on open / manual).
-   * Returns an array of Suggestion objects directly (not wrapped).
-   * The Kernel's suggest-engine is synchronous; the return is awaitable
-   * for forward compatibility.
-   */
   generateSuggestions(opts?: Record<string, unknown>): unknown[] | Promise<unknown[]>;
-  /** Apply (accept) a suggestion after user confirm. */
-  applySuggestion(suggestion: unknown, opts?: Record<string, unknown>): unknown | Promise<unknown>;
-  /** Run an AI operation (todo_maintain, memory_organize, topic_classify). */
-  runOperation(opts?: Record<string, unknown>): Promise<{ ok: boolean; summary?: string; suggestions?: unknown[]; reason?: string }>;
+  applySuggestion(
+    suggestion: unknown,
+    opts?: Record<string, unknown>,
+  ): ApplySuggestionResult | Promise<ApplySuggestionResult>;
+  runOperation(opts?: Record<string, unknown>): Promise<{
+    ok: boolean;
+    summary?: string;
+    suggestions?: unknown[];
+    reason?: string;
+  }>;
 }
 
-interface KernelApi {
+export interface KernelApi {
   loadContract(workspaceRoot: string): Record<string, unknown>;
   buildDefaultContract(workspaceRoot?: string, template?: unknown): Record<string, unknown>;
+  inspectContract?(workspaceRoot: string): {
+    state: string;
+    onDiskValid: boolean;
+    path: string;
+    errors: string[];
+    warnings: string[];
+    needsRewrite?: boolean;
+  };
+  ensureContract?(
+    workspaceRoot: string,
+    opts?: {
+      reseed?: boolean;
+      templateId?: string;
+      locale?: string;
+      categorySeparator?: string;
+    },
+  ): {
+    status: string;
+    onDiskValid: boolean;
+    path: string;
+    contract: Record<string, unknown> | null;
+    errors: string[];
+    actions: string[];
+    backupPath?: string | null;
+  };
+  reseedContract?(
+    workspaceRoot: string,
+    opts?: { templateId?: string; locale?: string },
+  ): {
+    status: string;
+    onDiskValid: boolean;
+    path: string;
+    contract: Record<string, unknown> | null;
+    backupPath?: string | null;
+  };
   resolveWorkspaceModel(opts: {
     workspaceRoot: string;
     engineRoot?: string;
     config?: unknown;
   }): {
-    categories: { role: string; directory: string; name: string }[];
+    categories: {
+      role: string;
+      directory: string;
+      name: string;
+      slot?: string;
+      ok?: boolean;
+      hidden?: boolean;
+      specialBehavior?: string;
+      path?: string;
+    }[];
     contract?: Record<string, unknown>;
+    stream?: { packing?: string; appendHeading?: string };
+    config?: Record<string, unknown>;
     [key: string]: unknown;
   };
-  ensureRequiredStructure(workspaceRoot: string, opts: {
-    engineRoot?: string;
-    config?: unknown;
-    templateId?: string;
-  }): void;
+  ensureRequiredStructure(
+    workspaceRoot: string,
+    opts: {
+      engineRoot?: string;
+      config?: unknown;
+      templateId?: string;
+      locale?: string;
+      materializeExtensions?: boolean;
+      reseed?: boolean;
+    },
+  ): {
+    created: string[];
+    model: unknown;
+    contractStatus?: string;
+    contractOnDiskValid?: boolean;
+    contractErrors?: string[];
+  };
+  /**
+   * lib/model-stream.mjs — options object; returns periodRelPath / periodAbsPath
+   * (not `relPath`).
+   */
   resolveStreamTarget(opts: {
     workspaceRoot: string;
-    categoryDir: string;
-    packing?: string;
-  }): { relPath: string; [key: string]: unknown };
-  findStreamCategory(model: unknown): { directory: string; role: string; [key: string]: unknown } | null;
+    engineRoot?: string;
+    config?: unknown;
+    date?: Date;
+  }): StreamTargetResult;
+  findStreamCategory(model: unknown): {
+    directory: string;
+    role: string;
+    path?: string;
+    specialBehavior?: string;
+    [key: string]: unknown;
+  } | null;
   appendToPeriodBody(
     existingBody: string,
     opts: {
@@ -73,13 +180,15 @@ interface KernelApi {
       date?: Date;
     },
   ): string;
-  listStreamPeriods(workspaceRoot: string, categoryDir: string): {
-    period: string;
-    relPath: string;
-    title: string;
-    entryCount: number;
-    mtime: number;
-  }[];
+  /**
+   * lib/model-stream.mjs — async; options object (not positional workspaceRoot, categoryDir).
+   */
+  listStreamPeriods(opts: {
+    workspaceRoot: string;
+    engineRoot?: string;
+    config?: unknown;
+    limit?: number;
+  }): Promise<ListedStreamPeriod[]>;
   executeWrite(opts: {
     targetPath: string;
     content: string;
@@ -93,15 +202,38 @@ interface KernelApi {
     skipBackup?: boolean;
     skipReceipt?: boolean;
     writebackModeOverride?: "auto" | "confirm";
-  }): { pending?: boolean; path?: string; affectedFiles?: string[]; wroteFiles?: boolean; [key: string]: unknown };
-  reconcilePeriodBody(opts: {
-    body: string;
-    packing?: string;
-    appendHeading?: string;
-  }): { body: string; reconciled: boolean; [key: string]: unknown };
+  }): {
+    pending?: boolean;
+    path?: string;
+    targetPath?: string;
+    affectedFiles?: string[];
+    wroteFiles?: boolean;
+    [key: string]: unknown;
+  };
+  /**
+   * lib/stream-period.mjs — positional (body, opts); returns `{ changed }` not `{ reconciled }`.
+   */
+  reconcilePeriodBody(
+    body: string,
+    opts?: { packing?: string; appendHeading?: string },
+  ): ReconcilePeriodResult;
   ensureTodoFile(workspaceRoot: string): void;
   readTodoList(workspaceRoot: string): { items: unknown[] } | null;
-  toggleTodoItem(workspaceRoot: string, id: string, contract?: unknown): void;
+  toggleTodoItem(workspaceRoot: string, id: string, contract?: unknown): {
+    ok: boolean;
+    items: unknown[];
+    targetPath: string;
+  };
+  addCategory?(
+    workspaceRoot: string,
+    spec: {
+      slot: string;
+      name: string;
+      role?: string;
+      specialBehavior?: string;
+      engineRoot?: string;
+    },
+  ): { directory: string; category: unknown; configPath: string };
   createKernelContext(opts: {
     workspaceRoot: string;
     engineRoot?: string;
@@ -124,10 +256,6 @@ export function getKernel(): KernelApi {
 
 /**
  * Create a per-workspace kernel context bound to the Obsidian Vault.
- *
- * @param vaultPath — absolute path to Obsidian Vault (= workspace root)
- * @param engineRoot — plugin directory (for template loading)
- * @param aiProvider — optional AI provider for AI-powered features
  */
 export function createKernelContext(
   vaultPath: string,

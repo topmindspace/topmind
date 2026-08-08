@@ -152,9 +152,13 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | 个人待办清单 | **Done**（todo-engine + TodoPopover + AI 维护 + ⌘⇧T；complete/update 用 `matchTodoMaintainText` 防单 token 误完成） |
 | 统一 AI 操作引擎 | **Done**（todo_maintain · memory_organize · topic_classify；force；状态追踪） |
 | 活动窗口 Activity Window | **Done**（`lib/activity-window.mjs`；suggest/todo/ai-ops 共用） |
+| Todo 上下文 / 跳过 | **Done**（2026-08-08：skip hash = prompt corpus＝周期∪活动 extras；force 清 period+hash；extras 排除 memory/todo；Desktop/Obsidian 仅 Kernel） |
 | connector weread/x | **Done**（`kernelDurableWriteAbs`） |
 | 关键词搜索截断诚实 | **Done**（notes-index/grep `truncated`；GlobalSearch UI 提示） |
 | derived item-history | **Done**（确定性清单 + AI 配置后真实 LLM） |
+| contract-engine 清洁化 | **Done**（2026-08-08：`loadContract()` 不再注入 v3 flat 别名；`validateContract()` 误报根因消除；Desktop `projectConfigAliases` 统一投影 flat 别名） |
+| Todo 手动 progressive force | **Done**（2026-08-08：`all-periods-processed` 后再点 ✨ → force；auto 仍尊重 skip） |
+| 多路 AI 并发策略 | **Done**（2026-08-08：background lane 串行 suggest/todo；agent 独立；soft suggest `agent_busy`；auto-todo 让路；StatusBar multiActive/`AI ×N`） |
 
 **Intentional Partial（保留，非未完成）**：contract UI 非全 Surface；非 `.md` 二进制可仍直写。
 

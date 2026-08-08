@@ -89,7 +89,7 @@
 | 输入栏 | 多行 textarea；`Enter` 提交（`Shift+Enter` 换行）；提交后清空 + 刷新流 |
 | 动态卡片 | 默认折叠摘要；点击展开全文；`双击` → 在 Obsidian 编辑器中打开周期本并定位（Roadmap：当前仅展开/折叠） |
 | 周期切换 | 下拉选择历史周期本；显示日期范围 |
-| AI 建议卡片 | 多种类型：`create_topic`（专题涌现）/ `promote_memory`（写入「我的情况」）/ `ai_summary`（周期摘要）/ `inbox_review`（收件箱待整理）/ `stale_topic`（陈旧专题）/ `catch_all`（兜底清理）/ `stream_digest`（周期摘要）/ `open_profile`（完善「我的情况」）；`确认` → 经 writeback-engine 执行；`忽略` → 移除卡片 |
+| AI 建议卡片 | 多种类型：`create_topic`（专题涌现）/ `promote_memory`（写入「我的情况」）/ `ai_summary`（周期摘要）/ `inbox_review`（收件箱待整理）/ `stale_topic`（陈旧专题）/ `catch_all`（兜底清理）/ `stream_digest`（周期摘要）/ `open_profile`（完善「我的情况」）；`确认` → 经 writeback-engine 执行（`open_profile` 等 open-only 结果会在 Obsidian 中打开对应笔记）；`忽略` → 移除卡片 |
 | 整理按钮 | `reconcilePeriodBody`（合并散落条目）+ 可选 `todo_maintain`（AI 提取待办）+ 刷新 AI 建议 |
 | 自动刷新 | 监听 Vault 文件变更；450ms 防抖静默重载 |
 
@@ -131,10 +131,10 @@
 
 ### 3.2 交互
 
-- 待办项：点击勾选 → `toggleTodoItem` → 刷新
-- 动态条目：点击 → 跳转到主工作台并高亮对应卡片
-- 召唤按钮：`workspace.getLeaf().setViewState({ type: VIEW_TYPE_STREAM_WORKBENCH })`
-- 自动刷新：Vault 事件监听（modify / create）+ 450ms 防抖；路径过滤只关注动态目录和 memory/todo.md
+- 待办项：点击勾选 → `toggleTodoItem`（Kernel `done` 字段）→ 刷新；仅展示未完成项
+- 动态条目：点击 → 跳转到主工作台（复用已有 workbench leaf，避免重复页签）
+- 召唤按钮：与主入口一致 — 已有 leaf 则 `revealLeaf`，否则 `setViewState`
+- 自动刷新：Vault 事件监听（modify / create / delete）+ 450ms 防抖；路径过滤只关注动态目录和 memory/todo.md
 
 ---
 
@@ -240,7 +240,7 @@
 
 ## 7. Ribbon 图标
 
-左侧 Ribbon 栏添加 `waves` 图标，点击打开极速捕捉弹窗。
+左侧 Ribbon 栏添加 `waves` 图标（与工作台 `getIcon()` 一致），点击打开极速捕捉弹窗。快捷键不设默认值，用户在 Settings → Hotkeys 自行配置。
 
 ---
 

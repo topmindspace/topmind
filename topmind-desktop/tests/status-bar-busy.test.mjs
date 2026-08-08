@@ -39,7 +39,7 @@ test("suggest-only: dedicated suggest chip, AI pill not working", () => {
   assert.equal(v.showTodoChip, false);
 });
 
-test("streaming: AI pill busy; suggest chip suppressed while streaming", () => {
+test("streaming + suggest: AI pill busy; suggest chip still visible (honest multi)", () => {
   const v = deriveStatusBarBusy({
     ready: true,
     streaming: true,
@@ -49,7 +49,10 @@ test("streaming: AI pill busy; suggest chip suppressed while streaming", () => {
   });
   assert.equal(v.aiPillBusy, true);
   assert.equal(v.aiLabelMode, "working");
-  assert.equal(v.showSuggestChip, false);
+  // Prep chip stays visible alongside agent — no invisible background work
+  assert.equal(v.showSuggestChip, true);
+  assert.equal(v.multiActive, true);
+  assert.deepEqual(v.activeKinds, ["agent", "suggest"]);
 });
 
 test("tasks + todo: single-path — task chip wins; AI pill busy for tasks", () => {
@@ -77,6 +80,25 @@ test("todo + suggest: single-path — todo chip wins over suggest", () => {
   assert.equal(v.showTodoChip, true);
   assert.equal(v.showSuggestChip, false, "suggest chip demoted when todo maintains");
   assert.equal(v.aiPillBusy, false);
+  assert.equal(v.multiActive, true);
+  assert.ok(v.activeKinds.includes("todo") && v.activeKinds.includes("suggest"));
+});
+
+test("agent + todo + suggest: multiActive lists all; named chips capped", () => {
+  const v = deriveStatusBarBusy({
+    ready: true,
+    streaming: true,
+    activeTaskCount: 0,
+    todoMaintaining: true,
+    suggestLoading: true,
+    inlineBusy: true,
+  });
+  assert.equal(v.multiActive, true);
+  assert.equal(v.concurrentCount, 4);
+  assert.equal(v.aiPillBusy, true);
+  assert.equal(v.showTodoChip, true, "todo is primary prep chip");
+  assert.equal(v.showSuggestChip, false, "suggest demoted under todo");
+  assert.equal(v.showInlineChip, false, "inline demoted under stream/prep");
 });
 
 test("idle ready: no chips, not busy", () => {
@@ -119,4 +141,17 @@ test("StatusBar wires deriveStatusBarBusy (no dual aiBusy OR todo)", () => {
   );
   assert.match(src, /data-status-todo-busy/);
   assert.match(src, /data-status-ai-pill/);
+});
+
+test("StatusBar icon semantics + click targets (DESIGN ListTodo = personal list)", () => {
+  const src = read("src/components/shell/StatusBar.tsx");
+  // Todo busy chip opens personal list popover
+  assert.match(src, /data-status-todo-busy[\s\S]*?todo:open-popover|todo:open-popover[\s\S]*?data-status-todo-busy/);
+  assert.match(src, /todo:open-popover/);
+  // Background tasks must NOT use ListTodo (reserved for personal list)
+  // Task chip uses Loader2; todo chip uses ListTodo
+  assert.match(src, /showTaskChip[\s\S]*?Loader2/);
+  assert.match(src, /showTodoChip[\s\S]*?ListTodo|data-status-todo-busy[\s\S]*?ListTodo/);
+  // ListChecks was the old ambiguous todo busy icon
+  assert.doesNotMatch(src, /ListChecks/);
 });

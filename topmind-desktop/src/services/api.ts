@@ -8,7 +8,7 @@ import type {
   SearchResult, SearchResponse, WritebackEvidence, AiSession, AiMessage, AiToolCall, AiRuntimeStatus,
   AppSettings, AllNotesResult, FileMetaResult, XTweet,
   WereadLastSyncSummary, WereadNotebookBook, WereadStatsCache, WereadSyncResult,
-  IngestJob, ProviderInfo,
+  IngestJob, ProviderInfo, LaunchStatus,
 } from "../types";
 
 export type SurfaceUpdateInfo = {
@@ -584,13 +584,26 @@ export const api = {
       invoke<{ ok: true; path: string }>("system.createWorkspace", { targetPath, templateId }),
     /** Open recent / known path — missing paths fail and are pruned from recents. */
     switchWorkspace: (targetPath: string, opts?: { createIfMissing?: boolean }) =>
-      invoke<{ ok: true; workspaceRoot: string; settings: AppSettings }>("system.switchWorkspace", {
+      invoke<{
+        ok: boolean;
+        workspaceRoot: string;
+        settings: AppSettings;
+        launchStatus?: LaunchStatus | null;
+        contractOnDiskValid?: boolean;
+        recovery?: string | null;
+      }>("system.switchWorkspace", {
         targetPath,
         createIfMissing: opts?.createIfMissing === true,
       }),
     /** Pick folder then init + open (Landing / 新建). */
     openOrCreateWorkspace: (targetPath: string, templateId?: string) =>
-      invoke<{ ok: true; workspaceRoot: string; settings: AppSettings }>("system.openOrCreateWorkspace", {
+      invoke<{
+        ok: boolean;
+        workspaceRoot: string;
+        settings: AppSettings;
+        launchStatus?: LaunchStatus | null;
+        contractOnDiskValid?: boolean;
+      }>("system.openOrCreateWorkspace", {
         targetPath,
         templateId,
       }),
@@ -710,7 +723,19 @@ export const api = {
       views?: { default: string; enabled: string[] };
       connectorDefaults?: Record<string, unknown>;
     }) =>
-      invoke<{ ok: true }>("system.updateWorkspaceConfig", p),
+      invoke<{ ok: boolean; onDiskValid?: boolean; state?: string; writebackMode?: string }>(
+        "system.updateWorkspaceConfig",
+        p,
+      ),
+    /** Backup corrupt topmind.yaml + reseed valid v4 (content dirs kept). */
+    reseedWorkspaceContract: (p?: { templateId?: string; locale?: string }) =>
+      invoke<{
+        ok: boolean;
+        status?: string;
+        backupPath?: string | null;
+        onDiskValid?: boolean;
+        errors?: string[];
+      }>("system.reseedWorkspaceContract", p || {}),
     createCategory: (p: {
       slot?: string;
       name: string;
@@ -979,7 +1004,7 @@ export const api = {
         cleared: number;
         targetPath: string;
       }>("workspace.clearCompletedTodos"),
-    extractFromStream: () =>
+    extractFromStream: (opts?: { force?: boolean }) =>
       invoke<{
         ok: boolean;
         added: import("../types").TodoItem[];
@@ -987,7 +1012,7 @@ export const api = {
         period: string | null;
         targetPath: string;
         reason?: string;
-      }>("workspace.extractTodosFromStream"),
+      }>("workspace.extractTodosFromStream", opts || {}),
     maintain: (opts?: { force?: boolean; depth?: number }) =>
       invoke<{
         ok: boolean;

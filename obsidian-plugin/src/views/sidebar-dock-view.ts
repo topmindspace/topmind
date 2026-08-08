@@ -88,7 +88,8 @@ export class SidebarDockView extends ItemView {
     });
 
     const todos = this.plugin.kernelService.readTodos();
-    const activeTodos = todos.filter((item) => !item.completed).slice(0, 5);
+    // Kernel field is `done` — only show incomplete items in the dock.
+    const activeTodos = todos.filter((item) => !item.done).slice(0, 5);
 
     if (activeTodos.length === 0) {
       todoSection.createDiv({
@@ -123,7 +124,7 @@ export class SidebarDockView extends ItemView {
       text: "🌊 " + t("sidebar_recent_stream"),
     });
 
-    const ctx = this.plugin.kernelService.getStreamContext();
+    const ctx = await this.plugin.kernelService.getStreamContext();
     const currentPeriod = ctx.current;
 
     if (currentPeriod) {
@@ -167,6 +168,12 @@ export class SidebarDockView extends ItemView {
   }
 
   private async openWorkbench(): Promise<void> {
+    // Reuse existing workbench leaf (same behavior as main plugin opener)
+    const existing = this.app.workspace.getLeavesOfType(VIEW_TYPE_STREAM_WORKBENCH);
+    if (existing.length > 0) {
+      this.app.workspace.revealLeaf(existing[0]);
+      return;
+    }
     const leaf = this.app.workspace.getLeaf(false);
     await leaf.setViewState({ type: VIEW_TYPE_STREAM_WORKBENCH, active: true });
   }

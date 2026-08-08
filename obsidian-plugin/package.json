@@ -1,6 +1,6 @@
 {
   "name": "topmind-obsidian-plugin",
-  "version": "2.0.1",
+  "version": "2.2.0",
   "private": true,
   "description": "topmind Stream for Obsidian — 主区域流式工作台 + AI 沉淀副驾",
   "type": "module",
@@ -13,7 +13,7 @@
     "dev": "node esbuild.config.mjs --watch",
     "build": "node esbuild.config.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "node --test tests/*.test.mjs",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "pack": "node scripts/pack-plugin.mjs",
     "pack:verify": "node scripts/verify-pack.mjs"
   },

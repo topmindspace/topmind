@@ -5,7 +5,7 @@
 [![Obsidian 插件](https://img.shields.io/badge/Obsidian-%E6%8F%92%E4%BB%B6-purple?style=flat-square&logo=obsidian)](https://obsidian.md)
 [![开源协议: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 [![最低 Obsidian 版本](https://img.shields.io/badge/Obsidian-%E2%89%A51.5.0-informational?style=flat-square)](https://obsidian.md)
-[![版本](https://img.shields.io/badge/%E7%89%88%E6%9C%AC-2.0.1-green.svg?style=flat-square)](manifest.json)
+[![版本](https://img.shields.io/badge/%E7%89%88%E6%9C%AC-2.2.0-green.svg?style=flat-square)](manifest.json)
 
 > **Obsidian 的「主区域流式工作台 + 静默 AI 沉淀副驾」**  
 > 随手记下、AI 默认建议、你确认后再沉淀、文件永远属于你。
@@ -70,10 +70,19 @@ topmind Stream 通过 5 个通俗直观的概念降低认知负担：
 4. 启用 **Topmind Stream**。
 
 #### 方式 C：手动解压安装
-1. 从 [Releases](https://github.com/topmindspace/topmind/releases) 下载 `topmind-obsidian-<version>.zip`。
+1. 从 [Releases](https://github.com/topmindspace/topmind/releases) 下载 `topmind-obsidian-<version>.zip`（完整产品标签 `v*` 与表面标签 `obsidian-v*` 都会产出该产物）。
 2. 将解压后的 `main.js`、`manifest.json`、`styles.css` 及 `templates/` 目录放入：
    `<你的 Vault>/.obsidian/plugins/topmind-stream/`
 3. 重载 Obsidian，进入 **设置 ➔ 第三方插件**，启用 **Topmind Stream**。
+
+#### 升级
+| 方式 | 操作 |
+|------|------|
+| 社区市场 / BRAT | 在插件列表 / BRAT「检查更新」中升级 |
+| 手动 zip | 下载新版 `topmind-obsidian-<ver>.zip`，覆盖 `plugins/topmind-stream/` 后重载 |
+| 源码打包 | `npm run obsidian:pack` → 按手动安装步骤替换 |
+
+插件升级**不会**改动 Vault 内容（`topmind.yaml`、`10-动态/`、`memory/` 等）。版本真源：[`manifest.json`](./manifest.json)（`npm run versions`）。
 
 ---
 
@@ -102,9 +111,11 @@ topmind Stream 通过 5 个通俗直观的概念降低认知负担：
 
 ### 4. 日常使用
 
-- `Cmd/Ctrl + Shift + S` ➔ 触发极速捕捉弹窗（*可在 Obsidian 设置 ➔ 快捷键 中自定义*）。
+- 命令面板 ➔ **Topmind: 记一下**（*可在 Obsidian 设置 ➔ 快捷键 中绑定*）。
 - `Cmd/Ctrl + P` ➔ 运行 **Topmind: 打开动态工作台** 打开主界面。
-- 点击左侧 Ribbon 栏的 **波浪图标** 随时快速记一条。
+- 点击左侧 Ribbon 栏的 **波浪图标** 随时 **记一下**。
+
+产品词汇（与 Desktop 对齐）：**记一下** / Note it · **记下** / Log it · **动态** · **专题** · **我的情况** · **写出来**。
 
 ---
 
@@ -113,9 +124,9 @@ topmind Stream 通过 5 个通俗直观的概念降低认知负担：
 | 命令名称 | 说明 |
 |----------|------|
 | `Topmind: 打开动态工作台` | 在主区域打开动态时间轴工作台页签 |
-| `Topmind: 极速捕捉` | 弹出速记弹窗捕捉随笔或片段 |
-| `Topmind: 整理本周动态` | 整理当前周动态并刷新待办与建议 |
-| `Topmind: AI 提取待办` | 针对近期活动窗口运行 AI 待办提取 |
+| `Topmind: 记一下` | 弹出速记弹窗（默认写入本周动态） |
+| `Topmind: 整理本周` | 整理当前周动态并刷新建议 |
+| `Topmind: AI 整理待办` | 针对近期活动窗口运行 AI 待办提取 |
 
 ---
 

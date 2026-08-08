@@ -84,9 +84,11 @@ export function pickConnectorCategory(categories, opts = {}) {
  */
 export async function resolveConnectorSyncCategory(workspaceRoot, preferred, connectorType, options = {}) {
   const root = resolveDataRoot(workspaceRoot);
+  // loadWorkspaceConfigSync projects v4 nested → flat aliases
   const config = loadWorkspaceConfigSync(root);
-  const sep = config.categorySeparator === " " ? " " : (config.categorySeparator || "-");
-  const templateId = config.template || "knowledge-management";
+  const rawSep = config.categorySeparator;
+  const sep = rawSep === " " ? " " : (rawSep || "-");
+  const templateId = config.template || "stream";
   let engineRoot = options.engineRoot || null;
   try {
     engineRoot = engineRoot || engineRootOf(workspaceRoot);

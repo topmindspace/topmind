@@ -76,7 +76,10 @@ test("stream detail: polish + save primary; full capture demoted; no header шо░ф
   const stream = readFileSync(path.join(root, "src/plugins/topmind-workspace/views/StreamDetailView.tsx"), "utf8");
   // Maintain todos + polish + save
   assert.match(stream, /id:\s*["']ai-todos["']/u);
-  assert.match(stream, /useTodoStore\.getState\(\)\.maintain/u);
+  // Real path: getState() then st.maintain(...) (progressive force when all-periods-processed)
+  assert.match(stream, /useTodoStore\.getState\(\)/u);
+  assert.match(stream, /\.maintain\(/u);
+  assert.match(stream, /maintainReason\s*===\s*["']all-periods-processed["']/u);
   assert.match(stream, /handleComposePolish|polishComposerText/u);
   assert.match(stream, /handleInlineCompose/u);
   // Full capture only as tertiary link (not header primary)

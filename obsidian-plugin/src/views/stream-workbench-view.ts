@@ -4,8 +4,13 @@ import { ItemView, WorkspaceLeaf, Notice, MarkdownRenderer } from "obsidian";
 import type TopmindPlugin from "../main";
 import { t } from "../i18n";
 import { VIEW_TYPE_STREAM_WORKBENCH } from "../constants";
-import type { StreamPeriod, StreamEntry, SuggestionCard, SuggestionKind } from "../types";
-import { extractTags, isStreamOrTodoPath } from "../utils";
+import type { StreamPeriod, StreamEntry, SuggestionCard } from "../types";
+import {
+  extractTags,
+  isStreamOrTodoPath,
+  isLoneUrlCapture,
+  SUGGESTION_KIND_META,
+} from "../utils";
 
 export class StreamWorkbenchView extends ItemView {
   plugin: TopmindPlugin;
@@ -165,9 +170,12 @@ export class StreamWorkbenchView extends ItemView {
       return;
     }
 
-    // Get stream context
-    const ctx = this.plugin.kernelService.getStreamContext();
+    // Get stream context (async Kernel listStreamPeriods)
+    const ctx = await this.plugin.kernelService.getStreamContext();
     this.currentPeriods = ctx.periods;
+
+    // Preserve the user's selected period across vault-driven refreshes
+    const prevSelected = this.periodSelect.value;
 
     // Update period selector (use DOM API, not innerHTML)
     while (this.periodSelect.firstChild) {
@@ -178,6 +186,12 @@ export class StreamWorkbenchView extends ItemView {
         value: p.relPath,
         text: p.title,
       });
+    }
+
+    if (prevSelected && ctx.periods.some((p) => p.relPath === prevSelected)) {
+      this.periodSelect.value = prevSelected;
+    } else if (ctx.current?.relPath) {
+      this.periodSelect.value = ctx.current.relPath;
     }
 
     const selectedPath = this.periodSelect.value || ctx.current?.relPath;
@@ -216,10 +230,10 @@ export class StreamWorkbenchView extends ItemView {
     header.createSpan({ cls: "tm-card-time", text: entry.time });
 
     const body = card.createDiv({ cls: "tm-card-body tm-collapsed" });
-    // Render entry text as markdown instead of plain text for better readability
+    // Render entry text as markdown (current Obsidian API — not deprecated renderMarkdown)
     if (entry.text) {
       try {
-        await MarkdownRenderer.renderMarkdown(entry.text, body, "", this);
+        await MarkdownRenderer.render(this.app, entry.text, body, "", this);
       } catch {
         // Fallback: plain text if markdown rendering fails
         body.textContent = entry.text;
@@ -228,9 +242,16 @@ export class StreamWorkbenchView extends ItemView {
       body.textContent = entry.text;
     }
 
-    // Toggle collapse on click
-    body.addEventListener("click", () => {
+    // Toggle collapse on click / keyboard
+    const toggleCollapse = () => {
       body.classList.toggle("tm-collapsed");
+    };
+    body.addEventListener("click", toggleCollapse);
+    body.addEventListener("keydown", (e: KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        toggleCollapse();
+      }
     });
     body.setAttribute("role", "button");
     body.setAttribute("tabindex", "0");
@@ -293,20 +314,8 @@ export class StreamWorkbenchView extends ItemView {
       cls: `tm-suggestion-card tm-suggestion-${sugg.kind.replace(/_/g, "-")}`,
     });
 
-    // Icon and label by suggestion kind — covers all Kernel suggest-engine
-    // and ai-operation-engine suggestion types.
-    const kindMeta: Record<SuggestionKind, { icon: string; border: string }> = {
-      create_topic: { icon: "📂", border: "blue" },
-      todo_extract: { icon: "📝", border: "orange" },
-      promote_memory: { icon: "🧠", border: "green" },
-      ai_summary: { icon: "📊", border: "purple" },
-      inbox_review: { icon: "📥", border: "blue" },
-      stale_topic: { icon: "📦", border: "orange" },
-      catch_all: { icon: "🧹", border: "orange" },
-      stream_digest: { icon: "📜", border: "purple" },
-      open_profile: { icon: "👤", border: "green" },
-    };
-    const meta = kindMeta[sugg.kind] || kindMeta.promote_memory;
+    // Icon and label by suggestion kind — shared pure meta (tested in unit suite).
+    const meta = SUGGESTION_KIND_META[sugg.kind] || SUGGESTION_KIND_META.promote_memory;
 
     const header = card.createDiv({ cls: "tm-suggestion-header" });
     header.createSpan({ text: `${meta.icon} ${sugg.title}` });
@@ -325,6 +334,10 @@ export class StreamWorkbenchView extends ItemView {
       const result = await this.plugin.kernelService.applySuggestion(sugg);
       if (result.ok) {
         card.remove();
+        // open_profile (and similar open-only kinds): open the note in Obsidian
+        if (result.openPath) {
+          await this.app.workspace.openLinkText(result.openPath, "", false);
+        }
         await this.refreshAll();
       } else {
         confirmBtn.disabled = false;
@@ -349,7 +362,7 @@ export class StreamWorkbenchView extends ItemView {
     if (!text) return;
 
     // URL detection: route links to inbox (knowledge capture, not stream clutter)
-    const isUrl = /^https?:\/\/\S+$/iu.test(text);
+    const isUrl = isLoneUrlCapture(text);
     const target = isUrl ? "inbox" : "stream";
     if (isUrl) {
       new Notice(t("notice_url_to_inbox"));

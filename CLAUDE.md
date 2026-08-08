@@ -29,7 +29,7 @@ topmind = Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Option
 - 用户概念：记一下 · 动态 · 专题 · 我的情况 · 写出来  
 - Skills：唯一入口 `topmind`；Host 文件工具为主；UTR 可选  
 - Desktop：**富工作台**；导航变薄；不硬依赖 UTR  
-- UTR：可选 CLI/MCP（**8 域 / 25 命令**；MCP 默认 17）  
+- UTR：可选 CLI/MCP（**8 域 / 27 命令**；MCP 默认 18）  
 - Obsidian 插件：可选；Obsidian 内嵌动态流 + AI 副驾；复用 Kernel `lib/` 八引擎  
 - Kernel 写闸 · Memory · 建议条/待确认写入 · 待办 · AI 操作框架 · **活动窗口 / 动态增补** · **高影响 only 备份/回执 + AI Provider 动态参数**：**Done** — 见 `docs/ARCHITECTURE-RESET.md` §2 · `docs/adr/2026-08-07-engine-hardening-writeback-ai.md`
 

@@ -532,6 +532,12 @@ export interface LaunchStatus {
   reason: string | null;
   requestedPath: string | null;
   errorMessage: string | null;
+  /** false when topmind.yaml is corrupt/unrepairable on open (not silent healthy). */
+  contractOnDiskValid?: boolean;
+  contractStatus?: string | null;
+  contractErrors?: string[];
+  /** Recovery action id, e.g. system.reseedWorkspaceContract */
+  recovery?: string | null;
 }
 
 export interface RecentWorkspace { rootPath: string; lastOpenedAt: string; }

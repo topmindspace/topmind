@@ -89,7 +89,7 @@
     "memory": "Memory"
   },
   "shortcut": {
-    "globalCapture": "Global quick capture (any app)",
+    "globalCapture": "Global Note it (any app)",
     "capture": "Note it",
     "commandPalette": "Command palette",
     "search": "Global search",

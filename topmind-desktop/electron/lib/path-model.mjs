@@ -179,10 +179,13 @@ export function workspaceAllowedRoots(workspace) {
 function resolveDirByRole(workspace, role, fallbackHyphen, fallbackSpace) {
   const root = resolveDataRoot(workspace);
   try {
+    // loadWorkspaceConfigSync projects v4 nested → flat aliases
     const config = loadWorkspaceConfigSync(root);
-    const templateId = config.template || "knowledge-management";
+    const templateId = config.template || "stream";
     const template = loadTemplateJson(templateId);
     const sep = config.categorySeparator || template?.separator || "-";
+    const extensions = config.categoryExtensions || {};
+    const overrides = config.categoryOverrides || {};
 
     /** @type {Map<string, { role: string, slot: string, name: string }>} */
     const roleByDir = new Map();
@@ -195,13 +198,13 @@ function resolveDirByRole(workspace, role, fallbackHyphen, fallbackSpace) {
         if (space !== dir) roleByDir.set(space, { role: def.role, slot, name: def.name });
       }
     }
-    for (const [slot, ext] of Object.entries(config.categoryExtensions || {})) {
+    for (const [slot, ext] of Object.entries(extensions)) {
       if (!ext?.name) continue;
       const r = ext.role || "deep-work";
       const dir = `${slot}${sep}${ext.name}`;
       roleByDir.set(dir, { role: r, slot, name: ext.name });
     }
-    for (const [slot, over] of Object.entries(config.categoryOverrides || {})) {
+    for (const [slot, over] of Object.entries(overrides)) {
       if (!over?.role) continue;
       // Apply role override to any known dir with this slot
       for (const [dir, meta] of roleByDir) {
@@ -216,8 +219,8 @@ function resolveDirByRole(workspace, role, fallbackHyphen, fallbackSpace) {
         if (!e.isDirectory() || !CATEGORY_PATTERN.test(e.name)) continue;
         const meta = roleByDir.get(e.name);
         const slot = e.name.slice(0, 2);
-        const over = config.categoryOverrides?.[slot];
-        const ext = config.categoryExtensions?.[slot];
+        const over = overrides[slot];
+        const ext = extensions[slot];
         const resolvedRole = over?.role || ext?.role || meta?.role;
         if (resolvedRole === role) return path.join(root, e.name);
       }

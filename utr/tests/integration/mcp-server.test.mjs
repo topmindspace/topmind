@@ -100,9 +100,9 @@ test("tools/list returns current v3.4 tool commands", async () => {
   const response = await client.request("tools/list");
 
   assert.ok(Array.isArray(response.result.tools));
-  // Default MCP surface: primary + danger only (17). Full 25 via topmind_MCP_ALL=1.
+  // Default MCP surface: primary + danger only (18). Full 27 via topmind_MCP_ALL=1.
   const toolCount = response.result.tools.length;
-  assert.equal(toolCount, 17, `expected 17 primary+danger MCP tools, got ${toolCount}`);
+  assert.equal(toolCount, 18, `expected 18 primary+danger MCP tools, got ${toolCount}`);
   assert.ok(!response.result.tools.some((t) => t.name.includes("migrate-categories")), "advanced migrate should be hidden by default");
 
   // Check MCP tool schema shape for representative v3.4 commands

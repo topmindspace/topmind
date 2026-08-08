@@ -378,6 +378,12 @@ presentation:                  # 呈现规约
 - **合并优先级（属性）**：`overrides` > `extensions` > `templates/*.json` > 默认 `role: deep-work`。
 - **隐藏**：`overrides[slot].hidden: true` — 不删盘；侧栏/timeline/tags/kanban/connector 默认跳过。
 - **ensure 策略**：打开工作区只保证 required roles（buffer/delivery/system）+ 语义平面 `memory/` + 系统平面骨架；**不**复活用户已删可选类。
+- **契约生命周期（Kernel 唯一路径，全表面共享）**：
+  - 缺失 → `ensureContract` 自动创建有效 v4 `topmind.yaml`
+  - 可修（错误版本 / 未知顶层键 / 缺 section / 仅有 legacy `.topmind-config.json`）→ 合并默认并重写为 v4
+  - 损坏且无法安全修复 → **不**静默把内存默认值写成「已健康」；返回 `unrepairable` + 诊断；用户触发 `reseedContract` / UTR `contract.reseed`（先备份坏文件，再写全新默认；**不**删内容目录）
+  - Desktop 打开、Obsidian vault-as-workspace、UTR `contract.ensure` / `doctor-workspace` 均走同一 Kernel API
+  - **UI 偏好**（Desktop `app-settings.json`、Obsidian plugin data）与工作区行为契约分离，不 fork locale/template/writeback 等 workspace 键
 - 类别变更 API：`addCategory` · `updateCategoryAttributes` · `renameCategory`（改目录名 + 树内 frontmatter + contract）。
 - 派生索引：`writeWorkspaceMap` → `.topmind/workspace-map.json`（可删，非真源）。
 

@@ -171,6 +171,14 @@ export const useActionStore = create<ActionStore>((set, get) => ({
     const requestedForce = opts.force === true;
     return enqueueSuggestRefresh(async (force) => {
     const now = Date.now();
+    // Lazy import to avoid circular store deps at module load
+    let agentStreaming = false;
+    try {
+      const { useAiStore } = await import("./ai-store");
+      agentStreaming = useAiStore.getState().streaming === true;
+    } catch {
+      agentStreaming = false;
+    }
     const decision = decideSuggestRefresh({
       autoPrepare: get().autoPrepare,
       force,
@@ -178,6 +186,7 @@ export const useActionStore = create<ActionStore>((set, get) => ({
       now,
       everLoaded: get().everLoaded,
       itemCount: get().items.length,
+      agentStreaming,
     });
 
     // Soft throttle: skip entirely (no pending / no kernel)
@@ -204,10 +213,26 @@ export const useActionStore = create<ActionStore>((set, get) => ({
     }
 
     try {
+      const { enqueueBackgroundAi } = await import("../lib/ai-background-lane");
+      // Kernel suggest shares the background AI lane with todo maintain (serialize LLM).
+      // Pending writes stay free of the lane (no LLM).
+      type KernelSuggestionRow = {
+        id: string;
+        kind?: string;
+        title: string;
+        summary: string;
+        targetPath?: string;
+        impact?: "low" | "medium" | "high";
+        payload?: Record<string, unknown>;
+      };
+      type SuggestApiResult = { suggestions?: KernelSuggestionRow[] };
+      const suggestPromise: Promise<SuggestApiResult> = decision.runKernelSuggest
+        ? enqueueBackgroundAi("suggest", () =>
+            api.ws.generateSuggestions({ force: !decision.soft }),
+          )
+        : Promise.resolve({ suggestions: [] });
       const [sugRes, pwRes] = await Promise.allSettled([
-        decision.runKernelSuggest
-          ? api.ws.generateSuggestions({ force: !decision.soft })
-          : Promise.resolve({ suggestions: [] }),
+        suggestPromise,
         decision.runPendingWrites
           ? api.ws.listPendingWrites()
           : Promise.resolve({ pending: [] }),
@@ -226,15 +251,7 @@ export const useActionStore = create<ActionStore>((set, get) => ({
 
       const kernelSuggestions =
         sugRes.status === 'fulfilled' && Array.isArray(sugRes.value.suggestions)
-          ? sugRes.value.suggestions.map((s: {
-              id: string;
-              kind?: string;
-              title: string;
-              summary: string;
-              targetPath?: string;
-              impact?: "low" | "medium" | "high";
-              payload?: Record<string, unknown>;
-            }) => ({
+          ? sugRes.value.suggestions.map((s) => ({
               id: s.id,
               kind: s.kind,
               title: s.title,

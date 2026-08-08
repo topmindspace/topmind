@@ -75,6 +75,38 @@ test("ActionStore refresh uses decideSuggestRefresh (shipped wire)", () => {
   assert.match(store, /decideSuggestRefresh|suggest-boot-policy/);
   assert.match(store, /mergeSuggestRefreshItems/);
   assert.match(store, /autoPrepare/);
+  // Multi-AI: soft path yields to agent stream; kernel suggest on background lane
+  assert.match(store, /agentStreaming/);
+  assert.match(store, /enqueueBackgroundAi|ai-background-lane/);
+});
+
+test("soft agentStreaming skips kernel; force still runs", () => {
+  const now = 100_000;
+  // lastRefreshAt far enough that soft throttle does not fire first
+  const soft = decideSuggestRefresh({
+    autoPrepare: true,
+    force: false,
+    lastRefreshAt: now - 10_000,
+    now,
+    everLoaded: true,
+    itemCount: 2,
+    agentStreaming: true,
+  });
+  assert.equal(soft.runKernelSuggest, false);
+  assert.equal(soft.reason, "agent_busy");
+  assert.equal(soft.runPendingWrites, true);
+
+  const force = decideSuggestRefresh({
+    autoPrepare: true,
+    force: true,
+    lastRefreshAt: now,
+    now,
+    everLoaded: true,
+    itemCount: 2,
+    agentStreaming: true,
+  });
+  assert.equal(force.runKernelSuggest, true);
+  assert.equal(force.reason, "force_refresh");
 });
 
 test("Shell healthy-workspace boot re-arms suggest with soft refresh (not force)", () => {

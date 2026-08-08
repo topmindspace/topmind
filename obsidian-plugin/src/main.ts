@@ -47,8 +47,8 @@ export default class TopmindPlugin extends Plugin {
       (leaf: WorkspaceLeaf) => new SidebarDockView(leaf, this),
     );
 
-    // ── Ribbon icon ──
-    this.addRibbonIcon("zap", t("quick_capture_title"), () => {
+    // ── Ribbon icon (DESIGN §7: waves) ──
+    this.addRibbonIcon("waves", t("quick_capture_title"), () => {
       this.openQuickCapture();
     });
 
@@ -173,7 +173,7 @@ export default class TopmindPlugin extends Plugin {
     }
 
     // Reconcile the current period note via Kernel
-    const ctx = this.kernelService.getStreamContext();
+    const ctx = await this.kernelService.getStreamContext();
     if (ctx.current) {
       this.kernelService.reconcilePeriod(ctx.current.relPath);
     }

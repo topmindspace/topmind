@@ -4,7 +4,7 @@
   "label": "topmind",
   "description": "topmind skill pack: single daily entry topmind + progressive disclosure (shared/ + references/), Agent Skills open-standard aligned, capture-first template-driven categories, optional weread/x connectors. File-system-first content truth; UTR optional.",
   "daily_entry": "topmind",
-  "version": "2.0.7",
+  "version": "2.2.0",
   "updated": "2026-08-08",
   "license": "MIT",
   "locales": {
@@ -340,7 +340,9 @@
         "cleanup-empty-dirs"
       ],
       "contract": [
-        "validate"
+        "validate",
+        "ensure",
+        "reseed"
       ],
       "memory": [
         "promote",
@@ -355,8 +357,8 @@
         "rebuild"
       ]
     },
-    "command_count": 25,
-    "mcp_default_count": 17,
+    "command_count": 27,
+    "mcp_default_count": 18,
     "command_exposure": {
       "primary": [
         "workspace-read.list-categories",
@@ -377,7 +379,8 @@
       ],
       "danger": [
         "workspace-maintain.archive-topic",
-        "workspace-maintain.restore-safety-receipt"
+        "workspace-maintain.restore-safety-receipt",
+        "contract.reseed"
       ],
       "advanced": [
         "workspace-read.list-recent-captures",
@@ -387,7 +390,8 @@
         "workspace-transform.migrate-v4",
         "workspace-maintain.cleanup-empty-dirs",
         "lifecycle.scan",
-        "derived.rebuild"
+        "derived.rebuild",
+        "contract.ensure"
       ]
     }
   }

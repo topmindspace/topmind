@@ -1,12 +1,14 @@
 # Packaging — independent distributables
 
-topmind has **three independently shippable surfaces** (plus optional UTR). They share content conventions, not a single binary. Artifact names always include the **surface** so downloads are unambiguous.
+topmind has **four core surfaces** (Skills · Desktop · UTR · Obsidian) plus **Clip Extension** as a Desktop capture companion. They share content conventions, not a single binary. Artifact names always include the **surface** so downloads are unambiguous.
 
 ```text
 Skills pack        →  dist/topmind-skills-<ver>.{tar.gz,zip,manifest,SHA256SUMS}
 Browser extension  →  dist/topmind-clip-extension-<ver>.{zip,SHA256SUMS}
+Obsidian plugin    →  dist/topmind-obsidian-<ver>.{zip,SHA256SUMS}
+                      (also mirrored under obsidian-plugin/release/)
 Desktop app        →  topmind-desktop/release/topmind-<ver>-<os>-<arch>.<ext>
-UTR                →  source/CLI (no installable pack; npm/repo is enough)
+UTR                →  bundled in Desktop engine; CLI via repo (no separate installer)
 ```
 
 ## Which file should I download?
@@ -15,12 +17,13 @@ UTR                →  source/CLI (no installable pack; npm/repo is enough)
 |---------|----------|--------------|
 | AI skills for Claude / Codex / OpenCode | `topmind-skills-<ver>.zip` or `.tar.gz` | `skills-v*` or `v*` |
 | Browser clip extension (MV3) | `topmind-clip-extension-<ver>.zip` | `extension-v*` or `v*` |
+| Obsidian Stream plugin | `topmind-obsidian-<ver>.zip` | `obsidian-v*` or `v*` |
 | Desktop app (macOS) | `topmind-<ver>-mac-arm64.dmg` (or `.zip`) | `desktop-v*` or `v*` |
 | Desktop app (Linux x64) | `topmind-<ver>-linux-x64.AppImage` or `.deb` | `desktop-v*` or `v*` |
 | Desktop app (Linux ARM) | `topmind-<ver>-linux-arm64.AppImage` or `.deb` | `desktop-v*` or `v*` |
 | Desktop app (Windows) | `topmind-<ver>-win-x64.exe` | `desktop-v*` or `v*` |
 
-**Do not** treat `topmind-skills-*` as the Desktop installer. Skills are Markdown skill packs for agent hosts; Desktop is a native Electron app.
+**Do not** treat `topmind-skills-*` as the Desktop installer. Skills are Markdown skill packs for agent hosts; Desktop is a native Electron app. **Do not** confuse `topmind-obsidian-*` with Desktop — it is a Vault plugin zip only.
 
 ## Commands (repo root)
 
@@ -28,7 +31,8 @@ UTR                →  source/CLI (no installable pack; npm/repo is enough)
 |---------|--------|
 | `npm run pack:skills` / `skills:pack` | Skills portable pack under `dist/` |
 | `npm run pack:extension` / `extension:pack` | Extension zip under `dist/` |
-| `npm run pack:all` | Skills + extension only (no Desktop) |
+| `npm run obsidian:pack` | Obsidian plugin zip under `dist/` (+ `obsidian-plugin/release/`) |
+| `npm run pack:all` | Skills + extension + Obsidian (no Desktop installers) |
 | `npm run desktop:pack:prepare` | Stage `resources/topmind-engine/` + deps gate |
 | `npm run desktop:pack:verify` | Asar / engine / import integrity (no build) |
 | `npm run desktop:pack:dir` | Unpacked app dir + verify (CI smoke) |
@@ -88,7 +92,9 @@ Draft sources under `topmind-desktop/public/icon-new*.png` are **gitignored** �
 |---------|----------------|-----------------|
 | Skills | `skills/topmind-pack.json` → `version` | `topmind-skills-` |
 | Extension | `browser-extension/manifest.json` → `version` | `topmind-clip-extension-` |
+| Obsidian | `obsidian-plugin/manifest.json` → `version` | `topmind-obsidian-` |
 | Desktop | `topmind-desktop/package.json` → `version` | `topmind-<ver>-` |
+| UTR | `utr/VERSION` (follows Desktop) | bundled in Desktop engine |
 
 ### Desktop in-app update check (public-first)
 
@@ -98,7 +104,7 @@ About → **检查** prefers the **public** release asset `latest.json` — no G
 https://github.com/{repo}/releases/latest/download/latest.json
 ```
 
-CI (`release.yml`) writes `latest.json` into every full product release (`v*`) with `desktop` / `skills` / `extension` stamps + asset URLs.
+CI (`release.yml`) writes `latest.json` into every full product release (`v*`) with `desktop` / `skills` / `extension` / `obsidian` stamps + asset URLs.
 
 | Priority | Path | When |
 |----------|------|------|
@@ -151,19 +157,21 @@ Local engines still accept `>=20.11`.
 plan            (resolves surfaces + validates dispatch inputs; always runs)
 pack-skills     (skills-v* | v* | dispatch pack_skills=true)
 pack-extension  (extension-v* | v* | dispatch pack_extension=true)
+pack-obsidian   (obsidian-v* | v* | dispatch pack_obsidian=true)
 pack-desktop    (desktop-v* | v* | dispatch pack_desktop=true)
-github-release  (when plan.outputs.create_release=='true' and at least one surface produced assets)
+finalize        (when plan.outputs.create_release=='true' and at least one surface produced assets)
                 → also uploads latest.json (public update stamp for Desktop, no API)
 ```
 
-| Tag push | Skills | Extension | Desktop | Release | Draft | GitHub **Latest** |
-|----------|--------|-----------|---------|---------|-------|-------------------|
-| `v4.x.x` (full) | ✓ | ✓ | ✓ | auto-publish | no | **yes** (only full `v*` tags) |
-| `skills-v*` | ✓ | — | — | auto-publish | no | no |
-| `extension-v*` | — | ✓ | — | auto-publish | no | no |
-| `desktop-v*` | — | — | ✓ | auto-publish | no | no |
-| `workflow_dispatch` + `release_tag` | per checkboxes | per checkboxes | per checkboxes | draft release | **yes** | no |
-| `workflow_dispatch` w/o `release_tag` + `create_release` | — | — | — | **plan fails** (hard error) | — | — |
+| Tag push | Skills | Extension | Obsidian | Desktop | Release | Draft | GitHub **Latest** |
+|----------|--------|-----------|----------|---------|---------|-------|-------------------|
+| `v*.*.*` (full) | ✓ | ✓ | ✓ | ✓ | auto-publish | no | **yes** (only full `v*` tags) |
+| `skills-v*` | ✓ | — | — | — | auto-publish | no | no |
+| `extension-v*` | — | ✓ | — | — | auto-publish | no | no |
+| `obsidian-v*` | — | — | ✓ | — | auto-publish | no | no |
+| `desktop-v*` | — | — | — | ✓ | auto-publish | no | no |
+| `workflow_dispatch` + `release_tag` | per checkboxes | per checkboxes | per checkboxes | per checkboxes | draft release | **yes** | no |
+| `workflow_dispatch` w/o `release_tag` + `create_release` | — | — | — | — | **plan fails** (hard error) | — | — |
 
 **How to ship from a clean main:**
 
@@ -171,7 +179,7 @@ github-release  (when plan.outputs.create_release=='true' and at least one surfa
 # Read stamps first
 npm run versions
 
-# Full product release (skills + extension + desktop matrix → published Release)
+# Full product release (skills + extension + obsidian + desktop matrix → published Release)
 # tag = v$(node -p "require('./topmind-desktop/package.json').version")
 git tag "v$(node -p "require('./topmind-desktop/package.json').version")"
 git push origin --tags
@@ -317,8 +325,8 @@ Runtime diagnostics RPC: `system.getDiagnostics` (version, packaged, engineRoot,
 
 ```bash
 npm run secrets:scan
-npm run validate          # full gate (includes Desktop + packaging deps + pack:verify)
-npm run pack:all          # skills + extension
+npm run validate          # full gate (includes Desktop + Obsidian + packaging deps + pack:verify)
+npm run pack:all          # skills + extension + obsidian
 # Desktop smoke (unpacked app + asar integrity):
 npm run desktop:pack:dir
 ```

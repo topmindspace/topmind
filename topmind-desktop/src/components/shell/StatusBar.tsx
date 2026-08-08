@@ -1,5 +1,5 @@
 import {
-  AlertCircle, Loader2, FileText, Bot, ListTodo, Lightbulb, ListChecks,
+  AlertCircle, Loader2, FileText, Bot, ListTodo, Lightbulb,
   Download,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -14,7 +14,10 @@ import { api } from "../../services/api";
 import { cn } from "../../lib/cn";
 import { ICON } from "../../lib/icons";
 import { sessionStatusLabel } from "../../lib/stream-status";
-import { deriveStatusBarBusy } from "../../lib/status-bar-busy";
+import {
+  deriveStatusBarBusy,
+  statusBarBusyKindLabelKeys,
+} from "../../lib/status-bar-busy";
 import { useInlineAiStore } from "../../lib/inline-ai-busy";
 import { Tooltip } from "../ui/tooltip";
 import type { Selection } from "../../types";
@@ -97,9 +100,19 @@ export function StatusBar({ health }: StatusBarProps) {
   });
   // Single primary AI control: offline → settings; ready → toggle AI panel.
   // Session state folds into the pill (no second "会话" open-panel button).
+  const multiJobsLabel = busy.multiActive
+    ? statusBarBusyKindLabelKeys(busy.activeKinds)
+        .map((key) => t(key))
+        .join(" · ")
+    : "";
   const aiLabel =
     busy.aiLabelMode === "offline"
       ? t("statusBar.aiOffline")
+      : busy.multiActive && busy.aiPillBusy
+        ? t("statusBar.aiMultiWorking", {
+            count: busy.concurrentCount,
+            defaultValue: `AI ×${busy.concurrentCount}`,
+          })
       : busy.aiPillBusy
         ? t("statusBar.aiWorking")
         : streaming || messageCount > 0
@@ -108,11 +121,16 @@ export function StatusBar({ health }: StatusBarProps) {
   const aiTip =
     !runtimeStatus?.ready
       ? t("statusBar.openSettingsTip")
+      : busy.multiActive
+        ? t("statusBar.aiMultiWorkingTip", {
+            jobs: multiJobsLabel,
+            defaultValue: `同时进行：${multiJobsLabel} · 点此切换 AI 面板`,
+          })
       : busy.aiPillBusy
         ? t("statusBar.aiWorkingTip")
         : aiPanelOpen
-          ? t("statusBar.aiPanelHideTip", { defaultValue: "收起 AI 面板" })
-          : t("statusBar.aiPanelShowTip", { defaultValue: "展开 AI 面板" });
+          ? t("statusBar.aiPanelHideTip")
+          : t("statusBar.aiPanelShowTip");
 
   return (
     <div
@@ -220,7 +238,8 @@ export function StatusBar({ health }: StatusBarProps) {
               )}
               aria-label={t("statusBar.taskRunning", { count: activeTasks.length })}
             >
-              <ListTodo size={ICON.micro} className="v4-ai-busy-icon" aria-hidden />
+              {/* Loader2 — background engine tasks; never ListTodo (reserved for personal list) */}
+              <Loader2 size={ICON.micro} className="v4-ai-busy-icon animate-spin" aria-hidden />
               <span className="v4-ai-busy-text hidden tabular-nums sm:inline">
                 {t("statusBar.taskRunning", { count: activeTasks.length })}
               </span>
@@ -230,16 +249,25 @@ export function StatusBar({ health }: StatusBarProps) {
         ) : null}
         {busy.showTodoChip ? (
           <Tooltip content={t("statusBar.todoMaintainingTip")}>
-            <span
+            <button
+              type="button"
               role="status"
               aria-live="polite"
               data-status-todo-busy
-              className="flex shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 py-0.5 bg-accent-bg-faint text-accent-color"
+              onClick={() => emitLocal("todo:open-popover")}
+              className={cn(
+                "flex shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 py-0.5",
+                "bg-accent-bg-faint text-accent-color",
+                "transition-colors hover:bg-accent-bg-subtle",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
+              )}
+              aria-label={t("statusBar.todoMaintaining")}
             >
-              <ListChecks size={ICON.micro} className="v4-ai-busy-icon" aria-hidden />
+              {/* ListTodo — personal list only (DESIGN §0.0.2) */}
+              <ListTodo size={ICON.micro} className="v4-ai-busy-icon" aria-hidden />
               <span className="v4-ai-busy-text hidden sm:inline">{t("statusBar.todoMaintaining")}</span>
               <span className="v4-ai-progress-dot" aria-hidden />
-            </span>
+            </button>
           </Tooltip>
         ) : null}
         {busy.showSuggestChip ? (

@@ -4,7 +4,7 @@
 
 ## Why Loop Exists
 
-UTR 提供 **8 域 / 25** 条确定性命令；`doctor-workspace` 做规则健康检查。Loop 在之上增加**语义层**：阅读 `topic.md` 与笔记、对照 skill 契约、再调用 UTR 修复。
+UTR 提供 **8 域 / 27** 条确定性命令；`doctor-workspace` 做规则健康检查。Loop 在之上增加**语义层**：阅读 `topic.md` 与笔记、对照 skill 契约、再调用 UTR 修复。
 
 ## Design Choice — Skill + Agent + State File, Not CLI
 

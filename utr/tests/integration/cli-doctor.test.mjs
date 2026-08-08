@@ -16,11 +16,23 @@ async function createCategoryFirstWorkspace() {
   const base = await fs.mkdtemp(path.join(os.tmpdir(), "topmind-cli-doctor-"));
   const workspaceRoot = path.join(base, "topmind-workspace");
   // v3.4: 10-60 + 88/99 numbering, notes at topic root, 99 Archive numbered, 88 Outputs flat
-await fs.mkdir(path.join(workspaceRoot, "10-动态", "2026-日常"), { recursive: true });
-await fs.mkdir(path.join(workspaceRoot, "88-输出"), { recursive: true });
-await fs.mkdir(path.join(workspaceRoot, "00-收件箱"), { recursive: true });
-await fs.mkdir(path.join(workspaceRoot, "99-归档"), { recursive: true });
+  await fs.mkdir(path.join(workspaceRoot, "10-动态", "2026-日常"), { recursive: true });
+  await fs.mkdir(path.join(workspaceRoot, "88-输出"), { recursive: true });
+  await fs.mkdir(path.join(workspaceRoot, "00-收件箱"), { recursive: true });
+  await fs.mkdir(path.join(workspaceRoot, "99-归档"), { recursive: true });
   await fs.writeFile(path.join(workspaceRoot, "10-动态", "2026-日常", "topic.md"), "# 2026-日常\n", "utf8");
+  // Clean workspace must include complete valid v4 contract (shared by all surfaces)
+  const { writeContract, buildDefaultContract } = await import(
+    path.join(repoRoot, "lib", "contract-engine.mjs")
+  );
+  writeContract(workspaceRoot, {
+    ...buildDefaultContract(),
+    workspace: {
+      ...buildDefaultContract().workspace,
+      template: "stream",
+      locale: "zh-CN",
+    },
+  });
   return { base, workspaceRoot };
 }
 
@@ -48,7 +60,7 @@ test("topmind-cli doctor emits machine-readable UTR status for a clean workspace
     assert.equal(report.paths.inboxRoot, path.join(fixture.workspaceRoot, "00-收件箱"));
     assert.equal(report.paths.archiveRoot, path.join(fixture.workspaceRoot, "99-归档"));
     assert.equal(report.registry.toolCount, 8);
-    assert.equal(report.registry.commandCount, 25);
+    assert.equal(report.registry.commandCount, 27);
     assert.equal(report.checks.contracts.ok, true);
     assert.equal(report.checks.plugins.ok, true);
     assert.equal(report.checks.plugins.pluginCount, 0);

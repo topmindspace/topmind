@@ -40,7 +40,7 @@
 | 关键词搜索诚实 | **Done** — notes-index + grep `truncated`/`scannedTotal`；GlobalSearch 截断提示（无 embedding） |
 | 建议可关 | **Done** — `ai.autoPrepareSuggestions`（默认开） |
 | 待办自动整理可关 | **Done** — `ai.autoMaintainTodos`（默认关 · 省 Token） |
-| 状态栏 AI 忙碌 | **Done** — `deriveStatusBarBusy`：todo/suggest 专用 chip，不与「AI 工作中」双标；streaming · TaskStore 走 AI pill |
+| 状态栏 AI 忙碌 | **Done** — `deriveStatusBarBusy`：todo/suggest 专用 chip，不与「AI 工作中」双标；Task=`Loader2`、Todo=`ListTodo`（可点开清单）、Suggest 可点开确认面；streaming · TaskStore 走 AI pill |
 | memory / lifecycle / contract / derived | 经 kernel-api；derived item-history **Done** 最小；AI provider 纯 **per-call 注入**——`createKernelAiProvider(settings)` 工厂按调用生成（`generateSuggestions` / `applySuggestion` / `runOperation` 等入口逐次传入），无全局单例；topic summary / period digest 用真实 LLM |
 | ingest 转换/队列 | Desktop `electron/lib/ingest/*` 本地转换与任务队列（**非路由**；深度/统一转换器仍可演进） |
 
@@ -285,9 +285,11 @@ Shell
 ├── EditorArea — 默认动态主表面或 ViewSlot 编辑
 ├── AiPanel — 副驾：compact ActionBar（跳转）+ 对话区 + Composer
 ├── SuggestPopover — **全局建议确认面**（标题栏 💡 / strip / openSuggestSurface）
-├── StatusBar — 健康即沉默；路径不常驻（2026-08-07 移除）；AI pill 唯一主控件
+├── StatusBar — 健康即沉默；路径不常驻；AI pill + 命名 busy chip（Task/Todo/Suggest/Inline）；多路径 `multiActive` / `AI ×N`
 └── OverlayHost（QuickCapture · ⌘K · Search · Settings）
 ```
+
+**多路 AI（实现）**：`src/lib/ai-background-lane.ts` 串行后台 prep（suggest · todo maintain）；Agent 流独立；soft 建议 `agent_busy` 让路；策略与像素见 `DESIGN.md` §0.0.3。
 
 ### 现状（已收敛 · Phase B Done）
 
@@ -301,6 +303,7 @@ Shell
 ├── EditorArea（SuggestEntryStrip count>0 · StreamDetailView · 文件编辑）
 ├── AiPanel（compact ActionBar 跳转 · 对话区 · Composer）
 ├── SuggestPopover（唯一完整建议确认列表）
+├── StatusBar（deriveStatusBarBusy · multi-AI 诚实）
 └── OverlayHost …
 ```
 

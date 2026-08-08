@@ -264,6 +264,21 @@ export function getEngineRoot(plugin: { manifest: { dir?: string } }): string {
 
 **设置接入**：`backupKeep` 通过 `process.env.BACKUP_KEEP` 接入 Kernel；`writebackMode` 通过 `writebackModeOverride` 透传。
 
+**Todo 字段对齐**：Kernel `todo-engine` 的 TodoItem 字段为 `done`（非 `completed`）。插件 `mapKernelTodoItem` / UI 过滤必须读 `done`，与 Desktop `todo-store` 一致。
+
+### 5.1 与 Obsidian 官方「优先 Vault API」的关系（intentional divergence）
+
+[Obsidian Plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines) 建议插件本地文件操作优先用 Vault API 而非 Adapter/raw FS。本表面**有意**走 Node `fs` + Kernel `writeback-engine`：
+
+| 点 | 选择 | 原因 |
+|----|------|------|
+| 内容写入 | Kernel `executeWrite` → `fs` | 四体共享唯一写闸（保护级别、confirm、高影响备份/回执）；Surface 不得平行实现业务写语义 |
+| Vault 根路径 | `vault.adapter.getBasePath()` | 仅解析工作区根；不用于内容写 |
+| AI HTTP | `fetch`（非 `requestUrl`） | `isDesktopOnly: true`；Electron 渲染进程可用 fetch；与 Kernel AiProvider 接口一致 |
+| 移动端 | 不支持 | 与 Desktop 一致 Non-goal；`manifest.isDesktopOnly: true` |
+
+**不要**为了满足「Vault API 优先」而把 capture/reconcile/todo 改成 `vault.modify` 绕过 writeback。
+
 ---
 
 ## 6. 视图架构

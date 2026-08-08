@@ -1,6 +1,6 @@
 ---
 name: topmind-maintain
-version: 2.0.7
+version: 2.2.0
 description: >-
   确定性体检/清理/结构修复/回执恢复。Use when 快速体检、诊断、doctor、清理、修复、workspace check。
   Do NOT use for 整体巡检 loop、内容整理、捕获、写作、记忆.

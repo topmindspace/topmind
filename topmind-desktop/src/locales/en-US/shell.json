@@ -35,7 +35,11 @@
     "templateResearchName": "Academic Research",
     "templateResearchDesc": "Deep research · source tracking · references",
     "templatePeriodicName": "Periodic Review",
-    "templatePeriodicDesc": "Strong periodic review · memory sink"
+    "templatePeriodicDesc": "Strong periodic review · memory sink",
+    "statusContractUnrepairable": "Workspace topmind.yaml is corrupt and cannot be auto-repaired. You can reseed the contract (notes are kept).",
+    "reseedContract": "Backup & reseed topmind.yaml",
+    "reseedContractHint": "The bad file is backed up under archive/contract or .topmind/contract-backups; content dirs are not deleted.",
+    "reseedFailed": "Failed to reseed contract"
   },
   "shell": {
     "loadingAi": "Loading AI…",
@@ -186,10 +190,17 @@
     "sessionMessageCount": "Current session message count",
     "aiWorking": "AI working",
     "aiWorkingTip": "Chat generation / background tasks in progress · toggle AI panel",
+    "aiMultiWorking": "AI ×{{count}}",
+    "aiMultiWorkingTip": "In parallel: {{jobs}} · click to toggle AI panel",
+    "jobAgent": "Chat",
+    "jobTask": "Background tasks",
+    "jobTodo": "Todo maintain",
+    "jobSuggest": "Suggestions",
+    "jobInline": "Inline AI",
     "taskRunning": "{{count}} background task(s)",
     "taskRunningTip": "Background tasks in progress · click for details and progress",
     "todoMaintaining": "AI maintaining todos",
-    "todoMaintainingTip": "Extracting/updating personal list from stream · takes a few seconds",
+    "todoMaintainingTip": "Extracting/updating personal list from stream · click to open list",
     "suggestLoading": "Preparing suggestions",
     "suggestLoadingTip": "Scanning tidy-up candidates and generating suggestions · click to view",
     "inlineAiWorking": "AI working",
@@ -294,7 +305,7 @@
       "loading": "Loading…",
       "retry": "Retry",
       "emptyTitle": "No notes yet",
-      "emptyHint": "Write on stream and Save · or title-bar Note it",
+      "emptyHint": "Write on stream and Log it · or title-bar Note it",
       "capture": "Note it",
       "truncatedHint": "Showing latest {{shown}} of ~{{total}} in workspace"
     },
@@ -379,7 +390,7 @@
       "reloadTooltip": "Reload period notebook",
       "defaultTitle": "This week's stream",
       "emptyTitle": "No entries yet",
-      "emptyHint": "Save on the stream page · or title-bar Note it",
+      "emptyHint": "Log it on the stream page · or title-bar Note it",
       "capture": "Note it",
       "openFull": "Open full notebook",
       "taskBoardTip": "Task board · by status · ⌘⇧B",
@@ -440,13 +451,13 @@
     }
   },
   "captureSurface": {
-    "preparing": "Preparing quick capture…",
-    "launchFailed": "Capture window failed to start",
+    "preparing": "Preparing Note it…",
+    "launchFailed": "Note it window failed to start",
     "close": "Close",
     "needWorkspace": "Workspace required",
     "openMainWindow": "Open main window",
     "pleaseOpenWorkspace": "Please open a workspace in the main window first",
-    "pleaseOpenWorkspaceHint": "Please open a workspace in the main window before using quick capture"
+    "pleaseOpenWorkspaceHint": "Please open a workspace in the main window before using Note it"
   },
   "fileDropZone": {
     "releaseToImport": "Release to import knowledge",
@@ -492,6 +503,7 @@
     "maintainCompleted": "Completed {{count}}",
     "maintainUpdated": "Updated {{count}}",
     "maintainAlreadyProcessed": "This period was already processed. Click 'Force retry' to re-analyze",
+    "maintainQueued": "Queued — waiting for other AI prep to finish…",
     "maintainForceRetry": "Force retry",
     "maintainForceTip": "Clear processed mark and re-analyze period note",
     "setDueDate": "Set due date",

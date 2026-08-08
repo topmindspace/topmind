@@ -3,7 +3,10 @@
 // Pure functions used across views, modals, and services.
 // Extracted to avoid duplication and ensure consistent behavior.
 
-import type { StreamEntry } from "./types";
+import type { StreamEntry, SuggestionCard, SuggestionKind, TodoItem, ImpactLevel } from "./types";
+
+/** Max capture body length (guards pathological filenames / giant pastes). */
+export const MAX_CAPTURE_LEN = 10_000;
 
 /**
  * Extract #tags from text. Supports Chinese, alphanumeric, and hyphenated tags.
@@ -14,6 +17,203 @@ import type { StreamEntry } from "./types";
 export function extractTags(text: string): string[] {
   const matches = text.matchAll(/#([\w\u4e00-\u9fff-]+)/gu);
   return Array.from(matches).map((m) => m[1]);
+}
+
+/**
+ * Normalize capture text: trim, reject empty, truncate oversize.
+ * Pure helper used by KernelService.capture and unit tests.
+ */
+export function normalizeCaptureText(text: string): {
+  ok: boolean;
+  text?: string;
+  error?: "empty-text";
+  truncated?: boolean;
+} {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return { ok: false, error: "empty-text" };
+  }
+  if (trimmed.length > MAX_CAPTURE_LEN) {
+    return {
+      ok: true,
+      text: trimmed.slice(0, MAX_CAPTURE_LEN) + "…(truncated)",
+      truncated: true,
+    };
+  }
+  return { ok: true, text: trimmed, truncated: false };
+}
+
+/**
+ * Detect a lone URL capture (route to inbox, not stream clutter).
+ */
+export function isLoneUrlCapture(text: string): boolean {
+  return /^https?:\/\/\S+$/iu.test(text.trim());
+}
+
+/**
+ * Map a Kernel todo-engine item onto the plugin TodoItem shape.
+ * Kernel uses `done`; never read a non-existent `completed` field.
+ */
+export function mapKernelTodoItem(item: Record<string, unknown>): TodoItem {
+  return {
+    id: String(item.id || ""),
+    text: String(item.text || ""),
+    done: Boolean(item.done),
+    dueDate: item.dueDate as string | undefined,
+    createdAt: item.createdAt as string | undefined,
+    completedAt: item.completedAt as string | undefined,
+    source: item.source as string | undefined,
+  };
+}
+
+/**
+ * Normalize Kernel generateSuggestions return: direct array or legacy wrapper.
+ */
+export function normalizeSuggestionList(raw: unknown): Record<string, unknown>[] {
+  if (Array.isArray(raw)) return raw as Record<string, unknown>[];
+  if (raw && typeof raw === "object" && Array.isArray((raw as { suggestions?: unknown[] }).suggestions)) {
+    return (raw as { suggestions: Record<string, unknown>[] }).suggestions;
+  }
+  return [];
+}
+
+/**
+ * Map a Kernel suggestion object to SuggestionCard.
+ */
+export function mapKernelSuggestion(s: Record<string, unknown>): SuggestionCard {
+  return {
+    id: String(s.id || ""),
+    kind: (s.kind as SuggestionKind) || "promote_memory",
+    title: String(s.title || ""),
+    summary: String(s.summary || ""),
+    impact: (s.impact as ImpactLevel) || "low",
+    payload: s.payload as Record<string, unknown> | undefined,
+    targetPath: s.targetPath as string | undefined,
+  };
+}
+
+/** Visual meta for each suggestion kind (icons + CSS border token). */
+export const SUGGESTION_KIND_META: Record<
+  SuggestionKind,
+  { icon: string; border: string }
+> = {
+  create_topic: { icon: "📂", border: "blue" },
+  todo_extract: { icon: "📝", border: "orange" },
+  promote_memory: { icon: "🧠", border: "green" },
+  ai_summary: { icon: "📊", border: "purple" },
+  inbox_review: { icon: "📥", border: "blue" },
+  stale_topic: { icon: "📦", border: "orange" },
+  catch_all: { icon: "🧹", border: "orange" },
+  stream_digest: { icon: "📜", border: "purple" },
+  open_profile: { icon: "👤", border: "green" },
+};
+
+/** All suggestion kinds the plugin UI must render. */
+export const ALL_SUGGESTION_KINDS: readonly SuggestionKind[] = [
+  "create_topic",
+  "promote_memory",
+  "ai_summary",
+  "todo_extract",
+  "inbox_review",
+  "stale_topic",
+  "catch_all",
+  "stream_digest",
+  "open_profile",
+];
+
+/**
+ * Whether an error should be retried by the AI provider (network / timeout / abort).
+ * Kept pure here so unit tests can import without pulling fetch-side modules.
+ */
+export function isTransientError(err: unknown): boolean {
+  if (err instanceof TypeError) return true; // network error
+  if (err instanceof Error) {
+    const msg = err.message.toLowerCase();
+    return (
+      msg.includes("fetch") ||
+      msg.includes("network") ||
+      msg.includes("timeout") ||
+      msg.includes("abort")
+    );
+  }
+  return false;
+}
+
+/**
+ * Append only tags not already present in the capture body.
+ * Prevents `extractTags(text)` + re-append from doubling `#tag` → `#tag #tag`.
+ */
+export function mergeCaptureTags(text: string, tags?: string[]): string {
+  const base = String(text || "");
+  if (!tags?.length) return base;
+  const existing = new Set(extractTags(base).map((t) => t.toLowerCase()));
+  const toAdd = tags.filter((t) => t && !existing.has(String(t).toLowerCase()));
+  if (toAdd.length === 0) return base;
+  const suffix = toAdd.map((t) => (String(t).startsWith("#") ? String(t) : `#${t}`)).join(" ");
+  return `${base.trimEnd()} ${suffix}`.trim();
+}
+
+/**
+ * Map Kernel applySuggestion result to surface { ok, error?, openPath? }.
+ *
+ * Rules (aligned with suggest-engine returns):
+ * - operation "open" / note "open only" → success with openPath (e.g. open_profile)
+ * - ok === false OR operation === "skip" → failure (keep card)
+ * - wroteFiles === false without open/ok:true → failure
+ * - pending → failure (needs confirm)
+ * - wroteFiles true or ok true → success
+ */
+export function mapApplySuggestionResult(
+  result: unknown,
+  suggestion: { kind: string },
+): { ok: boolean; error?: string; openPath?: string } {
+  if (result == null || typeof result !== "object") {
+    return { ok: false, error: "empty-result" };
+  }
+  const r = result as Record<string, unknown>;
+  const operation = String(r.operation || "");
+  const note = String(r.note || "");
+  const targetPath = r.targetPath != null
+    ? String(r.targetPath).replace(/\\/g, "/")
+    : undefined;
+
+  // open-only success (profile exists, or explicit open)
+  if (operation === "open" || /open\s*only/i.test(note)) {
+    const openPath =
+      targetPath ||
+      (suggestion.kind === "open_profile" ? "memory/profile.md" : undefined);
+    return { ok: true, openPath };
+  }
+
+  if (r.pending === true || r.needsConfirm === true) {
+    return { ok: false, error: "pending-confirmation" };
+  }
+
+  if (r.ok === false || operation === "skip") {
+    return {
+      ok: false,
+      error: String(r.reason || r.note || "suggestion-skipped"),
+    };
+  }
+
+  // Explicit write failure without open semantics
+  if (r.wroteFiles === false && r.ok !== true) {
+    return {
+      ok: false,
+      error: String(r.reason || r.note || "no-write"),
+    };
+  }
+
+  if (r.ok === true || r.wroteFiles === true) {
+    return { ok: true };
+  }
+
+  // Legacy evidence without ok/wroteFiles flags: treat non-skip as success
+  if (operation && operation !== "skip") {
+    return { ok: true };
+  }
+
+  return { ok: false, error: String(r.reason || r.note || "apply-failed") };
 }
 
 /**

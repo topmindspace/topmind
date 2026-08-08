@@ -108,12 +108,16 @@ export type SuggestionKind =
 /** Impact level (matches Kernel suggest-engine). */
 export type ImpactLevel = "high" | "medium" | "low";
 
-/** Todo item */
+/**
+ * Todo item — field names align with Kernel todo-engine TodoItem (`done`, not `completed`).
+ */
 export interface TodoItem {
   id: string;
   text: string;
-  completed: boolean;
+  /** Completion status (Kernel field name is `done`). */
+  done: boolean;
   dueDate?: string;
   createdAt?: string;
+  completedAt?: string;
   source?: string;
 }

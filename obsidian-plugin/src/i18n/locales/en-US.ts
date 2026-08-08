@@ -11,20 +11,20 @@ export const enUS: typeof zhCN = {
   stream_workbench_title: "Stream Workbench",
   sidebar_dock_title: "Topmind",
 
-  // ── Quick Capture ──
-  quick_capture_title: "Quick Note",
+  // ── Quick Capture (product vocab: Note it / 记一下) ──
+  quick_capture_title: "Note it",
   quick_capture_placeholder: "Type here...",
-  quick_capture_submit: "Submit",
+  quick_capture_submit: "Log it",
   quick_capture_target: "Target",
-  quick_capture_target_stream: "This Week",
+  quick_capture_target_stream: "This week's stream",
   quick_capture_target_inbox: "Inbox",
-  quick_capture_hint_enter: "⏎ Submit",
+  quick_capture_hint_enter: "⏎ Log it",
   quick_capture_hint_shift_enter: "⇧⏎ Newline",
 
   // ── Stream Workbench ──
-  stream_this_week: "This Week",
+  stream_this_week: "This week's stream",
   stream_switch_period: "Switch Period",
-  stream_empty: "No entries yet. Quick capture ⚡",
+  stream_empty: "No entries yet. Note it ⚡",
   stream_organize: "Organize",
 
   // ── Suggestions ──
@@ -34,18 +34,18 @@ export const enUS: typeof zhCN = {
   suggestions_dismiss: "Dismiss",
   suggestion_topic: "Suggested Topic",
   suggestion_todo: "Todo Extract",
-  suggestion_memory: "Write to Profile",
+  suggestion_memory: "Write to My profile",
   suggestion_summary: "Period Summary",
 
   // ── Sidebar Dock ──
   sidebar_today_todos: "Today's Todos",
-  sidebar_recent_stream: "Recent",
+  sidebar_recent_stream: "Recent stream",
   sidebar_open_workbench: "Open Workbench",
   sidebar_no_todos: "No todos",
-  sidebar_no_stream: "No entries",
+  sidebar_no_stream: "No stream entries",
 
   // ── Commands ──
-  cmd_quick_capture: "Topmind: Quick Note",
+  cmd_quick_capture: "Topmind: Note it",
   cmd_open_workbench: "Topmind: Open Stream Workbench",
   cmd_open_sidebar: "Topmind: Open Sidebar",
   cmd_organize_period: "Topmind: Organize This Week",
@@ -100,7 +100,7 @@ export const enUS: typeof zhCN = {
 
   // ── URL detection ──
   notice_url_to_inbox: "URL detected — routed to Inbox",
-  compose_url_hint: "URL detected — use Quick Capture to fetch content to Inbox",
+  compose_url_hint: "URL detected — use Note it to fetch content to Inbox",
 
   // ── General ──
   loading: "Loading...",

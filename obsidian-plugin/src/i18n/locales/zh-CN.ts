@@ -12,11 +12,11 @@ export const zhCN = {
   // ── Quick Capture ──
   quick_capture_title: "记一下",
   quick_capture_placeholder: "在此输入...",
-  quick_capture_submit: "提交",
+  quick_capture_submit: "记下",
   quick_capture_target: "目标",
   quick_capture_target_stream: "本周动态",
   quick_capture_target_inbox: "收件箱",
-  quick_capture_hint_enter: "⏎ 提交",
+  quick_capture_hint_enter: "⏎ 记下",
   quick_capture_hint_shift_enter: "⇧⏎ 换行",
 
   // ── Stream Workbench ──
@@ -98,7 +98,7 @@ export const zhCN = {
 
   // ── URL detection ──
   notice_url_to_inbox: "检测到链接，已路由到收件箱",
-  compose_url_hint: "检测到链接，建议使用快速捕获抓取正文到收件箱",
+  compose_url_hint: "检测到链接，建议使用「记一下」抓取正文到收件箱",
 
   // ── General ──
   loading: "加载中...",

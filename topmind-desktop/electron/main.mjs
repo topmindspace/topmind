@@ -166,6 +166,20 @@ function getContext() {
     launchDefaults: launchStatus ? { launchStatus } : undefined,
     /** Open workspace (opts.createIfMissing for new/empty folders). */
     activateWorkspace: (candidate, opts) => activateWorkspace(candidate, opts),
+    /** After successful reseed: mark launch healthy without full re-open. */
+    clearContractLaunchFailure: (rootPath) => {
+      launchStatus = {
+        ok: true,
+        reason: null,
+        requestedPath: rootPath || currentCtx?.userWorkspaceRoot || null,
+        errorMessage: null,
+        contractOnDiskValid: true,
+        contractStatus: "reseeded",
+        contractErrors: [],
+        recovery: null,
+      };
+      return launchStatus;
+    },
     /** Return to landing: stop watcher, clear live ctx, keep recents. */
     closeWorkspace: async () => {
       await closeWorkspaceWatcher();
@@ -338,34 +352,100 @@ async function activateWorkspace(candidate, opts = {}) {
   }
   const openRoot = classified.path || resolved;
 
-  // Structure + light auto-repair (separator migration, required roles)
-  await ensureWorkspaceStructure(openRoot).catch((err) => {
+  // Structure + Kernel ensureContract (separator migration, required roles).
+  // Must surface contract health — never claim launch healthy while on-disk YAML is corrupt.
+  let ensureResult = {
+    root: openRoot,
+    contractOnDiskValid: true,
+    contractStatus: "unknown",
+    contractErrors: [],
+    recovery: null,
+  };
+  try {
+    ensureResult = await ensureWorkspaceStructure(openRoot);
+  } catch (err) {
     logWarn("main", "ensureWorkspaceStructure on activate failed", {
       path: openRoot,
       error: err instanceof Error ? err.message : String(err),
     });
-  });
+    ensureResult = {
+      root: openRoot,
+      contractOnDiskValid: false,
+      contractStatus: "unknown",
+      contractErrors: [err instanceof Error ? err.message : String(err)],
+      recovery: "system.reseedWorkspaceContract",
+    };
+  }
 
   const context = await resolveWorkspaceContext(openRoot, { engineRoot: defaultEngine });
   if (context?.engineRoot) setEngineRoot(context.engineRoot);
   currentCtx = context;
 
+  // Hydrate app-settings writebackMode FROM workspace contract (display cache only).
+  // Kernel durable writes never prefer app-settings over topmind.yaml.
+  let workspaceWritebackMode;
+  try {
+    const { loadKernelApi } = await import("./lib/kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const contract = kernel.loadContract(context.userWorkspaceRoot);
+    const mode = contract?.writeback?.mode;
+    if (mode === "auto" || mode === "confirm") workspaceWritebackMode = mode;
+  } catch {
+    /* ignore */
+  }
+
   // Merge recents via touchRecentWorkspace semantics in settings merge
+  const settingsPatch = {
+    workspaceRoot: context.userWorkspaceRoot,
+    workspaces: {
+      recent: [{ rootPath: context.userWorkspaceRoot, lastOpenedAt: new Date().toISOString() }],
+    },
+  };
+  if (workspaceWritebackMode) {
+    settingsPatch.writebackMode = workspaceWritebackMode;
+  }
   appSettings = await updateAppSettings(
     settingsFile(),
     appSettings,
-    {
-      workspaceRoot: context.userWorkspaceRoot,
-      workspaces: {
-        recent: [{ rootPath: context.userWorkspaceRoot, lastOpenedAt: new Date().toISOString() }],
-      },
-    },
+    settingsPatch,
     { secretAdapter: settingsAdapter },
   );
   // Keep in-memory shape consistent even if disk merge reordered
   appSettings = touchRecentWorkspace(appSettings, context.userWorkspaceRoot);
 
-  launchStatus = { ok: true, reason: null, requestedPath: context.userWorkspaceRoot, errorMessage: null };
+  const contractOk = ensureResult?.contractOnDiskValid !== false;
+  if (contractOk) {
+    launchStatus = {
+      ok: true,
+      reason: null,
+      requestedPath: context.userWorkspaceRoot,
+      errorMessage: null,
+      contractOnDiskValid: true,
+      contractStatus: ensureResult?.contractStatus || "ok",
+      contractErrors: [],
+      recovery: null,
+    };
+  } else {
+    // Unrepairable contract: do not claim healthy open. User must reseed (content kept).
+    const errMsg =
+      (Array.isArray(ensureResult?.contractErrors) && ensureResult.contractErrors[0]) ||
+      "topmind.yaml is unrepairable — reseed workspace contract (backs up bad file; content dirs kept)";
+    launchStatus = {
+      ok: false,
+      reason: "contract-unrepairable",
+      requestedPath: context.userWorkspaceRoot,
+      errorMessage: errMsg,
+      contractOnDiskValid: false,
+      contractStatus: ensureResult?.contractStatus || "unrepairable",
+      contractErrors: ensureResult?.contractErrors || [],
+      recovery: ensureResult?.recovery || "system.reseedWorkspaceContract",
+    };
+    logWarn("main", "workspace contract unrepairable on activate", {
+      path: context.userWorkspaceRoot,
+      status: launchStatus.contractStatus,
+      errors: launchStatus.contractErrors,
+    });
+  }
   if (mainWindow && !mainWindow.isDestroyed()) {
     await closeWorkspaceWatcher();
     await startWorkspaceWatcher(context, (p) => {
@@ -382,7 +462,7 @@ async function activateWorkspace(candidate, opts = {}) {
       });
     }
   }
-  return { context, settings: appSettings };
+  return { context, settings: appSettings, launchStatus, ensureResult };
 }
 
 /** Persist pruned settings after removing a bad recent path. */

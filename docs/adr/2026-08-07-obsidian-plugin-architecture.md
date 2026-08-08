@@ -81,3 +81,25 @@ topmind 已有三个独立表面（Skills / Desktop / UTR）。用户群体中�
 - ✅ `obsidian:validate` 质量门顺序优化：`typecheck → build → test → pack:verify`（确保测试运行在新鲜构建产物上）
 - ✅ `ai-provider.ts` 逻辑清晰化：分离 Ollama 免密钥逻辑
 - ✅ `kernel-service.ts` 添加 `skipShadow` 和 `process.env` 设计决策文档注释
+
+### 2026-08-08 正确性硬化
+
+- ✅ TodoItem 字段对齐 Kernel `done`（修复原先误读 `completed` 导致已完成项仍显示）
+- ✅ 周期选择器在 vault 刷新时保留用户选择
+- ✅ `MarkdownRenderer.render` 替代已废弃的 `renderMarkdown`
+- ✅ 侧边栏打开工作台复用已有 leaf；Ribbon 图标与 DESIGN 一致为 `waves`
+- ✅ `open_profile` apply 后在 Obsidian 中打开笔记
+- ✅ 单元测试改为 import 已发布的 `src/*.ts` 纯函数（`--experimental-strip-types`），禁止算法镜像
+- ✅ 写路径结构断言 + 官方指南清单（无默认热键、无 `:root` 污染、LICENSE）
+- ✅ 成功路径去掉 `console.debug`；intentional Kernel-fs 分歧写入 ARCHITECTURE §5.1
+
+### 2026-08-08 Kernel API 对齐（skeptic）
+
+- ✅ `resolveStreamTarget` → `periodRelPath` / `periodAbsPath`（禁止虚构 `relPath`）
+- ✅ `listStreamPeriods({ workspaceRoot, engineRoot, config })` 异步 + options 对象
+- ✅ `reconcilePeriodBody(body, opts)` 位置参数 + 返回 `{ changed }`
+- ✅ `KernelApi` 类型面与 `lib/model-stream` / `stream-period` 对齐
+- ✅ 纯写路径抽离 `kernel-workspace-ops.ts`；live Kernel 集成测试
+- ✅ `mapApplySuggestionResult`：skip / ok:false / wroteFiles:false 保持失败；open-only 成功
+- ✅ `mergeCaptureTags` 防止 autoTag 双重 `#tag`
+- ✅ 首次 init 全量模板目录（含 `10-动态`，对齐 Desktop first-init）

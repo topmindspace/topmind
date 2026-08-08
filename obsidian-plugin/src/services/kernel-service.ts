@@ -15,11 +15,17 @@ import { createAiProvider } from "../bridge/ai-provider";
 import { createKernelContextFromApp, type KernelContext, getKernel } from "../bridge/kernel-loader";
 import {
   parseStreamEntries,
-  stripFrontmatter,
-  extractFrontmatter,
-  seedPeriodFrontmatter,
-  sanitizeFileName,
+  normalizeSuggestionList,
+  mapKernelSuggestion,
+  mapApplySuggestionResult,
 } from "../utils";
+import {
+  captureToWorkspace,
+  listStreamPeriodsForWorkspace,
+  reconcilePeriodNote,
+  readTodosFromWorkspace,
+  initWorkspaceStructure,
+} from "./kernel-workspace-ops";
 import { t } from "../i18n";
 
 // ── Node.js built-ins ──
@@ -115,25 +121,20 @@ export class KernelService {
     }
   }
 
-  /** Initialize workspace structure in current vault */
+  /**
+   * Initialize workspace structure in current vault.
+   * First-time (no NN- categories): seed full template layout (Desktop parity)
+   * so loose-stream「动态」exists. Subsequent calls only ensure required roles.
+   */
   initWorkspace(templateId: string = "stream"): { ok: boolean; error?: string } {
-    try {
-      const kernel = getKernel();
-      const workspaceRoot = this.getVaultPath();
-      const engineRoot = this.getEngineRoot();
-
-      // ensureRequiredStructure loads the template internally and creates
-      // required role dirs (buffer/delivery/system) + v4 contract.
-      // It won't revive user-deleted optional categories.
-      kernel.ensureRequiredStructure(workspaceRoot, { engineRoot, templateId });
-
-      // Invalidate cache — new topmind.yaml and dirs were created
-      this.invalidateCache();
-
-      return { ok: true };
-    } catch (err) {
-      return { ok: false, error: err instanceof Error ? err.message : String(err) };
-    }
+    const result = initWorkspaceStructure(
+      getKernel(),
+      this.getVaultPath(),
+      this.getEngineRoot(),
+      templateId,
+    );
+    if (result.ok) this.invalidateCache();
+    return result;
   }
 
   /** Load contract from topmind.yaml (reads file each call, but cached at model level) */
@@ -177,30 +178,17 @@ export class KernelService {
 
   // ── Stream ─────────────────────────────────────────────────────────────
 
-  /** Get current stream period info */
-  getStreamContext(): { periods: StreamPeriod[]; current: StreamPeriod | null } {
-    const kernel = getKernel();
-    const workspaceRoot = this.getVaultPath();
-
+  /**
+   * Get stream period list (newest first).
+   * Awaits Kernel `listStreamPeriods({ workspaceRoot, engineRoot, config })`.
+   */
+  async getStreamContext(): Promise<{ periods: StreamPeriod[]; current: StreamPeriod | null }> {
     try {
-      const model = this.getResolvedModel();
-
-      // Find stream category
-      const streamCat = kernel.findStreamCategory(model);
-      if (!streamCat) return { periods: [], current: null };
-
-      const periods = kernel.listStreamPeriods(workspaceRoot, streamCat.directory);
-
-      const streamPeriods: StreamPeriod[] = periods.map((p: { period: string; relPath: string; title: string; entryCount: number; mtime: number }) => ({
-        period: p.period,
-        relPath: p.relPath,
-        title: p.title,
-        entryCount: p.entryCount,
-        mtime: p.mtime,
-      }));
-
-      const current = streamPeriods[0] || null;
-      return { periods: streamPeriods, current };
+      return await listStreamPeriodsForWorkspace(
+        getKernel(),
+        this.getVaultPath(),
+        this.getEngineRoot(),
+      );
     } catch (err) {
       console.error("[topmind] getStreamContext failed:", err);
       return { periods: [], current: null };
@@ -227,156 +215,45 @@ export class KernelService {
     path?: string;
     error?: string;
   } {
-    // Pre-flight: workspace must be ready
     if (!this.isWorkspaceReady()) {
       new Notice(t("notice_workspace_not_ready"));
       return { ok: false, error: "workspace-not-ready" };
     }
 
-    // Guard against empty / whitespace-only text
-    const trimmed = text.trim();
-    if (!trimmed) {
-      return { ok: false, error: "empty-text" };
+    const result = captureToWorkspace(
+      getKernel(),
+      this.getVaultPath(),
+      this.getEngineRoot(),
+      text,
+      {
+        target: opts.target,
+        tags: opts.tags,
+        writebackMode: this.writebackModeOverride,
+      },
+    );
+
+    if (result.ok) {
+      new Notice(`${t("notice_written")} → ${result.path}`);
+    } else if (result.error === "pending-confirmation") {
+      new Notice(t("notice_write_pending"));
+    } else if (result.error && result.error !== "empty-text") {
+      new Notice(`${t("notice_write_failed")}: ${result.error}`);
     }
-
-    // Guard against excessively long input (prevents pathological file names)
-    const MAX_CAPTURE_LEN = 10_000;
-    const safeText = trimmed.length > MAX_CAPTURE_LEN
-      ? trimmed.slice(0, MAX_CAPTURE_LEN) + "…(truncated)"
-      : trimmed;
-
-    try {
-      const kernel = getKernel();
-      const workspaceRoot = this.getVaultPath();
-      const target = opts.target || "stream";
-      const model = this.getResolvedModel();
-      const contract = model.contract || this.loadContract();
-
-      let relPath: string;
-      let content: string;
-
-      if (target === "stream") {
-        const streamCat = kernel.findStreamCategory(model);
-        if (!streamCat) throw new Error("No stream category found in workspace");
-
-        const contractData = model.contract as { stream?: { packing?: string; appendHeading?: string } } | undefined;
-        const packing = contractData?.stream?.packing || "weekly";
-        const streamTarget = kernel.resolveStreamTarget({
-          workspaceRoot,
-          categoryDir: streamCat.directory,
-          packing,
-        });
-        relPath = streamTarget.relPath;
-
-        // Build content with tags appended
-        const tagSuffix = opts.tags?.length ? ` ${opts.tags.map((tag) => `#${tag}`).join(" ")}` : "";
-        const captureContent = `${safeText}${tagSuffix}`;
-
-        // Read existing body (strip frontmatter for appendToPeriodBody)
-        const absPath = path.join(workspaceRoot, relPath);
-        const raw = fs.existsSync(absPath) ? fs.readFileSync(absPath, "utf-8") : "";
-        const body = stripFrontmatter(raw);
-
-        // Use Kernel's appendToPeriodBody — handles day headings, seeding, bullet format
-        const newBody = kernel.appendToPeriodBody(body, {
-          content: captureContent,
-          packing,
-          appendHeading: contractData?.stream?.appendHeading || "day",
-        });
-
-        // Re-attach frontmatter (or seed if new)
-        const fm = extractFrontmatter(raw) || seedPeriodFrontmatter(relPath);
-        content = `${fm}${newBody}`;
-      } else {
-        // Inbox — use the buffer directory directly (already includes NN- prefix)
-        const inboxDir = this.getInboxDir(model);
-        relPath = `${inboxDir}/${Date.now()}-${sanitizeFileName(safeText.slice(0, 30))}.md`;
-        const tagSuffix = opts.tags?.length ? ` ${opts.tags.map((tag) => `#${tag}`).join(" ")}` : "";
-        content = `---\nsource_type: external-capture\ncreated: ${new Date().toISOString()}\ntags: [${(opts.tags || []).join(", ")}]\n---\n\n# ${safeText.slice(0, 80)}\n\n${safeText}${tagSuffix}\n`;
-      }
-
-      // Write via writeback-engine (唯一写闸)
-      // skipShadow: true — shadow copy is not needed for stream captures
-      //   (the user's content is immediately visible in the period note;
-      //   shadow copies are for long-form edits where undo recovery matters).
-      const targetPath = path.join(workspaceRoot, relPath);
-      const isUpdate = fs.existsSync(targetPath);
-      const result = kernel.executeWrite({
-        targetPath,
-        content,
-        workspaceRoot,
-        contract,
-        operation: isUpdate ? "update" : "create",
-        actor: "user",
-        confirmed: true,
-        skipShadow: true,
-        writebackModeOverride: this.writebackModeOverride,
-      });
-
-      if (result.pending) {
-        new Notice(t("notice_write_pending"));
-        return { ok: false, error: "pending-confirmation" };
-      }
-
-      const displayPath = relPath.replace(/\\/g, "/");
-      new Notice(`${t("notice_written")} → ${displayPath}`);
-      return { ok: true, path: displayPath };
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      new Notice(`${t("notice_write_failed")}: ${msg}`);
-      return { ok: false, error: msg };
-    }
+    return result;
   }
 
   /**
-   * Reconcile a period note — merges scattered entries, fixes day headings,
-   * and cleans up structure. Uses Kernel's reconcilePeriodBody.
+   * Reconcile a period note — deterministic Kernel reconcilePeriodBody(body, opts)
+   * returns `{ body, changed }` (not `{ reconciled }`).
    */
   reconcilePeriod(relPath: string): { ok: boolean; reconciled: boolean; error?: string } {
-    try {
-      const kernel = getKernel();
-      const workspaceRoot = this.getVaultPath();
-      const model = this.getResolvedModel();
-      const contract = model.contract || this.loadContract();
-
-      const absPath = path.join(workspaceRoot, relPath);
-      if (!fs.existsSync(absPath)) {
-        return { ok: false, reconciled: false, error: "period note not found" };
-      }
-
-      const raw = fs.readFileSync(absPath, "utf-8");
-      const fm = extractFrontmatter(raw) || seedPeriodFrontmatter(relPath);
-      const body = stripFrontmatter(raw);
-
-      const contractData = contract as { stream?: { packing?: string; appendHeading?: string } } | undefined;
-      const packing = contractData?.stream?.packing || "weekly";
-      const appendHeading = contractData?.stream?.appendHeading || "day";
-
-      const result = kernel.reconcilePeriodBody({ body, packing, appendHeading });
-
-      if (!result.reconciled) {
-        return { ok: true, reconciled: false };
-      }
-
-      // Write reconciled content via writeback-engine
-      const content = `${fm}${result.body}`;
-      kernel.executeWrite({
-        targetPath: absPath,
-        content,
-        workspaceRoot,
-        contract,
-        operation: "update",
-        actor: "user",
-        confirmed: true,
-        skipShadow: true,
-        writebackModeOverride: this.writebackModeOverride,
-      });
-
-      return { ok: true, reconciled: true };
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      return { ok: false, reconciled: false, error: msg };
-    }
+    return reconcilePeriodNote(
+      getKernel(),
+      this.getVaultPath(),
+      this.getEngineRoot(),
+      relPath,
+      { writebackMode: this.writebackModeOverride },
+    );
   }
 
   // ── Suggestions ────────────────────────────────────────────────────────
@@ -388,36 +265,28 @@ export class KernelService {
     try {
       const ctx = this.getContext();
       const raw = await ctx.generateSuggestions({ force: false });
-
-      // Kernel's suggest-engine returns a Suggestion[] directly (synchronous).
-      // Handle both direct array and legacy { suggestions: [] } wrapper shapes.
-      const items = Array.isArray(raw)
-        ? raw
-        : ((raw as { suggestions?: unknown[] })?.suggestions || []);
-
-      return (items as Record<string, unknown>[]).map((s) => ({
-        id: String(s.id || ""),
-        kind: (s.kind as SuggestionCard["kind"]) || "promote_memory",
-        title: String(s.title || ""),
-        summary: String(s.summary || ""),
-        impact: (s.impact as SuggestionCard["impact"]) || "low",
-        payload: s.payload as Record<string, unknown> | undefined,
-        targetPath: s.targetPath as string | undefined,
-      }));
+      // Kernel returns Suggestion[] directly; normalizeSuggestionList also
+      // accepts legacy { suggestions: [] } for forward compatibility.
+      return normalizeSuggestionList(raw).map(mapKernelSuggestion);
     } catch (err) {
       console.error("[topmind] generateSuggestions failed:", err);
       return [];
     }
   }
 
-  /** Apply (accept) a suggestion */
-  async applySuggestion(suggestion: SuggestionCard): Promise<{ ok: boolean; error?: string }> {
+  /**
+   * Apply (accept) a suggestion after user confirm.
+   * Maps Kernel skip/failure (ok:false, wroteFiles:false, operation:skip) to
+   * surface failure so the UI keeps the card and does not show a false success.
+   */
+  async applySuggestion(suggestion: SuggestionCard): Promise<{
+    ok: boolean;
+    error?: string;
+    openPath?: string;
+  }> {
     try {
       const ctx = this.getContext();
-      // Kernel's applySuggestion expects (suggestion, opts) where suggestion
-      // is the full suggestion object. targetPath is needed for some kinds
-      // (inbox_review, stale_topic, catch_all, archive_path).
-      await ctx.applySuggestion({
+      const result = await ctx.applySuggestion({
         id: suggestion.id,
         kind: suggestion.kind,
         title: suggestion.title,
@@ -426,8 +295,14 @@ export class KernelService {
         payload: suggestion.payload,
         targetPath: suggestion.targetPath,
       });
-      new Notice(`${t("notice_executed")}: ${suggestion.title}`);
-      return { ok: true };
+
+      const mapped = mapApplySuggestionResult(result, suggestion);
+      if (mapped.ok) {
+        new Notice(`${t("notice_executed")}: ${suggestion.title}`);
+        return mapped;
+      }
+      new Notice(`${t("notice_execute_failed")}: ${mapped.error || suggestion.title}`);
+      return mapped;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       new Notice(`${t("notice_execute_failed")}: ${msg}`);
@@ -452,15 +327,7 @@ export class KernelService {
       return {
         ok: result.ok,
         summary: result.summary || "",
-        suggestions: ((result.suggestions || []) as Record<string, unknown>[]).map((s) => ({
-          id: String(s.id || ""),
-          kind: (s.kind as SuggestionCard["kind"]) || "promote_memory",
-          title: String(s.title || ""),
-          summary: String(s.summary || ""),
-          impact: (s.impact as SuggestionCard["impact"]) || "low",
-          payload: s.payload as Record<string, unknown> | undefined,
-          targetPath: s.targetPath as string | undefined,
-        })),
+        suggestions: normalizeSuggestionList(result.suggestions).map(mapKernelSuggestion),
       };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -472,24 +339,7 @@ export class KernelService {
 
   /** Read todo list (read-only — does NOT create the todo file as a side effect) */
   readTodos(): TodoItem[] {
-    try {
-      const kernel = getKernel();
-      const workspaceRoot = this.getVaultPath();
-      // Use readTodoList directly — ensureTodoFile is a write side effect
-      // that should only happen on explicit user action, not on every UI refresh.
-      const list = kernel.readTodoList(workspaceRoot);
-      if (!list) return [];
-      return ((list.items || []) as Record<string, unknown>[]).map((item) => ({
-        id: String(item.id || ""),
-        text: String(item.text || ""),
-        completed: Boolean(item.completed),
-        dueDate: item.dueDate as string | undefined,
-        createdAt: item.createdAt as string | undefined,
-        source: item.source as string | undefined,
-      }));
-    } catch {
-      return [];
-    }
+    return readTodosFromWorkspace(getKernel(), this.getVaultPath());
   }
 
   /** Toggle todo completion */
@@ -526,10 +376,5 @@ export class KernelService {
 
   private getEngineRoot(): string {
     return this.plugin.manifest.dir || "";
-  }
-
-  private getInboxDir(model: { categories: { role: string; directory: string }[] }): string {
-    const buffer = model.categories.find((c) => c.role === "buffer");
-    return buffer?.directory || "00-Inbox";
   }
 }

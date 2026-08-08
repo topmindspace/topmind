@@ -348,13 +348,13 @@ Skill 路由时的最小读取顺序（**默认不加载整工作区**）：
 
 ---
 
-## 7. Engine → UTR 命令映射 (8 域 / 25 命令)
+## 7. Engine → UTR 命令映射 (8 域 / 27 命令)
 
 Kernel 八引擎是内部领域逻辑；UTR 8 域是其 CLI/MCP adapter 暴露面。并非每个引擎都有独立 UTR 域——`stream` / `writeback` / `ingest` 是内部引擎，由其他 UTR 命令内部调用，不直接暴露。
 
-| 引擎 (Engine) | 职责 | UTR 确定性命令（真实 8 域 / 25） | 降级边界 |
+| 引擎 (Engine) | 职责 | UTR 确定性命令（真实 8 域 / 27） | 降级边界 |
 |---|---|---|---|
-| **contract** | 契约加载/校验/求值 | `contract.validate` | JSON Schema 校验 |
+| **contract** | 契约加载/校验/ensure/reseed/求值 | `contract.validate` · `contract.ensure` · `contract.reseed` | Kernel `inspectContract` / `ensureContract` / `reseedContract`（v4 白名单） |
 | **workspace-model** | 类别/专题/路径 | `workspace-read`：`list-categories` · `list-topics` · `inspect-topic` · `list-topic-files` · `list-inbox` · `list-recent-captures` · `list-safety-receipts`；`workspace-write`：`create-topic` · `capture-note` · `save-output` · `update-topic`；`workspace-transform`：`plan-inbox-routing` · `normalize-note-metadata` · `migrate-v4`；`workspace-maintain`：`doctor-workspace` · `archive-topic` · `restore-safety-receipt` · `cleanup-empty-dirs` | 目录扫描 + 基础读写 |
 | **stream** | 周期本/reconcile | （无独立 UTR 域；`workspace-write.capture-note` 内部走 stream-engine 落周期本） | 文本追加 |
 | **memory** | 分层记忆/提升 | `memory.promote` · `memory.digest` · `memory.append-profile` · `memory.append-topic` | 跨层复制 + frontmatter 标记 |

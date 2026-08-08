@@ -113,7 +113,7 @@ Tool names use：
 
 ## Current Command Surface（命令面唯一真源）
 
-**8 域 / 25 命令**。Agent MCP **默认只暴露 primary + danger（17 个）**；`advanced` 需 `topmind_MCP_ALL=1`。
+**8 域 / 27 命令**。Agent MCP **默认只暴露 primary + danger（18 个）**；`advanced` 需 `topmind_MCP_ALL=1`。
 
 ### Primary（Agent 日常 15）
 
@@ -126,13 +126,14 @@ Tool names use：
 | `contract` | `validate` |
 | `memory` | `promote` · `digest` · `append-profile` · `append-topic` |
 
-### Danger（高风险 2，MCP 默认可见）
+### Danger（高风险 3，MCP 默认可见）
 
 | Domain | Commands |
 |---|---|
 | `workspace-maintain` | `archive-topic` · `restore-safety-receipt` |
+| `contract` | `reseed` |
 
-### Advanced（扩展 8，默认折叠 / MCP 隐藏）
+### Advanced（扩展 9，默认折叠 / MCP 隐藏）
 
 | Domain | Commands |
 |---|---|
@@ -142,12 +143,15 @@ Tool names use：
 | `workspace-maintain` | `cleanup-empty-dirs` |
 | `lifecycle` | `scan` |
 | `derived` | `rebuild` |
+| `contract` | `ensure` |
 
 ### New Commands（v4 新增）
 
 | Command | Domain | 职责 |
 |---|---|---|
-| `contract.validate` | contract | 校验工作区 `topmind.yaml` schema、8 类规约白名单、与 FS 一致性 |
+| `contract.validate` | contract | 校验工作区 `topmind.yaml` schema、8 类规约白名单、与 FS 一致性；诚实报告 on-disk 健康（不把内存默认值伪装成文件已好） |
+| `contract.ensure` | contract | 缺失创建 / 可修则合并默认重写 v4；损坏不可安全修复时返回 unrepairable。Desktop / Obsidian / UTR 共用 Kernel `ensureContract` |
+| `contract.reseed` | contract | 备份损坏的 `topmind.yaml` 后写入全新有效 v4 默认契约；**不**删除用户内容目录 |
 | `memory.promote` | memory | 将 Stream 条目提升为 memory/topics/{topic-slug}.md（标记 promoted_from/to；源文件仅读取标记，不修改原文） |
 | `memory.digest` | memory | 确定性 adapter 骨架写入 memory/periodic/{period}.md（**无 AI 模型**；产品 AI 摘要走 Desktop 建议管线确认后写） |
 | `memory.append-profile` | memory | 追加「我的情况」到 memory/profile.md（原 append-core-memory） |
