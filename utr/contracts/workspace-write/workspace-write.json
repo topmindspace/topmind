@@ -349,7 +349,7 @@
     },
     "update-topic": {
       "label": "更新专题主页",
-      "description": "用完整内容替换 topic.md；只用于有明确理由的结构性重写，稳定记忆优先使用 memory.append-topic。自动保存不再二次确认，依靠执行前快照与回执兜底。",
+      "description": "用完整内容替换 topic.md；只用于有明确理由的结构性重写，稳定记忆优先使用 memory.append-topic。自动保存不再二次确认；耐久备份/回执仅高影响（Kernel writeback：locked 覆盖等），open 更新不造 99-归档 快照。",
       "group": "atomic",
       "exposure": "advanced",
       "risk_level": "high",
@@ -420,7 +420,7 @@
       "writes": [
         "{category_root}/{topic}/topic.md"
       ],
-      "workflow_note": "High-risk full replacement uses writebackMode. In auto mode it applies without a second confirmation flag, while the executor snapshots the existing topic.md before write."
+      "workflow_note": "High-risk full replacement uses writebackMode. In auto mode it applies without a second confirmation flag. Durable backup/receipt only when Kernel writeback classifies the write as high-impact (e.g. locked overwrite); open topic.md updates do not invent 99-归档 snapshots."
     }
   }
 }

@@ -5,7 +5,7 @@
 [![Release](https://img.shields.io/github/v/release/topmindspace/topmind?style=flat-square&color=blue)](https://github.com/topmindspace/topmind/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
 [![Node Version](https://img.shields.io/badge/Node.js-%E2%89%A520.11-brightgreen.svg?style=flat-square)](https://nodejs.org)
-[![Platforms](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux%20%7C%20Obsidian%20%7C%20Chrome-purple?style=flat-square)](#-five-surfaces--product-matrix)
+[![Platforms](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux%20%7C%20Obsidian%20%7C%20Chrome-purple?style=flat-square)](#-product-entry-matrix-four-cores--clip-distribution)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/topmindspace/topmind/ci.yml?style=flat-square&label=CI)](https://github.com/topmindspace/topmind/actions)
 
 > **Local-first Personal Knowledge Workbench in the AI Agent Era · Personal Stream**  
@@ -31,8 +31,9 @@ Topmind was created with a clear philosophy — a **low-friction, flexible, and 
 Choose the entrance that fits your daily workflow:
 
 ```text
-topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional Obsidian  ⊕  Optional Clip  ⊕  Optional UTR
-            Agent skill pack     Rich workbench app    Obsidian plugin        Browser clipper      CLI / MCP tools
+topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Optional Obsidian
+            Agent skill pack     Rich workbench app    CLI / MCP tools        Vault-embedded plugin
+          + Optional Clip distribution (Desktop capture companion; not a separate Kernel host)
 ```
 
 ### 📱 Scenario 1: Standalone Desktop App (Topmind Desktop)
@@ -54,17 +55,18 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional Obsidian  ⊕ 
 
 ---
 
-## 🧩 Five Surfaces & Product Matrix
+## 🧩 Product entry matrix (four cores + Clip distribution)
 
-The five surfaces **share content conventions and behavior contracts only** — no hard runtime binding. Version numbers are managed independently (major aligned, minor independent): run `npm run versions` to inspect current versions.
+**Four product cores** (`PRODUCT-BOUNDARIES.md`): Skills · Desktop · UTR · Obsidian — they share content conventions and behavior contracts only (no hard runtime binding).  
+**Clip** is a companion distribution surface for Desktop capture (not a separate Kernel host). Version numbers are managed independently (major aligned, minor independent): run `npm run versions` to inspect current versions.
 
-| Surface | Target Audience / Use Case | Truth Source (Version Truth) | Dedicated Docs | Version Policy |
-|---------|----------------------------|------------------------------|----------------|----------------|
-| 🖥️ **Desktop** | Users needing a rich text workbench with visual AI review UI | [`topmind-desktop/package.json`](./topmind-desktop/package.json) | [`topmind-desktop/README.md`](./topmind-desktop/README.md) | Independent |
-| 🔮 **Obsidian Plugin** | Users who want to embed the personal stream directly inside Obsidian Vaults | [`obsidian-plugin/manifest.json`](./obsidian-plugin/manifest.json) | [`obsidian-plugin/README.md`](./obsidian-plugin/README.md) | Independent |
-| 🤖 **Skills** | Users driving workflows via Claude Code, OpenCode, or other AI agents | [`skills/topmind-pack.json`](./skills/topmind-pack.json) | [`skills/INSTALL.md`](./skills/INSTALL.md) | Independent |
-| ✂️ **Clip Extension** | Users capturing web pages & articles with automated content cleaning | [`browser-extension/manifest.json`](./browser-extension/manifest.json) | [`browser-extension/README.md`](./browser-extension/README.md) | Independent |
-| 🛠️ **UTR CLI/MCP** | Users requiring deterministic CLI tools or MCP servers in Terminal | [`utr/VERSION`](./utr/VERSION) | [`TOOLS.md`](./TOOLS.md) · [`utr/README.md`](./utr/README.md) | Follows Desktop |
+| Entry / Surface | Target Audience / Use Case | Truth Source (Version Truth) | Dedicated Docs | Version Policy |
+|-----------------|----------------------------|------------------------------|----------------|----------------|
+| 🖥️ **Desktop** (core) | Users needing a rich text workbench with visual AI review UI | [`topmind-desktop/package.json`](./topmind-desktop/package.json) | [`topmind-desktop/README.md`](./topmind-desktop/README.md) | Independent |
+| 🔮 **Obsidian Plugin** (core) | Users who want to embed the personal stream directly inside Obsidian Vaults | [`obsidian-plugin/manifest.json`](./obsidian-plugin/manifest.json) | [`obsidian-plugin/README.md`](./obsidian-plugin/README.md) | Independent |
+| 🤖 **Skills** (core) | Users driving workflows via Claude Code, OpenCode, or other AI agents | [`skills/topmind-pack.json`](./skills/topmind-pack.json) | [`skills/INSTALL.md`](./skills/INSTALL.md) | Independent |
+| 🛠️ **UTR CLI/MCP** (core) | Users requiring deterministic CLI tools or MCP servers in Terminal | [`utr/VERSION`](./utr/VERSION) | [`TOOLS.md`](./TOOLS.md) · [`utr/README.md`](./utr/README.md) | Follows Desktop |
+| ✂️ **Clip Extension** (distribution) | Browser one-click capture; lands in Desktop workspace via Bridge | [`browser-extension/manifest.json`](./browser-extension/manifest.json) | [`browser-extension/README.md`](./browser-extension/README.md) | Independent |
 
 ---
 
@@ -91,7 +93,7 @@ flowchart LR
 
 **Save Settings**:
 - **Ask Before Save** (`writeback_mode: confirm`): AI proposes modifications to the Suggestion Popover, written to disk only after your review & approval.
-- **Auto Save** (`writeback_mode: auto`): AI updates files directly, while `writeback-engine` creates soft backups under `99-归档/backups/` for easy reversal.
+- **Auto Save** (`writeback_mode: auto`): AI updates files directly; **high-impact only** (locked overwrite, delete/archive) keeps recoverable copies + receipts under `99-归档/`. Routine open-file updates stay light.
 
 ---
 

@@ -5,7 +5,7 @@
 [![Release](https://img.shields.io/github/v/release/topmindspace/topmind?style=flat-square&color=blue)](https://github.com/topmindspace/topmind/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
 [![Node Version](https://img.shields.io/badge/Node.js-%E2%89%A520.11-brightgreen.svg?style=flat-square)](https://nodejs.org)
-[![Platforms](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux%20%7C%20Obsidian%20%7C%20Chrome-purple?style=flat-square)](#-五大表面与产品矩阵)
+[![Platforms](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux%20%7C%20Obsidian%20%7C%20Chrome-purple?style=flat-square)](#-产品入口矩阵四体核心--clip-分发)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/topmindspace/topmind/ci.yml?style=flat-square&label=CI)](https://github.com/topmindspace/topmind/actions)
 
 > **Agent 时代的本地优先个人知识工作台 · 个人 Stream**  
@@ -31,8 +31,9 @@ Topmind 的初衷是打造一个**低摩擦、灵活且一站式**的个人知�
 根据你的使用习惯，选择最适合你的入口：
 
 ```text
-topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional Obsidian  ⊕  Optional Clip  ⊕  Optional UTR
-            AI 技能包（Agent）    富工作台（独立应用）    Obsidian 插件（Vault）  浏览器剪藏扩展       CLI / MCP 工具
+topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Optional Obsidian
+            AI 技能包（Agent）    富工作台（独立应用）    CLI / MCP 工具         Vault 内嵌插件
+          + Optional Clip 剪藏分发面（Desktop 捕获 companion，非独立 Kernel 宿主）
 ```
 
 ### 📱 场景 1：使用独立桌面工作台 (Topmind Desktop)
@@ -54,17 +55,18 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional Obsidian  ⊕ 
 
 ---
 
-## 🧩 五大表面与产品矩阵
+## 🧩 产品入口矩阵（四体核心 + Clip 分发）
 
-五者**仅共享内容约定与行为契约**，无强制运行时绑定。各表面版本号独立管理（大版本对齐，小版本独立）：运行 `npm run versions` 查看当前版本。
+**四体核心**（`PRODUCT-BOUNDARIES.md`）：Skills · Desktop · UTR · Obsidian — 共享内容约定与行为契约，无强制运行时绑定。  
+**Clip 剪藏扩展**是 Desktop 捕获链路的 companion 分发面（非独立 Kernel 宿主），与四体一并出现在版本矩阵中。各表面版本号独立管理（大版本对齐，小版本独立）：运行 `npm run versions` 查看当前版本。
 
-| 表面 (Surface) | 适用人群 / 场景 | 真源文件 (Version Truth) | 专属文档 | 版本策略 |
-|----------------|-----------------|--------------------------|----------|----------|
-| 🖥️ **Desktop** | 需要独立富文本工作台与可视化 AI 确认界面的用户 | [`topmind-desktop/package.json`](./topmind-desktop/package.json) | [`topmind-desktop/README.md`](./topmind-desktop/README.md) | 独立 |
-| 🔮 **Obsidian 插件** | 希望在现有 Obsidian Vault 中直接使用动态流的用户 | [`obsidian-plugin/manifest.json`](./obsidian-plugin/manifest.json) | [`obsidian-plugin/README.zh-CN.md`](./obsidian-plugin/README.zh-CN.md) | 独立 |
-| 🤖 **Skills** | 使用 Claude Code / OpenCode 等 AI Agent 驱动工作流的用户 | [`skills/topmind-pack.json`](./skills/topmind-pack.json) | [`skills/INSTALL.md`](./skills/INSTALL.md) | 独立 |
-| ✂️ **剪藏扩展** | 浏览器一键抓取与正文加工清洗的用户 | [`browser-extension/manifest.json`](./browser-extension/manifest.json) | [`browser-extension/README.md`](./browser-extension/README.md) | 独立 |
-| 🛠️ **UTR CLI/MCP** | 需要在 Terminal 或 MCP Server 中使用确定性命令的用户 | [`utr/VERSION`](./utr/VERSION) | [`TOOLS.md`](./TOOLS.md) · [`utr/README.md`](./utr/README.md) | 跟随 Desktop |
+| 入口 / 表面 | 适用人群 / 场景 | 真源文件 (Version Truth) | 专属文档 | 版本策略 |
+|-------------|-----------------|--------------------------|----------|----------|
+| 🖥️ **Desktop**（四体） | 需要独立富文本工作台与可视化 AI 确认界面的用户 | [`topmind-desktop/package.json`](./topmind-desktop/package.json) | [`topmind-desktop/README.md`](./topmind-desktop/README.md) | 独立 |
+| 🔮 **Obsidian 插件**（四体） | 希望在现有 Obsidian Vault 中直接使用动态流的用户 | [`obsidian-plugin/manifest.json`](./obsidian-plugin/manifest.json) | [`obsidian-plugin/README.zh-CN.md`](./obsidian-plugin/README.zh-CN.md) | 独立 |
+| 🤖 **Skills**（四体） | 使用 Claude Code / OpenCode 等 AI Agent 驱动工作流的用户 | [`skills/topmind-pack.json`](./skills/topmind-pack.json) | [`skills/INSTALL.md`](./skills/INSTALL.md) | 独立 |
+| 🛠️ **UTR CLI/MCP**（四体） | 需要在 Terminal 或 MCP Server 中使用确定性命令的用户 | [`utr/VERSION`](./utr/VERSION) | [`TOOLS.md`](./TOOLS.md) · [`utr/README.md`](./utr/README.md) | 跟随 Desktop |
+| ✂️ **剪藏扩展**（Clip 分发） | 浏览器一键抓取与正文加工；经 Bridge 落入 Desktop 工作区 | [`browser-extension/manifest.json`](./browser-extension/manifest.json) | [`browser-extension/README.md`](./browser-extension/README.md) | 独立 |
 
 ---
 
@@ -91,7 +93,7 @@ flowchart LR
 
 **保存设置**：
 - **保存前问我**（`writeback_mode: confirm`）：AI 提出修改建议，显示在建议面板中，待你审阅确认后再落盘。
-- **自动保存**（`writeback_mode: auto`）：AI 自动写入，但由 `writeback-engine` 自动在 `99-归档/backups/` 生成软备份，随时可逆恢复。
+- **自动保存**（`writeback_mode: auto`）：AI 自动写入；**仅高影响**（locked 覆盖、删除/归档）在 `99-归档/` 保留可恢复副本与回执，日常 open 更新保持轻量。
 
 ---
 

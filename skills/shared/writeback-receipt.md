@@ -11,7 +11,7 @@ writeback:
 
 | 模式 | 行为 |
 |------|------|
-| `auto` | 直接写入，返回路径回执；危险操作可逆（`99-归档/`） |
+| `auto` | 直接写入；**高影响**才备份/回执（locked 覆盖 · delete/archive）；危险操作可逆（`99-归档/`） |
 | `confirm` | 写入前进入目标/内容审阅入口 |
 
 用户话术：
@@ -35,11 +35,12 @@ writeback:
 
 写入必须返回 **target path + affected files**（UTR 时见 WritebackEvidence）。
 
-## 可逆性
+## 可逆性（高影响 only）
 
-- 删除 → 移入系统归档 trash，不永久抹除  
-- 整文替换 → 保留 snapshot / 备份  
-- 锁定/定稿文件 → 新建修订副本，不原地改  
+- 删除 / 归档 → 默认移入 `99-归档/backups/trash`（或归档副本）+ 回执；`permanent` 则无副本  
+- **locked** 既有文件覆盖 → 旋转备份 + 回执  
+- 常规 **open** 更新 → 不造备份/回执（不伪造路径）；证据仍含 target path + affected files  
+- AI 不得直接写 locked；须 fork 或用户解锁  
 
 ## 错误处理（共享）
 

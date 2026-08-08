@@ -249,7 +249,7 @@ export function getEngineRoot(plugin: { manifest: { dir?: string } }): string {
   → kernel.executeWrite
   → writeback-engine:
       1. evaluateWritePermission (protection + confirm)
-      2. backup (99-归档/backups/ if AI write, BACKUP_KEEP from settings)
+      2. backup (only high-impact: locked overwrite / delete-archive; BACKUP_KEEP from settings)
       3. atomic write (fs.writeFileSync)
       4. receipt (99-归档/receipts/)
   → Obsidian Vault 感知文件变更 (metadataCache refresh)

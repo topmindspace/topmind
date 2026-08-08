@@ -210,6 +210,19 @@ describe("contract-engine migration & validation", () => {
     const contract = buildDefaultContract();
     assert.equal(resolveProtection(contract, ".topmind/index.json", "system"), "open");
   });
+
+  it("resolveProtection: partial by_role merges defaults; system stays locked", () => {
+    const contract = {
+      contract_version: 4,
+      protection: {
+        defaults: {
+          by_role: { buffer: "open" }, // system omitted — must still lock via defaults merge
+        },
+      },
+    };
+    assert.equal(resolveProtection(contract, "99-归档/x.md", "system"), "locked");
+    assert.equal(resolveProtection(contract, "00-收件箱/a.md", "buffer"), "open");
+  });
 });
 
 describe("protect gate boundaries (evaluateWritePermission)", () => {

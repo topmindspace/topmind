@@ -56,7 +56,9 @@
 |----------|------|----------|
 | 📦 [`PACKAGING.md`](./PACKAGING.md) | 打包与发布规范 | 安装包命名矩阵 (`topmind-<ver>-<os>-<arch>.<ext>`)、GitHub Actions 独立/全量 Release 工作流、Win/Mac/Linux 构建说明 |
 | 🖼️ [`images/README.md`](./images/README.md) | 文档截图规范 | 展示用压缩截图命名与存放约定 |
-| 📊 [`quality-audit-2026-08.md`](./quality-audit-2026-08.md) | 2026-08 质量审查归档 | 质量死代码与架构审查处置记录 |
+| 📊 [`quality-audit-2026-08.md`](./quality-audit-2026-08.md) | 2026-08-03 质量审查归档 | Stream AI / 写安全等点时审查（已处置） |
+| 🏗️ [`architecture-assessment-2026-08.md`](./architecture-assessment-2026-08.md) | 2026-08-08 架构评估 | 架构师+用户双视角；findings 与 fix/keep/non-goal 处置 |
+| 🤖 [`ai-stream-assessment-2026-08.md`](./ai-stream-assessment-2026-08.md) | 2026-08-08 AI + Stream 评估 | 建议/待办/Agent/上下文/sanitize + Stream 解析展示；fix/keep/non-goal |
 | 🌊 [`stream-first-optimization-scheme.md`](./stream-first-optimization-scheme.md) | Stream-first 产品真理 | 现行动态流产品真理与理想使用态（**Shipped/合闸**） |
 | ⚖️ [`topmind-vs-others.md`](./topmind-vs-others.md) | 产品对比矩阵 | Topmind 与 Notion, Obsidian, 备忘录的详细特性对比 |
 

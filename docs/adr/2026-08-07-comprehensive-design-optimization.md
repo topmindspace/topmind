@@ -115,8 +115,10 @@
 
 ## 验收
 
-- [ ] 标题栏视觉元素 ≤10（之前 ~15）
-- [ ] 状态栏视觉元素 ≤6（之前 ~10）
-- [ ] 侧栏头部 band ≤2（之前 3）
-- [ ] 分隔线总数减少 ≥30%
-- [ ] 质量门通过（`npm run desktop:quality`）
+> **2026-08-08**：下列项已合闸（Shipped）— 实现见 `tokens.css`（chrome-y 36 / status-y 24）、`TitleBar` / `StatusBar` / `Sidebar`、DESIGN §0；质量门以 `npm run desktop:quality` / `validate` 为准。
+
+- [x] 标题栏视觉元素 ≤10（之前 ~15）— 品牌 chip 移除；L1/L2/L3 分层
+- [x] 状态栏视觉元素 ≤6（之前 ~10）— 路径常驻移除；busy 单路径
+- [x] 侧栏头部 band ≤2（之前 3）— ViewSwitcher + 树头统一
+- [x] 分隔线总数减少 ≥30% — border-b 改留白；chrome-sep 纤细
+- [x] 质量门通过（`npm run desktop:quality`）

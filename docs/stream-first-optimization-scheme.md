@@ -19,6 +19,8 @@
 | memory | **profile + periodic only**（confirm） |
 | topic | **内容大类 `create_topic`**（confirm · 不进 `memory/topics`） |
 | 写闸 | 全部 apply 经 writeback / applySuggestion + high-impact gate |
+| 展示净化 | feed 对 `\[ \]` / `\-` 等转义做 **display-only** normalize（不静默写回用户文件） |
+| 待办 complete 匹配 | maintain 完成/更新用语义/实质短语匹配（禁单 token 拉丁误完成）；见 `matchTodoMaintainText` |
 
 ---
 

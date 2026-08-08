@@ -31,6 +31,8 @@ const {
   cleanupStaleTodos,
   archiveStaleTodos,
   snapshotTodoList,
+  matchTodoMaintainText,
+  maintainTodos,
   TODO_REL_PATH,
 } = mod;
 
@@ -516,6 +518,55 @@ dismissed: []
     const content = fs.readFileSync(snapshotPath, "utf8");
     assert.match(content, /待办快照 2026-W32/);
     assert.match(content, /task to snapshot/);
+  });
+
+  it("matchTodoMaintainText rejects single-token Latin false positives", () => {
+    // Policy used by maintainTodos complete/update paths
+    assert.equal(matchTodoMaintainText("Buy milk", "Buy milk"), true);
+    assert.equal(matchTodoMaintainText("Buy milk", "I will buy groceries later"), false);
+    assert.equal(matchTodoMaintainText("写周报", "写周报"), true);
+    assert.equal(matchTodoMaintainText("写周报并提交客户", "写周报并提交客户审阅"), true);
+    assert.equal(matchTodoMaintainText("联系客户确认需求", "去超市买菜"), false);
+  });
+
+  it("maintainTodos complete path does not mark unrelated todos done", async () => {
+    ensureTodoFile(tmpDir);
+    addTodoItem(tmpDir, "Buy milk");
+    addTodoItem(tmpDir, "Write weekly report");
+
+    const streamDir = path.join(tmpDir, "10-动态");
+    fs.mkdirSync(streamDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(streamDir, "2026-W34.md"),
+      `# 2026-W34\n\n## 记录\n\n- I will buy groceries later this week\n- finished writing the weekly report document\n`,
+      "utf8",
+    );
+
+    const mockAi = {
+      async generate() {
+        // complete mentions "buy" but not the full todo — must NOT complete Buy milk
+        return JSON.stringify({
+          add: [],
+          complete: ["I will buy groceries later", "Write weekly report"],
+          update: [],
+        });
+      },
+    };
+
+    const result = await maintainTodos({
+      workspaceRoot: tmpDir,
+      engineRoot,
+      aiProvider: mockAi,
+      options: { force: true },
+    });
+    assert.equal(result.ok, true);
+    const items = readTodoList(tmpDir).items;
+    const milk = items.find((i) => i.text === "Buy milk");
+    const report = items.find((i) => /weekly report/i.test(i.text));
+    assert.ok(milk, "Buy milk still present");
+    assert.equal(milk.done, false, "Buy milk must not complete on loose 'buy' overlap");
+    assert.ok(report, "report todo present");
+    assert.equal(report.done, true, "exact/high-sim complete should mark report done");
   });
 
   it("snapshotTodoList is idempotent — does not overwrite existing snapshot", () => {

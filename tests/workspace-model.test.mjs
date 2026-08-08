@@ -98,6 +98,15 @@ describe("resolveWorkspaceModel", () => {
     const out = resolveSystemRoot(tmp, "delivery", { engineRoot });
     assert.ok(out.endsWith("88-输出"));
   });
+
+  it("fs-only (no engineRoot) keeps canonical roles for 00/10/88/99", () => {
+    const model = resolveWorkspaceModel({ workspaceRoot: tmp });
+    const bySlot = Object.fromEntries(model.categories.map((c) => [c.slot, c.role]));
+    assert.equal(bySlot["00"], "buffer");
+    assert.equal(bySlot["99"], "system");
+    // custom extension slot 11 remains loose-stream from config
+    assert.equal(bySlot["11"], "loose-stream");
+  });
 });
 
 describe("ensureRequiredStructure does not revive optional categories", () => {

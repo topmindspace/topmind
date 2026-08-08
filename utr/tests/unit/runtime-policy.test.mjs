@@ -83,7 +83,7 @@ test("full topic replacement uses writeback mode and reversible safety instead o
   assert.equal(entry.command.inputs.confirmFullReplace, undefined);
   assert.ok(entry.command.inputs.writebackMode);
   assert.equal(entry.command.inputs.writebackMode.default, "auto");
-  assert.ok(entry.command.workflow_note.includes("snapshot"));
+  assert.match(entry.command.workflow_note, /high-impact|writeback/iu);
 });
 
 test("archive topic uses writeback mode and reversible archive semantics instead of a special danger confirmation", async () => {

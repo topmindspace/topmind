@@ -273,7 +273,7 @@ export const pathOps = {
     if (typeof ctx.markIgnoredFileChanges === "function") {
       ctx.markIgnoredFileChanges([fp], 1500);
     }
-    // Surgical edits skip full-file archive backup noise (skipBackup) but still hit protection gate
+    // Surgical edit still hits protection gate; backup/receipt only if high-impact (locked) per writeback-engine.
     const writeActor = actor || ctx.writeActor || "user";
     const ev = await kernelDurableWrite(
       { relativePath, content: next },
@@ -282,8 +282,6 @@ export const pathOps = {
         actor: writeActor,
         confirmed: writeActor === "user" ? true : confirmed === true,
         operation: "edit",
-        skipBackup: true,
-        skipReceipt: true,
         writebackMode: ctx.appSettings?.writebackMode,
       },
     );
@@ -342,10 +340,9 @@ export const pathOps = {
         confirmed: isUserSave ? true : confirmed === true,
         operation: old === null ? "create" : "update",
         isCreate: old === null,
-        // User saves skip backup (frequent, low-risk, atomic write is safe).
-        // AI writes create rotating backups. Explicit override always wins.
-        skipBackup: typeof explicitSkipBackup === "boolean" ? explicitSkipBackup : isUserSave,
-        skipReceipt: typeof explicitSkipBackup === "boolean" ? !explicitSkipBackup : isUserSave,
+        // Gate owns high-impact backup/receipt (locked overwrite only).
+        // Explicit skipBackup only when caller forces skip (escape hatch).
+        ...(explicitSkipBackup === true ? { skipBackup: true, skipReceipt: true } : {}),
         writebackMode: ctx.appSettings?.writebackMode,
       },
     );
@@ -629,9 +626,8 @@ export const pathOps = {
         confirmed: isUserSave ? true : confirmed === true,
         operation: old === null ? "create" : "update",
         frontmatter: fm,
-        // User saves skip backup (frequent, low-risk). AI writes create rotating backups.
-        skipBackup: typeof explicitSkipBackup === "boolean" ? explicitSkipBackup : isUserSave,
-        skipReceipt: typeof explicitSkipBackup === "boolean" ? !explicitSkipBackup : isUserSave,
+        // Gate owns high-impact backup/receipt; explicit skip only when forced.
+        ...(explicitSkipBackup === true ? { skipBackup: true, skipReceipt: true } : {}),
         writebackMode: ctx.appSettings?.writebackMode,
       },
     );
@@ -720,46 +716,61 @@ export const pathOps = {
       /* dir may not exist if already moved */
     }
 
-    // Rename the directory
+    // Rename the directory (FS rename — not a content write)
     await fs.rename(oldDir, newDir);
 
-    // Update frontmatter `topic` field in all .md files inside the topic
+    // Durable .md frontmatter/body updates must go through Kernel writeback
+    // (same gate as renameCategory → executeWrite), not raw fs.writeFile.
+    // Backup/receipt only when high-impact (locked) per writeback-engine.
+    const writeGateOpts = {
+      actor: "user",
+      confirmed: true,
+      operation: "update",
+    };
     let updatedCount = 0;
+    const affected = [`${category}/${oldTopic}`, `${category}/${trimmed}`];
+
     for (const fn of mdFiles) {
+      const rel = `${category}/${trimmed}/${fn}`;
       const fp = path.join(newDir, fn);
       try {
         const raw = await readText(fp);
         const { data, body } = splitMarkdownFrontmatter(raw);
-        if (data.topic && data.topic !== trimmed) {
-          data.topic = trimmed;
-          const updated = stringifyYamlFrontmatter(data) + body;
-          await fs.writeFile(fp, updated, "utf8");
-          updatedCount++;
-        } else if (data.topic === undefined) {
-          // Ensure topic field is set for topic.md and other files
-          data.topic = trimmed;
-          const updated = stringifyYamlFrontmatter(data) + body;
-          await fs.writeFile(fp, updated, "utf8");
-          updatedCount++;
+        const nextData = { ...(data && typeof data === "object" ? data : {}) };
+        let bodyOut = body;
+        let dirty = false;
+
+        if (nextData.topic !== trimmed) {
+          nextData.topic = trimmed;
+          dirty = true;
         }
+        // topic.md: keep title + H1 in sync with the new topic name
+        if (fn === "topic.md") {
+          if (nextData.title === oldTopic || nextData.title === undefined) {
+            nextData.title = trimmed;
+            dirty = true;
+          }
+          if (bodyOut.trimStart().startsWith(`# ${oldTopic}`)) {
+            bodyOut = bodyOut.replace(`# ${oldTopic}`, `# ${trimmed}`);
+            dirty = true;
+          }
+        }
+
+        if (!dirty) continue;
+        const updated = Object.keys(nextData).length > 0
+          ? `---\n${stringifyYamlFrontmatter(nextData)}\n---\n\n${bodyOut}`
+          : bodyOut;
+        if (updated === raw) continue;
+        await kernelDurableWrite(
+          { relativePath: rel, content: updated },
+          ctx,
+          writeGateOpts,
+        );
+        updatedCount++;
+        affected.push(rel);
       } catch {
         /* non-fatal — frontmatter update is best-effort */
       }
-    }
-
-    // Update title in topic.md if it matches old topic name
-    const topicMdPath = path.join(newDir, "topic.md");
-    try {
-      const raw = await readText(topicMdPath);
-      const { data, body } = splitMarkdownFrontmatter(raw);
-      let updatedBody = body;
-      if (body.trimStart().startsWith(`# ${oldTopic}`)) {
-        updatedBody = body.replace(`# ${oldTopic}`, `# ${trimmed}`);
-      }
-      const updatedData = { ...data, topic: trimmed, title: trimmed };
-      await fs.writeFile(topicMdPath, stringifyYamlFrontmatter(updatedData) + updatedBody, "utf8");
-    } catch {
-      /* no topic.md or update failed — non-fatal */
     }
 
     const newTopicId = buildTopicId(category, trimmed);
@@ -770,7 +781,7 @@ export const pathOps = {
         operation: "rename-topic",
         targetPath: `${category}/${trimmed}`,
         savedAt: t,
-        affectedFiles: [`${category}/${oldTopic}`, `${category}/${trimmed}`],
+        affectedFiles: affected,
       }),
       ok: true,
       topicId: newTopicId,
@@ -896,7 +907,6 @@ export const pathOps = {
       {
         actor: "user",
         operation: "update",
-        skipBackup: true,
       },
     );
     if (!ev.pending && !ev.needsConfirm) bumpWorkspaceIndex(rel);
@@ -983,9 +993,6 @@ export const pathOps = {
         confirmed: writeActor === "user" ? true : confirmed === true,
         operation: "update",
         role: "memory",
-        // Memory appends are frequent, low-risk; skip backup for user writes
-        skipBackup: writeActor === "user",
-        skipReceipt: writeActor === "user",
         writebackMode: ctx.appSettings?.writebackMode,
       },
     );
@@ -1064,9 +1071,6 @@ export const pathOps = {
           actor: "user",
           confirmed: true,
           operation: "update",
-          // Reconcile is a user-initiated cleanup; skip backup (low-risk, atomic)
-          skipBackup: true,
-          skipReceipt: true,
         },
       );
       if (!evidence.pending && !evidence.needsConfirm) {

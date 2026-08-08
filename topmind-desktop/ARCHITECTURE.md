@@ -14,7 +14,7 @@
 - 用户概念 ≤5：记一下 · 动态 · 专题 · 我的情况 · 写出来  
 - 文件系统是唯一真源；Desktop 是**富工作台**视图层（非薄壳）  
 - 技能纯 Markdown（`SKILL-ARCHITECTURE.md`）  
-- **写回**：**Done** 主路径 — WorkspaceService / AI / connectors 耐久 `.md` → Kernel `writeback-engine`（open|locked + auto|confirm）；**Intentional Partial**：`edit` 故意 `skipBackup`、非 `.md` 二进制可仍直写；`electron/lib/writeback.mjs` 仅 evidence/日志 helper，非第二闸  
+- **写回**：**Done** 主路径 — WorkspaceService / AI / connectors 耐久 `.md` → Kernel `writeback-engine`（open|locked + auto|confirm；备份/回执仅高影响）；非 `.md` 二进制可仍直写；`electron/lib/writeback.mjs` 仅 evidence/日志 helper，非第二闸  
 
 - **UTR 可选**：Tools / doctor；**AI 写回不经 UTR**  
 - **notes-index**：投影缓存；`truncated` 时 `total`/`returned` 为投影条数，`scannedTotal` 为全库普查  
@@ -33,7 +33,7 @@
 | 写出来 shelf | **Done** — `listOutputsEnhanced` 附 `publishedAt`/`title`；OutputsView 已发布/草稿 + HTML 导出 |
 | 动态 feed 解析 | **Done** — `stream-period-parse` 软提取结构节条目；CRLF；周期回退列表 |
 | 响应式 chrome | **Done** — `ChromeOverflowActions` + TitleBar compact 互斥 + StatusBar 可点 |
-| connectors weread/x | **Done** — 共享 `lib/connector-bridge.mjs`（settings+secret · patch 持久 · `writeConnectorNote` 经 kernel 写闸）；ADR `docs/adr/2026-08-02-connector-bridge.md` |
+| connectors weread/x | **Done** — 共享 `electron/lib/connector-bridge.mjs`（settings+secret · patch 持久 · `writeConnectorNote` 经 kernel 写闸）；ADR `docs/adr/2026-08-02-connector-bridge.md` |
 | ingest 路由 | **Done** — Desktop commit 经 `resolveIngestRoute`（Kernel） |
 | PrimaryNav 默认 | **Done** — 动态 / 收件箱 / 写出来；selection 默认 `stream`；legacy home→stream |
 | 侧栏 thrift | **Done** — ViewSwitcher 主轨 stream/目录/时间；标签/看板「更多」 |

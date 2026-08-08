@@ -1,6 +1,6 @@
 # Architecture Reset — 理想架构与实施计划
 
-> **状态**：Accepted · **日期**：2026-07-25 · **最后更新**：2026-08-07（全面设计优化 + 引擎硬化 + 文档治理 + 独立版本策略）  
+> **状态**：Accepted · **日期**：2026-07-25 · **最后更新**：2026-08-08（AI+Stream 评估：todo complete 匹配硬化 · context CRLF · Stream 展示转义）  
 > **角色**：架构决策锁 + 实施诚实表（唯一实施真源）  
 > **取代**：`architecture-refactor-proposal-2026-07.md` · `adr/2026-07-24-implementation-progress.md` · 平行 UIUX 提案  
 > **内容/边界真源仍为**：`PROJECT-MODEL.md` · `PRODUCT-BOUNDARIES.md`  
@@ -70,7 +70,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 **铁律**
 
 1. Surface 不得平行实现业务语义（落点、保护、提升、生命周期）。  
-2. **所有写操作**过 writeback-engine：保护判定 →（confirm 审阅）→ 备份 → 原子落盘 → 回执。  
+2. **所有写操作**过 writeback-engine：保护判定 →（confirm 审阅）→（仅高影响）备份 → 原子落盘 →（仅高影响）回执。  
 3. AI 产物标记 `ai-derived` 或进 `.derived/`；永不冒充用户原文。  
 4. 衍生/索引可删可重建；内容安全层 `99-归档/` 不可当垃圾删。  
 5. UTR = Kernel 的 CLI/MCP **adapter**，不是第三套业务实现。  
@@ -127,7 +127,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | 三平面目录约定 | PROJECT-MODEL · 模板 |
 | 类别自发现 + 数字前缀 | workspace-model |
 | stream packing（周期本） | stream-period · capture |
-| 写回伦理理念（备份/回执） | writeback-engine（回执轮转 `RECEIPT_KEEP=50`；智能回执仅高影响写入） |
+| 写回伦理理念（备份/回执） | writeback-engine（**仅高影响**备份+回执：locked 覆盖 · delete/archive；`BACKUP_KEEP=3` · `RECEIPT_KEEP=50`） |
 | Skills 纯 Markdown + 三级降级 | skills/ |
 | skill-first Desktop agent | ai-prompts · skills-runtime（AI SDK v7；会话压缩 240K/60；默认模型 gpt-4o-mini / gemini-3.6-flash / claude-sonnet-5 / grok-3-mini） |
 | 捕获 / Clip / 文档 ingest 队列 | Desktop + extension |
@@ -148,15 +148,15 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | 动态主表面 PrimaryNav | **Done**（默认 stream） |
 | confirm 写闸 pending | **Done**（settings gate + pending 队列 + 审阅） |
 | lifecycle 全量产品卡片 | **Done**（scan→建议；inbox_organize AI 分析→确认移动） |
-| 备份全覆盖 | **Done**（用户保存跳过；AI 旋转备份 `BACKUP_KEEP=3`；permanent 删除；回执轮转 `RECEIPT_KEEP=50`；目录归档原子 rename + 文件计数校验） |
-| 个人待办清单 | **Done**（todo-engine + TodoPopover + AI 维护 + ⌘⇧T） |
+| 备份/回执（高影响 only） | **Done**（open 常规写不备份/不回执；locked 覆盖 + 非 permanent delete/archive 有副本与回执；`BACKUP_KEEP=3` · `RECEIPT_KEEP=50`；目录归档原子 rename + 文件计数校验） |
+| 个人待办清单 | **Done**（todo-engine + TodoPopover + AI 维护 + ⌘⇧T；complete/update 用 `matchTodoMaintainText` 防单 token 误完成） |
 | 统一 AI 操作引擎 | **Done**（todo_maintain · memory_organize · topic_classify；force；状态追踪） |
 | 活动窗口 Activity Window | **Done**（`lib/activity-window.mjs`；suggest/todo/ai-ops 共用） |
 | connector weread/x | **Done**（`kernelDurableWriteAbs`） |
 | 关键词搜索截断诚实 | **Done**（notes-index/grep `truncated`；GlobalSearch UI 提示） |
 | derived item-history | **Done**（确定性清单 + AI 配置后真实 LLM） |
 
-**Intentional Partial（保留，非未完成）**：`editPath` skipBackup（减噪设计）；contract UI 非全 Surface。
+**Intentional Partial（保留，非未完成）**：contract UI 非全 Surface；非 `.md` 二进制可仍直写。
 
 ### 2.2.1 非内容写路径清单（允许不经 writeback）
 
@@ -183,14 +183,14 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | **I** | 动态内容 + Chrome | 动态解析健壮 · ChromeOverflowActions · StatusBar 可点 · 启动恢复 |
 | **J** | 防御加固 | RPC shape 校验 · stream delta 合流 · batch 硬拒绝 · v1.2.0 清洁基线 |
 | **K** | AI 体验优化 | 建议 dismiss 记忆 · 节流 · SelectionAiBar debounce · 思考折叠 |
-| **L** | 备份 + 精准化 | 用户保存跳过 · AI 旋转备份 · permanent 删除 · 变更检测 · 图片本地化 |
+| **L** | 备份 + 精准化 | 高影响 only（locked · delete/archive）· permanent 删除 · 变更检测 · 图片本地化 |
 | **M** | 待办 + 渲染 + 打磨 | todo-engine · TodoPopover · AI Markdown · AI 按钮体系 · i18n 门禁 |
 | **S\*** | Stream-first 合闸 | activity-window · 条目增补 · 安静建议 chip · organize activity ops |
 
 > **2026-08-06 增量**：全量重构 Phase 0–G——workspace-model 拆 4 模块 + facade · `createKernelContext` / `validateAiOutput` 集中化 · connector-bridge · Design System 2.0→2.1 · 组件拆分 · 事件类型化 · 单队列 · RPC 校验（ADR `adr/2026-08-06-phase-d-desktop-hardening.md`）。
 
 > **2026-08-07 增量**：全面设计优化——chrome 纤细化(36/24px) · 品牌chip移除 · border/hover/shadow精炼 · 侧栏头部统一 · Landing去教育噪音 · 状态栏路径移除 · 死代码清理（ADR `adr/2026-08-07-comprehensive-design-optimization.md`）。  
-> **2026-08-07 引擎硬化**：writeback 回执轮转（`RECEIPT_KEEP=50` · `pruneOldReceipts`）· 备份旋转（`BACKUP_KEEP=3`）· 目录归档原子 rename + 文件计数校验 · 智能回执（仅高影响写入）· AI Provider 动态参数（per-operation temperature/systemPrompt/maxTokens）· 瞬态错误自动重试 · 会话压缩适配现代模型（240K chars / 60 messages）· 默认模型更新（gpt-4o-mini · gemini-3.6-flash · grok-3-mini · claude-sonnet-5）。
+> **2026-08-07 引擎硬化**（**2026-08-08 策略收紧**）：writeback **仅高影响**备份/回执（locked 覆盖 · delete/archive；open 常规写不备份）· 回执轮转（`RECEIPT_KEEP=50`）· 备份旋转（`BACKUP_KEEP=3`）· 目录归档原子 rename + 文件计数校验 · AI Provider 动态参数 · 瞬态错误自动重试 · 会话压缩适配现代模型。
 > **v2.1.0 增量**：maxTokens 操作限制全面提升（默认 12288）· Agent 步数扩展（20/50）· derived-builder 上下文扩容（48K）· StatusBar/TitleBar UI 统一动画 · 独立版本策略（大版本对齐，小版本独立；UTR 跟随 Desktop；Obsidian Plugin 独立）。
 
 ### 2.4 完成度分数卡
@@ -199,7 +199,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 |------|--------|------|
 | **产品决策锁 A/B/C/D** | **~99%** | 北极星、富工作台、Kernel 合闸、主动 AI 已锁 |
 | **文档体系完整性** | **~99%** | 单一实施真源 = 本文；DESIGN / ARCHITECTURE 对齐 |
-| **Phase A 合闸** | **~98%** | 写闸主路径 Done；edit skipBackup = Intentional Partial |
+| **Phase A 合闸** | **~98%** | 写闸主路径 Done；高影响 only 备份/回执 Done |
 | **Phase B 记忆/建议/导航** | **~99%** | Memory · 建议条 · confirm 审阅 · PrimaryNav · 待办引擎 |
 | **Desktop IA / UIUX** | **~99%** | 动态默认 · 侧栏 thrift · 整理闭环 · AI Markdown · i18n 门禁 · 2026-08-07 设计优化 |
 | **Kernel 八引擎贯穿** | **~98%** | 主写 Done；todo-engine 扩展；contract/edit-backup Intentional Partial |
@@ -271,7 +271,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | 公开更新 / pack 根 | **Accepted** | `adr/2026-07-16-public-update-and-pack-root.md` |
 | Design System 2.0 纸感 | **Superseded** | 2.1 Modern Warm-Neutral 取代（`adr/2026-08-02-design-system-2-paper-mind.md`） |
 | config v3 WorkspaceModel | **Superseded** | 由 contract v4 + 本文 + PROJECT-MODEL 取代 |
-| v4「八引擎全部合闸」过度宣称 | **Superseded / 纠正** | 引擎文件 Done；主写/Memory/建议条/备份 §2.2 Done；edit skipBackup / contract UI = Intentional Partial |
+| v4「八引擎全部合闸」过度宣称 | **Superseded / 纠正** | 引擎文件 Done；主写/Memory/建议条/高影响备份 §2.2 Done；contract UI = Intentional Partial |
 
 ---
 

@@ -18,6 +18,20 @@ const PROFILE_MAX_CHARS = 2000;
 const TOPIC_MD_MAX_CHARS = 3000;
 
 /**
+ * Strip YAML frontmatter for prompt injection (CRLF-safe).
+ * Shared by profile + topic.md loaders so Windows period/workspace files
+ * do not dump `---` YAML into the agent system prompt.
+ * @param {string} content
+ * @returns {string} body without frontmatter (may be empty)
+ */
+export function stripFrontmatterForPrompt(content) {
+  const raw = String(content || "");
+  // Match opening ---, body, closing ---, optional trailing blank lines (LF or CRLF)
+  const stripped = raw.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n*/u, "");
+  return stripped.trim();
+}
+
+/**
  * Build a compact workspace overview string for the system prompt.
  * Returns category list with topic counts — one line per category.
  *
@@ -73,8 +87,8 @@ export async function loadMemoryProfile(ctx) {
     const profilePath = path.join(root, memDir, profileFile);
     const content = await readText(profilePath);
     if (!content || content.trim().length < 20) return "";
-    // Strip frontmatter for prompt (AI doesn't need YAML metadata)
-    const body = content.replace(/^---\n[\s\S]*?\n---\n*/u, "").trim();
+    // Strip frontmatter for prompt (AI doesn't need YAML metadata); CRLF-safe
+    const body = stripFrontmatterForPrompt(content);
     if (!body) return "";
     return body.length > PROFILE_MAX_CHARS
       ? `${body.slice(0, PROFILE_MAX_CHARS)}…(截断)`
@@ -102,7 +116,7 @@ export async function loadTopicContext(ctx, topicId) {
     const topicMdPath = path.join(root, cat, topic, "topic.md");
     const content = await readText(topicMdPath);
     if (!content || content.trim().length < 20) return "";
-    const body = content.replace(/^---\n[\s\S]*?\n---\n*/u, "").trim();
+    const body = stripFrontmatterForPrompt(content);
     if (!body) return "";
     return body.length > TOPIC_MD_MAX_CHARS
       ? `${body.slice(0, TOPIC_MD_MAX_CHARS)}…(截断)`

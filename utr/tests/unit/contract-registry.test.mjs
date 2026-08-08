@@ -89,7 +89,7 @@ test("workspace-write update-topic uses reason plus reversible writeback safety"
   assert.equal(entry.command.inputs.confirmFullReplace, undefined);
   assert.equal(entry.command.review_policy, "preview_or_auto");
   assert.equal(entry.command.supports_dry_run, true);
-  assert.match(entry.command.workflow_note, /snapshot/u);
+  assert.match(entry.command.workflow_note, /high-impact|writeback/iu);
 });
 
 test("workspace-maintain archive-topic follows global writeback mode without a second review policy", () => {

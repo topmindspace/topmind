@@ -63,7 +63,7 @@
 ├── 20-专题/               【内容平面】role: deep-work；{YYYY-主题}/
 ├── 88-输出/               【内容平面】role: delivery（扁平交付）
 ├── 99-归档/               【内容平面】role: system（内容安全层）
-│   ├── backups/             自动快照（AI 旋转备份）
+│   ├── backups/             高影响快照（locked 覆盖 · trash/归档）
 │   │   └── trash/           Kernel 删除落点（可恢复；permanent 不生成）
 │   ├── trash/               可选 legacy 顶层 trash（旧工作区）
 │   └── receipts/            写操作回执（内容安全层，不可删）
@@ -248,14 +248,14 @@ AI 分发遇到歧义时按"内容性质"判定；无法判定时 → `00-收件
 
 ```text
 99-归档/
-├── backups/            # 自动快照（旋转保留，AI 写入最多保留 3 份/文件；用户保存默认跳过）
+├── backups/            # 高影响快照（locked 覆盖备份；delete/archive trash；旋转 BACKUP_KEEP=3）
 │   └── trash/          # Kernel 删除落点：backups/trash/{originalRel}（可恢复）
 ├── trash/              # 可选 legacy 顶层 trash（旧工作区仍可 list/restore）
 └── receipts/           # 写操作回执（内容安全层，不可删）
 ```
 
 > 写操作**回执**是内容安全层的一部分，是"找回/恢复"的依据，不可删。  
-> **备份策略（优化后）**：用户保存（`actor=user`）跳过备份（频繁低风险）；AI 写入（`actor=ai`）创建旋转备份，每文件最多保留 `BACKUP_KEEP=3` 份，超出自动清理旧版。  
+> **备份/回执策略（高影响 only）**：常规 `open` 文件写入（AI/user 更新）**不**创建 backup 与 receipt。仅高影响落盘：`locked` 既有文件覆盖（多为 user；AI 写 locked 被拒）、非 `permanent` 的 delete/archive（trash/归档副本 + 回执）。高影响备份/回执旋转上限 `BACKUP_KEEP=3` · `RECEIPT_KEEP=50`。策略集中在 Kernel 写闸，不靠调用方零散 `skipBackup` 拼语义。  
 > **删除落点**：`executeDelete` 默认写入 `99-归档/backups/trash/…`（与 `backup_to` 同根）；legacy 顶层 `99-归档/trash/` 仍可被 `list-safety-receipts` / `restore-safety-receipt` 识别。  
 > **彻底删除**：`executeDelete`/`executeArchive` 支持 `permanent:true`，跳过 trash/archive 副本直接删除（不可恢复，UI 提供复选框确认）。  
 > 恢复入口：UTR `list-safety-receipts` → `restore-safety-receipt`（不覆盖已有文件，写 `-restored-` 副本）/ Desktop 找回面板。
@@ -416,7 +416,7 @@ presentation:                  # 呈现规约
 1. **影子暂存**：AI 输出的流式文本写入当前目录下的隐藏临时文件（如 `.shadow-draft.tmp`）
 2. **视口直通**：Desktop 编辑器将影子文件临时叠加在视图层
 3. **保护判定**：writeback-engine 先求值目标文件的有效 protection（文件级 > role 默认）
-4. **原子落盘**：生成完毕且用户 Commit（或自动保存策略判定安全）时，原子替换物理文件。备份策略：用户保存跳过备份（频繁低风险）；AI 写入创建旋转备份（`BACKUP_KEEP=3`）到 `99-归档/backups/`，回执写 `99-归档/receipts/`
+4. **原子落盘**：生成完毕且用户 Commit（或自动保存策略判定安全）时，原子替换物理文件。备份/回执仅高影响：`locked` 覆盖与 delete/archive 进 `99-归档/backups/`（含 trash）与 `99-归档/receipts/`；open 常规更新不造备份/回执
 5. **安全中断**：强行中断只需丢弃影子文件，物理真源毫发无损
 
 ---

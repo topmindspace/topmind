@@ -76,6 +76,30 @@ test("loadTopicContext returns content from topic.md", async () => {
   assert.ok(!result.startsWith("---"));
 });
 
+test("stripFrontmatterForPrompt is CRLF-safe (profile/topic prompt inject)", () => {
+  const { stripFrontmatterForPrompt } = aiContextLoader;
+  const crlf = "---\r\ntitle: p\r\nprotection: open\r\n---\r\n\r\n# 我的情况\r\n\r\n偏好简洁。\r\n";
+  const body = stripFrontmatterForPrompt(crlf);
+  assert.ok(body.includes("我的情况"));
+  assert.ok(body.includes("偏好简洁"));
+  assert.doesNotMatch(body, /^---/u);
+  assert.doesNotMatch(body, /protection/u);
+});
+
+test("loadTopicContext strips CRLF frontmatter without dumping YAML into prompt", async () => {
+  const topicDir = path.join(workspace.userWorkspaceRoot, "20-研究", "2026-CRLF");
+  mkdirSync(topicDir, { recursive: true });
+  writeFileSync(
+    path.join(topicDir, "topic.md"),
+    "---\r\ntitle: CRLF专题\r\nprotection: open\r\n---\r\n# CRLF专题\r\n\r\n正文段落。\r\n",
+  );
+  const result = await aiContextLoader.loadTopicContext(ctx, "20-研究/2026-CRLF");
+  assert.ok(result.includes("CRLF专题"));
+  assert.ok(result.includes("正文段落"));
+  assert.doesNotMatch(result, /protection/u);
+  assert.ok(!result.startsWith("---"));
+});
+
 test("loadTopicContext truncates long content", async () => {
   const topicDir = path.join(workspace.userWorkspaceRoot, "20-研究", "2026-长文");
   mkdirSync(topicDir, { recursive: true });

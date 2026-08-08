@@ -4,7 +4,7 @@
 > **6 条核心规约**与**三平面模型**：`PROJECT-MODEL.md`。  
 > **行为契约**：工作区根 `topmind.yaml`（8 类规约，机器可读）。  
 > UTR 对 Skills/agent 仍为**可选**底座；Desktop 安装包 **捆绑** `utr/`（Tools 控制台 / doctor），但日常编辑与 AI 写回不强制走 UTR（`PRODUCT-BOUNDARIES.md`）。  
-> **架构**：UTR = Kernel 的 CLI/MCP **adapter**（非第三套业务语义）。耐久 `.md` 主写经 `lib/writeback-engine.mjs`（**Done**，见 `docs/ARCHITECTURE-RESET.md` §2.2）；**Partial**：`edit` 故意 `skipBackup`、非 `.md` 二进制可仍直写。  
+> **架构**：UTR = Kernel 的 CLI/MCP **adapter**（非第三套业务语义）。耐久 `.md` 主写经 `lib/writeback-engine.mjs`（**Done**，见 `docs/ARCHITECTURE-RESET.md` §2.2）；备份/回执**仅高影响**（locked 覆盖 · delete/archive）；open 常规更新不备份；非 `.md` 二进制可仍直写。  
 > 保存设置仅 **auto | confirm**（无 batch；UTR 对显式 `batch`/未知模式 **硬拒绝**，不 silent 映射）。
 
 ## Roots
@@ -246,7 +246,7 @@ next_actions: optional string[]
 | `memory.append-topic` | 追加一条专题稳定结论到 `memory/topics/{topic-slug}.md` | 永不重写已有内容 |
 | `memory.append-profile` | 追加「我的情况」到 `memory/profile.md` | 按段落追加；禁止 capture 静默写 |
 | Desktop `reconcileStreamPeriod` | 确定性整理本周 | 无 LLM：勾选完成、去重；返回候选；写 `reconciled_at` 标记 |
-| `workspace-write.update-topic` | 整文替换 `topic.md` | 要 `replaceReason`；`auto` 保留 snapshot/backup receipt |
+| `workspace-write.update-topic` | 整文替换 `topic.md` | 要 `replaceReason`；经 Kernel 写闸；**仅高影响**（locked 覆盖）才有 backup/receipt，open 不造 99-归档 快照 |
 | `memory.promote` | Stream 条目 → memory/topics/{topic-slug}.md | 标记 promoted_from/to；用户确认制 |
 | `memory.digest` | 写入 UTR adapter 骨架到 memory/periodic/{period}.md | 非 AI；可重建；真实 AI 摘要 = Desktop suggest apply |
 

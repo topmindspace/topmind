@@ -262,7 +262,7 @@ expectMatch(
 // ---------------------------------------------------------------------------
 // Phase A/B Done-key underclaim blocklist (ARCHITECTURE-RESET §2.2)
 // Forbid re-labeling shipped capabilities as Partial/Target in living docs.
-// Intentional Partial (skipBackup / 全量归档 / Phase C Ask / converters-local) is OK.
+// Intentional Partial (contract UI / Phase C Ask / converters-local) is OK.
 // ---------------------------------------------------------------------------
 const underclaimSurfaces = [
   "docs/adr/2026-07-19-knowledge-ingest-pipeline.md",

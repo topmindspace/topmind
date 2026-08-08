@@ -117,6 +117,21 @@ test("mutating workspace ops return WritebackEvidence (source contract)", () => 
   }
   assert.match(pathOps, /async publishPath[\s\S]{0,3500}?kernelDurableWrite/u);
   assert.match(pathOps, /async renamePath[\s\S]{0,4500}?kernelDurableWrite/u);
+  // renameTopic: dir rename is FS; durable .md frontmatter must use kernel gate
+  // (mirror renameCategory → executeWrite), never raw fs.writeFile on .md bodies.
+  {
+    const rtIdx = pathOps.indexOf("async renameTopic");
+    assert.ok(rtIdx >= 0, "renameTopic must exist");
+    const nextMethod = pathOps.indexOf("\n  async ", rtIdx + 10);
+    const rtBody = pathOps.slice(rtIdx, nextMethod > rtIdx ? nextMethod : rtIdx + 4500);
+    assert.match(rtBody, /kernelDurableWrite\s*\(/u, "renameTopic frontmatter must use kernelDurableWrite");
+    assert.doesNotMatch(
+      rtBody,
+      /fs\.writeFile\s*\(/u,
+      "renameTopic must not raw-write .md via fs.writeFile",
+    );
+    assert.match(rtBody, /buildWritebackEvidence/u);
+  }
   assert.match(archiveOps, /kernelDurableWrite/u);
   assert.match(inboxOps, /async ingestInbox[\s\S]{0,8000}?buildWritebackEvidence/u);
   assert.match(inboxOps, /async moveToTopic[\s\S]{0,5000}?buildWritebackEvidence/u);
@@ -137,4 +152,67 @@ test("mutating workspace ops return WritebackEvidence (source contract)", () => 
     healthSlice,
     /for \(const e of entries\) \{[\s\S]{0,500}?await resolveCategoryRoles/u,
   );
+});
+
+test("renameTopic updates frontmatter via Kernel write gate (behavioral)", async () => {
+  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+  const { setEngineRoot, getEngineRoot } = await import(
+    pathToFileURL(path.join(electronLib, "workspace-home.mjs")).href
+  );
+  const { resetKernelApiCache } = await import(
+    pathToFileURL(path.join(electronLib, "kernel-api.mjs")).href
+  );
+  const { pathOps } = await import(
+    pathToFileURL(path.join(electronLib, "workspace-path-ops.mjs")).href
+  );
+
+  const prevEngine = getEngineRoot();
+  setEngineRoot(repoRoot);
+  resetKernelApiCache();
+
+  const userRoot = path.join(tmpRoot, "rename-topic-ws");
+  const workspaceCtx = {
+    engineRoot: repoRoot,
+    userWorkspaceRoot: userRoot,
+  };
+  const topicDir = path.join(userRoot, "20-研究", "2026-旧专题");
+  mkdirSync(topicDir, { recursive: true });
+  mkdirSync(path.join(userRoot, "99-归档", "backups"), { recursive: true });
+  writeFileSync(
+    path.join(topicDir, "topic.md"),
+    "---\ntitle: 2026-旧专题\ntopic: 2026-旧专题\ncategory: 20-研究\n---\n\n# 2026-旧专题\n\nbody\n",
+    "utf8",
+  );
+  writeFileSync(
+    path.join(topicDir, "note.md"),
+    "---\ntopic: 2026-旧专题\ncategory: 20-研究\n---\n\nnote body\n",
+    "utf8",
+  );
+
+  try {
+    const result = await pathOps.renameTopic(
+      { topicId: "20-研究/2026-旧专题", newName: "2026-新专题" },
+      { workspaceRoot: workspaceCtx },
+    );
+    assert.equal(result.ok, true);
+    assert.equal(result.topicId, "20-研究/2026-新专题");
+    assert.ok(!existsSync(topicDir), "old topic dir must be gone");
+    const newTopicMd = path.join(userRoot, "20-研究", "2026-新专题", "topic.md");
+    const newNoteMd = path.join(userRoot, "20-研究", "2026-新专题", "note.md");
+    assert.ok(existsSync(newTopicMd), "topic.md must exist under new name");
+    assert.ok(existsSync(newNoteMd), "note.md must exist under new name");
+    const topicBody = readFileSync(newTopicMd, "utf8");
+    const noteBody = readFileSync(newNoteMd, "utf8");
+    assert.match(topicBody, /^---\n/u, "topic.md must keep YAML fence");
+    assert.match(topicBody, /topic:\s*"?2026-新专题"?/u);
+    assert.match(topicBody, /title:\s*"?2026-新专题"?/u);
+    assert.match(topicBody, /# 2026-新专题/u);
+    assert.doesNotMatch(topicBody, /2026-旧专题/u);
+    assert.match(noteBody, /^---\n/u, "note.md must keep YAML fence");
+    assert.match(noteBody, /topic:\s*"?2026-新专题"?/u);
+    assert.doesNotMatch(noteBody, /topic:\s*"?2026-旧专题"?/u);
+  } finally {
+    setEngineRoot(prevEngine);
+    resetKernelApiCache();
+  }
 });

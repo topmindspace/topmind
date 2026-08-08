@@ -1,5 +1,6 @@
 /**
  * Kernel writeback-engine — real temp workspace path (shipped executeWrite).
+ * Policy: backup/receipt only for high-impact (locked overwrite, non-permanent delete/archive).
  */
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -10,6 +11,7 @@ import {
   evaluateWritePermission,
   executeWrite,
   executeDelete,
+  isHighImpactContentWrite,
   peekFrontmatter,
 } from "../lib/writeback-engine.mjs";
 import { buildDefaultContract } from "../lib/contract-engine.mjs";
@@ -49,7 +51,13 @@ describe("writeback-engine", () => {
     assert.equal(fm.protection, "locked");
   });
 
-  it("open file: AI write allowed and produces evidence + backup on update", () => {
+  it("isHighImpactContentWrite: only locked existing files", () => {
+    assert.equal(isHighImpactContentWrite({ fileExists: true, protection: "locked" }), true);
+    assert.equal(isHighImpactContentWrite({ fileExists: true, protection: "open" }), false);
+    assert.equal(isHighImpactContentWrite({ fileExists: false, protection: "locked" }), false);
+  });
+
+  it("open file: AI/user update has no backup and no receipt", () => {
     const rel = "10-动态/note.md";
     const target = path.join(env.ws, rel);
     const first = executeWrite({
@@ -66,6 +74,8 @@ describe("writeback-engine", () => {
     assert.ok(first.targetPath === rel || first.target_path === rel || first.targetPath?.endsWith("note.md"));
     assert.ok(Array.isArray(first.affectedFiles) && first.affectedFiles.length >= 1);
     assert.ok(fs.existsSync(target));
+    assert.ok(!first.backupPath && !first.backup_path, "create must not invent backup");
+    assert.ok(!first.receipt_path || first.receipt_path === first.backup_path, "create: no real receipt");
 
     const second = executeWrite({
       targetPath: target,
@@ -78,10 +88,26 @@ describe("writeback-engine", () => {
       skipShadow: true,
     });
     assert.equal(second.wroteFiles, true);
-    assert.ok(second.backupPath || second.backup_path, "update should backup");
+    assert.ok(!second.backupPath && !second.backup_path, "open AI update must not backup");
+    // receiptPath falls back to backupPath in toSurfaceEvidence; both must be falsy for open
+    assert.ok(!second.backup_path, "open AI update: no backup_path");
+    assert.equal(second.receipt_path ?? null, null);
+
+    const userUpdate = executeWrite({
+      targetPath: target,
+      content: "---\ntitle: a\nprotection: open\n---\n\nhello user\n",
+      workspaceRoot: env.ws,
+      contract: env.contract,
+      actor: "user",
+      confirmed: true,
+      operation: "update",
+      skipShadow: true,
+    });
+    assert.equal(userUpdate.wroteFiles, true);
+    assert.ok(!userUpdate.backupPath && !userUpdate.backup_path, "open user update must not backup");
   });
 
-  it("locked file: AI denied; user allowed", () => {
+  it("locked file: AI denied; user overwrite gets backup + receipt", () => {
     const target = path.join(env.ws, "10-动态/locked.md");
     const content = "---\nprotection: locked\n---\n\nsecret\n";
     fs.writeFileSync(target, content, "utf8");
@@ -118,6 +144,74 @@ describe("writeback-engine", () => {
       skipShadow: true,
     });
     assert.equal(userWrite.wroteFiles, true);
+    assert.ok(userWrite.backupPath || userWrite.backup_path, "locked user overwrite must backup");
+    assert.ok(
+      userWrite.receipt_path || userWrite.receiptPath,
+      "locked user overwrite must write receipt",
+    );
+    const absBackup = path.isAbsolute(userWrite.backup_path || userWrite.backupPath)
+      ? userWrite.backup_path || userWrite.backupPath
+      : path.join(env.ws, userWrite.backup_path || userWrite.backupPath);
+    assert.ok(fs.existsSync(absBackup), "backup file must exist on disk");
+    assert.equal(fs.readFileSync(absBackup, "utf8"), content);
+  });
+
+  it("existing locked file: overwrite still backs up when new FM omits protection", () => {
+    const target = path.join(env.ws, "10-动态/locked-drop-fm.md");
+    const original = "---\nprotection: locked\n---\n\nold\n";
+    fs.writeFileSync(target, original, "utf8");
+    // Callers that rebuild frontmatter without protection: locked must still
+    // treat existing locked file as high-impact (and deny AI).
+    assert.throws(
+      () =>
+        executeWrite({
+          targetPath: target,
+          content: "---\ntitle: unlocked-looking\n---\n\nnew\n",
+          workspaceRoot: env.ws,
+          contract: env.contract,
+          actor: "ai",
+          confirmed: true,
+          skipShadow: true,
+        }),
+      /Write denied|locked/i,
+    );
+    const ev = executeWrite({
+      targetPath: target,
+      content: "---\ntitle: unlocked-looking\n---\n\nnew\n",
+      workspaceRoot: env.ws,
+      contract: env.contract,
+      actor: "user",
+      confirmed: true,
+      skipShadow: true,
+      frontmatter: { title: "unlocked-looking" },
+    });
+    assert.equal(ev.wroteFiles, true);
+    assert.ok(ev.backup_path || ev.backupPath, "existing locked must backup even if new FM open");
+  });
+
+  it("path outside workspace is denied", () => {
+    const outside = path.join(tmpRoot, "outside-secret.md");
+    fs.writeFileSync(outside, "nope\n", "utf8");
+    const perm = evaluateWritePermission({
+      contract: env.contract,
+      targetPath: outside,
+      workspaceRoot: env.ws,
+      actor: "user",
+    });
+    assert.equal(perm.allowed, false);
+    assert.match(perm.reason, /outside workspace/i);
+    assert.throws(
+      () =>
+        executeWrite({
+          targetPath: outside,
+          content: "x",
+          workspaceRoot: env.ws,
+          contract: env.contract,
+          actor: "user",
+          confirmed: true,
+        }),
+      /Write denied|outside/i,
+    );
   });
 
   it("confirm mode returns pending without confirmed", () => {
@@ -150,9 +244,10 @@ describe("writeback-engine", () => {
     });
     assert.equal(done.wroteFiles, true);
     assert.ok(fs.existsSync(target));
+    assert.ok(!done.backup_path && !done.backupPath, "open confirm write still no backup");
   });
 
-  it("executeDelete moves to trash backup", () => {
+  it("executeDelete moves to trash backup with receipt; permanent has neither", () => {
     const target = path.join(env.ws, "00-收件箱/gone.md");
     fs.writeFileSync(target, "---\ntitle: g\n---\n\nbye\n", "utf8");
     const ev = executeDelete({
@@ -165,6 +260,22 @@ describe("writeback-engine", () => {
     assert.equal(ev.wroteFiles, true);
     assert.ok(!fs.existsSync(target));
     assert.ok(ev.backupPath || ev.backup_path);
+    assert.ok(ev.receipt_path || ev.receiptPath, "non-permanent delete writes receipt");
+
+    const target2 = path.join(env.ws, "00-收件箱/gone-perm.md");
+    fs.writeFileSync(target2, "---\ntitle: p\n---\n\nperm\n", "utf8");
+    const permEv = executeDelete({
+      targetPath: target2,
+      workspaceRoot: env.ws,
+      contract: env.contract,
+      actor: "user",
+      confirmed: true,
+      permanent: true,
+    });
+    assert.equal(permEv.wroteFiles, true);
+    assert.ok(!fs.existsSync(target2));
+    assert.ok(!permEv.backupPath && !permEv.backup_path, "permanent delete: no trash");
+    assert.ok(!permEv.receipt_path, "permanent delete: no receipt");
   });
 
   it("executeArchive directory peeks topic.md protection (locked denies AI)", async () => {
@@ -198,6 +309,8 @@ describe("writeback-engine", () => {
     });
     assert.equal(ev.wroteFiles, true);
     assert.ok(!fs.existsSync(topicDir));
+    assert.ok(ev.backupPath || ev.backup_path, "archive has recoverable copy");
+    assert.ok(ev.receipt_path || ev.receiptPath, "archive writes receipt");
   });
 });
 

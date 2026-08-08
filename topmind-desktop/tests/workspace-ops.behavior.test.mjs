@@ -66,37 +66,48 @@ after(() => {
   if (tmpRoot) rmSync(tmpRoot, { recursive: true, force: true });
 });
 
-test("savePath user save skips backup; AI save creates rotating backup", async () => {
+test("savePath open files: user and AI updates have no backup; locked user overwrite has backup", async () => {
   const rel = "20-研究/2026-示例专题/note.md";
   const create = await pathOps.savePath({ relativePath: rel, content: "# v1\n" }, ctx());
   assert.equal(create.operation, "create");
   assert.equal(create.targetPath, rel);
   assert.ok(!create.backupPath);
 
-  // User overwrite: skip backup (frequent, low-risk, atomic write is safe)
+  // Open overwrite: no backup (high-impact-only gate policy)
   const userUpdate = await pathOps.savePath({ relativePath: rel, content: "# v2\n" }, ctx());
   assert.equal(userUpdate.operation, "update");
-  assert.ok(!userUpdate.backupPath, "user save skips backup");
+  assert.ok(!userUpdate.backupPath, "open user save has no backup");
   assert.equal(
     readFileSync(path.join(workspace.userWorkspaceRoot, rel), "utf8"),
     "# v2\n",
   );
 
-  // AI save: creates rotating backup
+  // AI open save: also no backup
   const aiUpdate = await pathOps.savePath(
     { relativePath: rel, content: "# v3\n", actor: "ai", confirmed: true },
     ctx(),
   );
   assert.equal(aiUpdate.operation, "update");
-  assert.ok(aiUpdate.backupPath, "AI save creates backup");
-  assert.match(aiUpdate.backupPath, /^99-归档\/backups\//u);
-  const absBackup = path.join(workspace.userWorkspaceRoot, aiUpdate.backupPath);
-  assert.ok(existsSync(absBackup));
-  assert.equal(readFileSync(absBackup, "utf8"), "# v2\n");
+  assert.ok(!aiUpdate.backupPath, "open AI save has no backup");
   assert.equal(
     readFileSync(path.join(workspace.userWorkspaceRoot, rel), "utf8"),
     "# v3\n",
   );
+
+  // Locked existing file: user overwrite gets backup (high-impact)
+  const lockedRel = "20-研究/2026-示例专题/locked-note.md";
+  const lockedBody = "---\nprotection: locked\n---\n\n# secret\n";
+  await pathOps.savePath({ relativePath: lockedRel, content: lockedBody }, ctx());
+  const lockedUpdate = await pathOps.savePath(
+    { relativePath: lockedRel, content: "---\nprotection: locked\n---\n\n# secret v2\n" },
+    ctx(),
+  );
+  assert.equal(lockedUpdate.operation, "update");
+  assert.ok(lockedUpdate.backupPath, "locked user overwrite must backup");
+  assert.match(lockedUpdate.backupPath, /^99-归档\/backups\//u);
+  const absBackup = path.join(workspace.userWorkspaceRoot, lockedUpdate.backupPath);
+  assert.ok(existsSync(absBackup));
+  assert.equal(readFileSync(absBackup, "utf8"), lockedBody);
 });
 
 test("editPath surgical replace without Archive; fails on non-unique oldText", async () => {

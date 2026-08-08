@@ -58,13 +58,21 @@ export function countStreamAppends(body: string): number {
 
 /**
  * Unescape common over-escaped MD tokens seen in period notes
- * (e.g. `\[ \]` from double-escaped task lists → `[ ]`).
+ * (display-only prep for feed cards — does not rewrite the file).
+ *
+ * Handles:
+ * - `\[ \]` / `\[x\]` → task checkboxes
+ * - line-start `\-` / `\*` / `\+` → list markers (paste/export noise)
+ * - line-start `\#` → heading markers
  */
 export function normalizeStreamEscapes(md: string): string {
   let s = String(md || "");
   // Task checkboxes written as \[ \] / \[x\]
   s = s.replace(/\\\[([ xX]?)\\\]/gu, "[$1]");
-  // Bare \[ \] without matching pair already handled above
+  // Escaped list bullets at line start (optional indent)
+  s = s.replace(/^(\s*)\\([-*+])(\s+)/gmu, "$1$2$3");
+  // Escaped ATX headings at line start
+  s = s.replace(/^(\s*)\\(#{1,6})(\s+)/gmu, "$1$2$3");
   return s;
 }
 

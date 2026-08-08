@@ -51,7 +51,7 @@ topmind 是 Agent 时代的本地优先工作台，按需组合四条独立能�
 | stream-engine | 周期本/reconcile + **活动窗口** | **Done** — packing · reconcile · `activity-window`（suggest/todo/ops 共用）· 条目增补 |
 | memory-engine | 分层记忆/提升物理操作 | **Done** — profile + **periodic**；建议 apply；**非**专题默认落点（专题在内容大类） |
 | lifecycle-engine | 归档/清理/回顾扫描 | **Done** — scan→建议条；确认 apply 经 `executeArchive` 写闸 |
-| writeback-engine | 保护/影子/回执/备份（**唯一写闸**） | **Done** — Desktop 主写 + UTR + AI `actor:"ai"` 经 Kernel；settings confirm 覆盖 gate；备份优化（用户保存跳过、AI 旋转备份 `BACKUP_KEEP=3`、`permanent` 彻底删除） |
+| writeback-engine | 保护/影子/回执/备份（**唯一写闸**） | **Done** — Desktop 主写 + UTR + AI `actor:"ai"` 经 Kernel；settings confirm 覆盖 gate；备份/回执仅高影响（locked 覆盖 · delete/archive · `BACKUP_KEEP=3`/`RECEIPT_KEEP=50` · `permanent` 彻底删除） |
 | derived-builder | `.derived/` 生成重建 | **Done 最小** — topic summary + **item-history**；AI 摘要可占位 |
 | ingest-pipeline | URL/文档路由语义 | **Done** 路由 — Desktop commit 经 `resolveIngestRoute`；转换器仍本地 |
 
@@ -120,7 +120,7 @@ UTR = 软探测；写回不经 UTR
 - **薄**：默认主表面 = 动态；用户概念 ≤5；标签/看板/Tools 不进主 chrome
 - **AI 内生**：默认上下文感知；建议默认生成、高影响须确认（Reset D）
 
-**可选第四分发面**：`browser-extension/`（MV3 剪藏）。
+**Clip companion 分发面**（非第五「体」）：`browser-extension/`（MV3 剪藏）。经 Bridge 写入 Desktop 工作区；不单独实现 Kernel 业务语义。版本矩阵与四体并列，见根 `README.md`。
 
 ### 4.3 UTR
 
@@ -196,7 +196,7 @@ graph TD
 | 捕获 / 周期本 / 编辑 / 剪藏 / 文档加工 | **Done**（抓取网页图片本地化到 `images/{slug}/`） |
 | skill-first AI 对话与领域工具 | **Done**（副驾建议条 + 待确认写入 **Done**） |
 | 三平面目录与 topmind.yaml v4 | **Done**（约定）/ 契约 UI 非强制 **Intentional Partial** |
-| writeback 唯一写闸 | **Done**（主路径 + confirm Model B + 备份优化：用户保存跳过、AI 旋转备份 `BACKUP_KEEP=3`、`permanent` 彻底删除） |
+| writeback 唯一写闸 | **Done**（主路径 + confirm Model B + 高影响 only 备份/回执：locked 覆盖 · delete/archive · `permanent` 无副本） |
 | Memory 产品面（我的情况 / 建议条） | **Done** |
 | 主动建议 + 确认执行 | **Done**（high-impact 须 `confirmed:true`；自动准备可关；AI 建议变更检测 `lastAnalyzedHash`；`promote_memory` 真实 AI 提取非占位符） |
 | 写出来 / publishPath | **Done**（副本 + `published_at`；发布后打开交付件；Outputs 复制正文 / HTML 导出） |

@@ -15,7 +15,6 @@ import {
   validateRequiredRoots,
 } from "../core/workspace-context.mjs";
 import { parseArgs, resolveMode } from "../core/cli-args.mjs";
-import { receiptId } from "../core/receipt.mjs";
 import { ensureDir, pathExists, workspaceRelative } from "../core/topic-files.mjs";
 import {
   parseFrontmatter,
@@ -35,14 +34,9 @@ import {
   loadContract,
 } from "../../lib/kernel-api.mjs";
 
-// ── CLI helpers ─────────────────────────────────────────────────────────────
-
-async function writeReceipt(receiptDir, name, payload) {
-  await ensureDir(receiptDir);
-  const target = path.join(receiptDir, `${name}.json`);
-  await fs.writeFile(target, JSON.stringify(payload, null, 2), "utf8");
-  return target;
-}
+// Durable backup/receipt is owned solely by Kernel writeback-engine
+// (high-impact only: locked overwrite · delete/archive). UTR must not invent
+// parallel 99-归档/receipts or 99-归档/backups snapshots for open creates/updates.
 
 // ── create-topic ───────────────────────────────────────────────────────
 
@@ -97,23 +91,10 @@ async function createTopic({ category, topic, title, mode }, ctx) {
     }
   }
 
-  let receipt = null;
-  if (mode === "auto") {
-    receipt = await writeReceipt(
-      path.join(ctx.archiveRootPath, "receipts"),
-      receiptId("create-topic"),
-      {
-        command: "create-topic",
-        category,
-        topic,
-        title: title || topic,
-        createdProject,
-        timestamp: new Date().toISOString(),
-      },
-    );
-  }
-
   const topicFileRel = workspaceRelative(topicFile, ctx.userWorkspaceRoot);
+  // Receipt only if Kernel writeback produced one (high-impact); open create → null.
+  const receipt =
+    writeEvidence?.receipt_path || writeEvidence?.receiptPath || null;
   return {
     command: "create-topic",
     mode,
@@ -451,26 +432,26 @@ async function updateTopic({ category, topic, content, replaceReason, mode }, ct
   if (!replaceReason) throw new Error(t("error.updateTopicReason"));
   const topicFile = topicFilePath(ctx, category, topic);
 
-  let snapshot = null;
-  if (mode === "auto" && await pathExists(topicFile)) {
-    snapshot = await writeReceipt(
-      path.join(ctx.archiveRootPath, "backups", category, topic),
-      receiptId("update-topic"),
-      {
-        command: "update-topic",
-        category,
-        topic,
-        replaceReason,
-        originalContent: await fs.readFile(topicFile, "utf8"),
-        timestamp: new Date().toISOString(),
-      },
-    );
-  }
-
   let writeEvidence = null;
   if (mode === "auto") {
     await ensureDir(path.dirname(topicFile));
-    const fm = { category, topic, status: "active", last_replace_reason: replaceReason };
+    // Preserve existing protection (and other stable FM) so locked homes stay locked
+    // and Kernel high-impact backup still fires on overwrite.
+    let prev = {};
+    if (await pathExists(topicFile)) {
+      try {
+        prev = parseFrontmatter(await fs.readFile(topicFile, "utf8")).data || {};
+      } catch {
+        prev = {};
+      }
+    }
+    const fm = {
+      ...prev,
+      category,
+      topic,
+      status: prev.status || "active",
+      last_replace_reason: replaceReason,
+    };
     const stamped = touchUpdatedFrontmatter(
       stringifyFrontmatter({ data: fm, body: `\n${content}\n` }),
     );
@@ -489,6 +470,10 @@ async function updateTopic({ category, topic, content, replaceReason, mode }, ct
   }
 
   const rel = workspaceRelative(topicFile, ctx.userWorkspaceRoot);
+  // Snapshot path only when Kernel writeback backed up (locked/high-impact).
+  // Open topic.md replace must not invent 99-归档/backups/*.json.
+  const snapshot =
+    writeEvidence?.backup_path || writeEvidence?.backupPath || null;
   return {
     command: "update-topic",
     mode,
@@ -502,6 +487,8 @@ async function updateTopic({ category, topic, content, replaceReason, mode }, ct
     writebackEvidence: writeEvidence,
     target_path: rel,
     affected_files: writeEvidence?.affectedFiles || (mode === "auto" ? [rel] : []),
+    backup_path: snapshot,
+    receipt_path: writeEvidence?.receipt_path || writeEvidence?.receiptPath || null,
   };
 }
 

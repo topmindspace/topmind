@@ -1,6 +1,6 @@
 # ADR: Engine Hardening — Writeback 回执轮转 + AI Provider 动态参数（2026-08-07）
 
-> **状态**：Accepted  
+> **状态**：Accepted（**2026-08-08 策略增量：高影响 only**）  
 > **日期**：2026-08-07  
 > **范围**：`lib/writeback-engine.mjs` · `topmind-desktop/electron/ai-provider-adapter.mjs` · `ai-session-compact.mjs` · `ai-model.mjs`  
 > **前置**：Kernel AI Provider Context（`2026-08-02-kernel-ai-provider-context.md`）· Writeback Engine（Architecture Reset §2.2）
@@ -9,7 +9,7 @@
 
 全面代码质量审视发现两类可优化点：
 
-1. **Writeback 回执无限累积**：每次 AI 写入都生成 receipt YAML，长期使用后 `99-归档/receipts/` 膨胀；低风险写入（用户保存、无备份写入）也产生回执，造成噪音。
+1. **Writeback 回执/备份噪音**：早期「AI 每次写都备份 + 有备份则回执」仍使 open 文件更新产生归档膨胀；应进一步收紧为**仅高影响**。
 2. **AI Provider 参数静态**：所有 AI 操作使用相同的 temperature 和 maxTokens，未区分提取类任务（需确定性）与分析类任务（需多样性）；无重试机制，网络抖动直接失败；会话压缩参数过保守，浪费现代模型的大上下文窗口。
 
 ## 决策
@@ -20,16 +20,19 @@
 |----|----|------|
 | `RECEIPT_KEEP` | 50 | 保留足够恢复窗口（~50 次高影响写入），防止无限累积 |
 | `pruneOldReceipts()` | 按 ISO 时间戳排序， newest-first 保留 | 确保最旧回执先被清理 |
-| 触发时机 | 每次写入回执后 | 增量清理，无需独立定时任务 |
+| 触发时机 | 每次**高影响**写入回执后 | 增量清理，无需独立定时任务 |
 
-### 2. 智能回执策略（Tiered Receipt）
+### 2. 备份/回执策略（High-impact only · 2026-08-08）
 
-| 场景 | 写回执？ | 理由 |
-|------|---------|------|
-| 用户保存（actor=user） | ❌ | 频繁、低风险；用户直接可见 |
-| AI 写入 + 有备份 | ✅ | 审计轨迹；恢复证据 |
-| AI 写入 + 无备份（skipBackup） | ❌ | 无备份 = 无恢复目标；回执纯噪音 |
-| 删除 / 归档（高影响） | ✅ | 可逆操作；恢复路径必需 |
+> **Supersedes** 本节早期「AI 写入 + 有备份 → 回执 / actor=user 跳过」表述。中心判定在写闸 `isHighImpactContentWrite` + delete/archive 路径；调用方不得靠零散 `skipBackup` 拼出矛盾语义。
+
+| 场景 | 备份？ | 回执？ | 理由 |
+|------|--------|--------|------|
+| open 文件 create/update（actor=ai 或 user） | ❌ | ❌ | 频繁、低风险；原子写足够 |
+| locked 既有文件覆盖（user；AI 写 locked 被拒） | ✅ 旋转 `BACKUP_KEEP` | ✅ | 高影响；可恢复 |
+| 删除 / 归档（非 permanent） | ✅ trash/归档副本 | ✅ | 可逆操作；恢复路径必需 |
+| permanent 删除/归档 | ❌ | ❌ | 用户明确不可恢复 |
+| forceBackup 显式强制（既有文件） | ✅ | ✅ | 罕见逃逸舱 |
 
 ### 3. 目录归档安全加固
 

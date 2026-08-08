@@ -472,7 +472,7 @@ export async function buildDesktopAiTools(ctx) {
       });
 
       tools.save_note = tool({
-        description: "在专题下新建或更新笔记（带 frontmatter；覆盖前自动备份）。",
+        description: "在专题下新建或更新笔记（带 frontmatter；经写闸；仅 locked 等高影响才备份）。",
         inputSchema: jsonSchema({
           type: "object",
           properties: {
@@ -492,7 +492,7 @@ export async function buildDesktopAiTools(ctx) {
 
       tools.save_file = tool({
         description:
-          "整文件覆盖写入 .md（自动备份）。仅用于新建/大段重写；局部修改请优先 edit_file。",
+          "整文件覆盖写入 .md（经写闸；open 不备份，locked/删除才备份）。仅用于新建/大段重写；局部修改请优先 edit_file。",
         inputSchema: jsonSchema({
           type: "object",
           properties: {
@@ -661,7 +661,7 @@ export async function buildDesktopAiTools(ctx) {
 
       tools.rename_path = tool({
         description:
-          "重命名工作区内的文件（同目录改名；自动备份）。.md 重命名时会同步 images/{旧stem}/→images/{新stem}/ 并改写正文引用。跨目录请用 move_to_topic。",
+          "重命名工作区内的文件（同目录改名；经写闸）。.md 重命名时会同步 images/{旧stem}/→images/{新stem}/ 并改写正文引用。跨目录请用 move_to_topic。",
         inputSchema: jsonSchema({
           type: "object",
           properties: {

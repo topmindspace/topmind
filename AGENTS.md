@@ -51,10 +51,12 @@ rg "WritebackEvidence" topmind-desktop/src/
 
 ```text
 topmind = Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Optional Obsidian
+          （四体核心）        + Optional Clip 剪藏分发面（Desktop 捕获 companion，非独立 Kernel 宿主）
 ```
 
 **北极星**：最低摩擦个人动态流（`docs/ARCHITECTURE-RESET.md`）。  
-四者**只共享内容约定与行为契约**，无强制运行时绑定。边界：`PRODUCT-BOUNDARIES.md`。
+四体**只共享内容约定与行为契约**，无强制运行时绑定；Clip 为 companion 分发面。边界：`PRODUCT-BOUNDARIES.md`。  
+全景评估：`docs/architecture-assessment-2026-08.md`。
 
 核心工作流：`收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整`。  
 用户概念 ≤5：`记一下 · 动态 · 专题 · 我的情况 · 写出来`。
@@ -75,7 +77,7 @@ contract · workspace-model · stream · memory · lifecycle · **writeback（�
 > **ai-operation-engine**：统一 AI 操作注册框架（`lib/ai-operation-engine.mjs`），自注册 `todo_maintain` · `memory_organize`（profile + periodic）· `topic_classify`（内容大类专题，非 memory），支持 force 重处理、状态追踪（`.topmind/ai-ops.json` 系统平面）、可扩展注册。  
 > **activity-window**：`lib/activity-window.mjs` — 建议/待办/AI ops 共用「近期活动窗口」（周期本 ∪ mtime ∪ 增补 parent）。
 
-**诚实状态**：引擎在 `lib/`；Desktop / UTR / AI 耐久 `.md` **主写经 writeback-engine**；Memory · 建议条 · 待确认写入 · 待办 · AI 操作框架 · 活动窗口 · 动态条目增补 · 剪藏图片本地化 · i18n 门禁 **Done**。备份：用户保存可跳过、AI 旋转备份（`BACKUP_KEEP=3`）、`permanent` 彻底删除。回执：智能分层（仅高影响写入）+ 轮转（`RECEIPT_KEEP=50`）。AI Provider：per-operation 动态 temperature/systemPrompt/maxTokens + 瞬态错误重试；会话压缩 240K/60 适配现代模型。仍 **Intentional Partial**：`edit` skipBackup（减噪）、contract 未强制全 Surface UI。embedding / 全库 Ask 等见 Reset Non-goal。
+**诚实状态**：引擎在 `lib/`；Desktop / UTR / AI 耐久 `.md` **主写经 writeback-engine**；Memory · 建议条 · 待确认写入 · 待办 · AI 操作框架 · 活动窗口 · 动态条目增补 · 剪藏图片本地化 · i18n 门禁 **Done**。备份/回执：**仅高影响**——`locked` 既有文件覆盖、非 `permanent` 的 delete/archive（trash 副本）；常规 open 文件 AI/user 更新不备份不写回执；`permanent` 彻底删除；高影响产物旋转（`BACKUP_KEEP=3` · `RECEIPT_KEEP=50`）。AI Provider：per-operation 动态 temperature/systemPrompt/maxTokens + 瞬态错误重试；会话压缩 240K/60 适配现代模型。仍 **Intentional Partial**：contract 未强制全 Surface UI。embedding / 全库 Ask 等见 Reset Non-goal。
 
 默认模板 4 种：`stream`（默认）· `balanced` · `research` · `periodic`。
 

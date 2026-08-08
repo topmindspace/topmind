@@ -255,6 +255,19 @@ test("executeTool creates a new topic with topic.md and appends memory", async (
   assert.equal(createResult.ok, true);
   assert.equal(createResult.parsed.data.createdProject, true);
   assert.equal(createResult.parsed.data.topic, topic);
+  // Open create: no durable UTR receipt under 99-归档/receipts (high-impact only via Kernel)
+  assert.ok(
+    !createResult.parsed.data.receipt || createResult.parsed.data.receipt === null,
+    "open create-topic must not invent receipt path",
+  );
+  const receiptsRoot = path.join(workspace.userWorkspaceRoot, "99-归档", "receipts");
+  try {
+    const files = await fs.readdir(receiptsRoot);
+    const createTopicReceipts = files.filter((f) => f.includes("create-topic"));
+    assert.equal(createTopicReceipts.length, 0, `unexpected create-topic receipts: ${createTopicReceipts.join(", ")}`);
+  } catch {
+    /* missing receipts dir is correct for open create */
+  }
 
   const topicFile = path.join(workspace.userWorkspaceRoot, category, topic, "topic.md");
   const created = await fs.readFile(topicFile, "utf8");
@@ -430,10 +443,31 @@ test("executeTool applies full topic replacement in auto mode with reason", asyn
   });
 
   assert.equal(result.ok, true);
-  assert.notEqual(result.snapshot, null);
+  // Open topic.md: high-impact-only policy → no durable snapshot under 99-归档/backups
+  const data = result.parsed?.data || result.parsed || {};
+  assert.ok(!data.snapshot && !data.backup_path && !data.backupPath,
+    "open update-topic must not invent backup/snapshot");
   const topicFile = path.join(workspace.userWorkspaceRoot, "20 研究", "2026-示例专题", "topic.md");
   const updated = await fs.readFile(topicFile, "utf8");
   assert.match(updated, /Replaced content/u);
+  // No parallel UTR JSON backups under archive
+  const backupsRoot = path.join(workspace.userWorkspaceRoot, "99-归档", "backups");
+  try {
+    const walk = async (dir) => {
+      let names = [];
+      const entries = await fs.readdir(dir, { withFileTypes: true });
+      for (const e of entries) {
+        const p = path.join(dir, e.name);
+        if (e.isDirectory()) names = names.concat(await walk(p));
+        else if (e.name.includes("update-topic")) names.push(p);
+      }
+      return names;
+    };
+    const hits = await walk(backupsRoot).catch(() => []);
+    assert.equal(hits.length, 0, `unexpected update-topic backup files: ${hits.join(", ")}`);
+  } catch {
+    /* no backups dir is fine */
+  }
 });
 
 test("executeTool appends stable memory without replacing topic.md", async () => {

@@ -101,6 +101,19 @@ title: w
     assert.match(unesc, /\[ \]/);
     assert.doesNotMatch(unesc, /\\\[/);
 
+    // Escaped list / heading markers from paste noise (display-only normalize)
+    const listEsc = normalizeStreamEscapes("\\- first\n\\* second\n\\# Title");
+    assert.match(listEsc, /^- first/m);
+    assert.match(listEsc, /^\* second/m);
+    assert.match(listEsc, /^# Title/m);
+    assert.doesNotMatch(listEsc, /\\-/);
+
+    const messyPeriod = parsePeriodNote(
+      "---\r\ntitle: x\r\n---\r\n\r\n## 08-08\r\n\r\n\\- escaped one\r\n\\- escaped two\r\n",
+    );
+    assert.ok(messyPeriod.length >= 2, `expected soft-split bullets, got ${messyPeriod.length}`);
+    assert.ok(messyPeriod.some((e) => /escaped one/u.test(e.body + e.preview)));
+
     const { main, appendChunks } = splitMainAndAppendChunks(body);
     assert.match(main, /first moment/);
     assert.equal(appendChunks.length, 1);

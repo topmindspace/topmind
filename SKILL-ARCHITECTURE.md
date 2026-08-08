@@ -388,7 +388,7 @@ writeback:
 | 稳定专题记忆 | `memory.append-topic` | 追加 `memory/topics/{slug}.md`；不静默替换前文 |
 | 核心记忆 | `memory.append-profile` | 追加 `memory/profile.md`；禁止 capture 静默写 |
 | 局部修订 | Proposal 带 before/after | 展示基线；auto 写带回执 |
-| 整文重写 | `update-topic` | 要结构性理由；auto 保留 snapshot |
+| 整文重写 | `update-topic` | 要结构性理由；经 Kernel 写闸；仅高影响才有 backup/receipt |
 | 提升记忆 | `memory.promote` | 复制新版本 + `promoted_from` / `promoted_to`；经 writeback-engine |
 
 完整写回契约和 evidence 格式见 `TOOLS.md` §Writeback Contract。

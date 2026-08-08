@@ -32,8 +32,8 @@ export function describeWritebackModeForPrompt(mode) {
     );
   }
   return (
-    "写回: 自动保存 — 可调用 write 工具；edit 默认不进 Archive；" +
-    "整文件/删除会备份；多文件轮次汇总路径回执。"
+    "写回: 自动保存 — 可调用 write 工具；" +
+    "仅高影响写入备份/回执（锁定文件覆盖、删除/归档）；多文件轮次汇总路径回执。"
   );
 }
 
