@@ -429,9 +429,9 @@ jobs:
 
       - name: List Obsidian artifacts
         run: |
-          ls -lah dist/topmind-obsidian-* 2>/dev/null || true
-          ls -lah obsidian-plugin/release/topmind-obsidian-* 2>/dev/null || true
-          find dist obsidian-plugin/release -name 'topmind-obsidian-*' -type f 2>/dev/null || true
+          VER=$(node -p "require('./obsidian-plugin/manifest.json').version")
+          echo "manifest version: ${VER}"
+          ls -lah "dist/topmind-obsidian-${VER}.zip" "dist/topmind-obsidian-${VER}.SHA256SUMS" 2>/dev/null || true
 
       - name: Upload to GitHub Release
         env:
@@ -440,20 +440,24 @@ jobs:
         run: |
           set -euo pipefail
           TAG="${{ needs.plan.outputs.tag }}"
-          # pack-plugin may write under dist/ (repo root) or obsidian-plugin/release/
-          files=()
-          while IFS= read -r f; do
-            [[ -n "$f" ]] && files+=("$f")
-          done < <(find dist obsidian-plugin/release -type f \( \
-            -name 'topmind-obsidian-*.zip' -o -name 'topmind-obsidian-*.SHA256SUMS' \
-          \) 2>/dev/null | sort -u)
-
-          if [[ ${#files[@]} -eq 0 ]]; then
-            echo "ERROR: no Obsidian plugin artifacts found to upload"
+          # Upload ONLY monorepo dist/ artifacts for the CURRENT manifest version.
+          # Do not scan obsidian-plugin/release/ (local mirror + stale prior zips share
+          # basenames and break `gh release upload` with duplicate asset names).
+          VER=$(node -p "require('./obsidian-plugin/manifest.json').version")
+          ZIP="dist/topmind-obsidian-${VER}.zip"
+          SUMS="dist/topmind-obsidian-${VER}.SHA256SUMS"
+          if [[ ! -f "${ZIP}" ]]; then
+            echo "ERROR: missing ${ZIP} (pack-plugin must mirror to monorepo dist/)"
+            ls -lah dist/topmind-obsidian-* 2>/dev/null || true
             exit 1
           fi
-
-          echo "Uploading ${#files[@]} Obsidian artifacts to release ${TAG}..."
+          if [[ ! -f "${SUMS}" ]]; then
+            echo "ERROR: missing ${SUMS}"
+            exit 1
+          fi
+          # Unique basenames only — never pass two paths that resolve to the same asset name.
+          files=("${ZIP}" "${SUMS}")
+          echo "Uploading ${#files[@]} Obsidian artifacts (v${VER}) to release ${TAG}..."
           for f in "${files[@]}"; do
             echo "  uploading: $(basename "$f") ($(du -h "$f" | cut -f1))"
           done

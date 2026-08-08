@@ -128,7 +128,6 @@ test("release.yml packs Obsidian on full v* and supports obsidian-v* surface tag
   // Dedicated pack job
   assert.match(src, /pack-obsidian:/u, "must define pack-obsidian job");
   assert.match(src, /needs\.plan\.outputs\.obsidian == 'true'/u);
-  assert.match(src, /topmind-obsidian-\*\.zip/u, "upload must target Obsidian zip artifacts");
   // Finalize depends on pack-obsidian
   assert.match(
     src,
@@ -137,4 +136,54 @@ test("release.yml packs Obsidian on full v* and supports obsidian-v* surface tag
   );
   // Dispatch checkbox
   assert.match(src, /pack_obsidian:/u, "workflow_dispatch must expose pack_obsidian");
+});
+
+/** Extract the pack-obsidian job shell (upload step) for basename/path asserts. */
+function packObsidianJobBody(src) {
+  const marker = "pack-obsidian:";
+  const start = src.indexOf(marker);
+  assert.ok(start >= 0, "pack-obsidian job must exist");
+  const after = src.slice(start);
+  const nextJob = after.search(/\n  [a-z][a-z0-9_-]*:\n/u);
+  return nextJob >= 0 ? after.slice(0, nextJob) : after;
+}
+
+test("pack-obsidian uploads unique dist-only versioned artifacts (no dual-path / stale zips)", () => {
+  const job = packObsidianJobBody(loadReleaseWorkflow());
+  // Must resolve version from shipped manifest (not wildcards over stale release/)
+  assert.match(
+    job,
+    /require\(['"]\.\/obsidian-plugin\/manifest\.json['"]\)\.version/u,
+    "upload must pin artifacts to obsidian-plugin/manifest.json version",
+  );
+  // Explicit monorepo dist/ paths with ${VER}
+  assert.match(
+    job,
+    /dist\/topmind-obsidian-\$\{VER\}\.zip/u,
+    "zip must come from monorepo dist/ with version pin",
+  );
+  assert.match(
+    job,
+    /dist\/topmind-obsidian-\$\{VER\}\.SHA256SUMS/u,
+    "SHA256SUMS must come from monorepo dist/ with version pin",
+  );
+  // Forbidden: dual-root find that picks mirror + stale zips → duplicate basenames
+  assert.doesNotMatch(
+    job,
+    /find\s+dist\s+obsidian-plugin\/release/u,
+    "must not find across dist + obsidian-plugin/release (duplicate basenames break gh upload)",
+  );
+  assert.doesNotMatch(
+    job,
+    /gh release upload[^\n]*obsidian-plugin\/release/u,
+    "gh release upload must not take paths under obsidian-plugin/release/",
+  );
+  // No unversioned wildcard upload that can scoop multiple version zips
+  assert.doesNotMatch(
+    job,
+    /gh release upload[^\n]*topmind-obsidian-\*\.zip/u,
+    "must not upload topmind-obsidian-*.zip wildcards (stale versions)",
+  );
+  // Fail hard if zip missing
+  assert.match(job, /missing \$\{ZIP\}|! -f "\$\{ZIP\}"/u);
 });
