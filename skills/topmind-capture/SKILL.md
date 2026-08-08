@@ -32,11 +32,11 @@ compatibility: topmind workspace. Host file tools or optional UTR capture-note.
 author: TopMindSpace
 license: MIT
 homepage: https://github.com/topmindspace/topmind
-updated: 2026-07-28
+updated: 2026-08-08
 degradation: ../shared/capability-degradation.md
 ---
 
-# topmind Capture（v1.1）
+# topmind Capture
 
 先存材料（用户动词：**记一下**）。不负责重塑、交付、诊断或外部连接。
 

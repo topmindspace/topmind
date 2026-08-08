@@ -20,11 +20,11 @@ compatibility: Desktop needs Bearer (read) and/or xurl (post). Agent hosts use o
 author: TopMindSpace
 license: MIT
 homepage: https://github.com/topmindspace/topmind
-updated: 2026-07-28
+updated: 2026-08-08
 degradation: ../shared/capability-degradation.md
 ---
 
-# topmind X / Twitter（v1.0）
+# topmind X / Twitter
 
 分清两个平面：
 

@@ -13,13 +13,14 @@
 
 **北极星**：**最低摩擦个人动态流** — 记下来尽可能简单；持续维护交给 AI **建议**（用户确认后执行）；找回尽可能自然。
 
-topmind 是 Agent 时代的本地优先工作台，按需组合三条独立能力，非强耦合单体：
+topmind 是 Agent 时代的本地优先工作台，按需组合四条独立能力，非强耦合单体：
 
 | 模块 | 是什么 | 不是什么 |
 |------|--------|----------|
 | **Skills Pack** | 可独立安装在任意 Agent 上的流程与技能包 | 不是 Desktop 的专属插件 |
 | **Desktop** | **富工作台**：浏览、深度编辑、捕获、AI 副驾、恢复、可扩展 | 不是必需前置壳；也不是薄聊天壳 |
 | **UTR** | 可选 CLI / MCP（Kernel 的 adapter） | 不是 Desktop 或 Skills 的强制依赖；不是第三套业务实现 |
+| **Obsidian Plugin** | Obsidian 内嵌动态流工作台 + AI 副驾 | 不是 Desktop 替代品；不是 Obsidian 编辑器重建 |
 
 **共享**：
 
@@ -88,7 +89,7 @@ topmind 是 Agent 时代的本地优先工作台，按需组合三条独立能�
 
 ---
 
-## 4. 三体职责
+## 4. 四体职责
 
 ### 4.1 Skills Pack
 
@@ -129,6 +130,15 @@ UTR = 软探测；写回不经 UTR
 - 完整表：`TOOLS.md`
 - 目标：薄 adapter，业务在 Kernel
 
+### 4.4 Obsidian Plugin（可选）
+
+面向已使用 Obsidian 的用户，在 Vault 内嵌 topmind 动态流。
+
+- 复用 Kernel `lib/` 八引擎（esbuild 打包内联）
+- `require('fs')` 直访文件系统（Electron 渲染进程）
+- `fetch` API 直调 AI（不引入 AI SDK）
+- 详见 `obsidian-plugin/ARCHITECTURE.md` · ADR `docs/adr/2026-08-07-obsidian-plugin-architecture.md`
+
 ---
 
 ## 5. 边界拓扑
@@ -140,6 +150,7 @@ graph TD
     DT["Desktop 富工作台"]
     UTR["UTR adapter"]
     CE["Clip Extension"]
+    OB["Obsidian Plugin"]
     K["Kernel lib/"]
 
     SP -->|"Host FS / 可选 UTR"| WS
@@ -148,6 +159,7 @@ graph TD
     K --> WS
     CE -->|"Bridge 或直写"| WS
     CE -.-> DT
+    OB -->|"esbuild 内联 Kernel → writeback"| K
 ```
 
 ---
@@ -164,7 +176,7 @@ graph TD
 | Desktop | `topmind-desktop/package.json` | 独立 |
 | Clip Extension | `browser-extension/manifest.json` | 独立 |
 | UTR（可选） | `utr/VERSION` | 跟随 Desktop |
-| Obsidian Plugin（未来） | `obsidian-plugin/manifest.json` | 预留 |
+| Obsidian Plugin | `obsidian-plugin/manifest.json` | 独立 |
 
 ---
 

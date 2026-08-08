@@ -45,7 +45,7 @@ function readText(rel) {
  *   Desktop     → topmind-desktop/package.json    (independent)
  *   Clip Ext    → browser-extension/manifest.json  (independent)
  *   UTR         → utr/VERSION                      (follows Desktop)
- *   Obsidian    → obsidian-plugin/manifest.json    (future, reserved)
+ *   Obsidian    → obsidian-plugin/manifest.json    (independent)
  * ────────────────────────────────────────────────────────────
  */
 export const VERSION_TRUTH = [
@@ -73,13 +73,12 @@ export const VERSION_TRUTH = [
     source: "utr/VERSION",
     read: () => readText("utr/VERSION"),
   },
-  // ── Future surface (reserved, not yet active) ──
-  // {
-  //   id: "obsidian",
-  //   label: "Obsidian Plugin",
-  //   source: "obsidian-plugin/manifest.json",
-  //   read: () => readJson("obsidian-plugin/manifest.json").version,
-  // },
+  {
+    id: "obsidian",
+    label: "Obsidian Plugin",
+    source: "obsidian-plugin/manifest.json",
+    read: () => readJson("obsidian-plugin/manifest.json").version,
+  },
 ];
 
 export function readAllVersions() {

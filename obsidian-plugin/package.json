@@ -1,0 +1,35 @@
+{
+  "name": "topmind-obsidian-plugin",
+  "version": "2.0.1",
+  "private": true,
+  "description": "topmind Stream for Obsidian — 主区域流式工作台 + AI 沉淀副驾",
+  "type": "module",
+  "license": "MIT",
+  "author": "TopMindSpace",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "dev": "node esbuild.config.mjs --watch",
+    "build": "node esbuild.config.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --test tests/*.test.mjs",
+    "pack": "node scripts/pack-plugin.mjs",
+    "pack:verify": "node scripts/verify-pack.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "builtin-modules": "^4.0.0",
+    "esbuild": "^0.25.0",
+    "obsidian": "^1.5.0",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "yaml": "^2.9.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/topmindspace/topmind.git",
+    "directory": "obsidian-plugin"
+  }
+}

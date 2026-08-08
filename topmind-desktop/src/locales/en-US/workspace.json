@@ -100,6 +100,8 @@
     "composeAiPolishing": "Polishing…",
     "composeAiPolishDone": "Composer polished",
     "composeAiPolishFailed": "AI polish failed — try again",
+    "composeUrlHint": "URL detected — use Quick Capture to fetch content to Inbox",
+    "composeUrlAction": "Quick Capture",
     "openArticle": "Open note",
     "openInEditorTip": "Open this segment in the period note",
     "moreAppends": "more follow-ups",

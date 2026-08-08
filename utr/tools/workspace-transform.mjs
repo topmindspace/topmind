@@ -13,6 +13,7 @@ import { parseArgs, resolveMode } from "../core/cli-args.mjs";
 import { ensureDir, isDirectory, walkMarkdown } from "../core/topic-files.mjs";
 import { parseFrontmatter, stringifyFrontmatter } from "../core/frontmatter.mjs";
 import { emitResult } from "../core/result-envelope.mjs";
+import { t } from "../core/i18n-strings.mjs";
 import { executeWrite, loadContract } from "../../lib/kernel-api.mjs";
 
 /** Durable .md body write via Kernel write-gate (auto mode callers pass confirmed). */
@@ -160,7 +161,7 @@ function resolveRoutingTargets(ctxObj) {
     byRole("loose-stream")[0] ||
     byRole("deep-work")[0] ||
     cats[0]?.directory ||
-    "10-动态";
+    null;
   return { cats, byRole, fallbackLoose };
 }
 
@@ -289,7 +290,7 @@ async function migrateV4({ mapping: mappingJson, mode }, ctxObj) {
       command: "migrate-v4",
       mode,
       skipped: true,
-      reason: "未发现 v2.x projects/ 根，已是 v3.4+ 工作区或非标准工作区。",
+      reason: t("msg.migrateV4NoProjectsRoot"),
       migrated: [],
     };
   }
@@ -299,7 +300,7 @@ async function migrateV4({ mapping: mappingJson, mode }, ctxObj) {
     try {
       explicitMapping = JSON.parse(mappingJson);
     } catch (error) {
-      throw new Error(`mapping JSON 解析失败: ${error.message}`);
+      throw new Error(t("error.mappingJsonParse", { message: error.message }));
     }
   }
 
@@ -316,7 +317,7 @@ async function migrateV4({ mapping: mappingJson, mode }, ctxObj) {
       mapping = deriveMappingFromName(oldName, ctxObj);
     }
     if (!mapping) {
-      plan.push({ oldName, skipped: true, reason: "命名不匹配 v2.x 规则且未提供显式映射" });
+      plan.push({ oldName, skipped: true, reason: t("msg.migrateV4NameNotMatched") });
       continue;
     }
     const { category, topic } = mapping;
@@ -426,7 +427,7 @@ async function main() {
       data = await migrateV4({ mapping: args.mapping, mode }, ctxObj);
       break;
     default:
-      throw new Error(`未知命令: ${args.command || "(empty)"}`);
+      throw new Error(t("error.unknownCommand", { command: args.command || "(empty)" }));
   }
 
   emitResult(data, args.format);

@@ -37,11 +37,11 @@ compatibility: topmind workspace with stream period notes, topics, or Inbox.
 author: TopMindSpace
 license: MIT
 homepage: https://github.com/topmindspace/topmind
-updated: 2026-08-03
+updated: 2026-08-08
 degradation: ../shared/capability-degradation.md
 ---
 
-# topmind Organize（v1.1）
+# topmind Organize
 
 已存材料 → 可用结构。用户高频入口：**整理本周**（理顺动态）。
 

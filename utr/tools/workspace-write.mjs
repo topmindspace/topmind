@@ -44,7 +44,7 @@ async function writeReceipt(receiptDir, name, payload) {
   return target;
 }
 
-// ── v3.4 create-topic ───────────────────────────────────────────────────────
+// ── create-topic ───────────────────────────────────────────────────────
 
 async function createTopic({ category, topic, title, mode }, ctx) {
   if (!isValidCategoryName(category)) {
@@ -73,7 +73,7 @@ async function createTopic({ category, topic, title, mode }, ctx) {
   let writeEvidence = null;
   if (!(await pathExists(topicFile))) {
     const headingTitle = title || topic;
-    const body = `# ${headingTitle}\n\n## Stable Memory\n\n${t("content.placeholderText")}\n\n## Working Notes\n\n${t("content.placeholderText")}\n`;
+    const body = `# ${headingTitle}\n`;
     plannedActions.push({ kind: "write", path: topicFile });
     if (mode === "auto") {
       await ensureDir(topicDir);
@@ -134,7 +134,7 @@ async function createTopic({ category, topic, title, mode }, ctx) {
   };
 }
 
-// ── v3.4 capture-note ───────────────────────────────────────────────────────
+// ── capture-note ───────────────────────────────────────────────────────────
 
 function classifyRouting({ category, topic }) {
   if (category && topic) return { kind: "topic-note" };
@@ -346,18 +346,48 @@ async function captureNote(
   };
 }
 
-// ── v3.4 save-output ────────────────────────────────────────────────────────
+// ── save-output ────────────────────────────────────────────────────────────
 
 async function saveOutput({ category, topic, title, content, sourceType, ifExists, mode }, ctx) {
   if (!category || !topic) throw new Error(t("error.saveOutputParams"));
   if (!title || !content) throw new Error(t("error.saveOutputContent"));
-  // v3.4: all deliverables go to flat 88 Outputs/, not topic-level outputs/
+  // Validate ifExists against allowed values
+  const validIfExists = ["create-new", "replace", "fail"];
+  const resolvedIfExists = ifExists || "create-new";
+  if (!validIfExists.includes(resolvedIfExists)) {
+    throw new Error(t("error.invalidIfExists", { value: resolvedIfExists, allowed: validIfExists.join(", ") }));
+  }
+  // All deliverables go to flat 88-输出/, not topic-level outputs/
   const outputsRoot = globalOutputsRoot(ctx);
   const stem = safeFileStem(title);
-  let targetFile = path.join(outputsRoot, `${stamp()}-${stem}.md`);
+  // Cache stamp once to ensure filename and frontmatter timestamp are consistent
+  const fileStamp = stamp();
+  const isoStamp = stamp(true);
 
-  if (ifExists === "fail" && await pathExists(targetFile)) {
-    throw new Error(t("error.outputExists", { path: targetFile }));
+  // For replace mode: look for existing file with same stem
+  let targetFile;
+  if (resolvedIfExists === "replace") {
+    let existing = null;
+    try {
+      const files = await fs.readdir(outputsRoot);
+      existing = files.find((f) => f.endsWith(`-${stem}.md`) || f === `${stem}.md`);
+    } catch { /* dir not exists yet */ }
+    targetFile = existing
+      ? path.join(outputsRoot, existing)
+      : path.join(outputsRoot, `${fileStamp}-${stem}.md`);
+  } else if (resolvedIfExists === "fail") {
+    targetFile = path.join(outputsRoot, `${fileStamp}-${stem}.md`);
+    if (await pathExists(targetFile)) {
+      throw new Error(t("error.outputExists", { path: targetFile }));
+    }
+  } else {
+    // create-new: avoid collision by appending -2, -3, ... if file exists
+    targetFile = path.join(outputsRoot, `${fileStamp}-${stem}.md`);
+    let counter = 2;
+    while (await pathExists(targetFile)) {
+      targetFile = path.join(outputsRoot, `${fileStamp}-${stem}-${counter}.md`);
+      counter++;
+    }
   }
 
   const frontmatter = {
@@ -365,7 +395,7 @@ async function saveOutput({ category, topic, title, content, sourceType, ifExist
     category,
     topic,
     source_type: sourceType || "ai-derived",
-    generated_at: stamp(true),
+    generated_at: isoStamp,
   };
   const md = stringifyFrontmatter({ data: frontmatter, body: `\n# ${title}\n\n${content}\n` });
 
@@ -373,12 +403,13 @@ async function saveOutput({ category, topic, title, content, sourceType, ifExist
   if (mode === "auto") {
     await ensureDir(outputsRoot);
     const contract = loadContract(ctx.userWorkspaceRoot);
+    const fileExists = await pathExists(targetFile);
     writeEvidence = executeWrite({
       targetPath: targetFile,
       content: md,
       workspaceRoot: ctx.userWorkspaceRoot,
       contract,
-      operation: "create",
+      operation: fileExists ? "update" : "create",
       actor: "user",
       confirmed: true,
       skipShadow: true,
@@ -395,7 +426,7 @@ async function saveOutput({ category, topic, title, content, sourceType, ifExist
     topic,
     title,
     targetFile: rel,
-    ifExists: ifExists || "create-new",
+    ifExists: resolvedIfExists,
     created: mode === "auto",
     wroteFiles: mode === "auto" && writeEvidence?.wroteFiles !== false,
     writebackEvidence: writeEvidence,
@@ -408,10 +439,11 @@ function stamp(iso = false) {
   const d = new Date();
   if (iso) return d.toISOString();
   const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+  // Format: YYYY-MM-DD (per PROJECT-MODEL §6.1: 88-输出/YYYY-MM-DD-描述.ext)
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-// ── v3.2 update-topic ───────────────────────────────────────────────────────
+// ── update-topic ───────────────────────────────────────────────────────────
 
 async function updateTopic({ category, topic, content, replaceReason, mode }, ctx) {
   if (!category || !topic) throw new Error(t("error.updateTopicParams"));

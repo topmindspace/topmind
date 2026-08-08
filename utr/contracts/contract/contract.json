@@ -25,6 +25,7 @@
       "label": "校验契约",
       "description": "校验工作区 topmind.yaml schema、8 类规约白名单、与 FS 一致性。",
       "group": "maintenance",
+      "exposure": "primary",
       "risk_level": "low",
       "review_policy": "auto",
       "requires_topic": false,
@@ -35,8 +36,7 @@
       "reads": [
         "topmind.yaml"
       ],
-      "writes": [],
-      "exposure": "primary"
+      "writes": []
     }
   },
   "review_overrides": {}

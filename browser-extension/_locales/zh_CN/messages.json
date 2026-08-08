@@ -427,5 +427,41 @@
   },
   "tpl_zhihu": {
     "message": "知乎"
+  },
+  "overview_bridge_ok": {
+    "message": "Bridge ✓"
+  },
+  "overview_bridge_warn": {
+    "message": "Bridge ⚠"
+  },
+  "overview_bridge_fail": {
+    "message": "Bridge ✗"
+  },
+  "overview_bridge_none": {
+    "message": "Bridge —"
+  },
+  "overview_ws_ok": {
+    "message": "工作区: $1 ✓"
+  },
+  "overview_ws_warn": {
+    "message": "工作区: $1 ⚠"
+  },
+  "overview_ws_none": {
+    "message": "工作区: —"
+  },
+  "fallback_load_failed": {
+    "message": "加载失败: $1"
+  },
+  "fallback_load_timeout": {
+    "message": "设置页加载超时 — 请重新加载扩展 (chrome://extensions → 刷新)"
+  },
+  "dest_loading": {
+    "message": "加载落点…"
+  },
+  "btn_clear_highlights": {
+    "message": "清除高亮"
+  },
+  "hl_clear_done": {
+    "message": "已清除 $1 条高亮"
   }
 }

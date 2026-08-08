@@ -26,11 +26,11 @@ compatibility: topmind engine and/or workspace. Prefer read-only diagnostics fir
 author: TopMindSpace
 license: MIT
 homepage: https://github.com/topmindspace/topmind
-updated: 2026-07-28
+updated: 2026-08-08
 degradation: ../shared/capability-degradation.md
 ---
 
-# topmind Maintain（v1.0）
+# topmind Maintain
 
 系统与工作区**确定性**健康。不重塑内容、不写交付稿。
 

@@ -23,8 +23,9 @@
   "commands": {
     "promote": {
       "label": "提升记忆",
-      "description": "将 Stream 条目提升为 memory/topics/{topic-slug}.md（标记 promoted_from/to）。",
+      "description": "将 Stream 条目提升为 memory/topics/{topic-slug}.md（标记 promoted_from/to）。源文件仅读取标记，不修改原文内容。",
       "group": "workflow",
+      "exposure": "primary",
       "risk_level": "medium",
       "review_policy": "preview_or_auto",
       "requires_topic": false,
@@ -75,19 +76,18 @@
         "{sourcePath}"
       ],
       "writes": [
-        "memory/topics/{targetSlug}.md",
-        "{sourcePath}"
-      ],
-      "exposure": "primary"
+        "memory/topics/{targetSlug}.md"
+      ]
     },
     "digest": {
       "label": "生成摘要",
-      "description": "生成周期摘要到 memory/periodic/{period}.md（可重建）。",
+      "description": "写入周期摘要骨架到 memory/periodic/{period}.md。UTR 为确定性 adapter（无 AI 模型），仅写入诚实骨架标记；真实 AI 周期摘要请用 Desktop 建议管线确认后写入。可重建（覆盖同周期文件）。",
       "group": "workflow",
+      "exposure": "primary",
       "risk_level": "low",
       "review_policy": "auto",
       "requires_topic": false,
-      "idempotent": true,
+      "idempotent": false,
       "supports_dry_run": false,
       "destructive": false,
       "inputs": {
@@ -96,24 +96,39 @@
           "label": "周期",
           "required": true,
           "hint": "如 2026-W30"
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
         }
       },
       "args_extra": [
         "--period",
-        "{period}"
+        "{period}",
+        "--mode",
+        "{mode}"
       ],
-      "reads": [
-        "10-动态/{period}.md"
-      ],
+      "reads": [],
       "writes": [
         "memory/periodic/{period}.md"
-      ],
-      "exposure": "primary"
+      ]
     },
     "append-profile": {
       "label": "追加我的情况",
       "description": "追加「我的情况」到 memory/profile.md。",
       "group": "workflow",
+      "exposure": "primary",
       "risk_level": "low",
       "review_policy": "auto",
       "requires_topic": false,
@@ -131,26 +146,43 @@
           "type": "text",
           "label": "内容",
           "required": true
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
         }
       },
       "args_extra": [
         "--section",
         "{section}",
         "--content",
-        "{content}"
+        "{content}",
+        "--mode",
+        "{mode}"
       ],
       "reads": [
         "memory/profile.md"
       ],
       "writes": [
         "memory/profile.md"
-      ],
-      "exposure": "primary"
+      ]
     },
     "append-topic": {
       "label": "追加专题记忆",
       "description": "追加专题稳定结论到 memory/topics/{topic-slug}.md。",
       "group": "workflow",
+      "exposure": "primary",
       "risk_level": "low",
       "review_policy": "auto",
       "requires_topic": false,
@@ -167,21 +199,37 @@
           "type": "text",
           "label": "内容",
           "required": true
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
         }
       },
       "args_extra": [
         "--slug",
         "{slug}",
         "--content",
-        "{content}"
+        "{content}",
+        "--mode",
+        "{mode}"
       ],
       "reads": [
         "memory/topics/{slug}.md"
       ],
       "writes": [
         "memory/topics/{slug}.md"
-      ],
-      "exposure": "primary"
+      ]
     }
   },
   "review_overrides": {}

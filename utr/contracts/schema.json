@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "topmind-tool-contract",
   "title": "topmind Tool Contract (v3.4 — categories + topics)",
-  "description": "Single source of truth for a topmind workspace tool. v3.4 introduces category + topic naming; project-id and project_root are removed.",
+  "description": "Single source of truth for a topmind workspace tool. Uses category + topic naming.",
   "type": "object",
   "required": [
     "schema_version",
@@ -210,21 +210,21 @@
             "items": {
               "type": "string"
             },
-            "description": "Per-command extra args appended after base template. Supports {field}, {category}, {topic}, {category_root}, {topic_root} variables. projectId and project_root are removed in v3.4."
+            "description": "Per-command extra args appended after base template. Supports {field}, {category}, {topic}, {category_root}, {topic_root} variables."
           },
           "reads": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Glob patterns for files read by this command. v3.4 patterns: 00-收件箱/**, {category}/** (all 7 active + 3 reserved), {category}/{topic}/** (topic-scoped), {category}/*.md (loose notes), 99-归档/** (recovery)."
+            "description": "Glob patterns for files read by this command. Patterns: 00-收件箱/**, {category}/** (category-scoped), {category}/{topic}/** (topic-scoped), {category}/*.md (loose notes), 88-输出/** (deliveries), 99-归档/** (recovery), memory/** (semantic plane)."
           },
           "writes": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Glob patterns for files written by this command. v3.4 patterns: 00-收件箱/**, {category}/** (loose note creation), {category}/{topic}/*.md (topic notes), {category}/{topic}/topic.md (topic home), 88-输出/** (deliveries), 99-归档/** (backups)."
+            "description": "Glob patterns for files written by this command. Patterns: 00-收件箱/**, {category}/** (loose note creation), {category}/{topic}/*.md (topic notes), {category}/{topic}/topic.md (topic home), 88-输出/** (deliveries), 99-归档/** (backups), memory/** (semantic plane)."
           },
           "artifact_policy": {
             "type": "object",

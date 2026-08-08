@@ -239,7 +239,7 @@ test("executeTool refuses to overwrite an existing topic on create-topic apply",
   assert.match(result.stderr, /专题主页已存在，拒绝覆盖/u);
 });
 
-test("executeTool creates a new topic and appends memory to Stable Memory section", async () => {
+test("executeTool creates a new topic with topic.md and appends memory", async () => {
   const category = "20 研究";
   const topic = "2026-test";
 
@@ -260,7 +260,9 @@ test("executeTool creates a new topic and appends memory to Stable Memory sectio
   const created = await fs.readFile(topicFile, "utf8");
   assert.match(created, /title: 测试专题/u);
   assert.match(created, /category: 20/u);
-  assert.match(created, /## Stable Memory/u);
+  assert.match(created, /status: active/u);
+  // topic.md has a simple heading body (no pre-built sections)
+  assert.match(created, /# 测试专题/u);
 
   const appendResult = await executeTool({
     registry,

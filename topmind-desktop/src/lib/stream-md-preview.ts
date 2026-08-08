@@ -20,9 +20,14 @@ export function stripHtmlCommentsForPreview(md: string): string {
  * Soft-normalize period-note body before MD→HTML:
  * - unescape over-escaped task boxes etc.
  * - strip append markers (comments)
+ * - normalize tabs to 2 spaces (common source of misaligned indent)
+ * - protect code blocks (skip normalization inside ``` fences)
  * - collapse 3+ blank lines to 1 blank (paragraph separation)
  * - pull consecutive list/task items together (blank-between-bullets → single list)
+ * - normalize mixed list markers (– — → -)
  * - trim trailing spaces on lines (common source of "ugly" extra breaks)
+ * - drop blank lines immediately after headings
+ * - normalize excessive heading levels (#####+ → ###)
  * never throws on empty/odd input.
  */
 export function prepareStreamMarkdown(md: string): string {
@@ -30,6 +35,8 @@ export function prepareStreamMarkdown(md: string): string {
   s = stripHtmlCommentsForPreview(s);
   if (!s) return "";
   s = s.replace(/\r\n/gu, "\n").replace(/\r/gu, "\n");
+  // Per-line normalizations (outside code blocks only)
+  s = normalizeLinesOutsideCodeBlocks(s);
   // Trim trailing spaces/tabs per line (except intentional 2-space hard-break → keep none for preview)
   s = s.replace(/[ \t]+$/gmu, "");
   // Collapse 3+ blank lines → single blank
@@ -47,6 +54,38 @@ export function prepareStreamMarkdown(md: string): string {
   // Drop a blank line immediately after a heading (common ugly gap)
   s = s.replace(/(^#{1,6}[^\n]+)\n\n+/gmu, "$1\n");
   return s.trim();
+}
+
+/**
+ * Per-line normalizations outside fenced code blocks:
+ * - Tab → 2 spaces
+ * - Alternative bullet markers: – — → -
+ * - Excessive heading levels: #####+ → ###
+ * Lines inside ``` fences are preserved as-is.
+ */
+function normalizeLinesOutsideCodeBlocks(s: string): string {
+  const lines = s.split("\n");
+  let inFence = false;
+  const result: string[] = [];
+  for (const line of lines) {
+    if (/^\s*```/u.test(line)) {
+      inFence = !inFence;
+      result.push(line);
+      continue;
+    }
+    if (inFence) {
+      result.push(line);
+      continue;
+    }
+    // Tab → 2 spaces
+    let transformed = line.replace(/\t/gu, "  ");
+    // Alternative bullet markers: – — → - (only at line start)
+    transformed = transformed.replace(/^(\s*)[–—](\s+)/u, "$1-$2");
+    // Excessive heading levels: #####+ → ###
+    transformed = transformed.replace(/^(#{5,})\s+/u, "### ");
+    result.push(transformed);
+  }
+  return result.join("\n");
 }
 
 /**

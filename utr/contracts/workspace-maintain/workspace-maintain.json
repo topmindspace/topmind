@@ -23,8 +23,9 @@
   "commands": {
     "doctor-workspace": {
       "label": "诊断工作区",
-      "description": "报告 v3.4 category-first 工作区健康状态。",
+      "description": "报告工作区健康状态：类别发现、专题一致性、frontmatter 合规、安全层完整性。",
       "group": "maintenance",
+      "exposure": "primary",
       "risk_level": "low",
       "review_policy": "auto",
       "requires_topic": false,
@@ -34,11 +35,10 @@
       "inputs": {},
       "reads": [
         "00-收件箱/",
-        "{10-60 大类}/",
+        "{category}/",
         "99-归档/"
       ],
-      "writes": [],
-      "exposure": "primary"
+      "writes": []
     },
     "archive-topic": {
       "label": "归档专题",
@@ -169,7 +169,7 @@
         "99-归档/*"
       ],
       "writes": [
-        "{10-60 大类}/**",
+        "{category}/**",
         "00-收件箱/**",
         "99-归档/**"
       ],
@@ -179,6 +179,7 @@
       "label": "清理空目录",
       "description": "查找空目录，默认只预览。",
       "group": "maintenance",
+      "exposure": "advanced",
       "risk_level": "medium",
       "review_policy": "preview_or_auto",
       "requires_topic": false,
@@ -197,16 +198,15 @@
         "{mode}"
       ],
       "reads": [
-        "{10-60 大类}/**",
+        "{category}/**",
         "00-收件箱/**",
         "99-归档/**"
       ],
       "writes": [
-        "{10-60 大类}/**",
+        "{category}/**",
         "00-收件箱/**",
         "99-归档/**"
-      ],
-      "exposure": "advanced"
+      ]
     }
   },
   "review_overrides": {}

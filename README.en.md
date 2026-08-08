@@ -2,277 +2,234 @@
 
 [中文](README.md) · [English](README.en.md)
 
-> **Local-first personal knowledge workbench · personal Stream.**  
-> **Jot freely** · AI can **suggest / organize / todos / memory** · you **confirm** before durable writes · **files stay yours**.
+[![Release](https://img.shields.io/github/v/release/topmindspace/topmind?style=flat-square&color=blue)](https://github.com/topmindspace/topmind/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
+[![Node Version](https://img.shields.io/badge/Node.js-%E2%89%A520.11-brightgreen.svg?style=flat-square)](https://nodejs.org)
+[![Platforms](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux%20%7C%20Obsidian%20%7C%20Chrome-purple?style=flat-square)](#-five-surfaces--product-matrix)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/topmindspace/topmind/ci.yml?style=flat-square&label=CI)](https://github.com/topmindspace/topmind/actions)
+
+> **Local-first Personal Knowledge Workbench in the AI Agent Era · Personal Stream**  
+> **Jot freely** -> **AI suggests / organizes / extracts todos & memory** -> **You review & confirm** -> **Files stay yours forever**
 
 ---
 
-### 💡 Why topmind?
+## 💡 Why topmind?
 
-Whether using traditional note-taking tools (like Obsidian) or recent AI knowledge bases, LLM Wikis, and Knowledge Graphs, something always feels missing. The root friction: **knowledge maintenance is overly complex and counterproductive** — too much time and energy are spent on manual filing, tagging, formatting, and linking instead of thinking and creating.
+Whether using traditional note-taking tools (such as Obsidian, Logseq) or recent AI knowledge bases, LLM Wikis, and Knowledge Graphs, something always feels missing. The fundamental pain point: **knowledge maintenance is overly complex and counterproductive** — too much time and energy are spent on manual folder organization, tagging, formatting, and bi-directional linking instead of fluid thinking and creation.
 
 Topmind was created with a clear philosophy — a **low-friction, flexible, and all-in-one** personal knowledge and task workspace:
 
-- **Jot freely, zero cognitive burden**: Whether it's sudden thoughts, web clips, document parsing, or drafting, capture happens naturally in one place without hesitation about "where to put it".
-- **Simple & flexible all-in-one experience**: Balances lightweight personal knowledge management with daily task workflow.
-- **AI as an intelligent engine, proactive yet unobtrusive**: When AI is enabled, it automatically senses your workspace context to offer timely suggestions for knowledge organizing and todo tasks — **AI proposes and executes, you retain full control**.
-- **Open and extensible**: Connects seamlessly to external knowledge sources. For example, using WeRead open Skills to sync book highlights and reviews, or archiving X (Twitter) bookmarks and timelines.
+- ⚡ **Jot freely, zero cognitive burden**: Whether it's sudden thoughts, web clips, document parsing, or drafting, capture happens naturally in one place without hesitation about "where to put it".
+- 🌊 **Capture first, classify later**: Default surface is a fluid timeline stream. Write down thoughts instantly without forced filing decisions.
+- 🤖 **AI as an intelligent engine, proactive yet unobtrusive**: When AI is enabled, it automatically senses your workspace context to offer timely suggestions for knowledge organizing and todo tasks — **AI proposes and executes, you retain full control**.
+- 🛡️ **Local-first, transparent & secure**: Stored in plain Markdown files and standard folder structures. No proprietary vault locks, databases, or cloud dependencies.
 
-**Let tools remain helpful assistants, let thinking stay fluid, and keep files forever yours.**
+---
+
+## 🚀 30-Second Quick Start
+
+Choose the entrance that fits your daily workflow:
 
 ```text
-topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR
-            agent skill pack     rich workbench        CLI / MCP
+topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional Obsidian  ⊕  Optional Clip  ⊕  Optional UTR
+            Agent skill pack     Rich workbench app    Obsidian plugin        Browser clipper      CLI / MCP tools
 ```
 
-The three surfaces share **content conventions and behavior contracts only** — no hard runtime binding. Each surface has an independent version number (major aligned, minor independent): `npm run versions`.
+### 📱 Scenario 1: Standalone Desktop App (Topmind Desktop)
+1. Go to [Releases](https://github.com/topmindspace/topmind/releases) and download the installer for your OS (`.dmg` / `.exe` / `.AppImage` / `.deb`).
+2. Launch the app, press `⌘N` (Mac) / `Ctrl+N` (Win) to capture a note anytime.
+3. Detailed guide: [`topmind-desktop/README.md`](./topmind-desktop/README.md)
 
-| Surface | Truth source | Role | Version policy |
-|---------|--------------|------|----------------|
-| **Skills** | [`skills/topmind-pack.json`](./skills/topmind-pack.json) | Agent skill semantics & routing | Independent |
-| **Desktop** | [`topmind-desktop/package.json`](./topmind-desktop/package.json) | Local rich workbench / installers | Independent |
-| **Clip** | [`browser-extension/manifest.json`](./browser-extension/manifest.json) | One-click browser clipper | Independent |
-| **UTR** | [`utr/VERSION`](./utr/VERSION) | Optional CLI / MCP (deterministic tools) | Follows Desktop |
-| Obsidian Plugin (future) | `obsidian-plugin/manifest.json` | Obsidian plugin | Reserved |
+### 🔮 Scenario 2: Embedded in Obsidian (Topmind Stream Plugin)
+1. Extract `topmind-obsidian-<ver>.zip` from Releases into `<Vault>/.obsidian/plugins/topmind-stream/` (or install via BRAT plugin).
+2. Enable the plugin in Obsidian settings, press `⌘P` to open Command Palette and run **Topmind: Open Stream Workbench**.
+3. Detailed guide: [`obsidian-plugin/README.md`](./obsidian-plugin/README.md) · [中文文档](./obsidian-plugin/README.zh-CN.md)
 
-[Releases](https://github.com/topmindspace/topmind/releases) · [Repo](https://github.com/topmindspace/topmind)
-
----
-
-## Why topmind
-
-| You want… | How topmind helps |
-|-----------|-------------------|
-| **Personal Stream** | Default surface is your time-ordered stream — **jot freely**, no forced filing first |
-| **Capture first** | ⌘N / stream **Save** lands in this week’s period note; unclear items go to inbox |
-| **Files as truth** | Plain Markdown + folders — open anywhere, no proprietary vault lock-in |
-| **Reversible AI** | Suggestions can generate freely · **confirm** before durable write · danger goes to archive |
-| **One suggest entry** | Title-bar bulb + strip when items exist → **SuggestPopover** (auto-hide when empty) |
-| **AI todos / Memory / topics** | Activity-window organize · personal list · profile/periodic · content-category topics |
-| **One workflow** | Capture → continue → deliver/settle → recover/tune |
-| **Composable** | Skills only / Desktop only / + optional UTR — no forced stack |
-
-**Five user concepts (hard cap):** **note it · stream · topic · about me · ship it**.
-
-The UI never teaches: protection levels, engine names, or UTR command IDs. Settings stay plain language (“ask before save”, “don’t let AI edit locked notes”).
-
-### Highlights: AI todos · Memory · AI suggestions
-
-<p align="center">
-  <img src="./docs/images/desktop-ai-todo.jpg" alt="AI todos and stream" width="680" />
-</p>
-
-| Capability | How you use it | What it does |
-|------------|----------------|--------------|
-| **Note it** | Title-bar primary · ⌘N | **Only** full capture (notes / links / files) |
-| **Save** | Stream composer primary | Append box to this week’s period (⌘↵) |
-| **AI Polish** | Next to stream composer | Rewrites box only · does not save · not Note it |
-| **AI todos** | Stream header / sidebar ✨ · ⌘⇧T | Extract / detect done / force retry (`memory/todo.md`) |
-| **Memory** | Sidebar About me | `memory/profile.md`; apply after confirm |
-| **AI suggestions** | Title-bar bulb / strip when count>0 → SuggestPopover | **Global confirm surface**; session-stable soft refresh; **confirm** before apply |
-
-**Token control**: Settings → General — toggle **Auto-prepare AI suggestions** (default on) and **Auto AI maintain todos** (default **off**). Off means manual only. Status bar uses **one busy signal per path**: todo-maintain alone shows only “AI maintaining todos” (not also “AI working”); chat streaming / background tasks use “AI working”; suggest prepare shows its own chip.
+### 🤖 Scenario 3: Import Skills for AI Agents (Claude Code / OpenCode / Codex)
+1. Run the one-click installer from your terminal:
+   ```bash
+   npm run skills:install
+   ```
+2. Detailed guide: [`skills/INSTALL.md`](./skills/INSTALL.md) · [`SKILL-ARCHITECTURE.md`](./SKILL-ARCHITECTURE.md)
 
 ---
 
-## Core workflow
+## 🧩 Five Surfaces & Product Matrix
+
+The five surfaces **share content conventions and behavior contracts only** — no hard runtime binding. Version numbers are managed independently (major aligned, minor independent): run `npm run versions` to inspect current versions.
+
+| Surface | Target Audience / Use Case | Truth Source (Version Truth) | Dedicated Docs | Version Policy |
+|---------|----------------------------|------------------------------|----------------|----------------|
+| 🖥️ **Desktop** | Users needing a rich text workbench with visual AI review UI | [`topmind-desktop/package.json`](./topmind-desktop/package.json) | [`topmind-desktop/README.md`](./topmind-desktop/README.md) | Independent |
+| 🔮 **Obsidian Plugin** | Users who want to embed the personal stream directly inside Obsidian Vaults | [`obsidian-plugin/manifest.json`](./obsidian-plugin/manifest.json) | [`obsidian-plugin/README.md`](./obsidian-plugin/README.md) | Independent |
+| 🤖 **Skills** | Users driving workflows via Claude Code, OpenCode, or other AI agents | [`skills/topmind-pack.json`](./skills/topmind-pack.json) | [`skills/INSTALL.md`](./skills/INSTALL.md) | Independent |
+| ✂️ **Clip Extension** | Users capturing web pages & articles with automated content cleaning | [`browser-extension/manifest.json`](./browser-extension/manifest.json) | [`browser-extension/README.md`](./browser-extension/README.md) | Independent |
+| 🛠️ **UTR CLI/MCP** | Users requiring deterministic CLI tools or MCP servers in Terminal | [`utr/VERSION`](./utr/VERSION) | [`TOOLS.md`](./TOOLS.md) · [`utr/README.md`](./utr/README.md) | Follows Desktop |
+
+---
+
+## ⚡ Core Workflow
 
 ```text
-收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整
+Capture -> Continue -> Deliver / Settle -> Recover / Tune
 ```
 
 ```mermaid
 flowchart LR
-  A["① Capture<br/>note · clip · docs"] --> B["② Continue<br/>stream · topic · edit"]
-  B --> C["③ Deliver / settle<br/>outputs · memory"]
-  C --> D["④ Recover / tune<br/>search · archive · loop"]
+  A["① Capture<br/>quick note · clip · docs"] --> B["② Continue<br/>stream · topic · edit"]
+  B --> C["③ Deliver / Settle<br/>outputs · memory"]
+  C --> D["④ Recover / Tune<br/>search · archive · loop"]
   D -.-> A
 ```
 
-| Stage | What you do | Default landing |
-|-------|-------------|-----------------|
-| **Capture** | Quick note · web clip · Office/PDF queue | Current **stream** period; unclear → inbox |
-| **Continue** | Edit · inline AI · side agent · grow topics | `{category}/{YYYY-topic}/` |
-| **Deliver / settle** | Ship outputs · confirm profile / topic memory | delivery folder · `memory/` |
-| **Recover / tune** | Search · restore · periodic maintain | archive · Loop |
+| Stage | Action | Default Landing | Description |
+|-------|--------|-----------------|-------------|
+| **① Capture** | Quick note · web clip · doc ingest queue | Weekly **stream** period note (`10-动态/`); unclear ➔ `00-收件箱/` | Zero-friction rapid capture |
+| **② Continue** | Edit · inline AI · side agent · topic organize | `{Category}/{YYYY-Topic}/` | Stream cards timeline & topic emergence |
+| **③ Deliver / Settle** | Ship deliverables · confirm profile / topic memory | `88-输出/` · `memory/profile.md` | Produce final outputs, update memory profile |
+| **④ Recover / Tune** | Search · restore · periodic maintenance | `99-归档/` · Loop inspect | Safety archive & fast retrieval |
 
-Writeback: `auto` (save + receipt) or `confirm` (suggest freely · **apply after confirm**). Protection: `open` / `locked`.
+**Save Settings**:
+- **Ask Before Save** (`writeback_mode: confirm`): AI proposes modifications to the Suggestion Popover, written to disk only after your review & approval.
+- **Auto Save** (`writeback_mode: auto`): AI updates files directly, while `writeback-engine` creates soft backups under `99-归档/backups/` for easy reversal.
 
 ---
 
-## Skills: single daily entry `topmind`
+## 🗂️ Three-Plane Workspace Model
 
-Modules route by intent — **no** parallel front doors.
+Topmind structures your workspace into three logical, deterministic planes:
 
-```mermaid
-flowchart TB
-  R["topmind<br/>router"]
-  R --> C["capture"]
-  R --> O["organize"]
-  R --> W["write"]
-  R --> M["memory"]
-  R --> T["maintain"]
-  R --> L["loop"]
-  R -.-> WR["weread · optional"]
-  R -.-> X["x · optional"]
+```text
+{workspace}/
+├── topmind.yaml              # ⚙️ System Plane: Contract facade & behavior settings
+├── 00-收件箱/                # 📥 Content Plane: Buffer inbox
+├── 10-动态/                  # 🌊 Content Plane: Period notes (timeline stream)
+├── 20-专题/2026-Topic/        # 📂 Content Plane: Emergent topic folders
+│   └── topic.md              # 📄 Topic homepage
+├── 88-输出/                  # 📤 Content Plane: Flat deliverables
+├── 99-归档/                  # 🛡️ Content Plane Safety Layer: backups · backups/trash · receipts
+├── memory/                   # 🧠 Semantic Plane: profile (facts) · periodic (digests)
+└── .topmind/                 # ⚙️ System Plane: Index & logs (can be deleted/rebuilt anytime)
 ```
 
-| Kind | Modules | Role |
-|------|---------|------|
-| **Entry** | `topmind` | Intent routing · multi-intent split |
-| **Actions** | `capture` · `organize` · `write` · `memory` · `maintain` · `loop` | Daily loop |
-| **Connectors** | `weread` · `x` | Optional external sources |
-| **Shared** | `skills/shared/*` | Receipts · long-URL · ingest · degradation |
+| Plane | Typical Path | Stored Content |
+|-------|--------------|----------------|
+| **Content** | `{NN-Category}/` | Notes, weekly stream logs, topics, deliverables, and safety backups |
+| **Semantic** | `memory/` | Stable personal facts profile (`profile.md`) and periodic summaries |
+| **System** | `topmind.yaml` + `.topmind/` | Workspace behavior contract, index, and runtime logs |
 
-Install: [`skills/INSTALL.md`](./skills/INSTALL.md) · Architecture: [`SKILL-ARCHITECTURE.md`](./SKILL-ARCHITECTURE.md)
+**Six core rules:** non-overlapping categories · topics emerge · stream is special · catch-all cleanup · clear reference role · stable names — [`PROJECT-MODEL.md`](./PROJECT-MODEL.md).
 
 ---
 
-## Desktop workbench gallery
+## 🎨 Desktop Gallery
 
-Default narrative is **stream** — **nav · content · AI rail**.
+The three-rail layout: **Navigation ➔ Content ➔ AI Rail**. Primary narrative is **Stream**.
 
 <p align="center">
-  <img src="./docs/images/desktop-home-workspace.jpg" alt="Workbench · stream" width="720" />
+  <img src="./docs/images/desktop-home-workspace.jpg" alt="Workbench Stream" width="640" />
 </p>
 
 <p align="center">
-  <img src="./docs/images/desktop-stream.jpg" alt="Stream surface · AI suggestions" width="720" />
+  <img src="./docs/images/desktop-stream.jpg" alt="Stream Surface AI Suggestions" width="640" />
 </p>
 
-### Capture · continue · deliver
+### Additional Views
 
 <table>
   <tr>
     <td align="center" width="33%">
-      <img src="./docs/images/desktop-inbox.jpg" alt="Inbox" width="280" /><br/>
-      <sub>Inbox</sub>
+      <img src="./docs/images/desktop-inbox.jpg" alt="Inbox" width="230" /><br/>
+      <sub>Inbox organize</sub>
     </td>
     <td align="center" width="33%">
-      <img src="./docs/images/desktop-quick-capture.jpg" alt="Capture" width="280" /><br/>
-      <sub>Smart capture</sub>
+      <img src="./docs/images/desktop-quick-capture.jpg" alt="Smart Capture" width="230" /><br/>
+      <sub>Smart capture / clip</sub>
     </td>
     <td align="center" width="33%">
-      <img src="./docs/images/desktop-ingest.jpg" alt="Ingest" width="280" /><br/>
-      <sub>Ingest queue</sub>
+      <img src="./docs/images/desktop-ingest.jpg" alt="Ingest Queue" width="230" /><br/>
+      <sub>Document ingest queue</sub>
     </td>
   </tr>
   <tr>
     <td align="center" width="33%">
-      <img src="./docs/images/desktop-inline-ai.jpg" alt="Inline AI" width="280" /><br/>
-      <sub>Inline AI (result-only)</sub>
+      <img src="./docs/images/desktop-inline-ai.jpg" alt="Inline AI" width="230" /><br/>
+      <sub>Inline AI (sanitized results)</sub>
     </td>
     <td align="center" width="33%">
-      <img src="./docs/images/desktop-ai-agent.jpg" alt="AI agent" width="200" /><br/>
-      <sub>Side agent · confirm queue</sub>
+      <img src="./docs/images/desktop-ai-agent.jpg" alt="AI Agent" width="230" /><br/>
+      <sub>Side agent · todos & confirm</sub>
     </td>
     <td align="center" width="33%">
-      <img src="./docs/images/desktop-outputs.jpg" alt="Outputs" width="280" /><br/>
+      <img src="./docs/images/desktop-outputs.jpg" alt="Outputs" width="230" /><br/>
       <sub>Ship it / outputs</sub>
     </td>
   </tr>
 </table>
 
-Full tour → [`topmind-desktop/README.md`](./topmind-desktop/README.md) · Images → [`docs/images/README.md`](./docs/images/README.md)
-
 ---
 
-## Three planes & workspace
-
-```text
-{workspace}/
-├── topmind.yaml              # system: behavior contract
-├── 00-inbox/                 # content: buffer
-├── 10-stream/                # content: period notes (flat by default)
-├── 20-topics/2026-…/
-│   └── topic.md
-├── 88-outputs/               # content: flat deliverables
-├── 99-archive/               # safety: backups · backups/trash · receipts
-├── memory/                   # semantic: profile · periodic · topics
-└── .topmind/                 # system: rebuildable machine state
-```
-
-| Plane | Path | What people remember |
-|-------|------|----------------------|
-| **Content** | `{NN-Name}/` | Notes · topics · outputs |
-| **Semantic** | `memory/` | Stable profile & periodic digests |
-| **System** | `topmind.yaml` + `.topmind/` | Contract · index · logs |
-
-**Six core rules:** non-overlapping categories · topics emerge · stream is special · catch-all cleanup · clear reference role · stable names — [`PROJECT-MODEL.md`](./PROJECT-MODEL.md).
-
-Profiles: `stream` (default) · `balanced` · `research` · `periodic`.
-
----
-
-## Honesty table
+## ✅ Core Capability Honesty Table
 
 | Capability | Status |
-|------------|--------|
-| Capture · edit · clip · document ingest | **Done** |
-| skill-first AI · suggestions · pending writes | **Done** |
-| Kernel write-gate · Memory loop · stream-first nav | **Done** |
-| Inline AI result sanitize (no thinking tags in notes) | **Done** |
-| Keyword search honesty · **no** full-library embedding search | **Done** (by design) |
-| AI ops: todo maintain · **memory organize** (profile+periodic) · **topic classify** (content-category `create_topic`) | **Done** (confirm; activity window; not `memory/topics`) |
-| Stream append · activity window · canvas-top SuggestEntryStrip → ActionBar | **Done** (Wave S\* · see `docs/stream-first-optimization-scheme.md`) |
+|------|------|
+| Capture / Period note / Editing / Web clip / Knowledge ingest | **Done** |
+| Kernel write gate · Memory loop · Stream main surface | **Done** |
+| Inline AI result sanitization (no thinking tags) | **Done** |
+| Keyword search honest truncation · **No** embedding full-library semantic search | **Done** (intentional) |
+| AI operations: todo maintain · **memory organize** (profile+periodic) · **topic classify** (content category `create_topic`) | **Done** (confirm; activity window; not in `memory/topics`) |
+| Stream append · activity window · feed quiet suggestion chip | **Done** (Wave S\* · see [`docs/stream-first-optimization-scheme.md`](./docs/stream-first-optimization-scheme.md)) |
 
-Architecture lock: [`docs/ARCHITECTURE-RESET.md`](./docs/ARCHITECTURE-RESET.md)
-
----
-
-## Comparison
-
-| | Notion | Obsidian | Notes | **topmind** |
-|--|--------|----------|-------|-------------|
-| Data | Cloud | Local MD | iCloud | **Local MD** |
-| Org | DB / pages | Links + folders | Folders | **Capture first** |
-| Ingest | Extension | Plugins | Share | **Built-in queue** |
-| AI | Built-in | Plugins | System | **Co-pilot + reversible** |
-
-Full guide: [`docs/topmind-vs-others.md`](./docs/topmind-vs-others.md)
+Decision lock & phases: [`docs/ARCHITECTURE-RESET.md`](./docs/ARCHITECTURE-RESET.md)
 
 ---
 
-## Install & develop
+## 🛠️ Local Build & Quality Gate
 
 ```bash
+# Clone repository
+git clone https://github.com/topmindspace/topmind.git
+cd topmind
+
+# Start Desktop dev server
 npm run desktop:dev
-npm run desktop:pack:mac    # or :linux / :win
-npm run skills:install      # see skills/INSTALL.md
-npm run skills:test         # skills contract tests
+
+# Agent Skills test
+npm run skills:test
+
+# UTR CLI/MCP doctor & tool list
 npm run utr:doctor
 npm run utr:list            # list UTR domains and commands (8 domains / 25 commands)
+
+# Start Obsidian Plugin dev server
+npm run obsidian:dev
+npm run obsidian:pack       # outputs dist/topmind-obsidian-<ver>.zip
+
+# Run full quality gate validation
 npm run validate
-npm run versions
+npm run versions            # print surface version numbers
 ```
 
-| I want… | Go to |
-|---------|--------|
-| Desktop workbench | [`topmind-desktop/README.md`](./topmind-desktop/README.md) |
-| Agent Skills | [`skills/INSTALL.md`](./skills/INSTALL.md) · [`skills/README.md`](./skills/README.md) |
-| CLI / MCP | [`TOOLS.md`](./TOOLS.md) · [`utr/README.md`](./utr/README.md) |
-| Clip extension | [`browser-extension/README.md`](./browser-extension/README.md) |
-| Boundaries | [`PRODUCT-BOUNDARIES.md`](./PRODUCT-BOUNDARIES.md) |
-| Content model | [`PROJECT-MODEL.md`](./PROJECT-MODEL.md) |
-| Product UX | [`DESIGN.md`](./DESIGN.md) |
-| Packaging / CI | [`docs/PACKAGING.md`](./docs/PACKAGING.md) |
-| Doc index | [`docs/README.md`](./docs/README.md) |
+---
+
+## 🗺️ Global Documentation Sitemap
+
+| I want to learn about… | Document Link |
+|------------------------|---------------|
+| Architecture lock & honesty status | [`docs/ARCHITECTURE-RESET.md`](./docs/ARCHITECTURE-RESET.md) |
+| Surface boundaries & capabilities | [`PRODUCT-BOUNDARIES.md`](./PRODUCT-BOUNDARIES.md) |
+| Data model & 6 core rules | [`PROJECT-MODEL.md`](./PROJECT-MODEL.md) |
+| UI/UX product design & interaction | [`DESIGN.md`](./DESIGN.md) |
+| Desktop Workbench guide | [`topmind-desktop/README.md`](./topmind-desktop/README.md) |
+| Obsidian Plugin guide | [`obsidian-plugin/README.md`](./obsidian-plugin/README.md) · [中文](./obsidian-plugin/README.zh-CN.md) |
+| Agent Skills architecture & install | [`SKILL-ARCHITECTURE.md`](./SKILL-ARCHITECTURE.md) · [`skills/INSTALL.md`](./skills/INSTALL.md) |
+| UTR CLI/MCP commands reference | [`TOOLS.md`](./TOOLS.md) · [`utr/README.md`](./utr/README.md) |
+| Browser clip extension guide | [`browser-extension/README.md`](./browser-extension/README.md) |
+| Packaging, CI/CD & release guide | [`docs/PACKAGING.md`](./docs/PACKAGING.md) |
+| Full documentation index | [`docs/README.md`](./docs/README.md) |
 
 ---
 
-## Doc map
+## 📄 License
 
-| Doc | Role |
-|-----|------|
-| [ARCHITECTURE-RESET](./docs/ARCHITECTURE-RESET.md) | Decisions · phases · honesty |
-| [PRODUCT-BOUNDARIES](./PRODUCT-BOUNDARIES.md) | Skills / Desktop / UTR |
-| [PROJECT-MODEL](./PROJECT-MODEL.md) | Model · 6 rules |
-| [DESIGN](./DESIGN.md) | Product UX · ≤5 concepts |
-| [SKILL-ARCHITECTURE](./SKILL-ARCHITECTURE.md) | Skills pack shape |
-| [TOOLS](./TOOLS.md) | UTR · writeback |
-| [AGENTS](./AGENTS.md) | Agent discipline |
-| [SECURITY](./SECURITY.md) | Security boundaries |
-
----
-
-Repo: [github.com/topmindspace/topmind](https://github.com/topmindspace/topmind) · License: MIT
+[MIT License](LICENSE) © [TopMindSpace](https://github.com/topmindspace)

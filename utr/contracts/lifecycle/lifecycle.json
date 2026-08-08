@@ -25,6 +25,7 @@
       "label": "扫描生命周期",
       "description": "按 contract lifecycle 扫描：inbox 超期、catch-all 清理、stale 专题、output lock。",
       "group": "maintenance",
+      "exposure": "advanced",
       "risk_level": "low",
       "review_policy": "auto",
       "requires_topic": false,
@@ -34,12 +35,11 @@
       "inputs": {},
       "reads": [
         "00-收件箱/",
-        "{10-60 大类}/",
+        "{category}/",
         "88-输出/",
         "99-归档/"
       ],
-      "writes": [],
-      "exposure": "advanced"
+      "writes": []
     }
   },
   "review_overrides": {}

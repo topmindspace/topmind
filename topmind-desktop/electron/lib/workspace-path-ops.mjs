@@ -991,7 +991,7 @@ export const pathOps = {
     );
     if (!ev.pending && !ev.needsConfirm) bumpWorkspaceIndex(relativePath);
     return {
-      ...asDesktopEvidence({ ...ev, operation: "append-core-memory" }, relativePath),
+      ...asDesktopEvidence({ ...ev, operation: "append-profile" }, relativePath),
       userMessage: `已更新「我的情况」· ${sectionTitle}`,
       section: sectionTitle,
     };

@@ -208,15 +208,11 @@ test("workspace-read inspect-topic summarizes notes and outputs", async () => {
 
   assert.equal(result.ok, true);
   assert.equal(result.parsed.data.topic, "2026-示例专题");
-  // v3.4: notes live at topic root (source.md + 20260614-topic-capture.md = 2)
-  assert.equal(result.parsed.data.metrics.noteCount, 2);
-  // outputs are in 88 输出/ (2 entries)
+  // walkMarkdown finds all .md files in topic dir tree (excluding topic.md)
+  // includes topic root notes + legacy sections/articles/entities subdirs
+  assert.equal(result.parsed.data.metrics.noteCount, 8);
+  // outputs are in 88 输出/ (2 entries matching topic frontmatter)
   assert.equal(result.parsed.data.metrics.outputCount, 2);
-  // sections/articles/entities are optional, still counted if exist
-  assert.equal(result.parsed.data.metrics.sectionCount, 1);
-  assert.equal(result.parsed.data.metrics.articleCount, 1);
-  assert.equal(result.parsed.data.metrics.memoCount, 2);
-  assert.equal(result.parsed.data.metrics.entityCount, 1);
 });
 
 test("workspace-read lists topic files and inbox captures", async () => {
@@ -312,46 +308,26 @@ test("workspace-read lists reversible safety receipts from 99 归档 and revisio
   assert.ok(result.parsed.data.receipts.every((item) => item.reason));
 });
 
-test("workspace-read keeps memo sidecars out of section and article scopes", async () => {
-  const sections = await executeTool({
+test("workspace-read notes scope includes all topic markdown files", async () => {
+  // v3.4+: scope is home | notes | outputs | all (no legacy sections/articles/memos)
+  const notes = await executeTool({
     registry,
     kind: "workspace-read",
     command: "list-topic-files",
-    payload: { category: "20 研究", topic: "2026-示例专题", scope: "sections" },
+    payload: { category: "20 研究", topic: "2026-示例专题", scope: "notes" },
     pathContext: workspace.pathContext,
     reviewed: true,
   });
-  assert.equal(sections.ok, true);
-  assert.deepEqual(sections.parsed.data.files.map((file) => file.relativePath), [
-    "20 研究/2026-示例专题/sections/001.md",
-  ]);
-
-  const articles = await executeTool({
-    registry,
-    kind: "workspace-read",
-    command: "list-topic-files",
-    payload: { category: "20 研究", topic: "2026-示例专题", scope: "articles" },
-    pathContext: workspace.pathContext,
-    reviewed: true,
-  });
-  assert.equal(articles.ok, true);
-  assert.deepEqual(articles.parsed.data.files.map((file) => file.relativePath), [
-    "20 研究/2026-示例专题/articles/001.md",
-  ]);
-
-  const memos = await executeTool({
-    registry,
-    kind: "workspace-read",
-    command: "list-topic-files",
-    payload: { category: "20 研究", topic: "2026-示例专题", scope: "memos" },
-    pathContext: workspace.pathContext,
-    reviewed: true,
-  });
-  assert.equal(memos.ok, true);
-  assert.deepEqual(memos.parsed.data.files.map((file) => file.relativePath).sort(), [
-    "20 研究/2026-示例专题/articles/001-memo.md",
-    "20 研究/2026-示例专题/sections/001-memo.md",
-  ].sort());
+  assert.equal(notes.ok, true);
+  // walkMarkdown finds all .md in topic dir (excluding topic.md):
+  // source.md + 20260614-topic-capture.md + sections/*.md + articles/*.md + entities/**/*.md
+  assert.equal(notes.parsed.data.files.length, 8);
+  const rels = notes.parsed.data.files.map((f) => f.relativePath).sort();
+  assert.ok(rels.includes("20 研究/2026-示例专题/source.md"));
+  assert.ok(rels.includes("20 研究/2026-示例专题/20260614-topic-capture.md"));
+  // legacy subdirectory files are included as notes
+  assert.ok(rels.some((p) => p.endsWith("sections/001.md")));
+  assert.ok(rels.some((p) => p.endsWith("articles/001-memo.md")));
 });
 
 test("workspace-read accepts localized topic names from existing topic folders", async () => {

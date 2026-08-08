@@ -23,7 +23,7 @@
   "commands": {
     "create-topic": {
       "label": "创建专题",
-      "description": "创建 {category}/{topic}/ 骨架（不强制 topic.md；notes/ 和 outputs/ 在第一次 capture-note/save-output 时按需建）。",
+      "description": "创建 {category}/{topic}/ 目录骨架并写入 topic.md 专题首页（含 frontmatter: title/category/topic/status）。不预建 notes/ 或 outputs/ 子目录——笔记直接放专题根，交付物进 88-输出/ 扁平目录。",
       "group": "workflow",
       "exposure": "primary",
       "risk_level": "medium",
@@ -92,7 +92,7 @@
     },
     "capture-note": {
       "label": "捕获笔记",
-      "description": "把材料保存到专题根、动态周期本（weekly/daily/monthly 追加）、大类根单篇或收件箱；loose-stream 默认追加到当前周期本。保留来源和溯源标记。",
+      "description": "把材料保存到专题根、动态周期本（weekly/daily/monthly 追加）、大类根单篇或收件箱。loose-stream 默认追加到当前周期本。保留来源和溯源标记。",
       "group": "workflow",
       "exposure": "primary",
       "risk_level": "low",
@@ -104,9 +104,9 @@
       "inputs": {
         "routing": {
           "type": "category-and-topic",
-          "label": "路由（category 必填，topic 可选）",
-          "required": true,
-          "hint": "category: 必填大类；topic: 选填专题；两者都填则写入 {category}/{topic}/（专题根），只填 category 则写入 {category}/*.md (loose note)，两者都不填则写入 00-收件箱/。v3.4：笔记直接放专题根，无 专题根。"
+          "label": "路由（category 和 topic 均可选）",
+          "required": false,
+          "hint": "category 和 topic 均可选。两者都填则写入 {category}/{topic}/（专题根），只填 category 则写入 {category}/*.md (loose note)，两者都不填则写入 00-收件箱/。loose-stream 类无 topic 时自动追加到当前周期本。"
         },
         "title": {
           "type": "text",
@@ -233,8 +233,9 @@
     },
     "save-output": {
       "label": "保存输出",
-      "description": "把交付物保存到 88-输出/ 扁平目录；v3.4 不再有88-输出/ 扁平目录 子目录。默认遇到同名文件时新建安全后缀，显式选择 replace 才覆盖。",
+      "description": "把交付物保存到 88-输出/ 扁平目录。默认遇到同名文件时新建安全后缀，显式选择 replace 才覆盖。",
       "group": "workflow",
+      "exposure": "primary",
       "risk_level": "medium",
       "review_policy": "preview_or_auto",
       "requires_topic": true,
@@ -344,13 +345,13 @@
       ],
       "writes": [
         "88-输出/**"
-      ],
-      "exposure": "primary"
+      ]
     },
     "update-topic": {
       "label": "更新专题主页",
-      "description": "用完整内容替换 topic.md；只用于有明确理由的结构性重写，稳定记忆优先使用 append-topic-memory。自动保存不再二次确认，依靠执行前快照与回执兜底。",
+      "description": "用完整内容替换 topic.md；只用于有明确理由的结构性重写，稳定记忆优先使用 memory.append-topic。自动保存不再二次确认，依靠执行前快照与回执兜底。",
       "group": "atomic",
+      "exposure": "advanced",
       "risk_level": "high",
       "review_policy": "preview_or_auto",
       "requires_topic": true,
@@ -419,8 +420,7 @@
       "writes": [
         "{category_root}/{topic}/topic.md"
       ],
-      "workflow_note": "High-risk full replacement uses global writebackMode. In auto mode it applies without a second confirmation flag, while the executor snapshots the existing topic.md before write.",
-      "exposure": "advanced"
+      "workflow_note": "High-risk full replacement uses writebackMode. In auto mode it applies without a second confirmation flag, while the executor snapshots the existing topic.md before write."
     }
   }
 }

@@ -45,16 +45,20 @@ Skills 是一组纯 Markdown 指令集，告诉 AI 如何操作 topmind 工作�
 
 ### 0.4 与业界规范对比（Agent Skills 开放标准 · agentskills.io）
 
-| 维度 | topmind Skills Pack | Agent Skills Open Standard | MCP |
-|---|---|---|---|
-| 格式 | 每 skill 目录 + `SKILL.md` + 可选 `references/` | 同左 + 可选 `scripts/` / `assets/` | JSON tool schema |
-| Pack 契约 | **一份** `topmind-pack.json`（禁止每 skill 再拆 pack JSON） | 通常单 skill 分发 | server 清单 |
-| 入口 | 用户日常入口唯一 `topmind`；host 可索引全部 description | 每 skill 独立 discovery | 工具列表 |
-| Progressive disclosure | Discovery=`name+description` → Activation=`SKILL.md` → Resources=`shared/`+`references/` | 同三阶段 | 无 |
-| description | ≤1024 字符；含 Use when + Do not use | 必填触发真源 | tool description |
-| 降级 | Host 文件 → 可选 UTR → 对话 | 无内建降级 | 协议层 |
-| 语义消歧 | `action_category`(skill) vs 笔记 `category`(大类目录) | 无数据大类概念 | n/a |
-| 行为契约 | 工作区根 `topmind.yaml`（8 类规约机器可读） | 无 | 无 |
+| 维度 | topmind Skills Pack | Agent Skills Open Standard | MCP | Claude Code Skills | OpenAI Codex Skills | Cursor Rules |
+|---|---|---|---|---|---|---|
+| 格式 | 每 skill 目录 + `SKILL.md` + 可选 `references/` | 同左 + 可选 `scripts/` / `assets/` | JSON tool schema | 同开放标准 `SKILL.md` | `.codex/skills/` 目录 | `.cursorrules` 单文件 |
+| Pack 契约 | **一份** `topmind-pack.json`（禁止每 skill 再拆 pack JSON） | 通常单 skill 分发 | server 清单 | skill install | skill-installer | 无 pack 概念 |
+| 入口 | 用户日常入口唯一 `topmind`；host 可索引全部 description | 每 skill 独立 discovery | 工具列表 | 每 skill 独立 | 每 skill 独立 | 全局规则文件 |
+| Progressive disclosure | Discovery=`name+description` → Activation=`SKILL.md` → Resources=`shared/`+`references/` | 同三阶段 | 无 | 同三阶段 | 两阶段（discovery + activation） | 单阶段（全量加载） |
+| description | ≤1024 字符；含 Use when + Do not use | 必填触发真源 | tool description | ≤1024 字符 + Use when + Do NOT | 类似 | 无限制 |
+| 降级 | Host 文件 → 可选 UTR → 对话 | 无内建降级 | 协议层 | 无内建降级 | 无内建降级 | 无 |
+| 错误处理 | 写入失败可逆 + 回执 + 错误指导 | 无内建错误恢复 | 协议层 | 无内建错误恢复 | 无内建错误恢复 | 无 |
+| 语义消歧 | `action_category`(skill) vs 笔记 `category`(大类目录) | 无数据大类概念 | n/a | 无 | 无 | 无 |
+| 行为契约 | 工作区根 `topmind.yaml`（8 类规约机器可读） | 无 | 无 | 无 | 无 | 无 |
+| 可移植性 | 9 host 兼容（opencode/claude/codex/hermes/mcp/obsidian…） | 按 host 独立 | MCP 协议层 | Claude-only | Codex-only | Cursor-only |
+| 数据模型 | 三平面（内容/语义/系统）+ 6 条规约 | 无 | 无 | 无 | 无 | 无 |
+| 写回安全 | writeback-engine 唯一写闸 + 保护级别 + 备份回执 | 无 | 无 | 无 | 无 | 无 |
 
 **设计选择说明**：
 - **Hybrid Pack**：9 个标准 skill 目录（兼容开放标准），**只有一份** pack 级 JSON；子 skill 自包含可激活，但不各自版本/内容模型。
@@ -65,6 +69,8 @@ Skills 是一组纯 Markdown 指令集，告诉 AI 如何操作 topmind 工作�
 - **契约驱动而非散文复制**：规约语义从 `topmind.yaml` 求值；`shared/project-model-brief.md` 是给人/Agent 读的契约摘要，SKILL.md 不内联规约细节。
 - **Pack 级 `shared/`**：开放标准按 skill 目录分发；topmind 需 `shared/` 与 skill **同级**（见 `skills/shared/host-loading.md`）。
 - **纯 Markdown**：无 Loader/Registry；`topmind-pack.json` 是 pack 机器契约，不是运行时。
+- **写回安全链是 topmind 独有**：业界 skills 均无内建写入安全机制；topmind 通过 writeback-engine 实现保护判定 → 备份 → 原子落盘 → 回执的全链路可逆。
+- **多 host 可移植**：Claude/Codex/Cursor skills 均绑定单一 host；topmind 同一 pack 可安装到 6+ host，共享内容约定与行为契约。
 
 ---
 

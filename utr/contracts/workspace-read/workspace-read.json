@@ -23,7 +23,7 @@
   "commands": {
     "list-categories": {
       "label": "列出大类",
-      "description": "列出工作区中所有动态发现的大类（默认模板 simple：00-收件箱 / 10-动态 / 20-专题 / 88-输出 / 99-归档）。用户可扩展任意 {NN-Name}/ 目录。",
+      "description": "列出工作区中所有动态发现的大类（默认模板 stream：00-收件箱 / 10-动态 / 20-专题 / 88-输出 / 99-归档）。用户可扩展任意 {NN-Name}/ 目录。",
       "group": "assistive",
       "exposure": "primary",
       "risk_level": "low",
@@ -80,7 +80,7 @@
     },
     "inspect-topic": {
       "label": "检查专题",
-      "description": "读取单个专题的 topic.md（可选）+ 根层笔记（v3.4 不再有 专题根）+ 88-输出/ 中该专题的交付物，按专题结构汇总。",
+      "description": "读取单个专题的 topic.md（可选）+ 根层笔记 + 88-输出/ 中该专题的交付物，按专题结构汇总。",
       "group": "assistive",
       "exposure": "primary",
       "risk_level": "low",
@@ -116,12 +116,7 @@
       "reads": [
         "{category_root}/{topic}/topic.md",
         "{category_root}/{topic}/*.md",
-        "88-输出/**",
-        "{category_root}/{topic}/sections/**",
-        "{category_root}/{topic}/articles/**",
-        "{category_root}/{topic}/sections/*-memo.md",
-        "{category_root}/{topic}/articles/*-memo.md",
-        "{category_root}/{topic}/entities/**"
+        "88-输出/**"
       ],
       "writes": [],
       "contexts": [
@@ -130,7 +125,7 @@
     },
     "list-topic-files": {
       "label": "列出专题文件",
-      "description": "按物理结构列出专题首页、根层笔记（无强制 notes/）+ 交付层（role:delivery，常为 88-输出/）中该专题相关文件；若存在历史 sections/、articles/、entities/ 子树也会一并列出。",
+      "description": "按物理结构列出专题首页、根层笔记 + 交付层（role:delivery，常为 88-输出/）中该专题相关文件。",
       "group": "assistive",
       "exposure": "primary",
       "risk_level": "low",
@@ -170,22 +165,6 @@
             {
               "value": "outputs",
               "label": "交付物"
-            },
-            {
-              "value": "sections",
-              "label": "段落"
-            },
-            {
-              "value": "articles",
-              "label": "文章"
-            },
-            {
-              "value": "memos",
-              "label": "备注"
-            },
-            {
-              "value": "entities",
-              "label": "实体"
             }
           ]
         }
@@ -246,7 +225,7 @@
     },
     "list-recent-captures": {
       "label": "列出最近捕获",
-      "description": "从 00-收件箱/ 和各大类专题 notes/ 读取最近捕获，帮助回答“刚才收哪去了”。",
+      "description": "从收件箱和各大类专题根读取最近捕获的笔记，帮助回答“刚才收哪去了”。",
       "group": "assistive",
       "exposure": "advanced",
       "risk_level": "low",
@@ -270,7 +249,7 @@
       ],
       "reads": [
         "00-收件箱/**",
-        "{10-60 大类}/{YYYY-专题}/*.md"
+        "{category}/{topic}/*.md"
       ],
       "writes": [],
       "contexts": [
@@ -306,9 +285,10 @@
       ],
       "reads": [
         "99-归档/backups/**",
+        "99-归档/backups/trash/**",
         "99-归档/trash/**",
         "99-归档/*",
-        "{10-60 大类}/{YYYY-专题}/**"
+        "{category}/{topic}/**"
       ],
       "writes": [],
       "contexts": [

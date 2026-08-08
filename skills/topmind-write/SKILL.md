@@ -32,11 +32,11 @@ compatibility: topmind workspace. Delivery role category (often 88-输出/).
 author: TopMindSpace
 license: MIT
 homepage: https://github.com/topmindspace/topmind
-updated: 2026-07-28
+updated: 2026-08-08
 degradation: ../shared/capability-degradation.md
 ---
 
-# topmind Write（v1.0）
+# topmind Write
 
 从起草到交付。输出最终内容到 **delivery 层**（role:delivery）或专题根。
 

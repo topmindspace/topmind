@@ -52,7 +52,7 @@
       "prompt": "把这条已经确认的结论追加到 10-动态/2026-示例记录 专题的 Stable Memory，保留原来的 topic.md 内容，不要整页替换。",
       "primary_skill": "topmind-memory",
       "extra_skills": [],
-      "expected_output": "Routes through topmind-memory, uses workspace-write.append-topic-memory with category+topic fields, follows writeback_mode, and keeps existing topic.md content intact."
+      "expected_output": "Routes through topmind-memory, uses memory.append-topic with category+topic fields, follows writeback_mode, and keeps existing topic.md content intact."
     },
     {
       "id": 8,
@@ -105,7 +105,7 @@
       "prompt": "把这几条笔记的 source_type 和 topic 补全，frontmatter 缺的都加上。",
       "primary_skill": "topmind-maintain",
       "extra_skills": [],
-      "expected_output": "Routes through topmind-maintain, uses workspace-transform.normalize-note-metadata, marks source_type and topic where inferable, and applies or previews according to writeback_mode."
+      "expected_output": "Routes through topmind-maintain, uses workspace-transform.normalize-note-metadata, marks source_type and topic where inferable, applies or previews according to writeback_mode. Uses UTR workspace-transform.normalize-note-metadata command."
     },
     {
       "id": 15,
@@ -170,7 +170,7 @@
       "extra_skills": [
         "topmind-write"
       ],
-      "expected_output": "Routes through topmind-x connector skill, uses topmind-write to draft tweet content (280 chars), always requires user confirmation before posting (even in auto writeback_mode), archives posted tweet."
+      "expected_output": "Routes through topmind-x connector skill, uses topmind-write to draft tweet content, always requires user confirmation before posting (even in auto writeback_mode), archives posted tweet."
     },
     {
       "id": 24,

@@ -71,6 +71,7 @@ const metaAuthor = document.getElementById("meta-author");
 const previewBox = document.getElementById("preview-box");
 const previewText = document.getElementById("preview-text");
 const hlToggleBtn = document.getElementById("hl-toggle");
+const hlClearBtn = document.getElementById("hl-clear");
 const modeBtns = Array.from(document.querySelectorAll(".mode-btn"));
 const destSelect = document.getElementById("dest-select");
 const destHint = document.getElementById("dest-hint");
@@ -96,6 +97,8 @@ function parseDestValue(v) {
 
 async function loadDestinations() {
   if (!destSelect) return;
+  // Show loading state
+  destSelect.innerHTML = `<option value="inbox" disabled>${t("dest_loading")}</option>`;
   const res = await sendMessageSafe({ type: "fetch-destinations" }, 5000);
   const prefBag = await chrome.storage.local.get(DEST_PREF_KEY);
   const pref = prefBag[DEST_PREF_KEY] || "inbox";
@@ -321,6 +324,8 @@ async function loadExtractPreview(tab) {
     const hlBtn = document.getElementById("mode-highlights");
     if (hlBtn) hlBtn.disabled = false;
     if (metaWords) metaWords.textContent += t("highlight_count_suffix", String(res.highlightCount));
+    // Show clear button if highlights exist
+    if (hlClearBtn) hlClearBtn.hidden = false;
   }
   if (res.templateId) {
     selectedTemplateId = res.templateId;
@@ -580,11 +585,22 @@ clipBtn.addEventListener("click", async () => {
   setMsg(t("msg_clipping_bg"), "");
 });
 
-// Mode chips
+// Mode chips — click + keyboard navigation (arrow keys)
 for (const btn of modeBtns) {
   btn.addEventListener("click", () => {
     if (btn.disabled) return;
     setClipMode(btn.dataset.mode || "article");
+  });
+  btn.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    e.preventDefault();
+    const idx = modeBtns.indexOf(btn);
+    const next = e.key === "ArrowLeft" ? (idx - 1 + modeBtns.length) % modeBtns.length : (idx + 1) % modeBtns.length;
+    const target = modeBtns[next];
+    if (target && !target.disabled) {
+      target.focus();
+      setClipMode(target.dataset.mode || "article");
+    }
   });
 }
 
@@ -600,6 +616,28 @@ hlToggleBtn?.addEventListener("click", async () => {
       setMsg(t("hl_start_hint"), "");
     } else {
       setMsg(res.count ? t("hl_count_msg", String(res.count)) : "", "");
+    }
+    // Show/hide clear button based on highlight count
+    if (hlClearBtn) hlClearBtn.hidden = !hlActive || !res.count;
+  } else {
+    setMsg(t("hl_unsupported"), "err");
+  }
+});
+
+// Clear highlights button
+hlClearBtn?.addEventListener("click", async () => {
+  const res = await sendMessageSafe({ type: "hl-clear" }, 2000);
+  if (res?.ok) {
+    if (hlClearBtn) hlClearBtn.hidden = true;
+    setMsg(res.count != null ? t("hl_clear_done", String(res.count)) : t("hl_clear_done", "0"), "");
+    // Re-check highlight status to update toggle button
+    const hl = await sendMessageSafe({ type: "hl-status" }, 1500);
+    if (hl && typeof hl.active === "boolean") {
+      hlActive = hl.active;
+      if (hlToggleBtn) {
+        hlToggleBtn.classList.toggle("active", hlActive);
+        hlToggleBtn.textContent = hlActive ? t("btn_exit_highlight") : t("btn_highlight");
+      }
     }
   } else {
     setMsg(t("hl_unsupported"), "err");

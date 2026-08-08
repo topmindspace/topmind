@@ -148,7 +148,7 @@ Tool names use：
 | Command | Domain | 职责 |
 |---|---|---|
 | `contract.validate` | contract | 校验工作区 `topmind.yaml` schema、8 类规约白名单、与 FS 一致性 |
-| `memory.promote` | memory | 将 Stream 条目提升为 memory/topics/{topic-slug}.md（标记 promoted_from/to） |
+| `memory.promote` | memory | 将 Stream 条目提升为 memory/topics/{topic-slug}.md（标记 promoted_from/to；源文件仅读取标记，不修改原文） |
 | `memory.digest` | memory | 确定性 adapter 骨架写入 memory/periodic/{period}.md（**无 AI 模型**；产品 AI 摘要走 Desktop 建议管线确认后写） |
 | `memory.append-profile` | memory | 追加「我的情况」到 memory/profile.md（原 append-core-memory） |
 | `memory.append-topic` | memory | 追加专题稳定结论到 memory/topics/{topic-slug}.md（原 append-topic-memory） |
@@ -240,9 +240,9 @@ next_actions: optional string[]
 
 | Command | Default mutation | Guardrail |
 |---|---|---|
-| `workspace-write.create-topic` | 创建专题骨架；含 `topic.md` 可选 | 拒绝覆盖已有同名专题；**不**接受 `projectType`（已废弃） |
+| `workspace-write.create-topic` | 创建专题目录 + `topic.md` 首页（frontmatter: title/category/topic/status） | 拒绝覆盖已有同名专题；**不**接受 `projectType`（已废弃） |
 | `workspace-write.capture-note` | 在专题根下或 `00-收件箱/` 或**大类根单篇**或**当前动态周期本**创建时间戳笔记 | 永不替换已有笔记 |
-| `workspace-write.save-output` | 创建新 output 到 `88-输出/` | 同名默认安全加后缀；locked/final 替换走 ` - 修订版` |
+| `workspace-write.save-output` | 创建交付物到 `88-输出/` 扁平目录 | `ifExists`: `create-new`（默认）· `replace`（查找同名替换）· `fail`（同名报错） |
 | `memory.append-topic` | 追加一条专题稳定结论到 `memory/topics/{topic-slug}.md` | 永不重写已有内容 |
 | `memory.append-profile` | 追加「我的情况」到 `memory/profile.md` | 按段落追加；禁止 capture 静默写 |
 | Desktop `reconcileStreamPeriod` | 确定性整理本周 | 无 LLM：勾选完成、去重；返回候选；写 `reconciled_at` 标记 |

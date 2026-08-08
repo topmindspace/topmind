@@ -26,11 +26,11 @@ compatibility: topmind topic topic.md + workspace core profile (memory/profile.m
 author: TopMindSpace
 license: MIT
 homepage: https://github.com/topmindspace/topmind
-updated: 2026-08-03
+updated: 2026-08-08
 degradation: ../shared/capability-degradation.md
 ---
 
-# topmind Memory（v1.1）
+# topmind Memory
 
 **默认记忆模型（产品真理）**：
 

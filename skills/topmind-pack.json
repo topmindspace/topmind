@@ -5,7 +5,7 @@
   "description": "topmind skill pack: single daily entry topmind + progressive disclosure (shared/ + references/), Agent Skills open-standard aligned, capture-first template-driven categories, optional weread/x connectors. File-system-first content truth; UTR optional.",
   "daily_entry": "topmind",
   "version": "2.0.7",
-  "updated": "2026-08-06",
+  "updated": "2026-08-08",
   "license": "MIT",
   "locales": {
     "default": "zh-CN",
@@ -68,7 +68,8 @@
         "hermes",
         "codex",
         "claude-code",
-        "mcp"
+        "mcp",
+        "obsidian"
       ],
       "runtime": "pure-markdown",
       "optional_dependencies": {
@@ -254,7 +255,8 @@
     "hermes",
     "opencode",
     "desktop",
-    "mcp"
+    "mcp",
+    "obsidian"
   ],
   "portable_contract": {
     "requires_desktop": false,

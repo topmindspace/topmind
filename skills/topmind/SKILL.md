@@ -18,11 +18,11 @@ compatibility: >-
 author: TopMindSpace
 license: MIT
 homepage: https://github.com/topmindspace/topmind
-updated: 2026-08-03
+updated: 2026-08-08
 degradation: ../shared/capability-degradation.md
 ---
 
-# topmind Router（v1.0）
+# topmind Router
 
 唯一日常入口：`topmind`。子 skill 是**实现模块**（可被 host 单独激活），不是产品第二前台。
 
@@ -123,7 +123,7 @@ Connector：[`references/connector-resolution.md`](references/connector-resoluti
 主路径：host 文件工具 + project-model-brief。  
 降级：[`../shared/capability-degradation.md`](../shared/capability-degradation.md)。
 
-UTR 可选（MCP primary+danger）：`list-categories` · `list-topics` · `inspect-topic` · `list-topic-files` · `list-inbox` · `create-topic` · `capture-note` · `save-output` · `memory.append-profile` · `memory.append-topic` · `doctor-workspace` · `plan-inbox-routing` · `archive-topic` · `restore-safety-receipt`。
+UTR 可选（MCP primary+danger）：`list-categories` · `list-topics` · `inspect-topic` · `list-topic-files` · `list-inbox` · `create-topic` · `capture-note` · `save-output` · `contract.validate` · `memory.promote` · `memory.digest` · `memory.append-profile` · `memory.append-topic` · `doctor-workspace` · `plan-inbox-routing` · `archive-topic` · `restore-safety-receipt`。
 
 字段始终独立 **`category` + `topic`**（真实目录名，非写死编号）。
 
@@ -135,7 +135,15 @@ UTR 可选（MCP primary+danger）：`list-categories` · `list-topics` · `insp
 详见 [`../shared/writeback-receipt.md`](../shared/writeback-receipt.md)。  
 **6 条核心规约**：见 [`../shared/project-model-brief.md`](../shared/project-model-brief.md)。
 
-## Provenance
+## Error Handling
+
+写入失败时：
+- 磁盘满 / 权限不足 → 报错 + 已备回复制位置；不静默丢数据
+- 路径过长 / 非法字符 → 提示用户缩短专题名
+- protection:locked → 拒绝写入 + 建议fork修订版
+- 工作区不存在 topmind.yaml → 按默认契约解释 + 回执标注「默认契约」
+
+
 
 `source_type`: `user-original` | `external-capture` | `ai-derived`。可选 `status` / `priority` / `method`。
 

@@ -21,18 +21,18 @@ triggers:
   - walk
 tags: [loop, audit, walk, resumable, cyclic]
 entrypoint: false
-compatibility: topmind workspace. Progress under .loop/*. Host LLM runs the walk; UTR optional.
+compatibility: topmind workspace. Progress under .topmind/loop/*. Host LLM runs the walk; UTR optional.
 author: TopMindSpace
 license: MIT
 homepage: https://github.com/topmindspace/topmind
-updated: 2026-07-28
+updated: 2026-08-08
 degradation: ../shared/capability-degradation.md
 ---
 
-# topmind Loop（v1.0）
+# topmind Loop
 
 ```text
-topmind-loop = SKILL.md + agent host LLM + .loop/*.md
+topmind-loop = SKILL.md + agent host LLM + .topmind/loop/*.md
 ```
 
 不是 CLI、不是独立 runtime。独立 skill（不再是 maintain 子动作）。
@@ -40,7 +40,7 @@ topmind-loop = SKILL.md + agent host LLM + .loop/*.md
 ## Activation checklist
 
 1. 确认是**整体/可恢复**巡检（非快速 doctor）  
-2. 读/建 `.loop/*.md` 进度；可中断续跑  
+2. 读/建 `.topmind/loop/*.md` 进度；可中断续跑  
 3. 步内可调用 capture/organize/… **语义**，不改类别名  
 4. 结束写摘要回执  
 
@@ -60,14 +60,14 @@ topmind-loop = SKILL.md + agent host LLM + .loop/*.md
 loop 一下 topics|inbox|archive
 loop 一下 {类别名}          → 该大类专题
 整体体检 / 巡检 / 复盘      → 全跑
-继续 loop / 从断点继续      → 读 .loop cursor
+继续 loop / 从断点继续      → 读 .topmind/loop cursor
 ```
 
 ## Three Pieces
 
 1. **本 skill** — 规约  
 2. **Agent host** — 执行与语义判断（无第二套 LLM 配置）  
-3. **`.loop/*.md`** — 进度真账  
+3. **`.topmind/loop/*.md`** — 进度真账  
 
 Scopes、walk、guardrails 细节：[`references/scopes-and-walk.md`](references/scopes-and-walk.md)。  
 状态文件格式与 resume：[`references/state-file.md`](references/state-file.md)。  
@@ -76,7 +76,7 @@ Scopes、walk、guardrails 细节：[`references/scopes-and-walk.md`](references
 ## Minimal Workflow
 
 1. 解析 scope（默认全跑）  
-2. 读或创建 `.loop/{scope}.md`（缺失则首次运行，不报错）  
+2. 读或创建 `.topmind/loop/{scope}.md`（缺失则首次运行，不报错）  
 3. 从 `cursor` 起逐项：Read → Decide → Apply/Preserve/Escalate → Record  
 4. 更新 `last_run` / `done/total` / `cursor` / Receipts  
 

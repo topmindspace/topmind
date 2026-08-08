@@ -25,6 +25,7 @@
       "label": "重建衍生层",
       "description": "从真源全量重建各大类 .derived/ 子目录。",
       "group": "maintenance",
+      "exposure": "advanced",
       "risk_level": "medium",
       "review_policy": "preview_or_auto",
       "requires_topic": false,
@@ -43,12 +44,11 @@
         "{mode}"
       ],
       "reads": [
-        "{10-60 大类}/**"
+        "{category}/**"
       ],
       "writes": [
-        "{10-60 大类}/**/.derived/**"
-      ],
-      "exposure": "advanced"
+        "{category}/**/.derived/**"
+      ]
     }
   },
   "review_overrides": {}

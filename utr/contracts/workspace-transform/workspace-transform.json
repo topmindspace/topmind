@@ -23,8 +23,9 @@
   "commands": {
     "normalize-note-metadata": {
       "label": "规范化 note metadata",
-      "description": "批量预览并归一化 notes/ 下的 status、topic、category 等 metadata 漂移。v3.4 起 `project_type` 字段被删；如检测到则从 frontmatter 中移除。",
+      "description": "批量预览并归一化笔记的 status、topic、category 等 metadata。检测到 `project_type` 字段时从 frontmatter 中移除。",
       "group": "maintenance",
+      "exposure": "advanced",
       "risk_level": "medium",
       "review_policy": "preview_or_auto",
       "requires_topic": false,
@@ -43,19 +44,19 @@
         "{mode}"
       ],
       "reads": [
-        "{10-60 大类}/{YYYY-专题}/**",
+        "{category}/{topic}/**",
         "00-收件箱/**"
       ],
       "writes": [
-        "{10-60 大类}/{YYYY-专题}/**",
+        "{category}/{topic}/**",
         "00-收件箱/**"
-      ],
-      "exposure": "advanced"
+      ]
     },
     "plan-inbox-routing": {
       "label": "规划 inbox 路由",
       "description": "读取 00 收件箱 文件并生成建议路由到各大类的方案；不写入。",
       "group": "assistive",
+      "exposure": "primary",
       "risk_level": "low",
       "review_policy": "auto",
       "requires_topic": false,
@@ -77,15 +78,15 @@
       ],
       "reads": [
         "00-收件箱/**",
-        "{10-60 大类}/{YYYY-专题}/topic.md"
+        "{category}/{topic}/topic.md"
       ],
-      "writes": [],
-      "exposure": "primary"
+      "writes": []
     },
     "migrate-v4": {
       "label": "迁移到 v4",
       "description": "一次性迁移：config v3 JSON → topmind.yaml、旧专题首页 → topic.md、我的情况.md → memory/profile.md、.loop/ → .topmind/loop/、99-归档/receipts → 保留、state.json → 删除或重建到各大类 .derived/。",
       "group": "maintenance",
+      "exposure": "advanced",
       "risk_level": "high",
       "review_policy": "preview_or_auto",
       "requires_topic": false,
@@ -132,8 +133,7 @@
         ".topmind/loop/**",
         "**/.derived/**"
       ],
-      "workflow_note": "One-shot v3 → v4 migration. Reads from .topmind-config.json (legacy), writes to topmind.yaml (v4), renames project.md → topic.md, moves 我的情况.md → memory/profile.md, moves .loop/ → .topmind/loop/, deletes or rebuilds state.json to .derived/. Returns a migration receipt listing every moved path.",
-      "exposure": "advanced"
+      "workflow_note": "One-shot v3 → v4 migration. Reads from .topmind-config.json (legacy), writes to topmind.yaml (v4), renames project.md → topic.md, moves 我的情况.md → memory/profile.md, moves .loop/ → .topmind/loop/, deletes or rebuilds state.json to .derived/. Returns a migration receipt listing every moved path."
     }
   }
 }

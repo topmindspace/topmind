@@ -52,11 +52,20 @@ export function useCaptureForm({
   const [source, setSource] = useState("");
   const [sourceType, setSourceType] = useState<"user-original" | "external-capture">("user-original");
   /** Note landing: stream (default) or inbox when unsure — DESIGN capture dest.
-   *  When the user is in the inbox view, default to inbox for seamless capture. */
+   *  When the user is in the inbox view, default to inbox for seamless capture.
+   *  When a URL is fetched, auto-switch to inbox (fetched articles are knowledge,
+   *  not stream moments). User can still manually switch back. */
   const [noteDest, setNoteDest] = useState<"stream" | "inbox">(() => {
     const sel = useViewStore.getState().selection;
     return sel.kind === "inbox" ? "inbox" : "stream";
   });
+  /** Track if user manually changed dest — prevents auto-switch from overriding. */
+  const destUserOverride = useRef(false);
+  /** User-facing dest setter — marks override so auto-switch won't clobber. */
+  const handleSetNoteDest = useCallback((d: "stream" | "inbox") => {
+    destUserOverride.current = true;
+    setNoteDest(d);
+  }, []);
   /** Progressive disclosure: title / mode / source under「更多」 until needed */
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [attachments, setAttachments] = useState<CaptureAttachment[]>([]);
@@ -202,6 +211,10 @@ export function useCaptureForm({
       setError(t("overlays:capture.errorInvalidUrl"));
       return;
     }
+    // Auto-route fetched content to inbox (knowledge capture, not stream clutter)
+    if (!destUserOverride.current) {
+      setNoteDest("inbox");
+    }
     setFetching(true);
     setFetchStage(1);
     setError(null);
@@ -239,6 +252,10 @@ export function useCaptureForm({
     if (/^https?:\/\/\S+$/iu.test(trimmed) && !source.trim()) {
       setSource(trimmed);
       setSourceType("external-capture");
+      // Auto-route URL captures to inbox (knowledge, not stream moments)
+      if (!destUserOverride.current) {
+        setNoteDest("inbox");
+      }
     }
   };
 
@@ -497,7 +514,7 @@ export function useCaptureForm({
     setTitle,
     setSource,
     setSourceType,
-    setNoteDest,
+    setNoteDest: handleSetNoteDest,
     setShowAdvanced,
     setMode,
     setError,
@@ -558,7 +575,7 @@ export function CaptureForm({
     setTitle,
     setSource,
     setSourceType,
-    setNoteDest,
+    setNoteDest: handleSetNoteDest,
     setShowAdvanced,
     setMode,
     setShowQueue,
@@ -593,7 +610,7 @@ export function CaptureForm({
             <button
               key={d.id}
               type="button"
-              onClick={() => setNoteDest(d.id)}
+              onClick={() => handleSetNoteDest(d.id)}
               className={cn(
                 "rounded-full px-2.5 py-0.5 text-3xs font-medium transition-colors",
                 noteDest === d.id

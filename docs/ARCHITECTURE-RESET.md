@@ -191,7 +191,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 
 > **2026-08-07 增量**：全面设计优化——chrome 纤细化(36/24px) · 品牌chip移除 · border/hover/shadow精炼 · 侧栏头部统一 · Landing去教育噪音 · 状态栏路径移除 · 死代码清理（ADR `adr/2026-08-07-comprehensive-design-optimization.md`）。  
 > **2026-08-07 引擎硬化**：writeback 回执轮转（`RECEIPT_KEEP=50` · `pruneOldReceipts`）· 备份旋转（`BACKUP_KEEP=3`）· 目录归档原子 rename + 文件计数校验 · 智能回执（仅高影响写入）· AI Provider 动态参数（per-operation temperature/systemPrompt/maxTokens）· 瞬态错误自动重试 · 会话压缩适配现代模型（240K chars / 60 messages）· 默认模型更新（gpt-4o-mini · gemini-3.6-flash · grok-3-mini · claude-sonnet-5）。
-> **v2.1.0 增量**：maxTokens 操作限制全面提升（默认 12288）· Agent 步数扩展（20/50）· derived-builder 上下文扩容（48K）· StatusBar/TitleBar UI 统一动画 · 独立版本策略（大版本对齐，小版本独立；UTR 跟随 Desktop；Obsidian Plugin 预留）。
+> **v2.1.0 增量**：maxTokens 操作限制全面提升（默认 12288）· Agent 步数扩展（20/50）· derived-builder 上下文扩容（48K）· StatusBar/TitleBar UI 统一动画 · 独立版本策略（大版本对齐，小版本独立；UTR 跟随 Desktop；Obsidian Plugin 独立）。
 
 ### 2.4 完成度分数卡
 
@@ -311,7 +311,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 
 | 文档 | 职责 |
 |------|------|
-| `PRODUCT-BOUNDARIES.md` | 三体边界 + 能力诚实状态 |
+| `PRODUCT-BOUNDARIES.md` | 四体边界 + 能力诚实状态 |
 | `PROJECT-MODEL.md` | 三平面 · 规约 · contract |
 | `DESIGN.md` | 产品交互原则 · 用户词表 |
 | `topmind-desktop/DESIGN.md` | Desktop IA / 像素 / 副驾 |

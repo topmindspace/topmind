@@ -20,11 +20,11 @@ compatibility: Requires WeRead Skill API key (wrk-*). Desktop WereadService pref
 author: TopMindSpace
 license: MIT
 homepage: https://github.com/topmindspace/topmind
-updated: 2026-07-28
+updated: 2026-08-08
 degradation: ../shared/capability-degradation.md
 ---
 
-# topmind WeRead（v1.0）
+# topmind WeRead
 
 将微信读书划线/想法/统计同步为 topmind 笔记（`source_type: external-capture`）。
 

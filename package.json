@@ -37,12 +37,18 @@
     "desktop:pack:mac:ci": "cd topmind-desktop && npm run pack:mac:ci",
     "desktop:pack:linux:ci": "cd topmind-desktop && npm run pack:linux:ci",
     "desktop:pack:win:ci": "cd topmind-desktop && npm run pack:win:ci",
-    "test": "npm run root:test && npm run skills:test && npm run utr:test && npm run desktop:test",
-    "validate": "npm run secrets:scan && npm run docs:guard && npm run root:test && npm run skills:test && npm run utr:test && npm run utr:doctor:engine && npm run desktop:validate",
+    "obsidian:dev": "cd obsidian-plugin && npm run dev",
+    "obsidian:build": "cd obsidian-plugin && npm run build",
+    "obsidian:typecheck": "cd obsidian-plugin && npm run typecheck",
+    "obsidian:test": "cd obsidian-plugin && npm test",
+    "obsidian:validate": "cd obsidian-plugin && npm run typecheck && npm run build && npm test && npm run pack:verify",
+    "obsidian:pack": "cd obsidian-plugin && npm run build && npm run pack",
+    "test": "npm run root:test && npm run skills:test && npm run utr:test && npm run desktop:test && npm run obsidian:test",
+    "validate": "npm run secrets:scan && npm run docs:guard && npm run root:test && npm run skills:test && npm run utr:test && npm run utr:doctor:engine && npm run desktop:validate && npm run obsidian:validate",
     "pack": "npm run pack:all",
     "pack:skills": "npm run skills:pack",
     "pack:extension": "npm run extension:pack",
-    "pack:all": "npm run skills:pack && npm run extension:pack"
+    "pack:all": "npm run skills:pack && npm run extension:pack && npm run obsidian:pack"
   },
   "dependencies": {
     "yaml": "^2.9.0"

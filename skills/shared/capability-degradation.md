@@ -79,4 +79,4 @@ writeback_mode: auto | confirm
 - Desktop **不是** Skills 运行时，也不是 UTR 的 GUI  
 - Desktop 内捕获 / 编辑 / AI 走 **WorkspaceService**  
 - 同一套 Skills 文案在任意 agent host 独立生效  
-- 三者只共享内容约定，不共享进程  
+- 四者只共享内容约定，不共享进程  

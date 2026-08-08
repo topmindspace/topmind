@@ -22,8 +22,6 @@ import {
   fileInfo,
   isDirectory,
   topicHomeFiles,
-  topicMemoFiles,
-  topicStructuredFiles,
   walkMarkdown,
   workspaceRelative,
 } from "../core/topic-files.mjs";
@@ -154,7 +152,7 @@ async function listTopics(ctx, categoryFilter) {
   };
 }
 
-// ── v3.2 inspect-topic ─────────────────────────────────────────────────────
+// ── inspect-topic ─────────────────────────────────────────────────────
 
 async function inspectTopic(category, topic, ctx) {
   if (!isValidCategoryName(category)) {
@@ -168,18 +166,11 @@ async function inspectTopic(category, topic, ctx) {
     throw new Error(t("error.topicNotFound", { category, topic }));
   }
   const workspaceRoot = userWorkspaceCategoriesRoot(ctx);
-  // v3.4: notes live at topic root, no notes/ subdirectory
   const home = await topicHomeFiles(topicDir, workspaceRoot);
   const allTopicMd = await walkMarkdown(topicDir, workspaceRoot, "note");
-  // Count topic-root-direct notes only: skip topic.md + nested sections/articles/entities
-  const notes = allTopicMd.filter((f) =>
-    f.name !== "topic.md" &&
-    !/\/(sections|articles|entities)\//u.test(f.relativePath)
-  );
-  // v3.4: outputs are flat under 88 Outputs/, filtered by topic frontmatter
+  const notes = allTopicMd.filter((f) => f.name !== "topic.md");
   const allOutputs = await walkMarkdown(globalOutputsRoot(ctx), workspaceRoot, "output");
   const outputs = await filterOutputsByTopic(allOutputs, topic, workspaceRoot);
-  const structured = await topicStructuredFiles(topicDir, workspaceRoot);
 
   return {
     category,
@@ -193,13 +184,10 @@ async function inspectTopic(category, topic, ctx) {
     metrics: {
       noteCount: notes.length,
       outputCount: outputs.length,
-      sectionCount: structured.sections.length,
-      articleCount: structured.articles.length,
-      memoCount: structured.memos.length,
-      entityCount: structured.entities.length,
     },
     home,
-    structured,
+    notes,
+    outputs,
   };
 }
 
@@ -223,7 +211,7 @@ async function filterOutputsByTopic(entries, topic, workspaceRoot) {
   return result;
 }
 
-// ── v3.4 list-topic-files ──────────────────────────────────────────────────
+// ── list-topic-files ──────────────────────────────────────────────────────
 
 async function listTopicFiles(category, topic, scope, ctx) {
   const topicDir = topicRoot(ctx, category, topic);
@@ -232,11 +220,7 @@ async function listTopicFiles(category, topic, scope, ctx) {
     home: ["home"],
     notes: ["note"],
     outputs: ["output"],
-    sections: ["section"],
-    articles: ["article"],
-    memos: ["memo"],
-    entities: ["entity"],
-    all: ["home", "note", "output", "section", "article", "memo", "entity"],
+    all: ["home", "note", "output"],
   }[scope || "all"];
   if (!kinds) {
     throw new Error(t("error.unknownFileScope", { scope }));
@@ -244,28 +228,20 @@ async function listTopicFiles(category, topic, scope, ctx) {
 
   const files = [];
   if (kinds.includes("home")) files.push(...await topicHomeFiles(topicDir, workspaceRoot));
-  // v3.4: notes live at topic root (filter out topic.md + nested sections/articles/entities)
   if (kinds.includes("note")) {
     const all = await walkMarkdown(topicDir, workspaceRoot, "note");
-    files.push(...all.filter((f) =>
-      f.name !== "topic.md" &&
-      !/\/(sections|articles|entities)\//u.test(f.relativePath)
-    ));
+    files.push(...all.filter((f) => f.name !== "topic.md"));
   }
-  // v3.4: outputs are flat under 88 Outputs/, filtered by topic frontmatter
+  // outputs: flat under 88 Outputs/, filtered by topic frontmatter
   if (kinds.includes("output")) {
     const all = await walkMarkdown(globalOutputsRoot(ctx), workspaceRoot, "output");
     files.push(...await filterOutputsByTopic(all, topic, workspaceRoot));
   }
-  if (kinds.includes("section")) files.push(...await walkMarkdown(path.join(topicDir, "sections"), workspaceRoot, "section", { includeMemos: false }));
-  if (kinds.includes("article")) files.push(...await walkMarkdown(path.join(topicDir, "articles"), workspaceRoot, "article", { includeMemos: false }));
-  if (kinds.includes("memo")) files.push(...(await topicStructuredFiles(topicDir, workspaceRoot)).memos);
-  if (kinds.includes("entity")) files.push(...await walkMarkdown(path.join(topicDir, "entities"), workspaceRoot, "entity", { includeTemplates: false }));
   files.sort((left, right) => compareStrings(left.relativePath, right.relativePath));
   return { category, topic, scope, files };
 }
 
-// ── v3.2 list-inbox ────────────────────────────────────────────────────────
+// ── list-inbox ────────────────────────────────────────────────────────────
 
 async function listInbox(inboxRootPath, limit, workspaceRoot) {
   const files = [];

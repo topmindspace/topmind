@@ -427,5 +427,41 @@
   },
   "tpl_zhihu": {
     "message": "Zhihu"
+  },
+  "overview_bridge_ok": {
+    "message": "Bridge ✓"
+  },
+  "overview_bridge_warn": {
+    "message": "Bridge ⚠"
+  },
+  "overview_bridge_fail": {
+    "message": "Bridge ✗"
+  },
+  "overview_bridge_none": {
+    "message": "Bridge —"
+  },
+  "overview_ws_ok": {
+    "message": "WS: $1 ✓"
+  },
+  "overview_ws_warn": {
+    "message": "WS: $1 ⚠"
+  },
+  "overview_ws_none": {
+    "message": "WS: —"
+  },
+  "fallback_load_failed": {
+    "message": "Load failed: $1"
+  },
+  "fallback_load_timeout": {
+    "message": "Settings page load timeout — please reload extension (chrome://extensions → refresh)"
+  },
+  "dest_loading": {
+    "message": "Loading destinations…"
+  },
+  "btn_clear_highlights": {
+    "message": "Clear highlights"
+  },
+  "hl_clear_done": {
+    "message": "Cleared $1 highlights"
   }
 }

@@ -10,7 +10,7 @@
 | 页内 Readability | ✅ | Mozilla Readability 活 DOM |
 | 选区剪藏 | ✅ | popup 模式 / 右键 / 自动探测 |
 | 预览（标题可编辑 · 摘要） | ✅ | popup extract-preview |
-| Highlighter | ✅ | 页内划选；Alt+点击取消；剪藏高亮 |
+| Highlighter | ✅ | 页内划选；Alt+点击取消；popup 清除高亮；剪藏高亮 |
 | 精简模板 + 域名匹配 | ✅ | 内置 + **自定义 JSON 导入**（options） |
 | 文章模板后处理 | ✅ | Bridge：html→md **后再**套 body 模板 |
 | Desktop Bridge 高质量 MD | ✅ | 共享 `html-to-markdown` |

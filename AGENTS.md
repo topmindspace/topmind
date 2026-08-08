@@ -50,11 +50,11 @@ rg "WritebackEvidence" topmind-desktop/src/
 ## Current Truth
 
 ```text
-topmind = Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR
+topmind = Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Optional Obsidian
 ```
 
 **北极星**：最低摩擦个人动态流（`docs/ARCHITECTURE-RESET.md`）。  
-三者**只共享内容约定与行为契约**，无强制运行时绑定。边界：`PRODUCT-BOUNDARIES.md`。
+四者**只共享内容约定与行为契约**，无强制运行时绑定。边界：`PRODUCT-BOUNDARIES.md`。
 
 核心工作流：`收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整`。  
 用户概念 ≤5：`记一下 · 动态 · 专题 · 我的情况 · 写出来`。
@@ -108,7 +108,7 @@ contract · workspace-model · stream · memory · lifecycle · **writeback（�
 | Desktop | `topmind-desktop/package.json` | 独立 |
 | Clip Extension | `browser-extension/manifest.json` | 独立 |
 | UTR（可选） | `utr/VERSION` | 跟随 Desktop |
-| Obsidian Plugin（未来） | `obsidian-plugin/manifest.json` | 预留 |
+| Obsidian Plugin | `obsidian-plugin/manifest.json` | 独立 |
 
 ---
 
@@ -116,7 +116,7 @@ contract · workspace-model · stream · memory · lifecycle · **writeback（�
 
 1. `README.md`（**中文默认**）· `README.en.md`（English）  
 2. `docs/ARCHITECTURE-RESET.md` — **决策锁 · Target/Done · 实施阶段**  
-3. `PRODUCT-BOUNDARIES.md` — 三体边界  
+3. `PRODUCT-BOUNDARIES.md` — 四体边界  
 4. `PROJECT-MODEL.md` — 内容真源最高优先级  
 5. `DESIGN.md` — 产品交互 · 用户概念 ≤5  
 6. `SKILL-ARCHITECTURE.md` · `TOOLS.md`  
@@ -203,12 +203,15 @@ npm run utr:list
 npm run desktop:dev
 npm run desktop:validate
 npm run desktop:quality
+npm run obsidian:dev        # Obsidian plugin dev (esbuild watch)
+npm run obsidian:validate  # typecheck + test + build + pack:verify
+npm run obsidian:pack      # dist/topmind-obsidian-<ver>.zip
 npm run pack:skills           # dist/topmind-skills-<ver>.*
 npm run skills:install        # add owner/repo or path → host skills (see skills/INSTALL.md)
 npm run skills:update         # re-install from dest receipt
 npm run skills:list           # preview pack entries without writing
 npm run pack:extension        # dist/topmind-clip-extension-<ver>.zip
-npm run pack:all              # skills + extension (not Desktop)
+npm run pack:all              # skills + extension + obsidian (not Desktop)
 npm run desktop:pack:dir      # optional installers: pack:mac / pack:linux / pack:linux:arm64 / pack:win
 # Desktop artifacts: topmind-<ver>-<os>-<arch>.{dmg,exe,AppImage,deb}
 ```

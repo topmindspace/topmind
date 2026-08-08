@@ -6,11 +6,23 @@
 (function () {
   "use strict";
 
+  function ti18n(key, sub) {
+    try {
+      if (typeof chrome !== "undefined" && chrome?.i18n?.getMessage) {
+        var msg = chrome.i18n.getMessage(key, sub ? [sub] : undefined);
+        if (msg) return msg;
+      }
+    } catch {
+      /* fallback */
+    }
+    return key;
+  }
+
   // Listen for module load errors (import failures, CSP blocks, etc.)
   window.addEventListener("error", function (e) {
     var msgEl = document.getElementById("msg");
     if (msgEl && e && e.message) {
-      msgEl.textContent = "加载失败: " + e.message;
+      msgEl.textContent = ti18n("fallback_load_failed", e.message);
       msgEl.className = "msg-box err";
     }
   });
@@ -20,8 +32,7 @@
     if (!window.__topmindOptionsReady) {
       var msgEl = document.getElementById("msg");
       if (msgEl) {
-        msgEl.textContent =
-          "设置页加载超时 — 请重新加载扩展 (chrome://extensions → 刷新)";
+        msgEl.textContent = ti18n("fallback_load_timeout");
         msgEl.className = "msg-box err";
       }
     }

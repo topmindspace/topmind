@@ -70,16 +70,18 @@ async function refreshOverview() {
   if (hasToken) {
     const h = await healthCheck(cfgNow, { timeoutMs: 600 });
     bridgeOk = Boolean(h.ok && h.workspaceReady);
-    parts.push(bridgeOk ? "Bridge ✓" : h.ok ? "Bridge ⚠" : "Bridge ✗");
+    parts.push(bridgeOk ? t("overview_bridge_ok") : h.ok ? t("overview_bridge_warn") : t("overview_bridge_fail"));
   } else {
-    parts.push("Bridge —");
+    parts.push(t("overview_bridge_none"));
   }
   if (st.configured) {
     parts.push(
-      `WS: ${st.name || "✓"} ${st.permission === "granted" ? "✓" : "⚠"}`,
+      st.permission === "granted"
+        ? t("overview_ws_ok", st.name || "✓")
+        : t("overview_ws_warn", st.name || "✓"),
     );
   } else {
-    parts.push("WS: —");
+    parts.push(t("overview_ws_none"));
   }
   const ready = bridgeOk || (st.configured && st.permission === "granted");
   overviewEl.textContent = parts.join(" · ");

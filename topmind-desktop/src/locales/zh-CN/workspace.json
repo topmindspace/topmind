@@ -100,6 +100,8 @@
     "composeAiPolishing": "正在润色…",
     "composeAiPolishDone": "已润色输入框",
     "composeAiPolishFailed": "AI 润色失败，请重试",
+    "composeUrlHint": "检测到链接，建议使用快速捕获抓取正文到收件箱",
+    "composeUrlAction": "快速捕获",
     "openArticle": "打开笔记",
     "openInEditorTip": "在周期本中打开此段",
     "moreAppends": "条增补",

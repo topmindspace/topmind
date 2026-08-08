@@ -7,7 +7,7 @@
 ```text
 AGENTS.md                      ← Agent 行为规范唯一真源
 docs/ARCHITECTURE-RESET.md     ← 决策锁 · Target/Done · 实施阶段
-PRODUCT-BOUNDARIES.md          ← Skills / Desktop / UTR 三体边界
+PRODUCT-BOUNDARIES.md          ← Skills / Desktop / UTR / Obsidian 四体边界
 PROJECT-MODEL.md               ← 数据模型 + 6 条规约 + 命名 + 配置
 SKILL-ARCHITECTURE.md          ← Skill 架构 + frontmatter schema
 TOOLS.md                       ← UTR 命令面（可选）+ 写回契约
@@ -20,7 +20,7 @@ docs/README.md                 ← 文档索引 · ADR · 打包
 ## Quick Summary
 
 ```text
-topmind = Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR
+topmind = Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Optional Obsidian
 ```
 
 - **北极星**：最低摩擦个人动态流 — 记简单；AI 建议；用户确认；文件是真源。  
@@ -29,6 +29,7 @@ topmind = Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR
 - Skills：唯一入口 `topmind`；Host 文件工具为主；UTR 可选  
 - Desktop：**富工作台**；导航变薄；不硬依赖 UTR  
 - UTR：可选 CLI/MCP（**8 域 / 25 命令**；MCP 默认 17）  
+- Obsidian 插件：可选；Obsidian 内嵌动态流 + AI 副驾；复用 Kernel `lib/` 八引擎  
 - Kernel 写闸 · Memory · 建议条/待确认写入 · 待办 · AI 操作框架 · **活动窗口 / 动态增补** · **回执轮转 + AI Provider 动态参数**：**Done** — 见 `docs/ARCHITECTURE-RESET.md` §2 · `docs/adr/2026-08-07-engine-hardening-writeback-ai.md`
 
 ## Commands
@@ -38,6 +39,7 @@ npm run validate
 npm run docs:guard
 npm test
 npm run desktop:dev
+npm run obsidian:dev
 npm run pack:all
 npm run versions
 ```

@@ -1,14 +1,14 @@
 # Loop State File Format
 
 ```text
-{workspace}/.loop/
+{workspace}/.topmind/loop/
 ├── README.md
 ├── topics.md
 ├── inbox.md
 └── archive.md
 ```
 
-`.loop/` 遵循 `.obsidian` / `.git` 隐藏约定，不污染主视图。
+`.topmind/loop/` 遵循 `.obsidian` / `.git` 隐藏约定，不污染主视图。
 
 ## Template
 
@@ -45,7 +45,7 @@ done: 6 / total: 11
 
 - `继续 loop` / `从断点继续`：读 `cursor`，从该项继续  
 - 用户可手改 `cursor` 跳过/重排  
-- **若 `.loop/` 或 scope 文件缺失**：不报错；当作首次运行；通知用户后全跑并在 walk 中创建状态文件（不要预先写空文件）  
+- **若 `.topmind/loop/` 或 scope 文件缺失**：不报错；当作首次运行；通知用户后全跑并在 walk 中创建状态文件（不要预先写空文件）  
 
 ## Auditability
 

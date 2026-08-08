@@ -19,6 +19,7 @@ import {
   Send,
   Sparkles,
   MessageSquarePlus,
+  Link,
 } from "lucide-react";
 import { api } from "../../../services/api";
 import { emitLocal, onLocal } from "../../../plugins/host";
@@ -440,6 +441,11 @@ export function StreamDetailView() {
   const [composing, setComposing] = useState(false);
   const [polishing, setPolishing] = useState(false);
   const polishSessionRef = useRef<string | null>(null);
+  /** Compose URL detection — when true, show hint to use Quick Capture for fetch. */
+  const composeIsUrl = useMemo(
+    () => /^https?:\/\/\S+$/iu.test(composeText.trim()),
+    [composeText],
+  );
   /** Entry index currently showing in-card append composer */
   const [appendIdx, setAppendIdx] = useState<number | null>(null);
   const [appendText, setAppendText] = useState("");
@@ -1075,6 +1081,29 @@ export function StreamDetailView() {
 
       {/* Inline composer — primary capture path: 润色 → 记下。
           无 label/hint meta 行（降噪 2026-08）：placeholder 承担引导，计数在 PageHeader subtitle。 */}
+      {composeIsUrl ? (
+        <div
+          className="mb-2 flex items-center gap-2 rounded-[var(--radius-md)] border border-accent-border-subtle/50 bg-accent-bg-faint/20 px-2.5 py-1.5"
+          data-stream-compose-url-hint
+        >
+          <Link size={ICON.nano} className="shrink-0 text-accent-color" aria-hidden />
+          <span className="min-w-0 flex-1 text-3xs text-text-secondary">
+            {t("workspace:streamDetail.composeUrlHint", {
+              defaultValue: "检测到链接，建议使用快速捕获抓取正文到收件箱",
+            })}
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              emitLocal("overlay:open", { kind: "quick-capture", prefill: { source: composeText.trim() } } as never);
+              setComposeText("");
+            }}
+            className="shrink-0 rounded-full bg-accent-bg-subtle px-2 py-0.5 text-3xs font-medium text-accent-color hover:bg-accent-bg-faint/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+          >
+            {t("workspace:streamDetail.composeUrlAction", { defaultValue: "快速捕获" })}
+          </button>
+        </div>
+      ) : null}
       <div
         className={cn(
           "v4-stream-composer mb-2.5 rounded-[var(--radius-lg)]",
