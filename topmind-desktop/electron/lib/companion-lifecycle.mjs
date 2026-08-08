@@ -17,6 +17,7 @@ import {
   resolveAgentHosts,
   resolveOpencodeSkillsRoot,
   resolveCodebuddy,
+  resolveWorkbuddy,
   OBSIDIAN_PLUGIN_IDS,
 } from "./companion-detect.mjs";
 
@@ -97,6 +98,7 @@ export function resolveHostSkillsDest(hostId, opts = {}) {
 
   if (id === "opencode") return resolveOpencodeSkillsRoot(homeDir, cwd);
   if (id === "codebuddy") return resolveCodebuddy(homeDir, platform).skillsRoot;
+  if (id === "workbuddy") return resolveWorkbuddy(homeDir, platform).skillsRoot;
   if (id === "generic") return path.join(cwd, "topmind-skills");
 
   const def = AGENT_HOST_DEFS.find((h) => h.id === id);

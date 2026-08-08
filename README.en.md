@@ -50,7 +50,7 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Opti
 Two equivalent paths:
 
 **A. Via Desktop (recommended — detect + install / upgrade / uninstall)**  
-Open Desktop → **Settings → Companions**: auto-detects Claude Code / Codex / Hermes / OpenCode / CodeBuddy (best-effort), Chrome-family browsers, and Obsidian. Install / upgrade / uninstall Skills into host global skills roots; prepare Clip extension folder with guided Load-unpacked; install Obsidian plugin into the current workspace vault.
+Open Desktop → **Settings → Companions**: auto-detects Claude Code / Codex / Hermes / OpenCode / CodeBuddy / WorkBuddy (best-effort), Chrome-family browsers, and Obsidian. Install / upgrade / uninstall Skills into host global skills roots; prepare Clip extension folder with guided Load-unpacked; install Obsidian plugin into the current workspace vault.
 
 **B. Standalone CLI / pack (no Desktop)**
 ```bash

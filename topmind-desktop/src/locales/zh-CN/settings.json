@@ -339,7 +339,7 @@
     "help": "优先装到宿主全局 skills 目录并写回执。剪藏不会静默写入 Chrome；需开发者模式加载已解压目录。独立 CLI（scripts/install-skills.mjs）与 pack 路径仍然有效。",
     "bundledSkills": "捆绑 Skills 包 v{{version}}",
     "agentsTitle": "Agent 宿主 Skills",
-    "agentsDesc": "Claude Code / Codex / Hermes / OpenCode / CodeBuddy（尽力探测）",
+    "agentsDesc": "Claude Code / Codex / Hermes / OpenCode / CodeBuddy / WorkBuddy（尽力探测）",
     "noAgents": "未列出宿主",
     "hostPresent": "已检测到",
     "hostAbsent": "未安装宿主",

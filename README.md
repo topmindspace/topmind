@@ -50,7 +50,7 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Opti
 两条等价路径（二选一即可）：
 
 **A. 通过 Desktop（推荐 · 环境探测 + 一键装/升/卸）**  
-打开 Desktop → **设置 → 集成 (Companions)**：自动探测本机 Claude Code / Codex / Hermes / OpenCode / CodeBuddy 等宿主，以及 Chrome 族浏览器与 Obsidian；可对 Skills 执行安装 / 升级 / 卸载（优先装到宿主全局 skills 根），剪藏扩展「准备目录 + 引导加载」，Obsidian 插件装入当前工作区 vault。
+打开 Desktop → **设置 → 集成 (Companions)**：自动探测本机 Claude Code / Codex / Hermes / OpenCode / CodeBuddy / WorkBuddy 等宿主，以及 Chrome 族浏览器与 Obsidian；可对 Skills 执行安装 / 升级 / 卸载（优先装到宿主全局 skills 根），剪藏扩展「准备目录 + 引导加载」，Obsidian 插件装入当前工作区 vault。
 
 **B. 独立 CLI / pack（无 Desktop 时）**
 ```bash

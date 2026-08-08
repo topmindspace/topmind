@@ -339,7 +339,7 @@
     "help": "Prefers global host skills roots with a receipt. Clip never silent-loads into Chrome — use Developer mode → Load unpacked. Standalone CLI (scripts/install-skills.mjs) and pack paths remain valid.",
     "bundledSkills": "Bundled Skills pack v{{version}}",
     "agentsTitle": "Agent host Skills",
-    "agentsDesc": "Claude Code / Codex / Hermes / OpenCode / CodeBuddy (best-effort)",
+    "agentsDesc": "Claude Code / Codex / Hermes / OpenCode / CodeBuddy / WorkBuddy (best-effort)",
     "noAgents": "No hosts listed",
     "hostPresent": "Detected",
     "hostAbsent": "Host not found",

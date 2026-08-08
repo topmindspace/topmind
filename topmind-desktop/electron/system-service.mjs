@@ -59,6 +59,7 @@ import {
   uninstallObsidianPlugin,
   resolveEngineSkillsRoot,
 } from "./lib/companion-lifecycle.mjs";
+import { t as ei18n } from "./lib/electron-i18n.mjs";
 
 function secretAdapterFromCtx(ctx) {
   return ctx.secretAdapter || null;
@@ -386,7 +387,7 @@ export const SystemService = {
   /** Native picker for a plugin folder (must contain topmind-plugin.json). */
   async pickPluginFolder(_p, _ctx) {
     const result = await dialog.showOpenDialog({
-      title: "选择插件文件夹（含 topmind-plugin.json）",
+      title: ei18n("dialog.selectPluginFolder"),
       properties: ["openDirectory"],
     });
     if (result.canceled || !result.filePaths[0]) return { path: null };
@@ -396,7 +397,7 @@ export const SystemService = {
   /** Native picker for a plugin zip archive. */
   async pickPluginZip(_p, _ctx) {
     const result = await dialog.showOpenDialog({
-      title: "选择插件 zip",
+      title: ei18n("dialog.selectPluginZip"),
       properties: ["openFile"],
       filters: [{ name: "Plugin archive", extensions: ["zip"] }],
     });
@@ -754,7 +755,7 @@ export const SystemService = {
    */
   async pickWorkspaceFolder(_p, ctx) {
     const result = await dialog.showOpenDialog({
-      title: "选择 topmind 工作区",
+      title: ei18n("dialog.selectWorkspace"),
       properties: ["openDirectory", "createDirectory"],
       defaultPath: ctx.workspaceRoot?.userWorkspaceRoot || undefined,
     });
@@ -898,7 +899,7 @@ export const SystemService = {
   /** Pick a folder to use as an extra skills root (or local pack to install). */
   async pickSkillsFolder(_p, _ctx) {
     const result = await dialog.showOpenDialog({
-      title: "选择 Skills 目录（含 SKILL.md 或 topmind-pack.json）",
+      title: ei18n("dialog.selectSkillsDir"),
       properties: ["openDirectory"],
     });
     if (result.canceled || !result.filePaths[0]) return { path: null };

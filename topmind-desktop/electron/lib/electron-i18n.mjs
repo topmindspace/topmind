@@ -82,7 +82,13 @@ const STRINGS = {
     "window.hideOtherHint": "隐藏后应用仍在运行，可从托盘图标或全局快捷键打开。",
     "window.rememberChoice": "记住我的选择",
     "window.trayHiddenMac": "topmind 已最小化到托盘。点击托盘图标可重新打开。",
-    "window.trayHiddenOther": "topmind 已最小化到托盘。点击托盘图标可重新打开。"
+    "window.trayHiddenOther": "topmind 已最小化到托盘。点击托盘图标可重新打开。",
+
+    "dialog.selectPluginFolder": "选择插件文件夹（含 topmind-plugin.json）",
+    "dialog.selectPluginZip": "选择插件 zip",
+    "dialog.selectWorkspace": "选择 topmind 工作区",
+    "dialog.selectSkillsDir": "选择 Skills 目录（含 SKILL.md 或 topmind-pack.json）",
+    "dialog.publishedTweet": "已发布推文"
   },
   "en-US": {
     "menu.view": "View",
@@ -154,7 +160,13 @@ const STRINGS = {
     "window.hideOtherHint": "App stays running after hiding; reopen from tray icon or global shortcut.",
     "window.rememberChoice": "Remember my choice",
     "window.trayHiddenMac": "topmind minimized to tray. Click the tray icon to reopen.",
-    "window.trayHiddenOther": "topmind minimized to tray. Click the tray icon to reopen."
+    "window.trayHiddenOther": "topmind minimized to tray. Click the tray icon to reopen.",
+
+    "dialog.selectPluginFolder": "Select plugin folder (with topmind-plugin.json)",
+    "dialog.selectPluginZip": "Select plugin zip",
+    "dialog.selectWorkspace": "Select topmind workspace",
+    "dialog.selectSkillsDir": "Select Skills directory (with SKILL.md or topmind-pack.json)",
+    "dialog.publishedTweet": "Published tweet"
   },
 };
 

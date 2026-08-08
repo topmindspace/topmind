@@ -42,6 +42,11 @@ export const AGENT_HOST_DEFS = Object.freeze([
     name: "CodeBuddy",
     // best-effort — may report present:false when paths unknown
   },
+  {
+    id: "workbuddy",
+    name: "WorkBuddy",
+    // best-effort — may report present:false when paths unknown
+  },
 ]);
 
 /**
@@ -160,6 +165,65 @@ export function isOpencodePresent(homeDir, cwd = process.cwd()) {
 }
 
 /**
+ * Best-effort WorkBuddy probe (mirrors CodeBuddy pattern).
+ * @param {string} homeDir
+ * @param {string} [platform]
+ */
+export function resolveWorkbuddy(homeDir, platform = process.platform) {
+  /** @type {string[]} */
+  const hostCandidates = [path.join(homeDir, ".workbuddy")];
+  /** @type {string[]} */
+  const skillsCandidates = [path.join(homeDir, ".workbuddy", "skills")];
+
+  if (platform === "darwin") {
+    hostCandidates.push(
+      "/Applications/WorkBuddy.app",
+      path.join(homeDir, "Applications", "WorkBuddy.app"),
+    );
+  } else if (platform === "win32") {
+    const pf = process.env.PROGRAMFILES || "C:\\Program Files";
+    const pf86 = process.env["PROGRAMFILES(X86)"] || "C:\\Program Files (x86)";
+    const local = process.env.LOCALAPPDATA || path.join(homeDir, "AppData", "Local");
+    hostCandidates.push(
+      path.join(pf, "WorkBuddy"),
+      path.join(pf86, "WorkBuddy"),
+      path.join(local, "WorkBuddy"),
+      path.join(homeDir, ".workbuddy"),
+    );
+    skillsCandidates.push(path.join(local, "WorkBuddy", "skills"));
+  } else {
+    hostCandidates.push(
+      path.join(homeDir, ".local", "share", "workbuddy"),
+      "/opt/workbuddy",
+    );
+  }
+
+  let hostPath = null;
+  for (const c of hostCandidates) {
+    if (isDir(c) || isFile(c)) {
+      hostPath = c;
+      break;
+    }
+  }
+  let skillsRoot = null;
+  for (const c of skillsCandidates) {
+    if (isDir(c) || isDir(path.dirname(c))) {
+      skillsRoot = c;
+      break;
+    }
+  }
+  if (hostPath && !skillsRoot) {
+    skillsRoot = path.join(homeDir, ".workbuddy", "skills");
+  }
+
+  return {
+    present: Boolean(hostPath),
+    hostPath,
+    skillsRoot: skillsRoot || path.join(homeDir, ".workbuddy", "skills"),
+  };
+}
+
+/**
  * Best-effort CodeBuddy probe.
  * Intentional limit: product paths are not fully documented; report present only when a path is found.
  * @param {string} homeDir
@@ -273,6 +337,21 @@ export function resolveAgentHosts(homeDir = os.homedir(), opts = {}) {
         present: cb.present,
         skillsRoot: cb.skillsRoot,
         hostPath: cb.hostPath,
+        installed: det.installed,
+        installedVersion: det.installedVersion,
+        receiptPath: det.receiptPath,
+      });
+      continue;
+    }
+    if (def.id === "workbuddy") {
+      const wb = resolveWorkbuddy(home, platform);
+      const det = detectSkillsInstall(wb.skillsRoot);
+      out.push({
+        id: def.id,
+        name: def.name,
+        present: wb.present,
+        skillsRoot: wb.skillsRoot,
+        hostPath: wb.hostPath,
         installed: det.installed,
         installedVersion: det.installedVersion,
         receiptPath: det.receiptPath,

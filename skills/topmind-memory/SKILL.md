@@ -1,6 +1,6 @@
 ---
 name: topmind-memory
-version: 2.3.0
+version: 2.4.0
 description: >-
   更新「我的情况」或专题结论。Use when 记住这个、更新我的情况、加到专题记忆、写进 topic.md、
   沉淀结论。Do NOT use for 捕获、仅总结（→organize）、整理本周正文、出稿、doctor/loop.
