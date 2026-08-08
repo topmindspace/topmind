@@ -23,6 +23,7 @@
     "footerLine1": "工作区 = 你自己的本地文件夹（动态 · 专题 · 写出来 · 归档）",
     "footerLine2": "打开后：顶栏「记一下」· ⌘N · 全局 ⌘⇧N",
     "footerLine3": "文件永远是你的 · Desktop 是智能视图",
+    "companionsHint": "打开后可在 设置 → 集成 安装 Agent Skills / 剪藏扩展 / Obsidian 插件（可选，不阻塞）",
     "healthOk": "可用",
     "healthEmpty": "空目录",
     "healthBroken": "不可用",

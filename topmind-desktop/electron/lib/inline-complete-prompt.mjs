@@ -4,10 +4,40 @@
  *
  * Goal: selection rewrites match the **whole document's** structure and style
  * (headings, list markers, density, language) — not selection-only isolation.
+ *
+ * Locale-aware: pass `locale` ("zh"|"en" or "zh-CN"|"en-US"). Default zh.
  */
 
-/** System rules shared by all one-shot complete calls. */
-export const INLINE_SYSTEM = `你是 topmind 编辑器的写作助手（类似 Notion AI 的行内能力）。
+/**
+ * @param {string} [locale]
+ * @returns {"zh"|"en"}
+ */
+function resolveInlineLocale(locale) {
+  if (locale == null || locale === "") return "zh";
+  return String(locale).startsWith("en") ? "en" : "zh";
+}
+
+/**
+ * System rules for one-shot complete calls (bilingual).
+ * @param {string} [locale]
+ * @returns {string}
+ */
+export function getInlineSystem(locale) {
+  const lang = resolveInlineLocale(locale);
+  if (lang === "en") {
+    return `You are the topmind editor writing assistant (inline capability similar to Notion AI).
+Rules:
+- Output only the body text that can be written into the editor; do not output thinking, reasoning steps, analysis, or self-checks
+- Do not use <think> / <thinking> / <reasoning> tags or \`\`\`thinking code fences
+- Do not add prefixes like "Here is the result" / "Here is the rewritten version" or suffixes like "Hope this helps"
+- Do not wrap the entire result in quotes; do not wrap the whole result in a markdown code fence (unless the user explicitly wants a code block)
+- Keep the original language (unless the user asks for translation)
+- Preserve necessary Markdown structure (headings, lists, links, bold, etc.) when the context needs it
+- Do not invent facts absent from the source; when continuing, connect naturally without unrelated settings
+- For summaries, output concise bullets; for continuation, pick up from the break point
+- **Whole-document format consistency (critical)**: when "full document / document context" is provided, the rewrite must match the whole document's style and layout — heading levels, list markers (- / * / 1.), task lists, paragraph density, blank-line habits, link/bold style, mixed CJK/Latin habits; do not invent a separate structure or tone from the selection alone. Output only the replacement for the selection — do not restate the full document.`;
+  }
+  return `你是 topmind 编辑器的写作助手（类似 Notion AI 的行内能力）。
 规则：
 - 只输出可直接写入编辑器的正文结果；不要输出思考过程、推理步骤、分析、自我检查
 - 禁止使用 <think> / <thinking> / <reasoning> 等标签或 \`\`\`thinking 代码围栏
@@ -18,6 +48,10 @@ export const INLINE_SYSTEM = `你是 topmind 编辑器的写作助手（类似 N
 - 不要编造原文没有的事实；续写时合理衔接，不引入无关设定
 - 若是总结，输出简洁要点；若是续写，从断点自然接上
 - **整篇格式一致（关键）**：若提供了「全文/文档上下文」，改写结果必须贴合整篇文档的写法与版式——标题层级、列表标记（- / * / 1.）、任务列表、段落密度、空行习惯、链接/加粗风格、中英文混排习惯；禁止只按选区局部另起一套结构或语气。只输出替换选区的那一段，不要复述全文。`;
+}
+
+/** System rules shared by all one-shot complete calls (default zh for backward compat). */
+export const INLINE_SYSTEM = getInlineSystem("zh");
 
 /** Max chars of document context embedded in the user prompt. */
 export const DOCUMENT_CONTEXT_MAX = 6_000;
@@ -78,6 +112,14 @@ export function shouldAttachDocumentContext(mode, action) {
 }
 
 /**
+ * Default user instruction when none provided.
+ * @param {string} [locale]
+ */
+function defaultUserInstr(locale) {
+  return resolveInlineLocale(locale) === "en" ? "Polish this text." : "润色这段文字。";
+}
+
+/**
  * Build the user-facing prompt for `generateText` (no network).
  *
  * @param {{
@@ -86,6 +128,7 @@ export function shouldAttachDocumentContext(mode, action) {
  *   userInstr?: string,
  *   documentText?: string | null,
  *   action?: string,
+ *   locale?: string,
  * }} opts
  * @returns {{
  *   system: string,
@@ -96,11 +139,13 @@ export function shouldAttachDocumentContext(mode, action) {
  * }}
  */
 export function buildInlineCompletePrompt(opts = {}) {
+  const locale = resolveInlineLocale(opts.locale);
   const src = String(opts.text || "").trim();
   const mode = String(opts.mode || "rewrite");
-  const userInstr = String(opts.userInstr || "润色这段文字。").trim();
+  const userInstr = String(opts.userInstr || defaultUserInstr(locale)).trim();
   const action = String(opts.action || "");
   const rawDoc = opts.documentText != null ? String(opts.documentText) : "";
+  const system = getInlineSystem(locale);
 
   let documentBlock = "";
   let hasDocumentContext = false;
@@ -127,31 +172,57 @@ export function buildInlineCompletePrompt(opts = {}) {
 
   const wholeDocRule =
     hasDocumentContext || action === "format" || action === "polish"
-      ? "\n\n【整篇格式约束】输出必须与全文的 Markdown 结构与文风一致（标题层级、列表符号、段落密度、语言）；只输出应替换选区/目标段的正文，不要复述未选中的全文，不要另起冲突的标题体系。"
+      ? (locale === "en"
+        ? "\n\n【Whole-document format】Output must match the full document's Markdown structure and style (heading levels, list markers, paragraph density, language); output only the body that replaces the selection/target — do not restate unselected full text, do not invent a conflicting heading system."
+        : "\n\n【整篇格式约束】输出必须与全文的 Markdown 结构与文风一致（标题层级、列表符号、段落密度、语言）；只输出应替换选区/目标段的正文，不要复述未选中的全文，不要另起冲突的标题体系。")
       : "";
 
   let prompt;
   if (mode === "continue") {
-    prompt = `${userInstr}\n\n---\n上文（请接续，不要重复）：\n${src || "（空文档）"}\n---\n\n请只输出续写内容：`;
+    if (locale === "en") {
+      prompt = `${userInstr}\n\n---\nPreceding text (continue from here, do not repeat):\n${src || "(empty document)"}\n---\n\nOutput only the continuation:`;
+    } else {
+      prompt = `${userInstr}\n\n---\n上文（请接续，不要重复）：\n${src || "（空文档）"}\n---\n\n请只输出续写内容：`;
+    }
   } else if (mode === "summarize") {
-    prompt = `${userInstr}\n\n---\n原文：\n${src}\n---\n\n请只输出总结：`;
+    if (locale === "en") {
+      prompt = `${userInstr}\n\n---\nSource:\n${src}\n---\n\nOutput only the summary:`;
+    } else {
+      prompt = `${userInstr}\n\n---\n原文：\n${src}\n---\n\n请只输出总结：`;
+    }
   } else if (mode === "generate") {
-    const ctx = documentBlock
-      ? `文档上下文（匹配其结构与语气）：\n${documentBlock}\n\n`
-      : src
-        ? `参考上下文：\n${src}\n\n`
-        : "";
-    prompt = `${userInstr}${wholeDocRule}\n\n${ctx}请只输出生成的正文：`;
+    if (locale === "en") {
+      const ctx = documentBlock
+        ? `Document context (match its structure and tone):\n${documentBlock}\n\n`
+        : src
+          ? `Reference context:\n${src}\n\n`
+          : "";
+      prompt = `${userInstr}${wholeDocRule}\n\n${ctx}Output only the generated body:`;
+    } else {
+      const ctx = documentBlock
+        ? `文档上下文（匹配其结构与语气）：\n${documentBlock}\n\n`
+        : src
+          ? `参考上下文：\n${src}\n\n`
+          : "";
+      prompt = `${userInstr}${wholeDocRule}\n\n${ctx}请只输出生成的正文：`;
+    }
   } else {
     // rewrite (polish / format / fix / shorter / …)
-    const docSection = documentBlock
-      ? `\n\n---\n全文/文档上下文（仅供对齐结构与风格，勿复述全文）：\n${documentBlock}\n---`
-      : "";
-    prompt = `${userInstr}${wholeDocRule}\n\n---\n选中原文：\n${src}\n---${docSection}\n\n请只输出改写结果：`;
+    if (locale === "en") {
+      const docSection = documentBlock
+        ? `\n\n---\nFull document / document context (for structure and style only — do not restate in full):\n${documentBlock}\n---`
+        : "";
+      prompt = `${userInstr}${wholeDocRule}\n\n---\nSelected text:\n${src}\n---${docSection}\n\nOutput only the rewrite:`;
+    } else {
+      const docSection = documentBlock
+        ? `\n\n---\n全文/文档上下文（仅供对齐结构与风格，勿复述全文）：\n${documentBlock}\n---`
+        : "";
+      prompt = `${userInstr}${wholeDocRule}\n\n---\n选中原文：\n${src}\n---${docSection}\n\n请只输出改写结果：`;
+    }
   }
 
   return {
-    system: INLINE_SYSTEM,
+    system,
     prompt,
     mode,
     hasDocumentContext,

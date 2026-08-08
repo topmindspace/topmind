@@ -20,6 +20,7 @@ function surfaceLabel(surface: string, t: TFunction): string {
   if (surface === "desktop") return t("settings:about.surfaceDesktop");
   if (surface === "skills") return t("settings:about.surfaceSkills");
   if (surface === "extension") return t("settings:about.surfaceExtension");
+  if (surface === "obsidian") return t("settings:about.surfaceObsidian");
   return surface;
 }
 
@@ -30,6 +31,14 @@ function formatSurfaceStatus(
   if (!s) return { text: t("settings:about.notChecked"), tone: "muted" };
   if (s.reason === "error") return { text: s.error || t("settings:about.failed"), tone: "warn" };
   if (s.reason === "not-bundled") {
+    if (s.surface === "obsidian") {
+      return {
+        text: s.latestVersion
+          ? t("settings:about.obsidianOnlineVersion", { version: s.latestVersion })
+          : t("settings:about.obsidianStandalone"),
+        tone: "muted",
+      };
+    }
     return {
       text: s.latestVersion
         ? t("settings:about.extensionOnlineVersion", { version: s.latestVersion })
@@ -54,7 +63,7 @@ function SurfaceUpdateRow({
   info,
   t,
 }: {
-  surface: "desktop" | "skills" | "extension";
+  surface: "desktop" | "skills" | "extension" | "obsidian";
   info: SurfaceUpdateInfo | undefined;
   t: TFunction;
 }) {
@@ -236,6 +245,7 @@ export function AboutPanel({ settings }: { settings: AppSettings }) {
               <SurfaceUpdateRow surface="desktop" info={updateInfo.desktop ?? updateInfo} t={t} />
               <SurfaceUpdateRow surface="skills" info={updateInfo.skills} t={t} />
               <SurfaceUpdateRow surface="extension" info={updateInfo.extension} t={t} />
+              <SurfaceUpdateRow surface="obsidian" info={updateInfo.obsidian} t={t} />
             </div>
           )
         ) : (

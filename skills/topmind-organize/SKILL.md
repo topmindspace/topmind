@@ -1,6 +1,6 @@
 ---
 name: topmind-organize
-version: 2.2.0
+version: 2.3.0
 description: >-
   整理本周动态、专题内整理/研究/分析/路由 Inbox。Use when 整理本周、整理、分析、研究、对比、总结要点、organize、summarize。
   Do NOT use for 首次捕获、最终出稿、仅写我的情况、快速 doctor、全库 loop.

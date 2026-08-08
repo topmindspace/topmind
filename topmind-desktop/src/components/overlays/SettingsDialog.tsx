@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Settings, Bot, FolderTree, Info, Loader2, Puzzle, BookOpen, Twitter, Sparkles, Terminal, FileInput } from "lucide-react";
+import { Settings, Bot, FolderTree, Info, Loader2, Puzzle, BookOpen, Twitter, Sparkles, Terminal, FileInput, Link2 } from "lucide-react";
 import { useViewStore } from "../../stores/view-store";
 import { useRegistry } from "../../plugins/registry";
 import { ICON } from "../../lib/icons";
@@ -12,6 +12,7 @@ import { AboutPanel } from "../settings/AboutPanel";
 import { PluginsPanel } from "../settings/PluginsPanel";
 import { SkillsPanel } from "../settings/SkillsPanel";
 import { ToolsPanel } from "../settings/ToolsPanel";
+import { CompanionsPanel } from "../settings/CompanionsPanel";
 import { SettingsLayout, type SettingsTabItem } from "./SettingsLayout";
 import { useSettingsController } from "./useSettingsController";
 
@@ -45,6 +46,7 @@ export function SettingsDialog() {
       { id: "skills", label: t("settings:tabs.skills"), icon: Sparkles, order: 25, group: t("settings:groups.agent") },
       { id: "tools", label: t("settings:tabs.tools"), icon: Terminal, order: 30, group: t("settings:groups.agent") },
       { id: "plugins", label: t("settings:tabs.plugins"), icon: Puzzle, order: 40, group: t("settings:groups.extensions") },
+      { id: "companions", label: t("settings:tabs.companions"), icon: Link2, order: 45, group: t("settings:groups.extensions") },
     ];
     const dynamic = settingsSlots.map((slot) => ({
       id: slot.id,
@@ -77,6 +79,8 @@ export function SettingsDialog() {
         return <ToolsPanel settings={settings} />;
       case "plugins":
         return <PluginsPanel settings={settings} update={update} />;
+      case "companions":
+        return <CompanionsPanel settings={settings} />;
       case "about":
         return <AboutPanel settings={settings} />;
       default: {

@@ -25,6 +25,10 @@ UTR                →  bundled in Desktop engine; CLI via repo (no separate ins
 
 **Do not** treat `topmind-skills-*` as the Desktop installer. Skills are Markdown skill packs for agent hosts; Desktop is a native Electron app. **Do not** confuse `topmind-obsidian-*` with Desktop — it is a Vault plugin zip only.
 
+### Install companions from Desktop (no separate download required when bundled)
+
+Desktop **Settings → Companions** can install/upgrade/uninstall Skills into detected agent hosts, prepare the Clip extension folder (guided Load-unpacked only — browsers block silent sideload), and install the Obsidian plugin into the current vault when `.obsidian` is present. Standalone CLI/pack paths remain valid. In-app **About → Check for updates** covers Desktop + Skills + Clip + Obsidian surfaces via public `latest.json`.
+
 ## Commands (repo root)
 
 | Command | Output |

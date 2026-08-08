@@ -46,26 +46,37 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Opti
 2. 在 Obsidian 设置中启用插件，`⌘P` 打开命令面板运行 **Topmind: 打开动态工作台**。
 3. 详细指南：[`obsidian-plugin/README.zh-CN.md`](./obsidian-plugin/README.zh-CN.md) · [English Doc](./obsidian-plugin/README.md)
 
-### 🤖 场景 3：为 Agent (Claude Code / OpenCode / Codex) 导入 Skills
-1. 在项目根目录或命令行运行一键安装：
-   ```bash
-   npm run skills:install
-   ```
-2. 详细指南：[`skills/INSTALL.md`](./skills/INSTALL.md) · [`SKILL-ARCHITECTURE.md`](./SKILL-ARCHITECTURE.md)
+### 🤖 场景 3：为 Agent (Claude Code / OpenCode / Codex / Hermes…) 导入 Skills
+两条等价路径（二选一即可）：
+
+**A. 通过 Desktop（推荐 · 环境探测 + 一键装/升/卸）**  
+打开 Desktop → **设置 → 集成 (Companions)**：自动探测本机 Claude Code / Codex / Hermes / OpenCode / CodeBuddy 等宿主，以及 Chrome 族浏览器与 Obsidian；可对 Skills 执行安装 / 升级 / 卸载（优先装到宿主全局 skills 根），剪藏扩展「准备目录 + 引导加载」，Obsidian 插件装入当前工作区 vault。
+
+**B. 独立 CLI / pack（无 Desktop 时）**
+```bash
+npm run skills:install          # 或 node scripts/install-skills.mjs add topmindspace/topmind -g
+```
+详细：[`skills/INSTALL.md`](./skills/INSTALL.md) · [`SKILL-ARCHITECTURE.md`](./SKILL-ARCHITECTURE.md)
 
 ### ✂️ 场景 4：浏览器剪藏 (Clip Extension)
-1. 从 [Releases](https://github.com/topmindspace/topmind/releases) 下载 `topmind-clip-extension-<ver>.zip`，解压后在 Chrome/Edge 以「已解压扩展」加载。
-2. 配置 Desktop Clip Bridge（推荐）或本机工作区目录直写。
-3. 详细指南：[`browser-extension/README.md`](./browser-extension/README.md)
+1. **Desktop 内**：设置 → 集成 →「准备剪藏扩展」解压到本机托管目录，按引导在 Chrome/Edge 以「加载已解压的扩展」安装（浏览器安全模型禁止静默注入）。  
+2. **独立安装**：从 [Releases](https://github.com/topmindspace/topmind/releases) 下载 `topmind-clip-extension-<ver>.zip`，同样手动加载。  
+3. 配置 Desktop Clip Bridge（推荐）或本机工作区目录直写。指南：[`browser-extension/README.md`](./browser-extension/README.md)
+
+### 🌐 语言 / 本地化
+
+- UI 与工作区契约均支持 **zh-CN / en-US**（设置 → 通用 → 界面语言；工作区 `topmind.yaml` 的 `locale` / `workspace.locale`）。
+- **AI 输出跟语言走**：Agent 系统提示、行内润色/续写、待办提取与维护、建议条等均按解析后的 locale 生成中文或英文提示与结果；`memory/todo.md` 标题等耐久文案也会按 locale 序列化。
+- 扩展 / Obsidian 插件各自有 locale 文件，键与 Desktop 一样要求中英对齐。
 
 ### 🔄 升级怎么做
 
 | 表面 | 升级路径 |
 |------|----------|
-| **Desktop** | Releases 新安装包覆盖安装，或应用内「检查更新」；工作区文件保留 |
-| **Obsidian** | 新 zip 覆盖 `plugins/topmind-stream/` / BRAT 更新；Vault 内容保留 |
-| **Skills** | `npm run skills:update` 或 `npx skills update -g -y`（见 [`skills/INSTALL.md`](./skills/INSTALL.md)） |
-| **Clip** | 新 zip 覆盖扩展目录后在 `chrome://extensions` 重新加载 |
+| **Desktop** | Releases 新安装包覆盖安装，或应用内「关于 → 检查更新」；工作区文件保留 |
+| **Skills** | Desktop **设置 → 集成** 对已探测宿主点「升级」；或 `npm run skills:update` / CLI（见 [`skills/INSTALL.md`](./skills/INSTALL.md)） |
+| **Obsidian** | Desktop 集成页安装到当前 vault，或新 zip 覆盖 `plugins/topmind-stream/` / BRAT；Vault 内容保留 |
+| **Clip** | 集成页「准备」覆盖托管目录后于 `chrome://extensions` 重新加载；或独立新 zip |
 | **UTR** | 随 Desktop 安装包；源码用仓库 `utr/` |
 
 完整产品标签 **`v*`** 会打包 Skills + Extension + **Obsidian** + Desktop；表面标签 `skills-v*` / `extension-v*` / `obsidian-v*` / `desktop-v*` 只构建对应表面。详见 [`docs/PACKAGING.md`](./docs/PACKAGING.md)。

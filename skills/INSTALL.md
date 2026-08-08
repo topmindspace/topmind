@@ -23,6 +23,19 @@ Daily entry after install: **`topmind`**
 
 ---
 
+## 0. Via Desktop（推荐 · 探测 + 装/升/卸）
+
+若已安装 **topmind Desktop**，不必先跑 CLI：
+
+1. 打开 **设置 → 集成 (Companions)**  
+2. 查看已探测的 Agent 宿主（Claude Code · Codex · Hermes · OpenCode · CodeBuddy 等）  
+3. 对目标宿主点 **安装 / 升级 / 卸载**（优先全局 skills 根 + 回执；卸载只删托管条目，不动无关用户 skill）  
+4. 同一页还可：**准备剪藏扩展**（引导浏览器 Load unpacked）、**安装 Obsidian 插件**到当前工作区 vault  
+
+独立 CLI / pack 路径仍然有效（无 Desktop 时用本节后续命令）。宿主探测与装机逻辑在 Desktop 内为纯 FS，与本脚本语义对齐。
+
+---
+
 ## Two installers (pick one)
 
 ### A. Community CLI — `npx skills`（和开源 skills 生态一致）

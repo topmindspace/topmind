@@ -48,6 +48,17 @@ import {
   readSkillsExtraReceipt,
   summarizeSkillsPack,
 } from "./lib/skills-extra.mjs";
+import {
+  getCompanionStatus,
+  installSkillsToHost,
+  uninstallSkillsFromHost,
+  upgradeSkillsOnHost,
+  prepareClipExtensionInstall,
+  getClipExtensionManagedDir,
+  installObsidianPlugin,
+  uninstallObsidianPlugin,
+  resolveEngineSkillsRoot,
+} from "./lib/companion-lifecycle.mjs";
 
 function secretAdapterFromCtx(ctx) {
   return ctx.secretAdapter || null;
@@ -254,7 +265,7 @@ export const SystemService = {
   },
 
   /**
-   * Multi-surface update check (Desktop + Skills pack + Clip Extension).
+   * Multi-surface update check (Desktop + Skills pack + Clip Extension + Obsidian).
    * Desktop version is derived from installer asset names (topmind-X.Y.Z-*),
    * never from product tags like v1.0.0 (those are monorepo ship events).
    */
@@ -281,6 +292,11 @@ export const SystemService = {
           current: result.extension?.currentVersion,
           latest: result.extension?.latestVersion,
           reason: result.extension?.reason,
+        },
+        obsidian: {
+          current: result.obsidian?.currentVersion,
+          latest: result.obsidian?.latestVersion,
+          reason: result.obsidian?.reason,
         },
       });
       return result;
@@ -323,10 +339,12 @@ export const SystemService = {
         desktop: emptySurface("desktop"),
         skills: emptySurface("skills"),
         extension: emptySurface("extension"),
+        obsidian: emptySurface("obsidian"),
         model: {
           desktopBundlesSkills: true,
           desktopBundlesUtr: true,
           extensionIsBrowser: true,
+          obsidianIsVaultPlugin: true,
         },
       };
     }
@@ -342,7 +360,9 @@ export const SystemService = {
           ? check.skills
           : surface === "extension"
             ? check.extension
-            : check.desktop || check;
+            : surface === "obsidian"
+              ? check.obsidian
+              : check.desktop || check;
       target = s?.assets?.[0]?.url || s?.releaseUrl || check.releasesUrl || "";
     }
     if (!target) throw new Error("没有可打开的更新链接（尚未检查到可用版本）");
@@ -810,7 +830,7 @@ export const SystemService = {
    */
   async getSkillsStatus(_p, ctx) {
     const rt = await import("./lib/skills-runtime.mjs");
-    const { SKILL_PROMPTS } = await import("./ai-prompts.mjs");
+    const { getSkillPrompts, resolvePromptLocale } = await import("./ai-prompts.mjs");
     const engineRoot = ctx.workspaceRoot?.engineRoot || getEngineRoot();
     const settings = await loadAppSettings(
       ctx.workspaceStatePaths.settingsFilePath,
@@ -822,12 +842,19 @@ export const SystemService = {
     const status = rt.getSkillsStatus({ engineRoot, extraRoots });
     const enabledIds = settings?.ai?.enabledSkillIds || null;
     const catalog = rt.listSkillCatalog({ engineRoot, enabledIds, extraRoots });
+    // UI locale when set; otherwise zh default (slash seeds are short prompt seeds)
+    const uiLoc = settings?.ui?.locale;
+    const skillLocale = uiLoc && uiLoc !== "auto" ? resolvePromptLocale(uiLoc) : "zh";
+    const skillPrompts = getSkillPrompts(skillLocale);
+    const slashFallback = skillLocale === "en"
+      ? (skillId) => `Follow skill ${skillId} (load_skill first).`
+      : (skillId) => `请按 ${skillId} skill 执行（先 load_skill）。`;
     const slash = Object.entries(rt.SLASH_TO_SKILL).map(([cmd, skillId]) => {
       const key = skillId === "topmind" ? "topmind" : skillId.replace(/^topmind-/, "");
       return {
         command: cmd,
         skillId,
-        prompt: SKILL_PROMPTS[key] || `请按 ${skillId} skill 执行（先 load_skill）。`,
+        prompt: skillPrompts[key] || slashFallback(skillId),
       };
     });
     const managedExtraRoot = getSkillsExtraRoot();
@@ -913,6 +940,140 @@ export const SystemService = {
     if (!ok) return { ok: false, path: packRoot };
     const summary = await summarizeSkillsPack(packRoot);
     return { ok: true, path: packRoot, summary: summary.ok ? summary : null };
+  },
+
+  // ── Companion lifecycle (agent hosts · clip · obsidian) ─────────────────
+
+  /** Detect agent hosts, browsers, Obsidian + managed companion status. */
+  async detectCompanions(_p, ctx) {
+    return SystemService.getCompanionStatus(_p, ctx);
+  },
+
+  async getCompanionStatus(_p, ctx) {
+    const engineRoot = ctx?.workspaceRoot?.engineRoot || getEngineRoot() || null;
+    const workspaceRoot = ctx?.workspaceRoot?.userWorkspaceRoot || null;
+    const desktopStateHome = ctx?.workspaceStatePaths?.desktopStateHome || null;
+    const status = await getCompanionStatus({
+      workspaceRoot,
+      engineRoot,
+      desktopStateHome: desktopStateHome || undefined,
+    });
+    return { ok: true, ...status };
+  },
+
+  /**
+   * Install bundled skills pack into an agent host (claude-code, codex, …).
+   * @param {{ hostId: string, mode?: 'copy'|'symlink', dest?: string }} p
+   */
+  async installCompanionSkills({ hostId, mode, dest } = {}, ctx) {
+    if (!hostId) throw new Error("hostId required");
+    const engineRoot = ctx?.workspaceRoot?.engineRoot || getEngineRoot() || null;
+    const sourceRoot = resolveEngineSkillsRoot({ engineRoot });
+    const result = await installSkillsToHost({
+      hostId,
+      mode: mode === "symlink" ? "symlink" : "copy",
+      dest: dest || undefined,
+      sourceRoot,
+      engineRoot,
+    });
+    if (!result.ok) throw new Error(result.error || "skills install failed");
+    logInfo("system", "companion skills installed", {
+      hostId,
+      dest: result.dest,
+      version: result.version,
+    });
+    return result;
+  },
+
+  async uninstallCompanionSkills({ hostId, dest } = {}, _ctx) {
+    if (!hostId) throw new Error("hostId required");
+    const result = await uninstallSkillsFromHost({ hostId, dest: dest || undefined });
+    if (!result.ok) throw new Error(result.error || "skills uninstall failed");
+    logInfo("system", "companion skills uninstalled", { hostId, dest: result.dest });
+    return result;
+  },
+
+  async upgradeCompanionSkills({ hostId, mode, dest } = {}, ctx) {
+    if (!hostId) throw new Error("hostId required");
+    const engineRoot = ctx?.workspaceRoot?.engineRoot || getEngineRoot() || null;
+    const sourceRoot = resolveEngineSkillsRoot({ engineRoot });
+    const result = await upgradeSkillsOnHost({
+      hostId,
+      mode,
+      dest: dest || undefined,
+      sourceRoot,
+      engineRoot,
+    });
+    if (!result.ok) throw new Error(result.error || "skills upgrade failed");
+    logInfo("system", "companion skills upgraded", {
+      hostId,
+      dest: result.dest,
+      version: result.version,
+    });
+    return result;
+  },
+
+  /**
+   * Prepare Clip extension for guided load-unpacked (never silent Chrome install).
+   */
+  async prepareClipExtension(_p, ctx) {
+    const engineRoot = ctx?.workspaceRoot?.engineRoot || getEngineRoot() || null;
+    const desktopStateHome = ctx?.workspaceStatePaths?.desktopStateHome || null;
+    const result = await prepareClipExtensionInstall({
+      engineRoot,
+      desktopStateHome: desktopStateHome || undefined,
+    });
+    if (!result.ok) throw new Error(result.error || "prepare clip extension failed");
+    logInfo("system", "clip extension prepared", { path: result.path, version: result.version });
+    return result;
+  },
+
+  async openClipExtensionFolder(_p, ctx) {
+    const desktopStateHome = ctx?.workspaceStatePaths?.desktopStateHome || null;
+    const dir = getClipExtensionManagedDir({
+      desktopStateHome: desktopStateHome || undefined,
+    });
+    await fs.mkdir(dir, { recursive: true });
+    await shell.openPath(dir);
+    return { ok: true, path: dir };
+  },
+
+  /**
+   * Install Obsidian plugin into vault (default: current workspace if .obsidian present).
+   * @param {{ vaultPath?: string }} [p]
+   */
+  async installObsidianPlugin({ vaultPath } = {}, ctx) {
+    const engineRoot = ctx?.workspaceRoot?.engineRoot || getEngineRoot() || null;
+    const vaultRoot =
+      (vaultPath && String(vaultPath).trim()) ||
+      ctx?.workspaceRoot?.userWorkspaceRoot ||
+      null;
+    const result = await installObsidianPlugin({
+      vaultRoot,
+      engineRoot,
+    });
+    if (!result.ok) {
+      if (result.guided) {
+        return result;
+      }
+      throw new Error(result.error || "obsidian plugin install failed");
+    }
+    logInfo("system", "obsidian plugin installed", {
+      path: result.path,
+      version: result.version,
+    });
+    return result;
+  },
+
+  async uninstallObsidianPlugin({ vaultPath } = {}, ctx) {
+    const vaultRoot =
+      (vaultPath && String(vaultPath).trim()) ||
+      ctx?.workspaceRoot?.userWorkspaceRoot ||
+      null;
+    const result = await uninstallObsidianPlugin({ vaultRoot });
+    if (!result.ok) throw new Error(result.error || "obsidian plugin uninstall failed");
+    logInfo("system", "obsidian plugin uninstalled", { removed: result.removed });
+    return result;
   },
 
   async getWorkspaceConfig(_p, ctx) {

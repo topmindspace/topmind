@@ -4,7 +4,7 @@
   "label": "topmind",
   "description": "topmind skill pack: single daily entry topmind + progressive disclosure (shared/ + references/), Agent Skills open-standard aligned, capture-first template-driven categories, optional weread/x connectors. File-system-first content truth; UTR optional.",
   "daily_entry": "topmind",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "updated": "2026-08-08",
   "license": "MIT",
   "locales": {

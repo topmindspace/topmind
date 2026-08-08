@@ -8,6 +8,7 @@ import {
   desktopVersionFromRelease,
   skillsVersionFromAssets,
   extensionVersionFromAssets,
+  obsidianVersionFromAssets,
   assetMatcher,
   pickAssets,
   pickLatestReleaseFor,
@@ -46,6 +47,13 @@ test("desktopVersionFromAssets reads topmind-X.Y.Z installers", () => {
   assert.equal(
     extensionVersionFromAssets([{ name: "topmind-clip-extension-1.0.0.zip" }]),
     "1.0.0",
+  );
+  assert.equal(
+    obsidianVersionFromAssets([
+      { name: "topmind-obsidian-2.0.0.zip" },
+      { name: "topmind-obsidian-2.2.0.zip" },
+    ]),
+    "2.2.0",
   );
 });
 
@@ -113,6 +121,11 @@ test("checkForDesktopUpdate uses asset version not product tag", async () => {
           size: 20,
           browser_download_url: "https://example.com/ext.zip",
         },
+        {
+          name: "topmind-obsidian-2.2.0.zip",
+          size: 30,
+          browser_download_url: "https://example.com/obs.zip",
+        },
       ],
     },
   ];
@@ -129,6 +142,7 @@ test("checkForDesktopUpdate uses asset version not product tag", async () => {
     forceApi: true,
     skillsVersion: "1.0.0",
     extensionVersion: "1.0.0",
+    obsidianVersion: "2.2.0",
   });
   assert.equal(result.ok, true);
   assert.equal(result.latestVersion, "1.0.0");
@@ -139,6 +153,7 @@ test("checkForDesktopUpdate uses asset version not product tag", async () => {
     currentVersion: "0.9.0",
     skillsVersion: "0.9.0",
     extensionVersion: "0.9.0",
+    obsidianVersion: "2.0.0",
     platform: "darwin",
     arch: "arm64",
     fetchImpl,
@@ -150,6 +165,39 @@ test("checkForDesktopUpdate uses asset version not product tag", async () => {
   assert.equal(multi.skills.latestVersion, "1.0.0");
   assert.equal(multi.extension.updateAvailable, true);
   assert.equal(multi.extension.latestVersion, "1.0.0");
+  assert.equal(multi.obsidian.updateAvailable, true);
+  assert.equal(multi.obsidian.latestVersion, "2.2.0");
+  assert.equal(multi.obsidian.surface, "obsidian");
+});
+
+test("obsidian surface not-bundled when version unknown", async () => {
+  const payload = [
+    {
+      draft: false,
+      tag_name: "v1.0.0",
+      html_url: "https://github.com/x/y/releases/tag/v1.0.0",
+      assets: [{ name: "topmind-obsidian-2.2.0.zip", size: 1, browser_download_url: "https://ex/o.zip" }],
+    },
+  ];
+  const fetchImpl = async () => ({
+    ok: true,
+    json: async () => payload,
+  });
+  const multi = await checkAllSurfaces({
+    currentVersion: "1.0.0",
+    skillsVersion: "1.0.0",
+    extensionVersion: null,
+    obsidianVersion: null,
+    platform: "darwin",
+    arch: "arm64",
+    fetchImpl,
+    forceApi: true,
+  });
+  assert.equal(multi.obsidian.reason, "not-bundled");
+  assert.equal(multi.obsidian.currentVersion, null);
+  assert.equal(multi.obsidian.latestVersion, "2.2.0");
+  assert.equal(multi.obsidian.updateAvailable, false);
+  assert.equal(multi.model.obsidianIsVaultPlugin, true);
 });
 
 test("checkForDesktopUpdate reports newer desktop-v release", async () => {

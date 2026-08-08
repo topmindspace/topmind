@@ -46,26 +46,37 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Opti
 2. Enable the plugin in Obsidian settings, press `⌘P` to open Command Palette and run **Topmind: Open Stream Workbench**.
 3. Detailed guide: [`obsidian-plugin/README.md`](./obsidian-plugin/README.md) · [中文文档](./obsidian-plugin/README.zh-CN.md)
 
-### 🤖 Scenario 3: Import Skills for AI Agents (Claude Code / OpenCode / Codex)
-1. Run the one-click installer from your terminal:
-   ```bash
-   npm run skills:install
-   ```
-2. Detailed guide: [`skills/INSTALL.md`](./skills/INSTALL.md) · [`SKILL-ARCHITECTURE.md`](./SKILL-ARCHITECTURE.md)
+### 🤖 Scenario 3: Skills for AI Agents (Claude Code / OpenCode / Codex / Hermes…)
+Two equivalent paths:
+
+**A. Via Desktop (recommended — detect + install / upgrade / uninstall)**  
+Open Desktop → **Settings → Companions**: auto-detects Claude Code / Codex / Hermes / OpenCode / CodeBuddy (best-effort), Chrome-family browsers, and Obsidian. Install / upgrade / uninstall Skills into host global skills roots; prepare Clip extension folder with guided Load-unpacked; install Obsidian plugin into the current workspace vault.
+
+**B. Standalone CLI / pack (no Desktop)**
+```bash
+npm run skills:install          # or: node scripts/install-skills.mjs add topmindspace/topmind -g
+```
+Guide: [`skills/INSTALL.md`](./skills/INSTALL.md) · [`SKILL-ARCHITECTURE.md`](./SKILL-ARCHITECTURE.md)
 
 ### ✂️ Scenario 4: Browser Clip Extension
-1. Download `topmind-clip-extension-<ver>.zip` from [Releases](https://github.com/topmindspace/topmind/releases), unzip, and load as an unpacked extension in Chrome/Edge.
-2. Configure Desktop Clip Bridge (recommended) or a local workspace folder.
-3. Guide: [`browser-extension/README.md`](./browser-extension/README.md)
+1. **In Desktop**: Settings → Companions → Prepare Clip extension (extracts to a managed folder), then follow Load-unpacked instructions (browsers block silent sideload).  
+2. **Standalone**: download `topmind-clip-extension-<ver>.zip` from [Releases](https://github.com/topmindspace/topmind/releases) and load unpacked the same way.  
+3. Configure Desktop Clip Bridge (recommended) or a local workspace folder. Guide: [`browser-extension/README.md`](./browser-extension/README.md)
+
+### 🌐 Language / locale
+
+- UI and workspace contract support **zh-CN / en-US** (Settings → General → UI language; workspace `topmind.yaml` `locale` / `workspace.locale`).
+- **AI follows locale**: agent system prompts, inline polish/continue, todo extract/maintain, suggestion copy, and durable headings such as `memory/todo.md` are generated in the resolved language.
+- Extension and Obsidian plugin locales keep key parity with Desktop.
 
 ### 🔄 How to upgrade
 
 | Surface | Upgrade path |
 |---------|--------------|
-| **Desktop** | Install newer package from Releases, or in-app **Check for updates**; workspace files stay |
-| **Obsidian** | Replace files under `plugins/topmind-stream/` / BRAT update; vault content stays |
-| **Skills** | `npm run skills:update` or `npx skills update -g -y` (see [`skills/INSTALL.md`](./skills/INSTALL.md)) |
-| **Clip** | Replace extension folder from new zip, then reload in `chrome://extensions` |
+| **Desktop** | Newer package from Releases, or in-app **About → Check for updates**; workspace files stay |
+| **Skills** | Desktop **Settings → Companions** → Upgrade on a detected host; or `npm run skills:update` / CLI ([`skills/INSTALL.md`](./skills/INSTALL.md)) |
+| **Obsidian** | Companions install into current vault, or replace `plugins/topmind-stream/` / BRAT; vault content stays |
+| **Clip** | Companions Prepare overwrites managed dir, then reload in `chrome://extensions`; or standalone new zip |
 | **UTR** | Ships inside Desktop; source uses repo `utr/` |
 
 Full product tag **`v*`** packs Skills + Extension + **Obsidian** + Desktop; surface tags `skills-v*` / `extension-v*` / `obsidian-v*` / `desktop-v*` build only that surface. See [`docs/PACKAGING.md`](./docs/PACKAGING.md).

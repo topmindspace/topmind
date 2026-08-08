@@ -26,6 +26,66 @@ export type SurfaceUpdateInfo = {
   error?: string;
 };
 
+export type CompanionAgentHost = {
+  id: string;
+  name: string;
+  present: boolean;
+  skillsRoot: string | null;
+  hostPath?: string | null;
+  installed: boolean;
+  installedVersion: string | null;
+  receiptPath?: string | null;
+};
+
+export type CompanionBrowser = {
+  id: string;
+  name: string;
+  present: boolean;
+  path: string | null;
+};
+
+export type CompanionObsidian = {
+  appPresent: boolean;
+  appPath: string | null;
+  vaultPluginsRoot: string | null;
+  pluginInstalled: boolean;
+  pluginVersion: string | null;
+  pluginPath: string | null;
+  pluginId?: string | null;
+  workspaceRoot?: string | null;
+};
+
+export type CompanionStatusResult = {
+  ok: true;
+  agents: CompanionAgentHost[];
+  browsers: CompanionBrowser[];
+  obsidian: CompanionObsidian;
+  clip?: {
+    prepared: boolean;
+    path: string | null;
+    managedDir: string;
+    version: string | null;
+    bundledVersion?: string | null;
+    guidedInstall: boolean;
+  };
+  bundled?: {
+    skillsVersion: string | null;
+    obsidianPluginVersion: string | null;
+  };
+  skillsSourceRoot?: string | null;
+  checkedAt?: string;
+};
+
+export type CompanionSkillsResult = {
+  ok: true;
+  hostId: string;
+  dest: string;
+  mode?: string;
+  version?: string | null;
+  installed?: string[];
+  skillIds?: string[];
+};
+
 export type ExternalPluginInfo = {
   id: string;
   dir: string;
@@ -516,13 +576,15 @@ export const api = {
         desktop?: SurfaceUpdateInfo;
         skills?: SurfaceUpdateInfo;
         extension?: SurfaceUpdateInfo;
+        obsidian?: SurfaceUpdateInfo;
         model?: {
           desktopBundlesSkills?: boolean;
           desktopBundlesUtr?: boolean;
           extensionIsBrowser?: boolean;
+          obsidianIsVaultPlugin?: boolean;
         };
       }>("system.checkForUpdates"),
-    openUpdateDownload: (url?: string, surface?: "desktop" | "skills" | "extension") =>
+    openUpdateDownload: (url?: string, surface?: "desktop" | "skills" | "extension" | "obsidian") =>
       invoke<{ ok: true }>("system.openUpdateDownload", {
         ...(url ? { url } : {}),
         ...(surface ? { surface } : {}),
@@ -691,6 +753,52 @@ export const api = {
         path: string;
         summary?: SkillsPackSummary | null;
       }>("system.probeSkillsPack", { sourcePath }),
+
+    /** Detect agent hosts · browsers · Obsidian + managed companion status. */
+    detectCompanions: () => invoke<CompanionStatusResult>("system.detectCompanions"),
+    getCompanionStatus: () => invoke<CompanionStatusResult>("system.getCompanionStatus"),
+    installCompanionSkills: (hostId: string, opts?: { mode?: "copy" | "symlink"; dest?: string }) =>
+      invoke<CompanionSkillsResult>("system.installCompanionSkills", {
+        hostId,
+        mode: opts?.mode,
+        dest: opts?.dest,
+      }),
+    uninstallCompanionSkills: (hostId: string, dest?: string) =>
+      invoke<{ ok: true; hostId: string; dest: string; removed: string[] }>(
+        "system.uninstallCompanionSkills",
+        { hostId, dest },
+      ),
+    upgradeCompanionSkills: (hostId: string, opts?: { mode?: "copy" | "symlink"; dest?: string }) =>
+      invoke<CompanionSkillsResult>("system.upgradeCompanionSkills", {
+        hostId,
+        mode: opts?.mode,
+        dest: opts?.dest,
+      }),
+    prepareClipExtension: () =>
+      invoke<{
+        ok: true;
+        path: string;
+        version: string | null;
+        guidedInstall: true;
+        instructionsKey?: string;
+      }>("system.prepareClipExtension"),
+    openClipExtensionFolder: () =>
+      invoke<{ ok: true; path: string }>("system.openClipExtensionFolder"),
+    installObsidianPlugin: (vaultPath?: string) =>
+      invoke<{
+        ok: boolean;
+        guided?: boolean;
+        pluginId?: string;
+        version?: string | null;
+        path?: string;
+        error?: string;
+      }>("system.installObsidianPlugin", vaultPath ? { vaultPath } : {}),
+    uninstallObsidianPlugin: (vaultPath?: string) =>
+      invoke<{ ok: true; removed: string[] }>(
+        "system.uninstallObsidianPlugin",
+        vaultPath ? { vaultPath } : {},
+      ),
+
     getWorkspaceConfig: () =>
       invoke<{
         contract_version?: number;

@@ -23,6 +23,7 @@
     "footerLine1": "Workspace = your local folder (stream · topics · ship · archive)",
     "footerLine2": "After opening: top bar \"Quick note\" · ⌘N · global ⌘⇧N",
     "footerLine3": "Files stay yours · Desktop is a smart view",
+    "companionsHint": "After opening: Settings → Companions to install Agent Skills / Clip / Obsidian (optional, non-blocking)",
     "healthOk": "OK",
     "healthEmpty": "Empty",
     "healthBroken": "Unavailable",

@@ -5,6 +5,7 @@
  *   desktop   → topmind-<ver>-* installers · tags desktop-v* or product v* with assets
  *   skills    → topmind-skills-<ver>.*  (also bundled in topmind-engine/skills)
  *   extension → topmind-clip-extension-<ver>.*  (browser; not required inside Desktop)
+ *   obsidian  → topmind-obsidian-<ver>.zip  (vault plugin; not required inside Desktop)
  *
  * Strategy:
  *  1. Public latest.json via releases/latest/download (no API / no token)
@@ -131,6 +132,21 @@ export function extensionVersionFromAssets(assets) {
 }
 
 /**
+ * topmind-obsidian-1.0.0.zip / topmind-obsidian-2.2.0.zip
+ * @param {Array<{ name?: string }>} assets
+ */
+export function obsidianVersionFromAssets(assets) {
+  let best = null;
+  for (const a of assets || []) {
+    const name = String(a?.name || "");
+    const m = /^topmind-obsidian-(\d+\.\d+\.\d+)(?=[.-])/i.exec(name);
+    if (!m) continue;
+    if (!best || compareSemver(m[1], best) > 0) best = m[1];
+  }
+  return best;
+}
+
+/**
  * Desktop version carried by a release (asset-first; desktop-v tag fallback).
  * @param {object} release
  * @returns {string | null}
@@ -194,16 +210,18 @@ export function pickAssets(release, platform, arch) {
 }
 
 /**
- * Pack zip/tar for skills or extension (prefer .zip).
+ * Pack zip/tar for skills, extension, or obsidian (prefer .zip).
  * @param {object} release
- * @param {"skills"|"extension"} surface
+ * @param {"skills"|"extension"|"obsidian"} surface
  */
 export function pickPackAssets(release, surface) {
   const assets = Array.isArray(release?.assets) ? release.assets : [];
   const re =
     surface === "skills"
       ? /^topmind-skills-\d/i
-      : /^topmind-clip-extension-\d/i;
+      : surface === "obsidian"
+        ? /^topmind-obsidian-\d/i
+        : /^topmind-clip-extension-\d/i;
   const mapped = assets
     .filter((a) => re.test(String(a.name || "")) && !/sha256|manifest/i.test(String(a.name || "")))
     .map((a) => ({
@@ -476,6 +494,44 @@ export function readBundledExtensionVersion(opts = {}) {
 }
 
 /**
+ * Obsidian plugin version: monorepo dist/manifest, stamp, or resources (not required in Desktop app).
+ * @param {{ engineRoot?: string|null }} [opts]
+ */
+export function readBundledObsidianVersion(opts = {}) {
+  const stamp = readEngineVersionsStamp(opts);
+  if (stamp?.obsidian) return String(stamp.obsidian).replace(/^v/i, "");
+
+  const candidates = [];
+  if (opts.engineRoot) {
+    candidates.push(path.join(opts.engineRoot, "obsidian-plugin", "dist", "manifest.json"));
+    candidates.push(path.join(opts.engineRoot, "obsidian-plugin", "manifest.json"));
+  }
+  candidates.push(path.join(DESKTOP_DIR, "..", "obsidian-plugin", "dist", "manifest.json"));
+  candidates.push(path.join(DESKTOP_DIR, "..", "obsidian-plugin", "manifest.json"));
+  candidates.push(path.join(DESKTOP_DIR, "resources", "topmind-engine", "obsidian-plugin", "manifest.json"));
+  try {
+    const { app } = require("electron");
+    if (app?.isPackaged && process.resourcesPath) {
+      candidates.unshift(
+        path.join(process.resourcesPath, "topmind-engine", "obsidian-plugin", "manifest.json"),
+      );
+    }
+  } catch {
+    /* */
+  }
+  for (const p of candidates) {
+    try {
+      if (!existsSync(p)) continue;
+      const j = JSON.parse(readFileSync(p, "utf8"));
+      if (j?.version) return String(j.version).replace(/^v/i, "");
+    } catch {
+      /* */
+    }
+  }
+  return null;
+}
+
+/**
  * Pick the GitHub release that carries the highest version for a surface.
  * @param {any[]} releases
  * @param {(rel: any) => string|null} versionOf
@@ -526,6 +582,7 @@ export async function checkForDesktopUpdate(opts = {}) {
  * @property {string} [desktop]
  * @property {string} [skills]
  * @property {string} [extension]
+ * @property {string} [obsidian]
  * @property {string} [releaseUrl]
  * @property {string} [publishedAt]
  * @property {Array<{ name: string, browser_download_url?: string, url?: string, size?: number }>} [assets]
@@ -632,6 +689,14 @@ function syntheticReleaseFromLatest(latest, repo) {
         browser_download_url: `${base}/topmind-clip-extension-${ext}.zip`,
       });
     }
+    const obs = latest.obsidian;
+    if (obs) {
+      assets.push({
+        name: `topmind-obsidian-${obs}.zip`,
+        size: 0,
+        browser_download_url: `${base}/topmind-obsidian-${obs}.zip`,
+      });
+    }
   }
   return {
     tag_name: tag,
@@ -665,10 +730,18 @@ export async function checkAllSurfaces(opts = {}) {
         ? null
         : String(opts.extensionVersion).replace(/^v/i, "").trim()
       : readBundledExtensionVersion({ engineRoot: opts.engineRoot });
+  const obsidianRaw =
+    opts.obsidianVersion !== undefined
+      ? opts.obsidianVersion == null
+        ? null
+        : String(opts.obsidianVersion).replace(/^v/i, "").trim()
+      : readBundledObsidianVersion({ engineRoot: opts.engineRoot });
 
   const currentSkills = skillsResolved || "0.0.0";
   const currentExtension = extensionRaw && extensionRaw.length > 0 ? extensionRaw : null;
   const extensionKnown = currentExtension != null;
+  const currentObsidian = obsidianRaw && obsidianRaw.length > 0 ? obsidianRaw : null;
+  const obsidianKnown = currentObsidian != null;
 
   const repo = opts.repo || process.env.topmind_UPDATE_REPO || DEFAULT_REPO;
   const platform = opts.platform || process.platform;
@@ -769,6 +842,12 @@ export async function checkAllSurfaces(opts = {}) {
     const m = /^extension-v(.+)$/i.exec(String(r.tag_name || ""));
     return m ? m[1] : null;
   });
+  let obsidianPickFinal = pickLatestReleaseFor(releases, (r) => {
+    const fromAssets = obsidianVersionFromAssets(r.assets);
+    if (fromAssets) return fromAssets;
+    const m = /^obsidian-v(.+)$/i.exec(String(r.tag_name || ""));
+    return m ? m[1] : null;
+  });
 
   // Prefer explicit version stamps from public latest.json
   if (latestStamp && releases[0]) {
@@ -791,9 +870,15 @@ export async function checkAllSurfaces(opts = {}) {
         version: String(latestStamp.extension).replace(/^v/i, ""),
       };
     }
+    if (latestStamp.obsidian) {
+      obsidianPickFinal = {
+        release: rel,
+        version: String(latestStamp.obsidian).replace(/^v/i, ""),
+      };
+    }
   }
 
-  /** @param {"desktop"|"skills"|"extension"} surface */
+  /** @param {"desktop"|"skills"|"extension"|"obsidian"} surface */
   function buildSurface(surface, current, pick, options = {}) {
     if (options.notBundled) {
       return {
@@ -865,6 +950,10 @@ export async function checkAllSurfaces(opts = {}) {
     extension: buildSurface("extension", currentExtension, extensionPickFinal, {
       notBundled: !extensionKnown,
     }),
+    // Obsidian vault plugin — not required inside Desktop; version from monorepo/resources when present
+    obsidian: buildSurface("obsidian", currentObsidian, obsidianPickFinal, {
+      notBundled: !obsidianKnown,
+    }),
     releasesUrl,
     checkedAt,
     repo,
@@ -873,6 +962,7 @@ export async function checkAllSurfaces(opts = {}) {
       desktopBundlesSkills: true,
       desktopBundlesUtr: true,
       extensionIsBrowser: true,
+      obsidianIsVaultPlugin: true,
     },
   };
 }

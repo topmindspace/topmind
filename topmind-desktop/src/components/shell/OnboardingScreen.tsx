@@ -560,6 +560,10 @@ export function OnboardingScreen({
           <p className="mt-10 text-center text-3xs leading-relaxed text-text-quaternary">
             {t("shell:onboarding.footerLine1")}
           </p>
+          {/* Non-blocking companions CTA — install after workspace is ready (Settings → Companions). */}
+          <p className="mt-2 text-center text-3xs leading-relaxed text-text-quaternary/90">
+            {t("shell:onboarding.companionsHint")}
+          </p>
         </div>
       </div>
     </TooltipProvider>

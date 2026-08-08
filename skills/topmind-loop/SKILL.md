@@ -1,6 +1,6 @@
 ---
 name: topmind-loop
-version: 2.2.0
+version: 2.3.0
 description: >-
   可中断的工作区语义巡检（走专题/Inbox，.loop 断点续跑）。Use when 跑一遍 loop、巡检、整体体检、复盘、
   继续 loop、audit。Do NOT use for 快速 doctor（→maintain）、单专题整理、捕获、写作、仅记忆.

@@ -4,7 +4,7 @@ import path from "node:path";
 import { generateText } from "ai";
 import { readJson, writeText, ensureDir, readText } from "./lib/fs-utils.mjs";
 import { logInfo, logError, logWarn } from "./lib/writeback.mjs";
-import { buildSystemPrompt, assembleContext } from "./ai-prompts.mjs";
+import { buildSystemPrompt, assembleContext, resolvePromptLocale } from "./ai-prompts.mjs";
 import { createStreamRegistry, runStream } from "./ai-stream.mjs";
 import { resolveModel, getRuntimeStatus } from "./ai-model.mjs";
 import { resolveDataRoot } from "./lib/path-model.mjs";
@@ -21,6 +21,34 @@ import {
 export { getRuntimeStatus };
 // Re-export pure assembly for tests / callers that want the same path without generateText
 export { INLINE_SYSTEM, buildInlineCompletePrompt } from "./lib/inline-complete-prompt.mjs";
+export { resolvePromptLocale } from "./ai-prompts.mjs";
+
+/**
+ * Resolve AI prompt language for user-visible / durable AI text.
+ * Order: settings.ui.locale (if not auto) → workspace contract locale → zh.
+ * @param {object} [settings]
+ * @param {object} [c] — service context with workspaceRoot
+ * @returns {Promise<"zh"|"en">}
+ */
+async function resolveAiPromptLocale(settings, c) {
+  const uiLocale = settings?.ui?.locale;
+  if (uiLocale && uiLocale !== "auto") {
+    return resolvePromptLocale(uiLocale);
+  }
+  try {
+    const { loadKernelApi, workspaceRootOf } = await import("./lib/kernel-api.mjs");
+    const root = workspaceRootOf(c?.workspaceRoot);
+    if (root) {
+      const kernel = await loadKernelApi();
+      const contract = kernel.loadContract(root);
+      const loc = contract?.workspace?.locale || contract?.locale;
+      if (loc) return resolvePromptLocale(loc);
+    }
+  } catch {
+    /* contract unavailable — fall through */
+  }
+  return "zh";
+}
 
 /** In-flight inline complete requests — abortSignal for true cancel. */
 const completeControllers = new Map();
@@ -117,6 +145,8 @@ export const AiService = {
     }
     if (src.length > 32_000) throw new Error(ei18n("ai.textTooLong"));
 
+    const locale = await resolveAiPromptLocale(settings, c);
+
     const actionHint = {
       polish: ei18n("ai.polish"),
       shorter: ei18n("ai.shorter"),
@@ -132,14 +162,16 @@ export const AiService = {
       translate: ei18n("ai.translate"),
     }[String(action || "")] || "";
 
-    const userInstr = String(instruction || actionHint || "润色这段文字。").trim();
+    // Default instr is locale-aware inside buildInlineCompletePrompt when empty
+    const userInstr = String(instruction || actionHint || "").trim();
     // Pure assembly — same path unit tests drive (whole-doc format context)
     const assembled = buildInlineCompletePrompt({
       text: src,
       mode: resolvedMode,
-      userInstr,
+      userInstr: userInstr || undefined,
       documentText: documentText != null ? String(documentText) : undefined,
       action: action || "",
+      locale,
     });
     const prompt = assembled.prompt;
 
@@ -364,6 +396,7 @@ export const AiService = {
 
     // System prompt: skill-first protocol + discovery catalog + actual tool names + pre-loaded context.
     const skillsEnabled = settings?.ai?.skillsEnabled !== false;
+    const locale = await resolveAiPromptLocale(settings, c);
     const sysPrompt = buildSystemPrompt({
       workspaceContext: c.workspaceRoot,
       topicId,
@@ -381,6 +414,7 @@ export const AiService = {
       workspaceOverview: aiContext.overview,
       memoryProfile: aiContext.profile,
       topicContext: aiContext.topicContext,
+      locale,
     });
 
     const maxAgentSteps = settings?.ai?.maxAgentSteps;

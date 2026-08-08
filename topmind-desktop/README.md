@@ -24,7 +24,9 @@
 3. **AI 副驾** — skill-first · `auto | confirm` 写回 · 建议默认可生成、确认后执行；多路 AI 时 prep 串行、对话独立（见 `DESIGN.md` §0.0.3）  
 4. **多源加工** — Word · PDF · Excel · PPT · 邮件 → Markdown  
 5. **可组合** — 与 Skills / 剪藏扩展 / 可选 UTR 共享内容约定，无强制运行时绑定  
-6. **捕获词汇** — **记一下**（完整捕获 · EN Note it）≠ **记下**（动态主区 · EN Log it）
+6. **捕获词汇** — **记一下**（完整捕获 · EN Note it）≠ **记下**（动态主区 · EN Log it）  
+7. **本地化 AI** — UI 语言与工作区 `locale` 驱动 Agent / 行内 AI / 待办 / 建议的中英提示与结果  
+8. **集成 Companions** — 设置内探测 Agent 宿主 · 浏览器 · Obsidian，支持 Skills / 剪藏 / 插件的安装升级卸载（浏览器侧为引导加载，不静默注入）
 
 ---
 
@@ -169,26 +171,39 @@
 
 ---
 
-## 国际化
+## 国际化 · 本地化 AI
 
-- 默认 `auto`：按 OS / `navigator.language` 匹配 `zh-CN` 或 `en-US`  
-- 主窗与 `CaptureSurface` 浮窗同步切换  
-- 语言包：`src/locales/{zh-CN,en-US}/`  
+- UI 默认 `auto`：按 OS / `navigator.language` 匹配 `zh-CN` 或 `en-US`  
+- 主窗与 `CaptureSurface` 浮窗同步切换；语言包：`src/locales/{zh-CN,en-US}/`  
+- **工作区 locale**（`topmind.yaml` 的 `locale` / `workspace.locale`）与 UI 语言共同决定 **AI 输出语言**  
+- 已本地化的 AI 路径：Agent 系统提示、写回策略文案、行内润色/续写/总结、待办 extract/maintain、建议条、`memory/todo.md` 标题等  
+- 解析顺序（AI 提示）：UI locale（非 `auto`）→ 契约 locale → 默认 `zh-CN`
 
 ---
 
-## 安装 / 升级
+## 安装 / 升级 / 集成
 
-### 安装
+### 安装 Desktop
 1. 从 [Releases](https://github.com/topmindspace/topmind/releases) 下载对应系统安装包：`topmind-<ver>-<os>-<arch>.{dmg,exe,AppImage,deb}`  
    （完整产品标签 `v*` 与表面标签 `desktop-v*` 都会构建 Desktop 矩阵）
 2. 安装并打开；首次选择或创建本地工作区文件夹（内容真源）
 3. 可选：设置 → AI 配置 Provider；设置 → 通用 → 浏览器剪藏 启用 Clip Bridge
 
+### 设置 → 集成 (Companions)
+| 能力 | 行为 |
+|------|------|
+| **Agent Skills** | 探测 Claude Code / Codex / Hermes / OpenCode / CodeBuddy 等；安装到宿主全局 skills 根；升级覆盖托管包；卸载只删回执内条目 |
+| **剪藏扩展** | 解压到本机托管目录 + 引导「加载已解压的扩展」——**不能**静默写入 Chrome |
+| **Obsidian 插件** | 当前工作区含 `.obsidian` 时可直接装入 `plugins/topmind-stream/`；否则引导手动路径 |
+| **独立路径** | CLI `npm run skills:install` / pack zip 仍然有效，与 Desktop 不互斥 |
+
+首次打开工作区后 onboarding 会提示可选安装 companions（不阻塞主路径）。
+
 ### 升级
 | 方式 | 操作 |
 |------|------|
-| 应用内检查 | About / 设置 → **检查更新**（读公开 `latest.json`，无需 GitHub token） |
+| 应用内检查 | 关于 → **检查更新**（Desktop / Skills / Clip / Obsidian 多表面；读公开 `latest.json`，无需 GitHub token） |
+| Companions 升级 | 设置 → 集成 → 对各宿主 / 插件点升级 |
 | 手动安装包 | 下载新版 installer，覆盖安装；工作区文件夹与 `app-settings.json` 保留 |
 | 源码开发 | `git pull` → `npm run desktop:dev`；版本真源本目录 `package.json` |
 
