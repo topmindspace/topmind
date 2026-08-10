@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "kind": "contract",
+  "skill": "contract",
+  "label": "契约工具",
+  "description": "工作区契约校验与管理。",
+  "execution": {
+    "runtime": "node",
+    "cwd_mode": "engine_root",
+    "script": "utr/tools/contract.mjs",
+    "args_template": [
+      "--categories-root",
+      "{categories_root}",
+      "--inbox-root",
+      "{inbox_root}",
+      "--archive-root",
+      "{archive_root}",
+      "--format",
+      "json",
+      "{command}"
+    ]
+  },
+  "commands": {
+    "validate": {
+      "label": "校验契约",
+      "description": "校验工作区 topmind.yaml schema、8 类规约白名单、与 FS 一致性。诚实报告 on-disk 健康状态（不把内存默认值伪装成文件已好）。",
+      "group": "maintenance",
+      "exposure": "primary",
+      "risk_level": "low",
+      "review_policy": "auto",
+      "requires_topic": false,
+      "idempotent": true,
+      "supports_dry_run": false,
+      "destructive": false,
+      "inputs": {},
+      "reads": [
+        "topmind.yaml"
+      ],
+      "writes": []
+    },
+    "ensure": {
+      "label": "确保契约",
+      "description": "缺失则创建、可修则合并默认并重写为 v4；损坏且不可安全修复时返回 unrepairable（不静默覆盖）。与 Desktop/Obsidian 打开路径共用 Kernel ensureContract。",
+      "group": "maintenance",
+      "exposure": "advanced",
+      "risk_level": "low",
+      "review_policy": "auto",
+      "requires_topic": false,
+      "idempotent": true,
+      "supports_dry_run": false,
+      "destructive": false,
+      "inputs": {
+        "template": {
+          "type": "string",
+          "required": false,
+          "description": "Optional template id for first-time seed (stream|balanced|research|periodic)."
+        },
+        "locale": {
+          "type": "string",
+          "required": false,
+          "description": "Optional workspace.locale (zh-CN|en-US)."
+        }
+      },
+      "reads": [
+        "topmind.yaml",
+        ".topmind-config.json"
+      ],
+      "writes": [
+        "topmind.yaml"
+      ]
+    },
+    "reseed": {
+      "label": "重建契约",
+      "description": "备份损坏的 topmind.yaml 后写入全新有效 v4 默认契约。不删除用户内容目录。用户触发的恢复动作。",
+      "group": "maintenance",
+      "exposure": "danger",
+      "risk_level": "medium",
+      "review_policy": "preview_or_auto",
+      "requires_topic": false,
+      "idempotent": false,
+      "supports_dry_run": false,
+      "destructive": false,
+      "inputs": {
+        "template": {
+          "type": "string",
+          "required": false,
+          "description": "Optional template id for reseeded contract."
+        },
+        "locale": {
+          "type": "string",
+          "required": false,
+          "description": "Optional workspace.locale."
+        }
+      },
+      "reads": [
+        "topmind.yaml"
+      ],
+      "writes": [
+        "topmind.yaml",
+        "99-*/backups/contract/*",
+        ".topmind/contract-backups/*"
+      ]
+    }
+  },
+  "review_overrides": {}
+}

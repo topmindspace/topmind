@@ -1,0 +1,426 @@
+{
+  "schema_version": 1,
+  "kind": "workspace-write",
+  "skill": "workspace-write",
+  "label": "工作区写入工具",
+  "description": "创建专题、捕获笔记、交付输出、追加记忆。",
+  "execution": {
+    "runtime": "node",
+    "cwd_mode": "engine_root",
+    "script": "utr/tools/workspace-write.mjs",
+    "args_template": [
+      "--categories-root",
+      "{categories_root}",
+      "--inbox-root",
+      "{inbox_root}",
+      "--archive-root",
+      "{archive_root}",
+      "--format",
+      "json",
+      "{command}"
+    ]
+  },
+  "commands": {
+    "create-topic": {
+      "label": "创建专题",
+      "description": "创建 {category}/{topic}/ 目录骨架并写入 topic.md 专题首页（含 frontmatter: title/category/topic/status）。不预建 notes/ 或 outputs/ 子目录——笔记直接放专题根，交付物进 88-输出/ 扁平目录。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "medium",
+      "review_policy": "preview_or_auto",
+      "requires_topic": false,
+      "idempotent": false,
+      "supports_dry_run": true,
+      "destructive": false,
+      "inputs": {
+        "category": {
+          "type": "category",
+          "label": "大类",
+          "required": true,
+          "hint": "如 '20-研究'。大类名必须匹配 {NN 名称}/ 形式（两位数字 + 空格 + 名称），由文件系统自发现。"
+        },
+        "topic": {
+          "type": "topic",
+          "label": "专题",
+          "required": true,
+          "hint": "如 '2026-示例记录'。命名规则: YYYY-主题 (kebab-case)。"
+        },
+        "title": {
+          "type": "text",
+          "label": "专题首页标题（可选）",
+          "hint": "默认与目录名一致。短名/旧名/英文别名进 aliases frontmatter。"
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
+        },
+        "dryRun": {
+          "type": "toggle",
+          "label": "仅预览",
+          "default": true
+        }
+      },
+      "args_extra": [
+        "--category",
+        "{category}",
+        "--topic",
+        "{topic}",
+        "--title",
+        "{title}",
+        "--category-root",
+        "{category_root}",
+        "--topic-root",
+        "{topic_root}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [],
+      "writes": [
+        "{category_root}/{topic}/"
+      ]
+    },
+    "capture-note": {
+      "label": "捕获笔记",
+      "description": "把材料保存到专题根、动态周期本（weekly/daily/monthly 追加）、大类根单篇或收件箱。loose-stream 默认追加到当前周期本。保留来源和溯源标记。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "low",
+      "review_policy": "preview_or_auto",
+      "requires_topic": false,
+      "idempotent": false,
+      "supports_dry_run": true,
+      "destructive": false,
+      "inputs": {
+        "routing": {
+          "type": "category-and-topic",
+          "label": "路由（category 和 topic 均可选）",
+          "required": false,
+          "hint": "category 和 topic 均可选。两者都填则写入 {category}/{topic}/（专题根），只填 category 则写入 {category}/*.md (loose note)，两者都不填则写入 00-收件箱/。loose-stream 类无 topic 时自动追加到当前周期本。"
+        },
+        "title": {
+          "type": "text",
+          "label": "标题",
+          "required": true
+        },
+        "content": {
+          "type": "textarea",
+          "label": "内容",
+          "required": true
+        },
+        "sourceType": {
+          "type": "select",
+          "label": "来源类型",
+          "required": true,
+          "default": "user-original",
+          "options": [
+            {
+              "value": "user-original",
+              "label": "用户手写"
+            },
+            {
+              "value": "ai-derived",
+              "label": "AI 分析/提取"
+            },
+            {
+              "value": "external-capture",
+              "label": "外部抓取"
+            }
+          ],
+          "hint": "user-original 不改内容和用词；external-capture 保留原始+AI总结分离"
+        },
+        "source": {
+          "type": "text",
+          "label": "来源 URL 或出处"
+        },
+        "topic": {
+          "type": "text",
+          "label": "主题分类",
+          "hint": "软分类标记，用于搜索和过滤，不创建物理目录（frontmatter topic 字段）"
+        },
+        "captureId": {
+          "type": "text",
+          "label": "捕获 ID",
+          "hint": "可选软标识，用于移动或改名后的扫描关联"
+        },
+        "routeConfidence": {
+          "type": "select",
+          "label": "归位信心",
+          "options": [
+            {
+              "value": "high",
+              "label": "高"
+            },
+            {
+              "value": "medium",
+              "label": "中"
+            },
+            {
+              "value": "low",
+              "label": "低"
+            }
+          ]
+        },
+        "routeReason": {
+          "type": "text",
+          "label": "归位理由"
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
+        },
+        "dryRun": {
+          "type": "toggle",
+          "label": "仅预览",
+          "default": true
+        }
+      },
+      "args_extra": [
+        "--category",
+        "{routing.category}",
+        "--routing-topic",
+        "{routing.topic}",
+        "--title",
+        "{title}",
+        "--content",
+        "{content}",
+        "--source-type",
+        "{sourceType}",
+        "--source",
+        "{source}",
+        "--soft-topic",
+        "{topic}",
+        "--capture-id",
+        "{captureId}",
+        "--route-confidence",
+        "{routeConfidence}",
+        "--route-reason",
+        "{routeReason}",
+        "--category-root",
+        "{category_root}",
+        "--topic-root",
+        "{topic_root}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [],
+      "writes": [
+        "{category_root}/{topic}/*.md",
+        "{category_root}/*.md",
+        "00-收件箱/**"
+      ]
+    },
+    "save-output": {
+      "label": "保存输出",
+      "description": "把交付物保存到 88-输出/ 扁平目录。默认遇到同名文件时新建安全后缀，显式选择 replace 才覆盖。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "medium",
+      "review_policy": "preview_or_auto",
+      "requires_topic": true,
+      "idempotent": false,
+      "supports_dry_run": true,
+      "destructive": false,
+      "inputs": {
+        "category": {
+          "type": "category",
+          "label": "大类",
+          "required": true
+        },
+        "topic": {
+          "type": "topic",
+          "label": "专题",
+          "required": true
+        },
+        "title": {
+          "type": "text",
+          "label": "标题",
+          "required": true
+        },
+        "content": {
+          "type": "textarea",
+          "label": "内容",
+          "required": true
+        },
+        "sourceType": {
+          "type": "select",
+          "label": "来源类型",
+          "default": "ai-derived",
+          "options": [
+            {
+              "value": "user-original",
+              "label": "用户手写"
+            },
+            {
+              "value": "ai-derived",
+              "label": "AI 分析/提取"
+            },
+            {
+              "value": "external-capture",
+              "label": "外部抓取"
+            }
+          ]
+        },
+        "ifExists": {
+          "type": "select",
+          "label": "同名处理",
+          "default": "create-new",
+          "options": [
+            {
+              "value": "create-new",
+              "label": "新建安全副本"
+            },
+            {
+              "value": "replace",
+              "label": "替换同名输出"
+            },
+            {
+              "value": "fail",
+              "label": "同名时报错"
+            }
+          ]
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
+        },
+        "dryRun": {
+          "type": "toggle",
+          "label": "仅预览",
+          "default": true
+        }
+      },
+      "args_extra": [
+        "--category",
+        "{category}",
+        "--topic",
+        "{topic}",
+        "--title",
+        "{title}",
+        "--content",
+        "{content}",
+        "--source-type",
+        "{sourceType}",
+        "--if-exists",
+        "{ifExists}",
+        "--topic-root",
+        "{topic_root}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [
+        "{category_root}/{topic}/topic.md"
+      ],
+      "writes": [
+        "88-输出/**"
+      ]
+    },
+    "update-topic": {
+      "label": "更新专题主页",
+      "description": "用完整内容替换 topic.md；只用于有明确理由的结构性重写，稳定记忆优先使用 memory.append-topic。自动保存不再二次确认；耐久备份/回执仅高影响（Kernel writeback：locked 覆盖等），open 更新不造 99-归档 快照。",
+      "group": "atomic",
+      "exposure": "advanced",
+      "risk_level": "high",
+      "review_policy": "preview_or_auto",
+      "requires_topic": true,
+      "idempotent": false,
+      "supports_dry_run": true,
+      "destructive": false,
+      "inputs": {
+        "category": {
+          "type": "category",
+          "label": "大类",
+          "required": true
+        },
+        "topic": {
+          "type": "topic",
+          "label": "专题",
+          "required": true
+        },
+        "content": {
+          "type": "textarea",
+          "label": "新 topic.md 内容",
+          "required": true
+        },
+        "replaceReason": {
+          "type": "textarea",
+          "label": "完整替换理由",
+          "required": true
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
+        },
+        "dryRun": {
+          "type": "toggle",
+          "label": "仅预览",
+          "default": true
+        }
+      },
+      "args_extra": [
+        "--category",
+        "{category}",
+        "--topic",
+        "{topic}",
+        "--content",
+        "{content}",
+        "--replace-reason",
+        "{replaceReason}",
+        "--topic-root",
+        "{topic_root}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [
+        "{category_root}/{topic}/topic.md"
+      ],
+      "writes": [
+        "{category_root}/{topic}/topic.md"
+      ],
+      "workflow_note": "High-risk full replacement uses writebackMode. In auto mode it applies without a second confirmation flag. Durable backup/receipt only when Kernel writeback classifies the write as high-impact (e.g. locked overwrite); open topic.md updates do not invent 99-归档 snapshots."
+    }
+  }
+}

@@ -1,0 +1,236 @@
+{
+  "schema_version": 1,
+  "kind": "memory",
+  "skill": "memory",
+  "label": "记忆工具",
+  "description": "分层记忆管理：提升、反思、追加。",
+  "execution": {
+    "runtime": "node",
+    "cwd_mode": "engine_root",
+    "script": "utr/tools/memory.mjs",
+    "args_template": [
+      "--categories-root",
+      "{categories_root}",
+      "--inbox-root",
+      "{inbox_root}",
+      "--archive-root",
+      "{archive_root}",
+      "--format",
+      "json",
+      "{command}"
+    ]
+  },
+  "commands": {
+    "promote": {
+      "label": "提升记忆",
+      "description": "将 Stream 条目提升为 memory/topics/{topic-slug}.md（标记 promoted_from/to）。源文件仅读取标记，不修改原文内容。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "medium",
+      "review_policy": "preview_or_auto",
+      "requires_topic": false,
+      "idempotent": false,
+      "supports_dry_run": true,
+      "destructive": false,
+      "inputs": {
+        "sourcePath": {
+          "type": "path",
+          "label": "源路径",
+          "required": true
+        },
+        "targetSlug": {
+          "type": "text",
+          "label": "目标主题",
+          "required": true
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动提升并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
+        },
+        "dryRun": {
+          "type": "toggle",
+          "label": "仅预览",
+          "default": true
+        }
+      },
+      "args_extra": [
+        "--source-path",
+        "{sourcePath}",
+        "--target-slug",
+        "{targetSlug}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [
+        "{sourcePath}"
+      ],
+      "writes": [
+        "memory/topics/{targetSlug}.md"
+      ]
+    },
+    "digest": {
+      "label": "生成反思",
+      "description": "写入周期反思骨架到 memory/periodic/{year}/{period}.md。UTR 为确定性 adapter（无 AI 模型），仅写入诚实骨架标记；真实 AI 周期反思请用 Desktop 建议管线确认后写入。可重建（覆盖同周期文件）。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "low",
+      "review_policy": "auto",
+      "requires_topic": false,
+      "idempotent": false,
+      "supports_dry_run": false,
+      "destructive": false,
+      "inputs": {
+        "period": {
+          "type": "text",
+          "label": "周期",
+          "required": true,
+          "hint": "如 2026-W30"
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
+        }
+      },
+      "args_extra": [
+        "--period",
+        "{period}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [],
+      "writes": [
+        "memory/periodic/{year}/{period}.md"
+      ]
+    },
+    "append-profile": {
+      "label": "追加我的情况",
+      "description": "追加「我的情况」到 memory/profile.md。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "low",
+      "review_policy": "auto",
+      "requires_topic": false,
+      "idempotent": false,
+      "supports_dry_run": false,
+      "destructive": false,
+      "inputs": {
+        "section": {
+          "type": "text",
+          "label": "段落",
+          "required": true,
+          "hint": "如 偏好 / 当前目标 / 关键的人与协作 / 进行中的事"
+        },
+        "content": {
+          "type": "text",
+          "label": "内容",
+          "required": true
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
+        }
+      },
+      "args_extra": [
+        "--section",
+        "{section}",
+        "--content",
+        "{content}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [
+        "memory/profile.md"
+      ],
+      "writes": [
+        "memory/profile.md"
+      ]
+    },
+    "append-topic": {
+      "label": "追加专题记忆",
+      "description": "追加专题稳定结论到 memory/topics/{topic-slug}.md。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "low",
+      "review_policy": "auto",
+      "requires_topic": false,
+      "idempotent": false,
+      "supports_dry_run": false,
+      "destructive": false,
+      "inputs": {
+        "slug": {
+          "type": "text",
+          "label": "主题",
+          "required": true
+        },
+        "content": {
+          "type": "text",
+          "label": "内容",
+          "required": true
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
+        }
+      },
+      "args_extra": [
+        "--slug",
+        "{slug}",
+        "--content",
+        "{content}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [
+        "memory/topics/{slug}.md"
+      ],
+      "writes": [
+        "memory/topics/{slug}.md"
+      ]
+    }
+  },
+  "review_overrides": {}
+}

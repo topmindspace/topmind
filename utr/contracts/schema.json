@@ -1,0 +1,290 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "topmind-tool-contract",
+  "title": "topmind Tool Contract (v3.4 — categories + topics)",
+  "description": "Single source of truth for a topmind workspace tool. Uses category + topic naming.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "kind",
+    "skill",
+    "label",
+    "description",
+    "execution",
+    "commands"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "kind": {
+      "type": "string",
+      "description": "Unique tool identifier, e.g. 'workspace-read'. Kind names are stable internal identifiers; command names follow the topic-and-category vocabulary."
+    },
+    "skill": {
+      "type": "string",
+      "enum": [
+        "workspace-read",
+        "workspace-write",
+        "workspace-transform",
+        "workspace-maintain",
+        "contract",
+        "memory",
+        "lifecycle",
+        "derived"
+      ],
+      "description": "Owning tool domain. The 8 kinds are stable internal identifiers; they are NOT project-type labels."
+    },
+    "label": {
+      "type": "string",
+      "description": "Human-readable label"
+    },
+    "description": {
+      "type": "string"
+    },
+    "execution": {
+      "type": "object",
+      "required": [
+        "runtime",
+        "cwd_mode",
+        "script"
+      ],
+      "properties": {
+        "runtime": {
+          "type": "string",
+          "const": "node"
+        },
+        "cwd_mode": {
+          "type": "string",
+          "enum": [
+            "engine_root",
+            "topic_root"
+          ],
+          "description": "engine_root = invoke from engine root; topic_root = invoke with cwd set to {category}/{topic}/"
+        },
+        "script": {
+          "type": "string",
+          "description": "Relative script path from engine root"
+        },
+        "args_template": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Base CLI args with {variable} placeholders. Available variables: {engine_root}, {workspace_root}, {categories_root}, {inbox_root}, {archive_root}, {category_root}, {topic_root}, {category}, {topic}, {command}, {mode}, {source_path}, {receipt_path}, plus any input field name."
+        }
+      }
+    },
+    "commands": {
+      "type": "object",
+      "description": "Map of command name -> command definition. Current surface (25): list-categories, list-topics, inspect-topic, list-topic-files, list-inbox, list-recent-captures, list-safety-receipts, create-topic, capture-note, save-output, update-topic, normalize-note-metadata, plan-inbox-routing, migrate-v4, doctor-workspace, archive-topic, restore-safety-receipt, cleanup-empty-dirs, validate, promote, digest, append-profile, append-topic, scan, rebuild.",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "label",
+          "group",
+          "risk_level",
+          "review_policy",
+          "idempotent"
+        ],
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "group": {
+            "type": "string",
+            "enum": [
+              "workflow",
+              "atomic",
+              "maintenance",
+              "assistive",
+              "danger"
+            ]
+          },
+          "exposure": {
+            "type": "string",
+            "enum": [
+              "primary",
+              "advanced",
+              "danger"
+            ]
+          },
+          "risk_level": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "review_policy": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "preview_or_auto"
+            ]
+          },
+          "requires_topic": {
+            "type": "boolean",
+            "description": "True if the command needs (category, topic) inputs. False if the command operates at the category level only (e.g. list-categories, list-topics) or workspace level (e.g. doctor-workspace, plan-inbox-routing)."
+          },
+          "idempotent": {
+            "type": "boolean"
+          },
+          "supports_dry_run": {
+            "type": "boolean"
+          },
+          "destructive": {
+            "type": "boolean"
+          },
+          "inputs": {
+            "type": "object",
+            "description": "Per-field input definitions keyed by camelCase field name",
+            "additionalProperties": {
+              "type": "object",
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "text",
+                    "textarea",
+                    "select",
+                    "toggle",
+                    "number",
+                    "csv",
+                    "category",
+                    "topic",
+                    "category-and-topic",
+                    "path"
+                  ],
+                  "description": "v3.4 input types: category (大类目录名, e.g. '20-研究'), topic (专题目录名, e.g. '2026-示例记录'), category-and-topic (paired object), path (workspace-relative path)."
+                },
+                "label": {
+                  "type": "string"
+                },
+                "required": {
+                  "type": "boolean"
+                },
+                "default": {},
+                "placeholder": {
+                  "type": "string"
+                },
+                "hint": {
+                  "type": "string"
+                },
+                "options": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "string"
+                      },
+                      "label": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "min": {
+                  "type": "number"
+                },
+                "max": {
+                  "type": "number"
+                },
+                "mustBeTrue": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "args_extra": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Per-command extra args appended after base template. Supports {field}, {category}, {topic}, {category_root}, {topic_root} variables."
+          },
+          "reads": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Glob patterns for files read by this command. Patterns: 00-收件箱/**, {category}/** (category-scoped), {category}/{topic}/** (topic-scoped), {category}/*.md (loose notes), 88-输出/** (deliveries), 99-归档/** (recovery), memory/** (semantic plane)."
+          },
+          "writes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Glob patterns for files written by this command. Patterns: 00-收件箱/**, {category}/** (loose note creation), {category}/{topic}/*.md (topic notes), {category}/{topic}/topic.md (topic home), 88-输出/** (deliveries), 99-归档/** (backups), memory/** (semantic plane)."
+          },
+          "artifact_policy": {
+            "type": "object",
+            "properties": {
+              "creates_artifact": {
+                "type": "boolean"
+              },
+              "artifact_types": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "persisted_by_default": {
+                "type": "boolean"
+              },
+              "notes": {
+                "type": "string"
+              }
+            }
+          },
+          "contexts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "recommended_triggers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "workflow_note": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "preview_strategy": {
+      "type": "object",
+      "description": "Per-command preview instructions used by the confirm-mode review phase",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "review_overrides": {
+      "type": "object",
+      "description": "Per-command review overrides for confirmation copy and preview strategy",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "confirmation_template": {
+            "type": "string"
+          },
+          "preview_strategy": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

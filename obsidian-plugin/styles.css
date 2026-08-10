@@ -1,0 +1,2057 @@
+/* ── topmind Stream for Obsidian — styles ──────────────────────────────
+   Design: spacious, clean, Obsidian-native. Uses CSS variables for theme
+   compatibility (dark/light). Scoped to .tm-* classes — never pollutes :root.
+   Icon sizing: consistent Lucide icon sizes via explicit SVG width/height.
+
+   Design System (2026-08-10 refactor):
+   - Unified button hierarchy: primary / secondary / ghost / icon
+   - Consistent icon sizes: 14px (inline) / 16px (toolbar) / 18px (empty state)
+   - Consistent border-radius: 6px (controls) / 8px (cards) / 4px (mini)
+   - Consistent spacing scale: 4/6/8/12/16/20px
+   - Clear hover/focus states with accent color
+   - Accessible focus-visible rings */
+
+/* ── CSS Variables (scoped) ─────────────────────────────────────────── */
+.tm-stream-workbench,
+.tm-sidebar-dock,
+.tm-quick-capture-modal {
+  --tm-radius-sm: 4px;
+  --tm-radius-md: 6px;
+  --tm-radius-lg: 8px;
+  --tm-radius-xl: 10px;
+  --tm-card-radius: 8px;
+  --tm-card-padding: 10px 14px;
+  --tm-input-radius: 6px;
+  --tm-suggestion-left-border: 3px solid;
+  --tm-transition: 120ms ease;
+  --tm-transition-slow: 250ms ease;
+  --tm-gap-xs: 4px;
+  --tm-gap-sm: 6px;
+  --tm-gap-md: 8px;
+  --tm-gap-lg: 12px;
+  --tm-gap-xl: 16px;
+  --tm-icon-xs: 12px;
+  --tm-icon-sm: 14px;
+  --tm-icon-md: 16px;
+  --tm-icon-lg: 18px;
+  --tm-accent-rgb: var(--interactive-accent-rgb, 124, 77, 255);
+  --tm-btn-h: 30px;
+  --tm-btn-h-sm: 26px;
+  --tm-btn-h-lg: 34px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Stream Workbench View
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.tm-stream-workbench {
+  padding: 12px 16px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────────── */
+
+.tm-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--tm-gap-md);
+  margin-bottom: var(--tm-gap-lg);
+  padding: 6px 10px;
+  background: var(--background-secondary);
+  border-radius: var(--tm-radius-lg);
+  border: 1px solid var(--background-modifier-border);
+}
+
+.tm-toolbar-status {
+  display: flex;
+  align-items: center;
+  gap: var(--tm-gap-xs);
+  flex-shrink: 0;
+}
+
+.tm-toolbar-status-label {
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.tm-toolbar-model {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  background: var(--background-modifier-hover);
+  padding: 3px 8px;
+  border-radius: var(--tm-radius-md);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--tm-transition);
+}
+
+.tm-toolbar-model[role="button"]:hover {
+  background: var(--background-modifier-border-hover);
+  color: var(--interactive-accent);
+}
+
+.tm-toolbar-actions {
+  display: flex;
+  gap: var(--tm-gap-xs);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* ── Unified Button System ──────────────────────────────────────────── */
+
+/* Primary button — accent filled (submit, confirm, init) */
+.tm-submit-btn,
+.tm-btn-init-workspace,
+.tm-suggestion-actions .tm-btn-confirm {
+  padding: 0 14px;
+  height: var(--tm-btn-h);
+  border-radius: var(--tm-radius-md);
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  font-weight: 600;
+  font-size: var(--font-ui-small);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--tm-gap-xs);
+  transition: background var(--tm-transition), transform var(--tm-transition), opacity var(--tm-transition);
+}
+
+.tm-submit-btn:hover:not(:disabled),
+.tm-btn-init-workspace:hover,
+.tm-suggestion-actions .tm-btn-confirm:hover:not(:disabled) {
+  background: var(--interactive-accent-hover);
+  transform: translateY(-1px);
+}
+
+.tm-submit-btn:active:not(:disabled),
+.tm-btn-init-workspace:active {
+  transform: translateY(0);
+}
+
+.tm-submit-btn:disabled,
+.tm-suggestion-actions .tm-btn-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Secondary button — bordered outline (organize, refresh, toolbar labeled) */
+.tm-btn-secondary,
+.tm-toolbar-btn-labeled,
+.tm-sidebar-btn-labeled {
+  height: var(--tm-btn-h);
+  padding: 0 10px;
+  border-radius: var(--tm-radius-md);
+  border: 1px solid var(--background-modifier-border);
+  background: transparent;
+  color: var(--text-normal);
+  cursor: pointer;
+  font-weight: 500;
+  font-size: var(--font-ui-small);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--tm-gap-xs);
+  transition: all var(--tm-transition);
+}
+
+.tm-btn-secondary:hover:not(:disabled),
+.tm-toolbar-btn-labeled:hover,
+.tm-sidebar-btn-labeled:hover {
+  border-color: var(--interactive-accent);
+  background: var(--background-modifier-hover);
+  color: var(--interactive-accent);
+}
+
+.tm-btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tm-btn-secondary-label,
+.tm-toolbar-btn-label,
+.tm-sidebar-btn-label {
+  font-size: var(--font-ui-smaller);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Icon-only button — for compact toolbar actions */
+.tm-toolbar-btn,
+.tm-sidebar-icon-btn {
+  width: var(--tm-btn-h);
+  height: var(--tm-btn-h);
+  border-radius: var(--tm-radius-md);
+  border: 1px solid var(--background-modifier-border);
+  background: transparent;
+  color: var(--text-normal);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--tm-transition);
+  flex-shrink: 0;
+}
+
+.tm-toolbar-btn:hover,
+.tm-sidebar-icon-btn:hover {
+  border-color: var(--interactive-accent);
+  background: var(--background-modifier-hover);
+  color: var(--interactive-accent);
+}
+
+/* Mini button — for card actions and inline operations */
+.tm-btn-mini {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--tm-radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  opacity: 0.6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity var(--tm-transition), color var(--tm-transition), background var(--tm-transition);
+}
+
+.tm-card:hover .tm-btn-mini {
+  opacity: 0.8;
+}
+
+.tm-btn-mini:hover {
+  opacity: 1;
+  color: var(--interactive-accent);
+  background: var(--background-modifier-hover);
+}
+
+/* Icon-only button (generic) */
+.tm-btn-icon {
+  width: var(--tm-btn-h);
+  height: var(--tm-btn-h);
+  border-radius: var(--tm-radius-md);
+  border: 1px solid var(--background-modifier-border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--tm-transition);
+}
+
+.tm-btn-icon:hover {
+  color: var(--interactive-accent);
+  border-color: var(--interactive-accent);
+  background: var(--background-modifier-hover);
+}
+
+/* ── AI Task Badge (toolbar + sidebar header) ─────────────────────────── */
+
+.tm-task-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--tm-gap-xs);
+  font-size: var(--font-ui-smaller);
+  padding: 3px 8px;
+  border-radius: var(--tm-radius-md);
+  background: rgba(var(--tm-accent-rgb), 0.08);
+  border: 1px solid rgba(var(--tm-accent-rgb), 0.2);
+  color: var(--interactive-accent);
+  white-space: nowrap;
+  font-weight: 500;
+  transition: opacity var(--tm-transition);
+}
+
+.tm-task-badge.tm-task-badge-hidden {
+  display: none;
+}
+
+.tm-task-badge-active .tm-task-badge-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-blue, #4a9eff);
+  animation: tm-pulse 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.tm-task-badge-abort {
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--tm-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all var(--tm-transition);
+}
+
+.tm-task-badge-abort:hover {
+  color: var(--color-red, #ef4444);
+  background: rgba(var(--color-red-rgb, 239, 68, 68), 0.1);
+}
+
+.tm-task-badge-abort svg {
+  width: var(--tm-icon-xs);
+  height: var(--tm-icon-xs);
+  stroke-width: 2.5;
+}
+
+/* ── Quick Input Bar ────────────────────────────────────────────────── */
+
+.tm-input-bar {
+  display: flex;
+  gap: var(--tm-gap-md);
+  margin-bottom: var(--tm-gap-lg);
+}
+
+.tm-input-field {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: var(--tm-input-radius);
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: var(--font-ui-medium);
+  resize: none;
+  min-height: 36px;
+  max-height: 120px;
+  font-family: var(--font-text);
+  line-height: 1.5;
+  transition: border-color var(--tm-transition), box-shadow var(--tm-transition);
+}
+
+.tm-input-field:focus {
+  border-color: var(--interactive-accent);
+  box-shadow: 0 0 0 2px rgba(var(--tm-accent-rgb), 0.12);
+  outline: none;
+}
+
+.tm-input-field::placeholder {
+  color: var(--text-faint);
+}
+
+/* ── Section Headers ────────────────────────────────────────────────── */
+
+.tm-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: var(--tm-gap-xl) 0 var(--tm-gap-sm);
+  flex-wrap: wrap;
+  gap: var(--tm-gap-sm);
+}
+
+.tm-section-title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--tm-gap-xs);
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+.tm-entry-count {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.tm-section-controls {
+  display: flex;
+  gap: var(--tm-gap-sm);
+  align-items: center;
+}
+
+.tm-period-select {
+  font-size: var(--font-ui-small);
+  padding: 4px 8px;
+  border-radius: var(--tm-radius-md);
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  color: var(--text-normal);
+  cursor: pointer;
+  transition: border-color var(--tm-transition);
+}
+
+.tm-period-select:hover {
+  border-color: var(--interactive-accent);
+}
+
+/* ── Card Action Buttons (with labels, always visible) ──── */
+
+.tm-card-action-btn {
+  height: 26px;
+  padding: 0 8px;
+  border-radius: var(--tm-radius-sm);
+  border: 1px solid var(--background-modifier-border);
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-size: var(--font-ui-smaller);
+  font-weight: 500;
+  transition: all var(--tm-transition);
+  white-space: nowrap;
+}
+
+.tm-card-action-btn:hover {
+  color: var(--interactive-accent);
+  border-color: var(--interactive-accent);
+  background: var(--background-modifier-hover);
+}
+
+.tm-card-action-label {
+  white-space: nowrap;
+}
+
+/* ── Stream Cards ───────────────────────────────────────────────────── */
+
+.tm-stream-container {
+  min-height: 60px;
+}
+
+.tm-card {
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--tm-card-radius);
+  padding: var(--tm-card-padding);
+  margin-bottom: var(--tm-gap-sm);
+  transition: background var(--tm-transition), border-color var(--tm-transition), transform var(--tm-transition);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tm-card {
+    transition: none;
+  }
+}
+
+.tm-card:hover {
+  background: var(--background-modifier-hover);
+  border-color: var(--background-modifier-border-hover);
+}
+
+.tm-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--tm-gap-xs);
+  margin-bottom: var(--tm-gap-xs);
+}
+
+.tm-card-time-icon {
+  display: flex;
+  align-items: center;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+
+.tm-card-time {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.tm-card-actions {
+  margin-left: auto;
+  display: flex;
+  gap: var(--tm-gap-xs);
+}
+
+.tm-card-body {
+  font-size: var(--font-text-size);
+  color: var(--text-normal);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  cursor: pointer;
+}
+
+.tm-card-body.tm-collapsed {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tm-card-footer {
+  display: flex;
+  gap: var(--tm-gap-xs);
+  margin-top: var(--tm-gap-md);
+  font-size: var(--font-ui-smaller);
+  flex-wrap: wrap;
+}
+
+.tm-card-tag {
+  color: var(--interactive-accent);
+  background: rgba(var(--tm-accent-rgb), 0.08);
+  padding: 2px 8px;
+  border-radius: var(--tm-radius-md);
+  font-weight: 500;
+  font-size: var(--font-ui-smaller);
+}
+
+/* ── Day Header ─────────────────────────────────────────────────────── */
+
+.tm-day-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--tm-gap-md);
+  margin: var(--tm-gap-lg) 0 var(--tm-gap-sm);
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.tm-day-label {
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tm-day-count {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   AI Suggestion Cards
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.tm-suggestion-container {
+  min-height: 40px;
+}
+
+.tm-suggestion-summary {
+  margin-bottom: var(--tm-gap-sm);
+}
+
+.tm-suggestion-count-badge {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  background: var(--background-modifier-hover);
+  padding: 2px 8px;
+  border-radius: var(--tm-radius-md);
+  font-weight: 500;
+}
+
+.tm-suggestion-card {
+  background: var(--background-secondary);
+  border: var(--tm-suggestion-left-border);
+  border-radius: var(--tm-card-radius);
+  padding: var(--tm-card-padding);
+  margin-bottom: var(--tm-gap-sm);
+  transition: opacity var(--tm-transition-slow), transform var(--tm-transition-slow);
+}
+
+.tm-suggestion-card.tm-card-removing {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.tm-suggestion-card.tm-suggestion-create-topic,
+.tm-suggestion-card.tm-suggestion-inbox-review,
+.tm-suggestion-card.tm-suggestion-topic-classify {
+  border-left-color: var(--color-blue, #4a9eff);
+}
+
+.tm-suggestion-card.tm-suggestion-todo-extract,
+.tm-suggestion-card.tm-suggestion-stale-topic,
+.tm-suggestion-card.tm-suggestion-catch-all {
+  border-left-color: var(--color-orange, #ff9e4a);
+}
+
+.tm-suggestion-card.tm-suggestion-ai-summary,
+.tm-suggestion-card.tm-suggestion-stream-digest {
+  border-left-color: var(--color-purple, #9c27b0);
+}
+
+.tm-suggestion-card.tm-suggestion-promote-memory,
+.tm-suggestion-card.tm-suggestion-open-profile {
+  border-left-color: var(--color-green, #4caf50);
+}
+
+.tm-suggestion-header {
+  display: flex;
+  align-items: center;
+  gap: var(--tm-gap-md);
+  margin-bottom: var(--tm-gap-xs);
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+}
+
+.tm-suggestion-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tm-suggestion-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tm-impact-badge {
+  font-size: var(--font-ui-smaller);
+  padding: 2px 8px;
+  border-radius: var(--tm-radius-md);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.tm-impact-high {
+  background: rgba(var(--color-red-rgb, 239, 68, 68), 0.12);
+  color: var(--color-red, #ef4444);
+}
+
+.tm-impact-medium {
+  background: rgba(var(--color-orange-rgb, 249, 115, 22), 0.12);
+  color: var(--color-orange, #f97316);
+}
+
+.tm-suggestion-body {
+  font-size: var(--font-ui-small);
+  color: var(--text-normal);
+  line-height: 1.5;
+  margin-bottom: var(--tm-gap-md);
+}
+
+.tm-suggestion-actions {
+  display: flex;
+  gap: var(--tm-gap-md);
+}
+
+.tm-suggestion-actions .tm-btn-dismiss {
+  padding: 0 12px;
+  height: var(--tm-btn-h);
+  font-size: var(--font-ui-smaller);
+  border-radius: var(--tm-radius-md);
+  cursor: pointer;
+  font-weight: 500;
+  background: transparent;
+  border: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+  transition: all var(--tm-transition);
+  display: inline-flex;
+  align-items: center;
+}
+
+.tm-suggestion-actions .tm-btn-dismiss:hover {
+  color: var(--text-normal);
+  border-color: var(--text-muted);
+  background: var(--background-modifier-hover);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Empty States (with icons)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.tm-empty-state {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+
+.tm-empty-state.tm-empty-compact {
+  padding: 16px 8px;
+}
+
+.tm-empty-icon {
+  margin-bottom: var(--tm-gap-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-faint);
+}
+
+.tm-empty-icon svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 1.5;
+}
+
+.tm-empty-title {
+  font-size: var(--font-ui-medium);
+  color: var(--text-normal);
+  margin-bottom: var(--tm-gap-xs);
+  font-weight: 500;
+}
+
+.tm-empty-hint {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+}
+
+.tm-stream-empty {
+  padding: 40px 16px;
+}
+
+.tm-suggestion-empty {
+  padding: 24px 16px;
+}
+
+.tm-init-desc {
+  margin-bottom: var(--tm-gap-xs);
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+
+/* ── Loading Indicator ──────────────────────────────────────────────── */
+
+.tm-loading {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+
+.tm-loading-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--tm-gap-md);
+}
+
+.tm-loading-spinner::before {
+  content: "";
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--background-modifier-border);
+  border-top-color: var(--interactive-accent);
+  border-radius: 50%;
+  animation: tm-spin 0.8s linear infinite;
+}
+
+.tm-loading-spinner-sm::before {
+  width: 10px;
+  height: 10px;
+  border-width: 1.5px;
+}
+
+@keyframes tm-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tm-loading-spinner::before {
+    animation: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Quick Capture Modal
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.tm-quick-capture-modal {
+  width: 600px;
+  max-width: 90vw;
+}
+
+.tm-quick-capture-modal .modal-content {
+  padding: 20px;
+}
+
+.tm-quick-capture-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tm-gap-xl);
+}
+
+.tm-modal-title {
+  font-size: var(--font-ui-medium);
+  font-weight: 700;
+  color: var(--text-normal);
+  display: flex;
+  align-items: center;
+  gap: var(--tm-gap-xs);
+}
+
+.tm-modal-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tm-quick-capture-textarea-wrap {
+  position: relative;
+}
+
+.tm-quick-capture-textarea {
+  width: 100%;
+  min-height: 100px;
+  max-height: 300px;
+  padding: 12px 14px;
+  border-radius: var(--tm-input-radius);
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: var(--font-text-size);
+  font-family: var(--font-text);
+  resize: none;
+  line-height: 1.6;
+  transition: border-color var(--tm-transition), box-shadow var(--tm-transition);
+}
+
+.tm-quick-capture-textarea:focus {
+  border-color: var(--interactive-accent);
+  box-shadow: 0 0 0 2px rgba(var(--tm-accent-rgb), 0.12);
+  outline: none;
+}
+
+.tm-quick-capture-textarea::placeholder {
+  color: var(--text-faint);
+}
+
+.tm-quick-capture-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--tm-gap-xs) var(--tm-gap-xs) 0;
+  gap: var(--tm-gap-md);
+}
+
+.tm-char-count {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+
+.tm-url-hint {
+  display: flex;
+  align-items: center;
+  gap: var(--tm-gap-xs);
+  font-size: var(--font-ui-smaller);
+  color: var(--color-blue, #4a9eff);
+  transition: opacity var(--tm-transition);
+}
+
+.tm-url-hint.tm-url-hint-hidden {
+  display: none;
+}
+
+.tm-url-hint-icon {
+  display: flex;
+  align-items: center;
+}
+
+.tm-quick-capture-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  flex-wrap: wrap;
+  gap: var(--tm-gap-lg);
+}
+
+.tm-footer-left {
+  display: flex;
+  gap: var(--tm-gap-xl);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.tm-footer-right {
+  display: flex;
+  align-items: center;
+  gap: var(--tm-gap-md);
+}
+
+.tm-footer-label {
+  font-weight: 500;
+  margin-right: var(--tm-gap-xs);
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+.tm-quick-capture-target {
+  display: flex;
+  gap: var(--tm-gap-xs);
+  align-items: center;
+}
+
+.tm-quick-capture-target select {
+  padding: 4px 8px;
+  border-radius: var(--tm-radius-md);
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  color: var(--text-normal);
+  cursor: pointer;
+}
+
+.tm-quick-capture-tags {
+  display: flex;
+  gap: var(--tm-gap-xs);
+  align-items: center;
+}
+
+.tm-tag-input {
+  padding: 4px 8px;
+  border-radius: var(--tm-radius-md);
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  color: var(--text-normal);
+  font-size: var(--font-ui-smaller);
+  width: 140px;
+}
+
+.tm-tag-input:focus {
+  border-color: var(--interactive-accent);
+  outline: none;
+}
+
+.tm-hint {
+  white-space: nowrap;
+  opacity: 0.7;
+  font-size: var(--font-ui-smaller);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Sidebar Dock View (AI Copilot Panel)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.tm-sidebar-dock {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── Sidebar Header ─────────────────────────────────────────────────── */
+
+.tm-sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: var(--tm-gap-sm);
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.tm-sidebar-status {
+  display: flex;
+  align-items: center;
+  gap: var(--tm-gap-xs);
+  flex-shrink: 0;
+}
+
+.tm-model-badge {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  background: var(--background-modifier-hover);
+  padding: 3px 8px;
+  border-radius: var(--tm-radius-md);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+  flex: 0 1 auto;
+  font-weight: 500;
+}
+
+.tm-sidebar-header-actions {
+  display: flex;
+  gap: var(--tm-gap-xs);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.tm-sidebar-icon-btn {
+  width: 28px;
+  height: 28px;
+}
+
+/* ── Tab Bar ────────────────────────────────────────────────────────── */
+
+.tm-tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--background-modifier-border);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+.tm-tab-bar::-webkit-scrollbar {
+  height: 0;
+}
+
+.tm-tab-btn {
+  flex: 1;
+  min-width: 0;
+  padding: 7px var(--tm-gap-xs);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: var(--font-ui-smaller);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--tm-gap-xs);
+  transition: all var(--tm-transition);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+
+.tm-tab-btn:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+.tm-tab-btn.tm-tab-active {
+  color: var(--interactive-accent);
+  border-bottom-color: var(--interactive-accent);
+  font-weight: 600;
+}
+
+.tm-tab-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tm-tab-label {
+  font-size: var(--font-ui-smaller);
+}
+
+/* ── Tab Content ────────────────────────────────────────────────────── */
+
+.tm-tab-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  min-height: 0;
+}
+
+/* ── Todos Tab ──────────────────────────────────────────────────────── */
+
+.tm-sidebar-section {
+  margin-bottom: var(--tm-gap-xl);
+}
+
+.tm-todo-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--tm-gap-md);
+  padding: 4px 0;
+  font-size: var(--font-ui-smaller);
+  cursor: pointer;
+  transition: opacity var(--tm-transition);
+  line-height: 1.4;
+}
+
+.tm-todo-item.tm-completed {
+  text-decoration: line-through;
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.tm-todo-checkbox {
+  margin-top: 3px;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.tm-todo-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--background-modifier-hover);
+  border: none;
+  border-radius: var(--tm-radius-md);
+  padding: 0 var(--tm-gap-xs);
+  font-size: var(--font-ui-smaller);
+  color: var(--text-accent);
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity var(--tm-transition);
+}
+
+.tm-todo-source:hover {
+  opacity: 1;
+  background: var(--background-modifier-active-hover);
+}
+
+.tm-todo-text {
+  flex: 1;
+}
+
+.tm-todo-due {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.tm-todo-done-header {
+  margin-top: 10px;
+  padding-top: var(--tm-gap-md);
+  border-top: 1px solid var(--background-modifier-border);
+  display: flex;
+  align-items: center;
+  gap: var(--tm-gap-xs);
+}
+
+.tm-todo-done-label {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+  display: flex;
+  align-items: center;
+  gap: var(--tm-gap-xs);
+}
+
+.tm-view-all {
+  margin-top: var(--tm-gap-xs);
+  width: 100%;
+  text-align: center;
+  color: var(--interactive-accent);
+  font-size: var(--font-ui-smaller);
+  font-weight: 500;
+}
+
+/* ── Todo Open File Bar ─────────────────────────────────────────────── */
+
+.tm-todo-open-file-bar {
+  margin-bottom: var(--tm-gap-sm);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.tm-todo-open-file-btn {
+  height: var(--tm-btn-h-sm);
+  padding: 0 8px;
+  font-size: var(--font-ui-smaller);
+}
+
+/* ── Stream Tab ─────────────────────────────────────────────────────── */
+
+.tm-sidebar-stream-item {
+  padding: 5px 0;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-normal);
+  border-bottom: 1px solid var(--background-modifier-border);
+  cursor: pointer;
+  transition: color var(--tm-transition);
+  display: flex;
+  gap: var(--tm-gap-xs);
+  align-items: baseline;
+  line-height: 1.4;
+}
+
+.tm-sidebar-stream-item:hover {
+  color: var(--interactive-accent);
+}
+
+.tm-sidebar-stream-item:last-child {
+  border-bottom: none;
+}
+
+.tm-sidebar-stream-time {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  font-weight: 500;
+  font-size: var(--font-ui-smaller);
+}
+
+.tm-sidebar-stream-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   AI Task History Tab
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.tm-history-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 10px 0 var(--tm-gap-xs);
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tm-history-clear {
+  opacity: 0.5;
+}
+
+.tm-history-clear:hover {
+  opacity: 1;
+  color: var(--color-red, #ef4444);
+}
+
+.tm-history-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--tm-gap-md);
+  padding: 5px var(--tm-gap-xs);
+  font-size: var(--font-ui-smaller);
+  border-radius: var(--tm-radius-md);
+  transition: background var(--tm-transition);
+}
+
+.tm-history-item:hover {
+  background: var(--background-modifier-hover);
+}
+
+.tm-history-item-active {
+  background: rgba(var(--tm-accent-rgb), 0.04);
+  border: 1px solid rgba(var(--tm-accent-rgb), 0.15);
+}
+
+.tm-history-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.tm-history-icon svg {
+  width: var(--tm-icon-sm);
+  height: var(--tm-icon-sm);
+  stroke-width: 2;
+}
+
+.tm-history-running .tm-history-icon {
+  color: var(--color-blue, #4a9eff);
+  animation: tm-spin 1s linear infinite;
+}
+
+.tm-history-done .tm-history-icon {
+  color: var(--color-green, #4caf50);
+}
+
+.tm-history-error .tm-history-icon {
+  color: var(--color-red, #ef4444);
+}
+
+.tm-history-aborted .tm-history-icon {
+  color: var(--text-faint);
+}
+
+.tm-history-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.tm-history-label {
+  font-weight: 500;
+  color: var(--text-normal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tm-history-meta {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+  margin-top: 2px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  align-items: baseline;
+}
+
+.tm-history-status {
+  font-weight: 500;
+}
+
+.tm-history-status-done {
+  color: var(--color-green, #4caf50);
+}
+
+.tm-history-status-error {
+  color: var(--color-red, #ef4444);
+}
+
+.tm-history-status-aborted {
+  color: var(--text-faint);
+}
+
+.tm-history-status-running,
+.tm-history-status-pending {
+  color: var(--color-blue, #4a9eff);
+}
+
+.tm-history-summary,
+.tm-history-error,
+.tm-history-duration {
+  color: var(--text-faint);
+}
+
+.tm-history-abort {
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity var(--tm-transition);
+}
+
+.tm-history-item-active:hover .tm-history-abort {
+  opacity: 0.7;
+}
+
+/* ── Inline task progress (suggestions tab) ─────────────────────────── */
+
+.tm-task-progress-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--tm-gap-md);
+  padding: 10px var(--tm-gap-md);
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   AI Chat
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.tm-chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+}
+
+.tm-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px var(--tm-gap-xs);
+  min-height: 200px;
+}
+
+.tm-chat-empty {
+  text-align: center;
+  padding: 28px 16px;
+  color: var(--text-muted);
+}
+
+.tm-chat-empty-icon {
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tm-chat-empty-title {
+  font-size: var(--font-ui-small);
+  color: var(--text-normal);
+  margin-bottom: var(--tm-gap-xs);
+  font-weight: 500;
+}
+
+.tm-chat-empty-hint {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+}
+
+.tm-chat-message {
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border-radius: var(--tm-radius-lg);
+  font-size: var(--font-ui-smaller);
+  line-height: 1.5;
+}
+
+.tm-chat-user {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  margin-left: 20px;
+}
+
+.tm-chat-ai {
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  margin-right: 20px;
+}
+
+.tm-chat-role {
+  font-size: var(--font-ui-smaller);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: block;
+  margin-bottom: 3px;
+  opacity: 0.7;
+}
+
+.tm-chat-body {
+  word-break: break-word;
+}
+
+.tm-chat-body p {
+  margin: 0 0 var(--tm-gap-xs) 0;
+}
+
+.tm-chat-body p:last-child {
+  margin-bottom: 0;
+}
+
+.tm-chat-body ul,
+.tm-chat-body ol {
+  margin: var(--tm-gap-xs) 0;
+  padding-left: 16px;
+}
+
+.tm-chat-thinking {
+  display: flex;
+  align-items: center;
+  gap: var(--tm-gap-xs);
+}
+
+.tm-chat-thinking-dots {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+  animation: tm-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes tm-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tm-chat-thinking-dots {
+    animation: none;
+  }
+}
+
+/* ── Chat Input Area ────────────────────────────────────────────────── */
+
+.tm-chat-input-area {
+  display: flex;
+  gap: var(--tm-gap-xs);
+  padding: 6px var(--tm-gap-xs);
+  border-top: 1px solid var(--background-modifier-border);
+  flex-shrink: 0;
+  align-items: flex-end;
+}
+
+.tm-chat-input {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: var(--tm-radius-md);
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: var(--font-ui-smaller);
+  resize: none;
+  min-height: 32px;
+  max-height: 100px;
+  font-family: var(--font-text);
+  line-height: 1.4;
+  transition: border-color var(--tm-transition);
+}
+
+.tm-chat-input:focus {
+  border-color: var(--interactive-accent);
+  outline: none;
+}
+
+.tm-chat-send-btn {
+  padding: 0 12px;
+  height: 32px;
+  border-radius: var(--tm-radius-md);
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+  cursor: pointer;
+  font-size: var(--font-ui-smaller);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background var(--tm-transition);
+  flex-shrink: 0;
+}
+
+.tm-chat-send-btn:hover {
+  background: var(--interactive-accent-hover);
+}
+
+.tm-chat-clear-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--tm-radius-md);
+  background: transparent;
+  color: var(--text-faint);
+  border: 1px solid var(--background-modifier-border);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--tm-transition);
+  flex-shrink: 0;
+}
+
+.tm-chat-clear-btn:hover {
+  color: var(--text-normal);
+  border-color: var(--text-muted);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Sidebar BottomActions
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.tm-sidebar-bottom-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--tm-gap-xs);
+  padding: 5px 6px;
+  border-top: 1px solid var(--background-modifier-border);
+  flex-shrink: 0;
+  background: var(--background-secondary);
+}
+
+.tm-sidebar-action-btn {
+  flex: 1 1 auto;
+  min-width: 28px;
+  height: var(--tm-btn-h);
+  border-radius: var(--tm-radius-md);
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  cursor: pointer;
+  transition: all var(--tm-transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--tm-gap-xs);
+  font-size: var(--font-ui-smaller);
+  font-weight: 500;
+  padding: 0 6px;
+}
+
+.tm-sidebar-action-btn:hover {
+  border-color: var(--interactive-accent);
+  background: var(--background-modifier-hover);
+  color: var(--interactive-accent);
+}
+
+.tm-action-with-label {
+  flex: 0 1 auto;
+  padding: 0 8px;
+}
+
+.tm-action-icon-span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tm-action-label-span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+.tm-action-toggle-labels {
+  flex: 0 0 30px;
+  min-width: 30px;
+}
+
+.tm-sidebar-open-action {
+  flex: 0 0 36px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Workspace Init (empty state)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.tm-workspace-init {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--tm-gap-lg);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Settings: Status Badges
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.tm-status-badges {
+  display: flex;
+  gap: var(--tm-gap-xs);
+  flex-wrap: wrap;
+}
+
+.tm-status-badge {
+  font-size: var(--font-ui-smaller);
+  padding: 3px 8px;
+  border-radius: var(--tm-radius-md);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tm-status-ok {
+  background: rgba(var(--color-green-rgb, 76, 175, 80), 0.12);
+  color: var(--color-green, #4caf50);
+}
+
+.tm-status-info {
+  background: rgba(var(--color-blue-rgb, 74, 158, 255), 0.12);
+  color: var(--color-blue, #4a9eff);
+}
+
+.tm-status-warning {
+  background: rgba(var(--color-orange-rgb, 255, 158, 74), 0.12);
+  color: var(--color-orange, #ff9e4a);
+}
+
+/* ── AI Status (shared) ─────────────────────────────────────────────── */
+
+.tm-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.tm-dot-ok {
+  background: var(--color-green, #4caf50);
+  box-shadow: 0 0 4px var(--color-green, #4caf50);
+}
+
+.tm-dot-off {
+  background: var(--text-faint);
+}
+
+.tm-status-label {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* ── Chat Model Switcher ─────────────────────────────────────────── */
+
+.tm-chat-model-switcher {
+  display: flex;
+  gap: var(--tm-gap-md);
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  background: var(--background-secondary);
+}
+
+.tm-chat-switcher-item {
+  display: flex;
+  align-items: center;
+  gap: var(--tm-gap-xs);
+  flex: 1;
+  min-width: 0;
+}
+
+.tm-chat-switcher-label {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tm-chat-switcher-select {
+  font-size: var(--font-ui-smaller);
+  padding: 3px 6px;
+  border-radius: var(--tm-radius-sm);
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  cursor: pointer;
+  max-width: 100%;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: border-color var(--tm-transition);
+}
+
+.tm-chat-switcher-select:hover {
+  border-color: var(--interactive-accent);
+}
+
+.tm-chat-switcher-select:focus {
+  border-color: var(--interactive-accent);
+  outline: none;
+}
+
+.tm-chat-model-select {
+  max-width: 160px;
+}
+
+/* ── Chat Message Actions (always visible with labels) ────────────── */
+
+.tm-chat-msg-actions {
+  display: flex;
+  gap: var(--tm-gap-xs);
+  margin-top: var(--tm-gap-xs);
+  opacity: 1;
+}
+
+.tm-chat-msg-btn {
+  height: 24px;
+  border-radius: var(--tm-radius-sm);
+  border: 1px solid var(--background-modifier-border);
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-ui-smaller);
+  gap: 3px;
+  padding: 0 var(--tm-gap-xs);
+  transition: all var(--tm-transition);
+}
+
+.tm-chat-msg-btn-labeled {
+  width: auto;
+}
+
+.tm-chat-msg-btn-label {
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.tm-chat-msg-btn:hover {
+  color: var(--interactive-accent);
+  background: var(--background-modifier-hover);
+  border-color: var(--interactive-accent);
+}
+
+.tm-chat-msg-btn.tm-copied {
+  color: var(--color-green, #4caf50);
+  border-color: var(--color-green, #4caf50);
+}
+
+.tm-chat-retry-btn {
+  width: auto;
+  padding: 0 var(--tm-gap-md);
+  gap: var(--tm-gap-xs);
+}
+
+/* ── Suggestion Refresh Bar ────────────────────────────────────────── */
+
+.tm-suggestion-refresh-bar {
+  margin-bottom: var(--tm-gap-sm);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.tm-suggestion-refresh-btn {
+  padding: 0 8px;
+}
+
+/* ── Chat Error Message ───────────────────────────────────────────── */
+
+.tm-chat-error-msg {
+  border-color: rgba(var(--color-red-rgb, 239, 68, 68), 0.3);
+  background: rgba(var(--color-red-rgb, 239, 68, 68), 0.04);
+}
+
+.tm-chat-error-msg .tm-chat-body {
+  color: var(--color-red, #ef4444);
+  font-size: var(--font-ui-smaller);
+}
+
+/* ── AI Status Dot States ─────────────────────────────────────────── */
+
+.tm-dot-checking {
+  background: var(--color-orange, #ff9e4a);
+  animation: tm-pulse 1s ease-in-out infinite;
+}
+
+.tm-dot-error {
+  background: var(--color-red, #ef4444);
+  box-shadow: 0 0 4px var(--color-red, #ef4444);
+}
+
+/* Clickable sidebar status */
+.tm-sidebar-status[role="button"] {
+  cursor: pointer;
+  border-radius: var(--tm-radius-sm);
+  padding: 2px var(--tm-gap-xs);
+  margin: -2px -4px;
+  transition: background var(--tm-transition);
+}
+
+.tm-sidebar-status[role="button"]:hover {
+  background: var(--background-modifier-hover);
+}
+
+.tm-model-badge[role="button"] {
+  cursor: pointer;
+  transition: background var(--tm-transition);
+}
+
+.tm-model-badge[role="button"]:hover {
+  background: var(--background-modifier-border-hover);
+}
+
+/* ── Empty State Action Button ────────────────────────────────────── */
+
+.tm-empty-action {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--tm-gap-lg);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Focus Visible (extended)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.tm-card-actions button:focus-visible,
+.tm-suggestion-actions button:focus-visible,
+.tm-input-bar button:focus-visible,
+.tm-submit-btn:focus-visible,
+.tm-sidebar-action-btn:focus-visible,
+.tm-toolbar-btn:focus-visible,
+.tm-sidebar-icon-btn:focus-visible,
+.tm-tab-btn:focus-visible,
+.tm-chat-send-btn:focus-visible,
+.tm-chat-clear-btn:focus-visible,
+.tm-btn-secondary:focus-visible,
+.tm-btn-icon:focus-visible,
+.tm-btn-mini:focus-visible,
+.tm-btn-init-workspace:focus-visible,
+.tm-input-field:focus-visible,
+.tm-chat-input:focus-visible,
+.tm-quick-capture-textarea:focus-visible,
+.tm-task-badge-abort:focus-visible,
+.tm-history-abort:focus-visible,
+.tm-history-clear:focus-visible,
+.tm-action-toggle-labels:focus-visible,
+.tm-chat-switcher-select:focus-visible,
+.tm-chat-msg-btn:focus-visible,
+.tm-sidebar-status[role="button"]:focus-visible,
+.tm-model-badge[role="button"]:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SVG Icon Sizing (Lucide icons via setIcon)
+   Unified sizes: 12px (inline/mini), 14px (small/tab/card), 16px (toolbar/sidebar)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Toolbar buttons — 16px icons */
+.tm-toolbar-btn svg,
+.tm-toolbar-btn-labeled svg:has(svg) svg {
+  width: var(--tm-icon-md);
+  height: var(--tm-icon-md);
+  stroke-width: 2;
+}
+
+/* Sidebar icon buttons — 14px icons */
+.tm-sidebar-icon-btn svg,
+.tm-sidebar-btn-labeled svg {
+  width: var(--tm-icon-sm);
+  height: var(--tm-icon-sm);
+  stroke-width: 2;
+}
+
+/* Tab bar icons — 14px */
+.tm-tab-icon svg {
+  width: var(--tm-icon-sm);
+  height: var(--tm-icon-sm);
+  stroke-width: 2;
+}
+
+/* Suggestion icons — 16px */
+.tm-suggestion-icon svg {
+  width: var(--tm-icon-md);
+  height: var(--tm-icon-md);
+  stroke-width: 2;
+}
+
+/* Card action mini buttons — 14px */
+.tm-btn-mini svg {
+  width: var(--tm-icon-sm);
+  height: var(--tm-icon-sm);
+  stroke-width: 2;
+}
+
+/* Card action labeled buttons — 12px */
+.tm-card-action-btn svg {
+  width: var(--tm-icon-xs);
+  height: var(--tm-icon-xs);
+  stroke-width: 2;
+}
+
+/* Card time icon — 12px */
+.tm-card-time-icon svg {
+  width: var(--tm-icon-xs);
+  height: var(--tm-icon-xs);
+  stroke-width: 2;
+}
+
+/* Chat message action button icons — 12px */
+.tm-chat-msg-btn svg {
+  width: var(--tm-icon-xs);
+  height: var(--tm-icon-xs);
+  stroke-width: 2;
+}
+
+/* Sidebar action buttons — 16px */
+.tm-sidebar-action-btn svg {
+  width: var(--tm-icon-md);
+  height: var(--tm-icon-md);
+  stroke-width: 2;
+}
+
+/* Chat empty icon — 28px */
+.tm-chat-empty-icon svg {
+  width: 28px;
+  height: 28px;
+  stroke-width: 1.5;
+}
+
+/* Chat clear button — 14px */
+.tm-chat-clear-btn svg {
+  width: var(--tm-icon-sm);
+  height: var(--tm-icon-sm);
+  stroke-width: 2;
+}
+
+/* Todo due date icon — 12px */
+.tm-todo-due svg {
+  width: var(--tm-icon-xs);
+  height: var(--tm-icon-xs);
+  stroke-width: 2;
+}
+
+/* Todo done header icon — 12px */
+.tm-todo-done-label svg {
+  width: var(--tm-icon-xs);
+  height: var(--tm-icon-xs);
+  stroke-width: 2;
+}
+
+/* Todo source icon — 12px */
+.tm-todo-source svg {
+  width: var(--tm-icon-xs);
+  height: var(--tm-icon-xs);
+  stroke-width: 2;
+}
+
+/* Secondary button icons — 14px */
+.tm-btn-secondary svg {
+  width: var(--tm-icon-sm);
+  height: var(--tm-icon-sm);
+  stroke-width: 2;
+}
+
+/* Icon button — 14px */
+.tm-btn-icon svg {
+  width: var(--tm-icon-sm);
+  height: var(--tm-icon-sm);
+  stroke-width: 2;
+}
+
+/* Modal title icon — 18px */
+.tm-modal-icon svg {
+  width: var(--tm-icon-lg);
+  height: var(--tm-icon-lg);
+  stroke-width: 2;
+}
+
+/* URL hint icon — 12px */
+.tm-url-hint-icon svg {
+  width: var(--tm-icon-xs);
+  height: var(--tm-icon-xs);
+}
+
+/* Empty state icon — 24px (set in .tm-empty-icon) */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Responsive
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 600px) {
+  .tm-stream-workbench {
+    padding: 10px 8px;
+  }
+
+  .tm-input-bar {
+    flex-direction: column;
+  }
+
+  .tm-input-bar .tm-submit-btn {
+    width: 100%;
+  }
+
+  .tm-quick-capture-footer {
+    flex-direction: column;
+  }
+
+  .tm-footer-left {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .tm-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .tm-toolbar-model {
+    max-width: 100px;
+  }
+
+  /* Sidebar: shrink tab labels on narrow widths */
+  .tm-tab-label {
+    font-size: 10px;
+  }
+
+  .tm-tab-btn {
+    gap: 2px;
+    padding: 7px 2px;
+  }
+}

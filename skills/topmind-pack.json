@@ -1,0 +1,400 @@
+{
+  "schema_version": 1,
+  "name": "topmind",
+  "label": "topmind",
+  "description": "topmind skill pack: single daily entry topmind + progressive disclosure (shared/ + references/), Agent Skills open-standard aligned, capture-first template-driven categories, optional weread/x connectors. File-system-first content truth; UTR optional.",
+  "daily_entry": "topmind",
+  "version": "2.13.0",
+  "updated": "2026-08-09",
+  "license": "MIT",
+  "locales": {
+    "default": "zh-CN",
+    "available": [
+      "zh-CN",
+      "en-US"
+    ],
+    "overlay_mechanism": "Skill dirs may contain locales/{locale}/ with overlay files; installer applies overlay at install time when --locale is specified."
+  },
+  "homepage": "https://github.com/topmindspace/topmind#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/topmindspace/topmind.git"
+  },
+  "bugs": {
+    "url": "https://github.com/topmindspace/topmind/issues"
+  },
+  "keywords": [
+    "skill-pack",
+    "personal-knowledge",
+    "capture-first",
+    "category-first",
+    "topic-emerges",
+    "file-system-truth",
+    "agent-skills",
+    "portable",
+    "markdown-only",
+    "anthropic-skills",
+    "cursor-rules",
+    "obsidian-friendly"
+  ],
+  "metadata": {
+    "license": "MIT",
+    "authors": [
+      {
+        "name": "TopMindSpace",
+        "github": "topmindspace"
+      }
+    ],
+    "repository": "https://github.com/topmindspace/topmind",
+    "homepage": "https://github.com/topmindspace/topmind#readme",
+    "issues": "https://github.com/topmindspace/topmind/issues",
+    "keywords": [
+      "skill-pack",
+      "personal-knowledge",
+      "capture-first",
+      "category-first",
+      "topic-emerges",
+      "file-system-truth",
+      "agent-skills",
+      "portable",
+      "markdown-only",
+      "anthropic-skills",
+      "cursor-rules",
+      "obsidian-friendly"
+    ],
+    "compatibility": {
+      "hosts": [
+        "opencode",
+        "hermes",
+        "codex",
+        "claude-code",
+        "mcp",
+        "obsidian"
+      ],
+      "runtime": "pure-markdown",
+      "optional_dependencies": {
+        "utr": "node >= 18, optional deterministic CLI/MCP commands",
+        "desktop": "Electron, optional GUI client (topmind-desktop/)"
+      }
+    },
+    "content_schema": {
+      "_disambiguation_note": "The frontmatter `action_category` key refers to the action-skill taxonomy (capture|organize|write|memory|maintain|loop|router|connector). User note frontmatter has a `category` field, but there it means the physical category directory name (e.g. template-defined name like research category). Different keys, different meanings — no collision.",
+      "frontmatter_required_fields": [
+        "name",
+        "version",
+        "description",
+        "action_category",
+        "triggers"
+      ],
+      "frontmatter_optional_fields": [
+        "tags",
+        "entrypoint",
+        "degradation",
+        "author",
+        "license",
+        "homepage",
+        "updated",
+        "compatibility"
+      ],
+      "frontmatter_description_rules": [
+        "max 1024 characters (Agent Skills open standard)",
+        "structure: what it does + Use when (zh/en phrases) + Do NOT use (negative boundary)",
+        "include when-to-use triggers (zh/en phrases users actually say)",
+        "include when-not-to-use boundaries to reduce false activation",
+        "description is the progressive-disclosure discovery signal",
+        "sub-skills must not use over-broad phrasing that steals sibling activation",
+        "router prefers multi-intent/ambiguous; single clear verbs prefer action skills"
+      ],
+      "progressive_disclosure": {
+        "discovery": "name + description only (~100 tokens/skill)",
+        "activation": "full SKILL.md body when matched",
+        "resources": "shared/*.md and skill references/* loaded on demand",
+        "host_loading": "skills/shared/host-loading.md",
+        "shared_must_be_sibling": "install shared/ next to skill dirs so ../shared/ resolves"
+      },
+      "frontmatter_action_categories": [
+        "capture",
+        "organize",
+        "write",
+        "memory",
+        "maintain",
+        "loop",
+        "router",
+        "connector"
+      ]
+    }
+  },
+  "entry_files": [
+    "topmind/SKILL.md",
+    "topmind-capture/SKILL.md",
+    "topmind-organize/SKILL.md",
+    "topmind-write/SKILL.md",
+    "topmind-memory/SKILL.md",
+    "topmind-maintain/SKILL.md",
+    "topmind-loop/SKILL.md",
+    "topmind-weread/SKILL.md",
+    "topmind-x/SKILL.md"
+  ],
+  "skills": [
+    {
+      "id": "topmind",
+      "path": "topmind",
+      "role": "router",
+      "human_facing": true
+    },
+    {
+      "id": "topmind-capture",
+      "path": "topmind-capture",
+      "role": "capture",
+      "human_facing": false
+    },
+    {
+      "id": "topmind-organize",
+      "path": "topmind-organize",
+      "role": "organize",
+      "human_facing": false
+    },
+    {
+      "id": "topmind-write",
+      "path": "topmind-write",
+      "role": "write",
+      "human_facing": false
+    },
+    {
+      "id": "topmind-memory",
+      "path": "topmind-memory",
+      "role": "memory",
+      "human_facing": false
+    },
+    {
+      "id": "topmind-maintain",
+      "path": "topmind-maintain",
+      "role": "maintain",
+      "human_facing": false
+    },
+    {
+      "id": "topmind-loop",
+      "path": "topmind-loop",
+      "role": "loop",
+      "human_facing": false
+    },
+    {
+      "id": "topmind-weread",
+      "path": "topmind-weread",
+      "role": "connector",
+      "human_facing": false,
+      "optional": true
+    },
+    {
+      "id": "topmind-x",
+      "path": "topmind-x",
+      "role": "connector",
+      "human_facing": false,
+      "optional": true
+    }
+  ],
+  "product_contract": {
+    "capture_first": true,
+    "category_first": true,
+    "topic_emerges": true,
+    "action_first": true,
+    "single_user_entry": true,
+    "content_truth": "topmind-workspace/categories-and-topics",
+    "inbox_role": "unassigned-capture",
+    "topic_role": "assigned-work",
+    "loose_note_role": "unfiled-but-categorized"
+  },
+  "category_slots": {
+    "_mode": "template-driven-dynamic-discovery",
+    "_templates": [
+      "stream",
+      "balanced",
+      "research",
+      "periodic"
+    ],
+    "_default_template": "stream",
+    "_note": "默认 stream（收件箱+动态+输出+归档）。topmind.yaml contract v4 含 stream.packing / memory.layers。解析 lib/workspace-model.mjs + stream-period.mjs。"
+  },
+  "category_roles": [
+    "buffer",
+    "loose-stream",
+    "deep-work",
+    "fallback",
+    "reference",
+    "delivery",
+    "system"
+  ],
+  "category_rules": [
+    "dynamic_discovery: {NN}[- ]{Name}/ 自发现；属性 overrides > extensions > template > deep-work",
+    "config_v4: categories.extensions 用户扩展类；categories.overrides 含 hidden；contract_version 4",
+    "workspace_model: Skills/UTR/Desktop 同一语义；list-categories 返回 CategoryDescriptor",
+    "no_overlap: 同一内容/主题只能在一个大类下，按内容性质判定",
+    "stream_packing: stream.packing=weekly|daily|monthly|atom；默认 weekly 周期本 append",
+    "core_memory: memory.dir + profileFile（默认 profile.md）可配置记忆目录",
+    "topic_emerges: 默认不建专题；反复出现时建议升专题",
+    "template_flat_default: specialBehavior='flat-default' 的类别默认平铺（持续流），强主题才专题化",
+    "template_catch_all: catchAll=true 的类别每 retentionDays 天清理一次（默认 30）",
+    "template_reference_only: referenceOnly=true 的类别只放反复引用的素材",
+    "category_naming_stable: 大类名不轻易改；改走 renameCategory（目录+frontmatter+config）",
+    "hidden_categories: overrides.hidden 侧栏/索引/connector 默认跳过，不删盘",
+    "spaced_numbering: 10/20/30/40/50/60 间隔便于插入自定义槽位",
+    "connector_hints: 模板 connectorHints；可被 connectorDefaults 覆盖"
+  ],
+  "topic_naming": {
+    "format": "YYYY-主题",
+    "style": "kebab-case",
+    "project_id_field_renamed_to": "topic",
+    "deprecated_field": "project_type"
+  },
+  "writeback_modes": [
+    "auto",
+    "confirm"
+  ],
+  "surfaces": [
+    "codex",
+    "hermes",
+    "opencode",
+    "desktop",
+    "mcp",
+    "obsidian"
+  ],
+  "portable_contract": {
+    "requires_desktop": false,
+    "requires_utr": false,
+    "content_truth": "topmind-workspace/categories-and-topics",
+    "host_may_provide": [
+      "skills",
+      "cli",
+      "mcp",
+      "commands",
+      "plugins",
+      "desktop"
+    ],
+    "host_must_not": [
+      "change-content-truth",
+      "add-daily-entrypoints",
+      "fork-skill-semantics",
+      "persist-content-in-agent-state",
+      "introduce-legacy-project-naming",
+      "introduce-project_type-field"
+    ]
+  },
+  "install_targets": [
+    {
+      "id": "opencode",
+      "path": "skills/install-targets/opencode.json"
+    },
+    {
+      "id": "hermes",
+      "path": "skills/install-targets/hermes.json"
+    },
+    {
+      "id": "codex",
+      "path": "skills/install-targets/codex.json"
+    },
+    {
+      "id": "claude-code",
+      "path": "skills/install-targets/claude-code.json"
+    }
+  ],
+  "utr": {
+    "optional": true,
+    "canonical_external_surface": "topmind-cli-or-mcp",
+    "degradation": "host-file-tools primary; optional UTR accelerate; conversation-only fallback. See PRODUCT-BOUNDARIES.md",
+    "command_domains": [
+      "workspace-read",
+      "workspace-write",
+      "workspace-transform",
+      "workspace-maintain",
+      "contract",
+      "memory",
+      "lifecycle",
+      "derived"
+    ],
+    "kind_naming_legacy": "Domain names (workspace-read / workspace-write / workspace-transform / workspace-maintain / contract / memory / lifecycle / derived) are stable identifiers. Command names follow the topic-and-category vocabulary.",
+    "command_vocabulary": {
+      "workspace-read": [
+        "list-categories",
+        "list-topics",
+        "inspect-topic",
+        "list-topic-files",
+        "list-inbox",
+        "list-recent-captures",
+        "list-safety-receipts"
+      ],
+      "workspace-write": [
+        "create-topic",
+        "capture-note",
+        "save-output",
+        "update-topic"
+      ],
+      "workspace-transform": [
+        "plan-inbox-routing",
+        "normalize-note-metadata",
+        "migrate-v4"
+      ],
+"workspace-maintain": [
+"doctor-workspace",
+"archive-topic",
+"archive-stream-year",
+"restore-safety-receipt",
+"cleanup-empty-dirs"
+],
+      "contract": [
+        "validate",
+        "ensure",
+        "reseed"
+      ],
+      "memory": [
+        "promote",
+        "digest",
+        "append-profile",
+        "append-topic"
+      ],
+      "lifecycle": [
+        "scan"
+      ],
+      "derived": [
+        "rebuild"
+      ]
+    },
+"command_count": 28,
+"mcp_default_count": 19,
+    "command_exposure": {
+      "primary": [
+        "workspace-read.list-categories",
+        "workspace-read.list-topics",
+        "workspace-read.inspect-topic",
+        "workspace-read.list-topic-files",
+        "workspace-read.list-inbox",
+        "workspace-write.create-topic",
+        "workspace-write.capture-note",
+        "workspace-write.save-output",
+        "workspace-transform.plan-inbox-routing",
+        "workspace-maintain.doctor-workspace",
+        "contract.validate",
+        "memory.promote",
+        "memory.digest",
+        "memory.append-profile",
+        "memory.append-topic"
+      ],
+"danger": [
+"workspace-maintain.archive-topic",
+"workspace-maintain.archive-stream-year",
+"workspace-maintain.restore-safety-receipt",
+"contract.reseed"
+],
+      "advanced": [
+        "workspace-read.list-recent-captures",
+        "workspace-read.list-safety-receipts",
+        "workspace-write.update-topic",
+        "workspace-transform.normalize-note-metadata",
+        "workspace-transform.migrate-v4",
+        "workspace-maintain.cleanup-empty-dirs",
+        "lifecycle.scan",
+        "derived.rebuild",
+        "contract.ensure"
+      ]
+    }
+  }
+}

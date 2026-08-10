@@ -1,0 +1,15 @@
+{
+  "id": "example-hello",
+  "name": "Hello Plugin",
+  "version": "0.1.0",
+  "description": "Minimal third-party topmind Desktop plugin scaffold",
+  "author": "topmind",
+  "main": "index.mjs",
+  "permissions": [
+    "slot:action"
+  ],
+  "slots": [
+    "action"
+  ],
+  "enabled": true
+}

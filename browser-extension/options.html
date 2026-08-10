@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>topmind Clip — 设置与配置</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body class="options-page">
+    <div class="options-container">
+      <!-- Header Bar -->
+      <header class="options-header">
+        <div class="header-brand">
+          <span class="brand-badge" aria-hidden="true">M</span>
+          <div class="brand-text">
+            <h1 data-i18n="options_title">topmind Clip 设置</h1>
+            <span class="version-tag" id="version-tag">v</span>
+          </div>
+        </div>
+        <div class="header-status">
+          <span id="overview" class="pill status-pill" data-i18n="options_status_detecting">状态检测中…</span>
+        </div>
+      </header>
+
+      <!-- Sub-headline -->
+      <p class="options-lead" data-i18n="options_lead">
+        两种落盘方式：Desktop Clip Bridge（推荐，Desktop 运行时）或 本机工作区目录（不依赖 Desktop 进程，按 topmind 规约写 Inbox）。
+      </p>
+
+      <!-- Section: Global Mode -->
+      <section class="options-section card" id="setup">
+        <div class="section-header">
+          <div class="section-title-group">
+          <span class="section-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span>
+            <h2 data-i18n="options_write_mode">写入模式</h2>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="field-label" for="writeMode" data-i18n="options_write_mode">写入模式选择</label>
+          <select id="writeMode" class="styled-select">
+            <option value="auto" data-i18n="options_mode_auto">自动（优先 Bridge，失败则工作区）</option>
+            <option value="bridge" data-i18n="options_mode_bridge">仅 Desktop Bridge</option>
+            <option value="workspace" data-i18n="options_mode_workspace">仅本机工作区目录</option>
+          </select>
+          <p class="field-hint" data-i18n="options_mode_hint">
+            自动模式：Desktop 在线走 Bridge（HTML→MD 质量更好）；离线可用已授权的工作区文件夹。
+          </p>
+        </div>
+      </section>
+
+      <!-- Section A: Desktop Bridge -->
+      <section class="options-section card" id="bridge">
+        <div class="section-header">
+          <div class="section-title-group">
+          <span class="section-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg></span>
+            <h2 data-i18n="options_bridge_title">A · Desktop Clip Bridge</h2>
+          </div>
+          <span class="badge badge-accent">推荐</span>
+        </div>
+
+        <div class="steps-card">
+          <ol class="steps-list">
+            <li>
+              <span class="step-num">1</span>
+              <span data-i18n="options_bridge_step1">topmind Desktop → 设置 → 通用 → 浏览器剪藏</span>
+            </li>
+            <li>
+              <span class="step-num">2</span>
+              <span data-i18n="options_bridge_step2">启用 Clip Bridge，复制 Token</span>
+            </li>
+            <li>
+              <span class="step-num">3</span>
+              <span data-i18n="options_bridge_step3">粘贴到下方并测试</span>
+            </li>
+          </ol>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="field-label" for="port" data-i18n="options_port">Bridge 端口</label>
+            <input id="port" type="number" min="1024" max="65535" step="1" value="19827" class="styled-input" />
+            <p class="field-hint" data-i18n="options_port_default_hint">默认 19827</p>
+          </div>
+
+          <div class="form-group">
+            <label class="field-label" for="token" data-i18n="options_token">Bearer Token</label>
+            <input
+              id="token"
+              type="password"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="从 Desktop 设置复制 Bearer Token"
+              data-i18n-placeholder="options_token_placeholder"
+              class="styled-input"
+            />
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button id="save" type="button" class="btn-primary" data-i18n="options_save">保存 Bridge 设置</button>
+          <button id="test" type="button" class="btn-secondary" data-i18n="options_test">测试 Bridge 连接</button>
+        </div>
+      </section>
+
+      <!-- Section B: Local Workspace -->
+      <section class="options-section card" id="workspace">
+        <div class="section-header">
+          <div class="section-title-group">
+          <span class="section-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8.42a2 2 0 0 0-.59-1.42l-5.41-5.41a2 2 0 0 0-1.42-.59H4a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h16z"/><path d="M12 10v6"/><path d="M9 13h6"/></svg></span>
+            <h2 data-i18n="options_ws_title">B · 本机工作区（无需 Desktop 运行）</h2>
+          </div>
+          <span class="badge badge-neutral">离线可用</span>
+        </div>
+
+        <p class="field-hint" data-i18n="options_ws_hint">
+          选择你的 topmind-workspace 根目录（含 00-收件箱 等）。浏览器会请求读写权限；笔记按规约写入 Inbox，frontmatter 与 capture 一致。
+        </p>
+
+        <div id="ws-status" class="status-box" data-i18n="options_ws_status_unconfigured">
+          工作区：未配置
+        </div>
+
+        <div class="btn-row">
+          <button id="pick-ws" type="button" class="btn-primary" data-i18n="options_ws_pick">选择工作区文件夹…</button>
+          <button id="reauth-ws" type="button" class="btn-secondary" data-i18n="options_ws_reauth">重新授权写入</button>
+          <button id="clear-ws" type="button" class="btn-danger" data-i18n="options_ws_clear">清除工作区授权</button>
+        </div>
+
+        <p class="field-hint margin-top" data-i18n="options_ws_perm_hint">
+          需 Chromium（Chrome / Edge）。选择文件夹后，请在本页点一次「重新授权写入」或直接去弹窗点「剪藏」—— 浏览器会记住权限；Service Worker 不能自行弹授权框。本地模式用轻量 HTML→MD；Bridge 模式复用 Desktop 清洗管线。
+        </p>
+      </section>
+
+      <!-- Section C: Custom Templates -->
+      <section class="options-section card" id="templates">
+        <div class="section-header">
+          <div class="section-title-group">
+          <span class="section-icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.5z"/><path d="M15 3v6h6"/><path d="M10 13h4"/><path d="M10 17h4"/></svg></span>
+            <h2 data-i18n="options_tpl_title">C · 剪藏模板</h2>
+          </div>
+        </div>
+
+        <p class="field-hint" data-i18n="options_tpl_hint">
+          按 URL 自动匹配（非 Obsidian 完整 DSL）。内置：article · selection · bookmark · github · zhihu。变量：title url author published site content selection highlights。
+        </p>
+
+        <div id="tpl-status" class="status-box">自定义模板：0 · 内置：5</div>
+
+        <div class="form-group">
+          <label class="field-label" for="tpl-json" data-i18n="options_tpl_import_label">自定义模板 JSON 配置</label>
+          <textarea
+            id="tpl-json"
+            rows="7"
+            spellcheck="false"
+            placeholder='[&#10;  {&#10;    "id": "my-blog",&#10;    "name": "我的博客模板",&#10;    "matches": ["*://blog.example.com/*"],&#10;    "body": "# {{title}}\n\n{{content}}\n\n来源: {{url}}"&#10;  }&#10;]'
+            class="code-textarea"
+          ></textarea>
+        </div>
+
+        <div class="btn-row">
+          <button id="tpl-import" type="button" class="btn-primary" data-i18n="options_tpl_import">导入 / 合并模板</button>
+          <button id="tpl-export" type="button" class="btn-secondary" data-i18n="options_tpl_export">导出当前自定义</button>
+          <button id="tpl-clear" type="button" class="btn-danger" data-i18n="options_tpl_clear">清空自定义</button>
+        </div>
+
+        <p class="field-hint margin-top" data-i18n="options_tpl_hint2">
+          也可粘贴 {"templates":[...]}。自定义模板优先于内置域名匹配（同 id 覆盖）。Bridge 在线时可在 popup 选择 Inbox / 类别 / 专题落点。
+        </p>
+      </section>
+
+      <!-- Global Status Notification -->
+      <div id="msg" class="msg-box" role="status"></div>
+    </div>
+    <script src="options-fallback.js"></script>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

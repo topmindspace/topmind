@@ -1,0 +1,181 @@
+# OS
+.DS_Store
+Thumbs.db
+*.icloud
+*.orig
+*.rej
+**/.DS_Store
+
+# Local agent / host state (never commit personal sessions or host configs)
+.claude/
+.codex/
+.cursor/
+.codebuddy/
+.openclaw/
+.superpowers/
+.sisyphus/
+.opencode/
+.omo/
+.workbuddy/
+.loop/
+.agent/
+.agents/
+.state/
+.obsidian/
+.grok/
+.gemini/
+.windsurf/
+.continue/
+.aider*
+.specstory/
+.firecrawl/
+
+# Personal / machine-local AI tool configs at **repo root only**
+# (do not use bare `opencode.json` — that would ignore skills/install-targets/opencode.json)
+# Project contracts AGENTS.md / CLAUDE.md stay tracked.
+.mcp.json
+/opencode.json
+.claude.json
+.cursorrules
+.cursorignore
+*.code-workspace
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+venv/
+.venv/
+
+# Node & frontend build
+node_modules/
+dist/
+dist-electron/
+# Generic `build/` dirs — Desktop keeps committed packaging icons under
+# topmind-desktop/build/ (icon.icns / icon.ico / icon.png / icons/*).
+build/
+!topmind-desktop/build/
+!topmind-desktop/build/**
+topmind-desktop/build/icon.iconset/
+.turbo/
+.next/
+.nuxt/
+*.tsbuildinfo
+.npm
+.eslintcache
+
+# Accidental user-workspace material under Desktop package (never content truth in engine)
+# cwd mis-open can seed empty {NN-}/ trees + topmind.yaml next to package.json
+topmind-desktop/[0-9][0-9]-*/
+topmind-desktop/memory/
+topmind-desktop/topmind.yaml
+topmind-desktop/.topmind/
+
+# Desktop packaging / generated engine stage
+topmind-desktop/release/
+topmind-desktop/resources/
+*.dmg
+*.AppImage
+*.exe
+*.deb
+*.snap
+*.blockmap
+latest*.yml
+builder-effective-config.yaml
+builder-debug.yml
+
+# Pack / release outputs (also covered by dist/)
+*.SHA256SUMS
+
+# Browser extension local build
+browser-extension/dist/
+browser-extension/*.zip
+browser-extension/*.crx
+browser-extension/*.pem
+
+# Key material
+*.pem
+*.p12
+*.keystore
+*.key
+id_rsa
+id_ed25519
+id_ecdsa
+credentials.json
+*credentials*.json
+*.secret
+*.secrets
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.settings/
+.classpath
+
+# Env / local secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.local
+secrets/
+auth.json
+.npmrc.local
+**/.npmrc.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Tests / coverage
+coverage/
+.nyc_output/
+
+# Documentation previews / design dumps
+/site/
+/markdown-preview-check.png
+/typography-*.png
+/uiux-*.png
+/topmind-desktop/output/
+*.fig
+*.sketch
+*.psd
+*.ai
+
+# pnpm (project uses npm)
+pnpm-lock.yaml
+pnpm-workspace.yaml
+
+# Codegraph local index (keep .codegraph/.gitignore only)
+.codegraph/*
+!.codegraph/.gitignore
+
+# Playwright / browser automation
+.playwright-mcp/
+test-results/
+playwright-report/
+playwright/.cache/
+
+# OS junk / archives accidentally dropped in tree
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+
+# Draft / oversized branding sources (never commit — run icons:generate)
+topmind-desktop/public/icon-new.png
+topmind-desktop/public/icon-new-*.png
+topmind-desktop/public/*-source-raw.*
+topmind-desktop/public/*-draft.*
+topmind-desktop/build/*-draft.*
+/tmp/
+docs/images/temp_video/

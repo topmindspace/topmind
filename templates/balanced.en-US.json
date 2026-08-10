@@ -1,0 +1,15 @@
+{
+  "templateId": "balanced",
+  "name": "Balanced Knowledge",
+  "description": "For knowledge workers: Stream, Topics, balancing low-friction capture with knowledge consolidation.",
+  "categories": {
+    "00": { "name": "Inbox" },
+    "10": { "name": "Stream" },
+    "20": { "name": "Topics" },
+    "88": { "name": "Outputs" },
+    "99": { "name": "Archive" }
+  },
+  "memory": {
+    "profileFile": "profile.md"
+  }
+}

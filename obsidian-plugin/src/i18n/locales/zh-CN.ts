@@ -1,0 +1,380 @@
+// ── zh-CN locale strings ───────────────────────────────────────────────────
+
+export const zhCN = {
+  // ── Plugin ──
+  plugin_name: "Topmind Stream",
+  plugin_description: "Obsidian 的「主区域流式工作台 + 静默 AI 沉淀副驾」",
+
+  // ── Views ──
+  stream_workbench_title: "动态工作台",
+
+  // ── Quick Capture ──
+  quick_capture_title: "记一下",
+  quick_capture_placeholder: "在此输入...",
+  quick_capture_submit: "记下",
+  quick_capture_target: "目标",
+  quick_capture_target_stream: "本周动态",
+  quick_capture_target_inbox: "收件箱",
+  quick_capture_hint_enter: "⏎ 记下",
+  quick_capture_hint_shift_enter: "⇧⏎ 换行",
+  quick_capture_tags: "标签",
+  quick_capture_tags_placeholder: "#标签1 #标签2",
+  quick_capture_note_it: "记一下",
+  quick_capture_log_it: "记下",
+
+  // ── Stream Workbench ──
+  stream_this_week: "动态",
+  stream_switch_period: "切换周期",
+  stream_empty: "还没有动态",
+  stream_empty_hint: "在上方输入框输入文字，按 Enter 记下",
+  stream_organize: "整理",
+  stream_entry_count: "{{count}} 条",
+  stream_open_in_editor: "在编辑器中打开",
+  stream_loading: "加载中...",
+  stream_day_today: "今天",
+  stream_day_yesterday: "昨天",
+  stream_period_label: "周期",
+
+  // ── Suggestions ──
+  suggestions_title: "AI 建议",
+  suggestions_empty: "暂无建议",
+  suggestions_empty_hint: "AI 会在整理后给出建议",
+  suggestions_disabled: "AI 建议已关闭",
+  suggestions_disabled_hint: "在设置中开启「自动准备 AI 建议」",
+  suggestions_no_ai: "未配置 AI",
+  suggestions_no_ai_hint: "配置 AI 服务商后可使用建议功能",
+  suggestions_confirm: "确认",
+  suggestions_dismiss: "忽略",
+  suggestions_loading: "AI 正在思考...",
+  suggestion_topic: "建议专题",
+  suggestion_todo: "待办提取",
+  suggestion_memory: "写入「我的情况」",
+  suggestion_summary: "周期反思",
+  suggestion_impact_high: "高影响",
+  suggestion_impact_medium: "中影响",
+  suggestion_impact_low: "低影响",
+
+  // ── Sidebar Dock (AI Copilot Panel) ──
+  sidebar_dock_title: "AI 副驾",
+  sidebar_today_todos: "今日待办",
+  sidebar_recent_stream: "最近动态",
+  sidebar_open_workbench: "打开工作台",
+  sidebar_no_todos: "暂无待办",
+  sidebar_no_stream: "暂无动态",
+  sidebar_ai_status: "AI 状态",
+  sidebar_ai_ready: "AI 就绪",
+  sidebar_ai_off: "未配置",
+  sidebar_view_all_todos: "查看全部",
+  sidebar_todos_done: "已完成",
+  sidebar_quick_capture: "记一下",
+  sidebar_quick_organize: "整理",
+  sidebar_quick_classify: "分类",
+
+  // ── Sidebar Tabs ──
+  sidebar_tab_todos: "待办",
+  sidebar_tab_suggestions: "建议",
+  sidebar_tab_chat: "对话",
+  sidebar_tab_stream: "动态",
+
+  // ── Todo ──
+  todo_open_source: "打开源笔记",
+  todo_open_file: "打开待办文件",
+
+  // ── Sidebar Header ──
+  sidebar_model_label: "模型",
+  sidebar_model_none: "未选择",
+  sidebar_open_settings: "设置",
+  sidebar_open_sidebar: "打开侧边栏",
+  sidebar_ai_operations: "AI 操作",
+  sidebar_op_todo: "整理待办",
+  sidebar_op_memory: "整理记忆",
+  sidebar_op_classify: "主题分类",
+  sidebar_op_suggestions: "刷新建议",
+
+  // ── AI Chat ──
+  chat_title: "AI 对话",
+  chat_placeholder: "问点什么... (Enter 发送, Shift+Enter 换行)",
+  chat_send: "发送",
+  chat_empty: "和 AI 对话你的笔记、待办和动态",
+  chat_empty_hint: "AI 会基于你最近的动态和待办来回答",
+  chat_no_ai: "未配置 AI，无法对话",
+  chat_no_ai_hint: "请在设置中配置 AI 服务商",
+  chat_thinking: "思考中...",
+  chat_clear: "清空对话",
+  chat_error: "对话出错，请重试",
+  chat_you: "你",
+  chat_ai: "AI",
+  chat_context_label: "上下文",
+  chat_context_stream: "近期动态",
+  chat_context_todos: "当前待办",
+  chat_context_profile: "我的情况",
+
+  // ── AI Task Manager (multi-task progress) ──
+  task_pending: "排队中",
+  task_running: "执行中",
+  task_done: "完成",
+  task_error: "失败",
+  task_aborted: "已取消",
+  task_abort: "取消",
+  task_queue_empty: "无 AI 任务",
+  task_active_count: "{{count}} 个任务进行中",
+  task_queued_count: "{{count}} 个排队",
+  task_recent: "最近任务",
+  task_clear_history: "清空历史",
+  task_no_history: "暂无任务记录",
+  task_result_ok: "完成 ✓",
+  task_result_failed: "失败",
+
+  // ── AI Operation Labels ──
+  op_label_suggest: "生成 AI 建议",
+  op_label_todo_maintain: "整理待办",
+  op_label_topic_classify: "主题分类",
+  op_label_memory_organize: "整理记忆",
+  op_label_reconcile: "整理动态",
+  op_label_chat: "AI 对话",
+
+  // ── Model metadata ──
+  model_context_limit: "上下文 {{limit}}",
+  model_reasoning: "推理模型",
+  model_cost: "费用",
+  model_no_data: "无元数据",
+  model_select_hint: "选择模型（可自定义输入）",
+  model_custom_input: "自定义模型 ID",
+
+  // ── Stream enhancements ──
+  stream_today: "今天",
+  stream_yesterday: "昨天",
+  stream_this_period: "本周期",
+  stream_entries_total: "共 {{count}} 条",
+  stream_jump_to_latest: "跳到最新",
+  stream_no_periods: "暂无周期本",
+  stream_collapse_all: "全部收起",
+  stream_expand_all: "全部展开",
+  stream_card_copied: "已复制到剪贴板",
+
+  // ── Sidebar enhancements ──
+  sidebar_action_label_show: "显示标签",
+  sidebar_action_label_hide: "隐藏标签",
+  sidebar_no_suggestions: "暂无建议",
+  sidebar_suggestions_count: "{{count}} 条建议",
+  sidebar_chat_persisted: "对话已保存（本会话内）",
+  sidebar_tab_history: "任务历史",
+
+  // ── Commands ──
+  cmd_quick_capture: "Topmind: 记一下",
+  cmd_open_workbench: "Topmind: 打开动态工作台",
+  cmd_open_sidebar: "Topmind: 打开侧边栏",
+  cmd_organize_period: "Topmind: 整理本周",
+  cmd_refresh_suggestions: "Topmind: 刷新 AI 建议",
+  cmd_maintain_todos: "Topmind: AI 整理待办",
+  cmd_topic_classify: "Topmind: 主题分类",
+  cmd_memory_organize: "Topmind: 整理记忆",
+  cmd_open_profile: "Topmind: 打开我的情况",
+  cmd_open_inbox: "Topmind: 打开收件箱",
+
+  // ── Settings ──
+  settings_workspace: "工作区与契约",
+  settings_stream: "工作台",
+  settings_ai: "AI 副驾与写回策略",
+  settings_security: "安全与归档",
+
+  settings_auto_open: "启动时自动打开工作台",
+  settings_auto_open_desc: "Obsidian 启动时自动打开动态工作台页签",
+  settings_timeline_order: "时间轴排序",
+  settings_timeline_order_desc: "最新在前 或 最早在前",
+  settings_auto_tag: "自动标签解析",
+  settings_auto_tag_desc: "支持 #标签 自动提取",
+  settings_locale_override: "界面语言",
+  settings_locale_override_desc: "覆盖 Obsidian 自动检测的语言（默认跟随 Obsidian）",
+
+  // ── AI settings ──
+  settings_ai_status: "AI 状态",
+  settings_ai_status_desc: "显示当前 AI 配置状态",
+  settings_ai_ready: "已配置 — AI 功能可用",
+  settings_ai_not_configured: "未配置 — 基础功能仍可使用",
+  settings_ai_preference: "默认服务商",
+  settings_ai_preference_desc: "选择优先使用的 AI 服务商（留空自动选择）",
+  settings_ai_auto: "自动（按配置顺序）",
+  settings_ai_model: "模型",
+  settings_ai_model_desc: "选择使用的模型（留空使用服务商默认）",
+  settings_ai_model_default: "服务商默认",
+  settings_ai_import: "从 Desktop 导入",
+  settings_ai_import_desc: "尝试从 topmind Desktop 的 app-settings.json 导入已配置的 AI 密钥",
+  settings_ai_import_not_found: "未找到 Desktop 设置文件",
+  settings_ai_import_encrypted: "Desktop 密钥已加密（safeStorage），无法导入。请手动配置。",
+  settings_ai_import_success: "已导入 {{count}} 个服务商配置",
+  settings_ai_import_nothing: "无可导入的新配置（可能已配置或 Desktop 中未设置）",
+  settings_ai_clear_key: "清除密钥",
+  settings_ai_international: "国际服务商",
+  settings_ai_domestic: "国内服务商",
+  settings_ai_local: "本地 / 兼容",
+
+  settings_ai_provider: "AI 服务商",
+  settings_ai_provider_desc: "选择 AI 服务商（不配置也能使用基础功能）",
+  settings_ai_key: "API Key",
+  settings_ai_key_desc: "AI 服务商的 API 密钥",
+  settings_ai_base_url: "API Base URL",
+  settings_ai_base_url_desc: "OpenAI-compatible API 端点",
+  settings_ai_model_field: "模型",
+  settings_ai_model_field_desc: "使用的模型名称",
+  settings_writeback_mode: "保存模式",
+  settings_writeback_mode_desc: "「自动保存」或「保存前问我」",
+  settings_auto_suggest: "自动准备 AI 建议",
+  settings_auto_suggest_desc: "工作区就绪后扫描并生成建议卡片",
+  settings_auto_maintain_todos: "自动整理待办",
+  settings_auto_maintain_todos_desc: "自动从动态提取待办（默认关，省 Token）",
+
+  settings_backup_keep: "备份保留份数",
+  settings_backup_keep_desc: "AI 写入时创建备份的保留份数（0 = 禁用）",
+  settings_receipt_keep: "回执保留份数",
+  settings_receipt_keep_desc: "写操作回执的保留份数（超出自动清理旧版）",
+
+  // ── Writeback notices ──
+  notice_write_pending: "写入待确认 — 请在审阅中确认",
+  notice_written: "已记录",
+  notice_write_failed: "记录失败",
+  notice_executed: "已执行",
+  notice_execute_failed: "执行失败",
+  notice_organizing: "整理中...",
+  notice_organize_done: "整理完成 ✓",
+  notice_workspace_not_ready: "当前 Vault 不是 topmind 工作区（缺少 topmind.yaml）",
+  notice_todo_running: "AI 整理待办中...",
+  notice_todo_done: "待办整理完成 ✓",
+  notice_classify_running: "主题分类中...",
+  notice_classify_done: "主题分类完成 ✓",
+  notice_memory_running: "整理记忆中...",
+  notice_memory_done: "记忆整理完成 ✓",
+  notice_no_inbox: "未找到收件箱目录",
+
+  // ── Accessibility ──
+  stream_expand_entry: "点击展开/收起动态条目",
+
+  // ── URL detection ──
+  notice_url_to_inbox: "检测到链接，已路由到收件箱",
+  compose_url_hint: "检测到链接，建议使用「记一下」抓取正文到收件箱",
+
+  // ── General ──
+  loading: "加载中...",
+  error: "出错了",
+  saved: "已保存",
+  init_workspace: "初始化工作区",
+  init_workspace_desc: "在当前 Vault 中创建 topmind 工作区结构",
+  init_workspace_success: "工作区已初始化",
+  init_workspace_failed: "初始化失败",
+
+  // ── Workspace status ──
+  workspace_status: "工作区状态",
+  workspace_ready: "已就绪",
+  workspace_not_ready: "未初始化",
+  workspace_categories_count: "{{count}} 个大类",
+  workspace_contract_valid: "契约有效",
+  workspace_contract_invalid: "契约异常",
+  workspace_contract_doctor: "诊断契约",
+  workspace_contract_doctor_desc: "检查并修复工作区契约",
+  workspace_contract_reseed: "重建契约",
+  workspace_contract_reseed_desc: "备份坏文件并重写默认契约（内容不受影响）",
+  workspace_contract_doctor_ok: "契约正常 ✓",
+  workspace_contract_doctor_fixed: "契约已修复 ✓",
+  workspace_contract_doctor_failed: "契约诊断失败",
+  workspace_contract_reseed_ok: "契约已重建 ✓",
+  workspace_contract_reseed_failed: "重建失败",
+  workspace_template: "模板",
+  workspace_no_categories: "未发现大类目录",
+
+  // ── Writeback modes (白话) ──
+  writeback_auto: "自动保存",
+  writeback_confirm: "保存前问我",
+
+  // ── Timeline order labels ──
+  timeline_desc: "↓ 最新在前",
+  timeline_asc: "↑ 最早在前",
+
+  // ── Locale ──
+  locale_auto: "自动（跟随 Obsidian）",
+
+  // ── AI providers ──
+  provider_none: "不使用 AI",
+  provider_openai: "OpenAI",
+  provider_deepseek: "DeepSeek",
+  provider_anthropic: "Anthropic",
+  provider_google: "Google Gemini",
+  provider_moonshot: "Moonshot / Kimi",
+  provider_zhipu: "Zhipu / GLM",
+  provider_minimax: "MiniMax",
+  provider_xai: "xAI / Grok",
+  provider_ollama: "Ollama (本地)",
+  provider_custom: "自定义 (OpenAI-compatible)",
+
+  // ── AI connection test ──
+  settings_ai_test: "测试连接",
+  settings_ai_testing: "测试中...",
+  settings_ai_test_success: "连接成功 ✓",
+  settings_ai_test_failed: "连接失败",
+  settings_ai_test_no_key: "请先配置至少一个 AI 服务商",
+
+  // ── Security note ──
+  settings_security_note: "API Key 存储在 Obsidian 插件 data.json 中（明文）。请勿在共享 Vault 中使用。",
+
+  // ── Chat model switching ──
+  chat_model: "模型",
+  chat_model_select: "选择模型",
+  chat_provider_select: "服务商",
+  chat_context_sources: "上下文来源",
+  chat_copy: "复制",
+  chat_copied: "已复制 ✓",
+  chat_regenerate: "重新生成",
+  chat_configure_ai: "配置 AI",
+  chat_no_ai_action: "点击配置 AI 服务商",
+  chat_send_failed: "发送失败，点击重试",
+  chat_retry: "重试",
+  chat_context_empty: "无上下文（工作区可能为空）",
+  chat_model_switch_hint: "切换模型不影响当前对话历史",
+
+  // ── AI availability ──
+  ai_available: "AI 可用",
+  ai_unavailable: "AI 不可用",
+  ai_checking: "检查中...",
+  ai_not_tested: "已配置（未测试）",
+  ai_test_ok: "连接正常 ✓",
+  ai_test_fail: "连接异常",
+  settings_ai_quick_test: "快速验证",
+  settings_ai_quick_test_desc: "发送测试请求验证 AI 连通性",
+
+  // ── Settings model fix ──
+  settings_ai_model_for_provider: "{{provider}} 模型",
+  settings_ai_refresh_models: "刷新模型列表",
+  settings_ai_refreshing_models: "获取中...",
+
+  // ── Empty state actions ──
+  empty_action_configure: "前往设置配置 AI",
+
+  // ── Button labels (for clarity) ──
+  toolbar_btn_sidebar: "侧边栏",
+  toolbar_btn_settings: "设置",
+  toolbar_btn_inbox: "收件箱",
+  toolbar_btn_profile: "我的情况",
+  toolbar_btn_refresh: "刷新",
+  stream_btn_copy: "复制",
+  stream_btn_edit: "编辑",
+  chat_btn_copy: "复制",
+  chat_btn_regenerate: "重新生成",
+  sidebar_btn_capture: "记一下",
+  sidebar_btn_organize: "整理",
+  sidebar_btn_todo: "待办",
+  sidebar_btn_classify: "分类",
+  sidebar_btn_memory: "记忆",
+  sidebar_btn_suggestions: "建议",
+
+  // ── AI model switcher ──
+  chat_model_current: "当前模型",
+  chat_model_switch: "切换模型",
+  chat_provider_switch: "切换服务商",
+  chat_no_models: "无可用模型",
+  settings_ai_no_provider: "尚未配置任何 AI 服务商",
+  settings_ai_provider_configured: "已配置",
+  settings_ai_provider_not_configured: "未配置",
+  settings_ai_model_custom: "自定义模型",
+  settings_ai_model_enter_custom: "输入自定义模型 ID",
+  settings_ai_model_select_hint: "请选择 AI 模型",
+  settings_ai_model_select_hint_desc: "已检测到 AI 密钥，但未选择模型。请在上方选择模型，或留空使用服务商默认模型。",
+};

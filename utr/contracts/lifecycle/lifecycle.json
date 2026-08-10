@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "lifecycle",
+  "skill": "lifecycle",
+  "label": "生命周期工具",
+  "description": "生命周期管理：扫描、回顾、清理。",
+  "execution": {
+    "runtime": "node",
+    "cwd_mode": "engine_root",
+    "script": "utr/tools/lifecycle.mjs",
+    "args_template": [
+      "--categories-root",
+      "{categories_root}",
+      "--inbox-root",
+      "{inbox_root}",
+      "--archive-root",
+      "{archive_root}",
+      "--format",
+      "json",
+      "{command}"
+    ]
+  },
+  "commands": {
+    "scan": {
+      "label": "扫描生命周期",
+      "description": "按 contract lifecycle 扫描：inbox 超期、catch-all 清理、stale 专题、output lock。",
+      "group": "maintenance",
+      "exposure": "advanced",
+      "risk_level": "low",
+      "review_policy": "auto",
+      "requires_topic": false,
+      "idempotent": true,
+      "supports_dry_run": false,
+      "destructive": false,
+      "inputs": {},
+      "reads": [
+        "00-收件箱/",
+        "{category}/",
+        "88-输出/",
+        "99-归档/"
+      ],
+      "writes": []
+    }
+  },
+  "review_overrides": {}
+}

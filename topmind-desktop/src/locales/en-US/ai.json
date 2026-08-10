@@ -1,0 +1,72 @@
+{
+  "panel": {
+    "title": "AI",
+    "placeholder": "Type a message or / for Skills…",
+    "send": "Send",
+    "stop": "Stop",
+    "thinking": "Thinking…",
+    "processing": "Processing…",
+    "empty": "Start a conversation · AI can read & write workspace",
+    "contextPills": "Context",
+    "addContext": "Add context",
+    "clearChat": "Clear chat",
+    "copyMessage": "Copy message",
+    "agentMode": "Agent mode",
+    "agentSteps": "Agent steps",
+    "runtimeReady": "AI ready",
+    "runtimeNotReady": "AI not ready",
+    "selectModel": "Select model",
+    "noModel": "No model selected",
+    "writebackMode": "Save mode"
+  },
+  "tool": {
+    "running": "Running",
+    "done": "Done",
+    "error": "Error",
+    "viewPath": "View file",
+    "callsCount": "{{count}} tool calls",
+    "callsCollapse": "Collapse tool calls",
+    "writesCount": "{{count}} writes",
+    "runningCount": "{{count}} running"
+  },
+  "skill": {
+    "title": "Skills",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "toggle": "Toggle",
+    "catalog": "Catalog",
+    "loadSkill": "Load Skill",
+    "noSkills": "No Skills available"
+  },
+  "store": {
+    "newSession": "New conversation",
+    "steerInjected": "Steering injected",
+    "focusHintTopic": "Topic {{topicId}}",
+    "focusHintFile": "File {{name}}",
+    "generationFailed": "AI generation failed",
+    "runtimeUnavailable": "AI runtime unavailable"
+  },
+  "slash": {
+    "captureLabel": "Quick Note",
+    "captureTip": "Defaults to this week's stream",
+    "capturePrompt": "Help me note the following (load_skill capture first, append to current stream period):",
+    "organizeLabel": "Organize Week",
+    "organizeTip": "Sort stream / topics",
+    "organizePrompt": "Organize this week: sort the current stream period (merge status, deduplicate, update in-progress), and list candidates worth writing to 'My Status' or topics (load_skill organize first).",
+    "writeLabel": "Write",
+    "writeTip": "Draft / polish / deliver",
+    "writePrompt": "Help me write or polish based on the current topic, write back when needed (load_skill write first).",
+    "memoryLabel": "My Status",
+    "memoryTip": "Preferences / goals / topic conclusions",
+    "memoryPrompt": "Write confirmed content to 'My Status' or topic conclusions (load_skill memory first; about me → My Status, about topic → topic.md).",
+    "maintainLabel": "Check",
+    "maintainTip": "Quick diagnosis",
+    "maintainPrompt": "Check workspace health and explain issues (load_skill maintain first).",
+    "loopLabel": "Full Review",
+    "loopTip": "Overall health inspection",
+    "loopPrompt": "Review the workspace comprehensively, summarize issues and suggestions (load_skill loop first).",
+    "topmindLabel": "Help Me Decide",
+    "topmindTip": "When unsure which flow to use",
+    "topmindPrompt": "Help me decide which flow to use and handle it (Quick Note / Organize Week / Write / My Status):"
+  }
+}

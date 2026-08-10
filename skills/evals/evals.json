@@ -1,0 +1,222 @@
+{
+  "skill_name": "topmind",
+  "daily_entry": "topmind",
+  "version": "2.13.0",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "把这段链接和摘录收进 20-研究/2026-示例研究 专题，保留来源，后面再整理。",
+      "primary_skill": "topmind-capture",
+      "extra_skills": [],
+      "expected_output": "Routes through topmind-capture, identifies target category (20-研究) and topic (2026-示例研究), preserves provenance, writes according to writeback_mode, returns a saved-path receipt with category+topic, and does NOT edit topic.md or auto-chain organize/memory."
+    },
+    {
+      "id": 2,
+      "prompt": "整理 10-动态/2026-示例记录 专题最近几条笔记，提炼出可以写入 topic.md 的稳定结论候选。",
+      "primary_skill": "topmind-organize",
+      "extra_skills": [
+        "topmind-memory"
+      ],
+      "expected_output": "Routes through topmind-organize first: synthesizes notes, defaults to leaving a topic-root summary note per writeback_mode (not chat-only), and lists memory candidates only. Does not auto-edit topic.md unless the user then confirms via topmind-memory."
+    },
+    {
+      "id": 3,
+      "prompt": "基于 30-阅读/2026-示例阅读笔记 专题的材料，写一版适合视频脚本的输出草稿。",
+      "primary_skill": "topmind-write",
+      "extra_skills": [],
+      "expected_output": "Routes through topmind-write, reads topic.md first when present then necessary notes, drafts an output, and saves or previews under delivery (role:delivery / 88-Outputs) according to writeback_mode. Does not force-create topic.md."
+    },
+    {
+      "id": 4,
+      "prompt": "检查 40-创作/2026-示例创作 专题的对象清单、关键点和当前段落是否有矛盾。",
+      "primary_skill": "topmind-organize",
+      "extra_skills": [],
+      "expected_output": "Routes through topmind-organize (quality review), scopes review to the topic, reports consistency findings with file evidence."
+    },
+    {
+      "id": 5,
+      "prompt": "对 20-研究/2026-示例研究 专题做一次资料证据梳理，输出关键 claims 和来源表。",
+      "primary_skill": "topmind-organize",
+      "extra_skills": [],
+      "expected_output": "Routes through topmind-organize (research + evidence synthesis), preserves provenance, separates claims/evidence/open questions, and defaults to writing synthesis to a topic-root note per writeback_mode (leave-a-trace), without auto memory writes."
+    },
+    {
+      "id": 6,
+      "prompt": "跑一下 topmind 的系统健康检查，并告诉我下一步该清理什么。",
+      "primary_skill": "topmind-maintain",
+      "extra_skills": [],
+      "expected_output": "Routes through topmind-maintain, uses UTR diagnostics, reports evidence and cleanup recommendations, and applies cleanup only according to writeback_mode."
+    },
+    {
+      "id": 7,
+      "prompt": "把这条已经确认的结论追加到 10-动态/2026-示例记录 专题的 Stable Memory，保留原来的 topic.md 内容，不要整页替换。",
+      "primary_skill": "topmind-memory",
+      "extra_skills": [],
+      "expected_output": "Routes through topmind-memory, uses memory.append-topic with category+topic fields, follows writeback_mode, and keeps existing topic.md content intact."
+    },
+    {
+      "id": 8,
+      "prompt": "审查 topmind 的 skills 和 UTR 动作，找出旧入口、旧术语、重复能力和应该删除的废弃实现。",
+      "primary_skill": "topmind-maintain",
+      "extra_skills": [
+        "topmind-organize"
+      ],
+      "expected_output": "Routes through topmind-maintain and topmind-organize (quality review), reads current contracts before broad search, flags legacy residues, and reports evidence."
+    },
+    {
+      "id": 9,
+      "prompt": "从 20-研究/2026-示例研究 专题的 notes 里提炼可以进入 Stable Memory 的候选，但先不要写回。",
+      "primary_skill": "topmind-organize",
+      "extra_skills": [
+        "topmind-memory"
+      ],
+      "expected_output": "Routes through topmind-organize (primary): produces candidate memory entries with evidence only; does not edit topic.md in this turn. topmind-memory runs only if user later confirms; never write memory when user said 先不要写回."
+    },
+    {
+      "id": 10,
+      "prompt": "整理一下 20-研究/2026-示例研究 专题最近的研究笔记，理出结构。",
+      "primary_skill": "topmind-organize",
+      "extra_skills": [],
+      "expected_output": "Routes through topmind-organize for structure organization, reads topic topic.md (if any) and relevant notes, clusters and extracts structure, marks source_type appropriately, defaults to leaving a structured note on disk per writeback_mode, suggests memory candidates without over-organizing or creating INDEX.md."
+    },
+    {
+      "id": 11,
+      "prompt": "研究分析一下这几个 AI Agent 框架的对比，整理证据和来源。",
+      "primary_skill": "topmind-organize",
+      "extra_skills": [],
+      "expected_output": "Routes through topmind-organize for research analysis, builds evidence chains with provenance, uses tables for comparison, separates confirmed facts from unverified claims, marks external captures with source_type: external-capture."
+    },
+    {
+      "id": 12,
+      "prompt": "从这些研究材料里提取关键人物和核心概念。",
+      "primary_skill": "topmind-organize",
+      "extra_skills": [],
+      "expected_output": "Routes through topmind-organize for entity extraction (requires explicit user request), extracts entities with evidence references, marks source_type: ai-derived, and separates AI extraction from original content."
+    },
+    {
+      "id": 13,
+      "prompt": "我有个想法：能不能用 Agent 做自动化测试？先记下来。",
+      "primary_skill": "topmind-capture",
+      "extra_skills": [],
+      "expected_output": "Routes through topmind-capture (not organize), saves as a quick note with source_type: user-original, uses 00-Inbox/ if category unclear, does not block on classification."
+    },
+    {
+      "id": 14,
+      "prompt": "把这几条笔记的 source_type 和 topic 补全，frontmatter 缺的都加上。",
+      "primary_skill": "topmind-maintain",
+      "extra_skills": [],
+      "expected_output": "Routes through topmind-maintain, uses workspace-transform.normalize-note-metadata, marks source_type and topic where inferable, applies or previews according to writeback_mode. Uses UTR workspace-transform.normalize-note-metadata command."
+    },
+    {
+      "id": 15,
+      "prompt": "跑一遍 topmind-loop，做整体巡检。",
+      "primary_skill": "topmind-loop",
+      "extra_skills": [],
+      "expected_output": "Routes through topmind-loop (independent skill, not a maintain sub-action), walks all topics/inbox/archive scopes, applies well-defined fixes via UTR commands, writes decisions to .loop/topics.md, and flags architecture drift signals."
+    },
+    {
+      "id": 16,
+      "prompt": "继续 loop，从上次断点恢复。",
+      "primary_skill": "topmind-loop",
+      "extra_skills": [],
+      "expected_output": "Routes through topmind-loop, reads cursor from .loop/{scope}.md state files, resumes walk at the cursor item, updates done/total and cursor after each item, and appends new decisions."
+    },
+    {
+      "id": 17,
+      "prompt": "loop 一下 20-研究 大类下的所有专题。",
+      "primary_skill": "topmind-loop",
+      "extra_skills": [],
+      "expected_output": "Routes through topmind-loop with scoped walk (only 20-研究 category topics), writes scoped progress to .loop/topics.md, applies UTR fixes for well-defined issues, escalates ambiguous decisions to Errors/Blockers."
+    },
+    {
+      "id": 18,
+      "prompt": "[schema validation] Verify all SKILL.md files have required frontmatter fields: name, version, description, action_category, triggers. Verify action_category values are within the enum. Verify name matches directory name in kebab-case.",
+      "primary_skill": "topmind-maintain",
+      "extra_skills": [],
+      "expected_output": "Validates frontmatter schema across all SKILL.md files (9 total: 7 core + 2 connector). Reports any missing required fields, invalid action_category values, or name/directory mismatches."
+    },
+    {
+      "id": 19,
+      "prompt": "[degradation reachability] Verify each SKILL.md's degradation field points to shared/capability-degradation.md and that the degradation table covers all UTR commands referenced in the skill body.",
+      "primary_skill": "topmind-maintain",
+      "extra_skills": [],
+      "expected_output": "Checks that every SKILL.md frontmatter has degradation: ../shared/capability-degradation.md. Cross-references UTR commands mentioned in each skill body against the degradation table."
+    },
+    {
+      "id": 20,
+      "prompt": "[semantic disambiguation] Verify no SKILL.md frontmatter uses 'category' key (should be 'action_category'). Verify user note frontmatter examples use 'category' for physical category directory name only.",
+      "primary_skill": "topmind-maintain",
+      "extra_skills": [],
+      "expected_output": "Confirms zero SKILL.md files use frontmatter key 'category' (all must use 'action_category'). Confirms note frontmatter examples in skills use 'category' only for physical directory names."
+    },
+    {
+      "id": 21,
+      "prompt": "帮我整理一下 inbox 里的东西，该分类的分类。",
+      "primary_skill": "topmind-organize",
+      "extra_skills": [],
+      "expected_output": "Routes through topmind-organize (NOT maintain, NOT loop). Uses workspace-transform.plan-inbox-routing to analyze Inbox content, suggests target category and topic for each item, applies or previews according to writeback_mode."
+    },
+    {
+      "id": 22,
+      "prompt": "同步一下微信读书的划线。",
+      "primary_skill": "topmind-weread",
+      "extra_skills": [],
+      "expected_output": "Routes through topmind-weread connector skill, performs incremental sync of WeRead highlights, creates/updates topics under 30-阅读/, uses source_type: external-capture with synced_at and weread_book_id."
+    },
+    {
+      "id": 23,
+      "prompt": "帮我发一条推文，内容是关于 AI Agent 的最新思考。",
+      "primary_skill": "topmind-x",
+      "extra_skills": [
+        "topmind-write"
+      ],
+      "expected_output": "Routes through topmind-x connector skill, uses topmind-write to draft tweet content, always requires user confirmation before posting (even in auto writeback_mode), archives posted tweet."
+    },
+    {
+      "id": 24,
+      "prompt": "把这个链接记下来，顺便把要点加到专题记忆里。",
+      "primary_skill": "topmind-capture",
+      "extra_skills": [
+        "topmind-memory"
+      ],
+      "expected_output": "Multi-intent: capture + memory. First routes through topmind-capture to save the link as a note, then routes through topmind-memory to append key points to topic.md. Two separate operations with two receipts."
+    },
+    {
+      "id": 25,
+      "prompt": "基于最近的研究笔记写一份分析报告，然后导出。",
+      "primary_skill": "topmind-organize",
+      "extra_skills": [
+        "topmind-write"
+      ],
+      "expected_output": "Multi-intent: organize + write. First routes through topmind-organize to synthesize research notes, then routes through topmind-write to produce and deliver the report to 88-Outputs/. Runs Delivery Checklist before saving output."
+    },
+    {
+      "id": 26,
+      "prompt": "写完了，帮我导出到 88-Outputs。",
+      "primary_skill": "topmind-write",
+      "extra_skills": [],
+      "expected_output": "Routes through topmind-write (deliver entry point). Runs Delivery Checklist, uses workspace-write.save-output to save to 88-Outputs/ with YYYY-MM-DD-描述 naming. Returns receipt with saved path."
+    },
+    {
+      "id": 27,
+      "prompt": "总结一下这些研究笔记的要点。",
+      "primary_skill": "topmind-organize",
+      "extra_skills": [],
+      "expected_output": "Negative-disambiguation: '总结要点' defaults to topmind-organize (NOT topmind-memory) unless user explicitly asks to write into topic.md / 专题记忆. Organize leave-a-trace: write a topic-root summary note per writeback_mode rather than chat-only; do not create INDEX.md."
+    },
+    {
+      "id": 28,
+      "prompt": "快速体检一下工作区。",
+      "primary_skill": "topmind-maintain",
+      "extra_skills": [],
+      "expected_output": "Routes to topmind-maintain (deterministic doctor), NOT topmind-loop. Loop is reserved for 整体体检/巡检/audit/walk."
+    },
+    {
+      "id": 29,
+      "prompt": "把这篇很长的博客 URL 收进来，正文可能超过 4 万字。",
+      "primary_skill": "topmind-capture",
+      "extra_skills": [],
+      "expected_output": "Routes through topmind-capture with external-capture provenance. Follows shared/long-url-capture.md: mark truncation if any, keep cleaned URL, do not invent SPA body content."
+    }
+  ]
+}

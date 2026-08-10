@@ -1,0 +1,467 @@
+{
+  "ext_name": {
+    "message": "topmind Clip",
+    "description": "Extension name"
+  },
+  "ext_description": {
+    "message": "剪藏到 topmind：预览 · 高亮 · 模板 · 落点 · 图片本地化 · Desktop Bridge / 工作区。",
+    "description": "Extension description for manifest"
+  },
+  "action_title": {
+    "message": "剪藏到 topmind",
+    "description": "Browser action tooltip"
+  },
+  "command_clip_selection": {
+    "message": "剪藏选区或整页到 topmind",
+    "description": "Keyboard shortcut description"
+  },
+  "ctx_clip": {
+    "message": "剪藏到 topmind",
+    "description": "Context menu item"
+  },
+  "ctx_clip_selection": {
+    "message": "剪藏选区到 topmind",
+    "description": "Context menu item for selection"
+  },
+  "status_detecting": {
+    "message": "检测中"
+  },
+  "status_online": {
+    "message": "在线"
+  },
+  "status_workspace": {
+    "message": "工作区"
+  },
+  "status_offline": {
+    "message": "离线"
+  },
+  "status_not_configured": {
+    "message": "未配置"
+  },
+  "status_no_workspace": {
+    "message": "无工作区"
+  },
+  "status_needs_auth": {
+    "message": "需授权"
+  },
+  "status_failed": {
+    "message": "失败"
+  },
+  "setup_title": {
+    "message": "完成一次配置即可剪藏"
+  },
+  "setup_step1": {
+    "message": "Desktop Bridge（推荐）"
+  },
+  "setup_step1_detail": {
+    "message": "Desktop → 设置 → 通用 → 浏览器剪藏 → 启用并复制 Token"
+  },
+  "setup_step2": {
+    "message": "本机工作区（可不启 Desktop）"
+  },
+  "setup_step2_detail": {
+    "message": "在设置页授权 topmind-workspace 根目录"
+  },
+  "setup_open": {
+    "message": "打开设置完成配置"
+  },
+  "label_title": {
+    "message": "标题"
+  },
+  "label_dest": {
+    "message": "落点"
+  },
+  "label_preview": {
+    "message": "预览"
+  },
+  "mode_article": {
+    "message": "正文"
+  },
+  "mode_selection": {
+    "message": "选区"
+  },
+  "mode_highlights": {
+    "message": "高亮"
+  },
+  "hint_default": {
+    "message": "剪藏当前页或选区到 topmind 收件箱（Bridge 或本机工作区）。"
+  },
+  "hint_article": {
+    "message": "将剪藏整页正文（Readability）到收件箱"
+  },
+  "hint_selection": {
+    "message": "将剪藏当前选区 · 标题保留当前页"
+  },
+  "hint_highlights": {
+    "message": "将剪藏页面高亮段落（先开启高亮模式划选）"
+  },
+  "hint_configured_once": {
+    "message": "配置一次后即可一键剪藏到 Inbox"
+  },
+  "hint_needs_auth": {
+    "message": "本机模式：首次剪藏或权限过期时，浏览器会再确认一次目录权限"
+  },
+  "btn_clip": {
+    "message": "剪藏到 topmind"
+  },
+  "btn_highlight": {
+    "message": "高亮模式"
+  },
+  "btn_exit_highlight": {
+    "message": "退出高亮"
+  },
+  "msg_not_configured": {
+    "message": "请先配置 Desktop Token 或授权工作区"
+  },
+  "msg_ws_needs_auth": {
+    "message": "已选工作区 · 点「剪藏」时会请求写入权限（一次即可）"
+  },
+  "msg_will_write_ws": {
+    "message": "将写入本机工作区（Desktop 可选）"
+  },
+  "msg_set_token_or_ws": {
+    "message": "设置 Token（Bridge）或授权工作区文件夹"
+  },
+  "msg_preparing": {
+    "message": "准备中…"
+  },
+  "msg_confirm_perm": {
+    "message": "确认工作区权限…"
+  },
+  "msg_clipping": {
+    "message": "剪藏中…"
+  },
+  "msg_clipping_bg": {
+    "message": "仍在后台剪藏… 请看工具栏徽章 ✓ / ✕"
+  },
+  "err_missing_token": {
+    "message": "请配置 Desktop Token，或在设置中授权工作区文件夹"
+  },
+  "err_offline_no_ws": {
+    "message": "Desktop 离线且未授权工作区 — 打开设置配置其一"
+  },
+  "err_bridge_unreachable": {
+    "message": "Desktop Bridge 不可达 — 可改用「本机工作区」模式"
+  },
+  "err_empty_content": {
+    "message": "页面无可用正文，可先选中一段文字再剪藏"
+  },
+  "err_no_highlights": {
+    "message": "还没有高亮 — 先点「高亮模式」在页面上划选"
+  },
+  "err_no_tab": {
+    "message": "没有可剪藏的标签页"
+  },
+  "err_permission_denied": {
+    "message": "工作区写入权限未生效 — 再点一次「剪藏」授权，或打开设置重新选择文件夹"
+  },
+  "err_stale_workspace": {
+    "message": "工作区文件夹已失效（可能被移动或删除）— 请打开设置重新选择文件夹"
+  },
+  "err_extension_internal": {
+    "message": "扩展内部错误（请重新加载扩展）"
+  },
+  "err_failed": {
+    "message": "失败: $1"
+  },
+  "clip_via": {
+    "message": "$1"
+  },
+  "clip_success_path": {
+    "message": "✓ $1 · $2 $3"
+  },
+  "clip_success_no_path": {
+    "message": "✓ 已写入（$1）$2"
+  },
+  "mode_label_readability": {
+    "message": "正文"
+  },
+  "mode_label_heuristic": {
+    "message": "启发式"
+  },
+  "mode_label_selection": {
+    "message": "选区"
+  },
+  "word_count": {
+    "message": "约 $1 词"
+  },
+  "highlight_count_suffix": {
+    "message": " · $1 高亮"
+  },
+  "template_tooltip": {
+    "message": "模板: $1 ($2)"
+  },
+  "no_title": {
+    "message": "（无标题）"
+  },
+  "restricted_page": {
+    "message": "受限页面"
+  },
+  "hl_start_hint": {
+    "message": "在页面上拖选文字即可高亮 · Alt+点击取消单条"
+  },
+  "hl_count_msg": {
+    "message": "已有 $1 条高亮"
+  },
+  "hl_unsupported": {
+    "message": "当前页无法启用高亮（系统页限制）"
+  },
+  "dest_inbox": {
+    "message": "收件箱 Inbox"
+  },
+  "dest_category": {
+    "message": "类别 · $1"
+  },
+  "dest_topic": {
+    "message": "专题 · $1"
+  },
+  "dest_hint_offline": {
+    "message": "落点列表不可用（Bridge 离线）· 默认 Inbox"
+  },
+  "dest_hint_generic": {
+    "message": "落点列表不可用 · 默认 Inbox"
+  },
+  "clip_mode": {
+    "message": "剪藏模式"
+  },
+  "kbd_shortcut": {
+    "message": "快捷键"
+  },
+  "footer_options": {
+    "message": "配置 Bridge / 工作区 / 模板"
+  },
+  "options_title": {
+    "message": "topmind Clip 设置"
+  },
+  "options_lead": {
+    "message": "两种落盘方式：Desktop Clip Bridge（推荐，Desktop 运行时）或 本机工作区目录（不依赖 Desktop 进程，按 topmind 规约写 Inbox）。"
+  },
+  "options_status_detecting": {
+    "message": "状态检测中…"
+  },
+  "options_write_mode": {
+    "message": "写入模式"
+  },
+  "options_mode_auto": {
+    "message": "自动（优先 Bridge，失败则工作区）"
+  },
+  "options_mode_bridge": {
+    "message": "仅 Desktop Bridge"
+  },
+  "options_mode_workspace": {
+    "message": "仅本机工作区目录"
+  },
+  "options_mode_hint": {
+    "message": "自动模式：Desktop 在线走 Bridge（HTML→MD 质量更好）；离线可用已授权的工作区文件夹。"
+  },
+  "options_bridge_title": {
+    "message": "A · Desktop Clip Bridge"
+  },
+  "options_bridge_step1": {
+    "message": "topmind Desktop → 设置 → 通用 → 浏览器剪藏"
+  },
+  "options_bridge_step2": {
+    "message": "启用 Clip Bridge，复制 Token"
+  },
+  "options_bridge_step3": {
+    "message": "粘贴到下方并测试"
+  },
+  "options_port": {
+    "message": "Bridge 端口"
+  },
+  "options_port_default_hint": {
+    "message": "默认 19827"
+  },
+  "options_token": {
+    "message": "Bearer Token"
+  },
+  "options_token_placeholder": {
+    "message": "从 Desktop 设置复制"
+  },
+  "options_save": {
+    "message": "保存 Bridge"
+  },
+  "options_test": {
+    "message": "测试 Bridge"
+  },
+  "options_ws_title": {
+    "message": "B · 本机工作区（无需 Desktop 运行）"
+  },
+  "options_ws_hint": {
+    "message": "选择你的 topmind-workspace 根目录（含 00-Inbox 等）。浏览器会请求读写权限；笔记按规约写入 Inbox，frontmatter 与 capture 一致。"
+  },
+  "options_ws_status_unconfigured": {
+    "message": "工作区：未配置"
+  },
+  "options_ws_perm_granted": {
+    "message": "可写"
+  },
+  "options_ws_perm_prompt": {
+    "message": "需点「重新授权写入」或弹窗剪藏时确认"
+  },
+  "options_ws_perm_unknown": {
+    "message": "?"
+  },
+  "options_ws_status_format": {
+    "message": "工作区：$1 · $2"
+  },
+  "options_ws_pick": {
+    "message": "选择工作区文件夹…"
+  },
+  "options_ws_reauth": {
+    "message": "重新授权写入"
+  },
+  "options_ws_clear": {
+    "message": "清除工作区授权"
+  },
+  "options_ws_perm_hint": {
+    "message": "需 Chromium（Chrome / Edge）。选择文件夹后，请在本页点一次「重新授权写入」或直接去弹窗点「剪藏」—— 浏览器会记住权限；Service Worker 不能自行弹授权框。本地模式用轻量 HTML→MD；Bridge 模式复用 Desktop 清洗管线。"
+  },
+  "options_tpl_title": {
+    "message": "C · 剪藏模板"
+  },
+  "options_tpl_hint": {
+    "message": "按 URL 自动匹配（非 Obsidian 完整 DSL）。内置：article · selection · bookmark · github · zhihu。变量：title url author published site content selection highlights。"
+  },
+  "options_tpl_status_format": {
+    "message": "自定义模板：$1 · 内置：$2"
+  },
+  "options_tpl_import_label": {
+    "message": "导入自定义模板 JSON"
+  },
+  "options_tpl_import": {
+    "message": "导入 / 合并"
+  },
+  "options_tpl_export": {
+    "message": "导出当前自定义"
+  },
+  "options_tpl_clear": {
+    "message": "清空自定义"
+  },
+  "options_tpl_hint2": {
+    "message": "也可粘贴 {\"templates\":[...]}。自定义模板优先于内置域名匹配（同 id 覆盖）。Bridge 在线时可在 popup 选择 Inbox / 类别 / 专题落点。"
+  },
+  "options_port_range_error": {
+    "message": "端口需在 1024–65535"
+  },
+  "options_saved_msg": {
+    "message": "已保存 · 模式 $1 · 端口 $2 $3"
+  },
+  "options_mode_changed": {
+    "message": "写入模式：$1"
+  },
+  "options_testing": {
+    "message": "测试 Bridge…"
+  },
+  "options_need_token": {
+    "message": "请先填写 Token（或改用「本机工作区」模式）"
+  },
+  "options_bridge_ok": {
+    "message": "✓ Bridge 连接成功，工作区就绪"
+  },
+  "options_bridge_no_ws": {
+    "message": "Bridge 在线，但 Desktop 工作区未打开"
+  },
+  "options_bridge_fail": {
+    "message": "✗ Bridge 不可达: $1"
+  },
+  "options_picking": {
+    "message": "选择文件夹…"
+  },
+  "options_pick_ok": {
+    "message": "✓ 已授权工作区「$1」· 可写 · 可不依赖 Desktop 剪藏"
+  },
+  "options_pick_need_reauth": {
+    "message": "✓ 已选择「$1」· 请再点「重新授权写入」，或打开弹窗点「剪藏」时确认权限"
+  },
+  "options_cancelled": {
+    "message": "已取消"
+  },
+  "options_unsupported_browser": {
+    "message": "当前浏览器不支持目录授权（请用 Chrome/Edge）"
+  },
+  "options_pick_fail": {
+    "message": "失败: $1"
+  },
+  "options_requesting_perm": {
+    "message": "请求写入权限…"
+  },
+  "options_perm_ok": {
+    "message": "✓ 工作区「$1」可写"
+  },
+  "options_perm_need_folder": {
+    "message": "请先选择工作区文件夹"
+  },
+  "options_perm_failed": {
+    "message": "权限未授予 — 请在浏览器对话框中允许，或重新选择文件夹"
+  },
+  "options_cleared": {
+    "message": "已清除工作区授权"
+  },
+  "options_tpl_invalid": {
+    "message": "模板无效: $1"
+  },
+  "options_tpl_imported": {
+    "message": "✓ 已合并 $1 个模板 · 共 $2"
+  },
+  "options_tpl_exported_clipboard": {
+    "message": "已导出 $1 个自定义模板到文本框并复制"
+  },
+  "options_tpl_exported": {
+    "message": "已导出 $1 个到文本框"
+  },
+  "options_tpl_cleared": {
+    "message": "已清空自定义模板"
+  },
+  "tpl_article": {
+    "message": "文章正文"
+  },
+  "tpl_selection": {
+    "message": "选区 / 高亮"
+  },
+  "tpl_bookmark": {
+    "message": "书签摘录"
+  },
+  "tpl_github": {
+    "message": "GitHub"
+  },
+  "tpl_zhihu": {
+    "message": "知乎"
+  },
+  "overview_bridge_ok": {
+    "message": "Bridge ✓"
+  },
+  "overview_bridge_warn": {
+    "message": "Bridge ⚠"
+  },
+  "overview_bridge_fail": {
+    "message": "Bridge ✗"
+  },
+  "overview_bridge_none": {
+    "message": "Bridge —"
+  },
+  "overview_ws_ok": {
+    "message": "工作区: $1 ✓"
+  },
+  "overview_ws_warn": {
+    "message": "工作区: $1 ⚠"
+  },
+  "overview_ws_none": {
+    "message": "工作区: —"
+  },
+  "fallback_load_failed": {
+    "message": "加载失败: $1"
+  },
+  "fallback_load_timeout": {
+    "message": "设置页加载超时 — 请重新加载扩展 (chrome://extensions → 刷新)"
+  },
+  "dest_loading": {
+    "message": "加载落点…"
+  },
+  "btn_clear_highlights": {
+    "message": "清除高亮"
+  },
+  "hl_clear_done": {
+    "message": "已清除 $1 条高亮"
+  }
+}

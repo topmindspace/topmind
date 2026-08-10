@@ -1,0 +1,15 @@
+{
+  "templateId": "periodic",
+  "name": "Periodic Review",
+  "description": "Same as Balanced + strong periodic review: Stream, Topics, emphasizing periodic reflection.",
+  "categories": {
+    "00": { "name": "Inbox" },
+    "10": { "name": "Stream" },
+    "20": { "name": "Topics" },
+    "88": { "name": "Outputs" },
+    "99": { "name": "Archive" }
+  },
+  "memory": {
+    "profileFile": "profile.md"
+  }
+}

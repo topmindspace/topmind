@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "kind": "derived",
+  "skill": "derived",
+  "label": "衍生工具",
+  "description": "衍生层管理：生成、重建。",
+  "execution": {
+    "runtime": "node",
+    "cwd_mode": "engine_root",
+    "script": "utr/tools/derived.mjs",
+    "args_template": [
+      "--categories-root",
+      "{categories_root}",
+      "--inbox-root",
+      "{inbox_root}",
+      "--archive-root",
+      "{archive_root}",
+      "--format",
+      "json",
+      "{command}"
+    ]
+  },
+  "commands": {
+    "rebuild": {
+      "label": "重建衍生层",
+      "description": "从真源全量重建各大类 .derived/ 子目录。",
+      "group": "maintenance",
+      "exposure": "advanced",
+      "risk_level": "medium",
+      "review_policy": "preview_or_auto",
+      "requires_topic": false,
+      "idempotent": true,
+      "supports_dry_run": true,
+      "destructive": false,
+      "inputs": {
+        "dryRun": {
+          "type": "toggle",
+          "label": "仅预览",
+          "default": true
+        }
+      },
+      "args_extra": [
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [
+        "{category}/**"
+      ],
+      "writes": [
+        "{category}/**/.derived/**"
+      ]
+    }
+  },
+  "review_overrides": {}
+}

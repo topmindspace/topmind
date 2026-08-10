@@ -1,0 +1,34 @@
+{
+  "templateId": "periodic",
+  "version": "4.0.0",
+  "name": "周期回顾型",
+  "description": "同 balanced + 强周期回顾：动态、专题，强调周期复盘与记忆沉淀。",
+  "categories": {
+    "00": { "name": "收件箱", "role": "buffer", "required": true },
+    "10": { "name": "动态", "role": "loose-stream", "specialBehavior": "flat-default" },
+    "20": { "name": "专题", "role": "deep-work" },
+    "88": { "name": "输出", "role": "delivery", "required": true },
+    "99": { "name": "归档", "role": "system", "required": true }
+  },
+  "stream": {
+    "packing": "weekly",
+    "appendHeading": "day",
+    "yearDir": true
+  },
+  "memory": {
+    "dir": "memory",
+    "profileFile": "profile.md",
+    "layers": {
+      "periodic": { "cadence": "weekly", "autoDigest": true }
+    }
+  },
+  "lifecycle": {
+    "stream": { "digestAfterPeriods": 1 }
+  },
+  "connectorHints": {
+    "weread": { "preferSlot": "20", "preferRole": "deep-work", "nameKeywords": ["专题", "阅读"] },
+    "x": { "preferSlot": "20", "preferRole": "deep-work", "nameKeywords": ["专题", "素材"] }
+  },
+  "defaultViews": ["stream", "timeline", "category"],
+  "separator": "-"
+}
