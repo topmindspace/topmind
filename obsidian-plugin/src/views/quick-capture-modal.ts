@@ -164,7 +164,8 @@ export class QuickCaptureModal extends Modal {
     this.textarea.disabled = true;
     this.tagInput.disabled = true;
     this.submitBtn.disabled = true;
-    this.submitBtn.textContent = "...";
+    this.submitBtn.empty();
+    this.submitBtn.createSpan({ cls: "tm-btn-spinner" });
 
     const result = this.plugin.kernelService.capture(text, { target, tags });
 
@@ -174,6 +175,7 @@ export class QuickCaptureModal extends Modal {
       this.textarea.disabled = false;
       this.tagInput.disabled = false;
       this.submitBtn.disabled = false;
+      this.submitBtn.empty();
       this.submitBtn.textContent = t("quick_capture_submit");
       this.textarea.focus();
     }

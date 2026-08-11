@@ -3,13 +3,15 @@
    compatibility (dark/light). Scoped to .tm-* classes — never pollutes :root.
    Icon sizing: consistent Lucide icon sizes via explicit SVG width/height.
 
-   Design System (2026-08-10 refactor):
-   - Unified button hierarchy: primary / secondary / ghost / icon
-   - Consistent icon sizes: 14px (inline) / 16px (toolbar) / 18px (empty state)
-   - Consistent border-radius: 6px (controls) / 8px (cards) / 4px (mini)
+   Design System (2026-08-11 refactor):
+   - Unified button hierarchy: primary / secondary / ghost / icon-only
+   - Consistent icon sizes: 12px (inline) / 14px (small/tab/card) / 16px (toolbar)
+   - Consistent border-radius: 4px (mini) / 6px (controls) / 8px (cards)
    - Consistent spacing scale: 4/6/8/12/16/20px
    - Clear hover/focus states with accent color
-   - Accessible focus-visible rings */
+   - Accessible focus-visible rings
+   - No text overflow: icon-only buttons in toolbars and narrow areas
+   - Spinners for all loading states (no "..." text) */
 
 /* ── CSS Variables (scoped) ─────────────────────────────────────────── */
 .tm-stream-workbench,
@@ -61,6 +63,8 @@
   background: var(--background-secondary);
   border-radius: var(--tm-radius-lg);
   border: 1px solid var(--background-modifier-border);
+  flex-wrap: nowrap;
+  overflow: hidden;
 }
 
 .tm-toolbar-status {
@@ -90,6 +94,8 @@
   font-weight: 500;
   cursor: pointer;
   transition: all var(--tm-transition);
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .tm-toolbar-model[role="button"]:hover {
@@ -145,10 +151,8 @@
   cursor: not-allowed;
 }
 
-/* Secondary button — bordered outline (organize, refresh, toolbar labeled) */
-.tm-btn-secondary,
-.tm-toolbar-btn-labeled,
-.tm-sidebar-btn-labeled {
+/* Secondary button — bordered outline (organize, refresh, etc.) */
+.tm-btn-secondary {
   height: var(--tm-btn-h);
   padding: 0 10px;
   border-radius: var(--tm-radius-md);
@@ -163,11 +167,10 @@
   justify-content: center;
   gap: var(--tm-gap-xs);
   transition: all var(--tm-transition);
+  white-space: nowrap;
 }
 
-.tm-btn-secondary:hover:not(:disabled),
-.tm-toolbar-btn-labeled:hover,
-.tm-sidebar-btn-labeled:hover {
+.tm-btn-secondary:hover:not(:disabled) {
   border-color: var(--interactive-accent);
   background: var(--background-modifier-hover);
   color: var(--interactive-accent);
@@ -178,17 +181,29 @@
   cursor: not-allowed;
 }
 
-.tm-btn-secondary-label,
-.tm-toolbar-btn-label,
-.tm-sidebar-btn-label {
+.tm-btn-secondary svg {
+  width: var(--tm-icon-sm);
+  height: var(--tm-icon-sm);
+  stroke-width: 2;
+  flex-shrink: 0;
+}
+
+/* Icon-only button — compact secondary button with just an icon */
+.tm-btn-icon-only {
+  width: var(--tm-btn-h);
+  height: var(--tm-btn-h);
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.tm-btn-secondary-label {
   font-size: var(--font-ui-smaller);
   font-weight: 500;
   white-space: nowrap;
 }
 
-/* Icon-only button — for compact toolbar actions */
-.tm-toolbar-btn,
-.tm-sidebar-icon-btn {
+/* Toolbar icon button — for compact toolbar actions */
+.tm-toolbar-btn {
   width: var(--tm-btn-h);
   height: var(--tm-btn-h);
   border-radius: var(--tm-radius-md);
@@ -203,7 +218,28 @@
   flex-shrink: 0;
 }
 
-.tm-toolbar-btn:hover,
+.tm-toolbar-btn:hover {
+  border-color: var(--interactive-accent);
+  background: var(--background-modifier-hover);
+  color: var(--interactive-accent);
+}
+
+/* Sidebar icon button — same as toolbar-btn but for sidebar header */
+.tm-sidebar-icon-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--tm-radius-md);
+  border: 1px solid var(--background-modifier-border);
+  background: transparent;
+  color: var(--text-normal);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--tm-transition);
+  flex-shrink: 0;
+}
+
 .tm-sidebar-icon-btn:hover {
   border-color: var(--interactive-accent);
   background: var(--background-modifier-hover);
@@ -236,27 +272,6 @@
   background: var(--background-modifier-hover);
 }
 
-/* Icon-only button (generic) */
-.tm-btn-icon {
-  width: var(--tm-btn-h);
-  height: var(--tm-btn-h);
-  border-radius: var(--tm-radius-md);
-  border: 1px solid var(--background-modifier-border);
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--tm-transition);
-}
-
-.tm-btn-icon:hover {
-  color: var(--interactive-accent);
-  border-color: var(--interactive-accent);
-  background: var(--background-modifier-hover);
-}
-
 /* ── AI Task Badge (toolbar + sidebar header) ─────────────────────────── */
 
 .tm-task-badge {
@@ -272,10 +287,19 @@
   white-space: nowrap;
   font-weight: 500;
   transition: opacity var(--tm-transition);
+  flex-shrink: 0;
+  max-width: 200px;
+  overflow: hidden;
 }
 
 .tm-task-badge.tm-task-badge-hidden {
   display: none;
+}
+
+.tm-task-badge-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tm-task-badge-active .tm-task-badge-dot {
@@ -432,11 +456,11 @@
   border-color: var(--interactive-accent);
 }
 
-/* ── Card Action Buttons (with labels, always visible) ──── */
+/* ── Card Action Buttons (icon-only with tooltips) ──── */
 
 .tm-card-action-btn {
+  width: 26px;
   height: 26px;
-  padding: 0 8px;
   border-radius: var(--tm-radius-sm);
   border: 1px solid var(--background-modifier-border);
   background: transparent;
@@ -450,16 +474,13 @@
   font-weight: 500;
   transition: all var(--tm-transition);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tm-card-action-btn:hover {
   color: var(--interactive-accent);
   border-color: var(--interactive-accent);
   background: var(--background-modifier-hover);
-}
-
-.tm-card-action-label {
-  white-space: nowrap;
 }
 
 /* ── Stream Cards ───────────────────────────────────────────────────── */
@@ -662,6 +683,7 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tm-impact-high {
@@ -795,7 +817,7 @@
   border-width: 1.5px;
 }
 
-/* Button spinner — for inline loading state in confirm buttons */
+/* Button spinner — for inline loading state in buttons (white, for primary buttons) */
 .tm-btn-spinner {
   display: inline-block;
   width: 12px;
@@ -807,13 +829,20 @@
   flex-shrink: 0;
 }
 
+/* Dark spinner — for secondary/outline buttons (visible on light/transparent backgrounds) */
+.tm-btn-spinner-dark {
+  border-color: var(--background-modifier-border);
+  border-top-color: var(--text-normal);
+}
+
 @keyframes tm-spin {
   to { transform: rotate(360deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .tm-loading-spinner::before,
-  .tm-btn-spinner {
+  .tm-btn-spinner,
+  .tm-btn-spinner-dark {
     animation: none;
   }
 }
@@ -895,24 +924,6 @@
   color: var(--text-faint);
   font-variant-numeric: tabular-nums;
   margin-left: auto;
-}
-
-.tm-url-hint {
-  display: flex;
-  align-items: center;
-  gap: var(--tm-gap-xs);
-  font-size: var(--font-ui-smaller);
-  color: var(--color-blue, #4a9eff);
-  transition: opacity var(--tm-transition);
-}
-
-.tm-url-hint.tm-url-hint-hidden {
-  display: none;
-}
-
-.tm-url-hint-icon {
-  display: flex;
-  align-items: center;
 }
 
 .tm-quick-capture-footer {
@@ -1008,7 +1019,8 @@
   padding: 6px 8px;
   border-bottom: 1px solid var(--background-modifier-border);
   flex-shrink: 0;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow: hidden;
 }
 
 .tm-sidebar-status {
@@ -1027,7 +1039,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 180px;
+  max-width: 120px;
   flex: 0 1 auto;
   font-weight: 500;
 }
@@ -1037,11 +1049,6 @@
   gap: var(--tm-gap-xs);
   flex-shrink: 0;
   margin-left: auto;
-}
-
-.tm-sidebar-icon-btn {
-  width: 28px;
-  height: 28px;
 }
 
 /* ── Tab Bar ────────────────────────────────────────────────────────── */
@@ -1246,12 +1253,6 @@
   margin-bottom: var(--tm-gap-sm);
   display: flex;
   justify-content: flex-end;
-}
-
-.tm-todo-open-file-btn {
-  height: var(--tm-btn-h-sm);
-  padding: 0 8px;
-  font-size: var(--font-ui-smaller);
 }
 
 /* ── Stream Tab ─────────────────────────────────────────────────────── */
@@ -1587,22 +1588,28 @@
 }
 
 .tm-chat-send-btn {
-  padding: 0 12px;
+  width: 32px;
   height: 32px;
   border-radius: var(--tm-radius-md);
   background: var(--interactive-accent);
   color: var(--text-on-accent);
   border: none;
   cursor: pointer;
-  font-size: var(--font-ui-smaller);
-  font-weight: 600;
-  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: background var(--tm-transition);
   flex-shrink: 0;
 }
 
 .tm-chat-send-btn:hover {
   background: var(--interactive-accent-hover);
+}
+
+.tm-chat-send-btn svg {
+  width: var(--tm-icon-sm);
+  height: var(--tm-icon-sm);
+  stroke-width: 2;
 }
 
 .tm-chat-clear-btn {
@@ -1623,6 +1630,12 @@
 .tm-chat-clear-btn:hover {
   color: var(--text-normal);
   border-color: var(--text-muted);
+}
+
+.tm-chat-clear-btn svg {
+  width: var(--tm-icon-sm);
+  height: var(--tm-icon-sm);
+  stroke-width: 2;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -1685,10 +1698,6 @@
 .tm-action-toggle-labels {
   flex: 0 0 30px;
   min-width: 30px;
-}
-
-.tm-sidebar-open-action {
-  flex: 0 0 36px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -1758,6 +1767,7 @@
   font-size: var(--font-ui-smaller);
   color: var(--text-muted);
   font-weight: 500;
+  white-space: nowrap;
 }
 
 /* ── Chat Model Switcher ─────────────────────────────────────────── */
@@ -1818,7 +1828,7 @@
   max-width: 160px;
 }
 
-/* ── Chat Message Actions (always visible with labels) ────────────── */
+/* ── Chat Message Actions (icon-only with tooltips) ────────────── */
 
 .tm-chat-msg-actions {
   display: flex;
@@ -1828,6 +1838,7 @@
 }
 
 .tm-chat-msg-btn {
+  width: 24px;
   height: 24px;
   border-radius: var(--tm-radius-sm);
   border: 1px solid var(--background-modifier-border);
@@ -1839,17 +1850,9 @@
   justify-content: center;
   font-size: var(--font-ui-smaller);
   gap: 3px;
-  padding: 0 var(--tm-gap-xs);
+  padding: 0;
   transition: all var(--tm-transition);
-}
-
-.tm-chat-msg-btn-labeled {
-  width: auto;
-}
-
-.tm-chat-msg-btn-label {
-  white-space: nowrap;
-  font-weight: 500;
+  flex-shrink: 0;
 }
 
 .tm-chat-msg-btn:hover {
@@ -1864,9 +1867,9 @@
 }
 
 .tm-chat-retry-btn {
-  width: auto;
-  padding: 0 var(--tm-gap-md);
-  gap: var(--tm-gap-xs);
+  width: 24px;
+  height: 24px;
+  padding: 0;
 }
 
 /* ── Suggestion Refresh Bar ────────────────────────────────────────── */
@@ -1875,10 +1878,6 @@
   margin-bottom: var(--tm-gap-sm);
   display: flex;
   justify-content: flex-end;
-}
-
-.tm-suggestion-refresh-btn {
-  padding: 0 8px;
 }
 
 /* ── Chat Error Message ───────────────────────────────────────────── */
@@ -1950,7 +1949,6 @@
 .tm-chat-send-btn:focus-visible,
 .tm-chat-clear-btn:focus-visible,
 .tm-btn-secondary:focus-visible,
-.tm-btn-icon:focus-visible,
 .tm-btn-mini:focus-visible,
 .tm-btn-init-workspace:focus-visible,
 .tm-input-field:focus-visible,
@@ -1970,20 +1968,18 @@
 
 /* ═══════════════════════════════════════════════════════════════════════
    SVG Icon Sizing (Lucide icons via setIcon)
-   Unified sizes: 12px (inline/mini), 14px (small/tab/card), 16px (toolbar/sidebar)
+   Unified sizes: 12px (inline/mini), 14px (small/tab/card), 16px (toolbar)
    ═══════════════════════════════════════════════════════════════════════ */
 
-/* Toolbar buttons — 16px icons */
-.tm-toolbar-btn svg,
-.tm-toolbar-btn-labeled svg:has(svg) svg {
+/* Toolbar icon buttons — 16px icons */
+.tm-toolbar-btn svg {
   width: var(--tm-icon-md);
   height: var(--tm-icon-md);
   stroke-width: 2;
 }
 
 /* Sidebar icon buttons — 14px icons */
-.tm-sidebar-icon-btn svg,
-.tm-sidebar-btn-labeled svg {
+.tm-sidebar-icon-btn svg {
   width: var(--tm-icon-sm);
   height: var(--tm-icon-sm);
   stroke-width: 2;
@@ -2003,17 +1999,10 @@
   stroke-width: 2;
 }
 
-/* Card action mini buttons — 14px */
-.tm-btn-mini svg {
+/* Card action mini buttons icons — 14px */
+.tm-card-action-btn svg {
   width: var(--tm-icon-sm);
   height: var(--tm-icon-sm);
-  stroke-width: 2;
-}
-
-/* Card action labeled buttons — 12px */
-.tm-card-action-btn svg {
-  width: var(--tm-icon-xs);
-  height: var(--tm-icon-xs);
   stroke-width: 2;
 }
 
@@ -2024,10 +2013,10 @@
   stroke-width: 2;
 }
 
-/* Chat message action button icons — 12px */
+/* Chat message action button icons — 14px */
 .tm-chat-msg-btn svg {
-  width: var(--tm-icon-xs);
-  height: var(--tm-icon-xs);
+  width: var(--tm-icon-sm);
+  height: var(--tm-icon-sm);
   stroke-width: 2;
 }
 
@@ -2043,13 +2032,6 @@
   width: 28px;
   height: 28px;
   stroke-width: 1.5;
-}
-
-/* Chat clear button — 14px */
-.tm-chat-clear-btn svg {
-  width: var(--tm-icon-sm);
-  height: var(--tm-icon-sm);
-  stroke-width: 2;
 }
 
 /* Todo due date icon — 12px */
@@ -2070,13 +2052,6 @@
 .tm-todo-source svg {
   width: var(--tm-icon-xs);
   height: var(--tm-icon-xs);
-  stroke-width: 2;
-}
-
-/* Secondary button icons — 14px */
-.tm-btn-secondary svg {
-  width: var(--tm-icon-sm);
-  height: var(--tm-icon-sm);
   stroke-width: 2;
 }
 
@@ -2144,5 +2119,10 @@
   .tm-tab-btn {
     gap: 2px;
     padding: 7px 2px;
+  }
+
+  /* Sidebar header: hide model badge on very narrow widths */
+  .tm-model-badge {
+    max-width: 80px;
   }
 }

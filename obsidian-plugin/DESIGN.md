@@ -83,12 +83,12 @@
 
 | 元素 | 功能 |
 |------|------|
-| AI 状态灯 | 🟢 就绪 / ⚪ 未配置 |
-| 模型徽章 | 显示当前 AI 服务商 + 模型（如 "DeepSeek · deepseek-chat"） |
-| 🔮 侧边栏 | 打开/恢复 AI 副驾面板（右侧 Leaf） |
-| ⚙ 设置 | 一键跳转到插件设置页 |
-| 📥 收件箱 | 打开收件箱目录 |
-| 👤 画像 | 打开 memory/profile.md |
+| AI 状态灯 | 🟢 就绪 / ⚪ 未配置（可点击快速测试） |
+| 模型徽章 | 显示当前 AI 服务商 + 模型（可点击跳转设置） |
+| 🔮 侧边栏 | icon-only + tooltip，打开/恢复 AI 副驾面板 |
+| ⚙ 设置 | icon-only + tooltip，一键跳转插件设置页 |
+| 📥 收件箱 | icon-only + tooltip，打开收件箱目录 |
+| 👤 画像 | icon-only + tooltip，打开 memory/profile.md |
 
 ### 2.3 交互细节
 
@@ -202,25 +202,27 @@
 
 ### 3.3 底部快捷操作
 
-| 按钮 | 功能 | AI 条件 |
-|------|------|---------|
-| ⚡ | 记一下（Quick Capture 弹窗） | 无需 AI |
-| 🔄 | 整理（reconcile + todo_maintain） | 无需 AI |
-| 📋 | AI 整理待办（force todo_maintain） | 需要 AI |
-| 🏷️ | 主题分类（force topic_classify） | 需要 AI |
-| 🧠 | 整理记忆（force memory_organize） | 需要 AI |
-| 👁 | 显示/隐藏操作标签 | — |
+| 按钮 | 功能 | AI 条件 | 默认模式 |
+|------|------|---------|----------|
+| ⚡ | 记一下（Quick Capture 弹窗） | 无需 AI | icon-only |
+| 🔄 | 整理（reconcile + todo_maintain） | 无需 AI | icon-only |
+| 📋 | AI 整理待办（force todo_maintain） | 需要 AI | icon-only |
+| 🏷️ | 主题分类（force topic_classify） | 需要 AI | icon-only |
+| 🧠 | 整理记忆（force memory_organize） | 需要 AI | icon-only |
+| 👁 | 显示/隐藏操作标签 | — | toggle |
 
-AI 操作按钮仅在 AI 已配置时显示。所有 AI 操作经任务管理器入队，提供进度追踪和中止能力。标签切换按钮允许用户在图标-only 和带标签模式间切换。
+AI 操作按钮仅在 AI 已配置时显示。默认 icon-only 模式（`showActionLabels = false`），用户可切换为带标签模式。所有按钮有 `title` tooltip。
 
 ### 3.4 头部设计
 
 | 元素 | 功能 |
 |------|------|
-| 状态灯 + 文字 | AI 就绪 / 未配置 |
-| 模型徽章 | 当前服务商 + 模型（如 "DeepSeek · deepseek-chat"） |
-| 🖥 工作台按钮 | 打开/恢复主工作台页签（始终可见，确保可恢复性） |
-| ⚙ 设置按钮 | 一键跳转插件设置页 |
+| 状态灯 + 文字 | AI 就绪 / 未配置（可点击快速测试） |
+| 模型徽章 | 当前服务商 + 模型（可点击跳转设置） |
+| 🖥 工作台按钮 | icon-only + tooltip，打开/恢复主工作台页签 |
+| ⚙ 设置按钮 | icon-only + tooltip，一键跳转插件设置页 |
+
+> **防溢出**：头部使用 `flex-wrap: nowrap` + `overflow: hidden`，icon-only 按钮确保窄宽度下不溢出。
 
 > **可恢复性**：侧边栏头部始终显示「打开工作台」按钮，即使工作台页签被关闭也能一键恢复。
 
@@ -447,22 +449,47 @@ System prompt 跟随 UI locale：
 - AI 对话：用户消息右对齐（强调色背景），AI 消息左对齐（卡片背景）
 - 全中文 UI（可切英文）
 
-### 11.1 图标尺寸规范
+### 11.1 按钮系统规范
+
+统一按钮层级：primary（强调填充）/ secondary（边框轮廓）/ icon-only（纯图标）/ mini（微型）
+
+| 按钮类型 | 用途 | 尺寸 | 说明 |
+|----------|------|------|------|
+| Primary | 提交、确认、初始化 | 30px 高 | 强调色填充，白字 |
+| Secondary | 整理、刷新等 | 30px 高 | 边框轮廓，hover 变强调色 |
+| Icon-only | 工具栏、侧边栏头部、卡片操作 | 28-30px 方 | 纯图标 + tooltip，防溢出 |
+| Mini | 卡片内联操作 | 24px 方 | hover 显示，半透明 |
+
+**关键原则**：工具栏和侧边栏头部使用 icon-only 按钮 + tooltip，避免文字溢出。卡片操作按钮也使用 icon-only。建议操作（确认/忽略）保留文字标签。
+
+### 11.2 图标尺寸规范
 
 所有 Lucide 图标（via `setIcon`）使用统一的 SVG 尺寸：
 
 | 上下文 | 尺寸 | 说明 |
 |--------|------|------|
-| 工具栏按钮 | 16px | 主操作图标 |
-| 侧边栏头部按钮 | 15px | 紧凑型图标 |
+| 工具栏按钮 | 16px | 主操作图标（icon-only） |
+| 侧边栏头部按钮 | 14px | 紧凑型图标（icon-only） |
 | 标签栏图标 | 14px | 标签指示图标 |
 | 建议卡片图标 | 16px | 建议类型图标 |
-| 卡片操作按钮 | 14px | hover 显示的微型按钮 |
+| 卡片操作按钮 | 14px | icon-only + tooltip |
 | 底部操作按钮 | 16px | 快捷操作图标 |
+| 对话消息按钮 | 14px | icon-only + tooltip（复制/重新生成） |
 | 弹窗标题图标 | 18px | 弹窗标识图标 |
-| 对话空状态图标 | 32px | 装饰性大图标 |
+| 对话空状态图标 | 28px | 装饰性大图标 |
 
-### 11.2 字体规范
+### 11.3 加载状态规范
+
+所有加载状态使用 CSS spinner（`tm-btn-spinner`），不使用 "..." 文本：
+
+| 场景 | Spinner 类型 | 说明 |
+|------|-------------|------|
+| 主按钮（提交/确认） | `tm-btn-spinner` | 白色 spinner（强调色背景上） |
+| 次要按钮（整理） | `tm-btn-spinner tm-btn-spinner-dark` | 深色 spinner（透明背景上） |
+| 区域加载 | `tm-loading-spinner` | 强调色 border spinner |
+| 内联进度 | `tm-loading-spinner-sm` | 小尺寸 spinner |
+
+### 11.4 字体规范
 
 所有字体大小使用 Obsidian CSS 变量，不使用硬编码 px 值：
 
@@ -477,8 +504,10 @@ System prompt 跟随 UI locale：
 
 ## 12. 无障碍设计
 
-- 所有交互元素有 `aria-label`
+- 所有交互元素有 `aria-label` 和 `title`（tooltip）
 - 键盘可达：`focus-visible` 样式 + `tabindex` + `role` 属性
 - 动态卡片支持 `Enter`/`Space` 展开/折叠
 - 状态灯标记 `aria-hidden`（装饰性元素）
 - 尊重 `prefers-reduced-motion`：禁用动画
+- icon-only 按钮必须有 `title` 属性提供 tooltip
+- 防溢出：工具栏 `flex-wrap: nowrap` + `overflow: hidden`，侧边栏头部 `flex-wrap: nowrap`

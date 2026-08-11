@@ -6,7 +6,14 @@
 // - Tab content: rich, interactive panels
 // - Quick actions row at bottom with optional labels
 //
-// This is the unified hub for all AI-powered features.
+// UIUX (2026-08-11 refactor):
+// - Header buttons: icon-only with tooltips (no text overflow in narrow sidebar)
+// - Bottom actions: default icon-only (showActionLabels = false)
+// - Chat message buttons: icon-only with tooltips
+// - Suggestion refresh: icon-only
+// - Todo open file: icon-only
+// - Chat send: icon-only with send icon
+// - All loading states use spinners
 
 import { ItemView, WorkspaceLeaf, Notice, MarkdownRenderer, setIcon } from "obsidian";
 import type TopmindPlugin from "../main";
@@ -40,7 +47,7 @@ export class SidebarDockView extends ItemView {
   private activeTab: SidebarTab = "todos";
   private chatHistory: ChatMessage[] = [];
   private chatThinking = false;
-  private showActionLabels = true;
+  private showActionLabels = false;
   private contentContainer!: HTMLElement;
   private taskUnsub: (() => void) | null = null;
   /** Currently selected provider in chat model switcher */
@@ -206,8 +213,7 @@ export class SidebarDockView extends ItemView {
       if (aiReady) {
         this.runAiQuickTest(statusDiv);
       } else {
-        (this.app as unknown as { setting: { open: () => void; openTabById: (id: string) => void } }).setting?.open();
-        (this.app as unknown as { setting: { openTabById: (id: string) => void } }).setting?.openTabById("topmind-stream");
+        this.openSettings();
       }
     });
     statusDiv.addEventListener("keydown", (e: KeyboardEvent) => {
@@ -225,10 +231,7 @@ export class SidebarDockView extends ItemView {
         badge.setAttribute("title", modelLabel);
         badge.setAttribute("role", "button");
         badge.setAttribute("tabindex", "0");
-        badge.addEventListener("click", () => {
-          (this.app as unknown as { setting: { open: () => void; openTabById: (id: string) => void } }).setting?.open();
-          (this.app as unknown as { setting: { openTabById: (id: string) => void } }).setting?.openTabById("topmind-stream");
-        });
+        badge.addEventListener("click", () => this.openSettings());
         badge.addEventListener("keydown", (e: KeyboardEvent) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
@@ -242,31 +245,33 @@ export class SidebarDockView extends ItemView {
     const taskBadge = header.createDiv({ cls: "tm-task-badge tm-task-badge-hidden" });
     taskBadge.setAttribute("data-header-badge", "true");
 
-    // Right-side buttons
+    // Right-side buttons (icon-only with tooltips — no text overflow)
     const headerActions = header.createDiv({ cls: "tm-sidebar-header-actions" });
 
-    // Open workbench button (with label for clarity)
+    // Open workbench button
     const workbenchBtn = headerActions.createEl("button", {
-      cls: "tm-sidebar-icon-btn tm-sidebar-btn-labeled",
+      cls: "tm-sidebar-icon-btn",
     });
     setIcon(workbenchBtn, "monitor");
-    workbenchBtn.createSpan({ text: t("sidebar_open_workbench"), cls: "tm-sidebar-btn-label" });
     workbenchBtn.setAttribute("aria-label", t("sidebar_open_workbench"));
     workbenchBtn.setAttribute("title", t("sidebar_open_workbench"));
     workbenchBtn.addEventListener("click", () => this.openWorkbench());
 
-    // Settings button (with label for clarity)
+    // Settings button
     const settingsBtn = headerActions.createEl("button", {
-      cls: "tm-sidebar-icon-btn tm-sidebar-btn-labeled",
+      cls: "tm-sidebar-icon-btn",
     });
     setIcon(settingsBtn, "settings");
-    settingsBtn.createSpan({ text: t("toolbar_btn_settings"), cls: "tm-sidebar-btn-label" });
     settingsBtn.setAttribute("aria-label", t("sidebar_open_settings"));
     settingsBtn.setAttribute("title", t("sidebar_open_settings"));
-    settingsBtn.addEventListener("click", () => {
-      (this.app as unknown as { setting: { open: () => void; openTabById: (id: string) => void } }).setting?.open();
-      (this.app as unknown as { setting: { openTabById: (id: string) => void } }).setting?.openTabById("topmind-stream");
-    });
+    settingsBtn.addEventListener("click", () => this.openSettings());
+  }
+
+  /** Open plugin settings tab */
+  private openSettings(): void {
+    const setting = (this.app as unknown as { setting: { open: () => void; openTabById: (id: string) => void } }).setting;
+    setting?.open();
+    setting?.openTabById("topmind-stream");
   }
 
   /** Run AI quick test and update the status indicator */
@@ -391,13 +396,12 @@ export class SidebarDockView extends ItemView {
   private renderTodosTab(container: HTMLElement): void {
     const todoSection = container.createDiv({ cls: "tm-sidebar-section" });
 
-    // Open todo file button — always visible at top of todos tab
+    // Open todo file button — icon-only at top of todos tab
     const openFileBar = todoSection.createDiv({ cls: "tm-todo-open-file-bar" });
     const openFileBtn = openFileBar.createEl("button", {
-      cls: "tm-btn-secondary tm-todo-open-file-btn",
+      cls: "tm-btn-secondary tm-btn-icon-only",
     });
     setIcon(openFileBtn, "file-text");
-    openFileBtn.createSpan({ text: t("todo_open_file"), cls: "tm-btn-secondary-label" });
     openFileBtn.setAttribute("aria-label", t("todo_open_file"));
     openFileBtn.setAttribute("title", t("todo_open_file"));
     openFileBtn.addEventListener("click", () => {
@@ -513,12 +517,12 @@ export class SidebarDockView extends ItemView {
       return;
     }
 
-    // Refresh suggestions button at top of suggestions tab
+    // Refresh suggestions button at top of suggestions tab (icon-only)
     const refreshBar = container.createDiv({ cls: "tm-suggestion-refresh-bar" });
-    const refreshBtn = refreshBar.createEl("button", { cls: "tm-btn-secondary tm-suggestion-refresh-btn" });
+    const refreshBtn = refreshBar.createEl("button", { cls: "tm-btn-secondary tm-btn-icon-only" });
     setIcon(refreshBtn, "refresh-cw");
-    refreshBtn.createSpan({ text: t("toolbar_btn_refresh"), cls: "tm-btn-secondary-label" });
     refreshBtn.setAttribute("aria-label", t("cmd_refresh_suggestions"));
+    refreshBtn.setAttribute("title", t("cmd_refresh_suggestions"));
     refreshBtn.addEventListener("click", async () => {
       refreshBtn.disabled = true;
       await this.plugin.kernelService.generateSuggestions();
@@ -536,10 +540,10 @@ export class SidebarDockView extends ItemView {
 
       // Re-add refresh button after container.empty()
       const refreshBar2 = container.createDiv({ cls: "tm-suggestion-refresh-bar" });
-      const refreshBtn2 = refreshBar2.createEl("button", { cls: "tm-btn-secondary tm-suggestion-refresh-btn" });
+      const refreshBtn2 = refreshBar2.createEl("button", { cls: "tm-btn-secondary tm-btn-icon-only" });
       setIcon(refreshBtn2, "refresh-cw");
-      refreshBtn2.createSpan({ text: t("toolbar_btn_refresh"), cls: "tm-btn-secondary-label" });
       refreshBtn2.setAttribute("aria-label", t("cmd_refresh_suggestions"));
+      refreshBtn2.setAttribute("title", t("cmd_refresh_suggestions"));
       refreshBtn2.addEventListener("click", async () => {
         refreshBtn2.disabled = true;
         await this.plugin.kernelService.generateSuggestions();
@@ -597,10 +601,8 @@ export class SidebarDockView extends ItemView {
     confirmBtn.setAttribute("aria-label", t("suggestions_confirm"));
     confirmBtn.addEventListener("click", async () => {
       confirmBtn.disabled = true;
-      // Show spinner instead of just "..."
       confirmBtn.empty();
-      const spinner = confirmBtn.createSpan({ cls: "tm-btn-spinner" });
-      confirmBtn.createSpan({ text: t("suggestions_confirm"), cls: "tm-btn-confirm-loading-label" });
+      confirmBtn.createSpan({ cls: "tm-btn-spinner" });
       const result = await this.plugin.kernelService.applySuggestion(sugg);
       if (result.ok) {
         card.classList.add("tm-card-removing");
@@ -639,10 +641,7 @@ export class SidebarDockView extends ItemView {
         cls: "tm-btn-init-workspace",
         text: t("empty_action_configure"),
       });
-      configureBtn.addEventListener("click", () => {
-        (this.app as unknown as { setting: { open: () => void; openTabById: (id: string) => void } }).setting?.open();
-        (this.app as unknown as { setting: { openTabById: (id: string) => void } }).setting?.openTabById("topmind-stream");
-      });
+      configureBtn.addEventListener("click", () => this.openSettings());
       return;
     }
 
@@ -687,11 +686,13 @@ export class SidebarDockView extends ItemView {
       },
     });
 
+    // Send button (icon-only)
     const sendBtn = inputArea.createEl("button", {
       cls: "tm-chat-send-btn",
-      text: t("chat_send"),
     });
+    setIcon(sendBtn, "send");
     sendBtn.setAttribute("aria-label", t("chat_send"));
+    sendBtn.setAttribute("title", t("chat_send"));
 
     // Clear button (only if history exists)
     if (this.chatHistory.length > 0) {
@@ -701,11 +702,11 @@ export class SidebarDockView extends ItemView {
       setIcon(clearBtn, "x");
       clearBtn.setAttribute("aria-label", t("chat_clear"));
       clearBtn.setAttribute("title", t("chat_clear"));
-clearBtn.addEventListener("click", () => {
-this.chatHistory = [];
-this.saveChatHistory();
-this.renderActiveTab();
-});
+      clearBtn.addEventListener("click", () => {
+        this.chatHistory = [];
+        this.saveChatHistory();
+        this.renderActiveTab();
+      });
     }
 
     // Auto-grow textarea
@@ -839,13 +840,12 @@ this.renderActiveTab();
     if (msg.role === "assistant" && !msg.isError) {
       // Render markdown for AI responses
       void MarkdownRenderer.render(this.app, msg.content, bodyEl, "", this);
-      // Add action buttons for AI messages
+      // Add action buttons for AI messages (icon-only with tooltips)
       const actionsEl = msgEl.createDiv({ cls: "tm-chat-msg-actions" });
-      
-      // Copy button (always visible with label)
-      const copyBtn = actionsEl.createEl("button", { cls: "tm-chat-msg-btn tm-chat-msg-btn-labeled" });
+
+      // Copy button
+      const copyBtn = actionsEl.createEl("button", { cls: "tm-chat-msg-btn" });
       setIcon(copyBtn, "copy");
-      copyBtn.createSpan({ text: t("chat_btn_copy"), cls: "tm-chat-msg-btn-label" });
       copyBtn.setAttribute("aria-label", t("chat_copy"));
       copyBtn.setAttribute("title", t("chat_copy"));
       copyBtn.addEventListener("click", () => {
@@ -855,11 +855,10 @@ this.renderActiveTab();
         });
       });
 
-      // Regenerate button (only if there's a prompt) — always visible with label
+      // Regenerate button (only if there's a prompt)
       if (msg.prompt) {
-        const regenBtn = actionsEl.createEl("button", { cls: "tm-chat-msg-btn tm-chat-msg-btn-labeled" });
+        const regenBtn = actionsEl.createEl("button", { cls: "tm-chat-msg-btn" });
         setIcon(regenBtn, "refresh-cw");
-        regenBtn.createSpan({ text: t("chat_btn_regenerate"), cls: "tm-chat-msg-btn-label" });
         regenBtn.setAttribute("aria-label", t("chat_regenerate"));
         regenBtn.setAttribute("title", t("chat_regenerate"));
         regenBtn.addEventListener("click", () => {
@@ -878,7 +877,8 @@ this.renderActiveTab();
       if (msg.prompt) {
         const retryBtn = actionsEl.createEl("button", { cls: "tm-chat-msg-btn tm-chat-retry-btn" });
         setIcon(retryBtn, "refresh-cw");
-        retryBtn.createSpan({ text: ` ${t("chat_retry")}` });
+        retryBtn.setAttribute("aria-label", t("chat_retry"));
+        retryBtn.setAttribute("title", t("chat_retry"));
         retryBtn.addEventListener("click", () => {
           const idx = this.chatHistory.lastIndexOf(msg);
           if (idx >= 0) {
@@ -897,9 +897,9 @@ this.renderActiveTab();
     if (!text || this.chatThinking) return;
 
     // Add user message
-this.chatHistory.push({ role: "user", content: text });
-this.saveChatHistory();
-input.value = "";
+    this.chatHistory.push({ role: "user", content: text });
+    this.saveChatHistory();
+    input.value = "";
     input.style.height = "auto";
 
     this.chatThinking = true;
@@ -907,17 +907,17 @@ input.value = "";
 
     try {
       const response = await this.plugin.kernelService.chat(text, this.chatHistory.slice(0, -1));
-this.chatHistory.push({ role: "assistant", content: response || "...", prompt: text });
-this.saveChatHistory();
-} catch (err) {
-const msg = err instanceof Error ? err.message : String(err);
-this.chatHistory.push({
-role: "assistant",
-content: `${t("chat_error")}: ${msg}`,
-isError: true,
-prompt: text,
-});
-this.saveChatHistory();
+      this.chatHistory.push({ role: "assistant", content: response || "...", prompt: text });
+      this.saveChatHistory();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.chatHistory.push({
+        role: "assistant",
+        content: `${t("chat_error")}: ${msg}`,
+        isError: true,
+        prompt: text,
+      });
+      this.saveChatHistory();
     } finally {
       this.chatThinking = false;
       this.renderActiveTab();
@@ -938,17 +938,17 @@ this.saveChatHistory();
         return i < this.chatHistory.length || m.role !== "user" || m.content !== prompt;
       });
       const response = await this.plugin.kernelService.chat(prompt, history);
-this.chatHistory.push({ role: "assistant", content: response || "...", prompt });
-this.saveChatHistory();
-} catch (err) {
-const msg = err instanceof Error ? err.message : String(err);
-this.chatHistory.push({
-role: "assistant",
-content: `${t("chat_error")}: ${msg}`,
-isError: true,
-prompt,
-});
-this.saveChatHistory();
+      this.chatHistory.push({ role: "assistant", content: response || "...", prompt });
+      this.saveChatHistory();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.chatHistory.push({
+        role: "assistant",
+        content: `${t("chat_error")}: ${msg}`,
+        isError: true,
+        prompt,
+      });
+      this.saveChatHistory();
     } finally {
       this.chatThinking = false;
       this.renderActiveTab();
@@ -1022,6 +1022,7 @@ this.saveChatHistory();
       });
       setIcon(clearBtn, "trash-2");
       clearBtn.setAttribute("aria-label", t("task_clear_history"));
+      clearBtn.setAttribute("title", t("task_clear_history"));
       clearBtn.addEventListener("click", () => {
         aiTaskManager.clearHistory();
       });
@@ -1069,6 +1070,7 @@ this.saveChatHistory();
       const abortBtn = item.createEl("button", { cls: "tm-btn-mini tm-history-abort" });
       setIcon(abortBtn, "x");
       abortBtn.setAttribute("aria-label", t("task_abort"));
+      abortBtn.setAttribute("title", t("task_abort"));
       abortBtn.addEventListener("click", (e: MouseEvent) => {
         e.stopPropagation();
         aiTaskManager.abort();

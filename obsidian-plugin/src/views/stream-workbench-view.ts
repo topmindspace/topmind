@@ -9,6 +9,14 @@
 // - All states (loading / empty / error / ready) are visually polished
 // - Day grouping: entries grouped by ## day headings within period notes
 // - Multi-task progress: AI operations show inline progress badge in toolbar
+//
+// UIUX (2026-08-11 refactor):
+// - Toolbar buttons: icon-only with tooltips (no text overflow)
+// - Card actions: icon-only with tooltips (compact, no overflow)
+// - Suggestion refresh: icon-only
+// - Loading states: spinner instead of "..." text
+// - Organize button: icon + text (secondary button with refresh-cw icon)
+// - Shared renderLayout() eliminates onOpen/refresh duplication
 
 import { ItemView, WorkspaceLeaf, Notice, MarkdownRenderer, setIcon } from "obsidian";
 import type TopmindPlugin from "../main";
@@ -75,85 +83,8 @@ export class StreamWorkbenchView extends ItemView {
     contentEl.empty();
     contentEl.addClass("tm-stream-workbench");
 
-    // ── Toolbar ──
-    this.renderToolbar(contentEl);
-
-    // ── Quick Input Bar ──
-    const inputBar = contentEl.createDiv({ cls: "tm-input-bar" });
-    const inputWrap = inputBar.createDiv({ cls: "tm-input-wrap" });
-    this.inputEl = inputWrap.createEl("textarea", {
-      cls: "tm-input-field",
-      attr: {
-        placeholder: t("quick_capture_placeholder"),
-        rows: "1",
-        "aria-label": t("quick_capture_title"),
-      },
-    });
-
-    // URL detection hint (visual feedback when typing a lone URL)
-    this.urlHintEl = inputWrap.createDiv({ cls: "tm-url-hint tm-url-hint-hidden" });
-    const urlHintIcon = this.urlHintEl.createSpan({ cls: "tm-url-hint-icon" });
-    setIcon(urlHintIcon, "link");
-    this.urlHintEl.createSpan({ text: t("compose_url_hint") });
-
-    this.submitBtn = inputBar.createEl("button", {
-      text: t("quick_capture_submit"),
-      cls: "tm-submit-btn",
-    });
-    this.submitBtn.setAttribute("aria-label", t("quick_capture_submit"));
-
-    // Interactions
-    this.inputEl.addEventListener("keydown", (e: KeyboardEvent) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        this.submitInput();
-      }
-    });
-
-    this.inputEl.addEventListener("input", () => {
-      this.autoGrowTextarea(this.inputEl);
-      this.updateUrlHint();
-    });
-
-    this.submitBtn.addEventListener("click", () => this.submitInput());
-
-    // ── Stream Section ──
-    const streamHeader = contentEl.createDiv({ cls: "tm-section-header" });
-    const streamTitleDiv = streamHeader.createDiv({ cls: "tm-section-title" });
-    streamTitleDiv.createSpan({ text: t("stream_this_week") });
-    this.entryCountEl = streamTitleDiv.createSpan({ cls: "tm-entry-count" });
-
-    const streamControls = streamHeader.createDiv({ cls: "tm-section-controls" });
-    this.periodSelect = streamControls.createEl("select", {
-      cls: "tm-period-select",
-    });
-    this.periodSelect.setAttribute("aria-label", t("stream_switch_period"));
-    this.periodSelect.addEventListener("change", () => this.refreshStream());
-
-    this.organizeBtn = streamControls.createEl("button", {
-      text: t("stream_organize"),
-      cls: "tm-btn-secondary",
-    });
-    this.organizeBtn.setAttribute("aria-label", t("stream_organize"));
-    this.organizeBtn.addEventListener("click", () => this.organizePeriod());
-
-    this.streamContainer = contentEl.createDiv({ cls: "tm-stream-container" });
-
-    // ── Suggestions Section ──
-    const suggHeader = contentEl.createDiv({ cls: "tm-section-header" });
-    suggHeader.createSpan({ text: t("suggestions_title"), cls: "tm-section-title" });
-
-    const suggControls = suggHeader.createDiv({ cls: "tm-section-controls" });
-    const refreshSuggBtn = suggControls.createEl("button", {
-      cls: "tm-btn-secondary",
-    });
-    setIcon(refreshSuggBtn, "refresh-cw");
-    refreshSuggBtn.createSpan({ text: t("toolbar_btn_refresh"), cls: "tm-btn-secondary-label" });
-    refreshSuggBtn.setAttribute("aria-label", t("cmd_refresh_suggestions"));
-    refreshSuggBtn.setAttribute("title", t("cmd_refresh_suggestions"));
-    refreshSuggBtn.addEventListener("click", () => this.refreshSuggestions());
-
-    this.suggestionContainer = contentEl.createDiv({ cls: "tm-suggestion-container" });
+    // Render layout (shared between onOpen and refresh)
+    this.renderLayout(contentEl);
 
     // Initial load
     await this.refreshAll();
@@ -193,6 +124,89 @@ export class StreamWorkbenchView extends ItemView {
     this.taskUnsub?.();
   }
 
+  // ── Layout (shared between onOpen and refresh) ──────────────────────
+
+  /** Render the full layout: toolbar + input bar + stream section + suggestions section */
+  private renderLayout(contentEl: HTMLElement): void {
+    // ── Toolbar ──
+    this.renderToolbar(contentEl);
+
+    // ── Quick Input Bar ──
+    const inputBar = contentEl.createDiv({ cls: "tm-input-bar" });
+    const inputWrap = inputBar.createDiv({ cls: "tm-input-wrap" });
+    this.inputEl = inputWrap.createEl("textarea", {
+      cls: "tm-input-field",
+      attr: {
+        placeholder: t("quick_capture_placeholder"),
+        rows: "1",
+        "aria-label": t("quick_capture_title"),
+      },
+    });
+
+    // URL detection hint (visual feedback when typing a lone URL)
+    this.urlHintEl = inputWrap.createDiv({ cls: "tm-url-hint tm-url-hint-hidden" });
+    const urlHintIcon = this.urlHintEl.createSpan({ cls: "tm-url-hint-icon" });
+    setIcon(urlHintIcon, "link");
+    this.urlHintEl.createSpan({ text: t("compose_url_hint") });
+
+    this.submitBtn = inputBar.createEl("button", {
+      text: t("quick_capture_submit"),
+      cls: "tm-submit-btn",
+    });
+    this.submitBtn.setAttribute("aria-label", t("quick_capture_submit"));
+
+    // Interactions
+    this.inputEl.addEventListener("keydown", (e: KeyboardEvent) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        this.submitInput();
+      }
+    });
+    this.inputEl.addEventListener("input", () => {
+      this.autoGrowTextarea(this.inputEl);
+      this.updateUrlHint();
+    });
+    this.submitBtn.addEventListener("click", () => this.submitInput());
+
+    // ── Stream Section ──
+    const streamHeader = contentEl.createDiv({ cls: "tm-section-header" });
+    const streamTitleDiv = streamHeader.createDiv({ cls: "tm-section-title" });
+    streamTitleDiv.createSpan({ text: t("stream_this_week") });
+    this.entryCountEl = streamTitleDiv.createSpan({ cls: "tm-entry-count" });
+
+    const streamControls = streamHeader.createDiv({ cls: "tm-section-controls" });
+    this.periodSelect = streamControls.createEl("select", {
+      cls: "tm-period-select",
+    });
+    this.periodSelect.setAttribute("aria-label", t("stream_switch_period"));
+    this.periodSelect.addEventListener("change", () => this.refreshStream());
+
+    this.organizeBtn = streamControls.createEl("button", {
+      cls: "tm-btn-secondary",
+    });
+    setIcon(this.organizeBtn, "refresh-cw");
+    this.organizeBtn.createSpan({ text: t("stream_organize") });
+    this.organizeBtn.setAttribute("aria-label", t("stream_organize"));
+    this.organizeBtn.addEventListener("click", () => this.organizePeriod());
+
+    this.streamContainer = contentEl.createDiv({ cls: "tm-stream-container" });
+
+    // ── Suggestions Section ──
+    const suggHeader = contentEl.createDiv({ cls: "tm-section-header" });
+    suggHeader.createSpan({ text: t("suggestions_title"), cls: "tm-section-title" });
+
+    const suggControls = suggHeader.createDiv({ cls: "tm-section-controls" });
+    const refreshSuggBtn = suggControls.createEl("button", {
+      cls: "tm-btn-secondary tm-btn-icon-only",
+    });
+    setIcon(refreshSuggBtn, "refresh-cw");
+    refreshSuggBtn.setAttribute("aria-label", t("cmd_refresh_suggestions"));
+    refreshSuggBtn.setAttribute("title", t("cmd_refresh_suggestions"));
+    refreshSuggBtn.addEventListener("click", () => this.refreshSuggestions());
+
+    this.suggestionContainer = contentEl.createDiv({ cls: "tm-suggestion-container" });
+  }
+
   // ── Toolbar ────────────────────────────────────────────────────────────
 
   private renderToolbar(container: HTMLElement): void {
@@ -216,10 +230,7 @@ export class StreamWorkbenchView extends ItemView {
         modelBadge.setAttribute("role", "button");
         modelBadge.setAttribute("tabindex", "0");
         modelBadge.setAttribute("title", t("chat_model_switch"));
-        modelBadge.addEventListener("click", () => {
-          (this.app as unknown as { setting: { open: () => void; openTabById: (id: string) => void } }).setting?.open();
-          (this.app as unknown as { setting: { openTabById: (id: string) => void } }).setting?.openTabById("topmind-stream");
-        });
+        modelBadge.addEventListener("click", () => this.openSettings());
         modelBadge.addEventListener("keydown", (e: KeyboardEvent) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
@@ -232,51 +243,43 @@ export class StreamWorkbenchView extends ItemView {
     // AI Task progress badge (updated by subscribe)
     this.taskBadgeEl = toolbar.createDiv({ cls: "tm-task-badge tm-task-badge-hidden" });
 
-    // Right: quick action buttons (with text labels for clarity)
+    // Right: quick action buttons (icon-only with tooltips — no text overflow)
     const actionsDiv = toolbar.createDiv({ cls: "tm-toolbar-actions" });
 
     // Open sidebar button
-    const sidebarBtn = actionsDiv.createEl("button", {
-      cls: "tm-toolbar-btn tm-toolbar-btn-labeled",
-    });
+    const sidebarBtn = actionsDiv.createEl("button", { cls: "tm-toolbar-btn" });
     setIcon(sidebarBtn, "panel-right");
-    sidebarBtn.createSpan({ text: t("toolbar_btn_sidebar"), cls: "tm-toolbar-btn-label" });
     sidebarBtn.setAttribute("aria-label", t("sidebar_open_sidebar"));
     sidebarBtn.setAttribute("title", t("sidebar_open_sidebar"));
     sidebarBtn.addEventListener("click", () => this.openSidebar());
 
     // Settings button
-    const settingsBtn = actionsDiv.createEl("button", {
-      cls: "tm-toolbar-btn tm-toolbar-btn-labeled",
-    });
+    const settingsBtn = actionsDiv.createEl("button", { cls: "tm-toolbar-btn" });
     setIcon(settingsBtn, "settings");
-    settingsBtn.createSpan({ text: t("toolbar_btn_settings"), cls: "tm-toolbar-btn-label" });
     settingsBtn.setAttribute("aria-label", t("sidebar_open_settings"));
     settingsBtn.setAttribute("title", t("sidebar_open_settings"));
-    settingsBtn.addEventListener("click", () => {
-      (this.app as unknown as { setting: { open: () => void; openTabById: (id: string) => void } }).setting?.open();
-      (this.app as unknown as { setting: { openTabById: (id: string) => void } }).setting?.openTabById("topmind-stream");
-    });
+    settingsBtn.addEventListener("click", () => this.openSettings());
 
     // Inbox button — opens inbox folder in file explorer
-    const inboxBtn = actionsDiv.createEl("button", {
-      cls: "tm-toolbar-btn tm-toolbar-btn-labeled",
-    });
+    const inboxBtn = actionsDiv.createEl("button", { cls: "tm-toolbar-btn" });
     setIcon(inboxBtn, "inbox");
-    inboxBtn.createSpan({ text: t("toolbar_btn_inbox"), cls: "tm-toolbar-btn-label" });
     inboxBtn.setAttribute("aria-label", t("cmd_open_inbox"));
     inboxBtn.setAttribute("title", t("cmd_open_inbox"));
     inboxBtn.addEventListener("click", () => this.openInbox());
 
     // Profile button
-    const profileBtn = actionsDiv.createEl("button", {
-      cls: "tm-toolbar-btn tm-toolbar-btn-labeled",
-    });
+    const profileBtn = actionsDiv.createEl("button", { cls: "tm-toolbar-btn" });
     setIcon(profileBtn, "user");
-    profileBtn.createSpan({ text: t("toolbar_btn_profile"), cls: "tm-toolbar-btn-label" });
     profileBtn.setAttribute("aria-label", t("cmd_open_profile"));
     profileBtn.setAttribute("title", t("cmd_open_profile"));
     profileBtn.addEventListener("click", () => this.openProfile());
+  }
+
+  /** Open plugin settings tab */
+  private openSettings(): void {
+    const setting = (this.app as unknown as { setting: { open: () => void; openTabById: (id: string) => void } }).setting;
+    setting?.open();
+    setting?.openTabById("topmind-stream");
   }
 
   /** Update AI task progress badge in toolbar */
@@ -403,64 +406,7 @@ export class StreamWorkbenchView extends ItemView {
     const { contentEl } = this;
     contentEl.empty();
     contentEl.addClass("tm-stream-workbench");
-    this.renderToolbar(contentEl);
-
-    // Quick Input Bar
-    const inputBar = contentEl.createDiv({ cls: "tm-input-bar" });
-    const inputWrap = inputBar.createDiv({ cls: "tm-input-wrap" });
-    this.inputEl = inputWrap.createEl("textarea", {
-      cls: "tm-input-field",
-      attr: {
-        placeholder: t("quick_capture_placeholder"),
-        rows: "1",
-        "aria-label": t("quick_capture_title"),
-      },
-    });
-    // URL detection hint
-    this.urlHintEl = inputWrap.createDiv({ cls: "tm-url-hint tm-url-hint-hidden" });
-    const urlHintIcon = this.urlHintEl.createSpan({ cls: "tm-url-hint-icon" });
-    setIcon(urlHintIcon, "link");
-    this.urlHintEl.createSpan({ text: t("compose_url_hint") });
-    this.submitBtn = inputBar.createEl("button", {
-      text: t("quick_capture_submit"),
-      cls: "tm-submit-btn",
-    });
-    this.submitBtn.setAttribute("aria-label", t("quick_capture_submit"));
-    this.inputEl.addEventListener("keydown", (e: KeyboardEvent) => {
-      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); this.submitInput(); }
-    });
-    this.inputEl.addEventListener("input", () => {
-      this.autoGrowTextarea(this.inputEl);
-      this.updateUrlHint();
-    });
-    this.submitBtn.addEventListener("click", () => this.submitInput());
-
-    // Stream Section
-    const streamHeader = contentEl.createDiv({ cls: "tm-section-header" });
-    const streamTitleDiv = streamHeader.createDiv({ cls: "tm-section-title" });
-    streamTitleDiv.createSpan({ text: t("stream_this_week") });
-    this.entryCountEl = streamTitleDiv.createSpan({ cls: "tm-entry-count" });
-    const streamControls = streamHeader.createDiv({ cls: "tm-section-controls" });
-    this.periodSelect = streamControls.createEl("select", { cls: "tm-period-select" });
-    this.periodSelect.setAttribute("aria-label", t("stream_switch_period"));
-    this.periodSelect.addEventListener("change", () => this.refreshStream());
-    this.organizeBtn = streamControls.createEl("button", { text: t("stream_organize"), cls: "tm-btn-secondary" });
-    this.organizeBtn.setAttribute("aria-label", t("stream_organize"));
-    this.organizeBtn.addEventListener("click", () => this.organizePeriod());
-    this.streamContainer = contentEl.createDiv({ cls: "tm-stream-container" });
-
-    // Suggestions Section
-    const suggHeader = contentEl.createDiv({ cls: "tm-section-header" });
-    suggHeader.createSpan({ text: t("suggestions_title"), cls: "tm-section-title" });
-    const suggControls = suggHeader.createDiv({ cls: "tm-section-controls" });
-    const refreshSuggBtn = suggControls.createEl("button", { cls: "tm-btn-secondary" });
-    setIcon(refreshSuggBtn, "refresh-cw");
-    refreshSuggBtn.createSpan({ text: t("toolbar_btn_refresh"), cls: "tm-btn-secondary-label" });
-    refreshSuggBtn.setAttribute("aria-label", t("cmd_refresh_suggestions"));
-    refreshSuggBtn.setAttribute("title", t("cmd_refresh_suggestions"));
-    refreshSuggBtn.addEventListener("click", () => this.refreshSuggestions());
-    this.suggestionContainer = contentEl.createDiv({ cls: "tm-suggestion-container" });
-
+    this.renderLayout(contentEl);
     await this.refreshAll();
   }
 
@@ -648,16 +594,15 @@ export class StreamWorkbenchView extends ItemView {
     setIcon(timeIcon, "clock");
     header.createSpan({ cls: "tm-card-time", text: entry.time });
 
-    // Card actions
+    // Card actions (icon-only with tooltips — compact, no overflow)
     const actionsEl = header.createDiv({ cls: "tm-card-actions" });
 
-    // Copy button (always visible with label)
+    // Copy button
     const copyBtn = actionsEl.createEl("button", {
       cls: "tm-card-action-btn",
       attr: { "aria-label": t("stream_btn_copy"), title: t("stream_btn_copy") },
     });
     setIcon(copyBtn, "copy");
-    copyBtn.createSpan({ text: t("stream_btn_copy"), cls: "tm-card-action-label" });
     copyBtn.addEventListener("click", (e: MouseEvent) => {
       e.stopPropagation();
       navigator.clipboard.writeText(entry.text).then(() => {
@@ -665,14 +610,13 @@ export class StreamWorkbenchView extends ItemView {
       });
     });
 
-    // Open in editor button (always visible with label)
-    const appendBtn = actionsEl.createEl("button", {
+    // Open in editor button
+    const editBtn = actionsEl.createEl("button", {
       cls: "tm-card-action-btn",
       attr: { "aria-label": t("stream_btn_edit"), title: t("stream_open_in_editor") },
     });
-    setIcon(appendBtn, "pencil");
-    appendBtn.createSpan({ text: t("stream_btn_edit"), cls: "tm-card-action-label" });
-    appendBtn.addEventListener("click", (e: MouseEvent) => {
+    setIcon(editBtn, "pencil");
+    editBtn.addEventListener("click", (e: MouseEvent) => {
       e.stopPropagation();
       this.app.workspace.openLinkText(periodPath, "", false);
     });
@@ -737,10 +681,7 @@ export class StreamWorkbenchView extends ItemView {
         cls: "tm-btn-init-workspace",
         text: t("empty_action_configure"),
       });
-      configureBtn.addEventListener("click", () => {
-        (this.app as unknown as { setting: { open: () => void; openTabById: (id: string) => void } }).setting?.open();
-        (this.app as unknown as { setting: { openTabById: (id: string) => void } }).setting?.openTabById("topmind-stream");
-      });
+      configureBtn.addEventListener("click", () => this.openSettings());
       this.suggestionInFlight = false;
       return;
     }
@@ -818,8 +759,7 @@ export class StreamWorkbenchView extends ItemView {
     confirmBtn.addEventListener("click", async () => {
       confirmBtn.disabled = true;
       confirmBtn.empty();
-      const spinner = confirmBtn.createSpan({ cls: "tm-btn-spinner" });
-      confirmBtn.createSpan({ text: t("suggestions_confirm") });
+      confirmBtn.createSpan({ cls: "tm-btn-spinner" });
       const result = await this.plugin.kernelService.applySuggestion(sugg);
       if (result.ok) {
         card.classList.add("tm-card-removing");
@@ -861,7 +801,8 @@ export class StreamWorkbenchView extends ItemView {
     const tags = this.plugin.settings.autoTag ? extractTags(text) : [];
     this.inputEl.disabled = true;
     this.submitBtn.disabled = true;
-    this.submitBtn.textContent = "...";
+    this.submitBtn.empty();
+    this.submitBtn.createSpan({ cls: "tm-btn-spinner" });
     const result = this.plugin.kernelService.capture(text, { target, tags });
 
     if (result.ok) {
@@ -876,6 +817,7 @@ export class StreamWorkbenchView extends ItemView {
     }
     this.inputEl.disabled = false;
     this.submitBtn.disabled = false;
+    this.submitBtn.empty();
     this.submitBtn.textContent = t("quick_capture_submit");
     this.inputEl.focus();
   }
@@ -887,7 +829,8 @@ export class StreamWorkbenchView extends ItemView {
 
     this.organizing = true;
     this.organizeBtn.disabled = true;
-    this.organizeBtn.textContent = "...";
+    this.organizeBtn.empty();
+    this.organizeBtn.createSpan({ cls: "tm-btn-spinner tm-btn-spinner-dark" });
     new Notice(t("notice_organizing"));
 
     try {
@@ -906,7 +849,9 @@ export class StreamWorkbenchView extends ItemView {
     } finally {
       this.organizing = false;
       this.organizeBtn.disabled = false;
-      this.organizeBtn.textContent = t("stream_organize");
+      this.organizeBtn.empty();
+      setIcon(this.organizeBtn, "refresh-cw");
+      this.organizeBtn.createSpan({ text: t("stream_organize") });
     }
   }
 }
