@@ -5,9 +5,25 @@
 @import "./tokens.css";
 @import "./tailwind-theme.css";
 
-/* ── Frameless window drag region ── */
+/* ── Frameless window drag region ──
+   Strategy: the header is v4-drag (draggable). Container divs do NOT carry
+   v4-no-drag — their empty space must stay draggable so the OS can recognize
+   double-click-to-maximize and window-drag gestures. Instead, every interactive
+   element inside the header gets -webkit-app-region: no-drag via the classes below. */
 .v4-drag { -webkit-app-region: drag; }
 .v4-no-drag { -webkit-app-region: no-drag; }
+
+/* Interactive titlebar elements — opt out of drag so clicks work */
+.v4-titlebar-btn,
+.v4-titlebar-btn-primary,
+.v4-titlebar-btn-capture,
+.v4-titlebar-btn-ai,
+.v4-titlebar-cluster,
+.v4-titlebar-tier-l2,
+.v4-cmd-trigger,
+.v4-nav-pill {
+  -webkit-app-region: no-drag;
+}
 
 /* ── macOS traffic light padding ── */
 .v4-mac-titlebar-pad { padding-left: 72px; }

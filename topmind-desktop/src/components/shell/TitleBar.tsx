@@ -528,10 +528,10 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
           isWindows && "v4-win-titlebar-pad",
         )}
       >
-        <div className={cn("v4-no-drag flex min-w-0 items-center gap-1.5", isMacOS && "v4-mac-titlebar-pad")}>
+        <div className={cn("flex min-w-0 items-center gap-1.5", isMacOS && "v4-mac-titlebar-pad")}>
           <span className="text-3xs font-semibold tracking-tight text-text-primary">{t("titleBar.focusMode")}</span>
         </div>
-        <div className="v4-no-drag flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5">
           <Tooltip content={t("titleBar.exitFocusTip")}>
             <button
               type="button"
@@ -554,8 +554,11 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
         isWindows && "v4-win-titlebar-pad",
       )}
     >
-      {/* Left: panel · history · brand · workspace */}
-      <div className={cn("v4-no-drag flex min-w-0 flex-1 items-center gap-1.5", isMacOS && "v4-mac-titlebar-pad")}>
+      {/* Left: panel · history · brand · workspace
+          No v4-no-drag on container — empty space must stay draggable for OS
+          double-click-to-maximize and window-drag. Interactive elements opt out
+          via CSS .v4-titlebar-cluster / .v4-titlebar-btn etc. */}
+      <div className={cn("flex min-w-0 flex-1 items-center gap-1.5", isMacOS && "v4-mac-titlebar-pad")}>
         <div className="v4-titlebar-cluster">
           <Tooltip content={sidebarCollapsed ? t("titleBar.showSidebar") : t("titleBar.hideSidebar")}>
             <button
@@ -587,7 +590,7 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
       </div>
 
       {/* Center: primary nav + command field (Linear-style quiet well, not a button row) */}
-      <div className="v4-no-drag flex shrink-0 items-center gap-1.5">
+      <div className="flex shrink-0 items-center gap-1.5">
         <PrimaryNav />
         <Tooltip content={t("titleBar.commandPaletteTip")}>
           <button
@@ -608,7 +611,7 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
           Exclusive: icons XOR overflow menu — ResizeObserver on this rail. */}
       <div
         ref={rightRailRef}
-        className="v4-no-drag flex min-w-0 flex-1 items-center justify-end gap-1.5"
+        className="flex min-w-0 flex-1 items-center justify-end gap-1.5"
       >
         {/* L1: sole solid capture */}
         <Tooltip content={t("titleBar.captureTip")}>
