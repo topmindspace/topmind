@@ -1,6 +1,6 @@
 ---
 name: topmind-write
-version: 2.14.0
+version: 2.15.0
 description: >-
   写作/润色/出稿到专题或交付层（role:delivery）。Use when 写、起草、续写、润色、出稿、交付、write、draft、deliver。
   Do NOT use for 仅捕获、仅结构整理、只写记忆、doctor/loop、社交连接器.

@@ -1,6 +1,6 @@
 ---
 name: topmind-weread
-version: 2.14.0
+version: 2.15.0
 description: >-
   同步微信读书划线/想法/统计到专题。Use when 微信读书、划线同步、weread、读书笔记。
   Do NOT use for 普通 URL 捕获、仅整理、出稿、X.
