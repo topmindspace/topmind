@@ -11,7 +11,7 @@
 // - Multi-task progress: AI operations show inline progress badge in toolbar
 //
 // UIUX (2026-08-11 refactor):
-// - Toolbar buttons: icon-only with tooltips (no text overflow)
+// - Toolbar buttons: icon + text labels (with responsive hide on narrow)
 // - Card actions: icon-only with tooltips (compact, no overflow)
 // - Suggestion refresh: icon-only
 // - Loading states: spinner instead of "..." text
@@ -247,29 +247,33 @@ export class StreamWorkbenchView extends ItemView {
     const actionsDiv = toolbar.createDiv({ cls: "tm-toolbar-actions" });
 
     // Open sidebar button
-    const sidebarBtn = actionsDiv.createEl("button", { cls: "tm-toolbar-btn" });
+    const sidebarBtn = actionsDiv.createEl("button", { cls: "tm-toolbar-btn tm-toolbar-btn-labeled" });
     setIcon(sidebarBtn, "panel-right");
+    sidebarBtn.createSpan({ text: t("toolbar_btn_sidebar"), cls: "tm-toolbar-btn-label" });
     sidebarBtn.setAttribute("aria-label", t("sidebar_open_sidebar"));
     sidebarBtn.setAttribute("title", t("sidebar_open_sidebar"));
     sidebarBtn.addEventListener("click", () => this.openSidebar());
 
     // Settings button
-    const settingsBtn = actionsDiv.createEl("button", { cls: "tm-toolbar-btn" });
+    const settingsBtn = actionsDiv.createEl("button", { cls: "tm-toolbar-btn tm-toolbar-btn-labeled" });
     setIcon(settingsBtn, "settings");
+    settingsBtn.createSpan({ text: t("toolbar_btn_settings"), cls: "tm-toolbar-btn-label" });
     settingsBtn.setAttribute("aria-label", t("sidebar_open_settings"));
     settingsBtn.setAttribute("title", t("sidebar_open_settings"));
     settingsBtn.addEventListener("click", () => this.openSettings());
 
     // Inbox button — opens inbox folder in file explorer
-    const inboxBtn = actionsDiv.createEl("button", { cls: "tm-toolbar-btn" });
+    const inboxBtn = actionsDiv.createEl("button", { cls: "tm-toolbar-btn tm-toolbar-btn-labeled" });
     setIcon(inboxBtn, "inbox");
+    inboxBtn.createSpan({ text: t("toolbar_btn_inbox"), cls: "tm-toolbar-btn-label" });
     inboxBtn.setAttribute("aria-label", t("cmd_open_inbox"));
     inboxBtn.setAttribute("title", t("cmd_open_inbox"));
     inboxBtn.addEventListener("click", () => this.openInbox());
 
     // Profile button
-    const profileBtn = actionsDiv.createEl("button", { cls: "tm-toolbar-btn" });
+    const profileBtn = actionsDiv.createEl("button", { cls: "tm-toolbar-btn tm-toolbar-btn-labeled" });
     setIcon(profileBtn, "user");
+    profileBtn.createSpan({ text: t("toolbar_btn_profile"), cls: "tm-toolbar-btn-label" });
     profileBtn.setAttribute("aria-label", t("cmd_open_profile"));
     profileBtn.setAttribute("title", t("cmd_open_profile"));
     profileBtn.addEventListener("click", () => this.openProfile());

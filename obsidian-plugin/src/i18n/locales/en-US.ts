@@ -367,6 +367,7 @@ export const enUS: typeof zhCN = {
   sidebar_btn_classify: "Classify",
   sidebar_btn_memory: "Memory",
   sidebar_btn_suggestions: "Suggest",
+  sidebar_btn_workbench: "Workbench",
 
   // ── AI model switcher ──
   chat_model_current: "Current model",

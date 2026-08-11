@@ -7,8 +7,8 @@
 // - Quick actions row at bottom with optional labels
 //
 // UIUX (2026-08-11 refactor):
-// - Header buttons: icon-only with tooltips (no text overflow in narrow sidebar)
-// - Bottom actions: default icon-only (showActionLabels = false)
+// - Header buttons: icon + text labels (with responsive hide on narrow)
+// - Bottom actions: default show labels (showActionLabels = true)
 // - Chat message buttons: icon-only with tooltips
 // - Suggestion refresh: icon-only
 // - Todo open file: icon-only
@@ -47,7 +47,7 @@ export class SidebarDockView extends ItemView {
   private activeTab: SidebarTab = "todos";
   private chatHistory: ChatMessage[] = [];
   private chatThinking = false;
-  private showActionLabels = false;
+  private showActionLabels = true;
   private contentContainer!: HTMLElement;
   private taskUnsub: (() => void) | null = null;
   /** Currently selected provider in chat model switcher */
@@ -250,18 +250,20 @@ export class SidebarDockView extends ItemView {
 
     // Open workbench button
     const workbenchBtn = headerActions.createEl("button", {
-      cls: "tm-sidebar-icon-btn",
+      cls: "tm-sidebar-icon-btn tm-sidebar-btn-labeled",
     });
     setIcon(workbenchBtn, "monitor");
+    workbenchBtn.createSpan({ text: t("sidebar_btn_workbench"), cls: "tm-sidebar-btn-label" });
     workbenchBtn.setAttribute("aria-label", t("sidebar_open_workbench"));
     workbenchBtn.setAttribute("title", t("sidebar_open_workbench"));
     workbenchBtn.addEventListener("click", () => this.openWorkbench());
 
     // Settings button
     const settingsBtn = headerActions.createEl("button", {
-      cls: "tm-sidebar-icon-btn",
+      cls: "tm-sidebar-icon-btn tm-sidebar-btn-labeled",
     });
     setIcon(settingsBtn, "settings");
+    settingsBtn.createSpan({ text: t("sidebar_open_settings"), cls: "tm-sidebar-btn-label" });
     settingsBtn.setAttribute("aria-label", t("sidebar_open_settings"));
     settingsBtn.setAttribute("title", t("sidebar_open_settings"));
     settingsBtn.addEventListener("click", () => this.openSettings());

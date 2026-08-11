@@ -365,6 +365,7 @@ export const zhCN = {
   sidebar_btn_classify: "分类",
   sidebar_btn_memory: "记忆",
   sidebar_btn_suggestions: "建议",
+  sidebar_btn_workbench: "工作台",
 
   // ── AI model switcher ──
   chat_model_current: "当前模型",

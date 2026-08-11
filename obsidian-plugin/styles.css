@@ -4,13 +4,15 @@
    Icon sizing: consistent Lucide icon sizes via explicit SVG width/height.
 
    Design System (2026-08-11 refactor):
-   - Unified button hierarchy: primary / secondary / ghost / icon-only
-   - Consistent icon sizes: 12px (inline) / 14px (small/tab/card) / 16px (toolbar)
+   - Unified button hierarchy: primary / secondary / ghost / icon-only / labeled
+   - Consistent icon sizes: 14px (inline/mini) / 16px (small/tab/card) / 18px (toolbar)
    - Consistent border-radius: 4px (mini) / 6px (controls) / 8px (cards)
    - Consistent spacing scale: 4/6/8/12/16/20px
    - Clear hover/focus states with accent color
    - Accessible focus-visible rings
-   - No text overflow: icon-only buttons in toolbars and narrow areas
+   - Toolbar + sidebar header buttons: icon + text labels (responsive hide on narrow)
+   - Bottom actions: default show labels
+   - Card actions / chat buttons: icon-only with tooltips (compact areas)
    - Spinners for all loading states (no "..." text) */
 
 /* ── CSS Variables (scoped) ─────────────────────────────────────────── */
@@ -32,14 +34,14 @@
   --tm-gap-md: 8px;
   --tm-gap-lg: 12px;
   --tm-gap-xl: 16px;
-  --tm-icon-xs: 12px;
-  --tm-icon-sm: 14px;
-  --tm-icon-md: 16px;
-  --tm-icon-lg: 18px;
+  --tm-icon-xs: 14px;
+  --tm-icon-sm: 16px;
+  --tm-icon-md: 18px;
+  --tm-icon-lg: 20px;
   --tm-accent-rgb: var(--interactive-accent-rgb, 124, 77, 255);
-  --tm-btn-h: 30px;
-  --tm-btn-h-sm: 26px;
-  --tm-btn-h-lg: 34px;
+  --tm-btn-h: 32px;
+  --tm-btn-h-sm: 28px;
+  --tm-btn-h-lg: 36px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -224,10 +226,23 @@
   color: var(--interactive-accent);
 }
 
+/* Toolbar labeled button — icon + text variant */
+.tm-toolbar-btn-labeled {
+  width: auto;
+  padding: 0 10px;
+  gap: var(--tm-gap-xs);
+}
+
+.tm-toolbar-btn-label {
+  font-size: var(--font-ui-smaller);
+  white-space: nowrap;
+  font-weight: 500;
+}
+
 /* Sidebar icon button — same as toolbar-btn but for sidebar header */
 .tm-sidebar-icon-btn {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border-radius: var(--tm-radius-md);
   border: 1px solid var(--background-modifier-border);
   background: transparent;
@@ -246,10 +261,23 @@
   color: var(--interactive-accent);
 }
 
+/* Sidebar labeled button — icon + text variant for narrow sidebar */
+.tm-sidebar-btn-labeled {
+  width: auto;
+  padding: 0 8px;
+  gap: 3px;
+}
+
+.tm-sidebar-btn-label {
+  font-size: var(--font-ui-smaller);
+  white-space: nowrap;
+  font-weight: 500;
+}
+
 /* Mini button — for card actions and inline operations */
 .tm-btn-mini {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border-radius: var(--tm-radius-sm);
   border: 1px solid transparent;
   background: transparent;
@@ -459,8 +487,8 @@
 /* ── Card Action Buttons (icon-only with tooltips) ──── */
 
 .tm-card-action-btn {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: var(--tm-radius-sm);
   border: 1px solid var(--background-modifier-border);
   background: transparent;
@@ -753,8 +781,8 @@
 }
 
 .tm-empty-icon svg {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   stroke-width: 1.5;
 }
 
@@ -1196,8 +1224,8 @@
 
 /* Hover delete button on todo items */
 .tm-todo-delete {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border: none;
   background: transparent;
   color: var(--text-faint);
@@ -1229,8 +1257,8 @@
 /* Clear completed todos button */
 .tm-todo-clear-done {
   margin-left: auto;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
 }
 
 .tm-todo-clear-done svg {
@@ -1588,8 +1616,8 @@
 }
 
 .tm-chat-send-btn {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: var(--tm-radius-md);
   background: var(--interactive-accent);
   color: var(--text-on-accent);
@@ -1613,8 +1641,8 @@
 }
 
 .tm-chat-clear-btn {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: var(--tm-radius-md);
   background: transparent;
   color: var(--text-faint);
@@ -1654,7 +1682,7 @@
 
 .tm-sidebar-action-btn {
   flex: 1 1 auto;
-  min-width: 28px;
+  min-width: 32px;
   height: var(--tm-btn-h);
   border-radius: var(--tm-radius-md);
   border: 1px solid var(--background-modifier-border);
@@ -1679,7 +1707,7 @@
 
 .tm-action-with-label {
   flex: 0 1 auto;
-  padding: 0 8px;
+  padding: 0 10px;
 }
 
 .tm-action-icon-span {
@@ -1696,8 +1724,8 @@
 }
 
 .tm-action-toggle-labels {
-  flex: 0 0 30px;
-  min-width: 30px;
+  flex: 0 0 34px;
+  min-width: 34px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -1838,8 +1866,8 @@
 }
 
 .tm-chat-msg-btn {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border-radius: var(--tm-radius-sm);
   border: 1px solid var(--background-modifier-border);
   background: transparent;
@@ -1867,8 +1895,8 @@
 }
 
 .tm-chat-retry-btn {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   padding: 0;
 }
 
@@ -1961,76 +1989,77 @@
 .tm-chat-switcher-select:focus-visible,
 .tm-chat-msg-btn:focus-visible,
 .tm-sidebar-status[role="button"]:focus-visible,
-.tm-model-badge[role="button"]:focus-visible {
+.tm-model-badge[role="button"]:focus-visible,
+.tm-toolbar-model[role="button"]:focus-visible {
   outline: 2px solid var(--interactive-accent);
   outline-offset: 2px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
    SVG Icon Sizing (Lucide icons via setIcon)
-   Unified sizes: 12px (inline/mini), 14px (small/tab/card), 16px (toolbar)
+   Unified sizes: 14px (inline/mini), 16px (small/tab/card), 18px (toolbar)
    ═══════════════════════════════════════════════════════════════════════ */
 
-/* Toolbar icon buttons — 16px icons */
+/* Toolbar icon buttons — 18px icons */
 .tm-toolbar-btn svg {
   width: var(--tm-icon-md);
   height: var(--tm-icon-md);
   stroke-width: 2;
 }
 
-/* Sidebar icon buttons — 14px icons */
+/* Sidebar icon buttons — 16px icons */
 .tm-sidebar-icon-btn svg {
   width: var(--tm-icon-sm);
   height: var(--tm-icon-sm);
   stroke-width: 2;
 }
 
-/* Tab bar icons — 14px */
+/* Tab bar icons — 16px */
 .tm-tab-icon svg {
   width: var(--tm-icon-sm);
   height: var(--tm-icon-sm);
   stroke-width: 2;
 }
 
-/* Suggestion icons — 16px */
+/* Suggestion icons — 18px */
 .tm-suggestion-icon svg {
   width: var(--tm-icon-md);
   height: var(--tm-icon-md);
   stroke-width: 2;
 }
 
-/* Card action mini buttons icons — 14px */
+/* Card action mini buttons icons — 16px */
 .tm-card-action-btn svg {
   width: var(--tm-icon-sm);
   height: var(--tm-icon-sm);
   stroke-width: 2;
 }
 
-/* Card time icon — 12px */
+/* Card time icon — 14px */
 .tm-card-time-icon svg {
   width: var(--tm-icon-xs);
   height: var(--tm-icon-xs);
   stroke-width: 2;
 }
 
-/* Chat message action button icons — 14px */
+/* Chat message action button icons — 16px */
 .tm-chat-msg-btn svg {
   width: var(--tm-icon-sm);
   height: var(--tm-icon-sm);
   stroke-width: 2;
 }
 
-/* Sidebar action buttons — 16px */
+/* Sidebar action buttons — 18px */
 .tm-sidebar-action-btn svg {
   width: var(--tm-icon-md);
   height: var(--tm-icon-md);
   stroke-width: 2;
 }
 
-/* Chat empty icon — 28px */
+/* Chat empty icon — 32px */
 .tm-chat-empty-icon svg {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   stroke-width: 1.5;
 }
 
@@ -2124,5 +2153,15 @@
   /* Sidebar header: hide model badge on very narrow widths */
   .tm-model-badge {
     max-width: 80px;
+  }
+
+  /* Hide toolbar button labels on narrow widths */
+  .tm-toolbar-btn-label {
+    display: none;
+  }
+
+  /* Hide sidebar header button labels on narrow widths */
+  .tm-sidebar-btn-label {
+    display: none;
   }
 }

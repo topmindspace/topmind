@@ -85,10 +85,10 @@
 |------|------|
 | AI 状态灯 | 🟢 就绪 / ⚪ 未配置（可点击快速测试） |
 | 模型徽章 | 显示当前 AI 服务商 + 模型（可点击跳转设置） |
-| 🔮 侧边栏 | icon-only + tooltip，打开/恢复 AI 副驾面板 |
-| ⚙ 设置 | icon-only + tooltip，一键跳转插件设置页 |
-| 📥 收件箱 | icon-only + tooltip，打开收件箱目录 |
-| 👤 画像 | icon-only + tooltip，打开 memory/profile.md |
+| 🔮 侧边栏 | icon + 文本标签，打开/恢复 AI 副驾面板（窄屏隐藏文本） |
+| ⚙ 设置 | icon + 文本标签，一键跳转插件设置页（窄屏隐藏文本） |
+| 📥 收件箱 | icon + 文本标签，打开收件箱目录（窄屏隐藏文本） |
+| 👤 画像 | icon + 文本标签，打开 memory/profile.md（窄屏隐藏文本） |
 
 ### 2.3 交互细节
 
@@ -211,7 +211,7 @@
 | 🧠 | 整理记忆（force memory_organize） | 需要 AI | icon-only |
 | 👁 | 显示/隐藏操作标签 | — | toggle |
 
-AI 操作按钮仅在 AI 已配置时显示。默认 icon-only 模式（`showActionLabels = false`），用户可切换为带标签模式。所有按钮有 `title` tooltip。
+AI 操作按钮仅在 AI 已配置时显示。默认显示文本标签模式（`showActionLabels = true`），用户可切换为纯图标模式。所有按钮有 `title` tooltip。
 
 ### 3.4 头部设计
 
@@ -219,10 +219,10 @@ AI 操作按钮仅在 AI 已配置时显示。默认 icon-only 模式（`showAct
 |------|------|
 | 状态灯 + 文字 | AI 就绪 / 未配置（可点击快速测试） |
 | 模型徽章 | 当前服务商 + 模型（可点击跳转设置） |
-| 🖥 工作台按钮 | icon-only + tooltip，打开/恢复主工作台页签 |
-| ⚙ 设置按钮 | icon-only + tooltip，一键跳转插件设置页 |
+| 🖥 工作台按钮 | icon + 文本标签，打开/恢复主工作台页签（窄屏隐藏文本） |
+| ⚙ 设置按钮 | icon + 文本标签，一键跳转插件设置页（窄屏隐藏文本） |
 
-> **防溢出**：头部使用 `flex-wrap: nowrap` + `overflow: hidden`，icon-only 按钮确保窄宽度下不溢出。
+> **防溢出**：头部使用 `flex-wrap: nowrap` + `overflow: hidden`，窄屏（600px 以下）自动隐藏文本标签。
 
 > **可恢复性**：侧边栏头部始终显示「打开工作台」按钮，即使工作台页签被关闭也能一键恢复。
 
@@ -451,16 +451,17 @@ System prompt 跟随 UI locale：
 
 ### 11.1 按钮系统规范
 
-统一按钮层级：primary（强调填充）/ secondary（边框轮廓）/ icon-only（纯图标）/ mini（微型）
+统一按钮层级：primary（强调填充）/ secondary（边框轮廓）/ icon-only（纯图标）/ labeled（图标+文本）/ mini（微型）
 
 | 按钮类型 | 用途 | 尺寸 | 说明 |
 |----------|------|------|------|
-| Primary | 提交、确认、初始化 | 30px 高 | 强调色填充，白字 |
-| Secondary | 整理、刷新等 | 30px 高 | 边框轮廓，hover 变强调色 |
-| Icon-only | 工具栏、侧边栏头部、卡片操作 | 28-30px 方 | 纯图标 + tooltip，防溢出 |
-| Mini | 卡片内联操作 | 24px 方 | hover 显示，半透明 |
+| Primary | 提交、确认、初始化 | 32px 高 | 强调色填充，白字 |
+| Secondary | 整理、刷新等 | 32px 高 | 边框轮廓，hover 变强调色 |
+| Labeled | 工具栏、侧边栏头部 | 30-32px 高 | icon + 文本标签，窄屏自动隐藏文本 |
+| Icon-only | 卡片操作、对话按钮 | 26-34px 方 | 纯图标 + tooltip，紧凑区域 |
+| Mini | 卡片内联操作 | 26px 方 | hover 显示，半透明 |
 
-**关键原则**：工具栏和侧边栏头部使用 icon-only 按钮 + tooltip，避免文字溢出。卡片操作按钮也使用 icon-only。建议操作（确认/忽略）保留文字标签。
+**关键原则**：工具栏和侧边栏头部使用 icon + 文本标签按钮，窄屏（600px 以下）自动隐藏文本只显示图标。卡片操作和对话按钮使用 icon-only + tooltip。建议操作（确认/忽略）保留文字标签。底部操作默认显示文本标签，可切换为纯图标。
 
 ### 11.2 图标尺寸规范
 
@@ -468,15 +469,17 @@ System prompt 跟随 UI locale：
 
 | 上下文 | 尺寸 | 说明 |
 |--------|------|------|
-| 工具栏按钮 | 16px | 主操作图标（icon-only） |
-| 侧边栏头部按钮 | 14px | 紧凑型图标（icon-only） |
-| 标签栏图标 | 14px | 标签指示图标 |
-| 建议卡片图标 | 16px | 建议类型图标 |
-| 卡片操作按钮 | 14px | icon-only + tooltip |
-| 底部操作按钮 | 16px | 快捷操作图标 |
-| 对话消息按钮 | 14px | icon-only + tooltip（复制/重新生成） |
-| 弹窗标题图标 | 18px | 弹窗标识图标 |
-| 对话空状态图标 | 28px | 装饰性大图标 |
+| 工具栏按钮 | 18px | 主操作图标（icon + 文本标签） |
+| 侧边栏头部按钮 | 16px | 紧凑型图标（icon + 文本标签） |
+| 标签栏图标 | 16px | 标签指示图标 |
+| 建议卡片图标 | 18px | 建议类型图标 |
+| 卡片操作按钮 | 16px | icon-only + tooltip |
+| 底部操作按钮 | 18px | 快捷操作图标（默认带文本） |
+| 对话消息按钮 | 16px | icon-only + tooltip（复制/重新生成） |
+| 弹窗标题图标 | 20px | 弹窗标识图标 |
+| 对话空状态图标 | 32px | 装饰性大图标 |
+| 空状态图标 | 28px | 装饰性中图标 |
+| 内联图标 | 14px | 时间戳、待办日期等内联图标 |
 
 ### 11.3 加载状态规范
 
@@ -510,4 +513,5 @@ System prompt 跟随 UI locale：
 - 状态灯标记 `aria-hidden`（装饰性元素）
 - 尊重 `prefers-reduced-motion`：禁用动画
 - icon-only 按钮必须有 `title` 属性提供 tooltip
-- 防溢出：工具栏 `flex-wrap: nowrap` + `overflow: hidden`，侧边栏头部 `flex-wrap: nowrap`
+- 防溢出：工具栏 `flex-wrap: nowrap` + `overflow: hidden`；窄屏（600px 以下）自动隐藏文本标签只显示图标
+- 焦点可见性：所有交互类有 `focus-visible` 样式（2px outline + 2px offset）
