@@ -505,7 +505,7 @@ export function OnboardingScreen({
                                       role="button"
                                       tabIndex={0}
                                       aria-label={t("shell:onboarding.removeLabel", { name: shortName(w.rootPath) })}
-                                      className="rounded p-1 text-text-quaternary opacity-0 transition-opacity hover:bg-surface-muted hover:text-error group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+                                      className="rounded p-1 text-text-quaternary opacity-0 pointer-events-none transition-opacity hover:bg-surface-muted hover:text-error group-hover:opacity-100 group-hover:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
                                       onClick={(ev) => void handleRemoveRecent(w.rootPath, ev)}
                                       onKeyDown={(ev) => {
                                         if (ev.key === "Enter" || ev.key === " ") {

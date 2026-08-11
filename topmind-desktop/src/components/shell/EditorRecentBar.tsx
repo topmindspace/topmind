@@ -221,9 +221,9 @@ export function EditorRecentBar() {
                       pinFileTab(tab.path);
                     }}
                     className={cn(
-                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-[var(--radius-sm)] transition-opacity",
+                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-[var(--radius-sm)] transition-opacity pointer-events-none group-hover:pointer-events-auto focus-visible:pointer-events-auto",
                       tab.pinned
-                        ? "text-accent-color opacity-100"
+                        ? "text-accent-color opacity-100 pointer-events-auto"
                         : "text-text-quaternary opacity-0 group-hover:opacity-100 hover:bg-surface-muted focus-visible:opacity-100",
                     )}
                     aria-label={tab.pinned ? t("editorRecentBar.unpin") : t("editorRecentBar.pin")}
@@ -240,8 +240,8 @@ export function EditorRecentBar() {
                       closeFileTab(tab.path);
                     }}
                     className={cn(
-                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-opacity hover:bg-surface-muted hover:text-error",
-                      active ? "opacity-80" : "opacity-0 group-hover:opacity-100",
+                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-opacity pointer-events-none group-hover:pointer-events-auto hover:bg-surface-muted hover:text-error",
+                      active ? "opacity-80 pointer-events-auto" : "opacity-0 group-hover:opacity-100",
                     )}
                     aria-label={t("editorRecentBar.closeAriaLabel")}
                   >

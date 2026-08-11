@@ -268,9 +268,19 @@ const DEAD_PATTERNS = [
   },
   {
     id: "stream-no-second-actionbar-list",
-    description: "Stream canvas must not mount full ActionBar list (unified SuggestEntryStrip entry only)",
+    description: "Stream canvas must not mount full ActionBar list (suggestion count in StatusBar only)",
     regex: /<ActionBar[\s/>]/u,
     scope: ["src/plugins/topmind-workspace/views/StreamDetailView.tsx"],
+    allowIn: ["scripts/check-dead-code.mjs"],
+  },
+  {
+    id: "no-suggest-entry-strip-in-canvas",
+    description: "SuggestEntryStrip removed from canvas — suggestion count unified in StatusBar; must not reappear in EditorArea or StreamDetailView",
+    regex: /SuggestEntryStrip/u,
+    scope: [
+      "src/components/shell/EditorArea.tsx",
+      "src/plugins/topmind-workspace/views/StreamDetailView.tsx",
+    ],
     allowIn: ["scripts/check-dead-code.mjs"],
   },
   {

@@ -3,7 +3,7 @@
  * Extracted from FileEditorView to keep the view focused on load/save lifecycle.
  */
 import { useTranslation } from "react-i18next";
-import type { MouseEvent, ReactNode } from "react";
+import { memo, type MouseEvent, ReactNode } from "react";
 import {
   Check,
   AlertCircle,
@@ -64,8 +64,11 @@ export function ToolbarButton({
   );
 }
 
-export function SaveBadge({ state }: { state: SaveState }) {
+export const SaveBadge = memo(function SaveBadge({ state }: { state: SaveState }) {
   const { t } = useTranslation(["workspace", "common"]);
+  // Merge saved → clean: the visual difference is negligible (/40 vs /50 bg)
+  // and the extra state transition causes unnecessary re-renders + flicker.
+  const effective = state === "saved" ? "clean" : state;
   const config = {
     clean: {
       icon: <Check size={ICON.xs} />,
@@ -88,13 +91,6 @@ export function SaveBadge({ state }: { state: SaveState }) {
       bg: "bg-accent-bg-subtle",
       tip: t("workspace:editor.saving"),
     },
-    saved: {
-      icon: <Check size={ICON.xs} />,
-      label: t("workspace:editor.saved"),
-      color: "text-success",
-      bg: "bg-status-success-bg/50",
-      tip: t("workspace:editor.saved"),
-    },
     error: {
       icon: <AlertCircle size={ICON.xs} />,
       label: t("common:status.error"),
@@ -102,7 +98,7 @@ export function SaveBadge({ state }: { state: SaveState }) {
       bg: "bg-status-error-bg/50",
       tip: t("common:status.error"),
     },
-  }[state];
+  }[effective];
   return (
     <Tooltip content={config.tip}>
       <span
@@ -117,4 +113,4 @@ export function SaveBadge({ state }: { state: SaveState }) {
       </span>
     </Tooltip>
   );
-}
+});

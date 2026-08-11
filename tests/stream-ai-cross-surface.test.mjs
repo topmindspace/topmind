@@ -78,16 +78,16 @@ test("Desktop ARCHITECTURE SuggestPopover primary; ActionBar not 统一待办", 
   assert.doesNotMatch(arch, /\*\*建议 \/ 审阅不在主画布\*\*：`AiPanel` 的 `ActionBar`（统一建议条/u);
 });
 
-test("Stream quiet chip opens SuggestPopover path; no second suggestion list on canvas", () => {
+test("StatusBar suggestion chip opens SuggestPopover path; no second suggestion list on canvas", () => {
   const view = read("topmind-desktop/src/plugins/topmind-workspace/views/StreamDetailView.tsx");
   const area = read("topmind-desktop/src/components/shell/EditorArea.tsx");
-  const strip = read("topmind-desktop/src/components/ai/SuggestEntryStrip.tsx");
+  const status = read("topmind-desktop/src/components/shell/StatusBar.tsx");
   const surface = read("topmind-desktop/src/lib/suggest-surface.ts");
-  // Global quiet entry (not Stream-local list)
-  assert.match(area, /SuggestEntryStrip/u);
-  assert.match(area, /SuggestPopover|openSuggestSurface/u);
-  assert.match(strip, /data-stream-suggestions-quiet|data-suggest-entry-strip/u);
-  assert.match(strip, /openSuggestSurface/u);
+  // SuggestEntryStrip removed from canvas; count unified in StatusBar
+  assert.doesNotMatch(area, /SuggestEntryStrip/u);
+  // StatusBar carries the suggestion count chip + opens SuggestPopover
+  assert.match(status, /data-status-suggest-count|data-status-suggest-busy/u);
+  assert.match(status, /toggleSuggestSurface|openSuggestSurface/u);
   assert.match(surface, /setPanelOpen\(true\)/u);
   assert.match(surface, /setExpanded\(true\)/u);
   // Stream must not mount full ActionBar or second list

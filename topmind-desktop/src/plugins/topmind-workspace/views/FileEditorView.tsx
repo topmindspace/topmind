@@ -321,7 +321,9 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
   useEffect(() => {
     if (viewMode !== "preview" && !readOnly) return;
     setPreviewHtml(getEditorHtml(editor) || "<p></p>");
-  }, [editor, viewMode, readOnly, wordCount, charCount, saveState, rawContent, path]);
+    // Only depend on editor, viewMode, readOnly, and path — NOT wordCount/charCount/saveState/rawContent
+    // which change on every keystroke and cause unnecessary re-renders + flicker.
+  }, [editor, viewMode, readOnly, path]);
 
   /**
    * Persist body for a path. Serialized via saveChain.

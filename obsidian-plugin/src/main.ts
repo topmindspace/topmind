@@ -2,9 +2,15 @@
 //
 // This is the single entry point loaded by Obsidian (manifest.json → main.js).
 // It registers views, commands, settings, and ribbon icon.
+//
+// AI Key Persistence: In addition to Obsidian's data.json, AI keys are backed
+// up to {vault}/.topmind/ai-keys-backup.json on every save. On load, if the
+// main data has no AI keys but a backup exists, keys are restored from backup.
+// This protects against data.json being wiped during plugin updates (BRAT,
+// manual install, Obsidian sync conflicts, etc.).
 
 import { Plugin, WorkspaceLeaf, Notice } from "obsidian";
-import { DEFAULT_SETTINGS, migrateSettings, type TopmindSettings } from "./types";
+import { DEFAULT_SETTINGS, migrateSettings, hasConfiguredProvider, type TopmindSettings } from "./types";
 import {
   VIEW_TYPE_STREAM_WORKBENCH,
   VIEW_TYPE_SIDEBAR_DOCK,
@@ -25,6 +31,86 @@ import { StreamWorkbenchView } from "./views/stream-workbench-view";
 import { SidebarDockView } from "./views/sidebar-dock-view";
 import { QuickCaptureModal } from "./views/quick-capture-modal";
 import { setLocale, t } from "./i18n";
+
+// ── AI Key Backup / Restore ───────────────────────────────────────────────
+//
+// Backup file path relative to vault root.
+const AI_KEYS_BACKUP_PATH = ".topmind/ai-keys-backup.json";
+
+/**
+ * Extract only the AI-relevant fields for backup (don't backup everything —
+ * just the irreplaceable key material that users would have to re-enter).
+ */
+function extractAiBackup(settings: TopmindSettings): Record<string, unknown> {
+  return {
+    ai: JSON.parse(JSON.stringify(settings.ai)),
+    aiProvider: settings.aiProvider,
+    aiApiKey: settings.aiApiKey,
+    aiBaseUrl: settings.aiBaseUrl,
+    aiModel: settings.aiModel,
+    backupVersion: 1,
+    backupAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Merge AI keys from backup into settings (only fills missing keys —
+ * never overwrites keys that already exist in the current settings).
+ */
+function mergeAiBackup(settings: TopmindSettings, backup: Record<string, unknown>): TopmindSettings {
+  const merged = { ...settings };
+  // Deep-clone ai to avoid mutating the original
+  merged.ai = {
+    sourcePreference: settings.ai.sourcePreference,
+    defaultModel: settings.ai.defaultModel,
+    manual: { ...settings.ai.manual },
+  };
+
+  const backupAi = backup.ai as Record<string, unknown> | undefined;
+  if (backupAi && typeof backupAi === "object") {
+    const backupManual = backupAi.manual as Record<string, unknown> | undefined;
+    if (backupManual && typeof backupManual === "object") {
+      // Fill missing keys from backup — cast through unknown for safe key iteration
+      const manualTarget = merged.ai.manual as unknown as Record<string, string>;
+      for (const key of Object.keys(backupManual)) {
+        const currentVal = manualTarget[key] || "";
+        const backupVal = String(backupManual[key] || "");
+        if (!currentVal && backupVal) {
+          manualTarget[key] = backupVal;
+        }
+      }
+    }
+    if (!merged.ai.sourcePreference && backupAi.sourcePreference) {
+      merged.ai.sourcePreference = String(backupAi.sourcePreference);
+    }
+    if (!merged.ai.defaultModel && backupAi.defaultModel) {
+      merged.ai.defaultModel = String(backupAi.defaultModel);
+    }
+  }
+
+  // Also check legacy fields
+  if (!merged.aiApiKey && backup.aiApiKey) {
+    merged.aiApiKey = String(backup.aiApiKey);
+  }
+  if (!merged.aiBaseUrl && backup.aiBaseUrl) {
+    merged.aiBaseUrl = String(backup.aiBaseUrl);
+  }
+  if (!merged.aiModel && backup.aiModel) {
+    merged.aiModel = String(backup.aiModel);
+  }
+  if (merged.aiProvider === "none" && backup.aiProvider) {
+    merged.aiProvider = backup.aiProvider as TopmindSettings["aiProvider"];
+  }
+
+  return merged;
+}
+
+/**
+ * Check if settings have any AI keys configured.
+ */
+function settingsHaveAiKeys(settings: TopmindSettings): boolean {
+  return hasConfiguredProvider(settings.ai) || Boolean(settings.aiApiKey);
+}
 
 export default class TopmindPlugin extends Plugin {
   declare settings: TopmindSettings;
@@ -165,11 +251,69 @@ export default class TopmindPlugin extends Plugin {
     } else {
       this.settings = { ...DEFAULT_SETTINGS };
     }
+
+    // ── AI Key Restore: if data.json had no AI keys, try backup ──
+    if (!settingsHaveAiKeys(this.settings)) {
+      try {
+        const backup = await this.loadAiKeysBackup();
+        if (backup) {
+          this.settings = mergeAiBackup(this.settings, backup);
+          if (settingsHaveAiKeys(this.settings)) {
+            console.info("[topmind] AI keys restored from backup file");
+            // Persist the restored settings so data.json is back in sync
+            await this.saveData(this.settings);
+          }
+        }
+      } catch (err) {
+        console.warn("[topmind] AI keys backup restore failed:", err);
+      }
+    }
   }
 
   async saveSettings(): Promise<void> {
     await this.saveData(this.settings);
     this.kernelService?.updateSettings(this.settings);
+    // Write backup in background (non-blocking — main data.json is already saved)
+    void this.saveAiKeysBackup().catch((err) => {
+      console.warn("[topmind] AI keys backup save failed:", err);
+    });
+  }
+
+  /**
+   * Save AI keys backup to vault's .topmind/ directory.
+   * This survives plugin updates even if data.json is wiped.
+   */
+  private async saveAiKeysBackup(): Promise<void> {
+    const adapter = this.app.vault.adapter;
+    const backupData = extractAiBackup(this.settings);
+    const json = JSON.stringify(backupData, null, 2);
+    // Ensure .topmind/ directory exists
+    const dir = ".topmind";
+    try {
+      if (!await adapter.exists(dir)) {
+        await adapter.mkdir(dir);
+      }
+    } catch {
+      // Directory may already exist — ignore
+    }
+    await adapter.write(AI_KEYS_BACKUP_PATH, json);
+  }
+
+  /**
+   * Load AI keys backup from vault's .topmind/ directory.
+   * Returns null if backup doesn't exist or is invalid.
+   */
+  private async loadAiKeysBackup(): Promise<Record<string, unknown> | null> {
+    const adapter = this.app.vault.adapter;
+    try {
+      if (!await adapter.exists(AI_KEYS_BACKUP_PATH)) return null;
+      const json = await adapter.read(AI_KEYS_BACKUP_PATH);
+      const parsed = JSON.parse(json);
+      if (!parsed || typeof parsed !== "object") return null;
+      return parsed as Record<string, unknown>;
+    } catch {
+      return null;
+    }
   }
 
   // ── View openers ──────────────────────────────────────────────────────

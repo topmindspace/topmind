@@ -20,7 +20,7 @@ test("file-editor-chrome exports SaveBadge / ToolbarButton / format helpers", ()
   assert.match(chromeSrc, /export function formatFileSize/);
   assert.match(chromeSrc, /export function formatDateTime/);
   assert.match(chromeSrc, /export function ToolbarButton/);
-  assert.match(chromeSrc, /export function SaveBadge/);
+  assert.match(chromeSrc, /export (?:function|const) SaveBadge/);
   assert.match(chromeSrc, /export function ToolbarSep/);
 });
 

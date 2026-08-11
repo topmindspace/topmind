@@ -2,8 +2,8 @@
  * StreamDetailView — 个人动态流主表面（周期本时间线）。
  *
  * - 随便记下 · 按日时间流 · 条目增补（同文件续写）
- * - 建议入口在画布顶 SuggestEntryStrip（统一）→ AI 轨 ActionBar 确认
- * - 本视图不挂第二套建议列表；整理候选合入 ActionBar
+ * - 建议入口在 StatusBar 计数 chip（统一）→ SuggestPopover 确认
+ * - 本视图不挂第二套建议列表；整理候选合入 SuggestPopover
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -191,7 +191,7 @@ function StreamFeedRowView({
               />
             </div>
             {/* Explicit actions — not silent whole-card navigation */}
-            <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+            <div className="flex shrink-0 items-center gap-0.5 opacity-0 pointer-events-none transition-opacity group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto">
               <Tooltip content={t("workspace:streamDetail.appendTip")}>
                 <button
                   type="button"
@@ -1270,8 +1270,8 @@ export function StreamDetailView() {
       ) : null}
 
       {/*
-        建议入口：画布顶 SuggestEntryStrip（EditorArea）→ 唯一 ActionBar 确认面。
-        本视图不挂第二套建议列表（data-stream-suggestions-quiet 在全局 strip）。
+        建议入口：StatusBar 计数 chip → SuggestPopover 确认面。
+        本视图不挂第二套建议列表。
       */}
 
       {/* Inline composer — primary capture path: 润色 → 记下。
