@@ -207,6 +207,8 @@
     "todoMaintainingTip": "Extracting/updating personal list from stream · click to open list",
     "suggestLoading": "Preparing suggestions",
     "suggestLoadingTip": "Scanning tidy-up candidates and generating suggestions · click to view",
+    "suggestCount": "{{count}} suggestion(s)",
+    "suggestCountTip": "{{count}} suggestion(s) to review · click to open",
     "inlineAiWorking": "AI working",
     "inlineAiWorkingTip": "Polish / inline rewrite in progress · leaving may cancel this result · click does nothing",
     "inlineAiLeaveTitle": "Leave will cancel AI work",

@@ -61,14 +61,13 @@ test("Stream surface has append; quiet entry is global strip (no second ActionBa
     "utf8",
   );
   const area = readFileSync(path.join(root, "src/components/shell/EditorArea.tsx"), "utf8");
-  const strip = readFileSync(path.join(root, "src/components/ai/SuggestEntryStrip.tsx"), "utf8");
+  const sb = readFileSync(path.join(root, "src/components/shell/StatusBar.tsx"), "utf8");
   assert.match(view, /appendStreamEntry/);
   assert.doesNotMatch(view, /SuggestionStrip/);
   assert.doesNotMatch(view, /<ActionBar[\s/>]/);
-  // Global quiet entry on canvas chrome
-  assert.match(area, /SuggestEntryStrip/);
-  assert.match(strip, /data-stream-suggestions-quiet|data-suggest-entry-strip/);
-  assert.match(strip, /openSuggestSurface/);
+  // Suggestion count now in StatusBar (2026-08: SuggestEntryStrip removed from canvas)
+  assert.doesNotMatch(area, /SuggestEntryStrip/);
+  assert.match(sb, /data-status-suggest-count/);
   // Stream organize still opens unified surface
   assert.match(view, /openSuggestSurface/);
 });

@@ -19,6 +19,10 @@ export type StatusBarBusyInput = {
   activeTaskCount: number;
   todoMaintaining: boolean;
   suggestLoading: boolean;
+  /** Number of suggestions pending review (0 = none) */
+  suggestCount?: number;
+  /** Whether any suggestion has high priority */
+  suggestHasHigh?: boolean;
   /** Ephemeral ai.complete (selection polish / composer polish) */
   inlineBusy?: boolean;
   /** Localized label for the inline chip (caller supplies) */
@@ -33,8 +37,10 @@ export type StatusBarBusyView = {
   showTaskChip: boolean;
   /** Dedicated AI todo-maintain chip */
   showTodoChip: boolean;
-  /** Dedicated suggest-prepare chip */
+  /** Dedicated suggest-prepare chip (loading state) */
   showSuggestChip: boolean;
+  /** Dedicated suggest-count chip (items pending review, not loading) */
+  showSuggestCountChip: boolean;
   /** Dedicated inline/polish complete chip */
   showInlineChip: boolean;
   /**
@@ -51,6 +57,10 @@ export type StatusBarBusyView = {
   multiActive: boolean;
   /** Count of concurrent kinds (0 when idle/offline) */
   concurrentCount: number;
+  /** Number of suggestions pending review (for chip display) */
+  suggestCount: number;
+  /** Whether any suggestion has high priority */
+  suggestHasHigh: boolean;
 };
 
 /**
@@ -65,18 +75,23 @@ export function deriveStatusBarBusy(input: StatusBarBusyInput): StatusBarBusyVie
   const suggestLoading = input.suggestLoading === true;
   const inlineBusy = input.inlineBusy === true;
 
+  const suggestCount = Math.max(0, Number(input.suggestCount) || 0);
+
   if (!ready) {
     return {
       aiLabelMode: "offline",
       showTaskChip: false,
       showTodoChip: false,
       showSuggestChip: false,
+      showSuggestCountChip: false,
       showInlineChip: false,
       aiPillBusy: false,
       hasNamedBusyChip: false,
       activeKinds: [],
       multiActive: false,
       concurrentCount: 0,
+      suggestCount: 0,
+      suggestHasHigh: false,
     };
   }
 
@@ -99,11 +114,15 @@ export function deriveStatusBarBusy(input: StatusBarBusyInput): StatusBarBusyVie
   // Suggest may show while streaming (unlike older exclusive-with-stream policy)
   // so agent+autoPrepare is not invisible — still demoted under todo/task.
   const showSuggestChip = suggestLoading && !showTaskChip && !showTodoChip;
+  // Suggest count chip: when not loading but items exist (quiet indicator)
+  const showSuggestCountChip =
+    !suggestLoading && suggestCount > 0 && !showTaskChip && !showTodoChip;
   const showInlineChip =
     inlineBusy &&
     !showTaskChip &&
     !showTodoChip &&
     !showSuggestChip &&
+    !showSuggestCountChip &&
     !streaming; // inline short; agent pill covers while streaming
 
   // Pill busy: agent stream or engine tasks — not solo named prep (own chips)
@@ -116,12 +135,20 @@ export function deriveStatusBarBusy(input: StatusBarBusyInput): StatusBarBusyVie
     showTaskChip,
     showTodoChip,
     showSuggestChip,
+    showSuggestCountChip,
     showInlineChip,
     aiPillBusy,
-    hasNamedBusyChip: showTaskChip || showTodoChip || showSuggestChip || showInlineChip,
+    hasNamedBusyChip:
+      showTaskChip ||
+      showTodoChip ||
+      showSuggestChip ||
+      showSuggestCountChip ||
+      showInlineChip,
     activeKinds,
     multiActive,
     concurrentCount,
+    suggestCount,
+    suggestHasHigh: input.suggestHasHigh === true,
   };
 }
 

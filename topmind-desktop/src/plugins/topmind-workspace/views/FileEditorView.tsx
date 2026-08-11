@@ -137,6 +137,8 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
   const saveStateRef = useRef<SaveState>("clean");
   const pathRef = useRef(path);
   pathRef.current = path;
+  /** Last serialized markdown body — used to detect no-op onUpdate (formatting toggles etc.) */
+  const lastSerializedBodyRef = useRef<string>("");
   const autoSaveMsRef = useRef(1500);
   autoSaveMsRef.current = Math.max(500, Math.min(5000, editorSettings.autoSaveMs ?? 1500));
   /** Skip one disk-change reload after our own save */
@@ -231,6 +233,23 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
     },
     onUpdate: () => {
       if (readOnly) return;
+      // Compare serialized markdown with last known state to avoid false dirty
+      // (formatting toggles, undo/redo to same state, etc.)
+      if (editor) {
+        try {
+          const currentBody = getEditorMarkdown(editor, { noteRelativePath: pathRef.current });
+          if (currentBody === lastSerializedBodyRef.current) {
+            // Content unchanged — don't mark dirty, clear any pending save timer
+            if (saveStateRef.current === "dirty") setSaveState("clean");
+            if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
+            setCharCount(editor.storage.characterCount.characters());
+            setWordCount(editor.storage.characterCount.words());
+            return;
+          }
+        } catch {
+          // Serialization failed — fall through to dirty
+        }
+      }
       setSaveState("dirty");
       if (saveTimer.current) clearTimeout(saveTimer.current);
       // doSave is stable via ref path; schedule by path at fire time
@@ -239,6 +258,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
           const ed = editor;
           if (!ed || pathRef.current !== path) return;
           const body = getEditorMarkdown(ed, { noteRelativePath: pathRef.current });
+          lastSerializedBodyRef.current = body;
           const { frontmatterBlock } = splitMarkdownFile(lastSaved.current);
           const full = joinMarkdownFile(frontmatterBlock, body);
           return doSave({ relativePath: pathRef.current, fullContent: full });
@@ -438,6 +458,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
         setFileMeta(meta);
         const { body } = splitMarkdownFile(content);
         setEditorMarkdown(editor, body || "", { noteRelativePath: path });
+        lastSerializedBodyRef.current = body || "";
         setSaveState("clean");
         setCharCount(editor.storage.characterCount.characters());
         setWordCount(editor.storage.characterCount.words());
@@ -530,6 +551,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
           setFileMeta(meta);
           const { body } = splitMarkdownFile(content);
           setEditorMarkdown(editor, body || "", { noteRelativePath: path });
+          lastSerializedBodyRef.current = body || "";
           setSaveState("clean");
           setCharCount(editor.storage.characterCount.characters());
           setWordCount(editor.storage.characterCount.words());

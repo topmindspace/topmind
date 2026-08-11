@@ -11,7 +11,7 @@
  * - Personal Todo (memory/todo.md) is independent (TodoStore).
  */
 
-export const SUGGEST_SOFT_THROTTLE_MS = 2000;
+export const SUGGEST_SOFT_THROTTLE_MS = 5000;
 
 export type SuggestRefreshDecision = {
   /** Call workspace.generateSuggestions */
@@ -45,6 +45,12 @@ export function decideSuggestRefresh(opts: {
    * Force (user 💡 refresh) still runs.
    */
   agentStreaming?: boolean;
+  /**
+   * Safety-poll tick — only refresh pending writes, skip kernel suggest
+   * to avoid unnecessary IPC round-trips every poll cycle.
+   * Force (user 💡 refresh) still runs.
+   */
+  pollOnly?: boolean;
 }): SuggestRefreshDecision {
   const force = opts.force === true;
   const now = opts.now ?? Date.now();
@@ -73,6 +79,18 @@ export function decideSuggestRefresh(opts: {
       runPendingWrites,
       soft: false,
       reason: "auto_prepare_off",
+    };
+  }
+
+  // Safety-poll tick: only refresh pending writes, skip kernel suggest.
+  // Kernel suggest is event-driven (file changes, apply, manual refresh) —
+  // the poll is a safety net for pending writes only.
+  if (opts.pollOnly === true && !force) {
+    return {
+      runKernelSuggest: false,
+      runPendingWrites,
+      soft: true,
+      reason: "soft_throttled",
     };
   }
 

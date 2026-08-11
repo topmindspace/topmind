@@ -31,32 +31,32 @@ test("toggleSuggestSurface toggles panelOpen", () => {
   assert.match(src, /openSuggestSurface/);
 });
 
-test("TitleBar uses toggleSuggestSurface; strip / ActionBar call openSuggestSurface", () => {
+test("TitleBar uses toggleSuggestSurface; StatusBar count chip calls toggleSuggestSurface", () => {
   const title = read("src/components/shell/TitleBar.tsx");
   assert.match(title, /toggleSuggestSurface/);
   assert.match(title, /data-suggest-header-trigger/);
   // TitleBar should NOT import openSuggestSurface (uses toggle helper now)
   assert.doesNotMatch(title, /import.*openSuggestSurface/);
-  const strip = read("src/components/ai/SuggestEntryStrip.tsx");
-  assert.match(strip, /openSuggestSurface/);
-  assert.match(strip, /data-suggest-entry-state/);
-  // Preparing strip when loading + empty + autoPrepare
-  assert.match(strip, /preparing/);
-  assert.match(strip, /suggestionsPreparing/);
+  // StatusBar now hosts the suggestion count chip (replaces removed SuggestEntryStrip)
+  const sb = read("src/components/shell/StatusBar.tsx");
+  assert.match(sb, /data-status-suggest-count/);
+  assert.match(sb, /toggleSuggestSurface/);
   const bar = read("src/components/ai/ActionBar.tsx");
   assert.match(bar, /openSuggestSurface/);
 });
 
-test("StatusBar keeps suggest busy chip only; count lives on TitleBar badge + strip (降噪 2026-08)", () => {
+test("StatusBar hosts both suggest busy chip and count chip (2026-08: strip removed from canvas)", () => {
   const sb = read("src/components/shell/StatusBar.tsx");
-  // Loading/busy state stays; the persistent third count chip is removed
+  // Loading/busy state stays
   assert.match(sb, /data-status-suggest-busy/);
-  assert.doesNotMatch(sb, /data-status-suggest-count/);
-  // Count surfaces: TitleBar 💡 badge + canvas strip (exactly two, per DESIGN 禁止三处等权)
+  // Count chip now in StatusBar (replaces removed canvas SuggestEntryStrip)
+  assert.match(sb, /data-status-suggest-count/);
+  // TitleBar badge still exists
   const title = read("src/components/shell/TitleBar.tsx");
   assert.match(title, /data-suggest-header-badge/);
-  const strip = read("src/components/ai/SuggestEntryStrip.tsx");
-  assert.match(strip, /data-suggest-entry-state/);
+  // EditorArea no longer imports SuggestEntryStrip
+  const area = read("src/components/shell/EditorArea.tsx");
+  assert.doesNotMatch(area, /SuggestEntryStrip/);
 });
 
 test("SuggestPopover mounts in Shell and positions on open", () => {

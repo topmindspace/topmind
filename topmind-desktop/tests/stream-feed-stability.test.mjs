@@ -91,12 +91,12 @@ test("StreamDetailView soft path never setLoading(true) on silent reload", () =>
   assert.doesNotMatch(loadFn, /setLoading\(\s*true\s*\)/);
   assert.match(loadFn, /shouldReplaceStreamBody/);
   assert.match(loadFn, /silent/);
-  // Quiet 建议 entry lives on global SuggestEntryStrip (EditorArea), not Stream body
+  // Suggestion count now lives in StatusBar (2026-08: SuggestEntryStrip removed from canvas)
+  const sb = readFileSync(path.join(root, "src/components/shell/StatusBar.tsx"), "utf8");
+  assert.match(sb, /data-status-suggest-count/);
+  // EditorArea no longer imports SuggestEntryStrip
   const area = readFileSync(path.join(root, "src/components/shell/EditorArea.tsx"), "utf8");
-  const strip = readFileSync(path.join(root, "src/components/ai/SuggestEntryStrip.tsx"), "utf8");
-  assert.match(area, /SuggestEntryStrip/);
-  assert.match(strip, /STREAM_AI_STRIP_MIN_CLASS|data-suggest-entry-strip/);
-  assert.ok(STREAM_AI_STRIP_MIN_CLASS.length > 0);
+  assert.doesNotMatch(area, /SuggestEntryStrip/);
 });
 
 test("ActionStore soft refresh does not force loading when everLoaded", () => {

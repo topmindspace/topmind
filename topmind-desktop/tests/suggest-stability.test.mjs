@@ -19,11 +19,13 @@ test("ActionStore refresh uses mergeSuggestRefreshItems soft preserve", () => {
   assert.match(store, /decideSuggestRefresh/);
 });
 
-test("SuggestEntryStrip auto-hides when count is 0", () => {
-  const strip = read("src/components/ai/SuggestEntryStrip.tsx");
-  assert.match(strip, /count === 0/);
-  assert.match(strip, /return null/);
-  assert.doesNotMatch(strip, /reserveHeight|STREAM_AI_STRIP_MIN_CLASS|suggestionsReminder/);
+test("StatusBar suggest count chip auto-hides when count is 0", () => {
+  const sb = read("src/components/shell/StatusBar.tsx");
+  // Count chip only shows when suggestCount > 0 (via showSuggestCountChip in busy logic)
+  assert.match(sb, /data-status-suggest-count/);
+  // SuggestEntryStrip component still exists but is no longer mounted in EditorArea
+  const area = read("src/components/shell/EditorArea.tsx");
+  assert.doesNotMatch(area, /SuggestEntryStrip/);
 });
 
 test("TitleBar has global suggest trigger (toggle)", () => {

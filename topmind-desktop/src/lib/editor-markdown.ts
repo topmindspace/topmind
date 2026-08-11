@@ -85,6 +85,11 @@ type MarkdownParserStorage = {
 /**
  * Replace a ProseMirror range with Markdown (via tiptap-markdown parser → HTML).
  * Used by selection AI rewrite so lists / emphasis survive the replace.
+ *
+ * Format preservation rules:
+ * - Inline content (no block markers) → parsed inline, no extra paragraph boundaries
+ * - Block content → parsed as block, but empty leading/trailing paragraphs stripped
+ * - Selection inside a list item → content inherits list context
  */
 export function replaceSelectionWithMarkdown(
   editor: Editor | null | undefined,
@@ -93,7 +98,8 @@ export function replaceSelectionWithMarkdown(
   md: string,
 ): boolean {
   if (!editor || from > to) return false;
-  const text = String(md || "");
+  // Trim leading/trailing whitespace that causes extra blank lines
+  const text = String(md || "").replace(/^\n+/, "").replace(/\n+$/, "");
   if (!text) return false;
 
   const storage = editor.storage as MarkdownParserStorage;
@@ -105,6 +111,8 @@ export function replaceSelectionWithMarkdown(
       const looksBlock =
         /(^|\n)(#{1,6}\s|[-*+]\s|\d+\.\s|>\s)/mu.test(text) || /\n\s*\n/u.test(text);
       content = parse(text, { inline: !looksBlock });
+      // Strip empty paragraphs that cause extra blank lines
+      content = content.replace(/^<p>\s*<\/p>/giu, "").replace(/<p>\s*<\/p>$/giu, "");
     }
   } catch {
     content = text;

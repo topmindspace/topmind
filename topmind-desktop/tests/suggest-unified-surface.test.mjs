@@ -34,18 +34,18 @@ test("openSuggestSurface opens SuggestPopover panel (not AI chat rail only)", ()
   assert.doesNotMatch(src, /createElement\s*\(\s*ActionBar|render.*ActionBar/);
 });
 
-test("EditorArea mounts SuggestEntryStrip as global entry", () => {
+test("EditorArea no longer mounts SuggestEntryStrip (moved to StatusBar 2026-08)", () => {
   const area = read("src/components/shell/EditorArea.tsx");
-  assert.match(area, /SuggestEntryStrip/);
-  assert.match(area, /from ["'].*SuggestEntryStrip["']/);
+  assert.doesNotMatch(area, /SuggestEntryStrip/);
+  // Suggestion count chip now lives in StatusBar
+  const sb = read("src/components/shell/StatusBar.tsx");
+  assert.match(sb, /data-status-suggest-count/);
 });
 
-test("SuggestEntryStrip opens openSuggestSurface; not a full ActionBar list", () => {
-  const strip = read("src/components/ai/SuggestEntryStrip.tsx");
-  assert.match(strip, /openSuggestSurface/);
-  assert.match(strip, /data-suggest-entry-strip|data-stream-suggestions-quiet/);
-  assert.doesNotMatch(strip, /<ActionBar[\s/>]/);
-  assert.doesNotMatch(strip, /acceptItem|rejectItem/);
+test("StatusBar suggest count chip opens toggleSuggestSurface", () => {
+  const sb = read("src/components/shell/StatusBar.tsx");
+  assert.match(sb, /data-status-suggest-count/);
+  assert.match(sb, /toggleSuggestSurface|openSuggestSurface/);
 });
 
 test("SuggestPopover is full confirm list; ActionBar is compact pointer", () => {

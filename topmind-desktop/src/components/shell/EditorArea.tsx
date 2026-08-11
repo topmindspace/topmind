@@ -10,7 +10,6 @@ import { ICON } from "../../lib/icons";
 import { Tooltip } from "../ui/tooltip";
 import { cn } from "../../lib/cn";
 import { EditorRecentBar } from "./EditorRecentBar";
-import { SuggestEntryStrip } from "../ai/SuggestEntryStrip";
 import type { Selection } from "../../types";
 
 const FileEditorView = lazy(() =>
@@ -108,11 +107,6 @@ export function EditorArea() {
   return (
     <div className="v4-main-canvas flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       {focusMode ? null : <EditorRecentBar />}
-      {/*
-        Unified 建议 entry (all primary views): strip only when count>0 →
-        openSuggestSurface → SuggestPopover (not AI-rail full list; not Stream-embedded).
-      */}
-      {focusMode ? null : <SuggestEntryStrip variant="canvas" />}
       {showSplit ? (
         <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
           <div

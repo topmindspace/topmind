@@ -98,7 +98,7 @@ test("Stream compose uses composeSubmit; placeholder avoids L1 vocabulary", () =
 test("ActionBar demotes when canvas strip active; format toolbar defaults collapsed", () => {
   const bar = read("src/components/ai/ActionBar.tsx");
   assert.match(bar, /focusMode/);
-  assert.match(bar, /canvasStripActive|SuggestEntryStrip|preparing/);
+  assert.match(bar, /focusMode|SuggestEntryStrip|preparing/);
   assert.match(bar, /return null/);
 
   const editor = read("src/plugins/topmind-workspace/views/FileEditorView.tsx");

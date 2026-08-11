@@ -89,8 +89,9 @@ interface ActionStore {
   lastRefreshAt: number;
 
   // 数据加载
-  /** Soft refresh by default (preserve session suggestions). force=true replaces. */
-  refresh: (opts?: { force?: boolean }) => Promise<void>;
+  /** Soft refresh by default (preserve session suggestions). force=true replaces.
+   * pollOnly=true: safety-poll tick — only refresh pending writes, skip kernel suggest. */
+  refresh: (opts?: { force?: boolean; pollOnly?: boolean }) => Promise<void>;
   /**
    * Run activity-window AI ops (memory_organize + topic_classify) and merge
    * confirm-shaped suggestions into the ActionBar list. Does not auto-apply.
@@ -188,6 +189,7 @@ export const useActionStore = create<ActionStore>((set, get) => ({
       everLoaded: get().everLoaded,
       itemCount: get().items.length,
       agentStreaming,
+      pollOnly: opts?.pollOnly,
     });
 
     // Soft throttle: skip entirely (no pending / no kernel)
@@ -698,8 +700,8 @@ onLocal(PENDING_WRITES_CHANGED_EVENT, () => {
   void useActionStore.getState().refresh();
 });
 
-// 安全网轮询：每 15s 刷新 pending writes（事件驱动为主，轮询为辅）
-// 只在 autoPrepare 开启或有 pending writes 时才实际刷新，避免无谓网络请求
+// 安全网轮询：每 30s 只刷新 pending writes（不触发 kernel suggest）
+// 事件驱动为主，轮询为辅；pollOnly 确保不浪费 IPC 往返
 let safetyPoll: ReturnType<typeof setInterval> | null = null;
 function ensureSafetyPoll() {
   if (safetyPoll) return;
@@ -708,8 +710,8 @@ const st = useActionStore.getState();
 // Skip poll entirely when autoPrepare is off and no pending writes exist
 // — nothing to discover, and kernel suggest is disabled in this mode
 if (!st.autoPrepare && !st.items.some((i) => i.source === "pending_write")) return;
-void st.refresh();
-}, 15000);
+void st.refresh({ pollOnly: true });
+}, 30000);
 // Note: Node.js Timer.unref() is not available in Electron renderer process.
 // The interval is cleaned up when the renderer is destroyed (window close).
 }

@@ -65,6 +65,8 @@ export function StatusBar({ health }: StatusBarProps) {
   const todoMaintaining = useTodoStore((s) => s.maintaining === "maintaining");
   const suggestLoading = useActionStore((s) => s.loading);
   const suggestPanelOpen = useActionStore((s) => s.panelOpen);
+  const suggestCount = useActionStore((s) => s.items.length);
+  const suggestHasHigh = useActionStore((s) => s.items.some((i) => i.priority === "high"));
   const [updateInfo, setUpdateInfo] = useState<UpdateBadgeInfo | null>(null);
   // Subscribe to background update:available events from main process
   useEffect(() => {
@@ -94,6 +96,8 @@ export function StatusBar({ health }: StatusBarProps) {
     activeTaskCount: activeTasks.length,
     todoMaintaining,
     suggestLoading,
+    suggestCount,
+    suggestHasHigh,
     inlineBusy,
     inlineLabel,
   });
@@ -321,8 +325,37 @@ export function StatusBar({ health }: StatusBarProps) {
             </button>
           </Tooltip>
         ) : null}
-        {/* 建议计数常驻 chip 已移除（降噪 2026-08）：计数由标题栏 💡 badge + 画布顶 strip 承担，
-            状态栏只保留「生成中」busy 态 —— DESIGN「禁止三处等权」。 */}
+        {/* 建议计数常驻 chip：移除画布顶 SuggestEntryStrip 后，计数统一在状态栏体现。
+            loading 时由 showSuggestChip 承担；非 loading 有条目时显示计数 chip。 */}
+        {busy.showSuggestCountChip ? (
+          <Tooltip content={t("statusBar.suggestCountTip")}>
+            <button
+              type="button"
+              role="status"
+              data-status-suggest-count
+              onClick={() => {
+                void import("../../lib/suggest-surface").then(({ toggleSuggestSurface }) => {
+                  toggleSuggestSurface({ refresh: false });
+                });
+              }}
+              className={cn(
+                "flex shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 py-0.5 transition-colors",
+                busy.suggestHasHigh
+                  ? "bg-warning/10 text-warning hover:bg-warning/20"
+                  : "bg-accent-bg-faint text-accent-color hover:bg-accent-bg-subtle",
+                suggestPanelOpen && "ring-1 ring-inset ring-accent-border-subtle",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
+              )}
+              aria-pressed={suggestPanelOpen}
+              aria-label={t("statusBar.suggestCount", { count: busy.suggestCount })}
+            >
+              <Lightbulb size={ICON.micro} className={busy.suggestHasHigh ? "text-warning" : "text-accent-color"} aria-hidden />
+              <span className="hidden tabular-nums sm:inline">
+                {t("statusBar.suggestCount", { count: busy.suggestCount })}
+              </span>
+            </button>
+          </Tooltip>
+        ) : null}
         {busy.showInlineChip ? (
           <Tooltip content={t("statusBar.inlineAiWorkingTip")}>
             <span

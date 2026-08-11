@@ -207,6 +207,8 @@
     "todoMaintainingTip": "正在从动态提取/更新个人清单 · 点此打开清单",
     "suggestLoading": "准备建议中",
     "suggestLoadingTip": "正在扫描可整理项并生成建议 · 点此查看",
+    "suggestCount": "{{count}} 条建议",
+    "suggestCountTip": "{{count}} 条建议待确认 · 点此查看",
     "inlineAiWorking": "AI 处理中",
     "inlineAiWorkingTip": "润色 / 行内改写进行中 · 切换页面可能取消本次结果 · 点此不做任何操作",
     "inlineAiLeaveTitle": "离开将取消 AI 工作",
