@@ -240,6 +240,7 @@ export const enUS: typeof zhCN = {
   notice_organizing: "Organizing...",
   notice_organize_done: "Organized ✓",
   notice_workspace_not_ready: "Current vault is not a topmind workspace (topmind.yaml missing)",
+  notice_load_failed: "Plugin load failed",
   notice_todo_running: "AI maintaining todos...",
   notice_todo_done: "Todos maintained ✓",
   notice_classify_running: "Classifying topics...",

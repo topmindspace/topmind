@@ -31,6 +31,18 @@ export default class TopmindPlugin extends Plugin {
   kernelService!: KernelService;
 
   async onload(): Promise<void> {
+    try {
+      await this._onload();
+    } catch (err) {
+      const msg = err instanceof Error ? `${err.message}\n${err.stack || ""}` : String(err);
+      console.error("[topmind] onload failed:", err);
+      // Show a visible notice so users know what went wrong (esp. on Windows)
+      new Notice(`[topmind] ${t("notice_load_failed")}: ${msg.slice(0, 200)}`, 10000);
+      throw err; // Re-throw so Obsidian also reports it
+    }
+  }
+
+  private async _onload(): Promise<void> {
     // ── Load settings (with migration from old single-provider model) ──
     await this.loadSettings();
 

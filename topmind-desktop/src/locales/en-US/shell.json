@@ -151,6 +151,9 @@
     "aiDigestAnalyzing": "AI is analyzing recent activity…",
     "aiDigestFound": "AI analysis complete · {{count}} suggestions found",
     "aiDigestDone": "AI analysis complete",
+    "reconcileDone": "✓ Organize complete",
+    "aiDigestDoneToast": "✓ AI analysis complete · {{count}} suggestions",
+    "taskFailed": "✗ Task failed: {{error}}",
     "tasksRunning": "{{count}} tasks running"
   },
   "primaryNav": {

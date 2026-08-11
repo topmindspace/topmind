@@ -116,8 +116,15 @@ export function markdownToHtmlFragment(md: string): string {
 
   const flushPara = () => {
     if (para.length === 0) return;
-    const text = para.join("\n").trim();
-    if (text) out.push(`<p>${inlineFormat(text)}</p>`);
+    // Join multi-line paragraphs with <br> to preserve line breaks.
+    // Each line is individually formatted (links, bold, etc.) and trailing
+    // backslash (markdown hard break) is stripped.
+    const formatted = para.map((l) => {
+      const cleaned = l.replace(/\\$/u, "").trimEnd();
+      return inlineFormat(cleaned);
+    });
+    const text = formatted.join("<br />");
+    if (text) out.push(`<p>${text}</p>`);
     para = [];
   };
   const flushList = () => {
@@ -161,6 +168,26 @@ export function markdownToHtmlFragment(md: string): string {
     }
 
     if (/^\s*$/u.test(line)) {
+      // Look ahead: if the next non-blank line is a list item of the same type,
+      // keep the list open (user intentionally spaced items). Just flush para/bq.
+      if (listType) {
+        let j = i + 1;
+        while (j < lines.length && /^\s*$/u.test(lines[j])) j++;
+        if (j < lines.length) {
+          const nextLine = lines[j];
+          const isSameList =
+            (listType === "ul" && /^[-*+]\s+/u.test(nextLine)) ||
+            (listType === "ol" && /^\d+\.\s+/u.test(nextLine)) ||
+            (listType === "task" && /^[-*+]\s+\[[ xX]\]\s+/u.test(nextLine));
+          if (isSameList) {
+            // Keep list open; just flush para/bq without closing the list
+            flushPara();
+            flushBq();
+            i += 1;
+            continue;
+          }
+        }
+      }
       flushPara();
       flushList();
       flushBq();

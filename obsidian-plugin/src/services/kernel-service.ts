@@ -371,6 +371,30 @@ export class KernelService {
     }
   }
 
+  /** Delete a todo item by ID */
+  deleteTodo(id: string): void {
+    try {
+      const kernel = getKernel();
+      const workspaceRoot = this.getVaultPath();
+      const contract = this.loadContract();
+      kernel.deleteTodoItem?.(workspaceRoot, id, contract);
+    } catch (err) {
+      console.error("[topmind] deleteTodo failed:", err);
+    }
+  }
+
+  /** Clear all completed todos */
+  clearCompletedTodos(): void {
+    try {
+      const kernel = getKernel();
+      const workspaceRoot = this.getVaultPath();
+      const contract = this.loadContract();
+      kernel.clearCompleted?.(workspaceRoot, contract);
+    } catch (err) {
+      console.error("[topmind] clearCompleted failed:", err);
+    }
+  }
+
   // ── AI Chat ────────────────────────────────────────────────────────────
 
   /**

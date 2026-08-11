@@ -47,28 +47,29 @@ const kernelShims = {
     // contract-engine.mjs uses createRequire to require("./workspace-model.mjs").
     // In the bundle, workspace-model is already imported via kernel-api.mjs.
     // We intercept the file, remove the createRequire line, and add a static import.
+    // Uses \r?\n in all regexes to handle CRLF (Windows checkouts) gracefully.
     build.onLoad({ filter: /contract-engine\.mjs$/, namespace: "file" }, async (args) => {
       const fs = await import("node:fs");
       let contents = fs.readFileSync(args.path, "utf-8");
 
       // Only transform if it contains createRequire pattern
       if (contents.includes("createRequire(import.meta.url)")) {
-        // Remove the createRequire import and variable
+        // Remove the createRequire import and variable (CRLF-safe)
         contents = contents.replace(
-          /import\s*\{\s*createRequire\s*\}\s*from\s*["']node:module["'];?\n/u,
+          /import\s*\{\s*createRequire\s*\}\s*from\s*["']node:module["'];?\r?\n/u,
           "",
         );
         contents = contents.replace(
-          /const\s+require\s*=\s*createRequire\(import\.meta\.url\);?\n/u,
+          /const\s+require\s*=\s*createRequire\(import\.meta\.url\);?\r?\n/u,
           "",
         );
         // Remove the dynamic require line (will add static import at top)
         contents = contents.replace(
-          /const\s*\{\s*resolveWorkspaceModel\s*\}\s*=\s*require\(["']\.\/workspace-model\.mjs["']\);?\n/u,
+          /const\s*\{\s*resolveWorkspaceModel\s*\}\s*=\s*require\(["']\.\/workspace-model\.mjs["']\);?\r?\n/u,
           "",
         );
         // Add static import at the top, after the last existing import
-        const lines = contents.split("\n");
+        const lines = contents.split(/\r?\n/u);
         let lastImportIdx = 0;
         for (let i = 0; i < lines.length; i++) {
           if (lines[i].match(/^import\s/u)) lastImportIdx = i;
@@ -96,6 +97,8 @@ const kernelShims = {
     // ── Shim 4: Replace import.meta.url in all remaining .mjs files ──
     // For CJS output, import.meta.url is not available. Replace it with
     // a runtime expression that resolves to the current file URL.
+    // On Windows, __filename uses backslashes; pathToFileURL handles this.
+    // Fallback to process.cwd() if __filename is not available (sandboxed renderers).
     build.onLoad({ filter: /\.mjs$/, namespace: "file" }, async (args) => {
       const fs = await import("node:fs");
       let contents = fs.readFileSync(args.path, "utf-8");
@@ -105,11 +108,13 @@ const kernelShims = {
         return { contents, loader: "js", resolveDir: path.dirname(args.path) };
       }
 
-      // Replace import.meta.url with a CJS-compatible equivalent
-      // __filename is available in CJS context
+      // Replace import.meta.url with a CJS-compatible equivalent.
+      // __filename is available in CJS modules loaded via require().
+      // Add safe fallback for environments where __filename may be undefined.
+      const fallback = '(typeof __filename!=="undefined"?require("url").pathToFileURL(__filename).href:"file://"+process.cwd()+"/")';
       contents = contents.replace(
         /import\.meta\.url/gu,
-        'require("url").pathToFileURL(__filename).href',
+        fallback,
       );
 
       return { contents, loader: "js", resolveDir: path.dirname(args.path) };

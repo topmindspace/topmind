@@ -108,12 +108,13 @@ interface ActionStore {
   }>) => number;
 
   // 操作
-  acceptItem: (id: string) => Promise<void>;  // 接受建议或确认写入
+  /** Accept a suggestion or confirm a pending write. opts.skipNav suppresses navigation (used by acceptAll). */
+  acceptItem: (id: string, opts?: { skipNav?: boolean }) => Promise<void>;
   rejectItem: (id: string) => Promise<void>;  // 忽略建议或拒绝写入
   dismissItem: (id: string) => void;  // 仅从 UI 隐藏（不调后端），并记住 dismiss 以避免重复
   clearDismissed: () => void;  // 清除 dismiss 记忆（手动刷新时）
   /** Accept all actionable items sequentially. Stops on first error but continues past non-fatal ones. */
-  acceptAll: () => Promise<{ accepted: number; failed: number }>;
+  acceptAll: () => Promise<{ accepted: number; failed: number; summary: string }>;
   /** Dismiss all suggestion items (not pending writes). */
   dismissAll: () => void;
 
@@ -330,9 +331,10 @@ export const useActionStore = create<ActionStore>((set, get) => ({
     }, requestedForce);
   },
 
-  acceptItem: async (id: string) => {
+  acceptItem: async (id: string, opts?: { skipNav?: boolean }) => {
     const item = get().items.find(x => x.id === id);
     if (!item) return;
+    const skipNav = opts?.skipNav === true;
 
     // Track applied suggestion to prevent re-suggesting in same session
     if (item.source === 'suggestion') {
@@ -352,8 +354,10 @@ export const useActionStore = create<ActionStore>((set, get) => ({
         if (item.suggestionKind === 'open_profile') {
           const path = item.targetPath || (item.suggestionPayload?.path as string | undefined);
           const ensured = await api.ws.ensureCoreProfile();
-          if (ensured.profileRelPath) select({ kind: 'file', path: ensured.profileRelPath });
-          else if (path) select({ kind: 'file', path });
+          if (!skipNav) {
+            if (ensured.profileRelPath) select({ kind: 'file', path: ensured.profileRelPath });
+            else if (path) select({ kind: 'file', path });
+          }
 
           if (item.priority !== 'high') {
             set(s => ({ items: s.items.filter(x => x.id !== id) }));
@@ -396,16 +400,19 @@ export const useActionStore = create<ActionStore>((set, get) => ({
           return;
         }
 
-        if (item.suggestionKind === 'inbox_review' || item.suggestionKind === 'stale_topic' || item.suggestionKind === 'catch_all') {
-          select({ kind: 'stream' });
-        } else if (item.suggestionKind === 'inbox_organize' && res.targetPath && res.ok !== false) {
-          // After organizing inbox item → navigate to the moved file in its topic
-          select({ kind: 'file', path: String(res.targetPath) });
-        } else if (item.suggestionKind === 'create_topic' && res.targetPath && res.ok !== false) {
-          // Content-category topic — open topic.md under the category (never memory/topics)
-          select({ kind: 'file', path: String(res.targetPath) });
-        } else if (res.targetPath && res.wroteFiles !== false && res.ok) {
-          select({ kind: 'file', path: String(res.targetPath) });
+        // Navigation: skip during bulk acceptAll to prevent editor blanking
+        if (!skipNav) {
+          if (item.suggestionKind === 'inbox_review' || item.suggestionKind === 'stale_topic' || item.suggestionKind === 'catch_all') {
+            select({ kind: 'stream' });
+          } else if (item.suggestionKind === 'inbox_organize' && res.targetPath && res.ok !== false) {
+            // After organizing inbox item → navigate to the moved file in its topic
+            select({ kind: 'file', path: String(res.targetPath) });
+          } else if (item.suggestionKind === 'create_topic' && res.targetPath && res.ok !== false) {
+            // Content-category topic — open topic.md under the category (never memory/topics)
+            select({ kind: 'file', path: String(res.targetPath) });
+          } else if (res.targetPath && res.wroteFiles !== false && res.ok) {
+            select({ kind: 'file', path: String(res.targetPath) });
+          }
         }
 
         set(s => ({ items: s.items.filter(x => x.id !== id) }));
@@ -432,7 +439,9 @@ export const useActionStore = create<ActionStore>((set, get) => ({
         const m = t('editor:ai.pendingWrote', { path: r.targetPath || p });
         set({ message: m });
         toastWriteback(m, r);
-        select({ kind: 'file', path: r.targetPath || p });
+        if (!skipNav) {
+          select({ kind: 'file', path: r.targetPath || p });
+        }
         set(s => ({ items: s.items.filter(x => x.id !== id) }));
         emitLocal('workspace:file-changed', { relativePath: r.targetPath || p });
         emitLocal(SUGGESTIONS_REFRESH_EVENT, { reason: 'apply' });
@@ -491,6 +500,9 @@ export const useActionStore = create<ActionStore>((set, get) => ({
     const allItems = get().items;
     let accepted = 0;
     let failed = 0;
+    const summaryParts: string[] = [];
+    let lastTargetPath = '';
+    let lastTargetKind = '';
     // Process sequentially to avoid write conflicts and maintain order.
     // Accept suggestions first (sorted by priority), then pending writes.
     const ordered = [...allItems].sort((a, b) => {
@@ -502,17 +514,43 @@ export const useActionStore = create<ActionStore>((set, get) => ({
       if (a.source !== 'pending_write' && b.source === 'pending_write') return -1;
       return 0;
     });
-    for (const item of ordered) {
+    const lastIndex = ordered.length - 1;
+    for (let idx = 0; idx < ordered.length; idx++) {
+      const item = ordered[idx];
       // Skip if item was already removed by a prior accept (e.g. refresh after apply)
       if (!get().items.some((x) => x.id === item.id)) continue;
+      // Skip navigation for all but the last item to prevent editor blanking.
+      // The last item navigates to its target so the user sees the final result.
+      const skipNav = idx < lastIndex;
       try {
-        await get().acceptItem(item.id);
+        await get().acceptItem(item.id, { skipNav });
         accepted++;
+        // Collect summary info for user feedback
+        const label = item.title || item.suggestionKind || item.source;
+        summaryParts.push(label);
+        if (item.targetPath) {
+          lastTargetPath = item.targetPath;
+          lastTargetKind = item.suggestionKind || '';
+        }
       } catch {
         failed++;
       }
     }
-    return { accepted, failed };
+    // After all items: navigate once to the most relevant target
+    if (accepted > 0 && lastTargetPath) {
+      const select = useViewStore.getState().select;
+      if (lastTargetKind === 'inbox_review' || lastTargetKind === 'stale_topic' || lastTargetKind === 'catch_all') {
+        select({ kind: 'stream' });
+      } else {
+        select({ kind: 'file', path: lastTargetPath });
+      }
+    } else if (accepted > 0) {
+      // No specific target — go to stream view to see the results
+      const select = useViewStore.getState().select;
+      select({ kind: 'stream' });
+    }
+    const summary = summaryParts.slice(0, 5).join(' · ') + (summaryParts.length > 5 ? ` +${summaryParts.length - 5}` : '');
+    return { accepted, failed, summary };
   },
 
   dismissAll: () => {

@@ -303,11 +303,13 @@ export function StreamView({ onNavigate }: StreamViewProps) {
                       )}
                     >
                       {bodyTime ? (
-                        <span className="mt-px w-8 shrink-0 text-3xs tabular-nums text-text-quaternary/80">
+                        <span className="mt-px w-7 shrink-0 text-right text-3xs tabular-nums leading-none text-text-quaternary/80">
                           {bodyTime}
                         </span>
                       ) : (
-                        <span className="w-8 shrink-0" aria-hidden />
+                        <span className="flex w-7 shrink-0 justify-end pt-1" aria-hidden>
+                          <span className="h-1 w-1 rounded-full bg-text-quaternary/30" aria-hidden />
+                        </span>
                       )}
                       <div className="line-clamp-2 min-w-0 flex-1 text-3xs leading-snug text-text-primary">
                         {entry.preview || entry.body || entry.heading}

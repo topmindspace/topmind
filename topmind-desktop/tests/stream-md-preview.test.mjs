@@ -122,9 +122,12 @@ test("prepareStreamMarkdown collapses blank lines and never throws on empty", ()
   assert.equal(streamMarkdownToPreviewHtml(""), "");
 });
 
-test("prepareStreamMarkdown joins list items split by blank lines (single ul)", () => {
+test("prepareStreamMarkdown preserves blank lines between list items (user formatting)", () => {
+  // Blank lines between list items are preserved — user may intentionally space items.
+  // The HTML converter (markdownToHtmlFragment) handles blank-line-separated items
+  // by keeping them in the same <ul> (look-ahead logic).
   const prepared = prepareStreamMarkdown("- item a\n\n- item b\n\n- item c");
-  assert.equal(prepared, "- item a\n- item b\n- item c");
+  assert.equal(prepared, "- item a\n\n- item b\n\n- item c");
   const html = streamMarkdownToPreviewHtml(prepared);
   // One list, not three separate <ul>s from blank-split items
   const ulCount = (html.match(/<ul>/g) || []).length;

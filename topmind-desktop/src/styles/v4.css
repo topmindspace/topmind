@@ -1093,7 +1093,7 @@ button.v4-dash-card:active,
   margin-bottom: 0;
 }
 .v4-stream-md p {
-  margin: 0.22em 0;
+  margin: 0.35em 0;
 }
 /* Single-line prose after stripListChrome — no list chrome noise */
 .v4-stream-md > p:only-child {
@@ -1101,7 +1101,7 @@ button.v4-dash-card:active,
 }
 /* Adjacent paragraphs: keep one soft gap without “double blank” feel */
 .v4-stream-md p + p {
-  margin-top: 0.38em;
+  margin-top: 0.5em;
 }
 .v4-stream-md h1,
 .v4-stream-md h2,
@@ -1134,8 +1134,8 @@ button.v4-dash-card:active,
 }
 .v4-stream-md ul,
 .v4-stream-md ol {
-  margin: 0.15em 0 0.28em;
-  padding-left: 1.15em;
+  margin: 0.3em 0 0.4em;
+  padding-left: 1.2em;
 }
 .v4-stream-md ul {
   list-style-type: disc;
@@ -1144,19 +1144,39 @@ button.v4-dash-card:active,
   list-style-type: decimal;
 }
 .v4-stream-md li {
-  margin: 0.12em 0;
+  margin: 0.18em 0;
   padding-left: 0.1em;
 }
 .v4-stream-md li + li {
-  margin-top: 0.08em;
+  margin-top: 0.14em;
 }
 .v4-stream-md li > ul,
 .v4-stream-md li > ol {
-  margin: 0.1em 0 0.15em;
+  margin: 0.15em 0 0.2em;
+  padding-left: 1.1em;
 }
 .v4-stream-md li::marker {
   color: var(--color-text-quaternary);
   font-size: 0.85em;
+}
+/* Task list checkboxes — render properly in preview */
+.v4-stream-md ul.task-list {
+  list-style: none;
+  padding-left: 0.5em;
+}
+.v4-stream-md .task-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4em;
+}
+.v4-stream-md .task-list-item input[type="checkbox"] {
+  margin-top: 0.3em;
+  flex-shrink: 0;
+  accent-color: var(--color-accent-color, #31548e);
+}
+.v4-stream-md .task-list-item[data-checked="true"] > span {
+  text-decoration: line-through;
+  color: var(--color-text-quaternary);
 }
 .v4-stream-md strong,
 .v4-stream-md b {
@@ -1263,13 +1283,17 @@ button.v4-dash-card:active,
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  margin-top: 0.15rem;
+  margin-top: 0.2rem;
 }
 .v4-stream-append-block {
-  padding: 0.35rem 0.55rem 0.4rem;
+  padding: 0.4rem 0.6rem 0.45rem;
   border-radius: var(--radius-md, 8px);
   border: 1px dashed var(--color-border-subtle-dim, rgba(0, 0, 0, 0.1));
-  background: color-mix(in srgb, var(--color-surface-muted) 55%, transparent);
+  background: color-mix(in srgb, var(--color-surface-muted) 50%, transparent);
+  transition: background var(--duration-fast) var(--ease-default);
+}
+.v4-stream-append-block:hover {
+  background: color-mix(in srgb, var(--color-surface-muted) 70%, transparent);
 }
 .v4-stream-append-title {
   font-size: 0.72rem;
@@ -1278,6 +1302,18 @@ button.v4-dash-card:active,
   color: var(--color-text-tertiary);
   margin-bottom: 0.2rem;
   line-height: 1.35;
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+}
+.v4-stream-append-title::before {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--color-text-quaternary);
+  flex-shrink: 0;
 }
 .v4-stream-append-more {
   font-size: 0.7rem;

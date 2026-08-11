@@ -238,6 +238,7 @@ export const zhCN = {
   notice_organizing: "整理中...",
   notice_organize_done: "整理完成 ✓",
   notice_workspace_not_ready: "当前 Vault 不是 topmind 工作区（缺少 topmind.yaml）",
+  notice_load_failed: "插件加载失败",
   notice_todo_running: "AI 整理待办中...",
   notice_todo_done: "待办整理完成 ✓",
   notice_classify_running: "主题分类中...",

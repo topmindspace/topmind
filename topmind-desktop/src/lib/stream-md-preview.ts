@@ -23,11 +23,15 @@ export function stripHtmlCommentsForPreview(md: string): string {
  * - normalize tabs to 2 spaces (common source of misaligned indent)
  * - protect code blocks (skip normalization inside ``` fences)
  * - collapse 3+ blank lines to 1 blank (paragraph separation)
- * - pull consecutive list/task items together (blank-between-bullets → single list)
- * - normalize mixed list markers (– — → -)
  * - trim trailing spaces on lines (common source of "ugly" extra breaks)
  * - drop blank lines immediately after headings
  * - normalize excessive heading levels (#####+ → ###)
+ *
+ * NOT done (preserved as user wrote):
+ * - Blank lines between list items (user may intend visual separation)
+ * - Alternative bullet markers (– —) — preserved as user wrote
+ * - Paragraph spacing (user controls their own rhythm)
+ *
  * never throws on empty/odd input.
  */
 export function prepareStreamMarkdown(md: string): string {
@@ -39,18 +43,8 @@ export function prepareStreamMarkdown(md: string): string {
   s = normalizeLinesOutsideCodeBlocks(s);
   // Trim trailing spaces/tabs per line (except intentional 2-space hard-break → keep none for preview)
   s = s.replace(/[ \t]+$/gmu, "");
-  // Collapse 3+ blank lines → single blank
+  // Collapse 3+ blank lines → single blank (preserve user's paragraph breaks)
   s = s.replace(/\n{3,}/gu, "\n\n");
-  // Within list/task runs: remove blank lines that would split one list into many
-  // e.g. "- a\n\n- b" → "- a\n- b" (keeps one <ul> in the fragment converter)
-  s = s.replace(
-    /(^|\n)([ \t]*[-*+](?:\s+\[[ xX]\])?\s+[^\n]+)\n\n+(?=[ \t]*[-*+](?:\s+\[[ xX]\])?\s+)/gmu,
-    "$1$2\n",
-  );
-  s = s.replace(
-    /(^|\n)([ \t]*\d+\.\s+[^\n]+)\n\n+(?=[ \t]*\d+\.\s+)/gmu,
-    "$1$2\n",
-  );
   // Drop a blank line immediately after a heading (common ugly gap)
   s = s.replace(/(^#{1,6}[^\n]+)\n\n+/gmu, "$1\n");
   return s.trim();
@@ -58,9 +52,11 @@ export function prepareStreamMarkdown(md: string): string {
 
 /**
  * Per-line normalizations outside fenced code blocks:
- * - Tab → 2 spaces
- * - Alternative bullet markers: – — → -
+ * - Tab → 2 spaces (common source of misaligned indent)
  * - Excessive heading levels: #####+ → ###
+ *
+ * NOT normalized (preserved as user wrote):
+ * - Alternative bullet markers (– — *) — user may intentionally use these
  * Lines inside ``` fences are preserved as-is.
  */
 function normalizeLinesOutsideCodeBlocks(s: string): string {
@@ -79,8 +75,6 @@ function normalizeLinesOutsideCodeBlocks(s: string): string {
     }
     // Tab → 2 spaces
     let transformed = line.replace(/\t/gu, "  ");
-    // Alternative bullet markers: – — → - (only at line start)
-    transformed = transformed.replace(/^(\s*)[–—](\s+)/u, "$1-$2");
     // Excessive heading levels: #####+ → ###
     transformed = transformed.replace(/^(#{5,})\s+/u, "### ");
     result.push(transformed);

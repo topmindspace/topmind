@@ -151,6 +151,9 @@
     "aiDigestAnalyzing": "AI 正在分析近期活动与改动…",
     "aiDigestFound": "AI 分析完成 · 发现 {{count}} 条建议",
     "aiDigestDone": "AI 分析完成",
+    "reconcileDone": "✓ 整理完成",
+    "aiDigestDoneToast": "✓ AI 分析完成 · {{count}} 条建议",
+    "taskFailed": "✗ 任务失败：{{error}}",
     "tasksRunning": "{{count}} 个任务运行中"
   },
   "primaryNav": {

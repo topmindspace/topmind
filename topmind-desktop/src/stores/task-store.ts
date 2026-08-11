@@ -190,6 +190,8 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
             currentStep: undefined,
             result,
           });
+          // Notify completion via toast so StatusBar doesn't need a persistent completion state
+          emitLocal("toast:show", i18n.t("shell:taskPanel.reconcileDone", { ns: "shell" }));
           // Candidates from organize → refresh AI suggestion strip + open rail
           const cand = (result as { candidates?: { core?: unknown[]; topics?: unknown[] } })?.candidates;
           const hasCandidates =
@@ -241,6 +243,8 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
             },
           });
 
+          // Notify completion via toast
+          emitLocal("toast:show", i18n.t("shell:taskPanel.aiDigestDoneToast", { ns: "shell", count: aiSuggestions.length }));
           emitLocal(SUGGESTIONS_REFRESH_EVENT, { reason: "ai_digest" });
           if (aiSuggestions.length > 0 || opResult.merged > 0) {
             // Unified 建议 confirm surface (open rail + expand ActionBar)
@@ -256,6 +260,9 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
         error: err instanceof Error ? err.message : String(err),
         completedAt: Date.now(),
       });
+      // Notify failure via toast
+      const errMsg = err instanceof Error ? err.message : String(err);
+      emitLocal("toast:show", i18n.t("shell:taskPanel.taskFailed", { ns: "shell", error: errMsg }));
     }
   },
 

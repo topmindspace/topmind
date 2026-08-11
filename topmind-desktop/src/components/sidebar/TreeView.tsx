@@ -580,6 +580,8 @@ function TreeViewNode({
               className="mr-0.5 hidden h-5 w-5 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary opacity-0 transition-[opacity,background-color,color] duration-[var(--duration-fast)] hover:bg-surface hover:text-accent-color focus-visible:inline-flex focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 group-hover:inline-flex group-hover:opacity-100 group-focus-within:inline-flex group-focus-within:opacity-100"
               onClick={(e) => {
                 e.stopPropagation();
+                // Select inbox first so QuickCapture defaults to inbox dest
+                select({ kind: "inbox" });
                 emitLocal("overlay:open", { kind: "quick-capture" });
               }}
             >
@@ -730,6 +732,10 @@ function TreeViewNode({
           handleOpenExternal,
           openQuickCapture: () => {
             closeMenu();
+            // Select inbox first so QuickCapture defaults to inbox dest
+            if (node.kind === "group" && node.id === "section/inbox") {
+              select({ kind: "inbox" });
+            }
             emitLocal("overlay:open", { kind: "quick-capture" });
           },
           expandFolderIfNeeded: () => {

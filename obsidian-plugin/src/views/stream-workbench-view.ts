@@ -51,6 +51,7 @@ export class StreamWorkbenchView extends ItemView {
   private streamLoading = false;
   private organizing = false;
   private taskUnsub: (() => void) | null = null;
+  private urlHintEl: HTMLElement | null = null;
 
   constructor(leaf: WorkspaceLeaf, plugin: TopmindPlugin) {
     super(leaf);
@@ -79,7 +80,8 @@ export class StreamWorkbenchView extends ItemView {
 
     // ── Quick Input Bar ──
     const inputBar = contentEl.createDiv({ cls: "tm-input-bar" });
-    this.inputEl = inputBar.createEl("textarea", {
+    const inputWrap = inputBar.createDiv({ cls: "tm-input-wrap" });
+    this.inputEl = inputWrap.createEl("textarea", {
       cls: "tm-input-field",
       attr: {
         placeholder: t("quick_capture_placeholder"),
@@ -87,6 +89,12 @@ export class StreamWorkbenchView extends ItemView {
         "aria-label": t("quick_capture_title"),
       },
     });
+
+    // URL detection hint (visual feedback when typing a lone URL)
+    this.urlHintEl = inputWrap.createDiv({ cls: "tm-url-hint tm-url-hint-hidden" });
+    const urlHintIcon = this.urlHintEl.createSpan({ cls: "tm-url-hint-icon" });
+    setIcon(urlHintIcon, "link");
+    this.urlHintEl.createSpan({ text: t("compose_url_hint") });
 
     this.submitBtn = inputBar.createEl("button", {
       text: t("quick_capture_submit"),
@@ -104,6 +112,7 @@ export class StreamWorkbenchView extends ItemView {
 
     this.inputEl.addEventListener("input", () => {
       this.autoGrowTextarea(this.inputEl);
+      this.updateUrlHint();
     });
 
     this.submitBtn.addEventListener("click", () => this.submitInput());
@@ -373,6 +382,17 @@ export class StreamWorkbenchView extends ItemView {
     el.style.height = Math.min(el.scrollHeight, 120) + "px";
   }
 
+  private updateUrlHint(): void {
+    if (!this.urlHintEl) return;
+    const text = this.inputEl.value.trim();
+    const isUrl = isLoneUrlCapture(text);
+    if (isUrl) {
+      this.urlHintEl.removeClass("tm-url-hint-hidden");
+    } else {
+      this.urlHintEl.addClass("tm-url-hint-hidden");
+    }
+  }
+
   async refreshAll(): Promise<void> {
     await this.refreshStream();
     await this.refreshSuggestions();
@@ -387,7 +407,8 @@ export class StreamWorkbenchView extends ItemView {
 
     // Quick Input Bar
     const inputBar = contentEl.createDiv({ cls: "tm-input-bar" });
-    this.inputEl = inputBar.createEl("textarea", {
+    const inputWrap = inputBar.createDiv({ cls: "tm-input-wrap" });
+    this.inputEl = inputWrap.createEl("textarea", {
       cls: "tm-input-field",
       attr: {
         placeholder: t("quick_capture_placeholder"),
@@ -395,6 +416,11 @@ export class StreamWorkbenchView extends ItemView {
         "aria-label": t("quick_capture_title"),
       },
     });
+    // URL detection hint
+    this.urlHintEl = inputWrap.createDiv({ cls: "tm-url-hint tm-url-hint-hidden" });
+    const urlHintIcon = this.urlHintEl.createSpan({ cls: "tm-url-hint-icon" });
+    setIcon(urlHintIcon, "link");
+    this.urlHintEl.createSpan({ text: t("compose_url_hint") });
     this.submitBtn = inputBar.createEl("button", {
       text: t("quick_capture_submit"),
       cls: "tm-submit-btn",
@@ -403,7 +429,10 @@ export class StreamWorkbenchView extends ItemView {
     this.inputEl.addEventListener("keydown", (e: KeyboardEvent) => {
       if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); this.submitInput(); }
     });
-    this.inputEl.addEventListener("input", () => this.autoGrowTextarea(this.inputEl));
+    this.inputEl.addEventListener("input", () => {
+      this.autoGrowTextarea(this.inputEl);
+      this.updateUrlHint();
+    });
     this.submitBtn.addEventListener("click", () => this.submitInput());
 
     // Stream Section
@@ -648,7 +677,9 @@ export class StreamWorkbenchView extends ItemView {
       this.app.workspace.openLinkText(periodPath, "", false);
     });
 
-    const body = card.createDiv({ cls: "tm-card-body tm-collapsed" });
+    // Short content (≤3 lines / ≤200 chars) shows fully; long content starts collapsed
+    const isLongContent = entry.text.length > 200 || entry.text.split("\n").length > 3;
+    const body = card.createDiv({ cls: isLongContent ? "tm-card-body tm-collapsed" : "tm-card-body" });
     if (entry.text) {
       try {
         await MarkdownRenderer.render(this.app, entry.text, body, "", this);
@@ -659,19 +690,22 @@ export class StreamWorkbenchView extends ItemView {
       body.textContent = entry.text;
     }
 
-    const toggleCollapse = () => {
-      body.classList.toggle("tm-collapsed");
-    };
-    body.addEventListener("click", toggleCollapse);
-    body.addEventListener("keydown", (e: KeyboardEvent) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        toggleCollapse();
-      }
-    });
-    body.setAttribute("role", "button");
-    body.setAttribute("tabindex", "0");
-    body.setAttribute("aria-label", t("stream_expand_entry"));
+    // Only attach collapse toggle for long content
+    if (isLongContent) {
+      const toggleCollapse = () => {
+        body.classList.toggle("tm-collapsed");
+      };
+      body.addEventListener("click", toggleCollapse);
+      body.addEventListener("keydown", (e: KeyboardEvent) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          toggleCollapse();
+        }
+      });
+      body.setAttribute("role", "button");
+      body.setAttribute("tabindex", "0");
+      body.setAttribute("aria-label", t("stream_expand_entry"));
+    }
 
     if (entry.tags.length > 0) {
       const footer = card.createDiv({ cls: "tm-card-footer" });
@@ -783,7 +817,9 @@ export class StreamWorkbenchView extends ItemView {
     confirmBtn.setAttribute("aria-label", t("suggestions_confirm"));
     confirmBtn.addEventListener("click", async () => {
       confirmBtn.disabled = true;
-      confirmBtn.textContent = "...";
+      confirmBtn.empty();
+      const spinner = confirmBtn.createSpan({ cls: "tm-btn-spinner" });
+      confirmBtn.createSpan({ text: t("suggestions_confirm") });
       const result = await this.plugin.kernelService.applySuggestion(sugg);
       if (result.ok) {
         card.classList.add("tm-card-removing");
@@ -794,6 +830,7 @@ export class StreamWorkbenchView extends ItemView {
         await this.refreshAll();
       } else {
         confirmBtn.disabled = false;
+        confirmBtn.empty();
         confirmBtn.textContent = t("suggestions_confirm");
       }
     });
@@ -824,6 +861,7 @@ export class StreamWorkbenchView extends ItemView {
     const tags = this.plugin.settings.autoTag ? extractTags(text) : [];
     this.inputEl.disabled = true;
     this.submitBtn.disabled = true;
+    this.submitBtn.textContent = "...";
     const result = this.plugin.kernelService.capture(text, { target, tags });
 
     if (result.ok) {
@@ -832,9 +870,13 @@ export class StreamWorkbenchView extends ItemView {
       this.refreshStream();
       // Scroll to top (newest entry in desc order)
       this.streamContainer.scrollTop = 0;
+      new Notice(t("notice_written"));
+    } else {
+      new Notice(t("notice_write_failed"));
     }
     this.inputEl.disabled = false;
     this.submitBtn.disabled = false;
+    this.submitBtn.textContent = t("quick_capture_submit");
     this.inputEl.focus();
   }
 

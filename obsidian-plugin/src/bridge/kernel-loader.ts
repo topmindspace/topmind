@@ -255,6 +255,16 @@ export interface KernelApi {
     items: unknown[];
     targetPath: string;
   };
+  deleteTodoItem?(workspaceRoot: string, id: string, contract?: unknown): {
+    ok: boolean;
+    items: unknown[];
+    targetPath: string;
+  };
+  clearCompleted?(workspaceRoot: string, contract?: unknown): {
+    ok: boolean;
+    removed: number;
+    targetPath: string;
+  };
   addCategory?(
     workspaceRoot: string,
     spec: {

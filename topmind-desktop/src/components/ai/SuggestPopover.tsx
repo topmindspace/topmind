@@ -220,11 +220,13 @@ export function SuggestPopover() {
     setBulkBusy(true);
     setBulkResult(null);
     try {
-      const { accepted, failed } = await acceptAll();
+      const { accepted, failed, summary } = await acceptAll();
       if (accepted > 0 && failed === 0) {
-        setBulkResult(t("ai.bulkAcceptDone", { count: accepted, defaultValue: `All accepted (${accepted})` }));
+        const detail = summary ? ` · ${summary}` : "";
+        setBulkResult(t("ai.bulkAcceptDone", { count: accepted, defaultValue: `All accepted (${accepted})` }) + detail);
       } else if (accepted > 0 && failed > 0) {
-        setBulkResult(t("ai.bulkAcceptPartial", { accepted, failed, defaultValue: `Accepted ${accepted} · ${failed} failed` }));
+        const detail = summary ? ` · ${summary}` : "";
+        setBulkResult(t("ai.bulkAcceptPartial", { accepted, failed, defaultValue: `Accepted ${accepted} · ${failed} failed` }) + detail);
       } else if (failed > 0) {
         setBulkResult(t("ai.bulkAcceptFailed", { count: failed, defaultValue: `${failed} failed` }));
       }
@@ -487,9 +489,14 @@ export function SuggestPopover() {
                 <Sparkles size={ICON.sm} className="text-text-quaternary/40" />
                 <p className="text-3xs text-text-quaternary">{t("ai.suggestEmpty")}</p>
                 {!autoPrepare ? (
-                  <p className="text-3xs text-text-quaternary/70">
-                    {t("ai.suggestPaused")}
-                  </p>
+                  <button
+                    type="button"
+                    className="mt-1 inline-flex items-center gap-1 rounded-sm bg-accent-bg-subtle px-2 py-1 text-3xs font-medium text-accent-color hover:bg-accent-bg-faint transition-colors"
+                    onClick={() => void toggleAutoPrepare()}
+                  >
+                    <Zap size={ICON.nano} />
+                    {t("ai.suggestToggleOn")}
+                  </button>
                 ) : null}
               </>
             )}

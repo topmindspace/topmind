@@ -162,16 +162,16 @@ function StreamFeedRowView({
       data-stream-entry-kind={kind}
     >
       <div className="flex items-start gap-2">
-        {/* Time column — day cohesion */}
-        <div className="w-9 shrink-0 pt-0.5 text-right">
+        {/* Time column — day cohesion; right-aligned with consistent baseline */}
+        <div className="flex w-9 shrink-0 justify-end pt-1">
           {bodyTime ? (
-            <span className="text-3xs font-medium tabular-nums text-text-quaternary">
+            <span className="text-3xs font-medium tabular-nums leading-none text-text-quaternary">
               {bodyTime}
             </span>
           ) : (
             <span
               className={cn(
-                "inline-block h-1.5 w-1.5 rounded-full",
+                "h-1 w-1 shrink-0 rounded-full",
                 isToday ? "bg-accent-color/70" : "bg-text-quaternary/40",
               )}
               aria-hidden

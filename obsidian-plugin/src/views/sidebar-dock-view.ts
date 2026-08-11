@@ -444,6 +444,20 @@ export class SidebarDockView extends ItemView {
           setIcon(dueSpan, "calendar");
           dueSpan.createSpan({ text: ` ${todo.dueDate}` });
         }
+        // Hover delete button (shown on hover)
+        const deleteBtn = item.createEl("button", {
+          cls: "tm-todo-delete",
+          attr: { "aria-label": t("suggestions_dismiss"), title: t("suggestions_dismiss") },
+        });
+        setIcon(deleteBtn, "trash-2");
+        deleteBtn.addEventListener("click", (e: MouseEvent) => {
+          e.stopPropagation();
+          item.classList.add("tm-card-removing");
+          setTimeout(() => {
+            this.plugin.kernelService.deleteTodo(todo.id);
+            this.refreshActiveTab();
+          }, 150);
+        });
       }
 
       if (doneTodos.length > 0) {
@@ -451,6 +465,19 @@ export class SidebarDockView extends ItemView {
         const doneIcon = doneHeader.createSpan({ cls: "tm-todo-done-label" });
         setIcon(doneIcon, "check");
         doneIcon.createSpan({ text: ` ${doneTodos.length} ${t("sidebar_todos_done")}` });
+        // Clear completed button
+        const clearDoneBtn = doneHeader.createEl("button", {
+          cls: "tm-btn-mini tm-todo-clear-done",
+        });
+        setIcon(clearDoneBtn, "trash-2");
+        clearDoneBtn.setAttribute("aria-label", t("task_clear_history"));
+        clearDoneBtn.setAttribute("title", t("task_clear_history"));
+        clearDoneBtn.addEventListener("click", () => {
+          for (const done of doneTodos) {
+            this.plugin.kernelService.deleteTodo(done.id);
+          }
+          this.refreshActiveTab();
+        });
       }
 
       if (activeTodos.length > 20) {
@@ -570,7 +597,10 @@ export class SidebarDockView extends ItemView {
     confirmBtn.setAttribute("aria-label", t("suggestions_confirm"));
     confirmBtn.addEventListener("click", async () => {
       confirmBtn.disabled = true;
-      confirmBtn.textContent = "...";
+      // Show spinner instead of just "..."
+      confirmBtn.empty();
+      const spinner = confirmBtn.createSpan({ cls: "tm-btn-spinner" });
+      confirmBtn.createSpan({ text: t("suggestions_confirm"), cls: "tm-btn-confirm-loading-label" });
       const result = await this.plugin.kernelService.applySuggestion(sugg);
       if (result.ok) {
         card.classList.add("tm-card-removing");
@@ -581,6 +611,7 @@ export class SidebarDockView extends ItemView {
         this.refreshActiveTab();
       } else {
         confirmBtn.disabled = false;
+        confirmBtn.empty();
         confirmBtn.textContent = t("suggestions_confirm");
       }
     });
