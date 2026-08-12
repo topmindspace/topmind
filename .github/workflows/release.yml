@@ -382,6 +382,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
+      - uses: actions/checkout@v5
+
       - name: Poll until release is visible
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
