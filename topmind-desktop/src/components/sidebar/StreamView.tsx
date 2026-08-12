@@ -55,8 +55,21 @@ export function StreamView({ onNavigate }: StreamViewProps) {
     }
     try {
       const ctx = await api.ws.getStreamContext();
-      setPeriodPath(ctx.periodRelPath);
-      setPeriodTitle(ctx.periodTitle || t("sidebar.stream.defaultTitle"));
+      // Silent path: skip state update if period path/title unchanged
+      if (silent) {
+        setPeriodPath((prev) => {
+          if (prev === ctx.periodRelPath) return prev;
+          return ctx.periodRelPath;
+        });
+        setPeriodTitle((prev) => {
+          const next = ctx.periodTitle || t("sidebar.stream.defaultTitle");
+          if (prev === next) return prev;
+          return next;
+        });
+      } else {
+        setPeriodPath(ctx.periodRelPath);
+        setPeriodTitle(ctx.periodTitle || t("sidebar.stream.defaultTitle"));
+      }
 
       if (!ctx.periodRelPath) {
         setEntries([]);
@@ -65,7 +78,19 @@ export function StreamView({ onNavigate }: StreamViewProps) {
       }
 
       const content = await api.ws.read(ctx.periodRelPath);
-      setEntries(parsePeriodNote(content));
+      // Identity check: skip setEntries when content unchanged (anti-flicker on auto-save)
+      const nextEntries = parsePeriodNote(content);
+      setEntries((prev) => {
+        if (silent && prev.length === nextEntries.length) {
+          const same = prev.every((e, i) =>
+            e.heading === nextEntries[i]?.heading &&
+            e.body === nextEntries[i]?.body &&
+            e.preview === nextEntries[i]?.preview,
+          );
+          if (same) return prev;
+        }
+        return nextEntries;
+      });
       if (silent) setError(null);
     } catch (e) {
       if (!silent) setError(e instanceof Error ? e.message : String(e));
@@ -80,15 +105,23 @@ export function StreamView({ onNavigate }: StreamViewProps) {
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null;
-    const unsub = onLocal("workspace:file-changed", () => {
+    const unsub = onLocal("workspace:file-changed", (payload) => {
+      // Only react to file-changed events that affect the stream period
+      // (no relativePath = structural change, or relativePath matches period path)
+      const rel =
+        payload && typeof payload === "object" && "relativePath" in payload
+          ? String((payload as { relativePath?: string }).relativePath || "")
+          : "";
+      // If it's a specific file save that's not the period note, skip
+      if (rel && periodPath && !rel.startsWith("10-") && rel !== periodPath) return;
       if (timer) clearTimeout(timer);
-      timer = setTimeout(() => void load({ silent: true }), 200);
+      timer = setTimeout(() => void load({ silent: true }), 300);
     });
     return () => {
       if (timer) clearTimeout(timer);
       unsub();
     };
-  }, [load]);
+  }, [load, periodPath]);
 
   const handleOpenPeriod = useCallback(
     (focusHeading?: string) => {
@@ -311,7 +344,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
                           <span className="h-1 w-1 rounded-full bg-text-quaternary/30" aria-hidden />
                         </span>
                       )}
-                      <div className="line-clamp-2 min-w-0 flex-1 text-3xs leading-snug text-text-primary">
+                      <div className="line-clamp-4 min-w-0 flex-1 text-3xs leading-snug text-text-primary">
                         {entry.preview || entry.body || entry.heading}
                       </div>
                     </button>

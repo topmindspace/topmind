@@ -656,9 +656,10 @@ export class StreamWorkbenchView extends ItemView {
       this.app.workspace.openLinkText(periodPath, "", false);
     });
 
-    // Only very long content (>500 chars or >10 lines) starts collapsed;
+    // Only very long content (>600 chars or >20 lines) starts collapsed;
     // normal-length entries show fully for maximum readability.
-    const isLongContent = entry.text.length > 500 || entry.text.split("\n").length > 10;
+    // Aligned with Desktop stream card thresholds (STREAM_EXPAND_CHAR_BUDGET=480, LINE_BUDGET=8).
+    const isLongContent = entry.text.length > 600 || entry.text.split("\n").filter((l: string) => l.trim()).length > 20;
     const body = card.createDiv({ cls: isLongContent ? "tm-card-body tm-collapsed" : "tm-card-body" });
     if (entry.text) {
       try {

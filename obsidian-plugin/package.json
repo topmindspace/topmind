@@ -1,6 +1,6 @@
 {
   "name": "topmind-obsidian-plugin",
-  "version": "3.1.1",
+  "version": "3.1.2",
   "private": true,
   "description": "topmind Stream for Obsidian — 主区域流式工作台 + AI 沉淀副驾",
   "type": "module",

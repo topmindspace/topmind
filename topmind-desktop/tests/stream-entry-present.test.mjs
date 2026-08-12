@@ -33,7 +33,8 @@ describe("stream-entry-present", () => {
   });
 
   it("long multi-line body needs expand", () => {
-    const body = Array.from({ length: 8 }, (_, i) => `line ${i} extra words here`).join("\n");
+    // Exceeds STREAM_EXPAND_LINE_BUDGET (8) to trigger expand
+    const body = Array.from({ length: 10 }, (_, i) => `line ${i} extra words here`).join("\n");
     assert.equal(
       streamEntryNeedsExpand({ body, rest: "more", preview: "line 0" }),
       true,

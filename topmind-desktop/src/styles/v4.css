@@ -1337,19 +1337,21 @@ button.v4-dash-card:active,
   padding-left: 0.35rem;
 }
 
-/* Collapsed: soft max-height + fade (works on multi-block MD better than line-clamp alone) */
+/* Collapsed: soft max-height + fade (works on multi-block MD better than line-clamp alone)
+ * Increased from 5 lines / 7.5em to 12 lines / 18em so most content shows fully.
+ * Only truly long content (>20 lines) gets clamped. */
 .v4-stream-md-clamp {
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 5;
+  -webkit-line-clamp: 12;
   overflow: hidden;
-  max-height: 7.5em;
+  max-height: 18em;
 }
 .v4-stream-md-clamp-soft {
-  max-height: 4.2em;
+  max-height: 10em;
   overflow: hidden;
-  mask-image: linear-gradient(180deg, #000 55%, transparent 100%);
-  -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 70%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent 100%);
 }
 .v4-stream-md-clamp-rest {
   display: -webkit-box;

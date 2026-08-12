@@ -98,12 +98,12 @@ export function openQuickCaptureWindow(opts) {
   // Opaque surface — transparent + vibrancy previously caused "blank" windows
   // when CSS tokens lagged or content was translucent.
   const win = new BrowserWindow({
-    width: 460,
-    height: 520,
+    width: 480,
+    height: 560,
     minWidth: 360,
-    minHeight: 360,
-    maxWidth: 720,
-    maxHeight: 880,
+    minHeight: 400,
+    maxWidth: 800,
+    maxHeight: 960,
     show: false,
     alwaysOnTop,
     skipTaskbar: true,

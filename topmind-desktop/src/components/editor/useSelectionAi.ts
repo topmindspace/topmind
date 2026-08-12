@@ -68,6 +68,17 @@ function friendlyAiError(err: unknown, ready: boolean, t: TFunction): string {
   return raw;
 }
 
+/** Normalize whitespace for tolerant comparison.
+ *  Trims trailing spaces per line and collapses multiple blank lines to one,
+ *  so minor auto-format changes (e.g. trailing space stripped by Tiptap)
+ *  don't block replacement. */
+function normalizeForCompare(s: string): string {
+  return String(s || "")
+    .replace(/[ \t]+\n/gu, "\n")
+    .replace(/\n{3,}/gu, "\n\n")
+    .trim();
+}
+
 export function useSelectionAi({
   editor,
   readOnly,
@@ -610,15 +621,30 @@ export function useSelectionAi({
         return;
       }
       const snap = originalAtRunRef.current || target.text;
-      if (live !== snap) {
+      // Use normalized comparison — minor whitespace changes (trailing spaces,
+      // auto-format line breaks) should not block replacement.
+      if (normalizeForCompare(live) !== normalizeForCompare(snap)) {
         setError(t("selectionAi.errorSelectionChanged"));
         setPhase("error");
         setStatusHint(t("selectionAi.errorBlockReplace"));
         return;
       }
+      // Capture doc size before replacement to calculate new selection range
+      const sizeBefore = editor.state.doc.content.size;
       const ok = replaceSelectionWithMarkdown(editor, from, to, preview);
       if (!ok) {
         editor.chain().focus().insertContentAt({ from, to }, preview).run();
+      }
+      // Re-select the replaced range so user can see the result and re-run AI if needed
+      try {
+        const sizeAfter = editor.state.doc.content.size;
+        const insertedLen = sizeAfter - sizeBefore + (to - from);
+        const newEnd = Math.min(from + insertedLen, editor.state.doc.content.size);
+        if (newEnd > from) {
+          editor.chain().setTextSelection({ from, to: newEnd }).focus().run();
+        }
+      } catch {
+        /* best-effort — editor may not accept selection change */
       }
     } else {
       insertMarkdown(editor, preview);
@@ -650,7 +676,8 @@ export function useSelectionAi({
         return;
       }
       const snap = originalAtRunRef.current || target.text;
-      if (live !== snap) {
+      // Use normalized comparison — minor whitespace changes should not block
+      if (normalizeForCompare(live) !== normalizeForCompare(snap)) {
         setError(t("selectionAi.errorSelectionChanged"));
         setPhase("error");
         setStatusHint(t("selectionAi.errorBlockReplace"));
@@ -658,6 +685,12 @@ export function useSelectionAi({
       }
       // Insert after the selection end, with a blank line separator
       insertMarkdownAt(editor, `\n\n${preview}`, to);
+      // Position cursor at the end of inserted content
+      try {
+        editor.chain().focus().run();
+      } catch {
+        /* ignore */
+      }
     } else {
       insertMarkdown(editor, `\n\n${preview}`);
     }

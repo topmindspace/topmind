@@ -537,6 +537,7 @@ export function CaptureForm({
   isFloat,
   isMemory,
   topicName,
+  wrapperClassName,
   attachmentsSlot,
   previewSlot,
 }: {
@@ -544,6 +545,8 @@ export function CaptureForm({
   isFloat: boolean;
   isMemory: boolean;
   topicName: string;
+  /** Wrapper className — float mode uses flex-col so textarea can grow */
+  wrapperClassName?: string;
   attachmentsSlot?: ReactNode;
   previewSlot?: ReactNode;
 }) {
@@ -586,7 +589,7 @@ export function CaptureForm({
   } = form;
 
   return (
-    <>
+    <div className={wrapperClassName}>
       {isMemory ? (
         <p className="mb-2 text-3xs leading-relaxed text-text-tertiary">
           {t("overlays:capture.memoryHint", { topic: topicName })}
@@ -638,6 +641,7 @@ export function CaptureForm({
         }
         autoFocus
         rows={isFloat ? 5 : 6}
+        className={isFloat ? "min-h-0 flex-1 resize-none" : undefined}
       />
 
       {/* Advanced: mode · title — collapsed by default (lowest friction) */}
@@ -836,6 +840,6 @@ export function CaptureForm({
           </Button>
         </div>
       </div>
-    </>
+    </div>
   );
 }

@@ -842,7 +842,7 @@ export async function checkAllSurfaces(opts = {}) {
       };
       const token = opts.token || process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
       if (token) headers.Authorization = `Bearer ${token}`;
-      const listUrl = `${apiBase}/repos/${repo}/releases?per_page=30`;
+      const listUrl = `${apiBase}/repos/${repo}/releases?per_page=100`;
       const res = await fetchWithRetry(listUrl, {
         fetchImpl,
         headers,

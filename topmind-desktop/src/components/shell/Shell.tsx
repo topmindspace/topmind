@@ -213,7 +213,7 @@ export function Shell({ settings }: ShellProps) {
 
         {showAiPanel ? (
           <>
-            <Splitter side="right" value={aiPanelWidth} onChange={setAiPanelWidth} min={280} max={560} />
+            <Splitter side="right" value={aiPanelWidth} onChange={setAiPanelWidth} min={280} max={800} />
             <div style={{ width: aiPanelWidth }} className="v4-side-panel">
               <AiPanel />
             </div>

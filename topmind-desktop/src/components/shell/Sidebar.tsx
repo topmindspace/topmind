@@ -135,8 +135,17 @@ export function Sidebar() {
       .catch(() => {});
   }, [t]);
 
+  // Only reload stream context pins when the event has no relativePath
+  // (structural change like organize/move). Content-only saves (auto-save)
+  // carry a relativePath and don't change the period path — skip to avoid flicker.
   useEffect(() => {
-    return onLocal("workspace:file-changed", () => {
+    return onLocal("workspace:file-changed", (payload) => {
+      const rel =
+        payload && typeof payload === "object" && "relativePath" in payload
+          ? String((payload as { relativePath?: string }).relativePath || "")
+          : "";
+      // Content-only save: period path unchanged — skip stream context reload
+      if (rel) return;
       void api.ws
         .getStreamContext()
         .then((ctx) => {

@@ -106,7 +106,7 @@ export function QuickCapture({ variant, onDone }: QuickCaptureProps = {}) {
         "v4-overlay-sheet w-[min(480px,94vw)] p-4 sm:p-5",
         // Float: fill utility window with opaque sheet (never transparent blank)
         isFloat &&
-          "v4-no-drag max-h-[100vh] w-full max-w-none flex-1 rounded-none border-0 bg-surface shadow-none",
+          "v4-no-drag flex max-h-[100vh] w-full max-w-none flex-1 flex-col rounded-none border-0 bg-surface shadow-none",
         dragOver && "ring-2 ring-accent-color",
       )}
       style={isFloat ? { minHeight: "100%" } : undefined}
@@ -195,6 +195,7 @@ export function QuickCapture({ variant, onDone }: QuickCaptureProps = {}) {
         isFloat={isFloat}
         isMemory={isMemory}
         topicName={topicName}
+        wrapperClassName={isFloat ? "flex min-h-0 flex-1 flex-col" : undefined}
         attachmentsSlot={
           <>
             <CaptureAttachmentList attachments={form.attachments} onRemove={form.removeAttachment} />

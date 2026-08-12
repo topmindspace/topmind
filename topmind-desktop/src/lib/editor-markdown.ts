@@ -83,6 +83,47 @@ type MarkdownParserStorage = {
 };
 
 /**
+ * Pre-process Markdown before parsing to prevent common formatting issues:
+ *  1. Ensure blank line before block-level markers (headings, lists, quotes)
+ *     when preceded by non-empty content. Without this, single `\n` before a
+ *     list marker can be parsed as a hard break (`<br>`) inside a paragraph
+ *     instead of starting a new block — especially with tiptap-markdown `breaks: true`.
+ *  2. Ensure blank line when switching list types (bullet → ordered or vice-versa)
+ *     so the parser creates separate list nodes instead of merging.
+ *  3. Normalize consecutive blank lines within list blocks (max one blank line).
+ */
+function preprocessMarkdownForBlocks(text: string): string {
+  let out = text;
+  // Add blank line before block markers when missing (not at start of text)
+  out = out.replace(/([^\n\s])\n(#{1,6}\s|[-*+]\s|\d+\.\s|>\s)/gu, "$1\n\n$2");
+  // Ensure separation when switching between bullet and ordered list markers
+  // e.g. "- item\n1. item" → "- item\n\n1. item"
+  out = out.replace(/([-*+]\s.*)\n(\d+\.\s)/gu, "$1\n\n$2");
+  out = out.replace(/(\d+\.\s.*)\n([-*+]\s)/gu, "$1\n\n$2");
+  // Collapse 3+ blank lines to 2 (preserve one blank line between blocks)
+  out = out.replace(/\n{3,}/gu, "\n\n");
+  return out;
+}
+
+/**
+ * Strip empty paragraphs and stray `<br>` tags from boundaries of parsed HTML.
+ * tiptap-markdown with `breaks: true` can inject `<br>` at block boundaries
+ * which creates visible empty lines in the editor.
+ */
+function cleanupParsedHtml(html: string): string {
+  return html
+    // Strip ALL leading/trailing empty paragraphs (including those with only <br>)
+    .replace(/^(?:<p>\s*(?:<br\s*\/??>)?\s*<\/p>\s*)+/giu, "")
+    .replace(/(?:\s*<p>\s*(?:<br\s*\/??>)?\s*<\/p>)+$/giu, "")
+    // Strip leading/trailing <br> tags that create phantom empty lines
+    .replace(/^(?:<br\s*\/??>\s*)+/giu, "")
+    .replace(/(?:\s*<br\s*\/??>)+$/giu, "")
+    // Collapse multiple consecutive <br> to one (within inline content)
+    .replace(/(<br\s*\/??>)\s*(<br\s*\/??>)+/giu, "$1")
+    .trim();
+}
+
+/**
  * Replace a ProseMirror range with Markdown (via tiptap-markdown parser → HTML).
  * Used by selection AI rewrite so lists / emphasis survive the replace.
  *
@@ -90,7 +131,11 @@ type MarkdownParserStorage = {
  * - Inline content (no block markers) → parsed inline, no extra paragraph boundaries
  * - Block content → parsed as block, but empty leading/trailing paragraphs stripped
  * - Selection inside a list item → content inherits list context
+ * - Nested lists (unordered with ordered children) → preserve indentation and marker types
  * - All leading/trailing empty paragraphs are stripped (not just one)
+ * - List markers (- * + 1.) are detected even when indented (nested)
+ * - Block markers get proper blank-line spacing via pre-processing
+ * - Stray <br> tags at boundaries are cleaned
  */
 export function replaceSelectionWithMarkdown(
   editor: Editor | null | undefined,
@@ -100,8 +145,11 @@ export function replaceSelectionWithMarkdown(
 ): boolean {
   if (!editor || from > to) return false;
   // Trim leading/trailing whitespace that causes extra blank lines
-  const text = String(md || "").replace(/^\n+/, "").replace(/\n+$/, "");
-  if (!text) return false;
+  const raw = String(md || "").replace(/^\n+/, "").replace(/\n+$/, "");
+  if (!raw) return false;
+
+  // Pre-process: ensure proper spacing before block elements
+  const text = preprocessMarkdownForBlocks(raw);
 
   const storage = editor.storage as MarkdownParserStorage;
   let content: string = text;
@@ -109,15 +157,11 @@ export function replaceSelectionWithMarkdown(
     const parse = storage.markdown?.parser?.parse;
     if (typeof parse === "function") {
       // Multi-block markers → full block parse; otherwise keep inline for mid-paragraph
+      // Detect block content including indented (nested) list markers
       const looksBlock =
-        /(^|\n)(#{1,6}\s|[-*+]\s|\d+\.\s|>\s)/mu.test(text) || /\n\s*\n/u.test(text);
+        /(^|\n)(#{1,6}\s|[-*+]\s|\d+\.\s|>\s|\s{2,}[-*+]\s|\s{2,}\d+\.\s)/mu.test(text) || /\n\s*\n/u.test(text);
       content = parse(text, { inline: !looksBlock });
-      // Strip ALL leading/trailing empty paragraphs (not just one)
-      // Also strip whitespace-only paragraphs
-      content = content
-        .replace(/^(?:<p>\s*<\/p>\s*)+/giu, "")
-        .replace(/(?:\s*<p>\s*<\/p>)+$/giu, "")
-        .trim();
+      content = cleanupParsedHtml(content);
       // If content became empty after stripping, return false (no-op)
       if (!content) return false;
     }
@@ -149,17 +193,23 @@ export function insertMarkdownAt(
   pos: number,
 ): boolean {
   if (!editor || editor.isDestroyed) return false;
-  const text = String(md || "");
-  if (!text) return false;
+  const raw = String(md || "");
+  if (!raw) return false;
+
+  // Pre-process: ensure proper spacing before block elements
+  const text = preprocessMarkdownForBlocks(raw);
 
   const storage = editor.storage as MarkdownParserStorage;
   let content: string = text;
   try {
     const parse = storage.markdown?.parser?.parse;
     if (typeof parse === "function") {
+      // Detect block content including indented (nested) list markers
       const looksBlock =
-        /(^|\n)(#{1,6}\s|[-*+]\s|\d+\.\s|>\s)/mu.test(text) || /\n\s*\n/u.test(text);
+        /(^|\n)(#{1,6}\s|[-*+]\s|\d+\.\s|>\s|\s{2,}[-*+]\s|\s{2,}\d+\.\s)/mu.test(text) || /\n\s*\n/u.test(text);
       content = parse(text, { inline: !looksBlock });
+      content = cleanupParsedHtml(content);
+      if (!content) return false;
     }
   } catch {
     content = text;

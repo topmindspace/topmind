@@ -35,7 +35,7 @@ Rules:
 - Preserve necessary Markdown structure (headings, lists, links, bold, etc.) when the context needs it
 - Do not invent facts absent from the source; when continuing, connect naturally without unrelated settings
 - For summaries, output concise bullets; for continuation, pick up from the break point
-- **Whole-document format consistency (critical)**: when "full document / document context" is provided, the rewrite must match the whole document's style and layout — heading levels, list markers (- / * / 1.), task lists, paragraph density, blank-line habits, link/bold style, mixed CJK/Latin habits; do not invent a separate structure or tone from the selection alone. Output only the replacement for the selection — do not restate the full document.`;
+- **Whole-document format consistency (critical)**: when "full document / document context" is provided, the rewrite must match the whole document's style and layout — heading levels, list markers (- / * / 1.), task lists, paragraph density, blank-line habits, link/bold style, mixed CJK/Latin habits; do not invent a separate structure or tone from the selection alone. Output only the replacement for the selection — do not restate the full document.\n- **List format rules**: preserve the original document's list marker style (if it uses dash, keep dash; if asterisk, keep asterisk); maintain indentation for nested lists (2-space indent for children); separate different list types with a blank line; do not add extra blank lines between list items; do not mix ordered list markers inside unordered lists unless the original has nested ordered lists.`;
   }
   return `你是 topmind 编辑器的写作助手（类似 Notion AI 的行内能力）。
 规则：
@@ -47,7 +47,7 @@ Rules:
 - 保留必要的 Markdown 结构（标题、列表、链接、加粗等）若语境需要
 - 不要编造原文没有的事实；续写时合理衔接，不引入无关设定
 - 若是总结，输出简洁要点；若是续写，从断点自然接上
-- **整篇格式一致（关键）**：若提供了「全文/文档上下文」，改写结果必须贴合整篇文档的写法与版式——标题层级、列表标记（- / * / 1.）、任务列表、段落密度、空行习惯、链接/加粗风格、中英文混排习惯；禁止只按选区局部另起一套结构或语气。只输出替换选区的那一段，不要复述全文。`;
+- **整篇格式一致（关键）**：若提供了「全文/文档上下文」，改写结果必须贴合整篇文档的写法与版式——标题层级、列表标记（- / * / 1.）、任务列表、段落密度、空行习惯、链接/加粗风格、中英文混排习惯；禁止只按选区局部另起一套结构或语气。只输出替换选区的那一段，不要复述全文。\n- **列表格式约束**：保持原文档的列表标记符号（用短横线就继续用短横线，用星号就继续用星号）；嵌套列表保持原有缩进层级（子项用 2 空格缩进）；不同列表类型之间用空行分隔；列表项之间不加多余空行；不要在无序列表中混入数字列表标记（除非原文档有嵌套数字列表）。`;
 }
 
 /** System rules shared by all one-shot complete calls (default zh for backward compat). */

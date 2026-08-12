@@ -81,6 +81,11 @@ function stripMetaWrappers(text) {
   // Separator then explanation dump after the result
   out = out.replace(/\n---+\n[\s\S]*?(?:解释|说明|改动|变更说明|Why I|I (?:changed|rewrote)|Note:)/iu, "");
 
+  // Ensure blank line between different list types (bullet → ordered or vice-versa)
+  // so the markdown parser creates separate list nodes instead of merging.
+  out = out.replace(/([-*+]\s.*)\n(\d+\.\s)/gu, "$1\n\n$2");
+  out = out.replace(/(\d+\.\s.*)\n([-*+]\s)/gu, "$1\n\n$2");
+
   return out.trim();
 }
 

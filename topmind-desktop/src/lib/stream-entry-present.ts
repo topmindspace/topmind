@@ -17,10 +17,12 @@ import {
 
 export type StreamEntryKind = "moment" | "append" | "article" | "prose";
 
-/** Soft length budget before expand is offered (CJK-friendly chars). */
-export const STREAM_EXPAND_CHAR_BUDGET = 220;
-/** Soft line budget (non-empty lines) before expand. */
-export const STREAM_EXPAND_LINE_BUDGET = 4;
+/** Soft length budget before expand is offered (CJK-friendly chars).
+ *  Increased from 220→480 so most short-to-medium entries show fully. */
+export const STREAM_EXPAND_CHAR_BUDGET = 480;
+/** Soft line budget (non-empty lines) before expand.
+ *  Increased from 4→8 so multi-line moments show without truncate. */
+export const STREAM_EXPAND_LINE_BUDGET = 8;
 
 export type StreamFeedRow = {
   entry: StreamEntry & { index: number };
@@ -82,8 +84,8 @@ export function streamEntryNeedsExpand(
   if (appendCount > 1) return true;
 
   const lines = body.split("\n").filter((l) => l.trim());
-  // Single short line / two short lines → never expand control
-  if (lines.length <= 2 && body.length <= STREAM_EXPAND_CHAR_BUDGET) {
+  // Short content (up to 8 lines and 480 chars) → never expand control
+  if (lines.length <= STREAM_EXPAND_LINE_BUDGET && body.length <= STREAM_EXPAND_CHAR_BUDGET) {
     // If rest is empty and no multi-blank, full show
     if (!String(entry.rest || "").trim() && appendCount <= 1) return false;
   }

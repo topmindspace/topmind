@@ -48,6 +48,11 @@ export function sanitizeInlineAiResult(raw: unknown): string {
       "",
     );
 
+  // Ensure blank line between different list types (bullet → ordered or vice-versa)
+  // so the markdown parser creates separate list nodes instead of merging.
+  out = out.replace(/([-*+]\s.*)\n(\d+\.\s)/gu, "$1\n\n$2");
+  out = out.replace(/(\d+\.\s.*)\n([-*+]\s)/gu, "$1\n\n$2");
+
   return out
     .replace(/\r\n/gu, "\n")
     .replace(/[ \t]+\n/gu, "\n")
