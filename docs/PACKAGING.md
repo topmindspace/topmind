@@ -259,15 +259,24 @@ Local engines still accept `>=20.11`.
 ### Release pipeline (surface-aware)
 
 ```text
-plan            (resolves surfaces + validates dispatch inputs; always runs)
-pack-skills     (skills-v* | v* | dispatch pack_skills=true)
-pack-extension  (extension-v* | v* | dispatch pack_extension=true)
-pack-obsidian   (obsidian-v* | v* | dispatch pack_obsidian=true)
-pack-desktop    (desktop-v* | v* | dispatch pack_desktop=true)
-finalize        (when plan.outputs.create_release=='true' and at least one surface produced assets)
-                → also uploads latest.json (public update stamp for Desktop, no API)
-update-cask     (when desktop=='true'; updates version & sha256 to topmindspace/homebrew-tap using HOMEBREW_TAP_TOKEN secret)
+plan             (resolves surfaces + validates dispatch inputs; concurrent guard; always runs)
+create-release   (creates empty GitHub Release for the tag)
+wait-for-release (polls API until release is visible — eventual consistency buffer)
+pack-skills      (skills-v* | v* | dispatch pack_skills=true)
+pack-extension   (extension-v* | v* | dispatch pack_extension=true)
+pack-obsidian    (obsidian-v* | v* | dispatch pack_obsidian=true)
+pack-desktop     (desktop-v* | v* | dispatch pack_desktop=true)
+finalize         (when at least one surface produced assets successfully)
+                 → also uploads latest.json (public update stamp for Desktop, no API)
+update-cask      (when desktop=='true'; updates version & sha256 to topmindspace/homebrew-tap using HOMEBREW_TAP_TOKEN secret)
 ```
+
+**Concurrent release protection:**
+
+- A **shared concurrency group** (`release`) ensures only one release workflow runs at a time.
+- Surface-specific tags (`skills-v*` / `desktop-v*` / `extension-v*` / `obsidian-v*`) are **skipped** if a full `v*` release for the same version already exists. This prevents duplicate releases when a full `v*` tag is pushed alongside surface-specific tags.
+- All `gh release upload` calls use a **retry wrapper** (5 attempts, 10s delay) to handle transient GitHub API issues (e.g., "release not found" right after creation due to eventual consistency).
+- **IMPORTANT**: Do NOT push surface-specific tags alongside a full `v*` tag. The `v*` tag already builds ALL surfaces. Surface-specific tags are for independent single-surface releases only.
 
 | Tag push | Skills | Extension | Obsidian | Desktop | Release | Draft | GitHub **Latest** |
 |----------|--------|-----------|----------|---------|---------|-------|-------------------|
@@ -288,11 +297,11 @@ npm run versions
 # Full product release (skills + extension + obsidian + desktop matrix → published Release)
 # tag = v$(node -p "require('./topmind-desktop/package.json').version")
 git tag "v$(node -p "require('./topmind-desktop/package.json').version")"
-git push origin --tags
+git push origin "v$(node -p "require('./topmind-desktop/package.json').version")"
 
-# Skills pack only (also indexed by skills.sh via GitHub repository)
+# Skills pack only (independent release — NOT alongside a full v* tag)
 git tag "skills-v$(node -p "require('./skills/topmind-pack.json').version")"
-git push origin --tags
+git push origin "skills-v$(node -p "require('./skills/topmind-pack.json').version")"
 
 # Note: skills.sh / npx skills will automatically index the GitHub repo for `npx skills add topmindspace/topmind`
 # Or Actions → Release → Run workflow (draft; set release_tag)
@@ -341,6 +350,7 @@ If `pack-*` shows "(this job was skipped)" with the checkbox checked:
 1. Open the run → click `plan` → click "Release plan" in the step summary. The truth table of resolved `skills/extension/desktop/tag` is logged there.
 2. If `desktop=true` is shown but `pack-desktop` was still skipped, the dispatched workflow file is an OLDER version than `main` — `workflow_dispatch` runs the workflow file as it exists on the dispatched branch. Click the workflow filename on the run page to confirm the SHA matches the current `main`.
 3. If `desktop=false` is shown, you forgot to check the `pack_desktop` checkbox (its default is `false`).
+4. If the plan summary shows "skipped: full release vX.Y.Z already exists", a full `v*` release for the same version was already published. The surface-specific tag was correctly skipped to avoid a duplicate release. To force a surface-specific release, bump the surface version first.
 
 Release notes group assets by surface and list only **user-facing** installers (no `.blockmap` / update metadata in the primary download table).
 

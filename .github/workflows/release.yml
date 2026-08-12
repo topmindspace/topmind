@@ -6,13 +6,30 @@
 #   extension-v*  → browser extension only
 #   desktop-v*    → desktop matrix only
 #   obsidian-v*   → Obsidian plugin only
-#   v*            → skills + extension + desktop + obsidian
+#   v*            → skills + extension + desktop + obsidian (full release)
 #
-# Flow: cleanup → plan → create-release → pack-* (upload directly to release) → finalize-release
+# Flow: cleanup → plan → create-release → wait-for-release → pack-* (upload) → finalize-release
 #
 # Architecture: Pack jobs upload directly to the GitHub Release via `gh release upload`,
 # bypassing GitHub Actions artifact storage entirely. This avoids storage quota limits
 # that previously caused release failures (~1.2GB desktop installers exceeded 500MB free tier).
+#
+# # Retry logic
+#
+# All `gh release upload` calls use a retry wrapper (5 attempts, 10s delay) to handle
+# transient GitHub API issues (e.g., "release not found" right after creation due to
+# eventual consistency).
+#
+# # Concurrent release guard
+#
+# A shared concurrency group (`release`) ensures only one release workflow runs at a time.
+# Surface-specific tags (skills-v* / desktop-v* / extension-v* / obsidian-v*) are SKIPPED
+# if a full `v*` release for the same version already exists. This prevents duplicate
+# releases when a full `v*` tag is pushed alongside surface-specific tags.
+#
+# IMPORTANT: Do NOT push surface-specific tags alongside a full `v*` tag.
+#   The `v*` tag already builds ALL surfaces. Surface-specific tags are for
+#   independent single-surface releases only.
 #
 # # Behaviour notes
 #
@@ -72,7 +89,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release
   cancel-in-progress: false
 
 env:
@@ -132,6 +149,8 @@ jobs:
     steps:
       - id: plan
         shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           SKILLS=false
@@ -141,6 +160,7 @@ jobs:
           TAG=""
           CREATE_RELEASE=false
           NEEDS_VALIDATION=false
+          SKIP_REASON=""
 
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
             TAG="${GITHUB_REF_NAME}"
@@ -183,6 +203,26 @@ jobs:
             OBSIDIAN="${INPUT_OBSIDIAN}"
           fi
 
+          # ── Concurrent release guard ────────────────────────────────────────
+          # Surface-specific tags (skills-v* / desktop-v* / extension-v* / obsidian-v*)
+          # are SKIPPED if a full v* release for the same version already exists.
+          # This prevents duplicate releases when a full v* tag is pushed alongside
+          # surface-specific tags.
+          if [[ "${TAG}" == skills-v* || "${TAG}" == extension-v* || "${TAG}" == desktop-v* || "${TAG}" == obsidian-v* ]]; then
+            VERSION="${TAG#*-v}"
+            FULL_TAG="v${VERSION}"
+            if gh release view "${FULL_TAG}" >/dev/null 2>&1; then
+              echo "⚠️  Full release ${FULL_TAG} already exists — skipping surface-specific ${TAG}."
+              echo "    The full release includes all surfaces; this surface-specific tag is redundant."
+              SKILLS=false
+              EXTENSION=false
+              DESKTOP=false
+              OBSIDIAN=false
+              CREATE_RELEASE=false
+              SKIP_REASON="skipped: full release ${FULL_TAG} already exists"
+            fi
+          fi
+
           {
             echo "skills=${SKILLS}"
             echo "extension=${EXTENSION}"
@@ -195,6 +235,10 @@ jobs:
           {
             echo "### Release plan"
             echo ""
+            if [[ -n "${SKIP_REASON}" ]]; then
+              echo "> ℹ️ **${SKIP_REASON}** — all surfaces skipped."
+              echo ""
+            fi
             echo "| Surface | Build |"
             echo "|---------|-------|"
             echo "| Skills | ${SKILLS} |"
@@ -330,10 +374,37 @@ jobs:
             echo "Release created: ${TAG}"
           fi
 
+  # ── Wait for release to be visible via API (eventual consistency buffer) ──
+  wait-for-release:
+    name: wait for release
+    needs: [plan, create-release]
+    if: needs.plan.outputs.create_release == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Poll until release is visible
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ needs.plan.outputs.tag }}"
+          echo "Waiting for release ${TAG} to be visible via API..."
+          for i in $(seq 1 12); do
+            if gh release view "${TAG}" >/dev/null 2>&1; then
+              echo "✅ Release ${TAG} is visible (attempt ${i}/12)"
+              exit 0
+            fi
+            echo "  attempt ${i}/12: not yet visible, waiting 5s..."
+            sleep 5
+          done
+          echo "❌ Release ${TAG} not visible after 60s"
+          exit 1
+
   # ── Pack Skills (upload directly to GitHub Release) ──────────────────────
   pack-skills:
     name: skills pack
-    needs: [plan, create-release]
+    needs: [plan, wait-for-release]
     if: needs.plan.outputs.skills == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -360,13 +431,24 @@ jobs:
         run: |
           set -euo pipefail
           TAG="${{ needs.plan.outputs.tag }}"
-          # Upload all skills artifacts directly to the release
-          gh release upload "${TAG}" dist/topmind-skills-*.tar.gz dist/topmind-skills-*.zip dist/topmind-skills-*-manifest.json dist/topmind-skills-*.SHA256SUMS --clobber
+          # Upload all skills artifacts directly to the release (with retry)
+          upload_with_retry() {
+            local tag="$1"; shift
+            for i in 1 2 3 4 5; do
+              if gh release upload "$tag" "$@" --clobber; then
+                echo "Upload succeeded on attempt $i/5"
+                return 0
+              fi
+              if [[ $i -lt 5 ]]; then echo "Attempt $i/5 failed, retrying in 10s..."; sleep 10; fi
+            done
+            echo "ERROR: upload failed after 5 attempts"; return 1
+          }
+          upload_with_retry "${TAG}" dist/topmind-skills-*.tar.gz dist/topmind-skills-*.zip dist/topmind-skills-*-manifest.json dist/topmind-skills-*.SHA256SUMS
 
   # ── Pack Extension (upload directly to GitHub Release) ───────────────────
   pack-extension:
     name: extension pack
-    needs: [plan, create-release]
+    needs: [plan, wait-for-release]
     if: needs.plan.outputs.extension == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -390,12 +472,23 @@ jobs:
         run: |
           set -euo pipefail
           TAG="${{ needs.plan.outputs.tag }}"
-          gh release upload "${TAG}" dist/topmind-clip-extension-*.zip dist/topmind-clip-extension-*.SHA256SUMS --clobber
+          upload_with_retry() {
+            local tag="$1"; shift
+            for i in 1 2 3 4 5; do
+              if gh release upload "$tag" "$@" --clobber; then
+                echo "Upload succeeded on attempt $i/5"
+                return 0
+              fi
+              if [[ $i -lt 5 ]]; then echo "Attempt $i/5 failed, retrying in 10s..."; sleep 10; fi
+            done
+            echo "ERROR: upload failed after 5 attempts"; return 1
+          }
+          upload_with_retry "${TAG}" dist/topmind-clip-extension-*.zip dist/topmind-clip-extension-*.SHA256SUMS
 
   # ── Pack Obsidian plugin (upload directly to GitHub Release) ──────────────
   pack-obsidian:
     name: obsidian pack
-    needs: [plan, create-release]
+    needs: [plan, wait-for-release]
     if: needs.plan.outputs.obsidian == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -461,12 +554,23 @@ jobs:
           for f in "${files[@]}"; do
             echo "  uploading: $(basename "$f") ($(du -h "$f" | cut -f1))"
           done
-          gh release upload "${TAG}" "${files[@]}" --clobber
+          upload_with_retry() {
+            local tag="$1"; shift
+            for i in 1 2 3 4 5; do
+              if gh release upload "$tag" "$@" --clobber; then
+                echo "Upload succeeded on attempt $i/5"
+                return 0
+              fi
+              if [[ $i -lt 5 ]]; then echo "Attempt $i/5 failed, retrying in 10s..."; sleep 10; fi
+            done
+            echo "ERROR: upload failed after 5 attempts"; return 1
+          }
+          upload_with_retry "${TAG}" "${files[@]}"
 
   # ── Pack Desktop (upload directly to GitHub Release) ──────────────────────
   pack-desktop:
     name: desktop (${{ matrix.os }})
-    needs: [plan, create-release]
+    needs: [plan, wait-for-release]
     if: needs.plan.outputs.desktop == 'true'
     strategy:
       fail-fast: false
@@ -598,23 +702,34 @@ jobs:
           for f in "${files[@]}"; do
             echo "  uploading: $(basename "$f") ($(du -h "$f" | cut -f1))"
           done
-          gh release upload "${TAG}" "${files[@]}" --clobber
+          upload_with_retry() {
+            local tag="$1"; shift
+            for i in 1 2 3 4 5; do
+              if gh release upload "$tag" "$@" --clobber; then
+                echo "Upload succeeded on attempt $i/5"
+                return 0
+              fi
+              if [[ $i -lt 5 ]]; then echo "Attempt $i/5 failed, retrying in 10s..."; sleep 10; fi
+            done
+            echo "ERROR: upload failed after 5 attempts"; return 1
+          }
+          upload_with_retry "${TAG}" "${files[@]}"
 
   # ── Finalize: write latest.json + generate release notes ─────────────────
   finalize-release:
     name: finalize release
-    needs: [plan, create-release, pack-skills, pack-extension, pack-obsidian, pack-desktop]
+    needs: [plan, create-release, wait-for-release, pack-skills, pack-extension, pack-obsidian, pack-desktop]
     if: >
       always() &&
       !cancelled() &&
       needs.plan.result == 'success' &&
       needs.create-release.result == 'success' &&
+      needs.wait-for-release.result == 'success' &&
       (
         needs.pack-skills.result == 'success' ||
         needs.pack-extension.result == 'success' ||
         needs.pack-obsidian.result == 'success' ||
-        needs.pack-desktop.result == 'success' ||
-        needs.pack-desktop.result == 'failure'
+        needs.pack-desktop.result == 'success'
       )
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -678,8 +793,19 @@ jobs:
           echo "=== latest.json ==="
           cat latest.json
 
-          # Upload latest.json to the release
-          gh release upload "${TAG}" latest.json --clobber
+          # Upload latest.json to the release (with retry)
+          upload_with_retry() {
+            local tag="$1"; shift
+            for i in 1 2 3 4 5; do
+              if gh release upload "$tag" "$@" --clobber; then
+                echo "Upload succeeded on attempt $i/5"
+                return 0
+              fi
+              if [[ $i -lt 5 ]]; then echo "Attempt $i/5 failed, retrying in 10s..."; sleep 10; fi
+            done
+            echo "ERROR: upload failed after 5 attempts"; return 1
+          }
+          upload_with_retry "${TAG}" latest.json
 
           ASSET_COUNT=$(echo "${ASSETS_JSON}" | jq 'length')
           echo "count=${ASSET_COUNT}" >> "$GITHUB_OUTPUT"
