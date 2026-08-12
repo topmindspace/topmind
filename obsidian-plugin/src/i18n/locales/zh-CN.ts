@@ -246,6 +246,8 @@ export const zhCN = {
   notice_memory_running: "整理记忆中...",
   notice_memory_done: "记忆整理完成 ✓",
   notice_no_inbox: "未找到收件箱目录",
+  notice_new_note_created: "已创建新笔记",
+  notice_new_note_failed: "创建笔记失败",
 
   // ── Accessibility ──
   stream_expand_entry: "点击展开/收起动态条目",
@@ -353,6 +355,7 @@ export const zhCN = {
   toolbar_btn_sidebar: "侧边栏",
   toolbar_btn_settings: "设置",
   toolbar_btn_inbox: "收件箱",
+  toolbar_btn_new_note: "新笔记",
   toolbar_btn_profile: "我的情况",
   toolbar_btn_refresh: "刷新",
   stream_btn_copy: "复制",

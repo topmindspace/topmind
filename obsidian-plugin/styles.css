@@ -3,16 +3,15 @@
    compatibility (dark/light). Scoped to .tm-* classes — never pollutes :root.
    Icon sizing: consistent Lucide icon sizes via explicit SVG width/height.
 
-   Design System (2026-08-11 refactor):
+   Design System (2026-08-12 refactor):
    - Unified button hierarchy: primary / secondary / ghost / icon-only / labeled
    - Consistent icon sizes: 14px (inline/mini) / 16px (small/tab/card) / 18px (toolbar)
    - Consistent border-radius: 4px (mini) / 6px (controls) / 8px (cards)
-   - Consistent spacing scale: 4/6/8/12/16/20px
+   - Tightened spacing: 3/5/8/10/14px (reduced from 4/6/8/12/16px)
    - Clear hover/focus states with accent color
    - Accessible focus-visible rings
-   - Toolbar + sidebar header buttons: icon + text labels (responsive hide on narrow)
-   - Bottom actions: default show labels
-   - Card actions / chat buttons: icon-only with tooltips (compact areas)
+   - Card actions: properly sized, visible icons with hover states
+   - All buttons align with Obsidian's native button aesthetics
    - Spinners for all loading states (no "..." text) */
 
 /* ── CSS Variables (scoped) ─────────────────────────────────────────── */
@@ -24,24 +23,24 @@
   --tm-radius-lg: 8px;
   --tm-radius-xl: 10px;
   --tm-card-radius: 8px;
-  --tm-card-padding: 10px 14px;
+  --tm-card-padding: 6px 10px;
   --tm-input-radius: 6px;
   --tm-suggestion-left-border: 2px solid;
   --tm-transition: 120ms ease;
   --tm-transition-slow: 250ms ease;
-  --tm-gap-xs: 4px;
-  --tm-gap-sm: 6px;
+  --tm-gap-xs: 3px;
+  --tm-gap-sm: 5px;
   --tm-gap-md: 8px;
-  --tm-gap-lg: 12px;
-  --tm-gap-xl: 16px;
+  --tm-gap-lg: 10px;
+  --tm-gap-xl: 14px;
   --tm-icon-xs: 14px;
   --tm-icon-sm: 16px;
   --tm-icon-md: 18px;
   --tm-icon-lg: 20px;
   --tm-accent-rgb: var(--interactive-accent-rgb, 124, 77, 255);
-  --tm-btn-h: 32px;
-  --tm-btn-h-sm: 28px;
-  --tm-btn-h-lg: 36px;
+  --tm-btn-h: 30px;
+  --tm-btn-h-sm: 26px;
+  --tm-btn-h-lg: 34px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -49,7 +48,7 @@
    ═══════════════════════════════════════════════════════════════════════ */
 
 .tm-stream-workbench {
-  padding: 10px 14px;
+  padding: 8px 12px;
   max-width: 1100px;
   margin: 0 auto;
 }
@@ -59,9 +58,9 @@
 .tm-toolbar {
   display: flex;
   align-items: center;
-  gap: var(--tm-gap-md);
-  margin-bottom: var(--tm-gap-lg);
-  padding: 6px 10px;
+  gap: var(--tm-gap-sm);
+  margin-bottom: var(--tm-gap-md);
+  padding: 4px 8px;
   background: var(--background-secondary);
   border-radius: var(--tm-radius-lg);
   border: 1px solid var(--background-modifier-border);
@@ -276,14 +275,14 @@
 
 /* Mini button — for card actions and inline operations */
 .tm-btn-mini {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border-radius: var(--tm-radius-sm);
   border: 1px solid transparent;
   background: transparent;
-  color: var(--text-faint);
+  color: var(--text-muted);
   cursor: pointer;
-  opacity: 0.6;
+  opacity: 0.7;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -298,6 +297,12 @@
   opacity: 1;
   color: var(--interactive-accent);
   background: var(--background-modifier-hover);
+}
+
+.tm-btn-mini svg {
+  width: var(--tm-icon-xs);
+  height: var(--tm-icon-xs);
+  stroke-width: 2;
 }
 
 /* ── AI Task Badge (toolbar + sidebar header) ─────────────────────────── */
@@ -369,8 +374,8 @@
 
 .tm-input-bar {
   display: flex;
-  gap: var(--tm-gap-md);
-  margin-bottom: var(--tm-gap-lg);
+  gap: var(--tm-gap-sm);
+  margin-bottom: var(--tm-gap-md);
 }
 
 .tm-input-wrap {
@@ -383,14 +388,14 @@
 
 .tm-input-field {
   flex: 1;
-  padding: 8px 12px;
+  padding: 6px 10px;
   border-radius: var(--tm-input-radius);
   border: 1px solid var(--background-modifier-border);
   background: var(--background-primary);
   color: var(--text-normal);
   font-size: var(--font-ui-medium);
   resize: none;
-  min-height: 36px;
+  min-height: 32px;
   max-height: 120px;
   font-family: var(--font-text);
   line-height: 1.5;
@@ -439,7 +444,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: var(--tm-gap-lg) 0 var(--tm-gap-sm);
+  margin: var(--tm-gap-md) 0 var(--tm-gap-xs);
   flex-wrap: wrap;
   gap: var(--tm-gap-sm);
 }
@@ -487,14 +492,14 @@
 /* ── Card Action Buttons (icon-only with tooltips) ──── */
 
 .tm-card-action-btn {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: var(--tm-radius-sm);
   border: 1px solid transparent;
   background: transparent;
-  color: var(--text-faint);
+  color: var(--text-muted);
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 3px;
@@ -503,12 +508,25 @@
   transition: all var(--tm-transition);
   white-space: nowrap;
   flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.tm-card-action-btn svg {
+  width: var(--tm-icon-sm);
+  height: var(--tm-icon-sm);
+  stroke-width: 2;
+  flex-shrink: 0;
+}
+
+.tm-card:hover .tm-card-action-btn {
+  opacity: 1;
 }
 
 .tm-card-action-btn:hover {
   color: var(--interactive-accent);
-  border-color: var(--interactive-accent);
+  border-color: var(--background-modifier-border);
   background: var(--background-modifier-hover);
+  opacity: 1;
 }
 
 /* ── Stream Cards ───────────────────────────────────────────────────── */
@@ -521,8 +539,8 @@
   background: var(--background-secondary);
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--tm-card-radius);
-  padding: 8px 12px;
-  margin-bottom: var(--tm-gap-sm);
+  padding: 5px 10px;
+  margin-bottom: var(--tm-gap-xs);
   transition: background var(--tm-transition), border-color var(--tm-transition), transform var(--tm-transition);
 }
 
@@ -541,7 +559,7 @@
   display: flex;
   align-items: center;
   gap: var(--tm-gap-xs);
-  margin-bottom: var(--tm-gap-xs);
+  margin-bottom: 2px;
 }
 
 .tm-card-time-icon {
@@ -569,7 +587,7 @@
 .tm-card-body {
   font-size: var(--font-text-size);
   color: var(--text-normal);
-  line-height: 1.55;
+  line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
   cursor: pointer;
@@ -585,7 +603,7 @@
 .tm-card-footer {
   display: flex;
   gap: var(--tm-gap-xs);
-  margin-top: var(--tm-gap-md);
+  margin-top: var(--tm-gap-xs);
   font-size: var(--font-ui-smaller);
   flex-wrap: wrap;
 }
@@ -593,7 +611,7 @@
 .tm-card-tag {
   color: var(--interactive-accent);
   background: rgba(var(--tm-accent-rgb), 0.08);
-  padding: 2px 8px;
+  padding: 1px 6px;
   border-radius: var(--tm-radius-md);
   font-weight: 500;
   font-size: var(--font-ui-smaller);
@@ -604,9 +622,9 @@
 .tm-day-header {
   display: flex;
   align-items: baseline;
-  gap: var(--tm-gap-md);
-  margin: var(--tm-gap-lg) 0 var(--tm-gap-sm);
-  padding-bottom: 3px;
+  gap: var(--tm-gap-sm);
+  margin: var(--tm-gap-md) 0 var(--tm-gap-xs);
+  padding-bottom: 2px;
   border-bottom: 1px solid var(--background-modifier-border);
 }
 
@@ -648,8 +666,8 @@
   background: var(--background-secondary);
   border: var(--tm-suggestion-left-border);
   border-radius: var(--tm-card-radius);
-  padding: 8px 12px;
-  margin-bottom: var(--tm-gap-sm);
+  padding: 6px 10px;
+  margin-bottom: var(--tm-gap-xs);
   transition: opacity var(--tm-transition-slow), transform var(--tm-transition-slow);
 }
 
@@ -684,7 +702,7 @@
   display: flex;
   align-items: center;
   gap: var(--tm-gap-sm);
-  margin-bottom: var(--tm-gap-xs);
+  margin-bottom: 2px;
   font-size: var(--font-ui-small);
   font-weight: 600;
 }
@@ -727,8 +745,8 @@
 .tm-suggestion-body {
   font-size: var(--font-ui-small);
   color: var(--text-normal);
-  line-height: 1.45;
-  margin-bottom: var(--tm-gap-sm);
+  line-height: 1.4;
+  margin-bottom: var(--tm-gap-xs);
 }
 
 .tm-suggestion-actions {
@@ -763,7 +781,7 @@
 
 .tm-empty-state {
   text-align: center;
-  padding: 32px 16px;
+  padding: 24px 16px;
   color: var(--text-muted);
   font-size: var(--font-ui-small);
 }
@@ -799,7 +817,7 @@
 }
 
 .tm-stream-empty {
-  padding: 40px 16px;
+  padding: 28px 16px;
 }
 
 .tm-suggestion-empty {
@@ -816,7 +834,7 @@
 
 .tm-loading {
   text-align: center;
-  padding: 20px;
+  padding: 14px;
   color: var(--text-muted);
   font-size: var(--font-ui-small);
 }
@@ -2028,10 +2046,10 @@
   stroke-width: 2;
 }
 
-/* Card action mini buttons icons — 14px (compact) */
+/* Card action mini buttons icons — 16px (visible, consistent) */
 .tm-card-action-btn svg {
-  width: var(--tm-icon-xs);
-  height: var(--tm-icon-xs);
+  width: var(--tm-icon-sm);
+  height: var(--tm-icon-sm);
   stroke-width: 2;
 }
 

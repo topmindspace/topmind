@@ -248,6 +248,8 @@ export const enUS: typeof zhCN = {
   notice_memory_running: "Organizing memory...",
   notice_memory_done: "Memory organized ✓",
   notice_no_inbox: "Inbox directory not found",
+  notice_new_note_created: "New note created",
+  notice_new_note_failed: "Failed to create note",
 
   // ── Accessibility ──
   stream_expand_entry: "Click to expand/collapse entry",
@@ -355,6 +357,7 @@ export const enUS: typeof zhCN = {
   toolbar_btn_sidebar: "Sidebar",
   toolbar_btn_settings: "Settings",
   toolbar_btn_inbox: "Inbox",
+  toolbar_btn_new_note: "New Note",
   toolbar_btn_profile: "Profile",
   toolbar_btn_refresh: "Refresh",
   stream_btn_copy: "Copy",

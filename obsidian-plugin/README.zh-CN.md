@@ -31,7 +31,7 @@
 ## 核心能力
 
 - **极速捕捉**：快捷键 `Cmd/Ctrl + Shift + S` 随时记一条，静默写入本周动态周期本。
-- **动态工作台视图**：Obsidian 主区域的独立页签，集成工具栏（快速进入侧边栏/设置/收件箱/画像）、时间轴卡片流与 AI 涌现建议。
+- **动态工作台视图**：Obsidian 主区域的独立页签，集成工具栏（快速进入侧边栏/设置/新笔记/画像）、时间轴卡片流与 AI 涌现建议。
 - **AI 副驾面板**（侧边栏）：标签式右侧面板统一汇聚全部 AI 能力 — **待办**、**建议**、**对话**、**动态** — 一站式管理。头部显示 AI 状态 + 模型徽章 + 快速设置入口。
 - **AI 对话**：与 AI 对话你的笔记、待办和动态。上下文感知 — 自动注入近期动态条目、当前待办和个人画像，让 AI 回答更有针对性。
 - **整理本周**：一键 reconcile 周期本、AI 提取待办事项并刷新涌现建议。
@@ -102,7 +102,7 @@ topmind Stream 通过 5 个通俗直观的概念降低认知负担：
 
 - **多服务商**：一次性配置所有 API 密钥 — OpenAI、Anthropic、Google Gemini、DeepSeek、Moonshot、Zhipu、MiniMax、xAI、Ollama（本地）或自定义端点。
 - 设置**默认服务商**偏好，或让插件自动选择第一个已配置的服务商。
-- 可选从精选默认列表中挑选**模型**。
+- 可选从动态模型列表中挑选**模型**（通过 Obsidian `requestUrl` 从 [models.dev](https://models.dev) 社区目录获取，跨平台兼容，含精选回退默认值）。
 - **从 Desktop 导入**：一键导入 topmind Desktop 的 `app-settings.json` 中已配置的 AI 密钥。
 - 选择**写回模式**：
   - `confirm`（*保存前问我* — 推荐）：在写入前预览变更。
@@ -166,7 +166,7 @@ Obsidian Vault (纯文件系统 = 唯一内容真源)
 |-------------|-----------------|----------------------|
 | **主要定位** | 独立富桌面应用 | Obsidian 内嵌原生视图 |
 | **编辑器类型** | Tiptap 富文本 & 所见即所得 | Obsidian 原生 Markdown 编辑器 |
-| **AI 运行时** | Vercel AI SDK v7 | 直接 fetch API（OpenAI / Anthropic / Gemini 兼容） |
+| **AI 运行时** | Vercel AI SDK v7 | Obsidian `requestUrl`（OpenAI / Anthropic / Gemini 兼容） |
 | **共享引擎** | Kernel `lib/` 八引擎 | Kernel `lib/` 八引擎（打包内联） |
 | **数据格式** | 标准 Markdown | 标准 Markdown（同一 Vault） |
 

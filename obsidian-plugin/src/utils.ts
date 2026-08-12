@@ -129,17 +129,26 @@ export const ALL_SUGGESTION_KINDS: readonly SuggestionKind[] = [
 
 /**
  * Whether an error should be retried by the AI provider (network / timeout / abort).
- * Kept pure here so unit tests can import without pulling fetch-side modules.
+ * Kept pure here so unit tests can import without pulling requestUrl-side modules.
+ *
+ * Handles errors from both raw `fetch` (TypeError for network failures) and
+ * Obsidian's `requestUrl` (which may throw Error with "net::" or "ERR_" prefixes
+ * from Electron's net module).
  */
 export function isTransientError(err: unknown): boolean {
-  if (err instanceof TypeError) return true; // network error
+  if (err instanceof TypeError) return true; // network error (fetch)
   if (err instanceof Error) {
     const msg = err.message.toLowerCase();
     return (
       msg.includes("fetch") ||
       msg.includes("network") ||
       msg.includes("timeout") ||
-      msg.includes("abort")
+      msg.includes("abort") ||
+      msg.includes("net::") ||         // Electron net module errors (requestUrl)
+      msg.includes("err_") ||          // e.g. ERR_CONNECTION_REFUSED
+      msg.includes("econnrefused") ||
+      msg.includes("econnreset") ||
+      msg.includes("etimedout")
     );
   }
   return false;

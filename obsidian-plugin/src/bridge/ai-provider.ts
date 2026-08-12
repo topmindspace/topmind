@@ -1,4 +1,4 @@
-// ── AI Provider: fetch-based adapter for Kernel AiProvider interface ────────
+// ── AI Provider: requestUrl-based adapter for Kernel AiProvider interface ───
 //
 // Multi-provider support — aligned with Desktop's provider list:
 //   OpenAI · Anthropic · Google Gemini · DeepSeek · Moonshot · Zhipu ·
@@ -14,7 +14,13 @@
 //   { generate(prompt: string, context?: object) => Promise<string> }
 //
 // Includes transient error retry (matches Kernel's AI provider resilience).
+//
+// CRITICAL: Uses Obsidian's `requestUrl` instead of raw `fetch`.
+// Obsidian's CSP blocks `fetch` to external URLs on some platforms
+// (especially Windows), causing AI API calls to fail silently.
+// `requestUrl` bypasses CSP and is the recommended HTTP API for Obsidian plugins.
 
+import { requestUrl } from "obsidian";
 import type { TopmindSettings } from "../types";
 import { AI_PROVIDER_PRESETS } from "../constants";
 import { isTransientError } from "../utils";
@@ -288,7 +294,12 @@ async function callGoogleGemini(
   return text;
 }
 
-// ── Fetch with transient error retry ────────────────────────────────────────
+// ── requestUrl with transient error retry ──────────────────────────────────
+//
+// Uses Obsidian's `requestUrl` instead of raw `fetch` to bypass CSP
+// restrictions that block external HTTP requests on Windows and some
+// other platforms. `requestUrl` is the recommended HTTP API for Obsidian
+// plugins and works consistently across all platforms.
 
 async function fetchWithRetry(
   url: string,
@@ -299,19 +310,27 @@ async function fetchWithRetry(
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      // Use AbortController for timeout — prevents hanging on unresponsive endpoints
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+      // requestUrl doesn't support AbortController; use Promise.race for timeout.
+      const requestPromise = requestUrl({
+        url,
+        method: init.method,
+        headers: init.headers,
+        body: init.body,
+        throw: false, // Handle HTTP errors manually for retry logic
+      });
 
-      const res = await fetch(url, { ...init, signal: controller.signal });
-      clearTimeout(timeoutId);
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("AI request timeout")), REQUEST_TIMEOUT_MS);
+      });
 
-      if (!res.ok) {
-        const errText = await res.text().catch(() => res.statusText);
+      const res = await Promise.race([requestPromise, timeoutPromise]);
+
+      if (res.status < 200 || res.status >= 300) {
+        const errText = res.text || `HTTP ${res.status}`;
         // Retry on 5xx (transient server errors) and 429 (rate limit)
         if ((res.status >= 500 || res.status === 429) && attempt < MAX_RETRIES) {
           // For 429, respect Retry-After header if present
-          const retryAfter = res.headers.get("Retry-After");
+          const retryAfter = res.headers?.["Retry-After"] || res.headers?.["retry-after"];
           const delay = retryAfter
             ? Math.min(parseInt(retryAfter, 10) * 1000, 10_000)
             : RETRY_BASE_DELAY * Math.pow(2, attempt);
@@ -323,9 +342,9 @@ async function fetchWithRetry(
       }
 
       // Success path: no console noise (Obsidian plugin guidelines).
-      return (await res.json()) as Record<string, unknown>;
+      return res.json as Record<string, unknown>;
     } catch (err) {
-      // Retry on network errors
+      // Retry on network errors and timeouts
       if (attempt < MAX_RETRIES && isTransientError(err)) {
         lastError = err instanceof Error ? err : new Error(String(err));
         await sleep(RETRY_BASE_DELAY * Math.pow(2, attempt));

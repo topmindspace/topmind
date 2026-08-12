@@ -31,7 +31,7 @@ Capture Instantly  ->  AI Proposes in Background  ->  You Review & Confirm  ->  
 ## Key Features
 
 - **Instant Quick Capture**: Press `Cmd/Ctrl + Shift + S` anytime to log a rapid thought straight into this week's periodic log.
-- **Stream Workbench View**: A full-featured tab in your Obsidian main workspace featuring a toolbar with quick access to sidebar/settings/inbox/profile, a timeline stream of cards, and emergent AI suggestions.
+- **Stream Workbench View**: A full-featured tab in your Obsidian main workspace featuring a toolbar with quick access to sidebar/settings/new note/profile, a timeline stream of cards, and emergent AI suggestions.
 - **AI Copilot Panel** (Sidebar): A tabbed right sidebar unifying all AI capabilities — **Todos**, **Suggestions**, **Chat**, and **Stream** — in one place. Includes a model badge showing the active AI provider + model.
 - **AI Chat**: Converse with AI about your notes, todos, and stream entries. The chat is context-aware — it automatically injects your recent stream entries, current todos, and personal profile.
 - **Weekly Reconciliation**: Reconcile your weekly logs, extract pending action items, and refresh suggestions with one click.
@@ -103,7 +103,7 @@ Navigate to **Settings -> Topmind Stream -> AI Copilot**:
 
 - **Multi-provider**: Configure all your API keys at once — OpenAI, Anthropic, Google Gemini, DeepSeek, Moonshot, Zhipu, MiniMax, xAI, Ollama (local), or Custom endpoint.
 - Set a **default provider** preference, or let the plugin auto-select the first configured one.
-- Optionally pick a **model** from the dynamic model list (fetched from [models.dev](https://models.dev) community catalog, with curated fallback defaults).
+- Optionally pick a **model** from the dynamic model list (fetched from [models.dev](https://models.dev) community catalog via Obsidian's `requestUrl` API for cross-platform compatibility, with curated fallback defaults).
 - **Import from Desktop**: One-click import of AI keys from topmind Desktop. Works with encrypted keys — use Desktop's **Settings → AI → Export for Obsidian** to create a plaintext export file, then click **Import from Desktop** in the plugin settings.
 - Choose **Writeback Mode**:
   - `confirm` (*Ask before saving* — Recommended): Preview changes in the Suggestion Popover before writing.
@@ -167,7 +167,7 @@ Obsidian Vault (Plain Filesystem = Single Source of Truth)
 |------------------|-----------------|-------------------------|
 | **Primary Focus** | Standalone rich desktop app | Native embedded view inside Obsidian |
 | **Editor Type** | Tiptap rich text & WYSIWYG | Obsidian native Markdown editor |
-| **AI Runtime** | Vercel AI SDK v7 | Direct fetch API (OpenAI / Anthropic / Gemini compat) |
+| **AI Runtime** | Vercel AI SDK v7 | Obsidian `requestUrl` (OpenAI / Anthropic / Gemini compat) |
 | **Shared Engine** | Kernel `lib/` 8-Engine | Kernel `lib/` 8-Engine (bundled) |
 | **Data Format** | Standard Markdown | Standard Markdown (Same Vault) |
 

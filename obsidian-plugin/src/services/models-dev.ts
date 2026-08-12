@@ -9,9 +9,13 @@
 // 3. Filter to chat-capable text-output models
 // 4. Fall back to PROVIDER_DEFAULT_MODELS on any failure
 //
-// Used by settings-tab.ts model dropdown — gives users up-to-date model
-// lists without manual updates to constants.ts.
+// CRITICAL: Uses Obsidian's `requestUrl` instead of raw `fetch`.
+// Obsidian's CSP blocks `fetch` to external URLs on some platforms
+// (especially Windows), causing silent failures that always fall back
+// to hardcoded static model lists. `requestUrl` bypasses CSP and is
+// the recommended HTTP API for Obsidian plugins.
 
+import { requestUrl } from "obsidian";
 import { AI_PROVIDER_PRESETS, PROVIDER_DEFAULT_MODELS } from "../constants";
 
 /** models.dev provider ID → topmind internal provider ID */
@@ -55,6 +59,9 @@ let cacheFetchedAt = 0;
  * Fetch the models.dev community catalog and map it to our provider structure.
  * Returns cached data if fresh (within TTL).
  *
+ * Uses Obsidian's `requestUrl` to bypass CSP restrictions that block `fetch`
+ * on Windows and some other platforms.
+ *
  * @param forceLive - bypass cache and fetch fresh
  * @returns provider catalog entries (one per mapped provider)
  */
@@ -65,20 +72,23 @@ export async function fetchModelsDevCatalog(forceLive = false): Promise<Provider
   }
 
   try {
-    // Use manual AbortController for broader platform compat
-    // (AbortSignal.timeout may be missing on older Electron/Windows)
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15_000);
-    const res = await fetch("https://models.dev/api.json", {
-      signal: controller.signal,
+    // Use Obsidian's requestUrl — bypasses CSP, works on all platforms
+    // (Windows, macOS, Linux). Raw `fetch` is blocked by Obsidian's CSP on
+    // some platforms, causing silent fallback to static defaults.
+    const res = await requestUrl({
+      url: "https://models.dev/api.json",
+      method: "GET",
       headers: {
         Accept: "application/json",
-        "User-Agent": "topmind-obsidian-plugin/2.10.0 (model catalog fetch)",
       },
+      throw: false,
     });
-    clearTimeout(timeout);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
+
+    if (res.status !== 200) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+
+    const data = res.json;
 
     const catalog: ProviderCatalogEntry[] = [];
     for (const [mdId, tmId] of Object.entries(MODELS_DEV_PROVIDER_MAP)) {
@@ -130,7 +140,7 @@ export async function fetchModelsDevCatalog(forceLive = false): Promise<Provider
           id: tmId,
           label: preset?.label || tmId,
           models: chatModels.sort((a, b) => a.label.localeCompare(b.label)),
-          live: false,
+          live: true,
         });
       }
     }
@@ -138,7 +148,9 @@ export async function fetchModelsDevCatalog(forceLive = false): Promise<Provider
     cache = catalog;
     cacheFetchedAt = now;
     return catalog;
-  } catch {
+  } catch (err) {
+    // Log the error so users can diagnose connectivity issues
+    console.warn("[topmind] models.dev fetch failed, using static fallbacks:", err);
     // Fallback: curated defaults from constants
     return Object.entries(MODELS_DEV_PROVIDER_MAP).map(([, tmId]) => ({
       id: tmId,

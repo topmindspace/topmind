@@ -262,13 +262,13 @@ export class StreamWorkbenchView extends ItemView {
     settingsBtn.setAttribute("title", t("sidebar_open_settings"));
     settingsBtn.addEventListener("click", () => this.openSettings());
 
-    // Inbox button — opens inbox folder in file explorer
-    const inboxBtn = actionsDiv.createEl("button", { cls: "tm-toolbar-btn tm-toolbar-btn-labeled" });
-    setIcon(inboxBtn, "inbox");
-    inboxBtn.createSpan({ text: t("toolbar_btn_inbox"), cls: "tm-toolbar-btn-label" });
-    inboxBtn.setAttribute("aria-label", t("cmd_open_inbox"));
-    inboxBtn.setAttribute("title", t("cmd_open_inbox"));
-    inboxBtn.addEventListener("click", () => this.openInbox());
+    // New Note button — creates a new note in the inbox directory
+    const newNoteBtn = actionsDiv.createEl("button", { cls: "tm-toolbar-btn tm-toolbar-btn-labeled" });
+    setIcon(newNoteBtn, "file-plus");
+    newNoteBtn.createSpan({ text: t("toolbar_btn_new_note"), cls: "tm-toolbar-btn-label" });
+    newNoteBtn.setAttribute("aria-label", t("toolbar_btn_new_note"));
+    newNoteBtn.setAttribute("title", t("toolbar_btn_new_note"));
+    newNoteBtn.addEventListener("click", () => this.createNewNote());
 
     // Profile button
     const profileBtn = actionsDiv.createEl("button", { cls: "tm-toolbar-btn tm-toolbar-btn-labeled" });
@@ -334,10 +334,10 @@ export class StreamWorkbenchView extends ItemView {
     await leaf.setViewState({ type: VIEW_TYPE_SIDEBAR_DOCK, active: true });
   }
 
-  /** Open inbox: reveal the inbox folder in Obsidian's file explorer.
-   *  Falls back to creating a new untitled note in the inbox directory if the
-   *  file explorer API is unavailable (older Obsidian versions). */
-  private async openInbox(): Promise<void> {
+  /** Create a new note in the inbox (buffer) directory.
+   *  Uses Obsidian's native file creation API to create a new untitled
+   *  note in the inbox folder, then opens it in the editor. */
+  private async createNewNote(): Promise<void> {
     if (!this.plugin.kernelService.isWorkspaceReady()) {
       new Notice(t("notice_workspace_not_ready"));
       return;
@@ -349,7 +349,6 @@ export class StreamWorkbenchView extends ItemView {
       return;
     }
 
-    // Reveal the inbox folder in the file explorer (left sidebar)
     try {
       const adapter = this.app.vault.adapter;
       const inboxPath = buffer.directory;
@@ -357,15 +356,32 @@ export class StreamWorkbenchView extends ItemView {
       if (!await adapter.exists(inboxPath)) {
         await adapter.mkdir(inboxPath);
       }
-      // Use the Obsidian internal API to reveal the file/folder in the explorer
-      const fileItem = this.app.vault.getAbstractFileByPath(inboxPath);
-      if (fileItem) {
-        // @ts-expect-error — internal API: reveal file/folder in explorer
-        this.app.explorer?.revealFile?.(fileItem);
+
+      // Generate a unique filename with timestamp
+      const now = new Date();
+      const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}`;
+      let fileName = `Untitled-${ts}.md`;
+      let filePath = `${inboxPath}/${fileName}`;
+      let counter = 1;
+      while (await adapter.exists(filePath)) {
+        fileName = `Untitled-${ts}-${counter}.md`;
+        filePath = `${inboxPath}/${fileName}`;
+        counter++;
       }
-      new Notice(`${t("toolbar_btn_inbox")}: ${inboxPath}`);
-    } catch {
-      new Notice(t("notice_no_inbox"));
+
+      // Create the file with minimal frontmatter
+      const content = `---\ncreated: ${now.toISOString()}\n---\n\n# ${fileName.replace(/\.md$/, "")}\n\n`;
+      await adapter.write(filePath, content);
+
+      // Open the new file in the editor
+      const file = this.app.vault.getAbstractFileByPath(filePath);
+      if (file && "stat" in file) {
+        await this.app.workspace.getLeaf(false).openFile(file as import("obsidian").TFile);
+      }
+      new Notice(t("notice_new_note_created"));
+    } catch (err) {
+      console.error("[topmind] createNewNote failed:", err);
+      new Notice(t("notice_new_note_failed"));
     }
   }
 
