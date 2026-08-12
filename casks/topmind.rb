@@ -1,7 +1,7 @@
 cask "topmind" do
   arch arm: "arm64", intel: "x64"
 
-  version "2.8.0"
+  version "3.0.1"
   sha256 arm:   "1b86933c492e1d357a1d084d4bd58b0a1a6b476166cdc699112adf0685860e29",
          intel: "1b86933c492e1d357a1d084d4bd58b0a1a6b476166cdc699112adf0685860e29"
 

@@ -54,8 +54,8 @@ Daily entry after install: **`topmind`**
    ```
 3. **发布 Tag & Release（推荐）**：
    ```bash
-   git tag v2.7.0
-   git push origin v2.7.0
+   git tag v3.0.1
+   git push origin v3.0.1
    ```
 4. **生态发现与在线安装**：
    发布后，全球开发者即可通过以下方式发现与安装：

@@ -164,7 +164,7 @@ When a companion (Skills / Obsidian plugin / Clip extension) has a newer version
 
 **Settings → Manage & Updates → Check for updates** detects available companion updates. When an update is available for Skills, Obsidian, or Clip, a download button appears next to the version row. Clicking it:
 
-1. Downloads the companion package (e.g. `topmind-obsidian-2.9.1.zip`) from GitHub Releases
+1. Downloads the companion package (e.g. `topmind-obsidian-3.0.1.zip`) from GitHub Releases
 2. Verifies SHA256 checksum when `SHA256SUMS` is available
 3. Installs the package locally (replaces the bundled version)
 4. Cleans up temp files automatically

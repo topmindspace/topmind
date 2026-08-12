@@ -533,7 +533,7 @@ npm run obsidian:test      # 仅测试
 版本真源：`obsidian-plugin/manifest.json` 的 `version` 字段。
 
 独立版本策略（遵循 `AGENTS.md` §版本层）：
-- 大版本对齐（与其他表面共享 2.x）
+- 大版本对齐（与其他表面共享 3.x）
 - 小版本独立（仅插件有改动时 bump）
 - Tag 命名：`obsidian-v*`
 
