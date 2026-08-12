@@ -26,7 +26,7 @@
   --tm-card-radius: 8px;
   --tm-card-padding: 10px 14px;
   --tm-input-radius: 6px;
-  --tm-suggestion-left-border: 3px solid;
+  --tm-suggestion-left-border: 2px solid;
   --tm-transition: 120ms ease;
   --tm-transition-slow: 250ms ease;
   --tm-gap-xs: 4px;
@@ -49,7 +49,7 @@
    ═══════════════════════════════════════════════════════════════════════ */
 
 .tm-stream-workbench {
-  padding: 12px 16px;
+  padding: 10px 14px;
   max-width: 1100px;
   margin: 0 auto;
 }
@@ -439,7 +439,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: var(--tm-gap-xl) 0 var(--tm-gap-sm);
+  margin: var(--tm-gap-lg) 0 var(--tm-gap-sm);
   flex-wrap: wrap;
   gap: var(--tm-gap-sm);
 }
@@ -487,10 +487,10 @@
 /* ── Card Action Buttons (icon-only with tooltips) ──── */
 
 .tm-card-action-btn {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: var(--tm-radius-sm);
-  border: 1px solid var(--background-modifier-border);
+  border: 1px solid transparent;
   background: transparent;
   color: var(--text-faint);
   cursor: pointer;
@@ -521,7 +521,7 @@
   background: var(--background-secondary);
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--tm-card-radius);
-  padding: var(--tm-card-padding);
+  padding: 8px 12px;
   margin-bottom: var(--tm-gap-sm);
   transition: background var(--tm-transition), border-color var(--tm-transition), transform var(--tm-transition);
 }
@@ -569,7 +569,7 @@
 .tm-card-body {
   font-size: var(--font-text-size);
   color: var(--text-normal);
-  line-height: 1.6;
+  line-height: 1.55;
   white-space: pre-wrap;
   word-break: break-word;
   cursor: pointer;
@@ -648,7 +648,7 @@
   background: var(--background-secondary);
   border: var(--tm-suggestion-left-border);
   border-radius: var(--tm-card-radius);
-  padding: var(--tm-card-padding);
+  padding: 8px 12px;
   margin-bottom: var(--tm-gap-sm);
   transition: opacity var(--tm-transition-slow), transform var(--tm-transition-slow);
 }
@@ -683,7 +683,7 @@
 .tm-suggestion-header {
   display: flex;
   align-items: center;
-  gap: var(--tm-gap-md);
+  gap: var(--tm-gap-sm);
   margin-bottom: var(--tm-gap-xs);
   font-size: var(--font-ui-small);
   font-weight: 600;
@@ -727,13 +727,13 @@
 .tm-suggestion-body {
   font-size: var(--font-ui-small);
   color: var(--text-normal);
-  line-height: 1.5;
-  margin-bottom: var(--tm-gap-md);
+  line-height: 1.45;
+  margin-bottom: var(--tm-gap-sm);
 }
 
 .tm-suggestion-actions {
   display: flex;
-  gap: var(--tm-gap-md);
+  gap: var(--tm-gap-sm);
 }
 
 .tm-suggestion-actions .tm-btn-dismiss {
@@ -2028,10 +2028,10 @@
   stroke-width: 2;
 }
 
-/* Card action mini buttons icons — 16px */
+/* Card action mini buttons icons — 14px (compact) */
 .tm-card-action-btn svg {
-  width: var(--tm-icon-sm);
-  height: var(--tm-icon-sm);
+  width: var(--tm-icon-xs);
+  height: var(--tm-icon-xs);
   stroke-width: 2;
 }
 

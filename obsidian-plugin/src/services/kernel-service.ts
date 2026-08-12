@@ -19,6 +19,7 @@ import {
   normalizeSuggestionList,
   mapKernelSuggestion,
   mapApplySuggestionResult,
+  stripFrontmatter,
 } from "../utils";
 import { AI_PROVIDER_PRESETS, PROVIDER_DEFAULT_MODELS } from "../constants";
 import {
@@ -217,7 +218,9 @@ export class KernelService {
     const absPath = path.join(workspaceRoot, relPath);
 
     try {
-      const content = fs.readFileSync(absPath, "utf-8");
+      const raw = fs.readFileSync(absPath, "utf-8");
+      // Strip frontmatter before parsing — entries live in the body only
+      const content = stripFrontmatter(raw);
       const entries = parseStreamEntries(content);
       return { content, entries };
     } catch {

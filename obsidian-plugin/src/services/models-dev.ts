@@ -65,13 +65,18 @@ export async function fetchModelsDevCatalog(forceLive = false): Promise<Provider
   }
 
   try {
+    // Use manual AbortController for broader platform compat
+    // (AbortSignal.timeout may be missing on older Electron/Windows)
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15_000);
     const res = await fetch("https://models.dev/api.json", {
-      signal: AbortSignal.timeout(15_000),
+      signal: controller.signal,
       headers: {
         Accept: "application/json",
         "User-Agent": "topmind-obsidian-plugin/2.10.0 (model catalog fetch)",
       },
     });
+    clearTimeout(timeout);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 

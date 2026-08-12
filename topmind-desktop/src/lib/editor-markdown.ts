@@ -90,6 +90,7 @@ type MarkdownParserStorage = {
  * - Inline content (no block markers) → parsed inline, no extra paragraph boundaries
  * - Block content → parsed as block, but empty leading/trailing paragraphs stripped
  * - Selection inside a list item → content inherits list context
+ * - All leading/trailing empty paragraphs are stripped (not just one)
  */
 export function replaceSelectionWithMarkdown(
   editor: Editor | null | undefined,
@@ -111,8 +112,14 @@ export function replaceSelectionWithMarkdown(
       const looksBlock =
         /(^|\n)(#{1,6}\s|[-*+]\s|\d+\.\s|>\s)/mu.test(text) || /\n\s*\n/u.test(text);
       content = parse(text, { inline: !looksBlock });
-      // Strip empty paragraphs that cause extra blank lines
-      content = content.replace(/^<p>\s*<\/p>/giu, "").replace(/<p>\s*<\/p>$/giu, "");
+      // Strip ALL leading/trailing empty paragraphs (not just one)
+      // Also strip whitespace-only paragraphs
+      content = content
+        .replace(/^(?:<p>\s*<\/p>\s*)+/giu, "")
+        .replace(/(?:\s*<p>\s*<\/p>)+$/giu, "")
+        .trim();
+      // If content became empty after stripping, return false (no-op)
+      if (!content) return false;
     }
   } catch {
     content = text;

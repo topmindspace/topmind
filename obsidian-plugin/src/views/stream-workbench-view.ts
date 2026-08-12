@@ -529,11 +529,11 @@ export class StreamWorkbenchView extends ItemView {
     if (entries.length === 0) return [];
 
     // Try to extract ## day headings from content
-    const dayHeadingRegex = /^#{2,3}\s+(.+)$/gmu;
+    // Use match() per line to avoid stateful regex lastIndex bug with exec()
     const headings: { title: string; lineOffset: number }[] = [];
     const lines = fullContent.split("\n");
     for (let i = 0; i < lines.length; i++) {
-      const match = dayHeadingRegex.exec(lines[i]);
+      const match = lines[i].match(/^#{2,3}\s+(.+)$/u);
       if (match) {
         headings.push({ title: match[1].trim(), lineOffset: i });
       }

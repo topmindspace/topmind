@@ -47,6 +47,9 @@ export function prepareStreamMarkdown(md: string): string {
   s = s.replace(/\n{3,}/gu, "\n\n");
   // Drop a blank line immediately after a heading (common ugly gap)
   s = s.replace(/(^#{1,6}[^\n]+)\n\n+/gmu, "$1\n");
+  // Drop blank lines immediately before list items (prevents extra paragraph spacing)
+  s = s.replace(/\n\n+([-*+]\s)/gu, "\n$1");
+  s = s.replace(/\n\n+(\d+\.\s)/gu, "\n$1");
   return s.trim();
 }
 

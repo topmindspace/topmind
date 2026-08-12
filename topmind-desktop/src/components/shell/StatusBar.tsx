@@ -328,7 +328,7 @@ export function StatusBar({ health }: StatusBarProps) {
         {/* 建议计数常驻 chip：移除画布顶 SuggestEntryStrip 后，计数统一在状态栏体现。
             loading 时由 showSuggestChip 承担；非 loading 有条目时显示计数 chip。 */}
         {busy.showSuggestCountChip ? (
-          <Tooltip content={t("statusBar.suggestCountTip")}>
+          <Tooltip content={t("statusBar.suggestCountTip", { count: busy.suggestCount })}>
             <button
               type="button"
               role="status"

@@ -225,14 +225,26 @@ export function mapApplySuggestionResult(
 /**
  * Parse stream entries from period note content.
  * Each entry is a bullet line starting with a time pattern: `- HH:MM <text>`.
+ * Multi-line entries capture continuation lines (indented or non-bullet lines
+ * following the time-stamped first line) so structured content is not lost.
  *
- * @param content - period note body (without frontmatter)
+ * @param content - period note body (with or without frontmatter)
  * @returns parsed stream entries
  */
 export function parseStreamEntries(content: string): StreamEntry[] {
   const entries: StreamEntry[] = [];
   const lines = content.split("\n");
-  const timeRegex = /^-\s*(\d{1,2}:\d{2})\s+(.*)/u;
+  // Match bullet lines with time prefix: `- HH:MM text` or `* HH:MM text`
+  const timeRegex = /^[-*]\s*(\d{1,2}:\d{2})\s+(.*)/u;
+  // A continuation line: indented, or a non-heading, non-bullet, non-frontmatter line
+  const isContinuation = (line: string): boolean => {
+    if (!line.trim()) return true; // blank line within entry
+    if (/^#{1,6}\s/u.test(line)) return false; // heading starts new section
+    if (/^[-*]\s+\d{1,2}:\d{2}\s/u.test(line)) return false; // new time-stamped entry
+    if (/^[-*]\s+\[/.test(line)) return false; // task list item
+    // Indented continuation OR plain text line (part of multi-line entry)
+    return /^\s+/u.test(line) || !/^[-*]\s/u.test(line);
+  };
   const tagRegex = /#([\w\u4e00-\u9fff-]+)/gu;
 
   for (let i = 0; i < lines.length; i++) {
@@ -240,9 +252,22 @@ export function parseStreamEntries(content: string): StreamEntry[] {
     const match = line.match(timeRegex);
     if (match) {
       const time = match[1];
-      const text = match[2];
+      const firstText = match[2];
+      // Collect continuation lines (multi-line entries)
+      const textParts: string[] = [firstText];
+      let j = i + 1;
+      while (j < lines.length && isContinuation(lines[j])) {
+        const cont = lines[j];
+        // Stop at trailing blank lines (don't include padding)
+        if (!cont.trim()) break;
+        textParts.push(cont.trim());
+        j++;
+      }
+      const text = textParts.join("\n").trim();
       const tags = Array.from(text.matchAll(tagRegex)).map((m) => m[1]);
-      entries.push({ time, text, tags, rawLine: line, lineOffset: i });
+      const rawLine = lines.slice(i, j).join("\n");
+      entries.push({ time, text, tags, rawLine, lineOffset: i });
+      i = j - 1; // skip consumed continuation lines
     }
   }
   return entries;

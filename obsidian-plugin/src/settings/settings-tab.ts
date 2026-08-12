@@ -326,6 +326,9 @@ export class TopmindSettingTab extends PluginSettingTab {
           s.ai.sourcePreference = v;
           s.aiProvider = (v || "none") as TopmindPlugin["settings"]["aiProvider"];
           await this.save();
+          // Clear models.dev cache so fresh models are fetched for the new provider
+          const { clearModelsDevCache } = await import("../services/models-dev");
+          clearModelsDevCache();
           // Re-render settings so model dropdown updates for the new provider
           this.display();
         });
@@ -433,6 +436,8 @@ export class TopmindSettingTab extends PluginSettingTab {
               s.ai.manual.ollamaBaseUrl = v;
               await this.save();
               if (!wasConfigured && hasConfiguredProvider(s.ai) && !s.ai.defaultModel) {
+                const { clearModelsDevCache } = await import("../services/models-dev");
+                clearModelsDevCache();
                 new Notice(t("settings_ai_model_select_hint"));
                 this.display();
               }
@@ -458,6 +463,8 @@ export class TopmindSettingTab extends PluginSettingTab {
               s.ai.manual.customKey = v;
               await this.save();
               if (!wasConfigured && hasConfiguredProvider(s.ai) && !s.ai.defaultModel) {
+                const { clearModelsDevCache } = await import("../services/models-dev");
+                clearModelsDevCache();
                 new Notice(t("settings_ai_model_select_hint"));
                 this.display();
               }
@@ -489,6 +496,9 @@ export class TopmindSettingTab extends PluginSettingTab {
                 await this.save();
                 // When AI transitions from unconfigured to configured, prompt model selection
                 if (!wasConfigured && hasConfiguredProvider(s.ai) && !s.ai.defaultModel) {
+                  // Clear models.dev cache so fresh models are fetched for the new provider
+                  const { clearModelsDevCache } = await import("../services/models-dev");
+                  clearModelsDevCache();
                   new Notice(t("settings_ai_model_select_hint"));
                   this.display();
                 }
