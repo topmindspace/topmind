@@ -752,7 +752,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
   if (loadError && saveState !== "dirty" && saveState !== "saving") {
     return (
       <div className="flex h-full items-center justify-center p-6">
-        <div className="rounded-[var(--radius-lg)] border border-error/20 bg-status-error-bg px-5 py-4 text-sm text-error">
+        <div className="rounded-lg border border-error/20 bg-status-error-bg px-5 py-4 text-sm text-error">
           {t("common:status.error")}: {loadError}
         </div>
       </div>
@@ -797,7 +797,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
     >
       {/* Row 1: mode · format tools · primary actions (title lives on property row) */}
       <div className="v4-editor-toolbar shrink-0 border-b border-border-subtle-dim bg-surface/80 backdrop-blur-[2px]">
-        <div ref={toolbarRef} className="flex h-[var(--density-editor-toolbar-y,36px)] items-center justify-between gap-1 px-2 sm:px-2.5" data-compact={toolbarCompact ? "true" : undefined}>
+        <div ref={toolbarRef} className="flex h-(--density-editor-toolbar-y,36px) items-center justify-between gap-1 px-2 sm:px-2.5" data-compact={toolbarCompact ? "true" : undefined}>
           <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
             {!readOnly ? (
               <EditorModeSwitch viewMode={viewMode} onChange={switchViewMode} />
@@ -823,7 +823,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
             )}
           </div>
 
-          <div className="flex min-w-0 max-w-[min(52%,22rem)] shrink items-center justify-end gap-0.5 sm:max-w-[26rem]">
+          <div className="flex min-w-0 max-w-[min(52%,22rem)] shrink items-center justify-end gap-0.5 sm:max-w-104">
             <EditorReadingMenu
               onOpenSettings={() => openOverlay("settings", { topicId: "general" })}
             />
@@ -842,7 +842,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
                       type="button"
                       disabled={moving}
                       onClick={() => setMoveOpen((v) => !v)}
-                      className="flex h-7 shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-primary disabled:opacity-50"
+                      className="flex h-7 shrink-0 items-center gap-1 rounded-sm px-1.5 text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-primary disabled:opacity-50"
                       aria-label={t("workspace:menu.moveToTopic")}
                       aria-expanded={moveOpen}
                     >
@@ -958,7 +958,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
               {fmEntries.map(({ key, value }) => (
                 <div
                   key={key}
-                  className="inline-flex max-w-full items-center gap-1 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface px-2 py-0.5 text-3xs"
+                  className="inline-flex max-w-full items-center gap-1 rounded-md border border-border-subtle-dim bg-surface px-2 py-0.5 text-3xs"
                   title={`${key}: ${value}`}
                 >
                   <span className="shrink-0 font-medium text-text-quaternary">{key}</span>

@@ -254,7 +254,7 @@ export function OnboardingScreen({
     return (
       <TooltipProvider>
         <div className="v4-boot v4-drag flex h-screen flex-col items-center justify-center gap-3 p-6">
-          <div className="v4-brand-mark flex h-14 w-14 items-center justify-center overflow-hidden rounded-[var(--radius-2xl)] bg-surface-elevated shadow-[var(--shadow-md)] ring-1 ring-border-subtle-dim">
+          <div className="v4-brand-mark flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-surface-elevated shadow-(--shadow-md) ring-1 ring-border-subtle-dim">
             <img
               src="./favicon.svg"
               alt=""
@@ -283,10 +283,10 @@ export function OnboardingScreen({
   return (
     <TooltipProvider>
       <div className="v4-landing v4-drag flex h-screen flex-col items-center justify-center p-6">
-        <div className="v4-no-drag w-full max-w-[400px]">
+        <div className="v4-no-drag w-full max-w-100">
           {/* Brand — logo-aligned mark; gradient reserved for brand title moment */}
           <div className="mb-10 text-center">
-            <div className="v4-brand-mark mx-auto mb-4 flex h-14 w-14 items-center justify-center overflow-hidden rounded-[var(--radius-2xl)] bg-surface-elevated shadow-[var(--shadow-md)] ring-1 ring-border-subtle-dim">
+            <div className="v4-brand-mark mx-auto mb-4 flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-surface-elevated shadow-(--shadow-md) ring-1 ring-border-subtle-dim">
               <img
                 src="./favicon.svg"
                 alt="topmind"
@@ -306,7 +306,7 @@ export function OnboardingScreen({
             <p className="mb-1 text-3xs font-medium uppercase tracking-wider text-text-quaternary">
               {greeting}
             </p>
-            <h1 className="v4-brand-gradient-text text-[var(--type-size-display)] font-semibold tracking-tight">
+            <h1 className="v4-brand-gradient-text text-(--type-size-display) font-semibold tracking-tight">
               topmind
             </h1>
             <p className="mt-2 text-3xs leading-relaxed text-text-tertiary">
@@ -355,7 +355,7 @@ export function OnboardingScreen({
                 </div>
               </div>
               {error ? (
-                <div className="mb-3 flex items-center gap-2 rounded-[var(--radius-lg)] border border-error/30 bg-status-error-bg px-3 py-2.5 text-3xs text-error" role="alert">
+                <div className="mb-3 flex items-center gap-2 rounded-lg border border-error/30 bg-status-error-bg px-3 py-2.5 text-3xs text-error" role="alert">
                   <AlertCircle size={ICON.sm} className="shrink-0" aria-hidden />
                   <span className="flex-1">{error}</span>
                 </div>
@@ -367,7 +367,7 @@ export function OnboardingScreen({
                     type="button"
                     onClick={() => setSelectedTemplate(tmpl.id)}
                     className={cn(
-                      "flex items-start gap-2.5 rounded-[var(--radius-xl)] border px-3 py-2.5 text-left transition-[border-color,background-color] duration-[var(--duration-fast)]",
+                      "flex items-start gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-[border-color,background-color] duration-(--duration-fast)",
                       selectedTemplate === tmpl.id
                         ? "border-accent-border-subtle bg-accent-bg-subtle/40"
                         : "border-border-subtle-dim bg-surface-elevated hover:border-border-subtle",
@@ -425,7 +425,7 @@ export function OnboardingScreen({
                 repeating education on every landing adds visual noise. */}
 
             {error ? (
-                <div className="mb-4 flex items-center gap-2 rounded-[var(--radius-lg)] border border-error/30 bg-status-error-bg px-3 py-2.5 text-3xs text-error" role="alert">
+                <div className="mb-4 flex items-center gap-2 rounded-lg border border-error/30 bg-status-error-bg px-3 py-2.5 text-3xs text-error" role="alert">
                   <AlertCircle size={ICON.sm} className="shrink-0" aria-hidden />
                   <span className="flex-1">{error}</span>
                 </div>
@@ -451,9 +451,9 @@ export function OnboardingScreen({
                               disabled={!!busy || broken}
                               onClick={() => void handleSwitch(w.rootPath)}
                               className={cn(
-                                "group flex w-full items-center gap-3 rounded-[var(--radius-xl)] border border-border-subtle-dim bg-surface-elevated px-3.5 py-3.5 text-left shadow-[var(--shadow-card)]",
-                                "transition-[border-color,box-shadow,transform,background-color] duration-[var(--duration-normal)] [transition-timing-function:var(--ease-spring)]",
-                                "hover:border-accent-border-subtle hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5 hover:bg-surface-elevated-hover",
+                                "group flex w-full items-center gap-3 rounded-xl border border-border-subtle-dim bg-surface-elevated px-3.5 py-3.5 text-left shadow-(--shadow-card)",
+                                "transition-[border-color,box-shadow,transform,background-color] duration-(--duration-normal) [transition-timing-function:var(--ease-spring)]",
+                                "hover:border-accent-border-subtle hover:shadow-(--shadow-md) hover:-translate-y-0.5 hover:bg-surface-elevated-hover",
                                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
                                 "disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:border-border-subtle-dim",
                                 active && "border-accent-border-subtle bg-accent-bg-subtle/40",
@@ -530,7 +530,7 @@ export function OnboardingScreen({
                   </ul>
                 </div>
               ) : (
-                <div className="mb-4 rounded-[var(--radius-xl)] border border-dashed border-border-subtle bg-surface/50 px-4 py-6 text-center">
+                <div className="mb-4 rounded-xl border border-dashed border-border-subtle bg-surface/50 px-4 py-6 text-center">
                   <p className="text-sm text-text-tertiary">{t("shell:onboarding.noWorkspaceTitle")}</p>
                   <p className="mt-1 text-3xs text-text-quaternary">{t("shell:onboarding.noWorkspaceHint")}</p>
                 </div>
@@ -542,7 +542,7 @@ export function OnboardingScreen({
                   <Button
                     onClick={() => void handlePickFolder()}
                     disabled={!!busy}
-                    className="h-10 w-full justify-center rounded-[var(--radius-xl)] text-sm"
+                    className="h-10 w-full justify-center rounded-xl text-sm"
                     data-landing-primary-cta
                   >
                     {busy === "picking" ? (

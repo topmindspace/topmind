@@ -27,8 +27,11 @@ export function stripHtmlCommentsForPreview(md: string): string {
  * - drop blank lines immediately after headings
  * - normalize excessive heading levels (#####+ → ###)
  *
+ * List-item blank-line compression:
+ * - Blank lines before list items are compressed (\n\n+ → \n) to prevent extra paragraph spacing
+ * - Consecutive list items stay in the same <ul> regardless of blank lines between them
+ *
  * NOT done (preserved as user wrote):
- * - Blank lines between list items (user may intend visual separation)
  * - Alternative bullet markers (– —) — preserved as user wrote
  * - Paragraph spacing (user controls their own rhythm)
  *

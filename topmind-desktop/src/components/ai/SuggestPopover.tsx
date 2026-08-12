@@ -360,9 +360,9 @@ export function SuggestPopover() {
       data-action-bar
       data-menu-surface=""
       className={cn(
-        "v4-no-drag v4-todo-popover-enter fixed z-[var(--z-popover-overlay)] flex flex-col overflow-hidden",
+        "v4-no-drag v4-todo-popover-enter fixed z-(--z-popover-overlay) flex flex-col overflow-hidden",
         "rounded-lg border border-border-subtle",
-        "bg-surface-elevated/90 backdrop-blur-[var(--blur-glass)] backdrop-saturate-150 shadow-[var(--shadow-elevated-hairline)]",
+        "bg-surface-elevated/90 backdrop-blur-glass backdrop-saturate-150 shadow-elevated-hairline",
       )}
       style={{
         left: pos.x,

@@ -537,8 +537,8 @@ function TreeViewNode({
         data-tree-node-id={node.id}
         tabIndex={isGroup ? -1 : 0}
         className={cn(
-          "v4-tree-node group flex min-h-[var(--density-tree-row,30px)] cursor-pointer items-center gap-1.5 rounded-[var(--radius-md)] py-1 pr-2 outline-none select-none",
-          "transition-[background-color,color,box-shadow] duration-[var(--duration-fast)]",
+          "v4-tree-node group flex min-h-(--density-tree-row,30px) cursor-pointer items-center gap-1.5 rounded-md py-1 pr-2 outline-none select-none",
+          "transition-[background-color,color,box-shadow] duration-(--duration-fast)",
           "focus-visible:ring-2 focus-visible:ring-ring/35",
           node.kind === "group" || node.kind === "category"
             ? "text-xs font-medium text-text-primary"
@@ -559,7 +559,7 @@ function TreeViewNode({
             <ChevronRight size={ICON.micro} className={cn("shrink-0 transition-transform", isActive ? "text-accent-color" : "text-text-tertiary group-hover:text-text-secondary")} />
           )
         ) : (
-          <span className="w-[11px] shrink-0" />
+          <span className="w-2.75 shrink-0" />
         )}
         <TreeNodeIcon node={node} expanded={expanded} isActive={isActive} />
         <Tooltip content={buildNodeTooltip(node, t)} side="right" sideOffset={4}>
@@ -577,7 +577,7 @@ function TreeViewNode({
             <button
               type="button"
               aria-label={t("titleBar.capture")}
-              className="mr-0.5 hidden h-5 w-5 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary opacity-0 pointer-events-none transition-[opacity,background-color,color] duration-[var(--duration-fast)] hover:bg-surface hover:text-accent-color focus-visible:inline-flex focus-visible:opacity-100 focus-visible:pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 group-hover:inline-flex group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:inline-flex group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
+              className="mr-0.5 hidden h-5 w-5 shrink-0 items-center justify-center rounded-sm text-text-quaternary opacity-0 pointer-events-none transition-[opacity,background-color,color] duration-(--duration-fast) hover:bg-surface hover:text-accent-color focus-visible:inline-flex focus-visible:opacity-100 focus-visible:pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 group-hover:inline-flex group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:inline-flex group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
               onClick={(e) => {
                 e.stopPropagation();
                 // Select inbox first so QuickCapture defaults to inbox dest
@@ -594,7 +594,7 @@ function TreeViewNode({
             <button
               type="button"
               aria-label={t("sidebar.treeView.ariaNewTopic")}
-              className="mr-0.5 hidden h-5 w-5 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary opacity-0 pointer-events-none transition-[opacity,background-color,color] duration-[var(--duration-fast)] hover:bg-surface hover:text-accent-color focus-visible:inline-flex focus-visible:opacity-100 focus-visible:pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 group-hover:inline-flex group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:inline-flex group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
+              className="mr-0.5 hidden h-5 w-5 shrink-0 items-center justify-center rounded-sm text-text-quaternary opacity-0 pointer-events-none transition-[opacity,background-color,color] duration-(--duration-fast) hover:bg-surface hover:text-accent-color focus-visible:inline-flex focus-visible:opacity-100 focus-visible:pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 group-hover:inline-flex group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:inline-flex group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
               onClick={(e) => {
                 e.stopPropagation();
                 void handleNewTopic();
@@ -609,7 +609,7 @@ function TreeViewNode({
             <button
               type="button"
               aria-label={t("sidebar.treeView.ariaNewNote")}
-              className="mr-0.5 hidden h-5 w-5 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary opacity-0 pointer-events-none transition-[opacity,background-color,color] duration-[var(--duration-fast)] hover:bg-surface hover:text-accent-color focus-visible:inline-flex focus-visible:opacity-100 focus-visible:pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 group-hover:inline-flex group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:inline-flex group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
+              className="mr-0.5 hidden h-5 w-5 shrink-0 items-center justify-center rounded-sm text-text-quaternary opacity-0 pointer-events-none transition-[opacity,background-color,color] duration-(--duration-fast) hover:bg-surface hover:text-accent-color focus-visible:inline-flex focus-visible:opacity-100 focus-visible:pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 group-hover:inline-flex group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:inline-flex group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
               onClick={(e) => {
                 e.stopPropagation();
                 void handleNewNote();
@@ -673,7 +673,7 @@ function TreeViewNode({
           </div>
         ) : node.kind === "topic" || node.kind === "category" ? (
           <div
-            className="mx-2 mb-1 mt-0.5 rounded-[var(--radius-md)] border border-dashed border-border-subtle bg-surface-muted/25 px-2 py-2 text-3xs text-text-quaternary"
+            className="mx-2 mb-1 mt-0.5 rounded-md border border-dashed border-border-subtle bg-surface-muted/25 px-2 py-2 text-3xs text-text-quaternary"
             style={{ marginLeft: `${12 + depth * 12}px` }}
           >
             {node.kind === "category" ? (

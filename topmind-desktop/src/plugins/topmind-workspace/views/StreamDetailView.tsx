@@ -124,7 +124,7 @@ function StreamFeedRowView({
           type="button"
           onClick={() => onOpenPeriod(entry.heading || undefined)}
           className={cn(
-            "flex w-full flex-col gap-0.5 rounded-[var(--radius-md)] bg-surface-muted/15 px-2.5 py-2 text-left",
+            "flex w-full flex-col gap-0.5 rounded-md bg-surface-muted/15 px-2.5 py-2 text-left",
             "transition-colors hover:bg-accent-bg-faint/30",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
           )}
@@ -260,7 +260,7 @@ function StreamFeedRowView({
 
           {appendOpen ? (
             <div
-              className="mt-2 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-muted/25 p-2"
+              className="mt-2 rounded-md border border-border-subtle-dim bg-surface-muted/25 p-2"
               data-stream-entry-append
             >
               <textarea
@@ -270,7 +270,7 @@ function StreamFeedRowView({
                 placeholder={t("workspace:streamDetail.appendPlaceholder")}
                 onChange={(e) => onAppendText(e.target.value)}
                 className={cn(
-                  "w-full resize-y min-h-[2.25rem] max-h-28 bg-transparent",
+                  "w-full resize-y min-h-9 max-h-28 bg-transparent",
                   "text-sm leading-relaxed text-text-primary placeholder:text-text-quaternary",
                   "outline-none border-0 focus:ring-0",
                 )}
@@ -1076,7 +1076,7 @@ export function StreamDetailView() {
             : t("workspace:streamDetail.emptySubtitle")
         }
         actions={
-          <div className="min-w-0 max-w-[min(100%,22rem)] sm:max-w-[28rem]">
+          <div className="min-w-0 max-w-[min(100%,22rem)] sm:max-w-md">
             <ChromeOverflowActions actions={headerActions} />
           </div>
         }
@@ -1100,7 +1100,7 @@ export function StreamDetailView() {
                 data-filter-chip
                 data-filter-chip-active={isActive ? "true" : undefined}
                 className={cn(
-                  "inline-flex h-[var(--control-h-chip)] max-w-[9rem] items-center truncate rounded-full px-2 text-3xs font-medium leading-none transition-colors",
+                  "inline-flex h-(--control-h-chip) max-w-36 items-center truncate rounded-full px-2 text-3xs font-medium leading-none transition-colors",
                   isActive
                     ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
                     : "bg-surface-muted/35 text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
@@ -1128,7 +1128,7 @@ export function StreamDetailView() {
             <button
               type="button"
               onClick={() => setShowMoreThisYear((v) => !v)}
-              className="inline-flex h-[var(--control-h-chip)] items-center gap-0.5 rounded-full px-2 text-3xs font-medium text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-secondary"
+              className="inline-flex h-(--control-h-chip) items-center gap-0.5 rounded-full px-2 text-3xs font-medium text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-secondary"
             >
               <ChevronDown
                 size={ICON.nano}
@@ -1149,7 +1149,7 @@ export function StreamDetailView() {
                     data-filter-chip
                     data-filter-chip-active={isActive ? "true" : undefined}
                     className={cn(
-                      "inline-flex h-[var(--control-h-chip)] max-w-[9rem] items-center truncate rounded-full px-2 text-3xs font-medium leading-none transition-colors",
+                      "inline-flex h-(--control-h-chip) max-w-36 items-center truncate rounded-full px-2 text-3xs font-medium leading-none transition-colors",
                       isActive
                         ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
                         : "bg-surface-muted/35 text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
@@ -1168,7 +1168,7 @@ export function StreamDetailView() {
               <button
                 type="button"
                 onClick={() => setExpandedPastYear(expandedPastYear ? null : "list")}
-                className="inline-flex h-[var(--control-h-chip)] items-center gap-0.5 rounded-full px-2 text-3xs font-medium text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-secondary"
+                className="inline-flex h-(--control-h-chip) items-center gap-0.5 rounded-full px-2 text-3xs font-medium text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-secondary"
               >
                 <ChevronDown
                   size={ICON.nano}
@@ -1193,7 +1193,7 @@ export function StreamDetailView() {
                             }
                           }}
                           className={cn(
-                            "inline-flex h-[var(--control-h-chip)] items-center gap-1 rounded-full px-2 text-3xs font-medium transition-colors",
+                            "inline-flex h-(--control-h-chip) items-center gap-1 rounded-full px-2 text-3xs font-medium transition-colors",
                             isExpanded
                               ? "bg-accent-bg-subtle text-accent-color"
                               : "text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
@@ -1216,7 +1216,7 @@ export function StreamDetailView() {
                                   data-filter-chip
                                   data-filter-chip-active={isActive ? "true" : undefined}
                                   className={cn(
-                                    "inline-flex h-[var(--control-h-chip)] max-w-[9rem] items-center truncate rounded-full px-2 text-3xs font-medium leading-none transition-colors",
+                                    "inline-flex h-(--control-h-chip) max-w-36 items-center truncate rounded-full px-2 text-3xs font-medium leading-none transition-colors",
                                     isActive
                                       ? "bg-accent-bg-subtle text-accent-color"
                                       : "bg-surface-muted/35 text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
@@ -1232,7 +1232,7 @@ export function StreamDetailView() {
                                 type="button"
                                 disabled={archivingYear === y.year}
                                 onClick={() => void handleArchiveYear(y.year, y.periodCount)}
-                                className="inline-flex h-[var(--control-h-chip)] items-center gap-0.5 rounded-full px-2 text-3xs font-medium text-text-tertiary transition-colors hover:bg-warning/10 hover:text-warning"
+                                className="inline-flex h-(--control-h-chip) items-center gap-0.5 rounded-full px-2 text-3xs font-medium text-text-tertiary transition-colors hover:bg-warning/10 hover:text-warning"
                                 title={t("workspace:streamDetail.archiveYear")}
                               >
                                 {archivingYear === y.year ? (
@@ -1243,7 +1243,7 @@ export function StreamDetailView() {
                                 {t("workspace:streamDetail.archiveYear")}
                               </button>
                             ) : (
-                              <span className="inline-flex h-[var(--control-h-chip)] items-center gap-0.5 rounded-full px-2 text-3xs font-medium text-text-quaternary">
+                              <span className="inline-flex h-(--control-h-chip) items-center gap-0.5 rounded-full px-2 text-3xs font-medium text-text-quaternary">
                                 <Archive size={ICON.nano} />
                                 {t("common:status.archived")}
                               </span>
@@ -1278,7 +1278,7 @@ export function StreamDetailView() {
           无 label/hint meta 行（降噪 2026-08）：placeholder 承担引导，计数在 PageHeader subtitle。 */}
       {composeIsUrl ? (
         <div
-          className="mb-2 flex items-center gap-2 rounded-[var(--radius-md)] border border-accent-border-subtle/50 bg-accent-bg-faint/20 px-2.5 py-1.5"
+          className="mb-2 flex items-center gap-2 rounded-md border border-accent-border-subtle/50 bg-accent-bg-faint/20 px-2.5 py-1.5"
           data-stream-compose-url-hint
         >
           <Link size={ICON.nano} className="shrink-0 text-accent-color" aria-hidden />
@@ -1299,8 +1299,8 @@ export function StreamDetailView() {
       ) : null}
       <div
         className={cn(
-          "v4-stream-composer mb-2.5 rounded-[var(--radius-lg)]",
-          "bg-surface-elevated shadow-[var(--shadow-card)]",
+          "v4-stream-composer mb-2.5 rounded-lg",
+          "bg-surface-elevated shadow-(--shadow-card)",
           "px-3 py-2",
         )}
         data-stream-inline-composer
@@ -1323,7 +1323,7 @@ export function StreamDetailView() {
             }
           }}
           className={cn(
-            "w-full resize-y min-h-[2.75rem] max-h-40 bg-transparent",
+            "w-full resize-y min-h-11 max-h-40 bg-transparent",
             "text-md leading-[1.62] text-text-primary placeholder:text-text-quaternary",
             "outline-none border-0 focus:ring-0",
           )}
@@ -1408,7 +1408,7 @@ export function StreamDetailView() {
               <section
                 key={group.dayKey}
                 className={cn(
-                  "overflow-hidden rounded-[var(--radius-lg)] bg-surface shadow-[var(--shadow-card)]",
+                  "overflow-hidden rounded-lg bg-surface shadow-(--shadow-card)",
                   gi === 0 && isCurrentPeriod && "ring-1 ring-inset ring-accent-color/15",
                 )}
                 data-stream-day-group

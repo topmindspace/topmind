@@ -178,7 +178,7 @@ export function EditorRecentBar() {
                   });
                 }}
                 className={cn(
-                  "v4-recent-tab v4-drop-target group relative inline-flex shrink-0 cursor-grab items-center gap-0.5 rounded-t-[var(--radius-md)] py-1 pl-2 pr-1 text-3xs font-medium transition-colors active:cursor-grabbing",
+                  "v4-recent-tab v4-drop-target group relative inline-flex shrink-0 cursor-grab items-center gap-0.5 rounded-t-md py-1 pl-2 pr-1 text-3xs font-medium transition-colors active:cursor-grabbing",
                   active
                     ? "v4-recent-tab-active bg-surface text-text-primary shadow-sm"
                     : "text-text-tertiary hover:bg-surface-muted/70 hover:text-text-secondary",
@@ -221,7 +221,7 @@ export function EditorRecentBar() {
                       pinFileTab(tab.path);
                     }}
                     className={cn(
-                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-[var(--radius-sm)] transition-opacity pointer-events-none group-hover:pointer-events-auto focus-visible:pointer-events-auto",
+                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-sm transition-opacity pointer-events-none group-hover:pointer-events-auto focus-visible:pointer-events-auto",
                       tab.pinned
                         ? "text-accent-color opacity-100 pointer-events-auto"
                         : "text-text-quaternary opacity-0 group-hover:opacity-100 hover:bg-surface-muted focus-visible:opacity-100",
@@ -240,7 +240,7 @@ export function EditorRecentBar() {
                       closeFileTab(tab.path);
                     }}
                     className={cn(
-                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-opacity pointer-events-none group-hover:pointer-events-auto hover:bg-surface-muted hover:text-error",
+                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-text-quaternary transition-opacity pointer-events-none group-hover:pointer-events-auto hover:bg-surface-muted hover:text-error",
                       active ? "opacity-80 pointer-events-auto" : "opacity-0 group-hover:opacity-100",
                     )}
                     aria-label={t("editorRecentBar.closeAriaLabel")}
@@ -259,7 +259,7 @@ export function EditorRecentBar() {
             <button
               type="button"
               onClick={() => closeAllFileTabs({ closePinned: !hasUnpinned })}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-surface-muted hover:text-error"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-sm text-text-quaternary transition-colors hover:bg-surface-muted hover:text-error"
               aria-label={t("editorRecentBar.closeAllTabsAriaLabel")}
             >
               <XCircle size={ICON.xs} />

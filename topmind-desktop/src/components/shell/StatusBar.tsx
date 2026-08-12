@@ -47,7 +47,7 @@ interface StatusBarProps {
 }
 
 function StatusDivider() {
-  return <span className="v4-chrome-sep !h-2.5" aria-hidden />;
+  return <span className="v4-chrome-sep h-2.5!" aria-hidden />;
 }
 
 export function StatusBar({ health }: StatusBarProps) {
@@ -150,7 +150,7 @@ export function StatusBar({ health }: StatusBarProps) {
 
   return (
     <div
-      className="v4-shell-chrome grid h-[var(--density-status-y,24px)] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 border-t border-border-subtle-dim px-2.5 text-3xs text-text-quaternary select-none sm:gap-1.5 sm:px-3"
+      className="v4-shell-chrome grid h-(--density-status-y,24px) grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 border-t border-border-subtle-dim px-2.5 text-3xs text-text-quaternary select-none sm:gap-1.5 sm:px-3"
       role="contentinfo"
       aria-label={t("statusBar.ariaLabel")}
       data-status-bar
@@ -229,7 +229,7 @@ export function StatusBar({ health }: StatusBarProps) {
                 useViewStore.getState().openOverlay("settings", { topicId: "manage" });
               }}
               className={cn(
-                "flex shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 py-0.5",
+                "flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5",
                 "bg-success/10 text-success",
                 "transition-colors hover:bg-success/20",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
@@ -263,7 +263,7 @@ export function StatusBar({ health }: StatusBarProps) {
               type="button"
               onClick={() => emitLocal("task-panel:open")}
               className={cn(
-                "flex shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 py-0.5",
+                "flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5",
                 "bg-accent-bg-faint text-accent-color",
                 "transition-colors hover:bg-accent-bg-subtle",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
@@ -288,7 +288,7 @@ export function StatusBar({ health }: StatusBarProps) {
               data-status-todo-busy
               onClick={() => emitLocal("todo:open-popover")}
               className={cn(
-                "flex shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 py-0.5",
+                "flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5",
                 "bg-accent-bg-faint text-accent-color",
                 "transition-colors hover:bg-accent-bg-subtle",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
@@ -314,7 +314,7 @@ export function StatusBar({ health }: StatusBarProps) {
                 });
               }}
               className={cn(
-                "flex shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 py-0.5 bg-accent-bg-faint text-accent-color hover:bg-accent-bg-subtle transition-colors",
+                "flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 bg-accent-bg-faint text-accent-color hover:bg-accent-bg-subtle transition-colors",
                 suggestPanelOpen && "ring-1 ring-inset ring-accent-border-subtle",
               )}
               aria-pressed={suggestPanelOpen}
@@ -339,7 +339,7 @@ export function StatusBar({ health }: StatusBarProps) {
                 });
               }}
               className={cn(
-                "flex shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 py-0.5 transition-colors",
+                "flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 transition-colors",
                 busy.suggestHasHigh
                   ? "bg-warning/10 text-warning hover:bg-warning/20"
                   : "bg-accent-bg-faint text-accent-color hover:bg-accent-bg-subtle",
@@ -362,10 +362,10 @@ export function StatusBar({ health }: StatusBarProps) {
               role="status"
               aria-live="polite"
               data-status-inline-busy
-              className="flex shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 py-0.5 bg-accent-bg-faint text-accent-color"
+              className="flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 bg-accent-bg-faint text-accent-color"
             >
               <Loader2 size={ICON.micro} className="animate-spin" aria-hidden />
-              <span className="v4-ai-busy-text hidden max-w-[7.5rem] truncate sm:inline">{inlineLabel}</span>
+              <span className="v4-ai-busy-text hidden max-w-30 truncate sm:inline">{inlineLabel}</span>
               <span className="v4-ai-progress-dot" aria-hidden />
             </span>
           </Tooltip>
@@ -393,7 +393,7 @@ export function StatusBar({ health }: StatusBarProps) {
             role="status"
             aria-live="polite"
             className={cn(
-              "flex shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 py-0.5 transition-colors",
+              "flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 transition-colors",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
               !runtimeStatus?.ready
                 ? "text-text-quaternary hover:bg-surface-muted hover:text-warning"
@@ -409,7 +409,7 @@ export function StatusBar({ health }: StatusBarProps) {
             ) : (
               <Bot size={ICON.micro} aria-hidden />
             )}
-            <span className={cn("hidden max-w-[9rem] truncate md:inline", busy.aiPillBusy && "v4-ai-busy-text")}>{aiLabel}</span>
+            <span className={cn("hidden max-w-36 truncate md:inline", busy.aiPillBusy && "v4-ai-busy-text")}>{aiLabel}</span>
             {busy.aiPillBusy ? <span className="v4-ai-progress-dot" aria-hidden /> : null}
           </button>
         </Tooltip>
@@ -439,7 +439,7 @@ function SelectionHint({ selection }: { selection: Selection }) {
           });
         }}
         className={cn(
-          "flex max-w-full items-center gap-1 truncate rounded-[var(--radius-sm)] px-1.5 py-0.5 text-text-quaternary",
+          "flex max-w-full items-center gap-1 truncate rounded-sm px-1.5 py-0.5 text-text-quaternary",
           "transition-colors hover:bg-surface-muted hover:text-text-secondary",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
         )}

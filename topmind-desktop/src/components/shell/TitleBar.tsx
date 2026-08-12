@@ -33,7 +33,7 @@ function SuggestBadge() {
   return (
     <span
       className={cn(
-        "absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[0.875rem] items-center justify-center rounded-[var(--radius-xs)] px-0.5 text-5xs font-bold leading-none tabular-nums text-text-on-accent",
+        "absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-xs px-0.5 text-5xs font-bold leading-none tabular-nums text-text-on-accent",
         hasHigh ? "bg-warning" : "bg-skill-loop",
       )}
       aria-hidden
@@ -50,7 +50,7 @@ function TodoBadge() {
   if (activeCount === 0) return null;
   return (
     <span
-      className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[0.875rem] items-center justify-center rounded-[var(--radius-xs)] bg-accent-color px-0.5 text-5xs font-bold leading-none tabular-nums text-text-on-accent"
+      className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-xs bg-accent-color px-0.5 text-5xs font-bold leading-none tabular-nums text-text-on-accent"
       aria-hidden
       data-todo-header-badge
     >
@@ -206,7 +206,7 @@ function WorkspaceSwitcher({ currentRoot }: { currentRoot: string }) {
             aria-haspopup="listbox"
             aria-expanded={open}
             className={cn(
-              "v4-titlebar-btn max-w-[120px] gap-1 px-1.5 font-mono text-3xs sm:max-w-[160px] xl:max-w-[200px]",
+              "v4-titlebar-btn max-w-30 gap-1 px-1.5 font-mono text-3xs sm:max-w-40 xl:max-w-50",
               open && "bg-surface-muted text-text-secondary",
             )}
           >
@@ -230,7 +230,7 @@ function WorkspaceSwitcher({ currentRoot }: { currentRoot: string }) {
       </div>
 
       <DropdownSectionLabel>{t("titleBar.recentWorkspaces")}</DropdownSectionLabel>
-      <div className="v4-sidebar-scroll max-h-[180px] overflow-auto px-1 pb-1">
+      <div className="v4-sidebar-scroll max-h-45 overflow-auto px-1 pb-1">
         {recent.length === 0 ? (
           <div className="px-2.5 py-2 text-3xs text-text-quaternary">{t("titleBar.noRecentWorkspaces")}</div>
         ) : (
@@ -396,7 +396,7 @@ function PrimaryNav() {
             type="button"
             onClick={a.action}
             className={cn(
-              "v4-nav-pill relative flex h-7 items-center gap-1 rounded-[var(--radius-md)] px-2.5 text-3xs font-medium",
+              "v4-nav-pill relative flex h-7 items-center gap-1 rounded-md px-2.5 text-3xs font-medium",
               !a.active && "text-text-tertiary",
             )}
             data-active={a.active}
@@ -404,11 +404,11 @@ function PrimaryNav() {
             aria-current={a.active ? "page" : undefined}
           >
             <a.icon size={ICON.xs} {...stroke} className="shrink-0 opacity-90" />
-            {showLabels ? <span className="max-w-[4.5rem] truncate">{a.label}</span> : null}
+            {showLabels ? <span className="max-w-18 truncate">{a.label}</span> : null}
             {a.badge > 0 ? (
               <span
                 className={cn(
-                  "min-w-[1rem] rounded-full px-1 text-center text-3xs font-semibold tabular-nums",
+                  "min-w-4 rounded-full px-1 text-center text-3xs font-semibold tabular-nums",
                   a.badgeTone === "warning"
                     ? "bg-warning/18 text-warning"
                     : "bg-accent-bg-subtle text-accent-color",
@@ -426,7 +426,7 @@ function PrimaryNav() {
           type="button"
           onClick={() => select({ kind: "archive" })}
           className={cn(
-            "v4-nav-pill ml-0.5 flex h-7 w-7 items-center justify-center rounded-[var(--radius-md)]",
+            "v4-nav-pill ml-0.5 flex h-7 w-7 items-center justify-center rounded-md",
             selection.kind !== "archive" && "text-text-tertiary",
           )}
           data-active={selection.kind === "archive"}
@@ -524,7 +524,7 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
     return (
       <header
         className={cn(
-          "v4-drag v4-titlebar-glass relative flex h-[var(--density-chrome-y,36px)] items-center justify-between gap-2 px-2 text-text-secondary select-none sm:px-3",
+          "v4-drag v4-titlebar-glass relative flex h-(--density-chrome-y,36px) items-center justify-between gap-2 px-2 text-text-secondary select-none sm:px-3",
           isWindows && "v4-win-titlebar-pad",
         )}
       >
@@ -550,7 +550,7 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
   return (
     <header
       className={cn(
-        "v4-drag v4-titlebar-glass relative flex h-[var(--density-chrome-y,36px)] items-center justify-between gap-2 px-2 text-text-secondary select-none sm:px-3",
+        "v4-drag v4-titlebar-glass relative flex h-(--density-chrome-y,36px) items-center justify-between gap-2 px-2 text-text-secondary select-none sm:px-3",
         isWindows && "v4-win-titlebar-pad",
       )}
     >
@@ -597,7 +597,7 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
             type="button"
             onMouseEnter={() => warmOverlay("command-palette")}
             onClick={() => emitLocal("overlay:open", { kind: "command-palette" })}
-            className="v4-cmd-trigger group flex h-7 items-center gap-1.5 rounded-[var(--radius-md)] px-2.5 text-3xs font-medium text-text-tertiary xl:min-w-[10.5rem]"
+            className="v4-cmd-trigger group flex h-7 items-center gap-1.5 rounded-md px-2.5 text-3xs font-medium text-text-tertiary xl:min-w-42"
             aria-label={t("titleBar.commandPaletteAriaLabel")}
           >
             <Command size={ICON.xs} {...stroke} className="shrink-0 transition-colors group-hover:text-accent-color" />

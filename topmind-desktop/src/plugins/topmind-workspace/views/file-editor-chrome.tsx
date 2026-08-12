@@ -28,7 +28,7 @@ export function formatDateTime(iso: string): string {
 }
 
 export function ToolbarSep() {
-  return <span className="v4-chrome-sep !mx-0.5 !h-3.5 shrink-0" aria-hidden />;
+  return <span className="v4-chrome-sep mx-0.5! h-3.5! shrink-0" aria-hidden />;
 }
 
 export function ToolbarButton({
@@ -51,8 +51,8 @@ export function ToolbarButton({
         onClick={onClick}
         onContextMenu={onContextMenu}
         className={cn(
-          "flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)]",
-          "transition-[background-color,color,box-shadow] duration-[var(--duration-fast)]",
+          "flex h-7 w-7 items-center justify-center rounded-sm",
+          "transition-[background-color,color,box-shadow] duration-(--duration-fast)",
           active
             ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
             : "text-text-tertiary hover:bg-surface-muted hover:text-text-primary",

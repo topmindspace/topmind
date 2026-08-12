@@ -85,7 +85,7 @@ export function TodoListBody() {
       {maintainMessage && maintaining !== "maintaining" ? (
         <div
           className={cn(
-            "mb-1.5 rounded-[var(--radius-md)] px-2 py-1 text-3xs",
+            "mb-1.5 rounded-md px-2 py-1 text-3xs",
             maintaining === "error"
               ? "bg-status-error-bg text-error"
               : "bg-accent-bg-subtle text-accent-color",
@@ -127,7 +127,7 @@ export function TodoListBody() {
 
       {/* Health hint: stale / overdue warnings */}
       {(staleCount > 0 || overdueCount > 0) && showHealthHint ? (
-        <div className="mb-1.5 rounded-[var(--radius-md)] border border-warning/20 bg-warning/5 px-2 py-1 text-3xs text-warning">
+        <div className="mb-1.5 rounded-md border border-warning/20 bg-warning/5 px-2 py-1 text-3xs text-warning">
           <div className="flex items-center gap-1">
             <AlertTriangle size={ICON.nano} className="shrink-0" />
             <span className="flex-1">
@@ -167,7 +167,7 @@ export function TodoListBody() {
 
       {/* Inline add — Apple Reminders style */}
       <div className="mb-1.5">
-        <div className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface/50 px-2 py-1.5 focus-within:border-accent-border-subtle">
+        <div className="flex items-center gap-1.5 rounded-md border border-border-subtle-dim bg-surface/50 px-2 py-1.5 focus-within:border-accent-border-subtle">
           <Plus size={ICON.nano} className="shrink-0 text-text-quaternary" />
           <input
             ref={inputRef}
@@ -379,7 +379,7 @@ function TodoItemRow({
   const dueInfo = item.dueDate ? formatDueDate(item.dueDate, t) : null;
 
   return (
-    <li className="group flex items-start gap-1.5 rounded-[var(--radius-md)] px-1.5 py-1 transition-colors hover:bg-surface-muted/40">
+    <li className="group flex items-start gap-1.5 rounded-md px-1.5 py-1 transition-colors hover:bg-surface-muted/40">
       {/* Checkbox */}
       <button
         type="button"
@@ -412,7 +412,7 @@ function TodoItemRow({
         ) : (
           <div
             className={cn(
-              "break-words text-xs leading-relaxed",
+              "wrap-break-word text-xs leading-relaxed",
               item.done
                 ? "text-text-quaternary line-through opacity-60"
                 : "text-text-primary",
@@ -454,7 +454,7 @@ function TodoItemRow({
               </button>
             ) : null}
             {showDatePicker ? (
-              <div className="absolute z-10 mt-1 rounded-[var(--radius-md)] border border-border-subtle bg-surface-elevated p-1.5 shadow-[var(--shadow-float)]">
+              <div className="absolute z-10 mt-1 rounded-md border border-border-subtle bg-surface-elevated p-1.5 shadow-elevated-hairline">
                 <input
                   ref={dateRef}
                   type="date"
@@ -504,7 +504,7 @@ function TodoItemRow({
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="flex h-4 w-4 items-center justify-center rounded-[var(--radius-xs)] text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary"
+              className="flex h-4 w-4 items-center justify-center rounded-xs text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary"
               aria-label={t("todo.edit")}
             >
               <Pencil size={ICON.nano} />
@@ -515,7 +515,7 @@ function TodoItemRow({
                 e.stopPropagation();
                 setShowDatePicker((v) => !v);
               }}
-              className="flex h-4 w-4 items-center justify-center rounded-[var(--radius-xs)] text-text-quaternary transition-colors hover:bg-surface-muted hover:text-accent-color"
+              className="flex h-4 w-4 items-center justify-center rounded-xs text-text-quaternary transition-colors hover:bg-surface-muted hover:text-accent-color"
               aria-label={t("todo.setDueDate")}
             >
               <CalendarClock size={ICON.nano} />
@@ -525,7 +525,7 @@ function TodoItemRow({
         <button
           type="button"
           onClick={() => void remove(item.id)}
-          className="flex h-4 w-4 items-center justify-center rounded-[var(--radius-xs)] text-text-quaternary transition-colors hover:bg-surface-muted hover:text-error"
+          className="flex h-4 w-4 items-center justify-center rounded-xs text-text-quaternary transition-colors hover:bg-surface-muted hover:text-error"
           aria-label={t("todo.delete")}
         >
           <Trash2 size={ICON.nano} />

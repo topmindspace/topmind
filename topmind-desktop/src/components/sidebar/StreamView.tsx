@@ -157,7 +157,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
           <button
             type="button"
             onClick={() => void load()}
-            className="flex items-center gap-1 self-start rounded-[var(--radius-md)] border border-border-subtle px-2 py-1 text-3xs text-text-tertiary hover:text-accent-color focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+            className="flex items-center gap-1 self-start rounded-md border border-border-subtle px-2 py-1 text-3xs text-text-tertiary hover:text-accent-color focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
           >
             <RefreshCw size={ICON.micro} aria-hidden /> {t("sidebar.stream.retry")}
           </button>
@@ -178,7 +178,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
             <button
               type="button"
               onClick={handleCapture}
-              className="inline-flex items-center gap-1 rounded-[var(--radius-md)] bg-accent-color px-2 py-1 text-3xs font-medium text-primary-foreground shadow-[var(--shadow-button)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+              className="inline-flex items-center gap-1 rounded-md bg-accent-color px-2 py-1 text-3xs font-medium text-primary-foreground shadow-(--shadow-button) transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
             >
               <Zap size={ICON.nano} aria-hidden />
               {t("sidebar.stream.capture")}
@@ -207,7 +207,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
               onClick={handleMaintainTodos}
               disabled={todoMaintaining}
               className={cn(
-                "v4-ai-btn flex items-center gap-0.5 rounded-[var(--radius-sm)] px-1.5 py-0.5 text-3xs font-medium transition-colors",
+                "v4-ai-btn flex items-center gap-0.5 rounded-sm px-1.5 py-0.5 text-3xs font-medium transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
                 "disabled:opacity-50",
               )}
@@ -228,7 +228,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
               type="button"
               onClick={handleOpenTaskBoard}
               aria-label={t("sidebar.stream.taskBoardTip")}
-              className="flex items-center rounded-[var(--radius-sm)] p-1 text-text-quaternary transition-colors hover:bg-surface-muted hover:text-accent-color focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+              className="flex items-center rounded-sm p-1 text-text-quaternary transition-colors hover:bg-surface-muted hover:text-accent-color focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
             >
               <LayoutDashboard size={ICON.nano} {...{ strokeWidth: ICON_STROKE.chrome }} aria-hidden />
             </button>
@@ -238,7 +238,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
               type="button"
               onClick={handleOpenStreamView}
               aria-label={t("sidebar.stream.openFullView")}
-              className="flex items-center rounded-[var(--radius-sm)] p-1 text-text-quaternary transition-colors hover:bg-surface-muted hover:text-accent-color focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+              className="flex items-center rounded-sm p-1 text-text-quaternary transition-colors hover:bg-surface-muted hover:text-accent-color focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
             >
               <Maximize2 size={ICON.nano} {...{ strokeWidth: ICON_STROKE.chrome }} aria-hidden />
             </button>
@@ -248,7 +248,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
               type="button"
               onClick={() => void load()}
               aria-label={t("sidebar.stream.reloadTooltip")}
-              className="flex items-center rounded-[var(--radius-sm)] p-1 text-text-quaternary transition-colors hover:bg-surface-muted hover:text-accent-color focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+              className="flex items-center rounded-sm p-1 text-text-quaternary transition-colors hover:bg-surface-muted hover:text-accent-color focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
             >
               <RefreshCw size={ICON.nano} {...{ strokeWidth: ICON_STROKE.chrome }} aria-hidden />
             </button>
@@ -259,7 +259,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
                 type="button"
                 onClick={() => handleOpenPeriod()}
                 aria-label={t("sidebar.stream.openFull")}
-                className="flex items-center gap-0.5 rounded-[var(--radius-sm)] px-1.5 py-0.5 text-3xs text-text-tertiary transition-colors hover:bg-surface-muted hover:text-accent-color focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+                className="flex items-center gap-0.5 rounded-sm px-1.5 py-0.5 text-3xs text-text-tertiary transition-colors hover:bg-surface-muted hover:text-accent-color focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
               >
                 <FileText size={ICON.nano} {...{ strokeWidth: ICON_STROKE.chrome }} aria-hidden />
                 <ChevronRight size={ICON.nano} {...{ strokeWidth: ICON_STROKE.chrome }} aria-hidden />
@@ -276,7 +276,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
             <section
               key={group.dayKey}
               className={cn(
-                "overflow-hidden rounded-[var(--radius-md)] bg-surface/50",
+                "overflow-hidden rounded-md bg-surface/50",
                 gi === 0 && "ring-1 ring-inset ring-accent-color/10",
               )}
             >
