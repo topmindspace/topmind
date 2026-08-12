@@ -1317,6 +1317,11 @@ export const SystemService = {
    * Install Obsidian plugin into vault (default: current workspace if .obsidian present).
    * Pre-checks GitHub for a newer version; if available, downloads and installs
    * the latest instead of the stale bundled version.
+   *
+   * Error handling: if download fails (network, verification, etc.), falls back
+   * to bundled with a warning log. The returned `source` field indicates whether
+   * the install came from "downloaded" or "bundled" so the UI can inform users.
+   *
    * @param {{ vaultPath?: string }} [p]
    */
   async installObsidianPlugin({ vaultPath } = {}, ctx) {
@@ -1338,7 +1343,12 @@ export const SystemService = {
           version: latest.latestVersion,
           tag: latest.tag,
         });
-        if (dlResult.ok) {
+        if (!dlResult.ok) {
+          logError("system", "obsidian download failed, falling back to bundled", {
+            error: dlResult.error,
+            bundled: latest.bundledVersion,
+          });
+        } else {
           try {
             const result = await installObsidianPlugin({
               vaultRoot,
@@ -1346,20 +1356,29 @@ export const SystemService = {
               engineRoot,
             });
             if (!result.ok) {
-              return result;
+              logError("system", "obsidian install from download failed, falling back to bundled", {
+                error: result.error,
+              });
+            } else {
+              logInfo("system", "obsidian plugin installed (from latest download)", {
+                version: result.version, pluginId: result.pluginId, path: result.path,
+                source: "downloaded",
+              });
+              return { ...result, source: "downloaded", downloadedVersion: latest.latestVersion };
             }
-            logInfo("system", "obsidian plugin installed (from latest download)", {
-              version: result.version, pluginId: result.pluginId, path: result.path,
-              source: "downloaded",
-            });
-            return { ...result, source: "downloaded", downloadedVersion: latest.latestVersion };
           } finally {
             await cleanupDownloadTemp(dlResult.tempDir);
           }
         }
       } catch (err) {
-        logError("system", "obsidian download+install failed, falling back to bundled", { error: err.message });
+        logError("system", "obsidian download+install failed, falling back to bundled", {
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
+    } else {
+      logInfo("system", "obsidian: using bundled version (no newer release found)", {
+        bundled: latest.bundledVersion,
+      });
     }
 
     // Fallback: install from bundled source

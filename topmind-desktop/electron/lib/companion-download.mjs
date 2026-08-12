@@ -15,17 +15,14 @@
  *
  * Security:
  *   - Downloads only from github.com/{repo}/releases/download/{tag}/
- *   - SHA256SUMS verified when available
+ *   - SHA256SUMS verified when available (uses Node.js crypto, cross-platform)
  *   - Temp files cleaned up on success or failure
  *   - No auto-execution of downloaded content
  */
 import { promises as fs, existsSync, createWriteStream } from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { spawnSync } from "node:child_process";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
+import crypto from "node:crypto";
 
 const DEFAULT_REPO = "topmindspace/topmind";
 const DOWNLOAD_TIMEOUT_MS = 120_000; // 2 minutes for large files
@@ -101,7 +98,41 @@ export async function downloadFile(url, destPath, opts = {}) {
 }
 
 /**
+ * Compute SHA-256 hash of a file using Node.js built-in crypto.
+ * Cross-platform — no external commands needed (fixes hash-computation-failed
+ * on Windows / systems without shasum or sha256sum).
+ *
+ * @param {string} filePath - path to file to hash
+ * @returns {Promise<string>} hex digest
+ */
+async function computeSha256(filePath) {
+  const hash = crypto.createHash("sha256");
+  const handle = await fs.open(filePath, "r");
+  try {
+    const CHUNK_SIZE = 64 * 1024; // 64KB chunks
+    let offset = 0;
+    while (true) {
+      const { bytesRead, buffer } = await handle.read(
+        Buffer.allocUnsafe(CHUNK_SIZE),
+        0,
+        CHUNK_SIZE,
+        offset,
+      );
+      if (bytesRead === 0) break;
+      hash.update(buffer.subarray(0, bytesRead));
+      offset += bytesRead;
+    }
+  } finally {
+    await handle.close();
+  }
+  return hash.digest("hex");
+}
+
+/**
  * Verify a downloaded file against a SHA256SUMS file.
+ *
+ * Uses Node.js built-in crypto for cross-platform compatibility
+ * (no dependency on external shasum/sha256sum commands).
  *
  * @param {string} zipPath - downloaded file path
  * @param {string} sumsPath - SHA256SUMS file path
@@ -132,30 +163,8 @@ export async function verifySha256(zipPath, sumsPath) {
       return { ok: true, error: "file-not-in-sums" };
     }
 
-    // Compute actual hash
-    const { spawnSync: spawn } = require("node:child_process");
-    const hashResult = spawn("shasum", ["-a", "256", zipPath], {
-      encoding: "utf8",
-      timeout: 30_000,
-    });
-
-    let actualHash = null;
-    if (hashResult.status === 0 && hashResult.stdout) {
-      actualHash = hashResult.stdout.trim().split(/\s+/)[0];
-    } else {
-      // Fallback: sha256sum on Linux
-      const altResult = spawn("sha256sum", [zipPath], {
-        encoding: "utf8",
-        timeout: 30_000,
-      });
-      if (altResult.status === 0 && altResult.stdout) {
-        actualHash = altResult.stdout.trim().split(/\s+/)[0];
-      }
-    }
-
-    if (!actualHash) {
-      return { ok: false, error: "hash-computation-failed" };
-    }
+    // Compute actual hash using Node.js crypto (cross-platform, no external deps)
+    const actualHash = await computeSha256(zipPath);
 
     if (actualHash.toLowerCase() !== expectedHash.toLowerCase()) {
       return { ok: false, error: `hash-mismatch: expected ${expectedHash}, got ${actualHash}` };
