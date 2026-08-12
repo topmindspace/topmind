@@ -4,9 +4,9 @@
 // Provides dynamic model lists instead of static curated defaults.
 //
 // Strategy:
-// 1. Fetch https://models.dev/api.json (cached 24h in plugin data)
+// 1. Fetch https://models.dev/api.json (cached 24h in memory)
 // 2. Map models.dev provider IDs to our internal provider IDs
-// 3. Filter to chat-capable text-output models
+// 3. Filter to chat-capable text-output models (exclude embedding/image/tts)
 // 4. Fall back to PROVIDER_DEFAULT_MODELS on any failure
 //
 // CRITICAL: Uses Obsidian's `requestUrl` instead of raw `fetch`.
@@ -14,6 +14,11 @@
 // (especially Windows), causing silent failures that always fall back
 // to hardcoded static model lists. `requestUrl` bypasses CSP and is
 // the recommended HTTP API for Obsidian plugins.
+//
+// NOTE: The models.dev API response is ~3.6 MB (hundreds of providers).
+// We only extract the 8 providers we care about, but the full response
+// must be downloaded and parsed. A 15-second timeout prevents hangs on
+// slow connections.
 
 import { requestUrl } from "obsidian";
 import { AI_PROVIDER_PRESETS, PROVIDER_DEFAULT_MODELS } from "../constants";
@@ -30,8 +35,11 @@ const MODELS_DEV_PROVIDER_MAP: Record<string, string> = {
   xai: "xai",
 };
 
-/** Cache TTL: 24 hours */
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+/** Cache TTL: 6 hours (reduced from 24h for fresher model lists) */
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+
+/** Fetch timeout: 15 seconds (the API response is ~3.6 MB) */
+const FETCH_TIMEOUT_MS = 15_000;
 
 export interface ModelEntry {
   id: string;
@@ -55,6 +63,22 @@ export interface ProviderCatalogEntry {
 let cache: ProviderCatalogEntry[] | null = null;
 let cacheFetchedAt = 0;
 
+/** Check if a model ID/name indicates a non-chat model (embedding, image, TTS, etc.) */
+function isNonChatModel(modelId: string, modelName: string): boolean {
+  const lower = `${modelId} ${modelName}`.toLowerCase();
+  return (
+    lower.includes("embedding") ||
+    lower.includes("whisper") ||
+    lower.includes("tts") ||
+    lower.includes("dall-e") ||
+    lower.includes("image") ||
+    lower.includes("moderation") ||
+    lower.includes("realtime") ||
+    lower.includes("audio") ||
+    lower.includes("transcribe")
+  );
+}
+
 /**
  * Fetch the models.dev community catalog and map it to our provider structure.
  * Returns cached data if fresh (within TTL).
@@ -75,14 +99,21 @@ export async function fetchModelsDevCatalog(forceLive = false): Promise<Provider
     // Use Obsidian's requestUrl — bypasses CSP, works on all platforms
     // (Windows, macOS, Linux). Raw `fetch` is blocked by Obsidian's CSP on
     // some platforms, causing silent fallback to static defaults.
-    const res = await requestUrl({
+    //
+    // The API response is ~3.6 MB, so we use a timeout to prevent hangs.
+    const requestPromise = requestUrl({
       url: "https://models.dev/api.json",
       method: "GET",
       headers: {
         Accept: "application/json",
       },
-      throw: false,
     });
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error("models.dev fetch timeout")), FETCH_TIMEOUT_MS);
+    });
+
+    const res = await Promise.race([requestPromise, timeoutPromise]);
 
     if (res.status !== 200) {
       throw new Error(`HTTP ${res.status}`);
@@ -100,7 +131,7 @@ export async function fetchModelsDevCatalog(forceLive = false): Promise<Provider
         const model = modelRaw as Record<string, unknown>;
         const modalities = (model.modalities || {}) as Record<string, unknown>;
         const outputModalities = (modalities.output || []) as string[];
-        // Skip non-text-output models
+        // Skip non-text-output models (image gen, TTS, etc.)
         if (outputModalities.length > 0 && !outputModalities.includes("text")) continue;
 
         const limit = (model.limit || {}) as Record<string, unknown>;
@@ -108,9 +139,13 @@ export async function fetchModelsDevCatalog(forceLive = false): Promise<Provider
         // Skip models with 0 context (image gen, TTS, etc.)
         if (ctxLimit === 0 && model.tool_call === false && model.reasoning === false) continue;
 
+        // Skip embedding / audio / non-chat models
+        const modelName = (model.name || modelId) as string;
+        if (isNonChatModel(modelId, modelName)) continue;
+
         const entry: ModelEntry = {
           id: modelId,
-          label: (model.name || modelId) as string,
+          label: modelName,
         };
         if (typeof model.description === "string" && model.description) {
           entry.description = model.description;
@@ -145,8 +180,13 @@ export async function fetchModelsDevCatalog(forceLive = false): Promise<Provider
       }
     }
 
+    if (catalog.length === 0) {
+      throw new Error("No providers found in models.dev response");
+    }
+
     cache = catalog;
     cacheFetchedAt = now;
+    console.log(`[topmind] models.dev: fetched ${catalog.reduce((sum, c) => sum + c.models.length, 0)} models across ${catalog.length} providers`);
     return catalog;
   } catch (err) {
     // Log the error so users can diagnose connectivity issues

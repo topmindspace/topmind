@@ -248,6 +248,8 @@ export const zhCN = {
   notice_no_inbox: "未找到收件箱目录",
   notice_new_note_created: "已创建新笔记",
   notice_new_note_failed: "创建笔记失败",
+  notice_models_loaded: "已加载 {{count}} 个模型",
+  notice_models_failed: "模型列表获取失败，使用内置默认列表",
 
   // ── Accessibility ──
   stream_expand_entry: "点击展开/收起动态条目",

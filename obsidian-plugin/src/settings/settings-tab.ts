@@ -391,6 +391,15 @@ export class TopmindSettingTab extends PluginSettingTab {
               const { clearModelsDevCache } = await import("../services/models-dev");
               clearModelsDevCache();
               await this.loadDynamicModels(activeProvider, modelSelectEl);
+              // Check if live models were loaded
+              const { fetchModelsDevCatalog } = await import("../services/models-dev");
+              const catalog = await fetchModelsDevCatalog();
+              const entry = catalog.find((c) => c.id === activeProvider);
+              if (entry?.live) {
+                new Notice(t("notice_models_loaded").replace("{{count}}", String(entry.models.length)));
+              } else {
+                new Notice(t("notice_models_failed"));
+              }
             } finally {
               btn.setDisabled(false);
               btn.setIcon("refresh-cw");

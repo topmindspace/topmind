@@ -250,6 +250,8 @@ export const enUS: typeof zhCN = {
   notice_no_inbox: "Inbox directory not found",
   notice_new_note_created: "New note created",
   notice_new_note_failed: "Failed to create note",
+  notice_models_loaded: "Loaded {{count}} models",
+  notice_models_failed: "Model list fetch failed, using built-in defaults",
 
   // ── Accessibility ──
   stream_expand_entry: "Click to expand/collapse entry",

@@ -175,6 +175,21 @@ export class StreamWorkbenchView extends ItemView {
     this.entryCountEl = streamTitleDiv.createSpan({ cls: "tm-entry-count" });
 
     const streamControls = streamHeader.createDiv({ cls: "tm-section-controls" });
+
+    // Manual refresh button — reloads stream content from vault
+    const refreshStreamBtn = streamControls.createEl("button", {
+      cls: "tm-btn-secondary tm-btn-icon-only",
+    });
+    setIcon(refreshStreamBtn, "refresh-cw");
+    refreshStreamBtn.setAttribute("aria-label", t("toolbar_btn_refresh"));
+    refreshStreamBtn.setAttribute("title", t("toolbar_btn_refresh"));
+    refreshStreamBtn.addEventListener("click", () => {
+      refreshStreamBtn.addClass("tm-btn-spinning");
+      this.refreshStream().finally(() => {
+        refreshStreamBtn.removeClass("tm-btn-spinning");
+      });
+    });
+
     this.periodSelect = streamControls.createEl("select", {
       cls: "tm-period-select",
     });
@@ -397,7 +412,7 @@ export class StreamWorkbenchView extends ItemView {
 
   private scheduleRefresh(delay: number): void {
     if (this.refreshTimer) clearTimeout(this.refreshTimer);
-    this.refreshTimer = setTimeout(() => this.refreshStream(), delay);
+    this.refreshTimer = setTimeout(() => this.refreshAll(), delay);
   }
 
   private autoGrowTextarea(el: HTMLTextAreaElement): void {
@@ -641,8 +656,9 @@ export class StreamWorkbenchView extends ItemView {
       this.app.workspace.openLinkText(periodPath, "", false);
     });
 
-    // Short content (≤3 lines / ≤200 chars) shows fully; long content starts collapsed
-    const isLongContent = entry.text.length > 200 || entry.text.split("\n").length > 3;
+    // Only very long content (>500 chars or >10 lines) starts collapsed;
+    // normal-length entries show fully for maximum readability.
+    const isLongContent = entry.text.length > 500 || entry.text.split("\n").length > 10;
     const body = card.createDiv({ cls: isLongContent ? "tm-card-body tm-collapsed" : "tm-card-body" });
     if (entry.text) {
       try {
