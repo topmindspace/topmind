@@ -70,7 +70,7 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Opti
   1. 前往 [Releases](https://github.com/topmindspace/topmind/releases) 下载适用于你系统的安装包 (`.dmg` / `.exe` / `.AppImage` / `.deb`)。
   2. 安装并打开，快捷键 `⌘N` (Mac) / `Ctrl+N` (Win) 随时随地极速记一条。  
      *(macOS 若手动安装提示损坏打不开，可在终端运行：`sudo xattr -rd com.apple.quarantine /Applications/Topmind.app`)*
-3. 详细指南：[`topmind-desktop/README.md`](./topmind-desktop/README.md)
+  3. 详细指南：[`topmind-desktop/README.md`](./topmind-desktop/README.md)
 
 ### 场景 2：在 Obsidian 中使用 (Topmind Stream Plugin)
 
@@ -169,7 +169,7 @@ Topmind 将工作区组织为清晰的三个平面，逻辑自洽且可预测：
 
 | 能力 | 状态 | 说明 |
 |------|------|------|
-| 捕获 / 周期本 / 编辑 / 剪藏 / 知识加工 | **Done** | 零摩擦流式记录与多源文件解析 |
+| 捕获 / 周期本 / 编辑 / 剪藏 / 知识加工 | **Done** | 零摩擦流式记录；Desktop 默认 anydoc 转 MD（可选 markitdown/pandoc + 内置兜底） |
 | Kernel 写闸 · Memory 闭环 · 动态主表面 | **Done** | 确认后再落盘，改动可撤销与恢复 |
 | 行内 AI 结果清洗 | **Done** | 自动过滤与清洗思考标签 (Thought Tags) |
 | 关键词搜索诚实截断 · **无** embedding 全库语义检索 | **Done** | 保持轻量与透明，防全库泛滥 |

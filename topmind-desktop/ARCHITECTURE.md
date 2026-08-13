@@ -42,7 +42,7 @@
 | 待办自动整理可关 | **Done** — `ai.autoMaintainTodos`（默认关 · 省 Token） |
 | 状态栏 AI 忙碌 | **Done** — `deriveStatusBarBusy`：todo/suggest 专用 chip，不与「AI 工作中」双标；Task=`Loader2`、Todo=`ListTodo`（可点开清单）、Suggest 可点开确认面；streaming · TaskStore 走 AI pill |
 | memory / lifecycle / contract / derived | 经 kernel-api；derived item-history **Done** 最小；AI provider 纯 **per-call 注入**——`createKernelAiProvider(settings)` 工厂按调用生成（`generateSuggestions` / `applySuggestion` / `runOperation` 等入口逐次传入），无全局单例；topic summary / period digest 用真实 LLM |
-| ingest 转换/队列 | Desktop `electron/lib/ingest/*` 本地转换与任务队列（**非路由**；深度/统一转换器仍可演进） |
+| ingest 转换/队列 | Desktop `electron/lib/ingest/*` 本地转换与任务队列（**非路由**；默认 anydoc sidecar，可选 markitdown/pandoc，内置 JS 兜底） |
 
 ## 架构全景
 
@@ -98,7 +98,7 @@ contextBridge.exposeInMainWorld('topmind', {
 | AiService | `ai-service.mjs` + `ai-prompts.mjs` + `ai-stream.mjs` + `ai-model.mjs` | ~12 | AI 调用（原生工具 → WorkspaceService）、流式、会话、steer/compact、skills catalog |
 | SystemService | `system-service.mjs` | ~49 | 设置（safeStorage）、路径、原生操作、工作区切换、Clip Bridge、**插件安装/预览**、**skills-extra**、类别管理、更新检查 |
 | ToolService | `tool-service.mjs` + `ai-tools.mjs` | ~6 | Desktop 原生 AI 工具；UTR catalog/run/doctor **软探测**（可选；写回不经 UTR） |
-| IngestService | `ingest-service.mjs` + `lib/ingest/*` + `lib/host-bin.mjs` | ~12 | 知识加工队列：探测类型、转换 Markdown、写回 Inbox/专题；可选 pandoc/markitdown（GUI PATH 增强 + py/pip 探测） |
+| IngestService | `ingest-service.mjs` + `lib/ingest/*` + `lib/host-bin.mjs` | ~13 | 知识加工队列：探测类型、转换 Markdown、写回 Inbox/专题；默认 anydoc sidecar（userData 热升级，不必重打包）；可选 markitdown/pandoc；内置 JS 兜底 |
 | WereadService | `weread-service.mjs` | ~10 | 微信读书 connector（可选） |
 | XService | `x-service.mjs` | ~7 | X (Twitter) connector（可选；normalize 在 `lib/x-normalize.mjs`） |
 
@@ -507,6 +507,8 @@ Float win: utility BrowserWindow (skipTaskbar, not destroyed by dual-dock guard)
 
 - 设置：`settings.capture`（globalMode / floatAlwaysOnTop / smartPaste / closeFloatOnSave）  
 - 插件 Hub：`src/plugins/topmind-ingest/`  
+- 转换：`convert-policy.mjs`（偏好 → 回退）+ `anydoc-sidecar.mjs`（PATH / userData / 可选 bundled）；设置 `ingest.preferredConverter` 默认 `auto`  
+- **升级**：anydoc sidecar / 本机 PATH **不必重打包 Desktop**；asar 内应用代码、Electron、内置 JS 转换器需要新版 Desktop  
 - 约定：`../skills/shared/document-ingest.md` · ADR `../docs/adr/2026-07-19-knowledge-ingest-pipeline.md`
 
 UI：消息内 **tool timeline**；输入区 Skill 芯片 + Agent 开关；会话首条自动标题。

@@ -66,8 +66,11 @@ const v4CommandCount = /8\s*(?:域|tools|道|工具|domains)\s*[\/／]\s*28\s*(?
 
 const requiredWorkflowDocs = [
   files.readme,
+  "README.en.md",
   files.design,
   files.projectModel,
+  "PRODUCT-BOUNDARIES.md",
+  "docs/README.md",
   files.desktopReadme,
   files.desktopDesign,
   files.desktopArchitecture,

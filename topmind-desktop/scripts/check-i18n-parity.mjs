@@ -7,7 +7,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 
 const localesDir = join(import.meta.dirname, "..", "src", "locales");
-const namespaces = ["shell", "editor", "overlays", "ai", "settings", "workspace", "common"];
+const namespaces = ["shell", "editor", "overlays", "ai", "settings", "workspace", "common", "ingest"];
 
 function flatten(obj, prefix = "") {
   const keys = new Set();

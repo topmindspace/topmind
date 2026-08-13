@@ -54,8 +54,9 @@ Daily entry after install: **`topmind`**
    ```
 3. **发布 Tag & Release（推荐）**：
    ```bash
-   git tag v3.0.1
-   git push origin v3.0.1
+   npm run versions                 # 真源 stamp；全量 tag 用 Desktop 版本
+   git tag v<desktop-version>
+   git push origin v<desktop-version>
    ```
 4. **生态发现与在线安装**：
    发布后，全球开发者即可通过以下方式发现与安装：
@@ -145,7 +146,7 @@ topmind Release 包是 **多 skill 组合包**，不是单目录 skill：
 ```text
 topmind-skills-<ver>.zip
 └── topmind-skills-<ver>/
-    ├── SKILL.md              ← 根入口 = router（v1.0.3+ pack 已含）
+    ├── SKILL.md              ← 根入口 = router
     ├── topmind/SKILL.md      ← 推荐日常入口
     ├── topmind-capture/…
     └── shared/
@@ -211,7 +212,7 @@ node scripts/install-skills.mjs add topmindspace/topmind -g
 | Source | 含义 |
 |--------|------|
 | `topmindspace/topmind` | GitHub `owner/repo`，默认分支，子目录 `--path skills` |
-| `topmindspace/topmind@v1.0.0` | 指定 ref / tag |
+| `topmindspace/topmind@v*` | 指定 ref / tag（版本见 `npm run versions`） |
 | `https://github.com/topmindspace/topmind.git` | 任意 git URL |
 | `./skills` / 绝对路径 | 本地 pack 根（含 `topmind-pack.json` 或 `*/SKILL.md`） |
 | `release:latest` | GitHub Release 里的 `topmind-skills-*.zip` |

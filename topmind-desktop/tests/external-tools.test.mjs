@@ -49,12 +49,15 @@ test("candidatePaths for pandoc on win32 includes Program Files style", () => {
   assert.ok(paths.some((p) => /pandoc/i.test(p)));
 });
 
-test("preferredInstallCommand: markitdown always uses [all] extras", async () => {
+test("preferredInstallCommand: anydoc via npm; markitdown always uses [all] extras", async () => {
   clearExternalToolsCache();
+  const ad = preferredInstallCommand("anydoc");
   const md = preferredInstallCommand("markitdown");
   const pd = preferredInstallCommand("pandoc");
+  assert.ok(ad.length > 0);
   assert.ok(md.length > 0);
   assert.ok(pd.length > 0);
+  assert.match(ad, /npm install -g @firecrawl\/anydoc/);
   assert.match(md, /markitdown\[all\]/i, "must recommend [all] for PPTX/Office extras");
   if (process.platform === "win32") {
     assert.match(md, /pip/i);
@@ -69,14 +72,19 @@ test("preferredInstallCommand: markitdown always uses [all] extras", async () =>
 test("probeExternalTools returns install hints when tools missing", async () => {
   clearExternalToolsCache();
   const tools = await probeExternalTools({ force: true });
+  assert.ok(tools.anydoc);
   assert.ok(tools.pandoc);
   assert.ok(tools.markitdown);
+  assert.ok(Array.isArray(tools.anydoc.install?.commands));
+  assert.ok(tools.anydoc.install.commands.length >= 1);
+  assert.match(tools.anydoc.install.commands[0], /@firecrawl\/anydoc/);
+  assert.equal(tools.anydoc.install.canSidecarInstall, true);
   assert.ok(Array.isArray(tools.pandoc.install?.commands));
   assert.ok(tools.pandoc.install.commands.length >= 1);
   assert.ok(Array.isArray(tools.markitdown.install?.commands));
   assert.ok(tools.markitdown.install.commands.length >= 1);
   assert.ok(typeof tools.checkedAt === "string");
-  // available is boolean either way
+  assert.equal(typeof tools.anydoc.available, "boolean");
   assert.equal(typeof tools.pandoc.available, "boolean");
   assert.equal(typeof tools.markitdown.available, "boolean");
 });

@@ -136,7 +136,7 @@ export function ConnectorToastBanner({
   );
 }
 
-/** Compact tool availability chip (pandoc / markitdown / similar). */
+/** Compact tool availability chip (anydoc / markitdown / pandoc / similar). */
 export function ConnectorToolChip({ label, ok }: { label: string; ok?: boolean }) {
   return (
     <span

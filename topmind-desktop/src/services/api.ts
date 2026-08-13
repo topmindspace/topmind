@@ -986,6 +986,21 @@ export const api = {
       }>("ingest.previewItems", p),
     toolsStatus: (force?: boolean) =>
       invoke<{
+        anydoc: {
+          available: boolean;
+          version: string | null;
+          path?: string;
+          source?: string;
+          upgradable?: boolean;
+          install?: {
+            commands: string[];
+            docsUrl: string;
+            label: string;
+            preferredIndex?: number;
+            hint?: string;
+            canSidecarInstall?: boolean;
+          };
+        };
         pandoc: {
           available: boolean;
           version: string | null;
@@ -1018,13 +1033,23 @@ export const api = {
         settings?: import("../types").IngestSettings;
         defaults?: import("../types").IngestSettings;
       }>("ingest.toolsStatus", { force: Boolean(force) }),
-    openInstallHelp: (tool: "pandoc" | "markitdown") =>
+    openInstallHelp: (tool: "pandoc" | "markitdown" | "anydoc") =>
       invoke<{ ok: boolean; opened?: string }>("ingest.openInstallHelp", { tool }),
-    copyInstallCommand: (tool: "pandoc" | "markitdown", index?: number) =>
+    copyInstallCommand: (tool: "pandoc" | "markitdown" | "anydoc", index?: number) =>
       invoke<{ ok: boolean; command: string; commands?: string[]; index?: number }>(
         "ingest.copyInstallCommand",
         { tool, index },
       ),
+    /** User-triggered sidecar install / upgrade (writes under userData, not asar). */
+    installAnydoc: (spec?: string) =>
+      invoke<{
+        ok: boolean;
+        error?: string;
+        version?: string | null;
+        path?: string;
+        source?: string;
+        outsideAsar?: boolean;
+      }>("ingest.installAnydoc", spec ? { spec } : {}),
     readClipboard: () =>
       invoke<{
         text: string;

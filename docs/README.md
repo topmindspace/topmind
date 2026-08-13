@@ -1,7 +1,8 @@
 # topmind 文档全景导览中心 (Documentation Sitemap)
 
 > **根目录入口** [`../README.md`](../README.md) · **English** [`../README.en.md`](../README.en.md)  
-> 本目录收录 topmind 项目的架构设计锁、ADR 决策记录、打包发布规范与全表面导览。
+> 本目录收录 topmind 项目的架构设计锁、ADR 决策记录、打包发布规范与全表面导览。  
+> 工作流：`收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整` · 写回只经 Kernel `writeback-engine`（唯一写闸）· UTR `8 域 / 28 命令`
 
 ---
 
@@ -72,7 +73,7 @@
 | [2026-07-16](./adr/2026-07-16-desktop-skill-first-agent.md) | Skill-First Agent | 优先调用 topmind 自带技能 |
 | [2026-07-16](./adr/2026-07-16-public-update-and-pack-root.md) | Public Update & Pack | 公共 `latest.json` 免 Token 更新检查与引擎打包 |
 | [2026-07-17](./adr/2026-07-17-desktop-utr-bundle-tools-console.md) | Desktop UTR Bundle | Desktop 内置 UTR 环境及调试控制台 |
-| [2026-07-19](./adr/2026-07-19-knowledge-ingest-pipeline.md) | Ingest Pipeline | 离线知识加工与 PDF/Office 入队列机制 |
+| [2026-07-19](./adr/2026-07-19-knowledge-ingest-pipeline.md) | Ingest Pipeline | 离线知识加工；默认 anydoc sidecar + 可选 markitdown/pandoc + 内置 JS |
 | [2026-07-21](./adr/2026-07-21-pi-agent-base-decision.md) | No Pi Agent Base | 坚持原汁原味 Node 引擎，不依赖底层 Pi Agent 壳 |
 | [2026-07-22](./adr/2026-07-22-stream-packing-and-core-memory.md) | Stream & Core Memory | 周期本打包与个人画像记忆闭环 |
 | [2026-08-02](./adr/2026-08-02-kernel-ai-provider-context.md) | Kernel AI Context | 支持 per-call `aiProvider` + `createKernelContext` |

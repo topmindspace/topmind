@@ -13,6 +13,7 @@ test("tools-cache module exports read/write/clear (no electron required)", async
   assert.equal(await mod.readToolsDiskCache(), null);
   await mod.writeToolsDiskCache({
     checkedAt: new Date().toISOString(),
+    anydoc: { available: false },
     pandoc: { available: false },
     markitdown: { available: false },
   });
@@ -26,6 +27,7 @@ test("resolveIngestSettings includes confirmBeforeConvert defaults", async () =>
   const d = defaultIngestSettings();
   assert.equal(d.confirmBeforeConvert, false);
   assert.equal(d.skipConfirmForSingleMd, true);
+  assert.equal(d.preferredConverter, "auto");
   const r = resolveIngestSettings({
     ingest: { confirmBeforeConvert: true, openQueueOnEnqueue: true },
   });
@@ -59,4 +61,9 @@ test("ingest settings normalize confirmBeforeConvert", async () => {
   assert.equal(n.openQueueOnEnqueue, true);
   const d = __settingsTest.normalizeIngestSettings({});
   assert.equal(d.confirmBeforeConvert, false);
+  assert.equal(d.preferredConverter, "auto");
+  const named = __settingsTest.normalizeIngestSettings({ preferredConverter: "anydoc" });
+  assert.equal(named.preferredConverter, "anydoc");
+  const legacy = __settingsTest.normalizeIngestSettings({ preferExternalConverters: false });
+  assert.equal(legacy.preferredConverter, "builtin");
 });

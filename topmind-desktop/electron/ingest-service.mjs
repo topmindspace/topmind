@@ -1,7 +1,7 @@
 /**
  * IngestService — knowledge processing pipeline RPC facade.
  * Methods: enqueue | list | get | cancel | retry | pickFiles | pickFolder |
- *          toolsStatus | previewItems | openInstallHelp | readClipboard | …
+ *          toolsStatus | previewItems | openInstallHelp | installAnydoc | readClipboard | …
  */
 import { dialog, shell, clipboard } from "electron";
 import { promises as fs } from "node:fs";
@@ -22,8 +22,13 @@ import {
   defaultIngestSettings,
   INGEST_MAX_FILE_BYTES_CAP,
 } from "./lib/ingest/process-job.mjs";
-import { detectIngestKind, isConvertibleKind } from "./lib/ingest/detect.mjs";
-import { probeExternalTools, clearExternalToolsCache } from "./lib/ingest/external-tools.mjs";
+import { detectIngestKind, isConvertibleKind, INGEST_FILE_EXTENSIONS } from "./lib/ingest/detect.mjs";
+import {
+  probeExternalTools,
+  clearExternalToolsCache,
+  isIngestToolKey,
+} from "./lib/ingest/external-tools.mjs";
+import { installAnydocSidecar } from "./lib/ingest/anydoc-sidecar.mjs";
 import {
   readToolsDiskCache,
   writeToolsDiskCache,
@@ -141,9 +146,7 @@ export const IngestService = {
       filters: params?.filters || [
         {
           name: "Documents",
-          extensions: [
-            "md", "txt", "html", "htm", "docx", "pdf", "xlsx", "csv", "tsv", "pptx", "eml", "msg",
-          ],
+          extensions: INGEST_FILE_EXTENSIONS,
         },
         { name: "All", extensions: ["*"] },
       ],
@@ -161,7 +164,7 @@ export const IngestService = {
   },
 
   /**
-   * External tool status (markitdown / pandoc).
+   * External tool status (anydoc / markitdown / pandoc).
    * - force=false: return disk cache if present (no PATH scan)
    * - no cache yet (first use): probe once and persist
    * - force=true: re-probe and overwrite cache
@@ -279,7 +282,7 @@ export const IngestService = {
   async openInstallHelp({ tool }, ctx) {
     // Prefer cached install docsUrl — avoid PATH probe on every help click
     const st = await IngestService.toolsStatus({ force: false }, ctx);
-    const key = tool === "markitdown" ? "markitdown" : "pandoc";
+    const key = isIngestToolKey(tool) ? tool : "anydoc";
     const info = st[key];
     const url = info?.install?.docsUrl;
     if (url) {
@@ -291,7 +294,7 @@ export const IngestService = {
 
   async copyInstallCommand({ tool, index }, ctx) {
     const st = await IngestService.toolsStatus({ force: false }, ctx);
-    const key = tool === "markitdown" ? "markitdown" : "pandoc";
+    const key = isIngestToolKey(tool) ? tool : "anydoc";
     const commands = st[key]?.install?.commands || [];
     const preferred =
       typeof st[key]?.install?.preferredIndex === "number"
@@ -302,6 +305,29 @@ export const IngestService = {
     const cmd = commands[idx] || commands[0] || "";
     if (cmd) clipboard.writeText(cmd);
     return { ok: Boolean(cmd), command: cmd, commands, index: idx };
+  },
+
+  /**
+   * User-triggered anydoc sidecar install / upgrade into userData (not asar).
+   * @param {{ spec?: string }} [params]
+   */
+  async installAnydoc(params, ctx) {
+    bindCtx(ctx);
+    try {
+      const result = await installAnydocSidecar({
+        spec: typeof params?.spec === "string" && params.spec.trim() ? params.spec.trim() : undefined,
+      });
+      clearExternalToolsCache();
+      await clearToolsDiskCache();
+      const tools = await probeExternalTools({ force: true });
+      await writeToolsDiskCache(tools);
+      return { ok: true, ...result, tools };
+    } catch (e) {
+      return {
+        ok: false,
+        error: e instanceof Error ? e.message : String(e),
+      };
+    }
   },
 
   /**

@@ -482,7 +482,7 @@ topmind 设计系统原生支持多语言排版（Simplified Chinese / English�
 - **默认落点**：动态周期本（`dest.stream`）；用户可改收件箱  
 - 成功后关闭 → 回到 **动态**（或收件箱）；路径证据走 writeback toast（不强制进 file 编辑器）  
 - **来源类型**（高级）：手写 / 摘录；URL 自动切摘录并露出抓取  
-- **剪贴板 / 附件 / 文档**：智能粘贴；文档走 ingest 队列（与 Hub 同管道）  
+- **剪贴板 / 附件 / 文档**：智能粘贴；文档走 ingest 队列（与 Hub 同管道）。默认 **anydoc**（设置可改 markitdown / pandoc / 仅内置）；缺失或失败回退。anydoc 装在用户数据 sidecar 或 PATH，**升级不必重打包 Desktop**；asar 内应用代码仍需新版。设置页：检测 / 重新检测 / 安装到应用。  
 - **URL 抓取**：主进程 `workspace.fetchUrl`  
   1. **L1 静态**：HTTP → Readability → `html-to-markdown`  
   2. **L2 增强渲染**（可选）：隐藏 BrowserWindow  
@@ -791,7 +791,7 @@ chrome（微暖框架）→ background（净白画布）→ surface（工作面�
 ### Phase 6.3（**Desktop 1.0.21** · 层次 / 外置工具 / Clip）
 
 - Surface 阶梯与弹层 elevated；主 CTA 权重  
-- host-bin PATH 增强 + markitdown/pandoc 跨 OS 探测  
+- host-bin PATH 增强 + anydoc sidecar（默认，userData 热升级不必重打包）/ markitdown / pandoc 跨 OS 探测 + 重新检测  
 - Clip 扩展异步剪藏 + Setup 引导  
 
 ### Phase 6.2（**Desktop 1.0.18** · 菜单生命周期）

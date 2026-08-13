@@ -358,6 +358,12 @@ export interface IngestSettings {
   concurrency: number;
   defaultDest: "inbox" | "topic";
   preferExternalConverters: boolean;
+  /**
+   * Converter preference. `auto` = anydoc first, then markitdown / pandoc / builtin.
+   * Missing `preferredConverter` on disk is treated as auto (or builtin if
+   * preferExternalConverters is false).
+   */
+  preferredConverter?: "auto" | "anydoc" | "markitdown" | "pandoc" | "builtin";
   autoConvert: boolean;
   /**
    * When true, path batches open a confirm sheet before enqueue.

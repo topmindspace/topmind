@@ -1,28 +1,23 @@
 /**
- * Persist markitdown/pandoc probe results so Settings/Hub do not re-scan PATH
+ * Persist anydoc/markitdown/pandoc probe results so Settings/Hub do not re-scan PATH
  * on every open. Probe runs on first use or when user force-refreshes.
  */
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { createRequire } from "node:module";
+import { getIngestUserDataDir } from "./runtime-paths.mjs";
 
 const CACHE_FILE = "ingest-tools-cache.json";
 
-/** Lazy electron app — keeps unit tests importable without electron runtime. */
 function cachePath() {
-  try {
-    const require = createRequire(import.meta.url);
-    const { app } = require("electron");
-    if (!app?.getPath) return null;
-    return path.join(app.getPath("userData"), CACHE_FILE);
-  } catch {
-    return null;
-  }
+  const dir = getIngestUserDataDir();
+  if (!dir) return null;
+  return path.join(dir, CACHE_FILE);
 }
 
 /**
  * @returns {Promise<{
  *   checkedAt: string,
+ *   anydoc: object,
  *   pandoc: object,
  *   markitdown: object,
  *   pathAugmented?: boolean,
@@ -35,7 +30,7 @@ export async function readToolsDiskCache() {
     const raw = await fs.readFile(p, "utf8");
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return null;
-    if (!parsed.checkedAt || !parsed.pandoc || !parsed.markitdown) return null;
+    if (!parsed.checkedAt || !parsed.pandoc || !parsed.markitdown || !parsed.anydoc) return null;
     return parsed;
   } catch {
     return null;
@@ -43,7 +38,7 @@ export async function readToolsDiskCache() {
 }
 
 /**
- * @param {{ checkedAt: string, pandoc: object, markitdown: object, pathAugmented?: boolean }} tools
+ * @param {{ checkedAt: string, anydoc?: object, pandoc: object, markitdown: object, pathAugmented?: boolean }} tools
  */
 export async function writeToolsDiskCache(tools) {
   const p = cachePath();
@@ -52,6 +47,7 @@ export async function writeToolsDiskCache(tools) {
     await fs.mkdir(path.dirname(p), { recursive: true });
     const slim = {
       checkedAt: tools.checkedAt,
+      anydoc: slimTool(tools.anydoc),
       pandoc: slimTool(tools.pandoc),
       markitdown: slimTool(tools.markitdown),
       pathAugmented: Boolean(tools.pathAugmented),
@@ -73,6 +69,7 @@ function slimTool(t) {
     viaModule: t.viaModule,
     source: t.source,
     install: t.install || null,
+    upgradable: t.upgradable,
   };
 }
 

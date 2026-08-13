@@ -1,5 +1,5 @@
 /**
- * Probe optional host tools: pandoc, markitdown.
+ * Probe optional host tools: anydoc (default), markitdown, pandoc.
  * Never auto-install — only report status + install hints.
  *
  * Detection and execution share host-bin resolution so Windows GUI PATH
@@ -14,31 +14,42 @@ import {
   tryExec,
 } from "../host-bin.mjs";
 import { isDarwin, isWin32 } from "../platform.mjs";
+import {
+  anydocInstallHints,
+  clearAnydocInvocation,
+  preferredAnydocInstallCommand,
+  probeAnydocVersion,
+  resolveAnydocInvocation,
+  runAnydocToMarkdown as sidecarRunAnydoc,
+} from "./anydoc-sidecar.mjs";
+import { getBundledAnydocDir, getIngestUserDataDir } from "./runtime-paths.mjs";
 
 /**
  * Install hints shown in Settings → 知识加工 (copyable).
- * Always recommend markitdown[all] — base package lacks pptx/docx extras.
  *
  * @returns {{
- *   pandoc: { commands: string[], docsUrl: string, label: string, preferredIndex: number, hint?: string },
- *   markitdown: { commands: string[], docsUrl: string, label: string, preferredIndex: number, hint?: string },
+ *   anydoc: object,
+ *   pandoc: object,
+ *   markitdown: object,
  * }}
  */
 function platformHints() {
   const mdDocs = "https://github.com/microsoft/markitdown";
   const pdDocs = "https://pandoc.org/installing.html";
-  // Shared copy: PPTX needs [all] (python-pptx etc.)
   const mdHint =
-    "请装 markitdown[all]（含 PPTX/Office）。装完后点「重新检测」；仍未检出请完全退出再开 Desktop。";
+    "可选增强。请装 markitdown[all]（含 PPTX/Office）。装完后点「重新检测」；仍未检出请完全退出再开 Desktop。";
+
+  const anydoc = anydocInstallHints();
 
   if (isDarwin()) {
     return {
+      anydoc,
       pandoc: {
         commands: ["brew install pandoc"],
         docsUrl: pdDocs,
         label: "Homebrew",
         preferredIndex: 0,
-        hint: "通用文档转换增强；非必须。",
+        hint: "可选通用文档转换；非必须。anydoc 覆盖的格式不必再装。",
       },
       markitdown: {
         commands: [
@@ -55,6 +66,7 @@ function platformHints() {
   }
   if (isWin32()) {
     return {
+      anydoc,
       pandoc: {
         commands: [
           "winget install --id JohnMacFarlane.Pandoc -e",
@@ -63,9 +75,8 @@ function platformHints() {
         docsUrl: pdDocs,
         label: "winget / chocolatey",
         preferredIndex: 0,
-        hint: "通用文档转换增强；非必须。",
+        hint: "可选通用文档转换；非必须。anydoc 覆盖的格式不必再装。",
       },
-      // py -3 -m pip is most reliable on Windows (avoids wrong pip / Store stubs)
       markitdown: {
         commands: [
           'py -3 -m pip install "markitdown[all]"',
@@ -80,12 +91,13 @@ function platformHints() {
     };
   }
   return {
+    anydoc,
     pandoc: {
       commands: ["sudo apt install pandoc", "sudo dnf install pandoc"],
       docsUrl: pdDocs,
       label: "apt / dnf",
       preferredIndex: 0,
-      hint: "通用文档转换增强；非必须。",
+      hint: "可选通用文档转换；非必须。anydoc 覆盖的格式不必再装。",
     },
     markitdown: {
       commands: [
@@ -113,7 +125,7 @@ function platformHints() {
  * }} ToolInfo
  */
 
-/** @type {{ pandoc: ToolInfo, markitdown: ToolInfo, checkedAt: string, pathAugmented?: boolean } | null} */
+/** @type {{ anydoc: ToolInfo, pandoc: ToolInfo, markitdown: ToolInfo, checkedAt: string, pathAugmented?: boolean } | null} */
 let cache = null;
 const CACHE_MS = 60_000;
 
@@ -121,6 +133,12 @@ const CACHE_MS = 60_000;
 let pandocInvocation = null;
 /** @type {{ cmd: string, argsPrefix: string[] } | null} */
 let markitdownInvocation = null;
+
+export const INGEST_TOOL_KEYS = Object.freeze(["anydoc", "markitdown", "pandoc"]);
+
+export function isIngestToolKey(tool) {
+  return INGEST_TOOL_KEYS.includes(tool);
+}
 
 /**
  * @param {{ force?: boolean }} [opts]
@@ -136,17 +154,47 @@ export async function probeExternalTools(opts = {}) {
     cache = null;
     pandocInvocation = null;
     markitdownInvocation = null;
+    clearAnydocInvocation();
   }
 
-  // Ensure PATH is warmed for this process
   getAugmentedPath();
 
   const hints = platformHints();
 
-  const [pandocResolved, mdResolved] = await Promise.all([
+  const [pandocResolved, mdResolved, anydocInv] = await Promise.all([
     resolveSimpleBinary("pandoc"),
     resolveMarkitdown(),
+    resolveAnydocInvocation({
+      userDataDir: getIngestUserDataDir(),
+      bundledDir: getBundledAnydocDir(),
+    }),
   ]);
+
+  /** @type {ToolInfo} */
+  let anydocInfo = {
+    available: false,
+    version: null,
+    path: "anydoc",
+    argvPrefix: [],
+    install: hints.anydoc,
+    upgradable: true,
+  };
+
+  if (anydocInv) {
+    let version = anydocInv.version || null;
+    if (!version) {
+      version = await probeAnydocVersion(anydocInv);
+    }
+    anydocInfo = {
+      available: true,
+      version: version || "ok",
+      path: anydocInv.display || anydocInv.cmd,
+      argvPrefix: anydocInv.argsPrefix || [],
+      source: anydocInv.source,
+      install: hints.anydoc,
+      upgradable: true,
+    };
+  }
 
   /** @type {ToolInfo} */
   let pandocInfo = {
@@ -206,6 +254,7 @@ export async function probeExternalTools(opts = {}) {
   }
 
   cache = {
+    anydoc: anydocInfo,
     pandoc: pandocInfo,
     markitdown: markitdownInfo,
     checkedAt: new Date().toISOString(),
@@ -253,11 +302,9 @@ export async function runMarkitdownToMarkdown(absPath, opts = {}) {
     throw new Error("markitdown not available");
   }
   const { cmd, argsPrefix } = markitdownInvocation;
-  // Hint extension when path is odd (temp names / missing ext after copy)
   const ext = path.extname(absPath).replace(/^\./u, "").toLowerCase();
   const args = [...argsPrefix, absPath];
   if (ext && !argsPrefix.includes("-x") && !argsPrefix.includes("--extension")) {
-    // markitdown accepts -x after filename in some versions; safer before file
     args.splice(argsPrefix.length, 0, "-x", ext);
   }
   const r = await tryExec(cmd, args, { timeoutMs });
@@ -270,13 +317,14 @@ export async function runMarkitdownToMarkdown(absPath, opts = {}) {
   return { markdown: md, converter: "markitdown" };
 }
 
+export { sidecarRunAnydoc as runAnydocToMarkdown };
+
 /**
  * @param {string} tool
  * @param {string} detail
  */
 function formatToolFail(tool, detail) {
   let d = String(detail || "").replace(/\s+/gu, " ").trim();
-  // Common markitdown missing-extra on Windows when only base package installed
   if (/PptxConverter|python-pptx|No module named ['"]pptx['"]/iu.test(d)) {
     return `${tool}: 无法转换 PPTX（请安装 markitdown[all] 或 pip install python-pptx）`;
   }
@@ -293,11 +341,13 @@ export function clearExternalToolsCache() {
   cache = null;
   pandocInvocation = null;
   markitdownInvocation = null;
+  clearAnydocInvocation();
   clearHostBinCache();
 }
 
 /** Preferred install command for clipboard copy. */
 export function preferredInstallCommand(tool) {
+  if (tool === "anydoc") return preferredAnydocInstallCommand();
   const hints = platformHints();
   const key = tool === "markitdown" ? "markitdown" : "pandoc";
   const h = hints[key];

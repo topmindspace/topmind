@@ -54,7 +54,7 @@ Windows 以捕获窗粘贴与路径文本为主；路径须真实存在。
 source_type: external-capture
 source: original.pptx
 ingest_kind: pptx
-ingest_converter: pptx-ooxml | markitdown@…
+ingest_converter: anydoc@0.1.8 | markitdown@… | pptx-ooxml
 ```
 
 失败时原件导入 + 说明笔记；可选原件进 `99-归档/ingest-originals/`。
@@ -65,39 +65,48 @@ ingest_converter: pptx-ooxml | markitdown@…
 
 | 能力 | 说明 |
 |------|------|
-| **内置** | md/txt/html · docx · pdf 文本 · xlsx/csv · pptx 文本 · eml |
-| **可选增强** | [markitdown](https://github.com/microsoft/markitdown) · [pandoc](https://pandoc.org/) |
-| **不做** | 扫描件 OCR（会提示文本过少） |
+| **默认：anydoc** | [anydoc](https://github.com/firecrawl/anydoc)：Word `.doc/.docx/.docm` · PPT 家族 · Excel `.xls/.xlsx/.xlsm/.xlsb` · ODF `.odt/.ods/.odp` · `.rtf` · `.epub` · `.csv` · 文本 PDF。无需 Python。加密 / 扫描件 / 不支持格式 → **具名错误**（非空笔记） |
+| **内置 JS** | md/txt 直通 · html-to-markdown · mammoth（docx）· unpdf（PDF 文本）· xlsx/csv · pptx-ooxml · mailparser（eml） |
+| **可选增强** | [markitdown](https://github.com/microsoft/markitdown)`[all]` · [pandoc](https://pandoc.org/) |
+| **不走 anydoc** | HTML · `.eml` · markdown/text 直通 |
+| **不做** | 扫描件 OCR（会提示 unsupported / 文本过少） |
 | **单文件上限** | 默认 **80MB**（可在设置 → 知识加工调到 200MB）。含图 PPT 常超 25MB；超限时**原件仍导入**，不自动转 MD |
 
-### 安装命令（务必带 `[all]`）
+设置 → 知识加工 → **默认转换器**：`自动（anydoc 优先）` / anydoc / markitdown / pandoc / 仅内置。首选缺失或失败时**回退**下一档，不硬失败。
 
-PPTX 等格式依赖扩展包；**不要**只装裸 `markitdown`。
+### 安装与检测
 
-| 系统 | 推荐 |
-|------|------|
-| **Windows** | `py -3 -m pip install "markitdown[all]"` |
-| **macOS** | `pipx install 'markitdown[all]'` |
-| **Linux** | `pipx install 'markitdown[all]'` |
-
-备选：`python -m pip install "markitdown[all]"` / `pip3 install --user 'markitdown[all]'`。  
-pandoc（可选）：Windows `winget install --id JohnMacFarlane.Pandoc -e` · macOS `brew install pandoc` · Linux `apt/dnf install pandoc`。
+| 工具 | 推荐 | 升级 |
+|------|------|------|
+| **anydoc（默认）** | 设置里点「安装到应用」（写入用户数据 sidecar），或 `npm install -g @firecrawl/anydoc` | **不必重打包 Desktop**。sidecar / PATH 可热升级；asar 内应用代码、Electron、内置 JS 转换器仍需新版 Desktop |
+| **markitdown** | 务必 `[all]`：Windows `py -3 -m pip install "markitdown[all]"` · macOS/Linux `pipx install 'markitdown[all]'` | 本机 pip/pipx |
+| **pandoc** | Windows `winget install --id JohnMacFarlane.Pandoc -e` · macOS `brew install pandoc` · Linux `apt/dnf install pandoc` | 本机包管理器 |
 
 装完后：**设置 → 知识加工 → 重新检测**。仍未检出 → 完全退出再开 Desktop。
 
-**检测时机**：首次打开知识加工设置会自动检测一次并**缓存**结果；之后打开设置/Hub **不会**反复扫 PATH，需手动「重新检测」。
+**检测时机**：首次打开知识加工设置会自动检测一次并**缓存**结果；之后打开设置/Hub **不会**反复扫 PATH，需手动「重新检测」。不静默下载二进制。
 
 ### Desktop 如何找到工具
 
 GUI 往往不继承终端 PATH。探测会：
 
-1. 合并 Python `Scripts`、Homebrew、Pandoc 安装目录等  
-2. 查找 `markitdown` / `pandoc` 绝对路径  
-3. markitdown 回退：`py -3 -m` → `python -m` → `python3 -m`  
-4. **探测与转换用同一调用方式**  
-5. Windows：`PYTHONUTF8=1`；`.cmd` 经 `cmd.exe` 正确引号  
+1. **anydoc**：用户数据 `converters/anydoc` sidecar → PATH `anydoc` → 可选 extraResource 捆绑副本（仅兜底）  
+2. 合并 Python `Scripts`、Homebrew、Pandoc 安装目录等  
+3. 查找 `markitdown` / `pandoc` 绝对路径  
+4. markitdown 回退：`py -3 -m` → `python -m` → `python3 -m`  
+5. **探测与转换用同一调用方式**  
+6. Windows：`PYTHONUTF8=1`；`.cmd` 经 `cmd.exe` 正确引号  
 
 仅装基础 markitdown 时，PPTX 会回退内置 `pptx-ooxml` 抽文本。队列会显示具体失败原因（悬停看全文）。
+
+**升级矩阵**
+
+| 组件 | 热升级（不必重装 Desktop） | 必须重打包 / 重装 Desktop |
+|------|---------------------------|---------------------------|
+| anydoc sidecar / PATH CLI | ✅ 设置「升级 anydoc」或 `npm install -g @firecrawl/anydoc` | |
+| markitdown / pandoc（本机） | ✅ 本机包管理器 | |
+| 内置 JS（mammoth / unpdf / html-to-markdown / …） | | ✅ asar 内代码 |
+| Electron / 应用壳 | | ✅ |
 
 ## Agent（topmind-capture）
 

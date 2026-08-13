@@ -32,7 +32,7 @@
 | 待确认列表 | ✅ | 主窗 Staging；浮窗 auto 后 `openIngestHub` |
 | 浮窗文档入队 | ✅ | 入队后聚焦主窗「知识加工」队列（`system.openIngestHub`） |
 | 本机工具缓存 | ✅ | 首次/手动检测；帮助/复制走缓存 |
-| 内置转换 + markitdown/pandoc | ✅ | |
+| 默认 anydoc + 可选 markitdown/pandoc + 内置 JS | ✅ | 设置偏好 `auto`（anydoc 优先）；缺失/失败回退；anydoc sidecar 升级不必重打包 Desktop |
 | 处理队列 UI | ✅ | 知识加工 Hub · 与捕获文案一致 |
 
 ### 认知模型

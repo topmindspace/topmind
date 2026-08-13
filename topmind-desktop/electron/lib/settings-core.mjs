@@ -8,6 +8,10 @@ import {
   MAX_RECENT_WORKSPACES,
   dedupeRecentWorkspaceEntries,
 } from "./workspace-path-id.mjs";
+import {
+  DEFAULT_PREFERRED_CONVERTER,
+  normalizePreferredConverter,
+} from "./ingest/convert-policy.mjs";
 
 /** Valid AI provider source IDs. `""` means "auto" (no preference).
  * The set is open-ended so future providers work without a settings migration. */
@@ -168,6 +172,7 @@ function defaultIngestSettings() {
     concurrency: 1,
     defaultDest: "inbox",
     preferExternalConverters: true,
+    preferredConverter: DEFAULT_PREFERRED_CONVERTER,
     autoConvert: true,
     /** false = auto enqueue; true = staging confirm sheet first */
     confirmBeforeConvert: false,
@@ -231,7 +236,15 @@ function normalizeIngestSettings(value, fallback = defaultIngestSettings()) {
         ? Math.min(Math.round(concurrency), 4)
         : fallback.concurrency,
     defaultDest: value.defaultDest === "topic" ? "topic" : "inbox",
-    preferExternalConverters: value.preferExternalConverters !== false,
+    preferredConverter: normalizePreferredConverter(
+      value.preferredConverter,
+      value.preferExternalConverters !== false,
+    ),
+    preferExternalConverters:
+      normalizePreferredConverter(
+        value.preferredConverter,
+        value.preferExternalConverters !== false,
+      ) !== "builtin",
     autoConvert: value.autoConvert !== false,
     confirmBeforeConvert: value.confirmBeforeConvert === true,
     skipConfirmForSingleMd: value.skipConfirmForSingleMd !== false,

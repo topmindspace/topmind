@@ -6,6 +6,7 @@ import path from "node:path";
 import { detectIngestKind, isConvertibleKind } from "./detect.mjs";
 import { convertToMarkdown } from "./convert/registry.mjs";
 import { commitMarkdownNote, commitOriginalFallback } from "./commit.mjs";
+import { DEFAULT_PREFERRED_CONVERTER, normalizePreferredConverter } from "./convert-policy.mjs";
 
 /** Soft default for auto-convert; PPT with images often exceeds 25MB. */
 export const INGEST_MAX_FILE_BYTES_DEFAULT = 80_000_000;
@@ -21,6 +22,7 @@ export function defaultIngestSettings() {
     concurrency: 1,
     defaultDest: "inbox",
     preferExternalConverters: true,
+    preferredConverter: DEFAULT_PREFERRED_CONVERTER,
     autoConvert: true,
     confirmBeforeConvert: false,
     skipConfirmForSingleMd: true,
@@ -48,7 +50,13 @@ export function resolveIngestSettings(appSettings) {
         ? Math.min(s.concurrency, 4)
         : d.concurrency,
     defaultDest: s.defaultDest === "topic" ? "topic" : "inbox",
-    preferExternalConverters: s.preferExternalConverters !== false,
+    preferredConverter: normalizePreferredConverter(
+      s.preferredConverter,
+      s.preferExternalConverters !== false,
+    ),
+    preferExternalConverters:
+      normalizePreferredConverter(s.preferredConverter, s.preferExternalConverters !== false) !==
+      "builtin",
     autoConvert: s.autoConvert !== false,
     confirmBeforeConvert: s.confirmBeforeConvert === true,
     skipConfirmForSingleMd: s.skipConfirmForSingleMd !== false,
@@ -85,6 +93,7 @@ export async function processIngestJob(job, ctx) {
 
   const dest = job.dest || { mode: "inbox" };
   const preferExternal = settings.preferExternalConverters;
+  const preferredConverter = settings.preferredConverter;
   const autoConvert = settings.autoConvert !== false;
   const limitMb = Math.round(settings.maxFileBytes / 1e6);
   const sizeMb = Math.round((st.size / 1e6) * 10) / 10;
@@ -152,6 +161,7 @@ export async function processIngestJob(job, ctx) {
       kind,
       absPath: abs,
       preferExternal,
+      preferredConverter,
     });
     job.progress = 75;
     const r = await commitMarkdownNote(

@@ -168,7 +168,7 @@ const STRINGS = {
     "batch.multiFileWrite": "本轮多文件写回 {{items}} 处 · 目标 {{paths}} · 备份 {{backups}}",
     "ingest.originalImported": "原件已导入：`{{fn}}`",
     "ingest.convertFailed": "转换失败：{{error}}",
-    "ingest.retryHint": "可安装 pandoc / markitdown 后在「知识加工」中重试，或手动整理。",
+    "ingest.retryHint": "可安装 anydoc（推荐，无需 Python）或 markitdown / pandoc 后在「知识加工」中重试，或手动整理。",
 
     "weread.apiKeyMissing": "WeRead API Key 未配置。请在设置中填写。",
     "weread.invalidJson": "WeRead API 返回了无效的 JSON 响应",
@@ -352,7 +352,7 @@ const STRINGS = {
     "batch.multiFileWrite": "This batch wrote {{items}} items · {{paths}} targets · {{backups}} backups",
     "ingest.originalImported": "Original imported: `{{fn}}`",
     "ingest.convertFailed": "Conversion failed: {{error}}",
-    "ingest.retryHint": "Install pandoc / markitdown and retry in “Knowledge Ingest”, or organize manually.",
+    "ingest.retryHint": "Install anydoc (recommended, no Python) or markitdown / pandoc and retry in “Knowledge Ingest”, or organize manually.",
 
     "weread.apiKeyMissing": "WeRead API Key not configured. Please set it in Settings.",
     "weread.invalidJson": "WeRead API returned invalid JSON response",

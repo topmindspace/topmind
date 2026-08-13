@@ -36,7 +36,7 @@ Desktop **Settings → Manage & Updates** can install/upgrade/uninstall Skills i
 | `npm run pack:skills` / `skills:pack` | Skills portable pack under `dist/` |
 | `npm run pack:extension` / `extension:pack` | Extension zip under `dist/` |
 | `npm run obsidian:pack` | Obsidian plugin zip under `dist/` (+ `obsidian-plugin/release/`) |
-| `npm run cask:generate` | Local generator snapshot under `casks/topmind.rb` (needs a local mac pack for real SHA256). Live Homebrew recipe is `topmindspace/homebrew-tap`, written by `release.yml` `update-homebrew-cask` |
+| `npm run cask:generate` | Local snapshot at `casks/topmind.rb` (gitignored; needs a local mac pack for real SHA256). Live Homebrew recipe is `topmindspace/homebrew-tap`, written by `release.yml` `update-homebrew-cask` |
 | `npm run pack:all` | Skills + extension + Obsidian (no Desktop installers) |
 | `npm run desktop:pack:prepare` | Stage `resources/topmind-engine/` + deps gate |
 | `npm run desktop:pack:verify` | Asar / engine / import integrity (no build) |
@@ -140,9 +140,9 @@ CI (`release.yml`) writes `latest.json` into every release (full `v*` and surfac
 
 The update check compares the **installed** version (what's actually deployed on disk via companion lifecycle) against the **remote** version — not the bundled version. This means:
 
-- If you inline-upgraded Skills to v2.11 via Desktop, the check shows "up to date" even if Desktop still ships with Skills v2.10 bundled.
+- If you inline-upgraded Skills to a newer stamp via Desktop, the check shows "up to date" even if Desktop still ships an older bundled Skills stamp.
 - If you never installed Skills to any agent host, the check uses the **bundled** version (from `versions.json`).
-- The UI shows both `installed v2.11 · bundled v2.10` when they differ.
+- The UI shows both `installed <on-disk> · bundled <engine>` when they differ.
 
 **Env overrides**:
 
@@ -164,7 +164,7 @@ When a companion (Skills / Obsidian plugin / Clip extension) has a newer version
 
 **Settings → Manage & Updates → Check for updates** detects available companion updates. When an update is available for Skills, Obsidian, or Clip, a download button appears next to the version row. Clicking it:
 
-1. Downloads the companion package (e.g. `topmind-obsidian-3.0.1.zip`) from GitHub Releases
+1. Downloads the companion package (e.g. `topmind-obsidian-<ver>.zip`) from GitHub Releases
 2. Verifies SHA256 checksum when `SHA256SUMS` is available
 3. Installs the package locally (replaces the bundled version)
 4. Cleans up temp files automatically
@@ -200,7 +200,7 @@ When a user clicks **Install** or **Upgrade** for any companion (Skills / Obsidi
 3. If `latest > bundled`, **downloads the latest companion package** from GitHub Releases and installs it
 4. If `latest <= bundled` or the network check fails (non-blocking), **installs from the bundled version** instead
 
-This means that even if the Desktop bundle ships Skills v2.10 but Skills v2.12 is published on GitHub, clicking "Install" in Desktop installs v2.12 — not the stale v2.10.
+This means that even if the Desktop bundle ships an older Skills stamp but a newer Skills package is published on GitHub, clicking "Install" in Desktop installs the published stamp — not the stale bundled copy.
 
 | Surface | Handler | Download asset | Fallback |
 |---------|---------|----------------|----------|

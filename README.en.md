@@ -70,7 +70,7 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Opti
   1. Download installers (`.dmg` / `.exe` / `.AppImage` / `.deb`) from [Releases](https://github.com/topmindspace/topmind/releases).
   2. Launch app, and press `⌘N` (Mac) / `Ctrl+N` (Win) to capture a note instantly.  
      *(If macOS prompts damaged file error on manual download, run: `sudo xattr -rd com.apple.quarantine /Applications/Topmind.app`)*
-3. Detailed Guide: [`topmind-desktop/README.md`](./topmind-desktop/README.md)
+  3. Detailed Guide: [`topmind-desktop/README.md`](./topmind-desktop/README.md)
 
 ### Scenario 2: Embedded in Obsidian (Topmind Stream Plugin)
 
@@ -125,15 +125,16 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Opti
 ## Core Workflow
 
 ```text
-Capture -> Process -> Ship -> Retrieve
+收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整
+Capture -> Continue -> Ship/Settle -> Retrieve/Adjust
 ```
 
 | Phase | User Action | Default Destination | Description |
 |-------|-------------|---------------------|-------------|
-| **① Capture** | Quick hotkey notes · Web clips · Office/PDF queue | Weekly **Stream** file (`10-动态/`); fallback to `00-收件箱/` | Frictionless instant log |
-| **② Process** | Edit · Inline AI · Side Agent · Organize topics | `{Category}/{YYYY-Topic}/` | Stream cards & topic crystallization |
-| **③ Ship** | Draft outputs · Update profile & periodic memory | `88-输出/` · `memory/profile.md` | Produce final deliverables |
-| **④ Retrieve** | Search · Restore · Periodic loops | `99-归档/` · Loop inspections | Safe backup & retrieval |
+| **① Capture** | Quick hotkey notes · Web clips · Office/PDF queue (anydoc default) | Weekly **Stream** file (`10-动态/`); fallback to `00-收件箱/` | Frictionless instant log |
+| **② Continue** | Edit · Inline AI · Side Agent · Organize topics | `{Category}/{YYYY-Topic}/` | Stream cards & topic crystallization |
+| **③ Ship/Settle** | Draft outputs · Update profile & periodic memory | `88-输出/` · `memory/profile.md` | Produce final deliverables |
+| **④ Retrieve/Adjust** | Search · Restore · Periodic loops | `99-归档/` · Loop inspections | Safe backup & retrieval |
 
 ---
 
@@ -160,7 +161,7 @@ Topmind organizes workspaces into three transparent, predictable planes:
 
 | Capability | Status | Description |
 |------------|--------|-------------|
-| Capture / Stream / Editor / Ingest | **Done** | Frictionless streaming log & multi-source parser |
+| Capture / Stream / Editor / Ingest | **Done** | Frictionless streaming log; Desktop defaults to anydoc → Markdown (optional markitdown/pandoc + built-in fallback) |
 | Kernel Writeback Gate · Memory Loop | **Done** | Confirmation before writeback; revertible actions |
 | Inline AI Sanitize | **Done** | Automatically strips thinking tags from LLM responses |
 | Keyword Search Truncation | **Done** | Honest local search; no unneeded full-database embeddings |

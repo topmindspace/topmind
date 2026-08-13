@@ -1,5 +1,5 @@
 /**
- * Converter registry — pure-JS first, optional external tools.
+ * Converter registry — policy (preferred engine → fallbacks) + I/O adapters.
  */
 import path from "node:path";
 import { convertPassthrough } from "./passthrough-text.mjs";
@@ -14,88 +14,158 @@ import {
   runPandocToMarkdown,
   runMarkitdownToMarkdown,
 } from "../external-tools.mjs";
+import { runAnydocToMarkdown } from "../anydoc-sidecar.mjs";
+import {
+  filterAvailableEngines,
+  normalizePreferredConverter,
+  resolveConverterChain,
+  anydocFormatForKind,
+} from "../convert-policy.mjs";
 
-/** Formats markitdown / pandoc typically handle well. */
-const MARKITDOWN_KINDS = new Set(["docx", "pdf", "xlsx", "csv", "pptx", "html"]);
-const PANDOC_KINDS = new Set(["docx", "html", "pptx", "markdown", "text"]);
+/** @typedef {{ probe: Function, runAnydoc: Function, runMarkitdown: Function, runPandoc: Function }} ConvertAdapters */
+
+/** @type {Partial<ConvertAdapters>|null} */
+let testAdapters = null;
+
+/** Tests inject spawn/probe at the I/O edge only. */
+export function setConvertAdaptersForTest(partial) {
+  testAdapters = partial && typeof partial === "object" ? { ...partial } : null;
+}
+
+export function resetConvertAdaptersForTest() {
+  testAdapters = null;
+}
+
+function adapters() {
+  return {
+    probe: probeExternalTools,
+    runAnydoc: runAnydocToMarkdown,
+    runMarkitdown: runMarkitdownToMarkdown,
+    runPandoc: runPandocToMarkdown,
+    ...(testAdapters || {}),
+  };
+}
 
 /**
- * @param {{ kind: string, absPath: string, preferExternal?: boolean }} opts
+ * @param {{
+ *   kind: string,
+ *   absPath: string,
+ *   preferExternal?: boolean,
+ *   preferredConverter?: string,
+ *   tools?: object,
+ * }} opts
  * @returns {Promise<{ markdown: string, title?: string, converter: string, warnings?: string[] }>}
  */
 export async function convertToMarkdown(opts) {
   const { kind, absPath } = opts;
   const preferExternal = opts.preferExternal !== false;
+  const preferredConverter = normalizePreferredConverter(opts.preferredConverter, preferExternal);
   const warnings = [];
   const baseName = path.basename(absPath, path.extname(absPath));
+  const ext = path.extname(absPath).replace(/^\./u, "").toLowerCase();
+  const a = adapters();
 
-  if (preferExternal) {
-    const tools = await probeExternalTools();
-    if (tools.markitdown?.available && MARKITDOWN_KINDS.has(kind)) {
+  const planned = resolveConverterChain({
+    kind,
+    preference: preferredConverter,
+    preferExternal,
+  });
+
+  const tools = opts.tools || (preferExternal && planned.some((e) => e !== "builtin") ? await a.probe() : {});
+  const available = {
+    anydoc: Boolean(tools?.anydoc?.available),
+    markitdown: Boolean(tools?.markitdown?.available),
+    pandoc: Boolean(tools?.pandoc?.available),
+  };
+  const chain = filterAvailableEngines(planned, available);
+
+  for (const engine of chain) {
+    if (engine === "anydoc") {
       try {
-        // Invocation (cmd/argv) comes from probe cache — not re-guessed here
-        const r = await runMarkitdownToMarkdown(absPath);
+        const r = await a.runAnydoc(absPath, {
+          kind,
+          format: anydocFormatForKind(kind, ext),
+        });
         return {
           markdown: r.markdown,
-          title: baseName,
-          converter: `markitdown@${tools.markitdown.version || "local"}`,
-          warnings,
+          title: r.title || baseName,
+          converter: `anydoc@${tools.anydoc?.version || r.version || "local"}`,
+          warnings: [...warnings, ...(r.warnings || [])],
         };
       } catch (e) {
         warnings.push(shortWarn(e instanceof Error ? e.message : String(e)));
       }
+      continue;
     }
-    if (tools.pandoc?.available && PANDOC_KINDS.has(kind)) {
+    if (engine === "markitdown") {
       try {
-        const r = await runPandocToMarkdown(absPath);
+        const r = await a.runMarkitdown(absPath);
         return {
           markdown: r.markdown,
-          title: baseName,
-          converter: `pandoc@${tools.pandoc.version || "local"}`,
+          title: r.title || baseName,
+          converter: `markitdown@${tools.markitdown?.version || "local"}`,
           warnings,
         };
       } catch (e) {
         warnings.push(shortWarn(e instanceof Error ? e.message : String(e)));
       }
+      continue;
+    }
+    if (engine === "pandoc") {
+      try {
+        const r = await a.runPandoc(absPath);
+        return {
+          markdown: r.markdown,
+          title: r.title || baseName,
+          converter: `pandoc@${tools.pandoc?.version || "local"}`,
+          warnings,
+        };
+      } catch (e) {
+        warnings.push(shortWarn(e instanceof Error ? e.message : String(e)));
+      }
+      continue;
+    }
+    if (engine === "builtin") {
+      const result = await convertBuiltin(kind, absPath);
+      if (warnings.length) {
+        result.warnings = [...(result.warnings || []), ...warnings];
+      }
+      return result;
     }
   }
 
-  // Pure-JS path
-  let result;
+  if (warnings.length) {
+    throw new Error(warnings[0]);
+  }
+  if (!planned.length) {
+    throw new Error(`不支持的类型: ${kind}`);
+  }
+  throw new Error(`没有可用的转换器处理 ${kind}（可安装 anydoc，或改用已安装的 markitdown / pandoc）`);
+}
+
+async function convertBuiltin(kind, absPath) {
   switch (kind) {
     case "markdown":
     case "text":
-      result = await convertPassthrough(absPath, kind);
-      break;
+      return convertPassthrough(absPath, kind);
     case "html":
-      result = await convertHtmlFile(absPath);
-      break;
+      return convertHtmlFile(absPath);
     case "docx":
-      result = await convertDocx(absPath);
-      break;
+      return convertDocx(absPath);
     case "pdf":
-      result = await convertPdf(absPath);
-      break;
+      return convertPdf(absPath);
     case "xlsx":
     case "csv":
-      result = await convertSpreadsheet(absPath, kind);
-      break;
+      return convertSpreadsheet(absPath, kind);
     case "pptx":
-      result = await convertPptx(absPath);
-      break;
+      return convertPptx(absPath);
     case "eml":
-      result = await convertEml(absPath);
-      break;
+      return convertEml(absPath);
     case "msg":
       throw new Error("Outlook .msg 暂不支持纯 JS 转换；请另存为 .eml 或安装 markitdown 后重试");
     default:
       throw new Error(`不支持的类型: ${kind}`);
   }
-
-  if (warnings.length) {
-    result.warnings = [...(result.warnings || []), ...warnings];
-  }
-  return result;
 }
 
 /** Keep external-tool failure notes short for frontmatter / UI. */

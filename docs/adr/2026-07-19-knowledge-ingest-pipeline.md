@@ -15,7 +15,7 @@
 1. **Desktop 主进程** `IngestService` + 任务队列（runtime 投影，非内容真源）。  
 2. **builtin 插件** `topmind-ingest`：Hub / 侧栏 / 设置 / 状态栏 / ⌘K。  
 3. **写回**：md-only 默认；失败 original-fallback；可选 sidecar → `99-归档/ingest-originals/`。  
-4. **转换栈**：mammoth / unpdf / xlsx / jszip pptx / mailparser / html-to-markdown；可选本机 pandoc/markitdown。  
+4. **转换栈**：默认 [anydoc](https://github.com/firecrawl/anydoc) sidecar（Office / ODF / RTF / EPUB / CSV / 文本 PDF）；内置 mammoth / unpdf / xlsx / jszip pptx / mailparser / html-to-markdown；可选本机 markitdown / pandoc。HTML / EML 仍走专用转换器。  
 5. **Skills**：`shared/document-ingest.md` + capture 扩展；无并列 skill 入口。  
 
 ### B. 统一捕获表面
@@ -40,16 +40,24 @@
 | 全局快捷键只 focus 主窗 | 不如便签轻量（OneNote 体验） |
 | 多主窗并列 | 双 Dock / 状态分裂 |
 
-## Appendix · Host tool resolve（2026-07-20）
+## Appendix · Host tool resolve（2026-07-20；2026-08-13 增补 anydoc）
 
-可选增强工具 **不打包**，由本机安装。Desktop GUI 进程常缺用户 PATH：
+默认转换器 **anydoc** 与可选增强工具 **不进 asar**。Desktop GUI 进程常缺用户 PATH：
 
-- 实现：`electron/lib/host-bin.mjs` + `electron/lib/ingest/external-tools.mjs`
+- 实现：`electron/lib/host-bin.mjs` + `electron/lib/ingest/external-tools.mjs` + `anydoc-sidecar.mjs` + `convert-policy.mjs`
+- **anydoc 解析序**：用户数据 `converters/anydoc` sidecar → PATH `anydoc` → 可选 extraResource 捆绑副本（仅兜底）
+- anydoc 升级是 **in-app / sidecar**，**不必重打包 Desktop**。asar 内应用代码、Electron、内置 JS 转换器仍需新版 Desktop
+- 用户触发「安装到应用」：`npm install @firecrawl/anydoc` 写入 userData（不静默下载）
 - PATH 合并：Python Scripts、`~/.local/bin`、Homebrew、Pandoc 安装目录等
 - markitdown：`markitdown` CLI → `py -3 -m` / `python -m` / `python3 -m` → import 探测
 - **probe 与 convert 共用 invocation**（cmd + argvPrefix）
-- 安装引导按平台排序；Windows 优先 `pip`（非 pipx-only）
-- 设置页：多命令复制 + 重新检测
+- 设置：默认转换器偏好（`auto` = anydoc 优先）+ 多命令复制 + 重新检测
+
+## Amendment · anydoc default（2026-08-13）
+
+1. **默认引擎** anydoc；偏好缺失/失败回退 markitdown → pandoc → builtin。  
+2. **种类**：`.doc/.docx/.docm` · PPT 家族 · `.xls/.xlsx/.xlsm/.xlsb` · `.odt/.ods/.odp` · `.rtf` · `.epub` · `.csv` · 文本 PDF；ZIP/OLE/PDF/RTF 魔数纠错扩展名；CSV 仍需扩展名。  
+3. 加密 / unsupported（含扫描 PDF）/ malformed → 具名 `anydoc: <code>`，原件 fallback。无 OCR。
 
 ## Amendment · Pipeline batch + tools cache（2026-07-21）
 

@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, '..');
 const DESKTOP_PKG_PATH = path.join(ROOT_DIR, 'topmind-desktop', 'package.json');
+// Local snapshot only — gitignored. Live tap: topmindspace/homebrew-tap.
 const CASK_PATH = path.join(ROOT_DIR, 'casks', 'topmind.rb');
 
 function getDesktopVersion() {

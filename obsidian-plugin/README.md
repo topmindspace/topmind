@@ -19,6 +19,7 @@
 Traditional note-taking often forces you to make frustrating upfront decisions about folders, tags, and structure before writing. Topmind Stream replaces that friction with a seamless capture-and-settle workflow:
 
 ```text
+收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整
 Capture Instantly  ->  AI Proposes in Background  ->  You Review & Confirm  ->  Markdown Files Stay Yours
 ```
 

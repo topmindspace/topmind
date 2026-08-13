@@ -1,6 +1,7 @@
 # topmind Clip · 浏览器剪藏
 
 > **版本真源：** [`manifest.json`](./manifest.json)（`npm run versions`）  
+> 工作流：`收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整`（剪藏只承担「收进来」）  
 > [中文总览](../README.md) · [English](../README.en.md) · [能力矩阵](../docs/capture-clip-matrix.md)
 
 把当前页 / 选区 / **高亮** 一键放进 topmind 工作区（Inbox · 类别 · 专题）。  

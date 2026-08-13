@@ -119,7 +119,7 @@ Agent host 能 fetch 则提取正文，否则保留 URL + 摘录；推荐日常�
 | 入口 | 能力 |
 |------|------|
 | **Desktop 统一捕获** | ⌘N 层 / ⌘⇧N 全局便签；智能粘贴文件；笔记+文档复合提交 |
-| **Desktop 知识加工 Hub** | 队列、批文件夹、外置工具；docx·pdf·xlsx·pptx·eml → MD |
+| **Desktop 知识加工 Hub** | 队列、批文件夹、转换器检测/安装；默认 anydoc（docx·doc·pdf·xlsx·pptx·odt·rtf·epub·csv）+ 内置 eml/html；可选 markitdown/pandoc |
 | **Agent** | 有转换能力则转 MD 后按 capture 写回；否则路径说明进 Inbox |
 
 默认 **md-only**；失败 original-fallback。不新增并列 skill 入口——仍走 `topmind` → `capture`。

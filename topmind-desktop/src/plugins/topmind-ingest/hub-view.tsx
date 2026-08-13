@@ -46,7 +46,7 @@ function IngestHubView() {
   const [destMode, setDestMode] = useState<"inbox" | "topic">("inbox");
   const [topicId, setTopicId] = useState("");
   const [topics, setTopics] = useState<{ id: string; label: string }[]>([]);
-  const [tools, setTools] = useState<{ pandoc?: boolean; markitdown?: boolean }>({});
+  const [tools, setTools] = useState<{ anydoc?: boolean; pandoc?: boolean; markitdown?: boolean }>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,6 +63,7 @@ function IngestHubView() {
     // Read cached tool status only (no force PATH scan on hub open)
     void api.ingest.toolsStatus(false).then((st) => {
       setTools({
+        anydoc: st.anydoc?.available,
         pandoc: st.pandoc?.available,
         markitdown: st.markitdown?.available,
       });
@@ -111,8 +112,8 @@ function IngestHubView() {
 
   if (loading) return <LoadingState label={t("hub.loading")} />;
 
-  // markitdown is the main quality boost; pandoc optional. Built-ins work without either.
-  const enhancedReady = Boolean(tools.markitdown);
+  // anydoc is the default converter; markitdown/pandoc remain optional. Built-ins work without any of them.
+  const enhancedReady = Boolean(tools.anydoc || tools.markitdown);
 
   return (
     <ViewContainer>
@@ -128,20 +129,21 @@ function IngestHubView() {
           <>
             <ConnectorStatusPill
               ok={enhancedReady}
-              okLabel={t("hub.markitdownReady")}
+              okLabel={tools.anydoc ? t("hub.anydocReady") : t("hub.markitdownReady")}
               badLabel={t("hub.builtinReady")}
               badTone="muted"
             />
+            <ConnectorToolChip label="anydoc" ok={tools.anydoc} />
             <ConnectorToolChip label="markitdown" ok={tools.markitdown} />
             <ConnectorToolChip label="pandoc" ok={tools.pandoc} />
-            {!enhancedReady ? (
+            {!tools.anydoc ? (
               <button
                 type="button"
                 className="text-accent-color underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
                 onClick={() => openOverlay("settings", { topicId: "topmind-ingest.settings" })}
-                title={t("hub.installMarkitdownTip")}
+                title={t("hub.installAnydocTip")}
               >
-                {t("hub.installMarkitdown")}
+                {t("hub.installAnydoc")}
               </button>
             ) : null}
           </>

@@ -8,7 +8,7 @@ import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
 
-import { detectIngestKind, isConvertibleKind } from "../electron/lib/ingest/detect.mjs";
+import { detectIngestKind, detectKindFromBytes, isConvertibleKind } from "../electron/lib/ingest/detect.mjs";
 import { convertPassthrough } from "../electron/lib/ingest/convert/passthrough-text.mjs";
 import { convertHtmlFile } from "../electron/lib/ingest/convert/html.mjs";
 import { convertSpreadsheet } from "../electron/lib/ingest/convert/spreadsheet.mjs";
@@ -33,6 +33,16 @@ test("detectIngestKind maps common extensions", async () => {
       ["g.csv", "csv"],
       ["h.pptx", "pptx"],
       ["i.eml", "eml"],
+      ["j.doc", "doc"],
+      ["k.docm", "docx"],
+      ["l.xls", "xls"],
+      ["m.xlsm", "xlsx"],
+      ["n.ppt", "ppt"],
+      ["o.odt", "odt"],
+      ["p.ods", "ods"],
+      ["q.odp", "odp"],
+      ["r.rtf", "rtf"],
+      ["s.epub", "epub"],
     ];
     for (const [name, kind] of cases) {
       const p = path.join(dir, name);
@@ -41,6 +51,45 @@ test("detectIngestKind maps common extensions", async () => {
       assert.equal(d.kind, kind, name);
       assert.ok(isConvertibleKind(d.kind) || kind === "msg");
     }
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("detectKindFromBytes: PDF / RTF / OLE / ZIP markers", () => {
+  assert.equal(detectKindFromBytes(Buffer.from("%PDF-1.4\n")), "pdf");
+  assert.equal(detectKindFromBytes(Buffer.from("{\\rtf1\\ansi Hello}")), "rtf");
+  const ole = Buffer.alloc(64, 0);
+  Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]).copy(ole);
+  assert.equal(detectKindFromBytes(ole), "ole");
+  const zipOdt = Buffer.from(`PK\x03\x04xxxxapplication/vnd.oasis.opendocument.textyyyy`);
+  assert.equal(detectKindFromBytes(zipOdt), "odt");
+});
+
+test("detectIngestKind: missing/wrong extension uses magic; CSV needs extension", async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "mh-magic-"));
+  try {
+    const pdf = path.join(dir, "noext");
+    await fs.writeFile(pdf, "%PDF-1.7\n1 0 obj\n");
+    assert.equal((await detectIngestKind(pdf)).kind, "pdf");
+
+    const rtf = path.join(dir, "notes.txt");
+    await fs.writeFile(rtf, "{\\rtf1\\ansi Hello RTF}");
+    assert.equal((await detectIngestKind(rtf)).kind, "rtf");
+
+    const csv = path.join(dir, "plain");
+    await fs.writeFile(csv, "a,b\n1,2\n");
+    assert.equal((await detectIngestKind(csv)).kind, "binary");
+    assert.equal(isConvertibleKind("binary"), false);
+
+    const namedCsv = path.join(dir, "data.csv");
+    await fs.writeFile(namedCsv, "a,b\n1,2\n");
+    assert.equal((await detectIngestKind(namedCsv)).kind, "csv");
+    assert.ok(isConvertibleKind("csv"));
+
+    const fixtureRtf = path.join(fixtures, "sample.rtf");
+    assert.equal((await detectIngestKind(fixtureRtf)).kind, "rtf");
+    assert.ok(isConvertibleKind("rtf"));
   } finally {
     await fs.rm(dir, { recursive: true, force: true });
   }
@@ -255,7 +304,10 @@ test("processIngestJob pptx succeeds with pure-JS even when external preferred",
     assert.ok(job.result?.targetPath, JSON.stringify(job));
     assert.match(job.result.targetPath, /00-收件箱/);
     assert.ok(
-      job.result.converter === "pptx-ooxml" || String(job.result.converter).startsWith("markitdown"),
+      job.result.converter === "pptx-ooxml" ||
+        String(job.result.converter).startsWith("markitdown") ||
+        String(job.result.converter).startsWith("anydoc") ||
+        String(job.result.converter).startsWith("pandoc"),
       job.result.converter,
     );
   } finally {
@@ -336,6 +388,7 @@ test("commitMarkdownNote writes inbox with ingest frontmatter", async () => {
     const text = await fs.readFile(abs, "utf8");
     assert.match(text, /source_type: "external-capture"/);
     assert.match(text, /ingest_kind: "docx"/);
+    assert.match(text, /ingest_converter: "mammoth"/);
     assert.match(text, /Hello/);
   } finally {
     await fs.rm(root, { recursive: true, force: true });

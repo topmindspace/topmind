@@ -5,6 +5,7 @@
 > **Boundary:** UTR is an **optional** CLI / MCP **adapter** over Kernel (`lib/`).  
 > Skills main path = host file tools. Desktop main path = WorkspaceService → Kernel `writeback-engine`.  
 > UTR is **not** content truth (the workspace filesystem is). Write modes: **auto | confirm** only.  
+> Workflow: `收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整`  
 > See [`../PRODUCT-BOUNDARIES.md`](../PRODUCT-BOUNDARIES.md) · [`../docs/ARCHITECTURE-RESET.md`](../docs/ARCHITECTURE-RESET.md).
 
 UTR (Unified Tool Runtime) exposes **deterministic workspace commands**. The only CLI entry is `topmind-cli`.

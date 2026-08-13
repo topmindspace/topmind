@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Copy, ExternalLink, Loader2, RefreshCw } from "lucide-react";
+import { Copy, Download, ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import type { PluginContext, SettingsSlot } from "../types";
 import type { AppSettings, IngestSettings } from "../../types";
 import { api } from "../../services/api";
@@ -25,20 +25,26 @@ export function createIngestSettingsSlot(_ctx: PluginContext): SettingsSlot {
   };
 }
 
+type ToolKey = "anydoc" | "markitdown" | "pandoc";
+
 type ToolInfo = {
   available: boolean;
   version: string | null;
   path?: string;
   viaModule?: boolean;
   source?: string;
+  upgradable?: boolean;
   install?: {
     commands: string[];
     docsUrl: string;
     label: string;
     preferredIndex?: number;
     hint?: string;
+    canSidecarInstall?: boolean;
   };
 };
+
+const PREF_VALUES = ["auto", "anydoc", "markitdown", "pandoc", "builtin"] as const;
 
 function IngestSettingsPanel({
   settings,
@@ -56,6 +62,7 @@ function IngestSettingsPanel({
     concurrency: 1,
     defaultDest: "inbox",
     preferExternalConverters: true,
+    preferredConverter: "auto",
     autoConvert: true,
     confirmBeforeConvert: false,
     skipConfirmForSingleMd: true,
@@ -63,28 +70,46 @@ function IngestSettingsPanel({
     ...(settings.ingest || {}),
   };
 
+  const preferred: NonNullable<IngestSettings["preferredConverter"]> =
+    PREF_VALUES.includes(ing.preferredConverter as (typeof PREF_VALUES)[number])
+      ? (ing.preferredConverter as NonNullable<IngestSettings["preferredConverter"]>)
+      : ing.preferExternalConverters === false
+        ? "builtin"
+        : "auto";
+
   const maxFileMb = Math.max(1, Math.round((ing.maxFileBytes || 80_000_000) / 1e6));
 
+  const [anydoc, setAnydoc] = useState<ToolInfo | null>(null);
   const [pandoc, setPandoc] = useState<ToolInfo | null>(null);
   const [markitdown, setMarkitdown] = useState<ToolInfo | null>(null);
   const [checkedAt, setCheckedAt] = useState<string | null>(null);
   const [fromCache, setFromCache] = useState(false);
   const [probing, setProbing] = useState(false);
+  const [installing, setInstalling] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
 
   const patch = (partial: Partial<IngestSettings>) =>
     update({ ingest: { ...ing, ...partial } } as Partial<AppSettings>);
+
+  const setPreferred = (next: NonNullable<IngestSettings["preferredConverter"]>) => {
+    patch({
+      preferredConverter: next,
+      preferExternalConverters: next !== "builtin",
+    });
+  };
 
   /** force=false reads disk cache; missing cache triggers one probe (first use). */
   const refreshTools = async (force = false) => {
     setProbing(true);
     try {
       const st = await api.ingest.toolsStatus(force);
+      setAnydoc(st.anydoc);
       setPandoc(st.pandoc);
       setMarkitdown(st.markitdown);
       setCheckedAt(st.checkedAt || null);
       setFromCache(Boolean(st.fromCache));
     } catch {
+      setAnydoc(null);
       setPandoc(null);
       setMarkitdown(null);
       setCheckedAt(null);
@@ -94,13 +119,30 @@ function IngestSettingsPanel({
   };
 
   useEffect(() => {
-    // No force: use cache or first-time auto probe only
     void refreshTools(false);
   }, []);
 
-  const copyCmd = async (tool: "pandoc" | "markitdown", index?: number) => {
+  const copyCmd = async (tool: ToolKey, index?: number) => {
     const r = await api.ingest.copyInstallCommand(tool, index);
     if (r.command) setHint(t("settingsSlot.copied", { command: r.command }));
+  };
+
+  const installSidecar = async () => {
+    setInstalling(true);
+    setHint(t("settingsSlot.installingAnydoc"));
+    try {
+      const r = await api.ingest.installAnydoc();
+      if (r.ok) {
+        setHint(t("settingsSlot.installOk", { version: r.version || "" }));
+        await refreshTools(true);
+      } else {
+        setHint(t("settingsSlot.installFail", { error: r.error || "" }));
+      }
+    } catch (e) {
+      setHint(t("settingsSlot.installFail", { error: e instanceof Error ? e.message : String(e) }));
+    } finally {
+      setInstalling(false);
+    }
   };
 
   return (
@@ -136,12 +178,29 @@ function IngestSettingsPanel({
           checked={ing.keepOriginal === true}
           onChange={(v) => patch({ keepOriginal: v })}
         />
-        <SwitchField
-          label={t("settingsSlot.preferExternal")}
-          description={t("settingsSlot.preferExternalDesc")}
-          checked={ing.preferExternalConverters !== false}
-          onChange={(v) => patch({ preferExternalConverters: v })}
-        />
+        <div className="mt-2">
+          <label className="mb-1 block text-3xs font-medium tracking-tight text-text-secondary" htmlFor="ingest-pref-converter">
+            {t("settingsSlot.preferredConverter")}
+          </label>
+          <select
+            id="ingest-pref-converter"
+            className="w-full max-w-[18rem] rounded-[var(--radius-md)] border border-border-subtle bg-surface px-2 py-1.5 text-3xs text-text-primary outline-none focus-visible:border-accent-color focus-visible:ring-2 focus-visible:ring-ring/35"
+            value={preferred}
+            onChange={(e) => {
+              const next = e.target.value as NonNullable<IngestSettings["preferredConverter"]>;
+              if (PREF_VALUES.includes(next)) setPreferred(next);
+            }}
+          >
+            <option value="auto">{t("settingsSlot.prefAuto")}</option>
+            <option value="anydoc">{t("settingsSlot.prefAnydoc")}</option>
+            <option value="markitdown">{t("settingsSlot.prefMarkitdown")}</option>
+            <option value="pandoc">{t("settingsSlot.prefPandoc")}</option>
+            <option value="builtin">{t("settingsSlot.prefBuiltin")}</option>
+          </select>
+          <p className="mt-1 text-3xs leading-snug text-text-quaternary">
+            {t("settingsSlot.preferredConverterDesc")}
+          </p>
+        </div>
         <div className="mt-2">
           <label className="mb-1 block text-3xs font-medium tracking-tight text-text-secondary" htmlFor="ingest-max-mb">
             {t("settingsSlot.maxFileLabel")}
@@ -186,12 +245,22 @@ function IngestSettingsPanel({
               <p className="text-3xs text-text-quaternary">{t("settingsSlot.notYetChecked")}</p>
             )}
           </div>
-          <Button size="sm" variant="outline" className="h-7 text-3xs" onClick={() => void refreshTools(true)} disabled={probing}>
+          <Button size="sm" variant="outline" className="h-7 text-3xs" onClick={() => void refreshTools(true)} disabled={probing || installing}>
             {probing ? <Loader2 size={ICON.xs} className="animate-spin" aria-hidden /> : <RefreshCw size={ICON.xs} aria-hidden />}
             {t("settingsSlot.recheck")}
           </Button>
         </div>
         <div className="space-y-2">
+          <ToolRow
+            name="anydoc"
+            subtitle={t("settingsSlot.anydocSubtitle")}
+            info={anydoc}
+            onCopy={(i) => void copyCmd("anydoc", i)}
+            onDocs={() => void api.ingest.openInstallHelp("anydoc")}
+            onSidecarInstall={() => void installSidecar()}
+            installing={installing}
+            sidecarLabel={anydoc?.available ? t("settingsSlot.upgradeAnydoc") : t("settingsSlot.installAnydoc")}
+          />
           <ToolRow
             name="markitdown"
             subtitle={t("settingsSlot.markitdownSubtitle")}
@@ -215,6 +284,9 @@ function IngestSettingsPanel({
         <p className="mt-2 text-3xs leading-relaxed text-text-quaternary">
           {t("settingsSlot.installHint")}
         </p>
+        <p className="mt-1.5 text-3xs leading-relaxed text-text-quaternary">
+          {t("settingsSlot.upgradeRule")}
+        </p>
       </SettingsSection>
     </div>
   );
@@ -226,12 +298,18 @@ function ToolRow({
   info,
   onCopy,
   onDocs,
+  onSidecarInstall,
+  installing,
+  sidecarLabel,
 }: {
   name: string;
   subtitle?: string;
   info: ToolInfo | null;
   onCopy: (index?: number) => void;
   onDocs: () => void;
+  onSidecarInstall?: () => void;
+  installing?: boolean;
+  sidecarLabel?: string;
 }) {
   const { t } = useTranslation("ingest");
   const ok = info?.available;
@@ -239,6 +317,7 @@ function ToolRow({
   const preferred =
     typeof info?.install?.preferredIndex === "number" ? info.install.preferredIndex : 0;
   const installHint = info?.install?.hint;
+  const showSidecar = Boolean(onSidecarInstall);
 
   return (
     <div className="rounded-[var(--radius-lg)] border border-border-subtle bg-surface-elevated px-2.5 py-2 shadow-xs">
@@ -266,6 +345,18 @@ function ToolRow({
                 : t("settingsSlot.notDetected")}
           </div>
         </div>
+        {showSidecar ? (
+          <Button
+            size="sm"
+            variant={ok ? "outline" : "default"}
+            className="h-7 text-3xs"
+            onClick={onSidecarInstall}
+            disabled={installing}
+          >
+            {installing ? <Loader2 size={ICON.xs} className="animate-spin" aria-hidden /> : <Download size={ICON.xs} aria-hidden />}
+            {sidecarLabel}
+          </Button>
+        ) : null}
         {ok ? (
           <span className="rounded-full bg-status-success-bg px-1.5 py-0.5 text-3xs font-medium text-success">
             {t("settingsSlot.ready")}

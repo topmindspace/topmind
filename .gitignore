@@ -88,6 +88,9 @@ builder-debug.yml
 # Pack / release outputs (also covered by dist/)
 *.SHA256SUMS
 
+# Local Homebrew cask snapshot (live tap is topmindspace/homebrew-tap)
+casks/topmind.rb
+
 # Browser extension local build
 browser-extension/dist/
 browser-extension/*.zip

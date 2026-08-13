@@ -26,6 +26,7 @@ Shell (layout) ← slots ← Plugin.activate(ctx)
 - **入口**：侧栏 · Hub · ⌘K · 全局拖放 · 状态栏；**统一捕获**（⌘N / ⌘⇧N）智能附件  
 - **剪贴板**：`ingest.readClipboard` / `enqueueFromClipboard`  
 - **写回**：Markdown → Inbox 或专题；失败 original-fallback；可选原件 `99-归档/ingest-originals/`  
+- **转换**：默认 anydoc sidecar（userData 热升级）；可选 markitdown / pandoc；内置 JS 兜底  
 - **约定**：`skills/shared/document-ingest.md` · ADR `docs/adr/2026-07-19-knowledge-ingest-pipeline.md`
 
 ### Connector Hub UI（共享）
@@ -37,7 +38,7 @@ Weread / X / Ingest 中心页共用 `src/plugins/connector-ui.tsx`：
 | `ConnectorHubHeader` | 页头：icon · title · subtitle · meta · actions |
 | `ConnectorStatusPill` | 连接/能力状态；`badTone="muted"` 表示可选能力关闭 |
 | `ConnectorToastBanner` | 进度/结果条；可嵌 children（如同步路径） |
-| `ConnectorToolChip` | 本机工具可用性（pandoc / markitdown 等） |
+| `ConnectorToolChip` | 本机工具可用性（anydoc / markitdown / pandoc） |
 
 **禁止**在 hub 内复制第三套 header/toast。UI 规范：`DESIGN.md` · 架构：`ARCHITECTURE.md` §连接器 Hub UI。
 
