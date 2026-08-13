@@ -17,6 +17,7 @@ import { createBatchCollector } from "./lib/batch-evidence.mjs";
 import { normalizeWriteResult } from "./lib/ai-tool-evidence.mjs";
 import { resolveDataRoot } from "./lib/path-model.mjs";
 import { AI_TOOL_NAMES_READ, AI_TOOL_NAMES_WRITE } from "./lib/ai-tool-names.mjs";
+import { resolvePromptLocale } from "./ai-prompts.mjs";
 
 // Re-export for backward compatibility (existing imports from ai-tools.mjs)
 export { AI_TOOL_NAMES_READ, AI_TOOL_NAMES_WRITE };
@@ -81,6 +82,19 @@ export async function buildDesktopAiTools(ctx) {
       confirmed: !needsUserConfirm,
     });
 
+    const promptLocale = resolvePromptLocale(ctx.appSettings?.ui?.locale);
+    const writeCopy = promptLocale === "en"
+      ? {
+          pendingStashed: "Ask-before-save: write is pending. Accept or reject it in the AI panel pending-writes list.",
+          pendingNoBody: "Ask-before-save: confirmation required, but the body was not cached (retry with save_file).",
+          writeFailed: "Write failed; adjust parameters and retry, or accept the write in the review bar when ask-before-save is on.",
+        }
+      : {
+          pendingStashed: "保存前问我：写入已挂起，请在 AI 面板「待确认写入」中接受或拒绝",
+          pendingNoBody: "保存前问我：写入需确认，但未能缓存正文（请重试 save_file 全量写入）",
+          writeFailed: "写入失败；可调整参数后重试，或「保存前问我」模式下在审阅条接受写入",
+        };
+
     const wrapWrite = (toolName, fn) => async (args) => {
       // Invalidate read cache on any write — prevents stale reads after edit/save
       readCache.clear();
@@ -139,9 +153,7 @@ export async function buildDesktopAiTools(ctx) {
           }
           result.note =
             result.note ||
-            (result.pendingId
-              ? "保存前问我：写入已挂起，请在 AI 面板「待确认写入」中接受或拒绝"
-              : "保存前问我：写入需确认，但未能缓存正文（请重试 save_file 全量写入）");
+            (result.pendingId ? writeCopy.pendingStashed : writeCopy.pendingNoBody);
           result.previewContent = content || raw.previewContent;
           result.relativePath = rel;
         }
@@ -155,7 +167,7 @@ export async function buildDesktopAiTools(ctx) {
           tool: toolName,
           operation: toolName,
           error: message,
-          note: "写入失败；可调整参数后重试，或「保存前问我」模式下在审阅条接受写入",
+          note: writeCopy.writeFailed,
         };
       }
     };
@@ -643,7 +655,7 @@ export async function buildDesktopAiTools(ctx) {
 
       tools.delete_path = tool({
         description:
-          "删除工作区文件（可逆：99-Archive trash）。删除 .md 时会一并回收关联 images/{slug}/。用户明确要求删除时使用。",
+          "删除工作区文件。锁定/核心笔记（memory、topic.md、交付）会移入 99-Archive trash（可恢复）；普通开放笔记直接删除、无备份。删除 .md 时一并处理关联 images/{slug}/。仅在用户明确要求删除时使用。",
         inputSchema: jsonSchema({
           type: "object",
           properties: {
@@ -653,12 +665,21 @@ export async function buildDesktopAiTools(ctx) {
         }),
         execute: wrapWrite("delete_path", async ({ relativePath }) => {
           const r = await WorkspaceService.deletePath({ relativePath }, ctx);
+          const reversible = Boolean(r?.backupPath);
           return {
             ...r,
             targetPath: relativePath,
             operation: "delete-path",
-            reversible: true,
-            note: r?.note || "已可逆删除（Archive 可恢复；关联图片一并 trash）",
+            reversible,
+            note:
+              r?.note
+              || (reversible
+                ? (promptLocale === "en"
+                  ? "Deleted with trash copy (locked/core — recoverable from Archive)."
+                  : "已删除（锁定/核心笔记，Archive trash 可恢复）")
+                : (promptLocale === "en"
+                  ? "Deleted ordinary open note (no trash copy)."
+                  : "已删除（普通开放笔记，无 trash 副本）")),
           };
         }),
       });

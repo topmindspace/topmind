@@ -235,24 +235,34 @@ test("saveNote overwrite preserves captured_at and sets updated_at", async () =>
   assert.ok(fm2.updated_at, "updated_at must be set on overwrite");
 });
 
-test("deletePath md returns trash backup under backups/trash and restore works", async () => {
+test("deletePath ordinary open md has no trash; locked core note does and restore works", async () => {
   const rel = "20-研究/2026-示例专题/doomed.md";
   await pathOps.savePath({ relativePath: rel, content: "# keep me\n" }, ctx());
   const del = await pathOps.deletePath({ relativePath: rel }, ctx());
   assert.equal(del.operation, "delete");
-  assert.ok(del.backupPath);
-  assert.match(del.backupPath, /99-归档\/backups\/trash\//u);
+  assert.ok(!del.backupPath, "ordinary topic note delete: no trash");
   assert.ok(!existsSync(path.join(workspace.userWorkspaceRoot, rel)));
+
+  const lockedRel = "20-研究/2026-示例专题/core-locked.md";
+  await pathOps.savePath(
+    { relativePath: lockedRel, content: "---\nprotection: locked\n---\n\n# keep me\n" },
+    ctx(),
+  );
+  const lockedDel = await pathOps.deletePath({ relativePath: lockedRel }, ctx());
+  assert.equal(lockedDel.operation, "delete");
+  assert.ok(lockedDel.backupPath);
+  assert.match(lockedDel.backupPath, /99-归档\/backups\/trash\//u);
+  assert.ok(!existsSync(path.join(workspace.userWorkspaceRoot, lockedRel)));
 
   const restoredRel = "20-研究/2026-示例专题/restored.md";
   const rest = await archiveOps.restoreTopicReceipt({
-    archiveRelativePath: del.backupPath,
+    archiveRelativePath: lockedDel.backupPath,
     targetRelativePath: restoredRel,
   }, ctx());
   assert.equal(rest.operation, "restore");
   assert.equal(
     readFileSync(path.join(workspace.userWorkspaceRoot, restoredRel), "utf8"),
-    "# keep me\n",
+    "---\nprotection: locked\n---\n\n# keep me\n",
   );
 });
 

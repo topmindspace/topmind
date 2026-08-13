@@ -140,11 +140,13 @@ v4 收敛至 4 种官方模板，在相同的「三平面模型」基础上，�
   1. 自发现匹配：工作区根下任何匹配 {两位数字}[ -]{名称}/ 的目录 = 一个大类。
   2. 数字前缀仅保证排序，不限制数量上限。
   3. 自动修复：非标准命名大类载入时按 contract category_separator 安全批量重命名；
-     缺少 00-收件箱 / 88-输出 / 99-归档（required roles）时自动安全补全。
+     缺少 required roles（buffer / delivery / system）时按模板补全。槽位启发式：
+     `00` = buffer，`88` = delivery，`99` = system（`00-Inbox` / `00-Capture` /
+     `99-Archive` 与中文默认同等有效；引擎不因模板是中文就发明 `00-收件箱`）。
   4. 推荐 00 + 10-60 + 88/99 作为默认入门；用户可新增（11-健康/、21-学习笔记/）、
      删除、重命名（renameCategory，含 frontmatter 与 contract 同步）。
-  5. 00-收件箱/ 是唯一强制内容类（缓冲层不可删除）。
-  6. 99-归档/ 是内容安全层（backups/trash/receipts），不参与日常导航。
+  5. buffer 角色（默认 00-*）是唯一强制内容类（缓冲层不可删除）。
+  6. system 角色（默认 99-*）是内容安全层（backups/trash/receipts），不参与日常导航。
 ```
 
 **工具行为（统一 WorkspaceModel）**：
@@ -263,11 +265,12 @@ AI 分发遇到歧义时按"内容性质"判定；无法判定时 → `00-收件
 └── receipts/           # 写操作回执（内容安全层，不可删）
 ```
 
-> **动态年归档**：`archiveStreamYear(workspaceRoot, year)` 将完整年份的周期本目录原子移到 `99-归档/stream-archive/{year}/`，生成回执。只允许归档当前年份之前的年份。归档不影响 memory/periodic/（记忆是提炼物，比原始事件更有保留价值）。
+> **动态年归档**：`archiveStreamYear(workspaceRoot, year)` 将完整年份的周期本目录原子移到 `99-归档/stream-archive/{year}/`（落点即新家，不另写 receipts YAML）。只允许归档当前年份之前的年份。归档不影响 memory/periodic/（记忆是提炼物，比原始事件更有保留价值）。
 
 > 写操作**回执**是内容安全层的一部分，是"找回/恢复"的依据，不可删。  
-> **备份/回执策略（高影响 only）**：常规 `open` 文件写入（AI/user 更新）**不**创建 backup 与 receipt。仅高影响落盘：`locked` 既有文件覆盖（多为 user；AI 写 locked 被拒）、非 `permanent` 的 delete/archive（trash/归档副本 + 回执）。高影响备份/回执旋转上限 `BACKUP_KEEP=3` · `RECEIPT_KEEP=50`。策略集中在 Kernel 写闸，不靠调用方零散 `skipBackup` 拼语义。  
-> **删除落点**：`executeDelete` 默认写入 `99-归档/backups/trash/…`（与 `backup_to` 同根）；legacy 顶层 `99-归档/trash/` 仍可被 `list-safety-receipts` / `restore-safety-receipt` 识别。  
+> **备份/回执策略（高影响 only）**：常规 `open` 文件写入（AI/user 更新）**不**创建 backup 与 receipt。仅高影响落盘：`locked` 既有文件覆盖（多为 user；AI 写 locked 被拒）、锁定/核心笔记的非 `permanent` **delete**（trash + 回执）。`executeArchive` 是把内容**迁入** `99-归档` 的新家（inbox_review / catch_all / 专题归档），不是备份；YAML 回执仅锁定/核心。普通开放笔记 **delete** 无 trash。高影响备份/回执旋转上限 `BACKUP_KEEP=3` · `RECEIPT_KEEP=50`。策略集中在 Kernel 写闸，不靠调用方零散 `skipBackup` 拼语义。  
+> **删除落点**：`executeDelete` 仅锁定/核心写入 `99-归档/backups/trash/…`；legacy 顶层 `99-归档/trash/` 仍可被 `list-safety-receipts` / `restore-safety-receipt` 识别。  
+> **归档落点**：`executeArchive` 文件 → `{systemDir}/backups/trash/…`；目录 → `{systemDir}/backups/archived-topics/…`。`systemDir` 来自现场契约角色（`99-归档` / `99-Archive` / 用户改名），不写死中文。  
 > **彻底删除**：`executeDelete`/`executeArchive` 支持 `permanent:true`，跳过 trash/archive 副本直接删除（不可恢复，UI 提供复选框确认）。  
 > 恢复入口：UTR `list-safety-receipts` → `restore-safety-receipt`（不覆盖已有文件，写 `-restored-` 副本）/ Desktop 找回面板。
 
@@ -445,7 +448,7 @@ presentation:                  # 呈现规约
 1. **影子暂存**：AI 输出的流式文本写入当前目录下的隐藏临时文件（如 `.shadow-draft.tmp`）
 2. **视口直通**：Desktop 编辑器将影子文件临时叠加在视图层
 3. **保护判定**：writeback-engine 先求值目标文件的有效 protection（文件级 > role 默认）
-4. **原子落盘**：生成完毕且用户 Commit（或自动保存策略判定安全）时，原子替换物理文件。备份/回执仅高影响：`locked` 覆盖与 delete/archive 进 `99-归档/backups/`（含 trash）与 `99-归档/receipts/`；open 常规更新不造备份/回执
+4. **原子落盘**：生成完毕且用户 Commit（或自动保存策略判定安全）时，原子替换物理文件。备份/回执仅高影响：`locked` 覆盖，以及锁定/核心笔记（`memory/`、`topic.md`、专题目录、`88-输出`）的非 permanent 删除/归档，进 `99-归档/backups/`（含 trash）与 `99-归档/receipts/`。open 常规创建/更新/移动/重命名/连接器同步不造备份/回执；普通开放笔记删除无 trash（行为记录走返回 evidence）。`permanent` 彻底删除。
 5. **安全中断**：强行中断只需丢弃影子文件，物理真源毫发无损
 
 ---

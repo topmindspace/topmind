@@ -1652,19 +1652,19 @@ export const SystemService = {
     }
     return {
       contract_version: config.contract_version || 4,
-      categorySeparator: config.categorySeparator || config.workspace?.category_separator || defaultConfig.categorySeparator,
-      template: config.template || config.workspace?.template || defaultConfig.template,
+      categorySeparator: config.workspace?.category_separator || defaultConfig.categorySeparator,
+      template: config.workspace?.template || defaultConfig.template,
       stream: config.stream || stream,
       memory: {
         dir: (config.memory || memory)?.dir ?? null,
         profileFile: (config.memory || memory)?.profileFile || "profile.md",
         files: (config.memory || memory)?.files || [],
       },
-      writebackMode: config.writebackMode || config.writeback?.mode || defaultConfig.writebackMode,
-      views: config.views || config.presentation?.views || defaultConfig.views,
-      connectorDefaults: config.connectorDefaults || config.ingest?.connectors || defaultConfig.connectorDefaults,
-      categoryExtensions: config.categoryExtensions || config.categories?.extensions || {},
-      categoryOverrides: config.categoryOverrides || config.categories?.overrides || {},
+      writebackMode: config.writeback?.mode || defaultConfig.writebackMode,
+      views: config.presentation?.views || defaultConfig.views,
+      connectorDefaults: config.ingest?.connectors || defaultConfig.connectorDefaults,
+      categoryExtensions: config.categories?.extensions || {},
+      categoryOverrides: config.categories?.overrides || {},
       categories,
     };
   },
@@ -1681,7 +1681,7 @@ export const SystemService = {
     const { loadKernelApi } = await import("./lib/kernel-api.mjs");
     const kernel = await loadKernelApi();
 
-    // Start from clean Kernel contract (not projectConfigAliases flat projection)
+    // Start from clean Kernel contract (v4 nested keys only)
     const base = kernel.loadContract(resolvedRoot) || kernel.buildDefaultContract();
     const next = {
       ...base,

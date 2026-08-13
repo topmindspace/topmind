@@ -148,6 +148,55 @@ function packObsidianJobBody(src) {
   return nextJob >= 0 ? after.slice(0, nextJob) : after;
 }
 
+test("release.yml does not use Actions artifact storage for pack aggregation", () => {
+  const src = loadReleaseWorkflow();
+  const codeOnly = src
+    .split("\n")
+    .filter((line) => {
+      const t = line.trim();
+      return t && !t.startsWith("#");
+    })
+    .join("\n");
+  assert.doesNotMatch(
+    codeOnly,
+    /download-artifact@/u,
+    "Release pack jobs must not download-artifact (quota); they gh release upload",
+  );
+  assert.doesNotMatch(
+    codeOnly,
+    /merge-multiple\s*:/u,
+    "Release must not merge-multiple Actions artifacts",
+  );
+  assert.match(
+    src,
+    /gh release upload/u,
+    "Release pack path is gh release upload",
+  );
+});
+
+test("PACKAGING.md matches release plan outputs and upload architecture", () => {
+  const packaging = fs.readFileSync(
+    path.join(repoRoot, "docs", "PACKAGING.md"),
+    "utf8",
+  );
+  assert.match(
+    packaging,
+    /\|\s*`obsidian`\s*\|/u,
+    "plan job outputs table must include obsidian",
+  );
+  assert.match(packaging, /gh release upload/u);
+  assert.doesNotMatch(
+    packaging,
+    /merge-multiple[^\n]*release 汇聚下载/u,
+    "must not claim merge-multiple aggregates Release assets",
+  );
+  assert.match(
+    packaging,
+    /skills\/extension\/obsidian smoke packs/u,
+    "CI row must list Obsidian smoke pack",
+  );
+});
+
 test("pack-obsidian uploads unique dist-only versioned artifacts (no dual-path / stale zips)", () => {
   const job = packObsidianJobBody(loadReleaseWorkflow());
   // Must resolve version from shipped manifest (not wildcards over stale release/)

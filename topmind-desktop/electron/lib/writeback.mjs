@@ -88,9 +88,8 @@ function dataRootOf(workspaceContext) {
 //   overwrite → backup + receipt, rotated by BACKUP_KEEP=3).
 // - Kernel `executeDelete` / `executeArchive` handle trash/archive copies.
 // - These Desktop helpers (`writeArchiveBackup` / `writePathCheckpoint`)
-//   are used by Desktop-specific paths (e.g. settings persistence, file
-//   watcher checkpoints, binary asset backups) that don't go through
-//   `kernelDurableWrite` because they are NOT content-plane writes.
+//   are for rare non-content checkpoints (locked binary overwrite).
+//   Connectors, restore, and ordinary content writes MUST NOT call them.
 // - All content-plane markdown writes MUST go through `kernelDurableWrite`
 //   → Kernel `executeWrite` — never these helpers.
 // - Backup filenames use `MMDD-HHMM__name` format; Kernel uses ISO timestamp

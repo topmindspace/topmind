@@ -188,9 +188,24 @@ test("splitStreamPreviewParts separates main from #### 续", async () => {
 
   // Time moves to card chip — body should not repeat HH:MM
   assert.equal(stripListChromeForDisplay("- 10:00 hello world"), "hello world");
+  // Multi-line moment: only first-line chrome goes; remaining prose stays
+  assert.equal(
+    stripListChromeForDisplay("- 10:00 hello world\n\nsecond paragraph"),
+    "hello world\n\nsecond paragraph",
+  );
   // Task checkboxes kept for real MD task-list render
   assert.match(stripListChromeForDisplay("- [ ] open task"), /\[ \]/);
   assert.match(streamMarkdownToPreviewHtml(stripListChromeForDisplay("- [ ] open task")), /task-list/);
+});
+
+test("StreamMdBody always strips first-line list/time chrome (not only single-line cards)", () => {
+  const view = readFileSync(
+    path.join(root, "src/plugins/topmind-workspace/views/StreamDetailView.tsx"),
+    "utf8",
+  );
+  const body = view.slice(view.indexOf("function StreamMdBody"));
+  assert.match(body, /stripListChromeForDisplay\(parts\.main\)/);
+  assert.doesNotMatch(body, /lines\.length === 1 && \/\^\\s\*\[-\*\+\]/);
 });
 
 test("prefersMarkdownPreview detects structure", () => {

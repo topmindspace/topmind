@@ -76,15 +76,15 @@ export class QuickCaptureModal extends Modal {
     // Right: hints + submit
     const rightDiv = footer.createDiv({ cls: "tm-footer-right" });
     rightDiv.createSpan({
-      text: `${t("quick_capture_hint_enter")}  ${t("quick_capture_hint_shift_enter")}`,
+      text: `${t("quick_capture_hint_enter_note")}  ${t("quick_capture_hint_shift_enter")}`,
       cls: "tm-hint",
     });
 
     this.submitBtn = footer.createEl("button", {
-      text: t("quick_capture_submit"),
+      text: t("quick_capture_note_it"),
       cls: "tm-submit-btn",
     });
-    this.submitBtn.setAttribute("aria-label", t("quick_capture_submit"));
+    this.submitBtn.setAttribute("aria-label", t("quick_capture_note_it"));
 
     // Focus input
     setTimeout(() => this.textarea.focus(), 50);
@@ -176,7 +176,7 @@ export class QuickCaptureModal extends Modal {
       this.tagInput.disabled = false;
       this.submitBtn.disabled = false;
       this.submitBtn.empty();
-      this.submitBtn.textContent = t("quick_capture_submit");
+      this.submitBtn.textContent = t("quick_capture_note_it");
       this.textarea.focus();
     }
   }

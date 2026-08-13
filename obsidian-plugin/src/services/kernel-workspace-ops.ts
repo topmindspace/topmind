@@ -93,8 +93,17 @@ export function captureToWorkspace(
       const fm = extractFrontmatter(raw) || seedPeriodFrontmatter(relPath);
       content = `${fm}${newBody}`;
     } else {
-      const buffer = model.categories.find((c) => c.role === "buffer");
-      const inboxDir = buffer?.directory || "00-Inbox";
+      const buffer = model.categories.find((c) => c.role === "buffer" && c.directory);
+      let inboxDir = buffer?.directory;
+      if (!inboxDir) {
+        try {
+          inboxDir = fs.readdirSync(workspaceRoot, { withFileTypes: true })
+            .find((e) => e.isDirectory() && /^00[ -]/.test(e.name))?.name;
+        } catch {
+          inboxDir = undefined;
+        }
+      }
+      inboxDir = inboxDir || "00-Inbox";
       relPath = `${inboxDir}/${Date.now()}-${sanitizeFileName(safeText.slice(0, 30))}.md`;
       targetPath = path.join(workspaceRoot, relPath);
       content = `---\nsource_type: external-capture\ncreated: ${new Date().toISOString()}\ntags: [${(opts.tags || []).join(", ")}]\n---\n\n# ${safeText.slice(0, 80)}\n\n${captureContent}\n`;
@@ -358,6 +367,55 @@ export function reseedWorkspaceContract(
       status: result.status,
       error: result.onDiskValid ? undefined : "reseed failed",
     };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+/** Read operational writeback.mode from topmind.yaml (not plugin data.json). */
+export function resolveContractWritebackMode(
+  kernel: KernelApi,
+  workspaceRoot: string,
+): "auto" | "confirm" | null {
+  try {
+    const contract = kernel.loadContract(workspaceRoot) as {
+      writeback?: { mode?: string };
+    };
+    const mode = contract?.writeback?.mode;
+    if (mode === "auto" || mode === "confirm") return mode;
+  } catch {
+    /* missing or unreadable contract */
+  }
+  return null;
+}
+
+/**
+ * Mirror Settings writeback dropdown into workspace topmind.yaml.
+ * Plugin data.json stays a display cache only.
+ */
+export function mirrorWritebackModeToContract(
+  kernel: KernelApi,
+  workspaceRoot: string,
+  mode: "auto" | "confirm",
+): { ok: boolean; error?: string } {
+  if (mode !== "auto" && mode !== "confirm") {
+    return { ok: false, error: "invalid-mode" };
+  }
+  if (typeof kernel.writeContract !== "function") {
+    return { ok: false, error: "Kernel writeContract not available" };
+  }
+  if (!fs.existsSync(path.join(workspaceRoot, "topmind.yaml"))) {
+    return { ok: false, error: "workspace-not-ready" };
+  }
+  try {
+    const current = kernel.loadContract(workspaceRoot) as {
+      writeback?: Record<string, unknown>;
+    };
+    kernel.writeContract(workspaceRoot, {
+      ...current,
+      writeback: { ...(current.writeback || {}), mode },
+    });
+    return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }

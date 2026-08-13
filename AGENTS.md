@@ -78,13 +78,15 @@ contract · workspace-model · stream · memory · lifecycle · **writeback（�
 > **ai-operation-engine**：统一 AI 操作注册框架（`lib/ai-operation-engine.mjs`），自注册 `todo_maintain` · `memory_organize` · `topic_classify`，支持 force 重处理、状态追踪（`.topmind/ai-ops.json`）。  
 > **activity-window**：`lib/activity-window.mjs` — 建议/待办/AI ops 共用「近期活动窗口」（21 天 / 30 文件 / 6 周期）。语料预算：suggest 16K · todo extract 16K · maintain 12K。`smartBudgetCorpus` 保留 frontmatter/段落结构/首尾上下文。  
 > **Desktop 多路 AI**：Agent 流独立 · 后台 prep lane 串行 · soft 建议在 agent streaming 时让路 · StatusBar `multiActive` 诚实展示（见 `topmind-desktop/DESIGN.md` §0.0.3）。  
-> **Stream 年目录 + 归档**：`yearDir` 默认 `true`（`10-动态/2026/2026-W30.md`）；`archiveStreamYear` 将完整年份移到 `99-归档/stream-archive/{year}/`（只归档当前年份之前）。  
+> **Stream 年目录 + 归档**：`yearDir` 默认 `true`（`{streamDir}/{YYYY}/2026-W30.md`）；`archiveStreamYear` 将完整年份移到 `{systemDir}/stream-archive/{year}/`（只归档当前年份之前）。  
 > **Memory periodic 语义**：periodic 记忆为「周期反思」（洞察提炼），非事件压缩副本。`memory/periodic/` 按年分组，与 stream 年目录对齐。  
 > **AI 输出语言跟随 UI**：所有 Kernel AI 引擎接受 `localeOverride`；Desktop 从 `settings.ui.locale` per-call 注入。`auto` 回退到契约 `locale`，再回退 `zh`。  
+> **工作区围栏**：写/移/删/归档不得落到当前工作区根之外（`isPathInsideWorkspace`）。区外本地读须 `evaluateOutsideRead` 显式授权；`fetch_url` 仅 http(s)，不读 `file://`。  
+> **类别按角色发现**：buffer/stream/delivery/system 用现场契约与 `{NN-…}` 目录，不用写死 `00-收件箱` / `99-归档`。英文或用户改名（`00-Inbox` · `99-Archive`）仍按 role 跳过/归档。  
 > **Obsidian AI Key 双层保护**：`saveSettings()` 同时备份密钥到 `.topmind/ai-keys-backup.json`；`loadSettings()` 缺密钥时自动恢复。  
 > **Companion 下载验证**：`crypto.createHash('sha256')` 流式哈希，零外部依赖；安装失败回退 bundled 版本。
 
-**诚实状态**：引擎在 `lib/`；Desktop / UTR / AI 耐久 `.md` **主写经 writeback-engine**；Memory · 建议条 · 待办 · AI 操作框架 · 活动窗口 · 动态增补 · 剪藏图片本地化 · i18n 门禁 · 多路 AI 并发 · Stream 年目录+归档 · UIUX 深度优化 **Done**。备份/回执：**仅高影响**——`locked` 覆盖、非 `permanent` 的 delete/archive（trash 副本）；常规更新不备份不写回执；`permanent` 彻底删除；产物旋转（`BACKUP_KEEP=3` · `RECEIPT_KEEP=50`）。AI Provider：per-operation 动态 temperature/systemPrompt/maxTokens + 瞬态错误重试；会话压缩 240K/60。仍 **Intentional Partial**：contract 未强制全 Surface UI。embedding / 全库 Ask 等见 Reset Non-goal。
+**诚实状态**：引擎在 `lib/`；Desktop / UTR / AI 耐久 `.md` **主写经 writeback-engine**；Memory · 建议条 · 待办 · AI 操作框架 · 活动窗口 · 动态增补 · 剪藏图片本地化 · i18n 门禁 · 多路 AI 并发 · Stream 年目录+归档 · UIUX 深度优化 **Done**。备份/回执：**仅高影响**——`locked` 覆盖，以及锁定/核心笔记的非 `permanent` **delete**（trash+回执）。`executeArchive` 把内容迁入现场 **system** 目录当新家（不是备份）。普通开放笔记 **delete** 无 trash；create/update/move/rename/连接器同步不备份不写回执；`permanent` 彻底删除；产物旋转（`BACKUP_KEEP=3` · `RECEIPT_KEEP=50`）。AI Provider：per-operation 动态 temperature/systemPrompt/maxTokens + 瞬态错误重试；会话压缩 240K/60。仍 **Intentional Partial**：contract 未强制全 Surface UI。embedding / 全库 Ask 等见 Reset Non-goal。
 
 默认模板 4 种：`stream`（默认）· `balanced` · `research` · `periodic`。
 

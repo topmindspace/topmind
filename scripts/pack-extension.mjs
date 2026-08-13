@@ -79,6 +79,16 @@ if (typeof globalThis !== "undefined") {
     log("warn: Desktop @mozilla/readability not found; packing existing vendor copy");
   }
 
+  // Keep Clip HTML→MD identical to Desktop (single algorithm).
+  const mdSrc = path.join(repoRoot, "topmind-desktop/electron/lib/html-to-markdown.mjs");
+  const mdDest = path.join(extRoot, "lib/html-to-markdown.mjs");
+  try {
+    await fs.copyFile(mdSrc, mdDest);
+    log("synced Desktop html-to-markdown → browser-extension/lib/html-to-markdown.mjs");
+  } catch (e) {
+    throw new Error(`refusing to pack: could not sync html-to-markdown from Desktop (${e.message})`);
+  }
+
   // Copy extension files (no node_modules / .git)
   async function walk(src, dest) {
     await fs.mkdir(dest, { recursive: true });

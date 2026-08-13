@@ -86,10 +86,10 @@ degradation: ../shared/capability-degradation.md
 ├── topmind.yaml                # contract v4
 ├── memory/                     # profile.md · periodic/ · topics/
 ├── .topmind/                   # rebuildable machine state
-├── 00-收件箱/                  # buffer
+├── 00-收件箱/ or 00-Inbox/     # role: buffer (live dir name)
 ├── 10-动态/ …                  # categories (template-driven)
-├── 88-输出/                    # flat deliverables
-└── 99-归档/                    # safety layer
+├── 88-输出/ or 88-Outputs/     # role: delivery
+└── 99-归档/ or 99-Archive/     # role: system
 ```
 
 Topic:
@@ -125,7 +125,7 @@ Full rules: [`../PROJECT-MODEL.md`](../PROJECT-MODEL.md) §2.
 ## Rules (skills behavior)
 
 - Capture first; don’t block simple saves on perfect classification  
-- Auto-route when signal is strong; otherwise `00-收件箱/`  
+- Auto-route when signal is strong; otherwise **role:buffer** (live inbox dir, not hardcoded-only `00-收件箱/`)  
 - Loose notes at category root when topic is unclear  
 - Every write returns a receipt (path, route reason when available, next step)  
 - `source_type`: `user-original` | `external-capture` | `ai-derived`  

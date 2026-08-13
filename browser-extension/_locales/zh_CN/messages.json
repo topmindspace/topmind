@@ -252,7 +252,7 @@
     "message": "仅本机工作区目录"
   },
   "options_mode_hint": {
-    "message": "自动模式：Desktop 在线走 Bridge（HTML→MD 质量更好）；离线可用已授权的工作区文件夹。"
+    "message": "自动模式：Desktop 在线走 Bridge（同一 HTML→MD + 落点 API + 写闸）；离线用已授权工作区文件夹直写（同一转换器，用户手势即确认）。"
   },
   "options_bridge_title": {
     "message": "A · Desktop Clip Bridge"
@@ -315,7 +315,7 @@
     "message": "清除工作区授权"
   },
   "options_ws_perm_hint": {
-    "message": "需 Chromium（Chrome / Edge）。选择文件夹后，请在本页点一次「重新授权写入」或直接去弹窗点「剪藏」—— 浏览器会记住权限；Service Worker 不能自行弹授权框。本地模式用轻量 HTML→MD；Bridge 模式复用 Desktop 清洗管线。"
+    "message": "需 Chromium（Chrome / Edge）。选择文件夹后，请在本页点一次「重新授权写入」或直接去弹窗点「剪藏」—— 浏览器会记住权限；Service Worker 不能自行弹授权框。工作区直写与 Bridge 共用同一 HTML→MD；Bridge 另提供落点列表并走 Desktop 写闸。"
   },
   "options_tpl_title": {
     "message": "C · 剪藏模板"

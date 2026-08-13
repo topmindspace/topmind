@@ -351,15 +351,18 @@ export const AiService = {
       });
     }
 
-    // Per-call writebackMode (AI panel badge) only — workspace truth is topmind.yaml.
-    // Do not prefer app-settings as a second source of truth for durable writes.
+    // Per-call override only when the invoke payload explicitly set auto|confirm.
+    // Renderer must not send view-store defaults — yaml is the write policy.
+    const { resolveWorkspaceWritebackMode } = await import("./lib/kernel-api.mjs");
     const effectiveMode =
       writebackMode === "confirm" || writebackMode === "auto" ? writebackMode : undefined;
+    const contractMode = await resolveWorkspaceWritebackMode(c, {
+      writebackMode: effectiveMode,
+    });
     const toolCtx = {
       ...c,
       explicitWritebackMode: effectiveMode,
-      // Clear app-settings writeback so tools resolve from topmind.yaml when no override
-      appSettings: { ...settings, writebackMode: effectiveMode },
+      appSettings: { ...settings, writebackMode: contractMode },
     };
 
     // Agent mode default ON: tools unless caller explicitly sets useTools:false.
@@ -401,8 +404,7 @@ export const AiService = {
       workspaceContext: c.workspaceRoot,
       topicId,
       mountedFiles: ctxFiles,
-      // Prompt description: explicit mode or "auto" label (actual writes still honor contract)
-      writebackMode: effectiveMode || "auto",
+      writebackMode: contractMode,
       toolNames,
       skillsEnabled,
       enabledSkillIds: settings?.ai?.enabledSkillIds || null,

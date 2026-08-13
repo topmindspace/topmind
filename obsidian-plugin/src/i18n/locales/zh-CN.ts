@@ -3,10 +3,10 @@
 export const zhCN = {
   // ── Plugin ──
   plugin_name: "Topmind Stream",
-  plugin_description: "Obsidian 的「主区域流式工作台 + 静默 AI 沉淀副驾」",
+  plugin_description: "Obsidian 的「主区域动态流 + 静默 AI 沉淀副驾」",
 
   // ── Views ──
-  stream_workbench_title: "动态工作台",
+  stream_workbench_title: "动态",
 
   // ── Quick Capture ──
   quick_capture_title: "记一下",
@@ -16,6 +16,7 @@ export const zhCN = {
   quick_capture_target_stream: "本周动态",
   quick_capture_target_inbox: "收件箱",
   quick_capture_hint_enter: "⏎ 记下",
+  quick_capture_hint_enter_note: "⏎ 记一下",
   quick_capture_hint_shift_enter: "⇧⏎ 换行",
   quick_capture_tags: "标签",
   quick_capture_tags_placeholder: "#标签1 #标签2",
@@ -58,7 +59,7 @@ export const zhCN = {
   sidebar_dock_title: "AI 副驾",
   sidebar_today_todos: "今日待办",
   sidebar_recent_stream: "最近动态",
-  sidebar_open_workbench: "打开工作台",
+  sidebar_open_workbench: "打开动态",
   sidebar_no_todos: "暂无待办",
   sidebar_no_stream: "暂无动态",
   sidebar_ai_status: "AI 状态",
@@ -87,7 +88,7 @@ export const zhCN = {
   sidebar_open_sidebar: "打开侧边栏",
   sidebar_ai_operations: "AI 操作",
   sidebar_op_todo: "整理待办",
-  sidebar_op_memory: "整理记忆",
+  sidebar_op_memory: "整理我的情况",
   sidebar_op_classify: "主题分类",
   sidebar_op_suggestions: "刷新建议",
 
@@ -129,7 +130,7 @@ export const zhCN = {
   op_label_suggest: "生成 AI 建议",
   op_label_todo_maintain: "整理待办",
   op_label_topic_classify: "主题分类",
-  op_label_memory_organize: "整理记忆",
+  op_label_memory_organize: "整理我的情况",
   op_label_reconcile: "整理动态",
   op_label_chat: "AI 对话",
 
@@ -162,24 +163,24 @@ export const zhCN = {
 
   // ── Commands ──
   cmd_quick_capture: "Topmind: 记一下",
-  cmd_open_workbench: "Topmind: 打开动态工作台",
+  cmd_open_workbench: "Topmind: 打开动态",
   cmd_open_sidebar: "Topmind: 打开侧边栏",
   cmd_organize_period: "Topmind: 整理本周",
   cmd_refresh_suggestions: "Topmind: 刷新 AI 建议",
   cmd_maintain_todos: "Topmind: AI 整理待办",
   cmd_topic_classify: "Topmind: 主题分类",
-  cmd_memory_organize: "Topmind: 整理记忆",
+  cmd_memory_organize: "Topmind: 整理我的情况",
   cmd_open_profile: "Topmind: 打开我的情况",
   cmd_open_inbox: "Topmind: 打开收件箱",
 
   // ── Settings ──
   settings_workspace: "工作区与契约",
-  settings_stream: "工作台",
+  settings_stream: "动态",
   settings_ai: "AI 副驾与写回策略",
   settings_security: "安全与归档",
 
-  settings_auto_open: "启动时自动打开工作台",
-  settings_auto_open_desc: "Obsidian 启动时自动打开动态工作台页签",
+  settings_auto_open: "启动时自动打开动态",
+  settings_auto_open_desc: "Obsidian 启动时自动打开动态页签",
   settings_timeline_order: "时间轴排序",
   settings_timeline_order_desc: "最新在前 或 最早在前",
   settings_auto_tag: "自动标签解析",
@@ -243,8 +244,8 @@ export const zhCN = {
   notice_todo_done: "待办整理完成 ✓",
   notice_classify_running: "主题分类中...",
   notice_classify_done: "主题分类完成 ✓",
-  notice_memory_running: "整理记忆中...",
-  notice_memory_done: "记忆整理完成 ✓",
+  notice_memory_running: "整理我的情况中...",
+  notice_memory_done: "我的情况已整理 ✓",
   notice_no_inbox: "未找到收件箱目录",
   notice_new_note_created: "已创建新笔记",
   notice_new_note_failed: "创建笔记失败",
@@ -368,9 +369,9 @@ export const zhCN = {
   sidebar_btn_organize: "整理",
   sidebar_btn_todo: "待办",
   sidebar_btn_classify: "分类",
-  sidebar_btn_memory: "记忆",
+  sidebar_btn_memory: "我的情况",
   sidebar_btn_suggestions: "建议",
-  sidebar_btn_workbench: "工作台",
+  sidebar_btn_workbench: "动态",
 
   // ── AI model switcher ──
   chat_model_current: "当前模型",

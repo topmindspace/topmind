@@ -1,50 +1,82 @@
 /**
- * Desktop config loaders project clean v4 nested keys → flat aliases (in-memory).
- * Kernel loadContract() no longer injects aliases; validateContract stays clean.
+ * Desktop no longer projects v3 flat aliases. Sync loader is yaml-only.
+ * Drives shipped loadWorkspaceConfigSync + loadWorkspaceConfig.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { projectConfigAliases } from "../electron/lib/workspace-home.mjs";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import {
+  loadWorkspaceConfig,
+  loadWorkspaceConfigSync,
+  setEngineRoot,
+} from "../electron/lib/workspace-home.mjs";
 
-test("projectConfigAliases maps v4 nested workspace/categories to flat keys", () => {
-  const projected = projectConfigAliases({
-    contract_version: 4,
-    workspace: {
-      template: "research",
-      category_separator: " ",
-      locale: "en-US",
-    },
-    categories: {
-      extensions: { "25": { name: "写作", role: "deep-work" } },
-      overrides: { "10": { role: "loose-stream" } },
-    },
-  });
-  assert.equal(projected.template, "research");
-  assert.equal(projected.categorySeparator, " ");
-  assert.equal(projected.locale, "en-US");
-  assert.deepEqual(projected.categoryExtensions, { "25": { name: "写作", role: "deep-work" } });
-  assert.deepEqual(projected.categoryOverrides, { "10": { role: "loose-stream" } });
-  // Nested structure preserved
-  assert.equal(projected.workspace.template, "research");
-  assert.equal(projected.categories.extensions["25"].name, "写作");
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+setEngineRoot(repoRoot);
+
+test("projectConfigAliases is deleted from workspace-home", async () => {
+  const src = fs.readFileSync(
+    path.join(path.dirname(fileURLToPath(import.meta.url)), "../electron/lib/workspace-home.mjs"),
+    "utf8",
+  );
+  assert.doesNotMatch(src, /export function projectConfigAliases/);
+  assert.doesNotMatch(src, /join\([^)]*["']\.topmind-config\.json["']\)/);
 });
 
-test("projectConfigAliases does not overwrite existing flat aliases", () => {
-  const projected = projectConfigAliases({
-    template: "stream",
-    categorySeparator: "-",
-    workspace: { template: "research", category_separator: " " },
-  });
-  assert.equal(projected.template, "stream");
-  assert.equal(projected.categorySeparator, "-");
+test("loadWorkspaceConfigSync reads nested v4 yaml and ignores v3 JSON", () => {
+  const ws = fs.mkdtempSync(path.join(os.tmpdir(), "tm-cfg-sync-"));
+  try {
+    fs.writeFileSync(
+      path.join(ws, "topmind.yaml"),
+      "contract_version: 4\nworkspace:\n  template: research\n  category_separator: \" \"\n  locale: en-US\n",
+      "utf8",
+    );
+    fs.writeFileSync(
+      path.join(ws, ".topmind-config.json"),
+      JSON.stringify({ template: "balanced", categorySeparator: "-" }),
+      "utf8",
+    );
+    const cfg = loadWorkspaceConfigSync(ws);
+    assert.equal(cfg.workspace.template, "research");
+    assert.equal(cfg.workspace.category_separator, " ");
+    assert.equal(cfg.template, undefined);
+    assert.equal(cfg.categorySeparator, undefined);
+  } finally {
+    fs.rmSync(ws, { recursive: true, force: true });
+  }
 });
 
-test("projectConfigAliases is pure and handles empty/null", () => {
-  assert.deepEqual(projectConfigAliases(null), {});
-  assert.deepEqual(projectConfigAliases(undefined), {});
-  assert.deepEqual(projectConfigAliases([]), {});
-  const raw = { workspace: { template: "balanced" } };
-  const a = projectConfigAliases(raw);
-  assert.equal(a.template, "balanced");
-  assert.equal(raw.template, undefined, "must not mutate input");
+test("loadWorkspaceConfigSync with only v3 JSON returns empty (no silent migrate)", () => {
+  const ws = fs.mkdtempSync(path.join(os.tmpdir(), "tm-cfg-v3-"));
+  try {
+    fs.writeFileSync(
+      path.join(ws, ".topmind-config.json"),
+      JSON.stringify({ template: "balanced" }),
+      "utf8",
+    );
+    const cfg = loadWorkspaceConfigSync(ws);
+    assert.deepEqual(cfg, {});
+  } finally {
+    fs.rmSync(ws, { recursive: true, force: true });
+  }
+});
+
+test("loadWorkspaceConfig async returns Kernel v4 nested contract", async () => {
+  const ws = fs.mkdtempSync(path.join(os.tmpdir(), "tm-cfg-async-"));
+  try {
+    fs.writeFileSync(
+      path.join(ws, "topmind.yaml"),
+      "contract_version: 4\nworkspace:\n  template: periodic\nwriteback:\n  mode: confirm\n",
+      "utf8",
+    );
+    const cfg = await loadWorkspaceConfig(ws);
+    assert.equal(cfg.workspace.template, "periodic");
+    assert.equal(cfg.writeback.mode, "confirm");
+    assert.equal(cfg.template, undefined);
+  } finally {
+    fs.rmSync(ws, { recursive: true, force: true });
+  }
 });

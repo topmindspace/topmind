@@ -5,7 +5,7 @@ import path from "node:path";
 import { archiveRoot, parseTopicId } from "./path-model.mjs";
 import { exists, readText, writeText, listDir, statSafe } from "./fs-utils.mjs";
 import {
-  writeArchiveBackup, buildWritebackEvidence, timestampStamp,
+  buildWritebackEvidence,
 } from "./writeback.mjs";
 import { S, sp, now } from "./workspace-helpers.mjs";
 import { invalidateNotesIndex } from "./notes-index.mjs";
@@ -53,17 +53,9 @@ export const archiveOps = {
   async restoreTopicReceipt({ archiveRelativePath, targetRelativePath }, ctx) {
     S(archiveRelativePath, "archiveRelativePath"); S(targetRelativePath, "targetRelativePath");
     const src = await sp(ctx.workspaceRoot, archiveRelativePath);
-    const dest = await sp(ctx.workspaceRoot, targetRelativePath);
     const t = now();
-    const old = await readText(dest).catch(() => null);
-    let backup;
-    if (old !== null) {
-      backup = await writeArchiveBackup(ctx.workspaceRoot, {
-        savedAt: t,
-        content: old,
-        pathParts: ["pre-restore", `${timestampStamp()}__${path.basename(targetRelativePath)}`],
-      });
-    }
+    // Kernel gate owns backup/receipt (locked overwrite only). Open restore
+    // does not invent a pre-restore copy under 99-归档/backups.
     const content = await readText(src);
     const ev = await kernelDurableWrite(
       { relativePath: targetRelativePath, content },
@@ -76,7 +68,7 @@ export const archiveOps = {
         operation: "restore",
         targetPath: targetRelativePath,
         savedAt: t,
-        backupPath: backup || ev.backupPath,
+        backupPath: ev.backupPath,
         receiptPath: ev.receiptPath,
         affectedFiles: [archiveRelativePath, targetRelativePath],
       }),

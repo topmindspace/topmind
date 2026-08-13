@@ -167,8 +167,8 @@
     "inboxTipIdle": "收件箱为空 · ⌘⇧I",
     "outputs": "写出来",
     "outputsTipIdle": "写出来 · ⌘⇧O",
-    "archiveTip": "归档与恢复 · ⌘⇧A",
-    "archiveAriaLabel": "归档"
+    "search": "搜索",
+    "searchTip": "搜索笔记 · ⌘P"
   },
   "statusBar": {
     "ariaLabel": "状态栏",

@@ -82,7 +82,7 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Opti
   在 Obsidian BRAT 插件中添加 GitHub 仓库 `topmindspace/topmind` 快捷安装。
 - **方式 C：手动解压安装**：
   从 [Releases](https://github.com/topmindspace/topmind/releases) 下载 `topmind-obsidian-<ver>.zip` 解压至 `<Vault>/.obsidian/plugins/topmind-stream/`。
-- 打开插件后，在 Obsidian 中按 `⌘P` 打开命令面板，运行 **Topmind: 打开动态工作台**。
+- 打开插件后，在 Obsidian 中按 `⌘P` 打开命令面板，运行 **Topmind: 打开动态**。
 - 详细指南：[`obsidian-plugin/README.zh-CN.md`](./obsidian-plugin/README.zh-CN.md) · [English Doc](./obsidian-plugin/README.md)
 
 ### 场景 3：为 Agent (Claude Code / OpenCode / Codex) 导入 Skills

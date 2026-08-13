@@ -14,7 +14,7 @@
  * a local node_modules/ here because electron-builder strips node_modules/
  * from extraResources during packaging.
  */
-import { promises as fs, existsSync } from "node:fs";
+import { promises as fs, existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -23,15 +23,28 @@ const desktopRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "
 const repoRoot = path.resolve(desktopRoot, "..");
 const outRoot = path.join(desktopRoot, "resources", "topmind-engine");
 
+function readManifestVersion(file) {
+  try {
+    return String(JSON.parse(readFileSync(file, "utf8")).version || "");
+  } catch {
+    return "";
+  }
+}
+
 /**
- * Ensure obsidian-plugin/dist/ exists by building if needed.
+ * Ensure obsidian-plugin/dist/ exists **and matches source manifest version**.
+ * A leftover dist/ from the previous stamp would otherwise ship a stale plugin
+ * after a version bump (pack:verify version-parity-obsidian).
  * Installs obsidian-plugin deps first if node_modules is missing (CI pack-desktop job).
  * Returns true if dist is ready, false on failure.
  */
 function ensureObsidianDist() {
   const distDir = path.join(repoRoot, "obsidian-plugin", "dist");
   const manifest = path.join(distDir, "manifest.json");
-  if (existsSync(manifest)) return true;
+  const sourceManifest = path.join(repoRoot, "obsidian-plugin", "manifest.json");
+  const sourceVer = readManifestVersion(sourceManifest);
+  const distVer = existsSync(manifest) ? readManifestVersion(manifest) : "";
+  if (existsSync(manifest) && sourceVer && distVer === sourceVer) return true;
 
   const obsidianPkgDir = path.join(repoRoot, "obsidian-plugin");
 
@@ -52,8 +65,10 @@ function ensureObsidianDist() {
     }
   }
 
-  // Build the obsidian plugin
-  process.stdout.write("[prepare-engine] obsidian-plugin/dist not found — building...\n");
+  const reason = !existsSync(manifest)
+    ? "obsidian-plugin/dist not found"
+    : `obsidian-plugin/dist v${distVer || "unknown"} != source v${sourceVer}`;
+  process.stdout.write(`[prepare-engine] ${reason} — building...\n`);
   const result = spawnSync("npm", ["run", "build"], {
     cwd: obsidianPkgDir,
     stdio: "inherit",

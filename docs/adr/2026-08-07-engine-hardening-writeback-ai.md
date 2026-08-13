@@ -24,13 +24,15 @@
 
 ### 2. 备份/回执策略（High-impact only · 2026-08-08）
 
-> **Supersedes** 本节早期「AI 写入 + 有备份 → 回执 / actor=user 跳过」表述。中心判定在写闸 `isHighImpactContentWrite` + delete/archive 路径；调用方不得靠零散 `skipBackup` 拼出矛盾语义。
+> **Supersedes** 本节早期「AI 写入 + 有备份 → 回执 / actor=user 跳过」以及「一切非 permanent 删除都 trash+回执」表述。中心判定在写闸 `isHighImpactContentWrite` + `isRecoverableLifecycle`；调用方不得靠零散 `skipBackup` 拼出矛盾语义。
 
 | 场景 | 备份？ | 回执？ | 理由 |
 |------|--------|--------|------|
 | open 文件 create/update（actor=ai 或 user） | ❌ | ❌ | 频繁、低风险；原子写足够 |
 | locked 既有文件覆盖（user；AI 写 locked 被拒） | ✅ 旋转 `BACKUP_KEEP` | ✅ | 高影响；可恢复 |
-| 删除 / 归档（非 permanent） | ✅ trash/归档副本 | ✅ | 可逆操作；恢复路径必需 |
+| 锁定 / 核心笔记 **delete**（非 permanent） | ✅ trash | ✅ | memory、topic.md、专题目录、交付 |
+| 普通开放笔记 **delete**（非 permanent） | ❌ | ❌ | 收件箱/动态/专题内普通笔记；evidence 即行为记录 |
+| **archive**（非 permanent） | ✅ 迁入 99-归档（新家） | 仅锁定/核心 | inbox_review / catch_all / 专题归档；不是备份 |
 | permanent 删除/归档 | ❌ | ❌ | 用户明确不可恢复 |
 | forceBackup 显式强制（既有文件） | ✅ | ✅ | 罕见逃逸舱 |
 
@@ -175,3 +177,18 @@
 - UTR 跟随 Desktop；Skills / Extension 独立
 - 未来 Obsidian Plugin 预留独立版本
 - 仅 re-package 版本号实际变化的表面
+
+---
+
+## 增量更新（2026-08-13 · 删除/归档收紧为锁定/核心）
+
+`executeDelete` 与 `executeArchive` 分开：
+
+- **delete** 锁定/`memory/`/`topic.md`/专题目录/`88-输出`：trash + 回执
+- **delete** 普通开放笔记：unlink，无 trash
+- **archive**：内容迁入 `99-归档` 当新家（inbox_review / catch_all 不得销毁）；YAML 回执仅锁定/核心
+- 连接器同步、restore 预写、stream 年归档不再另写 `99-归档/receipts`
+- Desktop `delete_path` 按 `backupPath` 诚实报告是否可恢复
+- `inbox_organize`：先写目标再 unlink 源
+
+普通笔记 **delete** 误删不可从 Archive 找回；**archive** 仍可在 99-归档 找回。不得再写「每次写都备份」或「archive 等于删除」。

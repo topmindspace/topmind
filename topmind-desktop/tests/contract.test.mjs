@@ -50,6 +50,14 @@ test("v4 5 Skills Dock entries: Capture/Organize/Write/Memory/Loop", () => {
   assert.doesNotMatch(skillsSrc, /skill\.maintain/);
 });
 
+test("v4 pack daily_entry is topmind only (no second front door)", () => {
+  const packPath = path.resolve(root, "..", "skills", "topmind-pack.json");
+  assert.ok(existsSync(packPath), "skills/topmind-pack.json");
+  const pack = JSON.parse(readFileSync(packPath, "utf8"));
+  assert.equal(pack.daily_entry, "topmind");
+  assert.equal(pack.name, "topmind");
+});
+
 test("v4 core + ingest + connector services exist on disk", () => {
   const core = [
     "workspace-service.mjs",
@@ -144,4 +152,19 @@ test("v4 source footprint stays bounded (src + electron)", () => {
   assert.ok(srcCount < 200, `src file count ${srcCount} exceeds soft ceiling`);
   assert.ok(electronCount < 120, `electron file count ${electronCount} exceeds soft ceiling`);
   assert.ok(srcCount + electronCount < 300, `total ${srcCount + electronCount} exceeds soft ceiling`);
+});
+
+test("pack:prepare rebuilds Obsidian dist when source manifest version drifts", () => {
+  const srcText = readFileSync(
+    path.join(root, "scripts/prepare-engine-resources.mjs"),
+    "utf8",
+  );
+  assert.match(srcText, /function readManifestVersion/);
+  assert.match(srcText, /distVer === sourceVer/);
+  assert.match(srcText, /obsidian-plugin\/dist v\$\{distVer/);
+  assert.doesNotMatch(
+    srcText,
+    /if \(existsSync\(manifest\)\) return true;/u,
+    "must not skip build solely because a leftover dist/ exists",
+  );
 });

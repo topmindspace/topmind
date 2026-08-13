@@ -188,12 +188,13 @@ test("deletePath trashes note + images/{slug}", async () => {
 
   const del = await pathOps.deletePath({ relativePath: noteRel }, ctx());
   assert.equal(del.operation, "delete");
-  assert.ok(del.mediaTrashed >= 1);
   assert.ok(!existsSync(noteAbs));
   assert.ok(!existsSync(path.join(imgDir, "img.png")));
-  // Media should land under backups/trash
+  // Ordinary open note: media is removed, not parked in backups/trash
+  assert.equal(del.mediaTrashed || 0, 0);
   assert.ok(
-    (del.affectedFiles || []).some((p) => /99-归档\/backups\/trash\//u.test(p)),
+    !(del.affectedFiles || []).some((p) => /99-归档\/backups\/trash\//u.test(p)),
+    "ordinary note media must not flood trash",
   );
 });
 

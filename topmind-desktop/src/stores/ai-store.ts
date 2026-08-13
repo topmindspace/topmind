@@ -345,7 +345,6 @@ async function performInvocation(
       focusHint,
       model: get().model ?? undefined,
       useTools: get().agentEnabled,
-      writebackMode: useViewStore.getState().writebackMode,
       activeSkillId: get().activeSkillId || undefined,
     });
     set((s) => {

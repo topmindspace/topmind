@@ -28,7 +28,7 @@ function readText(rel) {
  * need to be identical. The rules are:
  *
  * 1. MAJOR version alignment: all surfaces share the same major
- *    version (e.g., 2.x). A breaking change in any surface bumps
+ *    version (e.g., 3.x). A breaking change in any surface bumps
  *    the major for ALL surfaces.
  * 2. MINOR/PATCH independence: each surface bumps its own minor
  *    or patch when it has changes. Surfaces with no changes stay

@@ -84,6 +84,9 @@
 | [2026-08-07](./adr/2026-08-07-engine-hardening-writeback-ai.md) | Engine Hardening | 写回回执轮转、指数退避重试与独立版本策略 |
 | [2026-08-07](./adr/2026-08-07-obsidian-plugin-architecture.md) | Obsidian Plugin Architecture | Obsidian 插件集成 esbuild 内联 Kernel 架构 |
 | [2026-08-09](./adr/2026-08-09-stream-year-archive-memory-redesign.md) | Stream Year Archive & Memory Redesign | Stream 年目录 + 年归档 + Memory periodic 反思语义重设计 |
+| [2026-08-13](./adr/2026-08-13-adversarial-first-principles-review.md) | Adversarial first-principles review | High：单契约写者、AI 写回不覆盖 yaml、删 home、统一 Clip 转换器、搜索进主锚 |
+| [2026-08-13](./adr/2026-08-13-surface-ux-review.md) | Surface UX review | High：Obsidian 动态≠工作台、记一下≠记下、整理我的情况；Clip 不教 lite 转换器；Desktop 文档归档不进主锚 |
+| [2026-08-13](./adr/2026-08-13-desktop-stream-editor-ai-review.md) | Stream / editor / AI review | High：预览非活 TipTap；动态多行剥 chrome；Obsidian 增补可见且剥注释 |
 
 ---
 

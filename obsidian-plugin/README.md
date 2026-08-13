@@ -7,7 +7,7 @@
 [![Minimum Obsidian Version](https://img.shields.io/badge/Obsidian-%E2%89%A51.5.0-informational?style=flat-square)](https://obsidian.md)
 [![Version](https://img.shields.io/badge/version-dynamic-green.svg?style=flat-square)](manifest.json)
 
-> **Main-area Stream Workbench + Background AI Copilot for Obsidian**  
+> **Main-area Stream + Background AI Copilot for Obsidian**  
 > Capture thoughts instantly, let AI propose organized updates in the background, review & confirm before saving — your Markdown files always remain yours.
 
 ---
@@ -30,14 +30,14 @@ Capture Instantly  ->  AI Proposes in Background  ->  You Review & Confirm  ->  
 
 ## Key Features
 
-- **Instant Quick Capture**: Press `Cmd/Ctrl + Shift + S` anytime to log a rapid thought straight into this week's periodic log.
-- **Stream Workbench View**: A full-featured tab in your Obsidian main workspace featuring a toolbar with quick access to sidebar/settings/new note/profile, a timeline stream of cards, and emergent AI suggestions.
+- **Note it**: Open the capture modal (bind a hotkey in Obsidian Settings → Hotkeys). Destinations: this week's stream or Inbox.
+- **Stream view**: A tab in the Obsidian main area with a compose box (**Log it** into the period note), a timeline of cards, and AI suggestions.
 - **AI Copilot Panel** (Sidebar): A tabbed right sidebar unifying all AI capabilities — **Todos**, **Suggestions**, **Chat**, and **Stream** — in one place. Includes a model badge showing the active AI provider + model.
 - **AI Chat**: Converse with AI about your notes, todos, and stream entries. The chat is context-aware — it automatically injects your recent stream entries, current todos, and personal profile.
 - **Weekly Reconciliation**: Reconcile your weekly logs, extract pending action items, and refresh suggestions with one click.
 - **Background AI Copilot**: Automatically extract todos (`memory/todo.md`), suggest emergent topics, and maintain your personal context profile (`memory/profile.md`).
 - **Quick Settings Access**: One-click access to plugin settings from both the sidebar header and the workbench toolbar. Model badge shows the currently active AI provider + model.
-- **Writeback Protection & Backups**: Every AI modification goes through the Kernel `writeback-engine`, complete with protection levels (`open`/`locked`), automatic backups (`99-归档/backups/`), and path receipts.
+- **Writeback Protection**: Every AI modification goes through the Kernel `writeback-engine` (`open`/`locked`). Backups and receipts are **high-impact only** (locked overwrite; delete/archive of locked/core notes). Ordinary open updates do not create Archive copies.
 
 ---
 
@@ -116,7 +116,7 @@ Navigate to **Settings -> Topmind Stream -> AI Copilot**:
 ### 4. Daily Usage
 
 - Command palette -> **Topmind: Note it** (*bind a hotkey in Obsidian Settings -> Hotkeys*).
-- `Cmd/Ctrl + P` -> **Topmind: Open Stream Workbench** to open the timeline tab.
+- `Cmd/Ctrl + P` -> **Topmind: Open Stream** to open the timeline tab.
 - Click the **Waves icon** in the left ribbon to open **Note it** instantly.
 
 Product vocabulary (aligned with Desktop): **Note it** / 记一下 · **Log it** / 记下 · stream · topic · My profile · write out.
@@ -128,13 +128,13 @@ Product vocabulary (aligned with Desktop): **Note it** / 记一下 · **Log it**
 | Command Name | Description |
 |--------------|-------------|
 | `Topmind: Note it` | Capture a note or snippet (default: this week's stream) |
-| `Topmind: Open Stream Workbench` | Open the main timeline workbench tab |
+| `Topmind: Open Stream` | Open the Stream timeline tab |
 | `Topmind: Open Sidebar` | Open the sidebar dock widget |
 | `Topmind: Organize This Week` | Reconcile weekly log & refresh suggestions |
 | `Topmind: Refresh AI Suggestions` | Regenerate AI suggestion cards |
 | `Topmind: AI Maintain Todos` | Run AI todo extraction on recent activities |
 | `Topmind: Classify Topics` | Run AI topic classification |
-| `Topmind: Organize Memory` | Run AI memory organization (profile + periodic) |
+| `Topmind: Organize My Profile` | Run AI organization of My profile (profile + periodic) |
 | `Topmind: Open My Profile` | Open `memory/profile.md` |
 | `Topmind: Open Inbox` | Open the inbox category directory |
 
@@ -180,7 +180,7 @@ Obsidian Vault (Plain Filesystem = Single Source of Truth)
 - **Local-First Storage**: All notes and metadata reside in standard Markdown files on your disk.
 - **Zero Telemetry**: Topmind does not track, collect, or send your usage data to external servers.
 - **API Key Security**: API Keys are stored locally in the plugin's `data.json` inside your vault's `.obsidian` directory.
-- **Writeback Protection**: All AI-driven file changes pass through `writeback-engine` which enforces file protection levels (`open`/`locked`), soft backup creation (`99-归档/backups/`), and path receipts.
+- **Writeback Protection**: All AI-driven file changes pass through `writeback-engine` (`open`/`locked`). Backups/receipts only for locked overwrite and locked/core delete-archive — not every write.
 
 ---
 

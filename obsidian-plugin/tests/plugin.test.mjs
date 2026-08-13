@@ -65,7 +65,25 @@ describe("i18n locale key alignment", () => {
     // URL / a11y keys that UI uses must be present
     assert.ok(zhKeys.has("notice_url_to_inbox"), "missing notice_url_to_inbox");
     assert.ok(zhKeys.has("stream_expand_entry"), "missing stream_expand_entry");
+    assert.ok(zhKeys.has("quick_capture_hint_enter_note"), "missing quick_capture_hint_enter_note");
     assert.ok(zhKeys.size >= 90, `Expected at least 90 keys, got ${zhKeys.size}`);
+  });
+
+  test("user-facing titles use 动态/Stream and 记下/记一下 distinctly", () => {
+    const zhContent = fs.readFileSync(
+      path.join(srcDir, "i18n", "locales", "zh-CN.ts"),
+      "utf-8",
+    );
+    const enContent = fs.readFileSync(
+      path.join(srcDir, "i18n", "locales", "en-US.ts"),
+      "utf-8",
+    );
+    assert.match(zhContent, /stream_workbench_title:\s*"动态"/);
+    assert.match(enContent, /stream_workbench_title:\s*"Stream"/);
+    assert.doesNotMatch(zhContent, /stream_workbench_title:\s*"[^"]*工作台/);
+    assert.doesNotMatch(enContent, /stream_workbench_title:\s*"[^"]*Workbench/);
+    assert.match(zhContent, /quick_capture_note_it:\s*"记一下"/);
+    assert.match(zhContent, /quick_capture_log_it:\s*"记下"/);
   });
 });
 
@@ -94,6 +112,85 @@ describe("parseStreamEntries (shipped)", () => {
   test("returns empty array for empty content", async () => {
     const { parseStreamEntries } = await importShipped("utils.ts");
     assert.equal(parseStreamEntries("").length, 0);
+  });
+
+  test("keeps Kernel 增补 after a blank line and strips the machine comment for display", async () => {
+    const { parseStreamEntries, prepareStreamEntryTextForDisplay } = await importShipped("utils.ts");
+    const content = [
+      "- 10:00 原条正文",
+      "",
+      '<!-- topmind:append parent="10-动态/x" heading="原条正文" at="2026-08-13T00:00:00.000Z" -->',
+      "#### 续 · 2026-08-13 12:00",
+      "",
+      "后续补充一句",
+    ].join("\n");
+    const entries = parseStreamEntries(content);
+    assert.equal(entries.length, 1);
+    assert.equal(entries[0].time, "10:00");
+    assert.match(entries[0].text, /原条正文/);
+    assert.match(entries[0].text, /后续补充一句/);
+    assert.match(entries[0].text, /topmind:append/);
+    const display = prepareStreamEntryTextForDisplay(entries[0].text);
+    assert.doesNotMatch(display, /topmind:append/);
+    assert.match(display, /原条正文/);
+    assert.match(display, /续 · 2026-08-13/);
+    assert.match(display, /后续补充一句/);
+  });
+
+  test("formatAppendBlock list and task bodies stay on the same card", async () => {
+    const { parseStreamEntries, prepareStreamEntryTextForDisplay } = await importShipped("utils.ts");
+    const { formatAppendBlock } = await import(
+      pathToFileURL(path.join(__dirname, "..", "..", "lib", "activity-window.mjs")).href
+    );
+    const when = new Date("2026-08-13T12:00:00.000Z");
+    const body =
+      "- 10:00 原条正文" +
+      formatAppendBlock({
+        content: "- 补充一条列表",
+        heading: "原条正文",
+        date: when,
+      }) +
+      formatAppendBlock({
+        content: "- [ ] 补充待办",
+        heading: "原条正文",
+        date: new Date("2026-08-13T12:01:00.000Z"),
+      });
+    const entries = parseStreamEntries(body);
+    assert.equal(entries.length, 1, "list/task 增补 must not start a new timed card or be dropped");
+    assert.equal(entries[0].time, "10:00");
+    assert.match(entries[0].text, /原条正文/);
+    assert.match(entries[0].text, /补充一条列表/);
+    assert.match(entries[0].text, /补充待办/);
+    const display = prepareStreamEntryTextForDisplay(entries[0].text);
+    assert.doesNotMatch(display, /topmind:append/);
+    assert.match(display, /补充一条列表/);
+    assert.match(display, /补充待办/);
+  });
+});
+
+describe("stream workbench display path (shipped)", () => {
+  test("cards render prepared display text, not raw append comments", () => {
+    const src = fs.readFileSync(
+      path.join(srcDir, "views", "stream-workbench-view.ts"),
+      "utf-8",
+    );
+    assert.match(src, /prepareStreamEntryTextForDisplay/);
+    assert.match(src, /MarkdownRenderer\.render\(this\.app, displayText/);
+    assert.doesNotMatch(src, /MarkdownRenderer\.render\(this\.app, entry\.text/);
+    assert.match(src, /entry\.text\.length > 600/);
+    assert.match(src, /length > 20/);
+    assert.doesNotMatch(src, /STREAM_EXPAND_CHAR_BUDGET=480/);
+  });
+
+  test("DESIGN/ARCHITECTURE fold copy matches shipped 600/20 not 2-line default", () => {
+    const design = fs.readFileSync(path.join(__dirname, "..", "DESIGN.md"), "utf-8");
+    const arch = fs.readFileSync(path.join(__dirname, "..", "ARCHITECTURE.md"), "utf-8");
+    assert.match(design, /600/);
+    assert.match(design, /20/);
+    assert.doesNotMatch(design, /折叠行数\s*\|\s*2 行/);
+    assert.match(arch, /600/);
+    assert.match(arch, /20/);
+    assert.doesNotMatch(arch, /卡片默认折叠 2 行/);
   });
 });
 
@@ -275,6 +372,16 @@ describe("DEFAULT_SETTINGS and AI_PROVIDER_PRESETS (shipped)", () => {
       assert.ok(field in DEFAULT_SETTINGS, `Missing field: ${field}`);
     }
     assert.equal(DEFAULT_SETTINGS.writebackMode, "confirm");
+    // Plugin data.json is a display cache — Kernel must not take settings.writebackMode
+    // as a permanent executeWrite override (operational truth is topmind.yaml).
+    const svc = fs.readFileSync(path.join(srcDir, "services", "kernel-service.ts"), "utf8");
+    assert.doesNotMatch(
+      svc,
+      /return this\.settings\.writebackMode/,
+      "writebackModeOverride must not fork yaml from plugin data",
+    );
+    assert.match(svc, /hydrateWritebackModeFromContract/);
+    assert.match(svc, /mirrorWritebackMode/);
     assert.equal(DEFAULT_SETTINGS.aiProvider, "none");
     assert.equal(DEFAULT_SETTINGS.aiApiKey, "");
     assert.equal(DEFAULT_SETTINGS.autoMaintainTodos, false);
@@ -396,6 +503,29 @@ describe("migrateSettings + hasConfiguredProvider (shipped)", () => {
 });
 
 // ── AI provider transient error detection (shipped pure util) ──────────────
+
+describe("AI task manager + chat write-gate hygiene (source)", () => {
+  test("ai-task-manager is a serial queue with abort and progress events", () => {
+    const src = fs.readFileSync(path.join(srcDir, "services", "ai-task-manager.ts"), "utf8");
+    assert.match(src, /if \(this\.active\) return/);
+    assert.match(src, /abortController\.abort/);
+    assert.match(src, /subscribe\(fn: TaskListener\)/);
+    assert.match(src, /multiActive/);
+  });
+
+  test("chat locale follows getLocale when localeOverride empty", () => {
+    const src = fs.readFileSync(path.join(srcDir, "services", "kernel-service.ts"), "utf8");
+    assert.match(src, /getLocale\(\)/);
+    assert.match(src, /localeOverride \|\| getLocale/);
+  });
+
+  test("chat sanitizes thinking and does not write notes", () => {
+    const src = fs.readFileSync(path.join(srcDir, "services", "kernel-service.ts"), "utf8");
+    assert.match(src, /sanitizeAiContent/);
+    assert.match(src, /<think>/);
+    assert.doesNotMatch(src, /executeWrite\(\s*\{[\s\S]{0,200}operation:\s*["']chat["']/u);
+  });
+});
 
 describe("isTransientError (shipped)", () => {
   test("classifies network/timeout vs client errors", async () => {

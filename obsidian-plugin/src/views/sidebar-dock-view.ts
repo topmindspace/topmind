@@ -442,7 +442,10 @@ export class SidebarDockView extends ItemView {
           srcBtn.createSpan({ text: ` ${todo.sourcePeriod}` });
           srcBtn.addEventListener("click", (e: MouseEvent) => {
             e.stopPropagation();
-            this.app.workspace.openLinkText(`10-动态/${todo.sourcePeriod}.md`, "", false);
+            const streamDir =
+              this.plugin.kernelService.getResolvedModel()?.categories
+                ?.find((c) => c.role === "loose-stream")?.directory || "10-动态";
+            this.app.workspace.openLinkText(`${streamDir}/${todo.sourcePeriod}.md`, "", false);
           });
         }
         if (todo.dueDate) {

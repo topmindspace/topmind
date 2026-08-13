@@ -53,12 +53,11 @@ export async function resolveCategoryRoles(workspaceRoot) {
     return map;
   } catch {
     // Fallback: template-only map
-    // loadWorkspaceConfig projects v4 nested → flat aliases
     const config = await loadWorkspaceConfig(root);
-    const templateId = config.template || "stream";
+    const templateId = config.workspace?.template || "stream";
     const template = loadTemplateJson(templateId);
     if (!template || !template.categories) return new Map();
-    const sep = config.categorySeparator || template.separator || "-";
+    const sep = config.workspace?.category_separator || template.separator || "-";
     const map = new Map();
     for (const [slot, def] of Object.entries(template.categories)) {
       const hyphenName = `${slot}${sep}${def.name}`;
@@ -68,7 +67,7 @@ export async function resolveCategoryRoles(workspaceRoot) {
         map.set(spaceName, { slot, role: def.role, ...def, source: "fs+template" });
       }
     }
-    for (const [slot, ext] of Object.entries(config.categoryExtensions || {})) {
+    for (const [slot, ext] of Object.entries(config.categories?.extensions || {})) {
       if (!ext?.name) continue;
       const dir = `${slot}${sep}${ext.name}`;
       map.set(dir, {

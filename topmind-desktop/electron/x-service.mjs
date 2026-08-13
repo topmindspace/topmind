@@ -18,7 +18,7 @@
 import path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { logInfo, logError, logWarn, writeArchiveBackup, timestampStamp } from "./lib/writeback.mjs";
+import { logInfo, logError, logWarn } from "./lib/writeback.mjs";
 import { resolveDataRoot, inboxRoot } from "./lib/path-model.mjs";
 import { ensureDir, readText, listDir } from "./lib/fs-utils.mjs";
 import { splitMarkdownFrontmatter } from "./lib/frontmatter.mjs";
@@ -347,11 +347,6 @@ export const XService = {
     const old = await readText(notePath).catch(() => null);
     let prevCount = 0;
     if (old) {
-      await writeArchiveBackup(ctx.workspaceRoot, {
-        savedAt: new Date().toISOString(),
-        content: old,
-        pathParts: ["x-backup", topic, `${timestampStamp()}__${path.basename(notePath)}`],
-      });
       const { data: fm } = splitMarkdownFrontmatter(old);
       prevCount = Number(fm?.tweet_count) || 0;
     }
@@ -427,12 +422,13 @@ async function savePostDraft(ctx, text, reason) {
   // Prefer role:buffer via path-model (hyphen/space + template/extensions)
   let inbox = path.basename(inboxRoot(ctx.workspaceRoot));
   if (!inbox || inbox === "." || inbox === dataRoot) {
-    inbox = "00-收件箱";
     try {
       const entries = await listDir(dataRoot);
       const found = entries.find((e) => /^00[ -]/u.test(e));
-      if (found) inbox = found;
-    } catch { /* default */ }
+      inbox = found || "00-Inbox";
+    } catch {
+      inbox = "00-Inbox";
+    }
   }
   const fn = `x-draft-${timestampStamp()}.md`;
   const rel = `${inbox}/${fn}`;

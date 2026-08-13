@@ -106,7 +106,7 @@
           "type": "category-and-topic",
           "label": "路由（category 和 topic 均可选）",
           "required": false,
-          "hint": "category 和 topic 均可选。两者都填则写入 {category}/{topic}/（专题根），只填 category 则写入 {category}/*.md (loose note)，两者都不填则写入 00-收件箱/。loose-stream 类无 topic 时自动追加到当前周期本。"
+          "hint": "category 和 topic 均可选。两者都填则写入 {category}/{topic}/（专题根），只填 category 则写入 {category}/*.md (loose note)，两者都不填则写入现场 role:buffer（常为 00-收件箱/ / 00-Inbox/）。loose-stream 类无 topic 时自动追加到当前周期本。"
         },
         "title": {
           "type": "text",

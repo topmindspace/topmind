@@ -20,7 +20,6 @@
 | 文档图 | 源（resources/img） | 典型用途 |
 |--------|---------------------|----------|
 | `desktop-stream.jpg` | `Stream-AI建议.png` | **核心主要截图**：Stream 动态主表面 + AI 整理与建议 |
-| `desktop-home-workspace.jpg` | `Stream.png` | Stream 动态时间轴全貌 |
 | `desktop-editor.jpg` | `文章查看-编辑器.png` | Quiet Paper 专注 Markdown 编辑器 |
 | `desktop-ingest.jpg` | `知识加工.png` | 多源知识加工队列 Hub |
 | `desktop-quick-capture.jpg` | `quicknote.png` | ⌘N / ⌘⇧N 智能识别与极速捕获 |

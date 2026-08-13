@@ -11,7 +11,7 @@ writeback:
 
 | 模式 | 行为 |
 |------|------|
-| `auto` | 直接写入；**高影响**才备份/回执（locked 覆盖 · delete/archive）；危险操作可逆（`99-归档/`） |
+| `auto` | 直接写入；**高影响**才备份/回执（locked 覆盖 · 锁定/核心 delete）；archive 迁入现场 **role:system** 目录当新家（常为 `99-归档` / `99-Archive`）；普通开放笔记删除无 trash |
 | `confirm` | 写入前进入目标/内容审阅入口 |
 
 用户话术：
@@ -37,7 +37,7 @@ writeback:
 
 ## 可逆性（高影响 only）
 
-- 删除 / 归档 → 默认移入 `99-归档/backups/trash`（或归档副本）+ 回执；`permanent` 则无副本  
+- 锁定 / 核心笔记删除 / 归档 → 移入现场 system 目录的 `backups/trash`（或归档副本）+ 回执；普通开放笔记删除无 trash；`permanent` 则无副本  
 - **locked** 既有文件覆盖 → 旋转备份 + 回执  
 - 常规 **open** 更新 → 不造备份/回执（不伪造路径）；证据仍含 target path + affected files  
 - AI 不得直接写 locked；须 fork 或用户解锁  

@@ -370,6 +370,57 @@ expectMatch(
   /现状[^\n]{0,40}工作台|工作台[^\n]{0,40}现状|代码债/u,
   "Desktop ARCHITECTURE labels legacy 工作台 triad as 现状/代码债",
 );
+expectMatch(
+  files.desktopDesign,
+  desktopDesign,
+  /标题栏主锚点：动态（默认）· 收件箱 · 写出来 · 搜索/u,
+  "Desktop DESIGN UIX-401 PrimaryNav includes 搜索 not 归档",
+);
+expectNoMatch(
+  files.desktopDesign,
+  desktopDesign,
+  /标题栏主锚点：动态（默认）· 收件箱 · 写出来 · 归档/u,
+  "archive as PrimaryNav peer in UIX-401",
+);
+expectMatch(
+  files.desktopArchitecture,
+  desktopArch,
+  /PrimaryNav[^\n]{0,120}搜索/u,
+  "Desktop ARCHITECTURE PrimaryNav includes 搜索",
+);
+expectNoMatch(
+  files.desktopArchitecture,
+  desktopArch,
+  /PrimaryNav[^\n]{0,120}归档图标/u,
+  "archive icon as PrimaryNav peer",
+);
+expectMatch(
+  files.desktopDesign,
+  desktopDesign,
+  /getEditorHtml\(\)|静态 HTML/u,
+  "Desktop DESIGN editor preview is static HTML",
+);
+expectNoMatch(
+  files.desktopDesign,
+  desktopDesign,
+  /编辑与预览共用同一 Tiptap 实例/u,
+  "preview taught as live TipTap instance",
+);
+
+const clipReadme = read("browser-extension/README.md");
+const clipMatrix = read("docs/capture-clip-matrix.md");
+expectNoMatch(
+  "browser-extension/README.md",
+  clipReadme,
+  /lite HTML→MD|lite MD|扩展内 lite 转换/u,
+  "Clip README teaching a second lite HTML→MD algorithm",
+);
+expectNoMatch(
+  "docs/capture-clip-matrix.md",
+  clipMatrix,
+  /lite MD|lite HTML/u,
+  "capture-clip-matrix teaching lite MD as workspace converter",
+);
 
 if (process.exitCode) {
   process.exit();

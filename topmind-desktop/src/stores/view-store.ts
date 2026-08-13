@@ -142,7 +142,7 @@ function sameSelection(a: Selection, b: Selection): boolean {
   if (a.kind === "topic" && b.kind === "topic") return a.topicId === b.topicId;
   if (a.kind === "file" && b.kind === "file") return a.path === b.path;
   if (a.kind === "connector" && b.kind === "connector") return a.id === b.id;
-  return true; // home / inbox / stream / outputs / archive are singletons
+  return true; // inbox / stream / outputs / archive are singletons
 }
 
 interface ViewState {
@@ -223,10 +223,9 @@ interface ViewState {
   editorSettings: EditorSettings;
   setEditorSettings: (s: EditorSettings) => void;
 
-  /* writeback mode — AI write permission level (auto/confirm) */
+  /* writeback mode — display cache of workspace yaml (not an AI override) */
   writebackMode: "auto" | "confirm";
   setWritebackMode: (m: "auto" | "confirm") => void;
-  cycleWritebackMode: () => void;
 
   /* theme — reactive, applied by App; synced from SettingsDialog */
   theme: Theme;
@@ -574,12 +573,6 @@ export const useViewStore = create<ViewState>((set, get) => ({
 
   writebackMode: "auto",
   setWritebackMode: (writebackMode) => set({ writebackMode }),
-cycleWritebackMode: () =>
-set((s) => {
-const modes: Array<"auto" | "confirm"> = ["auto", "confirm"];
-      const idx = modes.indexOf(s.writebackMode);
-      return { writebackMode: modes[(idx + 1) % modes.length] };
-    }),
 
   theme: "auto",
   setTheme: (theme) => set({ theme }),

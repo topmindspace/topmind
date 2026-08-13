@@ -442,13 +442,32 @@ export const pathOps = {
     /** @type {string[]} */
     let mediaTrashed = [];
 
+    const { loadKernelApi } = await import("./kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const workspaceRoot = ctx.workspaceRoot?.userWorkspaceRoot || ctx.workspaceRoot;
+    const contract = kernel.loadContract(workspaceRoot);
+
     if (relativePath.endsWith(".md")) {
       const old = await fs.readFile(fp, "utf8").catch(() => null);
       if (old !== null) {
+        const fm = kernel.peekFrontmatter(old);
+        const perm = kernel.evaluateWritePermission({
+          contract,
+          targetPath: fp,
+          workspaceRoot,
+          frontmatter: fm,
+          actor: writeActor,
+        });
+        const recoverable =
+          !isPermanent &&
+          kernel.isRecoverableLifecycle({
+            protection: perm.protection,
+            relativePath,
+          });
         try {
           const { trashNoteMedia } = await import("./workspace-note-media.mjs");
           const media = await trashNoteMedia(
-            { noteRelativePath: relativePath, markdown: old },
+            { noteRelativePath: relativePath, markdown: old, toTrash: recoverable },
             ctx,
           );
           mediaTrashed = media.trashed || [];
@@ -483,10 +502,23 @@ export const pathOps = {
       };
     }
 
-    // Non-md: trash copy then unlink (binary), or permanent delete
+    // Non-md: trash only when locked (binary assets have no topic.md / memory role).
     const t = now();
     let backup;
-    if (!isPermanent && (await statSafe(fp))) {
+    const perm = kernel.evaluateWritePermission({
+      contract,
+      targetPath: fp,
+      workspaceRoot,
+      frontmatter: {},
+      actor: writeActor,
+    });
+    const recoverable =
+      !isPermanent &&
+      kernel.isRecoverableLifecycle({
+        protection: perm.protection,
+        relativePath,
+      });
+    if (recoverable && (await statSafe(fp))) {
       const dirParts = relativePath.split("/").slice(0, -1);
       const stamped = `${timestampStamp()}__${path.basename(relativePath)}`;
       const dest = trashAbsolute(ctx.workspaceRoot, ...dirParts, stamped);

@@ -1,6 +1,6 @@
 ---
 name: topmind-capture
-version: 3.2.1
+version: 3.3.0
 description: >-
   把链接、摘录、随手记收进动态周期本、Inbox 或专题。Use when 记一下、收进、剪藏、保存链接、capture、save URL/idea。
   Do NOT use for 整理本周、出稿、写我的情况/topic.md、doctor/loop、微信读书、X.

@@ -254,7 +254,7 @@ skills/topmind/
 高信心类别+专题 → 直接写入 {类别}/{专题}/ 下对应 .md
 高信心类别，中信心专题 → 写入 {类别}/{专题}/ 下对应 .md，回执标注路由理由
 高信心类别，低信心专题 → 写入 {类别}/*.md（单篇），提示"是否升级为专题"
-低信心类别 → 写入 00-收件箱/，提示稍后分类
+低信心类别 → 写入 **role:buffer**（常为 `00-收件箱/` / `00-Inbox/`），提示稍后分类
 记一下且无明确归属 → 追加到当前动态周期本（contract stream.packing）
 ```
 
@@ -375,10 +375,10 @@ writeback:
   mode: auto | confirm
 ```
 
-- `auto` — 直接写入并返回回执。必须可逆。（默认）
+- `auto` — 直接写入并返回 path + affected-files evidence。（默认）
 - `confirm` — 写入前打开 target/diff review。
 
-**写入顺序（任何 Surface 一致）**：求值 protection → 影子暂存（大篇幅）→ 原子落盘 → 备份 → 回执（`99-归档/receipts/`）。
+**写入顺序（任何 Surface 一致）**：求值 protection → 影子暂存（大篇幅）→ 原子落盘 →（仅高影响）备份 →（仅高影响）回执。普通开放笔记的 create/update/move/rename 不写 `99-归档/receipts/`。
 
 变更意图必须显式：
 
@@ -456,7 +456,7 @@ Source Connector → Object Adapter → Action Registry → Tool Contract → Su
 - 内容写 `topic.md`；不默认 outline/setting/style
 - 专题根 `*.md`；交付 `88-输出/`；内容安全层 `99-归档/`；机器态 `.topmind/`
 - 记忆写 `memory/`（语义平面，固定英文名，不改名不删除）
-- 写回前求值 protection；回执落 `99-归档/receipts/`
+- 写回前求值 protection；仅高影响才落 `99-归档/receipts/`
 - 类别动态自发现；loop 为独立 skill（生命周期执行器）
 - 降级表唯一：`skills/shared/capability-degradation.md`
 - Progressive disclosure：`shared/` + skill `references/`；SKILL.md ≤500 行

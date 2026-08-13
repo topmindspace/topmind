@@ -22,7 +22,7 @@ L3+ 浏览器扩展 → Bridge 和/或 工作区直写          ← 推荐日常
 | L3 | 手动 | 失败回退 |
 | L3+ | Extension | 页内 Readability + **预览 / 选区 / 高亮 / 模板 / 落点**；**Bridge**（高质量 MD + 图片本地化 + destinations）或 **工作区目录**（FS Access，无 Desktop）。见 ADR · `browser-extension/` · `docs/capture-clip-matrix.md` |
 
-**复用原则**：扩展负责活 DOM 正文与高亮；Bridge 路径复用 Desktop 清洗与文章模板后处理；工作区直写用 lite MD + 同一 frontmatter 规约（降级可用）。落点：Inbox / 类别 / 专题（Bridge 在线时 popup 可选）。
+**复用原则**：扩展负责活 DOM 正文与高亮；Bridge 与工作区直写共用 Desktop `html-to-markdown` 与同一 frontmatter 规约。Bridge 另走落点 API 与写闸；工作区直写是用户手势确认的 companion 路径。落点：Inbox / 类别 / 专题（Bridge 在线时 popup 可选）。
 
 Agent host 无 Electron 时停在 L1/L3；扩展 **不强制** Desktop 在线（可配置工作区直写）。
 

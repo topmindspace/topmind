@@ -334,16 +334,9 @@ function StreamMdBody({
   const parts = useMemo(() => splitStreamPreviewParts(markdown), [markdown]);
   const mainSource = useMemo(() => {
     if (!parts.main) return "";
-    // Single-line list item → drop bullet + time chrome (chip shows time); keep tasks
-    const lines = parts.main.split("\n").filter((l) => l.trim());
-    if (lines.length === 1 && /^\s*[-*+]\s+/u.test(lines[0])) {
-      return stripListChromeForDisplay(parts.main);
-    }
-    // Single plain line that starts with HH:MM (no bullet)
-    if (lines.length === 1 && /^\d{1,2}:\d{2}\s+/u.test(lines[0])) {
-      return lines[0].replace(/^\d{1,2}:\d{2}\s+/u, "").trim();
-    }
-    return parts.main;
+    // First-line list/time chrome lives in the card header chip — never as body title.
+    // Multi-line moments keep remaining lines; task boxes stay (stripListChromeForDisplay).
+    return stripListChromeForDisplay(parts.main);
   }, [parts.main]);
 
   const mainHtml = useMemo(

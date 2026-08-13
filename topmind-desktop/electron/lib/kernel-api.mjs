@@ -208,8 +208,15 @@ export async function kernelDurableWriteAbs(p, ctx, opts = {}) {
   const kernel = await loadKernelApi();
   const workspaceRoot = workspaceRootOf(ctx.workspaceRoot);
   const abs = path.resolve(String(p.absPath || ""));
-  if (!abs.startsWith(path.resolve(workspaceRoot))) {
-    throw new Error("kernelDurableWriteAbs: path outside workspace");
+  if (typeof kernel.isPathInsideWorkspace === "function") {
+    if (!kernel.isPathInsideWorkspace(workspaceRoot, abs)) {
+      throw new Error("kernelDurableWriteAbs: path outside workspace");
+    }
+  } else {
+    const rel = path.relative(path.resolve(workspaceRoot), abs);
+    if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) {
+      throw new Error("kernelDurableWriteAbs: path outside workspace");
+    }
   }
   const actor = opts.actor || "user";
   return kernel.executeWrite({

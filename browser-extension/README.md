@@ -10,7 +10,7 @@
 
 | 路径 | 何时用 | 特点 |
 |------|--------|------|
-| **Desktop Bridge** | Desktop 正在运行 | 本机高质量 HTML→MD · 落点 API · 图片本地化 |
+| **Desktop Bridge** | Desktop 正在运行 | 同一 HTML→MD · 落点 API · Desktop 写闸 · 图片本地化 |
 | **本机工作区** | 不必开 Desktop | File System Access 授权文件夹后直写 |
 
 共享的是**内容规约**（路径 · frontmatter · `external-capture`），不是 Desktop 运行态。
@@ -30,13 +30,13 @@ Extension (Mozilla Readability on live DOM)
         │
         └─ mode=workspace / auto+offline
               File System Access → {Inbox|类别|专题}/*.md
-              lite HTML→MD · 模板 · 可选下图
+              同一 HTML→MD · 模板 · 可选下图
 ```
 
 | | Bridge | 工作区直写 |
 |--|--------|------------|
 | 依赖 Desktop 运行 | **是** | **否** |
-| HTML→MD | Desktop 共享管线 + 文章模板后处理 | 扩展内 lite 转换 + 模板 |
+| HTML→MD | 共享 `html-to-markdown` + 文章模板后处理 | 同一转换器 + 模板（不经 Node 写闸；用户手势即确认） |
 | 落点 | destinations API | FS 目录（与 dest 同结构） |
 | 图片 | 默认本地化到 `images/{slug}/` | 同左；需 host 权限拉 CDN |
 | 安全 | 127.0.0.1 + Bearer + CSP | 用户显式授权目录 |
@@ -95,7 +95,7 @@ Service Worker **不能**弹授权框；须在 **options / 弹窗点击** 下调
 
 内置：`article` · `selection` · `bookmark` · `github` / `zhihu`。  
 自定义：选项页 **导入/导出 JSON**（`chrome.storage`）。  
-Bridge：正文 **先转 MD 再套模板**；工作区：lite MD 后套模板。
+Bridge 与工作区：正文都 **先走同一 HTML→MD 再套模板**。Bridge 另走 Desktop 落点 API 与写闸。
 
 ### 性能要点
 

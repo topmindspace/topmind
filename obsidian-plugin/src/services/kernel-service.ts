@@ -3,7 +3,7 @@
 // All view/modal components call this service instead of directly accessing
 // the Kernel. This centralizes:
 // - Kernel context creation (with AI provider from settings)
-// - Writeback mode override (from plugin settings)
+// - Writeback mode: plugin data is a display cache; operational truth is topmind.yaml
 // - Error handling and evidence extraction
 // - Backup/receipt keep count wiring (via process.env)
 
@@ -28,8 +28,10 @@ import {
   reconcilePeriodNote,
   readTodosFromWorkspace,
   initWorkspaceStructure,
+  resolveContractWritebackMode,
+  mirrorWritebackModeToContract,
 } from "./kernel-workspace-ops";
-import { t } from "../i18n";
+import { t, getLocale } from "../i18n";
 import { hasConfiguredProvider, getProviderKey } from "../types";
 
 // ── Node.js built-ins ──
@@ -107,15 +109,27 @@ export class KernelService {
   private getContext(): KernelContext {
     if (!this.context) {
       const aiProvider = createAiProvider(this.settings);
-      const localeOverride = this.settings.localeOverride || null;
+      const localeOverride = this.settings.localeOverride || getLocale() || null;
       this.context = createKernelContextFromApp(this.app, this.plugin, aiProvider, localeOverride);
     }
     return this.context;
   }
 
-  /** Get writeback mode override from settings */
-  private get writebackModeOverride(): "auto" | "confirm" | undefined {
-    return this.settings.writebackMode;
+  /** Hydrate settings.writebackMode from workspace contract for Settings UI. */
+  hydrateWritebackModeFromContract(): "auto" | "confirm" | null {
+    const mode = resolveContractWritebackMode(getKernel(), this.getVaultPath());
+    if (mode) this.settings.writebackMode = mode;
+    return mode;
+  }
+
+  /** Persist Settings dropdown into topmind.yaml (operational truth). */
+  mirrorWritebackMode(mode: "auto" | "confirm"): { ok: boolean; error?: string } {
+    const result = mirrorWritebackModeToContract(getKernel(), this.getVaultPath(), mode);
+    if (result.ok) {
+      this.settings.writebackMode = mode;
+      this.invalidateCache();
+    }
+    return result;
   }
 
   // ── Workspace ──────────────────────────────────────────────────────────
@@ -142,7 +156,10 @@ export class KernelService {
       this.getEngineRoot(),
       templateId,
     );
-    if (result.ok) this.invalidateCache();
+    if (result.ok) {
+      this.invalidateCache();
+      this.hydrateWritebackModeFromContract();
+    }
     return result;
   }
 
@@ -247,7 +264,7 @@ export class KernelService {
       {
         target: opts.target,
         tags: opts.tags,
-        writebackMode: this.writebackModeOverride,
+        // omit writebackMode — Kernel uses topmind.yaml
       },
     );
 
@@ -271,7 +288,7 @@ export class KernelService {
       this.getVaultPath(),
       this.getEngineRoot(),
       relPath,
-      { writebackMode: this.writebackModeOverride },
+      {},
     );
   }
 
@@ -489,18 +506,20 @@ export class KernelService {
     }
 
     // Locale-aware system prompt — follows UI language setting
-    const locale = this.settings.localeOverride || "zh-CN";
+    const locale = this.settings.localeOverride || getLocale() || "zh-CN";
     const isZh = locale.startsWith("zh") || locale === "";
     const systemPrompt = isZh
       ? "你是嵌入在 topmind Obsidian 插件中的 AI 助手。" +
         "你帮助用户反思笔记、规划任务、整理思路。" +
-        "回答简洁实用，引用用户的真实数据时要有针对性。\n\n" +
+        "回答简洁实用，引用用户的真实数据时要有针对性。" +
+        "不要输出思考过程、<think> 标签或 reasoning 围栏，只给用户可见结论。\n\n" +
         (contextParts.length > 0
           ? "以下是用户当前的上下文：\n\n" + contextParts.join("\n\n")
           : "暂无工作区上下文。")
       : "You are a helpful AI assistant embedded in the topmind Obsidian plugin. " +
         "You help the user reflect on their notes, plan tasks, and organize their thoughts. " +
-        "Be concise, practical, and reference the user's actual data when relevant.\n\n" +
+        "Be concise, practical, and reference the user's actual data when relevant. " +
+        "Do not output thinking process, <think> tags, or reasoning fences — only the user-visible answer.\n\n" +
         (contextParts.length > 0
           ? "Here is the user's current context:\n\n" + contextParts.join("\n\n")
           : "No workspace context available yet.");
@@ -513,12 +532,18 @@ export class KernelService {
     conversationParts.push(`User: ${userMessage}`);
     const prompt = conversationParts.join("\n\n");
 
-    return aiProvider.generate(prompt, {
+    const raw = await aiProvider.generate(prompt, {
       operation: "chat",
       systemPrompt,
       maxOutputTokens: 4096,
       temperature: 0.6,
     } as Record<string, unknown>);
+    const kernel = getKernel();
+    if (typeof kernel.sanitizeAiContent === "function" && typeof raw === "string") {
+      const cleaned = kernel.sanitizeAiContent(raw);
+      return cleaned || raw;
+    }
+    return raw;
   }
 
   /**

@@ -311,6 +311,37 @@ const DEAD_PATTERNS = [
     scope: ["electron/lib/workspace-home.mjs"],
     allowIn: ["scripts/check-dead-code.mjs"],
   },
+  {
+    id: "no-project-config-aliases",
+    description: "Desktop must not reintroduce projectConfigAliases flat v3 projection",
+    regex: /export function projectConfigAliases/u,
+    scope: ["electron/lib/workspace-home.mjs"],
+    allowIn: ["scripts/check-dead-code.mjs"],
+  },
+  {
+    id: "no-cycle-writeback-mode",
+    description: "view-store must not reintroduce cycleWritebackMode (silent AI policy flip)",
+    regex: /cycleWritebackMode/u,
+    scope: ["src/stores/view-store.ts"],
+    allowIn: ["scripts/check-dead-code.mjs"],
+  },
+  {
+    id: "no-html-to-markdown-lite",
+    description: "Clip must not reintroduce htmlToMarkdownLite (second converter)",
+    regex: /htmlToMarkdownLite/u,
+    scope: [
+      "../browser-extension/lib/simple-md.js",
+      "../browser-extension/lib/workspace-fs.js",
+    ],
+    allowIn: ["scripts/check-dead-code.mjs"],
+  },
+  {
+    id: "connector-category-nested-v4-only",
+    description: "resolveConnectorSyncCategory must read workspace.template / ingest.connectors, not deleted flat aliases",
+    regex: /config\.(template|categorySeparator|connectorDefaults)\b/u,
+    scope: ["electron/lib/connector-category.mjs"],
+    allowIn: ["scripts/check-dead-code.mjs"],
+  },
 ];
 
 /**

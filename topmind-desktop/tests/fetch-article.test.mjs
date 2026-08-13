@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { extractArticle, cleanCaptureUrl } from "../electron/lib/fetch-article.mjs";
 import { htmlToMarkdown, extractMeta } from "../electron/lib/html-to-markdown.mjs";
-import { decodeBuffer } from "../electron/lib/workspace-fetch-ops.mjs";
+import { decodeBuffer, fetchOps } from "../electron/lib/workspace-fetch-ops.mjs";
 
 test("cleanCaptureUrl strips utm and keeps path", () => {
   const clean = cleanCaptureUrl("https://example.com/a/b?utm_source=x&id=1&fbclid=zz#frag");
@@ -137,6 +137,17 @@ test("decodeBuffer falls back to utf-8 for bogus encoding", () => {
   const buf = Buffer.from("Hello", "utf-8");
   // Should not throw — falls back to utf-8
   assert.equal(decodeBuffer(buf, "totally-bogus-encoding"), "Hello");
+});
+
+test("fetchUrl rejects file:// and non-http schemes (no local outside read)", async () => {
+  await assert.rejects(
+    () => fetchOps.fetchUrl({ url: "file:///etc/passwd" }, {}),
+    /scheme|invalid|url/i,
+  );
+  await assert.rejects(
+    () => fetchOps.fetchUrl({ url: "/etc/passwd" }, {}),
+    /scheme|invalid|url/i,
+  );
 });
 
 test("decodeBuffer handles charset labels with trailing comma (from Content-Type)", () => {

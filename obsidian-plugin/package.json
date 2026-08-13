@@ -1,8 +1,8 @@
 {
   "name": "topmind-obsidian-plugin",
-  "version": "3.2.1",
+  "version": "3.3.0",
   "private": true,
-  "description": "topmind Stream for Obsidian — 主区域流式工作台 + AI 沉淀副驾",
+  "description": "topmind Stream for Obsidian — 主区域动态流 + AI 沉淀副驾",
   "type": "module",
   "license": "MIT",
   "author": "TopMindSpace",

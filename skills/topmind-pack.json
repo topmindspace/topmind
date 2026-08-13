@@ -4,8 +4,8 @@
   "label": "topmind",
   "description": "topmind skill pack: single daily entry topmind + progressive disclosure (shared/ + references/), Agent Skills open-standard aligned, capture-first template-driven categories, optional weread/x connectors. File-system-first content truth; UTR optional.",
   "daily_entry": "topmind",
-  "version": "3.2.1",
-  "updated": "2026-08-12",
+  "version": "3.3.0",
+  "updated": "2026-08-13",
   "license": "MIT",
   "locales": {
     "default": "zh-CN",
@@ -333,13 +333,13 @@
         "normalize-note-metadata",
         "migrate-v4"
       ],
-"workspace-maintain": [
-"doctor-workspace",
-"archive-topic",
-"archive-stream-year",
-"restore-safety-receipt",
-"cleanup-empty-dirs"
-],
+      "workspace-maintain": [
+        "doctor-workspace",
+        "archive-topic",
+        "archive-stream-year",
+        "restore-safety-receipt",
+        "cleanup-empty-dirs"
+      ],
       "contract": [
         "validate",
         "ensure",
@@ -358,8 +358,8 @@
         "rebuild"
       ]
     },
-"command_count": 28,
-"mcp_default_count": 19,
+    "command_count": 28,
+    "mcp_default_count": 19,
     "command_exposure": {
       "primary": [
         "workspace-read.list-categories",
@@ -378,12 +378,12 @@
         "memory.append-profile",
         "memory.append-topic"
       ],
-"danger": [
-"workspace-maintain.archive-topic",
-"workspace-maintain.archive-stream-year",
-"workspace-maintain.restore-safety-receipt",
-"contract.reseed"
-],
+      "danger": [
+        "workspace-maintain.archive-topic",
+        "workspace-maintain.archive-stream-year",
+        "workspace-maintain.restore-safety-receipt",
+        "contract.reseed"
+      ],
       "advanced": [
         "workspace-read.list-recent-captures",
         "workspace-read.list-safety-receipts",

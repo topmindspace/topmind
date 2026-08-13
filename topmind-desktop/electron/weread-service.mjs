@@ -19,7 +19,6 @@ import { resolveDataRoot } from "./lib/path-model.mjs";
 import { readText, ensureDir } from "./lib/fs-utils.mjs";
 import { splitMarkdownFrontmatter } from "./lib/frontmatter.mjs";
 import { t } from "./lib/electron-i18n.mjs";
-import { writeArchiveBackup, timestampStamp } from "./lib/writeback.mjs";
 import {
   loadConnectorSettings,
   persistConnectorPatch,
@@ -499,28 +498,12 @@ export const WereadService = {
         if (book.cover) topicFm.cover = book.cover;
 
         const topicPath = path.join(topicDir, "topic.md");
-        const oldTopic = await readText(topicPath).catch(() => null);
-        if (oldTopic) {
-          await writeArchiveBackup(ctx.workspaceRoot, {
-            savedAt: nowIso,
-            content: oldTopic,
-            pathParts: ["weread-backup", topicName, `${timestampStamp()}__topic.md`],
-          });
-        }
         await writeConnectorNote(ctx, {
           absPath: topicPath,
           body: `# ${topicFm.title}\n\n> 来源: 微信读书\n> 作者: ${topicFm.author}\n> 同步时间: ${topicFm.synced_at}\n`,
           frontmatter: topicFm,
           operation: "update",
         });
-
-        if (local.existingFile) {
-          await writeArchiveBackup(ctx.workspaceRoot, {
-            savedAt: nowIso,
-            content: local.existingFile,
-            pathParts: ["weread-backup", topicName, `${timestampStamp()}__划线笔记.md`],
-          });
-        }
 
         const md = formatNotesMarkdown(book, highlights, reviews);
         const hlFm = {

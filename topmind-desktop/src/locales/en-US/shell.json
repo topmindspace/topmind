@@ -167,8 +167,8 @@
     "inboxTipIdle": "Inbox is empty · ⌘⇧I",
     "outputs": "Ship it",
     "outputsTipIdle": "Ship it · ⌘⇧O",
-    "archiveTip": "Archive & recovery · ⌘⇧A",
-    "archiveAriaLabel": "Archive"
+    "search": "Search",
+    "searchTip": "Search notes · ⌘P"
   },
   "statusBar": {
     "ariaLabel": "Status bar",

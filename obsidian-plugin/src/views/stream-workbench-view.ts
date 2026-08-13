@@ -27,6 +27,7 @@ import {
   extractTags,
   isStreamOrTodoPath,
   isLoneUrlCapture,
+  prepareStreamEntryTextForDisplay,
   SUGGESTION_KIND_META,
 } from "../utils";
 import { hasConfiguredProvider } from "../types";
@@ -139,7 +140,7 @@ export class StreamWorkbenchView extends ItemView {
       attr: {
         placeholder: t("quick_capture_placeholder"),
         rows: "1",
-        "aria-label": t("quick_capture_title"),
+        "aria-label": t("quick_capture_log_it"),
       },
     });
 
@@ -150,10 +151,10 @@ export class StreamWorkbenchView extends ItemView {
     this.urlHintEl.createSpan({ text: t("compose_url_hint") });
 
     this.submitBtn = inputBar.createEl("button", {
-      text: t("quick_capture_submit"),
+      text: t("quick_capture_log_it"),
       cls: "tm-submit-btn",
     });
-    this.submitBtn.setAttribute("aria-label", t("quick_capture_submit"));
+    this.submitBtn.setAttribute("aria-label", t("quick_capture_log_it"));
 
     // Interactions
     this.inputEl.addEventListener("keydown", (e: KeyboardEvent) => {
@@ -656,19 +657,17 @@ export class StreamWorkbenchView extends ItemView {
       this.app.workspace.openLinkText(periodPath, "", false);
     });
 
-    // Only very long content (>600 chars or >20 lines) starts collapsed;
-    // normal-length entries show fully for maximum readability.
-    // Aligned with Desktop stream card thresholds (STREAM_EXPAND_CHAR_BUDGET=480, LINE_BUDGET=8).
+    // Collapse only very long cards (>600 chars or >20 non-empty lines).
+    // Desktop feed expand is 480/8; this page uses a looser 600/20 so more cards stay open.
     const isLongContent = entry.text.length > 600 || entry.text.split("\n").filter((l: string) => l.trim()).length > 20;
     const body = card.createDiv({ cls: isLongContent ? "tm-card-body tm-collapsed" : "tm-card-body" });
-    if (entry.text) {
+    const displayText = prepareStreamEntryTextForDisplay(entry.text);
+    if (displayText) {
       try {
-        await MarkdownRenderer.render(this.app, entry.text, body, "", this);
+        await MarkdownRenderer.render(this.app, displayText, body, "", this);
       } catch {
-        body.textContent = entry.text;
+        body.textContent = displayText;
       }
-    } else {
-      body.textContent = entry.text;
     }
 
     // Only attach collapse toggle for long content
@@ -855,7 +854,7 @@ export class StreamWorkbenchView extends ItemView {
     this.inputEl.disabled = false;
     this.submitBtn.disabled = false;
     this.submitBtn.empty();
-    this.submitBtn.textContent = t("quick_capture_submit");
+    this.submitBtn.textContent = t("quick_capture_log_it");
     this.inputEl.focus();
   }
 

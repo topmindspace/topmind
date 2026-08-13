@@ -38,6 +38,8 @@ describe("Kernel integration — shipped capture / list / reconcile", () => {
   let listStreamPeriodsForWorkspace;
   let reconcilePeriodNote;
   let initWorkspaceStructure;
+  let resolveContractWritebackMode;
+  let mirrorWritebackModeToContract;
   let eng;
 
   before(async () => {
@@ -48,6 +50,8 @@ describe("Kernel integration — shipped capture / list / reconcile", () => {
     listStreamPeriodsForWorkspace = ops.listStreamPeriodsForWorkspace;
     reconcilePeriodNote = ops.reconcilePeriodNote;
     initWorkspaceStructure = ops.initWorkspaceStructure;
+    resolveContractWritebackMode = ops.resolveContractWritebackMode;
+    mirrorWritebackModeToContract = ops.mirrorWritebackModeToContract;
     eng = resolveEngineRoot();
   });
 
@@ -131,6 +135,24 @@ describe("Kernel integration — shipped capture / list / reconcile", () => {
     const r = captureToWorkspace(kernel, tmp, eng, "   \n  ");
     assert.equal(r.ok, false);
     assert.equal(r.error, "empty-text");
+  });
+
+  test("writeback mode: yaml is operational truth; plugin data does not override", () => {
+    const seeded = resolveContractWritebackMode(kernel, tmp);
+    assert.equal(seeded, "auto", "fresh contract defaults to auto");
+
+    const mirrored = mirrorWritebackModeToContract(kernel, tmp, "confirm");
+    assert.equal(mirrored.ok, true, mirrored.error);
+    assert.equal(resolveContractWritebackMode(kernel, tmp), "confirm");
+
+    const yaml = fs.readFileSync(path.join(tmp, "topmind.yaml"), "utf8");
+    assert.match(yaml, /writeback:[\s\S]*mode:\s*confirm/);
+
+    // Capture without writebackMode still succeeds (user actor) and does not
+    // invent a second contract — yaml remains confirm.
+    const r = captureToWorkspace(kernel, tmp, eng, "yaml-gated capture");
+    assert.equal(r.ok, true, r.error);
+    assert.equal(resolveContractWritebackMode(kernel, tmp), "confirm");
   });
 });
 

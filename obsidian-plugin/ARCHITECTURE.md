@@ -319,9 +319,9 @@ export function getEngineRoot(plugin: { manifest: { dir?: string } }): string {
   → kernel.executeWrite
   → writeback-engine:
       1. evaluateWritePermission (protection + confirm)
-      2. backup (only high-impact: locked overwrite / delete-archive; BACKUP_KEEP from settings)
+      2. backup (only high-impact: locked overwrite / locked-or-core delete-archive; BACKUP_KEEP from settings)
       3. atomic write (fs.writeFileSync)
-      4. receipt (99-归档/receipts/)
+      4. receipt only when a backup was taken (99-归档/receipts/)
   → Obsidian Vault 感知文件变更 (metadataCache refresh)
   → UI 刷新 (vault.on("modify") 事件 + 防抖)
 ```
@@ -332,7 +332,7 @@ export function getEngineRoot(plugin: { manifest: { dir?: string } }): string {
 
 **reconcile 链路**：`KernelService.reconcilePeriod()` → `kernel.reconcilePeriodBody()` 合并散落条目、修复 day heading → `kernel.executeWrite()` 经写闸写回。
 
-**设置接入**：`backupKeep` 通过 `process.env.BACKUP_KEEP` 接入 Kernel；`writebackMode` 通过 `writebackModeOverride` 透传。
+**设置接入**：`backupKeep` 通过 `process.env.BACKUP_KEEP` 接入 Kernel；`writebackMode` 为 Settings 展示缓存，操作真源是 `topmind.yaml` `writeback.mode`（改下拉框会镜像进契约）。
 
 **Todo 字段对齐**：Kernel `todo-engine` 的 TodoItem 字段为 `done`（非 `completed`）。插件 `mapKernelTodoItem` / UI 过滤必须读 `done`，与 Desktop `todo-store` 一致。
 
@@ -371,7 +371,7 @@ export class StreamWorkbenchView extends ItemView {
   async refreshStream() {
     // kernelService.getStreamContext() → 读取周期本
     // kernelService.readPeriodNote() → 解析条目 → 渲染卡片
-    // 卡片默认折叠 2 行，点击展开，✏ 打开编辑器
+    // 卡片仅超长（>600 字或 >20 非空行）才折叠；点击展开，✏ 打开编辑器
   }
 
   async refreshSuggestions() {
@@ -388,7 +388,7 @@ export class StreamWorkbenchView extends ItemView {
 export class SidebarDockView extends ItemView {
   // 标签式布局：待办 | 建议 | 对话 | 动态
   // 头部：AI 状态 + 模型徽章 + [⚙ 设置]
-  // 底部：[⚡记一下] [🔄整理] [📋待办] [🏷️分类] [🧠记忆] [🖥工作台]
+  // 底部：[⚡记一下] [🔄整理] [📋待办] [🏷️分类] [🧠整理我的情况] [🖥动态]
   // 
   // 对话标签（新增）：
   //   - 上下文感知：自动注入近期动态 + 当前待办 + 用户画像
@@ -463,7 +463,7 @@ interface TopmindSettings {
 
 | 设置项 | 接入方式 |
 |--------|----------|
-| `writebackMode` | `writebackModeOverride` 透传给 `executeWrite` |
+| `writebackMode` | Settings 展示缓存；写入 `topmind.yaml` `writeback.mode`；`executeWrite` 不读 plugin data |
 | `backupKeep` | `process.env.BACKUP_KEEP` 写入，Kernel `writeback-engine` 读取 |
 | `receiptKeep` | `process.env.RECEIPT_KEEP` 写入，Kernel 回执轮转读取 |
 | `ai.manual` (多服务商密钥) + `ai.sourcePreference` | `createAiProvider()` 解析 → `createKernelContext()` 注入 |
@@ -475,7 +475,7 @@ interface TopmindSettings {
 
 使用 Obsidian `PluginSettingTab` + `Setting` 组件构建，分四个区域：
 1. 📂 工作区与契约（工作区状态卡片 + 模板选择 + 初始化工作区按钮 + 契约诊断/重建）
-2. 🌊 工作台（自动打开、时间轴排序、标签、语言）
+2. 🌊 动态（自动打开、时间轴排序、标签、语言）
 3. 🤖 AI 副驾与写回策略（多服务商密钥 + 偏好选择 + 模型 + 从 Desktop 导入 + 测试连接 + 写回模式 + 自动建议/待办）
 4. 🛡️ 安全与归档（备份份数 + 回执份数）
 
@@ -575,7 +575,7 @@ npm run obsidian:test      # 仅测试
 | `topmind.yaml` schema 升级 | Kernel `contract-engine` 处理迁移；插件无感 |
 | 三平面目录模型调整 | Kernel `workspace-model` 处理；插件通过 `resolveWorkspaceModel` 自动适配 |
 | 新增模板 | `esbuild.config.mjs` 的 `copyTemplates()` 自动复制；无需代码改动 |
-| writeback 行为变更 | 插件通过 `executeWrite` 调用；`writebackModeOverride` 透传 |
+| writeback 行为变更 | 插件通过 `executeWrite` 调用；mode 来自 `topmind.yaml`，Settings 仅镜像 |
 | AI Provider 接口扩展 | `ai-provider.ts` 的 `generate()` 适配；`context` 参数透传 |
 
 ### 12.3 适配原则

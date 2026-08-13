@@ -4,7 +4,8 @@
 > **6 条核心规约**与**三平面模型**：`PROJECT-MODEL.md`。  
 > **行为契约**：工作区根 `topmind.yaml`（8 类规约，机器可读）。  
 > UTR 对 Skills/agent 仍为**可选**底座；Desktop 安装包 **捆绑** `utr/`（Tools 控制台 / doctor），但日常编辑与 AI 写回不强制走 UTR（`PRODUCT-BOUNDARIES.md`）。  
-> **架构**：UTR = Kernel 的 CLI/MCP **adapter**（非第三套业务语义）。耐久 `.md` 主写经 `lib/writeback-engine.mjs`（**Done**，见 `docs/ARCHITECTURE-RESET.md` §2.2）；备份/回执**仅高影响**（locked 覆盖 · delete/archive）；open 常规更新不备份；非 `.md` 二进制可仍直写。  
+> **架构**：UTR = Kernel 的 CLI/MCP **adapter**（非第三套业务语义）。耐久 `.md` 主写经 `lib/writeback-engine.mjs`（**Done**，见 `docs/ARCHITECTURE-RESET.md` §2.2）；备份/回执**仅高影响**（locked 覆盖 · 锁定/核心 delete）；`executeArchive` 把内容迁入现场 **role:system** 目录当新家（常为 `99-归档` / `99-Archive`，不是备份）；open 常规更新/删除不备份；非 `.md` 二进制可仍直写。  
+> **类别按角色**：inbox / delivery / archive 解析走现场契约与 `{NN-…}` 目录，不把中文 `00-收件箱` 当唯一 inbox。
 > 保存设置仅 **auto | confirm**（无 batch；UTR 对显式 `batch`/未知模式 **硬拒绝**，不 silent 映射）。
 
 ## Roots
@@ -16,7 +17,7 @@ Engine root:
 User data root（三平面工作区）:
   {workspace}/
   ├── topmind.yaml          系统平面：唯一行为契约
-  ├── 00-收件箱/ … 88-输出/ 99-归档/   内容平面：编号类别（自发现）
+  ├── 00-收件箱/ … 88-输出/ 99-归档/   内容平面：编号类别（自发现；英文 `00-Inbox` / 用户改名同等有效）
   ├── memory/               语义平面：持续记忆（固化目录，英文名不改名）
   └── .topmind/             系统平面：机器态（index/loop/logs）
 
@@ -51,7 +52,7 @@ UTR 命令必须支持该工作流，**不暴露** 大类/专题命名、命令 
 
 - contract loading · payload validation · path resolution（三平面感知）
 - policy-aware preview/run · protection 求值 · writeback.mode 判定
-- CLI + MCP 暴露 · structured results · recoverable write evidence（`99-归档/receipts/`）
+- CLI + MCP 暴露 · structured results · write evidence（path + affected-files；仅高影响才落 `99-归档/receipts/`）
 
 **不**拥有 high-level skill taxonomy 或产品 workflow language。  
 **不**作为 Desktop 编辑器/AI 的强制中介。
@@ -231,8 +232,8 @@ writeback_mode: auto | confirm
 target_path: string
 affected_files: string[]
 wrote_files: boolean
-receipt_path: string          # 99-归档/receipts/{id}.yaml
-backup_path: optional string  # 99-归档/backups/{snapshot}
+receipt_path: optional string # 仅高影响：99-归档/receipts/{id}.yaml
+backup_path: optional string  # 仅高影响：99-归档/backups/{snapshot} 或 trash
 revision_path: optional string
 protection: string             # open | locked（求值结果）
 saved_at: ISO datetime
@@ -246,7 +247,7 @@ next_actions: optional string[]
 | Command | Default mutation | Guardrail |
 |---|---|---|
 | `workspace-write.create-topic` | 创建专题目录 + `topic.md` 首页（frontmatter: title/category/topic/status） | 拒绝覆盖已有同名专题；**不**接受 `projectType`（已废弃） |
-| `workspace-write.capture-note` | 在专题根下或 `00-收件箱/` 或**大类根单篇**或**当前动态周期本**创建时间戳笔记 | 永不替换已有笔记 |
+| `workspace-write.capture-note` | 在专题根下或 **role:buffer**（常为 `00-收件箱/` / `00-Inbox/`）或**大类根单篇**或**当前动态周期本**创建时间戳笔记 | 永不替换已有笔记 |
 | `workspace-write.save-output` | 创建交付物到 `88-输出/` 扁平目录 | `ifExists`: `create-new`（默认）· `replace`（查找同名替换）· `fail`（同名报错） |
 | `memory.append-topic` | 追加一条专题稳定结论到 `memory/topics/{topic-slug}.md` | 永不重写已有内容 |
 | `memory.append-profile` | 追加「我的情况」到 `memory/profile.md` | 按段落追加；禁止 capture 静默写 |

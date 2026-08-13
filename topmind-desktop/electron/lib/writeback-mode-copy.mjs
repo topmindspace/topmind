@@ -53,13 +53,14 @@ export function describeWritebackModeForPrompt(mode, locale) {
   if (lang === "en") {
     return (
       "Writeback: auto-save — you may call write tools;" +
-      " only high-impact writes get backup/receipt (locked-file overwrite, delete/archive);" +
+      " only high-impact writes get backup/receipt (locked overwrite; locked/core delete);" +
+      " archive moves content to the system archive dir as its new home (not a backup);" +
       " multi-file turns summarize path receipts."
     );
   }
   return (
     "写回: 自动保存 — 可调用 write 工具；" +
-    "仅高影响写入备份/回执（锁定文件覆盖、删除/归档）；多文件轮次汇总路径回执。"
+    "仅高影响写入备份/回执（锁定覆盖、锁定/核心删除）；归档是迁入系统归档目录的新家（不是备份）；多文件轮次汇总路径回执。"
   );
 }
 

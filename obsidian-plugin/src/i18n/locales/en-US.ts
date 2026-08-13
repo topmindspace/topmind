@@ -5,10 +5,10 @@ import type { zhCN } from "./zh-CN";
 export const enUS: typeof zhCN = {
   // ── Plugin ──
   plugin_name: "Topmind Stream",
-  plugin_description: "Stream workbench + AI co-pilot for Obsidian",
+  plugin_description: "Personal stream + AI co-pilot for Obsidian",
 
   // ── Views ──
-  stream_workbench_title: "Stream Workbench",
+  stream_workbench_title: "Stream",
 
   // ── Quick Capture (product vocab: Note it / 记一下) ──
   quick_capture_title: "Note it",
@@ -18,6 +18,7 @@ export const enUS: typeof zhCN = {
   quick_capture_target_stream: "This week's stream",
   quick_capture_target_inbox: "Inbox",
   quick_capture_hint_enter: "⏎ Log it",
+  quick_capture_hint_enter_note: "⏎ Note it",
   quick_capture_hint_shift_enter: "⇧⏎ Newline",
   quick_capture_tags: "Tags",
   quick_capture_tags_placeholder: "#tag1 #tag2",
@@ -60,7 +61,7 @@ export const enUS: typeof zhCN = {
   sidebar_dock_title: "AI Copilot",
   sidebar_today_todos: "Today's Todos",
   sidebar_recent_stream: "Recent stream",
-  sidebar_open_workbench: "Open Workbench",
+  sidebar_open_workbench: "Open Stream",
   sidebar_no_todos: "No todos",
   sidebar_no_stream: "No stream entries",
   sidebar_ai_status: "AI Status",
@@ -89,7 +90,7 @@ export const enUS: typeof zhCN = {
   sidebar_open_sidebar: "Open Sidebar",
   sidebar_ai_operations: "AI Operations",
   sidebar_op_todo: "Maintain Todos",
-  sidebar_op_memory: "Organize Memory",
+  sidebar_op_memory: "Organize My profile",
   sidebar_op_classify: "Classify Topics",
   sidebar_op_suggestions: "Refresh Suggestions",
 
@@ -131,7 +132,7 @@ export const enUS: typeof zhCN = {
   op_label_suggest: "Generate AI Suggestions",
   op_label_todo_maintain: "Maintain Todos",
   op_label_topic_classify: "Classify Topics",
-  op_label_memory_organize: "Organize Memory",
+  op_label_memory_organize: "Organize My profile",
   op_label_reconcile: "Reconcile Stream",
   op_label_chat: "AI Chat",
 
@@ -164,24 +165,24 @@ export const enUS: typeof zhCN = {
 
   // ── Commands ──
   cmd_quick_capture: "Topmind: Note it",
-  cmd_open_workbench: "Topmind: Open Stream Workbench",
+  cmd_open_workbench: "Topmind: Open Stream",
   cmd_open_sidebar: "Topmind: Open Sidebar",
   cmd_organize_period: "Topmind: Organize This Week",
   cmd_refresh_suggestions: "Topmind: Refresh AI Suggestions",
   cmd_maintain_todos: "Topmind: AI Maintain Todos",
   cmd_topic_classify: "Topmind: Classify Topics",
-  cmd_memory_organize: "Topmind: Organize Memory",
+  cmd_memory_organize: "Topmind: Organize My Profile",
   cmd_open_profile: "Topmind: Open My Profile",
   cmd_open_inbox: "Topmind: Open Inbox",
 
   // ── Settings ──
   settings_workspace: "Workspace & Contract",
-  settings_stream: "Workbench",
+  settings_stream: "Stream",
   settings_ai: "AI Co-pilot & Save",
   settings_security: "Security & Archive",
 
-  settings_auto_open: "Auto-open Workbench on Startup",
-  settings_auto_open_desc: "Open stream workbench tab when Obsidian starts",
+  settings_auto_open: "Auto-open Stream on Startup",
+  settings_auto_open_desc: "Open the Stream tab when Obsidian starts",
   settings_timeline_order: "Timeline Order",
   settings_timeline_order_desc: "Newest first or oldest first",
   settings_auto_tag: "Auto Tag Parsing",
@@ -245,8 +246,8 @@ export const enUS: typeof zhCN = {
   notice_todo_done: "Todos maintained ✓",
   notice_classify_running: "Classifying topics...",
   notice_classify_done: "Topics classified ✓",
-  notice_memory_running: "Organizing memory...",
-  notice_memory_done: "Memory organized ✓",
+  notice_memory_running: "Organizing My profile...",
+  notice_memory_done: "My profile organized ✓",
   notice_no_inbox: "Inbox directory not found",
   notice_new_note_created: "New note created",
   notice_new_note_failed: "Failed to create note",
@@ -370,9 +371,9 @@ export const enUS: typeof zhCN = {
   sidebar_btn_organize: "Organize",
   sidebar_btn_todo: "Todos",
   sidebar_btn_classify: "Classify",
-  sidebar_btn_memory: "Memory",
+  sidebar_btn_memory: "My profile",
   sidebar_btn_suggestions: "Suggest",
-  sidebar_btn_workbench: "Workbench",
+  sidebar_btn_workbench: "Stream",
 
   // ── AI model switcher ──
   chat_model_current: "Current model",

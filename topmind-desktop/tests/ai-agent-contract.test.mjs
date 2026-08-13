@@ -97,6 +97,20 @@ test("system prompt lists actual snake_case tools, not UTR hyphen names", () => 
   assert.match(prompt, /INDEX|留痕|append_topic_memory/i);
 });
 
+test("ai-store invoke does not send view-store writebackMode (yaml is policy)", () => {
+  const src = readFileSync(path.join(root, "src/stores/ai-store.ts"), "utf8");
+  const invoke = src.match(/api\.ai\.invoke\(\{[\s\S]*?\}\);/);
+  assert.ok(invoke, "expected api.ai.invoke({...})");
+  assert.doesNotMatch(invoke[0], /writebackMode/);
+  assert.match(src, /api\.ai\.invoke\(/);
+});
+
+test("ai.invoke only applies explicit auto|confirm override (not view-store default)", () => {
+  const src = readFileSync(path.join(root, "electron/ai-service.mjs"), "utf8");
+  assert.match(src, /writebackMode === "confirm" \|\| writebackMode === "auto"/);
+  assert.match(src, /explicitWritebackMode: effectiveMode/);
+});
+
 test("ai-tools.mjs defines full agent surface (source contract)", () => {
   const src = readFileSync(path.join(root, "electron/ai-tools.mjs"), "utf8");
   for (const name of [...READ_TOOLS, ...WRITE_TOOLS]) {

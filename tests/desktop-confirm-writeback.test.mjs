@@ -257,6 +257,20 @@ describe("Workspace writeback.mode drives Kernel gate (not app-settings)", () =>
     assert.equal(again.previewContent, body);
   });
 
+  it("AI invoke must not send view-store writebackMode as a default override", () => {
+    const store = fs.readFileSync(
+      path.join(root, "topmind-desktop/src/stores/ai-store.ts"),
+      "utf8",
+    );
+    assert.doesNotMatch(store, /writebackMode:\s*useViewStore/);
+    const svc = fs.readFileSync(
+      path.join(root, "topmind-desktop/electron/ai-service.mjs"),
+      "utf8",
+    );
+    assert.match(svc, /resolveWorkspaceWritebackMode/);
+    assert.doesNotMatch(svc, /effectiveMode \|\| "auto"/);
+  });
+
   it("explicitWritebackMode session override can force confirm over yaml auto", async () => {
     const autoWs = path.join(tmp, "explicit-ws");
     fs.mkdirSync(path.join(autoWs, "10-动态"), { recursive: true });

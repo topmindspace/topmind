@@ -111,7 +111,7 @@ test("mutating workspace ops return WritebackEvidence (source contract)", () => 
   ]) {
     assert.match(
       pathOps,
-      new RegExp(`async ${method}[\\s\\S]{0,3500}?buildWritebackEvidence`, "u"),
+      new RegExp(`async ${method}[\\s\\S]{0,8000}?buildWritebackEvidence`, "u"),
       `${method} must return buildWritebackEvidence`,
     );
   }

@@ -72,7 +72,7 @@ topmind 的主表面是**个人动态流**——不是文件夹管理器、不�
 
 - **富**：编辑器、阅读 Aa、插件槽、连接器、多视图能力保留  
 - **薄**：同屏 chrome 与概念一次摊开的数量下降  
-- Desktop `PrimaryNav` 默认 selection = **动态**；legacy `kind:home` soft-heal → stream（见 `topmind-desktop/DESIGN.md`）  
+- Desktop `PrimaryNav` 默认 selection = **动态**；未知 kind（含已删除的 home）一律落到 stream；归档不在主锚，搜索在主锚（见 `topmind-desktop/DESIGN.md`）  
 
 ### 2.3 保存设置（AI 写回）
 
@@ -113,7 +113,7 @@ topmind 的主表面是**个人动态流**——不是文件夹管理器、不�
 ### 2.5 可逆恢复
 
 危险写回前备份；恢复需确认。数据在 `99-归档/backups/` 等。  
-**状态**：**Done**（写闸备份/回执仅高影响：locked 覆盖 · delete/archive；open 常规写不备份）。
+**状态**：**Done**（写闸备份/回执仅高影响：locked 覆盖 · 锁定/核心笔记 delete/archive；普通开放笔记删除无 trash；open 常规写/移动/重命名不备份）。
 
 ### 2.6 模板 4 Profile
 

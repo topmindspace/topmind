@@ -1,6 +1,6 @@
 ---
 name: topmind-organize
-version: 3.2.1
+version: 3.3.0
 description: >-
   整理本周动态、专题内整理/研究/分析/路由 Inbox。Use when 整理本周、整理、分析、研究、对比、总结要点、organize、summarize。
   Do NOT use for 首次捕获、最终出稿、仅写我的情况、快速 doctor、全库 loop.
@@ -94,7 +94,7 @@ degradation: ../shared/capability-degradation.md
 **流水可以永远只是流水**——不升专题也完全健康。  
 条目上的「增补」= 同文件续写（评论感），不是平行评论库。
 
-写回：默认 `writebackMode: auto`；替换整篇前备份到 `99-归档/backups/`。  
+写回：默认 `writebackMode: auto`；仅锁定/核心笔记覆盖或删除才备份到现场 **role:system** 目录的 `backups/`（常为 `99-归档/` / `99-Archive/`，不写死中文）。  
 回执白话：「本周动态已理顺」+ 路径 + 可选候选列表。
 
 ### 整理结构

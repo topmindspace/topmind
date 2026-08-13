@@ -19,7 +19,7 @@
 ```text
 标题栏主锚点：动态（默认） · 收件箱 · 写出来 · 搜索 · 记一下 · AI
 侧栏默认：本周动态 / 周期本时间线
-二级入口：专题树 · 我的情况 · 归档
+二级入口：专题树 · 我的情况 · 归档（⌘⇧A / 命令面板；不在 PrimaryNav）
 高级（折叠或 ⌘K）：标签 · 看板 · 插件槽 · Tools/UTR
 ```
 
@@ -38,7 +38,7 @@
 **统一建议入口（全局）**：标题栏 💡（始终可点）+ 有 `items` 时画布顶 `SuggestEntryStrip`（**count=0 自动隐藏**）；点击 → `openSuggestSurface()` → **`SuggestPopover`**。  
 **唯一确认面**：`SuggestPopover`（接受 / 忽略 / 待确认写入）· 与 AI 聊天轨解耦；AI 轨 `ActionBar` 仅为计数跳转，不挂第二套完整列表。  
 **会话稳定**：软刷新 / 15s 轮询不得因 kernel 空 regenerate 清空已展示建议（`sessionSuggestionCache` + `mergeSuggestRefreshItems`）；dismiss/apply 仍可移除。  
-**卡片正文**：Markdown 轻预览；**Feed 稳定**：软 reload 不全页 loading。  
+**卡片正文**：`stream-md-preview` 轻预览（剥 `<!-- topmind:append -->`；首行子弹/时间进芯片不进正文）；**Feed 稳定**：软 reload 不全页 loading。  
 **个人清单**：TodoPopover · **≠** 建议。  
 **建议沉淀**：confirm 后 profile/periodic / 内容大类专题。
 
@@ -46,10 +46,10 @@
 
 | kind | 说明 | 影响 | apply 行为 |
 |------|------|------|-----------|
-| `inbox_review` | 收件箱文件超过回顾天数 | high | 归档到 99-归档（可恢复） |
-| `inbox_organize` | **AI 分析收件箱 → 移入已有专题或新建专题** | medium | 移动文件到目标专题目录（源文件备份安全删除） |
+| `inbox_review` | 收件箱文件超过回顾天数 | high | 迁入 99-归档（新家，不是删除） |
+| `inbox_organize` | **AI 分析收件箱 → 移入已有专题或新建专题** | medium | 先写目标再删源（与 Desktop moveToTopic 相同） |
 | `stale_topic` | 专题长期未更新 | high | 归档整个专题目录 |
-| `catch_all` | 兜底类文件过期 | high | 归档清理 |
+| `catch_all` | 兜底类文件过期 | high | 迁入 99-归档（新家） |
 | `stream_digest` | 为周期本生成反思 | high | AI 生成真实反思写入 memory/periodic |
 | `promote_memory` | 动态 → 我的情况 | high | 追加到 memory/profile.md |
 | `ai_summary` | AI 活动窗口反思 | medium | AI 反思写入 memory/periodic |
@@ -59,7 +59,7 @@
 **inbox_organize 特殊行为**：
 - AI 可用时：分析每个收件箱文件内容，建议移入已有专题或新建专题
 - AI 不可用且收件箱 ≥3 条：提示配置 AI 后可自动整理
-- 确认后：源文件经 `executeArchive` 备份安全删除，内容写入目标专题目录
+- 确认后：先 `executeWrite` 写入目标专题，再 unlink 源文件（源失败则保留）
 - 导航：确认后跳转到目标专题中的文件（而非回到动态）
 
 ### 0.0.2 图标语义（强制）
@@ -267,11 +267,11 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 
 - **标题栏**（`--density-chrome-y` 36px solid chrome — 2026-08-07: 38→36 纤细化） 
   - 左：导航控制 + 应用标识 + 工作区切换器  
-  - 中：`PrimaryNav` — **动态（默认）** · **收件箱** · **写出来**（角标可选）+ 归档图标（弱）+ ⌘K  
-  - 右：**记一下**（唯一主捕获）+ 搜索 + 设置 + 主题 + AI  
+  - 中：`PrimaryNav` — **动态（默认）** · **收件箱** · **写出来** · **搜索** + ⌘K  
+  - 右：**记一下**（唯一主捕获）+ 建议 💡 · 清单 · 设置 · AI  
   - **禁止**再增加等权主锚点；「工作台」三元组不再是产品目标  
 - **侧栏默认**：本周动态 / 周期本时间线；专题树 · 记忆 · 我的情况 · 归档为二级；标签/看板/插件为高级（折叠或 ⌘K）  
-- **主画布默认**：`StreamDetailView` — 当前周期本条目卡片 + **内联记一下** + reconcile / 周期切换（**无**建议数角标、无旧仪表盘）；历史 home selection → 同视图
+- **主画布默认**：`StreamDetailView` — 当前周期本条目卡片 + **内联记一下** + reconcile / 周期切换（**无**建议数角标、无旧仪表盘）；未知 selection kind → 同视图
 - **AI 面板**：副驾；**对话区** + **compact ActionBar**（有建议时计数 → 打开 `SuggestPopover`）+ **Composer**  
 - **建议确认面**：全局 **`SuggestPopover`**（标题栏 💡 / strip / openSuggestSurface）；不埋仅在 AI 聊天轨  
 - **看板可写 / Inbox 批处理 / 知识加工 / tokens / 图标** 等能力保留（富工作台）  
@@ -285,7 +285,7 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 - **设置 ↔ 壳同步**：`settings.ui`（含 `aiPanelOpen` / 侧栏视图 / 宽度）经 `lib/ui-settings-sync` 即时写入 view-store；Shell 收到 `ui:settings-applied` 后 **跳过一轮** 布局防抖写盘，避免盖掉设置  
 - **UI 默认**：无效 `sidebarView` normalize 为 **`stream`**（产品默认，非 category）
 
-- **窗体 / 托盘 / Landing / 状态栏 / Overlay** 与实现一致；PrimaryNav = **动态 · 收件箱 · 写出来**
+- **窗体 / 托盘 / Landing / 状态栏 / Overlay** 与实现一致；PrimaryNav = **动态 · 收件箱 · 写出来 · 搜索**
 
 ### 2.1 标题栏（目标）
 
@@ -293,13 +293,13 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 - 侧栏开关 · 前进/后退 · 应用标识 · 工作区切换器（⌘⇧W，portal 下拉）
 
 **中间** — `PrimaryNav`（**目标**）:
-- **动态**（默认，打开工作区落点）· **收件箱** · **写出来**（可带角标）
-- 归档：图标弱入口（不占主路径；⌘K 可达）
+- **动态**（默认，打开工作区落点）· **收件箱** · **写出来** · **搜索**（⌘P）
+- 归档不在主锚（⌘⇧A / 侧栏 / 命令面板）
 - `⌘K` 命令面板
 
 **右侧**:
 - **记一下**（⌘N / 全局 ⌘⇧N）— 唯一醒目捕获；默认本周动态  
-- 建议 💡 · 清单（安静图标对）· 搜索 · 设置 · AI 面板  
+- 建议 💡 · 清单（安静图标对）· 设置 · AI 面板  
 - 主题不进标题栏（⌘, 设置 / 窄屏 ⋯）；badge 仅在需要行动时出现（收件箱 · 建议）
 
 ### 2.2 侧栏树
@@ -331,7 +331,7 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 - **文件标签条**（`EditorRecentBar`）：多 tab pin/close/中键关/拖拽重排/右键菜单；溢出时左右 **edge fade**；激活 tab 滚入视野；右键 **在右侧打开对照**（分屏）。  
 - **编辑区对照分屏**（session-only）：`splitSecondaryPath` 在主 selection 旁开第二文件（可编辑）；拖拽中缝调比例；关闭/对调；关 tab 时自动清分屏。**不是**双 history / 双 selection 状态机。  
 
-- **FileEditorView**：Tiptap + ⌘S；chrome 拆 `file-editor-chrome`（SaveBadge）· `file-editor-format-bar`（模式/格式/更多）· **`EditorReadingMenu`（阅读 Aa）**；发布/AI 进「更多」；**编辑与预览共用同一 Tiptap 实例**（`setEditable`）与同一阅读外观；专注模式 ⌘⌥F；`readOnly` 归档只读。  
+- **FileEditorView**：Tiptap + ⌘S；chrome 拆 `file-editor-chrome`（SaveBadge）· `file-editor-format-bar`（模式/格式/更多）· **`EditorReadingMenu`（阅读 Aa）**；发布/AI 进「更多」。**编辑**用 TipTap；**预览 / 只读**用 `getEditorHtml()` 快照到静态 HTML（`.v4-tiptap`），不是同一实例 `setEditable` 切换。**同一阅读偏好**（`data-paper` / `data-content-width` / `data-page-padding` + `proseStyle` 字号/行高/字体）包住两边。Frontmatter 在属性条，不进正文。专注模式 ⌘⌥F；`readOnly` 归档只读。  
   - **行内 AI**（Notion 式 · `SelectionAiBar` + `ai.complete` / `ai.cancelComplete`）：  
     - **出现**：非空选区 → 浮条；工具栏 ✨ / 右键「AI 改写」→ 主动面板（**同一动作集**）；**无**空行常驻 chip  
     - **动作**：润色 / 简洁 / 扩写 / 列表 / **格式** / 纠错 / 总结 / 续写 / 自定义指令  
@@ -401,7 +401,7 @@ topmind 设计系统原生支持多语言排版（Simplified Chinese / English�
 - **默认简版**：模型折叠在会话行 chip；**技能 chips 默认收起**（点「技能」或 `/slash`）。
 - **模型**：`provider/modelId`；按提供商分组。
 - **Skill pin**：`<select class="v4-chip v4-chip-select">` 固定本会话 skill；空 = 自动路由。
-- **Agent / 写回**：同为 `.v4-chip`；写回两态 `auto | confirm` 循环，持久化 `settings.writebackMode`。
+- **Agent / 写回**：同为 `.v4-chip`；写回两态 `auto | confirm` 循环；UI 缓存 `settings.writebackMode`，操作真源是 `topmind.yaml` `writeback.mode`（设置变更会镜像进契约）。
 - **EmptyConversation**：短文案 + 按选区最多 2 条上下文快捷提示；stagger 入场。
 - **离线 composer**：单 CTA「前往设置」，无冗长说明。
 - **工具时间线**：助手消息内 `toolCalls` 卡片（running/done + 路径跳转 + `edit_file` diff 内联）。
@@ -435,10 +435,10 @@ topmind 设计系统原生支持多语言排版（Simplified Chinese / English�
 
 | 模式 | 徽章文案 | 徽章颜色 | 实现语义 | 备注 |
 |------|---------|----------|----------|------|
-| `auto` | 自动写 | success 绿 | 注册写工具；直接写入 + 99-归档 备份 | 默认；≥2 路径时也出回执 |
+| `auto` | 自动写 | success 绿 | 注册写工具；直接写入；仅高影响才 99-归档 备份 | 默认；≥2 路径时出 evidence 条 |
 | `confirm` | 保存前问我 | warning 琥珀 | **仍注册写工具**；写经 Kernel pending → 待确认写入条接受/拒绝 | 不是「无写工具」只读壳 |
 
-点击徽章循环切换模式，立即持久化到 `settings.writebackMode`。设置面板的通用标签页也有同一下拉框，两者通过 `ViewStore.writebackMode` 保持同步。
+点击徽章循环切换模式：先写入 app-settings 展示缓存，再镜像进工作区 `topmind.yaml`。设置面板的通用标签页也有同一下拉框，两者通过 `ViewStore.writebackMode` 保持同步。Kernel 写闸只读契约，不把 app-settings `writebackMode` 当第二份合同。
 
 ### 3.4 流式传输
 
@@ -836,7 +836,7 @@ chrome（微暖框架）→ background（净白画布）→ surface（工作面�
 
 界面显性概念严格限定为：**记一下 · 动态 · 专题 · 我的情况 · 写出来**。
 
-- 标题栏主锚点：动态（默认）· 收件箱 · 写出来 · 归档
+- 标题栏主锚点：动态（默认）· 收件箱 · 写出来 · 搜索
 - 侧栏 ViewSwitcher：流式 / 分类 / 时间线 / 标签 / 看板（高级折叠）
 - 捕获词汇：`记一下`（Note it · 完整捕获）vs `记下`（Log it · 周期本追加）— 语义不混
 - 无多余概念暴露

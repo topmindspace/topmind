@@ -207,14 +207,17 @@ export function rewriteMediaSlug(markdown, oldSlug, newSlug) {
 }
 
 /**
- * Trash note-local media (dirs + loose files) into 99-Archive/backups/trash.
+ * Remove note-local media (dirs + loose files).
+ * When `toTrash` is true (locked/core notes only), park under
+ * 99-Archive/backups/trash. Ordinary open notes just unlink.
  * Does not delete the .md itself.
  *
- * @param {{ noteRelativePath: string, markdown: string }} p
+ * @param {{ noteRelativePath: string, markdown: string, toTrash?: boolean }} p
  * @param {object} ctx
  * @returns {Promise<{ trashed: string[], count: number }>}
  */
 export async function trashNoteMedia(p, ctx) {
+  const toTrash = p.toTrash !== false;
   const plan = await planNoteMedia(p.noteRelativePath, p.markdown, ctx);
   const trashed = [];
   const srcBase = plan.noteDir;
@@ -226,19 +229,21 @@ export async function trashNoteMedia(p, ctx) {
     const fromAbs = await sp(ctx.workspaceRoot, fromRel);
     const st = await statSafe(fromAbs);
     if (!st?.isDirectory()) continue;
-    const slug = path.basename(d);
-    const destAbs = trashAbsolute(
-      ctx.workspaceRoot,
-      ...dirParts,
-      "images",
-      `${stamp}__${slug}`,
-    );
-    await fs.mkdir(path.dirname(destAbs), { recursive: true });
-    await fs.cp(fromAbs, destAbs, { recursive: true }).catch(() => {});
+    if (toTrash) {
+      const slug = path.basename(d);
+      const destAbs = trashAbsolute(
+        ctx.workspaceRoot,
+        ...dirParts,
+        "images",
+        `${stamp}__${slug}`,
+      );
+      await fs.mkdir(path.dirname(destAbs), { recursive: true });
+      await fs.cp(fromAbs, destAbs, { recursive: true }).catch(() => {});
+      trashed.push(
+        trashRelative(ctx.workspaceRoot, ...dirParts, "images", `${stamp}__${slug}`),
+      );
+    }
     await fs.rm(fromAbs, { recursive: true, force: true }).catch(() => {});
-    trashed.push(
-      trashRelative(ctx.workspaceRoot, ...dirParts, "images", `${stamp}__${slug}`),
-    );
   }
 
   for (const f of plan.mediaFiles) {
@@ -247,19 +252,21 @@ export async function trashNoteMedia(p, ctx) {
     const fromAbs = await sp(ctx.workspaceRoot, fromRel);
     const st = await statSafe(fromAbs);
     if (!st?.isFile()) continue;
-    const base = path.basename(f);
-    const destAbs = trashAbsolute(
-      ctx.workspaceRoot,
-      ...dirParts,
-      "images",
-      `${stamp}__${base}`,
-    );
-    await fs.mkdir(path.dirname(destAbs), { recursive: true });
-    await fs.copyFile(fromAbs, destAbs).catch(() => {});
+    if (toTrash) {
+      const base = path.basename(f);
+      const destAbs = trashAbsolute(
+        ctx.workspaceRoot,
+        ...dirParts,
+        "images",
+        `${stamp}__${base}`,
+      );
+      await fs.mkdir(path.dirname(destAbs), { recursive: true });
+      await fs.copyFile(fromAbs, destAbs).catch(() => {});
+      trashed.push(
+        trashRelative(ctx.workspaceRoot, ...dirParts, "images", `${stamp}__${base}`),
+      );
+    }
     await fs.unlink(fromAbs).catch(() => {});
-    trashed.push(
-      trashRelative(ctx.workspaceRoot, ...dirParts, "images", `${stamp}__${base}`),
-    );
   }
 
   // Remove empty images/ under note dir

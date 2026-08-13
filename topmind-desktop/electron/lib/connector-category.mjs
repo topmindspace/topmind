@@ -84,11 +84,11 @@ export function pickConnectorCategory(categories, opts = {}) {
  */
 export async function resolveConnectorSyncCategory(workspaceRoot, preferred, connectorType, options = {}) {
   const root = resolveDataRoot(workspaceRoot);
-  // loadWorkspaceConfigSync projects v4 nested → flat aliases
+  // Clean v4 only — no flat aliases (loadWorkspaceConfigSync does not project).
   const config = loadWorkspaceConfigSync(root);
-  const rawSep = config.categorySeparator;
+  const rawSep = config.workspace?.category_separator;
   const sep = rawSep === " " ? " " : (rawSep || "-");
-  const templateId = config.template || "stream";
+  const templateId = config.workspace?.template || "stream";
   let engineRoot = options.engineRoot || null;
   try {
     engineRoot = engineRoot || engineRootOf(workspaceRoot);
@@ -124,11 +124,11 @@ export async function resolveConnectorSyncCategory(workspaceRoot, preferred, con
   }
 
   const pref = String(preferred || "").trim();
-  // Workspace-level connectorDefaults override empty app setting
+  // Workspace ingest.connectors override empty app setting
   const configPref =
     pref && pref !== "auto"
       ? pref
-      : (config.connectorDefaults?.[connectorType]?.syncCategory || pref || "auto");
+      : (config.ingest?.connectors?.[connectorType]?.syncCategory || pref || "auto");
 
   const resolved = pickConnectorCategory(cats, {
     preferred: configPref,

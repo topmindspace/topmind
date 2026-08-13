@@ -170,7 +170,7 @@ describe("contract-engine migration & validation", () => {
     assert.deepEqual(validateContract(v4), { valid: true, errors: [] });
   });
 
-  it("loadContract falls back to legacy .topmind-config.json migration", () => {
+  it("loadContract does not treat .topmind-config.json as operational truth", () => {
     const ws = fs.mkdtempSync(path.join(os.tmpdir(), "topmind-legacy-"));
     try {
       fs.writeFileSync(
@@ -179,10 +179,11 @@ describe("contract-engine migration & validation", () => {
         "utf8",
       );
       const contract = loadContract(ws);
-      assert.equal(contract.workspace.template, "balanced");
-      // loadContract() returns clean v4 — flat alias NOT injected (use normalizeConfig for that)
+      // Defaults only — v3 JSON is ensureContract's one-shot migrate, not a hot read.
+      assert.equal(contract.workspace.template, "stream");
       assert.equal(contract.template, undefined);
       assert.equal(contract.contract_version, CONTRACT_VERSION);
+      assert.ok(!fs.existsSync(path.join(ws, "topmind.yaml")));
     } finally {
       fs.rmSync(ws, { recursive: true, force: true });
     }

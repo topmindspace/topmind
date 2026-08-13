@@ -95,36 +95,8 @@ export function resolveWorkspaceStatePaths(desktopStateHome, userWorkspaceRoot) 
 }
 
 /**
- * Project clean v4 nested contract keys onto flat convenience aliases (in-memory only).
- * Kernel `loadContract()` no longer injects these aliases (validateContract whitelist);
- * Desktop loaders must project so path-model / connectors keep working on pure v4 YAML.
- * Does not mutate the input object.
- * @param {object|null|undefined} raw
- * @returns {object}
- */
-export function projectConfigAliases(raw) {
-  const config = raw && typeof raw === "object" && !Array.isArray(raw) ? { ...raw } : {};
-  if (config.workspace?.template && !config.template) {
-    config.template = config.workspace.template;
-  }
-  if (config.workspace?.category_separator && !config.categorySeparator) {
-    config.categorySeparator = config.workspace.category_separator;
-  }
-  if (config.workspace?.locale && !config.locale) {
-    config.locale = config.workspace.locale;
-  }
-  if (config.categories?.extensions && !config.categoryExtensions) {
-    config.categoryExtensions = config.categories.extensions;
-  }
-  if (config.categories?.overrides && !config.categoryOverrides) {
-    config.categoryOverrides = config.categories.overrides;
-  }
-  return config;
-}
-
-/**
  * Load workspace behavior contract via Kernel (async open paths).
- * Projects clean v4 → flat aliases in-memory only (UI/path-model convenience).
+ * Returns clean v4 nested contract (no flat alias injection).
  * App-local prefs stay in app-settings.json — never forked here.
  */
 export async function loadWorkspaceConfig(workspaceRoot) {
@@ -132,7 +104,7 @@ export async function loadWorkspaceConfig(workspaceRoot) {
   try {
     const { kernelLoadContract } = await import("./kernel-api.mjs");
     const contract = await kernelLoadContract(root);
-    return projectConfigAliases(contract || {});
+    return contract && typeof contract === "object" ? contract : {};
   } catch {
     // Fallback when engine root unavailable (tests / broken install)
     return loadWorkspaceConfigLocal(root);
@@ -140,8 +112,8 @@ export async function loadWorkspaceConfig(workspaceRoot) {
 }
 
 /**
- * Local yaml/json read + project aliases. Used by sync path-model and as
- * engine-unavailable fallback. Prefer Kernel loadWorkspaceConfig / ensure on open.
+ * Local yaml-only read. Used by sync path-model and as engine-unavailable
+ * fallback. Does not read `.topmind-config.json` (ensureContract migrates once).
  */
 function loadWorkspaceConfigLocal(workspaceRoot) {
   const root = path.resolve(workspaceRoot);
@@ -149,18 +121,13 @@ function loadWorkspaceConfigLocal(workspaceRoot) {
   if (existsSync(yamlPath)) {
     try {
       const raw = readFileSync(yamlPath, "utf8");
-      return projectConfigAliases(yaml.load(raw) || {});
+      const parsed = yaml.load(raw);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
     } catch {
-      // Fall through to legacy
+      /* unreadable yaml — empty contract */
     }
   }
-  const configPath = path.join(root, ".topmind-config.json");
-  try {
-    const data = readFileSync(configPath, "utf8");
-    return projectConfigAliases(JSON.parse(data));
-  } catch {
-    return projectConfigAliases({});
-  }
+  return {};
 }
 
 /** Synchronous workspace config loader — for use in sync path-model functions. */
@@ -181,7 +148,7 @@ export async function autoRepairWorkspace(workspaceRoot) {
     .filter((e) => e.isDirectory() && /^\d{2}[ -].+/.test(e.name))
     .map((e) => e.name);
 
-  let targetSeparator = config.categorySeparator || config.workspace?.category_separator;
+  let targetSeparator = config.workspace?.category_separator;
   let shouldWriteSeparator = false;
 
   if (!targetSeparator) {
@@ -246,8 +213,8 @@ export async function autoRepairWorkspace(workspaceRoot) {
       const kernel = await loadKernelApi();
       const ensured = kernel.ensureContract(resolved, {
         categorySeparator: targetSeparator,
-        templateId: config.template || config.workspace?.template,
-        locale: config.locale || config.workspace?.locale,
+        templateId: config.workspace?.template,
+        locale: config.workspace?.locale,
       });
       // If already ok, still force separator into contract when inferred
       if (ensured.onDiskValid && ensured.contract && shouldWriteSeparator) {
@@ -283,12 +250,12 @@ export async function ensureWorkspaceStructure(workspaceRoot, templateId = "stre
     .filter((e) => e.isDirectory() && /^\d{2}[ -].+/.test(e.name))
     .map((e) => e.name);
 
-  const effectiveTemplateId = config.template || config.workspace?.template || templateId;
+  const effectiveTemplateId = config.workspace?.template || templateId;
   const isFirstInit = discovered.length === 0;
 
   if (isFirstInit) {
     // Brand-new workspace: seed full template category dirs once (UX layout only)
-    let targetSeparator = config.categorySeparator || config.workspace?.category_separator;
+    let targetSeparator = config.workspace?.category_separator;
     if (!targetSeparator) targetSeparator = "-";
     const template = loadTemplateJson(effectiveTemplateId);
     let dirs;
@@ -330,7 +297,7 @@ export async function ensureWorkspaceStructure(workspaceRoot, templateId = "stre
     }
   } catch {
     // Last resort when engine lib missing: required role dirs only + Kernel ensure if possible
-    const sep = config.categorySeparator || config.workspace?.category_separator || "-";
+    const sep = config.workspace?.category_separator || "-";
     const sepChar = sep === " " ? " " : "-";
     for (const dir of [`00${sepChar}收件箱`, `88${sepChar}输出`, `99${sepChar}归档`]) {
       await fs.mkdir(path.join(resolved, dir), { recursive: true });

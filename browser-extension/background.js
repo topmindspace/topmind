@@ -225,7 +225,7 @@ async function runClip(tab, opts = {}) {
 
   // Template: pick by URL / user id; selection/highlights reshape body now.
   // Article + content_html keeps HTML for Desktop Bridge (template after MD).
-  // Workspace path re-applies template after lite MD in workspace-fs.
+  // Workspace path re-applies template after shared html-to-markdown in workspace-fs.
   const custom = await loadCustomTemplates();
   const template = pickTemplate(extracted.url || "", custom, opts.templateId);
   const hlText = formatHighlights(highlights);

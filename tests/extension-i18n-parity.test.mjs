@@ -52,3 +52,25 @@ test("extension product vocabulary stays Clip/剪藏 (companion surface, not Des
   assert.match(en.dest_topic?.message || "", /Topic/i);
   assert.match(zh.dest_topic?.message || "", /专题/);
 });
+
+test("Clip options do not teach a second lite HTML→MD converter", () => {
+  const en = loadMessages("en_US");
+  const zh = loadMessages("zh_CN");
+  const optionsHtml = fs.readFileSync(
+    path.join(repoRoot, "browser-extension", "options.html"),
+    "utf8",
+  );
+  for (const [locale, bag] of [
+    ["en", en],
+    ["zh", zh],
+  ]) {
+    const hint = bag.options_mode_hint?.message || "";
+    const perm = bag.options_ws_perm_hint?.message || "";
+    assert.doesNotMatch(hint, /better HTML.?MD|质量更好|lightweight HTML|轻量 HTML|lite HTML|lite MD/iu, `${locale} options_mode_hint`);
+    assert.doesNotMatch(perm, /lightweight HTML|轻量 HTML|lite HTML|lite MD/iu, `${locale} options_ws_perm_hint`);
+    assert.match(hint, /same HTML→MD|同一 HTML→MD/u, `${locale} options_mode_hint must name the shared converter`);
+    assert.match(perm, /same HTML→MD|同一 HTML→MD/u, `${locale} options_ws_perm_hint must name the shared converter`);
+  }
+  assert.doesNotMatch(optionsHtml, /轻量 HTML→MD|质量更好|lite HTML|lite MD/u);
+  assert.match(optionsHtml, /同一 HTML→MD/);
+});

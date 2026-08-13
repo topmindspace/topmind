@@ -14,7 +14,7 @@
 | 精简模板 + 域名匹配 | ✅ | 内置 + **自定义 JSON 导入**（options） |
 | 文章模板后处理 | ✅ | Bridge：html→md **后再**套 body 模板 |
 | Desktop Bridge 高质量 MD | ✅ | 共享 `html-to-markdown` |
-| 工作区直写（无 Desktop） | ✅ | FS Access + lite MD + 模板 + 下图 |
+| 工作区直写（无 Desktop） | ✅ | FS Access + 同一 `html-to-markdown` + 模板 + 下图 |
 | 落点 Inbox / 类别 / 专题 | ✅ | `GET /v1/destinations` + popup 选择 |
 | 图片本地化 | ✅ | Bridge + 工作区；lazy/srcset/相对 URL→绝对→下载；`images/{slug}/` 相对路径（见 `skills/shared/media-assets.md`） |
 | 整理移专题 | ✅ | 笔记 + `images/{slug}/` **一并移动**；编辑器/Inbox/右键 |

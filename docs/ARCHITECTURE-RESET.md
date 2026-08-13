@@ -1,6 +1,6 @@
 # Architecture Reset — 理想架构与实施计划
 
-> **状态**：Accepted · **日期**：2026-07-25 · **最后更新**：2026-08-09  
+> **状态**：Accepted · **日期**：2026-07-25 · **最后更新**：2026-08-13  
 > **角色**：架构决策锁 + 实施诚实表（唯一实施真源）  
 > **内容/边界真源**：`PROJECT-MODEL.md` · `PRODUCT-BOUNDARIES.md`  
 > **产品入口**：根 [`README.md`](../README.md)
@@ -129,7 +129,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | 三平面目录约定 | PROJECT-MODEL · 模板 |
 | 类别自发现 + 数字前缀 | workspace-model |
 | stream packing（周期本）+ 年目录 + 归档 | stream-period · model-stream · capture |
-| 写回伦理理念（备份/回执） | writeback-engine（**仅高影响**备份+回执：locked 覆盖 · delete/archive；`BACKUP_KEEP=3` · `RECEIPT_KEEP=50`） |
+| 写回伦理理念（备份/回执） | writeback-engine（**仅高影响**备份+回执：locked 覆盖 · 锁定/核心笔记 delete/archive；普通开放笔记无 trash；`BACKUP_KEEP=3` · `RECEIPT_KEEP=50`） |
 | Skills 纯 Markdown + 三级降级 | skills/ |
 | skill-first Desktop agent | ai-prompts · skills-runtime（AI SDK v7；会话压缩 240K/60；默认模型 gpt-4o-mini / gemini-3.6-flash / claude-sonnet-5 / grok-3-mini） |
 | 捕获 / Clip / 文档 ingest 队列 | Desktop + extension |
@@ -150,7 +150,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | 动态主表面 PrimaryNav | **Done**（默认 stream） |
 | confirm 写闸 pending | **Done**（settings gate + pending 队列 + 审阅） |
 | lifecycle 全量产品卡片 | **Done**（scan→建议；inbox_organize AI 分析→确认移动） |
-| 备份/回执（高影响 only） | **Done**（open 常规写不备份/不回执；locked 覆盖 + 非 permanent delete/archive 有副本与回执；`BACKUP_KEEP=3` · `RECEIPT_KEEP=50`；目录归档原子 rename + 文件计数校验） |
+| 备份/回执（高影响 only） | **Done**（open 常规写/移动/重命名不备份不回执；locked 覆盖 + 锁定/核心 **delete** 有 trash+回执；**archive** 迁入 99-归档 当新家；普通开放笔记 delete 无 trash；`BACKUP_KEEP=3` · `RECEIPT_KEEP=50`） |
 | 个人待办清单 | **Done**（todo-engine + TodoPopover + AI 维护 + ⌘⇧T；complete/update 用 `matchTodoMaintainText` 防单 token 误完成） |
 | 统一 AI 操作引擎 | **Done**（todo_maintain · memory_organize · topic_classify；force；状态追踪） |
 | 活动窗口 Activity Window | **Done**（`lib/activity-window.mjs`；suggest/todo/ai-ops 共用） |
@@ -158,9 +158,11 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | connector weread/x | **Done**（`kernelDurableWriteAbs`） |
 | 关键词搜索截断诚实 | **Done**（notes-index/grep `truncated`；GlobalSearch UI 提示） |
 | derived item-history | **Done**（确定性清单 + AI 配置后真实 LLM） |
-| contract-engine 清洁化 | **Done**（2026-08-08：`loadContract()` 不再注入 v3 flat 别名；`validateContract()` 误报根因消除；Desktop `projectConfigAliases` 统一投影 flat 别名） |
+| contract-engine 清洁化 | **Done**（2026-08-13：`loadContract()` 只读 `topmind.yaml`；v3 JSON 仅 `ensureContract` 一次迁移落盘；`saveWorkspaceConfig` 经 `writeContract`；Desktop 不再 `projectConfigAliases`） |
 | Todo 手动 progressive force | **Done**（2026-08-08：`all-periods-processed` 后再点 ✨ → force；auto 仍尊重 skip） |
 | 多路 AI 并发策略 | **Done**（2026-08-08：background lane 串行 suggest/todo；agent 独立；soft suggest `agent_busy`；auto-todo 让路；StatusBar multiActive/`AI ×N`） |
+| 表面 UX 诚实（Desktop / Obsidian / Clip） | **Done**（2026-08-13：主锚 动态/收件箱/写出来/搜索；Obsidian 用户文案 动态≠工作台、记下≠记一下、整理我的情况；Clip 选项不教第二套 lite 转换器） |
+| Stream / 编辑器 / AI 展示诚实 | **Done**（2026-08-13：预览=静态 HTML + 共享阅读偏好；动态多行剥首行 chrome；Obsidian 增补并入卡片并剥 append 注释；AI invoke 不带 view-store writebackMode） |
 
 **Intentional Partial（保留，非未完成）**：contract UI 非全 Surface；非 `.md` 二进制可仍直写。
 

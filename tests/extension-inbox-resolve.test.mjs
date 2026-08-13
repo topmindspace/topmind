@@ -1,8 +1,7 @@
 /**
  * Clip extension buffer (inbox) discovery — source contract.
- * Prefer topmind.yaml → 00-* dirs → legacy .topmind-config.json → default 00-Inbox.
- * Mirrors static-source style of topmind-desktop/tests/ia-primary-nav.test.mjs
- * (no browser FileSystemDirectoryHandle runtime in Node).
+ * Prefer topmind.yaml → 00-* dirs → default 00-Inbox.
+ * No v3 `.topmind-config.json` hot path.
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
@@ -28,24 +27,21 @@ function extractResolveInboxHandle(src) {
 }
 
 describe("extension resolveInboxHandle order", () => {
-  it("prefers topmind.yaml buffer role before legacy .topmind-config.json", () => {
+  it("prefers topmind.yaml buffer role then 00-* dirs; no v3 JSON", () => {
     const body = extractResolveInboxHandle(readSrc());
     const yamlIdx = body.indexOf('getFileHandle("topmind.yaml")');
     const legacyIdx = body.indexOf('getFileHandle(".topmind-config.json")');
     const enumIdx = body.indexOf("root.entries()");
     assert.ok(yamlIdx >= 0, "must read topmind.yaml");
-    assert.ok(legacyIdx >= 0, "must still fall back to .topmind-config.json");
+    assert.equal(legacyIdx, -1, "must not fall back to .topmind-config.json");
     assert.ok(enumIdx >= 0, "must enumerate 00-* dirs");
     assert.ok(yamlIdx < enumIdx, "yaml before 00-* enumerate");
-    assert.ok(enumIdx < legacyIdx, "00-* enumerate before legacy config");
   });
 
   it("parses categories.*.role buffer|inbox from yaml text", () => {
     const body = extractResolveInboxHandle(readSrc());
-    // Source contains regex literal /role:\s*(buffer|inbox)\b/
     assert.match(body, /role:\\s\*\(buffer\|inbox\)\\b/);
     assert.match(body, /categories:/);
-    assert.match(body, /meta\.role === "buffer"/);
   });
 
   it("pushes locale defaults including 00-收件箱 and 00-Inbox last", () => {
@@ -53,7 +49,6 @@ describe("extension resolveInboxHandle order", () => {
     const pushBlock = body.slice(body.indexOf("candidates.push("));
     assert.match(pushBlock, /00-收件箱/);
     assert.match(pushBlock, /00-Inbox/);
-    // create fallback
     assert.match(body, /getDirectoryHandle\("00-Inbox",\s*\{\s*create:\s*true\s*\}/);
   });
 

@@ -10,7 +10,8 @@
  *   ensureWorkspaceWritable() under the clip click before SW write.
  */
 
-import { buildCaptureMarkdown, captureFilename, htmlToMarkdownLite } from "./simple-md.js";
+import { buildCaptureMarkdown, captureFilename } from "./simple-md.js";
+import { htmlToMarkdown } from "./html-to-markdown.mjs";
 import {
   applyTemplate,
   formatHighlights,
@@ -237,7 +238,7 @@ async function ensurePermission(handle) {
 async function resolveInboxHandle(root) {
   /** @type {string[]} */
   const candidates = [];
-  /** Prefer topmind.yaml (schema v4) buffer role, then 00-* dirs, then legacy .topmind-config.json */
+  /** Prefer topmind.yaml (schema v4) buffer role, then 00-* dirs. */
   try {
     const yamlFile = await root.getFileHandle("topmind.yaml");
     const file = await yamlFile.getFile();
@@ -270,27 +271,6 @@ async function resolveInboxHandle(root) {
     }
   } catch {
     /* enumerate failed */
-  }
-  // Legacy Desktop/config-v3
-  try {
-    const cfgFile = await root.getFileHandle(".topmind-config.json");
-    const file = await cfgFile.getFile();
-    const text = await file.text();
-    const cfg = JSON.parse(text);
-    if (cfg?.categories && typeof cfg.categories === "object") {
-      for (const [dir, meta] of Object.entries(cfg.categories)) {
-        if (meta && (meta.role === "buffer" || meta.role === "inbox")) {
-          candidates.push(String(dir));
-        }
-      }
-    }
-    if (Array.isArray(cfg?.categoryOrder)) {
-      for (const d of cfg.categoryOrder) {
-        if (/^00[ -]/.test(String(d))) candidates.push(String(d));
-      }
-    }
-  } catch {
-    /* no legacy config */
   }
   candidates.push("00-收件箱", "00-Inbox", "00 Inbox");
 
@@ -375,8 +355,9 @@ export async function writeClipToWorkspace(payload) {
   // Prefer content_html for article modes so images (lazy/srcset) survive.
   // Plain text from Readability has NO img tags — never skip HTML when present.
   if (payload.content_html && !plainMode0) {
-    body = htmlToMarkdownLite(String(payload.content_html), {
+    body = htmlToMarkdown(String(payload.content_html), {
       baseUrl: String(payload.source || ""),
+      alreadyIsolated: true,
     });
   }
   if (payload.mode === "highlights" && Array.isArray(payload.highlights) && payload.highlights.length) {

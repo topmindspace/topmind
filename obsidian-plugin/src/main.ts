@@ -139,6 +139,8 @@ export default class TopmindPlugin extends Plugin {
 
     // ── Kernel Service ──
     this.kernelService = new KernelService(this.app, this, this.settings);
+    // Display cache only: operational writeback is topmind.yaml
+    this.kernelService.hydrateWritebackModeFromContract();
 
     // ── Register views ──
     this.registerView(

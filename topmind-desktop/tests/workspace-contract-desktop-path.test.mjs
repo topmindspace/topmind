@@ -18,14 +18,18 @@ const desktopRoot = path.resolve(__dirname, "..");
 const engineRoot = path.resolve(desktopRoot, "..");
 
 // Point Desktop engine root at monorepo so Kernel load works in tests
-const { setEngineRoot, ensureWorkspaceStructure, projectConfigAliases } = await import(
+const { setEngineRoot, ensureWorkspaceStructure } = await import(
   "../electron/lib/workspace-home.mjs"
 );
 setEngineRoot(engineRoot);
 
-const { loadKernelApi, resetKernelApiCache, kernelLoadContract } = await import(
-  "../electron/lib/kernel-api.mjs"
-);
+const {
+  loadKernelApi,
+  resetKernelApiCache,
+  kernelLoadContract,
+  resolveWorkspaceWritebackMode,
+  kernelDurableWrite,
+} = await import("../electron/lib/kernel-api.mjs");
 resetKernelApiCache();
 
 function mkTmp(prefix) {
@@ -189,6 +193,64 @@ describe("writebackMode is not forked from app-settings for Kernel writes", () =
       assert.equal(loaded.writeback.mode, "confirm");
       const inspection = kernel.inspectContract(ws);
       assert.equal(inspection.onDiskValid, true);
+    } finally {
+      fs.rmSync(ws, { recursive: true, force: true });
+    }
+  });
+
+  it("resolveWorkspaceWritebackMode and AI writes follow yaml, not app-settings", async () => {
+    const ws = mkTmp("tm-desk-wb-merge-");
+    try {
+      for (const d of ["00-收件箱", "20-专题", "88-输出", "99-归档"]) {
+        fs.mkdirSync(path.join(ws, d), { recursive: true });
+      }
+      const kernel = await loadKernelApi();
+      const base = kernel.buildDefaultContract();
+      kernel.writeContract(ws, {
+        ...base,
+        writeback: { ...base.writeback, mode: "auto" },
+      });
+
+      const ctx = {
+        ...makeCtx(ws),
+        appSettings: { writebackMode: "confirm" },
+      };
+
+      assert.equal(
+        await resolveWorkspaceWritebackMode(ctx),
+        "auto",
+        "yaml auto must win over app-settings confirm",
+      );
+
+      const autoWrite = await kernelDurableWrite(
+        { relativePath: "20-专题/from-auto.md", content: "# auto\n" },
+        ctx,
+        { actor: "ai", isCreate: true },
+      );
+      assert.equal(autoWrite.pending, false, "yaml auto: AI write must not pending");
+      assert.equal(autoWrite.wroteFiles, true);
+      assert.ok(fs.existsSync(path.join(ws, "20-专题", "from-auto.md")));
+
+      kernel.writeContract(ws, {
+        ...kernel.loadContract(ws),
+        writeback: { ...kernel.loadContract(ws).writeback, mode: "confirm" },
+      });
+      ctx.appSettings = { writebackMode: "auto" };
+
+      assert.equal(
+        await resolveWorkspaceWritebackMode(ctx),
+        "confirm",
+        "yaml confirm must win over app-settings auto",
+      );
+
+      const confirmWrite = await kernelDurableWrite(
+        { relativePath: "20-专题/from-confirm.md", content: "# confirm\n" },
+        ctx,
+        { actor: "ai", isCreate: true },
+      );
+      assert.equal(confirmWrite.pending, true, "yaml confirm: AI write must stay pending");
+      assert.equal(confirmWrite.wroteFiles, false);
+      assert.ok(!fs.existsSync(path.join(ws, "20-专题", "from-confirm.md")));
     } finally {
       fs.rmSync(ws, { recursive: true, force: true });
     }

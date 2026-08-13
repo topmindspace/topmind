@@ -3,7 +3,7 @@ import path from "node:path";
 import { exists } from "./fs-utils.mjs";
 import { loadWorkspaceConfigSync, loadTemplateJson } from "./workspace-home.mjs";
 // Local binding required — re-export alone does not define CATEGORY_PATTERN here.
-import { CATEGORY_PATTERN } from "./category-pattern.mjs";
+import { CATEGORY_PATTERN, SLOT_ROLE_HEURISTICS, ROLE_DIR_ALIASES } from "./category-pattern.mjs";
 
 /**
  * v4 workspace path model — legacy v2.x paths stripped.
@@ -179,13 +179,12 @@ export function workspaceAllowedRoots(workspace) {
 function resolveDirByRole(workspace, role, fallbackHyphen, fallbackSpace) {
   const root = resolveDataRoot(workspace);
   try {
-    // loadWorkspaceConfigSync projects v4 nested → flat aliases
     const config = loadWorkspaceConfigSync(root);
-    const templateId = config.template || "stream";
+    const templateId = config.workspace?.template || "stream";
     const template = loadTemplateJson(templateId);
-    const sep = config.categorySeparator || template?.separator || "-";
-    const extensions = config.categoryExtensions || {};
-    const overrides = config.categoryOverrides || {};
+    const sep = config.workspace?.category_separator || template?.separator || "-";
+    const extensions = config.categories?.extensions || {};
+    const overrides = config.categories?.overrides || {};
 
     /** @type {Map<string, { role: string, slot: string, name: string }>} */
     const roleByDir = new Map();
@@ -212,7 +211,9 @@ function resolveDirByRole(workspace, role, fallbackHyphen, fallbackSpace) {
       }
     }
 
-    // Prefer actual on-disk category with matching role
+    // Prefer actual on-disk category with matching role.
+    // Slot heuristics cover English / renamed {NN-Name} when the template
+    // only lists Chinese names (00-收件箱) so we do not invent that dir.
     try {
       const entries = readdirSync(root, { withFileTypes: true });
       for (const e of entries) {
@@ -221,23 +222,26 @@ function resolveDirByRole(workspace, role, fallbackHyphen, fallbackSpace) {
         const slot = e.name.slice(0, 2);
         const over = overrides[slot];
         const ext = extensions[slot];
-        const resolvedRole = over?.role || ext?.role || meta?.role;
+        const resolvedRole =
+          over?.role || ext?.role || meta?.role || SLOT_ROLE_HEURISTICS[slot];
         if (resolvedRole === role) return path.join(root, e.name);
       }
     } catch { /* ignore */ }
 
-    // Expected path from template/extensions even if missing
+    // Expected path from template/extensions only when that dir already exists
     for (const [dir, meta] of roleByDir) {
       if (meta.role === role && existsSync(path.join(root, dir))) {
         return path.join(root, dir);
       }
     }
-    for (const [dir, meta] of roleByDir) {
-      if (meta.role === role) return path.join(root, dir);
-    }
   } catch { /* fall through */ }
+  const aliases = ROLE_DIR_ALIASES[role] || [];
+  for (const n of aliases) {
+    if (existsSync(path.join(root, n))) return path.join(root, n);
+  }
   if (existsSync(path.join(root, fallbackHyphen))) return path.join(root, fallbackHyphen);
-  return path.join(root, fallbackSpace);
+  if (existsSync(path.join(root, fallbackSpace))) return path.join(root, fallbackSpace);
+  return path.join(root, fallbackHyphen);
 }
 
 export function inboxRoot(workspace) {

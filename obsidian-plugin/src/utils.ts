@@ -240,19 +240,41 @@ export function mapApplySuggestionResult(
  * @param content - period note body (with or without frontmatter)
  * @returns parsed stream entries
  */
+/** True when a line is Kernel 增补 chrome (comment or #### 续 heading). */
+export function isStreamAppendChromeLine(line: string): boolean {
+  const s = String(line || "").trim();
+  if (!s) return false;
+  if (/^<!--\s*topmind:append\b/iu.test(s)) return true;
+  // No \b after 续 — CJK is non-word so \b would never match.
+  return /^#{2,4}\s*续(?=\s|[·•.]|$)/u.test(s);
+}
+
+/**
+ * Display-only prep for Obsidian stream cards.
+ * Strips `<!-- topmind:append ... -->` so machine markers are not chrome-as-content.
+ * Does not rewrite the period note.
+ */
+export function prepareStreamEntryTextForDisplay(text: string): string {
+  return String(text || "")
+    .replace(/<!--[\s\S]*?-->/gu, "")
+    .replace(/\n{3,}/gu, "\n\n")
+    .trim();
+}
+
 export function parseStreamEntries(content: string): StreamEntry[] {
   const entries: StreamEntry[] = [];
   const lines = content.split("\n");
   // Match bullet lines with time prefix: `- HH:MM text` or `* HH:MM text`
   const timeRegex = /^[-*]\s*(\d{1,2}:\d{2})\s+(.*)/u;
-  // A continuation line: indented, or a non-heading, non-bullet, non-frontmatter line
+  // Continuation: blank, append chrome, prose, and non-timestamped bullets/tasks
+  // (formatAppendBlock bodies are often `- item` / `- [ ] task`).
+  // Only a new `- HH:MM` entry or a non-续 heading starts a new card.
   const isContinuation = (line: string): boolean => {
-    if (!line.trim()) return true; // blank line within entry
-    if (/^#{1,6}\s/u.test(line)) return false; // heading starts new section
-    if (/^[-*]\s+\d{1,2}:\d{2}\s/u.test(line)) return false; // new time-stamped entry
-    if (/^[-*]\s+\[/.test(line)) return false; // task list item
-    // Indented continuation OR plain text line (part of multi-line entry)
-    return /^\s+/u.test(line) || !/^[-*]\s/u.test(line);
+    if (!line.trim()) return true;
+    if (isStreamAppendChromeLine(line)) return true;
+    if (/^#{1,6}\s/u.test(line)) return false;
+    if (/^[-*+]\s+\d{1,2}:\d{2}\s/u.test(line)) return false;
+    return true;
   };
   const tagRegex = /#([\w\u4e00-\u9fff-]+)/gu;
 
@@ -262,13 +284,19 @@ export function parseStreamEntries(content: string): StreamEntry[] {
     if (match) {
       const time = match[1];
       const firstText = match[2];
-      // Collect continuation lines (multi-line entries)
+      // Collect continuation lines (multi-line + 增补)
       const textParts: string[] = [firstText];
       let j = i + 1;
       while (j < lines.length && isContinuation(lines[j])) {
         const cont = lines[j];
-        // Stop at trailing blank lines (don't include padding)
-        if (!cont.trim()) break;
+        if (!cont.trim()) {
+          // Keep a blank only when more entry/append content follows (not trailing pad)
+          const next = lines[j + 1];
+          if (!next || !isContinuation(next) || !next.trim()) break;
+          textParts.push("");
+          j++;
+          continue;
+        }
         textParts.push(cont.trim());
         j++;
       }

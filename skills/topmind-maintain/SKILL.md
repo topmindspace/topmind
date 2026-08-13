@@ -1,6 +1,6 @@
 ---
 name: topmind-maintain
-version: 3.2.1
+version: 3.3.0
 description: >-
   确定性体检/清理/结构修复/回执恢复。Use when 快速体检、诊断、doctor、清理、修复、workspace check。
   Do NOT use for 整体巡检 loop、内容整理、捕获、写作、记忆.
@@ -64,7 +64,7 @@ degradation: ../shared/capability-degradation.md
 
 1. 定 scope：workspace / topic / skills / UTR / Desktop  
 2. 先只读诊断：`list-categories`（WorkspaceModel）或 `doctor-workspace`  
-3. 清理/归档必须可逆（备份 role:system / `99-归档/`，路径回执）  
+3. 清理/归档必须可逆（备份现场 **role:system** 目录，常为 `99-归档/` / `99-Archive/`，路径回执）  
 4. **不**把 `state.json` / `.topmind/workspace-map.json` 当内容真源  
 5. 自定义类合法；禁止用固定槽位表否定用户目录  
 6. 记录证据与 follow-up  
@@ -75,7 +75,7 @@ degradation: ../shared/capability-degradation.md
 
 用户说「撤销 / 找回误删」：
 
-1. `list-safety-receipts`（扫描 `99-归档/backups/`、`backups/trash/`、legacy `trash/`、归档专题、`88-输出/` 修订版）  
+1. `list-safety-receipts`（扫描现场 system 目录的 `backups/`、`backups/trash/`、legacy `trash/`、归档专题、delivery 修订版）  
 2. 匹配 `relativePath` / category / topic  
 3. `restore-safety-receipt`（不覆盖已有文件；写 `-restored-` 副本）  
 

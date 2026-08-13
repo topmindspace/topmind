@@ -21,16 +21,14 @@ import {
 // ── Template & Workspace Config Loaders ───────────────────────────────────
 
 /**
- * Load the workspace config (.topmind-config.json) from a workspace root.
- * Returns {} if not found (backward compatible with workspaces that predate config).
+ * Load the workspace contract (topmind.yaml) from a workspace root.
  */
 export function loadWorkspaceConfig(workspaceRoot) {
   return loadConfigFromModel(workspaceRoot);
 }
 
 /**
- * Load the category template for a workspace. Reads .topmind-config.json
- * to determine the template, falls back to knowledge-management.
+ * Load the category template for a workspace from topmind.yaml.
  *
  * @param {string} engineRoot
  * @param {string} workspaceRoot

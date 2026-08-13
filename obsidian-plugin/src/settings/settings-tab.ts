@@ -146,6 +146,7 @@ export class TopmindSettingTab extends PluginSettingTab {
 
   display(): void {
     const { containerEl } = this;
+    this.plugin.kernelService.hydrateWritebackModeFromContract();
     const s = this.plugin.settings;
 
     containerEl.empty();
@@ -573,7 +574,9 @@ export class TopmindSettingTab extends PluginSettingTab {
           .addOption("confirm", t("writeback_confirm"))
           .setValue(s.writebackMode)
           .onChange(async (v) => {
-            s.writebackMode = v as WritebackMode;
+            const mode = v as WritebackMode;
+            s.writebackMode = mode;
+            this.plugin.kernelService.mirrorWritebackMode(mode);
             await this.save();
           }),
       );

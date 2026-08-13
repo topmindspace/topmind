@@ -30,7 +30,7 @@ topmind 是 Agent 时代的本地优先工作台，按需组合四条独立能�
 4. 写回伦理（可逆备份、路径回执、`writeback.mode` auto|confirm、open/locked protection）
 5. **用户概念 ≤5**：记一下 · 动态 · 专题 · 我的情况 · 写出来
 
-**不共享**：运行时进程、IPC、store、强制 tool 调用链；**表面本地 UI 偏好**（Desktop `app-settings.json`、Obsidian plugin data）— 不得 fork 工作区行为键（locale/template/writeback/stream 等）。对比：[`docs/topmind-vs-others.md`](./docs/topmind-vs-others.md)。
+**不共享**：运行时进程、IPC、store、强制 tool 调用链；**表面本地 UI 偏好**（Desktop `app-settings.json`、Obsidian plugin data）— 不得 fork 工作区行为键（locale/template/writeback/stream 等）。写回/locale/template 的操作真源始终是工作区根 `topmind.yaml`；Settings 下拉框若展示这些键，只作缓存并镜像回契约。对比：[`docs/topmind-vs-others.md`](./docs/topmind-vs-others.md)。
 
 ---
 
@@ -46,14 +46,14 @@ topmind 是 Agent 时代的本地优先工作台，按需组合四条独立能�
 
 | 引擎 | 职责 | 实现状态（诚实） |
 |------|------|------------------|
-| contract-engine | 规约加载/校验/迁移/ensure/repair/reseed/求值 | **Done 主路径** — 写闸/model/suggest/lifecycle + 全表面 open 路径 `ensureContract`；**Intentional Partial** 非全 Surface 契约 UI |
+| contract-engine | 规约加载/校验/迁移/ensure/repair/reseed/求值 | **Done 主路径** — `loadContract` 只读 `topmind.yaml`；v3 JSON 仅 `ensureContract` 一次迁移；`saveWorkspaceConfig` 经 `writeContract`；**Intentional Partial** 非全 Surface 契约 UI |
 | workspace-model | 类别/专题/路径 | **Done** — Desktop/UTR 共用 |
 | stream-engine | 周期本/reconcile + **活动窗口** | **Done** — packing · reconcile · `activity-window`（suggest/todo/ops 共用）· 条目增补；**年目录 `yearDir` + 年归档 `archiveStreamYear`**；todo skip hash = 活动 corpus 非仅周期 raw；Desktop 多路 AI 见 `topmind-desktop/DESIGN.md` §0.0.3（prep lane · agent 独立） |
 | memory-engine | 分层记忆/提升物理操作 | **Done** — profile + **periodic（反思语义·年目录对齐）**；建议 apply；**非**专题默认落点（专题在内容大类） |
 | lifecycle-engine | 归档/清理/回顾扫描 | **Done** — scan→建议条；确认 apply 经 `executeArchive` 写闸 |
-| writeback-engine | 保护/影子/回执/备份（**唯一写闸**） | **Done** — Desktop 主写 + UTR + AI `actor:"ai"` 经 Kernel；settings confirm 覆盖 gate；备份/回执仅高影响（locked 覆盖 · delete/archive · `BACKUP_KEEP=3`/`RECEIPT_KEEP=50` · `permanent` 彻底删除） |
+| writeback-engine | 保护/影子/回执/备份（**唯一写闸**） | **Done** — Desktop 主写 + UTR + AI `actor:"ai"` 经 Kernel；settings confirm 覆盖 gate；备份/回执仅高影响（locked 覆盖 · 锁定/核心 delete · archive 迁入 99-归档 · `BACKUP_KEEP=3`/`RECEIPT_KEEP=50` · 普通开放笔记 delete 无 trash · `permanent` 彻底删除） |
 | derived-builder | `.derived/` 生成重建 | **Done 最小** — topic summary + **item-history**；AI 摘要可占位 |
-| ingest-pipeline | URL/文档路由语义 | **Done** 路由 — Desktop commit 经 `resolveIngestRoute`；转换器仍本地 |
+| ingest-pipeline | URL/文档路由语义 | **Done** 路由 — Desktop commit 经 `resolveIngestRoute`；HTML→MD 与 Clip 共用同一算法（Desktop `html-to-markdown.mjs`） |
 
 **铁律（目标）**：Surface 不得平行实现业务语义。现状见 `docs/ARCHITECTURE-RESET.md` §2。
 
@@ -196,7 +196,7 @@ graph TD
 | 捕获 / 周期本 / 编辑 / 剪藏 / 文档加工 | **Done**（抓取网页图片本地化到 `images/{slug}/`） |
 | skill-first AI 对话与领域工具 | **Done**（副驾建议条 + 待确认写入 **Done**） |
 | 三平面目录与 topmind.yaml v4 | **Done**（约定）/ 契约 UI 非强制 **Intentional Partial** |
-| writeback 唯一写闸 | **Done**（主路径 + confirm Model B + 高影响 only 备份/回执：locked 覆盖 · delete/archive · `permanent` 无副本） |
+| writeback 唯一写闸 | **Done**（主路径 + confirm Model B + 高影响 only 备份/回执：locked 覆盖 · 锁定/核心笔记 delete/archive · 普通开放笔记无 trash · `permanent` 无副本） |
 | Memory 产品面（我的情况 / 建议条） | **Done** |
 | 主动建议 + 确认执行 | **Done**（high-impact 须 `confirmed:true`；自动准备可关；AI 建议变更检测 `lastAnalyzedHash`；`promote_memory` 真实 AI 提取非占位符） |
 | 写出来 / publishPath | **Done**（副本 + `published_at`；发布后打开交付件；Outputs 复制正文 / HTML 导出） |

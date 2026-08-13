@@ -115,7 +115,7 @@ clip 时 FileSystemDirectoryHandle 写 {00-收件箱|config buffer}/*.md
 | 精简模板 | 内置 + 域名匹配 + **自定义 JSON**（options 导入/导出） |
 | 元数据 | author / published / `clip_template` / `images_localized` |
 | 落点 | `GET /v1/destinations` + popup；`dest: inbox \| topic \| category` |
-| 清洗 | Desktop `html-to-markdown`；workspace `simple-md` |
+| 清洗 | Bridge 与工作区直写共用 Desktop `html-to-markdown`（`simple-md.js` 只封装 frontmatter，不是第二套转换器） |
 | 文章模板 | Bridge：html→md **之后** `applyArticleTemplate`（`clip-templates.mjs`） |
 | 图片 | Bridge + 工作区；笔记旁 `images/{slug}/` 相对路径；设置可关 |
 | API | Bridge **v2**：health.features · destinations · clip(dest/template/images) |

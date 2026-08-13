@@ -69,6 +69,26 @@ test("all surfaces share the same MAJOR version (breaking-change alignment)", ()
     `UTR major ${utrMajor} must equal Skills major ${skillsMajor}`);
 });
 
+test("Desktop and Obsidian lockfile package versions match package.json", () => {
+  const desktop = readJson("topmind-desktop/package.json").version;
+  const desktopLock = readJson("topmind-desktop/package-lock.json");
+  assert.equal(desktopLock.version, desktop, "topmind-desktop/package-lock.json version");
+  assert.equal(
+    desktopLock.packages?.[""]?.version,
+    desktop,
+    "topmind-desktop/package-lock.json packages.\"\".version",
+  );
+
+  const obsidian = readJson("obsidian-plugin/package.json").version;
+  const obsidianLock = readJson("obsidian-plugin/package-lock.json");
+  assert.equal(obsidianLock.version, obsidian, "obsidian-plugin/package-lock.json version");
+  assert.equal(
+    obsidianLock.packages?.[""]?.version,
+    obsidian,
+    "obsidian-plugin/package-lock.json packages.\"\".version",
+  );
+});
+
 test("UTR version follows Desktop exactly (same installer)", () => {
   const desktop = readJson("topmind-desktop/package.json").version;
   const utr = readTrim("utr/VERSION");

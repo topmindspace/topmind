@@ -165,3 +165,17 @@ test("DESIGN.md documents core UI patterns", () => {
   assert.match(design, /deriveStatusBarBusy/);
   assert.match(design, /FilterChip|data-filter-chip/);
 });
+
+test("ReasoningBlock defaults collapsed; stream status labels exist", () => {
+  const chat = read("src/components/ai/ChatMessage.tsx");
+  const block = chat.slice(chat.indexOf("function ReasoningBlock"), chat.indexOf("export function ChatMessage"));
+  assert.match(block, /useState\(false\)/);
+  assert.match(block, /data-open=\{open\}/);
+  assert.doesNotMatch(block, /useState\(true\)/);
+  const stream = read("src/lib/stream-status.ts");
+  for (const key of ["preparing", "thinking", "calling-tool", "writing"]) {
+    assert.match(stream, new RegExp(`"${key}"`));
+  }
+  const leave = read("src/components/shell/InlineAiLeaveHost.tsx");
+  assert.match(leave, /inlineAiLeaveConfirm/);
+});

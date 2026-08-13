@@ -252,7 +252,7 @@
     "message": "Local workspace only"
   },
   "options_mode_hint": {
-    "message": "Auto mode: Desktop online uses Bridge (better HTML→MD); offline uses authorized workspace folder."
+    "message": "Auto mode: Desktop online uses Bridge (same HTML→MD + dest API + writeback); offline writes the authorized folder (same converter; your click is the confirm)."
   },
   "options_bridge_title": {
     "message": "A · Desktop Clip Bridge"
@@ -315,7 +315,7 @@
     "message": "Clear workspace auth"
   },
   "options_ws_perm_hint": {
-    "message": "Requires Chromium (Chrome / Edge). After selecting folder, click \"Re-authorize write\" on this page or click \"Clip\" in popup — browser remembers permission; Service Worker cannot prompt on its own. Local mode uses lightweight HTML→MD; Bridge mode reuses Desktop pipeline."
+    "message": "Requires Chromium (Chrome / Edge). After selecting folder, click \"Re-authorize write\" on this page or click \"Clip\" in popup — browser remembers permission; Service Worker cannot prompt on its own. Workspace write and Bridge share the same HTML→MD; Bridge also lists destinations and goes through Desktop writeback."
   },
   "options_tpl_title": {
     "message": "C · Clip Templates"

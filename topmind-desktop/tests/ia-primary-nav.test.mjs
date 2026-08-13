@@ -19,12 +19,25 @@ describe("Desktop primary IA target", () => {
     assert.match(src, /key:\s*"stream"/);
     assert.match(src, /select\(\{\s*kind:\s*"stream"\s*\}\)/);
     assert.match(src, /primaryNav\.stream/);
-    // Stream identity = Radio (not Home chrome icon)
+    assert.match(src, /key:\s*"search"/);
+    assert.match(src, /primaryNav\.search/);
     assert.match(src, /icon:\s*Radio/);
     assert.doesNotMatch(src, /icon:\s*Home/);
+    assert.doesNotMatch(src, /RotateCcw/);
+    assert.doesNotMatch(src, /select\(\{\s*kind:\s*"archive"\s*\}\)/);
     assert.doesNotMatch(src, /三个主锚点：`工作台`/);
-    // Legacy 工作台 as living unlabeled target is forbidden
     assert.doesNotMatch(src, /Primary nav — 3 main anchors \(工作台/);
+    assert.doesNotMatch(src, /\+ archive icon/);
+    assert.match(src, /Primary nav — 动态（默认） \/ 收件箱 \/ 写出来 \/ 搜索/);
+  });
+
+  it("living Desktop DESIGN/ARCHITECTURE do not teach archive as a PrimaryNav peer", () => {
+    const design = read("DESIGN.md");
+    const arch = read("ARCHITECTURE.md");
+    assert.match(design, /标题栏主锚点：动态（默认）· 收件箱 · 写出来 · 搜索/);
+    assert.doesNotMatch(design, /标题栏主锚点：动态（默认）· 收件箱 · 写出来 · 归档/);
+    assert.match(arch, /PrimaryNav[^\n]{0,120}搜索/);
+    assert.doesNotMatch(arch, /PrimaryNav[^\n]{0,120}归档图标/);
   });
 
   it("ViewSwitcher keeps tags/kanban behind advanced more menu", () => {
@@ -152,10 +165,10 @@ describe("Desktop primary IA target", () => {
   it("shortcut and command labels do not teach living 工作台 home", () => {
     const zhCommon = JSON.parse(read("src/locales/zh-CN/common.json"));
     const enCommon = JSON.parse(read("src/locales/en-US/common.json"));
-    assert.match(zhCommon.shortcut.home, /动态/);
-    assert.doesNotMatch(zhCommon.shortcut.home, /工作台/);
-    assert.match(enCommon.shortcut.home, /Stream/i);
-    assert.doesNotMatch(enCommon.shortcut.home, /workspace/i);
+    assert.equal(zhCommon.shortcut.home, undefined);
+    assert.equal(enCommon.shortcut.home, undefined);
+    assert.match(zhCommon.shortcut.stream, /动态/);
+    assert.match(enCommon.shortcut.stream, /Stream/i);
     const actions = read("src/plugins/topmind-workspace/actions.ts");
     assert.match(actions, /Go to · Stream/);
     assert.doesNotMatch(actions, /Go to · Workspace/);

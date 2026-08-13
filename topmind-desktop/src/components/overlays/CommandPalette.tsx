@@ -63,7 +63,7 @@ function contextBoost(action: ActionSlot, selection: Selection): number {
     if (group === "skill") boost += 8;
   }
   if (selection.kind === "category" || selection.kind === "stream") {
-    if (id.includes("capture") || id.includes("loop") || id.includes("stream") || id.includes("home")) boost += 30;
+    if (id.includes("capture") || id.includes("loop") || id.includes("stream")) boost += 30;
   }
   if (selection.kind === "file") {
     if (id.includes("write") || id.includes("memory")) boost += 25;

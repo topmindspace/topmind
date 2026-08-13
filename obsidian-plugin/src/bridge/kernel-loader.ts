@@ -85,7 +85,15 @@ export interface KernelContext {
 }
 
 export interface KernelApi {
+  sanitizeAiContent?(text: string): string;
+  isRecoverableLifecycle?(opts: {
+    protection?: string;
+    relativePath?: string;
+    isDirectory?: boolean;
+    hasTopicHome?: boolean;
+  }): boolean;
   loadContract(workspaceRoot: string): Record<string, unknown>;
+  writeContract?(workspaceRoot: string, contract: Record<string, unknown>): string;
   buildDefaultContract(workspaceRoot?: string, template?: unknown): Record<string, unknown>;
   inspectContract?(workspaceRoot: string): {
     state: string;

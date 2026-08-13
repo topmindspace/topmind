@@ -7,9 +7,9 @@
  *   list/restore-safety-receipt 依赖该形状做分类与恢复）。
  * - restore-safety-receipt 不用 kernel executeWrite：恢复的是混合文件/目录树
  *   （含二进制），kernel 无 executeRestore，executeWrite 仅面向 .md 文本写。
- * 两命令仍经 kernel 写闸做 protection 求值（evaluateWritePermission + peekFrontmatter），
- * 并按 TOOLS.md §Write Evidence Format 写标准 YAML receipt 到
- * `{writeback.receipts || 99-归档/receipts}/`。
+ * 两命令仍经 kernel 写闸做 protection 求值（evaluateWritePermission + peekFrontmatter）。
+ * 归档落点即内容新家；返回 evidence（path + affected-files），不另写
+ * `99-归档/receipts/*.yaml`。
  */
 import { promises as fs, existsSync } from "node:fs";
 import path from "node:path";
@@ -20,8 +20,10 @@ import {
   loadContract,
   archiveStreamYear as kernelArchiveStreamYear,
   listStreamYears as kernelListStreamYears,
+  resolveWorkspaceModel,
+  findCategoryByRole,
+  findStreamCategory,
 } from "../../lib/kernel-api.mjs";
-import { buildReceipt } from "../../lib/yaml-writer.mjs";
 import {
   categoryRoot,
   topicRoot,
@@ -31,7 +33,6 @@ import {
   validateRequiredRoots,
 } from "../core/workspace-context.mjs";
 import { parseArgs, resolveMode } from "../core/cli-args.mjs";
-import { receiptId } from "../core/receipt.mjs";
 import { ensureDir, isDirectory } from "../core/topic-files.mjs";
 import { auditWorkspace } from "../core/workspace-audit.mjs";
 import { emitResult } from "../core/result-envelope.mjs";
@@ -66,17 +67,6 @@ async function resolveDirGuardSource(dirAbs) {
     if (entry.isFile() && entry.name.endsWith(".md")) return path.join(dirAbs, entry.name);
   }
   return null;
-}
-
-/** Write standard YAML receipt per TOOLS.md §Write Evidence Format. Returns relative path. */
-async function writeStandardReceipt(ctxObj, contract, evidence) {
-  const receiptsTo = contract?.writeback?.receipts || "99-归档/receipts";
-  const receiptsDir = path.join(ctxObj.userWorkspaceRoot, receiptsTo);
-  await ensureDir(receiptsDir);
-  const receiptAbs = path.join(receiptsDir, `${receiptId("receipt")}.yaml`);
-  const content = buildReceipt({ ...evidence, receipt_path: relPath(ctxObj, receiptAbs) });
-  await fs.writeFile(receiptAbs, content, "utf8");
-  return relPath(ctxObj, receiptAbs);
 }
 
 // ── archive-topic ──────────────────────────────────────────────────────────
@@ -115,23 +105,14 @@ async function archiveTopic({ category, topic, reason, mode }, ctxObj) {
     // remove original
     await fs.rm(topicDir, { recursive: true, force: true });
 
-    // write archive-receipt
+    // Compact metadata lives WITH the archived topic (destination is the
+    // new home). Do not invent a parallel YAML under 99-归档/receipts/.
     await fs.writeFile(
       path.join(archiveTarget, "archive-receipt.json"),
       JSON.stringify({ command: "archive-topic", category, topic, reason, archivedAt: new Date().toISOString() }, null, 2),
       "utf8",
     );
-
-    // standard YAML receipt per TOOLS.md §Write Evidence Format
-    receiptPath = await writeStandardReceipt(ctxObj, contract, {
-      operation: "archive",
-      writeback_mode: permission.writebackMode,
-      target_path: relPath(ctxObj, topicDir),
-      affected_files: [relPath(ctxObj, topicDir), relPath(ctxObj, archiveTarget)],
-      wrote_files: true,
-      protection: permission.protection,
-      saved_at: new Date().toISOString(),
-    });
+    receiptPath = relPath(ctxObj, path.join(archiveTarget, "archive-receipt.json"));
   }
 
   return {
@@ -231,21 +212,9 @@ async function restoreSafetyReceipt({ receiptPath, reason, mode }, ctxObj) {
     }
   }
 
-  // write standard YAML receipt per TOOLS.md §Write Evidence Format
-  let restoreReceiptPath = null;
-  if (mode === "auto") {
-    const contract = loadContract(ctxObj.userWorkspaceRoot);
-    const appliedTargets = restorePlan.map((entry) => entry.to).filter(Boolean);
-    restoreReceiptPath = await writeStandardReceipt(ctxObj, contract, {
-      operation: "restore",
-      writeback_mode: "auto",
-      target_path: appliedTargets[0] || relNorm,
-      affected_files: [relNorm, ...appliedTargets],
-      wrote_files: true,
-      protection: "open",
-      saved_at: new Date().toISOString(),
-    });
-  }
+  // Restore is a create at a non-overwrite destination — evidence only,
+  // no extra 99-归档/receipts YAML.
+  const restoreReceiptPath = null;
 
   return {
     command: "restore-safety-receipt",
@@ -274,15 +243,27 @@ async function archiveStreamYear({ year, mode }, ctxObj) {
       engineRoot: ctxObj.engineRoot,
     });
     const yearInfo = years.find((y) => y.year === yearStr);
+    let archiveDir = "99-归档";
+    let streamDir = "10-动态";
+    try {
+      const model = resolveWorkspaceModel({
+        workspaceRoot: ctxObj.userWorkspaceRoot,
+        engineRoot: ctxObj.engineRoot,
+      });
+      archiveDir = findCategoryByRole(model, "system")?.directory || archiveDir;
+      streamDir = findStreamCategory(model)?.directory || streamDir;
+    } catch {
+      /* keep defaults */
+    }
     return {
       command: "archive-stream-year",
       mode,
       year: yearStr,
       periodCount: yearInfo?.periodCount || 0,
       archived: yearInfo?.archived || false,
-      archiveTarget: `99-归档/stream-archive/${yearStr}`,
+      archiveTarget: `${archiveDir}/stream-archive/${yearStr}`,
       planned: yearInfo
-        ? [{ from: `10-动态/${yearStr}`, to: `99-归档/stream-archive/${yearStr}` }]
+        ? [{ from: `${streamDir}/${yearStr}`, to: `${archiveDir}/stream-archive/${yearStr}` }]
         : [],
       applied: false,
       note: yearInfo?.archived

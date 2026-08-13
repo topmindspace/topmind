@@ -174,10 +174,21 @@ export type Selection =
   /** Connector hub views (weread / x) — light center pages, not a second truth store. */
   | { kind: 'connector'; id: string };
 
-/** Migrate persisted/legacy selection shapes → stream (no living home product). */
+const KNOWN_SELECTION_KINDS = new Set([
+  "inbox",
+  "stream",
+  "category",
+  "topic",
+  "file",
+  "outputs",
+  "archive",
+  "connector",
+]);
+
+/** Unknown / persisted junk kinds collapse to stream. */
 export function normalizeSelection(sel: Selection | { kind: string } | null | undefined): Selection {
   if (!sel || typeof sel !== "object" || !("kind" in sel)) return { kind: "stream" };
-  if ((sel as { kind: string }).kind === "home") return { kind: "stream" };
+  if (!KNOWN_SELECTION_KINDS.has((sel as { kind: string }).kind)) return { kind: "stream" };
   return sel as Selection;
 }
 

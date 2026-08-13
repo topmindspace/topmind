@@ -1,5 +1,5 @@
 import {
-  Sun, Moon, Monitor, Search, ChevronLeft, ChevronRight, Zap, Layers, RotateCcw, Settings, Radio,
+  Sun, Moon, Monitor, Search, ChevronLeft, ChevronRight, Zap, Layers, Settings, Radio,
   FolderOpen, ChevronDown, Plus, Check, LogOut, Loader2, Inbox, Command, MoreHorizontal,
   ClipboardList, ListTodo, Lightbulb,
 } from "lucide-react";
@@ -288,8 +288,8 @@ function WorkspaceSwitcher({ currentRoot }: { currentRoot: string }) {
 }
 
 /**
- * Primary nav — 动态（默认） / 收件箱 / 写出来 + archive icon.
- * Target IA (ARCHITECTURE-RESET / DESIGN §0.0); not legacy 工作台 triad.
+ * Primary nav — 动态（默认） / 收件箱 / 写出来 / 搜索.
+ * Target IA (ARCHITECTURE-RESET / DESIGN §0.0); archive is secondary, not a peer room.
  */
 function PrimaryNav() {
   const { t } = useTranslation(["shell", "common"]);
@@ -382,6 +382,19 @@ function PrimaryNav() {
       active: selection.kind === "outputs",
       action: () => select({ kind: "outputs" }),
     },
+    {
+      key: "search",
+      icon: Search,
+      label: t("primaryNav.search"),
+      badge: 0,
+      badgeTone: "accent" as const,
+      title: t("primaryNav.searchTip"),
+      active: false,
+      action: () => {
+        void import("../overlays/GlobalSearch");
+        useViewStore.getState().openOverlay("search");
+      },
+    },
   ];
 
   return (
@@ -420,21 +433,6 @@ function PrimaryNav() {
           </button>
         </Tooltip>
       ))}
-      {/* 2026-08-07: separator removed — gap spacing suffices for visual grouping */}
-      <Tooltip content={t("primaryNav.archiveTip")}>
-        <button
-          type="button"
-          onClick={() => select({ kind: "archive" })}
-          className={cn(
-            "v4-nav-pill ml-0.5 flex h-7 w-7 items-center justify-center rounded-md",
-            selection.kind !== "archive" && "text-text-tertiary",
-          )}
-          data-active={selection.kind === "archive"}
-          aria-label={t("primaryNav.archiveAriaLabel")}
-        >
-          <RotateCcw size={ICON.xs} {...stroke} />
-        </button>
-      </Tooltip>
     </div>
   );
 }
@@ -665,21 +663,10 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
           </TodoPopover>
         </div>
 
-        {/* L3: search / settings / theme (overflow when compact) */}
+        {/* L3: settings (search lives in PrimaryNav — no second entry) */}
         <div className="v4-titlebar-cluster" data-chrome-tier="l3">
           {!compactTools ? (
             <>
-              <Tooltip content={t("titleBar.searchTip")}>
-                <button
-                  type="button"
-                  className="v4-titlebar-btn"
-                  onMouseEnter={() => warmOverlay("search")}
-                  onClick={() => openOverlay("search")}
-                  aria-label={t("titleBar.searchAriaLabel")}
-                >
-                  <Search size={ICON.sm} {...stroke} />
-                </button>
-              </Tooltip>
               <Tooltip content={t("titleBar.settingsTip")}>
                 <button
                   type="button"
@@ -717,17 +704,6 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
                 </Tooltip>
               }
             >
-              <DropdownItem
-                onSelect={() => {
-                  setToolsOpen(false);
-                  warmOverlay("search");
-                  openOverlay("search");
-                }}
-              >
-                <Search size={ICON.micro} className="shrink-0 opacity-70" />
-                <span className="flex-1">{t("titleBar.searchLabel")}</span>
-                <kbd className="v4-kbd v4-kbd-sm">⌘P</kbd>
-              </DropdownItem>
               <DropdownItem
                 onSelect={() => {
                   setToolsOpen(false);

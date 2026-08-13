@@ -36,7 +36,7 @@ Desktop **Settings → Manage & Updates** can install/upgrade/uninstall Skills i
 | `npm run pack:skills` / `skills:pack` | Skills portable pack under `dist/` |
 | `npm run pack:extension` / `extension:pack` | Extension zip under `dist/` |
 | `npm run obsidian:pack` | Obsidian plugin zip under `dist/` (+ `obsidian-plugin/release/`) |
-| `npm run cask:generate` | Homebrew Cask recipe generator under `casks/topmind.rb` |
+| `npm run cask:generate` | Local generator snapshot under `casks/topmind.rb` (needs a local mac pack for real SHA256). Live Homebrew recipe is `topmindspace/homebrew-tap`, written by `release.yml` `update-homebrew-cask` |
 | `npm run pack:all` | Skills + extension + Obsidian (no Desktop installers) |
 | `npm run desktop:pack:prepare` | Stage `resources/topmind-engine/` + deps gate |
 | `npm run desktop:pack:verify` | Asar / engine / import integrity (no build) |
@@ -250,10 +250,10 @@ obsidian-v{obsidian}  # obsidian plugin only — obsidian-plugin/manifest.json
 
 | Workflow | When | What |
 |----------|------|------|
-| `.github/workflows/ci.yml` | push/PR to main; **manual dispatch** | Default: Node **24**, secrets scan, tests, packaging-deps gate, Desktop **validate + pack:dir smoke**, skills/extension smoke packs. Dispatch-only adds a `plan-dryrun` job mirroring release.yml plan logic without packing. |
+| `.github/workflows/ci.yml` | push/PR to main; **manual dispatch** | Default: Node **24**, secrets scan, docs:guard, root/skills/UTR tests + UTR doctor:engine, Desktop **validate + pack:dir smoke**, Obsidian validate, skills/extension/obsidian smoke packs. Dispatch-only adds a `plan-dryrun` job mirroring release.yml plan logic without packing. |
 | `.github/workflows/release.yml` | version tags / dispatch | Surface-aware packs + **pack:verify:strict** + SHA256SUMS + GitHub Release (tag push → publish; dispatch → draft). Dispatch requires `release_tag` if `create_release` is checked. Empty installer upload → **error** (not warn). |
 
-CI runners use Node **24**. Artifact actions use **upload/download-artifact@v5**（`merge-multiple` 用于 release 汇聚下载）；`actions/checkout@v5` · `actions/setup-node@v5`。  
+CI runners use Node **24**. `actions/checkout@v5` · `actions/setup-node@v5`. CI PR smoke uses `actions/upload-artifact@v5` for pack zips only. Release does **not** use Actions artifact storage (`download-artifact` / `merge-multiple`); pack jobs upload directly with `gh release upload` (avoids the 500MB Actions storage quota).  
 Local engines still accept `>=20.11`.
 
 ### Release pipeline (surface-aware)
@@ -331,6 +331,7 @@ The `plan` job in `release.yml` is the **single source of truth** for which surf
 |--------|----------|-------------------|
 | `skills` | per tag prefix (skills-v* / v* → true; else false) | `${{ inputs.pack_skills }}` |
 | `extension` | per tag prefix (extension-v* / v* → true; else false) | `${{ inputs.pack_extension }}` |
+| `obsidian` | per tag prefix (obsidian-v* / v* → true; else false) | `${{ inputs.pack_obsidian }}` |
 | `desktop` | per tag prefix (desktop-v* / v* → true; else false) | `${{ inputs.pack_desktop }}` |
 | `tag` | `${GITHUB_REF_NAME}` (e.g. `v4.11.0`) | `${{ inputs.release_tag }}` — strip `refs/tags/` prefix if present |
 | `create_release` | always `true` (tag pushes always release) | `${{ inputs.create_release }}` |
