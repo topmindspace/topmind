@@ -463,7 +463,9 @@ AiPanel 模型下拉选择器的 `onChange` 不仅更新内存 store，还同步
 - 专题 / 88 / 99 / **memory**：**folder 懒加载**；揭示嵌套文件时展开祖先 folder  
 - **记忆区段**：`memory/` 目录（profile / todo / periodic / topics）在类别与输出之间展示
 - 展开状态：`localStorage topmind:expanded-nodes:{ws}`；**空数组 = 用户全折叠**  
-- softRefresh：debounce 200ms、不切 loading、保留已展开 childrenCache  
+- softRefresh：debounce 200ms、不切 loading、保留已展开 childrenCache；**listing vs content** 由 `lib/tree-listing-change` 判定——inbox / 输出 / 归档 / 类别根 / add·unlink / ingest 完成走区段重建（空 inbox 变有文件则展开）；专题内部 content-only 带 relativePath 仍定向刷新，避免整树闪烁  
+- 手动刷新：`tree-toolbar` 内 `data-sidebar-refresh`（与展开/折叠/排序/筛选同组），强制 `getTree` 含空 inbox；自动感知是主路径，按钮是逃生口  
+
 - Timeline / Tags / Kanban：`load({ silent: true })`  
 
 ### 关窗 / AI 会话（1.0.12+）

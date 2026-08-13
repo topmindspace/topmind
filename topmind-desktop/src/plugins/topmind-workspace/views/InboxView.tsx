@@ -2,7 +2,7 @@
  * Inbox — temporary capture queue.
  * Topic picker uses portal dropdown (never clipped by EditorArea overflow).
  */
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useDraggable } from "@dnd-kit/core";
 import {
@@ -70,10 +70,14 @@ export function InboxView() {
   const selection = useViewStore((s) => s.selection);
   const fileMenu = useFileContextMenu();
 
-  const loadFiles = useCallback(async () => {
+  const loadGen = useRef(0);
+  const loadFiles = useCallback(async (opts?: { silent?: boolean }) => {
+    const gen = ++loadGen.current;
+    const silent = Boolean(opts?.silent);
+    if (!silent) setLoading(true);
     try {
-      setLoading(true);
       const inbox = await api.ws.inbox();
+      if (gen !== loadGen.current) return;
       setFiles(inbox.files || []);
       if (inbox.inboxName) setInboxName(inbox.inboxName);
       setSelected((prev) => {
@@ -82,15 +86,16 @@ export function InboxView() {
       });
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      if (gen !== loadGen.current) return;
+      if (!silent) setError(e instanceof Error ? e.message : String(e));
     } finally {
-      setLoading(false);
+      if (gen === loadGen.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     void loadFiles();
-    const unsub = onLocal("workspace:file-changed", () => void loadFiles());
+    const unsub = onLocal("workspace:file-changed", () => void loadFiles({ silent: true }));
     return () => {
       unsub();
     };
@@ -202,7 +207,7 @@ export function InboxView() {
           paths={[...selected]}
           onDone={() => {
             setSelected(new Set());
-            void loadFiles();
+            void loadFiles({ silent: true });
           }}
         />
       ) : null}
@@ -254,7 +259,7 @@ export function InboxView() {
       <WorkspaceFileContextMenu
         menu={fileMenu.menu}
         onClose={fileMenu.close}
-        onMutated={() => void loadFiles()}
+        onMutated={() => void loadFiles({ silent: true })}
       />
     </ViewContainer>
   );

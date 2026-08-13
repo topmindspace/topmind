@@ -79,14 +79,20 @@ void (async () => {
   subscribe("update:available", (p) => eventBus.emit("update:available", p));
   subscribe("clip-bridge:clipped", (p) => {
     eventBus.emit("clip-bridge:clipped", p);
-    eventBus.emit("workspace:file-changed", p);
-    const path =
+    const clipPath =
       p && typeof p === "object" && "path" in p
         ? String((p as { path?: string }).path || "")
         : "";
+    eventBus.emit("workspace:file-changed", {
+      ...(p && typeof p === "object" ? p : {}),
+      relativePath: clipPath || undefined,
+      event: "add",
+      source: "clip",
+      listing: true,
+    });
     eventBus.emit(
       "toast:show",
-      path ? i18n.t("common:clip.bridgeSuccess", { name: path.split("/").slice(-1)[0] }) : i18n.t("common:clip.bridgeSuccessNoPath"),
+      clipPath ? i18n.t("common:clip.bridgeSuccess", { name: clipPath.split("/").slice(-1)[0] }) : i18n.t("common:clip.bridgeSuccessNoPath"),
     );
   });
 })();

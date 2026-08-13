@@ -363,7 +363,12 @@ async function handleRequest(req, res, deps) {
       ctx,
     );
 
-    deps.emit?.("workspace:file-changed", { path: evidence?.targetPath || evidence?.path });
+    deps.emit?.("workspace:file-changed", {
+      relativePath: evidence?.targetPath || evidence?.path,
+      event: "add",
+      source: "clip",
+      listing: true,
+    });
     deps.emit?.("clip-bridge:clipped", {
       path: evidence?.targetPath || evidence?.path,
       title,

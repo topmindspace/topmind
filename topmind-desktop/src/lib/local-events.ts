@@ -18,7 +18,18 @@ export interface ToastPayload {
 
 export interface LocalEventMap {
   /** A workspace file changed on disk (relativePath and/or topicId hint). */
-  "workspace:file-changed": { relativePath?: string; topicId?: string } | undefined;
+  "workspace:file-changed": {
+    relativePath?: string;
+    /** Clip / some connectors historically emit `path` instead of relativePath. */
+    path?: string;
+    targetPath?: string;
+    topicId?: string;
+    /** Watcher kind: add | change | unlink | addDir | unlinkDir */
+    event?: string;
+    source?: string;
+    /** Force listing/topology rebuild (ingest commit, clip, etc.). */
+    listing?: boolean;
+  } | undefined;
   /** Transient toast message (already localized). Structured payload enables undo button. */
   "toast:show": string | ToastPayload;
   /** Request opening an overlay from outside the shell. */

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Folder, FolderOpen, FileText, Plus } from "lucide-react";
 import { api } from "../../../services/api";
@@ -41,23 +41,28 @@ export function CategoryView({ category }: Props) {
   const select = useViewStore((s) => s.select);
   const fileMenu = useFileContextMenu();
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
+  const loadGen = useRef(0);
+  const refresh = useCallback(async (opts?: { silent?: boolean }) => {
+    const gen = ++loadGen.current;
+    const silent = Boolean(opts?.silent);
+    if (!silent) setLoading(true);
     try {
       const { topics, looseNotes } = await api.ws.topics(category);
+      if (gen !== loadGen.current) return;
       setTopics(topics || []);
       setLooseNotes(looseNotes || []);
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      if (gen !== loadGen.current) return;
+      if (!silent) setError(e instanceof Error ? e.message : String(e));
     } finally {
-      setLoading(false);
+      if (gen === loadGen.current) setLoading(false);
     }
   }, [category]);
 
   useEffect(() => {
     void refresh();
-    const unsub = onLocal("workspace:file-changed", () => void refresh());
+    const unsub = onLocal("workspace:file-changed", () => void refresh({ silent: true }));
     return () => { unsub(); };
   }, [refresh]);
 

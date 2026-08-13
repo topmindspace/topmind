@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { FolderOpen, FileText, PenLine, Sparkles, Brain, Plus } from "lucide-react";
 import { api } from "../../../services/api";
@@ -55,10 +55,14 @@ export function TopicOverviewView({ topicId }: Props) {
   const openOverlay = useViewStore((s) => s.openOverlay);
   const fileMenu = useFileContextMenu();
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
+  const loadGen = useRef(0);
+  const refresh = useCallback(async (opts?: { silent?: boolean }) => {
+    const gen = ++loadGen.current;
+    const silent = Boolean(opts?.silent);
+    if (!silent) setLoading(true);
     try {
       const topic = await api.ws.getTopic(topicId);
+      if (gen !== loadGen.current) return;
       setData({
         topicName: topic.topicName,
         category: topic.category,
@@ -66,15 +70,16 @@ export function TopicOverviewView({ topicId }: Props) {
       });
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      if (gen !== loadGen.current) return;
+      if (!silent) setError(e instanceof Error ? e.message : String(e));
     } finally {
-      setLoading(false);
+      if (gen === loadGen.current) setLoading(false);
     }
   }, [topicId]);
 
   useEffect(() => {
     void refresh();
-    const unsub = onLocal("workspace:file-changed", () => void refresh());
+    const unsub = onLocal("workspace:file-changed", () => void refresh({ silent: true }));
     return () => { unsub(); };
   }, [refresh]);
 

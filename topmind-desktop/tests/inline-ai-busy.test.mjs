@@ -154,9 +154,11 @@ test("Stream polish uses stream anchor (not period path)", () => {
 
 test("Sidebar softRefresh force-rehydrates expanded children", () => {
   const src = read("src/components/shell/Sidebar.tsx");
+  const toolbar = read("src/components/sidebar/tree-toolbar.tsx");
   assert.match(src, /setChildrenCache\(new Map\(\)\)/);
   assert.match(src, /listDir/);
-  assert.match(src, /data-sidebar-refresh/);
+  assert.match(src, /classifyTreeFileChange/);
+  assert.match(toolbar, /data-sidebar-refresh/);
 });
 
 test("Stream feed uses day cohesion + smart expand helpers", () => {

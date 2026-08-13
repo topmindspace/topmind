@@ -18,6 +18,11 @@ import {
   defaultExpandIds,
   expandIdsForSelection,
 } from "../../lib/tree-reveal";
+import {
+  classifyTreeFileChange,
+  inboxChildCount,
+  shouldExpandInboxSection,
+} from "../../lib/tree-listing-change";
 import { EmptyState } from "../ui/view";
 import { Tooltip } from "../ui/tooltip";
 import { ErrorBoundary } from "../ui/ErrorBoundary";
@@ -394,30 +399,25 @@ function DataSourceSection({
 
   const hasTreeRef = useRef(false);
   hasTreeRef.current = tree.length > 0;
+  const treeRef = useRef(tree);
+  treeRef.current = tree;
 
   /**
-   * Soft refresh: update tree topology without loading spinner, then force-reload
-   * children for every expanded lazy node. Stale childrenCache was the root cause of
-   * “fileCount updates but topic files stay old after organize / move / refresh”.
-   *
-   * When payload carries a relativePath (e.g. auto-save), do a targeted refresh:
-   * only reload children for the topic containing that file — skip full tree rebuild
-   * entirely to avoid flicker (topology doesn't change on content-only saves).
+   * Soft refresh: listing/topology changes rebuild the tree (inbox, outputs,
+   * archive, category-root, add/unlink). Topic-internal content saves stay
+   * targeted so the tree does not flicker. Stale childrenCache was the root
+   * cause of “fileCount updates but topic files stay old after organize / move”.
    */
   const softRefresh = useCallback(async (payload?: unknown) => {
-    const changedRel =
-      payload && typeof payload === "object" && "relativePath" in payload
-        ? String((payload as { relativePath?: string }).relativePath || "")
-        : "";
+    const decision = classifyTreeFileChange(payload);
 
     // Targeted refresh (content-only save): skip full tree rebuild entirely.
     // Topology hasn't changed — only mtime of the saved file. Rebuilding the tree
     // replaces all node object references, causing the entire TreeView to re-render
     // and visually flicker. Instead, just reload the affected topic's children.
-    if (changedRel) {
+    if (decision.kind === "content" && decision.relativePath) {
       try {
-        const parts = changedRel.split("/");
-        const topicId = parts.length >= 2 ? `${parts[0]}/${parts[1]}` : "";
+        const topicId = decision.topicId;
         const expanded = useViewStore.getState().expandedNodeIds;
 
         // Only reload children for the specific topic that changed (updates mtime in cache)
@@ -455,14 +455,24 @@ function DataSourceSection({
       return;
     }
 
-    // Full refresh: rebuild tree + reload all expanded topics.
+    // Listing / topology: rebuild tree + reload all expanded topics.
     // NOTE: do NOT clear entire childrenCache upfront — that causes a visual gap
     // where expanded topics momentarily show "暂无笔记" before rehydrate finishes.
     // Old cache entries stay valid until each topic is reloaded atomically.
     try {
+      const prevInbox = inboxChildCount(treeRef.current);
       const t = await dataSource.getTree();
       applyTree(t);
       setError(null);
+      if (
+        shouldExpandInboxSection({
+          prevInboxCount: prevInbox,
+          nextInboxCount: inboxChildCount(t),
+          selection: useViewStore.getState().selection,
+        })
+      ) {
+        useViewStore.getState().expandNodes(["section/inbox"]);
+      }
       const expanded = useViewStore.getState().expandedNodeIds;
       // Collect lazy nodes that are currently expanded (from new tree + known expanded ids)
       const toReload: TreeNode[] = [];
@@ -687,27 +697,16 @@ function DataSourceSection({
       <div className="flex items-center gap-0.5 px-1.5 pb-1 pt-0.5">
         <PeriodPill pins={pins} />
         <div className="min-w-0 flex-1" />
-        {!loading && !error && tree.length > 0 ? (
-          <TreeToolbar
-            tree={tree}
-            sortMode={treeSortMode}
-            onSortChange={setTreeSortMode}
-            fileFilter={fileFilter}
-            onFileFilterChange={handleFileFilterChange}
-          />
-        ) : null}
-        <Tooltip content={t("sidebar.refreshTooltip")}>
-          <button
-            type="button"
-            onClick={() => void hardRefresh()}
-            disabled={loading}
-            className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 disabled:opacity-40"
-            aria-label={t("sidebar.refreshTooltip")}
-            data-sidebar-refresh
-          >
-            <RefreshCw size={ICON.nano} className={loading ? "animate-spin" : ""} />
-          </button>
-        </Tooltip>
+        <TreeToolbar
+          tree={tree}
+          sortMode={treeSortMode}
+          onSortChange={setTreeSortMode}
+          fileFilter={fileFilter}
+          onFileFilterChange={handleFileFilterChange}
+          onRefresh={() => void hardRefresh()}
+          refreshing={loading}
+          showStructureTools={!error && tree.length > 0}
+        />
       </div>
       {/* Multi-DS: show label eyebrow below merged header */}
       {!compactHeader ? (

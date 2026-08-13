@@ -138,7 +138,7 @@
 | **统一 chip 语言** | `.v4-chip` / `.v4-segmented` / `.v4-composer` / `CaptureModeBar` / FilterChip |
 | **列表 / 下拉** | 门户 `DropdownMenu`/`MenuSelect` / ContextMenu 共用 `.v4-menu-surface`；**先 hidden 测量再显示**（无打开闪跳）；**滚动即关**；`z-menu(110)` > tooltip(100) |
 | **空态** | `EmptyState`：图标芯片 + 一句原因 + **一个主 CTA**（侧栏 compact 同构）；时间线/标签空态须有下一步 |
-| **侧栏树** | 图标 `tree-node-icons` · 右键 `tree-node-context-menu` · 展开/排序 `tree-toolbar` · 路径 `lib/tree-path`；**文件名隐藏 `.md` 后缀**（`stripMdExt`）；**PARA 编号弱化渲染**（`renderCategoryLabel`：`00-` 前缀用 `text-text-quaternary/70`） |
+| **侧栏树** | 图标 `tree-node-icons` · 右键 `tree-node-context-menu` · 展开/排序/筛选 + **手动刷新** `tree-toolbar`（`data-sidebar-refresh`，与排序折叠同组；非标题栏第二份）· 路径 `lib/tree-path`；**文件名隐藏 `.md` 后缀**（`stripMdExt`）；**PARA 编号弱化渲染**（`renderCategoryLabel`：`00-` 前缀用 `text-text-quaternary/70`）。**感知**：`lib/tree-listing-change` 区分 listing（inbox/add/unlink/ingest-done）与 topic 内 content-only；空 inbox 写入后重建并展开，不依赖重启 |
 | **少硬分割线** | 编辑器常驻 ≤2 条 full-width 分割（工具栏 + 可选属性）；避免斑马纹；**Recent tab strip 无底边框**（`.v4-editor-recents` transparent + `shadow-divider-bottom`）；**标题栏 cluster 透明**（`.v4-titlebar-cluster` 无背景无 inset）；**命令触发器为搜索框式浅井**（`.v4-cmd-trigger`：muted well + inset shadow + kbd 右置，Linear 式焦点，非按钮排）；**侧栏双分割线合并**（ViewSwitcher 底线 `/50` alpha + pins 行无边框） |
 | **长时阅读** | UI ≥12px；正文默认 16px / 1.7；列宽 `--content-max-width-prose`；专注模式 ⌘⌥F；边框 alpha 足以勾勒结构、避免糊成一片 |
 | **动效克制** | `duration-fast` 140ms · `duration-enter` 160ms；列表 stagger ≤8；`prefers-reduced-motion` 全关 |
@@ -310,7 +310,7 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
   - **待办清单**：不占侧栏；TitleBar 图标弹层 `TodoPopover`（⌘⇧T · pin/unpin · 可拖动浮动面板）
   - 视图模式持久化到 `settings.ui.sidebarView`（Shell 防抖写入；旧 `localStorage` 键启动时清理）
   - 窄轨自动 icon-only；`prefers-reduced-motion` 时 thumb 无过渡
-- **自动刷新**：侧栏视图订阅 `workspace:file-changed` 事件，文件增删改后自动刷新（StreamView 450ms 防抖；TreeView 软刷新无 spinner；Sidebar 钉直接刷新）
+- **自动刷新**：侧栏订阅 `workspace:file-changed`。目录树用 `classifyTreeFileChange`：inbox / 输出 / 归档 / 类别根 / add·unlink / ingest 完成 = listing 重建（空 inbox 有文件则展开）；专题内部保存 = 定向刷新、不整树闪。Inbox 主列表静默重载（无全页空态闪）。手动刷新在树工具条（展开/折叠/排序旁），不是标题栏第二按钮。StreamView 450ms 防抖。
 - **DataSource 区段**：每个注册的 DataSource 渲染为可折叠区段，带 Database 眉头图标 + 半粗体大写标签。
 - **加载状态**：共享 save-dot 旋转动画；错误/空状态使用规范侧栏提示样式。
 - **TreeView**：递归渲染，按深度缩进。首次渲染时自动展开 group/category 节点。
@@ -813,6 +813,14 @@ chrome（微暖框架）→ background（净白画布）→ surface（工作面�
 - [ ] 打 installer 前 `npm run pack:prepare` 刷新 engine stamp（CI release 会跑）  
 
 
+
+### Phase 6.4（**Desktop 3.3.1** · 侧栏文件感知）
+
+- 抓取 / 转换 / ingest 写入空收件箱后，目录树 inbox 区段列出新文件并展开（不需重启）
+- `workspace:file-changed` 带 inbox（或其它 buffer 根）路径视为 listing，不再因「有 relativePath」被当成 content-only 而跳过重建
+- 专题内部保存仍定向刷新；Inbox / 类别 / 归档主列表静默重载，避免全页空态闪一下
+- 知识加工 **job done** 才发 listing 刷新（入队过早、writeback 常忽略 watcher add）
+- 树工具条保留一个手动刷新（展开/折叠/排序旁）
 
 ## Sidebar · 一级类与交付物（2026-07）
 

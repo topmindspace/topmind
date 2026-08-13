@@ -3,7 +3,7 @@
  * Sort menu uses portal DropdownMenu (never clipped by sidebar overflow).
  */
 import { useState } from "react";
-import { ChevronsDownUp, ChevronsUpDown, ArrowUpDown, Check, Filter } from "lucide-react";
+import { ChevronsDownUp, ChevronsUpDown, ArrowUpDown, Check, Filter, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Tooltip } from "../ui/tooltip";
 import {
@@ -31,12 +31,18 @@ export function TreeToolbar({
   onSortChange,
   fileFilter,
   onFileFilterChange,
+  onRefresh,
+  refreshing = false,
+  showStructureTools = true,
 }: {
   tree: TreeNode[];
   sortMode: TreeSortMode;
   onSortChange: (m: TreeSortMode) => void;
   fileFilter: FileFilterMode;
   onFileFilterChange: (f: FileFilterMode) => void;
+  onRefresh?: () => void;
+  refreshing?: boolean;
+  showStructureTools?: boolean;
 }) {
   const expandNodes = useViewStore((s) => s.expandNodes);
   const setExpandedNodes = useViewStore((s) => s.setExpandedNodes);
@@ -57,6 +63,8 @@ export function TreeToolbar({
 
   return (
     <div className="flex shrink-0 items-center gap-0.5">
+      {showStructureTools ? (
+      <>
       <Tooltip content={t("sidebar.treeToolbar.expandAll")}>
         <button
           type="button"
@@ -169,6 +177,22 @@ export function TreeToolbar({
           </DropdownItem>
         ))}
       </DropdownMenu>
+      </>
+      ) : null}
+      {onRefresh ? (
+        <Tooltip content={t("sidebar.refreshTooltip")}>
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={refreshing}
+            className="inline-flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 disabled:opacity-40"
+            aria-label={t("sidebar.refreshTooltip")}
+            data-sidebar-refresh
+          >
+            <RefreshCw size={ICON.nano} className={refreshing ? "animate-spin" : ""} />
+          </button>
+        </Tooltip>
+      ) : null}
     </div>
   );
 }

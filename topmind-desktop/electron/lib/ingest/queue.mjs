@@ -59,6 +59,24 @@ function touch(job) {
   void persistQueue().catch(() => {});
 }
 
+/**
+ * Listing-change payload after a successful ingest commit.
+ * Watcher add is often suppressed (writeback marks the dest ignored), and
+ * enqueue-time file-changed fires before the converted note exists.
+ * @param {IngestJob | null | undefined} job
+ * @returns {{ relativePath?: string, event: string, source: string, listing: true } | null}
+ */
+export function fileChangedPayloadForCompletedIngestJob(job) {
+  if (!job || job.status !== "done") return null;
+  const target = String(job.result?.targetPath || "").replace(/\\/gu, "/").replace(/^\/+/u, "");
+  return {
+    relativePath: target || undefined,
+    event: "add",
+    source: "ingest",
+    listing: true,
+  };
+}
+
 export function listJobs() {
   return order.map((id) => jobs.get(id)).filter(Boolean);
 }
@@ -155,6 +173,8 @@ async function pump() {
         jobRef.progress = 100;
       } finally {
         touch(jobRef);
+        const listing = fileChangedPayloadForCompletedIngestJob(jobRef);
+        if (listing) emit("workspace:file-changed", listing);
         running -= 1;
         void pump();
       }
