@@ -66,7 +66,7 @@ const v4CommandCount = /8\s*(?:域|tools|道|工具|domains)\s*[\/／]\s*28\s*(?
 
 const requiredWorkflowDocs = [
   files.readme,
-  "README.en.md",
+  "README.zh-CN.md",
   files.design,
   files.projectModel,
   "PRODUCT-BOUNDARIES.md",
@@ -280,7 +280,7 @@ const underclaimSurfaces = [
   "DESIGN.md",
   "TOOLS.md",
   "README.md",
-  "README.en.md",
+  "README.zh-CN.md",
   "AGENTS.md",
   "CLAUDE.md",
   "skills/shared/writeback-receipt.md",

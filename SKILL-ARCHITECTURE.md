@@ -1,6 +1,7 @@
 # SKILL-ARCHITECTURE.md — Skill 架构
 
 > 唯一日常入口：`topmind`。内部 action / connector 是实现模块，**不是**用户第二前台入口。  
+> 产品入口：根 `README.md`（English）· `README.zh-CN.md`（简体中文）；Skills 模块 README 同此约定。  
 > 路由：`读契约 → 哪个类别？哪个专题？哪个对象？什么动作？`  
 > Pack 版本：`skills/topmind-pack.json`。  
 > **产品北极星**：最低摩擦个人动态流；用户概念 ≤5（记一下 · 动态 · 专题 · 我的情况 · 写出来）。  

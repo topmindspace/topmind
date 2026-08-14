@@ -1,6 +1,6 @@
 # Install & update topmind Skills
 
-[Root README](../README.md) · [English](../README.en.md) · [skills/README](./README.md)
+[English](../README.md) · [简体中文](../README.zh-CN.md) · [skills/README](./README.md) · [skills 中文](./README.zh-CN.md)
 
 **Model (same idea as open Agent Skills / `npx skills`):**
 

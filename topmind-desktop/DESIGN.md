@@ -834,7 +834,7 @@ chrome（微暖框架）→ background（净白画布）→ surface（工作面�
 ## 截图与文档
 
 产品截图真源：`docs/images/`（索引见 `docs/images/README.md`）。  
-仓库默认 README 为**中文**（`README.md`）；英文 `README.en.md`。
+仓库默认 README 为**英文**（`README.md`）；简体中文 `README.zh-CN.md`。各模块 README 同此约定。
 
 ---
 

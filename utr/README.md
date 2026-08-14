@@ -1,6 +1,6 @@
 # topmind UTR — optional CLI / MCP
 
-[Root README](../README.md) · [English](../README.en.md) · [TOOLS.md](../TOOLS.md)
+[English](README.md) · [简体中文](README.zh-CN.md) · [Root README](../README.md) · [TOOLS.md](../TOOLS.md)
 
 > **Boundary:** UTR is an **optional** CLI / MCP **adapter** over Kernel (`lib/`).  
 > Skills main path = host file tools. Desktop main path = WorkspaceService → Kernel `writeback-engine`.  
@@ -28,7 +28,7 @@ workspace-read · workspace-write · workspace-transform · workspace-maintain
 contract · memory · lifecycle · derived
 ```
 
-**8 域 / 28 命令** · MCP 默认 **19**（primary + danger）· advanced 9 折叠（`topmind_MCP_ALL=1` 全开）
+**8 域 / 28 命令** · MCP default **19** (primary + danger) · advanced 9 folded (`topmind_MCP_ALL=1` opens all)
 
 | Kind | Primary / Danger | Advanced |
 |------|------------------|----------|

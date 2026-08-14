@@ -1,7 +1,7 @@
 # Capture · Clip · Ingest 能力矩阵
 
 > 对标常见 Web Clipper + topmind 统一「收进来」体验。  
-> 图片约定：[`../skills/shared/media-assets.md`](../skills/shared/media-assets.md) · 扩展说明：[`../browser-extension/README.md`](../browser-extension/README.md)
+> 图片约定：[`../skills/shared/media-assets.md`](../skills/shared/media-assets.md) · 扩展说明：[`../browser-extension/README.md`](../browser-extension/README.md) · [简体中文](../browser-extension/README.zh-CN.md)
 
 ## Web Clipper（`browser-extension/`；版本见 `browser-extension/manifest.json`）
 

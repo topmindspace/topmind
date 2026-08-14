@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-const ENTRY_DOCS = ["README.md", "README.en.md", "AGENTS.md", "CLAUDE.md"];
+const ENTRY_DOCS = ["README.md", "README.zh-CN.md", "AGENTS.md", "CLAUDE.md"];
 
 /** First ```text fenced block that introduces the topmind = Portable Skills formula. */
 function heroFormulaBlock(src) {
@@ -62,8 +62,8 @@ test("entry docs: four cores via ⊕, Clip is companion not equal ⊕ peer", () 
 });
 
 test("README matrix sections use four-cores + Clip distribution wording", () => {
-  const zh = readFileSync(path.join(repo, "README.md"), "utf8");
-  const en = readFileSync(path.join(repo, "README.en.md"), "utf8");
+  const zh = readFileSync(path.join(repo, "README.zh-CN.md"), "utf8");
+  const en = readFileSync(path.join(repo, "README.md"), "utf8");
   assert.match(zh, /四体核心\s*\+\s*Clip/);
   assert.doesNotMatch(zh, /## 🧩 五大表面/);
   assert.match(en, /four cores \+ Clip distribution/i);

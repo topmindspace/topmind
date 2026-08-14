@@ -41,7 +41,7 @@ Do **not** open a public issue with exploit details or live credentials.
 - Extension may send `content_html` (article fragment); Desktop re-processes via shared markdown pipeline — no cloud hop.
 - Optional image download writes under workspace only (local disk); remote fetch is user-initiated clip, not background crawl.
 - Extension `host_permissions` include `http(s)://*/*` so **workspace-direct** image localization can fetch article CDNs (user-initiated clip only). Desktop Bridge uses Node `fetch` with page `Referer` and needs no extra extension hosts for Bridge path.
-- See `docs/adr/2026-07-13-browser-clip-extension.md` · `browser-extension/README.md` · `docs/capture-clip-matrix.md` · `skills/shared/media-assets.md`.
+- See `docs/adr/2026-07-13-browser-clip-extension.md` · `browser-extension/README.md` · `browser-extension/README.zh-CN.md` · `docs/capture-clip-matrix.md` · `skills/shared/media-assets.md`.
 
 ## CI
 

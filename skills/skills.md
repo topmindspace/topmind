@@ -4,7 +4,7 @@
 > **每日唯一入口**：`topmind` (router)。其余 6 个 action 与 2 个 optional connector 模块均由 router 调度。  
 > **通用与可移植**：兼容 Claude Code / OpenCode / Codex / Hermes 等 Agent Host。  
 > **版本真源**：`topmind-pack.json`（可执行 `npm run versions` 查看完整版本号）。  
-> 详见权威说明：[Skills 概览与架构 (README.md)](./README.md) · [安装与部署指南 (INSTALL.md)](./INSTALL.md)。
+> 详见权威说明：[Skills README](./README.md) · [简体中文](./README.zh-CN.md) · [安装与部署指南 (INSTALL.md)](./INSTALL.md)。
 
 ---
 
@@ -32,6 +32,6 @@
 4. **遵从 6 条核心规约**：详见根目录 [`PROJECT-MODEL.md`](../PROJECT-MODEL.md)。
 
 👉 **详细架构、Frontmatter Schema 与安装方法请参阅**：
-- [Skills 架构说明 (README.md)](./README.md)
+- [Skills README](./README.md) · [简体中文](./README.zh-CN.md)
 - [多 Host 安装教程 (INSTALL.md)](./INSTALL.md)
 - [根目录架构契约 (SKILL-ARCHITECTURE.md)](../SKILL-ARCHITECTURE.md)

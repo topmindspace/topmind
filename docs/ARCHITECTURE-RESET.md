@@ -3,13 +3,13 @@
 > **状态**：Accepted · **日期**：2026-07-25 · **最后更新**：2026-08-13  
 > **角色**：架构决策锁 + 实施诚实表（唯一实施真源）  
 > **内容/边界真源**：`PROJECT-MODEL.md` · `PRODUCT-BOUNDARIES.md`  
-> **产品入口**：根 [`README.md`](../README.md)
+> **产品入口**：根 [`README.md`](../README.md)（English）· [`README.zh-CN.md`](../README.zh-CN.md)（简体中文）
 
 ### 读本文前
 
 | 你要… | 去哪 |
 |-------|------|
-| 产品是什么 / 怎么装 | [`../README.md`](../README.md) |
+| 产品是什么 / 怎么装 | [`../README.md`](../README.md) · [`../README.zh-CN.md`](../README.zh-CN.md) |
 | 数据怎么摆 / 6 条规约 | [`../PROJECT-MODEL.md`](../PROJECT-MODEL.md) |
 | Skills / Desktop / UTR 谁做什么 | [`../PRODUCT-BOUNDARIES.md`](../PRODUCT-BOUNDARIES.md) |
 | 当前 Done vs Non-goal | **下文 §2** |

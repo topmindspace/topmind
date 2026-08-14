@@ -1,6 +1,6 @@
 # topmind · Hermes Integration
 
-[Root README](../../README.md) · [English](../../README.en.md) · [Skills install](../../skills/INSTALL.md)
+[English](../../README.md) · [简体中文](../../README.zh-CN.md) · [Skills install](../../skills/INSTALL.md)
 
 Hermes consumes topmind as a portable skill pack, not a second workspace model.
 

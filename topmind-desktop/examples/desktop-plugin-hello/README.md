@@ -1,6 +1,7 @@
 # example-hello — minimal Desktop plugin
 
-Official minimal third-party scaffold (permissions: `slot:action` only).
+Official minimal third-party scaffold (permissions: `slot:action` only).  
+Parent docs: [Desktop README](../../README.md) · [简体中文](../../README.zh-CN.md)
 
 ## Install in Desktop
 

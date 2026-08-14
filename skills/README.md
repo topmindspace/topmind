@@ -1,40 +1,41 @@
 # topmind Skills
 
-可移植 AI 技能包：在 Claude Code / Codex / OpenCode / Hermes 等 Host 上使用同一套内容约定。  
-[总览](../README.md) · [English](../README.en.md) · [安装与发布](./INSTALL.md) · [发布到 skills.sh](./INSTALL.md#publishing-to-skillssh--open-agent-skills-registry) · [架构](../SKILL-ARCHITECTURE.md)
+Portable AI skill pack: the same content contract on Claude Code / Codex / OpenCode / Hermes and other hosts.
+
+[English](README.md) · [简体中文](README.zh-CN.md) · [Overview](../README.md) · [Install](./INSTALL.md) · [Publish to skills.sh](./INSTALL.md#publishing-to-skillssh--open-agent-skills-registry) · [Architecture](../SKILL-ARCHITECTURE.md)
 
 ```bash
-# 仓库根
+# repo root
 npm run skills:install
 npm run skills:update
 # node scripts/install-skills.mjs add topmindspace/topmind -g
 ```
 
-**版本与清单真源：** [`topmind-pack.json`](./topmind-pack.json)（`npm run versions`）。  
-各 `SKILL.md` 的 `version` **必须**等于 pack 版本。
+**Version and manifest truth:** [`topmind-pack.json`](./topmind-pack.json) (`npm run versions`).  
+Each `SKILL.md` `version` **must** equal the pack version.
 
 ---
 
-## 结构
+## Layout
 
 ```text
 skills/
-├── topmind/                 # 唯一日常入口（router）
+├── topmind/                 # only daily entry (router)
 ├── topmind-capture|organize|write|memory|maintain|loop/
-├── topmind-weread|x/        # 可选连接器
-├── shared/                  # 写回回执 · 降级 · 捕获 …
-├── install-targets/         # Host 安装形状
+├── topmind-weread|x/        # optional connectors
+├── shared/                  # write receipts · degradation · capture …
+├── install-targets/         # host install shapes
 ├── evals/evals.json
 └── topmind-pack.json
 ```
 
-| 类型 | 模块 |
-|------|------|
-| **入口** | `topmind` only |
-| **动作** | capture · organize · write · memory · maintain · loop |
-| **连接器** | weread · x（可选） |
+| Kind | Modules |
+|------|---------|
+| **Entry** | `topmind` only |
+| **Actions** | capture · organize · write · memory · maintain · loop |
+| **Connectors** | weread · x (optional) |
 
-> 子 skill 触发词只服务 Host 路由，**不是**第二前台入口。
+> Sub-skill trigger words exist for host routing. They are **not** a second product front door.
 
 ---
 
@@ -53,7 +54,7 @@ Expose only `topmind` as the daily entry. Host session state must not become top
 **Desktop is not required** for this pack. **UTR is optional** — use host file tools when UTR is absent.
 
 Workflow: `收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整`  
-（用户说「收一下」「记一下」「整理」「写成稿」「跑一遍 loop」— router 推断类别 / 专题 / 动作。）
+(If the user says “capture this”, “note it”, “organize”, “write it up”, or “run a loop”, the router infers category / topic / action.)
 
 ---
 
@@ -75,7 +76,7 @@ degradation: ../shared/capability-degradation.md
 ---
 ```
 
-由 `skills/tests/package-manifest.test.mjs` 强制校验。一个 pack JSON，无 per-skill 第二清单。完整 schema：[`../SKILL-ARCHITECTURE.md`](../SKILL-ARCHITECTURE.md)。
+Enforced by `skills/tests/package-manifest.test.mjs`. One pack JSON; no per-skill second manifest. Full schema: [`../SKILL-ARCHITECTURE.md`](../SKILL-ARCHITECTURE.md).
 
 ---
 
@@ -97,8 +98,8 @@ Topic:
 ```text
 {category}/{YYYY-theme}/
 ├── topic.md                 # optional
-├── *.md                       # notes at topic root
-└── images/                    # optional
+├── *.md                     # notes at topic root
+└── images/                  # optional
 ```
 
 Loose note: `{category}/{note}.md` when no topic yet.
@@ -139,7 +140,7 @@ Full rules: [`../PROJECT-MODEL.md`](../PROJECT-MODEL.md) §2.
 
 ## Install targets
 
-Nine skill directories (7 core + 2 connectors) can be symlinked/copied into Claude Code, Codex, OpenCode, Hermes, etc.  
+Nine skill directories (7 core + 2 connectors) can be symlinked/copied into Claude Code, Codex, OpenCode, Hermes, and similar hosts.  
 Prefer the pack-aware installer so `shared/` and `topmind-pack.json` stay intact — see [`INSTALL.md`](./INSTALL.md).
 
 Host adapters must **not** change content truth, add parallel daily entries, or store content in agent runtime state. See [`../PRODUCT-BOUNDARIES.md`](../PRODUCT-BOUNDARIES.md).

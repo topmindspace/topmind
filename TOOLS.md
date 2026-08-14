@@ -1,6 +1,7 @@
 # TOOLS.md — UTR 命令面 · 写回 · Frontmatter
 
 > **位置**：本文档是 UTR 命令面、写入语义、note frontmatter 字段的**唯一真源**。  
+> 产品入口：根 `README.md`（English）· `README.zh-CN.md`（简体中文）；UTR 模块 README 同此约定。  
 > **6 条核心规约**与**三平面模型**：`PROJECT-MODEL.md`。  
 > **行为契约**：工作区根 `topmind.yaml`（8 类规约，机器可读）。  
 > UTR 对 Skills/agent 仍为**可选**底座；Desktop 安装包 **捆绑** `utr/`（Tools 控制台 / doctor），但日常编辑与 AI 写回不强制走 UTR（`PRODUCT-BOUNDARIES.md`）。  

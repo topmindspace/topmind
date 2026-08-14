@@ -1,5 +1,7 @@
 # Packaging — independent distributables
 
+Product entry: root [`README.md`](../README.md) (English) · [`README.zh-CN.md`](../README.zh-CN.md) (简体中文). Module READMEs follow the same pair.
+
 topmind has **four core surfaces** (Skills · Desktop · UTR · Obsidian) plus **Clip Extension** as a Desktop capture companion. They share content conventions, not a single binary. Artifact names always include the **surface** so downloads are unambiguous.
 
 ```text

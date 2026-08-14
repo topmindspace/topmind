@@ -3,7 +3,8 @@
 > **设计北极星**：任意外部工具打开工作区都能一眼看清结构；交互贴近口语；文件系统即真源；Desktop 是**富工作台**（非薄聊天壳）。  
 > **产品北极星**：**最低摩擦个人动态流** — 记下来尽可能简单；AI 默认可生成建议；用户确认后再沉淀。  
 > 四体边界：`PRODUCT-BOUNDARIES.md` · 内容约定：`PROJECT-MODEL.md` · 实施锁：`docs/ARCHITECTURE-RESET.md`  
-> Desktop 像素 / IA 细节：`topmind-desktop/DESIGN.md`（UI 唯一真源，本文不复制线框）。
+> Desktop 像素 / IA 细节：`topmind-desktop/DESIGN.md`（UI 唯一真源，本文不复制线框）。  
+> 产品入口：根 `README.md`（English default）· `README.zh-CN.md`（简体中文）。各模块 README 同此约定。
 
 ---
 

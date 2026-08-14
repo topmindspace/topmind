@@ -107,7 +107,7 @@ test("version truth sources exist; docs only point at them (no multi-copy versio
   // Entry docs must name each truth path so agents know where to bump — not paste numbers.
   const pathSurfaces = [
     "README.md",
-    "README.en.md",
+    "README.zh-CN.md",
     "AGENTS.md",
     "PRODUCT-BOUNDARIES.md",
     "docs/README.md",
@@ -136,6 +136,7 @@ test("version truth sources exist; docs only point at them (no multi-copy versio
 
 test("entry docs describe root scripts and do not keep known stale commands", () => {
   const rootReadme = readText("README.md");
+  const rootReadmeZh = readText("README.zh-CN.md");
   const tools = readText("TOOLS.md");
   const agEnts = readText("AGENTS.md");
   const utrReadme = readText("utr/README.md");
@@ -166,7 +167,8 @@ test("entry docs describe root scripts and do not keep known stale commands", ()
   assert.match(tools, /Roots|Commands/);
   assert.match(agEnts, /Root scripts from repo root/);
   assert.match(utrReadme, /8 域|8 域 28 命令|28 registry|28 命令/);
-  assert.match(rootReadme, /查看当前 UTR 动作域和命令/);
+  assert.match(rootReadme, /Inspect the current action surface|8 domains \/ 28 commands/);
+  assert.match(rootReadmeZh, /查看当前 UTR 动作域和命令/);
   assert.match(utrReadme, /可选 agent 底座|动作底座|确定性.*命令|optional/iu);
   assert.match(utrReadme, /PRODUCT-BOUNDARIES|不依赖 Desktop|optional/iu);
   assert.match(utrReadme, /操作执行审阅|审阅/);

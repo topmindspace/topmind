@@ -126,7 +126,8 @@ contract · workspace-model · stream · memory · lifecycle · **writeback（�
 
 ## Read First
 
-1. `README.md`（**中文默认**）· `README.en.md`（English）  
+1. `README.md`（**English default**）· `README.zh-CN.md`（简体中文）  
+   各模块 README 同此约定：`README.md` = English；`README.zh-CN.md` = 简体中文。
 2. `docs/ARCHITECTURE-RESET.md` — **决策锁 · Target/Done · 实施阶段**  
 3. `PRODUCT-BOUNDARIES.md` — 四体边界  
 4. `PROJECT-MODEL.md` — 内容真源最高优先级  

@@ -12,8 +12,8 @@ PROJECT-MODEL.md               ← 数据模型 + 6 条规约 + 命名 + 配置
 SKILL-ARCHITECTURE.md          ← Skill 架构 + frontmatter schema
 TOOLS.md                       ← UTR 命令面（可选）+ 写回契约
 DESIGN.md                      ← 交互与体验原则（用户概念 ≤5）
-README.md                      ← 入口导航（中文默认）
-README.en.md                   ← English
+README.md                      ← 入口导航（English default）
+README.zh-CN.md                ← 简体中文
 docs/README.md                 ← 文档索引 · ADR · 打包
 ```
 

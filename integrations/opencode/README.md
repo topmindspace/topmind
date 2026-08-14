@@ -1,6 +1,6 @@
 # topmind · OpenCode Integration
 
-[Root README](../../README.md) · [English](../../README.en.md) · [Skills install](../../skills/INSTALL.md)
+[English](../../README.md) · [简体中文](../../README.zh-CN.md) · [Skills install](../../skills/INSTALL.md)
 
 topmind should not fork OpenCode by default. Prefer a thin adapter layer.
 

@@ -120,7 +120,7 @@ UTR = 软探测；写回不经 UTR
 - **薄**：默认主表面 = 动态；用户概念 ≤5；标签/看板/Tools 不进主 chrome
 - **AI 内生**：默认上下文感知；建议默认生成、高影响须确认（Reset D）
 
-**Clip companion 分发面**（非第五「体」）：`browser-extension/`（MV3 剪藏）。经 Bridge 写入 Desktop 工作区；不单独实现 Kernel 业务语义。版本矩阵与四体并列，见根 `README.md`。
+**Clip companion 分发面**（非第五「体」）：`browser-extension/`（MV3 剪藏）。经 Bridge 写入 Desktop 工作区；不单独实现 Kernel 业务语义。版本矩阵与四体并列，见根 `README.md`（English）与 `README.zh-CN.md`（简体中文）。
 
 ### 4.3 UTR
 
