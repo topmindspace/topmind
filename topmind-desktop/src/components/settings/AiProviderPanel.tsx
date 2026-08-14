@@ -145,8 +145,12 @@ function ProviderCard({
   const configured = isProviderConfigured(meta, m);
   const models = catalog?.models ?? [];
   const isLive = catalog?.live === true;
-  const modelCount = models.length;
   const selectedModel = settings.ai.sourcePreference === meta.id ? settings.ai.defaultModel : null;
+  const displayModels =
+    selectedModel && !models.some((mm) => mm.id === selectedModel)
+      ? [...models, { id: selectedModel, label: selectedModel }]
+      : models;
+  const modelCount = displayModels.length;
 
   const patchManual = (key: keyof AppSettings["ai"]["manual"], value: string | null) => {
     update({ ai: { manual: { [key]: value } } } as Partial<AppSettings>);
@@ -313,7 +317,7 @@ function ProviderCard({
           {/* Model list */}
           {modelCount > 0 ? (
             <div className="max-h-40 overflow-auto rounded-[var(--radius-sm)] border border-border-subtle-dim/50">
-              {models.slice(0, 50).map((model) => {
+              {displayModels.slice(0, 50).map((model) => {
                 const isSelected = selectedModel === model.id;
                 return (
                   <button
@@ -449,13 +453,16 @@ export function AiProviderPanel({
   }, []);
 
   const liveCount = catalog.filter((c) => c.live).length;
+  const communityCount = catalog.filter((c) => c.source === "community" && !c.live).length;
   const statusLabel = configuredProviders.length === 0
     ? t("settings:ai.notConfigured")
     : refreshing
       ? t("settings:ai.syncing")
       : liveCount > 0
         ? t("settings:ai.syncedCount", { count: catalog.length })
-        : t("settings:ai.presetCount", { count: catalog.length || "?" });
+        : communityCount > 0
+          ? t("settings:ai.communityCount", { count: catalog.length })
+          : t("settings:ai.presetCount", { count: catalog.length || "?" });
 
   const handleRefreshProvider = () => {
     // Live fetch picks up all configured providers (including Ollama/custom)

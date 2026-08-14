@@ -70,28 +70,27 @@ import {
   cleanupDownloadTemp,
 } from "./lib/companion-download.mjs";
 import { t as ei18n } from "./lib/electron-i18n.mjs";
+import {
+  parseModelsDevCatalog,
+  parseOpenAICompatList,
+  parseGoogleModelsList,
+  mergeCatalogs,
+  mergeOfficialDiskCache,
+  shouldServeCache,
+  shouldPersistCatalog,
+  curatedModelsFor,
+  providerLabel as catalogProviderLabel,
+  MODELS_DEV_URL,
+} from "./lib/model-catalog.mjs";
 
 function secretAdapterFromCtx(ctx) {
   return ctx.secretAdapter || null;
 }
 
-// ── models.dev integration ──────────────────────────────────────────────
-// Community-maintained AI model catalog (https://models.dev)
-// Used as a rich fallback/supplement to live provider API fetches.
-
-/** models.dev provider ID → topmind internal provider ID.
- * Maps the community catalog providers to our internal source IDs.
- * Only providers we can actually route to (have SDK support) are mapped. */
-const MODELS_DEV_PROVIDER_MAP = {
-  openai: "openai",
-  anthropic: "anthropic",
-  google: "google",
-  deepseek: "deepseek",
-  moonshotai: "moonshot",
-  zhipuai: "zhipu",
-  minimax: "minimax",
-  xai: "xai",
-};
+// ── Two-source model catalog ────────────────────────────────────────────
+// official list-models > models.dev community > curated defaults.
+// Parse / merge / cache-honesty live in electron/lib/model-catalog.mjs
+// (identical to engine lib/model-catalog.mjs — pack-safe, no ../../lib).
 
 /** In-memory cache TTL for models.dev catalog (24 hours) */
 const MODELS_DEV_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -536,62 +535,39 @@ export const SystemService = {
    * This ensures the model selector never reverts to stale curated defaults
    * after the user has clicked "刷新模型" — the live list persists across
    * settings saves and UI re-renders. */
-  async discoverModels(_p, ctx) {
+  async discoverModels(params, ctx) {
     const fp = ctx.workspaceStatePaths.settingsFilePath;
     const settings = await loadAppSettings(fp, ctx.workspaceRoot?.userWorkspaceRoot || "", {
       secretAdapter: secretAdapterFromCtx(ctx),
     });
     const status = getRuntimeStatus(settings);
-    const configuredSources = new Set((status.providers || []).map((p) => p.source));
     const cache = settings?.ai?.modelCache;
+    const forceCommunity = params?.forceCommunity === true || params?.forceLive === true;
+    // First paint: official disk + curated only — do not wait on models.dev.
+    const skipCommunity = params?.skipCommunity === true && !forceCommunity;
 
-    // Step 1: Get models.dev catalog as the base (all supported providers)
-    let baseCatalog = [];
-    try {
-      baseCatalog = await this.fetchModelsDevCatalog();
-    } catch {
-      // models.dev unavailable — will fall back to curated defaults below
+    let community = [];
+    if (skipCommunity) {
+      community = modelsDevCache || [];
+    } else {
+      try {
+        community = await this.fetchModelsDevCatalog({ forceLive: forceCommunity });
+      } catch {
+        community = [];
+      }
     }
 
-    // Step 2: If live cache exists, overlay it on top
-    if (cache?.catalog?.length > 0) {
-      const liveMap = new Map(cache.catalog.map((c) => [c.id, c]));
-      // Replace base entries with live data where available
-      const merged = baseCatalog.map((c) => liveMap.get(c.id) || c);
-      // Add live entries not in models.dev (ollama, custom, etc.)
-      const baseIds = new Set(baseCatalog.map((c) => c.id));
-      for (const [id, entry] of liveMap) {
-        if (!baseIds.has(id)) merged.push(entry);
-      }
-      // Add curated defaults for configured providers still missing
-      const mergedIds = new Set(merged.map((c) => c.id));
-      for (const p of (status.providers || [])) {
-        if (!mergedIds.has(p.source)) {
-          merged.push({ id: p.source, label: providerLabel(p.source), models: defaultModelsFor(p.source), live: false });
-        }
-      }
-      return merged;
-    }
-
-    // Step 3: No live cache — return models.dev catalog + curated defaults for configured-but-missing
-    if (baseCatalog.length > 0) {
-      const baseIds = new Set(baseCatalog.map((c) => c.id));
-      for (const p of (status.providers || [])) {
-        if (!baseIds.has(p.source)) {
-          baseCatalog.push({ id: p.source, label: providerLabel(p.source), models: defaultModelsFor(p.source), live: false });
-        }
-      }
-      return baseCatalog;
-    }
-
-    // Final fallback: curated defaults for configured providers only
-    const catalog = (status.providers || []).map((p) => ({
+    const official = Array.isArray(cache?.catalog)
+      ? cache.catalog.filter((c) => c && c.live === true && Array.isArray(c.models) && c.models.length > 0)
+      : [];
+    const curated = (status.providers || []).map((p) => ({
       id: p.source,
       label: providerLabel(p.source),
       models: defaultModelsFor(p.source),
       live: false,
+      source: "curated",
     }));
-    return catalog;
+    return mergeCatalogs({ official, community, curated });
   },
 
   /** Fetch the community-maintained model catalog from models.dev.
@@ -617,19 +593,21 @@ export const SystemService = {
    */
    async fetchModelsDevCatalog(params, _ctx) {
     const forceLive = params?.forceLive === true;
-    // In-memory cache — 24h TTL
     const now = Date.now();
     if (
-      !forceLive &&
-      modelsDevCache &&
-      modelsDevCacheFetchedAt &&
-      now - modelsDevCacheFetchedAt < MODELS_DEV_CACHE_TTL_MS
+      shouldServeCache({
+        cache: modelsDevCache,
+        fetchedAt: modelsDevCacheFetchedAt,
+        now,
+        ttlMs: MODELS_DEV_CACHE_TTL_MS,
+        force: forceLive,
+      })
     ) {
       return modelsDevCache;
     }
 
     try {
-      const res = await fetch("https://models.dev/api.json", {
+      const res = await fetch(MODELS_DEV_URL, {
         signal: AbortSignal.timeout(15_000),
         headers: {
           Accept: "application/json",
@@ -638,77 +616,17 @@ export const SystemService = {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-
-      const catalog = [];
-      for (const [mdId, tmId] of Object.entries(MODELS_DEV_PROVIDER_MAP)) {
-        const provider = data[mdId];
-        if (!provider || !provider.models) continue;
-
-        // Filter to chat-capable models — exclude image-only, embedding, etc.
-        const chatModels = [];
-        for (const [modelId, model] of Object.entries(provider.models)) {
-          // Skip non-text-output models (image generators, embeddings, etc.)
-          const outputModalities = model?.modalities?.output || [];
-          if (
-            outputModalities.length > 0 &&
-            !outputModalities.includes("text")
-          ) {
-            continue;
-          }
-          // Skip models with 0 context (image gen, TTS, etc.)
-          const ctxLimit = model?.limit?.context || 0;
-          if (ctxLimit === 0 && model?.tool_call === false && model?.reasoning === false) {
-            continue;
-          }
-
-          // Build rich model entry with metadata from models.dev
-          const entry = {
-            id: modelId,
-            label: model.name || modelId,
-          };
-          if (typeof model.description === "string" && model.description) {
-            entry.description = model.description;
-          }
-          if (typeof model.tool_call === "boolean") {
-            entry.toolCall = model.tool_call;
-          }
-          if (typeof model.reasoning === "boolean") {
-            entry.reasoning = model.reasoning;
-          }
-          if (typeof ctxLimit === "number" && ctxLimit > 0) {
-            entry.contextLimit = ctxLimit;
-          }
-          if (typeof model.cost?.input === "number" && model.cost.input >= 0) {
-            entry.costInput = model.cost.input;
-          }
-          if (typeof model.cost?.output === "number" && model.cost.output >= 0) {
-            entry.costOutput = model.cost.output;
-          }
-          chatModels.push(entry);
-        }
-
-        if (chatModels.length > 0) {
-          catalog.push({
-            id: tmId,
-            label: providerLabel(tmId),
-            models: chatModels.sort((a, b) => a.label.localeCompare(b.label)),
-            live: false, // models.dev is community-maintained, not live API
-          });
-        }
+      const parsed = parseModelsDevCatalog(data);
+      if (!parsed.ok || !shouldPersistCatalog(parsed.catalog, { fetchSucceeded: true, live: false })) {
+        throw new Error(parsed.error || "empty community catalog");
       }
-
-      modelsDevCache = catalog;
+      modelsDevCache = parsed.catalog;
       modelsDevCacheFetchedAt = now;
-      return catalog;
+      return parsed.catalog;
     } catch (err) {
       logError("system", "fetchModelsDevCatalog failed", { error: err.message });
-      // Return curated defaults on failure
-      return Object.entries(MODELS_DEV_PROVIDER_MAP).map(([, tmId]) => ({
-        id: tmId,
-        label: providerLabel(tmId),
-        models: defaultModelsFor(tmId),
-        live: false,
-      }));
+      // Do not stamp fallback as a live cache. Retry next resolve / force refresh.
+      return modelsDevCache || [];
     }
   },
 
@@ -745,10 +663,14 @@ export const SystemService = {
       if (!p.key || (p.source === "custom" && !p.baseURL)) continue;
       try {
         const models = await fetchOpenAICompatModels(p.baseURL, p.key);
-        providers.push({ id: p.source, label: providerLabel(p.source), models, live: true });
+        if (models.length > 0) {
+          providers.push({ id: p.source, label: providerLabel(p.source), models, live: true, source: "official" });
+        } else {
+          providers.push({ id: p.source, label: providerLabel(p.source), models: [], live: false, error: "empty official list" });
+        }
       } catch (err) {
         logError("system", "fetchLiveModels failed", { provider: p.source, error: err.message });
-        providers.push({ id: p.source, label: providerLabel(p.source), models: defaultModelsFor(p.source), live: false, error: err.message });
+        providers.push({ id: p.source, label: providerLabel(p.source), models: [], live: false, error: err.message });
       }
     }
 
@@ -756,40 +678,43 @@ export const SystemService = {
     if (m.googleKey) {
       try {
         const models = await fetchGoogleModels(m.googleKey);
-        providers.push({ id: "google", label: "Google", models, live: true });
+        if (models.length > 0) {
+          providers.push({ id: "google", label: "Google", models, live: true, source: "official" });
+        } else {
+          providers.push({ id: "google", label: "Google", models: [], live: false, error: "empty official list" });
+        }
       } catch (err) {
         logError("system", "fetchLiveModels failed", { provider: "google", error: err.message });
-        providers.push({ id: "google", label: "Google", models: defaultModelsFor("google"), live: false, error: err.message });
+        providers.push({ id: "google", label: "Google", models: [], live: false, error: err.message });
       }
     }
 
-    // Anthropic — no public list endpoint; always use curated list
-    if (m.anthropicKey) {
-      providers.push({ id: "anthropic", label: "Anthropic", models: defaultModelsFor("anthropic"), live: false });
-    }
+    // Anthropic has no public list-models API — community/curated overlay happens in discoverModels.
 
     // Ollama — local OpenAI-compatible endpoint (no key required)
     const ollamaUrl = m.ollamaBaseUrl || "http://127.0.0.1:11434/v1";
     try {
       const ollamaModels = await fetchOpenAICompatModels(ollamaUrl, "ollama");
-      providers.push({ id: "ollama", label: "Ollama", models: ollamaModels, live: true });
+      if (ollamaModels.length > 0) {
+        providers.push({ id: "ollama", label: "Ollama", models: ollamaModels, live: true, source: "official" });
+      }
     } catch (err) {
-      // Ollama not running — silently skip (don't error the whole fetch)
       logError("system", "fetchLiveModels ollama skipped", { error: err.message });
     }
 
-    // Persist the live catalog to settings so discoverModels() returns it
-    // instead of curated defaults on subsequent calls.
+    // Persist only successful official entries. Keep prior good official on failure.
     try {
-      const cachePayload = { catalog: providers, fetchedAt: new Date().toISOString() };
-      await updateAppSettings(fp, settings, { ai: { modelCache: cachePayload } }, {
-        secretAdapter: secretAdapterFromCtx(ctx),
-      });
-      if (typeof ctx.updateAppSettingsInMemory === "function") {
-        const updated = await loadAppSettings(fp, ctx.workspaceRoot?.userWorkspaceRoot || "", {
+      const nextCache = mergeOfficialDiskCache(settings?.ai?.modelCache, providers);
+      if (nextCache && shouldPersistCatalog(nextCache.catalog, { fetchSucceeded: true, live: true })) {
+        await updateAppSettings(fp, settings, { ai: { modelCache: nextCache } }, {
           secretAdapter: secretAdapterFromCtx(ctx),
         });
-        ctx.updateAppSettingsInMemory(updated);
+        if (typeof ctx.updateAppSettingsInMemory === "function") {
+          const updated = await loadAppSettings(fp, ctx.workspaceRoot?.userWorkspaceRoot || "", {
+            secretAdapter: secretAdapterFromCtx(ctx),
+          });
+          ctx.updateAppSettingsInMemory(updated);
+        }
       }
     } catch (err) {
       logError("system", "modelCache persist failed", { error: err.message });
@@ -2028,102 +1953,14 @@ export const SystemService = {
 };
 
 function providerLabel(source) {
-  return source === "openai" ? "OpenAI"
-    : source === "anthropic" ? "Anthropic"
-    : source === "google" ? "Google"
-    : source === "deepseek" ? "DeepSeek"
-    : source === "moonshot" ? "Moonshot/Kimi"
-    : source === "zhipu" ? "Zhipu/GLM"
-    : source === "minimax" ? "MiniMax"
-    : source === "xai" ? "xAI/Grok"
-    : source === "ollama" ? "Ollama"
-    : source === "custom" ? "Custom (OpenAI-compatible)"
-    : source;
+  return catalogProviderLabel(source);
 }
 
-/** Curated fallback model lists — used when live fetch fails or for Anthropic
- * (which has no public list-models endpoint). Updated 2026-07.
- *
- * These are intentionally curated (not exhaustive) — the live fetch from each
- * provider's /models endpoint provides the full list. This is the safety net
- * when the API is unreachable or the provider has no list endpoint. */
 function defaultModelsFor(source) {
-  switch (source) {
-    case "openai":
-      return [
-        { id: "gpt-4o-mini", label: "GPT-4o mini" },
-        { id: "gpt-4o", label: "GPT-4o" },
-        { id: "gpt-5.6-luna", label: "GPT-5.6 Luna" },
-        { id: "gpt-5.6-sol", label: "GPT-5.6 Sol" },
-        { id: "o3", label: "o3" },
-        { id: "o4-mini", label: "o4-mini" },
-      ];
-    case "anthropic":
-      return [
-        { id: "claude-sonnet-5", label: "Claude Sonnet 5" },
-        { id: "claude-opus-5", label: "Claude Opus 5" },
-        { id: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5" },
-        { id: "claude-3-7-sonnet-20250219", label: "Claude 3.7 Sonnet" },
-      ];
-    case "google":
-      return [
-        { id: "gemini-3.6-flash", label: "Gemini 3.6 Flash" },
-        { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash" },
-        { id: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro Preview" },
-        { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
-        { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
-      ];
-    case "deepseek":
-      return [
-        { id: "deepseek-chat", label: "DeepSeek Chat (V4)" },
-        { id: "deepseek-v4-flash", label: "DeepSeek V4 Flash" },
-        { id: "deepseek-v4-pro", label: "DeepSeek V4 Pro" },
-        { id: "deepseek-reasoner", label: "DeepSeek Reasoner" },
-      ];
-    case "moonshot":
-      return [
-        { id: "kimi-k2.5", label: "Kimi K2.5" },
-        { id: "kimi-k3", label: "Kimi K3 (1M)" },
-        { id: "kimi-k2.6", label: "Kimi K2.6" },
-        { id: "moonshot-v1-128k", label: "Moonshot V1 128K" },
-      ];
-    case "zhipu":
-      return [
-        { id: "glm-4.7-flash", label: "GLM-4.7 Flash" },
-        { id: "glm-5.2", label: "GLM-5.2 (1M)" },
-        { id: "glm-5", label: "GLM-5" },
-        { id: "glm-4.5-flash", label: "GLM-4.5 Flash" },
-      ];
-    case "minimax":
-      return [
-        { id: "MiniMax-M2.5", label: "MiniMax M2.5" },
-        { id: "MiniMax-M3", label: "MiniMax M3 (1M)" },
-        { id: "MiniMax-M2.7", label: "MiniMax M2.7" },
-        { id: "MiniMax-Text-01", label: "MiniMax Text 01" },
-      ];
-    case "xai":
-      return [
-        { id: "grok-3-mini", label: "Grok 3 Mini" },
-        { id: "grok-4.5", label: "Grok 4.5" },
-        { id: "grok-4.3", label: "Grok 4.3 (1M)" },
-        { id: "grok-3", label: "Grok 3" },
-      ];
-    case "ollama":
-      return [
-        { id: "qwen2.5:7b", label: "Qwen2.5 7B" },
-        { id: "qwen2.5:14b", label: "Qwen2.5 14B" },
-        { id: "llama3.2:8b", label: "Llama 3.2 8B" },
-        { id: "deepseek-r1:8b", label: "DeepSeek R1 8B" },
-      ];
-    case "custom":
-      return [{ id: "default", label: "Default model" }];
-    default:
-      return [];
-  }
+  return curatedModelsFor(source);
 }
 
-/** Fetch models from an OpenAI-compatible `/models` endpoint.
- * Filters out embedding/tts/whisper models, keeps chat-capable ones. */
+/** Fetch models from an OpenAI-compatible `/models` endpoint. */
 async function fetchOpenAICompatModels(baseURL, apiKey) {
   const url = baseURL.replace(/\/+$/u, "") + "/models";
   const res = await fetch(url, {
@@ -2132,43 +1969,18 @@ async function fetchOpenAICompatModels(baseURL, apiKey) {
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const json = await res.json();
-  const data = Array.isArray(json?.data) ? json.data : [];
-  // Filter to chat-capable models — exclude embedding/tts/whisper/dall-e
-  const chatModels = data
-    .filter((m) => {
-      const id = String(m?.id || "");
-      if (/^(text-embedding|tts|whisper|dall-e|davinci|babbage|curie|ada)/iu.test(id)) return false;
-      return true;
-    })
-    .map((m) => {
-      const id = String(m.id);
-      // Human-friendly label: strip date suffixes, capitalize
-      const label = id
-        .replace(/-(\d{4})(\d{2})(\d{2})$/u, "")
-        .replace(/[-_]/gu, " ")
-        .replace(/\b\w/gu, (c) => c.toUpperCase());
-      return { id, label };
-    })
-    .sort((a, b) => a.label.localeCompare(b.label));
-  return chatModels.length > 0 ? chatModels : defaultModelsFor("openai");
+  const parsed = parseOpenAICompatList(json);
+  if (!parsed.ok) throw new Error(parsed.error || "invalid official list");
+  return parsed.models;
 }
 
-/** Fetch models from Google's Generative Language API.
- * Returns chat-capable models (supports generateContent). */
+/** Fetch models from Google's Generative Language API. */
 async function fetchGoogleModels(apiKey) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`;
   const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const json = await res.json();
-  const models = Array.isArray(json?.models) ? json.models : [];
-  const chatModels = models
-    .filter((m) => Array.isArray(m?.supportedGenerationMethods) && m.supportedGenerationMethods.includes("generateContent"))
-    .map((m) => {
-      // name is "models/gemini-2.0-flash" → id is "gemini-2.0-flash"
-      const id = String(m.name || "").replace(/^models\//u, "");
-      const label = String(m.displayName || id).replace(/[-_]/gu, " ").replace(/\b\w/gu, (c) => c.toUpperCase());
-      return { id, label };
-    })
-    .sort((a, b) => a.label.localeCompare(b.label));
-  return chatModels.length > 0 ? chatModels : defaultModelsFor("google");
+  const parsed = parseGoogleModelsList(json);
+  if (!parsed.ok) throw new Error(parsed.error || "invalid official list");
+  return parsed.models;
 }

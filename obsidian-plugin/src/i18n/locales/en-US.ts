@@ -253,6 +253,9 @@ export const enUS: typeof zhCN = {
   notice_new_note_failed: "Failed to create note",
   notice_models_loaded: "Loaded {{count}} models",
   notice_models_failed: "Model list fetch failed, using built-in defaults",
+  notice_models_official: "Loaded {{count}} models from the provider API",
+  notice_models_community: "Loaded {{count}} models from the community catalog",
+  notice_models_fallback: "Using built-in defaults (live list unavailable)",
 
   // ── Accessibility ──
   stream_expand_entry: "Click to expand/collapse entry",

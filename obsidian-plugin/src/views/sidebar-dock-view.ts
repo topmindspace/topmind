@@ -24,7 +24,7 @@ import type { SuggestionCard } from "../types";
 import { isStreamOrTodoPath, SUGGESTION_KIND_META } from "../utils";
 import { hasConfiguredProvider } from "../types";
 import { aiTaskManager, type TaskProgress, type AiTask } from "../services/ai-task-manager";
-import { getModelsForProvider } from "../services/models-dev";
+import { resolveProviderCatalog, applyModelOptions, credentialsForProvider } from "../services/models-dev";
 
 // ── Node.js built-ins (esbuild platform:'node' converts to require) ──
 import fs from "node:fs";
@@ -786,8 +786,11 @@ export class SidebarDockView extends ItemView {
       }
     }
 
-    // Set current value
+    // Set current value — keep a custom id visible before the dynamic list arrives
     const currentModel = this.chatModelOverride || this.plugin.settings.ai.defaultModel || "";
+    if (currentModel && !Array.from(modelSelect.options).some((o) => o.value === currentModel)) {
+      modelSelect.createEl("option", { value: currentModel, text: currentModel });
+    }
     modelSelect.value = currentModel;
 
     modelSelect.addEventListener("change", async () => {
@@ -798,40 +801,23 @@ export class SidebarDockView extends ItemView {
       await this.plugin.saveSettings();
     });
 
-    // Async: load dynamic models from models.dev
+    // Curated defaults already rendered; enrich from official / community
     this.loadChatModels(activeProvider, modelSelect, currentModel);
   }
 
-  /** Async load models from models.dev and update the select options */
+  /** Resolve official + community + curated and update the chat model select. */
   private async loadChatModels(providerId: string, selectEl: HTMLSelectElement, currentValue: string): Promise<void> {
     try {
-      const models = await getModelsForProvider(providerId);
-      if (models.length === 0) return;
-
+      const creds = credentialsForProvider(providerId, this.plugin.settings.ai.manual);
+      const result = await resolveProviderCatalog(providerId, creds);
       const preset = AI_PROVIDER_PRESETS[providerId];
-      const presetModel = preset?.model || null;
-
-      // Remove old non-default, non-preset options
-      const toRemove: HTMLOptionElement[] = [];
-      for (const opt of selectEl.options) {
-        if (opt.value === "") continue;
-        if (presetModel && opt.value === presetModel) continue;
-        toRemove.push(opt);
-      }
-      for (const opt of toRemove) opt.remove();
-
-      // Add models.dev entries (skip duplicates)
-      const existing = new Set(Array.from(selectEl.options).map((o) => o.value));
-      for (const m of models) {
-        if (existing.has(m.id)) continue;
-        selectEl.createEl("option", { value: m.id, text: m.label });
-        existing.add(m.id);
-      }
-
-      // Restore selection
-      selectEl.value = currentValue;
+      applyModelOptions(selectEl, result.models, {
+        currentValue,
+        presetModel: preset?.model || null,
+        defaultLabel: t("settings_ai_model_default"),
+      });
     } catch {
-      // models.dev fetch failed — static fallbacks remain
+      // Network failed — curated options already on screen
     }
   }
 

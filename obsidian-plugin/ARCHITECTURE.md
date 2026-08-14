@@ -157,7 +157,7 @@ obsidian-plugin/
 │   │   ├── kernel-service.ts         # Kernel 操作封装（capture / suggest / ops / todo / chat）
 │   │   ├── kernel-workspace-ops.ts   # 纯 Kernel 写路径操作（无 Obsidian 依赖，可测试）
 │   │   ├── ai-task-manager.ts        # AI 任务管理器（多任务队列、进度追踪、中止）
-│   │   └── models-dev.ts             # models.dev 社区模型目录集成
+│   │   └── models-dev.ts             # 双源模型目录（官方 list-models + models.dev + 精选回退）
 │   └── i18n/
 │       ├── index.ts           # t() 函数
 │       └── locales/
@@ -483,7 +483,7 @@ interface TopmindSettings {
 >
 > **模型徽章**：侧边栏头部 + 工作台工具栏实时显示当前 AI 服务商 + 模型（如 "DeepSeek · deepseek-chat"），通过 `kernelService.getActiveModelLabel()` 获取。
 >
-> **模型选择**：只要配置了任意一个 AI 服务商，模型选择下拉框就会显示。从 [models.dev](https://models.dev) 社区目录获取最新模型列表。下拉框旁还提供自定义模型文本输入框，可直接输入任意模型 ID。auto 模式（服务商偏好留空）时模型选择仍可用。
+> **模型选择**：只要配置了任意一个 AI 服务商，模型选择下拉框就会显示。解析顺序为 **官方 list-models > [models.dev](https://models.dev) 社区目录 > 精选默认**（解析/合并/缓存策略与 Desktop 共用 `lib/model-catalog.mjs`）。已配置 OpenAI 兼容 / Google / Ollama / Custom 时刷新打官方接口；Anthropic 无公开 list 端点，刷新打 models.dev。失败不把空列表或默认列表写成 live 缓存。下拉框旁可手填自定义模型 ID。auto 模式（服务商偏好留空）时模型选择仍可用。
 >
 > **工作区状态卡片**：显示当前工作区是否就绪、大类数量、契约是否有效。提供「诊断契约」和「重建契约」按钮。
 >

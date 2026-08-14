@@ -658,7 +658,22 @@ export const useAiStore = create<AiState>((set, get) => ({
     else if (forceLive || forceModelsDev) set({ modelCatalogError: null });
 
     try {
-      // Load models.dev community catalog first (24h TTL cache)
+      // First paint: official disk + curated, no models.dev download.
+      if (get().modelCatalog.length === 0) {
+        try {
+          const instant = (await api.sys.discoverModels({ skipCommunity: true })) as ProviderInfo[];
+          if (instant.length > 0) {
+            set({
+              modelCatalog: instant,
+              modelCatalogFetchedAt: get().modelCatalogFetchedAt,
+            });
+          }
+        } catch {
+          /* empty catalog when unconfigured is fine */
+        }
+      }
+
+      // Community catalog (24h TTL). Force refresh bypasses TTL.
       if (
         forceModelsDev ||
         (!state.modelsDevCatalogFetchedAt ||
@@ -666,30 +681,14 @@ export const useAiStore = create<AiState>((set, get) => ({
       ) {
         try {
           const mdCatalog = await api.sys.fetchModelsDevCatalog({ forceLive: forceModelsDev });
-          const now = new Date().toISOString();
-          set({
-            modelsDevCatalog: mdCatalog,
-            modelsDevCatalogFetchedAt: now,
-          });
-        } catch (e) {
-          // models.dev fetch failed — not a blocker, log and continue
-          console.error("models.dev fetch failed:", e);
-        }
-      }
-
-      // Hydrate from disk cache first (fast IPC, no network)
-      if (get().modelCatalog.length === 0) {
-        try {
-          const cached = (await api.sys.discoverModels()) as ProviderInfo[];
-          if (cached.length > 0) {
+          if (Array.isArray(mdCatalog) && mdCatalog.length > 0) {
             set({
-              modelCatalog: cached,
-              // Don't stamp as "live" yet — TTL gate still allows soft live pull
-              modelCatalogFetchedAt: get().modelCatalogFetchedAt,
+              modelsDevCatalog: mdCatalog,
+              modelsDevCatalogFetchedAt: new Date().toISOString(),
             });
           }
-        } catch {
-          /* empty catalog when unconfigured is fine */
+        } catch (e) {
+          console.error("models.dev fetch failed:", e);
         }
       }
 
@@ -700,24 +699,40 @@ export const useAiStore = create<AiState>((set, get) => ({
 
       if (shouldLive) {
         try {
-          const live = (await api.sys.fetchLiveModels()) as ProviderInfo[];
-          const now = new Date().toISOString();
-          set({
-            modelCatalog: live.length > 0 ? live : get().modelCatalog,
-            modelCatalogFetchedAt: now,
-            modelCatalogError: null,
-          });
+          await api.sys.fetchLiveModels();
         } catch (e) {
-          // Keep disk/in-memory cache; only surface on explicit refresh
           if (forceLive || !silent) {
             set({
               modelCatalogError: e instanceof Error ? e.message : String(e),
             });
           }
-          // Soft-stamp so we don't hammer failed endpoints every open
+        }
+      }
+
+      // Always re-merge after official / community work so the picker is not
+      // official-only (browse + Anthropic stay visible).
+      try {
+        const merged = (await api.sys.discoverModels({
+          forceCommunity: forceModelsDev,
+        })) as ProviderInfo[];
+        const now = new Date().toISOString();
+        if (merged.length > 0) {
+          set({
+            modelCatalog: merged,
+            modelCatalogFetchedAt: shouldLive || forceModelsDev ? now : get().modelCatalogFetchedAt || now,
+            modelCatalogError: shouldLive ? get().modelCatalogError : null,
+          });
+        } else if (forceLive || forceModelsDev) {
+          // Failed refresh must not stamp fallback-as-live; keep prior list.
           if (!get().modelCatalogFetchedAt && get().modelCatalog.length > 0) {
-            set({ modelCatalogFetchedAt: new Date().toISOString() });
+            set({ modelCatalogFetchedAt: now });
           }
+        }
+      } catch (e) {
+        if (forceLive || !silent) {
+          set({
+            modelCatalogError: e instanceof Error ? e.message : String(e),
+          });
         }
       }
 

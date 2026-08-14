@@ -20,7 +20,12 @@ import {
   PROVIDER_GROUPS,
   PROVIDER_DEFAULT_MODELS,
 } from "../constants";
-import { getModelsForProvider } from "../services/models-dev";
+import {
+  resolveProviderCatalog,
+  applyModelOptions,
+  credentialsForProvider,
+  clearModelsDevCache,
+} from "../services/models-dev";
 import { reseedWorkspaceContract } from "../services/kernel-workspace-ops";
 import { getKernel } from "../bridge/kernel-loader";
 import { StreamWorkbenchView } from "../views/stream-workbench-view";
@@ -327,8 +332,6 @@ export class TopmindSettingTab extends PluginSettingTab {
           s.ai.sourcePreference = v;
           s.aiProvider = (v || "none") as TopmindPlugin["settings"]["aiProvider"];
           await this.save();
-          // Clear models.dev cache so fresh models are fetched for the new provider
-          const { clearModelsDevCache } = await import("../services/models-dev");
           clearModelsDevCache();
           // Re-render settings so model dropdown updates for the new provider
           this.display();
@@ -349,10 +352,13 @@ export class TopmindSettingTab extends PluginSettingTab {
         if (preset?.model) {
           dd.addOption(preset.model, `${preset.model} (${t("settings_ai_model_default")})`);
         }
-        // Static fallbacks — will be replaced when models.dev loads
+        // Curated fallbacks — official / community overlay arrives async
         const fallback = PROVIDER_DEFAULT_MODELS[activeProvider] || [];
         for (const m of fallback) {
           dd.addOption(m.id, m.label);
+        }
+        if (s.ai.defaultModel && s.ai.defaultModel !== preset?.model && !fallback.some((m) => m.id === s.ai.defaultModel)) {
+          dd.addOption(s.ai.defaultModel, s.ai.defaultModel);
         }
         dd.setValue(s.ai.defaultModel || "").onChange(async (v) => {
           s.ai.defaultModel = v;
@@ -378,7 +384,7 @@ export class TopmindSettingTab extends PluginSettingTab {
           }
         });
       });
-      // Refresh models button — forces re-fetch from models.dev
+      // Refresh — force-bypass TTL; official list-models when keyed, else models.dev
       modelSetting.addExtraButton((btn) => {
         btn
           .setIcon("refresh-cw")
@@ -388,18 +394,14 @@ export class TopmindSettingTab extends PluginSettingTab {
             btn.setDisabled(true);
             btn.setIcon("loader");
             try {
-              // Clear cache and re-fetch
-              const { clearModelsDevCache } = await import("../services/models-dev");
-              clearModelsDevCache();
-              await this.loadDynamicModels(activeProvider, modelSelectEl);
-              // Check if live models were loaded
-              const { fetchModelsDevCatalog } = await import("../services/models-dev");
-              const catalog = await fetchModelsDevCatalog();
-              const entry = catalog.find((c) => c.id === activeProvider);
-              if (entry?.live) {
-                new Notice(t("notice_models_loaded").replace("{{count}}", String(entry.models.length)));
+              const result = await this.loadDynamicModels(activeProvider, modelSelectEl, true);
+              const count = String(result.models.length);
+              if (result.source === "official") {
+                new Notice(t("notice_models_official").replace("{{count}}", count));
+              } else if (result.source === "community") {
+                new Notice(t("notice_models_community").replace("{{count}}", count));
               } else {
-                new Notice(t("notice_models_failed"));
+                new Notice(t("notice_models_fallback"));
               }
             } finally {
               btn.setDisabled(false);
@@ -407,9 +409,9 @@ export class TopmindSettingTab extends PluginSettingTab {
             }
           });
       });
-      // Async: fetch from models.dev and update dropdown options
+      // Curated defaults are already on screen; enrich without blocking first paint
       if (modelSelectEl) {
-        this.loadDynamicModels(activeProvider, modelSelectEl);
+        void this.loadDynamicModels(activeProvider, modelSelectEl, false);
       }
     }
 
@@ -506,8 +508,6 @@ export class TopmindSettingTab extends PluginSettingTab {
                 await this.save();
                 // When AI transitions from unconfigured to configured, prompt model selection
                 if (!wasConfigured && hasConfiguredProvider(s.ai) && !s.ai.defaultModel) {
-                  // Clear models.dev cache so fresh models are fetched for the new provider
-                  const { clearModelsDevCache } = await import("../services/models-dev");
                   clearModelsDevCache();
                   new Notice(t("settings_ai_model_select_hint"));
                   this.display();
@@ -747,39 +747,21 @@ export class TopmindSettingTab extends PluginSettingTab {
     }
   }
 
-  /** Async-load models from models.dev and update the dropdown in-place.
-   * Replaces static fallback options with the live community catalog. */
-  private async loadDynamicModels(providerId: string, selectEl: HTMLSelectElement): Promise<void> {
-    try {
-      const models = await getModelsForProvider(providerId);
-      if (models.length === 0) return;
-
-      // Preserve current value
-      const currentValue = selectEl.value;
-      const preset = AI_PROVIDER_PRESETS[providerId];
-      const presetModel = preset?.model || null;
-
-      // Remove old non-default, non-preset options (static fallbacks)
-      const toRemove: HTMLOptionElement[] = [];
-      for (const opt of selectEl.options) {
-        if (opt.value === "") continue;
-        if (presetModel && opt.value === presetModel) continue;
-        toRemove.push(opt);
-      }
-      for (const opt of toRemove) opt.remove();
-
-      // Add models.dev entries (skip duplicates)
-      const existing = new Set(Array.from(selectEl.options).map((o) => o.value));
-      for (const m of models) {
-        if (existing.has(m.id)) continue;
-        selectEl.createEl("option", { value: m.id, text: m.label });
-        existing.add(m.id);
-      }
-
-      // Restore selection
-      selectEl.value = currentValue;
-    } catch {
-      // models.dev fetch failed — static fallbacks remain in place
-    }
+  /** Resolve official + community + curated and update the dropdown in-place. */
+  private async loadDynamicModels(
+    providerId: string,
+    selectEl: HTMLSelectElement,
+    force = false,
+  ): Promise<{ models: { id: string; label: string }[]; source: string; live: boolean }> {
+    const creds = credentialsForProvider(providerId, this.plugin.settings.ai.manual);
+    const result = await resolveProviderCatalog(providerId, { force, ...creds });
+    const currentValue = this.plugin.settings.ai.defaultModel || selectEl.value || "";
+    const preset = AI_PROVIDER_PRESETS[providerId];
+    applyModelOptions(selectEl, result.models, {
+      currentValue,
+      presetModel: preset?.model || null,
+      defaultLabel: t("settings_ai_model_default"),
+    });
+    return result;
   }
 }

@@ -504,8 +504,9 @@
   "ai": {
     "notConfigured": "未配置",
     "syncing": "同步中…",
-    "syncedCount": "{{count}} 家 · 已同步",
-    "presetCount": "{{count}} 家 · 预设列表",
+    "syncedCount": "{{count}} 家 · 已同步官方列表",
+    "communityCount": "{{count}} 家 · 社区目录",
+    "presetCount": "{{count}} 家 · 内置默认",
     "syncedAt": "同步于 {{time}}",
     "refreshTooltip": "从已配置提供商拉取最新模型列表",
     "refreshLabel": "刷新模型列表",

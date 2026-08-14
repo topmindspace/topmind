@@ -402,15 +402,15 @@ AiPanel 模型下拉选择器的 `onChange` 不仅更新内存 store，还同步
 
 模型下拉选择器始终可见：AI 离线时显示为禁用状态并提示“AI 离线 — 配置 API Key 后启用”，让用户知道此处有模型选择功能。
 
-### models.dev 社区模型目录
+### 双源模型目录（官方 list-models + models.dev）
 
-`system-service.mjs` 的 `fetchModelsDevCatalog` 从 [models.dev](https://models.dev) 社区维护的开放数据库拉取模型元数据（名称、能力、上下文窗口、价格），作为 live API 拉取的富回退/补充：
+设置 / Composer 的模型列表由 `lib/model-catalog.mjs`（Desktop 打包副本 `electron/lib/model-catalog.mjs`）解析合并：
 
-1. **无密钥预览**：用户配置 Key 前即可浏览所有支持的供应商模型列表
-2. **Anthropic 补充**：Anthropic 无公开 list-models 端点，models.dev 提供完整模型列表
-3. **能力元数据**：toolCall / reasoning / contextLimit / costInput / costOutput 挂载到 `ModelInfo`
+1. **官方 list-models**（已配置 Key/端点）：OpenAI 兼容 `GET {base}/models`、Google `GET /v1beta/models`、Ollama/Custom 同 OpenAI 形。刷新强制绕过 TTL。
+2. **[models.dev](https://models.dev) 社区目录**：无密钥浏览、Anthropic（无公开 list 端点）、能力元数据（toolCall / reasoning / contextLimit / cost）。
+3. **精选默认**：仅作回退。失败的官方/社区拉取**不会**写成 live 缓存，也不会用空列表覆盖上次成功的官方列表。
 
-内存缓存 24h TTL；UI 刷新按钮可强制刷新。供应商 ID 映射（`MODELS_DEV_PROVIDER_MAP`）：openai / anthropic / google / deepseek / moonshotai→moonshot / zhipuai→zhipu / minimax / xai。
+`discoverModels()` 始终按 official > community > curated 合并；`fetchLiveModels()` 只持久化成功的官方条目。供应商 ID 映射：openai / anthropic / google / deepseek / moonshotai→moonshot / zhipuai→zhipu / minimax / xai。
 
 ### 支持的 AI 供应商
 

@@ -35,7 +35,7 @@ function readText(rel) {
  *    at their current version — they are NOT auto-bumped.
  * 3. UTR follows Desktop: UTR version tracks Desktop's version
  *    exactly (they ship together in the same installer).
- * 4. Future surfaces (e.g., Obsidian Plugin) will have their own
+ * 4. Other surfaces (Obsidian Plugin, future hosts) have their own
  *    truth source and version, following the same policy.
  * 5. Tag naming: `v*` = full release; `{surface}-v*` = surface-only.
  *    Only re-package surfaces whose version actually changed.

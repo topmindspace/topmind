@@ -15,6 +15,6 @@
     "noEmit": true,
     "allowSyntheticDefaultImports": true
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "../lib/model-catalog.d.ts"],
   "exclude": ["node_modules", "dist", "tests"]
 }

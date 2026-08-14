@@ -251,6 +251,9 @@ export const zhCN = {
   notice_new_note_failed: "创建笔记失败",
   notice_models_loaded: "已加载 {{count}} 个模型",
   notice_models_failed: "模型列表获取失败，使用内置默认列表",
+  notice_models_official: "已从服务商接口加载 {{count}} 个模型",
+  notice_models_community: "已从社区目录加载 {{count}} 个模型",
+  notice_models_fallback: "使用内置默认列表（官方/社区列表暂不可用）",
 
   // ── Accessibility ──
   stream_expand_entry: "点击展开/收起动态条目",

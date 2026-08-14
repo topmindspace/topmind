@@ -104,7 +104,7 @@ Navigate to **Settings -> Topmind Stream -> AI Copilot**:
 
 - **Multi-provider**: Configure all your API keys at once — OpenAI, Anthropic, Google Gemini, DeepSeek, Moonshot, Zhipu, MiniMax, xAI, Ollama (local), or Custom endpoint.
 - Set a **default provider** preference, or let the plugin auto-select the first configured one.
-- Optionally pick a **model** from the dynamic model list (fetched from [models.dev](https://models.dev) community catalog via Obsidian's `requestUrl` API for cross-platform compatibility, with curated fallback defaults).
+- Optionally pick a **model**. Lists resolve from three sources (official provider `list-models` when a key/endpoint exists, then the [models.dev](https://models.dev) community catalog via Obsidian `requestUrl`, then curated defaults). Refresh force-bypasses cache; a failed download is not stored as live. Custom model IDs stay selectable.
 - **Import from Desktop**: One-click import of AI keys from topmind Desktop. Works with encrypted keys — use Desktop's **Settings → AI → Export for Obsidian** to create a plaintext export file, then click **Import from Desktop** in the plugin settings.
 - Choose **Writeback Mode**:
   - `confirm` (*Ask before saving* — Recommended): Preview changes in the Suggestion Popover before writing.

@@ -504,8 +504,9 @@
   "ai": {
     "notConfigured": "Not configured",
     "syncing": "Syncing…",
-    "syncedCount": "{{count}} providers · Synced",
-    "presetCount": "{{count}} providers · Preset list",
+    "syncedCount": "{{count}} providers · Official list",
+    "communityCount": "{{count}} providers · Community catalog",
+    "presetCount": "{{count}} providers · Built-in defaults",
     "syncedAt": "Synced at {{time}}",
     "refreshTooltip": "Fetch latest model list from configured providers",
     "refreshLabel": "Refresh model list",

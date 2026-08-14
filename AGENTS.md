@@ -111,7 +111,7 @@ contract · workspace-model · stream · memory · lifecycle · **writeback（�
 1. **大版本对齐**：所有表面共享同一大版本号（如 3.x）；breaking change 全体 bump。
 2. **小版本独立**：每个表面只在自己有改动时 bump minor/patch；无改动不 bump。
 3. **UTR 跟随 Desktop**：UTR 版本与 Desktop 完全一致（同一安装包分发）。
-4. **未来表面**（Obsidian Plugin 等）：预留独立真源和版本号，遵循同一策略。
+4. **其他表面**（Obsidian Plugin、后续宿主）：各自独立真源和版本号，遵循同一策略。
 5. **Tag 命名**：`v*` = 全量发布；`{surface}-v*` = 单表面发布；仅 re-package 版本号实际变化的表面。
 
 | 层 | 真源 | 策略 |

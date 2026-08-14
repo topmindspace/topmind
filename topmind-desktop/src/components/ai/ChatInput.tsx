@@ -233,18 +233,27 @@ export function ChatInput() {
   /** Compact model labels — strip provider echo / verbose vendor names for the dropdown. */
   const modelGroups: SelectGroup[] = useMemo(
     () =>
-      configuredProviders.map((p) => ({
-        label: p.label,
-        options: p.models.map((m) => {
+      configuredProviders.map((p) => {
+        const options = p.models.map((m) => {
           let label = m.label || m.id;
           // Prefer short id when label is long or duplicates provider
           if (label.length > 28 || label.toLowerCase().includes(p.id.toLowerCase())) {
             label = m.id.length <= 28 ? m.id : `${m.id.slice(0, 26)}…`;
           }
           return { value: `${p.id}/${m.id}`, label };
-        }),
-      })),
-    [configuredProviders],
+        });
+        // Keep a selected custom id visible when the dynamic list arrives
+        if (model) {
+          const slash = model.indexOf("/");
+          const pid = slash > 0 ? model.slice(0, slash) : "";
+          const mid = slash > 0 ? model.slice(slash + 1) : model;
+          if (pid === p.id && mid && !options.some((o) => o.value === model)) {
+            options.push({ value: model, label: mid });
+          }
+        }
+        return { label: p.label, options };
+      }),
+    [configuredProviders, model],
   );
 
   // Seed model from settings default once catalog is ready (prefer configured provider)

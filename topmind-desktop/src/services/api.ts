@@ -680,8 +680,8 @@ export const api = {
       invoke<{ ok: boolean; engineRoot: string | null; workspaceRoot: string | null }>(
         "system.getEngineHealth"
       ),
-    discoverModels: () =>
-      invoke<ProviderInfo[]>("system.discoverModels"),
+    discoverModels: (opts?: { forceCommunity?: boolean; forceLive?: boolean; skipCommunity?: boolean }) =>
+      invoke<ProviderInfo[]>("system.discoverModels", opts || {}),
     fetchLiveModels: () =>
       invoke<ProviderInfo[]>("system.fetchLiveModels"),
     fetchModelsDevCatalog: (opts?: { forceLive?: boolean }) =>

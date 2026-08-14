@@ -103,7 +103,7 @@ topmind Stream 通过 5 个通俗直观的概念降低认知负担：
 
 - **多服务商**：一次性配置所有 API 密钥 — OpenAI、Anthropic、Google Gemini、DeepSeek、Moonshot、Zhipu、MiniMax、xAI、Ollama（本地）或自定义端点。
 - 设置**默认服务商**偏好，或让插件自动选择第一个已配置的服务商。
-- 可选从动态模型列表中挑选**模型**（通过 Obsidian `requestUrl` 从 [models.dev](https://models.dev) 社区目录获取，跨平台兼容，含精选回退默认值）。
+- 可选从动态列表挑选**模型**：已配置密钥/端点时走官方 list-models，否则用 [models.dev](https://models.dev) 社区目录（Obsidian `requestUrl`），再回退精选默认。刷新会强制绕过缓存；失败不会把空列表写成已同步。仍可手填自定义模型 ID。
 - **从 Desktop 导入**：一键导入 topmind Desktop 的 `app-settings.json` 中已配置的 AI 密钥。
 - 选择**写回模式**：
   - `confirm`（*保存前问我* — 推荐）：在写入前预览变更。

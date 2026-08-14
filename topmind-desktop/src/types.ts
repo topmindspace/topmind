@@ -220,7 +220,15 @@ usage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number
 modelId?: string;
 }
 export interface AiRuntimeStatus { ready: boolean; message: string; providers?: ProviderInfo[]; }
-export interface ProviderInfo { id: string; label: string; models: ModelInfo[]; live?: boolean; error?: string; }
+export interface ProviderInfo {
+  id: string;
+  label: string;
+  models: ModelInfo[];
+  live?: boolean;
+  error?: string;
+  /** official list-models | models.dev community | curated fallback */
+  source?: "official" | "community" | "curated";
+}
 export interface ModelInfo {
   id: string;
   label: string;

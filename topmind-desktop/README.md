@@ -87,7 +87,7 @@
 
 - 类别 + 专题：[`../PROJECT-MODEL.md`](../PROJECT-MODEL.md)  
 - AI skill-first：引擎 `skills/` + 可选 `skills-extra/`  
-- AI 供应商：OpenAI · Anthropic · Google · xAI · DeepSeek · Moonshot · Zhipu · MiniMax · Ollama（本地）· Custom；models.dev 社区目录预览  
+- AI 供应商：OpenAI · Anthropic · Google · xAI · DeepSeek · Moonshot · Zhipu · MiniMax · Ollama（本地）· Custom；官方 list-models + models.dev 社区目录 + 精选回退
 - 四体边界：[`../PRODUCT-BOUNDARIES.md`](../PRODUCT-BOUNDARIES.md)  
 
 ---

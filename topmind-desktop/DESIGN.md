@@ -417,7 +417,7 @@ topmind 设计系统原生支持多语言排版（Simplified Chinese / English�
 
 | 层 | 实现 |
 |----|------|
-| 模型 | 多 provider（OpenAI/Anthropic/Google/xAI/DeepSeek/Moonshot/Zhipu/MiniMax/Ollama/Custom）+ models.dev 社区目录 |
+| 模型 | 多 provider（OpenAI/Anthropic/Google/xAI/DeepSeek/Moonshot/Zhipu/MiniMax/Ollama/Custom）；官方 list-models + models.dev 社区目录 + 精选回退 |
 | 工具 | `electron/ai-tools.mjs` → WorkspaceService（读/写/抓 URL/健康）|
 | 系统提示 | skill-first 协议 + **按工作流阶段分组的工具描述**（Skills → 收集 → 浏览 → 读取 → 写入 → 诊断）+ 预加载上下文（概览/我的情况/专题首页）+ 写回策略 + 质量纪律 |
 | 读缓存 | `read_file` / `search` / `workspace_overview` / `workspace_health` 结果在单轮 agent loop 内缓存；写操作自动失效缓存 |
@@ -522,7 +522,7 @@ IA 分组（左侧 nav）：
 
 - 对话框约 `1020×820`；左侧分组；右侧标题 + HelpTip + 自动保存指示
 - **通用**: 主题、布局、编辑器、写回、剪藏桥、快捷键（紧凑）
-- **AI**: 供应商卡片（国际/国内/本地三区分组）+ 模型列表内联 + models.dev 社区目录；配置 Key / 切换提供商后 **自动 live 拉取模型**；Agent 开关；密钥分区
+- **AI**: 供应商卡片（国际/国内/本地三区分组）+ 模型列表内联；**双源目录**（官方 list-models + models.dev + 精选回退）；刷新强制绕过 TTL，失败不把空列表写成已同步；配置 Key / 切换提供商后自动解析；Agent 开关；密钥分区
 - **Skills**: Skill-first 开关 + 清单卡片（描述进 tooltip）
 - **工作区**: 路径/分隔符/视图/类别/最近
 - **插件 / 连接器**: 启停 + 配置跳转
