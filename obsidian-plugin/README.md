@@ -48,11 +48,11 @@ Topmind Stream reduces mental overhead by focusing on 5 plain-language concepts:
 
 | Concept | Meaning | Vault Location |
 |---------|---------|----------------|
-| **Capture** (*记一下*) | Save a quick thought / snippet | Weekly Stream Log / `00-收件箱/` |
-| **Stream** (*动态*) | Daily activity & timeline | `10-动态/` (weekly file per log) |
+| **Capture** (*记一下*) | Save a quick thought / snippet | Weekly Stream Log / `00-Inbox/` |
+| **Stream** (*动态*) | Daily activity & timeline | `10-Stream/` (weekly file per log) |
 | **Topic** (*专题*) | Long-term subject folder | `{Category}/{YYYY-Topic}/` |
 | **My Profile** (*我的情况*) | Stable facts & personal memory | `memory/profile.md` |
-| **Deliverables** (*写出来*) | Final outputs & published work | `88-输出/` |
+| **Deliverables** (*写出来*) | Final outputs & published work | `88-Outputs/` |
 
 ---
 
@@ -85,7 +85,7 @@ Topmind Stream reduces mental overhead by focusing on 5 plain-language concepts:
 | Manual zip | Download the newer `topmind-obsidian-<ver>.zip`, replace files under `plugins/topmind-stream/`, reload Obsidian |
 | From source | `npm run obsidian:pack` -> install zip as above |
 
-Your vault files (`topmind.yaml`, `10-动态/`, `memory/`) are **not** replaced by the plugin upgrade. Version truth: [`manifest.json`](./manifest.json) (`npm run versions`).
+Your vault files (`topmind.yaml`, `10-Stream/` or `10-动态/`, `memory/`) are **not** replaced by the plugin upgrade. Version truth: [`manifest.json`](./manifest.json) (`npm run versions`).
 
 ---
 

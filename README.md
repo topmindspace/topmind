@@ -138,10 +138,10 @@ flowchart LR
 
 | Phase | What you do | Default destination | Notes |
 |-------|-------------|---------------------|-------|
-| **① Capture** | Hotkey notes · web clips · Office/PDF queue | This week’s **stream** (`10-动态/` or live `role:loose-stream`); uncertain → inbox (`00-收件箱/` / `role:buffer`) | Frictionless instant log |
+| **① Capture** | Hotkey notes · web clips · Office/PDF queue | This week’s **stream** (`10-Stream/` or live `role:loose-stream`); uncertain → inbox (`00-Inbox/` / `role:buffer`) | Frictionless instant log |
 | **② Continue** | Edit · inline AI · side Agent · organize topics | `{Category}/{YYYY-Topic}/` | Stream cards and topic crystallization |
-| **③ Ship / Settle** | Write deliverables · confirm profile / topics | `88-输出/` · `memory/profile.md` | Finished files; update personal profile |
-| **④ Retrieve / Adjust** | Search · restore · periodic Loop | `99-归档/` · Loop inspections | Safe archive and retrieval |
+| **③ Ship / Settle** | Write deliverables · confirm profile / topics | `88-Outputs/` · `memory/profile.md` | Finished files; update personal profile |
+| **④ Retrieve / Adjust** | Search · restore · periodic Loop | `99-Archive/` · Loop inspections | Safe archive and retrieval |
 
 ---
 
@@ -150,17 +150,17 @@ flowchart LR
 ```text
 {workspace}/
 ├── topmind.yaml              # System plane: behavior contract
-├── 00-收件箱/                # Content plane: buffer (or 00-Inbox / live role:buffer)
-├── 10-动态/                  # Content plane: period notes ({YYYY}/period.md)
-├── 20-专题/2026-Topic/        # Content plane: emergent topic folders
+├── 00-Inbox/                 # Content plane: buffer (or 00-收件箱 / live role:buffer)
+├── 10-Stream/                # Content plane: period notes ({YYYY}/period.md)
+├── 20-Topics/2026-Topic/     # Content plane: emergent topic folders
 │   └── topic.md              # Topic home
-├── 88-输出/                  # Content plane: flat deliverables
-├── 99-归档/                  # Content plane safety: backups · trash · receipts
+├── 88-Outputs/               # Content plane: flat deliverables
+├── 99-Archive/               # Content plane safety: backups · trash · receipts
 ├── memory/                   # Semantic plane: profile · periodic · topics
 └── .topmind/                 # System plane: index & logs (rebuildable)
 ```
 
-Directory names follow the live contract. English names such as `00-Inbox` / `99-Archive` are equally valid.
+Directory names follow the live contract (`en-US` stream template uses the English names above). Chinese names such as `00-收件箱` / `10-动态` / `99-归档` are equally valid.
 
 **6 条核心规约** (six core rules — [`PROJECT-MODEL.md`](./PROJECT-MODEL.md) §2): categories do not overlap; topics emerge naturally; the stream class stays flat by default; fallback classes are cleaned on a ~30-day cadence; reference material has a clear home; category names stay stable (rename via migration).
 

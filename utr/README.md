@@ -59,7 +59,7 @@ Full contracts: [`../TOOLS.md`](../TOOLS.md).
 - Desktop does **not** hard-depend on UTR (Tools console may soft-load the same tree).  
 - Durable `.md` writes go through Kernel `lib/writeback-engine.mjs`.  
 - `writeback-safety.mjs` = executor transactional snapshots only (not a second content gate).  
-- `safety-receipt-paths.mjs` = list/restore path shapes for `99-归档` backups/trash/legacy.
+- `safety-receipt-paths.mjs` = list/restore path shapes for `99-Archive` backups/trash/legacy.
 
 ---
 
@@ -95,7 +95,7 @@ node utr/bin/topmind-cli.mjs tool preview workspace-read list-categories
 - Type is expressed by **physical category path** — no `project_type` input  
 - Writeback: `writebackMode: auto | confirm`  
 - **操作执行审阅:** under `confirm`, high-risk writes return a review plan; under `auto`, execute + receipt  
-- **操作结果审查:** all writes return `affectedFiles` + `receipt`（回执）; dangerous changes go through `99-归档/`  
+- **操作结果审查:** all writes return `affectedFiles` + `receipt`（回执）; dangerous changes go through `99-Archive/`  
 - `list-safety-receipts` / `restore-safety-receipt` understand Kernel `backups/trash` and legacy trash layouts  
 
 Maintenance policy: [`ROADMAP.md`](./ROADMAP.md).
