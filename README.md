@@ -180,7 +180,7 @@ Topmind 将工作区组织为清晰的三个平面，逻辑自洽且可预测：
 
 ## 四体核心 + Clip 分发面与版本真源
 
-**四体核心**（[`PRODUCT-BOUNDARIES.md`](./PRODUCT-BOUNDARIES.md)）：Skills · Desktop · UTR · Obsidian — 共享内容约定与行为契约。**Clip Extension** 为 Desktop 捕获 companion 分发面（非独立 Kernel 宿主）。各表面独立版本管理（大版本对齐，小版本独立），运行 `npm run versions` 查看：
+**四体核心**（[`PRODUCT-BOUNDARIES.md`](./PRODUCT-BOUNDARIES.md)）：Skills · Desktop · UTR · Obsidian — 共享内容约定与行为契约。**Clip Extension** 为 Desktop 捕获 companion 分发面（非独立 Kernel 宿主）。各表面独立版本管理（大版本对齐，小版本独立）；对外一个产品 tag `v*` = 一个 GitHub Release。运行 `npm run versions` 查看：
 - **Skills**: [`skills/topmind-pack.json`](./skills/topmind-pack.json) (详情参阅 [`skills/INSTALL.md`](./skills/INSTALL.md))
 - **Desktop**: [`topmind-desktop/package.json`](./topmind-desktop/package.json) (详情参阅 [`topmind-desktop/README.md`](./topmind-desktop/README.md))
 - **UTR**: [`utr/VERSION`](./utr/VERSION) (详情参阅 [`TOOLS.md`](./TOOLS.md))

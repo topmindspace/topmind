@@ -107,34 +107,24 @@ test("MAKE_LATEST is true only for full product v* tags (not surface tags)", () 
 
 test("release.yml packs Obsidian on full v* and supports obsidian-v* surface tags", () => {
   const src = loadReleaseWorkflow();
-  // Tag triggers include obsidian-v*
   assert.match(src, /-\s*"obsidian-v\*"/u, "on.push.tags must include obsidian-v*");
-  // Plan resolves OBSIDIAN for full v* and surface tag
   assert.match(src, /OBSIDIAN=true/u, "plan must set OBSIDIAN=true for matching tags");
   assert.match(
     src,
     /elif \[\[ "\$\{TAG\}" == obsidian-v\* \]\]; then/u,
     "plan must handle obsidian-v* surface tag",
   );
-  // Full v* enables skills + extension + desktop + obsidian
-  const fullProductBlock = src.slice(
-    src.indexOf('elif [[ "${TAG}" == v* ]]; then'),
-    src.indexOf("fi", src.indexOf('elif [[ "${TAG}" == v* ]]; then')) + 20,
-  );
-  assert.match(fullProductBlock, /SKILLS=true/u);
-  assert.match(fullProductBlock, /EXTENSION=true/u);
-  assert.match(fullProductBlock, /DESKTOP=true/u);
-  assert.match(fullProductBlock, /OBSIDIAN=true/u);
-  // Dedicated pack job
+  const fullProductAt = src.indexOf('elif [[ "${TAG}" == v* ]]; then');
+  assert.ok(fullProductAt >= 0, "plan must handle product v* tag");
+  assert.match(src, /plan-release-surfaces\.mjs/u, "v* ship uses pack-vs-reuse planner");
   assert.match(src, /pack-obsidian:/u, "must define pack-obsidian job");
   assert.match(src, /needs\.plan\.outputs\.obsidian == 'true'/u);
-  // Finalize depends on pack-obsidian
   assert.match(
     src,
     /needs:\s*\[[^\]]*pack-obsidian[^\]]*\]/u,
     "finalize-release must wait on pack-obsidian",
   );
-  // Dispatch checkbox
+  assert.match(src, /reuse-previous:/u, "must define reuse-previous job");
   assert.match(src, /pack_obsidian:/u, "workflow_dispatch must expose pack_obsidian");
 });
 

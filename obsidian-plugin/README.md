@@ -73,7 +73,7 @@ Topmind Stream reduces mental overhead by focusing on 5 plain-language concepts:
 4. Enable **Topmind Stream**.
 
 #### Option C: Manual Installation
-1. Download `topmind-obsidian-<version>.zip` from [Releases](https://github.com/topmindspace/topmind/releases) (full `v*` product tags and `obsidian-v*` surface tags both ship this artifact).
+1. Download `topmind-obsidian-<version>.zip` from [Releases](https://github.com/topmindspace/topmind/releases) (product `v*` ships the current plugin zip; `obsidian-v*` is a hotfix-only tag).
 2. Extract `main.js`, `manifest.json`, `styles.css`, and `templates/` to:
    `<your-vault>/.obsidian/plugins/topmind-stream/`
 3. Reload Obsidian, navigate to **Settings -> Community plugins**, and enable **Topmind Stream**.

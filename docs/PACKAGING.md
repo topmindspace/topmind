@@ -15,13 +15,13 @@ UTR                →  bundled in Desktop engine; CLI via repo (no separate ins
 
 | I want… | Download | Tag to build |
 |---------|----------|--------------|
-| AI skills for Claude / Codex / OpenCode | `topmind-skills-<ver>.zip` or `.tar.gz` | `skills-v*` or `v*` |
-| Browser clip extension (MV3) | `topmind-clip-extension-<ver>.zip` | `extension-v*` or `v*` |
-| Obsidian Stream plugin | `topmind-obsidian-<ver>.zip` | `obsidian-v*` or `v*` |
-| Desktop app (macOS) | `topmind-<ver>-mac-arm64.dmg` (or via `brew install topmindspace/tap/topmind`) | `desktop-v*` or `v*` |
-| Desktop app (Linux x64) | `topmind-<ver>-linux-x64.AppImage` or `.deb` | `desktop-v*` or `v*` |
-| Desktop app (Linux ARM) | `topmind-<ver>-linux-arm64.AppImage` or `.deb` | `desktop-v*` or `v*` |
-| Desktop app (Windows) | `topmind-<ver>-win-x64.exe` | `desktop-v*` or `v*` |
+| AI skills for Claude / Codex / OpenCode | `topmind-skills-<ver>.zip` or `.tar.gz` | `v*` (or hotfix `skills-v*`) |
+| Browser clip extension (MV3) | `topmind-clip-extension-<ver>.zip` | `v*` (or hotfix `extension-v*`) |
+| Obsidian Stream plugin | `topmind-obsidian-<ver>.zip` | `v*` (or hotfix `obsidian-v*`) |
+| Desktop app (macOS) | `topmind-<ver>-mac-arm64.dmg` (or via `brew install topmindspace/tap/topmind`) | `v*` (or hotfix `desktop-v*`) |
+| Desktop app (Linux x64) | `topmind-<ver>-linux-x64.AppImage` or `.deb` | `v*` |
+| Desktop app (Linux ARM) | `topmind-<ver>-linux-arm64.AppImage` or `.deb` | `v*` |
+| Desktop app (Windows) | `topmind-<ver>-win-x64.exe` | `v*` |
 
 **Do not** treat `topmind-skills-*` as the Desktop installer. Skills are Markdown skill packs for agent hosts; Desktop is a native Electron app. **Do not** confuse `topmind-obsidian-*` with Desktop — it is a Vault plugin zip only.
 
@@ -256,17 +256,18 @@ obsidian-v{obsidian}  # obsidian plugin only — obsidian-plugin/manifest.json
 CI runners use Node **24**. `actions/checkout@v5` · `actions/setup-node@v5`. CI PR smoke uses `actions/upload-artifact@v5` for pack zips only. Release does **not** use Actions artifact storage (`download-artifact` / `merge-multiple`); pack jobs upload directly with `gh release upload` (avoids the 500MB Actions storage quota).  
 Local engines still accept `>=20.11`.
 
-### Release pipeline (surface-aware)
+### Release pipeline (one product snapshot)
 
 ```text
-plan             (resolves surfaces + validates dispatch inputs; concurrent guard; always runs)
+plan             (v*: pack vs reuse from previous Latest latest.json; dispatch: checkboxes)
 create-release   (creates empty GitHub Release for the tag)
 wait-for-release (polls API until release is visible — eventual consistency buffer)
-pack-skills      (skills-v* | v* | dispatch pack_skills=true)
-pack-extension   (extension-v* | v* | dispatch pack_extension=true)
-pack-obsidian    (obsidian-v* | v* | dispatch pack_obsidian=true)
-pack-desktop     (desktop-v* | v* | dispatch pack_desktop=true)
-finalize         (when at least one surface produced assets successfully)
+pack-skills      (truth version changed | skills-v* hotfix | dispatch pack_skills=true)
+pack-extension   (truth version changed | extension-v* | dispatch pack_extension=true)
+pack-obsidian    (truth version changed | obsidian-v* | dispatch pack_obsidian=true)
+pack-desktop     (truth version changed | desktop-v* | dispatch pack_desktop=true)
+reuse-previous   (v* only: copy unchanged surface assets from previous Latest)
+finalize         (when pack or reuse produced assets)
                  → also uploads latest.json (public update stamp for Desktop, no API)
 update-cask      (when desktop=='true'; updates version & sha256 to topmindspace/homebrew-tap using HOMEBREW_TAP_TOKEN secret)
 ```
@@ -274,14 +275,14 @@ update-cask      (when desktop=='true'; updates version & sha256 to topmindspace
 **Concurrent release protection:**
 
 - A **shared concurrency group** (`release`) ensures only one release workflow runs at a time.
-- Surface-specific tags (`skills-v*` / `desktop-v*` / `extension-v*` / `obsidian-v*`) are **skipped** if a full `v*` release for the same version already exists. This prevents duplicate releases when a full `v*` tag is pushed alongside surface-specific tags.
+- Surface-specific hotfix tags (`skills-v*` / `desktop-v*` / `extension-v*` / `obsidian-v*`) are **skipped** if a full `v*` release for the same version already exists.
 - All `gh release upload` calls use a **retry wrapper** (5 attempts, 10s delay) to handle transient GitHub API issues (e.g., "release not found" right after creation due to eventual consistency).
-- **IMPORTANT**: Do NOT push surface-specific tags alongside a full `v*` tag. The `v*` tag already builds ALL surfaces. Surface-specific tags are for independent single-surface releases only.
+- **IMPORTANT**: Daily ship is **one** `v*` tag (follows Desktop). Do NOT push surface-specific tags alongside it.
 
 | Tag push | Skills | Extension | Obsidian | Desktop | Release | Draft | GitHub **Latest** |
 |----------|--------|-----------|----------|---------|---------|-------|-------------------|
-| `v*.*.*` (full) | ✓ | ✓ | ✓ | ✓ | auto-publish | no | **yes** (only full `v*` tags) |
-| `skills-v*` | ✓ | — | — | — | auto-publish | no | no |
+| `v*.*.*` (product ship) | pack if changed, else reuse | same | same | same | auto-publish | no | **yes** |
+| `skills-v*` (hotfix) | ✓ | — | — | — | auto-publish | no | no |
 | `extension-v*` | — | ✓ | — | — | auto-publish | no | no |
 | `obsidian-v*` | — | — | ✓ | — | auto-publish | no | no |
 | `desktop-v*` | — | — | — | ✓ | auto-publish | no | no |
@@ -294,14 +295,14 @@ update-cask      (when desktop=='true'; updates version & sha256 to topmindspace
 # Read stamps first
 npm run versions
 
-# Full product release (skills + extension + obsidian + desktop matrix → published Release)
-# tag = v$(node -p "require('./topmind-desktop/package.json').version")
+# One product Release (Latest). Packs only surfaces whose truth version changed
+# vs previous Latest; copies the rest. Tag follows Desktop.
 git tag "v$(node -p "require('./topmind-desktop/package.json').version")"
 git push origin "v$(node -p "require('./topmind-desktop/package.json').version")"
 
-# Skills pack only (independent release — NOT alongside a full v* tag)
-git tag "skills-v$(node -p "require('./skills/topmind-pack.json').version")"
-git push origin "skills-v$(node -p "require('./skills/topmind-pack.json').version")"
+# Hotfix one surface only (NOT alongside a full v* tag; not Latest)
+git tag "obsidian-v$(node -p "require('./obsidian-plugin/manifest.json').version")"
+git push origin "obsidian-v$(node -p "require('./obsidian-plugin/manifest.json').version")"
 
 # Note: skills.sh / npx skills will automatically index the GitHub repo for `npx skills add topmindspace/topmind`
 # Or Actions → Release → Run workflow (draft; set release_tag)
@@ -329,11 +330,13 @@ The `plan` job in `release.yml` is the **single source of truth** for which surf
 
 | Output | Tag push | workflow_dispatch |
 |--------|----------|-------------------|
-| `skills` | per tag prefix (skills-v* / v* → true; else false) | `${{ inputs.pack_skills }}` |
-| `extension` | per tag prefix (extension-v* / v* → true; else false) | `${{ inputs.pack_extension }}` |
-| `obsidian` | per tag prefix (obsidian-v* / v* → true; else false) | `${{ inputs.pack_obsidian }}` |
-| `desktop` | per tag prefix (desktop-v* / v* → true; else false) | `${{ inputs.pack_desktop }}` |
-| `tag` | `${GITHUB_REF_NAME}` (e.g. `v4.11.0`) | `${{ inputs.release_tag }}` — strip `refs/tags/` prefix if present |
+| `skills` | `v*`: pack if truth ≠ previous Latest; `skills-v*` hotfix | `${{ inputs.pack_skills }}` |
+| `extension` | `v*`: pack if truth ≠ previous Latest; `extension-v*` hotfix | `${{ inputs.pack_extension }}` |
+| `obsidian` | `v*`: pack if truth ≠ previous Latest; `obsidian-v*` hotfix | `${{ inputs.pack_obsidian }}` |
+| `desktop` | `v*`: pack if truth ≠ previous Latest; `desktop-v*` hotfix | `${{ inputs.pack_desktop }}` |
+| `reuse_*` | `v*`: true when that surface's truth version equals previous Latest | always false |
+| `prev_tag` | previous GitHub Latest tag (for reuse) | empty |
+| `tag` | `${GITHUB_REF_NAME}` (e.g. `v3.4.0`) | `${{ inputs.release_tag }}` — strip `refs/tags/` prefix if present |
 | `create_release` | always `true` (tag pushes always release) | `${{ inputs.create_release }}` |
 
 ### workflow_dispatch behavior (important)

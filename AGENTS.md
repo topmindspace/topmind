@@ -112,7 +112,7 @@ contract · workspace-model · stream · memory · lifecycle · **writeback（�
 2. **小版本独立**：每个表面只在自己有改动时 bump minor/patch；无改动不 bump。
 3. **UTR 跟随 Desktop**：UTR 版本与 Desktop 完全一致（同一安装包分发）。
 4. **其他表面**（Obsidian Plugin、后续宿主）：各自独立真源和版本号，遵循同一策略。
-5. **Tag 命名**：`v*` = 全量发布；`{surface}-v*` = 单表面发布；仅 re-package 版本号实际变化的表面。
+5. **Tag 命名**：日常只打一个产品 tag `v*`（号跟 Desktop）= **一个** GitHub Release（Latest）。有更新的表面现场打包，未更新的复用上一份 Latest 产物。`{surface}-v*` 仅作单表面热修逃生口，不标 Latest，且不要和 `v*` 一起推。
 
 | 层 | 真源 | 策略 |
 |----|------|------|

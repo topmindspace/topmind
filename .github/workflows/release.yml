@@ -1,14 +1,17 @@
-# Publish surface-scoped artifacts on version tags, then auto-create a GitHub Release.
-# Tags: v1.0.2 | skills-v1.0.0 | desktop-v1.0.2 | extension-v1.0.0 | obsidian-v1.0.0
+# One GitHub Release per product ship (`v*`). Surfaces stay independently versioned.
+# Tags: v3.4.0 | skills-v3.4.0 | desktop-v3.4.0 | extension-v3.4.0 | obsidian-v3.4.0
 #
-# Surface matrix:
-#   skills-v*     → skills pack only
-#   extension-v*  → browser extension only
-#   desktop-v*    → desktop matrix only
-#   obsidian-v*   → Obsidian plugin only
-#   v*            → skills + extension + desktop + obsidian (full release)
+#   v*            → one Latest snapshot. Pack surfaces whose truth version changed
+#                   vs previous Latest `latest.json`; reuse previous assets otherwise.
+#   skills-v*     → hotfix: skills pack only (not Latest)
+#   extension-v*  → hotfix: browser extension only (not Latest)
+#   desktop-v*    → hotfix: desktop matrix only (not Latest)
+#   obsidian-v*   → hotfix: Obsidian plugin only (not Latest)
 #
-# Flow: cleanup → plan → create-release → wait-for-release → pack-* (upload) → finalize-release
+# Daily path: bump changed truth files, then `git tag v$(desktop version) && git push --tags`.
+# Do NOT push surface tags alongside a `v*` tag.
+#
+# Flow: cleanup → plan → create-release → wait-for-release → pack-* / reuse-previous → finalize
 #
 # Architecture: Pack jobs upload directly to the GitHub Release via `gh release upload`,
 # bypassing GitHub Actions artifact storage entirely. This avoids storage quota limits
@@ -23,13 +26,8 @@
 # # Concurrent release guard
 #
 # A shared concurrency group (`release`) ensures only one release workflow runs at a time.
-# Surface-specific tags (skills-v* / desktop-v* / extension-v* / obsidian-v*) are SKIPPED
-# if a full `v*` release for the same version already exists. This prevents duplicate
-# releases when a full `v*` tag is pushed alongside surface-specific tags.
-#
-# IMPORTANT: Do NOT push surface-specific tags alongside a full `v*` tag.
-#   The `v*` tag already builds ALL surfaces. Surface-specific tags are for
-#   independent single-surface releases only.
+# Surface-specific hotfix tags are SKIPPED if a full `v*` release for the same version
+# already exists.
 #
 # # Behaviour notes
 #
@@ -144,9 +142,16 @@ jobs:
       extension: ${{ steps.plan.outputs.extension }}
       desktop: ${{ steps.plan.outputs.desktop }}
       obsidian: ${{ steps.plan.outputs.obsidian }}
+      reuse_skills: ${{ steps.plan.outputs.reuse_skills }}
+      reuse_extension: ${{ steps.plan.outputs.reuse_extension }}
+      reuse_desktop: ${{ steps.plan.outputs.reuse_desktop }}
+      reuse_obsidian: ${{ steps.plan.outputs.reuse_obsidian }}
+      prev_tag: ${{ steps.plan.outputs.prev_tag }}
       tag: ${{ steps.plan.outputs.tag }}
       create_release: ${{ steps.plan.outputs.create_release }}
     steps:
+      - uses: actions/checkout@v5
+
       - id: plan
         shell: bash
         env:
@@ -157,6 +162,11 @@ jobs:
           EXTENSION=false
           DESKTOP=false
           OBSIDIAN=false
+          REUSE_SKILLS=false
+          REUSE_EXTENSION=false
+          REUSE_DESKTOP=false
+          REUSE_OBSIDIAN=false
+          PREV_TAG=""
           TAG=""
           CREATE_RELEASE=false
           NEEDS_VALIDATION=false
@@ -174,10 +184,40 @@ jobs:
             elif [[ "${TAG}" == obsidian-v* ]]; then
               OBSIDIAN=true
             elif [[ "${TAG}" == v* ]]; then
-              SKILLS=true
-              EXTENSION=true
-              DESKTOP=true
-              OBSIDIAN=true
+              # One product ship: pack changed surfaces, reuse previous Latest assets.
+              if gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq .tag_name > /tmp/prev_tag 2>/dev/null; then
+                PREV_TAG="$(tr -d '[:space:]' < /tmp/prev_tag || true)"
+              fi
+              if [[ -n "${PREV_TAG}" && "${PREV_TAG}" != "${TAG}" ]]; then
+                mkdir -p /tmp/prev-latest
+                if gh release download "${PREV_TAG}" --pattern latest.json --dir /tmp/prev-latest 2>/dev/null; then
+                  :
+                fi
+              fi
+              PLAN_ARGS=(--github-output)
+              if [[ -f /tmp/prev-latest/latest.json ]]; then
+                PLAN_ARGS+=(--prev /tmp/prev-latest/latest.json)
+              fi
+              while IFS= read -r line; do
+                case "${line}" in
+                  skills=true) SKILLS=true ;;
+                  skills=false) SKILLS=false ;;
+                  extension=true) EXTENSION=true ;;
+                  extension=false) EXTENSION=false ;;
+                  desktop=true) DESKTOP=true ;;
+                  desktop=false) DESKTOP=false ;;
+                  obsidian=true) OBSIDIAN=true ;;
+                  obsidian=false) OBSIDIAN=false ;;
+                  reuse_skills=true) REUSE_SKILLS=true ;;
+                  reuse_skills=false) REUSE_SKILLS=false ;;
+                  reuse_extension=true) REUSE_EXTENSION=true ;;
+                  reuse_extension=false) REUSE_EXTENSION=false ;;
+                  reuse_desktop=true) REUSE_DESKTOP=true ;;
+                  reuse_desktop=false) REUSE_DESKTOP=false ;;
+                  reuse_obsidian=true) REUSE_OBSIDIAN=true ;;
+                  reuse_obsidian=false) REUSE_OBSIDIAN=false ;;
+                esac
+              done < <(node scripts/plan-release-surfaces.mjs "${PLAN_ARGS[@]}")
             fi
           else
             INPUT_SKILLS="${{ inputs.pack_skills }}"
@@ -228,6 +268,11 @@ jobs:
             echo "extension=${EXTENSION}"
             echo "desktop=${DESKTOP}"
             echo "obsidian=${OBSIDIAN}"
+            echo "reuse_skills=${REUSE_SKILLS}"
+            echo "reuse_extension=${REUSE_EXTENSION}"
+            echo "reuse_desktop=${REUSE_DESKTOP}"
+            echo "reuse_obsidian=${REUSE_OBSIDIAN}"
+            echo "prev_tag=${PREV_TAG}"
             echo "tag=${TAG}"
             echo "create_release=${CREATE_RELEASE}"
           } >> "$GITHUB_OUTPUT"
@@ -239,13 +284,14 @@ jobs:
               echo "> ℹ️ **${SKIP_REASON}** — all surfaces skipped."
               echo ""
             fi
-            echo "| Surface | Build |"
-            echo "|---------|-------|"
-            echo "| Skills | ${SKILLS} |"
-            echo "| Extension | ${EXTENSION} |"
-            echo "| Desktop | ${DESKTOP} |"
-            echo "| Obsidian | ${OBSIDIAN} |"
+            echo "| Surface | Pack | Reuse previous |"
+            echo "|---------|------|----------------|"
+            echo "| Skills | ${SKILLS} | ${REUSE_SKILLS} |"
+            echo "| Extension | ${EXTENSION} | ${REUSE_EXTENSION} |"
+            echo "| Desktop | ${DESKTOP} | ${REUSE_DESKTOP} |"
+            echo "| Obsidian | ${OBSIDIAN} | ${REUSE_OBSIDIAN} |"
             echo "| Tag | \`${TAG}\` |"
+            echo "| Previous Latest | \`${PREV_TAG:-none}\` |"
             echo "| Create release | ${CREATE_RELEASE} |"
             echo ""
             echo "Resolved \`ref=${{ github.ref }} event=${{ github.event_name }}\`."
@@ -402,6 +448,76 @@ jobs:
           done
           echo "❌ Release ${TAG} not visible after 60s"
           exit 1
+
+  # ── Copy unchanged surface assets from previous Latest ───────────────────
+  reuse-previous:
+    name: reuse previous assets
+    needs: [plan, wait-for-release]
+    if: >
+      needs.plan.outputs.create_release == 'true' &&
+      (
+        needs.plan.outputs.reuse_skills == 'true' ||
+        needs.plan.outputs.reuse_extension == 'true' ||
+        needs.plan.outputs.reuse_desktop == 'true' ||
+        needs.plan.outputs.reuse_obsidian == 'true'
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Copy unchanged assets from previous Latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ needs.plan.outputs.tag }}"
+          PREV="${{ needs.plan.outputs.prev_tag }}"
+          REPO="${{ github.repository }}"
+          if [[ -z "${PREV}" ]]; then
+            echo "ERROR: reuse requested but prev_tag is empty"
+            exit 1
+          fi
+          mkdir -p reused
+          NAMES=$(gh api "repos/${REPO}/releases/tags/${PREV}" --jq '.assets[].name')
+          echo "Previous ${PREV} assets:"
+          echo "${NAMES}"
+          while IFS= read -r name; do
+            [[ -z "${name}" ]] && continue
+            SURFACE=$(node --input-type=module -e "import { classifyReleaseAsset } from './scripts/plan-release-surfaces.mjs'; process.stdout.write(classifyReleaseAsset(process.argv[1]) || '')" "${name}")
+            WANT=false
+            case "${SURFACE}" in
+              skills) [[ "${{ needs.plan.outputs.reuse_skills }}" == "true" ]] && WANT=true ;;
+              extension) [[ "${{ needs.plan.outputs.reuse_extension }}" == "true" ]] && WANT=true ;;
+              desktop) [[ "${{ needs.plan.outputs.reuse_desktop }}" == "true" ]] && WANT=true ;;
+              obsidian) [[ "${{ needs.plan.outputs.reuse_obsidian }}" == "true" ]] && WANT=true ;;
+            esac
+            if [[ "${WANT}" == "true" ]]; then
+              echo "  reuse ${name} (${SURFACE})"
+              gh release download "${PREV}" --pattern "${name}" --dir reused
+            fi
+          done <<< "${NAMES}"
+
+          shopt -s nullglob
+          files=(reused/*)
+          if [[ ${#files[@]} -eq 0 ]]; then
+            echo "ERROR: reuse requested but no matching assets downloaded from ${PREV}"
+            exit 1
+          fi
+          echo "Uploading ${#files[@]} reused assets to ${TAG}..."
+          upload_with_retry() {
+            local tag="$1"; shift
+            for i in 1 2 3 4 5; do
+              if gh release upload "$tag" "$@" --clobber; then
+                echo "Upload succeeded on attempt $i/5"
+                return 0
+              fi
+              if [[ $i -lt 5 ]]; then echo "Attempt $i/5 failed, retrying in 10s..."; sleep 10; fi
+            done
+            echo "ERROR: upload failed after 5 attempts"; return 1
+          }
+          upload_with_retry "${TAG}" "${files[@]}"
 
   # ── Pack Skills (upload directly to GitHub Release) ──────────────────────
   pack-skills:
@@ -720,7 +836,7 @@ jobs:
   # ── Finalize: write latest.json + generate release notes ─────────────────
   finalize-release:
     name: finalize release
-    needs: [plan, create-release, wait-for-release, pack-skills, pack-extension, pack-obsidian, pack-desktop]
+    needs: [plan, create-release, wait-for-release, pack-skills, pack-extension, pack-obsidian, pack-desktop, reuse-previous]
     if: >
       always() &&
       !cancelled() &&
@@ -731,7 +847,8 @@ jobs:
         needs.pack-skills.result == 'success' ||
         needs.pack-extension.result == 'success' ||
         needs.pack-obsidian.result == 'success' ||
-        needs.pack-desktop.result == 'success'
+        needs.pack-desktop.result == 'success' ||
+        needs.reuse-previous.result == 'success'
       )
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -822,6 +939,16 @@ jobs:
             echo "### What to download"
             echo ""
             echo "Automated release from workflow run [\`${{ github.run_id }}\`](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
+            echo ""
+            echo "One product snapshot. Surface versions stay independent (see table). Unchanged surfaces reuse the previous Latest assets."
+            echo ""
+            echo "| Surface | Version |"
+            echo "|---------|---------|"
+            echo "| Desktop | \`${DESKTOP_VER}\` |"
+            echo "| UTR | \`${DESKTOP_VER}\` (follows Desktop) |"
+            echo "| Skills | \`${SKILLS_VER}\` |"
+            echo "| Clip Extension | \`${EXT_VER}\` |"
+            echo "| Obsidian Plugin | \`${OBS_VER}\` |"
             echo ""
             echo "| Trigger | Tag | Draft | Prerelease |"
             echo "|---------|-----|-------|------------|"

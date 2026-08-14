@@ -37,8 +37,10 @@ function readText(rel) {
  *    exactly (they ship together in the same installer).
  * 4. Other surfaces (Obsidian Plugin, future hosts) have their own
  *    truth source and version, following the same policy.
- * 5. Tag naming: `v*` = full release; `{surface}-v*` = surface-only.
- *    Only re-package surfaces whose version actually changed.
+ * 5. Tag naming: daily ship is one product tag `v*` (follows Desktop) =
+ *    one GitHub Release (Latest). Pack surfaces whose truth version
+ *    changed vs previous Latest; reuse previous assets otherwise.
+ *    `{surface}-v*` is a hotfix escape hatch only (not Latest).
  *
  * Surface version truth sources:
  *   Skills Pack  → skills/topmind-pack.json        (independent)

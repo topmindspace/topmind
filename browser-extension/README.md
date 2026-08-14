@@ -52,7 +52,7 @@ npm run pack:extension   # dist/topmind-clip-extension-<version>.zip
 # 或随 pack:all（skills + extension + obsidian）
 ```
 
-完整产品标签 `v*` 与表面标签 `extension-v*` 都会在 GitHub Release 上传该 zip。版本真源：[`manifest.json`](./manifest.json)（`npm run versions`）。
+产品 tag `v*` 的 Latest 快照含当前扩展 zip；`extension-v*` 仅热修逃生口。版本真源：[`manifest.json`](./manifest.json)（`npm run versions`）。
 
 ---
 

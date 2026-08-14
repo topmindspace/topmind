@@ -115,7 +115,7 @@ brew install topmindspace/tap/topmind
 
 #### 方式二：手动下载安装包
 1. 从 [Releases](https://github.com/topmindspace/topmind/releases) 下载对应系统安装包：`topmind-<ver>-<os>-<arch>.{dmg,exe,AppImage,deb}`  
-   （完整产品标签 `v*` 与表面标签 `desktop-v*` 都会构建 Desktop 矩阵）
+   （日常产品 tag `v*` 构建 Desktop 矩阵；`desktop-v*` 仅热修逃生口）
 2. 安装并打开；首次选择或创建本地工作区文件夹（内容真源）  
    *(macOS 若手动安装提示损坏打不开，可在终端运行：`sudo xattr -rd com.apple.quarantine /Applications/Topmind.app`)*
 3. 可选：设置 -> AI 配置 Provider；设置 -> 通用 -> 浏览器剪藏 启用 Clip Bridge
