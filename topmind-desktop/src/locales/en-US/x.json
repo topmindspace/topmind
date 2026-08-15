@@ -70,7 +70,7 @@
     "fetchHint": "Preview and select first, then write to a topic — avoid blind bulk archive. You can specify a topic name; defaults to appending to existing note.",
     "topicNameLabel": "Topic name (YYYY-Topic)",
     "noteTitleLabel": "Note file name",
-    "appendMode": "Append to existing note (off = full overwrite, still backs up to 99-Archive)",
+    "appendMode": "Append to existing note (off = full overwrite; only locked overwrite goes to Archive)",
     "countLabel": "{{label}} · {{count}} tweets",
     "selectAll": "Select all",
     "clear": "Clear",

@@ -22,7 +22,7 @@ function read(rel) {
 }
 
 const ALWAYS_ARCHIVE_LIE =
-  /删除前会自动备份|可从 99-Archive 恢复|可从 Archive 恢复|已移入归档备份|删除到 Archive|A backup will be saved to 99-Archive|restorable from Archive|Delete to Archive|backed up to 99-Archive/iu;
+  /删除前会自动备份|可从 99-Archive 恢复|可从 Archive 恢复|可从归档恢复|已移入归档备份|删除到 Archive|备份进 99-Archive|整文件覆盖\/删除进归档|仍会备份到 99-Archive|删除仍备份|仍走备份链|A backup will be saved to 99-Archive|restorable from Archive|Delete to Archive|backed up to 99-Archive|Backs up to 99-Archive|full overwrite\/delete go to archive|still backs up to 99-Archive/iu;
 
 test("Kernel: ordinary open notes are not recoverable; locked/core are", () => {
   assert.equal(
@@ -65,6 +65,12 @@ test("shipped delete copy does not promise Archive for every delete", () => {
   const enShell = readJson("src/locales/en-US/shell.json");
   const zhWs = readJson("src/locales/zh-CN/workspace.json");
   const enWs = readJson("src/locales/en-US/workspace.json");
+  const zhSettings = readJson("src/locales/zh-CN/settings.json");
+  const enSettings = readJson("src/locales/en-US/settings.json");
+  const zhEditor = readJson("src/locales/zh-CN/editor.json");
+  const enEditor = readJson("src/locales/en-US/editor.json");
+  const zhX = readJson("src/locales/zh-CN/x.json");
+  const enX = readJson("src/locales/en-US/x.json");
 
   const blobs = [
     zhShell.sidebar.treeView.confirmDeleteFileDesc,
@@ -73,25 +79,72 @@ test("shipped delete copy does not promise Archive for every delete", () => {
     enShell.sidebar.treeView.confirmDeleteTopicDesc,
     zhWs.inbox.confirmDeleteOnceMore,
     zhWs.inbox.deleteToArchive,
+    zhWs.inbox.confirmBatchDelete,
+    zhWs.inbox.batchDeleteToast,
+    zhWs.inbox.batchDeleteTooltip,
     zhWs.menu.toastDeleted,
     zhWs.menu.confirmDeleteMsg,
     enWs.inbox.confirmDeleteOnceMore,
     enWs.inbox.deleteToArchive,
+    enWs.inbox.confirmBatchDelete,
+    enWs.inbox.batchDeleteToast,
+    enWs.inbox.batchDeleteTooltip,
     enWs.menu.toastDeleted,
     enWs.menu.confirmDeleteMsg,
+    zhSettings.general.writebackHelpAuto,
+    enSettings.general.writebackHelpAuto,
+    zhEditor.ai.writebackAutoHint,
+    enEditor.ai.writebackAutoHint,
+    zhX.appendMode,
+    enX.appendMode,
   ];
   for (const text of blobs) {
-    assert.doesNotMatch(String(text), ALWAYS_ARCHIVE_LIE, text);
+    assert.doesNotMatch(String(text), ALWAYS_ARCHIVE_LIE, String(text));
   }
 
   assert.match(zhShell.sidebar.treeView.confirmDeleteFileDesc, /普通笔记不会进回收站/);
   assert.match(enShell.sidebar.treeView.confirmDeleteFileDesc, /Ordinary notes are not moved to Archive/);
   assert.match(zhShell.sidebar.treeView.confirmDeleteTopicDesc, /topic\.md/);
   assert.match(enShell.sidebar.treeView.confirmDeleteTopicDesc, /topic\.md/);
+  assert.match(zhWs.inbox.confirmBatchDelete, /普通收件箱笔记不会进回收站/);
+  assert.match(enWs.inbox.confirmBatchDelete, /Ordinary inbox notes are not moved to Archive/);
+  assert.match(zhSettings.general.writebackHelpAuto, /普通开放笔记删除不进回收站/);
+  assert.match(enSettings.general.writebackHelpAuto, /ordinary open-note deletes do not/);
   assert.equal(zhWs.menu.toastDeleted, "已删除");
   assert.equal(enWs.menu.toastDeleted, "Deleted");
   assert.equal(zhWs.inbox.deleteToArchive, "删除");
   assert.equal(enWs.inbox.deleteToArchive, "Delete");
+});
+
+test("inbox batch-delete and 写出来 delete use split honest copy", () => {
+  const zhWs = readJson("src/locales/zh-CN/workspace.json");
+  const enWs = readJson("src/locales/en-US/workspace.json");
+  const inboxView = read("src/plugins/topmind-workspace/views/InboxView.tsx");
+  const outputsView = read("src/plugins/topmind-workspace/views/OutputsView.tsx");
+
+  assert.match(inboxView, /workspace:inbox\.confirmBatchDelete/);
+  assert.match(inboxView, /workspace:inbox\.batchDeleteToast/);
+  assert.match(inboxView, /workspace:inbox\.batchDeleteTooltip/);
+  assert.doesNotMatch(outputsView, /workspace:inbox\.confirmBatchDelete/);
+  assert.match(outputsView, /workspace:outputsView\.confirmDelete/);
+
+  assert.match(zhWs.outputsView.confirmDelete, /写出来稿会先移到归档/);
+  assert.match(enWs.outputsView.confirmDelete, /Ship-it files are moved to Archive/);
+  assert.doesNotMatch(zhWs.outputsView.confirmDelete, ALWAYS_ARCHIVE_LIE);
+  assert.doesNotMatch(enWs.outputsView.confirmDelete, ALWAYS_ARCHIVE_LIE);
+});
+
+test("living Desktop ARCHITECTURE/DESIGN do not claim every save/delete backs up", () => {
+  const arch = read("ARCHITECTURE.md");
+  const design = read("DESIGN.md");
+  assert.doesNotMatch(arch, /save_file`\/删除仍备份/);
+  assert.doesNotMatch(arch, /删除\/重命名仍走备份链/);
+  assert.doesNotMatch(arch, /删除仍备份/);
+  assert.doesNotMatch(arch, /仍走备份链/);
+  assert.match(arch, /isRecoverableLifecycle/);
+  assert.match(arch, /open 覆盖不备份|open 不备份/);
+  assert.doesNotMatch(design, /整文件 `save_file` 才备份/);
+  assert.match(design, /仅 locked 覆盖才备份/);
 });
 
 test("formatWritebackToast mentions backup only when evidence has backupPath", async () => {

@@ -126,7 +126,7 @@
     "writebackMode": "模式",
     "writebackAuto": "自动保存",
     "writebackConfirm": "保存前问我",
-    "writebackHelpAuto": "自动保存 + 备份 · AI 可写入文件；整文件覆盖/删除进归档（可恢复）。",
+    "writebackHelpAuto": "自动保存 · AI 可写入文件。锁定覆盖/删除会进归档；普通开放笔记删除不进回收站。",
     "writebackHelpConfirm": "保存前问我 · AI 仍可调用写工具；结果进入「待确认写入」队列，你接受后才落盘。系统可自动准备建议，重要记忆写入须你确认。", 
     "autoPrepareSuggestions": "自动准备 AI 建议",
     "autoPrepareSuggestionsDesc": "工作区就绪后扫描可整理项（Inbox / 陈旧专题 / 记忆候选）。已配置模型时可能调用 AI 做提炼；不静默落盘，确认后才执行。关则仅手动点刷新，省 Token。",

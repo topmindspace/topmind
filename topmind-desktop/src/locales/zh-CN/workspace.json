@@ -34,12 +34,12 @@
     "batchMoveToast": "✓ 已批量移入 {{moved}} 条",
     "batchMoveToastPartial": "✓ 已移入 {{moved}} 条，失败 {{failed}}",
     "batchMoveFail": "✗ 批量移动失败: {{error}}",
-    "confirmBatchDelete": "删除选中的 {{count}} 条？（可从 Archive 恢复）",
-    "batchDeleteToast": "✓ 已删除 {{count}}/{{total}} · 可从归档恢复（⌘⇧A）",
+    "confirmBatchDelete": "删除选中的 {{count}} 条？\n普通收件箱笔记不会进回收站。",
+    "batchDeleteToast": "✓ 已删除 {{count}}/{{total}}",
     "selectedCount": "已选 {{count}} 条",
     "batchMoveTooltip": "选择目标专题，将选中条目移入",
     "batchMoveBtn": "批量移入专题",
-    "batchDeleteTooltip": "删除选中 · 备份进 99-Archive · ⌘⇧A 打开归档恢复",
+    "batchDeleteTooltip": "删除选中 · 普通笔记不会进归档",
     "batchDeleteBtn": "删除选中",
     "openArchiveBtn": "打开归档",
     "badgeExcerpt": "摘录",
@@ -255,7 +255,8 @@
     "exportHtmlFail": "导出 HTML 失败",
     "copyMarkdown": "复制正文",
     "copyMarkdownDone": "已复制 Markdown 正文",
-    "openFolder": "在文件夹中显示"
+    "openFolder": "在文件夹中显示",
+    "confirmDelete": "确定删除 {{name}}？\n写出来稿会先移到归档。"
   },
   "archiveView": {
     "title": "归档",

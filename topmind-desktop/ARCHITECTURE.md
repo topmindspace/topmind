@@ -266,7 +266,7 @@ AiService.invoke
 - 空闲超时：120 秒（无 chunk 时触发，足够覆盖工具执行）
 - 检查间隔：10 秒
 
-写/读工具：`edit_file`（Kernel `applyUniqueSpan`：精确 → 换行/行尾空白规范化；多处拒绝；失败带 nearby/context；**不写 Archive**）· `save_file`/删除仍备份 · `read_file` 带行号窗口 + `around`/`heading` 中段定位 · `search`=`grepWorkspace`（可 scope、默认可跳过 Archive、行号命中）。  
+写/读工具：`edit_file`（Kernel `applyUniqueSpan`：精确 → 换行/行尾空白规范化；多处拒绝；失败带 nearby/context；**不写 Archive**）· `save_file` 整文件覆盖（**仅 locked 覆盖备份**；open 不备份）· `delete_path` 跟 `isRecoverableLifecycle`（普通开放笔记无 trash；锁定 / 专题首页 / 写出来 才进归档）· `read_file` 带行号窗口 + `around`/`heading` 中段定位 · `search`=`grepWorkspace`（可 scope、默认可跳过 Archive、行号命中）。  
 中途控制：`ai.steerStream` · `ai.queueFollowUp`；打开文件本轮自动带入（无需点挂载）。  
 ADR：`docs/adr/2026-07-16-desktop-agent-harness-upgrade.md`。
 
@@ -439,7 +439,7 @@ AiPanel 模型下拉选择器的 `onChange` 不仅更新内存 store，还同步
 | confirm（保存前问我） | 读 + 写工具仍注册 | AI 写经 Kernel pending；`SuggestPopover` 接受/拒绝后落盘 |
 
 读（`AI_TOOL_NAMES_READ`）：`list_skills` · `load_skill` · `load_skill_resource` · `list_categories` · `list_topics` · `list_topic_files` · `get_topic` · `read_file` · `search` · `list_inbox` · `list_outputs` · `fetch_url`（`maxLen` / `render`）· `workspace_health`  
-写（`AI_TOOL_NAMES_WRITE`）：`capture_to_inbox` · `save_note` · `save_file` · `edit_file`（唯一片段，**不写 Archive**）· `create_topic` · `append_topic_memory` · `move_to_topic` · `publish_to_outputs` · `delete_path` · `rename_path`（删除/重命名仍走备份链）
+写（`AI_TOOL_NAMES_WRITE`）：`capture_to_inbox` · `save_note` · `save_file`（open 覆盖不备份；locked 覆盖才备份）· `edit_file`（唯一片段，**不写 Archive**）· `create_topic` · `append_topic_memory` · `move_to_topic` · `publish_to_outputs` · `delete_path`（仅 recoverable 进归档）· `rename_path`（重命名不备份）
 
 ### 编辑器 Markdown / 预览（1.0.12+）
 

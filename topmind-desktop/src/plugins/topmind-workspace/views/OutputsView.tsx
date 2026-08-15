@@ -406,7 +406,7 @@ export function OutputsView() {
         title={t("workspace:menu.delete")}
         description={
           deleteTarget
-            ? t("workspace:inbox.confirmBatchDelete", { count: 1 })
+            ? t("workspace:outputsView.confirmDelete", { name: deleteTarget.name })
             : ""
         }
         confirmText={t("common:action.delete")}

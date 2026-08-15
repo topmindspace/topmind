@@ -273,7 +273,7 @@
     "openSettingsTooltip": "Open AI settings · Enter any API Key or Ollama",
     "openSettingsLabel": "Go to settings",
     "writebackAutoLabel": "Auto-save",
-    "writebackAutoHint": "Auto-save + backup · AI may write; dangerous changes go to archive (default)",
+    "writebackAutoHint": "Auto-save · AI may write; locked overwrite/delete go to Archive, ordinary deletes do not",
     "writebackConfirmLabel": "Ask before save",
     "writebackConfirmHint": "Ask before save · AI write results enqueue for accept/reject in the pending strip",
     "pendingTitle": "Pending writes",

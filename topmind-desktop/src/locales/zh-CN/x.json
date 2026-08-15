@@ -70,7 +70,7 @@
     "fetchHint": "先预览勾选，再写入专题 — 避免一锤子全归档。可指定专题名，默认追加到已有笔记。",
     "topicNameLabel": "专题名（YYYY-主题）",
     "noteTitleLabel": "笔记文件名",
-    "appendMode": "追加到已有笔记（关闭则整文件覆盖，仍会备份到 99-Archive）",
+    "appendMode": "追加到已有笔记（关闭则整文件覆盖；仅锁定笔记覆盖才进归档）",
     "countLabel": "{{label}} · {{count}} 条",
     "selectAll": "全选",
     "clear": "清除",

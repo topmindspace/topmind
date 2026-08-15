@@ -34,12 +34,12 @@
     "batchMoveToast": "✓ Batch moved {{moved}} items",
     "batchMoveToastPartial": "✓ Moved {{moved}} items, {{failed}} failed",
     "batchMoveFail": "✗ Batch move failed: {{error}}",
-    "confirmBatchDelete": "Delete selected {{count}} items? (Restorable from Archive)",
-    "batchDeleteToast": "✓ Deleted {{count}}/{{total}} · Restorable from Archive (⌘⇧A)",
+    "confirmBatchDelete": "Delete selected {{count}} items?\nOrdinary inbox notes are not moved to Archive.",
+    "batchDeleteToast": "✓ Deleted {{count}}/{{total}}",
     "selectedCount": "Selected {{count}}",
     "batchMoveTooltip": "Select target topic and move selected items into it",
     "batchMoveBtn": "Batch Move to Topic",
-    "batchDeleteTooltip": "Delete selected · Backs up to 99-Archive · Press ⌘⇧A to open Archive",
+    "batchDeleteTooltip": "Delete selected · Ordinary notes are not archived",
     "batchDeleteBtn": "Delete Selected",
     "openArchiveBtn": "Open Archive",
     "badgeExcerpt": "Clipping",
@@ -255,7 +255,8 @@
     "exportHtmlFail": "HTML export failed",
     "copyMarkdown": "Copy body",
     "copyMarkdownDone": "Markdown body copied",
-    "openFolder": "Reveal in folder"
+    "openFolder": "Reveal in folder",
+    "confirmDelete": "Delete {{name}}?\nShip-it files are moved to Archive first."
   },
   "archiveView": {
     "title": "Archive",

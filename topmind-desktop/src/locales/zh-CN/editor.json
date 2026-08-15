@@ -273,7 +273,7 @@
     "openSettingsTooltip": "打开 AI 设置 · 填入任一 API Key 或 Ollama",
     "openSettingsLabel": "前往设置",
     "writebackAutoLabel": "自动保存",
-    "writebackAutoHint": "自动保存 + 备份 · AI 可写入；危险改动进归档（默认）",
+    "writebackAutoHint": "自动保存 · AI 可写入；锁定覆盖/删除进归档，普通笔记删除不进回收站",
     "writebackConfirmLabel": "保存前问我",
     "writebackConfirmHint": "保存前问我 · AI 写入结果进入「待确认写入」；你接受/拒绝后再落盘",
     "pendingTitle": "待确认写入",

@@ -126,7 +126,7 @@
     "writebackMode": "Mode",
     "writebackAuto": "Auto-save",
     "writebackConfirm": "Ask before save",
-    "writebackHelpAuto": "Auto-save + backup · AI may write files; full overwrite/delete go to archive (recoverable).",
+    "writebackHelpAuto": "Auto-save · AI may write files. Locked overwrite/delete go to Archive; ordinary open-note deletes do not.",
     "writebackHelpConfirm": "Ask before save · AI write tools stay registered; results enter the pending-write strip for accept/reject before disk. Suggestions may be prepared automatically; important memory writes need your confirm.",
     "autoPrepareSuggestions": "Auto-prepare AI suggestions",
     "autoPrepareSuggestionsDesc": "When the workspace is ready, scan tidy-up candidates (Inbox / stale topics / memory). With a model configured this may call AI for extract/promote; never writes silently — you confirm each apply. Off = manual refresh only (saves tokens).",

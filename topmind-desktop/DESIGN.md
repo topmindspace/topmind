@@ -422,7 +422,7 @@ topmind 设计系统原生支持多语言排版（Simplified Chinese / English�
 | 工具 | `electron/ai-tools.mjs` → WorkspaceService（读/写/抓 URL/健康）|
 | 系统提示 | skill-first 协议 + **按工作流阶段分组的工具描述**（Skills → 收集 → 浏览 → 读取 → 写入 → 诊断）+ 预加载上下文（概览/我的情况/专题首页）+ 写回策略 + 质量纪律 |
 | 读缓存 | `read_file` / `search` / `workspace_overview` / `workspace_health` 结果在单轮 agent loop 内缓存；写操作自动失效缓存 |
-| 改稿 | **优先** `edit_file` 唯一片段（先精确，再换行/行尾空白规范化；`startLine`/`endLine`/`heading` 可限定；失败回 nearby/context；不进 Archive）；整文件 `save_file` 才备份；长文 `read_file` 带行号，中段用 `around=` / `heading=` |
+| 改稿 | **优先** `edit_file` 唯一片段（先精确，再换行/行尾空白规范化；`startLine`/`endLine`/`heading` 可限定；失败回 nearby/context；不进 Archive）；整文件 `save_file` **仅 locked 覆盖才备份**；长文 `read_file` 带行号，中段用 `around=` / `heading=` |
 | 搜索 | 受控 `search`/grep（可 scope；默认不搜 Archive；无 shell）|
 | 步骤 | `maxAgentSteps`（默认 **20**，可配 3–50）；近上限自动收尾提示 |
 | 中途 | 流式中可继续输入补充（Enter）；stop 取消 |
