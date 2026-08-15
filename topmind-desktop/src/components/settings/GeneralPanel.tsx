@@ -38,6 +38,7 @@ const DEFAULT_EDITOR = {
   contentWidth: "reading" as const,
   pagePadding: "comfortable" as const,
   paper: "default" as const,
+  inlineAiAutoPopup: true,
 } as const;
 
 export function GeneralPanel({

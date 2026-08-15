@@ -84,8 +84,77 @@ export interface KernelContext {
   }>;
 }
 
+export interface PreciseEditSpec {
+  oldText: string;
+  newText: string;
+  replaceAll?: boolean;
+  startLine?: number;
+  endLine?: number;
+  heading?: string;
+  path?: string;
+}
+
+export interface PreciseEditOk {
+  ok: true;
+  next: string;
+  replacements: number;
+  mode: "exact" | "normalized";
+  spans: { start: number; end: number }[];
+}
+
+export interface PreciseEditFail {
+  ok: false;
+  reason: string;
+  count: number;
+  diagnostic: string;
+  next: string;
+}
+
+export interface ReadWindowOpts {
+  relativePath?: string;
+  offset?: number;
+  limit?: number;
+  around?: string;
+  heading?: string;
+  contextLines?: number;
+  maxLimit?: number;
+  maxChars?: number;
+}
+
+export interface ReadWindowResult {
+  relativePath: string;
+  content: string;
+  numbered: string;
+  offset: number;
+  limit: number;
+  startLine: number;
+  endLine: number;
+  totalLines: number;
+  totalChars: number;
+  truncated: boolean;
+  empty: boolean;
+  locate?: string;
+  note: string;
+}
+
 export interface KernelApi {
   sanitizeAiContent?(text: string): string;
+  splitAssistantVisible?(raw: unknown): { body: string; reasoning: string };
+  ingestAssistantTextDelta?(
+    acc: { raw?: string; body?: string; reasoning?: string } | null,
+    delta: string,
+  ): {
+    raw: string;
+    body: string;
+    reasoning: string;
+    bodyDelta: string;
+    reasoningDelta: string;
+    resetBody: boolean;
+    resetReasoning: boolean;
+  };
+  applyUniqueSpan?(haystack: string, spec: PreciseEditSpec): PreciseEditOk | PreciseEditFail;
+  formatReadWindow?(fullText: string, opts?: ReadWindowOpts): ReadWindowResult;
+  isPathInsideWorkspace?(workspaceRoot: string, absPath: string): boolean;
   isRecoverableLifecycle?(opts: {
     protection?: string;
     relativePath?: string;

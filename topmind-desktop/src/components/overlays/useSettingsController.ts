@@ -11,6 +11,7 @@ import {
   extractLiveUiFromSettingsPatch,
   UI_SETTINGS_APPLIED_EVENT,
 } from "../../lib/ui-settings-sync";
+import { applyEditorSettingsToView } from "../../lib/editor-prefs";
 
 /**
  * Settings state + optimistic debounced persistence for SettingsDialog.
@@ -68,16 +69,7 @@ export function useSettingsController() {
       setCachedSettings(ns);
       setSettings(ns);
       if (ns.editor) {
-        setEditorSettings({
-          fontSize: ns.editor.fontSize,
-          lineHeight: ns.editor.lineHeight,
-          fontFamily: ns.editor.fontFamily,
-          autoSaveMs: ns.editor.autoSaveMs ?? 1500,
-          wordWrap: ns.editor.wordWrap !== false,
-          contentWidth: ns.editor.contentWidth || "reading",
-          pagePadding: ns.editor.pagePadding || "comfortable",
-          paper: ns.editor.paper || "default",
-        });
+        applyEditorSettingsToView(ns.editor, setEditorSettings);
         const tm = (ns.editor as { tabMode?: string }).tabMode;
         if (tm === "single" || tm === "multi") {
           useViewStore.getState().setEditorTabMode(tm);
@@ -121,16 +113,7 @@ export function useSettingsController() {
     setSettings(optimistic);
 
     if (patch.editor) {
-      setEditorSettings({
-        fontSize: optimistic.editor.fontSize,
-        lineHeight: optimistic.editor.lineHeight,
-        fontFamily: optimistic.editor.fontFamily,
-        autoSaveMs: optimistic.editor.autoSaveMs ?? 1500,
-        wordWrap: optimistic.editor.wordWrap !== false,
-        contentWidth: optimistic.editor.contentWidth || "reading",
-        pagePadding: optimistic.editor.pagePadding || "comfortable",
-        paper: optimistic.editor.paper || "default",
-      });
+      applyEditorSettingsToView(optimistic.editor, setEditorSettings);
       const tm = (optimistic.editor as { tabMode?: string }).tabMode;
       if (tm === "single" || tm === "multi") {
         useViewStore.getState().setEditorTabMode(tm);

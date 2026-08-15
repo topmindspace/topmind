@@ -407,6 +407,7 @@ topmind 设计系统原生支持多语言排版（Simplified Chinese / English�
 - **工具时间线**：助手消息内 `toolCalls` 卡片（running/done + 路径跳转 + `edit_file` diff 内联）。
 - **ActionBar（轨内）**：有建议时 compact「建议 · N 条」→ 打开 `SuggestPopover`；无项隐藏。完整列表不在 AI 轨内展开。
 - **TaskBadge**：Header 中的微型 spinner + 数字角标，点击展开 TaskPanel。
+- **思考过程**：`reasoning-*` 与正文里的 `<think>` / 思考围栏 / 未标注 CoT 在 ingest 拆出，默认折叠进 `ReasoningBlock`；气泡正文只渲染结论。
 - **流式状态文案**：`lib/stream-status.ts` 统一 StatusBar / ChatMessage / ChatInput。
 - **助手代码块**：语言 pill + 一键复制（对话内；编辑器 Tiptap 代码块保持样式壳）。
 - **会话标题**：首条用户消息自动截断命名。
@@ -421,9 +422,9 @@ topmind 设计系统原生支持多语言排版（Simplified Chinese / English�
 | 工具 | `electron/ai-tools.mjs` → WorkspaceService（读/写/抓 URL/健康）|
 | 系统提示 | skill-first 协议 + **按工作流阶段分组的工具描述**（Skills → 收集 → 浏览 → 读取 → 写入 → 诊断）+ 预加载上下文（概览/我的情况/专题首页）+ 写回策略 + 质量纪律 |
 | 读缓存 | `read_file` / `search` / `workspace_overview` / `workspace_health` 结果在单轮 agent loop 内缓存；写操作自动失效缓存 |
-| 改稿 | **优先** `edit_file`（不进 Archive）；整文件 `save_file` 才备份；长文分页读 |
+| 改稿 | **优先** `edit_file` 唯一片段（先精确，再换行/行尾空白规范化；`startLine`/`endLine`/`heading` 可限定；失败回 nearby/context；不进 Archive）；整文件 `save_file` 才备份；长文 `read_file` 带行号，中段用 `around=` / `heading=` |
 | 搜索 | 受控 `search`/grep（可 scope；默认不搜 Archive；无 shell）|
-| 步骤 | `maxAgentSteps`（默认 12）；近上限自动收尾提示 |
+| 步骤 | `maxAgentSteps`（默认 **20**，可配 3–50）；近上限自动收尾提示 |
 | 中途 | 流式中可继续输入补充（Enter）；stop 取消 |
 | 焦点 | 当前打开文件**自动**进入本轮上下文（「固定」才常驻胶囊）|
 | Skills | skill-first 底座；用户侧 slash 用中文短标签 |
@@ -691,6 +692,16 @@ chrome（微暖框架）→ background（净白画布）→ surface（工作面�
 ---
 
 ## 变更摘要
+
+### Agent 步数 / 写回文案对齐（2026-08-15）
+- 步数预算单一三元组：**3 / 20 / 50**（Settings · `settings-core` · `ai-stream`）；Settings 不再回退到 12
+- 系统提示与 Obsidian 工具指南：唯一片段编辑 + confirm 仍注册写工具 + 保护级别优先于写回；`en*` → 英文指令，其余中文
+
+### 精确中段编辑 · 思考折叠（2026-08-15）
+- **`edit_file`**：Kernel `applyUniqueSpan`（精确 → 换行/行尾空白规范化；多处拒绝；失败带 nearby/context）；`startLine`/`endLine`/`heading` 可限定
+- **`read_file`**：带行号窗口；`around=` / `heading=` 跳到中段，不再被默认 400 行 + 14k 截断挡住
+- **对话 ingest**：`<think>` / 思考围栏 / 未标注 CoT 从正文拆出，默认折叠
+- **Obsidian**：同一 Kernel 读/改/写闸契约（非 Desktop UI 克隆）
 
 ### 写闸安全 · Toast 撤销 · 代码质量（2026-08-10）
 - **saveBinary 保护门**：二进制资源写入前检查 `evaluateWritePermission`，`locked` 文件不被 AI 直接覆盖，覆盖前自动备份

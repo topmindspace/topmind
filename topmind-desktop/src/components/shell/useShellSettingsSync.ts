@@ -6,6 +6,7 @@ import { api } from "../../services/api";
 import type { AppSettings } from "../../types";
 import { setCachedSettings, patchCachedSettings } from "../../lib/settings-cache";
 import { UI_SETTINGS_APPLIED_EVENT } from "../../lib/ui-settings-sync";
+import { applyEditorSettingsToView } from "../../lib/editor-prefs";
 
 /**
  * Two-way sync between persisted AppSettings and the view store:
@@ -49,16 +50,7 @@ export function useShellSettingsSync(settings: AppSettings): void {
       }
     }
     if (settings.editor) {
-      setEditorSettings({
-        fontSize: settings.editor.fontSize,
-        lineHeight: settings.editor.lineHeight,
-        fontFamily: settings.editor.fontFamily,
-        autoSaveMs: settings.editor.autoSaveMs ?? 1500,
-        wordWrap: settings.editor.wordWrap !== false,
-        contentWidth: settings.editor.contentWidth || "reading",
-        pagePadding: settings.editor.pagePadding || "comfortable",
-        paper: settings.editor.paper || "default",
-      });
+      applyEditorSettingsToView(settings.editor, setEditorSettings);
       const tm = settings.editor.tabMode;
       if (tm === "single" || tm === "multi") {
         useViewStore.getState().setEditorTabMode(tm);

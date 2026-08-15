@@ -1,6 +1,6 @@
 ---
 name: topmind-organize
-version: 3.4.0
+version: 3.5.0
 description: >-
   整理本周动态、专题内整理/研究/分析/路由 Inbox。Use when 整理本周、整理、分析、研究、对比、总结要点、organize、summarize。
   Do NOT use for 首次捕获、最终出稿、仅写我的情况、快速 doctor、全库 loop.
@@ -37,7 +37,7 @@ compatibility: topmind workspace with stream period notes, topics, or Inbox.
 author: TopMindSpace
 license: MIT
 homepage: https://github.com/topmindspace/topmind
-updated: 2026-08-10
+updated: 2026-08-15
 degradation: ../shared/capability-degradation.md
 ---
 

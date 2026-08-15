@@ -1,6 +1,6 @@
 # Architecture Reset — 理想架构与实施计划
 
-> **状态**：Accepted · **日期**：2026-07-25 · **最后更新**：2026-08-13  
+> **状态**：Accepted · **日期**：2026-07-25 · **最后更新**：2026-08-15  
 > **角色**：架构决策锁 + 实施诚实表（唯一实施真源）  
 > **内容/边界真源**：`PROJECT-MODEL.md` · `PRODUCT-BOUNDARIES.md`  
 > **产品入口**：根 [`README.md`](../README.md)（English）· [`README.zh-CN.md`](../README.zh-CN.md)（简体中文）
@@ -163,6 +163,8 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | 多路 AI 并发策略 | **Done**（2026-08-08：background lane 串行 suggest/todo；agent 独立；soft suggest `agent_busy`；auto-todo 让路；StatusBar multiActive/`AI ×N`） |
 | 表面 UX 诚实（Desktop / Obsidian / Clip） | **Done**（2026-08-13：主锚 动态/收件箱/写出来/搜索；Obsidian 用户文案 动态≠工作台、记下≠记一下、整理我的情况；Clip 选项不教第二套 lite 转换器） |
 | Stream / 编辑器 / AI 展示诚实 | **Done**（2026-08-13：预览=静态 HTML + 共享阅读偏好；动态多行剥首行 chrome；Obsidian 增补并入卡片并剥 append 注释；AI invoke 不带 view-store writebackMode） |
+| 精确中段改稿 / 思考折叠 | **Done**（2026-08-15：Kernel `applyUniqueSpan` + `formatReadWindow`；Desktop `edit_file`/`read_file` 与 Obsidian chat 工具环共用匹配/写闸，不是第九引擎；`<think>` / CoT 折进可展开思考过程） |
+| 删除文案诚实 | **Done**（2026-08-15：用户文案跟 `isRecoverableLifecycle`——普通开放笔记删除无 trash；锁定 / 专题首页 / 写出来 才进归档；toast 只在 `backupPath` 时提备份） |
 
 **Intentional Partial（保留，非未完成）**：contract UI 非全 Surface；非 `.md` 二进制可仍直写。
 

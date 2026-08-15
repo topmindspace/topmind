@@ -121,12 +121,18 @@ export async function buildDesktopAiTools(ctx) {
             try {
               const current = await WorkspaceService.readPath({ relativePath: rel }, ctx);
               const text = String(current || "");
-              const count = text.split(args.oldText).length - 1;
-              if (count >= 1) {
-                content = args.replaceAll
-                  ? text.split(args.oldText).join(args.newText)
-                  : text.replace(args.oldText, args.newText);
-              }
+              const { loadKernelApi } = await import("./lib/kernel-api.mjs");
+              const kernel = await loadKernelApi();
+              const applied = kernel.applyUniqueSpan(text, {
+                oldText: args.oldText,
+                newText: args.newText,
+                replaceAll: Boolean(args.replaceAll),
+                startLine: args.startLine,
+                endLine: args.endLine,
+                heading: args.heading,
+                path: rel,
+              });
+              if (applied.ok) content = applied.next;
             } catch {
               /* leave empty */
             }
@@ -335,7 +341,7 @@ export async function buildDesktopAiTools(ctx) {
 
     tools.read_file = tool({
       description:
-        "读取工作区相对路径的 Markdown/文本。支持按行窗口：offset（起始行，1-based）+ limit（行数，默认整文件上限 400 行）。长文务必分页读，勿一次吞全文。",
+        "读取工作区相对路径的 Markdown/文本。返回带行号的 numbered 窗口（N|正文）。长文用 around= 关键词或 heading= 跳到中间，勿一次吞全文。edit_file 可把行号当 startLine/endLine。",
       inputSchema: jsonSchema({
         type: "object",
         properties: {
@@ -346,20 +352,29 @@ export async function buildDesktopAiTools(ctx) {
           },
           limit: {
             type: "number",
-            description: "返回行数（默认 400；最大 2000；省略则尽量整文件）",
+            description: "返回行数（默认 400；最大 2000）",
           },
+          around: strProp("跳到包含该短语的行，返回其前后窗口（中段编辑首选）"),
+          heading: strProp("跳到该 Markdown 标题所在节（须唯一）"),
         },
         required: ["relativePath"],
       }),
-      execute: wrapRead(async function read_file({ relativePath, offset, limit }) {
-        // Windowed read protects context: default 400 lines unless caller sets limit.
+      execute: wrapRead(async function read_file({ relativePath, offset, limit, around, heading }) {
         const hasExplicitLimit = limit != null && limit !== "";
+        const hasLocate = Boolean(around) || Boolean(heading);
         const win = await WorkspaceService.readPathWindow({
           relativePath,
           offset: offset ?? 1,
-          limit: hasExplicitLimit ? limit : 400,
+          limit: hasExplicitLimit ? limit : (hasLocate ? undefined : 400),
+          around: around || undefined,
+          heading: heading || undefined,
         }, ctx);
-        return summarizeForModel(win, 14000);
+        const payload = {
+          ...win,
+          content: win.numbered || win.content,
+        };
+        // Prefer line-boundary trim over a mid-paragraph 14k slice.
+        return summarizeForModel(payload, 48_000);
       }),
     });
 
@@ -526,27 +541,41 @@ export async function buildDesktopAiTools(ctx) {
 
       tools.edit_file = tool({
         description:
-          "精确局部修改 .md：oldText→newText（须唯一精确匹配，或 replaceAll）。不写 99-Archive（轻量改稿）；整文件覆盖用 save_file。改稿/润色首选。受 protection/locked 约束。",
+          "精确局部修改 .md：oldText→newText。先唯一精确匹配，再容忍换行/行尾空白；多处命中则拒绝（或 replaceAll）。可用 startLine/endLine/heading 限定范围。失败返回 nearby/context。不写 99-Archive；整文件覆盖用 save_file。受 protection/locked 约束。",
         inputSchema: jsonSchema({
           type: "object",
           properties: {
             relativePath: strProp("工作区相对路径"),
-            oldText: strProp("必须与文件内容精确匹配的原文片段（建议含前后几行上下文）"),
+            oldText: strProp("要替换的原文片段（建议含前后几行；可从 numbered 窗口复制，行号前缀会被剥掉）"),
             newText: strProp("替换后的文本（可为更长或更短）"),
             replaceAll: {
               type: "boolean",
-              description: "true 时替换全部匹配；默认 false（必须唯一匹配）",
+              description: "true 时替换全部匹配；默认 false（必须唯一）",
             },
+            startLine: {
+              type: "number",
+              description: "可选：限定匹配的起始行（1-based）",
+            },
+            endLine: {
+              type: "number",
+              description: "可选：限定匹配的结束行（含）",
+            },
+            heading: strProp("可选：限定在该 Markdown 标题节内匹配（须唯一）"),
           },
           required: ["relativePath", "oldText", "newText"],
         }),
-        execute: wrapWrite("edit_file", ({ relativePath, oldText, newText, replaceAll, actor, confirmed }) =>
+        execute: wrapWrite("edit_file", ({
+          relativePath, oldText, newText, replaceAll, startLine, endLine, heading, actor, confirmed,
+        }) =>
           WorkspaceService.editPath(
             {
               relativePath,
               oldText,
               newText,
               replaceAll: Boolean(replaceAll),
+              startLine,
+              endLine,
+              heading,
               actor: actor || "ai",
               confirmed,
             },

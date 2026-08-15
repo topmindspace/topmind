@@ -14,6 +14,9 @@ describe("kernel-api", () => {
     assert.equal(typeof kernel.applySuggestion, "function");
     assert.equal(typeof kernel.loadContract, "function");
     assert.equal(typeof kernel.scanLifecycle, "function");
+    assert.equal(typeof kernel.applyUniqueSpan, "function");
+    assert.equal(typeof kernel.splitAssistantVisible, "function");
+    assert.equal(typeof kernel.formatReadWindow, "function");
   });
 
   it("exports derived-builder AI provider interface", () => {

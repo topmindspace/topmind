@@ -45,7 +45,7 @@ test("save then load round-trips writebackMode, theme, editor, ai + skills flags
   const saved = await updateAppSettings(settingsFile, base, {
     writebackMode: "confirm",
     theme: "dark",
-    editor: { fontSize: 18, autoSaveMs: 2000, wordWrap: false, lineHeight: 1.8, fontFamily: "mono" },
+    editor: { fontSize: 18, autoSaveMs: 2000, wordWrap: false, lineHeight: 1.8, fontFamily: "mono", inlineAiAutoPopup: false },
     ai: {
       agentEnabled: false,
       skillsEnabled: false,
@@ -69,6 +69,7 @@ test("save then load round-trips writebackMode, theme, editor, ai + skills flags
   assert.equal(loaded.editor.fontSize, 18);
   assert.equal(loaded.editor.autoSaveMs, 2000);
   assert.equal(loaded.editor.wordWrap, false);
+  assert.equal(loaded.editor.inlineAiAutoPopup, false);
   assert.equal(loaded.ai.agentEnabled, false);
   assert.equal(loaded.ai.skillsEnabled, false);
   assert.deepEqual(loaded.ai.enabledSkillIds, ["topmind-capture"]);
@@ -118,6 +119,21 @@ test("partial ui patch does not wipe writebackMode", async () => {
   const reloaded = await loadAppSettings(settingsFile, "/tmp/ws-d");
   assert.equal(reloaded.writebackMode, "confirm");
   assert.equal(reloaded.ui.sidebarWidth, 320);
+});
+
+test("inlineAiAutoPopup false survives persist → reload → reading-prefs patch", async () => {
+  const base = createDefaultAppSettings("/tmp/ws-inline-ai");
+  await updateAppSettings(settingsFile, base, { editor: { inlineAiAutoPopup: false } });
+  const loaded = await loadAppSettings(settingsFile, "/tmp/ws-inline-ai");
+  assert.equal(loaded.editor.inlineAiAutoPopup, false);
+  const afterFont = await updateAppSettings(settingsFile, loaded, {
+    editor: { fontSize: 18, paper: "sepia" },
+  });
+  assert.equal(afterFont.editor.inlineAiAutoPopup, false);
+  assert.equal(afterFont.editor.fontSize, 18);
+  const reloaded = await loadAppSettings(settingsFile, "/tmp/ws-inline-ai");
+  assert.equal(reloaded.editor.inlineAiAutoPopup, false);
+  assert.equal(reloaded.editor.fontSize, 18);
 });
 
 test("refuse to save non-object settings", async () => {

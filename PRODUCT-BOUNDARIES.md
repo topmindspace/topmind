@@ -136,7 +136,7 @@ UTR = 软探测；写回不经 UTR
 
 - 复用 Kernel `lib/` 八引擎（esbuild 打包内联）
 - `require('fs')` 直访文件系统（Electron 渲染进程）
-- `fetch` API 直调 AI（不引入 AI SDK）
+- `fetch` API 直调 AI（不引入 AI SDK）；对话可走 Kernel `applyUniqueSpan` + `executeWrite`（精确中段改稿），与 Desktop 共享匹配/拒绝/诊断契约，不共享 React/IPC
 - 详见 `obsidian-plugin/ARCHITECTURE.md` · ADR `docs/adr/2026-08-07-obsidian-plugin-architecture.md`
 
 ---

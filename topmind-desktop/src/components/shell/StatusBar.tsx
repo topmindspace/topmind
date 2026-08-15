@@ -271,7 +271,7 @@ export function StatusBar({ health }: StatusBarProps) {
               aria-label={t("statusBar.taskRunning", { count: activeTasks.length })}
             >
               {/* Loader2 — background engine tasks; never ListTodo (reserved for personal list) */}
-              <Loader2 size={ICON.micro} className="v4-ai-busy-icon animate-spin" aria-hidden />
+              <Loader2 size={ICON.micro} className="animate-spin" aria-hidden />
               <span className="v4-ai-busy-text hidden tabular-nums sm:inline">
                 {t("statusBar.taskRunning", { count: activeTasks.length })}
               </span>

@@ -334,6 +334,8 @@ function defaultEditorSettings() {
     pagePadding: "comfortable",
     /** Edit/preview canvas tone (not global theme) */
     paper: "default",
+    /** Selection-triggered inline AI panel (toolbar / context still work when false). */
+    inlineAiAutoPopup: true,
   };
 }
 
@@ -400,6 +402,12 @@ function normalizeEditorSettings(value, fallback = defaultEditorSettings()) {
     contentWidth,
     pagePadding,
     paper,
+    inlineAiAutoPopup:
+      typeof value.inlineAiAutoPopup === "boolean"
+        ? value.inlineAiAutoPopup
+        : typeof fallback.inlineAiAutoPopup === "boolean"
+          ? fallback.inlineAiAutoPopup
+          : true,
   };
 }
 
@@ -1107,6 +1115,7 @@ function parseSettingsBody(raw, defaultWorkspaceRoot, secretAdapter) {
   if (typeof merged.ai.maxAgentSteps !== "number") merged.ai.maxAgentSteps = AGENT_STEPS_DEFAULT;
   if (typeof merged.editor.autoSaveMs !== "number") merged.editor.autoSaveMs = 1500;
   if (typeof merged.editor.wordWrap !== "boolean") merged.editor.wordWrap = true;
+  if (typeof merged.editor.inlineAiAutoPopup !== "boolean") merged.editor.inlineAiAutoPopup = true;
   if (!merged.ui || typeof merged.ui !== "object") merged.ui = defaultUiSettings();
   if (typeof merged.ui.autoCheckUpdates !== "boolean") merged.ui.autoCheckUpdates = true;
   if (!merged.clipBridge || typeof merged.clipBridge !== "object") {

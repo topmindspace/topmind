@@ -20,6 +20,11 @@ import {
 } from "../../lib/editor-markdown";
 import { sanitizeInlineAiResult } from "../../lib/inline-ai-result";
 import { useInlineAiStore } from "../../lib/inline-ai-busy";
+import { applyEditorPrefs } from "../../lib/editor-prefs";
+import {
+  INLINE_AI_PREVIEW_DEFAULT_MAX_H,
+  shouldAutoOpenInlineAi,
+} from "../../lib/inline-ai-panel";
 
 /** Max custom instruction history entries kept in-memory. */
 const INSTR_HISTORY_MAX = 8;
@@ -100,8 +105,7 @@ export function useSelectionAi({
     (s) => s.editorSettings.inlineAiAutoPopup ?? true,
   );
   const setInlineAiAutoPopup = useCallback((v: boolean) => {
-    const prev = useViewStore.getState().editorSettings;
-    useViewStore.getState().setEditorSettings({ ...prev, inlineAiAutoPopup: v });
+    void applyEditorPrefs({ inlineAiAutoPopup: v });
   }, []);
   const autoPopupRef = useRef(inlineAiAutoPopup);
   autoPopupRef.current = inlineAiAutoPopup;
@@ -124,7 +128,7 @@ export function useSelectionAi({
   const [showDiff, setShowDiff] = useState(false);
   /** Toolbar / context forced open */
   const [pinnedOpen, setPinnedOpen] = useState(false);
-  const [previewMaxH, setPreviewMaxH] = useState(160);
+  const [previewMaxH, setPreviewMaxH] = useState(INLINE_AI_PREVIEW_DEFAULT_MAX_H);
   const [statusHint, setStatusHint] = useState<string | null>(null);
   /** User-dragged position override (null = auto-position near selection) */
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
@@ -279,6 +283,18 @@ export function useSelectionAi({
       return;
     }
     const sel = buildSelectionTarget();
+    if (!shouldAutoOpenInlineAi(autoPopupRef.current, { pinned: false, phase: ph })) {
+      if (!sel) {
+        setTarget(null);
+        setPreview(null);
+        setError(null);
+        setPhase("idle");
+        return;
+      }
+      // Preference off: keep a force-opened panel in sync; never create a new one.
+      setTarget((t) => (t ? sel : t));
+      return;
+    }
     setTarget(sel);
     setDragPos(null); // Reset drag override when selection changes
     if (!sel) {
@@ -309,9 +325,7 @@ export function useSelectionAi({
         }
       }
       // Non-empty: debounce to avoid showing during active text drag.
-      // 220ms balances responsiveness with avoiding noise during quick edits.
-      // Skipped when auto-popup is off — user must trigger via toolbar/context menu.
-      if (!autoPopupRef.current) return;
+      // Auto-open itself is gated inside syncSelection via inlineAiAutoPopup.
       if (selectionDebounceRef.current) clearTimeout(selectionDebounceRef.current);
       selectionDebounceRef.current = setTimeout(() => {
         selectionDebounceRef.current = null;

@@ -101,6 +101,8 @@ export const zhCN = {
   chat_no_ai: "未配置 AI，无法对话",
   chat_no_ai_hint: "请在设置中配置 AI 服务商",
   chat_thinking: "思考中...",
+  chat_reasoning: "思考过程",
+  chat_reasoning_show: "展开思考过程",
   chat_clear: "清空对话",
   chat_error: "对话出错，请重试",
   chat_you: "你",

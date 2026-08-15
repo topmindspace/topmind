@@ -37,6 +37,7 @@ test("defaults: theme auto, agent on, skills on, autoSave 1500, wordWrap, maxAge
   assert.equal(d.editor.fontSize, 16);
   assert.equal(d.editor.lineHeight, 1.7);
   assert.equal(d.editor.wordWrap, true);
+  assert.equal(d.editor.inlineAiAutoPopup, true);
   assert.ok(d.ui.aiPanelOpen);
   assert.equal(d.ui.sidebarView, "stream");
   assert.ok(d.clipBridge);
@@ -94,9 +95,24 @@ test("normalizeEditorSettings fills autoSaveMs + wordWrap", () => {
   assert.equal(n.fontFamily, "mono");
   assert.equal(n.autoSaveMs, 1500);
   assert.equal(n.wordWrap, true);
+  assert.equal(n.inlineAiAutoPopup, true);
   const n2 = normalizeEditorSettings({ ...n, autoSaveMs: 2500, wordWrap: false });
   assert.equal(n2.autoSaveMs, 2500);
   assert.equal(n2.wordWrap, false);
+});
+
+test("normalizeEditorSettings preserves inlineAiAutoPopup false (not reset to default true)", () => {
+  const n = normalizeEditorSettings({ inlineAiAutoPopup: false, fontSize: 16 });
+  assert.equal(n.inlineAiAutoPopup, false);
+  const merged = mergeAppSettings(createDefaultAppSettings("/tmp/ws-inline"), {
+    editor: { inlineAiAutoPopup: false },
+  });
+  assert.equal(merged.editor.inlineAiAutoPopup, false);
+  // Subsequent reading-prefs patch must not drop the flag
+  const afterFont = mergeAppSettings(merged, { editor: { fontSize: 18, paper: "sepia" } });
+  assert.equal(afterFont.editor.inlineAiAutoPopup, false);
+  assert.equal(afterFont.editor.fontSize, 18);
+  assert.equal(afterFont.editor.paper, "sepia");
 });
 
 test("normalizeWritebackMode rejects garbage", () => {

@@ -1321,6 +1321,16 @@ export function StreamDetailView() {
             "outline-none border-0 focus:ring-0",
           )}
         />
+        {polishing ? (
+          <div
+            className="mt-1.5 h-0.5 w-full overflow-hidden rounded-full bg-accent-bg-subtle"
+            role="progressbar"
+            data-stream-polish-busy
+            aria-valuetext={t("workspace:streamDetail.composeAiPolish")}
+          >
+            <div className="h-full w-1/3 v4-ai-progress-slide rounded-full bg-accent-color/50" />
+          </div>
+        ) : null}
         <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2 border-t border-border-subtle-dim/70 pt-1.5">
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
             {/* Tertiary: full capture lives in title bar「记一下」 */}

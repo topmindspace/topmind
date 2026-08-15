@@ -103,6 +103,8 @@ export const enUS: typeof zhCN = {
   chat_no_ai: "AI not configured — chat unavailable",
   chat_no_ai_hint: "Please configure an AI provider in settings",
   chat_thinking: "Thinking...",
+  chat_reasoning: "Reasoning",
+  chat_reasoning_show: "Show reasoning",
   chat_clear: "Clear chat",
   chat_error: "Chat error, please try again",
   chat_you: "You",

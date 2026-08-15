@@ -15,14 +15,15 @@ import { Tooltip } from "../ui/tooltip";
 import { ICON } from "../../lib/icons";
 import { cn } from "../../lib/cn";
 
-const AGENT_STEP_OPTIONS = [
-  { value: "5", label: "5" },
-  { value: "8", label: "8" },
-  { value: "12", label: "12" },
-  { value: "16", label: "16" },
-  { value: "20", label: "20" },
-  { value: "24", label: "24" },
-];
+import {
+  AGENT_STEP_OPTION_VALUES,
+  fallbackMaxAgentSteps,
+} from "../../lib/agent-steps";
+
+const AGENT_STEP_OPTIONS = AGENT_STEP_OPTION_VALUES.map((n) => ({
+  value: String(n),
+  label: String(n),
+}));
 
 // ── Provider Registry ────────────────────────────────────────────────────
 // Single source of truth for provider metadata used by the settings UI.
@@ -389,7 +390,7 @@ export function AiProviderPanel({
   const refreshRuntimeStatus = useAiStore((s) => s.refreshRuntimeStatus);
   const agentEnabled = useAiStore((s) => s.agentEnabled);
   const setAgentEnabled = useAiStore((s) => s.setAgentEnabled);
-  const maxSteps = settings.ai.maxAgentSteps ?? 12;
+  const maxSteps = fallbackMaxAgentSteps(settings.ai.maxAgentSteps);
   const skillsOn = settings.ai.skillsEnabled !== false;
   const pref = settings.ai.sourcePreference || "";
 
@@ -684,7 +685,12 @@ export function AiProviderPanel({
             value={String(maxSteps)}
             disabled={!agentEnabled}
             onChange={(e) => patchAi({ maxAgentSteps: Number(e.target.value) })}
-            options={AGENT_STEP_OPTIONS}
+            options={
+              AGENT_STEP_OPTIONS.some((o) => o.value === String(maxSteps))
+                ? AGENT_STEP_OPTIONS
+                : [...AGENT_STEP_OPTIONS, { value: String(maxSteps), label: String(maxSteps) }]
+                    .sort((a, b) => Number(a.value) - Number(b.value))
+            }
           />
         </Field>
       </SettingsSection>

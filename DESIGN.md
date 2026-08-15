@@ -187,8 +187,10 @@ Desktop 是文件系统的智能视图层：
 4. **skill-first** — 与可移植 Skills 同构  
 5. **不内嵌通用 coding-agent 内核** — 领域工具写回工作区  
 6. **路径回执** — 每次写让用户知道写到哪  
+7. **精确改稿** — 中段唯一片段：先精确匹配，再容忍换行/行尾空白；多处命中拒绝并返回 nearby/context；写回仍走 Kernel 写闸。Desktop 与 Obsidian 同一匹配契约。  
+8. **可见正文是结论** — provider 推理增量、`<think>` / 思考围栏、未标注 CoT 前缀折进可展开「思考过程」，不当回复正文  
 
-状态：对话 · 领域工具 · 建议条 · 待确认写入 · open/locked 写闸 **Done**（语义索引 / Ask → Phase C **Target**）。
+状态：对话 · 领域工具 · 建议条 · 待确认写入 · open/locked 写闸 · 精确中段编辑 · 思考折叠 **Done**（语义索引 / Ask → Phase C **Target**）。
 
 ---
 

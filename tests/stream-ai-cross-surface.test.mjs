@@ -6,7 +6,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -112,4 +112,54 @@ test("shared activity-window is single product scope for suggest+todo+ops", () =
   assert.match(todo, /resolveActivityWindow/u);
   assert.match(ops, /resolveActivityWindow/u);
   assert.ok(fs.existsSync(path.join(ROOT, "lib/activity-window.mjs")));
+});
+
+test("living DESIGN/ARCHITECTURE do not claim stale step budget 12 or 3-24", () => {
+  const desktopDesign = read("topmind-desktop/DESIGN.md");
+  const desktopArch = read("topmind-desktop/ARCHITECTURE.md");
+  assert.match(desktopDesign, /默认 \*\*20\*\*|默认 20/u);
+  assert.match(desktopArch, /默认 \*\*20\*\*/u);
+  assert.match(desktopArch, /3–50|3-50/u);
+  assert.doesNotMatch(desktopDesign, /maxAgentSteps`（默认 12）/u);
+  assert.doesNotMatch(desktopArch, /默认 \*\*12\*\*/u);
+  assert.doesNotMatch(desktopArch, /可配 3–24/u);
+});
+
+test("Desktop and Obsidian share Kernel unique-span edit + thinking split", async () => {
+  const { applyUniqueSpan, splitAssistantVisible } = await import(
+    pathToFileURL(path.join(ROOT, "lib/kernel-api.mjs")).href
+  );
+
+  const hay = "head\nUNIQUE mid paragraph\n\ntail\n";
+  const applied = applyUniqueSpan(hay, {
+    oldText: "UNIQUE mid paragraph\r\n",
+    newText: "UNIQUE mid rewritten\n",
+  });
+  assert.equal(applied.ok, true);
+  assert.match(applied.next, /UNIQUE mid rewritten/);
+  assert.match(applied.next, /^head\n/);
+  assert.match(applied.next, /tail/);
+
+  const miss = applyUniqueSpan(hay, { oldText: "no such span", newText: "x" });
+  assert.equal(miss.ok, false);
+  assert.match(miss.diagnostic, /nearby\/context/u);
+
+  const raw = "<think>plan</think>\n\n## Answer\nShip it.";
+  const k = splitAssistantVisible(raw);
+  assert.doesNotMatch(k.body, /plan|<think>/);
+  assert.match(k.body, /Ship it/);
+  assert.match(k.reasoning, /plan/);
+
+  const desktopOps = read("topmind-desktop/electron/lib/workspace-path-ops.mjs");
+  const obsOps = read("obsidian-plugin/src/services/kernel-workspace-ops.ts");
+  const desktopStream = read("topmind-desktop/electron/ai-stream.mjs");
+  const desktopSplitSrc = read("topmind-desktop/src/lib/ai-chat-split.ts");
+  const obsChat = read("obsidian-plugin/src/services/kernel-service.ts");
+  assert.match(desktopOps, /applyUniqueSpan/);
+  assert.match(obsOps, /applyUniqueSpan/);
+  assert.match(obsOps, /preciseEditWorkspace/);
+  assert.match(desktopStream, /splitAssistantVisible|ingestAssistantTextDelta/);
+  assert.match(desktopSplitSrc, /export function splitAssistantVisible/);
+  assert.match(obsChat, /runWorkspaceChatTurn|splitAssistantVisible/);
+  assert.match(read("obsidian-plugin/src/views/sidebar-dock-view.ts"), /tm-chat-reasoning|chat_reasoning/);
 });

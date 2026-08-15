@@ -39,6 +39,7 @@ test("writeback-toast is wired into key UI call sites", () => {
   for (const rel of [
     "src/plugins/topmind-workspace/views/FileEditorView.tsx",
     "src/plugins/topmind-workspace/views/InboxView.tsx",
+    "src/components/ui/workspace-file-menu.tsx",
     "src/components/overlays/CaptureForm.tsx",
     "src/stores/ai-store.ts",
     "src/stores/action-store.ts",

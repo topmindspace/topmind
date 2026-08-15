@@ -1,10 +1,10 @@
 /**
- * Integration tests for MCP server (v3.4).
+ * Integration tests for MCP server.
  *
  * Tests the stdio JSON-RPC transport: initialize, tools/list, tools/call,
  * and the two-phase confirm-mode review flow within a single server process.
  *
- * v3.4 contract: 5 domains × 22 commands (workspace-read / -write / -check / -transform / -maintain).
+ * Current UTR: 8 domains / 28 commands; MCP default 19.
  * No v2.x commands (create-project / list-projects / archive-project / append-project-memory) — those are removed.
  */
 import test from "node:test";
@@ -96,7 +96,7 @@ test("initialize returns server capabilities", async () => {
   assert.match(result.capabilities.experimental?.reviewPattern, /review_required/u);
 });
 
-test("tools/list returns current v3.4 tool commands", async () => {
+test("tools/list returns current MCP tool commands", async () => {
   const response = await client.request("tools/list");
 
   assert.ok(Array.isArray(response.result.tools));
@@ -105,7 +105,7 @@ test("tools/list returns current v3.4 tool commands", async () => {
   assert.equal(toolCount, 19, `expected 19 primary+danger MCP tools, got ${toolCount}`);
   assert.ok(!response.result.tools.some((t) => t.name.includes("migrate-categories")), "advanced migrate should be hidden by default");
 
-  // Check MCP tool schema shape for representative v3.4 commands
+  // Check MCP tool schema shape for representative commands
   const createTopic = response.result.tools.find((t) => t.name === "workspace-write.create-topic");
   assert.ok(createTopic, "expected workspace-write.create-topic");
   assert.ok(createTopic.description.includes("创建专题"));

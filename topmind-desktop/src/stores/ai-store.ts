@@ -21,6 +21,7 @@ import {
   shouldInvalidatePendingWrites,
 } from "../lib/ai-rail-events";
 import { emitLocal } from "../plugins/host";
+import { ingestAssistantTextDelta, mergeReasoning, splitAssistantVisible } from "../lib/ai-chat-split";
 
 /** Live re-fetch only if cache older than this (discoverModels is always free). */
 const MODEL_CATALOG_LIVE_TTL_MS = 5 * 60 * 1000;
@@ -197,21 +198,59 @@ async function performInvocation(
 
     if (p.type === "text" && p.delta) {
       set((s) => ({
-        messages: patchLastAssistant(s.messages, (last) => ({
-          ...last,
-          content: last.content + p.delta,
-        })),
+        messages: patchLastAssistant(s.messages, (last) => {
+          const next = ingestAssistantTextDelta(
+            { raw: last.contentRaw ?? last.content, body: last.content, reasoning: last.reasoning || "" },
+            p.delta || "",
+          );
+          return {
+            ...last,
+            contentRaw: next.raw,
+            content: next.body,
+            reasoning: mergeReasoning(last.reasoningProvider, next.reasoning),
+          };
+        }),
         streamDelta: s.streamDelta + p.delta,
       }));
       return;
     }
 
-    if (p.type === "reasoning" && p.delta) {
-      // Keep full thinking trace for collapsible UI even after text starts.
+    if (p.type === "text-reset") {
+      const text = (payload as { text?: string }).text || "";
+      const split = splitAssistantVisible(text);
       set((s) => ({
         messages: patchLastAssistant(s.messages, (last) => ({
           ...last,
-          reasoning: (last.reasoning || "") + p.delta,
+          contentRaw: text,
+          content: split.body,
+          reasoning: mergeReasoning(last.reasoningProvider, split.reasoning),
+        })),
+        streamDelta: split.body,
+      }));
+      return;
+    }
+
+    if (p.type === "reasoning" && p.delta) {
+      set((s) => ({
+        messages: patchLastAssistant(s.messages, (last) => {
+          const provider = (last.reasoningProvider || "") + p.delta;
+          return {
+            ...last,
+            reasoningProvider: provider,
+            reasoning: mergeReasoning(provider, splitAssistantVisible(last.contentRaw || "").reasoning),
+          };
+        }),
+      }));
+      return;
+    }
+
+    if (p.type === "reasoning-reset") {
+      const text = (payload as { text?: string }).text || "";
+      set((s) => ({
+        messages: patchLastAssistant(s.messages, (last) => ({
+          ...last,
+          reasoningProvider: text,
+          reasoning: mergeReasoning(text, splitAssistantVisible(last.contentRaw || "").reasoning),
         })),
       }));
       return;
@@ -359,10 +398,14 @@ async function performInvocation(
             toolCalls: last.toolCalls?.length ? last.toolCalls : s.streamToolCalls,
           };
         }
-        const content = result.text || partial;
+        const incoming = result.text || partial;
+        const split = splitAssistantVisible(incoming);
+        const resultReasoning = (result as { reasoning?: string }).reasoning || "";
         return {
           ...last,
-          content,
+          content: split.body,
+          contentRaw: incoming,
+          reasoning: mergeReasoning(resultReasoning || last.reasoningProvider, split.reasoning || last.reasoning),
           isError: false,
           usage: (result as { usage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number } }).usage,
           modelId: (result as { model?: { modelId?: string } }).model?.modelId,

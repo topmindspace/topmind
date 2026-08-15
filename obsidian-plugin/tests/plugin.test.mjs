@@ -517,13 +517,17 @@ describe("AI task manager + chat write-gate hygiene (source)", () => {
     const src = fs.readFileSync(path.join(srcDir, "services", "kernel-service.ts"), "utf8");
     assert.match(src, /getLocale\(\)/);
     assert.match(src, /localeOverride \|\| getLocale/);
+    assert.match(src, /resolveChatPromptLocale/);
   });
 
   test("chat sanitizes thinking and does not write notes", () => {
     const src = fs.readFileSync(path.join(srcDir, "services", "kernel-service.ts"), "utf8");
-    assert.match(src, /sanitizeAiContent/);
+    const ops = fs.readFileSync(path.join(srcDir, "services", "kernel-workspace-ops.ts"), "utf8");
+    assert.match(src, /runWorkspaceChatTurn/);
     assert.match(src, /<think>/);
+    assert.match(ops, /splitAssistantVisible|applyUniqueSpan/);
     assert.doesNotMatch(src, /executeWrite\(\s*\{[\s\S]{0,200}operation:\s*["']chat["']/u);
+    assert.doesNotMatch(ops, /executeWrite\(\s*\{[\s\S]{0,200}operation:\s*["']chat["']/u);
   });
 });
 

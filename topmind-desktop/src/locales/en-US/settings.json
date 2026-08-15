@@ -515,7 +515,7 @@
     "enableToolsDesc": "Pure chat when off; toggleable in AI panel",
     "routingDesc": "Routed by Skills; see 'Skills' page for roster",
     "maxStepsLabel": "Max Tool Steps",
-    "maxStepsDesc": "Max tool→reason loop iterations per turn; increase for complex tasks",
+    "maxStepsDesc": "Max tool→reason loop iterations per turn (3–50, default 20)",
     "titleAgent": "Agent",
     "skillFirst": "Skill-first",
     "refreshModelsDevTooltip": "Force-refresh from models.dev community catalog (no keys needed, preview all models)",

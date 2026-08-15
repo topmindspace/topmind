@@ -1,6 +1,6 @@
 ---
 name: topmind-maintain
-version: 3.4.0
+version: 3.5.0
 description: >-
   确定性体检/清理/结构修复/回执恢复。Use when 快速体检、诊断、doctor、清理、修复、workspace check。
   Do NOT use for 整体巡检 loop、内容整理、捕获、写作、记忆.
@@ -26,7 +26,7 @@ compatibility: topmind engine and/or workspace. Prefer read-only diagnostics fir
 author: TopMindSpace
 license: MIT
 homepage: https://github.com/topmindspace/topmind
-updated: 2026-08-10
+updated: 2026-08-15
 degradation: ../shared/capability-degradation.md
 ---
 

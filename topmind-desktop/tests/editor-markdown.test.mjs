@@ -62,9 +62,13 @@ test("mergeEditorPrefs (shipped) clamps and defaults reading fields", async () =
   assert.equal(next.paper, "sepia");
   assert.equal(next.contentWidth, "wide");
   assert.equal(next.lineHeight, DEFAULT_EDITOR_PREFS.lineHeight);
+  assert.equal(next.inlineAiAutoPopup, true);
   const bad = mergeEditorPrefs({ paper: "neon", fontFamily: "comic" }, DEFAULT_EDITOR_PREFS);
   assert.equal(bad.paper, "default");
   assert.equal(bad.fontFamily, "sans");
+  const off = mergeEditorPrefs({ fontSize: 18 }, { inlineAiAutoPopup: false });
+  assert.equal(off.inlineAiAutoPopup, false);
+  assert.equal(off.fontSize, 18);
 });
 
 test("settings normalizeEditorSettings preserves contentWidth", async () => {
@@ -80,4 +84,30 @@ test("settings normalizeEditorSettings preserves contentWidth", async () => {
   assert.equal(next.fontSize, 18);
   const bad = __settingsTest.normalizeEditorSettings({ contentWidth: "huge" }, base.editor);
   assert.equal(bad.contentWidth, "reading");
+  const off = __settingsTest.normalizeEditorSettings(
+    { inlineAiAutoPopup: false },
+    base.editor,
+  );
+  assert.equal(off.inlineAiAutoPopup, false);
+});
+
+test("preprocessMarkdownForBlocks does not invent blank lines between list items", async () => {
+  const { preprocessMarkdownForBlocks, alignMarkdownIndent, prepareMarkdownForEditorInsert } =
+    await import(pathToFileURL(path.join(root, "src/lib/editor-markdown.ts")).href);
+
+  assert.equal(preprocessMarkdownForBlocks("- a\n- b"), "- a\n- b");
+  assert.equal(preprocessMarkdownForBlocks("- a\n  - nested"), "- a\n  - nested");
+  assert.equal(preprocessMarkdownForBlocks("para\n- a"), "para\n\n- a");
+  assert.equal(preprocessMarkdownForBlocks("para\n## Heading"), "para\n\n## Heading");
+  assert.equal(preprocessMarkdownForBlocks("- a\n\n\n- b"), "- a\n- b");
+  assert.equal(preprocessMarkdownForBlocks("- a\n1. b"), "- a\n\n1. b");
+
+  assert.equal(alignMarkdownIndent("- item", "    - item"), "- item");
+  assert.equal(alignMarkdownIndent("  - item", "- item"), "  - item");
+  assert.equal(alignMarkdownIndent("- a\n  - b", "- a\n  - b"), "- a\n  - b");
+
+  const prepared = prepareMarkdownForEditorInsert("\n\n- a\n\n- b\n\n", "- a\n- b");
+  assert.equal(prepared, "- a\n- b");
+  const nested = prepareMarkdownForEditorInsert("    - child", "  - child");
+  assert.equal(nested, "  - child");
 });

@@ -16,11 +16,12 @@ import { sanitizeInlineAiResult } from "./lib/inline-ai-result.mjs";
 import {
   INLINE_SYSTEM,
   buildInlineCompletePrompt,
+  resolveCompleteMaxTokens,
 } from "./lib/inline-complete-prompt.mjs";
 
 export { getRuntimeStatus };
 // Re-export pure assembly for tests / callers that want the same path without generateText
-export { INLINE_SYSTEM, buildInlineCompletePrompt } from "./lib/inline-complete-prompt.mjs";
+export { INLINE_SYSTEM, buildInlineCompletePrompt, resolveCompleteMaxTokens } from "./lib/inline-complete-prompt.mjs";
 export { resolvePromptLocale } from "./ai-prompts.mjs";
 
 /**
@@ -202,7 +203,7 @@ export const AiService = {
         model: res.model,
         system: assembled.system || INLINE_SYSTEM,
         prompt,
-        maxOutputTokens: resolvedMode === "summarize" ? 2048 : 4096,
+        maxOutputTokens: resolveCompleteMaxTokens(resolvedMode, src.length),
         abortSignal: ac.signal,
       });
       if (ac.signal.aborted) {
@@ -454,6 +455,7 @@ export const AiService = {
     return {
       ok: !result.error,
       text: result.text,
+      reasoning: result.reasoning || "",
       error: result.error ? result.error.message : "",
       usage: result.usage,
       model: { modelId: res.modelId },

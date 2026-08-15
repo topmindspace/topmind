@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { api } from "../../services/api";
 import { emitLocal } from "../../plugins/host";
+import { toastWriteback } from "../../lib/writeback-toast";
 import { useViewStore } from "../../stores/view-store";
 import { ICON } from "../../lib/icons";
 import { ConfirmDialog, PromptDialog, ErrorDialog } from "./Dialog";
@@ -253,14 +254,16 @@ export function WorkspaceFileContextMenu({
     setPermanentDelete(false);
     if (!d) return;
     try {
-      if (kind === "topic") {
-        await api.ws.deleteTopic(d.path);
-        select({ kind: "stream" });
-      } else {
-        await api.ws.del(d.path, { permanent: wasPermanent });
-      }
+      const ev = kind === "topic"
+        ? await api.ws.deleteTopic(d.path)
+        : await api.ws.del(d.path, { permanent: wasPermanent });
+      if (kind === "topic") select({ kind: "stream" });
       emitLocal("workspace:file-changed");
-      emitLocal("toast:show", wasPermanent ? t("workspace:menu.toastPermanentDeleted") : t("workspace:menu.toastDeleted"));
+      if (wasPermanent) {
+        emitLocal("toast:show", t("workspace:menu.toastPermanentDeleted"));
+      } else {
+        toastWriteback(t("workspace:menu.toastDeleted"), ev);
+      }
       onMutated?.();
     } catch (e) {
       fail(t("workspace:menu.failDelete"), e);

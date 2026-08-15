@@ -329,6 +329,10 @@ html[data-platform="linux"] .v4-titlebar-glass {
 .v4-ai-busy-icon {
   animation: v4-ai-busy-icon-pulse 1.4s ease-in-out infinite;
 }
+/* Loader2 + busy-icon: keep the spinner. Pulse must not replace spin. */
+.v4-ai-busy-icon.animate-spin {
+  animation: spin 0.65s linear infinite;
+}
 
 /* ── AI busy text — subtle opacity pulse for status labels (conveys "working") ── */
 @keyframes v4-ai-busy-text-pulse {

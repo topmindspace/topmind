@@ -62,4 +62,9 @@ Hello world`;
       "好文案。",
     );
   });
+
+  it("collapses extra blank lines between same-type list items", () => {
+    assert.equal(sanitizeInlineAiResult("- a\n\n- b\n\n- c"), "- a\n- b\n- c");
+    assert.equal(sanitizeInlineAiResult("1. a\n\n2. b"), "1. a\n2. b");
+  });
 });

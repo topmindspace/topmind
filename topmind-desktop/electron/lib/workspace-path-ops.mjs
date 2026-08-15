@@ -169,56 +169,46 @@ export const pathOps = {
 
   /**
    * Line-windowed read for agent tools (offset/limit are 1-based line start + count).
-   * Full file still available via readPath / offset=1 without limit.
+   * Optional around= / heading= jump to a mid-file span. `numbered` is model-facing.
    */
-  async readPathWindow({ relativePath, offset = 1, limit }, ctx) {
+  async readPathWindow({ relativePath, offset = 1, limit, around, heading, contextLines }, ctx) {
     S(relativePath, "relativePath");
     const full = await readText(await sp(ctx.workspaceRoot, relativePath));
-    const lines = full.split("\n");
-    const totalLines = lines.length;
-    const start = Math.max(1, Math.floor(Number(offset) || 1));
-    const maxLines = limit == null || limit === ""
-      ? totalLines
-      : Math.max(1, Math.min(5000, Math.floor(Number(limit)) || 200));
-    const from = start - 1;
-    if (from >= totalLines) {
+    const { loadKernelApi } = await import("./kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const win = kernel.formatReadWindow(full, {
+      relativePath,
+      offset,
+      limit,
+      around,
+      heading,
+      contextLines,
+      maxLimit: 5000,
+      maxChars: 80_000,
+    });
+    if (win.empty && win.locate !== "query-not-found" && win.locate !== "heading-not-found" && win.locate !== "heading-ambiguous") {
       return {
-        relativePath,
-        content: "",
-        offset: start,
-        limit: maxLines,
-        totalLines,
-        totalChars: full.length,
-        truncated: false,
-        empty: true,
-        note: i18n("pathOps.offsetBeyondEnd", { start, total: totalLines }),
+        ...win,
+        note: i18n("pathOps.offsetBeyondEnd", { start: win.offset, total: win.totalLines }),
       };
     }
-    const slice = lines.slice(from, from + maxLines);
-    const content = slice.join("\n");
-    const endLine = from + slice.length;
-    const truncated = endLine < totalLines;
+    if (win.empty) return win;
+    const locNote = win.locate ? `${win.locate}; ` : "";
     return {
-      relativePath,
-      content,
-      offset: start,
-      limit: maxLines,
-      startLine: start,
-      endLine,
-      totalLines,
-      totalChars: full.length,
-      truncated,
-      empty: false,
-      note: truncated
-        ? i18n("pathOps.returnedLinesContinue", { start, end: endLine, total: totalLines })
-        : i18n("pathOps.returnedLines", { start, end: endLine, total: totalLines }),
+      ...win,
+      note: win.truncated
+        ? `${locNote}${i18n("pathOps.returnedLinesContinue", { start: win.startLine, end: win.endLine, total: win.totalLines })}`
+        : `${locNote}${i18n("pathOps.returnedLines", { start: win.startLine, end: win.endLine, total: win.totalLines })}`,
     };
   },
 
   /**
    * Surgical text edit via Kernel writeback (actor defaults user; AI tools pass actor:"ai").
    */
-  async editPath({ relativePath, oldText, newText, replaceAll = false, actor, confirmed }, ctx) {
+  async editPath({
+    relativePath, oldText, newText, replaceAll = false,
+    startLine, endLine, heading, actor, confirmed,
+  }, ctx) {
     S(relativePath, "relativePath");
     if (!relativePath.endsWith(".md")) throw new Error(i18n("pathOps.editMdOnly"));
     S(oldText, "oldText", { allowEmpty: false, maxLen: 500_000 });
@@ -242,21 +232,25 @@ export const pathOps = {
     const old = await fs.readFile(fp, "utf8").catch(() => null);
     if (old === null) throw new Error(i18n("pathOps.fileNotExist", { path: relativePath }));
 
-    const count = old.split(oldText).length - 1;
-    if (count === 0) {
-      throw new Error(
-        i18n("pathOps.oldTextNoMatch", { path: relativePath }),
-      );
-    }
-    if (count > 1 && !replaceAll) {
-      throw new Error(
-        i18n("pathOps.oldTextMultiMatch", { count, path: relativePath }),
-      );
+    const { loadKernelApi } = await import("./kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const applied = kernel.applyUniqueSpan(old, {
+      oldText,
+      newText,
+      replaceAll: Boolean(replaceAll),
+      startLine,
+      endLine,
+      heading,
+      path: relativePath,
+    });
+    if (!applied.ok) {
+      const head = applied.reason === "ambiguous"
+        ? i18n("pathOps.oldTextMultiMatch", { count: applied.count, path: relativePath })
+        : i18n("pathOps.oldTextNoMatch", { path: relativePath });
+      throw new Error(`${head}\n${applied.diagnostic || ""}`.trim());
     }
 
-    const next = replaceAll
-      ? old.split(oldText).join(newText)
-      : old.replace(oldText, newText);
+    const next = applied.next;
     if (next === old) {
       return {
         ...buildWritebackEvidence({
@@ -290,7 +284,7 @@ export const pathOps = {
       return { ...asDesktopEvidence(ev, relativePath), ok: false, replacements: 0 };
     }
     bumpWorkspaceIndex(relativePath);
-    const replacements = replaceAll ? count : 1;
+    const replacements = applied.replacements;
     // Truncate snippets for UI diff display (avoid huge payloads)
     const MAX_SNIPPET = 300;
     const oldSnippet = oldText.length > MAX_SNIPPET
@@ -303,6 +297,7 @@ export const pathOps = {
       ...asDesktopEvidence(ev, relativePath),
       ok: true,
       replacements,
+      matchMode: applied.mode,
       charsDelta: next.length - old.length,
       archived: false,
       note: i18n("pathOps.replacedCount", { count: replacements }),

@@ -58,3 +58,15 @@ test("sanitizeInlineAiResult strips thinking before format apply path", () => {
   assert.match(cleaned, /Heading/);
   assert.match(cleaned, /- a/);
 });
+
+test("format apply helpers do not add extra blank paragraphs or invented indent", async () => {
+  const { pathToFileURL } = await import("node:url");
+  const { preprocessMarkdownForBlocks, prepareMarkdownForEditorInsert } = await import(
+    pathToFileURL(path.join(root, "src/lib/editor-markdown.ts")).href
+  );
+  const list = "- 第一点\n- 第二点\n  - 嵌套";
+  assert.equal(preprocessMarkdownForBlocks(list), list);
+  const noisy = prepareMarkdownForEditorInsert("\n\n    - 第一点\n\n    - 第二点\n\n", list);
+  assert.doesNotMatch(noisy, /\n\n-/);
+  assert.match(noisy, /^- 第一点\n- 第二点/u);
+});

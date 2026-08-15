@@ -743,4 +743,36 @@ select:focus-visible {
   .stagger-children > * {
     animation: none !important;
   }
+  /* Essential busy: Windows often maps OS "动画效果" to reduced-motion.
+     Keep in-flight indicators looping so work is visible (not a 0.01ms one-shot). */
+  .animate-spin,
+  .v4-ai-progress-slide,
+  .v4-ai-progress-dot,
+  .v4-ai-busy-icon,
+  .v4-ai-busy-text,
+  .animate-shimmer,
+  .animate-pulse-soft {
+    animation-iteration-count: infinite !important;
+  }
+  .animate-spin {
+    animation-duration: 0.65s !important;
+  }
+  .v4-ai-progress-slide {
+    animation-duration: 1.4s !important;
+  }
+  .v4-ai-progress-dot {
+    animation-duration: 1.2s !important;
+  }
+  .v4-ai-busy-icon {
+    animation-duration: 1.4s !important;
+  }
+  .v4-ai-busy-text {
+    animation-duration: 1.6s !important;
+  }
+  .animate-shimmer {
+    animation-duration: 1.6s !important;
+  }
+  .animate-pulse-soft {
+    animation-duration: 1.8s !important;
+  }
 }

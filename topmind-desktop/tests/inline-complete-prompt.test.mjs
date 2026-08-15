@@ -12,6 +12,7 @@ import {
   clipDocumentContext,
   INLINE_SYSTEM,
   shouldAttachDocumentContext,
+  resolveCompleteMaxTokens,
 } from "../electron/lib/inline-complete-prompt.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -122,6 +123,18 @@ test("ai-service complete wires buildInlineCompletePrompt + documentText param",
   assert.match(svc, /from ["']\.\/lib\/inline-complete-prompt\.mjs["']/);
   assert.match(svc, /documentText/);
   assert.match(svc, /assembled\.system|assembled\.prompt/);
+  assert.match(svc, /resolveCompleteMaxTokens/);
+  assert.doesNotMatch(svc, /maxOutputTokens:\s*resolvedMode === "summarize" \? 2048 : 4096/);
+});
+
+test("resolveCompleteMaxTokens scales rewrite budget past a 4096 hard cap", () => {
+  assert.equal(resolveCompleteMaxTokens("summarize", 20_000), 2048);
+  assert.equal(resolveCompleteMaxTokens("rewrite", 200), 4096);
+  const longRewrite = resolveCompleteMaxTokens("rewrite", 12_000);
+  assert.ok(longRewrite > 4096, `long rewrite budget ${longRewrite} should exceed 4096`);
+  assert.ok(longRewrite <= 16384);
+  assert.equal(resolveCompleteMaxTokens("rewrite", 80_000), 16384);
+  assert.match(INLINE_SYSTEM, /完整替换|complete replacement|不要半句截断|do not truncate/iu);
 });
 
 test("SelectionAiBar passes documentText on complete", () => {

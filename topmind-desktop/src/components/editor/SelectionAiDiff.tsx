@@ -12,6 +12,11 @@ import { lineDiff } from "../../lib/simple-diff";
 import { Tooltip } from "../ui/tooltip";
 import { Button } from "../ui/Button";
 import type { Scope } from "./useSelectionAi";
+import {
+  estimatePreviewRows,
+  INLINE_AI_PREVIEW_MIN_H,
+  INLINE_AI_PREVIEW_RESIZE_MAX,
+} from "../../lib/inline-ai-panel";
 
 export function SelectionAiDiff({
   preview,
@@ -99,15 +104,18 @@ export function SelectionAiDiff({
         </div>
       </div>
       <div
+        data-inline-ai-preview
         className="overflow-auto rounded-[var(--radius-sm)] border border-border-subtle-dim bg-surface px-2 py-1.5"
         style={{
           maxHeight: previewMaxH,
           resize: "vertical",
-          minHeight: 72,
+          minHeight: INLINE_AI_PREVIEW_MIN_H,
         }}
         onMouseUp={(e) => {
           const h = (e.currentTarget as HTMLElement).offsetHeight;
-          if (h >= 72 && h <= 420) onPreviewMaxHChange(h);
+          if (h >= INLINE_AI_PREVIEW_MIN_H && h <= INLINE_AI_PREVIEW_RESIZE_MAX) {
+            onPreviewMaxHChange(h);
+          }
         }}
       >
         {diffLines ? (
@@ -128,10 +136,11 @@ export function SelectionAiDiff({
             ))}
           </div>
         ) : onPreviewEdit ? (
-          /* Editable preview — user can tweak AI result before applying */
+          /* Editable preview — rows grow with content so long rewrites stay reachable */
           <textarea
             className="w-full resize-none border-none bg-transparent text-3xs leading-relaxed text-text-primary outline-none focus:ring-0"
-            style={{ minHeight: 72 }}
+            style={{ minHeight: INLINE_AI_PREVIEW_MIN_H }}
+            rows={estimatePreviewRows(preview)}
             value={preview}
             spellCheck={false}
             onChange={(e) => onPreviewEdit(e.target.value)}

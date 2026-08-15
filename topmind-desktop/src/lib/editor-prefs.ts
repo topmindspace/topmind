@@ -23,6 +23,8 @@ export interface EditorReadingPrefs {
   contentWidth: EditorContentWidth;
   pagePadding: EditorPagePadding;
   paper: EditorPaper;
+  /** Selection-triggered inline AI panel (toolbar / context still work when false). */
+  inlineAiAutoPopup: boolean;
 }
 
 export const DEFAULT_EDITOR_PREFS: EditorReadingPrefs = {
@@ -35,6 +37,7 @@ export const DEFAULT_EDITOR_PREFS: EditorReadingPrefs = {
   contentWidth: "reading",
   pagePadding: "comfortable",
   paper: "default",
+  inlineAiAutoPopup: true,
 };
 
 export const FONT_SIZE_PRESETS = [14, 15, 16, 17, 18, 20] as const;
@@ -90,10 +93,22 @@ export function clampLineHeight(n: number): number {
   return Math.max(1.2, Math.min(2.5, Math.round(n * 10) / 10));
 }
 
+/** Disk / settings.editor shape — unions are strings until normalized. */
+export type LooseEditorPrefs = Omit<
+  Partial<EditorReadingPrefs>,
+  "fontFamily" | "tabMode" | "contentWidth" | "pagePadding" | "paper"
+> & {
+  fontFamily?: string;
+  tabMode?: string;
+  contentWidth?: string;
+  pagePadding?: string;
+  paper?: string;
+};
+
 /** Merge partial prefs with store + defaults. */
 export function mergeEditorPrefs(
-  partial?: Partial<EditorReadingPrefs> | null,
-  base?: Partial<EditorReadingPrefs> | null,
+  partial?: LooseEditorPrefs | null,
+  base?: LooseEditorPrefs | null,
 ): EditorReadingPrefs {
   const b = { ...DEFAULT_EDITOR_PREFS, ...(base || {}) };
   const p = partial || {};
@@ -103,11 +118,32 @@ export function mergeEditorPrefs(
     fontFamily: normalizeFontFamily(p.fontFamily ?? b.fontFamily),
     autoSaveMs: p.autoSaveMs ?? b.autoSaveMs,
     wordWrap: p.wordWrap !== undefined ? p.wordWrap !== false : b.wordWrap !== false,
-    tabMode: p.tabMode === "single" || p.tabMode === "multi" ? p.tabMode : b.tabMode,
+    tabMode:
+      p.tabMode === "single" || p.tabMode === "multi"
+        ? p.tabMode
+        : b.tabMode === "single" || b.tabMode === "multi"
+          ? b.tabMode
+          : "multi",
     contentWidth: normalizeContentWidth(p.contentWidth ?? b.contentWidth),
     pagePadding: normalizePagePadding(p.pagePadding ?? b.pagePadding),
     paper: normalizePaper(p.paper ?? b.paper),
+    inlineAiAutoPopup:
+      typeof p.inlineAiAutoPopup === "boolean"
+        ? p.inlineAiAutoPopup
+        : typeof b.inlineAiAutoPopup === "boolean"
+          ? b.inlineAiAutoPopup
+          : true,
   };
+}
+
+/** Settings → view-store apply (hydrate / Settings flush). Always carries inlineAiAutoPopup. */
+export function applyEditorSettingsToView(
+  editor: LooseEditorPrefs | null | undefined,
+  setEditorSettings: (s: EditorReadingPrefs) => void,
+): EditorReadingPrefs {
+  const next = mergeEditorPrefs(editor);
+  setEditorSettings(next);
+  return next;
 }
 
 /**
@@ -116,7 +152,7 @@ export function mergeEditorPrefs(
 export async function applyEditorPrefs(
   patch: Partial<EditorReadingPrefs>,
 ): Promise<EditorReadingPrefs> {
-  const prev = useViewStore.getState().editorSettings as Partial<EditorReadingPrefs>;
+  const prev = useViewStore.getState().editorSettings as LooseEditorPrefs;
   const next = mergeEditorPrefs(patch, prev);
   useViewStore.getState().setEditorSettings(next);
   if (next.tabMode === "single" || next.tabMode === "multi") {

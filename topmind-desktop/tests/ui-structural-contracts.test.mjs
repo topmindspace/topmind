@@ -41,6 +41,20 @@ test("TitleBar: L1 capture+AI solid, L2 suggest/todo, L3 tools; single capture s
   assert.doesNotMatch(l2, /v4-titlebar-btn-capture/);
 });
 
+test("TitleBar wide rail renders a theme cycle control (not only the compact ⋯ menu)", () => {
+  const titleBar = read("src/components/shell/TitleBar.tsx");
+  const compactIdx = titleBar.indexOf("{!compactTools ? (");
+  assert.ok(compactIdx >= 0, "expected !compactTools branch");
+  const afterCompact = titleBar.slice(compactIdx);
+  const menuRel = afterCompact.indexOf("<DropdownMenu");
+  assert.ok(menuRel > 0, "expected overflow DropdownMenu after !compactTools");
+  const wide = afterCompact.slice(0, menuRel);
+  assert.match(wide, /data-titlebar-theme/);
+  assert.match(wide, /cycleTheme/);
+  const compact = afterCompact.slice(menuRel);
+  assert.match(compact, /themeMenuItem/);
+});
+
 test("List views demote capture to outline (no competing solid CTA)", () => {
   for (const rel of [
     "src/plugins/topmind-workspace/views/InboxView.tsx",
@@ -178,4 +192,44 @@ test("ReasoningBlock defaults collapsed; stream status labels exist", () => {
   }
   const leave = read("src/components/shell/InlineAiLeaveHost.tsx");
   assert.match(leave, /inlineAiLeaveConfirm/);
+});
+
+test("inline AI auto-open is gated by persisted flag; preview default is not a 160px clip", async () => {
+  const {
+    shouldAutoOpenInlineAi,
+    INLINE_AI_PREVIEW_DEFAULT_MAX_H,
+    clampSelectionAiPanel,
+    estimatePreviewRows,
+  } = await import("../src/lib/inline-ai-panel.ts");
+  assert.equal(shouldAutoOpenInlineAi(false), false);
+  assert.equal(shouldAutoOpenInlineAi(true), true);
+  assert.equal(shouldAutoOpenInlineAi(false, { pinned: true }), true);
+  assert.equal(shouldAutoOpenInlineAi(false, { phase: "running" }), true);
+  assert.equal(shouldAutoOpenInlineAi(false, { phase: "preview" }), true);
+  assert.ok(
+    INLINE_AI_PREVIEW_DEFAULT_MAX_H >= 280,
+    `preview default ${INLINE_AI_PREVIEW_DEFAULT_MAX_H} must not silently clip at 160`,
+  );
+  const hook = read("src/components/editor/useSelectionAi.ts");
+  assert.match(hook, /shouldAutoOpenInlineAi/);
+  assert.match(hook, /INLINE_AI_PREVIEW_DEFAULT_MAX_H/);
+  assert.match(hook, /applyEditorPrefs\(\{ inlineAiAutoPopup/);
+  const bar = read("src/components/editor/SelectionAiBar.tsx");
+  assert.match(bar, /clampSelectionAiPanel/);
+  const diff = read("src/components/editor/SelectionAiDiff.tsx");
+  assert.match(diff, /data-inline-ai-preview/);
+  assert.match(diff, /estimatePreviewRows/);
+  const long = "line\n".repeat(40);
+  assert.ok(estimatePreviewRows(long) >= 20);
+  const pos = clampSelectionAiPanel({
+    dragPos: null,
+    target: { top: 80, left: 40, bottom: 100 },
+    panelW: 400,
+    panelH: 200,
+    viewportW: 800,
+    viewportH: 600,
+  });
+  assert.ok(pos.top >= 8);
+  assert.ok(pos.left >= 8);
+  assert.ok(pos.left + 400 <= 800);
 });

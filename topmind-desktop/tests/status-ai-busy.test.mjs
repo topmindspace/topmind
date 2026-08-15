@@ -44,6 +44,32 @@ test("StatusBar AI pill is panel toggle when ready (no second 会话 open button
   assert.equal((src.match(/data-status-ai-pill/g) || []).length, 1);
 });
 
+test("essential busy motion keeps looping under Windows reduced-motion", () => {
+  const tokens = read("src/styles/tokens.css");
+  const reduce = tokens.slice(tokens.indexOf("prefers-reduced-motion"));
+  assert.match(reduce, /animation-iteration-count:\s*1\s*!important/);
+  // Carve-out: spin / progress / busy chips must still loop
+  assert.match(reduce, /\.animate-spin/);
+  assert.match(reduce, /animation-iteration-count:\s*infinite\s*!important/);
+  assert.match(reduce, /\.v4-ai-progress-slide/);
+  const v4 = read("src/styles/v4.css");
+  assert.match(v4, /\.v4-ai-busy-icon\.animate-spin/);
+  assert.match(v4, /animation:\s*spin /);
+  const status = read("src/components/shell/StatusBar.tsx");
+  // Loader2 on task/inline chips must keep animate-spin (not pulse-only)
+  assert.match(status, /Loader2[\s\S]{0,80}animate-spin/);
+  assert.doesNotMatch(status, /Loader2[^>]{0,80}v4-ai-busy-icon animate-spin/);
+  const inline = read("src/components/editor/SelectionAiBar.tsx");
+  assert.match(inline, /animate-spin/);
+  assert.match(inline, /v4-ai-progress-slide/);
+  const capture = read("src/components/overlays/CaptureForm.tsx");
+  assert.match(capture, /data-capture-ai-busy/);
+  assert.match(capture, /v4-ai-progress-slide/);
+  const stream = read("src/plugins/topmind-workspace/views/StreamDetailView.tsx");
+  assert.match(stream, /data-stream-polish-busy/);
+  assert.match(stream, /v4-ai-progress-slide/);
+});
+
 test("statusBar busy strings exist in zh-CN and en-US", () => {
   const zh = JSON.parse(read("src/locales/zh-CN/shell.json"));
   const en = JSON.parse(read("src/locales/en-US/shell.json"));

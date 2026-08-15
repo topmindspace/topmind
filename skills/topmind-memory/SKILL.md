@@ -1,6 +1,6 @@
 ---
 name: topmind-memory
-version: 3.4.0
+version: 3.5.0
 description: >-
   更新「我的情况」或专题结论。Use when 记住这个、更新我的情况、加到专题记忆、写进 topic.md、
   沉淀结论。Do NOT use for 捕获、仅总结（→organize）、整理本周正文、出稿、doctor/loop.
@@ -26,7 +26,7 @@ compatibility: topmind topic topic.md + workspace core profile (memory/profile.m
 author: TopMindSpace
 license: MIT
 homepage: https://github.com/topmindspace/topmind
-updated: 2026-08-10
+updated: 2026-08-15
 degradation: ../shared/capability-degradation.md
 ---
 

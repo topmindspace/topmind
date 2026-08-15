@@ -50,7 +50,7 @@ topmind Kernel 引擎（`lib/*.mjs`）使用 Node.js `fs` / `path` / `crypto` �
 | 运行环境 | Electron 主进程 | Obsidian Electron 渲染进程 |
 | Kernel 加载 | 动态 import from engine root | esbuild 打包进 `main.js` |
 | AI Provider | Vercel AI SDK v7 (`generateText`) | `fetch` API 直调（OpenAI-compatible + Anthropic 原生） |
-| AI 对话 | Agent 流式（React） | KernelService.chat（fetch + 上下文注入） |
+| AI 对话 | Agent 流式（React）+ 精确 `edit_file` | KernelService.chat（fetch + 有界 read/edit 工具环 + 思考折叠） |
 | UI 框架 | React + Tailwind + Tiptap | Obsidian 原生 (ItemView + DOM) |
 | 文件系统 | Node.js `fs` | ESM import → esbuild CJS require（Electron 渲染进程） |
 | 设置持久化 | `app-settings.json` + safeStorage | Obsidian `loadSettings()` / `saveSettings()` |
@@ -150,7 +150,7 @@ obsidian-plugin/
 │   ├── settings/
 │   │   └── settings-tab.ts    # PluginSettingTab 实现
 │   ├── views/
-│   │   ├── stream-workbench-view.ts  # 主工作台 ItemView
+│   │   ├── stream-workbench-view.ts  # 动态页签 ItemView（内部 id 可仍叫 workbench）
 │   │   ├── sidebar-dock-view.ts      # 侧边栏小组件
 │   │   └── quick-capture-modal.ts    # 极速捕捉弹窗
 │   ├── services/
@@ -234,7 +234,7 @@ interface AiProvider {
 
 ### 4.2.1 AI Chat (`KernelService.chat`)
 
-侧边栏「对话」标签通过 `KernelService.chat()` 与 AI 对话：
+侧边栏「对话」标签通过 `KernelService.chat()` 与 AI 对话。不再是 generate-only：同一 Kernel 匹配器可完成 **read → 精确中段 edit → writeback**。
 
 ```text
 用户输入
@@ -244,10 +244,14 @@ interface AiProvider {
 2. 当前待办（未完成的前 10 条）
 3. 用户画像（memory/profile.md 前 3000 字符）
 4. 近期周期反思（memory/periodic/ 最新文件前 2000 字符）
-→ 组装 systemPrompt + conversation prompt
-  → AiProvider.generate(prompt, { operation: "chat", systemPrompt, ... })
-  → 返回 AI 回复（Markdown 渲染）
+→ runWorkspaceChatTurn（有界工具环，最多 6 步）
+   read_file  → formatReadWindow（行号 + around/heading）
+   edit_file  → applyUniqueSpan + executeWrite（写闸 / confirm|auto）
+→ splitAssistantVisible：正文 = 结论；思考折进 reasoning
+→ 侧栏 Markdown 渲染正文；`<details>` 折叠思考过程
 ```
+
+**对齐 Desktop 的是行为契约**（唯一片段匹配 / 拒绝 / nearby 诊断 / 写闸 / `en*`→英文指令否则中文 / 保护级别优先于写回），不是 React UI。confirm 仍可调用 `edit_file`；锁定笔记未确认 AI 覆盖拒绝。
 
 **上下文自动注入**：用户无需手动选择上下文 — 系统自动从工作区数据构建。对话历史保留最近 10 轮。
 
@@ -269,13 +273,13 @@ AI 操作的任务管理器，提供多任务队列、进度追踪和中止能�
 
 **设计原则**：
 - **串行队列**：一次只执行一个 AI 操作，避免并发 API 调用导致速率限制
-- **进度徽章**：工作台工具栏 + 侧边栏头部实时显示当前任务
+- **进度徽章**：动态页签工具栏 + 侧边栏头部实时显示当前任务
 - **任务历史标签**：侧边栏新增「任务历史」标签页，展示所有 AI 操作状态
 - **去重**：`isOperationActive(operation)` 防止同一操作重复排队
 - **可中止**：用户可随时取消正在运行的 AI 操作
 
 **UI 集成**：
-- 工作台工具栏：AI 任务进度徽章 + 中止按钮
+- 动态页签工具栏：AI 任务进度徽章 + 中止按钮
 - 侧边栏头部：AI 任务进度徽章
 - 侧边栏标签页：待办 | 建议 | 对话 | 动态 | **任务历史**
 - 底部操作：AI 操作按钮经任务管理器入队
@@ -353,7 +357,7 @@ export function getEngineRoot(plugin: { manifest: { dir?: string } }): string {
 
 ## 6. 视图架构
 
-### 6.1 Stream Workbench View (主工作台)
+### 6.1 Stream Workbench View (动态页签)
 
 ```typescript
 export class StreamWorkbenchView extends ItemView {
@@ -420,7 +424,7 @@ export class QuickCaptureModal extends Modal {
 
 ```typescript
 interface TopmindSettings {
-  // Stream 工作台
+  // Stream 动态页签
   autoOpenWorkbench: boolean;
   timelineOrder: 'desc' | 'asc';
   autoTag: boolean;
@@ -479,9 +483,9 @@ interface TopmindSettings {
 3. 🤖 AI 副驾与写回策略（多服务商密钥 + 偏好选择 + 模型 + 从 Desktop 导入 + 测试连接 + 写回模式 + 自动建议/待办）
 4. 🛡️ 安全与归档（备份份数 + 回执份数）
 
-> **快速进入设置**：侧边栏头部 ⚙ 按钮 / 工作台工具栏 ⚙ 按钮 / Obsidian Settings → Community plugins → Topmind Stream
+> **快速进入设置**：侧边栏头部 ⚙ 按钮 / 动态页签工具栏 ⚙ 按钮 / Obsidian Settings → Community plugins → Topmind Stream
 >
-> **模型徽章**：侧边栏头部 + 工作台工具栏实时显示当前 AI 服务商 + 模型（如 "DeepSeek · deepseek-chat"），通过 `kernelService.getActiveModelLabel()` 获取。
+> **模型徽章**：侧边栏头部 + 动态页签工具栏实时显示当前 AI 服务商 + 模型（如 "DeepSeek · deepseek-chat"），通过 `kernelService.getActiveModelLabel()` 获取。
 >
 > **模型选择**：只要配置了任意一个 AI 服务商，模型选择下拉框就会显示。解析顺序为 **官方 list-models > [models.dev](https://models.dev) 社区目录 > 精选默认**（解析/合并/缓存策略与 Desktop 共用 `lib/model-catalog.mjs`）。已配置 OpenAI 兼容 / Google / Ollama / Custom 时刷新打官方接口；Anthropic 无公开 list 端点，刷新打 models.dev。失败不把空列表或默认列表写成 live 缓存。下拉框旁可手填自定义模型 ID。auto 模式（服务商偏好留空）时模型选择仍可用。
 >

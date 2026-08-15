@@ -13,7 +13,7 @@ export const manifest = {
   name: "topmind Workspace",
   nameKey: "workspace:manifestName",
   version: "4.0.0",
-  description: "Category + Topic 文件系统工作台 — 提供侧栏树导航、编辑器视图、命令面板操作和 5 个技能入口",
+  description: "Category + Topic 文件系统视图 — 提供侧栏树导航、编辑器视图、命令面板操作和 5 个技能入口",
   descriptionKey: "workspace:manifestDescription",
   builtin: true,
 };

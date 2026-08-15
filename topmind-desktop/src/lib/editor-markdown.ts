@@ -84,25 +84,87 @@ type MarkdownParserStorage = {
 
 /**
  * Pre-process Markdown before parsing to prevent common formatting issues:
- *  1. Ensure blank line before block-level markers (headings, lists, quotes)
- *     when preceded by non-empty content. Without this, single `\n` before a
- *     list marker can be parsed as a hard break (`<br>`) inside a paragraph
- *     instead of starting a new block — especially with tiptap-markdown `breaks: true`.
+ *  1. Ensure blank line before headings/quotes when the previous line is prose
+ *     (not already a block marker). Do NOT insert blanks between same-type list items.
  *  2. Ensure blank line when switching list types (bullet → ordered or vice-versa)
  *     so the parser creates separate list nodes instead of merging.
- *  3. Normalize consecutive blank lines within list blocks (max one blank line).
+ *  3. Collapse extra blank lines between same-type list items (tight lists).
  */
-function preprocessMarkdownForBlocks(text: string): string {
-  let out = text;
-  // Add blank line before block markers when missing (not at start of text)
-  out = out.replace(/([^\n\s])\n(#{1,6}\s|[-*+]\s|\d+\.\s|>\s)/gu, "$1\n\n$2");
-  // Ensure separation when switching between bullet and ordered list markers
-  // e.g. "- item\n1. item" → "- item\n\n1. item"
-  out = out.replace(/([-*+]\s.*)\n(\d+\.\s)/gu, "$1\n\n$2");
-  out = out.replace(/(\d+\.\s.*)\n([-*+]\s)/gu, "$1\n\n$2");
-  // Collapse 3+ blank lines to 2 (preserve one blank line between blocks)
+export function preprocessMarkdownForBlocks(text: string): string {
+  let out = String(text || "");
+  // Heading / quote after prose — not after another block marker
+  out = out.replace(
+    /^(?!#{1,6}\s|[ \t]*(?:[-*+]\s|\d+\.\s)|>\s)(.+[^\n\s])\n(#{1,6}\s|>\s)/gmu,
+    "$1\n\n$2",
+  );
+  // List after prose — not after an existing list item (including indented children)
+  out = out.replace(
+    /^(?![ \t]*(?:[-*+]\s|\d+\.\s))(.+[^\n\s])\n([ \t]*(?:[-*+]\s|\d+\.\s))/gmu,
+    "$1\n\n$2",
+  );
+  // Separate different list types (line-start markers only — do not match **bold**)
+  out = out.replace(/(^|\n)([-*+]\s.*)\n(\d+\.\s)/gmu, "$1$2\n\n$3");
+  out = out.replace(/(^|\n)(\d+\.\s.*)\n([-*+]\s)/gmu, "$1$2\n\n$3");
+  // Tight same-type lists: drop extra blank lines between sibling items
+  let prev = "";
+  while (prev !== out) {
+    prev = out;
+    out = out.replace(/(^|\n)([-*+]\s.*)\n\n+([ \t]*[-*+]\s)/gmu, "$1$2\n$3");
+    out = out.replace(/(^|\n)(\d+\.\s.*)\n\n+([ \t]*\d+\.\s)/gmu, "$1$2\n$3");
+  }
   out = out.replace(/\n{3,}/gu, "\n\n");
   return out;
+}
+
+/** Match result indent to the source block — strip invented extra indent, restore missing. */
+export function alignMarkdownIndent(source: string, result: string): string {
+  const srcLines = String(source || "").split("\n").filter((l) => l.trim());
+  const resLines = String(result || "").split("\n");
+  if (srcLines.length === 0 || resLines.every((l) => !l.trim())) return String(result || "");
+
+  const indentOf = (line: string): string => {
+    const m = line.match(/^[ \t]*/u);
+    return m ? m[0] : "";
+  };
+  const minOf = (lines: string[]): string =>
+    lines.map(indentOf).reduce((a, b) => (a.length <= b.length ? a : b));
+
+  const minSrc = minOf(srcLines);
+  const minRes = minOf(resLines.filter((l) => l.trim()));
+
+  if (minRes === minSrc) return String(result || "");
+
+  if (minRes.length > minSrc.length && minRes.startsWith(minSrc)) {
+    const drop = minRes.length - minSrc.length;
+    return resLines
+      .map((l) => {
+        if (!l.trim()) return l;
+        const ind = indentOf(l);
+        return ind.length >= drop ? l.slice(drop) : l;
+      })
+      .join("\n");
+  }
+
+  if (minSrc.length > minRes.length) {
+    const add = minSrc.slice(minRes.length);
+    return resLines.map((l) => (l.trim() ? add + l : l)).join("\n");
+  }
+
+  return String(result || "");
+}
+
+export function prepareMarkdownForEditorInsert(
+  raw: string,
+  source?: string,
+  opts?: { trimLeading?: boolean },
+): string {
+  let text = String(raw || "").replace(/\n+$/u, "");
+  if (opts?.trimLeading !== false) {
+    text = text.replace(/^\n+/u, "");
+  }
+  if (!text.trim()) return "";
+  if (source) text = alignMarkdownIndent(source, text);
+  return preprocessMarkdownForBlocks(text);
 }
 
 /**
@@ -144,12 +206,14 @@ export function replaceSelectionWithMarkdown(
   md: string,
 ): boolean {
   if (!editor || from > to) return false;
-  // Trim leading/trailing whitespace that causes extra blank lines
-  const raw = String(md || "").replace(/^\n+/, "").replace(/\n+$/, "");
-  if (!raw) return false;
-
-  // Pre-process: ensure proper spacing before block elements
-  const text = preprocessMarkdownForBlocks(raw);
+  let source = "";
+  try {
+    source = editor.state.doc.textBetween(from, to, "\n");
+  } catch {
+    source = "";
+  }
+  const text = prepareMarkdownForEditorInsert(md, source, { trimLeading: true });
+  if (!text) return false;
 
   const storage = editor.storage as MarkdownParserStorage;
   let content: string = text;
@@ -193,11 +257,8 @@ export function insertMarkdownAt(
   pos: number,
 ): boolean {
   if (!editor || editor.isDestroyed) return false;
-  const raw = String(md || "");
-  if (!raw) return false;
-
-  // Pre-process: ensure proper spacing before block elements
-  const text = preprocessMarkdownForBlocks(raw);
+  const text = prepareMarkdownForEditorInsert(md, undefined, { trimLeading: false });
+  if (!text) return false;
 
   const storage = editor.storage as MarkdownParserStorage;
   let content: string = text;

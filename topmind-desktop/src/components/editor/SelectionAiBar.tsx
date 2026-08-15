@@ -25,6 +25,7 @@ import { useSelectionAi } from "./useSelectionAi";
 import { SelectionAiToolbar } from "./SelectionAiToolbar";
 import { SelectionAiDiff } from "./SelectionAiDiff";
 import { SelectionAiError } from "./SelectionAiError";
+import { clampSelectionAiPanel } from "../../lib/inline-ai-panel";
 
 export type { EditorAiAction } from "./useSelectionAi";
 
@@ -121,35 +122,16 @@ export function SelectionAiBar({
   }
 
   // Smart placement: prefer above selection; flip below when not enough space;
-  // clamp horizontally so ~28rem panel stays in viewport.
-  // When user has dragged the panel, use their position directly.
-  // Uses actual measured panel height for accurate flip decisions.
+  // clamp horizontally so ~28rem panel stays in viewport. Drag override honored.
   const panelW = Math.min(window.innerWidth * 0.96, 28 * 16);
-  const effectiveH = panelH > 0 ? panelH : 120;
-  const estPanelH = Math.min(effectiveH, window.innerHeight - 32);
-  let barTop: number;
-  let barLeft: number;
-  if (dragPos) {
-    barTop = Math.max(8, Math.min(dragPos.y, window.innerHeight - estPanelH));
-    barLeft = Math.max(8, Math.min(dragPos.x, window.innerWidth - panelW - 8));
-  } else {
-    const preferAboveTop = target.top - estPanelH - 8;
-    const spaceAbove = target.top;
-    const spaceBelow = window.innerHeight - target.bottom;
-    if (spaceAbove >= estPanelH + 16) {
-      // Enough space above — position above the selection
-      barTop = Math.max(8, preferAboveTop);
-    } else if (spaceBelow >= estPanelH + 16) {
-      // Not enough above but enough below — position below the selection
-      barTop = Math.min(target.bottom + 8, window.innerHeight - estPanelH - 8);
-    } else {
-      // Not enough space either way — pick the side with more room
-      barTop = spaceAbove >= spaceBelow
-        ? Math.max(8, preferAboveTop)
-        : Math.min(target.bottom + 8, window.innerHeight - estPanelH - 8);
-    }
-    barLeft = Math.max(8, Math.min(target.left, window.innerWidth - panelW - 8));
-  }
+  const { top: barTop, left: barLeft } = clampSelectionAiPanel({
+    dragPos,
+    target,
+    panelW,
+    panelH,
+    viewportW: window.innerWidth,
+    viewportH: window.innerHeight,
+  });
 
   return (
     <div

@@ -1,6 +1,6 @@
 ---
 name: topmind-loop
-version: 3.4.0
+version: 3.5.0
 description: >-
   可中断的工作区语义巡检（走专题/Inbox，.loop 断点续跑）。Use when 跑一遍 loop、巡检、整体体检、复盘、
   继续 loop、audit。Do NOT use for 快速 doctor（→maintain）、单专题整理、捕获、写作、仅记忆.
@@ -25,7 +25,7 @@ compatibility: topmind workspace. Progress under .topmind/loop/*. Host LLM runs 
 author: TopMindSpace
 license: MIT
 homepage: https://github.com/topmindspace/topmind
-updated: 2026-08-10
+updated: 2026-08-15
 degradation: ../shared/capability-degradation.md
 ---
 

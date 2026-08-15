@@ -22,7 +22,7 @@ import { resolveUtrWorkspaceContext } from "../core/workspace-context.mjs";
 import { t, setLocaleFromConfig } from "../core/i18n-strings.mjs";
 import { loadWorkspaceConfig } from "../core/workspace-context.mjs";
 
-const CLI_VERSION = "3.4.0";
+const CLI_VERSION = "3.5.0";
 
 function readStdin() {
   return new Promise((resolve, reject) => {

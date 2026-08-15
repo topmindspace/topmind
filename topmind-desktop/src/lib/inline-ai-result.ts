@@ -50,8 +50,15 @@ export function sanitizeInlineAiResult(raw: unknown): string {
 
   // Ensure blank line between different list types (bullet → ordered or vice-versa)
   // so the markdown parser creates separate list nodes instead of merging.
-  out = out.replace(/([-*+]\s.*)\n(\d+\.\s)/gu, "$1\n\n$2");
-  out = out.replace(/(\d+\.\s.*)\n([-*+]\s)/gu, "$1\n\n$2");
+  out = out.replace(/(^|\n)([-*+]\s.*)\n(\d+\.\s)/gmu, "$1$2\n\n$3");
+  out = out.replace(/(^|\n)(\d+\.\s.*)\n([-*+]\s)/gmu, "$1$2\n\n$3");
+  // Drop extra blank paragraphs between same-type list items (repeat: non-overlap).
+  let prev = "";
+  while (prev !== out) {
+    prev = out;
+    out = out.replace(/(^|\n)([-*+]\s.*)\n\n+([ \t]*[-*+]\s)/gmu, "$1$2\n$3");
+    out = out.replace(/(^|\n)(\d+\.\s.*)\n\n+([ \t]*\d+\.\s)/gmu, "$1$2\n$3");
+  }
 
   return out
     .replace(/\r\n/gu, "\n")

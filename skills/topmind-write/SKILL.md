@@ -1,6 +1,6 @@
 ---
 name: topmind-write
-version: 3.4.0
+version: 3.5.0
 description: >-
   写作/润色/出稿到专题或交付层（role:delivery）。Use when 写、起草、续写、润色、出稿、交付、write、draft、deliver。
   Do NOT use for 仅捕获、仅结构整理、只写记忆、doctor/loop、社交连接器.
@@ -32,7 +32,7 @@ compatibility: topmind workspace. Delivery role category (often 88-输出/).
 author: TopMindSpace
 license: MIT
 homepage: https://github.com/topmindspace/topmind
-updated: 2026-08-10
+updated: 2026-08-15
 degradation: ../shared/capability-degradation.md
 ---
 

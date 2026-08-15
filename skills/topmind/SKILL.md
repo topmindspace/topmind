@@ -1,6 +1,6 @@
 ---
 name: topmind
-version: 3.4.0
+version: 3.5.0
 description: >-
   topmind 总入口与多意图路由（类别/专题/笔记/交付）。Use when 用户说 topmind、意图模糊、或需要
   收→整→写 分步。单意图明确时直接用 topmind-capture|organize|write|memory|maintain|loop|weread|x。
@@ -18,7 +18,7 @@ compatibility: >-
 author: TopMindSpace
 license: MIT
 homepage: https://github.com/topmindspace/topmind
-updated: 2026-08-10
+updated: 2026-08-15
 degradation: ../shared/capability-degradation.md
 ---
 

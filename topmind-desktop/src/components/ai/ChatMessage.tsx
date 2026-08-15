@@ -8,6 +8,7 @@ import { streamStatusLabel } from "../../lib/stream-status";
 import { useViewStore } from "../../stores/view-store";
 import { useAiStore } from "../../stores/ai-store";
 import { ICON } from "../../lib/icons";
+import { visibleAssistantMessage } from "../../lib/ai-chat-split";
 import { Tooltip } from "../ui/tooltip";
 
 interface Props {
@@ -622,13 +623,18 @@ export function ChatMessage({ message, streaming, streamStatus, streamToolName, 
   const regenerate = useAiStore((s) => s.regenerate);
   if (message.role === "system") return null;
   const isUser = message.role === "user";
-  const tools = message.toolCalls || [];
-  const hasReasoning = Boolean(message.reasoning?.trim());
   const isError = Boolean(message.isError);
+  const tools = message.toolCalls || [];
+  const visible = !isUser && !isError
+    ? visibleAssistantMessage(message.content, message.reasoning)
+    : { body: message.content, reasoning: "" };
+  const visibleBody = visible.body;
+  const visibleReasoning = visible.reasoning;
+  const hasReasoning = Boolean(visibleReasoning.trim());
   // Reasoning is always collapsed by default — show a pulsing indicator while streaming.
   const showStatusIndicator =
     !isUser && streaming && !message.content && tools.length === 0 && streamStatus;
-  const hasContent = Boolean(message.content);
+  const hasContent = Boolean(visibleBody);
   const showUsage = !streaming && !isError && Boolean(message.usage);
 
   // No enter animation here — parent gates motion so stream deltas don't re-animate
@@ -662,13 +668,13 @@ export function ChatMessage({ message, streaming, streamStatus, streamToolName, 
           <div className="flex flex-col">
             {tools.length > 0 ? <ToolCallTimeline tools={tools} /> : null}
             {hasReasoning ? (
-              <ReasoningBlock text={message.reasoning!} streaming={streaming} />
+              <ReasoningBlock text={visibleReasoning} streaming={streaming} />
             ) : null}
             {showStatusIndicator ? (
               <StreamStatusIndicator status={streamStatus!} toolName={streamToolName} count={streamToolCount} maxSteps={streamMaxSteps} />
             ) : null}
             {hasContent ? (
-              <div className="whitespace-pre-wrap">{renderMarkdown(message.content)}</div>
+              <div className="whitespace-pre-wrap">{renderMarkdown(visibleBody)}</div>
             ) : streaming && tools.length === 0 && !showStatusIndicator && !hasReasoning ? (
               <StreamStatusIndicator status={streamStatus || "thinking"} toolName={streamToolName} count={streamToolCount} maxSteps={streamMaxSteps} />
             ) : !streaming && !hasContent && tools.length === 0 ? (

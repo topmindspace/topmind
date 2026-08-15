@@ -10,6 +10,10 @@ import {
   isSidebarViewMode,
   UI_SETTINGS_APPLIED_EVENT,
 } from "../src/lib/ui-settings-sync.ts";
+import {
+  applyEditorSettingsToView,
+  mergeEditorPrefs,
+} from "../src/lib/editor-prefs.ts";
 
 test("isSidebarViewMode accepts product modes only", () => {
   assert.equal(isSidebarViewMode("stream"), true);
@@ -89,6 +93,41 @@ test("applyLiveUiSnapshot updates store and reports applied", () => {
     ["ai", false],
   ]);
   assert.equal(UI_SETTINGS_APPLIED_EVENT, "ui:settings-applied");
+});
+
+test("hydrate / settings-controller apply paths use applyEditorSettingsToView", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { dirname, join } = await import("node:path");
+  const { fileURLToPath } = await import("node:url");
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+  const shell = readFileSync(join(root, "src/components/shell/useShellSettingsSync.ts"), "utf8");
+  const ctrl = readFileSync(join(root, "src/components/overlays/useSettingsController.ts"), "utf8");
+  assert.match(shell, /applyEditorSettingsToView\(settings\.editor/);
+  assert.match(ctrl, /applyEditorSettingsToView\(ns\.editor/);
+  assert.match(ctrl, /applyEditorSettingsToView\(optimistic\.editor/);
+});
+
+test("applyEditorSettingsToView hydrates inlineAiAutoPopup false onto view-store", () => {
+  let stored = null;
+  const next = applyEditorSettingsToView(
+    { fontSize: 16, inlineAiAutoPopup: false },
+    (s) => { stored = s; },
+  );
+  assert.equal(next.inlineAiAutoPopup, false);
+  assert.equal(stored.inlineAiAutoPopup, false);
+  // Reading-prefs patch (font/paper/width) must not drop the flag
+  const after = mergeEditorPrefs({ fontSize: 18, paper: "sepia", contentWidth: "wide" }, stored);
+  assert.equal(after.inlineAiAutoPopup, false);
+  assert.equal(after.fontSize, 18);
+  assert.equal(after.paper, "sepia");
+});
+
+test("mergeEditorPrefs false survives when patch omits the key", () => {
+  const base = mergeEditorPrefs({ inlineAiAutoPopup: false }, null);
+  assert.equal(base.inlineAiAutoPopup, false);
+  const patched = mergeEditorPrefs({ lineHeight: 1.8 }, base);
+  assert.equal(patched.inlineAiAutoPopup, false);
+  assert.equal(patched.lineHeight, 1.8);
 });
 
 test("applyLiveUiSnapshot empty snap is no-op", () => {

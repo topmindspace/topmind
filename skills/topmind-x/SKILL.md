@@ -1,6 +1,6 @@
 ---
 name: topmind-x
-version: 3.4.0
+version: 3.5.0
 description: >-
   X/Twitter：归档/搜索（Bearer）、发帖（xurl）、Agent 可用官方 MCP。Use when 发推、推特、twitter、x.com。
   Do NOT use for 微信读书、非 X 捕获、doctor、长文交付.
@@ -20,7 +20,7 @@ compatibility: Desktop needs Bearer (read) and/or xurl (post). Agent hosts use o
 author: TopMindSpace
 license: MIT
 homepage: https://github.com/topmindspace/topmind
-updated: 2026-08-10
+updated: 2026-08-15
 degradation: ../shared/capability-degradation.md
 ---
 

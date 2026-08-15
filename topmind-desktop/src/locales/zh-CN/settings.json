@@ -515,7 +515,7 @@
     "enableToolsDesc": "关闭后为纯对话；也可在 AI 面板切换",
     "routingDesc": "按 Skills 路由；清单见「Skills」页",
     "maxStepsLabel": "工具步数上限",
-    "maxStepsDesc": "单次对话 tool→reason 循环次数，复杂整理可调高",
+    "maxStepsDesc": "单次对话 tool→reason 循环次数（3–50，默认 20）",
     "titleAgent": "Agent",
     "skillFirst": "Skill-first",
     "refreshModelsDevTooltip": "从 models.dev 社区模型目录强制刷新（无需配置密钥，可预览所有模型）",

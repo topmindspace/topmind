@@ -210,7 +210,11 @@ export interface AiToolCall {
 export interface AiMessage {
 role: AiRole;
 content: string;
+/** Accumulated raw text-deltas (pre-split) for incremental thinking fold. */
+contentRaw?: string;
 reasoning?: string;
+/** Provider reasoning-delta only (kept so extracted CoT can be merged). */
+reasoningProvider?: string;
 toolCalls?: AiToolCall[];
 /** Mark this assistant message as an error (network failure, abort, etc.). */
 isError?: boolean;

@@ -35,6 +35,8 @@ type SidebarTab = "todos" | "suggestions" | "chat" | "stream" | "history";
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  /** Folded chain-of-thought (not the visible answer). */
+  reasoning?: string;
   /** Whether this message was an error */
   isError?: boolean;
   /** The user message that triggered this AI response (for regenerate) */
@@ -826,10 +828,19 @@ export class SidebarDockView extends ItemView {
       cls: `tm-chat-message ${msg.role === "user" ? "tm-chat-user" : "tm-chat-ai"}${msg.isError ? " tm-chat-error-msg" : ""}`,
     });
     msgEl.createSpan({ cls: "tm-chat-role", text: msg.role === "user" ? t("chat_you") : t("chat_ai") });
+
+    if (msg.role === "assistant" && !msg.isError && msg.reasoning?.trim()) {
+      const fold = msgEl.createEl("details", { cls: "tm-chat-reasoning" });
+      const summary = fold.createEl("summary", { cls: "tm-chat-reasoning-summary" });
+      summary.setText(t("chat_reasoning"));
+      const pre = fold.createEl("pre", { cls: "tm-chat-reasoning-body" });
+      pre.setText(msg.reasoning);
+    }
+
     const bodyEl = msgEl.createDiv({ cls: "tm-chat-body" });
 
     if (msg.role === "assistant" && !msg.isError) {
-      // Render markdown for AI responses
+      // Render markdown for AI responses (answer only)
       void MarkdownRenderer.render(this.app, msg.content, bodyEl, "", this);
       // Add action buttons for AI messages (icon-only with tooltips)
       const actionsEl = msgEl.createDiv({ cls: "tm-chat-msg-actions" });
@@ -898,7 +909,12 @@ export class SidebarDockView extends ItemView {
 
     try {
       const response = await this.plugin.kernelService.chat(text, this.chatHistory.slice(0, -1));
-      this.chatHistory.push({ role: "assistant", content: response || "...", prompt: text });
+      this.chatHistory.push({
+        role: "assistant",
+        content: response.content || "...",
+        reasoning: response.reasoning || undefined,
+        prompt: text,
+      });
       this.saveChatHistory();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -929,7 +945,12 @@ export class SidebarDockView extends ItemView {
         return i < this.chatHistory.length || m.role !== "user" || m.content !== prompt;
       });
       const response = await this.plugin.kernelService.chat(prompt, history);
-      this.chatHistory.push({ role: "assistant", content: response || "...", prompt });
+      this.chatHistory.push({
+        role: "assistant",
+        content: response.content || "...",
+        reasoning: response.reasoning || undefined,
+        prompt,
+      });
       this.saveChatHistory();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

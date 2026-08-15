@@ -30,6 +30,12 @@ import {
   initWorkspaceStructure,
   resolveContractWritebackMode,
   mirrorWritebackModeToContract,
+  readWorkspaceWindow,
+  preciseEditWorkspace,
+  runWorkspaceChatTurn,
+  resolveChatPromptLocale,
+  type WorkspaceReadOpts,
+  type WorkspaceEditOpts,
 } from "./kernel-workspace-ops";
 import { t, getLocale } from "../i18n";
 import { hasConfiguredProvider, getProviderKey } from "../types";
@@ -417,20 +423,30 @@ export class KernelService {
 
   // ── AI Chat ────────────────────────────────────────────────────────────
 
+  /** Windowed workspace read — same Kernel contract as Desktop read_file. */
+  readFileWindow(opts: WorkspaceReadOpts) {
+    return readWorkspaceWindow(getKernel(), this.getVaultPath(), opts);
+  }
+
+  /** Unique-span edit via writeback — same matcher as Desktop edit_file. */
+  preciseEdit(opts: WorkspaceEditOpts) {
+    const mode = resolveContractWritebackMode(getKernel(), this.getVaultPath()) || this.settings.writebackMode;
+    return preciseEditWorkspace(getKernel(), this.getVaultPath(), {
+      ...opts,
+      writebackMode: opts.writebackMode || mode,
+      confirmed: opts.confirmed ?? mode !== "confirm",
+    });
+  }
+
   /**
    * Chat with AI about the user's notes, todos, and stream.
-   * Builds context from recent stream entries + current todos + profile,
-   * then calls the AI provider with the user's question.
-   * 
-   * Uses the cached AI provider from getContext() to avoid creating a new
-   * provider on every call. Falls back to createAiProvider if context is
-   * not available.
+   * Builds context, then runs a bounded Kernel-backed read/edit loop.
+   * Visible body is the answer; thinking is folded separately.
    */
   async chat(
     userMessage: string,
     history: Array<{ role: "user" | "assistant"; content: string }> = [],
-  ): Promise<string> {
-    // Try to reuse the cached context's AI provider first
+  ): Promise<{ content: string; reasoning: string }> {
     let aiProvider: AiProvider | null = null;
     try {
       const ctx = this.getContext();
@@ -440,20 +456,17 @@ export class KernelService {
     } catch {
       // Context creation failed — fall through to manual creation
     }
-    
-    // Fall back to creating a fresh provider
+
     if (!aiProvider) {
       aiProvider = createAiProvider(this.settings);
     }
-    
+
     if (!aiProvider) {
       throw new Error(t("settings_ai_test_no_key"));
     }
 
-    // Build context from workspace data
     const contextParts: string[] = [];
 
-    // Recent stream entries (expanded from 15 → 20 for richer context)
     try {
       const ctx = await this.getStreamContext();
       if (ctx.current) {
@@ -470,7 +483,6 @@ export class KernelService {
       // Stream context unavailable — skip
     }
 
-    // Current todos
     try {
       const todos = this.readTodos();
       const active = todos.filter((todo) => !todo.done).slice(0, 10);
@@ -483,7 +495,6 @@ export class KernelService {
       // Todos unavailable — skip
     }
 
-    // Profile (if exists) — expanded from 2000 → 3000 chars
     try {
       const profilePath = path.join(this.getVaultPath(), "memory", "profile.md");
       if (fs.existsSync(profilePath)) {
@@ -495,7 +506,6 @@ export class KernelService {
       // Profile unavailable — skip
     }
 
-    // Recent periodic reflections (semantic memory — insights about the user)
     try {
       const reflections = this.loadRecentReflections();
       if (reflections) {
@@ -505,45 +515,35 @@ export class KernelService {
       // Reflections unavailable — skip
     }
 
-    // Locale-aware system prompt — follows UI language setting
     const locale = this.settings.localeOverride || getLocale() || "zh-CN";
-    const isZh = locale.startsWith("zh") || locale === "";
+    const isZh = resolveChatPromptLocale(locale) === "zh";
     const systemPrompt = isZh
       ? "你是嵌入在 topmind Obsidian 插件中的 AI 助手。" +
-        "你帮助用户反思笔记、规划任务、整理思路。" +
+        "你帮助用户反思笔记、规划任务、整理思路，并可经写闸精确改工作区 .md。" +
         "回答简洁实用，引用用户的真实数据时要有针对性。" +
         "不要输出思考过程、<think> 标签或 reasoning 围栏，只给用户可见结论。\n\n" +
         (contextParts.length > 0
           ? "以下是用户当前的上下文：\n\n" + contextParts.join("\n\n")
           : "暂无工作区上下文。")
       : "You are a helpful AI assistant embedded in the topmind Obsidian plugin. " +
-        "You help the user reflect on their notes, plan tasks, and organize their thoughts. " +
+        "You help the user reflect on their notes, plan tasks, organize thoughts, and make precise Kernel-backed .md edits. " +
         "Be concise, practical, and reference the user's actual data when relevant. " +
         "Do not output thinking process, <think> tags, or reasoning fences — only the user-visible answer.\n\n" +
         (contextParts.length > 0
           ? "Here is the user's current context:\n\n" + contextParts.join("\n\n")
           : "No workspace context available yet.");
 
-    // Build conversation prompt from history + current message
-    const conversationParts: string[] = [];
-    for (const msg of history.slice(-10)) {
-      conversationParts.push(`${msg.role === "user" ? "User" : "Assistant"}: ${msg.content}`);
-    }
-    conversationParts.push(`User: ${userMessage}`);
-    const prompt = conversationParts.join("\n\n");
-
-    const raw = await aiProvider.generate(prompt, {
-      operation: "chat",
-      systemPrompt,
-      maxOutputTokens: 4096,
-      temperature: 0.6,
-    } as Record<string, unknown>);
     const kernel = getKernel();
-    if (typeof kernel.sanitizeAiContent === "function" && typeof raw === "string") {
-      const cleaned = kernel.sanitizeAiContent(raw);
-      return cleaned || raw;
-    }
-    return raw;
+    const turn = await runWorkspaceChatTurn(kernel, this.getVaultPath(), {
+      userMessage,
+      history,
+      generate: (prompt, context) => aiProvider!.generate(prompt, context),
+      locale,
+      writebackMode: this.settings.writebackMode,
+      systemExtra: systemPrompt,
+    });
+
+    return { content: turn.body || "...", reasoning: turn.reasoning || "" };
   }
 
   /**

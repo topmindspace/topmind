@@ -678,7 +678,17 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
                   <Settings size={ICON.sm} {...stroke} />
                 </button>
               </Tooltip>
-              {/* 主题切换不在标题栏常驻（低频设置行为）——设置 ⌘, / 窄屏 ⋯ 菜单可达 */}
+              <Tooltip content={t("titleBar.themeMenuItem", { label: themeLabel })}>
+                <button
+                  type="button"
+                  className="v4-titlebar-btn"
+                  data-titlebar-theme
+                  onClick={() => { void cycleTheme(); }}
+                  aria-label={t("titleBar.themeMenuItem", { label: themeLabel })}
+                >
+                  {themeIcon()}
+                </button>
+              </Tooltip>
             </>
           ) : (
             <DropdownMenu

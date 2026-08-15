@@ -785,6 +785,17 @@ export function CaptureForm({
         </div>
       ) : null}
 
+      {polishing ? (
+        <div
+          className="mt-3 h-0.5 w-full overflow-hidden rounded-full bg-accent-bg-subtle"
+          role="progressbar"
+          data-capture-ai-busy
+          aria-valuetext={t("overlays:capture.aiPolishing")}
+        >
+          <div className="h-full w-1/3 v4-ai-progress-slide rounded-full bg-accent-color/50" />
+        </div>
+      ) : null}
+
       <div className="mt-4 flex items-center justify-between gap-2">
         <span className="hidden min-w-0 max-w-[240px] truncate text-3xs text-text-quaternary sm:inline" title={modeHint}>
           {isFloat

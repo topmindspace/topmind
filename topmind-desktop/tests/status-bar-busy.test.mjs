@@ -141,6 +141,8 @@ test("StatusBar wires deriveStatusBarBusy (no dual aiBusy OR todo)", () => {
   );
   assert.match(src, /data-status-todo-busy/);
   assert.match(src, /data-status-ai-pill/);
+  assert.match(src, /data-status-inline-busy/);
+  assert.match(src, /animate-spin/);
 });
 
 test("StatusBar icon semantics + click targets (DESIGN ListTodo = personal list)", () => {

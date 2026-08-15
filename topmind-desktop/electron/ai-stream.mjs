@@ -12,6 +12,10 @@ import { logError, logInfo } from "./lib/writeback.mjs";
 import { summarizeToolOutput } from "./lib/ai-tool-evidence.mjs";
 import { t as ei18n } from "./lib/electron-i18n.mjs";
 import { createDeltaCoalescer } from "./lib/stream-delta-coalesce.mjs";
+import {
+  AGENT_STEPS_DEFAULT,
+  clampMaxAgentSteps,
+} from "./lib/settings-core.mjs";
 
 /** ~1 frame — bounds high-frequency token IPC to the renderer. */
 const DELTA_COALESCE_MS = 16;
@@ -19,15 +23,12 @@ const DELTA_COALESCE_MS = 16;
 const TIMEOUT_MS = 240_000;       // 4 min hard cap (multi-step agent)
 const IDLE_TIMEOUT_MS = 120_000;  // 120s idle — tool chains (fetch + multi-write)
 const IDLE_CHECK_INTERVAL = 10_000;
-/** Default multi-tool agent loops; keep in sync with settings.mjs AGENT_STEPS_DEFAULT. */
-export const DEFAULT_MAX_AGENT_STEPS = 20;
-const AGENT_STEPS_MIN = 3;
-const AGENT_STEPS_MAX = 50;
+
+/** Same triple as settings-core / Settings UI (do not fork). */
+export const DEFAULT_MAX_AGENT_STEPS = AGENT_STEPS_DEFAULT;
 
 function clampAgentSteps(value) {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return DEFAULT_MAX_AGENT_STEPS;
-  return Math.max(AGENT_STEPS_MIN, Math.min(AGENT_STEPS_MAX, Math.round(n)));
+  return clampMaxAgentSteps(value);
 }
 
 /**
@@ -109,6 +110,27 @@ export async function runStream({ model, system, messages, tools, emit, sessionI
   const controller = new AbortController();
   registry?.register(sessionId, controller);
   let collected = "";
+  let visibleAcc = { raw: "", body: "", reasoning: "" };
+  /** @type {(raw: unknown) => { body: string, reasoning: string }} */
+  let splitAssistantVisible = (raw) => ({ body: String(raw ?? ""), reasoning: "" });
+  /** @type {(acc: object, delta: string) => object} */
+  let ingestAssistantTextDelta = (acc, delta) => {
+    const raw = String(acc?.raw || "") + String(delta ?? "");
+    const split = splitAssistantVisible(raw);
+    return { raw, ...split, bodyDelta: split.body, reasoningDelta: "", resetBody: false, resetReasoning: false };
+  };
+  try {
+    const { loadKernelApi } = await import("./lib/kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    if (typeof kernel.splitAssistantVisible === "function") {
+      splitAssistantVisible = kernel.splitAssistantVisible;
+    }
+    if (typeof kernel.ingestAssistantTextDelta === "function") {
+      ingestAssistantTextDelta = kernel.ingestAssistantTextDelta;
+    }
+  } catch {
+    /* packaged/dev kernel missing — emit raw text (renderer still folds tagged think) */
+  }
   let streamError = null;
   let timeout;
   let idle;
@@ -204,10 +226,24 @@ export async function runStream({ model, system, messages, tools, emit, sessionI
         case "text-start":
           emitOut({ type: "status", status: "writing" });
           break;
-        case "text-delta":
+        case "text-delta": {
           collected += chunk.delta;
-          deltaCoalescer.pushDelta("text", chunk.delta);
+          const next = ingestAssistantTextDelta(visibleAcc, chunk.delta);
+          if (next.resetBody) {
+            deltaCoalescer.flush();
+            emitOut({ type: "text-reset", text: next.body });
+          } else if (next.bodyDelta) {
+            deltaCoalescer.pushDelta("text", next.bodyDelta);
+          }
+          if (next.resetReasoning) {
+            deltaCoalescer.flush();
+            emitOut({ type: "reasoning-reset", text: next.reasoning });
+          } else if (next.reasoningDelta) {
+            deltaCoalescer.pushDelta("reasoning", next.reasoningDelta);
+          }
+          visibleAcc = next;
           break;
+        }
         case "tool-input-start":
           toolCallCount++;
           emitOut({
@@ -257,6 +293,9 @@ export async function runStream({ model, system, messages, tools, emit, sessionI
     }
 
     const text = await result.text.catch(() => collected);
+    const split = splitAssistantVisible(text || collected);
+    const body = visibleAcc.body || split.body || "";
+    const reasoning = [visibleAcc.reasoning, split.reasoning].filter(Boolean).join("\n\n") || split.reasoning;
     let usage = null;
     try {
       usage = await result.usage;
@@ -265,12 +304,13 @@ export async function runStream({ model, system, messages, tools, emit, sessionI
       sessionId,
       toolCalls: toolCallCount,
       steers: steerApplyCount,
-      textLength: (text || collected).length,
+      textLength: body.length,
       deltaFlushes: deltaCoalescer.stats().flushCount,
       deltaChunks: deltaCoalescer.stats().deltaCount,
     });
     return {
-      text: text || collected,
+      text: body,
+      reasoning,
       usage,
       error: null,
       followUps: drainPendingUserMessages(registry, sessionId),
@@ -278,9 +318,11 @@ export async function runStream({ model, system, messages, tools, emit, sessionI
     };
   } catch (err) {
     deltaCoalescer.flush();
-    if (controller.signal.aborted && collected) {
+    if (controller.signal.aborted && (visibleAcc.body || collected)) {
+      const split = splitAssistantVisible(collected);
       return {
-        text: collected,
+        text: visibleAcc.body || split.body || "",
+        reasoning: visibleAcc.reasoning || split.reasoning || "",
         usage: null,
         error: null,
         followUps: drainPendingUserMessages(registry, sessionId),

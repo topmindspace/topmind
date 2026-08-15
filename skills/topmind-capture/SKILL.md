@@ -1,6 +1,6 @@
 ---
 name: topmind-capture
-version: 3.4.0
+version: 3.5.0
 description: >-
   把链接、摘录、随手记收进动态周期本、Inbox 或专题。Use when 记一下、收进、剪藏、保存链接、capture、save URL/idea。
   Do NOT use for 整理本周、出稿、写我的情况/topic.md、doctor/loop、微信读书、X.
@@ -32,7 +32,7 @@ compatibility: topmind workspace. Host file tools or optional UTR capture-note.
 author: TopMindSpace
 license: MIT
 homepage: https://github.com/topmindspace/topmind
-updated: 2026-08-10
+updated: 2026-08-15
 degradation: ../shared/capability-degradation.md
 ---
 

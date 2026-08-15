@@ -112,7 +112,7 @@ contextBridge.exposeInMainWorld('topmind', {
 | `lib/skills-runtime.mjs` | engine `skills/` + `ai.extraSkillsRoots` / `topmind_SKILLS_EXTRA`（catalog / body / resource） |
 | `lib/skills-extra.mjs` | Desktop 管理目录 `skills-extra/` 安装 · 回执 · pack summary |
 | `ai-tools.mjs` | Workspace 工具（含 `edit_file` / rename / delete 等）+ `list_skills` / `load_skill` / `load_skill_resource` |
-| `ai-stream.mjs` | multi-step（`maxAgentSteps` 默认 **12**，可配）+ tool-call/result + **prepareStep steer** + **~16ms text/reasoning delta 合流** |
+| `ai-stream.mjs` | multi-step（`maxAgentSteps` 默认 **20**，可配 3–50）+ tool-call/result + **prepareStep steer** + **~16ms text/reasoning delta 合流** |
 | `lib/stream-delta-coalesce.mjs` | 纯合流缓冲：帧级节流 IPC；非 delta 事件先 flush |
 | `ai-service.mjs` `complete` | 行内 one-shot（无 tools）；`sanitizeInlineAiResult` 剥离思考标签/元话术后再返回 |
 | `lib/inline-ai-result.mjs` | 行内结果清洗纯函数（主进程 + 单测）；渲染层 `src/lib/inline-ai-result.ts` 镜像 |
@@ -252,13 +252,13 @@ AiService.invoke
       → toUIMessageStream({ sendReasoning, sendStart, sendFinish })
       → 事件循环:
           start        → emit status: thinking
-          reasoning-*  → emit reasoning delta
-          text-*       → emit text delta + status: writing
+          reasoning-*  → emit reasoning delta（可折叠，不是正文）
+          text-*       → ingest 拆 think/CoT 后只 emit 可见正文（text-reset 可回收误发前缀）
           tool-input-* → emit status: calling-tool
           tool-output  → emit tool-result（路径摘要）+ status: writing
           steer-applied→ emit status: steering
           finish       → emit status: done
-  → 返回 { text, usage, error, followUps, batchEvidence }
+  → 返回 { text: 可见正文, reasoning, usage, error, followUps, batchEvidence }
 ```
 
 超时策略：
@@ -266,7 +266,7 @@ AiService.invoke
 - 空闲超时：120 秒（无 chunk 时触发，足够覆盖工具执行）
 - 检查间隔：10 秒
 
-写/读工具：`edit_file`（精确替换，**不写 Archive**）· `save_file`/删除仍备份 · `read_file` 行窗口 · `search`=`grepWorkspace`（可 scope、默认可跳过 Archive、行号命中）。  
+写/读工具：`edit_file`（Kernel `applyUniqueSpan`：精确 → 换行/行尾空白规范化；多处拒绝；失败带 nearby/context；**不写 Archive**）· `save_file`/删除仍备份 · `read_file` 带行号窗口 + `around`/`heading` 中段定位 · `search`=`grepWorkspace`（可 scope、默认可跳过 Archive、行号命中）。  
 中途控制：`ai.steerStream` · `ai.queueFollowUp`；打开文件本轮自动带入（无需点挂载）。  
 ADR：`docs/adr/2026-07-16-desktop-agent-harness-upgrade.md`。
 
@@ -431,7 +431,7 @@ AiPanel 模型下拉选择器的 `onChange` 不仅更新内存 store，还同步
 
 ### AI 工具暴露策略（全能力 Agent，无 UTR）
 
-`buildDesktopAiTools`（`electron/ai-tools.mjs`）→ **WorkspaceService**。系统提示只列出实际加载的 snake_case 工具名。多步 tool loop：`maxAgentSteps` 默认 **12**（`AGENT_STEPS_DEFAULT` / `DEFAULT_MAX_AGENT_STEPS`，可配 3–24）。Skills 以 playbook + `/slash` 接入，不是第二进程。
+`buildDesktopAiTools`（`electron/ai-tools.mjs`）→ **WorkspaceService**。系统提示只列出实际加载的 snake_case 工具名。多步 tool loop：`maxAgentSteps` 默认 **20**（`AGENT_STEPS_DEFAULT` / `DEFAULT_MAX_AGENT_STEPS`，可配 3–50）。Skills 以 playbook + `/slash` 接入，不是第二进程。
 
 | 写回模式 | 暴露的工具 | 说明 |
 |----------|-----------|------|
@@ -439,7 +439,7 @@ AiPanel 模型下拉选择器的 `onChange` 不仅更新内存 store，还同步
 | confirm（保存前问我） | 读 + 写工具仍注册 | AI 写经 Kernel pending；`SuggestPopover` 接受/拒绝后落盘 |
 
 读（`AI_TOOL_NAMES_READ`）：`list_skills` · `load_skill` · `load_skill_resource` · `list_categories` · `list_topics` · `list_topic_files` · `get_topic` · `read_file` · `search` · `list_inbox` · `list_outputs` · `fetch_url`（`maxLen` / `render`）· `workspace_health`  
-写（`AI_TOOL_NAMES_WRITE`）：`capture_to_inbox` · `save_note` · `save_file` · `edit_file`（精确替换，**不写 Archive**）· `create_topic` · `append_topic_memory` · `move_to_topic` · `publish_to_outputs` · `delete_path` · `rename_path`（删除/重命名仍走备份链）
+写（`AI_TOOL_NAMES_WRITE`）：`capture_to_inbox` · `save_note` · `save_file` · `edit_file`（唯一片段，**不写 Archive**）· `create_topic` · `append_topic_memory` · `move_to_topic` · `publish_to_outputs` · `delete_path` · `rename_path`（删除/重命名仍走备份链）
 
 ### 编辑器 Markdown / 预览（1.0.12+）
 
