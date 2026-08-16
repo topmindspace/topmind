@@ -1,6 +1,6 @@
 ---
 name: topmind-x
-version: 3.5.0
+version: 3.5.1
 description: >-
   X/Twitter：归档/搜索（Bearer）、发帖（xurl）、Agent 可用官方 MCP。Use when 发推、推特、twitter、x.com。
   Do NOT use for 微信读书、非 X 捕获、doctor、长文交付.

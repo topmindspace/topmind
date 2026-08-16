@@ -1,7 +1,7 @@
 {
   "id": "topmind-stream",
   "name": "Topmind Stream",
-  "version": "3.5.0",
+  "version": "3.5.1",
   "minAppVersion": "1.5.0",
   "description": "Obsidian 的「主区域动态流 + 静默 AI 沉淀副驾」— 随手记下、AI 默认建议、你确认后沉淀、文件永远是你的。",
   "author": "TopMindSpace",
