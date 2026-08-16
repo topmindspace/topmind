@@ -254,7 +254,7 @@ export class SidebarDockView extends ItemView {
     const workbenchBtn = headerActions.createEl("button", {
       cls: "tm-sidebar-icon-btn tm-sidebar-btn-labeled",
     });
-    setIcon(workbenchBtn, "monitor");
+    setIcon(workbenchBtn, "waves");
     workbenchBtn.createSpan({ text: t("sidebar_btn_workbench"), cls: "tm-sidebar-btn-label" });
     workbenchBtn.setAttribute("aria-label", t("sidebar_open_workbench"));
     workbenchBtn.setAttribute("title", t("sidebar_open_workbench"));

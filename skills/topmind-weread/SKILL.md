@@ -58,12 +58,13 @@ Key：`https://weread.qq.com/r/weread-skills`（微信扫码）。
 ## Desktop 同步策略
 
 1. 分页拉全 notebooks（`count=100` + `lastSort`）  
-2. 仅 `noteCount + reviewCount > 0`  
+2. 仅 `noteCount + reviewCount > 0`（书签不算可导出；拉完仍空也不写专题）  
 3. 本地条数一致 → 跳过；`note_fingerprint` 二次校验  
-4. 每书：bookmarklist + 可选 reviews  
-5. 写 `topic.md` + `划线笔记.md`；旧文件进 Archive 备份  
+4. 每书：bookmarklist + 可选 `/review/list/mine`（`synckey`）  
+5. 写 `topic.md` + `划线笔记.md`（`writeConnectorNote` 经 kernel 写闸；create/update 不备份，仅 locked 等高影响才备份）  
 6. 软预算（默认 4 分钟）超时留下次  
 7. `lastSyncAt` 仅展示，不作时间过滤  
+8. `upgrade_info` 展示即可，不因新 zip 单独失败  
 
 目标类别：见 router [`../topmind/references/connector-resolution.md`](../topmind/references/connector-resolution.md)。
 

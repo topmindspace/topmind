@@ -28,16 +28,23 @@ import {
 import { resolveConnectorSyncCategory } from "./lib/connector-category.mjs";
 import {
   WEREAD_SKILL_VERSION,
+  WEREAD_GATEWAY_URL,
+  buildGatewayBody,
+  inspectGatewayResponse,
+  notebooksPageParams,
+  reviewsPageParams,
+  isExportableBook,
+  decideBookSync,
   parseNotebooks,
   parseHighlights,
   parseReviews,
-  contentFingerprint,
   formatNotesMarkdown,
   bookTopicName,
   slimStatsSnapshot,
 } from "./lib/weread-notes.mjs";
 
-const WEREAD_API_URL = "https://i.weread.qq.com/api/agent/gateway";
+/** Last advisory upgrade_info from the official gateway (surfaced, not a hard fail). */
+let lastUpgradeInfo = null;
 const DEFAULT_BUDGET_MS = 4 * 60 * 1000;
 const BOOK_THROTTLE_MS = 180;
 const NOTEBOOKS_PAGE = 100;
@@ -66,12 +73,12 @@ function budgetMs(settings) {
 
 /**
  * Gateway call. Params flat next to api_name (official requirement).
- * Surfaces upgrade_info and errcode hints.
+ * Surfaces upgrade_info without aborting when data is present.
  */
 async function wereadApi(apiKey, apiName, params = {}) {
   if (!apiKey) throw new Error(t("weread.apiKeyMissing"));
-  const body = { api_name: apiName, skill_version: WEREAD_SKILL_VERSION, ...params };
-  const res = await fetch(WEREAD_API_URL, {
+  const body = buildGatewayBody(apiName, params);
+  const res = await fetch(WEREAD_GATEWAY_URL, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -89,18 +96,22 @@ async function wereadApi(apiKey, apiName, params = {}) {
     throw new Error(t("weread.invalidJson"));
   }
 
-  if (json.upgrade_info?.message) {
-    throw new Error(t("weread.upgradeNeeded", { msg: json.upgrade_info.message }));
+  const inspected = inspectGatewayResponse(json);
+  if (inspected.upgradeInfo) {
+    lastUpgradeInfo = inspected.upgradeInfo;
+    logWarn("weread", "upgrade_info surfaced", {
+      message: inspected.upgradeInfo.message || "",
+    });
   }
 
-  if (json.errcode && json.errcode !== 0) {
+  if (!inspected.ok) {
     const hint =
-      json.errcode === -2012
+      inspected.errcode === -2012
         ? t("weread.keyInvalid")
-        : json.errcode === -2003
+        : inspected.errcode === -2003
           ? t("weread.paramError")
           : "";
-    throw new Error(t("weread.errorWithCode", { msg: json.errmsg || `code ${json.errcode}` }) + hint);
+    throw new Error(t("weread.errorWithCode", { msg: inspected.errmsg || `code ${inspected.errcode}` }) + hint);
   }
 
   if (!res.ok) {
@@ -109,7 +120,7 @@ async function wereadApi(apiKey, apiName, params = {}) {
     );
   }
 
-  return json.data ?? json;
+  return inspected.data;
 }
 
 async function fetchAllNotebooks(apiKey, emit) {
@@ -120,8 +131,7 @@ async function fetchAllNotebooks(apiKey, emit) {
   let totalBookCount = null;
 
   while (page < NOTEBOOKS_MAX_PAGES) {
-    const params = { count: NOTEBOOKS_PAGE };
-    if (lastSort != null) params.lastSort = lastSort;
+    const params = notebooksPageParams(lastSort, NOTEBOOKS_PAGE);
     emit?.("weread:sync-progress", {
       phase: "notebooks",
       message: page === 0 ? t("weread.fetchingBooks") : t("weread.pagingNotebooks", { page: page + 1 }),
@@ -157,11 +167,7 @@ async function fetchAllReviews(apiKey, bookId) {
   let synckey = 0;
   let page = 0;
   while (page < REVIEWS_MAX_PAGES) {
-    const data = await wereadApi(apiKey, "/review/list/mine", {
-      bookid: bookId,
-      synckey,
-      count: REVIEWS_PAGE,
-    });
+    const data = await wereadApi(apiKey, "/review/list/mine", reviewsPageParams(bookId, synckey, REVIEWS_PAGE));
     const batch = parseReviews(data);
     all.push(...batch);
     const hasMore = data.hasMore === 1 || data.hasMore === true;
@@ -227,8 +233,14 @@ export const WereadService = {
     const settings = await loadSettingsWithSecrets(ctx);
     const apiKey = settings?.weread?.apiKey;
     if (!apiKey) throw new Error(t("weread.apiKeyMissing"));
+    lastUpgradeInfo = null;
     const data = await wereadApi(apiKey, "/_list");
-    return { ok: true, skillVersion: WEREAD_SKILL_VERSION, data };
+    return {
+      ok: true,
+      skillVersion: WEREAD_SKILL_VERSION,
+      data,
+      upgradeInfo: lastUpgradeInfo,
+    };
   },
 
   async getBookshelf(_p, ctx) {
@@ -331,6 +343,7 @@ export const WereadService = {
     const filterIds = Array.isArray(p.bookIds)
       ? new Set(p.bookIds.map(String).filter(Boolean))
       : null;
+    lastUpgradeInfo = null;
 
     const syncCategory = await resolveWereadCategory(settings, ctx);
     const dataRoot = resolveDataRoot(ctx.workspaceRoot);
@@ -363,6 +376,7 @@ export const WereadService = {
     if (filterIds && filterIds.size > 0) {
       notebooks = notebooks.filter((b) => filterIds.has(b.bookId));
     }
+    notebooks = notebooks.filter((b) => isExportableBook(b, { includeThoughts }));
 
     if (notebooks.length === 0) {
       const result = {
@@ -431,17 +445,13 @@ export const WereadService = {
 
       try {
         const local = await readLocalNoteMeta(highlightsPath);
-        const remoteTarget = includeThoughts
-          ? book.noteCount + book.reviewCount
-          : book.noteCount;
-        const localTarget = includeThoughts
-          ? local.localCount
-          : local.noteCount >= 0
-            ? local.noteCount
-            : local.localCount;
-
-        // Cheap skip: remote notebook counts match local (best-effort; same-count swaps rare)
-        if (!force && localTarget >= 0 && remoteTarget > 0 && localTarget === remoteTarget) {
+        const pre = decideBookSync({ force, includeThoughts, remote: book, local });
+        if (pre.action === "skip-empty") {
+          skippedNoHighlights++;
+          processed++;
+          continue;
+        }
+        if (pre.action === "skip-unchanged") {
           skippedNoChange++;
           processed++;
           continue;
@@ -462,20 +472,27 @@ export const WereadService = {
           }
         }
 
-        if (highlights.length === 0 && reviews.length === 0) {
+        const post = decideBookSync({
+          force,
+          includeThoughts,
+          remote: book,
+          local,
+          highlights,
+          reviews,
+        });
+        if (post.action === "skip-empty") {
           skippedNoHighlights++;
           processed++;
           continue;
         }
-
-        const fp = contentFingerprint(highlights, reviews);
-        const exportable = highlights.length + reviews.length;
-
-        if (!force && local.fingerprint && local.fingerprint === fp) {
+        if (post.action === "skip-unchanged") {
           skippedNoChange++;
           processed++;
           continue;
         }
+
+        const fp = post.fingerprint;
+        const exportable = highlights.length + reviews.length;
 
         totalHighlights += highlights.length;
         totalThoughts += reviews.length;
@@ -582,6 +599,7 @@ export const WereadService = {
       syncCategory,
       isPartial: summary.isPartial,
       skillVersion: WEREAD_SKILL_VERSION,
+      upgradeInfo: lastUpgradeInfo || undefined,
       paths: syncedPaths.slice(0, 20),
       message: remaining > 0
         ? t("weread.batchProgress", { processed, total: notebooks.length, remaining })

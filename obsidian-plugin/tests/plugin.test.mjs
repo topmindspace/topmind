@@ -87,6 +87,75 @@ describe("i18n locale key alignment", () => {
   });
 });
 
+// ── Toolbar / labeled-button chrome (shipped CSS + views) ───────────────────
+
+describe("Obsidian labeled-button chrome (shipped)", () => {
+  const css = fs.readFileSync(path.join(__dirname, "..", "styles.css"), "utf-8");
+  const workbench = fs.readFileSync(path.join(srcDir, "views", "stream-workbench-view.ts"), "utf-8");
+  const sidebar = fs.readFileSync(path.join(srcDir, "views", "sidebar-dock-view.ts"), "utf-8");
+  const zh = fs.readFileSync(path.join(srcDir, "i18n", "locales", "zh-CN.ts"), "utf-8");
+  const en = fs.readFileSync(path.join(srcDir, "i18n", "locales", "en-US.ts"), "utf-8");
+
+  test("labeled buttons keep width:auto and do not clip labels at default width", () => {
+    assert.match(css, /\.tm-toolbar-btn-labeled\s*\{[^}]*width:\s*auto/s);
+    assert.match(css, /\.tm-sidebar-btn-labeled\s*\{[^}]*width:\s*auto/s);
+    const toolbarLabel = css.match(/\.tm-toolbar-btn-label\s*\{[^}]+\}/)?.[0] || "";
+    const sidebarLabel = css.match(/\.tm-sidebar-btn-label\s*\{[^}]+\}/)?.[0] || "";
+    assert.match(toolbarLabel, /overflow:\s*visible/);
+    assert.match(sidebarLabel, /overflow:\s*visible/);
+    assert.doesNotMatch(toolbarLabel, /display:\s*none/);
+    assert.doesNotMatch(sidebarLabel, /display:\s*none/);
+    // Default toolbar/header must not rely on overflow:hidden alone to hide labels
+    assert.match(css, /\.tm-toolbar\s*\{[^}]*overflow:\s*visible/s);
+    assert.match(css, /\.tm-sidebar-header\s*\{[^}]*overflow:\s*visible/s);
+  });
+
+  test("narrow pane hides labels only under an explicit container query", () => {
+    assert.match(css, /@container tm-workbench \(max-width:\s*560px\)/);
+    assert.match(css, /@container tm-sidebar \(max-width:\s*260px\)/);
+    assert.match(css, /container-name:\s*tm-workbench/);
+    assert.match(css, /container-name:\s*tm-sidebar/);
+  });
+
+  test("refresh and organize use distinct icons and handlers", () => {
+    assert.match(workbench, /setIcon\(refreshStreamBtn,\s*"refresh-cw"\)/);
+    assert.match(workbench, /setIcon\(this\.organizeBtn,\s*"list-tree"\)/);
+    assert.match(workbench, /refreshStreamBtn\.addEventListener\("click".*refreshStream/s);
+    assert.match(workbench, /this\.organizeBtn\.addEventListener\("click".*organizePeriod/s);
+    assert.doesNotMatch(workbench, /setIcon\(this\.organizeBtn,\s*"refresh-cw"\)/);
+    assert.match(sidebar, /setIcon\(workbenchBtn,\s*"waves"\)/);
+    assert.doesNotMatch(sidebar, /setIcon\(workbenchBtn,\s*"monitor"\)/);
+  });
+
+  test("icon-only and labeled buttons ship aria-label / title", () => {
+    assert.match(workbench, /refreshStreamBtn\.setAttribute\("aria-label"/);
+    assert.match(workbench, /refreshStreamBtn\.setAttribute\("title"/);
+    assert.match(workbench, /sidebarBtn\.setAttribute\("aria-label"/);
+    assert.match(workbench, /newNoteBtn\.setAttribute\("title"/);
+    assert.match(sidebar, /workbenchBtn\.setAttribute\("aria-label"/);
+    assert.match(sidebar, /settingsBtn\.setAttribute\("title"/);
+  });
+
+  test("toolbar label keys exist in both locales", () => {
+    for (const key of [
+      "toolbar_btn_sidebar",
+      "toolbar_btn_settings",
+      "toolbar_btn_new_note",
+      "toolbar_btn_profile",
+      "toolbar_btn_refresh",
+      "stream_organize",
+      "sidebar_btn_workbench",
+    ]) {
+      const re = new RegExp(`${key}:\\s*"`);
+      assert.match(zh, re, `zh missing ${key}`);
+      assert.match(en, re, `en missing ${key}`);
+    }
+    assert.match(zh, /sidebar_btn_workbench:\s*"动态"/);
+    assert.match(en, /sidebar_btn_workbench:\s*"Stream"/);
+    assert.doesNotMatch(zh, /sidebar_btn_workbench:\s*"[^"]*工作台/);
+  });
+});
+
 // ── Stream entry parsing (shipped) ─────────────────────────────────────────
 
 describe("parseStreamEntries (shipped)", () => {

@@ -47,7 +47,7 @@ const DEFAULT_HINTS = {
   brew: "brew install --cask xdevplatform/tap/xurl",
   npm: "npm i -g @xdevplatform/xurl",
   auth: "xurl auth oauth2",
-  mcp: "npx @xdevplatform/xurl mcp https://api.x.com/mcp",
+  mcp: "npx -y @xdevplatform/xurl mcp https://api.x.com/mcp",
   docs: "https://docs.x.com/tools/mcp",
 };
 

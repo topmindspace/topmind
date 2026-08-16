@@ -16,7 +16,10 @@
     "configBearer": "配置 Bearer Token",
     "composePost": "撰写发布",
     "openHub": "打开中心",
-    "settings": "X 设置"
+    "settings": "X 设置",
+    "notReadyToast": "X 未就绪：请配置 Bearer 或安装 xurl",
+    "cannotReadToast": "无法读取：请配置 Bearer Token",
+    "needXurlToast": "发帖需要本机 xurl（用户 OAuth）。可先在编辑器起草。"
   },
   "settings": {
     "disabled": "已停用",
@@ -76,6 +79,7 @@
     "clear": "清除",
     "composePost": "撰写发布",
     "needXurl": "发帖需要本机 xurl",
+    "installHint": "brew install --cask xdevplatform/tap/xurl && xurl auth oauth2",
     "installGuide": "安装引导",
     "postPlaceholder": "说点什么…（最多 280 字）",
     "post": "发布",

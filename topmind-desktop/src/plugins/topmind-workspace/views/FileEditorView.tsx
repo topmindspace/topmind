@@ -97,8 +97,8 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
   /** Only show X toolbar when connector plugin is enabled in settings */
   const xPublishEnabled = Boolean(getCachedSettings()?.x?.enabled);
   const [showMeta, setShowMeta] = useState(false);
-  /** Format tools collapsed by default — quieter chrome; chevron expands on demand */
-  const [showFormat, setShowFormat] = useState(false);
+  /** Format tools expanded by default — collapse with chevron when space is tight */
+  const [showFormat, setShowFormat] = useState(true);
   /** Toolbar compact mode — hides text labels when editor area is narrow */
   const toolbarRef = useRef<HTMLDivElement>(null);
   const [toolbarCompact, setToolbarCompact] = useState(false);

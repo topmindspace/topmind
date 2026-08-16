@@ -44,6 +44,15 @@ test("defaults: theme auto, agent on, skills on, autoSave 1500, wordWrap, maxAge
   assert.equal(d.clipBridge.enabled, false);
   assert.ok(d.plugins);
   assert.deepEqual(d.plugins.externalEnabled, {});
+  assert.equal(d.ui.locale, "auto");
+  assert.equal(d.weread.enabled, false);
+  assert.equal(d.weread.syncCategory, "auto");
+  assert.equal(d.weread.includeThoughts, true);
+  assert.equal(d.weread.syncBudgetMinutes, 4);
+  assert.equal(d.weread.lastSyncAt, null);
+  assert.equal(d.x.syncCategory, "auto");
+  assert.equal(normalizeWritebackMode("confirm"), "confirm");
+  assert.equal(normalizeWritebackMode("auto"), "auto");
 });
 
 test("normalizePluginsSettings keeps boolean enable map", () => {

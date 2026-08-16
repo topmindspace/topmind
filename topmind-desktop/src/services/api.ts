@@ -1079,7 +1079,7 @@ export const api = {
         skillVersion?: string;
         statsCache?: WereadStatsCache | null;
       }>("weread.getStatus"),
-    testConnection: () => invoke<{ ok: boolean; skillVersion?: string; data: unknown }>("weread.testConnection"),
+    testConnection: () => invoke<{ ok: boolean; skillVersion?: string; data: unknown; upgradeInfo?: { message?: string } | null }>("weread.testConnection"),
     bookshelf: () => invoke<unknown>("weread.getBookshelf"),
     listNotebooks: () =>
       invoke<{ books: WereadNotebookBook[]; total: number; totalBookCount?: number }>("weread.listNotebooks"),

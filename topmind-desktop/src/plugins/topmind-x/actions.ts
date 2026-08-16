@@ -4,6 +4,7 @@
  */
 import type { PluginContext, ActionSlot } from "../types";
 import { api } from "../../services/api";
+import i18n from "../../locales";
 
 export function createXActions(ctx: PluginContext): ActionSlot[] {
   return [
@@ -31,12 +32,12 @@ export function createXActions(ctx: PluginContext): ActionSlot[] {
         try {
           const status = await api.x.status();
           if (!status.ready) {
-            ctx.toast("X not ready: configure Bearer or install xurl");
+            ctx.toast(i18n.t("x:sidebar.notReadyToast"));
             ctx.openOverlay("settings", { topicId: "topmind-x.settings" });
             return;
           }
           if (!status.canRead) {
-            ctx.toast("Cannot read: please configure Bearer Token");
+            ctx.toast(i18n.t("x:sidebar.cannotReadToast"));
             ctx.openOverlay("settings", { topicId: "topmind-x.settings" });
             return;
           }
@@ -59,7 +60,7 @@ export function createXActions(ctx: PluginContext): ActionSlot[] {
         try {
           const status = await api.x.status();
           if (!status.canPost) {
-            ctx.toast("Posting requires local xurl (user OAuth). Draft can be written in editor.");
+            ctx.toast(i18n.t("x:sidebar.needXurlToast"));
             ctx.openOverlay("settings", { topicId: "topmind-x.settings" });
             return;
           }

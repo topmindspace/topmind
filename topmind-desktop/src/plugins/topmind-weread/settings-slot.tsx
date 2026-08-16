@@ -34,7 +34,7 @@ export function createWereadSettingsSlot(_ctx: PluginContext): SettingsSlot {
 }
 
 function WereadPanel({ settings, update }: { settings: AppSettings; update: (p: Partial<AppSettings>) => void }) {
-  const { t } = useTranslation("weread");
+  const { t } = useTranslation(["weread", "settings"]);
   const w = settings.weread;
   const select = useViewStore((s) => s.select);
   const [syncing, setSyncing] = useState(false);
@@ -232,10 +232,10 @@ function WereadPanel({ settings, update }: { settings: AppSettings; update: (p: 
               disabled={!w.enabled}
               onChange={(e) => patchWeread({ syncBudgetMinutes: Number(e.target.value) || 4 })}
               options={[
-{ value: "2", label: t("settings:weread.minutesCount", { count: 2 }) },
-      { value: "4", label: t("settings:weread.minutesCount", { count: 4 }) },
-      { value: "8", label: t("settings:weread.minutesCount", { count: 8 }) },
-      { value: "12", label: t("settings:weread.minutesCount", { count: 12 }) },
+                { value: "2", label: t("settings:weread.minutesCount", { count: 2 }) },
+                { value: "4", label: t("settings:weread.minutesCount", { count: 4 }) },
+                { value: "8", label: t("settings:weread.minutesCount", { count: 8 }) },
+                { value: "12", label: t("settings:weread.minutesCount", { count: 12 }) },
               ]}
             />
           </Field>

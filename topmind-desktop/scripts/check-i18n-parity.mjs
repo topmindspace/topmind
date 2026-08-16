@@ -3,11 +3,18 @@
  * Check i18n key parity between zh-CN and en-US locale files.
  * Reports missing keys in either direction.
  */
-import { readFileSync } from "fs";
+import { readFileSync, readdirSync } from "fs";
 import { join } from "path";
 
 const localesDir = join(import.meta.dirname, "..", "src", "locales");
-const namespaces = ["shell", "editor", "overlays", "ai", "settings", "workspace", "common", "ingest"];
+const namespaces = readdirSync(join(localesDir, "zh-CN"))
+  .filter((f) => f.endsWith(".json"))
+  .map((f) => f.replace(/\.json$/, ""))
+  .sort();
+if (!namespaces.includes("weread") || !namespaces.includes("x")) {
+  console.error("Desktop locales must ship weread and x namespaces.");
+  process.exit(1);
+}
 
 function flatten(obj, prefix = "") {
   const keys = new Set();

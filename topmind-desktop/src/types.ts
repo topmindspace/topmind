@@ -332,6 +332,8 @@ export interface WereadSyncResult {
   message?: string;
   paths?: string[];
   skillVersion?: string;
+  /** Official gateway advisory when a newer skill zip exists — not a hard fail. */
+  upgradeInfo?: { message?: string } | null;
   errors?: { bookId?: string; title?: string; error: string }[];
 }
 

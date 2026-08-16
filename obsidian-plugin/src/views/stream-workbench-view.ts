@@ -200,7 +200,7 @@ export class StreamWorkbenchView extends ItemView {
     this.organizeBtn = streamControls.createEl("button", {
       cls: "tm-btn-secondary",
     });
-    setIcon(this.organizeBtn, "refresh-cw");
+    setIcon(this.organizeBtn, "list-tree");
     this.organizeBtn.createSpan({ text: t("stream_organize") });
     this.organizeBtn.setAttribute("aria-label", t("stream_organize"));
     this.organizeBtn.addEventListener("click", () => this.organizePeriod());
@@ -886,7 +886,7 @@ export class StreamWorkbenchView extends ItemView {
       this.organizing = false;
       this.organizeBtn.disabled = false;
       this.organizeBtn.empty();
-      setIcon(this.organizeBtn, "refresh-cw");
+      setIcon(this.organizeBtn, "list-tree");
       this.organizeBtn.createSpan({ text: t("stream_organize") });
     }
   }

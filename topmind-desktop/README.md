@@ -25,7 +25,7 @@
 2. **Quiet Paper** — type size / leading / measure / paper · focus `⌘⌥F`  
 3. **AI copilot** — skill-first · `auto | confirm` save settings · suggestions generate by default and run after you confirm; multi-lane AI keeps prep serial and chat independent (see `DESIGN.md` §0.0.3)  
 4. **Multi-source ingest** — default anydoc (Word · PDF · Excel · PPT · ODF · RTF · EPUB · CSV) + built-in mail/HTML → Markdown; optional markitdown / pandoc  
-5. **Composable** — shares content conventions with Skills / Clip / optional UTR; no mandatory runtime binding  
+5. **Composable** — shares content conventions with Skills / Clip / optional UTR; no mandatory runtime binding. WeRead connector uses the official Agent Gateway (flat `api_name` + `skill_version`); incremental skip by count/`note_fingerprint`; books with no 划线/想法 are not written.  
 6. **Capture vocabulary** — **Note it** (full capture · 记一下) ≠ **Log it** (stream composer · 记下)  
 7. **Localized AI** — UI language and workspace `locale` drive Agent / inline AI / todos / suggestions in zh or en  
 8. **Manage & Updates** — detects agent hosts · browser · Obsidian; installs / upgrades / uninstalls Skills, Clip, and the plugin (browser side is guided load-unpacked, never silent inject); unified update check and health diagnosis

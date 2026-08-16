@@ -147,7 +147,7 @@
 | **StatusBar 可交互** | **健康即沉默**：工作区正常仅一颗绿点（详情在 tooltip），异常才出文字；路径（xl 安静按钮）/ **AI 就绪 pill（唯一主控件）**：离线->设置 · 就绪->toggle AI 面板；流式时 pill 显示会话态；**命名 busy 单路径**（`deriveStatusBarBusy`：tasks > todo > suggest > **inline** 最多一颗命名 chip；todo/suggest/inline 独占时 AI pill 不显示「工作中」）；**进度动效**：每个 busy chip 附带 `v4-ai-progress-dot` 脉动指示器；tooltip 含预期时长。**中央位置 hint 仅 file 选择时显示**（点击 reveal）；其余 kind 由画布 PageHeader + PrimaryNav active 自明，不重复占位。**建议计数不在状态栏常驻**（见「建议入口降噪」），仅保留生成中 busy chip |
 | **TitleBar 右轨分层** | **L1** capture 实心 + AI 轨开关（`.v4-titlebar-btn-ai`）· **L2** 建议 💡 + 清单（`.v4-titlebar-tier-l2` 安静图标）· **L3** 搜索/设置 cluster / 窄屏 overflow；`data-chrome-tier`；**主题不在标题栏常驻**（低频设置行为：⌘, 设置 / 窄屏 ⋯ 可达）；**badge 纪律：仅在需要行动时出现**——收件箱（分诊队列）+ 建议 💡 保留；写出来计数（库存非行动）与清单常驻数字点（恒非零）已移除 |
 | **建议入口降噪** | 建议计数**恰好两处**：标题栏 💡 badge + 画布顶 `SuggestEntryStrip`（count>0 才出现）；AI 轨 `ActionBar` **demote 隐藏**（专注模式除外）；状态栏**仅生成中 busy chip**，不挂常驻计数。禁止 strip + 轨 chip + 状态栏 三处等权 |
-| **编辑器默认 chrome** | 格式工具条 **默认折叠**（`showFormat=false`）；展开为二级；常驻 ≤2 条 full-width 分割 + 可选 suggest strip |
+| **编辑器默认 chrome** | 格式工具条 **默认展开**（`showFormat=true`，可收起）；常驻 ≤2 条 full-width 分割 + 可选 suggest strip |
 | **Todo idle** | `TodoPopover` 维护按钮 idle = ghost Sparkles；**仅 maintaining 时** `.v4-ai-chip-gradient` |
 | **侧栏扩展** | 连接器/插件槽 `PluginSlotsSection` **默认折叠**（`data-sidebar-plugins-collapsed=true`）；不抢 stream 主轨 |
 | **设置 / 弹层** | `SettingsDialog` 用 elevated ladder + quiet nav chrome（`.v4-settings-dialog` / `.v4-settings-nav`）；`SettingsSection` 用 `shadow-card` 卡片；Command/Search palette header 走 elevated 混色 |
@@ -162,7 +162,7 @@
 | 层级 | 定义 | 编辑器 | AI 面板 | TitleBar |
 |------|------|--------|---------|----------|
 | **一级** | 打开即见、完成主任务 | 标题 · 编辑/预览 · 保存态 · 专注 | 会话 · 消息 · 输入 · 发送 | 主锚点 · **捕获** · **AI 开关** |
-| **二级** | 点一次展开 | **格式工具（默认收起）** · **阅读 Aa** · 属性条 | 模型 · 技能 · 写回 | **建议 💡** · **清单** · 搜索 · 设置 |
+| **二级** | 点一次展开 | **格式工具（默认展开，可收起）** · **阅读 Aa** · 属性条 | 模型 · 技能 · 写回 | **建议 💡** · **清单** · 搜索 · 设置 |
 | **三级** | 「更多」或 ⌘K | 发布 · 记忆 · 挂载 AI · 发 X · 文件信息 · 全部设置 | slash / 会话管理 | 主题 · 工作区切换 · 窄屏 overflow |
 
 ### 0.2 字号与可读性（强制）
@@ -331,7 +331,7 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 - **文件标签条**（`EditorRecentBar`）：多 tab pin/close/中键关/拖拽重排/右键菜单；溢出时左右 **edge fade**；激活 tab 滚入视野；右键 **在右侧打开对照**（分屏）。  
 - **编辑区对照分屏**（session-only）：`splitSecondaryPath` 在主 selection 旁开第二文件（可编辑）；拖拽中缝调比例；关闭/对调；关 tab 时自动清分屏。**不是**双 history / 双 selection 状态机。  
 
-- **FileEditorView**：Tiptap + ⌘S；chrome 拆 `file-editor-chrome`（SaveBadge）· `file-editor-format-bar`（模式/格式/更多）· **`EditorReadingMenu`（阅读 Aa）**；发布/AI 进「更多」。**编辑**用 TipTap；**预览 / 只读**用 `getEditorHtml()` 快照到静态 HTML（`.v4-tiptap`），不是同一实例 `setEditable` 切换。**同一阅读偏好**（`data-paper` / `data-content-width` / `data-page-padding` + `proseStyle` 字号/行高/字体）包住两边。Frontmatter 在属性条，不进正文。专注模式 ⌘⌥F；`readOnly` 归档只读。  
+- **FileEditorView**：Tiptap + ⌘S；chrome 拆 `file-editor-chrome`（SaveBadge）· `file-editor-format-bar`（模式/格式默认展开/更多）· **`EditorReadingMenu`（阅读 Aa）**。格式轨：粗体/斜体/下划线/删除线/代码/H1–H3/列表/引用/链接/日期时间；与选区 AI 浮条独立。发布与 AI 编辑在轨上（icon+tooltip）；**唯一 ⋯** 放文件信息 / 专题记忆 / 发 X / 打开 AI 面板 / 挂载（动作不在轨上再出现一次）。窄宽 `data-compact` 隐藏 `[data-compact-hidden]` 标签，不截半截字。**编辑**用 TipTap；**预览 / 只读**用 `getEditorHtml()` 快照到静态 HTML（`.v4-tiptap`），不是同一实例 `setEditable` 切换。**同一阅读偏好**（`data-paper` / `data-content-width` / `data-page-padding` + `proseStyle` 字号/行高/字体）包住两边。Frontmatter 在属性条，不进正文。专注模式 ⌘⌥F；`readOnly` 归档只读。  
   - **行内 AI**（Notion 式 · `SelectionAiBar` + `ai.complete` / `ai.cancelComplete`）：  
     - **出现**：非空选区 → 浮条；工具栏 ✨ / 右键「AI 改写」→ 主动面板（**同一动作集**）；**无**空行常驻 chip  
     - **动作**：润色 / 简洁 / 扩写 / 列表 / **格式** / 纠错 / 总结 / 续写 / 自定义指令  

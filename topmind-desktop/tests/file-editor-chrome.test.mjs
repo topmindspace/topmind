@@ -1,13 +1,12 @@
 /**
- * Pure helpers extracted from FileEditorView chrome.
- * Source of truth: src/plugins/topmind-workspace/views/file-editor-chrome.tsx
- * (TSX — assert via reimplemented mirror of pure formatters to avoid React in node:test.)
+ * File editor chrome + format bar — drive shipped sources (not a reimplementation).
  */
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { formatFileSize, formatDateTime } from "../src/plugins/topmind-workspace/views/file-editor-chrome.tsx";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const chromeSrc = readFileSync(
@@ -48,15 +47,49 @@ test("file-editor-format-bar exports mode / format / more chrome", () => {
   assert.match(fmt, /from ["']\.\/file-editor-chrome["']/);
 });
 
-/** Mirror of formatFileSize for behavior lock (keep in sync with TSX). */
-function formatFileSize(bytes) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-test("formatFileSize buckets", () => {
+test("shipped formatFileSize / formatDateTime buckets", () => {
   assert.equal(formatFileSize(500), "500 B");
   assert.equal(formatFileSize(2048), "2.0 KB");
   assert.equal(formatFileSize(2 * 1024 * 1024), "2.0 MB");
+  assert.match(formatDateTime("2026-08-15T12:04:00.000Z"), /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
+});
+
+test("EditorFormatBar ships format toggles; more ⋯ is exclusive", () => {
+  const fmt = readFileSync(
+    path.join(root, "src/plugins/topmind-workspace/views/file-editor-format-bar.tsx"),
+    "utf8",
+  );
+  const view = readFileSync(
+    path.join(root, "src/plugins/topmind-workspace/views/FileEditorView.tsx"),
+    "utf8",
+  );
+  const css = readFileSync(path.join(root, "src/styles/v4.css"), "utf8");
+  for (const token of [
+    "toggleBold",
+    "toggleItalic",
+    "toggleUnderline",
+    "toggleStrike",
+    "toggleCode",
+    "toggleHeading",
+    "toggleBulletList",
+    "toggleOrderedList",
+    "toggleBlockquote",
+    "onInsertLink",
+    "onInsertDateTime",
+  ]) {
+    assert.match(fmt, new RegExp(token));
+  }
+  assert.match(view, /const \[showFormat, setShowFormat\] = useState\(true\)/);
+  assert.match(view, /EditorFormatBar/);
+  assert.doesNotMatch(view, /showFormat.*selectionAi|selectionAi.*showFormat/u);
+  // Single ⋯ menu — rail publish/AI-edit are not also DropdownItems
+  assert.doesNotMatch(fmt, /ChromeOverflowActions/);
+  assert.match(fmt, /formatBarOptions\.fileInfo/);
+  assert.match(fmt, /formatBarOptions\.moreActions/);
+  assert.match(fmt, /onPublish/);
+  assert.match(fmt, /onRequestAiBar/);
+  // Compact hides labels via data-compact, not truncated unlabeled fragments
+  assert.match(css, /\[data-compact="true"\] \[data-compact-hidden\]/);
+  assert.match(view, /data-compact=\{toolbarCompact/);
+  assert.match(fmt, /data-compact-hidden/);
 });

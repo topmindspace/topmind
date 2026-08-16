@@ -7,6 +7,117 @@ import { createHash } from "node:crypto";
 /** Official skill_version for Agent Gateway body. */
 export const WEREAD_SKILL_VERSION = "1.0.4";
 
+/** Official Agent Gateway endpoint (POST + Bearer wrk-*). */
+export const WEREAD_GATEWAY_URL = "https://i.weread.qq.com/api/agent/gateway";
+
+/**
+ * Official request body: api_name + skill_version + business params **flat**.
+ * Never nest under `params`.
+ */
+export function buildGatewayBody(apiName, params = {}) {
+  const extra = params && typeof params === "object" && !Array.isArray(params) ? params : {};
+  return { api_name: apiName, skill_version: WEREAD_SKILL_VERSION, ...extra };
+}
+
+/**
+ * Inspect a gateway JSON envelope. `upgrade_info` is advisory (newer zip)
+ * and must be surfaced without treating the call as failed when data exists.
+ */
+export function inspectGatewayResponse(json) {
+  if (!json || typeof json !== "object") {
+    return { ok: false, errcode: -1, errmsg: "invalid-json", data: null, upgradeInfo: null };
+  }
+  const upgradeInfo =
+    json.upgrade_info && typeof json.upgrade_info === "object" ? json.upgrade_info : null;
+  const errcode = Number(json.errcode ?? 0) || 0;
+  const hasError = errcode !== 0;
+  const data = json.data !== undefined ? json.data : hasError ? null : json;
+  return {
+    ok: !hasError,
+    errcode,
+    errmsg: typeof json.errmsg === "string" ? json.errmsg : "",
+    upgradeInfo,
+    data,
+  };
+}
+
+/** `/user/notebooks` page params (`count` + optional `lastSort`). */
+export function notebooksPageParams(lastSort, count = 100) {
+  const params = { count };
+  if (lastSort != null) params.lastSort = lastSort;
+  return params;
+}
+
+/** `/review/list/mine` page params (`bookid` + `synckey` + `count`). */
+export function reviewsPageParams(bookId, synckey = 0, count = 20) {
+  return { bookid: bookId, synckey, count };
+}
+
+/**
+ * Exportable = 划线 (noteCount) + optional 想法 (reviewCount).
+ * bookmarkCount is not exportable.
+ */
+export function isExportableBook(book, opts = {}) {
+  const includeThoughts = opts.includeThoughts !== false;
+  const noteCount = Number(book?.noteCount) || 0;
+  const reviewCount = Number(book?.reviewCount) || 0;
+  return includeThoughts ? noteCount + reviewCount > 0 : noteCount > 0;
+}
+
+export function remoteExportableCount(book, includeThoughts = true) {
+  const noteCount = Number(book?.noteCount) || 0;
+  const reviewCount = Number(book?.reviewCount) || 0;
+  return includeThoughts ? noteCount + reviewCount : noteCount;
+}
+
+/**
+ * Incremental / skip-empty decision used by WereadService.
+ * `lastSyncAt` is never consulted (display-only).
+ *
+ * Pre-fetch (highlights/reviews omitted): skip-empty | skip-unchanged | fetch
+ * Post-fetch: skip-empty | skip-unchanged | write
+ *
+ * @returns {{ action: 'skip-empty'|'skip-unchanged'|'fetch'|'write', reason: string, fingerprint?: string }}
+ */
+export function decideBookSync({
+  force = false,
+  includeThoughts = true,
+  remote = {},
+  local = {},
+  highlights,
+  reviews,
+} = {}) {
+  const remoteTarget = remoteExportableCount(remote, includeThoughts);
+  const fetched = highlights !== undefined || reviews !== undefined;
+
+  if (!fetched) {
+    if (!isExportableBook(remote, { includeThoughts })) {
+      return { action: "skip-empty", reason: "no-exportable-count" };
+    }
+    if (force) return { action: "fetch", reason: "force" };
+    const localTarget = includeThoughts
+      ? Number(local.localCount)
+      : Number(local.noteCount) >= 0
+        ? Number(local.noteCount)
+        : Number(local.localCount);
+    if (Number.isFinite(localTarget) && localTarget >= 0 && remoteTarget > 0 && localTarget === remoteTarget) {
+      return { action: "skip-unchanged", reason: "count-match" };
+    }
+    return { action: "fetch", reason: "need-content" };
+  }
+
+  const hl = Array.isArray(highlights) ? highlights : [];
+  const rv = Array.isArray(reviews) ? reviews : [];
+  if (hl.length === 0 && rv.length === 0) {
+    return { action: "skip-empty", reason: "empty-after-fetch" };
+  }
+  const fingerprint = contentFingerprint(hl, rv);
+  if (!force && local.fingerprint && local.fingerprint === fingerprint) {
+    return { action: "skip-unchanged", reason: "fingerprint-match", fingerprint };
+  }
+  return { action: "write", reason: force ? "force" : "changed", fingerprint };
+}
+
 /**
  * Parse /user/notebooks page into normalized book rows.
  * Exportable content ≈ noteCount (划线) + reviewCount (想法/点评).
@@ -29,7 +140,7 @@ export function parseNotebooks(notebookData) {
       let readingStatus = "reading";
       if (markedStatus === 1 || bookInfo.finishReading === 1) readingStatus = "done";
       return {
-        bookId: String(bookInfo.bookId || bookInfo.id || ""),
+        bookId: String(n.bookId || bookInfo.bookId || bookInfo.id || ""),
         title: bookInfo.title || bookInfo.bookName || "",
         author: bookInfo.author || "",
         cover: bookInfo.cover || "",
@@ -47,7 +158,7 @@ export function parseNotebooks(notebookData) {
         remoteStatCount: noteCount + reviewCount + bookmarkCount,
       };
     })
-    .filter((n) => n.bookId && n.remoteExportableCount > 0);
+    .filter((n) => n.bookId && isExportableBook(n));
 }
 
 /** Map chapterUid → title from bookmarklist chapters[]. */

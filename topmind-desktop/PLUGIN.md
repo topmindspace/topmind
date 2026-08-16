@@ -44,6 +44,14 @@ Weread / X / Ingest 中心页共用 `src/plugins/connector-ui.tsx`：
 
 WeRead 统计卡：`WereadStatsPanel.tsx` + `weread-format.ts`（展示用，非内容真源）。
 
+### WeRead official sync (Desktop `WereadService`)
+
+- Endpoint: `POST https://i.weread.qq.com/api/agent/gateway` · `Authorization: Bearer wrk-*` · `skill_version` + **flat** business params (not nested under `params`).
+- Notebooks: `/user/notebooks` with `count` + `lastSort`. Thoughts: `/review/list/mine` with `synckey`.
+- Skip books with no exportable 划线/想法 (`noteCount + reviewCount == 0`, or empty after fetch). Incremental skip via local count / `note_fingerprint` — `lastSyncAt` is display-only.
+- Settings: `includeThoughts` (default true) · `syncBudgetMinutes` (1–15, default 4) · `syncCategory: auto`. Soft budget leaves remaining books for the next run.
+- `upgrade_info` is surfaced; a newer official zip is not a hard fail by itself.
+
 ## 2. Slot contract (`src/plugins/types.ts`)
 
 | Slot | Purpose |
@@ -93,6 +101,12 @@ Secrets stay in main process (`safeStorage`). Writes go through WorkspaceService
 
 Desktop does **not** embed the official MCP browser OAuth flow (that is the agent host’s job).  
 `topmind-x` settings document MCP for agents; in-app actions use API/CLI.
+
+### X official API / xurl (Desktop `XService`)
+
+- Read: official v2 `GET /2/tweets/search/recent` and `GET /2/users/{id}/tweets` (Bearer or `xurl /2/…`). No unofficial `timeline --user`.
+- Post: official `xurl -X POST /2/tweets` (shortcut `xurl post` as fallback). App-only Bearer cannot write; failed posts save an Inbox draft.
+- Archive: preview + select first; `append` skips tweet ids already in the note (`tweet_ids` / status URLs). `writeConnectorNote` create/update does not backup.
 
 ## 5. Third-party plugins (industry-aligned folder model)
 

@@ -109,14 +109,14 @@ test("Stream compose uses composeSubmit; placeholder avoids L1 vocabulary", () =
 
 // ── Suggest / Todo / AI calm ───────────────────────────────────────────
 
-test("ActionBar demotes when canvas strip active; format toolbar defaults collapsed", () => {
+test("ActionBar demotes when canvas strip active; format toolbar defaults expanded", () => {
   const bar = read("src/components/ai/ActionBar.tsx");
   assert.match(bar, /focusMode/);
   assert.match(bar, /focusMode|SuggestEntryStrip|preparing/);
   assert.match(bar, /return null/);
 
   const editor = read("src/plugins/topmind-workspace/views/FileEditorView.tsx");
-  assert.match(editor, /const \[showFormat,\s*setShowFormat\]\s*=\s*useState\(\s*false\s*\)/);
+  assert.match(editor, /const \[showFormat,\s*setShowFormat\]\s*=\s*useState\(\s*true\s*\)/);
 });
 
 test("StatusBar: single-path named chip (tasks > todo > suggest)", () => {
@@ -178,6 +178,9 @@ test("DESIGN.md documents core UI patterns", () => {
   assert.match(design, /showFormat|data-chrome-tier|TitleBar/);
   assert.match(design, /deriveStatusBarBusy/);
   assert.match(design, /FilterChip|data-filter-chip/);
+  assert.match(design, /showFormat=true|默认展开/);
+  assert.doesNotMatch(design, /showFormat=false/);
+  assert.doesNotMatch(design, /格式工具条 \*\*默认折叠\*\*/);
 });
 
 test("ReasoningBlock defaults collapsed; stream status labels exist", () => {

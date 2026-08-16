@@ -51,6 +51,8 @@
   padding: 8px 12px;
   max-width: 1100px;
   margin: 0 auto;
+  container-type: inline-size;
+  container-name: tm-workbench;
 }
 
 /* ── Toolbar ─────────────────────────────────────────────────────────── */
@@ -64,8 +66,8 @@
   background: var(--background-secondary);
   border-radius: var(--tm-radius-lg);
   border: 1px solid var(--background-modifier-border);
-  flex-wrap: nowrap;
-  overflow: hidden;
+  flex-wrap: wrap;
+  overflow: visible;
 }
 
 .tm-toolbar-status {
@@ -109,6 +111,7 @@
   gap: var(--tm-gap-xs);
   margin-left: auto;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 /* ── Unified Button System ──────────────────────────────────────────── */
@@ -236,6 +239,8 @@
   font-size: var(--font-ui-smaller);
   white-space: nowrap;
   font-weight: 500;
+  overflow: visible;
+  flex-shrink: 0;
 }
 
 /* Sidebar icon button — same as toolbar-btn but for sidebar header */
@@ -271,6 +276,22 @@
   font-size: var(--font-ui-smaller);
   white-space: nowrap;
   font-weight: 500;
+  overflow: visible;
+  flex-shrink: 0;
+}
+
+/* Explicit narrow rule — hide labeled-button text only when the pane is tight.
+   Icon-only then relies on aria-label / title (set in views). */
+@container tm-workbench (max-width: 560px) {
+  .tm-toolbar-btn-label {
+    display: none;
+  }
+}
+
+@container tm-sidebar (max-width: 260px) {
+  .tm-sidebar-btn-label {
+    display: none;
+  }
 }
 
 /* Mini button — for card actions and inline operations */
@@ -1064,6 +1085,8 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  container-type: inline-size;
+  container-name: tm-sidebar;
 }
 
 /* ── Sidebar Header ─────────────────────────────────────────────────── */
@@ -1075,8 +1098,8 @@
   padding: 6px 8px;
   border-bottom: 1px solid var(--background-modifier-border);
   flex-shrink: 0;
-  flex-wrap: nowrap;
-  overflow: hidden;
+  flex-wrap: wrap;
+  overflow: visible;
 }
 
 .tm-sidebar-status {

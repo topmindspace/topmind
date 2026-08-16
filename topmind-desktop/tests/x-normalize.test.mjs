@@ -8,6 +8,20 @@ import {
   extractTweets,
   tweetLength,
   isOverTweetLimit,
+  X_API_ORIGIN,
+  X_OFFICIAL_MCP_URL,
+  searchRecentQueryPath,
+  userByUsernamePath,
+  userTweetsPath,
+  xurlSearchShortcutArgs,
+  xurlSearchRestArgs,
+  xurlPostShortcutArgs,
+  xurlPostRestArgs,
+  parsePostedTweetId,
+  formatTweetEntry,
+  collectArchivedTweetIds,
+  decideArchiveTweets,
+  mergeTweetIdList,
 } from "../electron/lib/x-normalize.mjs";
 
 test("normalizeTweet maps API v2 shape", () => {
@@ -81,4 +95,56 @@ test("isOverTweetLimit respects 280 default", () => {
   assert.equal(isOverTweetLimit("x".repeat(280)), false);
   assert.equal(isOverTweetLimit("x".repeat(281)), true);
   assert.equal(isOverTweetLimit("x".repeat(10), 5), true);
+});
+
+test("official v2 paths are flat /2/… (no nested params wrapper)", () => {
+  assert.equal(X_API_ORIGIN, "https://api.x.com");
+  assert.equal(X_OFFICIAL_MCP_URL, "https://api.x.com/mcp");
+  const search = searchRecentQueryPath("from:alice", 20);
+  assert.match(search, /^\/2\/tweets\/search\/recent\?/);
+  assert.match(search, /query=from%3Aalice|query=from%3Aalice/u);
+  assert.match(search, /max_results=20/);
+  assert.doesNotMatch(search, /params=/);
+  assert.match(userByUsernamePath("@bob"), /^\/2\/users\/by\/username\/bob\?/);
+  const tl = userTweetsPath("99", 8);
+  assert.match(tl, /^\/2\/users\/99\/tweets\?/);
+  assert.match(tl, /max_results=8/);
+});
+
+test("official xurl args: search shortcut/REST and POST /2/tweets", () => {
+  assert.deepEqual(xurlSearchShortcutArgs("hello"), ["search", "hello"]);
+  assert.ok(xurlSearchRestArgs("hello", 10)[0].startsWith("/2/tweets/search/recent?"));
+  assert.deepEqual(xurlPostShortcutArgs("hi"), ["post", "hi"]);
+  const rest = xurlPostRestArgs("hi", "123");
+  assert.deepEqual(rest.slice(0, 4), ["-X", "POST", "/2/tweets", "-d"]);
+  const body = JSON.parse(rest[4]);
+  assert.equal(body.text, "hi");
+  assert.equal(body.reply.in_reply_to_tweet_id, "123");
+  assert.equal(parsePostedTweetId({ data: { id: "9" } }), "9");
+});
+
+test("incremental archive skips already-present tweet ids", () => {
+  const existing = collectArchivedTweetIds(
+    "---\ntweet_ids: [\"11\", \"22\"]\n---\n\n🔗 [原文](https://x.com/a/status/33)\n",
+  );
+  assert.ok(existing.has("11"));
+  assert.ok(existing.has("22"));
+  assert.ok(existing.has("33"));
+  const { toWrite, skipped } = decideArchiveTweets(
+    [
+      { id: "11", text: "old", username: "a" },
+      { id: "44", text: "new", username: "b" },
+    ],
+    existing,
+    { append: true },
+  );
+  assert.equal(toWrite.length, 1);
+  assert.equal(toWrite[0].id, "44");
+  assert.equal(skipped.length, 1);
+  assert.equal(skipped[0].id, "11");
+  assert.deepEqual(mergeTweetIdList(["11"], ["44", "11"]), ["44", "11"]);
+  const md = formatTweetEntry({ username: "bob", text: "line1\nline2", url: "https://x.com/bob/status/1", created_at: "2026-01-02T00:00:00Z" });
+  assert.match(md, /@bob/);
+  assert.match(md, /> line1\n> line2/);
+  assert.match(md, /status\/1/);
 });

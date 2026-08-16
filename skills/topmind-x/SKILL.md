@@ -20,7 +20,7 @@ compatibility: Desktop needs Bearer (read) and/or xurl (post). Agent hosts use o
 author: TopMindSpace
 license: MIT
 homepage: https://github.com/topmindspace/topmind
-updated: 2026-08-15
+updated: 2026-08-16
 degradation: ../shared/capability-degradation.md
 ---
 
@@ -67,7 +67,14 @@ brew install --cask xdevplatform/tap/xurl && xurl auth oauth2
 
 `x.getStatus` · `probeTools` · `testConnection` · `searchTweets` · `getTimeline` · `syncToNotes` · `postTweet`。
 
-设置：`x.enabled` · `bearerToken` · `mcpEndpoint` · `syncCategory` · `autoArchivePosts`。
+设置：`x.enabled` · `bearerToken` · `mcpEndpoint`（仅 Agent 文档）· `syncCategory: auto` · `autoArchivePosts`。
+
+### Desktop 实现约定
+
+- **读**：Bearer → 官方 `GET https://api.x.com/2/tweets/search/recent` / `GET /2/users/by/username/{handle}` + `/2/users/{id}/tweets`。无 Bearer 时走本机 xurl **同一 REST 路径**（不是自造 `timeline --user`）。
+- **写**：`xurl -X POST /2/tweets -d '{"text":…}'`（官方）；快捷 `xurl post "…"` 作回退。App-only Bearer **不能**发帖。
+- **归档**：预览勾选后写入 `{类别}/{YYYY-主题}/`；`append` 时按 `tweet_ids` / `status/{id}` **跳过已有推文**。create/update 不备份（仅 locked 等高影响）。
+- Desktop **不**内嵌官方 MCP OAuth 桥；`mcpEndpoint` 给 Agent 宿主配置。
 
 ## 降级
 

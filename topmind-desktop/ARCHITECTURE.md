@@ -629,8 +629,12 @@ togglePlugin(id, wsRoot)
 
 | 插件 | Settings | 交互槽 |
 |------|----------|--------|
-| weread | API Key + 同步类别 | Sidebar 同步 / Action / StatusBar |
-| x | Bearer + xurl 探测/安装引导 + MCP 说明 | Sidebar 抓取发帖 / Action / StatusBar（读写能力） |
+| weread | API Key · `syncCategory: auto` · `includeThoughts` · `syncBudgetMinutes`（1–15，默认 4） | Sidebar 同步 / Hub / Action / StatusBar |
+| x | Bearer + xurl 探测/安装引导 · `syncCategory: auto` · `autoArchivePosts` · MCP URL（仅 Agent 文档） | Sidebar / Hub 预览勾选归档 / 发帖 / Action / StatusBar |
+
+官方 Gateway：`POST https://i.weread.qq.com/api/agent/gateway`，`Authorization: Bearer wrk-*`，body 为 **flat** `api_name` + `skill_version` + 业务字段（`lastSort` / `synckey`，禁止 `params: {…}` 包裹）。`/user/notebooks` 分页；想法走 `/review/list/mine`。增量：本地条数 / `note_fingerprint` 跳过，**不用** `lastSyncAt` 做时间过滤。`noteCount + reviewCount == 0`（或拉完 bookmarklist+reviews 仍空）不写专题。`upgrade_info` 只展示，不因新 zip 单独硬失败。
+
+X：官方 v2 `GET /2/tweets/search/recent` 与 `GET /2/users/{id}/tweets`（Bearer 或 `xurl /2/…`）；发帖走 `xurl -X POST /2/tweets`。归档 `append` 按 `tweet_ids` 跳过已有推文；不备份（create/update）。Desktop 不内嵌 MCP OAuth。
 
 ## UI 层
 
@@ -670,7 +674,7 @@ src/locales/
 
 - **引擎**：i18next + react-i18next；资源**同步打包**（无异步加载，无 Suspense）
 - **支持语言**：`zh-CN`（默认）· `en-US`；`auto` = 跟随 OS（`navigator.language`）
-- **10 namespace**：common · shell · settings · editor · ai · workspace · ingest · weread · x · overlays
+- **10 namespace**：common · shell · settings · editor · ai · workspace · ingest · weread · x · overlays（`check:i18n` 扫描 `src/locales/zh-CN/*.json` 全量，含 weread / x）
 - **初始化链**：`main.tsx` import `./locales` → i18next init（lng=zh-CN）→ `App.tsx` `applyLocale(settings.ui.locale)` → `Shell.tsx` 每次 settings 变化时 re-apply
 - **非 React 库文件**：直接 `import i18n from "../locales"` 使用 `i18n.t()`（如 `note-meta.ts`、`stream-status.ts`、`writeback-toast.ts`、`skills.ts`、`data-source.ts`、`views.tsx`、`host.ts`、`weread/actions.ts`）
 - **插件 manifest i18n**：`PluginManifest` 支持 `nameKey` / `descriptionKey`；`PluginsPanel.tsx` 通过 `t(nameKey)` 解析，fallback 到 `name`；所有内置插件已设置 nameKey / descriptionKey

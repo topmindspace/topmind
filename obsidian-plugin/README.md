@@ -37,7 +37,7 @@ Capture Instantly  ->  AI Proposes in Background  ->  You Review & Confirm  ->  
 - **AI Chat**: Converse with AI about your notes, todos, and stream entries. The chat is context-aware — it automatically injects your recent stream entries, current todos, and personal profile.
 - **Weekly Reconciliation**: Reconcile your weekly logs, extract pending action items, and refresh suggestions with one click.
 - **Background AI Copilot**: Automatically extract todos (`memory/todo.md`), suggest emergent topics, and maintain your personal context profile (`memory/profile.md`).
-- **Quick Settings Access**: One-click access to plugin settings from both the sidebar header and the workbench toolbar. Model badge shows the currently active AI provider + model.
+- **Quick Settings Access**: One-click access to plugin settings from both the sidebar header and the workbench toolbar. Toolbar buttons are icon+label at default width (labels hide only when the pane is narrow). Refresh and Organize use distinct icons. Model badge shows the currently active AI provider + model.
 - **Writeback Protection**: Every AI modification goes through the Kernel `writeback-engine` (`open`/`locked`). Backups and receipts are **high-impact only** (locked overwrite; delete/archive of locked/core notes). Ordinary open updates do not create Archive copies.
 
 ---

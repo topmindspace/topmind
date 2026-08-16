@@ -18,23 +18,42 @@
 import path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { logInfo, logError, logWarn } from "./lib/writeback.mjs";
+import { logInfo, logError, logWarn, timestampStamp } from "./lib/writeback.mjs";
 import { resolveDataRoot, inboxRoot } from "./lib/path-model.mjs";
 import { ensureDir, readText, listDir } from "./lib/fs-utils.mjs";
 import { splitMarkdownFrontmatter } from "./lib/frontmatter.mjs";
-import { normalizeTweet, extractTweets, isOverTweetLimit } from "./lib/x-normalize.mjs";
+import { t } from "./lib/electron-i18n.mjs";
+import {
+  extractTweets,
+  isOverTweetLimit,
+  X_API_ORIGIN,
+  X_OFFICIAL_MCP_URL,
+  searchRecentQueryPath,
+  userByUsernamePath,
+  userTweetsPath,
+  xurlSearchShortcutArgs,
+  xurlSearchRestArgs,
+  xurlPostShortcutArgs,
+  xurlPostRestArgs,
+  parsePostedTweetId,
+  formatTweetEntry,
+  collectArchivedTweetIds,
+  decideArchiveTweets,
+  mergeTweetIdList,
+  defaultXTopicName,
+  defaultPostedTopicName,
+} from "./lib/x-normalize.mjs";
 import { resolveConnectorSyncCategory } from "./lib/connector-category.mjs";
 import { loadConnectorSettings, writeConnectorNote } from "./lib/connector-bridge.mjs";
 
 const execFileAsync = promisify(execFile);
-const X_API_V2 = "https://api.x.com/2";
 
 /** Install / auth hints for settings UI (no network). */
 const XURL_INSTALL_HINTS = {
   brew: "brew install --cask xdevplatform/tap/xurl",
   npm: "npm i -g @xdevplatform/xurl",
   auth: "xurl auth oauth2",
-  mcp: "npx @xdevplatform/xurl mcp https://api.x.com/mcp",
+  mcp: `npx -y @xdevplatform/xurl mcp ${X_OFFICIAL_MCP_URL}`,
   docs: "https://docs.x.com/tools/mcp",
 };
 
@@ -63,7 +82,7 @@ async function probeXurl() {
 }
 
 async function runXurl(probe, args) {
-  if (!probe.ok) throw new Error("xurl 不可用。安装: brew install --cask xdevplatform/tap/xurl 或 npm i -g @xdevplatform/xurl");
+  if (!probe.ok) throw new Error(t("x.xurlMissing"));
   const fullArgs = [...probe.baseArgs, ...args];
   const { stdout, stderr } = await execFileAsync(probe.cmd, fullArgs, { timeout: 30_000, maxBuffer: 2_000_000 });
   const text = String(stdout || "").trim();
@@ -77,7 +96,9 @@ async function runXurl(probe, args) {
 }
 
 async function xApiV2(bearerToken, endpoint, options = {}) {
-  const url = endpoint.startsWith("http") ? endpoint : `${X_API_V2}${endpoint}`;
+  const url = endpoint.startsWith("http")
+    ? endpoint
+    : `${X_API_ORIGIN}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
   const res = await fetch(url, {
     method: options.method || "GET",
     headers: {
@@ -138,8 +159,8 @@ export const XService = {
       canRead: Boolean(layers.readLayer),
       syncCategory,
       autoArchive: Boolean(settings?.x?.autoArchivePosts),
-      officialMcpUrl: "https://api.x.com/mcp",
-      agentMcpHint: "Agent 宿主用 xurl mcp 桥接官方 MCP；Desktop 内用 Bearer(读) + xurl(写)",
+      officialMcpUrl: X_OFFICIAL_MCP_URL,
+      agentMcpHint: t("x.agentMcpHint"),
       installHints: XURL_INSTALL_HINTS,
     };
   },
@@ -159,8 +180,8 @@ export const XService = {
       canPost: xurl.ok,
       installHints: XURL_INSTALL_HINTS,
       message: xurl.ok
-        ? `xurl 可用 (${xurl.cmd}${xurl.version ? ` · ${xurl.version}` : ""})`
-        : "未检测到 xurl — 发帖不可用。请按 installHints 安装并 xurl auth oauth2。",
+        ? t("x.xurlReady", { cmd: xurl.cmd, ver: xurl.version ? ` · ${xurl.version}` : "" })
+        : t("x.xurlNotFound"),
     };
   },
 
@@ -173,8 +194,8 @@ export const XService = {
     if (layers.hasApi) {
       try {
         // Lightweight authenticated call
-        await xApiV2(settings.x.bearerToken, "/tweets/search/recent?query=from:X&max_results=10");
-        results.api = { ok: true, mode: "app-only-bearer", note: "只读" };
+        await xApiV2(settings.x.bearerToken, searchRecentQueryPath("from:X", 10));
+        results.api = { ok: true, mode: "app-only-bearer", note: "read-only" };
       } catch (err) {
         results.api = { ok: false, error: err.message };
       }
@@ -193,8 +214,11 @@ export const XService = {
       ok,
       results,
       message: ok
-        ? `连接正常${results.api?.ok ? " · API 只读" : ""}${results.cli?.ok ? " · xurl 可用(可发帖)" : ""}`
-        : "未检测到可用接入层。配置 Bearer Token 或安装 xurl。",
+        ? t("x.connected", {
+            api: results.api?.ok ? t("x.connectedApi") : "",
+            cli: results.cli?.ok ? t("x.connectedCli") : "",
+          })
+        : t("x.notConnected"),
     };
   },
 
@@ -203,32 +227,28 @@ export const XService = {
    * Always confirm in UI before calling.
    */
   async postTweet({ text, replyToId }, ctx) {
-    if (!text || !String(text).trim()) throw new Error("text required.");
+    if (!text || !String(text).trim()) throw new Error(t("x.textRequired"));
     const body = String(text).trim();
-    if (isOverTweetLimit(body)) throw new Error("推文超过 280 字符限制。");
+    if (isOverTweetLimit(body)) throw new Error(t("x.overLimit"));
 
     const settings = await loadSettingsWithSecrets(ctx);
     const layers = await detectLayers(settings);
 
     if (!layers.writeLayer) {
       // Soft-fail: keep draft in inbox so work is not lost
-      const draftPath = await savePostDraft(ctx, body, "缺少发帖通道（需要本机 xurl 用户 OAuth）");
-      throw new Error(
-        `无法发帖：App-only Bearer 不能写。请安装并登录 xurl（brew install --cask xdevplatform/tap/xurl && xurl auth oauth2）。草稿已保存: ${draftPath}`,
-      );
+      const draftPath = await savePostDraft(ctx, body, t("x.noWriteChannel"));
+      throw new Error(t("x.cannotPostDraft", { path: draftPath }));
     }
 
     try {
-      const args = ["post", body];
-      if (replyToId) args.push("--reply-to", String(replyToId));
-      // Prefer JSON if supported; fall back
       let result;
       try {
-        result = await runXurl(layers.xurl, [...args, "--json"]);
+        result = await runXurl(layers.xurl, xurlPostRestArgs(body, replyToId));
       } catch {
-        result = await runXurl(layers.xurl, args);
+        if (replyToId) throw new Error(t("x.replyNeedsRest"));
+        result = await runXurl(layers.xurl, xurlPostShortcutArgs(body));
       }
-      const tweetId = result?.data?.id || result?.id || result?.tweet_id;
+      const tweetId = parsePostedTweetId(result);
       logInfo("x", "tweet posted", { tweetId, via: "cli" });
 
       if (settings?.x?.autoArchivePosts) {
@@ -247,54 +267,47 @@ export const XService = {
   },
 
   async searchTweets({ query, maxResults = 10 }, ctx) {
-    if (!query) throw new Error("query required.");
+    if (!query) throw new Error(t("x.queryRequired"));
     const settings = await loadSettingsWithSecrets(ctx);
     const layers = await detectLayers(settings);
-    if (!layers.readLayer) throw new Error("X 未配置。请填入 Bearer Token 或安装 xurl。");
+    if (!layers.readLayer) throw new Error(t("x.notConfiguredRead"));
 
     const limit = maxResult(maxResults);
     if (layers.readLayer === "api") {
-      const params = new URLSearchParams({
-        query: String(query),
-        max_results: String(Math.max(10, limit)), // API min 10 for recent search
-        "tweet.fields": "created_at,public_metrics,author_id",
-        expansions: "author_id",
-        "user.fields": "username,name",
-      });
-      const raw = await xApiV2(settings.x.bearerToken, `/tweets/search/recent?${params}`);
+      const raw = await xApiV2(settings.x.bearerToken, searchRecentQueryPath(query, limit));
       return { data: extractTweets(raw), meta: raw.meta, via: "api" };
     }
-    // CLI
-    const raw = await runXurl(layers.xurl, ["search", String(query), "--limit", String(limit)]);
+    let raw;
+    try {
+      raw = await runXurl(layers.xurl, xurlSearchRestArgs(query, limit));
+    } catch {
+      raw = await runXurl(layers.xurl, xurlSearchShortcutArgs(query));
+    }
     return { data: extractTweets(raw), via: "cli" };
   },
 
   async getTimeline({ username, maxResults = 10 }, ctx) {
-    if (!username) throw new Error("username required.");
+    if (!username) throw new Error(t("x.usernameRequired"));
     const handle = String(username).replace(/^@/, "");
     const settings = await loadSettingsWithSecrets(ctx);
     const layers = await detectLayers(settings);
-    if (!layers.readLayer) throw new Error("X 未配置。");
+    if (!layers.readLayer) throw new Error(t("x.notConfigured"));
 
     const limit = maxResult(maxResults);
-    if (layers.readLayer === "api") {
-      const userData = await xApiV2(
-        settings.x.bearerToken,
-        `/users/by/username/${encodeURIComponent(handle)}?user.fields=username,name`,
-      );
+    const lookupUser = async (fn) => {
+      const userData = await fn(userByUsernamePath(handle));
       const userId = userData?.data?.id;
-      if (!userId) throw new Error(`用户 @${handle} 未找到。`);
-      const params = new URLSearchParams({
-        max_results: String(Math.max(5, limit)),
-        "tweet.fields": "created_at,public_metrics,author_id",
-        exclude: "replies",
-      });
-      const raw = await xApiV2(settings.x.bearerToken, `/users/${userId}/tweets?${params}`);
-      const tweets = extractTweets(raw).map((t) => ({ ...t, username: handle }));
-      return { data: tweets, user: userData.data, via: "api" };
+      if (!userId) throw new Error(t("x.userNotFound", { handle }));
+      const raw = await fn(userTweetsPath(userId, limit));
+      const tweets = extractTweets(raw).map((tw) => ({ ...tw, username: handle }));
+      return { data: tweets, user: userData.data };
+    };
+    if (layers.readLayer === "api") {
+      const out = await lookupUser((path) => xApiV2(settings.x.bearerToken, path));
+      return { ...out, via: "api" };
     }
-    const raw = await runXurl(layers.xurl, ["timeline", "--user", handle, "--limit", String(limit)]);
-    return { data: extractTweets(raw).map((t) => ({ ...t, username: t.username || handle })), via: "cli" };
+    const out = await lookupUser((path) => runXurl(layers.xurl, [path]));
+    return { ...out, via: "cli" };
   },
 
   /**
@@ -303,18 +316,16 @@ export const XService = {
    * - append: if true and note exists, append entries instead of full overwrite
    */
   async syncToNotes({ tweets, topicName, title, append = false }, ctx) {
-    const list = (Array.isArray(tweets) ? tweets : []).map((t) => normalizeTweet(t)).filter(Boolean);
-    if (list.length === 0) throw new Error("tweets array required.");
-
+    const incoming = Array.isArray(tweets) ? tweets : [];
+    if (incoming.length === 0) throw new Error(t("x.tweetsRequired"));
     const settings = await loadSettingsWithSecrets(ctx);
     const syncCategory = await resolveSyncCategory(ctx.workspaceRoot, settings?.x?.syncCategory, ctx.engineRoot);
     const dataRoot = resolveDataRoot(ctx.workspaceRoot);
     const year = new Date().getFullYear();
-    const topic = String(topicName || `${year}-X推文收集`).replace(/[\\/]/gu, "-").trim() || `${year}-X推文收集`;
+    const topic = String(topicName || defaultXTopicName(year)).replace(/[\\/]/gu, "-").trim() || defaultXTopicName(year);
     const topicDir = path.join(dataRoot, syncCategory, topic);
     await ensureDir(topicDir);
 
-    // Ensure topic has a topic.md homepage when first created
     const topicPath = path.join(topicDir, "topic.md");
     const hasTopic = await readText(topicPath).catch(() => null);
     if (!hasTopic) {
@@ -323,7 +334,7 @@ export const XService = {
         category: syncCategory,
         topic,
         source_type: "external-capture",
-        source: "x-sync",
+        source: "x",
       };
       await writeConnectorNote(ctx, {
         absPath: topicPath,
@@ -334,29 +345,38 @@ export const XService = {
     }
 
     const safeTitle = (title || "推文收集").replace(/[\\/]/gu, "-");
-    const entries = [];
-    for (const t of list) {
-      const date = t.created_at ? new Date(t.created_at).toISOString().slice(0, 10) : "";
-      entries.push(`## @${t.username}${date ? ` · ${date}` : ""}\n`);
-      entries.push(`> ${t.text.replace(/\n/g, "\n> ")}\n`);
-      if (t.url) entries.push(`\n🔗 [原文](${t.url})\n`);
-      entries.push("");
-    }
-    const entriesMd = entries.join("\n");
     const notePath = path.join(topicDir, `${safeTitle}.md`);
     const old = await readText(notePath).catch(() => null);
+    const existingIds = collectArchivedTweetIds(old || "");
+    const { toWrite, skipped } = decideArchiveTweets(incoming, existingIds, { append: Boolean(append && old) });
+    if (toWrite.length === 0) {
+      return {
+        ok: true,
+        path: `${syncCategory}/${topic}/${path.basename(notePath)}`.replace(/\\/g, "/"),
+        count: 0,
+        skipped: skipped.length,
+        totalCount: Number(splitMarkdownFrontmatter(old || "").data?.tweet_count) || existingIds.size,
+        appended: Boolean(append && old),
+        category: syncCategory,
+        topic,
+      };
+    }
+
+    const entriesMd = toWrite.map((tw) => formatTweetEntry(tw)).join("\n");
     let prevCount = 0;
+    let prevIds = [];
     if (old) {
       const { data: fm } = splitMarkdownFrontmatter(old);
       prevCount = Number(fm?.tweet_count) || 0;
+      prevIds = Array.isArray(fm?.tweet_ids) ? fm.tweet_ids.map(String) : [...existingIds];
     }
 
     let body;
-    let totalCount = list.length;
+    let totalCount = toWrite.length;
     if (append && old) {
       const { body: oldBody } = splitMarkdownFrontmatter(old);
       body = `${oldBody.trimEnd()}\n\n---\n\n${entriesMd}`;
-      totalCount = (Number.isFinite(prevCount) ? prevCount : 0) + list.length;
+      totalCount = (Number.isFinite(prevCount) ? prevCount : 0) + toWrite.length;
     } else {
       body = `# ${safeTitle}\n\n${entriesMd}`;
     }
@@ -364,11 +384,12 @@ export const XService = {
     const noteFm = {
       title: safeTitle,
       source_type: "external-capture",
-      source: "x-sync",
+      source: "x",
       category: syncCategory,
       topic,
       synced_at: new Date().toISOString(),
       tweet_count: totalCount,
+      tweet_ids: mergeTweetIdList(prevIds, toWrite.map((tw) => tw.id).filter(Boolean)),
     };
     await writeConnectorNote(ctx, {
       absPath: notePath,
@@ -377,11 +398,18 @@ export const XService = {
       operation: old ? "update" : "create",
     });
     const rel = `${syncCategory}/${topic}/${path.basename(notePath)}`.replace(/\\/g, "/");
-    logInfo("x", "synced tweets to notes", { count: list.length, totalCount, append: Boolean(append), path: rel });
+    logInfo("x", "synced tweets to notes", {
+      count: toWrite.length,
+      skipped: skipped.length,
+      totalCount,
+      append: Boolean(append),
+      path: rel,
+    });
     return {
       ok: true,
       path: rel,
-      count: list.length,
+      count: toWrite.length,
+      skipped: skipped.length,
       totalCount,
       appended: Boolean(append && old),
       category: syncCategory,
@@ -395,24 +423,50 @@ async function archivePostedTweet(ctx, text, tweetId) {
   const syncCategory = await resolveSyncCategory(ctx.workspaceRoot, settings?.x?.syncCategory, ctx.engineRoot);
   const dataRoot = resolveDataRoot(ctx.workspaceRoot);
   const year = new Date().getFullYear();
-  const topic = `${year}-我的推文`;
+  const topic = defaultPostedTopicName(year);
   const topicDir = path.join(dataRoot, syncCategory, topic);
   await ensureDir(topicDir);
+  const topicPath = path.join(topicDir, "topic.md");
+  if (!(await readText(topicPath).catch(() => null))) {
+    await writeConnectorNote(ctx, {
+      absPath: topicPath,
+      body: `# ${topic}\n\n> 本机 xurl 已发推文归档\n`,
+      frontmatter: {
+        title: topic,
+        category: syncCategory,
+        topic,
+        source_type: "user-original",
+        source: "x",
+      },
+      operation: "create",
+    });
+  }
   const archivePath = path.join(topicDir, "已发布推文.md");
   const old = await readText(archivePath).catch(() => null);
-  const entry = `## ${new Date().toISOString()}\n\n> ${text}\n\n🔗 [链接](${tweetId ? `https://x.com/i/web/status/${tweetId}` : "#"})\n`;
-  const content = old ? `${old}\n---\n\n${entry}` : `# 已发布推文\n\n${entry}`;
-  const fm = {
-    title: "已发布推文",
-    source_type: "user-original",
-    source: "x-archive",
-    category: syncCategory,
-    topic,
+  const existingIds = collectArchivedTweetIds(old || "");
+  if (tweetId && existingIds.has(String(tweetId))) return;
+  const posted = {
+    id: tweetId ? String(tweetId) : undefined,
+    text,
+    username: "me",
+    created_at: new Date().toISOString(),
+    url: tweetId ? `https://x.com/i/web/status/${tweetId}` : "",
   };
+  const entry = formatTweetEntry(posted);
+  const { body: oldBody, data: oldFm } = splitMarkdownFrontmatter(old || "");
+  const content = old ? `${oldBody.trimEnd()}\n\n---\n\n${entry}` : `# 已发布推文\n\n${entry}`;
+  const prevIds = Array.isArray(oldFm?.tweet_ids) ? oldFm.tweet_ids.map(String) : [...existingIds];
   await writeConnectorNote(ctx, {
     absPath: archivePath,
     body: content,
-    frontmatter: fm,
+    frontmatter: {
+      title: "已发布推文",
+      source_type: "user-original",
+      source: "x",
+      category: syncCategory,
+      topic,
+      tweet_ids: mergeTweetIdList(prevIds, tweetId ? [String(tweetId)] : []),
+    },
     operation: old ? "update" : "create",
   });
 }

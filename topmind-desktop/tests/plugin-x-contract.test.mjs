@@ -32,10 +32,15 @@ test("XService refuses app-only post and uses shared x-normalize", () => {
   assert.match(src, /savePostDraft|x-draft/);
   assert.match(src, /XURL_INSTALL_HINTS|installHints/);
   // Must not claim Bearer can post
-  assert.match(src, /Bearer App-Only cannot post|不能写|cannot post/i);
+  assert.match(src, /Bearer App-Only cannot post|不能写|cannot post|x\.cannotPostDraft/i);
   assert.doesNotMatch(src, /layer === "mcp"[\s\S]{0,80}xApiV2[\s\S]{0,40}POST/);
   // Inline normalize must not remain (shared module is source of truth)
   assert.doesNotMatch(src, /function normalizeTweet\(/);
+  // Official REST via xurl — no unofficial `timeline --user`
+  assert.match(src, /xurlPostRestArgs|xurlSearchRestArgs|userTweetsPath/);
+  assert.doesNotMatch(src, /timeline["'],\s*["']--user/);
+  assert.match(src, /decideArchiveTweets/);
+  assert.match(src, /timestampStamp/);
 });
 
 test("x-normalize pure helpers exist on disk", () => {
@@ -46,6 +51,8 @@ test("x-normalize pure helpers exist on disk", () => {
   assert.match(src, /export function extractTweets/);
   assert.match(src, /export function tweetLength/);
   assert.match(src, /export function isOverTweetLimit/);
+  assert.match(src, /export function searchRecentQueryPath/);
+  assert.match(src, /export function decideArchiveTweets/);
 });
 
 test("X plugin uses defineConnectorPlugin shared activate", () => {

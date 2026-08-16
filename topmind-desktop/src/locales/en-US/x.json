@@ -16,7 +16,10 @@
     "configBearer": "Configure Bearer Token",
     "composePost": "Compose post",
     "openHub": "Open hub",
-    "settings": "X settings"
+    "settings": "X settings",
+    "notReadyToast": "X not ready: configure Bearer or install xurl",
+    "cannotReadToast": "Cannot read: please configure a Bearer Token",
+    "needXurlToast": "Posting requires local xurl (user OAuth). You can draft in the editor."
   },
   "settings": {
     "disabled": "Disabled",
@@ -76,6 +79,7 @@
     "clear": "Clear",
     "composePost": "Compose post",
     "needXurl": "Posting requires local xurl",
+    "installHint": "brew install --cask xdevplatform/tap/xurl && xurl auth oauth2",
     "installGuide": "Install guide",
     "postPlaceholder": "Say something… (max 280 chars)",
     "post": "Post",

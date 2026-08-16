@@ -377,7 +377,7 @@ function XHubView() {
           <EmptyState
             icon={<Send size={ICON.md} />}
             title={t("hub.needXurl")}
-            hint="brew install --cask xdevplatform/tap/xurl && xurl auth oauth2"
+            hint={t("hub.installHint")}
             action={
               <Button size="sm" variant="outline" onClick={() => openOverlay("settings", { topicId: "topmind-x.settings" })}>
                 {t("hub.installGuide")}

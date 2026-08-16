@@ -25,7 +25,7 @@
 2. **Quiet Paper** — 字号 / 行距 / 栏宽 / 纸张 · 专注 ⌘⌥F  
 3. **AI 副驾** — skill-first · `auto | confirm` 写回 · 建议默认可生成、确认后执行；多路 AI 时 prep 串行、对话独立（见 `DESIGN.md` §0.0.3）  
 4. **多源加工** — 默认 anydoc（Word · PDF · Excel · PPT · ODF · RTF · EPUB · CSV）+ 内置邮件/HTML → Markdown；可选 markitdown / pandoc  
-5. **可组合** — 与 Skills / 剪藏扩展 / 可选 UTR 共享内容约定，无强制运行时绑定  
+5. **可组合** — 与 Skills / 剪藏扩展 / 可选 UTR 共享内容约定，无强制运行时绑定。微信读书走官方 Agent Gateway（flat `api_name` + `skill_version`）；增量按条数/`note_fingerprint` 跳过；无划线/想法的书不写专题。  
 6. **捕获词汇** — **记一下**（完整捕获 · EN Note it）!= **记下**（动态主区 · EN Log it）  
 7. **本地化 AI** — UI 语言与工作区 `locale` 驱动 Agent / 行内 AI / 待办 / 建议的中英提示与结果  
 8. **管理与更新** — 设置内探测 Agent 宿主 · 浏览器 · Obsidian，支持 Skills / 剪藏 / 插件的安装升级卸载（浏览器侧为引导加载，不静默注入）；统一更新检查与健康诊断

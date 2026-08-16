@@ -20,9 +20,7 @@ import {
 import { Tooltip } from "../../../components/ui/tooltip";
 import { ICON } from "../../../lib/icons";
 import { cn } from "../../../lib/cn";
-import { ChromeOverflowActions, type ChromeAction } from "../../../lib/chrome-overflow";
 import { ToolbarButton, ToolbarSep, SaveBadge, type SaveState } from "./file-editor-chrome";
-import { useMemo } from "react";
 
 export function EditorModeSwitch({
   viewMode,
@@ -196,54 +194,33 @@ export function EditorMoreMenu({
 }) {
   const { t } = useTranslation(["workspace", "common"]);
 
-  const overflowActions = useMemo((): ChromeAction[] => {
-    const acts: ChromeAction[] = [];
-    if (canPublish) {
-      acts.push({
-        id: "publish",
-        label: t("workspace:menu.publish", { defaultValue: "Publish" }),
-        title: t("workspace:formatBarOptions.publishToOutputsTip"),
-        icon:
-          busyAction === "publish" ? (
+  return (
+    <div className="flex min-w-0 max-w-[min(100%,18rem)] items-center justify-end gap-1 sm:max-w-[22rem]">
+      {/* Rail actions stay on the rail; the ⋯ menu is exclusive (file info / memory / X / AI). */}
+      {canPublish ? (
+        <ToolbarButton
+          onClick={onPublish}
+          active={false}
+          tip={t("workspace:formatBarOptions.publishToOutputsTip")}
+        >
+          {busyAction === "publish" ? (
             <Loader2 size={ICON.xs} className="animate-spin" />
           ) : (
             <Upload size={ICON.xs} />
-          ),
-        priority: 10,
-        disabled: busyAction === "publish",
-        iconOnlyWhenCompact: true,
-        onClick: onPublish,
-      });
-    }
-    if (!readOnly) {
-      acts.push({
-        id: "ai-edit",
-        label: t("workspace:formatBarOptions.aiEditTip"),
-        title: t("workspace:formatBarOptions.aiEditTip"),
-        icon: <Sparkles size={ICON.xs} className="text-accent-color" />,
-        priority: 20,
-        iconOnlyWhenCompact: true,
-        onClick: onRequestAiBar,
-      });
-    }
-    // Focus mode is now a direct prominent button — not in overflow
-    return acts;
-  }, [
-    t,
-    canPublish,
-    busyAction,
-    onPublish,
-    readOnly,
-    onRequestAiBar,
-  ]);
+          )}
+        </ToolbarButton>
+      ) : null}
+      {!readOnly ? (
+        <ToolbarButton
+          onClick={onRequestAiBar}
+          active={false}
+          tip={t("workspace:formatBarOptions.aiEditTip")}
+        >
+          <Sparkles size={ICON.xs} className="text-accent-color" />
+        </ToolbarButton>
+      ) : null}
 
-  return (
-    <div className="flex min-w-0 max-w-[min(100%,18rem)] items-center gap-1 sm:max-w-[22rem]">
-      <div className="min-w-0 flex-1">
-        <ChromeOverflowActions actions={overflowActions} />
-      </div>
-
-      {/* Focus mode — prominent direct button (not in overflow) */}
+      {/* Focus mode — prominent direct button (not in ⋯) */}
       <Tooltip content={focusMode ? t("workspace:formatBarOptions.focusModeOff") : t("workspace:formatBarOptions.focusModeOn")}>
         <button
           type="button"

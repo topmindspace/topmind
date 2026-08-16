@@ -31,6 +31,19 @@ test("narrow rail overflows lower priority first", () => {
   }
 });
 
+test("partition is exclusive — an action is never both on the rail and in ⋯", () => {
+  const actions = [
+    { id: "a", label: "Bold", priority: 10, onClick: () => {} },
+    { id: "b", label: "Organize this week", priority: 20, onClick: () => {} },
+    { id: "c", label: "Reload", priority: 40, onClick: () => {} },
+  ];
+  const { visible, overflow } = partitionChromeActions(actions, 80);
+  const vis = new Set(visible.map((a) => a.id));
+  for (const a of overflow) {
+    assert.equal(vis.has(a.id), false, `${a.id} must not be on the rail and in ⋯`);
+  }
+});
+
 test("forceOverflow always goes to menu", () => {
   const actions = [
     { id: "a", label: "Main", priority: 10, onClick: () => {} },
