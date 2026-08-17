@@ -1,6 +1,6 @@
 ---
 name: topmind-organize
-version: 3.5.1
+version: 3.5.2
 description: >-
   整理本周动态、专题内整理/研究/分析/路由 Inbox。Use when 整理本周、整理、分析、研究、对比、总结要点、organize、summarize。
   Do NOT use for 首次捕获、最终出稿、仅写我的情况、快速 doctor、全库 loop.
@@ -57,7 +57,7 @@ degradation: ../shared/capability-degradation.md
 
 - 存新材料 → `topmind-capture`  
 - 交付最终报告/文章 → `topmind-write`  
-- 只写「我的情况」/ topic.md → `topmind-memory`  
+- 只写「我的情况」/ 周期反思 → `topmind-memory`  
 - doctor / 全库巡检 → `topmind-maintain` / `topmind-loop`  
 
 ## 动作入口判断

@@ -1,6 +1,6 @@
 ---
 name: topmind
-version: 3.5.1
+version: 3.5.2
 description: >-
   topmind 总入口与多意图路由（类别/专题/笔记/交付）。Use when 用户说 topmind、意图模糊、或需要
   收→整→写 分步。单意图明确时直接用 topmind-capture|organize|write|memory|maintain|loop|weread|x。
@@ -72,6 +72,7 @@ Save settings:       auto | confirm
 ```
 
 内容约定：[`../shared/project-model-brief.md`](../shared/project-model-brief.md)（**6 条核心规约**）。  
+输出语言：[`../shared/output-language.md`](../shared/output-language.md)（文档 AI：用户要求 → 原文 → 工作区 locale；产品 AI 建议条/待办：用户要求 → 宿主 UI → 工作区 locale）。  
 类别角色 / 扩展：[`references/template-categories.md`](references/template-categories.md)。  
 Host 加载说明：[`../shared/host-loading.md`](../shared/host-loading.md)。
 

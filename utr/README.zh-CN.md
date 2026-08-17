@@ -10,7 +10,7 @@
 
 UTR（Unified Tool Runtime）暴露**确定性工作区命令**。唯一 CLI 入口是 `topmind-cli`。
 
-**6 条核心规约**（[`../PROJECT-MODEL.md`](../PROJECT-MODEL.md) §2）：
+**6 条核心规约**（[`../PROJECT-MODEL.md`](../PROJECT-MODEL.md) §3）：
 
 1. **大类不重叠**  
 2. **专题自然涌现**  
@@ -36,7 +36,7 @@ contract · memory · lifecycle · derived
 | `workspace-write` | `create-topic` · `capture-note` · `save-output` | `update-topic` |
 | `workspace-transform` | `plan-inbox-routing` | `normalize-note-metadata` · `migrate-v4` |
 | `workspace-maintain` | `doctor-workspace` · danger: `archive-topic` · `archive-stream-year` · `restore-safety-receipt` | `cleanup-empty-dirs` |
-| `contract` | `validate` | — |
+| `contract` | `validate` · danger: `reseed` | `ensure` |
 | `memory` | `promote` · `digest` · `append-profile` · `append-topic` | — |
 | `lifecycle` | — | `scan` |
 | `derived` | — | `rebuild` |

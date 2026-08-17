@@ -1,6 +1,6 @@
 ---
 name: topmind-write
-version: 3.5.1
+version: 3.5.2
 description: >-
   写作/润色/出稿到专题或交付层（role:delivery）。Use when 写、起草、续写、润色、出稿、交付、write、draft、deliver。
   Do NOT use for 仅捕获、仅结构整理、只写记忆、doctor/loop、社交连接器.
@@ -51,7 +51,7 @@ degradation: ../shared/capability-degradation.md
 
 - 记链接/想法 → `topmind-capture`  
 - 整理/综合证据 → `topmind-organize`  
-- 只更新 topic.md 记忆 → `topmind-memory`  
+- 只更新「我的情况」/ 周期反思 → `topmind-memory`  
 - 清理/体检/巡检 → maintain / loop  
 - 发推 / 微信读书 → connectors  
 

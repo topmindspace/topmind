@@ -57,7 +57,7 @@ Skills 是一组纯 Markdown 指令集，告诉 AI 如何操作 topmind 工作�
 | 错误处理 | 写入失败可逆 + 回执 + 错误指导 | 无内建错误恢复 | 协议层 | 无内建错误恢复 | 无内建错误恢复 | 无 |
 | 语义消歧 | `action_category`(skill) vs 笔记 `category`(大类目录) | 无数据大类概念 | n/a | 无 | 无 | 无 |
 | 行为契约 | 工作区根 `topmind.yaml`（8 类规约机器可读） | 无 | 无 | 无 | 无 | 无 |
-| 可移植性 | 9 host 兼容（opencode/claude/codex/hermes/mcp/obsidian…） | 按 host 独立 | MCP 协议层 | Claude-only | Codex-only | Cursor-only |
+| 可移植性 | 5 安装目标（claude-code/codex/hermes/opencode/generic），MCP/Obsidian 经各自宿主接入 | 按 host 独立 | MCP 协议层 | Claude-only | Codex-only | Cursor-only |
 | 数据模型 | 三平面（内容/语义/系统）+ 6 条规约 | 无 | 无 | 无 | 无 | 无 |
 | 写回安全 | writeback-engine 唯一写闸 + 保护级别 + 备份回执 | 无 | 无 | 无 | 无 | 无 |
 
@@ -71,7 +71,7 @@ Skills 是一组纯 Markdown 指令集，告诉 AI 如何操作 topmind 工作�
 - **Pack 级 `shared/`**：开放标准按 skill 目录分发；topmind 需 `shared/` 与 skill **同级**（见 `skills/shared/host-loading.md`）。
 - **纯 Markdown**：无 Loader/Registry；`topmind-pack.json` 是 pack 机器契约，不是运行时。
 - **写回安全链是 topmind 独有**：业界 skills 均无内建写入安全机制；topmind 通过 writeback-engine 实现保护判定 → 备份 → 原子落盘 → 回执的全链路可逆。
-- **多 host 可移植**：Claude/Codex/Cursor skills 均绑定单一 host；topmind 同一 pack 可安装到 6+ host，共享内容约定与行为契约。
+- **多 host 可移植**：Claude/Codex/Cursor skills 均绑定单一 host；topmind 同一 pack 可安装到 5 个官方目标（claude-code/codex/hermes/opencode/generic），共享内容约定与行为契约。
 
 ---
 
@@ -167,6 +167,7 @@ skills/
 ├── shared/                        # 跨 skill 按需加载（须与 skill 目录同级安装）
 │   ├── host-loading.md            # Host 三级披露 + 安装形状
 │   ├── project-model-brief.md     # 契约摘要（三平面内容模型 + 规约速览）
+│   ├── output-language.md         # 模型输出语言：用户要求 → 原文 → 工作区 locale
 │   ├── capability-degradation.md  # 三级降级表（唯一）
 │   ├── writeback-receipt.md       # 写回回执形状
 │   ├── trigger-disambiguation.md  # 触发词消歧
@@ -220,22 +221,25 @@ Pack 元数据由 `topmind-pack.json` 唯一表达；SKILL frontmatter 镜像 `a
 
 ### 3.1.1 Locale Overlay（国际化）
 
+安装器支持按 locale 覆盖安装（机制已实现，**当前未随包发布任何 overlay**；`--locale` 一律回退基础版）：
+
 ```text
 skills/topmind/
-├── SKILL.md              ← 基础版（默认 zh-CN）
-└── locales/
+├── SKILL.md              ← 基础版（默认 zh-CN；唯一随包发布形态）
+└── locales/              ← 可选 overlay 目录（发布 overlay 时才存在）
     └── en-US/
         ├── SKILL.md      ← 英文 overlay（覆盖基础版）
         └── references/   ← 英文引用（可选，按需覆盖）
 ```
 
-1. `topmind-pack.json` 声明 `locales.available`（当前 `["zh-CN", "en-US"]`）
-2. 安装时通过 `--locale en-US` 或 `topmind_LOCALE=en-US` 环境变量指定
+1. `topmind-pack.json` 声明 `locales.available`（当前 `["zh-CN"]`；发布 overlay 后才会出现其他值）
+2. 安装时通过 `--locale <code>` 或 `topmind_LOCALE=<code>` 环境变量指定
 3. 安装器复制基础文件后，将 `locales/{locale}/` 中的文件覆盖到对应位置
 4. 安装后删除 `locales/` 目录；无 overlay 时回退基础版
 
 **触发词**：每个 SKILL.md 的 `triggers` 同时包含中英触发词。  
 **UTR 错误消息**：`utr/core/i18n-strings.mjs` 中英双语；locale 从工作区 `topmind.yaml` 的 `workspace.locale` 解析。  
+**模型输出语言**（用户可见回复 / 写入工作区的正文，与 skill 正文语言无关）：用户本轮明确要求 → 正在处理的原文 → `workspace.locale`，再回退中文。UI 语言不是输出语言。见 `skills/shared/output-language.md`。  
 **注意**：`memory/` 等语义平面目录名**不**随 locale 变化；内容平面目录名才本地化。
 
 ### 3.2 `topmind`（唯一日常入口）

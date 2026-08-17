@@ -46,6 +46,7 @@ topmind-skills-<ver>/          ← Release zip 顶层
 ├── shared/                 ← 与 skill 同级！相对链接 ../shared/ 才能解析
 │   ├── capability-degradation.md
 │   ├── project-model-brief.md
+│   ├── output-language.md
 │   ├── host-loading.md
 │   └── …
 └── topmind-pack.json       ← 推荐保留

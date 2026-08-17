@@ -25,12 +25,12 @@ describe("derived-builder", () => {
     );
     fs.writeFileSync(
       path.join(topicPath, "note-a.md"),
-      "---\ntitle: A\n---\n\nbody a\n",
+      "---\ntitle: A\n---\n\n这是笔记甲的正文，记录了研究过程。\n",
       "utf8",
     );
     fs.writeFileSync(
       path.join(topicPath, "note-b.md"),
-      "---\ntitle: B\n---\n\nbody b\n",
+      "---\ntitle: B\n---\n\n这是笔记乙的补充材料与结论。\n",
       "utf8",
     );
   });

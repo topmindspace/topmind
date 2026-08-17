@@ -1,6 +1,6 @@
 ---
 name: topmind-loop
-version: 3.5.1
+version: 3.5.2
 description: >-
   可中断的工作区语义巡检（走专题/Inbox，.loop 断点续跑）。Use when 跑一遍 loop、巡检、整体体检、复盘、
   继续 loop、audit。Do NOT use for 快速 doctor（→maintain）、单专题整理、捕获、写作、仅记忆.
@@ -50,7 +50,7 @@ topmind-loop = SKILL.md + agent host LLM + .topmind/loop/*.md
 - 整理当前专题笔记 → `topmind-organize`  
 - 存新材料 → `topmind-capture`  
 - 出稿 → `topmind-write`  
-- 沉淀 topic.md → `topmind-memory`  
+- 沉淀「我的情况」/ 周期反思 → `topmind-memory`  
 - 发推 / 微信读书 → connectors  
 
 ## When to Invoke

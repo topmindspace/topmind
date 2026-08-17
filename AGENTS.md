@@ -76,11 +76,12 @@ contract · workspace-model · stream · memory · lifecycle · **writeback（�
 
 > **todo-engine**：个人待办清单引擎（`memory/todo.md` 解析/写入/AI 提取），经 writeback-engine 写入。`extractTodosFromStream` · `maintainTodos` 对 budgeted prompt corpus 做 `processedHashes`；`force` 清除扫描周期的 processed + hash。活动 extras 排除 `memory/`。Desktop/Obsidian 只经 Kernel（`force` 透传）。  
 > **ai-operation-engine**：统一 AI 操作注册框架（`lib/ai-operation-engine.mjs`），自注册 `todo_maintain` · `memory_organize` · `topic_classify`，支持 force 重处理、状态追踪（`.topmind/ai-ops.json`）。  
+> **Memory 整合（2026-08-16）**：profile 事实生命周期——`appendProfileEntry`（追加）· `retireProfileEntry`（归档到 `## 历史记录`，加日期前缀，不删内容）· `updateProfileEntry`（原位更新）；`memory_organize` 产出 `retire_profile` 建议条，确认后经 `applySuggestion` 执行。无自动遗忘、无向量索引（ADR `docs/adr/2026-08-16-memory-consolidation.md`）。  
 > **activity-window**：`lib/activity-window.mjs` — 建议/待办/AI ops 共用「近期活动窗口」（21 天 / 30 文件 / 6 周期）。语料预算：suggest 16K · todo extract 16K · maintain 12K。`smartBudgetCorpus` 保留 frontmatter/段落结构/首尾上下文。  
 > **Desktop 多路 AI**：Agent 流独立 · 后台 prep lane 串行 · soft 建议在 agent streaming 时让路 · StatusBar `multiActive` 诚实展示（见 `topmind-desktop/DESIGN.md` §0.0.3）。  
 > **Stream 年目录 + 归档**：`yearDir` 默认 `true`（`{streamDir}/{YYYY}/2026-W30.md`）；`archiveStreamYear` 将完整年份移到 `{systemDir}/stream-archive/{year}/`（只归档当前年份之前）。  
 > **Memory periodic 语义**：periodic 记忆为「周期反思」（洞察提炼），非事件压缩副本。`memory/periodic/` 按年分组，与 stream 年目录对齐。  
-> **AI 输出语言跟随 UI**：所有 Kernel AI 引擎接受 `localeOverride`；Desktop 从 `settings.ui.locale` per-call 注入。`auto` 回退到契约 `locale`，再回退 `zh`。  
+> **AI 输出语言**：改写打开的笔记 / Agent 写入正文：用户本轮明确要求 → 原文 → 工作区 locale。**建议条 · AI 待办 · memory_organize / topic_classify**：用户本轮明确要求 → **当前宿主 UI 语言**（Desktop `settings.ui.locale`，或 Obsidian `localeOverride` / 应用语言；`auto` 不算）→ 工作区 locale。Desktop 与 Obsidian 是交替宿主，不叠成一条链。解析：`lib/ai-output-locale.mjs`。  
 > **工作区围栏**：写/移/删/归档不得落到当前工作区根之外（`isPathInsideWorkspace`）。区外本地读须 `evaluateOutsideRead` 显式授权；`fetch_url` 仅 http(s)，不读 `file://`。  
 > **类别按角色发现**：buffer/stream/delivery/system 用现场契约与 `{NN-…}` 目录，不用写死 `00-收件箱` / `99-归档`。英文或用户改名（`00-Inbox` · `99-Archive`）仍按 role 跳过/归档。  
 > **Obsidian AI Key 双层保护**：`saveSettings()` 同时备份密钥到 `.topmind/ai-keys-backup.json`；`loadSettings()` 缺密钥时自动恢复。  
@@ -190,7 +191,7 @@ Desktop AI 写回走 WorkspaceService，不经 UTR `executeTool`。
 
 ## 6 条核心规约
 
-详见 `PROJECT-MODEL.md` §2。
+详见 `PROJECT-MODEL.md` §3。
 
 1. **大类不重叠**  
 2. **专题自然涌现**  
@@ -206,11 +207,11 @@ Desktop AI 写回走 WorkspaceService，不经 UTR `executeTool`。
 Root scripts from repo root（Node `>=20.11`）:
 
 ```bash
-npm run validate              # secrets + docs + tests + desktop validate
+npm run validate              # secrets + docs + tests + desktop + utr-engine + obsidian
 npm run docs:guard            # redesign 契约 / 文档一致性
 npm run versions              # print surface versions from truth sources only
 npm run secrets:scan
-npm test                      # 聚合四套件：root + skills + utr + desktop（较重，含 Desktop tsx）
+npm test                      # 聚合五套件：root + skills + utr + desktop + obsidian（较重，含 Desktop tsx）
 npm run root:test             # 仅根 tests/*.test.mjs
 npm run skills:test
 npm run utr:test

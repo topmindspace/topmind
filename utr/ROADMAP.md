@@ -17,8 +17,8 @@ UTR is the optional deterministic substrate for topmind. The external surface is
 
 1. **Command surface** — `workspace-read`, `workspace-write`, `workspace-transform`, `workspace-maintain`, `contract`, `memory`, `lifecycle`, and `derived` on Node contracts and Node tool bodies. **28 commands** total; MCP default **19** (primary+danger); advanced folded. Canonical: `TOOLS.md` §Current Command Surface + `PRODUCT-BOUNDARIES.md`.
    - Primary: list-categories/topics/files/inbox/inspect · create-topic · capture-note · save-output · memory.promote · memory.digest · memory.append-profile · memory.append-topic · contract.validate · doctor-workspace · plan-inbox-routing
-   - Danger: archive-topic · restore-safety-receipt
-   - Advanced: list-recent-captures · list-safety-receipts · update-topic · normalize-note-metadata · migrate-v4 · cleanup-empty-dirs · lifecycle.scan · derived.rebuild
+   - Danger: archive-topic · archive-stream-year · restore-safety-receipt · contract.reseed
+   - Advanced: list-recent-captures · list-safety-receipts · update-topic · normalize-note-metadata · migrate-v4 · cleanup-empty-dirs · lifecycle.scan · derived.rebuild · contract.ensure
 
 2. **Shared modules (`utr/core/`)** — workspace paths, frontmatter, result envelopes, receipts, workspace audit, backup/trash, and locked/final detection. `workspace-write` runs on Node with reversible backup, locked/final revision, preview/apply, and receipt behavior. Durable `.md` content writes go through Kernel `lib/writeback-engine.mjs` (`executeWrite`). `writeback-safety.mjs` is **only** the tool-executor transactional snapshot/restore helper (not a second content write gate). Safety receipt path classification lives in `safety-receipt-paths.mjs` (list + restore).
 

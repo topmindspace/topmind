@@ -1,32 +1,29 @@
 ---
 name: topmind-memory
-version: 3.5.1
+version: 3.5.2
 description: >-
-  更新「我的情况」或专题结论。Use when 记住这个、更新我的情况、加到专题记忆、写进 topic.md、
-  沉淀结论。Do NOT use for 捕获、仅总结（→organize）、整理本周正文、出稿、doctor/loop.
+  更新「我的情况」或周期反思。Use when 记住这个、更新我的情况、加到专题记忆、沉淀结论。
+  Do NOT use for 捕获、仅总结（→organize）、整理本周正文、出稿、开/并专题、doctor/loop.
 action_category: memory
 triggers:
   - 写入专题记忆
   - 更新我的情况
   - stable memory
   - 追加确认结论
-  - 写进 topic.md
-  - 更新专题真源
   - 记住这个
   - 记住我
   - 加到专题记忆
-  - 更新首页
   - 沉淀结论
   - 提炼到记忆
-  - update project
+  - update profile
   - memory
-tags: [memory, stable, project-md, core-profile, 我的情况]
+tags: [memory, stable, core-profile, 我的情况]
 entrypoint: false
-compatibility: topmind topic topic.md + workspace core profile (memory/profile.md).
+compatibility: workspace core profile (memory/profile.md) + periodic reflections.
 author: TopMindSpace
 license: MIT
 homepage: https://github.com/topmindspace/topmind
-updated: 2026-08-15
+updated: 2026-08-17
 degradation: ../shared/capability-degradation.md
 ---
 
@@ -60,13 +57,15 @@ degradation: ../shared/capability-degradation.md
 
 - 路径：`memory/profile.md`（语义平面；原 `我的情况.md`）  
 - `topmind.yaml` → `memory.layers.global.file`（默认 `profile.md`）  
-- 推荐段落：`## 偏好` · `## 当前目标` · `## 关键的人与协作` · `## 进行中的事`  
+- 推荐段落：`## 偏好` · `## 当前目标` · `## 关键的人与协作` · `## 进行中的事`；完成/过期条目归档到 `## 历史记录`（加 `（YYYY-MM-DD 归档）` 前缀，不删内容）  
 - 缺失时创建模板后追加  
 
 ```text
 UTR: memory.append-profile --content "…"
 Host: 读 profile → 段落下 append → 写回（先备份）
 ```
+
+**事实生命周期（确认式，无自动遗忘）**：追加（append）· 归档（retire：活跃段 → `## 历史记录`）· 更新（update：原位改写并刷新日期）。用户说「这件事做完了 / 这条过时了」→ 归档到 `## 历史记录`，**不要删除**；`memory_organize` 也会产出归档建议（须确认）。
 
 ## 周期反思（Periodic）
 

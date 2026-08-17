@@ -40,6 +40,21 @@ async function promote({ sourcePath, targetSlug, mode }, ctxObj) {
     slug: targetSlug,
   };
 
+  // Contract declares supports_dry_run — preview mode must not write.
+  if (mode === "preview") {
+    const topicsRel = `memory/topics/${targetSlug}.md`;
+    return {
+      command: "promote",
+      mode,
+      sourcePath,
+      targetSlug,
+      targetPath: topicsRel,
+      applied: false,
+      preview: true,
+      note: "dry-run: source and target validated, nothing written",
+    };
+  }
+
   const evidence = promoteStreamItem({
     workspaceRoot: ctxObj.userWorkspaceRoot,
     item,

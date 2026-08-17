@@ -119,7 +119,7 @@ Do not hardcode absolute paths — infer `workspace_root` from the host or ask.
 5. **参考资料定位**  
 6. **大类命名稳定**（rename via migration）  
 
-Full rules: [`../PROJECT-MODEL.md`](../PROJECT-MODEL.md) §2.
+Full rules: [`../PROJECT-MODEL.md`](../PROJECT-MODEL.md) §3.
 
 ---
 

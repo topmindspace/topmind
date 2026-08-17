@@ -90,6 +90,7 @@
 | [2026-08-13](./adr/2026-08-13-adversarial-first-principles-review.md) | Adversarial first-principles review | Single contract writer, AI must not overwrite yaml, delete home, one Clip converter, search in primary nav |
 | [2026-08-13](./adr/2026-08-13-surface-ux-review.md) | Surface UX review | Stream ≠ workbench; Note it ≠ Log it; Clip must not teach a lite converter; archive is not a primary nav peer |
 | [2026-08-13](./adr/2026-08-13-desktop-stream-editor-ai-review.md) | Stream / editor / AI review | Preview is not a live TipTap; stream composer strips chrome; Obsidian append is visible and comment-free |
+| [2026-08-16](./adr/2026-08-16-memory-consolidation.md) | Memory Consolidation | Confirm-gated profile fact lifecycle: append / retire-to-history / update, industry-aligned (mem0 ADD/UPDATE/DELETE) |
 
 ---
 

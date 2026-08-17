@@ -194,7 +194,8 @@ function promptCopy(locale) {
  * @param {string} [opts.workspaceOverview] - pre-loaded workspace overview (categories + topic counts)
  * @param {string} [opts.memoryProfile] - pre-loaded memory/profile.md content (stripped frontmatter)
  * @param {string} [opts.topicContext] - pre-loaded topic.md content when topicId is active
- * @param {string} [opts.locale] - "zh"|"en"|"zh-CN"|"en-US" (default zh)
+ * @param {string} [opts.locale] - chrome / system-prompt shell language
+ * @param {string} [opts.outputLocale] - 3-tier language for user-visible / durable text
  */
 export function buildSystemPrompt(opts = {}) {
   const {
@@ -214,9 +215,11 @@ export function buildSystemPrompt(opts = {}) {
     memoryProfile,
     topicContext,
     locale: localeOpt,
+    outputLocale: outputLocaleOpt,
   } = opts;
 
   const locale = resolvePromptLocale(localeOpt);
+  const outputLocale = outputLocaleOpt ? resolvePromptLocale(outputLocaleOpt) : locale;
   const P = promptCopy(locale);
 
   if (Array.isArray(extraSkillsRoots)) {
@@ -301,11 +304,38 @@ export function buildSystemPrompt(opts = {}) {
   }
 
   parts.push(...P.toolsSection);
+  parts.push(outputLanguagePolicy(locale, outputLocale));
 
   // Silence unused — toolNames still accepted for callers/tests that pass them
   void toolNames;
 
   return parts.join("\n");
+}
+
+/**
+ * Durable / user-visible output language (3-tier). Chrome may differ.
+ * @param {"zh"|"en"} chromeLocale
+ * @param {"zh"|"en"} outputLocale
+ */
+function outputLanguagePolicy(chromeLocale, outputLocale) {
+  const target = outputLocale === "en" ? "English" : "Chinese (简体中文)";
+  const targetZh = outputLocale === "en" ? "English" : "中文";
+  if (chromeLocale === "en") {
+    return [
+      "",
+      "## Output language",
+      `Write user-visible replies and any text written into the workspace in ${target}.`,
+      "Priority: (1) explicit language request this turn; (2) language of the material being processed (open note, selection, stream window); (3) workspace locale from topmind.yaml, then Chinese.",
+      "Do not switch to the UI / skill / system-prompt language just because those texts are in that language.",
+    ].join("\n");
+  }
+  return [
+    "",
+    "## 输出语言",
+    `用户可见回复以及写入工作区的正文使用${targetZh}。`,
+    "优先级：（1）本轮用户明确要求的语言；（2）正在处理的原文语言（打开的笔记、选区、周期本窗口）；（3）工作区 topmind.yaml 的 locale，再回退中文。",
+    "不要因为 UI / skill / 本系统提示是某种语言就改用该语言。",
+  ].join("\n");
 }
 
 export function assembleContext({ files, maxChars = 40000 }) {
@@ -341,7 +371,7 @@ export function getSkillPrompts(locale) {
       capture: "Help me capture into the workspace (load_skill topmind-capture first):",
       organize: "Help me organize current content / Inbox (load_skill topmind-organize first).",
       write: "Help me write or polish; write back when needed (load_skill topmind-write first).",
-      memory: "Write confirmed conclusions into topic memory (load_skill topmind-memory first).",
+      memory: "Update My situation / confirmed memory (load_skill topmind-memory first).",
       maintain: "Run a quick health check (load_skill topmind-maintain first).",
       loop: "Inspect the workspace and suggest next steps (load_skill topmind-loop first).",
       topmind: "Help me choose a flow and handle this:",
@@ -353,7 +383,7 @@ export function getSkillPrompts(locale) {
     capture: "帮我收进工作区（先 load_skill topmind-capture）：",
     organize: "帮我整理当前内容 / Inbox（先 load_skill topmind-organize）。",
     write: "帮我写作或润色，需要时写回（先 load_skill topmind-write）。",
-    memory: "把已确认结论写入专题记忆（先 load_skill topmind-memory）。",
+    memory: "更新「我的情况」或已确认记忆（先 load_skill topmind-memory）。",
     maintain: "做一次快速体检（先 load_skill topmind-maintain）。",
     loop: "巡检工作区并给建议（先 load_skill topmind-loop）。",
     topmind: "帮我判断流程并处理：",

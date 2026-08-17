@@ -24,6 +24,28 @@ function bumpWorkspaceIndex(relativePath) {
   invalidateNotesIndex(relativePath);
 }
 
+/**
+ * Count files under a directory recursively (-1 when unreadable) — used to
+ * verify a trash copy before the original directory may be removed.
+ * @param {string} dir
+ * @returns {Promise<number>}
+ */
+async function countFilesRecursively(dir) {
+  let count = 0;
+  const entries = await fs.readdir(dir, { withFileTypes: true }).catch(() => null);
+  if (!entries) return -1;
+  for (const e of entries) {
+    if (e.isDirectory()) {
+      const sub = await countFilesRecursively(path.join(dir, e.name));
+      if (sub === -1) return -1;
+      count += sub;
+    } else {
+      count += 1;
+    }
+  }
+  return count;
+}
+
 /** Map Kernel surface evidence → legacy Desktop camelCase evidence shape. */
 function asDesktopEvidence(ev, fallbackPath) {
   if (!ev || typeof ev !== "object") {
@@ -395,6 +417,24 @@ export const pathOps = {
     if (!permission.allowed) {
       throw new Error(`saveBinary write denied: ${permission.reason}`);
     }
+    if (permission.needsConfirm) {
+      // Confirm mode must gate binary writes too — returning pending evidence
+      // (same contract as markdown writes) instead of writing silently.
+      return asDesktopEvidence(
+        {
+          operation: "update",
+          writebackMode: permission.writebackMode,
+          targetPath: rel,
+          affectedFiles: [rel],
+          wroteFiles: false,
+          pending: true,
+          protection: permission.protection,
+          savedAt: now(),
+          note: "confirm required for binary write",
+        },
+        rel,
+      );
+    }
 
     // High-impact backup: if overwriting a locked file, back up first
     if (fileExists && permission.protection === "locked") {
@@ -753,7 +793,16 @@ export const pathOps = {
       const stamped = `${timestampStamp()}__${topic}`;
       // Unified: topic trash under backups/trash/
       const dest = trashAbsolute(ctx.workspaceRoot, category, stamped);
-      await fs.cp(dir, dest, { recursive: true }).catch(() => {});
+      // Copy must succeed and be verified before the original may be removed —
+      // a swallowed copy failure (ENOSPC / permissions) here would destroy the
+      // topic with no recovery copy.
+      await fs.cp(dir, dest, { recursive: true });
+      const srcCount = await countFilesRecursively(dir);
+      const destCount = await countFilesRecursively(dest);
+      if (srcCount !== destCount || destCount === -1) {
+        await fs.rm(dest, { recursive: true, force: true }).catch(() => {});
+        throw new Error(i18n("pathOps.topicTrashCopyFailed", { topicId }));
+      }
       await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
       backup = trashRelative(ctx.workspaceRoot, category, stamped);
     }

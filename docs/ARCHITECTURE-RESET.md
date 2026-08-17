@@ -111,7 +111,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | derived-builder | ✅ 真实 LLM（配置后） | per-call `aiProvider` 注入；周期反思含「模式与洞察」维度；无 AI 时回退占位 |
 | todo-engine extract | ✅ 真实 LLM（配置后） | 语义级提取（不再关键字过滤），`smartBudgetCorpus` 保留结构完整性 |
 | todo-engine maintain | ✅ 真实 LLM（配置后） | 语义级新增/完成/更新，Jaccard 语义去重 |
-| ai-operation-engine | ✅ 真实 LLM（配置后） | `memory_organize`/`topic_classify` 注入画像上下文，识别新信息 |
+| ai-operation-engine | ✅ 真实 LLM（配置后） | `memory_organize`/`topic_classify` 注入画像（历史段折叠）+ 可归档候选；建议条标题跟随宿主 UI 语言 |
 
 设置白话：**自动准备建议**（默认开） · **自动 AI 整理待办**（默认关） · **保存前问我**（confirm） · **手动整理**（始终可用）
 
@@ -166,6 +166,8 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | 精确中段改稿 / 思考折叠 | **Done**（2026-08-15：Kernel `applyUniqueSpan` + `formatReadWindow`；Desktop `edit_file`/`read_file` 与 Obsidian chat 工具环共用匹配/写闸，不是第九引擎；`<think>` / CoT 折进可展开思考过程） |
 | 删除文案诚实 | **Done**（2026-08-15：用户文案跟 `isRecoverableLifecycle`——普通开放笔记删除无 trash；锁定 / 专题首页 / 写出来 才进归档；toast 只在 `backupPath` 时提备份） |
 | 连接器官方对齐 | **Done**（2026-08-16：WeRead 官方 Gateway 扁平 body + 无划线/想法不写专题 + `note_fingerprint` 增量；X 官方 v2/`xurl /2/…` + 归档按 tweet id 跳过；Clip 本轮未改） |
+| Memory 整合（画像事实生命周期） | **Done**（2026-08-16：`appendProfileEntry` / `retireProfileEntry` → `## 历史记录` 带日期前缀不删原文 / `updateProfileEntry` 原位更新；`memory_organize` 产出确认式 `retire_profile`；无自动遗忘、无向量索引。ADR `docs/adr/2026-08-16-memory-consolidation.md`） |
+| AI 输出语言 | **Done**（改写/Agent 正文：用户本轮要求 → 原文 → 工作区 locale；建议条 / AI 待办 / `memory_organize` / `topic_classify`：用户本轮要求 → **当前宿主 UI 语言** → 工作区 locale。`lib/ai-output-locale.mjs`） |
 
 **Intentional Partial（保留，非未完成）**：contract UI 非全 Surface；非 `.md` 二进制可仍直写。
 
@@ -192,7 +194,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | **产品决策锁 A/B/C/D** | **~99%** | 北极星、富工作台、Kernel 合闸、主动 AI 已锁 |
 | **文档体系完整性** | **~99%** | 单一实施真源 = 本文；DESIGN / ARCHITECTURE 对齐 |
 | **Phase A 合闸** | **~98%** | 写闸主路径 Done；高影响 only 备份/回执 Done |
-| **Phase B 记忆/建议/导航** | **~99%** | Memory · 建议条 · confirm 审阅 · PrimaryNav · 待办引擎 · **周期反思语义 + 年目录** |
+| **Phase B 记忆/建议/导航** | **~99%** | Memory · 建议条 · confirm 审阅 · PrimaryNav · 待办引擎 · **周期反思语义 + 年目录** · **画像事实生命周期（追加/归档/原位更新）** |
 | **Desktop IA / UIUX** | **~99%** | 动态默认 · 侧栏 thrift · 整理闭环 · AI Markdown · i18n 门禁 · 2026-08-07 设计优化 |
 | **Kernel 八引擎贯穿** | **~99%** | 主写 Done；todo-engine 扩展；**stream 年目录 + 归档**；**AI 语义深度优化**（关键字过滤→语义预算、画像注入、语料扩容）；contract/edit-backup Intentional Partial |
 | **Phase C 找回（无 embedding）** | **~55%** | 关键词投影诚实 + 搜索分组 Done；Ask / 语义索引 Non-goal |

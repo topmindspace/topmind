@@ -574,8 +574,9 @@ describe("suggest-engine", () => {
     const caseIdx = src.indexOf('case "inbox_organize"');
     const nextCase = src.indexOf("case \"inbox_review\"", caseIdx);
     const body = src.slice(caseIdx, nextCase > caseIdx ? nextCase : caseIdx + 4000);
-    assert.ok(body.indexOf("executeWrite") < body.indexOf("unlinkSync"), "write dest before unlink");
-    assert.ok(body.indexOf("isPathInsideWorkspace") < body.indexOf("unlinkSync"), "contain src before unlink");
+    assert.ok(body.indexOf("executeWrite") < body.indexOf("executeDelete"), "write dest before gated delete");
+    assert.ok(body.indexOf("isPathInsideWorkspace") < body.indexOf("executeDelete"), "contain src before delete");
+    assert.doesNotMatch(body, /unlinkSync/, "source removal must go through the write gate");
     assert.doesNotMatch(body, /executeArchive/);
   });
 

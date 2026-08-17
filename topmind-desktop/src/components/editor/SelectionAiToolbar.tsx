@@ -53,36 +53,33 @@ export function SelectionAiToolbar({
 }) {
   const { t } = useTranslation("editor");
   const openOverlay = useViewStore((s) => s.openOverlay);
-  const showSelectionActions = true; // toolbar menu + selection share full set
 
   return (
     <>
       {/* Actions — same set for toolbar & selection */}
       <div className="flex flex-wrap items-center gap-0.5">
-        {showSelectionActions
-          ? SELECTION_ACTIONS.map((a) => (
-              <Tooltip key={a.id} content={ready ? t(a.tipKey) : t("selectionAi.errorAiNotReady")}>
-                <button
-                  type="button"
-                  disabled={busy || (!ready && a.id !== "custom")}
-                  onClick={() => {
-                    if (!ready) {
-                      openOverlay("settings", { topicId: "ai" });
-                      return;
-                    }
-                    void onRun(a.id);
-                  }}
-                  className={cn(
-                    "flex h-7 items-center gap-1 rounded-[var(--radius-sm)] px-2 text-3xs font-medium",
-                    "v4-ai-btn disabled:opacity-45",
-                  )}
-                >
-                  <a.icon size={ICON.micro} aria-hidden />
-                  {t(a.labelKey)}
-                </button>
-              </Tooltip>
-            ))
-          : null}
+        {SELECTION_ACTIONS.map((a) => (
+          <Tooltip key={a.id} content={ready ? t(a.tipKey) : t("selectionAi.errorAiNotReady")}>
+            <button
+              type="button"
+              disabled={busy || !ready}
+              onClick={() => {
+                if (!ready) {
+                  openOverlay("settings", { topicId: "ai" });
+                  return;
+                }
+                void onRun(a.id);
+              }}
+              className={cn(
+                "flex h-7 items-center gap-1 rounded-[var(--radius-sm)] px-2 text-3xs font-medium",
+                "v4-ai-btn disabled:opacity-45",
+              )}
+            >
+              <a.icon size={ICON.micro} aria-hidden />
+              {t(a.labelKey)}
+            </button>
+          </Tooltip>
+        ))}
 
         <Tooltip content={ready ? t("selectionAi.continueTip") : t("selectionAi.needConfig")}>
           <button

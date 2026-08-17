@@ -14,6 +14,7 @@ import { resolveDataRoot } from "./path-model.mjs";
 import { readText } from "./fs-utils.mjs";
 import { logInfo } from "./writeback.mjs";
 import { t } from "./electron-i18n.mjs";
+import { loadKernelApi } from "./kernel-api.mjs";
 
 const PROFILE_MAX_CHARS = 2000;
 const TOPIC_MD_MAX_CHARS = 3000;
@@ -81,15 +82,24 @@ export async function loadWorkspaceOverview(ctx) {
 export async function loadMemoryProfile(ctx) {
   try {
     const root = resolveDataRoot(ctx.workspaceRoot);
-    const { resolveMemoryPaths } = await import("./workspace-model-api.mjs");
-    const memPaths = await resolveMemoryPaths(root);
-    const profileFile = memPaths?.profileFile || "profile.md";
-    const memDir = memPaths?.dir || "memory";
-    const profilePath = path.join(root, memDir, profileFile);
-    const content = await readText(profilePath);
-    if (!content || content.trim().length < 20) return "";
-    // Strip frontmatter for prompt (AI doesn't need YAML metadata); CRLF-safe
-    const body = stripFrontmatterForPrompt(content);
+    let collapsed = "";
+    try {
+      const api = await loadKernelApi();
+      if (typeof api.readProfileActiveBody === "function") {
+        collapsed = api.readProfileActiveBody(root) || "";
+      }
+    } catch {
+      collapsed = "";
+    }
+    if (!collapsed) {
+      const { resolveMemoryPaths } = await import("./workspace-model-api.mjs");
+      const memPaths = await resolveMemoryPaths(root);
+      const profileFile = memPaths?.profileFile || "profile.md";
+      const memDir = memPaths?.dir || "memory";
+      collapsed = await readText(path.join(root, memDir, profileFile));
+    }
+    if (!collapsed || collapsed.trim().length < 20) return "";
+    const body = stripFrontmatterForPrompt(collapsed);
     if (!body) return "";
     return body.length > PROFILE_MAX_CHARS
       ? `${body.slice(0, PROFILE_MAX_CHARS)}${t("aiContext.truncated")}`

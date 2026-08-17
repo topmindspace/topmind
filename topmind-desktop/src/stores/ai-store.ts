@@ -88,13 +88,6 @@ interface AiState {
   /** Count of follow-ups still pending after current turn. */
   pendingFollowUpCount: number;
 
-  /**
-   * Last batch-mode multi-write receipt (session UI banner).
-   * Cleared on dismiss / new session / clear.
-   */
-  lastBatchEvidence: BatchEvidenceSummary | null;
-  clearLastBatchEvidence: () => void;
-
   mountedFiles: { path: string; name: string }[];
   mountFile: (f: { path: string; name: string }) => void;
   unmountFile: (path: string) => void;
@@ -114,7 +107,6 @@ interface AiState {
   setActiveSkillId: (id: string | null) => void;
   /** Skills activated via load_skill in the current turn (telemetry / UI). */
   sessionLoadedSkills: string[];
-  clearSessionLoadedSkills: () => void;
 
   /**
    * Shared provider/model catalog (settings AI page + AI panel picker).
@@ -134,7 +126,6 @@ interface AiState {
    */
   loadModelCatalog: (opts?: { forceLive?: boolean; forceModelsDev?: boolean; silent?: boolean }) => Promise<ProviderInfo[]>;
   invalidateModelCatalog: () => void;
-  invalidateModelsDevCatalog: () => void;
 }
 
 function genSessionId(): string {
@@ -418,7 +409,6 @@ async function performInvocation(
     if (result && typeof result === "object" && "batchEvidence" in result) {
       const be = (result as { batchEvidence?: BatchEvidenceSummary | null }).batchEvidence;
       if (be?.writeCount) {
-        set({ lastBatchEvidence: be });
         try {
           toastBatchEvidence(be);
         } catch { /* toast is best-effort */ }
@@ -496,15 +486,12 @@ export const useAiStore = create<AiState>((set, get) => ({
   streamMaxSteps: null,
   lastSteerPreview: null,
   pendingFollowUpCount: 0,
-  lastBatchEvidence: null,
-  clearLastBatchEvidence: () => set({ lastBatchEvidence: null }),
   mountedFiles: [],
   model: null,
   agentEnabled: true,
   activeSkillId: null,
   setActiveSkillId: (id) => set({ activeSkillId: id }),
   sessionLoadedSkills: [],
-  clearSessionLoadedSkills: () => set({ sessionLoadedSkills: [] }),
 
   async loadSessions() {
     try {
@@ -532,14 +519,13 @@ export const useAiStore = create<AiState>((set, get) => ({
       sessions: [session, ...s.sessions],
       activeSessionId: id,
       messages: [],
-      lastBatchEvidence: null,
     }));
     // Don't persist to backend — only persist when the first message is sent.
     // This prevents empty sessions from cluttering history.
     return id;
   },
   async selectSession(id) {
-    set({ activeSessionId: id, messages: [], lastBatchEvidence: null });
+    set({ activeSessionId: id, messages: [] });
     await get().loadMessages(id);
   },
   async clearSession(id) {
@@ -548,7 +534,6 @@ export const useAiStore = create<AiState>((set, get) => ({
       sessions: s.sessions.filter((x) => x.id !== id),
       activeSessionId: s.activeSessionId === id ? null : s.activeSessionId,
       messages: s.activeSessionId === id ? [] : s.messages,
-      lastBatchEvidence: s.activeSessionId === id ? null : s.lastBatchEvidence,
     }));
   },
 
@@ -672,10 +657,6 @@ export const useAiStore = create<AiState>((set, get) => ({
 
   invalidateModelCatalog() {
     set({ modelCatalogFetchedAt: null });
-  },
-
-  invalidateModelsDevCatalog() {
-    set({ modelsDevCatalogFetchedAt: null });
   },
 
   async loadModelCatalog(opts) {

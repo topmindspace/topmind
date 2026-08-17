@@ -31,7 +31,7 @@ Rules:
 - Do not use <think> / <thinking> / <reasoning> tags or \`\`\`thinking code fences
 - Do not add prefixes like "Here is the result" / "Here is the rewritten version" or suffixes like "Hope this helps"
 - Do not wrap the entire result in quotes; do not wrap the whole result in a markdown code fence (unless the user explicitly wants a code block)
-- Keep the original language (unless the user asks for translation)
+- Output language: explicit user request this turn wins; else keep the source/document language; else the workspace locale. Do not follow the UI language.
 - Preserve necessary Markdown structure (headings, lists, links, bold, etc.) when the context needs it
 - Do not invent facts absent from the source; when continuing, connect naturally without unrelated settings
 - For summaries, output concise bullets; for continuation, pick up from the break point
@@ -45,7 +45,7 @@ Rules:
 - 禁止使用 <think> / <thinking> / <reasoning> 等标签或 \`\`\`thinking 代码围栏
 - 不要加「以下是结果」「Here is the rewritten version」等前缀或「希望对你有帮助」等后缀
 - 不加引号包裹全文；不要用 markdown 代码围栏包裹整段结果（除非用户明确要代码块）
-- 保持原语言（除非用户要求翻译）
+- 输出语言：本轮用户明确要求优先；否则保持原文/文档语言；再否则跟随工作区 locale。不要跟随 UI 语言。
 - 保留必要的 Markdown 结构（标题、列表、链接、加粗等）若语境需要
 - 不要编造原文没有的事实；续写时合理衔接，不引入无关设定
 - 若是总结，输出简洁要点；若是续写，从断点自然接上

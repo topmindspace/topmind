@@ -162,15 +162,10 @@ export async function kernelInspectContract(workspaceRoot) {
   return kernel.inspectContract(workspaceRootOf(workspaceRoot));
 }
 
-/**
- * Resolve UI locale from app settings for kernel AI operations.
- * Priority: settings.ui.locale (if not "auto") → null (kernel will use contract locale).
- * @param {object} settings
- * @returns {string|null} — "en"/"zh"/"en-US"/"zh-CN" or null when auto
- */
-function resolveUiLocale(settings) {
-  const uiLocale = settings?.ui?.locale;
-  if (uiLocale && uiLocale !== "auto") return uiLocale;
+/** Host UI locale for product AI. `auto` / missing → null (workspace fallback). */
+function surfaceUiLocale(settings) {
+  const ui = settings?.ui?.locale;
+  if (ui && ui !== "auto") return ui;
   return null;
 }
 
@@ -182,6 +177,7 @@ export async function kernelGenerateSuggestions(workspaceRoot, engineRoot, aiPro
     engineRoot: engineRoot || engineRootNow(),
     aiProvider,
     force: opts.force === true,
+    userText: opts.userText,
     localeOverride: opts.localeOverride,
   });
 }
@@ -194,6 +190,7 @@ export async function kernelApplySuggestion(workspaceRoot, suggestion, engineRoo
     suggestion,
     engineRoot: engineRoot || engineRootNow(),
     aiProvider,
+    userText: opts.userText,
     localeOverride: opts.localeOverride,
   });
 }
@@ -313,7 +310,7 @@ export async function kernelExtractTodosFromStream(p, ctx) {
     workspaceRoot,
     engineRoot: ctx.engineRoot || engineRootNow(),
     aiProvider,
-    options: { ...(p?.options ?? p ?? {}), localeOverride: resolveUiLocale(settings) },
+    options: { ...(p?.options ?? p ?? {}), localeOverride: surfaceUiLocale(settings) },
   });
 }
 
@@ -330,7 +327,7 @@ export async function kernelMaintainTodos(p, ctx) {
     workspaceRoot,
     engineRoot: ctx.engineRoot || engineRootNow(),
     aiProvider,
-    options: { ...(p?.options ?? p ?? {}), localeOverride: resolveUiLocale(settings) },
+    options: { ...(p?.options ?? p ?? {}), localeOverride: surfaceUiLocale(settings) },
   });
 }
 
@@ -377,7 +374,7 @@ export async function kernelRunOperation(p, ctx) {
     engineRoot: ctx.engineRoot || engineRootNow(),
     contract: ctx.contract,
     aiProvider,
-    options: { ...(p.options || {}), localeOverride: resolveUiLocale(settings) },
+    options: { ...(p.options || {}), localeOverride: surfaceUiLocale(settings) },
   });
 }
 

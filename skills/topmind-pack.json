@@ -4,16 +4,15 @@
   "label": "topmind",
   "description": "topmind skill pack: single daily entry topmind + progressive disclosure (shared/ + references/), Agent Skills open-standard aligned, capture-first template-driven categories, optional weread/x connectors. File-system-first content truth; UTR optional.",
   "daily_entry": "topmind",
-  "version": "3.5.1",
-  "updated": "2026-08-16",
+  "version": "3.5.2",
+  "updated": "2026-08-17",
   "license": "MIT",
   "locales": {
     "default": "zh-CN",
     "available": [
-      "zh-CN",
-      "en-US"
+      "zh-CN"
     ],
-    "overlay_mechanism": "Skill dirs may contain locales/{locale}/ with overlay files; installer applies overlay at install time when --locale is specified."
+    "overlay_mechanism": "Skill dirs may contain locales/{locale}/ with overlay files; installer applies overlay at install time when --locale is specified. No overlay is shipped yet; --locale falls back to the base (zh-CN) files."
   },
   "homepage": "https://github.com/topmindspace/topmind#readme",
   "repository": {

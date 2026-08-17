@@ -69,6 +69,16 @@ export function timestampStamp(date = new Date()) {
   return `${pad(date.getMonth() + 1)}${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}`;
 }
 
+/**
+ * Kernel-identical ISO stamp for backup filenames (`20260816T142030123Z`).
+ * Kernel's pruneOldBackups sorts backup names lexicographically — Desktop
+ * checkpoints must use the same format or rotation misjudges which copies
+ * are oldest and prunes the wrong ones.
+ */
+export function backupStamp(date = new Date()) {
+  return date.toISOString().replace(/[-:.]/g, "");
+}
+
 /** Workspace-relative path under the real archive dir name (e.g. 99-Archive/backups/...). */
 function archiveRelative(workspaceContext, ...parts) {
   const archName = path.basename(archiveRoot(workspaceContext));
@@ -92,13 +102,13 @@ function dataRootOf(workspaceContext) {
 //   Connectors, restore, and ordinary content writes MUST NOT call them.
 // - All content-plane markdown writes MUST go through `kernelDurableWrite`
 //   → Kernel `executeWrite` — never these helpers.
-// - Backup filenames use `MMDD-HHMM__name` format; Kernel uses ISO timestamp
-//   format. Both land in `99-归档/backups/` but with different naming so they
-//   don't collide.
+// - Backup filenames use the Kernel ISO stamp (`backupStamp`) so Kernel's
+//   lexicographic keep-N rotation in `99-归档/backups/` judges Desktop
+//   checkpoints and Kernel backups on the same sortable axis.
 
 export async function writeArchiveBackup(workspaceContext, { savedAt, content, pathParts }) {
   if (content === null || content === undefined) return undefined;
-  const stamp = timestampStamp(new Date(savedAt));
+  const stamp = backupStamp(new Date(savedAt));
   const resolvedParts = typeof pathParts === "function" ? pathParts(stamp) : pathParts;
   if (!Array.isArray(resolvedParts) || resolvedParts.length === 0) {
     throw new Error("Missing backup path parts.");
@@ -120,7 +130,7 @@ export async function writePathCheckpoint(workspaceContext, { savedAt, content, 
   const segments = relativePath.split("/");
   const baseName = segments.pop();
   const dirParts = segments;
-  const stamp = timestampStamp(new Date(savedAt));
+  const stamp = backupStamp(new Date(savedAt));
   const baseDir = path.join(archiveRoot(workspaceContext), "backups", ...dirParts);
   const safeRelative = baseName.replace(/[\\/]/gu, "__");
   await assertPathWithin(dataRootOf(workspaceContext), baseDir, { allowMissing: true });

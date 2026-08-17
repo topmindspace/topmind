@@ -34,7 +34,7 @@
 
 ## 界面导览与演示
 
-截图已压缩整理（原始高分辨率图置于 [`resources/img/`](./resources/img/)，全局图片库见 [`../docs/images/`](../docs/images/README.md)）。
+截图已压缩整理（原始高分辨率图仅在开发机的 `resources/img/`——该目录不入库；全局图片库见 [`../docs/images/`](../docs/images/README.md)）。
 
 ### 1. 核心工作台表面（`Stream` 与 AI 建议）
 
@@ -98,10 +98,10 @@
 
 - UI 默认 `auto`：按 OS / `navigator.language` 匹配 `zh-CN` 或 `en-US`  
 - 主窗与 `CaptureSurface` 浮窗同步切换；语言包：`src/locales/{zh-CN,en-US}/`  
-- **工作区 locale**（`topmind.yaml` 的 `locale` / `workspace.locale`）与 UI 语言共同决定 **AI 输出语言**  
-- **AI 输出跟随 UI 语言**：UI 语言非 `auto` 时，所有 AI 路径（Agent · 行内 · 待办 · 建议 · 记忆整理）均按 UI 语言输出——笔记是中文但 UI 切到英文，AI 结果也是英文（反之亦然）
-- 已本地化的 AI 路径：Agent 系统提示、写回策略文案、行内润色/续写/总结、待办 extract/maintain、建议条、记忆整理、`memory/todo.md` 标题等  
-- 解析顺序（AI 提示）：UI locale（非 `auto`）-> 契约 locale -> 默认 `zh-CN`
+- **工作区 locale**（`topmind.yaml` 的 `locale` / `workspace.locale`）在宿主 UI 为 `auto` 时作为最后一档  
+- **文档 AI**（行内改写 / Agent 写入打开的笔记）：本轮明确要求 → 原文 → 工作区 locale。不会因为 UI 是英文就把中文笔记改写成英文。  
+- **产品 AI**（建议条、待办抽取/维护、记忆整理）：本轮明确要求 → Desktop UI 语言（非 `auto`）→ 工作区 locale。Obsidian 用插件/应用语言，同一规则。  
+- 解析：`lib/ai-output-locale.mjs`（`resolveOutputLanguage` 与 `resolveProductAiLanguage`）
 
 ---
 
@@ -125,10 +125,10 @@ brew install topmindspace/tap/topmind
 ### 设置 -> 管理与更新
 | 能力 | 行为 |
 |------|------|
-| **Agent Skills** | 探测 Claude Code / Codex / Hermes / OpenCode / CodeBuddy 等；安装到宿主全局 skills 根；支持独立命令行 `npx @topmind/skills install` |
+| **Agent Skills** | 探测 Claude Code / Codex / Hermes / OpenCode / CodeBuddy 等；安装到宿主全局 skills 根；独立路径 `npm run skills:install`（仓库脚本）与社区 `npx skills add topmindspace/topmind` 仍然有效 |
 | **剪藏扩展** | 解压到本机托管目录 + 引导“加载已解压的扩展”——**不能**静默写入 Chrome；支持卸载（清理托管目录） |
 | **Obsidian 插件** | 支持官方社区插件库安装（发布审核中） / BRAT 插件 / 直装 `plugins/topmind-stream/` |
-| **独立路径** | CLI `npm run skills:install` / `npx` / pack zip 仍然有效，与 Desktop 不互斥 |
+| **独立路径** | CLI `npm run skills:install`（仓库脚本）/ 社区 `npx skills` / pack zip 仍然有效，与 Desktop 不互斥 |
 | **安装前版本校验** | 每次安装/升级 companion 模块前自动校验 GitHub 最新版；若捆绑版本非最新，自动下载最新版安装（网络失败则回退捆绑版） |
 
 首次打开工作区后 onboarding 会提示可选安装模块（不阻塞主路径）。

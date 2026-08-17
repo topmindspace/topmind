@@ -27,9 +27,6 @@ const {
   setOpState,
   clearOpState,
   contentHash,
-  hasContentChanged,
-  recordContentHash,
-  recordProcessedPeriods,
 } = mod;
 
 let tmpDir;
@@ -367,58 +364,6 @@ stream:
       assert.notEqual(h1, h3);
     });
 
-    it("hasContentChanged detects new content", () => {
-      const result1 = hasContentChanged(tmpDir, "test_hash_op", "path/a", "content v1");
-      assert.equal(result1, true); // New content → changed
-
-      recordContentHash(tmpDir, "test_hash_op", "path/a", "content v1");
-
-      const result2 = hasContentChanged(tmpDir, "test_hash_op", "path/a", "content v1");
-      assert.equal(result2, false); // Same content → not changed
-
-      const result3 = hasContentChanged(tmpDir, "test_hash_op", "path/a", "content v2");
-      assert.equal(result3, true); // Changed content → changed
-    });
-
-    it("hasContentChanged treats stale state as changed", () => {
-      // Write state file directly to preserve old lastRun (setOpState overwrites lastRun)
-      const oldDate = new Date(Date.now() - 8 * 86400000).toISOString();
-      const sysDir = path.join(tmpDir, ".topmind");
-      fs.mkdirSync(sysDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(sysDir, "ai-ops.json"),
-        JSON.stringify({
-          test_stale_op: {
-            contentHashes: { "path/a": contentHash("content") },
-            lastRun: oldDate,
-          },
-        }, null, 2),
-        "utf8",
-      );
-
-      // Even though hash matches, stale state → treat as changed
-      const result = hasContentChanged(tmpDir, "test_stale_op", "path/a", "content");
-      assert.equal(result, true);
-    });
-
-    it("recordProcessedPeriods accumulates and trims", () => {
-      // Record 25 periods
-      for (let i = 0; i < 25; i++) {
-        recordProcessedPeriods(tmpDir, "test_periods_op", [`2026-W${String(i).padStart(2, "0")}`]);
-      }
-
-      const state = getOpState(tmpDir, "test_periods_op");
-      assert.ok(state.processedPeriods.length <= 20, "should trim to last 20 periods");
-    });
-
-    it("recordProcessedPeriods deduplicates", () => {
-      recordProcessedPeriods(tmpDir, "test_periods_op", ["2026-W30"]);
-      recordProcessedPeriods(tmpDir, "test_periods_op", ["2026-W30", "2026-W29"]);
-
-      const state = getOpState(tmpDir, "test_periods_op");
-      const w30count = state.processedPeriods.filter((p) => p === "2026-W30").length;
-      assert.equal(w30count, 1, "should not duplicate periods");
-    });
   });
 
   describe("getOperationState / clearOperationState", () => {

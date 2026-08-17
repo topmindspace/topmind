@@ -214,47 +214,36 @@ export function StatusBar({ health }: StatusBarProps) {
         {rightSlots.length > 0 ? <StatusDivider /> : null}
 
         {/* Update available badge — click opens settings → manage tab */}
-        {updateInfo ? (
-          <Tooltip content={t("statusBar.updateAvailable", {
-            version: updateInfo.desktop?.latestVersion || updateInfo.latestVersion || "",
-            count: updateInfo.surfaces.length,
-            defaultValue: updateInfo.surfaces.length > 1
-              ? `${updateInfo.surfaces.length} updates available`
-              : `v${updateInfo.desktop?.latestVersion || updateInfo.latestVersion} available`,
-          })}>
-            <button
-              type="button"
-              data-status-update-badge
-              onClick={() => {
-                useViewStore.getState().openOverlay("settings", { topicId: "manage" });
-              }}
-              className={cn(
-                "flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5",
-                "bg-success/10 text-success",
-                "transition-colors hover:bg-success/20",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
-              )}
-              aria-label={t("statusBar.updateAvailable", {
-                version: updateInfo.desktop?.latestVersion || updateInfo.latestVersion || "",
-                count: updateInfo.surfaces.length,
-                defaultValue: updateInfo.surfaces.length > 1
-                  ? `${updateInfo.surfaces.length} updates available`
-                  : `v${updateInfo.desktop?.latestVersion || updateInfo.latestVersion} available`,
-              })}
-            >
-              <Download size={ICON.micro} aria-hidden />
-              {updateInfo.surfaces.length > 1 ? (
+        {updateInfo ? (() => {
+          const latestVersion = updateInfo.desktop?.latestVersion || updateInfo.latestVersion || "";
+          const multi = updateInfo.surfaces.length > 1;
+          const label = multi
+            ? t("statusBar.updatesAvailableMulti", { count: updateInfo.surfaces.length })
+            : t("statusBar.updateAvailable", { version: latestVersion });
+          return (
+            <Tooltip content={label}>
+              <button
+                type="button"
+                data-status-update-badge
+                onClick={() => {
+                  useViewStore.getState().openOverlay("settings", { topicId: "manage" });
+                }}
+                className={cn(
+                  "flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5",
+                  "bg-success/10 text-success",
+                  "transition-colors hover:bg-success/20",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
+                )}
+                aria-label={label}
+              >
+                <Download size={ICON.micro} aria-hidden />
                 <span className="hidden tabular-nums sm:inline">
-                  {updateInfo.surfaces.length} updates
+                  {multi ? t("statusBar.updatesBadgeCount", { count: updateInfo.surfaces.length }) : `v${latestVersion}`}
                 </span>
-              ) : (
-                <span className="hidden tabular-nums sm:inline">
-                  v{updateInfo.desktop?.latestVersion || updateInfo.latestVersion}
-                </span>
-              )}
-            </button>
-          </Tooltip>
-        ) : null}
+              </button>
+            </Tooltip>
+          );
+        })() : null}
 
         {/* Named busy chips only — never dual with generic「AI 工作中」for todo/suggest-only */}
         {busy.showTaskChip ? (

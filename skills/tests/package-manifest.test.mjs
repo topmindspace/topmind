@@ -574,6 +574,7 @@ test("v1.0 progressive disclosure: shared resources + skill references exist and
   const sharedRequired = [
     "capability-degradation.md",
     "project-model-brief.md",
+    "output-language.md",
     "writeback-receipt.md",
     "trigger-disambiguation.md",
     "long-url-capture.md",
@@ -694,4 +695,27 @@ test("v1.0.7 compound discipline: leave-a-trace, topic.md-first write, memory ga
   assert.match(disambig, /写回边界|复利纪律/u);
   // Must not encourage hard index as a product requirement
   assert.doesNotMatch(organize + router + brief, /必须维护\s*INDEX|强制\s*INDEX|required\s+INDEX/iu);
+});
+
+test("skill pack states the two-track output-language rule once and router links it", async () => {
+  const brief = await fs.readFile(path.join(skillsRoot, "shared", "output-language.md"), "utf8");
+  const router = await fs.readFile(path.join(skillsRoot, "topmind", "SKILL.md"), "utf8");
+  const modelBrief = await fs.readFile(path.join(skillsRoot, "shared", "project-model-brief.md"), "utf8");
+  const disambig = await fs.readFile(path.join(skillsRoot, "shared", "trigger-disambiguation.md"), "utf8");
+  const memory = await fs.readFile(path.join(skillsRoot, "topmind-memory", "SKILL.md"), "utf8");
+
+  assert.match(brief, /用户本轮明确要求/u);
+  assert.match(brief, /正在处理的原文/u);
+  assert.match(brief, /workspace\.locale/u);
+  assert.match(brief, /文档 AI/u);
+  assert.match(brief, /产品 AI/u);
+  assert.match(brief, /当前宿主 UI/u);
+  assert.match(brief, /文档 AI 不跟 UI/u);
+  assert.match(router, /shared\/output-language\.md/u);
+  assert.match(modelBrief, /output-language\.md/u);
+
+  // Memory writes profile/periodic, not topic.md as the default sink
+  assert.doesNotMatch(memory, /写进 topic\.md/u);
+  assert.doesNotMatch(disambig, /memory \| 仅 confirmed stable → `topic\.md`/u);
+  assert.doesNotMatch(brief, /输出语言跟随 UI|AI follows the UI/u);
 });

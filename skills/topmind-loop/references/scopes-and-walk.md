@@ -25,7 +25,7 @@
 - 对照 `topic.md` 声称 vs 实际笔记  
 - 索引链接是否失效；`下一步` / 状态是否陈旧  
 - Inbox：每条需路由到类别（±专题）  
-- **首页偏空提示（只建议，不自动写）**：专题根 `.md` 较多（例如 ≥5，不含 topic.md）而 `topic.md` 缺失、或正文几乎只有标题/占位时 → Escalate 或回执一句：「材料不少，可用 organize 整理落盘 / 需要时 memory 写首页」。**禁止** loop 自己填稳定记忆或新建 INDEX.md  
+- **首页偏空提示（只建议，不自动写）**：专题根 `.md` 较多（例如 ≥5，不含 topic.md）而 `topic.md` 缺失、或正文几乎只有标题/占位时 → Escalate 或回执一句：「材料不少，可用 organize 整理落盘 / 需要时更新我的情况」。**禁止** loop 自己填稳定记忆或新建 INDEX.md  
 
 **Architecture drift（写入 Errors / Blockers，不静默改）**：
 

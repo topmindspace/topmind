@@ -54,17 +54,6 @@ html[data-platform="linux"] .v4-titlebar-glass {
 }
 
 /* ── Panel collapse/expand ── */
-.v4-panel-transition {
-  transition: width var(--duration-normal) var(--ease-out),
-              opacity var(--duration-normal) var(--ease-out);
-  overflow: hidden;
-}
-.v4-panel-enter {
-  animation: v4-panel-slide-in var(--duration-enter) var(--ease-out);
-}
-.v4-panel-exit {
-  animation: v4-panel-slide-out var(--duration-exit) var(--ease-in);
-}
 @keyframes v4-panel-slide-in {
   from { opacity: 0; transform: translateX(-10px); }
   to { opacity: 1; transform: translateX(0); }
@@ -166,9 +155,7 @@ html[data-platform="linux"] .v4-titlebar-glass {
 /* ── AI action button — unified accent style for AI capability triggers ──
  * Usage: <button class="v4-ai-btn ..."> — provides accent text + subtle bg tint.
  * Variants:
- *   .v4-ai-btn-solid     — filled accent
  *   .v4-ai-btn-ghost     — text only, subtle hover
- *   .v4-ai-btn-gradient  — gradient filled (prominent AI identity)
  */
 /* AI capability — flat accent tint (not a second solid CTA; distinct from capture teal) */
 .v4-ai-btn {
@@ -191,17 +178,6 @@ html[data-platform="linux"] .v4-titlebar-glass {
 .v4-ai-btn:disabled {
   opacity: 0.45;
 }
-.v4-ai-btn-solid {
-  color: var(--color-text-on-accent);
-  background: var(--color-accent-color);
-  border: 1px solid var(--color-accent-color);
-  transition:
-    background-color var(--duration-fast) var(--ease-default),
-    opacity var(--duration-fast) var(--ease-default);
-}
-.v4-ai-btn-solid:hover:not(:disabled) {
-  opacity: 0.9;
-}
 .v4-ai-btn-ghost {
   color: var(--color-text-tertiary);
   background: transparent;
@@ -218,54 +194,6 @@ html[data-platform="linux"] .v4-titlebar-glass {
 /* ── AI gradient button — brand-axis only (deep → mid → aqua; no indigo/purple) ──
  * Use for prominent AI actions (polish, extract, maintain).
  */
-.v4-ai-btn-gradient {
-  position: relative;
-  color: var(--color-text-on-accent, #fff);
-  background: linear-gradient(
-    135deg,
-    var(--color-brand-deep, var(--color-accent-color)),
-    color-mix(in srgb, var(--color-brand-mid, #5a7fb8) 70%, var(--color-brand-aqua, #2fa89a) 30%)
-  );
-  border: 1px solid color-mix(in srgb, var(--color-accent-color) 40%, transparent);
-  box-shadow:
-    0 1px 2px color-mix(in srgb, var(--color-accent-color) 25%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #fff 15%, transparent);
-  transition:
-    filter var(--duration-fast) var(--ease-default),
-    box-shadow var(--duration-fast) var(--ease-default),
-    opacity var(--duration-fast) var(--ease-default);
-  overflow: hidden;
-}
-.v4-ai-btn-gradient::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    135deg,
-    transparent 0%,
-    color-mix(in srgb, #fff 8%, transparent) 50%,
-    transparent 100%
-  );
-  opacity: 0;
-  transition: opacity var(--duration-fast) var(--ease-default);
-  pointer-events: none;
-}
-.v4-ai-btn-gradient:hover:not(:disabled) {
-  filter: brightness(1.08);
-  box-shadow:
-    0 2px 8px color-mix(in srgb, var(--color-accent-color) 35%, transparent),
-    inset 0 1px 0 color-mix(in srgb, #fff 20%, transparent);
-}
-.v4-ai-btn-gradient:hover:not(:disabled)::before {
-  opacity: 1;
-}
-.v4-ai-btn-gradient:active:not(:disabled) {
-  filter: brightness(0.95);
-}
-.v4-ai-btn-gradient:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
 
 /* ── AI gradient chip — compact brand-axis (todo maintain, tight chrome) ── */
 .v4-ai-chip-gradient {
@@ -928,12 +856,6 @@ button.v4-dash-card:active,
   color: var(--color-accent-color);
   box-shadow: none;
 }
-.v4-icon-chip-primary {
-  /* Solid brand CTA — gradient reserved for logo / rare brand moments */
-  background: var(--color-accent-color);
-  color: var(--color-text-on-accent);
-  box-shadow: var(--shadow-button);
-}
 
 /* ── Shell chrome — solid rails (no permanent full-width blur = cheaper scroll) ── */
 .v4-shell-chrome {
@@ -1357,16 +1279,6 @@ button.v4-dash-card:active,
   mask-image: linear-gradient(180deg, #000 70%, transparent 100%);
   -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent 100%);
 }
-.v4-stream-md-clamp-rest {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
-  color: var(--color-text-tertiary);
-}
-.v4-stream-md-clamp-rest.v4-stream-md {
-  color: var(--color-text-tertiary);
-}
 
 .v4-brand-mark {
   user-select: none;
@@ -1401,15 +1313,6 @@ html.dark .v4-menu-surface {
 }
 
 /* Floating glass panel — Dropdown / Popover / Command only (never main chrome) */
-.v4-glass-panel {
-  background: var(--color-surface-elevated-glass, var(--color-surface-elevated));
-  backdrop-filter: blur(12px) saturate(160%);
-  -webkit-backdrop-filter: blur(12px) saturate(160%);
-  box-shadow: var(--shadow-elevated-hairline, var(--shadow-float));
-}
-html.dark .v4-glass-panel {
-  background: color-mix(in srgb, var(--color-surface-elevated) 90%, transparent);
-}
 
 /* Shared drop-target — idle is invisible; only *-active paints feedback */
 .v4-drop-target {
@@ -1734,11 +1637,6 @@ html.dark .v4-overlay-sheet {
 }
 
 /* Settings / dense form stack: calm section rhythm */
-.v4-settings-stack {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
 .v4-settings-dialog {
   /* Quiet workbench dialog — no marketing wash */
   background: var(--color-surface-elevated);
@@ -1790,16 +1688,6 @@ html.dark .v4-overlay-sheet {
 }
 
 /* ── Soft divider (fade edges — prefer over full-width hairlines in dense stacks) ── */
-.v4-divider {
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    var(--color-border-subtle) 12%,
-    var(--color-border-subtle) 88%,
-    transparent
-  );
-}
 
 /* ── Quiet toolbar chips — fill not wireframe (less border noise) ── */
 .v4-chip {
@@ -1838,26 +1726,8 @@ html.dark .v4-overlay-sheet {
   box-sizing: border-box;
 }
 .v4-select-chip select,
-.v4-chip-select {
-  appearance: none !important;
-  -webkit-appearance: none !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  outline: none !important;
-  background-color: transparent !important;
-  cursor: pointer;
-  max-width: 8.5rem;
-  padding-right: 16px !important;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%238b91a1' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 2px center;
-  background-size: 10px;
-}
 .v4-select-chip:focus-within {
   border-color: color-mix(in srgb, var(--color-accent-color) 45%, var(--color-border-subtle-dim));
-}
-.v4-chip-select:focus-visible {
-  outline: none;
 }
 
 /* Composer shell — single elevated input surface */
@@ -1892,14 +1762,6 @@ html.dark .v4-overlay-sheet {
   border-color: color-mix(in srgb, var(--color-accent-color) 38%, transparent);
   box-shadow: 0 0 0 3px var(--color-focus-soft);
 }
-.v4-composer-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-height: 22px;
-  padding: 0 1px;
-}
 /* Composer model / skill use MenuSelect (portal listbox) — not native <select>.
  * Keep native .v4-select option styling for remaining short form fields. */
 .v4-select option,
@@ -1929,16 +1791,6 @@ html.dark .v4-overlay-sheet {
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--color-accent-color) 15%, var(--color-accent-color) 85%, transparent);
   opacity: 0.12;
-}
-.v4-ai-context-bar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 4px 8px 0;
-  padding: 4px 8px;
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--color-surface) 50%, var(--color-app-chrome));
-  font-size: var(--text-3xs);
 }
 
 /* Segmented control (ViewSwitcher family) — sliding thumb under items */
@@ -2025,13 +1877,6 @@ html.dark .v4-overlay-sheet {
 }
 
 /* ── Skeleton block ── */
-.v4-skeleton {
-  border-radius: var(--radius-md);
-  background: var(--color-surface-muted);
-}
-.v4-skeleton.animate-shimmer {
-  border-radius: var(--radius-md);
-}
 
 /* Message bubble polish — solid brand (no purple mix) */
 .v4-msg-user {

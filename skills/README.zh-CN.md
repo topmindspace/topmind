@@ -119,7 +119,7 @@ degradation: ../shared/capability-degradation.md
 5. **参考资料定位**  
 6. **大类命名稳定**（rename via migration）  
 
-完整规则：[`../PROJECT-MODEL.md`](../PROJECT-MODEL.md) §2。
+完整规则：[`../PROJECT-MODEL.md`](../PROJECT-MODEL.md) §3。
 
 ---
 

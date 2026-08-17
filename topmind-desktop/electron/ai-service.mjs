@@ -25,13 +25,13 @@ export { INLINE_SYSTEM, buildInlineCompletePrompt, resolveCompleteMaxTokens } fr
 export { resolvePromptLocale } from "./ai-prompts.mjs";
 
 /**
- * Resolve AI prompt language for user-visible / durable AI text.
- * Order: settings.ui.locale (if not auto) → workspace contract locale → zh.
+ * Chrome / system-prompt shell language. UI locale when the user picked one;
+ * otherwise workspace locale. Not used as a content force.
  * @param {object} [settings]
- * @param {object} [c] — service context with workspaceRoot
+ * @param {object} [c]
  * @returns {Promise<"zh"|"en">}
  */
-async function resolveAiPromptLocale(settings, c) {
+async function resolveChromeLocale(settings, c) {
   const uiLocale = settings?.ui?.locale;
   if (uiLocale && uiLocale !== "auto") {
     return resolvePromptLocale(uiLocale);
@@ -47,6 +47,59 @@ async function resolveAiPromptLocale(settings, c) {
     }
   } catch {
     /* contract unavailable — fall through */
+  }
+  return "zh";
+}
+
+/**
+ * 3-tier language for user-visible / durable model text (same function Kernel uses).
+ * Agent turns pass focusPath + mountedFiles; inline complete passes editedSpan/sourceText.
+ * Profile / overview are never source.
+ * @param {{
+ *   userText?: string,
+ *   sourceText?: string,
+ *   editedSpan?: string,
+ *   focusPath?: string,
+ *   mountedFiles?: Array<{ name?: string, path?: string, content?: string }>,
+ *   c?: object,
+ * }} opts
+ * @returns {Promise<"zh"|"en">}
+ */
+async function resolveDurableOutputLocale({
+  userText,
+  sourceText,
+  editedSpan,
+  focusPath,
+  mountedFiles,
+  c,
+} = {}) {
+  try {
+    const { loadKernelApi, workspaceRootOf } = await import("./lib/kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const root = workspaceRootOf(c?.workspaceRoot);
+    let contract;
+    if (root && typeof kernel.loadContract === "function") {
+      try {
+        contract = kernel.loadContract(root);
+      } catch {
+        contract = undefined;
+      }
+    }
+    if (typeof kernel.resolveAgentOutputLanguage === "function") {
+      return kernel.resolveAgentOutputLanguage({
+        userText,
+        sourceText,
+        editedSpan,
+        focusPath,
+        mountedFiles,
+        contract,
+      });
+    }
+    if (typeof kernel.resolveOutputLanguage === "function") {
+      return kernel.resolveOutputLanguage({ userText, sourceText, editedSpan, contract });
+    }
+  } catch {
+    /* kernel unavailable — fall through */
   }
   return "zh";
 }
@@ -146,7 +199,12 @@ export const AiService = {
     }
     if (src.length > 32_000) throw new Error(ei18n("ai.textTooLong"));
 
-    const locale = await resolveAiPromptLocale(settings, c);
+    const locale = await resolveDurableOutputLocale({
+      userText: String(instruction || "").trim(),
+      editedSpan: src,
+      sourceText: documentText != null ? String(documentText) : src,
+      c,
+    });
 
     const actionHint = {
       polish: ei18n("ai.polish"),
@@ -400,7 +458,21 @@ export const AiService = {
 
     // System prompt: skill-first protocol + discovery catalog + actual tool names + pre-loaded context.
     const skillsEnabled = settings?.ai?.skillsEnabled !== false;
-    const locale = await resolveAiPromptLocale(settings, c);
+    const lastUser = [...compact.messages].reverse().find((m) => m.role === "user");
+    const lastUserText = typeof lastUser?.content === "string"
+      ? lastUser.content
+      : Array.isArray(lastUser?.content)
+        ? lastUser.content.map((p) => (typeof p === "string" ? p : p?.text || "")).join("\n")
+        : "";
+    const [locale, outputLocale] = await Promise.all([
+      resolveChromeLocale(settings, c),
+      resolveDurableOutputLocale({
+        userText: lastUserText,
+        focusPath: ambient,
+        mountedFiles: ctxFiles,
+        c,
+      }),
+    ]);
     const sysPrompt = buildSystemPrompt({
       workspaceContext: c.workspaceRoot,
       topicId,
@@ -418,6 +490,7 @@ export const AiService = {
       memoryProfile: aiContext.profile,
       topicContext: aiContext.topicContext,
       locale,
+      outputLocale,
     });
 
     const maxAgentSteps = settings?.ai?.maxAgentSteps;

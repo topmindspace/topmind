@@ -17,7 +17,7 @@ const stream = readFileSync(
 
 test("AI gradient styles stay on brand axis (no indigo/purple hex)", () => {
   assert.doesNotMatch(v4, /#6366f1|#8b5cf6|#7c3aed|#4f46e5/iu);
-  assert.match(v4, /\.v4-ai-btn-gradient\s*\{/u);
+  assert.match(v4, /\.v4-ai-btn\s*\{/u);
   assert.match(v4, /brand-deep|brand-mid|brand-aqua/u);
 });
 

@@ -10,7 +10,7 @@
 记一下            默认 append 动态周期本；低信心 → 收件箱
 动态              stream packing（默认 weekly）+ loose-stream；yearDir: true（按年分组）
 专题              {类别}/{YYYY-主题}/
-我的情况          memory/profile.md（global）
+我的情况          memory/profile.md（global；完成/过期确认后归档到 ## 历史记录）
 写出来            role:delivery（常 88-输出）
 ```
 
@@ -25,7 +25,7 @@
 
 默认模板 **`stream`**：收件箱 · 动态 · 专题 · 输出 · 归档。4 种 Profile：stream / balanced / research / periodic。
 
-## 6 条核心规约（不可破 · 见 PROJECT-MODEL.md §2）
+## 6 条核心规约（不可破 · 见 PROJECT-MODEL.md §3）
 
 1. **大类不重叠** — 同一主题只落一个类别  
 2. **专题自然涌现** — 默认不建专题；反复出现时**建议**升专题（勿对用户说「涌现」）  
@@ -55,7 +55,8 @@ memory:
 
 - packing: `atom` | `daily` | `weekly` | `monthly`  
 - 记一下 → loose-stream 且 packing≠atom → **append 当前周期本**  
-- 我的情况 → `memory.append-profile`；周期反思 → `memory/periodic/{YYYY}/`；**开专题** → 内容大类 `{YYYY-主题}/`（非默认 memory/topics）
+- 我的情况 → `memory.append-profile`；周期反思 → `memory/periodic/{YYYY}/`；**开专题** → 内容大类 `{YYYY-主题}/`（非默认 memory/topics）  
+- **输出语言**：文档 AI（改写笔记 / Agent 写入）= 用户本轮要求 → 原文 → `workspace.locale`；产品 AI（建议条 / 待办 / memory_organize）= 用户本轮要求 → 当前宿主 UI（`auto` 不算）→ 工作区 locale。见 [`output-language.md`](./output-language.md)。
 
 
 ## 命名

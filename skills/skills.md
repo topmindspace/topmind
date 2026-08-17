@@ -16,7 +16,7 @@
 | 2 | `topmind-capture` | Action | 记一下 / capture / 抓取链接 | **捕获动作**：处理速记、网页链接、知识文件加工并安全落盘 |
 | 3 | `topmind-organize` | Action | 整理 / organize / 提炼结构 | **整理动作**：归纳笔记、整理专题、提取证据链与知识留痕 |
 | 4 | `topmind-write` | Action | 写 / 起草 / 润色 / 出稿 | **写作动作**：根据专题与参考资料起草长文、润色及生成 Deliverable |
-| 5 | `topmind-memory` | Action | 记住 / memory / 存入记忆 | **记忆动作**：维护专题 `topic.md` 稳定记忆与背景上下文 |
+| 5 | `topmind-memory` | Action | 记住 / 更新我的情况 / memory | **记忆动作**：维护 `memory/profile.md` 与周期反思（非默认写 `topic.md`） |
 | 6 | `topmind-maintain` | Action | doctor / 诊断 / 清理 | **体检动作**：检查目录健康、孤立文件、配置校验与环境诊断 |
 | 7 | `topmind-loop` | Action | loop / 巡检 / 自动盘点 | **巡检动作**：可恢复的工作区全量语义巡检与盘点 |
 | 8 | `topmind-weread` | Connector | 微信读书 / weread | **微信读书连接器**：同步划线、书评与阅读笔记 |

@@ -5,7 +5,7 @@
 [![Release](https://img.shields.io/github/v/release/topmindspace/topmind?style=flat-square&color=blue)](https://github.com/topmindspace/topmind/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
 [![Node Version](https://img.shields.io/badge/Node.js-%E2%89%A520.11-brightgreen.svg?style=flat-square)](https://nodejs.org)
-[![Platforms](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux%20%7C%20Obsidian%20%7C%20Chrome-purple?style=flat-square)](#quick-start--installation)
+[![Platforms](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux%20%7C%20Obsidian%20%7C%20Chrome-purple?style=flat-square)](#quick-start-and-installation)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/topmindspace/topmind/ci.yml?style=flat-square&label=CI)](https://github.com/topmindspace/topmind/actions)
 
 > **Local-first personal stream and knowledge workbench for the agent era**  
@@ -162,7 +162,7 @@ flowchart LR
 
 Directory names follow the live contract (`en-US` stream template uses the English names above). Chinese names such as `00-收件箱` / `10-动态` / `99-归档` are equally valid.
 
-**6 条核心规约** (six core rules — [`PROJECT-MODEL.md`](./PROJECT-MODEL.md) §2): categories do not overlap; topics emerge naturally; the stream class stays flat by default; fallback classes are cleaned on a ~30-day cadence; reference material has a clear home; category names stay stable (rename via migration).
+**6 条核心规约** (six core rules — [`PROJECT-MODEL.md`](./PROJECT-MODEL.md) §3): categories do not overlap; topics emerge naturally; the stream class stays flat by default; fallback classes are cleaned on a ~30-day cadence; reference material has a clear home; category names stay stable (rename via migration).
 
 ---
 

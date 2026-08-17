@@ -17,6 +17,11 @@ describe("kernel-api", () => {
     assert.equal(typeof kernel.applyUniqueSpan, "function");
     assert.equal(typeof kernel.splitAssistantVisible, "function");
     assert.equal(typeof kernel.formatReadWindow, "function");
+    assert.equal(typeof kernel.resolveOutputLanguage, "function");
+    assert.equal(typeof kernel.resolveAiLocale, "function");
+    assert.equal(typeof kernel.resolveAgentOutputLanguage, "function");
+    assert.equal(typeof kernel.pickDocumentSourceForOutputLanguage, "function");
+    assert.equal(typeof kernel.resolveProductAiLanguage, "function");
   });
 
   it("exports derived-builder AI provider interface", () => {

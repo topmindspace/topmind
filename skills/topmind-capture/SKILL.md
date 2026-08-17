@@ -1,9 +1,9 @@
 ---
 name: topmind-capture
-version: 3.5.1
+version: 3.5.2
 description: >-
   把链接、摘录、随手记收进动态周期本、Inbox 或专题。Use when 记一下、收进、剪藏、保存链接、capture、save URL/idea。
-  Do NOT use for 整理本周、出稿、写我的情况/topic.md、doctor/loop、微信读书、X.
+  Do NOT use for 整理本周、出稿、写我的情况、doctor/loop、微信读书、X.
 action_category: capture
 triggers:
   - 收集
@@ -52,7 +52,7 @@ degradation: ../shared/capability-degradation.md
 
 - 整理已有内容 → `topmind-organize`  
 - 基于素材写稿 → `topmind-write`  
-- 写入 topic.md 稳定结论 → `topmind-memory`  
+- 写入「我的情况」/ 周期反思 → `topmind-memory`  
 - 系统体检 / 巡检 → `topmind-maintain` / `topmind-loop`  
 - 微信读书 / 发推 → connectors  
 
@@ -75,9 +75,9 @@ degradation: ../shared/capability-degradation.md
 high cat + high topic     → {大类}/{专题}/*.md（新文件）
 high cat + med topic      → 专题 + route_reason
 loose-stream + 无专题     → 当前周期本 append（packing≠atom）
-  packing weekly          → {动态类}/YYYY-Www.md 今日段落下追加
-  packing daily           → {动态类}/YYYY-MM-DD.md 追加
-  packing monthly         → {动态类}/YYYY-MM.md 追加
+  packing weekly          → {动态类}/[YYYY/]YYYY-Www.md 今日段落下追加（year_dir 默认 true）
+  packing daily           → {动态类}/[YYYY/]YYYY-MM-DD.md 追加
+  packing monthly         → {动态类}/[YYYY/]YYYY-MM.md 追加
   packing atom / forceAtom→ {大类}/YYYY-MM-DD-标题.md 新文件
 low cat                   → role:buffer（收件箱）
 ```

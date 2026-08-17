@@ -5,7 +5,7 @@
 > **产品北极星（2026-07-25）**：**最低摩擦个人动态流** — 记下来尽可能简单；AI 建议、用户确认后沉淀；文件即真源。  
 > **工作流**：`收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整`  
 > **用户动词（≤5 概念）**：`记一下 · 动态 · 专题 · 我的情况 · 写出来`  
-> **实施与诚实状态**：`docs/ARCHITECTURE-RESET.md` §2 — Phase A/B 主路径 **Done**；备份全覆盖 / 全量归档卡 **Partial**；语义索引 Phase C **Target**。
+> **实施与诚实状态**：`docs/ARCHITECTURE-RESET.md` §2 — Phase A/B 主路径 **Done**；备份/回执 **仅高影响（Done，by design）**；契约 UI Intentional Partial；语义索引 Phase C **Target**。
 >
 > **设计哲学的权衡选择**：
 > 1. **降低记录门槛**：先记后分 — 随手记落入动态周期本，主题反复出现再升专题或记忆。  
@@ -289,9 +289,19 @@ AI 分发遇到歧义时按"内容性质"判定；无法判定时 → `00-收件
 
 | 层 | 物理 | 内容 | 更新方式 |
 |----|------|------|----------|
-| **global** | `memory/profile.md` | 跨时间的个人事实、偏好、长期目标、关键的人 | 段落追加；`## 偏好` `## 当前目标` `## 关键的人与协作` `## 进行中的事` |
+| **global** | `memory/profile.md` | 跨时间的个人事实、偏好、长期目标、关键的人 | 段落追加；`## 偏好` `## 当前目标` `## 关键的人与协作` `## 进行中的事`；完成后归档到 `## 历史记录`（见 7.1.1） |
 | **periodic** | `memory/periodic/{year}/{period}.md` | 周期反思：本周/本月**揭示了什么**——关注焦点、知识与见解、行为信号、偏好变化、线索 | lifecycle 触发，AI 生成，人可改 |
 | **topics** | `memory/topics/{topic-slug}.md` | 围绕特定主题的持续演变记录与摘要（可选，默认不启用） | Stream→Memory 提升；AI 建议，用户确认 |
+
+#### 7.1.1 profile 事实生命周期（记忆整合，2026-08-16）
+
+对齐 mem0 的 ADD/UPDATE/DELETE 与 Letta 的 core-memory 自编辑，但翻译为 Markdown 上**可见、可逆、须确认**的操作（ADR `docs/adr/2026-08-16-memory-consolidation.md`）：
+
+- **追加**（ADD）：`appendProfileEntry` —— 去重 + 消毒后写入活跃段落（既有）。
+- **归档**（DELETE 的确认式翻译）：`retireProfileEntry` —— 把已完成/过期的事实行移入 `## 历史记录`，加 `（YYYY-MM-DD 归档）` 前缀；**不删除任何内容**，用户可手工移回。段落标题行永不参与匹配；历史段不可原位更新；AI 上下文注入时历史段折叠为一行计数（`readProfileActiveBody`）。
+- **更新**（UPDATE）：`updateProfileEntry` —— 原位替换匹配行并刷新日期；或等价地「归档旧行 + 追加新行」。
+
+触发路径：`memory_organize` AI 操作从活动窗口中识别可归档候选（要求逐字/近似引用画像原文，最多 3 条），产出 `retire_profile` 建议条，**用户确认后**经 `applySuggestion` 执行。无自动遗忘、无定时扫描、不建向量索引。
 
 - 解析：`lib/memory-engine.mjs` · workspace-model `resolveMemoryPaths()` / `ensureCoreProfile()`
 - 写入：`memory.append-profile` / `memory.append-topic` / memory skill；**禁止** capture 静默改
@@ -420,11 +430,11 @@ presentation:                  # 呈现规约
 
 | 子目录 | 内容 | 重建 |
 |--------|------|------|
-| `index/` | 可选语义索引（SQLite + embedding；默认关闭） | 随时重建 |
 | `loop/` | loop 巡检进度（可中断可恢复） | — |
 | `logs/` | 运行日志 | — |
+| `ai-ops.json` / `workspace-map.json` | AI 操作状态 / 派生工作区地图 | 随时重建 |
 
-**注意**：derived（AI 衍生）不在 `.topmind/`，而是跟随各大类 `.derived/` 子目录（正式知识，非机器态）。
+**注意**：derived（AI 衍生）不在 `.topmind/`，而是跟随各大类 `.derived/` 子目录（正式知识，非机器态）。embedding / 向量索引为 Non-goal（见 `docs/ARCHITECTURE-RESET.md`），`.topmind/` 不含任何语义索引数据库。
 
 ---
 

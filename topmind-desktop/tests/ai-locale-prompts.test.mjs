@@ -4,12 +4,19 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 import {
   buildSystemPrompt,
   resolvePromptLocale,
   getSkillPrompts,
   SKILL_PROMPTS,
 } from "../electron/ai-prompts.mjs";
+import {
+  resolveOutputLanguage,
+  resolveAgentOutputLanguage,
+} from "../../lib/ai-output-locale.mjs";
 import {
   describeWritebackModeForPrompt,
   MODEL_A_FORBIDDEN_RE,
@@ -148,6 +155,101 @@ test("buildInlineCompletePrompt en continue mode", () => {
   });
   assert.match(out.prompt, /Output only the continuation|Preceding text/i);
   assert.doesNotMatch(out.prompt, /请只输出续写内容|上文（请接续/);
+});
+
+test("buildSystemPrompt states 3-tier output language and honors outputLocale", () => {
+  const zh = buildSystemPrompt({ skillsEnabled: false, locale: "zh-CN" });
+  assert.match(zh, /## 输出语言/);
+  assert.match(zh, /本轮用户明确要求/);
+  assert.match(zh, /正在处理的原文/);
+  assert.match(zh, /workspace locale|topmind\.yaml/u);
+
+  const enChromeZhOut = buildSystemPrompt({
+    skillsEnabled: false,
+    locale: "en-US",
+    outputLocale: "zh",
+  });
+  assert.match(enChromeZhOut, /You are the topmind/i);
+  assert.match(enChromeZhOut, /## Output language/);
+  assert.match(enChromeZhOut, /Chinese/);
+  assert.match(enChromeZhOut, /explicit language request/i);
+  assert.doesNotMatch(enChromeZhOut, /你是 topmind 个人知识工作台助手/);
+});
+
+test("inline complete locale follows shipped 3-tier resolver, not workspace/UI", () => {
+  const zhFromSource = resolveOutputLanguage({
+    userText: "",
+    sourceText: "今天把报告改完了，下午继续写结论。",
+    contract: { workspace: { locale: "en-US" } },
+  });
+  assert.equal(zhFromSource, "zh");
+  const zhOut = buildInlineCompletePrompt({
+    text: "今天把报告改完了，下午继续写结论。",
+    mode: "rewrite",
+    action: "polish",
+    locale: zhFromSource,
+  });
+  assert.match(zhOut.prompt, /选中原文|请只输出改写结果|润色这段文字/);
+  assert.doesNotMatch(zhOut.prompt, /Selected text:|Output only the rewrite/);
+
+  const enFromRequest = resolveOutputLanguage({
+    userText: "用英语写",
+    sourceText: "今天把报告改完了，下午继续写结论。",
+    contract: { workspace: { locale: "zh-CN" } },
+  });
+  assert.equal(enFromRequest, "en");
+  const enOut = buildInlineCompletePrompt({
+    text: "今天把报告改完了，下午继续写结论。",
+    mode: "rewrite",
+    action: "polish",
+    locale: enFromRequest,
+  });
+  assert.match(enOut.prompt, /Selected text:|Output only the rewrite/i);
+});
+
+test("ai-service durable path calls kernel resolveAgentOutputLanguage, not UI-first locale", () => {
+  const src = readFileSync(
+    path.join(path.dirname(fileURLToPath(import.meta.url)), "../electron/ai-service.mjs"),
+    "utf8",
+  );
+  assert.match(src, /resolveAgentOutputLanguage/);
+  assert.match(src, /resolveDurableOutputLocale/);
+  assert.match(src, /resolveChromeLocale/);
+  assert.match(src, /complete\([\s\S]*resolveDurableOutputLocale/u);
+  assert.match(src, /invoke\([\s\S]*resolveDurableOutputLocale/u);
+  const durableStart = src.indexOf("async function resolveDurableOutputLocale");
+  assert.ok(durableStart >= 0, "resolveDurableOutputLocale must exist");
+  const after = src.slice(durableStart, durableStart + 2200);
+  assert.match(after, /kernel\.resolveAgentOutputLanguage/);
+  assert.doesNotMatch(after, /settings\?\.ui\.locale/);
+  // invoke must not concatenate profile/overview/topicContext into source
+  assert.doesNotMatch(src, /aiContext\.profile[\s\S]{0,80}sourceBlob|sourceBlob[\s\S]{0,120}aiContext\.profile/u);
+  assert.doesNotMatch(src, /topicContext,\s*\n\s*aiContext\.profile/u);
+});
+
+test("Agent picker: English open note wins over Chinese profile; empty doc uses workspace", () => {
+  const zhProfile = "我喜欢用中文写日记，目前在推进几个长期目标，周末会复盘。";
+  const enNote = "Finished the report today, synced with the team, and will keep drafting tonight.";
+  assert.equal(
+    resolveAgentOutputLanguage({
+      userText: "summarize this",
+      focusPath: "note.md",
+      mountedFiles: [{ name: "note.md", content: enNote }],
+      profile: zhProfile,
+      topicContext: "这是专题首页的中文说明文字。",
+      contract: { workspace: { locale: "zh-CN" } },
+    }),
+    "en",
+  );
+  assert.equal(
+    resolveAgentOutputLanguage({
+      userText: "help me capture",
+      mountedFiles: [],
+      profile: zhProfile,
+      contract: { workspace: { locale: "en-US" } },
+    }),
+    "en",
+  );
 });
 
 test("getSkillPrompts / SKILL_PROMPTS locale", () => {

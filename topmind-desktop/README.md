@@ -34,7 +34,7 @@
 
 ## Interface tour and demo
 
-Screenshots are compressed for docs (full-resolution sources live in [`resources/img/`](./resources/img/); the shared library is [`../docs/images/`](../docs/images/README.md)).
+Screenshots are compressed for docs (full-resolution sources live in `resources/img/` on the development machine only — the directory is gitignored; the shared library is [`../docs/images/`](../docs/images/README.md)).
 
 ### 1. Core workbench (`Stream` + AI suggestions)
 
@@ -98,10 +98,10 @@ Default three columns: **nav → content → AI copilot**. The main narrative is
 
 - UI default `auto`: match OS / `navigator.language` to `zh-CN` or `en-US`  
 - Main window and the `CaptureSurface` float stay in sync; packs live in `src/locales/{zh-CN,en-US}/`  
-- **Workspace locale** (`topmind.yaml` `locale` / `workspace.locale`) and UI language together decide **AI output language**  
-- **AI follows the UI language**: when UI is not `auto`, Agent / inline / todos / suggestions / memory organize all emit in that language  
-- Localized AI paths: Agent system prompt, save-settings copy, inline polish/continue/summarize, todo extract/maintain, suggestion strip, memory organize, `memory/todo.md` headings  
-- Prompt resolution: UI locale (when not `auto`) → contract locale → default `zh-CN`
+- **Workspace locale** (`topmind.yaml` `locale` / `workspace.locale`) is the last-resort language when the host UI is `auto`  
+- **Document AI** (inline rewrite / Agent writing into a note): explicit request → source document → workspace locale. UI does not rewrite a Chinese note into English.  
+- **Product AI** (suggestion cards, todo extract/maintain, memory organize): explicit request → Desktop UI locale (if not `auto`) → workspace locale. Obsidian uses its plugin / app language the same way.  
+- Content resolution: `lib/ai-output-locale.mjs` (`resolveOutputLanguage` vs `resolveProductAiLanguage`)
 
 ---
 
@@ -126,10 +126,10 @@ Homebrew clears macOS `quarantine` so unsigned builds do not show as “damaged�
 ### Settings → Manage & Updates
 | Capability | Behavior |
 |------------|----------|
-| **Agent Skills** | Detects Claude Code / Codex / Hermes / OpenCode / CodeBuddy; installs into the host global skills root; CLI `npx @topmind/skills install` still works |
+| **Agent Skills** | Detects Claude Code / Codex / Hermes / OpenCode / CodeBuddy; installs into the host global skills root; standalone CLI `npm run skills:install` and community `npx skills add topmindspace/topmind` still work |
 | **Clip extension** | Unpacks to a hosted folder + guides “Load unpacked” — **cannot** silently write Chrome; uninstall cleans the hosted folder |
 | **Obsidian plugin** | Community store (in review) / BRAT / direct install into `plugins/topmind-stream/` |
-| **Standalone paths** | `npm run skills:install` / `npx` / pack zip remain valid and do not conflict with Desktop |
+| **Standalone paths** | `npm run skills:install` (repo scripts) / community `npx skills` / pack zip remain valid and do not conflict with Desktop |
 | **Pre-install version check** | Each companion install/upgrade checks GitHub latest; if the bundled copy is stale, downloads latest (network failure falls back to bundled) |
 
 Onboarding after the first workspace open can offer optional modules; it does not block the main path.

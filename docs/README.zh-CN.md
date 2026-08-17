@@ -90,6 +90,7 @@
 | [2026-08-13](./adr/2026-08-13-adversarial-first-principles-review.md) | Adversarial first-principles review | High：单契约写者、AI 写回不覆盖 yaml、删 home、统一 Clip 转换器、搜索进主锚 |
 | [2026-08-13](./adr/2026-08-13-surface-ux-review.md) | Surface UX review | High：Obsidian 动态≠工作台、记一下≠记下、整理我的情况；Clip 不教 lite 转换器；Desktop 文档归档不进主锚 |
 | [2026-08-13](./adr/2026-08-13-desktop-stream-editor-ai-review.md) | Stream / editor / AI review | High：预览非活 TipTap；动态多行剥 chrome；Obsidian 增补可见且剥注释 |
+| [2026-08-16](./adr/2026-08-16-memory-consolidation.md) | Memory Consolidation | 确认式画像事实生命周期：追加 / 归档到历史段 / 原位更新，对齐 mem0 ADD/UPDATE/DELETE |
 
 ---
 
