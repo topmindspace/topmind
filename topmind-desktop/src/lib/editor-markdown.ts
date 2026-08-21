@@ -58,20 +58,39 @@ export function getEditorMarkdown(
   return md;
 }
 
+/** Placeholder HTML for an empty TipTap document / path reset. */
+export const EMPTY_PREVIEW_HTML = "<p></p>";
+
+export function isEmptyPreviewHtml(html: string | null | undefined): boolean {
+  const s = String(html || "").trim();
+  return !s || s === EMPTY_PREVIEW_HTML;
+}
+
+/**
+ * Next static-preview HTML for FileEditorView.
+ * Path change: always reset (editor still holds the previous document until load).
+ * Same path: apply incoming even when empty so frontmatter-only notes do not keep the last body.
+ */
+export function nextPreviewHtml(
+  _prev: string,
+  incoming: string | null | undefined,
+  opts?: { pathChanged?: boolean },
+): string {
+  if (opts?.pathChanged) return EMPTY_PREVIEW_HTML;
+  const s = String(incoming || "").trim();
+  return s || EMPTY_PREVIEW_HTML;
+}
+
 /** HTML for static preview surface (styled with .v4-tiptap). */
 export function getEditorHtml(editor: Editor | null | undefined): string {
   if (!editor || editor.isDestroyed) return "";
   try {
-    // TipTap 3 may throw if view not mounted yet
-    if (!editor.view) return "";
+    const html = editor.getHTML();
+    if (html) return html;
   } catch {
-    return "";
+    /* TipTap 3 may throw if the view is not mounted yet */
   }
-  try {
-    return editor.getHTML() || "";
-  } catch {
-    return "";
-  }
+  return "";
 }
 
 type MarkdownParserStorage = {

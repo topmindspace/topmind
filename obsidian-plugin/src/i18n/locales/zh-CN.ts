@@ -11,7 +11,6 @@ export const zhCN = {
   // ── Quick Capture ──
   quick_capture_title: "记一下",
   quick_capture_placeholder: "在此输入...",
-  quick_capture_submit: "记下",
   quick_capture_target: "目标",
   quick_capture_target_stream: "本周动态",
   quick_capture_target_inbox: "收件箱",
@@ -233,7 +232,12 @@ export const zhCN = {
   settings_receipt_keep_desc: "写操作回执的保留份数（超出自动清理旧版）",
 
   // ── Writeback notices ──
-  notice_write_pending: "写入待确认 — 请在审阅中确认",
+  notice_write_pending: "写入待确认 — 请在侧栏「建议」中接受或拒绝",
+  notice_pending_accepted: "已写入",
+  notice_pending_rejected: "已拒绝写入",
+  pending_writes_title: "待确认写入",
+  pending_writes_accept: "接受",
+  pending_writes_reject: "拒绝",
   notice_written: "已记录",
   notice_write_failed: "记录失败",
   notice_executed: "已执行",

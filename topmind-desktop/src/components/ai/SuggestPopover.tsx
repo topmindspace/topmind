@@ -40,6 +40,7 @@ import { Tooltip } from "../ui/tooltip";
 import { ConfirmDialog } from "../ui/Dialog";
 import { shouldCloseOnScroll } from "../../lib/scroll-dismiss";
 import { useActionStore, type ActionItem } from "../../stores/action-store";
+import { suggestionApplyIsWrite, suggestionOpenPath } from "../../lib/suggest-apply-label";
 
 const PANEL_WIDTH = 400;
 const PANEL_MAX_HEIGHT = 560;
@@ -114,6 +115,7 @@ export function SuggestPopover() {
   const autoPrepare = useActionStore((s) => s.autoPrepare);
   const refresh = useActionStore((s) => s.refresh);
   const acceptItem = useActionStore((s) => s.acceptItem);
+  const openItem = useActionStore((s) => s.openItem);
   const rejectItem = useActionStore((s) => s.rejectItem);
   const dismissItem = useActionStore((s) => s.dismissItem);
   const clearDismissed = useActionStore((s) => s.clearDismissed);
@@ -336,8 +338,20 @@ export function SuggestPopover() {
                 disabled={busyId !== null || bulkBusy}
               >
                 {isBusy ? <Loader2 size={ICON.micro} className="animate-spin" /> : null}
-                {isHigh ? t("ai.suggestConfirm") : t("ai.suggestOpen")}
+                {suggestionApplyIsWrite(item.suggestionKind, item.source)
+                  ? t("ai.suggestConfirm")
+                  : t("ai.suggestOpen")}
               </button>
+              {suggestionApplyIsWrite(item.suggestionKind, item.source) && suggestionOpenPath(item) ? (
+                <button
+                  type="button"
+                  className="text-3xs text-text-tertiary hover:text-text-secondary"
+                  onClick={() => openItem(item.id)}
+                  disabled={busyId !== null || bulkBusy}
+                >
+                  {t("ai.suggestOpen")}
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="text-3xs text-text-quaternary hover:text-text-tertiary"

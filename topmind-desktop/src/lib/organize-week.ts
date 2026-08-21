@@ -4,7 +4,7 @@
  * 1. Navigate to stream (optional)
  * 2. Enqueue reconcile engine task
  * 3. Refresh activity-window suggestions + run memory/topic AI ops (confirm only)
- * 4. Quiet chip / ActionBar surface candidates — never auto-apply high-impact
+ * 4. StatusBar chip / SuggestPopover — never auto-apply high-impact
  *
  * Pure orchestration of store/event side-effects (no React).
  */
@@ -13,6 +13,7 @@ import { useViewStore } from "../stores/view-store";
 import { useActionStore } from "../stores/action-store";
 import { emitLocal } from "../plugins/host";
 import { openSuggestSurface } from "./suggest-surface";
+import { engineJobSuggestionFollowUp } from "./engine-job-follow-up";
 
 export type OrganizeWeekOptions = {
   /** Open floating TaskPanel (default true). */
@@ -21,7 +22,7 @@ export type OrganizeWeekOptions = {
   openAiPanel?: boolean;
   /** Select stream primary surface (default true). */
   selectStream?: boolean;
-  /** Run memory_organize + topic_classify and merge into ActionBar (default true). */
+  /** Run memory_organize + topic_classify and merge into the suggest confirm list (default true). */
   runActivityOps?: boolean;
   /** Force re-process AI ops even if content fingerprint unchanged. */
   forceOps?: boolean;
@@ -44,7 +45,7 @@ export async function runOrganizeWeek(opts: OrganizeWeekOptions = {}): Promise<s
     useViewStore.getState().select({ kind: "stream" });
   }
   if (openAiPanel) {
-    // Open unified 建议 confirm surface (AI rail ActionBar), not canvas list
+    // Open unified 建议 confirm surface (SuggestPopover), not a second list
     openSuggestSurface();
   }
   if (openTaskPanel) {
@@ -60,8 +61,12 @@ export async function runOrganizeWeek(opts: OrganizeWeekOptions = {}): Promise<s
       .getState()
       .runActivityOps({ force: forceOps })
       .then((r) => {
-        if (r.merged > 0) {
-          openSuggestSurface();
+        const follow = engineJobSuggestionFollowUp({
+          type: "ai_digest",
+          merged: r.merged,
+        });
+        if (follow.openSuggestSurface) {
+          openSuggestSurface({ refresh: false });
         }
       })
       .catch(() => {

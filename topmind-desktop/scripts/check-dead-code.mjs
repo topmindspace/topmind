@@ -336,6 +336,20 @@ const DEAD_PATTERNS = [
     allowIn: ["scripts/check-dead-code.mjs"],
   },
   {
+    id: "no-flat-periodic-nav-template",
+    description: "Desktop must not hardcode flat memory/periodic/${period}.md for apply/nav",
+    regex: /memory\/periodic\/\$\{period\}\.md/u,
+    scope: ["src/**/*.ts", "src/**/*.tsx"],
+    allowIn: ["scripts/check-dead-code.mjs"],
+  },
+  {
+    id: "no-recent-activity-period-stem",
+    description: "Must not use locale labels as period stems",
+    regex: /primaryPeriod \|\| \(locale === "en" \? "Recent Activity"/u,
+    scope: ["../lib/suggest-engine.mjs"],
+    allowIn: ["scripts/check-dead-code.mjs"],
+  },
+  {
     id: "connector-category-nested-v4-only",
     description: "resolveConnectorSyncCategory must read workspace.template / ingest.connectors, not deleted flat aliases",
     regex: /config\.(template|categorySeparator|connectorDefaults)\b/u,

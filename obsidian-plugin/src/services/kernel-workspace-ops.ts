@@ -16,6 +16,21 @@ import {
   mapKernelTodoItem,
 } from "../utils.ts";
 import type { StreamPeriod, TodoItem } from "../types.ts";
+import {
+  stashPendingWrite,
+  takePendingWrite,
+  listPendingWrites,
+  rejectPendingWrite,
+  restorePendingWrite,
+} from "./pending-writes.ts";
+
+export {
+  listPendingWrites,
+  rejectPendingWrite,
+  restorePendingWrite,
+  stashPendingWrite,
+  takePendingWrite,
+};
 
 export interface CaptureOpts {
   target?: "stream" | "inbox";
@@ -127,6 +142,113 @@ export function captureToWorkspace(
     }
     return { ok: true, path: relPath.replace(/\\/g, "/") };
   } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+function resolveInboxDirectory(
+  kernel: KernelApi,
+  workspaceRoot: string,
+  engineRoot: string,
+): string {
+  try {
+    const contract = kernel.loadContract(workspaceRoot);
+    const model = kernel.resolveWorkspaceModel({
+      workspaceRoot,
+      engineRoot,
+      config: contract,
+    });
+    const buffer = model.categories.find((c) => c.role === "buffer" && c.directory);
+    if (buffer?.directory) return buffer.directory;
+  } catch {
+    /* fall through */
+  }
+  try {
+    const found = fs
+      .readdirSync(workspaceRoot, { withFileTypes: true })
+      .find((e) => e.isDirectory() && /^00[ -]/.test(e.name))?.name;
+    if (found) return found;
+  } catch {
+    /* fall through */
+  }
+  return "00-Inbox";
+}
+
+/**
+ * Create an untitled inbox note via Kernel writeback (user actor, confirmed).
+ */
+export function createInboxNoteInWorkspace(
+  kernel: KernelApi,
+  workspaceRoot: string,
+  engineRoot: string,
+  opts: { now?: Date } = {},
+): { ok: boolean; path?: string; error?: string } {
+  if (!fs.existsSync(path.join(workspaceRoot, "topmind.yaml"))) {
+    return { ok: false, error: "workspace-not-ready" };
+  }
+  try {
+    const contract = kernel.loadContract(workspaceRoot);
+    const inboxDir = resolveInboxDirectory(kernel, workspaceRoot, engineRoot);
+    const absDir = path.join(workspaceRoot, inboxDir);
+    fs.mkdirSync(absDir, { recursive: true });
+    const now = opts.now instanceof Date ? opts.now : new Date();
+    const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}`;
+    let fileName = `Untitled-${ts}.md`;
+    let relPath = `${inboxDir}/${fileName}`.replace(/\\/g, "/");
+    let counter = 1;
+    while (fs.existsSync(path.join(workspaceRoot, relPath))) {
+      fileName = `Untitled-${ts}-${counter}.md`;
+      relPath = `${inboxDir}/${fileName}`.replace(/\\/g, "/");
+      counter += 1;
+    }
+    const title = fileName.replace(/\.md$/iu, "");
+    const content = `---\ncreated: ${now.toISOString()}\n---\n\n# ${title}\n\n`;
+    const result = kernel.executeWrite({
+      targetPath: path.join(workspaceRoot, relPath),
+      content,
+      workspaceRoot,
+      contract,
+      operation: "create",
+      actor: "user",
+      confirmed: true,
+      skipShadow: true,
+    });
+    if (result.pending) return { ok: false, error: "pending-confirmation" };
+    return { ok: true, path: relPath };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+/**
+ * Accept a stashed confirm-mode write and persist via Kernel writeback.
+ */
+export function acceptPendingWrite(
+  kernel: KernelApi,
+  workspaceRoot: string,
+  id: string,
+): { ok: boolean; path?: string; error?: string } {
+  const entry = takePendingWrite(id);
+  if (!entry) return { ok: false, error: "not-found" };
+  try {
+    const contract = kernel.loadContract(workspaceRoot);
+    const result = kernel.executeWrite({
+      targetPath: path.join(workspaceRoot, entry.relativePath),
+      content: entry.content,
+      workspaceRoot,
+      contract,
+      operation: "update",
+      actor: "user",
+      confirmed: true,
+      skipShadow: true,
+    });
+    if (result.pending) {
+      restorePendingWrite(entry);
+      return { ok: false, error: "pending-confirmation" };
+    }
+    return { ok: true, path: entry.relativePath };
+  } catch (err) {
+    restorePendingWrite(entry);
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
@@ -516,6 +638,7 @@ export function preciseEditWorkspace(
   count?: number;
   pending?: boolean;
   needsConfirm?: boolean;
+  pendingId?: string;
   targetPath?: string;
   replacements?: number;
   matchMode?: string;
@@ -577,10 +700,21 @@ export function preciseEditWorkspace(
       writebackModeOverride: opts.writebackMode,
     });
     if (result.pending) {
+      let pendingId: string | undefined;
+      try {
+        pendingId = stashPendingWrite({
+          relativePath: loc.rel,
+          content: applied.next,
+          toolName: "edit_file",
+        }).id;
+      } catch {
+        pendingId = undefined;
+      }
       return {
         ok: false,
         pending: true,
         needsConfirm: true,
+        pendingId,
         targetPath: loc.rel,
         replacements: 0,
         matchMode: applied.mode,
@@ -783,13 +917,13 @@ export async function runWorkspaceChatTurn(
     const applied = edits.some((e) => e.ok);
     if (isZh) {
       body = pending
-        ? "写入已挂起，请在「待确认写入」中接受或拒绝。"
+        ? "写入已挂起，请在侧栏「建议」中接受或拒绝。"
         : applied
           ? "已完成文件修改。"
           : "未能完成修改，请根据工具返回的 nearby/context 再试。";
     } else {
       body = pending
-        ? "Write is pending — accept or reject it in the pending-writes list."
+        ? "Write is pending — accept or reject it in the sidebar Suggest tab."
         : applied
           ? "Finished the file edit."
           : "Edit did not apply. Use the nearby/context from the tool result and retry.";

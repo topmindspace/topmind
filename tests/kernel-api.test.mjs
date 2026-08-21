@@ -8,6 +8,18 @@ import * as kernel from "../lib/kernel-api.mjs";
 describe("kernel-api", () => {
   it("exports version and write gate", () => {
     assert.equal(kernel.KERNEL_API_VERSION, 1);
+    assert.equal(typeof kernel.SUGGEST_CORPUS_MAX_CHARS, "number");
+    assert.equal(typeof kernel.DEFAULT_WINDOW_DAYS, "number");
+    assert.equal(typeof kernel.DEFAULT_MAX_FILES, "number");
+    assert.equal(typeof kernel.DEFAULT_MAX_PERIODS, "number");
+    assert.equal(typeof kernel.isSafePeriodStem, "function");
+    assert.equal(typeof kernel.periodStemFromCandidate, "function");
+    assert.equal(typeof kernel.periodMemoryRelPath, "function");
+    assert.equal(kernel.periodMemoryRelPath("2026-W26"), "memory/periodic/2026/2026-W26.md");
+    assert.equal(kernel.periodMemoryRelPath("undefined"), "");
+    assert.equal(kernel.periodMemoryRelPath("period"), "");
+    assert.equal(kernel.isSafePeriodStem("2026-W26"), true);
+    assert.equal(kernel.isSafePeriodStem("近期活动"), false);
     assert.equal(typeof kernel.executeWrite, "function");
     assert.equal(typeof kernel.evaluateWritePermission, "function");
     assert.equal(typeof kernel.generateSuggestions, "function");

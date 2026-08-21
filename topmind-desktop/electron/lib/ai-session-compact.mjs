@@ -7,11 +7,14 @@
  * - Preserve tool-turn gist and path receipts without full dumps
  * - Never invent user content
  *
- * Defaults are tuned for broad model compatibility (128K–1M token context windows):
- * - maxMessages: 60 (deeper turn history, safe for 128K context)
- * - keepRecent: 24 (broad working memory)
- * - maxChars: 240_000 (~80K tokens — leaves room for system prompt + tools + response in 128K context)
+ * Defaults are tuned for broad model compatibility (128K–1M token context windows).
  */
+
+export const COMPACT_DEFAULT_MAX_MESSAGES = 60;
+export const COMPACT_DEFAULT_KEEP_RECENT = 24;
+/** Total content char budget (~80K tokens; leaves room for system + tools + response). */
+export const COMPACT_DEFAULT_MAX_CHARS = 240_000;
+export const COMPACT_DEFAULT_MAX_PER_MESSAGE = 16_000;
 
 /** @typedef {{
  *   role: string,
@@ -45,19 +48,19 @@ export function estimateTokens(text) {
 /**
  * @param {CompactMessage[]} messages
  * @param {object} [opts]
- * @param {number} [opts.maxMessages] hard cap on turns sent to the model (default 60)
- * @param {number} [opts.keepRecent] full-fidelity recent messages (default 24)
- * @param {number} [opts.maxChars] total content char budget (default 240000)
+ * @param {number} [opts.maxMessages] hard cap on turns sent to the model (default COMPACT_DEFAULT_MAX_MESSAGES)
+ * @param {number} [opts.keepRecent] full-fidelity recent messages (default COMPACT_DEFAULT_KEEP_RECENT)
+ * @param {number} [opts.maxChars] total content char budget (default COMPACT_DEFAULT_MAX_CHARS)
  * @param {number} [opts.maxTokens] optional token budget (default ~80k ≈ maxChars/3)
- * @param {number} [opts.maxPerMessage] truncate single message body (default 16000)
+ * @param {number} [opts.maxPerMessage] truncate single message body (default COMPACT_DEFAULT_MAX_PER_MESSAGE)
  * @returns {{ messages: CompactMessage[], compacted: boolean, dropped: number, note: string|null, estimatedTokens: number }}
  */
 export function compactMessagesForModel(messages, opts = {}) {
-  const maxMessages = Math.max(6, Number(opts.maxMessages) || 60);
-  const keepRecent = Math.max(4, Number(opts.keepRecent) || 24);
-  const maxChars = Math.max(8000, Number(opts.maxChars) || 240_000);
+  const maxMessages = Math.max(6, Number(opts.maxMessages) || COMPACT_DEFAULT_MAX_MESSAGES);
+  const keepRecent = Math.max(4, Number(opts.keepRecent) || COMPACT_DEFAULT_KEEP_RECENT);
+  const maxChars = Math.max(8000, Number(opts.maxChars) || COMPACT_DEFAULT_MAX_CHARS);
   const maxTokens = Math.max(2000, Number(opts.maxTokens) || Math.floor(maxChars / 3));
-  const maxPerMessage = Math.max(800, Number(opts.maxPerMessage) || 16_000);
+  const maxPerMessage = Math.max(800, Number(opts.maxPerMessage) || COMPACT_DEFAULT_MAX_PER_MESSAGE);
 
   const cleaned = (Array.isArray(messages) ? messages : [])
     .filter((m) => m && (m.role === "user" || m.role === "assistant"))

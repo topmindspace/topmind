@@ -42,8 +42,10 @@ import { toastWriteback, toastWritebackError } from "../../../lib/writeback-toas
 import { displayNoteTitle } from "../../../lib/note-meta";
 import { joinMarkdownFile, splitMarkdownFile } from "../../../lib/md-frontmatter";
 import {
+  EMPTY_PREVIEW_HTML,
   getEditorHtml,
   getEditorMarkdown,
+  nextPreviewHtml,
   normalizeContentWidth,
   setEditorMarkdown,
 } from "../../../lib/editor-markdown";
@@ -316,14 +318,32 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
     editor.setEditable(canEdit);
   }, [editor, viewMode, readOnly]);
 
-  // Snapshot HTML when entering preview (or when body changes while previewing)
-  const [previewHtml, setPreviewHtml] = useState("<p></p>");
+  // Snapshot HTML when entering preview (or after load while previewing/read-only).
+  // EditorContent stays mounted (hidden) so TipTap immediatelyRender:false still has a view.
+  // FileEditorView is reused without key=path — reset on path change so empty notes
+  // cannot keep the previous document's previewHtml.
+  const [previewHtml, setPreviewHtml] = useState(EMPTY_PREVIEW_HTML);
+  const [previewEpoch, setPreviewEpoch] = useState(0);
+  const loadedPathRef = useRef<string | null>(null);
+  const bumpPreview = () => setPreviewEpoch((n) => n + 1);
+  useEffect(() => {
+    loadedPathRef.current = null;
+    setPreviewHtml((prev) => nextPreviewHtml(prev, EMPTY_PREVIEW_HTML, { pathChanged: true }));
+  }, [path]);
   useEffect(() => {
     if (viewMode !== "preview" && !readOnly) return;
-    setPreviewHtml(getEditorHtml(editor) || "<p></p>");
-    // Only depend on editor, viewMode, readOnly, and path — NOT wordCount/charCount/saveState/rawContent
-    // which change on every keystroke and cause unnecessary re-renders + flicker.
-  }, [editor, viewMode, readOnly, path]);
+    const snap = () => {
+      const ready = loadedPathRef.current === pathRef.current;
+      setPreviewHtml((prev) =>
+        nextPreviewHtml(prev, ready ? getEditorHtml(editor) : EMPTY_PREVIEW_HTML, {
+          pathChanged: !ready,
+        }),
+      );
+    };
+    snap();
+    const id = requestAnimationFrame(snap);
+    return () => cancelAnimationFrame(id);
+  }, [editor, viewMode, readOnly, previewEpoch]);
 
   /**
    * Persist body for a path. Serialized via saveChain.
@@ -461,9 +481,11 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
         const { body } = splitMarkdownFile(content);
         setEditorMarkdown(editor, body || "", { noteRelativePath: path });
         lastSerializedBodyRef.current = body || "";
+        loadedPathRef.current = path;
         setSaveState("clean");
         setCharCount(editor.storage.characterCount.characters());
         setWordCount(editor.storage.characterCount.words());
+        bumpPreview();
       } catch (e) {
         if (!cancelled) setLoadError(e instanceof Error ? e.message : String(e));
       }
@@ -554,9 +576,11 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
           const { body } = splitMarkdownFile(content);
           setEditorMarkdown(editor, body || "", { noteRelativePath: path });
           lastSerializedBodyRef.current = body || "";
+          loadedPathRef.current = path;
           setSaveState("clean");
           setCharCount(editor.storage.characterCount.characters());
           setWordCount(editor.storage.characterCount.words());
+          bumpPreview();
         } catch {
           /* ignore reload races */
         }
@@ -565,6 +589,14 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
   }, [editor, path, readOnly]);
 
   const switchViewMode = (mode: ViewMode) => {
+    if (mode === "preview") {
+      const ready = loadedPathRef.current === pathRef.current;
+      setPreviewHtml((prev) =>
+        nextPreviewHtml(prev, ready ? getEditorHtml(editor) : EMPTY_PREVIEW_HTML, {
+          pathChanged: !ready,
+        }),
+      );
+    }
     setViewMode(mode);
   };
 
@@ -934,6 +966,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
               // Keep unsaved body edits; only sync editor when clean
               if (editor && (saveStateRef.current === "clean" || saveStateRef.current === "saved")) {
                 setEditorMarkdown(editor, body || "", { noteRelativePath: path });
+                bumpPreview();
               }
             } catch {
               /* ignore reload race */
@@ -972,7 +1005,8 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
         </div>
       ) : null}
 
-      {/* Edit: TipTap surface · Preview: static HTML (same .v4-tiptap styles, reliable paint) */}
+      {/* Edit: TipTap surface · Preview: static HTML (same .v4-tiptap styles).
+          EditorContent stays mounted (hidden) so immediatelyRender:false still has a view. */}
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div
           className={cn(
@@ -980,6 +1014,24 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
             (viewMode === "preview" || readOnly) && "v4-md-preview",
           )}
         >
+          <div
+            className={cn((viewMode === "preview" || readOnly) && "hidden")}
+            aria-hidden={viewMode === "preview" || readOnly}
+          >
+            <div
+              className="contents"
+              onContextMenu={(e) => {
+                if (readOnly || viewMode !== "edit") return;
+                e.preventDefault();
+                setEditorMenu({ x: e.clientX, y: e.clientY });
+              }}
+            >
+              <EditorContent editor={editor} className="v4-editor-content allow-native-context" />
+              {viewMode === "edit" && !readOnly ? (
+                <SelectionAiBar editor={editor} readOnly={readOnly} notePath={path} frontmatter={splitMarkdownFile(rawContent).frontmatterBlock} />
+              ) : null}
+            </div>
+          </div>
           {viewMode === "preview" || readOnly ? (
             <div
               className="v4-editor-body v4-tiptap allow-native-context"
@@ -998,19 +1050,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
                 });
               }}
             />
-          ) : (
-            <div
-              className="contents"
-              onContextMenu={(e) => {
-                if (readOnly) return;
-                e.preventDefault();
-                setEditorMenu({ x: e.clientX, y: e.clientY });
-              }}
-            >
-              <EditorContent editor={editor} className="v4-editor-content allow-native-context" />
-              <SelectionAiBar editor={editor} readOnly={readOnly} notePath={path} frontmatter={splitMarkdownFile(rawContent).frontmatterBlock} />
-            </div>
-          )}
+          ) : null}
         </div>
       </div>
 

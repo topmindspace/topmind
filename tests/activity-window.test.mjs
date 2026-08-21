@@ -13,8 +13,15 @@ import {
   appendToStreamEntry,
   formatAppendBlock,
   isPeriodNoteFileName,
+  isSafePeriodStem,
+  periodStemFromFileName,
+  periodStemFromCandidate,
   classifyActivityPath,
   periodItemsFromWindow,
+  SUGGEST_CORPUS_MAX_CHARS,
+  DEFAULT_WINDOW_DAYS,
+  DEFAULT_MAX_FILES,
+  DEFAULT_MAX_PERIODS,
 } from "../lib/activity-window.mjs";
 
 import { fileURLToPath } from "node:url";
@@ -64,6 +71,23 @@ describe("activity-window helpers", () => {
     assert.equal(classifyActivityPath("memory/profile.md"), "memory");
     assert.equal(classifyActivityPath("20-专题/2026-foo/topic.md"), "topic");
     assert.equal(classifyActivityPath("20-专题/2026-foo/note.md"), "note");
+  });
+
+  it("resolves a period stem from filename/path/candidate and rejects fallbacks", () => {
+    assert.equal(isSafePeriodStem("2026-W26"), true);
+    assert.equal(isSafePeriodStem("2026-08-03"), true);
+    assert.equal(isSafePeriodStem("undefined"), false);
+    assert.equal(isSafePeriodStem("period"), false);
+    assert.equal(isSafePeriodStem("近期活动"), false);
+    assert.equal(isSafePeriodStem("Recent Activity"), false);
+    assert.equal(isSafePeriodStem("10-动态/2026/2026-W26.md"), false);
+    assert.equal(periodStemFromFileName("10-动态/2026/2026-W26.md"), "2026-W26");
+    assert.equal(periodStemFromFileName("2026-W26.md"), "2026-W26");
+    assert.equal(periodStemFromCandidate({ path: "/ws/10-动态/2026/2026-W20.md", periodsOld: 5 }), "2026-W20");
+    assert.equal(periodStemFromCandidate({ period: "2026-W30" }), "2026-W30");
+    assert.equal(periodStemFromCandidate({ path: "/tmp/notes.md", periodsOld: 4 }), null);
+    assert.equal(periodStemFromCandidate("undefined"), null);
+    assert.equal(periodStemFromCandidate("近期活动"), null);
   });
 
   it("parses append markers including parent path", () => {
@@ -191,6 +215,19 @@ describe("resolveActivityWindow", () => {
     const corpus = buildActivityCorpus(win, { maxChars: 4000 });
     assert.ok(corpus.length > 20);
     assert.match(corpus, /### /u);
+  });
+
+  it("resolveActivityWindow and buildActivityCorpus default to shipped caps", () => {
+    const win = resolveActivityWindow({
+      workspaceRoot: root,
+      engineRoot,
+    });
+    assert.equal(win.meta.windowDays, DEFAULT_WINDOW_DAYS);
+    assert.equal(win.meta.maxFiles, DEFAULT_MAX_FILES);
+    assert.ok(win.items.length <= DEFAULT_MAX_FILES);
+    assert.ok(periodItemsFromWindow(win).length <= DEFAULT_MAX_PERIODS);
+    const corpus = buildActivityCorpus(win);
+    assert.ok(corpus.length <= SUGGEST_CORPUS_MAX_CHARS);
   });
 
   it("does not treat 99-归档 as activity source", () => {

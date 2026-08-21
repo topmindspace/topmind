@@ -7,6 +7,7 @@
  * - Article-like sections: title + summary affordance
  */
 
+import { stripHtmlCommentsForPreview } from "./stream-md-preview";
 import {
   countStreamAppends,
   extractBodyTimestamp,
@@ -41,14 +42,14 @@ export type StreamFeedRow = {
 export function classifyStreamEntry(
   entry: Pick<StreamEntry, "heading" | "body" | "preview" | "isAppend">,
 ): StreamEntryKind {
-  if (entry.isAppend) return "append";
   const h = String(entry.heading || "").trim();
   const body = String(entry.body || "");
 
-  // Named non-day ## sections → article card (title = heading)
+  // Named non-day ## sections → article card even when the body includes 增补.
   if (h && !isDayLikeHeading(h) && !STRUCTURAL_HEADINGS.has(h)) {
     return "article";
   }
+  if (entry.isAppend) return "append";
 
   const hasListLead = /^\s*[-*+]\s+\S/mu.test(body) || /^\s*\d+\.\s+\S/mu.test(body);
   const time = extractBodyTimestamp(body);
@@ -153,13 +154,14 @@ export function streamArticleSummary(
   maxLen = 120,
 ): string {
   const title = streamArticleTitle(entry);
-  let text = String(entry.rest || entry.body || entry.preview || "")
+  let text = stripHtmlCommentsForPreview(String(entry.rest || entry.body || entry.preview || ""))
+    .replace(/^#{1,4}\s*续\s*[·•.].*$/gmu, "")
     .replace(/^\s*#+\s*.+$/mu, "")
     .replace(/^\s*[-*+]\s+/gmu, "")
     .replace(/\s+/gu, " ")
     .trim();
   if (text.startsWith(title)) text = text.slice(title.length).trim();
-  if (!text) text = String(entry.preview || "").trim();
+  if (!text) text = stripHtmlCommentsForPreview(String(entry.preview || "")).trim();
   if (text === title) return "";
   return text.length > maxLen ? `${text.slice(0, maxLen - 1)}…` : text;
 }

@@ -31,6 +31,52 @@ test("normalizeContentWidth accepts known modes and defaults to reading", async 
   assert.match(fnBody, /setContent\(body/);
 });
 
+test("getEditorHtml is empty without an editor", async () => {
+  const { getEditorHtml } = await import(
+    pathToFileURL(path.join(root, "src/lib/editor-markdown.ts")).href
+  );
+  assert.equal(getEditorHtml(null), "");
+  assert.equal(getEditorHtml(undefined), "");
+  assert.equal(getEditorHtml({ isDestroyed: true }), "");
+});
+
+test("nextPreviewHtml resets on path change; empty B does not keep A's HTML", async () => {
+  const { nextPreviewHtml, EMPTY_PREVIEW_HTML, isEmptyPreviewHtml } = await import(
+    pathToFileURL(path.join(root, "src/lib/editor-markdown.ts")).href
+  );
+  const noteA = "<p>Note A body</p>";
+  // Path change while editor still holds A — must not keep A
+  assert.equal(
+    nextPreviewHtml(noteA, noteA, { pathChanged: true }),
+    EMPTY_PREVIEW_HTML,
+  );
+  assert.equal(
+    nextPreviewHtml(noteA, "", { pathChanged: true }),
+    EMPTY_PREVIEW_HTML,
+  );
+  // Post-load of empty / frontmatter-only note B
+  assert.equal(
+    nextPreviewHtml(EMPTY_PREVIEW_HTML, "", { pathChanged: false }),
+    EMPTY_PREVIEW_HTML,
+  );
+  assert.equal(
+    nextPreviewHtml(EMPTY_PREVIEW_HTML, "<p></p>", { pathChanged: false }),
+    EMPTY_PREVIEW_HTML,
+  );
+  assert.ok(isEmptyPreviewHtml(nextPreviewHtml(noteA, "<p></p>", { pathChanged: false })));
+  // Same-path load of real content
+  assert.equal(
+    nextPreviewHtml(EMPTY_PREVIEW_HTML, "<p>Note B</p>", { pathChanged: false }),
+    "<p>Note B</p>",
+  );
+  // A → empty B: reset then apply empty — never retain A
+  const afterPath = nextPreviewHtml(noteA, noteA, { pathChanged: true });
+  const afterLoad = nextPreviewHtml(afterPath, "<p></p>", { pathChanged: false });
+  assert.equal(afterPath, EMPTY_PREVIEW_HTML);
+  assert.equal(afterLoad, EMPTY_PREVIEW_HTML);
+  assert.notEqual(afterLoad, noteA);
+});
+
 test("FileEditorView preview is static HTML with shared reading prefs (not live TipTap)", async () => {
   const fs = await import("node:fs");
   const view = fs.readFileSync(
@@ -44,13 +90,19 @@ test("FileEditorView preview is static HTML with shared reading prefs (not live 
   assert.match(view, /data-page-padding=\{pagePadding\}/);
   assert.match(view, /style=\{proseStyle\}/);
   assert.match(view, /fontSize: `\$\{editorSettings\.fontSize\}px`/);
-  // Preview branch snapshots HTML; live EditorContent is only in the edit branch
-  const previewRender = view.match(
-    /viewMode === "preview" \|\| readOnly \? \([\s\S]*?\) : \([\s\S]*?<EditorContent/,
+  // Visible preview is static HTML; TipTap stays mounted (hidden) so the view exists
+  assert.match(view, /<EditorContent/);
+  assert.match(view, /className=\{cn\(\(viewMode === "preview" \|\| readOnly\) && "hidden"\)\}/);
+  assert.match(view, /bumpPreview\(\)/);
+  assert.match(view, /nextPreviewHtml/);
+  assert.match(view, /pathChanged:\s*true/);
+  assert.match(view, /loadedPathRef/);
+  assert.match(view, /if \(mode === "preview"\)/);
+  assert.doesNotMatch(view, /html && html !== ["']<p><\/p>["']/);
+  assert.doesNotMatch(
+    view,
+    /viewMode === "preview" \|\| readOnly \? \([\s\S]*?<EditorContent/,
   );
-  assert.ok(previewRender, "expected preview ternary then EditorContent in edit branch");
-  assert.match(previewRender[0], /dangerouslySetInnerHTML/);
-  assert.match(previewRender[0], /<EditorContent/);
 });
 
 test("mergeEditorPrefs (shipped) clamps and defaults reading fields", async () => {

@@ -68,6 +68,9 @@ describe("Obsidian precise edit / read window", () => {
   let readWorkspaceWindow;
   let preciseEditWorkspace;
   let runWorkspaceChatTurn;
+  let listPendingWrites;
+  let acceptPendingWrite;
+  let clearPendingWrites;
 
   before(async () => {
     kernel = await import(pathToFileURL(path.join(repoRoot, "lib", "kernel-api.mjs")).href);
@@ -75,6 +78,9 @@ describe("Obsidian precise edit / read window", () => {
     readWorkspaceWindow = ops.readWorkspaceWindow;
     preciseEditWorkspace = ops.preciseEditWorkspace;
     runWorkspaceChatTurn = ops.runWorkspaceChatTurn;
+    listPendingWrites = ops.listPendingWrites;
+    acceptPendingWrite = ops.acceptPendingWrite;
+    clearPendingWrites = (await importShipped("services/pending-writes.ts")).clearPendingWrites;
   });
 
   before(() => {
@@ -238,7 +244,14 @@ describe("Obsidian precise edit / read window", () => {
       assert.doesNotMatch(turn.body, /did not apply|未能完成/i);
       assert.match(fs.readFileSync(path.join(confirmWs, rel), "utf8"), /old span here/);
       assert.doesNotMatch(fs.readFileSync(path.join(confirmWs, rel), "utf8"), /new span here/);
+      const pending = listPendingWrites();
+      assert.ok(pending.length >= 1, "pending write must be stashed");
+      assert.match(pending[0].content, /new span here/);
+      const accepted = acceptPendingWrite(kernel, confirmWs, pending[0].id);
+      assert.equal(accepted.ok, true, accepted.error);
+      assert.match(fs.readFileSync(path.join(confirmWs, rel), "utf8"), /new span here/);
     } finally {
+      clearPendingWrites();
       fs.rmSync(confirmWs, { recursive: true, force: true });
     }
   });

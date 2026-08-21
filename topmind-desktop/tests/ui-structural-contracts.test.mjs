@@ -109,10 +109,9 @@ test("Stream compose uses composeSubmit; placeholder avoids L1 vocabulary", () =
 
 // ── Suggest / Todo / AI calm ───────────────────────────────────────────
 
-test("ActionBar demotes when canvas strip active; format toolbar defaults expanded", () => {
+test("ActionBar demotes outside focus mode; format toolbar defaults expanded", () => {
   const bar = read("src/components/ai/ActionBar.tsx");
   assert.match(bar, /focusMode/);
-  assert.match(bar, /focusMode|SuggestEntryStrip|preparing/);
   assert.match(bar, /return null/);
 
   const editor = read("src/plugins/topmind-workspace/views/FileEditorView.tsx");
@@ -174,7 +173,9 @@ test("Browser extension popup CSS mirrors Design System brand + capture CTA", ()
 test("DESIGN.md documents core UI patterns", () => {
   const design = read("DESIGN.md");
   assert.match(design, /shadow-card|surface-elevated/);
-  assert.match(design, /SuggestEntryStrip|ActionBar.*demote/i);
+  assert.match(design, /状态栏(?:建议)?计数 chip/);
+  assert.doesNotMatch(design, /有 `items` 时画布顶 `SuggestEntryStrip`/);
+  assert.doesNotMatch(design, /AI 轨 `ActionBar` 仅为计数跳转/);
   assert.match(design, /showFormat|data-chrome-tier|TitleBar/);
   assert.match(design, /deriveStatusBarBusy/);
   assert.match(design, /FilterChip|data-filter-chip/);

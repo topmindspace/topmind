@@ -97,6 +97,36 @@ describe("lifecycle-engine scanLifecycle", () => {
       fs.rmSync(empty, { recursive: true, force: true });
     }
   });
+
+  it("streamDigest candidates carry a real period stem and yearDir relPath", () => {
+    const streamWs = makeWs("topmind-lc-digest-");
+    try {
+      const yearDir = path.join(streamWs, "10-动态", "2026");
+      fs.mkdirSync(yearDir, { recursive: true });
+      for (let w = 20; w <= 30; w++) {
+        const stem = `2026-W${String(w).padStart(2, "0")}`;
+        fs.writeFileSync(path.join(yearDir, `${stem}.md`), `# ${stem}\n\n- note for ${stem}\n`, "utf8");
+      }
+      const c = scanLifecycle({
+        workspaceRoot: streamWs,
+        contract: buildDefaultContract(),
+        engineRoot,
+      });
+      assert.ok(c.streamDigest.length > 0, "expected digest candidates beyond digest_after_periods");
+      for (const item of c.streamDigest) {
+        assert.equal(typeof item.period, "string");
+        assert.match(item.period, /^\d{4}-W\d{2}$/u);
+        assert.notEqual(item.period, "undefined");
+        assert.ok(item.path);
+        assert.ok(item.relPath);
+        assert.match(String(item.relPath).replace(/\\/g, "/"), /10-动态\/2026\/2026-W\d{2}\.md$/u);
+        assert.equal(typeof item.periodsOld, "number");
+        assert.equal(path.basename(item.path, ".md"), item.period);
+      }
+    } finally {
+      fs.rmSync(streamWs, { recursive: true, force: true });
+    }
+  });
 });
 
 describe("memory-engine layers", () => {

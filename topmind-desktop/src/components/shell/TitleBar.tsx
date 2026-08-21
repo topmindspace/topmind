@@ -758,6 +758,7 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
                 onClick={onToggleTaskPanel}
                 aria-pressed
                 data-active
+                data-task-panel-trigger
                 aria-label={t("titleBar.hideTaskPanel")}
               >
                 <ClipboardList size={ICON.sm} {...stroke} />

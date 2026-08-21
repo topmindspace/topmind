@@ -245,14 +245,9 @@ export function parsePeriodNote(markdown: string): StreamEntry[] {
       continue;
     }
 
-    // Other ## sections: soft-split if multi-bullet, else single card
-    const soft = softSplitContentEntries(heading, content);
-    if (soft.length > 1) {
-      entries.push(...soft);
-    } else {
-      const e = makeEntry(heading, content);
-      if (e) entries.push(e);
-    }
+    // Named non-day ## → one 文章卡 (keep 增补 in the body; do not soft-split)
+    const e = makeEntry(heading, content);
+    if (e) entries.push(e);
   }
 
   return entries.reverse();

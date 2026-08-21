@@ -18,7 +18,7 @@ import {
   insertMarkdownAt,
   replaceSelectionWithMarkdown,
 } from "../../lib/editor-markdown";
-import { sanitizeInlineAiResult } from "../../lib/inline-ai-result";
+import { inlineAiSelectionDrifted, sanitizeInlineAiResult } from "../../lib/inline-ai-result";
 import { useInlineAiStore } from "../../lib/inline-ai-busy";
 import { applyEditorPrefs } from "../../lib/editor-prefs";
 import {
@@ -71,17 +71,6 @@ function friendlyAiError(err: unknown, ready: boolean, t: TFunction): string {
   if (/过长|too long|32_000|20000/iu.test(raw)) return raw;
   if (/空结果|模型返回为空/iu.test(raw)) return t("selectionAi.errorModelEmpty");
   return raw;
-}
-
-/** Normalize whitespace for tolerant comparison.
- *  Trims trailing spaces per line and collapses multiple blank lines to one,
- *  so minor auto-format changes (e.g. trailing space stripped by Tiptap)
- *  don't block replacement. */
-function normalizeForCompare(s: string): string {
-  return String(s || "")
-    .replace(/[ \t]+\n/gu, "\n")
-    .replace(/\n{3,}/gu, "\n\n")
-    .trim();
 }
 
 export function useSelectionAi({
@@ -637,7 +626,7 @@ export function useSelectionAi({
       const snap = originalAtRunRef.current || target.text;
       // Use normalized comparison — minor whitespace changes (trailing spaces,
       // auto-format line breaks) should not block replacement.
-      if (normalizeForCompare(live) !== normalizeForCompare(snap)) {
+      if (inlineAiSelectionDrifted(live, snap)) {
         setError(t("selectionAi.errorSelectionChanged"));
         setPhase("error");
         setStatusHint(t("selectionAi.errorBlockReplace"));
@@ -691,7 +680,7 @@ export function useSelectionAi({
       }
       const snap = originalAtRunRef.current || target.text;
       // Use normalized comparison — minor whitespace changes should not block
-      if (normalizeForCompare(live) !== normalizeForCompare(snap)) {
+      if (inlineAiSelectionDrifted(live, snap)) {
         setError(t("selectionAi.errorSelectionChanged"));
         setPhase("error");
         setStatusHint(t("selectionAi.errorBlockReplace"));

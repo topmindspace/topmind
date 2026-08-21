@@ -84,6 +84,13 @@ describe("i18n locale key alignment", () => {
     assert.doesNotMatch(enContent, /stream_workbench_title:\s*"[^"]*Workbench/);
     assert.match(zhContent, /quick_capture_note_it:\s*"记一下"/);
     assert.match(zhContent, /quick_capture_log_it:\s*"记下"/);
+    assert.match(zhContent, /toolbar_btn_profile:\s*"我的情况"/);
+    assert.match(enContent, /toolbar_btn_profile:\s*"My profile"/);
+    assert.match(zhContent, /pending_writes_title:\s*"待确认写入"/);
+    assert.match(enContent, /pending_writes_title:\s*"Pending writes"/);
+    assert.doesNotMatch(zhContent, /notice_write_pending:\s*"[^"]*审阅/);
+    assert.doesNotMatch(zhContent, /quick_capture_submit:/);
+    assert.doesNotMatch(enContent, /quick_capture_submit:/);
   });
 });
 
@@ -246,9 +253,27 @@ describe("stream workbench display path (shipped)", () => {
     assert.match(src, /prepareStreamEntryTextForDisplay/);
     assert.match(src, /MarkdownRenderer\.render\(this\.app, displayText/);
     assert.doesNotMatch(src, /MarkdownRenderer\.render\(this\.app, entry\.text/);
-    assert.match(src, /entry\.text\.length > 600/);
+    assert.match(src, /displayText\.length > 600/);
+    assert.match(src, /navigator\.clipboard\.writeText\(copyText\)/);
     assert.match(src, /length > 20/);
     assert.doesNotMatch(src, /STREAM_EXPAND_CHAR_BUDGET=480/);
+  });
+
+  test("sidebar stream preview and createNewNote go through display strip / Kernel", () => {
+    const sidebar = fs.readFileSync(
+      path.join(srcDir, "views", "sidebar-dock-view.ts"),
+      "utf-8",
+    );
+    const workbench = fs.readFileSync(
+      path.join(srcDir, "views", "stream-workbench-view.ts"),
+      "utf-8",
+    );
+    assert.match(sidebar, /prepareStreamEntryTextForDisplay\(entry\.text\)/);
+    assert.doesNotMatch(sidebar, /entry\.text\.slice\(0,\s*80\)/);
+    assert.match(sidebar, /renderPendingWrites/);
+    assert.match(sidebar, /pending_writes_accept/);
+    assert.match(workbench, /createInboxNote/);
+    assert.doesNotMatch(workbench, /adapter\.write\(filePath/);
   });
 
   test("DESIGN/ARCHITECTURE fold copy matches shipped 600/20 not 2-line default", () => {
@@ -705,6 +730,10 @@ describe("write-path contract (structural)", () => {
     assert.ok(serviceSrc.includes("mapApplySuggestionResult"));
     assert.ok(serviceSrc.includes("toggleTodoItem"));
     assert.ok(serviceSrc.includes("runOperation"));
+    assert.ok(opsSrc.includes("createInboxNoteInWorkspace"));
+    assert.ok(opsSrc.includes("acceptPendingWrite"));
+    assert.ok(serviceSrc.includes("createInboxNoteInWorkspace"));
+    assert.ok(serviceSrc.includes("acceptPendingWrite"));
   });
 
   test("KernelApi types document real Kernel shapes", () => {
@@ -712,5 +741,37 @@ describe("write-path contract (structural)", () => {
     assert.ok(loaderSrc.includes("Promise<ListedStreamPeriod[]>"));
     assert.ok(loaderSrc.includes("changed: boolean"));
     assert.ok(loaderSrc.includes("reconcilePeriodBody("));
+  });
+
+  test("stream workbench new-note goes through Kernel writeback", () => {
+    const workbench = fs.readFileSync(
+      path.join(srcDir, "views", "stream-workbench-view.ts"),
+      "utf-8",
+    );
+    assert.match(workbench, /createInboxNote\(\)/);
+    assert.doesNotMatch(workbench, /adapter\.write/);
+  });
+});
+
+describe("pending-writes queue (shipped)", () => {
+  test("stash / list / take / reject / restore", async () => {
+    const pw = await importShipped("services/pending-writes.ts");
+    pw.clearPendingWrites();
+    const e = pw.stashPendingWrite({
+      relativePath: "20-专题/a.md",
+      content: "hello",
+      toolName: "edit_file",
+    });
+    assert.equal(pw.listPendingWrites().length, 1);
+    assert.equal(pw.listPendingWrites()[0].id, e.id);
+    assert.equal(pw.listPendingWrites()[0].relativePath, "20-专题/a.md");
+    assert.equal(pw.rejectPendingWrite("missing"), false);
+    const taken = pw.takePendingWrite(e.id);
+    assert.equal(taken?.content, "hello");
+    assert.equal(pw.listPendingWrites().length, 0);
+    pw.restorePendingWrite(taken);
+    assert.equal(pw.listPendingWrites().length, 1);
+    assert.equal(pw.rejectPendingWrite(e.id), true);
+    assert.equal(pw.listPendingWrites().length, 0);
   });
 });

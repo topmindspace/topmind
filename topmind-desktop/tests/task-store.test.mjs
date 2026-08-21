@@ -3,10 +3,20 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   keepActiveTasks,
   computeTaskPanelDragPosition,
 } from "../src/stores/task-store.ts";
+import {
+  engineJobSuggestionFollowUp,
+  shouldDismissTaskPanel,
+} from "../src/lib/engine-job-follow-up.ts";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const read = (rel) => readFileSync(path.join(root, rel), "utf8");
 import {
   parseTaskPanelPos,
   serializeTaskPanelPos,
@@ -66,4 +76,76 @@ test("task panel pos parse/serialize round-trip + clamp", () => {
   const end = computeTaskPanelDragPosition(start, 50, 70);
   saveTaskPanelPos(end, (k, v) => bag.set(k, v));
   assert.deepEqual(loadTaskPanelPos((k) => bag.get(k) ?? null), end);
+});
+
+test("ai_digest after runActivityOps does not request suggestions:refresh", () => {
+  const none = engineJobSuggestionFollowUp({ type: "ai_digest", merged: 0, suggestionCount: 0 });
+  assert.equal(none.emitSuggestionsRefresh, false);
+  assert.equal(none.openSuggestSurface, false);
+
+  const merged = engineJobSuggestionFollowUp({ type: "ai_digest", merged: 2, suggestionCount: 2 });
+  assert.equal(merged.emitSuggestionsRefresh, false);
+  assert.equal(merged.openSuggestSurface, true);
+  assert.equal(merged.emitWorkspaceFileChanged, false);
+});
+
+test("reconcile requests refresh only when changed or candidates exist", () => {
+  const idle = engineJobSuggestionFollowUp({ type: "reconcile", changed: false, hasCandidates: false });
+  assert.equal(idle.emitSuggestionsRefresh, false);
+  assert.equal(idle.openSuggestSurface, false);
+  assert.equal(idle.emitWorkspaceFileChanged, false);
+
+  const changed = engineJobSuggestionFollowUp({ type: "reconcile", changed: true, hasCandidates: false });
+  assert.equal(changed.emitSuggestionsRefresh, true);
+  assert.equal(changed.openSuggestSurface, false);
+  assert.equal(changed.emitWorkspaceFileChanged, true);
+
+  const cands = engineJobSuggestionFollowUp({ type: "reconcile", changed: false, hasCandidates: true });
+  assert.equal(cands.emitSuggestionsRefresh, true);
+  assert.equal(cands.openSuggestSurface, true);
+});
+
+test("shouldDismissTaskPanel: Esc always; outside only when idle", () => {
+  assert.equal(shouldDismissTaskPanel({ runningOrQueued: true, event: "escape" }), true);
+  assert.equal(shouldDismissTaskPanel({ runningOrQueued: false, event: "escape" }), true);
+  assert.equal(shouldDismissTaskPanel({ runningOrQueued: true, event: "outside-click" }), false);
+  assert.equal(shouldDismissTaskPanel({ runningOrQueued: false, event: "outside-click" }), true);
+  assert.equal(shouldDismissTaskPanel({ runningOrQueued: true, event: "outside-scroll" }), false);
+  assert.equal(shouldDismissTaskPanel({ runningOrQueued: false, event: "outside-scroll" }), true);
+});
+
+test("task-store ai_digest uses follow-up helper; no post-merge suggestions:refresh", () => {
+  const store = read("src/stores/task-store.ts");
+  assert.match(store, /engineJobSuggestionFollowUp/);
+  assert.match(store, /runActivityOps/);
+  assert.doesNotMatch(store, /applySuggestion/);
+  assert.doesNotMatch(store, /writePeriodDigest/);
+  assert.doesNotMatch(store, /maintainTodos/);
+  const digestBlock = store.slice(store.indexOf('case "ai_digest"'));
+  assert.match(digestBlock, /runActivityOps/);
+  assert.match(digestBlock, /engineJobSuggestionFollowUp/);
+  assert.doesNotMatch(digestBlock, /SUGGESTIONS_REFRESH_EVENT/);
+  assert.doesNotMatch(digestBlock, /reason:\s*"ai_digest"/);
+  assert.match(digestBlock, /suggest-surface:open/);
+  const reconcileBlock = store.slice(store.indexOf('case "reconcile"'), store.indexOf('case "ai_digest"'));
+  assert.match(reconcileBlock, /engineJobSuggestionFollowUp/);
+  assert.match(reconcileBlock, /SUGGESTIONS_REFRESH_EVENT/);
+});
+
+test("task list empty actions are the two engine jobs only; no ListTodo", () => {
+  const body = read("src/components/ai/task-list-body.tsx");
+  assert.match(body, /createTask\("reconcile"\)/);
+  assert.match(body, /createTask\("ai_digest"\)/);
+  assert.doesNotMatch(body, /ListTodo/);
+  const creates = body.match(/createTask\("([^"]+)"\)/g) || [];
+  assert.deepEqual(creates, ['createTask("reconcile")', 'createTask("ai_digest")']);
+});
+
+test("TaskPanel Esc-to-close uses shipped dismiss helper", () => {
+  const src = read("src/components/ai/TaskPanel.tsx");
+  assert.match(src, /shouldDismissTaskPanel/);
+  assert.match(src, /e\.key !== "Escape"|e\.key === "Escape"/);
+  assert.match(src, /keydown/);
+  assert.match(src, /shouldCloseOnScroll/);
+  assert.match(src, /data-task-panel/);
 });

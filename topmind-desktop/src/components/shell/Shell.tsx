@@ -123,9 +123,12 @@ export function Shell({ settings }: ShellProps) {
 
   // Unified 建议 entry (task-store / bus) → SuggestPopover via openSuggestSurface
   useEffect(() => {
-    return onLocal("suggest-surface:open", () => {
+    return onLocal("suggest-surface:open", (payload) => {
       void import("../../lib/suggest-surface").then(({ openSuggestSurface }) => {
-        openSuggestSurface();
+        const refresh = payload && typeof payload === "object" ? payload.refresh : undefined;
+        openSuggestSurface(
+          refresh === false ? { refresh: false } : refresh === true ? { refresh: true } : undefined,
+        );
       });
     });
   }, []);

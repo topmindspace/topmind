@@ -47,22 +47,45 @@ export function resolveNoteMediaPath(noteRelativePath: string, mediaRel: string)
   return normalizePosix(joined);
 }
 
+function isRemoteOrAssetUrl(url: string): boolean {
+  const u = String(url || "").trim();
+  return !u || /^(https?:|data:|topmind-asset:|blob:)/iu.test(u) || u.startsWith("//");
+}
+
+/** Rewrite src= on HTML <img> tags. Leaves the tag unchanged when rewrite returns null. */
+function rewriteHtmlImgSrc(
+  html: string,
+  rewrite: (url: string) => string | null,
+): string {
+  return String(html || "").replace(/<img\b[^>]*>/giu, (tag) =>
+    tag.replace(/\bsrc\s*=\s*(["'])([^"']*)\1/iu, (full, q, url) => {
+      const next = rewrite(String(url || "").trim());
+      return next == null ? full : `src=${q}${next}${q}`;
+    }),
+  );
+}
+
 /**
  * Disk markdown → editor markdown (relative images become topmind-asset URLs).
+ * Covers `![alt](url)` and HTML `<img src>` (TipTap html:true may emit either).
  */
 export function mediaUrlsForEditor(markdown: string, noteRelativePath: string): string {
-  return String(markdown || "").replace(
+  let out = String(markdown || "").replace(
     /!\[([^\]]*)\]\(\s*<?([^)\s>]+)>?(?:\s+(?:"[^"]*"|'[^']*'))?\s*\)/giu,
     (full, alt, rawUrl) => {
       const url = String(rawUrl || "").trim();
-      if (!url) return full;
-      if (/^(https?:|data:|topmind-asset:|blob:)/iu.test(url)) return full;
-      if (url.startsWith("//")) return full;
+      if (isRemoteOrAssetUrl(url)) return full;
       const absRel = resolveNoteMediaPath(noteRelativePath, url);
       if (!absRel) return full;
       return `![${alt}](${ASSET_PREFIX}${absRel})`;
     },
   );
+  out = rewriteHtmlImgSrc(out, (url) => {
+    if (isRemoteOrAssetUrl(url)) return null;
+    const absRel = resolveNoteMediaPath(noteRelativePath, url);
+    return absRel ? `${ASSET_PREFIX}${absRel}` : null;
+  });
+  return out;
 }
 
 /**
@@ -70,15 +93,18 @@ export function mediaUrlsForEditor(markdown: string, noteRelativePath: string): 
  */
 export function mediaUrlsForDisk(markdown: string, noteRelativePath: string): string {
   const dir = noteDir(noteRelativePath);
-  return String(markdown || "").replace(
+  const toRelative = (absRelRaw: string): string => {
+    const absRel = normalizePosix(decodeURIComponent(String(absRelRaw || "")));
+    if (dir && absRel.startsWith(`${dir}/`)) return absRel.slice(dir.length + 1);
+    return absRel;
+  };
+  let out = String(markdown || "").replace(
     /!\[([^\]]*)\]\(\s*topmind-asset:\/\/local\/([^)\s]+)\s*\)/giu,
-    (_full, alt, absRelRaw) => {
-      const absRel = normalizePosix(decodeURIComponent(String(absRelRaw || "")));
-      let rel = absRel;
-      if (dir && absRel.startsWith(`${dir}/`)) {
-        rel = absRel.slice(dir.length + 1);
-      }
-      return `![${alt}](${rel})`;
-    },
+    (_full, alt, absRelRaw) => `![${alt}](${toRelative(absRelRaw)})`,
   );
+  out = rewriteHtmlImgSrc(out, (url) => {
+    const m = url.match(/^topmind-asset:\/\/local\/(.+)$/iu);
+    return m ? toRelative(m[1] || "") : null;
+  });
+  return out;
 }

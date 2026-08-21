@@ -115,4 +115,27 @@ describe("stream-entry-present", () => {
     assert.ok(streamArticleSummary(entry).includes("摘要"));
     assert.ok(STREAM_EXPAND_CHAR_BUDGET >= 180);
   });
+
+  it("named heading stays article even when body includes 增补", () => {
+    assert.equal(
+      classifyStreamEntry({
+        heading: "产品方案草稿",
+        body: "正文\n\n<!-- topmind:append parent=\"x\" -->\n#### 续 · later\nmore",
+        preview: "正文",
+        isAppend: true,
+      }),
+      "article",
+    );
+  });
+
+  it("article summary strips HTML comments for display only", () => {
+    const summary = streamArticleSummary({
+      heading: "研究笔记",
+      body: "研究笔记\n\n<!-- topmind:append parent=\"x\" heading=\"h\" -->\n可见摘要。",
+      preview: "研究笔记",
+      rest: "<!-- topmind:append parent=\"x\" --> 可见摘要。",
+    });
+    assert.doesNotMatch(summary, /topmind:append/);
+    assert.match(summary, /可见摘要/);
+  });
 });

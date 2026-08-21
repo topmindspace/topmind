@@ -1,6 +1,10 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { sanitizeInlineAiResult } from "../electron/lib/inline-ai-result.mjs";
+import {
+  sanitizeInlineAiResult as sanitizeInlineAiResultRenderer,
+  inlineAiSelectionDrifted,
+} from "../src/lib/inline-ai-result.ts";
 
 describe("sanitizeInlineAiResult", () => {
   it("returns clean prose unchanged", () => {
@@ -66,5 +70,25 @@ Hello world`;
   it("collapses extra blank lines between same-type list items", () => {
     assert.equal(sanitizeInlineAiResult("- a\n\n- b\n\n- c"), "- a\n- b\n- c");
     assert.equal(sanitizeInlineAiResult("1. a\n\n2. b"), "1. a\n2. b");
+  });
+
+  it("think-only payload becomes empty (must not persist)", () => {
+    assert.equal(sanitizeInlineAiResult("<think>only thinking</think>"), "");
+  });
+
+  it("renderer sanitize matches main-process for think/meta/fence vectors", () => {
+    const vectors = [
+      "<think>plan</think>\n\nVisible",
+      "```thinking\nsecret\n```\n\nBody",
+      "Here is the rewritten version:\n\nClean.",
+      "思考过程：内部\n\n# 标题\n正文",
+      "好文案。\n\n---\n说明：改了结构",
+    ];
+    for (const raw of vectors) {
+      assert.equal(sanitizeInlineAiResultRenderer(raw), sanitizeInlineAiResult(raw), raw);
+    }
+    assert.equal(inlineAiSelectionDrifted("hello", "hello"), false);
+    assert.equal(inlineAiSelectionDrifted("hello  \nworld", "hello\nworld"), false);
+    assert.equal(inlineAiSelectionDrifted("hello", "hello edited"), true);
   });
 });

@@ -14,6 +14,7 @@ import { PENDING_WRITES_CHANGED_EVENT, SUGGESTIONS_REFRESH_EVENT } from '../lib/
 import { toastWriteback, toastWritebackError } from '../lib/writeback-toast';
 import { mergeSuggestRefreshItems } from '../lib/suggest-session-merge';
 import { decideSuggestRefresh } from '../lib/suggest-boot-policy';
+import { suggestionNavPathAfterApply, suggestionOpenPath } from '../lib/suggest-apply-label';
 import { useViewStore } from './view-store';
 import i18n from '../locales';
 
@@ -111,6 +112,8 @@ interface ActionStore {
   // 操作
   /** Accept a suggestion or confirm a pending write. opts.skipNav suppresses navigation (used by acceptAll). */
   acceptItem: (id: string, opts?: { skipNav?: boolean }) => Promise<void>;
+  /** Open the existing associated note (周期本 / profile) without writing. */
+  openItem: (id: string) => void;
   rejectItem: (id: string) => Promise<void>;  // 忽略建议或拒绝写入
   dismissItem: (id: string) => void;  // 仅从 UI 隐藏（不调后端），并记住 dismiss 以避免重复
   clearDismissed: () => void;  // 清除 dismiss 记忆（手动刷新时）
@@ -402,7 +405,8 @@ export const useActionStore = create<ActionStore>((set, get) => ({
           return;
         }
 
-        // Navigation: skip during bulk acceptAll to prevent editor blanking
+        // Navigation: skip during bulk acceptAll to prevent editor blanking.
+        // Digest writes navigate via apply evidence (year subdirectory under memory/periodic).
         if (!skipNav) {
           if (item.suggestionKind === 'inbox_review' || item.suggestionKind === 'stale_topic' || item.suggestionKind === 'catch_all') {
             select({ kind: 'stream' });
@@ -412,8 +416,9 @@ export const useActionStore = create<ActionStore>((set, get) => ({
           } else if (item.suggestionKind === 'create_topic' && res.targetPath && res.ok !== false) {
             // Content-category topic — open topic.md under the category (never memory/topics)
             select({ kind: 'file', path: String(res.targetPath) });
-          } else if (res.targetPath && res.wroteFiles !== false && res.ok) {
-            select({ kind: 'file', path: String(res.targetPath) });
+          } else {
+            const nav = suggestionNavPathAfterApply(res);
+            if (nav) select({ kind: 'file', path: nav });
           }
         }
 
@@ -459,6 +464,14 @@ export const useActionStore = create<ActionStore>((set, get) => ({
     } finally {
       set({ busyId: null });
     }
+  },
+
+  openItem: (id: string) => {
+    const item = get().items.find((x) => x.id === id);
+    if (!item) return;
+    const path = suggestionOpenPath(item);
+    if (!path) return;
+    useViewStore.getState().select({ kind: "file", path });
   },
 
   rejectItem: async (id: string) => {

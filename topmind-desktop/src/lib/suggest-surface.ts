@@ -1,8 +1,8 @@
 /**
  * Unified 建议 surface — global header-centric confirm panel.
  *
- * Entry: TitleBar Lightbulb + StatusBar suggest-count chip + quiet strip when
- * count>0 or preparing.
+ * Entry: TitleBar Lightbulb + StatusBar suggest-count chip (count>0).
+ * Focus-mode AI-rail ActionBar is a fallback when the status bar is hidden.
  * Confirm: SuggestPopover (primary) — not buried only in AI chat rail.
  * 个人清单 stays TodoPopover — never merged here.
  *

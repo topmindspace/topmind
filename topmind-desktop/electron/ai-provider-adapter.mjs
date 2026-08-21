@@ -21,50 +21,45 @@ import { logInfo, logError } from "./lib/writeback.mjs";
  * Modern models (GPT-4.1, Claude 4, Gemini 2.5) support 16K+ output tokens.
  * Defaults are tuned for structured output reliability without over-spending.
  *
- * Operation-type-based defaults (callers can set context.operation):
- * - Topic summaries (multi-file): up to 8K tokens
- * - Period analysis/digest (structured Markdown): ~4K tokens
- * - Inbox organize (JSON array): ~4K tokens
- * - Memory organize (JSON with arrays): ~4K tokens
- * - Todo extraction (short lines): ~2K tokens
- * - Topic classify (small JSON array): ~2K tokens
+ * Operation-type-based defaults live in OP_LIMITS (callers can set context.operation).
  *
  * @param {object} context - Caller-provided context metadata
  * @param {number} [promptLen] - Prompt length (for heuristic fallback)
  * @returns {number}
  */
-function resolveMaxTokens(context, promptLen = 0) {
+export const OP_LIMITS = {
+  topic_summary: 16384,     // Multi-file summaries can be long
+  period_analysis: 12288,    // Structured Markdown with 4 sections
+  period_digest: 12288,      // Structured Markdown with 3 sections
+  inbox_organize: 12288,     // JSON array with multiple items
+  memory_extract: 4096,      // 1-3 short lines
+  memory_organize: 12288,    // JSON with profile array + periodic text
+  todo_extract: 12288,       // Todo list items
+  todo_maintain: 12288,      // Todo maintenance operations
+  topic_classify: 4096,      // Small JSON array (max 3 items)
+};
+
+const DEFAULT_OUTPUT_TOKENS = OP_LIMITS.todo_maintain;
+
+export function resolveMaxTokens(context, promptLen = 0) {
   // Explicit override — highest priority
   if (typeof context.maxOutputTokens === "number" && context.maxOutputTokens > 0) {
     return context.maxOutputTokens;
   }
 
-  // Operation-type-based defaults
-  const OP_LIMITS = {
-    topic_summary: 16384,     // Multi-file summaries can be long
-    period_analysis: 12288,    // Structured Markdown with 4 sections
-    period_digest: 12288,      // Structured Markdown with 3 sections
-    inbox_organize: 12288,     // JSON array with multiple items
-    memory_extract: 4096,      // 1-3 short lines
-    memory_organize: 12288,    // JSON with profile array + periodic text
-    todo_extract: 12288,       // Todo list items
-    todo_maintain: 12288,      // Todo maintenance operations
-    topic_classify: 4096,      // Small JSON array (max 3 items)
-  };
   if (context.operation && OP_LIMITS[context.operation]) {
     return OP_LIMITS[context.operation];
   }
 
   // Heuristic: infer from context shape (backward compat for callers without `operation`)
-  if (context.topicPath) return 16384;  // Topic summary path
-  if (context.periodFile) return 12288;  // Period digest path
-  if (context.period || context.sourcePath === "activity-window") return 12288;
+  if (context.topicPath) return OP_LIMITS.topic_summary;
+  if (context.periodFile) return OP_LIMITS.period_digest;
+  if (context.period || context.sourcePath === "activity-window") return OP_LIMITS.period_analysis;
 
   // Prompt-length heuristic: long prompts likely need more output space
-  if (promptLen > 6000) return 12288;
+  if (promptLen > 6000) return DEFAULT_OUTPUT_TOKENS;
 
-  // Default: 12288 (prevents truncation of structured output for high-output 2026 models)
-  return 12288;
+  return DEFAULT_OUTPUT_TOKENS;
 }
 
 /**

@@ -252,7 +252,8 @@ describe("applySuggestion stream_digest / ai_summary", () => {
     });
     assert.equal(result.ok, true);
     assert.equal(result.wroteFiles, true);
-    const text = fs.readFileSync(path.join(ws, "memory/periodic/2026/2026-W30.md"), "utf8");
+    assert.equal(result.targetPath, "memory/periodic/2026/2026-W30.md");
+    const text = fs.readFileSync(path.join(ws, result.targetPath), "utf8");
     assert.match(text, /mock 真实反思 A/);
     assert.doesNotMatch(text, /待摘要|待 AI 生成|待反思/);
   });

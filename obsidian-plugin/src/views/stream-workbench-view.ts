@@ -350,50 +350,18 @@ export class StreamWorkbenchView extends ItemView {
     await leaf.setViewState({ type: VIEW_TYPE_SIDEBAR_DOCK, active: true });
   }
 
-  /** Create a new note in the inbox (buffer) directory.
-   *  Uses Obsidian's native file creation API to create a new untitled
-   *  note in the inbox folder, then opens it in the editor. */
+  /** Create a new untitled inbox note via Kernel writeback, then open it. */
   private async createNewNote(): Promise<void> {
     if (!this.plugin.kernelService.isWorkspaceReady()) {
       new Notice(t("notice_workspace_not_ready"));
       return;
     }
-    const model = this.plugin.kernelService.getResolvedModel();
-    const buffer = model.categories.find((c) => c.role === "buffer");
-    if (!buffer) {
-      new Notice(t("notice_no_inbox"));
-      return;
-    }
 
     try {
-      const adapter = this.app.vault.adapter;
-      const inboxPath = buffer.directory;
-      // Ensure the folder exists
-      if (!await adapter.exists(inboxPath)) {
-        await adapter.mkdir(inboxPath);
-      }
+      const created = this.plugin.kernelService.createInboxNote();
+      if (!created.ok || !created.path) return;
 
-      // Generate a unique filename with timestamp
-      const now = new Date();
-      const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}`;
-      let fileName = `Untitled-${ts}.md`;
-      let filePath = `${inboxPath}/${fileName}`;
-      let counter = 1;
-      while (await adapter.exists(filePath)) {
-        fileName = `Untitled-${ts}-${counter}.md`;
-        filePath = `${inboxPath}/${fileName}`;
-        counter++;
-      }
-
-      // Create the file with minimal frontmatter
-      const content = `---\ncreated: ${now.toISOString()}\n---\n\n# ${fileName.replace(/\.md$/, "")}\n\n`;
-      await adapter.write(filePath, content);
-
-      // Open the new file in the editor
-      const file = this.app.vault.getAbstractFileByPath(filePath);
-      if (file && "stat" in file) {
-        await this.app.workspace.getLeaf(false).openFile(file as import("obsidian").TFile);
-      }
+      await this.app.workspace.openLinkText(created.path, "", false);
       new Notice(t("notice_new_note_created"));
     } catch (err) {
       console.error("[topmind] createNewNote failed:", err);
@@ -641,7 +609,8 @@ export class StreamWorkbenchView extends ItemView {
     setIcon(copyBtn, "copy");
     copyBtn.addEventListener("click", (e: MouseEvent) => {
       e.stopPropagation();
-      navigator.clipboard.writeText(entry.text).then(() => {
+      const copyText = prepareStreamEntryTextForDisplay(entry.text);
+      navigator.clipboard.writeText(copyText).then(() => {
         new Notice(t("stream_card_copied"));
       });
     });
@@ -659,9 +628,9 @@ export class StreamWorkbenchView extends ItemView {
 
     // Collapse only very long cards (>600 chars or >20 non-empty lines).
     // Desktop feed expand is 480/8; this page uses a looser 600/20 so more cards stay open.
-    const isLongContent = entry.text.length > 600 || entry.text.split("\n").filter((l: string) => l.trim()).length > 20;
-    const body = card.createDiv({ cls: isLongContent ? "tm-card-body tm-collapsed" : "tm-card-body" });
     const displayText = prepareStreamEntryTextForDisplay(entry.text);
+    const isLongContent = displayText.length > 600 || displayText.split("\n").filter((l: string) => l.trim()).length > 20;
+    const body = card.createDiv({ cls: isLongContent ? "tm-card-body tm-collapsed" : "tm-card-body" });
     if (displayText) {
       try {
         await MarkdownRenderer.render(this.app, displayText, body, "", this);

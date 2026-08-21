@@ -6,11 +6,12 @@ import { api } from "../services/api";
 import i18n from "../locales";
 import { emitLocal } from "../plugins/host";
 import { SUGGESTIONS_REFRESH_EVENT } from "../lib/ai-rail-events";
+import { engineJobSuggestionFollowUp } from "../lib/engine-job-follow-up";
 
 /**
  * Supported engine tasks.
  * - reconcile: deterministic period-note cleanup (dedup, completion detection)
- * - ai_digest: AI-powered period analysis and digest generation (real LLM call)
+ * - ai_digest: activity-window analysis → confirm-shaped suggestion cards (no silent write)
  * digest / promote / archive are **suggestion-strip** apply paths (confirm-first),
  * not fake background task buttons — keep TaskType honest.
  */
@@ -192,18 +193,23 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
           });
           // Notify completion via toast so StatusBar doesn't need a persistent completion state
           emitLocal("toast:show", i18n.t("shell:taskPanel.reconcileDone", { ns: "shell" }));
-          // Candidates from organize → refresh AI suggestion strip + open rail
           const cand = (result as { candidates?: { core?: unknown[]; topics?: unknown[] } })?.candidates;
           const hasCandidates =
             Boolean(cand?.core && cand.core.length > 0)
             || Boolean(cand?.topics && cand.topics.length > 0);
-          if (hasCandidates || result.changed) {
+          const follow = engineJobSuggestionFollowUp({
+            type: "reconcile",
+            changed: Boolean(result.changed),
+            hasCandidates,
+          });
+          if (follow.emitSuggestionsRefresh) {
             emitLocal(SUGGESTIONS_REFRESH_EVENT, { reason: "reconcile" });
+          }
+          if (follow.emitWorkspaceFileChanged) {
             emitLocal("workspace:file-changed");
           }
-          if (hasCandidates) {
-            // Unified 建议 confirm surface (open rail + expand ActionBar)
-            emitLocal("suggest-surface:open");
+          if (follow.openSuggestSurface) {
+            emitLocal("suggest-surface:open", { refresh: false });
           }
           break;
         }
@@ -243,12 +249,14 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
             },
           });
 
-          // Notify completion via toast
           emitLocal("toast:show", i18n.t("shell:taskPanel.aiDigestDoneToast", { ns: "shell", count: aiSuggestions.length }));
-          emitLocal(SUGGESTIONS_REFRESH_EVENT, { reason: "ai_digest" });
-          if (aiSuggestions.length > 0 || opResult.merged > 0) {
-            // Unified 建议 confirm surface (open rail + expand ActionBar)
-            emitLocal("suggest-surface:open");
+          const follow = engineJobSuggestionFollowUp({
+            type: "ai_digest",
+            merged: opResult.merged,
+            suggestionCount: aiSuggestions.length,
+          });
+          if (follow.openSuggestSurface) {
+            emitLocal("suggest-surface:open", { refresh: false });
           }
           break;
         }

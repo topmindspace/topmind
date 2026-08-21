@@ -13,7 +13,7 @@
 |------|------|
 | 整理范围 | **活动窗口**（近期周期 ∪ mtime ∪ 增补 parent）— 非「仅最新周期文件名」 |
 | 条目增补 | 动态卡片续写 · 同 Markdown · `<!-- topmind:append -->` |
-| AI 在动态 | 标题栏 💡 + 有条目时画布顶 strip（空则隐藏）→ `openSuggestSurface` → **SuggestPopover** 确认面（无第二套列表；不埋 AI 聊天轨） |
+| AI 在动态 | 标题栏 💡 + 有条目时状态栏计数 chip（空则隐藏）→ `openSuggestSurface` → **SuggestPopover** 确认面（无第二套列表；不埋 AI 聊天轨） |
 | 整理按钮 | reconcile 任务 + `runActivityOps`（suggest + memory_organize + topic_classify） |
 | memory | **profile + periodic only**（confirm） |
 | topic | **内容大类 `create_topic`**（confirm · 不进 `memory/topics`） |
@@ -86,9 +86,9 @@ activity_window =
 
 | 产出 | 验收 |
 |------|------|
-| 活动窗口引擎 | `lib/activity-window.mjs` — 周期 ∪ mtime ∪ 增补 parent |
+| 活动窗口引擎 | `lib/activity-window.mjs` — 周期 ∪ mtime ∪ 增补 parent；默认 21 天 / 30 文件 / 6 周期；语料 suggest 16K · todo extract 16K · maintain 12K |
 | 条目增补 UI | `appendStreamEntry` + StreamDetailView 按日分组 + cohesion |
-| 安静建议 chip | 标题栏 💡 + 画布顶 strip（空则隐藏）→ SuggestPopover |
+| 安静建议 chip | 标题栏 💡 + 状态栏计数 chip（空则隐藏）→ SuggestPopover |
 | organize activity ops | `runActivityOps`（suggest + memory_organize + topic_classify）合入 ActionBar |
 | memory_organize | profile + periodic only（confirm） |
 | topic_classify | 内容大类 `create_topic`（confirm · 不进 `memory/topics`） |

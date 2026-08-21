@@ -30,3 +30,14 @@ test("mediaUrlsForEditor leaves remote urls alone", () => {
   const md = "![r](https://cdn.example/x.png)";
   assert.equal(mediaUrlsForEditor(md, "00-收件箱/a.md"), md);
 });
+
+test("mediaUrlsForEditor / ForDisk round-trip HTML <img src>", () => {
+  const note = "00-收件箱/clip.md";
+  const disk = 'Hello\n\n<img src="images/slug/img-abc.png" alt="a">\n';
+  const view = mediaUrlsForEditor(disk, note);
+  assert.match(view, /topmind-asset:\/\/local\/00-收件箱\/images\/slug\/img-abc\.png/);
+  const back = mediaUrlsForDisk(view, note);
+  assert.equal(back, disk);
+  const remote = '<img src="https://cdn.example/x.png" alt="r">';
+  assert.equal(mediaUrlsForEditor(remote, note), remote);
+});

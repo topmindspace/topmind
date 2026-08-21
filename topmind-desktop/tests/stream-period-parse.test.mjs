@@ -119,6 +119,26 @@ title: w
     assert.equal(appendChunks.length, 1);
   });
 
+  it("keeps named non-day ## as a single article entry (does not soft-split lists)", () => {
+    const md = [
+      "## 产品方案草稿",
+      "",
+      "这是一篇长笔记正文，用来讨论方案细节与边界。",
+      "",
+      "- 要点 A",
+      "- 要点 B",
+      "",
+      "#### 续 · 2026-08-03 12:00",
+      "",
+      "后续补充",
+    ].join("\n");
+    const entries = parsePeriodNote(md);
+    const named = entries.filter((e) => e.heading === "产品方案草稿");
+    assert.equal(named.length, 1, `expected one 文章卡, got ${named.length}`);
+    assert.match(named[0].body, /要点 A/);
+    assert.match(named[0].body, /后续补充/);
+  });
+
   it("fixture-like W32 day has separate moment cards not one blob", () => {
     const md = `---
 title: 2026-W32

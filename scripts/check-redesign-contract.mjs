@@ -410,6 +410,101 @@ expectNoMatch(
   "preview taught as live TipTap instance",
 );
 
+expectMatch(
+  files.desktopDesign,
+  desktopDesign,
+  /语料预算：extract 16K \/ maintain 12K/u,
+  "Desktop DESIGN todo corpus budgets match Kernel 16K/12K",
+);
+expectNoMatch(
+  files.desktopDesign,
+  desktopDesign,
+  /语料预算：extract 12K \/ maintain 8K/u,
+  "stale extract 12K / maintain 8K corpus claim",
+);
+expectMatch(
+  files.desktopDesign,
+  desktopDesign,
+  /状态栏(?:建议)?计数 chip/u,
+  "Desktop DESIGN suggestion count lives in StatusBar",
+);
+expectNoMatch(
+  files.desktopDesign,
+  desktopDesign,
+  /有 `items` 时画布顶 `SuggestEntryStrip`/u,
+  "canvas SuggestEntryStrip taught as living chrome",
+);
+expectMatch(
+  files.desktopArchitecture,
+  desktopArch,
+  /maxMessages 60 \/ keepRecent 24 \/ maxChars 240K/u,
+  "Desktop ARCHITECTURE session compact defaults",
+);
+expectNoMatch(
+  files.desktopArchitecture,
+  desktopArch,
+  /maxMessages 40 \/ keepRecent 16 \/ maxChars 80K/u,
+  "stale session-compact 40/16/80K claim",
+);
+expectMatch(
+  files.desktopArchitecture,
+  desktopArch,
+  /PrimaryNav 文案与默认 selection 为 \*\*动态 · 收件箱 · 写出来 · 搜索\*\*/u,
+  "ARCHITECTURE 现状 PrimaryNav includes 搜索",
+);
+expectNoMatch(
+  files.desktopArchitecture,
+  desktopArch,
+  /EditorArea（SuggestEntryStrip/u,
+  "ARCHITECTURE 现状 still mounting canvas SuggestEntryStrip",
+);
+expectNoMatch(
+  "docs/stream-first-optimization-scheme.md",
+  read("docs/stream-first-optimization-scheme.md"),
+  /画布顶 strip（空则隐藏）/u,
+  "stream-first teaching canvas strip as living entry",
+);
+expectNoMatch(
+  files.desktopDesign,
+  desktopDesign,
+  /AI 轨 `ActionBar` 仅为计数跳转/u,
+  "DESIGN teaching ActionBar as always-on count jump",
+);
+expectMatch(
+  files.desktopDesign,
+  desktopDesign,
+  /AI 轨 `ActionBar` \*\*仅专注模式\*\*/u,
+  "DESIGN ActionBar is focus-mode fallback only",
+);
+
+const suggestEngine = read("lib/suggest-engine.mjs");
+expectNoMatch(
+  "lib/suggest-engine.mjs",
+  suggestEngine,
+  /period \|\| "period"/u,
+  "suggest-engine period fallback token",
+);
+expectNoMatch(
+  "lib/suggest-engine.mjs",
+  suggestEngine,
+  /"Recent Activity"/u,
+  "suggest-engine locale label as period stem",
+);
+expectNoMatch(
+  "lib/suggest-engine.mjs",
+  suggestEngine,
+  /targetPath:\s*`memory\/periodic\/\$\{period\}\.md`/u,
+  "suggest-engine flat periodic apply receipt",
+);
+
+const streamWorkbench = read("obsidian-plugin/src/views/stream-workbench-view.ts");
+expectNoMatch(
+  "obsidian-plugin/src/views/stream-workbench-view.ts",
+  streamWorkbench,
+  /adapter\.write/u,
+  "Obsidian new-note bypassing Kernel writeback",
+);
+
 const clipReadme = read("browser-extension/README.md");
 const clipMatrix = read("docs/capture-clip-matrix.md");
 expectNoMatch(

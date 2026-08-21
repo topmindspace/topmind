@@ -12,24 +12,12 @@ import { Button } from "../../../components/ui/Button";
 import { Tooltip } from "../../../components/ui/tooltip";
 import { ICON } from "../../../lib/icons";
 import { cn } from "../../../lib/cn";
-
-const TEXT_EXTS = new Set([
-  "txt", "text", "markdown", "mdx", "json", "jsonc", "yaml", "yml", "csv", "tsv",
-  "log", "ini", "toml", "xml", "svg", "html", "htm", "css", "scss", "less",
-  "js", "mjs", "cjs", "ts", "tsx", "jsx", "py", "rb", "go", "rs", "java", "kt",
-  "c", "h", "cpp", "hpp", "cs", "php", "swift", "sh", "bash", "zsh", "sql", "env",
-  "conf", "cfg", "properties", "gitignore", "editorconfig", "dockerfile", "makefile",
-]);
-
-/** Soft cap so huge HTML dumps don't inflate renderer memory. */
-const HTML_MAX_BYTES = 1_500_000;
-const TEXT_MAX_CHARS = 400_000;
-
-function extOf(p: string): string {
-  const base = p.split("/").pop() ?? p;
-  const dot = base.lastIndexOf(".");
-  return dot > 0 ? base.slice(dot + 1).toLowerCase() : "";
-}
+import {
+  extOf,
+  isHtmlPreviewExt,
+  isPreviewableText,
+  truncatePreviewContent,
+} from "../../../lib/file-preview";
 
 interface Props {
   path: string;
@@ -40,8 +28,8 @@ interface Props {
 export function FilePreviewView({ path }: Props) {
   const { t } = useTranslation(["workspace", "common"]);
   const ext = extOf(path);
-  const isHtml = ext === "html" || ext === "htm";
-  const isText = ext === "" || TEXT_EXTS.has(ext);
+  const isHtml = isHtmlPreviewExt(ext);
+  const isText = isPreviewableText(ext);
   const baseName = path.split("/").pop() ?? path;
   const [content, setContent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -66,15 +54,10 @@ export function FilePreviewView({ path }: Props) {
       .read(path)
       .then((c) => {
         if (cancelled) return;
-        let body = typeof c === "string" ? c : String(c ?? "");
-        if (isHtml && body.length > HTML_MAX_BYTES) {
-          body = body.slice(0, HTML_MAX_BYTES);
-          setTruncated(true);
-        } else if (body.length > TEXT_MAX_CHARS) {
-          body = body.slice(0, TEXT_MAX_CHARS);
-          setTruncated(true);
-        }
-        setContent(body);
+        const raw = typeof c === "string" ? c : String(c ?? "");
+        const next = truncatePreviewContent(raw, isHtml);
+        setTruncated(next.truncated);
+        setContent(next.body);
         setLoading(false);
       })
       .catch((e) => {

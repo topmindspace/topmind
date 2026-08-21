@@ -21,7 +21,7 @@ import { t } from "../i18n";
 import { VIEW_TYPE_SIDEBAR_DOCK, VIEW_TYPE_STREAM_WORKBENCH } from "../constants";
 import { AI_PROVIDER_PRESETS, PROVIDER_DEFAULT_MODELS } from "../constants";
 import type { SuggestionCard } from "../types";
-import { isStreamOrTodoPath, SUGGESTION_KIND_META } from "../utils";
+import { isStreamOrTodoPath, prepareStreamEntryTextForDisplay, SUGGESTION_KIND_META } from "../utils";
 import { hasConfiguredProvider } from "../types";
 import { aiTaskManager, type TaskProgress, type AiTask } from "../services/ai-task-manager";
 import { resolveProviderCatalog, applyModelOptions, credentialsForProvider } from "../services/models-dev";
@@ -429,7 +429,11 @@ export class SidebarDockView extends ItemView {
           cls: "tm-todo-checkbox",
         });
         checkbox.addEventListener("change", () => {
-          this.plugin.kernelService.toggleTodo(todo.id);
+          const toggled = this.plugin.kernelService.toggleTodo(todo.id);
+          if (!toggled.ok) {
+            checkbox.checked = !checkbox.checked;
+            return;
+          }
           if (checkbox.checked) {
             item.classList.add("tm-completed");
           }
@@ -505,14 +509,51 @@ export class SidebarDockView extends ItemView {
 
   // ── Suggestions Tab ────────────────────────────────────────────────────
 
+  private renderPendingWrites(container: HTMLElement): number {
+    const pending = this.plugin.kernelService.listPendingWrites();
+    if (pending.length === 0) return 0;
+    const section = container.createDiv({ cls: "tm-sidebar-section tm-pending-writes" });
+    section.createDiv({ cls: "tm-suggestion-summary", text: t("pending_writes_title") });
+    for (const item of pending) {
+      const card = section.createDiv({ cls: "tm-suggestion-card" });
+      card.createDiv({ cls: "tm-suggestion-title", text: item.relativePath });
+      const actions = card.createDiv({ cls: "tm-suggestion-actions" });
+      const accept = actions.createEl("button", {
+        cls: "tm-btn-primary",
+        text: t("pending_writes_accept"),
+      });
+      accept.setAttribute("aria-label", t("pending_writes_accept"));
+      accept.addEventListener("click", () => {
+        this.plugin.kernelService.acceptPendingWrite(item.id);
+        void this.renderSuggestionsTab(container);
+      });
+      const reject = actions.createEl("button", {
+        cls: "tm-btn-secondary",
+        text: t("pending_writes_reject"),
+      });
+      reject.setAttribute("aria-label", t("pending_writes_reject"));
+      reject.addEventListener("click", () => {
+        this.plugin.kernelService.rejectPendingWrite(item.id);
+        void this.renderSuggestionsTab(container);
+      });
+    }
+    return pending.length;
+  }
+
   private async renderSuggestionsTab(container: HTMLElement): Promise<void> {
+    container.empty();
+    const pendingCount = this.renderPendingWrites(container);
     const aiConfigured = hasConfiguredProvider(this.plugin.settings.ai);
     if (!aiConfigured) {
-      this.renderEmptyState(container, t("suggestions_no_ai"), t("suggestions_no_ai_hint"), "lightbulb");
+      if (pendingCount === 0) {
+        this.renderEmptyState(container, t("suggestions_no_ai"), t("suggestions_no_ai_hint"), "lightbulb");
+      }
       return;
     }
     if (!this.plugin.settings.autoSuggest) {
-      this.renderEmptyState(container, t("suggestions_disabled"), t("suggestions_disabled_hint"), "lightbulb");
+      if (pendingCount === 0) {
+        this.renderEmptyState(container, t("suggestions_disabled"), t("suggestions_disabled_hint"), "lightbulb");
+      }
       return;
     }
 
@@ -544,6 +585,7 @@ export class SidebarDockView extends ItemView {
     try {
       const suggestions = await this.plugin.kernelService.generateSuggestions();
       container.empty();
+      const pendingAfter = this.renderPendingWrites(container);
 
       // Re-add refresh button after container.empty()
       const refreshBar2 = container.createDiv({ cls: "tm-suggestion-refresh-bar" });
@@ -559,7 +601,9 @@ export class SidebarDockView extends ItemView {
       });
 
       if (suggestions.length === 0) {
-        this.renderEmptyState(container, t("sidebar_no_suggestions"), t("suggestions_empty_hint"), "lightbulb");
+        if (pendingAfter === 0) {
+          this.renderEmptyState(container, t("sidebar_no_suggestions"), t("suggestions_empty_hint"), "lightbulb");
+        }
         return;
       }
 
@@ -985,7 +1029,8 @@ export class SidebarDockView extends ItemView {
         for (const entry of recent) {
           const item = streamSection.createDiv({ cls: "tm-sidebar-stream-item" });
           item.createSpan({ cls: "tm-sidebar-stream-time", text: entry.time });
-          const textPart = entry.text.slice(0, 80) + (entry.text.length > 80 ? "..." : "");
+          const display = prepareStreamEntryTextForDisplay(entry.text);
+          const textPart = display.slice(0, 80) + (display.length > 80 ? "..." : "");
           item.createSpan({ cls: "tm-sidebar-stream-text", text: textPart });
           item.addEventListener("click", () => {
             this.app.workspace.openLinkText(currentPeriod.relPath, "", false);

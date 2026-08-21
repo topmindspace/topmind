@@ -146,6 +146,28 @@ test("ai-service defaults useTools on and builds prompt with tool names", () => 
   assert.match(src, /steerStream|queueFollowUp/);
 });
 
+test("session compact default constants match ARCHITECTURE living copy", async () => {
+  const {
+    COMPACT_DEFAULT_MAX_MESSAGES,
+    COMPACT_DEFAULT_KEEP_RECENT,
+    COMPACT_DEFAULT_MAX_CHARS,
+    compactMessagesForModel,
+  } = await import("../electron/lib/ai-session-compact.mjs");
+  const arch = readFileSync(path.join(root, "ARCHITECTURE.md"), "utf8");
+  assert.match(arch, new RegExp(`maxMessages ${COMPACT_DEFAULT_MAX_MESSAGES}`));
+  assert.match(arch, new RegExp(`keepRecent ${COMPACT_DEFAULT_KEEP_RECENT}`));
+  assert.match(arch, new RegExp(`maxChars ${COMPACT_DEFAULT_MAX_CHARS / 1000}K`));
+  assert.doesNotMatch(arch, /maxMessages 40 \/ keepRecent 16 \/ maxChars 80K/);
+
+  const many = [];
+  for (let i = 0; i < COMPACT_DEFAULT_MAX_MESSAGES + 20; i++) {
+    many.push({ role: "user", content: `q${i}` });
+    many.push({ role: "assistant", content: `a${i}` });
+  }
+  const r = compactMessagesForModel(many);
+  assert.ok(r.messages.length <= COMPACT_DEFAULT_MAX_MESSAGES);
+});
+
 test("session compact keeps recent turns and summarizes middle", async () => {
   const { compactMessagesForModel, estimateTokens } = await import("../electron/lib/ai-session-compact.mjs");
   assert.ok(estimateTokens("你好世界") >= 2);

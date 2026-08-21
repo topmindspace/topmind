@@ -156,4 +156,29 @@ test("StatusBar icon semantics + click targets (DESIGN ListTodo = personal list)
   assert.match(src, /showTodoChip[\s\S]*?ListTodo|data-status-todo-busy[\s\S]*?ListTodo/);
   // ListChecks was the old ambiguous todo busy icon
   assert.doesNotMatch(src, /ListChecks/);
+  assert.match(src, /data-status-task-busy/);
+  assert.match(src, /task-panel:open/);
+  assert.match(src, /toggleSuggestSurface|openSuggestSurface/);
+});
+
+test("agent + task: multiActive, task chip, not todo chip", () => {
+  const v = deriveStatusBarBusy({
+    ready: true,
+    streaming: true,
+    activeTaskCount: 1,
+    todoMaintaining: false,
+    suggestLoading: false,
+  });
+  assert.equal(v.showTaskChip, true);
+  assert.equal(v.showTodoChip, false);
+  assert.equal(v.aiPillBusy, true);
+  assert.equal(v.multiActive, true);
+  assert.deepEqual(v.activeKinds, ["agent", "task"]);
+});
+
+test("task chrome sources do not use ListTodo", () => {
+  const panel = read("src/components/ai/TaskPanel.tsx");
+  const body = read("src/components/ai/task-list-body.tsx");
+  assert.doesNotMatch(panel, /ListTodo/);
+  assert.doesNotMatch(body, /ListTodo/);
 });

@@ -21,6 +21,8 @@ import {
   budgetTodoPromptCorpus,
   splitPeriodAndExtras,
   ACTIVITY_EXTRAS_HEADING,
+  EXTRACT_CORPUS_MAX,
+  MAINTAIN_CORPUS_MAX,
 } from "../lib/todo-engine.mjs";
 
 const engineRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -90,6 +92,20 @@ describe("notePromptCorpus / noteCorpusHash", () => {
     const parts = splitPeriodAndExtras(full);
     assert.ok(parts.base.length > 3500);
     assert.match(parts.extras, new RegExp(marker));
+  });
+
+  it("shipped EXTRACT_CORPUS_MAX / MAINTAIN_CORPUS_MAX keep extras and stay at the cap", () => {
+    const marker = "SHIPPED_BUDGET_EXTRAS_KEEP";
+    const longBase = `# long period\n\n${"old-stream-line-padding-xxxxxxxx\n".repeat(800)}`;
+    const extras = `${ACTIVITY_EXTRAS_HEADING}\n\n### 00-收件箱/latest.md\n\n- ${marker}\n`;
+    const full = `${longBase}\n\n${extras}`;
+    assert.ok(full.length > EXTRACT_CORPUS_MAX, "fixture must exceed extract cap");
+    const extractBudget = budgetTodoPromptCorpus(full, EXTRACT_CORPUS_MAX, { locale: "zh" });
+    assert.ok(extractBudget.length <= EXTRACT_CORPUS_MAX);
+    assert.match(extractBudget, new RegExp(marker));
+    const maintainBudget = budgetTodoPromptCorpus(full, MAINTAIN_CORPUS_MAX, { locale: "zh" });
+    assert.ok(maintainBudget.length <= MAINTAIN_CORPUS_MAX);
+    assert.match(maintainBudget, new RegExp(marker));
   });
 });
 

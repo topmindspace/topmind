@@ -1,6 +1,6 @@
 # Architecture Reset — 理想架构与实施计划
 
-> **状态**：Accepted · **日期**：2026-07-25 · **最后更新**：2026-08-16  
+> **状态**：Accepted · **日期**：2026-07-25 · **最后更新**：2026-08-21  
 > **角色**：架构决策锁 + 实施诚实表（唯一实施真源）  
 > **内容/边界真源**：`PROJECT-MODEL.md` · `PRODUCT-BOUNDARIES.md`  
 > **产品入口**：根 [`README.md`](../README.md)（English）· [`README.zh-CN.md`](../README.zh-CN.md)（简体中文）
@@ -168,6 +168,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | 连接器官方对齐 | **Done**（2026-08-16：WeRead 官方 Gateway 扁平 body + 无划线/想法不写专题 + `note_fingerprint` 增量；X 官方 v2/`xurl /2/…` + 归档按 tweet id 跳过；Clip 本轮未改） |
 | Memory 整合（画像事实生命周期） | **Done**（2026-08-16：`appendProfileEntry` / `retireProfileEntry` → `## 历史记录` 带日期前缀不删原文 / `updateProfileEntry` 原位更新；`memory_organize` 产出确认式 `retire_profile`；无自动遗忘、无向量索引。ADR `docs/adr/2026-08-16-memory-consolidation.md`） |
 | AI 输出语言 | **Done**（改写/Agent 正文：用户本轮要求 → 原文 → 工作区 locale；建议条 / AI 待办 / `memory_organize` / `topic_classify`：用户本轮要求 → **当前宿主 UI 语言** → 工作区 locale。`lib/ai-output-locale.mjs`） |
+| 周期路径 / 确认面诚实 | **Done**（2026-08-21：digest 回执走 yearDir；period stem 拒绝 fallback；Obsidian 收件箱新建走写闸；confirm pending 有侧栏审阅；建议确认≠打开周期本；语料/session-compact/建议入口活文档对齐） |
 
 **Intentional Partial（保留，非未完成）**：contract UI 非全 Surface；非 `.md` 二进制可仍直写。
 

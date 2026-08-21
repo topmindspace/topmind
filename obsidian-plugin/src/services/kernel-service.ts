@@ -34,6 +34,10 @@ import {
   preciseEditWorkspace,
   runWorkspaceChatTurn,
   resolveChatPromptLocale,
+  createInboxNoteInWorkspace,
+  acceptPendingWrite,
+  listPendingWrites,
+  rejectPendingWrite,
   type WorkspaceReadOpts,
   type WorkspaceEditOpts,
 } from "./kernel-workspace-ops";
@@ -284,6 +288,42 @@ export class KernelService {
     return result;
   }
 
+  createInboxNote(): { ok: boolean; path?: string; error?: string } {
+    if (!this.isWorkspaceReady()) {
+      new Notice(t("notice_workspace_not_ready"));
+      return { ok: false, error: "workspace-not-ready" };
+    }
+    const result = createInboxNoteInWorkspace(
+      getKernel(),
+      this.getVaultPath(),
+      this.getEngineRoot(),
+    );
+    if (!result.ok) {
+      new Notice(`${t("notice_write_failed")}: ${result.error || ""}`.trim());
+    }
+    return result;
+  }
+
+  listPendingWrites() {
+    return listPendingWrites();
+  }
+
+  acceptPendingWrite(id: string): { ok: boolean; path?: string; error?: string } {
+    const result = acceptPendingWrite(getKernel(), this.getVaultPath(), id);
+    if (result.ok) {
+      new Notice(t("notice_pending_accepted"));
+    } else {
+      new Notice(`${t("notice_execute_failed")}: ${result.error || ""}`.trim());
+    }
+    return result;
+  }
+
+  rejectPendingWrite(id: string): boolean {
+    const ok = rejectPendingWrite(id);
+    if (ok) new Notice(t("notice_pending_rejected"));
+    return ok;
+  }
+
   /**
    * Reconcile a period note — deterministic Kernel reconcilePeriodBody(body, opts)
    * returns `{ body, changed }` (not `{ reconciled }`).
@@ -385,15 +425,22 @@ export class KernelService {
   }
 
   /** Toggle todo completion */
-  toggleTodo(id: string): void {
+  toggleTodo(id: string): { ok: boolean; error?: string } {
     try {
       const kernel = getKernel();
       const workspaceRoot = this.getVaultPath();
       const contract = this.loadContract();
-      kernel.toggleTodoItem(workspaceRoot, id, contract);
+      const result = kernel.toggleTodoItem(workspaceRoot, id, contract);
+      if (result && result.ok === false) {
+        new Notice(t("notice_execute_failed"));
+        return { ok: false, error: "write-failed" };
+      }
+      return { ok: true };
     } catch (err) {
       console.error("[topmind] toggleTodo failed:", err);
-      new Notice(`${t("notice_execute_failed")}: ${err instanceof Error ? err.message : String(err)}`);
+      const error = err instanceof Error ? err.message : String(err);
+      new Notice(`${t("notice_execute_failed")}: ${error}`);
+      return { ok: false, error };
     }
   }
 

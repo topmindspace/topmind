@@ -34,7 +34,10 @@ export function TaskListBody({ compact = false }: { compact?: boolean }) {
     return (
       <div className={cn("flex flex-col items-center justify-center gap-2 text-center", compact ? "py-2" : "py-6")}>
         {!compact ? (
-          <span className="text-3xs text-text-tertiary">{t("taskPanel.empty")}</span>
+          <div className="flex max-w-[16rem] flex-col gap-1">
+            <span className="text-3xs text-text-tertiary">{t("taskPanel.empty")}</span>
+            <span className="text-3xs text-text-quaternary leading-snug">{t("taskPanel.emptyHint")}</span>
+          </div>
         ) : null}
         <div className="flex items-center gap-1.5">
           <button

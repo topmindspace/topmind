@@ -23,7 +23,7 @@ test("StatusBar suggest count chip auto-hides when count is 0", () => {
   const sb = read("src/components/shell/StatusBar.tsx");
   // Count chip only shows when suggestCount > 0 (via showSuggestCountChip in busy logic)
   assert.match(sb, /data-status-suggest-count/);
-  // SuggestEntryStrip component still exists but is no longer mounted in EditorArea
+  // SuggestEntryStrip was deleted; count lives in StatusBar, not the canvas
   const area = read("src/components/shell/EditorArea.tsx");
   assert.doesNotMatch(area, /SuggestEntryStrip/);
 });

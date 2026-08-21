@@ -60,8 +60,8 @@ export interface LocalEventMap {
   /** Open / toggle the todo popover. */
   "todo:open-popover": unknown;
   "todo:toggle-popover": unknown;
-  /** Open the unified suggest surface (popover). */
-  "suggest-surface:open": unknown;
+  /** Open the unified suggest surface (popover). `{ refresh: false }` after analysis merge. */
+  "suggest-surface:open": { refresh?: boolean } | undefined;
   /** Toggle the TitleBar workspace switcher. */
   "titlebar:workspace-switcher-toggle": undefined;
   /** Trigger weekly organize flow. */

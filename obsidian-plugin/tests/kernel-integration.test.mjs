@@ -40,6 +40,7 @@ describe("Kernel integration — shipped capture / list / reconcile", () => {
   let initWorkspaceStructure;
   let resolveContractWritebackMode;
   let mirrorWritebackModeToContract;
+  let createInboxNoteInWorkspace;
   let eng;
 
   before(async () => {
@@ -52,6 +53,7 @@ describe("Kernel integration — shipped capture / list / reconcile", () => {
     initWorkspaceStructure = ops.initWorkspaceStructure;
     resolveContractWritebackMode = ops.resolveContractWritebackMode;
     mirrorWritebackModeToContract = ops.mirrorWritebackModeToContract;
+    createInboxNoteInWorkspace = ops.createInboxNoteInWorkspace;
     eng = resolveEngineRoot();
   });
 
@@ -135,6 +137,19 @@ describe("Kernel integration — shipped capture / list / reconcile", () => {
     const r = captureToWorkspace(kernel, tmp, eng, "   \n  ");
     assert.equal(r.ok, false);
     assert.equal(r.error, "empty-text");
+  });
+
+  test("createInboxNoteInWorkspace writes via executeWrite", () => {
+    const r = createInboxNoteInWorkspace(kernel, tmp, eng, {
+      now: new Date("2026-08-21T12:00:00.000Z"),
+    });
+    assert.equal(r.ok, true, r.error);
+    assert.ok(r.path, "path returned");
+    assert.match(r.path, /^00-/);
+    assert.match(r.path, /Untitled-/);
+    const abs = path.join(tmp, r.path);
+    assert.ok(fs.existsSync(abs), "inbox note exists");
+    assert.match(fs.readFileSync(abs, "utf-8"), /Untitled-/);
   });
 
   test("writeback mode: yaml is operational truth; plugin data does not override", () => {

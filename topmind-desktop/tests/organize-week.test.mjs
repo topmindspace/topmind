@@ -94,6 +94,23 @@ test("task-store opens unified suggest surface when reconcile yields candidates"
   assert.match(store, /runActivityOps/);
 });
 
+test("organize-week runs reconcile + runActivityOps without a post-merge refresh", () => {
+  const lib = readFileSync(path.join(root, "src/lib/organize-week.ts"), "utf8");
+  assert.match(lib, /createTask\("reconcile"\)/);
+  assert.match(lib, /runActivityOps/);
+  assert.match(lib, /engineJobSuggestionFollowUp/);
+  assert.match(lib, /openSuggestSurface\(\{\s*refresh:\s*false\s*\}\)/);
+  const callIdx = lib.indexOf(".runActivityOps(");
+  assert.ok(callIdx >= 0);
+  const thenIdx = lib.indexOf(".then", callIdx);
+  assert.ok(thenIdx >= 0);
+  const catchIdx = lib.indexOf(".catch", thenIdx);
+  const thenBlock = lib.slice(thenIdx, catchIdx > thenIdx ? catchIdx : thenIdx + 400);
+  assert.doesNotMatch(thenBlock, /suggestions:refresh/);
+  assert.doesNotMatch(thenBlock, /SUGGESTIONS_REFRESH_EVENT/);
+  assert.match(thenBlock, /engineJobSuggestionFollowUp/);
+});
+
 test("ActionBar is 建议 surface not 个人清单 dual-label", () => {
   const bar = readFileSync(path.join(root, "src/components/ai/ActionBar.tsx"), "utf8");
   const store = readFileSync(path.join(root, "src/stores/action-store.ts"), "utf8");

@@ -31,12 +31,12 @@
 | **记下** | 把输入框追加到**当前周期本** | 动态主区输入框主按钮（⌘↵） | 把「记下」标成「记一下」 |
 | **AI 润色** | 只改输入框通顺/格式 · **不落盘** | 输入框旁 AI 次级按钮 | 与「记一下」共用文案或图标语义 |
 | **AI 待办** | 从动态提取/更新 `memory/todo.md` | 动态顶栏 / 侧栏 ✨ · 标题栏清单 | 与 ActionBar「建议」混称「待办」 |
-| **AI 建议** | 工作区整理候选 · 确认后写入 | **标题栏灯泡** + 有条目时画布顶 strip → **`SuggestPopover` 确认面** | 嵌进 Stream 卡片；仅藏在 AI 聊天轨里才可操作；空态永久占位条 |
+| **AI 建议** | 工作区整理候选 · 确认后写入 | **标题栏灯泡** + 有条目时**状态栏计数 chip** → **`SuggestPopover` 确认面** | 嵌进 Stream 卡片；仅藏在 AI 聊天轨里才可操作；空态永久占位条 |
 | **增补** | 对已有动态条目续写（评论感 · 同文件） | 动态卡片上的增补入口 + 续写徽章 | 平行评论 DB / 新真源 |
 
 **动态页主路径**：输入 →（可选润色）→ **记下**（EN: Log it）；对旧条 **增补**；链接/文档走顶栏「记一下」（EN: Note it）。链接检测 CTA 亦用「记一下」而非「快速捕获」。页头 **AI 待办 · 整理 · 刷新**（**个人清单不在页头重复**——唯一入口是标题栏 ListTodo / ⌘⇧T；状态栏 Todo busy 可点开同一弹层）。  
-**统一建议入口（全局）**：标题栏 💡（始终可点）+ 有 `items` 时画布顶 `SuggestEntryStrip`（**count=0 自动隐藏**）；点击 → `openSuggestSurface()` → **`SuggestPopover`**。  
-**唯一确认面**：`SuggestPopover`（接受 / 忽略 / 待确认写入）· 与 AI 聊天轨解耦；AI 轨 `ActionBar` 仅为计数跳转，不挂第二套完整列表。  
+**统一建议入口（全局）**：标题栏 💡（始终可点）+ 有 `items` 时**状态栏计数 chip**（**count=0 自动隐藏**）；点击 → `openSuggestSurface()` → **`SuggestPopover`**。画布顶 `SuggestEntryStrip` 已删除，不得再挂。  
+**唯一确认面**：`SuggestPopover`（接受 / 忽略 / 待确认写入）· 与 AI 聊天轨解耦；AI 轨 `ActionBar` **仅专注模式**（状态栏可能被藏时的回退），不挂第二套完整列表。  
 **会话稳定**：软刷新 / 15s 轮询不得因 kernel 空 regenerate 清空已展示建议（`sessionSuggestionCache` + `mergeSuggestRefreshItems`）；dismiss/apply 仍可移除。  
 **卡片正文**：`stream-md-preview` 轻预览（剥 `<!-- topmind:append -->`；首行子弹/时间进芯片不进正文）；**Feed 稳定**：软 reload 不全页 loading。  
 **个人清单**：TodoPopover · **≠** 建议。  
@@ -95,9 +95,9 @@
 
 | 原则 | 落地 |
 |------|------|
-| **一条主路径** | 打开 = **动态**（`StreamDetailView` 周期本）+ 标题栏「记一下」；**建议**走全局入口（标题栏灯泡 / strip），不在主画布堆仪表盘 |
+| **一条主路径** | 打开 = **动态**（`StreamDetailView` 周期本）+ 标题栏「记一下」；**建议**走全局入口（标题栏灯泡 / 状态栏计数），不在主画布堆仪表盘 |
 | **富而不挤** | 编辑器深度、阅读 Aa、多标签、插件能力保留；不一次性摊开全部视图 |
-| **建议条** | **`SuggestPopover`**（标题栏 💡 打开）= 唯一完整确认面；AI 轨 `ActionBar` 仅为计数跳转 chip；空 strip 自动隐藏（≠ 个人清单） |
+| **建议条** | **`SuggestPopover`**（标题栏 💡 / 状态栏计数打开）= 唯一完整确认面；AI 轨 `ActionBar` 仅专注模式回退；状态栏 count=0 自动隐藏（≠ 个人清单） |
 | **设置白话** | 「保存前问我」「自动准备 AI 建议」「自动 AI 整理待办（默认关）」「重要文件不让 AI 直接改」 |
 | **扩展外围** | connector / 第三方插件不占默认主 chrome |
 
@@ -115,7 +115,7 @@
 
 - **存储**：`memory/todo.md` — 简洁 Markdown 清单（`- [ ]` / `- [x]`）；经 writeback-engine 写入（唯一写闸）
 - **AI 提取 / 维护**：点 ✨ → AI 分析**活动窗口 prompt corpus**（周期正文 ∪ 折叠 extras；截断时优先保留 extras；排除 `memory/` 尤其 `memory/todo.md`）→ 提取/勾完/改写 → 去重后经 writeback 写入；`processedHashes` 对 budgeted corpus；自动维护尊重 skip，手动 ✨ 在「已处理」后再点一次 progressive force 重扫
-- **语义深度（2026-08-09）**：AI 提取不再基于关键字过滤（`extractKeySegments` 已废弃），改用 `smartBudgetCorpus`——保留 frontmatter/段落结构/首尾上下文。提示词注入用户画像（`memory/profile.md`）+ 近期周期反思，AI 能识别「真正需要行动」而非简单匹配「待办/任务」等关键字。语料预算：extract 12K / maintain 8K。
+- **语义深度（2026-08-09）**：AI 提取不再基于关键字过滤（`extractKeySegments` 已废弃），改用 `smartBudgetCorpus`——保留 frontmatter/段落结构/首尾上下文。提示词注入用户画像（`memory/profile.md`）+ 近期周期反思，AI 能识别「真正需要行动」而非简单匹配「待办/任务」等关键字。活动窗口 21 天 / 30 文件 / 6 周期。语料预算：extract 16K / maintain 12K（与 suggest 16K 对齐）。
 - **用户操作**：勾选完成 · 内联添加 · 双击编辑 · 悬停删除 · 清除已完成
 - **视图**：标题栏图标弹层 `TodoPopover`（`⌘⇧T`）；未 pin 时为右侧浮层（点击外部 / **面板外**滚动 / Esc 关闭；**面板内列表滚动不关闭**——与 DropdownMenu 共用 `shouldCloseOnScroll`）；pin 后变为可拖动浮动面板（不阻塞编辑器交互）；进行中在上（按截止日期排序），已完成折叠；AI 来源项带 ✨ 标记
 - **过长处理**：已完成项默认折叠；「清除已完成」一键清理；活跃项上限 50
@@ -144,10 +144,10 @@
 | **动效克制** | `duration-fast` 140ms · `duration-enter` 160ms；列表 stagger ≤8；`prefers-reduced-motion` 全关 |
 | **性能** | `content-visibility` 列表、panel `contain`、AI 面板 lazy、流式滚动尊重用户上滑 |
 | **响应式 chrome** | 操作按钮按宽度 **铺开 ↔ ⋯ 溢出**（`ChromeOverflowActions`）；TitleBar 右轨 ResizeObserver 互斥；主锚文案按窗口宽度（≥960）显示，窄屏 **tooltip + aria-label 必在**；编辑器右侧发布/AI/专注同轨溢出；禁止同动作双入口 |
-| **StatusBar 可交互** | **健康即沉默**：工作区正常仅一颗绿点（详情在 tooltip），异常才出文字；路径（xl 安静按钮）/ **AI 就绪 pill（唯一主控件）**：离线->设置 · 就绪->toggle AI 面板；流式时 pill 显示会话态；**命名 busy 单路径**（`deriveStatusBarBusy`：tasks > todo > suggest > **inline** 最多一颗命名 chip；todo/suggest/inline 独占时 AI pill 不显示「工作中」）；**进度动效**：每个 busy chip 附带 `v4-ai-progress-dot` 脉动指示器；tooltip 含预期时长。**中央位置 hint 仅 file 选择时显示**（点击 reveal）；其余 kind 由画布 PageHeader + PrimaryNav active 自明，不重复占位。**建议计数不在状态栏常驻**（见「建议入口降噪」），仅保留生成中 busy chip |
+| **StatusBar 可交互** | **健康即沉默**：工作区正常仅一颗绿点（详情在 tooltip），异常才出文字；路径（xl 安静按钮）/ **AI 就绪 pill（唯一主控件）**：离线->设置 · 就绪->toggle AI 面板；流式时 pill 显示会话态；**命名 busy 单路径**（`deriveStatusBarBusy`：tasks > todo > suggest > **inline** 最多一颗命名 chip；todo/suggest/inline 独占时 AI pill 不显示「工作中」）；**进度动效**：每个 busy chip 附带 `v4-ai-progress-dot` 脉动指示器；tooltip 含预期时长。**中央位置 hint 仅 file 选择时显示**（点击 reveal）；其余 kind 由画布 PageHeader + PrimaryNav active 自明，不重复占位。**建议计数在状态栏**（count>0 时 `showSuggestCountChip`；生成中走 busy chip），与标题栏 💡 构成两处入口 |
 | **TitleBar 右轨分层** | **L1** capture 实心 + AI 轨开关（`.v4-titlebar-btn-ai`）· **L2** 建议 💡 + 清单（`.v4-titlebar-tier-l2` 安静图标）· **L3** 搜索/设置 cluster / 窄屏 overflow；`data-chrome-tier`；**主题不在标题栏常驻**（低频设置行为：⌘, 设置 / 窄屏 ⋯ 可达）；**badge 纪律：仅在需要行动时出现**——收件箱（分诊队列）+ 建议 💡 保留；写出来计数（库存非行动）与清单常驻数字点（恒非零）已移除 |
-| **建议入口降噪** | 建议计数**恰好两处**：标题栏 💡 badge + 画布顶 `SuggestEntryStrip`（count>0 才出现）；AI 轨 `ActionBar` **demote 隐藏**（专注模式除外）；状态栏**仅生成中 busy chip**，不挂常驻计数。禁止 strip + 轨 chip + 状态栏 三处等权 |
-| **编辑器默认 chrome** | 格式工具条 **默认展开**（`showFormat=true`，可收起）；常驻 ≤2 条 full-width 分割 + 可选 suggest strip |
+| **建议入口降噪** | 建议计数**恰好两处**：标题栏 💡 badge + **状态栏计数 chip**（count>0 才出现）；AI 轨 `ActionBar` **仅专注模式**（状态栏可能被藏时的回退）；画布顶 strip 已删。禁止 strip + 轨 chip + 状态栏 三处等权 |
+| **编辑器默认 chrome** | 格式工具条 **默认展开**（`showFormat=true`，可收起）；常驻 ≤2 条 full-width 分割 |
 | **Todo idle** | `TodoPopover` 维护按钮 idle = ghost Sparkles；**仅 maintaining 时** `.v4-ai-chip-gradient` |
 | **侧栏扩展** | 连接器/插件槽 `PluginSlotsSection` **默认折叠**（`data-sidebar-plugins-collapsed=true`）；不抢 stream 主轨 |
 | **设置 / 弹层** | `SettingsDialog` 用 elevated ladder + quiet nav chrome（`.v4-settings-dialog` / `.v4-settings-nav`）；`SettingsSection` 用 `shadow-card` 卡片；Command/Search palette header 走 elevated 混色 |
@@ -273,12 +273,12 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 - **侧栏默认**：本周动态 / 周期本时间线；专题树 · 记忆 · 我的情况 · 归档为二级；标签/看板/插件为高级（折叠或 ⌘K）  
 - **主画布默认**：`StreamDetailView` — 当前周期本条目卡片 + **内联记一下** + reconcile / 周期切换（**无**建议数角标、无旧仪表盘）；未知 selection kind → 同视图
 - **AI 面板**：副驾；**对话区** + **compact ActionBar**（有建议时计数 → 打开 `SuggestPopover`）+ **Composer**  
-- **建议确认面**：全局 **`SuggestPopover`**（标题栏 💡 / strip / openSuggestSurface）；不埋仅在 AI 聊天轨  
+- **建议确认面**：全局 **`SuggestPopover`**（标题栏 💡 / 状态栏计数 / openSuggestSurface）；不埋仅在 AI 聊天轨  
 - **看板可写 / Inbox 批处理 / 知识加工 / tokens / 图标** 等能力保留（富工作台）  
 - **快捷键**：⌘⇧S → 动态 · ⌘⇧T → 待办清单（TitleBar 弹层） · ⌘⇧I 收件箱 · ⌘⇧O 写出来 · ⌘⇧A 归档 · ⌘N 记一下  
 - **记下 / 记一下**：Stream 内联「记下」（`ingest` stream）· 顶栏「记一下」完整捕获；条目 **增补**（`appendStreamEntry` · 同文件）  
 - **整理**：`runOrganizeWeek` = reconcile + **`runActivityOps`**（suggest + memory/topic → `SuggestPopover` 确认；不静默高影响写）  
-- **StreamDetailView**：宽轨周期本 — 内联 composer · **按日分组 + 按条软拆 + 日内 cohesion**（`stream-entry-present.ts`：moment 收集后续 append → 嵌套展示；命名 `##` 非日期段 → **文章卡** title+summary+跳转；短内容全展示 · 长内容才出现展开/折叠按钮 `streamEntryNeedsExpand`）· 真实 MD 预览（列表/任务/代码/续）· 头栏清单/AI 待办/整理 · 周期 chip · 条目增补（建议入口在画布顶 strip + 标题栏，不嵌 Stream 列表）  
+- **StreamDetailView**：宽轨周期本 — 内联 composer · **按日分组 + 按条软拆 + 日内 cohesion**（`stream-entry-present.ts`：moment 收集后续 append → 嵌套展示；命名 `##` 非日期段 → **文章卡** title+summary+跳转；短内容全展示 · 长内容才出现展开/折叠按钮 `streamEntryNeedsExpand`）· 真实 MD 预览（列表/任务/代码/续）· 头栏清单/AI 待办/整理 · 周期 chip · 条目增补（建议入口在标题栏 💡 + 状态栏计数，不嵌 Stream 列表）  
 
 - **无当前周期文件时**：回退 `listStreamPeriods` 最新一本，避免空白主表面  
 
@@ -464,7 +464,7 @@ topmind 设计系统原生支持多语言排版（Simplified Chinese / English�
 
 ### 3.6 建议确认面（`SuggestPopover` · 全局）
 
-- **入口**：**标题栏 💡**（toggle · 始终可点 · 有 badge 时高亮）+ **状态栏建议计数 chip**（toggle · count>0 时显示 · 高优先级 pulse）+ 画布顶 `SuggestEntryStrip`（**仅 count>0** · 空则自动隐藏）+ AI 轨 compact ActionBar  
+- **入口**：**标题栏 💡**（toggle · 始终可点 · 有 badge 时高亮）+ **状态栏建议计数 chip**（toggle · count>0 时显示）+ AI 轨 compact ActionBar（**仅专注模式**）  
 - **打开/关闭**：`toggleSuggestSurface()` → `ActionStore.panelOpen` → **`SuggestPopover`**（独立浮层，不依赖 AI 聊天轨展开）；再次点击同一入口关闭  
 - **交互一致**（与 `TodoPopover` 对齐）：点击外部关闭 · 外部滚动关闭 · Esc 关闭 · 内部列表滚动不关闭  
 - **列表**：建议 + 待确认写入混排（`ActionStore`）；pending 可审阅全文；**不是**个人清单  
@@ -717,7 +717,7 @@ chrome（微暖框架）→ background（净白画布）→ surface（工作面�
 - **视觉扁平**：标题栏去渐变 + 顶部高光（纯色 + 单 hairline）；nav active 去 inset ring 只留 wash；capture 实心按钮补上 `--shadow-button` 与主按钮同语言
 
 ### 降噪 · 单入口纪律（2026-08）
-- **建议计数恰好两处**：标题栏 💡 badge + 画布顶 strip；状态栏常驻计数 chip 移除（仅保留生成中 busy chip），落实「禁止三处等权」
+- **建议计数恰好两处**：标题栏 💡 badge + 状态栏计数 chip（count>0）；画布顶 strip 已删；AI 轨 ActionBar 仅专注模式。落实「禁止三处等权」
 - **个人清单单入口**：唯一入口 = 标题栏 ListTodo / ⌘⇧T；动态页头「清单」动作移除（页头保留情境动作：AI 待办 · 整理 · 刷新）
 - **状态栏中央位置 hint 仅 file 选择显示**（点击 reveal）；其余 kind 由 PageHeader + PrimaryNav 自明
 - **动态 composer 去 meta**：删 label 行 + 底部 hint（placeholder 引导 · 计数在 subtitle · kbd 在按钮上）；卡片去 border 纯阴影

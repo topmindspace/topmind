@@ -1,6 +1,6 @@
 # topmind Desktop — 架构
 
-> **现状描述 + Target 标注**。约 290 源文件（`src/` 191 + `electron/` 97）。  
+> **现状描述 + Target 标注**。约 300 源文件（`src/` ~195 + `electron/` ~104）。  
 > **1 RPC · Stores（View / Ai / Action / Plugin / IngestStaging / Task / Todo）· 1 Shell · 5+2 Service · 8 插件槽**  
 > UI 真源：`DESIGN.md`。边界：`../PRODUCT-BOUNDARIES.md`。  
 > **实施锁**：[`../docs/ARCHITECTURE-RESET.md`](../docs/ARCHITECTURE-RESET.md)（写闸合闸 · 建议副驾 · 导航变薄）。
@@ -35,7 +35,7 @@
 | 响应式 chrome | **Done** — `ChromeOverflowActions` + TitleBar compact 互斥 + StatusBar 可点 |
 | connectors weread/x | **Done** — 共享 `electron/lib/connector-bridge.mjs`（settings+secret · patch 持久 · `writeConnectorNote` 经 kernel 写闸）；ADR `docs/adr/2026-08-02-connector-bridge.md` |
 | ingest 路由 | **Done** — Desktop commit 经 `resolveIngestRoute`（Kernel） |
-| PrimaryNav 默认 | **Done** — 动态 / 收件箱 / 写出来；selection 默认 `stream`；legacy home→stream |
+| PrimaryNav 默认 | **Done** — 动态 / 收件箱 / 写出来 / 搜索；selection 默认 `stream`；legacy home→stream；归档不在主锚 |
 | 侧栏 thrift | **Done** — ViewSwitcher 主轨 stream/目录/时间；标签/看板「更多」 |
 | 关键词搜索诚实 | **Done** — notes-index + grep `truncated`/`scannedTotal`；GlobalSearch 截断提示（无 embedding） |
 | 建议可关 | **Done** — `ai.autoPrepareSuggestions`（默认开） |
@@ -107,7 +107,7 @@ contextBridge.exposeInMainWorld('topmind', {
 | 模块 | 职责 |
 |------|------|
 | `ai-model.mjs` | 多 provider 解析（AI SDK v7） |
-| `ai-provider-adapter.mjs` | 桥接 Desktop AI SDK → Kernel `AiProvider` 接口（`generate(prompt, context)`）；根据 `context.operation` 动态调整 `maxOutputTokens`（topic_summary → 8K、period/digest/todo → 4K、memory_extract/topic_classify → 2K）+ `temperature`（提取类 0.3 / 分析类 0.5）+ `systemPrompt`（结构化输出操作）；瞬态错误（timeout/429/503）自动重试 1 次（800ms 退避）；`suggest-engine` / `derived-builder` 通过此适配器真实调 LLM |
+| `ai-provider-adapter.mjs` | 桥接 Desktop AI SDK → Kernel `AiProvider` 接口（`generate(prompt, context)`）；根据 `context.operation` 动态调整 `maxOutputTokens`（`OP_LIMITS`：topic_summary → 16K、period/digest/todo/memory_organize → 12K、memory_extract/topic_classify → 4K）+ `temperature`（提取类 0.3 / 分析类 0.5）+ `systemPrompt`（结构化输出操作）；瞬态错误（timeout/429/503）自动重试 1 次（800ms 退避）；`suggest-engine` / `derived-builder` 通过此适配器真实调 LLM |
 | `ai-prompts.mjs` | **skill-first 协议** + Skills Discovery 目录 + 真实 tool 名 |
 | `lib/skills-runtime.mjs` | engine `skills/` + `ai.extraSkillsRoots` / `topmind_SKILLS_EXTRA`（catalog / body / resource） |
 | `lib/skills-extra.mjs` | Desktop 管理目录 `skills-extra/` 安装 · 回执 · pack summary |
@@ -118,7 +118,7 @@ contextBridge.exposeInMainWorld('topmind', {
 | `lib/inline-ai-result.mjs` | 行内结果清洗纯函数（主进程 + 单测）；渲染层 `src/lib/inline-ai-result.ts` 镜像 |
 | `ai-service.mjs` | invoke 默认 `useTools!==false`；`steerStream` / `queueFollowUp`；skills catalog；**错误标记 `isError` + `usage`/`modelId` 回传渲染层** |
 | `lib/ai-tool-evidence.mjs` | 写回回执归一化 + 工具摘要（路径/备份） |
-| `lib/ai-session-compact.mjs` | token 估算 + 工具时间线折叠 + 中间摘要（maxMessages 40 / keepRecent 16 / maxChars 80K — 适配 128K+ 现代模型） |
+| `lib/ai-session-compact.mjs` | token 估算 + 工具时间线折叠 + 中间摘要（maxMessages 60 / keepRecent 24 / maxChars 240K ≈ 80K tokens — 适配 128K+ 现代模型） |
 | `ChatMessage.tsx` | **错误重试按钮**（`isError` → ErrorBlock + `regenerate()`）；**Token 用量徽章**（`usage.promptTokens ↑ / completionTokens ↓`）|
 
 **工作循环（默认）**：Route（对照 catalog）→ Activate（`load_skill`）→ Execute（Workspace 工具）→ Receipt。  
@@ -294,17 +294,17 @@ Shell
 
 ### 现状（已收敛 · Phase B Done）
 
-PrimaryNav 文案与默认 selection 为 **动态 · 收件箱 · 写出来**（`selection: stream`）。  
-旧「工作台」主锚点已退役（**代码债**清零）；**HomeView 与 `kind:home` 产品类型已删除**（`normalizeSelection` 迁移历史状态 → stream）。
+PrimaryNav 文案与默认 selection 为 **动态 · 收件箱 · 写出来 · 搜索**（`selection: stream`）。  
+旧「工作台」主锚点已退役（**代码债**清零）；**HomeView 与 `kind:home` 产品类型已删除**（`normalizeSelection` 迁移历史状态 → stream）。归档不在主锚。
 
 ```
 Shell
-├── TitleBar · PrimaryNav（动态 / 收件箱 / 写出来）+ 💡 建议 + 清单
+├── TitleBar · PrimaryNav（动态 / 收件箱 / 写出来 / 搜索）+ 💡 建议 + 清单
 ├── Sidebar（ViewSwitcher: stream/category/timeline/tags/kanban）
-├── EditorArea（SuggestEntryStrip count>0 · StreamDetailView · 文件编辑）
-├── AiPanel（compact ActionBar 跳转 · 对话区 · Composer）
+├── EditorArea（StreamDetailView · 文件编辑）
+├── AiPanel（compact ActionBar 仅专注模式 · 对话区 · Composer）
 ├── SuggestPopover（唯一完整建议确认列表）
-├── StatusBar（deriveStatusBarBusy · multi-AI 诚实）
+├── StatusBar（deriveStatusBarBusy · 建议计数 chip · multi-AI 诚实）
 └── OverlayHost …
 ```
 
@@ -314,7 +314,7 @@ Shell
 
 **已删除、勿再文档化的 Home 仪表盘能力**：问候 CTA、钉住卡、下一步/进行中/截止、最近专题材料条、连接器条。那些只属于已删 `HomeView`。
 
-**建议 / 审阅**：全局 **`SuggestPopover`**（标题栏 💡 · 画布顶 strip 仅 count>0 · 不嵌 Stream 列表）。侧栏 pin 可达「本周动态」「我的情况」。
+**建议 / 审阅**：全局 **`SuggestPopover`**（标题栏 💡 · 状态栏计数 chip 仅 count>0 · 不嵌 Stream 列表；画布顶 `SuggestEntryStrip` 已删）。侧栏 pin 可达「本周动态」「我的情况」。
 
 ### StreamDetailView（主编辑区动态流 · 已实现）
 

@@ -13,6 +13,8 @@ import {
   saveTaskPanelPos,
   type TaskPanelPos,
 } from "../../lib/task-panel-pos";
+import { shouldDismissTaskPanel } from "../../lib/engine-job-follow-up";
+import { shouldCloseOnScroll } from "../../lib/scroll-dismiss";
 
 interface TaskPanelProps {
   open: boolean;
@@ -22,6 +24,8 @@ interface TaskPanelProps {
 export function TaskPanel({ open, onClose }: TaskPanelProps) {
   const { t } = useTranslation("shell");
   const tasks = useTaskStore((s) => s.tasks);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const runningOrQueued = tasks.some((task) => task.status === "running" || task.status === "queued");
 
   const [minimized, setMinimized] = useState(false);
   const [position, setPosition] = useState<TaskPanelPos>(() => loadTaskPanelPos());
@@ -62,12 +66,52 @@ export function TaskPanel({ open, onClose }: TaskPanelProps) {
     };
   }, [isDragging]);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (!shouldDismissTaskPanel({ runningOrQueued, event: "escape" })) return;
+      onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose, runningOrQueued]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handle = (e: MouseEvent) => {
+      if (!shouldDismissTaskPanel({ runningOrQueued, event: "outside-click" })) return;
+      const target = e.target as Node;
+      if (panelRef.current?.contains(target)) return;
+      const triggerEl = (target as Element)?.closest?.(
+        "[data-task-panel-trigger], [data-status-task-busy]",
+      );
+      if (triggerEl) return;
+      onClose();
+    };
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, [open, onClose, runningOrQueued]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handle = (e: Event) => {
+      if (!shouldDismissTaskPanel({ runningOrQueued, event: "outside-scroll" })) return;
+      if (!shouldCloseOnScroll(e, panelRef.current)) return;
+      onClose();
+    };
+    window.addEventListener("scroll", handle, { capture: true, passive: true });
+    return () => window.removeEventListener("scroll", handle, { capture: true });
+  }, [open, onClose, runningOrQueued]);
+
   if (!open) return null;
 
   const runningCount = tasks.filter((task) => task.status === "running").length;
 
   return (
     <div
+      ref={panelRef}
+      data-task-panel
       className={cn(
         "fixed z-floating flex flex-col overflow-hidden",
         "rounded-[var(--radius-lg)] border border-border-subtle",

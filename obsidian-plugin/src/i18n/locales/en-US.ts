@@ -13,7 +13,6 @@ export const enUS: typeof zhCN = {
   // ── Quick Capture (product vocab: Note it / 记一下) ──
   quick_capture_title: "Note it",
   quick_capture_placeholder: "Type here...",
-  quick_capture_submit: "Log it",
   quick_capture_target: "Target",
   quick_capture_target_stream: "This week's stream",
   quick_capture_target_inbox: "Inbox",
@@ -235,7 +234,12 @@ export const enUS: typeof zhCN = {
   settings_receipt_keep_desc: "Number of write receipts to keep (old ones pruned automatically)",
 
   // ── Writeback notices ──
-  notice_write_pending: "Write pending — please confirm in review",
+  notice_write_pending: "Write pending — accept or reject it in the sidebar Suggest tab",
+  notice_pending_accepted: "Write accepted",
+  notice_pending_rejected: "Write rejected",
+  pending_writes_title: "Pending writes",
+  pending_writes_accept: "Accept",
+  pending_writes_reject: "Reject",
   notice_written: "Saved",
   notice_write_failed: "Write failed",
   notice_executed: "Done",
@@ -366,7 +370,7 @@ export const enUS: typeof zhCN = {
   toolbar_btn_settings: "Settings",
   toolbar_btn_inbox: "Inbox",
   toolbar_btn_new_note: "New Note",
-  toolbar_btn_profile: "Profile",
+  toolbar_btn_profile: "My profile",
   toolbar_btn_refresh: "Refresh",
   stream_btn_copy: "Copy",
   stream_btn_edit: "Edit",

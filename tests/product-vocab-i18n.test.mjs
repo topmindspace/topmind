@@ -43,7 +43,9 @@ test("Kernel AI op labels say 整理我的情况 not 整理记忆", () => {
   assert.match(src, /memoryOrganize:\s*"AI 整理我的情况"/u);
   assert.match(src, /memoryOrganize:\s*"AI Organize My profile"/u);
   assert.doesNotMatch(src, /整理记忆/);
+  assert.doesNotMatch(src, /整理「记忆」/);
   assert.doesNotMatch(src, /Organize Memory/);
+  assert.doesNotMatch(src, /Extract "memory" candidates/);
 });
 
 test("Desktop nav chips expose 写出来 / 我的情况 product terms", () => {
@@ -62,8 +64,8 @@ test("Obsidian capture CTAs align with Desktop product vocabulary", () => {
   const en = read("obsidian-plugin/src/i18n/locales/en-US.ts");
   assert.match(zh, /quick_capture_title:\s*"记一下"/u);
   assert.match(en, /quick_capture_title:\s*"Note it"/u);
-  assert.match(zh, /quick_capture_submit:\s*"记下"/u);
-  assert.match(en, /quick_capture_submit:\s*"Log it"/u);
+  assert.doesNotMatch(zh, /quick_capture_submit:/u);
+  assert.doesNotMatch(en, /quick_capture_submit:/u);
   assert.match(zh, /quick_capture_note_it:\s*"记一下"/u);
   assert.match(en, /quick_capture_note_it:\s*"Note it"/u);
   assert.match(zh, /quick_capture_log_it:\s*"记下"/u);
