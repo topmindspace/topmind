@@ -64,7 +64,14 @@ export function createWorkspaceViews(): ViewSlot[] {
             />,
           );
         }
-        return <FilePreviewView path={sel.path} topicId={sel.topicId} readOnly={sel.readOnly} />;
+        return (
+          <FilePreviewView
+            key={sel.path}
+            path={sel.path}
+            topicId={sel.topicId}
+            readOnly={sel.readOnly}
+          />
+        );
       },
     },
     {

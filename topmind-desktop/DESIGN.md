@@ -696,11 +696,13 @@ chrome（微暖框架）→ background（净白画布）→ surface（工作面�
 
 > **现在时规范是 §0–§3**（尤其 §2.2 侧栏 · §2.3 编辑区）。本节是发版指针，不是第二套 spec。Phase 0–6 / Brand Horizon / Design System 2.0 像素台账以 git 历史为准，不在此复述。
 
-### Desktop 3.5.3 — Markdown 预览 / 编辑器 / 侧栏文件查看
+### Desktop 3.5.4 — Markdown 预览 / 编辑器 / 侧栏文件查看
 
 - **编辑** = TipTap；**预览 / 只读** = `getEditorHtml()` 静态 HTML（`.v4-tiptap`），不是 live TipTap `setEditable`
 - 同一阅读偏好包住两边；路径切换重置预览，空笔记不保留上一篇 HTML
 - 主画布与分屏共用 `isMarkdownNotePath`：`.md` → 编辑器，其它 → `FilePreviewView`（HTML 沙箱 iframe + 诚实截断）
+- HTML 预览只按 HTML 上限截断（`previewTruncationLimit`）；400k–1.5M 的 HTML 不再被文本帽误截；工具条 hint 的 count 等于实际 slice
+- `FilePreviewView` 换路径同步清空：调用处 `key={path}` 重挂载 + 组件内 `sessionPath` render-time reset（不靠 useEffect-after-paint）
 - Sidebar Header 一条带：ViewSwitcher 满宽 + 我的情况同行；周期 pin 仅 timeline/tags/kanban；手动刷新只在树工具条
 - 格式轨与 ⋯ 互斥；列表预处理不在代码围栏里改写、不在同型列表项之间发明空行
 

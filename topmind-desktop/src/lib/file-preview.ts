@@ -43,11 +43,10 @@ export function truncatePreviewContent(
   isHtml: boolean,
 ): { body: string; truncated: boolean } {
   const src = String(body ?? "");
-  if (isHtml && src.length > HTML_PREVIEW_MAX_BYTES) {
-    return { body: src.slice(0, HTML_PREVIEW_MAX_BYTES), truncated: true };
-  }
-  if (src.length > TEXT_PREVIEW_MAX_CHARS) {
-    return { body: src.slice(0, TEXT_PREVIEW_MAX_CHARS), truncated: true };
+  // HTML uses only the HTML cap — do not fall through to the tighter text cap.
+  const limit = previewTruncationLimit(isHtml);
+  if (src.length > limit) {
+    return { body: src.slice(0, limit), truncated: true };
   }
   return { body: src, truncated: false };
 }

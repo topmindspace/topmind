@@ -153,6 +153,7 @@ export function EditorArea() {
                   />
                 ) : (
                   <FilePreviewView
+                    key={splitSecondaryPath!}
                     path={splitSecondaryPath!}
                     topicId={topicIdFromPath(splitSecondaryPath!)}
                   />

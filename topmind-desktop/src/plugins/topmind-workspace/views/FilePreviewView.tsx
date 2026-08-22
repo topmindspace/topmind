@@ -32,11 +32,22 @@ export function FilePreviewView({ path }: Props) {
   const isHtml = isHtmlPreviewExt(ext);
   const isText = isPreviewableText(ext);
   const baseName = path.split("/").pop() ?? path;
+  const [sessionPath, setSessionPath] = useState(path);
   const [content, setContent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(isText);
   const [htmlMode, setHtmlMode] = useState<"preview" | "source">("preview");
   const [truncated, setTruncated] = useState(false);
+  // Adjust state during render when the same instance is reused for a new path
+  // (React discards this paint). key={path} at call sites remounts as well.
+  if (path !== sessionPath) {
+    setSessionPath(path);
+    setContent(null);
+    setError(null);
+    setTruncated(false);
+    setHtmlMode("preview");
+    setLoading(isText);
+  }
   const mountFile = useAiStore((s) => s.mountFile);
   const unmountFile = useAiStore((s) => s.unmountFile);
   const mounted = useAiStore((s) => s.mountedFiles.some((m) => m.path === path));
@@ -56,11 +67,6 @@ export function FilePreviewView({ path }: Props) {
   }, []);
 
   useEffect(() => {
-    // Path change: drop previous body/mode immediately so HTML A cannot paint as B.
-    setHtmlMode("preview");
-    setContent(null);
-    setError(null);
-    setTruncated(false);
     if (!isText) {
       setLoading(false);
       return;

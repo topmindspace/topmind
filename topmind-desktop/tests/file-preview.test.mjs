@@ -46,10 +46,23 @@ test("truncatePreviewContent is honest about caps", () => {
   const htmlCut = truncatePreviewContent(html, true);
   assert.equal(htmlCut.truncated, true);
   assert.equal(htmlCut.body.length, HTML_PREVIEW_MAX_BYTES);
+  assert.equal(htmlCut.body.length, previewTruncationLimit(true));
   const text = "y".repeat(TEXT_PREVIEW_MAX_CHARS + 5);
   const textCut = truncatePreviewContent(text, false);
   assert.equal(textCut.truncated, true);
   assert.equal(textCut.body.length, TEXT_PREVIEW_MAX_CHARS);
+  assert.equal(textCut.body.length, previewTruncationLimit(false));
+
+  // Mid-range HTML: above the text cap, below the HTML cap — must not fall through.
+  const midLen = TEXT_PREVIEW_MAX_CHARS + 50_000;
+  assert.ok(midLen > TEXT_PREVIEW_MAX_CHARS);
+  assert.ok(midLen < HTML_PREVIEW_MAX_BYTES);
+  const midHtml = truncatePreviewContent("h".repeat(midLen), true);
+  assert.equal(midHtml.truncated, false);
+  assert.equal(midHtml.body.length, midLen);
+  const midAsText = truncatePreviewContent("h".repeat(midLen), false);
+  assert.equal(midAsText.truncated, true);
+  assert.equal(midAsText.body.length, previewTruncationLimit(false));
 });
 
 test("FilePreviewView wires sandbox iframe, truncation, cannot-preview + open-external", () => {
@@ -63,8 +76,11 @@ test("FilePreviewView wires sandbox iframe, truncation, cannot-preview + open-ex
   assert.match(view, /cannotPreviewTitle/);
   assert.match(view, /truncated/);
   assert.match(view, /api\.ws\.open\(path\)/);
+  assert.match(view, /if \(path !== sessionPath\)/);
+  assert.match(view, /setSessionPath\(path\)/);
   assert.match(view, /setHtmlMode\("preview"\)/);
   assert.match(view, /setContent\(null\)/);
+  assert.match(view, /count:\s*previewTruncationLimit\(isHtml\)/);
   assert.match(view, /data-file-preview-toolbar/);
   assert.match(view, /data-compact=\{toolbarCompact/);
   assert.doesNotMatch(view, /function fileExt\s*\(/);
@@ -78,7 +94,9 @@ test("FilePreviewView wires sandbox iframe, truncation, cannot-preview + open-ex
   );
   assert.match(views, /FilePreviewView/);
   assert.match(views, /isMarkdownNotePath\(sel\.path\)/);
+  assert.match(views, /<FilePreviewView[\s\S]*?key=\{sel\.path\}/);
   assert.match(editorArea, /isMarkdownNotePath\(splitSecondaryPath/);
+  assert.match(editorArea, /<FilePreviewView[\s\S]*?key=\{splitSecondaryPath/);
   assert.doesNotMatch(views, /function fileExt\s*\(/);
   assert.doesNotMatch(editorArea, /function fileExt\s*\(/);
 });
