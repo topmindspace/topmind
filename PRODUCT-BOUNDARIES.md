@@ -208,6 +208,6 @@ graph TD
 | 动态默认主表面 PrimaryNav | **Done** |
 | 关键词搜索截断诚实 | **Done**（无 embedding） |
 | 语义索引 / embedding / Ask | **Non-goal 本阶段** / Ask **Target 延后** |
-| 建议可关 · 侧栏 thrift | **Done** · 见 `docs/ARCHITECTURE-RESET.md` §2.5 |
+| 建议可关 · 侧栏 thrift | **Done** · 见 `docs/ARCHITECTURE-RESET.md` §2.2 |
 
 详见 `docs/ARCHITECTURE-RESET.md`。

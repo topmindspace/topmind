@@ -126,16 +126,15 @@ export const enUS: typeof zhCN = {
   task_recent: "Recent tasks",
   task_clear_history: "Clear history",
   task_no_history: "No task history",
-  task_result_ok: "Done ✓",
   task_result_failed: "Failed",
 
   // ── AI Operation Labels ──
-  op_label_suggest: "Generate AI Suggestions",
   op_label_todo_maintain: "Maintain Todos",
   op_label_topic_classify: "Classify Topics",
   op_label_memory_organize: "Organize My profile",
   op_label_reconcile: "Reconcile Stream",
   op_label_chat: "AI Chat",
+  statusbar_tip: "topmind · click to open the AI copilot",
 
   // ── Model metadata ──
   model_context_limit: "Context {{limit}}",
@@ -172,8 +171,8 @@ export const enUS: typeof zhCN = {
   cmd_refresh_suggestions: "Topmind: Refresh AI Suggestions",
   cmd_maintain_todos: "Topmind: AI Maintain Todos",
   cmd_topic_classify: "Topmind: Classify Topics",
-  cmd_memory_organize: "Topmind: Organize My Profile",
-  cmd_open_profile: "Topmind: Open My Profile",
+  cmd_memory_organize: "Topmind: Organize My profile",
+  cmd_open_profile: "Topmind: Open My profile",
   cmd_open_inbox: "Topmind: Open Inbox",
 
   // ── Settings ──

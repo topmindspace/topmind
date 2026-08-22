@@ -20,13 +20,13 @@
 
 ### 0.1 三条原则
 
-1. **契约单一真源** — 工作区根 `topmind.yaml`（8 类规约）+ `topmind-pack.json` + 本文档 + `TOOLS.md` 唯一表达行为契约，各 SKILL.md 不重复定义规约，只引用。
+1. **契约单一真源** — 工作区根 `topmind.yaml`（顶层键白名单）+ `topmind-pack.json` + 本文档 + `TOOLS.md` 唯一表达行为契约，各 SKILL.md 不重复定义规约，只引用。
 2. **可移植优先** — Skills 保持纯 Markdown，不引入代码运行时（无 Loader/Registry）；frontmatter 字段是约定，由 host agent 解析。
 3. **命名即文档** — skill id、目录名、frontmatter 字段名必须反映 Category/Topic/Memory 心智模型。
 
 ### 0.2 对用户
 
-用户只需要理解四个概念：**类别、专题、记忆、输出**。所有 AI 操作应该透明地路由到正确的位置，用户不需要了解内部模块。
+用户概念 ≤5：**记一下 · 动态 · 专题 · 我的情况 · 写出来**。所有 AI 操作应该透明地路由到正确的位置，用户不需要了解内部模块。
 
 - 说"记一下这个链接" → 自动判断类别和专题，保存笔记
 - 说"帮我整理最近的研究" → 自动读取相关笔记，提炼结构
@@ -56,7 +56,7 @@ Skills 是一组纯 Markdown 指令集，告诉 AI 如何操作 topmind 工作�
 | 降级 | Host 文件 → 可选 UTR → 对话 | 无内建降级 | 协议层 | 无内建降级 | 无内建降级 | 无 |
 | 错误处理 | 写入失败可逆 + 回执 + 错误指导 | 无内建错误恢复 | 协议层 | 无内建错误恢复 | 无内建错误恢复 | 无 |
 | 语义消歧 | `action_category`(skill) vs 笔记 `category`(大类目录) | 无数据大类概念 | n/a | 无 | 无 | 无 |
-| 行为契约 | 工作区根 `topmind.yaml`（8 类规约机器可读） | 无 | 无 | 无 | 无 | 无 |
+| 行为契约 | 工作区根 `topmind.yaml`（顶层键白名单，机器可读） | 无 | 无 | 无 | 无 | 无 |
 | 可移植性 | 5 安装目标（claude-code/codex/hermes/opencode/generic），MCP/Obsidian 经各自宿主接入 | 按 host 独立 | MCP 协议层 | Claude-only | Codex-only | Cursor-only |
 | 数据模型 | 三平面（内容/语义/系统）+ 6 条规约 | 无 | 无 | 无 | 无 | 无 |
 | 写回安全 | writeback-engine 唯一写闸 + 保护级别 + 备份回执 | 无 | 无 | 无 | 无 | 无 |

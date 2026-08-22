@@ -262,14 +262,16 @@ export interface StreamEntry {
 /**
  * Suggestion card data.
  *
- * `kind` aligns with both Kernel suggest-engine kinds and ai-operation-engine
- * suggestion kinds:
- * - From suggest-engine: `inbox_review` | `stale_topic` | `catch_all` |
- *   `stream_digest` | `promote_memory` | `open_profile`
- * - From ai-operation-engine: `create_topic` | `promote_memory` |
- *   `ai_summary` (periodic digest)
- * - From todo-engine (ai-operation): `todo_extract` (AI extracts todos from stream)
- * - From topic_classify: `topic_classify` (content classification suggestion)
+ * `kind` aligns with the Kernel suggest-engine kinds (single truth: the kinds
+ * `generateSuggestions` / ai-operation-engine actually emit):
+ * - suggest-engine rules: `inbox_review` | `inbox_organize` | `stale_topic` |
+ *   `catch_all` | `stream_digest` | `promote_memory` | `open_profile`
+ * - suggest-engine AI blocks: `ai_summary` (activity digest)
+ * - ai-operation-engine ops: `create_topic` (topic_classify),
+ *   `promote_memory`/`ai_summary` (memory_organize)
+ *
+ * `todo_extract` / `topic_classify` are operation ids, never card kinds —
+ * they must not appear here (parity guarded by tests/suggest-surface-parity).
  */
 export interface SuggestionCard {
   id: string;
@@ -286,13 +288,12 @@ export type SuggestionKind =
   | "create_topic"
   | "promote_memory"
   | "ai_summary"
-  | "todo_extract"
+  | "inbox_organize"
   | "inbox_review"
   | "stale_topic"
   | "catch_all"
   | "stream_digest"
-  | "open_profile"
-  | "topic_classify";
+  | "open_profile";
 
 /** Impact level (matches Kernel suggest-engine). */
 export type ImpactLevel = "high" | "medium" | "low";

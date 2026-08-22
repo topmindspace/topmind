@@ -19,6 +19,7 @@ import {
   normalizeSuggestionList,
   mapKernelSuggestion,
   mapApplySuggestionResult,
+  mergeSoftSuggestionSession,
   stripFrontmatter,
 } from "../utils";
 import { AI_PROVIDER_PRESETS, PROVIDER_DEFAULT_MODELS } from "../constants";
@@ -33,7 +34,7 @@ import {
   readWorkspaceWindow,
   preciseEditWorkspace,
   runWorkspaceChatTurn,
-  resolveChatPromptLocale,
+  resolveChatDurableLocale,
   createInboxNoteInWorkspace,
   acceptPendingWrite,
   listPendingWrites,
@@ -62,6 +63,11 @@ export class KernelService {
   private context: KernelContext | null = null;
   private lastSettingsHash: string = "";
   private cachedModel: CachedModel | null = null;
+  /** Kernel generateSuggestions session (soft refresh keeps fingerprint-skipped cards). */
+  private suggestionSession: SuggestionCard[] = [];
+  /** Confirm-gated cards from memory_organize / topic_classify (survive suggest force). */
+  private opSuggestionSession: SuggestionCard[] = [];
+  private suggestionDropped = new Set<string>();
 
   constructor(app: App, plugin: Plugin, settings: TopmindSettings) {
     this.app = app;
@@ -76,7 +82,7 @@ export class KernelService {
     const aiManual = settings.ai?.manual
       ? Object.values(settings.ai.manual).join("|")
       : "";
-    const hash = `${settings.ai?.sourcePreference || settings.aiProvider}|${aiManual}|${settings.aiApiKey}|${settings.aiBaseUrl}|${settings.aiModel}`;
+    const hash = `${settings.ai?.sourcePreference || settings.aiProvider}|${aiManual}|${settings.aiApiKey}|${settings.aiBaseUrl}|${settings.aiModel}|${settings.localeOverride || ""}`;
     if (hash !== this.lastSettingsHash) {
       this.context = null; // Force rebuild on next call
     }
@@ -95,6 +101,26 @@ export class KernelService {
     this.context = null;
     this.cachedModel = null;
     this.lastSettingsHash = "";
+    this.suggestionSession = [];
+    this.opSuggestionSession = [];
+    this.suggestionDropped.clear();
+  }
+
+  /** Drop a suggestion from the session (apply success or user dismiss). */
+  dropSuggestion(id: string): void {
+    if (!id) return;
+    this.suggestionDropped.add(id);
+    this.suggestionSession = this.suggestionSession.filter((s) => s.id !== id);
+    this.opSuggestionSession = this.opSuggestionSession.filter((s) => s.id !== id);
+  }
+
+  /** Kernel session first, then op cards not already shown. */
+  private visibleSuggestions(): SuggestionCard[] {
+    return mergeSoftSuggestionSession(
+      this.opSuggestionSession,
+      this.suggestionSession,
+      this.suggestionDropped,
+    );
   }
 
   /**
@@ -115,12 +141,18 @@ export class KernelService {
     process.env.RECEIPT_KEEP = String(this.settings.receiptKeep);
   }
 
+  /** Host UI locale for product AI (suggest / todo / ops). `auto` / empty → app language. */
+  private surfaceUiLocale(): string | null {
+    const override = this.settings.localeOverride;
+    if (override && override !== "auto") return override;
+    return getLocale() || null;
+  }
+
   /** Get or create the kernel context */
   private getContext(): KernelContext {
     if (!this.context) {
       const aiProvider = createAiProvider(this.settings);
-      const localeOverride = this.settings.localeOverride || getLocale() || null;
-      this.context = createKernelContextFromApp(this.app, this.plugin, aiProvider, localeOverride);
+      this.context = createKernelContextFromApp(this.app, this.plugin, aiProvider, this.surfaceUiLocale());
     }
     return this.context;
   }
@@ -340,19 +372,33 @@ export class KernelService {
 
   // ── Suggestions ────────────────────────────────────────────────────────
 
-  /** Generate AI suggestions */
-  async generateSuggestions(): Promise<SuggestionCard[]> {
-    if (!this.settings.autoSuggest) return [];
+  /**
+   * Generate AI suggestions.
+   * Soft (default): Kernel call without force, merge session so fingerprint skip
+   * does not vanish cards. Manual refresh passes `{ force: true }` (Desktop parity).
+   * `autoSuggest` off skips the Kernel call unless force — session/op cards still show.
+   */
+  async generateSuggestions(opts: { force?: boolean } = {}): Promise<SuggestionCard[]> {
+    const force = opts.force === true;
+    if (!this.settings.autoSuggest && !force) {
+      return this.visibleSuggestions();
+    }
 
     try {
       const ctx = this.getContext();
-      const raw = await ctx.generateSuggestions({ force: false });
+      const raw = await ctx.generateSuggestions({ force, localeOverride: this.surfaceUiLocale() });
       // Kernel returns Suggestion[] directly; normalizeSuggestionList also
       // accepts legacy { suggestions: [] } for forward compatibility.
-      return normalizeSuggestionList(raw).map(mapKernelSuggestion);
+      const mapped = normalizeSuggestionList(raw)
+        .map(mapKernelSuggestion)
+        .filter((s) => s.id && !this.suggestionDropped.has(s.id));
+      this.suggestionSession = force
+        ? mapped
+        : mergeSoftSuggestionSession(this.suggestionSession, mapped, this.suggestionDropped);
+      return this.visibleSuggestions();
     } catch (err) {
       console.error("[topmind] generateSuggestions failed:", err);
-      return [];
+      return this.visibleSuggestions();
     }
   }
 
@@ -368,18 +414,22 @@ export class KernelService {
   }> {
     try {
       const ctx = this.getContext();
-      const result = await ctx.applySuggestion({
-        id: suggestion.id,
-        kind: suggestion.kind,
-        title: suggestion.title,
-        summary: suggestion.summary,
-        impact: suggestion.impact,
-        payload: suggestion.payload,
-        targetPath: suggestion.targetPath,
-      });
+      const result = await ctx.applySuggestion(
+        {
+          id: suggestion.id,
+          kind: suggestion.kind,
+          title: suggestion.title,
+          summary: suggestion.summary,
+          impact: suggestion.impact,
+          payload: suggestion.payload,
+          targetPath: suggestion.targetPath,
+        },
+        { localeOverride: this.surfaceUiLocale() },
+      );
 
       const mapped = mapApplySuggestionResult(result, suggestion);
       if (mapped.ok) {
+        this.dropSuggestion(suggestion.id);
         new Notice(`${t("notice_executed")}: ${suggestion.title}`);
         return mapped;
       }
@@ -404,12 +454,22 @@ export class KernelService {
       const ctx = this.getContext();
       const result = await ctx.runOperation({
         id,
-        options: opts,
+        options: { ...opts, localeOverride: this.surfaceUiLocale() },
       });
+      const suggestions = normalizeSuggestionList(result.suggestions)
+        .map(mapKernelSuggestion)
+        .filter((s) => s.id && !this.suggestionDropped.has(s.id));
+      if (suggestions.length > 0) {
+        this.opSuggestionSession = mergeSoftSuggestionSession(
+          this.opSuggestionSession,
+          suggestions,
+          this.suggestionDropped,
+        );
+      }
       return {
         ok: result.ok,
         summary: result.summary || "",
-        suggestions: normalizeSuggestionList(result.suggestions).map(mapKernelSuggestion),
+        suggestions,
       };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -562,8 +622,10 @@ export class KernelService {
       // Reflections unavailable — skip
     }
 
-    const locale = this.settings.localeOverride || getLocale() || "zh-CN";
-    const isZh = resolveChatPromptLocale(locale) === "zh";
+    const uiLocale = this.settings.localeOverride || getLocale() || "zh-CN";
+    const kernel = getKernel();
+    const durable = resolveChatDurableLocale(kernel, this.getVaultPath(), userMessage);
+    const isZh = durable === "zh";
     const systemPrompt = isZh
       ? "你是嵌入在 topmind Obsidian 插件中的 AI 助手。" +
         "你帮助用户反思笔记、规划任务、整理思路，并可经写闸精确改工作区 .md。" +
@@ -580,13 +642,12 @@ export class KernelService {
           ? "Here is the user's current context:\n\n" + contextParts.join("\n\n")
           : "No workspace context available yet.");
 
-    const kernel = getKernel();
     const turn = await runWorkspaceChatTurn(kernel, this.getVaultPath(), {
       userMessage,
       history,
       generate: (prompt, context) => aiProvider!.generate(prompt, context),
-      locale,
-      writebackMode: this.settings.writebackMode,
+      locale: uiLocale,
+      // omit writebackMode — runWorkspaceChatTurn reads topmind.yaml
       systemExtra: systemPrompt,
     });
 

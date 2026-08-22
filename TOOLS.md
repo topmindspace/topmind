@@ -3,7 +3,7 @@
 > **位置**：本文档是 UTR 命令面、写入语义、note frontmatter 字段的**唯一真源**。  
 > 产品入口：根 `README.md`（English）· `README.zh-CN.md`（简体中文）；UTR 模块 README 同此约定。  
 > **6 条核心规约**与**三平面模型**：`PROJECT-MODEL.md`。  
-> **行为契约**：工作区根 `topmind.yaml`（8 类规约，机器可读）。  
+> **行为契约**：工作区根 `topmind.yaml`（顶层键白名单：`contract_version` + workspace / categories / stream / memory / protection / lifecycle / writeback / ingest / agent / presentation）。  
 > UTR 对 Skills/agent 仍为**可选**底座；Desktop 安装包 **捆绑** `utr/`（Tools 控制台 / doctor），但日常编辑与 AI 写回不强制走 UTR（`PRODUCT-BOUNDARIES.md`）。  
 > **架构**：UTR = Kernel 的 CLI/MCP **adapter**（非第三套业务语义）。耐久 `.md` 主写经 `lib/writeback-engine.mjs`（**Done**，见 `docs/ARCHITECTURE-RESET.md` §2.2）；备份/回执**仅高影响**（locked 覆盖 · 锁定/核心 delete）；`executeArchive` 把内容迁入现场 **role:system** 目录当新家（常为 `99-归档` / `99-Archive`，不是备份）；open 常规更新/删除不备份；非 `.md` 二进制可仍直写。  
 > **类别按角色**：inbox / delivery / archive 解析走现场契约与 `{NN-…}` 目录，不把中文 `00-收件箱` 当唯一 inbox。
@@ -151,7 +151,7 @@ Tool names use：
 
 | Command | Domain | 职责 |
 |---|---|---|
-| `contract.validate` | contract | 校验工作区 `topmind.yaml` schema、8 类规约白名单、与 FS 一致性；诚实报告 on-disk 健康（不把内存默认值伪装成文件已好） |
+| `contract.validate` | contract | 校验工作区 `topmind.yaml` schema、顶层键白名单、与 FS 一致性；诚实报告 on-disk 健康（不把内存默认值伪装成文件已好） |
 | `contract.ensure` | contract | 缺失创建 / 可修则合并默认重写 v4；损坏不可安全修复时返回 unrepairable。Desktop / Obsidian / UTR 共用 Kernel `ensureContract` |
 | `contract.reseed` | contract | 备份损坏的 `topmind.yaml` 后写入全新有效 v4 默认契约；**不**删除用户内容目录 |
 | `memory.promote` | memory | 将 Stream 条目提升为 memory/topics/{topic-slug}.md（标记 promoted_from/to；源文件仅读取标记，不修改原文） |
@@ -161,7 +161,7 @@ Tool names use：
 | `lifecycle.scan` | lifecycle | 按 contract `lifecycle` 扫描：inbox 超期、catch-all 清理、stale 专题、output lock |
 | `derived.rebuild` | derived | 从真源全量重建各大类 `.derived/` 子目录 |
 | `workspace-transform.migrate-v4` | workspace-transform | 一次性迁移：config v3→topmind.yaml、旧专题首页→topic.md、我的情况.md→memory/profile.md 等 |
-| `workspace-maintain.archive-stream-year` | workspace-maintain | 将动态类别中完整年份的周期本目录原子移到 `99-归档/stream-archive/{year}/`；只允许归档当前年份之前；Kernel 生成回执 |
+| `workspace-maintain.archive-stream-year` | workspace-maintain | 将动态类别中完整年份的周期本目录原子移到 `99-归档/stream-archive/{year}/`；只允许归档当前年份之前；不另写 receipts YAML（`receiptPath` 为 null） |
 
 ### Per-Command Contract Metadata
 
@@ -256,7 +256,7 @@ next_actions: optional string[]
 | `workspace-write.update-topic` | 整文替换 `topic.md` | 要 `replaceReason`；经 Kernel 写闸；**仅高影响**（locked 覆盖）才有 backup/receipt，open 不造 99-归档 快照 |
 | `memory.promote` | Stream 条目 → memory/topics/{topic-slug}.md | 标记 promoted_from/to；用户确认制 |
 | `memory.digest` | 写入 UTR adapter 骨架到 memory/periodic/{year}/{period}.md | 非 AI；可重建；真实 AI 反思 = Desktop suggest apply |
-| `workspace-maintain.archive-stream-year` | 原子移动 `10-动态/{year}/` 到 `99-归档/stream-archive/{year}/` | 只允许归档当前年份之前；Kernel 生成回执；不影响 `memory/periodic/` |
+| `workspace-maintain.archive-stream-year` | 原子移动 `10-动态/{year}/` 到 `99-归档/stream-archive/{year}/` | 只允许归档当前年份之前；不另写 receipts YAML；不影响 `memory/periodic/` |
 
 ## Frontmatter Schema
 

@@ -1,6 +1,6 @@
 # Architecture Reset — 理想架构与实施计划
 
-> **状态**：Accepted · **日期**：2026-07-25 · **最后更新**：2026-08-21  
+> **状态**：Accepted · **日期**：2026-07-25 · **最后更新**：2026-08-22  
 > **角色**：架构决策锁 + 实施诚实表（唯一实施真源）  
 > **内容/边界真源**：`PROJECT-MODEL.md` · `PRODUCT-BOUNDARIES.md`  
 > **产品入口**：根 [`README.md`](../README.md)（English）· [`README.zh-CN.md`](../README.zh-CN.md)（简体中文）
@@ -145,7 +145,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | writeback-engine 唯一写闸 | **Done**（Desktop 耐久 .md 全路径；UTR；AI `actor:"ai"`；memory/todo 全经 executeWrite） |
 | batch writeback mode | **Done**（仅 auto\|confirm；`batch` 硬拒绝） |
 | Memory 产品入口 | **Done**（侧栏「我的情况」钉） |
-| 建议条 generate / confirm apply | **Done**（suggest-engine + ActionBar + SuggestPopover） |
+| 建议条 generate / confirm apply | **Done**（suggest-engine + SuggestPopover + StatusBar 计数 chip） |
 | AI 驱动建议与摘要 | **Done**（ai_summary 真实 LLM；失败诚实不写；变更检测；sanitize；per-operation 动态 temperature/systemPrompt/maxTokens；瞬态错误自动重试） |
 | 动态主表面 PrimaryNav | **Done**（默认 stream） |
 | confirm 写闸 pending | **Done**（settings gate + pending 队列 + 审阅） |
@@ -169,6 +169,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | Memory 整合（画像事实生命周期） | **Done**（2026-08-16：`appendProfileEntry` / `retireProfileEntry` → `## 历史记录` 带日期前缀不删原文 / `updateProfileEntry` 原位更新；`memory_organize` 产出确认式 `retire_profile`；无自动遗忘、无向量索引。ADR `docs/adr/2026-08-16-memory-consolidation.md`） |
 | AI 输出语言 | **Done**（改写/Agent 正文：用户本轮要求 → 原文 → 工作区 locale；建议条 / AI 待办 / `memory_organize` / `topic_classify`：用户本轮要求 → **当前宿主 UI 语言** → 工作区 locale。`lib/ai-output-locale.mjs`） |
 | 周期路径 / 确认面诚实 | **Done**（2026-08-21：digest 回执走 yearDir；period stem 拒绝 fallback；Obsidian 收件箱新建走写闸；confirm pending 有侧栏审阅；建议确认≠打开周期本；语料/session-compact/建议入口活文档对齐） |
+| Obsidian 建议 force / 会话 / 操作卡片 / 对话语言 | **Done**（2026-08-22：手动刷新 `force:true` 清指纹；soft 会话合并防 AI 卡消失；`memory_organize` / `topic_classify` 确认卡进建议面；对话正文走 Kernel 三层语言，UI 只管 chrome；ops 状态摘要跟宿主 UI 语言） |
 
 **Intentional Partial（保留，非未完成）**：contract UI 非全 Surface；非 `.md` 二进制可仍直写。
 

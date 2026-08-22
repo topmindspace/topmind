@@ -423,7 +423,7 @@ function PrimaryNav() {
                 className={cn(
                   "min-w-4 rounded-full px-1 text-center text-3xs font-semibold tabular-nums",
                   a.badgeTone === "warning"
-                    ? "bg-warning/18 text-warning"
+                    ? "bg-warning/15 text-warning"
                     : "bg-accent-bg-subtle text-accent-color",
                 )}
               >
@@ -455,6 +455,7 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
   const [todoOpen, setTodoOpen] = useState(false);
   const suggestPanelOpen = useActionStore((s) => s.panelOpen);
   const suggestCount = useActionStore((s) => s.items.length);
+  const suggestHasHigh = useActionStore((s) => s.items.some((i) => i.priority === "high"));
 
   // ⌘⇧T: toggle todo popover + load todo count for TitleBar badge on mount
   useEffect(() => {
@@ -634,8 +635,8 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
               className={cn(
                 "v4-titlebar-btn relative",
                 suggestPanelOpen && "bg-surface-muted",
-                // 语义分化：建议（涌现）用 loop 暖金；个人清单保持 accent 墨蓝
-                suggestCount > 0 && "text-skill-loop",
+                // 语义分化：建议（涌现）用 loop 暖金；high 优先级统一 warning（与状态栏一致）
+                suggestCount > 0 && (suggestHasHigh ? "text-warning" : "text-skill-loop"),
               )}
               onClick={() => toggleSuggestSurface()}
               aria-label={t("titleBar.suggestAriaLabel")}

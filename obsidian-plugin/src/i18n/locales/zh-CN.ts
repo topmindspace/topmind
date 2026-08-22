@@ -88,7 +88,7 @@ export const zhCN = {
   sidebar_ai_operations: "AI 操作",
   sidebar_op_todo: "整理待办",
   sidebar_op_memory: "整理我的情况",
-  sidebar_op_classify: "主题分类",
+  sidebar_op_classify: "专题分类",
   sidebar_op_suggestions: "刷新建议",
 
   // ── AI Chat ──
@@ -124,16 +124,15 @@ export const zhCN = {
   task_recent: "最近任务",
   task_clear_history: "清空历史",
   task_no_history: "暂无任务记录",
-  task_result_ok: "完成 ✓",
   task_result_failed: "失败",
 
   // ── AI Operation Labels ──
-  op_label_suggest: "生成 AI 建议",
   op_label_todo_maintain: "整理待办",
-  op_label_topic_classify: "主题分类",
+  op_label_topic_classify: "专题分类",
   op_label_memory_organize: "整理我的情况",
   op_label_reconcile: "整理动态",
   op_label_chat: "AI 对话",
+  statusbar_tip: "topmind · 点击打开 AI 副驾",
 
   // ── Model metadata ──
   model_context_limit: "上下文 {{limit}}",
@@ -169,7 +168,7 @@ export const zhCN = {
   cmd_organize_period: "Topmind: 整理本周",
   cmd_refresh_suggestions: "Topmind: 刷新 AI 建议",
   cmd_maintain_todos: "Topmind: AI 整理待办",
-  cmd_topic_classify: "Topmind: 主题分类",
+  cmd_topic_classify: "Topmind: 专题分类",
   cmd_memory_organize: "Topmind: 整理我的情况",
   cmd_open_profile: "Topmind: 打开我的情况",
   cmd_open_inbox: "Topmind: 打开收件箱",
@@ -248,8 +247,8 @@ export const zhCN = {
   notice_load_failed: "插件加载失败",
   notice_todo_running: "AI 整理待办中...",
   notice_todo_done: "待办整理完成 ✓",
-  notice_classify_running: "主题分类中...",
-  notice_classify_done: "主题分类完成 ✓",
+  notice_classify_running: "专题分类中...",
+  notice_classify_done: "专题分类完成 ✓",
   notice_memory_running: "整理我的情况中...",
   notice_memory_done: "我的情况已整理 ✓",
   notice_no_inbox: "未找到收件箱目录",

@@ -218,7 +218,7 @@ export class StreamWorkbenchView extends ItemView {
     setIcon(refreshSuggBtn, "refresh-cw");
     refreshSuggBtn.setAttribute("aria-label", t("cmd_refresh_suggestions"));
     refreshSuggBtn.setAttribute("title", t("cmd_refresh_suggestions"));
-    refreshSuggBtn.addEventListener("click", () => this.refreshSuggestions());
+    refreshSuggBtn.addEventListener("click", () => this.refreshSuggestions({ force: true }));
 
     this.suggestionContainer = contentEl.createDiv({ cls: "tm-suggestion-container" });
   }
@@ -664,7 +664,7 @@ export class StreamWorkbenchView extends ItemView {
     }
   }
 
-  async refreshSuggestions(): Promise<void> {
+  async refreshSuggestions(opts: { force?: boolean } = {}): Promise<void> {
     if (this.suggestionInFlight) return;
     this.suggestionInFlight = true;
 
@@ -691,23 +691,21 @@ export class StreamWorkbenchView extends ItemView {
       return;
     }
 
-    if (!this.plugin.settings.autoSuggest) {
-      this.renderSuggestionState(suggestionContainer, t("suggestions_disabled"), t("suggestions_disabled_hint"));
-      this.suggestionInFlight = false;
-      return;
-    }
-
     // Show loading
     const loadingEl = suggestionContainer.createDiv({ cls: "tm-loading tm-loading-spinner" });
     loadingEl.createSpan({ text: t("suggestions_loading") });
 
     try {
-      const suggestions = await this.plugin.kernelService.generateSuggestions();
+      const suggestions = await this.plugin.kernelService.generateSuggestions(opts);
 
       suggestionContainer.empty();
 
       if (suggestions.length === 0) {
-        this.renderSuggestionState(suggestionContainer, t("suggestions_empty"), t("suggestions_empty_hint"));
+        if (!this.plugin.settings.autoSuggest && opts.force !== true) {
+          this.renderSuggestionState(suggestionContainer, t("suggestions_disabled"), t("suggestions_disabled_hint"));
+        } else {
+          this.renderSuggestionState(suggestionContainer, t("suggestions_empty"), t("suggestions_empty_hint"));
+        }
         return;
       }
 
@@ -786,6 +784,7 @@ export class StreamWorkbenchView extends ItemView {
     });
     dismissBtn.setAttribute("aria-label", t("suggestions_dismiss"));
     dismissBtn.addEventListener("click", () => {
+      this.plugin.kernelService.dropSuggestion(sugg.id);
       card.classList.add("tm-card-removing");
       setTimeout(() => card.remove(), 200);
     });

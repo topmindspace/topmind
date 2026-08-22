@@ -189,6 +189,8 @@
     "jobInline": "Inline AI",
     "taskRunning": "{{count}} background task(s)",
     "taskRunningTip": "Background tasks in progress · click for details and progress",
+    "taskPanelTip": "Task panel · engine tasks & history (⌘⇧J)",
+    "taskPanelAria": "Task panel",
     "todoMaintaining": "AI maintaining todos",
     "todoMaintainingTip": "Extracting/updating personal list from stream · click to open list",
     "suggestLoading": "Preparing suggestions",

@@ -91,3 +91,51 @@ test("runOperation merges contract default options; explicit call wins", async (
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test("op status summaries follow host UI locale, not hardcoded Chinese", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "mh-aiops-locale-"));
+  try {
+    const zhContract = {
+      contract_version: 4,
+      workspace: { locale: "zh-CN" },
+    };
+    const memEn = await runOperation({
+      id: "memory_organize",
+      workspaceRoot: dir,
+      contract: zhContract,
+      options: { localeOverride: "en-US" },
+    });
+    assert.equal(memEn.ok, false);
+    assert.equal(memEn.reason, "no-ai-provider");
+    assert.match(memEn.summary, /Configure AI/i);
+    assert.doesNotMatch(memEn.summary, /需要配置/);
+
+    const memZh = await runOperation({
+      id: "memory_organize",
+      workspaceRoot: dir,
+      contract: zhContract,
+    });
+    assert.match(memZh.summary, /需要配置 AI/);
+
+    const topicEn = await runOperation({
+      id: "topic_classify",
+      workspaceRoot: dir,
+      contract: zhContract,
+      options: { localeOverride: "en-US" },
+    });
+    assert.match(topicEn.summary, /Configure AI/i);
+    assert.doesNotMatch(topicEn.summary, /需要配置/);
+
+    const todoEn = await runOperation({
+      id: "todo_maintain",
+      workspaceRoot: dir,
+      contract: zhContract,
+      options: { localeOverride: "en-US" },
+    });
+    assert.equal(todoEn.ok, false);
+    assert.match(todoEn.summary, /Configure AI|No period note/i);
+    assert.doesNotMatch(todoEn.summary, /无变化|需要配置 AI/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

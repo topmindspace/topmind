@@ -325,7 +325,7 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 - **内置视图**：StreamDetailView（默认动态）、CategoryView、TopicOverviewView、FileEditorView、InboxView、OutputsView、ArchiveView。
 - **连接器中心**：`Selection.kind=connector` + `id=weread|x` → 阅读/X 轻中心页（状态 · 同步 · 选书/预览 · 统计缓存）；侧栏仅一行摘要，设置只做凭据与偏好。
 - **兜底**：无 ViewSlot 匹配时显示共享 EmptyState（下一步 CTA：**回到动态** / 记一下）。
-- **动态主表面（Done）**：打开即 `StreamDetailView`（本周/当前周期本）。独立 HomeView 仪表盘已删除；「建议」在 AiPanel，主 CTA「记一下」在标题栏。
+- **动态主表面（Done）**：打开即 `StreamDetailView`（本周/当前周期本）。独立 HomeView 仪表盘已删除；「建议」在标题栏 💡 `SuggestPopover`（状态栏计数 chip 为次入口），主 CTA「记一下」在标题栏。
 - **CategoryView**：类别头部 + 专题列表 + 散记列表，支持新建专题/笔记快捷操作。
 - **TopicOverviewView**：专题头部 + 笔记列表（含修改时间/大小）。
 - **文件标签条**（`EditorRecentBar`）：多 tab pin/close/中键关/拖拽重排/右键菜单；溢出时左右 **edge fade**；激活 tab 滚入视野；右键 **在右侧打开对照**（分屏）。  
@@ -695,6 +695,17 @@ chrome（微暖框架）→ background（净白画布）→ surface（工作面�
 ## 变更摘要
 
 > **现在时规范是 §0–§3**（尤其 §2.2 侧栏 · §2.3 编辑区）。本节是发版指针，不是第二套 spec。Phase 0–6 / Brand Horizon / Design System 2.0 像素台账以 git 历史为准，不在此复述。
+
+### Desktop 3.5.5 — quality / Obsidian Kernel AI parity
+
+- Product tag follows Desktop; UTR same stamp; Skills / Obsidian / Clip independent patches
+- Obsidian: suggest refresh `force`, session merge, op confirm cards, chat 3-tier locale, ops summaries follow host UI language
+- StatusBar: 持久任务面板 toggle（空闲安静 / 运行 spinner+计数 / 打开按下态，⌘⇧J 对齐）替换临时 busy chip；建议 high 优先级统一 warning 色（标题栏 ↔ 状态栏）
+- Suggest kind parity: 移除死类型 `archive_path` / `todo_extract` / `topic_classify`，Obsidian 补 `inbox_organize`；`tests/suggest-surface-parity` 守卫内核产出 ↔ 双表面渲染 9:9 对齐
+- Obsidian 单通道 AI 队列：命令面板 / 侧栏按钮 / 开机自动整理统一走 `aiTaskManager` 串行通道（徽章 + 历史全可观测）；abort 改为诚实 stop-tracking 语义
+- Obsidian 新增状态栏入口（空闲 sparkles / 运行 spinner+标签，点击打开 AI 副驾）；chat regenerate 历史截取修复；建议 Tab in-flight 守卫
+- Kernel: `createKernelContext` 向 derived builders 传 contract（locale 正确解析）；缺失 profile 的 `open_profile` 建议升 high（onboarding 锚点）；`writeTodoList` evidence 按磁盘实际 create/update
+- Living docs: writeback receipts high-impact only; contract top-key whitelist; stream-year archive has no extra receipts YAML
 
 ### Desktop 3.5.4 — Markdown 预览 / 编辑器 / 侧栏文件查看
 

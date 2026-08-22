@@ -223,7 +223,13 @@ export function Shell({ settings }: ShellProps) {
           </>
         ) : null}
       </FileDropZone>
-      {focusMode ? null : <StatusBar health={health} />}
+      {focusMode ? null : (
+        <StatusBar
+          health={health}
+          taskPanelOpen={taskPanelOpen}
+          onToggleTaskPanel={() => setTaskPanelOpen((prev) => !prev)}
+        />
+      )}
       <OverlayHost />
       <IngestStagingSheet />
       <TaskPanel

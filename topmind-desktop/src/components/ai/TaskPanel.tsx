@@ -83,9 +83,7 @@ export function TaskPanel({ open, onClose }: TaskPanelProps) {
       if (!shouldDismissTaskPanel({ runningOrQueued, event: "outside-click" })) return;
       const target = e.target as Node;
       if (panelRef.current?.contains(target)) return;
-      const triggerEl = (target as Element)?.closest?.(
-        "[data-task-panel-trigger], [data-status-task-busy]",
-      );
+      const triggerEl = (target as Element)?.closest?.("[data-task-panel-trigger]");
       if (triggerEl) return;
       onClose();
     };

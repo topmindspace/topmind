@@ -4,7 +4,10 @@
 // suggest) with:
 // - Serial queue (one AI operation at a time, matches Desktop's background lane)
 // - Progress tracking (pending → running → done/error/aborted)
-// - Abort capability (cancel running operation via AbortSignal)
+// - Abort = stop-tracking semantics: the task is marked aborted immediately and
+//   its result is discarded when the underlying call settles. The provider call
+//   itself cannot be cancelled mid-flight (Obsidian requestUrl has no signal
+//   support) — honest UI must not imply otherwise.
 // - Event-based UI notification (observers get notified on state change)
 // - Operation history (last 20 results)
 //
@@ -38,7 +41,7 @@ export interface TaskProgress {
 
 type TaskListener = (progress: TaskProgress) => void;
 
-type TaskExecutor = (signal: AbortSignal) => Promise<{ ok: boolean; summary: string; suggestions?: SuggestionCard[] }>;
+type TaskExecutor = () => Promise<{ ok: boolean; summary: string; suggestions?: SuggestionCard[] }>;
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -71,7 +74,6 @@ class AiTaskManager {
   private active: InternalTask | null = null;
   private history: AiTask[] = [];
   private listeners: Set<TaskListener> = new Set();
-  private abortController: AbortController | null = null;
 
   /** Subscribe to progress updates. Returns unsubscribe function. */
   subscribe(fn: TaskListener): () => void {
@@ -105,11 +107,25 @@ class AiTaskManager {
     return this.toPublicTask(task);
   }
 
-  /** Abort the currently running task (if any). */
+  /**
+   * Abort the currently running task — stop-tracking semantics.
+   * The task is marked aborted and moved to history immediately; when the
+   * underlying provider call eventually settles, its result is discarded.
+   * The next queued task starts when that call settles, keeping the lane
+   * strictly serial (one provider call at a time).
+   */
   abort(): void {
-    if (this.abortController) {
-      this.abortController.abort();
+    const task = this.active;
+    if (!task) return;
+
+    task.status = "aborted";
+    task.finishedAt = Date.now();
+    this.history.push(this.toPublicTask(task));
+    if (this.history.length > MAX_HISTORY) {
+      this.history = this.history.slice(-MAX_HISTORY);
     }
+    this.active = null;
+    this.notify();
   }
 
   /** Check if a specific operation type is already queued or running. */
@@ -143,35 +159,42 @@ class AiTaskManager {
     this.active = task;
     task.status = "running";
     task.startedAt = Date.now();
-    this.abortController = new AbortController();
     this.notify();
 
+    let abortedMidFlight = false;
     try {
-      const result = await task.executor(this.abortController.signal);
-      task.status = "done";
-      task.result = result;
-      task.finishedAt = Date.now();
+      const result = await task.executor();
+      // Abort raced the executor: abort() already moved this task to
+      // history — discard the late result instead of resurrecting the task.
+      if (this.active !== task) {
+        abortedMidFlight = true;
+      } else {
+        task.status = "done";
+        task.result = result;
+        task.finishedAt = Date.now();
+      }
     } catch (err) {
-      if (err instanceof Error && (err.name === "AbortError" || err.message.includes("aborted"))) {
-        task.status = "aborted";
+      if (this.active !== task) {
+        abortedMidFlight = true;
       } else {
         task.status = "error";
         task.error = err instanceof Error ? err.message : String(err);
+        task.finishedAt = Date.now();
       }
-      task.finishedAt = Date.now();
     }
 
-    // Move to history
-    this.history.push(this.toPublicTask(task));
-    if (this.history.length > MAX_HISTORY) {
-      this.history = this.history.slice(-MAX_HISTORY);
+    if (!abortedMidFlight) {
+      // Move to history
+      this.history.push(this.toPublicTask(task));
+      if (this.history.length > MAX_HISTORY) {
+        this.history = this.history.slice(-MAX_HISTORY);
+      }
+      this.active = null;
     }
-
-    this.active = null;
-    this.abortController = null;
     this.notify();
 
-    // Run next queued task
+    // Run next queued task — also drains after an aborted call settles,
+    // keeping the lane strictly serial (one provider call at a time).
     if (this.queue.length > 0) {
       void this.runNext();
     }

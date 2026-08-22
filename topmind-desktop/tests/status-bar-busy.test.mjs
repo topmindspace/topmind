@@ -151,13 +151,16 @@ test("StatusBar icon semantics + click targets (DESIGN ListTodo = personal list)
   assert.match(src, /data-status-todo-busy[\s\S]*?todo:open-popover|todo:open-popover[\s\S]*?data-status-todo-busy/);
   assert.match(src, /todo:open-popover/);
   // Background tasks must NOT use ListTodo (reserved for personal list)
-  // Task chip uses Loader2; todo chip uses ListTodo
-  assert.match(src, /showTaskChip[\s\S]*?Loader2/);
+  // Task toggle: Loader2 while running, Activity when idle (persistent toggle, 2026-08-22)
+  assert.match(src, /data-status-task-toggle[\s\S]*?Loader2/);
+  assert.match(src, /data-status-task-toggle[\s\S]*?Activity/);
   assert.match(src, /showTodoChip[\s\S]*?ListTodo|data-status-todo-busy[\s\S]*?ListTodo/);
   // ListChecks was the old ambiguous todo busy icon
   assert.doesNotMatch(src, /ListChecks/);
-  assert.match(src, /data-status-task-busy/);
-  assert.match(src, /task-panel:open/);
+  // Persistent toggle entry: pressed state reflects panel open, toggles (not open-only)
+  assert.match(src, /data-status-task-toggle/);
+  assert.match(src, /aria-pressed=\{taskPanelOpen\}/);
+  assert.match(src, /onToggleTaskPanel/);
   assert.match(src, /toggleSuggestSurface|openSuggestSurface/);
 });
 

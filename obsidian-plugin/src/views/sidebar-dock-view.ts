@@ -49,6 +49,8 @@ export class SidebarDockView extends ItemView {
   private activeTab: SidebarTab = "todos";
   private chatHistory: ChatMessage[] = [];
   private chatThinking = false;
+  /** Re-entrancy guard for suggestion generation (workbench parity). */
+  private suggestionsInFlight = false;
   private showActionLabels = true;
   private contentContainer!: HTMLElement;
   private taskUnsub: (() => void) | null = null;
@@ -448,10 +450,16 @@ export class SidebarDockView extends ItemView {
           srcBtn.createSpan({ text: ` ${todo.sourcePeriod}` });
           srcBtn.addEventListener("click", (e: MouseEvent) => {
             e.stopPropagation();
+            // Prefer the live stream category from the workspace model; if the
+            // role is missing, fall back to a bare-filename link (Obsidian
+            // resolves it vault-wide) instead of a hardcoded "10-动态" path.
             const streamDir =
               this.plugin.kernelService.getResolvedModel()?.categories
-                ?.find((c) => c.role === "loose-stream")?.directory || "10-动态";
-            this.app.workspace.openLinkText(`${streamDir}/${todo.sourcePeriod}.md`, "", false);
+                ?.find((c) => c.role === "loose-stream")?.directory;
+            const link = streamDir
+              ? `${streamDir}/${todo.sourcePeriod}.md`
+              : `${todo.sourcePeriod}.md`;
+            this.app.workspace.openLinkText(link, "", false);
           });
         }
         if (todo.dueDate) {
@@ -540,7 +548,7 @@ export class SidebarDockView extends ItemView {
     return pending.length;
   }
 
-  private async renderSuggestionsTab(container: HTMLElement): Promise<void> {
+  private async renderSuggestionsTab(container: HTMLElement, opts: { force?: boolean } = {}): Promise<void> {
     container.empty();
     const pendingCount = this.renderPendingWrites(container);
     const aiConfigured = hasConfiguredProvider(this.plugin.settings.ai);
@@ -550,15 +558,10 @@ export class SidebarDockView extends ItemView {
       }
       return;
     }
-    if (!this.plugin.settings.autoSuggest) {
-      if (pendingCount === 0) {
-        this.renderEmptyState(container, t("suggestions_disabled"), t("suggestions_disabled_hint"), "lightbulb");
-      }
-      return;
-    }
-
-    // Check if an AI operation is already running
-    if (aiTaskManager.isOperationActive("suggest")) {
+    // Re-entrancy guard: tab render + refresh button can both call this while
+    // a kernel AI pass is running — never run two generateSuggestions in
+    // parallel (they would clobber suggestionSession).
+    if (this.suggestionsInFlight) {
       const progressEl = container.createDiv({ cls: "tm-task-progress-inline" });
       progressEl.createDiv({ cls: "tm-loading-spinner tm-loading-spinner-sm" });
       progressEl.createSpan({ text: t("suggestions_loading") });
@@ -566,43 +569,32 @@ export class SidebarDockView extends ItemView {
     }
 
     // Refresh suggestions button at top of suggestions tab (icon-only)
-    const refreshBar = container.createDiv({ cls: "tm-suggestion-refresh-bar" });
-    const refreshBtn = refreshBar.createEl("button", { cls: "tm-btn-secondary tm-btn-icon-only" });
-    setIcon(refreshBtn, "refresh-cw");
-    refreshBtn.setAttribute("aria-label", t("cmd_refresh_suggestions"));
-    refreshBtn.setAttribute("title", t("cmd_refresh_suggestions"));
-    refreshBtn.addEventListener("click", async () => {
-      refreshBtn.disabled = true;
-      await this.plugin.kernelService.generateSuggestions();
-      await this.renderSuggestionsTab(container);
-      refreshBtn.disabled = false;
-    });
+    this.renderSuggestionRefreshButton(container);
 
     // Loading indicator
     const loadingEl = container.createDiv({ cls: "tm-loading tm-loading-spinner" });
     loadingEl.createSpan({ text: t("suggestions_loading") });
 
+    this.suggestionsInFlight = true;
     try {
-      const suggestions = await this.plugin.kernelService.generateSuggestions();
+      const suggestions = await this.plugin.kernelService.generateSuggestions({
+        force: opts.force === true,
+      });
       container.empty();
       const pendingAfter = this.renderPendingWrites(container);
 
       // Re-add refresh button after container.empty()
-      const refreshBar2 = container.createDiv({ cls: "tm-suggestion-refresh-bar" });
-      const refreshBtn2 = refreshBar2.createEl("button", { cls: "tm-btn-secondary tm-btn-icon-only" });
-      setIcon(refreshBtn2, "refresh-cw");
-      refreshBtn2.setAttribute("aria-label", t("cmd_refresh_suggestions"));
-      refreshBtn2.setAttribute("title", t("cmd_refresh_suggestions"));
-      refreshBtn2.addEventListener("click", async () => {
-        refreshBtn2.disabled = true;
-        await this.plugin.kernelService.generateSuggestions();
-        await this.renderSuggestionsTab(container);
-        refreshBtn2.disabled = false;
-      });
+      this.renderSuggestionRefreshButton(container);
 
       if (suggestions.length === 0) {
         if (pendingAfter === 0) {
-          this.renderEmptyState(container, t("sidebar_no_suggestions"), t("suggestions_empty_hint"), "lightbulb");
+          const emptyTitle = this.plugin.settings.autoSuggest
+            ? t("sidebar_no_suggestions")
+            : t("suggestions_disabled");
+          const emptyHint = this.plugin.settings.autoSuggest
+            ? t("suggestions_empty_hint")
+            : t("suggestions_disabled_hint");
+          this.renderEmptyState(container, emptyTitle, emptyHint, "lightbulb");
         }
         return;
       }
@@ -620,7 +612,22 @@ export class SidebarDockView extends ItemView {
     } catch {
       container.empty();
       this.renderEmptyState(container, t("error"), "", "alert-circle");
+    } finally {
+      this.suggestionsInFlight = false;
     }
+  }
+
+  /** Force-refresh button — single guarded path via renderSuggestionsTab. */
+  private renderSuggestionRefreshButton(container: HTMLElement): void {
+    const refreshBar = container.createDiv({ cls: "tm-suggestion-refresh-bar" });
+    const refreshBtn = refreshBar.createEl("button", { cls: "tm-btn-secondary tm-btn-icon-only" });
+    setIcon(refreshBtn, "refresh-cw");
+    refreshBtn.setAttribute("aria-label", t("cmd_refresh_suggestions"));
+    refreshBtn.setAttribute("title", t("cmd_refresh_suggestions"));
+    refreshBtn.addEventListener("click", async () => {
+      refreshBtn.disabled = true;
+      await this.renderSuggestionsTab(container, { force: true });
+    });
   }
 
   private renderSuggestionCard(container: HTMLElement, sugg: SuggestionCard): void {
@@ -675,6 +682,7 @@ export class SidebarDockView extends ItemView {
     });
     dismissBtn.setAttribute("aria-label", t("suggestions_dismiss"));
     dismissBtn.addEventListener("click", () => {
+      this.plugin.kernelService.dropSuggestion(sugg.id);
       card.classList.add("tm-card-removing");
       setTimeout(() => card.remove(), 200);
     });
@@ -983,11 +991,19 @@ export class SidebarDockView extends ItemView {
     this.renderActiveTab();
 
     try {
-      // Use chat history excluding the last user message that matches the prompt
-      const history = this.chatHistory.filter((m, i) => {
-        // Include all messages up to the point where we're regenerating
-        return i < this.chatHistory.length || m.role !== "user" || m.content !== prompt;
-      });
+      // Context = history up to (excluding) the user message being regenerated,
+      // so the prompt is sent exactly once as the final turn.
+      let lastUserIdx = -1;
+      for (let i = this.chatHistory.length - 1; i >= 0; i--) {
+        const m = this.chatHistory[i];
+        if (m.role === "user" && m.content === prompt) {
+          lastUserIdx = i;
+          break;
+        }
+      }
+      const history = lastUserIdx >= 0
+        ? this.chatHistory.slice(0, lastUserIdx)
+        : [...this.chatHistory];
       const response = await this.plugin.kernelService.chat(prompt, history);
       this.chatHistory.push({
         role: "assistant",
@@ -1173,33 +1189,26 @@ export class SidebarDockView extends ItemView {
         this.plugin.kernelService.reconcilePeriod(streamCtx.current.relPath);
       }
       if (this.plugin.settings.autoMaintainTodos) {
-        await this.plugin.kernelService.runOperation("todo_maintain");
+        // Shared serial lane (quiet — the organize notice covers this pass)
+        this.plugin.enqueueAiOperation("todo_maintain", "op_label_todo_maintain", "notice_todo_done", "sidebar", true);
       }
       new Notice(t("notice_organize_done"));
       this.refreshActiveTab();
     }, false);
 
-    // AI operations (only if AI configured)
+    // AI operations (only if AI configured) — same shared lane as the command
+    // palette, so the task badge + history observe every AI pass.
     if (hasConfiguredProvider(this.plugin.settings.ai)) {
-      // Todo maintain
-      this.addActionButton(actionsBar, "list-checks", t("sidebar_op_todo"), async () => {
-        this.enqueueAiTask("todo_maintain", t("op_label_todo_maintain"), async () => {
-          return this.plugin.kernelService.runOperation("todo_maintain", { force: true });
-        });
+      this.addActionButton(actionsBar, "list-checks", t("sidebar_op_todo"), () => {
+        this.plugin.enqueueAiOperation("todo_maintain", "op_label_todo_maintain", "notice_todo_done", "sidebar");
       }, true);
 
-      // Classify
-      this.addActionButton(actionsBar, "tag", t("sidebar_op_classify"), async () => {
-        this.enqueueAiTask("topic_classify", t("op_label_topic_classify"), async () => {
-          return this.plugin.kernelService.runOperation("topic_classify", { force: true });
-        });
+      this.addActionButton(actionsBar, "tag", t("sidebar_op_classify"), () => {
+        this.plugin.enqueueAiOperation("topic_classify", "op_label_topic_classify", "notice_classify_done", "suggest");
       }, true);
 
-      // Memory organize
-      this.addActionButton(actionsBar, "brain", t("sidebar_op_memory"), async () => {
-        this.enqueueAiTask("memory_organize", t("op_label_memory_organize"), async () => {
-          return this.plugin.kernelService.runOperation("memory_organize", { force: true });
-        });
+      this.addActionButton(actionsBar, "brain", t("sidebar_op_memory"), () => {
+        this.plugin.enqueueAiOperation("memory_organize", "op_label_memory_organize", "notice_memory_done", "all");
       }, true);
     }
 
@@ -1237,28 +1246,6 @@ export class SidebarDockView extends ItemView {
   }
 
   /** Enqueue an AI task with progress tracking */
-  private enqueueAiTask(
-    operation: string,
-    label: string,
-    executor: () => Promise<{ ok: boolean; summary: string; suggestions?: SuggestionCard[] }>,
-  ): void {
-    if (aiTaskManager.isOperationActive(operation)) {
-      new Notice(`${label} ${t("task_running")}`);
-      return;
-    }
-    aiTaskManager.enqueue(operation, label, async () => {
-      const result = await executor();
-      if (result.ok) {
-        new Notice(result.summary || t("task_result_ok"));
-      } else {
-        new Notice(`${t("task_result_failed")}: ${result.summary}`);
-      }
-      // Refresh tabs after task completes
-      this.refreshActiveTab();
-      return result;
-    });
-  }
-
   // ── Helpers ────────────────────────────────────────────────────────────
 
   private renderEmptyState(container: HTMLElement, title: string, hint: string, iconName?: string): void {

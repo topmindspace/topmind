@@ -410,7 +410,7 @@ presentation:                  # 呈现规约
 ```
 
 **规则**：
-- `contract_version` 单调递增；contract-engine 负责校验与迁移（8 类顶层键白名单，拒绝未知键）。
+- `contract_version` 单调递增；contract-engine 负责校验与迁移（顶层键白名单：`contract_version` + workspace / categories / stream / memory / protection / lifecycle / writeback / ingest / agent / presentation，拒绝未知键）。
 - **存在性以 FS 为准**：contract 声明但未建目录 → `pendingCreate`。
 - **合并优先级（属性）**：`overrides` > `extensions` > `templates/*.json` > 默认 `role: deep-work`。
 - **隐藏**：`overrides[slot].hidden: true` — 不删盘；侧栏/timeline/tags/kanban/connector 默认跳过。

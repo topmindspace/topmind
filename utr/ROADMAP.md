@@ -20,7 +20,7 @@ UTR is the optional deterministic substrate for topmind. The external surface is
    - Danger: archive-topic · archive-stream-year · restore-safety-receipt · contract.reseed
    - Advanced: list-recent-captures · list-safety-receipts · update-topic · normalize-note-metadata · migrate-v4 · cleanup-empty-dirs · lifecycle.scan · derived.rebuild · contract.ensure
 
-2. **Shared modules (`utr/core/`)** — workspace paths, frontmatter, result envelopes, receipts, workspace audit, backup/trash, and locked/final detection. `workspace-write` runs on Node with reversible backup, locked/final revision, preview/apply, and receipt behavior. Durable `.md` content writes go through Kernel `lib/writeback-engine.mjs` (`executeWrite`). `writeback-safety.mjs` is **only** the tool-executor transactional snapshot/restore helper (not a second content write gate). Safety receipt path classification lives in `safety-receipt-paths.mjs` (list + restore).
+2. **Shared modules (`utr/core/`)** — workspace paths, frontmatter, result envelopes, receipts, workspace audit, backup/trash, and **open/locked** protection. `workspace-write` runs on Node; durable `.md` content writes go through Kernel `lib/writeback-engine.mjs` (`executeWrite`). YAML backup/receipt are **high-impact only** (locked overwrite; locked/core delete). `writeback-safety.mjs` is **only** the tool-executor transactional snapshot/restore helper (not a second content write gate). Safety receipt path classification lives in `safety-receipt-paths.mjs` (list + restore).
 
 3. **Verification**
    - `npm run utr:test`
@@ -34,9 +34,9 @@ UTR is the optional deterministic substrate for topmind. The external surface is
 
 ## UX Contract
 
-- `writebackMode:"auto"|"confirm"` — auto apply + receipt; confirm returns review plan
+- `writebackMode:"auto"|"confirm"` — auto persist (path evidence; YAML receipt only on high-impact); confirm returns review plan
 - High-risk writes require a meaningful reason when the contract says so
-- Locked/final files produce revision copies instead of in-place edits
+- Locked files refuse unconfirmed AI overwrite (protection outranks `writeback_mode`)
 
 ## Verification commands
 

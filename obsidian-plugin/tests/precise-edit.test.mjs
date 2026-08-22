@@ -41,6 +41,31 @@ describe("Obsidian chat locale + tool guide", () => {
     assert.equal(ops.resolveChatPromptLocale(null), "zh");
   });
 
+  test("resolveChatDurableLocale uses Kernel 3-tier not UI chrome", async () => {
+    const kernel = await import(pathToFileURL(path.join(repoRoot, "lib", "kernel-api.mjs")).href);
+    const ops = await importShipped("services/kernel-workspace-ops.ts");
+    const ws = fs.mkdtempSync(path.join(os.tmpdir(), "tm-obs-chat-loc-"));
+    try {
+      fs.writeFileSync(
+        path.join(ws, "topmind.yaml"),
+        "contract_version: 4\nworkspace:\n  locale: en-US\n",
+        "utf8",
+      );
+      assert.equal(
+        ops.resolveChatDurableLocale(kernel, ws, "summarize this week"),
+        "en",
+        "workspace en + no explicit request → en",
+      );
+      assert.equal(
+        ops.resolveChatDurableLocale(kernel, ws, "用中文回复"),
+        "zh",
+        "explicit Chinese request wins over en workspace",
+      );
+    } finally {
+      fs.rmSync(ws, { recursive: true, force: true });
+    }
+  });
+
   test("buildObsidianChatToolGuide has unique-span + writeback + protection; no Model A", async () => {
     const ops = await importShipped("services/kernel-workspace-ops.ts");
     for (const loc of ["zh-CN", "en-US"]) {

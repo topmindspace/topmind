@@ -67,17 +67,23 @@ describe("Desktop todo force + Kernel-only path", () => {
 });
 
 describe("Obsidian todo force + Kernel-only path", () => {
-  it("manual maintainTodos uses runOperation todo_maintain with force:true", () => {
+  it("manual maintainTodos routes through the shared queued lane with force:true", () => {
     const main = read("obsidian-plugin/src/main.ts");
-    assert.match(main, /runOperation\(\s*["']todo_maintain["']\s*,\s*\{\s*force:\s*true\s*\}\s*\)/);
-    // Auto path may omit force (idle maintain) — must still go through Kernel op
-    assert.match(main, /runOperation\(\s*["']todo_maintain["']\s*\)/);
+    // All AI ops (command palette, sidebar buttons, boot auto-maintain) enqueue
+    // on the shared serial lane — never a direct runOperation bypass.
+    assert.match(main, /enqueueAiOperation\(\s*["']todo_maintain["']/);
+    assert.match(main, /enqueueAiOperation\(\s*["']topic_classify["']/);
+    assert.match(main, /enqueueAiOperation\(\s*["']memory_organize["']/);
+    // The lane's executor forces reprocessing via the Kernel op (no surface-local todo writer)
+    assert.match(main, /runOperation\(\s*operation,\s*\{\s*force:\s*true\s*\}\s*\)/);
+    assert.doesNotMatch(main, /runOperation\(\s*["']todo_maintain["']\s*,?\s*\)/);
   });
 
   it("kernel-service runOperation forwards options to Kernel ctx.runOperation", () => {
     const src = read("obsidian-plugin/src/services/kernel-service.ts");
     assert.match(src, /async runOperation\(id:\s*string,\s*opts:\s*\{\s*force\?:\s*boolean/);
-    assert.match(src, /ctx\.runOperation\(\{\s*id,\s*options:\s*opts/);
+    // options spread + host UI localeOverride forwarding (surface parity with Desktop)
+    assert.match(src, /ctx\.runOperation\(\{\s*id,\s*options:\s*\{\s*\.\.\.opts,\s*localeOverride/);
     assert.doesNotMatch(src, /findRecentPeriodNotes|buildTodoExtractionPrompt/);
   });
 

@@ -12,7 +12,6 @@ export const WRITE_SUGGESTION_KINDS = [
   "inbox_review",
   "stale_topic",
   "catch_all",
-  "archive_path",
   "inbox_organize",
   "create_topic",
 ] as const;

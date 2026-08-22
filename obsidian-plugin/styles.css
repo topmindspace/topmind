@@ -2247,3 +2247,52 @@
     display: none;
   }
 }
+
+/* ── Status Bar Entry (Obsidian status bar; entry parity with Desktop) ── */
+
+.tm-status-bar-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  padding: 0 6px;
+  color: var(--text-faint);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--tm-transition);
+}
+
+.tm-status-bar-item:hover {
+  color: var(--interactive-accent);
+}
+
+.tm-status-bar-item.tm-status-bar-running {
+  color: var(--interactive-accent);
+}
+
+.tm-status-bar-icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+.tm-status-bar-icon svg {
+  width: var(--tm-icon-xs);
+  height: var(--tm-icon-xs);
+}
+
+.tm-status-bar-label {
+  font-size: var(--font-ui-smaller);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tm-status-bar-spinner {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border: 2px solid rgba(var(--tm-accent-rgb), 0.25);
+  border-top-color: var(--interactive-accent);
+  border-radius: 50%;
+  animation: tm-spin 0.8s linear infinite;
+}

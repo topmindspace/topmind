@@ -338,7 +338,7 @@ The `plan` job in `release.yml` is the **single source of truth** for which surf
 | `desktop` | `v*`: pack if truth ≠ previous Latest; `desktop-v*` hotfix | `${{ inputs.pack_desktop }}` |
 | `reuse_*` | `v*`: true when that surface's truth version equals previous Latest | always false |
 | `prev_tag` | previous GitHub Latest tag (for reuse) | empty |
-| `tag` | `${GITHUB_REF_NAME}` (e.g. `v3.4.0`) | `${{ inputs.release_tag }}` — strip `refs/tags/` prefix if present |
+| `tag` | `${GITHUB_REF_NAME}` (product `v*` following Desktop) | `${{ inputs.release_tag }}` — strip `refs/tags/` prefix if present |
 | `create_release` | always `true` (tag pushes always release) | `${{ inputs.create_release }}` |
 
 ### workflow_dispatch behavior (important)

@@ -189,6 +189,8 @@
     "jobInline": "行内 AI",
     "taskRunning": "{{count}} 个后台任务",
     "taskRunningTip": "后台任务进行中 · 点此查看详情和进度",
+    "taskPanelTip": "任务面板 · 引擎任务与历史（⌘⇧J）",
+    "taskPanelAria": "任务面板",
     "todoMaintaining": "AI 整理待办中",
     "todoMaintainingTip": "正在从动态提取/更新个人清单 · 点此打开清单",
     "suggestLoading": "准备建议中",

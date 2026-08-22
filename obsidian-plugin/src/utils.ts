@@ -93,6 +93,23 @@ export function mapKernelSuggestion(s: Record<string, unknown>): SuggestionCard 
 }
 
 /**
+ * Soft-refresh merge (Desktop ActionStore session cache parity).
+ * Kernel fingerprint skip often returns a thinner set than the cards already
+ * on screen; keep previous ids until apply/dismiss. `next` wins on id clash.
+ */
+export function mergeSoftSuggestionSession(
+  previous: SuggestionCard[],
+  next: SuggestionCard[],
+  dropped: Set<string> = new Set(),
+): SuggestionCard[] {
+  const prev = Array.isArray(previous) ? previous : [];
+  const incoming = Array.isArray(next) ? next : [];
+  const nextIds = new Set(incoming.map((s) => s?.id).filter(Boolean) as string[]);
+  const kept = prev.filter((s) => s?.id && !nextIds.has(s.id) && !dropped.has(s.id));
+  return [...incoming.filter((s) => s?.id && !dropped.has(s.id)), ...kept];
+}
+
+/**
  * Visual meta for each suggestion kind.
  * `icon` is an Obsidian/Lucide icon name (used with setIcon).
  * `border` is a CSS border token for color-coding suggestion cards.
@@ -102,15 +119,14 @@ export const SUGGESTION_KIND_META: Record<
   { icon: string; border: string }
 > = {
   create_topic: { icon: "folder-plus", border: "blue" },
-  todo_extract: { icon: "list-checks", border: "orange" },
   promote_memory: { icon: "brain", border: "green" },
   ai_summary: { icon: "bar-chart-3", border: "purple" },
+  inbox_organize: { icon: "folder-input", border: "blue" },
   inbox_review: { icon: "inbox", border: "blue" },
   stale_topic: { icon: "package", border: "orange" },
   catch_all: { icon: "brush", border: "orange" },
   stream_digest: { icon: "scroll-text", border: "purple" },
   open_profile: { icon: "user", border: "green" },
-  topic_classify: { icon: "tag", border: "blue" },
 };
 
 /** All suggestion kinds the plugin UI must render. */
@@ -118,13 +134,12 @@ export const ALL_SUGGESTION_KINDS: readonly SuggestionKind[] = [
   "create_topic",
   "promote_memory",
   "ai_summary",
-  "todo_extract",
+  "inbox_organize",
   "inbox_review",
   "stale_topic",
   "catch_all",
   "stream_digest",
   "open_profile",
-  "topic_classify",
 ];
 
 /**

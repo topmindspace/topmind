@@ -1,6 +1,6 @@
 import {
   AlertCircle, Loader2, FileText, Bot, ListTodo, Lightbulb,
-  Download,
+  Download, Activity,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
@@ -44,13 +44,15 @@ interface UpdateBadgeInfo {
 
 interface StatusBarProps {
   health: EngineHealth | null;
+  taskPanelOpen: boolean;
+  onToggleTaskPanel: () => void;
 }
 
 function StatusDivider() {
   return <span className="v4-chrome-sep h-2.5!" aria-hidden />;
 }
 
-export function StatusBar({ health }: StatusBarProps) {
+export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBarProps) {
   const { t } = useTranslation(["shell", "common"]);
   const selection = useViewStore((s) => s.selection);
   const messageCount = useAiStore((s) => s.messages.length);
@@ -245,30 +247,48 @@ export function StatusBar({ health }: StatusBarProps) {
           );
         })() : null}
 
-        {/* Named busy chips only — never dual with generic「AI 工作中」for todo/suggest-only */}
-        {busy.showTaskChip ? (
-          <Tooltip content={t("statusBar.taskRunningTip")}>
-            <button
-              type="button"
-              data-status-task-busy
-              onClick={() => emitLocal("task-panel:open")}
-              className={cn(
-                "flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5",
-                "bg-accent-bg-faint text-accent-color",
-                "transition-colors hover:bg-accent-bg-subtle",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
-              )}
-              aria-label={t("statusBar.taskRunning", { count: activeTasks.length })}
-            >
-              {/* Loader2 — background engine tasks; never ListTodo (reserved for personal list) */}
+        {/* Persistent task-panel toggle (2026-08-22): one statusbar control for engine
+            tasks — quiet when idle, spinner+count when running, pressed state when open.
+            Replaces the transient busy-only chip (open-only affordance, no close path). */}
+        <Tooltip
+          content={
+            activeTasks.length > 0
+              ? t("statusBar.taskRunningTip")
+              : t("statusBar.taskPanelTip")
+          }
+        >
+          <button
+            type="button"
+            data-task-panel-trigger
+            data-status-task-toggle
+            onClick={onToggleTaskPanel}
+            aria-pressed={taskPanelOpen}
+            aria-label={t("statusBar.taskPanelAria")}
+            className={cn(
+              "flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
+              activeTasks.length > 0
+                ? "bg-accent-bg-faint text-accent-color hover:bg-accent-bg-subtle"
+                : taskPanelOpen
+                  ? "text-success/90 hover:bg-success/10"
+                  : "text-text-quaternary hover:bg-surface-muted hover:text-text-secondary",
+            )}
+          >
+            {/* Loader2 while running (engine tasks); Activity otherwise — never
+                ListTodo (reserved for the personal todo list, DESIGN §0.0.2) */}
+            {activeTasks.length > 0 ? (
               <Loader2 size={ICON.micro} className="animate-spin" aria-hidden />
+            ) : (
+              <Activity size={ICON.micro} aria-hidden />
+            )}
+            {activeTasks.length > 0 ? (
               <span className="v4-ai-busy-text hidden tabular-nums sm:inline">
                 {t("statusBar.taskRunning", { count: activeTasks.length })}
               </span>
-              <span className="v4-ai-progress-dot" aria-hidden />
-            </button>
-          </Tooltip>
-        ) : null}
+            ) : null}
+            {activeTasks.length > 0 ? <span className="v4-ai-progress-dot" aria-hidden /> : null}
+          </button>
+        </Tooltip>
         {busy.showTodoChip ? (
           <Tooltip content={t("statusBar.todoMaintainingTip")}>
             <button

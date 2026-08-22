@@ -1,6 +1,6 @@
 ---
 name: topmind-memory
-version: 3.5.2
+version: 3.5.3
 description: >-
   更新「我的情况」或周期反思。Use when 记住这个、更新我的情况、加到专题记忆、沉淀结论。
   Do NOT use for 捕获、仅总结（→organize）、整理本周正文、出稿、开/并专题、doctor/loop.

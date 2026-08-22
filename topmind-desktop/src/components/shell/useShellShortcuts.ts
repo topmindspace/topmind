@@ -26,7 +26,7 @@ export function useShellShortcuts(setTaskPanelOpen: Dispatch<SetStateAction<bool
         return;
       }
 
-      // ⌘⇧X: navigation and panel shortcuts
+      // ⌘⇧ + letter: navigation and panel shortcuts
       if (!e.shiftKey) return;
       const key = e.key.toLowerCase();
       if (key === "i") {

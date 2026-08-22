@@ -162,6 +162,12 @@ export interface KernelApi {
     hasTopicHome?: boolean;
   }): boolean;
   loadContract(workspaceRoot: string): Record<string, unknown>;
+  resolveAgentOutputLanguage?(opts: {
+    userText?: string;
+    sourceText?: string;
+    editedSpan?: string;
+    contract?: unknown;
+  }): "zh" | "en";
   writeContract?(workspaceRoot: string, contract: Record<string, unknown>): string;
   buildDefaultContract(workspaceRoot?: string, template?: unknown): Record<string, unknown>;
   inspectContract?(workspaceRoot: string): {

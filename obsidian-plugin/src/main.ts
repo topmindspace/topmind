@@ -9,7 +9,7 @@
 // This protects against data.json being wiped during plugin updates (BRAT,
 // manual install, Obsidian sync conflicts, etc.).
 
-import { Plugin, WorkspaceLeaf, Notice } from "obsidian";
+import { Plugin, WorkspaceLeaf, Notice, setIcon } from "obsidian";
 import { DEFAULT_SETTINGS, migrateSettings, hasConfiguredProvider, type TopmindSettings } from "./types";
 import {
   VIEW_TYPE_STREAM_WORKBENCH,
@@ -26,11 +26,12 @@ import {
   CMD_OPEN_INBOX,
 } from "./constants";
 import { KernelService } from "./services/kernel-service";
+import { aiTaskManager, type TaskProgress } from "./services/ai-task-manager";
 import { TopmindSettingTab } from "./settings/settings-tab";
 import { StreamWorkbenchView } from "./views/stream-workbench-view";
 import { SidebarDockView } from "./views/sidebar-dock-view";
 import { QuickCaptureModal } from "./views/quick-capture-modal";
-import { setLocale, t } from "./i18n";
+import { setLocale, t, type LocaleKey } from "./i18n";
 
 // ── AI Key Backup / Restore ───────────────────────────────────────────────
 //
@@ -115,6 +116,8 @@ function settingsHaveAiKeys(settings: TopmindSettings): boolean {
 export default class TopmindPlugin extends Plugin {
   declare settings: TopmindSettings;
   kernelService!: KernelService;
+  private statusBarEl: HTMLElement | null = null;
+  private aiTaskUnsub: (() => void) | null = null;
 
   async onload(): Promise<void> {
     try {
@@ -221,6 +224,9 @@ export default class TopmindPlugin extends Plugin {
     // ── Settings tab ──
     this.addSettingTab(new TopmindSettingTab(this.app, this));
 
+    // ── Status bar entry — AI task state + one-click copilot open ──
+    this.initStatusBarItem();
+
     // ── Auto-open workbench + sidebar on startup ──
     if (this.settings.autoOpenWorkbench) {
       this.app.workspace.onLayoutReady(() => {
@@ -233,14 +239,15 @@ export default class TopmindPlugin extends Plugin {
     // ── Auto-maintain todos if enabled ──
     if (this.settings.autoMaintainTodos && this.kernelService.isWorkspaceReady()) {
       this.app.workspace.onLayoutReady(() => {
-        this.kernelService.runOperation("todo_maintain").catch((err) => {
-          console.error("[topmind] auto todo_maintain failed:", err);
-        });
+        // Queued (not direct) so the task badge/history observes boot work too
+        this.enqueueAiOperation("todo_maintain", "op_label_todo_maintain", "notice_todo_done", "sidebar", true);
       });
     }
   }
 
   onunload(): void {
+    this.aiTaskUnsub?.();
+    this.aiTaskUnsub = null;
     this.kernelService?.dispose();
   }
 
@@ -365,7 +372,8 @@ export default class TopmindPlugin extends Plugin {
     }
 
     if (this.settings.autoMaintainTodos) {
-      await this.kernelService.runOperation("todo_maintain");
+      // Queued quiet — badge/history observes it; reconcile itself is sync-scheduled
+      this.enqueueAiOperation("todo_maintain", "op_label_todo_maintain", "notice_todo_done", "sidebar", true);
     }
 
     const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_STREAM_WORKBENCH);
@@ -381,7 +389,7 @@ export default class TopmindPlugin extends Plugin {
       new Notice(t("notice_workspace_not_ready"));
       return;
     }
-    await this.kernelService.generateSuggestions();
+    await this.kernelService.generateSuggestions({ force: true });
     const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_STREAM_WORKBENCH);
     for (const leaf of leaves) {
       if (leaf.view instanceof StreamWorkbenchView) {
@@ -390,62 +398,121 @@ export default class TopmindPlugin extends Plugin {
     }
   }
 
-  private async maintainTodos(): Promise<void> {
+  private maintainTodos(): void {
     if (!this.kernelService.isWorkspaceReady()) {
       new Notice(t("notice_workspace_not_ready"));
       return;
     }
     new Notice(t("notice_todo_running"));
-    const result = await this.kernelService.runOperation("todo_maintain", { force: true });
-    if (result.ok) {
-      new Notice(t("notice_todo_done"));
-    } else {
-      new Notice(`${t("notice_execute_failed")}: ${result.summary}`);
-    }
-    const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_SIDEBAR_DOCK);
-    for (const leaf of leaves) {
-      if (leaf.view instanceof SidebarDockView) {
-        await leaf.view.refresh();
-      }
-    }
+    this.enqueueAiOperation("todo_maintain", "op_label_todo_maintain", "notice_todo_done", "sidebar");
   }
 
-  private async classifyTopics(): Promise<void> {
+  private classifyTopics(): void {
     if (!this.kernelService.isWorkspaceReady()) {
       new Notice(t("notice_workspace_not_ready"));
       return;
     }
     new Notice(t("notice_classify_running"));
-    const result = await this.kernelService.runOperation("topic_classify", { force: true });
-    if (result.ok) {
-      new Notice(result.summary || t("notice_classify_done"));
-    } else {
-      new Notice(`${t("notice_execute_failed")}: ${result.summary}`);
-    }
-    const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_STREAM_WORKBENCH);
-    for (const leaf of leaves) {
-      if (leaf.view instanceof StreamWorkbenchView) {
-        await leaf.view.refreshSuggestions();
-      }
-    }
+    this.enqueueAiOperation("topic_classify", "op_label_topic_classify", "notice_classify_done", "suggest");
   }
 
-  private async organizeMemory(): Promise<void> {
+  private organizeMemory(): void {
     if (!this.kernelService.isWorkspaceReady()) {
       new Notice(t("notice_workspace_not_ready"));
       return;
     }
     new Notice(t("notice_memory_running"));
-    const result = await this.kernelService.runOperation("memory_organize", { force: true });
-    if (result.ok) {
-      new Notice(result.summary || t("notice_memory_done"));
-    } else {
-      new Notice(`${t("notice_execute_failed")}: ${result.summary}`);
+    this.enqueueAiOperation("memory_organize", "op_label_memory_organize", "notice_memory_done", "all");
+  }
+
+  // ── Shared AI operation lane ──────────────────────────────────────────
+
+  /**
+   * Enqueue an AI operation on the shared serial lane. Command palette, boot
+   * auto-maintain, and sidebar buttons all route through the same queue so
+   * the task badge + history observe every AI pass (Desktop parity: its
+   * background lane is the single writer).
+   *
+   * @param quiet suppress per-result Notices (boot/background callers) — the
+   *              badge/history still observe the task.
+   */
+  enqueueAiOperation(
+    operation: "todo_maintain" | "topic_classify" | "memory_organize",
+    labelKey: LocaleKey,
+    doneKey: LocaleKey,
+    refresh: "sidebar" | "suggest" | "all",
+    quiet = false,
+  ): void {
+    const label = t(labelKey);
+    if (aiTaskManager.isOperationActive(operation)) {
+      if (!quiet) new Notice(`${label} ${t("task_running")}`);
+      return;
     }
+    aiTaskManager.enqueue(operation, label, async () => {
+      const result = await this.kernelService.runOperation(operation, { force: true });
+      if (!quiet) {
+        if (result.ok) {
+          new Notice(result.summary || t(doneKey));
+        } else {
+          new Notice(`${t("task_result_failed")}: ${result.summary}`);
+        }
+      }
+      this.refreshPluginViews(refresh);
+      return result;
+    });
+  }
+
+  private refreshPluginViews(scope: "sidebar" | "suggest" | "all"): void {
+    const sideLeaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_SIDEBAR_DOCK);
+    for (const leaf of sideLeaves) {
+      if (leaf.view instanceof SidebarDockView) {
+        void leaf.view.refresh();
+      }
+    }
+    if (scope === "sidebar") return;
     const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_STREAM_WORKBENCH);
     for (const leaf of leaves) {
       if (leaf.view instanceof StreamWorkbenchView) {
-        await leaf.view.refreshAll();
+        void (scope === "all" ? leaf.view.refreshAll() : leaf.view.refreshSuggestions());
+      }
+    }
+  }
+
+  // ── Status bar entry ──────────────────────────────────────────────────
+
+  /**
+   * Persistent Obsidian status bar item (entry-point parity with Desktop's
+   * statusbar task toggle): quiet sparkles when idle, spinner + active task
+   * label while the AI lane runs. Click opens/reveals the AI copilot sidebar.
+   */
+  private initStatusBarItem(): void {
+    const el = this.addStatusBarItem();
+    el.addClass("tm-status-bar-item");
+    el.setAttribute("aria-label", t("statusbar_tip"));
+    el.setAttribute("data-tooltip-position", "top");
+    el.addEventListener("click", () => void this.openSidebar());
+    this.statusBarEl = el;
+    this.aiTaskUnsub = aiTaskManager.subscribe((progress) => this.updateStatusBarItem(progress));
+    this.updateStatusBarItem(aiTaskManager.getProgress());
+  }
+
+  private updateStatusBarItem(progress: TaskProgress): void {
+    const el = this.statusBarEl;
+    if (!el) return;
+    el.empty();
+    const active = progress.active;
+    if (active) {
+      el.addClass("tm-status-bar-running");
+      el.createSpan({ cls: "tm-status-bar-spinner", attr: { "aria-hidden": "true" } });
+      el.createSpan({ text: active.label, cls: "tm-status-bar-label" });
+    } else {
+      el.removeClass("tm-status-bar-running");
+      setIcon(el.createSpan({ cls: "tm-status-bar-icon" }), "sparkles");
+      if (progress.queued.length > 0) {
+        el.createSpan({
+          text: t("task_queued_count").replace("{{count}}", String(progress.queued.length)),
+          cls: "tm-status-bar-label",
+        });
       }
     }
   }

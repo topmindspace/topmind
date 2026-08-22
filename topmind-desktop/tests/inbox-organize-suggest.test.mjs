@@ -50,8 +50,8 @@ test("ActionStore navigates to target file after inbox_organize apply", () => {
 test("StatusBar uses progress dot for ALL busy chips (unified)", () => {
   const src = read("src/components/shell/StatusBar.tsx");
   assert.match(src, /v4-ai-progress-dot/);
-  // Task chip has progress dot
-  assert.match(src, /showTaskChip[\s\S]*?v4-ai-progress-dot/);
+  // Task toggle has progress dot while running (persistent toggle, 2026-08-22)
+  assert.match(src, /data-status-task-toggle[\s\S]*?v4-ai-progress-dot/);
   // Todo chip has progress dot
   assert.match(src, /showTodoChip[\s\S]*?v4-ai-progress-dot/);
   // Suggest chip has progress dot

@@ -20,7 +20,9 @@ test("StatusBar shows task / todo / suggest / streaming busy affordances", () =>
   assert.match(src, /statusBar\.taskRunning/);
   assert.match(src, /statusBar\.todoMaintaining/);
   assert.match(src, /statusBar\.suggestLoading/);
-  assert.match(src, /task-panel:open/);
+  // Persistent task-panel toggle replaces the transient open-only chip
+  assert.match(src, /onToggleTaskPanel/);
+  assert.match(src, /aria-pressed=\{taskPanelOpen\}/);
   assert.match(src, /animate-spin|animate-pulse-soft/);
   // Dedicated todo chip uses busy.showTodoChip — not dual with aiPillBusy for todo-only
   assert.match(src, /busy\.showTodoChip/);

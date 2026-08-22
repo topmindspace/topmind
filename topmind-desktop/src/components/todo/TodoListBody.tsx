@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/cn";
-import { ICON } from "../../lib/icons";
+import { ICON, ICON_STROKE } from "../../lib/icons";
 import { useTodoStore } from "../../stores/todo-store";
 import { useViewStore } from "../../stores/view-store";
 import type { TodoItem } from "../../types";
@@ -394,7 +394,7 @@ function TodoItemRow({
         )}
         aria-label={item.done ? t("todo.uncheck") : t("todo.check")}
       >
-        {item.done ? <Check size={ICON.nano} strokeWidth={3} /> : null}
+        {item.done ? <Check size={ICON.nano} strokeWidth={ICON_STROKE.emphasis} /> : null}
       </button>
 
       {/* Content */}

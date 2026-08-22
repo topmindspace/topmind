@@ -52,7 +52,6 @@ function SuggestionIcon({ kind, isHigh }: { kind?: string; isHigh: boolean }) {
     case "inbox_organize":
       return <Inbox size={ICON.nano} className={cls} />;
     case "stale_topic":
-    case "archive_path":
       return <Archive size={ICON.nano} className={cls} />;
     case "stream_digest":
     case "ai_summary":
@@ -85,7 +84,6 @@ function kindChipKey(kind?: string, source?: ActionItem["source"]): string | nul
     case "inbox_organize":
       return "kindChipInboxOrganize";
     case "stale_topic":
-    case "archive_path":
     case "catch_all":
       return "kindChipArchive";
     default:

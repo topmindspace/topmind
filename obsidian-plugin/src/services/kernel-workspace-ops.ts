@@ -796,10 +796,41 @@ function toolResultForModel(result: unknown): string {
 
 /**
  * Same mapping as Desktop `resolvePromptLocale`: `en*` → English, else Chinese.
+ * UI chrome only (tool-guide). Durable answer language is `resolveChatDurableLocale`.
  */
 export function resolveChatPromptLocale(locale?: string | null): "zh" | "en" {
   if (locale == null || locale === "") return "zh";
   return String(locale).startsWith("en") ? "en" : "zh";
+}
+
+/**
+ * Kernel 3-tier durable locale for chat answers / edit_file newText.
+ * Explicit request → source script → workspace locale. UI chrome is not a tier.
+ */
+export function resolveChatDurableLocale(
+  kernel: KernelApi,
+  workspaceRoot: string,
+  userMessage: string,
+): "zh" | "en" {
+  try {
+    const contract = kernel.loadContract(workspaceRoot);
+    if (typeof kernel.resolveAgentOutputLanguage === "function") {
+      const loc = kernel.resolveAgentOutputLanguage({
+        userText: userMessage,
+        contract,
+      });
+      return loc === "en" ? "en" : "zh";
+    }
+  } catch {
+    /* incomplete workspace in tests */
+  }
+  return "zh";
+}
+
+export function durableChatAnswerGuide(locale: "zh" | "en"): string {
+  return locale === "en"
+    ? "User-visible answer language: English (unless this turn explicitly asked otherwise). Do not follow the UI chrome language for the answer or for edit_file newText."
+    : "用户可见回答语言：中文（除非本轮明确要求其他语言）。回答和 edit_file 的 newText 不要跟 UI 界面语言走。";
 }
 
 /**
@@ -846,11 +877,12 @@ export async function runWorkspaceChatTurn(
   workspaceRoot: string,
   opts: WorkspaceChatTurnOpts,
 ): Promise<{ body: string; reasoning: string; edits: Array<Record<string, unknown>>; steps: number }> {
-  const lang = resolveChatPromptLocale(opts.locale);
-  const isZh = lang === "zh";
+  const durable = resolveChatDurableLocale(kernel, workspaceRoot, opts.userMessage);
+  const chromeZh = resolveChatPromptLocale(opts.locale) === "zh";
   const maxSteps = Math.max(1, Math.min(8, Math.floor(Number(opts.maxSteps) || 6)));
   const modeHint = resolveContractWritebackMode(kernel, workspaceRoot) || opts.writebackMode || "auto";
   const toolGuide = buildObsidianChatToolGuide(opts.locale, modeHint);
+  const answerGuide = durableChatAnswerGuide(durable);
 
   const conversation: string[] = [];
   for (const msg of (opts.history || []).slice(-10)) {
@@ -866,7 +898,7 @@ export async function runWorkspaceChatTurn(
     const prompt = conversation.join("\n\n");
     const raw = await opts.generate(prompt, {
       operation: "chat",
-      systemPrompt: `${opts.systemExtra || ""}\n\n${toolGuide}`.trim(),
+      systemPrompt: `${opts.systemExtra || ""}\n\n${answerGuide}\n\n${toolGuide}`.trim(),
       maxOutputTokens: 4096,
       temperature: 0.4,
     });
@@ -915,7 +947,7 @@ export async function runWorkspaceChatTurn(
   if (parseToolCall(lastRaw)) {
     const pending = edits.some((e) => e.pending || e.needsConfirm);
     const applied = edits.some((e) => e.ok);
-    if (isZh) {
+    if (chromeZh) {
       body = pending
         ? "写入已挂起，请在侧栏「建议」中接受或拒绝。"
         : applied

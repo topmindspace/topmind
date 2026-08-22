@@ -393,6 +393,25 @@ describe("suggestion helpers (shipped)", () => {
     assert.equal(normalizeSuggestionList({}).length, 0);
   });
 
+  test("mergeSoftSuggestionSession keeps previous ids Kernel skipped", async () => {
+    const { mergeSoftSuggestionSession } = await importShipped("utils.ts");
+    const prev = [
+      { id: "ai-1", kind: "promote_memory", title: "A", summary: "keep", impact: "high" },
+      { id: "rule", kind: "open_profile", title: "P", summary: "old", impact: "low" },
+    ];
+    const next = [
+      { id: "rule", kind: "open_profile", title: "P", summary: "new", impact: "low" },
+    ];
+    const dropped = new Set(["gone"]);
+    const merged = mergeSoftSuggestionSession(prev, next, dropped);
+    assert.equal(merged[0].id, "rule");
+    assert.equal(merged[0].summary, "new");
+    assert.equal(merged[1].id, "ai-1");
+    assert.equal(merged.some((s) => s.id === "gone"), false);
+    const forced = mergeSoftSuggestionSession([], next, dropped);
+    assert.deepEqual(forced.map((s) => s.id), ["rule"]);
+  });
+
   test("every SuggestionKind has kindMeta icon and border", async () => {
     const { SUGGESTION_KIND_META, ALL_SUGGESTION_KINDS } = await importShipped("utils.ts");
     for (const kind of ALL_SUGGESTION_KINDS) {
@@ -599,19 +618,28 @@ describe("migrateSettings + hasConfiguredProvider (shipped)", () => {
 // ── AI provider transient error detection (shipped pure util) ──────────────
 
 describe("AI task manager + chat write-gate hygiene (source)", () => {
-  test("ai-task-manager is a serial queue with abort and progress events", () => {
+  test("ai-task-manager is a serial queue with honest stop-tracking abort", () => {
     const src = fs.readFileSync(path.join(srcDir, "services", "ai-task-manager.ts"), "utf8");
     assert.match(src, /if \(this\.active\) return/);
-    assert.match(src, /abortController\.abort/);
+    // Abort = stop-tracking: task marked aborted immediately, late result discarded
+    assert.match(src, /task\.status = "aborted"/);
+    assert.match(src, /abortedMidFlight/);
+    // No AbortSignal plumbing — Obsidian requestUrl cannot cancel mid-flight,
+    // so the UI must never imply engine-level cancellation.
+    assert.doesNotMatch(src, /AbortController/);
     assert.match(src, /subscribe\(fn: TaskListener\)/);
     assert.match(src, /multiActive/);
   });
 
-  test("chat locale follows getLocale when localeOverride empty", () => {
+  test("chat UI chrome follows getLocale; durable answer uses Kernel 3-tier", () => {
     const src = fs.readFileSync(path.join(srcDir, "services", "kernel-service.ts"), "utf8");
+    const ops = fs.readFileSync(path.join(srcDir, "services", "kernel-workspace-ops.ts"), "utf8");
     assert.match(src, /getLocale\(\)/);
     assert.match(src, /localeOverride \|\| getLocale/);
-    assert.match(src, /resolveChatPromptLocale/);
+    assert.match(src, /resolveChatDurableLocale/);
+    assert.match(src, /surfaceUiLocale/);
+    assert.match(ops, /resolveAgentOutputLanguage/);
+    assert.match(ops, /用户可见回答语言|User-visible answer language/);
   });
 
   test("chat sanitizes thinking and does not write notes", () => {
