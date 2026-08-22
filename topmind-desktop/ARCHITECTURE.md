@@ -441,12 +441,14 @@ AiPanel 模型下拉选择器的 `onChange` 不仅更新内存 store，还同步
 读（`AI_TOOL_NAMES_READ`）：`list_skills` · `load_skill` · `load_skill_resource` · `list_categories` · `list_topics` · `list_topic_files` · `get_topic` · `read_file` · `search` · `list_inbox` · `list_outputs` · `fetch_url`（`maxLen` / `render`）· `workspace_health`  
 写（`AI_TOOL_NAMES_WRITE`）：`capture_to_inbox` · `save_note` · `save_file`（open 覆盖不备份；locked 覆盖才备份）· `edit_file`（唯一片段，**不写 Archive**）· `create_topic` · `append_topic_memory` · `move_to_topic` · `publish_to_outputs` · `delete_path`（仅 recoverable 进归档）· `rename_path`（重命名不备份）
 
-### 编辑器 Markdown / 预览（1.0.12+）
+### 编辑器 Markdown / 预览
 
 - TipTap + `tiptap-markdown` + Link / Image；`setEditorMarkdown` **只传 Markdown 字符串**  
   （扩展已 override `setContent` 做 parse；禁止传入已 parse 的 doc，避免双重 parse）  
 - **禁止**在 ProseMirror 上使用 `whiteSpace: pre-wrap` / 全文 `nowrap`  
-- 预览模式：进入预览时快照 `getHTML()` → 静态 `.v4-tiptap` 表面  
+- 预览模式：进入预览时快照 `getHTML()` → 静态 `.v4-tiptap` 表面（不是 live `setEditable`）；路径切换经 `nextPreviewHtml` 重置  
+- 主画布与分屏共用 `isMarkdownNotePath`（`lib/file-preview`）：`.md` → `FileEditorView`，其它 → `FilePreviewView`  
+- `FilePreviewView`：HTML 沙箱 iframe + 截断；其它文本；二进制不能预览 + 打开外部；换路径立即清空正文  
 - `editor.contentWidth`：`compact | reading | wide | full`（默认 `reading` ≈ 52rem）  
 - `editor.pagePadding` / `editor.paper`：阅读边距与画布纸张色（编辑/预览共用；工具栏 Aa + 设置）  
 - 行内 AI：`ai.complete` + `ai.cancelComplete`（`requestId` · `AbortSignal`）；选区浮条 / 工具栏 ✨；无 tools 会话  

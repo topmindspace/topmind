@@ -262,18 +262,16 @@ export function Sidebar() {
 
   return (
     <div className="v4-panel-contain v4-sidebar-rail flex h-full min-h-0 flex-col">
-      {/* 2026-08-07: removed border-b — use padding for cleaner visual separation */}
-      <div className="flex shrink-0 items-center pb-1">
+      <div className="flex shrink-0 items-center gap-0.5 pb-1" data-sidebar-header>
         <ErrorBoundary label={t("sidebar.viewSwitcher.ariaTablist")}>
           <ViewSwitcher active={viewMode} onChange={handleViewModeChange} enabled={enabledViews} />
         </ErrorBoundary>
-        <span className="shrink-0 py-1 pr-1.5">
+        <span className="flex shrink-0 items-center pr-1.5">
           <ProfileButton />
         </span>
       </div>
-      {/* Contextual period pin — timeline/tags/kanban only (降噪 2026-08).
-          Stream view has its own period header inside StreamView; category view
-          merges the pin into the DataSourceSection header row. */}
+      {/* Period pin — timeline/tags/kanban only.
+          Stream has its own period header; category merges the pin into DataSourceSection. */}
       {viewMode !== "category" && viewMode !== "stream" ? (
         <div className="flex shrink-0 items-center gap-1 px-1.5 py-1" data-sidebar-pins>
           <PeriodPill pins={pins} />
@@ -284,8 +282,6 @@ export function Sidebar() {
           {renderView()}
         </ErrorBoundary>
       </div>
-      {/* Plugin sidebar slots — sticky at bottom, driven by registry */}
-      {/* 2026-08-07: removed border from plugin section — cleaner bottom edge */}
       {sidebarSlots.length > 0 ? <PluginSlotsSection slots={sidebarSlots} /> : null}
     </div>
   );
@@ -334,7 +330,7 @@ function ProfileButton() {
             }
           })();
         }}
-        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-muted/40 text-text-secondary transition-colors hover:bg-surface-muted"
+        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-muted/40 text-text-secondary transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
         aria-label={t("sidebar.myProfile")}
       >
         <UserRound size={ICON.nano} className="shrink-0" />

@@ -182,6 +182,8 @@ test("DESIGN.md documents core UI patterns", () => {
   assert.match(design, /showFormat=true|默认展开/);
   assert.doesNotMatch(design, /showFormat=false/);
   assert.doesNotMatch(design, /格式工具条 \*\*默认折叠\*\*/);
+  assert.doesNotMatch(design, /预览 = Tiptap readOnly/);
+  assert.match(design, /静态 HTML/);
 });
 
 test("ReasoningBlock defaults collapsed; stream status labels exist", () => {

@@ -1,12 +1,12 @@
 /**
- * Editor format controls + overflow “more” menu (Design System 2.0).
+ * Editor format controls + exclusive ⋯ menu.
  * Format tools default expanded; collapse with chevron when space is tight.
  */
 import { useTranslation } from "react-i18next";
 import type { Editor } from "@tiptap/react";
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, Code, Braces,
-  Heading1, Heading2, List, ListOrdered, Quote, Link2,
+  Heading1, Heading2, Heading3, List, ListOrdered, Quote, Link2,
   Paperclip, Eye, Edit3, MoreHorizontal,
   Hash, Minimize2, ChevronLeft, ChevronRight,
   Upload, Brain, Sparkles, Twitter, Loader2,
@@ -81,15 +81,6 @@ export function EditorFormatBar({
       >
         {showFormat ? <ChevronLeft size={ICON.xs} /> : <ChevronRight size={ICON.xs} />}
       </ToolbarButton>
-      {onInsertDateTime ? (
-        <ToolbarButton
-          onClick={onInsertDateTime}
-          active={false}
-          tip={`${t("workspace:formatBar.insertDateTime")} ⌘.`}
-        >
-          <CalendarClock size={ICON.xs} />
-        </ToolbarButton>
-      ) : null}
       {showFormat ? (
         <div
           className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -119,7 +110,7 @@ export function EditorFormatBar({
             <Heading2 size={ICON.xs} />
           </ToolbarButton>
           <ToolbarButton onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()} active={editor?.isActive("heading", { level: 3 }) ?? false} tip={t("workspace:formatBarOptions.h3")}>
-            H3
+            <Heading3 size={ICON.xs} />
           </ToolbarButton>
           <ToolbarSep />
           <ToolbarButton onClick={() => editor?.chain().focus().toggleBulletList().run()} active={editor?.isActive("bulletList") ?? false} tip={t("workspace:editor.formatBulletList")}>
@@ -141,6 +132,15 @@ export function EditorFormatBar({
           >
             <Link2 size={ICON.xs} />
           </ToolbarButton>
+          {onInsertDateTime ? (
+            <ToolbarButton
+              onClick={onInsertDateTime}
+              active={false}
+              tip={`${t("workspace:formatBar.insertDateTime")} ⌘.`}
+            >
+              <CalendarClock size={ICON.xs} />
+            </ToolbarButton>
+          ) : null}
         </div>
       ) : (
         <span className="truncate text-3xs text-text-quaternary">{t("workspace:formatBar.collapsed")}</span>

@@ -9,7 +9,9 @@ import { fileURLToPath } from "node:url";
 import {
   extOf,
   isHtmlPreviewExt,
+  isMarkdownNotePath,
   isPreviewableText,
+  previewTruncationLimit,
   truncatePreviewContent,
   HTML_PREVIEW_MAX_BYTES,
   TEXT_PREVIEW_MAX_CHARS,
@@ -27,6 +29,13 @@ test("extOf / html / text routing", () => {
   assert.equal(isPreviewableText("json"), true);
   assert.equal(isPreviewableText("png"), false);
   assert.equal(isPreviewableText(""), true);
+  assert.equal(isMarkdownNotePath("20-专题/2026-foo/note.md"), true);
+  assert.equal(isMarkdownNotePath("20-专题/2026-foo/Note.MD"), true);
+  assert.equal(isMarkdownNotePath("88-输出/essay.html"), false);
+  assert.equal(isMarkdownNotePath("bin/photo.png"), false);
+  assert.equal(isMarkdownNotePath("README.markdown"), false);
+  assert.equal(previewTruncationLimit(true), HTML_PREVIEW_MAX_BYTES);
+  assert.equal(previewTruncationLimit(false), TEXT_PREVIEW_MAX_CHARS);
 });
 
 test("truncatePreviewContent is honest about caps", () => {
@@ -49,14 +58,27 @@ test("FilePreviewView wires sandbox iframe, truncation, cannot-preview + open-ex
     "utf8",
   );
   assert.match(view, /truncatePreviewContent/);
+  assert.match(view, /previewTruncationLimit/);
   assert.match(view, /sandbox=""/);
   assert.match(view, /cannotPreviewTitle/);
   assert.match(view, /truncated/);
   assert.match(view, /api\.ws\.open\(path\)/);
+  assert.match(view, /setHtmlMode\("preview"\)/);
+  assert.match(view, /setContent\(null\)/);
+  assert.match(view, /data-file-preview-toolbar/);
+  assert.match(view, /data-compact=\{toolbarCompact/);
+  assert.doesNotMatch(view, /function fileExt\s*\(/);
   const views = readFileSync(
     path.join(root, "src/plugins/topmind-workspace/views.tsx"),
     "utf8",
   );
+  const editorArea = readFileSync(
+    path.join(root, "src/components/shell/EditorArea.tsx"),
+    "utf8",
+  );
   assert.match(views, /FilePreviewView/);
-  assert.match(views, /fileExt\(sel\.path\) === "md"/);
+  assert.match(views, /isMarkdownNotePath\(sel\.path\)/);
+  assert.match(editorArea, /isMarkdownNotePath\(splitSecondaryPath/);
+  assert.doesNotMatch(views, /function fileExt\s*\(/);
+  assert.doesNotMatch(editorArea, /function fileExt\s*\(/);
 });

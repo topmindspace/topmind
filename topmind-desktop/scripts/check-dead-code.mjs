@@ -274,6 +274,13 @@ const DEAD_PATTERNS = [
     allowIn: ["scripts/check-dead-code.mjs"],
   },
   {
+    id: "no-local-fileExt-canvas-router",
+    description: "Primary canvas and split pane must route .md via isMarkdownNotePath (lib/file-preview) — no local fileExt copies",
+    regex: /function fileExt\s*\(/u,
+    scope: ["src/**/*.ts", "src/**/*.tsx"],
+    allowIn: ["scripts/check-dead-code.mjs"],
+  },
+  {
     id: "no-suggest-entry-strip-in-canvas",
     description: "SuggestEntryStrip removed from canvas — suggestion count unified in StatusBar; must not reappear in EditorArea or StreamDetailView",
     regex: /SuggestEntryStrip/u,

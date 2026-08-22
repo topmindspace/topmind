@@ -14,16 +14,11 @@ import { FilePreviewView } from "./views/FilePreviewView";
 import { InboxView } from "./views/InboxView";
 import { OutputsView } from "./views/OutputsView";
 import { ArchiveView } from "./views/ArchiveView";
+import { isMarkdownNotePath } from "../../lib/file-preview";
 
 const FileEditorView = lazy(() =>
   import("./views/FileEditorView").then((m) => ({ default: m.FileEditorView })),
 );
-
-function fileExt(p: string): string {
-  const base = p.split("/").pop() ?? p;
-  const dot = base.lastIndexOf(".");
-  return dot > 0 ? base.slice(dot + 1).toLowerCase() : "";
-}
 
 function withLazy(node: ReactNode) {
   return <LazyBoundary label={i18n.t("common:action.loading")}>{node}</LazyBoundary>;
@@ -59,7 +54,7 @@ export function createWorkspaceViews(): ViewSlot[] {
       matches: (sel) => sel.kind === "file",
       render: ({ sel }) => {
         if (sel.kind !== "file") return null;
-        if (fileExt(sel.path) === "md") {
+        if (isMarkdownNotePath(sel.path)) {
           return withLazy(
             <FileEditorView
               path={sel.path}

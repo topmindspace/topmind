@@ -162,4 +162,14 @@ test("preprocessMarkdownForBlocks does not invent blank lines between list items
   assert.equal(prepared, "- a\n- b");
   const nested = prepareMarkdownForEditorInsert("    - child", "  - child");
   assert.equal(nested, "  - child");
+
+  // Fenced samples must keep blank lines — do not rewrite code as tight lists
+  assert.equal(
+    preprocessMarkdownForBlocks("```\n- a\n\n- b\n```"),
+    "```\n- a\n\n- b\n```",
+  );
+  assert.equal(
+    preprocessMarkdownForBlocks("para\n```\n- a\n\n- b\n```\n- c\n- d"),
+    "para\n```\n- a\n\n- b\n```\n- c\n- d",
+  );
 });

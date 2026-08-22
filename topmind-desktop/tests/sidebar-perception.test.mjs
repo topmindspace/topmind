@@ -138,6 +138,15 @@ test("shipped tree uses classifier + inbox expand; refresh sits in tree toolbar"
   assert.match(sidebar, /onRefresh=\{\(\) => void hardRefresh\(\)\}/);
   assert.equal((toolbar.match(/data-sidebar-refresh/g) || []).length, 1);
   assert.doesNotMatch(sidebar, /data-sidebar-refresh/);
+  assert.match(sidebar, /data-sidebar-header/);
+  assert.match(sidebar, /<ViewSwitcher/);
+  assert.match(sidebar, /<ProfileButton/);
+  const headerIdx = sidebar.indexOf("data-sidebar-header");
+  const pinsIdx = sidebar.indexOf("data-sidebar-pins");
+  const profileIdx = sidebar.indexOf("function ProfileButton");
+  assert.ok(headerIdx >= 0 && pinsIdx > headerIdx, "header band before period pins");
+  assert.ok(profileIdx > 0);
+  assert.match(sidebar, /viewMode !== "category" && viewMode !== "stream"/);
 
   assert.match(inbox, /workspace:file-changed/);
   assert.match(inbox, /loadFiles\(\{\s*silent:\s*true\s*\}/);

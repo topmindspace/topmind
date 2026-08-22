@@ -108,9 +108,49 @@ type MarkdownParserStorage = {
  *  2. Ensure blank line when switching list types (bullet → ordered or vice-versa)
  *     so the parser creates separate list nodes instead of merging.
  *  3. Collapse extra blank lines between same-type list items (tight lists).
+ *  Fenced code (``` / ~~~) is left untouched so list rules cannot rewrite samples.
  */
 export function preprocessMarkdownForBlocks(text: string): string {
-  let out = String(text || "");
+  const src = String(text || "");
+  if (!src) return "";
+  const lines = src.split("\n");
+  const out: string[] = [];
+  let prose: string[] = [];
+  let fence: string[] = [];
+  let inFence = false;
+  const flushProse = () => {
+    if (!prose.length) return;
+    out.push(transformMarkdownBlocksChunk(prose.join("\n")));
+    prose = [];
+  };
+  const flushFence = () => {
+    if (!fence.length) return;
+    out.push(fence.join("\n"));
+    fence = [];
+  };
+  for (const line of lines) {
+    if (/^\s*(```|~~~)/u.test(line)) {
+      if (inFence) {
+        fence.push(line);
+        flushFence();
+        inFence = false;
+      } else {
+        flushProse();
+        fence = [line];
+        inFence = true;
+      }
+      continue;
+    }
+    if (inFence) fence.push(line);
+    else prose.push(line);
+  }
+  if (inFence) flushFence();
+  else flushProse();
+  return out.join("\n");
+}
+
+function transformMarkdownBlocksChunk(text: string): string {
+  let out = text;
   // Heading / quote after prose — not after another block marker
   out = out.replace(
     /^(?!#{1,6}\s|[ \t]*(?:[-*+]\s|\d+\.\s)|>\s)(.+[^\n\s])\n(#{1,6}\s|>\s)/gmu,

@@ -49,6 +49,15 @@ describe("Desktop primary IA target", () => {
     assert.match(src, /"kanban"/);
   });
 
+  it("living DESIGN present-tense preview is static HTML, not live TipTap setEditable", () => {
+    const design = read("DESIGN.md");
+    assert.match(design, /getEditorHtml\(\)[`\s]*快照到静态 HTML/);
+    assert.match(design, /不是同一实例 [`']setEditable[`'] 切换/);
+    assert.doesNotMatch(design, /预览 = Tiptap readOnly/);
+    assert.match(design, /isMarkdownNotePath/);
+    assert.match(design, /data-sidebar-header/);
+  });
+
   it("settings expose autoPrepareSuggestions and ActionStore respects it", () => {
     // Defaults live in pure settings-core; persistence shell re-exports createDefault
     const settingsCore = read("electron/lib/settings-core.mjs");

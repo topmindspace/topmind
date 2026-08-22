@@ -67,7 +67,8 @@
 | 侧栏 **我的情况** | 语义 Memory（profile 个人画像 / 周期沉淀） |
 | **知识加工 Hub** | 默认 anydoc 转 Markdown（Word / PPT / Excel / ODF / RTF / EPUB / PDF / CSV）；可选 markitdown / pandoc；邮件走内置 |
 
-- **阅读 Aa**：字号 / 行距 / 字族 / 栏宽 / 边距 / 纸张（编辑 = 预览）  
+- **阅读 Aa**：字号 / 行距 / 字族 / 栏宽 / 边距 / 纸张（编辑与预览共用同一阅读偏好；预览是静态 HTML 快照，不是 live TipTap）  
+- **文件**：`.md` 走 Markdown 编辑器（主画布与分屏同一路由）；其它文件走 `FilePreviewView`（HTML 沙箱 / 文本 / 打开外部）  
 - **行内 AI / 动态润色**：`ai.complete`（`action: "polish"` 等）· 结果清洗后再展示  
 - **Agent**：`load_skill` · 写回 auto/confirm · ActionBar（建议 + 待确认写入）  
 - **待办**：`memory/todo.md` · 写闸 · AI maintain（extract / detect done / force）  

@@ -21,12 +21,21 @@ export function extOf(p: string): string {
   return dot > 0 ? base.slice(dot + 1).toLowerCase() : "";
 }
 
+/** Workspace notes the Markdown editor owns. Split pane must use the same test. */
+export function isMarkdownNotePath(p: string): boolean {
+  return extOf(p) === "md";
+}
+
 export function isHtmlPreviewExt(ext: string): boolean {
   return ext === "html" || ext === "htm";
 }
 
 export function isPreviewableText(ext: string): boolean {
   return ext === "" || PREVIEW_TEXT_EXTS.has(ext);
+}
+
+export function previewTruncationLimit(isHtml: boolean): number {
+  return isHtml ? HTML_PREVIEW_MAX_BYTES : TEXT_PREVIEW_MAX_CHARS;
 }
 
 export function truncatePreviewContent(

@@ -67,7 +67,8 @@ Default three columns: **nav → content → AI copilot**. The main narrative is
 | Sidebar **My profile** | Semantic memory (profile / periodic) |
 | **Ingest hub** | Default anydoc → Markdown (Word / PPT / Excel / ODF / RTF / EPUB / PDF / CSV); optional markitdown / pandoc; mail uses the built-in path |
 
-- **Reading Aa**: size / leading / family / measure / margins / paper (edit = preview chrome)  
+- **Reading Aa**: size / leading / family / measure / margins / paper (edit and preview share the same chrome; preview is a static HTML snapshot, not live TipTap)  
+- **Files**: `.md` opens in the Markdown editor (primary canvas and split pane); other files use `FilePreviewView` (sandboxed HTML, text, or open-external)  
 - **Inline AI / stream polish**: `ai.complete` (`action: "polish"` and siblings) · sanitize before display  
 - **Agent**: `load_skill` · save settings auto/confirm · ActionBar (suggestions + pending writes)  
 - **Todos**: `memory/todo.md` · write gate · AI maintain (extract / detect done / force)  

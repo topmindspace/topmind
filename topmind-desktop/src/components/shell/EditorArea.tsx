@@ -10,6 +10,7 @@ import { ICON } from "../../lib/icons";
 import { Tooltip } from "../ui/tooltip";
 import { cn } from "../../lib/cn";
 import { EditorRecentBar } from "./EditorRecentBar";
+import { isMarkdownNotePath } from "../../lib/file-preview";
 import type { Selection } from "../../types";
 
 const FileEditorView = lazy(() =>
@@ -22,12 +23,6 @@ const FilePreviewView = lazy(() =>
     default: m.FilePreviewView,
   })),
 );
-
-function fileExt(p: string): string {
-  const base = p.split("/").pop() ?? p;
-  const dot = base.lastIndexOf(".");
-  return dot > 0 ? base.slice(dot + 1).toLowerCase() : "";
-}
 
 function topicIdFromPath(path: string): string | undefined {
   const parts = path.split("/");
@@ -151,7 +146,7 @@ export function EditorArea() {
             </div>
             <div className="min-h-0 min-w-0 flex-1 overflow-auto">
               <LazyBoundary label={t("editorArea.loadingSplit")}>
-                {fileExt(splitSecondaryPath!) === "md" ? (
+                {isMarkdownNotePath(splitSecondaryPath!) ? (
                   <FileEditorView
                     path={splitSecondaryPath!}
                     topicId={topicIdFromPath(splitSecondaryPath!)}

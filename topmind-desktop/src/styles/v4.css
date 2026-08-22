@@ -413,8 +413,8 @@ html.dark .v4-editor-shell[data-paper="sepia"] .v4-editor-canvas {
 .v4-editor-toolbar {
   backdrop-filter: none;
 }
-/* Compact toolbar — hide text labels when editor area is narrow */
-.v4-editor-toolbar [data-compact="true"] [data-compact-hidden] {
+/* Compact chrome — hide text labels when the toolbar is too narrow */
+[data-compact="true"] [data-compact-hidden] {
   display: none !important;
 }
 /* Fixed-width editor document tabs for consistent layout */

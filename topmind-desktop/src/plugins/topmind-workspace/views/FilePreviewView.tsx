@@ -3,7 +3,7 @@
  * HTML/HTM: sandboxed iframe preview (size-capped for memory).
  * Other text: monospace. Binary: open externally.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Eye, FileQuestion, ExternalLink, FolderOpen, Paperclip, Loader2, Code2 } from "lucide-react";
 import { api } from "../../../services/api";
@@ -16,6 +16,7 @@ import {
   extOf,
   isHtmlPreviewExt,
   isPreviewableText,
+  previewTruncationLimit,
   truncatePreviewContent,
 } from "../../../lib/file-preview";
 
@@ -39,17 +40,33 @@ export function FilePreviewView({ path }: Props) {
   const mountFile = useAiStore((s) => s.mountFile);
   const unmountFile = useAiStore((s) => s.unmountFile);
   const mounted = useAiStore((s) => s.mountedFiles.some((m) => m.path === path));
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const [toolbarCompact, setToolbarCompact] = useState(false);
+
+  useLayoutEffect(() => {
+    const el = toolbarRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width ?? el.clientWidth;
+      setToolbarCompact(w < 420);
+    });
+    ro.observe(el);
+    setToolbarCompact(el.clientWidth < 420);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
+    // Path change: drop previous body/mode immediately so HTML A cannot paint as B.
+    setHtmlMode("preview");
+    setContent(null);
+    setError(null);
+    setTruncated(false);
     if (!isText) {
-      setContent(null);
       setLoading(false);
       return;
     }
     let cancelled = false;
     setLoading(true);
-    setError(null);
-    setTruncated(false);
     api.ws
       .read(path)
       .then((c) => {
@@ -71,15 +88,6 @@ export function FilePreviewView({ path }: Props) {
     };
   }, [path, isText, isHtml]);
 
-  // Release large strings when leaving the view
-  useEffect(() => {
-    return () => {
-      setContent(null);
-    };
-  }, [path]);
-
-  // Track effective app theme so the sandboxed preview follows light/dark
-  // (iframe srcdoc can't read parent CSS variables).
   const [dark, setDark] = useState(
     () => typeof document !== "undefined" && document.documentElement.classList.contains("dark"),
   );
@@ -93,8 +101,6 @@ export function FilePreviewView({ path }: Props) {
 
   const srcDoc = useMemo(() => {
     if (!isHtml || !content) return "";
-    // Read token values from the document root so the iframe preview stays
-    // in sync with the design system without duplicating hex values.
     const root = document.documentElement;
     const cs = getComputedStyle(root);
     const fg = cs.getPropertyValue("--color-text-primary").trim()
@@ -104,62 +110,96 @@ export function FilePreviewView({ path }: Props) {
     return `<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="color-scheme" content="${dark ? "dark" : "light"}"/><style>html,body{margin:0;padding:12px;font:14px/1.55 system-ui,sans-serif;color:${fg};background:${bg};word-break:break-word}img,video{max-width:100%;height:auto}</style></head><body>${content}</body></html>`;
   }, [isHtml, content, dark]);
 
+  const truncatedHint = truncated
+    ? t("workspace:previewView.truncated", { count: previewTruncationLimit(isHtml) })
+    : null;
+
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex h-[var(--control-h-lg,36px)] items-center justify-between border-b border-border-subtle px-3">
-        <Tooltip content={path}>
-          <span className="flex min-w-0 items-center gap-1.5 text-3xs text-text-tertiary">
-            <Eye size={ICON.xs} /> {isHtml ? "HTML" : t("workspace:editor.readOnly")}
-            <span className="max-w-[360px] truncate font-mono text-text-quaternary">{path}</span>
-            {truncated ? <span className="text-warning">· {t("workspace:previewView.truncated")}</span> : null}
-          </span>
-        </Tooltip>
-        <div className="flex shrink-0 items-center gap-1">
-          {isHtml ? (
-            <div className="mr-1 flex rounded-[var(--radius-md)] border border-border-subtle bg-surface-muted/40 p-0.5">
+    <div className="flex h-full min-h-0 flex-col" data-file-preview>
+      <div className="v4-editor-toolbar shrink-0 border-b border-border-subtle-dim bg-surface/80">
+        <div
+          ref={toolbarRef}
+          className="flex h-(--density-editor-toolbar-y,36px) items-center justify-between gap-1 px-2 sm:px-2.5"
+          data-compact={toolbarCompact ? "true" : undefined}
+          data-file-preview-toolbar
+        >
+          <Tooltip content={path}>
+            <span className="flex min-w-0 items-center gap-1.5 text-3xs text-text-tertiary">
+              <Eye size={ICON.xs} className="shrink-0" />
+              <span className="shrink-0">{isHtml ? "HTML" : t("workspace:editor.readOnly")}</span>
+              <span className="min-w-0 truncate font-mono text-text-quaternary">{baseName}</span>
+              {truncatedHint ? (
+                <span className="min-w-0 truncate text-warning">· {truncatedHint}</span>
+              ) : null}
+            </span>
+          </Tooltip>
+          <div className="flex shrink-0 items-center gap-0.5">
+            {isHtml ? (
+              <div className="v4-segmented mr-0.5 !gap-0.5 !p-0.5" role="tablist" aria-label={t("workspace:previewView.html")}>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={htmlMode === "preview"}
+                  data-active={htmlMode === "preview"}
+                  className="v4-segmented-item !flex-none gap-1 !px-1.5 !py-0.5"
+                  onClick={() => setHtmlMode("preview")}
+                >
+                  <Eye size={ICON.xs} />
+                  <span className="text-3xs" data-compact-hidden>{t("workspace:previewView.html")}</span>
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={htmlMode === "source"}
+                  data-active={htmlMode === "source"}
+                  className="v4-segmented-item !flex-none gap-1 !px-1.5 !py-0.5"
+                  onClick={() => setHtmlMode("source")}
+                >
+                  <Code2 size={ICON.xs} />
+                  <span className="text-3xs" data-compact-hidden>{t("workspace:previewView.source")}</span>
+                </button>
+              </div>
+            ) : null}
+            {isText ? (
+              <Tooltip content={mounted ? t("workspace:previewView.unmountTooltip") : t("workspace:previewView.mountTooltip")}>
+                <button
+                  type="button"
+                  className={cn(
+                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] transition-colors",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
+                    mounted
+                      ? "bg-accent-bg-subtle text-accent-color"
+                      : "text-text-tertiary hover:bg-surface-muted hover:text-text-primary",
+                  )}
+                  aria-label={mounted ? t("workspace:previewView.unmountTooltip") : t("workspace:previewView.mountTooltip")}
+                  aria-pressed={mounted}
+                  onClick={() => (mounted ? unmountFile(path) : mountFile({ path, name: baseName }))}
+                >
+                  <Paperclip size={ICON.xs} />
+                </button>
+              </Tooltip>
+            ) : null}
+            <Tooltip content={t("workspace:previewView.openExternalTooltip")}>
               <button
                 type="button"
-                className={cn(
-                  "rounded px-1.5 py-0.5 text-3xs",
-                  htmlMode === "preview" ? "bg-surface text-accent-color shadow-sm" : "text-text-tertiary",
-                )}
-                onClick={() => setHtmlMode("preview")}
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+                aria-label={t("workspace:previewView.openExternalTooltip")}
+                onClick={() => void api.ws.open(path)}
               >
-                {t("workspace:previewView.html")}
+                <ExternalLink size={ICON.xs} />
               </button>
-              <button
-                type="button"
-                className={cn(
-                  "rounded px-1.5 py-0.5 text-3xs",
-                  htmlMode === "source" ? "bg-surface text-accent-color shadow-sm" : "text-text-tertiary",
-                )}
-                onClick={() => setHtmlMode("source")}
-              >
-                {t("workspace:previewView.source")}
-              </button>
-            </div>
-          ) : null}
-          {isText ? (
-            <Tooltip content={mounted ? t("workspace:previewView.unmountTooltip") : t("workspace:previewView.mountTooltip")}>
-              <Button
-                variant={mounted ? "default" : "ghost"}
-                size="sm"
-                onClick={() => (mounted ? unmountFile(path) : mountFile({ path, name: baseName }))}
-              >
-                <Paperclip size={ICON.xs} /> {mounted ? t("workspace:previewView.mountedAi") : t("workspace:previewView.mountAi")}
-              </Button>
             </Tooltip>
-          ) : null}
-          <Tooltip content={t("workspace:previewView.openExternalTooltip")}>
-            <Button variant="ghost" size="sm" onClick={() => void api.ws.open(path)}>
-              <ExternalLink size={ICON.xs} /> {t("workspace:previewView.openExternal")}
-            </Button>
-          </Tooltip>
-          <Tooltip content={t("workspace:previewView.revealTooltip")}>
-            <Button variant="ghost" size="sm" onClick={() => void api.ws.reveal(path)}>
-              <FolderOpen size={ICON.xs} /> {t("workspace:previewView.reveal")}
-            </Button>
-          </Tooltip>
+            <Tooltip content={t("workspace:previewView.revealTooltip")}>
+              <button
+                type="button"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+                aria-label={t("workspace:previewView.revealTooltip")}
+                onClick={() => void api.ws.reveal(path)}
+              >
+                <FolderOpen size={ICON.xs} />
+              </button>
+            </Tooltip>
+          </div>
         </div>
       </div>
 
@@ -173,6 +213,7 @@ export function FilePreviewView({ path }: Props) {
             <div className="p-6 text-sm text-error">{t("common:status.error")}: {error}</div>
           ) : isHtml && htmlMode === "preview" ? (
             <iframe
+              key={path}
               title={baseName}
               sandbox=""
               referrerPolicy="no-referrer"

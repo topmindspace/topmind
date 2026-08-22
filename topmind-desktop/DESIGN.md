@@ -139,7 +139,7 @@
 | **列表 / 下拉** | 门户 `DropdownMenu`/`MenuSelect` / ContextMenu 共用 `.v4-menu-surface`；**先 hidden 测量再显示**（无打开闪跳）；**滚动即关**；`z-menu(110)` > tooltip(100) |
 | **空态** | `EmptyState`：图标芯片 + 一句原因 + **一个主 CTA**（侧栏 compact 同构）；时间线/标签空态须有下一步 |
 | **侧栏树** | 图标 `tree-node-icons` · 右键 `tree-node-context-menu` · 展开/排序/筛选 + **手动刷新** `tree-toolbar`（`data-sidebar-refresh`，与排序折叠同组；非标题栏第二份）· 路径 `lib/tree-path`；**文件名隐藏 `.md` 后缀**（`stripMdExt`）；**PARA 编号弱化渲染**（`renderCategoryLabel`：`00-` 前缀用 `text-text-quaternary/70`）。**感知**：`lib/tree-listing-change` 区分 listing（inbox/add/unlink/ingest-done）与 topic 内 content-only；空 inbox 写入后重建并展开，不依赖重启 |
-| **少硬分割线** | 编辑器常驻 ≤2 条 full-width 分割（工具栏 + 可选属性）；避免斑马纹；**Recent tab strip 无底边框**（`.v4-editor-recents` transparent + `shadow-divider-bottom`）；**标题栏 cluster 透明**（`.v4-titlebar-cluster` 无背景无 inset）；**命令触发器为搜索框式浅井**（`.v4-cmd-trigger`：muted well + inset shadow + kbd 右置，Linear 式焦点，非按钮排）；**侧栏双分割线合并**（ViewSwitcher 底线 `/50` alpha + pins 行无边框） |
+| **少硬分割线** | 编辑器常驻 ≤2 条 full-width 分割（工具栏 + 可选属性）；避免斑马纹；**Recent tab strip 无底边框**（`.v4-editor-recents` transparent + `shadow-divider-bottom`）；**标题栏 cluster 透明**（`.v4-titlebar-cluster` 无背景无 inset）；**命令触发器为搜索框式浅井**（`.v4-cmd-trigger`：muted well + inset shadow + kbd 右置，Linear 式焦点，非按钮排）；**侧栏头部一条带**（`data-sidebar-header`：ViewSwitcher 满宽 + 我的情况同行、无底边框用留白分隔；pins 行无边框） |
 | **长时阅读** | UI ≥12px；正文默认 16px / 1.7；列宽 `--content-max-width-prose`；专注模式 ⌘⌥F；边框 alpha 足以勾勒结构、避免糊成一片 |
 | **动效克制** | `duration-fast` 140ms · `duration-enter` 160ms；列表 stagger ≤8；`prefers-reduced-motion` 全关 |
 | **性能** | `content-visibility` 列表、panel `contain`、AI 面板 lazy、流式滚动尊重用户上滑 |
@@ -329,9 +329,9 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 - **CategoryView**：类别头部 + 专题列表 + 散记列表，支持新建专题/笔记快捷操作。
 - **TopicOverviewView**：专题头部 + 笔记列表（含修改时间/大小）。
 - **文件标签条**（`EditorRecentBar`）：多 tab pin/close/中键关/拖拽重排/右键菜单；溢出时左右 **edge fade**；激活 tab 滚入视野；右键 **在右侧打开对照**（分屏）。  
-- **编辑区对照分屏**（session-only）：`splitSecondaryPath` 在主 selection 旁开第二文件（可编辑）；拖拽中缝调比例；关闭/对调；关 tab 时自动清分屏。**不是**双 history / 双 selection 状态机。  
+- **编辑区对照分屏**（session-only）：`splitSecondaryPath` 在主 selection 旁开第二文件（可编辑）；拖拽中缝调比例；关闭/对调；关 tab 时自动清分屏。**不是**双 history / 双 selection 状态机。主槽与分屏次槽共用 `isMarkdownNotePath`：`.md` → `FileEditorView`，其它 → `FilePreviewView`（禁止第二套 `fileExt`）。  
 
-- **FileEditorView**：Tiptap + ⌘S；chrome 拆 `file-editor-chrome`（SaveBadge）· `file-editor-format-bar`（模式/格式默认展开/更多）· **`EditorReadingMenu`（阅读 Aa）**。格式轨：粗体/斜体/下划线/删除线/代码/H1–H3/列表/引用/链接/日期时间；与选区 AI 浮条独立。发布与 AI 编辑在轨上（icon+tooltip）；**唯一 ⋯** 放文件信息 / 专题记忆 / 发 X / 打开 AI 面板 / 挂载（动作不在轨上再出现一次）。窄宽 `data-compact` 隐藏 `[data-compact-hidden]` 标签，不截半截字。**编辑**用 TipTap；**预览 / 只读**用 `getEditorHtml()` 快照到静态 HTML（`.v4-tiptap`），不是同一实例 `setEditable` 切换。**同一阅读偏好**（`data-paper` / `data-content-width` / `data-page-padding` + `proseStyle` 字号/行高/字体）包住两边。Frontmatter 在属性条，不进正文。专注模式 ⌘⌥F；`readOnly` 归档只读。  
+- **FileEditorView**：Tiptap + ⌘S；chrome 拆 `file-editor-chrome`（SaveBadge）· `file-editor-format-bar`（模式/格式默认展开/更多）· **`EditorReadingMenu`（阅读 Aa）**。格式轨：粗体/斜体/下划线/删除线/代码/H1–H3/列表/引用/链接/日期时间；与选区 AI 浮条独立。发布与 AI 编辑在轨上（icon+tooltip）；**唯一 ⋯** 放文件信息 / 专题记忆 / 发 X / 打开 AI 面板 / 挂载（动作不在轨上再出现一次）。窄宽 `data-compact` 隐藏 `[data-compact-hidden]` 标签，不截半截字。**编辑**用 TipTap；**预览 / 只读**用 `getEditorHtml()` 快照到静态 HTML（`.v4-tiptap`），不是同一实例 `setEditable` 切换。路径切换经 `nextPreviewHtml(..., { pathChanged: true })` 重置，空笔记不保留上一篇 HTML。**同一阅读偏好**（`data-paper` / `data-content-width` / `data-page-padding` + `proseStyle` 字号/行高/字体）包住两边。Frontmatter 在属性条，不进正文。专注模式 ⌘⌥F；`readOnly` 归档只读。  
   - **行内 AI**（Notion 式 · `SelectionAiBar` + `ai.complete` / `ai.cancelComplete`）：  
     - **出现**：非空选区 → 浮条；工具栏 ✨ / 右键「AI 改写」→ 主动面板（**同一动作集**）；**无**空行常驻 chip  
     - **动作**：润色 / 简洁 / 扩写 / 列表 / **格式** / 纠错 / 总结 / 续写 / 自定义指令  
@@ -350,6 +350,7 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
   - 切换路径 / 关窗前会 flush 脏缓冲；body 写入串行化，避免与 frontmatter 竞态。  
   - 外部/AI 写盘时：干净则自动重载，脏则 toast 冲突提示。  
   - 表格：StarterKit 基础 HTML 表（无完整 GFM 表格扩展）；复杂表用源码编辑。
+- **FilePreviewView**（非 `.md`）：HTML 沙箱 iframe + 诚实截断；其它文本等宽；二进制不能预览 + 打开外部。路径切换立即清空正文并回到 HTML 预览档；窄宽 toolbar 与编辑器同 `data-compact` 纪律（动作 icon + tooltip，不堆长标签）。
 - **InboxView/OutputsView/ArchiveView**：列表视图，使用共享 `FileRow` 组件。
 
 ### 0.2.2 行内 AI · 对抗性场景（验收）
@@ -693,152 +694,28 @@ chrome（微暖框架）→ background（净白画布）→ surface（工作面�
 
 ## 变更摘要
 
-### Agent 步数 / 写回文案对齐（2026-08-15）
-- 步数预算单一三元组：**3 / 20 / 50**（Settings · `settings-core` · `ai-stream`）；Settings 不再回退到 12
-- 系统提示与 Obsidian 工具指南：唯一片段编辑 + confirm 仍注册写工具 + 保护级别优先于写回；`en*` → 英文指令，其余中文
+> **现在时规范是 §0–§3**（尤其 §2.2 侧栏 · §2.3 编辑区）。本节是发版指针，不是第二套 spec。Phase 0–6 / Brand Horizon / Design System 2.0 像素台账以 git 历史为准，不在此复述。
 
-### 精确中段编辑 · 思考折叠（2026-08-15）
-- **`edit_file`**：Kernel `applyUniqueSpan`（精确 → 换行/行尾空白规范化；多处拒绝；失败带 nearby/context）；`startLine`/`endLine`/`heading` 可限定
-- **`read_file`**：带行号窗口；`around=` / `heading=` 跳到中段，不再被默认 400 行 + 14k 截断挡住
-- **对话 ingest**：`<think>` / 思考围栏 / 未标注 CoT 从正文拆出，默认折叠
-- **Obsidian**：同一 Kernel 读/改/写闸契约（非 Desktop UI 克隆）
+### Desktop 3.5.3 — Markdown 预览 / 编辑器 / 侧栏文件查看
 
-### 写闸安全 · Toast 撤销 · 代码质量（2026-08-10）
-- **saveBinary 保护门**：二进制资源写入前检查 `evaluateWritePermission`，`locked` 文件不被 AI 直接覆盖，覆盖前自动备份
-- **Toast 撤销**：高影响写回的 toast 带可操作「撤销」按钮（6 秒窗口），一键从 `backupPath` 恢复
-- **eslint-disable 注释**：所有 6 处 `react-hooks/exhaustive-deps` 压制添加说明性注释
-- **Obsidian kernel-loader**：`@ts-expect-error` 添加详细文档说明 + 未来改进路径
-- **备份链文档**：`writeback.mjs` 添加与 Kernel `writeback-engine` 备份关系的架构注释
+- **编辑** = TipTap；**预览 / 只读** = `getEditorHtml()` 静态 HTML（`.v4-tiptap`），不是 live TipTap `setEditable`
+- 同一阅读偏好包住两边；路径切换重置预览，空笔记不保留上一篇 HTML
+- 主画布与分屏共用 `isMarkdownNotePath`：`.md` → 编辑器，其它 → `FilePreviewView`（HTML 沙箱 iframe + 诚实截断）
+- Sidebar Header 一条带：ViewSwitcher 满宽 + 我的情况同行；周期 pin 仅 timeline/tags/kanban；手动刷新只在树工具条
+- 格式轨与 ⋯ 互斥；列表预处理不在代码围栏里改写、不在同型列表项之间发明空行
 
-### 控制塔瘦身 · badge 纪律 · 健康即沉默（2026-08-07 Round 2）
-- **标题栏对象 16→11**：删品牌字标（窗口/任务栏已标识）；主题移出标题栏（⌘, / 窄屏 ⋯）；⌘K 触发器升级为 Linear 式搜索框浅井（`.v4-cmd-trigger`：muted well + inset shadow + kbd 右置）——标题栏从「一排按钮」变为「nav + 一个焦点框」
-- **badge 纪律：仅在需要行动时出现**——保留收件箱（分诊队列）+ 💡 建议；移除写出来计数（库存非行动）与清单常驻数字点（恒非零 = 永久噪音）
-- **健康即沉默**：状态栏工作区正常仅一颗绿点（tooltip 详情），异常才出文字
-- **视觉扁平**：标题栏去渐变 + 顶部高光（纯色 + 单 hairline）；nav active 去 inset ring 只留 wash；capture 实心按钮补上 `--shadow-button` 与主按钮同语言
+### 近期指针（细节以 §0–§3 为准）
 
-### 降噪 · 单入口纪律（2026-08）
-- **建议计数恰好两处**：标题栏 💡 badge + 状态栏计数 chip（count>0）；画布顶 strip 已删；AI 轨 ActionBar 仅专注模式。落实「禁止三处等权」
-- **个人清单单入口**：唯一入口 = 标题栏 ListTodo / ⌘⇧T；动态页头「清单」动作移除（页头保留情境动作：AI 待办 · 整理 · 刷新）
-- **状态栏中央位置 hint 仅 file 选择显示**（点击 reveal）；其余 kind 由 PageHeader + PrimaryNav 自明
-- **动态 composer 去 meta**：删 label 行 + 底部 hint（placeholder 引导 · 计数在 subtitle · kbd 在按钮上）；卡片去 border 纯阴影
-- **侧栏少一条带**：我的情况上移 ViewSwitcher 行（全局可达）；周期 pins 行仅 timeline/tags/kanban 渲染（stream 视图由 StreamView 周期头承担）
+- Agent 步数 **3 / 20 / 50** · 精确中段 `edit_file` · 思考折叠 · 写闸 toast 撤销
+- 侧栏 listing vs topic content（inbox / 输出 / 归档 / add·unlink / ingest-done 重建；专题内部定向刷新）
+- Design System **2.1** Modern Warm-Neutral（2.0 米黄阶已取代）
 
-### Design System 2.1 · Modern Warm-Neutral（2026-08-07）
-- 中性阶去米黄化：light `#f7f6f4` 系 / dark `#1e1e1c` 系（近中性微暖，chroma 砍半；不米黄、不冷蓝灰）
-- elevated 弹层纯白 `#ffffff`；文字墨色去黄（`#2b2b27` 系 / dark `#ecece8` 系）
-- 边框/阴影色调去棕：light `rgba(60,58,50,…)` + `rgba(31,29,26,…)`；dark `rgba(255,255,255,…)`
-- 镜像面同步：browser-extension `--mh-*` · 导出 HTML · FilePreview 兜底；纸张色 `paper`/`sepia` 保留为编辑器可选暖读主题
-- 品牌 accent 不变（logo 锁定）；2.0 米黄阶见下条历史记录
-
-### Design System 2.0 · 纸感智识工作台（2026-08，中性色已被 2.1 取代）
-- 全新视觉识别：暖纸石色中性阶（light `#f6f4ef` 系 · dark `#201e19` 系）+ 单一墨蓝主色 `#31548e`（dark `#7f9fd4`）
-- **teal 仅限捕获**：`brand-aqua #2fa89a` / `accent-inbox #12897b`（记一下 CTA / inbox 模式）
-- 阴影黑基调 / hairline 转暖（`rgba(42,36,24,…)` / `rgba(62,54,38,…)`）；状态色转暖
-- 新 token `--shadow-input-inset` 消除输入框硬编码 inset；字号全部入梯（清除 raw `text-[Npx]`）
-- 语义分化：建议徽章方角 + loop 暖金，个人清单圆形 + accent 墨蓝
-- 镜像面同步：browser-extension `--mh-*` · favicon.svg
-
-### Brand Horizon（2026-07 · logo 对齐 · 已被 Design System 2.0 替代）
-- 主强调从 indigo-slate → 墨蓝 Brand Deep `#31548e`；dark 用抬高墨蓝  
-- 中性面改冷蓝灰阶梯；选中/ glow α 下调，降低视觉负担  
-- 新增 `brand-deep/mid/aqua` token + `.v4-brand-gradient*`；skill 色回到品牌轴  
-- `text-on-accent` / primary-foreground 统一；用户气泡去掉紫混色  
-
-### Phase 0–1（规范 + 长读）
-- 美学 Quiet Paper 基底保留（密度/字号/阅读）；系统字体；UI 字号下限 12px  
-- 编辑器默认 16/1.7；列宽 `--content-max-width-prose`；预览 = Tiptap readOnly  
-- 编辑器 chrome：格式折叠 · 动作进「更多」· 专注模式 ⌘⌥F  
-
-### Phase 2（一致性）
-- `EmptyState` 统一为实线浅底 + optional `compact`（侧栏/AI 离线）  
-- Sidebar / EditorArea / ChatInput 空态收敛；`z-50` → `z-floating`  
-- AI 助手消息文档纸面样式；工具 meta ≥12px  
-
-### Phase 3（性能 / 正确）
-- `lib/workspace-data-cache.ts`：notes / topics 短 TTL 缓存  
-- StreamDetailView 从 notes 索引推导周期条目（取消 N× `listTopics`）  
-- Timeline / Tags / Kanban / TitleBar 徽章共用缓存  
-- notes-index 返回 `truncated` / `complete` / `returned`；`total` = 本投影条数；截断时 `scannedTotal` = 轻量全库 .md 普查  
-- Timeline / Tags / Kanban 截断提示「显示 N · 工作区约 M」  
-- 编辑器：路径切换 flush、写串行、外部写盘冲突提示  
-- **Markdown 呈现**：禁 `whiteSpace: pre-wrap`；标题/列表/加粗显式样式压过 Tailwind preflight；Link/Image 扩展；预览用静态 HTML + `.v4-tiptap`  
-- **正文宽度**：`editor.contentWidth` = compact | reading(默认 52rem) | wide | full；边距收紧  
-- **属性条 Select**：统一 `Select variant=chip`（单边框，无嵌套 chrome）  
-- **侧栏防闪**：file-changed 软刷新（不 `loading=true`）；Timeline/Tags/Kanban silent reload  
-- **HTML 等文件**：专题树列出全部文件类型；`.html` 图标 + `FilePreviewView` 沙箱预览  
-
-### Phase 4（辨识度）
-- Landing 去营销网格；空状态少虚线框  
-- 正文 ink / 助手消息更「纸」  
-
-### Phase 5+（跨层 · 2026-07 续 · **Desktop 1.0.12+**）
-- macOS Dock：`setIcon` 仅 PNG plate；`.icns` 只给 bundle/patch  
-- UTR：`auto` 写穿；`confirm` 审阅后写  
-
-- 设置写队列 + **锁内磁盘 re-read**（并发 patch 不互相覆盖）；密钥空串保留  
-- Clip Bridge CORS 限扩展源  
-- AI 多路径写回：toast + AI 面板可点路径回执条（auto 模式 ≥2 路径自动触发）  
-- 插件权限 soft gate（trusted-by-install；**不做**硬沙箱，见 PLUGIN.md）  
-- **树状态**：展开折叠 localStorage 真持久（空数组=用户全折叠，不强制默认展开）  
-- **真实子目录**：专题 / 88 / 99 支持 nested folder 懒加载；`ui.fileFilter` 默认/仅 md/全部  
-- **一级类右键**：展开/折叠下级 · 新建专题/笔记 · 显示路径  
-- **交付主视图**：按日分组 · 路径筛选 · 子目录文件 · 刷新  
-- **AI 开局新会话**（历史仍在列表）  
-- **关窗**：ask / hide（程序坞） / quit（`ui.closeBehavior`）  
-
-### Phase 6（结构卫生 · **Desktop 1.0.14+**）
-- 侧栏：`tree-node-icons` · `tree-node-context-menu` · `tree-toolbar` · `lib/tree-path`  
-- 编辑器：`file-editor-chrome` · `file-editor-format-bar`（模式 / 格式 / 更多）· `EditorReadingMenu`（阅读 Aa）· `SelectionAiBar`（行内 AI）· `lib/editor-prefs`  
-- 捕获：`quick-capture-helpers` · `CaptureModeBar` · `CaptureAttachments` · 共享 `IngestQueuePanel`  
-
-- 连接器：`connector-ui` + Weread `WereadStatsPanel` / `weread-format`  
-- 版本数字单源：`npm run versions`；截图 junk 清理；Radix dialog/popover 未用依赖移除  
-
-### Phase 6.1（**Desktop 1.0.15** · workspace 定位回归）
-- 根因：`path-model` 对 `CATEGORY_PATTERN` 仅用 `export { X } from` 再导出，**模块内无本地绑定** → `hasUserWorkspaceShape` 静默 ReferenceError → 永远判定非工作区  
-- 修复：`import { CATEGORY_PATTERN } from "./category-pattern.mjs"` + `export { CATEGORY_PATTERN }`  
-- 回归：`tests/category-pattern.test.mjs` 覆盖 import 契约 + `detectUserWorkspaceRoot`  
-
-### Phase 6.3（**Desktop 1.0.21** · 层次 / 外置工具 / Clip）
-
-- Surface 阶梯与弹层 elevated；主 CTA 权重  
-- host-bin PATH 增强 + anydoc sidecar（默认，userData 热升级不必重打包）/ markitdown / pandoc 跨 OS 探测 + 重新检测  
-- Clip 扩展异步剪藏 + Setup 引导  
-
-### Phase 6.2（**Desktop 1.0.18** · 菜单生命周期）
-- **滚动即关（外）**：禁止 scroll→setState 追 fixed 坐标（设置页漂移根因）；**面板内滚动不关**（`lib/scroll-dismiss` · TodoPopover / DropdownMenu / context-menu）  
-
-- **`z-menu` 110 > tooltip 100**；`html[data-menu-open]` 强制隐藏 tip  
-- AI 模型选择：Composer 工具栏 chip（非独占底行）；列表仅已配置提供商；与设置 `sourcePreference`/`defaultModel` 对齐；`aria-label` 无覆盖 Tooltip  
-
-### QA 清单（1.0.15 发版）
-- [x] 无 &lt;12px UI 主文案（`text-5xs` 仅 kbd）  
-- [x] 空状态有 CTA 且用 `EmptyState`  
-- [x] 专注模式可用（⌘⌥F / Esc）  
-- [x] 编辑器脏缓冲切换路径不丢  
-- [x] 树右键：组节点入口 + topic/category 复制路径（`pathOfTreeNode`）  
-- [x] writeback 链路完整（`savePath` / toast evidence）  
-- [x] **打开真实 `topmind-workspace` 定位成功**（`detectUserWorkspaceRoot`）  
-- [x] light/dark 长文可读  
-- [x] 版本层只在真源文件（`npm run versions` · `root:test`）  
-- [ ] 打 installer 前 `npm run pack:prepare` 刷新 engine stamp（CI release 会跑）  
-
-
-
-### Phase 6.4（**Desktop 3.3.1** · 侧栏文件感知）
-
-- 抓取 / 转换 / ingest 写入空收件箱后，目录树 inbox 区段列出新文件并展开（不需重启）
-- `workspace:file-changed` 带 inbox（或其它 buffer 根）路径视为 listing，不再因「有 relativePath」被当成 content-only 而跳过重建
-- 专题内部保存仍定向刷新；Inbox / 类别 / 归档主列表静默重载，避免全页空态闪一下
-- 知识加工 **job done** 才发 listing 刷新（入队过早、writeback 常忽略 watcher add）
-- 树工具条保留一个手动刷新（展开/折叠/排序旁）
-
-## Sidebar · 一级类与交付物（2026-07）
+## Sidebar · 一级类与交付物
 
 - **一级类（category）**：始终按 `NN` / slot 排序；时间/名称排序只影响专题与文件。
 - **结构带**：`00-收件箱` → 用户类 → **`88-输出`（交付）** → `99-归档`。交付物固定在类列表之后（非插件区），便于日常找回。
 - **标签页**：设置 → 通用 → 多标签（激活不改顺序）/ 单标签。
-- **HTML**：知识区 `.html` 使用沙箱 iframe 预览（体积截断）；Markdown 编辑增强列表/代码块/表格预览。
+- **非 Markdown 文件**：知识区列出全部类型；`.html` 沙箱 iframe（截断）；其它文本等宽；二进制打开外部。Markdown 预览见 §2.3（静态 HTML，不是 live TipTap）。
 - **图标**：macOS `.icns` + `icon-mac.png` = **peer 几何预裁白圆角板**（板 ~80.5% 画布 + 圆角 ~25% 板边，与 VS Code/Claude 一致）；Win/Linux/扩展为透明 mark；`setIcon` 仅 plate PNG。
 
 
