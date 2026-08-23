@@ -115,7 +115,7 @@ D12 收了引擎写入面，但 skip 回执、待办文件、两宿主打开入�
 - **skip `targetPath`**：`appendProfileEntry` / `retireProfileEntry` / `updateProfileEntry` / `appendTopicEntry` 的 skip 回执走 `globalProfileRelPath`（及契约 dir 下的 topics），不再对自定义 dir 撒谎。
 - **todo 文件**：`resolveTodoRelPath` / `resolveTodoPath` 经 `memory.dir`；archive/snapshot 已走 `resolveMemoryDir`。默认常量 `TODO_REL_PATH` 仅表示 canonical 缺省。
 - **活动窗口 / 可恢复删除**：`classifyActivityPath` 与 `isRecoverableLifecycle` 识别自定义 memory dir，避免把 `70-记忆/me.md` 当普通笔记。
-- **Desktop 设置投影**：`getWorkspaceConfig` 经 `normalizeMemoryConfig` 读 `layers.global.file`；WorkspacePanel 空文件名回落 `profile.md`（不再写退役的 `我的情况.md`）。
+- **Desktop 设置投影**：`getWorkspaceConfig` 经 `normalizeMemoryConfig` / `normalizeStreamConfig` 投影 v4 嵌套键（`layers.global.file`、`year_dir`→`yearDir`）；空画像文件名回落 `profile.md`。返回盘上 raw `stream` 会让 `year_dir: false` 在 UI 上画成开（`yearDir !== false`）。
 - **Obsidian 打开入口**：`profileRelPath` / `todoRelPath` / `memoryDirAbs` 经 Kernel；命令、动态页、侧栏待办、聊天画像与反思扫描全部跟契约；`mapApplySuggestionResult` 不再在缺 `targetPath` 时发明 `memory/profile.md`。
 
 回归：`tests/memory-contract-paths.test.mjs`（skip 回执、todo 路径、自定义 dir 可恢复性）+ `workspace-contract-desktop-path` 的 getWorkspaceConfig + Obsidian `plugin.test` / `kernel-integration`。

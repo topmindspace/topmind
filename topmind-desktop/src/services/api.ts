@@ -867,7 +867,7 @@ export const api = {
         contract_version?: number;
         categorySeparator: string;
         template: string;
-        stream?: { packing: string; appendHeading?: string; yearDir?: boolean };
+        stream?: { packing: string; appendHeading?: string; yearDir?: boolean; year_dir?: boolean };
         memory?: { dir: string | null; profileFile: string; files?: string[] };
         writebackMode?: string;
         views: { default: string; enabled: string[] };

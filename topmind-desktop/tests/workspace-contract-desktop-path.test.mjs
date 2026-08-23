@@ -257,7 +257,19 @@ describe("writebackMode is not forked from app-settings for Kernel writes", () =
   });
 });
 
-describe("getWorkspaceConfig projects nested memory.layers.global.file", () => {
+describe("getWorkspaceConfig projects nested contract keys for the settings UI", () => {
+  it("does not return raw contract.stream (year_dir) as the UI stream object", () => {
+    const src = fs.readFileSync(
+      path.join(desktopRoot, "electron/system-service.mjs"),
+      "utf8",
+    );
+    const fnStart = src.indexOf("async getWorkspaceConfig");
+    assert.ok(fnStart >= 0);
+    const fnBody = src.slice(fnStart, src.indexOf("async updateWorkspaceConfig", fnStart));
+    assert.match(fnBody, /normalizeStreamConfig/);
+    assert.doesNotMatch(fnBody, /stream:\s*config\.stream\s*\|\|\s*stream/);
+  });
+
   it("returns custom dir + profileFile from v4 nested keys", async () => {
     const ws = mkTmp("tm-desk-memcfg-");
     try {
@@ -281,6 +293,32 @@ describe("getWorkspaceConfig projects nested memory.layers.global.file", () => {
       const cfg = await SystemService.getWorkspaceConfig({}, makeCtx(ws));
       assert.equal(cfg.memory.dir, "70-记忆");
       assert.equal(cfg.memory.profileFile, "me.md");
+    } finally {
+      fs.rmSync(ws, { recursive: true, force: true });
+    }
+  });
+
+  it("returns yearDir:false when contract stream.year_dir is false", async () => {
+    const ws = mkTmp("tm-desk-yeardir-");
+    try {
+      for (const d of ["00-收件箱", "10-动态", "88-输出", "99-归档"]) {
+        fs.mkdirSync(path.join(ws, d), { recursive: true });
+      }
+      const kernel = await loadKernelApi();
+      const base = kernel.buildDefaultContract();
+      kernel.writeContract(ws, {
+        ...base,
+        stream: { ...base.stream, packing: "monthly", year_dir: false },
+      });
+      const onDisk = kernel.loadContract(ws);
+      assert.equal(onDisk.stream.year_dir, false, "fixture must persist year_dir:false");
+      const { SystemService } = await import("../electron/system-service.mjs");
+      const cfg = await SystemService.getWorkspaceConfig({}, makeCtx(ws));
+      assert.equal(cfg.stream.yearDir, false, "UI camelCase yearDir must keep explicit false");
+      assert.equal(cfg.stream.packing, "monthly");
+      assert.notEqual(cfg.stream.yearDir, undefined);
+      // Must not leak the raw snake_case section as the UI object
+      assert.equal(cfg.stream.year_dir, undefined);
     } finally {
       fs.rmSync(ws, { recursive: true, force: true });
     }

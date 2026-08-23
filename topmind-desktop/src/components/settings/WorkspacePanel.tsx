@@ -87,7 +87,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
     setSeparator(cfg.categorySeparator);
     setTemplate(cfg.template);
     setStreamPacking(cfg.stream?.packing || "weekly");
-    setYearDir(cfg.stream?.yearDir !== false);
+    setYearDir(cfg.stream?.yearDir !== false && cfg.stream?.year_dir !== false);
     setMemoryProfile(cfg.memory?.profileFile || "");
     setMemoryDir(cfg.memory?.dir || "");
     setMemoryFilesText((cfg.memory?.files || []).join(", "));

@@ -1570,19 +1570,30 @@ export const SystemService = {
       const { resolveWorkspaceModel } = await import("./lib/workspace-model-api.mjs");
       const model = await resolveWorkspaceModel(resolvedRoot);
       categories = model.categories;
-      if (model.stream) stream = model.stream;
     } catch {
       categories = [];
     }
-    // Project v4 nested memory (layers.global.file) to the UI's flat profileFile.
-    // Reading config.memory.profileFile directly always missed custom names.
+    // Project v4 snake_case contract sections to the UI camelCase shape.
+    // Returning config.stream wholesale discarded model.stream and left
+    // WorkspacePanel reading yearDir as undefined → year_dir:false painted ON.
+    // Same trap as memory.profileFile vs layers.global.file.
     try {
       const { loadKernelApi } = await import("./lib/kernel-api.mjs");
       const kernel = await loadKernelApi();
+      if (typeof kernel.normalizeStreamConfig === "function") {
+        stream = kernel.normalizeStreamConfig(config.stream || {});
+      }
       if (typeof kernel.normalizeMemoryConfig === "function") {
         memory = kernel.normalizeMemoryConfig(config.memory || {});
       }
     } catch {
+      const rawS = config.stream || {};
+      const rawYearDir = rawS.yearDir ?? rawS.year_dir;
+      stream = {
+        packing: rawS.packing || stream.packing,
+        appendHeading: rawS.append_heading ?? rawS.appendHeading ?? stream.appendHeading,
+        yearDir: rawYearDir === false ? false : rawYearDir === true ? true : stream.yearDir,
+      };
       const raw = config.memory || {};
       memory = {
         dir: typeof raw.dir === "string" ? raw.dir : null,
@@ -1594,7 +1605,7 @@ export const SystemService = {
       contract_version: config.contract_version || 4,
       categorySeparator: config.workspace?.category_separator || defaultConfig.categorySeparator,
       template: config.workspace?.template || defaultConfig.template,
-      stream: config.stream || stream,
+      stream,
       memory: {
         dir: memory.dir ?? null,
         profileFile: memory.profileFile || "profile.md",
