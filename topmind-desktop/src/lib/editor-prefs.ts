@@ -5,6 +5,7 @@
 import i18n from "../locales";
 import { api } from "../services/api";
 import { useViewStore } from "../stores/view-store";
+import { patchCachedSettings } from "./settings-cache";
 import type { EditorContentWidth } from "./editor-markdown";
 import { normalizeContentWidth } from "./editor-markdown";
 
@@ -159,6 +160,10 @@ export async function applyEditorPrefs(
     useViewStore.getState().setEditorTabMode(next.tabMode);
   }
   try {
+    // Keep the SettingsDialog cache in sync — it paints from last-known
+    // settings and would otherwise show stale editor values after this
+    // direct write (bypasses useSettingsController).
+    patchCachedSettings({ editor: next });
     await api.sys.update({ editor: next });
   } catch {
     /* offline / test */

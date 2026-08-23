@@ -91,6 +91,7 @@
 | [2026-08-13](./adr/2026-08-13-surface-ux-review.md) | Surface UX review | High：Obsidian 动态≠工作台、记一下≠记下、整理我的情况；Clip 不教 lite 转换器；Desktop 文档归档不进主锚 |
 | [2026-08-13](./adr/2026-08-13-desktop-stream-editor-ai-review.md) | Stream / editor / AI review | High：预览非活 TipTap；动态多行剥 chrome；Obsidian 增补可见且剥注释 |
 | [2026-08-16](./adr/2026-08-16-memory-consolidation.md) | Memory Consolidation | 确认式画像事实生命周期：追加 / 归档到历史段 / 原位更新，对齐 mem0 ADD/UPDATE/DELETE |
+| [2026-08-23](./adr/2026-08-23-contract-settings-integrity.md) | Contract & Settings Integrity | 契约修复收敛、覆盖前备份、原子写、设置 partial patch、周期路径双向粘滞、Memory/todo 平面契约路径（含 skip 回执与宿主打开入口）、设置关闭冲刷 |
 
 ---
 

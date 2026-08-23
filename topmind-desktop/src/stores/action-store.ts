@@ -689,9 +689,10 @@ export const useActionStore = create<ActionStore>((set, get) => ({
     set({ autoPrepare: next });
     if (opts.persist !== false && prev !== next) {
       try {
-        await api.sys.update({
-          ai: { ...(await api.sys.settings()).ai, autoPrepareSuggestions: next },
-        });
+        // Partial patch only: spreading the full ai block would race the
+        // debounced SettingsDialog batches and could write a stale modelCache
+        // over one fetchLiveModels just persisted.
+        await api.sys.update({ ai: { autoPrepareSuggestions: next } });
       } catch {
         /* ignore persistence errors */
       }

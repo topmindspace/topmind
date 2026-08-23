@@ -312,6 +312,8 @@
     "packingDaily": "Daily page",
     "packingMonthly": "Monthly notebook",
     "packingAtom": "One card per entry",
+    "yearDirLabel": "Group period notes by year",
+    "yearDirDesc": "New period notes go under {year}/; existing notes keep appending where they are",
     "connectorAuto": "auto (template smart)",
     "rebuildToast": "Rebuilt index: {{path}}",
     "showTooltip": "Show in sidebar",

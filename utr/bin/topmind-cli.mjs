@@ -15,6 +15,9 @@
  * Phase 3: Also serves as the execution backend for the MCP server.
  */
 
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { loadContractRegistry, getTool, getCommand, listTools, listCommands } from "../core/contract-registry.mjs";
 import { executeTool, previewTool } from "../core/tool-executor.mjs";
 import { doctorUtr, formatDoctorText } from "../core/doctor.mjs";
@@ -22,7 +25,10 @@ import { resolveUtrWorkspaceContext } from "../core/workspace-context.mjs";
 import { t, setLocaleFromConfig } from "../core/i18n-strings.mjs";
 import { loadWorkspaceConfig } from "../core/workspace-context.mjs";
 
-const CLI_VERSION = "3.5.1";
+const CLI_VERSION = fs.readFileSync(
+  path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "VERSION"),
+  "utf8",
+).trim();
 
 function readStdin() {
   return new Promise((resolve, reject) => {

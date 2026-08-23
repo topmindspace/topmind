@@ -69,6 +69,8 @@ describe("activity-window helpers", () => {
     assert.equal(isPeriodNoteFileName("notes.md"), false);
     assert.equal(classifyActivityPath("10-动态/2026-W31.md"), "period");
     assert.equal(classifyActivityPath("memory/profile.md"), "memory");
+    assert.equal(classifyActivityPath("70-记忆/me.md", "70-记忆"), "memory");
+    assert.equal(classifyActivityPath("00-收件箱/x.md", "70-记忆"), "note");
     assert.equal(classifyActivityPath("20-专题/2026-foo/topic.md"), "topic");
     assert.equal(classifyActivityPath("20-专题/2026-foo/note.md"), "note");
   });

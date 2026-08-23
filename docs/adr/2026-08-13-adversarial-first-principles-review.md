@@ -73,7 +73,7 @@ Med/Low 明确延期，见各维表格。不在本轮改 embedding / Phase D / �
 | F2 | Clip dest 仍读 `.topmind-config.json` | High | delete | `workspace-fs.js` `getFileHandle(".topmind-config.json")` |
 | F3 | 标签/看板为二级且藏在「更多」 | — | keep | 符合「扩展不抢主路径」 |
 | F4 | 关键词搜索截断已诚实；无 embedding | — | keep | Reset Non-goal |
-| F5 | `applySuggestion` skip 回执路径写成 `memory/periodic/${period}.md`，忽略年目录 | Med | defer | 实际 `writePeriodDigest` 走年目录；仅提示路径撒谎 |
+| F5 | `applySuggestion` skip 回执路径写成 `memory/periodic/${period}.md`，忽略年目录 | Med | defer → **fixed 2026-08-24** | 实际 `writePeriodDigest` 走年目录；仅提示路径撒谎。现由 `periodMemoryRelPath(period, { workspaceRoot })` 与写入侧同源（年目录 + 平铺粘滞 + 契约 `memory.dir`）。见 `2026-08-23-contract-settings-integrity.md` D12。 |
 
 ---
 

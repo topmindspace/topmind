@@ -10,7 +10,7 @@ import { api } from "../../services/api";
 import { emitLocal, onLocal } from "../../plugins/host";
 import { useViewStore } from "../../stores/view-store";
 import { applyTheme, type Theme } from "../../lib/theme";
-import { setCachedSettings } from "../../lib/settings-cache";
+import { setCachedSettings, patchCachedSettings } from "../../lib/settings-cache";
 import { invalidateWorkspaceDataCache } from "../../lib/workspace-data-cache";
 import type { AppSettings } from "../../types";
 import { cn } from "../../lib/cn";
@@ -505,6 +505,7 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
     // Update store → App.tsx re-applies + re-listens; persist to settings.
     setTheme(next);
     applyTheme(next);
+    patchCachedSettings({ theme: next });
     void api.sys.update({ theme: next }).catch(() => {/* ignore */});
   };
 

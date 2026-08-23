@@ -3,12 +3,13 @@
  * Shortcut definitions: src/lib/shortcuts.ts (single source of truth).
  * Overlay bodies are code-split — opened only when the user invokes them.
  */
-import { lazy, useEffect, useRef } from "react";
+import { lazy, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useViewStore } from "../../stores/view-store";
 import { onLocal, emitLocal } from "../../plugins/host";
 import { registry } from "../../plugins/registry";
 import { matchWorkbenchShortcut } from "../../lib/shortcuts";
+import { runOverlayCloseGuard } from "../../lib/overlay-close-guard";
 import { LazyBoundary } from "../ui/LazyBoundary";
 import type { OverlayKind, Selection } from "../../types";
 import { cn } from "../../lib/cn";
@@ -53,6 +54,13 @@ export function OverlayHost() {
   const fileTabs = useViewStore((s) => s.fileTabs);
   const selection = useViewStore((s) => s.selection);
   const prevFocusRef = useRef<HTMLElement | null>(null);
+
+  // Close through the active overlay's guard (settings flush) — closeOverlay
+  // alone would unmount before the debounced batch is persisted.
+  const requestCloseOverlay = useCallback(async () => {
+    await runOverlayCloseGuard();
+    closeOverlay();
+  }, [closeOverlay]);
 
   // Restore focus + lock page scroll while any overlay is open
   useEffect(() => {
@@ -106,7 +114,7 @@ export function OverlayHost() {
         case "close-overlay": {
           const st = useViewStore.getState();
           if (st.overlay !== "none") {
-            closeOverlay();
+            void requestCloseOverlay();
           } else if (st.focusMode) {
             setFocusMode(false);
           }
@@ -119,11 +127,11 @@ export function OverlayHost() {
           });
           break;
         case "navigate":
-          closeOverlay();
+          void requestCloseOverlay();
           select(hit.action.selection);
           break;
         case "sidebar-view":
-          closeOverlay();
+          void requestCloseOverlay();
           setSidebarView(hit.action.mode);
           emitLocal("sidebar:set-view", hit.action.mode);
           break;
@@ -156,7 +164,7 @@ export function OverlayHost() {
     return () => window.removeEventListener("keydown", handler);
   }, [
     openOverlay,
-    closeOverlay,
+    requestCloseOverlay,
     select,
     back,
     forward,
@@ -215,7 +223,7 @@ export function OverlayHost() {
 
   return (
     <div
-      onClick={closeOverlay}
+      onClick={() => void requestCloseOverlay()}
       onContextMenu={(e) => {
         // Don't let native menu appear over our overlays
         e.preventDefault();

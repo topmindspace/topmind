@@ -22,7 +22,7 @@ import { Select } from "../ui/select";
 import { Tooltip } from "../ui/tooltip";
 import { ICON } from "../../lib/icons";
 import type { AppSettings } from "../../types";
-import { Field, SettingsSection } from "./fields";
+import { Field, SwitchField, SettingsSection } from "./fields";
 
 type CategoryRow = {
   slot: string;
@@ -54,6 +54,8 @@ const VIEW_KEYS: Record<string, string> = {
 };
 
 const SYSTEM_ROLES = new Set(["buffer", "delivery", "system"]);
+/** Contract default — never fall back to the retired 我的情况.md filename. */
+const DEFAULT_PROFILE_FILE = "profile.md";
 
 export function WorkspacePanel({ settings }: { settings: AppSettings }) {
   const { t } = useTranslation(["settings", "common"]);
@@ -63,6 +65,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
   const [separator, setSeparator] = useState("-");
   const [template, setTemplate] = useState("stream");
   const [streamPacking, setStreamPacking] = useState("weekly");
+  const [yearDir, setYearDir] = useState(true);
   const [memoryProfile, setMemoryProfile] = useState("");
   const [memoryDir, setMemoryDir] = useState("");
   const [memoryFilesText, setMemoryFilesText] = useState("");
@@ -84,6 +87,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
     setSeparator(cfg.categorySeparator);
     setTemplate(cfg.template);
     setStreamPacking(cfg.stream?.packing || "weekly");
+    setYearDir(cfg.stream?.yearDir !== false);
     setMemoryProfile(cfg.memory?.profileFile || "");
     setMemoryDir(cfg.memory?.dir || "");
     setMemoryFilesText((cfg.memory?.files || []).join(", "));
@@ -362,8 +366,11 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
                   setSwitching("configuring");
                   setError(null);
                   try {
+                    // Send only the packing key — a hardcoded appendHeading
+                    // here would silently re-enable daily headings on
+                    // contracts configured with append_heading: none.
                     await api.sys.updateWorkspaceConfig({
-                      stream: { packing, appendHeading: "day" },
+                      stream: { packing },
                     });
                     await reloadConfig();
                   } catch (err) {
@@ -381,6 +388,30 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
               ]}
             />
           </Field>
+          <div className="flex items-end pb-0.5">
+            <SwitchField
+              label={t("settings:workspace.yearDirLabel")}
+              description={t("settings:workspace.yearDirDesc")}
+              checked={yearDir}
+              disabled={!!switching}
+              onChange={(next) => {
+                setYearDir(next);
+                void (async () => {
+                  setSwitching("configuring");
+                  setError(null);
+                  try {
+                    await api.sys.updateWorkspaceConfig({ stream: { yearDir: next } });
+                    await reloadConfig();
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : String(err));
+                  } finally {
+                    setSwitching(null);
+                  }
+                })();
+              }}
+              className="mb-0 w-full"
+            />
+          </div>
           <Field
             label={t("settings:workspace.memoryProfileLabel")}
             description={t("settings:workspace.memoryProfileDesc")}
@@ -392,7 +423,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
               className="font-mono text-3xs"
               onChange={(e) => setMemoryProfile(e.target.value)}
               onBlur={() => {
-                const profileFile = memoryProfile.trim() || "我的情况.md";
+                const profileFile = memoryProfile.trim() || DEFAULT_PROFILE_FILE;
                 void (async () => {
                   setSwitching("configuring");
                   try {
@@ -436,7 +467,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
                     await api.sys.updateWorkspaceConfig({
                       memory: {
                         dir: memoryDir.trim() || null,
-                        profileFile: memoryProfile.trim() || "我的情况.md",
+                        profileFile: memoryProfile.trim() || DEFAULT_PROFILE_FILE,
                         files: memoryFilesText
                           .split(/[,，]/u)
                           .map((s) => s.trim())
@@ -471,7 +502,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
                     await api.sys.updateWorkspaceConfig({
                       memory: {
                         dir: memoryDir.trim() || null,
-                        profileFile: memoryProfile.trim() || "我的情况.md",
+                        profileFile: memoryProfile.trim() || DEFAULT_PROFILE_FILE,
                         files: memoryFilesText
                           .split(/[,，]/u)
                           .map((s) => s.trim())

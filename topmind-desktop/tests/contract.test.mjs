@@ -149,9 +149,10 @@ test("v4 source footprint stays bounded (src + electron)", () => {
   // Raised with rpc-shape · stream-delta-coalesce · inline-ai-result mirrors + UI modules
   // Soft ceiling raised with SuggestPopover · suggest-session-merge · stream helpers
   // Soft ceiling raised with SettingsDialog/Shell split (layout + controller/hooks modules)
+  // Soft ceiling raised with overlay-close-guard (settings Esc/mask/navigate flush)
   assert.ok(srcCount < 200, `src file count ${srcCount} exceeds soft ceiling`);
   assert.ok(electronCount < 120, `electron file count ${electronCount} exceeds soft ceiling`);
-  assert.ok(srcCount + electronCount < 300, `total ${srcCount + electronCount} exceeds soft ceiling`);
+  assert.ok(srcCount + electronCount < 310, `total ${srcCount + electronCount} exceeds soft ceiling`);
 });
 
 test("pack:prepare rebuilds Obsidian dist when source manifest version drifts", () => {

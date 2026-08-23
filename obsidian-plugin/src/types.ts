@@ -116,7 +116,10 @@ export const DEFAULT_SETTINGS: TopmindSettings = {
   aiApiKey: "",
   aiBaseUrl: "https://api.deepseek.com/v1",
   aiModel: "deepseek-chat",
-  writebackMode: "confirm",
+  // Display cache only — operational truth is topmind.yaml writeback.mode.
+  // Default matches the contract default ("auto") so an uninitialized workspace
+  // never shows "confirm" while the Kernel would run "auto".
+  writebackMode: "auto",
   autoSuggest: true,
   autoMaintainTodos: false,
 
@@ -144,6 +147,9 @@ export function migrateSettings(raw: Record<string, unknown>): TopmindSettings {
     ...DEFAULT_SETTINGS,
     ...raw,
     ai: {
+      // Keep unknown raw.ai keys (future schema additions) so load→save
+      // cycles don't silently strip them.
+      ...(raw.ai && typeof raw.ai === "object" ? (raw.ai as Record<string, unknown>) : {}),
       sourcePreference: "",
       defaultModel: "",
       manual: { ...EMPTY_AI_MANUAL },
@@ -153,8 +159,14 @@ export function migrateSettings(raw: Record<string, unknown>): TopmindSettings {
   // If raw has an ai object, merge its fields into our deep-cloned copy
   if (raw.ai && typeof raw.ai === "object") {
     const rawAi = raw.ai as Record<string, unknown>;
-    merged.ai.sourcePreference = String(rawAi.sourcePreference || "");
-    merged.ai.defaultModel = String(rawAi.defaultModel || "");
+    if (typeof rawAi.sourcePreference === "string") {
+      merged.ai.sourcePreference = rawAi.sourcePreference;
+    }
+    if (typeof rawAi.defaultModel === "string") {
+      merged.ai.defaultModel = rawAi.defaultModel;
+    } else if (rawAi.defaultModel === null || rawAi.defaultModel === undefined) {
+      merged.ai.defaultModel = "";
+    }
     if (rawAi.manual && typeof rawAi.manual === "object") {
       merged.ai.manual = { ...EMPTY_AI_MANUAL, ...(rawAi.manual as Partial<AiManualKeys>) };
     }
@@ -199,6 +211,33 @@ export function migrateSettings(raw: Record<string, unknown>): TopmindSettings {
   if (merged.ai.sourcePreference) {
     merged.aiProvider = merged.ai.sourcePreference as AiProviderType;
   }
+
+  // ── Type normalization: a damaged data.json (hand-edited, partially written)
+  // must not leak junk values into the UI or the Kernel env bridge. Mirrors
+  // Desktop's per-field normalize in settings-core.
+  if (merged.timelineOrder !== "asc" && merged.timelineOrder !== "desc") {
+    merged.timelineOrder = "desc";
+  }
+  if (merged.writebackMode !== "auto" && merged.writebackMode !== "confirm") {
+    merged.writebackMode = "auto";
+  }
+  if (
+    merged.localeOverride !== "" &&
+    merged.localeOverride !== "zh-CN" &&
+    merged.localeOverride !== "en-US"
+  ) {
+    merged.localeOverride = "";
+  }
+  const clampInt = (v: unknown, min: number, max: number, fallback: number): number => {
+    const n = Math.round(Number(v));
+    return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : fallback;
+  };
+  merged.backupKeep = clampInt(merged.backupKeep, 0, 10, 3);
+  merged.receiptKeep = clampInt(merged.receiptKeep, 10, 200, 50);
+  merged.autoOpenWorkbench = merged.autoOpenWorkbench !== false;
+  merged.autoTag = merged.autoTag !== false;
+  merged.autoSuggest = merged.autoSuggest !== false;
+  merged.autoMaintainTodos = merged.autoMaintainTodos === true;
 
   return merged;
 }

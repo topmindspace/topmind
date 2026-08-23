@@ -331,6 +331,10 @@ export interface KernelApi {
     body: string,
     opts?: { packing?: string; appendHeading?: string },
   ): ReconcilePeriodResult;
+  resolveMemoryDir?(workspaceRoot: string): string;
+  resolveMemoryLayerPath?(workspaceRoot: string, layer: string, identifier?: string): string;
+  resolveTodoPath?(workspaceRoot: string): string;
+  resolveTodoRelPath?(workspaceRoot: string): string;
   ensureTodoFile(workspaceRoot: string): void;
   readTodoList(workspaceRoot: string): { items: unknown[] } | null;
   toggleTodoItem(workspaceRoot: string, id: string, contract?: unknown): {

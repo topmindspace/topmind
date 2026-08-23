@@ -242,8 +242,8 @@ interface AiProvider {
 → 构建上下文：
 1. 近期动态条目（当前周期本最近 20 条）
 2. 当前待办（未完成的前 10 条）
-3. 用户画像（memory/profile.md 前 3000 字符）
-4. 近期周期反思（memory/periodic/ 最新文件前 2000 字符）
+3. 用户画像（契约 memory 平面 global 文件前 3000 字符；默认 memory/profile.md）
+4. 近期周期反思（契约 memory.dir/periodic/，平铺与 {YYYY}/ 双扫描，最新文件前 2000 字符）
 → runWorkspaceChatTurn（有界工具环，最多 6 步）
    read_file  → formatReadWindow（行号 + around/heading）
    edit_file  → applyUniqueSpan + executeWrite（写闸 / confirm|auto）
@@ -336,7 +336,7 @@ export function getEngineRoot(plugin: { manifest: { dir?: string } }): string {
 
 **reconcile 链路**：`KernelService.reconcilePeriod()` → `kernel.reconcilePeriodBody()` 合并散落条目、修复 day heading → `kernel.executeWrite()` 经写闸写回。
 
-**设置接入**：`backupKeep` 通过 `process.env.BACKUP_KEEP` 接入 Kernel；`writebackMode` 为 Settings 展示缓存，操作真源是 `topmind.yaml` `writeback.mode`（改下拉框会镜像进契约）。
+**设置接入**：`backupKeep`/`receiptKeep` 通过 `process.env.BACKUP_KEEP`/`RECEIPT_KEEP` 接入 Kernel（Kernel 在**每次剪枝时**读 env——bundle 顶层求值会早于 onload 设置而失效）；`writebackMode` 为 Settings 展示缓存（默认 `auto`，与契约默认一致；打开 Settings 时若契约值与缓存不同则 hydrate 后立即落盘），操作真源是 `topmind.yaml` `writeback.mode`（改下拉框会镜像进契约）。
 
 **Todo 字段对齐**：Kernel `todo-engine` 的 TodoItem 字段为 `done`（非 `completed`）。插件 `mapKernelTodoItem` / UI 过滤必须读 `done`，与 Desktop `todo-store` 一致。
 
@@ -467,9 +467,9 @@ interface TopmindSettings {
 
 | 设置项 | 接入方式 |
 |--------|----------|
-| `writebackMode` | Settings 展示缓存；写入 `topmind.yaml` `writeback.mode`；`executeWrite` 不读 plugin data |
-| `backupKeep` | `process.env.BACKUP_KEEP` 写入，Kernel `writeback-engine` 读取 |
-| `receiptKeep` | `process.env.RECEIPT_KEEP` 写入，Kernel 回执轮转读取 |
+| `writebackMode` | Settings 展示缓存（默认 `auto` 对齐契约）；写入 `topmind.yaml` `writeback.mode`；`executeWrite` 不读 plugin data |
+| `backupKeep` | `process.env.BACKUP_KEEP` 写入，Kernel `writeback-engine` 调用时读取（非模块加载时） |
+| `receiptKeep` | `process.env.RECEIPT_KEEP` 写入，Kernel 回执轮转调用时读取 |
 | `ai.manual` (多服务商密钥) + `ai.sourcePreference` | `createAiProvider()` 解析 → `createKernelContext()` 注入 |
 | `autoSuggest` | 控制 `generateSuggestions()` 是否调用 |
 | `autoMaintainTodos` | 控制 `todo_maintain` 操作是否自动运行 |

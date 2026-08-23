@@ -233,7 +233,7 @@ AI 流式传输期间，主进程在 `emit` 函数中拦截 `ai:stream` 状态�
 
 1. `mergeAppSettings`：secret 字段 `""` = 保持；`null` = 清除；非空 = 替换  
 2. `serializeSettingsForDisk`：加密写入 `secureStorage`；若明文空且未标记清除，**复用磁盘旧密文**  
-3. 设置 UI 只发**局部 patch**（勿 `...settings.ai` 整包回写空 manual）
+3. 设置 UI 只发**局部 patch**（勿 `...settings.ai` 整包回写空 manual）——`AppSettingsPatch` 类型（顶层可选 + 嵌套 section partial）从类型层强制；绕过 SettingsDialog 的写方（action-store / TitleBar / Sidebar）同样只发改动的键  
 
 `persist` 函数还从磁盘重新加载最新设置作为防御性双保险，确保不会因为内存状态过期而丢失数据。
 

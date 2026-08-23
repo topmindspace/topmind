@@ -3,7 +3,7 @@ import { api } from "../../services/api";
 import { useViewStore } from "../../stores/view-store";
 import { useAiStore } from "../../stores/ai-store";
 import { emitLocal, reloadExternalPlugins, togglePlugin } from "../../plugins/host";
-import type { AppSettings } from "../../types";
+import type { AppSettings, AppSettingsPatch } from "../../types";
 import { getCachedSettings, setCachedSettings } from "../../lib/settings-cache";
 import { applyOptimistic, mergeSettingsPatch } from "../../lib/settings-merge";
 import {
@@ -27,12 +27,16 @@ export function useSettingsController() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const updateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingPatch = useRef<Partial<AppSettings>>({});
+  const pendingPatch = useRef<AppSettingsPatch>({});
   const settingsRef = useRef<AppSettings | null>(null);
   settingsRef.current = settings;
 
   useEffect(() => {
     void api.sys.settings().then((s) => {
+      // A fast edit made while this IPC round-trip was in flight must win —
+      // painting the disk snapshot now would visually revert it until the
+      // debounced flush response lands.
+      if (pendingPatch.current && Object.keys(pendingPatch.current).length > 0) return;
       const next = s as AppSettings;
       setCachedSettings(next);
       setSettings(next);
@@ -43,13 +47,31 @@ export function useSettingsController() {
   }, []);
 
   /** Strip modelCache so UI patches never wipe a live-fetched catalog on disk. */
-  const toApiBatch = (batch: Partial<AppSettings>): Record<string, unknown> => {
+  const toApiBatch = (batch: AppSettingsPatch): Record<string, unknown> => {
     const apiBatch: Record<string, unknown> = { ...batch };
     if (batch.ai && typeof batch.ai === "object") {
       const { modelCache: _discard, ...aiRest } = batch.ai;
       apiBatch.ai = aiRest;
     }
     return apiBatch;
+  };
+
+  const applyPersistResponse = (ns: AppSettings, apiBatch: Record<string, unknown>) => {
+    setCachedSettings(ns);
+    setSettings(ns);
+    if (ns.editor) {
+      applyEditorSettingsToView(ns.editor, setEditorSettings);
+      const tm = (ns.editor as { tabMode?: string }).tabMode;
+      if (tm === "single" || tm === "multi") {
+        useViewStore.getState().setEditorTabMode(tm);
+      }
+    }
+    if (apiBatch.ai) emitLocal("ai:settings-changed", null);
+    const wsRoot = ns.workspaceRoot;
+    if (apiBatch.weread) void togglePlugin("topmind-weread", wsRoot);
+    if (apiBatch.x) void togglePlugin("topmind-x", wsRoot);
+    // Re-apply external enable map after persist (hot reload without app restart)
+    if (apiBatch.plugins && wsRoot) void reloadExternalPlugins(wsRoot, { cacheBust: false });
   };
 
   const flushPending = useCallback(async () => {
@@ -65,48 +87,31 @@ export function useSettingsController() {
     setError(null);
     try {
       const next = await api.sys.update(apiBatch);
-      const ns = next as AppSettings;
-      setCachedSettings(ns);
-      setSettings(ns);
-      if (ns.editor) {
-        applyEditorSettingsToView(ns.editor, setEditorSettings);
-        const tm = (ns.editor as { tabMode?: string }).tabMode;
-        if (tm === "single" || tm === "multi") {
-          useViewStore.getState().setEditorTabMode(tm);
-        }
-      }
-      if (apiBatch.ai) emitLocal("ai:settings-changed", null);
-      const wsRoot = ns.workspaceRoot;
-      if (apiBatch.weread) void togglePlugin("topmind-weread", wsRoot);
-      if (apiBatch.x) void togglePlugin("topmind-x", wsRoot);
-      // Re-apply external enable map after persist (hot reload without app restart)
-      if (apiBatch.plugins && wsRoot) void reloadExternalPlugins(wsRoot, { cacheBust: false });
+      applyPersistResponse(next as AppSettings, apiBatch);
     } catch (e) {
+      // Re-queue instead of dropping: the dialog keeps showing the edits as
+      // pending (not saved) and the next flush retries the whole batch.
+      pendingPatch.current = mergeSettingsPatch(batch, pendingPatch.current);
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setSaving(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setEditorSettings]);
 
-  // Flush pending debounce on unmount so close/Esc never drops last edits
+  // Flush pending debounce on unmount — safety net for close paths that skip
+  // the guard (app quit, store-driven overlay swap). Response side effects are
+  // applied the same way as an in-dialog flush; setState calls no-op safely.
+  const flushRef = useRef(flushPending);
+  flushRef.current = flushPending;
   useEffect(() => {
     return () => {
       if (updateTimer.current) clearTimeout(updateTimer.current);
-      const batch = pendingPatch.current;
-      if (batch && Object.keys(batch).length > 0) {
-        pendingPatch.current = {};
-        const apiBatch = toApiBatch(batch);
-        void api.sys
-          .update(apiBatch)
-          .then(() => {
-            if (apiBatch.ai) emitLocal("ai:settings-changed", null);
-          })
-          .catch(() => {});
-      }
+      void flushRef.current();
     };
   }, []);
 
-  const update = (patch: Partial<AppSettings>) => {
+  const update = (patch: AppSettingsPatch) => {
     if (!settingsRef.current) return;
     const optimistic = applyOptimistic(settingsRef.current, patch);
     setCachedSettings(optimistic);

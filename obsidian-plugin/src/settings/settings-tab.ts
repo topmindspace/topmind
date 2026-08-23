@@ -151,7 +151,13 @@ export class TopmindSettingTab extends PluginSettingTab {
 
   display(): void {
     const { containerEl } = this;
+    const prevWritebackMode = this.plugin.settings.writebackMode;
     this.plugin.kernelService.hydrateWritebackModeFromContract();
+    // Persist hydrated display-cache value so data.json stops lying after the
+    // contract changed elsewhere (Desktop / manual edit).
+    if (this.plugin.settings.writebackMode !== prevWritebackMode) {
+      void this.plugin.saveSettings();
+    }
     const s = this.plugin.settings;
 
     containerEl.empty();

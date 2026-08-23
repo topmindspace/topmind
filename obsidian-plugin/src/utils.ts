@@ -209,10 +209,7 @@ export function mapApplySuggestionResult(
 
   // open-only success (profile exists, or explicit open)
   if (operation === "open" || /open\s*only/i.test(note)) {
-    const openPath =
-      targetPath ||
-      (suggestion.kind === "open_profile" ? "memory/profile.md" : undefined);
-    return { ok: true, openPath };
+    return { ok: true, openPath: targetPath };
   }
 
   if (r.pending === true || r.needsConfirm === true) {
@@ -369,7 +366,7 @@ export function isStreamOrTodoPath(filePath: string): boolean {
   // Stream categories use 10-19 prefix range by convention
   if (/^1\d-/u.test(filePath)) return true;
   // Also match memory/todo and memory/periodic (AI digest updates)
-  if (filePath.includes("memory/todo")) return true;
-  if (filePath.includes("memory/periodic/")) return true;
+  if (/(?:^|\/)todo\.md$/u.test(filePath)) return true;
+  if (/(?:^|\/)periodic\//u.test(filePath)) return true;
   return false;
 }

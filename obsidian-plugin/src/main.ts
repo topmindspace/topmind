@@ -89,15 +89,30 @@ function mergeAiBackup(settings: TopmindSettings, backup: Record<string, unknown
     }
   }
 
-  // Also check legacy fields
+  // Also check legacy fields. aiBaseUrl / aiModel defaults are non-empty
+  // sentinels — "unset" means "still default", so restore when current is the
+  // default AND the backup carries a non-default value (the old
+  // `!merged.aiBaseUrl` guard could never fire).
+  const LEGACY_BASEURL_DEFAULT = "https://api.deepseek.com/v1";
+  const LEGACY_MODEL_DEFAULT = "deepseek-chat";
   if (!merged.aiApiKey && backup.aiApiKey) {
     merged.aiApiKey = String(backup.aiApiKey);
   }
-  if (!merged.aiBaseUrl && backup.aiBaseUrl) {
-    merged.aiBaseUrl = String(backup.aiBaseUrl);
+  if (
+    merged.aiBaseUrl === LEGACY_BASEURL_DEFAULT &&
+    typeof backup.aiBaseUrl === "string" &&
+    backup.aiBaseUrl &&
+    backup.aiBaseUrl !== LEGACY_BASEURL_DEFAULT
+  ) {
+    merged.aiBaseUrl = backup.aiBaseUrl;
   }
-  if (!merged.aiModel && backup.aiModel) {
-    merged.aiModel = String(backup.aiModel);
+  if (
+    merged.aiModel === LEGACY_MODEL_DEFAULT &&
+    typeof backup.aiModel === "string" &&
+    backup.aiModel &&
+    backup.aiModel !== LEGACY_MODEL_DEFAULT
+  ) {
+    merged.aiModel = backup.aiModel;
   }
   if (merged.aiProvider === "none" && backup.aiProvider) {
     merged.aiProvider = backup.aiProvider as TopmindSettings["aiProvider"];
@@ -258,7 +273,10 @@ export default class TopmindPlugin extends Plugin {
     if (raw) {
       this.settings = migrateSettings(raw);
     } else {
-      this.settings = { ...DEFAULT_SETTINGS };
+      // Deep clone: a shallow copy shares the `ai` object reference with the
+      // module-level DEFAULT_SETTINGS constant — editing keys in the settings
+      // tab would mutate the constant for the rest of the session.
+      this.settings = structuredClone(DEFAULT_SETTINGS);
     }
 
     // ── AI Key Restore: if data.json had no AI keys, try backup ──
@@ -296,10 +314,14 @@ export default class TopmindPlugin extends Plugin {
     const adapter = this.app.vault.adapter;
     const backupData = extractAiBackup(this.settings);
     const json = JSON.stringify(backupData, null, 2);
-    // Ensure .topmind/ directory exists
+    // Only write inside an existing system plane: a random vault where the
+    // plugin is merely enabled must not grow a `.topmind/` machine dir.
+    // After workspace init (topmind.yaml exists) the dir may be created.
     const dir = ".topmind";
+    const dirExists = await adapter.exists(dir);
+    if (!dirExists && !this.kernelService?.isWorkspaceReady()) return;
     try {
-      if (!await adapter.exists(dir)) {
+      if (!dirExists) {
         await adapter.mkdir(dir);
       }
     } catch {
@@ -522,7 +544,7 @@ export default class TopmindPlugin extends Plugin {
       new Notice(t("notice_workspace_not_ready"));
       return;
     }
-    await this.app.workspace.openLinkText("memory/profile.md", "", false);
+    await this.app.workspace.openLinkText(this.kernelService.profileRelPath(), "", false);
   }
 
   private async openInbox(): Promise<void> {

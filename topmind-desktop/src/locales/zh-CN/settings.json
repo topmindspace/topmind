@@ -312,6 +312,8 @@
     "packingDaily": "每天一页",
     "packingMonthly": "每月一本",
     "packingAtom": "每条一卡",
+    "yearDirLabel": "按年归组周期本",
+    "yearDirDesc": "开启后新周期本存入 {年}/ 子目录；已有周期本继续在原位置追加",
     "connectorAuto": "auto（模板智能）",
     "rebuildToast": "已重建索引：{{path}}",
     "showTooltip": "在侧栏显示",

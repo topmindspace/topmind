@@ -219,6 +219,50 @@ export class KernelService {
     return this.getResolvedModelInternal();
   }
 
+  /** Workspace-relative 我的情况 path (contract memory.dir + profile file). */
+  profileRelPath(): string {
+    const vault = this.getVaultPath();
+    try {
+      const abs = getKernel().resolveMemoryLayerPath?.(vault, "global");
+      if (typeof abs === "string" && abs) {
+        return path.relative(vault, abs).replace(/\\/g, "/");
+      }
+    } catch {
+      /* fall through */
+    }
+    return "memory/profile.md";
+  }
+
+  /** Workspace-relative personal todo path (contract memory.dir). */
+  todoRelPath(): string {
+    const vault = this.getVaultPath();
+    try {
+      const kernel = getKernel();
+      if (typeof kernel.resolveTodoRelPath === "function") {
+        return kernel.resolveTodoRelPath(vault);
+      }
+      const abs = kernel.resolveTodoPath?.(vault);
+      if (typeof abs === "string" && abs) {
+        return path.relative(vault, abs).replace(/\\/g, "/");
+      }
+    } catch {
+      /* fall through */
+    }
+    return "memory/todo.md";
+  }
+
+  /** Absolute memory-plane directory. */
+  memoryDirAbs(): string {
+    const vault = this.getVaultPath();
+    try {
+      const abs = getKernel().resolveMemoryDir?.(vault);
+      if (typeof abs === "string" && abs) return abs;
+    } catch {
+      /* fall through */
+    }
+    return path.join(vault, "memory");
+  }
+
   /**
    * Resolve workspace model with caching.
    * Caches based on topmind.yaml mtime — invalidates when config changes.
@@ -603,7 +647,7 @@ export class KernelService {
     }
 
     try {
-      const profilePath = path.join(this.getVaultPath(), "memory", "profile.md");
+      const profilePath = path.join(this.getVaultPath(), this.profileRelPath());
       if (fs.existsSync(profilePath)) {
         const profile = fs.readFileSync(profilePath, "utf-8");
         const trimmed = profile.slice(0, 3000);
@@ -661,23 +705,39 @@ export class KernelService {
    */
   private loadRecentReflections(): string | null {
     try {
-      const vaultPath = this.getVaultPath();
-      const periodicDir = path.join(vaultPath, "memory", "periodic");
+      const periodicDir = path.join(this.memoryDirAbs(), "periodic");
       if (!fs.existsSync(periodicDir)) return null;
 
-      // Check year subdirectory (memory/periodic/{YYYY}/) — aligned with stream yearDir
-      const currentYear = String(new Date().getFullYear());
-      const yearDir = path.join(periodicDir, currentYear);
-      const searchDir = fs.existsSync(yearDir) ? yearDir : periodicDir;
+      // Scan BOTH layouts (pre-year-grouping flat files and {YYYY}/ subdirs):
+      // an either-or pick would miss flat reflections whenever the year dir
+      // exists but is empty. Walk every year folder, not only the current year.
+      const candidates: { file: string; mtime: number }[] = [];
+      const collect = (dir: string) => {
+        try {
+          for (const f of fs.readdirSync(dir)) {
+            if (!f.endsWith(".md")) continue;
+            const full = path.join(dir, f);
+            const st = fs.statSync(full);
+            if (st.isFile()) candidates.push({ file: full, mtime: st.mtimeMs });
+          }
+        } catch {
+          // unreadable dir — skip
+        }
+      };
+      collect(periodicDir);
+      try {
+        for (const e of fs.readdirSync(periodicDir, { withFileTypes: true })) {
+          if (e.isDirectory() && /^\d{4}$/u.test(e.name)) {
+            collect(path.join(periodicDir, e.name));
+          }
+        }
+      } catch {
+        // unreadable periodic dir — skip year walk
+      }
+      if (candidates.length === 0) return null;
+      candidates.sort((a, b) => b.mtime - a.mtime);
 
-      // Find the most recent .md file
-      const files = fs.readdirSync(searchDir)
-        .filter((f) => f.endsWith(".md"))
-        .sort()
-        .reverse();
-      if (files.length === 0) return null;
-
-      const content = fs.readFileSync(path.join(searchDir, files[0]), "utf-8");
+      const content = fs.readFileSync(candidates[0].file, "utf-8");
       // Trim to 2000 chars — enough for key insights without overwhelming context
       return content.slice(0, 2000);
     } catch {

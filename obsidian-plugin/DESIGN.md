@@ -98,7 +98,7 @@
 | 侧边栏 | `panel-right` + 文本「侧边栏」，打开/恢复 AI 副驾面板 |
 | 设置 | `settings` + 文本「设置」，跳转插件设置页 |
 | 新笔记 | `file-plus` + 文本「新笔记」，在收件箱建 Untitled |
-| 我的情况 | `user` + 文本「我的情况」，打开 `memory/profile.md` |
+| 我的情况 | `user` + 文本「我的情况」，打开契约解析的画像文件（默认 `memory/profile.md`） |
 
 默认宽度下 icon+文本必须完整显示（`.tm-toolbar-btn-labeled { width: auto }`，标签 `overflow: visible`）。仅 `@container tm-workbench (max-width: 560px)` 隐藏标签；icon-only 时保留 `aria-label` / `title`。工具栏 `overflow: visible` + 可换行，不用 `overflow: hidden` 裁字。
 

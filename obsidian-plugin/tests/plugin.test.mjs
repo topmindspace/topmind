@@ -459,12 +459,28 @@ describe("isStreamOrTodoPath (shipped)", () => {
     assert.ok(isStreamOrTodoPath("11-健康/2026-W01.md"));
     assert.ok(isStreamOrTodoPath("memory/todo.md"));
     assert.ok(isStreamOrTodoPath("memory/periodic/2026-W01.md"));
+    assert.ok(isStreamOrTodoPath("70-记忆/todo.md"));
+    assert.ok(isStreamOrTodoPath("70-记忆/periodic/2026-W01.md"));
     assert.ok(!isStreamOrTodoPath("memory/profile.md"));
     assert.ok(!isStreamOrTodoPath(".topmind/index.json"));
     assert.ok(!isStreamOrTodoPath("topmind.yaml"));
     assert.ok(!isStreamOrTodoPath("20-专题/2026-项目A/topic.md"));
     assert.ok(!isStreamOrTodoPath("88-输出/report.md"));
     assert.ok(!isStreamOrTodoPath("99-归档/backup.md"));
+  });
+});
+
+describe("Obsidian profile/todo open paths honor Kernel (no hardcoded memory/)", () => {
+  test("commands and views open contract-resolved paths", () => {
+    const main = fs.readFileSync(path.join(srcDir, "main.ts"), "utf8");
+    const stream = fs.readFileSync(path.join(srcDir, "views", "stream-workbench-view.ts"), "utf8");
+    const dock = fs.readFileSync(path.join(srcDir, "views", "sidebar-dock-view.ts"), "utf8");
+    assert.doesNotMatch(main, /openLinkText\("memory\/profile\.md"/);
+    assert.match(main, /profileRelPath\(\)/);
+    assert.doesNotMatch(stream, /openLinkText\("memory\/profile\.md"/);
+    assert.match(stream, /profileRelPath\(\)/);
+    assert.doesNotMatch(dock, /openLinkText\("memory\/todo\.md"/);
+    assert.match(dock, /todoRelPath\(\)/);
   });
 });
 
@@ -484,7 +500,9 @@ describe("DEFAULT_SETTINGS and AI_PROVIDER_PRESETS (shipped)", () => {
     for (const field of required) {
       assert.ok(field in DEFAULT_SETTINGS, `Missing field: ${field}`);
     }
-    assert.equal(DEFAULT_SETTINGS.writebackMode, "confirm");
+    // Display cache default must match the contract default ("auto") — an
+    // uninitialized workspace must not display "confirm" while Kernel runs "auto".
+    assert.equal(DEFAULT_SETTINGS.writebackMode, "auto");
     // Plugin data.json is a display cache — Kernel must not take settings.writebackMode
     // as a permanent executeWrite override (operational truth is topmind.yaml).
     const svc = fs.readFileSync(path.join(srcDir, "services", "kernel-service.ts"), "utf8");
@@ -585,6 +603,42 @@ describe("migrateSettings + hasConfiguredProvider (shipped)", () => {
     const migrated = migrateSettings(settings);
     assert.equal(migrated.ai.manual.openAiKey, "sk-existing");
     assert.equal(migrated.ai.sourcePreference, "openai");
+  });
+
+  test("migrateSettings normalizes junk values from damaged data.json", async () => {
+    const { migrateSettings } = await importShipped("types.ts");
+    const migrated = migrateSettings({
+      timelineOrder: 42,
+      writebackMode: "yolo",
+      localeOverride: "fr-FR",
+      backupKeep: "x",
+      receiptKeep: 99999,
+      autoOpenWorkbench: "yes",
+      autoTag: 0,
+    });
+    assert.equal(migrated.timelineOrder, "desc");
+    assert.equal(migrated.writebackMode, "auto");
+    assert.equal(migrated.localeOverride, "");
+    assert.equal(migrated.backupKeep, 3, "non-numeric backupKeep falls back to default");
+    assert.equal(migrated.receiptKeep, 200, "receiptKeep clamps to slider max");
+    assert.equal(migrated.autoOpenWorkbench, true);
+    assert.equal(migrated.autoTag, true);
+  });
+
+  test("migrateSettings preserves unknown ai.* keys for forward compat", async () => {
+    const { migrateSettings } = await importShipped("types.ts");
+    const migrated = migrateSettings({
+      ai: {
+        sourcePreference: "",
+        defaultModel: "",
+        manual: {},
+        futureProviderKey: "keep-me",
+      },
+    });
+    assert.equal(
+      migrated.ai.futureProviderKey,
+      "keep-me",
+    );
   });
 
   test("hasConfiguredProvider detects configured vs empty", async () => {

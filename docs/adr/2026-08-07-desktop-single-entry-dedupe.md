@@ -86,3 +86,5 @@ Round 1 解决「同一功能多处入口」；Round 2 解决「常驻对象过�
 **保留**：墨蓝/teal 品牌轴（logo 锁定）· token 架构与阶梯纪律 · 编辑器 `paper`/`sepia` 暖纸色（转为**可选阅读主题**——默认清爽，暖意按需）。
 
 **影响面**：`tokens.css`（34 处值）· `v4.css`（paper mix）· `export-markdown.ts` · `FilePreviewView` 兜底 · `browser-extension/popup.css`（23 处镜像）；测试 `uiux-p0-remediation` 边框断言同步；`DESIGN.md` §0/§5 · `ARCHITECTURE.md` 指针；2.0 ADR 标记 Superseded。
+
+> 勘误（2026-08-24）：「2.0 ADR」指 Design System 2.0 规范，其真源一直是 `topmind-desktop/DESIGN.md` 而非独立 ADR 文件——本文档库中不存在、也从未存在该 ADR，此句仅指规范章节随本决策一并失效。

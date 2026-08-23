@@ -216,6 +216,10 @@ Stream (episodic)         Memory (semantic)
 - **迁移**：不强制；用户可在设置中开启年目录 + 手动迁移旧文件
 - **契约**：`stream.year_dir` 为新键，缺省时 normalize 为 `true`（新工作区）或从现有 `yearDir` 读取（旧工作区）
 
+> **2026-08-23 修订（见 `2026-08-23-contract-settings-integrity.md` D11）**：本节两处假设当时未在实现中兑现——(1) pre-D1 旧工作区的契约从未持久化过 `yearDir`，「从现有值读取」是空操作，缺省翻 true 后**写入侧**没有回退，同周期会分裂为平铺 + 年目录两个文件；(2)「设置中可开启年目录」的开关并不存在。现已补齐：**周期路径粘滞**（写入侧五个入口统一在 `resolveStreamTarget` 回退到已存在的平铺文件，双向成立；periodic 反思同理），`archiveStreamYear` 支持平铺年份归档，Desktop 工作区设置暴露「按年归组周期本」开关（写 `stream.year_dir`）。风险 3 的「走 writeback-engine 高影响路径」后来有意简化为裸目录 move（无 receipt，见实现内注释）。
+>
+> **2026-08-24 勘误（实施清单与实际交付的差异）**：反思语义已交付，但以下清单项按原名未执行——第 5 项 `writePeriodDigest()` **未改名** `writePeriodReflection()`（反思语义在原名下实现，保持导出面稳定）；第 6 项 `resolveMemoryLayerPath()` 实际位于 `memory-engine.mjs` 而非 `model-memory.mjs`（后者只导出 `resolveMemoryPaths` / `ensureCoreProfile`）；第 7 项建议 kind 仍为 `stream_digest`（未改为 reflection kind，下游按 kind 分发不宜中途换名）。可选的「年度提炼」（`{year}-summary.md`）**从未实现**，保留为未来可选项。
+
 ## 风险
 
 1. **旧工作区混合**：年目录和非年目录共存 — `listStreamPeriods` 已兼容双模式

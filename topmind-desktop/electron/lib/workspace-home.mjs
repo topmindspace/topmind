@@ -143,6 +143,21 @@ export async function autoRepairWorkspace(workspaceRoot) {
   const resolved = path.resolve(workspaceRoot);
   const config = await loadWorkspaceConfig(resolved);
 
+  // A corrupt/unreadable contract means the separator is unknowable — renaming
+  // dirs on FS-only inference could scramble them on a guess. Skip the repair;
+  // the unrepairable path surfaces a reseed recovery action, after which this
+  // runs again with a healthy contract.
+  try {
+    const { loadKernelApi } = await import("./kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const inspection = kernel.inspectContract(resolved);
+    if (inspection.state === "corrupt" || inspection.state === "unreadable") {
+      return;
+    }
+  } catch {
+    // Kernel unavailable — keep legacy FS-only behavior
+  }
+
   const entries = await fs.readdir(resolved, { withFileTypes: true }).catch(() => []);
   const discovered = entries
     .filter((e) => e.isDirectory() && /^\d{2}[ -].+/.test(e.name))

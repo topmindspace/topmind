@@ -499,7 +499,7 @@ export function ManagePanel({
           label={t("settings:manage.autoCheckUpdates")}
           description={t("settings:manage.autoCheckUpdatesDesc")}
           checked={autoCheck}
-          onChange={(autoCheckUpdates) => update({ ui: { ...settings.ui, autoCheckUpdates } })}
+          onChange={(autoCheckUpdates) => update({ ui: { autoCheckUpdates } })}
           className="mb-2"
         />
         {updateInfo && !updateLoading ? (

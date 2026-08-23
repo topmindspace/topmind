@@ -173,8 +173,26 @@ describe("ensureContract: legacy .topmind-config.json migrates", () => {
     assert.equal(c.workspace.locale, "en-US");
     assert.equal(c.workspace.category_separator, " ");
     assert.equal(c.stream.packing, "daily");
-    // Legacy file left in place (not deleted without user intent)
-    assert.ok(fs.existsSync(path.join(ws, LEGACY_CONFIG_FILE_NAME)));
+    // Legacy content is preserved under a retired name (never deleted), and
+    // the active name is gone so a later hand-deleted topmind.yaml can NOT
+    // re-migrate from this stale v3 snapshot.
+    assert.equal(fs.existsSync(path.join(ws, LEGACY_CONFIG_FILE_NAME)), false);
+    assert.ok(fs.existsSync(path.join(ws, `${LEGACY_CONFIG_FILE_NAME}.migrated`)));
+    assert.ok(result.actions.includes("legacy_retired"));
+  });
+
+  it("retired sidecar cannot remigrate after yaml is deleted", () => {
+    // Hand-deleting topmind.yaml used to remigrate from the leftover
+    // .topmind-config.json and clobber every v4 change made since.
+    fs.unlinkSync(path.join(ws, CONTRACT_FILE_NAME));
+    const result = ensureContract(ws);
+    assert.equal(result.status, "created", "must create defaults, not remigrate");
+    assert.equal(fs.existsSync(path.join(ws, LEGACY_CONFIG_FILE_NAME)), false);
+    assert.ok(fs.existsSync(path.join(ws, `${LEGACY_CONFIG_FILE_NAME}.migrated`)));
+    const c = assertValidOnDisk(ws);
+    // Fresh defaults — not the v3 snapshot (periodic / en-US / daily).
+    assert.equal(c.workspace.template, "stream");
+    assert.notEqual(c.stream.packing, "daily");
   });
 });
 
@@ -279,5 +297,181 @@ describe("loadContract is operational fallback, not health claim", () => {
     const inspection = inspectContract(ws);
     assert.equal(inspection.onDiskValid, false);
     assert.notEqual(inspection.state, "ok");
+  });
+});
+
+describe("repair convergence: null sections + version stamps", () => {
+  let ws;
+  after(() => {
+    if (ws) fs.rmSync(ws, { recursive: true, force: true });
+  });
+
+  it("repairs `memory: null` to defaults in one pass (no permanent repairable loop)", () => {
+    ws = mkTmp("tm-contract-nullsec-");
+    fs.writeFileSync(
+      path.join(ws, CONTRACT_FILE_NAME),
+      [
+        "contract_version: 4",
+        "workspace: {}",
+        "memory: null",
+        "stream:",
+        "  packing: weekly",
+        "protection: {}",
+        "writeback: {}",
+      ].join("\n") + "\n",
+      "utf8",
+    );
+    const first = inspectContract(ws);
+    assert.equal(first.state, "repairable");
+    const result = ensureContract(ws);
+    assert.equal(result.status, "repaired");
+    // The whole point: second inspection must be healthy, not repairable again
+    const c = assertValidOnDisk(ws);
+    assert.ok(c.memory?.layers?.global?.file, "memory section must be filled from defaults");
+    assert.doesNotMatch(readYamlRaw(ws), /memory:\s*null/);
+  });
+
+  it("stamps missing contract_version via repairable path", () => {
+    const dir = mkTmp("tm-contract-nover-");
+    try {
+      fs.writeFileSync(
+        path.join(dir, CONTRACT_FILE_NAME),
+        [
+          "workspace:",
+          "  template: balanced",
+          "stream: {}",
+          "memory: {}",
+          "protection: {}",
+          "writeback: {}",
+        ].join("\n") + "\n",
+        "utf8",
+      );
+      const first = inspectContract(dir);
+      assert.equal(first.state, "repairable");
+      const result = ensureContract(dir);
+      assert.equal(result.status, "repaired");
+      const c = assertValidOnDisk(dir);
+      assert.equal(c.workspace.template, "balanced", "repair keeps user template");
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("accepts string contract_version \"4\" (Number compare, no contradictory error)", () => {
+    const dir = mkTmp("tm-contract-strver-");
+    try {
+      fs.writeFileSync(
+        path.join(dir, CONTRACT_FILE_NAME),
+        'contract_version: "4"\nworkspace: {}\nstream: {}\nmemory: {}\nprotection: {}\nwriteback: {}\n',
+        "utf8",
+      );
+      const inspection = inspectContract(dir);
+      assert.equal(inspection.state, "ok");
+      assert.equal(inspection.onDiskValid, true);
+      for (const e of inspection.validation.errors) {
+        assert.doesNotMatch(e, /expected 4\).*expected 4/);
+      }
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("corrupt yaml + legacy JSON: backup before migration overwrite", () => {
+  it("migrates legacy but keeps the corrupt file as backup", () => {
+    const dir = mkTmp("tm-contract-legacybak-");
+    try {
+      fs.writeFileSync(path.join(dir, CONTRACT_FILE_NAME), "garbage: [unparseable\n", "utf8");
+      fs.writeFileSync(
+        path.join(dir, LEGACY_CONFIG_FILE_NAME),
+        JSON.stringify({ template: "balanced" }),
+        "utf8",
+      );
+      const result = ensureContract(dir);
+      assert.equal(result.status, "migrated");
+      assert.ok(result.backupPath, "corrupt file must be backed up before overwrite");
+      const backupAbs = path.join(dir, result.backupPath);
+      assert.ok(fs.existsSync(backupAbs));
+      assert.equal(fs.readFileSync(backupAbs, "utf8"), "garbage: [unparseable\n");
+      assertValidOnDisk(dir);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("reseed forces fresh defaults on any state", () => {
+  it("reseeds a healthy contract (no silent no-op)", () => {
+    const dir = mkTmp("tm-contract-reseedok-");
+    try {
+      ensureContract(dir, { templateId: "research" });
+      const result = reseedContract(dir);
+      assert.equal(result.status, "reseeded");
+      assert.ok(result.backupPath, "healthy file must still be backed up on reseed");
+      assert.ok(fs.existsSync(path.join(dir, result.backupPath)));
+      // Fresh defaults: user template research is gone
+      const c = assertValidOnDisk(dir);
+      assert.equal(c.workspace.template, "stream");
+      assert.ok(result.actions.includes("reseeded"));
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("two reseeds in the same second produce distinct backups", () => {
+    const dir = mkTmp("tm-contract-reseedx2-");
+    try {
+      fs.writeFileSync(path.join(dir, CONTRACT_FILE_NAME), "broken: [\n", "utf8");
+      const r1 = reseedContract(dir);
+      assert.equal(r1.status, "reseeded");
+      fs.writeFileSync(path.join(dir, CONTRACT_FILE_NAME), "broken: [\n", "utf8");
+      const r2 = reseedContract(dir);
+      assert.equal(r2.status, "reseeded");
+      assert.notEqual(r1.backupPath, r2.backupPath);
+      assert.ok(fs.existsSync(path.join(dir, r1.backupPath)));
+      assert.ok(fs.existsSync(path.join(dir, r2.backupPath)));
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("repair never clobbers user template/locale/name via opts", () => {
+  it("ensureContract(templateId=stream) keeps on-disk balanced template during repair", () => {
+    const dir = mkTmp("tm-contract-tmplkeep-");
+    try {
+      fs.writeFileSync(
+        path.join(dir, CONTRACT_FILE_NAME),
+        [
+          "contract_version: 3",
+          "workspace:",
+          "  template: balanced",
+          "  locale: en-US",
+          "  name: user-workspace",
+        ].join("\n") + "\n",
+        "utf8",
+      );
+      // Obsidian-style open path: templateId hardcoded on every launch
+      const result = ensureContract(dir, { templateId: "stream" });
+      assert.equal(result.status, "repaired");
+      const c = assertValidOnDisk(dir);
+      assert.equal(c.workspace.template, "balanced");
+      assert.equal(c.workspace.locale, "en-US");
+      assert.equal(c.workspace.name, "user-workspace");
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("ensureContract(templateId) still applies on create (first init)", () => {
+    const dir = mkTmp("tm-contract-tmplnew-");
+    try {
+      const result = ensureContract(dir, { templateId: "research" });
+      assert.equal(result.status, "created");
+      const c = assertValidOnDisk(dir);
+      assert.equal(c.workspace.template, "research");
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

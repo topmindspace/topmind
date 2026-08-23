@@ -69,7 +69,7 @@ topmind = Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Option
 
 contract · workspace-model · stream · memory · lifecycle · **writeback（唯一写闸）** · derived · ingest。
 
-> **契约生命周期（全表面共享）**：工作区根 `topmind.yaml` v4 为唯一行为契约。`ensureContract` 缺失创建 / 可修则合并默认重写；损坏不可修 → 结构化 `unrepairable` + `reseedContract`（先备份坏文件，不删内容目录）。Desktop 打开 · Obsidian vault init · UTR `contract.ensure`/`reseed`/`doctor` 均走 Kernel；UI 偏好（Desktop `app-settings.json` 等）不 fork workspace 行为键。
+> **契约生命周期（全表面共享）**：工作区根 `topmind.yaml` v4 为唯一行为契约。`ensureContract` 缺失创建 / 可修则合并默认重写（**保证收敛到 ok**：null section、缺失版本号一次修复盖章；repair 不覆盖盘上用户模板/locale/name）；任何覆盖坏文件的路径（含 legacy v3 迁移、reseed）**先备份**到 `99-*/backups/contract/`（毫秒+随机后缀防冲突）；`writeContract` tmp+rename 原子写。损坏不可修 → 结构化 `unrepairable` + `reseedContract`（对任何状态强制「备份+全新默认」，不删内容目录）。Desktop 打开 · Obsidian vault init · UTR `contract.ensure`/`reseed`/`doctor` 均走 Kernel；UI 偏好（Desktop `app-settings.json` 等）不 fork workspace 行为键。设置写方一律 partial patch（Desktop `AppSettingsPatch`）。见 ADR `docs/adr/2026-08-23-contract-settings-integrity.md`。
 
 > **workspace-model 拆分（2026-08）**：`lib/workspace-model.mjs` 为稳定门面（导入面不变），实现拆到 `model-core / model-topic / model-stream / model-memory`；外部只 import 门面。见 ADR `docs/adr/2026-08-02-workspace-model-split.md`。  
 > **AI provider 注入**：derived/suggest 支持 per-call `aiProvider` + `createKernelContext(…)` 工厂（多工作区安全）；`setAiProvider` 单例仍兼容。见 ADR `docs/adr/2026-08-02-kernel-ai-provider-context.md`。
@@ -79,8 +79,8 @@ contract · workspace-model · stream · memory · lifecycle · **writeback（�
 > **Memory 整合（2026-08-16）**：profile 事实生命周期——`appendProfileEntry`（追加）· `retireProfileEntry`（归档到 `## 历史记录`，加日期前缀，不删内容）· `updateProfileEntry`（原位更新）；`memory_organize` 产出 `retire_profile` 建议条，确认后经 `applySuggestion` 执行。无自动遗忘、无向量索引（ADR `docs/adr/2026-08-16-memory-consolidation.md`）。  
 > **activity-window**：`lib/activity-window.mjs` — 建议/待办/AI ops 共用「近期活动窗口」（21 天 / 30 文件 / 6 周期）。语料预算：suggest 16K · todo extract 16K · maintain 12K。`smartBudgetCorpus` 保留 frontmatter/段落结构/首尾上下文。  
 > **Desktop 多路 AI**：Agent 流独立 · 后台 prep lane 串行 · soft 建议在 agent streaming 时让路 · StatusBar `multiActive` 诚实展示（见 `topmind-desktop/DESIGN.md` §0.0.3）。  
-> **Stream 年目录 + 归档**：`yearDir` 默认 `true`（`{streamDir}/{YYYY}/2026-W30.md`）；`archiveStreamYear` 将完整年份移到 `{systemDir}/stream-archive/{year}/`（只归档当前年份之前）。  
-> **Memory periodic 语义**：periodic 记忆为「周期反思」（洞察提炼），非事件压缩副本。`memory/periodic/` 按年分组，与 stream 年目录对齐。  
+> **Stream 年目录 + 归档**：`yearDir` 默认 `true`（`{streamDir}/{YYYY}/2026-W30.md`），Desktop 工作区设置可切换（写契约 `stream.year_dir`）。**周期路径粘滞（双向）**：既有平铺周期本（pre-yearDir 旧工作区）继续在原位置追加，不生成年目录孪生；切关 `year_dir` 后生于 `{年}/` 的当前周期同样粘在年目录文件，仅新周期走平铺；periodic 反思同理。`archiveStreamYear` 将完整年份（年目录 + 平铺 `{年}-*` 文件）移到 `{systemDir}/stream-archive/{year}/`（只归档当前年份之前）。legacy v3 迁移成功后 `.topmind-config.json` 改名 `.migrated`（一次性，防过期快照再迁移）。  
+> **Memory periodic 语义**：periodic 记忆为「周期反思」（洞察提炼），非事件压缩副本。`memory/periodic/` 按年分组，与 stream 年目录对齐。**Memory 路径单真相**：所有引擎（memory / suggest / ai-operation / todo）与两宿主打开入口的 memory 平面路径一律经契约解析（`memory.dir` + `memory.layers.global.file`），无硬编码 `memory/profile.md` 第二套路径；skip 回执与建议条 `digestPath` 与写入侧同源（含平铺粘滞）。见 ADR `2026-08-23-contract-settings-integrity.md` D12 / D14。  
 > **AI 输出语言**：改写打开的笔记 / Agent 写入正文：用户本轮明确要求 → 原文 → 工作区 locale。**建议条 · AI 待办 · memory_organize / topic_classify**：用户本轮明确要求 → **当前宿主 UI 语言**（Desktop `settings.ui.locale`，或 Obsidian `localeOverride` / 应用语言；`auto` 不算）→ 工作区 locale。Desktop 与 Obsidian 是交替宿主，不叠成一条链。解析：`lib/ai-output-locale.mjs`。  
 > **工作区围栏**：写/移/删/归档不得落到当前工作区根之外（`isPathInsideWorkspace`）。区外本地读须 `evaluateOutsideRead` 显式授权；`fetch_url` 仅 http(s)，不读 `file://`。  
 > **类别按角色发现**：buffer/stream/delivery/system 用现场契约与 `{NN-…}` 目录，不用写死 `00-收件箱` / `99-归档`。英文或用户改名（`00-Inbox` · `99-Archive`）仍按 role 跳过/归档。  

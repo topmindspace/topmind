@@ -15,6 +15,8 @@ Accepted · 2026-07-13 · **Amended 2026-07-19**（工作区直写通道）
 
 ## Decision
 
+> **2026-08-24 勘误**：下方并行路径的两处原始表述已过时——(1)「HTML→MD 用扩展内 lite（降级）」：2026-08-13 对抗式评审后扩展统一携带与 Desktop 同源的 `html-to-markdown.mjs`（不再是 lite 降级版），Bridge 不可达时的本地产出与 Bridge 同质；(2)「{00-收件箱|config buffer}」：目的地解析以现场 `topmind.yaml` v4 的 buffer role 目录为准（英文/改名工作区如 `00-Inbox` 同样命中），不再表述为读 config。见 2026-08-13-adversarial-first-principles-review 与本文 2026-07-21 修订。
+
 ### 主路径：扩展 + Desktop Clip Bridge（高质量）
 
 ```text

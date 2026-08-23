@@ -14,6 +14,7 @@ import { api } from "../../services/api";
 import { emitLocal, onLocal } from "../../plugins/host";
 import type { TreeNode, SidebarSlot } from "../../plugins/types";
 import { ICON } from "../../lib/icons";
+import { patchCachedSettings } from "../../lib/settings-cache";
 import {
   defaultExpandIds,
   expandIdsForSelection,
@@ -650,6 +651,7 @@ function DataSourceSection({
   /** File filter change: persist to settings, clear cache, hard refresh, notify other views. */
   const handleFileFilterChange = useCallback(async (f: FileFilterMode) => {
     setFileFilter(f);
+    patchCachedSettings({ ui: { fileFilter: f } });
     try {
       await api.sys.update({ ui: { fileFilter: f } });
     } catch {

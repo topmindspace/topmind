@@ -1,6 +1,6 @@
 # Architecture Reset — 理想架构与实施计划
 
-> **状态**：Accepted · **日期**：2026-07-25 · **最后更新**：2026-08-22  
+> **状态**：Accepted · **日期**：2026-07-25 · **最后更新**：2026-08-24  
 > **角色**：架构决策锁 + 实施诚实表（唯一实施真源）  
 > **内容/边界真源**：`PROJECT-MODEL.md` · `PRODUCT-BOUNDARIES.md`  
 > **产品入口**：根 [`README.md`](../README.md)（English）· [`README.zh-CN.md`](../README.zh-CN.md)（简体中文）
@@ -170,6 +170,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | AI 输出语言 | **Done**（改写/Agent 正文：用户本轮要求 → 原文 → 工作区 locale；建议条 / AI 待办 / `memory_organize` / `topic_classify`：用户本轮要求 → **当前宿主 UI 语言** → 工作区 locale。`lib/ai-output-locale.mjs`） |
 | 周期路径 / 确认面诚实 | **Done**（2026-08-21：digest 回执走 yearDir；period stem 拒绝 fallback；Obsidian 收件箱新建走写闸；confirm pending 有侧栏审阅；建议确认≠打开周期本；语料/session-compact/建议入口活文档对齐） |
 | Obsidian 建议 force / 会话 / 操作卡片 / 对话语言 | **Done**（2026-08-22：手动刷新 `force:true` 清指纹；soft 会话合并防 AI 卡消失；`memory_organize` / `topic_classify` 确认卡进建议面；对话正文走 Kernel 三层语言，UI 只管 chrome；ops 状态摘要跟宿主 UI 语言） |
+| 契约完整性 / 旧工作区升级 | **Done**（2026-08-24：repair 收敛到 ok；覆盖前备份；原子写 yaml；v3 迁移一次性改名 sidecar；周期路径双向粘滞；memory/todo 平面只认契约路径；设置关闭先冲刷且失败重排队。ADR `docs/adr/2026-08-23-contract-settings-integrity.md`） |
 
 **Intentional Partial（保留，非未完成）**：contract UI 非全 Surface；非 `.md` 二进制可仍直写。
 
@@ -268,6 +269,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | Design System 2.0 纸感 | **Superseded** | 2.1 Modern Warm-Neutral 取代 |
 | config v3 WorkspaceModel | **Superseded** | 由 contract v4 + 本文 + PROJECT-MODEL 取代 |
 | v4「八引擎全部合闸」过度宣称 | **Superseded / 纠正** | 引擎文件 Done；主写/Memory/建议条/高影响备份 §2.2 Done；contract UI = Intentional Partial |
+| 契约完整性与设置持久化 | **Accepted**（**Done**） | `adr/2026-08-23-contract-settings-integrity.md` |
 
 ---
 

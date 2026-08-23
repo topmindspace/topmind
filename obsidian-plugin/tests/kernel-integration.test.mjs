@@ -224,6 +224,23 @@ describe("mapApplySuggestionResult + mergeCaptureTags (shipped)", () => {
     assert.equal(r.openPath, "memory/profile.md");
   });
 
+  test("mapApplySuggestionResult open_profile does not invent memory/profile.md", async () => {
+    const { mapApplySuggestionResult } = await importShipped("utils.ts");
+    const missing = mapApplySuggestionResult(
+      { operation: "open", wroteFiles: false },
+      { kind: "open_profile" },
+    );
+    assert.equal(missing.ok, true);
+    assert.equal(missing.openPath, undefined);
+
+    const custom = mapApplySuggestionResult(
+      { operation: "open", wroteFiles: false, targetPath: "70-记忆/me.md" },
+      { kind: "open_profile" },
+    );
+    assert.equal(custom.ok, true);
+    assert.equal(custom.openPath, "70-记忆/me.md");
+  });
+
   test("mapApplySuggestionResult pending is failure", async () => {
     const { mapApplySuggestionResult } = await importShipped("utils.ts");
     const r = mapApplySuggestionResult(

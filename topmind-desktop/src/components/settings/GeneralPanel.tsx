@@ -3,12 +3,13 @@ import { useTranslation } from "react-i18next";
 import { Select } from "../ui/select";
 import { Input } from "../ui/Input";
 import { Button } from "../ui/Button";
-import type { AppSettings } from "../../types";
+import type { AppSettings, AppSettingsPatch } from "../../types";
 import { Field, SwitchField, SettingsSection } from "./fields";
 import { ICON } from "../../lib/icons";
 import { RotateCcw, Copy, RefreshCw } from "lucide-react";
 import { Tooltip } from "../ui/tooltip";
 import { api } from "../../services/api";
+import { emitLocal } from "../../plugins/host";
 import { useViewStore } from "../../stores/view-store";
 import { useActionStore } from "../../stores/action-store";
 import { applyLocale } from "../../locales";
@@ -47,7 +48,7 @@ export function GeneralPanel({
   saving,
 }: {
   settings: AppSettings;
-  update: (p: Partial<AppSettings>) => void;
+  update: (p: AppSettingsPatch) => void;
   saving: boolean;
 }) {
   const { t } = useTranslation(["settings", "common"]);
@@ -74,7 +75,17 @@ export function GeneralPanel({
       .catch(() => setBridgeLive(null));
   }, [settings.clipBridge?.enabled, settings.clipBridge?.port, settings.clipBridge?.token]);
 
-  const resetLayout = () => update({ ui: { ...DEFAULT_UI } });
+  /** Reset-layout scope: shell geometry only — fileFilter/closeBehavior/locale
+   *  are preferences, not layout, and must survive a layout reset. */
+  const resetLayout = () =>
+    update({
+      ui: {
+        sidebarWidth: DEFAULT_UI.sidebarWidth,
+        sidebarCollapsed: false,
+        aiPanelOpen: true,
+        aiPanelWidth: DEFAULT_UI.aiPanelWidth,
+      },
+    });
   const resetEditor = () => update({ editor: { ...DEFAULT_EDITOR } });
 
   const copyToken = async () => {
@@ -91,7 +102,9 @@ export function GeneralPanel({
   const rotateToken = async () => {
     try {
       const res = await api.sys.clipBridgeRotateToken();
-      if (res.settings) update(res.settings);
+      // Partial patch only — a full-settings update would live-apply the disk
+      // ui snapshot and clobber in-flight shell layout (resized panels).
+      if (res.settings?.clipBridge) update({ clipBridge: res.settings.clipBridge });
     } catch {
       /* parent surfaces */
     }
@@ -175,9 +188,13 @@ export function GeneralPanel({
         <Field label={t("settings:general.fileFilter")} description={t("settings:general.fileFilterDesc")} compact>
           <Select
             value={ui.fileFilter || "default"}
-            onChange={(e) =>
-              update({ ui: { fileFilter: e.target.value as "default" | "markdown" | "all" } })
-            }
+            onChange={(e) => {
+              const next = e.target.value as "default" | "markdown" | "all";
+              update({ ui: { fileFilter: next } });
+              // Sidebar/Outputs only re-read the filter on this event — without
+              // it the tree keeps the old filter until restart.
+              emitLocal("sidebar:file-filter-changed", next);
+            }}
             options={[
               { value: "default", label: t("settings:general.fileFilterDefault") },
               { value: "markdown", label: t("settings:general.fileFilterMarkdown") },
@@ -224,7 +241,11 @@ export function GeneralPanel({
               min={12}
               max={24}
               value={ed.fontSize}
-              onChange={(e) => update({ editor: { ...ed, fontSize: Number(e.target.value) } })}
+              onChange={(e) => {
+                // Skip mid-edit empty input (Number("") === 0 would flash-clamp to 12 and persist)
+                if (e.target.value.trim() === "") return;
+                update({ editor: { fontSize: Number(e.target.value) } });
+              }}
             />
           </Field>
           <Field label={t("settings:general.lineHeight")} description={t("settings:general.lineHeightDesc")} compact>
@@ -234,13 +255,16 @@ export function GeneralPanel({
               min={1.2}
               max={2.5}
               value={ed.lineHeight}
-              onChange={(e) => update({ editor: { ...ed, lineHeight: Number(e.target.value) } })}
+              onChange={(e) => {
+                if (e.target.value.trim() === "") return;
+                update({ editor: { lineHeight: Number(e.target.value) } });
+              }}
             />
           </Field>
           <Field label={t("settings:general.fontFamily")} compact className="col-span-2 sm:col-span-1">
             <Select
               value={ed.fontFamily}
-              onChange={(e) => update({ editor: { ...ed, fontFamily: e.target.value } })}
+              onChange={(e) => update({ editor: { fontFamily: e.target.value } })}
               options={[
                 { value: "sans", label: t("settings:general.fontFamilySans") },
                 { value: "serif", label: t("settings:general.fontFamilySerif") },
@@ -259,7 +283,7 @@ export function GeneralPanel({
               value={ed.contentWidth || "reading"}
               onChange={(e) => {
                 const contentWidth = e.target.value as "compact" | "reading" | "wide" | "full";
-                update({ editor: { ...ed, contentWidth } });
+                update({ editor: { contentWidth } });
                 const prev = useViewStore.getState().editorSettings;
                 useViewStore.getState().setEditorSettings({ ...prev, contentWidth });
               }}
@@ -276,7 +300,7 @@ export function GeneralPanel({
               value={ed.pagePadding || "comfortable"}
               onChange={(e) => {
                 const pagePadding = e.target.value as "compact" | "comfortable" | "spacious";
-                update({ editor: { ...ed, pagePadding } });
+                update({ editor: { pagePadding } });
                 const prev = useViewStore.getState().editorSettings;
                 useViewStore.getState().setEditorSettings({ ...prev, pagePadding });
               }}
@@ -292,7 +316,7 @@ export function GeneralPanel({
               value={ed.paper || "default"}
               onChange={(e) => {
                 const paper = e.target.value as "default" | "soft" | "paper" | "sepia";
-                update({ editor: { ...ed, paper } });
+                update({ editor: { paper } });
                 const prev = useViewStore.getState().editorSettings;
                 useViewStore.getState().setEditorSettings({ ...prev, paper });
               }}
@@ -307,7 +331,7 @@ export function GeneralPanel({
           <Field label={t("settings:general.autoSave")} description={t("settings:general.autoSaveDesc")} compact>
             <Select
               value={String(ed.autoSaveMs ?? 1500)}
-              onChange={(e) => update({ editor: { ...ed, autoSaveMs: Number(e.target.value) } })}
+              onChange={(e) => update({ editor: { autoSaveMs: Number(e.target.value) } })}
               options={[
                 { value: "500", label: t("settings:general.autoSave05") },
                 { value: "1000", label: t("settings:general.autoSave1") },
@@ -322,7 +346,7 @@ export function GeneralPanel({
               label={t("settings:general.wordWrap")}
               description={t("settings:general.wordWrapDesc")}
               checked={ed.wordWrap !== false}
-              onChange={(wordWrap) => update({ editor: { ...ed, wordWrap } })}
+              onChange={(wordWrap) => update({ editor: { wordWrap } })}
               className="mb-0 w-full"
             />
           </div>
@@ -332,7 +356,7 @@ export function GeneralPanel({
               description={t("settings:general.inlineAiAutoPopupDesc")}
               checked={ed.inlineAiAutoPopup !== false}
               onChange={(inlineAiAutoPopup) => {
-                update({ editor: { ...ed, inlineAiAutoPopup } });
+                update({ editor: { inlineAiAutoPopup } });
                 const prev = useViewStore.getState().editorSettings;
                 useViewStore.getState().setEditorSettings({ ...prev, inlineAiAutoPopup });
               }}
@@ -344,7 +368,7 @@ export function GeneralPanel({
               value={ed.tabMode === "single" ? "single" : "multi"}
               onChange={(e) => {
                 const tabMode = e.target.value === "single" ? "single" : "multi";
-                update({ editor: { ...ed, tabMode } });
+                update({ editor: { tabMode } });
                 useViewStore.getState().setEditorTabMode(tabMode);
               }}
               options={[
@@ -376,12 +400,7 @@ export function GeneralPanel({
           checked={settings.ai?.autoPrepareSuggestions !== false}
           disabled={saving}
           onChange={(autoPrepareSuggestions) => {
-            update({
-              ai: {
-                ...settings.ai,
-                autoPrepareSuggestions,
-              },
-            });
+            update({ ai: { autoPrepareSuggestions } });
             // Absolute sync — Settings already persists via update(); skip second write
             void useActionStore.getState().setAutoPrepare(autoPrepareSuggestions, {
               persist: false,
@@ -395,12 +414,7 @@ export function GeneralPanel({
           checked={settings.ai?.autoMaintainTodos === true}
           disabled={saving}
           onChange={(autoMaintainTodos) =>
-            update({
-              ai: {
-                ...settings.ai,
-                autoMaintainTodos,
-              },
-            })
+            update({ ai: { autoMaintainTodos } })
           }
           className="mt-2"
         />
@@ -441,9 +455,11 @@ export function GeneralPanel({
               max={65535}
               value={clip.port}
               disabled={saving}
-              onChange={(e) =>
-                update({ clipBridge: { ...clip, port: Number(e.target.value) || 19827 } })
-              }
+              onChange={(e) => {
+                // Skip mid-edit empty input (would snap to 19827 and persist)
+                if (e.target.value.trim() === "") return;
+                update({ clipBridge: { ...clip, port: Number(e.target.value) || 19827 } });
+              }}
             />
           </Field>
           <Field label={t("settings:general.clipToken")} compact>

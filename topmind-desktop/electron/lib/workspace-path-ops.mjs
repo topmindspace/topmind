@@ -498,6 +498,7 @@ export const pathOps = {
           kernel.isRecoverableLifecycle({
             protection: perm.protection,
             relativePath,
+            workspaceRoot,
           });
         try {
           const { trashNoteMedia } = await import("./workspace-note-media.mjs");
@@ -552,6 +553,7 @@ export const pathOps = {
       kernel.isRecoverableLifecycle({
         protection: perm.protection,
         relativePath,
+        workspaceRoot,
       });
     if (recoverable && (await statSafe(fp))) {
       const dirParts = relativePath.split("/").slice(0, -1);

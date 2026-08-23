@@ -51,10 +51,10 @@
 | `stale_topic` | 专题长期未更新 | high | 归档整个专题目录 |
 | `catch_all` | 兜底类文件过期 | high | 迁入 99-归档（新家） |
 | `stream_digest` | 为周期本生成反思 | high | AI 生成真实反思写入 memory/periodic |
-| `promote_memory` | 动态 → 我的情况 | high | 追加到 memory/profile.md |
+| `promote_memory` | 动态 → 我的情况 | high | 追加到契约画像文件（默认 memory/profile.md） |
 | `ai_summary` | AI 活动窗口反思 | medium | AI 反思写入 memory/periodic |
 | `create_topic` | AI 建议新建专题 | medium | 在内容大类下创建专题目录 + topic.md |
-| `open_profile` | 完善「我的情况」 | low | 打开 memory/profile.md |
+| `open_profile` | 完善「我的情况」 | low | 打开契约画像文件（默认 memory/profile.md） |
 
 **inbox_organize 特殊行为**：
 - AI 可用时：分析每个收件箱文件内容，建议移入已有专题或新建专题

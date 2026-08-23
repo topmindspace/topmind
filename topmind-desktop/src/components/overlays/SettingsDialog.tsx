@@ -14,6 +14,7 @@ import { SkillsPanel } from "../settings/SkillsPanel";
 import { ToolsPanel } from "../settings/ToolsPanel";
 import { SettingsLayout, type SettingsTabItem } from "./SettingsLayout";
 import { useSettingsController } from "./useSettingsController";
+import { setOverlayCloseGuard } from "../../lib/overlay-close-guard";
 
 /** Icon map for settings slots that use string icon names. */
 const SLOT_ICON_MAP: Record<string, LucideIcon> = {
@@ -34,6 +35,16 @@ export function SettingsDialog() {
   useEffect(() => {
     if (overlayContext?.topicId) setActiveTab(overlayContext.topicId);
   }, [overlayContext]);
+
+  // Route every close path (Esc, scrim click, shortcut navigation) through the
+  // flush-then-close order — only the X button did this before, so the other
+  // paths could drop the debounced batch's side effects.
+  useEffect(() => {
+    setOverlayCloseGuard(async () => {
+      await flushPending();
+    });
+    return () => setOverlayCloseGuard(null);
+  }, [flushPending]);
 
   /** Nav metadata only — never pre-create panel JSX (keeps open + auto-save snappy). */
   const tabs = useMemo<SettingsTabItem[]>(() => {
@@ -109,8 +120,12 @@ export function SettingsDialog() {
       saving={saving}
       error={error}
       onClose={() => {
-        void flushPending();
-        closeOverlay();
+        // Await the debounced batch before unmount — fire-and-forget here could
+        // lose the last edit if the app quits right after the dialog closes.
+        void (async () => {
+          await flushPending();
+          closeOverlay();
+        })();
       }}
     >
       {renderActivePanel()}

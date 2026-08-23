@@ -17,8 +17,9 @@ export function setCachedSettings(next: AppSettings | null): void {
 export function patchCachedSettings(patch: Partial<AppSettings>): AppSettings | null {
   if (!cache) return null;
   const next = { ...cache, ...patch } as AppSettings;
-  // Deep-merge known nested bags so layout-only shell writes do not wipe locale etc.
-  // when callers pass partial nested objects after a prior setCachedSettings.
+  // Deep-merge the nested bags current callers actually pass partial objects
+  // for (ui layout / editor prefs / ai). Other sections must be passed whole —
+  // a partial clipBridge/weread here would silently wipe sibling keys.
   if (patch.ui && typeof patch.ui === "object" && !Array.isArray(patch.ui)) {
     next.ui = { ...(cache.ui || {}), ...patch.ui };
   }
@@ -33,6 +34,9 @@ export function patchCachedSettings(patch: Partial<AppSettings>): AppSettings | 
       ...patchAi,
       manual: { ...(baseAi.manual || {}), ...(patchAi.manual || {}) },
     } as AppSettings["ai"];
+  }
+  if (patch.clipBridge && typeof patch.clipBridge === "object" && !Array.isArray(patch.clipBridge)) {
+    next.clipBridge = { ...(cache.clipBridge || {}), ...patch.clipBridge } as AppSettings["clipBridge"];
   }
   cache = next;
   return cache;

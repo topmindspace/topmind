@@ -411,7 +411,7 @@ export class SidebarDockView extends ItemView {
     openFileBtn.setAttribute("aria-label", t("todo_open_file"));
     openFileBtn.setAttribute("title", t("todo_open_file"));
     openFileBtn.addEventListener("click", () => {
-      this.app.workspace.openLinkText("memory/todo.md", "", false);
+      this.app.workspace.openLinkText(this.plugin.kernelService.todoRelPath(), "", false);
     });
 
     const todos = this.plugin.kernelService.readTodos();
@@ -509,7 +509,7 @@ export class SidebarDockView extends ItemView {
           text: t("sidebar_view_all_todos"),
         });
         viewAllBtn.addEventListener("click", () => {
-          this.app.workspace.openLinkText("memory/todo.md", "", false);
+          this.app.workspace.openLinkText(this.plugin.kernelService.todoRelPath(), "", false);
         });
       }
     }

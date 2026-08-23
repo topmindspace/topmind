@@ -47,6 +47,9 @@ function mapWorkspaceIssueCode(code) {
     "v2-default-anchor-drift": "workspace-v2-default-anchor-drift",
     "unknown-category": "workspace-unknown-category",
   };
+  // Contract issue codes are already namespaced (contract-missing etc.) —
+  // don't double-prefix them into workspace-contract-*.
+  if (code.startsWith("contract-")) return code;
   return known[code] || `workspace-${code}`;
 }
 

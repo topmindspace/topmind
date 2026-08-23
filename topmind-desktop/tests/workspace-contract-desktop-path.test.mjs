@@ -257,6 +257,36 @@ describe("writebackMode is not forked from app-settings for Kernel writes", () =
   });
 });
 
+describe("getWorkspaceConfig projects nested memory.layers.global.file", () => {
+  it("returns custom dir + profileFile from v4 nested keys", async () => {
+    const ws = mkTmp("tm-desk-memcfg-");
+    try {
+      for (const d of ["00-收件箱", "10-动态", "88-输出", "99-归档"]) {
+        fs.mkdirSync(path.join(ws, d), { recursive: true });
+      }
+      const kernel = await loadKernelApi();
+      const base = kernel.buildDefaultContract();
+      kernel.writeContract(ws, {
+        ...base,
+        memory: {
+          ...base.memory,
+          dir: "70-记忆",
+          layers: {
+            ...base.memory.layers,
+            global: { ...(base.memory.layers?.global || {}), file: "me.md" },
+          },
+        },
+      });
+      const { SystemService } = await import("../electron/system-service.mjs");
+      const cfg = await SystemService.getWorkspaceConfig({}, makeCtx(ws));
+      assert.equal(cfg.memory.dir, "70-记忆");
+      assert.equal(cfg.memory.profileFile, "me.md");
+    } finally {
+      fs.rmSync(ws, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("ensure empty root creates valid contract (Desktop open path)", () => {
   it("empty folder → on-disk valid v4 after ensureWorkspaceStructure", async () => {
     const ws = mkTmp("tm-desk-empty-");

@@ -95,6 +95,15 @@ test("UTR version follows Desktop exactly (same installer)", () => {
   assert.equal(utr, desktop, `UTR ${utr} must equal Desktop ${desktop}`);
 });
 
+test("UTR CLI --version reads utr/VERSION (no stale hardcoded constant)", () => {
+  const src = fs.readFileSync(path.join(repoRoot, "utr/bin/topmind-cli.mjs"), "utf8");
+  assert.match(src, /VERSION/);
+  assert.doesNotMatch(src, /const CLI_VERSION = ["']\d+\.\d+\.\d+["']/);
+  const utr = readTrim("utr/VERSION");
+  assert.match(src, /fileURLToPath\(import\.meta\.url\)/);
+  assert.equal(utr.length > 0, true);
+});
+
 test("skill SKILL.md frontmatter versions follow pack truth source", () => {
   const packVersion = readJson("skills/topmind-pack.json").version;
   const skillsRoot = path.join(repoRoot, "skills");

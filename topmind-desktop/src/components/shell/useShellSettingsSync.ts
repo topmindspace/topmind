@@ -27,9 +27,25 @@ export function useShellSettingsSync(settings: AppSettings): void {
   const aiPanelWidth = useViewStore((s) => s.aiPanelWidth);
 
   const uiHydrated = useRef(false);
-  /** Skip the first post-hydrate UI persist so boot does not race-write defaults. */
-  const skipNextUiPersist = useRef(true);
+  /**
+   * Layout snapshot already known to be on disk (or hydrated from it).
+   * Persist only when the live snapshot actually drifts from it — this
+   * replaces fragile one-shot skip flags: hydrate-triggered store writes
+   * used to leak an extra "no-change" persist on every boot.
+   */
+  const persistedSnapshot = useRef<string>("");
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const layoutSnapshot = useCallback(() => {
+    const s = useViewStore.getState();
+    return JSON.stringify([
+      s.sidebarWidth,
+      s.sidebarCollapsed,
+      s.sidebarView,
+      s.aiPanelOpen,
+      s.aiPanelWidth,
+    ]);
+  }, []);
 
   // Hydrate UI / editor / AI agent flags from settings on first mount
   useEffect(() => {
@@ -70,7 +86,8 @@ export function useShellSettingsSync(settings: AppSettings): void {
       useViewStore.getState().setAiPanelWidth(settings.ui.aiPanelWidth);
     }
     setWorkspaceRoot(settings.workspaceRoot);
-    // Only re-apply when UI/editor settings change — setWorkspaceRoot is a stable setter.
+    // Whatever hydrate produced is by definition what disk holds
+    persistedSnapshot.current = layoutSnapshot();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.ui, settings.editor]);
 
@@ -83,9 +100,19 @@ export function useShellSettingsSync(settings: AppSettings): void {
       aiPanelOpen: s.aiPanelOpen,
       aiPanelWidth: s.aiPanelWidth,
     };
+    // Mark only THIS patch as persisted — a drag landing mid-flight keeps the
+    // live snapshot ≠ ref and schedules its own persist.
+    const key = JSON.stringify([
+      uiPatch.sidebarWidth,
+      uiPatch.sidebarCollapsed,
+      uiPatch.sidebarView,
+      uiPatch.aiPanelOpen,
+      uiPatch.aiPanelWidth,
+    ]);
     return api.sys
       .update({ ui: uiPatch })
       .then((next) => {
+        persistedSnapshot.current = key;
         // Keep Settings dialog cache aligned with live shell widths so a later
         // settings toggle never re-applies a stale layout snapshot.
         if (next && typeof next === "object") {
@@ -97,27 +124,23 @@ export function useShellSettingsSync(settings: AppSettings): void {
       .catch(() => {/* ignore persistence errors */});
   }, []);
 
-  // Settings dialog wrote ui fields → view-store already matches disk; skip the
-  // next auto-persist so we never overwrite a Settings write with a stale frame.
+  // Settings dialog wrote ui fields → view-store already matches disk; adopt
+  // that snapshot so we never overwrite a Settings write with a stale frame.
   useEffect(() => {
     return onLocal(UI_SETTINGS_APPLIED_EVENT, () => {
-      skipNextUiPersist.current = true;
+      persistedSnapshot.current = layoutSnapshot();
       if (saveTimerRef.current) {
         clearTimeout(saveTimerRef.current);
         saveTimerRef.current = null;
       }
     });
-  }, []);
+  }, [layoutSnapshot]);
 
-  // Persist UI state changes (debounced). Skip the first run after hydrate so
-  // we never overwrite disk with pre-hydrate store defaults (or empty-file
-  // recovery race on cold start). Also skip once after settings-driven apply.
+  // Persist UI layout drift (debounced 500ms). No-op when the live snapshot
+  // equals the last known-on-disk snapshot (hydrate, settings apply).
   useEffect(() => {
     if (!uiHydrated.current) return;
-    if (skipNextUiPersist.current) {
-      skipNextUiPersist.current = false;
-      return;
-    }
+    if (layoutSnapshot() === persistedSnapshot.current) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       void persistUiNow();
@@ -125,7 +148,7 @@ export function useShellSettingsSync(settings: AppSettings): void {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [sidebarWidth, sidebarCollapsed, sidebarView, aiPanelOpen, aiPanelWidth, persistUiNow]);
+  }, [sidebarWidth, sidebarCollapsed, sidebarView, aiPanelOpen, aiPanelWidth, persistUiNow, layoutSnapshot]);
 
   // Flush pending UI layout on hide/unload so last drag widths survive quit
   useEffect(() => {
@@ -134,7 +157,8 @@ export function useShellSettingsSync(settings: AppSettings): void {
         clearTimeout(saveTimerRef.current);
         saveTimerRef.current = null;
       }
-      if (!uiHydrated.current || skipNextUiPersist.current) return;
+      if (!uiHydrated.current) return;
+      if (layoutSnapshot() === persistedSnapshot.current) return;
       void persistUiNow();
     };
     window.addEventListener("pagehide", flush);
@@ -144,5 +168,5 @@ export function useShellSettingsSync(settings: AppSettings): void {
       window.removeEventListener("beforeunload", flush);
       flush();
     };
-  }, [persistUiNow]);
+  }, [persistUiNow, layoutSnapshot]);
 }

@@ -1551,7 +1551,7 @@ export const SystemService = {
       contract_version: 4,
       categorySeparator: "-",
       template: "stream",
-      stream: { packing: "weekly", appendHeading: "day" },
+      stream: { packing: "weekly", appendHeading: "day", yearDir: true },
       memory: { dir: null, profileFile: "profile.md" },
       writebackMode: "auto",
       views: { default: "stream", enabled: ["stream", "category", "timeline", "tags", "kanban"] },
@@ -1571,9 +1571,24 @@ export const SystemService = {
       const model = await resolveWorkspaceModel(resolvedRoot);
       categories = model.categories;
       if (model.stream) stream = model.stream;
-      if (model.memory) memory = model.memory;
     } catch {
       categories = [];
+    }
+    // Project v4 nested memory (layers.global.file) to the UI's flat profileFile.
+    // Reading config.memory.profileFile directly always missed custom names.
+    try {
+      const { loadKernelApi } = await import("./lib/kernel-api.mjs");
+      const kernel = await loadKernelApi();
+      if (typeof kernel.normalizeMemoryConfig === "function") {
+        memory = kernel.normalizeMemoryConfig(config.memory || {});
+      }
+    } catch {
+      const raw = config.memory || {};
+      memory = {
+        dir: typeof raw.dir === "string" ? raw.dir : null,
+        profileFile: raw.layers?.global?.file || raw.profileFile || "profile.md",
+        files: Array.isArray(raw.files) ? raw.files : [],
+      };
     }
     return {
       contract_version: config.contract_version || 4,
@@ -1581,9 +1596,9 @@ export const SystemService = {
       template: config.workspace?.template || defaultConfig.template,
       stream: config.stream || stream,
       memory: {
-        dir: (config.memory || memory)?.dir ?? null,
-        profileFile: (config.memory || memory)?.profileFile || "profile.md",
-        files: (config.memory || memory)?.files || [],
+        dir: memory.dir ?? null,
+        profileFile: memory.profileFile || "profile.md",
+        files: memory.files || [],
       },
       writebackMode: config.writeback?.mode || defaultConfig.writebackMode,
       views: config.presentation?.views || defaultConfig.views,
@@ -1653,9 +1668,16 @@ export const SystemService = {
         stream.append_heading ?? stream.appendHeading ?? prevAppend;
       const appendHeading =
         appendRaw === "none" || appendRaw === "day" ? appendRaw : "day";
+      // year_dir: explicit boolean wins; absent keeps the on-disk value (spread)
+      const rawYearDir = stream.yearDir ?? stream.year_dir;
+      // Spread the loaded stream section so unmanaged keys (year_dir,
+      // default_view …) survive — replacing it wholesale used to silently
+      // reset user preferences to contract defaults.
       next.stream = {
+        ...next.stream,
         packing,
         append_heading: appendHeading,
+        ...(typeof rawYearDir === "boolean" ? { year_dir: rawYearDir } : {}),
       };
     }
     if (memory !== undefined && memory && typeof memory === "object") {
@@ -1677,6 +1699,8 @@ export const SystemService = {
             ? memory.dir
             : next.memory?.dir || "memory";
       next.memory = {
+        // Spread loaded memory so unmanaged keys (files, future keys …) survive
+        ...next.memory,
         dir,
         layers: {
           ...prevLayers,
@@ -1687,8 +1711,9 @@ export const SystemService = {
           },
         },
         promotion: next.memory?.promotion,
-        // files is Desktop UI convenience; not a forbidden top-level key if nested under memory
-        ...(files.length ? { files } : {}),
+        // files is Desktop UI convenience (nested under memory): an explicit
+        // array (even empty) sets it; absent keeps the on-disk value via spread.
+        ...(Array.isArray(memory.files) ? { files } : {}),
       };
     }
     if (writebackMode !== undefined) {

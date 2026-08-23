@@ -485,7 +485,7 @@ export interface AppSettings {
      * Merged with env topmind_SKILLS_EXTRA and managed skills-extra installs.
      */
     extraSkillsRoots?: string[];
-    /** Multi-step agent loop cap (3–20). */
+    /** Multi-step agent loop cap (3–50). */
     maxAgentSteps?: number;
     manual: {
       openAiKey: string;
@@ -567,6 +567,19 @@ export interface AppSettings {
   };
   launchStatus?: LaunchStatus;
 }
+
+/**
+ * Settings update patch: top-level keys optional AND nested sections partial.
+ * The controller merge layer and the main-process normalizer both apply
+ * field-level merges, so callers should send only the keys they change —
+ * spreading a full stale section can clobber concurrent writers (modelCache,
+ * live shell layout …).
+ */
+export type AppSettingsPatch = {
+  [K in keyof AppSettings]?: AppSettings[K] extends object
+    ? Partial<AppSettings[K]>
+    : AppSettings[K];
+};
 
 export interface LaunchStatus {
   ok: boolean;

@@ -374,7 +374,7 @@ export class StreamWorkbenchView extends ItemView {
       new Notice(t("notice_workspace_not_ready"));
       return;
     }
-    await this.app.workspace.openLinkText("memory/profile.md", "", false);
+    await this.app.workspace.openLinkText(this.plugin.kernelService.profileRelPath(), "", false);
   }
 
   // ── Refresh ────────────────────────────────────────────────────────────
