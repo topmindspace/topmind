@@ -40,6 +40,7 @@ test("defaults: theme auto, agent on, skills on, autoSave 1500, wordWrap, maxAge
   assert.equal(d.editor.inlineAiAutoPopup, true);
   assert.ok(d.ui.aiPanelOpen);
   assert.equal(d.ui.sidebarView, "stream");
+  assert.equal(d.ui.feedLayout, "list");
   assert.ok(d.clipBridge);
   assert.equal(d.clipBridge.enabled, false);
   assert.ok(d.plugins);
@@ -147,6 +148,10 @@ test("normalizeUiSettings clamps panel widths + sidebarView", () => {
   const ok = normalizeUiSettings({ sidebarWidth: 300, aiPanelWidth: 400 });
   assert.equal(ok.sidebarWidth, 300);
   assert.equal(ok.aiPanelWidth, 400);
+  const card = normalizeUiSettings({ feedLayout: "card" });
+  assert.equal(card.feedLayout, "card");
+  const badLayout = normalizeUiSettings({ feedLayout: "masonry" });
+  assert.equal(badLayout.feedLayout, "list");
 });
 
 test("mergeAppSettings partial ui preserves locale/fileFilter and applies aiPanelOpen", () => {
@@ -171,6 +176,12 @@ test("mergeAppSettings partial ui preserves locale/fileFilter and applies aiPane
   assert.equal(layoutOnly.ui.sidebarView, "timeline");
   assert.equal(layoutOnly.ui.sidebarWidth, 300);
   assert.equal(layoutOnly.ui.aiPanelWidth, 400);
+  assert.equal(layoutOnly.ui.feedLayout, "list");
+  const withCard = mergeAppSettings(base, { ui: { feedLayout: "card" } });
+  assert.equal(withCard.ui.feedLayout, "card");
+  const afterWidth = mergeAppSettings(withCard, { ui: { sidebarWidth: 280 } });
+  assert.equal(afterWidth.ui.feedLayout, "card");
+  assert.equal(afterWidth.ui.sidebarWidth, 280);
 });
 
 test("normalizeWeread / X preserves fields and validates mcp URL", () => {

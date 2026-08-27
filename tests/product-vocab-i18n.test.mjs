@@ -51,12 +51,23 @@ test("Kernel AI op labels say 整理我的情况 not 整理记忆", () => {
 test("Desktop nav chips expose 写出来 / 我的情况 product terms", () => {
   const zhShell = readJson("topmind-desktop/src/locales/zh-CN/shell.json");
   const enShell = readJson("topmind-desktop/src/locales/en-US/shell.json");
+  const zhWs = readJson("topmind-desktop/src/locales/zh-CN/workspace.json");
+  const enWs = readJson("topmind-desktop/src/locales/en-US/workspace.json");
   assert.equal(zhShell.primaryNav.outputs, "写出来");
   assert.equal(zhShell.sidebar.myProfile, "我的情况");
+  assert.equal(enShell.sidebar.myProfile, "My profile");
+  assert.equal(zhWs.memoryBrowse.title, "我的情况");
+  assert.equal(enWs.memoryBrowse.title, "My profile");
+  assert.equal(zhWs.memoryBrowse.organize, "整理我的情况");
+  assert.equal(enWs.memoryBrowse.organize, "Organize My profile");
   assert.ok(enShell.primaryNav.outputs, "en outputs present");
-  assert.ok(enShell.sidebar.myProfile, "en myProfile present");
   assert.doesNotMatch(enShell.primaryNav.outputs, /写出来/);
   assert.doesNotMatch(zhShell.primaryNav.outputs, /Ship it|Outputs|Write out/i);
+  // 我的情况 is a secondary pin, not a PrimaryNav peer; EN is My profile not About me
+  assert.equal(zhShell.primaryNav.memory, undefined);
+  assert.equal(enShell.primaryNav.memory, undefined);
+  assert.doesNotMatch(JSON.stringify(enShell), /About me/);
+  assert.doesNotMatch(JSON.stringify(enWs), /About me/);
 });
 
 test("Obsidian capture CTAs align with Desktop product vocabulary", () => {
@@ -91,6 +102,9 @@ test("Obsidian stream surface is 动态/Stream, not a sixth 工作台/Workbench 
   assert.match(en, /cmd_open_workbench:\s*"Topmind: Open Stream"/u);
   assert.match(zh, /sidebar_op_memory:\s*"整理我的情况"/u);
   assert.match(en, /sidebar_op_memory:\s*"Organize My profile"/u);
+  assert.match(zh, /memory_browse_organize:\s*"整理我的情况"/u);
+  assert.match(en, /memory_browse_organize:\s*"Organize My profile"/u);
+  assert.doesNotMatch(en, /About me/);
 });
 
 test("Obsidian compose vs capture call the distinct vocab keys", () => {

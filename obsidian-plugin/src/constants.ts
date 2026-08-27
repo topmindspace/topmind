@@ -8,6 +8,9 @@ export const VIEW_TYPE_STREAM_WORKBENCH = "topmind-stream-workbench";
 /** ItemView type for the sidebar dock */
 export const VIEW_TYPE_SIDEBAR_DOCK = "topmind-sidebar-dock";
 
+/** ItemView type for 我的情况 memory browse */
+export const VIEW_TYPE_MEMORY_BROWSE = "topmind-memory-browse";
+
 /** Command IDs */
 export const CMD_QUICK_CAPTURE = "topmind-quick-capture";
 export const CMD_OPEN_WORKBENCH = "topmind-open-workbench";

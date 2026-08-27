@@ -141,7 +141,7 @@ flowchart LR
 | **① Capture** | Hotkey notes · web clips · Office/PDF queue | This week’s **stream** (`10-Stream/` or live `role:loose-stream`); uncertain → inbox (`00-Inbox/` / `role:buffer`) | Frictionless instant log |
 | **② Continue** | Edit · inline AI · side Agent · organize topics | `{Category}/{YYYY-Topic}/` | Stream cards and topic crystallization |
 | **③ Ship / Settle** | Write deliverables · confirm profile / topics | `88-Outputs/` · `memory/profile.md` | Finished files; update personal profile |
-| **④ Retrieve / Adjust** | Search · restore · periodic Loop | `99-Archive/` · Loop inspections | Safe archive and retrieval |
+| **④ Retrieve / Adjust** | Search · restore · My profile browse · periodic Loop | `99-Archive/` · `memory/` · Loop inspections | Safe archive, memory-plane browse, retrieval |
 
 ---
 

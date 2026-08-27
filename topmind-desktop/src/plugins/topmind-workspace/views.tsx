@@ -14,6 +14,7 @@ import { FilePreviewView } from "./views/FilePreviewView";
 import { InboxView } from "./views/InboxView";
 import { OutputsView } from "./views/OutputsView";
 import { ArchiveView } from "./views/ArchiveView";
+import { MemoryBrowseView } from "./views/MemoryBrowseView";
 import { isMarkdownNotePath } from "../../lib/file-preview";
 
 const FileEditorView = lazy(() =>
@@ -94,6 +95,13 @@ export function createWorkspaceViews(): ViewSlot[] {
       order: 10,
       matches: (sel) => sel.kind === "archive",
       render: () => <ArchiveView />,
+    },
+    {
+      kind: "view",
+      id: "topmind-workspace.view.memory",
+      order: 10,
+      matches: (sel) => sel.kind === "memory",
+      render: () => <MemoryBrowseView />,
     },
   ];
 }

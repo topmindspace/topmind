@@ -320,6 +320,8 @@
   --content-max-width-prose-compact: 40rem;
   --content-max-width-prose-reading: 52rem;
   --content-max-width-prose-wide: 72rem;
+  /* Stream compose + list + cards share this reading column (single-column feed). */
+  --feed-column-max: 40rem;
   --z-local: 1;
   --z-shell-rail: 10;
   --z-header: 20;

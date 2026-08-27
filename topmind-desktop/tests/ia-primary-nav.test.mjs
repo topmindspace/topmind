@@ -83,6 +83,33 @@ describe("Desktop primary IA target", () => {
     assert.match(shell, /autoTodoArmed/);
   });
 
+  it("我的情况 sidebar control opens memory browse, not only a raw file", () => {
+    const sidebar = read("src/components/shell/Sidebar.tsx");
+    const profileFn = sidebar.slice(sidebar.indexOf("function ProfileButton"));
+    assert.match(profileFn, /kind:\s*"memory"/);
+    assert.match(profileFn, /sidebar\.myProfile/);
+    assert.doesNotMatch(
+      profileFn,
+      /select\(\{\s*kind:\s*"file",\s*path:\s*ensured\.profileRelPath/,
+    );
+    const views = read("src/plugins/topmind-workspace/views.tsx");
+    assert.match(views, /MemoryBrowseView/);
+    assert.match(views, /sel\.kind === "memory"/);
+    const types = read("src/types.ts");
+    assert.match(types, /kind: 'memory'/);
+    const memView = read("src/plugins/topmind-workspace/views/MemoryBrowseView.tsx");
+    assert.match(memView, /assembleMemoryFeed/);
+    assert.match(memView, /data-memory-feed/);
+    assert.match(memView, /kind:\s*"file"/);
+    assert.match(memView, /kindProfile|layerFilter/);
+    assert.match(memView, /data-memory-organize/);
+    assert.match(memView, /runMemoryOrganizeConfirm/);
+    assert.doesNotMatch(memView, /appendCoreMemory|api\.ws\.save/);
+    const stream = read("src/plugins/topmind-workspace/views/StreamDetailView.tsx");
+    assert.match(stream, /data-stream-open-memory/);
+    assert.match(stream, /kind:\s*"memory"/);
+  });
+
   it("view-store default selection is stream", () => {
     const src = read("src/stores/view-store.ts");
     assert.match(src, /selection:\s*\{\s*kind:\s*"stream"\s*\}/);

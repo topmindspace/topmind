@@ -34,6 +34,9 @@ describe("kernel-api", () => {
     assert.equal(typeof kernel.resolveAgentOutputLanguage, "function");
     assert.equal(typeof kernel.pickDocumentSourceForOutputLanguage, "function");
     assert.equal(typeof kernel.resolveProductAiLanguage, "function");
+    assert.equal(typeof kernel.assembleMemoryFeed, "function");
+    assert.equal(typeof kernel.filterMemoryFeedByLayer, "function");
+    assert.deepEqual(kernel.assembleMemoryFeed(null), []);
   });
 
   it("exports derived-builder AI provider interface", () => {

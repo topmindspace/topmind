@@ -23,6 +23,11 @@ import {
   ErrorState,
   listRowClass,
   FilterChip,
+  FeedLayoutToggle,
+  CollectionFeed,
+  FeedColumn,
+  FeedChrome,
+  useCollectionLayout,
 } from "../../../components/ui/view";
 import {
   DropdownMenu,
@@ -68,6 +73,8 @@ export function InboxView() {
   const openOverlay = useViewStore((s) => s.openOverlay);
   const select = useViewStore((s) => s.select);
   const selection = useViewStore((s) => s.selection);
+  const feedLayout = useViewStore((s) => s.feedLayout);
+  const setFeedLayout = useViewStore((s) => s.setFeedLayout);
   const fileMenu = useFileContextMenu();
 
   const loadGen = useRef(0);
@@ -235,25 +242,32 @@ export function InboxView() {
           }
         />
       ) : (
-        <RowList>
-          {visible.map((f) => (
-            <InboxFileRow
-              key={f.relativePath}
-              file={f}
-              active={selection.kind === "file" && selection.path === f.relativePath}
-              checked={selected.has(f.relativePath)}
-              onToggleCheck={() => toggleOne(f.relativePath)}
-              onSelect={() => select({ kind: "file", path: f.relativePath })}
-              onContextMenu={(e) =>
-                fileMenu.open(e, {
-                  path: f.relativePath,
-                  label: f.name,
-                  kind: "inbox",
-                })
-              }
-            />
-          ))}
-        </RowList>
+      <FeedColumn collection>
+        <FeedChrome>
+          <FeedLayoutToggle value={feedLayout} onChange={setFeedLayout} />
+        </FeedChrome>
+        <CollectionFeed layout={feedLayout}>
+          <RowList>
+            {visible.map((f) => (
+              <InboxFileRow
+                key={f.relativePath}
+                file={f}
+                active={selection.kind === "file" && selection.path === f.relativePath}
+                checked={selected.has(f.relativePath)}
+                onToggleCheck={() => toggleOne(f.relativePath)}
+                onSelect={() => select({ kind: "file", path: f.relativePath })}
+                onContextMenu={(e) =>
+                  fileMenu.open(e, {
+                    path: f.relativePath,
+                    label: f.name,
+                    kind: "inbox",
+                  })
+                }
+              />
+            ))}
+          </RowList>
+        </CollectionFeed>
+      </FeedColumn>
       )}
 
       <WorkspaceFileContextMenu
@@ -496,6 +510,7 @@ function InboxFileRow({
   onContextMenu?: (e: React.MouseEvent) => void;
 }) {
   const { t } = useTranslation(["workspace", "common"]);
+  const layout = useCollectionLayout();
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `inbox-${file.relativePath}`,
     data: { type: "inbox-file", relativePath: file.relativePath },
@@ -512,12 +527,21 @@ function InboxFileRow({
   return (
     <li
       ref={setNodeRef}
+      data-collection-item
       {...attributes}
       onContextMenu={onContextMenu}
-      className={listRowClass(
-        active || checked,
-        cn("v4-dense-row", isDragging && "opacity-50", "min-h-[36px] items-center gap-2 py-1.5"),
-      )}
+      className={
+        layout === "card"
+          ? cn(
+              "v4-dense-row flex min-h-[3.25rem] items-center gap-2",
+              isDragging && "opacity-50",
+              (active || checked) && "ring-1 ring-inset ring-accent-color/25",
+            )
+          : listRowClass(
+              active || checked,
+              cn("v4-dense-row", isDragging && "opacity-50", "min-h-[36px] items-center gap-2 py-1.5"),
+            )
+      }
     >
       <Tooltip content={checked ? t("workspace:inbox.deselectItem") : t("workspace:inbox.selectItem")}>
         <button

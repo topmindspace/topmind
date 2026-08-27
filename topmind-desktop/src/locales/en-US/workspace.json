@@ -134,7 +134,33 @@
     "suggestionsQuietTip": "Open confirm surface · no silent writes here",
     "suggestionsOpen": "Review",
     "suggestionsPreparing": "Preparing suggestions…",
-    "suggestionsPreparingTip": "Scanning tidy-up candidates · open when ready"
+    "suggestionsPreparingTip": "Scanning tidy-up candidates · open when ready",
+    "openMemory": "My profile",
+    "openMemoryTip": "Open My profile · portrait / periodic / topic memory"
+  },
+  "feedLayout": {
+    "list": "List",
+    "card": "Cards",
+    "toggleAria": "Feed layout",
+    "listHint": "Dense feed · hairline separators",
+    "cardHint": "Single-column aligned cards · not a grid"
+  },
+  "memoryBrowse": {
+    "title": "My profile",
+    "subtitle": "Portrait · periodic reflections · topic memory",
+    "subtitleCount": "{{count}} · profile / periodic / topic memory",
+    "emptyTitle": "Nothing to browse yet",
+    "emptyHint": "Jot in Stream; confirmed suggestions land here",
+    "openEditor": "Open profile file",
+    "kindProfile": "Profile",
+    "kindPeriodic": "Periodic",
+    "kindTopic": "Topic memory",
+    "layerAll": "All",
+    "layerFilter": "Memory layers",
+    "organize": "Organize My profile",
+    "organizeTip": "Generate suggestions to confirm · does not write the profile",
+    "openFolder": "Show in tree",
+    "openFolderTip": "Expand memory/ in the sidebar"
   },
   "archive": {
     "title": "Archive",

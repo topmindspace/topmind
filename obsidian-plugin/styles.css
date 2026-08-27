@@ -55,6 +55,19 @@
   container-name: tm-workbench;
 }
 
+.tm-feed-column {
+  width: 100%;
+  max-width: min(40rem, 100%);
+  margin-inline: auto;
+}
+.tm-feed-chrome {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tm-gap-sm);
+  margin-bottom: var(--tm-gap-sm);
+}
+
 /* ── Toolbar ─────────────────────────────────────────────────────────── */
 
 .tm-toolbar {
@@ -554,6 +567,68 @@
 
 .tm-stream-container {
   min-height: 60px;
+}
+
+.tm-feed-layout-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--background-modifier-hover);
+}
+.tm-feed-layout-btn {
+  font-size: var(--font-ui-smaller);
+  padding: 2px 8px;
+  height: var(--tm-btn-h-sm);
+}
+.tm-feed-layout-btn[data-active="true"] {
+  background: var(--background-primary);
+  color: var(--text-accent);
+  box-shadow: 0 0 0 1px var(--background-modifier-border);
+}
+
+/* List = X-like hairline column; card = single-column aligned cards (not a grid) */
+.tm-stream-container[data-layout="list"] .tm-card {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--background-modifier-border);
+  border-radius: 0;
+  margin-bottom: 0;
+  padding: 10px 4px 12px;
+  box-shadow: none;
+}
+.tm-stream-container[data-layout="card"] {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+.tm-stream-container[data-layout="card"] .tm-card {
+  margin-bottom: 0;
+  padding: 12px 14px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.tm-memory-browse {
+  padding: 8px 12px;
+  max-width: 40rem;
+  margin: 0 auto;
+}
+.tm-memory-feed[data-layout="list"] .tm-memory-card {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--background-modifier-border);
+  border-radius: 0;
+  margin-bottom: 0;
+}
+.tm-memory-feed[data-layout="card"] {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tm-memory-feed[data-layout="card"] .tm-memory-card {
+  margin-bottom: 0;
 }
 
 .tm-card {

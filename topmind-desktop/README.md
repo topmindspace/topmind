@@ -64,7 +64,7 @@ Default three columns: **nav → content → AI copilot**. The main narrative is
 | Stream **AI polish** | Inline clean/polish; edits the composer only · does not write disk |
 | Stream / sidebar **AI todos** | Extract todos · detect done · confirm updates |
 | AI panel **ActionBar** | Suggestions + pending writes; Kernel write gate runs after confirm |
-| Sidebar **My profile** | Semantic memory (profile / periodic) |
+| Sidebar **My profile** | Memory-plane browse (profile / periodic / topic memory); opening a row still lands on the file |
 | **Ingest hub** | Default anydoc → Markdown (Word / PPT / Excel / ODF / RTF / EPUB / PDF / CSV); optional markitdown / pandoc; mail uses the built-in path |
 
 - **Reading Aa**: size / leading / family / measure / margins / paper (edit and preview share the same chrome; preview is a static HTML snapshot, not live TipTap)  

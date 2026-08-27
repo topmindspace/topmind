@@ -165,6 +165,66 @@ describe("Obsidian labeled-button chrome (shipped)", () => {
 
 // ── Stream entry parsing (shipped) ─────────────────────────────────────────
 
+describe("assembleMemoryFeed (shipped)", () => {
+  test("profile + periodic + topic are separate rows; empty plane is empty", async () => {
+    const { assembleMemoryFeed } = await importShipped("utils.ts");
+    assert.deepEqual(assembleMemoryFeed(null), []);
+    const items = assembleMemoryFeed({
+      profile: {
+        path: "memory/profile.md",
+        markdown: "# 我的情况\n\n## 偏好\n\n- 喜欢简洁\n",
+      },
+      periodic: [
+        {
+          path: "memory/periodic/2026-W32.md",
+          markdown: "---\ntitle: W32\n---\n\n本周反思一段。\n",
+        },
+      ],
+      topics: [
+        { path: "memory/topics/ui.md", markdown: "# UI\n\n单列卡片。\n" },
+      ],
+    });
+    assert.ok(items.some((i) => i.kind === "profile" && i.path === "memory/profile.md"));
+    assert.ok(items.some((i) => i.kind === "periodic" && i.path === "memory/periodic/2026-W32.md"));
+    assert.ok(items.some((i) => i.kind === "topic" && i.path === "memory/topics/ui.md"));
+  });
+
+  test("filterMemoryFeedByLayer keeps one kind (shipped grouping, not a reimplementation)", async () => {
+    const { assembleMemoryFeed, filterMemoryFeedByLayer } = await importShipped("utils.ts");
+    const items = assembleMemoryFeed({
+      profile: {
+        path: "memory/profile.md",
+        markdown: "# 我的情况\n\n## 偏好\n\n- 喜欢简洁\n",
+      },
+      periodic: [
+        {
+          path: "memory/periodic/2026-W32.md",
+          markdown: "---\ntitle: W32\n---\n\n本周反思一段。\n",
+        },
+      ],
+      topics: [
+        { path: "memory/topics/ui.md", markdown: "# UI\n\n单列卡片。\n" },
+      ],
+    });
+    assert.ok(items.length >= 3);
+    const profile = filterMemoryFeedByLayer(items, "profile");
+    assert.ok(profile.length >= 1);
+    assert.ok(profile.every((i) => i.kind === "profile"));
+    assert.ok(profile.every((i) => i.path === "memory/profile.md"));
+    const periodic = filterMemoryFeedByLayer(items, "periodic");
+    assert.equal(periodic.length, 1);
+    assert.equal(periodic[0].kind, "periodic");
+    assert.equal(periodic[0].path, "memory/periodic/2026-W32.md");
+    const topic = filterMemoryFeedByLayer(items, "topic");
+    assert.equal(topic.length, 1);
+    assert.equal(topic[0].kind, "topic");
+    assert.equal(topic[0].path, "memory/topics/ui.md");
+    const all = filterMemoryFeedByLayer(items, "all");
+    assert.equal(all.length, items.length);
+    assert.deepEqual(filterMemoryFeedByLayer(null, "profile"), []);
+  });
+});
+
 describe("parseStreamEntries (shipped)", () => {
   test("parses simple time-prefixed entries and tags", async () => {
     const { parseStreamEntries } = await importShipped("utils.ts");
@@ -177,12 +237,44 @@ describe("parseStreamEntries (shipped)", () => {
     assert.deepEqual(entries[1].tags, ["urgent", "项目A"]);
   });
 
-  test("handles Chinese tags and ignores non-entry lines", async () => {
+  test("prose-first body stays one card and still extracts tags", async () => {
     const { parseStreamEntries } = await importShipped("utils.ts");
     const content = "# Title\n\nSome paragraph\n\n- 11:00 读完书 #阅读 #思考\n";
     const entries = parseStreamEntries(content);
     assert.equal(entries.length, 1);
-    assert.deepEqual(entries[0].tags, ["阅读", "思考"]);
+    assert.match(entries[0].text, /Some paragraph/);
+    assert.match(entries[0].text, /读完书/);
+    assert.ok(entries[0].tags.includes("阅读"));
+    assert.ok(entries[0].tags.includes("思考"));
+  });
+
+  test("wrapped prose with no list markers is one card, not one card per newline", async () => {
+    const { parseStreamEntries } = await importShipped("utils.ts");
+    const content = [
+      "## 08-03 周一",
+      "",
+      "This is a long paragraph that wraps",
+      "across several lines because the author",
+      "hit enter without using list markers.",
+    ].join("\n");
+    const entries = parseStreamEntries(content);
+    assert.equal(entries.length, 1);
+    assert.match(entries[0].text, /long paragraph/);
+    assert.match(entries[0].text, /list markers/);
+    assert.equal(entries[0].text.split("\n").filter((l) => l.trim()).length, 3);
+  });
+
+  test("list-led day splits timed items; extra paragraphs stay on the same card", async () => {
+    const { parseStreamEntries } = await importShipped("utils.ts");
+    const timed = parseStreamEntries("## 08-03\n\n- 10:00 a\n- 11:00 b\n");
+    assert.equal(timed.length, 2);
+    assert.equal(timed[0].time, "10:00");
+    assert.equal(timed[1].time, "11:00");
+
+    const continued = parseStreamEntries("## 08-03\n\n- 10:00 lead\n\nsecond paragraph\n");
+    assert.equal(continued.length, 1);
+    assert.match(continued[0].text, /lead/);
+    assert.match(continued[0].text, /second paragraph/);
   });
 
   test("returns empty array for empty content", async () => {
@@ -245,6 +337,45 @@ describe("parseStreamEntries (shipped)", () => {
 });
 
 describe("stream workbench display path (shipped)", () => {
+  test("workbench has list/card switch and memory browse entry", () => {
+    const workbench = fs.readFileSync(
+      path.join(srcDir, "views", "stream-workbench-view.ts"),
+      "utf-8",
+    );
+    const main = fs.readFileSync(path.join(srcDir, "main.ts"), "utf-8");
+    const memView = fs.readFileSync(
+      path.join(srcDir, "views", "memory-browse-view.ts"),
+      "utf-8",
+    );
+    assert.match(workbench, /data-feed-layout-toggle/);
+    assert.match(workbench, /data-layout-option/);
+    assert.match(workbench, /data-stream-feed/);
+    assert.match(workbench, /data-stream-column/);
+    assert.match(workbench, /data-stream-open-memory/);
+    assert.match(workbench, /openMemoryBrowse/);
+    assert.match(main, /VIEW_TYPE_MEMORY_BROWSE/);
+    assert.match(main, /openMemoryBrowse/);
+    assert.match(main, /CMD_MEMORY_ORGANIZE/);
+    const utils = fs.readFileSync(path.join(srcDir, "utils.ts"), "utf-8");
+    assert.match(utils, /from ["']\.\.\/\.\.\/lib\/memory-feed\.mjs["']/);
+    assert.doesNotMatch(utils, /export function assembleMemoryFeed/);
+    assert.match(memView, /assembleMemoryFeed/);
+    assert.match(memView, /data-memory-feed/);
+    assert.match(memView, /data-memory-organize/);
+    assert.match(memView, /enqueueAiOperation/);
+    assert.match(memView, /memory_organize/);
+    assert.match(memView, /filterMemoryFeedByLayer/);
+    assert.match(memView, /filterMemoryFeedByLayer\(items,\s*this\.layer\)/);
+    assert.match(memView, /chip\.addEventListener\(\s*"click"/);
+    assert.match(memView, /aria-pressed/);
+    assert.match(memView, /this\.layer\s*=\s*id/);
+    assert.match(memView, /for \(const item of visible\)/);
+    assert.doesNotMatch(memView, /for \(const item of items\)/);
+    const design = fs.readFileSync(path.join(__dirname, "..", "DESIGN.md"), "utf-8");
+    assert.match(design, /卡片式|单列/);
+    assert.match(design, /我的情况/);
+  });
+
   test("cards render prepared display text, not raw append comments", () => {
     const src = fs.readFileSync(
       path.join(srcDir, "views", "stream-workbench-view.ts"),
@@ -475,10 +606,14 @@ describe("Obsidian profile/todo open paths honor Kernel (no hardcoded memory/)",
     const main = fs.readFileSync(path.join(srcDir, "main.ts"), "utf8");
     const stream = fs.readFileSync(path.join(srcDir, "views", "stream-workbench-view.ts"), "utf8");
     const dock = fs.readFileSync(path.join(srcDir, "views", "sidebar-dock-view.ts"), "utf8");
+    const mem = fs.readFileSync(path.join(srcDir, "views", "memory-browse-view.ts"), "utf8");
     assert.doesNotMatch(main, /openLinkText\("memory\/profile\.md"/);
-    assert.match(main, /profileRelPath\(\)/);
+    assert.match(main, /openMemoryBrowse/);
+    assert.match(main, /VIEW_TYPE_MEMORY_BROWSE/);
     assert.doesNotMatch(stream, /openLinkText\("memory\/profile\.md"/);
-    assert.match(stream, /profileRelPath\(\)/);
+    assert.match(stream, /openMemoryBrowse/);
+    assert.match(mem, /profileRelPath\(\)/);
+    assert.doesNotMatch(mem, /openLinkText\("memory\/profile\.md"/);
     assert.doesNotMatch(dock, /openLinkText\("memory\/todo\.md"/);
     assert.match(dock, /todoRelPath\(\)/);
   });
@@ -495,7 +630,7 @@ describe("DEFAULT_SETTINGS and AI_PROVIDER_PRESETS (shipped)", () => {
       "writebackMode", "autoSuggest", "autoMaintainTodos",
       "backupKeep", "receiptKeep",
       // New multi-provider model
-      "ai", "localeOverride",
+      "ai", "localeOverride", "feedLayout",
     ];
     for (const field of required) {
       assert.ok(field in DEFAULT_SETTINGS, `Missing field: ${field}`);
@@ -516,6 +651,7 @@ describe("DEFAULT_SETTINGS and AI_PROVIDER_PRESETS (shipped)", () => {
     assert.equal(DEFAULT_SETTINGS.aiProvider, "none");
     assert.equal(DEFAULT_SETTINGS.aiApiKey, "");
     assert.equal(DEFAULT_SETTINGS.autoMaintainTodos, false);
+    assert.equal(DEFAULT_SETTINGS.feedLayout, "list");
     assert.equal(DEFAULT_SETTINGS.receiptKeep, 50);
     assert.ok(DEFAULT_SETTINGS.receiptKeep >= 10);
     // backupKeep=0 is a valid configuration (disables backups)

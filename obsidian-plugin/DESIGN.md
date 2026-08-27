@@ -15,8 +15,8 @@
 │  入口 1: 主区域动态 (Stream View)                               │
 │  ────────────────────────────────────────────────────────    │
 │  Obsidian 中央主编辑区的独立页签 (ItemView)                     │
-│  承载：工具栏 + 极速输入 + 动态卡片流 + AI 涌现建议             │
-│  工具栏：AI 状态 | 模型徽章 | [侧边栏] [设置] [新笔记] [画像]   │
+│  承载：工具栏 + 极速输入 + 动态信息流（列表 / 单列卡片）+ AI 建议 │
+│  工具栏：AI 状态 | 模型徽章 | [侧边栏] [设置] [新笔记] [我的情况] │
 ├──────────────────────────────────────────────────────────────┤
 │  入口 2: AI 副驾面板 (Sidebar Dock View — 标签式)              │
 │  ────────────────────────────────────────────────────────    │
@@ -32,7 +32,7 @@
 │  Ribbon 图标触发（快捷键需在 Settings → Hotkeys 自行配置）       │
 │  零阻碍输入 → Enter 提交 → 静默写入周期本 → 关闭                │
 ├──────────────────────────────────────────────────────────────┤
-│  入口 4: Obsidian 状态栏项 (Status Bar Item · 3.5.2+)          │
+│  入口 4: Obsidian 状态栏项 (Status Bar Item)                   │
 │  ────────────────────────────────────────────────────────    │
 │  空闲 = sparkles 安静图标；AI 通道运行 = spinner + 任务标签     │
 │  点击 = 打开/恢复 AI 副驾面板（与 Desktop 状态栏 toggle 对齐）  │
@@ -56,6 +56,10 @@
 ---
 
 ## 2. 动态主表面 (Stream View)
+
+动态页提供两种可切换布局（`settings.feedLayout`）：开关在**动态列表旁**（周期区，不是远侧工具栏）。记下输入框与卡片/列表共用 `tm-feed-column` 单列宽。**列表**为 X 式单列紧凑帖（细线分隔），**卡片式**为同一套分块的单列等宽卡片（不是多列瀑布）。分块规则与 Desktop 对齐：日/周期段若是 markdown 列表（`-` / `*` / `1.`）仍按条目拆帖；无列表标记的长散文换行是一条帖；timed 条目后续段落留在同一帖。切换布局不重拆内容。
+
+**我的情况**：工具栏、动态列表旁按钮、命令「打开我的情况」打开记忆浏览（画像 / 周期反思 / 专题记忆分层标签）。点开条目仍落到 vault 文件。不是第六用户概念。**整理我的情况**走已有 `CMD_MEMORY_ORGANIZE` / `enqueueAiOperation("memory_organize")` 确认面，不静默写画像。
 
 ### 2.1 布局
 
@@ -98,7 +102,8 @@
 | 侧边栏 | `panel-right` + 文本「侧边栏」，打开/恢复 AI 副驾面板 |
 | 设置 | `settings` + 文本「设置」，跳转插件设置页 |
 | 新笔记 | `file-plus` + 文本「新笔记」，在收件箱建 Untitled |
-| 我的情况 | `user` + 文本「我的情况」，打开契约解析的画像文件（默认 `memory/profile.md`） |
+| 我的情况 | `user` + 文本「我的情况」，打开记忆浏览（画像 + 周期反思 + 专题记忆；点开条目仍落文件） |
+| 列表 / 卡片 | 动态列表旁切换：X 式单列信息流 vs 单列等宽卡片（`settings.feedLayout`，不是多列瀑布） |
 
 默认宽度下 icon+文本必须完整显示（`.tm-toolbar-btn-labeled { width: auto }`，标签 `overflow: visible`）。仅 `@container tm-workbench (max-width: 560px)` 隐藏标签；icon-only 时保留 `aria-label` / `title`。工具栏 `overflow: visible` + 可换行，不用 `overflow: hidden` 裁字。
 
@@ -109,7 +114,7 @@
 | 元素 | 交互 |
 |------|------|
 | 输入栏 | 多行 textarea；`Enter` **记下**（`Shift+Enter` 换行）；提交后清空 + 刷新流 |
-| 动态卡片 | 时间在卡头芯片；正文走 `prepareStreamEntryTextForDisplay`（剥 `<!-- topmind:append -->`）；增补 `#### 续` 并入同一条目；长文才折叠 |
+| 动态卡片 | 时间在卡头芯片；正文走 `prepareStreamEntryTextForDisplay`（剥 `<!-- topmind:append -->`）；增补 `#### 续` 并入同一条目；长文才折叠。无列表标记的换行散文保持一条帖；列表项才拆帖 |
 | 周期切换 | 下拉选择历史周期本；保留用户选择跨刷新 |
 | AI 建议卡片 | 多种类型；`确认` → Kernel `applySuggestion`；`忽略` → 移出会话。↻ 手动刷新 `force:true` 清指纹；idle 为 soft 合并（指纹 skip 不丢卡）。`memory_organize` / `topic_classify` 确认卡进建议面 |
 | 整理按钮 | reconcile + 自动待办整理 + 刷新 |
@@ -366,7 +371,7 @@ AI 操作按钮仅在 AI 已配置时显示。默认显示文本标签模式（`
 | Topmind: AI 整理待办 | — | 手动触发 todo_maintain |
 | Topmind: 专题分类 | — | 手动触发 topic_classify（共享队列） |
 | Topmind: 整理我的情况 | — | 手动触发 memory_organize |
-| Topmind: 打开我的情况 | — | 打开 memory/profile.md |
+| Topmind: 打开我的情况 | — | 打开记忆浏览页（列表/卡片；点开条目落到契约解析的画像/周期/专题文件） |
 | Topmind: 打开收件箱 | — | 打开收件箱目录 |
 
 > **快捷键策略**：不设默认快捷键，用户在 Settings → Hotkeys 自行配置（符合 Obsidian 插件规范）。

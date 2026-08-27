@@ -89,6 +89,49 @@ test("suggest / todo / ops call activity-window defaults, not magic 21/30/16000"
   assert.doesNotMatch(todo, /maxFiles:\s*30/);
 });
 
+test("living docs describe 我的情况 as memory-plane browse, not a sixth concept", () => {
+  const design = read("DESIGN.md");
+  const reset = read("docs/ARCHITECTURE-RESET.md");
+  const desktopDesign = read("topmind-desktop/DESIGN.md");
+  const obsidianDesign = read("obsidian-plugin/DESIGN.md");
+  assert.match(design, /记忆浏览/);
+  assert.match(desktopDesign, /记忆浏览/);
+  assert.match(obsidianDesign, /记忆浏览/);
+  assert.match(reset, /记忆浏览/);
+  assert.doesNotMatch(design, /第六用户概念/);
+});
+
+test("ADR index pairs list 2026-08-27 desktop log rotation", () => {
+  const en = read("docs/README.md");
+  const zh = read("docs/README.zh-CN.md");
+  assert.match(en, /2026-08-27-desktop-log-rotation\.md/);
+  assert.match(zh, /2026-08-27-desktop-log-rotation\.md/);
+});
+
+test("living DESIGN files do not copy surface version digits into headings", () => {
+  for (const rel of [
+    "DESIGN.md",
+    "topmind-desktop/DESIGN.md",
+    "obsidian-plugin/DESIGN.md",
+    "README.md",
+    "README.zh-CN.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+  ]) {
+    const src = read(rel);
+    assert.doesNotMatch(
+      src,
+      /### Desktop \d+\.\d+\.\d+/u,
+      `${rel} must not stamp Desktop x.y.z in a heading`,
+    );
+    assert.doesNotMatch(
+      src,
+      /Status Bar Item · \d+\.\d+\.\d+/u,
+      `${rel} must not stamp a surface version on the status-bar entry`,
+    );
+  }
+});
+
 test("living DESIGN/ARCHITECTURE do not present canvas SuggestEntryStrip as current chrome", () => {
   const design = read("topmind-desktop/DESIGN.md");
   const arch = read("topmind-desktop/ARCHITECTURE.md");

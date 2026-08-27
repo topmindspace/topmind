@@ -64,7 +64,7 @@
 | 动态 **AI 润色** | 行内清洗与润色，只改输入框 · 不落盘 |
 | 动态 / 侧栏 **AI 待办** | 自动提取待办 · 检测完成 · 确认更新 |
 | AI 面板 **ActionBar** | 建议 + 待确认写入；确认后再过 Kernel 写闸 |
-| 侧栏 **我的情况** | 语义 Memory（profile 个人画像 / 周期沉淀） |
+| 侧栏 **我的情况** | 记忆平面浏览（画像 / 周期反思 / 专题记忆）；点开条目仍落文件 |
 | **知识加工 Hub** | 默认 anydoc 转 Markdown（Word / PPT / Excel / ODF / RTF / EPUB / PDF / CSV）；可选 markitdown / pandoc；邮件走内置 |
 
 - **阅读 Aa**：字号 / 行距 / 字族 / 栏宽 / 边距 / 纸张（编辑与预览共用同一阅读偏好；预览是静态 HTML 快照，不是 live TipTap）  

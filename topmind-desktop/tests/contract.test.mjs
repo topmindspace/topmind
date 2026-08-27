@@ -145,14 +145,21 @@ test("v4 source footprint stays bounded (src + electron)", () => {
   }
   const srcCount = countFiles(src, [".ts", ".tsx"]);
   const electronCount = countFiles(electron, [".mjs", ".cjs", ".js"]);
-  // Soft ceiling: catch uncontrolled growth back toward v3 scale
-  // Raised with rpc-shape · stream-delta-coalesce · inline-ai-result mirrors + UI modules
-  // Soft ceiling raised with SuggestPopover · suggest-session-merge · stream helpers
-  // Soft ceiling raised with SettingsDialog/Shell split (layout + controller/hooks modules)
-  // Soft ceiling raised with overlay-close-guard (settings Esc/mask/navigate flush)
+  // Soft ceiling: catch uncontrolled growth back toward v3 scale.
+  // Memory browse lives in MemoryBrowseView + memory-feed + memory-organize;
+  // feed-layout helpers live on types.ts (not a 12-line extra file).
   assert.ok(srcCount < 200, `src file count ${srcCount} exceeds soft ceiling`);
   assert.ok(electronCount < 120, `electron file count ${electronCount} exceeds soft ceiling`);
   assert.ok(srcCount + electronCount < 310, `total ${srcCount + electronCount} exceeds soft ceiling`);
+});
+
+test("desktop validate restages engine before pack:verify (obsidian/clip stamp drift)", () => {
+  const pkg = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8"));
+  const v = String(pkg.scripts?.validate || "");
+  const prep = v.indexOf("pack:prepare");
+  const ver = v.indexOf("pack:verify");
+  assert.ok(prep >= 0, "validate must run pack:prepare");
+  assert.ok(ver > prep, "pack:prepare must precede pack:verify");
 });
 
 test("pack:prepare rebuilds Obsidian dist when source manifest version drifts", () => {

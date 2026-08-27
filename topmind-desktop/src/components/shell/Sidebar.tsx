@@ -322,8 +322,8 @@ function ProfileButton() {
           void (async () => {
             try {
               const ensured = await api.ws.ensureCoreProfile();
-              if (ensured.profileRelPath) {
-                select({ kind: "file", path: ensured.profileRelPath });
+              if (ensured.profileRelPath || ensured.ok) {
+                select({ kind: "memory" });
                 if (ensured.created) emitLocal("workspace:file-changed");
               }
             } catch {

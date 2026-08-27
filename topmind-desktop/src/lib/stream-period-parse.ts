@@ -86,6 +86,44 @@ export function isDayLikeHeading(heading: string): boolean {
   return false;
 }
 
+/** Top-level markdown list item (`-` / `*` / `+` / `1.`), not indented nested lists. */
+export function isTopLevelListItem(line: string): boolean {
+  return /^\s{0,3}[-*+]\s+\S/u.test(line) || /^\s{0,3}\d+\.\s+\S/u.test(line);
+}
+
+/**
+ * Whether a day/section should soft-split into per-item posts.
+ * Skips blanks, HTML comments, and ATX headings so a `# Title` above a list
+ * still counts as list-led. Prose-first sections stay one post (embedded
+ * lists render as lists in preview — they are not extra cards).
+ */
+export function firstSubstantialLineIsList(md: string): boolean {
+  const text = normalizeStreamEscapes(md).replace(/\r\n/gu, "\n");
+  for (const line of text.split("\n")) {
+    const t = line.trim();
+    if (!t) continue;
+    if (/^<!--/u.test(t)) continue;
+    if (/^#{1,6}\s/u.test(t)) continue;
+    return isTopLevelListItem(line);
+  }
+  return false;
+}
+
+/** Drop leading ATX headings / blanks so list-led split does not emit a title-only card. */
+export function stripLeadingAtxHeadings(md: string): string {
+  const lines = String(md || "").replace(/\r\n/gu, "\n").split("\n");
+  let i = 0;
+  while (i < lines.length) {
+    const t = lines[i].trim();
+    if (!t || /^#{1,6}\s/u.test(t) || /^<!--/u.test(t)) {
+      i += 1;
+      continue;
+    }
+    break;
+  }
+  return lines.slice(i).join("\n");
+}
+
 /**
  * Split period body into main content + append chunks (#### 续 / topmind:append).
  * Each append chunk keeps its heading line for MD preview.
@@ -187,10 +225,17 @@ export function softSplitContentEntries(
   const out: StreamEntry[] = [];
 
   if (main) {
-    const bullets = entriesFromStructuralBody(sectionHeading, main);
-    if (bullets.length > 0) {
-      out.push(...bullets);
+    if (firstSubstantialLineIsList(main)) {
+      const listBody = stripLeadingAtxHeadings(main);
+      const bullets = entriesFromStructuralBody(sectionHeading, listBody || main);
+      if (bullets.length > 0) {
+        out.push(...bullets);
+      } else {
+        const single = makeEntry(sectionHeading, main);
+        if (single) out.push(single);
+      }
     } else {
+      // Prose-first: one post. Wrapped line-breaks stay paragraphs, not cards.
       const single = makeEntry(sectionHeading, main);
       if (single) out.push(single);
     }

@@ -3,8 +3,15 @@
  * UI state (widths, collapsed) is persisted to settings by Shell on change.
  */
 import { create } from "zustand";
-import type { Selection, OverlayKind, OverlayContext } from "../types";
-import { normalizeSelection } from "../types";
+import {
+  type Selection,
+  type OverlayKind,
+  type OverlayContext,
+  type FeedLayout,
+  DEFAULT_FEED_LAYOUT,
+  isFeedLayout,
+  normalizeSelection,
+} from "../types";
 import type { Theme } from "../lib/theme";
 import {
   DEFAULT_TREE_SORT,
@@ -188,6 +195,9 @@ interface ViewState {
   setSidebarWidth: (w: number) => void;
   sidebarView: SidebarViewMode;
   setSidebarView: (m: SidebarViewMode) => void;
+  /** Stream + collection list vs 卡片式. Persisted via settings.ui.feedLayout. */
+  feedLayout: FeedLayout;
+  setFeedLayout: (m: FeedLayout) => void;
 
   /* AI panel */
   aiPanelOpen: boolean;
@@ -516,6 +526,9 @@ export const useViewStore = create<ViewState>((set, get) => ({
   setSidebarWidth: (sidebarWidth) => set({ sidebarWidth }),
   sidebarView: "stream",
   setSidebarView: (sidebarView) => set({ sidebarView }),
+  feedLayout: DEFAULT_FEED_LAYOUT,
+  setFeedLayout: (feedLayout) =>
+    set({ feedLayout: isFeedLayout(feedLayout) ? feedLayout : DEFAULT_FEED_LAYOUT }),
 
   aiPanelOpen: true,
   toggleAiPanel: () => set((s) => ({ aiPanelOpen: !s.aiPanelOpen })),

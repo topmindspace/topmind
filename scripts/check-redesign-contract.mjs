@@ -224,6 +224,19 @@ expectMatch(
   /Phase A/u,
   "phased implementation (Phase A)",
 );
+expectMatch(
+  architectureResetPath,
+  architectureReset,
+  /记忆浏览/u,
+  "我的情况 is memory-plane browse",
+);
+expectMatch(files.design, design, /记忆浏览/u, "我的情况 is memory-plane browse");
+expectMatch(
+  files.desktopDesign,
+  read(files.desktopDesign),
+  /记忆浏览/u,
+  "Desktop 我的情况 is memory-plane browse",
+);
 
 // Forbidden overclaim in living truth docs
 const honestyDocs = [

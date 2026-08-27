@@ -171,6 +171,8 @@ export type Selection =
     }
   | { kind: 'outputs' }
   | { kind: 'archive' }
+  /** 我的情况 browse — profile + periodic + topic memory as a feed (not a sixth concept). */
+  | { kind: 'memory' }
   /** Connector hub views (weread / x) — light center pages, not a second truth store. */
   | { kind: 'connector'; id: string };
 
@@ -182,6 +184,7 @@ const KNOWN_SELECTION_KINDS = new Set([
   "file",
   "outputs",
   "archive",
+  "memory",
   "connector",
 ]);
 
@@ -451,6 +454,13 @@ export interface XTweet {
 
 export type WritebackMode = 'auto' | 'confirm';
 export type SidebarViewMode = 'stream' | 'category' | 'timeline' | 'tags' | 'kanban';
+/** Stream + collection canvas: dense feed vs single-column cards. */
+export type FeedLayout = 'list' | 'card';
+export const FEED_LAYOUTS = ["list", "card"] as const;
+export const DEFAULT_FEED_LAYOUT: FeedLayout = "list";
+export function isFeedLayout(v: unknown): v is FeedLayout {
+  return v === "list" || v === "card";
+}
 
 export interface AppSettings {
   theme: 'auto' | 'light' | 'dark';
@@ -551,6 +561,11 @@ export interface AppSettings {
     aiPanelWidth?: number;
     /** Default sidebar view (tree / timeline / tags / kanban). */
     sidebarView?: SidebarViewMode | string;
+    /**
+     * Stream + collection canvas layout: list (dense X-like feed) or card
+     * (single-column aligned cards). Not a masonry grid.
+     */
+    feedLayout?: FeedLayout | string;
     /**
      * Tree / list file visibility:
      * default = md+html+txt+office+pdf · markdown · all

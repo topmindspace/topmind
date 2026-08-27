@@ -51,7 +51,7 @@ Topmind Stream reduces mental overhead by focusing on 5 plain-language concepts:
 | **Capture** (*记一下*) | Save a quick thought / snippet | Weekly Stream Log / `00-Inbox/` |
 | **Stream** (*动态*) | Daily activity & timeline | `10-Stream/` (weekly file per log) |
 | **Topic** (*专题*) | Long-term subject folder | `{Category}/{YYYY-Topic}/` |
-| **My Profile** (*我的情况*) | Stable facts & personal memory | `memory/profile.md` |
+| **My Profile** (*我的情况*) | Memory-plane browse (profile / periodic / topic memory) | Files under `memory/` (default portrait `memory/profile.md`) |
 | **Deliverables** (*写出来*) | Final outputs & published work | `88-Outputs/` |
 
 ---
@@ -136,7 +136,7 @@ Product vocabulary (aligned with Desktop): **Note it** / 记一下 · **Log it**
 | `Topmind: AI Maintain Todos` | Run AI todo extraction on recent activities |
 | `Topmind: Classify Topics` | Run AI topic classification |
 | `Topmind: Organize My Profile` | Run AI organization of My profile (profile + periodic) |
-| `Topmind: Open My Profile` | Open `memory/profile.md` |
+| `Topmind: Open My Profile` | Open the memory-plane browse (rows still open vault files) |
 | `Topmind: Open Inbox` | Open the inbox category directory |
 
 ---

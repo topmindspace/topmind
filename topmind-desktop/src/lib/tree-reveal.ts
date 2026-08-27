@@ -44,6 +44,13 @@ export function expandIdsForSelection(sel: Selection): string[] {
         }
         return ids;
       }
+      if (root === "memory") {
+        const ids = ["section/memory"];
+        for (let i = 1; i < parts.length - 1; i++) {
+          ids.push(`folder/${parts.slice(0, i + 1).join("/")}`);
+        }
+        return ids;
+      }
 
       // Prefer explicit topicId when present
       const topicId = sel.topicId || (parts.length >= 2 ? `${parts[0]}/${parts[1]}` : "");
@@ -65,6 +72,8 @@ export function expandIdsForSelection(sel: Selection): string[] {
     }
     case "stream":
       return [];
+    case "memory":
+      return ["section/memory"];
     default:
       return [];
   }

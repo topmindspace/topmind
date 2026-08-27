@@ -11,11 +11,19 @@
  *   text-lg  15px  — list page titles
  *   text-3xl 22px  — rare display moments
  */
-import type { ReactNode } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, AlignJustify, GalleryVertical, Loader2 } from "lucide-react";
 import { cn } from "../../lib/cn";
 import { ICON } from "../../lib/icons";
+import type { FeedLayout } from "../../types";
+import { Tooltip } from "./tooltip";
+
+const CollectionLayoutContext = createContext<FeedLayout>("list");
+
+export function useCollectionLayout(): FeedLayout {
+  return useContext(CollectionLayoutContext);
+}
 
 /** Centered content column with density rhythm. */
 export function ViewContainer({ children, className }: { children: ReactNode; className?: string }) {
@@ -313,8 +321,11 @@ export function FileRow({
   actions?: ReactNode;
   className?: string;
 }) {
+  const layout = useCollectionLayout();
+  const card = layout === "card";
   return (
     <li
+      data-collection-item
       onClick={onClick}
       onContextMenu={onContextMenu}
       onKeyDown={
@@ -329,14 +340,24 @@ export function FileRow({
       }
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
-      className={listRowClass(
-        active,
-        cn(
-          "v4-row-focus group/row v4-list-virtual",
-          onClick && "cursor-pointer v4-focus-ring",
-          className,
-        ),
-      )}
+      className={
+        card
+          ? cn(
+              "v4-row-focus group/row flex items-start justify-between gap-2 text-sm",
+              "transition-[background-color,box-shadow] duration-[var(--duration-fast)] ease-[var(--ease-default)]",
+              onClick && "cursor-pointer v4-focus-ring",
+              active && "ring-1 ring-inset ring-accent-color/25",
+              className,
+            )
+          : listRowClass(
+              active,
+              cn(
+                "v4-row-focus group/row v4-list-virtual",
+                onClick && "cursor-pointer v4-focus-ring",
+                className,
+              ),
+            )
+      }
     >
       <div className="flex min-w-0 flex-1 items-center gap-2">
         {icon ? <span className="shrink-0 text-text-tertiary opacity-80">{icon}</span> : null}
@@ -355,5 +376,137 @@ export function FileRow({
         </div>
       ) : null}
     </li>
+  );
+}
+
+/** Shared reading column for compose + list + cards (single-column feed). */
+export function FeedColumn({
+  children,
+  className,
+  stream,
+  collection,
+}: {
+  children: ReactNode;
+  className?: string;
+  stream?: boolean;
+  collection?: boolean;
+}) {
+  return (
+    <div
+      className={cn("v4-feed-column", className)}
+      data-stream-column={stream ? "true" : undefined}
+      data-collection-column={collection ? "true" : undefined}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** Chrome immediately above the feed body (layout toggle, layer chips) — not page-title actions. */
+export function FeedChrome({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "v4-feed-chrome mb-2 flex flex-wrap items-center justify-between gap-2",
+        className,
+      )}
+      data-feed-chrome
+    >
+      {children}
+    </div>
+  );
+}
+
+/** List vs 卡片式 toggle — one control in view chrome; parent persists via settings.ui. */
+export function FeedLayoutToggle({
+  value,
+  onChange,
+  className,
+}: {
+  value: FeedLayout;
+  onChange: (v: FeedLayout) => void;
+  className?: string;
+}) {
+  const { t } = useTranslation(["workspace", "common"]);
+  const options: Array<{ id: FeedLayout; icon: typeof AlignJustify; label: string; hint: string }> = [
+    {
+      id: "list",
+      icon: AlignJustify,
+      label: t("workspace:feedLayout.list"),
+      hint: t("workspace:feedLayout.listHint"),
+    },
+    {
+      id: "card",
+      icon: GalleryVertical,
+      label: t("workspace:feedLayout.card"),
+      hint: t("workspace:feedLayout.cardHint"),
+    },
+  ];
+  return (
+    <div
+      className={cn("v4-feed-layout-toggle inline-flex shrink-0 items-center", className)}
+      role="group"
+      aria-label={t("workspace:feedLayout.toggleAria")}
+      data-feed-layout-toggle
+    >
+      {options.map((opt) => {
+        const active = value === opt.id;
+        return (
+          <Tooltip key={opt.id} content={`${opt.label} · ${opt.hint}`} side="bottom">
+            <button
+              type="button"
+              data-layout-option={opt.id}
+              data-active={active ? "true" : undefined}
+              aria-pressed={active}
+              aria-label={opt.label}
+              onClick={() => onChange(opt.id)}
+              className={cn(
+                "inline-flex h-7 items-center gap-1 rounded-full px-2 text-3xs font-medium leading-none transition-colors",
+                "v4-focus-ring",
+                active
+                  ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
+                  : "text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
+              )}
+            >
+              <opt.icon size={ICON.nano} aria-hidden />
+              <span className="hidden sm:inline">{opt.label}</span>
+            </button>
+          </Tooltip>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Shared list/card feed wrapper for Inbox / Category / Topic / Outputs / memory. */
+export function CollectionFeed({
+  layout,
+  children,
+  className,
+}: {
+  layout: FeedLayout;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <CollectionLayoutContext.Provider value={layout}>
+      <div
+        data-collection-feed
+        data-layout={layout}
+        className={cn(
+          "v4-feed",
+          layout === "card" ? "v4-feed-card" : "v4-feed-list",
+          className,
+        )}
+      >
+        {children}
+      </div>
+    </CollectionLayoutContext.Provider>
   );
 }

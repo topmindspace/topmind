@@ -1893,3 +1893,154 @@ html.dark .v4-overlay-sheet {
   color: var(--color-text-prose, var(--color-text-primary));
   max-width: 100%;
 }
+
+/* ── Feed layouts: list (X-like dense column) vs card (single-column aligned) ──
+   卡片对齐 = one column, same width. Not a masonry / Pinterest grid.
+   Compose + list + cards share --feed-column-max. */
+.v4-feed-column,
+.v4-feed,
+[data-stream-feed],
+.v4-stream-composer {
+  width: 100%;
+  max-width: min(var(--feed-column-max, 40rem), 100%);
+  margin-inline: auto;
+}
+.v4-feed-column .v4-feed,
+.v4-feed-column [data-stream-feed],
+.v4-feed-column .v4-stream-composer {
+  max-width: none;
+  margin-inline: 0;
+}
+.v4-feed-layout-toggle {
+  gap: 2px;
+  padding: 2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-surface-muted) 55%, transparent);
+}
+.v4-feed {
+  width: 100%;
+}
+.v4-feed-list {
+  display: flex;
+  flex-direction: column;
+}
+.v4-feed-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Collection canvases (Inbox / Category / Topic / Outputs / memory) */
+[data-collection-feed][data-layout="list"] ul {
+  margin: 0;
+  padding: 0.2rem;
+  list-style: none;
+}
+[data-collection-feed][data-layout="card"] ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+[data-collection-feed][data-layout="card"] [data-collection-item] {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--color-border-subtle-dim);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-elevated);
+  box-shadow: var(--shadow-card);
+  min-height: 3.25rem;
+}
+[data-collection-feed][data-layout="card"] [data-collection-item]:hover {
+  background: var(--color-surface-elevated);
+  box-shadow: var(--shadow-elevated-hairline, var(--shadow-card));
+  border-color: color-mix(in srgb, var(--color-accent-color) 22%, var(--color-border-subtle-dim));
+}
+
+/* Stream: list = hairline posts; card = bounded same-width posts */
+[data-stream-feed] {
+  width: 100%;
+}
+[data-stream-feed][data-layout="list"] [data-stream-day-group] {
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  overflow: visible;
+}
+[data-stream-feed][data-layout="list"] [data-stream-day-toggle] {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.55rem 0.35rem 0.35rem;
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--color-border-subtle-dim);
+  border-radius: 0;
+}
+[data-stream-feed][data-layout="list"] [data-stream-day-body] {
+  display: flex;
+  flex-direction: column;
+}
+[data-stream-feed][data-layout="list"] [data-stream-entry-card] {
+  padding: 0.85rem 0.4rem 0.9rem;
+  border-bottom: 1px solid var(--color-border-subtle-dim);
+  background: transparent;
+}
+[data-stream-feed][data-layout="list"] [data-stream-entry-card]:last-child {
+  border-bottom: none;
+}
+[data-stream-feed][data-layout="card"] [data-stream-day-group] {
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  overflow: visible;
+}
+[data-stream-feed][data-layout="card"] [data-stream-day-toggle] {
+  padding: 0.45rem 0.15rem;
+  background: transparent;
+  border-radius: 0;
+}
+[data-stream-feed][data-layout="card"] [data-stream-day-body] {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.35rem 0 0.85rem;
+}
+[data-stream-feed][data-layout="card"] [data-stream-entry-card] {
+  padding: 0.95rem 1.05rem;
+  border: 1px solid var(--color-border-subtle-dim);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-elevated);
+  box-shadow: var(--shadow-card);
+}
+[data-stream-feed][data-layout="card"] [data-stream-entry-card]:hover {
+  border-color: color-mix(in srgb, var(--color-accent-color) 18%, var(--color-border-subtle-dim));
+}
+[data-stream-feed] [data-stream-entry-card] [data-stream-nested-appends] {
+  margin-top: 0.55rem;
+}
+
+/* Memory browse uses the same feed chrome */
+[data-memory-feed][data-layout="list"] [data-memory-feed-item] {
+  padding: 0.8rem 0.4rem;
+  border-bottom: 1px solid var(--color-border-subtle-dim);
+}
+[data-memory-feed][data-layout="card"] {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: min(40rem, 100%);
+  margin-inline: auto;
+}
+[data-memory-feed][data-layout="card"] [data-memory-feed-item] {
+  padding: 0.95rem 1.05rem;
+  border: 1px solid var(--color-border-subtle-dim);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-elevated);
+  box-shadow: var(--shadow-card);
+}

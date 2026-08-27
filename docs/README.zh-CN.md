@@ -92,6 +92,7 @@
 | [2026-08-13](./adr/2026-08-13-desktop-stream-editor-ai-review.md) | Stream / editor / AI review | High：预览非活 TipTap；动态多行剥 chrome；Obsidian 增补可见且剥注释 |
 | [2026-08-16](./adr/2026-08-16-memory-consolidation.md) | Memory Consolidation | 确认式画像事实生命周期：追加 / 归档到历史段 / 原位更新，对齐 mem0 ADD/UPDATE/DELETE |
 | [2026-08-23](./adr/2026-08-23-contract-settings-integrity.md) | Contract & Settings Integrity | 契约修复收敛、覆盖前备份、原子写、设置 partial patch、周期路径双向粘滞、Memory/todo 平面契约路径（含 skip 回执与宿主打开入口）、设置关闭冲刷 |
+| [2026-08-27](./adr/2026-08-27-desktop-log-rotation.md) | Desktop Log Rotation | 支持日志按大小轮转（`main.log` 2 MB × 3 份归档；过大遗留文件自愈） |
 
 ---
 

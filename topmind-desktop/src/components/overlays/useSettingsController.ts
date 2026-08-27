@@ -143,6 +143,7 @@ export function useSettingsController() {
         setSidebarView: vs.setSidebarView,
         setAiPanelOpen: vs.setAiPanelOpen,
         setAiPanelWidth: vs.setAiPanelWidth,
+        setFeedLayout: vs.setFeedLayout,
       });
       if (snap.sidebarView) setSidebarView(snap.sidebarView);
       if (applied) emitLocal(UI_SETTINGS_APPLIED_EVENT, snap);

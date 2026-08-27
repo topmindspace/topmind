@@ -65,6 +65,8 @@ export interface TopmindSettings {
   autoTag: boolean;
   /** "" = auto (follow Obsidian locale), "zh-CN" / "en-US" = override. */
   localeOverride: string;
+  /** Stream + memory browse: dense list vs single-column cards. */
+  feedLayout: "list" | "card";
 
   // ── AI (multi-provider, aligned with Desktop) ──
   ai: AiConfig;
@@ -104,6 +106,7 @@ export const DEFAULT_SETTINGS: TopmindSettings = {
   timelineOrder: "desc",
   autoTag: true,
   localeOverride: "",
+  feedLayout: "list",
 
   // AI — multi-provider model (aligned with Desktop)
   ai: {
@@ -155,6 +158,10 @@ export function migrateSettings(raw: Record<string, unknown>): TopmindSettings {
       manual: { ...EMPTY_AI_MANUAL },
     },
   } as TopmindSettings;
+
+  if (merged.feedLayout !== "list" && merged.feedLayout !== "card") {
+    merged.feedLayout = "list";
+  }
 
   // If raw has an ai object, merge its fields into our deep-cloned copy
   if (raw.ai && typeof raw.ai === "object") {

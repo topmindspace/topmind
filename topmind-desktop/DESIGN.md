@@ -19,7 +19,7 @@
 ```text
 标题栏主锚点：动态（默认） · 收件箱 · 写出来 · 搜索 · 记一下 · AI
 侧栏默认：本周动态 / 周期本时间线
-二级入口：专题树 · 我的情况 · 归档（⌘⇧A / 命令面板；不在 PrimaryNav）
+二级入口：专题树 · 我的情况（记忆浏览：列表/卡片，点开条目仍落文件） · 归档（⌘⇧A / 命令面板；不在 PrimaryNav）
 高级（折叠或 ⌘K）：标签 · 看板 · 插件槽 · Tools/UTR
 ```
 
@@ -39,6 +39,9 @@
 **唯一确认面**：`SuggestPopover`（接受 / 忽略 / 待确认写入）· 与 AI 聊天轨解耦；AI 轨 `ActionBar` **仅专注模式**（状态栏可能被藏时的回退），不挂第二套完整列表。  
 **会话稳定**：软刷新 / 15s 轮询不得因 kernel 空 regenerate 清空已展示建议（`sessionSuggestionCache` + `mergeSuggestRefreshItems`）；dismiss/apply 仍可移除。  
 **卡片正文**：`stream-md-preview` 轻预览（剥 `<!-- topmind:append -->`；首行子弹/时间进芯片不进正文）；**Feed 稳定**：软 reload 不全页 loading。  
+**信息流两种布局（`settings.ui.feedLayout` · 列表 / 卡片）**：开关在**信息流正文上方**（`data-feed-chrome`，与帖子同列），不在页头 AI 动作条。列表 = X 式单列紧凑帖（细线分隔）；卡片 = **同一套 chunks** 的单列等宽卡片——**不是** Pinterest/masonry 多列。记下输入框、列表、卡片共用 `--feed-column-max`（`.v4-feed-column`）。收件箱 / 类别 / 专题 / 写出来 共用同一开关。  
+**分块诚实**：日/周期段若是 markdown **列表**（`-` / `*` / `1.`）仍按条目拆帖；**无列表标记的长散文换行**是一条帖（空行分段仍是段落 `<p>`，不是每行一个 `<li>`）；timed/list 条目后续段落留在同一帖。列表与卡片消费同一 parse，切换布局不重拆。  
+**我的情况**：侧栏 Profile **与动态信息流上的「我的情况」** 打开记忆浏览（画像 / 周期反思 / 专题记忆 **分层芯片**）；点开条目仍落到真实相对路径；「在目录中显示」展开侧栏 `memory/`（不是第六用户概念）。**整理我的情况**走已有 `memory_organize` → `runActivityOps` → **SuggestPopover 确认面**；自动准备可生成建议，**从不静默写画像**。无平行记忆库。  
 **个人清单**：TodoPopover · **≠** 建议。  
 **建议沉淀**：confirm 后 profile/periodic / 内容大类专题。
 
@@ -696,7 +699,7 @@ chrome（微暖框架）→ background（净白画布）→ surface（工作面�
 
 > **现在时规范是 §0–§3**（尤其 §2.2 侧栏 · §2.3 编辑区）。本节是发版指针，不是第二套 spec。Phase 0–6 / Brand Horizon / Design System 2.0 像素台账以 git 历史为准，不在此复述。
 
-### Desktop 3.5.5 — quality / Obsidian Kernel AI parity
+### Quality / Obsidian Kernel AI parity
 
 - Product tag follows Desktop; UTR same stamp; Skills / Obsidian / Clip independent patches
 - Obsidian: suggest refresh `force`, session merge, op confirm cards, chat 3-tier locale, ops summaries follow host UI language
@@ -707,7 +710,7 @@ chrome（微暖框架）→ background（净白画布）→ surface（工作面�
 - Kernel: `createKernelContext` 向 derived builders 传 contract（locale 正确解析）；缺失 profile 的 `open_profile` 建议升 high（onboarding 锚点）；`writeTodoList` evidence 按磁盘实际 create/update
 - Living docs: writeback receipts high-impact only; contract top-key whitelist; stream-year archive has no extra receipts YAML
 
-### Desktop 3.5.4 — Markdown 预览 / 编辑器 / 侧栏文件查看
+### Markdown 预览 / 编辑器 / 侧栏文件查看
 
 - **编辑** = TipTap；**预览 / 只读** = `getEditorHtml()` 静态 HTML（`.v4-tiptap`），不是 live TipTap `setEditable`
 - 同一阅读偏好包住两边；路径切换重置预览，空笔记不保留上一篇 HTML

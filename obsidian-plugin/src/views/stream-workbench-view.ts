@@ -132,8 +132,12 @@ export class StreamWorkbenchView extends ItemView {
     // ── Toolbar ──
     this.renderToolbar(contentEl);
 
+    // Shared compose + stream column (not the far toolbar)
+    const feedColumn = contentEl.createDiv({ cls: "tm-feed-column" });
+    feedColumn.setAttr("data-stream-column", "true");
+
     // ── Quick Input Bar ──
-    const inputBar = contentEl.createDiv({ cls: "tm-input-bar" });
+    const inputBar = feedColumn.createDiv({ cls: "tm-input-bar" });
     const inputWrap = inputBar.createDiv({ cls: "tm-input-wrap" });
     this.inputEl = inputWrap.createEl("textarea", {
       cls: "tm-input-field",
@@ -170,7 +174,7 @@ export class StreamWorkbenchView extends ItemView {
     this.submitBtn.addEventListener("click", () => this.submitInput());
 
     // ── Stream Section ──
-    const streamHeader = contentEl.createDiv({ cls: "tm-section-header" });
+    const streamHeader = feedColumn.createDiv({ cls: "tm-section-header" });
     const streamTitleDiv = streamHeader.createDiv({ cls: "tm-section-title" });
     streamTitleDiv.createSpan({ text: t("stream_this_week") });
     this.entryCountEl = streamTitleDiv.createSpan({ cls: "tm-entry-count" });
@@ -205,7 +209,20 @@ export class StreamWorkbenchView extends ItemView {
     this.organizeBtn.setAttribute("aria-label", t("stream_organize"));
     this.organizeBtn.addEventListener("click", () => this.organizePeriod());
 
-    this.streamContainer = contentEl.createDiv({ cls: "tm-stream-container" });
+    this.renderLayoutToggle(streamControls);
+
+    const memoryBtn = streamControls.createEl("button", {
+      cls: "tm-btn-secondary tm-toolbar-btn-labeled",
+    });
+    setIcon(memoryBtn, "user");
+    memoryBtn.createSpan({ text: t("toolbar_btn_profile"), cls: "tm-toolbar-btn-label" });
+    memoryBtn.setAttribute("aria-label", t("toolbar_btn_profile"));
+    memoryBtn.setAttribute("title", t("toolbar_btn_profile"));
+    memoryBtn.setAttribute("data-stream-open-memory", "true");
+    memoryBtn.addEventListener("click", () => void this.plugin.openMemoryBrowse());
+
+    this.streamContainer = feedColumn.createDiv({ cls: "tm-stream-container" });
+    this.applyFeedLayout();
 
     // ── Suggestions Section ──
     const suggHeader = contentEl.createDiv({ cls: "tm-section-header" });
@@ -292,7 +309,46 @@ export class StreamWorkbenchView extends ItemView {
     profileBtn.createSpan({ text: t("toolbar_btn_profile"), cls: "tm-toolbar-btn-label" });
     profileBtn.setAttribute("aria-label", t("cmd_open_profile"));
     profileBtn.setAttribute("title", t("cmd_open_profile"));
-    profileBtn.addEventListener("click", () => this.openProfile());
+    profileBtn.addEventListener("click", () => void this.plugin.openMemoryBrowse());
+  }
+
+  private currentFeedLayout(): "list" | "card" {
+    return this.plugin.settings.feedLayout === "card" ? "card" : "list";
+  }
+
+  private applyFeedLayout(): void {
+    if (!this.streamContainer) return;
+    const layout = this.currentFeedLayout();
+    this.streamContainer.setAttr("data-layout", layout);
+    this.streamContainer.setAttr("data-stream-feed", "true");
+  }
+
+  private renderLayoutToggle(parent: HTMLElement): void {
+    const wrap = parent.createDiv({ cls: "tm-feed-layout-toggle" });
+    wrap.setAttr("data-feed-layout-toggle", "true");
+    wrap.setAttr("role", "group");
+    wrap.setAttr("aria-label", t("feed_layout_toggle"));
+    const current = this.currentFeedLayout();
+    for (const id of ["list", "card"] as const) {
+      const btn = wrap.createEl("button", {
+        cls: "tm-btn-secondary tm-feed-layout-btn",
+        text: id === "list" ? t("feed_layout_list") : t("feed_layout_card"),
+      });
+      btn.setAttr("data-layout-option", id);
+      if (current === id) btn.setAttr("data-active", "true");
+      btn.addEventListener("click", async () => {
+        this.plugin.settings.feedLayout = id;
+        await this.plugin.saveSettings();
+        this.applyFeedLayout();
+        for (const b of wrap.querySelectorAll("[data-layout-option]")) {
+          if ((b as HTMLElement).getAttribute("data-layout-option") === id) {
+            (b as HTMLElement).setAttr("data-active", "true");
+          } else {
+            (b as HTMLElement).removeAttribute("data-active");
+          }
+        }
+      });
+    }
   }
 
   /** Open plugin settings tab */
@@ -367,14 +423,6 @@ export class StreamWorkbenchView extends ItemView {
       console.error("[topmind] createNewNote failed:", err);
       new Notice(t("notice_new_note_failed"));
     }
-  }
-
-  private async openProfile(): Promise<void> {
-    if (!this.plugin.kernelService.isWorkspaceReady()) {
-      new Notice(t("notice_workspace_not_ready"));
-      return;
-    }
-    await this.app.workspace.openLinkText(this.plugin.kernelService.profileRelPath(), "", false);
   }
 
   // ── Refresh ────────────────────────────────────────────────────────────
@@ -596,7 +644,9 @@ export class StreamWorkbenchView extends ItemView {
     const header = card.createDiv({ cls: "tm-card-header" });
     const timeIcon = header.createSpan({ cls: "tm-card-time-icon" });
     setIcon(timeIcon, "clock");
-    header.createSpan({ cls: "tm-card-time", text: entry.time });
+    if (entry.time) {
+      header.createSpan({ cls: "tm-card-time", text: entry.time });
+    }
 
     // Card actions (icon-only with tooltips — compact, no overflow)
     const actionsEl = header.createDiv({ cls: "tm-card-actions" });

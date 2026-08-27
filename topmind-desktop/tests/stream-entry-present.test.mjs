@@ -138,4 +138,59 @@ describe("stream-entry-present", () => {
     assert.doesNotMatch(summary, /topmind:append/);
     assert.match(summary, /可见摘要/);
   });
+
+  it("same chunks for both layouts: wrapped prose is one row; timed list is two; continuation stays one", async () => {
+    const { pathToFileURL } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const { fileURLToPath } = await import("node:url");
+    const parseMod = await import(
+      pathToFileURL(join(dirname(fileURLToPath(import.meta.url)), "../src/lib/stream-period-parse.ts")).href
+    );
+    const { parsePeriodNote } = parseMod;
+
+    const prose = parsePeriodNote(
+      [
+        "## 08-03 周一",
+        "",
+        "This is a long paragraph that wraps",
+        "across several lines because the author",
+        "hit enter without using list markers.",
+      ].join("\n"),
+    );
+    assert.equal(prose.length, 1);
+    const proseRows = groupDayFeedRows(prose.map((e, i) => ({ ...e, index: i })));
+    assert.equal(proseRows.length, 1);
+    assert.equal(classifyStreamEntry(prose[0]), "prose");
+
+    const timed = parsePeriodNote("## 08-03 周一\n\n- 10:00 a\n- 11:00 b\n");
+    assert.equal(timed.length, 2);
+    const timedRows = groupDayFeedRows(timed.map((e, i) => ({ ...e, index: i })));
+    assert.equal(timedRows.length, 2);
+    assert.equal(classifyStreamEntry(timed[0]), "moment");
+    assert.equal(classifyStreamEntry(timed[1]), "moment");
+
+    const continued = parsePeriodNote("## 08-03 周一\n\n- 10:00 lead\n\nsecond paragraph\n");
+    assert.equal(continued.length, 1);
+    const contRows = groupDayFeedRows(continued.map((e, i) => ({ ...e, index: i })));
+    assert.equal(contRows.length, 1);
+    assert.match(continued[0].body, /second paragraph/);
+  });
+
+  it("StreamDetailView applies data-layout to the same parse/group path (does not re-split)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { dirname, join } = await import("node:path");
+    const { fileURLToPath } = await import("node:url");
+    const src = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../src/plugins/topmind-workspace/views/StreamDetailView.tsx"),
+      "utf8",
+    );
+    assert.match(src, /parsePeriodNote\(content\)/);
+    assert.match(src, /groupDayFeedRows\(group\.entries\)/);
+    assert.match(src, /data-layout=\{feedLayout\}/);
+    const loadFn = src.slice(src.indexOf("const loadPeriodContent"), src.indexOf("const loadPeriods"));
+    assert.doesNotMatch(loadFn, /feedLayout/);
+    const feed = src.slice(src.indexOf("data-stream-feed"));
+    assert.match(feed, /groupDayFeedRows/);
+    assert.doesNotMatch(feed, /parsePeriodNote/);
+  });
 });

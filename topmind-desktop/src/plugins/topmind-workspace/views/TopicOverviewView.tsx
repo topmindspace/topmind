@@ -15,6 +15,10 @@ import {
   FileRow,
   LoadingState,
   ErrorState,
+  FeedLayoutToggle,
+  CollectionFeed,
+  FeedColumn,
+  FeedChrome,
 } from "../../../components/ui/view";
 import { PromptDialog, ErrorDialog } from "../../../components/ui/Dialog";
 import {
@@ -51,6 +55,8 @@ export function TopicOverviewView({ topicId }: Props) {
   const [errorDialog, setErrorDialog] = useState<string | null>(null);
   const select = useViewStore((s) => s.select);
   const selection = useViewStore((s) => s.selection);
+  const feedLayout = useViewStore((s) => s.feedLayout);
+  const setFeedLayout = useViewStore((s) => s.setFeedLayout);
   const setAiPanelOpen = useViewStore((s) => s.setAiPanelOpen);
   const openOverlay = useViewStore((s) => s.openOverlay);
   const fileMenu = useFileContextMenu();
@@ -176,6 +182,10 @@ export function TopicOverviewView({ topicId }: Props) {
         }
       />
 
+      <FeedColumn collection>
+        <FeedChrome>
+          <FeedLayoutToggle value={feedLayout} onChange={setFeedLayout} />
+        </FeedChrome>
       <SectionHeader icon={<FileText size={ICON.xs} />} label={t("workspace:topicOverview.notes")} count={sortedFiles.length} />
       {sortedFiles.length === 0 ? (
         <EmptyState
@@ -194,7 +204,7 @@ export function TopicOverviewView({ topicId }: Props) {
           }
         />
       ) : (
-        <div className="v4-dash-card p-1.5">
+        <CollectionFeed layout={feedLayout} className={feedLayout === "list" ? "v4-dash-card p-1.5" : undefined}>
           <RowList>
             {sortedFiles.map((f) => {
               const isTopicFile = f.name === "topic.md";
@@ -239,8 +249,9 @@ export function TopicOverviewView({ topicId }: Props) {
               );
             })}
           </RowList>
-        </div>
+        </CollectionFeed>
       )}
+      </FeedColumn>
       <WorkspaceFileContextMenu
         menu={fileMenu.menu}
         onClose={fileMenu.close}

@@ -282,7 +282,7 @@ Shell
 │   ├── 左: 侧栏 + 前进/后退 + WorkspaceSwitcher（⌘⇧W）— 品牌芯片已移除（2026-08-07）
 │   ├── 中: PrimaryNav — **动态（默认）** · **收件箱** · **写出来** · **搜索** + ⌘K
 │   └── 右: **记一下**（⌘N）+ 建议 + 待办 + 设置 + AI
-├── Sidebar — 默认动态流；二级专题树 / 记忆 / 我的情况 / 归档；高级 tags/kanban/plugins
+├── Sidebar — 默认动态流；二级专题树 / 我的情况（记忆浏览） / 归档；高级 tags/kanban/plugins
 ├── EditorArea — 默认动态主表面或 ViewSlot 编辑
 ├── AiPanel — 副驾：compact ActionBar（跳转）+ 对话区 + Composer
 ├── SuggestPopover — **全局建议确认面**（标题栏 💡 / strip / openSuggestSurface）

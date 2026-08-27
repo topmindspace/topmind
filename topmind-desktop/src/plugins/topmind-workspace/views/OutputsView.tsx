@@ -27,6 +27,10 @@ import {
   FileRow,
   LoadingState,
   ErrorState,
+  FeedLayoutToggle,
+  CollectionFeed,
+  FeedColumn,
+  FeedChrome,
 } from "../../../components/ui/view";
 import { ConfirmDialog } from "../../../components/ui/Dialog";
 import {
@@ -96,6 +100,8 @@ export function OutputsView() {
   const [filter, setFilter] = useState("");
   const select = useViewStore((s) => s.select);
   const selection = useViewStore((s) => s.selection);
+  const feedLayout = useViewStore((s) => s.feedLayout);
+  const setFeedLayout = useViewStore((s) => s.setFeedLayout);
   const openOverlay = useViewStore((s) => s.openOverlay);
   const fileMenu = useFileContextMenu();
 
@@ -252,7 +258,11 @@ export function OutputsView() {
           }
         />
       ) : (
-        <div className="v4-dash-card p-1.5">
+        <FeedColumn collection>
+        <FeedChrome>
+          <FeedLayoutToggle value={feedLayout} onChange={setFeedLayout} />
+        </FeedChrome>
+        <div className={feedLayout === "list" ? "v4-dash-card p-1.5" : undefined}>
           <div className="mb-1.5 flex items-center gap-2 px-1">
             <input
               type="search"
@@ -274,6 +284,7 @@ export function OutputsView() {
                   {g.label}
                   <span className="tabular-nums opacity-70">{g.items.length}</span>
                 </div>
+                <CollectionFeed layout={feedLayout}>
                 <RowList>
                   {g.items.map((f) => {
                     const active =
@@ -391,10 +402,12 @@ export function OutputsView() {
                     );
                   })}
                 </RowList>
+                </CollectionFeed>
               </div>
             ))
           )}
         </div>
+        </FeedColumn>
       )}
       <WorkspaceFileContextMenu
         menu={fileMenu.menu}

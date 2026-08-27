@@ -36,7 +36,7 @@
 | **记一下** | 存下来 | 当前动态周期本 / 收件箱 / 专题 |
 | **动态** | 日常流水 | `role:loose-stream`；默认 weekly 周期本 |
 | **专题** | 长期主题夹 | `{大类}/{YYYY-主题}/` |
-| **我的情况** | 关于我的稳定信息 | `memory/profile.md` |
+| **我的情况** | 关于我的稳定信息 | 记忆平面浏览（画像 + 周期反思 + 专题记忆）；点开条目仍落文件（默认 `memory/profile.md`） |
 | **写出来** | 出成品 | `role:delivery`（常为 88-输出） |
 
 UI **不教**：protection、derived、writeback_mode、schema、engine、UTR 命令名。设置用白话（「保存前问我」「重要文件不让 AI 直接改」）。
@@ -144,7 +144,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | `kernel-api` 门面 + `createKernelContext` | **Done**（per-workspace 工厂） |
 | writeback-engine 唯一写闸 | **Done**（Desktop 耐久 .md 全路径；UTR；AI `actor:"ai"`；memory/todo 全经 executeWrite） |
 | batch writeback mode | **Done**（仅 auto\|confirm；`batch` 硬拒绝） |
-| Memory 产品入口 | **Done**（侧栏「我的情况」钉） |
+| Memory 产品入口 | **Done**（侧栏「我的情况」钉 → 记忆浏览：画像 / 周期反思 / 专题记忆；点开仍落文件） |
 | 建议条 generate / confirm apply | **Done**（suggest-engine + SuggestPopover + StatusBar 计数 chip） |
 | AI 驱动建议与摘要 | **Done**（ai_summary 真实 LLM；失败诚实不写；变更检测；sanitize；per-operation 动态 temperature/systemPrompt/maxTokens；瞬态错误自动重试） |
 | 动态主表面 PrimaryNav | **Done**（默认 stream） |
@@ -222,7 +222,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 ```text
 标题栏：动态（默认） · 收件箱 · 写出来 · 搜索 · 记一下 · AI
 侧栏默认：本周动态时间线 / 周期本（非完整文件树）
-二级：专题树 · 我的情况 · 归档
+二级：专题树 · 我的情况（记忆浏览） · 归档
 高级（折叠/⌘K）：标签 · 看板 · 插件 · Tools/UTR
 待办：TitleBar 弹层（⌘⇧T · pin/unpin 可拖动）
 ```

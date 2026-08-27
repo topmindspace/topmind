@@ -147,6 +147,78 @@ test("Settings + overlays use v4 elevated shell; sidebar plugins default collaps
   assert.match(sidebar, /data-sidebar-plugins-collapsed/);
 });
 
+test("Stream and collection canvases expose list/card layout switch + data-layout", () => {
+  const feedViews = [
+    "src/plugins/topmind-workspace/views/StreamDetailView.tsx",
+    "src/plugins/topmind-workspace/views/InboxView.tsx",
+    "src/plugins/topmind-workspace/views/CategoryView.tsx",
+    "src/plugins/topmind-workspace/views/TopicOverviewView.tsx",
+    "src/plugins/topmind-workspace/views/OutputsView.tsx",
+    "src/plugins/topmind-workspace/views/MemoryBrowseView.tsx",
+  ];
+  for (const rel of feedViews) {
+    const src = read(rel);
+    assert.ok(src.includes("FeedLayoutToggle"), `${rel} missing FeedLayoutToggle`);
+  }
+  const collections = [
+    "src/plugins/topmind-workspace/views/InboxView.tsx",
+    "src/plugins/topmind-workspace/views/CategoryView.tsx",
+    "src/plugins/topmind-workspace/views/TopicOverviewView.tsx",
+    "src/plugins/topmind-workspace/views/OutputsView.tsx",
+  ];
+  for (const rel of collections) {
+    const src = read(rel);
+    assert.ok(src.includes("CollectionFeed"), `${rel} missing CollectionFeed`);
+  }
+  const stream = read("src/plugins/topmind-workspace/views/StreamDetailView.tsx");
+  assert.ok(stream.includes("data-stream-feed"));
+  assert.ok(stream.includes("data-layout={feedLayout}"));
+  assert.ok(stream.includes("data-stream-column") || stream.includes("FeedColumn"));
+  assert.ok(stream.includes("data-stream-inline-composer"));
+  const headerStart = stream.indexOf("<PageHeader");
+  assert.ok(headerStart >= 0);
+  const headerSlice = stream.slice(headerStart);
+  const headerEnd = headerSlice.search(/\/>/);
+  const headerBlock = headerSlice.slice(0, headerEnd >= 0 ? headerEnd + 2 : 800);
+  assert.ok(
+    !headerBlock.includes("<FeedLayoutToggle"),
+    "layout toggle must not live in page-title actions",
+  );
+  const composerIdx = stream.indexOf("data-stream-inline-composer");
+  const toggleIdx = stream.indexOf("<FeedLayoutToggle");
+  const feedIdx = stream.indexOf("data-stream-feed");
+  assert.ok(composerIdx > 0 && toggleIdx > composerIdx && feedIdx > toggleIdx);
+  assert.ok(stream.includes("data-stream-open-memory"));
+  assert.ok(stream.includes('kind: "memory"'));
+  const tokens = read("src/styles/tokens.css");
+  assert.match(tokens, /--feed-column-max:/);
+  const css = read("src/styles/v4.css");
+  assert.match(css, /\.v4-feed-column/);
+  assert.match(css, /--feed-column-max/);
+  const memory = read("src/plugins/topmind-workspace/views/MemoryBrowseView.tsx");
+  assert.ok(memory.includes("data-memory-feed"));
+  assert.ok(memory.includes("data-layout={feedLayout}"));
+  const kit = read("src/components/ui/view.tsx");
+  assert.ok(kit.includes("data-feed-layout-toggle"));
+  assert.ok(kit.includes("data-layout-option"));
+  assert.ok(kit.includes("data-collection-feed"));
+  assert.ok(kit.includes('data-layout={layout}'));
+  const persist = read("src/components/shell/useShellSettingsSync.ts");
+  assert.ok(persist.includes("feedLayout"));
+  assert.ok(!persist.includes("topmind:feed-layout"));
+  const types = read("src/types.ts");
+  assert.ok(types.includes("feedLayout?:"));
+  const core = read("electron/lib/settings-core.mjs");
+  assert.match(core, /feedLayout:\s*"list"/);
+  const persistShell = read("src/components/shell/useShellSettingsSync.ts");
+  assert.match(persistShell, /feedLayout:\s*s\.feedLayout/);
+  assert.match(persistShell, /api\.sys[\s\S]{0,80}update\(\{\s*ui:/);
+  for (const rel of collections) {
+    const src = read(rel);
+    assert.ok(src.includes("FeedChrome") || src.includes("data-feed-chrome"), `${rel} toggle not above feed`);
+  }
+});
+
 test("FilterChip is chip-weight; EmptyState one-primary-CTA; CaptureModeBar chip language", () => {
   const view = read("src/components/ui/view.tsx");
   assert.match(view, /data-filter-chip/);
@@ -184,6 +256,13 @@ test("DESIGN.md documents core UI patterns", () => {
   assert.doesNotMatch(design, /格式工具条 \*\*默认折叠\*\*/);
   assert.doesNotMatch(design, /预览 = Tiptap readOnly/);
   assert.match(design, /静态 HTML/);
+  assert.match(design, /feedLayout|列表 \/ 卡片|卡片式/);
+  assert.match(design, /单列/);
+  assert.match(design, /masonry|Pinterest|瀑布/);
+  assert.match(design, /记忆浏览/);
+  assert.match(design, /feed-column|--feed-column-max|信息流正文上方/);
+  assert.doesNotMatch(design, /页头切换/);
+  assert.match(design, /runActivityOps|memory_organize/);
 });
 
 test("ReasoningBlock defaults collapsed; stream status labels exist", () => {

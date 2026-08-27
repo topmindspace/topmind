@@ -164,4 +164,67 @@ title: 2026-W32
     const g = groups.find((x) => x.dayLabel.includes("08-03"));
     assert.ok(g && g.entries.length >= 4);
   });
+
+  it("wrapped prose with no list markers is one entry (not one card per newline)", () => {
+    const md = [
+      "## 08-03 周一",
+      "",
+      "This is a long paragraph that wraps",
+      "across several lines because the author",
+      "hit enter without using list markers.",
+      "",
+      "Second paragraph after a blank line stays on the same post.",
+    ].join("\n");
+    const entries = parsePeriodNote(md);
+    const day = entries.filter((e) => e.heading === "08-03 周一");
+    assert.equal(day.length, 1, `expected one prose post, got ${day.length}`);
+    assert.match(day[0].body, /long paragraph/);
+    assert.match(day[0].body, /Second paragraph/);
+    assert.doesNotMatch(day[0].body, /^\s*[-*+]\s/m);
+  });
+
+  it("timed list items stay separate; extra paragraphs stay on the same moment", () => {
+    const md = [
+      "## 08-03 周一",
+      "",
+      "- 10:00 a",
+      "- 11:00 b",
+      "",
+    ].join("\n");
+    const timed = parsePeriodNote(md).filter((e) => e.heading === "08-03 周一");
+    assert.equal(timed.length, 2);
+    assert.match(timed.find((e) => /10:00/.test(e.body)).body, /10:00 a/);
+    assert.match(timed.find((e) => /11:00/.test(e.body)).body, /11:00 b/);
+
+    const continued = parsePeriodNote(
+      [
+        "## 08-03 周一",
+        "",
+        "- 10:00 lead",
+        "",
+        "second paragraph of the same moment",
+      ].join("\n"),
+    ).filter((e) => e.heading === "08-03 周一");
+    assert.equal(continued.length, 1, `expected one continued moment, got ${continued.length}`);
+    assert.match(continued[0].body, /10:00 lead/);
+    assert.match(continued[0].body, /second paragraph/);
+  });
+
+  it("prose-first day keeps an embedded list on the same post", () => {
+    const md = [
+      "## 08-03 周一",
+      "",
+      "Today I thought about the plan:",
+      "",
+      "- point a",
+      "- point b",
+      "",
+      "That is the conclusion.",
+    ].join("\n");
+    const day = parsePeriodNote(md).filter((e) => e.heading === "08-03 周一");
+    assert.equal(day.length, 1, `expected one prose post with list, got ${day.length}`);
+    assert.match(day[0].body, /Today I thought/);
+    assert.match(day[0].body, /- point a/);
+    assert.match(day[0].body, /conclusion/);
+  });
 });

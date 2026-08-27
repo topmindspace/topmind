@@ -11,6 +11,7 @@ import {
   stripHtmlCommentsForPreview,
   prepareStreamMarkdown,
   prefersMarkdownPreview,
+  stripListChromeForDisplay,
 } from "../src/lib/stream-md-preview.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -206,6 +207,61 @@ test("StreamMdBody always strips first-line list/time chrome (not only single-li
   const body = view.slice(view.indexOf("function StreamMdBody"));
   assert.match(body, /stripListChromeForDisplay\(parts\.main\)/);
   assert.doesNotMatch(body, /lines\.length === 1 && \/\^\\s\*\[-\*\+\]/);
+});
+
+test("wrapped prose preview uses paragraphs, not one <li> per newline", async () => {
+  const { parsePeriodNote } = await import("../src/lib/stream-period-parse.ts");
+  const md = [
+    "## 08-03 周一",
+    "",
+    "This is a long paragraph that wraps",
+    "across several lines because the author",
+    "hit enter without using list markers.",
+  ].join("\n");
+  const entries = parsePeriodNote(md);
+  assert.equal(entries.length, 1);
+  const html = streamMarkdownToPreviewHtml(stripListChromeForDisplay(entries[0].body));
+  assert.match(html, /<p>/);
+  assert.doesNotMatch(html, /<li>/);
+  const liCount = (html.match(/<li>/g) || []).length;
+  assert.equal(liCount, 0);
+});
+
+test("moment plus extra paragraph previews as two paragraph blocks", async () => {
+  const { parsePeriodNote } = await import("../src/lib/stream-period-parse.ts");
+  const md = ["## 08-03 周一", "", "- 10:00 lead", "", "second paragraph"].join("\n");
+  const entries = parsePeriodNote(md);
+  assert.equal(entries.length, 1);
+  const prepared = stripListChromeForDisplay(entries[0].body);
+  assert.match(prepared, /lead/);
+  assert.match(prepared, /second paragraph/);
+  const html = streamMarkdownToPreviewHtml(prepared);
+  const pCount = (html.match(/<p>/g) || []).length;
+  assert.ok(pCount >= 2, `expected two <p> blocks, got ${pCount}: ${html}`);
+  assert.match(html, /<p>lead<\/p>/);
+  assert.match(html, /<p>second paragraph<\/p>/);
+});
+
+test("real list in a prose body still produces list HTML", async () => {
+  const { parsePeriodNote } = await import("../src/lib/stream-period-parse.ts");
+  const md = [
+    "## 08-03 周一",
+    "",
+    "Notes for today:",
+    "",
+    "- item alpha",
+    "- item beta",
+    "",
+    "1. first numbered",
+    "2. second numbered",
+  ].join("\n");
+  const entries = parsePeriodNote(md);
+  assert.equal(entries.length, 1);
+  const html = streamMarkdownToPreviewHtml(entries[0].body);
+  assert.match(html, /<ul>/);
+  assert.match(html, /<li>item alpha<\/li>/);
+  assert.match(html, /<ol>/);
+  assert.match(html, /<li>first numbered<\/li>/);
 });
 
 test("prefersMarkdownPreview detects structure", () => {

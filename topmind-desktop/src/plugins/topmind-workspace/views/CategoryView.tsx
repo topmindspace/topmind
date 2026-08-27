@@ -15,6 +15,10 @@ import {
   FileRow,
   LoadingState,
   ErrorState,
+  FeedLayoutToggle,
+  CollectionFeed,
+  FeedColumn,
+  FeedChrome,
 } from "../../../components/ui/view";
 import { PromptDialog, ErrorDialog } from "../../../components/ui/Dialog";
 import {
@@ -39,6 +43,8 @@ export function CategoryView({ category }: Props) {
   const [dialog, setDialog] = useState<null | "topic" | "note">(null);
   const [errorDialog, setErrorDialog] = useState<string | null>(null);
   const select = useViewStore((s) => s.select);
+  const feedLayout = useViewStore((s) => s.feedLayout);
+  const setFeedLayout = useViewStore((s) => s.setFeedLayout);
   const fileMenu = useFileContextMenu();
 
   const loadGen = useRef(0);
@@ -141,10 +147,14 @@ export function CategoryView({ category }: Props) {
         />
       ) : null}
 
+      <FeedColumn collection>
+        <FeedChrome>
+          <FeedLayoutToggle value={feedLayout} onChange={setFeedLayout} />
+        </FeedChrome>
       {topics.length > 0 ? (
         <section className="mb-5">
           <SectionHeader icon={<FolderOpen size={ICON.sm} />} label={t("workspace:topic.title")} count={topics.length} />
-          <div className="v4-dash-card p-1.5">
+          <CollectionFeed layout={feedLayout} className={feedLayout === "list" ? "v4-dash-card p-1.5" : undefined}>
             <RowList>
               {topics.map((item) => (
                 <FileRow
@@ -159,14 +169,14 @@ export function CategoryView({ category }: Props) {
                 />
               ))}
             </RowList>
-          </div>
+          </CollectionFeed>
         </section>
       ) : null}
 
       {looseNotes.length > 0 ? (
         <section>
           <SectionHeader icon={<FileText size={ICON.xs} />} label={t("workspace:categoryView.recentNotes")} count={looseNotes.length} />
-          <div className="v4-dash-card p-1.5">
+          <CollectionFeed layout={feedLayout} className={feedLayout === "list" ? "v4-dash-card p-1.5" : undefined}>
             <RowList>
               {looseNotes.map((n) => (
                 <FileRow
@@ -184,9 +194,10 @@ export function CategoryView({ category }: Props) {
                 />
               ))}
             </RowList>
-          </div>
+          </CollectionFeed>
         </section>
       ) : null}
+      </FeedColumn>
 
       <WorkspaceFileContextMenu
         menu={fileMenu.menu}

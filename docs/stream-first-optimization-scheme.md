@@ -15,7 +15,7 @@
 | 条目增补 | 动态卡片续写 · 同 Markdown · `<!-- topmind:append -->` |
 | AI 在动态 | 标题栏 💡 + 有条目时状态栏计数 chip（空则隐藏）→ `openSuggestSurface` → **SuggestPopover** 确认面（无第二套列表；不埋 AI 聊天轨） |
 | 整理按钮 | reconcile 任务 + `runActivityOps`（suggest + memory_organize + topic_classify） |
-| memory | **profile + periodic only**（confirm） |
+| memory | **profile + periodic + topic memory**（浏览面；写入仍 confirm） |
 | topic | **内容大类 `create_topic`**（confirm · 不进 `memory/topics`） |
 | 写闸 | 全部 apply 经 writeback / applySuggestion + high-impact gate |
 | 展示净化 | feed 对 `\[ \]` / `\-` 等转义做 **display-only** normalize（不静默写回用户文件） |

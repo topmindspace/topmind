@@ -26,6 +26,12 @@ test("expandIdsForSelection respects topicId hint", () => {
   assert.deepEqual(ids, ["cat/10-日常", "10-日常/2024-笔记"]);
 });
 
+test("expandIdsForSelection maps 我的情况 browse and memory/ files", () => {
+  assert.deepEqual(expandIdsForSelection({ kind: "memory" }), ["section/memory"]);
+  const ids = expandIdsForSelection({ kind: "file", path: "memory/periodic/2026-W32.md" });
+  assert.ok(ids.includes("section/memory"));
+});
+
 test("expandIdsForSelection maps inbox / outputs / archive", () => {
   assert.deepEqual(expandIdsForSelection({ kind: "file", path: "00-收件箱/a.md" }), ["section/inbox"]);
   assert.deepEqual(expandIdsForSelection({ kind: "inbox" }), ["section/inbox"]);

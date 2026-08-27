@@ -8,7 +8,7 @@
  * Shell listens for UI_SETTINGS_APPLIED_EVENT and skips one auto-persist so
  * settings-driven writes are not immediately overwritten by layout debounce.
  */
-import type { AppSettings, SidebarViewMode } from "../types";
+import { type AppSettings, type FeedLayout, type SidebarViewMode, isFeedLayout } from "../types";
 
 export type LiveUiSnapshot = {
   sidebarWidth?: number;
@@ -16,6 +16,7 @@ export type LiveUiSnapshot = {
   sidebarView?: SidebarViewMode;
   aiPanelOpen?: boolean;
   aiPanelWidth?: number;
+  feedLayout?: FeedLayout;
 };
 
 const SIDEBAR_VIEWS = new Set<string>(["stream", "category", "timeline", "tags", "kanban"]);
@@ -27,6 +28,7 @@ export const LIVE_UI_KEYS = [
   "sidebarView",
   "aiPanelOpen",
   "aiPanelWidth",
+  "feedLayout",
 ] as const;
 
 export function isSidebarViewMode(v: unknown): v is SidebarViewMode {
@@ -66,6 +68,9 @@ export function extractLiveUiFromSettingsPatch(
     const w = patchUi.aiPanelWidth;
     if (typeof w === "number" && w >= 280 && w <= 560) out.aiPanelWidth = w;
   }
+  if (hasOwn(patchUi, "feedLayout") && isFeedLayout(patchUi.feedLayout)) {
+    out.feedLayout = patchUi.feedLayout;
+  }
   return out;
 }
 
@@ -75,6 +80,7 @@ export type ViewStoreUiApplier = {
   setSidebarView: (m: SidebarViewMode) => void;
   setAiPanelOpen: (v: boolean) => void;
   setAiPanelWidth: (w: number) => void;
+  setFeedLayout: (m: FeedLayout) => void;
 };
 
 /** Apply extracted snapshot to a view-store-like object. Returns true if anything applied. */
@@ -101,6 +107,10 @@ export function applyLiveUiSnapshot(
   }
   if (typeof snap.aiPanelWidth === "number") {
     store.setAiPanelWidth(snap.aiPanelWidth);
+    applied = true;
+  }
+  if (snap.feedLayout) {
+    store.setFeedLayout(snap.feedLayout);
     applied = true;
   }
   return applied;

@@ -15,6 +15,15 @@ import {
   mergeEditorPrefs,
 } from "../src/lib/editor-prefs.ts";
 
+test("extractLiveUiFromSettingsPatch includes feedLayout when own-present", () => {
+  const snap = extractLiveUiFromSettingsPatch({ feedLayout: "card" });
+  assert.equal(snap.feedLayout, "card");
+  const bad = extractLiveUiFromSettingsPatch({ feedLayout: "masonry" });
+  assert.equal(bad.feedLayout, undefined);
+  const omitted = extractLiveUiFromSettingsPatch({ aiPanelOpen: false });
+  assert.equal(omitted.feedLayout, undefined);
+});
+
 test("isSidebarViewMode accepts product modes only", () => {
   assert.equal(isSidebarViewMode("stream"), true);
   assert.equal(isSidebarViewMode("category"), true);
@@ -81,6 +90,7 @@ test("applyLiveUiSnapshot updates store and reports applied", () => {
     setSidebarView: (m) => calls.push(["v", m]),
     setAiPanelOpen: (v) => calls.push(["ai", v]),
     setAiPanelWidth: (w) => calls.push(["aw", w]),
+    setFeedLayout: (m) => calls.push(["fl", m]),
   };
   const applied = applyLiveUiSnapshot(
     { aiPanelOpen: false, sidebarView: "stream", sidebarWidth: 280 },
@@ -138,6 +148,7 @@ test("applyLiveUiSnapshot empty snap is no-op", () => {
     setSidebarView: () => { n++; },
     setAiPanelOpen: () => { n++; },
     setAiPanelWidth: () => { n++; },
+    setFeedLayout: () => { n++; },
   };
   assert.equal(applyLiveUiSnapshot({}, store), false);
   assert.equal(n, 0);

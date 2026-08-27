@@ -18,6 +18,7 @@ test("normalizeSelection maps missing / unknown kinds to stream", () => {
 test("normalizeSelection keeps known kinds", () => {
   assert.deepEqual(normalizeSelection({ kind: "inbox" }), { kind: "inbox" });
   assert.deepEqual(normalizeSelection({ kind: "archive" }), { kind: "archive" });
+  assert.deepEqual(normalizeSelection({ kind: "memory" }), { kind: "memory" });
   assert.equal(normalizeSelection({ kind: "file", path: "a.md" }).kind, "file");
 });
 

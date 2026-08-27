@@ -76,6 +76,7 @@ const THEMES = new Set(["auto", "light", "dark"]);
 const WRITEBACK_MODES = new Set(["auto", "confirm"]);
 const EDITOR_FONT_FAMILIES = new Set(["sans", "serif", "mono"]);
 const SIDEBAR_VIEWS = new Set(["stream", "category", "timeline", "tags", "kanban"]);
+const FEED_LAYOUTS = new Set(["list", "card"]);
 /** Supported UI locales. `auto` = follow OS language. */
 const UI_LOCALES = new Set(["auto", "zh-CN", "en-US"]);
 // MAX_RECENT_WORKSPACES imported from workspace-path-id.mjs
@@ -879,6 +880,8 @@ function defaultUiSettings() {
     aiPanelWidth: 360,
     /** Default sidebar view mode (stream / category tree / timeline / tags / kanban). */
     sidebarView: "stream",
+    /** Stream + collection canvas: list (dense feed) or card (single-column). */
+    feedLayout: "list",
     /**
      * Workspace tree / lists file visibility:
      * default = md+html+txt+office+pdf · markdown · all
@@ -920,6 +923,10 @@ function normalizeUiSettings(value, fallback = defaultUiSettings()) {
       typeof value.sidebarView === "string" && SIDEBAR_VIEWS.has(value.sidebarView)
         ? value.sidebarView
         : (fallback.sidebarView || "stream"),
+    feedLayout:
+      typeof value.feedLayout === "string" && FEED_LAYOUTS.has(value.feedLayout)
+        ? value.feedLayout
+        : (FEED_LAYOUTS.has(fallback.feedLayout) ? fallback.feedLayout : "list"),
     fileFilter,
     closeBehavior,
     locale,
@@ -1199,6 +1206,7 @@ export {
   MANUAL_SECRET_KEYS,
   WRITEBACK_MODES,
   SIDEBAR_VIEWS,
+  FEED_LAYOUTS,
   UI_LOCALES,
   AGENT_STEPS_MIN,
   AGENT_STEPS_MAX,
@@ -1267,6 +1275,7 @@ export const settingsCoreTest = {
   AI_SOURCE_PREFERENCES,
   WRITEBACK_MODES,
   SIDEBAR_VIEWS,
+  FEED_LAYOUTS,
   AGENT_STEPS_MIN,
   AGENT_STEPS_MAX,
   AGENT_STEPS_DEFAULT,

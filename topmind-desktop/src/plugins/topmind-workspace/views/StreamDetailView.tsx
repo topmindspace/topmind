@@ -20,6 +20,7 @@ import {
   MessageSquarePlus,
   Link,
   Archive,
+  UserRound,
 } from "lucide-react";
 import { api } from "../../../services/api";
 import { emitLocal, onLocal } from "../../../plugins/host";
@@ -30,6 +31,9 @@ import {
   EmptyState,
   LoadingState,
   ErrorState,
+  FeedLayoutToggle,
+  FeedColumn,
+  FeedChrome,
 } from "../../../components/ui/view";
 import { Button } from "../../../components/ui/Button";
 import { Tooltip } from "../../../components/ui/tooltip";
@@ -116,7 +120,7 @@ function StreamFeedRowView({
     const summary = streamArticleSummary(entry);
     return (
       <article
-        className="group px-2.5 py-2"
+        className="group v4-feed-post"
         data-stream-entry-card
         data-stream-entry-kind="article"
       >
@@ -155,7 +159,7 @@ function StreamFeedRowView({
   return (
     <article
       className={cn(
-        "group relative px-2.5 py-1.5",
+        "group relative v4-feed-post",
         kind === "append" && "bg-surface-muted/10",
       )}
       data-stream-entry-card
@@ -455,6 +459,8 @@ export function StreamDetailView() {
   const lastEntryKeysRef = useRef<string[]>([]);
 
   const select = useViewStore((s) => s.select);
+  const feedLayout = useViewStore((s) => s.feedLayout);
+  const setFeedLayout = useViewStore((s) => s.setFeedLayout);
   const todoMaintaining = useTodoStore((s) => s.maintaining === "maintaining");
   const todoEverLoaded = useTodoStore((s) => s.everLoaded);
   const aiReady = useAiStore((s) => s.runtimeStatus?.ready ?? false);
@@ -1119,7 +1125,7 @@ export function StreamDetailView() {
             : t("workspace:streamDetail.emptySubtitle")
         }
         actions={
-          <div className="min-w-0 max-w-[min(100%,22rem)] sm:max-w-md">
+          <div className="flex min-w-0 max-w-[min(100%,28rem)] items-center justify-end gap-1.5 sm:max-w-lg">
             <ChromeOverflowActions actions={headerActions} />
           </div>
         }
@@ -1321,6 +1327,8 @@ export function StreamDetailView() {
         本视图不挂第二套建议列表。
       */}
 
+      {/* Shared reading column: compose + layout toggle + posts (same --feed-column-max). */}
+      <FeedColumn stream>
       {/* Inline composer — primary capture path: 润色 → 记下。
           无 label/hint meta 行（降噪 2026-08）：placeholder 承担引导，计数在 PageHeader subtitle。 */}
       {composeIsUrl ? (
@@ -1442,6 +1450,22 @@ export function StreamDetailView() {
         </div>
       </div>
 
+      <FeedChrome>
+        <FeedLayoutToggle value={feedLayout} onChange={setFeedLayout} />
+        <Tooltip content={t("workspace:streamDetail.openMemoryTip")}>
+          <button
+            type="button"
+            data-stream-open-memory
+            onClick={() => select({ kind: "memory" })}
+            className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-3xs font-medium text-text-tertiary transition-colors hover:bg-surface-muted hover:text-accent-color v4-focus-ring"
+            aria-label={t("workspace:streamDetail.openMemory")}
+          >
+            <UserRound size={ICON.nano} aria-hidden />
+            <span>{t("workspace:streamDetail.openMemory")}</span>
+          </button>
+        </Tooltip>
+      </FeedChrome>
+
       {entries.length === 0 ? (
         <EmptyState
           icon={<CalendarDays size={ICON.md} />}
@@ -1457,7 +1481,11 @@ export function StreamDetailView() {
           }
         />
       ) : (
-        <div className="space-y-3" data-stream-feed>
+        <div
+          className={cn("v4-feed space-y-3", feedLayout === "card" ? "v4-feed-card" : "v4-feed-list")}
+          data-stream-feed
+          data-layout={feedLayout}
+        >
           {dayGroups.map((group, gi) => {
             const dayCollapsed = collapsedDays.has(group.dayKey);
             const rows = groupDayFeedRows(group.entries);
@@ -1465,8 +1493,7 @@ export function StreamDetailView() {
               <section
                 key={group.dayKey}
                 className={cn(
-                  "overflow-hidden rounded-lg bg-surface shadow-(--shadow-card)",
-                  gi === 0 && isCurrentPeriod && "ring-1 ring-inset ring-accent-color/15",
+                  gi === 0 && isCurrentPeriod && "ring-1 ring-inset ring-accent-color/10 rounded-lg",
                 )}
                 data-stream-day-group
                 data-stream-day-today={gi === 0 && isCurrentPeriod ? "true" : undefined}
@@ -1474,7 +1501,7 @@ export function StreamDetailView() {
                 <button
                   type="button"
                   onClick={() => toggleDayCollapsed(group.dayKey)}
-                  className="sticky top-0 z-local flex w-full items-center gap-1.5 bg-surface-muted/25 px-2.5 py-1.5 text-left hover:bg-surface-muted/45 v4-focus-ring"
+                  className="sticky top-0 z-local flex w-full items-center gap-1.5 text-left hover:bg-surface-muted/35 v4-focus-ring"
                   aria-expanded={!dayCollapsed}
                   data-stream-day-toggle
                 >
@@ -1500,7 +1527,7 @@ export function StreamDetailView() {
                 </button>
 
                 {!dayCollapsed ? (
-                  <div className="divide-y divide-border-subtle-dim/70" data-stream-day-body>
+                  <div data-stream-day-body>
                     {rows.map((row) => (
                       <StreamFeedRowView
                         key={`${group.dayKey}-${row.entry.index}`}
@@ -1545,6 +1572,7 @@ export function StreamDetailView() {
           ) : null}
         </div>
       )}
+      </FeedColumn>
     </ViewContainer>
   );
 }

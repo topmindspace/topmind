@@ -20,9 +20,11 @@ export function useShellSettingsSync(settings: AppSettings): void {
   const setWritebackMode = useViewStore((s) => s.setWritebackMode);
   const setWorkspaceRoot = useViewStore((s) => s.setWorkspaceRoot);
   const setSidebarView = useViewStore((s) => s.setSidebarView);
+  const setFeedLayout = useViewStore((s) => s.setFeedLayout);
   const sidebarWidth = useViewStore((s) => s.sidebarWidth);
   const sidebarCollapsed = useViewStore((s) => s.sidebarCollapsed);
   const sidebarView = useViewStore((s) => s.sidebarView);
+  const feedLayout = useViewStore((s) => s.feedLayout);
   const aiPanelOpen = useViewStore((s) => s.aiPanelOpen);
   const aiPanelWidth = useViewStore((s) => s.aiPanelWidth);
 
@@ -44,6 +46,7 @@ export function useShellSettingsSync(settings: AppSettings): void {
       s.sidebarView,
       s.aiPanelOpen,
       s.aiPanelWidth,
+      s.feedLayout,
     ]);
   }, []);
 
@@ -57,6 +60,10 @@ export function useShellSettingsSync(settings: AppSettings): void {
       const sv = settings.ui.sidebarView;
       if (sv === "stream" || sv === "category" || sv === "timeline" || sv === "tags" || sv === "kanban") {
         setSidebarView(sv);
+      }
+      const fl = settings.ui.feedLayout;
+      if (fl === "list" || fl === "card") {
+        setFeedLayout(fl);
       }
       // Drop one-time localStorage key from early v4 builds (settings.ui is canonical)
       try {
@@ -99,6 +106,7 @@ export function useShellSettingsSync(settings: AppSettings): void {
       sidebarView: s.sidebarView,
       aiPanelOpen: s.aiPanelOpen,
       aiPanelWidth: s.aiPanelWidth,
+      feedLayout: s.feedLayout,
     };
     // Mark only THIS patch as persisted — a drag landing mid-flight keeps the
     // live snapshot ≠ ref and schedules its own persist.
@@ -108,6 +116,7 @@ export function useShellSettingsSync(settings: AppSettings): void {
       uiPatch.sidebarView,
       uiPatch.aiPanelOpen,
       uiPatch.aiPanelWidth,
+      uiPatch.feedLayout,
     ]);
     return api.sys
       .update({ ui: uiPatch })
@@ -148,7 +157,7 @@ export function useShellSettingsSync(settings: AppSettings): void {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [sidebarWidth, sidebarCollapsed, sidebarView, aiPanelOpen, aiPanelWidth, persistUiNow, layoutSnapshot]);
+  }, [sidebarWidth, sidebarCollapsed, sidebarView, feedLayout, aiPanelOpen, aiPanelWidth, persistUiNow, layoutSnapshot]);
 
   // Flush pending UI layout on hide/unload so last drag widths survive quit
   useEffect(() => {

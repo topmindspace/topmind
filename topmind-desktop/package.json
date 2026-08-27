@@ -1,6 +1,6 @@
 {
   "name": "topmind-desktop",
-  "version": "3.5.7",
+  "version": "3.5.8",
   "private": true,
   "description": "topmind local-first desktop workspace for AI-assisted project work.",
   "main": "electron/main.mjs",
@@ -44,7 +44,7 @@
     "pack:mac:ci": "npm run build && npm run pack:prepare && node scripts/electron-builder-ci.mjs mac host && npm run pack:verify:strict",
     "pack:linux:ci": "npm run build && npm run pack:prepare && node scripts/electron-builder-ci.mjs linux host && npm run pack:verify:strict",
     "pack:win:ci": "npm run build && npm run pack:prepare && node scripts/electron-builder-ci.mjs win host && npm run pack:verify:strict",
-    "validate": "npm run deps:packaging && npm run typecheck && npm run check:electron && npm run check:dead-code && npm run check:i18n && npm run test && npm run build && npm run build:report && npm run pack:verify",
+    "validate": "npm run deps:packaging && npm run typecheck && npm run check:electron && npm run check:dead-code && npm run check:i18n && npm run test && npm run build && npm run build:report && npm run pack:prepare && npm run pack:verify",
     "check:quality": "npm run validate",
     "start": "electron ."
   },

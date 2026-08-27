@@ -134,7 +134,33 @@
     "suggestionsQuietTip": "查看并确认 · 不在此列表直接改文件",
     "suggestionsOpen": "查看",
     "suggestionsPreparing": "正在准备建议…",
-    "suggestionsPreparingTip": "扫描可整理项 · 完成后可点查看"
+    "suggestionsPreparingTip": "扫描可整理项 · 完成后可点查看",
+    "openMemory": "我的情况",
+    "openMemoryTip": "打开我的情况 · 画像 / 周期反思 / 专题记忆"
+  },
+  "feedLayout": {
+    "list": "列表",
+    "card": "卡片",
+    "toggleAria": "信息流展示",
+    "listHint": "紧凑信息流 · 细线分隔",
+    "cardHint": "单列对齐卡片 · 不是多列瀑布"
+  },
+  "memoryBrowse": {
+    "title": "我的情况",
+    "subtitle": "画像 · 周期反思 · 专题记忆",
+    "subtitleCount": "{{count}} 条 · 画像 / 周期反思 / 专题记忆",
+    "emptyTitle": "还没有可浏览的记忆",
+    "emptyHint": "在动态里记下，确认建议后会出现在这里",
+    "openEditor": "打开画像原文",
+    "kindProfile": "画像",
+    "kindPeriodic": "周期反思",
+    "kindTopic": "专题记忆",
+    "layerAll": "全部",
+    "layerFilter": "记忆层",
+    "organize": "整理我的情况",
+    "organizeTip": "生成确认建议 · 不会直接改画像",
+    "openFolder": "在目录中显示",
+    "openFolderTip": "在侧栏展开 memory/"
   },
   "archive": {
     "title": "归档",

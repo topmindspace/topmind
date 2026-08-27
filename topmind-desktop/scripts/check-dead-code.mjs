@@ -93,6 +93,13 @@ const DEAD_PATTERNS = [
     allowIn: ["scripts/check-dead-code.mjs", "components/shell/useShellSettingsSync.ts"],
   },
   {
+    id: "legacy-feed-layout-localstorage",
+    description: "feed layout persists via settings.ui.feedLayout — no dual localStorage key",
+    regex: /topmind:feed-layout/u,
+    scope: ["src/**/*.ts", "src/**/*.tsx"],
+    allowIn: ["scripts/check-dead-code.mjs"],
+  },
+  {
     id: "clip-bridge-token-in-logs",
     description: "never log clip bridge bearer tokens",
     regex: /log(?:Info|Warn|Error)\([^)]*clip[^)]*token/iu,
@@ -166,7 +173,8 @@ const DEAD_PATTERNS = [
   },
   {
     id: "removed-memory-view",
-    description: "MemoryView was removed — memory access is via sidebar profile pin + file editor, not a separate view",
+    description:
+      "Old MemoryView component must not return — 我的情况 is MemoryBrowseView (read projection of the memory plane), not a parallel store",
     regex: /\bMemoryView\b/u,
     scope: ["src/**/*.ts", "src/**/*.tsx"],
     allowIn: ["scripts/check-dead-code.mjs"],

@@ -99,7 +99,7 @@ contract · workspace-model · stream · memory · lifecycle · **writeback（�
 
 - 1 RPC：`invoke` + `subscribe`  
 - Stores：ViewStore · AiStore · ActionStore · PluginStore · IngestStagingStore · TaskStore · TodoStore（实现以代码为准）
-- Shell：stream-first 导航 + 深度编辑 + AI 副驾 + 待办弹层（见 `topmind-desktop/DESIGN.md`）
+- Shell：stream-first 导航 + 深度编辑 + AI 副驾 + 待办弹层 + 我的情况记忆浏览（见 `topmind-desktop/DESIGN.md`）
 - Service：Workspace / Ai / System / Tool / Ingest；可选 Weread / X  
 - **不硬依赖 UTR**：AI 工具 → WorkspaceService → Kernel writeback  
 - 主动 AI：**建议默认可生成 · 确认后执行 · 可选手动**（Reset D Done）  

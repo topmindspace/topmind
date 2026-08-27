@@ -26,7 +26,7 @@ topmind = Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Option
 
 - **北极星**：最低摩擦个人动态流 — 记简单；AI 建议；用户确认；文件是真源。  
 - 工作流：`收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整`  
-- 用户概念：记一下 · 动态 · 专题 · 我的情况 · 写出来  
+- 用户概念：记一下 · 动态 · 专题 · 我的情况（记忆浏览） · 写出来  
 - Skills：唯一入口 `topmind`；Host 文件工具为主；UTR 可选  
 - Desktop：**富工作台**；导航变薄；不硬依赖 UTR  
 - UTR：可选 CLI/MCP（**8 域 / 28 命令**；MCP 默认 19）  

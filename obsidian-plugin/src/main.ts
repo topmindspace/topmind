@@ -14,6 +14,7 @@ import { DEFAULT_SETTINGS, migrateSettings, hasConfiguredProvider, type TopmindS
 import {
   VIEW_TYPE_STREAM_WORKBENCH,
   VIEW_TYPE_SIDEBAR_DOCK,
+  VIEW_TYPE_MEMORY_BROWSE,
   CMD_QUICK_CAPTURE,
   CMD_OPEN_WORKBENCH,
   CMD_OPEN_SIDEBAR,
@@ -30,6 +31,7 @@ import { aiTaskManager, type TaskProgress } from "./services/ai-task-manager";
 import { TopmindSettingTab } from "./settings/settings-tab";
 import { StreamWorkbenchView } from "./views/stream-workbench-view";
 import { SidebarDockView } from "./views/sidebar-dock-view";
+import { MemoryBrowseView } from "./views/memory-browse-view";
 import { QuickCaptureModal } from "./views/quick-capture-modal";
 import { setLocale, t, type LocaleKey } from "./i18n";
 
@@ -169,6 +171,10 @@ export default class TopmindPlugin extends Plugin {
       VIEW_TYPE_SIDEBAR_DOCK,
       (leaf: WorkspaceLeaf) => new SidebarDockView(leaf, this),
     );
+    this.registerView(
+      VIEW_TYPE_MEMORY_BROWSE,
+      (leaf: WorkspaceLeaf) => new MemoryBrowseView(leaf, this),
+    );
 
     // ── Ribbon icon (DESIGN §7: waves) ──
     this.addRibbonIcon("waves", t("quick_capture_title"), () => {
@@ -227,7 +233,7 @@ export default class TopmindPlugin extends Plugin {
     this.addCommand({
       id: CMD_OPEN_PROFILE,
       name: t("cmd_open_profile"),
-      callback: () => this.openProfile(),
+      callback: () => this.openMemoryBrowse(),
     });
 
     this.addCommand({
@@ -539,12 +545,20 @@ export default class TopmindPlugin extends Plugin {
     }
   }
 
-  private async openProfile(): Promise<void> {
+  async openMemoryBrowse(): Promise<void> {
     if (!this.kernelService.isWorkspaceReady()) {
       new Notice(t("notice_workspace_not_ready"));
       return;
     }
-    await this.app.workspace.openLinkText(this.kernelService.profileRelPath(), "", false);
+    const existing = this.app.workspace.getLeavesOfType(VIEW_TYPE_MEMORY_BROWSE);
+    if (existing.length > 0) {
+      this.app.workspace.revealLeaf(existing[0]);
+      const view = existing[0].view;
+      if (view instanceof MemoryBrowseView) await view.refresh();
+      return;
+    }
+    const leaf = this.app.workspace.getLeaf(true);
+    await leaf.setViewState({ type: VIEW_TYPE_MEMORY_BROWSE, active: true });
   }
 
   private async openInbox(): Promise<void> {

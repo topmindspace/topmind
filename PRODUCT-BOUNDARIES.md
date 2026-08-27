@@ -197,7 +197,7 @@ graph TD
 | skill-first AI 对话与领域工具 | **Done**（副驾建议条 + 待确认写入 **Done**） |
 | 三平面目录与 topmind.yaml v4 | **Done**（约定）/ 契约 UI 非强制 **Intentional Partial** |
 | writeback 唯一写闸 | **Done**（主路径 + confirm Model B + 高影响 only 备份/回执：locked 覆盖 · 锁定/核心笔记 delete/archive · 普通开放笔记无 trash · `permanent` 无副本） |
-| Memory 产品面（我的情况 / 建议条） | **Done** |
+| Memory 产品面（我的情况浏览 / 建议条） | **Done** |
 | 主动建议 + 确认执行 | **Done**（high-impact 须 `confirmed:true`；自动准备可关；AI 建议变更检测 `lastAnalyzedHash`；`promote_memory` 真实 AI 提取非占位符） |
 | 写出来 / publishPath | **Done**（副本 + `published_at`；发布后打开交付件；Outputs 复制正文 / HTML 导出） |
 | 整理本周 / 任务面板 | **Done**（reconcile + ai_digest 任务 + 建议条候选确认；KanbanView 拖拽看板 + ViewSwitcher 多视图；digest/promote/archive 不造假任务按钮） |

@@ -273,52 +273,154 @@ export function prepareStreamEntryTextForDisplay(text: string): string {
     .trim();
 }
 
+function isTopLevelListItem(line: string): boolean {
+  return /^\s{0,3}[-*+]\s+\S/u.test(line) || /^\s{0,3}\d+\.\s+\S/u.test(line);
+}
+
+function skipAsSubstantial(line: string): boolean {
+  const t = String(line || "").trim();
+  if (!t) return true;
+  if (/^<!--/u.test(t)) return true;
+  if (/^#{1,6}\s/u.test(t)) return true;
+  if (t === "---") return true;
+  return false;
+}
+
+function firstSubstantialLineIsList(lines: string[]): boolean {
+  for (const line of lines) {
+    if (skipAsSubstantial(line)) continue;
+    return isTopLevelListItem(line);
+  }
+  return false;
+}
+
+function frontmatterEndLine(lines: string[]): number {
+  if (lines[0]?.trim() !== "---") return 0;
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i].trim() === "---") return i + 1;
+  }
+  return 0;
+}
+
+/**
+ * Parse stream entries from period note content.
+ *
+ * Structure-true chunking (aligned with Desktop parsePeriodNote):
+ * - List-led day/section (`-` / `*` / `1.` first substantial line) → one post per
+ *   top-level list item. Timed `- HH:MM` items stay separate. Extra paragraphs
+ *   after a moment stay on the same post. Kernel 增补 stays on the parent card.
+ * - Prose-first section (wrapped lines, no list markers) → **one** post; line
+ *   breaks are paragraphs, not extra list cards. Embedded lists stay in the body.
+ */
 export function parseStreamEntries(content: string): StreamEntry[] {
   const entries: StreamEntry[] = [];
-  const lines = content.split("\n");
-  // Match bullet lines with time prefix: `- HH:MM text` or `* HH:MM text`
+  const lines = String(content || "").split("\n");
   const timeRegex = /^[-*]\s*(\d{1,2}:\d{2})\s+(.*)/u;
-  // Continuation: blank, append chrome, prose, and non-timestamped bullets/tasks
-  // (formatAppendBlock bodies are often `- item` / `- [ ] task`).
-  // Only a new `- HH:MM` entry or a non-续 heading starts a new card.
-  const isContinuation = (line: string): boolean => {
-    if (!line.trim()) return true;
-    if (isStreamAppendChromeLine(line)) return true;
-    if (/^#{1,6}\s/u.test(line)) return false;
-    if (/^[-*+]\s+\d{1,2}:\d{2}\s/u.test(line)) return false;
-    return true;
-  };
   const tagRegex = /#([\w\u4e00-\u9fff-]+)/gu;
+  const fmEnd = frontmatterEndLine(lines);
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const match = line.match(timeRegex);
-    if (match) {
-      const time = match[1];
-      const firstText = match[2];
-      // Collect continuation lines (multi-line + 增补)
+  const headingIdx: number[] = [];
+  for (let i = fmEnd; i < lines.length; i++) {
+    if (/^#{2,3}\s+/u.test(lines[i])) headingIdx.push(i);
+  }
+
+  type Section = { start: number; end: number };
+  const sections: Section[] = [];
+  if (headingIdx.length === 0) {
+    sections.push({ start: fmEnd, end: lines.length });
+  } else {
+    if (headingIdx[0] > fmEnd) sections.push({ start: fmEnd, end: headingIdx[0] });
+    for (let h = 0; h < headingIdx.length; h++) {
+      const start = headingIdx[h] + 1;
+      const end = h + 1 < headingIdx.length ? headingIdx[h + 1] : lines.length;
+      sections.push({ start, end });
+    }
+  }
+
+  const pushEntry = (start: number, end: number, firstLine: string, textParts: string[]) => {
+    const timeMatch = firstLine.match(timeRegex);
+    const time = timeMatch ? timeMatch[1] : "";
+    const text = textParts.join("\n").trim();
+    if (!text && !time) return;
+    const tags = Array.from(text.matchAll(tagRegex)).map((m) => m[1]);
+    entries.push({
+      time,
+      text,
+      tags,
+      rawLine: lines.slice(start, end).join("\n"),
+      lineOffset: start,
+    });
+  };
+
+  for (const sec of sections) {
+    const slice = lines.slice(sec.start, sec.end);
+    const listLed = firstSubstantialLineIsList(slice);
+
+    if (!listLed) {
+      const textParts: string[] = [];
+      let firstIdx = -1;
+      for (let i = sec.start; i < sec.end; i++) {
+        const line = lines[i];
+        const t = line.trim();
+        if (/^#{1,6}\s/u.test(t)) continue;
+        if (t === "---") continue;
+        if (firstIdx < 0 && t && !/^<!--/u.test(t)) firstIdx = i;
+        textParts.push(line);
+      }
+      const text = textParts.join("\n").trim();
+      if (!text) continue;
+      const tags = Array.from(text.matchAll(tagRegex)).map((m) => m[1]);
+      entries.push({
+        time: "",
+        text,
+        tags,
+        rawLine: text,
+        lineOffset: firstIdx >= 0 ? firstIdx : sec.start,
+      });
+      continue;
+    }
+
+    const isContinuation = (line: string, afterAppend: boolean): boolean => {
+      if (!line.trim()) return true;
+      if (isStreamAppendChromeLine(line)) return true;
+      if (/^#{1,6}\s/u.test(line) && !isStreamAppendChromeLine(line)) return false;
+      if (/^[-*+]\s+\d{1,2}:\d{2}\s/u.test(line)) return false;
+      if (isTopLevelListItem(line) && !afterAppend) return false;
+      return true;
+    };
+
+    let i = sec.start;
+    while (i < sec.end) {
+      const line = lines[i];
+      if (!isTopLevelListItem(line)) {
+        i += 1;
+        continue;
+      }
+      const timeMatch = line.match(timeRegex);
+      const firstText = timeMatch
+        ? timeMatch[2]
+        : line.replace(/^\s*[-*+]\s+/u, "").replace(/^\s*\d+\.\s+/u, "");
       const textParts: string[] = [firstText];
       let j = i + 1;
-      while (j < lines.length && isContinuation(lines[j])) {
+      let afterAppend = false;
+      while (j < sec.end && isContinuation(lines[j], afterAppend)) {
         const cont = lines[j];
+        if (isStreamAppendChromeLine(cont)) afterAppend = true;
         if (!cont.trim()) {
-          // Keep a blank only when more entry/append content follows (not trailing pad)
           const next = lines[j + 1];
-          if (!next || !isContinuation(next) || !next.trim()) break;
+          if (!next || !isContinuation(next, afterAppend) || !next.trim()) break;
           textParts.push("");
-          j++;
+          j += 1;
           continue;
         }
         textParts.push(cont.trim());
-        j++;
+        j += 1;
       }
-      const text = textParts.join("\n").trim();
-      const tags = Array.from(text.matchAll(tagRegex)).map((m) => m[1]);
-      const rawLine = lines.slice(i, j).join("\n");
-      entries.push({ time, text, tags, rawLine, lineOffset: i });
-      i = j - 1; // skip consumed continuation lines
+      pushEntry(i, j, line, textParts);
+      i = j;
     }
   }
+
   return entries;
 }
 
@@ -370,3 +472,32 @@ export function isStreamOrTodoPath(filePath: string): boolean {
   if (/(?:^|\/)periodic\//u.test(filePath)) return true;
   return false;
 }
+
+/* ── Memory browse (read projection of profile / periodic / topics) ──
+ * Grouping lives in Kernel `lib/memory-feed.mjs` — hosts must not fork a twin.
+ */
+
+export type MemoryFeedKind = "profile" | "periodic" | "topic";
+export type MemoryFeedLayer = "all" | MemoryFeedKind;
+
+export interface MemoryFeedItem {
+  id: string;
+  kind: MemoryFeedKind;
+  path: string;
+  title: string;
+  preview: string;
+  body: string;
+  heading?: string;
+}
+
+export interface MemoryFeedSource {
+  profile: { path: string; markdown: string } | null;
+  periodic: Array<{ path: string; markdown: string }>;
+  topics: Array<{ path: string; markdown: string }>;
+}
+
+export {
+  assembleMemoryFeed,
+  filterMemoryFeedByLayer,
+  isMemoryFeedLayer,
+} from "../../lib/memory-feed.mjs";
