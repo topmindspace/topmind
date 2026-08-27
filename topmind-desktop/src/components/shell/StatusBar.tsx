@@ -52,6 +52,25 @@ function StatusDivider() {
   return <span className="v4-chrome-sep h-2.5!" aria-hidden />;
 }
 
+/** Status-bar pill frame — shared layout + hover transition + unified focus ring.
+ *  Chip-specific color/hover classes are passed via `className`. */
+function StatusChip({ className, ...props }: React.ComponentProps<"button">) {
+  return (
+    <button
+      type="button"
+      className={cn(
+        "flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 transition-colors v4-focus-ring",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+/** Same frame as StatusChip for non-interactive (status-only) spans. */
+const statusChipSpanClass =
+  "flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5";
+
 export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBarProps) {
   const { t } = useTranslation(["shell", "common"]);
   const selection = useViewStore((s) => s.selection);
@@ -202,7 +221,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
       </div>
 
       {/* Center: current selection (orientation anchor) — clickable */}
-      <div className="flex min-w-0 max-w-[42vw] items-center justify-center px-1 sm:max-w-[36vw]">
+      <div className="flex min-w-0 max-w-[var(--status-chip-max,42vw)] items-center justify-center px-1">
         <SelectionHint selection={selection} />
       </div>
 
@@ -224,25 +243,19 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
             : t("statusBar.updateAvailable", { version: latestVersion });
           return (
             <Tooltip content={label}>
-              <button
-                type="button"
+              <StatusChip
                 data-status-update-badge
                 onClick={() => {
                   useViewStore.getState().openOverlay("settings", { topicId: "manage" });
                 }}
-                className={cn(
-                  "flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5",
-                  "bg-success/10 text-success",
-                  "transition-colors hover:bg-success/20",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
-                )}
+                className="bg-success/10 text-success hover:bg-success/20"
                 aria-label={label}
               >
                 <Download size={ICON.micro} aria-hidden />
                 <span className="hidden tabular-nums sm:inline">
                   {multi ? t("statusBar.updatesBadgeCount", { count: updateInfo.surfaces.length }) : `v${latestVersion}`}
                 </span>
-              </button>
+              </StatusChip>
             </Tooltip>
           );
         })() : null}
@@ -257,16 +270,13 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
               : t("statusBar.taskPanelTip")
           }
         >
-          <button
-            type="button"
+          <StatusChip
             data-task-panel-trigger
             data-status-task-toggle
             onClick={onToggleTaskPanel}
             aria-pressed={taskPanelOpen}
             aria-label={t("statusBar.taskPanelAria")}
             className={cn(
-              "flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
               activeTasks.length > 0
                 ? "bg-accent-bg-faint text-accent-color hover:bg-accent-bg-subtle"
                 : taskPanelOpen
@@ -287,35 +297,28 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
               </span>
             ) : null}
             {activeTasks.length > 0 ? <span className="v4-ai-progress-dot" aria-hidden /> : null}
-          </button>
+          </StatusChip>
         </Tooltip>
         {busy.showTodoChip ? (
           <Tooltip content={t("statusBar.todoMaintainingTip")}>
-            <button
-              type="button"
+            <StatusChip
               role="status"
               aria-live="polite"
               data-status-todo-busy
               onClick={() => emitLocal("todo:open-popover")}
-              className={cn(
-                "flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5",
-                "bg-accent-bg-faint text-accent-color",
-                "transition-colors hover:bg-accent-bg-subtle",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
-              )}
+              className="bg-accent-bg-faint text-accent-color hover:bg-accent-bg-subtle"
               aria-label={t("statusBar.todoMaintaining")}
             >
               {/* ListTodo — personal list only (DESIGN §0.0.2) */}
               <ListTodo size={ICON.micro} className="v4-ai-busy-icon" aria-hidden />
               <span className="v4-ai-busy-text hidden sm:inline">{t("statusBar.todoMaintaining")}</span>
               <span className="v4-ai-progress-dot" aria-hidden />
-            </button>
+            </StatusChip>
           </Tooltip>
         ) : null}
         {busy.showSuggestChip ? (
           <Tooltip content={t("statusBar.suggestLoadingTip")}>
-            <button
-              type="button"
+            <StatusChip
               role="status"
               data-status-suggest-busy
               onClick={() => {
@@ -324,7 +327,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
                 });
               }}
               className={cn(
-                "flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 bg-accent-bg-faint text-accent-color hover:bg-accent-bg-subtle transition-colors",
+                "bg-accent-bg-faint text-accent-color hover:bg-accent-bg-subtle",
                 suggestPanelOpen && "ring-1 ring-inset ring-accent-border-subtle",
               )}
               aria-pressed={suggestPanelOpen}
@@ -332,15 +335,14 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
               <Lightbulb size={ICON.micro} className="v4-ai-busy-icon" aria-hidden />
               <span className="v4-ai-busy-text hidden sm:inline">{t("statusBar.suggestLoading")}</span>
               <span className="v4-ai-progress-dot" aria-hidden />
-            </button>
+            </StatusChip>
           </Tooltip>
         ) : null}
         {/* 建议计数常驻 chip：移除画布顶 SuggestEntryStrip 后，计数统一在状态栏体现。
             loading 时由 showSuggestChip 承担；非 loading 有条目时显示计数 chip。 */}
         {busy.showSuggestCountChip ? (
           <Tooltip content={t("statusBar.suggestCountTip", { count: busy.suggestCount })}>
-            <button
-              type="button"
+            <StatusChip
               role="status"
               data-status-suggest-count
               onClick={() => {
@@ -349,12 +351,10 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
                 });
               }}
               className={cn(
-                "flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 transition-colors",
                 busy.suggestHasHigh
                   ? "bg-warning/10 text-warning hover:bg-warning/20"
                   : "bg-accent-bg-faint text-accent-color hover:bg-accent-bg-subtle",
                 suggestPanelOpen && "ring-1 ring-inset ring-accent-border-subtle",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
               )}
               aria-pressed={suggestPanelOpen}
               aria-label={t("statusBar.suggestCount", { count: busy.suggestCount })}
@@ -363,7 +363,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
               <span className="hidden tabular-nums sm:inline">
                 {t("statusBar.suggestCount", { count: busy.suggestCount })}
               </span>
-            </button>
+            </StatusChip>
           </Tooltip>
         ) : null}
         {busy.showInlineChip ? (
@@ -372,10 +372,10 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
               role="status"
               aria-live="polite"
               data-status-inline-busy
-              className="flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 bg-accent-bg-faint text-accent-color"
+              className={cn(statusChipSpanClass, "bg-accent-bg-faint text-accent-color")}
             >
               <Loader2 size={ICON.micro} className="animate-spin" aria-hidden />
-              <span className="v4-ai-busy-text hidden max-w-30 truncate sm:inline">{inlineLabel}</span>
+              <span className="v4-ai-busy-text hidden max-w-[var(--status-chip-max-inline,7.5rem)] truncate sm:inline">{inlineLabel}</span>
               <span className="v4-ai-progress-dot" aria-hidden />
             </span>
           </Tooltip>
@@ -385,8 +385,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
         {busy.hasNamedBusyChip ? <StatusDivider /> : null}
 
         <Tooltip content={aiTip}>
-          <button
-            type="button"
+          <StatusChip
             data-status-ai-pill
             data-status-ai-busy={busy.aiPillBusy || undefined}
             data-status-ai-panel={runtimeStatus?.ready ? (aiPanelOpen ? "open" : "closed") : "offline"}
@@ -403,8 +402,6 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
             role="status"
             aria-live="polite"
             className={cn(
-              "flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
               !runtimeStatus?.ready
                 ? "text-text-quaternary hover:bg-surface-muted hover:text-warning"
                 : busy.aiPillBusy
@@ -419,9 +416,9 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
             ) : (
               <Bot size={ICON.micro} aria-hidden />
             )}
-            <span className={cn("hidden max-w-36 truncate md:inline", busy.aiPillBusy && "v4-ai-busy-text")}>{aiLabel}</span>
+            <span className={cn("hidden max-w-[var(--status-chip-max-ai,9rem)] truncate md:inline", busy.aiPillBusy && "v4-ai-busy-text")}>{aiLabel}</span>
             {busy.aiPillBusy ? <span className="v4-ai-progress-dot" aria-hidden /> : null}
-          </button>
+          </StatusChip>
         </Tooltip>
       </div>
     </div>
@@ -450,8 +447,7 @@ function SelectionHint({ selection }: { selection: Selection }) {
         }}
         className={cn(
           "flex max-w-full items-center gap-1 truncate rounded-sm px-1.5 py-0.5 text-text-quaternary",
-          "transition-colors hover:bg-surface-muted hover:text-text-secondary",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
+          "transition-colors hover:bg-surface-muted hover:text-text-secondary v4-focus-ring",
         )}
       >
         <FileText size={ICON.micro} className="shrink-0" aria-hidden />

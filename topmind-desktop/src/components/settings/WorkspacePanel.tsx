@@ -229,7 +229,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
       setError(null);
       // reuse error line as soft success? better as transient note
       await reloadConfig();
-      emitLocal("toast:show", t("settings:workspace.rebuildToast", { path: res.path }));
+      emitLocal("toast:show", { text: t("settings:workspace.rebuildToast", { path: res.path }), kind: "success" });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -730,7 +730,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
                       <Tooltip content={c.hidden ? t("settings:workspace.showTooltip") : t("settings:workspace.hideTooltip")}>
                         <button
                           type="button"
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] border border-border-subtle-dim text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 disabled:opacity-50"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] border border-border-subtle-dim text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary v4-focus-ring disabled:opacity-50"
                           disabled={!!switching}
                           onClick={() => void handleToggleHidden(c.slot, !c.hidden)}
                           aria-label={c.hidden ? t("settings:workspace.show") : t("settings:workspace.hide")}
@@ -743,7 +743,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
                       <Tooltip content={t("settings:workspace.renameTooltip")}>
                         <button
                           type="button"
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] border border-border-subtle-dim text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 disabled:opacity-50"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] border border-border-subtle-dim text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary v4-focus-ring disabled:opacity-50"
                           disabled={!!switching}
                           onClick={() => {
                             setRenameSlot(c.slot);

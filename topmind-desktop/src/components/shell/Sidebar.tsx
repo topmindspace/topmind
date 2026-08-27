@@ -331,7 +331,7 @@ function ProfileButton() {
             }
           })();
         }}
-        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-muted/40 text-text-secondary transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-muted/40 text-text-secondary transition-colors hover:bg-surface-muted v4-focus-ring"
         aria-label={t("sidebar.myProfile")}
       >
         <UserRound size={ICON.nano} className="shrink-0" />
@@ -726,7 +726,7 @@ function DataSourceSection({
           </div>
           <button
             onClick={() => { void hardRefresh(); }}
-            className="flex items-center gap-1 self-start rounded-[var(--radius-sm)] border border-border-subtle px-1.5 py-0.5 text-3xs text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+            className="flex items-center gap-1 self-start rounded-[var(--radius-sm)] border border-border-subtle px-1.5 py-0.5 text-3xs text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary v4-focus-ring"
           >
             <RefreshCw size={ICON.nano} aria-hidden /> {t("sidebar.retry")}
           </button>
@@ -762,7 +762,7 @@ function PluginSlotsSection({ slots }: { slots: SidebarSlot[] }) {
       <button
         type="button"
         onClick={() => setCollapsed((v) => !v)}
-        className="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-3xs font-medium tracking-wide text-text-quaternary transition-colors hover:bg-surface-muted/40 hover:text-text-tertiary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+        className="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-3xs font-medium tracking-wide text-text-quaternary transition-colors hover:bg-surface-muted/40 hover:text-text-tertiary v4-focus-ring"
         aria-expanded={!collapsed}
         data-sidebar-plugins-toggle
       >
@@ -798,7 +798,7 @@ function DefaultSidebarEntry({ slot }: { slot: SidebarSlot }) {
     <div
       role="button"
       tabIndex={0}
-      className="group flex w-full cursor-pointer items-center justify-between gap-1.5 rounded-[var(--radius-md)] px-2 py-1.5 transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+      className="group flex w-full cursor-pointer items-center justify-between gap-1.5 rounded-[var(--radius-md)] px-2 py-1.5 transition-colors hover:bg-surface-muted v4-focus-ring"
       onClick={() => slot.onSelect?.()}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {

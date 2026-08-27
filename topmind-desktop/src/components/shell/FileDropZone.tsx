@@ -124,7 +124,9 @@ export function FileDropZone({ children }: { children: React.ReactNode }) {
         </div>
       ) : null}
       {busy || toast ? (
-        <div className="absolute bottom-4 left-1/2 z-floating -translate-x-1/2 rounded-[var(--radius-lg)] border border-border-subtle-dim bg-surface px-3.5 py-2 text-3xs font-medium text-text-secondary shadow-[var(--shadow-float)] animate-toast-in">
+        // Shell-parity toast frame (Shell.tsx info toast): same bottom offset,
+        // radius, padding, shadow and animation so the two surfaces read as one.
+        <div className="absolute bottom-10 left-1/2 z-floating flex max-w-[min(420px,90vw)] -translate-x-1/2 items-center gap-2 rounded-[var(--radius-lg)] border border-border-subtle-dim bg-surface px-3.5 py-2 text-3xs font-medium text-text-secondary shadow-[var(--shadow-float)] animate-toast-in">
           {busy ? (
             <span className="flex items-center gap-1.5">
               <Loader2 size={ICON.micro} className="animate-spin text-accent-color" /> {t("fileDropZone.preparing")}

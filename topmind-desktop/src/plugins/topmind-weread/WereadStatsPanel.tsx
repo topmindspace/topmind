@@ -48,7 +48,7 @@ export function WereadStatsPanel({
                 onClick={() => onStatsMode(m)}
                 className={cn(
                   "rounded-full px-2 py-0.5 text-3xs font-medium transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
+                  "v4-focus-ring",
                   statsMode === m
                     ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
                     : "text-text-quaternary hover:bg-surface-muted hover:text-text-secondary",
@@ -62,7 +62,7 @@ export function WereadStatsPanel({
                 type="button"
                 disabled={!ready}
                 onClick={onRefresh}
-                className="rounded-[var(--radius-sm)] p-1 text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 disabled:opacity-40"
+                className="rounded-[var(--radius-sm)] p-1 text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary v4-focus-ring disabled:opacity-40"
                 aria-label={t("settings:wereadStats.refreshAria")}
               >
                 <RefreshCw size={ICON.micro} aria-hidden />

@@ -204,7 +204,7 @@ export function OutputsView() {
       const raw = await api.ws.read(file.relativePath);
       const { body } = stripFrontmatterForExport(raw);
       await navigator.clipboard.writeText(body);
-      emitLocal("toast:show", t("workspace:outputsView.copyMarkdownDone"));
+      emitLocal("toast:show", { text: t("workspace:outputsView.copyMarkdownDone"), kind: "success" });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }

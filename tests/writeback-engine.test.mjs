@@ -237,6 +237,49 @@ describe("writeback-engine", () => {
     assert.ok(ev.backup_path || ev.backupPath, "existing locked must backup even if new FM open");
   });
 
+  it("BACKUP_KEEP / RECEIPT_KEEP rotation bounds high-impact artifacts", () => {
+    const prevBackup = process.env.BACKUP_KEEP;
+    const prevReceipt = process.env.RECEIPT_KEEP;
+    process.env.BACKUP_KEEP = "2";
+    process.env.RECEIPT_KEEP = "3";
+    try {
+      const target = path.join(env.ws, "10-动态/rotating-locked.md");
+      fs.writeFileSync(target, "---\nprotection: locked\n---\n\nv0\n", "utf8");
+      for (let i = 1; i <= 6; i++) {
+        executeWrite({
+          targetPath: target,
+          content: `---\nprotection: locked\n---\n\nv${i}\n`,
+          workspaceRoot: env.ws,
+          contract: env.contract,
+          actor: "user",
+          confirmed: true,
+          skipShadow: true,
+        });
+      }
+      const backupDir = path.join(env.ws, "99-归档", "backups", "10-动态");
+      const backups = fs
+        .readdirSync(backupDir)
+        .filter((n) => n.endsWith("__rotating-locked.md"))
+        .sort();
+      assert.equal(backups.length, 2, `BACKUP_KEEP=2 must prune older backups, got ${backups.length}`);
+      const newest = fs.readFileSync(path.join(backupDir, backups[backups.length - 1]), "utf8");
+      assert.ok(newest.includes("v5"), "rotation keeps the newest backup copies, not the oldest");
+
+      // Receipts prune globally (whole receipts dir), so total ≤ RECEIPT_KEEP even
+      // when several distinct files produced high-impact writes.
+      assert.equal(
+        listArchiveFiles(env.ws).receipts.length,
+        3,
+        "RECEIPT_KEEP=3 must prune oldest receipts after each high-impact write",
+      );
+    } finally {
+      if (prevBackup === undefined) delete process.env.BACKUP_KEEP;
+      else process.env.BACKUP_KEEP = prevBackup;
+      if (prevReceipt === undefined) delete process.env.RECEIPT_KEEP;
+      else process.env.RECEIPT_KEEP = prevReceipt;
+    }
+  });
+
   it("path outside workspace is denied", () => {
     const outside = path.join(tmpRoot, "outside-secret.md");
     fs.writeFileSync(outside, "nope\n", "utf8");

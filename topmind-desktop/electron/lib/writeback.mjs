@@ -1,4 +1,4 @@
-import { promises as fs, appendFileSync, mkdirSync } from "node:fs";
+import { promises as fs, appendFileSync, mkdirSync, renameSync, statSync, unlinkSync } from "node:fs";
 import path from "node:path";
 import { archiveRoot, resolveDataRoot } from "./path-model.mjs";
 import { assertPathWithin } from "./path-safety.mjs";
@@ -10,8 +10,42 @@ const minLevel = LOG_LEVELS[process.env.topmind_LOG_LEVEL] ?? LOG_LEVELS.info;
 /** Optional file sink — packaged Windows GUI apps have no visible stderr. */
 let logFilePath = null;
 
+/** Current byte size of the file sink (tracked so rotation needs no per-line stat). */
+let logFileSize = 0;
+
 /**
- * Enable append-only JSONL file logging (idempotent).
+ * Soft size cap per log file before rotation (default 2 MB).
+ * Env override read at call time (same rationale as Kernel BACKUP_KEEP).
+ */
+function resolveLogMaxBytes() {
+  const n = Number(process.env.topmind_LOG_MAX_BYTES);
+  return Number.isFinite(n) && n > 0 ? n : 2_000_000;
+}
+
+/**
+ * Archived files retained after rotation (`main.log.1` … `main.log.{keep}`,
+ * default 3 → worst case on disk ≈ (keep + 1) × cap).
+ */
+function resolveLogKeep() {
+  const n = Number(process.env.topmind_LOG_KEEP);
+  return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 3;
+}
+
+/**
+ * Shift `main.log.{i}` → `main.log.{i+1}` (dropping the oldest slot), then
+ * `main.log` → `main.log.1`. Every step is best-effort: a locked/stale rotated
+ * file must never break logging.
+ */
+function rotateLogFile(filePath, keep) {
+  try { unlinkSync(`${filePath}.${keep}`); } catch { /* slot absent */ }
+  for (let i = keep - 1; i >= 1; i--) {
+    try { renameSync(`${filePath}.${i}`, `${filePath}.${i + 1}`); } catch { /* slot absent */ }
+  }
+  try { renameSync(filePath, `${filePath}.1`); } catch { /* keep appending to current */ }
+}
+
+/**
+ * Enable append-only JSONL file logging with size-capped rotation (idempotent).
  * Call once early from main after desktop state home is known.
  * @param {string} filePath absolute path e.g. …/topmind/topmind-desktop/logs/main.log
  */
@@ -20,9 +54,15 @@ export function attachFileLogger(filePath) {
   try {
     mkdirSync(path.dirname(filePath), { recursive: true });
     logFilePath = filePath;
+    let st = null;
+    try { st = statSync(filePath); } catch { /* fresh file */ }
+    // Existing oversized log (e.g., upgraded from unbounded version) rotates
+    // on the first appended line — no special-case startup cleanup needed.
+    logFileSize = st?.isFile() ? st.size : 0;
     return logFilePath;
   } catch {
     logFilePath = null;
+    logFileSize = 0;
     return null;
   }
 }
@@ -48,7 +88,13 @@ function log(level, category, message, meta = {}) {
   }
   if (logFilePath) {
     try {
-      appendFileSync(logFilePath, line, "utf8");
+      const buf = Buffer.from(line, "utf8");
+      if (logFileSize + buf.length > resolveLogMaxBytes()) {
+        rotateLogFile(logFilePath, resolveLogKeep());
+        logFileSize = 0;
+      }
+      appendFileSync(logFilePath, buf);
+      logFileSize += buf.length;
     } catch {
       /* disk full / permission — never throw from logger */
     }

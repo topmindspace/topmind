@@ -11,6 +11,7 @@ import {
   buildActivityCorpus,
   parseAppendMarkers,
   appendToStreamEntry,
+  appendToStreamEntryDetailed,
   formatAppendBlock,
   isPeriodNoteFileName,
   isSafePeriodStem,
@@ -134,6 +135,88 @@ more
     const iNextDay = next.indexOf("## 07-23");
     assert.ok(iAppend > 0 && iNextDay > iAppend, "append should be before next heading");
     assert.match(formatAppendBlock({ content: "x", heading: "h" }), /topmind:append/u);
+  });
+
+  it("appendToStreamEntry: unique fuzzy heading match still lands in-section", () => {
+    const body = `# 2026-W31 动态
+
+## 记录
+
+## 07-22 周二 上午
+- 10:00 原始条目
+
+## 07-23 周三
+- 11:00 另一天
+`;
+    const { body: next, location } = appendToStreamEntryDetailed(body, {
+      heading: "07-22",
+      content: "唯一模糊命中",
+      date: new Date("2026-08-03T08:30:00"),
+    });
+    assert.equal(location.appendedAt, "heading");
+    assert.equal(location.matchedHeading, "07-22 周二 上午");
+    const iAppend = next.indexOf("唯一模糊命中");
+    const iNextDay = next.indexOf("## 07-23");
+    assert.ok(iAppend > 0 && iNextDay > iAppend, "append should be inside matched section");
+  });
+
+  it("appendToStreamEntry: ambiguous fuzzy matches fall back to end of file", () => {
+    const body = `# 2026-W31 动态
+
+## 07-22 周二 上午
+- 10:00 A
+
+## 07-22 周二 下午
+- 14:00 B
+`;
+    const { body: next, location } = appendToStreamEntryDetailed(body, {
+      heading: "07-22 周二",
+      content: "多命中不应乱插",
+      date: new Date("2026-08-03T08:30:00"),
+    });
+    assert.equal(location.appendedAt, "end");
+    // Appended after the last section content, not inside either 07-22 section
+    const iAppend = next.indexOf("多命中不应乱插");
+    const iLast = next.indexOf("14:00 B");
+    assert.ok(iAppend > iLast, "append should land at end of file");
+  });
+
+  it("appendToStreamEntry: zero heading hits fall back to end of file", () => {
+    const body = `# 2026-W31 动态
+
+## 记录
+- 10:00 原始条目
+`;
+    const { body: next, location } = appendToStreamEntryDetailed(body, {
+      heading: "不存在的标题",
+      content: "零命中回退",
+      date: new Date("2026-08-03T08:30:00"),
+    });
+    assert.equal(location.appendedAt, "end");
+    assert.ok(next.trimEnd().endsWith("零命中回退"), "append should be last content");
+  });
+
+  it("appendToStreamEntryDetailed reports matchedHeading on exact hit", () => {
+    const body = `# 2026-W31 动态
+
+## 07-22 周二
+- 10:00 A
+
+## 07-23 周三
+- 11:00 B
+`;
+    const { location } = appendToStreamEntryDetailed(body, {
+      heading: "07-22 周二",
+      content: "精确命中",
+      date: new Date("2026-08-03T08:30:00"),
+    });
+    assert.equal(location.appendedAt, "heading");
+    assert.equal(location.matchedHeading, "07-22 周二");
+    // Wrapper stays string-compatible
+    assert.equal(
+      typeof appendToStreamEntry(body, { heading: "07-22 周二", content: "x" }),
+      "string",
+    );
   });
 });
 

@@ -356,7 +356,7 @@ export function PluginsPanel({
                       onClick={() =>
                         useViewStore.getState().openOverlay("settings", { topicId: settingsSlot.id })
                       }
-                      className="shrink-0 rounded-[var(--radius-md)] border border-border-subtle px-2 py-1 text-3xs text-text-secondary transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+                      className="shrink-0 rounded-[var(--radius-md)] border border-border-subtle px-2 py-1 text-3xs text-text-secondary transition-colors hover:bg-surface-muted v4-focus-ring"
                     >
                       {t("settings:plugins.configBtn")}
                     </button>
@@ -369,7 +369,7 @@ export function PluginsPanel({
                       disabled={busy === `rm:${p.id}`}
                       onClick={() => setUninstallId(p.id)}
                       aria-label={t("settings:plugins.uninstallTooltip")}
-                      className="shrink-0 rounded-[var(--radius-sm)] p-1 text-text-quaternary transition-colors hover:bg-surface-muted hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+                      className="shrink-0 rounded-[var(--radius-sm)] p-1 text-text-quaternary transition-colors hover:bg-surface-muted hover:text-error v4-focus-ring"
                     >
                       <Trash2 size={ICON.micro} />
                     </button>

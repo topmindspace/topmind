@@ -46,16 +46,16 @@ export function toastWriteback(verb: string, evidence?: WritebackEvidence | null
   const text = formatWritebackToast(verb, evidence);
   // Send structured payload when evidence has a backup path (enables undo button)
   if (evidence?.backupPath || evidence?.receiptPath) {
-    emitLocal("toast:show", { text, evidence } satisfies ToastPayload);
+    emitLocal("toast:show", { text, kind: "success", evidence } satisfies ToastPayload);
   } else {
-    emitLocal("toast:show", text);
+    emitLocal("toast:show", { text, kind: "success" });
   }
 }
 
 /** Emit toast for a failed operation. */
 export function toastWritebackError(verb: string, error: unknown): void {
   const msg = error instanceof Error ? error.message : String(error);
-  emitLocal("toast:show", `✗ ${verb}: ${msg}`);
+  emitLocal("toast:show", { text: `✗ ${verb}: ${msg}`, kind: "error" });
 }
 
 /** Format multi-file batch receipt for toast / banner title. */
@@ -81,5 +81,5 @@ export function formatBatchEvidenceLine(
 export function toastBatchEvidence(summary: BatchEvidenceSummary | null | undefined): void {
   const line = formatBatchEvidenceLine(summary);
   if (!line) return;
-  emitLocal("toast:show", line);
+  emitLocal("toast:show", { text: line, kind: "success" });
 }

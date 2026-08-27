@@ -48,7 +48,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <button
             type="button"
             onClick={this.handleRetry}
-            className="mt-1 inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-border-subtle px-2.5 py-1 text-3xs font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+            className="mt-1 inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-border-subtle px-2.5 py-1 text-3xs font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary v4-focus-ring"
           >
             <RefreshCw size={ICON.nano} aria-hidden />
             {i18n.t("common:action.retry")}

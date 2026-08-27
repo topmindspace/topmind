@@ -172,7 +172,7 @@ export function FilePreviewView({ path }: Props) {
                   type="button"
                   className={cn(
                     "flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] transition-colors",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
+                    "v4-focus-ring",
                     mounted
                       ? "bg-accent-bg-subtle text-accent-color"
                       : "text-text-tertiary hover:bg-surface-muted hover:text-text-primary",
@@ -188,7 +188,7 @@ export function FilePreviewView({ path }: Props) {
             <Tooltip content={t("workspace:previewView.openExternalTooltip")}>
               <button
                 type="button"
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-primary v4-focus-ring"
                 aria-label={t("workspace:previewView.openExternalTooltip")}
                 onClick={() => void api.ws.open(path)}
               >
@@ -198,7 +198,7 @@ export function FilePreviewView({ path }: Props) {
             <Tooltip content={t("workspace:previewView.revealTooltip")}>
               <button
                 type="button"
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-primary v4-focus-ring"
                 aria-label={t("workspace:previewView.revealTooltip")}
                 onClick={() => void api.ws.reveal(path)}
               >

@@ -44,7 +44,7 @@ export function createXActions(ctx: PluginContext): ActionSlot[] {
           ctx.navigate({ kind: "connector", id: "x" });
           ctx.events.emit("x:open-prompt", { mode: "fetch" });
         } catch (e) {
-          ctx.toast(`✗ X: ${e instanceof Error ? e.message : String(e)}`);
+          ctx.toast({ text: `✗ X: ${e instanceof Error ? e.message : String(e)}`, kind: "error" });
         }
       },
     },
@@ -67,7 +67,7 @@ export function createXActions(ctx: PluginContext): ActionSlot[] {
           ctx.navigate({ kind: "connector", id: "x" });
           ctx.events.emit("x:open-prompt", { mode: "post" });
         } catch (e) {
-          ctx.toast(`✗ X: ${e instanceof Error ? e.message : String(e)}`);
+          ctx.toast({ text: `✗ X: ${e instanceof Error ? e.message : String(e)}`, kind: "error" });
         }
       },
     },

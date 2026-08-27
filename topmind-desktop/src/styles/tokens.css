@@ -135,10 +135,10 @@
   --color-object-inbox-bg: rgba(18, 137, 123, 0.09);
 
   /* ── Spacing (4px base) ── */
+  /* 4px grid only — half-step tokens (1h/1h5/…/6h5) removed 2026-08-27:
+     they had zero references; off-scale values must map to the nearest grid slot. */
   --space-1: 4px;
-  --space-1h: 6px;
   --space-2: 8px;
-  --space-2h: 10px;
   --space-3: 12px;
   --space-4: 16px;
   --space-5: 20px;
@@ -147,13 +147,6 @@
   --space-8: 40px;
   --space-9: 48px;
   --space-10: 64px;
-  --space-1h5: 5px;
-  --space-1h75: 7px;
-  --space-2h25: 9px;
-  --space-3h5: 14px;
-  --space-4h5: 18px;
-  --space-5h5: 22px;
-  --space-6h5: 28px;
 
   /* ── Radius — soft modern, still dense-app friendly ── */
   --radius-xs: 4px;
@@ -290,7 +283,7 @@
   --text-5xs--line-height: var(--type-leading-compact);
   --text-4xs: 11px;
   --text-4xs--line-height: var(--type-leading-compact);
-  --text-3xs: 11.5px;
+  --text-3xs: 12px;
   --text-3xs--line-height: var(--type-leading-compact);
   --text-2xs: 12px;
   --text-2xs--line-height: var(--type-leading-compact);
@@ -355,6 +348,13 @@
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
   --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
 
+  /* ── Status-bar chip truncation (see StatusBar.tsx) ──
+     Center selection hint: 42vw base, 36vw from sm up (media override in base layer).
+     Inline-AI busy / AI pill labels use fixed caps so the right rail never wraps. */
+  --status-chip-max: 42vw;
+  --status-chip-max-inline: 7.5rem;
+  --status-chip-max-ai: 9rem;
+
   /* ── Blur — small surfaces only; never full-viewport scrim ── */
   --blur-sm: 6px;
   --blur-md: 12px;
@@ -412,7 +412,7 @@
     --color-accent-project: #7f9fd4;
     --color-accent-inbox: #4fc2b0;
     --color-accent-color: #7f9fd4;
-      --color-accent-hover: #93aede;
+    --color-accent-hover: #93aede;
     --color-accent-active: #a7bde6;
     --color-accent-muted: rgba(127, 159, 212, 0.16);
     --color-accent-border-subtle: rgba(127, 159, 212, 0.28);
@@ -643,7 +643,26 @@ select:focus-visible {
   border: 2px solid transparent;
 }
 
-} /* end @layer base */
+}
+
+/* Center selection hint cap tightens on sm+ viewports (single media override for
+   --status-chip-max; components just reference the token). */
+@media (min-width: 640px) {
+  :root,
+  .dark {
+    --status-chip-max: 36vw;
+  }
+}
+
+/* Unified focus ring utility — replaces the repeated
+   `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35`
+   class chain (~65 occurrences across chrome components). */
+@layer components {
+  .v4-focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35;
+  }
+}
+
 
 /* Motion: opacity-first, micro translate — cheaper than large transforms */
 @keyframes fade-in {

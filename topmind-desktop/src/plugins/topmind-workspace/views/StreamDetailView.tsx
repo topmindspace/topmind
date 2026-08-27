@@ -126,7 +126,7 @@ function StreamFeedRowView({
           className={cn(
             "flex w-full flex-col gap-0.5 rounded-md bg-surface-muted/15 px-2.5 py-2 text-left",
             "transition-colors hover:bg-accent-bg-faint/30",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
+            "v4-focus-ring",
           )}
           data-stream-article-open
         >
@@ -492,7 +492,7 @@ export function StreamDetailView() {
       lastBodyRef.current = content;
       lastEntryKeysRef.current = nextKeys;
       setEntries(nextEntries);
-      if (silent) setError(null);
+      setError(null);
     } catch (e) {
       if (!silent) setError(e instanceof Error ? e.message : String(e));
     }
@@ -527,16 +527,16 @@ export function StreamDetailView() {
   const loadPastYearPeriods = useCallback(async (year: string) => {
     if (pastYearPeriods[year]) return;
     try {
-      const list = await api.ws.listStreamPeriods();
-      const yearPeriods = (list || [])
-        .filter((p) => p.relPath.includes(`/${year}/`))
-        .map((p) => ({
-          relPath: p.relPath,
-          fileName: p.fileName,
-          title: p.title,
-          reconciled: p.reconciled,
-          mtime: p.mtime ?? null,
-        }));
+      // Year filter runs in the engine (covers {year}/ dir AND flat {year}-*
+      // files) before the result limit applies — no truncated misses.
+      const list = await api.ws.listStreamPeriods(year);
+      const yearPeriods = (list || []).map((p) => ({
+        relPath: p.relPath,
+        fileName: p.fileName,
+        title: p.title,
+        reconciled: p.reconciled,
+        mtime: p.mtime ?? null,
+      }));
       setPastYearPeriods((prev) => ({ ...prev, [year]: yearPeriods }));
     } catch {
       /* non-critical */
@@ -552,10 +552,38 @@ export function StreamDetailView() {
     try {
       const result = await api.ws.archiveStreamYear(year);
       if (result.ok) {
-        toastWriteback(result.userMessage || t("workspace:streamDetail.archiveYearOk", { year, count: result.movedCount }));
+        toastWriteback(
+          result.userMessage ||
+            t("workspace:streamDetail.archiveYearOk", {
+              year,
+              count: result.movedCount,
+              path: result.archivePath,
+            }),
+        );
+        // Honest partial failure: name what could not be moved
+        if (result.failedFiles && result.failedFiles.length > 0) {
+          emitLocal("toast:show", { text: t("workspace:streamDetail.archiveYearPartialFail", {
+            count: result.failedFiles.length,
+          }), kind: "error" });
+        }
         // Refresh years and periods
         await loadStreamYears();
         await loadPeriods();
+      } else {
+        // Reason-specific human message (not a raw code)
+        const reasonKey =
+          result.reason === "current-or-future-year"
+            ? "workspace:streamDetail.archiveReasonCurrentYear"
+            : result.reason === "already-archived"
+              ? "workspace:streamDetail.archiveReasonAlreadyArchived"
+              : result.reason === "year-dir-not-found"
+                ? "workspace:streamDetail.archiveReasonYearNotFound"
+                : "workspace:streamDetail.archiveReasonGeneric";
+        const msg =
+          reasonKey === "workspace:streamDetail.archiveReasonGeneric"
+            ? t(reasonKey, { reason: result.reason || "unknown" })
+            : t(reasonKey);
+        toastWritebackError(t("workspace:streamDetail.archiveYear"), msg);
       }
     } catch (e) {
       toastWritebackError(t("workspace:streamDetail.archiveYear"), e);
@@ -655,7 +683,7 @@ export function StreamDetailView() {
     const text = composeText.trim();
     if (!text || polishing || composing) return;
     if (!aiReady) {
-      emitLocal("toast:show", t("overlays:capture.aiPolishNotReady"));
+      emitLocal("toast:show", { text: t("overlays:capture.aiPolishNotReady"), kind: "error" });
       return;
     }
     const sessionId = `stream-polish-${Date.now()}`;
@@ -834,10 +862,12 @@ export function StreamDetailView() {
       setViewPeriodPath(p.relPath);
       setViewPeriodTitle(p.title || p.fileName);
       setExpandedIdx(new Set());
-      // Period switch is a deliberate navigation — allow body replace
+      // Period switch is a deliberate navigation — allow body replace.
+      // Not silent: a failed read must surface (ErrorState + retry), never
+      // leave the feed silently showing the previous period.
       lastBodyRef.current = null;
       lastEntryKeysRef.current = [];
-      void loadPeriodContent(p.relPath, { silent: true });
+      void loadPeriodContent(p.relPath, { silent: false });
     },
     [loadPeriodContent],
   );
@@ -870,7 +900,7 @@ export function StreamDetailView() {
           relativePath: activePath || undefined,
         });
         if (!res.ok) {
-          emitLocal("toast:show", res.message || t("workspace:shared.toastOrganizeFail"));
+          emitLocal("toast:show", { text: res.message || t("workspace:shared.toastOrganizeFail"), kind: "error" });
           openSuggestSurface();
           return;
         }
@@ -892,7 +922,7 @@ export function StreamDetailView() {
         if (hasCandidates) {
           openSuggestSurface();
           emitLocal("suggestions:refresh", { reason: "reconcile" });
-          emitLocal("toast:show", t("workspace:streamDetail.candidatesReady"));
+          emitLocal("toast:show", { text: t("workspace:streamDetail.candidatesReady"), kind: "success" });
         }
         void loadPeriodContent(activePath, { silent: true });
         void loadPeriods();
@@ -1018,6 +1048,19 @@ export function StreamDetailView() {
   const isCurrentPeriod =
     !activePath || !ctx?.periodRelPath || activePath === ctx.periodRelPath;
 
+  // "More this year" counts only this calendar year's periods — both year-dir
+  // ({year}/{period}.md) and flat ({year}-{period}.md) layouts count.
+  const currentYear = String(new Date().getFullYear());
+  const thisYearPeriods = useMemo(
+    () =>
+      periods.filter(
+        (p) =>
+          p.relPath.split("/").includes(currentYear) ||
+          p.fileName.startsWith(`${currentYear}-`),
+      ),
+    [periods, currentYear],
+  );
+
   if (loading) {
     return (
       <ViewContainer>
@@ -1033,6 +1076,13 @@ export function StreamDetailView() {
           message={error}
           onRetry={() => {
             setLoading(true);
+            // Period-switch failure: retry the period we tried to open
+            if (activePath) {
+              void loadPeriodContent(activePath, { silent: false }).finally(() =>
+                setLoading(false),
+              );
+              return;
+            }
             void api.ws
               .getStreamContext()
               .then(async (streamCtx) => {
@@ -1081,8 +1131,8 @@ export function StreamDetailView() {
           data-stream-period-chips
         >
           <span className="sr-only">{t("workspace:streamDetail.periodSwitcher")}</span>
-          {/* Recent 5 periods (primary chips) */}
-          {periods.slice(0, 5).map((p) => {
+          {/* Recent 5 periods of the current year (primary chips) */}
+          {thisYearPeriods.slice(0, 5).map((p) => {
             const isActive = activePath === p.relPath;
             const isPackingCurrent = ctx?.periodRelPath === p.relPath;
             return (
@@ -1116,8 +1166,8 @@ export function StreamDetailView() {
               </button>
             );
           })}
-          {/* More this year (expandable) */}
-          {periods.length > 5 ? (
+          {/* More this year (expandable) — count reflects only this year's periods */}
+          {thisYearPeriods.length > 5 ? (
             <button
               type="button"
               onClick={() => setShowMoreThisYear((v) => !v)}
@@ -1127,12 +1177,12 @@ export function StreamDetailView() {
                 size={ICON.nano}
                 className={cn("transition-transform", showMoreThisYear && "rotate-180")}
               />
-              {t("workspace:streamDetail.moreThisYear", { count: periods.length - 5 })}
+              {t("workspace:streamDetail.moreThisYear", { count: thisYearPeriods.length - 5 })}
             </button>
           ) : null}
-          {showMoreThisYear && periods.length > 5 ? (
+          {showMoreThisYear && thisYearPeriods.length > 5 ? (
             <div className="flex w-full flex-wrap items-center gap-1 pl-2">
-              {periods.slice(5).map((p) => {
+              {thisYearPeriods.slice(5).map((p) => {
                 const isActive = activePath === p.relPath;
                 return (
                   <button
@@ -1250,15 +1300,19 @@ export function StreamDetailView() {
               ) : null}
             </div>
           ) : null}
-          {!isCurrentPeriod && ctx?.periodRelPath ? (
-            <button
-              type="button"
-              className="text-3xs text-accent-color hover:underline"
-              onClick={handleBackToCurrent}
-            >
-              {t("workspace:streamDetail.backToCurrent")}
-            </button>
-          ) : null}
+        </div>
+      ) : null}
+      {/* Back to current period — always available when viewing another period,
+          even when there is only one period chip listed. */}
+      {!isCurrentPeriod && ctx?.periodRelPath ? (
+        <div className="mb-2">
+          <button
+            type="button"
+            className="text-3xs text-accent-color hover:underline"
+            onClick={handleBackToCurrent}
+          >
+            {t("workspace:streamDetail.backToCurrent")}
+          </button>
         </div>
       ) : null}
 
@@ -1284,7 +1338,7 @@ export function StreamDetailView() {
               emitLocal("overlay:open", { kind: "quick-capture", prefill: { source: composeText.trim() } } as never);
               setComposeText("");
             }}
-            className="shrink-0 rounded-full bg-accent-bg-subtle px-2 py-0.5 text-3xs font-medium text-accent-color hover:bg-accent-bg-faint/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+            className="shrink-0 rounded-full bg-accent-bg-subtle px-2 py-0.5 text-3xs font-medium text-accent-color hover:bg-accent-bg-faint/40 v4-focus-ring"
           >
             {t("workspace:streamDetail.composeUrlAction")}
           </button>
@@ -1337,7 +1391,7 @@ export function StreamDetailView() {
             <button
               type="button"
               onClick={handleCapture}
-              className="text-3xs text-text-quaternary underline-offset-2 hover:text-accent-color hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 rounded-sm"
+              className="text-3xs text-text-quaternary underline-offset-2 hover:text-accent-color hover:underline v4-focus-ring rounded-sm"
             >
               {t("workspace:streamDetail.composeFullCapture")}
             </button>
@@ -1420,7 +1474,7 @@ export function StreamDetailView() {
                 <button
                   type="button"
                   onClick={() => toggleDayCollapsed(group.dayKey)}
-                  className="sticky top-0 z-local flex w-full items-center gap-1.5 bg-surface-muted/25 px-2.5 py-1.5 text-left hover:bg-surface-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+                  className="sticky top-0 z-local flex w-full items-center gap-1.5 bg-surface-muted/25 px-2.5 py-1.5 text-left hover:bg-surface-muted/45 v4-focus-ring"
                   aria-expanded={!dayCollapsed}
                   data-stream-day-toggle
                 >

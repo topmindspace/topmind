@@ -95,7 +95,7 @@ export function TagsView({ onNavigate }: TagsViewProps) {
         <button
           type="button"
           onClick={() => void load()}
-          className="flex items-center gap-1 self-start rounded-[var(--radius-md)] border border-border-subtle px-2 py-1 text-3xs text-text-secondary hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+          className="flex items-center gap-1 self-start rounded-[var(--radius-md)] border border-border-subtle px-2 py-1 text-3xs text-text-secondary hover:bg-surface-muted v4-focus-ring"
         >
           <RefreshCw size={ICON.nano} /> {t("sidebar.tags.retry")}
         </button>
@@ -115,7 +115,7 @@ export function TagsView({ onNavigate }: TagsViewProps) {
             <button
               type="button"
               onClick={() => useViewStore.getState().select({ kind: "stream" })}
-              className="inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-border-subtle bg-surface px-2 py-1 text-3xs font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+              className="inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-border-subtle bg-surface px-2 py-1 text-3xs font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary v4-focus-ring"
             >
               <FilePenLine size={ICON.nano} aria-hidden />
               {t("sidebar.tags.goWorkspace")}

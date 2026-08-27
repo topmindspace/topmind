@@ -1019,11 +1019,20 @@ export const pathOps = {
 
   /**
    * List all period notes in the stream category (for "整理过往" UI).
+   * Optional `year` filter keeps both year-dir ({year}/) and flat ({year}-*)
+   * periods of that year — no limit truncation misses.
    * Returns sorted (newest first) list with reconciled flag.
    */
-  async listStreamPeriods(_p, ctx) {
+  async listStreamPeriods(p, ctx) {
     const wmApi = await import("./workspace-model-api.mjs");
-    return wmApi.listStreamPeriods(ctx.workspaceRoot, { limit: 50 });
+    const year =
+      p && typeof p === "object" && p.year !== undefined && p.year !== null
+        ? String(p.year).trim()
+        : undefined;
+    if (year && !/^\d{4}$/.test(year)) {
+      throw new Error("Invalid year format");
+    }
+    return wmApi.listStreamPeriods(ctx.workspaceRoot, { limit: 50, year });
   },
 
   /**
@@ -1084,7 +1093,12 @@ export const pathOps = {
     if (typeof kernel.appendToStreamEntry !== "function") {
       throw new Error("Kernel appendToStreamEntry unavailable");
     }
-    const next = kernel.appendToStreamEntry(old, {
+    // Detailed variant reports where the block landed (exact heading vs end-of-file)
+    const appendFn =
+      typeof kernel.appendToStreamEntryDetailed === "function"
+        ? kernel.appendToStreamEntryDetailed.bind(kernel)
+        : (body, opts) => ({ body: kernel.appendToStreamEntry(body, opts), location: { appendedAt: "end" } });
+    const { body: next, location } = appendFn(old, {
       heading: heading ? String(heading) : undefined,
       content: text,
       parentRel: parentRel ? String(parentRel) : undefined,
@@ -1107,6 +1121,7 @@ export const pathOps = {
       {
         ...ev,
         operation: "append-entry",
+        appendLocation: location || { appendedAt: "end" },
         userMessage: i18n("pathOps.appendedToStream"),
       },
       rel,

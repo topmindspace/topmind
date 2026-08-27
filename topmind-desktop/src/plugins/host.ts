@@ -90,10 +90,12 @@ void (async () => {
       source: "clip",
       listing: true,
     });
-    eventBus.emit(
-      "toast:show",
-      clipPath ? i18n.t("common:clip.bridgeSuccess", { name: clipPath.split("/").slice(-1)[0] }) : i18n.t("common:clip.bridgeSuccessNoPath"),
-    );
+    eventBus.emit("toast:show", {
+      text: clipPath
+        ? i18n.t("common:clip.bridgeSuccess", { name: clipPath.split("/").slice(-1)[0] })
+        : i18n.t("common:clip.bridgeSuccessNoPath"),
+      kind: "success",
+    });
   });
 })();
 
@@ -220,7 +222,7 @@ function buildContext(
     navigate: (selection: Selection) => {
       eventBus.emit("navigate:select", selection);
     },
-    toast: (message: string) => {
+    toast: (message: string | { text: string; kind?: "success" | "error" | "info" }) => {
       eventBus.emit("toast:show", message);
     },
   };

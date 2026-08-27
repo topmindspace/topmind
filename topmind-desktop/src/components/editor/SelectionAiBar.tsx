@@ -196,7 +196,7 @@ export function SelectionAiBar({
           {!ready ? (
             <button
               type="button"
-              className="rounded px-1.5 py-0.5 text-3xs font-medium text-accent-color hover:bg-accent-bg-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+              className="rounded px-1.5 py-0.5 text-3xs font-medium text-accent-color hover:bg-accent-bg-faint v4-focus-ring"
               onClick={() => openOverlay("settings", { topicId: "ai" })}
             >
               {t("selectionAi.configure")}
@@ -208,7 +208,7 @@ export function SelectionAiBar({
               type="button"
               className={cn(
                 "flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
+                "v4-focus-ring",
                 inlineAiAutoPopup
                   ? "text-accent-color hover:bg-accent-bg-faint"
                   : "text-text-quaternary hover:bg-surface-muted",

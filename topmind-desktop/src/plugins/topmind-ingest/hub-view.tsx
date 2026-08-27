@@ -139,7 +139,7 @@ function IngestHubView() {
             {!tools.anydoc ? (
               <button
                 type="button"
-                className="text-accent-color underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+                className="text-accent-color underline-offset-2 hover:underline v4-focus-ring"
                 onClick={() => openOverlay("settings", { topicId: "topmind-ingest.settings" })}
                 title={t("hub.installAnydocTip")}
               >
@@ -209,7 +209,7 @@ function IngestHubView() {
               onClick={() => setDestMode(id)}
               className={cn(
                 "rounded-full px-2.5 py-0.5 font-medium transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
+                "v4-focus-ring",
                 active
                   ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
                   : "text-text-tertiary hover:bg-surface-muted",

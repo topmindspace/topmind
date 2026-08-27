@@ -185,7 +185,7 @@ export function TreeToolbar({
             type="button"
             onClick={onRefresh}
             disabled={refreshing}
-            className="inline-flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 disabled:opacity-40"
+            className="inline-flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary v4-focus-ring disabled:opacity-40"
             aria-label={t("sidebar.refreshTooltip")}
             data-sidebar-refresh
           >

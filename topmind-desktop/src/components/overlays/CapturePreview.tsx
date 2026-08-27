@@ -33,7 +33,7 @@ export function CapturePreview({
           <button
             type="button"
             onClick={() => void handleFetchUrl()}
-            className="font-medium underline underline-offset-2 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+            className="font-medium underline underline-offset-2 hover:opacity-80 v4-focus-ring"
           >
             {t("overlays:capture.urlFetchAction")}
           </button>

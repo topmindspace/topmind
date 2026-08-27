@@ -91,7 +91,7 @@ contract · workspace-model · stream · memory · lifecycle · **writeback（�
 > **Agent 步数**：默认 **20**（可配 3–50）。  
 > **删除诚实**：普通开放笔记 delete 无 trash；用户文案不得声称「每次删除都进 99-归档」。
 
-**诚实状态**：引擎在 `lib/`；Desktop / UTR / AI 耐久 `.md` **主写经 writeback-engine**；Memory · 建议条 · 待办 · AI 操作框架 · 活动窗口 · 动态增补 · 剪藏图片本地化 · i18n 门禁 · 多路 AI 并发 · Stream 年目录+归档 · UIUX 深度优化 **Done**。备份/回执：**仅高影响**——`locked` 覆盖，以及锁定/核心笔记的非 `permanent` **delete**（trash+回执）。`executeArchive` 把内容迁入现场 **system** 目录当新家（不是备份）。普通开放笔记 **delete** 无 trash；create/update/move/rename/连接器同步不备份不写回执；`permanent` 彻底删除；产物旋转（`BACKUP_KEEP=3` · `RECEIPT_KEEP=50`）。AI Provider：per-operation 动态 temperature/systemPrompt/maxTokens + 瞬态错误重试；会话压缩 240K/60。仍 **Intentional Partial**：contract 未强制全 Surface UI。embedding / 全库 Ask 等见 Reset Non-goal。
+**诚实状态**：引擎在 `lib/`；Desktop / UTR / AI 耐久 `.md` **主写经 writeback-engine**；Memory · 建议条 · 待办 · AI 操作框架 · 活动窗口 · 动态增补 · 剪藏图片本地化 · i18n 门禁 · 多路 AI 并发 · Stream 年目录+归档 · UIUX 深度优化 **Done**。备份/回执：**仅高影响**——`locked` 覆盖，以及锁定/核心笔记的非 `permanent` **delete**（trash+回执）。`executeArchive` 把内容迁入现场 **system** 目录当新家（不是备份）。普通开放笔记 **delete** 无 trash；create/update/move/rename/连接器同步不备份不写回执；`permanent` 彻底删除；产物旋转（`BACKUP_KEEP=3` · `RECEIPT_KEEP=50`）；Desktop 支持日志 `logs/main.log` 大小上限轮转（默认单文件 2 MB × 保留 3 份归档，`topmind_LOG_MAX_BYTES` / `topmind_LOG_KEEP` 可调，见 ADR `docs/adr/2026-08-27-desktop-log-rotation.md`）。AI Provider：per-operation 动态 temperature/systemPrompt/maxTokens + 瞬态错误重试；会话压缩 240K/60。仍 **Intentional Partial**：contract 未强制全 Surface UI。embedding / 全库 Ask 等见 Reset Non-goal。
 
 默认模板 4 种：`stream`（默认）· `balanced` · `research` · `periodic`。
 

@@ -22,6 +22,7 @@ export function makeMinCtx(workspaceRoot?: string): PluginContext {
     pluginId: "__min_ctx__",
     openOverlay: (kind, context) => emitLocal("overlay:open", { kind, ...context }),
     navigate: (selection: Selection) => emitLocal("navigate:select", selection),
-    toast: (message: string) => emitLocal("toast:show", message),
+    toast: (message: string | { text: string; kind?: "success" | "error" | "info" }) =>
+      emitLocal("toast:show", message),
   };
 }

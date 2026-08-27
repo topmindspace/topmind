@@ -267,7 +267,7 @@ function CodeBlock({ code, language }: { code: string; language?: string }) {
           <button
             type="button"
             onClick={() => void handleCopy()}
-            className="inline-flex h-6 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 text-3xs text-text-tertiary transition-colors hover:bg-surface hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+            className="inline-flex h-6 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 text-3xs text-text-tertiary transition-colors hover:bg-surface hover:text-text-primary v4-focus-ring"
             aria-label={copied ? t("ai.copiedLabel") : t("ai.copyLabel")}
           >
             {copied ? (

@@ -46,7 +46,7 @@ export function DndShell({
           await api.ws.move({ inboxRelativePath: dragData.relativePath, targetTopicId: dropData.topicId });
           emitLocal("workspace:file-changed");
         } catch (err) {
-          onToast(t("toast.moveFailedDetail", { error: err instanceof Error ? err.message : String(err) }));
+          onToast({ text: t("toast.moveFailedDetail", { error: err instanceof Error ? err.message : String(err) }), kind: "error" });
         }
       }
     },

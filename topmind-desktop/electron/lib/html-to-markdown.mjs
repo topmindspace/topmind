@@ -28,11 +28,30 @@ const NAMED_ENTITIES = {
   sup2: "²", sup3: "³", sub2: "₂", sub3: "₃",
 };
 
+/** Decode a numeric codepoint, keeping the original text when invalid. */
+function safeFromCodePoint(code, orig) {
+  if (!Number.isFinite(code) || code < 0 || code > 0x10ffff) return orig;
+  // Reject surrogate halves — String.fromCodePoint would throw on them.
+  if (code >= 0xd800 && code <= 0xdfff) return orig;
+  try {
+    return String.fromCodePoint(code);
+  } catch {
+    return orig;
+  }
+}
+
+/**
+ * Decode HTML entities in a single pass so that already-escaped input like
+ * `&amp;#65;` is decoded exactly once (to the literal text `&#65;`, not `A`).
+ */
 function decodeEntities(str) {
-  return str
-    .replace(/&([a-z]+);/giu, (m, name) => NAMED_ENTITIES[name.toLowerCase()] ?? m)
-    .replace(/&#(\d+);/gu, (m, code) => String.fromCodePoint(Number(code)))
-    .replace(/&#x([0-9a-f]+);/giu, (m, hex) => String.fromCodePoint(parseInt(hex, 16)));
+  return String(str).replace(/&(#[0-9]+|#[xX][0-9a-fA-F]+|[a-zA-Z][a-zA-Z0-9]*);/gu, (m, body) => {
+    if (body[0] === "#") {
+      if (body[1] === "x" || body[1] === "X") return safeFromCodePoint(parseInt(body.slice(2), 16), m);
+      return safeFromCodePoint(parseInt(body.slice(1), 10), m);
+    }
+    return NAMED_ENTITIES[body.toLowerCase()] ?? m;
+  });
 }
 
 /** Extract metadata from <meta> tags in the HTML head. */
@@ -128,6 +147,119 @@ function protectPreBlocks(html) {
   return { html: protected_, blocks };
 }
 
+/** Split list inner HTML into <li> items using depth counting, so that a
+ *  nested <li>…</li> pair does not truncate its enclosing item. */
+function splitListItems(content) {
+  const items = [];
+  const re = /<li\b[^>]*>|<\/li>/giu;
+  let depth = 0;
+  let start = -1;
+  let m;
+  while ((m = re.exec(content))) {
+    if (m[0][1] === "/") {
+      depth -= 1;
+      if (depth <= 0) {
+        depth = 0;
+        if (start >= 0) items.push(content.slice(start, m.index));
+        start = -1;
+      }
+    } else {
+      if (depth === 0) start = m.index + m[0].length;
+      depth += 1;
+    }
+  }
+  if (depth > 0 && start >= 0) items.push(content.slice(start));
+  return items;
+}
+
+/** Extract top-level (depth-1) nested <ul>/<ol> blocks from an <li> body.
+ *  Returns the blocks plus the remaining markup with them removed. */
+function extractNestedLists(liHtml) {
+  const nested = [];
+  const rest = [];
+  const re = /<(ul|ol)\b[^>]*>|<\/(?:ul|ol)>/giu;
+  let depth = 0;
+  let cursor = 0;
+  let start = 0;
+  let m;
+  while ((m = re.exec(liHtml))) {
+    if (m[1]) {
+      if (depth === 0) start = m.index;
+      depth += 1;
+    } else {
+      depth -= 1;
+      if (depth === 0) {
+        nested.push(liHtml.slice(start, m.index + m[0].length));
+        rest.push(liHtml.slice(cursor, start));
+        cursor = m.index + m[0].length;
+      }
+    }
+  }
+  rest.push(liHtml.slice(cursor));
+  return { nested, rest: rest.join("\n") };
+}
+
+/** Render one complete <ul>/<ol>…</ol> block (including its tags) to Markdown. */
+function renderListTag(full) {
+  const openM = full.match(/^<(ul|ol)\b([^>]*)>/iu);
+  if (!openM) return full;
+  const ordered = openM[1].toLowerCase() === "ol";
+  const startM = openM[2].match(/\bstart=["'](\d+)["']/iu);
+  const start = startM ? parseInt(startM[1], 10) : 1;
+  const inner = full
+    .slice(openM[0].length)
+    .replace(/<\/(?:ul|ol)>\s*$/u, "");
+  const items = splitListItems(inner);
+  const lines = [];
+  let n = start;
+  for (const li of items) {
+    const { nested, rest } = extractNestedLists(li);
+    const text = convertInline(rest).trim();
+    lines.push(ordered ? `${n}. ${text}` : `- ${text}`);
+    for (const block of nested) {
+      const sub = renderListTag(block);
+      for (const line of sub.split("\n")) {
+        if (line.trim()) lines.push(`    ${line}`);
+      }
+    }
+    if (ordered) n += 1;
+  }
+  return lines.join("\n");
+}
+
+/** Convert every <ul>/<ol> block (outermost first, depth-matched) to Markdown. */
+function convertLists(html) {
+  let out = html;
+  for (;;) {
+    const openM = out.match(/<(ul|ol)\b[^>]*>/iu);
+    if (!openM) return out;
+    const startIdx = openM.index;
+    const scanRe = /<(ul|ol)\b[^>]*>|<\/(?:ul|ol)>/giu;
+    scanRe.lastIndex = startIdx + openM[0].length;
+    let depth = 1;
+    let endIdx = -1;
+    let sm;
+    while ((sm = scanRe.exec(out))) {
+      if (sm[1]) {
+        depth += 1;
+      } else {
+        depth -= 1;
+        if (depth === 0) {
+          endIdx = sm.index + sm[0].length;
+          break;
+        }
+      }
+    }
+    if (endIdx < 0) {
+      // Unmatched open tag: strip it so the loop always makes progress.
+      out = out.slice(0, startIdx) + out.slice(startIdx + openM[0].length);
+      continue;
+    }
+    const rendered = renderListTag(out.slice(startIdx, endIdx));
+    out = `${out.slice(0, startIdx)}${rendered}\n${out.slice(endIdx)}`;
+  }
+}
+
 /** Convert block-level HTML elements to Markdown. */
 function convertBlocks(html) {
   let out = html;
@@ -161,23 +293,10 @@ function convertBlocks(html) {
     return `\n${text.split("\n").map((l) => `> ${l}`).join("\n")}\n`;
   });
 
-  // Unordered lists
-  out = out.replace(/<ul\b[^>]*>([\s\S]*?)<\/ul>/giu, (_, content) => {
-    const items = content.match(/<li\b[^>]*>([\s\S]*?)<\/li>/giu) || [];
-    return "\n" + items.map((li) => {
-      const text = convertInline(li.replace(/<li\b[^>]*>|<\/li>/gu, "")).trim();
-      return `- ${text}`;
-    }).join("\n") + "\n";
-  });
-
-  // Ordered lists
-  out = out.replace(/<ol\b[^>]*>([\s\S]*?)<\/ol>/giu, (_, content) => {
-    const items = content.match(/<li\b[^>]*>([\s\S]*?)<\/li>/giu) || [];
-    return "\n" + items.map((li, i) => {
-      const text = convertInline(li.replace(/<li\b[^>]*>|<\/li>/gu, "")).trim();
-      return `${i + 1}. ${text}`;
-    }).join("\n") + "\n";
-  });
+  // Lists (nested-aware): ul/ol rendered via depth-counting scanner so that
+  // inner lists are converted recursively with 4-space indented sub-lists and
+  // <ol start="N"> keeps its starting number.
+  out = convertLists(out);
 
   // Tables (simple conversion)
   out = out.replace(/<table\b[^>]*>([\s\S]*?)<\/table>/giu, (_, content) => {
@@ -185,7 +304,17 @@ function convertBlocks(html) {
     if (rows.length === 0) return "";
     const parsed = rows.map((tr) => {
       const cells = tr.match(/<t[hd]\b[^>]*>([\s\S]*?)<\/t[hd]>/giu) || [];
-      return cells.map((c) => convertInline(c.replace(/<t[hd]\b[^>]*>|<\/t[hd]>/gu, "")).trim());
+      return cells.map((c) => {
+        // Escape pipes, turn <br>/newlines into spaces so the row stays one table line.
+        return convertInline(
+          c
+            .replace(/<t[hd]\b[^>]*>|<\/t[hd]>/gu, "")
+            .replace(/<br\s*\/?>/giu, " "),
+        )
+          .trim()
+          .replace(/\|/gu, "\\|")
+          .replace(/\r?\n/gu, " ");
+      });
     });
     const header = parsed[0];
     const separator = header.map(() => "---");
@@ -305,14 +434,21 @@ function restorePreBlocks(html, blocks) {
 /** Final cleanup: decode entities, collapse whitespace, trim. */
 function cleanup(text, maxLen = 30_000) {
   let out = decodeEntities(text);
-  // Collapse multiple spaces (but preserve newlines)
-  out = out.replace(/[ \t]+/gu, " ");
+  // Collapse runs of spaces/tabs, but keep leading indentation (nested list
+  // sub-items rely on their 4-space indent to stay Markdown sub-lists).
+  out = out.replace(/(?<=\S)[ \t]+/gu, " ");
   // Limit consecutive newlines to 2
   out = out.replace(/\n{3,}/gu, "\n\n");
-  // Trim each line
-  out = out.split("\n").map((l) => l.trim()).join("\n");
+  // Trim trailing whitespace per line (leading indent must survive)
+  out = out.split("\n").map((l) => l.replace(/[ \t]+$/u, "")).join("\n");
   out = out.replace(/^\s+|\s+$/u, "");
-  if (out.length > maxLen) out = `${out.slice(0, maxLen)}…`;
+  // Truncation marker shared with the clip/fetch pipelines (`isTruncationMarker`).
+  // Total output stays within maxLen so downstream re-truncation (applyMaxLen /
+  // clip-payload) never slices into an already-appended marker.
+  if (out.length > maxLen) {
+    const mark = "\n\n...(内容已截断)";
+    out = `${out.slice(0, Math.max(0, maxLen - mark.length))}${mark}`;
+  }
   return out;
 }
 

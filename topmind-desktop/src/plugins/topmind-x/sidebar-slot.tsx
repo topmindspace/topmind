@@ -100,7 +100,7 @@ function XSidebarEntry({ ctx }: { ctx: PluginContext }) {
                 ctx.navigate({ kind: "connector", id: "x" });
                 ctx.events.emit("x:open-prompt", { mode: "post" });
               }}
-              className="rounded-[var(--radius-sm)] p-1 text-text-tertiary transition-colors hover:bg-surface-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 hover:text-text-primary"
+              className="rounded-[var(--radius-sm)] p-1 text-text-tertiary transition-colors hover:bg-surface-active v4-focus-ring hover:text-text-primary"
             >
               <Send size={ICON.micro} />
             </button>
@@ -115,7 +115,7 @@ function XSidebarEntry({ ctx }: { ctx: PluginContext }) {
                 e.stopPropagation();
                 openHub();
               }}
-              className="rounded-[var(--radius-sm)] p-1 text-text-tertiary transition-colors hover:bg-surface-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 hover:text-text-primary"
+              className="rounded-[var(--radius-sm)] p-1 text-text-tertiary transition-colors hover:bg-surface-active v4-focus-ring hover:text-text-primary"
             >
               <ExternalLink size={ICON.micro} />
             </button>
@@ -129,7 +129,7 @@ function XSidebarEntry({ ctx }: { ctx: PluginContext }) {
               e.stopPropagation();
               ctx.openOverlay("settings", { topicId: "topmind-x.settings" });
             }}
-            className="rounded-[var(--radius-sm)] p-1 text-text-tertiary transition-colors hover:bg-surface-active focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 hover:text-text-primary"
+            className="rounded-[var(--radius-sm)] p-1 text-text-tertiary transition-colors hover:bg-surface-active v4-focus-ring hover:text-text-primary"
           >
             <Settings size={ICON.micro} />
           </button>

@@ -42,7 +42,7 @@ function IngestStatusBar({ ctx }: { ctx: PluginContext }) {
     <Tooltip content={t("hub.settingsTooltip")}>
       <button
         type="button"
-        className="flex items-center gap-1 rounded-[var(--radius-sm)] px-1.5 py-0.5 text-3xs text-text-secondary transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+        className="flex items-center gap-1 rounded-[var(--radius-sm)] px-1.5 py-0.5 text-3xs text-text-secondary transition-colors hover:bg-surface-muted v4-focus-ring"
         onClick={() => ctx.navigate({ kind: "connector", id: "ingest" })}
         aria-label={t("hub.title") + ` · ${active}`}
       >

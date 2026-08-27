@@ -149,7 +149,7 @@ export function ChromeOverflowActions({
               aria-label={a.label}
               className={cn(
                 "inline-flex h-7 shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 text-3xs font-medium transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
+                "v4-focus-ring",
                 "disabled:opacity-45",
                 a.primary
                   ? "bg-accent-color text-white hover:opacity-90"

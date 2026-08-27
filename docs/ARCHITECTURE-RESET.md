@@ -150,7 +150,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | 动态主表面 PrimaryNav | **Done**（默认 stream） |
 | confirm 写闸 pending | **Done**（settings gate + pending 队列 + 审阅） |
 | lifecycle 全量产品卡片 | **Done**（scan→建议；inbox_organize AI 分析→确认移动） |
-| 备份/回执（高影响 only） | **Done**（open 常规写/移动/重命名不备份不回执；locked 覆盖 + 锁定/核心 **delete** 有 trash+回执；**archive** 迁入 99-归档 当新家；普通开放笔记 delete 无 trash；`BACKUP_KEEP=3` · `RECEIPT_KEEP=50`） |
+| 备份/回执（高影响 only） | **Done**（open 常规写/移动/重命名不备份不回执；locked 覆盖 + 锁定/核心 **delete** 有 trash+回执；**archive** 迁入 99-归档 当新家；普通开放笔记 delete 无 trash；`BACKUP_KEEP=3` · `RECEIPT_KEEP=50`；Desktop 支持日志大小上限轮转 2 MB × 3 归档，ADR `2026-08-27-desktop-log-rotation.md`） |
 | 个人待办清单 | **Done**（todo-engine + TodoPopover + AI 维护 + ⌘⇧T；complete/update 用 `matchTodoMaintainText` 防单 token 误完成） |
 | 统一 AI 操作引擎 | **Done**（todo_maintain · memory_organize · topic_classify；force；状态追踪） |
 | 活动窗口 Activity Window | **Done**（`lib/activity-window.mjs`；suggest/todo/ai-ops 共用） |

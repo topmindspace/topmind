@@ -11,8 +11,12 @@ import type { LiveUiSnapshot } from "./ui-settings-sync";
 
 /** Structured toast payload — when evidence has a backupPath, the Toast
  * renders an interactive「撤销」button that can restore the file. */
+export type ToastKind = "success" | "error" | "info";
+
 export interface ToastPayload {
   text: string;
+  /** Visual severity of the toast. Defaults to "info" when omitted. */
+  kind?: ToastKind;
   evidence?: WritebackEvidence | null;
 }
 

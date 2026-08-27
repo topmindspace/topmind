@@ -78,3 +78,16 @@ test("normalizeClipPayload highlights mode formats blockquotes", () => {
   assert.equal(r.frontmatter.clip_template, "selection");
   assert.equal(r.frontmatter.published, "2026-01-01");
 });
+
+test("normalizeClipPayload sets fetch_truncated when converter output is cut", () => {
+  const para = "<p>" + "word ".repeat(2000) + "</p>"; // ~10K chars
+  const r = normalizeClipPayload(
+    { title: "T", content_html: `<article>${para}</article>`, mode: "readability" },
+    { maxLen: 5000 },
+  );
+  assert.equal(r.frontmatter.fetch_truncated, true);
+  // Marker appears exactly once (no doubled truncation notice)
+  const marks = r.content.split("...(内容已截断)").length - 1;
+  assert.equal(marks, 1);
+  assert.ok(r.content.endsWith("...(内容已截断)"));
+});

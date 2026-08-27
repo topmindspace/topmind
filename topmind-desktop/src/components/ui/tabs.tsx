@@ -34,7 +34,7 @@ export const TabsTrigger = forwardRef<
       "transition-[background-color,color,box-shadow] duration-[var(--duration-fast)]",
       "text-text-tertiary data-[state=active]:bg-surface data-[state=active]:text-text-primary data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-border-subtle",
       "hover:text-text-secondary",
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
+      "v4-focus-ring",
       "disabled:pointer-events-none disabled:opacity-50",
       "cursor-pointer",
       className,

@@ -44,7 +44,7 @@ function Chip({
       onClick={onClick}
       className={cn(
         "rounded-[var(--radius-sm)] px-2 py-1 text-3xs font-medium transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
+        "v4-focus-ring",
         active
           ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
           : "bg-surface-muted/60 text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",

@@ -52,7 +52,7 @@ function IngestSidebarEntry({ ctx }: { ctx: PluginContext }) {
       className={cn(
         "group flex w-full items-center gap-2.5 rounded-[var(--radius-md)] p-2 text-left",
         "text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
+        "v4-focus-ring",
       )}
       onClick={() => ctx.navigate({ kind: "connector", id: "ingest" })}
       aria-label={active > 0 ? `${t("title")} · ${active}` : t("title")}

@@ -132,7 +132,7 @@ export function QuickCapture({ variant, onDone }: QuickCaptureProps = {}) {
           !(/Win/i.test(navigator.platform) || /Windows/i.test(navigator.userAgent || "")) ? (
             <button
               type="button"
-              className="v4-no-drag flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+              className="v4-no-drag flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary v4-focus-ring"
               onClick={() => void api.sys.closeQuickCapture()}
               aria-label={t("overlays:capture.close")}
             >
@@ -166,7 +166,7 @@ export function QuickCapture({ variant, onDone }: QuickCaptureProps = {}) {
                 <button
                   type="button"
                   onClick={() => void form.handleSmartPaste()}
-                  className="v4-titlebar-btn h-7 gap-1 border border-border-subtle-dim px-2 text-3xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+                  className="v4-titlebar-btn h-7 gap-1 border border-border-subtle-dim px-2 text-3xs v4-focus-ring"
                   aria-label={t("overlays:capture.pasteAriaLabel")}
                 >
                   <ClipboardPaste size={ICON.xs} aria-hidden /> {t("overlays:capture.pasteLabel")}
@@ -176,7 +176,7 @@ export function QuickCapture({ variant, onDone }: QuickCaptureProps = {}) {
                 <button
                   type="button"
                   onClick={() => void form.pickFiles()}
-                  className="v4-titlebar-btn h-7 gap-1 border border-border-subtle-dim px-2 text-3xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+                  className="v4-titlebar-btn h-7 gap-1 border border-border-subtle-dim px-2 text-3xs v4-focus-ring"
                   aria-label={t("overlays:capture.attachAriaLabel")}
                 >
                   <Paperclip size={ICON.xs} aria-hidden /> {t("overlays:capture.attachLabel")}

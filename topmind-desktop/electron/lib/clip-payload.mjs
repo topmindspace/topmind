@@ -114,7 +114,11 @@ export function normalizeClipPayload(body, opts = {}) {
   }
 
   if (content.length > maxLen) {
-    content = `${content.slice(0, maxLen)}\n\n...(内容已截断)`;
+    // htmlToMarkdown's cleanup() may already have appended the marker; strip
+    // it before re-slicing so we never emit a doubled truncation notice.
+    const TRUNC = "\n\n...(内容已截断)";
+    const base = content.endsWith(TRUNC) ? content.slice(0, -TRUNC.length) : content;
+    content = `${base.slice(0, maxLen)}\n\n...(内容已截断)`;
     truncated = true;
   }
 

@@ -138,13 +138,13 @@ export function KanbanView({ onNavigate }: KanbanViewProps) {
         fields: { status: statusValueForColumn(toKey) },
       });
       emitLocal("workspace:file-changed");
-      emitLocal("toast:show", t("sidebar.kanban.toastMoved", { name: note.name, status: t(`sidebar.kanban.status${toKey.replace(/-(.)/gu, (_, c) => c.toUpperCase()).replace(/^./u, (c) => c.toUpperCase())}`) }));
+      emitLocal("toast:show", { text: t("sidebar.kanban.toastMoved", { name: note.name, status: t(`sidebar.kanban.status${toKey.replace(/-(.)/gu, (_, c) => c.toUpperCase()).replace(/^./u, (c) => c.toUpperCase())}`) }), kind: "success" });
     } catch (err) {
       // Revert by reload
       void load();
       emitLocal(
         "toast:show",
-        t("sidebar.kanban.toastMoveFailed", { error: err instanceof Error ? err.message : String(err) }),
+        { text: t("sidebar.kanban.toastMoveFailed", { error: err instanceof Error ? err.message : String(err) }), kind: "error" },
       );
     } finally {
       setSavingPath(null);
@@ -174,7 +174,7 @@ export function KanbanView({ onNavigate }: KanbanViewProps) {
           <button
             type="button"
             onClick={() => void load()}
-            className="flex items-center gap-1 self-start rounded-[var(--radius-md)] border border-border-subtle px-2 py-1 text-3xs text-text-tertiary hover:text-accent-color focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+            className="flex items-center gap-1 self-start rounded-[var(--radius-md)] border border-border-subtle px-2 py-1 text-3xs text-text-tertiary hover:text-accent-color v4-focus-ring"
           >
             <RefreshCw size={ICON.micro} aria-hidden /> {t("sidebar.kanban.retry")}
           </button>
@@ -197,7 +197,7 @@ export function KanbanView({ onNavigate }: KanbanViewProps) {
               type="button"
               onClick={() => emitLocal("sidebar:set-view", "stream")}
               aria-label={t("sidebar.kanban.backToStream")}
-              className="flex items-center gap-0.5 rounded-[var(--radius-sm)] px-1.5 py-0.5 text-3xs text-text-tertiary transition-colors hover:bg-surface-muted hover:text-accent-color focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+              className="flex items-center gap-0.5 rounded-[var(--radius-sm)] px-1.5 py-0.5 text-3xs text-text-tertiary transition-colors hover:bg-surface-muted hover:text-accent-color v4-focus-ring"
             >
               <Radio size={ICON.nano} aria-hidden />
             </button>

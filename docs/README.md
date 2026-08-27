@@ -92,6 +92,7 @@
 | [2026-08-13](./adr/2026-08-13-desktop-stream-editor-ai-review.md) | Stream / editor / AI review | Preview is not a live TipTap; stream composer strips chrome; Obsidian append is visible and comment-free |
 | [2026-08-16](./adr/2026-08-16-memory-consolidation.md) | Memory Consolidation | Confirm-gated profile fact lifecycle: append / retire-to-history / update, industry-aligned (mem0 ADD/UPDATE/DELETE) |
 | [2026-08-23](./adr/2026-08-23-contract-settings-integrity.md) | Contract & Settings Integrity | Repair convergence, backup-before-overwrite, atomic write, partial settings patches, bidirectional period-path stickiness, memory-plane contract paths (incl. skip evidence / todo / host open), settings close-path flush |
+| [2026-08-27](./adr/2026-08-27-desktop-log-rotation.md) | Desktop Log Rotation | Size-capped support log (`main.log` 2 MB × 3 archives, self-healing on legacy oversized files) |
 
 ---
 

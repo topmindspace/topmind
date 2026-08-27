@@ -3,14 +3,16 @@
  * Body is edited in Tiptap; YAML block is preserved and managed by FrontmatterBar.
  */
 
-const FM_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/u;
+// Closing fence may sit at EOF with no trailing newline.
+const FM_RE = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/u;
 
 export function splitMarkdownFile(raw: string): {
   /** Full opening block including fences, or null */
   frontmatterBlock: string | null;
   body: string;
 } {
-  const src = String(raw ?? "");
+  // Strip BOM so a frontmatter block at the very start is still recognized.
+  const src = String(raw ?? "").replace(/^\uFEFF/u, "");
   const m = src.match(FM_RE);
   if (!m) return { frontmatterBlock: null, body: src };
   return {
@@ -25,9 +27,10 @@ export function joinMarkdownFile(frontmatterBlock: string | null, body: string):
   if (!frontmatterBlock) return b;
   const fm = frontmatterBlock.endsWith("\n") ? frontmatterBlock : `${frontmatterBlock}\n`;
   if (!b) return fm;
-  // Avoid triple blank lines
+  // Strip extra leading blank lines from the body, then insert exactly one
+  // blank line after the frontmatter fence.
   const bodyNorm = b.replace(/^\n+/u, "");
-  return `${fm}${bodyNorm.startsWith("\n") ? bodyNorm : bodyNorm}`;
+  return `${fm}\n${bodyNorm}`;
 }
 
 /** Body-only content for preview / word count display. */

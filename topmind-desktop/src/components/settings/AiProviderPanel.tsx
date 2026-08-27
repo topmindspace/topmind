@@ -184,7 +184,7 @@ function ProviderCard({
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center gap-2 px-2.5 py-2 text-left transition-colors hover:bg-surface-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+        className="flex w-full items-center gap-2 px-2.5 py-2 text-left transition-colors hover:bg-surface-muted/40 v4-focus-ring"
         aria-expanded={expanded}
       >
         {/* Status dot */}

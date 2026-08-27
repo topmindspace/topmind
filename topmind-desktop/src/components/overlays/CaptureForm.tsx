@@ -719,7 +719,7 @@ export function CaptureForm({
                   type="button"
                   onClick={() => void handleFetchUrl()}
                   disabled={fetching}
-                  className="flex shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 py-0.5 text-3xs font-medium text-accent-color transition-colors hover:bg-accent-bg-subtle disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+                  className="flex shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 py-0.5 text-3xs font-medium text-accent-color transition-colors hover:bg-accent-bg-subtle disabled:opacity-50 v4-focus-ring"
                 >
                   {fetching ? (
                     <Loader2 size={ICON.micro} className="animate-spin" aria-hidden />

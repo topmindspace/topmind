@@ -93,10 +93,10 @@ export function Shell({ settings }: ShellProps) {
           archiveRelativePath: backupPath,
           targetRelativePath: evidence.targetPath,
         });
-        showToast(`↩ ${t("common:writeback.restoreTip")}`);
+        showToast({ text: `↩ ${t("common:writeback.restoreTip")}`, kind: "success" });
         emitLocal("workspace:file-changed", { relativePath: evidence.targetPath });
       } catch {
-        showToast(`✗ ${t("common:writeback.restoreTip")}`);
+        showToast({ text: `✗ ${t("common:writeback.restoreTip")}`, kind: "error" });
       }
     },
     [showToast, t],
@@ -247,9 +247,9 @@ export function Shell({ settings }: ShellProps) {
           className={cn(
             "pointer-events-auto fixed bottom-10 left-1/2 z-toast flex max-w-[min(420px,90vw)] -translate-x-1/2",
             "items-center gap-2 rounded-[var(--radius-lg)] border px-3.5 py-2 text-3xs font-medium shadow-[var(--shadow-float)] animate-toast-in",
-            toast.text.startsWith("✗") || toast.text.startsWith(t("shell:toast.moveFailed"))
+            toast.kind === "error"
               ? "border-error/30 bg-status-error-bg text-error"
-              : toast.text.startsWith("✓") || toast.text.startsWith("↩")
+              : toast.kind === "success"
                 ? "border-success/30 bg-status-success-bg text-success"
                 : "border-border-subtle-dim bg-surface text-text-secondary",
           )}
@@ -261,7 +261,7 @@ export function Shell({ settings }: ShellProps) {
               className={cn(
                 "shrink-0 rounded-[var(--radius-sm)] px-1.5 py-0.5 text-3xs font-semibold",
                 "bg-surface-muted/50 transition-colors hover:bg-surface-muted",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
+                "v4-focus-ring",
               )}
               onClick={() => void handleUndoWriteback(toast.evidence!)}
               aria-label={t("common:writeback.undo")}

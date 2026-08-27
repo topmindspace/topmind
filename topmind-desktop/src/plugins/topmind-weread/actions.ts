@@ -40,10 +40,10 @@ export function createWereadActions(_ctx: PluginContext): ActionSlot[] {
             result.skippedNoChange ? i18n.t("weread:sidebar.noChange", { count: result.skippedNoChange }) : null,
             result.remaining ? i18n.t("weread:sidebar.remaining", { count: result.remaining }) : null,
           ].filter(Boolean);
-          _ctx.toast(bits.join(" · "));
+          _ctx.toast({ text: bits.join(" · "), kind: "success" });
           _ctx.events.emit("workspace:file-changed", null);
         } catch (e) {
-          _ctx.toast(i18n.t("weread:settings.failed", { msg: e instanceof Error ? e.message : String(e) }));
+          _ctx.toast({ text: i18n.t("weread:settings.failed", { msg: e instanceof Error ? e.message : String(e) }), kind: "error" });
         }
       },
     },

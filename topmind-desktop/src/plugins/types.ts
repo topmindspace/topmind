@@ -57,8 +57,8 @@ export interface PluginContext {
   openOverlay(kind: string, context?: Record<string, unknown>): void;
   /** Navigate to a selection. */
   navigate(selection: Selection): void;
-  /** Show a transient toast message. */
-  toast(message: string): void;
+  /** Show a transient toast message (plain text or structured payload with kind). */
+  toast(message: string | { text: string; kind?: "success" | "error" | "info" }): void;
 }
 
 export interface PluginRpc {

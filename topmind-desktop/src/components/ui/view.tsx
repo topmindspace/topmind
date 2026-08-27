@@ -3,7 +3,7 @@
  *
  * Token contract (see tokens.css) — Design System 2.0 / long-read:
  *   text-5xs 10px  — kbd glyphs only
- *   text-3xs 12px  — MetaText, empty hints, status (UI floor)
+ *   text-3xs 12px  — MetaText, empty hints, status (UI floor; matches text-2xs)
  *   text-2xs 12px  — caption
  *   text-xs  12.5px — form controls
  *   text-sm  13px  — UI body, list primary
@@ -195,7 +195,7 @@ export function FilterChip({
       data-filter-chip-active={active ? "true" : undefined}
       className={cn(
         "inline-flex h-[var(--control-h-chip)] max-w-full items-center rounded-full px-2.5 text-3xs font-medium leading-none transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
+        "v4-focus-ring",
         active
           ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
           : "bg-surface-muted/35 text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
@@ -250,7 +250,7 @@ export function ErrorState({
       role="alert"
     >
       <AlertCircle size={ICON.sm} className="shrink-0" />
-      <span className="min-w-0 flex-1 text-3xs leading-relaxed">{t("action.loadFailed", { message })}</span>
+      <span className="min-w-0 flex-1 text-2xs leading-relaxed">{t("action.loadFailed", { message })}</span>
       {onRetry ? (
         <button
           type="button"
@@ -333,7 +333,7 @@ export function FileRow({
         active,
         cn(
           "v4-row-focus group/row v4-list-virtual",
-          onClick && "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
+          onClick && "cursor-pointer v4-focus-ring",
           className,
         ),
       )}

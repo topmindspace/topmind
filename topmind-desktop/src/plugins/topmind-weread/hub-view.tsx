@@ -265,7 +265,7 @@ function WereadHubView() {
                 key={p}
                 type="button"
                 onClick={() => select({ kind: "file", path: p })}
-                className="rounded-[var(--radius-sm)] border border-border-subtle bg-surface px-1.5 py-0.5 font-mono text-3xs text-text-secondary transition-colors hover:border-accent-color hover:text-accent-color focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+                className="rounded-[var(--radius-sm)] border border-border-subtle bg-surface px-1.5 py-0.5 font-mono text-3xs text-text-secondary transition-colors hover:border-accent-color hover:text-accent-color v4-focus-ring"
               >
                 {p.split("/").slice(-2).join("/")}
               </button>

@@ -338,8 +338,8 @@ export const api = {
           files: string[];
         };
       }>("workspace.getStreamContext"),
-    /** List all period notes in stream category (for "整理过往" UI). */
-    listStreamPeriods: () =>
+    /** List all period notes in stream category (for "整理过往" UI). Optional year filter. */
+    listStreamPeriods: (year?: string) =>
       invoke<
         Array<{
           relPath: string;
@@ -348,7 +348,7 @@ export const api = {
           title: string | null;
           reconciled: boolean;
         }>
-      >("workspace.listStreamPeriods"),
+      >("workspace.listStreamPeriods", { year }),
     /** List all year directories in the stream category for year navigation. */
     listStreamYears: () =>
       invoke<
@@ -367,6 +367,8 @@ export const api = {
         movedCount: number;
         archivePath: string;
         receiptPath?: string;
+        reason?: string;
+        failedFiles?: string[];
         userMessage?: string;
       }>("workspace.archiveStreamYear", { year }),
     /**
@@ -379,7 +381,12 @@ export const api = {
       heading?: string;
       parentRel?: string;
     }) =>
-      invoke<WritebackEvidence & { userMessage?: string }>("workspace.appendStreamEntry", p),
+      invoke<
+        WritebackEvidence & {
+          userMessage?: string;
+          appendLocation?: { appendedAt: "heading" | "end"; matchedHeading?: string };
+        }
+      >("workspace.appendStreamEntry", p),
     ensureCoreProfile: () =>
       invoke<{
         ok: boolean;

@@ -227,7 +227,7 @@ export function EditorMoreMenu({
           onClick={onToggleFocus}
           className={cn(
             "flex h-7 shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 text-3xs font-medium transition-colors",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
+            "v4-focus-ring",
             focusMode
               ? "bg-accent-color text-primary-foreground shadow-[var(--shadow-button)] hover:opacity-90"
               : "text-text-tertiary hover:bg-accent-bg-subtle hover:text-accent-color",

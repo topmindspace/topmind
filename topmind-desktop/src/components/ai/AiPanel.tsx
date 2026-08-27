@@ -285,7 +285,7 @@ function PanelChrome() {
                   setShowSessionList((v) => !v);
                   setConfirmingClear(false);
                 }}
-                className="flex min-w-0 w-full items-center gap-1.5 rounded-[var(--radius-md)] px-1.5 py-1 text-left transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+                className="flex min-w-0 w-full items-center gap-1.5 rounded-[var(--radius-md)] px-1.5 py-1 text-left transition-colors hover:bg-surface-muted v4-focus-ring"
                 aria-expanded={showSessionList}
                 aria-haspopup="listbox"
               >

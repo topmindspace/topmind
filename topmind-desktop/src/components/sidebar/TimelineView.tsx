@@ -198,7 +198,7 @@ export function TimelineView({ onNavigate }: TimelineViewProps) {
         <button
           type="button"
           onClick={() => void load()}
-          className="flex items-center gap-1 self-start rounded-[var(--radius-md)] border border-border-subtle px-2 py-1 text-3xs text-text-secondary transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+          className="flex items-center gap-1 self-start rounded-[var(--radius-md)] border border-border-subtle px-2 py-1 text-3xs text-text-secondary transition-colors hover:bg-surface-muted v4-focus-ring"
         >
           <RefreshCw size={ICON.nano} /> {t("sidebar.timeline.retry")}
         </button>
@@ -218,7 +218,7 @@ export function TimelineView({ onNavigate }: TimelineViewProps) {
             <button
               type="button"
               onClick={() => useViewStore.getState().openOverlay("quick-capture")}
-              className="inline-flex items-center gap-1 rounded-[var(--radius-md)] bg-accent-color px-2 py-1 text-3xs font-medium text-primary-foreground shadow-[var(--shadow-button)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+              className="inline-flex items-center gap-1 rounded-[var(--radius-md)] bg-accent-color px-2 py-1 text-3xs font-medium text-primary-foreground shadow-[var(--shadow-button)] transition-opacity hover:opacity-90 v4-focus-ring"
             >
               <Zap size={ICON.nano} aria-hidden />
               {t("sidebar.timeline.capture")}

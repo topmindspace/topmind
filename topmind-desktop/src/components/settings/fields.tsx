@@ -25,7 +25,7 @@ export function HelpTip({
   return (
     <Tooltip content={content} side={side}>
       <span
-        className="inline-flex shrink-0 cursor-help rounded-full p-0.5 text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-tertiary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+        className="inline-flex shrink-0 cursor-help rounded-full p-0.5 text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-tertiary v4-focus-ring"
         tabIndex={0}
         aria-label={t("common:action.help", { defaultValue: "Help" })}
       >
@@ -163,7 +163,7 @@ export function SwitchField({
         className={cn(
           "v4-switch shrink-0",
           disabled && "opacity-50",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 focus-visible:ring-offset-1",
+          "v4-focus-ring focus-visible:ring-offset-1",
         )}
         data-checked={checked}
       />
@@ -209,7 +209,7 @@ export function KeyField({
               <button
                 type="button"
                 onClick={onClear}
-                className="rounded px-1.5 py-0.5 text-3xs text-text-quaternary transition-colors hover:bg-surface-muted hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+                className="rounded px-1.5 py-0.5 text-3xs text-text-quaternary transition-colors hover:bg-surface-muted hover:text-error v4-focus-ring"
               >
                 {t("action.clearKey")}
               </button>
@@ -220,7 +220,7 @@ export function KeyField({
               <button
                 type="button"
                 onClick={() => void api.sys.openUrl(helpUrl)}
-                className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-3xs font-medium text-accent-color transition-colors hover:bg-accent-bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+                className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-3xs font-medium text-accent-color transition-colors hover:bg-accent-bg-subtle v4-focus-ring"
               >
                 {t("action.getKey")} <ExternalLink size={ICON.nano} aria-hidden />
               </button>

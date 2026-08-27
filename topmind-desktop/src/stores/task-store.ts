@@ -192,7 +192,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
             result,
           });
           // Notify completion via toast so StatusBar doesn't need a persistent completion state
-          emitLocal("toast:show", i18n.t("shell:taskPanel.reconcileDone", { ns: "shell" }));
+          emitLocal("toast:show", { text: i18n.t("shell:taskPanel.reconcileDone", { ns: "shell" }), kind: "success" });
           const cand = (result as { candidates?: { core?: unknown[]; topics?: unknown[] } })?.candidates;
           const hasCandidates =
             Boolean(cand?.core && cand.core.length > 0)
@@ -249,7 +249,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
             },
           });
 
-          emitLocal("toast:show", i18n.t("shell:taskPanel.aiDigestDoneToast", { ns: "shell", count: aiSuggestions.length }));
+          emitLocal("toast:show", { text: i18n.t("shell:taskPanel.aiDigestDoneToast", { ns: "shell", count: aiSuggestions.length }), kind: "success" });
           const follow = engineJobSuggestionFollowUp({
             type: "ai_digest",
             merged: opResult.merged,
@@ -270,7 +270,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       });
       // Notify failure via toast
       const errMsg = err instanceof Error ? err.message : String(err);
-      emitLocal("toast:show", i18n.t("shell:taskPanel.taskFailed", { ns: "shell", error: errMsg }));
+      emitLocal("toast:show", { text: i18n.t("shell:taskPanel.taskFailed", { ns: "shell", error: errMsg }), kind: "error" });
     }
   },
 

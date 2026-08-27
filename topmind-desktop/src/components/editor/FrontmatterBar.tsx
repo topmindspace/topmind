@@ -69,9 +69,9 @@ export function FrontmatterBar({
       }
       await onUpdated?.(next);
       emitLocal("workspace:file-changed", { relativePath });
-      emitLocal("toast:show", t("frontmatterBar.toastUpdated"));
+      emitLocal("toast:show", { text: t("frontmatterBar.toastUpdated"), kind: "success" });
     } catch (e) {
-      emitLocal("toast:show", t("frontmatterBar.toastError", { error: e instanceof Error ? e.message : String(e) }));
+      emitLocal("toast:show", { text: t("frontmatterBar.toastError", { error: e instanceof Error ? e.message : String(e) }), kind: "error" });
     } finally {
       setBusy(false);
     }

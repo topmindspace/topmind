@@ -34,12 +34,12 @@ export function createIngestActions(ctx: PluginContext): ActionSlot[] {
       run: async () => {
         const r = await enqueueFromClipboardBatch({ dest: { mode: "inbox" } });
         if (r.status === "empty") {
-          ctx.toast("No importable files in clipboard");
+          ctx.toast({ text: "No importable files in clipboard", kind: "error" });
           return;
         }
         if (r.status === "enqueued") {
           ctx.navigate({ kind: "connector", id: "ingest" });
-          ctx.toast(`Enqueued ${r.count} files from clipboard`);
+          ctx.toast({ text: `Enqueued ${r.count} files from clipboard`, kind: "success" });
         } else if (r.status === "staging") {
           ctx.toast(`${r.count} items to confirm`);
         }
@@ -76,7 +76,7 @@ export function createIngestActions(ctx: PluginContext): ActionSlot[] {
         });
         if (r.status === "enqueued") {
           ctx.navigate({ kind: "connector", id: "ingest" });
-          ctx.toast(`Enqueued ${r.count} files`);
+          ctx.toast({ text: `Enqueued ${r.count} files`, kind: "success" });
         } else if (r.status === "staging") {
           ctx.toast(`${r.count} items to confirm`);
         }
@@ -100,7 +100,7 @@ export function createIngestActions(ctx: PluginContext): ActionSlot[] {
         });
         if (r.status === "enqueued") {
           ctx.navigate({ kind: "connector", id: "ingest" });
-          ctx.toast("Folder enqueued");
+          ctx.toast({ text: "Folder enqueued", kind: "success" });
         } else if (r.status === "staging") {
           ctx.toast(`${r.count} items to confirm`);
         }

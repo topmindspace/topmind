@@ -356,13 +356,13 @@ function BatchToolbar({
       emitLocal(
         "toast:show",
         res.failed
-          ? t("workspace:inbox.batchMoveToastPartial", { moved: res.moved, failed: res.failed })
-          : t("workspace:inbox.batchMoveToast", { moved: res.moved }),
+          ? { text: t("workspace:inbox.batchMoveToastPartial", { moved: res.moved, failed: res.failed }), kind: "error" }
+          : { text: t("workspace:inbox.batchMoveToast", { moved: res.moved }), kind: "success" },
       );
       setOpen(false);
       onDone();
     } catch (e) {
-      emitLocal("toast:show", t("workspace:inbox.batchMoveFail", { error: e instanceof Error ? e.message : String(e) }));
+      emitLocal("toast:show", { text: t("workspace:inbox.batchMoveFail", { error: e instanceof Error ? e.message : String(e) }), kind: "error" });
     } finally {
       setMoving(false);
     }
@@ -383,7 +383,7 @@ function BatchToolbar({
     emitLocal("workspace:file-changed");
     emitLocal(
       "toast:show",
-      t("workspace:inbox.batchDeleteToast", { count: ok, total: paths.length }),
+      { text: t("workspace:inbox.batchDeleteToast", { count: ok, total: paths.length }), kind: "success" },
     );
     setMoving(false);
     onDone();
@@ -446,7 +446,7 @@ function BatchToolbar({
       </Tooltip>
       <button
         type="button"
-        className="ml-auto text-3xs text-text-quaternary underline-offset-2 hover:text-accent-color hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+        className="ml-auto text-3xs text-text-quaternary underline-offset-2 hover:text-accent-color hover:underline v4-focus-ring"
         onClick={() => useViewStore.getState().select({ kind: "archive" })}
       >
         {t("workspace:inbox.openArchiveBtn")}
@@ -529,7 +529,7 @@ function InboxFileRow({
           onPointerDown={(e) => e.stopPropagation()}
           className={cn(
             "flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-md)] transition-colors",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
+            "v4-focus-ring",
             checked
               ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
               : "text-text-tertiary hover:bg-surface-muted hover:text-text-primary",
@@ -555,7 +555,7 @@ function InboxFileRow({
         type="button"
         onClick={onSelect}
         onPointerDown={(e) => e.stopPropagation()}
-        className="flex min-w-0 flex-1 items-center gap-2.5 rounded-[var(--radius-sm)] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+        className="flex min-w-0 flex-1 items-center gap-2.5 rounded-[var(--radius-sm)] text-left v4-focus-ring"
         title={showFileHint ? `${displayName}\n${file.name}` : displayName}
       >
         <FileText size={ICON.sm} className="shrink-0 text-text-tertiary opacity-80" aria-hidden />

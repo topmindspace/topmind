@@ -32,6 +32,9 @@ interface TodoPopoverProps {
 
 const PANEL_WIDTH = 360;
 const PANEL_MAX_HEIGHT = 480;
+/** Drag clamps: keep the pinned panel fully on-viewport (header stays grabbable). */
+const DRAG_EDGE_MARGIN = 4;
+const DRAG_BOTTOM_MARGIN = 100;
 
 export function TodoPopover({ open, onOpenChange, children }: TodoPopoverProps) {
   const { t } = useTranslation("shell");
@@ -140,8 +143,8 @@ export function TodoPopover({ open, onOpenChange, children }: TodoPopoverProps) 
       if (!dragStart.current) return;
       const dx = e.clientX - dragStart.current.mx;
       const dy = e.clientY - dragStart.current.my;
-      const nx = Math.max(4, Math.min(window.innerWidth - PANEL_WIDTH - 4, dragStart.current.px + dx));
-      const ny = Math.max(4, Math.min(window.innerHeight - 100, dragStart.current.py + dy));
+      const nx = Math.max(DRAG_EDGE_MARGIN, Math.min(window.innerWidth - PANEL_WIDTH - DRAG_EDGE_MARGIN, dragStart.current.px + dx));
+      const ny = Math.max(DRAG_EDGE_MARGIN, Math.min(window.innerHeight - DRAG_BOTTOM_MARGIN, dragStart.current.py + dy));
       setPos({ x: nx, y: ny });
     };
     const onUp = () => { setDragging(false); dragStart.current = null; };

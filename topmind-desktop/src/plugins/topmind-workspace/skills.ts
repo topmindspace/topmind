@@ -65,7 +65,7 @@ export function createSkillActions(_lang?: "zh" | "en"): ActionSlot[] {
         const md = files.filter((f) => /\.md$/iu.test(f.name)).length;
         const hasTopic = files.some((f) => f.name === "topic.md");
         const topicText = i18n.t(hasTopic ? "workspace:skills.hasTopic" : "workspace:skills.noTopic");
-        ctx.toast(i18n.t("workspace:skills.organizeToast", { files: files.length, md, project: topicText }));
+        ctx.toast({ text: i18n.t("workspace:skills.organizeToast", { files: files.length, md, project: topicText }), kind: "success" });
         ctx.events.emit("navigate:select", { kind: "topic", topicId });
         ctx.events.emit("workspace:file-changed", { topicId });
       },

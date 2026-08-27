@@ -21,6 +21,22 @@ import { ICON } from "../../lib/icons";
 import { sortTreeSiblings, type TreeSortMode } from "../../lib/tree-sort";
 
 /** Strip .md extension from file labels for cleaner tree display. */
+/** Tree indentation — single source for all depth-based offsets in the tree.
+ *  Row padding: TREE_INDENT_BASE + depth * TREE_INDENT_STEP.
+ *  Indented child rows (loading / stale-cache / empty state) add the icon gutter
+ *  (chevron + node icon) so they visually sit under the parent's label. */
+const TREE_INDENT_BASE = 12;
+const TREE_INDENT_STEP = 12;
+const TREE_INDENT_GUTTER = 8;
+
+function treeIndent(depth: number): number {
+  return TREE_INDENT_BASE + depth * TREE_INDENT_STEP;
+}
+
+function treeChildIndent(depth: number): number {
+  return treeIndent(depth) + TREE_INDENT_GUTTER;
+}
+
 function stripMdExt(label: string): string {
   return String(label || "").replace(/\.md$/u, "");
 }
@@ -477,7 +493,7 @@ function TreeViewNode({
     if (!rel) return;
     try {
       await api.ws.copyPath(rel);
-      emitLocal("toast:show", t("sidebar.treeView.toastCopiedPath"));
+      emitLocal("toast:show", { text: t("sidebar.treeView.toastCopiedPath"), kind: "success" });
     } catch (e) {
       showError(t("sidebar.treeView.errorCopy"), e instanceof Error ? e.message : String(e));
     }
@@ -550,7 +566,7 @@ function TreeViewNode({
           "v4-drop-target",
           isOver && "v4-drop-target-active",
         )}
-        style={{ "--tree-indent": `${10 + depth * 12}px`, paddingLeft: "var(--tree-indent)" } as React.CSSProperties}
+        style={{ "--tree-indent": `${treeIndent(depth)}px`, paddingLeft: "var(--tree-indent)" } as React.CSSProperties}
       >
         {hasChildren ? (
           expanded ? (
@@ -577,7 +593,7 @@ function TreeViewNode({
             <button
               type="button"
               aria-label={t("titleBar.capture")}
-              className="mr-0.5 hidden h-5 w-5 shrink-0 items-center justify-center rounded-sm text-text-quaternary opacity-0 pointer-events-none transition-[opacity,background-color,color] duration-(--duration-fast) hover:bg-surface hover:text-accent-color focus-visible:inline-flex focus-visible:opacity-100 focus-visible:pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 group-hover:inline-flex group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:inline-flex group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
+              className="mr-0.5 hidden h-5 w-5 shrink-0 items-center justify-center rounded-sm text-text-quaternary opacity-0 pointer-events-none transition-[opacity,background-color,color] duration-(--duration-fast) hover:bg-surface hover:text-accent-color focus-visible:inline-flex focus-visible:opacity-100 focus-visible:pointer-events-auto v4-focus-ring group-hover:inline-flex group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:inline-flex group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
               onClick={(e) => {
                 e.stopPropagation();
                 // Select inbox first so QuickCapture defaults to inbox dest
@@ -594,7 +610,7 @@ function TreeViewNode({
             <button
               type="button"
               aria-label={t("sidebar.treeView.ariaNewTopic")}
-              className="mr-0.5 hidden h-5 w-5 shrink-0 items-center justify-center rounded-sm text-text-quaternary opacity-0 pointer-events-none transition-[opacity,background-color,color] duration-(--duration-fast) hover:bg-surface hover:text-accent-color focus-visible:inline-flex focus-visible:opacity-100 focus-visible:pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 group-hover:inline-flex group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:inline-flex group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
+              className="mr-0.5 hidden h-5 w-5 shrink-0 items-center justify-center rounded-sm text-text-quaternary opacity-0 pointer-events-none transition-[opacity,background-color,color] duration-(--duration-fast) hover:bg-surface hover:text-accent-color focus-visible:inline-flex focus-visible:opacity-100 focus-visible:pointer-events-auto v4-focus-ring group-hover:inline-flex group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:inline-flex group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
               onClick={(e) => {
                 e.stopPropagation();
                 void handleNewTopic();
@@ -609,7 +625,7 @@ function TreeViewNode({
             <button
               type="button"
               aria-label={t("sidebar.treeView.ariaNewNote")}
-              className="mr-0.5 hidden h-5 w-5 shrink-0 items-center justify-center rounded-sm text-text-quaternary opacity-0 pointer-events-none transition-[opacity,background-color,color] duration-(--duration-fast) hover:bg-surface hover:text-accent-color focus-visible:inline-flex focus-visible:opacity-100 focus-visible:pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35 group-hover:inline-flex group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:inline-flex group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
+              className="mr-0.5 hidden h-5 w-5 shrink-0 items-center justify-center rounded-sm text-text-quaternary opacity-0 pointer-events-none transition-[opacity,background-color,color] duration-(--duration-fast) hover:bg-surface hover:text-accent-color focus-visible:inline-flex focus-visible:opacity-100 focus-visible:pointer-events-auto v4-focus-ring group-hover:inline-flex group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:inline-flex group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
               onClick={(e) => {
                 e.stopPropagation();
                 void handleNewNote();
@@ -642,7 +658,7 @@ function TreeViewNode({
         isLoading ? (
           <div
             className="flex items-center gap-1.5 py-1 text-3xs text-text-tertiary"
-            style={{ paddingLeft: `${20 + depth * 12}px` }}
+            style={{ paddingLeft: `${treeChildIndent(depth)}px` }}
             role="status"
           >
             <Loader2 size={ICON.micro} className="animate-spin" aria-hidden /> {t("sidebar.treeView.loadingFiles")}
@@ -666,7 +682,7 @@ function TreeViewNode({
              "暂无笔记" and auto-trigger a reload via the effect above. */
           <div
             className="flex items-center gap-1.5 py-1 text-3xs text-text-tertiary"
-            style={{ paddingLeft: `${20 + depth * 12}px` }}
+            style={{ paddingLeft: `${treeChildIndent(depth)}px` }}
             role="status"
           >
             <Loader2 size={ICON.micro} className="animate-spin" aria-hidden /> {t("sidebar.treeView.loadingFiles")}
@@ -674,12 +690,12 @@ function TreeViewNode({
         ) : node.kind === "topic" || node.kind === "category" ? (
           <div
             className="mx-2 mb-1 mt-0.5 rounded-md border border-dashed border-border-subtle bg-surface-muted/25 px-2 py-2 text-3xs text-text-quaternary"
-            style={{ marginLeft: `${12 + depth * 12}px` }}
+            style={{ marginLeft: `${treeIndent(depth)}px` }}
           >
             {node.kind === "category" ? (
               <button
                 type="button"
-                className="flex w-full items-center gap-1.5 text-left transition-colors hover:text-accent-color focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+                className="flex w-full items-center gap-1.5 text-left transition-colors hover:text-accent-color v4-focus-ring"
                 onClick={(e) => {
                   e.stopPropagation();
                   void handleNewTopic();
@@ -691,7 +707,7 @@ function TreeViewNode({
             ) : (
               <button
                 type="button"
-                className="flex w-full items-center gap-1.5 text-left transition-colors hover:text-accent-color focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+                className="flex w-full items-center gap-1.5 text-left transition-colors hover:text-accent-color v4-focus-ring"
                 onClick={(e) => {
                   e.stopPropagation();
                   void handleNewNote();

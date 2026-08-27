@@ -177,6 +177,7 @@ export async function listStreamPeriods(workspaceRoot, options = {}) {
     engineRoot: r.engineRoot,
     config: options.config,
     limit: options.limit,
+    year: options.year,
   });
 }
 

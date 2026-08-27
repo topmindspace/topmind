@@ -760,7 +760,7 @@ templates/
 
 ## 工具层（从 v3 移植，已清理）
 
-- `electron/lib/writeback.mjs` — 备份链 + 结构化日志（打包后额外写入 `logs/main.log`）
+- `electron/lib/writeback.mjs` — 备份链 + 结构化日志（打包后额外写入 `logs/main.log`；大小上限轮转：默认单文件 2 MB × 保留 3 份归档，`topmind_LOG_MAX_BYTES` / `topmind_LOG_KEEP` 可调，超限轮转 `main.log.1…3`）
 - `electron/lib/path-model.mjs` — 工作区路径解析
 - `electron/lib/workspace-home.mjs` — Desktop 状态路径
 - `electron/lib/engine-root.mjs` — 开发 monorepo vs 打包 `resources/topmind-engine`

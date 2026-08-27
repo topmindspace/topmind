@@ -43,7 +43,7 @@ export function CaptureModeBar({
             onClick={() => onChange(id)}
             className={cn(
               "inline-flex h-[var(--control-h-chip)] items-center rounded-full px-2.5 text-3xs font-medium leading-none transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
+              "v4-focus-ring",
               active
                 ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
                 : "bg-surface-muted/35 text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",

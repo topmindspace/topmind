@@ -454,7 +454,7 @@ export function OnboardingScreen({
                                 "group flex w-full items-center gap-3 rounded-xl border border-border-subtle-dim bg-surface-elevated px-3.5 py-3.5 text-left shadow-(--shadow-card)",
                                 "transition-[border-color,box-shadow,transform,background-color] duration-(--duration-normal) [transition-timing-function:var(--ease-spring)]",
                                 "hover:border-accent-border-subtle hover:shadow-(--shadow-md) hover:-translate-y-0.5 hover:bg-surface-elevated-hover",
-                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35",
+                                "v4-focus-ring",
                                 "disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:border-border-subtle-dim",
                                 active && "border-accent-border-subtle bg-accent-bg-subtle/40",
                                 broken && "border-error/25 bg-status-error-bg/30",
@@ -505,7 +505,7 @@ export function OnboardingScreen({
                                       role="button"
                                       tabIndex={0}
                                       aria-label={t("shell:onboarding.removeLabel", { name: shortName(w.rootPath) })}
-                                      className="rounded p-1 text-text-quaternary opacity-0 pointer-events-none transition-opacity hover:bg-surface-muted hover:text-error group-hover:opacity-100 group-hover:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35"
+                                      className="rounded p-1 text-text-quaternary opacity-0 pointer-events-none transition-opacity hover:bg-surface-muted hover:text-error group-hover:opacity-100 group-hover:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto v4-focus-ring"
                                       onClick={(ev) => void handleRemoveRecent(w.rootPath, ev)}
                                       onKeyDown={(ev) => {
                                         if (ev.key === "Enter" || ev.key === " ") {
