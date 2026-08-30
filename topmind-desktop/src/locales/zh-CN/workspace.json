@@ -185,7 +185,7 @@
     "moveToTopic": "移到专题…",
     "moveToInbox": "移到收件箱",
     "moveToArchive": "归档",
-    "publishToOutput": "发布到输出",
+    "publishToOutput": "发布到写出来",
     "openInFinder": "在文件管理器中显示",
     "copyPath": "复制路径",
     "noTags": "暂无标签",
@@ -200,7 +200,7 @@
   },
   "menu": {
     "title": "格式与工具",
-    "publish": "发布到 Outputs",
+    "publish": "发布到写出来",
     "mediaAssetCount": "{{count}} 个资源文件",
     "toastMovedToTopic": "已移动到专题",
     "failMove": "移动笔记失败",
@@ -424,13 +424,13 @@
   },
   "skills": {
     "capture": "记一下 — 完整捕获",
-    "organize": "Organize — 打开当前专题",
+    "organize": "整理 — 打开当前专题",
     "organizeToast": "整理 · {{files}} 文件（{{md}} md）{{project}}",
     "hasTopic": " · 有 topic.md",
     "noTopic": " · 无 topic.md",
-    "write": "Write — 撰写专题主文档",
-    "memory": "Memory — 追加专题记忆",
-    "loop": "Loop — 工作区健康巡检",
+    "write": "写出来 — 打开专题主页",
+    "memory": "专题记忆 — 追加沉淀",
+    "loop": "巡检 — 工作区健康",
     "loopToast": "✓ 巡检通过 · {{categories}} 类别 · {{topics}} 专题{{warnings}}",
     "warningsCount": " · {{count}} 警告"
   }

@@ -96,7 +96,7 @@
     "message": "将剪藏页面高亮段落（先开启高亮模式划选）"
   },
   "hint_configured_once": {
-    "message": "配置一次后即可一键剪藏到 Inbox"
+    "message": "配置一次后即可一键剪藏到收件箱"
   },
   "hint_needs_auth": {
     "message": "本机模式：首次剪藏或权限过期时，浏览器会再确认一次目录权限"
@@ -207,7 +207,7 @@
     "message": "当前页无法启用高亮（系统页限制）"
   },
   "dest_inbox": {
-    "message": "收件箱 Inbox"
+    "message": "收件箱"
   },
   "dest_category": {
     "message": "类别 · $1"
@@ -216,10 +216,10 @@
     "message": "专题 · $1"
   },
   "dest_hint_offline": {
-    "message": "落点列表不可用（Bridge 离线）· 默认 Inbox"
+    "message": "落点列表不可用（Bridge 离线）· 默认收件箱"
   },
   "dest_hint_generic": {
-    "message": "落点列表不可用 · 默认 Inbox"
+    "message": "落点列表不可用 · 默认收件箱"
   },
   "clip_mode": {
     "message": "剪藏模式"

@@ -43,6 +43,7 @@
     "clear": "Clear",
     "getKey": "Get API Key",
     "help": "Help",
+    "more": "More",
     "newTopic": "New Topic",
     "newNote": "New Note",
     "all": "All",
@@ -84,10 +85,10 @@
     "inbox": "Inbox",
     "stream": "Stream",
     "topic": "Topics",
-    "outputs": "Outputs",
+    "outputs": "Ship it",
     "archive": "Archive",
     "reference": "Reference",
-    "memory": "Memory"
+    "memory": "My profile"
   },
   "shortcut": {
     "globalCapture": "Global Note it (any app)",
@@ -99,7 +100,7 @@
     "todo": "Todo list",
     "stream": "Go to Stream",
     "kanban": "Sidebar kanban view",
-    "outputs": "Go to Outputs",
+    "outputs": "Go to Ship it",
     "archive": "Go to Archive",
     "workspaceSwitcher": "Switch workspace",
     "closeTab": "Close current file tab",

@@ -38,6 +38,13 @@
   "retry": "Retry",
   "remove": "Remove",
   "openResult": "Open result",
+  "toast": {
+    "clipboardEmpty": "No importable files in clipboard",
+    "enqueued": "Enqueued {{count}} files",
+    "enqueuedClipboard": "Enqueued {{count}} files from clipboard",
+    "staging": "{{count}} items to confirm",
+    "folderEnqueued": "Folder enqueued"
+  },
   "warning": "Warning",
   "fallback": "Fallback",
   "converter": "Converter",

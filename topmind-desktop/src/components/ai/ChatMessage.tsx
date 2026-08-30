@@ -91,13 +91,13 @@ function ToolCallTimeline({ tools }: { tools: AiToolCall[] }) {
           )}
           <Wrench size={ICON.micro} className="shrink-0 opacity-50" />
           <span className="font-mono">
-            {t("ai.tool.callsCount", { count: tools.length })}
+            {t("ai:tool.callsCount", { count: tools.length })}
           </span>
           {writeCount > 0 ? (
-            <span className="text-success/70">{t("ai.tool.writesCount", { count: writeCount })}</span>
+            <span className="text-success/70">{t("ai:tool.writesCount", { count: writeCount })}</span>
           ) : null}
           {runningCount > 0 ? (
-            <span className="text-accent-color/70">{t("ai.tool.runningCount", { count: runningCount })}</span>
+            <span className="text-accent-color/70">{t("ai:tool.runningCount", { count: runningCount })}</span>
           ) : null}
           <ChevronRight size={ICON.micro} className="shrink-0 opacity-50" />
         </button>
@@ -114,7 +114,7 @@ function ToolCallTimeline({ tools }: { tools: AiToolCall[] }) {
           className="mb-0.5 flex items-center gap-1 text-3xs text-text-quaternary hover:text-text-tertiary"
         >
           <ChevronDown size={ICON.micro} />
-          {t("ai.tool.callsCollapse")}
+          {t("ai:tool.callsCollapse")}
         </button>
       ) : null}
       {tools.map((tc) => (

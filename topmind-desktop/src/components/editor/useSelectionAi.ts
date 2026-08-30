@@ -488,7 +488,7 @@ export function useSelectionAi({
         : action === "summarize"
           ? t("selectionAi.statusHintSummarize")
           : action === "polish"
-            ? t("selectionAi.statusHintPolish", { defaultValue: "正在润色…" })
+            ? t("selectionAi.statusHintPolish")
             : t("selectionAi.statusHintRewrite");
     useInlineAiStore.getState().begin({
       id: sessionId,

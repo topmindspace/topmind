@@ -133,6 +133,43 @@ test("Obsidian stream surface is 动态/Stream, not a sixth 工作台/Workbench 
   assert.doesNotMatch(en, /About me/);
 });
 
+test("EN Desktop locales use My profile / Note it / Ship it (not My Status / Quick Note)", () => {
+  const files = [
+    "topmind-desktop/src/locales/en-US/ai.json",
+    "topmind-desktop/src/locales/en-US/settings.json",
+    "topmind-desktop/src/locales/en-US/shell.json",
+    "topmind-desktop/src/locales/en-US/overlays.json",
+    "topmind-desktop/src/locales/en-US/workspace.json",
+    "topmind-desktop/src/locales/en-US/common.json",
+  ];
+  for (const rel of files) {
+    const src = read(rel);
+    assert.doesNotMatch(src, /\bMy Status\b/, rel);
+    assert.doesNotMatch(src, /\bQuick Note\b/, rel);
+    assert.doesNotMatch(src, /\bAbout me\b/, rel);
+  }
+  const enShell = readJson("topmind-desktop/src/locales/en-US/shell.json");
+  const enCommon = readJson("topmind-desktop/src/locales/en-US/common.json");
+  const enOverlays = readJson("topmind-desktop/src/locales/en-US/overlays.json");
+  assert.equal(enShell.primaryNav.outputs, "Ship it");
+  assert.equal(enCommon.category.outputs, "Ship it");
+  assert.equal(enCommon.category.memory, "My profile");
+  assert.equal(enOverlays.search.group.memory, "My profile");
+  assert.equal(enShell.sidebar.contextMenu.openOutputs, "Open Ship it");
+  assert.equal(enShell.sidebar.contextMenu.publishToOutputs, "Publish to Ship it");
+});
+
+test("command palette actions resolve labels via labelKey (live locale)", () => {
+  const skills = read("topmind-desktop/src/plugins/topmind-workspace/skills.ts");
+  const weread = read("topmind-desktop/src/plugins/topmind-weread/actions.ts");
+  const palette = read("topmind-desktop/src/components/overlays/CommandPalette.tsx");
+  assert.match(skills, /labelKey:\s*"workspace:skills\.capture"/);
+  assert.match(weread, /labelKey:\s*"overlays:command\.actions\.wereadOpenHub"/);
+  assert.match(palette, /groupIngest/);
+  assert.match(palette, /groupSync/);
+  assert.match(palette, /i18n\.language/);
+});
+
 test("Obsidian compose vs capture call the distinct vocab keys", () => {
   const workbench = read("obsidian-plugin/src/views/stream-workbench-view.ts");
   const modal = read("obsidian-plugin/src/views/quick-capture-modal.ts");

@@ -277,7 +277,7 @@ function ProviderCard({
           {meta.baseUrlField ? (
             <div>
               <label className="mb-1 block text-4xs font-medium tracking-tight text-text-tertiary">
-                {meta.id === "ollama" ? "Endpoint URL" : "Base URL"}
+                {meta.id === "ollama" ? t("settings:ai.endpointUrl") : t("settings:ai.baseUrl")}
               </label>
               <Input
                 type="url"

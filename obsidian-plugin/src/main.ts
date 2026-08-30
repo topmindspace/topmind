@@ -539,7 +539,7 @@ export default class TopmindPlugin extends Plugin {
       setIcon(el.createSpan({ cls: "tm-status-bar-icon" }), "sparkles");
       if (progress.queued.length > 0) {
         el.createSpan({
-          text: t("task_queued_count").replace("{{count}}", String(progress.queued.length)),
+          text: t("task_queued_count", { count: progress.queued.length }),
           cls: "tm-status-bar-label",
         });
       }

@@ -183,7 +183,7 @@
     "shortcutCommand": "Command / search",
     "shortcutSettings": "Settings",
     "shortcutSave": "Save",
-    "shortcutNav": "Inbox / Outputs / Archive",
+    "shortcutNav": "Inbox / Ship it / Archive",
     "shortcutStream": "Stream",
     "shortcutTodo": "Todo list",
     "shortcutKanban": "Sidebar kanban",
@@ -290,9 +290,9 @@
     "viewsTimeline": "Timeline",
     "viewsTags": "Tags",
     "viewsKanban": "Kanban",
-    "memoryTitle": "My Status · Core Memory",
-    "memoryDesc": "Where AI understanding, context hints and personal status are saved",
-    "memoryProfileLabel": "My Status · File Name",
+    "memoryTitle": "My profile · Core memory",
+    "memoryDesc": "Where portrait facts, periodic reflections and topic memory are saved",
+    "memoryProfileLabel": "My profile · File name",
     "memoryProfileDesc": "Primary core memory file",
     "memoryDirLabel": "Memory Directory",
     "memoryDirDesc": "Empty = stream category; e.g. 10-Stream",
@@ -547,7 +547,9 @@
     "badgeContext": "Context window: {{count}} tokens",
     "badgeCost": "Cost (input/output, per million tokens): {{cost}}",
     "modelFilterPlaceholder": "Filter models…",
-    "modelFilterNoMatch": "No models match"
+    "modelFilterNoMatch": "No models match",
+    "endpointUrl": "Endpoint URL",
+    "baseUrl": "Base URL"
   },
   "tools": {
     "jsonErrorObject": "Input must be a JSON object",

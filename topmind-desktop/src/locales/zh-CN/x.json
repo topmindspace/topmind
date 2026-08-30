@@ -74,6 +74,7 @@
     "confirmPostDesc": "将调用本机 xurl 发帖，无法撤销。",
     "cancel": "取消",
     "cannotReadError": "✗ 无法读取：请配置 Bearer Token",
+    "errorToast": "✗ X: {{msg}}",
     "noTweetsFound": "ℹ 未找到与「{{label}}」相关的公开推文",
     "appended": "已追加",
     "written": "已写入",

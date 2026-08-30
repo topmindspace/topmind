@@ -293,7 +293,7 @@ export function Shell({ settings }: ShellProps) {
               type="button"
               onClick={() => openSuggestSurface()}
               className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full border border-border-subtle bg-surface-elevated/95 px-2.5 py-1 text-3xs font-medium text-text-secondary shadow-[var(--shadow-float)] backdrop-blur-sm transition-colors hover:bg-surface-muted v4-focus-ring"
-              aria-label={t("shell:statusBar.suggestCountAria", { count: suggestCount, defaultValue: "AI 建议（{{count}}）" })}
+              aria-label={t("shell:statusBar.suggestCountAria", { count: suggestCount })}
             >
               <Lightbulb size={ICON.xs} className="text-accent-color" aria-hidden />
               <span className="tabular-nums">{suggestCount}</span>
@@ -304,7 +304,7 @@ export function Shell({ settings }: ShellProps) {
               type="button"
               onClick={() => emitLocal("todo:toggle-popover")}
               className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full border border-border-subtle bg-surface-elevated/95 px-2.5 py-1 text-3xs font-medium text-text-secondary shadow-[var(--shadow-float)] backdrop-blur-sm transition-colors hover:bg-surface-muted v4-focus-ring"
-              aria-label={t("shell:todo.openAria", { count: activeTodoCount, defaultValue: "待办清单（{{count}}）" })}
+              aria-label={t("shell:todo.openAria", { count: activeTodoCount })}
             >
               <ListTodo size={ICON.xs} className="text-accent-color" aria-hidden />
               <span className="tabular-nums">{activeTodoCount}</span>

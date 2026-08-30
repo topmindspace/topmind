@@ -32,19 +32,19 @@ export function createXActions(ctx: PluginContext): ActionSlot[] {
         try {
           const status = await api.x.status();
           if (!status.ready) {
-            ctx.toast(i18n.t("x:sidebar.notReadyToast"));
+            ctx.toast(i18n.t("x:hub.notEnabled"));
             ctx.openOverlay("settings", { topicId: "topmind-x.settings" });
             return;
           }
           if (!status.canRead) {
-            ctx.toast(i18n.t("x:sidebar.cannotReadToast"));
+            ctx.toast(i18n.t("x:hub.cannotReadError"));
             ctx.openOverlay("settings", { topicId: "topmind-x.settings" });
             return;
           }
           ctx.navigate({ kind: "connector", id: "x" });
           ctx.events.emit("x:open-prompt", { mode: "fetch" });
         } catch (e) {
-          ctx.toast({ text: `✗ X: ${e instanceof Error ? e.message : String(e)}`, kind: "error" });
+          ctx.toast({ text: i18n.t("x:hub.errorToast", { msg: e instanceof Error ? e.message : String(e) }), kind: "error" });
         }
       },
     },
@@ -60,14 +60,14 @@ export function createXActions(ctx: PluginContext): ActionSlot[] {
         try {
           const status = await api.x.status();
           if (!status.canPost) {
-            ctx.toast(i18n.t("x:sidebar.needXurlToast"));
+            ctx.toast(i18n.t("x:hub.needXurl"));
             ctx.openOverlay("settings", { topicId: "topmind-x.settings" });
             return;
           }
           ctx.navigate({ kind: "connector", id: "x" });
           ctx.events.emit("x:open-prompt", { mode: "post" });
         } catch (e) {
-          ctx.toast({ text: `✗ X: ${e instanceof Error ? e.message : String(e)}`, kind: "error" });
+          ctx.toast({ text: i18n.t("x:hub.errorToast", { msg: e instanceof Error ? e.message : String(e) }), kind: "error" });
         }
       },
     },

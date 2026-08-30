@@ -207,6 +207,7 @@
     "suggestLoadingTip": "正在扫描可整理项并生成建议 · 点此查看",
     "suggestCount": "{{count}} 条建议",
     "suggestCountTip": "{{count}} 条建议待确认 · 点此查看",
+    "suggestCountAria": "AI 建议（{{count}}）",
     "inlineAiWorking": "AI 处理中",
     "inlineAiWorkingTip": "润色 / 行内改写进行中 · 切换页面可能取消本次结果 · 点此不做任何操作",
     "inlineAiLeaveTitle": "离开将取消 AI 工作",
@@ -430,7 +431,7 @@
       "open": "打开",
       "rename": "重命名",
       "duplicate": "创建副本",
-      "publishToOutputs": "发布到 Outputs",
+      "publishToOutputs": "发布到写出来",
       "openExternal": "用默认程序打开",
       "delete": "删除"
     },
@@ -527,7 +528,8 @@
     "healthStale": "{{count}} 条过期未处理",
     "archiveStale": "归档过期待办",
     "archiveStaleConfirm": "将归档 {{count}} 条超过 30 天的待办到历史快照，确定？",
-    "archiveDone": "已归档 {{count}} 条过期待办"
+    "archiveDone": "已归档 {{count}} 条过期待办",
+    "openAria": "待办清单（{{count}}）"
   },
   "appsMenu": {
     "section": "应用",

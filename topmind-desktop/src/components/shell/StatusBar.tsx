@@ -146,10 +146,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
     busy.aiLabelMode === "offline"
       ? t("statusBar.aiOffline")
       : busy.multiActive && busy.aiPillBusy
-        ? t("statusBar.aiMultiWorking", {
-            count: busy.concurrentCount,
-            defaultValue: `AI ×${busy.concurrentCount}`,
-          })
+        ? t("statusBar.aiMultiWorking", { count: busy.concurrentCount })
       : busy.aiPillBusy
         ? t("statusBar.aiWorking")
         : streaming || messageCount > 0
@@ -159,10 +156,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
     !runtimeStatus?.ready
       ? t("statusBar.openSettingsTip")
       : busy.multiActive
-        ? t("statusBar.aiMultiWorkingTip", {
-            jobs: multiJobsLabel,
-            defaultValue: `同时进行：${multiJobsLabel} · 点此切换 AI 面板`,
-          })
+        ? t("statusBar.aiMultiWorkingTip", { jobs: multiJobsLabel })
       : busy.aiPillBusy
         ? t("statusBar.aiWorkingTip")
         : aiPanelOpen
@@ -437,7 +431,7 @@ function SelectionHint({ selection }: { selection: Selection }) {
   const select = useViewStore((s) => s.select);
   if (selection.kind !== "file") return null;
   const label = selection.path.split("/").pop() ?? selection.path;
-  const tip = `${selection.path}\n${t("statusBar.fileChipTip", { defaultValue: "点击在编辑器中打开 · 右键在文件夹中显示" })}`;
+  const tip = `${selection.path}\n${t("statusBar.fileChipTip")}`;
   return (
     <Tooltip content={tip}>
       <button

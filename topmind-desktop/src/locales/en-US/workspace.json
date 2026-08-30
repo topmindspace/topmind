@@ -185,7 +185,7 @@
     "moveToTopic": "Move to topic…",
     "moveToInbox": "Move to Inbox",
     "moveToArchive": "Archive",
-    "publishToOutput": "Publish to Outputs",
+    "publishToOutput": "Publish to Ship it",
     "openInFinder": "Reveal in file manager",
     "copyPath": "Copy path",
     "noTags": "No tags yet",
@@ -205,7 +205,7 @@
     "makeCopy": "Make Copy",
     "moveToTopic": "Move to Topic…",
     "moveToTopicTooltip": "Move to topic · Select target topic directory",
-    "publishDelivery": "Publish Output Copy…",
+    "publishDelivery": "Publish to Ship it…",
     "restoreTo": "Restore to…",
     "newNote": "New Note…",
     "newTopic": "New Topic…",
@@ -243,7 +243,7 @@
     "failDelete": "Failed to delete",
     "failRestore": "Failed to restore",
     "mediaAssetCount": "{{count}} media assets",
-    "publish": "Publish",
+    "publish": "Publish to Ship it",
     "title": "Menu"
   },
   "categoryView": {
@@ -424,13 +424,13 @@
   },
   "skills": {
     "capture": "Note it — full capture",
-    "organize": "Organize — Open Current Topic",
+    "organize": "Organize — open current topic",
     "organizeToast": "Organize · {{files}} files ({{md}} md){{project}}",
     "hasTopic": " · Has topic.md",
     "noTopic": " · No topic.md",
-    "write": "Write — Write Main Topic Doc",
-    "memory": "Memory — Append Topic Memory",
-    "loop": "Loop — Workspace Health Check",
+    "write": "Write — open topic home",
+    "memory": "Topic memory — append",
+    "loop": "Loop — workspace health",
     "loopToast": "✓ Health check passed · {{categories}} categories · {{topics}} topics{{warnings}}",
     "warningsCount": " · {{count}} warnings"
   }

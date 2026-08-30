@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, CornerDownLeft, Compass, Sparkles, Command as CommandIcon, Zap, Inbox } from "lucide-react";
+import { Search, CornerDownLeft, Compass, Sparkles, Command as CommandIcon, Zap, Inbox, FileInput, RefreshCw } from "lucide-react";
 import { registry } from "../../plugins/registry";
 import { useViewStore } from "../../stores/view-store";
 import { makeMinCtx } from "../../plugins/min-ctx";
@@ -12,7 +12,7 @@ import { modKey } from "../../lib/shortcuts";
 import { ICON } from "../../lib/icons";
 
 /** Group presentation: display order + localized label + icon. */
-const GROUP_ORDER = ["skill", "goto", "navigate", "capture"];
+const GROUP_ORDER = ["skill", "goto", "navigate", "capture", "ingest", "sync"];
 
 // Recently-run command ids — persisted so the palette opens with the user's
 // actual habits on top, not a static order.
@@ -48,12 +48,16 @@ const GROUP_KEY_MAP: Record<string, string> = {
   skill: "overlays:command.groupSkill",
   navigate: "overlays:command.groupNavigate",
   capture: "overlays:command.groupCapture",
+  ingest: "overlays:command.groupIngest",
+  sync: "overlays:command.groupSync",
 };
 const GROUP_ICON: Record<string, LucideIcon> = {
   goto: Compass,
   skill: Sparkles,
   navigate: CommandIcon,
   capture: Zap,
+  ingest: FileInput,
+  sync: RefreshCw,
 };
 
 /** Subsequence fuzzy score. */
@@ -142,7 +146,7 @@ interface PaletteGroup {
 }
 
 export function CommandPalette() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [query, setQuery] = useState("");
   const [activeIdx, setActiveIdx] = useState(0);
   const closeOverlay = useViewStore((s) => s.closeOverlay);
@@ -182,7 +186,7 @@ export function CommandPalette() {
     }
 
     // When no query: skill first (workflow). With query: pure relevance group order.
-    const order = q ? ["goto", "skill", "navigate", "capture"] : GROUP_ORDER;
+    const order = q ? ["goto", "skill", "navigate", "capture", "ingest", "sync"] : GROUP_ORDER;
     const orderedKeys = [
       ...order.filter((g) => byGroup.has(g)),
       ...[...byGroup.keys()].filter((g) => !order.includes(g)),
@@ -199,7 +203,7 @@ export function CommandPalette() {
         items: items.map((x) => x.a),
       };
     });
-  }, [available, query, selection, recent]);
+  }, [available, query, selection, recent, t, i18n.language]);
 
   const flat = useMemo(() => groups.flatMap((g) => g.items), [groups]);
 

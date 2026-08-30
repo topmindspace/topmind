@@ -6,7 +6,7 @@
   "chromeOpen": "Bookkeeping",
   "chromeOpenTip": "Open bookkeeping · books live on the memory plane under ledgers/",
   "bookPath": "Book · {{path}}",
-  "bookPathHint": "Written under the contract-resolved memory dir ledgers/, same family as todo.md — not 50-其他/",
+  "bookPathHint": "Written under the contract-resolved memory dir ledgers/, same family as todo.md — not 50-Other/",
   "howToOpen": "When enabled: open from the header Apps menu, the StatusBar Bookkeeping chip, or the command palette. Those entries disappear when the plugin is off. Not a PrimaryNav item.",
   "close": "Close",
   "balance": "Balance",

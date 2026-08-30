@@ -40,20 +40,14 @@ export function InlineAiLeaveHost() {
   return (
     <ConfirmDialog
       open={open}
-      title={t("statusBar.inlineAiLeaveTitle", { defaultValue: "离开将取消 AI 工作" })}
+      title={t("statusBar.inlineAiLeaveTitle")}
       description={
         busyLabel
-          ? t("statusBar.inlineAiLeaveConfirmWithLabel", {
-              label: busyLabel,
-              defaultValue: `「${busyLabel}」仍在进行或有未应用结果。强制离开将取消本次 AI 工作。`,
-            })
-          : t("statusBar.inlineAiLeaveConfirm", {
-              defaultValue:
-                "AI 仍在处理或有未应用的结果。强制离开将取消本次 AI 工作，是否继续？",
-            })
+          ? t("statusBar.inlineAiLeaveConfirmWithLabel", { label: busyLabel })
+          : t("statusBar.inlineAiLeaveConfirm")
       }
-      confirmText={t("statusBar.inlineAiLeaveForce", { defaultValue: "强制离开" })}
-      cancelText={t("statusBar.inlineAiLeaveStay", { defaultValue: "继续等待" })}
+      confirmText={t("statusBar.inlineAiLeaveForce")}
+      cancelText={t("statusBar.inlineAiLeaveStay")}
       destructive
       onConfirm={handleConfirm}
       onCancel={handleCancel}

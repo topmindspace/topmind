@@ -547,7 +547,9 @@
     "badgeContext": "上下文窗口：{{count}} tokens",
     "badgeCost": "价格（输入/输出，每百万 tokens）：{{cost}}",
     "modelFilterPlaceholder": "筛选模型…",
-    "modelFilterNoMatch": "无匹配模型"
+    "modelFilterNoMatch": "无匹配模型",
+    "endpointUrl": "服务地址",
+    "baseUrl": "接口地址"
   },
   "tools": {
     "jsonErrorObject": "输入须为 JSON 对象",

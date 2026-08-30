@@ -39,7 +39,8 @@ export function createSkillActions(_lang?: "zh" | "en"): ActionSlot[] {
     {
       kind: "action",
       id: "skill.capture",
-      label: i18n.t("workspace:skills.capture"),
+      label: "Note it — full capture",
+      labelKey: "workspace:skills.capture",
       shortcut: "⌘N",
       group: "skill",
       order: 100,
@@ -50,7 +51,8 @@ export function createSkillActions(_lang?: "zh" | "en"): ActionSlot[] {
     {
       kind: "action",
       id: "skill.organize",
-      label: i18n.t("workspace:skills.organize"),
+      label: "Organize — open current topic",
+      labelKey: "workspace:skills.organize",
       group: "skill",
       order: 110,
       available: (sel) => sel.kind === "topic" || (sel.kind === "file" && Boolean(sel.topicId)),
@@ -73,7 +75,8 @@ export function createSkillActions(_lang?: "zh" | "en"): ActionSlot[] {
     {
       kind: "action",
       id: "skill.write",
-      label: i18n.t("workspace:skills.write"),
+      label: "Write — open topic home",
+      labelKey: "workspace:skills.write",
       group: "skill",
       order: 120,
       available: (sel) => sel.kind === "topic" || (sel.kind === "file" && Boolean(sel.topicId)),
@@ -99,7 +102,8 @@ export function createSkillActions(_lang?: "zh" | "en"): ActionSlot[] {
     {
       kind: "action",
       id: "skill.memory",
-      label: i18n.t("workspace:skills.memory"),
+      label: "Topic memory — append",
+      labelKey: "workspace:skills.memory",
       group: "skill",
       order: 130,
       available: (sel) =>
@@ -114,7 +118,8 @@ export function createSkillActions(_lang?: "zh" | "en"): ActionSlot[] {
     {
       kind: "action",
       id: "skill.loop",
-      label: i18n.t("workspace:skills.loop"),
+      label: "Loop — workspace health",
+      labelKey: "workspace:skills.loop",
       group: "skill",
       order: 140,
       async run(ctx) {

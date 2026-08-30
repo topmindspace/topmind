@@ -10,7 +10,8 @@ export function createWereadActions(_ctx: PluginContext): ActionSlot[] {
     {
       kind: "action",
       id: "weread.open-hub",
-      label: i18n.t("weread:sidebar.openHub"),
+      label: "WeRead — Open hub",
+      labelKey: "overlays:command.actions.wereadOpenHub",
       group: "sync",
       icon: "book-open",
       order: 199,
@@ -21,7 +22,8 @@ export function createWereadActions(_ctx: PluginContext): ActionSlot[] {
     {
       kind: "action",
       id: "weread.sync",
-      label: i18n.t("weread:sidebar.syncNow"),
+      label: "WeRead — Sync now",
+      labelKey: "overlays:command.actions.wereadSync",
       group: "sync",
       icon: "book-open",
       order: 200,
@@ -33,12 +35,12 @@ export function createWereadActions(_ctx: PluginContext): ActionSlot[] {
             _ctx.openOverlay("settings", { topicId: "topmind-weread.settings" });
             return;
           }
-          _ctx.toast(i18n.t("weread:sidebar.connecting"));
+          _ctx.toast(i18n.t("weread:hub.connecting"));
           const result = await api.weread.sync();
           const bits = [
-            i18n.t("weread:sidebar.syncedBooks", { count: result.synced }),
-            result.skippedNoChange ? i18n.t("weread:sidebar.noChange", { count: result.skippedNoChange }) : null,
-            result.remaining ? i18n.t("weread:sidebar.remaining", { count: result.remaining }) : null,
+            i18n.t("weread:hub.syncedBooksToast", { count: result.synced }),
+            result.skippedNoChange ? i18n.t("weread:hub.noChangeToast", { count: result.skippedNoChange }) : null,
+            result.remaining ? i18n.t("weread:hub.remainingToast", { count: result.remaining }) : null,
           ].filter(Boolean);
           _ctx.toast({ text: bits.join(" · "), kind: "success" });
           _ctx.events.emit("workspace:file-changed", null);
@@ -50,7 +52,8 @@ export function createWereadActions(_ctx: PluginContext): ActionSlot[] {
     {
       kind: "action",
       id: "weread.open-settings",
-      label: i18n.t("weread:sidebar.settings"),
+      label: "WeRead — Open settings",
+      labelKey: "overlays:command.actions.wereadOpenSettings",
       group: "sync",
       icon: "book-open",
       order: 209,

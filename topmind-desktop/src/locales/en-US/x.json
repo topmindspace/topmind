@@ -74,6 +74,7 @@
     "confirmPostDesc": "This will call local xurl to post. Cannot be undone.",
     "cancel": "Cancel",
     "cannotReadError": "✗ Cannot read: please configure Bearer Token",
+    "errorToast": "✗ X: {{msg}}",
     "noTweetsFound": "ℹ No public tweets found for \"{{label}}\"",
     "appended": "Appended",
     "written": "Written",

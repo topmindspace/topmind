@@ -34,7 +34,7 @@ import { aiTaskManager, type TaskProgress } from "../services/ai-task-manager";
 
 /** Format entry count for display (uses i18n, kept in view layer). */
 function formatEntryCount(count: number): string {
-  return t("stream_entry_count").replace("{{count}}", String(count));
+  return t("stream_entry_count", { count });
 }
 
 /** Day group for rendering. */
@@ -409,7 +409,7 @@ export class StreamWorkbenchView extends ItemView {
       } else if (progress.queued.length > 0) {
         this.taskBadgeEl.removeClass("tm-task-badge-active");
         this.taskBadgeEl.createSpan({
-          text: t("task_queued_count").replace("{{count}}", String(progress.queued.length)),
+          text: t("task_queued_count", { count: progress.queued.length }),
           cls: "tm-task-badge-label",
         });
       } else {
@@ -842,7 +842,7 @@ export class StreamWorkbenchView extends ItemView {
       // Suggestion count badge
       const countEl = suggestionContainer.createDiv({ cls: "tm-suggestion-summary" });
       countEl.createSpan({
-        text: t("sidebar_suggestions_count").replace("{{count}}", String(suggestions.length)),
+        text: t("sidebar_suggestions_count", { count: suggestions.length }),
         cls: "tm-suggestion-count-badge",
       });
 

@@ -43,6 +43,7 @@
     "clear": "清除",
     "getKey": "获取 API Key",
     "help": "帮助",
+    "more": "更多",
     "newTopic": "新专题",
     "newNote": "新笔记",
     "all": "全部",
@@ -84,10 +85,10 @@
     "inbox": "收件箱",
     "stream": "动态",
     "topic": "专题",
-    "outputs": "输出",
+    "outputs": "写出来",
     "archive": "归档",
     "reference": "参考资料",
-    "memory": "记忆"
+    "memory": "我的情况"
   },
   "shortcut": {
     "globalCapture": "全局记一下（任意应用）",

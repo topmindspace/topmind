@@ -154,7 +154,7 @@ const STRINGS = {
     "error.invalidRoutingTopic": "Topic (routing.topic): invalid topic name, only letters, numbers, spaces, dots, hyphens, underscores, CJK allowed",
     // ── Workspace content templates ──────────────────────────────────
     "content.placeholderText": "(to be filled)",
-    "content.coreMemoryTitle": "My Status",
+    "content.coreMemoryTitle": "My profile",
     "content.coreMemoryPreferences": "Preferences",
     "content.coreMemoryGoals": "Current Goals",
     "content.coreMemoryCollaborators": "Key People & Collaboration",

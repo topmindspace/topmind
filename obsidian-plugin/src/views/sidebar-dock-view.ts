@@ -344,7 +344,7 @@ export class SidebarDockView extends ItemView {
       dot.setAttribute("aria-hidden", "true");
     } else if (progress.queued.length > 0) {
       el.createSpan({
-        text: t("task_queued_count").replace("{{count}}", String(progress.queued.length)),
+        text: t("task_queued_count", { count: progress.queued.length }),
         cls: "tm-task-badge-label",
       });
     }
@@ -559,7 +559,7 @@ export class SidebarDockView extends ItemView {
         previewBox = card.createDiv({ cls: "tm-pending-preview" });
         const meta = previewBox.createDiv({ cls: "tm-pending-preview-meta" });
         meta.setText(
-          t("pending_writes_preview_meta").replace("{{chars}}", String(item.content.length)),
+          t("pending_writes_preview_meta", { chars: item.content.length }),
         );
         previewBox.createEl("pre", { text: item.content });
         preview.setText(t("pending_writes_hide_preview"));
@@ -641,7 +641,7 @@ export class SidebarDockView extends ItemView {
       // Suggestion count badge
       const summaryEl = container.createDiv({ cls: "tm-suggestion-summary" });
       summaryEl.createSpan({
-        text: t("sidebar_suggestions_count").replace("{{count}}", String(suggestions.length)),
+        text: t("sidebar_suggestions_count", { count: suggestions.length }),
         cls: "tm-suggestion-count-badge",
       });
 
@@ -1085,7 +1085,7 @@ export class SidebarDockView extends ItemView {
     if (progress.queued.length > 0) {
       const queuedHeader = section.createDiv({ cls: "tm-history-section-header" });
       queuedHeader.createSpan({
-        text: t("task_queued_count").replace("{{count}}", String(progress.queued.length)),
+        text: t("task_queued_count", { count: progress.queued.length }),
       });
       for (const task of progress.queued) {
         this.renderTaskItem(section, task, false);

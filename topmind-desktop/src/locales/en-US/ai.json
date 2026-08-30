@@ -47,18 +47,18 @@
     "runtimeUnavailable": "AI runtime unavailable"
   },
   "slash": {
-    "captureLabel": "Quick Note",
+    "captureLabel": "Note it",
     "captureTip": "Defaults to this week's stream",
     "capturePrompt": "Help me note the following (load_skill capture first, append to current stream period):",
     "organizeLabel": "Organize Week",
     "organizeTip": "Sort stream / topics",
-    "organizePrompt": "Organize this week: sort the current stream period (merge status, deduplicate, update in-progress), and list candidates worth writing to 'My Status' or topics (load_skill organize first).",
+    "organizePrompt": "Organize this week: sort the current stream period (merge status, deduplicate, update in-progress), and list candidates worth writing to My profile or topics (load_skill organize first).",
     "writeLabel": "Write",
     "writeTip": "Draft / polish / deliver",
     "writePrompt": "Help me write or polish based on the current topic, write back when needed (load_skill write first).",
-    "memoryLabel": "My Status",
+    "memoryLabel": "My profile",
     "memoryTip": "Preferences / goals / topic conclusions",
-    "memoryPrompt": "Write confirmed content to 'My Status' or topic conclusions (load_skill memory first; about me → My Status, about topic → topic.md).",
+    "memoryPrompt": "Write confirmed content to My profile or topic conclusions (load_skill memory first; about me → My profile, about topic → topic.md).",
     "maintainLabel": "Check",
     "maintainTip": "Quick diagnosis",
     "maintainPrompt": "Check workspace health and explain issues (load_skill maintain first).",
@@ -67,6 +67,6 @@
     "loopPrompt": "Review the workspace comprehensively, summarize issues and suggestions (load_skill loop first).",
     "topmindLabel": "Help Me Decide",
     "topmindTip": "When unsure which flow to use",
-    "topmindPrompt": "Help me decide which flow to use and handle it (Quick Note / Organize Week / Write / My Status):"
+    "topmindPrompt": "Help me decide which flow to use and handle it (Note it / Organize Week / Write / My profile):"
   }
 }

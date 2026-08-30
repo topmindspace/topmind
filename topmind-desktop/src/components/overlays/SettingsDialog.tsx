@@ -61,7 +61,7 @@ function collectPanelStrings(topKeys: string[]): string[] {
 }
 
 export function SettingsDialog() {
-  const { t } = useTranslation(["settings", "common"]);
+  const { t, i18n } = useTranslation(["settings", "common"]);
   const closeOverlay = useViewStore((s) => s.closeOverlay);
   const overlayContext = useViewStore((s) => s.overlayContext);
   const [activeTab, setActiveTab] = useState(overlayContext?.topicId || "general");
@@ -121,7 +121,7 @@ export function SettingsDialog() {
       return keys ? attachKeywords(tab, keys) : tab;
     });
     return [...builtinWithSearch, ...dynamic, ...footerWithSearch].sort((a, b) => a.order - b.order);
-  }, [settingsSlots]);
+  }, [settingsSlots, t, i18n.language]);
 
   useEffect(() => {
     if (tabs.length > 0 && !tabs.some((t) => t.id === activeTab)) setActiveTab("general");

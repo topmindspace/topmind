@@ -32,8 +32,14 @@ export function getLocale(): string {
   return currentLocale;
 }
 
-/** Translate a key */
-export function t(key: LocaleKey): string {
+/** Translate a key, with optional {{var}} interpolation. */
+export function t(key: LocaleKey, vars?: Record<string, string | number>): string {
   const strings = LOCALES[currentLocale] || LOCALES["zh-CN"];
-  return strings[key] || zhCN[key] || String(key);
+  let s = strings[key] || zhCN[key] || String(key);
+  if (vars) {
+    for (const [k, v] of Object.entries(vars)) {
+      s = s.replaceAll(`{{${k}}}`, String(v));
+    }
+  }
+  return s;
 }

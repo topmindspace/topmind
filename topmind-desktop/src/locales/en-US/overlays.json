@@ -128,7 +128,7 @@
     "nameMatch": "Filename",
     "group": {
       "stream": "Stream",
-      "memory": "My status",
+      "memory": "My profile",
       "inbox": "Inbox",
       "topic": "Topics",
       "outputs": "Ship it",
@@ -161,6 +161,8 @@
     "groupSkill": "Skills",
     "groupNavigate": "Commands",
     "groupCapture": "Capture",
+    "groupIngest": "Knowledge processing",
+    "groupSync": "Connectors",
     "ctxTopic": "Current topic · {{name}}",
     "ctxFile": "Current file · {{name}}",
     "ctxInbox": "In inbox · prioritize organize / capture",
@@ -195,7 +197,10 @@
       "xComposePost": "X — Compose and post tweet",
       "xOpenSettings": "X — Open settings",
       "ledgerOpen": "Bookkeeping",
-      "appsMenu": "Open apps menu"
+      "appsMenu": "Open apps menu",
+      "wereadOpenHub": "WeRead — Open hub",
+      "wereadSync": "WeRead — Sync now",
+      "wereadOpenSettings": "WeRead — Open settings"
     }
   },
   "staging": {

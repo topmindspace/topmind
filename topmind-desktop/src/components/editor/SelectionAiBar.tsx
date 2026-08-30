@@ -190,7 +190,7 @@ export function SelectionAiBar({
           <div className="min-w-0 flex-1">
             <div className="truncate text-3xs font-medium text-text-secondary">
               {busy
-                ? t("selectionAi.headerWorking", { defaultValue: "AI 处理中" })
+                ? t("selectionAi.headerWorking")
                 : pinnedOpen
                   ? t("selectionAi.headerMenu")
                   : t("selectionAi.headerSelection")}

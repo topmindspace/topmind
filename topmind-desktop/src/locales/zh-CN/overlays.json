@@ -161,6 +161,8 @@
     "groupSkill": "技能",
     "groupNavigate": "命令",
     "groupCapture": "捕获",
+    "groupIngest": "知识加工",
+    "groupSync": "连接器",
     "ctxTopic": "当前专题 · {{name}}",
     "ctxFile": "当前文件 · {{name}}",
     "ctxInbox": "当前在收件箱 · 优先整理 / 捕获",
@@ -195,7 +197,10 @@
       "xComposePost": "X — 撰写并发布推文",
       "xOpenSettings": "X — 打开设置",
       "ledgerOpen": "记账",
-      "appsMenu": "打开应用菜单"
+      "appsMenu": "打开应用菜单",
+      "wereadOpenHub": "微信读书 — 打开阅读中心",
+      "wereadSync": "微信读书 — 立即同步",
+      "wereadOpenSettings": "微信读书 — 打开设置"
     }
   },
   "staging": {

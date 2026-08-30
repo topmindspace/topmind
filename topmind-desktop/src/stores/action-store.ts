@@ -248,9 +248,7 @@ export const useActionStore = create<ActionStore>((set, get) => ({
         set({
           loading: false,
           everLoaded: true,
-          message: i18n.t('editor:ai.suggestLoadFailed', {
-            defaultValue: '建议暂不可用',
-          }),
+          message: i18n.t("editor:ai.suggestLoadFailed"),
         });
         return;
       }

@@ -314,7 +314,7 @@ export class TopmindSettingTab extends PluginSettingTab {
             }
             if (count > 0) {
               this.save();
-              new Notice(t("settings_ai_import_success").replace("{{count}}", String(count)));
+              new Notice(t("settings_ai_import_success", { count }));
               this.display();
             } else {
               new Notice(t("settings_ai_import_nothing"));
@@ -407,9 +407,9 @@ export class TopmindSettingTab extends PluginSettingTab {
               const result = await this.loadDynamicModels(activeProvider, modelSelectEl, true);
               const count = String(result.models.length);
               if (result.source === "official") {
-                new Notice(t("notice_models_official").replace("{{count}}", count));
+                new Notice(t("notice_models_official", { count }));
               } else if (result.source === "community") {
-                new Notice(t("notice_models_community").replace("{{count}}", count));
+                new Notice(t("notice_models_community", { count }));
               } else {
                 new Notice(t("notice_models_fallback"));
               }
@@ -665,7 +665,7 @@ export class TopmindSettingTab extends PluginSettingTab {
 
       const statusSetting = new Setting(containerEl)
         .setName(t("workspace_status"))
-        .setDesc(t("workspace_categories_count").replace("{{count}}", String(categoryCount)));
+        .setDesc(t("workspace_categories_count", { count: categoryCount }));
 
       const badgeContainer = statusSetting.controlEl.createDiv({ cls: "tm-status-badges" });
       badgeContainer.createSpan({ cls: "tm-status-badge tm-status-ok", text: t("workspace_ready") });

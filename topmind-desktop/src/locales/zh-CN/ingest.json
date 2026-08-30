@@ -38,6 +38,13 @@
   "retry": "重试",
   "remove": "移除",
   "openResult": "打开结果",
+  "toast": {
+    "clipboardEmpty": "剪贴板没有可导入的文件",
+    "enqueued": "已入队 {{count}} 个文件",
+    "enqueuedClipboard": "已从剪贴板入队 {{count}} 个文件",
+    "staging": "待确认 {{count}} 项",
+    "folderEnqueued": "文件夹已入队"
+  },
   "warning": "警告",
   "fallback": "回退",
   "converter": "转换器",

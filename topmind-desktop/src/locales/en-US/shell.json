@@ -207,6 +207,7 @@
     "suggestLoadingTip": "Scanning tidy-up candidates and generating suggestions · click to view",
     "suggestCount": "{{count}} suggestion(s)",
     "suggestCountTip": "{{count}} suggestion(s) to review · click to open",
+    "suggestCountAria": "{{count}} suggestions",
     "inlineAiWorking": "AI working",
     "inlineAiWorkingTip": "Polish / inline rewrite in progress · leaving may cancel this result · click does nothing",
     "inlineAiLeaveTitle": "Leave will cancel AI work",
@@ -412,7 +413,7 @@
       "labelDefault": "Actions",
       "openInbox": "Open Inbox",
       "quickCapture": "Note it…",
-      "openOutputs": "Open Outputs",
+      "openOutputs": "Open Ship it",
       "openArchive": "Open Archive",
       "openCategory": "Open category",
       "newTopic": "New topic",
@@ -430,7 +431,7 @@
       "open": "Open",
       "rename": "Rename",
       "duplicate": "Duplicate",
-      "publishToOutputs": "Publish to Outputs",
+      "publishToOutputs": "Publish to Ship it",
       "openExternal": "Open with default app",
       "delete": "Delete"
     },
@@ -527,7 +528,8 @@
     "healthStale": "{{count}} stale",
     "archiveStale": "Archive stale todos",
     "archiveStaleConfirm": "Will archive {{count}} todos older than 30 days to history snapshot. Continue?",
-    "archiveDone": "Archived {{count}} stale todos"
+    "archiveDone": "Archived {{count}} stale todos",
+    "openAria": "Todo list ({{count}})"
   },
   "appsMenu": {
     "section": "Apps",

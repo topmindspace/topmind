@@ -6,6 +6,7 @@ import type { ActionSlot, PluginContext } from "../types";
 import { api } from "../../services/api";
 import { emitLocal } from "../host";
 import { enqueueFromClipboardBatch, submitIngestBatch } from "../../lib/ingest-batch";
+import i18n from "../../locales";
 
 export function createIngestActions(ctx: PluginContext): ActionSlot[] {
   return [
@@ -34,14 +35,14 @@ export function createIngestActions(ctx: PluginContext): ActionSlot[] {
       run: async () => {
         const r = await enqueueFromClipboardBatch({ dest: { mode: "inbox" } });
         if (r.status === "empty") {
-          ctx.toast({ text: "No importable files in clipboard", kind: "error" });
+          ctx.toast({ text: i18n.t("ingest:toast.clipboardEmpty"), kind: "error" });
           return;
         }
         if (r.status === "enqueued") {
           ctx.navigate({ kind: "connector", id: "ingest" });
-          ctx.toast({ text: `Enqueued ${r.count} files from clipboard`, kind: "success" });
+          ctx.toast({ text: i18n.t("ingest:toast.enqueuedClipboard", { count: r.count }), kind: "success" });
         } else if (r.status === "staging") {
-          ctx.toast(`${r.count} items to confirm`);
+          ctx.toast(i18n.t("ingest:toast.staging", { count: r.count }));
         }
       },
     },
@@ -76,9 +77,9 @@ export function createIngestActions(ctx: PluginContext): ActionSlot[] {
         });
         if (r.status === "enqueued") {
           ctx.navigate({ kind: "connector", id: "ingest" });
-          ctx.toast({ text: `Enqueued ${r.count} files`, kind: "success" });
+          ctx.toast({ text: i18n.t("ingest:toast.enqueued", { count: r.count }), kind: "success" });
         } else if (r.status === "staging") {
-          ctx.toast(`${r.count} items to confirm`);
+          ctx.toast(i18n.t("ingest:toast.staging", { count: r.count }));
         }
       },
     },
@@ -100,9 +101,9 @@ export function createIngestActions(ctx: PluginContext): ActionSlot[] {
         });
         if (r.status === "enqueued") {
           ctx.navigate({ kind: "connector", id: "ingest" });
-          ctx.toast({ text: "Folder enqueued", kind: "success" });
+          ctx.toast({ text: i18n.t("ingest:toast.folderEnqueued"), kind: "success" });
         } else if (r.status === "staging") {
-          ctx.toast(`${r.count} items to confirm`);
+          ctx.toast(i18n.t("ingest:toast.staging", { count: r.count }));
         }
         emitLocal("workspace:file-changed");
       },

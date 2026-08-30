@@ -149,7 +149,7 @@ function StreamFeedRowView({
                 </div>
               ) : null}
               <div className="mt-1.5 flex items-center gap-1 text-3xs font-medium text-accent-color">
-                {t("workspace:streamDetail.openArticle", { defaultValue: "打开笔记" })}
+                {t("workspace:streamDetail.openArticle")}
                 <ChevronRight size={ICON.nano} aria-hidden />
               </div>
             </div>
@@ -209,9 +209,7 @@ function StreamFeedRowView({
                   <MessageSquarePlus size={ICON.nano} />
                 </button>
               </Tooltip>
-              <Tooltip content={t("workspace:streamDetail.openInEditorTip", {
-                defaultValue: "在周期本中打开此段",
-              })}>
+              <Tooltip content={t("workspace:streamDetail.openInEditorTip")}>
                 <button
                   type="button"
                   onClick={() => onOpenPeriod(entry.heading || undefined)}
@@ -242,7 +240,7 @@ function StreamFeedRowView({
               {!showFull && appends.length > 1 ? (
                 <div className="text-3xs text-text-quaternary">
                   +{appends.length - 1}{" "}
-                  {t("workspace:streamDetail.moreAppends", { defaultValue: "条增补" })}
+                  {t("workspace:streamDetail.moreAppends")}
                 </div>
               ) : null}
             </div>
@@ -754,9 +752,7 @@ export function StreamDetailView() {
     useInlineAiStore.getState().begin({
       id: sessionId,
       kind: "polish",
-      label: t("workspace:streamDetail.composeAiPolishing", {
-        defaultValue: "正在润色…",
-      }),
+      label: t("workspace:streamDetail.composeAiPolishing"),
       // Bound to stream surface — leave stream → confirm BEFORE navigation
       anchor: { type: "stream" },
       blocksNavigation: true,

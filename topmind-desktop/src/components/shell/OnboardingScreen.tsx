@@ -134,10 +134,7 @@ export function OnboardingScreen({
     if (launchReason === "invalid-workspace") return t("shell:onboarding.statusInvalid");
     if (launchReason === "no-workspace") return t("shell:onboarding.statusNoWorkspace");
     if (launchReason === "contract-unrepairable") {
-      return t("shell:onboarding.statusContractUnrepairable", {
-        defaultValue:
-          "工作区 topmind.yaml 损坏且无法自动修复。可备份后重建契约（不删除笔记内容）。",
-      });
+      return t("shell:onboarding.statusContractUnrepairable");
     }
     return null;
   }, [launchReason, t]);
@@ -150,7 +147,7 @@ export function OnboardingScreen({
       if (!res.ok) {
         setError(
           (res.errors && res.errors[0]) ||
-            t("shell:onboarding.reseedFailed", { defaultValue: "重建契约失败" }),
+            t("shell:onboarding.reseedFailed"),
         );
         setBusy(null);
         return;
@@ -170,10 +167,7 @@ export function OnboardingScreen({
       if (res.ok === false && res.launchStatus?.reason === "contract-unrepairable") {
         setError(
           res.launchStatus.errorMessage ||
-            t("shell:onboarding.statusContractUnrepairable", {
-              defaultValue:
-                "工作区 topmind.yaml 损坏且无法自动修复。可备份后重建契约（不删除笔记内容）。",
-            }),
+            t("shell:onboarding.statusContractUnrepairable"),
         );
         setBusy(null);
         return;
@@ -330,14 +324,10 @@ export function OnboardingScreen({
                   ) : (
                     <AlertTriangle size={ICON.xs} aria-hidden />
                   )}
-                  {t("shell:onboarding.reseedContract", {
-                    defaultValue: "备份并重建 topmind.yaml",
-                  })}
+                  {t("shell:onboarding.reseedContract")}
                 </Button>
                 <p className="max-w-sm text-center text-3xs text-text-quaternary">
-                  {t("shell:onboarding.reseedContractHint", {
-                    defaultValue: "坏文件会备份到归档/contract 或 .topmind/contract-backups；笔记目录不会删除。",
-                  })}
+                  {t("shell:onboarding.reseedContractHint")}
                 </p>
               </div>
             ) : null}

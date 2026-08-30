@@ -102,6 +102,16 @@ describe("i18n locale key alignment", () => {
     assert.doesNotMatch(zhContent, /chat_thinking:\s*"[^"]*\.\.\."/);
     assert.doesNotMatch(enContent, /chat_thinking:\s*"[^"]*\.\.\."/);
   });
+
+  test("t() interpolates {{var}} placeholders", () => {
+    const i18n = fs.readFileSync(path.join(srcDir, "i18n", "index.ts"), "utf-8");
+    assert.match(i18n, /vars\?:\s*Record<string,\s*string\s*\|\s*number>/);
+    assert.match(i18n, /replaceAll\(`\{\{\$\{k\}\}\}`/);
+    const zh = fs.readFileSync(path.join(srcDir, "i18n", "locales", "zh-CN.ts"), "utf-8");
+    const en = fs.readFileSync(path.join(srcDir, "i18n", "locales", "en-US.ts"), "utf-8");
+    assert.match(zh, /stream_entry_count:\s*"\{\{count\}\} 条"/);
+    assert.match(en, /stream_entry_count:\s*"\{\{count\}\} entries"/);
+  });
 });
 
 // ── Toolbar / labeled-button chrome (shipped CSS + views) ───────────────────
