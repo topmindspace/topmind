@@ -24,7 +24,12 @@ export function LoopReport() {
   const others = issues.filter((i) => i.severity !== "error" && i.severity !== "warning" && i.severity !== "warn");
 
   return (
-    <div className="v4-overlay-sheet flex max-h-[min(80vh,640px)] w-[520px] flex-col overflow-hidden">
+    <div
+      className="v4-overlay-sheet flex max-h-[min(80vh,640px)] w-[520px] flex-col overflow-hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="loop-report-title"
+    >
       <div className="flex items-start justify-between gap-3 border-b border-border-subtle px-5 py-4">
         <div className="flex min-w-0 items-center gap-2.5">
           <span
@@ -36,7 +41,7 @@ export function LoopReport() {
             {ok ? <CheckCircle2 size={ICON.md} /> : <Activity size={ICON.md} />}
           </span>
           <div className="min-w-0">
-            <h2 className="text-sm font-semibold tracking-tight text-text-primary">
+            <h2 id="loop-report-title" className="text-sm font-semibold tracking-tight text-text-primary">
               {t("overlays:loop.title")}
             </h2>
             <p className="mt-0.5 text-3xs text-text-tertiary">

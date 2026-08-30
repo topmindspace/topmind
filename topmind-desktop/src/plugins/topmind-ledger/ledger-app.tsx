@@ -235,14 +235,19 @@ export function LedgerApp() {
   ];
 
   return (
-    <div className="v4-overlay-sheet flex max-h-[min(88vh,800px)] w-full flex-col overflow-hidden">
+    <div
+      className="v4-overlay-sheet flex max-h-[min(88vh,800px)] w-full flex-col overflow-hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="ledger-app-title"
+    >
       <div className="flex items-center justify-between gap-3 border-b border-border-subtle px-5 py-3">
         <div className="flex min-w-0 items-center gap-2">
           <span className="v4-icon-chip flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] text-accent-color">
             <Wallet size={ICON.md} />
           </span>
           <div className="min-w-0">
-            <h2 className="text-sm font-semibold tracking-tight text-text-primary">{t("title")}</h2>
+            <h2 id="ledger-app-title" className="text-sm font-semibold tracking-tight text-text-primary">{t("title")}</h2>
             <BookPathLine relPath={current?.relPath} t={t} />
           </div>
         </div>

@@ -29,7 +29,12 @@ export function PluginAppSurface() {
   }
 
   return (
-    <div className="v4-overlay-sheet flex max-h-[min(88vh,640px)] w-full flex-col overflow-hidden">
+    <div
+      className="v4-overlay-sheet flex max-h-[min(88vh,640px)] w-full flex-col overflow-hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-label={pluginId || t("pluginApp.title")}
+    >
       <div className="flex items-center justify-between gap-3 border-b border-border-subtle px-5 py-3">
         <div className="flex min-w-0 items-center gap-2">
           <span className="v4-icon-chip flex h-7 w-7 items-center justify-center rounded-[var(--radius-md)] text-text-tertiary">

@@ -7,6 +7,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "../../lib/cn";
 import { acquireMenuLayer } from "../../lib/menu-layer";
+import { onOverlayLayerChange } from "../../lib/overlay-layer";
 import { shouldCloseOnScroll } from "../../lib/scroll-dismiss";
 
 interface ContextMenuProps {
@@ -94,11 +95,15 @@ export function ContextMenu({ open, x, y, onClose, children, minWidth = 200 }: C
       onClose();
     };
     const onResize = () => onClose();
+    const unsubOverlay = onOverlayLayerChange((overlayActive) => {
+      if (overlayActive) onClose();
+    });
     document.addEventListener("mousedown", onDoc);
     window.addEventListener("scroll", onScroll, true);
     window.addEventListener("resize", onResize);
     return () => {
       release();
+      unsubOverlay();
       document.removeEventListener("mousedown", onDoc);
       window.removeEventListener("scroll", onScroll, true);
       window.removeEventListener("resize", onResize);

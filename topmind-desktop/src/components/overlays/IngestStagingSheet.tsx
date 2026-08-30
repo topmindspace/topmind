@@ -4,6 +4,7 @@
  */
 import { AlertTriangle, FileInput, Loader2, X } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "../ui/Button";
 import { cn } from "../../lib/cn";
@@ -12,6 +13,7 @@ import {
   useIngestStagingStore,
 } from "../../stores/ingest-staging-store";
 import { confirmIngestStaging } from "../../lib/ingest-batch";
+import { acquireOverlayLayer } from "../../lib/overlay-layer";
 import type { IngestBatchItem } from "../../types";
 
 function formatSize(n?: number): string {
@@ -61,6 +63,11 @@ export function IngestStagingSheet() {
     requestAnimationFrame(() => panelRef.current?.focus());
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    return acquireOverlayLayer();
+  }, [open]);
+
   if (!open) return null;
 
   const selectedCount = items.filter((it) => it.selected !== false).length;
@@ -89,9 +96,9 @@ export function IngestStagingSheet() {
     });
   };
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-modal flex items-end justify-center bg-scrim p-4 sm:items-center animate-fade-in"
+      className="v4-no-drag isolate fixed inset-0 z-modal flex items-end justify-center bg-scrim p-4 sm:items-center animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-labelledby="ingest-staging-title"
@@ -175,7 +182,8 @@ export function IngestStagingSheet() {
           </Button>
         </footer>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

@@ -17,6 +17,9 @@ test("Dialog has focus trap + aria-labelledby", () => {
   assert.match(src, /aria-modal/);
   assert.match(src, /Tab/);
   assert.match(src, /previousFocusRef|previousFocus/);
+  assert.match(src, /createPortal/);
+  assert.match(src, /z-dialog/);
+  assert.match(src, /acquireOverlayLayer/);
 });
 
 test("CommandPalette is combobox + listbox with activedescendant", () => {
@@ -48,6 +51,29 @@ test("OverlayHost restores focus and locks body scroll", () => {
   assert.match(src, /body\.style\.overflow/);
   assert.match(src, /prevFocusRef|previousFocus/);
   assert.match(src, /role="presentation"/);
+  assert.match(src, /createPortal/);
+  assert.match(src, /z-modal/);
+  assert.match(src, /v4-no-drag/);
+  assert.match(src, /data-overlay-root/);
+  assert.match(src, /acquireOverlayLayer/);
+  assert.doesNotMatch(src, /z-overlay/);
+  const layer = read("src/lib/overlay-layer.ts");
+  assert.match(layer, /inert/);
+  assert.match(layer, /workbench-root/);
+});
+
+test("SettingsLayout is a labelled modal dialog", () => {
+  const src = read("src/components/overlays/SettingsLayout.tsx");
+  assert.match(src, /role="dialog"/);
+  assert.match(src, /aria-modal="true"/);
+  assert.match(src, /aria-labelledby=\{titleId\}/);
+  assert.match(src, /aria-label=\{t\("common:action.close"\)\}/);
+});
+
+test("QuickCapture declares aria-modal", () => {
+  const src = read("src/components/overlays/QuickCapture.tsx");
+  assert.match(src, /role="dialog"/);
+  assert.match(src, /aria-modal="true"/);
 });
 
 test("FilterChip exposes aria-pressed", () => {
@@ -75,7 +101,7 @@ test("quick-capture-helpers exports pure title cleaners", () => {
 
 test("Settings Field description uses UI floor text-3xs", () => {
   const src = read("src/components/settings/fields.tsx");
-  assert.match(src, /mt-1 text-3xs leading-snug text-text-quaternary/);
+  assert.match(src, /mt-1 text-3xs leading-snug text-text-tertiary/);
   assert.match(src, /v4-switch/);
   assert.match(src, /aria-label=\{label\}/);
 });

@@ -167,7 +167,12 @@ export function SettingsDialog() {
 
   if (!settings) {
     return (
-      <div className="v4-overlay-sheet flex h-[min(480px,70vh)] w-[min(720px,90vw)] items-center justify-center gap-2.5 text-text-tertiary">
+      <div
+        className="v4-overlay-sheet flex h-[min(480px,70vh)] w-[min(720px,90vw)] items-center justify-center gap-2.5 text-text-tertiary"
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("settings:title")}
+      >
         <Loader2 size={ICON.md} className="animate-spin text-accent-color/70" />
         <span className="text-sm">{t("common:status.loading")}</span>
       </div>

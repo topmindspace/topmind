@@ -1456,6 +1456,14 @@ html[data-menu-open] [data-radix-tooltip-content] {
   opacity: 0 !important;
 }
 
+/* Canvas-originated tips portal to <body> at z-toast (100) > z-modal (80).
+   Overlay-tree tips portal into the sheet (OverlayPortalContext) and stay. */
+html[data-overlay-open] body > [data-radix-popper-content-wrapper]:has([data-slot="tooltip-content"]),
+html[data-overlay-open] body > [data-radix-popper-content-wrapper]:has([data-radix-tooltip-content]) {
+  display: none !important;
+  pointer-events: none !important;
+}
+
 /* Overlay palette (command / search) — elevated ladder, quiet chrome */
 .v4-palette {
   display: flex;
@@ -1528,6 +1536,11 @@ html[data-menu-open] [data-radix-tooltip-content] {
   scrollbar-width: auto;
   scrollbar-color: color-mix(in srgb, var(--color-text-tertiary) 44%, transparent)
     color-mix(in srgb, var(--color-surface-muted) 40%, transparent);
+  /* Contain list sticky day headers (z-local) so they cannot composite
+     above body-portaled overlays. isolation does not trap position:fixed. */
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
 }
 .v4-main-canvas::-webkit-scrollbar { width: 12px; height: 12px; }
 .v4-main-canvas::-webkit-scrollbar-track {
@@ -1991,10 +2004,21 @@ html.dark .v4-overlay-sheet {
   top: 0;
   z-index: 1;
   padding: 0.55rem 0.35rem 0.35rem;
-  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
-  backdrop-filter: blur(8px);
+  /* Opaque canvas fill — never backdrop-filter on sticky chrome. */
+  background: var(--color-background);
   border-bottom: 1px solid var(--color-border-subtle-dim);
   border-radius: 0;
+}
+/* Electron composites sticky+z-index above later position:fixed scrims
+   (settings, ConfirmDialog). Card layout is static so it never leaks.
+   Flatten list day headers while any modal layer is held. */
+html[data-overlay-open] [data-stream-feed] [data-stream-day-toggle] {
+  position: static;
+  z-index: auto;
+}
+html[data-overlay-open] .v4-main-canvas .sticky {
+  position: static;
+  z-index: auto;
 }
 [data-stream-feed][data-layout="list"] [data-stream-day-body] {
   display: flex;
@@ -2015,6 +2039,8 @@ html.dark .v4-overlay-sheet {
   overflow: visible;
 }
 [data-stream-feed][data-layout="card"] [data-stream-day-toggle] {
+  position: static;
+  z-index: auto;
   padding: 0.45rem 0.15rem;
   background: transparent;
   border-radius: 0;

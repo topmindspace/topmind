@@ -276,6 +276,9 @@
   --z-menu: 110;
   /* Popovers that must paint above open menus (e.g. todo popover over dropdowns) */
   --z-popover-overlay: 120;
+  /* Full-viewport Confirm/Prompt/Error — above floating popovers; OverlayHost
+     stays at z-modal so settings-owned menus (z-menu) still paint on top. */
+  --z-dialog: 130;
 
   /* ── Animation — snappy workbench (avoid long enter delays) ── */
   --duration-instant: 60ms;

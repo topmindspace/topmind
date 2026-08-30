@@ -78,6 +78,7 @@ export function SelectionAiBar({
     onDragStart,
   } = useSelectionAi({ editor, readOnly, notePath, frontmatter });
   const openOverlay = useViewStore((s) => s.openOverlay);
+  const overlay = useViewStore((s) => s.overlay);
 
   // ── Dynamic panel height measurement for smart repositioning ──
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -103,6 +104,8 @@ export function SelectionAiBar({
       window.setTimeout(() => setCopied(false), 1800);
     });
   }, [preview]);
+
+  if (overlay !== "none") return null;
 
   if (!visible || !target) {
     // Floating status chip when we only have a toast hint without target

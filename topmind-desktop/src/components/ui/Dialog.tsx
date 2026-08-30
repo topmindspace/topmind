@@ -3,9 +3,11 @@
  * Design System 2.0: Escape / scrim dismiss; restore focus on close.
  */
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "./Button";
 import { cn } from "../../lib/cn";
+import { acquireOverlayLayer } from "../../lib/overlay-layer";
 
 interface BaseDialogProps {
   open: boolean;
@@ -50,6 +52,7 @@ function DialogBackdrop({
   useEffect(() => {
     previousFocusRef.current =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const releaseLayer = acquireOverlayLayer();
 
     const panel = panelRef.current;
     if (panel) {
@@ -89,6 +92,7 @@ function DialogBackdrop({
     window.addEventListener("keydown", onKeyDown, true);
     return () => {
       window.removeEventListener("keydown", onKeyDown, true);
+      releaseLayer();
       const prev = previousFocusRef.current;
       if (prev && typeof prev.focus === "function" && document.contains(prev)) {
         prev.focus();
@@ -96,10 +100,10 @@ function DialogBackdrop({
     };
   }, [onClose, focusSelector]);
 
-  return (
+  return createPortal(
     <div
       onClick={onClose}
-      className="fixed inset-0 z-modal flex items-center justify-center bg-scrim p-4 animate-fade-in"
+      className="v4-no-drag isolate fixed inset-0 z-dialog flex items-center justify-center bg-scrim p-4 animate-fade-in"
     >
       <div
         ref={panelRef}
@@ -113,7 +117,8 @@ function DialogBackdrop({
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

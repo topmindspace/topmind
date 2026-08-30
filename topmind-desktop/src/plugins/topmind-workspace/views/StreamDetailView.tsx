@@ -1570,7 +1570,7 @@ export function StreamDetailView() {
                 <button
                   type="button"
                   onClick={() => toggleDayCollapsed(group.dayKey)}
-                  className="sticky top-0 z-local flex w-full items-center gap-1.5 text-left hover:bg-surface-muted/35 v4-focus-ring"
+                  className="flex w-full items-center gap-1.5 text-left hover:bg-surface-muted/35 v4-focus-ring"
                   aria-expanded={!dayCollapsed}
                   data-stream-day-toggle
                 >

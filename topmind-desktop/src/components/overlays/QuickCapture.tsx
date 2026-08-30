@@ -111,6 +111,7 @@ export function QuickCapture({ variant, onDone }: QuickCaptureProps = {}) {
       )}
       style={isFloat ? { minHeight: "100%" } : undefined}
       role="dialog"
+      aria-modal="true"
       aria-label={isMemory ? t("overlays:capture.ariaMemory") : t("overlays:capture.ariaCapture")}
       {...containerProps}
     >

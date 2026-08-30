@@ -224,6 +224,11 @@ export function Shell({ settings }: ShellProps) {
     return () => window.removeEventListener("contextmenu", onCtx);
   }, []);
 
+  const overlay = useViewStore((s) => s.overlay);
+  useEffect(() => {
+    if (overlay !== "none") setTaskPanelOpen(false);
+  }, [overlay]);
+
   const showSidebar = !focusMode && !sidebarCollapsed;
   const showAiPanel = !focusMode && aiPanelOpen;
   const gridRows = focusMode
@@ -231,7 +236,8 @@ export function Shell({ settings }: ShellProps) {
     : "grid-rows-[var(--density-chrome-y,36px)_minmax(0,1fr)_var(--density-status-y,24px)]";
 
   const chrome = (
-    <div className={cn("grid h-screen bg-chrome text-text-primary", gridRows)}>
+    <div className="relative h-screen overflow-hidden bg-chrome text-text-primary">
+      <div id="workbench-root" className={cn("grid h-full", gridRows)}>
       <TitleBar
         workspaceRoot={settings.workspaceRoot}
         taskPanelOpen={taskPanelOpen}
@@ -268,6 +274,7 @@ export function Shell({ settings }: ShellProps) {
           onToggleTaskPanel={() => setTaskPanelOpen((prev) => !prev)}
         />
       )}
+      </div>
       <OverlayHost />
       <IngestStagingSheet />
       <TaskPanel

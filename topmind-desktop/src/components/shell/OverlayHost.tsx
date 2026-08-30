@@ -3,13 +3,19 @@
  * Shortcut definitions: src/lib/shortcuts.ts (single source of truth).
  * Overlay bodies are code-split — opened only when the user invokes them.
  */
-import { lazy, useCallback, useEffect, useRef } from "react";
+import { lazy, useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useViewStore } from "../../stores/view-store";
 import { onLocal, emitLocal } from "../../plugins/host";
 import { registry } from "../../plugins/registry";
 import { matchWorkbenchShortcut } from "../../lib/shortcuts";
 import { runOverlayCloseGuard } from "../../lib/overlay-close-guard";
+import {
+  OverlayPortalContext,
+  acquireOverlayLayer,
+  setOverlayPortalRoot,
+} from "../../lib/overlay-layer";
 import { getFocusable } from "../ui/Dialog";
 import { LazyBoundary } from "../ui/LazyBoundary";
 import type { OverlayKind, Selection } from "../../types";
@@ -58,7 +64,7 @@ export function OverlayHost() {
   const fileTabs = useViewStore((s) => s.fileTabs);
   const selection = useViewStore((s) => s.selection);
   const prevFocusRef = useRef<HTMLElement | null>(null);
-  const panelWrapRef = useRef<HTMLDivElement>(null);
+  const [portalEl, setPortalEl] = useState<HTMLElement | null>(null);
 
   // Close through the active overlay's guard (settings flush) — closeOverlay
   // alone would unmount before the debounced batch is persisted.
@@ -83,6 +89,18 @@ export function OverlayHost() {
     };
   }, [overlay]);
 
+  // Modal layer: stamps html[data-overlay-open] (flattens list sticky day
+  // headers) + inerts #workbench-root. Do not depend on portalEl.
+  useEffect(() => {
+    if (overlay === "none") return;
+    return acquireOverlayLayer();
+  }, [overlay]);
+
+  useEffect(() => {
+    if (overlay === "none" || !portalEl) return;
+    setOverlayPortalRoot(portalEl);
+  }, [overlay, portalEl]);
+
   // Idle-prefetch heavy overlays so first open isn't a cold chunk parse
   useEffect(() => {
     const warm = () => {
@@ -103,13 +121,13 @@ export function OverlayHost() {
   // Settings), bring focus inside the dialog so Tab starts in the right place.
   useEffect(() => {
     if (overlay === "none") return;
-    const wrap = panelWrapRef.current;
+    const wrap = portalEl;
     if (!wrap) return;
     const active = document.activeElement;
     if (active instanceof HTMLElement && wrap.contains(active)) return;
     const focusables = getFocusable(wrap);
     requestAnimationFrame(() => (focusables[0] ?? wrap).focus());
-  }, [overlay]);
+  }, [overlay, portalEl]);
 
   // Tab trap (bubble phase): cycle focus inside the overlay panel. Yields to
   // dialogs/portaled surfaces — anything that already default-prevented the
@@ -118,7 +136,7 @@ export function OverlayHost() {
     if (overlay === "none") return;
     const onTrap = (e: KeyboardEvent) => {
       if (e.key !== "Tab" || e.defaultPrevented) return;
-      const wrap = panelWrapRef.current;
+      const wrap = portalEl;
       if (!wrap) return;
       const active = document.activeElement;
       if (!(active instanceof Element)) return;
@@ -145,7 +163,7 @@ export function OverlayHost() {
     };
     window.addEventListener("keydown", onTrap);
     return () => window.removeEventListener("keydown", onTrap);
-  }, [overlay]);
+  }, [overlay, portalEl]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -298,43 +316,50 @@ export function OverlayHost() {
   const isPalette = overlay === "command-palette" || overlay === "search";
   const isMiniApp = overlay === "plugin-app";
 
-  return (
-    <div
-      onClick={() => void requestCloseOverlay()}
-      onContextMenu={(e) => {
-        // Native edit menu stays available in text fields (paste/look-up);
-        // suppress it only over non-editable overlay chrome.
-        const el = e.target as HTMLElement | null;
-        if (el?.closest?.("input, textarea, select, [contenteditable='true'], .ProseMirror")) {
-          return;
-        }
-        e.preventDefault();
-      }}
-      role="presentation"
-      className={cn(
-        // Solid scrim — no full-viewport blur (major open jank)
-        "fixed inset-0 z-overlay flex justify-center bg-scrim animate-fade-in",
-        isPalette ? "items-start pt-[9vh] sm:pt-[11vh]" : "items-center",
-        isMiniApp && "p-3 sm:p-6",
-      )}
-    >
+  return createPortal(
+    <OverlayPortalContext.Provider value={portalEl}>
       <div
-        ref={panelWrapRef}
-        onClick={(e) => e.stopPropagation()}
-        tabIndex={-1}
+        onClick={() => void requestCloseOverlay()}
+        onContextMenu={(e) => {
+          // Native edit menu stays available in text fields (paste/look-up);
+          // suppress it only over non-editable overlay chrome.
+          const el = e.target as HTMLElement | null;
+          if (el?.closest?.("input, textarea, select, [contenteditable='true'], .ProseMirror")) {
+            return;
+          }
+          e.preventDefault();
+        }}
+        role="presentation"
+        data-overlay-root
+        data-overlay-kind={overlay}
         className={cn(
-          "v4-panel-contain max-h-[90vh] outline-none",
-          isPalette ? "max-w-[min(96vw,620px)]" : isMiniApp ? "max-w-[min(96vw,880px)] w-full" : "max-w-[min(96vw,1040px)]",
+          // Modal layer on <body> — isolate so sticky/backdrop canvas chrome
+          // cannot composite above the scrim. v4-no-drag blocks Electron
+          // titlebar drag regions punching through the sheet.
+          "v4-no-drag isolate fixed inset-0 z-modal flex justify-center bg-scrim animate-fade-in",
+          isPalette ? "items-start pt-[9vh] sm:pt-[11vh]" : "items-center",
+          isMiniApp && "p-3 sm:p-6",
         )}
       >
-        <LazyBoundary
-          className="min-h-[6rem] min-w-[14rem] rounded-[var(--radius-xl)] bg-surface p-4"
-          label={t("overlayHost.loading")}
+        <div
+          ref={setPortalEl}
+          onClick={(e) => e.stopPropagation()}
+          tabIndex={-1}
+          className={cn(
+            "v4-panel-contain max-h-[90vh] outline-none",
+            isPalette ? "max-w-[min(96vw,620px)]" : isMiniApp ? "max-w-[min(96vw,880px)] w-full" : "max-w-[min(96vw,1040px)]",
+          )}
         >
-          <Overlay kind={overlay} />
-        </LazyBoundary>
+          <LazyBoundary
+            className="min-h-[6rem] min-w-[14rem] rounded-[var(--radius-xl)] bg-surface p-4"
+            label={t("overlayHost.loading")}
+          >
+            <Overlay kind={overlay} />
+          </LazyBoundary>
+        </div>
       </div>
-    </div>
+    </OverlayPortalContext.Provider>,
+    document.body,
   );
 }
 

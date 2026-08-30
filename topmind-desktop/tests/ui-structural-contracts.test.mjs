@@ -86,6 +86,7 @@ test("z-index is semantic tokens; no Tailwind numeric z-10 or dead glow tokens",
   assert.match(tokens, /--z-local:\s*1/);
   assert.match(tokens, /--z-menu:\s*110/);
   assert.match(tokens, /--z-popover-overlay:\s*120/);
+  assert.match(tokens, /--z-dialog:\s*130/);
   assert.doesNotMatch(tokens, /--color-status-\w+-glow/);
   for (const rel of [
     "src/components/ui/menu-select.tsx",
@@ -164,6 +165,42 @@ test("StatusBar: single-path named chip (tasks > todo > suggest)", () => {
 });
 
 // ── Settings / overlays / sidebar ──────────────────────────────────────
+
+test("OverlayHost is a body-portaled modal; stream sticky chrome has no blur", () => {
+  const host = read("src/components/shell/OverlayHost.tsx");
+  assert.match(host, /createPortal/);
+  assert.match(host, /z-modal/);
+  assert.match(host, /acquireOverlayLayer/);
+  const shell = read("src/components/shell/Shell.tsx");
+  assert.match(shell, /id="workbench-root"/);
+  const gridOpen = shell.indexOf('id="workbench-root"');
+  const overlayIdx = shell.indexOf("<OverlayHost");
+  assert.ok(gridOpen >= 0 && overlayIdx > gridOpen);
+  const workbench = shell.slice(gridOpen, overlayIdx);
+  assert.match(workbench, /TitleBar/);
+  assert.match(workbench, /FileDropZone/);
+  assert.doesNotMatch(workbench, /<OverlayHost/);
+  const css = read("src/styles/v4.css");
+  const marker = "[data-stream-feed][data-layout=\"list\"] [data-stream-day-toggle]";
+  const start = css.indexOf(marker);
+  assert.ok(start >= 0, "list day-toggle rule missing");
+  const block = css.slice(start, css.indexOf("}", start) + 1);
+  assert.doesNotMatch(block, /backdrop-filter\s*:/);
+  assert.match(block, /--color-background/);
+  assert.match(css, /html\[data-overlay-open\] \[data-stream-feed\] \[data-stream-day-toggle\]/);
+  assert.match(css, /isolation:\s*isolate/);
+  const stream = read("src/plugins/topmind-workspace/views/StreamDetailView.tsx");
+  assert.doesNotMatch(stream, /sticky top-0/);
+  const layer = read("src/lib/overlay-layer.ts");
+  assert.match(layer, /OVERLAY_OPEN_ATTR/);
+  assert.match(layer, /OverlayPortalContext/);
+  assert.match(layer, /acquireOverlayLayer/);
+  const dialog = read("src/components/ui/Dialog.tsx");
+  assert.match(dialog, /createPortal/);
+  assert.match(dialog, /z-dialog/);
+  const tokens = read("src/styles/tokens.css");
+  assert.match(tokens, /--z-dialog:\s*130/);
+});
 
 test("Settings + overlays use v4 elevated shell; sidebar carries no plugin section", () => {
   const settings = read("src/components/overlays/SettingsDialog.tsx") + read("src/components/overlays/SettingsLayout.tsx");
@@ -314,6 +351,9 @@ test("DESIGN.md documents core UI patterns", () => {
   assert.match(design, /feed-column|--feed-column-max|信息流正文上方/);
   assert.doesNotMatch(design, /页头切换/);
   assert.match(design, /runActivityOps|memory_organize/);
+  assert.match(design, /workbench-root|inert/);
+  assert.match(design, /backdrop-filter/);
+  assert.match(design, /document\.body/);
 });
 
 test("ReasoningBlock defaults collapsed; stream status labels exist", () => {

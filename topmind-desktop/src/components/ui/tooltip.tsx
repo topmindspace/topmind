@@ -3,6 +3,8 @@
  *
  * Rules:
  * - Never paint above open menus (z-toast < z-menu; html[data-menu-open] hides tips)
+ * - Overlay-tree tips portal into OverlayHost; leftover body tips hide on
+ *   html[data-overlay-open] so they cannot cover settings.
  * - Prefer aria-label on controls that open menus; long tips belong in Field description
  * - Use disabled={menuOpen} when wrapping MenuSelect / Dropdown triggers
  */
@@ -10,6 +12,7 @@ import * as React from "react";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { cn } from "../../lib/cn";
 import { isMenuLayerActive } from "../../lib/menu-layer";
+import { useOverlayPortalRoot } from "../../lib/overlay-layer";
 
 export function TooltipProvider({
   children,
@@ -45,12 +48,13 @@ export function Tooltip({
   disabled,
   className,
 }: TooltipProps) {
+  const overlayRoot = useOverlayPortalRoot();
   if (disabled || content == null || content === "") return children;
 
   return (
     <TooltipPrimitive.Root>
       <TooltipPrimitive.Trigger asChild>{children}</TooltipPrimitive.Trigger>
-      <TooltipPrimitive.Portal>
+      <TooltipPrimitive.Portal container={overlayRoot ?? undefined}>
         <TooltipPrimitive.Content
           side={side}
           align={align}

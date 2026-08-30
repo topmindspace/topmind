@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Loader2, X } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
@@ -70,6 +70,7 @@ export function SettingsLayout({
   children,
 }: SettingsLayoutProps) {
   const { t } = useTranslation(["settings", "common"]);
+  const titleId = useId();
   /** Filter left nav — lowers scan cost across 环境/智能体/扩展/管理与更新 */
   const [navQuery, setNavQuery] = useState("");
 
@@ -115,6 +116,9 @@ export function SettingsLayout({
     <div
       className="v4-overlay-sheet v4-settings-dialog flex h-[min(860px,94vh)] w-[min(1040px,96vw)] overflow-hidden"
       data-settings-dialog
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
     >
       <Tabs value={activeTab} onValueChange={onTabChange} className="flex w-full min-h-0">
         <TabsList
@@ -163,7 +167,7 @@ export function SettingsLayout({
           >
             <div className="min-w-0">
               <div className="flex items-center gap-1">
-                <div className="text-sm font-semibold tracking-tight text-text-primary">
+                <div id={titleId} className="text-sm font-semibold tracking-tight text-text-primary">
                   {activeMeta?.label || t("settings:title")}
                 </div>
                 {pageHelp ? <HelpTip content={pageHelp} /> : null}
@@ -184,6 +188,7 @@ export function SettingsLayout({
                   size="sm"
                   className="h-7 w-7 p-0"
                   onClick={onClose}
+                  aria-label={t("common:action.close")}
                 >
                   <X size={ICON.xs} />
                 </Button>

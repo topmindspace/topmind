@@ -340,7 +340,7 @@ function BatchToolbar({
 
   return (
     <div
-      className="sticky top-0 z-local mb-2.5 flex flex-wrap items-center gap-2 rounded-[var(--radius-lg)] border border-accent-border-subtle/80 bg-surface/95 px-2.5 py-2 shadow-[inset_0_1px_0_0_var(--color-accent-border-subtle),var(--shadow-xs)] backdrop-blur-sm"
+      className="sticky top-0 z-local mb-2.5 flex flex-wrap items-center gap-2 rounded-[var(--radius-lg)] border border-accent-border-subtle/80 bg-surface px-2.5 py-2 shadow-[inset_0_1px_0_0_var(--color-accent-border-subtle),var(--shadow-xs)]"
       role="toolbar"
       aria-label={t("workspace:inbox.selectedCount", { count })}
     >

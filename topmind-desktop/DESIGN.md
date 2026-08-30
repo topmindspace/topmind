@@ -140,13 +140,13 @@
 | **安静 chrome** | 标题栏 / 状态栏 solid `app-chrome` + `border-subtle-dim`；侧栏与 AI 轨同色；**禁止**工作区主壳营销渐变；渐变仅 logo / boot 弱光晕 / Landing 品牌时刻；**标题栏扁平**（纯色 + 单 hairline，无渐变/高光叠层）；**品牌字标不进标题栏**（窗口/任务栏已标识，仅留 logo chip） |
 | **Surface 阶梯** | light：`app-chrome`/`sidebar` `#f0f0f0` → `background` `#f7f7f7` → `surface` `#fdfdfd` → **`surface-elevated` `#ffffff`**（禁止同色塌陷；elevated 弹层必须叠 `--shadow-float` / hairline）；dark（ZCode 阶梯）：`sidebar` `#0e0e0e` → `chrome` `#161616` → `background` `#171717` → `surface` `#1d1d1d` → **`surface-elevated` `#262626`**。侧栏是**最深平面**（`.v4-sidebar-rail` 用 `--color-sidebar`）。Feed 卡用 **`--shadow-card`**（弱于 overlay） |
 | **低视觉负担** | 选中/hover 用浅 brand wash（`accent-bg-subtle` / `surface-selected`）；每区一个实心 CTA；边框优先 `border-subtle-dim`（light `rgba(23,23,23,0.06)` · dark `rgba(255,255,255,0.06)`；`border-subtle` = fg @ 10%，ZCode 同源）；避免多重 box-shadow + 边框叠厚；**侧栏树隐藏 `.md` 后缀**（`stripMdExt`）；**PARA 编号弱化**（`renderCategoryLabel`：`00-` 用 `text-quaternary/70`）；**卡片优先 bg + shadow 而非 border**（`--shadow-card` token）；**今日卡片 accent ring**（`ring-1 ring-inset ring-accent-color/15`） |
-| **弹层与对比度** | `.v4-overlay-sheet` / Dialog 用 `surface-elevated` + `border-subtle`；**浮动弹窗**（`TodoPopover` / `SuggestPopover` / `TaskPanel`）采用 **毛玻璃质感**（`backdrop-blur-[var(--blur-glass)] backdrop-saturate-150` + `bg-surface-elevated/90` + `border-border-subtle` + `shadow-[var(--shadow-elevated-hairline)]`）；**交互一致**：点击外部 + 外部滚动 + Esc 关闭（内部列表滚动不关）；文本对比度达 WCAG AA 4.5:1+ (dark Primary `#e5e5e5` · Secondary `#c9c9c9` · Tertiary `#a1a1a1` · Quaternary `#8c8c8c`) |
+| **弹层与对比度** | `.v4-overlay-sheet` / Dialog 用 `surface-elevated` + `border-subtle`；**工作台 OverlayHost**（设置 / 捕获 / ⌘K / 搜索 / plugin-app）**门户到 `document.body`**、`z-modal`、`isolate`、`v4-no-drag`；Confirm/Prompt/Error 门户到 body、`z-dialog`(130)。打开时 `acquireOverlayLayer` 盖 `html[data-overlay-open]` 并 inert `#workbench-root`。**列表日头**（`data-stream-day-toggle` sticky）在该 attr 下必须 `position: static`——Electron 会把 sticky+z-index 合成到任何 `position:fixed` 对话框之上（卡片模式无 sticky，故正常）。`.v4-main-canvas` `isolation: isolate` 约束 sticky 合成层。**浮动弹窗**（`TodoPopover` / `SuggestPopover` / `TaskPanel`）采用 **毛玻璃质感**（`backdrop-blur-[var(--blur-glass)] backdrop-saturate-150` + `bg-surface-elevated/90` + `border-border-subtle` + `shadow-[var(--shadow-elevated-hairline)]`）；**交互一致**：点击外部 + 外部滚动 + Esc 关闭（内部列表滚动不关）；文本对比度达 WCAG AA 4.5:1+ (dark Primary `#e5e5e5` · Secondary `#c9c9c9` · Tertiary `#a1a1a1` · Quaternary `#8c8c8c`) |
 | **玻璃面边界** | 暗色 `.v4-menu-surface` 内置 glass+hairline（Dropdown/ContextMenu）；可选 `.v4-glass-panel` 工具类；主壳 / 侧栏 / 编辑画布保持 solid |
 | **一条主路径** | 标题栏主叙事 **动态（默认）** · 收件箱 · 写出来 + **记一下**；搜索/AI 可达；深度动作放 ⌘K / 二级；右侧工具 **图标 XOR「更多」**（禁止同动作双入口） |
 | **控件分层** | **一级**常显 · **二级**折叠 · **三级**「更多」/ Tooltip / `/slash`（见 §0.1） |
 | **CTA 权重** | 每区域 **一个** `Button variant=default`（主操作）；取消/复制用 outline/secondary；关闭 X 用 ghost。**捕获**：标题栏 aqua「记一下」唯一 L1 实心；列表头/空态打开捕获用 **outline**「打开记一下」；动态页实心仅为「记下」（`composeSubmit`），composer 眉题禁止复用「记一下」 |
 | **统一 chip 语言** | `.v4-chip` / `.v4-segmented` / `.v4-composer` / `CaptureModeBar` / FilterChip |
-| **列表 / 下拉** | 门户 `DropdownMenu`/`MenuSelect` / ContextMenu 共用 `.v4-menu-surface`；**先 hidden 测量再显示**（无打开闪跳）；**滚动即关**；`z-menu(110)` > tooltip(100) |
+| **列表 / 下拉** | 门户 `DropdownMenu`/`MenuSelect` / ContextMenu 共用 `.v4-menu-surface`；**先 hidden 测量再显示**（无打开闪跳）；**滚动即关**；画布菜单在 `html[data-overlay-open]` 时关闭；`z-menu(110)` > tooltip(100) > 工作台 overlay `z-modal`(80) |
 | **空态** | `EmptyState`：图标芯片 + 一句原因 + **一个主 CTA**（侧栏 compact 同构）；时间线/标签空态须有下一步 |
 | **侧栏树** | 图标 `tree-node-icons` · 右键 `tree-node-context-menu` · 展开/排序/筛选 + **手动刷新** `tree-toolbar`（`data-sidebar-refresh`，与排序折叠同组；非标题栏第二份）· 路径 `lib/tree-path`；**文件名隐藏 `.md` 后缀**（`stripMdExt`）；**PARA 编号弱化渲染**（`renderCategoryLabel`：`00-` 前缀用 `text-text-quaternary/70`）。**感知**：`lib/tree-listing-change` 区分 listing（inbox/add/unlink/ingest-done）与 topic 内 content-only；空 inbox 写入后重建并展开，不依赖重启 |
 | **少硬分割线** | 编辑器常驻 ≤2 条 full-width 分割（工具栏 + 可选属性）；避免斑马纹；**Recent tab strip 无底边框**（`.v4-editor-recents` transparent + `shadow-divider-bottom`）；**标题栏 cluster 透明**（`.v4-titlebar-cluster` 无背景无 inset）；**命令触发器为搜索框式浅井**（`.v4-cmd-trigger`：muted well + inset shadow + kbd 右置，Linear 式焦点，非按钮排）；**侧栏头部一条带**（`data-sidebar-header`：ViewSwitcher 满宽 + 我的情况同行、无底边框用留白分隔；pins 行无边框） |
@@ -160,11 +160,11 @@
 | **编辑器默认 chrome** | 格式工具条 **默认展开**（`showFormat=true`，可收起）；常驻 ≤2 条 full-width 分割 |
 | **Todo idle** | `TodoPopover` 维护按钮 idle = ghost Sparkles；**仅 maintaining 时** `.v4-ai-chip-gradient` |
 | **Apps 菜单** | 标题栏 L3 `AppsMenu` launchpad（`data-titlebar-apps`）：列表行（accent 图标 chip + 名称 + 一句描述）+「管理应用…」；候选 = 已启用首方（settingsKey 连接器 · launchable mini-app · builtin 管道 ingest）+ 活跃外部插件；**打开菜单实时拉 settings + 订阅 `plugins:settings-changed`**（不依赖启动快照）；未配置连接器标「待配置」pill，点击直达 `topmind-<name>.settings` 设置页；打开方式由 `resolveLaunchableOpenTarget` 决定（connector hub 进画布，其余 `plugin-app` overlay）；菜单组件无写死插件 id（就绪判定集中在 `lib/apps-menu.pluginReadiness`） |
-| **设置 / 弹层** | `SettingsDialog` 用 elevated ladder + quiet nav chrome（`.v4-settings-dialog` / `.v4-settings-nav`）；`SettingsSection` 用 `shadow-card` 卡片；Command/Search palette header 走 elevated 混色 |
+| **设置 / 弹层** | `SettingsDialog` 用 elevated ladder + quiet nav chrome（`.v4-settings-dialog` / `.v4-settings-nav`）；sheet `role=dialog` `aria-modal`；`SettingsSection` 用 `shadow-card` 卡片；Command/Search palette header 走 elevated 混色；OverlayHost 见「弹层与对比度」 |
 | **连接器 Hub** | `ConnectorHubHeader` 与 `PageHeader` 同级标题（`text-xl font-semibold`）；actions 区禁止 solid「记一下」捕获（outline 打开捕获） |
 | **FilterChip** | 高度 22px chip 语言（`data-filter-chip`）；禁止实心按钮高度 |
 | **AI 建议生命周期** | `autoPrepare` 关：不调 kernel 生成，仍拉 pending writes。开：冷启动/软刷新走 `decideSuggestRefresh`（4s 软节流；force 清 session cache）。**活动指纹** 持久化在 `.topmind/suggest-fingerprints.json`（系统平面）——活动窗口未变则**跨进程跳过 AI 重跑**，避免每次启动 thrash。Session merge（`mergeSuggestRefreshItems`）防中途闪没。**个人清单** `memory/todo.md` ≠ 建议。确认后写入仍经 writeback。 |
-| **动态密度** | 周期 chip ≤6、22px；日分组弱标签；卡内操作 hover 显；composer `shadow-card` 轻量（**无 label/hint meta 行**——placeholder 承担引导，计数在 PageHeader subtitle；卡片去 border 纯阴影）；主路径仍 写下→润色(ghost)→**记下**；**日分组卡无边框**（`bg-surface` + `shadow-[0_1px_3px_rgba(0,0,0,0.04)]`）；**今日 accent ring**（`ring-1 ring-inset ring-accent-color/15`）；**日 header 无 border-b**（`bg-surface-muted/25` 区分） |
+| **动态密度** | 周期 chip ≤6、22px；日分组弱标签；卡内操作 hover 显；composer `shadow-card` 轻量（**无 label/hint meta 行**——placeholder 承担引导，计数在 PageHeader subtitle；卡片去 border 纯阴影）；主路径仍 写下→润色(ghost)→**记下**；**日分组卡无边框**（`bg-surface` + `shadow-[0_1px_3px_rgba(0,0,0,0.04)]`）；**今日 accent ring**（`ring-1 ring-inset ring-accent-color/15`）；**列表日头** sticky + 不透明 `--color-background`、禁止 backdrop-filter；**卡片日头 static**。`html[data-overlay-open]` 时列表日头 flatten 为 static，避免盖住设置 / ConfirmDialog |
 | **侧栏 pin** | 本周周期 pin 可截断，**仅在 timeline/tags/kanban 视图渲染**（stream 视图由 StreamView 自带周期头承担；category 树内已有周期节点，树头不再放 pin——窄栏截断只剩噪声 2026-08-30）；**我的情况上移到 ViewSwitcher 行**（全局可达 · 图标化 + aria-label，不再单列 pins 行）；ViewSwitcher 已有 icon-only / 更多 |
 
 ### 0.1 控件分层（强制）
@@ -650,12 +650,13 @@ ZCode 阶：`--radius-xs: 2px` · `--radius-sm: 4px` · `--radius-md: 6px` · `-
   - `z-header`(20) — 标题栏
   - `z-popover`(30) — 浮层/下拉
   - `z-floating`(50) — 浮动元素
-  - `z-overlay`(70) — 覆盖层背景
-  - `z-modal`(80) — 模态对话框/右键菜单
+  - `z-overlay`(70) — 覆盖层背景 token（保留；工作台 OverlayHost 用 `z-modal`）
+  - `z-modal`(80) — OverlayHost / IngestStaging（**portal 到 `document.body`**；必须低于 `z-menu`，设置内下拉才能露出来）
   - `z-notification`(90) — 通知
-  - `z-toast`(100) — Toast 消息
-  - `z-menu`(110) — 菜单/listbox（高于 tooltip）
-  - `z-popover-overlay`(120) — 待办/建议弹层（高于打开的菜单）
+  - `z-toast`(100) — Toast 消息；画布 tooltip 在 overlay 打开时隐藏（设置内 HelpTip 门户进 sheet）
+  - `z-menu`(110) — 菜单/listbox（高于 tooltip；设置内下拉也走这一层）
+  - `z-popover-overlay`(120) — 待办/建议弹层（高于打开的菜单；overlay 打开时关闭）
+  - `z-dialog`(130) — Confirm / Prompt / Error 全屏 scrim（高于浮动弹层；列表 sticky 仍靠 `data-overlay-open` flatten）
 - **焦点环**: `focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1`；composer 用 `shadow-focus`
 - **滚动条**: 细、半透明（`v4-sidebar-scroll` 类）
 

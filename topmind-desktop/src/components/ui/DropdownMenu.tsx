@@ -7,7 +7,8 @@
  * 3. Only then show enter animation
  * Scroll → close (never chase trigger with setState — that causes lag/drift).
  *
- * Stacking: z-menu (110) > tooltip (100) > overlay (70)
+ * Stacking: z-menu (110) > tooltip (100). Workbench overlays use z-modal (80)
+ * on a body portal; canvas menus dismiss when html[data-overlay-open].
  */
 import {
   useCallback,
@@ -26,6 +27,7 @@ import {
   type DropdownPosition,
 } from "../../lib/dropdown-position";
 import { acquireMenuLayer } from "../../lib/menu-layer";
+import { onOverlayLayerChange } from "../../lib/overlay-layer";
 import { shouldCloseOnScroll } from "../../lib/scroll-dismiss";
 
 export interface DropdownMenuProps {
@@ -131,6 +133,13 @@ export function DropdownMenu({
   useEffect(() => {
     if (!open) return;
     return acquireMenuLayer();
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    return onOverlayLayerChange((overlayActive) => {
+      if (overlayActive) onOpenChangeRef.current(false);
+    });
   }, [open]);
 
   useEffect(() => {
