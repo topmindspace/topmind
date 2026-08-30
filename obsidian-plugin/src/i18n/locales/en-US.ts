@@ -10,7 +10,7 @@ export const enUS: typeof zhCN = {
   // ── Views ──
   stream_workbench_title: "Stream",
 
-  // ── Quick Capture (product vocab: Note it / 记一下) ──
+  // ── Note it (记一下) ──
   quick_capture_title: "Note it",
   quick_capture_placeholder: "Type here...",
   quick_capture_target: "Target",
@@ -32,7 +32,7 @@ export const enUS: typeof zhCN = {
   stream_organize: "Organize",
   stream_entry_count: "{{count}} entries",
   stream_open_in_editor: "Open in Editor",
-  stream_loading: "Loading...",
+  stream_loading: "Loading",
   stream_day_today: "Today",
   stream_day_yesterday: "Yesterday",
   stream_period_label: "Period",
@@ -48,11 +48,7 @@ export const enUS: typeof zhCN = {
   suggestions_confirm: "Confirm",
   suggestions_open: "Open",
   suggestions_dismiss: "Dismiss",
-  suggestions_loading: "AI is thinking...",
-  suggestion_topic: "Suggested Topic",
-  suggestion_todo: "Todo Extract",
-  suggestion_memory: "Write to My profile",
-  suggestion_summary: "Period Reflection",
+  suggestions_loading: "AI is thinking",
   suggestion_impact_high: "High impact",
   suggestion_impact_medium: "Medium impact",
   suggestion_impact_low: "Low impact",
@@ -102,7 +98,7 @@ export const enUS: typeof zhCN = {
   chat_empty_hint: "AI answers based on your recent stream entries and todos",
   chat_no_ai: "AI not configured — chat unavailable",
   chat_no_ai_hint: "Please configure an AI provider in settings",
-  chat_thinking: "Thinking...",
+  chat_thinking: "Thinking",
   chat_reasoning: "Reasoning",
   chat_reasoning_show: "Show reasoning",
   chat_clear: "Clear chat",
@@ -276,7 +272,6 @@ export const enUS: typeof zhCN = {
   compose_url_hint: "URL detected — use Note it to fetch content to Inbox",
 
   // ── General ──
-  loading: "Loading...",
   error: "Error",
   saved: "Saved",
   init_workspace: "Initialize Workspace",

@@ -293,7 +293,7 @@ Contract-first Node 底座；命令面见 `TOOLS.md`。依赖 engine 根 `lib/` 
 可选；永非内容真源。
 
 ```text
-Quick Capture / Clip Extension → Category / Topic / File → Editor → AI/Save → Receipt/Recovery
+记一下 / Clip Extension → Category / Topic / File → Editor → AI/Save → Receipt/Recovery
 ```
 
 网页抓取：扩展页内 Readability → Bridge `content_html` → Desktop `html-to-markdown`（不维护第二套转换器）。

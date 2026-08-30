@@ -55,7 +55,7 @@
 | 面 | Windows | macOS |
 |----|---------|-------|
 | 主窗 | `hidden` + `titleBarOverlay`（无双 header） | `hiddenInset` |
-| 快速捕获浮窗 | 同上 + 自定义拖条 | `hiddenInset` + traffic lights |
+| 记一下浮窗 | 同上 + 自定义拖条 | `hiddenInset` + traffic lights |
 
 ### 编辑器行内 AI（与捕获并列的「改写」面）
 

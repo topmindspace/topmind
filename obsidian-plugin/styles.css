@@ -37,7 +37,7 @@
   --tm-icon-sm: 16px;
   --tm-icon-md: 18px;
   --tm-icon-lg: 20px;
-  --tm-accent-rgb: var(--interactive-accent-rgb, 124, 77, 255);
+  --tm-accent-rgb: var(--interactive-accent-rgb);
   --tm-btn-h: 30px;
   --tm-btn-h-sm: 26px;
   --tm-btn-h-lg: 34px;
@@ -419,7 +419,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--color-blue, #4a9eff);
+  background: var(--color-blue, var(--text-accent));
   animation: tm-pulse 1.5s ease-in-out infinite;
   flex-shrink: 0;
 }
@@ -440,7 +440,7 @@
 }
 
 .tm-task-badge-abort:hover {
-  color: var(--color-red, #ef4444);
+  color: var(--color-red, var(--text-error));
   background: rgba(var(--color-red-rgb, 239, 68, 68), 0.1);
 }
 
@@ -498,7 +498,7 @@
   align-items: center;
   gap: var(--tm-gap-xs);
   font-size: var(--font-ui-smaller);
-  color: var(--color-blue, #4a9eff);
+  color: var(--color-blue, var(--text-accent));
   padding: 2px 4px;
   transition: opacity var(--tm-transition);
 }
@@ -880,7 +880,7 @@
 
 /* Pending write confirm cards — inspectable before accept (never blind) */
 .tm-pending-write-card {
-  border-left-color: var(--color-cyan, #3aa4c4);
+  border-left-color: var(--color-cyan, var(--text-accent));
 }
 
 .tm-pending-preview {
@@ -928,24 +928,23 @@
 
 .tm-suggestion-card.tm-suggestion-create-topic,
 .tm-suggestion-card.tm-suggestion-inbox-review,
-.tm-suggestion-card.tm-suggestion-topic-classify {
-  border-left-color: var(--color-blue, #4a9eff);
+.tm-suggestion-card.tm-suggestion-inbox-organize {
+  border-left-color: var(--color-blue, var(--text-accent));
 }
 
-.tm-suggestion-card.tm-suggestion-todo-extract,
 .tm-suggestion-card.tm-suggestion-stale-topic,
 .tm-suggestion-card.tm-suggestion-catch-all {
-  border-left-color: var(--color-orange, #ff9e4a);
+  border-left-color: var(--color-orange, var(--text-warning));
 }
 
 .tm-suggestion-card.tm-suggestion-ai-summary,
 .tm-suggestion-card.tm-suggestion-stream-digest {
-  border-left-color: var(--color-purple, #9c27b0);
+  border-left-color: var(--color-purple, var(--text-accent));
 }
 
 .tm-suggestion-card.tm-suggestion-promote-memory,
 .tm-suggestion-card.tm-suggestion-open-profile {
-  border-left-color: var(--color-green, #4caf50);
+  border-left-color: var(--color-green, var(--text-success));
 }
 
 .tm-suggestion-header {
@@ -984,12 +983,12 @@
 
 .tm-impact-high {
   background: rgba(var(--color-red-rgb, 239, 68, 68), 0.12);
-  color: var(--color-red, #ef4444);
+  color: var(--color-red, var(--text-error));
 }
 
 .tm-impact-medium {
   background: rgba(var(--color-orange-rgb, 249, 115, 22), 0.12);
-  color: var(--color-orange, #f97316);
+  color: var(--color-orange, var(--text-warning));
 }
 
 .tm-suggestion-body {
@@ -1554,7 +1553,7 @@
 
 .tm-todo-delete:hover {
   opacity: 1;
-  color: var(--color-red, #ef4444);
+  color: var(--color-red, var(--text-error));
   background: rgba(var(--color-red-rgb, 239, 68, 68), 0.1);
 }
 
@@ -1653,7 +1652,7 @@
 
 .tm-history-clear:hover {
   opacity: 1;
-  color: var(--color-red, #ef4444);
+  color: var(--color-red, var(--text-error));
 }
 
 .tm-history-item {
@@ -1690,16 +1689,16 @@
 }
 
 .tm-history-running .tm-history-icon {
-  color: var(--color-blue, #4a9eff);
+  color: var(--color-blue, var(--text-accent));
   animation: tm-spin 1s linear infinite;
 }
 
 .tm-history-done .tm-history-icon {
-  color: var(--color-green, #4caf50);
+  color: var(--color-green, var(--text-success));
 }
 
 .tm-history-error .tm-history-icon {
-  color: var(--color-red, #ef4444);
+  color: var(--color-red, var(--text-error));
 }
 
 .tm-history-aborted .tm-history-icon {
@@ -1734,11 +1733,11 @@
 }
 
 .tm-history-status-done {
-  color: var(--color-green, #4caf50);
+  color: var(--color-green, var(--text-success));
 }
 
 .tm-history-status-error {
-  color: var(--color-red, #ef4444);
+  color: var(--color-red, var(--text-error));
 }
 
 .tm-history-status-aborted {
@@ -1747,7 +1746,7 @@
 
 .tm-history-status-running,
 .tm-history-status-pending {
-  color: var(--color-blue, #4a9eff);
+  color: var(--color-blue, var(--text-accent));
 }
 
 .tm-history-summary,
@@ -2099,17 +2098,17 @@
 
 .tm-status-ok {
   background: rgba(var(--color-green-rgb, 76, 175, 80), 0.12);
-  color: var(--color-green, #4caf50);
+  color: var(--color-green, var(--text-success));
 }
 
 .tm-status-info {
   background: rgba(var(--color-blue-rgb, 74, 158, 255), 0.12);
-  color: var(--color-blue, #4a9eff);
+  color: var(--color-blue, var(--text-accent));
 }
 
 .tm-status-warning {
   background: rgba(var(--color-orange-rgb, 255, 158, 74), 0.12);
-  color: var(--color-orange, #ff9e4a);
+  color: var(--color-orange, var(--text-warning));
 }
 
 /* ── AI Status (shared) ─────────────────────────────────────────────── */
@@ -2123,8 +2122,8 @@
 }
 
 .tm-dot-ok {
-  background: var(--color-green, #4caf50);
-  box-shadow: 0 0 4px var(--color-green, #4caf50);
+  background: var(--color-green, var(--text-success));
+  box-shadow: 0 0 4px var(--color-green, var(--text-success));
 }
 
 .tm-dot-off {
@@ -2230,8 +2229,8 @@
 }
 
 .tm-chat-msg-btn.tm-copied {
-  color: var(--color-green, #4caf50);
-  border-color: var(--color-green, #4caf50);
+  color: var(--color-green, var(--text-success));
+  border-color: var(--color-green, var(--text-success));
 }
 
 .tm-chat-retry-btn {
@@ -2256,20 +2255,20 @@
 }
 
 .tm-chat-error-msg .tm-chat-body {
-  color: var(--color-red, #ef4444);
+  color: var(--color-red, var(--text-error));
   font-size: var(--font-ui-smaller);
 }
 
 /* ── AI Status Dot States ─────────────────────────────────────────── */
 
 .tm-dot-checking {
-  background: var(--color-orange, #ff9e4a);
+  background: var(--color-orange, var(--text-warning));
   animation: tm-pulse 1s ease-in-out infinite;
 }
 
 .tm-dot-error {
-  background: var(--color-red, #ef4444);
-  box-shadow: 0 0 4px var(--color-red, #ef4444);
+  background: var(--color-red, var(--text-error));
+  box-shadow: 0 0 4px var(--color-red, var(--text-error));
 }
 
 /* Clickable sidebar status */

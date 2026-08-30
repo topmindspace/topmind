@@ -91,6 +91,16 @@ describe("i18n locale key alignment", () => {
     assert.doesNotMatch(zhContent, /notice_write_pending:\s*"[^"]*审阅/);
     assert.doesNotMatch(zhContent, /quick_capture_submit:/);
     assert.doesNotMatch(enContent, /quick_capture_submit:/);
+    assert.doesNotMatch(zhContent, /suggestion_todo:/);
+    assert.doesNotMatch(enContent, /suggestion_todo:/);
+    assert.match(zhContent, /stream_loading:\s*"加载中"/);
+    assert.match(enContent, /stream_loading:\s*"Loading"/);
+    assert.doesNotMatch(zhContent, /stream_loading:\s*"加载中\.\.\."/);
+    assert.doesNotMatch(enContent, /stream_loading:\s*"Loading\.\.\."/);
+    assert.doesNotMatch(zhContent, /suggestions_loading:\s*"[^"]*\.\.\."/);
+    assert.doesNotMatch(enContent, /suggestions_loading:\s*"[^"]*\.\.\."/);
+    assert.doesNotMatch(zhContent, /chat_thinking:\s*"[^"]*\.\.\."/);
+    assert.doesNotMatch(enContent, /chat_thinking:\s*"[^"]*\.\.\."/);
   });
 });
 
@@ -160,6 +170,20 @@ describe("Obsidian labeled-button chrome (shipped)", () => {
     assert.match(zh, /sidebar_btn_workbench:\s*"动态"/);
     assert.match(en, /sidebar_btn_workbench:\s*"Stream"/);
     assert.doesNotMatch(zh, /sidebar_btn_workbench:\s*"[^"]*工作台/);
+  });
+
+  test("suggestion card CSS covers live kinds only and has no hardcoded hex", () => {
+    assert.match(css, /tm-suggestion-inbox-organize/);
+    assert.doesNotMatch(css, /tm-suggestion-todo-extract/);
+    assert.doesNotMatch(css, /tm-suggestion-topic-classify/);
+    assert.doesNotMatch(css, /var\(--color-[a-z]+,\s*#[0-9a-fA-F]+\)/);
+    assert.doesNotMatch(css, /#[0-9a-fA-F]{3,8}/);
+  });
+
+  test("chat thinking uses a CSS spinner, not ellipsis-only copy", () => {
+    const think = sidebar.slice(sidebar.indexOf("this.chatThinking"));
+    assert.match(think, /tm-loading-spinner-sm/);
+    assert.match(think, /t\("chat_thinking"\)/);
   });
 });
 

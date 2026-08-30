@@ -454,7 +454,7 @@ function TodoItemRow({
               </button>
             ) : null}
             {showDatePicker ? (
-              <div className="absolute z-10 mt-1 rounded-md border border-border-subtle bg-surface-elevated p-1.5 shadow-elevated-hairline">
+              <div className="absolute z-local mt-1 rounded-md border border-border-subtle bg-surface-elevated p-1.5 shadow-elevated-hairline">
                 <input
                   ref={dateRef}
                   type="date"

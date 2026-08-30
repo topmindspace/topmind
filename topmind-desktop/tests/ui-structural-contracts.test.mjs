@@ -46,9 +46,9 @@ test("TitleBar wide rail renders a theme control (not only the compact ⋯ menu)
   const compactIdx = titleBar.indexOf("{!compactTools ? (");
   assert.ok(compactIdx >= 0, "expected !compactTools branch");
   const afterCompact = titleBar.slice(compactIdx);
-  // 2026-08-30: the wide-rail theme control is itself a DropdownMenu (explicit
-  // auto/light/dark radio via pickTheme(), replacing blind cycling) — so the
-  // wide branch is bounded by the branch else (`) : (`), not by the first menu.
+  // Wide rail: cycle button (data-titlebar-theme + pickTheme). Compact ⋯:
+  // explicit auto/light/dark via themeMenuSection. Bound the wide branch by
+  // the first `) : (` so the compact menu is not mistaken for the wide control.
   const elseRel = afterCompact.indexOf(") : (");
   assert.ok(elseRel > 0, "expected compact fallback branch");
   const wide = afterCompact.slice(0, elseRel);
@@ -80,6 +80,28 @@ test("No purple/indigo marketing colors in UI or extension", () => {
 });
 
 // ── Token ladder ───────────────────────────────────────────────────────
+
+test("z-index is semantic tokens; no Tailwind numeric z-10 or dead glow tokens", () => {
+  const tokens = read("src/styles/tokens.css");
+  assert.match(tokens, /--z-local:\s*1/);
+  assert.match(tokens, /--z-menu:\s*110/);
+  assert.match(tokens, /--z-popover-overlay:\s*120/);
+  assert.doesNotMatch(tokens, /--color-status-\w+-glow/);
+  for (const rel of [
+    "src/components/ui/menu-select.tsx",
+    "src/components/todo/TodoListBody.tsx",
+    "src/components/ai/SuggestPopover.tsx",
+    "src/components/todo/TodoPopover.tsx",
+  ]) {
+    const src = read(rel);
+    assert.doesNotMatch(src, /\bz-(?:10|20|30|40|50)\b/, `${rel} numeric z-class`);
+    assert.doesNotMatch(src, /z-\[\d+\]/, `${rel} hardcoded z-[N]`);
+  }
+  const menu = read("src/components/ui/menu-select.tsx");
+  const todoBody = read("src/components/todo/TodoListBody.tsx");
+  assert.match(menu, /z-local/);
+  assert.match(todoBody, /z-local/);
+});
 
 test("Light tokens: surface != elevated; hairline and shadows defined", () => {
   const tokens = read("src/styles/tokens.css");

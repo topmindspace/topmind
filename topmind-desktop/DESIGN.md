@@ -269,7 +269,7 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 │ 标题栏: [◀▶][☰] topmind·切换器 │ 动态·收件箱·写出来 │ ⌘K │ 记一下 · 搜 · AI │
 ├──────────┬───────────────────────────────────┬───────────────┤
 │ 侧栏     │  主画布（默认本周动态 / 编辑器）     │  AI 副驾       │
-│ 动态优先 │  ViewSlot                         │  建议条+对话   │
+│ 动态优先 │  ViewSlot                         │  对话（建议走全局弹层）│
 ├──────────┴───────────────────────────────────┴───────────────┤
 │ 状态栏 · 引擎 · AI · 选区                                      │
 └──────────────────────────────────────────────────────────────┘
@@ -488,7 +488,7 @@ topmind 设计系统原生支持多语言排版（Simplified Chinese / English�
 
 ## 4. 覆盖层
 
-### 4.1 记一下 / 快速捕获（⌘N）
+### 4.1 记一下（⌘N）
 
 - **默认极简**：落点 chip（**本周动态** / 收件箱）+ 正文 + 保存；标题/模式/来源在「更多选项」  
 - **默认落点**：动态周期本（`dest.stream`）；用户可改收件箱  
@@ -654,6 +654,8 @@ ZCode 阶：`--radius-xs: 2px` · `--radius-sm: 4px` · `--radius-md: 6px` · `-
   - `z-modal`(80) — 模态对话框/右键菜单
   - `z-notification`(90) — 通知
   - `z-toast`(100) — Toast 消息
+  - `z-menu`(110) — 菜单/listbox（高于 tooltip）
+  - `z-popover-overlay`(120) — 待办/建议弹层（高于打开的菜单）
 - **焦点环**: `focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1`；composer 用 `shadow-focus`
 - **滚动条**: 细、半透明（`v4-sidebar-scroll` 类）
 
@@ -661,8 +663,8 @@ ZCode 阶：`--radius-xs: 2px` · `--radius-sm: 4px` · `--radius-md: 6px` · `-
 
 | 快捷键 | 作用域 | 操作 |
 |--------|--------|------|
-| ⌘⇧N | 全局（任意应用） | 显示窗口 + 快速捕获 |
-| ⌘N | 窗口内 | 快速捕获 |
+| ⌘⇧N | 全局（任意应用） | 显示窗口 + 记一下 |
+| ⌘N | 窗口内 | 记一下 |
 | ⌘⇧W | 窗口内 | 切换工作区（下拉菜单） |
 | ⌘K | 窗口内 | 命令面板 |
 | ⌘P | 窗口内 | 全局搜索 |
@@ -706,32 +708,10 @@ ZCode 阶：`--radius-xs: 2px` · `--radius-sm: 4px` · `--radius-md: 6px` · `-
 
 > **现在时规范是 §0–§3**（尤其 §2.2 侧栏 · §2.3 编辑区）。本节是发版指针，不是第二套 spec。Phase 0–6 / Brand Horizon / Design System 2.0 像素台账以 git 历史为准，不在此复述。
 
-### Quality / Obsidian Kernel AI parity
-
-- Product tag follows Desktop; UTR same stamp; Skills / Obsidian / Clip independent patches
-- Obsidian: suggest refresh `force`, session merge, op confirm cards, chat 3-tier locale, ops summaries follow host UI language
-- StatusBar: 持久任务面板 toggle（空闲安静 / 运行 spinner+计数 / 打开按下态，⌘⇧J 对齐）替换临时 busy chip；建议 high 优先级统一 warning 色（标题栏 ↔ 状态栏）
-- Suggest kind parity: 移除死类型 `archive_path` / `todo_extract` / `topic_classify`，Obsidian 补 `inbox_organize`；`tests/suggest-surface-parity` 守卫内核产出 ↔ 双表面渲染 9:9 对齐
-- Obsidian 单通道 AI 队列：命令面板 / 侧栏按钮 / 开机自动整理统一走 `aiTaskManager` 串行通道（徽章 + 历史全可观测）；abort 改为诚实 stop-tracking 语义
-- Obsidian 新增状态栏入口（空闲 sparkles / 运行 spinner+标签，点击打开 AI 副驾）；chat regenerate 历史截取修复；建议 Tab in-flight 守卫
-- Kernel: `createKernelContext` 向 derived builders 传 contract（locale 正确解析）；缺失 profile 的 `open_profile` 建议升 high（onboarding 锚点）；`writeTodoList` evidence 按磁盘实际 create/update
-- Living docs: writeback receipts high-impact only; contract top-key whitelist; stream-year archive has no extra receipts YAML
-
-### Markdown 预览 / 编辑器 / 侧栏文件查看
-
-- **编辑** = TipTap；**预览 / 只读** = `getEditorHtml()` 静态 HTML（`.v4-tiptap`），不是 live TipTap `setEditable`
-- 同一阅读偏好包住两边；路径切换重置预览，空笔记不保留上一篇 HTML
-- 主画布与分屏共用 `isMarkdownNotePath`：`.md` → 编辑器，其它 → `FilePreviewView`（HTML 沙箱 iframe + 诚实截断）
-- HTML 预览只按 HTML 上限截断（`previewTruncationLimit`）；400k–1.5M 的 HTML 不再被文本帽误截；工具条 hint 的 count 等于实际 slice
-- `FilePreviewView` 换路径同步清空：调用处 `key={path}` 重挂载 + 组件内 `sessionPath` render-time reset（不靠 useEffect-after-paint）
-- Sidebar Header 一条带：ViewSwitcher 满宽 + 我的情况同行；周期 pin 仅 timeline/tags/kanban；手动刷新只在树工具条
-- 格式轨与 ⋯ 互斥；列表预处理不在代码围栏里改写、不在同型列表项之间发明空行
-
-### 近期指针（细节以 §0–§3 为准）
-
-- Agent 步数 **3 / 20 / 50** · 精确中段 `edit_file` · 思考折叠 · 写闸 toast 撤销
-- 侧栏 listing vs topic content（inbox / 输出 / 归档 / add·unlink / ingest-done 重建；专题内部定向刷新）
-- Design System **3.0** ZCode Neutral（2.1 微暖中性已取代；2026-08-30：纯中性灰 + sky 强调 + 单色 ink 主 CTA + ZCode 圆角/字号阶，死 token 全面清理）
+- Design System **3.0** ZCode Neutral（纯中性灰 + sky 强调 + 单色 ink 主 CTA；token 真源 `src/styles/tokens.css`）
+- 捕获词汇：用户可见文案一律 `记一下` / `Note it` · `记下` / `Log it`（禁止 Quick Capture 冒充）
+- 建议确认面 = `SuggestPopover`；编辑 = TipTap、预览 = `getEditorHtml()` 静态 HTML
+- 建议 kind 与 Kernel 对齐（无 `archive_path` / 卡片级 `todo_extract` / `topic_classify`）
 
 ## Sidebar · 一级类与交付物
 
@@ -785,10 +765,10 @@ ZCode 阶：`--radius-xs: 2px` · `--radius-sm: 4px` · `--radius-md: 6px` · `-
 
 ### UIX-403：视觉品质 ✅
 
-- **深色模式**：石墨色阶层次完整（`#171715` → `#1e1e1c` → `#262624` → `#2e2e2b`），AA+ 对比度
-- **Glassmorphism**：`v4-glass-panel` / `v4-menu-surface` 使用 `backdrop-filter: blur(12px) saturate(160%)`，仅限浮层（菜单/弹出/下拉），不用于主 chrome
+- **深色模式**：Design System 3.0 ZCode Neutral 石墨阶梯（sidebar `#0e0e0e` → chrome `#161616` → canvas `#171717` → surface `#1d1d1d` → elevated `#262626`），AA+ 对比度
+- **Glassmorphism**：浮动弹层 `backdrop-blur-[var(--blur-glass)]`（14px）+ `backdrop-saturate-150`，仅限浮层（菜单/弹出/下拉），不用于主 chrome
 - **微交互动画**：`--duration-quick: 100ms` / `--duration-fast: 140ms` / `--ease-default: cubic-bezier(0.2, 0.8, 0.2, 1)` — 统一快捷柔和
-- **Typography**：Inter 字族 + 完整 type scale（`text-5xs: 10px` → `text-4xl: 28px`）；`font-feature-settings` 开启 kern/liga/ss01/cv11/calt
+- **Typography**：系统 UI 字栈（`--font-family-ui`，非 Inter）+ ZCode 整数字号阶（`text-5xs: 10px` → `text-4xl: 28px`）
 
 ### UIX-404：Chrome 纤细化 ✅
 

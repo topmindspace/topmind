@@ -405,7 +405,7 @@ export class SidebarDockView extends ItemView {
 }
 ```
 
-### 6.3 Quick Capture Modal (极速捕捉弹窗)
+### 6.3 记一下弹窗 (`QuickCaptureModal`)
 
 ```typescript
 export class QuickCaptureModal extends Modal {

@@ -9,7 +9,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -83,10 +83,36 @@ test("Obsidian capture CTAs align with Desktop product vocabulary", () => {
   assert.match(en, /quick_capture_log_it:\s*"Log it"/u);
   assert.match(zh, /cmd_quick_capture:\s*"Topmind: 记一下"/u);
   assert.match(en, /cmd_quick_capture:\s*"Topmind: Note it"/u);
-  assert.match(zh, /suggestion_memory:\s*"写入「我的情况」"/u);
+  assert.match(zh, /memory_browse_organize:\s*"整理我的情况"/u);
+  assert.doesNotMatch(zh, /suggestion_todo:/u);
+  assert.doesNotMatch(en, /suggestion_todo:/u);
   // No reverse-locale pollution on primary CTAs
   assert.doesNotMatch(en, /quick_capture_title:\s*"记一下"/u);
   assert.doesNotMatch(zh, /quick_capture_title:\s*"Note it"/u);
+});
+
+test("Desktop Electron tray/window capture copy matches renderer 记一下/Note it (not Quick Capture)", async () => {
+  const zhShell = readJson("topmind-desktop/src/locales/zh-CN/shell.json");
+  const enShell = readJson("topmind-desktop/src/locales/en-US/shell.json");
+  const { setLocale, t } = await import(
+    pathToFileURL(path.join(repoRoot, "topmind-desktop/electron/lib/electron-i18n.mjs")).href
+  );
+  setLocale("zh-CN");
+  assert.equal(t("capture.title"), zhShell.titleBar.capture);
+  assert.match(t("tray.capture"), new RegExp(zhShell.titleBar.capture));
+  assert.match(t("capture.errorTitle"), new RegExp(zhShell.titleBar.capture));
+  assert.doesNotMatch(
+    `${t("tray.capture")}\n${t("capture.title")}\n${t("capture.errorTitle")}`,
+    /快速捕获|Quick Capture/i,
+  );
+  setLocale("en-US");
+  assert.equal(t("capture.title"), enShell.titleBar.capture);
+  assert.match(t("tray.capture"), new RegExp(enShell.titleBar.capture));
+  assert.match(t("capture.errorTitle"), new RegExp(enShell.titleBar.capture));
+  assert.doesNotMatch(
+    `${t("tray.capture")}\n${t("capture.title")}\n${t("capture.errorTitle")}`,
+    /快速捕获|Quick Capture/i,
+  );
 });
 
 test("Obsidian stream surface is 动态/Stream, not a sixth 工作台/Workbench room", () => {

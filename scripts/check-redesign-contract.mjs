@@ -447,6 +447,24 @@ expectNoMatch(
   /有 `items` 时画布顶 `SuggestEntryStrip`/u,
   "canvas SuggestEntryStrip taught as living chrome",
 );
+expectNoMatch(
+  files.desktopDesign,
+  desktopDesign,
+  /#171715|#1e1e1c|#262624|#2e2e2b/u,
+  "Design System 2.1 leftover hex in living DESIGN",
+);
+expectNoMatch(
+  files.desktopDesign,
+  desktopDesign,
+  /\| ⌘N \|[^\n]*快速捕获/u,
+  "⌘N shortcut still labeled 快速捕获",
+);
+expectMatch(
+  files.desktopDesign,
+  desktopDesign,
+  /--font-family-ui/u,
+  "Desktop DESIGN typography names the shipped system UI stack",
+);
 expectMatch(
   files.desktopArchitecture,
   desktopArch,

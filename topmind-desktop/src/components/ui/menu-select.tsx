@@ -241,7 +241,7 @@ export function MenuSelect({
       }
     >
       {showSearch ? (
-        <div className="sticky top-0 z-10 mb-1 bg-surface px-1 pb-1 pt-1">
+        <div className="sticky top-0 z-local mb-1 bg-surface px-1 pb-1 pt-1">
           <div className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-border-subtle-dim bg-input px-2">
             <Search size={ICON.micro} className="shrink-0 text-text-quaternary" aria-hidden />
             <input

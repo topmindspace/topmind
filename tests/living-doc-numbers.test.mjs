@@ -172,7 +172,28 @@ test("living DESIGN/ARCHITECTURE do not present canvas SuggestEntryStrip as curr
   assert.doesNotMatch(design, /建议计数\*\*恰好两处\*\*：标题栏 💡 badge \+ 画布顶/);
   assert.doesNotMatch(arch, /EditorArea（SuggestEntryStrip/);
   assert.doesNotMatch(streamFirst, /画布顶 strip（空则隐藏）/);
+  assert.doesNotMatch(streamFirst, /用户在 feed 附近一眼看见建议/);
   assert.match(arch, /PrimaryNav 文案与默认 selection 为 \*\*动态 · 收件箱 · 写出来 · 搜索\*\*/);
   assert.doesNotMatch(design, /AI 轨 `ActionBar` 仅为计数跳转/);
   assert.match(design, /AI 轨 `ActionBar` \*\*仅专注模式\*\*/);
+});
+
+test("living Desktop DESIGN UIX-403 matches Design System 3.0 tokens (not 2.1 leftover)", () => {
+  const design = read("topmind-desktop/DESIGN.md");
+  const tokens = read("topmind-desktop/src/styles/tokens.css");
+  const dark = tokens.split(/\.dark\s*\{/)[1] || "";
+  const sidebar = dark.match(/--color-sidebar:\s*([^;]+);/)?.[1]?.trim();
+  const canvas = dark.match(/--color-background:\s*([^;]+);/)?.[1]?.trim();
+  assert.ok(sidebar && canvas, "dark sidebar/canvas tokens");
+  assert.match(design, new RegExp(sidebar.replace("#", "\\#")));
+  assert.match(design, new RegExp(canvas.replace("#", "\\#")));
+  assert.doesNotMatch(design, /#171715|#1e1e1c|#262624|#2e2e2b/);
+  assert.doesNotMatch(design, /Typography\*\*：Inter/);
+  assert.match(design, /--font-family-ui/);
+  assert.doesNotMatch(design, /\| ⌘N \|[^\n]*快速捕获/);
+  assert.doesNotMatch(design, /\| ⌘⇧N \|[^\n]*快速捕获/);
+  const obsidian = read("obsidian-plugin/DESIGN.md");
+  assert.doesNotMatch(obsidian, /橙=todo_extract/);
+  assert.doesNotMatch(obsidian, /蓝=create_topic\/inbox_review\/topic_classify/);
+  assert.match(obsidian, /inbox_organize/);
 });

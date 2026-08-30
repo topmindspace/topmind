@@ -28,7 +28,7 @@
 │  头部：AI 状态 + 模型徽章 + [⚙设置]                            │
 │  底部：[⚡记一下] [🔄整理] [📋待办] [🏷️分类] [🧠整理我的情况] [🖥动态]│
 ├──────────────────────────────────────────────────────────────┤
-│  入口 3: 极速捕捉弹窗 (Quick Capture Modal)                    │
+│  入口 3: 记一下弹窗                                            │
 │  ────────────────────────────────────────────────────────    │
 │  Ribbon 图标触发（快捷键需在 Settings → Hotkeys 自行配置）       │
 │  零阻碍输入 → Enter 提交 → 静默写入周期本 → 关闭                │
@@ -224,7 +224,7 @@
 
 | 按钮 | 功能 | AI 条件 | 默认模式 |
 |------|------|---------|----------|
-| ⚡ | 记一下（Quick Capture 弹窗） | 无需 AI | icon-only |
+| ⚡ | 记一下弹窗 | 无需 AI | icon-only |
 | 🔄 | 整理（reconcile + todo_maintain） | 无需 AI | icon-only |
 | 📋 | AI 整理待办（force todo_maintain） | 需要 AI | icon-only |
 | 🏷️ | 专题分类（force topic_classify · 共享队列） | 需要 AI | icon-only |
@@ -248,7 +248,7 @@ AI 操作按钮仅在 AI 已配置时显示。默认显示文本标签模式（`
 
 ---
 
-## 4. 极速捕捉弹窗 (Quick Capture Modal)
+## 4. 记一下弹窗
 
 ### 4.1 布局
 
@@ -364,7 +364,7 @@ AI 操作按钮仅在 AI 已配置时显示。默认显示文本标签模式（`
 
 | 命令 | 快捷键 | 说明 |
 |------|--------|------|
-| Topmind: 记一下 | (用户自配) | 打开极速捕捉弹窗 |
+| Topmind: 记一下 | (用户自配) | 打开记一下弹窗 |
 | Topmind: 打开动态 | — | 打开动态页签 |
 | Topmind: 打开侧边栏 | — | 打开 AI 副驾面板 |
 | Topmind: 整理本周 | — | 触发 reconcileStreamPeriod |
@@ -468,7 +468,7 @@ System prompt 跟随 UI locale：
 - 使用 Obsidian CSS 变量（`--text-normal`, `--background-primary`, `--interactive-accent` 等）
 - 卡片样式：圆角 + 微阴影 + hover 高亮
 - 输入栏：单行高度起，自适应增长
-- AI 建议卡片：左侧带彩色边条（蓝=create_topic/inbox_review/topic_classify，橙=todo_extract/stale_topic/catch_all，绿=promote_memory/open_profile，紫=ai_summary/stream_digest）
+- AI 建议卡片：左侧带彩色边条（蓝=create_topic/inbox_review/inbox_organize，橙=stale_topic/catch_all，绿=promote_memory/open_profile，紫=ai_summary/stream_digest）
 - AI 对话：用户消息右对齐（强调色背景），AI 消息左对齐（卡片背景）
 - 全中文 UI（可切英文）
 

@@ -728,6 +728,7 @@ export class SidebarDockView extends ItemView {
     if (this.chatThinking) {
       const thinkingEl = messagesEl.createDiv({ cls: "tm-chat-message tm-chat-ai tm-chat-thinking" });
       thinkingEl.createSpan({ cls: "tm-chat-role", text: t("chat_ai") });
+      thinkingEl.createDiv({ cls: "tm-loading-spinner tm-loading-spinner-sm" });
       thinkingEl.createSpan({ cls: "tm-chat-thinking-dots", text: t("chat_thinking") });
       messagesEl.scrollTop = messagesEl.scrollHeight;
     }

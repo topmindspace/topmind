@@ -142,6 +142,16 @@ describe("suggestion kind parity (Kernel emitted kinds = Obsidian render kinds)"
     assert.deepEqual([...allKinds].sort(), [...union].sort());
   });
 
+  it("Obsidian CSS paints every union kind and not dead card kinds", () => {
+    const css = read("obsidian-plugin/styles.css");
+    for (const kind of obsidianUnionKinds()) {
+      const cls = `tm-suggestion-${kind.replaceAll("_", "-")}`;
+      assert.match(css, new RegExp(cls), `missing CSS class for kind ${kind}`);
+    }
+    assert.doesNotMatch(css, /tm-suggestion-todo-extract/);
+    assert.doesNotMatch(css, /tm-suggestion-topic-classify/);
+  });
+
   it("Desktop render entries stay dead-kind-free (archive_path removed)", () => {
     for (const rel of [
       "topmind-desktop/src/lib/suggest-apply-label.ts",

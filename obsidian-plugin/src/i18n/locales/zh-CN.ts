@@ -8,7 +8,7 @@ export const zhCN = {
   // ── Views ──
   stream_workbench_title: "动态",
 
-  // ── Quick Capture ──
+  // ── 记一下 (Note it) ──
   quick_capture_title: "记一下",
   quick_capture_placeholder: "在此输入...",
   quick_capture_target: "目标",
@@ -30,7 +30,7 @@ export const zhCN = {
   stream_organize: "整理",
   stream_entry_count: "{{count}} 条",
   stream_open_in_editor: "在编辑器中打开",
-  stream_loading: "加载中...",
+  stream_loading: "加载中",
   stream_day_today: "今天",
   stream_day_yesterday: "昨天",
   stream_period_label: "周期",
@@ -46,11 +46,7 @@ export const zhCN = {
   suggestions_confirm: "确认执行",
   suggestions_open: "打开",
   suggestions_dismiss: "忽略",
-  suggestions_loading: "AI 正在思考...",
-  suggestion_topic: "建议专题",
-  suggestion_todo: "待办提取",
-  suggestion_memory: "写入「我的情况」",
-  suggestion_summary: "周期反思",
+  suggestions_loading: "AI 正在思考",
   suggestion_impact_high: "高影响",
   suggestion_impact_medium: "中影响",
   suggestion_impact_low: "低影响",
@@ -100,7 +96,7 @@ export const zhCN = {
   chat_empty_hint: "AI 会基于你最近的动态和待办来回答",
   chat_no_ai: "未配置 AI，无法对话",
   chat_no_ai_hint: "请在设置中配置 AI 服务商",
-  chat_thinking: "思考中...",
+  chat_thinking: "思考中",
   chat_reasoning: "思考过程",
   chat_reasoning_show: "展开思考过程",
   chat_clear: "清空对话",
@@ -274,7 +270,6 @@ export const zhCN = {
   compose_url_hint: "检测到链接，建议使用「记一下」抓取正文到收件箱",
 
   // ── General ──
-  loading: "加载中...",
   error: "出错了",
   saved: "已保存",
   init_workspace: "初始化工作区",

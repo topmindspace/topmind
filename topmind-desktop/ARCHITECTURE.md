@@ -455,7 +455,7 @@ AiPanel 模型下拉选择器的 `onChange` 不仅更新内存 store，还同步
   - 取消：前端 ignore 迟到结果 + 主进程 abort `generateText`  
   - 应用：选区替换前校验原文是否漂移  
 
-- Windows：`titleBarStyle: hidden` + `titleBarOverlay`（主窗与快速捕获浮窗）  
+- Windows：`titleBarStyle: hidden` + `titleBarOverlay`（主窗与记一下浮窗）  
 - 知识加工队列 UI：`IngestQueuePanel`（Hub + 浮窗共享主进程 jobs）  
 - 属性条：`Select variant="chip"` 单层描边  
 

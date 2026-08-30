@@ -80,19 +80,15 @@
   --color-status-success: #16a34a;
   --color-success: var(--color-status-success);
   --color-status-success-bg: rgba(22, 163, 74, 0.09);
-  --color-status-success-glow: rgba(22, 163, 74, 0.28);
   --color-status-warning: #e07b00;
   --color-warning: var(--color-status-warning);
   --color-status-warning-bg: rgba(224, 123, 0, 0.09);
-  --color-status-warning-glow: rgba(224, 123, 0, 0.28);
   --color-status-error: #e03131;
   --color-error: var(--color-status-error);
   --color-status-error-bg: rgba(224, 49, 49, 0.09);
-  --color-status-error-glow: rgba(224, 49, 49, 0.32);
   /* Info follows Brand Mid (sky) — secondary signal */
   --color-status-info: var(--color-brand-mid);
   --color-status-info-bg: rgba(14, 165, 233, 0.09);
-  --color-status-info-glow: rgba(14, 165, 233, 0.32);
   --color-inset-glow-subtle: rgba(255, 255, 255, 0.06);
   --color-accent-border-subtle: rgba(2, 132, 199, 0.25);
   --color-accent-bg-subtle: rgba(2, 132, 199, 0.08);
