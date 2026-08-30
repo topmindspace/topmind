@@ -31,7 +31,7 @@ topmind = Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Option
 - Desktop：**富工作台**；导航变薄；不硬依赖 UTR  
 - UTR：可选 CLI/MCP（**8 域 / 28 命令**；MCP 默认 19）  
 - Obsidian 插件：可选；Obsidian 内嵌动态流 + AI 副驾；复用 Kernel `lib/` 八引擎  
-- Kernel 写闸 · Memory · 建议条/待确认写入 · 待办 · AI 操作框架 · **活动窗口 / 动态增补** · **高影响 only 备份/回执 + AI Provider 动态参数**：**Done** — 见 `docs/ARCHITECTURE-RESET.md` §2 · `docs/adr/2026-08-07-engine-hardening-writeback-ai.md`
+- Kernel 写闸 · Memory · 建议条/待确认写入 · 待办 · 可选记账（ledger-engine 卫星，非第九引擎 / 非第六概念）· AI 操作框架 · **活动窗口 / 动态增补** · **高影响 only 备份/回执 + AI Provider 动态参数**：**Done** — 见 `docs/ARCHITECTURE-RESET.md` §2 · `docs/adr/2026-08-07-engine-hardening-writeback-ai.md`
 
 ## Commands
 

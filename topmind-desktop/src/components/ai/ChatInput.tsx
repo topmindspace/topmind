@@ -415,18 +415,25 @@ export function ChatInput() {
 
   const canSend = text.trim().length > 0 && ready;
 
-  // 焦点信息 — 从 selection 提取当前上下文用于 placeholder
+  // 焦点信息 — 从 selection 提取当前上下文用于 placeholder。
+  // 名字截断到 12 字符：placeholder 单行显示，过长会被 rows=1 裁切。
   const focusHint = useMemo(() => {
+    const cap = (raw: string) => {
+      const name = raw.trim();
+      if (!name) return "";
+      return name.length > 10 ? `${name.slice(0, 10)}…` : name;
+    };
     if (selection.kind === "topic") {
-      const name = selection.topicId?.split("/").slice(1).join("/") || selection.topicId;
+      const name = cap(selection.topicId?.split("/").slice(1).join("/") || selection.topicId || "");
       return name ? t("ai.focusPrefix", { name }) : "";
     }
     if (selection.kind === "file") {
-      const fileName = selection.path.split("/").pop() || selection.path;
-      return t("ai.focusPrefix", { name: fileName });
+      const fileName = cap(selection.path.split("/").pop() || selection.path);
+      return fileName ? t("ai.focusPrefix", { name: fileName }) : "";
     }
     if (selection.kind === "connector") {
-      return t("ai.focusPrefix", { name: selection.id });
+      const id = cap(selection.id);
+      return id ? t("ai.focusPrefix", { name: id }) : "";
     }
     return "";
   }, [selection, t]);
@@ -598,7 +605,7 @@ export function ChatInput() {
             streaming
               ? t("ai.slashPlaceholderStreaming", { hint: statusHint || t("ai.processing") })
               : focusHint
-                ? `${t("ai.slashPlaceholder")}  ·  ${focusHint}`
+                ? `${focusHint}${t("ai.focusPlaceholderSuffix")}`
                 : t("ai.slashPlaceholder")
           }
           rows={1}
@@ -616,7 +623,7 @@ export function ChatInput() {
                   type="button"
                   onClick={() => handleSubmit("steer")}
                   aria-label={t("ai.enterSteerLabel")}
-                  className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-md)] bg-accent-color text-primary-foreground shadow-[var(--shadow-button)] hover:bg-accent-hover active:scale-95"
+                  className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-md)] bg-primary text-primary-foreground shadow-[var(--shadow-button)] hover:bg-primary-hover active:scale-95"
                 >
                   <ArrowUp size={ICON.sm} />
                 </button>
@@ -643,7 +650,7 @@ export function ChatInput() {
               className={cn(
                 "mb-1.5 mr-1.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] transition-[background-color,color,box-shadow,transform] duration-[var(--duration-fast)]",
                 canSend
-                  ? "bg-accent-color text-primary-foreground shadow-[var(--shadow-button)] hover:bg-accent-hover hover:shadow-[var(--shadow-button-hover)] active:scale-95"
+                  ? "bg-primary text-primary-foreground shadow-[var(--shadow-button)] hover:bg-primary-hover hover:shadow-[var(--shadow-button-hover)] active:scale-95"
                   : "cursor-not-allowed bg-surface-muted text-text-quaternary",
               )}
             >

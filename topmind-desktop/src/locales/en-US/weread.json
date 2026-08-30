@@ -8,30 +8,6 @@
     "lastSync": "Last sync {{time}} · Click to open reading hub",
     "reading": "Reading {{label}}"
   },
-  "sidebar": {
-    "label": "WeRead",
-    "syncedBooks": "✓ {{count}} books synced",
-    "highlights": "{{count}} highlights",
-    "thoughts": "{{count}} thoughts",
-    "syncDone": "✓ Sync complete",
-    "noChange": "{{count}} unchanged",
-    "errors": "{{count}} errors",
-    "remaining": "{{count}} remaining",
-    "connecting": "Connecting…",
-    "autoResolve": "Auto-resolve",
-    "firstSyncConfirm": "First sync: paginated fetch of all books with highlights/thoughts (books without notes are skipped).\n\nTarget: {{category}}/\nHighlights + thoughts written to topics; unchanged skipped; timeout continues next time.\nContinue?",
-    "resyncConfirm": "Scan all books with notes (last: {{date}}).\n\nTarget: {{category}}/\nAlready synced and unchanged will be skipped.\nContinue?",
-    "clickConfig": "Click to configure API Key",
-    "syncAgo": "Synced {{time}}",
-    "openHubHint": "Open hub · Only books with notes sync",
-    "openHubTooltip": "Open reading hub · Stats / Select / Sync",
-    "openHub": "Open reading hub",
-    "syncNow": "Sync now",
-    "settings": "WeRead settings",
-    "syncConfirmTitle": "WeRead sync confirmation",
-    "confirmSync": "Confirm sync",
-    "cancel": "Cancel"
-  },
   "settings": {
     "label": "WeRead",
     "updatedBooks": "Updated {{count}} books",
@@ -50,7 +26,7 @@
     "connectedDate": "Connected · {{date}}",
     "notConfigured": "Not configured",
     "enable": "Enable",
-    "enableDesc": "Hides sidebar and sync entry when off",
+    "enableDesc": "Hides the Apps-menu entry and sync actions when off",
     "apiKeyDesc": "Scan QR code in WeChat to get wrk- prefixed key",
     "test": "Test",
     "sync": "Sync",
@@ -67,9 +43,8 @@
     "budgetDesc": "Timeout continues next time"
   },
   "hub": {
-    "loadError": "Loading WeRead…",
-    "listError": "✗ Notebook list: {{msg}}",
-    "statsError": "✗ Stats: {{msg}}",
+    "listError": "Failed to load notebooks: {{msg}}",
+    "statsError": "Failed to load stats: {{msg}}",
     "connecting": "Connecting to WeRead…",
     "notEnabled": "WeRead not enabled",
     "notEnabledHint": "Enable the plugin in settings and enter API Key",
@@ -105,7 +80,8 @@
     "noChangeToast": "{{count}} unchanged",
     "noContentToast": "{{count}} no content",
     "errorToast": "{{count}} errors",
-    "remainingToast": "{{count}} remaining next time"
+    "remainingToast": "{{count}} remaining next time",
+    "loading": "Loading WeRead…"
   },
   "format": {
     "notSynced": "Not synced yet",

@@ -8,7 +8,7 @@ import type { AppSettings } from "../types";
 export type ConnectorSlotFactory = (ctx: PluginContext) => Slot | Slot[];
 
 export interface ConnectorActivateOptions {
-  /** AppSettings key that holds { enabled: boolean, ... } */
+  /** AppSettings key that holds { enabled: boolean, ... } (weread / x / ledger / …) */
   settingsKey: keyof AppSettings;
   /** Always registered (so users can configure while disabled). */
   settingsSlot: ConnectorSlotFactory;

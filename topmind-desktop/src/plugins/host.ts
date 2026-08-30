@@ -132,6 +132,7 @@ const BUILTIN_PLUGINS: ReadonlyArray<{ id: string; load: () => Promise<{ default
   { id: "topmind-ingest", load: () => import("./topmind-ingest") },
   { id: "topmind-weread", load: () => import("./topmind-weread") },
   { id: "topmind-x", load: () => import("./topmind-x") },
+  { id: "topmind-ledger", load: () => import("./topmind-ledger") },
 ];
 
 const BUILTIN_IDS = new Set(BUILTIN_PLUGINS.map((p) => p.id));

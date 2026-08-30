@@ -3,7 +3,7 @@
  */
 import {
   FileText, File, Image as ImageIcon,
-  Folder, FolderOpen, Inbox, Archive, Layers, FileCode2,
+  Folder, FolderOpen, Inbox, Archive, Layers, FileCode2, Brain,
 } from "lucide-react";
 import type { TreeNode } from "../../plugins/types";
 import { cn } from "../../lib/cn";
@@ -25,6 +25,7 @@ export function TreeNodeIcon({
   switch (node.kind) {
     case "group":
       if (node.id === "section/inbox") return <Inbox size={ICON.xs} className={className} />;
+      if (node.id === "section/memory") return <Brain size={ICON.xs} className={className} />;
       if (node.id === "section/outputs") return <Layers size={ICON.xs} className={className} />;
       if (node.id === "section/archive") return <Archive size={ICON.xs} className={className} />;
       return <Folder size={ICON.xs} className={className} />;

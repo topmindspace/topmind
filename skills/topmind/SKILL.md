@@ -1,9 +1,9 @@
 ---
 name: topmind
-version: 3.5.3
+version: 3.5.4
 description: >-
   topmind 总入口与多意图路由（类别/专题/笔记/交付）。Use when 用户说 topmind、意图模糊、或需要
-  收→整→写 分步。单意图明确时直接用 topmind-capture|organize|write|memory|maintain|loop|weread|x。
+  收→整→写 分步。单意图明确时直接用 topmind-capture|organize|write|memory|maintain|loop|weread|x|ledger。
   Do NOT invent parallel front doors; do NOT skip a matching sub-skill.
 action_category: router
 triggers:
@@ -53,10 +53,11 @@ degradation: ../shared/capability-degradation.md
 loop/整体体检/巡检       → topmind-loop        → .topmind/loop/ 可恢复
 微信读书/同步划线        → topmind-weread      → connector 解析类别
 发推/推特/x.com          → topmind-x           → connector 解析类别
+记账/记一笔/花了/存入    → topmind-ledger      → memory/ledgers/（默认自己）
 不确定 / 多意图          → 本 router 拆步      → 先 capture 再建议
 ```
 
-English: capture → capture · weekly review/organize (activity window) → organize · write → write · about me → memory/profile · period reflection → memory/periodic/{YYYY}/ · new topic folder → organize (content category) · doctor → maintain · loop → loop.
+English: capture → capture · weekly review/organize (activity window) → organize · write → write · about me → memory/profile · period reflection → memory/periodic/{YYYY}/ · new topic folder → organize (content category) · doctor → maintain · loop → loop · bookkeeping/spent/deposited → ledger (`memory/ledgers/`, personal default).
 
 读配置：`stream.packing`（默认 weekly）· `stream.year_dir`（默认 true）· `memory.layers.global.file`（`profile.md`）。  
 **活动窗口**（Desktop/Kernel 与 organize 共用）：近期周期本 ∪ 近期改动笔记 ∪ 增补锚定的原文——不只「最新周期文件名」。
@@ -67,7 +68,7 @@ English: capture → capture · weekly review/organize (activity window) → org
 User experience:     capture-first
 Data organization:   category-first + topic-emerges
 Object model:        category → topic → object
-Actions:             capture | organize | write | memory | maintain | loop | connector
+Actions:             capture | organize | write | memory | maintain | loop | connector | ledger (optional)
 Save settings:       auto | confirm
 ```
 
@@ -153,7 +154,7 @@ UTR 可选（MCP primary+danger）：`list-categories` · `list-topics` · `insp
 ```text
 {workspace-root}/
 ├── topmind.yaml             # v4 行为契约
-├── memory/                 # 语义平面（profile / periodic/{YYYY}/ / topics）
+├── memory/                 # 语义平面（profile / periodic/{YYYY}/ / topics / todo.md / 可选 ledgers/）
 ├── .topmind/               # 系统平面（index / loop / logs，可重建）
 ├── {NN}-{Name}/               # buffer / loose-stream / deep-work / …
 ├── {NN}-Outputs/              # role: delivery（常 88-输出）

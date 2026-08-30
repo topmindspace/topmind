@@ -22,7 +22,8 @@ import {
 import { Button } from "../../../components/ui/Button";
 import { ICON } from "../../../lib/icons";
 import { cn } from "../../../lib/cn";
-import { assembleMemoryFeed, filterMemoryFeedByLayer, type MemoryFeedItem, type MemoryFeedKind } from "../../../lib/memory-feed";
+import { assembleMemoryFeed, filterMemoryFeedByLayer, type MemoryFeedItem, type MemoryFeedKind, type MemoryFeedLayer } from "../../../lib/memory-feed";
+import { stripListChromeForDisplay } from "../../../lib/stream-md-preview";
 import { runMemoryOrganizeConfirm, revealMemoryFolderInTree } from "../../../lib/memory-organize";
 import { streamMarkdownToPreviewHtml } from "../../../lib/stream-md-preview";
 import { Tooltip } from "../../../components/ui/tooltip";
@@ -37,22 +38,28 @@ async function collectMarkdownFiles(rel: string, depth = 0): Promise<Array<{ pat
   } catch {
     return [];
   }
+  // Parallelize: serial IPC reads made grown memory/ folders crawl.
+  const dirs = entries.filter((e) => e.kind === "dir");
+  const files = entries.filter((e) => {
+    const name = (e.name || "").toLowerCase();
+    return e.kind !== "dir" && name.endsWith(".md") && name !== "todo.md";
+  });
+  const [subTrees, fileResults] = await Promise.all([
+    Promise.all(dirs.map((e) => collectMarkdownFiles(e.relativePath, depth + 1))),
+    Promise.all(
+      files.map(async (e) => {
+        try {
+          const markdown = await api.ws.read(e.relativePath);
+          return { path: e.relativePath, markdown };
+        } catch {
+          return null; /* skip unreadable */
+        }
+      }),
+    ),
+  ]);
   const out: Array<{ path: string; markdown: string }> = [];
-  for (const e of entries) {
-    if (e.kind === "dir") {
-      out.push(...(await collectMarkdownFiles(e.relativePath, depth + 1)));
-      continue;
-    }
-    const name = e.name || "";
-    if (!name.toLowerCase().endsWith(".md")) continue;
-    if (name.toLowerCase() === "todo.md") continue;
-    try {
-      const markdown = await api.ws.read(e.relativePath);
-      out.push({ path: e.relativePath, markdown });
-    } catch {
-      /* skip unreadable */
-    }
-  }
+  for (const sub of subTrees) out.push(...sub);
+  for (const f of fileResults) if (f) out.push(f);
   return out;
 }
 
@@ -67,7 +74,7 @@ export function MemoryBrowseView() {
   const [items, setItems] = useState<MemoryFeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [layer, setLayer] = useState<"all" | MemoryFeedKind>("all");
+  const [layer, setLayer] = useState<MemoryFeedLayer>("all");
   const [organizing, setOrganizing] = useState(false);
   const select = useViewStore((s) => s.select);
   const feedLayout = useViewStore((s) => s.feedLayout);
@@ -111,9 +118,20 @@ export function MemoryBrowseView() {
 
   useEffect(() => {
     void load();
-    const unsub = onLocal("workspace:file-changed", () => void load({ silent: true }));
+    // Silent reloads only react to memory-plane changes, debounced — the raw
+    // event fires for every workspace write (incl. editor autosaves).
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const unsub = onLocal("workspace:file-changed", (payload) => {
+      const rel = (payload as { relativePath?: string } | null)?.relativePath;
+      if (typeof rel === "string" && rel.trim() && !rel.replace(/\\/g, "/").startsWith("memory/")) {
+        return;
+      }
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => void load({ silent: true }), 800);
+    });
     return () => {
       unsub();
+      if (timer) clearTimeout(timer);
     };
   }, [load]);
 
@@ -133,8 +151,11 @@ export function MemoryBrowseView() {
   );
 
   const layerCounts = useMemo(() => {
-    const counts = { profile: 0, periodic: 0, topic: 0 };
-    for (const i of items) counts[i.kind] += 1;
+    const counts = { profile: 0, periodic: 0, topic: 0, history: 0 };
+    for (const i of items) {
+      if (i.history) counts.history += 1;
+      else counts[i.kind] += 1;
+    }
     return counts;
   }, [items]);
 
@@ -155,11 +176,23 @@ export function MemoryBrowseView() {
     });
   };
 
-  if (loading) return <LoadingState label={t("common:action.loading")} />;
-  if (error) return <ErrorState message={error} onRetry={() => void load()} />;
+  if (loading) {
+    return (
+      <ViewContainer variant="feed">
+        <LoadingState label={t("common:action.loading")} />
+      </ViewContainer>
+    );
+  }
+  if (error) {
+    return (
+      <ViewContainer variant="feed">
+        <ErrorState message={error} onRetry={() => void load()} />
+      </ViewContainer>
+    );
+  }
 
   return (
-    <ViewContainer>
+    <ViewContainer variant="feed">
       <PageHeader
         icon={<Brain size={ICON.sm} />}
         title={t("workspace:memoryBrowse.title")}
@@ -206,7 +239,7 @@ export function MemoryBrowseView() {
             <FilterChip
               active={layer === "all"}
               label={t("workspace:memoryBrowse.layerAll")}
-              count={items.length}
+              count={items.filter((i) => i.history !== true).length}
               onClick={() => setLayer("all")}
             />
             <FilterChip
@@ -227,6 +260,14 @@ export function MemoryBrowseView() {
               count={layerCounts.topic}
               onClick={() => setLayer("topic")}
             />
+            {layerCounts.history > 0 ? (
+              <FilterChip
+                active={layer === "history"}
+                label={t("workspace:memoryBrowse.kindHistory")}
+                count={layerCounts.history}
+                onClick={() => setLayer("history")}
+              />
+            ) : null}
           </div>
           <FeedLayoutToggle value={feedLayout} onChange={setFeedLayout} />
         </FeedChrome>
@@ -261,12 +302,24 @@ export function MemoryBrowseView() {
         >
           {visible.map((item) => {
             const Icon = kindIcon(item.kind);
-            const html = streamMarkdownToPreviewHtml(item.body);
+            const displayMd = stripListChromeForDisplay(item.body);
+            const firstLine = (item.body || "").split("\n").find((l) => l.trim()) || "";
+            const firstPlain = firstLine
+              .replace(/^\s*[-*+]\s+(\[[ xX]\]\s*)?/u, "")
+              .replace(/^\s*\d+\.\s+/u, "")
+              .replace(/^#{1,6}\s+/u, "")
+              .trim();
+            const titleDupesBody = Boolean(item.title) && firstPlain === item.title;
+            const html = streamMarkdownToPreviewHtml(displayMd);
+            const kindText = item.history
+              ? t("workspace:memoryBrowse.kindHistory")
+              : kindLabel[item.kind];
             return (
               <article
                 key={item.id}
                 data-memory-feed-item
                 data-memory-kind={item.kind}
+                data-memory-history={item.history ? "true" : undefined}
                 data-memory-path={item.path}
                 className="group cursor-pointer v4-focus-ring rounded-[var(--radius-lg)]"
                 role="button"
@@ -285,22 +338,32 @@ export function MemoryBrowseView() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <h2 className="truncate text-sm font-medium text-text-primary">{item.title}</h2>
+                      {titleDupesBody ? null : (
+                        <h2 className="truncate text-sm font-medium text-text-primary">{item.title}</h2>
+                      )}
+                      {item.heading && item.heading !== item.title ? (
+                        <span className="rounded-full bg-surface-muted px-1.5 py-px text-3xs text-text-tertiary">
+                          {item.heading}
+                        </span>
+                      ) : null}
                       <span className="rounded-full bg-surface-muted px-1.5 py-px text-3xs text-text-quaternary">
-                        {kindLabel[item.kind]}
+                        {kindText}
                       </span>
                     </div>
-                    {feedLayout === "card" && html ? (
+                    {html ? (
                       <div
-                        className="v4-stream-md mt-1.5 line-clamp-6 text-3xs leading-relaxed text-text-secondary"
+                        className={cn(
+                          "v4-stream-md mt-1 text-sm leading-[1.55] text-text-secondary",
+                          feedLayout === "list" && "line-clamp-3",
+                          feedLayout === "card" && "line-clamp-8",
+                        )}
                         dangerouslySetInnerHTML={{ __html: html }}
                       />
-                    ) : (
+                    ) : item.preview ? (
                       <p className="mt-0.5 line-clamp-2 text-3xs leading-relaxed text-text-tertiary">
                         {item.preview}
                       </p>
-                    )}
-                    <div className="mt-1 font-mono text-3xs text-text-quaternary">{item.path}</div>
+                    ) : null}
                   </div>
                 </div>
               </article>

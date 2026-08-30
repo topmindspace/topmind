@@ -1,18 +1,19 @@
 /**
  * v4 Plugin Contract — extensible slot system powering the entire Shell.
  *
- * 8 slot kinds:
+ * 7 slot kinds:
  *   DataSource    — sidebar tree section (built-in: Category+Topic filesystem)
- *   SidebarSlot   — sidebar entries (rich render or simple label+icon)
  *   ViewSlot      — editor area content when matches(selection) is true
  *   ActionSlot    — command palette (⌘K), context menus, shortcuts
  *   SettingsSlot  — settings dialog tab with custom panel
- *   OverlaySlot   — custom modal/overlay layer
+ *   OverlaySlot   — custom modal/overlay layer (incl. plugin-app mini-apps)
  *   StatusBarSlot — status bar contributions
  *   ContextMenuSlot — tree view right-click menu items
  *
  * Built-in `topmind-workspace` plugin implements the core slots; additional
- * plugins (weread, x, accounting, web-resources) register their own.
+ * plugins (weread, x, ledger, ingest) register their own.
+ * 可选插件的 chrome 入口统一在标题栏 Apps 菜单（lib/apps-menu）；
+ * 侧栏插件行 slot 已删除（2026-08-30）——左栏只承载内容导航。
  */
 import type { ReactNode } from "react";
 import type { Selection } from "../types";
@@ -32,8 +33,13 @@ export interface PluginManifest {
   icon?: string;
   /** Built-in plugins are always loaded and cannot be disabled. */
   builtin?: boolean;
-  /** Settings key that controls this plugin's enabled state (e.g. "weread", "x"). */
+  /** Settings key that controls this plugin's enabled state (e.g. "weread", "x", "ledger"). */
   settingsKey?: string;
+  /**
+   * Mini-app launcher: when true, the plugin is listed in the Apps menu
+   * (dedicated surface, not a PrimaryNav concept) if currently enabled.
+   */
+  launchable?: boolean;
 }
 
 /* ── Plugin Context ── */
@@ -104,7 +110,6 @@ export interface PluginState {
 
 export type SlotKind =
   | "dataSource"
-  | "sidebar"
   | "view"
   | "action"
   | "settings"
@@ -156,31 +161,6 @@ export interface DataSourceSlot extends SlotBase {
   refresh?(): Promise<void>;
   /** Subscribe to tree changes; returns unsubscribe. Payload carries optional relativePath for targeted refresh. */
   watch?(cb: (payload?: unknown) => void): () => void;
-}
-
-/* ── Sidebar slot ──
- * Non-tree sidebar entries. Two modes:
- * 1. Simple: provide label + icon + onSelect → default rendering.
- * 2. Rich: provide render(props) → full custom rendering (sync buttons, status, etc.).
- * Rich mode is used by connector plugins (weread, x) that need interactive controls. */
-
-export interface SidebarSlot extends SlotBase {
-  kind: "sidebar";
-  label: string;
-  /** i18n key — when set, Sidebar resolves via t() instead of using label. */
-  labelKey?: string;
-  icon?: string;
-  /** Simple mode: called when the entry is clicked. */
-  onSelect?(): void;
-  /** Rich mode: full custom render. Replaces default label+icon rendering.
-   *  The plugin captures ctx in closure during activate(). */
-  render?(): ReactNode;
-  /** Simple mode: static status text shown below the label. */
-  statusText?: string;
-  /** Simple mode: whether the plugin is configured (affects UI). */
-  isConfigured?: boolean;
-  /** Simple mode: primary action (e.g. sync). */
-  onAction?(ctx: PluginContext): void | Promise<void>;
 }
 
 /* ── View slot ──
@@ -266,7 +246,6 @@ export interface ContextMenuSlot extends SlotBase {
 
 export type Slot =
   | DataSourceSlot
-  | SidebarSlot
   | ViewSlot
   | ActionSlot
   | SettingsSlot

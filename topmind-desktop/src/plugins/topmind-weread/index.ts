@@ -3,10 +3,10 @@
  *
  * Registers:
  * - SettingsSlot (always)
- * - When enabled: Sidebar · Hub View · Actions · StatusBar
+ * - When enabled: Hub View · Actions · StatusBar
+ *   （chrome 入口统一在标题栏 Apps 菜单 + 状态栏 chip；侧栏插件行已移除 2026-08-30）
  */
 import { defineConnectorPlugin } from "../connector";
-import { createWereadSidebarSlot } from "./sidebar-slot";
 import { createWereadSettingsSlot } from "./settings-slot";
 import { createWereadActions } from "./actions";
 import { createWereadStatusBarSlot } from "./status-bar-slot";
@@ -27,7 +27,6 @@ export default defineConnectorPlugin(manifest, {
   settingsKey: "weread",
   settingsSlot: createWereadSettingsSlot,
   interactiveSlots: [
-    createWereadSidebarSlot,
     createWereadHubView,
     (ctx) => createWereadActions(ctx),
     createWereadStatusBarSlot,

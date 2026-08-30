@@ -41,18 +41,21 @@ test("TitleBar: L1 capture+AI solid, L2 suggest/todo, L3 tools; single capture s
   assert.doesNotMatch(l2, /v4-titlebar-btn-capture/);
 });
 
-test("TitleBar wide rail renders a theme cycle control (not only the compact ⋯ menu)", () => {
+test("TitleBar wide rail renders a theme control (not only the compact ⋯ menu)", () => {
   const titleBar = read("src/components/shell/TitleBar.tsx");
   const compactIdx = titleBar.indexOf("{!compactTools ? (");
   assert.ok(compactIdx >= 0, "expected !compactTools branch");
   const afterCompact = titleBar.slice(compactIdx);
-  const menuRel = afterCompact.indexOf("<DropdownMenu");
-  assert.ok(menuRel > 0, "expected overflow DropdownMenu after !compactTools");
-  const wide = afterCompact.slice(0, menuRel);
+  // 2026-08-30: the wide-rail theme control is itself a DropdownMenu (explicit
+  // auto/light/dark radio via pickTheme(), replacing blind cycling) — so the
+  // wide branch is bounded by the branch else (`) : (`), not by the first menu.
+  const elseRel = afterCompact.indexOf(") : (");
+  assert.ok(elseRel > 0, "expected compact fallback branch");
+  const wide = afterCompact.slice(0, elseRel);
   assert.match(wide, /data-titlebar-theme/);
-  assert.match(wide, /cycleTheme/);
-  const compact = afterCompact.slice(menuRel);
-  assert.match(compact, /themeMenuItem/);
+  assert.match(wide, /pickTheme/);
+  const compact = afterCompact.slice(elseRel);
+  assert.match(compact, /themeMenuSection/);
 });
 
 test("List views demote capture to outline (no competing solid CTA)", () => {
@@ -85,7 +88,12 @@ test("Light tokens: surface != elevated; hairline and shadows defined", () => {
   const elevated = light.match(/--color-surface-elevated:\s*([^;]+);/)?.[1]?.trim();
   assert.ok(surface && elevated);
   assert.notEqual(surface.toLowerCase(), elevated.toLowerCase());
-  assert.match(light, /--color-border-subtle-dim:\s*rgba\(60,\s*58,\s*50,\s*0\.0[5-9]/);
+  // DS 3.0 "ZCode Neutral": pure-neutral hairline = black alpha 6%
+  assert.match(light, /--color-border-subtle-dim:\s*rgba\(23,\s*23,\s*23,\s*0\.0[5-9]/);
+  // Monochrome ink primary CTA + sky accent (no legacy ink-blue brand)
+  assert.match(light, /--color-ink:\s*#1a1a1a/);
+  assert.match(light, /--color-accent-color:\s*#0284c7/);
+  assert.doesNotMatch(light, /#31548e|#5a7fb8|#7f9fd4/);
   assert.match(light, /--shadow-card:/);
   assert.match(light, /--shadow-elevated-hairline:/);
   assert.match(light, /--shadow-float:/);
@@ -135,16 +143,31 @@ test("StatusBar: single-path named chip (tasks > todo > suggest)", () => {
 
 // ── Settings / overlays / sidebar ──────────────────────────────────────
 
-test("Settings + overlays use v4 elevated shell; sidebar plugins default collapsed", () => {
+test("Settings + overlays use v4 elevated shell; sidebar carries no plugin section", () => {
   const settings = read("src/components/overlays/SettingsDialog.tsx") + read("src/components/overlays/SettingsLayout.tsx");
   assert.match(settings, /data-settings-dialog|v4-settings-dialog/);
   assert.match(settings, /surface-elevated|bg-surface-elevated/);
   assert.match(settings, /variant=["']ghost["']/);
 
+  // 2026-08-30: 左栏回归纯内容导航 — 插件入口统一在标题栏 Apps 菜单。
   const sidebar = read("src/components/shell/Sidebar.tsx");
-  assert.match(sidebar, /data-sidebar-plugins-section/);
-  assert.match(sidebar, /useState\(\s*true\s*\)/);
-  assert.match(sidebar, /data-sidebar-plugins-collapsed/);
+  assert.doesNotMatch(sidebar, /data-sidebar-plugins-section/);
+  assert.doesNotMatch(sidebar, /sidebarSlots/);
+
+  const titleBar = read("src/components/shell/TitleBar.tsx");
+  assert.match(titleBar, /AppsMenu/);
+  const appsMenu = read("src/components/shell/AppsMenu.tsx");
+  assert.match(appsMenu, /data-titlebar-apps/);
+  assert.match(appsMenu, /listLaunchablePlugins/);
+  // 菜单组件不写死插件 id（打开方式/就绪判定都在 lib/apps-menu）
+  assert.doesNotMatch(appsMenu, /topmind-ledger|topmind-weread|topmind-x|topmind-ingest/);
+  const appsLib = read("src/lib/apps-menu.ts");
+  assert.match(appsLib, /resolveLaunchableOpenTarget/);
+  assert.match(appsLib, /PLUGIN_APP_KIND/);
+  assert.match(appsLib, /pluginReadiness/);
+  // 菜单数据实时性：打开时拉取 settings + 订阅插件设置变化（不依赖启动快照）
+  assert.match(appsMenu, /api\.sys\.settings\(\)/);
+  assert.match(appsMenu, /plugins:settings-changed/);
 });
 
 test("Stream and collection canvases expose list/card layout switch + data-layout", () => {
@@ -233,9 +256,15 @@ test("FilterChip is chip-weight; EmptyState one-primary-CTA; CaptureModeBar chip
 
 test("Browser extension popup CSS mirrors Design System brand + capture CTA", () => {
   const css = read("browser-extension/popup.css", repoRoot);
+  // DS 3.0 "ZCode Neutral" mirror: pure neutrals + sky accent + teal capture
   assert.match(css, /--mh-capture:\s*#12897b/i);
   assert.match(css, /--mh-elevated:\s*#ffffff/i);
-  assert.match(css, /--mh-bg:\s*#f7f6f4/i);
+  assert.match(css, /--mh-bg:\s*#f7f7f7/i);
+  assert.match(css, /--mh-accent:\s*#0284c7/i);
+  assert.match(css, /--mh-brand-deep:\s*#075985/i);
+  assert.match(css, /--mh-brand-mid:\s*#0ea5e9/i);
+  assert.match(css, /--mh-bg:\s*#171717/i);
+  assert.doesNotMatch(css, /#31548e|#5a7fb8|#f7f6f4|#efeeeb/i);
   const html = read("browser-extension/popup.html", repoRoot);
   assert.match(html, /btn-capture|data-capture-cta/);
 });

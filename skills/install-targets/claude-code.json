@@ -20,7 +20,8 @@
     "topmind-maintain",
     "topmind-loop",
     "topmind-weread",
-    "topmind-x"
+    "topmind-x",
+    "topmind-ledger"
   ],
   "install_strategy": "symlink-or-copy",
   "target_root_hint": "claude-code-skills-root",
@@ -45,7 +46,7 @@
   },
   "notes": [
     "Claude Code exposes topmind via the Skill tool (look for SKILL.md / skills.md in the dropped pack).",
-    "v4.3 progressive disclosure: host indexes name+description for all 9 skills; load SKILL.md body on activation; load shared/ and skill references/ only when linked.",
+    "v4.3 progressive disclosure: host indexes name+description for all packaged skills; load SKILL.md body on activation; load shared/ and skill references/ only when linked.",
     "Single daily user entry remains topmind. Sub-skill descriptions are discovery aids — not parallel products. Keep Action Map + trigger-disambiguation contract.",
     "MCP integration is optional — enable topmind-mcp if the user wants deterministic UTR commands surfaced as tools.",
     "Categories use NN-Name spaced number prefix (dynamic discovery); topics use YYYY-主题 kebab-case; do not introduce YYYY-类型-项目名.",

@@ -1,9 +1,9 @@
 /**
  * topmind-ingest — knowledge processing pipeline (builtin).
  * Drop / pick files → convert to Markdown → Inbox or topic.
+ * （chrome 入口统一在标题栏 Apps 菜单 + 状态栏 chip；侧栏插件行已移除 2026-08-30）
  */
 import type { Plugin } from "../types";
-import { createIngestSidebarSlot } from "./sidebar-slot";
 import { createIngestHubView } from "./hub-view";
 import { createIngestActions } from "./actions";
 import { createIngestStatusBarSlot } from "./status-bar-slot";
@@ -21,7 +21,6 @@ export const manifest = {
 } as const;
 
 export const activate: Plugin["activate"] = (ctx) => {
-  ctx.register(createIngestSidebarSlot(ctx));
   ctx.register(createIngestHubView(ctx));
   ctx.register(createIngestSettingsSlot(ctx));
   ctx.register(createIngestStatusBarSlot(ctx));

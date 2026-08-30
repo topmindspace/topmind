@@ -10,7 +10,7 @@
 //   - Model selection with curated defaults
 //   - Workspace status card with contract doctor / reseed
 
-import { PluginSettingTab, Setting, Notice, ExtraButtonComponent } from "obsidian";
+import { PluginSettingTab, Setting, Notice, ExtraButtonComponent, Modal, type App as ObsidianApp } from "obsidian";
 import type TopmindPlugin from "../main";
 import { t, type LocaleKey } from "../i18n";
 import type { WritebackMode, TimelineOrder, AiManualKeys } from "../types";
@@ -143,6 +143,7 @@ function tryImportDesktopSettings(): { imported: Partial<AiManualKeys>; preferen
 export class TopmindSettingTab extends PluginSettingTab {
   plugin: TopmindPlugin;
   private templateSelect: HTMLSelectElement | null = null;
+  private saveTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(app: import("obsidian").App, plugin: TopmindPlugin) {
     super(app, plugin);
@@ -184,13 +185,16 @@ export class TopmindSettingTab extends PluginSettingTab {
           .setButtonText(t("init_workspace"))
           .onClick(() => {
             const templateId = this.templateSelect?.value || "stream";
-            const result = this.plugin.kernelService.initWorkspace(templateId);
-            if (result.ok) {
-              new Notice(t("init_workspace_success"));
-              this.display();
-            } else {
-              new Notice(`${t("init_workspace_failed")}: ${result.error}`);
-            }
+            // Writes ~5 directories + topmind.yaml into this vault — confirm first.
+            new ConfirmModal(this.app, t("init_workspace"), t("init_workspace_confirm"), () => {
+              const result = this.plugin.kernelService.initWorkspace(templateId);
+              if (result.ok) {
+                new Notice(t("init_workspace_success"));
+                this.display();
+              } else {
+                new Notice(`${t("init_workspace_failed")}: ${result.error}`);
+              }
+            });
           }),
       );
 
@@ -705,21 +709,29 @@ export class TopmindSettingTab extends PluginSettingTab {
             .setButtonText(t("workspace_contract_reseed"))
             .setWarning()
             .onClick(() => {
-              try {
-                const result = reseedWorkspaceContract(
-                  getKernel(),
-                  this.plugin.kernelService.getVaultPath(),
-                );
-                if (result.ok) {
-                  new Notice(t("workspace_contract_reseed_ok"));
-                  this.plugin.kernelService.invalidateCache();
-                  this.display();
-                } else {
-                  new Notice(`${t("workspace_contract_reseed_failed")}: ${result.error || ""}`);
-                }
-              } catch (err) {
-                new Notice(`${t("workspace_contract_reseed_failed")}: ${err instanceof Error ? err.message : String(err)}`);
-              }
+              // Backs up + replaces the contract file — never run silently.
+              new ConfirmModal(
+                this.app,
+                t("workspace_contract_reseed"),
+                t("workspace_contract_reseed_confirm"),
+                () => {
+                  try {
+                    const result = reseedWorkspaceContract(
+                      getKernel(),
+                      this.plugin.kernelService.getVaultPath(),
+                    );
+                    if (result.ok) {
+                      new Notice(t("workspace_contract_reseed_ok"));
+                      this.plugin.kernelService.invalidateCache();
+                      this.display();
+                    } else {
+                      new Notice(`${t("workspace_contract_reseed_failed")}: ${result.error || ""}`);
+                    }
+                  } catch (err) {
+                    new Notice(`${t("workspace_contract_reseed_failed")}: ${err instanceof Error ? err.message : String(err)}`);
+                  }
+                },
+              );
             }),
         );
     } catch {
@@ -731,10 +743,30 @@ export class TopmindSettingTab extends PluginSettingTab {
   }
 
   private async save(): Promise<void> {
-    await this.plugin.saveSettings();
+    // In-memory settings + kernel config apply immediately (keeps the AI test
+    // button coherent); the disk write + full view refresh are debounced —
+    // API-key fields fire onChange per keystroke. Flushed on hide().
     this.plugin.kernelService.updateSettings(this.plugin.settings);
+    if (this.saveTimer) clearTimeout(this.saveTimer);
+    this.saveTimer = setTimeout(() => {
+      this.saveTimer = null;
+      void this.flushSave();
+    }, 400);
+  }
+
+  /** Persist to disk + refresh open views (also the hide() flush). */
+  private async flushSave(): Promise<void> {
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
+    await this.plugin.saveSettings();
     // Refresh open views so Stream/Sidebar pick up AI config changes
     this.refreshViews();
+  }
+
+  override hide(): void {
+    void this.flushSave();
   }
 
   /** Refresh all open topmind views to pick up settings changes */
@@ -769,5 +801,37 @@ export class TopmindSettingTab extends PluginSettingTab {
       defaultLabel: t("settings_ai_model_default"),
     });
     return result;
+  }
+}
+
+/** Minimal confirm gate for irreversible/dangerous settings actions. */
+class ConfirmModal extends Modal {
+  constructor(
+    app: ObsidianApp,
+    private title: string,
+    private body: string,
+    private onConfirm: () => void,
+  ) {
+    super(app);
+  }
+
+  override onOpen(): void {
+    this.contentEl.createEl("h3", { text: this.title });
+    this.contentEl.createEl("p", { text: this.body });
+    const buttons = this.contentEl.createDiv({ cls: "modal-button-container" });
+    const cancelBtn = buttons.createEl("button", { text: t("dialog_cancel") });
+    cancelBtn.addEventListener("click", () => this.close());
+    const confirmBtn = buttons.createEl("button", {
+      text: t("dialog_confirm"),
+      cls: "mod-warning",
+    });
+    confirmBtn.addEventListener("click", () => {
+      this.close();
+      this.onConfirm();
+    });
+  }
+
+  override onClose(): void {
+    this.contentEl.empty();
   }
 }

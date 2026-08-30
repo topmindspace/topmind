@@ -17,9 +17,9 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        /* Flat solid CTA — one per region; no heavy 3D lift */
+        /* Flat solid CTA — monochrome ink, one per region (ZCode primary) */
         default:
-          "bg-primary text-primary-foreground font-semibold hover:bg-accent-hover active:bg-accent-active",
+          "bg-primary text-primary-foreground font-semibold hover:bg-primary-hover active:bg-primary-active",
         secondary:
           "border border-border-subtle-dim bg-secondary text-secondary-foreground hover:bg-surface-muted hover:border-border-subtle",
         outline:

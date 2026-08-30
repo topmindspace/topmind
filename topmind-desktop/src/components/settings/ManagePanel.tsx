@@ -158,6 +158,19 @@ function SurfaceUpdateRow({
   );
 }
 
+/** IA split (2026-08-30): one ManagePanel, three user-facing settings pages. */
+export function ManageAboutPanel(props: { settings: AppSettings; update: (p: Partial<AppSettings>) => void }) {
+  return <ManagePanel {...props} sections={["about"]} />;
+}
+
+export function ManageIntegrationsPanel(props: { settings: AppSettings; update: (p: Partial<AppSettings>) => void }) {
+  return <ManagePanel {...props} sections={["integrations"]} />;
+}
+
+export function ManageDiagnosticsPanel(props: { settings: AppSettings; update: (p: Partial<AppSettings>) => void }) {
+  return <ManagePanel {...props} sections={["diagnostics"]} />;
+}
+
 // ── Command row helper ──────────────────────────────────────────────────────
 
 function CmdRow({ label, cmd }: { label: string; cmd: string }) {
@@ -195,13 +208,21 @@ function CmdRow({ label, cmd }: { label: string; cmd: string }) {
 
 // ── Main panel ───────────────────────────────────────────────────────────────
 
+export type ManageSection = "about" | "integrations" | "diagnostics";
+
 export function ManagePanel({
   settings,
   update,
+  sections,
 }: {
   settings: AppSettings;
   update: (p: Partial<AppSettings>) => void;
+  /** Render only the named sections (About / Integrations / Diagnostics split). */
+  sections?: ManageSection[];
 }) {
+  const showAbout = !sections || sections.includes("about");
+  const showIntegrations = !sections || sections.includes("integrations");
+  const showDiagnostics = !sections || sections.includes("diagnostics");
   const { t } = useTranslation(["settings", "common"]);
   const [pluginInfo, setPluginInfo] = useState<{ plugins: number; slots: number } | null>(null);
   const [doctorResult, setDoctorResult] = useState<{
@@ -248,7 +269,6 @@ export function ManagePanel({
       registry.dataSources().length +
       registry.viewSlots().length +
       registry.actions().length +
-      registry.sidebarSlots().length +
       registry.settingsSlots().length +
       registry.statusBarSlots().length +
       registry.contextMenuSlots().length +
@@ -438,6 +458,7 @@ export function ManagePanel({
 
   return (
     <div>
+      {showAbout ? (<>
       {/* ── App version header ─────────────────────────────────────────── */}
       <div className="mb-3.5 flex items-center gap-3 rounded-[var(--radius-xl)] border border-border-subtle bg-surface/70 px-3.5 py-3">
         <img
@@ -537,9 +558,10 @@ export function ManagePanel({
           <div className="text-3xs text-text-quaternary">{t("settings:about.clickToCheck")}</div>
         )}
       </SettingsSection>
+      </>) : null}
 
-      {/* ── Environment & install commands ─────────────────────────────── */}
-      {sysInfo ? (
+      {/* ── Environment & install commands (diagnostics) ──────────────── */}
+      {showDiagnostics && sysInfo ? (
         <SettingsSection
           title={t("settings:env.title")}
           description={t("settings:env.desc")}
@@ -607,7 +629,8 @@ export function ManagePanel({
         </SettingsSection>
       ) : null}
 
-      {/* ── Module management ──────────────────────────────────────────── */}
+      {/* ── Module management (integrations) ───────────────────────────── */}
+      {showIntegrations ? (<>
       <SettingsSection
         title={t("settings:manage.modulesTitle")}
         description={t("settings:manage.modulesDesc")}
@@ -1077,7 +1100,10 @@ export function ManagePanel({
         </div>
       </SettingsSection>
 
-      {/* ── Health diagnostics ────────────────────────────────────────── */}
+      </>) : null}
+
+      {/* ── Health diagnostics (diagnostics) ──────────────────────────── */}
+      {showDiagnostics ? (<>
       <SettingsSection
         title={t("settings:about.healthTitle")}
         description={t("settings:about.healthDesc")}
@@ -1152,6 +1178,7 @@ export function ManagePanel({
           </div>
         ) : null}
       </SettingsSection>
+      </>) : null}
 
       {/* ── Footer ─────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-1.5 px-0.5 text-3xs text-text-quaternary">

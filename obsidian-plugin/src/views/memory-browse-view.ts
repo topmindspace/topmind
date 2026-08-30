@@ -125,6 +125,7 @@ export class MemoryBrowseView extends ItemView {
       ["profile", t("memory_kind_profile")],
       ["periodic", t("memory_kind_periodic")],
       ["topic", t("memory_kind_topic")],
+      ["history", t("memory_kind_history")],
     ] as const) {
       const chip = layers.createEl("button", { cls: "tm-btn-secondary tm-feed-layout-btn", text: label });
       chip.setAttr("data-memory-layer", id);
@@ -183,9 +184,10 @@ export class MemoryBrowseView extends ItemView {
     }
   }
 
-  private kindLabel(kind: MemoryFeedKind): string {
-    if (kind === "periodic") return t("memory_kind_periodic");
-    if (kind === "topic") return t("memory_kind_topic");
+  private kindLabel(item: MemoryFeedItem): string {
+    if (item.history) return t("memory_kind_history");
+    if (item.kind === "periodic") return t("memory_kind_periodic");
+    if (item.kind === "topic") return t("memory_kind_topic");
     return t("memory_kind_profile");
   }
 
@@ -197,8 +199,20 @@ export class MemoryBrowseView extends ItemView {
     const header = card.createDiv({ cls: "tm-card-header" });
     const icon = header.createSpan({ cls: "tm-card-time-icon" });
     setIcon(icon, item.kind === "periodic" ? "calendar" : item.kind === "topic" ? "folder" : "user");
-    header.createSpan({ text: item.title, cls: "tm-card-time" });
-    header.createSpan({ text: this.kindLabel(item.kind), cls: "tm-card-tag" });
+    const firstLine = (item.body || "").split("\n").find((l) => l.trim()) || "";
+    const firstPlain = firstLine
+      .replace(/^\s*[-*+]\s+(\[[ xX]\]\s*)?/u, "")
+      .replace(/^\s*\d+\.\s+/u, "")
+      .replace(/^#{1,6}\s+/u, "")
+      .trim();
+    const titleDupesBody = Boolean(item.title) && firstPlain === item.title;
+    if (!titleDupesBody && item.title) {
+      header.createSpan({ text: item.title, cls: "tm-card-time" });
+    }
+    if (item.heading && item.heading !== item.title) {
+      header.createSpan({ text: item.heading, cls: "tm-card-tag" });
+    }
+    header.createSpan({ text: this.kindLabel(item), cls: "tm-card-tag" });
     const openBtn = header.createEl("button", {
       cls: "tm-card-action-btn",
       attr: { "aria-label": t("stream_open_in_editor"), title: t("stream_open_in_editor") },
@@ -212,12 +226,12 @@ export class MemoryBrowseView extends ItemView {
       void this.app.workspace.openLinkText(item.path, "", false);
     });
     const body = card.createDiv({ cls: "tm-card-body" });
-    const preview = item.preview || item.body;
-    if (preview) {
+    const md = String(item.body || "").trim() || item.preview;
+    if (md) {
       try {
-        await MarkdownRenderer.render(this.app, preview.slice(0, 800), body, item.path, this);
+        await MarkdownRenderer.render(this.app, md.slice(0, 1600), body, item.path, this);
       } catch {
-        body.textContent = preview;
+        body.textContent = md;
       }
     }
   }

@@ -52,6 +52,8 @@ function WereadHubView() {
   const [syncing, setSyncing] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
+  const [booksError, setBooksError] = useState<string | null>(null);
+  const [statsError, setStatsError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [statsMode, setStatsMode] = useState<StatsMode>("monthly");
   const [lastPaths, setLastPaths] = useState<string[]>([]);
@@ -78,8 +80,9 @@ function WereadHubView() {
     try {
       const res = await api.weread.listNotebooks();
       setBooks(res.books || []);
+      setBooksError(null);
     } catch (e) {
-      setResult(t("hub.listError", { msg: e instanceof Error ? e.message : String(e) }));
+      setBooksError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoadingBooks(false);
     }
@@ -89,8 +92,9 @@ function WereadHubView() {
     try {
       const res = await api.weread.stats({ mode: statsMode, force });
       setStats(res);
+      setStatsError(null);
     } catch (e) {
-      setResult(t("hub.statsError", { msg: e instanceof Error ? e.message : String(e) }));
+      setStatsError(e instanceof Error ? e.message : String(e));
     }
   }, [statsMode]);
 
@@ -176,7 +180,7 @@ function WereadHubView() {
   const ready = Boolean(status?.ready);
   const category = status?.syncCategory || "—";
 
-  if (loading) return <LoadingState label={t("hub.loadError")} />;
+  if (loading) return <LoadingState label={t("hub.loading")} />;
   if (error) return <ErrorState message={error} onRetry={() => void refreshCore()} />;
 
   if (!settings?.weread?.enabled) {
@@ -277,6 +281,12 @@ function WereadHubView() {
         ) : null}
       </ConnectorToastBanner>
 
+      {statsError ? (
+        <ErrorState
+          message={t("hub.statsError", { msg: statsError })}
+          onRetry={() => void loadStats(true)}
+        />
+      ) : null}
       <WereadStatsPanel
         ready={ready}
         stats={stats}
@@ -288,6 +298,12 @@ function WereadHubView() {
 
       {/* Notebooks */}
       <section>
+        {booksError ? (
+          <ErrorState
+            message={t("hub.listError", { msg: booksError })}
+            onRetry={() => void loadBooks()}
+          />
+        ) : null}
         <SectionHeader
           icon={<BookOpen size={ICON.sm} />}
           label={t("hub.booksWithNotes")}

@@ -195,7 +195,7 @@ export function mergeCaptureTags(text: string, tags?: string[]): string {
  */
 export function mapApplySuggestionResult(
   result: unknown,
-  suggestion: { kind: string },
+  suggestion: { kind: string; payload?: Record<string, unknown> },
 ): { ok: boolean; error?: string; openPath?: string } {
   if (result == null || typeof result !== "object") {
     return { ok: false, error: "empty-result" };
@@ -232,12 +232,29 @@ export function mapApplySuggestionResult(
   }
 
   if (r.ok === true || r.wroteFiles === true) {
-    return { ok: true };
+    const payload = suggestion && typeof suggestion === "object"
+      ? (suggestion as { payload?: Record<string, unknown> }).payload
+      : undefined;
+    const digest = typeof payload?.digestPath === "string" ? payload.digestPath.replace(/\\/g, "/") : "";
+    const safe = (p?: string) => {
+      if (!p) return undefined;
+      const n = p.replace(/\\/g, "/").trim();
+      if (!n || n.includes("..")) return undefined;
+      if (/(?:^|\/)(?:undefined|period)\.md$/u.test(n)) return undefined;
+      return n;
+    };
+    const written = safe(targetPath);
+    const digestSafe = safe(digest);
+    const openPath = written && /(?:^|\/)memory\/periodic\//u.test(written)
+      ? written
+      : (digestSafe || written);
+    return openPath ? { ok: true, openPath } : { ok: true };
   }
 
   // Legacy evidence without ok/wroteFiles flags: treat non-skip as success
   if (operation && operation !== "skip") {
-    return { ok: true };
+    const written = typeof targetPath === "string" ? targetPath : undefined;
+    return written ? { ok: true, openPath: written } : { ok: true };
   }
 
   return { ok: false, error: String(r.reason || r.note || "apply-failed") };
@@ -267,14 +284,27 @@ export function isStreamAppendChromeLine(line: string): boolean {
  * Does not rewrite the period note.
  */
 export function prepareStreamEntryTextForDisplay(text: string): string {
-  return String(text || "")
+  let s = String(text || "")
     .replace(/<!--[\s\S]*?-->/gu, "")
-    .replace(/\n{3,}/gu, "\n\n")
-    .trim();
+    .replace(/\r\n/gu, "\n")
+    .replace(/\t/gu, "  ");
+  s = s.replace(/\n{3,}/gu, "\n\n");
+  s = s.replace(/(^#{1,6}[^\n]+)\n\n+/gmu, "$1\n");
+  s = s.replace(/\n\n+([-*+]\s)/gu, "\n$1");
+  s = s.replace(/\n\n+(\d+\.\s)/gu, "\n$1");
+  return s.trim();
+}
+
+/** Indent of a markdown list marker in spaces (tabs = 2), or -1. */
+export function listMarkerIndent(line: string): number {
+  const m = String(line || "").match(/^(\s*)(?:[-*+]|\d+\.)\s+\S/u);
+  if (!m) return -1;
+  return m[1].replace(/\t/gu, "  ").length;
 }
 
 function isTopLevelListItem(line: string): boolean {
-  return /^\s{0,3}[-*+]\s+\S/u.test(line) || /^\s{0,3}\d+\.\s+\S/u.test(line);
+  const indent = listMarkerIndent(line);
+  return indent >= 0 && indent <= 3;
 }
 
 function skipAsSubstantial(line: string): boolean {
@@ -380,19 +410,28 @@ export function parseStreamEntries(content: string): StreamEntry[] {
       continue;
     }
 
+    let baseIndent: number | null = null;
     const isContinuation = (line: string, afterAppend: boolean): boolean => {
       if (!line.trim()) return true;
       if (isStreamAppendChromeLine(line)) return true;
       if (/^#{1,6}\s/u.test(line) && !isStreamAppendChromeLine(line)) return false;
-      if (/^[-*+]\s+\d{1,2}:\d{2}\s/u.test(line)) return false;
-      if (isTopLevelListItem(line) && !afterAppend) return false;
+      const indent = listMarkerIndent(line);
+      if (indent >= 0 && baseIndent !== null && indent <= baseIndent && !afterAppend) {
+        return false;
+      }
       return true;
     };
 
     let i = sec.start;
     while (i < sec.end) {
       const line = lines[i];
-      if (!isTopLevelListItem(line)) {
+      const indent = listMarkerIndent(line);
+      if (indent < 0) {
+        i += 1;
+        continue;
+      }
+      if (baseIndent === null) baseIndent = indent;
+      if (indent > baseIndent) {
         i += 1;
         continue;
       }
@@ -409,11 +448,11 @@ export function parseStreamEntries(content: string): StreamEntry[] {
         if (!cont.trim()) {
           const next = lines[j + 1];
           if (!next || !isContinuation(next, afterAppend) || !next.trim()) break;
-          textParts.push("");
           j += 1;
           continue;
         }
-        textParts.push(cont.trim());
+        // Keep indent so nested lists render as lists, not extra cards.
+        textParts.push(cont);
         j += 1;
       }
       pushEntry(i, j, line, textParts);
@@ -473,6 +512,64 @@ export function isStreamOrTodoPath(filePath: string): boolean {
   return false;
 }
 
+/* ── Suggestion apply/open labels ──
+ * 与 Desktop `lib/suggest-apply-label.ts` 同语义（跨表面词汇规范）：
+ * write 类主按钮「确认执行」；open-existing（open_profile）主按钮「打开」。
+ * write 类卡片在可解析出目标文件时附「打开」次按钮供先查看再决定。
+ */
+
+/** Kinds whose confirm actually writes (everything except open_profile). */
+const WRITE_SUGGESTION_KINDS: ReadonlySet<string> = new Set([
+  "stream_digest",
+  "ai_summary",
+  "promote_memory",
+  "inbox_review",
+  "stale_topic",
+  "catch_all",
+  "inbox_organize",
+  "create_topic",
+]);
+
+export function suggestionApplyIsWrite(kind?: string): boolean {
+  if (!kind) return false;
+  return WRITE_SUGGESTION_KINDS.has(kind);
+}
+
+/**
+ * Resolve an inspectable target file for a suggestion card, if any.
+ * Mirrors Desktop: targetPath → payload.sourcePath → payload.path; rejects
+ * traversal and the placeholder `undefined.md` / `period.md` stems.
+ */
+export function suggestionOpenPath(card: {
+  targetPath?: string;
+  payload?: Record<string, unknown>;
+}): string | null {
+  const payload = card.payload || {};
+  const candidates = [
+    card.targetPath,
+    typeof payload.sourcePath === "string" ? payload.sourcePath : "",
+    typeof payload.path === "string" ? payload.path : "",
+  ];
+  for (const raw of candidates) {
+    if (typeof raw !== "string") continue;
+    const p = raw.replace(/\\/g, "/").trim();
+    if (!p) continue;
+    if (p.includes("..")) continue;
+    if (/(?:^|\/)(?:undefined|period)\.md$/u.test(p)) continue;
+    return p;
+  }
+  return null;
+}
+
+/** Shortened breadcrumb for card meta lines (last 2 segments, `… /` prefix). */
+export function friendlySuggestionPath(rawPath?: string): string | null {
+  if (!rawPath) return null;
+  const parts = rawPath.replace(/\\/g, "/").split("/").filter(Boolean);
+  if (parts.length <= 1) return parts[0] || rawPath;
+  const last = parts.slice(-2).join(" / ");
+  return parts.length > 2 ? `… / ${last}` : last;
+}
+
 /* ── Memory browse (read projection of profile / periodic / topics) ──
  * Grouping lives in Kernel `lib/memory-feed.mjs` — hosts must not fork a twin.
  */
@@ -488,6 +585,7 @@ export interface MemoryFeedItem {
   preview: string;
   body: string;
   heading?: string;
+  history?: boolean;
 }
 
 export interface MemoryFeedSource {

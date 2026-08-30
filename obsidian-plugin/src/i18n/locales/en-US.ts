@@ -46,6 +46,7 @@ export const enUS: typeof zhCN = {
   suggestions_no_ai: "AI not configured",
   suggestions_no_ai_hint: "Configure an AI provider to enable suggestions",
   suggestions_confirm: "Confirm",
+  suggestions_open: "Open",
   suggestions_dismiss: "Dismiss",
   suggestions_loading: "AI is thinking...",
   suggestion_topic: "Suggested Topic",
@@ -239,6 +240,11 @@ export const enUS: typeof zhCN = {
   pending_writes_title: "Pending writes",
   pending_writes_accept: "Accept",
   pending_writes_reject: "Reject",
+  todo_row_delete: "Delete todo",
+  todo_clear_completed: "Clear completed",
+  pending_writes_preview: "Preview",
+  pending_writes_hide_preview: "Hide preview",
+  pending_writes_preview_meta: "{{chars}} chars · will be written to this file on accept",
   notice_written: "Saved",
   notice_write_failed: "Write failed",
   notice_executed: "Done",
@@ -277,6 +283,9 @@ export const enUS: typeof zhCN = {
   init_workspace_desc: "Create topmind workspace structure in current vault",
   init_workspace_success: "Workspace initialized",
   init_workspace_failed: "Initialization failed",
+  init_workspace_confirm: "This creates the topmind directory layout (stream / inbox / memory, etc.) and the topmind.yaml contract in this vault. Existing content is not deleted. Continue?",
+  dialog_cancel: "Cancel",
+  dialog_confirm: "Confirm",
 
   // ── Workspace status ──
   workspace_status: "Workspace Status",
@@ -294,6 +303,7 @@ export const enUS: typeof zhCN = {
   workspace_contract_doctor_failed: "Contract doctor failed",
   workspace_contract_reseed_ok: "Contract reseeded ✓",
   workspace_contract_reseed_failed: "Reseed failed",
+  workspace_contract_reseed_confirm: "Backs up the current topmind.yaml, then replaces it with a fresh default contract (content directories are kept). Only needed when the file is unrepairable. Continue?",
   workspace_template: "Template",
   workspace_no_categories: "No category directories found",
 
@@ -344,7 +354,7 @@ export const enUS: typeof zhCN = {
   chat_send_failed: "Send failed, click to retry",
   chat_retry: "Retry",
   chat_context_empty: "No context (workspace may be empty)",
-  chat_model_switch_hint: "Switching model does not affect current chat history",
+  chat_model_switch_hint: "Switching also updates the default model; current chat history is unaffected",
 
   // ── AI availability ──
   ai_available: "AI Available",
@@ -378,6 +388,7 @@ export const enUS: typeof zhCN = {
   memory_kind_profile: "Profile",
   memory_kind_periodic: "Periodic",
   memory_kind_topic: "Topic memory",
+  memory_kind_history: "History",
   memory_browse_organize: "Organize My profile",
   memory_browse_layer_all: "All",
   toolbar_btn_refresh: "Refresh",

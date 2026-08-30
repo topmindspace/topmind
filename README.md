@@ -175,6 +175,7 @@ Directory names follow the live contract (`en-US` stream template uses the Engli
 | Inline AI sanitization | **Done** | Strips thinking tags from model output |
 | Keyword search with honest truncation · **no** full-library embeddings | **Done** | Lightweight and transparent |
 | AI operations: todo maintain · memory organize · topic classify | **Done** | Activity-window driven; confirm path is safe |
+| Optional bookkeeping (`memory/ledgers/`) | **Done** | ledger-engine satellite; Skills `topmind-ledger`; Desktop enable-gated mini-app — not a 6th user concept |
 | Multi-lane AI (serial prep + independent agent) | **Done** | Background prep is serial; agent streaming yields |
 
 ---

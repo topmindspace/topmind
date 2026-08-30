@@ -41,7 +41,8 @@ test("flushPending re-queues the batch on failure (no silent drop)", () => {
 });
 
 test("rotateToken patches only clipBridge (no full-settings clobber)", () => {
-  const src = read("src/components/settings/GeneralPanel.tsx");
+  // 2026-08-30: the Clip Bridge section moved General → Plugins (IA split)
+  const src = read("src/components/settings/PluginsPanel.tsx");
   assert.match(src, /update\(\{ clipBridge: res\.settings\.clipBridge \}\)/);
   assert.doesNotMatch(src, /update\(res\.settings\)/);
 });

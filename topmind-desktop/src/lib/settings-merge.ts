@@ -2,7 +2,7 @@ import type { AppSettings, AppSettingsPatch } from "../types";
 
 // All nested settings sections — a partial patch to any of them must never
 // wipe sibling keys. Missing keys here silently degrade to whole-section replace.
-const NESTED_KEYS = ["ai", "editor", "ui", "weread", "x", "clipBridge", "workspaces", "window", "plugins", "capture", "ingest"] as const;
+const NESTED_KEYS = ["ai", "editor", "ui", "weread", "x", "ledger", "clipBridge", "workspaces", "window", "plugins", "capture", "ingest"] as const;
 
 /** Deep-merge known nested settings objects so partial patches never wipe siblings. */
 export function mergeSettingsPatch(base: AppSettingsPatch, patch: AppSettingsPatch): AppSettingsPatch {

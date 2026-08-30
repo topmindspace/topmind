@@ -54,16 +54,34 @@ export function suggestionOpenPath(item: {
  * Path to open after a successful write — apply evidence (yearDir), never a
  * hardcoded flat periodic filename.
  */
-export function suggestionNavPathAfterApply(res: {
-  targetPath?: unknown;
-  ok?: boolean;
-  wroteFiles?: boolean;
-}): string | null {
-  if (!res || res.ok === false || res.wroteFiles === false) return null;
-  if (typeof res.targetPath !== "string") return null;
-  const p = res.targetPath.replace(/\\/g, "/").trim();
+function safeRelPath(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const p = raw.replace(/\\/g, "/").trim();
   if (!p) return null;
   if (p.includes("..")) return null;
   if (/(?:^|\/)(?:undefined|period)\.md$/u.test(p)) return null;
   return p;
+}
+
+export function suggestionNavPathAfterApply(
+  res: {
+    targetPath?: unknown;
+    ok?: boolean;
+    wroteFiles?: boolean;
+  },
+  item?: {
+    suggestionKind?: string;
+    suggestionPayload?: Record<string, unknown>;
+  },
+): string | null {
+  if (!res || res.ok === false || res.wroteFiles === false) return null;
+  const written = safeRelPath(res.targetPath);
+  const digest = safeRelPath(item?.suggestionPayload?.digestPath);
+  const kind = item?.suggestionKind || "";
+  const isDigestKind = kind === "stream_digest" || kind === "ai_summary";
+  if (isDigestKind) {
+    if (written && /(?:^|\/)memory\/periodic\//u.test(written)) return written;
+    if (digest) return digest;
+  }
+  return written;
 }

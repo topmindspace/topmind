@@ -161,6 +161,15 @@ export function stripListChromeForDisplay(md: string): string {
   const lines = s.split("\n");
   if (lines.length === 0) return s;
   let first = lines[0];
+  // Nested lists need the parent marker so MD→HTML can nest <ul> correctly.
+  // Time still lives in the card chip — strip it from the first line only.
+  const hasNested = lines.slice(1).some((l) => /^\s{2,}(?:[-*+]|\d+\.)\s+\S/u.test(l));
+  if (hasNested) {
+    first = first
+      .replace(/^(\s*[-*+]\s+)\d{1,2}:\d{2}\s+/u, "$1")
+      .replace(/^(\s*\d+\.\s+)\d{1,2}:\d{2}\s+/u, "$1");
+    return [first, ...lines.slice(1)].join("\n").trim();
+  }
   // Task list: keep full line so task-list HTML works
   if (/^\s*[-*+]\s+\[[ xX]\]/u.test(first)) {
     return s;

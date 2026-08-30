@@ -17,8 +17,9 @@
     --card-foreground: var(--color-text-primary);
     --popover: var(--color-surface-elevated);
     --popover-foreground: var(--color-text-primary);
-    --primary: var(--color-accent-color);
-    --primary-foreground: var(--color-text-on-accent);
+    /* Primary CTA = monochrome ink (light: near-black, dark: near-white) — ZCode primary */
+    --primary: var(--color-ink);
+    --primary-foreground: var(--color-ink-foreground);
     --secondary: var(--color-surface-muted);
     --secondary-foreground: var(--color-text-primary);
     --muted: var(--color-surface-muted);
@@ -40,6 +41,8 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--color-ink-hover);
+  --color-primary-active: var(--color-ink-active);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -52,20 +55,9 @@
   --color-foreground: var(--foreground);
   --color-chrome: var(--chrome);
 
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
 
-  /* z-index semantic scale — maps to --z-* tokens in tokens.css */
-  --z-index-local: var(--z-local);
-  --z-index-shell-rail: var(--z-shell-rail);
-  --z-index-header: var(--z-header);
-  --z-index-popover: var(--z-popover);
-  --z-index-floating: var(--z-floating);
-  --z-index-overlay: var(--z-overlay);
-  --z-index-modal: var(--z-modal);
-  --z-index-notification: var(--z-notification);
-  --z-index-toast: var(--z-toast);
-  --z-index-menu: var(--z-menu);
 }

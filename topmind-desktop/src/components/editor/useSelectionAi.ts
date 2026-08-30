@@ -502,7 +502,9 @@ export function useSelectionAi({
     setPhase("running");
     setError(null);
     setPreview(null);
-    setShowDiff(false);
+    // Rewrite-style actions (polish/fix/format) default the diff ON — the
+    // user should see what changed before applying.
+    setShowDiff(action === "polish" || action === "fix" || action === "format");
     setStatusHint(runningLabel);
 
     try {

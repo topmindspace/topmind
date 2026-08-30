@@ -553,7 +553,7 @@ function UsageBadge({ usage, modelId }: { usage: NonNullable<AiMessage["usage"]>
   ].filter(Boolean).join(" · ");
   return (
     <Tooltip content={tooltip}>
-      <span className="mt-0.5 inline-flex items-center gap-0.5 text-5xs tabular-nums text-text-quaternary/60">
+      <span className="mt-0.5 inline-flex items-center gap-0.5 text-2xs tabular-nums text-text-tertiary">
         {label}
       </span>
     </Tooltip>
@@ -597,6 +597,7 @@ function ReasoningBlock({ text, streaming }: { text: string; streaming?: boolean
         type="button"
         className="flex w-full items-center gap-1.5 px-2 py-1.5 text-left text-3xs text-text-quaternary hover:text-text-tertiary"
         onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
       >
         <Brain size={ICON.xs} className={cn("shrink-0 opacity-80", streaming && !open && "animate-pulse text-accent-color/70")} />
         <span className="flex-1 font-medium">{t("ai.reasoningLabel")}</span>
@@ -621,6 +622,7 @@ function ReasoningBlock({ text, streaming }: { text: string; streaming?: boolean
 export function ChatMessage({ message, streaming, streamStatus, streamToolName, streamToolCount, streamMaxSteps }: Props) {
   const { t } = useTranslation("editor");
   const regenerate = useAiStore((s) => s.regenerate);
+  const [copied, setCopied] = useState(false);
   if (message.role === "system") return null;
   const isUser = message.role === "user";
   const isError = Boolean(message.isError);
@@ -639,7 +641,7 @@ export function ChatMessage({ message, streaming, streamStatus, streamToolName, 
 
   // No enter animation here — parent gates motion so stream deltas don't re-animate
   return (
-    <div className={cn("flex items-start gap-2.5", isUser ? "justify-end" : "justify-start")}>
+    <div className={cn("group/msg flex items-start gap-2.5", isUser ? "justify-end" : "justify-start")}>
       {!isUser ? (
         <div
           className={cn(
@@ -682,6 +684,24 @@ export function ChatMessage({ message, streaming, streamStatus, streamToolName, 
             ) : null}
             {showUsage && message.usage ? (
               <UsageBadge usage={message.usage} modelId={message.modelId} />
+            ) : null}
+            {!streaming && hasContent ? (
+              <div className="mt-1 flex justify-start">
+                <button
+                  type="button"
+                  className="inline-flex h-5 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 text-3xs text-text-quaternary opacity-0 transition-opacity group-hover/msg:opacity-100 hover:text-text-secondary focus-visible:opacity-100 v4-focus-ring"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(visibleBody).then(() => {
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 1500);
+                    });
+                  }}
+                  aria-label={copied ? t("ai.copied") : t("ai.copyReply")}
+                >
+                  {copied ? <Check size={ICON.micro} className="text-success" /> : <Copy size={ICON.micro} />}
+                  {copied ? t("ai.copied") : t("ai.copyReply")}
+                </button>
+              </div>
             ) : null}
           </div>
         )}

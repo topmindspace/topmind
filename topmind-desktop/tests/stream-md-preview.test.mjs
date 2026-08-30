@@ -194,6 +194,13 @@ test("splitStreamPreviewParts separates main from #### 续", async () => {
     stripListChromeForDisplay("- 10:00 hello world\n\nsecond paragraph"),
     "hello world\n\nsecond paragraph",
   );
+  const nested = stripListChromeForDisplay("- 10:00 parent\n  - child a\n  - child b");
+  assert.match(nested, /^- parent/m);
+  assert.doesNotMatch(nested, /10:00/);
+  assert.match(nested, /child a/);
+  const nestedHtml = streamMarkdownToPreviewHtml(nested);
+  assert.match(nestedHtml, /<li>parent/);
+  assert.match(nestedHtml, /<li>child a/);
   // Task checkboxes kept for real MD task-list render
   assert.match(stripListChromeForDisplay("- [ ] open task"), /\[ \]/);
   assert.match(streamMarkdownToPreviewHtml(stripListChromeForDisplay("- [ ] open task")), /task-list/);

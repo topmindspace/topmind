@@ -15,6 +15,7 @@
 | 复盘 | organize vs loop | 「复盘」→ loop。「复盘要点成笔记」→ organize |
 | 归档 | capture vs maintain | 「归档材料」→ capture。「归档专题 / archive topic」→ maintain |
 | 笔记 / note | capture vs write | 未限定 → capture。「写作 / 起草 / 续写」→ write |
+| 记账 / 记一笔 / 花了 / 存入 | ledger vs capture | 「记账 / 记一笔 / 花了 / 存入 / 查看账单 / 账户余额」→ `topmind-ledger`（记忆平面账本）。「记一下」仍 → capture |
 
 **原则**：动作动词定 action；修饰词定 confidence。无法判定 → capture（先存后整）。
 
@@ -27,6 +28,7 @@
 | memory | 仅 confirmed stable → `memory/profile.md` 或 `memory/periodic/`（用户明说才写 `memory/topics/`） | 因 capture/整理顺手刷写；把 `topic.md` 当记忆默认落点 |
 | write | 稿件 / delivery | 为「补结构」空建 `topic.md` |
 | loop | 状态 / 可逆修复 | 代写记忆；建硬索引 |
+| ledger | `{memory.dir}/ledgers/` 追加一行 | 改 `topic.md`；发明 ClassFund/Giggs/Mom；当第六用户概念 |
 
 ## 多意图顺序
 
@@ -44,7 +46,8 @@
 
 ## Action unsure
 
-- 内容动词（写/存/记）且无修复/巡检 → capture  
+- 记账 / 记一笔 / 花了 / 存入 / 查看账单 / 账户余额 → ledger  
+- 内容动词（写/存/记一下）且无修复/巡检 → capture  
 - 修复 / 清理 / 重建 → maintain  
 - 巡检 / 整体 / 断点 → loop  
 - 整理 / 分析 / 总结 → organize  

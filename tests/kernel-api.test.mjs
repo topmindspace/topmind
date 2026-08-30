@@ -53,6 +53,23 @@ describe("kernel-api", () => {
     assert.equal(typeof kernel.getTodoHealth, "function");
   });
 
+  it("exports ledger-engine functions", () => {
+    assert.equal(typeof kernel.parseLedgerMarkdown, "function");
+    assert.equal(typeof kernel.serializeLedger, "function");
+    assert.equal(typeof kernel.appendLedgerEntry, "function");
+    assert.equal(typeof kernel.listLedgers, "function");
+    assert.equal(typeof kernel.captureLedgerPhrase, "function");
+    assert.equal(typeof kernel.parseLedgerCapture, "function");
+    assert.ok(Array.isArray(kernel.DEFAULT_LEDGER_ROLES));
+    assert.equal(kernel.PERSONAL_LEDGER_ID, "Personal");
+    assert.ok(kernel.DEFAULT_LEDGER_ROLES.some((r) => r.id === "Personal"));
+    assert.ok(!kernel.DEFAULT_LEDGER_ROLES.some((r) => r.id === "ClassFund"));
+    assert.equal(typeof kernel.summarizeLedgerBooks, "function");
+    assert.equal(typeof kernel.listLedgerCategories, "function");
+    assert.equal(typeof kernel.knownLedgerRoleId, "function");
+    assert.equal(kernel.knownLedgerRoleId("ClassFund", kernel.DEFAULT_LEDGER_ROLES), "Personal");
+  });
+
   it("exports ai-operation-engine functions", () => {
     assert.equal(typeof kernel.registerOperationType, "function");
     assert.equal(typeof kernel.listOperationTypes, "function");

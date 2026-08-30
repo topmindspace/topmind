@@ -21,7 +21,8 @@ import { t } from "../i18n";
 import { VIEW_TYPE_SIDEBAR_DOCK, VIEW_TYPE_STREAM_WORKBENCH } from "../constants";
 import { AI_PROVIDER_PRESETS, PROVIDER_DEFAULT_MODELS } from "../constants";
 import type { SuggestionCard } from "../types";
-import { isStreamOrTodoPath, prepareStreamEntryTextForDisplay, SUGGESTION_KIND_META } from "../utils";
+import { prepareStreamEntryTextForDisplay } from "../utils";
+import { renderSuggestionCard } from "./suggestion-card";
 import { hasConfiguredProvider } from "../types";
 import { aiTaskManager, type TaskProgress, type AiTask } from "../services/ai-task-manager";
 import { resolveProviderCatalog, applyModelOptions, credentialsForProvider } from "../services/models-dev";
@@ -49,6 +50,8 @@ export class SidebarDockView extends ItemView {
   private activeTab: SidebarTab = "todos";
   private chatHistory: ChatMessage[] = [];
   private chatThinking = false;
+  /** Set on user-initiated chat renders (tab open / send) — never on vault-event refreshes. */
+  private chatFocusOnRender = false;
   /** Re-entrancy guard for suggestion generation (workbench parity). */
   private suggestionsInFlight = false;
   private showActionLabels = true;
@@ -84,22 +87,22 @@ export class SidebarDockView extends ItemView {
         if (file.path === "topmind.yaml") {
           this.plugin.kernelService.invalidateCache();
         }
-        if (isStreamOrTodoPath(file.path) || file.path === "topmind.yaml") {
-          this.scheduleRefresh(450);
+        if (this.plugin.kernelService.isStreamRelevantPath(file.path) || file.path === "topmind.yaml") {
+          this.scheduleContentRefresh(450);
         }
       }),
     );
     this.registerEvent(
       this.app.vault.on("create", (file) => {
-        if (isStreamOrTodoPath(file.path)) {
-          this.scheduleRefresh(450);
+        if (this.plugin.kernelService.isStreamRelevantPath(file.path)) {
+          this.scheduleContentRefresh(450);
         }
       }),
     );
     this.registerEvent(
       this.app.vault.on("delete", (file) => {
-        if (isStreamOrTodoPath(file.path)) {
-          this.scheduleRefresh(450);
+        if (this.plugin.kernelService.isStreamRelevantPath(file.path)) {
+          this.scheduleContentRefresh(450);
         }
       }),
     );
@@ -161,6 +164,16 @@ export class SidebarDockView extends ItemView {
   private scheduleRefresh(delay: number): void {
     if (this.refreshTimer) clearTimeout(this.refreshTimer);
     this.refreshTimer = setTimeout(() => this.refreshActiveTab(), delay);
+  }
+
+  /**
+   * Vault-edit refresh: content tabs only. Suggestions regenerate via the
+   * explicit refresh button (kernel fingerprints guard the AI pass), and chat
+   * must never re-render mid-typing — it would lose the draft input.
+   */
+  private scheduleContentRefresh(delay: number): void {
+    if (this.activeTab === "chat" || this.activeTab === "suggestions") return;
+    this.scheduleRefresh(delay);
   }
 
   /** Full re-render (header + tabs + content) */
@@ -361,6 +374,7 @@ export class SidebarDockView extends ItemView {
       btn.addEventListener("click", () => {
         // Update tab active states without full re-render
         this.activeTab = tab.id;
+        if (tab.id === "chat") this.chatFocusOnRender = true;
         const allBtns = tabBar.querySelectorAll(".tm-tab-btn");
         allBtns.forEach((b) => {
           b.classList.remove("tm-tab-active");
@@ -470,7 +484,7 @@ export class SidebarDockView extends ItemView {
         // Hover delete button (shown on hover)
         const deleteBtn = item.createEl("button", {
           cls: "tm-todo-delete",
-          attr: { "aria-label": t("suggestions_dismiss"), title: t("suggestions_dismiss") },
+          attr: { "aria-label": t("todo_row_delete"), title: t("todo_row_delete") },
         });
         setIcon(deleteBtn, "trash-2");
         deleteBtn.addEventListener("click", (e: MouseEvent) => {
@@ -493,8 +507,8 @@ export class SidebarDockView extends ItemView {
           cls: "tm-btn-mini tm-todo-clear-done",
         });
         setIcon(clearDoneBtn, "trash-2");
-        clearDoneBtn.setAttribute("aria-label", t("task_clear_history"));
-        clearDoneBtn.setAttribute("title", t("task_clear_history"));
+        clearDoneBtn.setAttribute("aria-label", t("todo_clear_completed"));
+        clearDoneBtn.setAttribute("title", t("todo_clear_completed"));
         clearDoneBtn.addEventListener("click", () => {
           for (const done of doneTodos) {
             this.plugin.kernelService.deleteTodo(done.id);
@@ -523,9 +537,34 @@ export class SidebarDockView extends ItemView {
     const section = container.createDiv({ cls: "tm-sidebar-section tm-pending-writes" });
     section.createDiv({ cls: "tm-suggestion-summary", text: t("pending_writes_title") });
     for (const item of pending) {
-      const card = section.createDiv({ cls: "tm-suggestion-card" });
+      const card = section.createDiv({ cls: "tm-suggestion-card tm-pending-write-card" });
       card.createDiv({ cls: "tm-suggestion-title", text: item.relativePath });
       const actions = card.createDiv({ cls: "tm-suggestion-actions" });
+      // Confirm must not be blind: the stashed content is inspectable in place.
+      const preview = actions.createEl("button", {
+        cls: "tm-btn-secondary",
+        text: t("pending_writes_preview"),
+      });
+      preview.setAttribute("aria-label", t("pending_writes_preview"));
+      preview.setAttribute("aria-expanded", "false");
+      let previewBox: HTMLElement | null = null;
+      preview.addEventListener("click", () => {
+        if (previewBox) {
+          previewBox.remove();
+          previewBox = null;
+          preview.setText(t("pending_writes_preview"));
+          preview.setAttribute("aria-expanded", "false");
+          return;
+        }
+        previewBox = card.createDiv({ cls: "tm-pending-preview" });
+        const meta = previewBox.createDiv({ cls: "tm-pending-preview-meta" });
+        meta.setText(
+          t("pending_writes_preview_meta").replace("{{chars}}", String(item.content.length)),
+        );
+        previewBox.createEl("pre", { text: item.content });
+        preview.setText(t("pending_writes_hide_preview"));
+        preview.setAttribute("aria-expanded", "true");
+      });
       const accept = actions.createEl("button", {
         cls: "tm-btn-primary",
         text: t("pending_writes_accept"),
@@ -609,9 +648,14 @@ export class SidebarDockView extends ItemView {
       for (const sugg of suggestions) {
         this.renderSuggestionCard(container, sugg);
       }
-    } catch {
+    } catch (err) {
       container.empty();
-      this.renderEmptyState(container, t("error"), "", "alert-circle");
+      this.renderEmptyState(
+        container,
+        t("error"),
+        err instanceof Error ? err.message : String(err),
+        "alert-circle",
+      );
     } finally {
       this.suggestionsInFlight = false;
     }
@@ -631,60 +675,14 @@ export class SidebarDockView extends ItemView {
   }
 
   private renderSuggestionCard(container: HTMLElement, sugg: SuggestionCard): void {
-    const card = container.createDiv({
-      cls: `tm-suggestion-card tm-suggestion-${sugg.kind.replace(/_/g, "-")}`,
-    });
-
-    const meta = SUGGESTION_KIND_META[sugg.kind] || SUGGESTION_KIND_META.promote_memory;
-
-    const header = card.createDiv({ cls: "tm-suggestion-header" });
-    const iconSpan = header.createSpan({ cls: "tm-suggestion-icon" });
-    setIcon(iconSpan, meta.icon);
-    header.createSpan({ cls: "tm-suggestion-title", text: sugg.title });
-
-    if (sugg.impact && sugg.impact !== "low") {
-      const impactLabel = sugg.impact === "high"
-        ? t("suggestion_impact_high")
-        : t("suggestion_impact_medium");
-      header.createSpan({ cls: `tm-impact-badge tm-impact-${sugg.impact}`, text: impactLabel });
-    }
-
-    card.createDiv({ cls: "tm-suggestion-body", text: sugg.summary });
-
-    const actions = card.createDiv({ cls: "tm-suggestion-actions" });
-    const confirmBtn = actions.createEl("button", {
-      text: t("suggestions_confirm"),
-      cls: "tm-btn-confirm",
-    });
-    confirmBtn.setAttribute("aria-label", t("suggestions_confirm"));
-    confirmBtn.addEventListener("click", async () => {
-      confirmBtn.disabled = true;
-      confirmBtn.empty();
-      confirmBtn.createSpan({ cls: "tm-btn-spinner" });
-      const result = await this.plugin.kernelService.applySuggestion(sugg);
-      if (result.ok) {
-        card.classList.add("tm-card-removing");
-        setTimeout(() => card.remove(), 200);
-        if (result.openPath) {
-          await this.app.workspace.openLinkText(result.openPath, "", false);
-        }
-        this.refreshActiveTab();
-      } else {
-        confirmBtn.disabled = false;
-        confirmBtn.empty();
-        confirmBtn.textContent = t("suggestions_confirm");
-      }
-    });
-
-    const dismissBtn = actions.createEl("button", {
-      text: t("suggestions_dismiss"),
-      cls: "tm-btn-dismiss",
-    });
-    dismissBtn.setAttribute("aria-label", t("suggestions_dismiss"));
-    dismissBtn.addEventListener("click", () => {
-      this.plugin.kernelService.dropSuggestion(sugg.id);
-      card.classList.add("tm-card-removing");
-      setTimeout(() => card.remove(), 200);
+    // Shared card surface — 动作词汇与 Desktop 对齐（见 views/suggestion-card.ts）
+    renderSuggestionCard(container, sugg, {
+      apply: (s) => this.plugin.kernelService.applySuggestion(s),
+      dismiss: (s) => this.plugin.kernelService.dropSuggestion(s.id),
+      refresh: () => this.refreshActiveTab(),
+      openVaultPath: async (p) => {
+        await this.app.workspace.openLinkText(p, "", false);
+      },
     });
   }
 
@@ -784,8 +782,12 @@ export class SidebarDockView extends ItemView {
 
     sendBtn.addEventListener("click", () => this.sendChatMessage(input));
 
-    // Focus input
-    setTimeout(() => input.focus(), 50);
+    // Focus only on user-initiated renders — vault-event refreshes must not
+    // steal focus from the editor while the user is typing elsewhere.
+    if (this.chatFocusOnRender) {
+      this.chatFocusOnRender = false;
+      setTimeout(() => input.focus(), 50);
+    }
   }
 
   /** Render the model/provider switcher bar above chat messages */
@@ -857,6 +859,12 @@ export class SidebarDockView extends ItemView {
 
     // Curated defaults already rendered; enrich from official / community
     this.loadChatModels(activeProvider, modelSelect, currentModel);
+
+    // Honest scoping: switching here also updates the global default model.
+    switcherBar.createDiv({
+      cls: "tm-chat-switcher-hint",
+      text: t("chat_model_switch_hint"),
+    });
   }
 
   /** Resolve official + community + curated and update the chat model select. */
@@ -957,6 +965,7 @@ export class SidebarDockView extends ItemView {
     input.style.height = "auto";
 
     this.chatThinking = true;
+    this.chatFocusOnRender = true;
     this.renderActiveTab();
 
     try {
@@ -979,6 +988,7 @@ export class SidebarDockView extends ItemView {
       this.saveChatHistory();
     } finally {
       this.chatThinking = false;
+      this.chatFocusOnRender = true;
       this.renderActiveTab();
     }
   }
@@ -1188,11 +1198,15 @@ export class SidebarDockView extends ItemView {
       if (streamCtx.current) {
         this.plugin.kernelService.reconcilePeriod(streamCtx.current.relPath);
       }
-      if (this.plugin.settings.autoMaintainTodos) {
-        // Shared serial lane (quiet — the organize notice covers this pass)
+      // Shared serial lane; its own completion notice is the feedback — a
+      // premature "done" here would lie about the still-queued AI pass.
+      const aiQueued = this.plugin.settings.autoMaintainTodos
+        && hasConfiguredProvider(this.plugin.settings.ai);
+      if (aiQueued) {
         this.plugin.enqueueAiOperation("todo_maintain", "op_label_todo_maintain", "notice_todo_done", "sidebar", true);
+      } else {
+        new Notice(t("notice_organize_done"));
       }
-      new Notice(t("notice_organize_done"));
       this.refreshActiveTab();
     }, false);
 
@@ -1290,7 +1304,8 @@ export class SidebarDockView extends ItemView {
       this.app.workspace.revealLeaf(existing[0]);
       return;
     }
-    const leaf = this.app.workspace.getLeaf(false);
+    // New leaf — never replace the tab the user is currently reading.
+    const leaf = this.app.workspace.getLeaf(true);
     await leaf.setViewState({ type: VIEW_TYPE_STREAM_WORKBENCH, active: true });
   }
 }

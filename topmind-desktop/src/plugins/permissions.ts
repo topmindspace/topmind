@@ -11,7 +11,7 @@
  * are honest capability labels + soft host-context enforcement, not isolation.
  *
  * Enforced vocabulary:
- *   slot:dataSource | slot:sidebar | slot:view | slot:action | slot:settings |
+ *   slot:dataSource | slot:view | slot:action | slot:settings |
  *   slot:overlay | slot:statusBar | slot:contextMenu | slot:*
  *   rpc:workspace | rpc:system | rpc:ai | rpc:tool | rpc:weread | rpc:x | rpc:*
  *
@@ -25,7 +25,6 @@ import type { SlotKind } from "./types";
 
 export const SLOT_KINDS = [
   "dataSource",
-  "sidebar",
   "view",
   "action",
   "settings",

@@ -70,6 +70,7 @@ export function useSettingsController() {
     const wsRoot = ns.workspaceRoot;
     if (apiBatch.weread) void togglePlugin("topmind-weread", wsRoot);
     if (apiBatch.x) void togglePlugin("topmind-x", wsRoot);
+    if (apiBatch.ledger) void togglePlugin("topmind-ledger", wsRoot);
     // Re-apply external enable map after persist (hot reload without app restart)
     if (apiBatch.plugins && wsRoot) void reloadExternalPlugins(wsRoot, { cacheBust: false });
   };

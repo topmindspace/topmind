@@ -2,7 +2,7 @@ import { useEffect, useRef, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Loader2, RefreshCw, Github, ChevronDown, Check, Brain,
-  Wrench, Coins, ExternalLink, Server,
+  Wrench, Coins, ExternalLink, Server, Search, X,
 } from "lucide-react";
 import { useAiStore } from "../../stores/ai-store";
 import { emitLocal } from "../../plugins/host";

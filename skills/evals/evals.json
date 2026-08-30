@@ -1,7 +1,7 @@
 {
   "skill_name": "topmind",
   "daily_entry": "topmind",
-  "version": "3.5.3",
+  "version": "3.5.4",
   "evals": [
     {
       "id": 1,
@@ -133,7 +133,7 @@
       "prompt": "[schema validation] Verify all SKILL.md files have required frontmatter fields: name, version, description, action_category, triggers. Verify action_category values are within the enum. Verify name matches directory name in kebab-case.",
       "primary_skill": "topmind-maintain",
       "extra_skills": [],
-      "expected_output": "Validates frontmatter schema across all SKILL.md files (9 total: 7 core + 2 connector). Reports any missing required fields, invalid action_category values, or name/directory mismatches."
+      "expected_output": "Validates frontmatter schema across all SKILL.md files (10 total: 7 core + 2 connector + 1 optional ledger). Reports any missing required fields, invalid action_category values, or name/directory mismatches."
     },
     {
       "id": 19,
@@ -217,6 +217,20 @@
       "primary_skill": "topmind-capture",
       "extra_skills": [],
       "expected_output": "Routes through topmind-capture with external-capture provenance. Follows shared/long-url-capture.md: mark truncation if any, keep cleaned URL, do not invent SPA body content."
+    },
+    {
+      "id": 30,
+      "prompt": "花了 50 买羽毛球拍",
+      "primary_skill": "topmind-ledger",
+      "extra_skills": [],
+      "expected_output": "Routes through topmind-ledger (NOT topmind-capture). Default personal/自己 book under {memory.dir}/ledgers/. Append-only write via Kernel writeback with a path receipt. Does not invent ClassFund/Giggs/Mom. Daily entry remains topmind."
+    },
+    {
+      "id": 31,
+      "prompt": "存入 523",
+      "primary_skill": "topmind-ledger",
+      "extra_skills": [],
+      "expected_output": "Routes through topmind-ledger as 收入 into the default Personal/自己 book. Does not create ClassFund. Writes via writeback to memory/ledgers/."
     }
   ]
 }

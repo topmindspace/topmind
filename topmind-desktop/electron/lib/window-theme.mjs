@@ -16,8 +16,8 @@ export function resolveWindowBackgroundColor(themeSetting) {
   const isDark =
     themeSetting === "dark" ||
     (themeSetting !== "light" && nativeTheme.shouldUseDarkColors);
-  // Desktop tokens: light --color-background #f6f4ef · dark --color-background #201e19
-  return isDark ? "#201e19" : "#f6f4ef";
+  // Desktop tokens: light --color-background #f7f7f7 · dark --color-background #171717
+  return isDark ? "#171717" : "#f7f7f7";
 }
 
 export function resolveWindowsTitleBarOverlay(themeSetting, height = 40) {
@@ -25,9 +25,9 @@ export function resolveWindowsTitleBarOverlay(themeSetting, height = 40) {
     themeSetting === "dark" ||
     (themeSetting !== "light" && nativeTheme.shouldUseDarkColors);
   return {
-    // Warm paper palette — matches Desktop --color-app-chrome / --color-text-primary
-    color: isDark ? "#181613" : "#edeae2",
-    symbolColor: isDark ? "#f0ede4" : "#2b2822",
+    // Neutral palette — matches Desktop --color-app-chrome / --color-text-primary
+    color: isDark ? "#161616" : "#f0f0f0",
+    symbolColor: isDark ? "#e5e5e5" : "#262626",
     height,
   };
 }

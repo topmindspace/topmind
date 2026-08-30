@@ -60,7 +60,8 @@
     "submitMemory": "追加记忆",
     "submitDocs": "加工 {{count}} 个文档",
     "submitMixed": "保存笔记并加工文档",
-    "submitNote": "保存到 Inbox",
+    "submitNoteStream": "记到本周动态",
+    "submitNote": "保存到收件箱",
     "aiPolish": "AI 润色",
     "aiPolishing": "正在润色…",
     "aiPolishTip": "AI 优化通顺度、语法和表达（保留原意）",
@@ -68,7 +69,7 @@
     "aiPolishFailed": "AI 润色失败，请重试",
     "aiPolishNotReady": "AI 未就绪，请先在设置中配置 API Key",
     "removeAttachment": "移除",
-    "dropHint": "拖入文件，或 ⌘V 粘贴 Finder 复制的文件",
+    "dropHint": "拖入文件，或 {{mod}}V 粘贴 Finder 复制的文件",
     "attachedHint": "已附加 {{count}} 个文件 · 将走知识加工管道",
     "emptyQueueHint": "附件将进入知识加工队列",
     "openIngestHub": "在主窗口打开知识加工",
@@ -87,7 +88,7 @@
     "errorFetchWorkspace": "请先在主窗口打开工作区。",
     "errorFetchTimeout": "可改用「增强渲染」或手动粘贴正文。",
     "errorFetchFallback": "你可以直接手动粘贴正文后保存。",
-    "errorFetchFailed": "抓取失败：{{reason}} {{hint}",
+    "errorFetchFailed": "抓取失败：{{reason}} {{hint}}",
     "errorSaveWorkspace": "保存失败：未打开工作区。请先在主窗口选择工作区后再捕获。（{{msg}}）",
     "toastMemoryAppended": "已追加专题记忆",
     "toastStreamAppended": "已记到本周动态",
@@ -140,7 +141,9 @@
     "footerCount": "{{count}} 项",
     "footerCountTruncated": "前 {{count}} 项（已截断）",
     "footerRecent": "{{count}} 最近",
-    "truncatedHint": "结果已截断至 {{count}} 条 · 非全库普查 · 可换更具体关键词缩小范围"
+    "truncatedHint": "结果已截断至 {{count}} 条 · 非全库普查 · 可换更具体关键词缩小范围",
+    "filterAll": "全部",
+    "clearRecent": "清除"
   },
   "command": {
     "ariaLabel": "命令面板",
@@ -161,7 +164,7 @@
     "ctxTopic": "当前专题 · {{name}}",
     "ctxFile": "当前文件 · {{name}}",
     "ctxInbox": "当前在收件箱 · 优先整理 / 捕获",
-"ctxStream": "当前在动态流 · 优先整理 / 提取 / 沉淀",
+    "ctxStream": "当前在动态流 · 优先整理 / 提取 / 沉淀",
     "ctxCategory": "当前类别 · {{name}}",
     "ctxOutputs": "当前在写出来",
     "ctxArchive": "当前在归档",
@@ -175,7 +178,7 @@
       "gotoOutputs": "转到 · 写出来",
       "gotoArchive": "转到 · 归档",
       "kanban": "侧栏 · 看板视图",
-"todo": "待办清单",
+      "todo": "待办清单",
       "globalSearch": "全局搜索笔记",
       "settings": "打开设置",
       "commandPalette": "命令面板",
@@ -190,7 +193,9 @@
       "xOpenHub": "X — 打开连接中心",
       "xFetchTweets": "X — 抓取 / 搜索推文并归档",
       "xComposePost": "X — 撰写并发布推文",
-      "xOpenSettings": "X — 打开设置"
+      "xOpenSettings": "X — 打开设置",
+      "ledgerOpen": "记账",
+      "appsMenu": "打开应用菜单"
     }
   },
   "staging": {
@@ -222,5 +227,10 @@
     "allClearHint": "语义级 loop（topmind-loop skill）可在 Agent Host 中继续做可恢复巡检；此处为 Desktop 原生确定性层。",
     "openInbox": "打开收件箱",
     "done": "完成"
+  },
+  "pluginApp": {
+    "title": "插件",
+    "close": "关闭",
+    "missing": "这个插件没有独立界面。可在设置里配置，或从命令面板调用它的动作。"
   }
 }

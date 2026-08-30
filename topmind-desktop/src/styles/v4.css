@@ -92,7 +92,7 @@ html[data-platform="linux"] .v4-titlebar-glass {
   height: 14px;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 1px 3px rgba(42, 36, 24, 0.18);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
   transition: transform var(--duration-fast) var(--ease-spring);
 }
 .v4-switch[data-checked="true"]::after {
@@ -200,8 +200,8 @@ html[data-platform="linux"] .v4-titlebar-glass {
   color: var(--color-text-on-accent, #fff);
   background: linear-gradient(
     135deg,
-    var(--color-brand-deep, var(--color-accent-color)),
-    color-mix(in srgb, var(--color-brand-mid, #5a7fb8) 65%, var(--color-brand-aqua, #2fa89a) 35%)
+    var(--color-brand-deep, #075985),
+    color-mix(in srgb, var(--color-brand-mid, #0ea5e9) 65%, var(--color-brand-aqua, #2fa89a) 35%)
   );
   border: 1px solid transparent;
   box-shadow: 0 1px 2px color-mix(in srgb, var(--color-accent-color) 20%, transparent);
@@ -647,7 +647,19 @@ html.dark .v4-tiptap pre {
   color: var(--color-text-primary);
 }
 .v4-tiptap a,
-.v4-tiptap a.v4-md-link {
+.v4-tiptap a/* ── Find-in-note (⌘F) hit highlights ─────────────────────────────────── */
+.v4-find-hit {
+  background: var(--color-accent-bg-subtle);
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px var(--color-accent-border-subtle);
+}
+
+.v4-find-hit-active {
+  background: color-mix(in srgb, var(--color-accent-color, #0284c7) 28%, transparent);
+  box-shadow: 0 0 0 2px var(--color-accent-color, #0284c7);
+}
+
+.v4-md-link {
   color: var(--color-accent-color) !important;
   text-decoration: underline !important;
   text-underline-offset: 2.5px;
@@ -707,16 +719,17 @@ html.dark .v4-tiptap pre {
 .v4-md-preview {
   animation: none;
 }
-.v4-tiptap ul.v4-task-list {
+/* Tiptap TaskList renders ul[data-type="taskList"] (no class) — style the real DOM */
+.v4-tiptap ul[data-type="taskList"] {
   list-style: none;
   padding-left: 0.25em;
 }
-.v4-tiptap ul.v4-task-list li {
+.v4-tiptap ul[data-type="taskList"] li {
   display: flex;
   align-items: flex-start;
   gap: 0.5em;
 }
-.v4-tiptap ul.v4-task-list input[type="checkbox"] {
+.v4-tiptap ul[data-type="taskList"] input[type="checkbox"] {
   margin-top: 0.32em;
   width: 0.95em;
   height: 0.95em;
@@ -726,16 +739,16 @@ html.dark .v4-tiptap pre {
   cursor: pointer;
   transition: transform var(--duration-fast) var(--ease-default);
 }
-.v4-tiptap ul.v4-task-list input[type="checkbox"]:focus-visible {
+.v4-tiptap ul[data-type="taskList"] input[type="checkbox"]:focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
-.v4-tiptap ul.v4-task-list li[data-checked="true"],
-.v4-tiptap ul.v4-task-list li:has(input:checked) {
+.v4-tiptap ul[data-type="taskList"] li[data-checked="true"],
+.v4-tiptap ul[data-type="taskList"] li:has(input:checked) {
   color: var(--color-text-tertiary);
 }
-.v4-tiptap ul.v4-task-list li:has(input:checked) > div,
-.v4-tiptap ul.v4-task-list li:has(input:checked) > p {
+.v4-tiptap ul[data-type="taskList"] li:has(input:checked) > div,
+.v4-tiptap ul[data-type="taskList"] li:has(input:checked) > p {
   text-decoration: line-through;
   text-decoration-thickness: 1px;
   opacity: 0.55;
@@ -781,7 +794,7 @@ html.dark .v4-tiptap pre {
   line-height: 1.4;
   color: var(--color-text-tertiary);
   white-space: nowrap;
-  box-shadow: inset 0 -1px 0 rgba(42, 36, 24, 0.04);
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.05);
 }
 .v4-kbd-sm {
   font-size: var(--text-4xs);
@@ -941,9 +954,9 @@ button.v4-dash-card:active,
   font-weight: 600;
   letter-spacing: 0.01em;
   gap: 5px;
-  /* Single solid accent CTA — avoid competing gradients with nav active state */
-  background: var(--color-accent-color);
-  color: var(--color-text-on-accent);
+  /* Monochrome ink primary (ZCode language) — one solid CTA per region */
+  background: var(--color-ink, var(--color-text-primary));
+  color: var(--color-ink-foreground, #fff);
   border: none;
   cursor: pointer;
   box-shadow: var(--shadow-button);
@@ -953,7 +966,7 @@ button.v4-dash-card:active,
     transform var(--duration-fast) var(--ease-default);
 }
 .v4-titlebar-btn-primary:hover {
-  background: var(--color-accent-hover);
+  background: var(--color-ink-hover, var(--color-text-secondary));
   box-shadow: var(--shadow-button-hover);
 }
 .v4-titlebar-btn-primary:active {
@@ -988,7 +1001,7 @@ button.v4-dash-card:active,
   background: color-mix(in srgb, var(--color-accent-inbox, #12897b) 90%, #000 10%);
   border-color: color-mix(in srgb, var(--color-accent-inbox, #12897b) 78%, #000 22%);
   box-shadow: 0 3px 12px color-mix(in srgb, var(--color-accent-inbox, #12897b) 22%, transparent),
-    0 1px 2px rgba(42, 36, 24, 0.08);
+    0 1px 2px rgba(0, 0, 0, 0.08);
 }
 .v4-titlebar-btn-capture:active {
   opacity: 0.92;
@@ -1035,7 +1048,7 @@ button.v4-dash-card:active,
   margin-bottom: 0;
 }
 .v4-stream-md p {
-  margin: 0.35em 0;
+  margin: 0.22em 0;
 }
 /* Single-line prose after stripListChrome — no list chrome noise */
 .v4-stream-md > p:only-child {
@@ -1043,7 +1056,7 @@ button.v4-dash-card:active,
 }
 /* Adjacent paragraphs: keep one soft gap without “double blank” feel */
 .v4-stream-md p + p {
-  margin-top: 0.5em;
+  margin-top: 0.32em;
 }
 .v4-stream-md h1,
 .v4-stream-md h2,
@@ -1076,8 +1089,8 @@ button.v4-dash-card:active,
 }
 .v4-stream-md ul,
 .v4-stream-md ol {
-  margin: 0.3em 0 0.4em;
-  padding-left: 1.2em;
+  margin: 0.18em 0 0.22em;
+  padding-left: 1.15em;
 }
 .v4-stream-md ul {
   list-style-type: disc;
@@ -1086,11 +1099,11 @@ button.v4-dash-card:active,
   list-style-type: decimal;
 }
 .v4-stream-md li {
-  margin: 0.18em 0;
+  margin: 0.08em 0;
   padding-left: 0.1em;
 }
 .v4-stream-md li + li {
-  margin-top: 0.14em;
+  margin-top: 0.08em;
 }
 .v4-stream-md li > ul,
 .v4-stream-md li > ol {
@@ -1114,7 +1127,7 @@ button.v4-dash-card:active,
 .v4-stream-md .task-list-item input[type="checkbox"] {
   margin-top: 0.3em;
   flex-shrink: 0;
-  accent-color: var(--color-accent-color, #31548e);
+  accent-color: var(--color-accent-color, #0284c7);
 }
 .v4-stream-md .task-list-item[data-checked="true"] > span {
   text-decoration: line-through;
@@ -1163,7 +1176,7 @@ button.v4-dash-card:active,
 .v4-stream-md blockquote {
   margin: 0.4em 0;
   padding: 0.2em 0 0.2em 0.85em;
-  border-left: 2.5px solid var(--color-border-subtle, #a49c8c);
+  border-left: 2.5px solid var(--color-border-subtle, rgba(23, 23, 23, 0.15));
   color: var(--color-text-secondary);
   font-size: 0.97em;
 }
@@ -1674,9 +1687,9 @@ html.dark .v4-overlay-sheet {
   color: transparent;
 }
 
-/* ── Sidebar rail — quiet chrome, no loud gradient ── */
+/* ── Sidebar rail — deepest plane (ZCode: sidebar darker than canvas) ── */
 .v4-sidebar-rail {
-  background: var(--color-app-chrome);
+  background: var(--color-sidebar, var(--color-app-chrome));
   /* Divider lives on Splitter; avoid double hairlines when collapsed */
 }
 
@@ -1802,7 +1815,7 @@ html.dark .v4-overlay-sheet {
   padding: 3px;
   border-radius: var(--radius-lg);
   background: color-mix(in srgb, var(--color-surface-muted) 88%, var(--color-app-chrome));
-  box-shadow: inset 0 1px 1px rgba(42, 36, 24, 0.025);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.03);
   border: none;
 }
 .v4-segmented-thumb {
@@ -1878,12 +1891,13 @@ html.dark .v4-overlay-sheet {
 
 /* ── Skeleton block ── */
 
-/* Message bubble polish — solid brand (no purple mix) */
+/* User message — quiet neutral elevated bubble (ZCode chat surface); accent stays for actions */
 .v4-msg-user {
   border-radius: var(--radius-lg) var(--radius-lg) var(--radius-sm) var(--radius-lg);
-  background: color-mix(in srgb, var(--color-accent-color) 92%, var(--color-brand-deep));
-  color: var(--color-text-on-accent);
-  box-shadow: 0 1px 2px rgba(42, 36, 24, 0.06);
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-surface-elevated);
+  color: var(--color-text-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 /* Assistant: document-like paper, not chat bubble chrome */
 .v4-msg-assistant {
@@ -1902,7 +1916,7 @@ html.dark .v4-overlay-sheet {
 [data-stream-feed],
 .v4-stream-composer {
   width: 100%;
-  max-width: min(var(--feed-column-max, 40rem), 100%);
+  max-width: min(var(--feed-column-max, 44rem), 100%);
   margin-inline: auto;
 }
 .v4-feed-column .v4-feed,
@@ -1927,7 +1941,7 @@ html.dark .v4-overlay-sheet {
 .v4-feed-card {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 /* Collection canvases (Inbox / Category / Topic / Outputs / memory) */
@@ -1987,7 +2001,7 @@ html.dark .v4-overlay-sheet {
   flex-direction: column;
 }
 [data-stream-feed][data-layout="list"] [data-stream-entry-card] {
-  padding: 0.85rem 0.4rem 0.9rem;
+  padding: 0.55rem 0.2rem 0.6rem;
   border-bottom: 1px solid var(--color-border-subtle-dim);
   background: transparent;
 }
@@ -2008,11 +2022,11 @@ html.dark .v4-overlay-sheet {
 [data-stream-feed][data-layout="card"] [data-stream-day-body] {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 0.35rem 0 0.85rem;
+  gap: 0.5rem;
+  padding: 0.25rem 0 0.55rem;
 }
 [data-stream-feed][data-layout="card"] [data-stream-entry-card] {
-  padding: 0.95rem 1.05rem;
+  padding: 0.7rem 0.85rem;
   border: 1px solid var(--color-border-subtle-dim);
   border-radius: var(--radius-lg);
   background: var(--color-surface-elevated);
@@ -2027,18 +2041,18 @@ html.dark .v4-overlay-sheet {
 
 /* Memory browse uses the same feed chrome */
 [data-memory-feed][data-layout="list"] [data-memory-feed-item] {
-  padding: 0.8rem 0.4rem;
+  padding: 0.55rem 0.2rem;
   border-bottom: 1px solid var(--color-border-subtle-dim);
 }
 [data-memory-feed][data-layout="card"] {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  max-width: min(40rem, 100%);
-  margin-inline: auto;
+  gap: 0.5rem;
+  max-width: none;
+  margin-inline: 0;
 }
 [data-memory-feed][data-layout="card"] [data-memory-feed-item] {
-  padding: 0.95rem 1.05rem;
+  padding: 0.7rem 0.85rem;
   border: 1px solid var(--color-border-subtle-dim);
   border-radius: var(--radius-lg);
   background: var(--color-surface-elevated);

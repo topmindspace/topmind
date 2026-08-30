@@ -11,8 +11,8 @@ const namespaces = readdirSync(join(localesDir, "zh-CN"))
   .filter((f) => f.endsWith(".json"))
   .map((f) => f.replace(/\.json$/, ""))
   .sort();
-if (!namespaces.includes("weread") || !namespaces.includes("x")) {
-  console.error("Desktop locales must ship weread and x namespaces.");
+if (!namespaces.includes("weread") || !namespaces.includes("x") || !namespaces.includes("ledger")) {
+  console.error("Desktop locales must ship weread, x, and ledger namespaces.");
   process.exit(1);
 }
 

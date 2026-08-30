@@ -140,18 +140,20 @@ function IssueRow({
             <div className="mt-0.5 font-mono text-3xs text-text-quaternary">{issue.code}</div>
           ) : null}
           {issue.path ? (
-            <button
-              type="button"
-              className="mt-1 truncate font-mono text-3xs text-accent-color underline"
-              title={issue.path}
-              onClick={() => {
-                if (/\.md$/iu.test(issue.path!)) {
-                  onOpenPath({ kind: "file", path: issue.path! });
-                }
-              }}
-            >
-              {issue.path}
-            </button>
+            /\.md$/iu.test(issue.path!) ? (
+              <button
+                type="button"
+                className="mt-1 truncate font-mono text-3xs text-accent-color underline v4-focus-ring"
+                title={issue.path}
+                onClick={() => onOpenPath({ kind: "file", path: issue.path! })}
+              >
+                {issue.path}
+              </button>
+            ) : (
+              <div className="mt-1 truncate font-mono text-3xs text-text-quaternary" title={issue.path}>
+                {issue.path}
+              </div>
+            )
           ) : null}
         </div>
       </div>

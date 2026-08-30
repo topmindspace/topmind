@@ -1,108 +1,108 @@
 /**
  * topmind Clip — popup + options shared styles
- * Align with Desktop Design System 2.1 "Modern Warm-Neutral" (near-neutral warm + ink-blue primary).
+ * Align with Desktop Design System 3.0 "ZCode Neutral" (pure neutral gray + sky accent + monochrome ink CTA).
  */
 
 :root {
-  /* Modern Warm-Neutral — mirrored from Desktop tokens (light) */
+  /* ZCode Neutral — mirrored from Desktop tokens (light) */
   color-scheme: light;
-  --mh-bg: #f7f6f4;
-  --mh-surface: #fdfdfc;
+  --mh-bg: #f7f7f7;
+  --mh-surface: #fdfdfd;
   --mh-elevated: #ffffff;
-  --mh-chrome: #efeeeb;
-  --mh-text: #2b2b27;
-  --mh-text-2: #585852;
-  --mh-text-3: #7d7d77;
-  --mh-text-4: #a3a39c;
-  --mh-border: rgba(60, 58, 50, 0.10);
-  --mh-border-dim: rgba(60, 58, 50, 0.065);
-  --mh-accent: #31548e;
-  --mh-accent-hover: #294878;
-  --mh-accent-active: #223c65;
-  --mh-accent-soft: rgba(49, 84, 142, 0.1);
-  --mh-accent-border: rgba(49, 84, 142, 0.18);
-  --mh-info: #5a7fb8;
-  --mh-info-bg: rgba(90, 127, 184, 0.1);
+  --mh-chrome: #f0f0f0;
+  --mh-text: #262626;
+  --mh-text-2: #525252;
+  --mh-text-3: #6f6f6f;
+  --mh-text-4: #7e7e7e;
+  --mh-border: rgba(23, 23, 23, 0.10);
+  --mh-border-dim: rgba(23, 23, 23, 0.06);
+  --mh-accent: #0284c7;
+  --mh-accent-hover: #0369a1;
+  --mh-accent-active: #075985;
+  --mh-accent-soft: rgba(2, 132, 199, 0.1);
+  --mh-accent-border: rgba(2, 132, 199, 0.25);
+  --mh-info: #0ea5e9;
+  --mh-info-bg: rgba(14, 165, 233, 0.09);
   /* Capture identity (Desktop 记一下 teal family) */
   --mh-capture: #12897b;
   --mh-capture-hover: #0f7568;
-  --mh-brand-deep: #31548e;
-  --mh-brand-mid: #5a7fb8;
+  --mh-brand-deep: #075985;
+  --mh-brand-mid: #0ea5e9;
   --mh-brand-aqua: #2fa89a;
-  --mh-ok: #1a7f53;
-  --mh-ok-bg: rgba(26, 127, 83, 0.1);
-  --mh-warn: #b3760e;
-  --mh-warn-bg: rgba(179, 118, 14, 0.1);
-  --mh-err: #c03d2e;
-  --mh-err-bg: rgba(192, 61, 46, 0.1);
-  --mh-radius-lg: 12px;
+  --mh-ok: #16a34a;
+  --mh-ok-bg: rgba(22, 163, 74, 0.09);
+  --mh-warn: #e07b00;
+  --mh-warn-bg: rgba(224, 123, 0, 0.09);
+  --mh-err: #e03131;
+  --mh-err-bg: rgba(224, 49, 49, 0.09);
+  --mh-radius-lg: 8px;
   --mh-radius: 12px;
-  --mh-radius-sm: 8px;
+  --mh-radius-sm: 6px;
   --mh-radius-xs: 4px;
   --mh-radius-full: 9999px;
   /* Interaction states — mirrored from Desktop tokens */
-  --mh-surface-muted: #f2f1ed;
-  --mh-surface-inset: #eae9e5;
+  --mh-surface-muted: #f1f1f1;
+  --mh-surface-inset: #ebebeb;
   --mh-surface-hover: var(--mh-surface-muted);
   --mh-surface-active: var(--mh-surface-inset);
   --mh-text-on-accent: #ffffff;
-  --mh-focus-ring: rgba(49, 84, 142, 0.85);
-  --mh-focus-soft: rgba(49, 84, 142, 0.13);
-  --mh-accent-bg-subtle: rgba(49, 84, 142, 0.08);
-  --mh-accent-bg-faint: rgba(49, 84, 142, 0.04);
-  --mh-accent-border-subtle: rgba(49, 84, 142, 0.18);
-  --mh-border-strong: rgba(60, 58, 50, 0.17);
+  --mh-focus-ring: rgba(2, 132, 199, 0.85);
+  --mh-focus-soft: rgba(2, 132, 199, 0.14);
+  --mh-accent-bg-subtle: rgba(2, 132, 199, 0.08);
+  --mh-accent-bg-faint: rgba(2, 132, 199, 0.05);
+  --mh-accent-border-subtle: rgba(2, 132, 199, 0.25);
+  --mh-border-strong: rgba(23, 23, 23, 0.18);
   /* Transition timing — mirrored from Desktop */
   --mh-duration-fast: 140ms;
   --mh-duration-quick: 100ms;
   --mh-ease-default: cubic-bezier(0.2, 0.8, 0.2, 1);
   --mh-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --mh-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC",
+  --mh-font: ui-sans-serif, system-ui, -apple-system, "PingFang SC",
     "Hiragino Sans GB", "Segoe UI", system-ui, sans-serif;
-  --mh-shadow: 0 1px 2px rgba(31, 29, 26, 0.04);
-  --mh-shadow-lg: 0 10px 28px rgba(31, 29, 26, 0.10), 0 0 0 1px rgba(60, 58, 50, 0.10);
+  --mh-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --mh-shadow-lg: 0 10px 28px rgba(0, 0, 0, 0.09), 0 0 0 1px rgba(23, 23, 23, 0.10);
   --mh-control-h: 34px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --mh-bg: #1e1e1c;
-    --mh-surface: #262624;
-    --mh-elevated: #2e2e2b;
-    --mh-chrome: #171715;
-    --mh-text: #ecece8;
-    --mh-text-2: #cbccc6;
-    --mh-text-3: #a3a49d;
-    --mh-text-4: #83847e;
+    --mh-bg: #171717;
+    --mh-surface: #1d1d1d;
+    --mh-elevated: #262626;
+    --mh-chrome: #161616;
+    --mh-text: #e5e5e5;
+    --mh-text-2: #c9c9c9;
+    --mh-text-3: #a1a1a1;
+    --mh-text-4: #8c8c8c;
     --mh-border: rgba(255, 255, 255, 0.10);
-    --mh-border-dim: rgba(255, 255, 255, 0.055);
-  --mh-accent: #7f9fd4;
-    --mh-accent-hover: #93aede;
-    --mh-accent-active: #a7bde6;
-    --mh-accent-soft: rgba(127, 159, 212, 0.14);
-    --mh-accent-border: rgba(127, 159, 212, 0.28);
-    --mh-accent-bg-subtle: rgba(127, 159, 212, 0.14);
-    --mh-accent-bg-faint: rgba(127, 159, 212, 0.06);
-    --mh-accent-border-subtle: rgba(127, 159, 212, 0.28);
-    --mh-info: #93aede;
-    --mh-info-bg: rgba(127, 159, 212, 0.12);
-    --mh-surface-muted: #2a2a27;
-    --mh-surface-inset: #171715;
-    --mh-surface-hover: #2c2c29;
+    --mh-border-dim: rgba(255, 255, 255, 0.06);
+  --mh-accent: #38bdf8;
+    --mh-accent-hover: #7dd3fc;
+    --mh-accent-active: #0ea5e9;
+    --mh-accent-soft: rgba(56, 189, 248, 0.13);
+    --mh-accent-border: rgba(56, 189, 248, 0.30);
+    --mh-accent-bg-subtle: rgba(56, 189, 248, 0.13);
+    --mh-accent-bg-faint: rgba(56, 189, 248, 0.07);
+    --mh-accent-border-subtle: rgba(56, 189, 248, 0.30);
+    --mh-info: #7dd3fc;
+    --mh-info-bg: rgba(125, 211, 252, 0.12);
+    --mh-surface-muted: #212121;
+    --mh-surface-inset: #101010;
+    --mh-surface-hover: rgba(255, 255, 255, 0.055);
     --mh-surface-active: var(--mh-surface-inset);
-    --mh-text-on-accent: #12100c;
-    --mh-focus-ring: rgba(127, 159, 212, 0.90);
-    --mh-focus-soft: rgba(127, 159, 212, 0.16);
+    --mh-text-on-accent: #0a0a0a;
+    --mh-focus-ring: rgba(56, 189, 248, 0.90);
+    --mh-focus-soft: rgba(56, 189, 248, 0.16);
     --mh-border-strong: rgba(255, 255, 255, 0.18);
     --mh-capture: #4fc2b0;
     --mh-capture-hover: #6fd4c2;
-    --mh-ok: #4ec996;
-    --mh-ok-bg: rgba(78, 201, 150, 0.12);
-    --mh-warn: #e3ae4a;
-    --mh-warn-bg: rgba(227, 174, 74, 0.12);
-    --mh-err: #e57368;
-    --mh-err-bg: rgba(229, 115, 104, 0.12);
+    --mh-ok: #22c55e;
+    --mh-ok-bg: rgba(34, 197, 94, 0.12);
+    --mh-warn: #ff8a30;
+    --mh-warn-bg: rgba(255, 138, 48, 0.12);
+    --mh-err: #ff5c5c;
+    --mh-err-bg: rgba(255, 92, 92, 0.12);
     --mh-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
     --mh-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(255, 255, 255, 0.08);
   }
@@ -154,8 +154,8 @@ header.app-header {
   /* Design System 2.0 axis only — deep → mid → aqua (no indigo/purple) */
   background: linear-gradient(
     135deg,
-    var(--mh-brand-deep, #31548e) 0%,
-    var(--mh-brand-mid, #5a7fb8) 50%,
+    var(--mh-brand-deep, #075985) 0%,
+    var(--mh-brand-mid, #0ea5e9) 50%,
     var(--mh-brand-aqua, #2fa89a) 100%
   );
   color: var(--mh-text-on-accent, #ffffff);
@@ -632,8 +632,8 @@ body.options-page {
   /* Design System 2.0 axis: deep → mid → aqua (same as popup brand-mark) */
   background: linear-gradient(
     135deg,
-    var(--mh-brand-deep, #31548e) 0%,
-    var(--mh-brand-mid, #5a7fb8) 50%,
+    var(--mh-brand-deep, #075985) 0%,
+    var(--mh-brand-mid, #0ea5e9) 50%,
     var(--mh-brand-aqua, #2fa89a) 100%
   );
   color: var(--mh-text-on-accent, #ffffff);

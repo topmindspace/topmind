@@ -219,6 +219,33 @@ export class KernelService {
     return this.getResolvedModelInternal();
   }
 
+  /**
+   * Stream-relevant vault paths derived from the resolved contract
+   * (loose-stream category directories) — replaces the hardcoded `1\d-`
+   * prefix heuristic that went stale on customized contracts.
+   */
+  isStreamRelevantPath(relPath: string): boolean {
+    const p = relPath.replace(/\\/g, "/");
+    if (/(?:^|\/)todo\.md$/u.test(p)) return true;
+    const profile = this.profileRelPath();
+    const slash = profile.lastIndexOf("/");
+    const memDir = slash > 0 ? profile.slice(0, slash) : "memory";
+    if (p === `${memDir}/periodic` || p.startsWith(`${memDir}/periodic/`)) return true;
+    try {
+      const dirs = (this.getResolvedModel().categories || [])
+        .filter((c) => c.role === "loose-stream" || c.role === "stream")
+        .map((c) => String(c.directory || "").replace(/\\/g, "/"))
+        .filter(Boolean);
+      if (dirs.length > 0) {
+        return dirs.some((d) => p === d || p.startsWith(`${d}/`));
+      }
+    } catch {
+      /* fall through to convention fallback */
+    }
+    // Pre-contract fallback: stream categories use the 10-19 range by convention
+    return /^1\d-/u.test(p);
+  }
+
   /** Workspace-relative 我的情况 path (contract memory.dir + profile file). */
   profileRelPath(): string {
     const vault = this.getVaultPath();

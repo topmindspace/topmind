@@ -1,14 +1,14 @@
 # topmind Skills Package Index (包索引)
 
 > [!NOTE]
-> **每日唯一入口**：`topmind` (router)。其余 6 个 action 与 2 个 optional connector 模块均由 router 调度。  
+> **每日唯一入口**：`topmind` (router)。其余 6 个 action、2 个 optional connector、1 个 optional 记账模块均由 router 调度。  
 > **通用与可移植**：兼容 Claude Code / OpenCode / Codex / Hermes 等 Agent Host。  
 > **版本真源**：`topmind-pack.json`（可执行 `npm run versions` 查看完整版本号）。  
 > 详见权威说明：[Skills README](./README.md) · [简体中文](./README.zh-CN.md) · [安装与部署指南 (INSTALL.md)](./INSTALL.md)。
 
 ---
 
-## 九大 Skill 包清单
+## Skill 包清单
 
 | # | Skill 名称 | 模块类型 | 关键触发词 / 场景 | 职责描述 |
 |---|---|---|---|---|
@@ -21,6 +21,7 @@
 | 7 | `topmind-loop` | Action | loop / 巡检 / 自动盘点 | **巡检动作**：可恢复的工作区全量语义巡检与盘点 |
 | 8 | `topmind-weread` | Connector | 微信读书 / weread | **微信读书连接器**：同步划线、书评与阅读笔记 |
 | 9 | `topmind-x` | Connector | X / 推特 / twitter | **X (Twitter) 连接器**：归档推特帖子、书签与时间线 |
+| 10 | `topmind-ledger` | Memory（可选） | 记账 / 记一笔 / 花了 / 存入 | **记账**：默认个人账本，用户自建账本/分类，写入 `memory/ledgers/` |
 
 ---
 

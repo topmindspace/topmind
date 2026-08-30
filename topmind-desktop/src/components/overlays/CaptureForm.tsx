@@ -18,6 +18,7 @@ import { Input } from "../ui/Input";
 import { Textarea } from "../ui/textarea";
 import { Tooltip } from "../ui/tooltip";
 import { cn } from "../../lib/cn";
+import { LedgerQuickEntry, looksLikeLedgerText } from "./LedgerQuickEntry";
 import { ICON } from "../../lib/icons";
 import { CaptureModeBar } from "./CaptureModeBar";
 import {
@@ -627,6 +628,10 @@ export function CaptureForm({
         </div>
       ) : null}
 
+      {!isMemory ? (
+        <LedgerQuickEntry content={content} visible={looksLikeLedgerText(content)} />
+      ) : null}
+
       {attachmentsSlot}
 
       <Textarea
@@ -847,7 +852,9 @@ export function CaptureForm({
                   ? t("overlays:capture.submitDocs", { count: attachments.length })
                   : effectiveMode === "mixed"
                     ? t("overlays:capture.submitMixed")
-                    : t("overlays:capture.submitNote")}
+                    : noteDest === "inbox"
+                      ? t("overlays:capture.submitNote")
+                      : t("overlays:capture.submitNoteStream")}
           </Button>
         </div>
       </div>

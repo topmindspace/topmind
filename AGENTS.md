@@ -62,7 +62,7 @@ topmind = Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Option
 
 ### 三平面目录模型
 - **内容平面**：`{NN-名称}/`（00-收件箱、10-动态、20-专题、88-输出、99-归档…）
-- **语义平面**：`memory/`（profile / periodic / topics）
+- **语义平面**：`memory/`（profile / periodic / topics；卫星 `todo.md` · 可选 `ledgers/`）
 - **系统平面**：`topmind.yaml` + `.topmind/`（index/loop/logs，可删可重建）
 
 ### Kernel 八引擎（唯一领域逻辑）
@@ -75,6 +75,7 @@ contract · workspace-model · stream · memory · lifecycle · **writeback（�
 > **AI provider 注入**：derived/suggest 支持 per-call `aiProvider` + `createKernelContext(…)` 工厂（多工作区安全）；`setAiProvider` 单例仍兼容。见 ADR `docs/adr/2026-08-02-kernel-ai-provider-context.md`。
 
 > **todo-engine**：个人待办清单引擎（`memory/todo.md` 解析/写入/AI 提取），经 writeback-engine 写入。`extractTodosFromStream` · `maintainTodos` 对 budgeted prompt corpus 做 `processedHashes`；`force` 清除扫描周期的 processed + hash。活动 extras 排除 `memory/`。Desktop/Obsidian 只经 Kernel（`force` 透传）。  
+> **ledger-engine**：可选记账卫星（`{memory.dir}/ledgers/` + `catalog.md`；默认 Personal/自己）。经 writeback-engine 写入。空工作区不种子 ClassFund/Giggs/Mom。**不是第九引擎，也不是第六个用户概念。** Desktop 仅启用后作为 Apps 菜单 mini-app（看板 / 流水 / 分类 / 快捷记账）。Skills 可选 `topmind-ledger`；日常入口仍只 `topmind`。Obsidian 不发 mini-app。UTR 无独立 ledger 域。  
 > **ai-operation-engine**：统一 AI 操作注册框架（`lib/ai-operation-engine.mjs`），自注册 `todo_maintain` · `memory_organize` · `topic_classify`，支持 force 重处理、状态追踪（`.topmind/ai-ops.json`）。  
 > **Memory 整合（2026-08-16）**：profile 事实生命周期——`appendProfileEntry`（追加）· `retireProfileEntry`（归档到 `## 历史记录`，加日期前缀，不删内容）· `updateProfileEntry`（原位更新）；`memory_organize` 产出 `retire_profile` 建议条，确认后经 `applySuggestion` 执行。无自动遗忘、无向量索引（ADR `docs/adr/2026-08-16-memory-consolidation.md`）。  
 > **activity-window**：`lib/activity-window.mjs` — 建议/待办/AI ops 共用「近期活动窗口」（21 天 / 30 文件 / 6 周期）。语料预算：suggest 16K · todo extract 16K · maintain 12K。`smartBudgetCorpus` 保留 frontmatter/段落结构/首尾上下文。  
@@ -91,7 +92,7 @@ contract · workspace-model · stream · memory · lifecycle · **writeback（�
 > **Agent 步数**：默认 **20**（可配 3–50）。  
 > **删除诚实**：普通开放笔记 delete 无 trash；用户文案不得声称「每次删除都进 99-归档」。
 
-**诚实状态**：引擎在 `lib/`；Desktop / UTR / AI 耐久 `.md` **主写经 writeback-engine**；Memory · 建议条 · 待办 · AI 操作框架 · 活动窗口 · 动态增补 · 剪藏图片本地化 · i18n 门禁 · 多路 AI 并发 · Stream 年目录+归档 · UIUX 深度优化 **Done**。备份/回执：**仅高影响**——`locked` 覆盖，以及锁定/核心笔记的非 `permanent` **delete**（trash+回执）。`executeArchive` 把内容迁入现场 **system** 目录当新家（不是备份）。普通开放笔记 **delete** 无 trash；create/update/move/rename/连接器同步不备份不写回执；`permanent` 彻底删除；产物旋转（`BACKUP_KEEP=3` · `RECEIPT_KEEP=50`）；Desktop 支持日志 `logs/main.log` 大小上限轮转（默认单文件 2 MB × 保留 3 份归档，`topmind_LOG_MAX_BYTES` / `topmind_LOG_KEEP` 可调，见 ADR `docs/adr/2026-08-27-desktop-log-rotation.md`）。AI Provider：per-operation 动态 temperature/systemPrompt/maxTokens + 瞬态错误重试；会话压缩 240K/60。仍 **Intentional Partial**：contract 未强制全 Surface UI。embedding / 全库 Ask 等见 Reset Non-goal。
+**诚实状态**：引擎在 `lib/`；Desktop / UTR / AI 耐久 `.md` **主写经 writeback-engine**；Memory · 建议条 · 待办 · 可选记账（ledger-engine 卫星）· AI 操作框架 · 活动窗口 · 动态增补 · 剪藏图片本地化 · i18n 门禁 · 多路 AI 并发 · Stream 年目录+归档 · UIUX 深度优化 **Done**。备份/回执：**仅高影响**——`locked` 覆盖，以及锁定/核心笔记的非 `permanent` **delete**（trash+回执）。`executeArchive` 把内容迁入现场 **system** 目录当新家（不是备份）。普通开放笔记 **delete** 无 trash；create/update/move/rename/连接器同步不备份不写回执；`permanent` 彻底删除；产物旋转（`BACKUP_KEEP=3` · `RECEIPT_KEEP=50`）；Desktop 支持日志 `logs/main.log` 大小上限轮转（默认单文件 2 MB × 保留 3 份归档，`topmind_LOG_MAX_BYTES` / `topmind_LOG_KEEP` 可调，见 ADR `docs/adr/2026-08-27-desktop-log-rotation.md`）。AI Provider：per-operation 动态 temperature/systemPrompt/maxTokens + 瞬态错误重试；会话压缩 240K/60。仍 **Intentional Partial**：contract 未强制全 Surface UI。embedding / 全库 Ask 等见 Reset Non-goal。
 
 默认模板 4 种：`stream`（默认）· `balanced` · `research` · `periodic`。
 
@@ -154,7 +155,7 @@ topmind-workspace/  = user data
   ├── 10-动态/ … 动态类别 …
   ├── 88-输出/
   ├── 99-归档/        # 内容安全层（backups · backups/trash · receipts）
-  ├── memory/         # 语义平面（profile/periodic/topics）
+  ├── memory/         # 语义平面（profile/periodic/topics；卫星 todo.md · 可选 ledgers/）
   └── .topmind/       # 机器态（index/loop/logs，可删可重建）
 ```
 
@@ -169,11 +170,12 @@ topmind-workspace/  = user data
 
 ## Skill Boundary
 
-唯一日常入口：`topmind`。包内 9 个模块：
+唯一日常入口：`topmind`。包内 7 核心 + 2 可选连接器 + 1 可选记账（共 10 目录）：
 
 - router：`topmind`  
 - action：`capture` · `organize` · `write` · `memory` · `maintain` · `loop`  
 - connector（可选）：`weread` · `x`  
+- memory 卫星（可选）：`ledger`（记账；不是并列前台）  
 
 不新增并列前台入口。Desktop Skills Dock：Capture / Organize / Write / Memory / Loop。  
 Frontmatter schema：`SKILL-ARCHITECTURE.md`。
@@ -265,7 +267,7 @@ Contract-first Node 底座；命令面见 `TOOLS.md`。依赖 engine 根 `lib/` 
 ```text
 {workspace-root}/
 ├── topmind.yaml         # 工作区门面契约
-├── memory/              # 语义平面：profile / periodic/{YYYY}/ / topics
+├── memory/              # 语义平面：profile / periodic/{YYYY}/ / topics / todo.md / 可选 ledgers/
 ├── .topmind/            # 机器态：index/loop/logs
 ├── 00-收件箱/
 ├── 10-动态/             # yearDir: true → 10-动态/{YYYY}/2026-W30.md

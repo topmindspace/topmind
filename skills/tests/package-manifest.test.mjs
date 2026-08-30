@@ -8,7 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const skillsRoot = path.resolve(__dirname, "..");
 const repoRoot = path.resolve(skillsRoot, "..");
 
-// v4.1: 9 skills (7 core + 2 optional connectors)
+// 7 core + 2 optional connectors + 1 optional ledger
 const EXPECTED_SKILLS = [
   "topmind",
   "topmind-capture",
@@ -19,11 +19,14 @@ const EXPECTED_SKILLS = [
   "topmind-loop",
   "topmind-weread",
   "topmind-x",
+  "topmind-ledger",
 ];
 
-// Core skills (excluding optional connectors)
+const OPTIONAL_SKILLS = ["topmind-weread", "topmind-x", "topmind-ledger"];
+
+// Core skills (excluding optional connectors / ledger)
 const CORE_SKILLS = EXPECTED_SKILLS.filter(
-  (s) => s !== "topmind-weread" && s !== "topmind-x",
+  (s) => !OPTIONAL_SKILLS.includes(s),
 );
 
 const CONTENT_TRUTH = "topmind-workspace/categories-and-topics";
@@ -137,7 +140,7 @@ test("topmind skill pack declares pack-level metadata (license / authors / repos
   assert.ok(manifest.metadata.content_schema.frontmatter_optional_fields.includes("updated"));
 });
 
-test("all 9 SKILL.md files have recommended metadata frontmatter (author / license / homepage / updated)", async () => {
+test("all declared SKILL.md files have recommended metadata frontmatter (author / license / homepage / updated)", async () => {
   const manifest = await readJson("skills/topmind-pack.json");
   const packMeta = manifest.metadata;
 
@@ -187,7 +190,7 @@ test("skills/LICENSE file exists and matches metadata.license (MIT)", async () =
   assert.equal(manifest.metadata.license, "MIT", "metadata.license should match the LICENSE file");
 });
 
-test("topmind skill pack declares one daily entry and 9 action modules including loop and connectors (v4)", async () => {
+test("topmind skill pack declares one daily entry and action modules including loop, connectors, and optional ledger (v4)", async () => {
   const manifest = await readJson("skills/topmind-pack.json");
 
   assert.equal(manifest.name, "topmind");
@@ -195,6 +198,8 @@ test("topmind skill pack declares one daily entry and 9 action modules including
   // Product epoch may advance on unified public cuts (1.x → 2.x); keep semver X.Y.Z only.
   assert.match(manifest.version, /^\d+\.\d+\.\d+$/u, "version should be semver X.Y.Z");
   assert.deepEqual(manifest.skills.map((skill) => skill.id), EXPECTED_SKILLS);
+  assert.ok(CORE_SKILLS.includes("topmind"));
+  assert.ok(!CORE_SKILLS.includes("topmind-ledger"));
   assert.equal(manifest.product_contract.capture_first, true);
   assert.equal(manifest.product_contract.category_first, true);
   assert.equal(manifest.product_contract.topic_emerges, true);
@@ -224,6 +229,11 @@ test("topmind skill pack declares one daily entry and 9 action modules including
   assert.ok(xSkill, "topmind-x should be registered in skills[]");
   assert.equal(xSkill.role, "connector");
   assert.equal(xSkill.optional, true);
+  const ledgerSkill = manifest.skills.find((s) => s.id === "topmind-ledger");
+  assert.ok(ledgerSkill, "topmind-ledger should be registered in skills[]");
+  assert.equal(ledgerSkill.optional, true);
+  assert.equal(ledgerSkill.human_facing, false);
+  assert.equal(ledgerSkill.role, "memory");
 
   // v4.2: template-driven category slots (replaces hardcoded slot entries)
   assert.equal(manifest.category_slots._mode, "template-driven-dynamic-discovery");
@@ -291,7 +301,7 @@ test("topmind skill pack has a portable host contract for non-Codex agents (v3.4
   assert.equal(manifest.portable_contract.host_must_not.includes("introduce-project_type-field"), true);
 });
 
-test("all 9 declared topmind skills have SKILL.md files", async () => {
+test("all declared topmind skills have SKILL.md files", async () => {
   const manifest = await readJson("skills/topmind-pack.json");
 
   for (const skill of manifest.skills) {
@@ -320,7 +330,7 @@ test("agent install target manifests include topmind-loop and use v3.4 content t
   }
 });
 
-test("all 9 SKILL.md files have v4 frontmatter schema (name+version+description+action_category+triggers)", async () => {
+test("all SKILL.md files have v4 frontmatter schema (name+version+description+action_category+triggers)", async () => {
   const manifest = await readJson("skills/topmind-pack.json");
 
   for (const skill of manifest.skills) {
@@ -361,6 +371,20 @@ test("all 9 SKILL.md files have v4 frontmatter schema (name+version+description+
       `${skill.id} must not use legacy 'category' key (use 'action_category' instead)`,
     );
   }
+});
+
+test("optional 记账 skill is not a daily entry and lists 记账/记一笔/花了/存入 triggers", async () => {
+  const skillPath = path.join(skillsRoot, "topmind-ledger", "SKILL.md");
+  const raw = await fs.readFile(skillPath, "utf8");
+  const frontmatterText = raw.replace(/\r\n/gu, "\n").match(/^---\n([\s\S]*?)\n---/u)[1];
+  assert.match(frontmatterText, /entrypoint:\s*false/u);
+  for (const trig of ["记账", "记一笔", "花了", "存入"]) {
+    assert.match(frontmatterText, new RegExp(trig, "u"), `triggers should include ${trig}`);
+  }
+  assert.doesNotMatch(frontmatterText, /entrypoint:\s*true/u);
+  assert.match(raw, /如何打开/);
+  assert.match(raw, /账本路径/);
+  assert.match(raw, /\{memory\.dir\}\/ledgers\//);
 });
 
 test("only topmind router has entrypoint: true (v3.4 single daily entry)", async () => {
@@ -404,7 +428,7 @@ test("all SKILL.md files point to shared capability-degradation.md (v3.4 single 
   }
 });
 
-test("skill evals are tied to the 9 packaged skill ids and use category/topic references", async () => {
+test("skill evals are tied to the packaged skill ids and use category/topic references", async () => {
   const manifest = await readJson("skills/topmind-pack.json");
   const evals = await readJson("skills/evals/evals.json");
   const skillIds = new Set(manifest.skills.map((skill) => skill.id));

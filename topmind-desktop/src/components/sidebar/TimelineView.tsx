@@ -218,7 +218,7 @@ export function TimelineView({ onNavigate }: TimelineViewProps) {
             <button
               type="button"
               onClick={() => useViewStore.getState().openOverlay("quick-capture")}
-              className="inline-flex items-center gap-1 rounded-[var(--radius-md)] bg-accent-color px-2 py-1 text-3xs font-medium text-primary-foreground shadow-[var(--shadow-button)] transition-opacity hover:opacity-90 v4-focus-ring"
+              className="inline-flex items-center gap-1 rounded-[var(--radius-md)] bg-primary px-2 py-1 text-3xs font-medium text-primary-foreground shadow-[var(--shadow-button)] transition-opacity hover:opacity-90 v4-focus-ring"
             >
               <Zap size={ICON.nano} aria-hidden />
               {t("sidebar.timeline.capture")}

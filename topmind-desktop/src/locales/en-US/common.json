@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "topmind",
-    "tagline": "Quick note · Stream · Ship it · Find again"
+    "tagline": "Note it · Stream · Ship it · Find again"
   },
   "action": {
     "save": "Save",
@@ -107,7 +107,12 @@
     "back": "Back",
     "forward": "Forward",
     "focusMode": "Focus mode (hide sidebar / AI / status bar)",
-    "escape": "Close overlay / exit focus"
+    "escape": "Close overlay / exit focus",
+    "sidebarCategory": "Sidebar category view",
+    "sidebarTimeline": "Sidebar timeline view",
+    "sidebarTags": "Sidebar tags view",
+    "taskPanel": "Background task panel",
+    "toggleSplit": "Toggle split view"
   },
   "streamStatus": {
     "tool": "Tool",

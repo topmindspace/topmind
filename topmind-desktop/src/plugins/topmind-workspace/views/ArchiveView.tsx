@@ -13,6 +13,7 @@ import {
   FileRow,
   LoadingState,
   ErrorState,
+  FilterChip,
 } from "../../../components/ui/view";
 import { PromptDialog } from "../../../components/ui/Dialog";
 import {
@@ -31,9 +32,20 @@ interface ArchiveItem {
   mtime: string;
 }
 
+type ArchiveLayer = "all" | "receipt" | "backup" | "trash" | "other";
+
+function classifyArchiveRel(rel: string): Exclude<ArchiveLayer, "all"> {
+  const p = String(rel || "").replace(/\\/g, "/");
+  if (/\/receipts\//u.test(p) || /\/restore-receipts\//u.test(p)) return "receipt";
+  if (/\/backups\/trash\//u.test(p) || /\/trash\//u.test(p)) return "trash";
+  if (/\/backups\//u.test(p)) return "backup";
+  return "other";
+}
+
 export function ArchiveView() {
   const { t } = useTranslation(["workspace", "common"]);
   const [items, setItems] = useState<ArchiveItem[]>([]);
+  const [layer, setLayer] = useState<ArchiveLayer>("all");
   const [outputsName, setOutputsName] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +62,7 @@ export function ArchiveView() {
     if (!silent) setLoading(true);
     try {
       const [archive, outputs] = await Promise.all([
-        api.ws.archive(),
+        api.ws.archive({ recursiveFlat: true, limit: 240 }),
         api.ws.outputs().catch(() => ({ files: [], outputsName: "88-Outputs" as string })),
       ]);
       if (gen !== loadGen.current) return;
@@ -92,6 +104,16 @@ export function ArchiveView() {
     }
   };
 
+  const visible = items.filter((it) => {
+    if (layer === "all") return true;
+    return classifyArchiveRel(it.relativePath) === layer;
+  });
+  const layerCounts = {
+    receipt: items.filter((it) => classifyArchiveRel(it.relativePath) === "receipt").length,
+    backup: items.filter((it) => classifyArchiveRel(it.relativePath) === "backup").length,
+    trash: items.filter((it) => classifyArchiveRel(it.relativePath) === "trash").length,
+  };
+
   if (loading) return <LoadingState label={t("common:action.loading")} />;
   if (error) return <ErrorState message={error} onRetry={() => void refresh()} />;
 
@@ -106,7 +128,15 @@ export function ArchiveView() {
             : t("workspace:archiveView.subtitleDefault")
         }
       />
-      {items.length === 0 ? (
+      {items.length > 0 ? (
+        <div className="mb-2.5 flex flex-wrap items-center gap-1" role="tablist" aria-label={t("workspace:archiveView.layerFilter")}>
+          <FilterChip active={layer === "all"} label={t("workspace:archiveView.layerAll")} count={items.length} onClick={() => setLayer("all")} />
+          <FilterChip active={layer === "receipt"} label={t("workspace:archiveView.layerReceipt")} count={layerCounts.receipt} onClick={() => setLayer("receipt")} />
+          <FilterChip active={layer === "backup"} label={t("workspace:archiveView.layerBackup")} count={layerCounts.backup} onClick={() => setLayer("backup")} />
+          <FilterChip active={layer === "trash"} label={t("workspace:archiveView.layerTrash")} count={layerCounts.trash} onClick={() => setLayer("trash")} />
+        </div>
+      ) : null}
+      {visible.length === 0 ? (
         <EmptyState
           icon={<Archive size={ICON.md} />}
           title={t("workspace:archiveView.emptyTitle")}
@@ -129,15 +159,25 @@ export function ArchiveView() {
       ) : (
         <div className="v4-dash-card p-1.5">
         <RowList>
-          {items.map((a) => {
+          {visible.map((a) => {
             const active = selection.kind === "file" && selection.path === a.relativePath;
+            const kind = classifyArchiveRel(a.relativePath);
             const friendly = a.name.replace(/^\d{4}-\d{2}-\d{2}T?[\d._-]*__?/, "") || a.name;
+            const kindLabel =
+              kind === "receipt"
+                ? t("workspace:archiveView.layerReceipt")
+                : kind === "backup"
+                  ? t("workspace:archiveView.layerBackup")
+                  : kind === "trash"
+                    ? t("workspace:archiveView.layerTrash")
+                    : t("workspace:archiveView.layerOther");
+            const canRestore = kind === "backup" || kind === "trash";
             return (
               <FileRow
                 key={a.relativePath}
                 icon={<Archive size={ICON.xs} className="opacity-80" />}
                 label={friendly}
-                secondary={a.relativePath}
+                secondary={`${kindLabel} · ${a.relativePath}`}
                 active={active}
                 onClick={() => select({ kind: "file", path: a.relativePath, readOnly: true })}
                 onContextMenu={(e) =>
@@ -150,6 +190,7 @@ export function ArchiveView() {
                 }
                 meta={<MetaText>{formatRelativeTime(a.mtime)} · {Math.ceil(a.size / 1024)}KB</MetaText>}
                 actions={
+                  canRestore ? (
                   <Tooltip content={t("workspace:archiveView.restoreTip")}>
                     <Button
                       variant="outline"
@@ -169,6 +210,9 @@ export function ArchiveView() {
                       {t("workspace:archiveView.restoreBtn")}
                     </Button>
                   </Tooltip>
+                  ) : (
+                    <span className="text-3xs text-text-quaternary">{t("workspace:archiveView.viewOnly")}</span>
+                  )
                 }
               />
             );

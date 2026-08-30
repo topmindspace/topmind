@@ -275,6 +275,12 @@ describe("parseStreamEntries (shipped)", () => {
     assert.equal(continued.length, 1);
     assert.match(continued[0].text, /lead/);
     assert.match(continued[0].text, /second paragraph/);
+
+    const nested = parseStreamEntries("## 08-03\n\n- 10:00 parent\n  - child a\n  - child b\n- 11:00 sibling\n");
+    assert.equal(nested.length, 2, `expected 2 first-level cards, got ${nested.length}`);
+    assert.match(nested[0].text, /parent/);
+    assert.match(nested[0].text, /child a/);
+    assert.match(nested[1].text, /sibling/);
   });
 
   test("returns empty array for empty content", async () => {
@@ -371,6 +377,10 @@ describe("stream workbench display path (shipped)", () => {
     assert.match(memView, /this\.layer\s*=\s*id/);
     assert.match(memView, /for \(const item of visible\)/);
     assert.doesNotMatch(memView, /for \(const item of items\)/);
+    assert.match(workbench, /tm-card-dot/);
+    assert.match(workbench, /entry\.time/);
+    assert.match(workbench, /renderTaskPanel/);
+    assert.match(workbench, /task_recent/);
     const design = fs.readFileSync(path.join(__dirname, "..", "DESIGN.md"), "utf-8");
     assert.match(design, /卡片式|单列/);
     assert.match(design, /我的情况/);
@@ -550,6 +560,63 @@ describe("suggestion helpers (shipped)", () => {
       const meta = SUGGESTION_KIND_META[kind];
       assert.ok(typeof meta.icon === "string" && meta.icon.length > 0, `${kind} icon`);
       assert.ok(typeof meta.border === "string" && meta.border.length > 0, `${kind} border`);
+    }
+  });
+
+  test("apply/open labels mirror Desktop: write kinds confirm-to-write, open_profile reads 打开", async () => {
+    const { suggestionApplyIsWrite } = await importShipped("utils.ts");
+    // All write kinds confirm; open_profile's apply opens the profile
+    for (const kind of [
+      "stream_digest", "ai_summary", "promote_memory", "inbox_review",
+      "stale_topic", "catch_all", "inbox_organize", "create_topic",
+    ]) {
+      assert.equal(suggestionApplyIsWrite(kind), true, kind);
+    }
+    assert.equal(suggestionApplyIsWrite("open_profile"), false);
+    assert.equal(suggestionApplyIsWrite(undefined), false);
+  });
+
+  test("suggestionOpenPath resolves targetPath → payload, rejects traversal and placeholders", async () => {
+    const { suggestionOpenPath } = await importShipped("utils.ts");
+    assert.equal(suggestionOpenPath({ targetPath: "memory/profile.md" }), "memory/profile.md");
+    assert.equal(
+      suggestionOpenPath({ payload: { sourcePath: "10-动态\\2026\\2026-W30.md" } }),
+      "10-动态/2026/2026-W30.md",
+      "windows separators normalized",
+    );
+    assert.equal(suggestionOpenPath({ payload: { path: "../escape.md" } }), null);
+    assert.equal(suggestionOpenPath({ targetPath: "10-动态/undefined.md" }), null);
+    assert.equal(suggestionOpenPath({ targetPath: "10-动态/period.md" }), null);
+    assert.equal(suggestionOpenPath({}), null);
+  });
+
+  test("friendlySuggestionPath shortens deep paths with … prefix", async () => {
+    const { friendlySuggestionPath } = await importShipped("utils.ts");
+    assert.equal(friendlySuggestionPath("10-动态/2026/2026-W30.md"), "… / 2026 / 2026-W30.md");
+    assert.equal(friendlySuggestionPath("memory/profile.md"), "memory / profile.md");
+    assert.equal(friendlySuggestionPath("profile.md"), "profile.md");
+    assert.equal(friendlySuggestionPath(undefined), null);
+  });
+
+  test("suggestion action vocabulary keys exist and zh mirrors Desktop semantics", () => {
+    const zh = fs.readFileSync(path.join(srcDir, "i18n", "locales", "zh-CN.ts"), "utf-8");
+    const en = fs.readFileSync(path.join(srcDir, "i18n", "locales", "en-US.ts"), "utf-8");
+    assert.match(zh, /suggestions_confirm:\s*"确认执行"/);
+    assert.match(zh, /suggestions_open:\s*"打开"/);
+    assert.match(en, /suggestions_open:\s*"Open"/);
+  });
+
+  test("both host views render suggestions via the shared card surface (no copy drift)", () => {
+    const shared = fs.readFileSync(path.join(srcDir, "views", "suggestion-card.ts"), "utf-8");
+    assert.match(shared, /suggestions_confirm/);
+    assert.match(shared, /suggestions_open/);
+    assert.match(shared, /suggestionApplyIsWrite/);
+    assert.match(shared, /tm-suggestion-path/);
+    for (const name of ["sidebar-dock-view", "stream-workbench-view"]) {
+      const src = fs.readFileSync(path.join(srcDir, "views", `${name}.ts`), "utf-8");
+      assert.match(src, /renderSuggestionCard\(container, sugg, \{/, `${name} must delegate`);
+      assert.doesNotMatch(src, /tm-btn-confirm/, `${name} must not copy card DOM`);
+      assert.doesNotMatch(src, /suggestions_confirm/, `${name} must not copy vocabulary`);
     }
   });
 });
@@ -757,7 +824,7 @@ describe("migrateSettings + hasConfiguredProvider (shipped)", () => {
     assert.equal(migrated.localeOverride, "");
     assert.equal(migrated.backupKeep, 3, "non-numeric backupKeep falls back to default");
     assert.equal(migrated.receiptKeep, 200, "receiptKeep clamps to slider max");
-    assert.equal(migrated.autoOpenWorkbench, true);
+    assert.equal(migrated.autoOpenWorkbench, false, "junk falls back to the new default (off)");
     assert.equal(migrated.autoTag, true);
   });
 

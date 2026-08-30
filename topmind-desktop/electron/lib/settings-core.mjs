@@ -114,6 +114,28 @@ function defaultWereadSettings() {
   };
 }
 
+function defaultLedgerSettings() {
+  return {
+    enabled: true,
+    defaultRoleId: "Personal",
+  };
+}
+
+function normalizeLedgerSettings(value, fallback = defaultLedgerSettings()) {
+  if (!isObject(value)) return clone(fallback);
+  let defaultRoleId =
+    typeof value.defaultRoleId === "string" && value.defaultRoleId.trim()
+      ? value.defaultRoleId.trim()
+      : fallback.defaultRoleId;
+  if (defaultRoleId === "Giggs" || defaultRoleId === "ClassFund" || defaultRoleId === "Mom") {
+    defaultRoleId = "Personal";
+  }
+  return {
+    enabled: value.enabled !== false,
+    defaultRoleId: defaultRoleId || "Personal",
+  };
+}
+
 function defaultXSettings() {
   return {
     enabled: false,
@@ -345,7 +367,7 @@ function defaultWorkspaceSettings() {
 }
 
 function defaultWindowSettings() {
-  return { bounds: null, isMaximized: false };
+  return { bounds: null, isMaximized: false, uiZoom: 1 };
 }
 
 function clampEditorFontSize(value) {
@@ -680,9 +702,12 @@ function normalizeWindowBounds(value) {
 
 function normalizeWindowSettings(value, fallback = defaultWindowSettings()) {
   if (!isObject(value)) return clone(fallback);
+  const rawZoom = Number(value.uiZoom);
+  const uiZoom = Number.isFinite(rawZoom) && rawZoom >= 0.75 && rawZoom <= 2 ? rawZoom : (fallback.uiZoom ?? 1);
   return {
     bounds: value.bounds !== undefined ? normalizeWindowBounds(value.bounds) : fallback.bounds,
     isMaximized: value.isMaximized === true,
+    uiZoom,
   };
 }
 
@@ -859,6 +884,7 @@ function createDefaultAppSettings(defaultWorkspaceRoot) {
     },
     weread: defaultWereadSettings(),
     x: defaultXSettings(),
+    ledger: defaultLedgerSettings(),
     plugins: defaultPluginsSettings(),
     clipBridge: defaultClipBridgeSettings(),
     ingest: defaultIngestSettings(),
@@ -1040,6 +1066,12 @@ function mergeAppSettings(baseSettings, patch, options = {}) {
     }
     next.weread = normalizeWereadSettings(wereadMerged, next.weread);
   }
+  if (isObject(patch.ledger)) {
+    next.ledger = normalizeLedgerSettings(
+      { ...(next.ledger || defaultLedgerSettings()), ...patch.ledger },
+      next.ledger || defaultLedgerSettings(),
+    );
+  }
   if (isObject(patch.x)) {
     const xMerged = { ...next.x, ...patch.x };
     if (Object.prototype.hasOwnProperty.call(patch.x, "bearerToken")) {
@@ -1106,6 +1138,7 @@ function parseSettingsBody(raw, defaultWorkspaceRoot, secretAdapter) {
   merged.ui = normalizeUiSettings(parsed?.ui, merged.ui);
   merged.weread = normalizeWereadSettings(parsed?.weread, merged.weread);
   merged.x = normalizeXSettings(parsed?.x, merged.x);
+  merged.ledger = normalizeLedgerSettings(parsed?.ledger, merged.ledger || defaultLedgerSettings());
   merged.plugins = normalizePluginsSettings(parsed?.plugins, merged.plugins || defaultPluginsSettings());
   merged.clipBridge = normalizeClipBridgeSettings(parsed?.clipBridge, merged.clipBridge);
   merged.ingest = normalizeIngestSettings(parsed?.ingest, merged.ingest || defaultIngestSettings());
@@ -1220,6 +1253,7 @@ export {
   normalizeUiSettings,
   normalizeWereadSettings,
   normalizeXSettings,
+  normalizeLedgerSettings,
   normalizeAiSettings,
   normalizePluginsSettings,
   normalizeIngestSettings,
@@ -1227,6 +1261,7 @@ export {
   normalizeClipBridgeSettings,
   normalizeWorkspaceSettings,
   normalizeWindowSettings,
+  defaultLedgerSettings,
   defaultPluginsSettings,
   defaultIngestSettings,
   defaultCaptureSettings,
@@ -1252,6 +1287,7 @@ export const settingsCoreTest = {
   normalizeUiSettings,
   normalizeWereadSettings,
   normalizeXSettings,
+  normalizeLedgerSettings,
   normalizeAiSettings,
   normalizePluginsSettings,
   normalizeIngestSettings,

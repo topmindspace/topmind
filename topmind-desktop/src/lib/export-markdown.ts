@@ -56,38 +56,38 @@ export function markdownBodyToHtmlDocument(
     max-width: 42rem;
     margin: 2rem auto;
     padding: 0 1.25rem 3rem;
-    color: #2b2b27;
-    background: #f7f6f4;
+    color: #262626;
+    background: #f7f7f7;
   }
   @media (prefers-color-scheme: dark) {
-    body { color: #ecece8; background: #1e1e1c; }
-    pre, code { background: #2a2a27; }
-    a { color: #7f9fd4; }
+    body { color: #e5e5e5; background: #171717; }
+    pre, code { background: #262626; }
+    a { color: #7dd3fc; }
   }
   h1,h2,h3 { line-height: 1.3; margin-top: 1.4em; }
   pre {
     overflow: auto;
     padding: 0.75rem 1rem;
     border-radius: 8px;
-    background: #f0ede5;
+    background: #ebebeb;
     font-size: 0.9em;
   }
   code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; }
-  :not(pre) > code { padding: 0.1em 0.35em; border-radius: 4px; background: #f0ede5; }
+  :not(pre) > code { padding: 0.1em 0.35em; border-radius: 4px; background: #ebebeb; }
   blockquote {
     margin: 1em 0;
     padding-left: 1em;
-    border-left: 3px solid rgba(49, 84, 142, 0.5);
-    color: #57524a;
+    border-left: 3px solid rgba(2, 132, 199, 0.5);
+    color: #525252;
   }
   @media (prefers-color-scheme: dark) {
-    blockquote { border-left-color: rgba(127, 159, 212, 0.5); color: #d0cabd; }
-    pre { background: #2a2a27; }
-    :not(pre) > code { background: #2a2a27; }
+    blockquote { border-left-color: rgba(56, 189, 248, 0.5); color: #c9c9c9; }
+    pre { background: #212121; }
+    :not(pre) > code { background: #212121; }
   }
-  a { color: #31548e; }
-  .meta { font-size: 0.85rem; color: #7c766b; }
-  @media (prefers-color-scheme: dark) { .meta { color: #a49c8c; } }
+  a { color: #0284c7; }
+  .meta { font-size: 0.85rem; color: #6f6f6f; }
+  @media (prefers-color-scheme: dark) { .meta { color: #8c8c8c; } }
   ul, ol { padding-left: 1.4em; }
   img { max-width: 100%; height: auto; }
 </style>
@@ -109,8 +109,8 @@ export function markdownToHtmlFragment(md: string): string {
   let inCode = false;
   let codeLang = "";
   let codeBuf: string[] = [];
-  /** "ul" | "ol" | "task" */
-  let listType: "ul" | "ol" | "task" | null = null;
+  /** Nested list stack — first-level + indented children. */
+  const listStack: Array<{ indent: number; kind: "ul" | "ol" | "task"; openLi: boolean }> = [];
   let para: string[] = [];
   let bqBuf: string[] = [];
 
@@ -127,10 +127,91 @@ export function markdownToHtmlFragment(md: string): string {
     if (text) out.push(`<p>${text}</p>`);
     para = [];
   };
+  const closeOpenLi = () => {
+    const cur = listStack[listStack.length - 1];
+    if (cur?.openLi) {
+      const lastIdx = out.length - 1;
+      const last = lastIdx >= 0 ? out[lastIdx] : "";
+      if (last.startsWith("<li") && !last.includes("</li>")) {
+        out[lastIdx] = `${last}</li>`;
+      } else {
+        out.push("</li>");
+      }
+      cur.openLi = false;
+    }
+  };
   const flushList = () => {
-    if (!listType) return;
-    out.push(listType === "task" ? "</ul>" : `</${listType}>`);
-    listType = null;
+    while (listStack.length) {
+      closeOpenLi();
+      const closed = listStack.pop();
+      if (!closed) break;
+      out.push(closed.kind === "ol" ? "</ol>" : "</ul>");
+    }
+  };
+  const parseListLine = (raw: string) => {
+    const task = raw.match(/^(\s*)([-*+])\s+\[([ xX])\]\s+(.*)$/u);
+    if (task) {
+      return {
+        indent: task[1].replace(/\t/gu, "  ").length,
+        kind: "task" as const,
+        text: task[4],
+        checked: /x/i.test(task[3]),
+      };
+    }
+    const ul = raw.match(/^(\s*)([-*+])\s+(.*)$/u);
+    if (ul) {
+      return {
+        indent: ul[1].replace(/\t/gu, "  ").length,
+        kind: "ul" as const,
+        text: ul[3],
+        checked: false,
+      };
+    }
+    const ol = raw.match(/^(\s*)(\d+)\.\s+(.*)$/u);
+    if (ol) {
+      return {
+        indent: ol[1].replace(/\t/gu, "  ").length,
+        kind: "ol" as const,
+        text: ol[3],
+        checked: false,
+      };
+    }
+    return null;
+  };
+  const pushListItem = (item: { indent: number; kind: "ul" | "ol" | "task"; text: string; checked: boolean }) => {
+    while (listStack.length && listStack[listStack.length - 1].indent > item.indent) {
+      closeOpenLi();
+      const closed = listStack.pop();
+      if (closed) out.push(closed.kind === "ol" ? "</ol>" : "</ul>");
+    }
+    const top = listStack[listStack.length - 1];
+    if (!top || top.indent < item.indent) {
+      const tag = item.kind === "ol" ? "ol" : "ul";
+      const cls = item.kind === "task" ? ' class="task-list"' : "";
+      out.push(`<${tag}${cls}>`);
+      listStack.push({ indent: item.indent, kind: item.kind, openLi: false });
+    } else if (top.indent === item.indent) {
+      closeOpenLi();
+      if (top.kind !== item.kind) {
+        out.push(top.kind === "ol" ? "</ol>" : "</ul>");
+        listStack.pop();
+        const tag = item.kind === "ol" ? "ol" : "ul";
+        const cls = item.kind === "task" ? ' class="task-list"' : "";
+        out.push(`<${tag}${cls}>`);
+        listStack.push({ indent: item.indent, kind: item.kind, openLi: false });
+      }
+    }
+    const cur = listStack[listStack.length - 1];
+    if (item.kind === "task") {
+      out.push(
+        `<li class="task-list-item" data-checked="${item.checked ? "true" : "false"}">` +
+          `<input type="checkbox" disabled${item.checked ? " checked" : ""} /> ` +
+          `<span>${inlineFormat(item.text)}</span>`,
+      );
+    } else {
+      out.push(`<li>${inlineFormat(item.text)}`);
+    }
+    if (cur) cur.openLi = true;
   };
   const flushBq = () => {
     if (bqBuf.length === 0) return;
@@ -168,24 +249,16 @@ export function markdownToHtmlFragment(md: string): string {
     }
 
     if (/^\s*$/u.test(line)) {
-      // Look ahead: if the next non-blank line is a list item of the same type,
-      // keep the list open (user intentionally spaced items). Just flush para/bq.
-      if (listType) {
+      // Look ahead: if the next non-blank line is a list item, keep the list
+      // open (user intentionally spaced items). Just flush para/bq.
+      if (listStack.length) {
         let j = i + 1;
         while (j < lines.length && /^\s*$/u.test(lines[j])) j++;
-        if (j < lines.length) {
-          const nextLine = lines[j];
-          const isSameList =
-            (listType === "ul" && /^[-*+]\s+/u.test(nextLine)) ||
-            (listType === "ol" && /^\d+\.\s+/u.test(nextLine)) ||
-            (listType === "task" && /^[-*+]\s+\[[ xX]\]\s+/u.test(nextLine));
-          if (isSameList) {
-            // Keep list open; just flush para/bq without closing the list
-            flushPara();
-            flushBq();
-            i += 1;
-            continue;
-          }
+        if (j < lines.length && parseListLine(lines[j])) {
+          flushPara();
+          flushBq();
+          i += 1;
+          continue;
         }
       }
       flushPara();
@@ -230,47 +303,11 @@ export function markdownToHtmlFragment(md: string): string {
     }
     if (bqBuf.length) flushBq();
 
-    // Task list: - [ ] / - [x]
-    const task = line.match(/^[-*+]\s+\[([ xX])\]\s+(.+)$/u);
-    if (task) {
+    const listItem = parseListLine(line);
+    if (listItem) {
       flushPara();
-      if (listType !== "task") {
-        flushList();
-        listType = "task";
-        out.push('<ul class="task-list">');
-      }
-      const checked = /x/i.test(task[1]);
-      out.push(
-        `<li class="task-list-item" data-checked="${checked ? "true" : "false"}">` +
-          `<input type="checkbox" disabled${checked ? " checked" : ""} /> ` +
-          `<span>${inlineFormat(task[2])}</span></li>`,
-      );
-      i += 1;
-      continue;
-    }
-
-    const ul = line.match(/^[-*+]\s+(.+)$/u);
-    if (ul) {
-      flushPara();
-      if (listType !== "ul") {
-        flushList();
-        listType = "ul";
-        out.push("<ul>");
-      }
-      out.push(`<li>${inlineFormat(ul[1])}</li>`);
-      i += 1;
-      continue;
-    }
-
-    const ol = line.match(/^\d+\.\s+(.+)$/u);
-    if (ol) {
-      flushPara();
-      if (listType !== "ol") {
-        flushList();
-        listType = "ol";
-        out.push("<ol>");
-      }
-      out.push(`<li>${inlineFormat(ol[1])}</li>`);
+      flushBq();
+      pushListItem(listItem);
       i += 1;
       continue;
     }

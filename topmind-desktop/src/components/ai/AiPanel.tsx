@@ -42,12 +42,22 @@ export function AiPanel() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const autoScrollRef = useRef(true);
+  const [detachedFromBottom, setDetachedFromBottom] = useState(false);
 
   const handleScroll = () => {
     const el = scrollRef.current;
     if (!el) return;
     const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
     autoScrollRef.current = atBottom;
+    setDetachedFromBottom(!atBottom);
+  };
+
+  const jumpToLatest = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+    autoScrollRef.current = true;
+    setDetachedFromBottom(false);
   };
 
   useEffect(() => {
@@ -82,10 +92,11 @@ export function AiPanel() {
       <PanelChrome />
       {mountedFiles.length > 0 ? <ContextPills /> : null}
 
+      <div className="relative min-h-0 flex-1">
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="v4-content-scroll min-h-0 flex-1 overflow-auto overscroll-contain px-2.5 py-2.5"
+        className="v4-content-scroll h-full overflow-auto overscroll-contain px-2.5 py-2.5"
       >
         {messages.length === 0 ? (
           <EmptyConversation selection={selection} />
@@ -122,6 +133,17 @@ export function AiPanel() {
             ) : null}
           </div>
         )}
+      </div>
+      {detachedFromBottom ? (
+        <button
+          type="button"
+          onClick={jumpToLatest}
+          className="absolute bottom-3 left-1/2 z-floating flex h-6 -translate-x-1/2 items-center gap-1 rounded-full border border-border-subtle bg-surface-elevated/95 px-2.5 text-3xs font-medium text-text-secondary shadow-[var(--shadow-float)] backdrop-blur-sm transition-colors hover:bg-surface-muted v4-focus-ring"
+          aria-label={t("ai.jumpToLatest")}
+        >
+          <ChevronDown size={ICON.xs} /> {t("ai.jumpToLatest")}
+        </button>
+      ) : null}
       </div>
 
       <ActionBar />
@@ -304,14 +326,6 @@ function PanelChrome() {
             </Tooltip>
           }
         >
-          <DropdownItem
-            onSelect={() => {
-              void handleNewSession();
-            }}
-          >
-            <Plus size={ICON.xs} className="shrink-0 text-accent-color" />
-            <span className="font-medium text-accent-color">{t("ai.newSessionLabel")}</span>
-          </DropdownItem>
           {sessions.length > 8 ? (
             <div className="flex items-center gap-1.5 border-y border-border-subtle-dim px-2.5 py-1.5">
               <Search size={ICON.micro} className="shrink-0 text-text-quaternary" />
@@ -433,7 +447,7 @@ function EmptyConversation({ selection }: { selection: Selection }) {
         <button
           type="button"
           onClick={() => useViewStore.getState().openOverlay("settings", { topicId: "ai" })}
-          className="mx-auto rounded-[var(--radius-md)] bg-accent-color px-3 py-1.5 text-3xs font-medium text-primary-foreground shadow-[var(--shadow-button)] transition-opacity hover:opacity-90"
+          className="mx-auto rounded-[var(--radius-md)] bg-primary px-3 py-1.5 text-3xs font-medium text-primary-foreground shadow-[var(--shadow-button)] transition-opacity hover:opacity-90"
         >
           {t("ai.goConfigureLabel")}
         </button>

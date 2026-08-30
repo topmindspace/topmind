@@ -143,7 +143,14 @@ export function SelectionAiBar({
       aria-busy={busy}
       className="pointer-events-auto fixed z-floating v4-ai-panel-enter"
       style={{ top: Math.max(8, barTop), left: barLeft, maxWidth: panelW }}
-      onMouseDown={(e) => e.preventDefault()}
+      onMouseDown={(e) => {
+        // Blanket preventDefault kept the editor selection but also made the
+        // editable-preview textarea and inputs mouse-unfocusable — guard
+        // interactive targets instead.
+        const el = e.target as HTMLElement | null;
+        if (el?.closest?.("input, textarea, select, button, [contenteditable='true']")) return;
+        e.preventDefault();
+      }}
     >
       <div
         className={cn(

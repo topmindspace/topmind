@@ -1,8 +1,9 @@
 /**
  * Splitter — draggable divider for resizing adjacent panels.
- * Supports horizontal (left/right) drag. Updates a zustand store value.
+ * Pointer-capture based (mouse + touch/pen via pointer events, same as the
+ * canvas split divider) and keyboard-operable (←/→ steps, Shift = coarse).
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { cn } from "../../lib/cn";
 
 interface SplitterProps {
@@ -17,60 +18,79 @@ interface SplitterProps {
 export function Splitter({ side, value, onChange, min = 180, max = 600, onDragStateChange }: SplitterProps) {
   const [dragging, setDragging] = useState(false);
   const [hovering, setHovering] = useState(false);
-  const startXRef = useRef(0);
-  const startValueRef = useRef(value);
 
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
+  const clamp = useCallback((v: number) => Math.max(min, Math.min(max, v)), [min, max]);
+
+  const onPointerDown = useCallback(
+    (e: React.PointerEvent) => {
       e.preventDefault();
-      startXRef.current = e.clientX;
-      startValueRef.current = value;
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
       setDragging(true);
       onDragStateChange?.(true);
     },
-    [value, onDragStateChange],
+    [onDragStateChange],
   );
 
-  useEffect(() => {
-    if (!dragging) return;
+  const onPointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (!dragging) return;
+      const parentRect = (e.currentTarget as HTMLElement).parentElement?.getBoundingClientRect();
+      if (!parentRect) return;
+      // Left panel: width = distance from parent's left edge to the pointer.
+      // Right panel: width = distance from the pointer to the parent's right edge.
+      const next =
+        side === "left" ? e.clientX - parentRect.left : parentRect.right - e.clientX;
+      onChange(clamp(next));
+    },
+    [dragging, side, onChange, clamp],
+  );
 
-    const handleMouseMove = (e: MouseEvent) => {
-      const delta = e.clientX - startXRef.current;
-      // Left panel: drag right = wider. Right panel: drag left = wider (delta negative).
-      const next = side === "left" ? startValueRef.current + delta : startValueRef.current - delta;
-      onChange(Math.max(min, Math.min(max, next)));
-    };
-
-    const handleMouseUp = () => {
+  const endDrag = useCallback(
+    (e: React.PointerEvent) => {
+      if (!dragging) return;
+      try {
+        (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+      } catch {
+        /* pointer already released */
+      }
       setDragging(false);
       onDragStateChange?.(false);
-    };
+    },
+    [dragging, onDragStateChange],
+  );
 
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-    return () => {
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [dragging, side, onChange, min, max, onDragStateChange]);
+  const onKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      e.preventDefault();
+      const step = e.shiftKey ? 48 : 16;
+      const dir = (e.key === "ArrowLeft" ? -1 : 1) * (side === "left" ? 1 : -1);
+      onChange(clamp(value + dir * step));
+    },
+    [onChange, clamp, value, side],
+  );
 
   const active = dragging || hovering;
 
   return (
     <div
-      onMouseDown={handleMouseDown}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+      onKeyDown={onKeyDown}
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
+      tabIndex={0}
       role="separator"
       aria-orientation="vertical"
       aria-valuenow={Math.round(value)}
+      aria-valuemin={min}
+      aria-valuemax={max}
+      aria-label="Resize panel"
       className={cn(
-        "group relative z-local flex w-px cursor-col-resize items-center justify-center",
-        "transition-[background-color,box-shadow] duration-[var(--duration-fast)]",
+        "group relative z-local flex w-px cursor-col-resize touch-none items-center justify-center outline-none",
+        "transition-[background-color,box-shadow] duration-[var(--duration-fast)] v4-focus-ring",
         active
           ? "bg-accent-color shadow-[0_0_0_1px_var(--color-accent-color)]"
           : "bg-border-subtle-dim hover:bg-border-subtle",
@@ -78,14 +98,14 @@ export function Splitter({ side, value, onChange, min = 180, max = 600, onDragSt
     >
       {/* Wider hit area for easier grabbing */}
       <div className="absolute inset-y-0 -left-1.5 -right-1.5 z-local" />
-      {/* Grip pill — appears on hover/drag */}
+      {/* Grip pill — appears on hover/drag/focus */}
       <div
         className={cn(
           "absolute top-1/2 flex h-8 w-1 -translate-y-1/2 items-center justify-center rounded-full",
           "transition-[opacity,background-color,transform] duration-[var(--duration-fast)]",
           active
             ? "scale-100 bg-accent-color opacity-100"
-            : "scale-90 bg-border-subtle opacity-0 group-hover:opacity-60",
+            : "scale-90 bg-border-subtle opacity-0 group-hover:opacity-60 group-focus-visible:opacity-60",
         )}
       />
     </div>

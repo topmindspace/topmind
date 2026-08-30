@@ -23,6 +23,7 @@ skills/
 ├── topmind/                 # only daily entry (router)
 ├── topmind-capture|organize|write|memory|maintain|loop/
 ├── topmind-weread|x/        # optional connectors
+├── topmind-ledger/          # optional bookkeeping (memory-plane ledgers)
 ├── shared/                  # write receipts · degradation · capture …
 ├── install-targets/         # host install shapes
 ├── evals/evals.json
@@ -34,6 +35,7 @@ skills/
 | **Entry** | `topmind` only |
 | **Actions** | capture · organize · write · memory · maintain · loop |
 | **Connectors** | weread · x (optional) |
+| **Optional** | ledger (记账 · memory-plane books) |
 
 > Sub-skill trigger words exist for host routing. They are **not** a second product front door.
 
@@ -85,7 +87,7 @@ Enforced by `skills/tests/package-manifest.test.mjs`. One pack JSON; no per-skil
 ```text
 {workspace-root}/
 ├── topmind.yaml                # contract v4
-├── memory/                     # profile.md · periodic/ · topics/
+├── memory/                     # profile.md · periodic/ · topics/ · todo.md · optional ledgers/
 ├── .topmind/                   # rebuildable machine state
 ├── 00-Inbox/ or 00-收件箱/     # role: buffer (live dir name)
 ├── 10-Stream/ …                # categories (template-driven)
@@ -140,7 +142,7 @@ Full rules: [`../PROJECT-MODEL.md`](../PROJECT-MODEL.md) §3.
 
 ## Install targets
 
-Nine skill directories (7 core + 2 connectors) can be symlinked/copied into Claude Code, Codex, OpenCode, Hermes, and similar hosts.  
+Packaged skill directories (7 core + 2 optional connectors + optional ledger) can be symlinked/copied into Claude Code, Codex, OpenCode, Hermes, and similar hosts.  
 Prefer the pack-aware installer so `shared/` and `topmind-pack.json` stay intact — see [`INSTALL.md`](./INSTALL.md).
 
 Host adapters must **not** change content truth, add parallel daily entries, or store content in agent runtime state. See [`../PRODUCT-BOUNDARIES.md`](../PRODUCT-BOUNDARIES.md).

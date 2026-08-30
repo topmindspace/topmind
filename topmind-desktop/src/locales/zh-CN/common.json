@@ -107,7 +107,12 @@
     "back": "后退",
     "forward": "前进",
     "focusMode": "专注模式（隐藏侧栏 / AI / 状态栏）",
-    "escape": "关闭浮层 / 退出专注"
+    "escape": "关闭浮层 / 退出专注",
+    "sidebarCategory": "侧栏目录视图",
+    "sidebarTimeline": "侧栏时间线视图",
+    "sidebarTags": "侧栏标签视图",
+    "taskPanel": "后台任务面板",
+    "toggleSplit": "切换对照分屏"
   },
   "streamStatus": {
     "tool": "工具",

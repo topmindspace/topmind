@@ -39,7 +39,7 @@ topmind 是 Agent 时代的本地优先工作台，按需组合四条独立能�
 ### 三平面隔离
 
 1. **内容平面**：`{NN-名称}/` — 用户可见数据（收件箱、动态、专题、输出、归档）
-2. **语义平面**：`memory/` — 固化英文名；`profile.md` / `periodic/` / `topics/`
+2. **语义平面**：`memory/` — 固化英文名；`profile.md` / `periodic/` / `topics/`；卫星 `todo.md` 与可选 `ledgers/`（记账，不是第六个用户概念）
 3. **系统平面**：`topmind.yaml` + `.topmind/`（index/loop/logs，可删可重建）
 
 ### Kernel 八引擎（目标：唯一领域逻辑）
@@ -54,6 +54,8 @@ topmind 是 Agent 时代的本地优先工作台，按需组合四条独立能�
 | writeback-engine | 保护/影子/回执/备份（**唯一写闸**） | **Done** — Desktop 主写 + UTR + AI `actor:"ai"` 经 Kernel；settings confirm 覆盖 gate；备份/回执仅高影响（locked 覆盖 · 锁定/核心 delete · archive 迁入 99-归档 · `BACKUP_KEEP=3`/`RECEIPT_KEEP=50` · 普通开放笔记 delete 无 trash · `permanent` 彻底删除） |
 | derived-builder | `.derived/` 生成重建 | **Done 最小** — topic summary + **item-history**；AI 摘要可占位 |
 | ingest-pipeline | URL/文档路由语义 | **Done** 路由 — Desktop commit 经 `resolveIngestRoute`；HTML→MD 与 Clip 共用同一算法（Desktop `html-to-markdown.mjs`） |
+
+**卫星（不是第九引擎）**：`todo-engine`（`memory/todo.md`）· `ledger-engine`（可选 `{memory.dir}/ledgers/`，默认个人/自己账本；经 writeback 写入）。记账不是第六个用户概念，也不是 UTR 域。
 
 **铁律（目标）**：Surface 不得平行实现业务语义。现状见 `docs/ARCHITECTURE-RESET.md` §2。
 
@@ -96,7 +98,7 @@ topmind 是 Agent 时代的本地优先工作台，按需组合四条独立能�
 ```text
 topmind (router)
   ├── capture / organize / write / memory / maintain / loop
-  └── optional connectors: weread / x
+  └── optional: weread / x / ledger（记账）
 ```
 
 - 纯 Markdown + `topmind-pack.json`
@@ -113,6 +115,8 @@ UTR = 软探测；写回不经 UTR
 ```
 
 **必须独立完成**：工作区与 4 模板初始化、导航与编辑、捕获、知识加工、带原生工具的 AI、健康巡检入口。
+
+**可选记账**：enable-gated mini-app（看板 / 流水 / 分类 / 快捷记账），入口在标题栏 Apps 菜单 / 状态栏 chip / ⌘K；**不是** PrimaryNav，也不是第六个用户概念。账本在 `{memory.dir}/ledgers/`。Obsidian 不发记账小应用。
 
 **产品形态（Reset B）**：
 
@@ -209,5 +213,6 @@ graph TD
 | 关键词搜索截断诚实 | **Done**（无 embedding） |
 | 语义索引 / embedding / Ask | **Non-goal 本阶段** / Ask **Target 延后** |
 | 建议可关 · 侧栏 thrift | **Done** · 见 `docs/ARCHITECTURE-RESET.md` §2.2 |
+| 可选记账（ledger-engine 卫星） | **Done**（`memory/ledgers/`；Skills `topmind-ledger`；Desktop enable-gated mini-app；非第九引擎 / 非第六概念） |
 
 详见 `docs/ARCHITECTURE-RESET.md`。

@@ -4,7 +4,7 @@
  */
 import { create } from "zustand";
 import type {
-  DataSourceSlot, SidebarSlot, ViewSlot, ActionSlot,
+  DataSourceSlot, ViewSlot, ActionSlot,
   SettingsSlot, OverlaySlot, StatusBarSlot, ContextMenuSlot,
   Slot,
 } from "./types";
@@ -12,7 +12,6 @@ import type { Selection } from "../types";
 
 interface RegistryState {
   dataSources: DataSourceSlot[];
-  sidebarSlots: SidebarSlot[];
   viewSlots: ViewSlot[];
   actions: ActionSlot[];
   settingsSlots: SettingsSlot[];
@@ -40,7 +39,6 @@ function removeFrom<T extends { id: string }>(arr: T[], id: string): T[] {
 
 export const useRegistry = create<RegistryState>((set, get) => ({
   dataSources: [],
-  sidebarSlots: [],
   viewSlots: [],
   actions: [],
   settingsSlots: [],
@@ -66,8 +64,6 @@ export const useRegistry = create<RegistryState>((set, get) => ({
       switch (slot.kind) {
         case "dataSource":
           return { pluginSlotMap: map, dataSources: sortByOrder([...removeFrom(state.dataSources, id), normalized as DataSourceSlot]) };
-        case "sidebar":
-          return { pluginSlotMap: map, sidebarSlots: sortByOrder([...removeFrom(state.sidebarSlots, id), normalized as SidebarSlot]) };
         case "view":
           return { pluginSlotMap: map, viewSlots: sortByOrder([...removeFrom(state.viewSlots, id), normalized as ViewSlot]) };
         case "action":
@@ -89,7 +85,6 @@ export const useRegistry = create<RegistryState>((set, get) => ({
   unregister: (id) => {
     set((state) => ({
       dataSources: removeFrom(state.dataSources, id),
-      sidebarSlots: removeFrom(state.sidebarSlots, id),
       viewSlots: removeFrom(state.viewSlots, id),
       actions: removeFrom(state.actions, id),
       settingsSlots: removeFrom(state.settingsSlots, id),
@@ -140,7 +135,6 @@ export const useRegistry = create<RegistryState>((set, get) => ({
 /** Read-only accessors for non-React code (e.g. command palette builder). */
 export const registry = {
   dataSources: () => useRegistry.getState().dataSources,
-  sidebarSlots: () => useRegistry.getState().sidebarSlots,
   viewSlots: () => useRegistry.getState().viewSlots,
   actions: () => useRegistry.getState().actions,
   settingsSlots: () => useRegistry.getState().settingsSlots,

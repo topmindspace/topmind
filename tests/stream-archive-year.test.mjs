@@ -154,4 +154,21 @@ describe("listStreamPeriods year filter", () => {
     assert.ok(w10, "CRLF frontmatter period must be listed");
     assert.equal(w10.title, "2024-W10 动态");
   });
+
+  it("strips symmetric YAML quotes from frontmatter title (UI must not show quoting)", async () => {
+    const ws2 = mkWs();
+    try {
+      seedPeriod(ws2, "10-动态/2026/2026-W34.md", '---\ntitle: "2026-W34 动态"\n---\n\n# x\n');
+      seedPeriod(ws2, "10-动态/2026/2026-W33.md", "---\ntitle: '2026-W33 动态'\n---\n\n# x\n");
+      seedPeriod(ws2, "10-动态/2026/2026-W32.md", "---\ntitle: \"quoted \\\"inner\\\" kept\"\n---\n\n# x\n");
+      const all = await listStreamPeriods({ workspaceRoot: ws2 });
+      const byFile = new Map(all.map((p) => [p.fileName, p]));
+      assert.equal(byFile.get("2026-W34.md").title, "2026-W34 动态");
+      assert.equal(byFile.get("2026-W33.md").title, "2026-W33 动态");
+      // Only ONE symmetric pair is stripped; inner quotes are content
+      assert.equal(byFile.get("2026-W32.md").title, 'quoted "inner" kept');
+    } finally {
+      fsSync.rmSync(ws2, { recursive: true, force: true });
+    }
+  });
 });

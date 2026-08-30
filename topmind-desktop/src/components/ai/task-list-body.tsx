@@ -56,6 +56,14 @@ export function TaskListBody({ compact = false }: { compact?: boolean }) {
             <Sparkles size={ICON.nano} />
             {t("taskPanel.triggerAiDigest")}
           </button>
+          <button
+            type="button"
+            onClick={() => void createTask("memory_organize")}
+            className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] border border-accent-border-subtle bg-accent-bg-subtle px-2.5 py-1 text-3xs font-medium text-accent-color transition-colors hover:bg-accent-bg-subtle/80"
+          >
+            <Sparkles size={ICON.nano} />
+            {t("taskPanel.triggerMemoryOrganize")}
+          </button>
         </div>
       </div>
     );
@@ -258,6 +266,12 @@ function TaskResultView({ result }: { result: unknown }) {
   }
   if (typeof r.suggestionCount === "number") {
     lines.push(t("taskPanel.aiDigestFound", { count: r.suggestionCount }));
+  }
+  if (typeof r.merged === "number") {
+    lines.push(t("taskPanel.memoryOrganizeMerged", { count: r.merged }));
+  }
+  if (typeof r.summary === "string" && r.summary) {
+    lines.push(r.summary);
   }
   if (lines.length === 0) {
     try {

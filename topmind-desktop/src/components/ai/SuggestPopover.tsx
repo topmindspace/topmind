@@ -39,7 +39,10 @@ import { ICON } from "../../lib/icons";
 import { Tooltip } from "../ui/tooltip";
 import { ConfirmDialog } from "../ui/Dialog";
 import { shouldCloseOnScroll } from "../../lib/scroll-dismiss";
+import { isMenuLayerActive } from "../../lib/menu-layer";
 import { useActionStore, type ActionItem } from "../../stores/action-store";
+import { useViewStore } from "../../stores/view-store";
+import { emitLocal } from "../../plugins/host";
 import { suggestionApplyIsWrite, suggestionOpenPath } from "../../lib/suggest-apply-label";
 
 const PANEL_WIDTH = 400;
@@ -137,6 +140,18 @@ export function SuggestPopover() {
     }
   }, [open]);
 
+  // Modals own the screen — never paint this popover above an open overlay
+  // (settings / capture / palette). Closing keeps the layering contract honest.
+  const overlay = useViewStore((s) => s.overlay);
+  useEffect(() => {
+    if (open && overlay !== "none") setPanelOpen(false);
+  }, [open, overlay, setPanelOpen]);
+
+  // 建议/待办浮层互斥 — 同一标题栏锚点，空间重叠，不同时叠开
+  useEffect(() => {
+    if (open) emitLocal("todo:close-popover");
+  }, [open]);
+
   // Ensure data when panel is shown — but only if never loaded or truly empty.
   // openSuggestSurface already handles force-refresh on open; this is a safety net
   // for cases where openSuggestSurface was not the entry path (e.g. titlebar toggle).
@@ -152,7 +167,11 @@ export function SuggestPopover() {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setPanelOpen(false);
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      // A portaled menu (dropdown/context) owns Esc while open.
+      if (isMenuLayerActive()) return;
+      e.stopPropagation();
+      setPanelOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -182,6 +201,20 @@ export function SuggestPopover() {
     document.addEventListener("mousedown", handle);
     return () => document.removeEventListener("mousedown", handle);
   }, [open, setPanelOpen]);
+
+  // Recompute on window resize — open-time position must not strand the panel
+  // off-viewport after the window shrinks (parity with TodoPopover).
+  useEffect(() => {
+    if (!open) return;
+    const reposition = () => {
+      setPos({
+        x: Math.max(8, window.innerWidth - PANEL_WIDTH - 16),
+        y: 52,
+      });
+    };
+    window.addEventListener("resize", reposition);
+    return () => window.removeEventListener("resize", reposition);
+  }, [open]);
 
   // Outside scroll dismisses — internal list scroll stays open (parity with TodoPopover)
   useEffect(() => {
@@ -271,7 +304,7 @@ export function SuggestPopover() {
             <Tooltip content={t(`ai.${chip}`)}>
               <span
                 className={cn(
-                  "shrink-0 rounded-full px-1.5 py-px text-5xs font-medium cursor-default",
+                  "shrink-0 rounded-full px-1.5 py-px text-2xs font-medium cursor-default",
                   isHigh ? "bg-warning/10 text-warning" : "bg-accent-bg-subtle text-accent-color/90",
                 )}
               >
@@ -302,7 +335,7 @@ export function SuggestPopover() {
             <>
               <button
                 type="button"
-                className="inline-flex items-center gap-0.5 text-3xs font-medium text-accent-color hover:text-accent-color/80"
+                className="inline-flex h-5 items-center gap-1 rounded-[var(--radius-sm)] px-2 text-3xs font-medium text-accent-color transition-colors hover:bg-accent-bg-subtle v4-focus-ring"
                 onClick={() => setReviewId(item.id)}
                 disabled={isBusy}
               >
@@ -311,7 +344,7 @@ export function SuggestPopover() {
               </button>
               <button
                 type="button"
-                className="text-3xs font-medium text-accent-color hover:text-accent-color/80"
+                className="inline-flex h-5 items-center gap-1 rounded-[var(--radius-sm)] bg-accent-bg-subtle px-2 text-3xs font-medium text-accent-color transition-colors hover:bg-accent-bg-faint v4-focus-ring"
                 onClick={() => void acceptItem(item.id)}
                 disabled={isBusy}
               >
@@ -320,7 +353,7 @@ export function SuggestPopover() {
               </button>
               <button
                 type="button"
-                className="text-3xs text-text-quaternary hover:text-error"
+                className="inline-flex h-5 items-center rounded-[var(--radius-sm)] px-2 text-3xs text-text-tertiary transition-colors hover:bg-surface-muted hover:text-error v4-focus-ring"
                 onClick={() => void rejectItem(item.id)}
                 disabled={isBusy}
               >
@@ -331,7 +364,7 @@ export function SuggestPopover() {
             <>
               <button
                 type="button"
-                className="text-3xs font-medium text-accent-color hover:text-accent-color/80"
+                className="inline-flex h-5 items-center gap-1 rounded-[var(--radius-sm)] bg-accent-bg-subtle px-2 text-3xs font-medium text-accent-color transition-colors hover:bg-accent-bg-faint v4-focus-ring"
                 onClick={() => void acceptItem(item.id)}
                 disabled={busyId !== null || bulkBusy}
               >
@@ -343,7 +376,7 @@ export function SuggestPopover() {
               {suggestionApplyIsWrite(item.suggestionKind, item.source) && suggestionOpenPath(item) ? (
                 <button
                   type="button"
-                  className="text-3xs text-text-tertiary hover:text-text-secondary"
+                  className="inline-flex h-5 items-center rounded-[var(--radius-sm)] px-2 text-3xs text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-secondary v4-focus-ring"
                   onClick={() => openItem(item.id)}
                   disabled={busyId !== null || bulkBusy}
                 >
@@ -352,7 +385,7 @@ export function SuggestPopover() {
               ) : null}
               <button
                 type="button"
-                className="text-3xs text-text-quaternary hover:text-text-tertiary"
+                className="inline-flex h-5 items-center rounded-[var(--radius-sm)] px-2 text-3xs text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-secondary v4-focus-ring"
                 onClick={() => dismissItem(item.id)}
                 disabled={busyId !== null || bulkBusy}
               >
@@ -372,7 +405,7 @@ export function SuggestPopover() {
       data-action-bar
       data-menu-surface=""
       className={cn(
-        "v4-no-drag v4-todo-popover-enter fixed z-(--z-popover-overlay) flex flex-col overflow-hidden",
+        "v4-no-drag v4-todo-popover-enter fixed z-[var(--z-popover-overlay)] flex flex-col overflow-hidden",
         "rounded-lg border border-border-subtle",
         "bg-surface-elevated/90 backdrop-blur-glass backdrop-saturate-150 shadow-elevated-hairline",
       )}
@@ -415,8 +448,8 @@ export function SuggestPopover() {
               aria-label={t("ai.bulkAcceptTip", { defaultValue: "Accept all" })}
             >
               <CheckCheck size={ICON.nano} />
-              <span className="text-5xs font-medium">
-                {t("ai.bulkAccept", { defaultValue: "All" })}
+              <span className="text-3xs font-medium">
+                {t("ai.bulkAccept", { count: items.length, defaultValue: "All ({{count}})" })}
               </span>
             </button>
           </Tooltip>
@@ -525,7 +558,7 @@ export function SuggestPopover() {
             {grouped.normal.length > 0 && grouped.high.length > 0 ? (
               <div className="flex items-center gap-1.5 px-1 pt-0.5">
                 <span className="h-px flex-1 bg-border-subtle-dim" />
-                <span className="text-5xs text-text-quaternary/60">{t("ai.suggestOther", { defaultValue: "Others" })}</span>
+                <span className="text-2xs text-text-tertiary">{t("ai.suggestOther", { defaultValue: "Others" })}</span>
                 <span className="h-px flex-1 bg-border-subtle-dim" />
               </div>
             ) : null}
@@ -540,7 +573,7 @@ export function SuggestPopover() {
 
       {/* Footer hint when items exist */}
       {items.length > 0 ? (
-        <div className="shrink-0 border-t border-border-subtle-dim px-3 py-1 text-5xs text-text-quaternary/60">
+        <div className="shrink-0 border-t border-border-subtle-dim px-3 py-1 text-2xs text-text-tertiary">
           {t("ai.suggestFooterHint", { defaultValue: "Accept to write · Dismiss hides for this session" })}
         </div>
       ) : null}

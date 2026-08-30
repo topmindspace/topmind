@@ -22,6 +22,7 @@ import { TodoPopover } from "../todo/TodoPopover";
 import { useTodoStore } from "../../stores/todo-store";
 import { useActionStore } from "../../stores/action-store";
 import { toggleSuggestSurface } from "../../lib/suggest-surface";
+import { AppsMenu } from "./AppsMenu";
 
 type ThemeMode = Theme;
 
@@ -291,27 +292,13 @@ function WorkspaceSwitcher({ currentRoot }: { currentRoot: string }) {
  * Primary nav — 动态（默认） / 收件箱 / 写出来 / 搜索.
  * Target IA (ARCHITECTURE-RESET / DESIGN §0.0); archive is secondary, not a peer room.
  */
-function PrimaryNav() {
+function PrimaryNav({ showLabels }: { showLabels: boolean }) {
   const { t } = useTranslation(["shell", "common"]);
   const selection = useViewStore((s) => s.selection);
   const select = useViewStore((s) => s.select);
   // Badge discipline (2026-08): badges only when action is required.
   // Inbox = triage queue (badge). Outputs = inventory, not actionable → no badge.
   const [inboxCount, setInboxCount] = useState(0);
-  /**
-   * Show text labels from window width (not self-measure — label presence changes
-   * own width and would thrash ResizeObserver).
-   */
-  const [showLabels, setShowLabels] = useState(
-    () => typeof window !== "undefined" && window.innerWidth >= 960,
-  );
-
-  useLayoutEffect(() => {
-    const update = () => setShowLabels(window.innerWidth >= 960);
-    update();
-    window.addEventListener("resize", update, { passive: true });
-    return () => window.removeEventListener("resize", update);
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -461,6 +448,7 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
   useEffect(() => {
     const unToggle = onLocal("todo:toggle-popover", () => setTodoOpen((v) => !v));
     const unOpen = onLocal("todo:open-popover", () => setTodoOpen(true));
+    const unClose = onLocal("todo:close-popover", () => setTodoOpen(false));
     // Load todo items on mount so the TodoBadge count shows before popover opens
     if (!useTodoStore.getState().everLoaded) {
       void useTodoStore.getState().refresh();
@@ -468,6 +456,7 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
     return () => {
       unToggle();
       unOpen();
+      unClose();
     };
   }, []);
   /**
@@ -477,6 +466,30 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
    */
   const [compactTools, setCompactTools] = useState(false);
   const rightRailRef = useRef<HTMLDivElement>(null);
+  // PrimaryNav labels: driven by the space actually left for the center
+  // cluster (titlebar width − left/right clusters), not the raw window width —
+  // wide side panels no longer crush the nav before the breakpoint helps.
+  const titlebarRef = useRef<HTMLElement>(null);
+  const leftClusterRef = useRef<HTMLDivElement>(null);
+  const [navLabels, setNavLabels] = useState(true);
+  const NAV_LABELS_MIN = 520;
+
+  useLayoutEffect(() => {
+    const titlebar = titlebarRef.current;
+    const left = leftClusterRef.current;
+    const right = rightRailRef.current;
+    if (!titlebar || !left || !right || typeof ResizeObserver === "undefined") return;
+    const update = () => {
+      const avail = titlebar.clientWidth - left.offsetWidth - right.offsetWidth - 24;
+      setNavLabels(avail >= NAV_LABELS_MIN);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(titlebar);
+    ro.observe(left);
+    ro.observe(right);
+    return () => ro.disconnect();
+  }, []);
 
   useLayoutEffect(() => {
     const el = rightRailRef.current;
@@ -498,15 +511,24 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
     return () => ro.disconnect();
   }, [focusMode]);
 
-  const cycleTheme = async () => {
-    const order: ThemeMode[] = ["auto", "light", "dark"];
-    const idx = order.indexOf(theme);
-    const next = order[(idx + 1) % order.length];
+  const pickTheme = async (next: ThemeMode) => {
     // Update store → App.tsx re-applies + re-listens; persist to settings.
     setTheme(next);
     applyTheme(next);
     patchCachedSettings({ theme: next });
     void api.sys.update({ theme: next }).catch(() => {/* ignore */});
+  };
+
+  // 主题轮转式切换（wide 常驻按钮）：单击 auto → 浅色 → 深色 → auto 循环。
+  // 窄屏 ⋯ 菜单仍提供三选一（themeMenuSection）。
+  const THEME_CYCLE: ThemeMode[] = ["auto", "light", "dark"];
+  const nextTheme = (): ThemeMode => {
+    const idx = THEME_CYCLE.indexOf(theme);
+    return THEME_CYCLE[(idx + 1) % THEME_CYCLE.length] ?? "auto";
+  };
+  const themeNextLabel = () => {
+    const next = nextTheme();
+    return next === "auto" ? t("titleBar.themeAuto") : next === "light" ? t("titleBar.themeLight") : t("titleBar.themeDark");
   };
 
   const themeIcon = () => {
@@ -549,6 +571,7 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
 
   return (
     <header
+      ref={titlebarRef}
       className={cn(
         "v4-drag v4-titlebar-glass relative flex h-(--density-chrome-y,36px) items-center justify-between gap-2 px-2 text-text-secondary select-none sm:px-3",
         isWindows && "v4-win-titlebar-pad",
@@ -558,7 +581,7 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
           No v4-no-drag on container — empty space must stay draggable for OS
           double-click-to-maximize and window-drag. Interactive elements opt out
           via CSS .v4-titlebar-cluster / .v4-titlebar-btn etc. */}
-      <div className={cn("flex min-w-0 flex-1 items-center gap-1.5", isMacOS && "v4-mac-titlebar-pad")}>
+      <div ref={leftClusterRef} className={cn("flex min-w-0 flex-1 items-center gap-1.5", isMacOS && "v4-mac-titlebar-pad")}>
         <div className="v4-titlebar-cluster">
           <Tooltip content={sidebarCollapsed ? t("titleBar.showSidebar") : t("titleBar.hideSidebar")}>
             <button
@@ -591,7 +614,7 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
 
       {/* Center: primary nav + command field (Linear-style quiet well, not a button row) */}
       <div className="flex shrink-0 items-center gap-1.5">
-        <PrimaryNav />
+        <PrimaryNav showLabels={navLabels} />
         <Tooltip content={t("titleBar.commandPaletteTip")}>
           <button
             type="button"
@@ -665,8 +688,9 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
           </TodoPopover>
         </div>
 
-        {/* L3: settings (search lives in PrimaryNav — no second entry) */}
+        {/* L3: apps · settings (search lives in PrimaryNav — no second entry) */}
         <div className="v4-titlebar-cluster" data-chrome-tier="l3">
+          <AppsMenu />
           {!compactTools ? (
             <>
               <Tooltip content={t("titleBar.settingsTip")}>
@@ -680,13 +704,15 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
                   <Settings size={ICON.sm} {...stroke} />
                 </button>
               </Tooltip>
-              <Tooltip content={t("titleBar.themeMenuItem", { label: themeLabel })}>
+              <Tooltip content={t("titleBar.themeCycleTip", { label: themeLabel, next: themeNextLabel() })}>
                 <button
                   type="button"
                   className="v4-titlebar-btn"
                   data-titlebar-theme
-                  onClick={() => { void cycleTheme(); }}
-                  aria-label={t("titleBar.themeMenuItem", { label: themeLabel })}
+                  onClick={() => {
+                    void pickTheme(nextTheme());
+                  }}
+                  aria-label={t("titleBar.themeCycleTip", { label: themeLabel, next: themeNextLabel() })}
                 >
                   {themeIcon()}
                 </button>
@@ -727,17 +753,28 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
                 <span className="flex-1">{t("titleBar.settingsLabel")}</span>
                 <kbd className="v4-kbd v4-kbd-sm">⌘,</kbd>
               </DropdownItem>
-              <DropdownItem
-                onSelect={() => {
-                  setToolsOpen(false);
-                  void cycleTheme();
-                }}
-              >
-                <span className="flex h-[1em] w-[1em] shrink-0 items-center justify-center opacity-70">
-                  {themeIcon()}
-                </span>
-                <span className="flex-1">{t("titleBar.themeMenuItem", { label: themeLabel })}</span>
-              </DropdownItem>
+              <DropdownSectionLabel>{t("titleBar.themeMenuSection")}</DropdownSectionLabel>
+              {([
+                { id: "auto", icon: <Monitor size={ICON.micro} {...stroke} /> },
+                { id: "light", icon: <Sun size={ICON.micro} {...stroke} /> },
+                { id: "dark", icon: <Moon size={ICON.micro} {...stroke} /> },
+              ] as Array<{ id: ThemeMode; icon: React.ReactNode }>).map((opt) => (
+                <DropdownItem
+                  key={opt.id}
+                  active={theme === opt.id}
+                  onSelect={() => {
+                    void pickTheme(opt.id);
+                  }}
+                >
+                  <span className="flex h-[1em] w-[1em] shrink-0 items-center justify-center opacity-70">
+                    {opt.icon}
+                  </span>
+                  <span className="flex-1">
+                    {opt.id === "auto" ? t("titleBar.themeAuto") : opt.id === "light" ? t("titleBar.themeLight") : t("titleBar.themeDark")}
+                  </span>
+                  {theme === opt.id ? <Check size={ICON.micro} className="text-accent-color" /> : null}
+                </DropdownItem>
+              ))}
               <DropdownItem
                 onSelect={() => {
                   setToolsOpen(false);

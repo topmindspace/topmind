@@ -1,7 +1,7 @@
 // ── Stream Workbench View: main workbench in Obsidian center area ──────────
 //
 // Design principles:
-// - Dense, information-rich layout (max-width 1100px, tighter spacing)
+// - Dense, information-rich layout (feed column ~44rem, tighter spacing)
 // - Quick input bar at top (always visible, always focused-ready)
 // - Toolbar with quick access to sidebar + settings + model info + AI task progress
 // - Stream section: period selector + day-grouped entry cards with append
@@ -25,11 +25,10 @@ import { VIEW_TYPE_STREAM_WORKBENCH, VIEW_TYPE_SIDEBAR_DOCK } from "../constants
 import type { StreamEntry, SuggestionCard } from "../types";
 import {
   extractTags,
-  isStreamOrTodoPath,
   isLoneUrlCapture,
   prepareStreamEntryTextForDisplay,
-  SUGGESTION_KIND_META,
 } from "../utils";
+import { renderSuggestionCard } from "./suggestion-card";
 import { hasConfiguredProvider } from "../types";
 import { aiTaskManager, type TaskProgress } from "../services/ai-task-manager";
 
@@ -54,8 +53,11 @@ export class StreamWorkbenchView extends ItemView {
   private entryCountEl!: HTMLElement;
   private organizeBtn!: HTMLButtonElement;
   private taskBadgeEl: HTMLElement | null = null;
+  private taskPanelEl: HTMLElement | null = null;
+  private taskPanelOpen = false;
   private currentEntries: StreamEntry[] = [];
   private refreshTimer: ReturnType<typeof setTimeout> | null = null;
+  private streamRefreshTimer: ReturnType<typeof setTimeout> | null = null;
   private suggestionInFlight = false;
   private streamLoading = false;
   private organizing = false;
@@ -96,22 +98,22 @@ export class StreamWorkbenchView extends ItemView {
         if (file.path === "topmind.yaml") {
           this.plugin.kernelService.invalidateCache();
         }
-        if (isStreamOrTodoPath(file.path) || file.path === "topmind.yaml") {
-          this.scheduleRefresh(450);
+        if (this.plugin.kernelService.isStreamRelevantPath(file.path) || file.path === "topmind.yaml") {
+          this.scheduleStreamRefresh(450);
         }
       }),
     );
     this.registerEvent(
       this.app.vault.on("create", (file) => {
-        if (isStreamOrTodoPath(file.path)) {
-          this.scheduleRefresh(450);
+        if (this.plugin.kernelService.isStreamRelevantPath(file.path)) {
+          this.scheduleStreamRefresh(450);
         }
       }),
     );
     this.registerEvent(
       this.app.vault.on("delete", (file) => {
-        if (isStreamOrTodoPath(file.path)) {
-          this.scheduleRefresh(450);
+        if (this.plugin.kernelService.isStreamRelevantPath(file.path)) {
+          this.scheduleStreamRefresh(450);
         }
       }),
     );
@@ -273,8 +275,23 @@ export class StreamWorkbenchView extends ItemView {
       }
     }
 
-    // AI Task progress badge (updated by subscribe)
+    // AI Task progress badge (updated by subscribe) — click opens history panel
     this.taskBadgeEl = toolbar.createDiv({ cls: "tm-task-badge tm-task-badge-hidden" });
+    this.taskBadgeEl.setAttribute("role", "button");
+    this.taskBadgeEl.setAttribute("tabindex", "0");
+    this.taskBadgeEl.addEventListener("click", () => {
+      this.taskPanelOpen = !this.taskPanelOpen;
+      this.renderTaskPanel(aiTaskManager.getProgress());
+    });
+    this.taskBadgeEl.addEventListener("keydown", (e: KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        this.taskBadgeEl?.click();
+      }
+    });
+
+    this.taskPanelEl = container.createDiv({ cls: "tm-task-panel" });
+    this.taskPanelEl.hidden = true;
 
     // Right: quick action buttons (icon-only with tooltips — no text overflow)
     const actionsDiv = toolbar.createDiv({ cls: "tm-toolbar-actions" });
@@ -362,36 +379,85 @@ export class StreamWorkbenchView extends ItemView {
   private updateTaskBadge(progress: TaskProgress): void {
     if (!this.taskBadgeEl) return;
 
-    if (progress.multiActive === 0) {
-      this.taskBadgeEl.addClass("tm-task-badge-hidden");
-      return;
-    }
-
-    this.taskBadgeEl.removeClass("tm-task-badge-hidden");
     this.taskBadgeEl.empty();
+    this.taskBadgeEl.setAttribute("title", t("task_recent"));
+    this.taskBadgeEl.setAttribute("aria-label", t("task_recent"));
 
     const active = progress.active;
-    if (active) {
-      const label = this.taskBadgeEl.createSpan({ cls: "tm-task-badge-label" });
-      label.textContent = active.label;
-      const statusDot = this.taskBadgeEl.createSpan({ cls: "tm-task-badge-dot" });
-      statusDot.setAttribute("aria-hidden", "true");
-      this.taskBadgeEl.addClass("tm-task-badge-active");
+    if (progress.multiActive === 0 && !this.taskPanelOpen) {
+      this.taskBadgeEl.addClass("tm-task-badge-hidden");
+      this.taskBadgeEl.removeClass("tm-task-badge-active");
+      const idle = this.taskBadgeEl.createSpan({ cls: "tm-task-badge-label" });
+      idle.textContent = t("task_recent");
+    } else {
+      this.taskBadgeEl.removeClass("tm-task-badge-hidden");
+      if (active) {
+        const label = this.taskBadgeEl.createSpan({ cls: "tm-task-badge-label" });
+        label.textContent = active.label;
+        const statusDot = this.taskBadgeEl.createSpan({ cls: "tm-task-badge-dot" });
+        statusDot.setAttribute("aria-hidden", "true");
+        this.taskBadgeEl.addClass("tm-task-badge-active");
 
-      // Abort button
-      const abortBtn = this.taskBadgeEl.createEl("button", { cls: "tm-task-badge-abort" });
-      setIcon(abortBtn, "x");
-      abortBtn.setAttribute("aria-label", t("task_abort"));
-      abortBtn.setAttribute("title", t("task_abort"));
-      abortBtn.addEventListener("click", (e: MouseEvent) => {
-        e.stopPropagation();
-        aiTaskManager.abort();
+        const abortBtn = this.taskBadgeEl.createEl("button", { cls: "tm-task-badge-abort" });
+        setIcon(abortBtn, "x");
+        abortBtn.setAttribute("aria-label", t("task_abort"));
+        abortBtn.setAttribute("title", t("task_abort"));
+        abortBtn.addEventListener("click", (e: MouseEvent) => {
+          e.stopPropagation();
+          aiTaskManager.abort();
+        });
+      } else if (progress.queued.length > 0) {
+        this.taskBadgeEl.removeClass("tm-task-badge-active");
+        this.taskBadgeEl.createSpan({
+          text: t("task_queued_count").replace("{{count}}", String(progress.queued.length)),
+          cls: "tm-task-badge-label",
+        });
+      } else {
+        this.taskBadgeEl.removeClass("tm-task-badge-active");
+        this.taskBadgeEl.createSpan({ cls: "tm-task-badge-label", text: t("task_recent") });
+      }
+    }
+    if (this.taskPanelOpen) this.renderTaskPanel(progress);
+  }
+
+  private renderTaskPanel(progress: TaskProgress): void {
+    if (!this.taskPanelEl) return;
+    this.taskPanelEl.hidden = !this.taskPanelOpen;
+    if (!this.taskPanelOpen) return;
+    this.taskPanelEl.empty();
+    this.taskPanelEl.createDiv({ cls: "tm-task-panel-title", text: t("task_recent") });
+    const rows: Array<{ title: string; summary: string }> = [];
+    if (progress.active) {
+      rows.push({
+        title: `${progress.active.label} · ${t("task_running")}`,
+        summary: progress.active.result?.summary || "",
       });
-    } else if (progress.queued.length > 0) {
-      this.taskBadgeEl.createSpan({
-        text: t("task_queued_count").replace("{{count}}", String(progress.queued.length)),
-        cls: "tm-task-badge-label",
+    }
+    for (const q of progress.queued) {
+      rows.push({ title: `${q.label} · ${t("task_pending")}`, summary: "" });
+    }
+    for (const h of [...progress.recent].reverse().slice(0, 8)) {
+      const status =
+        h.status === "done"
+          ? t("task_done")
+          : h.status === "error"
+            ? t("task_error")
+            : h.status === "aborted"
+              ? t("task_aborted")
+              : h.status;
+      rows.push({
+        title: `${h.label} · ${status}`,
+        summary: h.result?.summary || h.error || "",
       });
+    }
+    if (rows.length === 0) {
+      this.taskPanelEl.createDiv({ cls: "tm-task-panel-empty", text: t("task_no_history") });
+      return;
+    }
+    for (const row of rows) {
+      const el = this.taskPanelEl.createDiv({ cls: "tm-task-panel-row" });
+      el.createDiv({ cls: "tm-task-panel-row-title", text: row.title });
+      if (row.summary) el.createDiv({ cls: "tm-task-panel-row-summary", text: row.summary });
     }
   }
 
@@ -430,6 +496,16 @@ export class StreamWorkbenchView extends ItemView {
   private scheduleRefresh(delay: number): void {
     if (this.refreshTimer) clearTimeout(this.refreshTimer);
     this.refreshTimer = setTimeout(() => this.refreshAll(), delay);
+  }
+
+  /**
+   * Vault-edit refresh: stream list only. Suggestion generation is the
+   * sidebar confirm surface's job (kernel fingerprints guard the AI pass) —
+   * re-running it on every keystroke save would burn tokens for churn.
+   */
+  private scheduleStreamRefresh(delay: number): void {
+    if (this.streamRefreshTimer) clearTimeout(this.streamRefreshTimer);
+    this.streamRefreshTimer = setTimeout(() => this.refreshStream(), delay);
   }
 
   private autoGrowTextarea(el: HTMLTextAreaElement): void {
@@ -532,9 +608,11 @@ export class StreamWorkbenchView extends ItemView {
     } catch (err) {
       this.streamLoading = false;
       streamContainer.empty();
-      streamContainer.createDiv({
-        cls: "tm-empty-state",
-        text: t("error"),
+      const errBox = streamContainer.createDiv({ cls: "tm-empty-state" });
+      errBox.createDiv({ text: t("error") });
+      errBox.createDiv({
+        cls: "tm-empty-hint",
+        text: err instanceof Error ? err.message : String(err),
       });
       console.error("[topmind] refreshStream failed:", err);
     }
@@ -642,10 +720,12 @@ export class StreamWorkbenchView extends ItemView {
     const card = container.createDiv({ cls: "tm-card" });
 
     const header = card.createDiv({ cls: "tm-card-header" });
-    const timeIcon = header.createSpan({ cls: "tm-card-time-icon" });
-    setIcon(timeIcon, "clock");
     if (entry.time) {
+      const timeIcon = header.createSpan({ cls: "tm-card-time-icon" });
+      setIcon(timeIcon, "clock");
       header.createSpan({ cls: "tm-card-time", text: entry.time });
+    } else {
+      header.createSpan({ cls: "tm-card-dot" });
     }
 
     // Card actions (icon-only with tooltips — compact, no overflow)
@@ -783,60 +863,14 @@ export class StreamWorkbenchView extends ItemView {
   }
 
   private renderSuggestionCard(container: HTMLElement, sugg: SuggestionCard): void {
-    const card = container.createDiv({
-      cls: `tm-suggestion-card tm-suggestion-${sugg.kind.replace(/_/g, "-")}`,
-    });
-
-    const meta = SUGGESTION_KIND_META[sugg.kind] || SUGGESTION_KIND_META.promote_memory;
-
-    const header = card.createDiv({ cls: "tm-suggestion-header" });
-    const iconSpan = header.createSpan({ cls: "tm-suggestion-icon" });
-    setIcon(iconSpan, meta.icon);
-    header.createSpan({ cls: "tm-suggestion-title", text: sugg.title });
-
-    if (sugg.impact && sugg.impact !== "low") {
-      const impactLabel = sugg.impact === "high"
-        ? t("suggestion_impact_high")
-        : t("suggestion_impact_medium");
-      header.createSpan({ cls: `tm-impact-badge tm-impact-${sugg.impact}`, text: impactLabel });
-    }
-
-    card.createDiv({ cls: "tm-suggestion-body", text: sugg.summary });
-
-    const actions = card.createDiv({ cls: "tm-suggestion-actions" });
-    const confirmBtn = actions.createEl("button", {
-      text: t("suggestions_confirm"),
-      cls: "tm-btn-confirm",
-    });
-    confirmBtn.setAttribute("aria-label", t("suggestions_confirm"));
-    confirmBtn.addEventListener("click", async () => {
-      confirmBtn.disabled = true;
-      confirmBtn.empty();
-      confirmBtn.createSpan({ cls: "tm-btn-spinner" });
-      const result = await this.plugin.kernelService.applySuggestion(sugg);
-      if (result.ok) {
-        card.classList.add("tm-card-removing");
-        setTimeout(() => card.remove(), 200);
-        if (result.openPath) {
-          await this.app.workspace.openLinkText(result.openPath, "", false);
-        }
-        await this.refreshAll();
-      } else {
-        confirmBtn.disabled = false;
-        confirmBtn.empty();
-        confirmBtn.textContent = t("suggestions_confirm");
-      }
-    });
-
-    const dismissBtn = actions.createEl("button", {
-      text: t("suggestions_dismiss"),
-      cls: "tm-btn-dismiss",
-    });
-    dismissBtn.setAttribute("aria-label", t("suggestions_dismiss"));
-    dismissBtn.addEventListener("click", () => {
-      this.plugin.kernelService.dropSuggestion(sugg.id);
-      card.classList.add("tm-card-removing");
-      setTimeout(() => card.remove(), 200);
+    // Shared card surface — 动作词汇与 Desktop 对齐（见 views/suggestion-card.ts）
+    renderSuggestionCard(container, sugg, {
+      apply: (s) => this.plugin.kernelService.applySuggestion(s),
+      dismiss: (s) => this.plugin.kernelService.dropSuggestion(s.id),
+      refresh: () => this.refreshAll(),
+      openVaultPath: async (p) => {
+        await this.app.workspace.openLinkText(p, "", false);
+      },
     });
   }
 
@@ -865,7 +899,8 @@ export class StreamWorkbenchView extends ItemView {
       this.refreshStream();
       // Scroll to top (newest entry in desc order)
       this.streamContainer.scrollTop = 0;
-      new Notice(t("notice_written"));
+      // Result notices (written → path / pending / failed) come from
+      // kernelService.capture — no duplicate generic toast here.
     } else {
       new Notice(t("notice_write_failed"));
     }
@@ -890,13 +925,19 @@ export class StreamWorkbenchView extends ItemView {
     try {
       this.plugin.kernelService.reconcilePeriod(periodPath);
 
-      if (this.plugin.settings.autoMaintainTodos) {
-        await this.plugin.kernelService.runOperation("todo_maintain");
+      // Shared serial lane — never a parallel off-lane AI call; the lane's
+      // completion notice + refreshed views are the feedback.
+      const aiQueued = this.plugin.settings.autoMaintainTodos
+        && hasConfiguredProvider(this.plugin.settings.ai);
+      if (aiQueued) {
+        this.plugin.enqueueAiOperation("todo_maintain", "op_label_todo_maintain", "notice_todo_done", "all", true);
       }
 
       await this.refreshSuggestions();
       await this.refreshStream();
-      new Notice(t("notice_organize_done"));
+      if (!aiQueued) {
+        new Notice(t("notice_organize_done"));
+      }
     } catch (err) {
       console.error("[topmind] organizePeriod failed:", err);
       new Notice(`${t("notice_execute_failed")}: ${err instanceof Error ? err.message : String(err)}`);

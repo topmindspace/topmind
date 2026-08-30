@@ -180,6 +180,27 @@ function getContext() {
       };
       return launchStatus;
     },
+    /** UI zoom step — apply to the main window and persist under window.uiZoom. */
+    setUiZoom: async (mode) => {
+      const win = mainWindow && !mainWindow.isDestroyed() ? mainWindow : null;
+      if (!win) return { ok: false, error: "no-window" };
+      const current = win.webContents.getZoomFactor();
+      let next;
+      if (mode === "reset") next = 1;
+      else if (mode === "in") next = Math.min(2, Math.round(current * 1.1 * 100) / 100);
+      else if (mode === "out") next = Math.max(0.75, Math.round((current / 1.1) * 100) / 100);
+      else return { ok: false, error: "invalid-mode" };
+      win.webContents.setZoomFactor(next);
+      const latest = await loadAppSettings(
+        settingsFile(),
+        appSettings?.workspaceRoot || defaultWsRoot,
+        { secretAdapter: settingsAdapter },
+      );
+      appSettings = await updateAppSettings(
+        settingsFile(), latest, { window: { uiZoom: next } }, { secretAdapter: settingsAdapter },
+      );
+      return { ok: true, factor: next };
+    },
     /** Return to landing: stop watcher, clear live ctx, keep recents. */
     closeWorkspace: async () => {
       await closeWorkspaceWatcher();
@@ -673,6 +694,10 @@ async function createWindow() {
     // Re-assert after construction (some Windows shells ignore ctor icon until setIcon).
     applyWindowIcon(win, windowIcon, { packaged: app.isPackaged });
     if (stored.isMaximized) win.maximize();
+    // Persisted UI zoom (Ctrl +/-/0 on Win/Linux; the macOS menu owns its own zoom)
+    if (typeof stored.uiZoom === "number" && stored.uiZoom !== 1) {
+      win.webContents.setZoomFactor(stored.uiZoom);
+    }
 
     if (isWin) {
       nativeTheme.on("updated", () => {

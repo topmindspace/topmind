@@ -98,7 +98,38 @@ test("living docs describe 我的情况 as memory-plane browse, not a sixth conc
   assert.match(desktopDesign, /记忆浏览/);
   assert.match(obsidianDesign, /记忆浏览/);
   assert.match(reset, /记忆浏览/);
-  assert.doesNotMatch(design, /第六用户概念/);
+  assert.doesNotMatch(design, /(?<!不)是第六个用户概念/u);
+});
+
+test("optional 记账 is memory-plane satellite, not a sixth concept or ninth engine", () => {
+  const design = read("DESIGN.md");
+  const boundaries = read("PRODUCT-BOUNDARIES.md");
+  const model = read("PROJECT-MODEL.md");
+  const agents = read("AGENTS.md");
+  const reset = read("docs/ARCHITECTURE-RESET.md");
+  const tools = read("TOOLS.md");
+  const desktopDesign = read("topmind-desktop/DESIGN.md");
+  for (const [rel, src] of [
+    ["DESIGN.md", design],
+    ["PRODUCT-BOUNDARIES.md", boundaries],
+    ["PROJECT-MODEL.md", model],
+    ["AGENTS.md", agents],
+    ["docs/ARCHITECTURE-RESET.md", reset],
+    ["TOOLS.md", tools],
+    ["topmind-desktop/DESIGN.md", desktopDesign],
+  ]) {
+    assert.match(src, /ledgers\//, `${rel} must name memory/ledgers`);
+    assert.match(src, /ledger-engine|可选记账/, `${rel} must name optional 记账 / ledger-engine`);
+  }
+  const conceptTable = design.match(/## 1\. 用户概念硬上限[\s\S]*?(?=\n## 2\.)/);
+  assert.ok(conceptTable, "DESIGN.md concept table");
+  assert.doesNotMatch(conceptTable[0], /^\| \*\*记账\*\*/m);
+  assert.match(design, /不是第六个用户概念/);
+  assert.match(agents, /ledger-engine/);
+  assert.match(agents, /不是第九引擎/);
+  assert.match(agents, /contract · workspace-model · stream · memory · lifecycle · \*\*writeback/);
+  assert.match(tools, /8 个 UTR 命令域/);
+  assert.match(desktopDesign, /不是\*\* PrimaryNav|不是\*\*PrimaryNav|\*\*不是\*\* PrimaryNav/);
 });
 
 test("ADR index pairs list 2026-08-27 desktop log rotation", () => {

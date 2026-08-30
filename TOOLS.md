@@ -84,6 +84,8 @@ UTR 命令必须支持该工作流，**不暴露** 大类/专题命名、命令 
 7. **derived-builder**（衍生层生成与重建）
 8. **ingest-pipeline**（URL/文档/连接器入管）
 
+**卫星**（不是第九引擎，也不是 UTR 域）：`todo-engine`（`memory/todo.md`）· `ledger-engine`（可选 `{memory.dir}/ledgers/`；默认个人/自己账本）。记账不是第六个用户概念。
+
 **Stream AI（产品路径）**：Desktop `runActivityOps` / `generateSuggestions` / `todo_maintain` / `memory_organize`（profile+periodic confirm）/ `topic_classify`（内容大类 `create_topic` confirm）均经 Kernel；UTR **无**平行 activity-window 业务实现（可选将来薄只读 adapter）。
 
 映射到 **8 个 UTR 命令域**：

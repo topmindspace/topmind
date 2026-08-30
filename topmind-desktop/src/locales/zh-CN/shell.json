@@ -79,10 +79,11 @@
     "settingsAriaLabel": "设置",
     "settingsLabel": "设置",
     "themeMenuItem": "主题 · {{label}}",
+    "themeCycleTip": "主题：{{label}} · 点击切换到{{next}}",
     "themeAuto": "跟随系统",
     "themeLight": "浅色",
     "themeDark": "深色",
-    "moreTip": "更多 · 搜索 / 设置 / 主题",
+    "moreTip": "更多 · 设置 / 主题",
     "moreAriaLabel": "更多工具",
     "hideAiPanel": "隐藏 AI 面板",
     "showAiPanel": "显示 AI 面板",
@@ -92,7 +93,10 @@
     "todoAriaLabel": "待办清单",
     "suggestTip": "建议 · 确认后写入（≠ 个人清单）",
     "suggestAriaLabel": "打开建议",
-    "commandField": "命令 · 跳转"
+    "commandField": "命令 · 跳转",
+    "themeMenuSection": "主题",
+    "appsTip": "应用 · 可选插件与 mini-app",
+    "appsAriaLabel": "应用菜单"
   },
   "taskPanel": {
     "title": "AI 任务",
@@ -101,6 +105,14 @@
     "triggerReconcile": "整理本周",
     "taskTypeReconcile": "整理本周",
     "taskTypeAi_digest": "AI 分析",
+    "taskTypeMemory_organize": "整理我的情况",
+    "triggerMemoryOrganize": "整理我的情况",
+    "memoryOrganizeStart": "开始整理我的情况…",
+    "memoryOrganizeScan": "扫描近期活动与画像",
+    "memoryOrganizeRun": "生成确认建议（不直接改画像）…",
+    "memoryOrganizeFound": "整理完成 · 新建议 {{count}} 条（待确认共 {{total}}）",
+    "memoryOrganizeDoneToast": "✓ 我的情况已整理 · {{count}} 条建议待确认",
+    "memoryOrganizeMerged": "新合并建议 {{count}} 条",
     "status": {
       "queued": "排队中",
       "running": "运行中",
@@ -206,7 +218,8 @@
     "revealFileTip": "点击在文件管理器中显示",
     "updatesBadgeCount": "{{count}} 个更新",
     "updatesAvailableMulti": "{{count}} 个表面有更新 · 点击下载",
-    "updateAvailable": "新版本 v{{version}} 可用 · 点击下载"
+    "updateAvailable": "新版本 v{{version}} 可用 · 点击下载",
+    "fileChipTip": "点击在编辑器中打开 · 右键在文件夹中显示"
   },
   "editorArea": {
     "loadingWorkspace": "正在加载工作区…",
@@ -255,7 +268,6 @@
     "retry": "重试",
     "refreshTooltip": "刷新文件树",
     "empty": "空",
-    "pluginsSection": "连接与同步",
     "treeView": {
       "promptNewNote": "笔记文件名（含 .md 后缀）",
       "defaultNewNote": "新笔记.md",
@@ -516,5 +528,11 @@
     "archiveStale": "归档过期待办",
     "archiveStaleConfirm": "将归档 {{count}} 条超过 30 天的待办到历史快照，确定？",
     "archiveDone": "已归档 {{count}} 条过期待办"
+  },
+  "appsMenu": {
+    "section": "应用",
+    "empty": "暂无启用的应用。可在设置 → 插件中开启连接器（微信读书 / 记账 / 知识加工…）。",
+    "manage": "管理应用…",
+    "needsConfig": "待配置"
   }
 }

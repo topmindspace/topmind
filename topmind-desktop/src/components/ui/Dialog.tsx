@@ -22,7 +22,7 @@ interface BaseDialogProps {
 const FOCUSABLE =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-function getFocusable(container: HTMLElement): HTMLElement[] {
+export function getFocusable(container: HTMLElement): HTMLElement[] {
   return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
     (el) => !el.hasAttribute("disabled") && el.tabIndex !== -1 && el.offsetParent !== null,
   );
@@ -34,12 +34,15 @@ function DialogBackdrop({
   labelledBy,
   describedBy,
   panelClassName,
+  focusSelector,
 }: {
   children: ReactNode;
   onClose: () => void;
   labelledBy: string;
   describedBy?: string;
   panelClassName?: string;
+  /** Optional selector (resolved inside the panel) that takes initial focus. */
+  focusSelector?: string;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -50,8 +53,8 @@ function DialogBackdrop({
 
     const panel = panelRef.current;
     if (panel) {
-      const focusables = getFocusable(panel);
-      const target = focusables[0] ?? panel;
+      const preferred = focusSelector ? panel.querySelector<HTMLElement>(focusSelector) : null;
+      const target = preferred ?? getFocusable(panel)[0] ?? panel;
       requestAnimationFrame(() => target.focus());
     }
 
@@ -91,7 +94,7 @@ function DialogBackdrop({
         prev.focus();
       }
     };
-  }, [onClose]);
+  }, [onClose, focusSelector]);
 
   return (
     <div
@@ -140,6 +143,9 @@ export function ConfirmDialog({
       labelledBy={titleId}
       describedBy={description ? descId : undefined}
       panelClassName={panelClassName}
+      // Non-destructive confirms start on the primary action; destructive
+      // keeps focus on Cancel (first focusable) so Enter is always safe.
+      focusSelector={destructive ? undefined : "[data-dialog-focus]"}
     >
       <h2 id={titleId} className="mb-1.5 text-sm font-semibold tracking-tight text-text-primary">
         {title}
@@ -152,7 +158,12 @@ export function ConfirmDialog({
       {children ? <div className="mb-4">{children}</div> : description ? null : <div className="mb-4" />}
       <div className="flex justify-end gap-2" data-dialog-footer>
         <Button variant="outline" size="sm" onClick={onCancel}>{finalCancelText}</Button>
-        <Button variant={destructive ? "destructive" : "default"} size="sm" onClick={onConfirm}>
+        <Button
+          variant={destructive ? "destructive" : "default"}
+          size="sm"
+          onClick={onConfirm}
+          data-dialog-focus={!destructive ? "" : undefined}
+        >
           {finalConfirmText}
         </Button>
       </div>

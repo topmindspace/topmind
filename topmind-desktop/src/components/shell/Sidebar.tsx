@@ -1,10 +1,10 @@
 import { useEffect, useState, useCallback, useRef, lazy } from "react";
 import {
-  Database, AlertCircle, RefreshCw, Puzzle, ChevronDown, ChevronRight,
-  CalendarDays, UserRound,
+  Database, AlertCircle, RefreshCw, CalendarDays, UserRound,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useRegistry } from "../../plugins/registry";
+import { cn } from "../../lib/cn";
 import { useViewStore, loadExpandedState, type SidebarViewMode } from "../../stores/view-store";
 import { TreeView } from "../sidebar/TreeView";
 import { TreeToolbar } from "../sidebar/tree-toolbar";
@@ -12,7 +12,7 @@ import { ViewSwitcher } from "../sidebar/ViewSwitcher";
 import { LazyBoundary } from "../ui/LazyBoundary";
 import { api } from "../../services/api";
 import { emitLocal, onLocal } from "../../plugins/host";
-import type { TreeNode, SidebarSlot } from "../../plugins/types";
+import type { TreeNode } from "../../plugins/types";
 import { ICON } from "../../lib/icons";
 import { patchCachedSettings } from "../../lib/settings-cache";
 import {
@@ -108,7 +108,6 @@ interface SidebarPins {
 export function Sidebar() {
   const { t } = useTranslation("shell");
   const dataSources = useRegistry((s) => s.dataSources);
-  const sidebarSlots = useRegistry((s) => s.sidebarSlots);
   const select = useViewStore((s) => s.select);
   const viewMode = useViewStore((s) => s.sidebarView);
   const setSidebarView = useViewStore((s) => s.setSidebarView);
@@ -237,7 +236,6 @@ export function Sidebar() {
             key={ds.id}
             dataSource={ds}
             compactHeader={dataSources.length === 1}
-            pins={pins}
           />
         ));
       case "timeline":
@@ -273,7 +271,7 @@ export function Sidebar() {
       </div>
       {/* Period pin — timeline/tags/kanban only.
           Stream has its own period header; category merges the pin into DataSourceSection. */}
-      {viewMode !== "category" && viewMode !== "stream" ? (
+      {viewMode !== "category" && viewMode !== "stream" && pins.periodRelPath ? (
         <div className="flex shrink-0 items-center gap-1 px-1.5 py-1" data-sidebar-pins>
           <PeriodPill pins={pins} />
         </div>
@@ -283,23 +281,20 @@ export function Sidebar() {
           {renderView()}
         </ErrorBoundary>
       </div>
-      {sidebarSlots.length > 0 ? <PluginSlotsSection slots={sidebarSlots} /> : null}
     </div>
   );
 }
 
-/** Period label pill — navigates to stream or opens quick capture. */
+/** Period pin — one control, one outcome: jump to the pinned period in stream. */
 function PeriodPill({ pins }: { pins: SidebarPins }) {
   const { t } = useTranslation("shell");
   const select = useViewStore((s) => s.select);
+  if (!pins.periodRelPath) return null;
   return (
-    <Tooltip content={pins.periodRelPath || t("sidebar.streamPinTip")}>
+    <Tooltip content={pins.periodRelPath}>
       <button
         type="button"
-        onClick={() => {
-          if (pins.periodRelPath) select({ kind: "stream" });
-          else emitLocal("overlay:open", { kind: "quick-capture" });
-        }}
+        onClick={() => select({ kind: "stream" })}
         className="inline-flex min-w-0 flex-1 items-center gap-1 truncate rounded-full bg-surface-muted/40 px-2 py-0.5 text-3xs text-text-secondary transition-colors hover:bg-surface-muted"
         aria-label={pins.periodLabel || t("sidebar.streamPinTip")}
       >
@@ -314,6 +309,7 @@ function PeriodPill({ pins }: { pins: SidebarPins }) {
 function ProfileButton() {
   const { t } = useTranslation("shell");
   const select = useViewStore((s) => s.select);
+  const active = useViewStore((s) => s.selection.kind === "memory");
   return (
     <Tooltip content={t("sidebar.profileTip")}>
       <button
@@ -331,8 +327,14 @@ function ProfileButton() {
             }
           })();
         }}
-        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-muted/40 text-text-secondary transition-colors hover:bg-surface-muted v4-focus-ring"
+        className={cn(
+          "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors v4-focus-ring",
+          active
+            ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
+            : "bg-surface-muted/40 text-text-secondary hover:bg-surface-muted",
+        )}
         aria-label={t("sidebar.myProfile")}
+        aria-pressed={active}
       >
         <UserRound size={ICON.nano} className="shrink-0" />
       </button>
@@ -343,13 +345,10 @@ function ProfileButton() {
 function DataSourceSection({
   dataSource,
   compactHeader = false,
-  pins,
 }: {
   dataSource: ReturnType<typeof useRegistry.getState>["dataSources"][number];
   /** Single workspace DS: hide Database eyebrow chrome thrift */
   compactHeader?: boolean;
-  /** Sidebar pins (period label + profile) — merged into header row */
-  pins: SidebarPins;
 }) {
   const { t } = useTranslation("shell");
   const [tree, setTree] = useState<TreeNode[]>([]);
@@ -690,10 +689,9 @@ function DataSourceSection({
 
   return (
     <div className="mb-2">
-      {/* Unified header: pins (left) + tree tools & file filter (right).
-          我的情况 lives on the ViewSwitcher row (global) — not duplicated here. */}
+      {/* Unified header: tree tools & file filter (right).
+          周期 pin 不进 category 树头（周期在树里已有节点；窄栏截断只剩噪声 2026-08-30）。 */}
       <div className="flex items-center gap-0.5 px-1.5 pb-1 pt-0.5">
-        <PeriodPill pins={pins} />
         <div className="min-w-0 flex-1" />
         <TreeToolbar
           tree={tree}
@@ -747,76 +745,6 @@ function DataSourceSection({
   );
 }
 
-/** Plugin sidebar slots — advanced periphery (connectors / ingest).
- *  Default collapsed so stream-first rail stays quiet (DESIGN: 扩展外围). */
-function PluginSlotsSection({ slots }: { slots: SidebarSlot[] }) {
-  const { t } = useTranslation("shell");
-  const [collapsed, setCollapsed] = useState(true);
-
-  return (
-    <div
-      className="shrink-0 border-t border-border-subtle-dim/40 bg-app-chrome/20"
-      data-sidebar-plugins-section
-      data-sidebar-plugins-collapsed={collapsed ? "true" : "false"}
-    >
-      <button
-        type="button"
-        onClick={() => setCollapsed((v) => !v)}
-        className="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-3xs font-medium tracking-wide text-text-quaternary transition-colors hover:bg-surface-muted/40 hover:text-text-tertiary v4-focus-ring"
-        aria-expanded={!collapsed}
-        data-sidebar-plugins-toggle
-      >
-        {collapsed ? <ChevronRight size={ICON.micro} aria-hidden /> : <ChevronDown size={ICON.micro} aria-hidden />}
-        <Puzzle size={ICON.micro} className="opacity-70 text-text-quaternary" aria-hidden />
-        <span className="flex-1 text-left">{t("sidebar.pluginsSection")}</span>
-        <span className="rounded-full bg-surface-muted/80 px-1.5 py-px text-3xs tabular-nums text-text-quaternary">
-          {slots.length}
-        </span>
-      </button>
-      {!collapsed ? (
-        <ul className="m-0 list-none space-y-0.5 p-0 px-1.5 pb-1.5" data-sidebar-plugins-list>
-          {slots.map((slot) => (
-            <li key={slot.id}>
-              {slot.render ? (
-                slot.render()
-              ) : (
-                <DefaultSidebarEntry slot={slot} />
-              )}
-            </li>
-          ))}
-        </ul>
-      ) : null}
-    </div>
-  );
-}
-
-/** Default rendering for simple SidebarSlots (no custom render function). */
-function DefaultSidebarEntry({ slot }: { slot: SidebarSlot }) {
-  const { t } = useTranslation();
-  const label = slot.labelKey ? t(slot.labelKey) : slot.label;
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      className="group flex w-full cursor-pointer items-center justify-between gap-1.5 rounded-[var(--radius-md)] px-2 py-1.5 transition-colors hover:bg-surface-muted v4-focus-ring"
-      onClick={() => slot.onSelect?.()}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          slot.onSelect?.();
-        }
-      }}
-      data-sidebar-plugin-entry
-    >
-      <div className="flex flex-1 items-center gap-2 truncate select-none">
-        <Puzzle size={ICON.xs} className="shrink-0 text-text-quaternary opacity-80" aria-hidden />
-        <div className="flex flex-col truncate leading-tight">
-          <span className="truncate text-3xs font-medium text-text-secondary group-hover:text-text-primary">{label}</span>
-          {slot.statusText ? (
-            <span className="truncate text-3xs text-text-quaternary">{slot.statusText}</span>
-          ) : null}
-        </div>
-      </div>
-    </div>
-  );
-}
+/** Plugin sidebar slots removed (2026-08-30) — 可选插件 / mini-app 统一从
+ *  标题栏 Apps 菜单打开（components/shell/AppsMenu + lib/apps-menu）。
+ *  左栏回归纯内容导航，不再承载连接器入口。 */

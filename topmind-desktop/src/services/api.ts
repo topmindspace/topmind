@@ -551,6 +551,9 @@ export const api = {
 
   sys: {
     settings: () => invoke<AppSettings>("system.getSettings"),
+    /** UI zoom step — "in" | "out" | "reset" (Ctrl +/-/0 on Win/Linux). */
+    zoom: (mode: "in" | "out" | "reset") =>
+      invoke<{ ok: boolean; factor?: number }>("system.zoom", { mode }),
     update: (patch: Record<string, unknown>) =>
       invoke<AppSettings>("system.updateSettings", { patch }),
     clipBridgeStatus: () =>
@@ -1245,6 +1248,68 @@ export const api = {
         targetPath: string;
         reason?: string;
       }>("workspace.archiveStaleTodos"),
+  },
+
+  // ── Ledger (memory-plane books, optional 记账 mini-app) ─────────────────
+  ledger: {
+    list: () =>
+      invoke<{
+        books: import("../types").LedgerBook[];
+        summary?: import("../lib/ledger-summary").LedgerSummary;
+        categories?: string[];
+      }>("workspace.listLedgers"),
+    read: (roleId: string) =>
+      invoke<import("../types").LedgerBook | null>("workspace.readLedger", { roleId }),
+    append: (roleId: string, entry: {
+      direction: "收入" | "支出";
+      amount: number;
+      category?: string;
+      subcategory?: string;
+      note?: string;
+      timestamp?: string;
+    }) =>
+      invoke<{
+        ok: boolean;
+        targetPath: string;
+        book: import("../types").LedgerBook | null;
+        writebackEvidence?: { targetPath?: string; affectedFiles?: string[]; wroteFiles?: boolean };
+        reason?: string;
+      }>("workspace.appendLedgerEntry", { roleId, ...entry }),
+    addRole: (spec: { id?: string; name?: string }) =>
+      invoke<{
+        ok: boolean;
+        targetPath: string;
+        book: import("../types").LedgerBook | null;
+        reason?: string;
+      }>("workspace.addLedgerRole", spec),
+    categories: () =>
+      invoke<{ categories: string[] }>("workspace.listLedgerCategories"),
+    addCategory: (name: string) =>
+      invoke<{ ok: boolean; categories: string[]; reason?: string }>("workspace.addLedgerCategory", { name }),
+    removeCategory: (name: string) =>
+      invoke<{ ok: boolean; categories: string[]; reason?: string }>("workspace.removeLedgerCategory", { name }),
+    capture: (text: string, opts?: { persist?: boolean; defaultRoleId?: string; skipAi?: boolean }) =>
+      invoke<{
+        ok: boolean;
+        intent: "capture" | "list" | "balance" | null;
+        complete: boolean;
+        roleId: string;
+        accountName?: string;
+        direction: "收入" | "支出" | null;
+        amount: number | null;
+        category?: string;
+        subcategory?: string;
+        note?: string;
+        persisted?: boolean;
+        targetPath?: string;
+        book?: import("../types").LedgerBook | null;
+        reason?: string;
+        writebackEvidence?: {
+          targetPath?: string;
+          affectedFiles?: string[];
+          wroteFiles?: boolean;
+        };
+      }>("workspace.captureLedgerPhrase", { text, ...opts }),
   },
 
   // ── AI Operations (unified engine) ───────────────────────────────────────

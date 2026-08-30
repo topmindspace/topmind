@@ -207,6 +207,20 @@ describe("mapApplySuggestionResult + mergeCaptureTags (shipped)", () => {
       ).ok,
       true,
     );
+    const digest = mapApplySuggestionResult(
+      {
+        ok: true,
+        wroteFiles: true,
+        operation: "promote",
+        targetPath: "memory/periodic/2026/2026-W26.md",
+      },
+      {
+        kind: "stream_digest",
+        payload: { digestPath: "memory/periodic/2026/2026-W26.md" },
+      },
+    );
+    assert.equal(digest.ok, true);
+    assert.equal(digest.openPath, "memory/periodic/2026/2026-W26.md");
   });
 
   test("mapApplySuggestionResult open_profile open-only is success with openPath", async () => {

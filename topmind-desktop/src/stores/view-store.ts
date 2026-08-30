@@ -22,6 +22,7 @@ import {
   wouldAbandonInlineAi,
   useInlineAiStore,
 } from "../lib/inline-ai-busy";
+import { PLUGIN_APP_KIND } from "../lib/plugin-launcher";
 
 export type SidebarViewMode = "category" | "timeline" | "tags" | "kanban" | "stream";
 export type { TreeSortMode };
@@ -600,6 +601,14 @@ export const useViewStore = create<ViewState>((set, get) => ({
 
   overlay: "none",
   overlayContext: null,
-  openOverlay: (overlay, overlayContext = null) => set({ overlay, overlayContext }),
-  closeOverlay: () => set({ overlay: "none", overlayContext: null }),
+  openOverlay: (overlay, overlayContext = null) => {
+    if (overlay === PLUGIN_APP_KIND && !overlayContext?.pluginId) {
+      // plugin-app without a target would render the fallback shell — ignore.
+      return;
+    }
+    set({ overlay, overlayContext });
+  },
+  closeOverlay: () => {
+    set({ overlay: "none", overlayContext: null });
+  },
 }));

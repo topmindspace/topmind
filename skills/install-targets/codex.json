@@ -20,7 +20,8 @@
     "topmind-maintain",
     "topmind-loop",
     "topmind-weread",
-    "topmind-x"
+    "topmind-x",
+    "topmind-ledger"
   ],
   "install_strategy": "symlink-or-copy",
   "target_root_hint": "codex-skills-root",

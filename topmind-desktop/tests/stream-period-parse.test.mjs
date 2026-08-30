@@ -227,4 +227,26 @@ title: 2026-W32
     assert.match(day[0].body, /- point a/);
     assert.match(day[0].body, /conclusion/);
   });
+
+  it("nested list items stay on the parent first-level card", () => {
+    const { splitFirstLevelListItems } = mod;
+    const md = [
+      "## 08-03 周一",
+      "",
+      "- 10:00 parent moment",
+      "  - nested A",
+      "  - nested B",
+      "- 11:00 sibling",
+    ].join("\n");
+    const day = parsePeriodNote(md).filter((e) => e.heading === "08-03 周一");
+    assert.equal(day.length, 2, `expected 2 first-level cards, got ${day.length}`);
+    const parent = day.find((e) => /parent moment/.test(e.body));
+    assert.ok(parent);
+    assert.match(parent.body, /nested A/);
+    assert.match(parent.body, /nested B/);
+    assert.ok(day.some((e) => /11:00 sibling/.test(e.body)));
+    const split = splitFirstLevelListItems("- a\n  - a1\n  - a2\n- b\n");
+    assert.equal(split.length, 2);
+    assert.match(split[0], /a1/);
+  });
 });

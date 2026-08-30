@@ -8,7 +8,7 @@
  * The active locale is driven by `settings.ui.locale` (or `auto` = OS locale).
  *
  * Namespaces map to feature areas:
- *   common · shell · settings · editor · ai · workspace · ingest · weread · x · overlays
+ *   common · shell · settings · editor · ai · workspace · ingest · weread · x · ledger · overlays
  */
 
 import i18n from "i18next";
@@ -28,6 +28,12 @@ export {
 export type { SupportedLocale } from "./locale-resolver";
 
 import { resolveLocale, SUPPORTED_LOCALES, DEFAULT_LOCALE, FALLBACK_LOCALE } from "./locale-resolver";
+
+/** Keep <html lang> in sync so screen readers pronounce the active UI locale. */
+export function syncDocumentLang(locale: string): void {
+  if (typeof document === "undefined") return;
+  document.documentElement.lang = locale === "en-US" ? "en" : "zh-CN";
+}
 import type { SupportedLocale } from "./locale-resolver";
 
 // ── Locale resources (bundled synchronously — no async loading) ─────────────
@@ -40,6 +46,7 @@ import zhCNWorkspace from "./zh-CN/workspace.json";
 import zhCNIngest from "./zh-CN/ingest.json";
 import zhCNWeread from "./zh-CN/weread.json";
 import zhCNX from "./zh-CN/x.json";
+import zhCNLedger from "./zh-CN/ledger.json";
 import zhCNOverlays from "./zh-CN/overlays.json";
 
 import enUSCommon from "./en-US/common.json";
@@ -51,6 +58,7 @@ import enUSWorkspace from "./en-US/workspace.json";
 import enUSIngest from "./en-US/ingest.json";
 import enUSWeread from "./en-US/weread.json";
 import enUSX from "./en-US/x.json";
+import enUSLedger from "./en-US/ledger.json";
 import enUSOverlays from "./en-US/overlays.json";
 
 /** All i18n resource namespaces. */
@@ -64,6 +72,7 @@ export const NAMESPACES = [
   "ingest",
   "weread",
   "x",
+  "ledger",
   "overlays",
 ] as const;
 export type Namespace = (typeof NAMESPACES)[number];
@@ -83,6 +92,7 @@ const resources = {
     ingest: zhCNIngest,
     weread: zhCNWeread,
     x: zhCNX,
+    ledger: zhCNLedger,
     overlays: zhCNOverlays,
   },
   "en-US": {
@@ -95,6 +105,7 @@ const resources = {
     ingest: enUSIngest,
     weread: enUSWeread,
     x: enUSX,
+    ledger: enUSLedger,
     overlays: enUSOverlays,
   },
 } as const;
@@ -129,6 +140,7 @@ export function applyLocale(locale: SupportedLocale | string): void {
   const resolved = SUPPORTED_LOCALES.includes(locale as SupportedLocale)
     ? (locale as SupportedLocale)
     : resolveLocale(locale);
+  syncDocumentLang(resolved);
   if (i18n.language !== resolved) {
     // Defer language change to next event loop tick to avoid synchronous layout/IPC lockup on Windows
     setTimeout(() => {

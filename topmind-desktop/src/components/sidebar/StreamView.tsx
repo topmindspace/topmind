@@ -148,10 +148,6 @@ export function StreamView({ onNavigate }: StreamViewProps) {
     emitLocal("overlay:open", { kind: "quick-capture" });
   }, []);
 
-  const handleOpenTaskBoard = useCallback(() => {
-    emitLocal("sidebar:set-view", "kanban");
-  }, []);
-
   const handleMaintainTodos = useCallback(() => {
     // Open todo panel so maintain results + progressive force-retry are visible.
     // First click respects skip hash; if last result was already-processed, re-click forces.
@@ -211,7 +207,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
             <button
               type="button"
               onClick={handleCapture}
-              className="inline-flex items-center gap-1 rounded-md bg-accent-color px-2 py-1 text-3xs font-medium text-primary-foreground shadow-(--shadow-button) transition-opacity hover:opacity-90 v4-focus-ring"
+              className="inline-flex items-center gap-1 rounded-md border border-border-subtle px-2 py-1 text-3xs font-medium text-text-secondary hover:bg-surface-muted v4-focus-ring"
             >
               <Zap size={ICON.nano} aria-hidden />
               {t("sidebar.stream.capture")}
@@ -254,16 +250,6 @@ export function StreamView({ onNavigate }: StreamViewProps) {
               {todoActiveCount > 0 ? (
                 <span className="tabular-nums text-3xs">{todoActiveCount}</span>
               ) : null}
-            </button>
-          </Tooltip>
-          <Tooltip content={t("sidebar.stream.taskBoardTip")}>
-            <button
-              type="button"
-              onClick={handleOpenTaskBoard}
-              aria-label={t("sidebar.stream.taskBoardTip")}
-              className="flex items-center rounded-sm p-1 text-text-quaternary transition-colors hover:bg-surface-muted hover:text-accent-color v4-focus-ring"
-            >
-              <LayoutDashboard size={ICON.nano} {...{ strokeWidth: ICON_STROKE.chrome }} aria-hidden />
             </button>
           </Tooltip>
           <Tooltip content={t("sidebar.stream.openFullView")}>

@@ -365,7 +365,8 @@ export default class TopmindPlugin extends Plugin {
       this.app.workspace.revealLeaf(existing[0]);
       return;
     }
-    const leaf = this.app.workspace.getLeaf(false);
+    // New leaf — never replace the tab the user is currently reading.
+    const leaf = this.app.workspace.getLeaf(true);
     await leaf.setViewState({
       type: VIEW_TYPE_STREAM_WORKBENCH,
       active: true,

@@ -253,6 +253,30 @@ export function EditorRecentBar() {
           })}
         </div>
         </div>
+        {/* Split (对照) toggle — discoverable chrome, parity with tab context menu */}
+        {activePath ? (
+          <div className="flex shrink-0 items-center border-l border-border-subtle-dim px-1">
+            <Tooltip content={splitSecondaryPath === activePath ? t("editorRecentBar.closeSplitRight") : t("editorRecentBar.openSplitRight")}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (splitSecondaryPath === activePath) clearSplit();
+                  else openInSplit(activePath);
+                }}
+                aria-pressed={splitSecondaryPath === activePath}
+                aria-label={splitSecondaryPath === activePath ? t("editorRecentBar.closeSplitRight") : t("editorRecentBar.openSplitRight")}
+                className={cn(
+                  "inline-flex h-7 w-7 items-center justify-center rounded-sm transition-colors v4-focus-ring",
+                  splitSecondaryPath === activePath
+                    ? "bg-accent-bg-subtle text-accent-color"
+                    : "text-text-quaternary hover:bg-surface-muted hover:text-text-secondary",
+                )}
+              >
+                <Columns2 size={ICON.xs} />
+              </button>
+            </Tooltip>
+          </div>
+        ) : null}
         {/* Close-all control */}
         <div className="flex shrink-0 items-center gap-0.5 border-l border-border-subtle-dim px-1">
           <Tooltip content={hasUnpinned ? t("editorRecentBar.closeAllUnpinned") : t("editorRecentBar.closeAllTabs")}>

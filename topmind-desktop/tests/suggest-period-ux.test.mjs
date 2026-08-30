@@ -85,6 +85,16 @@ test("suggestionNavPathAfterApply uses evidence yearDir and rejects flat fallbac
     }),
     null,
   );
+  assert.equal(
+    suggestionNavPathAfterApply(
+      { ok: true, wroteFiles: true, targetPath: "10-动态/2026/2026-W26.md" },
+      {
+        suggestionKind: "stream_digest",
+        suggestionPayload: { digestPath: "memory/periodic/2026/2026-W26.md" },
+      },
+    ),
+    "memory/periodic/2026/2026-W26.md",
+  );
 });
 
 test("SuggestPopover labels write-kinds by helper, not impact heuristic", () => {

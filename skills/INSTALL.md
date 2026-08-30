@@ -70,7 +70,7 @@ Daily entry after install: **`topmind`**
 
 ### A. Community CLI — `npx skills`（和开源 skills 生态一致）
 
-已验证：本仓库可被直接发现 **9 个** skill。
+已验证：本仓库可被直接发现 pack 内全部 skill（含可选 weread / x / ledger）。
 
 ```bash
 # 安装到用户全局（~/.claude/skills 等，按 agent 探测）
@@ -93,7 +93,7 @@ npx skills add topmindspace/topmind -l
 `npx skills add … -g` **多数已经成功**。日志里先有：
 
 ```text
-◇  Installed 9 skills
+◇  Installed 10 skills
 ✓ ~/.agents/skills/topmind  (+ symlink → Claude Code / Codex / …)
 ```
 

@@ -138,9 +138,9 @@ export function openQuickCaptureWindow(opts) {
     if (!win.isDestroyed()) {
       const msg = t("capture.loadFail", { code, desc });
       const errBg = resolveWindowBackgroundColor(opts?.theme);
-      const isDark = errBg === "#201e19";
-      const errFg = isDark ? "#f0ede4" : "#2b2822";
-      const errMuted = isDark ? "#a49c8c" : "#7c766b";
+      const isDark = errBg === "#171717";
+      const errFg = isDark ? "#e5e5e5" : "#262626";
+      const errMuted = isDark ? "#8c8c8c" : "#6f6f6f";
       void win.loadURL(
         `data:text/html;charset=utf-8,${encodeURIComponent(
           `<!doctype html><html><body style="font:14px system-ui;padding:24px;background:${errBg};color:${errFg}">

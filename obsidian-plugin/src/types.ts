@@ -102,7 +102,7 @@ export const EMPTY_AI_MANUAL: AiManualKeys = {
 /** Default settings */
 export const DEFAULT_SETTINGS: TopmindSettings = {
   // Stream
-  autoOpenWorkbench: true,
+  autoOpenWorkbench: false,
   timelineOrder: "desc",
   autoTag: true,
   localeOverride: "",
@@ -241,7 +241,7 @@ export function migrateSettings(raw: Record<string, unknown>): TopmindSettings {
   };
   merged.backupKeep = clampInt(merged.backupKeep, 0, 10, 3);
   merged.receiptKeep = clampInt(merged.receiptKeep, 10, 200, 50);
-  merged.autoOpenWorkbench = merged.autoOpenWorkbench !== false;
+  merged.autoOpenWorkbench = merged.autoOpenWorkbench === true;
   merged.autoTag = merged.autoTag !== false;
   merged.autoSuggest = merged.autoSuggest !== false;
   merged.autoMaintainTodos = merged.autoMaintainTodos === true;

@@ -259,6 +259,40 @@ export const WorkspaceService = {
     return kernelArchiveStaleTodos({}, ctx);
   },
 
+  // ── Ledger ──────────────────────────────────────────────────────────────
+  async listLedgers(_p, ctx) {
+    const { kernelListLedgers } = await import("./lib/kernel-api.mjs");
+    return kernelListLedgers(ctx);
+  },
+  async readLedger(p, ctx) {
+    const { kernelReadLedger } = await import("./lib/kernel-api.mjs");
+    return kernelReadLedger(p, ctx);
+  },
+  async appendLedgerEntry(p, ctx) {
+    const { kernelAppendLedgerEntry } = await import("./lib/kernel-api.mjs");
+    return kernelAppendLedgerEntry(p, ctx);
+  },
+  async addLedgerRole(p, ctx) {
+    const { kernelAddLedgerRole } = await import("./lib/kernel-api.mjs");
+    return kernelAddLedgerRole(p, ctx);
+  },
+  async listLedgerCategories(_p, ctx) {
+    const { kernelListLedgerCategories } = await import("./lib/kernel-api.mjs");
+    return kernelListLedgerCategories(ctx);
+  },
+  async addLedgerCategory(p, ctx) {
+    const { kernelAddLedgerCategory } = await import("./lib/kernel-api.mjs");
+    return kernelAddLedgerCategory(p, ctx);
+  },
+  async removeLedgerCategory(p, ctx) {
+    const { kernelRemoveLedgerCategory } = await import("./lib/kernel-api.mjs");
+    return kernelRemoveLedgerCategory(p, ctx);
+  },
+  async captureLedgerPhrase(p, ctx) {
+    const { kernelCaptureLedgerPhrase } = await import("./lib/kernel-api.mjs");
+    return kernelCaptureLedgerPhrase(p, ctx);
+  },
+
   // ── AI Operations (unified engine) ───────────────────────────────────────
   async listOperationTypes(_p, ctx) {
     const { kernelListOperationTypes } = await import("./lib/kernel-api.mjs");

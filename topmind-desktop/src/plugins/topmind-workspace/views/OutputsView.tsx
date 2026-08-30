@@ -65,28 +65,40 @@ function fileIcon(name: string) {
   return <File size={ICON.xs} className="opacity-80" />;
 }
 
-function groupByDay(files: OutputFile[]): { label: string; items: OutputFile[] }[] {
+type OutputGroupKey = "today" | "yesterday" | "older" | "date";
+
+function groupByDay(files: OutputFile[]): { key: OutputGroupKey; date?: string; items: OutputFile[] }[] {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
   const map = new Map<string, OutputFile[]>();
+  const order: string[] = [];
   for (const f of files) {
     const ts = Date.parse(f.mtime);
-    let label = "Older";
+    let key: OutputGroupKey = "older";
+    let date: string | undefined;
     if (Number.isFinite(ts)) {
       const d = new Date(ts);
       d.setHours(0, 0, 0, 0);
-      if (d.getTime() === today.getTime()) label = "Today";
-      else if (d.getTime() === yesterday.getTime()) label = "Yesterday";
+      if (d.getTime() === today.getTime()) key = "today";
+      else if (d.getTime() === yesterday.getTime()) key = "yesterday";
       else {
-        label = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        key = "date";
+        date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
       }
     }
-    if (!map.has(label)) map.set(label, []);
-    map.get(label)!.push(f);
+    const mapKey = `${key}:${date ?? ""}`;
+    if (!map.has(mapKey)) {
+      map.set(mapKey, []);
+      order.push(mapKey);
+    }
+    map.get(mapKey)!.push(f);
   }
-  return [...map.entries()].map(([label, items]) => ({ label, items }));
+  return order.map((mapKey) => {
+    const [key, date] = mapKey.split(":") as [OutputGroupKey, string | undefined];
+    return { key, date: date || undefined, items: map.get(mapKey)! };
+  });
 }
 
 export function OutputsView() {
@@ -279,9 +291,15 @@ export function OutputsView() {
             <p className="px-2 py-4 text-center text-3xs text-text-quaternary">{t("workspace:inbox.emptyNoMatchTitle")}</p>
           ) : (
             groups.map((g) => (
-              <div key={g.label} className="mb-1.5">
+              <div key={`${g.key}:${g.date ?? ""}`} className="mb-1.5">
                 <div className="sticky top-0 z-local flex items-center gap-1.5 bg-surface/95 px-2 py-1 text-3xs font-medium text-text-quaternary">
-                  {g.label}
+                  {g.key === "today"
+                    ? t("workspace:outputsView.groupToday")
+                    : g.key === "yesterday"
+                      ? t("workspace:outputsView.groupYesterday")
+                      : g.key === "older"
+                        ? t("workspace:outputsView.groupOlder")
+                        : g.date}
                   <span className="tabular-nums opacity-70">{g.items.length}</span>
                 </div>
                 <CollectionFeed layout={feedLayout}>

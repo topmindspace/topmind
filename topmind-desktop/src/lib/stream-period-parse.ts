@@ -86,9 +86,54 @@ export function isDayLikeHeading(heading: string): boolean {
   return false;
 }
 
+/**
+ * Indent of a markdown list marker in spaces (tabs count as 2), or -1.
+ * Used so nested items are not treated as new feed cards.
+ */
+export function listMarkerIndent(line: string): number {
+  const m = String(line || "").match(/^(\s*)(?:[-*+]|\d+\.)\s+\S/u);
+  if (!m) return -1;
+  return m[1].replace(/\t/gu, "  ").length;
+}
+
 /** Top-level markdown list item (`-` / `*` / `+` / `1.`), not indented nested lists. */
 export function isTopLevelListItem(line: string): boolean {
-  return /^\s{0,3}[-*+]\s+\S/u.test(line) || /^\s{0,3}\d+\.\s+\S/u.test(line);
+  const indent = listMarkerIndent(line);
+  return indent >= 0 && indent <= 3;
+}
+
+/**
+ * Split a list-led block into **first-level** items only.
+ * Nested list lines (greater indent than the first item) stay on the parent card.
+ */
+export function splitFirstLevelListItems(content: string): string[] {
+  const lines = String(content || "").replace(/\r\n/gu, "\n").split("\n");
+  const out: string[] = [];
+  let buf: string[] = [];
+  let baseIndent: number | null = null;
+  const flush = () => {
+    const chunk = buf.join("\n").replace(/^\n+|\n+$/gu, "");
+    buf = [];
+    if (chunk.trim()) out.push(chunk);
+  };
+  for (const line of lines) {
+    const indent = listMarkerIndent(line);
+    if (indent >= 0 && (baseIndent === null || indent <= baseIndent)) {
+      if (baseIndent === null || indent < baseIndent) baseIndent = indent;
+      if (indent === baseIndent) {
+        flush();
+        buf.push(line);
+        continue;
+      }
+    }
+    if (buf.length > 0) {
+      buf.push(line);
+    } else if (line.trim()) {
+      buf.push(line);
+    }
+  }
+  flush();
+  return out;
 }
 
 /**
@@ -186,30 +231,12 @@ function makeEntry(
 function entriesFromStructuralBody(sectionHeading: string, content: string): StreamEntry[] {
   const body = normalizeStreamEscapes(content).trim();
   if (!body) return [];
-  const lines = body.split("\n");
+  const chunks = splitFirstLevelListItems(body);
   const out: StreamEntry[] = [];
-  let buf: string[] = [];
-  const flush = () => {
-    if (buf.length === 0) return;
-    const chunk = buf.join("\n").trim();
-    buf = [];
-    if (!chunk) return;
+  for (const chunk of chunks) {
     const e = makeEntry(sectionHeading, chunk);
     if (e) out.push(e);
-  };
-  for (const line of lines) {
-    // New list item starts a new soft entry
-    if (/^\s*[-*+]\s+\S/u.test(line) || /^\s*\d+\.\s+\S/u.test(line)) {
-      flush();
-      buf.push(line);
-    } else if (buf.length > 0) {
-      buf.push(line);
-    } else if (line.trim()) {
-      // loose paragraph under 记录
-      buf.push(line);
-    }
   }
-  flush();
   // Cap noise from huge structural dumps
   return out.slice(0, 40);
 }

@@ -47,6 +47,14 @@ function loadRecent(): string[] {
   }
 }
 
+function clearRecent(): void {
+  try {
+    localStorage.removeItem(RECENT_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 function pushRecent(q: string) {
   const t = q.trim();
   if (t.length < 2) return;
@@ -70,11 +78,42 @@ export function GlobalSearch() {
   const [loading, setLoading] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
   const [recent, setRecent] = useState<string[]>(() => loadRecent());
+  const [bucketFilter, setBucketFilter] = useState<SearchBucket | "all">("all");
   const closeOverlay = useViewStore((s) => s.closeOverlay);
   const select = useViewStore((s) => s.select);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const seqRef = useRef(0);
+
+  const filteredResults = useMemo(
+    () =>
+      bucketFilter === "all"
+        ? results
+        : results.filter((r) => searchBucket(r.relativePath) === bucketFilter),
+    [results, bucketFilter],
+  );
+
+  const bucketCounts = useMemo(() => {
+    const counts = new Map<SearchBucket, number>();
+    for (const r of results) {
+      const b = searchBucket(r.relativePath);
+      counts.set(b, (counts.get(b) ?? 0) + 1);
+    }
+    return counts;
+  }, [results]);
+
+  const groupedResults = useMemo(() => {
+    const buckets = new Map<SearchBucket, Array<{ r: SearchResult; flatIdx: number }>>();
+    filteredResults.forEach((r, flatIdx) => {
+      const b = searchBucket(r.relativePath);
+      if (!buckets.has(b)) buckets.set(b, []);
+      buckets.get(b)!.push({ r, flatIdx });
+    });
+    return BUCKET_ORDER.filter((b) => buckets.has(b)).map((b) => ({
+      bucket: b,
+      items: buckets.get(b)!,
+    }));
+  }, [filteredResults]);
 
   // Debounced search with race protection
   useEffect(() => {
@@ -113,7 +152,7 @@ export function GlobalSearch() {
   }, []);
   useEffect(() => {
     setActiveIdx(0);
-  }, [query, results.length]);
+  }, [query, filteredResults.length]);
 
   useEffect(() => {
     const el = listRef.current?.querySelector(`[data-search-idx="${activeIdx}"]`);
@@ -156,30 +195,18 @@ export function GlobalSearch() {
         if (r) setQuery(r);
         return;
       }
-      const r = results[activeIdx];
+      const r = filteredResults[activeIdx];
       if (r) handleOpen(r);
     }
   };
 
   const empty = !query.trim();
-  const optionCount = empty ? recent.length : results.length;
+  const optionCount = empty ? recent.length : filteredResults.length;
   const activeOptionId =
     optionCount > 0 && activeIdx >= 0 && activeIdx < optionCount
       ? `global-search-opt-${activeIdx}`
       : undefined;
 
-  const groupedResults = useMemo(() => {
-    const buckets = new Map<SearchBucket, Array<{ r: SearchResult; flatIdx: number }>>();
-    results.forEach((r, flatIdx) => {
-      const b = searchBucket(r.relativePath);
-      if (!buckets.has(b)) buckets.set(b, []);
-      buckets.get(b)!.push({ r, flatIdx });
-    });
-    return BUCKET_ORDER.filter((b) => buckets.has(b)).map((b) => ({
-      bucket: b,
-      items: buckets.get(b)!,
-    }));
-  }, [results]);
 
   return (
     <div
@@ -234,7 +261,17 @@ export function GlobalSearch() {
             <>
               <li className="flex items-center gap-1.5 px-2 py-1 text-3xs font-medium uppercase tracking-wide text-text-quaternary" role="presentation">
                 <Clock size={ICON.micro} aria-hidden />
-                {t("overlays:search.recentTitle")}
+                <span className="flex-1">{t("overlays:search.recentTitle")}</span>
+                <button
+                  type="button"
+                  className="rounded-[var(--radius-sm)] px-1.5 py-0.5 normal-case transition-colors hover:bg-surface-muted hover:text-text-secondary v4-focus-ring"
+                  onClick={() => {
+                    clearRecent();
+                    setRecent([]);
+                  }}
+                >
+                  {t("overlays:search.clearRecent")}
+                </button>
               </li>
               {recent.map((r, i) => (
                 <li
@@ -276,6 +313,43 @@ export function GlobalSearch() {
               </div>
             </li>
           )
+        ) : null}
+        {query.trim() && !loading && results.length > 0 ? (
+          <li className="flex flex-wrap items-center gap-1 px-2 py-1" role="presentation">
+            <button
+              type="button"
+              data-filter-chip
+              data-filter-chip-active={bucketFilter === "all" ? "true" : undefined}
+              onClick={() => setBucketFilter("all")}
+              className={cn(
+                "inline-flex h-(--control-h-chip) items-center rounded-full px-2 text-3xs font-medium leading-none transition-colors",
+                bucketFilter === "all"
+                  ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
+                  : "bg-surface-muted/35 text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
+              )}
+            >
+              {t("overlays:search.filterAll")}
+              <span className="ml-1 tabular-nums opacity-70">{results.length}</span>
+            </button>
+            {BUCKET_ORDER.filter((b) => bucketCounts.has(b)).map((b) => (
+              <button
+                key={b}
+                type="button"
+                data-filter-chip
+                data-filter-chip-active={bucketFilter === b ? "true" : undefined}
+                onClick={() => setBucketFilter(b)}
+                className={cn(
+                  "inline-flex h-(--control-h-chip) items-center rounded-full px-2 text-3xs font-medium leading-none transition-colors",
+                  bucketFilter === b
+                    ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
+                    : "bg-surface-muted/35 text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
+                )}
+              >
+                {t(`overlays:search.group.${b}`)}
+                <span className="ml-1 tabular-nums opacity-70">{bucketCounts.get(b)}</span>
+              </button>
+            ))}
+          </li>
         ) : null}
         {groupedResults.map((group) => (
           <li key={group.bucket} role="presentation" className="list-none">
@@ -349,8 +423,8 @@ export function GlobalSearch() {
         <span className="ml-auto tabular-nums">
           {query.trim()
             ? truncated
-              ? t("overlays:search.footerCountTruncated", { count: results.length })
-              : t("overlays:search.footerCount", { count: results.length })
+              ? t("overlays:search.footerCountTruncated", { count: filteredResults.length })
+              : t("overlays:search.footerCount", { count: filteredResults.length })
             : recent.length
               ? t("overlays:search.footerRecent", { count: recent.length })
               : ""}
@@ -360,40 +434,57 @@ export function GlobalSearch() {
   );
 }
 
-/** Highlight matching text in search results. */
-function HighlightText({ text, query }: { text: string; query: string }) {
+/** Highlight ALL occurrences of the query in text. */
+function HighlightAll({
+  text,
+  query,
+  markClassName,
+}: {
+  text: string;
+  query: string;
+  markClassName: string;
+}) {
   if (!query) return <>{text}</>;
   const lowerText = text.toLowerCase();
   const lowerQuery = query.toLowerCase();
-  const idx = lowerText.indexOf(lowerQuery);
-  if (idx < 0) return <>{text}</>;
+  if (!lowerText.includes(lowerQuery)) return <>{text}</>;
 
-  return (
-    <>
-      {text.slice(0, idx)}
-      <mark className="rounded-[var(--radius-xs)] bg-warning/20 px-0.5 text-text-primary">
+  const parts: React.ReactNode[] = [];
+  let cursor = 0;
+  let idx = lowerText.indexOf(lowerQuery);
+  let key = 0;
+  while (idx >= 0) {
+    if (idx > cursor) parts.push(text.slice(cursor, idx));
+    parts.push(
+      <mark key={`hit-${key++}`} className={markClassName}>
         {text.slice(idx, idx + query.length)}
-      </mark>
-      {text.slice(idx + query.length)}
-    </>
+      </mark>,
+    );
+    cursor = idx + query.length;
+    idx = lowerText.indexOf(lowerQuery, cursor);
+  }
+  if (cursor < text.length) parts.push(text.slice(cursor));
+  return <>{parts}</>;
+}
+
+/** Highlight matching text in search results. */
+function HighlightText({ text, query }: { text: string; query: string }) {
+  return (
+    <HighlightAll
+      text={text}
+      query={query}
+      markClassName="rounded-[var(--radius-xs)] bg-warning/20 px-0.5 text-text-primary"
+    />
   );
 }
 
 /** Highlight matching segments in file path. */
 function HighlightPath({ path, query }: { path: string; query: string }) {
-  if (!query) return <>{path}</>;
-  const lowerPath = path.toLowerCase();
-  const lowerQuery = query.toLowerCase();
-  const idx = lowerPath.indexOf(lowerQuery);
-  if (idx < 0) return <>{path}</>;
-
   return (
-    <>
-      {path.slice(0, idx)}
-      <mark className="rounded-[var(--radius-xs)] bg-warning/20 px-0.5 text-accent-color">
-        {path.slice(idx, idx + query.length)}
-      </mark>
-      {path.slice(idx + query.length)}
-    </>
+    <HighlightAll
+      text={path}
+      query={query}
+      markClassName="rounded-[var(--radius-xs)] bg-warning/20 px-0.5 text-accent-color"
+    />
   );
 }

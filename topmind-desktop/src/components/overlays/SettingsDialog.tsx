@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Settings, Bot, FolderTree, Loader2, Puzzle, BookOpen, Twitter, Sparkles, Terminal, FileInput, Boxes } from "lucide-react";
+import { Settings, Bot, FolderTree, Loader2, Puzzle, BookOpen, Twitter, Sparkles, Terminal, FileInput, Boxes, Plug, Stethoscope } from "lucide-react";
+import i18n from "../../locales";
 import { useViewStore } from "../../stores/view-store";
 import { useRegistry } from "../../plugins/registry";
 import { ICON } from "../../lib/icons";
@@ -8,7 +9,7 @@ import type { LucideIcon } from "lucide-react";
 import { GeneralPanel } from "../settings/GeneralPanel";
 import { AiProviderPanel } from "../settings/AiProviderPanel";
 import { WorkspacePanel } from "../settings/WorkspacePanel";
-import { ManagePanel } from "../settings/ManagePanel";
+import { ManageAboutPanel, ManageIntegrationsPanel, ManageDiagnosticsPanel, ManagePanel } from "../settings/ManagePanel";
 import { PluginsPanel } from "../settings/PluginsPanel";
 import { SkillsPanel } from "../settings/SkillsPanel";
 import { ToolsPanel } from "../settings/ToolsPanel";
@@ -22,6 +23,42 @@ const SLOT_ICON_MAP: Record<string, LucideIcon> = {
   twitter: Twitter,
   "file-input": FileInput,
 };
+
+/** Panel id → settings.json top-level sections it renders (for content search). */
+const PANEL_SEARCH_KEYS: Record<string, string[]> = {
+  general: ["general"],
+  workspace: ["workspace"],
+  ai: ["ai", "chatInput"],
+  skills: ["skills"],
+  tools: ["tools"],
+  plugins: ["plugins"],
+  about: ["about"],
+  integrations: ["manage", "companions"],
+  diagnostics: ["env", "about"],
+};
+
+function collectPanelStrings(topKeys: string[]): string[] {
+  try {
+    const bundle = i18n.getResourceBundle(i18n.language || "zh-CN", "settings") as
+      | Record<string, unknown>
+      | undefined;
+    if (!bundle) return [];
+    const out: string[] = [];
+    const walk = (v: unknown) => {
+      if (typeof v === "string") {
+        if (v) out.push(v);
+      } else if (Array.isArray(v)) {
+        v.forEach(walk);
+      } else if (v && typeof v === "object") {
+        Object.values(v).forEach(walk);
+      }
+    };
+    for (const k of topKeys) walk(bundle[k]);
+    return out;
+  } catch {
+    return [];
+  }
+}
 
 export function SettingsDialog() {
   const { t } = useTranslation(["settings", "common"]);
@@ -57,6 +94,16 @@ export function SettingsDialog() {
       { id: "tools", label: t("settings:tabs.tools"), icon: Terminal, order: 30, group: t("settings:groups.agent") },
       { id: "plugins", label: t("settings:tabs.plugins"), icon: Puzzle, order: 40, group: t("settings:groups.extensions") },
     ];
+    // Panel-content search: flatten the panel's settings.json sections so the
+    // nav filter reaches section titles/descriptions, not just page names.
+    const attachKeywords = (tab: SettingsTabItem, topKeys: string[]): SettingsTabItem => ({
+      ...tab,
+      keywords: collectPanelStrings(topKeys),
+    });
+    const builtinWithSearch = builtin.map((tab) => {
+      const keys = PANEL_SEARCH_KEYS[tab.id];
+      return keys ? attachKeywords(tab, keys) : tab;
+    });
     const dynamic = settingsSlots.map((slot) => ({
       id: slot.id,
       label: slot.labelKey ? t(slot.labelKey) : slot.label,
@@ -64,8 +111,16 @@ export function SettingsDialog() {
       order: 50 + (slot.order ?? 100),
       group: t("settings:groups.extensions"),
     }));
-    const footer = [{ id: "manage", label: t("settings:tabs.manage"), icon: Boxes, order: 990, group: t("settings:groups.manage") }];
-    return [...builtin, ...dynamic, ...footer].sort((a, b) => a.order - b.order);
+    const footer = [
+      { id: "about", label: t("settings:tabs.about"), icon: Boxes, order: 990, group: t("settings:groups.manage") },
+      { id: "integrations", label: t("settings:tabs.integrations"), icon: Plug, order: 991, group: t("settings:groups.manage") },
+      { id: "diagnostics", label: t("settings:tabs.diagnostics"), icon: Stethoscope, order: 992, group: t("settings:groups.manage") },
+    ];
+    const footerWithSearch = footer.map((tab) => {
+      const keys = PANEL_SEARCH_KEYS[tab.id];
+      return keys ? attachKeywords(tab, keys) : tab;
+    });
+    return [...builtinWithSearch, ...dynamic, ...footerWithSearch].sort((a, b) => a.order - b.order);
   }, [settingsSlots]);
 
   useEffect(() => {
@@ -89,7 +144,14 @@ export function SettingsDialog() {
       case "plugins":
         return <PluginsPanel settings={settings} update={update} />;
       case "manage":
+        // Legacy deep-link target — render everything
         return <ManagePanel settings={settings} update={update} />;
+      case "about":
+        return <ManageAboutPanel settings={settings} update={update} />;
+      case "integrations":
+        return <ManageIntegrationsPanel settings={settings} update={update} />;
+      case "diagnostics":
+        return <ManageDiagnosticsPanel settings={settings} update={update} />;
       default: {
         const slot = settingsSlots.find((s) => s.id === activeTab);
         if (slot) {

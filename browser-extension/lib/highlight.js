@@ -21,12 +21,12 @@
     if (document.getElementById(STYLE_ID)) return;
     const st = document.createElement("style");
     st.id = STYLE_ID;
-    // Brand Deep #31548e — injected into page content (isolated world);
+    // Brand accent sky #0284c7 — injected into page content (isolated world);
     // cannot use CSS variables from extension popup.css, so value is hardcoded
-    // to match Desktop --color-brand-deep / --color-accent-color.
+    // to match Desktop --color-accent-color (DS 3.0 sky).
     st.textContent = `
       [${ATTR}] {
-        background: rgba(49, 84, 142, 0.22) !important;
+        background: rgba(2, 132, 199, 0.22) !important;
         box-decoration-break: clone;
         -webkit-box-decoration-break: clone;
         border-radius: 2px;
@@ -36,7 +36,7 @@
         cursor: crosshair !important;
       }
       body.topmind-hl-active ::selection {
-        background: rgba(49, 84, 142, 0.35);
+        background: rgba(2, 132, 199, 0.35);
       }
     `;
     (document.head || document.documentElement).appendChild(st);

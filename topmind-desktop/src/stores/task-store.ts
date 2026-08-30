@@ -15,7 +15,7 @@ import { engineJobSuggestionFollowUp } from "../lib/engine-job-follow-up";
  * digest / promote / archive are **suggestion-strip** apply paths (confirm-first),
  * not fake background task buttons — keep TaskType honest.
  */
-export type TaskType = "reconcile" | "ai_digest";
+export type TaskType = "reconcile" | "ai_digest" | "memory_organize";
 
 export type TaskStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
 
@@ -254,6 +254,64 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
             type: "ai_digest",
             merged: opResult.merged,
             suggestionCount: aiSuggestions.length,
+          });
+          if (follow.openSuggestSurface) {
+            emitLocal("suggest-surface:open", { refresh: false });
+          }
+          break;
+        }
+        case "memory_organize": {
+          _appendLog(taskId, i18n.t("shell:taskPanel.memoryOrganizeStart", { ns: "shell" }));
+          _updateTask(taskId, {
+            progress: 20,
+            currentStep: i18n.t("shell:taskPanel.memoryOrganizeScan", { ns: "shell" }),
+          });
+          const { useActionStore } = await import("./action-store");
+          _updateTask(taskId, {
+            progress: 45,
+            currentStep: i18n.t("shell:taskPanel.memoryOrganizeRun", { ns: "shell" }),
+          });
+          const opResult = await useActionStore.getState().runActivityOps({ force: true });
+          if (get().getTask(taskId)?.status === "cancelled") return;
+
+          const allItems = useActionStore.getState().items.filter((i) => i.source === "suggestion");
+          _appendLog(
+            taskId,
+            i18n.t("shell:taskPanel.memoryOrganizeFound", {
+              ns: "shell",
+              count: opResult.merged,
+              total: allItems.length,
+            }),
+          );
+          if (opResult.summary) _appendLog(taskId, opResult.summary);
+          for (const item of allItems.slice(0, 8)) {
+            _appendLog(taskId, `  • ${item.title}`);
+          }
+
+          _updateTask(taskId, {
+            status: "completed",
+            progress: 100,
+            completedAt: Date.now(),
+            currentStep: undefined,
+            result: {
+              ok: true,
+              merged: opResult.merged,
+              suggestionCount: allItems.length,
+              summary: opResult.summary,
+            },
+          });
+          emitLocal("toast:show", {
+            text: opResult.summary
+              || i18n.t("shell:taskPanel.memoryOrganizeDoneToast", {
+                ns: "shell",
+                count: opResult.merged,
+              }),
+            kind: "success",
+          });
+          const follow = engineJobSuggestionFollowUp({
+            type: "memory_organize",
+            merged: opResult.merged,
+            suggestionCount: allItems.length,
           });
           if (follow.openSuggestSurface) {
             emitLocal("suggest-surface:open", { refresh: false });

@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback, lazy } from "react";
+import { Lightbulb, ListTodo } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { TitleBar } from "./TitleBar";
 import { StatusBar } from "./StatusBar";
@@ -11,6 +12,8 @@ import { IngestStagingSheet } from "../overlays/IngestStagingSheet";
 import { Splitter } from "../ui/Splitter";
 import { LazyBoundary } from "../ui/LazyBoundary";
 import { useViewStore } from "../../stores/view-store";
+import { useActionStore } from "../../stores/action-store";
+import { useTodoStore } from "../../stores/todo-store";
 import { useAiStore } from "../../stores/ai-store";
 import { onLocal, emitLocal } from "../../plugins/host";
 import { api } from "../../services/api";
@@ -27,6 +30,8 @@ import { usePluginInit } from "./usePluginInit";
 import { useShellSettingsSync } from "./useShellSettingsSync";
 import { useShellShortcuts } from "./useShellShortcuts";
 import { useAutoTodoMaintain } from "./useAutoTodoMaintain";
+import { openSuggestSurface } from "../../lib/suggest-surface";
+import { ICON } from "../../lib/icons";
 import type { ToastPayload } from "../../lib/local-events";
 
 /** @dnd-kit is code-split — loaded with the shell chrome after React mounts. */
@@ -48,24 +53,55 @@ export function Shell({ settings }: ShellProps) {
   const focusMode = useViewStore((s) => s.focusMode);
 
   const health = useWorkspaceHealth();
+
+  // Focus-mode fallback (DESIGN §0.0.3): the status bar is hidden in focus
+  // mode, so actionable AI state still needs a door — a quiet chip cluster
+  // bottom-right appears only when there is something to act on.
+  const suggestCount = useActionStore((s) => s.items.length);
+  const activeTodoCount = useTodoStore((s) => s.items.filter((i) => !i.done).length);
   usePluginInit(settings);
   useShellSettingsSync(settings);
   useAutoTodoMaintain(settings);
 
-  const [toast, setToast] = useState<ToastPayload | null>(null);
+  // Toast queue: stacked (max 3, newest visible), hover pauses the dwell —
+  // a capture + docs enqueue + AI polish burst no longer overwrites itself.
+  const [toasts, setToasts] = useState<Array<ToastPayload & { key: number; dwell: number }>>([]);
+  const toastSeq = useRef(0);
+  const toastTimersRef = useRef(new Map<number, ReturnType<typeof setTimeout>>());
   const [taskPanelOpen, setTaskPanelOpen] = useState(false);
-  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useShellShortcuts(setTaskPanelOpen);
+  useShellShortcuts();
+
+  const dismissToast = useCallback((key: number) => {
+    const timer = toastTimersRef.current.get(key);
+    if (timer) {
+      clearTimeout(timer);
+      toastTimersRef.current.delete(key);
+    }
+    setToasts((prev) => prev.filter((x) => x.key !== key));
+  }, []);
+
+  const pauseToast = useCallback((key: number) => {
+    const timer = toastTimersRef.current.get(key);
+    if (timer) {
+      clearTimeout(timer);
+      toastTimersRef.current.delete(key);
+    }
+  }, []);
+
+  const resumeToast = useCallback((key: number, dwell: number) => {
+    pauseToast(key);
+    toastTimersRef.current.set(key, setTimeout(() => dismissToast(key), dwell));
+  }, [pauseToast, dismissToast]);
 
   const showToast = useCallback((msg: string | ToastPayload) => {
     const payload = typeof msg === "string" ? { text: msg } : msg;
-    setToast(payload);
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     // Evidence-backed toast gets a longer dwell time for undo interaction
     const dwell = payload.evidence?.backupPath || payload.evidence?.receiptPath ? 6000 : 3000;
-    toastTimerRef.current = setTimeout(() => setToast(null), dwell);
-  }, []);
+    const key = ++toastSeq.current;
+    setToasts((prev) => [...prev.slice(-2), { ...payload, key, dwell }]);
+    toastTimersRef.current.set(key, setTimeout(() => dismissToast(key), dwell));
+  }, [dismissToast]);
 
   // Listen to global toast events (string or structured payload with evidence)
   useEffect(() => {
@@ -144,8 +180,10 @@ export function Shell({ settings }: ShellProps) {
 
   // Clean up timers on unmount
   useEffect(() => {
+    const timers = toastTimersRef.current;
     return () => {
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      for (const t of timers.values()) clearTimeout(t);
+      timers.clear();
     };
   }, []);
 
@@ -241,34 +279,67 @@ export function Shell({ settings }: ShellProps) {
       {/* Inline AI leave guard — ConfirmDialog before navigation (never navigate-then-block) */}
       <InlineAiLeaveHost />
 
-      {toast ? (
-        <div
-          role="status"
-          className={cn(
-            "pointer-events-auto fixed bottom-10 left-1/2 z-toast flex max-w-[min(420px,90vw)] -translate-x-1/2",
-            "items-center gap-2 rounded-[var(--radius-lg)] border px-3.5 py-2 text-3xs font-medium shadow-[var(--shadow-float)] animate-toast-in",
-            toast.kind === "error"
-              ? "border-error/30 bg-status-error-bg text-error"
-              : toast.kind === "success"
-                ? "border-success/30 bg-status-success-bg text-success"
-                : "border-border-subtle-dim bg-surface text-text-secondary",
-          )}
-        >
-          <span className="truncate">{toast.text}</span>
-          {toast.evidence?.backupPath || toast.evidence?.receiptPath ? (
+      {focusMode && (suggestCount > 0 || activeTodoCount > 0) ? (
+        <div className="pointer-events-none fixed bottom-3 right-3 z-floating flex items-center gap-1.5">
+          {suggestCount > 0 ? (
             <button
               type="button"
-              className={cn(
-                "shrink-0 rounded-[var(--radius-sm)] px-1.5 py-0.5 text-3xs font-semibold",
-                "bg-surface-muted/50 transition-colors hover:bg-surface-muted",
-                "v4-focus-ring",
-              )}
-              onClick={() => void handleUndoWriteback(toast.evidence!)}
-              aria-label={t("common:writeback.undo")}
+              onClick={() => openSuggestSurface()}
+              className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full border border-border-subtle bg-surface-elevated/95 px-2.5 py-1 text-3xs font-medium text-text-secondary shadow-[var(--shadow-float)] backdrop-blur-sm transition-colors hover:bg-surface-muted v4-focus-ring"
+              aria-label={t("shell:statusBar.suggestCountAria", { count: suggestCount, defaultValue: "AI 建议（{{count}}）" })}
             >
-              {t("common:writeback.undo")}
+              <Lightbulb size={ICON.xs} className="text-accent-color" aria-hidden />
+              <span className="tabular-nums">{suggestCount}</span>
             </button>
           ) : null}
+          {activeTodoCount > 0 ? (
+            <button
+              type="button"
+              onClick={() => emitLocal("todo:toggle-popover")}
+              className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full border border-border-subtle bg-surface-elevated/95 px-2.5 py-1 text-3xs font-medium text-text-secondary shadow-[var(--shadow-float)] backdrop-blur-sm transition-colors hover:bg-surface-muted v4-focus-ring"
+              aria-label={t("shell:todo.openAria", { count: activeTodoCount, defaultValue: "待办清单（{{count}}）" })}
+            >
+              <ListTodo size={ICON.xs} className="text-accent-color" aria-hidden />
+              <span className="tabular-nums">{activeTodoCount}</span>
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {toasts.length > 0 ? (
+        <div className="pointer-events-none fixed bottom-10 left-1/2 z-toast flex -translate-x-1/2 flex-col items-center gap-1.5">
+          {toasts.map((toast) => (
+            <div
+              key={toast.key}
+              role="status"
+              onMouseEnter={() => pauseToast(toast.key)}
+              onMouseLeave={() => resumeToast(toast.key, toast.dwell)}
+              className={cn(
+                "pointer-events-auto flex max-w-[min(420px,90vw)] items-center gap-2 rounded-[var(--radius-lg)] border px-3.5 py-2 text-3xs font-medium shadow-[var(--shadow-float)] animate-toast-in",
+                toast.kind === "error"
+                  ? "border-error/30 bg-status-error-bg text-error"
+                  : toast.kind === "success"
+                    ? "border-success/30 bg-status-success-bg text-success"
+                    : "border-border-subtle-dim bg-surface text-text-secondary",
+              )}
+            >
+              <span className="truncate">{toast.text}</span>
+              {toast.evidence?.backupPath || toast.evidence?.receiptPath ? (
+                <button
+                  type="button"
+                  className={cn(
+                    "shrink-0 rounded-[var(--radius-sm)] px-1.5 py-0.5 text-3xs font-semibold",
+                    "bg-surface-muted/50 transition-colors hover:bg-surface-muted",
+                    "v4-focus-ring",
+                  )}
+                  onClick={() => void handleUndoWriteback(toast.evidence!)}
+                  aria-label={t("common:writeback.undo")}
+                >
+                  {t("common:writeback.undo")}
+                </button>
+              ) : null}
+            </div>
+          ))}
         </div>
       ) : null}
     </div>

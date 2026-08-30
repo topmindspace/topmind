@@ -7,20 +7,6 @@
     "canPost": "可发",
     "openHub": "打开 X 中心"
   },
-  "sidebar": {
-    "detecting": "检测中…",
-    "clickConfig": "点击配置",
-    "readWriteHub": "可读可发 · 打开中心",
-    "readOnlyHub": "只读 · 打开中心",
-    "openHubTooltip": "打开 X 中心 · 预览勾选归档 / 发帖",
-    "configBearer": "配置 Bearer Token",
-    "composePost": "撰写发布",
-    "openHub": "打开中心",
-    "settings": "X 设置",
-    "notReadyToast": "X 未就绪：请配置 Bearer 或安装 xurl",
-    "cannotReadToast": "无法读取：请配置 Bearer Token",
-    "needXurlToast": "发帖需要本机 xurl（用户 OAuth）。可先在编辑器起草。"
-  },
   "settings": {
     "disabled": "已停用",
     "readWriteReady": "读写就绪",
@@ -31,7 +17,7 @@
     "connectDesc": "只读 = Bearer · 发帖 = 本机 xurl OAuth",
     "connectHelp": "Agent 宿主用官方 MCP（不嵌进 Desktop）。",
     "enable": "启用",
-    "enableDesc": "关闭后侧栏与命令入口隐藏",
+    "enableDesc": "关闭后 Apps 菜单与命令入口隐藏",
     "bearerDesc": "App-only · 搜索 / 时间线 / 归档",
     "probingXurl": "探测 xurl…",
     "xurlNotFound": "未安装 xurl",

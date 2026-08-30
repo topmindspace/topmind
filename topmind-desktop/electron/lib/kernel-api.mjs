@@ -349,6 +349,79 @@ export async function kernelArchiveStaleTodos(_p, ctx) {
   return kernel.archiveStaleTodos(workspaceRoot);
 }
 
+// ── Ledger Engine wrappers ────────────────────────────────────────────────
+
+export async function kernelListLedgers(ctx) {
+  const kernel = await loadKernelApi();
+  const workspaceRoot = workspaceRootOf(ctx.workspaceRoot);
+  const books = kernel.listLedgers(workspaceRoot);
+  return {
+    books,
+    summary: kernel.summarizeLedgerBooks(books),
+    categories: kernel.listLedgerCategories(workspaceRoot, books),
+  };
+}
+
+export async function kernelReadLedger(p, ctx) {
+  const kernel = await loadKernelApi();
+  const workspaceRoot = workspaceRootOf(ctx.workspaceRoot);
+  return kernel.readLedger(workspaceRoot, p?.roleId);
+}
+
+export async function kernelAppendLedgerEntry(p, ctx) {
+  const kernel = await loadKernelApi();
+  const workspaceRoot = workspaceRootOf(ctx.workspaceRoot);
+  return kernel.appendLedgerEntry(workspaceRoot, p.roleId, {
+    direction: p.direction,
+    amount: p.amount,
+    category: p.category,
+    subcategory: p.subcategory,
+    note: p.note,
+    timestamp: p.timestamp,
+  }, { actor: p.actor || "user" });
+}
+
+export async function kernelAddLedgerRole(p, ctx) {
+  const kernel = await loadKernelApi();
+  const workspaceRoot = workspaceRootOf(ctx.workspaceRoot);
+  return kernel.addLedgerRole(workspaceRoot, { id: p?.id, name: p?.name }, { actor: p?.actor || "user" });
+}
+
+export async function kernelListLedgerCategories(ctx) {
+  const kernel = await loadKernelApi();
+  const workspaceRoot = workspaceRootOf(ctx.workspaceRoot);
+  return { categories: kernel.listLedgerCategories(workspaceRoot) };
+}
+
+export async function kernelAddLedgerCategory(p, ctx) {
+  const kernel = await loadKernelApi();
+  const workspaceRoot = workspaceRootOf(ctx.workspaceRoot);
+  return kernel.addLedgerCategory(workspaceRoot, p?.name, { actor: p?.actor || "user" });
+}
+
+export async function kernelRemoveLedgerCategory(p, ctx) {
+  const kernel = await loadKernelApi();
+  const workspaceRoot = workspaceRootOf(ctx.workspaceRoot);
+  return kernel.removeLedgerCategory(workspaceRoot, p?.name, { actor: p?.actor || "user" });
+}
+
+export async function kernelCaptureLedgerPhrase(p, ctx) {
+  const kernel = await loadKernelApi();
+  const workspaceRoot = workspaceRootOf(ctx.workspaceRoot);
+  const settings = await loadAppSettings(
+    ctx.workspaceStatePaths.settingsFilePath,
+    workspaceRoot,
+    { secretAdapter: ctx.secretAdapter },
+  );
+  const aiProvider = p?.skipAi ? null : createKernelAiProvider(settings);
+  return kernel.captureLedgerPhrase(workspaceRoot, p?.text, {
+    persist: p?.persist !== false,
+    defaultRoleId: p?.defaultRoleId || settings?.ledger?.defaultRoleId,
+    aiProvider,
+    actor: p?.actor || "user",
+  });
+}
+
 // ── AI Operations (unified engine) ─────────────────────────────────────────
 
 export async function kernelListOperationTypes(ctx) {

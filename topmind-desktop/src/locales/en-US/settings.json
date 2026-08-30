@@ -6,7 +6,7 @@
     "environment": "Environment",
     "agent": "Agent",
     "extensions": "Extensions",
-    "manage": "Manage & Updates"
+    "manage": "Manage"
   },
   "tabs": {
     "general": "General",
@@ -15,7 +15,10 @@
     "skills": "Skills",
     "tools": "Tools",
     "plugins": "Plugins",
-    "manage": "Manage & Updates"
+    "manage": "Manage & Updates",
+    "about": "About & Updates",
+    "integrations": "Integrations",
+    "diagnostics": "Diagnostics"
   },
   "tabDesc": {
     "general": "Appearance, layout, editor & save · Changes auto-save",
@@ -27,7 +30,11 @@
     "manage": "Update check · Module install & upgrade · Diagnostics",
     "topmind-ingest.settings": "Document to Markdown, original policy, pandoc/markitdown",
     "topmind-weread.settings": "API Key, sync category & budget · Key is encrypted",
-    "topmind-x.settings": "Bearer read-only + local xurl posting"
+    "topmind-x.settings": "Bearer read-only + local xurl posting",
+    "topmind-ledger.settings": "Per-role books on the memory plane under ledgers/",
+    "about": "Version and update checks across surfaces",
+    "integrations": "Skills / Clip / Obsidian module install & upgrade",
+    "diagnostics": "Environment commands · UTR health diagnostics"
   },
   "tabHelp": {
     "general": "Unsaved items are flushed on close. Key-related items are on the AI page, encrypted via safeStorage.",
@@ -39,7 +46,8 @@
     "manage": "Auto-checks all surfaces (Desktop / Skills / Clip / Obsidian) on startup; status bar shows a badge when updates are available — click to open this page. Diagnostics are local only, never uploaded.",
     "topmind-ingest.settings": "Default: only Markdown output; optionally keep originals to 99-Archive.",
     "topmind-weread.settings": "Sync budget and category affect where files land.",
-    "topmind-x.settings": "MCP endpoint is advisory for external agent hosts; Desktop itself does not use MCP."
+    "topmind-x.settings": "MCP endpoint is advisory for external agent hosts; Desktop itself does not use MCP.",
+    "topmind-ledger.settings": "On by default; toggling off hides it from the Apps menu and StatusBar."
   },
   "general": {
     "appearance": "Appearance & Layout",
@@ -175,11 +183,11 @@
     "shortcutCommand": "Command / search",
     "shortcutSettings": "Settings",
     "shortcutSave": "Save",
-"shortcutNav": "Inbox / Outputs / Archive",
-"shortcutStream": "Stream",
-"shortcutTodo": "Todo list",
-"shortcutKanban": "Sidebar kanban",
-"shortcutSidebarViews": "Sidebar views",
+    "shortcutNav": "Inbox / Outputs / Archive",
+    "shortcutStream": "Stream",
+    "shortcutTodo": "Todo list",
+    "shortcutKanban": "Sidebar kanban",
+    "shortcutSidebarViews": "Sidebar views",
     "shortcutFocusMode": "Focus mode",
     "shortcutTaskPanel": "Task panel",
     "shortcutHistory": "Back / Forward",
@@ -273,7 +281,7 @@
     "noWorkspace": "No workspace selected",
     "openWorkspace": "Open workspace",
     "template": "Template",
-    "templateDesc": "Initial category structure",
+    "templateDesc": "Factory role table (default: stream)",
     "reloadTemplate": "Reload",
     "views": "Sidebar Views",
     "viewsDesc": "Check enabled views",
@@ -301,7 +309,6 @@
     "pathLabel": "Path",
     "pathDesc": "Absolute path · Read-only",
     "templateLabel": "Template",
-    "templateDesc": "Factory role table (default: stream)",
     "separatorLabel": "Category separator",
     "separatorDesc": "Renames physical directories and reloads",
     "separatorDash": "Hyphen - (recommended)",
@@ -425,8 +432,8 @@
     "topmindDesktop": "topmind Desktop",
     "noWorkspace": "(no workspace open)",
     "updateTitle": "Updates",
-"updateDesc": "Desktop / Skills / Clip / Obsidian — each surface checked independently against remote GitHub releases",
-"updateHelp": "Checks public latest.json first (CDN, no API needed), then also queries GitHub API to catch surface-specific releases (obsidian-v*, skills-v*) that latest.json misses. API is non-blocking: if rate-limited or blocked, falls back to latest.json. Skills, Clip extension, and Obsidian plugin are all bundled with the engine.",
+    "updateDesc": "Desktop / Skills / Clip / Obsidian — each surface checked independently against remote GitHub releases",
+    "updateHelp": "Checks public latest.json first (CDN, no API needed), then also queries GitHub API to catch surface-specific releases (obsidian-v*, skills-v*) that latest.json misses. API is non-blocking: if rate-limited or blocked, falls back to latest.json. Skills, Clip extension, and Obsidian plugin are all bundled with the engine.",
     "checkButton": "Check",
     "openReleasesTooltip": "Open GitHub Releases",
     "checkFailed": "Check failed",
@@ -434,8 +441,8 @@
     "openReleases": "Open Releases",
     "inlineInstall": "Download and install inline",
     "inlineInstallOk": "{{surface}} upgraded to v{{version}}",
-"installedVsBundled": "installed v{{installed}} · bundled v{{bundled}}",
-"bundledVersion": "bundled v{{version}}",
+    "installedVsBundled": "installed v{{installed}} · bundled v{{bundled}}",
+    "bundledVersion": "bundled v{{version}}",
     "clickToCheck": "Click check to fetch online versions (latest.json + GitHub API, no token needed)",
     "healthTitle": "Health",
     "healthDesc": "Desktop native inspection + bundled UTR diagnostics (subprocess adds no extra Dock icon)",
@@ -501,7 +508,8 @@
     "replacesVersion": " (current v{{version}})",
     "permissionsLabel": "Declared Permissions",
     "slotsLabel": "Slots",
-    "trustModel": "Trust model = user-installed: plugins share the app process. Permissions are soft-gated, not sandboxed. Only install from trusted sources."
+    "trustModel": "Trust model = user-installed: plugins share the app process. Permissions are soft-gated, not sandboxed. Only install from trusted sources.",
+    "topmind-ledger.settings": "On by default; toggling off hides the Apps-menu and StatusBar entries."
   },
   "ai": {
     "notConfigured": "Not configured",
@@ -537,7 +545,9 @@
     "badgeToolCall": "Supports tool calling",
     "badgeReasoning": "Reasoning model",
     "badgeContext": "Context window: {{count}} tokens",
-    "badgeCost": "Cost (input/output, per million tokens): {{cost}}"
+    "badgeCost": "Cost (input/output, per million tokens): {{cost}}",
+    "modelFilterPlaceholder": "Filter models…",
+    "modelFilterNoMatch": "No models match"
   },
   "tools": {
     "jsonErrorObject": "Input must be a JSON object",

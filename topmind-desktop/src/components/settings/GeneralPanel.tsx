@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { modKey } from "../../lib/shortcuts";
 import { useTranslation } from "react-i18next";
 import { Select } from "../ui/select";
 import { Input } from "../ui/Input";
@@ -55,25 +56,6 @@ export function GeneralPanel({
   const wb = settings.writebackMode || "auto";
   const ed = { ...DEFAULT_EDITOR, ...settings.editor };
   const ui = { ...DEFAULT_UI, ...settings.ui };
-  const clip = {
-    enabled: false,
-    port: 19827,
-    token: "",
-    downloadImages: true,
-    ...settings.clipBridge,
-  };
-  const [bridgeLive, setBridgeLive] = useState<{
-    running: boolean;
-    endpoint: string | null;
-  } | null>(null);
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    void api.sys
-      .clipBridgeStatus()
-      .then((s) => setBridgeLive({ running: s.running, endpoint: s.endpoint }))
-      .catch(() => setBridgeLive(null));
-  }, [settings.clipBridge?.enabled, settings.clipBridge?.port, settings.clipBridge?.token]);
 
   /** Reset-layout scope: shell geometry only — fileFilter/closeBehavior/locale
    *  are preferences, not layout, and must survive a layout reset. */
@@ -87,28 +69,6 @@ export function GeneralPanel({
       },
     });
   const resetEditor = () => update({ editor: { ...DEFAULT_EDITOR } });
-
-  const copyToken = async () => {
-    if (!clip.token) return;
-    try {
-      await navigator.clipboard.writeText(clip.token);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* ignore */
-    }
-  };
-
-  const rotateToken = async () => {
-    try {
-      const res = await api.sys.clipBridgeRotateToken();
-      // Partial patch only — a full-settings update would live-apply the disk
-      // ui snapshot and clobber in-flight shell layout (resized panels).
-      if (res.settings?.clipBridge) update({ clipBridge: res.settings.clipBridge });
-    } catch {
-      /* parent surfaces */
-    }
-  };
 
   return (
     <div>
@@ -176,7 +136,10 @@ export function GeneralPanel({
           </Tooltip>
         </div>
         <p className="mt-1 text-3xs text-text-quaternary">
-          {t("settings:general.currentWidths", { sidebar: ui.sidebarWidth, ai: ui.aiPanelWidth })}
+          {t("settings:general.currentWidths", {
+            sidebar: Math.round(ui.sidebarWidth),
+            ai: Math.round(ui.aiPanelWidth),
+          })}
           {ui.sidebarCollapsed ? t("settings:general.sidebarCollapsed") : ""}
         </p>
       </SettingsSection>
@@ -244,7 +207,9 @@ export function GeneralPanel({
               onChange={(e) => {
                 // Skip mid-edit empty input (Number("") === 0 would flash-clamp to 12 and persist)
                 if (e.target.value.trim() === "") return;
-                update({ editor: { fontSize: Number(e.target.value) } });
+                const n = Number(e.target.value);
+                if (!Number.isFinite(n)) return;
+                update({ editor: { fontSize: Math.min(24, Math.max(12, n)) } });
               }}
             />
           </Field>
@@ -257,7 +222,9 @@ export function GeneralPanel({
               value={ed.lineHeight}
               onChange={(e) => {
                 if (e.target.value.trim() === "") return;
-                update({ editor: { lineHeight: Number(e.target.value) } });
+                const n = Number(e.target.value);
+                if (!Number.isFinite(n)) return;
+                update({ editor: { lineHeight: Math.min(2.5, Math.max(1.2, n)) } });
               }}
             />
           </Field>
@@ -420,88 +387,6 @@ export function GeneralPanel({
         />
       </SettingsSection>
 
-      <SettingsSection
-        title={t("settings:general.clipBridge")}
-        description={
-          bridgeLive?.running
-            ? t("settings:general.clipBridgeDescRunning", { endpoint: bridgeLive.endpoint || "127.0.0.1" })
-            : t("settings:general.clipBridgeDescStopped")
-        }
-        help={t("settings:general.clipBridgeHelp")}
-      >
-        <SwitchField
-          label={t("settings:general.clipBridgeEnable")}
-          description={clip.enabled ? t("settings:general.clipBridgeEnableOn") : t("settings:general.clipBridgeEnableOff")}
-          checked={clip.enabled}
-          disabled={saving}
-          onChange={(enabled) =>
-            update({ clipBridge: { ...clip, enabled, token: clip.token || "" } })
-          }
-        />
-        <SwitchField
-          label={t("settings:general.clipDownloadImages")}
-          description={t("settings:general.clipDownloadImagesDesc")}
-          checked={clip.downloadImages !== false}
-          disabled={saving || !clip.enabled}
-          onChange={(downloadImages) =>
-            update({ clipBridge: { ...clip, downloadImages } })
-          }
-        />
-        <div className="mt-1 grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-[100px_1fr]">
-          <Field label={t("settings:general.clipPort")} description={t("settings:general.clipPortDesc")} compact>
-            <Input
-              type="number"
-              min={1024}
-              max={65535}
-              value={clip.port}
-              disabled={saving}
-              onChange={(e) => {
-                // Skip mid-edit empty input (would snap to 19827 and persist)
-                if (e.target.value.trim() === "") return;
-                update({ clipBridge: { ...clip, port: Number(e.target.value) || 19827 } });
-              }}
-            />
-          </Field>
-          <Field label={t("settings:general.clipToken")} compact>
-            <div className="flex gap-1">
-              <Input
-                readOnly
-                value={clip.token ? `${clip.token.slice(0, 10)}…` : "—"}
-                className="min-w-0 flex-1 font-mono text-3xs"
-              />
-              <Tooltip content={copied ? t("common:action.copied") : t("settings:general.clipCopyToken")}>
-                <Button
-                  type="button"
-                  variant="default"
-                  size="sm"
-                  className="h-8 w-8 shrink-0 p-0"
-                  disabled={!clip.token}
-                  onClick={() => void copyToken()}
-                >
-                  <Copy size={ICON.micro} />
-                </Button>
-              </Tooltip>
-              <Tooltip content={t("settings:general.clipRotateToken")}>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-8 w-8 shrink-0 p-0"
-                  disabled={saving}
-                  onClick={() => void rotateToken()}
-                >
-                  <RefreshCw size={ICON.micro} />
-                </Button>
-              </Tooltip>
-            </div>
-          </Field>
-        </div>
-        <ol className="mt-2 list-decimal space-y-1 rounded-[var(--radius-md)] border border-border-subtle bg-surface-muted/50 px-3.5 py-2 pl-7 text-3xs leading-relaxed text-text-secondary">
-          <li>{t("settings:general.clipSteps1")}</li>
-          <li>{t("settings:general.clipSteps2")}</li>
-          <li>{t("settings:general.clipSteps3")}</li>
-        </ol>
-      </SettingsSection>
 
       <SettingsSection
         title={t("settings:general.captureTray")}
@@ -590,18 +475,23 @@ export function GeneralPanel({
         <div className="grid grid-cols-1 gap-y-1 sm:grid-cols-2 sm:gap-x-4">
           {(
             [
-              ["⌘N", t("settings:general.shortcutCapture")],
-              ["⌘⇧N", t("settings:general.shortcutGlobalCapture")],
-              ["⌘K / ⌘P", t("settings:general.shortcutCommand")],
-              ["⌘,", t("settings:general.shortcutSettings")],
-              ["⌘S", t("settings:general.shortcutSave")],
-              ["⌘⇧I / O / A", t("settings:general.shortcutNav")],
-              ["⌘⇧S", t("settings:general.shortcutStream")],
-              ["⌘⇧T", t("settings:general.shortcutTodo")],
-              ["⌘⇧B", t("settings:general.shortcutKanban")],
-              ["⌘⌥F", t("settings:general.shortcutFocusMode")],
-              ["⌘⇧J", t("settings:general.shortcutTaskPanel")],
-              ["⌘[ / ⌘]", t("settings:general.shortcutHistory")],
+              ...(() => {
+                const m = modKey();
+                return [
+                  [`${m}N`, t("settings:general.shortcutCapture")],
+                  [`${m}⇧N`, t("settings:general.shortcutGlobalCapture")],
+                  [`${m}K / ${m}P`, t("settings:general.shortcutCommand")],
+                  [`${m},`, t("settings:general.shortcutSettings")],
+                  [`${m}S`, t("settings:general.shortcutSave")],
+                  [`${m}⇧I / O / A`, t("settings:general.shortcutNav")],
+                  [`${m}⇧S`, t("settings:general.shortcutStream")],
+                  [`${m}⇧T`, t("settings:general.shortcutTodo")],
+                  [`${m}⇧B`, t("settings:general.shortcutKanban")],
+                  [`${m}⌥F`, t("settings:general.shortcutFocusMode")],
+                  [`${m}⇧J`, t("settings:general.shortcutTaskPanel")],
+                  [`${m}[ / ${m}]`, t("settings:general.shortcutHistory")],
+                ];
+              })(),
               ["⌘⇧W", t("settings:general.shortcutWorkspaceSwitch")],
               ["⌘⌥W", t("settings:general.shortcutCloseAllTabs")],
             ] as const

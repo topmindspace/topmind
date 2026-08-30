@@ -1,6 +1,6 @@
 # Architecture Reset — 理想架构与实施计划
 
-> **状态**：Accepted · **日期**：2026-07-25 · **最后更新**：2026-08-24  
+> **状态**：Accepted · **日期**：2026-07-25 · **最后更新**：2026-08-30  
 > **角色**：架构决策锁 + 实施诚实表（唯一实施真源）  
 > **内容/边界真源**：`PROJECT-MODEL.md` · `PRODUCT-BOUNDARIES.md`  
 > **产品入口**：根 [`README.md`](../README.md)（English）· [`README.zh-CN.md`](../README.zh-CN.md)（简体中文）
@@ -57,6 +57,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 │ Kernel（唯一领域运行时 · engine `lib/`）                        │
 │ contract · workspace-model · stream · memory ·                 │
 │ writeback（唯一写闸）· lifecycle · ingest · derived            │
+│ + 卫星 todo-engine / ledger-engine（非第九引擎）                │
 │ + 可选 index（检索，非真源）                                    │
 └────────────────────────────┬─────────────────────────────────┘
                              │
@@ -83,7 +84,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | 导航 | **变薄**：默认「动态」主表面；收件箱 / 写出来 / 我的情况 / 搜索 / 记一下 清晰可达 |
 | 概念 | 只暴露 ≤5 用户概念；树/标签/看板/插件为二级或高级 |
 | AI | 内生副驾：默认上下文 = 当前文件 + 本周流 + profile 摘要；**建议条 + 审阅抽屉** |
-| 扩展 | 8 插件槽保留；扩展不占主 chrome；connector 外围化 |
+| 扩展 | 7 插件槽保留；扩展不占主 chrome（标题栏 Apps 菜单）；connector 外围化 |
 
 详细 IA / 像素：`topmind-desktop/DESIGN.md`。产品原则：根 `DESIGN.md`。
 
@@ -152,6 +153,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | lifecycle 全量产品卡片 | **Done**（scan→建议；inbox_organize AI 分析→确认移动） |
 | 备份/回执（高影响 only） | **Done**（open 常规写/移动/重命名不备份不回执；locked 覆盖 + 锁定/核心 **delete** 有 trash+回执；**archive** 迁入 99-归档 当新家；普通开放笔记 delete 无 trash；`BACKUP_KEEP=3` · `RECEIPT_KEEP=50`；Desktop 支持日志大小上限轮转 2 MB × 3 归档，ADR `2026-08-27-desktop-log-rotation.md`） |
 | 个人待办清单 | **Done**（todo-engine + TodoPopover + AI 维护 + ⌘⇧T；complete/update 用 `matchTodoMaintainText` 防单 token 误完成） |
+| 可选记账 | **Done**（ledger-engine 卫星 · `{memory.dir}/ledgers/` · 默认 Personal/自己 · Skills `topmind-ledger` · Desktop enable-gated plugin-app 看板/流水/分类/快捷记账；**不是**第九引擎 / 第六用户概念 / PrimaryNav；Obsidian 不发 mini-app；UTR 无 ledger 域） |
 | 统一 AI 操作引擎 | **Done**（todo_maintain · memory_organize · topic_classify；force；状态追踪） |
 | 活动窗口 Activity Window | **Done**（`lib/activity-window.mjs`；suggest/todo/ai-ops 共用） |
 | Todo 上下文 / 跳过 | **Done**（2026-08-08：skip hash = prompt corpus＝周期∪活动 extras；force 清 period+hash；extras 排除 memory/todo；Desktop/Obsidian 仅 Kernel） |
@@ -199,7 +201,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | **Phase A 合闸** | **~98%** | 写闸主路径 Done；高影响 only 备份/回执 Done |
 | **Phase B 记忆/建议/导航** | **~99%** | Memory · 建议条 · confirm 审阅 · PrimaryNav · 待办引擎 · **周期反思语义 + 年目录** · **画像事实生命周期（追加/归档/原位更新）** |
 | **Desktop IA / UIUX** | **~99%** | 动态默认 · 侧栏 thrift · 整理闭环 · AI Markdown · i18n 门禁 · 2026-08-07 设计优化 |
-| **Kernel 八引擎贯穿** | **~99%** | 主写 Done；todo-engine 扩展；**stream 年目录 + 归档**；**AI 语义深度优化**（关键字过滤→语义预算、画像注入、语料扩容）；contract/edit-backup Intentional Partial |
+| **Kernel 八引擎贯穿** | **~99%** | 主写 Done；todo-engine / ledger-engine 卫星（非第九引擎）；**stream 年目录 + 归档**；**AI 语义深度优化**（关键字过滤→语义预算、画像注入、语料扩容）；contract/edit-backup Intentional Partial |
 | **Phase C 找回（无 embedding）** | **~55%** | 关键词投影诚实 + 搜索分组 Done；Ask / 语义索引 Non-goal |
 | **Phase D 互操作** | **0%** | 明确未来 |
 | **可交付质量门** | **~99%** | check:quality + validate + pack:verify + i18n parity |
@@ -267,6 +269,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | Desktop 捆绑 UTR 仅 Tools/doctor | **Accepted** | `adr/2026-07-17-desktop-utr-bundle-tools-console.md` |
 | 公开更新 / pack 根 | **Accepted** | `adr/2026-07-16-public-update-and-pack-root.md` |
 | Design System 2.0 纸感 | **Superseded** | 2.1 Modern Warm-Neutral 取代 |
+| Design System 2.1 微暖中性 | **Superseded** | 3.0 ZCode Neutral 取代（纯中性灰 + sky 强调 + 单色 ink 主 CTA，token 真源 `topmind-desktop/src/styles/tokens.css`，2026-08-30） |
 | config v3 WorkspaceModel | **Superseded** | 由 contract v4 + 本文 + PROJECT-MODEL 取代 |
 | v4「八引擎全部合闸」过度宣称 | **Superseded / 纠正** | 引擎文件 Done；主写/Memory/建议条/高影响备份 §2.2 Done；contract UI = Intentional Partial |
 | 契约完整性与设置持久化 | **Accepted**（**Done**） | `adr/2026-08-23-contract-settings-integrity.md` |

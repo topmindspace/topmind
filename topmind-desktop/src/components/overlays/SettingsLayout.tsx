@@ -21,6 +21,7 @@ const TAB_DESC_KEYS: Record<string, string> = {
   "topmind-ingest.settings": "settings:tabDesc.topmind-ingest.settings",
   "topmind-weread.settings": "settings:tabDesc.topmind-weread.settings",
   "topmind-x.settings": "settings:tabDesc.topmind-x.settings",
+  "topmind-ledger.settings": "settings:tabDesc.topmind-ledger.settings",
 };
 
 /** Deep / rare help behind tip only. */
@@ -35,6 +36,7 @@ const TAB_HELP_KEYS: Record<string, string> = {
   "topmind-ingest.settings": "settings:tabHelp.topmind-ingest.settings",
   "topmind-weread.settings": "settings:tabHelp.topmind-weread.settings",
   "topmind-x.settings": "settings:tabHelp.topmind-x.settings",
+  "topmind-ledger.settings": "settings:tabHelp.topmind-ledger.settings",
 };
 
 export interface SettingsTabItem {
@@ -43,6 +45,8 @@ export interface SettingsTabItem {
   icon: LucideIcon;
   order: number;
   group: string;
+  /** Panel-content strings (section titles/descriptions) for the nav filter. */
+  keywords?: string[];
 }
 
 interface SettingsLayoutProps {
@@ -75,7 +79,9 @@ export function SettingsLayout({
   const filteredTabs = qNav
     ? tabs.filter((tab) => {
         const hay = `${tab.label} ${tab.group} ${t(TAB_DESC_KEYS[tab.id] || "")}`.toLowerCase();
-        return hay.includes(qNav);
+        if (hay.includes(qNav)) return true;
+        // Content search: reach into section titles/descriptions of the panel
+        return (tab.keywords ?? []).some((k) => k.toLowerCase().includes(qNav));
       })
     : tabs;
 
@@ -102,6 +108,7 @@ export function SettingsLayout({
     activeTab === "ai" ||
     activeTab === "skills" ||
     activeTab === "plugins" ||
+    activeTab === "integrations" ||
     activeTab === "manage";
 
   return (

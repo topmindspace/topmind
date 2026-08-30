@@ -41,6 +41,8 @@ export interface LocalEventMap {
     kind: OverlayKind;
     intent?: "capture" | "memory";
     topicId?: string;
+    /** plugin-app targets (consumed by OverlayHost) */
+    pluginId?: string;
   };
   /** Plugin/host-driven navigation to a selection. */
   "navigate:select": Selection;
@@ -64,10 +66,14 @@ export interface LocalEventMap {
   /** Open / toggle the todo popover. */
   "todo:open-popover": unknown;
   "todo:toggle-popover": unknown;
+  /** 建议/待办浮层互斥：建议面打开时请求关闭待办浮层。 */
+  "todo:close-popover": unknown;
   /** Open the unified suggest surface (popover). `{ refresh: false }` after analysis merge. */
   "suggest-surface:open": { refresh?: boolean } | undefined;
   /** Toggle the TitleBar workspace switcher. */
   "titlebar:workspace-switcher-toggle": undefined;
+  /** Open / toggle the TitleBar Apps menu (launchable plugins). */
+  "titlebar:apps-toggle": undefined;
   /** Trigger weekly organize flow. */
   "organize:week": unknown;
   /** Create a new topic under a category. */

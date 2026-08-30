@@ -19,18 +19,43 @@ function shortPath(p?: string | null): string {
   return parts.slice(-2).join("/");
 }
 
+/**
+ * Structural evidence subset — full WritebackEvidence or the slim shape
+ * returned by some IPC surfaces (e.g. ledger append). Record branch tolerates
+ * callers that spread whole IPC results in.
+ */
+export type WritebackEvidenceLike =
+  | WritebackEvidence
+  | Record<string, unknown>
+  | null
+  | undefined;
+
+type EvidenceView = {
+  targetPath?: string;
+  path?: string;
+  newPath?: string;
+  backupPath?: string;
+  receiptPath?: string;
+};
+
+function evidenceView(evidence: WritebackEvidenceLike): EvidenceView | null {
+  if (!evidence || typeof evidence !== "object") return null;
+  return evidence as EvidenceView;
+}
+
 export function formatWritebackToast(
   verb: string,
-  evidence?: WritebackEvidence | null,
+  evidence?: WritebackEvidenceLike,
   opts?: { fail?: boolean },
 ): string {
   if (opts?.fail) return `✗ ${verb}`;
-  if (!evidence) return `✓ ${verb}`;
-  const target = evidence.targetPath || evidence.path || evidence.newPath;
+  const ev = evidenceView(evidence);
+  if (!ev) return `✓ ${verb}`;
+  const target = ev.targetPath || ev.path || ev.newPath;
   const bits = [`✓ ${verb}`];
   if (target) bits.push(shortPath(target));
-  if (evidence.backupPath) {
-    bits.push(i18n.t("common:writeback.backup", { path: shortPath(evidence.backupPath) }));
+  if (ev.backupPath) {
+    bits.push(i18n.t("common:writeback.backup", { path: shortPath(ev.backupPath) }));
   }
   return bits.join(" · ");
 }
@@ -42,11 +67,16 @@ export function formatWritebackToast(
  */
 
 /** Emit toast for a successful writeback. */
-export function toastWriteback(verb: string, evidence?: WritebackEvidence | null): void {
+export function toastWriteback(verb: string, evidence?: WritebackEvidenceLike): void {
   const text = formatWritebackToast(verb, evidence);
+  const ev = evidenceView(evidence);
   // Send structured payload when evidence has a backup path (enables undo button)
-  if (evidence?.backupPath || evidence?.receiptPath) {
-    emitLocal("toast:show", { text, kind: "success", evidence } satisfies ToastPayload);
+  if (ev?.backupPath || ev?.receiptPath) {
+    emitLocal("toast:show", {
+      text,
+      kind: "success",
+      evidence: ev as WritebackEvidence,
+    } satisfies ToastPayload);
   } else {
     emitLocal("toast:show", { text, kind: "success" });
   }

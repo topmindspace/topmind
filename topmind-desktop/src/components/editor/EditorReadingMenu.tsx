@@ -3,7 +3,8 @@
  * Changes apply to both edit & preview surfaces; persisted via settings.editor.
  */
 import { useState } from "react";
-import { Type, Minus, Plus, RotateCcw, Settings } from "lucide-react";
+import { Type, Minus, Plus, RotateCcw, Settings, ListTree } from "lucide-react";
+import type { Editor } from "@tiptap/react";
 import { useTranslation } from "react-i18next";
 import {
   DropdownMenu,
@@ -13,6 +14,7 @@ import { Tooltip } from "../ui/tooltip";
 import { ICON } from "../../lib/icons";
 import { cn } from "../../lib/cn";
 import { useViewStore } from "../../stores/view-store";
+import { focusEditorHeading } from "../../lib/editor-focus-heading";
 import {
   applyEditorPrefs,
   DEFAULT_EDITOR_PREFS,
@@ -56,14 +58,34 @@ function Chip({
 }
 
 export function EditorReadingMenu({
+  editor,
   onOpenSettings,
 }: {
+  /** Live TipTap instance (edit mode) — enables the heading outline. */
+  editor?: Editor | null;
   /** Jump to global Settings → 编辑器 */
   onOpenSettings?: () => void;
 }) {
   const { t } = useTranslation("editor");
   const [open, setOpen] = useState(false);
   const prefs = useViewStore((s) => s.editorSettings);
+  const [outline, setOutline] = useState<Array<{ level: number; text: string }>>([]);
+
+  const collectOutline = () => {
+    if (!editor || editor.isDestroyed) {
+      setOutline([]);
+      return;
+    }
+    const items: Array<{ level: number; text: string }> = [];
+    editor.state.doc.descendants((node) => {
+      if (node.type.name === "heading") {
+        const text = node.textContent.trim();
+        if (text) items.push({ level: Number(node.attrs.level) || 1, text });
+      }
+      return true;
+    });
+    setOutline(items);
+  };
 
   const set = (patch: Parameters<typeof applyEditorPrefs>[0]) => {
     void applyEditorPrefs(patch);
@@ -76,7 +98,10 @@ export function EditorReadingMenu({
   return (
     <DropdownMenu
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={(v) => {
+        if (v) collectOutline();
+        setOpen(v);
+      }}
       align="end"
       minWidth={288}
       maxHeight={480}
@@ -100,6 +125,39 @@ export function EditorReadingMenu({
       }
     >
       <div className="px-1 pb-1 pt-0.5" onClick={(e) => e.stopPropagation()}>
+        {editor ? (
+          <>
+            <DropdownSectionLabel>{t("readingMenu.outline")}</DropdownSectionLabel>
+            <div className="mb-2 max-h-40 overflow-y-auto px-1">
+              {outline.length === 0 ? (
+                <p className="px-1 py-0.5 text-3xs text-text-quaternary">
+                  {t("readingMenu.outlineEmpty")}
+                </p>
+              ) : (
+                outline.map((h, i) => (
+                  <button
+                    key={`${i}:${h.text}`}
+                    type="button"
+                    className={cn(
+                      "block w-full truncate rounded-[var(--radius-sm)] px-1.5 py-1 text-left text-3xs text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary v4-focus-ring",
+                      h.level === 1 && "font-medium",
+                      h.level === 2 && "pl-3",
+                      h.level >= 3 && "pl-5 text-text-tertiary",
+                    )}
+                    onClick={() => {
+                      focusEditorHeading(editor, h.text);
+                      setOpen(false);
+                    }}
+                    title={h.text}
+                  >
+                    {h.text}
+                  </button>
+                ))
+              )}
+            </div>
+          </>
+        ) : null}
+
         <DropdownSectionLabel>{t("readingMenu.fontSize")}</DropdownSectionLabel>
         <div className="mb-2 flex items-center gap-1.5 px-1">
           <button

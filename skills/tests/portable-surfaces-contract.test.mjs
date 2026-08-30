@@ -70,8 +70,9 @@ test("install target manifests share the v3.4 portable host prohibitions", async
     assert.equal(config.content_truth, pack.portable_contract.content_truth);
     assert.deepEqual(config.host_must_not, pack.portable_contract.host_must_not);
     assert.doesNotMatch(JSON.stringify(config), /\/Users\/|\/home\/|~\//u);
-    // 9 skills including topmind-loop + connectors
+    // Packaged skills including topmind-loop + connectors + optional ledger
     assert.ok(config.skills.includes("topmind-loop"), `${target.id} should include topmind-loop`);
+    assert.ok(config.skills.includes("topmind-ledger"), `${target.id} should include topmind-ledger`);
   }
 });
 

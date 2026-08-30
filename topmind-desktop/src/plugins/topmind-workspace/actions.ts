@@ -47,6 +47,17 @@ export function createWorkspaceActions(): ActionSlot[] {
     },
     {
       kind: "action",
+      id: "topmind-workspace.action.apps-menu",
+      label: "Open apps menu",
+      labelKey: "overlays:command.actions.appsMenu",
+      group: "navigate",
+      order: 17,
+      run: (ctx) => {
+        ctx.events.emit("titlebar:apps-toggle");
+      },
+    },
+    {
+      kind: "action",
       id: "topmind-workspace.action.todo",
       label: "Todo list",
       labelKey: "overlays:command.actions.todo",

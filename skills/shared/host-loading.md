@@ -11,15 +11,15 @@
 | **2 Activation** | 匹配到任务 | 完整 `SKILL.md` body | < 5k tokens 推荐 |
 | **3 Resources** | 步骤需要时 | `shared/*.md` · `references/*` · 可选 scripts | 按需 |
 
-**禁止**：启动时把 9 份 SKILL 全文 + shared 全部塞进 system prompt。
+**禁止**：启动时把 10 份 SKILL 全文 + shared 全部塞进 system prompt。
 
 ## 组合式 Pack 如何被 Host 理解
 
-topmind 是 **multi-skill pack**（1 router + 6 action + 2 connector），不是单文件 skill。业界对齐：
+topmind 是 **multi-skill pack**（1 router + 6 action + 2 connector + optional ledger），不是单文件 skill。业界对齐：
 
 | 约定 | topmind 做法 |
 |------|----------------|
-| Agent Skills 单 skill = `{name}/SKILL.md` | 9 个目录各有 `SKILL.md` |
+| Agent Skills 单 skill = `{name}/SKILL.md` | 10 个目录各有 `SKILL.md` |
 | 部分 host 对 **zip 根** 找 `SKILL.md` | Release zip 根额外含 **router `SKILL.md`**（= `topmind/SKILL.md`） |
 | Pack 索引 | `skills.md` / `topmind-pack.json`（人类 + 机器） |
 | 共享资源 | `shared/` 与 skill 目录**同级** |
@@ -42,7 +42,7 @@ topmind-skills-<ver>/          ← Release zip 顶层
 │   └── SKILL.md
 ├── topmind-capture/
 │   └── SKILL.md
-├── …（其余 7 个）
+├── …（其余 8 个，含可选 weread / x / ledger）
 ├── shared/                 ← 与 skill 同级！相对链接 ../shared/ 才能解析
 │   ├── capability-degradation.md
 │   ├── project-model-brief.md
@@ -56,7 +56,7 @@ topmind-skills-<ver>/          ← Release zip 顶层
 
 ### 错误形状
 
-- 只拷了 9 个目录、**没有** `shared/` → 渐进链接 404  
+- 只拷了 10 个目录、**没有** `shared/` → 渐进链接 404  
 - 把 monorepo 整仓当 skill 根 → host 扫到无关目录  
 - 只装 `topmind` 却期望 weread/x 触发 → connector 未装  
 - Host 报 `SKILL.md not found`：请用 `topmind-skills-*.zip`（含根 `SKILL.md`），或装到 `{skillsRoot}/topmind/SKILL.md`  
@@ -86,7 +86,7 @@ cp -R skills/shared ~/.agents/skills/shared
 | 单一清晰动词（记一下 / 写一稿 / doctor） | 对应 `topmind-*` 子 skill |
 | 多意图 / 模糊 / 只说「topmind」 | `topmind` router |
 | Host **只装了** topmind 一个 skill | router 内嵌 Action Map 完成全部语义 |
-| 9 个全装 | description 消歧；router **不抢** 已匹配的子 skill |
+| 10 个全装 | description 消歧；router **不抢** 已匹配的子 skill |
 
 实现提示：discovery 阶段只比 `description` 文本相似度 / 关键词；**不要**用 triggers 数组作为唯一标准（triggers 是 topmind 扩展，开放标准不要求）。
 

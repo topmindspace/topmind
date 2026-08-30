@@ -178,6 +178,7 @@ topmind 将工作区组织为清晰的三个平面，逻辑自洽且可预测：
 | 行内 AI 结果清洗 | **Done** | 自动过滤与清洗思考标签（Thought Tags） |
 | 关键词搜索诚实截断 · **无** embedding 全库语义检索 | **Done** | 保持轻量与透明，防全库泛滥 |
 | AI 操作：todo 维护 · 记忆整理 · 专题建议 | **Done** | 活动窗口驱动，confirm 路径安全控制 |
+| 可选记账（`memory/ledgers/`） | **Done** | ledger-engine 卫星；Skills `topmind-ledger`；Desktop 启用后小应用 — 不是第六个用户概念 |
 | 多路 AI 串行与独立会话 | **Done** | 后台 Prep 串行，Agent streaming 时让路 |
 
 ---

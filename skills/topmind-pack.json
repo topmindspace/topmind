@@ -2,10 +2,10 @@
   "schema_version": 1,
   "name": "topmind",
   "label": "topmind",
-  "description": "topmind skill pack: single daily entry topmind + progressive disclosure (shared/ + references/), Agent Skills open-standard aligned, capture-first template-driven categories, optional weread/x connectors. File-system-first content truth; UTR optional.",
+  "description": "topmind skill pack: single daily entry topmind + progressive disclosure (shared/ + references/), Agent Skills open-standard aligned, capture-first template-driven categories, optional weread/x connectors and optional ledger (记账). File-system-first content truth; UTR optional.",
   "daily_entry": "topmind",
-  "version": "3.5.3",
-  "updated": "2026-08-17",
+  "version": "3.5.4",
+  "updated": "2026-08-30",
   "license": "MIT",
   "locales": {
     "default": "zh-CN",
@@ -132,7 +132,8 @@
     "topmind-maintain/SKILL.md",
     "topmind-loop/SKILL.md",
     "topmind-weread/SKILL.md",
-    "topmind-x/SKILL.md"
+    "topmind-x/SKILL.md",
+    "topmind-ledger/SKILL.md"
   ],
   "skills": [
     {
@@ -188,6 +189,13 @@
       "id": "topmind-x",
       "path": "topmind-x",
       "role": "connector",
+      "human_facing": false,
+      "optional": true
+    },
+    {
+      "id": "topmind-ledger",
+      "path": "topmind-ledger",
+      "role": "memory",
       "human_facing": false,
       "optional": true
     }

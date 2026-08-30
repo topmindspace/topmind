@@ -13,6 +13,7 @@ import { api } from "../../../services/api";
 import { formatRelativeTime } from "../../../lib/datetime";
 import type { InboxFile as InboxFileMeta, Topic } from "../../../types";
 import { Button } from "../../../components/ui/Button";
+import { ConfirmDialog } from "../../../components/ui/Dialog";
 import {
   ViewContainer,
   PageHeader,
@@ -45,13 +46,10 @@ import { displayNoteTitle, noteTitleDiffersFromFile } from "../../../lib/note-me
 import { Tooltip } from "../../../components/ui/tooltip";
 import { cn } from "../../../lib/cn";
 import { ICON } from "../../../lib/icons";
-import { getCachedTopicGroups } from "../../../lib/workspace-data-cache";
-
-type TopicGroup = { category: string; topics: Topic[] };
-
-function loadTopicGroups(includeSystem = false): Promise<TopicGroup[]> {
-  return getCachedTopicGroups(includeSystem);
-}
+import {
+  TopicPickerList as SharedTopicPickerList,
+  useTopicGroups as useSharedTopicGroups,
+} from "../../../components/workspace/TopicPickerMenu";
 
 type InboxFilter = "all" | "external-capture" | "user-original" | "other";
 
@@ -279,73 +277,6 @@ export function InboxView() {
   );
 }
 
-/* ── Topic picker content (shared) ── */
-
-function TopicPickerList({
-  groups,
-  loading,
-  busy,
-  onPick,
-}: {
-  groups: TopicGroup[];
-  loading: boolean;
-  busy?: boolean;
-  onPick: (topicId: string) => void;
-}) {
-  const { t } = useTranslation(["workspace", "common"]);
-  const flatCount = useMemo(() => groups.reduce((n, g) => n + g.topics.length, 0), [groups]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center gap-2 px-2.5 py-3 text-3xs text-text-tertiary">
-        <Loader2 size={ICON.xs} className="animate-spin" /> {t("workspace:inbox.loadingTopics")}
-      </div>
-    );
-  }
-  if (flatCount === 0) {
-    return (
-      <div className="px-2.5 py-3 text-3xs leading-relaxed text-text-quaternary">
-        {t("workspace:inbox.noTopicsHint")}
-      </div>
-    );
-  }
-  return (
-    <>
-      {groups.map((g) => (
-        <div key={g.category} className="mb-1 last:mb-0">
-          <DropdownSectionLabel>{g.category}</DropdownSectionLabel>
-          {g.topics.map((t) => (
-            <DropdownItem key={t.id} disabled={busy} onSelect={() => onPick(t.id)}>
-              <FolderOpen size={ICON.xs} className="shrink-0 text-text-quaternary" />
-              <span className="min-w-0 truncate">{t.name}</span>
-            </DropdownItem>
-          ))}
-        </div>
-      ))}
-    </>
-  );
-}
-
-function useTopicGroups(open: boolean) {
-  const [groups, setGroups] = useState<TopicGroup[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    if (!open || loaded) return;
-    setLoading(true);
-    void loadTopicGroups(false)
-      .then((g) => {
-        setGroups(g);
-        setLoaded(true);
-      })
-      .catch(() => setGroups([]))
-      .finally(() => setLoading(false));
-  }, [open, loaded]);
-
-  return { groups, loading };
-}
-
 /* ── Batch toolbar ── */
 
 function BatchToolbar({
@@ -360,7 +291,8 @@ function BatchToolbar({
   const { t } = useTranslation(["workspace", "common"]);
   const [open, setOpen] = useState(false);
   const [moving, setMoving] = useState(false);
-  const { groups, loading } = useTopicGroups(open);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const { groups, loading } = useSharedTopicGroups(open);
 
   const handleBatchMove = async (topicId: string) => {
     setMoving(true);
@@ -383,7 +315,10 @@ function BatchToolbar({
   };
 
   const handleBatchDelete = async () => {
-    if (!confirm(t("workspace:inbox.confirmBatchDelete", { count }))) return;
+    setConfirmDeleteOpen(true);
+  };
+
+  const confirmBatchDelete = async () => {
     setMoving(true);
     let ok = 0;
     for (const p of paths) {
@@ -440,7 +375,7 @@ function BatchToolbar({
           </Tooltip>
         }
       >
-        <TopicPickerList
+        <SharedTopicPickerList
           groups={groups}
           loading={loading}
           busy={moving}
@@ -465,6 +400,18 @@ function BatchToolbar({
       >
         {t("workspace:inbox.openArchiveBtn")}
       </button>
+
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        title={t("workspace:inbox.batchDeleteBtn")}
+        description={t("workspace:inbox.confirmBatchDelete", { count })}
+        destructive
+        onCancel={() => setConfirmDeleteOpen(false)}
+        onConfirm={() => {
+          setConfirmDeleteOpen(false);
+          void confirmBatchDelete();
+        }}
+      />
     </div>
   );
 }
@@ -613,7 +560,7 @@ function MoveToTopicButton({ file }: { file: InboxFileMeta }) {
   const { t } = useTranslation(["workspace", "common"]);
   const [open, setOpen] = useState(false);
   const [moving, setMoving] = useState(false);
-  const { groups, loading } = useTopicGroups(open);
+  const { groups, loading } = useSharedTopicGroups(open);
 
   const handleMove = async (topicId: string) => {
     setMoving(true);
@@ -669,7 +616,7 @@ function MoveToTopicButton({ file }: { file: InboxFileMeta }) {
         </Tooltip>
       }
     >
-      <TopicPickerList
+      <SharedTopicPickerList
         groups={groups}
         loading={loading}
         busy={moving}

@@ -8,10 +8,41 @@ import type { ActionSlot } from "../../plugins/types";
 import type { Selection } from "../../types";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "../../lib/cn";
+import { modKey } from "../../lib/shortcuts";
 import { ICON } from "../../lib/icons";
 
 /** Group presentation: display order + localized label + icon. */
 const GROUP_ORDER = ["skill", "goto", "navigate", "capture"];
+
+// Recently-run command ids — persisted so the palette opens with the user's
+// actual habits on top, not a static order.
+const PALETTE_RECENT_KEY = "topmind.palette.recent";
+const PALETTE_RECENT_MAX = 8;
+
+function readRecentCommands(): string[] {
+  try {
+    const raw = localStorage.getItem(PALETTE_RECENT_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function pushRecentCommand(id: string): void {
+  try {
+    const next = [id, ...readRecentCommands().filter((x) => x !== id)].slice(0, PALETTE_RECENT_MAX);
+    localStorage.setItem(PALETTE_RECENT_KEY, JSON.stringify(next));
+  } catch {
+    /* storage unavailable — recents are best-effort */
+  }
+}
+
+/** Recency boost: most recent +60 decaying by 8 per slot. */
+function recencyBoost(id: string, recent: string[]): number {
+  const idx = recent.indexOf(id);
+  return idx >= 0 ? 60 - idx * 8 : 0;
+}
 const GROUP_KEY_MAP: Record<string, string> = {
   goto: "overlays:command.groupGoto",
   skill: "overlays:command.groupSkill",
@@ -127,13 +158,17 @@ export function CommandPalette() {
   /** Resolve action label via i18n key when available. */
   const resolveLabel = (a: ActionSlot) => a.labelKey ? t(a.labelKey) : a.label;
 
+  const recent = useMemo(readRecentCommands, []);
+
   const groups = useMemo<PaletteGroup[]>(() => {
     const q = query.trim();
     const scored = available
       .map((a) => {
         const fuzzy = fuzzyScore(q, `${resolveLabel(a)} ${a.id}`);
         if (fuzzy < 0) return null;
-        const score = q ? fuzzy : (100 - (a.order ?? 100)) + contextBoost(a, selection);
+        const score =
+          (q ? fuzzy : (100 - (a.order ?? 100)) + contextBoost(a, selection)) +
+          recencyBoost(a.id, recent);
         return { a, score };
       })
       .filter((x): x is { a: ActionSlot; score: number } => x !== null);
@@ -164,7 +199,7 @@ export function CommandPalette() {
         items: items.map((x) => x.a),
       };
     });
-  }, [available, query, selection]);
+  }, [available, query, selection, recent]);
 
   const flat = useMemo(() => groups.flatMap((g) => g.items), [groups]);
 
@@ -182,6 +217,7 @@ export function CommandPalette() {
   }, [activeIdx]);
 
   const runAction = (a: ActionSlot) => {
+    pushRecentCommand(a.id);
     closeOverlay();
     void a.run(makeMinCtx(workspaceRoot), selection);
   };
@@ -328,7 +364,7 @@ export function CommandPalette() {
           <kbd className="v4-kbd">↵</kbd> {t("overlays:command.footerRun")}
         </span>
         <span className="flex items-center gap-1">
-          <kbd className="v4-kbd">⌘N</kbd> {t("overlays:command.footerCapture")}
+          <kbd className="v4-kbd">{modKey()}N</kbd> {t("overlays:command.footerCapture")}
         </span>
         <span className="ml-auto tabular-nums">{t("overlays:command.footerCount", { count: flat.length })}</span>
       </div>

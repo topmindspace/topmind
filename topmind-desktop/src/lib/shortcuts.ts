@@ -16,6 +16,7 @@ export type ShortcutAction =
   | { type: "close-overlay" }
   | { type: "close-tab" }
   | { type: "close-all-tabs" }
+  | { type: "toggle-split" }
   | { type: "toggle-focus" };
 
 export interface ShortcutDef {
@@ -129,6 +130,55 @@ export const WORKBENCH_SHORTCUTS: ShortcutDef[] = [
     action: { type: "navigate", selection: { kind: "archive" } },
   },
   {
+    id: "sidebar-stream",
+    labelKey: "common:shortcut.stream",
+    display: "⌘1",
+    mod: true,
+    key: "1",
+    action: { type: "sidebar-view", mode: "stream" },
+  },
+  {
+    id: "sidebar-category",
+    labelKey: "common:shortcut.sidebarCategory",
+    display: "⌘2",
+    mod: true,
+    key: "2",
+    action: { type: "sidebar-view", mode: "category" },
+  },
+  {
+    id: "sidebar-timeline",
+    labelKey: "common:shortcut.sidebarTimeline",
+    display: "⌘3",
+    mod: true,
+    key: "3",
+    action: { type: "sidebar-view", mode: "timeline" },
+  },
+  {
+    id: "sidebar-tags",
+    labelKey: "common:shortcut.sidebarTags",
+    display: "⌘4",
+    mod: true,
+    key: "4",
+    action: { type: "sidebar-view", mode: "tags" },
+  },
+  {
+    id: "sidebar-kanban-digit",
+    labelKey: "common:shortcut.kanban",
+    display: "⌘5",
+    mod: true,
+    key: "5",
+    action: { type: "sidebar-view", mode: "kanban" },
+  },
+  {
+    id: "task-panel",
+    labelKey: "common:shortcut.taskPanel",
+    display: "⌘⇧J",
+    mod: true,
+    shift: true,
+    key: "j",
+    action: { type: "emit", event: "task-panel:toggle" },
+  },
+  {
     id: "workspace-switcher",
     labelKey: "common:shortcut.workspaceSwitcher",
     display: "⌘⇧W",
@@ -173,6 +223,15 @@ export const WORKBENCH_SHORTCUTS: ShortcutDef[] = [
     action: { type: "forward" },
   },
   {
+    id: "toggle-split",
+    labelKey: "common:shortcut.toggleSplit",
+    display: "⌘\\",
+    mod: true,
+    key: "\\",
+    action: { type: "toggle-split" },
+    requireNoOverlay: true,
+  },
+  {
     id: "focus-mode",
     labelKey: "common:shortcut.focusMode",
     display: "⌘⌥F",
@@ -214,4 +273,10 @@ export function matchWorkbenchShortcut(e: KeyboardEvent): ShortcutDef | null {
     return s;
   }
   return null;
+}
+
+/** Platform-aware modifier glyph for copy/UI (⌘ on macOS, Ctrl elsewhere). */
+export function modKey(): string {
+  if (typeof navigator === "undefined") return "Ctrl";
+  return /mac|iphone|ipad/iu.test(navigator.platform || navigator.userAgent) ? "\u2318" : "Ctrl";
 }

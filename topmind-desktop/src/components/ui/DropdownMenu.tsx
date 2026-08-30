@@ -164,6 +164,8 @@ export function DropdownMenu({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
+        // Dismiss only this menu — never the overlay/panel beneath it.
+        e.stopPropagation();
         onOpenChangeRef.current(false);
         return;
       }

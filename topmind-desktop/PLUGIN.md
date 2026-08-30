@@ -11,6 +11,7 @@ Shell (layout) ← slots ← Plugin.activate(ctx)
                               ├─ topmind-ingest (builtin · 知识加工管道)
                               ├─ topmind-weread (connector)
                               ├─ topmind-x (connector)
+                              ├─ topmind-ledger (optional mini-app · 记账)
                               └─ external/*  (third-party under plugins/)
 ```
 
@@ -19,11 +20,32 @@ Shell (layout) ← slots ← Plugin.activate(ctx)
 | **builtin** | Always | No (`manifest.builtin`)；ingest UI 可由 `settings.ingest.enabled` 弱化 |
 | **connector** | Always activate; interactive slots only when `settings[key].enabled` | Settings → Plugins 开关 |
 | **external** | Scanned from `{desktopHome}/plugins/` at start + 重新加载 | UI 开关（`settings.plugins.externalEnabled`）· 卸载 · 或 manifest `enabled: false` |
+| **optional mini-app** | Always activate; interactive slots when `settings[key].enabled` | Settings → Plugins 开关；插件入口列出已启用项 |
+
+### Apps 菜单（插件入口）
+
+Apps-menu candidates = 已启用的首方插件（`manifest.launchable` mini-app · 带 `settingsKey` 的可选连接器 · builtin 管道 ingest）+ 活跃外部插件，open from the **标题栏 Apps 菜单**（`shell/AppsMenu` launchpad dropdown）— not a PrimaryNav concept. 左栏只承载内容导航（侧栏插件行已删除 2026-08-30）。菜单打开时实时读取 settings 并订阅 `plugins:settings-changed`，与设置开关保持同步；未配置的连接器（weread 缺 apiKey / x 缺 bearer+mcp）显示「待配置」，点击直达其设置页。
+
+| Overlay kind | Role |
+|--------------|------|
+| `plugin-app` | Dedicated plugin surface (`overlayContext.pluginId`); close → 主画布 |
+
+打开方式由 `lib/apps-menu.resolveLaunchableOpenTarget` 决定（不写死插件 id）：注册了 connector hub ViewSlot（`{kind:"connector", id:"<plugin-id 后缀>"}`）的插件进主画布 hub；其余开 `plugin-app` overlay。
+
+Command palette: 「打开应用菜单」（`titlebar:apps-toggle` 事件与按钮共用）. Settings → Plugins 管理安装 / 开关 / 卸载. Folder/zip install, permission preview, enable/reload/uninstall are unchanged.
+
+**topmind-ledger（记账）**：optional first-party mini-app with a dedicated surface (看板 · 流水 · 分类 · 快捷记账).
+
+**如何打开**（`settings.ledger.enabled`）：标题栏 Apps 菜单 · StatusBar 「记账」chip · command palette 「记账」/ Bookkeeping (`topmind-ledger.open`) · Settings → Plugins → Open bookkeeping. Toggle the plugin off and those chrome entries are omitted. **Not** a PrimaryNav item (PrimaryNav stays 动态 / 收件箱 / 写出来 / 搜索).
+
+**账本路径**：contract-resolved `{memory.dir}/ledgers/{id}.md` (typically `memory/ledgers/Personal.md` for the default **personal / 自己** book). The mini-app shows the live workspace-relative path of the active book. Same family as `todo.md`. Not `50-其他/账本/`. Users add further books and 分类. ClassFund / Giggs / Mom are historical format references, not shipped defaults. Writes go through Kernel writeback. NL triggers: 记账 / 记一笔 / 花了 / 存入.
+
+Trust model stays **trusted-by-install** (no iframe sandbox / marketplace / code signing). See §5.
 
 ### topmind-ingest（知识加工）
 
 - **服务**：主进程 `IngestService`（`ingest.*` RPC）+ 任务队列；转换不在 renderer  
-- **入口**：侧栏 · Hub · ⌘K · 全局拖放 · 状态栏；**统一捕获**（⌘N / ⌘⇧N）智能附件  
+- **入口**：Apps 菜单 · Hub · ⌘K · 全局拖放 · 状态栏；**统一捕获**（⌘N / ⌘⇧N）智能附件  
 - **剪贴板**：`ingest.readClipboard` / `enqueueFromClipboard`  
 - **写回**：Markdown → Inbox 或专题；失败 original-fallback；可选原件 `99-归档/ingest-originals/`  
 - **转换**：默认 anydoc sidecar（userData 热升级）；可选 markitdown / pandoc；内置 JS 兜底  
@@ -57,13 +79,14 @@ WeRead 统计卡：`WereadStatsPanel.tsx` + `weread-format.ts`（展示用，非
 | Slot | Purpose |
 |------|---------|
 | `dataSource` | Sidebar tree section |
-| `sidebar` | Bottom sidebar (rich render or label+icon) |
 | `view` | Editor area when `matches(selection)` |
 | `action` | ⌘K commands / shortcuts |
 | `settings` | Settings tab |
-| `overlay` | Custom modal |
+| `overlay` | Custom modal（含 `plugin-app` mini-app 面） |
 | `statusBar` | Status bar item |
 | `contextMenu` | Tree right-click items |
+
+（`sidebar` slot 已删除 2026-08-30——插件 chrome 入口统一在标题栏 Apps 菜单。）
 
 **PluginContext:** `rpc` · `workspaceRoot` · `events` · `ai` · `settings` · `register` · `openOverlay` · `navigate` · `toast`
 
@@ -192,7 +215,7 @@ Rules:
 
 ```text
 activateAll
-  → builtins (workspace, weread, x)
+  → builtins (workspace, ingest, weread, x, ledger)
   → system.listExternalPlugins()
   → dynamic import(entryUrl) for status=ready
   → activatePlugin (errors isolated per plugin)

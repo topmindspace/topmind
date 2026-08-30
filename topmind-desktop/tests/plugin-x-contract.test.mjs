@@ -59,10 +59,11 @@ test("X plugin uses defineConnectorPlugin shared activate", () => {
   const index = readFileSync(path.join(plugins, "topmind-x/index.ts"), "utf8");
   assert.match(index, /defineConnectorPlugin/);
   assert.match(index, /createXSettingsSlot/);
-  assert.match(index, /createXSidebarSlot/);
   assert.match(index, /createXActions/);
   assert.match(index, /createXStatusBarSlot/);
   assert.match(index, /settingsKey:\s*["']x["']/);
+  // 侧栏插件行已删除（2026-08-30）— chrome 入口统一在标题栏 Apps 菜单
+  assert.doesNotMatch(index, /createXSidebarSlot/);
 });
 
 test("WeRead plugin uses defineConnectorPlugin (aligned with X)", () => {
@@ -70,7 +71,8 @@ test("WeRead plugin uses defineConnectorPlugin (aligned with X)", () => {
   assert.match(index, /defineConnectorPlugin/);
   assert.match(index, /settingsKey:\s*["']weread["']/);
   assert.match(index, /createWereadSettingsSlot/);
-  assert.match(index, /createWereadSidebarSlot/);
+  assert.match(index, /createWereadHubView/);
+  assert.doesNotMatch(index, /createWereadSidebarSlot/);
 });
 
 test("connector.ts exports activateConnector + defineConnectorPlugin", () => {

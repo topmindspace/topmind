@@ -62,7 +62,7 @@ Skills 是一组纯 Markdown 指令集，告诉 AI 如何操作 topmind 工作�
 | 写回安全 | writeback-engine 唯一写闸 + 保护级别 + 备份回执 | 无 | 无 | 无 | 无 | 无 |
 
 **设计选择说明**：
-- **Hybrid Pack**：9 个标准 skill 目录（兼容开放标准），**只有一份** pack 级 JSON；子 skill 自包含可激活，但不各自版本/内容模型。
+- **Hybrid Pack**：10 个标准 skill 目录（7 核心 + 2 connector + optional ledger；兼容开放标准），**只有一份** pack 级 JSON；子 skill 自包含可激活，但不各自版本/内容模型。
 - **frontmatter 用 `action_category` 而非 `category`**：避免与用户笔记 `category`（物理大类）碰撞。
 - **`description` 是触发器**：What + Use when + Do NOT；≤1024 字符；不是 README 摘要。
 - **Router 勿过宽**：禁止「any knowledge task」淹没子 skill；单意图优先子 skill。
@@ -275,10 +275,12 @@ skills/topmind/
 | `topmind-loop` | loop | 生命周期执行器：reconcile/digest/提升候选/归档建议；可中断可恢复，进度落 `.topmind/loop/` | "跑一遍 loop"、"巡检"、"复盘" |
 | `topmind-weread` | connector | 微信读书划线/笔记/统计同步 | "同步微信读书"、"划线同步" |
 | `topmind-x` | connector | X (Twitter) 发布/搜索/时间线 | "发推"、"搜索推文" |
+| `topmind-ledger` | memory | 通用记账到 `memory/ledgers/`（默认个人本，可选） | "记账"、"记一笔"、"花了"、"存入" |
 
 子 skill 是实现模块，**不是独立前台产品**。用户不需要知道或选择它们。
 
-> **Connector 类型**：`topmind-weread` 和 `topmind-x` 是可选的 source connector skill，落点遵循 contract `ingest.connectors.*`。
+> **Connector 类型**：`topmind-weread` 和 `topmind-x` 是可选的 source connector skill，落点遵循 contract `ingest.connectors.*`。  
+> **记账**：`topmind-ledger` 是可选 skill（非连接器）；账本在记忆平面，与 `todo.md` 同族，不是第六个用户概念。
 
 ### 3.4 移植性（Portability）
 

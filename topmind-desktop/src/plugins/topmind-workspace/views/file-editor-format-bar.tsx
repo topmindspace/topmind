@@ -6,11 +6,11 @@ import { useTranslation } from "react-i18next";
 import type { Editor } from "@tiptap/react";
 import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough, Code, Braces,
-  Heading1, Heading2, Heading3, List, ListOrdered, Quote, Link2,
+  Heading1, Heading2, Heading3, Heading4, List, ListOrdered, ListChecks, Quote, Link2,
   Paperclip, Eye, Edit3, MoreHorizontal,
   Hash, Minimize2, ChevronLeft, ChevronRight,
   Upload, Brain, Sparkles, Twitter, Loader2,
-  CalendarClock, Focus,
+  CalendarClock, Focus, ImagePlus, RemoveFormatting,
 } from "lucide-react";
 import {
   DropdownItem,
@@ -64,12 +64,14 @@ export function EditorFormatBar({
   onToggleFormat,
   onInsertDateTime,
   onInsertLink,
+  onInsertImage,
 }: {
   editor: Editor | null;
   showFormat: boolean;
   onToggleFormat: () => void;
   onInsertDateTime?: () => void;
   onInsertLink?: () => void;
+  onInsertImage?: () => void;
 }) {
   const { t } = useTranslation(["workspace", "common"]);
   return (
@@ -112,12 +114,18 @@ export function EditorFormatBar({
           <ToolbarButton onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()} active={editor?.isActive("heading", { level: 3 }) ?? false} tip={t("workspace:formatBarOptions.h3")}>
             <Heading3 size={ICON.xs} />
           </ToolbarButton>
+          <ToolbarButton onClick={() => editor?.chain().focus().toggleHeading({ level: 4 }).run()} active={editor?.isActive("heading", { level: 4 }) ?? false} tip={t("workspace:formatBarOptions.h4")}>
+            <Heading4 size={ICON.xs} />
+          </ToolbarButton>
           <ToolbarSep />
           <ToolbarButton onClick={() => editor?.chain().focus().toggleBulletList().run()} active={editor?.isActive("bulletList") ?? false} tip={t("workspace:editor.formatBulletList")}>
             <List size={ICON.xs} />
           </ToolbarButton>
           <ToolbarButton onClick={() => editor?.chain().focus().toggleOrderedList().run()} active={editor?.isActive("orderedList") ?? false} tip={t("workspace:editor.formatOrderedList")}>
             <ListOrdered size={ICON.xs} />
+          </ToolbarButton>
+          <ToolbarButton onClick={() => editor?.chain().focus().toggleTaskList().run()} active={editor?.isActive("taskList") ?? false} tip={t("workspace:formatBarOptions.taskList")}>
+            <ListChecks size={ICON.xs} />
           </ToolbarButton>
           <ToolbarButton onClick={() => editor?.chain().focus().toggleCodeBlock().run()} active={editor?.isActive("codeBlock") ?? false} tip={t("workspace:formatBarOptions.codeBlock")}>
             <Braces size={ICON.xs} />
@@ -141,6 +149,18 @@ export function EditorFormatBar({
               <CalendarClock size={ICON.xs} />
             </ToolbarButton>
           ) : null}
+          {onInsertImage ? (
+            <ToolbarButton onClick={onInsertImage} active={false} tip={t("editor:editor.insertImage")}>
+              <ImagePlus size={ICON.xs} />
+            </ToolbarButton>
+          ) : null}
+          <ToolbarButton
+            onClick={() => editor?.chain().focus().clearNodes().unsetAllMarks().run()}
+            active={false}
+            tip={t("editor:editor.clearFormatting")}
+          >
+            <RemoveFormatting size={ICON.xs} />
+          </ToolbarButton>
         </div>
       ) : (
         <span className="truncate text-3xs text-text-quaternary">{t("workspace:formatBar.collapsed")}</span>

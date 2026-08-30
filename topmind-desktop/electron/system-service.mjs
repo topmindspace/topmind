@@ -261,6 +261,14 @@ export const SystemService = {
     return { ok: true };
   },
 
+  /** UI zoom step: "in" | "out" | "reset" (Win/Linux renderer chords). */
+  async zoom(p, ctx) {
+    if (typeof ctx.setUiZoom === "function") {
+      return ctx.setUiZoom(p?.mode);
+    }
+    return { ok: false, error: "unavailable" };
+  },
+
   /** App version + platform (About / update UI). */
   async getAppInfo(_p, _ctx) {
     return {

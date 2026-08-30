@@ -1,7 +1,7 @@
 # topmind Desktop — 架构
 
 > **现状描述 + Target 标注**。约 300 源文件（`src/` ~195 + `electron/` ~104）。  
-> **1 RPC · Stores（View / Ai / Action / Plugin / IngestStaging / Task / Todo）· 1 Shell · 5+2 Service · 8 插件槽**  
+> **1 RPC · Stores（View / Ai / Action / Plugin / IngestStaging / Task / Todo）· 1 Shell · 5+2 Service · 7 插件槽**  
 > UI 真源：`DESIGN.md`。边界：`../PRODUCT-BOUNDARIES.md`。  
 > **实施锁**：[`../docs/ARCHITECTURE-RESET.md`](../docs/ARCHITECTURE-RESET.md)（写闸合闸 · 建议副驾 · 导航变薄）。
 
@@ -272,7 +272,7 @@ ADR：`docs/adr/2026-07-16-desktop-agent-harness-upgrade.md`。
 
 ## Shell 结构
 
-> UI 像素与 IA 真源：`DESIGN.md` §0.0 / §0（**Design System 2.1 · Modern Warm-Neutral**；token 数值真源 `src/styles/tokens.css`——见 `../docs/adr/2026-08-07-desktop-single-entry-dedupe.md` · `../docs/adr/2026-08-07-comprehensive-design-optimization.md`）。本节约架构职责 + **现状/目标**。
+> UI 像素与 IA 真源：`DESIGN.md` §0.0 / §0（**Design System 3.0 · ZCode Neutral**；token 数值真源 `src/styles/tokens.css`——见 `../docs/adr/2026-08-07-desktop-single-entry-dedupe.md` · `../docs/adr/2026-08-07-comprehensive-design-optimization.md`）。本节约架构职责 + **现状/目标**。
 
 ### 目标 IA（Product target · **Done** Wave F–G + 2026-08-07 优化）
 
@@ -523,12 +523,11 @@ UI：消息内 **tool timeline**；输入区 Skill 芯片 + Agent 开关；会�
 
 ### 契约（`src/plugins/types.ts`）
 
-**8 种槽位类型**驱动整个 Shell：
+**7 种槽位类型**驱动整个 Shell（`sidebar` 槽位已删除 2026-08-30——插件 chrome 入口统一在标题栏 Apps 菜单）。可选记账 `topmind-ledger` 走 OverlaySlot `plugin-app`（看板 / 流水 / 分类 / 快捷记账），**不是** PrimaryNav / 第六用户概念。
 
 | 槽位 | UI 呈现位置 | 说明 |
 |------|------------|------|
 | **DataSource** | 侧栏区段 + 树 | 拥有一棵树 + 节点读写语义。内置：类别+专题文件系统 |
-| **SidebarSlot** | 侧栏底部插件区 | 两种模式：简单（label+icon+onSelect）或富渲染（render()）。连接器插件用富渲染展示同步控件 |
 | **ViewSlot** | 编辑区内容 | `matches(selection)` 返回 true 时渲染。第一个匹配（order 最低）的胜出 |
 | **ActionSlot** | 命令面板（⌘K）、上下文菜单、快捷键 | 插件可注册自定义操作 |
 | **SettingsSlot** | 设置对话框 Tab | 插件注册自定义设置面板，始终可用（即使插件未启用） |
@@ -562,7 +561,6 @@ interface PluginContext {
 | 槽位类型 | UI 呈现位置 | 示例 |
 |----------|------------|------|
 | DataSource | 侧栏区段 + 树 | "工作区"区段（类别 → 专题 → 文件） |
-| SidebarSlot | 侧栏底部插件区 | 微信读书同步控件、X 推文抓取控件 |
 | ViewSlot | 编辑区内容 | StreamDetailView, CategoryView, FileEditorView 等 |
 | ActionSlot (goto) | 命令面板 → 导航 | 转到 · 动态/收件箱/交付物/归档 |
 | ActionSlot (skill) | 命令面板 → 技能 | Capture, Organize, Write, Memory, Loop |
@@ -596,7 +594,7 @@ togglePlugin(id, wsRoot)
 - **BUILTIN_PLUGINS 注册表** — 单一真源，activateAll 和 togglePlugin 共用，新增插件只需加一行
 - **builtin 保护** — manifest.builtin:true 的插件无法被 deactivatePlugin/togglePlugin 停用
 - **SettingsSlot 始终注册** — 用户可以在插件未启用时配置参数
-- **交互槽位条件注册** — SidebarSlot/StatusBarSlot/ActionSlot 仅在 `settings[key].enabled === true` 时注册
+- **交互槽位条件注册** — ViewSlot（connector hub）/ StatusBarSlot / ActionSlot 仅在 `settings[key].enabled === true` 时注册；chrome 入口（标题栏 Apps 菜单）随之出现/消失
 - **PluginStore** — active / disabled / error  
 - **PluginsPanel** — 内置 / 连接器 / 第三方分区；第三方支持预览权限 → 安装、开关、热加载、卸载  
 
@@ -680,7 +678,7 @@ src/locales/
 - **初始化链**：`main.tsx` import `./locales` → i18next init（lng=zh-CN）→ `App.tsx` `applyLocale(settings.ui.locale)` → `Shell.tsx` 每次 settings 变化时 re-apply
 - **非 React 库文件**：直接 `import i18n from "../locales"` 使用 `i18n.t()`（如 `note-meta.ts`、`stream-status.ts`、`writeback-toast.ts`、`skills.ts`、`data-source.ts`、`views.tsx`、`host.ts`、`weread/actions.ts`）
 - **插件 manifest i18n**：`PluginManifest` 支持 `nameKey` / `descriptionKey`；`PluginsPanel.tsx` 通过 `t(nameKey)` 解析，fallback 到 `name`；所有内置插件已设置 nameKey / descriptionKey
-- **插件 labelKey**：`SidebarSlot` / `SettingsSlot` / `ActionSlot` 支持 `labelKey` / `descriptionKey` 字段，消费端通过 `t(labelKey)` 解析，fallback 到 `label`
+- **插件 labelKey**：`ActionSlot` 支持 `labelKey`，插件 manifest 支持 `nameKey` / `descriptionKey`（Apps 菜单 / 设置 / 命令面板通过 `t(labelKey)` 解析，fallback 到原文）
 - **React 组件**：使用 `useTranslation()` hook + `t()` 函数；所有用户可见文本均走 i18n key，**禁止硬编码中文/英文字符串**
 - **日期格式化**：`src/lib/datetime.ts` 使用 `intlLocale()` 获取 BCP-47 tag，相对时间通过 `i18n.t('common:time.*')` 翻译
 

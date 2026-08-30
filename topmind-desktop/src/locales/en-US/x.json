@@ -7,20 +7,6 @@
     "canPost": "Post",
     "openHub": "Open X hub"
   },
-  "sidebar": {
-    "detecting": "Detecting…",
-    "clickConfig": "Click to configure",
-    "readWriteHub": "Read & Post · Open hub",
-    "readOnlyHub": "Read-only · Open hub",
-    "openHubTooltip": "Open X hub · Preview, select, archive / post",
-    "configBearer": "Configure Bearer Token",
-    "composePost": "Compose post",
-    "openHub": "Open hub",
-    "settings": "X settings",
-    "notReadyToast": "X not ready: configure Bearer or install xurl",
-    "cannotReadToast": "Cannot read: please configure a Bearer Token",
-    "needXurlToast": "Posting requires local xurl (user OAuth). You can draft in the editor."
-  },
   "settings": {
     "disabled": "Disabled",
     "readWriteReady": "Read & Write ready",
@@ -31,7 +17,7 @@
     "connectDesc": "Read = Bearer · Post = local xurl OAuth",
     "connectHelp": "Agent hosts use official MCP (not embedded in Desktop).",
     "enable": "Enable",
-    "enableDesc": "Hides sidebar and command entry when off",
+    "enableDesc": "Hides the Apps-menu entry and command actions when off",
     "bearerDesc": "App-only · Search / timeline / archive",
     "probingXurl": "Probing xurl…",
     "xurlNotFound": "xurl not installed",

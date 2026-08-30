@@ -89,7 +89,7 @@ export function useShellSettingsSync(settings: AppSettings): void {
     if (typeof settings.ui?.aiPanelOpen === "boolean") {
       useViewStore.getState().setAiPanelOpen(settings.ui.aiPanelOpen);
     }
-    if (typeof settings.ui?.aiPanelWidth === "number" && settings.ui.aiPanelWidth >= 280 && settings.ui.aiPanelWidth <= 560) {
+    if (typeof settings.ui?.aiPanelWidth === "number" && settings.ui.aiPanelWidth >= 280 && settings.ui.aiPanelWidth <= 800) {
       useViewStore.getState().setAiPanelWidth(settings.ui.aiPanelWidth);
     }
     setWorkspaceRoot(settings.workspaceRoot);

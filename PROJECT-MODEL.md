@@ -15,7 +15,8 @@
 > 5. **命名即文档** — Category / Topic / Memory；代码 Topic* / Category* / Memory*。  
 >
 > **Kernel 八引擎**（文件在 `lib/`；合闸状态见 ARCHITECTURE-RESET §2）：  
-> contract · workspace-model · stream · memory · lifecycle · **writeback（唯一写闸 · Done 主路径）** · derived · ingest。
+> contract · workspace-model · stream · memory · lifecycle · **writeback（唯一写闸 · Done 主路径）** · derived · ingest。  
+> **卫星**（不是第九引擎）：`todo-engine`（`memory/todo.md`）· `ledger-engine`（可选 `{memory.dir}/ledgers/`）。记账不是第六个用户概念。
 
 ---
 
@@ -79,7 +80,11 @@
 │   ├── periodic/            periodic 层：按年分组；AI 生成周期反思（人可改）
 │   │   ├── 2026/            2026-W30.md（周期反思，非事件摘要）
 │   │   └── 2025/            往年周期反思
-│   └── topics/              topics 层：{topic-slug}.md（可选，默认不启用）
+│   ├── topics/              topics 层：{topic-slug}.md（可选，默认不启用）
+│   ├── todo.md              个人待办（todo-engine 卫星）
+│   └── ledgers/             可选记账（ledger-engine 卫星；默认 Personal/自己）
+│       ├── Personal.md
+│       └── catalog.md       用户分类
 └── .topmind/               【系统平面】机器态（可忽略、可重建）
     ├── index/               可选语义索引（默认关闭）
     ├── loop/                loop 巡检进度
@@ -329,6 +334,17 @@ AI 分发遇到歧义时按"内容性质"判定；无法判定时 → `00-收件
 提升规则在 contract `memory.promotion`（`min_occurrences` · `require_confirm`）。  
 **流水可以只是流水**，不必升专题也不必升记忆。  
 **实现状态**：memory-engine + Desktop 建议条 apply（digest/promote）**Done**；全自动周期 promote 策略仍受 `require_confirm` 约束（产品正确，非未实现）。
+
+### 7.3 语义平面卫星文件（待办 · 可选记账）
+
+同族：都在 `{memory.dir}/` 下，经 writeback-engine 写入，**不是**新的语义平面根，也**不是**用户概念。
+
+| 文件 | 引擎 | 说明 |
+|------|------|------|
+| `todo.md` | todo-engine | 个人待办清单 |
+| `ledgers/{id}.md` + `ledgers/catalog.md` | ledger-engine | 可选记账。空工作区只有默认 **Personal / 自己**；用户再加账本和分类。历史上的 ClassFund / Giggs / Mom 只是行格式参考，不是产品默认。 |
+
+Desktop 记账是 enable-gated mini-app（看板 / 流水 / 分类 / 快捷记账），入口在 Apps 菜单，**不是** PrimaryNav / 第六个用户概念。Skills 可选 `topmind-ledger`；日常入口仍只 `topmind`。Obsidian 不发记账小应用。UTR 无独立 ledger 域。
 
 ---
 

@@ -3,6 +3,7 @@
  * Shown only when confirmBeforeConvert is enabled (or forceConfirm).
  */
 import { AlertTriangle, FileInput, Loader2, X } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../ui/Button";
 import { cn } from "../../lib/cn";
@@ -36,6 +37,29 @@ export function IngestStagingSheet() {
   const error = useIngestStagingStore((s) => s.error);
   const setItems = useIngestStagingStore((s) => s.setItems);
   const close = useIngestStagingStore((s) => s.close);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Esc closes only this confirm gate — never the overlay beneath (e.g.
+  // QuickCapture). Window-level because focus often stays in the capture
+  // textarea while the gate is up. busy keeps the gate up.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      if (busy) return;
+      e.preventDefault();
+      e.stopPropagation();
+      close();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, busy, close]);
+
+  // Initial focus lands inside the gate so Tab/Esc behave predictably.
+  useEffect(() => {
+    if (!open) return;
+    requestAnimationFrame(() => panelRef.current?.focus());
+  }, [open]);
 
   if (!open) return null;
 
@@ -67,10 +91,12 @@ export function IngestStagingSheet() {
 
   return (
     <div
-      className="fixed inset-0 z-floating flex items-end justify-center bg-scrim p-4 sm:items-center animate-fade-in"
+      className="fixed inset-0 z-modal flex items-end justify-center bg-scrim p-4 sm:items-center animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-labelledby="ingest-staging-title"
+      tabIndex={-1}
+      ref={panelRef}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget && !busy) close();
       }}

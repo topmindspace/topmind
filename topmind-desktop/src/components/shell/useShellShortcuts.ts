@@ -1,53 +1,21 @@
-import { useEffect, type Dispatch, type SetStateAction } from "react";
-import { useViewStore } from "../../stores/view-store";
-import { emitLocal } from "../../plugins/host";
+import { useEffect } from "react";
+import { api } from "../../services/api";
 
-/** Productivity shortcuts (avoid when typing in inputs). */
-export function useShellShortcuts(setTaskPanelOpen: Dispatch<SetStateAction<boolean>>): void {
+/**
+ * Renderer-level chords that bypass the workbench dispatcher:
+ * Ctrl +/-/0 zoom (browser convention, works while typing). Meta is
+ * deliberately excluded — macOS's app menu owns its own zoom roles, and
+ * handling ⌘ here too would step twice on that platform.
+ */
+export function useShellShortcuts(): void {
   useEffect(() => {
-    const SIDEBAR_VIEW_KEYS: Record<string, string> = {
-      "1": "stream",
-      "2": "category",
-      "3": "timeline",
-      "4": "tags",
-      "5": "kanban",
+    const onZoomKey = (e: KeyboardEvent) => {
+      if (!e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+      if (e.key !== "=" && e.key !== "+" && e.key !== "-" && e.key !== "0") return;
+      e.preventDefault();
+      void api.sys.zoom(e.key === "0" ? "reset" : e.key === "-" ? "out" : "in");
     };
-    const onKey = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement | null;
-      const tag = t?.tagName?.toLowerCase();
-      if (tag === "input" || tag === "textarea" || t?.isContentEditable) return;
-      const mod = e.metaKey || e.ctrlKey;
-      if (!mod) return;
-
-      // ⌘1-5: sidebar view switching (no shift)
-      if (!e.shiftKey && SIDEBAR_VIEW_KEYS[e.key]) {
-        e.preventDefault();
-        emitLocal("sidebar:set-view", SIDEBAR_VIEW_KEYS[e.key]);
-        return;
-      }
-
-      // ⌘⇧ + letter: navigation and panel shortcuts
-      if (!e.shiftKey) return;
-      const key = e.key.toLowerCase();
-      if (key === "i") {
-        e.preventDefault();
-        useViewStore.getState().select({ kind: "inbox" });
-      } else if (key === "b") {
-        e.preventDefault();
-        emitLocal("sidebar:set-view", "kanban");
-      } else if (key === "o") {
-        e.preventDefault();
-        useViewStore.getState().select({ kind: "outputs" });
-      } else if (key === "a") {
-        // Don't steal select-all — only when not in editable (already guarded)
-        e.preventDefault();
-        useViewStore.getState().select({ kind: "archive" });
-      } else if (key === "j") {
-        e.preventDefault();
-        setTaskPanelOpen((prev) => !prev);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [setTaskPanelOpen]);
+    window.addEventListener("keydown", onZoomKey);
+    return () => window.removeEventListener("keydown", onZoomKey);
+  }, []);
 }

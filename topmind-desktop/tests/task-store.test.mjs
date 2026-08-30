@@ -87,6 +87,10 @@ test("ai_digest after runActivityOps does not request suggestions:refresh", () =
   assert.equal(merged.emitSuggestionsRefresh, false);
   assert.equal(merged.openSuggestSurface, true);
   assert.equal(merged.emitWorkspaceFileChanged, false);
+
+  const mem = engineJobSuggestionFollowUp({ type: "memory_organize", merged: 3, suggestionCount: 3 });
+  assert.equal(mem.emitSuggestionsRefresh, false);
+  assert.equal(mem.openSuggestSurface, true);
 });
 
 test("reconcile requests refresh only when changed or candidates exist", () => {
@@ -121,7 +125,7 @@ test("task-store ai_digest uses follow-up helper; no post-merge suggestions:refr
   assert.doesNotMatch(store, /applySuggestion/);
   assert.doesNotMatch(store, /writePeriodDigest/);
   assert.doesNotMatch(store, /maintainTodos/);
-  const digestBlock = store.slice(store.indexOf('case "ai_digest"'));
+  const digestBlock = store.slice(store.indexOf('case "ai_digest"'), store.indexOf('case "memory_organize"'));
   assert.match(digestBlock, /runActivityOps/);
   assert.match(digestBlock, /engineJobSuggestionFollowUp/);
   assert.doesNotMatch(digestBlock, /SUGGESTIONS_REFRESH_EVENT/);
@@ -130,15 +134,22 @@ test("task-store ai_digest uses follow-up helper; no post-merge suggestions:refr
   const reconcileBlock = store.slice(store.indexOf('case "reconcile"'), store.indexOf('case "ai_digest"'));
   assert.match(reconcileBlock, /engineJobSuggestionFollowUp/);
   assert.match(reconcileBlock, /SUGGESTIONS_REFRESH_EVENT/);
+  assert.match(store, /case "memory_organize"/);
+  assert.match(store, /memoryOrganizeStart/);
 });
 
-test("task list empty actions are the two engine jobs only; no ListTodo", () => {
+test("task list empty actions are engine jobs; no ListTodo", () => {
   const body = read("src/components/ai/task-list-body.tsx");
   assert.match(body, /createTask\("reconcile"\)/);
   assert.match(body, /createTask\("ai_digest"\)/);
+  assert.match(body, /createTask\("memory_organize"\)/);
   assert.doesNotMatch(body, /ListTodo/);
   const creates = body.match(/createTask\("([^"]+)"\)/g) || [];
-  assert.deepEqual(creates, ['createTask("reconcile")', 'createTask("ai_digest")']);
+  assert.deepEqual(creates, [
+    'createTask("reconcile")',
+    'createTask("ai_digest")',
+    'createTask("memory_organize")',
+  ]);
 });
 
 test("TaskPanel Esc-to-close uses shipped dismiss helper", () => {

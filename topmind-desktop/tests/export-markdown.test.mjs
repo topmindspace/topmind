@@ -51,6 +51,20 @@ test("markdownToHtmlFragment renders headings lists code links", () => {
   assert.match(html, /<strong>bold<\/strong>/);
 });
 
+test("markdownToHtmlFragment nests indented list items under the parent", () => {
+  const html = markdownToHtmlFragment(
+    ["- parent", "  - child a", "  - child b", "- sibling"].join("\n"),
+  );
+  assert.match(html, /<ul>/);
+  assert.match(html, /<li>parent/);
+  assert.match(html, /<li>child a/);
+  assert.match(html, /<li>sibling/);
+  const parentAt = html.indexOf("<li>parent");
+  const nestedUl = html.indexOf("<ul>", parentAt + 1);
+  const childAt = html.indexOf("<li>child a");
+  assert.ok(nestedUl > parentAt && nestedUl < childAt, "child list must nest inside parent li");
+});
+
 test("markdownToHtmlFragment rejects javascript: and data: href schemes", async () => {
   const { sanitizePreviewUrl, decodeHtmlEntitiesForUrl } = await import(
     "../src/lib/export-markdown.ts"

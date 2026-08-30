@@ -26,11 +26,23 @@ export function useCollectionLayout(): FeedLayout {
 }
 
 /** Centered content column with density rhythm. */
-export function ViewContainer({ children, className }: { children: ReactNode; className?: string }) {
+export function ViewContainer({
+  children,
+  className,
+  variant = "page",
+}: {
+  children: ReactNode;
+  className?: string;
+  /** `feed` = stream / 我的情况 reading column (header + posts share --feed-column-max). */
+  variant?: "page" | "feed";
+}) {
   return (
     <div
       className={cn(
-        "mx-auto w-full max-w-[var(--content-max-width-dashboard,880px)]",
+        "mx-auto w-full",
+        variant === "feed"
+          ? "max-w-[min(var(--feed-column-max,44rem),100%)]"
+          : "max-w-[var(--content-max-width-dashboard,880px)]",
         "px-[var(--density-page-x,28px)] py-[var(--density-page-y,24px)]",
         className,
       )}
@@ -55,7 +67,7 @@ export function PageHeader({
   className?: string;
 }) {
   return (
-    <header className={cn("mb-3.5 sm:mb-4", className)}>
+    <header className={cn("mb-4 sm:mb-5", className)}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           {icon ? (

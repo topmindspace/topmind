@@ -153,4 +153,39 @@ title: UI 专题记忆
     });
     assert.equal(items.length, 0);
   });
+
+  it("keeps nested profile list items on the parent card and marks 历史记录", () => {
+    const items = assembleMemoryFeed({
+      profile: {
+        path: "memory/profile.md",
+        markdown: `# 我的情况
+
+## 偏好
+
+- 喜欢简洁
+  - 不要拆二层
+  - 仍留在同一条
+- 夜间工作
+
+## 历史记录
+
+- 过期目标
+`,
+      },
+      periodic: [],
+      topics: [],
+    });
+    const profile = items.filter((i) => i.kind === "profile" && !i.history);
+    assert.equal(profile.length, 2, `expected 2 first-level facts, got ${profile.length}`);
+    const nested = profile.find((i) => /喜欢简洁/.test(i.body + i.title));
+    assert.ok(nested);
+    assert.match(nested.body, /不要拆二层/);
+    assert.match(nested.body, /仍留在同一条/);
+    const history = items.filter((i) => i.history);
+    assert.equal(history.length, 1);
+    assert.match(history[0].body + history[0].title, /过期目标/);
+    assert.equal(filterMemoryFeedByLayer(items, "history").length, 1);
+    assert.equal(filterMemoryFeedByLayer(items, "profile").length, 2);
+    assert.equal(filterMemoryFeedByLayer(items, "all").every((i) => !i.history), true);
+  });
 });

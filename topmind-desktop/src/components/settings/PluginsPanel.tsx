@@ -11,6 +11,7 @@ import {
   Trash2,
   Sparkles,
   Shield,
+  Copy,
 } from "lucide-react";
 import { useViewStore } from "../../stores/view-store";
 import { useRegistry } from "../../plugins/registry";
@@ -25,10 +26,11 @@ import { Button } from "../ui/Button";
 import { ConfirmDialog } from "../ui/Dialog";
 import { api, type ExternalPluginInfo, type PluginInstallPreview } from "../../services/api";
 import type { AppSettings } from "../../types";
-import { SettingsSection, StatusDot } from "./fields";
+import { SettingsSection, StatusDot, SwitchField, Field } from "./fields";
 import { PluginInstallPreviewBody } from "./PluginInstallPreviewBody";
 import { scheduleFlash } from "../../lib/flash-message";
 import { cn } from "../../lib/cn";
+import { Input } from "../ui/Input";
 
 type PendingInstall =
   | { kind: "folder"; path: string; preview: PluginInstallPreview }
@@ -47,8 +49,8 @@ export function PluginsPanel({
   const dataSources = useRegistry((s) => s.dataSources);
   const viewSlots = useRegistry((s) => s.viewSlots);
   const actions = useRegistry((s) => s.actions);
-  const sidebarSlots = useRegistry((s) => s.sidebarSlots);
   const statusBarSlots = useRegistry((s) => s.statusBarSlots);
+  const overlaySlots = useRegistry((s) => s.overlaySlots);
   const [external, setExternal] = useState<{ root: string; plugins: ExternalPluginInfo[] } | null>(null);
   const [extLoading, setExtLoading] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
@@ -56,6 +58,47 @@ export function PluginsPanel({
   const [actionOk, setActionOk] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingInstall | null>(null);
   const [uninstallId, setUninstallId] = useState<string | null>(null);
+  // ── Clip companion bridge (moved from General — it belongs beside extensions) ──
+  const clip = {
+    enabled: false,
+    port: 19827,
+    token: "",
+    downloadImages: true,
+    ...settings.clipBridge,
+  };
+  const [bridgeLive, setBridgeLive] = useState<{
+    running: boolean;
+    endpoint: string | null;
+  } | null>(null);
+  const [clipCopied, setClipCopied] = useState(false);
+
+  useEffect(() => {
+    void api.sys
+      .clipBridgeStatus()
+      .then((st) => setBridgeLive({ running: st.running, endpoint: st.endpoint }))
+      .catch(() => setBridgeLive(null));
+  }, [settings.clipBridge?.enabled, settings.clipBridge?.port, settings.clipBridge?.token]);
+
+  const copyClipToken = async () => {
+    if (!clip.token) return;
+    try {
+      await navigator.clipboard.writeText(clip.token);
+      setClipCopied(true);
+      setTimeout(() => setClipCopied(false), 1500);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const rotateClipToken = async () => {
+    try {
+      const res = await api.sys.clipBridgeRotateToken();
+      if (res.settings?.clipBridge) update({ clipBridge: res.settings.clipBridge });
+    } catch {
+      /* error surfaced by parent toast */
+    }
+  };
+
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const flashOk = (msg: string) => {
@@ -88,9 +131,9 @@ export function PluginsPanel({
       ...dataSources,
       ...viewSlots,
       ...actions,
-      ...sidebarSlots,
       ...settingsSlots,
       ...statusBarSlots,
+      ...overlaySlots,
     ].filter((s) => s.pluginId === pluginId).length;
 
   const pluginCards = plugins
@@ -273,7 +316,9 @@ export function PluginsPanel({
         title={t("settings:plugins.titleLoaded")}
         description={t("settings:plugins.descLoaded")}
         help={t("settings:plugins.helpLoaded")}
-        action={<StatusDot ok={running > 0} label={t("settings:plugins.statusRunning", { count: running, total: pluginCards.length })} />}
+        action={
+          <StatusDot ok={running > 0} label={t("settings:plugins.statusRunning", { count: running, total: pluginCards.length })} />
+        }
       >
         <div className="space-y-1">
           {pluginCards.map(
@@ -589,6 +634,88 @@ export function PluginsPanel({
         onCancel={() => setUninstallId(null)}
         onConfirm={() => void confirmUninstall()}
       />
+      <SettingsSection
+        title={t("settings:general.clipBridge")}
+        description={
+          bridgeLive?.running
+            ? t("settings:general.clipBridgeDescRunning", { endpoint: bridgeLive.endpoint || "127.0.0.1" })
+            : t("settings:general.clipBridgeDescStopped")
+        }
+        help={t("settings:general.clipBridgeHelp")}
+      >
+        <SwitchField
+          label={t("settings:general.clipBridgeEnable")}
+          description={clip.enabled ? t("settings:general.clipBridgeEnableOn") : t("settings:general.clipBridgeEnableOff")}
+          checked={clip.enabled}
+          onChange={(enabled) =>
+            update({ clipBridge: { ...clip, enabled, token: clip.token || "" } })
+          }
+        />
+        <SwitchField
+          label={t("settings:general.clipDownloadImages")}
+          description={t("settings:general.clipDownloadImagesDesc")}
+          checked={clip.downloadImages !== false}
+          disabled={!clip.enabled}
+          onChange={(downloadImages) =>
+            update({ clipBridge: { ...clip, downloadImages } })
+          }
+        />
+        <div className="mt-1 grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-[100px_1fr]">
+          <Field label={t("settings:general.clipPort")} description={t("settings:general.clipPortDesc")} compact>
+            <Input
+              type="number"
+              min={1024}
+              max={65535}
+              value={clip.port}
+              onChange={(e) => {
+                // Skip mid-edit empty input (would snap to 19827 and persist)
+                if (e.target.value.trim() === "") return;
+                const n = Number(e.target.value);
+                if (!Number.isFinite(n)) return;
+                update({ clipBridge: { ...clip, port: Math.min(65535, Math.max(1024, Math.round(n))) } });
+              }}
+            />
+          </Field>
+          <Field label={t("settings:general.clipToken")} compact>
+            <div className="flex gap-1">
+              <Input
+                readOnly
+                value={clip.token ? `${clip.token.slice(0, 10)}…` : "—"}
+                className="min-w-0 flex-1 font-mono text-3xs"
+              />
+              <Tooltip content={clipCopied ? t("common:action.copied") : t("settings:general.clipCopyToken")}>
+                <Button
+                  type="button"
+                  variant="default"
+                  size="sm"
+                  className="h-8 w-8 shrink-0 p-0"
+                  disabled={!clip.token}
+                  onClick={() => void copyClipToken()}
+                >
+                  <Copy size={ICON.micro} />
+                </Button>
+              </Tooltip>
+              <Tooltip content={t("settings:general.clipRotateToken")}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-8 shrink-0 p-0"
+                  onClick={() => void rotateClipToken()}
+                >
+                  <RefreshCw size={ICON.micro} />
+                </Button>
+              </Tooltip>
+            </div>
+          </Field>
+        </div>
+        <ol className="mt-2 list-decimal space-y-1 rounded-[var(--radius-md)] border border-border-subtle bg-surface-muted/50 px-3.5 py-2 pl-7 text-3xs leading-relaxed text-text-secondary">
+          <li>{t("settings:general.clipSteps1")}</li>
+          <li>{t("settings:general.clipSteps2")}</li>
+          <li>{t("settings:general.clipSteps3")}</li>
+        </ol>
+      </SettingsSection>
+
     </div>
   );
 }

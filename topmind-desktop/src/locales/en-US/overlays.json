@@ -1,13 +1,13 @@
 {
   "capture": {
-    "title": "Quick note",
+    "title": "Note it",
     "memoryTitle": "Append Topic Memory",
-    "floatTitle": "topmind · Quick note",
+    "floatTitle": "topmind · Note it",
     "close": "Close",
     "cancel": "Cancel",
     "ariaMemory": "Append topic memory",
-    "ariaCapture": "Quick note · notes & knowledge processing",
-    "destLabel": "Save to",
+    "ariaCapture": "Note it · notes & knowledge processing",
+    "destLabel": "Put in",
     "destAriaLabel": "Note destination",
     "destStream": "This week's stream",
     "destInbox": "Inbox",
@@ -59,8 +59,9 @@
     "submitProcessing": "Processing…",
     "submitMemory": "Append memory",
     "submitDocs": "Process {{count}} docs",
-    "submitMixed": "Save note & process docs",
-    "submitNote": "Save to Inbox",
+    "submitMixed": "Note it and process docs",
+    "submitNoteStream": "Note it to this week's stream",
+    "submitNote": "Note it to Inbox",
     "aiPolish": "AI Polish",
     "aiPolishing": "Polishing…",
     "aiPolishTip": "AI improves fluency, grammar and wording (preserves meaning)",
@@ -68,7 +69,7 @@
     "aiPolishFailed": "AI polish failed, please retry",
     "aiPolishNotReady": "AI not ready — configure API Key in Settings",
     "removeAttachment": "Remove",
-    "dropHint": "Drop files, or ⌘V paste Finder-copied files",
+    "dropHint": "Drop files, or {{mod}}V paste Finder-copied files",
     "attachedHint": "Attached {{count}} files · will go through knowledge processing",
     "emptyQueueHint": "Attachments will enter the knowledge processing queue",
     "openIngestHub": "Open knowledge processing in main window",
@@ -87,7 +88,7 @@
     "errorFetchWorkspace": "Please open a workspace in the main window first.",
     "errorFetchTimeout": "Try \"Enhanced render\" or paste content manually.",
     "errorFetchFallback": "You can paste content manually and save.",
-    "errorFetchFailed": "Fetch failed: {{reason}} {{hint}",
+    "errorFetchFailed": "Fetch failed: {{reason}} {{hint}}",
     "errorSaveWorkspace": "Save failed: no workspace open. Please select a workspace in the main window before capturing. ({{msg}})",
     "toastMemoryAppended": "Topic memory appended",
     "toastStreamAppended": "Noted to this week's stream",
@@ -140,7 +141,9 @@
     "footerCount": "{{count}} items",
     "footerCountTruncated": "First {{count}} (truncated)",
     "footerRecent": "{{count}} recent",
-    "truncatedHint": "Results capped at {{count}} · not a full-library census · narrow with more specific keywords"
+    "truncatedHint": "Results capped at {{count}} · not a full-library census · narrow with more specific keywords",
+    "filterAll": "All",
+    "clearRecent": "Clear"
   },
   "command": {
     "ariaLabel": "Command palette",
@@ -161,7 +164,7 @@
     "ctxTopic": "Current topic · {{name}}",
     "ctxFile": "Current file · {{name}}",
     "ctxInbox": "In inbox · prioritize organize / capture",
-"ctxStream": "In stream · prioritize organize / extract / promote",
+    "ctxStream": "In stream · prioritize organize / extract / promote",
     "ctxCategory": "Current category · {{name}}",
     "ctxOutputs": "In Ship it",
     "ctxArchive": "In archive",
@@ -175,7 +178,7 @@
       "gotoOutputs": "Go to · Ship it",
       "gotoArchive": "Go to · Archive",
       "kanban": "Sidebar · Kanban view",
-"todo": "Todo list",
+      "todo": "Todo list",
       "globalSearch": "Global search notes",
       "settings": "Open settings",
       "commandPalette": "Command palette",
@@ -190,7 +193,9 @@
       "xOpenHub": "X — Open hub",
       "xFetchTweets": "X — Fetch / search tweets and archive",
       "xComposePost": "X — Compose and post tweet",
-      "xOpenSettings": "X — Open settings"
+      "xOpenSettings": "X — Open settings",
+      "ledgerOpen": "Bookkeeping",
+      "appsMenu": "Open apps menu"
     }
   },
   "staging": {
@@ -222,5 +227,10 @@
     "allClearHint": "Semantic-level loop (topmind-loop skill) can continue recoverable inspection in Agent Host; this is the Desktop native deterministic layer.",
     "openInbox": "Open inbox",
     "done": "Done"
+  },
+  "pluginApp": {
+    "title": "Plugin",
+    "close": "Close",
+    "missing": "This plugin has no dedicated surface. Configure it in Settings, or run its command-palette actions."
   }
 }

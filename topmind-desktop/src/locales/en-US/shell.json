@@ -79,10 +79,11 @@
     "settingsAriaLabel": "Settings",
     "settingsLabel": "Settings",
     "themeMenuItem": "Theme · {{label}}",
+    "themeCycleTip": "Theme: {{label}} · Click for {{next}}",
     "themeAuto": "Follow system",
     "themeLight": "Light",
     "themeDark": "Dark",
-    "moreTip": "More · Search / Settings / Theme",
+    "moreTip": "More · Settings / Theme",
     "moreAriaLabel": "More tools",
     "hideAiPanel": "Hide AI panel",
     "showAiPanel": "Show AI panel",
@@ -92,7 +93,10 @@
     "todoAriaLabel": "Todo list",
     "suggestTip": "Suggestions · confirm before write (≠ personal list)",
     "suggestAriaLabel": "Open suggestions",
-    "commandField": "Commands · Jump"
+    "commandField": "Commands · Jump",
+    "themeMenuSection": "Theme",
+    "appsTip": "Apps · optional plugins & mini-apps",
+    "appsAriaLabel": "Apps menu"
   },
   "taskPanel": {
     "title": "AI Tasks",
@@ -101,6 +105,14 @@
     "triggerReconcile": "Organize this week",
     "taskTypeReconcile": "Organize this week",
     "taskTypeAi_digest": "AI analysis",
+    "taskTypeMemory_organize": "Organize My profile",
+    "triggerMemoryOrganize": "Organize My profile",
+    "memoryOrganizeStart": "Starting My profile organize…",
+    "memoryOrganizeScan": "Scanning recent activity and profile",
+    "memoryOrganizeRun": "Generating suggestions to confirm (no silent profile write)…",
+    "memoryOrganizeFound": "Organize complete · {{count}} new suggestion(s) ({{total}} pending)",
+    "memoryOrganizeDoneToast": "✓ My profile organize done · {{count}} suggestion(s) to confirm",
+    "memoryOrganizeMerged": "Merged {{count}} new suggestion(s)",
     "status": {
       "queued": "Queued",
       "running": "Running",
@@ -206,7 +218,8 @@
     "revealFileTip": "Click to reveal in file manager",
     "updatesBadgeCount": "{{count}} updates",
     "updatesAvailableMulti": "{{count}} updates available · click to download",
-    "updateAvailable": "v{{version}} available · click to download"
+    "updateAvailable": "v{{version}} available · click to download",
+    "fileChipTip": "Click to open in editor · right-click to reveal in folder"
   },
   "editorArea": {
     "loadingWorkspace": "Loading workspace…",
@@ -247,7 +260,7 @@
     "loadingTags": "Loading tags…",
     "loadingKanban": "Loading kanban…",
     "loadingStream": "Loading stream…",
-    "streamPinTip": "Quick notes go to the current period notebook",
+    "streamPinTip": "Note it defaults to this week’s stream",
     "profileTip": "Browse My profile · portrait, periodic reflections, topic memory",
     "myProfile": "My profile",
     "loading": "Loading…",
@@ -255,7 +268,6 @@
     "retry": "Retry",
     "refreshTooltip": "Refresh file tree",
     "empty": "Empty",
-    "pluginsSection": "Connections & sync",
     "treeView": {
       "promptNewNote": "Note filename (with .md extension)",
       "defaultNewNote": "New note.md",
@@ -516,5 +528,11 @@
     "archiveStale": "Archive stale todos",
     "archiveStaleConfirm": "Will archive {{count}} todos older than 30 days to history snapshot. Continue?",
     "archiveDone": "Archived {{count}} stale todos"
+  },
+  "appsMenu": {
+    "section": "Apps",
+    "empty": "No enabled apps. Turn on connectors (WeRead / Bookkeeping / Ingest…) in Settings → Plugins.",
+    "manage": "Manage apps…",
+    "needsConfig": "Setup needed"
   }
 }

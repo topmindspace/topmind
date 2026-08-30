@@ -55,7 +55,7 @@ function IngestHubView() {
       const list: { id: string; label: string }[] = [];
       for (const g of groups) {
         for (const t of g.topics as Topic[]) {
-          list.push({ id: t.id, label: t.id });
+          list.push({ id: t.id, label: t.name || t.id });
         }
       }
       setTopics(list.slice(0, 80));

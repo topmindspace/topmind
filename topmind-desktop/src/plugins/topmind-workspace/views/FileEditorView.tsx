@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState, useMemo, useCallback, useLayoutEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useEditor, EditorContent } from "@tiptap/react";
+import { TaskItem, TaskList } from "@tiptap/extension-list";
+import {
+  createFindExtension,
+  findClear,
+  findGetState,
+  findSetSearch,
+  findStep,
+} from "../../../lib/editor-find";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Typography from "@tiptap/extension-typography";
@@ -8,7 +16,7 @@ import CharacterCount from "@tiptap/extension-character-count";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import { Markdown } from "tiptap-markdown";
-import { Eye, FolderInput, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Eye, FolderInput, Loader2, RotateCcw, Search, X } from "lucide-react";
 import { api } from "../../../services/api";
 import { useAiStore } from "../../../stores/ai-store";
 import { useViewStore } from "../../../stores/view-store";
@@ -19,6 +27,7 @@ import {
 } from "../../../components/editor/SelectionAiBar";
 import { EditorReadingMenu } from "../../../components/editor/EditorReadingMenu";
 import { fontFamilyCss } from "../../../lib/editor-prefs";
+import { Button } from "../../../components/ui/Button";
 import { Tooltip } from "../../../components/ui/tooltip";
 import {
   useFileContextMenu,
@@ -93,6 +102,8 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
     });
   };
   const [loadError, setLoadError] = useState<string | null>(null);
+  /** Bumped by the error retry button — re-runs the load effect. */
+  const [reloadTick, setReloadTick] = useState(0);
   const [wordCount, setWordCount] = useState(0);
   const [charCount, setCharCount] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>(readOnly ? "preview" : "edit");
@@ -180,6 +191,9 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
         // Underline is included in StarterKit v3 — do not add ExtensionUnderline again
       }),
       Typography,
+      TaskList,
+      TaskItem.configure({ nested: true }),
+      createFindExtension(),
       Link.configure({
         openOnClick: false,
         autolink: true,
@@ -410,10 +424,17 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
       const stem = (path.split("/").pop() || "note").replace(/\.md$/iu, "") || "note";
       const prefix = dir ? `${dir}/images/${stem}` : `images/${stem}`;
 
-      for (const file of files.slice(0, 12)) {
+      const batch = files.slice(0, 12);
+      const overCap = files.length - batch.length;
+      let oversized = 0;
+      let inserted = 0;
+      for (const file of batch) {
         try {
           const buf = new Uint8Array(await file.arrayBuffer());
-          if (!buf.length || buf.length > 8_000_000) continue;
+          if (!buf.length || buf.length > 8_000_000) {
+            oversized++;
+            continue;
+          }
           let binary = "";
           const chunk = 0x8000;
           for (let i = 0; i < buf.length; i += chunk) {
@@ -452,13 +473,23 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
           const viewSrc = `topmind-asset://local/${relativePath}`;
           const alt = (file.name || "image").replace(/\.[^.]+$/u, "").slice(0, 80);
           editor.chain().focus().setImage({ src: viewSrc, alt }).run();
+          inserted++;
         } catch (e) {
           toastWritebackError(t("workspace:editor.imageSaveFailed"), e instanceof Error ? e.message : String(e));
         }
       }
-      // Persist body after inserts
-      setSaveState("dirty");
-      void doSave();
+      // Silent caps are how screenshots quietly vanish — always tell.
+      if (oversized > 0 || overCap > 0) {
+        emitLocal("toast:show", {
+          text: t("workspace:editor.imageInsertCapped", { oversized, overCap }),
+          kind: "error",
+        });
+      }
+      if (inserted > 0) {
+        // Persist body after inserts
+        setSaveState("dirty");
+        void doSave();
+      }
     };
   }, [editor, readOnly, path, doSave]);
 
@@ -481,6 +512,17 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
         const { body } = splitMarkdownFile(content);
         setEditorMarkdown(editor, body || "", { noteRelativePath: path });
         lastSerializedBodyRef.current = body || "";
+        if (body.trim() && !(editor.state.doc.textContent || "").trim()) {
+          const escaped = body
+            .replace(/&/gu, "&amp;")
+            .replace(/</gu, "&lt;")
+            .replace(/>/gu, "&gt;");
+          editor.commands.setContent(
+            `<p>${escaped.replace(/\n/gu, "<br>")}</p>`,
+            { emitUpdate: false },
+          );
+          lastSerializedBodyRef.current = getEditorMarkdown(editor, { noteRelativePath: path }) || body;
+        }
         loadedPathRef.current = path;
         setSaveState("clean");
         setCharCount(editor.storage.characterCount.characters());
@@ -515,7 +557,67 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
     };
     // Close over editor + path only — avoid re-flushing on content changes (debounced elsewhere).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editor, path]);
+  }, [editor, path, reloadTick]);
+
+  // Toolbar insert-image: reuses the paste/drop pipeline (size caps + toasts)
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  // ⌘F find-in-note
+  const [findOpen, setFindOpen] = useState(false);
+  const [findQuery, setFindQuery] = useState("");
+  const [findCount, setFindCount] = useState({ idx: 0, total: 0 });
+  const findInputRef = useRef<HTMLInputElement>(null);
+
+  const openFind = useCallback(() => {
+    setFindOpen(true);
+    const selected = editor?.state.selection.toString().trim();
+    if (selected && selected.length <= 64 && (selected.includes(" ") || /^[\w\u4e00-\u9fa5-]+$/u.test(selected))) {
+      setFindQuery(selected);
+    }
+    requestAnimationFrame(() => findInputRef.current?.select());
+  }, [editor]);
+
+  const closeFind = useCallback(() => {
+    setFindOpen(false);
+    findClear(editor);
+  }, [editor]);
+
+  // ⌘F opens find (works in read mode too); ⌘F/F3/⌘G cycle while open
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key.toLowerCase() === "f" && !e.shiftKey && !e.altKey) {
+        if (useViewStore.getState().overlay !== "none") return;
+        e.preventDefault();
+        openFind();
+      } else if (findOpen && e.key === "F3") {
+        e.preventDefault();
+        findStep(editor, e.shiftKey ? -1 : 1);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [editor, findOpen, openFind]);
+
+  // Push query into the plugin (debounce-free: match scan is linear & cheap)
+  useEffect(() => {
+    if (!findOpen || !editor) return;
+    const st = findSetSearch(editor, findQuery.trim());
+    setFindCount({ idx: st.matches.length ? 1 : 0, total: st.matches.length });
+  }, [findOpen, editor, findQuery]);
+
+  // Keep count live across doc edits while the bar is open
+  useEffect(() => {
+    if (!editor || !findOpen) return;
+    const update = () => {
+      const st = findGetState(editor);
+      setFindCount({ idx: st.matches.length ? st.activeIdx + 1 : 0, total: st.matches.length });
+    };
+    editor.on("transaction", update);
+    return () => {
+      editor.off("transaction", update);
+    };
+  }, [editor, findOpen]);
 
   // Stream browser: jump to ## heading after open / same-file reselect (single path, no double toast)
   useEffect(() => {
@@ -576,6 +678,17 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
           const { body } = splitMarkdownFile(content);
           setEditorMarkdown(editor, body || "", { noteRelativePath: path });
           lastSerializedBodyRef.current = body || "";
+          if (body.trim() && !(editor.state.doc.textContent || "").trim()) {
+            const escaped = body
+              .replace(/&/gu, "&amp;")
+              .replace(/</gu, "&lt;")
+              .replace(/>/gu, "&gt;");
+            editor.commands.setContent(
+              `<p>${escaped.replace(/\n/gu, "<br>")}</p>`,
+              { emitUpdate: false },
+            );
+            lastSerializedBodyRef.current = getEditorMarkdown(editor, { noteRelativePath: path }) || body;
+          }
           loadedPathRef.current = path;
           setSaveState("clean");
           setCharCount(editor.storage.characterCount.characters());
@@ -784,8 +897,20 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
   if (loadError && saveState !== "dirty" && saveState !== "saving") {
     return (
       <div className="flex h-full items-center justify-center p-6">
-        <div className="rounded-lg border border-error/20 bg-status-error-bg px-5 py-4 text-sm text-error">
-          {t("common:status.error")}: {loadError}
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-error/20 bg-status-error-bg px-5 py-4 text-sm text-error">
+          <span>
+            {t("common:status.error")}: {loadError}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setLoadError(null);
+              setReloadTick((v) => v + 1);
+            }}
+          >
+            <RotateCcw size={ICON.xs} /> {t("common:action.retry")}
+          </Button>
         </div>
       </div>
     );
@@ -848,6 +973,19 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
                   onToggleFormat={() => setShowFormat((v) => !v)}
                   onInsertDateTime={handleInsertDateTime}
                   onInsertLink={handleLinkRequest}
+                  onInsertImage={() => imageInputRef.current?.click()}
+                />
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files ?? []);
+                    e.target.value = "";
+                    if (files.length > 0) insertLocalImagesRef.current?.(files);
+                  }}
                 />
               </>
             ) : (
@@ -857,6 +995,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
 
           <div className="flex min-w-0 max-w-[min(52%,22rem)] shrink items-center justify-end gap-0.5 sm:max-w-104">
             <EditorReadingMenu
+              editor={readOnly ? null : editor}
               onOpenSettings={() => openOverlay("settings", { topicId: "general" })}
             />
             <ToolbarSep />
@@ -1007,7 +1146,47 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
 
       {/* Edit: TipTap surface · Preview: static HTML (same .v4-tiptap styles).
           EditorContent stays mounted (hidden) so immediatelyRender:false still has a view. */}
-      <div className="flex min-h-0 flex-1 overflow-hidden">
+      {findOpen ? (
+        <div
+          className="pointer-events-auto absolute right-4 top-2 z-floating flex items-center gap-1.5 rounded-[var(--radius-lg)] border border-border-subtle bg-surface-elevated/95 px-2 py-1.5 shadow-[var(--shadow-float)] backdrop-blur-sm"
+          role="search"
+          aria-label={t("workspace:editor.findAria")}
+        >
+          <Search size={ICON.xs} className="shrink-0 text-text-quaternary" aria-hidden />
+          <input
+            ref={findInputRef}
+            value={findQuery}
+            onChange={(e) => setFindQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === "F3") {
+                e.preventDefault();
+                findStep(editor, e.shiftKey ? -1 : 1);
+              } else if (e.key === "Escape") {
+                e.preventDefault();
+                e.stopPropagation();
+                closeFind();
+                editor?.commands.focus();
+              }
+            }}
+            placeholder={t("workspace:editor.findPlaceholder")}
+            className="h-6 w-40 rounded-[var(--radius-sm)] border border-border-subtle bg-input px-2 text-3xs text-text-primary outline-none focus-visible:border-accent-color sm:w-52"
+            aria-label={t("workspace:editor.findPlaceholder")}
+          />
+          <span className="min-w-12 shrink-0 text-center text-3xs tabular-nums text-text-tertiary">
+            {findCount.total > 0 ? `${findCount.idx}/${findCount.total}` : findQuery.trim() ? t("workspace:editor.findNoMatch") : "0/0"}
+          </span>
+          <Button variant="ghost" size="sm" className="h-6 px-1.5" onClick={() => findStep(editor, -1)} aria-label={t("workspace:editor.findPrev")}>
+            <ChevronUp size={ICON.xs} />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-6 px-1.5" onClick={() => findStep(editor, 1)} aria-label={t("workspace:editor.findNext")}>
+            <ChevronDown size={ICON.xs} />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-6 px-1.5" onClick={closeFind} aria-label={t("common:action.close")}>
+            <X size={ICON.xs} />
+          </Button>
+        </div>
+      ) : null}
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
         <div
           className={cn(
             "v4-editor-scroll v4-editor-canvas min-h-0 flex-1 overflow-auto",

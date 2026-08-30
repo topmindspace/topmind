@@ -29,6 +29,7 @@
 6. **Capture vocabulary** — **Note it** (full capture · 记一下) ≠ **Log it** (stream composer · 记下)  
 7. **Localized AI** — suggestion / todo / op chrome follows host UI language; Agent and inline rewrite follow explicit request → source script → workspace locale (`lib/ai-output-locale.mjs`)  
 8. **Manage & Updates** — detects agent hosts · browser · Obsidian; installs / upgrades / uninstalls Skills, Clip, and the plugin (browser side is guided load-unpacked, never silent inject); unified update check and health diagnosis
+9. **Optional bookkeeping** — enable-gated mini-app (`memory/ledgers/`; Apps menu / StatusBar / ⌘K). Not a 6th user concept or PrimaryNav item.
 
 ---
 

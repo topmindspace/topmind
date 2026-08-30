@@ -6,16 +6,19 @@
     "environment": "环境",
     "agent": "智能体",
     "extensions": "扩展",
-    "manage": "管理与更新"
+    "manage": "管理"
   },
   "tabs": {
     "general": "通用",
     "workspace": "工作区",
     "ai": "AI",
-    "skills": "Skills",
-    "tools": "Tools",
+    "skills": "技能",
+    "tools": "工具",
     "plugins": "插件",
-    "manage": "管理与更新"
+    "manage": "管理与更新",
+    "about": "关于与更新",
+    "integrations": "集成",
+    "diagnostics": "诊断"
   },
   "tabDesc": {
     "general": "外观、布局、编辑器与保存 · 改动自动保存",
@@ -27,7 +30,11 @@
     "manage": "更新检查 · 模块安装与升级 · 健康诊断",
     "topmind-ingest.settings": "文档转 Markdown、原件策略、pandoc/markitdown",
     "topmind-weread.settings": "API Key、同步类别与预算 · Key 加密存储",
-    "topmind-x.settings": "Bearer 只读 + 本机 xurl 发帖"
+    "topmind-x.settings": "Bearer 只读 + 本机 xurl 发帖",
+    "topmind-ledger.settings": "按角色记账 · 账本在记忆平面 ledgers/",
+    "about": "版本与四表面更新检查",
+    "integrations": "Skills / 剪藏 / Obsidian 模块安装与升级",
+    "diagnostics": "环境命令 · UTR 健康诊断"
   },
   "tabHelp": {
     "general": "关闭设置时会冲刷未落盘项。密钥相关在 AI 页，经 safeStorage 加密。",
@@ -39,7 +46,8 @@
     "manage": "启动时自动检查各表面更新（Desktop / Skills / Clip / Obsidian）；状态栏显示可更新徽章，点击进入此页。诊断信息仅本机，不上传。",
     "topmind-ingest.settings": "默认只落 Markdown；可开保留原件到 99-Archive。",
     "topmind-weread.settings": "同步预算与类别影响落盘位置。",
-    "topmind-x.settings": "MCP 端点仅供外部 Agent 宿主参考，Desktop 本身不走 MCP。"
+    "topmind-x.settings": "MCP 端点仅供外部 Agent 宿主参考，Desktop 本身不走 MCP。",
+    "topmind-ledger.settings": "默认开启；关掉后 Apps 菜单与状态栏不再列出。"
   },
   "general": {
     "appearance": "外观与布局",
@@ -127,7 +135,7 @@
     "writebackAuto": "自动保存",
     "writebackConfirm": "保存前问我",
     "writebackHelpAuto": "自动保存 · AI 可写入文件。锁定覆盖/删除会进归档；普通开放笔记删除不进回收站。",
-    "writebackHelpConfirm": "保存前问我 · AI 仍可调用写工具；结果进入「待确认写入」队列，你接受后才落盘。系统可自动准备建议，重要记忆写入须你确认。", 
+    "writebackHelpConfirm": "保存前问我 · AI 仍可调用写工具；结果进入「待确认写入」队列，你接受后才落盘。系统可自动准备建议，重要记忆写入须你确认。",
     "autoPrepareSuggestions": "自动准备 AI 建议",
     "autoPrepareSuggestionsDesc": "工作区就绪后扫描可整理项（Inbox / 陈旧专题 / 记忆候选）。已配置模型时可能调用 AI 做提炼；不静默落盘，确认后才执行。关则仅手动点刷新，省 Token。",
     "autoMaintainTodos": "自动 AI 整理待办",
@@ -175,11 +183,11 @@
     "shortcutCommand": "命令 / 搜索",
     "shortcutSettings": "设置",
     "shortcutSave": "保存",
-"shortcutNav": "收件箱 / 写出来 / 归档",
-"shortcutStream": "动态",
-"shortcutTodo": "待办清单",
-"shortcutKanban": "侧栏看板",
-"shortcutSidebarViews": "侧栏视图",
+    "shortcutNav": "收件箱 / 写出来 / 归档",
+    "shortcutStream": "动态",
+    "shortcutTodo": "待办清单",
+    "shortcutKanban": "侧栏看板",
+    "shortcutSidebarViews": "侧栏视图",
     "shortcutFocusMode": "专注模式",
     "shortcutTaskPanel": "任务面板",
     "shortcutHistory": "后退 / 前进",
@@ -273,7 +281,7 @@
     "noWorkspace": "未选择工作区",
     "openWorkspace": "打开工作区",
     "template": "模板",
-    "templateDesc": "初始化类别结构",
+    "templateDesc": "出厂角色表（默认 stream）",
     "reloadTemplate": "重新加载",
     "views": "侧栏视图",
     "viewsDesc": "勾选启用的视图",
@@ -301,7 +309,6 @@
     "pathLabel": "路径",
     "pathDesc": "绝对路径 · 只读",
     "templateLabel": "模板",
-    "templateDesc": "出厂角色表（默认 stream）",
     "separatorLabel": "大类分隔符",
     "separatorDesc": "会重命名物理目录并重载",
     "separatorDash": "连字符 -（推荐）",
@@ -425,8 +432,8 @@
     "topmindDesktop": "topmind Desktop",
     "noWorkspace": "（未打开工作区）",
     "updateTitle": "更新",
-"updateDesc": "Desktop / Skills / 剪藏 / Obsidian — 每个表面独立检查远端 GitHub Release 版本",
-"updateHelp": "先检查公共 latest.json（CDN，无需 API），再查询 GitHub API 以捕获 latest.json 遗漏的表面独立发布（obsidian-v*、skills-v* 等）。API 为非阻塞式：如果被限流或无法访问，自动回退到 latest.json。Skills、剪藏扩展、Obsidian 插件均随引擎打包。",
+    "updateDesc": "Desktop / Skills / 剪藏 / Obsidian — 每个表面独立检查远端 GitHub Release 版本",
+    "updateHelp": "先检查公共 latest.json（CDN，无需 API），再查询 GitHub API 以捕获 latest.json 遗漏的表面独立发布（obsidian-v*、skills-v* 等）。API 为非阻塞式：如果被限流或无法访问，自动回退到 latest.json。Skills、剪藏扩展、Obsidian 插件均随引擎打包。",
     "checkButton": "检查",
     "openReleasesTooltip": "打开 GitHub Releases",
     "checkFailed": "检查失败",
@@ -434,8 +441,8 @@
     "openReleases": "打开 Releases",
     "inlineInstall": "下载并内联安装",
     "inlineInstallOk": "{{surface}} 已升级到 v{{version}}",
-"installedVsBundled": "已安装 v{{installed}} · 捆绑 v{{bundled}}",
-"bundledVersion": "捆绑 v{{version}}",
+    "installedVsBundled": "已安装 v{{installed}} · 捆绑 v{{bundled}}",
+    "bundledVersion": "捆绑 v{{version}}",
     "clickToCheck": "点击检查获取线上版本（latest.json + GitHub API，无需 token）",
     "healthTitle": "健康",
     "healthDesc": "Desktop 原生巡检 + 捆绑 UTR 诊断（子进程无额外 Dock 图标）",
@@ -501,7 +508,8 @@
     "replacesVersion": "（当前 v{{version}}）",
     "permissionsLabel": "权限声明",
     "slotsLabel": "槽位",
-    "trustModel": "信任模型 = 用户自装：插件与应用同进程运行。权限做软性约束，非沙箱隔离。仅安装你信任的来源。"
+    "trustModel": "信任模型 = 用户自装：插件与应用同进程运行。权限做软性约束，非沙箱隔离。仅安装你信任的来源。",
+    "topmind-ledger.settings": "默认开启；关掉后 Apps 菜单与状态栏入口消失。"
   },
   "ai": {
     "notConfigured": "未配置",
@@ -537,7 +545,9 @@
     "badgeToolCall": "支持工具调用",
     "badgeReasoning": "推理模型",
     "badgeContext": "上下文窗口：{{count}} tokens",
-    "badgeCost": "价格（输入/输出，每百万 tokens）：{{cost}}"
+    "badgeCost": "价格（输入/输出，每百万 tokens）：{{cost}}",
+    "modelFilterPlaceholder": "筛选模型…",
+    "modelFilterNoMatch": "无匹配模型"
   },
   "tools": {
     "jsonErrorObject": "输入须为 JSON 对象",

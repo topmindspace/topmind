@@ -10,6 +10,7 @@ import { onLocal, emitLocal } from "../../plugins/host";
 import { registry } from "../../plugins/registry";
 import { matchWorkbenchShortcut } from "../../lib/shortcuts";
 import { runOverlayCloseGuard } from "../../lib/overlay-close-guard";
+import { getFocusable } from "../ui/Dialog";
 import { LazyBoundary } from "../ui/LazyBoundary";
 import type { OverlayKind, Selection } from "../../types";
 import { cn } from "../../lib/cn";
@@ -28,6 +29,9 @@ const SettingsDialog = lazy(() =>
 );
 const LoopReport = lazy(() =>
   import("../overlays/LoopReport").then((m) => ({ default: m.LoopReport })),
+);
+const PluginAppSurface = lazy(() =>
+  import("../overlays/PluginAppSurface").then((m) => ({ default: m.PluginAppSurface })),
 );
 
 function isEditableTarget(t: EventTarget | null): boolean {
@@ -54,6 +58,7 @@ export function OverlayHost() {
   const fileTabs = useViewStore((s) => s.fileTabs);
   const selection = useViewStore((s) => s.selection);
   const prevFocusRef = useRef<HTMLElement | null>(null);
+  const panelWrapRef = useRef<HTMLDivElement>(null);
 
   // Close through the active overlay's guard (settings flush) — closeOverlay
   // alone would unmount before the debounced batch is persisted.
@@ -94,6 +99,54 @@ export function OverlayHost() {
     return () => window.clearTimeout(t);
   }, []);
 
+  // Initial focus: if the overlay body didn't autofocus anything (e.g.
+  // Settings), bring focus inside the dialog so Tab starts in the right place.
+  useEffect(() => {
+    if (overlay === "none") return;
+    const wrap = panelWrapRef.current;
+    if (!wrap) return;
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && wrap.contains(active)) return;
+    const focusables = getFocusable(wrap);
+    requestAnimationFrame(() => (focusables[0] ?? wrap).focus());
+  }, [overlay]);
+
+  // Tab trap (bubble phase): cycle focus inside the overlay panel. Yields to
+  // dialogs/portaled surfaces — anything that already default-prevented the
+  // event, and to `.v4-menu-surface` portals that live outside this subtree.
+  useEffect(() => {
+    if (overlay === "none") return;
+    const onTrap = (e: KeyboardEvent) => {
+      if (e.key !== "Tab" || e.defaultPrevented) return;
+      const wrap = panelWrapRef.current;
+      if (!wrap) return;
+      const active = document.activeElement;
+      if (!(active instanceof Element)) return;
+      if (!wrap.contains(active)) {
+        // Focus escaped to a portaled menu surface — leave it alone.
+        if (active.closest(".v4-menu-surface, [role='listbox']")) return;
+        const focusables = getFocusable(wrap);
+        e.preventDefault();
+        (focusables[0] ?? wrap).focus();
+        return;
+      }
+      const focusables = getFocusable(wrap);
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const activeEl = active;
+      if (e.shiftKey && activeEl === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && activeEl === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener("keydown", onTrap);
+    return () => window.removeEventListener("keydown", onTrap);
+  }, [overlay]);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const hit = matchWorkbenchShortcut(e);
@@ -120,12 +173,20 @@ export function OverlayHost() {
           }
           break;
         }
-        case "overlay":
-          openOverlay(hit.action.kind as OverlayKind, {
-            intent: hit.action.intent as "capture" | "memory" | undefined,
-            topicId: hit.action.topicId,
-          });
+        case "overlay": {
+          const kind = hit.action.kind as OverlayKind;
+          // Toggle semantics: invoking the shortcut for the already-open
+          // surface dismisses it (⌘K ⌘K closes the palette).
+          if (useViewStore.getState().overlay === kind) {
+            void requestCloseOverlay();
+          } else {
+            openOverlay(kind, {
+              intent: hit.action.intent as "capture" | "memory" | undefined,
+              topicId: hit.action.topicId,
+            });
+          }
           break;
+        }
         case "navigate":
           void requestCloseOverlay();
           select(hit.action.selection);
@@ -158,6 +219,15 @@ export function OverlayHost() {
         case "close-all-tabs":
           closeAllFileTabs({ closePinned: false });
           break;
+        case "toggle-split": {
+          // 对照 split: only meaningful on a file selection; toggles the
+          // secondary pane for the active file.
+          const st = useViewStore.getState();
+          if (st.selection.kind !== "file") break;
+          if (st.splitSecondaryPath === st.selection.path) st.clearSplit();
+          else st.openInSplit(st.selection.path);
+          break;
+        }
       }
     };
     window.addEventListener("keydown", handler);
@@ -193,17 +263,23 @@ export function OverlayHost() {
 
   useEffect(() => {
     const unsub = onLocal("overlay:open", (payload) => {
-      const p = payload as { kind?: string; intent?: "capture" | "memory"; topicId?: string };
+      const p = payload as {
+        kind?: string;
+        intent?: "capture" | "memory";
+        topicId?: string;
+        pluginId?: string;
+        loopReport?: import("../../types").LoopReportPayload;
+      };
       if (p?.kind === "quick-capture")
         openOverlay("quick-capture", { intent: p.intent, topicId: p.topicId });
       else if (p?.kind === "command-palette") openOverlay("command-palette");
       else if (p?.kind === "search") openOverlay("search");
       else if (p?.kind === "settings") openOverlay("settings", { topicId: p.topicId });
       else if (p?.kind === "loop-report")
-        openOverlay("loop-report", {
-          loopReport: (p as { loopReport?: unknown }).loopReport as import("../../types").LoopReportPayload,
-        });
-      else if (p?.kind) openOverlay(p.kind as OverlayKind);
+        openOverlay("loop-report", { loopReport: p.loopReport });
+      else if (p?.kind === "plugin-app")
+        openOverlay("plugin-app", { pluginId: p.pluginId });
+      else if (p?.kind) openOverlay(p.kind as OverlayKind, p);
     });
     return unsub;
   }, [openOverlay]);
@@ -220,12 +296,18 @@ export function OverlayHost() {
   if (overlay === "none") return null;
 
   const isPalette = overlay === "command-palette" || overlay === "search";
+  const isMiniApp = overlay === "plugin-app";
 
   return (
     <div
       onClick={() => void requestCloseOverlay()}
       onContextMenu={(e) => {
-        // Don't let native menu appear over our overlays
+        // Native edit menu stays available in text fields (paste/look-up);
+        // suppress it only over non-editable overlay chrome.
+        const el = e.target as HTMLElement | null;
+        if (el?.closest?.("input, textarea, select, [contenteditable='true'], .ProseMirror")) {
+          return;
+        }
         e.preventDefault();
       }}
       role="presentation"
@@ -233,13 +315,16 @@ export function OverlayHost() {
         // Solid scrim — no full-viewport blur (major open jank)
         "fixed inset-0 z-overlay flex justify-center bg-scrim animate-fade-in",
         isPalette ? "items-start pt-[9vh] sm:pt-[11vh]" : "items-center",
+        isMiniApp && "p-3 sm:p-6",
       )}
     >
       <div
+        ref={panelWrapRef}
         onClick={(e) => e.stopPropagation()}
+        tabIndex={-1}
         className={cn(
-          "v4-panel-contain max-h-[90vh]",
-          isPalette ? "max-w-[min(96vw,620px)]" : "max-w-[min(96vw,1040px)]",
+          "v4-panel-contain max-h-[90vh] outline-none",
+          isPalette ? "max-w-[min(96vw,620px)]" : isMiniApp ? "max-w-[min(96vw,880px)] w-full" : "max-w-[min(96vw,1040px)]",
         )}
       >
         <LazyBoundary
@@ -265,6 +350,8 @@ function Overlay({ kind }: { kind: OverlayKind }) {
       return <SettingsDialog />;
     case "loop-report":
       return <LoopReport />;
+    case "plugin-app":
+      return <PluginAppSurface />;
     default: {
       const slot = registry.resolveOverlay(kind);
       if (slot) return <>{slot.render()}</>;

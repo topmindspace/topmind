@@ -23,6 +23,7 @@ skills/
 ├── topmind/                 # 唯一日常入口（router）
 ├── topmind-capture|organize|write|memory|maintain|loop/
 ├── topmind-weread|x/        # 可选连接器
+├── topmind-ledger/          # 可选记账（记忆平面账本）
 ├── shared/                  # 写回回执 · 降级 · 捕获 …
 ├── install-targets/         # Host 安装形状
 ├── evals/evals.json
@@ -34,6 +35,7 @@ skills/
 | **入口** | `topmind` only |
 | **动作** | capture · organize · write · memory · maintain · loop |
 | **连接器** | weread · x（可选） |
+| **可选** | ledger（记账 · 记忆平面账本） |
 
 > 子 skill 触发词只服务 Host 路由，**不是**第二前台入口。
 
@@ -85,7 +87,7 @@ degradation: ../shared/capability-degradation.md
 ```text
 {workspace-root}/
 ├── topmind.yaml                # contract v4
-├── memory/                     # profile.md · periodic/ · topics/
+├── memory/                     # profile.md · periodic/ · topics/ · todo.md · 可选 ledgers/
 ├── .topmind/                   # rebuildable machine state
 ├── 00-收件箱/ or 00-Inbox/     # role: buffer (live dir name)
 ├── 10-动态/ …                  # categories (template-driven)
@@ -140,7 +142,7 @@ degradation: ../shared/capability-degradation.md
 
 ## 安装目标
 
-九个 skill 目录（7 个核心 + 2 个连接器）可以符号链接或复制到 Claude Code、Codex、OpenCode、Hermes 等。  
+已打包的 skill 目录（7 个核心 + 2 个可选连接器 + 可选记账）可以符号链接或复制到 Claude Code、Codex、OpenCode、Hermes 等。  
 优先使用 pack-aware 安装器，保证 `shared/` 与 `topmind-pack.json` 完整 — 见 [`INSTALL.md`](./INSTALL.md)。
 
 Host 适配器**不得**改变内容真源、新增并列日常入口，或把内容存进 agent 运行态。见 [`../PRODUCT-BOUNDARIES.md`](../PRODUCT-BOUNDARIES.md)。

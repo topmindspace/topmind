@@ -3,6 +3,7 @@
  * useCaptureDrop owns the sheet-level paste / drag-drop wiring for files.
  */
 import { useState } from "react";
+import { modKey } from "../../lib/shortcuts";
 import { FileText, FolderOpen, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ICON } from "../../lib/icons";
@@ -133,7 +134,7 @@ export function CaptureDropHint({ visible }: { visible: boolean }) {
   return (
     <div className="mb-2 flex flex-col items-center gap-1 rounded-[var(--radius-lg)] border border-dashed border-border-subtle px-3 py-4 text-center">
       <FolderOpen size={ICON.md} className="text-text-quaternary" />
-      <div className="text-3xs text-text-tertiary">{t("overlays:capture.dropHint")}</div>
+      <div className="text-3xs text-text-tertiary">{t("overlays:capture.dropHint", { mod: modKey() })}</div>
     </div>
   );
 }

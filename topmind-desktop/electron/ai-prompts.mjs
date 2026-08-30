@@ -377,6 +377,7 @@ export function getSkillPrompts(locale) {
       topmind: "Help me choose a flow and handle this:",
       weread: "WeRead related (load_skill topmind-weread first).",
       x: "X/Twitter related (load_skill topmind-x first).",
+      ledger: "Bookkeeping on the memory-plane ledgers (load_skill topmind-ledger first).",
     };
   }
   return {
@@ -389,6 +390,7 @@ export function getSkillPrompts(locale) {
     topmind: "帮我判断流程并处理：",
     weread: "微信读书相关（先 load_skill topmind-weread）。",
     x: "X/Twitter 相关（先 load_skill topmind-x）。",
+    ledger: "记账到记忆平面账本（先 load_skill topmind-ledger）。",
   };
 }
 

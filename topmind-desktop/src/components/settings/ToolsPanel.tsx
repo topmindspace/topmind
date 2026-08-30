@@ -145,7 +145,7 @@ export function ToolsPanel({ settings }: { settings: AppSettings }) {
     setError(null);
     setResult(null);
     try {
-      const res = await api.tool.run({ kind, command, input, reviewed: true });
+      const res = await api.tool.run({ kind, command, input, reviewed: false });
       setResult(JSON.stringify(res, null, 2));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

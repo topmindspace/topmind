@@ -156,7 +156,7 @@ async function ensureHighlighter(tabId) {
  */
 async function runClip(tab, opts = {}) {
   const startedAt = Date.now();
-  await setBadge("…", "#31548e");
+  await setBadge("…", "#0284c7");
   const forcedSelection = opts.forcedSelection;
 
   let extracted;

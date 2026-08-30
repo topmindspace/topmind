@@ -86,6 +86,8 @@
     "suggestionsLoading": "准备建议…",
     "periodSwitcher": "周期本",
     "unreconciled": "未整理",
+    "unreconciledShort": "未整理",
+    "packingCurrentShort": "当前",
     "openInEditor": "在编辑器中打开",
     "expand": "展开",
     "collapse": "收起",
@@ -155,6 +157,7 @@
     "kindProfile": "画像",
     "kindPeriodic": "周期反思",
     "kindTopic": "专题记忆",
+    "kindHistory": "历史记录",
     "layerAll": "全部",
     "layerFilter": "记忆层",
     "organize": "整理我的情况",
@@ -280,6 +283,9 @@
     "exportBtn": "导出选定",
     "badgePublished": "已发布",
     "badgeDraft": "草稿",
+    "groupToday": "今天",
+    "groupYesterday": "昨天",
+    "groupOlder": "更早",
     "metaPublished": "发布于 {{when}}",
     "exportHtml": "导出 HTML",
     "exportHtmlDone": "已导出 HTML 到 {{path}}",
@@ -304,7 +310,14 @@
     "permanentlyDelete": "永久删除",
     "toastRestored": "✓ 已恢复 {{count}} 个项目",
     "goStream": "动态",
-    "goStreamTip": "回到本周动态"
+    "goStreamTip": "回到本周动态",
+    "layerFilter": "归档层",
+    "layerAll": "全部",
+    "layerReceipt": "回执",
+    "layerBackup": "备份",
+    "layerTrash": "回收",
+    "layerOther": "其他",
+    "viewOnly": "只读查看"
   },
   "preview": {
     "outline": "大纲目录",
@@ -364,7 +377,9 @@
     "wordCountTitle": "词数（正文）",
     "focusModeOn": "专注模式 · ⌘⌥F",
     "focusModeOff": "退出专注 · Esc / ⌘⌥F",
-    "moreActions": "更多操作"
+    "moreActions": "更多操作",
+    "h4": "四级标题",
+    "taskList": "任务列表"
   },
   "editor": {
     "placeholder": "开始写…",
@@ -399,7 +414,13 @@
     "modifiedTime": "修改 {{time}}",
     "noFrontmatterFields": "无 frontmatter 字段 · 可用上方状态/优先级/日期写入",
     "fileOpsEllipsis": "文件操作…",
-    "imageSaveFailed": "图片保存失败"
+    "imageInsertCapped": "{{oversized}} 张图片超过 8MB 未插入 · 另有 {{overCap}} 张超出单次上限",
+    "imageSaveFailed": "图片保存失败",
+    "findAria": "笔记内查找",
+    "findPlaceholder": "查找…",
+    "findNoMatch": "无匹配",
+    "findPrev": "上一个",
+    "findNext": "下一个"
   },
   "skills": {
     "capture": "记一下 — 完整捕获",

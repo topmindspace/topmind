@@ -7,7 +7,7 @@
  * only when the period note changed or it produced candidates.
  */
 
-export type EngineJobType = "reconcile" | "ai_digest";
+export type EngineJobType = "reconcile" | "ai_digest" | "memory_organize";
 
 export type EngineJobFollowUpInput = {
   type: EngineJobType;
@@ -33,7 +33,7 @@ export type EngineJobFollowUp = {
 export function engineJobSuggestionFollowUp(
   input: EngineJobFollowUpInput,
 ): EngineJobFollowUp {
-  if (input.type === "ai_digest") {
+  if (input.type === "ai_digest" || input.type === "memory_organize") {
     const hasCards = (input.merged ?? 0) > 0 || (input.suggestionCount ?? 0) > 0;
     return {
       emitSuggestionsRefresh: false,

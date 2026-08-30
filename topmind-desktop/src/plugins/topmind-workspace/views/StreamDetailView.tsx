@@ -36,6 +36,9 @@ import {
   FeedChrome,
 } from "../../../components/ui/view";
 import { Button } from "../../../components/ui/Button";
+import { ConfirmDialog } from "../../../components/ui/Dialog";
+import { LedgerQuickEntry, looksLikeLedgerText } from "../../../components/overlays/LedgerQuickEntry";
+import { getCachedSettings, setCachedSettings } from "../../../lib/settings-cache";
 import { Tooltip } from "../../../components/ui/tooltip";
 import { ICON } from "../../../lib/icons";
 import { cn } from "../../../lib/cn";
@@ -420,6 +423,24 @@ interface StreamContext {
   periodTitle: string | null;
 }
 
+/** True when a day-group key (ISO / MM-DD / M月D日) is the actual current day. */
+function isTodayGroupKey(dayKey: string): boolean {
+  const now = new Date();
+  const iso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  if (dayKey === iso) return true;
+  const md = `${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  if (dayKey === `md-${md}`) return true;
+  return dayKey === `cn-${now.getMonth() + 1}-${now.getDate()}`;
+}
+
+/** Session-scoped composer drafts — the view unmounts on any selection
+ * change, and a half-written moment must survive navigating away. Cleared on
+ * successful submit. */
+const composeDrafts = new Map<string, string>();
+const appendDrafts = new Map<string, string>();
+const appendDraftKey = (period: string | null | undefined, heading?: string | null) =>
+  `${period ?? ""}#${heading ?? ""}`;
+
 export function StreamDetailView() {
   const { t } = useTranslation(["workspace", "shell", "common"]);
   const [entries, setEntries] = useState<StreamEntry[]>([]);
@@ -432,6 +453,22 @@ export function StreamDetailView() {
   const [showMoreThisYear, setShowMoreThisYear] = useState(false);
   const [expandedPastYear, setExpandedPastYear] = useState<string | null>(null);
   const [archivingYear, setArchivingYear] = useState<string | null>(null);
+  /** Archive-year confirm gate (ConfirmDialog replaces native window.confirm). */
+  const [archiveConfirm, setArchiveConfirm] = useState<{ year: string; count: number } | null>(null);
+  // 记账 × 记下：composer 检测到记账口令时注入口（enable-gated；非第六概念）
+  const [ledgerEnabled, setLedgerEnabled] = useState(
+    () => getCachedSettings()?.ledger?.enabled !== false,
+  );
+  useEffect(() => {
+    const refreshFrom = (s: { ledger?: { enabled?: boolean } } | null | undefined) =>
+      setLedgerEnabled(s?.ledger?.enabled !== false);
+    const unsub = onLocal("plugins:settings-changed", () => refreshFrom(getCachedSettings()));
+    void api.sys.settings().then((s) => {
+      setCachedSettings(s);
+      refreshFrom(s);
+    }).catch(() => {});
+    return unsub;
+  }, []);
   const [pastYearPeriods, setPastYearPeriods] = useState<Record<string, PeriodInfo[]>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -446,6 +483,12 @@ export function StreamDetailView() {
   /** Compose URL detection — when true, show hint to open Note it (记一下) for fetch. */
   const composeIsUrl = useMemo(
     () => /^https?:\/\/\S+$/iu.test(composeText.trim()),
+    [composeText],
+  );
+
+  // 记账意图检测 — 驱动记下区域上方的快速记账注入口
+  const composerLooksLedger = useMemo(
+    () => looksLikeLedgerText(composeText),
     [composeText],
   );
   /** Entry index currently showing in-card append composer */
@@ -466,6 +509,20 @@ export function StreamDetailView() {
   const aiReady = useAiStore((s) => s.runtimeStatus?.ready ?? false);
 
   const activePath = viewPeriodPath ?? ctx?.periodRelPath ?? null;
+
+  // Draft persistence: hydrate on period switch, store on every keystroke.
+  useEffect(() => {
+    setComposeText(activePath ? composeDrafts.get(activePath) ?? "" : "");
+  }, [activePath]);
+  const updateComposeText = useCallback(
+    (v: string) => {
+      setComposeText(v);
+      if (!activePath) return;
+      if (v.trim()) composeDrafts.set(activePath, v);
+      else composeDrafts.delete(activePath);
+    },
+    [activePath],
+  );
 
   // Lazy-load personal list count when Stream mounts (does not open popover).
   useEffect(() => {
@@ -549,11 +606,11 @@ export function StreamDetailView() {
     }
   }, [pastYearPeriods]);
 
-  const handleArchiveYear = useCallback(async (year: string, count: number) => {
-    const confirmed = window.confirm(
-      t("workspace:streamDetail.archiveYearConfirm", { year, count }),
-    );
-    if (!confirmed) return;
+  const handleArchiveYear = useCallback((year: string, count: number) => {
+    setArchiveConfirm({ year, count });
+  }, []);
+
+  const runArchiveYear = useCallback(async (year: string) => {
     setArchivingYear(year);
     try {
       const result = await api.ws.archiveStreamYear(year);
@@ -728,7 +785,7 @@ export function StreamDetailView() {
       if (polishSessionRef.current !== sessionId) return;
       if (!useInlineAiStore.getState().sessions.some((s) => s.id === sessionId)) return;
       if (polished) {
-        setComposeText(polished);
+        updateComposeText(polished);
         emitLocal("toast:show", t("workspace:streamDetail.composeAiPolishDone"));
       }
     } catch (e) {
@@ -793,6 +850,7 @@ export function StreamDetailView() {
           toastWritebackError(t("workspace:streamDetail.appendFail"), res.userMessage || "failed");
           return;
         }
+        appendDrafts.delete(appendDraftKey(activePath, entry.heading || entry.preview));
         setAppendText("");
         setAppendIdx(null);
         toastWriteback(t("workspace:streamDetail.appendOk"), res);
@@ -829,7 +887,7 @@ export function StreamDetailView() {
         toastWritebackError(t("workspace:streamDetail.composeFail"), res.userMessage || "failed");
         return;
       }
-      setComposeText("");
+      updateComposeText("");
       toastWriteback(t("workspace:streamDetail.composeOk"), res);
       emitLocal("workspace:file-changed", { relativePath: res.path || res.targetPath });
       // Prefer the period we just wrote
@@ -848,7 +906,7 @@ export function StreamDetailView() {
     } finally {
       setComposing(false);
     }
-  }, [composeText, composing, t, activePath, loadPeriodContent, loadPeriods]);
+  }, [composeText, composing, t, activePath, loadPeriodContent, loadPeriods, updateComposeText]);
 
   const handleOpenPeriod = useCallback(
     (focusHeading?: string) => {
@@ -1030,7 +1088,9 @@ export function StreamDetailView() {
       dayGroups.forEach((g, i) => {
         if (!seenDayKeysRef.current.has(g.dayKey)) {
           seenDayKeysRef.current.add(g.dayKey);
-          if (i > 0) next.add(g.dayKey);
+          // Two newest days start expanded — weekly review shouldn't cost a
+          // click per day; older days stay collapsed for density.
+          if (i > 1) next.add(g.dayKey);
         }
       });
       for (const k of Array.from(next)) {
@@ -1069,7 +1129,7 @@ export function StreamDetailView() {
 
   if (loading) {
     return (
-      <ViewContainer>
+      <ViewContainer variant="feed">
         <LoadingState label={t("shell:sidebar.stream.loading")} />
       </ViewContainer>
     );
@@ -1077,7 +1137,7 @@ export function StreamDetailView() {
 
   if (error) {
     return (
-      <ViewContainer>
+      <ViewContainer variant="feed">
         <ErrorState
           message={error}
           onRetry={() => {
@@ -1112,7 +1172,7 @@ export function StreamDetailView() {
   }
 
   return (
-    <ViewContainer>
+    <ViewContainer variant="feed">
       <PageHeader
         icon={<CalendarDays size={ICON.sm} />}
         title={periodTitle}
@@ -1162,11 +1222,13 @@ export function StreamDetailView() {
               >
                 <span className="truncate">{p.title || p.fileName}</span>
                 {isPackingCurrent && !isActive ? (
-                  <span className="ml-0.5 shrink-0 text-text-quaternary">·</span>
+                  <span className="ml-0.5 shrink-0 rounded-full bg-accent-bg-subtle px-1 text-3xs font-medium leading-4 text-accent-color">
+                    {t("workspace:streamDetail.packingCurrentShort")}
+                  </span>
                 ) : null}
                 {!p.reconciled && !isActive ? (
-                  <span className="ml-0.5 shrink-0 text-warning/80" aria-hidden>
-                    ·
+                  <span className="ml-0.5 shrink-0 rounded-full bg-warning/10 px-1 text-3xs font-medium leading-4 text-warning">
+                    {t("workspace:streamDetail.unreconciledShort")}
                   </span>
                 ) : null}
               </button>
@@ -1344,7 +1406,7 @@ export function StreamDetailView() {
             type="button"
             onClick={() => {
               emitLocal("overlay:open", { kind: "quick-capture", prefill: { source: composeText.trim() } } as never);
-              setComposeText("");
+              updateComposeText("");
             }}
             className="shrink-0 rounded-full bg-accent-bg-subtle px-2 py-0.5 text-3xs font-medium text-accent-color hover:bg-accent-bg-faint/40 v4-focus-ring"
           >
@@ -1363,6 +1425,13 @@ export function StreamDetailView() {
         <label className="sr-only" htmlFor="stream-inline-compose">
           {t("workspace:streamDetail.composePlaceholder")}
         </label>
+        {ledgerEnabled && composerLooksLedger ? (
+          <LedgerQuickEntry
+            content={composeText}
+            visible
+            onSaved={() => updateComposeText("")}
+          />
+        ) : null}
         <textarea
           id="stream-inline-compose"
           ref={composeRef}
@@ -1370,7 +1439,7 @@ export function StreamDetailView() {
           value={composeText}
           disabled={composing}
           placeholder={t("workspace:streamDetail.composePlaceholder")}
-          onChange={(e) => setComposeText(e.target.value)}
+          onChange={(e) => updateComposeText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
               e.preventDefault();
@@ -1482,7 +1551,7 @@ export function StreamDetailView() {
         />
       ) : (
         <div
-          className={cn("v4-feed space-y-3", feedLayout === "card" ? "v4-feed-card" : "v4-feed-list")}
+          className={cn("v4-feed", feedLayout === "card" ? "v4-feed-card" : "v4-feed-list")}
           data-stream-feed
           data-layout={feedLayout}
         >
@@ -1496,7 +1565,7 @@ export function StreamDetailView() {
                   gi === 0 && isCurrentPeriod && "ring-1 ring-inset ring-accent-color/10 rounded-lg",
                 )}
                 data-stream-day-group
-                data-stream-day-today={gi === 0 && isCurrentPeriod ? "true" : undefined}
+                data-stream-day-today={isTodayGroupKey(group.dayKey) && isCurrentPeriod ? "true" : undefined}
               >
                 <button
                   type="button"
@@ -1519,9 +1588,14 @@ export function StreamDetailView() {
                   <span className="tabular-nums text-3xs text-text-quaternary">
                     {rows.length}
                   </span>
-                  {gi === 0 && isCurrentPeriod ? (
+                  {isTodayGroupKey(group.dayKey) && isCurrentPeriod ? (
                     <span className="rounded-full bg-accent-bg-subtle px-1.5 py-px text-3xs font-medium text-accent-color">
                       {t("workspace:streamDetail.todayBadge")}
+                    </span>
+                  ) : null}
+                  {dayCollapsed && rows[0]?.entry.preview ? (
+                    <span className="hidden min-w-0 flex-1 truncate text-3xs text-text-quaternary sm:block">
+                      {rows[0].entry.preview}
                     </span>
                   ) : null}
                 </button>
@@ -1532,7 +1606,7 @@ export function StreamDetailView() {
                       <StreamFeedRowView
                         key={`${group.dayKey}-${row.entry.index}`}
                         row={row}
-                        isToday={gi === 0 && isCurrentPeriod}
+                        isToday={isTodayGroupKey(group.dayKey) && isCurrentPeriod}
                         expanded={expandedIdx.has(row.entry.index)}
                         appendOpen={appendIdx === row.entry.index}
                         appendText={appendText}
@@ -1544,11 +1618,23 @@ export function StreamDetailView() {
                           setAppendIdx((cur) =>
                             cur === row.entry.index ? null : row.entry.index,
                           );
-                          setAppendText("");
+                          setAppendText(
+                            appendDrafts.get(
+                              appendDraftKey(activePath, row.entry.heading || row.entry.preview),
+                            ) ?? "",
+                          );
                         }}
-                        onAppendText={setAppendText}
+                        onAppendText={(v: string) => {
+                          setAppendText(v);
+                          const key = appendDraftKey(activePath, row.entry.heading || row.entry.preview);
+                          if (v.trim()) appendDrafts.set(key, v);
+                          else appendDrafts.delete(key);
+                        }}
                         onAppendSubmit={() => void handleAppendEntry(row.entry)}
                         onAppendCancel={() => {
+                          appendDrafts.delete(
+                            appendDraftKey(activePath, row.entry.heading || row.entry.preview),
+                          );
                           setAppendIdx(null);
                           setAppendText("");
                         }}
@@ -1573,6 +1659,27 @@ export function StreamDetailView() {
         </div>
       )}
       </FeedColumn>
+
+      <ConfirmDialog
+        open={archiveConfirm !== null}
+        title={t("workspace:streamDetail.archiveYear")}
+        description={
+          archiveConfirm
+            ? t("workspace:streamDetail.archiveYearConfirm", {
+                year: archiveConfirm.year,
+                count: archiveConfirm.count,
+              })
+            : ""
+        }
+        confirmText={t("workspace:streamDetail.archiveYear")}
+        destructive
+        onCancel={() => setArchiveConfirm(null)}
+        onConfirm={() => {
+          const year = archiveConfirm?.year;
+          setArchiveConfirm(null);
+          if (year) void runArchiveYear(year);
+        }}
+      />
     </ViewContainer>
   );
 }

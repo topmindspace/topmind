@@ -426,7 +426,9 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
 }
 
 /**
- * Center orientation hint — **file selections only** (click = reveal in OS file manager).
+ * Center orientation hint — **file selections only**.
+ * Primary click focuses the file in the editor (the user's expectation for a
+ * "current file" chip); reveal-in-Finder demotes to the context menu.
  * Non-file views are already identified by the canvas PageHeader + active PrimaryNav
  * pill, so repeating them here was pure noise (降噪 2026-08).
  */
@@ -435,15 +437,15 @@ function SelectionHint({ selection }: { selection: Selection }) {
   const select = useViewStore((s) => s.select);
   if (selection.kind !== "file") return null;
   const label = selection.path.split("/").pop() ?? selection.path;
-  const tip = `${selection.path}\n${t("statusBar.revealFileTip", { defaultValue: "Click to reveal · double-intent: copy path via ⌘C in editor" })}`;
+  const tip = `${selection.path}\n${t("statusBar.fileChipTip", { defaultValue: "点击在编辑器中打开 · 右键在文件夹中显示" })}`;
   return (
     <Tooltip content={tip}>
       <button
         type="button"
-        onClick={() => {
-          void api.ws.reveal(selection.path).catch(() => {
-            select({ kind: "file", path: selection.path });
-          });
+        onClick={() => select({ kind: "file", path: selection.path })}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          void api.sys.reveal(selection.path).catch(() => {});
         }}
         className={cn(
           "flex max-w-full items-center gap-1 truncate rounded-sm px-1.5 py-0.5 text-text-quaternary",

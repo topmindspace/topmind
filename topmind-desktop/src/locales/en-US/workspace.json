@@ -86,6 +86,8 @@
     "suggestionsLoading": "Preparing suggestions…",
     "periodSwitcher": "Periods",
     "unreconciled": "Not organized",
+    "unreconciledShort": "Needs tidy",
+    "packingCurrentShort": "current",
     "openInEditor": "Open in editor",
     "expand": "Expand",
     "collapse": "Collapse",
@@ -155,6 +157,7 @@
     "kindProfile": "Profile",
     "kindPeriodic": "Periodic",
     "kindTopic": "Topic memory",
+    "kindHistory": "History",
     "layerAll": "All",
     "layerFilter": "Memory layers",
     "organize": "Organize My profile",
@@ -280,6 +283,9 @@
     "emptySubtitle": "{{name}} is empty",
     "badgePublished": "Published",
     "badgeDraft": "Draft",
+    "groupToday": "Today",
+    "groupYesterday": "Yesterday",
+    "groupOlder": "Older",
     "metaPublished": "Published {{when}}",
     "exportHtml": "Export HTML",
     "exportHtmlDone": "Exported HTML to {{path}}",
@@ -304,7 +310,14 @@
     "subtitleActionable": "Deletes and important edits land here — restore anytime",
     "restoreLabel": "Restore to",
     "goStream": "Stream",
-    "goStreamTip": "Back to this week's stream"
+    "goStreamTip": "Back to this week's stream",
+    "layerFilter": "Archive layers",
+    "layerAll": "All",
+    "layerReceipt": "Receipts",
+    "layerBackup": "Backups",
+    "layerTrash": "Trash",
+    "layerOther": "Other",
+    "viewOnly": "View only"
   },
   "preview": {
     "outline": "Outline",
@@ -364,7 +377,9 @@
     "wordCountTitle": "Word Count (Body)",
     "focusModeOn": "Focus Mode · ⌘⌥F",
     "focusModeOff": "Exit Focus · Esc / ⌘⌥F",
-    "moreActions": "More Actions"
+    "moreActions": "More Actions",
+    "h4": "Heading 4",
+    "taskList": "Task list"
   },
   "editor": {
     "placeholder": "Start writing…",
@@ -399,7 +414,13 @@
     "modifiedTime": "Modified {{time}}",
     "noFrontmatterFields": "No frontmatter fields · Use status/priority/date above to write",
     "fileOpsEllipsis": "File Operations…",
-    "imageSaveFailed": "Image save failed"
+    "imageInsertCapped": "{{oversized}} images skipped (over 8MB) · {{overCap}} over the per-batch limit",
+    "imageSaveFailed": "Image save failed",
+    "findAria": "Find in note",
+    "findPlaceholder": "Find…",
+    "findNoMatch": "No match",
+    "findPrev": "Previous",
+    "findNext": "Next"
   },
   "skills": {
     "capture": "Note it — full capture",

@@ -3,10 +3,10 @@
  * No parallel store: items name the live workspace-relative path.
  */
 export type MemoryFeedKind = "profile" | "periodic" | "topic";
-export type MemoryFeedLayer = "all" | MemoryFeedKind;
+export type MemoryFeedLayer = "all" | MemoryFeedKind | "history";
 
 export function isMemoryFeedLayer(v: unknown): v is MemoryFeedLayer {
-  return v === "all" || v === "profile" || v === "periodic" || v === "topic";
+  return v === "all" || v === "profile" || v === "periodic" || v === "topic" || v === "history";
 }
 
 export interface MemoryFeedItem {
@@ -19,6 +19,8 @@ export interface MemoryFeedItem {
   body: string;
   /** Optional ## heading inside the file (focus after open). */
   heading?: string;
+  /** Profile facts retired to ## 历史记录 (not deleted). */
+  history?: boolean;
 }
 
 export function filterMemoryFeedByLayer(
@@ -26,7 +28,9 @@ export function filterMemoryFeedByLayer(
   layer: MemoryFeedLayer,
 ): MemoryFeedItem[] {
   const list = Array.isArray(items) ? items : [];
-  if (layer === "all") return list;
+  if (layer === "all") return list.filter((i) => i.history !== true);
+  if (layer === "history") return list.filter((i) => i.history === true);
+  if (layer === "profile") return list.filter((i) => i.kind === "profile" && i.history !== true);
   return list.filter((i) => i.kind === layer);
 }
 
@@ -58,8 +62,47 @@ function titleFromPath(p: string): string {
   return base.replace(/\.md$/iu, "");
 }
 
+const HISTORY_HEADINGS = new Set(["历史记录", "History", "Archived"]);
+
+function listMarkerIndent(line: string): number {
+  const m = String(line || "").match(/^(\s*)(?:[-*+]|\d+\.)\s+\S/u);
+  if (!m) return -1;
+  return m[1].replace(/\t/gu, "  ").length;
+}
+
 function isTopLevelListItem(line: string): boolean {
-  return /^\s{0,3}[-*+]\s+\S/u.test(line) || /^\s{0,3}\d+\.\s+\S/u.test(line);
+  const indent = listMarkerIndent(line);
+  return indent >= 0 && indent <= 3;
+}
+
+function splitFirstLevelListItems(content: string): string[] {
+  const lines = String(content || "").replace(/\r\n/gu, "\n").split("\n");
+  const out: string[] = [];
+  let buf: string[] = [];
+  let baseIndent: number | null = null;
+  const flush = () => {
+    const chunk = buf.join("\n").replace(/^\n+|\n+$/gu, "");
+    buf = [];
+    if (chunk.trim()) out.push(chunk);
+  };
+  for (const line of lines) {
+    const indent = listMarkerIndent(line);
+    if (indent >= 0 && (baseIndent === null || indent <= baseIndent)) {
+      if (baseIndent === null || indent < baseIndent) baseIndent = indent;
+      if (indent === baseIndent) {
+        flush();
+        buf.push(line);
+        continue;
+      }
+    }
+    if (buf.length > 0) {
+      buf.push(line);
+    } else if (line.trim()) {
+      buf.push(line);
+    }
+  }
+  flush();
+  return out;
 }
 
 function previewOf(text: string, max = 180): string {
@@ -103,6 +146,7 @@ function itemsFromBlock(
   const body = String(content || "").trim();
   if (!body) return [];
 
+  const history = HISTORY_HEADINGS.has(heading);
   if (!firstSubstantialIsList(body)) {
     return [
       {
@@ -113,42 +157,26 @@ function itemsFromBlock(
         preview: previewOf(body),
         body,
         heading: heading || undefined,
+        ...(history ? { history: true } : {}),
       },
     ];
   }
 
-  const lines = body.split("\n");
-  const out: MemoryFeedItem[] = [];
-  let buf: string[] = [];
-  const flush = () => {
-    if (buf.length === 0) return;
-    const chunk = buf.join("\n").trim();
-    buf = [];
-    if (!chunk) return;
+  const chunks = splitFirstLevelListItems(body);
+  return chunks.map((chunk, idx) => {
     const first = chunk.split("\n").find((l) => l.trim()) || chunk;
     const title = stripListChrome(first) || heading || previewOf(chunk, 48);
-    out.push({
-      id: `${idPrefix}:${out.length}`,
+    return {
+      id: `${idPrefix}:${idx}`,
       kind,
       path,
       title,
       preview: previewOf(chunk),
       body: chunk,
       heading: heading || undefined,
-    });
-  };
-  for (const line of lines) {
-    if (isTopLevelListItem(line)) {
-      flush();
-      buf.push(line);
-    } else if (buf.length > 0) {
-      buf.push(line);
-    } else if (line.trim()) {
-      buf.push(line);
-    }
-  }
-  flush();
-  return out;
+      ...(history ? { history: true } : {}),
+    };
+  });
 }
 
 function profileSections(markdown: string): Array<{ heading: string; content: string }> {

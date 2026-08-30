@@ -417,7 +417,7 @@ export const useActionStore = create<ActionStore>((set, get) => ({
             // Content-category topic — open topic.md under the category (never memory/topics)
             select({ kind: 'file', path: String(res.targetPath) });
           } else {
-            const nav = suggestionNavPathAfterApply(res);
+            const nav = suggestionNavPathAfterApply(res, item);
             if (nav) select({ kind: 'file', path: nav });
           }
         }

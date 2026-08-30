@@ -19,7 +19,9 @@ import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/cn";
 import { ICON } from "../../lib/icons";
 import { shouldCloseOnScroll } from "../../lib/scroll-dismiss";
+import { isMenuLayerActive } from "../../lib/menu-layer";
 import { useTodoStore } from "../../stores/todo-store";
+import { useActionStore } from "../../stores/action-store";
 import { useViewStore } from "../../stores/view-store";
 import { Tooltip } from "../ui/tooltip";
 import { TodoListBody } from "./TodoListBody";
@@ -50,6 +52,18 @@ export function TodoPopover({ open, onOpenChange, children }: TodoPopoverProps) 
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef<{ mx: number; my: number; px: number; py: number } | null>(null);
+
+  // Modals own the screen — never paint this popover above an open overlay
+  const overlay = useViewStore((s) => s.overlay);
+  useEffect(() => {
+    if (open && overlay !== "none") onOpenChange(false);
+  }, [open, overlay, onOpenChange]);
+
+  // 建议/待办浮层互斥 — 打开待办时收起建议面
+  const suggestOpen = useActionStore((st) => st.panelOpen);
+  useEffect(() => {
+    if (open && suggestOpen) useActionStore.getState().setPanelOpen(false);
+  }, [open, suggestOpen]);
 
   // Load on first open
   useEffect(() => {
@@ -120,10 +134,12 @@ export function TodoPopover({ open, onOpenChange, children }: TodoPopoverProps) 
   useEffect(() => {
     if (!open) return;
     const handle = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        if (pinned) { setPinned(false); }
-        else { onOpenChange(false); }
-      }
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      // A portaled menu (dropdown/context) owns Esc while open.
+      if (isMenuLayerActive()) return;
+      e.stopPropagation();
+      if (pinned) { setPinned(false); }
+      else { onOpenChange(false); }
     };
     document.addEventListener("keydown", handle);
     return () => document.removeEventListener("keydown", handle);

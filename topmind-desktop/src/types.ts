@@ -340,6 +340,32 @@ export interface WereadSyncResult {
   errors?: { bookId?: string; title?: string; error: string }[];
 }
 
+export interface LedgerSettings {
+  /** Optional mini-app; default on (local markdown, no API key). */
+  enabled: boolean;
+  /** Default book when NL capture omits a book name (Personal / 自己, or a user book). */
+  defaultRoleId?: string;
+}
+
+export interface LedgerEntry {
+  timestamp: string;
+  direction: "收入" | "支出";
+  amount: number;
+  signedAmount?: number;
+  category?: string;
+  subcategory?: string;
+  note?: string;
+}
+
+export interface LedgerBook {
+  roleId: string;
+  accountName: string;
+  balance: number;
+  entries: LedgerEntry[];
+  relPath: string;
+  exists?: boolean;
+}
+
 export interface XSettings {
   enabled: boolean;
   /** App-only Bearer — read-only for Desktop Direct API. */
@@ -515,6 +541,8 @@ export interface AppSettings {
   };
   weread: WereadSettings;
   x: XSettings;
+  /** Optional first-party 记账 mini-app (memory-plane ledgers). */
+  ledger: LedgerSettings;
   /**
    * Third-party Desktop plugins under `{desktopHome}/plugins/`.
    * `externalEnabled[id] === false` disables; missing key = enabled
@@ -644,6 +672,7 @@ export type OverlayKind =
   | 'search'
   | 'about'
   | 'loop-report'
+  | 'plugin-app'
   | (string & {});
 
 /* Optional payload carried alongside an overlay. Lets one overlay component
@@ -655,6 +684,8 @@ export interface OverlayContext {
   topicId?: string;
   /** Loop report payload when overlay kind is loop-report */
   loopReport?: LoopReportPayload;
+  /** Mini-app plugin id when overlay kind is plugin-app */
+  pluginId?: string;
 }
 
 /** Result of workspace.workspaceHealth for Loop overlay. */

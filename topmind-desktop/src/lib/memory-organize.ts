@@ -1,19 +1,20 @@
 /**
  * Confirm-only 我的情况 organize — generates suggestions, never writes profile.
- * Lands on the unified SuggestPopover surface.
+ * TaskStore shows progress; SuggestPopover opens when the job finishes.
  */
-import { useActionStore } from "../stores/action-store";
 import { useViewStore } from "../stores/view-store";
-import { openSuggestSurface } from "./suggest-surface";
+import { useTaskStore } from "../stores/task-store";
+import { emitLocal } from "../plugins/host";
 
 /**
- * Run shipped memory_organize / topic_classify activity ops and open the
- * confirm surface. Does not call writeback or save profile.
+ * Run shipped memory_organize / topic_classify activity ops as a TaskStore job.
+ * StatusBar + TaskPanel show progress/result; suggestions land on SuggestPopover
+ * when the job finishes (no silent profile write).
  */
 export async function runMemoryOrganizeConfirm(): Promise<{ merged: number; summary: string }> {
-  const result = await useActionStore.getState().runActivityOps({ force: true });
-  openSuggestSurface({ refresh: false });
-  return result;
+  emitLocal("task-panel:open");
+  await useTaskStore.getState().createTask("memory_organize");
+  return { merged: 0, summary: "" };
 }
 
 /** Expand the live `memory/` group in the category tree — not a new primary nav. */

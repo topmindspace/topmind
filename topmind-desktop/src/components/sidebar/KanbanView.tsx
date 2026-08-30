@@ -11,7 +11,7 @@ import {
   useDraggable,
   useDroppable,
 } from "@dnd-kit/core";
-import { FileText, AlertCircle, RefreshCw, Loader2, Radio } from "lucide-react";
+import { FileText, AlertCircle, RefreshCw, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/cn";
 import { api } from "../../services/api";
@@ -191,16 +191,6 @@ export function KanbanView({ onNavigate }: KanbanViewProps) {
             <div className="cursor-help px-1 text-3xs leading-relaxed text-text-quaternary">
               {t("sidebar.kanban.hint")}
             </div>
-          </Tooltip>
-          <Tooltip content={t("sidebar.kanban.backToStream")}>
-            <button
-              type="button"
-              onClick={() => emitLocal("sidebar:set-view", "stream")}
-              aria-label={t("sidebar.kanban.backToStream")}
-              className="flex items-center gap-0.5 rounded-[var(--radius-sm)] px-1.5 py-0.5 text-3xs text-text-tertiary transition-colors hover:bg-surface-muted hover:text-accent-color v4-focus-ring"
-            >
-              <Radio size={ICON.nano} aria-hidden />
-            </button>
           </Tooltip>
         </div>
         {truncatedHint ? (
