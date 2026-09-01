@@ -1,0 +1,222 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" font-family="ui-sans-serif, system-ui, sans-serif">
+  <defs>
+    <linearGradient id="chrome" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#1c1c1c"/>
+      <stop offset="100%" stop-color="#0f0f0f"/>
+    </linearGradient>
+    <linearGradient id="surface" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#262626"/>
+      <stop offset="100%" stop-color="#1d1d1d"/>
+    </linearGradient>
+    <linearGradient id="sidebar" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0e0e0e"/>
+      <stop offset="100%" stop-color="#0a0a0a"/>
+    </linearGradient>
+    <filter id="soft" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="3"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="760" fill="#0a0a0a"/>
+
+  <text x="40" y="44" fill="#e5e5e5" font-size="20" font-weight="600">topmind Desktop · 当前 IA 概览（v3.0 ZCode Neutral）</text>
+  <text x="40" y="68" fill="#8c8c8c" font-size="13">三栏 Shell · TitleBar 36px · StatusBar 24px · 5 用户概念硬上限 · 4 PrimaryNav 锚点</text>
+
+  <!-- Window frame -->
+  <g transform="translate(40,90)">
+    <rect width="1120" height="630" rx="14" fill="url(#chrome)" stroke="#2a2a2a" stroke-width="1"/>
+
+    <!-- Title bar -->
+    <g>
+      <rect width="1120" height="40" rx="14" fill="url(#chrome)"/>
+      <rect y="26" width="1120" height="14" fill="url(#chrome)"/>
+      <line x1="0" y1="40" x2="1120" y2="40" stroke="#262626"/>
+      <circle cx="20" cy="20" r="5.5" fill="#ff5f57"/>
+      <circle cx="38" cy="20" r="5.5" fill="#febc2e"/>
+      <circle cx="56" cy="20" r="5.5" fill="#28c840"/>
+      <!-- L0 left -->
+      <g transform="translate(90,12)" fill="#a1a1a1">
+        <rect width="14" height="16" rx="2" stroke="#a1a1a1" stroke-width="1" fill="none"/>
+        <line x1="3" y1="5" x2="3" y2="5" stroke="#a1a1a1" stroke-width="1.5"/>
+        <line x1="11" y1="5" x2="11" y2="5" stroke="#a1a1a1" stroke-width="1.5"/>
+        <line x1="3" y1="11" x2="3" y2="11" stroke="#a1a1a1" stroke-width="1.5"/>
+        <line x1="11" y1="11" x2="11" y2="11" stroke="#a1a1a1" stroke-width="1.5"/>
+      </g>
+      <text x="118" y="25" fill="#a1a1a1" font-size="11">‹</text>
+      <text x="130" y="25" fill="#a1a1a1" font-size="11">›</text>
+      <text x="148" y="25" fill="#e5e5e5" font-size="11" font-weight="500">TestW5 ▼</text>
+
+      <!-- Primary nav center -->
+      <g transform="translate(420,12)">
+        <rect width="36" height="16" rx="3" fill="#1d4ed8" fill-opacity="0.15"/>
+        <text x="6" y="12" fill="#38bdf8" font-size="11" font-weight="500">📻 Stream</text>
+        <text x="80" y="12" fill="#a1a1a1" font-size="11">📥 Inbox 6</text>
+        <text x="148" y="12" fill="#a1a1a1" font-size="11">🗂 写出来</text>
+        <text x="208" y="12" fill="#a1a1a1" font-size="11">🔍</text>
+        <rect x="248" y="0" width="92" height="16" rx="3" fill="#0e0e0e" stroke="#262626" stroke-width="1"/>
+        <text x="252" y="12" fill="#8c8c8c" font-size="10">⌘ Commands</text>
+        <text x="316" y="12" fill="#8c8c8c" font-size="9">⌘K</text>
+      </g>
+
+      <!-- Right rail -->
+      <g transform="translate(900,12)">
+        <rect x="0" y="0" width="60" height="16" rx="3" fill="#0d9488"/>
+        <text x="6" y="11" fill="white" font-size="10" font-weight="600">⚡ 记一下</text>
+        <text x="76" y="11" fill="#a1a1a1" font-size="11">💡</text>
+        <text x="96" y="11" fill="#a1a1a1" font-size="11">📋</text>
+        <text x="120" y="11" fill="#a1a1a1" font-size="11">🧩</text>
+        <text x="138" y="11" fill="#a1a1a1" font-size="11">⚙</text>
+        <text x="156" y="11" fill="#a1a1a1" font-size="11">🌓</text>
+        <text x="180" y="11" fill="#0284c7" font-size="11">🤖</text>
+      </g>
+    </g>
+
+    <!-- Three-pane area -->
+    <g transform="translate(0,40)">
+      <!-- Sidebar -->
+      <rect x="0" y="0" width="240" height="566" fill="url(#sidebar)" stroke="#262626"/>
+      <line x1="240" y1="0" x2="240" y2="566" stroke="#262626"/>
+
+      <!-- Sidebar header -->
+      <g transform="translate(10,10)">
+        <rect width="62" height="14" rx="7" fill="#0e0e0e" stroke="#262626"/>
+        <text x="6" y="10" fill="#a1a1a1" font-size="9">📻 流</text>
+        <text x="22" y="10" fill="#8c8c8c" font-size="9">目</text>
+        <text x="38" y="10" fill="#8c8c8c" font-size="9">🕒</text>
+        <text x="56" y="10" fill="#8c8c8c" font-size="9">⋯</text>
+        <circle cx="220" cy="7" r="9" fill="#0e0e0e" stroke="#262626"/>
+        <text x="217" y="10" fill="#a1a1a1" font-size="9">👤</text>
+      </g>
+
+      <!-- Tree -->
+      <g transform="translate(8,40)" font-size="10" fill="#a1a1a1">
+        <text y="10" fill="#8c8c8c" font-size="8" font-weight="600" letter-spacing="0.5">▾ 00 收件箱 · 5</text>
+        <text x="14" y="26">📄 Cloudflare Temporary…</text>
+        <text x="14" y="40">📄 Chokidar 文件监听…</text>
+
+        <text y="58" fill="#8c8c8c" font-size="8" font-weight="600">▾ 10 动态 · 2</text>
+        <text x="14" y="74">📅 2026-W32</text>
+        <text x="14" y="88">📅 2026-W31</text>
+
+        <text y="106" fill="#8c8c8c" font-size="8" font-weight="600">▾ 20 专题 · 5</text>
+        <text x="14" y="122">📁 2026-知识管理演示 · 2</text>
+        <text x="28" y="138">📄 活动窗口笔记</text>
+        <text x="28" y="152">📄 topic</text>
+
+        <text y="172" fill="#8c8c8c" font-size="8" font-weight="600">▸ 88 输出 · 1</text>
+        <text y="190" fill="#8c8c8c" font-size="8" font-weight="600">▸ 99 归档</text>
+        <text y="208" fill="#8c8c8c" font-size="8" font-weight="600">▾ Memory</text>
+        <text x="14" y="224">🧠 profile</text>
+      </g>
+
+      <!-- Active highlight -->
+      <rect x="0" y="50" width="3" height="14" fill="#0ea5e9"/>
+
+      <!-- Canvas (center) -->
+      <rect x="240" y="0" width="640" height="566" fill="#171717"/>
+
+      <!-- PageHeader -->
+      <g transform="translate(264,18)">
+        <text fill="#e5e5e5" font-size="14" font-weight="600">📅 2026-W32 动态</text>
+        <text y="18" fill="#8c8c8c" font-size="10">Your stream · 12 · weekly · jot freely · confirm to settle</text>
+        <!-- Period chips row -->
+        <g transform="translate(0,28)">
+          <rect width="78" height="18" rx="9" fill="#0e7490" fill-opacity="0.15" stroke="#0e7490" stroke-opacity="0.4"/>
+          <text x="8" y="12" fill="#38bdf8" font-size="9" font-weight="500">*2026-W32 动态</text>
+          <rect x="84" y="0" width="68" height="18" rx="9" fill="#262626"/>
+          <text x="92" y="12" fill="#a1a1a1" font-size="9">2026-W31 动态</text>
+          <rect x="158" y="0" width="50" height="18" rx="9" fill="#262626"/>
+          <text x="166" y="12" fill="#a1a1a1" font-size="9">2026-W30</text>
+          <rect x="214" y="0" width="50" height="18" rx="9" fill="#262626"/>
+          <text x="222" y="12" fill="#a1a1a1" font-size="9">2026-W29</text>
+        </g>
+        <!-- Right header actions -->
+        <g transform="translate(456,28)">
+          <text x="0" y="12" fill="#a1a1a1" font-size="9">✨ AI 待办</text>
+          <text x="48" y="12" fill="#a1a1a1" font-size="9">🪄 整理</text>
+          <text x="80" y="12" fill="#a1a1a1" font-size="9">↻</text>
+        </g>
+      </g>
+
+      <!-- Suggestion banner -->
+      <g transform="translate(264,82)">
+        <rect width="600" height="22" rx="4" fill="#0e7490" fill-opacity="0.1" stroke="#0e7490" stroke-opacity="0.3"/>
+        <text x="10" y="15" fill="#38bdf8" font-size="10">💡 8 suggestions to review</text>
+        <text x="546" y="15" fill="#38bdf8" font-size="9">Review ›</text>
+      </g>
+
+      <!-- Composer -->
+      <g transform="translate(264,114)">
+        <rect width="600" height="60" rx="6" fill="#1d1d1d" stroke="#262626"/>
+        <text x="12" y="22" fill="#8c8c8c" font-size="11">Write to this week's stream…</text>
+        <text x="12" y="44" fill="#8c8c8c" font-size="9">Open Note it</text>
+        <rect x="540" y="34" width="50" height="18" rx="3" fill="#262626"/>
+        <text x="552" y="46" fill="#a1a1a1" font-size="9">✦ AI Polish</text>
+        <rect x="540" y="14" width="50" height="14" rx="3" fill="#262626"/>
+        <text x="552" y="24" fill="#a1a1a1" font-size="8">Log it</text>
+      </g>
+
+      <!-- Stream entries -->
+      <g transform="translate(264,184)">
+        <rect width="600" height="78" rx="6" fill="#1d1d1d" stroke="#262626"/>
+        <text x="14" y="20" fill="#a1a1a1" font-size="10" font-weight="500">▾ 08-08 周六 · 2  Now</text>
+        <text x="30" y="42" fill="#e5e5e5" font-size="10">⏱ 14:07 Try and compare GPT-5.6 Luna vs DeepSeek-v4-Flash</text>
+        <text x="30" y="58" fill="#8c8c8c" font-size="9">14:08 Reading book 1 hour · Expand</text>
+      </g>
+
+      <g transform="translate(264,272)">
+        <rect width="600" height="100" rx="6" fill="#1d1d1d" stroke="#262626"/>
+        <text x="14" y="20" fill="#a1a1a1" font-size="10" font-weight="500">▾ 08-03 周一 · 5</text>
+        <text x="30" y="42" fill="#e5e5e5" font-size="10">⏱ 11:27 主视图不清晰，需要优化</text>
+        <text x="30" y="58" fill="#8c8c8c" font-size="9">11:19 【fixture】增补探针：活动窗口查看更全条</text>
+        <text x="30" y="74" fill="#8c8c8c" font-size="9">15:00 待办：把演示 inbox 里的剪藏路由到专题或归档</text>
+      </g>
+
+      <!-- AI Rail (right) -->
+      <rect x="880" y="0" width="240" height="566" fill="url(#surface)" stroke="#262626"/>
+
+      <g transform="translate(896,18)" font-size="10">
+        <text fill="#e5e5e5" font-weight="600">✨ Suggestions · 8 to review</text>
+        <text x="186" y="0" fill="#38bdf8" font-size="9">✓ All</text>
+        <line x1="0" y1="14" x2="208" y2="14" stroke="#262626"/>
+
+        <text y="38" fill="#fbbf24" font-weight="500">💡 Stream → Memory (optional)</text>
+        <text y="52" fill="#a1a1a1" font-size="9">AI 提取的记忆候选：Prefers a quiet,</text>
+        <text y="64" fill="#a1a1a1" font-size="9">low-noise workspace; uses chip hints</text>
+        <text y="78" fill="#38bdf8" font-size="9">Confirm  Dismiss</text>
+
+        <line x1="0" y1="92" x2="208" y2="92" stroke="#262626"/>
+        <text y="108" fill="#8c8c8c" font-size="8" font-weight="600" letter-spacing="0.5">OTHERS</text>
+
+        <text y="126" fill="#e5e5e5" font-size="10">📚 Smart inbox organize</text>
+        <text y="140" fill="#a1a1a1" font-size="9">3 items in inbox need organizing.</text>
+        <text y="154" fill="#a1a1a1" font-size="9">Configure AI to auto-analyze…</text>
+        <text y="168" fill="#a1a1a1" font-size="8">00-收件箱 / 2026-08-03-待路由剪藏.md</text>
+        <text y="182" fill="#38bdf8" font-size="9">Open  Dismiss</text>
+      </g>
+
+      <!-- Composer bottom -->
+      <g transform="translate(896,520)">
+        <rect width="208" height="36" rx="6" fill="#0e0e0e" stroke="#262626"/>
+        <text x="10" y="14" fill="#8c8c8c" font-size="9">Skill ▼</text>
+        <text x="10" y="28" fill="#8c8c8c" font-size="9">Say what you want, or type /</text>
+        <text x="186" y="22" fill="#a1a1a1" font-size="11">↑</text>
+      </g>
+    </g>
+
+    <!-- Status bar -->
+    <rect y="606" width="1120" height="24" fill="url(#chrome)"/>
+    <line x1="0" y1="606" x2="1120" y2="606" stroke="#262626"/>
+    <g transform="translate(0,615)">
+      <circle cx="14" cy="6" r="3" fill="#10b981"/>
+      <text x="22" y="10" fill="#a1a1a1" font-size="10">TestW5</text>
+      <text x="540" y="10" fill="#a1a1a1" font-size="10">💡 8</text>
+      <text x="900" y="10" fill="#a1a1a1" font-size="10">↑ 3 updates</text>
+      <text x="1080" y="10" fill="#10b981" font-size="10">● AI ready</text>
+    </g>
+  </g>
+
+  <!-- Side annotations -->
+  <g transform="translate(40,740)" font-size="10" fill="#8c8c8c">
+    <text>L1 主路径：⚡记一下 + 🤖AI  ·  L2 安静：💡建议 + 📋待办  ·  L3 工具：🧩Apps + ⚙设置 + 🌓主题</text>
+  </g>
+</svg>
