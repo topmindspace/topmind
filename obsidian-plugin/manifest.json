@@ -1,7 +1,7 @@
 {
   "id": "topmind-stream",
   "name": "Topmind Stream",
-  "version": "3.5.7",
+  "version": "3.5.8",
   "minAppVersion": "1.5.0",
   "description": "Personal stream + AI co-pilot for Obsidian — jot, confirm suggestions, files stay yours.",
   "author": "TopMindSpace",

@@ -288,7 +288,7 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 - **快捷键**：⌘⇧S → 动态 · ⌘⇧T → 待办清单（TitleBar 弹层） · ⌘⇧I 收件箱 · ⌘⇧O 写出来 · ⌘⇧A 归档 · ⌘N 记一下  
 - **记下 / 记一下**：Stream 内联「记下」（`ingest` stream）· 顶栏「记一下」完整捕获；条目 **增补**（`appendStreamEntry` · 同文件）  
 - **整理**：`runOrganizeWeek` = reconcile + **`runActivityOps`**（suggest + memory/topic → `SuggestPopover` 确认；不静默高影响写）  
-- **StreamDetailView**：宽轨周期本 — 内联 composer · **按日分组 + 按条软拆 + 日内 cohesion**（`stream-entry-present.ts`：moment 收集后续 append → 嵌套展示；命名 `##` 非日期段 → **文章卡** title+summary+跳转；短内容全展示 · 长内容才出现展开/折叠按钮 `streamEntryNeedsExpand`）· 真实 MD 预览（列表/任务/代码/续）· 头栏清单/AI 待办/整理 · 周期 chip · 条目增补（建议入口在标题栏 💡 + 状态栏计数，不嵌 Stream 列表）  
+- **StreamDetailView**：宽轨周期本 — 内联 composer · **按日分组 + 按条软拆 + 日内 cohesion**（`stream-entry-present.ts`：moment 收集后续 append → 嵌套展示；命名 `##` 非日期段 → **文章卡** title+summary+跳转；短内容全展示 · 长内容才出现展开/折叠按钮 `streamEntryNeedsExpand`）· 真实 MD 预览（列表/任务/代码/续）· 头栏清单/AI 待办/整理 · 周期 chip · **交互式条目增补（Interactive Append）**：支持富元数据（时间戳、标签、状态）与扩展 UI 控件，精准写回当前周期对应条目（建议入口在标题栏 💡 + 状态栏计数，不嵌 Stream 列表）  
 
 - **无当前周期文件时**：回退 `listStreamPeriods` 最新一本，避免空白主表面  
 

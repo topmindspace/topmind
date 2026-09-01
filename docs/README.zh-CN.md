@@ -62,6 +62,7 @@
 | [`stream-first-optimization-scheme.md`](./stream-first-optimization-scheme.md) | Stream-first 产品真理与理想使用态 |
 | [`capture-clip-matrix.md`](./capture-clip-matrix.md) | Capture · Clip · Ingest 能力矩阵 |
 | [`topmind-vs-others.md`](./topmind-vs-others.md) | 知识管理方案对比与选型指南 |
+| [`UIUX-AUDIT-2026-09-01.md`](./UIUX-AUDIT-2026-09-01.md) | UI/UX 与信息架构全面审计基线（全景 IA、痛点热力图、改进建议） |
 
 ---
 

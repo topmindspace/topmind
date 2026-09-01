@@ -62,6 +62,7 @@
 | [`stream-first-optimization-scheme.md`](./stream-first-optimization-scheme.md) | Stream-first product truth and ideal use |
 | [`capture-clip-matrix.md`](./capture-clip-matrix.md) | Capture · Clip · Ingest capability matrix |
 | [`topmind-vs-others.md`](./topmind-vs-others.md) | Knowledge-management comparison |
+| [`UIUX-AUDIT-2026-09-01.md`](./UIUX-AUDIT-2026-09-01.md) | Comprehensive UI/UX & Information Architecture audit baseline (IA, pain heatmap, proposals) |
 
 ---
 
