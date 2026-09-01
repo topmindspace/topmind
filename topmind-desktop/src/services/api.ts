@@ -380,11 +380,21 @@ export const api = {
       content: string;
       heading?: string;
       parentRel?: string;
+      /** 0-based inclusive line in the period note (including frontmatter). */
+      startLine?: number;
+      /** 0-based exclusive end line. */
+      endLine?: number;
+      /** First-line fingerprint to verify the window still matches. */
+      anchorText?: string;
     }) =>
       invoke<
         WritebackEvidence & {
           userMessage?: string;
-          appendLocation?: { appendedAt: "heading" | "end"; matchedHeading?: string };
+          appendLocation?: {
+            appendedAt: "heading" | "end";
+            matchedHeading?: string;
+            asNestedList?: boolean;
+          };
         }
       >("workspace.appendStreamEntry", p),
     ensureCoreProfile: () =>

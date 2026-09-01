@@ -218,6 +218,91 @@ more
       "string",
     );
   });
+
+  it("appendToStreamEntry: list-item anchor inserts nested reply after that item only", () => {
+    const body = `# 2026-W31 动态
+
+## 07-22 周二
+- 10:00 第一条
+- 11:00 第二条
+- 12:00 第三条
+
+## 07-23 周三
+- 11:00 另一天
+`;
+    const { body: next, location } = appendToStreamEntryDetailed(body, {
+      heading: "07-22 周二",
+      anchorText: "第一条",
+      content: "点评第一条",
+      date: new Date("2026-08-03T08:30:00"),
+    });
+    assert.equal(location.asNestedList, true);
+    const iFirst = next.indexOf("第一条");
+    const iComment = next.indexOf("点评第一条");
+    const iSecond = next.indexOf("第二条");
+    const iThird = next.indexOf("第三条");
+    assert.ok(iFirst >= 0 && iComment > iFirst && iComment < iSecond);
+    assert.ok(iSecond < iThird);
+    assert.match(next, /^\s+- \d{2}:\d{2} 点评第一条/mu);
+    assert.doesNotMatch(next, /####\s*续/u);
+    assert.match(next, /<!--\s*topmind:append\b/u);
+  });
+
+  it("appendToStreamEntry: line window beats day heading", () => {
+    const body = `## 07-22 周二
+- 10:00 第一条
+- 11:00 第二条
+`;
+    const lines = body.split("\n");
+    const firstIdx = lines.findIndex((l) => l.includes("第一条"));
+    const { body: next, location } = appendToStreamEntryDetailed(body, {
+      heading: "07-22 周二",
+      anchorText: "第一条",
+      startLine: firstIdx,
+      endLine: firstIdx + 1,
+      content: "窗口点评",
+      date: new Date("2026-08-03T08:30:00"),
+    });
+    assert.equal(location.asNestedList, true);
+    const iComment = next.indexOf("窗口点评");
+    const iSecond = next.indexOf("第二条");
+    assert.ok(iComment > 0 && iComment < iSecond);
+  });
+
+  it("appendToStreamEntry: article window starting with a list still uses #### 续", () => {
+    const body = `## 产品方案草稿
+
+- 要点 A
+- 要点 B
+
+正文段落
+`;
+    const start = body.split("\n").findIndex((l) => l.includes("要点 A"));
+    const { body: next, location } = appendToStreamEntryDetailed(body, {
+      heading: "产品方案草稿",
+      anchorText: "要点 A",
+      startLine: start,
+      endLine: body.split("\n").length,
+      content: "文章增补",
+      date: new Date("2026-08-03T08:30:00"),
+    });
+    assert.equal(location.asNestedList, false);
+    assert.match(next, /####\s*续/u);
+    assert.ok(next.indexOf("文章增补") > next.indexOf("正文段落"));
+  });
+
+  it("formatAppendBlock asNestedList emits marker + timed bullet, not #### 续", () => {
+    const block = formatAppendBlock({
+      content: "nested reply",
+      heading: "parent",
+      asNestedList: true,
+      indent: "  ",
+      date: new Date("2026-08-03T08:30:00"),
+    });
+    assert.match(block, /<!--\s*topmind:append\b/u);
+    assert.match(block, /^  - \d{2}:\d{2} nested reply/mu);
+    assert.doesNotMatch(block, /####\s*续/u);
+  });
 });
 
 describe("resolveActivityWindow", () => {

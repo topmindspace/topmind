@@ -411,12 +411,17 @@ export function parseStreamEntries(content: string): StreamEntry[] {
     }
 
     let baseIndent: number | null = null;
+    const isTimedListLine = (line: string): boolean =>
+      /^\s*(?:[-*+]|\d+\.)\s+\d{1,2}:\d{2}\b/u.test(line);
+
     const isContinuation = (line: string, afterAppend: boolean): boolean => {
       if (!line.trim()) return true;
       if (isStreamAppendChromeLine(line)) return true;
       if (/^#{1,6}\s/u.test(line) && !isStreamAppendChromeLine(line)) return false;
       const indent = listMarkerIndent(line);
-      if (indent >= 0 && baseIndent !== null && indent <= baseIndent && !afterAppend) {
+      if (indent >= 0 && baseIndent !== null && indent <= baseIndent) {
+        // Timed `- HH:MM` after 续 is a later 记下. Untimed list/task is append body.
+        if (afterAppend && !isTimedListLine(line)) return true;
         return false;
       }
       return true;

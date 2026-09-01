@@ -75,6 +75,48 @@ import { useTodoStore } from "../../../stores/todo-store";
 import { useAiStore } from "../../../stores/ai-store";
 import type { TFunction } from "i18next";
 
+function StreamNestedAppends({
+  appends,
+  showFull,
+  needsExpand,
+  t,
+}: {
+  appends: Array<StreamEntry & { index: number }>;
+  showFull: boolean;
+  needsExpand: boolean;
+  t: TFunction;
+}) {
+  if (appends.length === 0) return null;
+  return (
+    <div className="mt-1.5 space-y-1 border-l-2 border-accent-border-subtle/40 pl-2.5" data-stream-nested-appends>
+      {(showFull ? appends : appends.slice(0, 1)).map((a) => {
+        const replyTime = extractBodyTimestamp(a.body);
+        return (
+          <div key={a.index} className="flex items-start gap-1.5 text-3xs text-text-secondary" data-stream-append-card>
+            {replyTime ? (
+              <span className="mt-0.5 shrink-0 font-medium tabular-nums text-text-quaternary">{replyTime}</span>
+            ) : null}
+            <div className="min-w-0 flex-1">
+              <StreamMdBody
+                markdown={a.body || a.preview || ""}
+                expanded={showFull}
+                isAppendCard
+                allowClamp={needsExpand}
+                className="text-xs leading-[1.55] text-text-secondary"
+              />
+            </div>
+          </div>
+        );
+      })}
+      {!showFull && appends.length > 1 ? (
+        <div className="text-3xs text-text-quaternary">
+          +{appends.length - 1} {t("workspace:streamDetail.moreAppends")}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 /**
  * One feed row inside a day panel — moment/prose (compact), article (title+summary),
  * with nested appends. Expand only when content is truly long.
@@ -127,34 +169,116 @@ function StreamFeedRowView({
         data-stream-entry-card
         data-stream-entry-kind="article"
       >
-        <button
-          type="button"
-          onClick={() => onOpenPeriod(entry.heading || undefined)}
-          className={cn(
-            "flex w-full flex-col gap-0.5 rounded-md bg-surface-muted/15 px-2.5 py-2 text-left",
-            "transition-colors hover:bg-accent-bg-faint/30",
-            "v4-focus-ring",
-          )}
-          data-stream-article-open
-        >
-          <div className="flex items-start gap-2">
-            <FileText size={ICON.xs} className="mt-0.5 shrink-0 text-accent-color/80" aria-hidden />
-            <div className="min-w-0 flex-1">
-              <div className="text-sm font-semibold tracking-tight text-text-primary">
-                {title}
-              </div>
-              {summary ? (
-                <div className="mt-0.5 line-clamp-2 text-3xs leading-relaxed text-text-tertiary">
-                  {summary}
+        <div className="flex items-start gap-1">
+          <button
+            type="button"
+            onClick={() => onOpenPeriod(entry.heading || undefined)}
+            className={cn(
+              "flex min-w-0 flex-1 flex-col gap-0.5 rounded-md bg-surface-muted/15 px-2.5 py-2 text-left",
+              "transition-colors hover:bg-accent-bg-faint/30",
+              "v4-focus-ring",
+            )}
+            data-stream-article-open
+          >
+            <div className="flex items-start gap-2">
+              <FileText size={ICON.xs} className="mt-0.5 shrink-0 text-accent-color/80" aria-hidden />
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold tracking-tight text-text-primary">
+                  {title}
                 </div>
-              ) : null}
-              <div className="mt-1.5 flex items-center gap-1 text-3xs font-medium text-accent-color">
-                {t("workspace:streamDetail.openArticle")}
-                <ChevronRight size={ICON.nano} aria-hidden />
+                {summary ? (
+                  <div className="mt-0.5 line-clamp-2 text-3xs leading-relaxed text-text-tertiary">
+                    {summary}
+                  </div>
+                ) : null}
+                <div className="mt-1.5 flex items-center gap-1 text-3xs font-medium text-accent-color">
+                  {t("workspace:streamDetail.openArticle")}
+                  <ChevronRight size={ICON.nano} aria-hidden />
+                </div>
               </div>
             </div>
+          </button>
+          <div className="flex shrink-0 items-center gap-0.5 opacity-0 pointer-events-none transition-opacity group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto">
+            <Tooltip content={t("workspace:streamDetail.appendTip")}>
+              <button
+                type="button"
+                onClick={onToggleAppend}
+                className="flex h-6 w-6 items-center justify-center rounded-sm text-text-quaternary hover:bg-surface-muted hover:text-accent-color"
+                aria-label={t("workspace:streamDetail.append")}
+              >
+                <MessageSquarePlus size={ICON.nano} />
+              </button>
+            </Tooltip>
           </div>
-        </button>
+        </div>
+        <StreamNestedAppends
+          appends={appends}
+          showFull={showFull}
+          needsExpand={needsExpand}
+          t={t}
+        />
+        {needsExpand ? (
+          <button
+            type="button"
+            onClick={onToggleExpand}
+            className="mt-1 flex items-center gap-1 text-3xs text-text-quaternary transition-colors hover:text-accent-color"
+            data-stream-expand-toggle
+          >
+            <ChevronDown
+              size={ICON.nano}
+              className={cn("transition-transform", expanded && "rotate-180")}
+            />
+            {expanded
+              ? t("workspace:streamDetail.collapse")
+              : t("workspace:streamDetail.expand")}
+          </button>
+        ) : null}
+        {appendOpen ? (
+          <div
+            className="mt-2 rounded-md border border-border-subtle-dim bg-surface-muted/25 p-2"
+            data-stream-entry-append
+          >
+            <textarea
+              rows={2}
+              value={appendText}
+              disabled={appending}
+              placeholder={t("workspace:streamDetail.appendPlaceholder")}
+              onChange={(e) => onAppendText(e.target.value)}
+              className={cn(
+                "w-full resize-y min-h-9 max-h-28 bg-transparent",
+                "text-sm leading-relaxed text-text-primary placeholder:text-text-quaternary",
+                "outline-none border-0 focus:ring-0",
+              )}
+              autoFocus
+            />
+            <div className="mt-1.5 flex items-center justify-end gap-1.5">
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-7 text-3xs"
+                disabled={appending}
+                onClick={onAppendCancel}
+              >
+                {t("workspace:streamDetail.appendCancel")}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                className="h-7"
+                disabled={appending || !appendText.trim() || !activePath}
+                onClick={onAppendSubmit}
+              >
+                {appending ? (
+                  <Loader2 size={ICON.nano} className="animate-spin" />
+                ) : (
+                  <MessageSquarePlus size={ICON.nano} />
+                )}
+                {t("workspace:streamDetail.appendSubmit")}
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </article>
     );
   }
@@ -223,28 +347,12 @@ function StreamFeedRowView({
             </div>
           </div>
 
-          {/* Nested appends under this moment */}
-          {appends.length > 0 ? (
-            <div className="mt-1.5 space-y-1 border-l-2 border-accent-border-subtle/40 pl-2.5" data-stream-nested-appends>
-              {(showFull ? appends : appends.slice(0, 1)).map((a) => (
-                <div key={a.index} className="text-3xs text-text-secondary" data-stream-append-card>
-                  <StreamMdBody
-                    markdown={a.body || a.preview || ""}
-                    expanded={showFull}
-                    isAppendCard
-                    allowClamp={needsExpand}
-                    className="text-xs leading-[1.55] text-text-secondary"
-                  />
-                </div>
-              ))}
-              {!showFull && appends.length > 1 ? (
-                <div className="text-3xs text-text-quaternary">
-                  +{appends.length - 1}{" "}
-                  {t("workspace:streamDetail.moreAppends")}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
+          <StreamNestedAppends
+            appends={appends}
+            showFull={showFull}
+            needsExpand={needsExpand}
+            t={t}
+          />
 
           {needsExpand ? (
             <button
@@ -833,8 +941,11 @@ export function StreamDetailView() {
       try {
         const res = await api.ws.appendStreamEntry({
           relativePath: activePath,
-          heading: entry.heading || entry.preview || undefined,
+          heading: entry.heading || undefined,
           content: text,
+          startLine: entry.startLine,
+          endLine: entry.endLine,
+          anchorText: entry.anchorText || entry.preview || undefined,
         });
         const extra = res as typeof res & { needsConfirm?: boolean; pending?: boolean; ok?: boolean };
         if (extra.needsConfirm || extra.pending) {

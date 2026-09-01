@@ -14,6 +14,17 @@ export interface StreamEntry {
   rest: string;
   /** True when body is primarily a #### 续 / topmind:append follow-up. */
   isAppend?: boolean;
+  /** 0-based inclusive line index in the original markdown (including frontmatter). */
+  startLine?: number;
+  /** 0-based exclusive end line index in the original markdown. */
+  endLine?: number;
+  /** First-line fingerprint used to verify append windows. */
+  anchorText?: string;
+  /**
+   * Follow-ups that belong to this post (indented timed replies or #### 续).
+   * Kept in file order; never reversed with the parent post.
+   */
+  replies?: StreamEntry[];
 }
 
 export interface StreamDayGroup {
@@ -38,9 +49,9 @@ export const STRUCTURAL_HEADINGS = new Set([
 /**
  * Count real 增补 blocks in a stream entry body.
  *
- * Shipped `formatAppendBlock` always emits BOTH:
- *   `<!-- topmind:append ... -->`  AND  `#### 续 · …`
- * Counting both would double-count (1 append → badge "2 续").
+ * Heading-block `formatAppendBlock` emits BOTH a marker and `#### 续`.
+ * Nested-list replies emit only the marker. Counting both families would
+ * double-count heading-block appends (1 append → badge "2 续").
  *
  * Prefer machine markers only; fall back to `#### 续` headings for legacy
  * bodies that lack the HTML comment.
@@ -54,6 +65,19 @@ export function countStreamAppends(body: string): number {
   // No \b after 续 — CJK is non-word so \b would never match.
   const heads = text.match(/^#{2,4}\s*续(?=\s|[·•.]|$)/gmu);
   return heads ? heads.length : 0;
+}
+
+/** Kernel 增补 chrome: HTML marker or `#### 续` heading. */
+export function isStreamAppendChromeLine(line: string): boolean {
+  const s = String(line || "").trim();
+  if (!s) return false;
+  if (/^<!--\s*topmind:append\b/iu.test(s)) return true;
+  return /^#{2,4}\s*续(?=\s|[·•.]|$)/u.test(s);
+}
+
+/** Nested (or any) list item whose text starts with HH:MM. */
+export function isTimedListLine(line: string): boolean {
+  return /^\s*(?:[-*+]|\d+\.)\s+\d{1,2}:\d{2}\b/u.test(String(line || ""));
 }
 
 /**
@@ -102,38 +126,73 @@ export function isTopLevelListItem(line: string): boolean {
   return indent >= 0 && indent <= 3;
 }
 
+export type LineRange = { start: number; end: number };
+
+/**
+ * First-level list ranges in `lines[from, to)`.
+ * Nested items stay on the parent. `#### 续` / append chrome between items
+ * stays on the preceding item (do not peel them out of the day first).
+ */
+export function splitFirstLevelListItemRanges(
+  lines: string[],
+  from = 0,
+  to = lines.length,
+): LineRange[] {
+  const out: LineRange[] = [];
+  let bufStart = -1;
+  let baseIndent: number | null = null;
+
+  const flush = (end: number) => {
+    if (bufStart < 0 || end <= bufStart) {
+      bufStart = -1;
+      return;
+    }
+    let s = bufStart;
+    let e = end;
+    while (s < e && !lines[s].trim()) s += 1;
+    while (e > s && !lines[e - 1].trim()) e -= 1;
+    if (e > s) out.push({ start: s, end: e });
+    bufStart = -1;
+  };
+
+  for (let i = from; i < to; i++) {
+    const indent = listMarkerIndent(lines[i]);
+    if (indent >= 0 && (baseIndent === null || indent <= baseIndent)) {
+      if (baseIndent === null || indent < baseIndent) baseIndent = indent;
+      if (indent === baseIndent) {
+        // Untimed sibling after 续 chrome is the append body (list/task), not a new 记下.
+        // Timed `- HH:MM` after 续 is a later 记下 and must start a new post.
+        if (bufStart >= 0 && !isTimedListLine(lines[i])) {
+          let sawChrome = false;
+          for (let k = bufStart; k < i; k++) {
+            if (isStreamAppendChromeLine(lines[k])) {
+              sawChrome = true;
+              break;
+            }
+          }
+          if (sawChrome) continue;
+        }
+        flush(i);
+        bufStart = i;
+        continue;
+      }
+    }
+    if (bufStart >= 0) continue;
+    if (lines[i].trim()) bufStart = i;
+  }
+  flush(to);
+  return out;
+}
+
 /**
  * Split a list-led block into **first-level** items only.
  * Nested list lines (greater indent than the first item) stay on the parent card.
  */
 export function splitFirstLevelListItems(content: string): string[] {
   const lines = String(content || "").replace(/\r\n/gu, "\n").split("\n");
-  const out: string[] = [];
-  let buf: string[] = [];
-  let baseIndent: number | null = null;
-  const flush = () => {
-    const chunk = buf.join("\n").replace(/^\n+|\n+$/gu, "");
-    buf = [];
-    if (chunk.trim()) out.push(chunk);
-  };
-  for (const line of lines) {
-    const indent = listMarkerIndent(line);
-    if (indent >= 0 && (baseIndent === null || indent <= baseIndent)) {
-      if (baseIndent === null || indent < baseIndent) baseIndent = indent;
-      if (indent === baseIndent) {
-        flush();
-        buf.push(line);
-        continue;
-      }
-    }
-    if (buf.length > 0) {
-      buf.push(line);
-    } else if (line.trim()) {
-      buf.push(line);
-    }
-  }
-  flush();
-  return out;
+  return splitFirstLevelListItemRanges(lines, 0, lines.length).map((r) =>
+    lines.slice(r.start, r.end).join("\n").replace(/^\n+|\n+$/gu, ""),
+  );
 }
 
 /**
@@ -197,15 +256,17 @@ export function splitMainAndAppendChunks(md: string): {
   return { main, appendChunks };
 }
 
-function stripFrontmatter(markdown: string): string {
+function frontmatterStartLine(markdown: string): { body: string; startLine: number } {
   const fmMatch = markdown.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n*/u);
-  return fmMatch ? markdown.slice(fmMatch[0].length) : markdown;
+  if (!fmMatch) return { body: markdown, startLine: 0 };
+  const startLine = (fmMatch[0].match(/\n/g) || []).length;
+  return { body: markdown.slice(fmMatch[0].length), startLine };
 }
 
 function makeEntry(
   heading: string,
   content: string,
-  opts?: { isAppend?: boolean },
+  opts?: { isAppend?: boolean; startLine?: number; endLine?: number },
 ): StreamEntry | null {
   const body = normalizeStreamEscapes(content).trim();
   if (!heading && !body) return null;
@@ -217,112 +278,253 @@ function makeEntry(
     .replace(/^#{1,4}\s*续\s*[·•.]?\s*/u, "")
     .trim();
   const rest = lines.slice(1).join("\n").trim();
+  const isAppend =
+    opts?.isAppend === true
+    || (countStreamAppends(body) > 0 && !/^\s*[-*+]\s/u.test(body));
   return {
     heading,
     body,
     sortKey: heading || body.slice(0, 20),
     preview: preview || heading || body.slice(0, 80),
     rest,
-    isAppend: opts?.isAppend === true || countStreamAppends(body) > 0 && !/^\s*[-*+]\s/u.test(body),
+    isAppend,
+    startLine: opts?.startLine,
+    endLine: opts?.endLine,
+    anchorText: preview || heading || body.slice(0, 80),
   };
 }
 
-/** Pull list-item entries from a structural section so content is never invisible. */
-function entriesFromStructuralBody(sectionHeading: string, content: string): StreamEntry[] {
-  const body = normalizeStreamEscapes(content).trim();
-  if (!body) return [];
-  const chunks = splitFirstLevelListItems(body);
-  const out: StreamEntry[] = [];
-  for (const chunk of chunks) {
-    const e = makeEntry(sectionHeading, chunk);
-    if (e) out.push(e);
+function lastBoundIsOpenChrome(lines: string[], bounds: number[], i: number): boolean {
+  if (bounds.length === 0) return false;
+  const prev = bounds[bounds.length - 1]!;
+  if (!isStreamAppendChromeLine(lines[prev])) return false;
+  for (let k = prev + 1; k < i; k++) {
+    if (lines[k].trim() && !isStreamAppendChromeLine(lines[k])) return false;
   }
-  // Cap noise from huge structural dumps
-  return out.slice(0, 40);
+  return true;
+}
+
+function chunkIsAppendLed(lines: string[]): boolean {
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    return isStreamAppendChromeLine(line);
+  }
+  return false;
 }
 
 /**
- * Soft-split a day (or loose) section into per-bullet feed cards + append cards.
+ * Reply starts: append chrome, or nested timed list items under a parent bullet.
+ * Untimed nested lists stay in the parent body (user outlines, not comments).
+ */
+function findReplyBoundaries(lines: string[], opts?: { chromeOnly?: boolean }): number[] {
+  if (lines.length === 0) return [];
+  const bounds: number[] = [];
+  if (chunkIsAppendLed(lines)) bounds.push(0);
+
+  const baseIndent = listMarkerIndent(lines[0]);
+  for (let i = 1; i < lines.length; i++) {
+    if (isStreamAppendChromeLine(lines[i])) {
+      if (lastBoundIsOpenChrome(lines, bounds, i)) continue;
+      bounds.push(i);
+      continue;
+    }
+    if (opts?.chromeOnly) continue;
+    if (baseIndent >= 0 && isTimedListLine(lines[i])) {
+      const indent = listMarkerIndent(lines[i]);
+      if (indent > baseIndent) {
+        if (lastBoundIsOpenChrome(lines, bounds, i)) continue;
+        bounds.push(i);
+      }
+    }
+  }
+  return bounds;
+}
+
+function splitPostAndReplies(
+  heading: string,
+  chunkLines: string[],
+  absStart: number,
+  opts?: { chromeOnly?: boolean },
+): { post: StreamEntry | null; replies: StreamEntry[] } {
+  if (chunkLines.length === 0) return { post: null, replies: [] };
+  const bounds = findReplyBoundaries(chunkLines, opts);
+  const wholeEnd = absStart + chunkLines.length;
+
+  const replyFrom = (rs: number, re: number): StreamEntry | null => {
+    const text = chunkLines.slice(rs, re).join("\n").trim();
+    if (!text) return null;
+    return makeEntry(heading, text, {
+      isAppend: true,
+      startLine: absStart + rs,
+      endLine: absStart + re,
+    });
+  };
+
+  if (bounds.length === 0) {
+    const post = makeEntry(heading, chunkLines.join("\n"), {
+      startLine: absStart,
+      endLine: wholeEnd,
+    });
+    return { post, replies: [] };
+  }
+
+  const replies: StreamEntry[] = [];
+  for (let b = 0; b < bounds.length; b++) {
+    const rs = bounds[b]!;
+    const re = b + 1 < bounds.length ? bounds[b + 1]! : chunkLines.length;
+    const reply = replyFrom(rs, re);
+    if (reply) replies.push(reply);
+  }
+
+  const mainEnd = bounds[0]!;
+  let mainLines = chunkLines.slice(0, mainEnd);
+  while (mainLines.length && !mainLines[mainLines.length - 1]!.trim()) {
+    mainLines = mainLines.slice(0, -1);
+  }
+  const mainText = mainLines.join("\n").trim();
+  if (!mainText) {
+    return { post: replies[0] ?? null, replies: replies.slice(1) };
+  }
+
+  const post = makeEntry(heading, mainText, {
+    startLine: absStart,
+    endLine: wholeEnd,
+  });
+  return { post, replies };
+}
+
+function skipLeadingChrome(lines: string[], from: number, to: number): number {
+  let i = from;
+  while (i < to) {
+    const t = lines[i].trim();
+    if (!t) {
+      i += 1;
+      continue;
+    }
+    if (isStreamAppendChromeLine(lines[i])) break;
+    if (/^<!--/u.test(t) || /^#{1,6}\s/u.test(t)) {
+      i += 1;
+      continue;
+    }
+    break;
+  }
+  return i;
+}
+
+function postsFromSection(
+  heading: string,
+  lines: string[],
+  start: number,
+  end: number,
+  abs: (i: number) => number,
+): StreamEntry[] {
+  const content = lines.slice(start, end).join("\n");
+  if (!content.trim()) return [];
+
+  const pushSplit = (from: number, to: number, cap: number): StreamEntry[] => {
+    const out: StreamEntry[] = [];
+    // Structure scan is display-only unescape (line count unchanged); bodies still
+    // come from original lines so makeEntry can normalize for preview.
+    const structural = lines.map((l) => normalizeStreamEscapes(l));
+    const ranges = splitFirstLevelListItemRanges(structural, from, to);
+    for (const range of ranges) {
+      if (out.length >= cap) break;
+      const chunk = lines.slice(range.start, range.end);
+      const { post, replies } = splitPostAndReplies(heading, chunk, abs(range.start));
+      if (!post) continue;
+      post.replies = replies;
+      out.push(post);
+    }
+    return out;
+  };
+
+  if (firstSubstantialLineIsList(content)) {
+    const i = skipLeadingChrome(lines, start, end);
+    return pushSplit(i, end, 40);
+  }
+
+  // Prose-first (or named article): one post; trailing 续 become replies.
+  const { post, replies } = splitPostAndReplies(heading, lines.slice(start, end), abs(start));
+  if (!post) return [];
+  post.replies = replies;
+  return [post];
+}
+
+/**
+ * Soft-split a day (or loose) section into per-bullet posts with nested replies.
+ * Line offsets are relative to `content` unless `lineOffset` is passed.
  */
 export function softSplitContentEntries(
   sectionHeading: string,
   content: string,
+  lineOffset = 0,
 ): StreamEntry[] {
-  const { main, appendChunks } = splitMainAndAppendChunks(content);
-  const out: StreamEntry[] = [];
-
-  if (main) {
-    if (firstSubstantialLineIsList(main)) {
-      const listBody = stripLeadingAtxHeadings(main);
-      const bullets = entriesFromStructuralBody(sectionHeading, listBody || main);
-      if (bullets.length > 0) {
-        out.push(...bullets);
-      } else {
-        const single = makeEntry(sectionHeading, main);
-        if (single) out.push(single);
-      }
-    } else {
-      // Prose-first: one post. Wrapped line-breaks stay paragraphs, not cards.
-      const single = makeEntry(sectionHeading, main);
-      if (single) out.push(single);
-    }
-  }
-
-  for (const chunk of appendChunks) {
-    const e = makeEntry(sectionHeading, chunk, { isAppend: true });
-    if (e) out.push(e);
-  }
-
-  return out;
+  const lines = String(content || "").replace(/\r\n/gu, "\n").split("\n");
+  return postsFromSection(sectionHeading, lines, 0, lines.length, (i) => lineOffset + i);
 }
 
 /**
- * Parse period note markdown into entries (newest first).
+ * Parse period note markdown into entries (newest-first **posts**).
+ * Replies stay nested on each post in file order — never reversed away from the parent.
  * - CRLF-safe frontmatter
- * - Day sections soft-split into per-bullet + append cards
- * - Structural shells (进行中/记录) still yield list-item cards so the feed is never blank
+ * - Day / structural sections: first-level list items, 续 attached to the preceding item
+ * - Named non-day ## → one 文章卡 (trailing 续 as replies)
  */
 export function parsePeriodNote(markdown: string): StreamEntry[] {
-  const body = stripFrontmatter(markdown);
+  const normalized = String(markdown || "").replace(/\r\n/gu, "\n").replace(/\r/gu, "\n");
+  const { body, startLine: bodyStart } = frontmatterStartLine(normalized);
+  const lines = body.split("\n");
+  if (!body.trim()) return [];
 
-  const parts = body.split(/^## (.+)$/mu);
-  if (parts.length <= 1) {
-    const trimmed = body.trim();
-    if (!trimmed) return [];
-    // No ## sections — soft-split whole body
-    const soft = softSplitContentEntries("", trimmed);
-    if (soft.length > 0) return soft.reverse();
-    const single = makeEntry("", trimmed);
-    return single ? [single] : [];
+  const headingLines: number[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (/^## (.+)$/u.test(lines[i])) headingLines.push(i);
   }
 
-  const entries: StreamEntry[] = [];
-  for (let i = 1; i < parts.length; i += 2) {
-    const heading = parts[i]?.trim() ?? "";
-    const content = (parts[i + 1] ?? "").trim();
-    if (!heading && !content) continue;
-
-    if (STRUCTURAL_HEADINGS.has(heading)) {
-      // Soft-extract content so 记录/进行中 list items still appear in the feed
-      for (const e of softSplitContentEntries(heading, content)) {
-        entries.push(e);
-      }
-      continue;
+  type Section = { heading: string; start: number; end: number };
+  const sections: Section[] = [];
+  if (headingLines.length === 0) {
+    sections.push({ heading: "", start: 0, end: lines.length });
+  } else {
+    if (headingLines[0]! > 0) {
+      sections.push({ heading: "", start: 0, end: headingLines[0]! });
     }
-
-    if (isDayLikeHeading(heading)) {
-      for (const e of softSplitContentEntries(heading, content)) {
-        entries.push(e);
-      }
-      continue;
+    for (let h = 0; h < headingLines.length; h++) {
+      const idx = headingLines[h]!;
+      const heading = lines[idx].replace(/^##\s+/u, "").trim();
+      const start = idx + 1;
+      const end = h + 1 < headingLines.length ? headingLines[h + 1]! : lines.length;
+      sections.push({ heading, start, end });
     }
-
-    // Named non-day ## → one 文章卡 (keep 增补 in the body; do not soft-split)
-    const e = makeEntry(heading, content);
-    if (e) entries.push(e);
   }
 
-  return entries.reverse();
+  const abs = (i: number) => bodyStart + i;
+  const days: StreamEntry[][] = [];
+  for (const sec of sections) {
+    if (!sec.heading && !lines.slice(sec.start, sec.end).some((l) => l.trim())) continue;
+    const namedArticle =
+      Boolean(sec.heading)
+      && !STRUCTURAL_HEADINGS.has(sec.heading)
+      && !isDayLikeHeading(sec.heading);
+    if (namedArticle) {
+      const { post, replies } = splitPostAndReplies(
+        sec.heading,
+        lines.slice(sec.start, sec.end),
+        abs(sec.start),
+        { chromeOnly: true },
+      );
+      days.push(post ? [{ ...post, replies }] : []);
+      continue;
+    }
+    days.push(postsFromSection(sec.heading, lines, sec.start, sec.end, abs));
+  }
+
+  const out: StreamEntry[] = [];
+  for (let d = days.length - 1; d >= 0; d--) {
+    const posts = days[d]!;
+    for (let p = posts.length - 1; p >= 0; p--) out.push(posts[p]!);
+  }
+  return out;
 }
 
 /** Short time/date label from heading */
@@ -339,12 +541,16 @@ export function extractTimeLabel(heading: string): string | null {
   return heading.slice(0, 20);
 }
 
-/** Timestamp from first bullet line (or plain line start). */
+/** Timestamp from first bullet line (or plain line start). Skips append chrome. */
 export function extractBodyTimestamp(body: string): string | null {
   const text = normalizeStreamEscapes(body);
-  const match = text.match(/^\s*[-*]\s+(\d{1,2}:\d{2})/u)
-    || text.match(/^\s*(\d{1,2}:\d{2})\b/u);
-  return match ? match[1] : null;
+  for (const line of text.split("\n")) {
+    if (!line.trim() || isStreamAppendChromeLine(line)) continue;
+    const match = line.match(/^\s*[-*]\s+(\d{1,2}:\d{2})/u)
+      || line.match(/^\s*(\d{1,2}:\d{2})\b/u);
+    return match ? match[1] : null;
+  }
+  return null;
 }
 
 /**

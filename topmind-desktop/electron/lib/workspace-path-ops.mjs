@@ -1078,7 +1078,7 @@ export const pathOps = {
    * Same Markdown file; marker <!-- topmind:append ... --> for activity window parents.
    * Uses Kernel appendToStreamEntry only (no monorepo-relative lib import).
    */
-  async appendStreamEntry({ relativePath, heading, content, parentRel }, ctx) {
+  async appendStreamEntry({ relativePath, heading, content, parentRel, startLine, endLine, anchorText }, ctx) {
     S(relativePath, "relativePath");
     S(content, "content", { maxLen: 50_000 });
     const rel = String(relativePath).replace(/\\/g, "/");
@@ -1093,6 +1093,8 @@ export const pathOps = {
     if (typeof kernel.appendToStreamEntry !== "function") {
       throw new Error("Kernel appendToStreamEntry unavailable");
     }
+    const intOrUndef = (v) =>
+      Number.isInteger(v) && v >= 0 && v <= 1_000_000 ? v : undefined;
     // Detailed variant reports where the block landed (exact heading vs end-of-file)
     const appendFn =
       typeof kernel.appendToStreamEntryDetailed === "function"
@@ -1103,6 +1105,9 @@ export const pathOps = {
       content: text,
       parentRel: parentRel ? String(parentRel) : undefined,
       date: new Date(),
+      startLine: intOrUndef(startLine),
+      endLine: intOrUndef(endLine),
+      anchorText: typeof anchorText === "string" && anchorText.trim() ? String(anchorText) : undefined,
     });
     if (next === old) {
       throw new Error(i18n("pathOps.appendNoChange"));

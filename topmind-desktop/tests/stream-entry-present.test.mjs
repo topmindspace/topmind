@@ -174,6 +174,24 @@ describe("stream-entry-present", () => {
     const contRows = groupDayFeedRows(continued.map((e, i) => ({ ...e, index: i })));
     assert.equal(contRows.length, 1);
     assert.match(continued[0].body, /second paragraph/);
+
+    const withReply = parsePeriodNote(
+      [
+        "## 08-03 周一",
+        "",
+        "- 10:00 a",
+        "- 11:00 b",
+        "",
+        "#### 续 · x",
+        "follow",
+      ].join("\n"),
+    );
+    const replyRows = groupDayFeedRows(withReply.map((e, i) => ({ ...e, index: i })));
+    assert.equal(replyRows.length, 2, "续 must not become a third sibling row");
+    const bRow = replyRows.find((r) => /11:00 b/.test(r.entry.body));
+    assert.ok(bRow);
+    assert.equal(bRow.appends.length, 1);
+    assert.match(bRow.appends[0].body, /follow/);
   });
 
   it("StreamDetailView applies data-layout to the same parse/group path (does not re-split)", async () => {

@@ -101,9 +101,20 @@ export function streamEntryNeedsExpand(
   return false;
 }
 
+function indexReply(
+  parentIndex: number,
+  reply: StreamEntry,
+  i: number,
+): StreamEntry & { index: number } {
+  const idx = typeof reply.startLine === "number" ? reply.startLine : parentIndex * 1000 + i + 1;
+  return { ...reply, index: idx };
+}
+
 /**
- * Group flat day entries into feed rows: moments collect following appends;
- * articles stand alone.
+ * Group day entries into feed rows.
+ * Prefer replies already nested on the post (parse attaches 续 in file order,
+ * then reverses only posts). Flat trailing `isAppend` entries still attach
+ * to the open moment/prose/article as a fallback.
  */
 export function groupDayFeedRows(
   entries: Array<StreamEntry & { index: number }>,
@@ -120,17 +131,18 @@ export function groupDayFeedRows(
 
   for (const entry of entries) {
     const kind = classifyStreamEntry(entry);
-    if (kind === "append") {
-      if (open && (open.kind === "moment" || open.kind === "prose")) {
+    const nested = (entry.replies || []).map((r, i) => indexReply(entry.index, r, i));
+
+    if (kind === "append" && nested.length === 0) {
+      if (open && open.kind !== "append") {
         open.appends.push(entry);
       } else {
-        // Orphan append — still show as quiet row
         rows.push({ entry, kind: "append", appends: [] });
       }
       continue;
     }
     flush();
-    open = { entry, kind, appends: [] };
+    open = { entry, kind, appends: nested };
   }
   flush();
   return rows;

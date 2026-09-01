@@ -374,6 +374,25 @@ describe("parseStreamEntries (shipped)", () => {
     assert.match(display, /补充一条列表/);
     assert.match(display, /补充待办/);
   });
+
+  test("later first-level bullet after #### 续 is a new card, not swallowed", async () => {
+    const { parseStreamEntries } = await importShipped("utils.ts");
+    const content = [
+      "## 08-03",
+      "",
+      "- 10:00 first",
+      "#### 续 · 2026-08-03 12:00",
+      "comment",
+      "- 12:00 third",
+    ].join("\n");
+    const entries = parseStreamEntries(content);
+    assert.equal(entries.length, 2, `expected 2 cards, got ${entries.length}`);
+    assert.equal(entries[0].time, "10:00");
+    assert.match(entries[0].text, /comment/);
+    assert.doesNotMatch(entries[0].text, /third/);
+    assert.equal(entries[1].time, "12:00");
+    assert.match(entries[1].text, /third/);
+  });
 });
 
 describe("stream workbench display path (shipped)", () => {

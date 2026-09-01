@@ -53,6 +53,21 @@ test("countStreamAppends: empty / no appends ⇒ 0", () => {
   assert.equal(countStreamAppends("- just a line\n\nparagraph"), 0);
 });
 
+test("countStreamAppends: nested-list formatAppendBlock still counts 1", async () => {
+  const { formatAppendBlock } = await import(activityWindowUrl);
+  const block = formatAppendBlock({
+    content: "nested reply",
+    heading: "原条目",
+    asNestedList: true,
+    indent: "  ",
+    date: new Date("2026-08-03T12:00:00.000Z"),
+  });
+  assert.match(block, /<!--\s*topmind:append\b/u);
+  assert.doesNotMatch(block, /####\s*续/u);
+  const body = `- original line\n${block}`;
+  assert.equal(countStreamAppends(body), 1);
+});
+
 test("stream-entry-present uses countStreamAppends (not dual regex)", () => {
   // countStreamAppends lives in stream-period-parse and is consumed by stream-entry-present
   // (which StreamDetailView imports for expand decisions).
