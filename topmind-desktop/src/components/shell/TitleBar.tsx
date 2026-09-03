@@ -53,7 +53,7 @@ function SuggestBadge() {
   return (
     <span
       className={cn(
-        "absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-xs px-0.5 text-5xs font-bold leading-none tabular-nums text-text-on-accent",
+        "absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-xs px-1 text-4xs font-bold leading-none tabular-nums text-text-on-accent",
         hasHigh ? "bg-warning" : "bg-skill-loop",
       )}
       aria-hidden
@@ -597,7 +597,7 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
           <Tooltip content={sidebarCollapsed ? t("titleBar.showSidebar") : t("titleBar.hideSidebar")}>
             <button
               type="button"
-              className="v4-titlebar-btn"
+              className="v4-titlebar-btn v4-titlebar-panel-toggle"
               onClick={onToggleSidebar}
               aria-pressed={!sidebarCollapsed}
               data-active={!sidebarCollapsed}
@@ -624,7 +624,7 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
       </div>
 
       {/* Center: primary nav + command field (Linear-style quiet well, not a button row) */}
-      <div className="flex shrink-0 items-center gap-1.5">
+      <div className="flex min-w-0 shrink items-center gap-1.5">
         <PrimaryNav showLabels={navLabels} />
         <Tooltip content={t("titleBar.commandPaletteTip")}>
           <button
@@ -820,7 +820,7 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
         <Tooltip content={aiPanelOpen ? t("titleBar.hideAiPanel") : t("titleBar.showAiPanel")}>
           <button
             type="button"
-            className="v4-titlebar-btn v4-titlebar-btn-ai"
+            className="v4-titlebar-btn v4-titlebar-btn-ai v4-titlebar-panel-toggle"
             data-chrome-tier="l1"
             onClick={() => useViewStore.getState().toggleAiPanel()}
             aria-pressed={aiPanelOpen}

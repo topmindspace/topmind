@@ -86,6 +86,37 @@ export function EditorRecentBar() {
 
   // Hooks must run unconditionally — early return when tabs empty used to run
   // fewer hooks after "close all", crashing React and blanking the whole shell.
+  // Keyboard navigation for tablist (ArrowLeft, ArrowRight, Home, End)
+  const handleTablistKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (fileTabs.length === 0) return;
+      const currentIndex = fileTabs.findIndex((t) => t.path === activePath);
+      let targetIndex = -1;
+
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        targetIndex = currentIndex >= 0 && currentIndex < fileTabs.length - 1 ? currentIndex + 1 : 0;
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        targetIndex = currentIndex > 0 ? currentIndex - 1 : fileTabs.length - 1;
+      } else if (e.key === "Home") {
+        e.preventDefault();
+        targetIndex = 0;
+      } else if (e.key === "End") {
+        e.preventDefault();
+        targetIndex = fileTabs.length - 1;
+      }
+
+      if (targetIndex >= 0 && targetIndex !== currentIndex) {
+        const nextTab = fileTabs[targetIndex];
+        if (nextTab) {
+          openFile(nextTab.path);
+        }
+      }
+    },
+    [fileTabs, activePath, openFile],
+  );
+
   useEffect(() => {
     if (fileTabs.length === 0 || !activePath) return;
     const el = activeTabRef.current;
@@ -93,6 +124,9 @@ export function EditorRecentBar() {
     requestAnimationFrame(() => {
       el.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
       updateEdgeFade();
+      if (stripRef.current?.contains(document.activeElement)) {
+        el.querySelector<HTMLButtonElement>("button")?.focus();
+      }
     });
   }, [activePath, fileTabs.length, updateEdgeFade]);
 
@@ -133,6 +167,7 @@ export function EditorRecentBar() {
           className="v4-content-scroll flex min-w-0 flex-1 items-stretch gap-0.5 overflow-x-auto px-1.5 py-1"
           role="tablist"
           aria-label={t("editorRecentBar.openFiles")}
+          onKeyDown={handleTablistKeyDown}
         >
           {fileTabs.map((tab, index) => {
             const name = tab.path.split("/").pop() || tab.path;
@@ -202,6 +237,7 @@ export function EditorRecentBar() {
                 ) : null}
                 <button
                   type="button"
+                  tabIndex={active ? 0 : -1}
                   onClick={() => openFile(tab.path)}
                   onAuxClick={(e) => {
                     if (e.button === 1) {
@@ -227,10 +263,10 @@ export function EditorRecentBar() {
                       pinFileTab(tab.path);
                     }}
                     className={cn(
-                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-sm transition-opacity pointer-events-none group-hover:pointer-events-auto focus-visible:pointer-events-auto",
+                      "flex h-6 w-6 shrink-0 items-center justify-center rounded-sm transition-opacity pointer-events-none group-hover:pointer-events-auto focus-visible:pointer-events-auto [@media(hover:none)]:pointer-events-auto",
                       tab.pinned
                         ? "text-accent-color opacity-100 pointer-events-auto"
-                        : "text-text-quaternary opacity-0 group-hover:opacity-100 hover:bg-surface-muted focus-visible:opacity-100",
+                        : "text-text-quaternary opacity-0 group-hover:opacity-100 hover:bg-surface-muted focus-visible:opacity-100 [@media(hover:none)]:opacity-100",
                     )}
                     aria-label={tab.pinned ? t("editorRecentBar.unpin") : t("editorRecentBar.pin")}
                     aria-pressed={tab.pinned}
@@ -246,7 +282,7 @@ export function EditorRecentBar() {
                       closeFileTab(tab.path);
                     }}
                     className={cn(
-                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-text-quaternary transition-opacity pointer-events-none group-hover:pointer-events-auto hover:bg-surface-muted hover:text-error",
+                      "flex h-6 w-6 shrink-0 items-center justify-center rounded-sm text-text-quaternary transition-opacity pointer-events-none group-hover:pointer-events-auto focus-visible:pointer-events-auto hover:bg-surface-muted hover:text-error [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100 focus-visible:opacity-100",
                       active ? "opacity-80 pointer-events-auto" : "opacity-0 group-hover:opacity-100",
                     )}
                     aria-label={t("editorRecentBar.closeAriaLabel")}

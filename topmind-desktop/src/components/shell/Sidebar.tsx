@@ -420,10 +420,9 @@ function DataSourceSection({
         const topicId = decision.topicId;
         const expanded = useViewStore.getState().expandedNodeIds;
 
-        // Only reload children for the specific topic that changed (updates mtime in cache)
+        // Only reload children for the specific topic that changed (updates mtime in cache silently)
         if (topicId && expanded.has(topicId)) {
           const lazyPath = topicId;
-          setLoadingNodes((prev) => new Set(prev).add(topicId));
           try {
             const filter = fileFilterRef.current;
             const { entries } = await api.ws.listDir(lazyPath, filter);
@@ -437,12 +436,6 @@ function DataSourceSection({
             });
           } catch {
             /* silent */
-          } finally {
-            setLoadingNodes((prev) => {
-              const next = new Set(prev);
-              next.delete(topicId);
-              return next;
-            });
           }
         }
         setError(null);

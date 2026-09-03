@@ -205,12 +205,12 @@ const StreamFeedRowView = memo(function StreamFeedRowView({
               </div>
             </div>
           </button>
-          <div className="flex shrink-0 items-center gap-0.5 opacity-0 pointer-events-none transition-opacity group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto">
+          <div className="flex shrink-0 items-center gap-0.5 opacity-0 pointer-events-none transition-opacity group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto">
             <Tooltip content={t("workspace:streamDetail.appendTip")}>
               <button
                 type="button"
                 onClick={() => onToggleAppend(entry.index, headingOrPreview)}
-                className="flex h-6 w-6 items-center justify-center rounded-sm text-text-quaternary hover:bg-surface-muted hover:text-accent-color"
+                className="flex h-6 w-6 items-center justify-center rounded-sm text-text-quaternary hover:bg-surface-muted hover:text-accent-color focus-visible:opacity-100 v4-focus-ring"
                 aria-label={t("workspace:streamDetail.append")}
               >
                 <RiChatNewLine size={ICON.xs} />
@@ -340,12 +340,12 @@ const StreamFeedRowView = memo(function StreamFeedRowView({
               />
             </div>
             {/* Explicit actions — not silent whole-card navigation */}
-            <div className="flex shrink-0 items-center gap-0.5 opacity-0 pointer-events-none transition-opacity group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto">
+            <div className="flex shrink-0 items-center gap-0.5 opacity-0 pointer-events-none transition-opacity group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto">
               <Tooltip content={t("workspace:streamDetail.appendTip")}>
                 <button
                   type="button"
                   onClick={() => onToggleAppend(entry.index, headingOrPreview)}
-                  className="flex h-6 w-6 items-center justify-center rounded-sm text-text-quaternary hover:bg-surface-muted hover:text-accent-color"
+                  className="flex h-6 w-6 items-center justify-center rounded-sm text-text-quaternary hover:bg-surface-muted hover:text-accent-color focus-visible:opacity-100 v4-focus-ring"
                   aria-label={t("workspace:streamDetail.append")}
                 >
                   <RiChatNewLine size={ICON.xs} />
@@ -355,7 +355,7 @@ const StreamFeedRowView = memo(function StreamFeedRowView({
                 <button
                   type="button"
                   onClick={() => onOpenPeriod(entry.heading || undefined)}
-                  className="flex h-6 w-6 items-center justify-center rounded-sm text-text-quaternary hover:bg-surface-muted hover:text-accent-color"
+                  className="flex h-6 w-6 items-center justify-center rounded-sm text-text-quaternary hover:bg-surface-muted hover:text-accent-color focus-visible:opacity-100 v4-focus-ring"
                   aria-label={t("workspace:streamDetail.openInEditor")}
                   data-stream-open-segment
                 >

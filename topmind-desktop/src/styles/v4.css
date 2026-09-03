@@ -417,11 +417,11 @@ html.dark .v4-editor-shell[data-paper="sepia"] .v4-editor-canvas {
 [data-compact="true"] [data-compact-hidden] {
   display: none !important;
 }
-/* Fixed-width editor document tabs for consistent layout */
+/* Flexible modern editor document tabs */
 .v4-recent-tab {
-  width: 9.5rem;
-  min-width: 9.5rem;
-  max-width: 9.5rem;
+  min-width: 6rem;
+  max-width: 14rem;
+  flex: 0 1 auto;
 }
 .v4-editor-subheader {
   background: color-mix(in srgb, var(--color-surface-muted) 55%, var(--color-surface));
@@ -942,6 +942,20 @@ button.v4-dash-card:active,
   background: var(--color-accent-bg-faint);
   color: var(--color-accent-color);
   box-shadow: inset 0 -2px 0 0 var(--color-accent-color);
+}
+/* Panel toggle buttons (sidebar / AI rail) — pure icon-only state without bottom underline border or tint */
+.v4-titlebar-panel-toggle,
+.v4-titlebar-panel-toggle[data-active="true"],
+.v4-titlebar-btn-ai.v4-titlebar-panel-toggle[data-active="true"] {
+  background: transparent;
+  box-shadow: none;
+}
+.v4-titlebar-panel-toggle[data-active="true"] {
+  color: var(--color-text-primary);
+}
+.v4-titlebar-panel-toggle:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
 }
 .v4-titlebar-btn-primary {
   display: inline-flex;

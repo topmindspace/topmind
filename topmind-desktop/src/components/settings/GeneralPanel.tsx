@@ -24,7 +24,7 @@ const DEFAULT_UI = {
   sidebarWidth: 240,
   sidebarCollapsed: false,
   aiPanelOpen: true,
-  aiPanelWidth: 360,
+  aiPanelWidth: 420,
   sidebarView: "stream" as const,
   fileFilter: "default" as const,
   closeBehavior: "ask" as const,

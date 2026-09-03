@@ -14,9 +14,9 @@
 
 ## 这是什么？
 
-**topmind Stream** 将 topmind 引擎的核心**低摩擦个人动态流工作流**带入 Obsidian。
+**topmind Stream** 将 topmind 引擎的核心**低摩擦个人动态流体验**带入 Obsidian。
 
-传统的笔记软件往往强迫在写作前做出繁琐的分类、标签和结构决策。topmind Stream 用无缝的「捕获-沉淀」闭环替代了这种摩擦：
+传统笔记往往要求在记录前先想好分类、标签与文件夹层级。topmind Stream 将其转变为顺畅的即时流式体验：
 
 ```text
 收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整

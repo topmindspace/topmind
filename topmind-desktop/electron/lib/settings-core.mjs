@@ -903,7 +903,7 @@ function defaultUiSettings() {
     sidebarWidth: 240,
     sidebarCollapsed: false,
     aiPanelOpen: true,
-    aiPanelWidth: 360,
+    aiPanelWidth: 420,
     /** Default sidebar view mode (stream / category tree / timeline / tags / kanban). */
     sidebarView: "stream",
     /** Stream + collection canvas: list (dense feed) or card (single-column). */
@@ -943,7 +943,7 @@ function normalizeUiSettings(value, fallback = defaultUiSettings()) {
       ? value.sidebarWidth : fallback.sidebarWidth,
     sidebarCollapsed: value.sidebarCollapsed === true,
     aiPanelOpen: value.aiPanelOpen !== false,
-    aiPanelWidth: typeof value.aiPanelWidth === "number" && value.aiPanelWidth >= 280 && value.aiPanelWidth <= 560
+    aiPanelWidth: typeof value.aiPanelWidth === "number" && value.aiPanelWidth >= 280 && value.aiPanelWidth <= 800
       ? value.aiPanelWidth : fallback.aiPanelWidth,
     sidebarView:
       typeof value.sidebarView === "string" && SIDEBAR_VIEWS.has(value.sidebarView)

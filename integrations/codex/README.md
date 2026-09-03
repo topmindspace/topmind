@@ -6,7 +6,7 @@ Codex consumes topmind through the same portable skill pack as other hosts.
 
 ## Recommended route
 
-1. Install or symlink the skills declared in `skills/topmind-pack.json` (9 modules).  
+1. Install or symlink the skills declared in `skills/topmind-pack.json` (10 modules: 7 core + 2 connectors + 1 ledger).  
 2. **Expose only `topmind`** as the daily user-facing entry; sub-skills are internal.  
 3. Use `topmind-cli` or MCP when available; **UTR is optional** — otherwise host file tools with the same filesystem contract.  
 4. Keep all user data under `topmind-workspace/categories-and-topics`. Codex session state must not become topmind content truth.

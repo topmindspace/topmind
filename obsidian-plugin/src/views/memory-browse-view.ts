@@ -47,31 +47,54 @@ export class MemoryBrowseView extends ItemView {
     await this.render();
   }
 
+  private cache = new Map<string, { mtime: number; content: string }>();
+
   private memoryDirRel(): string {
     const profile = this.plugin.kernelService.profileRelPath();
     const slash = profile.lastIndexOf("/");
     return slash > 0 ? profile.slice(0, slash) : "memory";
   }
 
-  private collectSources(): {
+  private async walkMdFiles(dir: string): Promise<string[]> {
+    const results: string[] = [];
+    try {
+      const exists = await this.app.vault.adapter.exists(dir);
+      if (!exists) return results;
+      const list = await this.app.vault.adapter.list(dir);
+      for (const f of list.files) {
+        if (f.endsWith(".md")) results.push(f.replace(/\\/g, "/"));
+      }
+      for (const sub of list.folders) {
+        const subFiles = await this.walkMdFiles(sub);
+        results.push(...subFiles);
+      }
+    } catch {
+      /* ignore */
+    }
+    return results;
+  }
+
+  private async collectSources(): Promise<{
     profile: { path: string; markdown: string } | null;
     periodic: Array<{ path: string; markdown: string }>;
     topics: Array<{ path: string; markdown: string }>;
-  } {
+  }> {
     const memDir = this.memoryDirRel();
     const profilePath = this.plugin.kernelService.profileRelPath();
-    const files = this.app.vault.getMarkdownFiles();
+    // Scan within memory/ directory only — never enumerate whole vault
+    const periodicFiles = await this.walkMdFiles(`${memDir}/periodic`);
+    const topicFiles = await this.walkMdFiles(`${memDir}/topics`);
+
     const periodic: Array<{ path: string; markdown: string }> = [];
     const topics: Array<{ path: string; markdown: string }> = [];
 
-    for (const file of files) {
-      const p = file.path.replace(/\\/g, "/");
+    for (const p of periodicFiles) {
       if (/(?:^|\/)todo\.md$/iu.test(p)) continue;
-      if (p.startsWith(`${memDir}/periodic/`)) {
-        periodic.push({ path: p, markdown: "" });
-      } else if (p.startsWith(`${memDir}/topics/`)) {
-        topics.push({ path: p, markdown: "" });
-      }
+      periodic.push({ path: p, markdown: "" });
+    }
+    for (const p of topicFiles) {
+      if (/(?:^|\/)todo\.md$/iu.test(p)) continue;
+      topics.push({ path: p, markdown: "" });
     }
 
     return {
@@ -84,8 +107,15 @@ export class MemoryBrowseView extends ItemView {
   private async readFile(path: string): Promise<string> {
     const file = this.app.vault.getAbstractFileByPath(path);
     if (file instanceof TFile) {
+      const mtime = file.stat.mtime;
+      const cached = this.cache.get(path);
+      if (cached && cached.mtime === mtime) {
+        return cached.content;
+      }
       try {
-        return await this.app.vault.cachedRead(file);
+        const content = await this.app.vault.cachedRead(file);
+        this.cache.set(path, { mtime, content });
+        return content;
       } catch {
         return "";
       }
@@ -140,7 +170,7 @@ export class MemoryBrowseView extends ItemView {
     }
     this.renderLayoutToggle(layers);
 
-    const collected = this.collectSources();
+    const collected = await this.collectSources();
     if (collected.profile) {
       collected.profile.markdown = await this.readFile(collected.profile.path);
     }

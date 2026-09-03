@@ -409,7 +409,11 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
               }
             }, 1200);
           }
-          emitLocal("workspace:file-changed", { relativePath: targetPath });
+          emitLocal("workspace:file-changed", {
+            relativePath: targetPath,
+            event: "change",
+            source: "editor",
+          });
         } catch (e) {
           if (targetPath === pathRef.current) {
             setSaveState("error");

@@ -8,7 +8,7 @@
 // - Backup/receipt keep count wiring (via process.env)
 
 import type { App } from "obsidian";
-import { Notice, type Plugin } from "obsidian";
+import { Notice, type Plugin, TFile } from "obsidian";
 import type { TopmindSettings, StreamPeriod, StreamEntry, SuggestionCard, TodoItem } from "../types";
 import type { AiProvider } from "../bridge/ai-provider";
 import { createAiProvider, resolveAiEndpoint } from "../bridge/ai-provider";
@@ -291,6 +291,13 @@ export class KernelService {
     return path.join(vault, "memory");
   }
 
+  /** Relative memory-plane directory (workspace-relative). */
+  memoryDirRel(): string {
+    const profile = this.profileRelPath();
+    const slash = profile.lastIndexOf("/");
+    return slash > 0 ? profile.slice(0, slash) : "memory";
+  }
+
   /**
    * Resolve workspace model with caching.
    * Caches based on topmind.yaml mtime — invalidates when config changes.
@@ -343,13 +350,40 @@ export class KernelService {
     }
   }
 
+  /** Read a period note and parse entries asynchronously (preferred) */
+  async readPeriodNoteAsync(relPath: string): Promise<{ content: string; entries: StreamEntry[] }> {
+    try {
+      const file = this.app.vault.getAbstractFileByPath(relPath);
+      let raw = "";
+      if (file instanceof TFile) {
+        raw = await this.app.vault.cachedRead(file);
+      } else if (await this.app.vault.adapter.exists(relPath)) {
+        raw = await this.app.vault.adapter.read(relPath);
+      }
+      const content = stripFrontmatter(raw);
+      const entries = parseStreamEntries(content);
+      return { content, entries };
+    } catch {
+      return { content: "", entries: [] };
+    }
+  }
+
   /** Read a period note and parse entries */
   readPeriodNote(relPath: string): { content: string; entries: StreamEntry[] } {
-    const workspaceRoot = this.getVaultPath();
-    const absPath = path.join(workspaceRoot, relPath);
-
     try {
-      const raw = fs.readFileSync(absPath, "utf-8");
+      const file = this.app.vault.getAbstractFileByPath(relPath);
+      let raw = "";
+      if (file instanceof TFile) {
+        // Vault readSync fallback if present
+        raw = (this.app.vault as unknown as { readSync?: (f: TFile) => string }).readSync?.(file) ?? "";
+      }
+      if (!raw) {
+        const workspaceRoot = this.getVaultPath();
+        const absPath = path.join(workspaceRoot, relPath);
+        if (fs.existsSync(absPath)) {
+          raw = fs.readFileSync(absPath, "utf-8");
+        }
+      }
       // Strip frontmatter before parsing — entries live in the body only
       const content = stripFrontmatter(raw);
       const entries = parseStreamEntries(content);
@@ -710,7 +744,7 @@ export class KernelService {
     try {
       const ctx = await this.getStreamContext();
       if (ctx.current) {
-        const { entries } = this.readPeriodNote(ctx.current.relPath);
+        const { entries } = await this.readPeriodNoteAsync(ctx.current.relPath);
         const recent = [...entries].reverse().slice(0, 20);
         if (recent.length > 0) {
           contextParts.push(
@@ -736,9 +770,9 @@ export class KernelService {
     }
 
     try {
-      const profilePath = path.join(this.getVaultPath(), this.profileRelPath());
-      if (fs.existsSync(profilePath)) {
-        const profile = fs.readFileSync(profilePath, "utf-8");
+      const profileRel = this.profileRelPath();
+      if (await this.app.vault.adapter.exists(profileRel)) {
+        const profile = await this.app.vault.adapter.read(profileRel);
         const trimmed = profile.slice(0, 3000);
         contextParts.push("## User Profile\n" + trimmed);
       }
@@ -747,7 +781,7 @@ export class KernelService {
     }
 
     try {
-      const reflections = this.loadRecentReflections();
+      const reflections = await this.loadRecentReflections();
       if (reflections) {
         contextParts.push("## Recent Reflections (extracted insights)\n" + reflections);
       }
@@ -792,41 +826,41 @@ export class KernelService {
    * Reads the most recent reflection file (current year) and trims to 2000 chars.
    * Returns null if no reflections exist.
    */
-  private loadRecentReflections(): string | null {
+  private async loadRecentReflections(): Promise<string | null> {
     try {
-      const periodicDir = path.join(this.memoryDirAbs(), "periodic");
-      if (!fs.existsSync(periodicDir)) return null;
+      const memRel = this.memoryDirRel();
+      const periodicRel = `${memRel}/periodic`;
+      if (!(await this.app.vault.adapter.exists(periodicRel))) return null;
 
-      // Scan BOTH layouts (pre-year-grouping flat files and {YYYY}/ subdirs):
-      // an either-or pick would miss flat reflections whenever the year dir
-      // exists but is empty. Walk every year folder, not only the current year.
-      const candidates: { file: string; mtime: number }[] = [];
-      const collect = (dir: string) => {
-        try {
-          for (const f of fs.readdirSync(dir)) {
-            if (!f.endsWith(".md")) continue;
-            const full = path.join(dir, f);
-            const st = fs.statSync(full);
-            if (st.isFile()) candidates.push({ file: full, mtime: st.mtimeMs });
-          }
-        } catch {
-          // unreadable dir — skip
+      const candidates: { path: string; mtime: number }[] = [];
+      const list = await this.app.vault.adapter.list(periodicRel);
+      for (const f of list.files) {
+        if (!f.endsWith(".md")) continue;
+        const norm = f.replace(/\\/g, "/");
+        const stat = await this.app.vault.adapter.stat(norm);
+        if (stat && stat.type === "file") {
+          candidates.push({ path: norm, mtime: stat.mtime });
         }
-      };
-      collect(periodicDir);
-      try {
-        for (const e of fs.readdirSync(periodicDir, { withFileTypes: true })) {
-          if (e.isDirectory() && /^\d{4}$/u.test(e.name)) {
-            collect(path.join(periodicDir, e.name));
-          }
-        }
-      } catch {
-        // unreadable periodic dir — skip year walk
       }
+      for (const dir of list.folders) {
+        const base = dir.replace(/\\/g, "/").split("/").pop() || "";
+        if (/^\d{4}$/u.test(base)) {
+          const subList = await this.app.vault.adapter.list(dir);
+          for (const f of subList.files) {
+            if (!f.endsWith(".md")) continue;
+            const norm = f.replace(/\\/g, "/");
+            const stat = await this.app.vault.adapter.stat(norm);
+            if (stat && stat.type === "file") {
+              candidates.push({ path: norm, mtime: stat.mtime });
+            }
+          }
+        }
+      }
+
       if (candidates.length === 0) return null;
       candidates.sort((a, b) => b.mtime - a.mtime);
 
-      const content = fs.readFileSync(candidates[0].file, "utf-8");
+      const content = await this.app.vault.adapter.read(candidates[0].path);
       // Trim to 2000 chars — enough for key insights without overwhelming context
       return content.slice(0, 2000);
     } catch {

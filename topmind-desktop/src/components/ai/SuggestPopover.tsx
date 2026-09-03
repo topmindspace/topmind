@@ -37,7 +37,7 @@ import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/cn";
 import { ICON } from "../../lib/icons";
 import { Tooltip } from "../ui/tooltip";
-import { ConfirmDialog } from "../ui/Dialog";
+import { ConfirmDialog, getFocusable } from "../ui/Dialog";
 import { shouldCloseOnScroll } from "../../lib/scroll-dismiss";
 import { isMenuLayerActive } from "../../lib/menu-layer";
 import { useActionStore, type ActionItem } from "../../stores/action-store";
@@ -125,11 +125,33 @@ export function SuggestPopover() {
   const dismissAll = useActionStore((s) => s.dismissAll);
 
   const panelRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const [reviewId, setReviewId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkResult, setBulkResult] = useState<string | null>(null);
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
+
+  // Focus management: record previous focus, focus into panel, restore on close
+  useEffect(() => {
+    if (!open) return;
+    previousFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const rafId = requestAnimationFrame(() => {
+      const panel = panelRef.current;
+      if (!panel) return;
+      const focusables = getFocusable(panel);
+      const target = focusables[0] ?? panel;
+      target.focus();
+    });
+    return () => {
+      cancelAnimationFrame(rafId);
+      const prev = previousFocusRef.current;
+      if (prev && document.contains(prev) && typeof prev.focus === "function") {
+        requestAnimationFrame(() => prev.focus());
+      }
+    };
+  }, [open]);
 
   // Position immediately when opening — avoid a null first paint (looks like no-op)
   useEffect(() => {
@@ -165,15 +187,37 @@ export function SuggestPopover() {
     }
   }, [open]);
 
-  // Esc closes
+  // Esc closes + Focus trap for Tab navigation
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape" || e.defaultPrevented) return;
       // A portaled menu (dropdown/context) owns Esc while open.
       if (isMenuLayerActive()) return;
-      e.stopPropagation();
-      setPanelOpen(false);
+
+      if (e.key === "Escape" && !e.defaultPrevented) {
+        e.stopPropagation();
+        setPanelOpen(false);
+        return;
+      }
+
+      if (e.key === "Tab") {
+        const panel = panelRef.current;
+        if (!panel) return;
+        const focusables = getFocusable(panel);
+        if (focusables.length === 0) {
+          e.preventDefault();
+          return;
+        }
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && (document.activeElement === first || !panel.contains(document.activeElement))) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -434,6 +478,7 @@ export function SuggestPopover() {
       }}
       role="dialog"
       aria-label={t("ai.suggestTitle")}
+      tabIndex={-1}
     >
       {/* Header: title + count + bulk actions + controls */}
       <div className="flex shrink-0 items-center gap-1.5 border-b border-border-subtle-dim px-3 py-2">

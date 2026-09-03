@@ -61,6 +61,8 @@ export class SidebarDockView extends ItemView {
   private chatProviderOverride = "";
   /** Currently selected model in chat model switcher */
   private chatModelOverride = "";
+  /** Unsent chat draft preserved across full re-renders (settings refresh). */
+  private pendingChatDraft = "";
 
   constructor(leaf: WorkspaceLeaf, plugin: TopmindPlugin) {
     super(leaf);
@@ -179,6 +181,11 @@ export class SidebarDockView extends ItemView {
   /** Full re-render (header + tabs + content) */
   private async render(): Promise<void> {
     const { contentEl } = this;
+    // Preserve unsent chat draft across settings-driven full re-renders.
+    const existingInput = contentEl.querySelector("textarea.tm-chat-input") as HTMLTextAreaElement | null;
+    if (existingInput && existingInput.value) {
+      this.pendingChatDraft = existingInput.value;
+    }
     contentEl.empty();
     contentEl.addClass("tm-sidebar-dock");
 
@@ -361,17 +368,23 @@ export class SidebarDockView extends ItemView {
 
   private renderTabBar(container: HTMLElement): void {
     const tabBar = container.createDiv({ cls: "tm-tab-bar" });
+    tabBar.setAttribute("role", "tablist");
 
     const tabs: { id: SidebarTab; label: string; icon: string }[] = [
-      { id: "chat", label: t("sidebar_tab_chat"), icon: "message-circle" },
-      { id: "suggestions", label: t("sidebar_tab_suggestions"), icon: "lightbulb" },
       { id: "todos", label: t("sidebar_tab_todos"), icon: "list-checks" },
+      { id: "suggestions", label: t("sidebar_tab_suggestions"), icon: "lightbulb" },
+      { id: "chat", label: t("sidebar_tab_chat"), icon: "message-circle" },
+      { id: "stream", label: t("sidebar_tab_stream"), icon: "waves" },
+      { id: "history", label: t("sidebar_tab_history"), icon: "history" },
     ];
 
     for (const tab of tabs) {
+      const isActive = this.activeTab === tab.id;
       const btn = tabBar.createEl("button", {
-        cls: `tm-tab-btn ${this.activeTab === tab.id ? "tm-tab-active" : ""}`,
+        cls: `tm-tab-btn ${isActive ? "tm-tab-active" : ""}`,
       });
+      btn.setAttribute("role", "tab");
+      btn.setAttribute("aria-selected", String(isActive));
       const iconSpan = btn.createSpan({ cls: "tm-tab-icon" });
       setIcon(iconSpan, tab.icon);
       btn.createSpan({ text: tab.label, cls: "tm-tab-label" });
@@ -383,8 +396,10 @@ export class SidebarDockView extends ItemView {
         const allBtns = tabBar.querySelectorAll(".tm-tab-btn");
         allBtns.forEach((b) => {
           b.classList.remove("tm-tab-active");
+          b.setAttribute("aria-selected", "false");
         });
         btn.classList.add("tm-tab-active");
+        btn.setAttribute("aria-selected", "true");
         // Only re-render tab content, not the full view
         this.renderActiveTab();
       });
@@ -395,6 +410,11 @@ export class SidebarDockView extends ItemView {
 
   private async renderActiveTab(): Promise<void> {
     if (!this.contentContainer) return;
+    // Preserve unsent chat draft when re-rendering the active tab (e.g. thinking indicator).
+    const existingChatInput = this.contentContainer.querySelector("textarea.tm-chat-input") as HTMLTextAreaElement | null;
+    if (existingChatInput && existingChatInput.value && !this.pendingChatDraft) {
+      this.pendingChatDraft = existingChatInput.value;
+    }
     this.contentContainer.empty();
 
     switch (this.activeTab) {
@@ -429,9 +449,9 @@ export class SidebarDockView extends ItemView {
         cls: "tm-btn-secondary tm-toolbar-btn-labeled",
       });
       setIcon(aiMaintainBtn, "sparkles");
-      aiMaintainBtn.createSpan({ text: t("sidebar_op_todo", { defaultValue: "整理待办" }), cls: "tm-toolbar-btn-label" });
-      aiMaintainBtn.setAttribute("aria-label", t("sidebar_op_todo", { defaultValue: "整理待办" }));
-      aiMaintainBtn.setAttribute("title", t("sidebar_op_todo", { defaultValue: "整理待办" }));
+      aiMaintainBtn.createSpan({ text: t("sidebar_op_todo"), cls: "tm-toolbar-btn-label" });
+      aiMaintainBtn.setAttribute("aria-label", t("sidebar_op_todo"));
+      aiMaintainBtn.setAttribute("title", t("sidebar_op_todo"));
       aiMaintainBtn.addEventListener("click", () => {
         this.plugin.enqueueAiOperation("todo_maintain", "op_label_todo_maintain", "notice_todo_done", "sidebar", true);
       });
@@ -689,9 +709,9 @@ export class SidebarDockView extends ItemView {
       cls: "tm-btn-secondary tm-toolbar-btn-labeled",
     });
     setIcon(organizeBtn, "list-tree");
-    organizeBtn.createSpan({ text: t("stream_organize", { defaultValue: "整理本周" }), cls: "tm-toolbar-btn-label" });
-    organizeBtn.setAttribute("aria-label", t("stream_organize", { defaultValue: "整理本周" }));
-    organizeBtn.setAttribute("title", t("stream_organize", { defaultValue: "整理本周" }));
+    organizeBtn.createSpan({ text: t("stream_organize"), cls: "tm-toolbar-btn-label" });
+    organizeBtn.setAttribute("aria-label", t("stream_organize"));
+    organizeBtn.setAttribute("title", t("stream_organize"));
     organizeBtn.addEventListener("click", async () => {
       new Notice(t("notice_organizing"));
       const streamCtx = await this.plugin.kernelService.getStreamContext();
@@ -714,8 +734,8 @@ export class SidebarDockView extends ItemView {
         cls: "tm-btn-secondary tm-btn-icon-only",
       });
       setIcon(aiOpsBtn, "sparkles");
-      aiOpsBtn.setAttribute("aria-label", t("sidebar_op_menu", { defaultValue: "AI 操作" }));
-      aiOpsBtn.setAttribute("title", t("sidebar_op_menu", { defaultValue: "AI 操作" }));
+      aiOpsBtn.setAttribute("aria-label", t("sidebar_op_menu"));
+      aiOpsBtn.setAttribute("title", t("sidebar_op_menu"));
       aiOpsBtn.addEventListener("click", (evt: MouseEvent) => {
         const menu = new Menu();
         menu.addItem((item) => {
@@ -816,6 +836,12 @@ export class SidebarDockView extends ItemView {
         "aria-label": t("chat_title"),
       },
     });
+    if (this.pendingChatDraft) {
+      input.value = this.pendingChatDraft;
+      this.pendingChatDraft = "";
+      input.style.height = "auto";
+      input.style.height = Math.min(input.scrollHeight, 100) + "px";
+    }
 
     // Send button (icon-only)
     const sendBtn = inputArea.createEl("button", {
@@ -1268,6 +1294,7 @@ export class SidebarDockView extends ItemView {
 
   private renderBottomActions(container: HTMLElement): void {
     const actionsBar = container.createDiv({ cls: "tm-sidebar-bottom-actions" });
+    const aiConfigured = hasConfiguredProvider(this.plugin.settings.ai);
 
     // Primary Quick Capture CTA (Always available, broad hit area)
     const captureBtn = actionsBar.createEl("button", {
@@ -1275,10 +1302,51 @@ export class SidebarDockView extends ItemView {
     });
     const iconSpan = captureBtn.createSpan({ cls: "tm-action-icon-span" });
     setIcon(iconSpan, "zap");
-    captureBtn.createSpan({ text: t("sidebar_quick_capture"), cls: "tm-action-label-span" });
-    captureBtn.setAttribute("aria-label", t("sidebar_quick_capture"));
-    captureBtn.setAttribute("title", t("sidebar_quick_capture"));
+    if (this.showActionLabels) {
+      captureBtn.createSpan({ text: t("sidebar_btn_capture"), cls: "tm-action-label-span" });
+    }
+    captureBtn.setAttribute("aria-label", t("sidebar_btn_capture"));
+    captureBtn.setAttribute("title", t("sidebar_btn_capture"));
     captureBtn.addEventListener("click", () => this.plugin.openQuickCapture());
+
+    // Organize: reconcile current period + maintain todos (no AI required for reconcile)
+    this.addActionButton(actionsBar, "refresh-cw", t("sidebar_btn_organize"), async () => {
+      new Notice(t("notice_organizing"));
+      const streamCtx = await this.plugin.kernelService.getStreamContext();
+      if (streamCtx.current) {
+        this.plugin.kernelService.reconcilePeriod(streamCtx.current.relPath);
+      }
+      if (aiConfigured && this.plugin.settings.autoMaintainTodos) {
+        this.plugin.enqueueAiOperation("todo_maintain", "op_label_todo_maintain", "notice_todo_done", "sidebar", true);
+      } else {
+        new Notice(t("notice_organize_done"));
+      }
+      this.refreshActiveTab();
+    }, false);
+
+    if (aiConfigured) {
+      this.addActionButton(actionsBar, "list-checks", t("sidebar_btn_todo"), () => {
+        this.plugin.enqueueAiOperation("todo_maintain", "op_label_todo_maintain", "notice_todo_done", "sidebar", true);
+      }, true);
+      this.addActionButton(actionsBar, "tag", t("sidebar_btn_classify"), () => {
+        this.plugin.enqueueAiOperation("topic_classify", "op_label_topic_classify", "notice_classify_done", "suggest");
+      }, true);
+      this.addActionButton(actionsBar, "brain", t("sidebar_btn_memory"), () => {
+        this.plugin.enqueueAiOperation("memory_organize", "op_label_memory_organize", "notice_memory_done", "all");
+      }, true);
+    }
+
+    // Workbench entry
+    this.addActionButton(actionsBar, "waves", t("sidebar_btn_workbench"), () => {
+      void this.openWorkbench();
+    }, false);
+
+    // Label visibility toggle
+    const toggleLabel = this.showActionLabels ? t("sidebar_action_label_hide") : t("sidebar_action_label_show");
+    this.addActionButton(actionsBar, this.showActionLabels ? "eye-off" : "eye", toggleLabel, () => {
+      this.showActionLabels = !this.showActionLabels;
+      void this.render();
+    }, false);
   }
 
   private addActionButton(

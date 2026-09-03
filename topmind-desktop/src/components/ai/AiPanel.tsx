@@ -177,7 +177,7 @@ function TaskBadge() {
       >
         <span className="relative">
           <RiLoader4Line size={ICON.xs} className="animate-spin text-accent-color" />
-          <span className="absolute -right-1.5 -top-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-accent-color px-0.5 text-5xs font-bold leading-none text-primary-foreground">
+          <span className="absolute -right-1.5 -top-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-accent-color px-1 text-4xs font-bold leading-none text-primary-foreground">
             {active.length}
           </span>
         </span>

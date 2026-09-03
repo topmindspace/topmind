@@ -122,6 +122,11 @@ export function classifyTreeFileChange(payload: unknown): TreeFileChangeDecision
   if (!relativePath) {
     return { kind: "listing", relativePath: "", topicId, section: "" };
   }
+  // Pure content modification (e.g. editor saving an existing note):
+  // Never rebuilds topology, regardless of which section the note is in.
+  if (parsed.event === "change" || parsed.source === "editor") {
+    return { kind: "content", relativePath, topicId, section };
+  }
   if (section === "inbox" || section === "outputs" || section === "archive" || section === "memory") {
     return { kind: "listing", relativePath, topicId, section };
   }

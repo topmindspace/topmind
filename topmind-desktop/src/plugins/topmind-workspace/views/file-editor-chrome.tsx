@@ -103,13 +103,13 @@ export const SaveBadge = memo(function SaveBadge({ state }: { state: SaveState }
     <Tooltip content={config.tip}>
       <span
         className={cn(
-          "ml-0.5 flex items-center gap-1 rounded-full px-2 py-0.5 text-3xs font-medium transition-colors",
+          "ml-0.5 inline-flex min-w-[4.75rem] items-center justify-center gap-1 rounded-full px-2 py-0.5 text-3xs font-medium transition-colors",
           config.color,
           config.bg,
         )}
       >
         {config.icon}
-        {config.label}
+        <span className="truncate">{config.label}</span>
       </span>
     </Tooltip>
   );

@@ -66,7 +66,7 @@ export function extractLiveUiFromSettingsPatch(
   }
   if (hasOwn(patchUi, "aiPanelWidth")) {
     const w = patchUi.aiPanelWidth;
-    if (typeof w === "number" && w >= 280 && w <= 560) out.aiPanelWidth = w;
+    if (typeof w === "number" && w >= 280 && w <= 800) out.aiPanelWidth = w;
   }
   if (hasOwn(patchUi, "feedLayout") && isFeedLayout(patchUi.feedLayout)) {
     out.feedLayout = patchUi.feedLayout;

@@ -647,6 +647,8 @@ export interface TodoItem {
   done: boolean;
   source?: 'manual' | 'ai' | 'stream';
   sourcePeriod?: string;
+  /** Exact workspace-relative path of the source period note (preferred over sourcePeriod). */
+  sourcePath?: string;
   dueDate?: string;
   createdAt?: string;
   completedAt?: string;

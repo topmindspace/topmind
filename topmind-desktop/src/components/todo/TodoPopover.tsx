@@ -33,6 +33,7 @@ import { useTodoStore } from "../../stores/todo-store";
 import { useActionStore } from "../../stores/action-store";
 import { useViewStore } from "../../stores/view-store";
 import { Tooltip } from "../ui/tooltip";
+import { getFocusable } from "../ui/Dialog";
 import { TodoListBody } from "./TodoListBody";
 
 interface TodoPopoverProps {
@@ -56,11 +57,33 @@ export function TodoPopover({ open, onOpenChange, children }: TodoPopoverProps) 
   const initRef = useRef(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   const [pinned, setPinned] = useState(false);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef<{ mx: number; my: number; px: number; py: number } | null>(null);
+
+  // Focus management: record trigger on open, focus panel, restore on close
+  useEffect(() => {
+    if (!open) return;
+    previousFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const rafId = requestAnimationFrame(() => {
+      const panel = panelRef.current;
+      if (!panel) return;
+      const focusables = getFocusable(panel);
+      const target = focusables[0] ?? panel;
+      target.focus();
+    });
+    return () => {
+      cancelAnimationFrame(rafId);
+      const prev = previousFocusRef.current;
+      if (prev && document.contains(prev) && typeof prev.focus === "function") {
+        requestAnimationFrame(() => prev.focus());
+      }
+    };
+  }, [open]);
 
   // Modals own the screen — never paint this popover above an open overlay
   const overlay = useViewStore((s) => s.overlay);
@@ -139,16 +162,38 @@ export function TodoPopover({ open, onOpenChange, children }: TodoPopoverProps) 
     return () => window.removeEventListener("scroll", handle, { capture: true });
   }, [open, pinned, onOpenChange]);
 
-  // Esc closes (pinned: just unpin, unpinned: close)
+  // Esc closes + Focus trap for Tab navigation
   useEffect(() => {
     if (!open) return;
     const handle = (e: KeyboardEvent) => {
-      if (e.key !== "Escape" || e.defaultPrevented) return;
       // A portaled menu (dropdown/context) owns Esc while open.
       if (isMenuLayerActive()) return;
-      e.stopPropagation();
-      if (pinned) { setPinned(false); }
-      else { onOpenChange(false); }
+
+      if (e.key === "Escape" && !e.defaultPrevented) {
+        e.stopPropagation();
+        if (pinned) { setPinned(false); }
+        else { onOpenChange(false); }
+        return;
+      }
+
+      if (e.key === "Tab") {
+        const panel = panelRef.current;
+        if (!panel) return;
+        const focusables = getFocusable(panel);
+        if (focusables.length === 0) {
+          e.preventDefault();
+          return;
+        }
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && (document.activeElement === first || !panel.contains(document.activeElement))) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     document.addEventListener("keydown", handle);
     return () => document.removeEventListener("keydown", handle);
@@ -188,6 +233,7 @@ export function TodoPopover({ open, onOpenChange, children }: TodoPopoverProps) 
       ref={panelRef}
       role="dialog"
       aria-label={t("todo.title")}
+      tabIndex={-1}
       data-scroll-stable-panel=""
       data-menu-surface=""
       className={cn(

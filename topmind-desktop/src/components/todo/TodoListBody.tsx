@@ -34,7 +34,49 @@ import { cn } from "../../lib/cn";
 import { ICON } from "../../lib/icons";
 import { useTodoStore } from "../../stores/todo-store";
 import { useViewStore } from "../../stores/view-store";
+import { api } from "../../services/api";
 import type { TodoItem } from "../../types";
+
+/**
+ * Resolve a todo's source period to a real workspace-relative file path.
+ * Never hard-codes the stream directory (supports renamed dirs, en-US names,
+ * and yearDir grouping). Prefers an explicit sourcePath when present.
+ */
+export async function resolveTodoSourcePath(item: Pick<TodoItem, "sourcePath" | "sourcePeriod">): Promise<string | null> {
+  if (item.sourcePath) return item.sourcePath;
+  const period = item.sourcePeriod?.trim();
+  if (!period) return null;
+  try {
+    const periods = await api.ws.listStreamPeriods();
+    const match = periods.find((p) =>
+      p.fileName === `${period}.md`
+      || p.fileName.startsWith(`${period}.`)
+      || p.fileName.startsWith(period)
+      || p.title === period
+      || p.relPath.endsWith(`/${period}.md`)
+      || p.relPath.endsWith(period)
+      || p.relPath.includes(period),
+    );
+    if (match) return match.relPath;
+  } catch {
+    /* fall through to context fallback */
+  }
+  try {
+    const ctx = await api.ws.getStreamContext().catch(() => null);
+    if (ctx?.periodRelPath) {
+      const rel = ctx.periodRelPath;
+      if (
+        ctx.periodFileName === `${period}.md`
+        || ctx.periodFileName?.startsWith(period)
+        || ctx.periodTitle === period
+        || rel.includes(period)
+      ) return rel;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
 
 export function TodoListBody() {
   const { t } = useTranslation("shell");
@@ -491,33 +533,36 @@ function TodoItemRow({
                 ) : null}
               </div>
             ) : null}
-            {isAi && item.sourcePeriod ? (
+            {(isAi && (item.sourcePath || item.sourcePeriod)) ? (
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  // Navigate to the stream period note where this todo was extracted from
-                  select({ kind: "file", path: `10-动态/${item.sourcePeriod}.md` });
+                  // Navigate to the stream period note where this todo was extracted from.
+                  // Path is resolved via contract (supports renamed dirs + yearDir).
+                  void resolveTodoSourcePath(item).then((relPath) => {
+                    if (relPath) select({ kind: "file", path: relPath });
+                  });
                 }}
                 className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-accent-bg-subtle px-1 py-0 text-3xs text-accent-color/70 transition-colors hover:bg-accent-bg-faint hover:text-accent-color"
-                title={t("todo.openSource", { defaultValue: "Open source note" })}
+                title={t("todo.openSource")}
               >
                 <RiExternalLinkLine size={ICON.micro} className="shrink-0" />
-                {item.sourcePeriod}
+                {item.sourcePeriod || item.sourcePath?.split("/").pop()?.replace(/\.md$/, "") || ""}
               </button>
             ) : null}
           </div>
         )}
       </div>
 
-      {/* Hover actions */}
-      <div className="flex shrink-0 items-center gap-0.5 opacity-0 pointer-events-none transition-opacity group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto">
+      {/* Row actions — hover, focus-within, and touch-screen visible */}
+      <div className="flex shrink-0 items-center gap-0.5 opacity-0 pointer-events-none transition-opacity group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto">
         {!item.done ? (
           <>
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="flex h-4 w-4 items-center justify-center rounded-xs text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary"
+              className="flex h-6 w-6 items-center justify-center rounded-xs text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary focus-visible:opacity-100 v4-focus-ring"
               aria-label={t("todo.edit")}
             >
               <RiPencilLine size={ICON.micro} />
@@ -528,7 +573,7 @@ function TodoItemRow({
                 e.stopPropagation();
                 setShowDatePicker((v) => !v);
               }}
-              className="flex h-4 w-4 items-center justify-center rounded-xs text-text-quaternary transition-colors hover:bg-surface-muted hover:text-accent-color"
+              className="flex h-6 w-6 items-center justify-center rounded-xs text-text-quaternary transition-colors hover:bg-surface-muted hover:text-accent-color focus-visible:opacity-100 v4-focus-ring"
               aria-label={t("todo.setDueDate")}
             >
               <RiCalendarEventLine size={ICON.micro} />
@@ -538,7 +583,7 @@ function TodoItemRow({
         <button
           type="button"
           onClick={() => void remove(item.id)}
-          className="flex h-4 w-4 items-center justify-center rounded-xs text-text-quaternary transition-colors hover:bg-surface-muted hover:text-error"
+          className="flex h-6 w-6 items-center justify-center rounded-xs text-text-quaternary transition-colors hover:bg-surface-muted hover:text-error focus-visible:opacity-100 v4-focus-ring"
           aria-label={t("todo.delete")}
         >
           <RiDeleteBin6Line size={ICON.micro} />

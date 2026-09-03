@@ -535,7 +535,7 @@ export const useViewStore = create<ViewState>((set, get) => ({
   toggleAiPanel: () => set((s) => ({ aiPanelOpen: !s.aiPanelOpen })),
   setAiPanelOpen: (aiPanelOpen) => set({ aiPanelOpen }),
 
-  aiPanelWidth: 360,
+  aiPanelWidth: 420,
   setAiPanelWidth: (aiPanelWidth) => set({ aiPanelWidth }),
 
   focusMode: false,

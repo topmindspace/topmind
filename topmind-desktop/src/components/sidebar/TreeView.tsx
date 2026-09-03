@@ -17,6 +17,7 @@ import { Tooltip } from "../ui/tooltip";
 import { cn } from "../../lib/cn";
 import { ICON } from "../../lib/icons";
 import { sortTreeSiblings, type TreeSortMode } from "../../lib/tree-sort";
+import { formatRelativeTime } from "../../lib/datetime";
 
 /** Strip .md extension from file labels for cleaner tree display. */
 /** Tree indentation — single source for all depth-based offsets in the tree.
@@ -48,21 +49,11 @@ function formatMtime(mtime: unknown): string | null {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-/** Relative time like "刚刚" / "3 分钟前" / "2 天前" for compact display. */
+/** Relative time like "刚刚" / "3 分钟前" / "2 天前" for compact display via shared datetime utility. */
 function relativeTime(mtime: unknown): string | null {
   if (typeof mtime !== "string" || !mtime) return null;
-  const d = new Date(mtime);
-  if (isNaN(d.getTime())) return null;
-  const diff = Date.now() - d.getTime();
-  const sec = Math.floor(diff / 1000);
-  if (sec < 60) return null; // too fresh — don't show "刚刚"
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min} min`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr} h`;
-  const day = Math.floor(hr / 24);
-  if (day < 30) return `${day} d`;
-  return formatMtime(mtime); // fallback to absolute for old dates
+  const formatted = formatRelativeTime(mtime);
+  return formatted || null;
 }
 
 /** Build a rich multi-line tooltip string from node metadata. */
@@ -591,72 +582,90 @@ const TreeViewNode = memo(function TreeViewNode({
                 : node.label}
           </span>
         </Tooltip>
-        {/* Hover quick actions — modern density, no clutter when idle */}
-        {node.kind === "group" && node.id === "section/inbox" ? (
-          <Tooltip content={t("titleBar.capture")}>
-            <button
-              type="button"
-              aria-label={t("titleBar.capture")}
-              className="mr-0.5 hidden h-5 w-5 shrink-0 items-center justify-center rounded-sm text-text-quaternary opacity-0 pointer-events-none transition-[opacity,background-color,color] duration-(--duration-fast) hover:bg-surface hover:text-accent-color focus-visible:inline-flex focus-visible:opacity-100 focus-visible:pointer-events-auto v4-focus-ring group-hover:inline-flex group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:inline-flex group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
-              onClick={(e) => {
-                e.stopPropagation();
-                // Select inbox first so QuickCapture defaults to inbox dest
-                select({ kind: "inbox" });
-                emitLocal("overlay:open", { kind: "quick-capture" });
-              }}
+        {/* Stable trailing slot — quick actions and metadata overlay without layout shift */}
+        <div className="relative ml-auto flex h-6 shrink-0 items-center justify-end">
+          {isLoading ? (
+            <RiLoader4Line size={ICON.micro} className="mr-0.5 shrink-0 animate-spin text-text-tertiary" />
+          ) : null}
+          {isOver ? (
+            <span
+              className="v4-drop-dot mr-1 h-1.5 w-1.5 shrink-0 rounded-full bg-accent-color"
+              aria-hidden
+              title={t("sidebar.treeView.dropHintTopic")}
+            />
+          ) : null}
+          {/* Subtle file count for topics / folders */}
+          {(node.kind === "topic" || node.kind === "folder")
+            && typeof node.meta?.fileCount === "number"
+            && !isLoading ? (
+            <span
+              className={cn(
+                "rounded-full bg-surface-muted/90 px-1.5 py-0.5 text-3xs tabular-nums text-text-quaternary transition-opacity duration-(--duration-fast)",
+                (node.kind === "topic") && "group-hover:opacity-0 group-focus-within:opacity-0",
+                (node.kind === "topic") && isActive && "opacity-0",
+              )}
             >
-              <RiAddLine size={ICON.micro} aria-hidden />
-            </button>
-          </Tooltip>
-        ) : null}
-        {node.kind === "category" ? (
-          <Tooltip content={t("sidebar.treeView.tooltipNewTopic")}>
-            <button
-              type="button"
-              aria-label={t("sidebar.treeView.ariaNewTopic")}
-              className="mr-0.5 hidden h-5 w-5 shrink-0 items-center justify-center rounded-sm text-text-quaternary opacity-0 pointer-events-none transition-[opacity,background-color,color] duration-(--duration-fast) hover:bg-surface hover:text-accent-color focus-visible:inline-flex focus-visible:opacity-100 focus-visible:pointer-events-auto v4-focus-ring group-hover:inline-flex group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:inline-flex group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
-              onClick={(e) => {
-                e.stopPropagation();
-                void handleNewTopic();
-              }}
-            >
-              <RiAddLine size={ICON.micro} aria-hidden />
-            </button>
-          </Tooltip>
-        ) : null}
-        {node.kind === "topic" ? (
-          <Tooltip content={t("sidebar.treeView.tooltipNewNote")}>
-            <button
-              type="button"
-              aria-label={t("sidebar.treeView.ariaNewNote")}
-              className="mr-0.5 hidden h-5 w-5 shrink-0 items-center justify-center rounded-sm text-text-quaternary opacity-0 pointer-events-none transition-[opacity,background-color,color] duration-(--duration-fast) hover:bg-surface hover:text-accent-color focus-visible:inline-flex focus-visible:opacity-100 focus-visible:pointer-events-auto v4-focus-ring group-hover:inline-flex group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:inline-flex group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
-              onClick={(e) => {
-                e.stopPropagation();
-                void handleNewNote();
-              }}
-            >
-              <RiAddLine size={ICON.micro} aria-hidden />
-            </button>
-          </Tooltip>
-        ) : null}
-        {isLoading ? (
-          <RiLoader4Line size={ICON.micro} className="mr-1 shrink-0 animate-spin text-text-tertiary" />
-        ) : null}
-        {isOver ? (
-          <span
-            className="v4-drop-dot mr-1 h-1.5 w-1.5 shrink-0 rounded-full bg-accent-color"
-            aria-hidden
-            title={t("sidebar.treeView.dropHintTopic")}
-          />
-        ) : null}
-        {/* Subtle file count for topics / folders */}
-        {(node.kind === "topic" || node.kind === "folder")
-          && typeof node.meta?.fileCount === "number"
-          && !isLoading ? (
-          <span className="mr-1 shrink-0 rounded-full bg-surface-muted/90 px-1.5 py-0.5 text-3xs tabular-nums text-text-quaternary opacity-70 group-hover:opacity-100">
-            {node.meta.fileCount as number}
-          </span>
-        ) : null}
+              {node.meta.fileCount as number}
+            </span>
+          ) : null}
+
+          {/* Quick actions — positioned smoothly in trailing slot without shifting title text */}
+          {node.kind === "group" && node.id === "section/inbox" ? (
+            <Tooltip content={t("titleBar.capture")}>
+              <button
+                type="button"
+                aria-label={t("titleBar.capture")}
+                className={cn(
+                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-sm text-text-quaternary transition-[opacity,background-color,color] duration-(--duration-fast) hover:bg-surface hover:text-accent-color focus-visible:opacity-100 focus-visible:pointer-events-auto v4-focus-ring group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto",
+                  isActive ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
+                )}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  select({ kind: "inbox" });
+                  emitLocal("overlay:open", { kind: "quick-capture" });
+                }}
+              >
+                <RiAddLine size={ICON.micro} aria-hidden />
+              </button>
+            </Tooltip>
+          ) : null}
+          {node.kind === "category" ? (
+            <Tooltip content={t("sidebar.treeView.tooltipNewTopic")}>
+              <button
+                type="button"
+                aria-label={t("sidebar.treeView.ariaNewTopic")}
+                className={cn(
+                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-sm text-text-quaternary transition-[opacity,background-color,color] duration-(--duration-fast) hover:bg-surface hover:text-accent-color focus-visible:opacity-100 focus-visible:pointer-events-auto v4-focus-ring group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto",
+                  isActive ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
+                )}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void handleNewTopic();
+                }}
+              >
+                <RiAddLine size={ICON.micro} aria-hidden />
+              </button>
+            </Tooltip>
+          ) : null}
+          {node.kind === "topic" ? (
+            <Tooltip content={t("sidebar.treeView.tooltipNewNote")}>
+              <button
+                type="button"
+                aria-label={t("sidebar.treeView.ariaNewNote")}
+                className={cn(
+                  "absolute right-0 flex h-6 w-6 shrink-0 items-center justify-center rounded-sm text-text-quaternary transition-[opacity,background-color,color] duration-(--duration-fast) hover:bg-surface hover:text-accent-color focus-visible:opacity-100 focus-visible:pointer-events-auto v4-focus-ring group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto",
+                  isActive ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
+                )}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void handleNewNote();
+                }}
+              >
+                <RiAddLine size={ICON.micro} aria-hidden />
+              </button>
+            </Tooltip>
+          ) : null}
+        </div>
       </div>
       {expanded ? (
         isLoading ? (

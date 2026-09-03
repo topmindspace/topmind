@@ -131,6 +131,7 @@
 
 /* Primary button — accent filled (submit, confirm, init) */
 .tm-submit-btn,
+.tm-btn-primary,
 .tm-btn-init-workspace,
 .tm-suggestion-actions .tm-btn-confirm {
   padding: 0 14px;
@@ -151,6 +152,7 @@
 }
 
 .tm-submit-btn:hover:not(:disabled),
+.tm-btn-primary:hover:not(:disabled),
 .tm-btn-init-workspace:hover,
 .tm-suggestion-actions .tm-btn-confirm:hover:not(:disabled) {
   background: var(--interactive-accent-hover);
@@ -158,11 +160,13 @@
 }
 
 .tm-submit-btn:active:not(:disabled),
+.tm-btn-primary:active:not(:disabled),
 .tm-btn-init-workspace:active {
   transform: translateY(0);
 }
 
 .tm-submit-btn:disabled,
+.tm-btn-primary:disabled,
 .tm-suggestion-actions .tm-btn-confirm:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -1722,8 +1726,15 @@
   transition: opacity var(--tm-transition), color var(--tm-transition), background var(--tm-transition);
 }
 
-.tm-todo-item:hover .tm-todo-delete {
+.tm-todo-item:hover .tm-todo-delete,
+.tm-todo-item:focus-within .tm-todo-delete {
   opacity: 0.6;
+}
+
+@media (hover: none) {
+  .tm-todo-item .tm-todo-delete {
+    opacity: 0.8;
+  }
 }
 
 .tm-todo-delete:hover {
@@ -1936,8 +1947,15 @@
   transition: opacity var(--tm-transition);
 }
 
-.tm-history-item-active:hover .tm-history-abort {
+.tm-history-item-active:hover .tm-history-abort,
+.tm-history-item-active:focus-within .tm-history-abort {
   opacity: 0.7;
+}
+
+@media (hover: none) {
+  .tm-history-item-active .tm-history-abort {
+    opacity: 0.8;
+  }
 }
 
 /* ── Inline task progress (suggestions tab) ─────────────────────────── */
@@ -2568,6 +2586,7 @@
 .tm-suggestion-actions button:focus-visible,
 .tm-input-bar button:focus-visible,
 .tm-submit-btn:focus-visible,
+.tm-btn-primary:focus-visible,
 .tm-sidebar-action-btn:focus-visible,
 .tm-toolbar-btn:focus-visible,
 .tm-sidebar-icon-btn:focus-visible,

@@ -18,7 +18,7 @@
 // - Organize button: icon + text (secondary button with refresh-cw icon)
 // - Shared renderLayout() eliminates onOpen/refresh duplication
 
-import { ItemView, WorkspaceLeaf, Notice, MarkdownRenderer, setIcon } from "obsidian";
+import { ItemView, WorkspaceLeaf, Notice, MarkdownRenderer, setIcon, Component } from "obsidian";
 import type TopmindPlugin from "../main";
 import { t } from "../i18n";
 import { VIEW_TYPE_STREAM_WORKBENCH, VIEW_TYPE_SIDEBAR_DOCK } from "../constants";
@@ -64,6 +64,14 @@ export class StreamWorkbenchView extends ItemView {
   private organizing = false;
   private taskUnsub: (() => void) | null = null;
   private urlHintEl: HTMLElement | null = null;
+  private cardComponents: Component[] = [];
+
+  private clearCardComponents(): void {
+    for (const c of this.cardComponents) {
+      try { c.unload(); } catch { /* ignore */ }
+    }
+    this.cardComponents = [];
+  }
 
   constructor(leaf: WorkspaceLeaf, plugin: TopmindPlugin) {
     super(leaf);
@@ -125,7 +133,12 @@ export class StreamWorkbenchView extends ItemView {
 
   async onClose(): Promise<void> {
     if (this.refreshTimer) clearTimeout(this.refreshTimer);
+    if (this.streamRefreshTimer) clearTimeout(this.streamRefreshTimer);
+    this.refreshTimer = null;
+    this.streamRefreshTimer = null;
+    this.suggestionInFlight = false;
     this.taskUnsub?.();
+    this.clearCardComponents();
   }
 
   // ── Layout (shared between onOpen and refresh) ──────────────────────
@@ -554,10 +567,22 @@ export class StreamWorkbenchView extends ItemView {
 
   /** Full re-render (toolbar + content) — called after settings changes */
   async refresh(): Promise<void> {
+    // Preserve unsent draft across settings-driven re-renders.
+    const draft = this.inputEl?.value ?? "";
+    const selStart = this.inputEl?.selectionStart ?? null;
+    const selEnd = this.inputEl?.selectionEnd ?? null;
     const { contentEl } = this;
     contentEl.empty();
     contentEl.addClass("tm-stream-workbench");
     this.renderLayout(contentEl);
+    if (draft && this.inputEl) {
+      this.inputEl.value = draft;
+      this.autoGrowTextarea(this.inputEl);
+      this.updateUrlHint();
+      if (selStart !== null && selEnd !== null) {
+        try { this.inputEl.setSelectionRange(selStart, selEnd); } catch { /* ignore */ }
+      }
+    }
     await this.refreshAll();
   }
 
@@ -613,7 +638,7 @@ export class StreamWorkbenchView extends ItemView {
         return;
       }
 
-      const { content, entries } = this.plugin.kernelService.readPeriodNote(selectedPath);
+      const { content, entries } = await this.plugin.kernelService.readPeriodNoteAsync(selectedPath);
       this.currentEntries = this.plugin.settings.timelineOrder === "desc"
         ? [...entries].reverse()
         : entries;
@@ -736,6 +761,7 @@ export class StreamWorkbenchView extends ItemView {
   }
 
   private renderStreamEntries(container: HTMLElement, entries: StreamEntry[], periodPath: string, fullContent: string): void {
+    this.clearCardComponents();
     const groups = this.groupByDayHeading(entries, fullContent);
 
     for (const group of groups) {
@@ -751,6 +777,10 @@ export class StreamWorkbenchView extends ItemView {
   }
 
   private async renderStreamCard(container: HTMLElement, entry: StreamEntry, periodPath: string): Promise<void> {
+    const cardComp = new Component();
+    cardComp.load();
+    this.cardComponents.push(cardComp);
+
     const card = container.createDiv({ cls: "tm-card" });
 
     const header = card.createDiv({ cls: "tm-card-header" });
@@ -882,7 +912,7 @@ export class StreamWorkbenchView extends ItemView {
     if (appends.length > 0) {
       if (main) {
         try {
-          await MarkdownRenderer.render(this.app, main, body, "", this);
+          await MarkdownRenderer.render(this.app, main, body, "", cardComp);
         } catch {
           body.textContent = main;
         }
@@ -895,7 +925,7 @@ export class StreamWorkbenchView extends ItemView {
         if (a.body) {
           const appendBody = block.createDiv({ cls: "tm-stream-append-body" });
           try {
-            await MarkdownRenderer.render(this.app, a.body, appendBody, "", this);
+            await MarkdownRenderer.render(this.app, a.body, appendBody, "", cardComp);
           } catch {
             appendBody.textContent = a.body;
           }
@@ -903,7 +933,7 @@ export class StreamWorkbenchView extends ItemView {
       }
     } else if (displayText) {
       try {
-        await MarkdownRenderer.render(this.app, displayText, body, "", this);
+        await MarkdownRenderer.render(this.app, displayText, body, "", cardComp);
       } catch {
         body.textContent = displayText;
       }

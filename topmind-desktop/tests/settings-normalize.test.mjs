@@ -136,7 +136,7 @@ test("normalizeWritebackMode rejects garbage", () => {
 test("normalizeUiSettings clamps panel widths + sidebarView", () => {
   const n = normalizeUiSettings({ sidebarWidth: 50, aiPanelWidth: 9999, aiPanelOpen: false, sidebarView: "kanban" });
   assert.equal(n.sidebarWidth, 240); // fallback when out of range
-  assert.equal(n.aiPanelWidth, 360);
+  assert.equal(n.aiPanelWidth, 420);
   assert.equal(n.aiPanelOpen, false);
   assert.equal(n.sidebarView, "kanban");
   // Regression: "stream" must be a valid sidebarView (was missing from SIDEBAR_VIEWS)

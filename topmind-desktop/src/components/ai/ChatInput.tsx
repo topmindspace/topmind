@@ -516,7 +516,7 @@ export function ChatInput() {
             <RiSparklingLine size={ICON.micro} />
             {sessionLoadedSkills.length > 0 ? (
               <span
-                className="absolute -right-1 -top-1 flex h-3 min-w-3 items-center justify-center rounded-full bg-accent-color px-0.5 text-5xs font-bold leading-none text-primary-foreground"
+                className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-accent-color px-1 text-4xs font-bold leading-none text-primary-foreground"
                 aria-hidden
               >
                 {sessionLoadedSkills.length}
