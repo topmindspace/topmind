@@ -46,8 +46,8 @@ test("Accessibility: todo, tree, and stream actions are touch-friendly", () => {
   assert.match(todoBody, /h-6 w-6/);
 
   // TreeView actions have 24px touch target, hover:none visibility, and isActive support
-  assert.match(treeView, /\[@media\(hover:none\)\]:inline-flex/);
-  assert.match(treeView, /isActive \? "inline-flex opacity-100 pointer-events-auto"/);
+  assert.match(treeView, /\[@media\(hover:none\)\]:opacity-100/);
+  assert.match(treeView, /isActive \? "opacity-100 pointer-events-auto"/);
 
   // Stream actions have hover:none visibility
   assert.match(streamDetail, /\[@media\(hover:none\)\]:opacity-100/);

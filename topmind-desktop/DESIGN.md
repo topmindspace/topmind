@@ -335,8 +335,10 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 - **TreeView**：递归渲染，按深度缩进。首次渲染时自动展开 group/category 节点。
 - **节点图标**（RemixIcon）：InboxUnarchive（00-收件箱 区段）、Stack（88-输出）、InboxArchive（99-归档）、Brain（memory 记忆区段）、Folder/FolderOpen（类别/专题）、FileText（文件）。
 - **行交互**：`rounded-md hover:bg-surface-muted`（空闲）、`bg-accent-bg-subtle text-accent-color`（活跃）。箭头随展开状态旋转。
+- **稳定尾部插槽（Trailing Slot）**：操作按钮、文件计数、加载/拖放指示器均在 `ml-auto flex h-6` 容器中常驻定位，**无 layout shift**（不再 `hidden → inline-flex` 跳动）。操作按钮 `h-6 w-6`（24px 触控目标）+ `opacity-0 pointer-events-none` 空闲 → `group-hover:opacity-100 / isActive: opacity-100 / [@media(hover:none)]:opacity-100` 渐变可见。专题文件计数 `text-3xs tabular-nums` 在 hover/active 时 `opacity-0` 让位给操作按钮。
 - **拖放目标**：`.v4-drop-target` **idle 无描边/无底色**；仅 `.v4-drop-target-active`（isOver）显示 wash；DragOverlay elevated hairline。**冲突处理**：专题下同名 → 自动副本名。
 - **右键菜单**：右键任意节点显示上下文操作（新建笔记/专题、重命名、删除、发布）。
+- **EditorOutlinePanel**：文件编辑区可展开的 Markdown 大纲导航面板，实时提取标题层级 → 点击定位。
 
 ### 2.3 编辑区
 
