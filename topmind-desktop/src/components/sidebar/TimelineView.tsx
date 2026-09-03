@@ -1,6 +1,13 @@
 // ── TimelineView — packing-aware time groups (day / week / month) ─────────
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { FileText, AlertCircle, RefreshCw, Calendar, Zap, Loader2 } from "lucide-react";
+import {
+  RiCalendarLine,
+  RiErrorWarningLine,
+  RiFileTextLine,
+  RiFlashlightFill,
+  RiLoader4Line,
+  RiRefreshLine,
+} from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { cn } from "../../lib/cn";
@@ -183,7 +190,7 @@ export function TimelineView({ onNavigate }: TimelineViewProps) {
         role="status"
         aria-live="polite"
       >
-        <Loader2 size={ICON.micro} className="animate-spin" aria-hidden /> {t("sidebar.timeline.loading")}
+        <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden /> {t("sidebar.timeline.loading")}
       </div>
     );
   }
@@ -192,7 +199,7 @@ export function TimelineView({ onNavigate }: TimelineViewProps) {
     return (
       <div className="flex flex-col gap-1.5 px-3 py-2" role="alert">
         <div className="flex items-center gap-1.5 text-3xs text-error">
-          <AlertCircle size={ICON.micro} className="shrink-0" aria-hidden />
+          <RiErrorWarningLine size={ICON.micro} className="shrink-0" aria-hidden />
           <span className="truncate">{error}</span>
         </div>
         <button
@@ -200,7 +207,7 @@ export function TimelineView({ onNavigate }: TimelineViewProps) {
           onClick={() => void load()}
           className="flex items-center gap-1 self-start rounded-[var(--radius-md)] border border-border-subtle px-2 py-1 text-3xs text-text-secondary transition-colors hover:bg-surface-muted v4-focus-ring"
         >
-          <RefreshCw size={ICON.nano} /> {t("sidebar.timeline.retry")}
+          <RiRefreshLine size={ICON.micro} /> {t("sidebar.timeline.retry")}
         </button>
       </div>
     );
@@ -211,7 +218,7 @@ export function TimelineView({ onNavigate }: TimelineViewProps) {
       <div className="px-2 py-3">
         <EmptyState
           compact
-          icon={<Calendar size={ICON.sm} />}
+          icon={<RiCalendarLine size={ICON.sm} />}
           title={t("sidebar.timeline.emptyTitle")}
           hint={t("sidebar.timeline.emptyHint")}
           action={
@@ -220,7 +227,7 @@ export function TimelineView({ onNavigate }: TimelineViewProps) {
               onClick={() => useViewStore.getState().openOverlay("quick-capture")}
               className="inline-flex items-center gap-1 rounded-[var(--radius-md)] bg-primary px-2 py-1 text-3xs font-medium text-primary-foreground shadow-[var(--shadow-button)] transition-opacity hover:opacity-90 v4-focus-ring"
             >
-              <Zap size={ICON.nano} aria-hidden />
+              <RiFlashlightFill size={ICON.micro} aria-hidden />
               {t("sidebar.timeline.capture")}
             </button>
           }
@@ -245,7 +252,7 @@ export function TimelineView({ onNavigate }: TimelineViewProps) {
       {groups.map((group) => (
         <div key={group.key} className="mb-1.5">
           <div className="sticky top-0 z-local flex items-center gap-1.5 bg-chrome px-3 py-1.5 text-3xs font-medium tracking-wide text-text-quaternary">
-            <Calendar size={ICON.nano} className="text-text-quaternary" />
+            <RiCalendarLine size={ICON.micro} className="text-text-quaternary" />
             <span>{group.label}</span>
             <span className="rounded-full bg-surface-muted px-1.5 tabular-nums text-text-quaternary/70">
               {group.entries.length}
@@ -268,7 +275,7 @@ export function TimelineView({ onNavigate }: TimelineViewProps) {
                 "transition-colors duration-[var(--duration-fast)] hover:bg-surface-muted",
               )}
             >
-              <FileText size={ICON.xs} className="mt-0.5 shrink-0 text-text-quaternary" />
+              <RiFileTextLine size={ICON.xs} className="mt-0.5 shrink-0 text-text-quaternary" />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium text-text-primary">
                   {entry.title || entry.name.replace(/\.md$/u, "")}

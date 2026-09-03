@@ -26,7 +26,7 @@ const adrGatedMajors = new Set([
   "@vitejs/plugin-react",
   "typescript",
   "electron",
-  "lucide-react",
+  "@remixicon/react",
   "tailwindcss",
   "@tailwindcss/vite",
 ]);

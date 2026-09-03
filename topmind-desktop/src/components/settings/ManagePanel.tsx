@@ -11,9 +11,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Loader2, CheckCircle2, AlertTriangle, Zap, RefreshCw, Download, ExternalLink,
-  Sparkles, Puzzle, Globe, BookOpen, FolderOpen, Trash2, Terminal, Copy,
-} from "lucide-react";
+  RiAlertLine,
+  RiBookOpenLine,
+  RiCheckboxCircleLine,
+  RiDeleteBin6Line,
+  RiDownload2Line,
+  RiExternalLinkLine,
+  RiFileCopyLine,
+  RiFlashlightFill,
+  RiFolderOpenLine,
+  RiGlobeLine,
+  RiLoader4Line,
+  RiPuzzleLine,
+  RiRefreshLine,
+  RiSparklingLine,
+  RiTerminalLine,
+} from "@remixicon/react";
 import { api, type CompanionStatusResult, type SurfaceUpdateInfo } from "../../services/api";
 import { registry } from "../../plugins/registry";
 import { usePluginStore } from "../../stores/plugin-store";
@@ -127,9 +140,9 @@ function SurfaceUpdateRow({
             onClick={() => onInlineInstall(surface as "skills" | "extension" | "obsidian", info.latestVersion!, info.tagName!)}
           >
             {isInstalling ? (
-              <Loader2 size={ICON.nano} className="animate-spin" />
+              <RiLoader4Line size={ICON.micro} className="animate-spin" />
             ) : (
-              <Download size={ICON.nano} />
+              <RiDownload2Line size={ICON.micro} />
             )}
           </Button>
         </Tooltip>
@@ -141,7 +154,7 @@ function SurfaceUpdateRow({
           className="h-6 px-1.5 text-3xs"
           onClick={() => void api.sys.openUpdateDownload(info.assets[0].url, surface)}
         >
-          <ExternalLink size={ICON.nano} />
+          <RiExternalLinkLine size={ICON.micro} />
         </Button>
       ) : null}
       {info?.releaseUrl ? (
@@ -151,7 +164,7 @@ function SurfaceUpdateRow({
           className="h-6 px-1.5 text-3xs"
           onClick={() => void api.sys.openUrl(info.releaseUrl!)}
         >
-          <ExternalLink size={ICON.nano} />
+          <RiExternalLinkLine size={ICON.micro} />
         </Button>
       ) : null}
     </div>
@@ -197,9 +210,9 @@ function CmdRow({ label, cmd }: { label: string; cmd: string }) {
         onClick={() => void copy()}
       >
         {copied ? (
-          <CheckCircle2 size={ICON.nano} className="text-success" />
+          <RiCheckboxCircleLine size={ICON.micro} className="text-success" />
         ) : (
-          <Copy size={ICON.nano} />
+          <RiFileCopyLine size={ICON.micro} />
         )}
       </Button>
     </div>
@@ -497,9 +510,9 @@ export function ManagePanel({
               disabled={updateLoading}
             >
               {updateLoading ? (
-                <Loader2 size={ICON.micro} className="animate-spin" />
+                <RiLoader4Line size={ICON.micro} className="animate-spin" />
               ) : (
-                <RefreshCw size={ICON.micro} />
+                <RiRefreshLine size={ICON.micro} />
               )}
               {t("settings:about.checkButton")}
             </Button>
@@ -510,7 +523,7 @@ export function ManagePanel({
                 className="h-6"
                 onClick={() => void api.sys.openUrl(PRODUCT.releasesUrl)}
               >
-                <ExternalLink size={ICON.micro} />
+                <RiExternalLinkLine size={ICON.micro} />
               </Button>
             </Tooltip>
           </div>
@@ -541,7 +554,7 @@ export function ManagePanel({
                     )
                   }
                 >
-                  <ExternalLink size={ICON.nano} />
+                  <RiExternalLinkLine size={ICON.micro} />
                   {t("settings:about.openReleases")}
                 </Button>
               ) : null}
@@ -568,7 +581,7 @@ export function ManagePanel({
         >
           <div className="mb-2 flex flex-wrap items-center gap-1.5">
             <span className="inline-flex items-center gap-1 rounded-full border border-border-subtle bg-surface-muted/40 px-2 py-0.5 text-3xs text-text-secondary">
-              <Terminal size={ICON.nano} />
+              <RiTerminalLine size={ICON.micro} />
               {sysInfo.platformLabel} · {sysInfo.archLabel}
             </span>
             {sysInfo.platform === "darwin" ? (
@@ -644,9 +657,9 @@ export function ManagePanel({
             disabled={compLoading || Boolean(busy)}
           >
             {compLoading ? (
-              <Loader2 size={ICON.xs} className="animate-spin" />
+              <RiLoader4Line size={ICON.xs} className="animate-spin" />
             ) : (
-              <RefreshCw size={ICON.xs} />
+              <RiRefreshLine size={ICON.xs} />
             )}
           </Button>
         }
@@ -666,7 +679,7 @@ export function ManagePanel({
         {/* Agent host skills */}
         <div className="mb-3 space-y-1.5">
           <div className="mb-1 flex items-center gap-1 text-3xs font-medium text-text-secondary">
-            <Sparkles size={ICON.nano} className="text-text-quaternary" />
+            <RiSparklingLine size={ICON.micro} className="text-text-quaternary" />
             {t("settings:companions.agentsTitle")}
             {agents.length > 0 ? (
               <div className="ml-auto flex gap-1">
@@ -680,9 +693,9 @@ export function ManagePanel({
                       onClick={() => void installAllSkills()}
                     >
                       {busy === "install-all" ? (
-                        <Loader2 size={ICON.micro} className="animate-spin" />
+                        <RiLoader4Line size={ICON.micro} className="animate-spin" />
                       ) : (
-                        <Download size={ICON.micro} />
+                        <RiDownload2Line size={ICON.micro} />
                       )}
                       {t("settings:companions.installAll")}
                     </Button>
@@ -698,9 +711,9 @@ export function ManagePanel({
                       onClick={() => void upgradeAllSkills()}
                     >
                       {busy === "upgrade-all" ? (
-                        <Loader2 size={ICON.micro} className="animate-spin" />
+                        <RiLoader4Line size={ICON.micro} className="animate-spin" />
                       ) : (
-                        <RefreshCw size={ICON.micro} />
+                        <RiRefreshLine size={ICON.micro} />
                       )}
                       {t("settings:companions.upgradeAll")}
                     </Button>
@@ -771,9 +784,9 @@ export function ManagePanel({
                       }
                     >
                       {isBusy && busy === `install:${host.id}` ? (
-                        <Loader2 size={ICON.micro} className="animate-spin" />
+                        <RiLoader4Line size={ICON.micro} className="animate-spin" />
                       ) : (
-                        <Download size={ICON.micro} />
+                        <RiDownload2Line size={ICON.micro} />
                       )}
                       {t("settings:companions.install")}
                     </Button>
@@ -797,9 +810,9 @@ export function ManagePanel({
                         }
                       >
                         {busy === `upgrade:${host.id}` ? (
-                          <Loader2 size={ICON.micro} className="animate-spin" />
+                          <RiLoader4Line size={ICON.micro} className="animate-spin" />
                         ) : (
-                          <RefreshCw size={ICON.micro} />
+                          <RiRefreshLine size={ICON.micro} />
                         )}
                         {t("settings:companions.upgrade")}
                       </Button>
@@ -816,9 +829,9 @@ export function ManagePanel({
                         }
                       >
                         {busy === `uninstall:${host.id}` ? (
-                          <Loader2 size={ICON.micro} className="animate-spin" />
+                          <RiLoader4Line size={ICON.micro} className="animate-spin" />
                         ) : (
-                          <Trash2 size={ICON.micro} />
+                          <RiDeleteBin6Line size={ICON.micro} />
                         )}
                         {t("settings:companions.uninstall")}
                       </Button>
@@ -831,7 +844,7 @@ export function ManagePanel({
                       className="h-6"
                       onClick={() => void api.sys.openPath(host.skillsRoot!)}
                     >
-                      <FolderOpen size={ICON.micro} />
+                      <RiFolderOpenLine size={ICON.micro} />
                     </Button>
                   ) : null}
                 </div>
@@ -843,7 +856,7 @@ export function ManagePanel({
         {/* Clip extension */}
         <div className="mb-3">
           <div className="mb-1 flex items-center gap-1 text-3xs font-medium text-text-secondary">
-            <Puzzle size={ICON.nano} className="text-text-quaternary" />
+            <RiPuzzleLine size={ICON.micro} className="text-text-quaternary" />
             {t("settings:companions.clipTitle")}
           </div>
           <div className="mb-1.5 flex flex-wrap gap-1.5">
@@ -857,7 +870,7 @@ export function ManagePanel({
                     : "border-border-subtle-dim text-text-quaternary",
                 )}
               >
-                <Globe size={ICON.nano} />
+                <RiGlobeLine size={ICON.micro} />
                 {b.name}
                 {b.present ? "" : ` · ${t("settings:companions.notFound")}`}
               </span>
@@ -886,9 +899,9 @@ export function ManagePanel({
                 }
               >
                 {busy === "clip" ? (
-                  <Loader2 size={ICON.micro} className="animate-spin" />
+                  <RiLoader4Line size={ICON.micro} className="animate-spin" />
                 ) : (
-                  <Download size={ICON.micro} />
+                  <RiDownload2Line size={ICON.micro} />
                 )}
                 {t("settings:companions.prepareExtension")}
               </Button>
@@ -906,9 +919,9 @@ export function ManagePanel({
                   }
                 >
                   {busy === "clip-uninstall" ? (
-                    <Loader2 size={ICON.micro} className="animate-spin" />
+                    <RiLoader4Line size={ICON.micro} className="animate-spin" />
                   ) : (
-                    <Trash2 size={ICON.micro} />
+                    <RiDeleteBin6Line size={ICON.micro} />
                   )}
                   {t("settings:companions.uninstall")}
                 </Button>
@@ -919,7 +932,7 @@ export function ManagePanel({
                 className="h-6 text-3xs"
                 onClick={() => void api.sys.openClipExtensionFolder()}
               >
-                <FolderOpen size={ICON.micro} />
+                <RiFolderOpenLine size={ICON.micro} />
                 {t("settings:companions.openFolder")}
               </Button>
               <Button
@@ -932,7 +945,7 @@ export function ManagePanel({
                   )
                 }
               >
-                <ExternalLink size={ICON.micro} />
+                <RiExternalLinkLine size={ICON.micro} />
                 {t("settings:companions.loadUnpackedDocs")}
               </Button>
             </div>
@@ -956,7 +969,7 @@ export function ManagePanel({
         {/* Obsidian plugin */}
         <div>
           <div className="mb-1 flex items-center gap-1 text-3xs font-medium text-text-secondary">
-            <BookOpen size={ICON.nano} className="text-text-quaternary" />
+            <RiBookOpenLine size={ICON.micro} className="text-text-quaternary" />
             {t("settings:companions.obsidianTitle")}
           </div>
           <div className="rounded-[var(--radius-md)] border border-border-subtle bg-surface px-2.5 py-2 text-3xs">
@@ -985,7 +998,7 @@ export function ManagePanel({
                   className="ml-auto h-6 text-3xs"
                   onClick={() => void api.sys.openPath(obsidian.appPath!)}
                 >
-                  <ExternalLink size={ICON.nano} />
+                  <RiExternalLinkLine size={ICON.micro} />
                   {t("settings:companions.openObsidianApp")}
                 </Button>
               ) : null}
@@ -1038,9 +1051,9 @@ export function ManagePanel({
                 }
               >
                 {busy === "obsidian-install" ? (
-                  <Loader2 size={ICON.micro} className="animate-spin" />
+                  <RiLoader4Line size={ICON.micro} className="animate-spin" />
                 ) : (
-                  <Download size={ICON.micro} />
+                  <RiDownload2Line size={ICON.micro} />
                 )}
                 {t("settings:companions.installToVault")}
               </Button>
@@ -1058,9 +1071,9 @@ export function ManagePanel({
                   }
                 >
                   {busy === "obsidian-uninstall" ? (
-                    <Loader2 size={ICON.micro} className="animate-spin" />
+                    <RiLoader4Line size={ICON.micro} className="animate-spin" />
                   ) : (
-                    <Trash2 size={ICON.micro} />
+                    <RiDeleteBin6Line size={ICON.micro} />
                   )}
                   {t("settings:companions.uninstall")}
                 </Button>
@@ -1078,7 +1091,7 @@ export function ManagePanel({
                       )
                     }
                   >
-                    <FolderOpen size={ICON.micro} />
+                    <RiFolderOpenLine size={ICON.micro} />
                     {t("settings:companions.openPluginsFolder")}
                   </Button>
                 </Tooltip>
@@ -1116,9 +1129,9 @@ export function ManagePanel({
             disabled={doctorLoading}
           >
             {doctorLoading ? (
-              <Loader2 size={ICON.micro} className="animate-spin" />
+              <RiLoader4Line size={ICON.micro} className="animate-spin" />
             ) : (
-              <Zap size={ICON.micro} />
+              <RiFlashlightFill size={ICON.micro} />
             )}
             {t("settings:about.diagnoseButton")}
           </Button>
@@ -1146,9 +1159,9 @@ export function ManagePanel({
               )}
             >
               {doctorResult.ok ? (
-                <CheckCircle2 size={ICON.micro} />
+                <RiCheckboxCircleLine size={ICON.micro} />
               ) : (
-                <AlertTriangle size={ICON.micro} />
+                <RiAlertLine size={ICON.micro} />
               )}
               {doctorResult.ok
                 ? t("settings:about.doctorPassed")

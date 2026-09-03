@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/cn";
 import { useTaskStore } from "../../stores/task-store";
 import { computeTaskPanelDragPosition } from "../../stores/task-store";
-import { X, Minimize2, Maximize2 } from "lucide-react";
+import { RiCloseLine, RiFullscreenExitLine, RiFullscreenLine } from "@remixicon/react";
 import { ICON } from "../../lib/icons";
 import { TaskListBody } from "./task-list-body";
 import {
@@ -149,7 +149,7 @@ export function TaskPanel({ open, onClose }: TaskPanelProps) {
             className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-primary"
             aria-label={minimized ? t("taskPanel.restore") : t("taskPanel.minimize")}
           >
-            {minimized ? <Maximize2 size={ICON.micro} /> : <Minimize2 size={ICON.micro} />}
+            {minimized ? <RiFullscreenLine size={ICON.micro} /> : <RiFullscreenExitLine size={ICON.micro} />}
           </button>
           <button
             type="button"
@@ -157,7 +157,7 @@ export function TaskPanel({ open, onClose }: TaskPanelProps) {
             className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-primary"
             aria-label={t("taskPanel.close")}
           >
-            <X size={ICON.micro} />
+            <RiCloseLine size={ICON.micro} />
           </button>
         </div>
       </div>

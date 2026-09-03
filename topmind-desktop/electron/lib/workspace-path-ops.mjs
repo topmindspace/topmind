@@ -11,39 +11,17 @@ import {
   injectFrontmatter, splitMarkdownFrontmatter, stringifyYamlFrontmatter,
 } from "./frontmatter.mjs";
 import {
-  buildWritebackEvidence, timestampStamp,
+  buildWritebackEvidence,
 } from "./writeback.mjs";
 import {
-  S, T, sp, now, lf, trashAbsolute, trashRelative,
+  S, T, sp, now, lf,
 } from "./workspace-helpers.mjs";
 import { invalidateNotesIndex } from "./notes-index.mjs";
-import { kernelDurableWrite, kernelDurableDelete } from "./kernel-api.mjs";
+import { kernelDurableWrite, kernelDurableDelete, kernelDurableArchive } from "./kernel-api.mjs";
 import { t as i18n } from "./electron-i18n.mjs";
 
 function bumpWorkspaceIndex(relativePath) {
   invalidateNotesIndex(relativePath);
-}
-
-/**
- * Count files under a directory recursively (-1 when unreadable) — used to
- * verify a trash copy before the original directory may be removed.
- * @param {string} dir
- * @returns {Promise<number>}
- */
-async function countFilesRecursively(dir) {
-  let count = 0;
-  const entries = await fs.readdir(dir, { withFileTypes: true }).catch(() => null);
-  if (!entries) return -1;
-  for (const e of entries) {
-    if (e.isDirectory()) {
-      const sub = await countFilesRecursively(path.join(dir, e.name));
-      if (sub === -1) return -1;
-      count += sub;
-    } else {
-      count += 1;
-    }
-  }
-  return count;
 }
 
 /** Map Kernel surface evidence → legacy Desktop camelCase evidence shape. */
@@ -57,6 +35,7 @@ function asDesktopEvidence(ev, fallbackPath) {
     });
   }
   return {
+    ok: !ev.pending && !ev.needsConfirm,
     ...buildWritebackEvidence({
       operation: ev.operation || "update",
       targetPath: ev.targetPath || fallbackPath,
@@ -440,11 +419,12 @@ export const pathOps = {
     if (fileExists && permission.protection === "locked") {
       const { writePathCheckpoint } = await import("./writeback.mjs");
       const existingBuf = await fs.readFile(fp);
+      // Binary checkpoint (not base64): smaller on disk, directly restorable.
       await writePathCheckpoint(
         { workspaceRoot },
         {
           savedAt: now(),
-          content: existingBuf.toString("base64"),
+          content: existingBuf,
           relativePath: rel,
           keep: 3,
         },
@@ -521,7 +501,15 @@ export const pathOps = {
         },
       );
       if (ev.pending || ev.needsConfirm) {
-        return { ...asDesktopEvidence(ev, relativePath), ok: false, mediaTrashed: 0 };
+        return {
+          ...asDesktopEvidence(ev, relativePath),
+          ok: false,
+          needsConfirm: true,
+          pending: true,
+          path: relativePath,
+          targetPath: relativePath,
+          mediaTrashed: 0,
+        };
       }
       bumpWorkspaceIndex(relativePath);
       return {
@@ -538,46 +526,38 @@ export const pathOps = {
       };
     }
 
-    // Non-md: trash only when locked (binary assets have no topic.md / memory role).
-    const t = now();
-    let backup;
-    const perm = kernel.evaluateWritePermission({
-      contract,
-      targetPath: fp,
-      workspaceRoot,
-      frontmatter: {},
-      actor: writeActor,
-    });
-    const recoverable =
-      !isPermanent &&
-      kernel.isRecoverableLifecycle({
-        protection: perm.protection,
-        relativePath,
-        workspaceRoot,
-      });
-    if (recoverable && (await statSafe(fp))) {
-      const dirParts = relativePath.split("/").slice(0, -1);
-      const stamped = `${timestampStamp()}__${path.basename(relativePath)}`;
-      const dest = trashAbsolute(ctx.workspaceRoot, ...dirParts, stamped);
-      await fs.mkdir(path.dirname(dest), { recursive: true });
-      await fs.copyFile(fp, dest).catch(() => {});
-      backup = trashRelative(ctx.workspaceRoot, ...dirParts, stamped);
+    // Non-md: route through the Kernel write-gate (same as .md) — locked/core
+    // assets get trash + receipt + rotation; ordinary open assets are a plain
+    // unlink. No parallel Desktop-side trash implementation.
+    const ev = await kernelDurableDelete(
+      { relativePath },
+      ctx,
+      {
+        actor: writeActor,
+        confirmed: confirmed === true || writeActor === "user",
+        permanent: isPermanent,
+      },
+    );
+    if (ev.pending || ev.needsConfirm) {
+      return {
+        ...asDesktopEvidence(ev, relativePath),
+        ok: false,
+        needsConfirm: true,
+        pending: true,
+        path: relativePath,
+        targetPath: relativePath,
+        mediaTrashed: 0,
+      };
     }
-    await fs.unlink(fp).catch(() => {});
     bumpWorkspaceIndex(relativePath);
     return {
-      ...buildWritebackEvidence({
-        operation: "delete",
-        targetPath: relativePath,
-        savedAt: t,
-        backupPath: backup,
-        affectedFiles: [relativePath],
-      }),
+      ...asDesktopEvidence(ev, relativePath),
       ok: true,
+      note: isPermanent ? i18n("pathOps.permanentlyDeleted") : i18n("pathOps.deleted"),
     };
   },
 
-  async renamePath({ relativePath, newName }, ctx) {
+  async renamePath({ relativePath, newName, actor, confirmed }, ctx) {
     S(relativePath, "relativePath"); S(newName, "newName");
     if (/[\\/]/u.test(newName)) throw new Error(i18n("pathOps.newNameNoSeparator"));
     const dir = relativePath.split("/").slice(0, -1).join("/");
@@ -592,8 +572,36 @@ export const pathOps = {
     if (await statSafe(nextFp)) throw new Error(i18n("pathOps.targetExists", { path: nextRel }));
     const t = now();
     const c = await fs.readFile(oldFp, "utf8").catch(() => null);
-    // No backup for rename — content is preserved at the new path (no data loss risk).
-    // Backup only needed for operations that destroy or overwrite content.
+
+    const writeActor = actor || "user";
+    const isConfirmed = confirmed !== undefined ? Boolean(confirmed) : (writeActor === "user");
+
+    // Protection check: locked notes cannot be renamed or rewritten by AI
+    if (c !== null && relativePath.endsWith(".md")) {
+      const { data: fm } = splitMarkdownFrontmatter(c);
+      if (fm?.protection === "locked" && writeActor === "ai") {
+        throw new Error(i18n("pathOps.lockedDeniedAi"));
+      }
+    }
+
+    // If AI in confirm mode without confirmation, return pending without touching disk
+    if (writeActor === "ai" && !isConfirmed) {
+      return {
+        ...buildWritebackEvidence({
+          operation: "rename",
+          targetPath: nextRel,
+          savedAt: t,
+          wroteFiles: false,
+        }),
+        ok: false,
+        needsConfirm: true,
+        pending: true,
+        path: nextRel,
+        targetPath: nextRel,
+        sourcePath: relativePath,
+        previewContent: c || "",
+      };
+    }
 
     let mediaRenamed = null;
     let bodyOut = c;
@@ -617,7 +625,7 @@ export const pathOps = {
         await kernelDurableWrite(
           { relativePath: nextRel, content: bodyOut },
           ctx,
-          { actor: "user", confirmed: true, operation: "create" },
+          { actor: writeActor, confirmed: isConfirmed, operation: "create", writebackMode: ctx.explicitWritebackMode },
         );
         await fs.unlink(oldFp).catch(() => {});
       } else {
@@ -651,7 +659,7 @@ export const pathOps = {
    * Publish = copy delivery snapshot into 88-Outputs (original note stays).
    * Copies note-local images/ so relative markdown keeps working under Outputs.
    */
-  async publishPath({ relativePath }, ctx) {
+  async publishPath({ relativePath, actor, confirmed }, ctx) {
     S(relativePath, "relativePath");
     if (!relativePath.endsWith(".md")) throw new Error(i18n("pathOps.publishMdOnly"));
     const src = await sp(ctx.workspaceRoot, relativePath);
@@ -689,11 +697,35 @@ export const pathOps = {
     if (category && CATEGORY_PATTERN.test(category)) fm.category = category;
     if (topic) fm.topic = topic;
     const targetPath = `${outputsName}/${outName}`;
-    await kernelDurableWrite(
+    const writeActor = actor || "user";
+    const isConfirmed = confirmed !== undefined ? Boolean(confirmed) : (writeActor === "user");
+    const writeEv = await kernelDurableWrite(
       { relativePath: targetPath, content: injectFrontmatter(c, fm) },
       ctx,
-      { actor: "user", confirmed: true, operation: "create", frontmatter: fm },
+      {
+        actor: writeActor,
+        confirmed: isConfirmed,
+        operation: "create",
+        frontmatter: fm,
+        writebackMode: ctx.explicitWritebackMode,
+      },
     );
+    if (writeEv.pending || writeEv.needsConfirm) {
+      return {
+        ...buildWritebackEvidence({
+          operation: "publish",
+          targetPath,
+          savedAt: t,
+          wroteFiles: false,
+        }),
+        ok: false,
+        needsConfirm: true,
+        pending: true,
+        path: targetPath,
+        targetPath,
+        previewContent: injectFrontmatter(c, fm),
+      };
+    }
     bumpWorkspaceIndex(targetPath);
     const affected = [relativePath, targetPath, ...media.movedDirs, ...media.movedFiles];
     return {
@@ -788,34 +820,19 @@ export const pathOps = {
   async deleteTopic({ topicId }, ctx) {
     T(topicId);
     const { category, topic } = parseTopicId(topicId);
-    const dir = await sp(ctx.workspaceRoot, `${category}/${topic}`);
-    const t = now();
-    let backup;
-    if ((await statSafe(dir))?.isDirectory()) {
-      const stamped = `${timestampStamp()}__${topic}`;
-      // Unified: topic trash under backups/trash/
-      const dest = trashAbsolute(ctx.workspaceRoot, category, stamped);
-      // Copy must succeed and be verified before the original may be removed —
-      // a swallowed copy failure (ENOSPC / permissions) here would destroy the
-      // topic with no recovery copy.
-      await fs.cp(dir, dest, { recursive: true });
-      const srcCount = await countFilesRecursively(dir);
-      const destCount = await countFilesRecursively(dest);
-      if (srcCount !== destCount || destCount === -1) {
-        await fs.rm(dest, { recursive: true, force: true }).catch(() => {});
-        throw new Error(i18n("pathOps.topicTrashCopyFailed", { topicId }));
-      }
-      await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
-      backup = trashRelative(ctx.workspaceRoot, category, stamped);
+    const rel = `${category}/${topic}`;
+    // Single write-gate: Kernel executeArchive owns protection, confirm,
+    // copy-verify, ISO stamp, receipt and rotation. No Desktop-side trash copy.
+    const ev = await kernelDurableArchive({ relativePath: rel }, ctx, {
+      actor: ctx.writeActor || "user",
+      role: "deep-work",
+    });
+    if (ev.pending || ev.needsConfirm) {
+      return { ...asDesktopEvidence(ev, rel), ok: false };
     }
-    bumpWorkspaceIndex(`${category}/${topic}`);
+    bumpWorkspaceIndex(rel);
     return {
-      ...buildWritebackEvidence({
-        operation: "delete-topic",
-        targetPath: `${category}/${topic}`,
-        savedAt: t,
-        backupPath: backup,
-      }),
+      ...asDesktopEvidence(ev, rel),
       ok: true,
     };
   },
@@ -1218,18 +1235,181 @@ export const pathOps = {
   },
 
   /**
-   * Deterministic 整理本周 on current period note (or explicit path).
-   * @param {{ relativePath?: string, dryRun?: boolean, apply?: boolean }} p
+   * Retire a fact from active profile sections into the history section.
    */
-  async reconcileStreamPeriod({ relativePath, dryRun, apply } = {}, ctx) {
-    const wmApi = await import("./workspace-model-api.mjs");
-    const wm = await wmApi.loadWorkspaceModelLib();
-    const stream = await wmApi.resolveStreamTarget(ctx.workspaceRoot);
-    let rel = relativePath && String(relativePath).trim()
-      ? String(relativePath).trim()
-      : stream.periodRelPath;
+  async retireCoreMemory({ match, section, reason, actor, confirmed }, ctx) {
+    S(match, "match", { allowEmpty: false, maxLen: 10_000 });
+    const { loadKernelApi } = await import("./kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const root = resolveDataRoot(ctx.workspaceRoot);
+    const contract = kernel.loadContract(root);
+    const relativePath = kernel.globalProfileRelPath(root);
+
+    const r = kernel.retireProfileEntry({
+      workspaceRoot: root,
+      match: match.trim(),
+      section: section ? String(section).trim() : undefined,
+      contract: {
+        ...contract,
+        writeback: {
+          ...contract?.writeback,
+          mode: ctx.explicitWritebackMode || contract?.writeback?.mode,
+        },
+      },
+    });
+
+    if (!r.pending && !r.needsConfirm) bumpWorkspaceIndex(relativePath);
+    return {
+      ...asDesktopEvidence({ ...r, operation: "retire-profile" }, relativePath),
+      userMessage: "已将条目归档至历史记录",
+      match,
+      reason: reason || undefined,
+    };
+  },
+
+  /**
+   * Update an existing fact in place in profile.md.
+   */
+  async updateCoreMemory({ match, content, actor, confirmed }, ctx) {
+    S(match, "match", { allowEmpty: false, maxLen: 10_000 });
+    S(content, "content", { allowEmpty: false, maxLen: 100_000 });
+    const { loadKernelApi } = await import("./kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const root = resolveDataRoot(ctx.workspaceRoot);
+    const contract = kernel.loadContract(root);
+    const relativePath = kernel.globalProfileRelPath(root);
+
+    const r = kernel.updateProfileEntry({
+      workspaceRoot: root,
+      match: match.trim(),
+      content: content.trim(),
+      contract: {
+        ...contract,
+        writeback: {
+          ...contract?.writeback,
+          mode: ctx.explicitWritebackMode || contract?.writeback?.mode,
+        },
+      },
+    });
+
+    if (!r.pending && !r.needsConfirm) bumpWorkspaceIndex(relativePath);
+    return {
+      ...asDesktopEvidence({ ...r, operation: "update-profile" }, relativePath),
+      userMessage: "已更新核心记忆事实",
+      match,
+      content,
+    };
+  },
+
+  /**
+   * Read todo items with optional filter.
+   */
+  async listTodos({ completed = false, limit = 50 } = {}, ctx) {
+    const { loadKernelApi } = await import("./kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const root = resolveDataRoot(ctx.workspaceRoot);
+    const todoList = kernel.readTodoList(root);
+    const items = Array.isArray(todoList?.items) ? todoList.items : [];
+    const filtered = completed ? items : items.filter((i) => !i.done);
+    return {
+      items: filtered.slice(0, Number(limit) || 50),
+      totalCount: items.length,
+      activeCount: items.filter((i) => !i.done).length,
+      completedCount: items.filter((i) => i.done).length,
+      targetPath: kernel.resolveTodoRelPath(root),
+    };
+  },
+
+  /**
+   * Add one or more todo items atomically with deduplication and dueDate parsing.
+   */
+  async addTodos({ items, actor, confirmed }, ctx) {
+    const list = Array.isArray(items) ? items : [items];
+    if (list.length === 0) throw new Error("addTodos: items required");
+    const { loadKernelApi } = await import("./kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const root = resolveDataRoot(ctx.workspaceRoot);
+    const contract = kernel.loadContract(root);
+    const todoRel = kernel.resolveTodoRelPath(root);
+
+    const added = [];
+    for (const entry of list) {
+      const text = typeof entry === "string" ? entry : entry?.text;
+      if (text && String(text).trim()) {
+        const r = kernel.addTodoItem(root, String(text).trim(), {
+          contract,
+          actor: actor || "ai",
+          dueDate: entry?.dueDate,
+        });
+        if (r?.ok && r.item) added.push(r.item);
+      }
+    }
+
+    if (added.length > 0) {
+      bumpWorkspaceIndex(todoRel);
+    }
+    return {
+      ok: true,
+      operation: "add-todos",
+      targetPath: todoRel,
+      addedCount: added.length,
+      items: added,
+    };
+  },
+
+  /**
+   * Toggle a todo item's completion status.
+   */
+  async toggleTodo({ idOrText, completed, actor, confirmed }, ctx) {
+    if (!idOrText) throw new Error("toggleTodo: idOrText required");
+    const { loadKernelApi } = await import("./kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const root = resolveDataRoot(ctx.workspaceRoot);
+    const contract = kernel.loadContract(root);
+    const todoRel = kernel.resolveTodoRelPath(root);
+
+    // If idOrText matches text, find matching id
+    const todoList = kernel.readTodoList(root);
+    const items = Array.isArray(todoList?.items) ? todoList.items : [];
+    const targetItem = items.find(
+      (i) => i.id === idOrText || i.text === idOrText || i.text.includes(idOrText),
+    );
+    if (!targetItem) {
+      return {
+        ok: false,
+        operation: "toggle-todo",
+        targetPath: todoRel,
+        error: `未找到匹配的待办任务: "${idOrText}"。请先使用 list_todos 查看当前待办列表。`,
+      };
+    }
+
+    const r = kernel.toggleTodoItem(root, targetItem.id, contract);
+    if (r?.ok) {
+      bumpWorkspaceIndex(todoRel);
+    }
+    return {
+      ok: Boolean(r?.ok),
+      operation: "toggle-todo",
+      targetPath: todoRel,
+      toggledItem: targetItem,
+      nowCompleted: !targetItem.done,
+    };
+  },
+
+  /**
+   * Deterministic 整理本周 on current period note (or explicit path).
+   * @param {{ relativePath?: string, dryRun?: boolean, apply?: boolean, actor?: string, confirmed?: boolean }} p
+   */
+  async reconcileStreamPeriod({ dryRun = true, apply = false, relativePath = null, actor, confirmed } = {}, ctx) {
+    const shouldWrite = Boolean(apply && !dryRun);
+    const stamp = now();
+    const { loadWorkspaceModelLib, resolveStreamTarget } = await import(
+      "./workspace-model-api.mjs"
+    );
+    const wm = await loadWorkspaceModelLib();
+    const stream = await resolveStreamTarget(ctx.workspaceRoot);
+    const rel = relativePath || stream.periodRelPath;
     if (!rel) {
-      // atom packing: no single period file
       return {
         ok: false,
         reason: "no-period-note",
@@ -1265,8 +1445,6 @@ export const pathOps = {
       reconciled = periodMod.reconcilePeriodBody(body || "", { packing: stream.packing });
     }
 
-    const stamp = now();
-    const shouldWrite = apply === true || (apply !== false && dryRun !== true);
     const nextContent = injectFrontmatter(reconciled.body, {
       ...data,
       type: data?.type || "stream-period",
@@ -1277,13 +1455,16 @@ export const pathOps = {
 
     let evidence = null;
     if (shouldWrite && reconciled.changed) {
+      const writeActor = actor || "user";
+      const isConfirmed = confirmed !== undefined ? Boolean(confirmed) : (writeActor === "user");
       evidence = await kernelDurableWrite(
         { relativePath: rel, content: nextContent },
         ctx,
         {
-          actor: "user",
-          confirmed: true,
+          actor: writeActor,
+          confirmed: isConfirmed,
           operation: "update",
+          writebackMode: ctx.explicitWritebackMode,
         },
       );
       if (!evidence.pending && !evidence.needsConfirm) {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FileInput, Loader2 } from "lucide-react";
+import { RiFileTransferLine, RiLoader4Line } from "@remixicon/react";
 import type { PluginContext, StatusBarSlot } from "../types";
 import { onLocal } from "../host";
 import { api } from "../../services/api";
@@ -46,8 +46,8 @@ function IngestStatusBar({ ctx }: { ctx: PluginContext }) {
         onClick={() => ctx.navigate({ kind: "connector", id: "ingest" })}
         aria-label={t("hub.title") + ` · ${active}`}
       >
-        <Loader2 size={ICON.micro} className="animate-spin text-accent-color" aria-hidden />
-        <FileInput size={ICON.micro} aria-hidden />
+        <RiLoader4Line size={ICON.micro} className="animate-spin text-accent-color" aria-hidden />
+        <RiFileTransferLine size={ICON.micro} aria-hidden />
         {t("convert")} {active}
       </button>
     </Tooltip>

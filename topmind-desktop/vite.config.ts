@@ -62,12 +62,12 @@ export default defineConfig(() => ({
             return "tiptap-vendor";
           }
           if (id.includes("@dnd-kit")) return "dnd-vendor";
-          if (id.includes("lucide-react")) return "icons-vendor";
+          if (id.includes("@remixicon")) return "icons-vendor";
           if (id.includes("zustand") || id.includes("clsx") || id.includes("class-variance-authority")) {
             return "ui-vendor";
           }
-          if (id.includes("js-yaml") || id.includes("linkedom") || id.includes("@mozilla/readability")) {
-            return "parse-vendor";
+          if (id.includes("i18next") || id.includes("react-i18next")) {
+            return "i18n-vendor";
           }
           if (id.includes("/react/") || id.includes("react-dom") || id.includes("scheduler")) {
             return "react-vendor";

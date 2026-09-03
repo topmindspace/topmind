@@ -11,7 +11,6 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { exists, statSafe } from "./fs-utils.mjs";
 import { sp, trashAbsolute, trashRelative } from "./workspace-helpers.mjs";
-import { timestampStamp } from "./writeback.mjs";
 
 const MD_IMG_RE = /!\[([^\]]*)\]\(\s*<?([^)\s>]+)>?(?:\s+(?:"[^"]*"|'[^']*'))?\s*\)/giu;
 
@@ -222,7 +221,8 @@ export async function trashNoteMedia(p, ctx) {
   const trashed = [];
   const srcBase = plan.noteDir;
   const dirParts = srcBase ? srcBase.split("/").filter(Boolean) : [];
-  const stamp = timestampStamp();
+  // ISO stamp — same axis as Kernel writeback-engine trash naming.
+  const stamp = new Date().toISOString().replace(/[-:.]/g, "");
 
   for (const d of plan.mediaDirs) {
     const fromRel = srcBase ? `${srcBase}/${d}` : d;
@@ -238,7 +238,11 @@ export async function trashNoteMedia(p, ctx) {
         `${stamp}__${slug}`,
       );
       await fs.mkdir(path.dirname(destAbs), { recursive: true });
-      await fs.cp(fromAbs, destAbs, { recursive: true }).catch(() => {});
+      try {
+        await fs.cp(fromAbs, destAbs, { recursive: true });
+      } catch {
+        continue; // copy failed — keep the original in place, never destroy it
+      }
       trashed.push(
         trashRelative(ctx.workspaceRoot, ...dirParts, "images", `${stamp}__${slug}`),
       );
@@ -261,7 +265,11 @@ export async function trashNoteMedia(p, ctx) {
         `${stamp}__${base}`,
       );
       await fs.mkdir(path.dirname(destAbs), { recursive: true });
-      await fs.copyFile(fromAbs, destAbs).catch(() => {});
+      try {
+        await fs.copyFile(fromAbs, destAbs);
+      } catch {
+        continue; // copy failed — keep the original in place
+      }
       trashed.push(
         trashRelative(ctx.workspaceRoot, ...dirParts, "images", `${stamp}__${base}`),
       );

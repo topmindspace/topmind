@@ -266,16 +266,16 @@ test("deletePath ordinary open md has no trash; locked core note does and restor
   );
 });
 
-test("deleteTopic parks directory under backups/trash", async () => {
+test("deleteTopic archives directory via Kernel write-gate", async () => {
   const topicId = "20-研究/2026-示例专题";
   writeFileSync(
     path.join(workspace.userWorkspaceRoot, topicId, "a.md"),
     "# a\n",
   );
   const del = await pathOps.deleteTopic({ topicId }, ctx());
-  assert.equal(del.operation, "delete-topic");
+  assert.equal(del.operation, "archive");
   assert.ok(del.backupPath);
-  assert.match(del.backupPath, /99-归档\/backups\/trash\/20-研究\//u);
+  assert.match(del.backupPath, /99-归档\/backups\/archived-topics\//u);
   assert.ok(existsSync(path.join(workspace.userWorkspaceRoot, del.backupPath)));
   assert.ok(!existsSync(path.join(workspace.userWorkspaceRoot, topicId)));
 });

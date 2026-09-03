@@ -1,4 +1,4 @@
-import { FileText, X } from "lucide-react";
+import { RiCloseLine, RiFileTextLine } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { useAiStore } from "../../stores/ai-store";
 import { ICON } from "../../lib/icons";
@@ -17,7 +17,7 @@ export function ContextPills() {
           key={f.path}
           className="inline-flex max-w-full items-center gap-1 rounded-[var(--radius-full)] border border-border-subtle/80 bg-surface px-1.5 py-px text-3xs text-text-secondary"
         >
-          <FileText size={ICON.micro} className="shrink-0 text-accent-color/70" />
+          <RiFileTextLine size={ICON.micro} className="shrink-0 text-accent-color/70" />
           <Tooltip content={f.path}>
             <span className="max-w-[120px] truncate">{f.name}</span>
           </Tooltip>
@@ -28,7 +28,7 @@ export function ContextPills() {
               aria-label={t("ai.removeContextTooltip")}
               className="rounded-full p-0.5 text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-primary"
             >
-              <X size={ICON.nano} />
+              <RiCloseLine size={ICON.micro} />
             </button>
           </Tooltip>
         </span>

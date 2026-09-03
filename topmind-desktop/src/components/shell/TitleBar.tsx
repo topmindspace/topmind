@@ -1,8 +1,27 @@
 import {
-  Sun, Moon, Monitor, Search, ChevronLeft, ChevronRight, Zap, Layers, Settings, Radio,
-  FolderOpen, ChevronDown, Plus, Check, LogOut, Loader2, Inbox, Command, MoreHorizontal,
-  ClipboardList, ListTodo, Lightbulb,
-} from "lucide-react";
+  RiAddLine,
+  RiArrowDownSLine,
+  RiArrowLeftSLine,
+  RiArrowRightSLine,
+  RiBroadcastLine,
+  RiCheckLine,
+  RiClipboardLine,
+  RiCommandLine,
+  RiComputerLine,
+  RiFlashlightFill,
+  RiFolderOpenLine,
+  RiInboxUnarchiveLine,
+  RiLightbulbLine,
+  RiListCheck,
+  RiLoader4Line,
+  RiLogoutBoxRLine,
+  RiMoonLine,
+  RiMoreLine,
+  RiSearchLine,
+  RiSettingsLine,
+  RiStackLine,
+  RiSunLine,
+} from "@remixicon/react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { DropdownItem, DropdownMenu, DropdownSectionLabel } from "../ui/DropdownMenu";
@@ -17,7 +36,7 @@ import { cn } from "../../lib/cn";
 
 import { Tooltip } from "../ui/tooltip";
 import { PanelToggleIcon } from "../ui/PanelToggleIcon";
-import { ICON, ICON_STROKE } from "../../lib/icons";
+import { ICON } from "../../lib/icons";
 import { TodoPopover } from "../todo/TodoPopover";
 import { useTodoStore } from "../../stores/todo-store";
 import { useActionStore } from "../../stores/action-store";
@@ -45,20 +64,6 @@ function SuggestBadge() {
   );
 }
 
-/** Badge for active todo count (TodoStore) — shows unresolved items on ListTodo icon. */
-function TodoBadge() {
-  const activeCount = useTodoStore((s) => s.items.filter((i) => !i.done).length);
-  if (activeCount === 0) return null;
-  return (
-    <span
-      className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-xs bg-accent-color px-0.5 text-5xs font-bold leading-none tabular-nums text-text-on-accent"
-      aria-hidden
-      data-todo-header-badge
-    >
-      {activeCount > 9 ? "9+" : activeCount}
-    </span>
-  );
-}
 
 /** Detect platform for chrome padding (traffic lights / Windows caption overlay).
  *  navigator.platform is synchronous and reliable in Electron renderer. */
@@ -67,7 +72,6 @@ const isWindows =
   typeof navigator !== "undefined" &&
   (/Win/i.test(navigator.platform) || /Windows/i.test(navigator.userAgent || ""));
 
-const stroke = { strokeWidth: ICON_STROKE.chrome };
 
 interface TitleBarProps {
   workspaceRoot: string;
@@ -211,9 +215,9 @@ function WorkspaceSwitcher({ currentRoot }: { currentRoot: string }) {
               open && "bg-surface-muted text-text-secondary",
             )}
           >
-            <FolderOpen size={ICON.xs} {...stroke} className="shrink-0" />
+            <RiFolderOpenLine size={ICON.xs} className="shrink-0" />
             <span className="truncate">{shortName(currentRoot)}</span>
-            <ChevronDown
+            <RiArrowDownSLine
               size={ICON.nano}
               className={cn("shrink-0 text-text-quaternary transition-transform", open && "rotate-180")}
             />
@@ -244,15 +248,15 @@ function WorkspaceSwitcher({ currentRoot }: { currentRoot: string }) {
                 active={active}
                 onSelect={() => { void handleSwitch(w.rootPath); }}
               >
-                <FolderOpen size={ICON.micro} className="shrink-0 opacity-70" />
+                <RiFolderOpenLine size={ICON.micro} className="shrink-0 opacity-70" />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-mono text-3xs">{shortName(w.rootPath)}</span>
                   <span className="block truncate font-mono text-3xs text-text-quaternary">{w.rootPath}</span>
                 </span>
                 {switching === w.rootPath ? (
-                  <Loader2 size={ICON.micro} className="shrink-0 animate-spin" />
+                  <RiLoader4Line size={ICON.micro} className="shrink-0 animate-spin" />
                 ) : active ? (
-                  <Check size={ICON.micro} className="shrink-0 text-accent-color" />
+                  <RiCheckLine size={ICON.micro} className="shrink-0 text-accent-color" />
                 ) : null}
               </DropdownItem>
             );
@@ -263,17 +267,17 @@ function WorkspaceSwitcher({ currentRoot }: { currentRoot: string }) {
       <div className="border-t border-border-subtle-dim p-1">
         <DropdownItem disabled={busy} onSelect={() => { void handlePickNew(); }}>
           {switching === "picking" ? (
-            <Loader2 size={ICON.xs} className="shrink-0 animate-spin" />
+            <RiLoader4Line size={ICON.xs} className="shrink-0 animate-spin" />
           ) : (
-            <Plus size={ICON.xs} className="shrink-0" />
+            <RiAddLine size={ICON.xs} className="shrink-0" />
           )}
           <span>{t("titleBar.openOrCreateWorkspace")}</span>
         </DropdownItem>
         <DropdownItem disabled={busy} onSelect={() => { void handleCloseWorkspace(); }}>
           {switching === "closing" ? (
-            <Loader2 size={ICON.xs} className="shrink-0 animate-spin" />
+            <RiLoader4Line size={ICON.xs} className="shrink-0 animate-spin" />
           ) : (
-            <LogOut size={ICON.xs} className="shrink-0" />
+            <RiLogoutBoxRLine size={ICON.xs} className="shrink-0" />
           )}
           <span>{t("titleBar.closeWorkspace")}</span>
         </DropdownItem>
@@ -338,7 +342,7 @@ function PrimaryNav({ showLabels }: { showLabels: boolean }) {
     {
       key: "stream",
       // Radio = stream identity (matches sidebar ViewSwitcher); never Home chrome
-      icon: Radio,
+      icon: RiBroadcastLine,
       label: t("primaryNav.stream"),
       badge: 0,
       badgeTone: "accent" as const,
@@ -348,7 +352,7 @@ function PrimaryNav({ showLabels }: { showLabels: boolean }) {
     },
     {
       key: "inbox",
-      icon: Inbox,
+      icon: RiInboxUnarchiveLine,
       label: t("primaryNav.inbox"),
       badge: inboxCount,
       badgeTone: "warning" as const,
@@ -361,7 +365,7 @@ function PrimaryNav({ showLabels }: { showLabels: boolean }) {
     },
     {
       key: "outputs",
-      icon: Layers,
+      icon: RiStackLine,
       label: t("primaryNav.outputs"),
       badge: 0,
       badgeTone: "accent" as const,
@@ -371,7 +375,7 @@ function PrimaryNav({ showLabels }: { showLabels: boolean }) {
     },
     {
       key: "search",
-      icon: Search,
+      icon: RiSearchLine,
       label: t("primaryNav.search"),
       badge: 0,
       badgeTone: "accent" as const,
@@ -396,15 +400,22 @@ function PrimaryNav({ showLabels }: { showLabels: boolean }) {
             type="button"
             onClick={a.action}
             className={cn(
-              "v4-nav-pill relative flex h-7 items-center gap-1 rounded-md px-2.5 text-3xs font-medium",
+              "v4-nav-pill relative flex h-8 items-center gap-1 rounded-md px-2.5 text-3xs font-medium",
               !a.active && "text-text-tertiary",
             )}
             data-active={a.active}
             aria-label={a.label}
             aria-current={a.active ? "page" : undefined}
           >
-            <a.icon size={ICON.xs} {...stroke} className="shrink-0 opacity-90" />
-            {showLabels ? <span className="max-w-18 truncate">{a.label}</span> : null}
+            <a.icon size={ICON.sm} className="shrink-0 opacity-90" />
+            <span
+              className={cn(
+                "overflow-hidden whitespace-nowrap text-left transition-all duration-200 ease-out",
+                showLabels ? "max-w-20 opacity-100" : "max-w-0 opacity-0",
+              )}
+            >
+              {a.label}
+            </span>
             {a.badge > 0 ? (
               <span
                 className={cn(
@@ -533,9 +544,9 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
 
   const themeIcon = () => {
     switch (theme) {
-      case "auto": return <Monitor size={ICON.sm} {...stroke} />;
-      case "light": return <Sun size={ICON.sm} {...stroke} />;
-      case "dark": return <Moon size={ICON.sm} {...stroke} />;
+      case "auto": return <RiComputerLine size={ICON.sm} />;
+      case "light": return <RiSunLine size={ICON.sm} />;
+      case "dark": return <RiMoonLine size={ICON.sm} />;
     }
   };
 
@@ -546,7 +557,7 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
     return (
       <header
         className={cn(
-          "v4-drag v4-titlebar-glass relative flex h-(--density-chrome-y,36px) items-center justify-between gap-2 px-2 text-text-secondary select-none sm:px-3",
+          "v4-drag v4-titlebar-glass relative flex h-(--density-chrome-y,40px) items-center justify-between gap-2 px-2 text-text-secondary select-none sm:px-3",
           isWindows && "v4-win-titlebar-pad",
         )}
       >
@@ -573,7 +584,7 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
     <header
       ref={titlebarRef}
       className={cn(
-        "v4-drag v4-titlebar-glass relative flex h-(--density-chrome-y,36px) items-center justify-between gap-2 px-2 text-text-secondary select-none sm:px-3",
+        "v4-drag v4-titlebar-glass relative flex h-(--density-chrome-y,40px) items-center justify-between gap-2 px-2 text-text-secondary select-none sm:px-3",
         isWindows && "v4-win-titlebar-pad",
       )}
     >
@@ -597,12 +608,12 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
           </Tooltip>
           <Tooltip content={t("titleBar.back")}>
             <button type="button" className="v4-titlebar-btn" onClick={back} disabled={!canGoBack} aria-label={t("titleBar.backAriaLabel")}>
-              <ChevronLeft size={ICON.sm} {...stroke} />
+              <RiArrowLeftSLine size={ICON.sm} />
             </button>
           </Tooltip>
           <Tooltip content={t("titleBar.forward")}>
             <button type="button" className="v4-titlebar-btn" onClick={forward} disabled={!canGoForward} aria-label={t("titleBar.forwardAriaLabel")}>
-              <ChevronRight size={ICON.sm} {...stroke} />
+              <RiArrowRightSLine size={ICON.sm} />
             </button>
           </Tooltip>
         </div>
@@ -620,10 +631,10 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
             type="button"
             onMouseEnter={() => warmOverlay("command-palette")}
             onClick={() => emitLocal("overlay:open", { kind: "command-palette" })}
-            className="v4-cmd-trigger group flex h-7 items-center gap-1.5 rounded-md px-2.5 text-3xs font-medium text-text-tertiary xl:min-w-42"
+            className="v4-cmd-trigger group flex h-8 items-center gap-1.5 rounded-md px-2.5 text-3xs font-medium text-text-tertiary xl:min-w-42"
             aria-label={t("titleBar.commandPaletteAriaLabel")}
           >
-            <Command size={ICON.xs} {...stroke} className="shrink-0 transition-colors group-hover:text-accent-color" />
+            <RiCommandLine size={ICON.xs} className="shrink-0 transition-colors group-hover:text-accent-color" />
             <span className="hidden min-w-0 flex-1 truncate text-left xl:inline">{t("titleBar.commandField")}</span>
             <kbd className="v4-kbd ml-auto">⌘K</kbd>
           </button>
@@ -646,7 +657,7 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
             onClick={() => openOverlay("quick-capture")}
             aria-label={t("titleBar.capture")}
           >
-            <Zap size={ICON.sm} {...stroke} className="shrink-0" />
+            <RiFlashlightFill size={ICON.sm} className="shrink-0" />
             <span className="hidden sm:inline">{t("titleBar.capture")}</span>
           </button>
         </Tooltip>
@@ -659,21 +670,21 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
               className={cn(
                 "v4-titlebar-btn relative",
                 suggestPanelOpen && "bg-surface-muted",
-                // 语义分化：建议（涌现）用 loop 暖金；high 优先级统一 warning（与状态栏一致）
-                suggestCount > 0 && (suggestHasHigh ? "text-warning" : "text-skill-loop"),
+                suggestCount > 0 && (suggestHasHigh ? "text-warning bg-warning/10 hover:bg-warning/15" : "text-skill-loop bg-skill-loop/10 hover:bg-skill-loop/15"),
               )}
               onClick={() => toggleSuggestSurface()}
               aria-label={t("titleBar.suggestAriaLabel")}
               aria-pressed={suggestPanelOpen}
               data-suggest-header-trigger
             >
-              <Lightbulb size={ICON.sm} {...stroke} />
+              <RiLightbulbLine size={ICON.sm} />
               <SuggestBadge />
             </button>
           </Tooltip>
 
           <TodoPopover open={todoOpen} onOpenChange={setTodoOpen}>
             <Tooltip content={t("titleBar.todoTip")}>
+              {/* Single personal-list entry point: TitleBar ListTodo (RiListCheck) */}
               <button
                 type="button"
                 className={cn("v4-titlebar-btn relative", todoOpen && "bg-surface-muted")}
@@ -681,9 +692,8 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
                 aria-label={t("titleBar.todoAriaLabel")}
                 aria-pressed={todoOpen}
               >
-              <ListTodo size={ICON.sm} {...stroke} />
-              <TodoBadge />
-            </button>
+                <RiListCheck size={ICON.sm} />
+              </button>
             </Tooltip>
           </TodoPopover>
         </div>
@@ -701,7 +711,7 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
                   onClick={() => emitLocal("overlay:open", { kind: "settings" })}
                   aria-label={t("titleBar.settingsAriaLabel")}
                 >
-                  <Settings size={ICON.sm} {...stroke} />
+                  <RiSettingsLine size={ICON.sm} />
                 </button>
               </Tooltip>
               <Tooltip content={t("titleBar.themeCycleTip", { label: themeLabel, next: themeNextLabel() })}>
@@ -737,7 +747,7 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
                     data-menu-trigger
                     onClick={() => setToolsOpen((v) => !v)}
                   >
-                    <MoreHorizontal size={ICON.sm} {...stroke} />
+                    <RiMoreLine size={ICON.sm} />
                   </button>
                 </Tooltip>
               }
@@ -749,15 +759,15 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
                   emitLocal("overlay:open", { kind: "settings" });
                 }}
               >
-                <Settings size={ICON.micro} className="shrink-0 opacity-70" />
+                <RiSettingsLine size={ICON.micro} className="shrink-0 opacity-70" />
                 <span className="flex-1">{t("titleBar.settingsLabel")}</span>
                 <kbd className="v4-kbd v4-kbd-sm">⌘,</kbd>
               </DropdownItem>
               <DropdownSectionLabel>{t("titleBar.themeMenuSection")}</DropdownSectionLabel>
               {([
-                { id: "auto", icon: <Monitor size={ICON.micro} {...stroke} /> },
-                { id: "light", icon: <Sun size={ICON.micro} {...stroke} /> },
-                { id: "dark", icon: <Moon size={ICON.micro} {...stroke} /> },
+                { id: "auto", icon: <RiComputerLine size={ICON.micro} /> },
+                { id: "light", icon: <RiSunLine size={ICON.micro} /> },
+                { id: "dark", icon: <RiMoonLine size={ICON.micro} /> },
               ] as Array<{ id: ThemeMode; icon: React.ReactNode }>).map((opt) => (
                 <DropdownItem
                   key={opt.id}
@@ -772,7 +782,7 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
                   <span className="flex-1">
                     {opt.id === "auto" ? t("titleBar.themeAuto") : opt.id === "light" ? t("titleBar.themeLight") : t("titleBar.themeDark")}
                   </span>
-                  {theme === opt.id ? <Check size={ICON.micro} className="text-accent-color" /> : null}
+                  {theme === opt.id ? <RiCheckLine size={ICON.micro} className="text-accent-color" /> : null}
                 </DropdownItem>
               ))}
               <DropdownItem
@@ -781,7 +791,7 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
                   onToggleTaskPanel();
                 }}
               >
-                <ClipboardList size={ICON.micro} className="shrink-0 opacity-70" />
+                <RiClipboardLine size={ICON.micro} className="shrink-0 opacity-70" />
                 <span className="flex-1">{taskPanelOpen ? t("titleBar.hideTaskPanel") : t("titleBar.showTaskPanel")}</span>
                 <kbd className="v4-kbd v4-kbd-sm">⌘⇧J</kbd>
               </DropdownItem>
@@ -800,7 +810,7 @@ export function TitleBar({ workspaceRoot, taskPanelOpen, sidebarCollapsed, onTog
                 data-task-panel-trigger
                 aria-label={t("titleBar.hideTaskPanel")}
               >
-                <ClipboardList size={ICON.sm} {...stroke} />
+                <RiClipboardLine size={ICON.sm} />
               </button>
             </Tooltip>
           ) : null}

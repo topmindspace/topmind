@@ -88,7 +88,7 @@ test("EditorFormatBar ships format toggles; more ⋯ is exclusive", () => {
   assert.match(fmt, /formatBarOptions\.moreActions/);
   assert.match(fmt, /onPublish/);
   assert.match(fmt, /onRequestAiBar/);
-  assert.match(fmt, /Heading3/);
+  assert.match(fmt, /RiH3/);
   const dateIdx = fmt.indexOf("onInsertDateTime ? (");
   const showFormatIdx = fmt.indexOf("{showFormat ? (");
   assert.ok(showFormatIdx >= 0 && dateIdx > showFormatIdx, "date-time control must sit inside showFormat");

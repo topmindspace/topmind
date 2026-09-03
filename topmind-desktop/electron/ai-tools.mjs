@@ -87,11 +87,13 @@ export async function buildDesktopAiTools(ctx) {
       ? {
           pendingStashed: "Ask-before-save: write is pending. Accept or reject it in the AI panel pending-writes list.",
           pendingNoBody: "Ask-before-save: confirmation required, but the body was not cached (retry with save_file).",
+          pendingDelete: "Ask-before-save: file deletion requires user confirmation; deletion was blocked.",
           writeFailed: "Write failed; adjust parameters and retry, or accept the write in the review bar when ask-before-save is on.",
         }
       : {
           pendingStashed: "保存前问我：写入已挂起，请在 AI 面板「待确认写入」中接受或拒绝",
           pendingNoBody: "保存前问我：写入需确认，但未能缓存正文（请重试 save_file 全量写入）",
+          pendingDelete: "保存前问我：删除操作已拦截，需用户确认或手动操作",
           writeFailed: "写入失败；可调整参数后重试，或「保存前问我」模式下在审阅条接受写入",
         };
 
@@ -108,6 +110,7 @@ export async function buildDesktopAiTools(ctx) {
           let rel =
             args.relativePath ||
             raw.targetPath ||
+            raw.path ||
             (args.topicId && args.filename
               ? `${String(args.topicId).replace(/\\/g, "/")}/${args.filename}`
               : null);
@@ -159,7 +162,9 @@ export async function buildDesktopAiTools(ctx) {
           }
           result.note =
             result.note ||
-            (result.pendingId ? writeCopy.pendingStashed : writeCopy.pendingNoBody);
+            (toolName === "delete_path"
+              ? writeCopy.pendingDelete
+              : (result.pendingId ? writeCopy.pendingStashed : writeCopy.pendingNoBody));
           result.previewContent = content || raw.previewContent;
           result.relativePath = rel;
         }
@@ -168,12 +173,33 @@ export async function buildDesktopAiTools(ctx) {
       } catch (err) {
         const message = err?.message || String(err);
         logError("ai-tools", `write tool ${toolName} failed`, { error: message });
+        let hint = undefined;
+        if (toolName === "edit_file") {
+          const isNoMatch = message.includes("未能找到") || message.includes("no-match") || message.includes("not found");
+          const isAmbiguous = message.includes("多处") || message.includes("ambiguous");
+          if (isNoMatch) {
+            hint = promptLocale === "en"
+              ? `Edit failed: oldText was not found in the file. First call read_file({ relativePath: "${args?.relativePath || ""}", around: "keyword", offset: 1, limit: 100 }) to read the exact text and line numbers, then retry edit_file with actual lines or specify startLine/endLine.`
+              : `编辑失败：未在文件中匹配到 oldText。建议先调用 read_file({ relativePath: "${args?.relativePath || ""}", around: "关键词", offset: 1, limit: 100 }) 查看带有行号的最新真实内容，重新复制精确的 oldText（可多带前后1-2行以确保唯一），或传入 startLine/endLine 缩小范围重试。`;
+          } else if (isAmbiguous) {
+            hint = promptLocale === "en"
+              ? `Edit failed: oldText matched multiple times in the file. Add 1-2 surrounding lines to oldText to make it unique, or specify startLine/endLine or heading, or set replaceAll: true if you want to replace all occurrences.`
+              : `编辑失败：oldText 在文件中命中多处。建议在 oldText 中多包含前后 1~2 行上下文以保证唯一性，或传入 startLine/endLine 或 heading 限定范围，若确实需要全部替换可设置 replaceAll: true。`;
+          }
+        } else if (toolName === "save_file" || toolName === "save_note") {
+          if (message.includes("locked") || message.includes("保护")) {
+            hint = promptLocale === "en"
+              ? "Write failed: target file is locked or protected. AI is not permitted to overwrite locked files."
+              : "写入失败：目标文件被锁定或保护（locked），系统禁止 AI 覆盖受保护笔记。";
+          }
+        }
         return {
           ok: false,
           tool: toolName,
           operation: toolName,
           error: message,
           note: writeCopy.writeFailed,
+          ...(hint ? { hint } : {}),
         };
       }
     };
@@ -255,7 +281,11 @@ export async function buildDesktopAiTools(ctx) {
         "列出工作区类别（directory/slot/role/specialBehavior）。系统提示词已内联概览时无需调用。",
       inputSchema: jsonSchema({ type: "object", properties: {} }),
       async execute() {
-        return summarizeForModel(await WorkspaceService.listCategories({}, ctx));
+        try {
+          return summarizeForModel(await WorkspaceService.listCategories({}, ctx));
+        } catch (err) {
+          return { ok: false, error: err?.message || String(err), hint: "获取工作区类别失败。" };
+        }
       },
     });
 
@@ -264,42 +294,46 @@ export async function buildDesktopAiTools(ctx) {
         "一次性获取工作区全貌：类别列表(含专题数) + 收件箱待处理数 + 最近动态周期本 + 输出数。减少多次 list_* 调用。系统提示词已内联部分概览，此工具获取更完整实时数据。",
       inputSchema: jsonSchema({ type: "object", properties: {} }),
       execute: wrapRead(async function workspace_overview() {
-        const [cats, inbox, outputs, streamCtx] = await Promise.all([
-          WorkspaceService.listCategories({}, ctx),
-          WorkspaceService.listInbox({}, ctx),
-          WorkspaceService.listOutputs({}, ctx),
-          WorkspaceService.getStreamContext({}, ctx),
-        ]);
-        // Count topics per category — async to avoid blocking main process
-        const root = resolveDataRoot(ctx.workspaceRoot);
-        const catList = await Promise.all((cats?.categories || []).map(async (c) => {
-          let topicCount = 0;
-          try {
-            const catDir = path.join(root, c.directory);
-            const stat = await fs.promises.stat(catDir);
-            if (stat.isDirectory()) {
-              const entries = await fs.promises.readdir(catDir, { withFileTypes: true });
-              topicCount = entries.filter((e) => e.isDirectory() && !e.name.startsWith(".")).length;
-            }
-          } catch { /* ignore */ }
-          return {
-            directory: c.directory,
-            role: c.role,
-            specialBehavior: c.specialBehavior,
-            topicCount,
-          };
-        }));
-        const inboxItems = Array.isArray(inbox?.items) ? inbox.items : [];
-        const outputItems = Array.isArray(outputs?.items) ? outputs.items : [];
-        return summarizeForModel({
-          categories: catList,
-          inboxCount: inboxItems.length,
-          inboxItems: inboxItems.slice(0, 5).map((i) => ({ name: i.name || i.filename, path: i.relativePath })),
-          outputCount: outputItems.length,
-          streamPeriod: streamCtx?.periodRelPath || null,
-          streamPeriodTitle: streamCtx?.periodTitle || null,
-          streamPacking: streamCtx?.packing || null,
-        });
+        try {
+          const [cats, inbox, outputs, streamCtx] = await Promise.all([
+            WorkspaceService.listCategories({}, ctx).catch(() => ({ categories: [] })),
+            WorkspaceService.listInbox({}, ctx).catch(() => ({ items: [] })),
+            WorkspaceService.listOutputs({}, ctx).catch(() => ({ items: [] })),
+            WorkspaceService.getStreamContext({}, ctx).catch(() => null),
+          ]);
+          // Count topics per category — async to avoid blocking main process
+          const root = resolveDataRoot(ctx.workspaceRoot);
+          const catList = await Promise.all((cats?.categories || []).map(async (c) => {
+            let topicCount = 0;
+            try {
+              const catDir = path.join(root, c.directory);
+              const stat = await fs.promises.stat(catDir);
+              if (stat.isDirectory()) {
+                const entries = await fs.promises.readdir(catDir, { withFileTypes: true });
+                topicCount = entries.filter((e) => e.isDirectory() && !e.name.startsWith(".")).length;
+              }
+            } catch { /* ignore */ }
+            return {
+              directory: c.directory,
+              role: c.role,
+              specialBehavior: c.specialBehavior,
+              topicCount,
+            };
+          }));
+          const inboxItems = Array.isArray(inbox?.items) ? inbox.items : [];
+          const outputItems = Array.isArray(outputs?.items) ? outputs.items : [];
+          return summarizeForModel({
+            categories: catList,
+            inboxCount: inboxItems.length,
+            inboxItems: inboxItems.slice(0, 5).map((i) => ({ name: i.name || i.filename, path: i.relativePath })),
+            outputCount: outputItems.length,
+            streamPeriod: streamCtx?.periodRelPath || null,
+            streamPeriodTitle: streamCtx?.periodTitle || null,
+            streamPacking: streamCtx?.packing || null,
+          });
+        } catch (err) {
+          return { ok: false, error: err?.message || String(err), hint: "获取工作区全貌概览失败。" };
+        }
       }),
     });
 
@@ -311,7 +345,11 @@ export async function buildDesktopAiTools(ctx) {
         required: ["category"],
       }),
       async execute({ category }) {
-        return summarizeForModel(await WorkspaceService.listTopics({ category }, ctx));
+        try {
+          return summarizeForModel(await WorkspaceService.listTopics({ category }, ctx));
+        } catch (err) {
+          return { ok: false, category, error: err?.message || String(err), hint: "无法列出专题，请使用 workspace_overview 确认类别目录是否存在。" };
+        }
       },
     });
 
@@ -323,7 +361,11 @@ export async function buildDesktopAiTools(ctx) {
         required: ["topicId"],
       }),
       async execute({ topicId }) {
-        return summarizeForModel(await WorkspaceService.listTopicFiles({ topicId }, ctx));
+        try {
+          return summarizeForModel(await WorkspaceService.listTopicFiles({ topicId }, ctx));
+        } catch (err) {
+          return { ok: false, topicId, error: err?.message || String(err), hint: "无法列出专题文件，请确认专题 ID 格式为 类别/专题名（如 20-专题/2026-主题）。" };
+        }
       },
     });
 
@@ -335,7 +377,11 @@ export async function buildDesktopAiTools(ctx) {
         required: ["topicId"],
       }),
       async execute({ topicId }) {
-        return summarizeForModel(await WorkspaceService.getTopic({ topicId }, ctx));
+        try {
+          return summarizeForModel(await WorkspaceService.getTopic({ topicId }, ctx));
+        } catch (err) {
+          return { ok: false, topicId, error: err?.message || String(err), hint: "获取专题失败，请检查专题 ID 是否准确。" };
+        }
       },
     });
 
@@ -362,19 +408,31 @@ export async function buildDesktopAiTools(ctx) {
       execute: wrapRead(async function read_file({ relativePath, offset, limit, around, heading }) {
         const hasExplicitLimit = limit != null && limit !== "";
         const hasLocate = Boolean(around) || Boolean(heading);
-        const win = await WorkspaceService.readPathWindow({
-          relativePath,
-          offset: offset ?? 1,
-          limit: hasExplicitLimit ? limit : (hasLocate ? undefined : 400),
-          around: around || undefined,
-          heading: heading || undefined,
-        }, ctx);
-        const payload = {
-          ...win,
-          content: win.numbered || win.content,
-        };
-        // Prefer line-boundary trim over a mid-paragraph 14k slice.
-        return summarizeForModel(payload, 48_000);
+        try {
+          const win = await WorkspaceService.readPathWindow({
+            relativePath,
+            offset: offset ?? 1,
+            limit: hasExplicitLimit ? limit : (hasLocate ? undefined : 400),
+            around: around || undefined,
+            heading: heading || undefined,
+          }, ctx);
+          const payload = {
+            ...win,
+            content: win.numbered || win.content,
+          };
+          // Prefer line-boundary trim over a mid-paragraph 14k slice.
+          return summarizeForModel(payload, 48_000);
+        } catch (err) {
+          const msg = err?.message || String(err);
+          return {
+            ok: false,
+            relativePath,
+            error: msg,
+            hint: msg.includes("ENOENT") || msg.includes("not found") || msg.includes("不存在")
+              ? "文件不存在。请使用 search 搜索关键词或用 list_topics / workspace_overview 确认文件确切相对路径。"
+              : "读取失败，请检查路径参数后重试。",
+          };
+        }
       }),
     });
 
@@ -406,17 +464,29 @@ export async function buildDesktopAiTools(ctx) {
         required: ["query"],
       }),
       execute: wrapRead(async function search({ query, scope, maxResults, regex, includeArchive, context }) {
-        return summarizeForModel(
-          await WorkspaceService.grepWorkspace({
-            pattern: query,
-            scope: scope || "",
-            maxResults,
-            regex: Boolean(regex),
-            includeArchive: Boolean(includeArchive),
-            context,
-          }, ctx),
-          12000,
-        );
+        try {
+          return summarizeForModel(
+            await WorkspaceService.grepWorkspace({
+              pattern: query,
+              scope: scope || "",
+              maxResults,
+              regex: Boolean(regex),
+              includeArchive: Boolean(includeArchive),
+              context,
+            }, ctx),
+            12000,
+          );
+        } catch (err) {
+          const msg = err?.message || String(err);
+          return {
+            ok: false,
+            query,
+            error: msg,
+            hint: regex
+              ? "正则表达式可能非法或执行出错。建议将 regex 设为 false 使用普通纯文本关键词搜索。"
+              : "搜索执行失败，请检查 scope 或 query 参数。",
+          };
+        }
       }),
     });
 
@@ -424,7 +494,11 @@ export async function buildDesktopAiTools(ctx) {
       description: "列出收件箱（Inbox）中的待分类材料。capture/organize 常用。",
       inputSchema: jsonSchema({ type: "object", properties: {} }),
       async execute() {
-        return summarizeForModel(await WorkspaceService.listInbox({}, ctx));
+        try {
+          return summarizeForModel(await WorkspaceService.listInbox({}, ctx));
+        } catch (err) {
+          return { ok: false, error: err?.message || String(err), hint: "获取收件箱列表失败。" };
+        }
       },
     });
 
@@ -432,7 +506,11 @@ export async function buildDesktopAiTools(ctx) {
       description: "列出 88-Outputs 交付物。",
       inputSchema: jsonSchema({ type: "object", properties: {} }),
       async execute() {
-        return summarizeForModel(await WorkspaceService.listOutputs({}, ctx));
+        try {
+          return summarizeForModel(await WorkspaceService.listOutputs({}, ctx));
+        } catch (err) {
+          return { ok: false, error: err?.message || String(err), hint: "获取交付物列表失败。" };
+        }
       },
     });
 
@@ -455,10 +533,20 @@ export async function buildDesktopAiTools(ctx) {
         required: ["url"],
       }),
       async execute({ url, maxLen, render }) {
-        return summarizeForModel(
-          await WorkspaceService.fetchUrl({ url, maxLen, render: Boolean(render) }, ctx),
-          14000,
-        );
+        try {
+          return summarizeForModel(
+            await WorkspaceService.fetchUrl({ url, maxLen, render: Boolean(render) }, ctx),
+            14000,
+          );
+        } catch (err) {
+          const msg = err?.message || String(err);
+          return {
+            ok: false,
+            url,
+            error: msg,
+            hint: "网页抓取失败。请确认 URL 为有效的 http(s) 地址，且目标网站可正常访问。若是动态渲染页面可尝试 render: true。",
+          };
+        }
       },
     });
 
@@ -467,7 +555,39 @@ export async function buildDesktopAiTools(ctx) {
         "工作区健康巡检（loop skill）。返回结构化 JSON：{ ok, checks: [{ name, status, detail }], summary, recommendations }。可用于程序化判断工作区状态。",
       inputSchema: jsonSchema({ type: "object", properties: {} }),
       execute: wrapRead(async function workspace_health() {
-        return summarizeForModel(await WorkspaceService.workspaceHealth({}, ctx), 10000);
+        try {
+          return summarizeForModel(await WorkspaceService.workspaceHealth({}, ctx), 10000);
+        } catch (err) {
+          return { ok: false, error: err?.message || String(err), hint: "工作区巡检执行失败。" };
+        }
+      }),
+    });
+
+    tools.list_todos = tool({
+      description:
+        "列出个人待办清单（memory/todo.md）。返回活跃任务与统计；completed=true 时返回全部（含已完成）。",
+      inputSchema: jsonSchema({
+        type: "object",
+        properties: {
+          completed: {
+            type: "boolean",
+            description: "true 时包含已完成项；默认 false（只返回未完成项）",
+          },
+          limit: {
+            type: "number",
+            description: "最多返回条数（默认 50）",
+          },
+        },
+      }),
+      execute: wrapRead(async function list_todos({ completed, limit } = {}) {
+        try {
+          return summarizeForModel(
+            await WorkspaceService.listTodos({ completed: Boolean(completed), limit }, ctx),
+            12000,
+          );
+        } catch (err) {
+          return { ok: false, error: err?.message || String(err), hint: "读取个人待办失败。" };
+        }
       }),
     });
 
@@ -487,7 +607,7 @@ export async function buildDesktopAiTools(ctx) {
           },
           required: ["content"],
         }),
-        execute: wrapWrite("capture_to_inbox", ({ content, title, source, sourceType, forceInbox, forceAtom }) =>
+        execute: wrapWrite("capture_to_inbox", ({ content, title, source, sourceType, forceInbox, forceAtom, actor, confirmed }) =>
           WorkspaceService.ingestInbox(
             {
               content,
@@ -497,6 +617,8 @@ export async function buildDesktopAiTools(ctx) {
               dest: forceInbox
                 ? { mode: "inbox" }
                 : { mode: "stream", forceAtom: Boolean(forceAtom) },
+              actor: actor || "ai",
+              confirmed,
             },
             ctx,
           )),
@@ -635,6 +757,43 @@ export async function buildDesktopAiTools(ctx) {
           )),
       });
 
+      tools.retire_core_memory = tool({
+        description:
+          "归档「我的情况」中的过期事实：将其从当前活跃段落安全转移至「## 历史记录」，带归档日期标记，不删除原内容。仅在用户明确表示某目标已完成、偏好已过时或不再成立时调用。",
+        inputSchema: jsonSchema({
+          type: "object",
+          properties: {
+            match: strProp("要归档的事实原文关键词或片段（需能唯一或清晰匹配）"),
+            section: strProp("可选：限定所在的活跃段落（如 当前目标 / 进行中的事 / 偏好）"),
+            reason: strProp("可选：归档原因说明"),
+          },
+          required: ["match"],
+        }),
+        execute: wrapWrite("retire_core_memory", ({ match, section, reason, actor, confirmed }) =>
+          WorkspaceService.retireCoreMemory(
+            { match, section, reason, actor: actor || "ai", confirmed },
+            ctx,
+          )),
+      });
+
+      tools.update_core_memory = tool({
+        description:
+          "原位更新「我的情况」中的事实：用新的表述替换旧的事实行（保持原段落结构，自动带日期）。仅在用户明确纠正或更新现有偏好、目标等事实时调用。",
+        inputSchema: jsonSchema({
+          type: "object",
+          properties: {
+            match: strProp("要修正的旧事实片段（需匹配）"),
+            content: strProp("更新后的新事实内容"),
+          },
+          required: ["match", "content"],
+        }),
+        execute: wrapWrite("update_core_memory", ({ match, content, actor, confirmed }) =>
+          WorkspaceService.updateCoreMemory(
+            { match, content, actor: actor || "ai", confirmed },
+            ctx,
+          )),
+      });
+
       tools.reconcile_week = tool({
         description:
           "确定性整理本周动态周期本（合并完成状态、去重）。返回 changes 与候选（我的情况/专题），不自动写核心记忆。",
@@ -645,9 +804,9 @@ export async function buildDesktopAiTools(ctx) {
             relativePath: strProp("可选指定文件；默认当前周期本"),
           },
         }),
-        execute: wrapWrite("reconcile_week", ({ dryRun, relativePath }) =>
+        execute: wrapWrite("reconcile_week", ({ dryRun, relativePath, actor, confirmed }) =>
           WorkspaceService.reconcileStreamPeriod(
-            { dryRun: Boolean(dryRun), apply: !dryRun, relativePath },
+            { dryRun: Boolean(dryRun), apply: !dryRun, relativePath, actor: actor || "ai", confirmed },
             ctx,
           )),
       });
@@ -664,8 +823,8 @@ export async function buildDesktopAiTools(ctx) {
           },
           required: ["targetTopicId"],
         }),
-        execute: wrapWrite("move_to_topic", ({ relativePath, inboxRelativePath, targetTopicId }) =>
-          WorkspaceService.moveToTopic({ relativePath, inboxRelativePath, targetTopicId }, ctx)),
+        execute: wrapWrite("move_to_topic", ({ relativePath, inboxRelativePath, targetTopicId, actor, confirmed }) =>
+          WorkspaceService.moveToTopic({ relativePath, inboxRelativePath, targetTopicId, actor: actor || "ai", confirmed }, ctx)),
       });
 
       tools.publish_to_outputs = tool({
@@ -678,8 +837,8 @@ export async function buildDesktopAiTools(ctx) {
           },
           required: ["relativePath"],
         }),
-        execute: wrapWrite("publish_to_outputs", ({ relativePath }) =>
-          WorkspaceService.publishPath({ relativePath }, ctx)),
+        execute: wrapWrite("publish_to_outputs", ({ relativePath, actor, confirmed }) =>
+          WorkspaceService.publishPath({ relativePath, actor: actor || "ai", confirmed }, ctx)),
       });
 
       tools.delete_path = tool({
@@ -692,8 +851,8 @@ export async function buildDesktopAiTools(ctx) {
           },
           required: ["relativePath"],
         }),
-        execute: wrapWrite("delete_path", async ({ relativePath }) => {
-          const r = await WorkspaceService.deletePath({ relativePath }, ctx);
+        execute: wrapWrite("delete_path", async ({ relativePath, actor, confirmed }) => {
+          const r = await WorkspaceService.deletePath({ relativePath, actor: actor || "ai", confirmed }, ctx);
           const reversible = Boolean(r?.backupPath);
           return {
             ...r,
@@ -724,10 +883,56 @@ export async function buildDesktopAiTools(ctx) {
           },
           required: ["relativePath", "newName"],
         }),
-        execute: wrapWrite("rename_path", async ({ relativePath, newName }) => {
-          const r = await WorkspaceService.renamePath({ relativePath, newName }, ctx);
+        execute: wrapWrite("rename_path", async ({ relativePath, newName, actor, confirmed }) => {
+          const r = await WorkspaceService.renamePath({ relativePath, newName, actor: actor || "ai", confirmed }, ctx);
           return { ...r, operation: "rename-path" };
         }),
+      });
+
+      tools.add_todo = tool({
+        description:
+          "向个人待办清单（memory/todo.md）原子化追加一条或多条任务。支持在任务文本中嵌入截止日期（如「完成架构重构 📅 2026-09-10」）或通过 dueDate 指定。自动去重。",
+        inputSchema: jsonSchema({
+          type: "object",
+          properties: {
+            text: strProp("待办任务文本（单条）"),
+            items: {
+              type: "array",
+              items: { type: "string" },
+              description: "可选：批量追加的多条待办任务文本",
+            },
+            dueDate: strProp("可选：截止日期（YYYY-MM-DD）"),
+          },
+        }),
+        execute: wrapWrite("add_todo", ({ text, items, dueDate, actor, confirmed }) => {
+          const list = Array.isArray(items) && items.length > 0 ? items : (text ? [text] : []);
+          const normalized = list.map((t) => (dueDate && !t.includes("📅") ? `${t} 📅 ${dueDate}` : t));
+          return WorkspaceService.addTodos(
+            { items: normalized, actor: actor || "ai", confirmed },
+            ctx,
+          );
+        }),
+      });
+
+      tools.toggle_todo = tool({
+        description:
+          "切换待办事项的完成状态（已完成与未完成之间切换）。idOrText 可以是待办的文本片段或 id。标记完成时会自动打勾并记录完成时间，并同步到当前动态周期本。",
+        inputSchema: jsonSchema({
+          type: "object",
+          properties: {
+            idOrText: strProp("待办文本片段或待办 ID"),
+            completed: {
+              type: "boolean",
+              description: "可选：显式指定目标状态（true=标记完成，false=取消完成）",
+            },
+          },
+          required: ["idOrText"],
+        }),
+        execute: wrapWrite("toggle_todo", ({ idOrText, completed, actor, confirmed }) =>
+          WorkspaceService.toggleTodo(
+            { idOrText, completed, actor: actor || "ai", confirmed },
+            ctx,
+          )),
       });
     }
 

@@ -5,7 +5,7 @@
  */
 import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, Download, Loader2, Sparkles } from "lucide-react";
+import { RiDownload2Line, RiLink, RiLoader4Line, RiSparklingLine } from "@remixicon/react";
 import { api } from "../../services/api";
 import { useViewStore } from "../../stores/view-store";
 import { useAiStore } from "../../stores/ai-store";
@@ -707,7 +707,7 @@ export function CaptureForm({
             ))}
           </div>
           <div className="flex flex-1 items-center gap-1.5 rounded-[var(--radius-md)] border border-border-subtle-dim bg-input px-2.5 shadow-[var(--shadow-input-inset)] transition-[border-color] focus-within:border-accent-color">
-            <Link size={ICON.xs} className="shrink-0 text-text-quaternary" />
+            <RiLink size={ICON.xs} className="shrink-0 text-text-quaternary" />
             <input
               value={source}
               onChange={(e) => {
@@ -727,9 +727,9 @@ export function CaptureForm({
                   className="flex shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 py-0.5 text-3xs font-medium text-accent-color transition-colors hover:bg-accent-bg-subtle disabled:opacity-50 v4-focus-ring"
                 >
                   {fetching ? (
-                    <Loader2 size={ICON.micro} className="animate-spin" aria-hidden />
+                    <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden />
                   ) : (
-                    <Download size={ICON.micro} aria-hidden />
+                    <RiDownload2Line size={ICON.micro} aria-hidden />
                   )}
                   {fetching
                     ? t(FETCH_STEP_KEYS.find((s) => s.id === fetchStage)?.key ?? "overlays:capture.fetchFetching")
@@ -829,9 +829,9 @@ export function CaptureForm({
                 data-capture-ai-polish
               >
                 {polishing ? (
-                  <Loader2 size={ICON.xs} className="animate-spin" />
+                  <RiLoader4Line size={ICON.xs} className="animate-spin" />
                 ) : (
-                  <Sparkles size={ICON.xs} />
+                  <RiSparklingLine size={ICON.xs} />
                 )}
                 {polishing
                   ? t("overlays:capture.aiPolishing")

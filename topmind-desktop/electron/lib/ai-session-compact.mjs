@@ -88,28 +88,46 @@ export function compactMessagesForModel(messages, opts = {}) {
   // 1) Cap message count: keep head (first user = often the goal) + recent tail
   if (working.length > maxMessages) {
     const head = working.slice(0, 1);
-    // Preserve a short "goal" line from first user message for orientation
-    const goalLine = head[0]?.content?.replace(/\s+/gu, " ").trim().slice(0, 200) || "";
+    const firstMsg = head[0];
+    const goalLine = firstMsg?.content?.replace(/\s+/gu, " ").trim().slice(0, 200) || "";
     const tail = working.slice(-keepRecent);
     const middle = working.slice(1, working.length - keepRecent);
     dropped = middle.length;
     const summary = summarizeMiddle(middle);
-    working = [
-      ...head,
-      {
-        role: "user",
-        content: [
-          goalLine ? `[本会话初始目标] ${goalLine}` : null,
-          `[会话压缩] 更早 ${middle.length} 轮已折叠：`,
-          summary,
-        ].filter(Boolean).join("\n"),
-      },
-      {
-        role: "assistant",
-        content: "已了解初始目标与摘要；以最近对话与工具结果为准继续。",
-      },
-      ...tail,
-    ];
+
+    const summaryBlock = [
+      goalLine ? `[本会话初始目标] ${goalLine}` : null,
+      `[会话压缩] 更早 ${middle.length} 轮已折叠：`,
+      summary,
+    ].filter(Boolean).join("\n");
+
+    // If head[0] is user, merge summaryBlock into it so we never emit two consecutive user messages
+    if (firstMsg?.role === "user") {
+      working = [
+        {
+          role: "user",
+          content: [firstMsg.content, summaryBlock].filter(Boolean).join("\n\n---\n\n"),
+        },
+        {
+          role: "assistant",
+          content: "已了解初始目标与历史摘要；以最近对话与工具结果为准继续。",
+        },
+        ...tail,
+      ];
+    } else {
+      working = [
+        ...head,
+        {
+          role: "user",
+          content: summaryBlock,
+        },
+        {
+          role: "assistant",
+          content: "已了解初始目标与历史摘要；以最近对话与工具结果为准继续。",
+        },
+        ...tail,
+      ];
+    }
     compacted = true;
     note = `compacted ${dropped} older turns`;
   }
@@ -143,8 +161,33 @@ export function compactMessagesForModel(messages, opts = {}) {
     note = note ? `${note}; budget trim` : "budget trim";
   }
 
+  // Guarantee strict role alternation (required by Anthropic, OpenAI, etc.)
+  working = ensureRoleAlternation(working);
+
   const estimatedTokens = working.reduce((n, m) => n + estimateTokens(m.content), 0);
   return { messages: working, compacted, dropped, note, estimatedTokens };
+}
+
+/**
+ * Ensure strict role alternation (user <-> assistant) required by Anthropic, OpenAI, etc.
+ * Consecutive messages of the same role are merged with a clean separator.
+ * @param {CompactMessage[]} msgs
+ * @returns {CompactMessage[]}
+ */
+export function ensureRoleAlternation(msgs) {
+  if (!Array.isArray(msgs) || msgs.length === 0) return [];
+  const result = [];
+  for (const m of msgs) {
+    if (!m || (m.role !== "user" && m.role !== "assistant")) continue;
+    const last = result[result.length - 1];
+    if (last && last.role === m.role) {
+      // Merge consecutive same-role messages
+      last.content = [last.content, m.content].filter(Boolean).join("\n\n---\n\n");
+    } else {
+      result.push({ role: m.role, content: m.content || "" });
+    }
+  }
+  return result;
 }
 
 /**

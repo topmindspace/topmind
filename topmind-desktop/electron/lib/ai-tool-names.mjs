@@ -21,6 +21,7 @@ export const AI_TOOL_NAMES_READ = [
   "list_outputs",
   "fetch_url",
   "workspace_health",
+  "list_todos",
 ];
 
 export const AI_TOOL_NAMES_WRITE = [
@@ -31,9 +32,13 @@ export const AI_TOOL_NAMES_WRITE = [
   "create_topic",
   "append_topic_memory",
   "append_core_memory",
+  "retire_core_memory",
+  "update_core_memory",
   "reconcile_week",
   "move_to_topic",
   "publish_to_outputs",
   "delete_path",
   "rename_path",
+  "add_todo",
+  "toggle_todo",
 ];

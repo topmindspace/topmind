@@ -36,6 +36,7 @@ import {
   runWorkspaceChatTurn,
   resolveChatDurableLocale,
   createInboxNoteInWorkspace,
+  appendStreamEntryToWorkspace,
   acceptPendingWrite,
   listPendingWrites,
   rejectPendingWrite,
@@ -389,6 +390,67 @@ export class KernelService {
       new Notice(`${t("notice_write_failed")}: ${result.error}`);
     }
     return result;
+  }
+
+  /** Append continuation to a stream entry (1:1 with Desktop) */
+  appendStreamEntry(opts: {
+    relativePath: string;
+    content: string;
+    heading?: string;
+    startLine?: number;
+    endLine?: number;
+    anchorText?: string;
+  }): { ok: boolean; path?: string; pending?: boolean; needsConfirm?: boolean; error?: string } {
+    if (!this.isWorkspaceReady()) {
+      new Notice(t("notice_workspace_not_ready"));
+      return { ok: false, error: "workspace-not-ready" };
+    }
+
+    const result = appendStreamEntryToWorkspace(
+      getKernel(),
+      this.getVaultPath(),
+      this.cachedModel?.model.contract,
+      opts,
+    );
+
+    if (result.ok) {
+      if (result.pending || result.needsConfirm) {
+        new Notice(t("notice_write_pending"));
+      } else {
+        new Notice(`${t("notice_written")} → ${result.path}`);
+      }
+    } else {
+      new Notice(`${t("notice_write_failed")}: ${result.error || "unknown"}`);
+    }
+    return result;
+  }
+
+  /** Quick AI polish for composer text (does not write to disk) */
+  async polishText(rawText: string): Promise<string | null> {
+    const text = String(rawText || "").trim();
+    if (!text) return null;
+    if (!hasConfiguredProvider(this.settings.ai)) {
+      new Notice(t("chat_configure_ai"));
+      return null;
+    }
+
+    try {
+      const provider = createAiProvider(this.settings);
+      if (!provider) {
+        new Notice(t("chat_configure_ai"));
+        return null;
+      }
+      const isZh = (this.surfaceUiLocale() || "").toLowerCase().startsWith("zh");
+      const prompt = isZh
+        ? `请润色以下随手记内容，使其表达更通顺、专业，同时保留原意与信息量。只输出润色后的正文，不要包含任何前置或后置说明解释、不要包含标签符号：\n\n${text}`
+        : `Please polish the following note to make it smoother and more professional while preserving its original meaning and details. Output only the polished replacement text without any preamble or explanation:\n\n${text}`;
+      const res = await provider.generate(prompt);
+      const cleaned = String(res || "").trim().replace(/^```[a-z]*\s*/i, "").replace(/\s*```$/i, "").trim();
+      return cleaned || null;
+    } catch (e) {
+      new Notice(`AI 润色失败: ${e instanceof Error ? e.message : String(e)}`);
+      return null;
+    }
   }
 
   createInboxNote(): { ok: boolean; path?: string; error?: string } {

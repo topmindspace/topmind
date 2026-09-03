@@ -19,13 +19,48 @@ after(async () => {
   await new Promise((r) => setTimeout(r, 250));
 });
 
+let _loopbackSupported = null;
+async function canConnectLoopback() {
+  if (_loopbackSupported !== null) return _loopbackSupported;
+  const net = await import("node:net");
+  return new Promise((resolve) => {
+    const s = net.createServer();
+    s.listen(0, "127.0.0.1", () => {
+      const port = s.address().port;
+      const c = net.connect(port, "127.0.0.1");
+      c.on("connect", () => {
+        c.end();
+        s.close(() => {
+          _loopbackSupported = true;
+          resolve(true);
+        });
+      });
+      c.on("error", () => {
+        c.destroy();
+        s.close(() => {
+          _loopbackSupported = false;
+          resolve(false);
+        });
+      });
+    });
+    s.on("error", () => {
+      _loopbackSupported = false;
+      resolve(false);
+    });
+  });
+}
+
 test("generateClipToken returns non-empty base64url-ish string", () => {
   const t = generateClipToken();
   assert.ok(t.length >= 16);
   assert.doesNotMatch(t, /\s/u);
 });
 
-test("clip bridge rejects unauthorized and accepts bearer token", async () => {
+test("clip bridge rejects unauthorized and accepts bearer token", async (t) => {
+  if (!(await canConnectLoopback())) {
+    t.skip("Sandbox environment blocks loopback TCP socket connections (EPERM)");
+    return;
+  }
   await stopClipBridge();
   const token = generateClipToken();
   const port = 19890;
@@ -84,7 +119,11 @@ test("clip bridge rejects unauthorized and accepts bearer token", async () => {
   }
 });
 
-test("clip bridge destinations requires auth and returns shape", async () => {
+test("clip bridge destinations requires auth and returns shape", async (t) => {
+  if (!(await canConnectLoopback())) {
+    t.skip("Sandbox environment blocks loopback TCP socket connections (EPERM)");
+    return;
+  }
   await stopClipBridge();
   const token = generateClipToken();
   const port = 19895;
@@ -117,7 +156,11 @@ topics: [{ id: "10-动态/2026-主题", name: "2026-主题", category: "10-动�
   }
 });
 
-test("clip bridge passes dest and applies article template after convert", async () => {
+test("clip bridge passes dest and applies article template after convert", async (t) => {
+  if (!(await canConnectLoopback())) {
+    t.skip("Sandbox environment blocks loopback TCP socket connections (EPERM)");
+    return;
+  }
   await stopClipBridge();
   const token = generateClipToken();
   const port = 19896;
@@ -170,7 +213,11 @@ path: "10-动态/2026-主题/note.md",
   }
 });
 
-test("clip bridge converts content_html via shared markdown pipeline", async () => {
+test("clip bridge converts content_html via shared markdown pipeline", async (t) => {
+  if (!(await canConnectLoopback())) {
+    t.skip("Sandbox environment blocks loopback TCP socket connections (EPERM)");
+    return;
+  }
   await stopClipBridge();
   const token = generateClipToken();
   const port = 19894;
@@ -220,7 +267,11 @@ test("clip bridge converts content_html via shared markdown pipeline", async () 
   }
 });
 
-test("clip bridge returns 503 without workspace", async () => {
+test("clip bridge returns 503 without workspace", async (t) => {
+  if (!(await canConnectLoopback())) {
+    t.skip("Sandbox environment blocks loopback TCP socket connections (EPERM)");
+    return;
+  }
   await stopClipBridge();
   const token = generateClipToken();
   const port = 19891;

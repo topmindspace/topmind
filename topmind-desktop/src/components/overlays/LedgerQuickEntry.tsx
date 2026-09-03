@@ -6,7 +6,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Wallet, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { RiArrowDownSLine, RiArrowUpSLine, RiLoader4Line, RiWallet3Line } from "@remixicon/react";
 import { api } from "../../services/api";
 import { getCachedSettings, setCachedSettings } from "../../lib/settings-cache";
 import { emitLocal, onLocal } from "../../plugins/host";
@@ -171,9 +171,9 @@ export function LedgerQuickEntry({
             )}
             aria-expanded={open}
           >
-            <Wallet size={ICON.nano} aria-hidden />
+            <RiWallet3Line size={ICON.micro} aria-hidden />
             {looksLedger ? t("quickDetect") : t("quickEntry")}
-            <ChevronDown size={ICON.nano} aria-hidden />
+            <RiArrowDownSLine size={ICON.nano} aria-hidden />
           </button>
           {looksLedger ? (
             <span className="text-3xs text-text-quaternary">{t("quickDetectHint")}</span>
@@ -187,7 +187,7 @@ export function LedgerQuickEntry({
         >
           <div className="mb-1.5 flex items-center justify-between">
             <span className="inline-flex items-center gap-1 text-3xs font-semibold tracking-tight text-text-secondary">
-              <Wallet size={ICON.nano} className="text-accent-color" aria-hidden />
+              <RiWallet3Line size={ICON.micro} className="text-accent-color" aria-hidden />
               {t("quickEntry")}
             </span>
             <button
@@ -199,7 +199,7 @@ export function LedgerQuickEntry({
               className="text-text-quaternary transition-colors hover:text-text-secondary"
               aria-label={t("close")}
             >
-              <ChevronUp size={ICON.nano} />
+              <RiArrowUpSLine size={ICON.nano} />
             </button>
           </div>
 
@@ -294,7 +294,7 @@ export function LedgerQuickEntry({
               disabled={busy || !amount.trim()}
               className="inline-flex h-7 shrink-0 items-center gap-1 rounded-[var(--radius-md)] bg-primary px-2.5 text-3xs font-medium text-primary-foreground shadow-[var(--shadow-button)] transition-[background-color,opacity] duration-[var(--duration-fast)] hover:bg-primary-hover active:bg-primary-active disabled:opacity-50"
             >
-              {busy ? <Loader2 size={ICON.nano} className="animate-spin" aria-hidden /> : null}
+              {busy ? <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden /> : null}
               {t("nlSubmit")}
             </button>
           </div>

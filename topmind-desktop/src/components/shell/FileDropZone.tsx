@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Download, Loader2 } from "lucide-react";
+import { RiDownload2Line, RiLoader4Line } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { ICON } from "../../lib/icons";
 import { submitIngestBatch } from "../../lib/ingest-batch";
@@ -115,7 +115,7 @@ export function FileDropZone({ children }: { children: React.ReactNode }) {
       {dragging ? (
         <div className="pointer-events-none absolute inset-0 z-floating flex items-center justify-center bg-accent-bg-subtle/90 animate-fade-in">
           <div className="flex flex-col items-center gap-2.5 rounded-[var(--radius-xl)] border-2 border-dashed border-accent-color bg-surface px-10 py-8 text-accent-color shadow-[var(--shadow-overlay)]">
-            <Download size={ICON.xl} />
+            <RiDownload2Line size={ICON.xl} />
             <div className="text-sm font-semibold tracking-tight">{t("fileDropZone.releaseToImport")}</div>
             <div className="text-3xs text-text-tertiary">
               {t("fileDropZone.dropHint")}
@@ -129,7 +129,7 @@ export function FileDropZone({ children }: { children: React.ReactNode }) {
         <div className="absolute bottom-10 left-1/2 z-floating flex max-w-[min(420px,90vw)] -translate-x-1/2 items-center gap-2 rounded-[var(--radius-lg)] border border-border-subtle-dim bg-surface px-3.5 py-2 text-3xs font-medium text-text-secondary shadow-[var(--shadow-float)] animate-toast-in">
           {busy ? (
             <span className="flex items-center gap-1.5">
-              <Loader2 size={ICON.micro} className="animate-spin text-accent-color" /> {t("fileDropZone.preparing")}
+              <RiLoader4Line size={ICON.micro} className="animate-spin text-accent-color" /> {t("fileDropZone.preparing")}
             </span>
           ) : (
             toast

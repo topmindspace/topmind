@@ -140,6 +140,26 @@ export async function kernelDurableDelete(p, ctx, opts = {}) {
   });
 }
 
+/**
+ * Durable archive (topic/dir move into 99-归档) via Kernel writeback-engine.
+ * Single write-gate: protection + confirm + copy-verify + ISO stamp + receipt
+ * all come from the Kernel — surfaces must not re-implement their own trash.
+ */
+export async function kernelDurableArchive(p, ctx, opts = {}) {
+  const kernel = await loadKernelApi();
+  const workspaceRoot = workspaceRootOf(ctx.workspaceRoot);
+  const relativePath = String(p.relativePath || "").replace(/\\/g, "/");
+  const targetPath = path.join(workspaceRoot, relativePath);
+  return kernel.executeArchive({
+    targetPath,
+    workspaceRoot,
+    actor: opts.actor || "user",
+    confirmed: opts.confirmed === true || opts.actor === "user" || !opts.actor,
+    role: opts.role,
+    permanent: opts.permanent === true,
+  });
+}
+
 export async function kernelLoadContract(workspaceRoot) {
   const kernel = await loadKernelApi();
   return kernel.loadContract(workspaceRootOf(workspaceRoot));

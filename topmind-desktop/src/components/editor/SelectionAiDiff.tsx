@@ -4,7 +4,7 @@
  * actions. Preview text is editable so users can tweak before applying.
  * Pure presentation; request lifecycle lives in useSelectionAi.
  */
-import { Columns2, GripHorizontal, Copy, Check } from "lucide-react";
+import { RiCheckLine, RiDraggable, RiFileCopyLine, RiLayoutColumnLine } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/cn";
 import { ICON } from "../../lib/icons";
@@ -76,7 +76,7 @@ export function SelectionAiDiff({
                 aria-pressed={showDiff}
                 aria-label={showDiff ? t("selectionAi.diffAriaOn") : t("selectionAi.diffAriaOff")}
               >
-                <Columns2 size={ICON.micro} aria-hidden /> {t("selectionAi.diffButton")}
+                <RiLayoutColumnLine size={ICON.micro} aria-hidden /> {t("selectionAi.diffButton")}
               </button>
             </Tooltip>
           ) : null}
@@ -92,13 +92,13 @@ export function SelectionAiDiff({
                 onClick={onCopy}
                 aria-label={t("selectionAi.copyPreview")}
               >
-                {copied ? <Check size={ICON.micro} /> : <Copy size={ICON.micro} />}
+                {copied ? <RiCheckLine size={ICON.micro} /> : <RiFileCopyLine size={ICON.micro} />}
               </button>
             </Tooltip>
           ) : null}
           <Tooltip content={t("selectionAi.resizePreview")}>
             <span className="flex h-6 items-center px-1 text-text-quaternary">
-              <GripHorizontal size={ICON.micro} aria-hidden />
+              <RiDraggable size={ICON.micro} aria-hidden />
             </span>
           </Tooltip>
         </div>

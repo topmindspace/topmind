@@ -1,6 +1,13 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, FileText, CornerDownLeft, Loader2, Hash, Clock } from "lucide-react";
+import {
+  RiCornerDownLeftLine,
+  RiFileTextLine,
+  RiHashtag,
+  RiLoader4Line,
+  RiSearchLine,
+  RiTimeLine,
+} from "@remixicon/react";
 import { api } from "../../services/api";
 import { useViewStore } from "../../stores/view-store";
 import { cn } from "../../lib/cn";
@@ -216,7 +223,7 @@ export function GlobalSearch() {
       aria-label={t("overlays:search.ariaLabel")}
     >
       <div className="v4-palette-header">
-        <Search size={ICON.sm} className="shrink-0 text-text-tertiary" aria-hidden />
+        <RiSearchLine size={ICON.sm} className="shrink-0 text-text-tertiary" aria-hidden />
         <input
           ref={inputRef}
           value={query}
@@ -232,7 +239,7 @@ export function GlobalSearch() {
           className="v4-palette-input"
         />
         {loading ? (
-          <Loader2 size={ICON.xs} className="animate-spin text-accent-color/70" aria-label={t("overlays:search.loadingAria")} />
+          <RiLoader4Line size={ICON.xs} className="animate-spin text-accent-color/70" aria-label={t("overlays:search.loadingAria")} />
         ) : null}
         <kbd className="v4-kbd v4-kbd-sm" aria-hidden>
           ESC
@@ -248,7 +255,7 @@ export function GlobalSearch() {
         {query.trim() && !loading && results.length === 0 ? (
           <li className="flex flex-col items-center gap-2.5 px-3 py-10 text-center" role="presentation">
             <div className="v4-icon-chip flex h-10 w-10 rounded-full text-text-quaternary" aria-hidden>
-              <Search size={ICON.sm} />
+              <RiSearchLine size={ICON.sm} />
             </div>
             <div className="text-sm font-medium tracking-tight text-text-secondary">{t("overlays:search.noResultsTitle")}</div>
             <div className="max-w-[260px] text-3xs leading-relaxed text-text-quaternary">
@@ -260,7 +267,7 @@ export function GlobalSearch() {
           recent.length > 0 ? (
             <>
               <li className="flex items-center gap-1.5 px-2 py-1 text-3xs font-medium uppercase tracking-wide text-text-quaternary" role="presentation">
-                <Clock size={ICON.micro} aria-hidden />
+                <RiTimeLine size={ICON.micro} aria-hidden />
                 <span className="flex-1">{t("overlays:search.recentTitle")}</span>
                 <button
                   type="button"
@@ -288,7 +295,7 @@ export function GlobalSearch() {
                     i !== activeIdx && "text-text-primary",
                   )}
                 >
-                  <Search
+                  <RiSearchLine
                     size={ICON.xs}
                     className={cn(
                       "shrink-0",
@@ -297,7 +304,7 @@ export function GlobalSearch() {
                   />
                   <span className="min-w-0 flex-1 truncate font-medium">{r}</span>
                   {i === activeIdx ? (
-                    <CornerDownLeft size={ICON.micro} className="shrink-0 text-text-tertiary" />
+                    <RiCornerDownLeftLine size={ICON.micro} className="shrink-0 text-text-tertiary" />
                   ) : null}
                 </li>
               ))}
@@ -305,7 +312,7 @@ export function GlobalSearch() {
           ) : (
             <li className="flex flex-col items-center gap-2.5 px-3 py-10 text-center">
               <div className="v4-icon-chip flex h-10 w-10 rounded-full text-text-quaternary">
-                <Search size={ICON.sm} />
+                <RiSearchLine size={ICON.sm} />
               </div>
               <div className="text-sm font-medium tracking-tight text-text-secondary">{t("overlays:search.emptyTitle")}</div>
               <div className="max-w-[280px] text-3xs leading-relaxed text-text-quaternary">
@@ -370,7 +377,7 @@ export function GlobalSearch() {
                   onClick={() => handleOpen(r)}
                   className={cn("v4-palette-row items-start py-2.5", i !== activeIdx && "text-text-primary")}
                 >
-                  <FileText
+                  <RiFileTextLine
                     size={ICON.xs}
                     className={cn(
                       "mt-0.5 shrink-0",
@@ -392,11 +399,11 @@ export function GlobalSearch() {
                   </div>
                   {r.nameMatch ? (
                     <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-accent-bg-subtle px-1.5 py-0.5 text-3xs font-medium text-accent-color">
-                      <Hash size={ICON.nano} aria-hidden /> {t("overlays:search.nameMatch")}
+                      <RiHashtag size={ICON.micro} aria-hidden /> {t("overlays:search.nameMatch")}
                     </span>
                   ) : null}
                   {i === activeIdx ? (
-                    <CornerDownLeft size={ICON.xs} className="mt-0.5 shrink-0 text-text-tertiary" />
+                    <RiCornerDownLeftLine size={ICON.xs} className="mt-0.5 shrink-0 text-text-tertiary" />
                   ) : null}
                 </li>
               ))}

@@ -356,9 +356,8 @@ UTR 与 Desktop 共用同一三平面模型：
 | `memory/profile.md` | 语义 | global 层核心记忆 |
 | `memory/periodic/**` | 语义 | periodic 层反思（可重建；按年分组） |
 | `memory/topics/*` | 语义 | topics 层持续演变（可选） |
-| `.topmind/index/**` | 系统 | 可选语义索引（可重建） |
 | `.topmind/loop/**` | 系统 | loop 巡检进度 |
-| `.topmind/logs/**` | 系统 | 运行日志 |
+| `.topmind/*.json` | 系统 | 运行时状态（ai-ops · suggest-fingerprints · workspace-map，原子覆盖写） |
 
 `list-safety-receipts` 扫描 `99-归档/backups/`、`99-归档/backups/trash/`（Kernel 删除落点）、legacy `99-归档/trash/`、归档专题目录与 `88-输出/` 修订版；`restore-safety-receipt` 按同一路径形状恢复（不覆盖已有文件，写 `-restored-` 副本）。
 

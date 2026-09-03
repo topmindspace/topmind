@@ -963,3 +963,75 @@ export async function runWorkspaceChatTurn(
   }
   return { body, reasoning: split.reasoning, edits, steps: conversation.length };
 }
+
+export interface WorkspaceAppendStreamOpts {
+  relativePath: string;
+  content: string;
+  heading?: string;
+  startLine?: number;
+  endLine?: number;
+  anchorText?: string;
+  writebackMode?: string;
+}
+
+/**
+ * Append a comment-like continuation under a stream entry in Obsidian (1:1 with Desktop).
+ */
+export function appendStreamEntryToWorkspace(
+  kernel: KernelApi,
+  workspaceRoot: string,
+  contract: Record<string, unknown> | undefined,
+  opts: WorkspaceAppendStreamOpts,
+): { ok: boolean; path?: string; pending?: boolean; needsConfirm?: boolean; error?: string } {
+  const rel = String(opts.relativePath || "").replace(/\\/g, "/");
+  const text = String(opts.content || "").trim();
+  if (!text) return { ok: false, error: "Content cannot be empty" };
+
+  const targetPath = path.join(workspaceRoot, rel);
+  if (!fs.existsSync(targetPath)) {
+    return { ok: false, error: `File not found: ${rel}` };
+  }
+
+  const raw = fs.readFileSync(targetPath, "utf-8");
+  const appendFn =
+    typeof kernel.appendToStreamEntryDetailed === "function"
+      ? kernel.appendToStreamEntryDetailed.bind(kernel)
+      : (body: string, o: unknown) => ({
+          body: typeof kernel.appendToStreamEntry === "function" ? kernel.appendToStreamEntry(body, o) : body,
+          location: { appendedAt: "end" },
+        });
+
+  const { body: next } = appendFn(raw, {
+    heading: opts.heading ? String(opts.heading) : undefined,
+    content: text,
+    date: new Date(),
+    startLine: typeof opts.startLine === "number" ? opts.startLine : undefined,
+    endLine: typeof opts.endLine === "number" ? opts.endLine : undefined,
+    anchorText: typeof opts.anchorText === "string" && opts.anchorText.trim() ? String(opts.anchorText) : undefined,
+  });
+
+  if (next === raw) {
+    return { ok: false, error: "No changes produced by append" };
+  }
+
+  const result = kernel.executeWrite({
+    targetPath,
+    content: next,
+    workspaceRoot,
+    contract,
+    operation: "update",
+    actor: "user",
+    confirmed: true,
+    skipShadow: true,
+    writebackModeOverride: opts.writebackMode === "confirm" ? "confirm" : "auto",
+  });
+
+  if (result.pending || result.needsConfirm) {
+    return { ok: true, path: rel, pending: true, needsConfirm: true };
+  }
+  if (!result.ok) {
+    return { ok: false, error: String(result.reason || "Write failed") };
+  }
+  return { ok: true, path: rel };
+}
+

@@ -1,5 +1,5 @@
 import { lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Columns2, Compass, Radio, X } from "lucide-react";
+import { RiBroadcastLine, RiCloseLine, RiCompass3Line, RiLayoutColumnLine } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { useRegistry } from "../../plugins/registry";
 import { useViewStore } from "../../stores/view-store";
@@ -82,13 +82,13 @@ export function EditorArea() {
         {focusMode ? null : <EditorRecentBar />}
         <div className="flex flex-1 items-center justify-center p-6">
           <EmptyState
-            icon={<Compass size={ICON.md} />}
+            icon={<RiCompass3Line size={ICON.md} />}
             title={viewSlots.length === 0 ? t("editorArea.loadingWorkspace") : t("editorArea.noViewMatch")}
             hint={viewSlots.length === 0 ? undefined : t("editorArea.noViewMatchHint")}
             action={
               <Tooltip content={t("editorArea.backToStream")}>
                 <Button variant="outline" size="sm" onClick={() => select({ kind: "stream" })}>
-                  <Radio size={ICON.xs} /> {t("editorArea.goStream")}
+                  <RiBroadcastLine size={ICON.xs} /> {t("editorArea.goStream")}
                 </Button>
               </Tooltip>
             }
@@ -119,7 +119,7 @@ export function EditorArea() {
             style={{ flex: `${1 - splitPrimaryRatio} 1 0%` }}
           >
             <div className="v4-split-chrome flex h-7 shrink-0 items-center gap-1 border-b border-border-subtle-dim bg-app-chrome/60 px-2">
-              <Columns2 size={ICON.micro} className="shrink-0 text-accent-color" aria-hidden />
+              <RiLayoutColumnLine size={ICON.micro} className="shrink-0 text-accent-color" aria-hidden />
               <span className="min-w-0 flex-1 truncate font-mono text-3xs text-text-tertiary" title={splitSecondaryPath!}>
                 {splitSecondaryPath!.split("/").pop()}
               </span>
@@ -130,7 +130,7 @@ export function EditorArea() {
                   onClick={() => swapSplitPanes()}
                   aria-label={t("editorArea.swapPanesAriaLabel")}
                 >
-                  <Columns2 size={ICON.micro} />
+                  <RiLayoutColumnLine size={ICON.micro} />
                 </button>
               </Tooltip>
               <Tooltip content={t("editorArea.closeSplit")}>
@@ -140,7 +140,7 @@ export function EditorArea() {
                   onClick={() => clearSplit()}
                   aria-label={t("editorArea.closeSplitAriaLabel")}
                 >
-                  <X size={ICON.micro} />
+                  <RiCloseLine size={ICON.micro} />
                 </button>
               </Tooltip>
             </div>

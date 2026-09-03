@@ -2,11 +2,19 @@
  * Standalone capture surface for floating quick-note window (?surface=capture / #surface=capture).
  * Minimal chrome — no full Shell. Must always paint a solid, readable UI (never blank).
  */
-import { useEffect, useState, type CSSProperties } from "react";
-import { AlertCircle, Loader2, FolderOpen, Zap } from "lucide-react";
+import { useEffect, useState, lazy, Suspense, type CSSProperties } from "react";
+import {
+  RiErrorWarningLine,
+  RiFlashlightFill,
+  RiFolderOpenLine,
+  RiLoader4Line,
+} from "@remixicon/react";
 import { useTranslation } from "react-i18next";
-import { QuickCapture } from "../overlays/QuickCapture";
 import { IngestStagingSheet } from "../overlays/IngestStagingSheet";
+
+const QuickCapture = lazy(() =>
+  import("../overlays/QuickCapture").then((m) => ({ default: m.QuickCapture })),
+);
 import { api } from "../../services/api";
 import { applyTheme } from "../../lib/theme";
 import { applyLocale } from "../../locales";
@@ -92,16 +100,16 @@ export function CaptureSurface() {
         <div className={shellClass} style={shellStyle}>
           <div className="flex flex-1 flex-col items-center justify-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-bg-subtle text-accent-color">
-              <Zap size={ICON.md} />
+              <RiFlashlightFill size={ICON.md} />
             </div>
-            <Loader2 size={ICON.sm} className="animate-spin text-text-quaternary" />
+            <RiLoader4Line size={ICON.sm} className="animate-spin text-text-quaternary" />
             <div className="text-3xs text-text-tertiary">{t("captureSurface.preparing")}</div>
           </div>
         </div>
       ) : boot === "error" ? (
         <div className={shellClass} style={shellStyle}>
           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6">
-            <AlertCircle size={ICON.lg} className="text-error" />
+            <RiErrorWarningLine size={ICON.lg} className="text-error" />
             <div className="text-center text-xs font-medium">{t("captureSurface.launchFailed")}</div>
             <div className="max-w-sm text-center text-3xs text-text-tertiary">{message}</div>
             <Button size="sm" variant="outline" onClick={() => void api.sys.closeQuickCapture()}>
@@ -112,7 +120,7 @@ export function CaptureSurface() {
       ) : boot === "no-ws" ? (
         <div className={shellClass} style={shellStyle}>
           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6">
-            <AlertCircle size={ICON.lg} className="text-warning" />
+            <RiErrorWarningLine size={ICON.lg} className="text-warning" />
             <div className="text-center text-xs font-medium text-text-primary">{t("captureSurface.needWorkspace")}</div>
             <div className="max-w-sm text-center text-3xs leading-relaxed text-text-secondary">
               {message}
@@ -125,7 +133,7 @@ export function CaptureSurface() {
                   void api.sys.closeQuickCapture();
                 }}
               >
-                <FolderOpen size={ICON.sm} /> {t("captureSurface.openMainWindow")}
+                <RiFolderOpenLine size={ICON.sm} /> {t("captureSurface.openMainWindow")}
               </Button>
               <Button size="sm" variant="ghost" onClick={() => void api.sys.closeQuickCapture()}>
                 {t("captureSurface.close")}
@@ -140,7 +148,15 @@ export function CaptureSurface() {
               {message}
             </div>
           ) : null}
-          <QuickCapture variant="float" />
+          <Suspense
+            fallback={
+              <div className="flex h-64 items-center justify-center">
+                <RiLoader4Line size={ICON.md} className="animate-spin text-accent-color" />
+              </div>
+            }
+          >
+            <QuickCapture variant="float" />
+          </Suspense>
           {/* Same window as float capture — zustand staging is per-renderer */}
           <IngestStagingSheet />
         </div>

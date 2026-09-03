@@ -77,6 +77,11 @@ test("system prompt lists the shipped write/read names and honest delete policy"
 test("name list source stays the single advertised Desktop catalog", () => {
   assert.match(namesSrc, /export const AI_TOOL_NAMES_READ/);
   assert.match(namesSrc, /export const AI_TOOL_NAMES_WRITE/);
-  assert.equal(AI_TOOL_NAMES_READ.length, 14);
-  assert.equal(AI_TOOL_NAMES_WRITE.length, 12);
+  assert.equal(AI_TOOL_NAMES_READ.length, 15);
+  assert.equal(AI_TOOL_NAMES_WRITE.length, 16);
+  assert.ok(AI_TOOL_NAMES_READ.includes("list_todos"));
+  assert.ok(AI_TOOL_NAMES_WRITE.includes("retire_core_memory"));
+  assert.ok(AI_TOOL_NAMES_WRITE.includes("update_core_memory"));
+  assert.ok(AI_TOOL_NAMES_WRITE.includes("add_todo"));
+  assert.ok(AI_TOOL_NAMES_WRITE.includes("toggle_todo"));
 });

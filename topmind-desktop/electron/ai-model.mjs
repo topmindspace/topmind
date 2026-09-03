@@ -21,9 +21,15 @@ export function resolveModel(s, req) {
     { source: "minimax", k: m.minimaxKey, mk: () => createOpenAICompatible({ name: "minimax", apiKey: m.minimaxKey, baseURL: "https://api.minimax.chat/v1" }), d: "MiniMax-M2.5" },
     { source: "xai", k: m.xaiKey, mk: () => createOpenAICompatible({ name: "xai", apiKey: m.xaiKey, baseURL: "https://api.x.ai/v1" }), d: "grok-3-mini" },
   ];
-  // Ollama — local endpoint, no key required (uses placeholder "ollama")
+  // Ollama — local endpoint. Only consider ready when user configured ollamaBaseUrl or preferred ollama.
+  const ollamaConfigured = Boolean(m.ollamaBaseUrl || pref === "ollama");
   const ollamaUrl = m.ollamaBaseUrl || "http://127.0.0.1:11434/v1";
-  providers.push({ source: "ollama", k: 1, mk: () => createOpenAICompatible({ name: "ollama", apiKey: "ollama", baseURL: ollamaUrl }), d: "qwen2.5:7b" });
+  providers.push({
+    source: "ollama",
+    k: ollamaConfigured ? 1 : 0,
+    mk: () => createOpenAICompatible({ name: "ollama", apiKey: "ollama", baseURL: ollamaUrl }),
+    d: "qwen2.5:7b",
+  });
   if (m.customBaseUrl && m.customKey)
     providers.push({ source: "custom", k: 1, mk: () => createOpenAICompatible({ name: "custom", apiKey: m.customKey, baseURL: m.customBaseUrl }), d: "default" });
 
@@ -65,14 +71,16 @@ export function resolveModel(s, req) {
     if (!p.k) continue;
     try {
       const provider = p.mk();
-      // Explicit per-call model wins. Otherwise the configured defaultModel
-      // applies only to its own (preferred) provider, so a model id is never
-      // sent to a provider it doesn't belong to; every other provider uses its
-      // own default.
+      // Explicit per-call model wins when it belongs to this provider or is bare.
+      // If reqProvider belonged to a different unavailable provider, use this provider's default.
       let modelId;
-      if (reqModelId) modelId = reqModelId;
-      else if (defaultModel && pref && p.source === pref) modelId = defaultModel;
-      else modelId = p.d;
+      if (reqModelId && (!reqProvider || reqProvider === p.source)) {
+        modelId = reqModelId;
+      } else if (defaultModel && pref && p.source === pref) {
+        modelId = defaultModel;
+      } else {
+        modelId = p.d;
+      }
       return { model: provider(modelId), modelId };
     } catch {}
   }

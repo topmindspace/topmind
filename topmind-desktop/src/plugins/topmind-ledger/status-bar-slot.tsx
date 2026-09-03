@@ -1,7 +1,7 @@
 /**
  * StatusBar open control — visible whenever the optional 记账 plugin is enabled.
  */
-import { Wallet } from "lucide-react";
+import { RiWallet3Line } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import type { PluginContext, StatusBarSlot } from "../types";
 import { useViewStore } from "../../stores/view-store";
@@ -32,7 +32,7 @@ function LedgerStatusBar() {
         onClick={() => openOverlay(PLUGIN_APP_KIND, { pluginId: LEDGER_PLUGIN_ID })}
         className="flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary v4-focus-ring"
       >
-        <Wallet size={ICON.micro} aria-hidden />
+        <RiWallet3Line size={ICON.micro} aria-hidden />
         <span className="hidden text-3xs sm:inline">{label}</span>
       </button>
     </Tooltip>

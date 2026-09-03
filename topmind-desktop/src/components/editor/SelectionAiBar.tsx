@@ -14,7 +14,16 @@
  * diff preview, and error blocks live in SelectionAi{Toolbar,Diff,Error}.
  */
 import type { Editor } from "@tiptap/react";
-import { Loader2, Sparkles, X, GripHorizontal, Zap, ZapOff, Copy, Check } from "lucide-react";
+import {
+  RiCheckLine,
+  RiCloseLine,
+  RiDraggable,
+  RiFileCopyLine,
+  RiFlashlightFill,
+  RiFlashlightLine,
+  RiLoader4Line,
+  RiSparklingLine,
+} from "@remixicon/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useViewStore } from "../../stores/view-store";
 import { cn } from "../../lib/cn";
@@ -178,13 +187,13 @@ export function SelectionAiBar({
             aria-label={t("selectionAi.dragHint")}
             role="button"
           >
-            <GripHorizontal size={ICON.micro} />
+            <RiDraggable size={ICON.micro} />
           </span>
           <span className="flex h-6 w-6 items-center justify-center text-accent-color" aria-hidden>
             {busy ? (
-              <Loader2 size={ICON.xs} className="animate-spin" />
+              <RiLoader4Line size={ICON.xs} className="animate-spin" />
             ) : (
-              <Sparkles size={ICON.xs} />
+              <RiSparklingLine size={ICON.xs} />
             )}
           </span>
           <div className="min-w-0 flex-1">
@@ -227,7 +236,7 @@ export function SelectionAiBar({
               aria-pressed={inlineAiAutoPopup}
               aria-label={inlineAiAutoPopup ? t("selectionAi.autoPopupOnTip") : t("selectionAi.autoPopupOffTip")}
             >
-              {inlineAiAutoPopup ? <Zap size={ICON.xs} /> : <ZapOff size={ICON.xs} />}
+              {inlineAiAutoPopup ? <RiFlashlightFill size={ICON.xs} /> : <RiFlashlightLine size={ICON.xs} />}
             </button>
           </Tooltip>
           {busy ? (
@@ -244,7 +253,7 @@ export function SelectionAiBar({
               clearUi();
             }}
           >
-            <X size={ICON.xs} />
+            <RiCloseLine size={ICON.xs} />
           </button>
         </div>
 
@@ -321,7 +330,7 @@ export function SelectionAiBar({
             aria-live="polite"
           >
             <div className="flex items-center gap-2">
-              <Loader2 size={ICON.xs} className="animate-spin shrink-0" />
+              <RiLoader4Line size={ICON.xs} className="animate-spin shrink-0" />
               <span className="min-w-0 flex-1">
                 {statusHint || t("selectionAi.statusHintRequestModel")} {t("selectionAi.statusHintCancelOrEsc")}
               </span>

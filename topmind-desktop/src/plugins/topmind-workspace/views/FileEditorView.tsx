@@ -16,7 +16,18 @@ import CharacterCount from "@tiptap/extension-character-count";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import { Markdown } from "tiptap-markdown";
-import { ChevronDown, ChevronUp, Eye, FolderInput, Loader2, RotateCcw, Search, X } from "lucide-react";
+import {
+  RiArrowDownSLine,
+  RiArrowGoBackLine,
+  RiArrowUpSLine,
+  RiCloseLine,
+  RiEyeLine,
+  RiFolderReceivedLine,
+  RiLoader4Line,
+  RiNodeTree,
+  RiSearchLine,
+} from "@remixicon/react";
+import { EditorOutlinePanel } from "../../../components/editor/EditorOutlinePanel";
 import { api } from "../../../services/api";
 import { useAiStore } from "../../../stores/ai-store";
 import { useViewStore } from "../../../stores/view-store";
@@ -105,11 +116,13 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
   /** Bumped by the error retry button — re-runs the load effect. */
   const [reloadTick, setReloadTick] = useState(0);
   const [wordCount, setWordCount] = useState(0);
-  const [charCount, setCharCount] = useState(0);
+  const wordCountTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>(readOnly ? "preview" : "edit");
   /** Only show X toolbar when connector plugin is enabled in settings */
   const xPublishEnabled = Boolean(getCachedSettings()?.x?.enabled);
   const [showMeta, setShowMeta] = useState(false);
+  /** Document outline drawer toggle (Jakob's Law for long-form Markdown navigation) */
+  const [showOutline, setShowOutline] = useState(false);
   /** Format tools expanded by default — collapse with chevron when space is tight */
   const [showFormat, setShowFormat] = useState(true);
   /** Toolbar compact mode — hides text labels when editor area is narrow */
@@ -249,41 +262,42 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
     },
     onUpdate: () => {
       if (readOnly) return;
-      // Compare serialized markdown with last known state to avoid false dirty
-      // (formatting toggles, undo/redo to same state, etc.)
-      if (editor) {
-        try {
-          const currentBody = getEditorMarkdown(editor, { noteRelativePath: pathRef.current });
-          if (currentBody === lastSerializedBodyRef.current) {
-            // Content unchanged — don't mark dirty, clear any pending save timer
-            if (saveStateRef.current === "dirty") setSaveState("clean");
-            if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
-            setCharCount(editor.storage.characterCount.characters());
-            setWordCount(editor.storage.characterCount.words());
-            return;
-          }
-        } catch {
-          // Serialization failed — fall through to dirty
-        }
+      // Mark dirty without redundant React state thrash if already dirty
+      if (saveStateRef.current !== "dirty") {
+        saveStateRef.current = "dirty";
+        setSaveState("dirty");
       }
-      setSaveState("dirty");
       if (saveTimer.current) clearTimeout(saveTimer.current);
-      // doSave is stable via ref path; schedule by path at fire time
+      // doSave is stable via ref path; schedule by path at fire time.
+      // Markdown serialization is lazily performed at save time — NOT on every keystroke!
       saveTimer.current = setTimeout(() => {
         void saveChain.current.then(() => {
           const ed = editor;
           if (!ed || pathRef.current !== path) return;
-          const body = getEditorMarkdown(ed, { noteRelativePath: pathRef.current });
-          lastSerializedBodyRef.current = body;
-          const { frontmatterBlock } = splitMarkdownFile(lastSaved.current);
-          const full = joinMarkdownFile(frontmatterBlock, body);
-          return doSave({ relativePath: pathRef.current, fullContent: full });
+          try {
+            const body = getEditorMarkdown(ed, { noteRelativePath: pathRef.current });
+            if (body === lastSerializedBodyRef.current) {
+              saveStateRef.current = "clean";
+              setSaveState("clean");
+              return;
+            }
+            lastSerializedBodyRef.current = body;
+            const { frontmatterBlock } = splitMarkdownFile(lastSaved.current);
+            const full = joinMarkdownFile(frontmatterBlock, body);
+            return doSave({ relativePath: pathRef.current, fullContent: full });
+          } catch {
+            /* serialization failed */
+          }
         });
       }, autoSaveMsRef.current);
-      if (editor) {
-        setCharCount(editor.storage.characterCount.characters());
-        setWordCount(editor.storage.characterCount.words());
-      }
+
+      // Debounce word count update (400ms) so fast typing doesn't re-render the 1400-line component
+      if (wordCountTimer.current) clearTimeout(wordCountTimer.current);
+      wordCountTimer.current = setTimeout(() => {
+        if (editor && !editor.isDestroyed) {
+          setWordCount(editor.storage.characterCount.words());
+        }
+      }, 400);
     },
   });
 
@@ -525,7 +539,6 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
         }
         loadedPathRef.current = path;
         setSaveState("clean");
-        setCharCount(editor.storage.characterCount.characters());
         setWordCount(editor.storage.characterCount.words());
         bumpPreview();
       } catch (e) {
@@ -535,6 +548,10 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
 
     return () => {
       cancelled = true;
+      if (wordCountTimer.current) {
+        clearTimeout(wordCountTimer.current);
+        wordCountTimer.current = null;
+      }
       if (saveTimer.current) {
         clearTimeout(saveTimer.current);
         saveTimer.current = null;
@@ -691,7 +708,6 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
           }
           loadedPathRef.current = path;
           setSaveState("clean");
-          setCharCount(editor.storage.characterCount.characters());
           setWordCount(editor.storage.characterCount.words());
           bumpPreview();
         } catch {
@@ -752,6 +768,11 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
       if ((e.metaKey || e.ctrlKey) && e.key === ".") {
         e.preventDefault();
         handleInsertDateTime();
+      }
+      // ⌘⌥O toggle document outline
+      if ((e.metaKey || e.ctrlKey) && e.altKey && e.key.toLowerCase() === "o") {
+        e.preventDefault();
+        setShowOutline((v) => !v);
       }
     };
     window.addEventListener("keydown", handler);
@@ -909,7 +930,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
               setReloadTick((v) => v + 1);
             }}
           >
-            <RotateCcw size={ICON.xs} /> {t("common:action.retry")}
+            <RiArrowGoBackLine size={ICON.xs} /> {t("common:action.retry")}
           </Button>
         </div>
       </div>
@@ -960,7 +981,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
               <EditorModeSwitch viewMode={viewMode} onChange={switchViewMode} />
             ) : (
               <span className="inline-flex items-center gap-1 rounded-full bg-surface-muted px-2 py-0.5 text-3xs text-text-tertiary">
-                <Eye size={ICON.micro} /> {t("workspace:formatBar.preview")}
+                <RiEyeLine size={ICON.micro} /> {t("workspace:formatBar.preview")}
               </span>
             )}
 
@@ -994,6 +1015,25 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
           </div>
 
           <div className="flex min-w-0 max-w-[min(52%,22rem)] shrink items-center justify-end gap-0.5 sm:max-w-104">
+            <Tooltip content={showOutline ? t("workspace:outline.hideTip", { defaultValue: "隐藏大纲 (⌘⌥O)" }) : t("workspace:outline.showTip", { defaultValue: "显示大纲 (⌘⌥O)" })}>
+              <button
+                type="button"
+                onClick={() => setShowOutline((v) => !v)}
+                className={cn(
+                  "flex h-7 shrink-0 items-center gap-1 rounded-sm px-1.5 transition-colors",
+                  showOutline
+                    ? "bg-accent-bg-subtle text-accent-color font-medium"
+                    : "text-text-tertiary hover:bg-surface-muted hover:text-text-primary",
+                )}
+                aria-label={t("workspace:outline.title", { defaultValue: "文档大纲" })}
+                aria-pressed={showOutline}
+              >
+                <RiNodeTree size={ICON.xs} />
+                <span className="hidden text-3xs lg:inline" data-compact-hidden>
+                  {t("workspace:outline.button", { defaultValue: "大纲" })}
+                </span>
+              </button>
+            </Tooltip>
             <EditorReadingMenu
               editor={readOnly ? null : editor}
               onOpenSettings={() => openOverlay("settings", { topicId: "general" })}
@@ -1018,9 +1058,9 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
                       aria-expanded={moveOpen}
                     >
                       {moving ? (
-                        <Loader2 size={ICON.xs} className="animate-spin" />
+                        <RiLoader4Line size={ICON.xs} className="animate-spin" />
                       ) : (
-                        <FolderInput size={ICON.xs} />
+                        <RiFolderReceivedLine size={ICON.xs} />
                       )}
                       <span className="hidden text-3xs lg:inline" data-compact-hidden>
                         {t("workspace:menu.moveToTopic")}
@@ -1152,7 +1192,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
           role="search"
           aria-label={t("workspace:editor.findAria")}
         >
-          <Search size={ICON.xs} className="shrink-0 text-text-quaternary" aria-hidden />
+          <RiSearchLine size={ICON.xs} className="shrink-0 text-text-quaternary" aria-hidden />
           <input
             ref={findInputRef}
             value={findQuery}
@@ -1176,13 +1216,13 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
             {findCount.total > 0 ? `${findCount.idx}/${findCount.total}` : findQuery.trim() ? t("workspace:editor.findNoMatch") : "0/0"}
           </span>
           <Button variant="ghost" size="sm" className="h-6 px-1.5" onClick={() => findStep(editor, -1)} aria-label={t("workspace:editor.findPrev")}>
-            <ChevronUp size={ICON.xs} />
+            <RiArrowUpSLine size={ICON.xs} />
           </Button>
           <Button variant="ghost" size="sm" className="h-6 px-1.5" onClick={() => findStep(editor, 1)} aria-label={t("workspace:editor.findNext")}>
-            <ChevronDown size={ICON.xs} />
+            <RiArrowDownSLine size={ICON.xs} />
           </Button>
           <Button variant="ghost" size="sm" className="h-6 px-1.5" onClick={closeFind} aria-label={t("common:action.close")}>
-            <X size={ICON.xs} />
+            <RiCloseLine size={ICON.xs} />
           </Button>
         </div>
       ) : null}
@@ -1231,6 +1271,13 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
             />
           ) : null}
         </div>
+        <EditorOutlinePanel
+          editor={editor}
+          rawMarkdown={rawContent}
+          viewMode={viewMode}
+          open={showOutline}
+          onClose={() => setShowOutline(false)}
+        />
       </div>
 
       <WorkspaceFileContextMenu menu={fileMenu.menu} onClose={fileMenu.close} />

@@ -108,6 +108,8 @@ function splitFirstLevelListItems(content: string): string[] {
 function previewOf(text: string, max = 180): string {
   const t = String(text || "")
     .replace(/^#{1,6}\s+/gmu, "")
+    .replace(/^\s*(?:>\s*)+/gmu, "")
+    .replace(/\s*\\+$/gmu, "")
     .replace(/^\s*[-*+]\s+(\[[ xX]\]\s*)?/gmu, "")
     .replace(/^\s*\d+\.\s+/gmu, "")
     .replace(/\s+/gu, " ")
@@ -115,6 +117,43 @@ function previewOf(text: string, max = 180): string {
   if (!t) return "";
   if (t.length <= max) return t;
   return `${t.slice(0, max).trim()}…`;
+}
+
+/** Title chrome: nested list / blockquote / heading marks (e.g. `- > ### Text`). */
+function stripTitleChrome(line: string): string {
+  let out = String(line || "").trim();
+  for (let i = 0; i < 4; i += 1) {
+    const next = out
+      .replace(/^#{1,6}\s+/u, "")
+      .replace(/^\s*(?:>\s*)+/u, "")
+      .replace(/^\s*[-*+]\s+(\[[ xX]\]\s*)?/u, "")
+      .replace(/^\s*\d+\.\s+/u, "");
+    if (next === out) break;
+    out = next;
+  }
+  return out.trim();
+}
+
+function isHeadingOnlyChunk(chunk: string): boolean {
+  const lines = String(chunk || "")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  return lines.length > 0 && lines.every((l) => /^#{1,6}\s/u.test(l));
+}
+
+/** A heading-only chunk labels the content that follows — it must not become
+ * its own row (title and body would both show the raw `###` line). */
+function mergeHeadingOnlyChunks(chunks: string[]): string[] {
+  const merged: string[] = [];
+  for (const chunk of chunks) {
+    if (merged.length > 0 && isHeadingOnlyChunk(merged[merged.length - 1])) {
+      merged.push(`${merged.pop()}\n${chunk}`);
+    } else {
+      merged.push(chunk);
+    }
+  }
+  return merged;
 }
 
 function firstSubstantialIsList(content: string): boolean {
@@ -127,13 +166,6 @@ function firstSubstantialIsList(content: string): boolean {
     return isTopLevelListItem(line);
   }
   return false;
-}
-
-function stripListChrome(line: string): string {
-  return line
-    .replace(/^\s*[-*+]\s+(\[[ xX]\]\s*)?/u, "")
-    .replace(/^\s*\d+\.\s+/u, "")
-    .trim();
 }
 
 function itemsFromBlock(
@@ -162,10 +194,10 @@ function itemsFromBlock(
     ];
   }
 
-  const chunks = splitFirstLevelListItems(body);
+  const chunks = mergeHeadingOnlyChunks(splitFirstLevelListItems(body));
   return chunks.map((chunk, idx) => {
     const first = chunk.split("\n").find((l) => l.trim()) || chunk;
-    const title = stripListChrome(first) || heading || previewOf(chunk, 48);
+    const title = stripTitleChrome(first) || heading || previewOf(chunk, 48);
     return {
       id: `${idPrefix}:${idx}`,
       kind,

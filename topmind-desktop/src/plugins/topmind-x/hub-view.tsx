@@ -5,9 +5,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Twitter, RefreshCw, Loader2, Settings, Send,
-  Search, ChevronRight,
-} from "lucide-react";
+  RiArrowRightSLine,
+  RiLoader4Line,
+  RiRefreshLine,
+  RiSearchLine,
+  RiSendPlane2Line,
+  RiSettingsLine,
+  RiTwitterXLine,
+} from "@remixicon/react";
 import { api } from "../../services/api";
 import { onLocal } from "../host";
 import { useViewStore } from "../../stores/view-store";
@@ -199,12 +204,12 @@ function XHubView() {
     return (
       <ViewContainer>
         <EmptyState
-          icon={<Twitter size={ICON.md} />}
+          icon={<RiTwitterXLine size={ICON.md} />}
           title={t("hub.notEnabled")}
           hint={t("hub.notEnabledHint")}
           action={
             <Button size="sm" onClick={() => openOverlay("settings", { topicId: "topmind-x.settings" })}>
-              <Settings size={ICON.xs} /> {t("hub.openSettings")}
+              <RiSettingsLine size={ICON.xs} /> {t("hub.openSettings")}
             </Button>
           }
         />
@@ -217,7 +222,7 @@ function XHubView() {
   return (
     <ViewContainer>
       <ConnectorHubHeader
-        icon={<Twitter size={ICON.md} />}
+        icon={<RiTwitterXLine size={ICON.md} />}
         title={t("hub.title")}
         subtitle={t("hub.subtitle")}
         meta={
@@ -238,7 +243,7 @@ function XHubView() {
             size="sm"
             onClick={() => openOverlay("settings", { topicId: "topmind-x.settings" })}
           >
-            <Settings size={ICON.xs} aria-hidden /> {t("hub.settings")}
+            <RiSettingsLine size={ICON.xs} aria-hidden /> {t("hub.settings")}
           </Button>
         }
       />
@@ -246,7 +251,7 @@ function XHubView() {
       <ConnectorToastBanner result={toast} />
 
       <section className="mb-6">
-        <SectionHeader icon={<Search size={ICON.sm} />} label={t("hub.fetchPreview")} />
+        <SectionHeader icon={<RiSearchLine size={ICON.sm} />} label={t("hub.fetchPreview")} />
         <div className="flex flex-wrap gap-2">
           <Input
             value={query}
@@ -263,7 +268,7 @@ function XHubView() {
             disabled={!canRead || fetching || !query.trim()}
             onClick={() => void runFetch()}
           >
-            {fetching ? <Loader2 size={ICON.xs} className="animate-spin" /> : <RefreshCw size={ICON.xs} />}
+            {fetching ? <RiLoader4Line size={ICON.xs} className="animate-spin" /> : <RiRefreshLine size={ICON.xs} />}
             {t("hub.fetch")}
           </Button>
           <Button
@@ -271,7 +276,7 @@ function XHubView() {
             disabled={selected.size === 0 || archiving}
             onClick={() => void archiveSelected()}
           >
-            {archiving ? <Loader2 size={ICON.xs} className="animate-spin" /> : null}
+            {archiving ? <RiLoader4Line size={ICON.xs} className="animate-spin" /> : null}
             {t("hub.archiveSelected", { count: selected.size })}
           </Button>
         </div>
@@ -363,7 +368,7 @@ function XHubView() {
                       {t.text}
                     </div>
                   </div>
-                  <ChevronRight size={ICON.xs} className="mt-1 shrink-0 text-text-quaternary" />
+                  <RiArrowRightSLine size={ICON.xs} className="mt-1 shrink-0 text-text-quaternary" />
                 </button>
               );
             })}
@@ -372,10 +377,10 @@ function XHubView() {
       </section>
 
       <section className="mb-6">
-        <SectionHeader icon={<Send size={ICON.sm} />} label={t("hub.composePost")} />
+        <SectionHeader icon={<RiSendPlane2Line size={ICON.sm} />} label={t("hub.composePost")} />
         {!canPost ? (
           <EmptyState
-            icon={<Send size={ICON.md} />}
+            icon={<RiSendPlane2Line size={ICON.md} />}
             title={t("hub.needXurl")}
             hint={t("hub.installHint")}
             action={
@@ -407,7 +412,7 @@ function XHubView() {
                 disabled={!postText.trim() || charCount > 280 || posting}
                 onClick={() => setConfirmPost(true)}
               >
-                {posting ? <Loader2 size={ICON.xs} className="animate-spin" /> : <Send size={ICON.xs} />}
+                {posting ? <RiLoader4Line size={ICON.xs} className="animate-spin" /> : <RiSendPlane2Line size={ICON.xs} />}
                 {t("hub.post")}
               </Button>
             </div>

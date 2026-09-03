@@ -5,8 +5,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  FileInput, FolderOpen, Loader2, RefreshCw, FileText, Settings,
-} from "lucide-react";
+  RiFileTextLine,
+  RiFileTransferLine,
+  RiFolderOpenLine,
+  RiLoader4Line,
+  RiRefreshLine,
+  RiSettingsLine,
+} from "@remixicon/react";
 import { api } from "../../services/api";
 import { emitLocal } from "../host";
 import { useViewStore } from "../../stores/view-store";
@@ -118,7 +123,7 @@ function IngestHubView() {
   return (
     <ViewContainer>
       <ConnectorHubHeader
-        icon={<FileInput size={ICON.md} />}
+        icon={<RiFileTransferLine size={ICON.md} />}
         title={t("hub.title")}
         subtitle={
           active > 0
@@ -178,12 +183,12 @@ function IngestHubView() {
                 onClick={() => openOverlay("settings", { topicId: "topmind-ingest.settings" })}
                 aria-label={t("hub.settingsTooltip")}
               >
-                <Settings size={ICON.sm} />
+                <RiSettingsLine size={ICON.sm} />
               </Button>
             </Tooltip>
             <Tooltip content={t("hub.refreshTooltip")}>
               <Button size="sm" variant="outline" onClick={() => void refresh()} aria-label={t("hub.refreshTooltip")}>
-                <RefreshCw size={ICON.sm} />
+                <RiRefreshLine size={ICON.sm} />
               </Button>
             </Tooltip>
           </>
@@ -260,7 +265,7 @@ function IngestHubView() {
           void enqueuePaths(paths);
         }}
       >
-        <FileInput size={ICON.xl} className="text-accent-color" />
+        <RiFileTransferLine size={ICON.xl} className="text-accent-color" />
         <div className="text-sm font-medium">{t("hub.dropHere")}</div>
         <div className="max-w-sm text-center text-3xs text-text-tertiary">
           {t("hub.dropHint")}
@@ -269,11 +274,11 @@ function IngestHubView() {
         </div>
         <div className="flex gap-2">
           <Button size="sm" onClick={() => void pickFiles()} disabled={busy}>
-            {busy ? <Loader2 size={ICON.sm} className="animate-spin" /> : <FileText size={ICON.sm} />}
+            {busy ? <RiLoader4Line size={ICON.sm} className="animate-spin" /> : <RiFileTextLine size={ICON.sm} />}
             {t("hub.selectFiles")}
           </Button>
           <Button size="sm" variant="outline" onClick={() => void pickFolder()} disabled={busy}>
-            <FolderOpen size={ICON.sm} /> {t("hub.selectFolder")}
+            <RiFolderOpenLine size={ICON.sm} /> {t("hub.selectFolder")}
           </Button>
         </div>
       </div>

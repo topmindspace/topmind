@@ -4,18 +4,25 @@
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  X, RotateCcw, Loader2, CheckCircle2, XCircle, Clock, Wand2, Sparkles,
-} from "lucide-react";
+  RiArrowGoBackLine,
+  RiCheckboxCircleLine,
+  RiCloseCircleLine,
+  RiCloseLine,
+  RiLoader4Line,
+  RiMagicLine,
+  RiSparklingLine,
+  RiTimeLine,
+} from "@remixicon/react";
 import { cn } from "../../lib/cn";
 import { ICON } from "../../lib/icons";
 import { useTaskStore, type Task } from "../../stores/task-store";
 
 const STATUS_ICON: Record<Task["status"], ReactNode> = {
-  queued: <Clock size={ICON.micro} className="text-text-quaternary" />,
-  running: <Loader2 size={ICON.micro} className="animate-spin text-accent-color" />,
-  completed: <CheckCircle2 size={ICON.micro} className="text-success" />,
-  failed: <XCircle size={ICON.micro} className="text-error" />,
-  cancelled: <XCircle size={ICON.micro} className="text-text-quaternary" />,
+  queued: <RiTimeLine size={ICON.micro} className="text-text-quaternary" />,
+  running: <RiLoader4Line size={ICON.micro} className="animate-spin text-accent-color" />,
+  completed: <RiCheckboxCircleLine size={ICON.micro} className="text-success" />,
+  failed: <RiCloseCircleLine size={ICON.micro} className="text-error" />,
+  cancelled: <RiCloseCircleLine size={ICON.micro} className="text-text-quaternary" />,
 };
 
 export function TaskListBody({ compact = false }: { compact?: boolean }) {
@@ -45,7 +52,7 @@ export function TaskListBody({ compact = false }: { compact?: boolean }) {
             onClick={() => void createTask("reconcile")}
             className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] border border-accent-border-subtle bg-accent-bg-subtle px-2.5 py-1 text-3xs font-medium text-accent-color transition-colors hover:bg-accent-bg-subtle/80"
           >
-            <Wand2 size={ICON.nano} />
+            <RiMagicLine size={ICON.micro} />
             {t("taskPanel.taskTypeReconcile")}
           </button>
           <button
@@ -53,7 +60,7 @@ export function TaskListBody({ compact = false }: { compact?: boolean }) {
             onClick={() => void createTask("ai_digest")}
             className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] border border-accent-border-subtle bg-accent-bg-subtle px-2.5 py-1 text-3xs font-medium text-accent-color transition-colors hover:bg-accent-bg-subtle/80"
           >
-            <Sparkles size={ICON.nano} />
+            <RiSparklingLine size={ICON.micro} />
             {t("taskPanel.triggerAiDigest")}
           </button>
           <button
@@ -61,7 +68,7 @@ export function TaskListBody({ compact = false }: { compact?: boolean }) {
             onClick={() => void createTask("memory_organize")}
             className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] border border-accent-border-subtle bg-accent-bg-subtle px-2.5 py-1 text-3xs font-medium text-accent-color transition-colors hover:bg-accent-bg-subtle/80"
           >
-            <Sparkles size={ICON.nano} />
+            <RiSparklingLine size={ICON.micro} />
             {t("taskPanel.triggerMemoryOrganize")}
           </button>
         </div>
@@ -151,7 +158,7 @@ function TaskCard({
               className="flex h-5 w-5 items-center justify-center rounded-[var(--radius-xs)] text-text-tertiary transition-colors hover:bg-surface-muted hover:text-error"
               aria-label={t("taskPanel.cancel")}
             >
-              <X size={ICON.nano} />
+              <RiCloseLine size={ICON.micro} />
             </button>
           ) : null}
           {task.status === "failed" ? (
@@ -161,7 +168,7 @@ function TaskCard({
               className="flex h-5 w-5 items-center justify-center rounded-[var(--radius-xs)] text-text-tertiary transition-colors hover:bg-surface-muted hover:text-accent"
               aria-label={t("taskPanel.retry")}
             >
-              <RotateCcw size={ICON.nano} />
+              <RiArrowGoBackLine size={ICON.micro} />
             </button>
           ) : null}
         </div>

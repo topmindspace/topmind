@@ -1,7 +1,13 @@
 import {
-  AlertCircle, Loader2, FileText, Bot, ListTodo, Lightbulb,
-  Download, Activity,
-} from "lucide-react";
+  RiDownload2Line,
+  RiErrorWarningLine,
+  RiFileTextLine,
+  RiLightbulbLine,
+  RiListCheck,
+  RiLoader4Line,
+  RiPulseLine,
+  RiRobot2Line,
+} from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
 import { useViewStore } from "../../stores/view-store";
@@ -174,7 +180,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
       <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
         {!health ? (
           <span className="flex items-center gap-1">
-            <Loader2 size={ICON.micro} className="animate-spin" aria-hidden />
+            <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden />
             <span className="hidden sm:inline">{t("common:status.loading")}</span>
           </span>
         ) : health.ok ? (
@@ -200,7 +206,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
         ) : (
           <Tooltip content={t("statusBar.workspaceBadTip")}>
             <span className="flex shrink-0 items-center gap-1 text-error">
-              <AlertCircle size={ICON.micro} aria-hidden />
+              <RiErrorWarningLine size={ICON.micro} aria-hidden />
               <span className="hidden sm:inline">{t("statusBar.workspaceBad")}</span>
             </span>
           </Tooltip>
@@ -245,7 +251,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
                 className="bg-success/10 text-success hover:bg-success/20"
                 aria-label={label}
               >
-                <Download size={ICON.micro} aria-hidden />
+                <RiDownload2Line size={ICON.micro} aria-hidden />
                 <span className="hidden tabular-nums sm:inline">
                   {multi ? t("statusBar.updatesBadgeCount", { count: updateInfo.surfaces.length }) : `v${latestVersion}`}
                 </span>
@@ -281,9 +287,9 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
             {/* Loader2 while running (engine tasks); Activity otherwise — never
                 ListTodo (reserved for the personal todo list, DESIGN §0.0.2) */}
             {activeTasks.length > 0 ? (
-              <Loader2 size={ICON.micro} className="animate-spin" aria-hidden />
+              <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden />
             ) : (
-              <Activity size={ICON.micro} aria-hidden />
+              <RiPulseLine size={ICON.micro} aria-hidden />
             )}
             {activeTasks.length > 0 ? (
               <span className="v4-ai-busy-text hidden tabular-nums sm:inline">
@@ -304,7 +310,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
               aria-label={t("statusBar.todoMaintaining")}
             >
               {/* ListTodo — personal list only (DESIGN §0.0.2) */}
-              <ListTodo size={ICON.micro} className="v4-ai-busy-icon" aria-hidden />
+              <RiListCheck size={ICON.micro} className="v4-ai-busy-icon" aria-hidden />
               <span className="v4-ai-busy-text hidden sm:inline">{t("statusBar.todoMaintaining")}</span>
               <span className="v4-ai-progress-dot" aria-hidden />
             </StatusChip>
@@ -326,7 +332,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
               )}
               aria-pressed={suggestPanelOpen}
             >
-              <Lightbulb size={ICON.micro} className="v4-ai-busy-icon" aria-hidden />
+              <RiLightbulbLine size={ICON.micro} className="v4-ai-busy-icon" aria-hidden />
               <span className="v4-ai-busy-text hidden sm:inline">{t("statusBar.suggestLoading")}</span>
               <span className="v4-ai-progress-dot" aria-hidden />
             </StatusChip>
@@ -353,7 +359,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
               aria-pressed={suggestPanelOpen}
               aria-label={t("statusBar.suggestCount", { count: busy.suggestCount })}
             >
-              <Lightbulb size={ICON.micro} className={busy.suggestHasHigh ? "text-warning" : "text-accent-color"} aria-hidden />
+              <RiLightbulbLine size={ICON.micro} className={busy.suggestHasHigh ? "text-warning" : "text-accent-color"} aria-hidden />
               <span className="hidden tabular-nums sm:inline">
                 {t("statusBar.suggestCount", { count: busy.suggestCount })}
               </span>
@@ -368,7 +374,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
               data-status-inline-busy
               className={cn(statusChipSpanClass, "bg-accent-bg-faint text-accent-color")}
             >
-              <Loader2 size={ICON.micro} className="animate-spin" aria-hidden />
+              <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden />
               <span className="v4-ai-busy-text hidden max-w-[var(--status-chip-max-inline,7.5rem)] truncate sm:inline">{inlineLabel}</span>
               <span className="v4-ai-progress-dot" aria-hidden />
             </span>
@@ -406,9 +412,9 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
             )}
           >
             {busy.aiPillBusy ? (
-              <Loader2 size={ICON.micro} className="animate-spin" aria-hidden />
+              <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden />
             ) : (
-              <Bot size={ICON.micro} aria-hidden />
+              <RiRobot2Line size={ICON.micro} aria-hidden />
             )}
             <span className={cn("hidden max-w-[var(--status-chip-max-ai,9rem)] truncate md:inline", busy.aiPillBusy && "v4-ai-busy-text")}>{aiLabel}</span>
             {busy.aiPillBusy ? <span className="v4-ai-progress-dot" aria-hidden /> : null}
@@ -446,7 +452,7 @@ function SelectionHint({ selection }: { selection: Selection }) {
           "transition-colors hover:bg-surface-muted hover:text-text-secondary v4-focus-ring",
         )}
       >
-        <FileText size={ICON.micro} className="shrink-0" aria-hidden />
+        <RiFileTextLine size={ICON.micro} className="shrink-0" aria-hidden />
         <span className="truncate">{label}</span>
       </button>
     </Tooltip>

@@ -1,8 +1,6 @@
-import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef, memo } from "react";
 import { useDroppable } from "@dnd-kit/core";
-import {
-  ChevronRight, ChevronDown, Plus, Loader2,
-} from "lucide-react";
+import { RiAddLine, RiArrowDownSLine, RiArrowRightSLine, RiLoader4Line } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { TreeNodeIcon } from "./tree-node-icons";
 import { TreeNodeContextMenu } from "./tree-node-context-menu";
@@ -186,7 +184,7 @@ export function TreeView({
   );
 }
 
-function TreeViewNode({
+const TreeViewNode = memo(function TreeViewNode({
   node,
   depth,
   onRefresh,
@@ -196,8 +194,13 @@ function TreeViewNode({
   sortMode = "mtime-desc",
 }: NodeProps) {
   const { t } = useTranslation("shell");
-  const selection = useViewStore((s) => s.selection);
-  const expandedNodeIds = useViewStore((s) => s.expandedNodeIds);
+  // Fine-grained selector: only re-render if THIS node's expansion state changes
+  const expanded = useViewStore(useCallback((s) => s.expandedNodeIds.has(node.id), [node.id]));
+  // Fine-grained selector: only re-render if THIS node's active state changes
+  const nodeSelKey = useMemo(() => (node.selection ? selectionKey(node.selection) : null), [node.selection]);
+  const isActive = useViewStore(
+    useCallback((s) => Boolean(nodeSelKey && selectionKey(s.selection) === nodeSelKey), [nodeSelKey]),
+  );
   const toggleNode = useViewStore((s) => s.toggleNode);
   const select = useViewStore((s) => s.select);
   const workspaceRoot = useViewStore((s) => s.workspaceRoot);
@@ -205,10 +208,13 @@ function TreeViewNode({
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [dialog, setDialog] = useState<DialogState>({ kind: "none" });
 
-  // Plugin-registered context menu items applicable to this node
-  const pluginMenuItems = contextMenuSlots.filter((slot) => {
-    try { return slot.matches(node); } catch { return false; }
-  });
+  // Plugin-registered context menu items computed lazily only when context menu opens
+  const pluginMenuItems = useMemo(() => {
+    if (!menu) return [];
+    return contextMenuSlots.filter((slot) => {
+      try { return slot.matches(node); } catch { return false; }
+    });
+  }, [menu, contextMenuSlots, node]);
 
   const showPrompt = (title: string, defaultValue = "") =>
     new Promise<string | null>((resolve) => setDialog({ kind: "prompt", title, defaultValue, resolve }));
@@ -232,8 +238,6 @@ function TreeViewNode({
     (resolvedChildren.length > 0)
     || (node.meta?.fileCount as number) > 0
     || (node.kind === "folder" && node.meta?.lazy === true);
-  const expanded = expandedNodeIds.has(node.id);
-  const isActive = node.selection ? selectionKey(node.selection) === selectionKey(selection) : false;
   const isGroup = node.kind === "group";
   const isLoading = loadingNodes?.has(node.id) ?? false;
 
@@ -393,7 +397,7 @@ function TreeViewNode({
       const result = await api.ws.createTopic(category, name.trim());
       select({ kind: "topic", topicId: result.topicId });
       // Expand category so the new topic is visible
-      if (!expandedNodeIds.has(node.id)) toggleNode(node.id);
+      if (!expanded) toggleNode(node.id);
       onRefresh?.();
     } catch (e) {
       showError(t("sidebar.treeView.errorCreate"), e instanceof Error ? e.message : String(e));
@@ -570,9 +574,9 @@ function TreeViewNode({
       >
         {hasChildren ? (
           expanded ? (
-            <ChevronDown size={ICON.micro} className={cn("shrink-0 transition-transform", isActive ? "text-accent-color" : "text-text-tertiary group-hover:text-text-secondary")} />
+            <RiArrowDownSLine size={ICON.micro} className={cn("shrink-0 transition-transform", isActive ? "text-accent-color" : "text-text-tertiary group-hover:text-text-secondary")} />
           ) : (
-            <ChevronRight size={ICON.micro} className={cn("shrink-0 transition-transform", isActive ? "text-accent-color" : "text-text-tertiary group-hover:text-text-secondary")} />
+            <RiArrowRightSLine size={ICON.micro} className={cn("shrink-0 transition-transform", isActive ? "text-accent-color" : "text-text-tertiary group-hover:text-text-secondary")} />
           )
         ) : (
           <span className="w-2.75 shrink-0" />
@@ -601,7 +605,7 @@ function TreeViewNode({
                 emitLocal("overlay:open", { kind: "quick-capture" });
               }}
             >
-              <Plus size={ICON.micro} aria-hidden />
+              <RiAddLine size={ICON.micro} aria-hidden />
             </button>
           </Tooltip>
         ) : null}
@@ -616,7 +620,7 @@ function TreeViewNode({
                 void handleNewTopic();
               }}
             >
-              <Plus size={ICON.micro} aria-hidden />
+              <RiAddLine size={ICON.micro} aria-hidden />
             </button>
           </Tooltip>
         ) : null}
@@ -631,12 +635,12 @@ function TreeViewNode({
                 void handleNewNote();
               }}
             >
-              <Plus size={ICON.micro} aria-hidden />
+              <RiAddLine size={ICON.micro} aria-hidden />
             </button>
           </Tooltip>
         ) : null}
         {isLoading ? (
-          <Loader2 size={ICON.micro} className="mr-1 shrink-0 animate-spin text-text-tertiary" />
+          <RiLoader4Line size={ICON.micro} className="mr-1 shrink-0 animate-spin text-text-tertiary" />
         ) : null}
         {isOver ? (
           <span
@@ -661,7 +665,7 @@ function TreeViewNode({
             style={{ paddingLeft: `${treeChildIndent(depth)}px` }}
             role="status"
           >
-            <Loader2 size={ICON.micro} className="animate-spin" aria-hidden /> {t("sidebar.treeView.loadingFiles")}
+            <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden /> {t("sidebar.treeView.loadingFiles")}
           </div>
         ) : resolvedChildren.length > 0 ? (
           <TreeView
@@ -685,7 +689,7 @@ function TreeViewNode({
             style={{ paddingLeft: `${treeChildIndent(depth)}px` }}
             role="status"
           >
-            <Loader2 size={ICON.micro} className="animate-spin" aria-hidden /> {t("sidebar.treeView.loadingFiles")}
+            <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden /> {t("sidebar.treeView.loadingFiles")}
           </div>
         ) : node.kind === "topic" || node.kind === "category" ? (
           <div
@@ -701,7 +705,7 @@ function TreeViewNode({
                   void handleNewTopic();
                 }}
               >
-                <Plus size={ICON.micro} className="shrink-0" aria-hidden />
+                <RiAddLine size={ICON.micro} className="shrink-0" aria-hidden />
                 {t("sidebar.treeView.emptyCategory")}
               </button>
             ) : (
@@ -713,7 +717,7 @@ function TreeViewNode({
                   void handleNewNote();
                 }}
               >
-                <Plus size={ICON.micro} className="shrink-0" aria-hidden />
+                <RiAddLine size={ICON.micro} className="shrink-0" aria-hidden />
                 {t("sidebar.treeView.emptyTopic")}
               </button>
             )}
@@ -799,4 +803,4 @@ function TreeViewNode({
       )}
     </li>
   );
-}
+});

@@ -155,6 +155,94 @@ function patchLastAssistant(
   return updated;
 }
 
+/**
+ * Coalesces high-frequency text and reasoning deltas into requestAnimationFrame ticks
+ * (~16ms). Prevents 50-100 state updates per second from choking React render tree
+ * and re-parsing markdown regexes repeatedly during token generation.
+ */
+class StreamDeltaBatcher {
+  private pendingText = "";
+  private pendingReasoning = "";
+  private rafId: number | null = null;
+  private set: StoreApi<AiState>["setState"];
+
+  constructor(set: StoreApi<AiState>["setState"]) {
+    this.set = set;
+  }
+
+  append(textDelta: string, reasoningDelta: string) {
+    if (textDelta) this.pendingText += textDelta;
+    if (reasoningDelta) this.pendingReasoning += reasoningDelta;
+    this.scheduleFlush();
+  }
+
+  private scheduleFlush() {
+    if (this.rafId !== null) return;
+    if (typeof requestAnimationFrame === "function") {
+      this.rafId = requestAnimationFrame(() => {
+        this.rafId = null;
+        this.flush();
+      });
+    } else {
+      this.flush();
+    }
+  }
+
+  flush() {
+    if (this.rafId !== null) {
+      if (typeof cancelAnimationFrame === "function") cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
+    const textDelta = this.pendingText;
+    const reasoningDelta = this.pendingReasoning;
+    if (!textDelta && !reasoningDelta) return;
+    this.pendingText = "";
+    this.pendingReasoning = "";
+
+    this.set((s) => ({
+      messages: patchLastAssistant(s.messages, (last) => {
+        let contentRaw = last.contentRaw ?? last.content;
+        let content = last.content;
+        let reasoning = last.reasoning || "";
+        let reasoningProvider = last.reasoningProvider || "";
+
+        if (textDelta) {
+          const next = ingestAssistantTextDelta(
+            { raw: contentRaw, body: content, reasoning },
+            textDelta,
+          );
+          contentRaw = next.raw;
+          content = next.body;
+          reasoning = mergeReasoning(reasoningProvider, next.reasoning);
+        }
+
+        if (reasoningDelta) {
+          reasoningProvider += reasoningDelta;
+          reasoning = mergeReasoning(reasoningProvider, splitAssistantVisible(contentRaw).reasoning);
+        }
+
+        return {
+          ...last,
+          contentRaw,
+          content,
+          reasoning,
+          reasoningProvider,
+        };
+      }),
+      streamDelta: textDelta ? s.streamDelta + textDelta : s.streamDelta,
+    }));
+  }
+
+  clear() {
+    if (this.rafId !== null) {
+      if (typeof cancelAnimationFrame === "function") cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
+    this.pendingText = "";
+    this.pendingReasoning = "";
+  }
+}
+
 async function performInvocation(
   get: StoreApi<AiState>["getState"],
   set: StoreApi<AiState>["setState"],
@@ -170,6 +258,8 @@ async function performInvocation(
     streamToolCount: null,
     streamMaxSteps: null,
   });
+
+  const deltaBatcher = new StreamDeltaBatcher(set);
 
   if (streamUnsub) streamUnsub();
   streamUnsub = subscribe("ai:stream", (payload) => {
@@ -188,25 +278,12 @@ async function performInvocation(
     if (p.sessionId !== sessionId) return;
 
     if (p.type === "text" && p.delta) {
-      set((s) => ({
-        messages: patchLastAssistant(s.messages, (last) => {
-          const next = ingestAssistantTextDelta(
-            { raw: last.contentRaw ?? last.content, body: last.content, reasoning: last.reasoning || "" },
-            p.delta || "",
-          );
-          return {
-            ...last,
-            contentRaw: next.raw,
-            content: next.body,
-            reasoning: mergeReasoning(last.reasoningProvider, next.reasoning),
-          };
-        }),
-        streamDelta: s.streamDelta + p.delta,
-      }));
+      deltaBatcher.append(p.delta, "");
       return;
     }
 
     if (p.type === "text-reset") {
+      deltaBatcher.flush();
       const text = (payload as { text?: string }).text || "";
       const split = splitAssistantVisible(text);
       set((s) => ({
@@ -222,20 +299,12 @@ async function performInvocation(
     }
 
     if (p.type === "reasoning" && p.delta) {
-      set((s) => ({
-        messages: patchLastAssistant(s.messages, (last) => {
-          const provider = (last.reasoningProvider || "") + p.delta;
-          return {
-            ...last,
-            reasoningProvider: provider,
-            reasoning: mergeReasoning(provider, splitAssistantVisible(last.contentRaw || "").reasoning),
-          };
-        }),
-      }));
+      deltaBatcher.append("", p.delta);
       return;
     }
 
     if (p.type === "reasoning-reset") {
+      deltaBatcher.flush();
       const text = (payload as { text?: string }).text || "";
       set((s) => ({
         messages: patchLastAssistant(s.messages, (last) => ({
@@ -246,6 +315,9 @@ async function performInvocation(
       }));
       return;
     }
+
+    // Structural events flush any buffered text first to maintain strict event sequencing
+    deltaBatcher.flush();
 
     if (p.type === "tool-call") {
       const id = p.toolCallId || `tc_${p.count || Date.now()}`;
@@ -446,6 +518,8 @@ async function performInvocation(
       })),
     }));
   } finally {
+    deltaBatcher.flush();
+    deltaBatcher.clear();
     set({
       streaming: false,
       streamDelta: "",

@@ -1,6 +1,14 @@
 // ── TagsView — tag cloud + filtered file list ────────────────────────────
 import { useState, useEffect, useCallback } from "react";
-import { Tag, FileText, AlertCircle, RefreshCw, ChevronLeft, FilePenLine, Loader2 } from "lucide-react";
+import {
+  RiArrowLeftSLine,
+  RiErrorWarningLine,
+  RiFileEditLine,
+  RiFileTextLine,
+  RiLoader4Line,
+  RiPriceTag3Line,
+  RiRefreshLine,
+} from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/cn";
 import { onLocal } from "../../plugins/host";
@@ -80,7 +88,7 @@ export function TagsView({ onNavigate }: TagsViewProps) {
         role="status"
         aria-live="polite"
       >
-        <Loader2 size={ICON.micro} className="animate-spin" aria-hidden /> {t("sidebar.tags.loading")}
+        <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden /> {t("sidebar.tags.loading")}
       </div>
     );
   }
@@ -89,7 +97,7 @@ export function TagsView({ onNavigate }: TagsViewProps) {
     return (
       <div className="flex flex-col gap-1.5 px-3 py-2" role="alert">
         <div className="flex items-center gap-1.5 text-3xs text-error">
-          <AlertCircle size={ICON.micro} aria-hidden />
+          <RiErrorWarningLine size={ICON.micro} aria-hidden />
           <span>{error}</span>
         </div>
         <button
@@ -97,7 +105,7 @@ export function TagsView({ onNavigate }: TagsViewProps) {
           onClick={() => void load()}
           className="flex items-center gap-1 self-start rounded-[var(--radius-md)] border border-border-subtle px-2 py-1 text-3xs text-text-secondary hover:bg-surface-muted v4-focus-ring"
         >
-          <RefreshCw size={ICON.nano} /> {t("sidebar.tags.retry")}
+          <RiRefreshLine size={ICON.micro} /> {t("sidebar.tags.retry")}
         </button>
       </div>
     );
@@ -108,7 +116,7 @@ export function TagsView({ onNavigate }: TagsViewProps) {
       <div className="px-2 py-3">
         <EmptyState
           compact
-          icon={<Tag size={ICON.sm} />}
+          icon={<RiPriceTag3Line size={ICON.sm} />}
           title={t("sidebar.tags.emptyTitle")}
           hint={t("sidebar.tags.emptyHint")}
           action={
@@ -117,7 +125,7 @@ export function TagsView({ onNavigate }: TagsViewProps) {
               onClick={() => useViewStore.getState().select({ kind: "stream" })}
               className="inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-border-subtle bg-surface px-2 py-1 text-3xs font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary v4-focus-ring"
             >
-              <FilePenLine size={ICON.nano} aria-hidden />
+              <RiFileEditLine size={ICON.micro} aria-hidden />
               {t("sidebar.tags.goWorkspace")}
             </button>
           }
@@ -135,8 +143,8 @@ export function TagsView({ onNavigate }: TagsViewProps) {
           onClick={() => setSelectedTag(null)}
           className="flex w-full items-center gap-1.5 border-b border-border-subtle px-3 py-2 text-3xs font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary"
         >
-          <ChevronLeft size={ICON.xs} />
-          <Tag size={ICON.micro} className="text-accent-color" />
+          <RiArrowLeftSLine size={ICON.xs} />
+          <RiPriceTag3Line size={ICON.micro} className="text-accent-color" />
           <span className="truncate">{selectedTag}</span>
           <span className="ml-auto rounded-full bg-surface-muted px-1.5 tabular-nums text-3xs text-text-quaternary">{files.length}</span>
         </button>
@@ -150,7 +158,7 @@ export function TagsView({ onNavigate }: TagsViewProps) {
             }
             className="v4-dense-row flex w-full items-center gap-2 rounded-[var(--radius-md)] px-3 py-2 transition-colors hover:bg-surface-muted"
           >
-            <FileText size={ICON.xs} className="shrink-0 text-text-quaternary" />
+            <RiFileTextLine size={ICON.xs} className="shrink-0 text-text-quaternary" />
             <span className="truncate text-sm font-medium text-text-primary">{f.title || f.name.replace(/\.md$/u, "")}</span>
           </button>
         ))}
@@ -187,7 +195,7 @@ export function TagsView({ onNavigate }: TagsViewProps) {
                 "text-text-secondary",
               )}
             >
-              <Tag size={ICON.micro} className="text-accent-color/70" />
+              <RiPriceTag3Line size={ICON.micro} className="text-accent-color/70" />
               <span>{tag}</span>
               <span className="tabular-nums text-text-quaternary">{count}</span>
             </button>

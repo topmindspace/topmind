@@ -4,7 +4,7 @@
  */
 import { useState } from "react";
 import { modKey } from "../../lib/shortcuts";
-import { FileText, FolderOpen, X } from "lucide-react";
+import { RiCloseLine, RiFileTextLine, RiFolderOpenLine } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { ICON } from "../../lib/icons";
 import type { CaptureAttachment } from "./quick-capture-helpers";
@@ -110,7 +110,7 @@ export function CaptureAttachmentList({
           key={a.id}
           className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-border-subtle bg-surface-inset px-2 py-1 text-3xs"
         >
-          <FileText size={ICON.xs} className="shrink-0 text-accent-color" />
+          <RiFileTextLine size={ICON.xs} className="shrink-0 text-accent-color" />
           <span className="min-w-0 flex-1 truncate font-medium" title={a.absolutePath}>
             {a.name}
           </span>
@@ -120,7 +120,7 @@ export function CaptureAttachmentList({
             onClick={() => onRemove(a.id)}
             aria-label={t("overlays:capture.removeAttachment")}
           >
-            <X size={ICON.xs} />
+            <RiCloseLine size={ICON.xs} />
           </button>
         </li>
       ))}
@@ -133,7 +133,7 @@ export function CaptureDropHint({ visible }: { visible: boolean }) {
   if (!visible) return null;
   return (
     <div className="mb-2 flex flex-col items-center gap-1 rounded-[var(--radius-lg)] border border-dashed border-border-subtle px-3 py-4 text-center">
-      <FolderOpen size={ICON.md} className="text-text-quaternary" />
+      <RiFolderOpenLine size={ICON.md} className="text-text-quaternary" />
       <div className="text-3xs text-text-tertiary">{t("overlays:capture.dropHint", { mod: modKey() })}</div>
     </div>
   );

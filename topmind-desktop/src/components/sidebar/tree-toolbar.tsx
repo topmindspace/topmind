@@ -3,7 +3,14 @@
  * Sort menu uses portal DropdownMenu (never clipped by sidebar overflow).
  */
 import { useState } from "react";
-import { ChevronsDownUp, ChevronsUpDown, ArrowUpDown, Check, Filter, RefreshCw } from "lucide-react";
+import {
+  RiArrowUpDownLine,
+  RiCheckLine,
+  RiContractUpDownLine,
+  RiExpandUpDownLine,
+  RiFilterLine,
+  RiRefreshLine,
+} from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { Tooltip } from "../ui/tooltip";
 import {
@@ -75,7 +82,7 @@ export function TreeToolbar({
           className="inline-flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary"
           aria-label={t("sidebar.treeToolbar.expandAllAria")}
         >
-          <ChevronsUpDown size={ICON.nano} />
+          <RiExpandUpDownLine size={ICON.nano} />
         </button>
       </Tooltip>
       <Tooltip content={t("sidebar.treeToolbar.collapseAll")}>
@@ -86,7 +93,7 @@ export function TreeToolbar({
           className="inline-flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary disabled:opacity-40"
           aria-label={t("sidebar.treeToolbar.collapseAllAria")}
         >
-          <ChevronsDownUp size={ICON.nano} />
+          <RiContractUpDownLine size={ICON.nano} />
         </button>
       </Tooltip>
       <DropdownMenu
@@ -109,7 +116,7 @@ export function TreeToolbar({
               aria-expanded={sortOpen}
               aria-haspopup="listbox"
             >
-              <ArrowUpDown size={ICON.nano} />
+              <RiArrowUpDownLine size={ICON.nano} />
             </button>
           </Tooltip>
         }
@@ -126,7 +133,7 @@ export function TreeToolbar({
           >
             <span className="min-w-0 flex-1">{t(`sidebar.treeToolbar.sort${opt.id.replace(/-(.)/gu, (_, c) => c.toUpperCase()).replace(/^./u, (c) => c.toUpperCase())}`)}</span>
             {sortMode === opt.id ? (
-              <Check size={ICON.micro} className="shrink-0 text-accent-color" />
+              <RiCheckLine size={ICON.micro} className="shrink-0 text-accent-color" />
             ) : null}
           </DropdownItem>
         ))}
@@ -152,7 +159,7 @@ export function TreeToolbar({
               aria-expanded={filterOpen}
               aria-haspopup="listbox"
             >
-              <Filter size={ICON.nano} />
+              <RiFilterLine size={ICON.micro} />
               {filterActive ? (
                 <span className="h-1 w-1 rounded-full bg-accent-color" aria-hidden />
               ) : null}
@@ -172,7 +179,7 @@ export function TreeToolbar({
           >
             <span className="min-w-0 flex-1">{t(`sidebar.treeToolbar.${opt.labelKey}`)}</span>
             {fileFilter === opt.id ? (
-              <Check size={ICON.micro} className="shrink-0 text-accent-color" />
+              <RiCheckLine size={ICON.micro} className="shrink-0 text-accent-color" />
             ) : null}
           </DropdownItem>
         ))}
@@ -189,7 +196,7 @@ export function TreeToolbar({
             aria-label={t("sidebar.refreshTooltip")}
             data-sidebar-refresh
           >
-            <RefreshCw size={ICON.nano} className={refreshing ? "animate-spin" : ""} />
+            <RiRefreshLine size={ICON.micro} className={refreshing ? "animate-spin" : ""} />
           </button>
         </Tooltip>
       ) : null}

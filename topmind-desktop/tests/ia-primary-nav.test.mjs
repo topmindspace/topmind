@@ -21,7 +21,7 @@ describe("Desktop primary IA target", () => {
     assert.match(src, /primaryNav\.stream/);
     assert.match(src, /key:\s*"search"/);
     assert.match(src, /primaryNav\.search/);
-    assert.match(src, /icon:\s*Radio/);
+    assert.match(src, /icon:\s*RiBroadcastLine/);
     assert.doesNotMatch(src, /icon:\s*Home/);
     assert.doesNotMatch(src, /RotateCcw/);
     assert.doesNotMatch(src, /select\(\{\s*kind:\s*"archive"\s*\}\)/);

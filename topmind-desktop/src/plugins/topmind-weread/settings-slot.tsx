@@ -3,7 +3,12 @@
  */
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, Zap, RefreshCw, ExternalLink } from "lucide-react";
+import {
+  RiExternalLinkLine,
+  RiFlashlightFill,
+  RiLoader4Line,
+  RiRefreshLine,
+} from "@remixicon/react";
 import { api } from "../../services/api";
 import type { PluginContext, SettingsSlot } from "../types";
 import type { AppSettings } from "../../types";
@@ -167,7 +172,7 @@ function WereadPanel({ settings, update }: { settings: AppSettings; update: (p: 
             onClick={() => void handleTest()}
             disabled={testing || !w.apiKey || !w.enabled}
           >
-            {testing ? <Loader2 size={ICON.xs} className="animate-spin" /> : <Zap size={ICON.xs} />}
+            {testing ? <RiLoader4Line size={ICON.xs} className="animate-spin" /> : <RiFlashlightFill size={ICON.xs} />}
             {t("settings.test")}
           </Button>
           <Button
@@ -177,7 +182,7 @@ function WereadPanel({ settings, update }: { settings: AppSettings; update: (p: 
             onClick={() => void handleSync()}
             disabled={syncing || !w.apiKey || !w.enabled}
           >
-            {syncing ? <Loader2 size={ICON.xs} className="animate-spin" /> : <RefreshCw size={ICON.xs} />}
+            {syncing ? <RiLoader4Line size={ICON.xs} className="animate-spin" /> : <RiRefreshLine size={ICON.xs} />}
             {t("settings.sync")}
           </Button>
           <Button
@@ -187,7 +192,7 @@ function WereadPanel({ settings, update }: { settings: AppSettings; update: (p: 
             disabled={!w.enabled}
             onClick={() => select({ kind: "connector", id: "weread" })}
           >
-            <ExternalLink size={ICON.xs} /> {t("settings.center")}
+            <RiExternalLinkLine size={ICON.xs} /> {t("settings.center")}
           </Button>
         </div>
         {testResult ? (

@@ -27,6 +27,7 @@ import {
   extractTags,
   isLoneUrlCapture,
   prepareStreamEntryTextForDisplay,
+  splitStreamPreviewParts,
 } from "../utils";
 import { renderSuggestionCard } from "./suggestion-card";
 import { hasConfiguredProvider } from "../types";
@@ -155,6 +156,28 @@ export class StreamWorkbenchView extends ItemView {
     const urlHintIcon = this.urlHintEl.createSpan({ cls: "tm-url-hint-icon" });
     setIcon(urlHintIcon, "link");
     this.urlHintEl.createSpan({ text: t("compose_url_hint") });
+
+    // AI polish button
+    const polishBtn = inputBar.createEl("button", {
+      cls: "tm-btn-secondary tm-btn-icon-only tm-btn-polish",
+      attr: { "aria-label": t("stream_btn_polish"), title: t("stream_btn_polish") },
+    });
+    setIcon(polishBtn, "sparkles");
+    polishBtn.addEventListener("click", async () => {
+      const val = this.inputEl.value.trim();
+      if (!val) return;
+      polishBtn.addClass("tm-btn-spinning");
+      try {
+        const polished = await this.plugin.kernelService.polishText(val);
+        if (polished) {
+          this.inputEl.value = polished;
+          this.autoGrowTextarea(this.inputEl);
+          new Notice(t("stream_polish_success"));
+        }
+      } finally {
+        polishBtn.removeClass("tm-btn-spinning");
+      }
+    });
 
     this.submitBtn = inputBar.createEl("button", {
       text: t("quick_capture_log_it"),
@@ -540,8 +563,11 @@ export class StreamWorkbenchView extends ItemView {
 
   async refreshStream(): Promise<void> {
     const { streamContainer } = this;
+    const scrollParent = (this.contentEl.closest(".view-content") as HTMLElement) || this.contentEl;
+    const savedScroll = scrollParent.scrollTop;
 
-    if (!this.streamLoading) {
+    const isFirstLoad = streamContainer.childElementCount === 0;
+    if (isFirstLoad && !this.streamLoading) {
       this.streamLoading = true;
       streamContainer.empty();
       streamContainer.createDiv({
@@ -605,6 +631,14 @@ export class StreamWorkbenchView extends ItemView {
 
       // Render entries with day grouping (parse from period note content)
       this.renderStreamEntries(streamContainer, this.currentEntries, selectedPath, content);
+
+      // Restore scroll position after rendering to eliminate jumping
+      if (savedScroll > 0) {
+        scrollParent.scrollTop = savedScroll;
+        requestAnimationFrame(() => {
+          scrollParent.scrollTop = savedScroll;
+        });
+      }
     } catch (err) {
       this.streamLoading = false;
       streamContainer.empty();
@@ -756,12 +790,118 @@ export class StreamWorkbenchView extends ItemView {
       this.app.workspace.openLinkText(periodPath, "", false);
     });
 
+    // Append continuation button
+    const appendBtn = actionsEl.createEl("button", {
+      cls: "tm-card-action-btn",
+      attr: { "aria-label": t("stream_btn_append"), title: t("stream_btn_append") },
+    });
+    setIcon(appendBtn, "message-square-plus");
+
+    let appendBox: HTMLElement | null = null;
+    appendBtn.addEventListener("click", (e: MouseEvent) => {
+      e.stopPropagation();
+      if (appendBox) {
+        appendBox.remove();
+        appendBox = null;
+        return;
+      }
+      appendBox = card.createDiv({ cls: "tm-card-append-box" });
+      const appendField = appendBox.createEl("textarea", {
+        cls: "tm-append-field",
+        attr: {
+          placeholder: t("stream_append_placeholder"),
+          rows: "2",
+        },
+      });
+      appendField.focus();
+
+      const appendActions = appendBox.createDiv({ cls: "tm-append-actions" });
+      const cancelBtn = appendActions.createEl("button", {
+        cls: "tm-btn-ghost tm-btn-sm",
+        text: t("stream_append_cancel"),
+      });
+      cancelBtn.addEventListener("click", (ce: MouseEvent) => {
+        ce.stopPropagation();
+        appendBox?.remove();
+        appendBox = null;
+      });
+
+      const submitAppendBtn = appendActions.createEl("button", {
+        cls: "tm-submit-btn tm-btn-sm",
+        text: t("stream_append_submit"),
+      });
+
+      const doSubmit = async () => {
+        const text = appendField.value.trim();
+        if (!text) return;
+        submitAppendBtn.disabled = true;
+        submitAppendBtn.textContent = "...";
+        try {
+          const res = this.plugin.kernelService.appendStreamEntry({
+            relativePath: periodPath,
+            content: text,
+            heading: entry.heading,
+            startLine: entry.startLine,
+            endLine: entry.endLine,
+            anchorText: entry.text || undefined,
+          });
+          if (res.ok) {
+            appendBox?.remove();
+            appendBox = null;
+            await this.refreshStream();
+          }
+        } finally {
+          if (submitAppendBtn) {
+            submitAppendBtn.disabled = false;
+            submitAppendBtn.textContent = t("stream_append_submit");
+          }
+        }
+      };
+
+      appendField.addEventListener("keydown", (ev: KeyboardEvent) => {
+        if (ev.key === "Enter" && !ev.shiftKey) {
+          ev.preventDefault();
+          void doSubmit();
+        } else if (ev.key === "Escape") {
+          appendBox?.remove();
+          appendBox = null;
+        }
+      });
+      submitAppendBtn.addEventListener("click", (se: MouseEvent) => {
+        se.stopPropagation();
+        void doSubmit();
+      });
+    });
+
     // Collapse only very long cards (>600 chars or >20 non-empty lines).
     // Desktop feed expand is 480/8; this page uses a looser 600/20 so more cards stay open.
     const displayText = prepareStreamEntryTextForDisplay(entry.text);
+    const { main, appends } = splitStreamPreviewParts(displayText);
     const isLongContent = displayText.length > 600 || displayText.split("\n").filter((l: string) => l.trim()).length > 20;
     const body = card.createDiv({ cls: isLongContent ? "tm-card-body tm-collapsed" : "tm-card-body" });
-    if (displayText) {
+    if (appends.length > 0) {
+      if (main) {
+        try {
+          await MarkdownRenderer.render(this.app, main, body, "", this);
+        } catch {
+          body.textContent = main;
+        }
+      }
+      const appendsContainer = card.createDiv({ cls: "tm-stream-appends" });
+      for (const a of appends) {
+        const block = appendsContainer.createDiv({ cls: "tm-stream-append-block" });
+        const titleEl = block.createDiv({ cls: "tm-stream-append-title" });
+        titleEl.textContent = a.title;
+        if (a.body) {
+          const appendBody = block.createDiv({ cls: "tm-stream-append-body" });
+          try {
+            await MarkdownRenderer.render(this.app, a.body, appendBody, "", this);
+          } catch {
+            appendBody.textContent = a.body;
+          }
+        }
+      }
+    } else if (displayText) {
       try {
         await MarkdownRenderer.render(this.app, displayText, body, "", this);
       } catch {
@@ -799,7 +939,7 @@ export class StreamWorkbenchView extends ItemView {
     this.suggestionInFlight = true;
 
     const { suggestionContainer } = this;
-    suggestionContainer.empty();
+    const isFirstLoad = suggestionContainer.childElementCount === 0;
 
     // Check states in order: workspace not ready → AI not configured → suggestions disabled → loading → content
     if (!this.plugin.kernelService.isWorkspaceReady()) {
@@ -809,11 +949,11 @@ export class StreamWorkbenchView extends ItemView {
 
     const aiConfigured = hasConfiguredProvider(this.plugin.settings.ai);
     if (!aiConfigured) {
-      this.renderSuggestionState(suggestionContainer, t("suggestions_no_ai"), t("suggestions_no_ai_hint"));
-      // Add actionable configure button
-      const actionDiv = suggestionContainer.createDiv({ cls: "tm-empty-action" });
-      const configureBtn = actionDiv.createEl("button", {
-        cls: "tm-btn-init-workspace",
+      suggestionContainer.empty();
+      const quiet = suggestionContainer.createDiv({ cls: "tm-suggestions-quiet" });
+      quiet.createSpan({ text: t("suggestions_no_ai"), cls: "tm-quiet-label" });
+      const configureBtn = quiet.createEl("button", {
+        cls: "tm-btn-ghost tm-btn-sm",
         text: t("empty_action_configure"),
       });
       configureBtn.addEventListener("click", () => this.openSettings());
@@ -821,9 +961,12 @@ export class StreamWorkbenchView extends ItemView {
       return;
     }
 
-    // Show loading
-    const loadingEl = suggestionContainer.createDiv({ cls: "tm-loading tm-loading-spinner" });
-    loadingEl.createSpan({ text: t("suggestions_loading") });
+    // Show loading spinner only if first load or explicitly forced
+    if (isFirstLoad || opts.force) {
+      suggestionContainer.empty();
+      const loadingEl = suggestionContainer.createDiv({ cls: "tm-loading tm-loading-spinner" });
+      loadingEl.createSpan({ text: t("suggestions_loading") });
+    }
 
     try {
       const suggestions = await this.plugin.kernelService.generateSuggestions(opts);
@@ -831,11 +974,13 @@ export class StreamWorkbenchView extends ItemView {
       suggestionContainer.empty();
 
       if (suggestions.length === 0) {
-        if (!this.plugin.settings.autoSuggest && opts.force !== true) {
-          this.renderSuggestionState(suggestionContainer, t("suggestions_disabled"), t("suggestions_disabled_hint"));
-        } else {
-          this.renderSuggestionState(suggestionContainer, t("suggestions_empty"), t("suggestions_empty_hint"));
-        }
+        const quiet = suggestionContainer.createDiv({ cls: "tm-suggestions-quiet" });
+        quiet.createSpan({
+          text: !this.plugin.settings.autoSuggest && opts.force !== true
+            ? t("suggestions_disabled")
+            : t("suggestions_empty"),
+          cls: "tm-quiet-label",
+        });
         return;
       }
 

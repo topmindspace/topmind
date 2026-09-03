@@ -5,23 +5,25 @@
  * - 建议入口在 StatusBar 计数 chip（统一）→ SuggestPopover 确认
  * - 本视图不挂第二套建议列表；整理候选合入 SuggestPopover
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  CalendarDays,
-  Loader2,
-  RefreshCw,
-  FileText,
-  ChevronRight,
-  Wand2,
-  ChevronDown,
-  Send,
-  Sparkles,
-  MessageSquarePlus,
-  Link,
-  Archive,
-  UserRound,
-} from "lucide-react";
+  RiArrowDownSLine,
+  RiArrowGoBackLine,
+  RiArrowRightSLine,
+  RiArrowUpLine,
+  RiCalendar2Line,
+  RiChatNewLine,
+  RiFileTextLine,
+  RiInboxArchiveLine,
+  RiLink,
+  RiLoader4Line,
+  RiMagicLine,
+  RiRefreshLine,
+  RiSendPlane2Line,
+  RiSparklingLine,
+  RiUser3Line,
+} from "@remixicon/react";
 import { api } from "../../../services/api";
 import { emitLocal, onLocal } from "../../../plugins/host";
 import { useViewStore } from "../../../stores/view-store";
@@ -88,11 +90,13 @@ function StreamNestedAppends({
 }) {
   if (appends.length === 0) return null;
   return (
-    <div className="mt-1.5 space-y-1 border-l-2 border-accent-border-subtle/40 pl-2.5" data-stream-nested-appends>
+    <div className="relative mt-2 space-y-1.5 border-l-2 border-accent-border-subtle/50 pl-3" data-stream-nested-appends>
       {(showFull ? appends : appends.slice(0, 1)).map((a) => {
         const replyTime = extractBodyTimestamp(a.body);
         return (
-          <div key={a.index} className="flex items-start gap-1.5 text-3xs text-text-secondary" data-stream-append-card>
+          <div key={a.index} className="relative flex items-start gap-1.5 text-3xs text-text-secondary" data-stream-append-card>
+            {/* Thread branch line indicator */}
+            <span className="absolute -left-3 top-2.5 h-px w-2 bg-accent-border-subtle/60" aria-hidden />
             {replyTime ? (
               <span className="mt-0.5 shrink-0 font-medium tabular-nums text-text-quaternary">{replyTime}</span>
             ) : null}
@@ -109,7 +113,8 @@ function StreamNestedAppends({
         );
       })}
       {!showFull && appends.length > 1 ? (
-        <div className="text-3xs text-text-quaternary">
+        <div className="relative pl-0.5 text-3xs text-text-quaternary">
+          <span className="absolute -left-3 top-2 h-px w-2 bg-accent-border-subtle/40" aria-hidden />
           +{appends.length - 1} {t("workspace:streamDetail.moreAppends")}
         </div>
       ) : null}
@@ -120,8 +125,9 @@ function StreamNestedAppends({
 /**
  * One feed row inside a day panel — moment/prose (compact), article (title+summary),
  * with nested appends. Expand only when content is truly long.
+ * Wrapped in React.memo to isolate card renders from compose-box typing & scroll.
  */
-function StreamFeedRowView({
+const StreamFeedRowView = memo(function StreamFeedRowView({
   row,
   isToday,
   expanded,
@@ -144,15 +150,16 @@ function StreamFeedRowView({
   appendText: string;
   appending: boolean;
   activePath: string | null;
-  onToggleExpand: () => void;
+  onToggleExpand: (index: number) => void;
   onOpenPeriod: (heading?: string) => void;
-  onToggleAppend: () => void;
-  onAppendText: (v: string) => void;
-  onAppendSubmit: () => void;
-  onAppendCancel: () => void;
+  onToggleAppend: (index: number, headingOrPreview?: string) => void;
+  onAppendText: (v: string, headingOrPreview?: string) => void;
+  onAppendSubmit: (entry: StreamEntry) => void;
+  onAppendCancel: (headingOrPreview?: string) => void;
   t: TFunction;
 }) {
   const { entry, kind, appends } = row;
+  const headingOrPreview = entry.heading || entry.preview;
   const bodyTime = extractBodyTimestamp(entry.body);
   const needsExpand = streamEntryNeedsExpand(entry, {
     nestedAppendCount: appends.length,
@@ -181,7 +188,7 @@ function StreamFeedRowView({
             data-stream-article-open
           >
             <div className="flex items-start gap-2">
-              <FileText size={ICON.xs} className="mt-0.5 shrink-0 text-accent-color/80" aria-hidden />
+              <RiFileTextLine size={ICON.xs} className="mt-0.5 shrink-0 text-accent-color/80" aria-hidden />
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-semibold tracking-tight text-text-primary">
                   {title}
@@ -193,7 +200,7 @@ function StreamFeedRowView({
                 ) : null}
                 <div className="mt-1.5 flex items-center gap-1 text-3xs font-medium text-accent-color">
                   {t("workspace:streamDetail.openArticle")}
-                  <ChevronRight size={ICON.nano} aria-hidden />
+                  <RiArrowRightSLine size={ICON.nano} aria-hidden />
                 </div>
               </div>
             </div>
@@ -202,11 +209,11 @@ function StreamFeedRowView({
             <Tooltip content={t("workspace:streamDetail.appendTip")}>
               <button
                 type="button"
-                onClick={onToggleAppend}
+                onClick={() => onToggleAppend(entry.index, headingOrPreview)}
                 className="flex h-6 w-6 items-center justify-center rounded-sm text-text-quaternary hover:bg-surface-muted hover:text-accent-color"
                 aria-label={t("workspace:streamDetail.append")}
               >
-                <MessageSquarePlus size={ICON.nano} />
+                <RiChatNewLine size={ICON.xs} />
               </button>
             </Tooltip>
           </div>
@@ -220,11 +227,11 @@ function StreamFeedRowView({
         {needsExpand ? (
           <button
             type="button"
-            onClick={onToggleExpand}
+            onClick={() => onToggleExpand(entry.index)}
             className="mt-1 flex items-center gap-1 text-3xs text-text-quaternary transition-colors hover:text-accent-color"
             data-stream-expand-toggle
           >
-            <ChevronDown
+            <RiArrowDownSLine
               size={ICON.nano}
               className={cn("transition-transform", expanded && "rotate-180")}
             />
@@ -243,7 +250,18 @@ function StreamFeedRowView({
               value={appendText}
               disabled={appending}
               placeholder={t("workspace:streamDetail.appendPlaceholder")}
-              onChange={(e) => onAppendText(e.target.value)}
+              onChange={(e) => onAppendText(e.target.value, headingOrPreview)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault();
+                  if (!appending && appendText.trim() && activePath) {
+                    onAppendSubmit(entry);
+                  }
+                } else if (e.key === "Escape") {
+                  e.preventDefault();
+                  onAppendCancel(headingOrPreview);
+                }
+              }}
               className={cn(
                 "w-full resize-y min-h-9 max-h-28 bg-transparent",
                 "text-sm leading-relaxed text-text-primary placeholder:text-text-quaternary",
@@ -258,7 +276,7 @@ function StreamFeedRowView({
                 variant="ghost"
                 className="h-7 text-3xs"
                 disabled={appending}
-                onClick={onAppendCancel}
+                onClick={() => onAppendCancel(headingOrPreview)}
               >
                 {t("workspace:streamDetail.appendCancel")}
               </Button>
@@ -267,12 +285,12 @@ function StreamFeedRowView({
                 size="sm"
                 className="h-7"
                 disabled={appending || !appendText.trim() || !activePath}
-                onClick={onAppendSubmit}
+                onClick={() => onAppendSubmit(entry)}
               >
                 {appending ? (
-                  <Loader2 size={ICON.nano} className="animate-spin" />
+                  <RiLoader4Line size={ICON.xs} className="animate-spin" />
                 ) : (
-                  <MessageSquarePlus size={ICON.nano} />
+                  <RiChatNewLine size={ICON.xs} />
                 )}
                 {t("workspace:streamDetail.appendSubmit")}
               </Button>
@@ -326,11 +344,11 @@ function StreamFeedRowView({
               <Tooltip content={t("workspace:streamDetail.appendTip")}>
                 <button
                   type="button"
-                  onClick={onToggleAppend}
+                  onClick={() => onToggleAppend(entry.index, headingOrPreview)}
                   className="flex h-6 w-6 items-center justify-center rounded-sm text-text-quaternary hover:bg-surface-muted hover:text-accent-color"
                   aria-label={t("workspace:streamDetail.append")}
                 >
-                  <MessageSquarePlus size={ICON.nano} />
+                  <RiChatNewLine size={ICON.xs} />
                 </button>
               </Tooltip>
               <Tooltip content={t("workspace:streamDetail.openInEditorTip")}>
@@ -341,7 +359,7 @@ function StreamFeedRowView({
                   aria-label={t("workspace:streamDetail.openInEditor")}
                   data-stream-open-segment
                 >
-                  <FileText size={ICON.nano} />
+                  <RiFileTextLine size={ICON.xs} />
                 </button>
               </Tooltip>
             </div>
@@ -357,11 +375,11 @@ function StreamFeedRowView({
           {needsExpand ? (
             <button
               type="button"
-              onClick={onToggleExpand}
+              onClick={() => onToggleExpand(entry.index)}
               className="mt-1 flex items-center gap-1 text-3xs text-text-quaternary transition-colors hover:text-accent-color"
               data-stream-expand-toggle
             >
-              <ChevronDown
+              <RiArrowDownSLine
                 size={ICON.nano}
                 className={cn("transition-transform", expanded && "rotate-180")}
               />
@@ -381,7 +399,18 @@ function StreamFeedRowView({
                 value={appendText}
                 disabled={appending}
                 placeholder={t("workspace:streamDetail.appendPlaceholder")}
-                onChange={(e) => onAppendText(e.target.value)}
+                onChange={(e) => onAppendText(e.target.value, headingOrPreview)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                    e.preventDefault();
+                    if (!appending && appendText.trim() && activePath) {
+                      onAppendSubmit(entry);
+                    }
+                  } else if (e.key === "Escape") {
+                    e.preventDefault();
+                    onAppendCancel(headingOrPreview);
+                  }
+                }}
                 className={cn(
                   "w-full resize-y min-h-9 max-h-28 bg-transparent",
                   "text-sm leading-relaxed text-text-primary placeholder:text-text-quaternary",
@@ -396,7 +425,7 @@ function StreamFeedRowView({
                   variant="ghost"
                   className="h-7 text-3xs"
                   disabled={appending}
-                  onClick={onAppendCancel}
+                  onClick={() => onAppendCancel(headingOrPreview)}
                 >
                   {t("workspace:streamDetail.appendCancel")}
                 </Button>
@@ -405,12 +434,12 @@ function StreamFeedRowView({
                   size="sm"
                   className="h-7"
                   disabled={appending || !appendText.trim() || !activePath}
-                  onClick={onAppendSubmit}
+                  onClick={() => onAppendSubmit(entry)}
                 >
                   {appending ? (
-                    <Loader2 size={ICON.nano} className="animate-spin" />
+                    <RiLoader4Line size={ICON.xs} className="animate-spin" />
                   ) : (
-                    <MessageSquarePlus size={ICON.nano} />
+                    <RiChatNewLine size={ICON.xs} />
                   )}
                   {t("workspace:streamDetail.appendSubmit")}
                 </Button>
@@ -421,7 +450,7 @@ function StreamFeedRowView({
       </div>
     </article>
   );
-}
+});
 
 /**
  * Quiet-paper Markdown body for stream cards.
@@ -585,6 +614,7 @@ export function StreamDetailView() {
   const [composeText, setComposeText] = useState("");
   const [composing, setComposing] = useState(false);
   const [polishing, setPolishing] = useState(false);
+  const [polishBackup, setPolishBackup] = useState<string | null>(null);
   const polishSessionRef = useRef<string | null>(null);
   /** Compose URL detection — when true, show hint to open Note it (记一下) for fetch. */
   const composeIsUrl = useMemo(
@@ -634,6 +664,32 @@ export function StreamDetailView() {
   useEffect(() => {
     if (!todoEverLoaded) void useTodoStore.getState().refresh();
   }, [todoEverLoaded]);
+
+  // Auto-grow textarea height as user types
+  useEffect(() => {
+    const el = composeRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const nextH = Math.max(48, Math.min(el.scrollHeight, 280));
+    el.style.height = `${nextH}px`;
+  }, [composeText]);
+
+  // Floating back-to-top detection (Fitts's law affordance for long streams)
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  useEffect(() => {
+    let ticking = false;
+    const handleScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        ticking = false;
+        const scrollY = window.scrollY || document.documentElement.scrollTop;
+        setShowBackToTop(scrollY > 400);
+      });
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const loadPeriodContent = useCallback(async (relPath: string | null, opts?: { silent?: boolean }) => {
     const silent = Boolean(opts?.silent);
@@ -889,6 +945,7 @@ export function StreamDetailView() {
       if (polishSessionRef.current !== sessionId) return;
       if (!useInlineAiStore.getState().sessions.some((s) => s.id === sessionId)) return;
       if (polished) {
+        setPolishBackup(text);
         updateComposeText(polished);
         emitLocal("toast:show", t("workspace:streamDetail.composeAiPolishDone"));
       }
@@ -973,6 +1030,42 @@ export function StreamDetailView() {
     [appendText, activePath, appending, t, loadPeriodContent],
   );
 
+  const handleToggleAppend = useCallback(
+    (index: number, headingOrPreview?: string) => {
+      setAppendIdx((cur) => (cur === index ? null : index));
+      setAppendText(
+        appendDrafts.get(appendDraftKey(activePath, headingOrPreview)) ?? "",
+      );
+    },
+    [activePath],
+  );
+
+  const handleUpdateAppendText = useCallback(
+    (v: string, headingOrPreview?: string) => {
+      setAppendText(v);
+      const key = appendDraftKey(activePath, headingOrPreview);
+      if (v.trim()) appendDrafts.set(key, v);
+      else appendDrafts.delete(key);
+    },
+    [activePath],
+  );
+
+  const handleAppendSubmit = useCallback(
+    (entry: StreamEntry) => {
+      void handleAppendEntry(entry);
+    },
+    [handleAppendEntry],
+  );
+
+  const handleAppendCancel = useCallback(
+    (headingOrPreview?: string) => {
+      appendDrafts.delete(appendDraftKey(activePath, headingOrPreview));
+      setAppendIdx(null);
+      setAppendText("");
+    },
+    [activePath],
+  );
+
   /** Inline compose — append to current period stream via workspace.ingestInbox. */
   const handleInlineCompose = useCallback(async () => {
     const text = composeText.trim();
@@ -995,6 +1088,7 @@ export function StreamDetailView() {
         return;
       }
       updateComposeText("");
+      setPolishBackup(null);
       toastWriteback(t("workspace:streamDetail.composeOk"), res);
       emitLocal("workspace:file-changed", { relativePath: res.path || res.targetPath });
       // Prefer the period we just wrote
@@ -1117,9 +1211,9 @@ export function StreamDetailView() {
         label: t("workspace:streamDetail.aiMaintainTodos"),
         title: t("workspace:streamDetail.aiMaintainTodosTip"),
         icon: todoMaintaining ? (
-          <Loader2 size={ICON.xs} className="animate-spin" />
+          <RiLoader4Line size={ICON.xs} className="animate-spin" />
         ) : (
-          <Sparkles size={ICON.xs} />
+          <RiSparklingLine size={ICON.xs} />
         ),
         priority: 10,
         disabled: todoMaintaining,
@@ -1131,9 +1225,9 @@ export function StreamDetailView() {
         label: t("workspace:streamDetail.organize"),
         title: t("workspace:streamDetail.organizeTip"),
         icon: reconciling ? (
-          <Loader2 size={ICON.xs} className="animate-spin" />
+          <RiLoader4Line size={ICON.xs} className="animate-spin" />
         ) : (
-          <Wand2 size={ICON.xs} />
+          <RiMagicLine size={ICON.xs} />
         ),
         priority: 20,
         disabled: reconciling,
@@ -1143,7 +1237,7 @@ export function StreamDetailView() {
         id: "reload",
         label: t("common:action.refresh"),
         title: t("shell:sidebar.stream.reloadTooltip"),
-        icon: <RefreshCw size={ICON.xs} />,
+        icon: <RiRefreshLine size={ICON.xs} />,
         priority: 40,
         iconOnlyWhenCompact: true,
         onClick: () => void loadPeriodContent(activePath, { silent: true }),
@@ -1281,7 +1375,7 @@ export function StreamDetailView() {
   return (
     <ViewContainer variant="feed">
       <PageHeader
-        icon={<CalendarDays size={ICON.sm} />}
+        icon={<RiCalendar2Line size={ICON.sm} />}
         title={periodTitle}
         subtitle={
           entries.length > 0
@@ -1348,7 +1442,7 @@ export function StreamDetailView() {
               onClick={() => setShowMoreThisYear((v) => !v)}
               className="inline-flex h-(--control-h-chip) items-center gap-0.5 rounded-full px-2 text-3xs font-medium text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-secondary"
             >
-              <ChevronDown
+              <RiArrowDownSLine
                 size={ICON.nano}
                 className={cn("transition-transform", showMoreThisYear && "rotate-180")}
               />
@@ -1388,7 +1482,7 @@ export function StreamDetailView() {
                 onClick={() => setExpandedPastYear(expandedPastYear ? null : "list")}
                 className="inline-flex h-(--control-h-chip) items-center gap-0.5 rounded-full px-2 text-3xs font-medium text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-secondary"
               >
-                <ChevronDown
+                <RiArrowDownSLine
                   size={ICON.nano}
                   className={cn("transition-transform", expandedPastYear && "rotate-180")}
                 />
@@ -1454,15 +1548,15 @@ export function StreamDetailView() {
                                 title={t("workspace:streamDetail.archiveYear")}
                               >
                                 {archivingYear === y.year ? (
-                                  <Loader2 size={ICON.nano} className="animate-spin" />
+                                  <RiLoader4Line size={ICON.micro} className="animate-spin" />
                                 ) : (
-                                  <Archive size={ICON.nano} />
+                                  <RiInboxArchiveLine size={ICON.micro} />
                                 )}
                                 {t("workspace:streamDetail.archiveYear")}
                               </button>
                             ) : (
                               <span className="inline-flex h-(--control-h-chip) items-center gap-0.5 rounded-full px-2 text-3xs font-medium text-text-quaternary">
-                                <Archive size={ICON.nano} />
+                                <RiInboxArchiveLine size={ICON.micro} />
                                 {t("common:status.archived")}
                               </span>
                             )}
@@ -1502,30 +1596,33 @@ export function StreamDetailView() {
           无 label/hint meta 行（降噪 2026-08）：placeholder 承担引导，计数在 PageHeader subtitle。 */}
       {composeIsUrl ? (
         <div
-          className="mb-2 flex items-center gap-2 rounded-md border border-accent-border-subtle/50 bg-accent-bg-faint/20 px-2.5 py-1.5"
+          className="mb-2 flex items-center justify-between gap-2 rounded-lg border border-accent-border-subtle/40 bg-accent-bg-faint/30 px-3 py-1.5 transition-all duration-200"
           data-stream-compose-url-hint
         >
-          <Link size={ICON.nano} className="shrink-0 text-accent-color" aria-hidden />
-          <span className="min-w-0 flex-1 text-3xs text-text-secondary">
-            {t("workspace:streamDetail.composeUrlHint")}
-          </span>
+          <div className="flex min-w-0 items-center gap-1.5">
+            <RiLink size={ICON.xs} className="shrink-0 text-accent-color" aria-hidden />
+            <span className="min-w-0 truncate text-3xs font-medium text-text-secondary">
+              {t("workspace:streamDetail.composeUrlHint")}
+            </span>
+          </div>
           <button
             type="button"
             onClick={() => {
               emitLocal("overlay:open", { kind: "quick-capture", prefill: { source: composeText.trim() } } as never);
               updateComposeText("");
             }}
-            className="shrink-0 rounded-full bg-accent-bg-subtle px-2 py-0.5 text-3xs font-medium text-accent-color hover:bg-accent-bg-faint/40 v4-focus-ring"
+            className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent-color/10 px-2.5 py-0.5 text-3xs font-medium text-accent-color transition-colors hover:bg-accent-color/20 v4-focus-ring"
           >
-            {t("workspace:streamDetail.composeUrlAction")}
+            <span>{t("workspace:streamDetail.composeUrlAction")}</span>
+            <RiArrowRightSLine size={ICON.nano} aria-hidden />
           </button>
         </div>
       ) : null}
       <div
         className={cn(
-          "v4-stream-composer mb-2.5 rounded-lg",
-          "bg-surface-elevated shadow-(--shadow-card)",
-          "px-3 py-2",
+          "v4-stream-composer mb-2.5 rounded-xl border border-border-subtle-dim/80",
+          "bg-surface-elevated shadow-(--shadow-card) transition-all duration-200",
+          "px-3.5 py-2.5",
         )}
         data-stream-inline-composer
       >
@@ -1554,33 +1651,51 @@ export function StreamDetailView() {
             }
           }}
           className={cn(
-            "w-full resize-y min-h-11 max-h-40 bg-transparent",
+            "w-full resize-none min-h-[48px] max-h-72 bg-transparent",
             "text-md leading-[1.62] text-text-primary placeholder:text-text-quaternary",
-            "outline-none border-0 focus:ring-0",
+            "outline-none border-0 focus:ring-0 transition-[height] duration-75",
           )}
         />
         {polishing ? (
           <div
-            className="mt-1.5 h-0.5 w-full overflow-hidden rounded-full bg-accent-bg-subtle"
+            className="mt-2 h-1 w-full overflow-hidden rounded-full bg-accent-bg-subtle v4-ai-shimmer-track"
             role="progressbar"
             data-stream-polish-busy
             aria-valuetext={t("workspace:streamDetail.composeAiPolish")}
           >
-            <div className="h-full w-1/3 v4-ai-progress-slide rounded-full bg-accent-color/50" />
+            <div className="h-full w-full v4-ai-progress-slide rounded-full bg-accent-color/30" />
           </div>
         ) : null}
-        <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2 border-t border-border-subtle-dim/70 pt-1.5">
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-border-subtle-dim/70 pt-2">
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
             {/* Tertiary: full capture lives in title bar「记一下」 */}
             <button
               type="button"
               onClick={handleCapture}
-              className="text-3xs text-text-quaternary underline-offset-2 hover:text-accent-color hover:underline v4-focus-ring rounded-sm"
+              className="text-3xs text-text-quaternary underline-offset-2 transition-colors hover:text-accent-color hover:underline v4-focus-ring rounded-sm"
             >
               {t("workspace:streamDetail.composeFullCapture")}
             </button>
           </div>
           <div className="flex items-center gap-1.5">
+            {polishBackup && polishBackup !== composeText ? (
+              <Tooltip content={t("workspace:streamDetail.composeRevertOriginal")}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 text-3xs text-text-quaternary transition-colors hover:text-text-primary"
+                  onClick={() => {
+                    updateComposeText(polishBackup);
+                    setPolishBackup(null);
+                  }}
+                  aria-label={t("workspace:streamDetail.revert")}
+                >
+                  <RiArrowGoBackLine size={ICON.xs} />
+                  <span>{t("workspace:streamDetail.revert")}</span>
+                </Button>
+              </Tooltip>
+            ) : null}
             <Tooltip
               content={
                 aiReady
@@ -1599,9 +1714,9 @@ export function StreamDetailView() {
                 data-stream-compose-polish
               >
                 {polishing ? (
-                  <Loader2 size={ICON.nano} className="animate-spin" />
+                  <RiLoader4Line size={ICON.xs} className="animate-spin" />
                 ) : (
-                  <Sparkles size={ICON.nano} />
+                  <RiSparklingLine size={ICON.xs} />
                 )}
                 {t("workspace:streamDetail.composeAiPolish")}
               </Button>
@@ -1609,15 +1724,15 @@ export function StreamDetailView() {
             <Button
               type="button"
               size="sm"
-              className="h-7 gap-1"
+              className="h-7 gap-1 font-medium transition-transform active:scale-[0.98]"
               disabled={composing || polishing || !composeText.trim()}
               onClick={() => void handleInlineCompose()}
               data-stream-compose-submit
             >
               {composing ? (
-                <Loader2 size={ICON.nano} className="animate-spin" />
+                <RiLoader4Line size={ICON.xs} className="animate-spin" />
               ) : (
-                <Send size={ICON.nano} />
+                <RiSendPlane2Line size={ICON.xs} />
               )}
               {t("workspace:streamDetail.composeSubmit")}
               <kbd className="v4-kbd v4-kbd-sm ml-0.5 opacity-80">⌘↵</kbd>
@@ -1636,7 +1751,7 @@ export function StreamDetailView() {
             className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-3xs font-medium text-text-tertiary transition-colors hover:bg-surface-muted hover:text-accent-color v4-focus-ring"
             aria-label={t("workspace:streamDetail.openMemory")}
           >
-            <UserRound size={ICON.nano} aria-hidden />
+            <RiUser3Line size={ICON.xs} aria-hidden />
             <span>{t("workspace:streamDetail.openMemory")}</span>
           </button>
         </Tooltip>
@@ -1644,7 +1759,7 @@ export function StreamDetailView() {
 
       {entries.length === 0 ? (
         <EmptyState
-          icon={<CalendarDays size={ICON.md} />}
+          icon={<RiCalendar2Line size={ICON.md} />}
           title={t("shell:sidebar.stream.emptyTitle")}
           hint={t("workspace:streamDetail.emptyComposerHint")}
           action={
@@ -1652,7 +1767,7 @@ export function StreamDetailView() {
               size="sm"
               onClick={() => composeRef.current?.focus()}
             >
-              <Send size={ICON.xs} /> {t("workspace:streamDetail.composeFocus")}
+              <RiSendPlane2Line size={ICON.xs} /> {t("workspace:streamDetail.composeFocus")}
             </Button>
           }
         />
@@ -1681,7 +1796,7 @@ export function StreamDetailView() {
                   aria-expanded={!dayCollapsed}
                   data-stream-day-toggle
                 >
-                  <ChevronDown
+                  <RiArrowDownSLine
                     size={ICON.nano}
                     className={cn(
                       "shrink-0 text-text-quaternary transition-transform",
@@ -1716,35 +1831,15 @@ export function StreamDetailView() {
                         isToday={isTodayGroupKey(group.dayKey) && isCurrentPeriod}
                         expanded={expandedIdx.has(row.entry.index)}
                         appendOpen={appendIdx === row.entry.index}
-                        appendText={appendText}
+                        appendText={appendIdx === row.entry.index ? appendText : ""}
                         appending={appending}
                         activePath={activePath}
-                        onToggleExpand={() => toggleExpand(row.entry.index)}
-                        onOpenPeriod={(h) => handleOpenPeriod(h)}
-                        onToggleAppend={() => {
-                          setAppendIdx((cur) =>
-                            cur === row.entry.index ? null : row.entry.index,
-                          );
-                          setAppendText(
-                            appendDrafts.get(
-                              appendDraftKey(activePath, row.entry.heading || row.entry.preview),
-                            ) ?? "",
-                          );
-                        }}
-                        onAppendText={(v: string) => {
-                          setAppendText(v);
-                          const key = appendDraftKey(activePath, row.entry.heading || row.entry.preview);
-                          if (v.trim()) appendDrafts.set(key, v);
-                          else appendDrafts.delete(key);
-                        }}
-                        onAppendSubmit={() => void handleAppendEntry(row.entry)}
-                        onAppendCancel={() => {
-                          appendDrafts.delete(
-                            appendDraftKey(activePath, row.entry.heading || row.entry.preview),
-                          );
-                          setAppendIdx(null);
-                          setAppendText("");
-                        }}
+                        onToggleExpand={toggleExpand}
+                        onOpenPeriod={handleOpenPeriod}
+                        onToggleAppend={handleToggleAppend}
+                        onAppendText={handleUpdateAppendText}
+                        onAppendSubmit={handleAppendSubmit}
+                        onAppendCancel={handleAppendCancel}
                         t={t}
                       />
                     ))}
@@ -1757,9 +1852,9 @@ export function StreamDetailView() {
           {activePath ? (
             <div className="flex justify-center pt-1">
               <Button variant="outline" size="sm" onClick={() => handleOpenPeriod()}>
-                <FileText size={ICON.xs} />
+                <RiFileTextLine size={ICON.xs} />
                 {t("shell:sidebar.stream.openFull")}
-                <ChevronRight size={ICON.nano} />
+                <RiArrowRightSLine size={ICON.nano} />
               </Button>
             </div>
           ) : null}
@@ -1787,6 +1882,27 @@ export function StreamDetailView() {
           if (year) void runArchiveYear(year);
         }}
       />
+
+      {/* Floating Back to Top / Compose Button (Fitts's Law) */}
+      {showBackToTop ? (
+        <button
+          type="button"
+          onClick={() => {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            composeRef.current?.focus();
+          }}
+          className={cn(
+            "fixed bottom-6 right-8 z-30 flex items-center gap-1.5 rounded-full px-3 py-1.5",
+            "bg-surface-elevated/95 text-text-secondary shadow-lg backdrop-blur-md border border-border-subtle",
+            "text-3xs font-medium transition-all hover:bg-accent-bg-subtle hover:text-accent-color hover:border-accent-border-subtle",
+            "v4-focus-ring",
+          )}
+          aria-label={t("workspace:streamDetail.backToTop", { defaultValue: "回顶并记下" })}
+        >
+          <RiArrowUpLine size={ICON.xs} />
+          <span>{t("workspace:streamDetail.backToTop", { defaultValue: "回顶并记下" })}</span>
+        </button>
+      ) : null}
     </ViewContainer>
   );
 }

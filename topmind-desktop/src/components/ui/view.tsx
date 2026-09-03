@@ -13,7 +13,12 @@
  */
 import { createContext, useContext, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { AlertCircle, AlignJustify, GalleryVertical, Loader2 } from "lucide-react";
+import {
+  RiAlignJustify,
+  RiErrorWarningLine,
+  RiGalleryView2,
+  RiLoader4Line,
+} from "@remixicon/react";
 import { cn } from "../../lib/cn";
 import { ICON } from "../../lib/icons";
 import type { FeedLayout } from "../../types";
@@ -41,8 +46,8 @@ export function ViewContainer({
       className={cn(
         "mx-auto w-full",
         variant === "feed"
-          ? "max-w-[min(var(--feed-column-max,44rem),100%)]"
-          : "max-w-[var(--content-max-width-dashboard,880px)]",
+          ? "max-w-[min(var(--feed-column-max,72rem),100%)]"
+          : "max-w-[min(var(--content-max-width-dashboard,72rem),100%)]",
         "px-[var(--density-page-x,28px)] py-[var(--density-page-y,24px)]",
         className,
       )}
@@ -244,7 +249,7 @@ export function LoadingState({ label, className }: { label?: string; className?:
       role="status"
       aria-live="polite"
     >
-      <Loader2 size={ICON.sm} className="animate-spin text-accent-color/75" />
+      <RiLoader4Line size={ICON.sm} className="animate-spin text-accent-color/75" />
       <span>{displayLabel}</span>
     </div>
   );
@@ -269,7 +274,7 @@ export function ErrorState({
       )}
       role="alert"
     >
-      <AlertCircle size={ICON.sm} className="shrink-0" />
+      <RiErrorWarningLine size={ICON.sm} className="shrink-0" />
       <span className="min-w-0 flex-1 text-2xs leading-relaxed">{t("action.loadFailed", { message })}</span>
       {onRetry ? (
         <button
@@ -446,16 +451,16 @@ export function FeedLayoutToggle({
   className?: string;
 }) {
   const { t } = useTranslation(["workspace", "common"]);
-  const options: Array<{ id: FeedLayout; icon: typeof AlignJustify; label: string; hint: string }> = [
+  const options: Array<{ id: FeedLayout; icon: typeof RiAlignJustify; label: string; hint: string }> = [
     {
       id: "list",
-      icon: AlignJustify,
+      icon: RiAlignJustify,
       label: t("workspace:feedLayout.list"),
       hint: t("workspace:feedLayout.listHint"),
     },
     {
       id: "card",
-      icon: GalleryVertical,
+      icon: RiGalleryView2,
       label: t("workspace:feedLayout.card"),
       hint: t("workspace:feedLayout.cardHint"),
     },
@@ -486,7 +491,7 @@ export function FeedLayoutToggle({
                   : "text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
               )}
             >
-              <opt.icon size={ICON.nano} aria-hidden />
+              <opt.icon size={ICON.xs} aria-hidden />
               <span className="hidden sm:inline">{opt.label}</span>
             </button>
           </Tooltip>

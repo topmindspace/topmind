@@ -3,7 +3,7 @@
  * Uses shared Select(variant="chip") — single border, no nested chrome.
  */
 import { useState } from "react";
-import { Calendar, Flag, Loader2, Tag } from "lucide-react";
+import { RiCalendarLine, RiFlagLine, RiLoader4Line, RiPriceTag3Line } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { api } from "../../services/api";
 import { emitLocal } from "../../plugins/host";
@@ -109,7 +109,7 @@ export function FrontmatterBar({
             disabled={readOnly || busy}
             value={statusKey}
             aria-label={t("frontmatterBar.statusAria")}
-            leading={<Flag size={ICON.nano} />}
+            leading={<RiFlagLine size={ICON.micro} />}
             onChange={(v) => {
               const col = getStatusColumns().find((c) => c.key === v);
               if (col) void patch({ status: col.value });
@@ -151,7 +151,7 @@ export function FrontmatterBar({
             (readOnly || busy) && "opacity-50",
           )}
         >
-          <Calendar size={ICON.nano} className="shrink-0 opacity-60" aria-hidden />
+          <RiCalendarLine size={ICON.micro} className="shrink-0 opacity-60" aria-hidden />
           <input
             type="date"
             disabled={readOnly || busy}
@@ -170,7 +170,7 @@ export function FrontmatterBar({
       {tags ? (
         <Tooltip content={t("frontmatterBar.tagsTooltip", { tags })}>
           <span className="inline-flex max-w-[28%] items-center gap-1 truncate rounded-full border border-border-subtle-dim bg-surface px-2 py-0.5 text-3xs text-text-tertiary">
-            <Tag size={ICON.nano} className="shrink-0 opacity-60" />
+            <RiPriceTag3Line size={ICON.micro} className="shrink-0 opacity-60" />
             <span className="truncate">{tags}</span>
           </span>
         </Tooltip>
@@ -185,7 +185,7 @@ export function FrontmatterBar({
         </span>
       )}
 
-      {busy ? <Loader2 size={ICON.xs} className="animate-spin text-text-quaternary" /> : null}
+      {busy ? <RiLoader4Line size={ICON.xs} className="animate-spin text-text-quaternary" /> : null}
     </div>
   );
 }

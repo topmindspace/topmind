@@ -1,8 +1,17 @@
 import { useState, useRef, useEffect, useCallback, useMemo, useLayoutEffect } from "react";
 import {
-  Square, ArrowUp, Sparkles, Wrench,
-  Lightbulb, ListChecks, PenLine, Brain, Repeat, Compass, MoreHorizontal,
-} from "lucide-react";
+  RiArrowUpLine,
+  RiBrainLine,
+  RiCheckboxBlankLine,
+  RiCompass3Line,
+  RiEdit2Line,
+  RiLightbulbLine,
+  RiListCheck2,
+  RiMoreLine,
+  RiRepeat2Line,
+  RiSparklingLine,
+  RiToolsLine,
+} from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { useAiStore } from "../../stores/ai-store";
@@ -70,14 +79,14 @@ function getDefaultSkillSlash(t: TFunction): Record<string, { label: string; tip
 }
 
 /** Icon map for default skills — keyed by skillId. */
-const SKILL_ICONS: Record<string, typeof Lightbulb> = {
-  "topmind-capture": Lightbulb,
-  "topmind-organize": ListChecks,
-  "topmind-write": PenLine,
-  "topmind-memory": Brain,
-  "topmind-maintain": Wrench,
-  "topmind-loop": Repeat,
-  "topmind": Compass,
+const SKILL_ICONS: Record<string, typeof RiLightbulbLine> = {
+  "topmind-capture": RiLightbulbLine,
+  "topmind-organize": RiListCheck2,
+  "topmind-write": RiEdit2Line,
+  "topmind-memory": RiBrainLine,
+  "topmind-maintain": RiToolsLine,
+  "topmind-loop": RiRepeat2Line,
+  "topmind": RiCompass3Line,
 };
 
 /** Responsive skills row — icon+text when wide, icon-only when narrow, overflow to "more". */
@@ -137,7 +146,7 @@ function SkillButtonsRow({
               onClick={() => onApply(key)}
               className="v4-chip shrink-0"
             >
-              {Icon ? <Icon size={ICON.nano} className="shrink-0" /> : null}
+              {Icon ? <Icon size={ICON.micro} className="shrink-0" /> : null}
               {!iconOnly ? <span className="truncate">{v.label}</span> : null}
             </button>
           </Tooltip>
@@ -158,7 +167,7 @@ function SkillButtonsRow({
                 disabled={disabled}
                 aria-label={t("ai.skillsMore")}
               >
-                <MoreHorizontal size={ICON.nano} />
+                <RiMoreLine size={ICON.micro} />
               </button>
             </Tooltip>
           }
@@ -443,7 +452,7 @@ export function ChatInput() {
       <div className="v4-composer">
         <EmptyState
           compact
-          icon={<Sparkles size={ICON.md} />}
+          icon={<RiSparklingLine size={ICON.md} />}
           title={t("ai.notReadyTitle")}
           hint={t("ai.notReadyHint")}
           action={
@@ -504,7 +513,7 @@ export function ChatInput() {
             aria-expanded={showSkills}
             aria-label={t("ai.skillsLabel")}
           >
-            <Sparkles size={ICON.nano} />
+            <RiSparklingLine size={ICON.micro} />
             {sessionLoadedSkills.length > 0 ? (
               <span
                 className="absolute -right-1 -top-1 flex h-3 min-w-3 items-center justify-center rounded-full bg-accent-color px-0.5 text-5xs font-bold leading-none text-primary-foreground"
@@ -625,7 +634,7 @@ export function ChatInput() {
                   aria-label={t("ai.enterSteerLabel")}
                   className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-md)] bg-primary text-primary-foreground shadow-[var(--shadow-button)] hover:bg-primary-hover active:scale-95"
                 >
-                  <ArrowUp size={ICON.sm} />
+                  <RiArrowUpLine size={ICON.sm} />
                 </button>
               </Tooltip>
             ) : null}
@@ -636,7 +645,7 @@ export function ChatInput() {
                 onClick={() => void cancelStream()}
                 className="h-7 w-7"
               >
-                <Square size={ICON.xs} className="fill-current" />
+                <RiCheckboxBlankLine size={ICON.xs} className="fill-current" />
               </Button>
             </Tooltip>
           </div>
@@ -654,7 +663,7 @@ export function ChatInput() {
                   : "cursor-not-allowed bg-surface-muted text-text-quaternary",
               )}
             >
-              <ArrowUp size={ICON.sm} />
+              <RiArrowUpLine size={ICON.sm} />
             </button>
           </Tooltip>
         )}

@@ -7,6 +7,7 @@ import i18n from "../locales";
 import { emitLocal } from "../plugins/host";
 import { SUGGESTIONS_REFRESH_EVENT } from "../lib/ai-rail-events";
 import { engineJobSuggestionFollowUp } from "../lib/engine-job-follow-up";
+import { useActionStore } from "./action-store";
 
 /**
  * Supported engine tasks.
@@ -219,7 +220,6 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
           // Activity-window suggestions + confirm-shaped memory/topic ops
           _updateTask(taskId, { progress: 40, currentStep: i18n.t("shell:taskPanel.aiDigestAnalyzing", { ns: "shell" }) });
-          const { useActionStore } = await import("./action-store");
           const opResult = await useActionStore.getState().runActivityOps({ force: false });
           if (get().getTask(taskId)?.status === "cancelled") return;
 
@@ -266,7 +266,6 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
             progress: 20,
             currentStep: i18n.t("shell:taskPanel.memoryOrganizeScan", { ns: "shell" }),
           });
-          const { useActionStore } = await import("./action-store");
           _updateTask(taskId, {
             progress: 45,
             currentStep: i18n.t("shell:taskPanel.memoryOrganizeRun", { ns: "shell" }),

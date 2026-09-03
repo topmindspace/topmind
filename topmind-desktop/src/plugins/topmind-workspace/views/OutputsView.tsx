@@ -5,9 +5,18 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Layers, FolderOpen, Trash2, Loader2, Zap, FileText, File, FileCode2, RefreshCw,
-  FileDown, Copy,
-} from "lucide-react";
+  RiDeleteBin6Line,
+  RiFileCodeLine,
+  RiFileCopyLine,
+  RiFileDownloadLine,
+  RiFileLine,
+  RiFileTextLine,
+  RiFlashlightFill,
+  RiFolderOpenLine,
+  RiLoader4Line,
+  RiRefreshLine,
+  RiStackLine,
+} from "@remixicon/react";
 import { api } from "../../../services/api";
 import { formatRelativeTime } from "../../../lib/datetime";
 import {
@@ -57,12 +66,12 @@ interface OutputFile {
 function fileIcon(name: string) {
   const ext = (name.split(".").pop() || "").toLowerCase();
   if (ext === "md" || ext === "markdown" || ext === "txt") {
-    return <FileText size={ICON.xs} className="opacity-80" />;
+    return <RiFileTextLine size={ICON.xs} className="opacity-80" />;
   }
   if (ext === "html" || ext === "htm") {
-    return <FileCode2 size={ICON.xs} className="opacity-80" />;
+    return <RiFileCodeLine size={ICON.xs} className="opacity-80" />;
   }
-  return <File size={ICON.xs} className="opacity-80" />;
+  return <RiFileLine size={ICON.xs} className="opacity-80" />;
 }
 
 type OutputGroupKey = "today" | "yesterday" | "older" | "date";
@@ -234,7 +243,7 @@ export function OutputsView() {
   return (
     <ViewContainer>
       <PageHeader
-        icon={<Layers size={ICON.sm} />}
+        icon={<RiStackLine size={ICON.sm} />}
         title={t("workspace:outputsView.title")}
         subtitle={
           files.length > 0
@@ -245,12 +254,12 @@ export function OutputsView() {
           <div className="flex items-center gap-1">
             <Tooltip content={t("common:action.refresh")}>
               <Button variant="ghost" size="sm" onClick={() => void refresh()} className="h-7 w-7 p-0">
-                <RefreshCw size={ICON.xs} />
+                <RiRefreshLine size={ICON.xs} />
               </Button>
             </Tooltip>
             <Tooltip content={t("workspace:inbox.captureBtn")}>
               <Button variant="outline" size="sm" onClick={() => openOverlay("quick-capture")}>
-                <Zap size={ICON.xs} /> {t("workspace:inbox.captureBtn")}
+                <RiFlashlightFill size={ICON.xs} /> {t("workspace:inbox.captureBtn")}
               </Button>
             </Tooltip>
           </div>
@@ -258,13 +267,13 @@ export function OutputsView() {
       />
       {files.length === 0 ? (
         <EmptyState
-          icon={<Layers size={ICON.md} />}
+          icon={<RiStackLine size={ICON.md} />}
           title={t("workspace:outputsView.emptyTitle")}
           hint={t("workspace:outputsView.emptyHint")}
           action={
             <Tooltip content={t("workspace:inbox.captureBtn")}>
               <Button variant="outline" size="sm" onClick={() => openOverlay("quick-capture")}>
-                <Zap size={ICON.xs} /> {t("workspace:inbox.captureBtn")}
+                <RiFlashlightFill size={ICON.xs} /> {t("workspace:inbox.captureBtn")}
               </Button>
             </Tooltip>
           }
@@ -371,7 +380,7 @@ export function OutputsView() {
                                     disabled={busy === f.relativePath}
                                     className="h-6 w-6 p-0"
                                   >
-                                    <Copy size={ICON.micro} />
+                                    <RiFileCopyLine size={ICON.micro} />
                                   </Button>
                                 </Tooltip>
                                 <Tooltip content={t("workspace:outputsView.exportHtml")}>
@@ -382,7 +391,7 @@ export function OutputsView() {
                                     disabled={busy === f.relativePath}
                                     className="h-6 w-6 p-0"
                                   >
-                                    <FileDown size={ICON.micro} />
+                                    <RiFileDownloadLine size={ICON.micro} />
                                   </Button>
                                 </Tooltip>
                               </>
@@ -395,7 +404,7 @@ export function OutputsView() {
                                 disabled={busy === f.relativePath}
                                 className="h-6 w-6 p-0"
                               >
-                                <FolderOpen size={ICON.micro} />
+                                <RiFolderOpenLine size={ICON.micro} />
                               </Button>
                             </Tooltip>
                             <Tooltip content={t("workspace:menu.confirmDeleteTitle")}>
@@ -407,9 +416,9 @@ export function OutputsView() {
                                 className="h-6 w-6 p-0"
                               >
                                 {busy === f.relativePath ? (
-                                  <Loader2 size={ICON.micro} className="animate-spin" />
+                                  <RiLoader4Line size={ICON.micro} className="animate-spin" />
                                 ) : (
-                                  <Trash2 size={ICON.micro} />
+                                  <RiDeleteBin6Line size={ICON.micro} />
                                 )}
                               </Button>
                             </Tooltip>

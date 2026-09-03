@@ -138,6 +138,11 @@ export interface ReadWindowResult {
 }
 
 export interface KernelApi {
+  appendToStreamEntry?(existingBody: string, opts?: unknown): string;
+  appendToStreamEntryDetailed?(
+    existingBody: string,
+    opts?: unknown,
+  ): { body: string; location: { appendedAt: string; [key: string]: unknown } };
   sanitizeAiContent?(text: string): string;
   splitAssistantVisible?(raw: unknown): { body: string; reasoning: string };
   ingestAssistantTextDelta?(

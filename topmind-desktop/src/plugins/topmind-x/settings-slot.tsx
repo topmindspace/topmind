@@ -3,7 +3,12 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, ExternalLink, Copy, Terminal } from "lucide-react";
+import {
+  RiExternalLinkLine,
+  RiFileCopyLine,
+  RiLoader4Line,
+  RiTerminalLine,
+} from "@remixicon/react";
 import { api } from "../../services/api";
 import type { PluginContext, SettingsSlot } from "../types";
 import type { AppSettings } from "../../types";
@@ -167,9 +172,9 @@ function XPanel({ settings, update }: { settings: AppSettings; update: (p: Parti
         <div className="mb-2 flex flex-wrap items-center gap-2 text-3xs text-text-tertiary">
           <span className="inline-flex items-center gap-1">
             {probe.loading ? (
-              <Loader2 size={ICON.xs} className="animate-spin" />
+              <RiLoader4Line size={ICON.xs} className="animate-spin" />
             ) : (
-              <Terminal size={ICON.xs} className={probe.hasCli ? "text-success" : "text-warning"} />
+              <RiTerminalLine size={ICON.xs} className={probe.hasCli ? "text-success" : "text-warning"} />
             )}
             {probe.loading
               ? t("settings.probingXurl")
@@ -193,7 +198,7 @@ function XPanel({ settings, update }: { settings: AppSettings; update: (p: Parti
             disabled={testing || !x.enabled}
             onClick={() => void runTest()}
           >
-            {testing ? <Loader2 size={ICON.micro} className="animate-spin" /> : null}
+            {testing ? <RiLoader4Line size={ICON.micro} className="animate-spin" /> : null}
             {t("settings.test")}
           </Button>
         </div>
@@ -220,7 +225,7 @@ function XPanel({ settings, update }: { settings: AppSettings; update: (p: Parti
                     aria-label={copied === key ? t("settings.copied") : t("settings.copy")}
                     onClick={() => void copyCmd(cmd, key)}
                   >
-                    <Copy size={ICON.micro} />
+                    <RiFileCopyLine size={ICON.micro} />
                   </button>
                 </Tooltip>
               </div>
@@ -273,7 +278,7 @@ function XPanel({ settings, update }: { settings: AppSettings; update: (p: Parti
                 className="h-8 shrink-0"
                 onClick={() => void copyCmd(hints.mcp || DEFAULT_HINTS.mcp, "mcp")}
               >
-                <Copy size={ICON.micro} />
+                <RiFileCopyLine size={ICON.micro} />
               </Button>
             </Tooltip>
             <Tooltip content={t("settings.officialDocs")}>
@@ -284,7 +289,7 @@ function XPanel({ settings, update }: { settings: AppSettings; update: (p: Parti
                 className="h-8 shrink-0"
                 onClick={() => void api.sys.openUrl(hints.docs || DEFAULT_HINTS.docs)}
               >
-                <ExternalLink size={ICON.micro} />
+                <RiExternalLinkLine size={ICON.micro} />
               </Button>
             </Tooltip>
           </div>

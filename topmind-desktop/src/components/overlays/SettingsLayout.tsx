@@ -1,13 +1,13 @@
 import { useId, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, X } from "lucide-react";
+import { RiCloseLine, RiLoader4Line } from "@remixicon/react";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
 import { Button } from "../ui/Button";
 import { Tooltip } from "../ui/tooltip";
 import { HelpTip } from "../settings/fields";
 import { ICON } from "../../lib/icons";
 import { cn } from "../../lib/cn";
-import type { LucideIcon } from "lucide-react";
+import type { RemixiconComponentType } from "@remixicon/react";
 
 /** Visible page subtitle under tab title (everyday guidance). */
 const TAB_DESC_KEYS: Record<string, string> = {
@@ -42,7 +42,7 @@ const TAB_HELP_KEYS: Record<string, string> = {
 export interface SettingsTabItem {
   id: string;
   label: string;
-  icon: LucideIcon;
+  icon: RemixiconComponentType;
   order: number;
   group: string;
   /** Panel-content strings (section titles/descriptions) for the nav filter. */
@@ -177,7 +177,7 @@ export function SettingsLayout({
             <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
               {saving ? (
                 <span className="inline-flex items-center gap-1 text-3xs text-accent-color" role="status">
-                  <Loader2 size={ICON.micro} className="animate-spin" aria-hidden /> {t("common:action.saving")}
+                  <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden /> {t("common:action.saving")}
                 </span>
               ) : (
                 <span className="text-3xs text-text-quaternary">{t("common:action.autoSave")}</span>
@@ -190,7 +190,7 @@ export function SettingsLayout({
                   onClick={onClose}
                   aria-label={t("common:action.close")}
                 >
-                  <X size={ICON.xs} />
+                  <RiCloseLine size={ICON.xs} />
                 </Button>
               </Tooltip>
             </div>

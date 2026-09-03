@@ -1,19 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Loader2,
-  AlertTriangle,
-  BookOpen,
-  RefreshCw,
-  Sparkles,
-  FolderPlus,
-  FolderOpen,
-  Trash2,
-  Download,
-  CheckCircle2,
-  Package,
-  Clock,
-} from "lucide-react";
+  RiAlertLine,
+  RiBookOpenLine,
+  RiBox3Line,
+  RiCheckboxCircleLine,
+  RiDeleteBin6Line,
+  RiDownload2Line,
+  RiFolderAddLine,
+  RiFolderOpenLine,
+  RiLoader4Line,
+  RiRefreshLine,
+  RiSparklingLine,
+  RiTimeLine,
+} from "@remixicon/react";
 import { api, type SkillsExtraReceipt, type SkillsPackSummary } from "../../services/api";
 import type { AppSettings } from "../../types";
 import { Button } from "../ui/Button";
@@ -247,7 +247,7 @@ export function SkillsPanel({
         />
         <div className="mt-1.5 grid gap-1 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface px-2.5 py-2 text-3xs text-text-tertiary">
           <div className="flex items-center gap-1.5">
-            <Package size={ICON.xs} className="text-text-quaternary" />
+            <RiBox3Line size={ICON.xs} className="text-text-quaternary" />
             <span>
               {t("settings:skills.bundledPack")} <span className="font-mono text-text-secondary">v{packVersion || "—"}</span>
               {hasShared ? (
@@ -268,7 +268,7 @@ export function SkillsPanel({
         </div>
         <div className="mt-1 flex justify-end">
           <Button variant="ghost" size="sm" className="h-6" onClick={() => void reload()} disabled={loading}>
-            {loading ? <Loader2 size={ICON.xs} className="animate-spin" /> : <RefreshCw size={ICON.xs} />}
+            {loading ? <RiLoader4Line size={ICON.xs} className="animate-spin" /> : <RiRefreshLine size={ICON.xs} />}
           </Button>
         </div>
       </SettingsSection>
@@ -286,7 +286,7 @@ export function SkillsPanel({
               disabled={Boolean(busy)}
               onClick={() => void beginAddRoot()}
             >
-              <FolderPlus size={ICON.micro} /> {t("settings:skills.addDir")}
+              <RiFolderAddLine size={ICON.micro} /> {t("settings:skills.addDir")}
             </Button>
             <Button
               variant="outline"
@@ -295,7 +295,7 @@ export function SkillsPanel({
               disabled={Boolean(busy)}
               onClick={() => void beginInstallToManaged()}
             >
-              <Download size={ICON.micro} /> {t("settings:skills.installLocal")}
+              <RiDownload2Line size={ICON.micro} /> {t("settings:skills.installLocal")}
             </Button>
             <Button
               variant="ghost"
@@ -303,7 +303,7 @@ export function SkillsPanel({
               className="h-6 text-3xs"
               onClick={() => void api.sys.openSkillsExtraDir()}
             >
-              <FolderOpen size={ICON.micro} />
+              <RiFolderOpenLine size={ICON.micro} />
             </Button>
           </div>
         }
@@ -316,7 +316,7 @@ export function SkillsPanel({
         {receipt || (extraSummaries.length > 0 && managedExtraRoot) ? (
           <div className="mb-2 rounded-[var(--radius-md)] border border-border-subtle bg-surface px-2.5 py-2 text-3xs">
             <div className="mb-1 flex items-center gap-1 font-medium text-text-secondary">
-              <Clock size={ICON.xs} className="text-text-quaternary" />
+              <RiTimeLine size={ICON.xs} className="text-text-quaternary" />
               {t("settings:skills.installReceipt")}
             </div>
             {receipt ? (
@@ -359,7 +359,7 @@ export function SkillsPanel({
                 key={s.path}
                 className="flex items-start gap-2 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-muted/20 px-2 py-1.5 text-3xs"
               >
-                <Package size={ICON.xs} className="mt-0.5 shrink-0 text-text-quaternary" />
+                <RiBox3Line size={ICON.xs} className="mt-0.5 shrink-0 text-text-quaternary" />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span className="font-medium text-text-secondary">{s.name || "skills"}</span>
@@ -410,7 +410,7 @@ export function SkillsPanel({
                       onClick={() => handleRemoveRoot(root)}
                       aria-label={t("settings:skills.removeFromList")}
                     >
-                      <Trash2 size={ICON.micro} />
+                      <RiDeleteBin6Line size={ICON.micro} />
                     </button>
                   </Tooltip>
                 </li>
@@ -424,7 +424,7 @@ export function SkillsPanel({
         )}
         {actionMsg ? (
           <div className="mt-1.5 flex items-center gap-1 text-3xs text-success">
-            <CheckCircle2 size={ICON.xs} />
+            <RiCheckboxCircleLine size={ICON.xs} />
             {actionMsg}
           </div>
         ) : null}
@@ -432,7 +432,7 @@ export function SkillsPanel({
 
       {error ? (
         <div className="mb-2 flex items-start gap-1.5 text-xs text-error">
-          <AlertTriangle size={ICON.xs} className="mt-0.5 shrink-0" />
+          <RiAlertLine size={ICON.xs} className="mt-0.5 shrink-0" />
           <span>{error}</span>
         </div>
       ) : null}
@@ -443,7 +443,7 @@ export function SkillsPanel({
       >
         {loading && catalog.length === 0 ? (
           <div className="flex items-center gap-2 text-3xs text-text-tertiary">
-            <Loader2 size={ICON.xs} className="animate-spin" /> {t("settings:skills.loadingSkills")}
+            <RiLoader4Line size={ICON.xs} className="animate-spin" /> {t("settings:skills.loadingSkills")}
           </div>
         ) : (
           <ul className="m-0 list-none space-y-1.5 p-0">
@@ -467,9 +467,9 @@ export function SkillsPanel({
                   <span className="min-w-0 flex-1">
                     <span className="flex flex-wrap items-center gap-1.5 font-medium text-text-primary">
                       {s.entrypoint ? (
-                        <Sparkles size={ICON.xs} className="text-accent-color" />
+                        <RiSparklingLine size={ICON.xs} className="text-accent-color" />
                       ) : (
-                        <BookOpen size={ICON.xs} className="text-text-quaternary" />
+                        <RiBookOpenLine size={ICON.xs} className="text-text-quaternary" />
                       )}
                       <span className="font-mono text-3xs">{s.id.replace(/^topmind-?/, "") || s.id}</span>
                       {s.actionCategory ? (

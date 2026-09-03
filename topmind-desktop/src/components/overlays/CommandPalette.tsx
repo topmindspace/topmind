@@ -1,12 +1,22 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, CornerDownLeft, Compass, Sparkles, Command as CommandIcon, Zap, Inbox, FileInput, RefreshCw } from "lucide-react";
+import {
+  RiCommandLine as CommandIcon,
+  RiCompass3Line,
+  RiCornerDownLeftLine,
+  RiFileTransferLine,
+  RiFlashlightFill,
+  RiInboxUnarchiveLine,
+  RiRefreshLine,
+  RiSearchLine,
+  RiSparklingLine,
+} from "@remixicon/react";
 import { registry } from "../../plugins/registry";
 import { useViewStore } from "../../stores/view-store";
 import { makeMinCtx } from "../../plugins/min-ctx";
 import type { ActionSlot } from "../../plugins/types";
 import type { Selection } from "../../types";
-import type { LucideIcon } from "lucide-react";
+import type { RemixiconComponentType } from "@remixicon/react";
 import { cn } from "../../lib/cn";
 import { modKey } from "../../lib/shortcuts";
 import { ICON } from "../../lib/icons";
@@ -51,13 +61,13 @@ const GROUP_KEY_MAP: Record<string, string> = {
   ingest: "overlays:command.groupIngest",
   sync: "overlays:command.groupSync",
 };
-const GROUP_ICON: Record<string, LucideIcon> = {
-  goto: Compass,
-  skill: Sparkles,
+const GROUP_ICON: Record<string, RemixiconComponentType> = {
+  goto: RiCompass3Line,
+  skill: RiSparklingLine,
   navigate: CommandIcon,
-  capture: Zap,
-  ingest: FileInput,
-  sync: RefreshCw,
+  capture: RiFlashlightFill,
+  ingest: RiFileTransferLine,
+  sync: RiRefreshLine,
 };
 
 /** Subsequence fuzzy score. */
@@ -141,7 +151,7 @@ function contextHint(selection: Selection, t: (key: string, opts?: Record<string
 interface PaletteGroup {
   key: string;
   label: string;
-  icon: LucideIcon;
+  icon: RemixiconComponentType;
   items: ActionSlot[];
 }
 
@@ -261,7 +271,7 @@ export function CommandPalette() {
       aria-label={t("overlays:command.ariaLabel")}
     >
       <div className="v4-palette-header">
-        <Search size={ICON.sm} className="shrink-0 text-text-quaternary" aria-hidden />
+        <RiSearchLine size={ICON.sm} className="shrink-0 text-text-quaternary" aria-hidden />
         <input
           ref={inputRef}
           value={query}
@@ -283,9 +293,9 @@ export function CommandPalette() {
 
       <div className="flex items-center gap-1.5 px-3.5 py-1.5 text-3xs text-text-quaternary">
         {selection.kind === "inbox" ? (
-          <Inbox size={ICON.micro} className="text-warning" />
+          <RiInboxUnarchiveLine size={ICON.micro} className="text-warning" />
         ) : (
-          <Sparkles size={ICON.micro} className="text-accent-color/60" />
+          <RiSparklingLine size={ICON.micro} className="text-accent-color/60" />
         )}
         <span className="truncate">{contextHint(selection, t)}</span>
         {!query ? <span className="ml-auto shrink-0 opacity-70">{t("overlays:command.scenePriority")}</span> : null}
@@ -301,7 +311,7 @@ export function CommandPalette() {
         {flat.length === 0 ? (
           <li className="flex flex-col items-center gap-2 px-3 py-10 text-center" role="presentation">
             <div className="v4-icon-chip flex h-9 w-9 rounded-full" aria-hidden>
-              <Search size={ICON.sm} />
+              <RiSearchLine size={ICON.sm} />
             </div>
             <div className="text-sm text-text-secondary">{t("overlays:command.noMatchTitle")}</div>
             <div className="max-w-[240px] text-3xs leading-relaxed text-text-quaternary">
@@ -346,7 +356,7 @@ export function CommandPalette() {
                           <span className="w-0" aria-hidden />
                         )}
                         {active ? (
-                          <CornerDownLeft size={ICON.micro} className="text-text-tertiary" aria-hidden />
+                          <RiCornerDownLeftLine size={ICON.micro} className="text-text-tertiary" aria-hidden />
                         ) : (
                           <span className="inline-block w-[11px]" aria-hidden />
                         )}

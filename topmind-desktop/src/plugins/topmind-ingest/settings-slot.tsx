@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Copy, Download, ExternalLink, Loader2, RefreshCw } from "lucide-react";
+import {
+  RiDownload2Line,
+  RiExternalLinkLine,
+  RiFileCopyLine,
+  RiLoader4Line,
+  RiRefreshLine,
+} from "@remixicon/react";
 import type { PluginContext, SettingsSlot } from "../types";
 import type { AppSettings, IngestSettings } from "../../types";
 import { api } from "../../services/api";
@@ -246,7 +252,7 @@ function IngestSettingsPanel({
             )}
           </div>
           <Button size="sm" variant="outline" className="h-7 text-3xs" onClick={() => void refreshTools(true)} disabled={probing || installing}>
-            {probing ? <Loader2 size={ICON.xs} className="animate-spin" aria-hidden /> : <RefreshCw size={ICON.xs} aria-hidden />}
+            {probing ? <RiLoader4Line size={ICON.xs} className="animate-spin" aria-hidden /> : <RiRefreshLine size={ICON.xs} aria-hidden />}
             {t("settingsSlot.recheck")}
           </Button>
         </div>
@@ -353,7 +359,7 @@ function ToolRow({
             onClick={onSidecarInstall}
             disabled={installing}
           >
-            {installing ? <Loader2 size={ICON.xs} className="animate-spin" aria-hidden /> : <Download size={ICON.xs} aria-hidden />}
+            {installing ? <RiLoader4Line size={ICON.xs} className="animate-spin" aria-hidden /> : <RiDownload2Line size={ICON.xs} aria-hidden />}
             {sidecarLabel}
           </Button>
         ) : null}
@@ -363,7 +369,7 @@ function ToolRow({
           </span>
         ) : (
           <Button size="sm" variant="ghost" className="h-7 text-3xs" onClick={onDocs}>
-            <ExternalLink size={ICON.xs} aria-hidden /> {t("settingsSlot.docs")}
+            <RiExternalLinkLine size={ICON.xs} aria-hidden /> {t("settingsSlot.docs")}
           </Button>
         )}
       </div>
@@ -380,7 +386,7 @@ function ToolRow({
                 className="h-7 shrink-0 text-3xs"
                 onClick={() => onCopy(i)}
               >
-                <Copy size={ICON.xs} aria-hidden />
+                <RiFileCopyLine size={ICON.xs} aria-hidden />
                 {i === preferred ? t("settingsSlot.copyPreferred") : t("settingsSlot.copy")}
               </Button>
             </li>

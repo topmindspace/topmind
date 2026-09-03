@@ -4,7 +4,15 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { LayoutDashboard, List, PencilLine, Plus, Tags, Wallet, X } from "lucide-react";
+import {
+  RiAddLine,
+  RiCloseLine,
+  RiDashboardLine,
+  RiListUnordered,
+  RiPencilLine,
+  RiPriceTag3Line,
+  RiWallet3Line,
+} from "@remixicon/react";
 import type { OverlaySlot, PluginContext } from "../types";
 import type { LedgerBook, LedgerEntry } from "../../types";
 import { api } from "../../services/api";
@@ -227,11 +235,11 @@ export function LedgerApp() {
     return src.filter((e) => e.category === flowCategory);
   }, [current, flowCategory]);
 
-  const tabs: { id: TabId; label: string; icon: typeof LayoutDashboard }[] = [
-    { id: "board", label: t("tabs.board"), icon: LayoutDashboard },
-    { id: "flow", label: t("tabs.flow"), icon: List },
-    { id: "categories", label: t("tabs.categories"), icon: Tags },
-    { id: "quick", label: t("tabs.quick"), icon: PencilLine },
+  const tabs: { id: TabId; label: string; icon: typeof RiDashboardLine }[] = [
+    { id: "board", label: t("tabs.board"), icon: RiDashboardLine },
+    { id: "flow", label: t("tabs.flow"), icon: RiListUnordered },
+    { id: "categories", label: t("tabs.categories"), icon: RiPriceTag3Line },
+    { id: "quick", label: t("tabs.quick"), icon: RiPencilLine },
   ];
 
   return (
@@ -244,7 +252,7 @@ export function LedgerApp() {
       <div className="flex items-center justify-between gap-3 border-b border-border-subtle px-5 py-3">
         <div className="flex min-w-0 items-center gap-2">
           <span className="v4-icon-chip flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] text-accent-color">
-            <Wallet size={ICON.md} />
+            <RiWallet3Line size={ICON.md} />
           </span>
           <div className="min-w-0">
             <h2 id="ledger-app-title" className="text-sm font-semibold tracking-tight text-text-primary">{t("title")}</h2>
@@ -252,7 +260,7 @@ export function LedgerApp() {
           </div>
         </div>
         <Button variant="ghost" size="sm" onClick={closeOverlay} aria-label={t("close")}>
-          <X size={ICON.sm} />
+          <RiCloseLine size={ICON.sm} />
         </Button>
       </div>
 
@@ -511,7 +519,7 @@ function BookChips({
           }}
         />
         <Button variant="ghost" size="sm" onClick={onAdd} disabled={busy || !newRole.trim()}>
-          <Plus size={ICON.xs} />
+          <RiAddLine size={ICON.xs} />
         </Button>
       </div>
       <div className="basis-full min-w-0">

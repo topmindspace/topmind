@@ -29,6 +29,7 @@ import { IngestService } from "./ingest-service.mjs";
 import { logInfo, logWarn, logError, attachFileLogger, getLogFilePath } from "./lib/writeback.mjs";
 import { loadAppSettings, saveAppSettings, updateAppSettings } from "./settings.mjs";
 import { closeWorkspaceWatcher, startWorkspaceWatcher, markIgnoredFileChanges } from "./watchers.mjs";
+import { invalidateNotesIndex } from "./lib/notes-index.mjs";
 import {
   normalizeStoredWorkspaceHistory,
   listLaunchCandidates,
@@ -470,7 +471,7 @@ async function activateWorkspace(candidate, opts = {}) {
   if (mainWindow && !mainWindow.isDestroyed()) {
     await closeWorkspaceWatcher();
     await startWorkspaceWatcher(context, (p) => {
-      import("./lib/notes-index.mjs").then((m) => m.invalidateNotesIndex(p?.relativePath)).catch(() => {});
+      try { invalidateNotesIndex(p?.relativePath); } catch { /* ignore */ }
       emitToRenderer(mainWindow, "workspace:file-changed", p);
     });
   }
@@ -841,7 +842,7 @@ async function createWindow() {
     applyWindowIcon(win, windowIcon, { packaged: app.isPackaged });
     if (currentCtx) {
       await startWorkspaceWatcher(currentCtx, (p) => {
-        import("./lib/notes-index.mjs").then((m) => m.invalidateNotesIndex(p?.relativePath)).catch(() => {});
+        try { invalidateNotesIndex(p?.relativePath); } catch { /* ignore */ }
         emitToRenderer(win, "workspace:file-changed", p);
       });
     }

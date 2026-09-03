@@ -14,7 +14,16 @@
  */
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { Sparkles, Loader2, ListTodo, RefreshCw, Pin, PinOff, X, FileText } from "lucide-react";
+import {
+  RiCloseLine,
+  RiFileTextLine,
+  RiListCheck,
+  RiLoader4Line,
+  RiPushpinFill,
+  RiPushpinLine,
+  RiRefreshLine,
+  RiSparklingLine,
+} from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/cn";
 import { ICON } from "../../lib/icons";
@@ -183,14 +192,14 @@ export function TodoPopover({ open, onOpenChange, children }: TodoPopoverProps) 
       data-menu-surface=""
       className={cn(
         // overflow-hidden + flex-col maxHeight: body can scroll inside (not page)
-        "fixed z-[var(--z-popover-overlay)] flex flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border-subtle bg-surface-elevated/90 shadow-[var(--shadow-elevated-hairline)] backdrop-blur-[var(--blur-glass)] backdrop-saturate-150 v4-todo-popover-enter",
-        pinned && "shadow-[var(--shadow-float)]",
+        "v4-no-drag v4-popover-enter fixed z-[var(--z-popover-overlay)] flex flex-col overflow-hidden rounded-xl border border-border-subtle bg-surface-elevated/95 shadow-[var(--shadow-elevated-hairline)] backdrop-blur-[var(--blur-glass)] backdrop-saturate-150",
+        pinned && "shadow-[var(--shadow-float)] ring-1 ring-accent-color/20",
       )}
       style={{
         left: pos.x,
         top: pos.y,
-        width: PANEL_WIDTH,
-        maxHeight: PANEL_MAX_HEIGHT,
+        width: Math.min(PANEL_WIDTH, window.innerWidth - 24),
+        maxHeight: Math.min(PANEL_MAX_HEIGHT, window.innerHeight - 64),
       }}
     >
       {/* Header — drag handle when pinned; shrink-0 so body absorbs remaining height */}
@@ -201,7 +210,7 @@ export function TodoPopover({ open, onOpenChange, children }: TodoPopoverProps) 
         )}
         onMouseDown={onDragStart}
       >
-        <ListTodo size={ICON.micro} className="shrink-0 text-text-quaternary" />
+        <RiListCheck size={ICON.micro} className="shrink-0 text-text-quaternary" />
         <span className="flex-1 text-3xs font-medium text-text-secondary">
           {t("todo.title")}
         </span>
@@ -233,9 +242,9 @@ export function TodoPopover({ open, onOpenChange, children }: TodoPopoverProps) 
             data-todo-maintain-active={maintaining === "maintaining" || undefined}
           >
             {maintaining === "maintaining" ? (
-              <Loader2 size={ICON.nano} className="animate-spin" />
+              <RiLoader4Line size={ICON.micro} className="animate-spin" />
             ) : (
-              <Sparkles size={ICON.nano} />
+              <RiSparklingLine size={ICON.micro} />
             )}
           </button>
         </Tooltip>
@@ -246,7 +255,7 @@ export function TodoPopover({ open, onOpenChange, children }: TodoPopoverProps) 
             className="flex h-5 w-5 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary"
             aria-label={t("todo.refresh")}
           >
-            <RefreshCw size={ICON.nano} />
+            <RiRefreshLine size={ICON.micro} />
           </button>
         </Tooltip>
         {/* Open todo.md in editor */}
@@ -261,7 +270,7 @@ export function TodoPopover({ open, onOpenChange, children }: TodoPopoverProps) 
             className="flex h-5 w-5 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary"
             aria-label={t("todo.openFile")}
           >
-            <FileText size={ICON.nano} />
+            <RiFileTextLine size={ICON.micro} />
           </button>
         </Tooltip>
         {/* Pin / Unpin toggle */}
@@ -275,7 +284,7 @@ export function TodoPopover({ open, onOpenChange, children }: TodoPopoverProps) 
             )}
             aria-label={pinned ? t("todo.unpin") : t("todo.pin")}
           >
-            {pinned ? <PinOff size={ICON.nano} /> : <Pin size={ICON.nano} />}
+            {pinned ? <RiPushpinFill size={ICON.micro} /> : <RiPushpinLine size={ICON.micro} />}
           </button>
         </Tooltip>
         {/* Close (only when unpinned; pinned closes via unpin then close) */}
@@ -286,7 +295,7 @@ export function TodoPopover({ open, onOpenChange, children }: TodoPopoverProps) 
             className="flex h-5 w-5 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary"
             aria-label={t("todo.close")}
           >
-            <X size={ICON.nano} />
+            <RiCloseLine size={ICON.micro} />
           </button>
         ) : null}
       </div>

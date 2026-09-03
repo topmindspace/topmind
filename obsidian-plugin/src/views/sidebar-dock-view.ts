@@ -15,7 +15,7 @@
 // - Chat send: icon-only with send icon
 // - All loading states use spinners
 
-import { ItemView, WorkspaceLeaf, Notice, MarkdownRenderer, setIcon } from "obsidian";
+import { ItemView, WorkspaceLeaf, Notice, MarkdownRenderer, setIcon, Menu } from "obsidian";
 import type TopmindPlugin from "../main";
 import { t } from "../i18n";
 import { VIEW_TYPE_SIDEBAR_DOCK, VIEW_TYPE_STREAM_WORKBENCH } from "../constants";
@@ -204,7 +204,14 @@ export class SidebarDockView extends ItemView {
   /** Refresh only the active tab content (lighter than full render) */
   private async refreshActiveTab(): Promise<void> {
     if (this.contentContainer) {
+      const savedScroll = this.contentContainer.scrollTop;
       await this.renderActiveTab();
+      if (savedScroll > 0) {
+        this.contentContainer.scrollTop = savedScroll;
+        requestAnimationFrame(() => {
+          this.contentContainer.scrollTop = savedScroll;
+        });
+      }
     }
   }
 
@@ -356,11 +363,9 @@ export class SidebarDockView extends ItemView {
     const tabBar = container.createDiv({ cls: "tm-tab-bar" });
 
     const tabs: { id: SidebarTab; label: string; icon: string }[] = [
-      { id: "todos", label: t("sidebar_tab_todos"), icon: "list-checks" },
-      { id: "suggestions", label: t("sidebar_tab_suggestions"), icon: "lightbulb" },
       { id: "chat", label: t("sidebar_tab_chat"), icon: "message-circle" },
-      { id: "stream", label: t("sidebar_tab_stream"), icon: "waves" },
-      { id: "history", label: t("sidebar_tab_history"), icon: "history" },
+      { id: "suggestions", label: t("sidebar_tab_suggestions"), icon: "lightbulb" },
+      { id: "todos", label: t("sidebar_tab_todos"), icon: "list-checks" },
     ];
 
     for (const tab of tabs) {
@@ -416,8 +421,22 @@ export class SidebarDockView extends ItemView {
   private renderTodosTab(container: HTMLElement): void {
     const todoSection = container.createDiv({ cls: "tm-sidebar-section" });
 
-    // Open todo file button — icon-only at top of todos tab
+    // Todo action bar at top of todos tab
     const openFileBar = todoSection.createDiv({ cls: "tm-todo-open-file-bar" });
+
+    if (hasConfiguredProvider(this.plugin.settings.ai)) {
+      const aiMaintainBtn = openFileBar.createEl("button", {
+        cls: "tm-btn-secondary tm-toolbar-btn-labeled",
+      });
+      setIcon(aiMaintainBtn, "sparkles");
+      aiMaintainBtn.createSpan({ text: t("sidebar_op_todo", { defaultValue: "整理待办" }), cls: "tm-toolbar-btn-label" });
+      aiMaintainBtn.setAttribute("aria-label", t("sidebar_op_todo", { defaultValue: "整理待办" }));
+      aiMaintainBtn.setAttribute("title", t("sidebar_op_todo", { defaultValue: "整理待办" }));
+      aiMaintainBtn.addEventListener("click", () => {
+        this.plugin.enqueueAiOperation("todo_maintain", "op_label_todo_maintain", "notice_todo_done", "sidebar", true);
+      });
+    }
+
     const openFileBtn = openFileBar.createEl("button", {
       cls: "tm-btn-secondary tm-btn-icon-only",
     });
@@ -661,9 +680,63 @@ export class SidebarDockView extends ItemView {
     }
   }
 
-  /** Force-refresh button — single guarded path via renderSuggestionsTab. */
+  /** Action bar at top of suggestions tab: reconcile period + AI operations + force-refresh. */
   private renderSuggestionRefreshButton(container: HTMLElement): void {
     const refreshBar = container.createDiv({ cls: "tm-suggestion-refresh-bar" });
+
+    // 1. Organize week button
+    const organizeBtn = refreshBar.createEl("button", {
+      cls: "tm-btn-secondary tm-toolbar-btn-labeled",
+    });
+    setIcon(organizeBtn, "list-tree");
+    organizeBtn.createSpan({ text: t("stream_organize", { defaultValue: "整理本周" }), cls: "tm-toolbar-btn-label" });
+    organizeBtn.setAttribute("aria-label", t("stream_organize", { defaultValue: "整理本周" }));
+    organizeBtn.setAttribute("title", t("stream_organize", { defaultValue: "整理本周" }));
+    organizeBtn.addEventListener("click", async () => {
+      new Notice(t("notice_organizing"));
+      const streamCtx = await this.plugin.kernelService.getStreamContext();
+      if (streamCtx.current) {
+        this.plugin.kernelService.reconcilePeriod(streamCtx.current.relPath);
+      }
+      const aiQueued = this.plugin.settings.autoMaintainTodos
+        && hasConfiguredProvider(this.plugin.settings.ai);
+      if (aiQueued) {
+        this.plugin.enqueueAiOperation("todo_maintain", "op_label_todo_maintain", "notice_todo_done", "sidebar", true);
+      } else {
+        new Notice(t("notice_organize_done"));
+      }
+      this.refreshActiveTab();
+    });
+
+    // 2. AI operations dropdown button (if AI configured)
+    if (hasConfiguredProvider(this.plugin.settings.ai)) {
+      const aiOpsBtn = refreshBar.createEl("button", {
+        cls: "tm-btn-secondary tm-btn-icon-only",
+      });
+      setIcon(aiOpsBtn, "sparkles");
+      aiOpsBtn.setAttribute("aria-label", t("sidebar_op_menu", { defaultValue: "AI 操作" }));
+      aiOpsBtn.setAttribute("title", t("sidebar_op_menu", { defaultValue: "AI 操作" }));
+      aiOpsBtn.addEventListener("click", (evt: MouseEvent) => {
+        const menu = new Menu();
+        menu.addItem((item) => {
+          item.setTitle(t("sidebar_op_memory"))
+            .setIcon("brain")
+            .onClick(() => {
+              this.plugin.enqueueAiOperation("memory_organize", "op_label_memory_organize", "notice_memory_done", "all");
+            });
+        });
+        menu.addItem((item) => {
+          item.setTitle(t("sidebar_op_classify"))
+            .setIcon("tag")
+            .onClick(() => {
+              this.plugin.enqueueAiOperation("topic_classify", "op_label_topic_classify", "notice_classify_done", "suggest");
+            });
+        });
+        menu.showAtMouseEvent(evt);
+      });
+    }
+
+    // 3. Force-refresh button
     const refreshBtn = refreshBar.createEl("button", { cls: "tm-btn-secondary tm-btn-icon-only" });
     setIcon(refreshBtn, "refresh-cw");
     refreshBtn.setAttribute("aria-label", t("cmd_refresh_suggestions"));
@@ -893,7 +966,14 @@ export class SidebarDockView extends ItemView {
     if (msg.role === "assistant" && !msg.isError && msg.reasoning?.trim()) {
       const fold = msgEl.createEl("details", { cls: "tm-chat-reasoning" });
       const summary = fold.createEl("summary", { cls: "tm-chat-reasoning-summary" });
-      summary.setText(t("chat_reasoning"));
+      summary.setAttribute("title", t("chat_reasoning_show"));
+      const brainIcon = summary.createSpan({ cls: "tm-chat-reasoning-icon" });
+      setIcon(brainIcon, "brain");
+      summary.createSpan({ cls: "tm-chat-reasoning-label", text: t("chat_reasoning") });
+      summary.createSpan({
+        cls: "tm-chat-reasoning-meta",
+        text: t("chat_reasoning_chars", { count: msg.reasoning.trim().length }),
+      });
       const pre = fold.createEl("pre", { cls: "tm-chat-reasoning-body" });
       pre.setText(msg.reasoning);
     }
@@ -1189,55 +1269,16 @@ export class SidebarDockView extends ItemView {
   private renderBottomActions(container: HTMLElement): void {
     const actionsBar = container.createDiv({ cls: "tm-sidebar-bottom-actions" });
 
-    // Quick capture (always available)
-    this.addActionButton(actionsBar, "zap", t("sidebar_quick_capture"), () => this.plugin.openQuickCapture(), false);
-
-    // Organize (always available)
-    this.addActionButton(actionsBar, "refresh-cw", t("sidebar_quick_organize"), async () => {
-      new Notice(t("notice_organizing"));
-      const streamCtx = await this.plugin.kernelService.getStreamContext();
-      if (streamCtx.current) {
-        this.plugin.kernelService.reconcilePeriod(streamCtx.current.relPath);
-      }
-      // Shared serial lane; its own completion notice is the feedback — a
-      // premature "done" here would lie about the still-queued AI pass.
-      const aiQueued = this.plugin.settings.autoMaintainTodos
-        && hasConfiguredProvider(this.plugin.settings.ai);
-      if (aiQueued) {
-        this.plugin.enqueueAiOperation("todo_maintain", "op_label_todo_maintain", "notice_todo_done", "sidebar", true);
-      } else {
-        new Notice(t("notice_organize_done"));
-      }
-      this.refreshActiveTab();
-    }, false);
-
-    // AI operations (only if AI configured) — same shared lane as the command
-    // palette, so the task badge + history observe every AI pass.
-    if (hasConfiguredProvider(this.plugin.settings.ai)) {
-      this.addActionButton(actionsBar, "list-checks", t("sidebar_op_todo"), () => {
-        this.plugin.enqueueAiOperation("todo_maintain", "op_label_todo_maintain", "notice_todo_done", "sidebar");
-      }, true);
-
-      this.addActionButton(actionsBar, "tag", t("sidebar_op_classify"), () => {
-        this.plugin.enqueueAiOperation("topic_classify", "op_label_topic_classify", "notice_classify_done", "suggest");
-      }, true);
-
-      this.addActionButton(actionsBar, "brain", t("sidebar_op_memory"), () => {
-        this.plugin.enqueueAiOperation("memory_organize", "op_label_memory_organize", "notice_memory_done", "all");
-      }, true);
-    }
-
-    // Toggle labels button
-    const toggleBtn = actionsBar.createEl("button", {
-      cls: "tm-sidebar-action-btn tm-action-toggle-labels",
+    // Primary Quick Capture CTA (Always available, broad hit area)
+    const captureBtn = actionsBar.createEl("button", {
+      cls: "tm-sidebar-action-btn tm-sidebar-capture-primary",
     });
-    setIcon(toggleBtn, this.showActionLabels ? "eye-off" : "eye");
-    toggleBtn.setAttribute("aria-label", this.showActionLabels ? t("sidebar_action_label_hide") : t("sidebar_action_label_show"));
-    toggleBtn.setAttribute("title", this.showActionLabels ? t("sidebar_action_label_hide") : t("sidebar_action_label_show"));
-    toggleBtn.addEventListener("click", () => {
-      this.showActionLabels = !this.showActionLabels;
-      this.render();
-    });
+    const iconSpan = captureBtn.createSpan({ cls: "tm-action-icon-span" });
+    setIcon(iconSpan, "zap");
+    captureBtn.createSpan({ text: t("sidebar_quick_capture"), cls: "tm-action-label-span" });
+    captureBtn.setAttribute("aria-label", t("sidebar_quick_capture"));
+    captureBtn.setAttribute("title", t("sidebar_quick_capture"));
+    captureBtn.addEventListener("click", () => this.plugin.openQuickCapture());
   }
 
   private addActionButton(

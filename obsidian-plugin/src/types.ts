@@ -303,6 +303,9 @@ export interface StreamEntry {
   tags: string[];
   rawLine: string;
   lineOffset: number;
+  heading?: string;
+  startLine?: number;
+  endLine?: number;
 }
 
 /**

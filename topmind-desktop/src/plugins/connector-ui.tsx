@@ -4,7 +4,7 @@
  */
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
+import { RiAlertLine, RiCheckboxCircleLine, RiLoader4Line } from "@remixicon/react";
 import { cn } from "../lib/cn";
 import { ICON } from "../lib/icons";
 
@@ -26,7 +26,7 @@ export function ConnectorStatusPill({
   if (loading) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-surface-muted/60 px-1.5 py-0.5 text-3xs text-text-quaternary">
-        <Loader2 size={ICON.nano} className="animate-spin" aria-hidden /> {t("action.loading")}
+        <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden /> {t("action.loading")}
       </span>
     );
   }
@@ -42,9 +42,9 @@ export function ConnectorStatusPill({
       )}
     >
       {ok ? (
-        <CheckCircle2 size={ICON.nano} aria-hidden />
+        <RiCheckboxCircleLine size={ICON.micro} aria-hidden />
       ) : (
-        <AlertTriangle size={ICON.nano} aria-hidden />
+        <RiAlertLine size={ICON.micro} aria-hidden />
       )}
       {ok ? okLabel : badLabel}
     </span>
@@ -124,7 +124,7 @@ export function ConnectorToastBanner({
     >
       {progress ? (
         <span className="inline-flex items-center gap-1.5">
-          <Loader2 size={ICON.xs} className="animate-spin" aria-hidden /> {progress}
+          <RiLoader4Line size={ICON.xs} className="animate-spin" aria-hidden /> {progress}
         </span>
       ) : (
         <div className="space-y-1.5">
@@ -145,7 +145,7 @@ export function ConnectorToolChip({ label, ok }: { label: string; ok?: boolean }
         ok ? "bg-status-success-bg text-success" : "bg-surface-muted text-text-tertiary",
       )}
     >
-      {ok ? <CheckCircle2 size={ICON.nano} aria-hidden /> : <AlertTriangle size={ICON.nano} aria-hidden />}
+      {ok ? <RiCheckboxCircleLine size={ICON.micro} aria-hidden /> : <RiAlertLine size={ICON.micro} aria-hidden />}
       {label}
     </span>
   );

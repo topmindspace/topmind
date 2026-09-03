@@ -372,6 +372,8 @@
     "copyLabel": "复制",
     "reasoningLabel": "思考过程",
     "reasoningStreaming": "思考中…",
+    "reasoningDone": "思考完成",
+    "reasoningChars": "{{count}} 字",
     "openPathTooltip": "打开 {{path}}",
     "detailAria": "详情",
     "noTextReply": "（无文本回复）",

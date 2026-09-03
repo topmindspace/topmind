@@ -3,7 +3,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FolderOpen, Loader2 } from "lucide-react";
+import { RiFolderOpenLine, RiLoader4Line } from "@remixicon/react";
 import {
   DropdownItem,
   DropdownSectionLabel,
@@ -35,7 +35,7 @@ export function TopicPickerList({
   if (loading) {
     return (
       <div className="flex items-center gap-2 px-2.5 py-3 text-3xs text-text-tertiary">
-        <Loader2 size={ICON.xs} className="animate-spin" /> {t("common:action.loading")}
+        <RiLoader4Line size={ICON.xs} className="animate-spin" /> {t("common:action.loading")}
       </div>
     );
   }
@@ -53,7 +53,7 @@ export function TopicPickerList({
           <DropdownSectionLabel>{g.category}</DropdownSectionLabel>
           {g.topics.map((t) => (
             <DropdownItem key={t.id} disabled={busy} onSelect={() => onPick(t.id)}>
-              <FolderOpen size={ICON.xs} className="shrink-0 text-text-quaternary" />
+              <RiFolderOpenLine size={ICON.xs} className="shrink-0 text-text-quaternary" />
               <span className="min-w-0 truncate">{t.name}</span>
             </DropdownItem>
           ))}

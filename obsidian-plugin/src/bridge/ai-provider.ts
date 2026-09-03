@@ -146,17 +146,32 @@ export function createAiProvider(settings: TopmindSettings): AiProvider | null {
         : undefined;
       const systemPrompt = (ctx.systemPrompt as string) || resolveSystemPrompt(operation);
       const maxTokens = explicitMaxTokens ?? resolveMaxTokens(operation);
-      const temperature = explicitTemperature ?? resolveTemperature(operation);
+      const temperature = explicitTemperature ?? resolveTemperature(operation, model);
 
       const callOpts: CallOpts = { systemPrompt, maxTokens, temperature, operation };
 
-      if (apiType === "anthropic") {
-        return callAnthropic(baseUrl, model, apiKey, prompt, callOpts);
+      try {
+        if (apiType === "anthropic") {
+          return await callAnthropic(baseUrl, model, apiKey, prompt, callOpts);
+        }
+        if (apiType === "google") {
+          return await callGoogleGemini(baseUrl, model, apiKey, prompt, callOpts);
+        }
+        return await callOpenAICompatible(baseUrl, model, apiKey, prompt, callOpts);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (callOpts.temperature !== undefined && /temperature.*(?:not supported|unsupported|invalid)/i.test(msg)) {
+          const fallbackOpts: CallOpts = { ...callOpts, temperature: undefined };
+          if (apiType === "anthropic") {
+            return await callAnthropic(baseUrl, model, apiKey, prompt, fallbackOpts);
+          }
+          if (apiType === "google") {
+            return await callGoogleGemini(baseUrl, model, apiKey, prompt, fallbackOpts);
+          }
+          return await callOpenAICompatible(baseUrl, model, apiKey, prompt, fallbackOpts);
+        }
+        throw err;
       }
-      if (apiType === "google") {
-        return callGoogleGemini(baseUrl, model, apiKey, prompt, callOpts);
-      }
-      return callOpenAICompatible(baseUrl, model, apiKey, prompt, callOpts);
     },
   };
 }
@@ -166,7 +181,7 @@ export function createAiProvider(settings: TopmindSettings): AiProvider | null {
 interface CallOpts {
   systemPrompt?: string;
   maxTokens: number;
-  temperature: number;
+  temperature?: number;
   operation: string;
 }
 
@@ -190,12 +205,14 @@ async function callOpenAICompatible(
   }
   messages.push({ role: "user", content: prompt });
 
-  const body = {
+  const body: Record<string, unknown> = {
     model,
     messages,
-    temperature: opts.temperature,
     max_tokens: opts.maxTokens,
   };
+  if (opts.temperature !== undefined) {
+    body.temperature = opts.temperature;
+  }
 
   const url = `${baseUrl.replace(/\/+$/, "")}/chat/completions`;
   const data = await fetchWithRetry(url, {
@@ -231,9 +248,11 @@ async function callAnthropic(
   const body: Record<string, unknown> = {
     model,
     max_tokens: opts.maxTokens,
-    temperature: opts.temperature,
     messages: [{ role: "user", content: prompt }],
   };
+  if (opts.temperature !== undefined) {
+    body.temperature = opts.temperature;
+  }
   if (opts.systemPrompt) {
     body.system = opts.systemPrompt;
   }
@@ -265,12 +284,15 @@ async function callGoogleGemini(
 ): Promise<string> {
   const url = `${baseUrl.replace(/\/+$/, "")}/models/${model}:generateContent?key=${apiKey}`;
   // Gemini uses system_instruction for system prompt (separate from contents)
+  const generationConfig: Record<string, unknown> = {
+    maxOutputTokens: opts.maxTokens,
+  };
+  if (opts.temperature !== undefined) {
+    generationConfig.temperature = opts.temperature;
+  }
   const body: Record<string, unknown> = {
     contents: [{ role: "user", parts: [{ text: prompt }] }],
-    generationConfig: {
-      temperature: opts.temperature,
-      maxOutputTokens: opts.maxTokens,
-    },
+    generationConfig,
   };
   if (opts.systemPrompt) {
     body.systemInstruction = {
@@ -391,10 +413,28 @@ function resolveMaxTokens(operation: string): number {
 }
 
 /**
- * Resolve temperature based on operation type.
+ * Detect if a model ID is a reasoning / thinking model that prohibits custom temperature.
+ * Examples: deepseek-reasoner, deepseek-r1, o1, o1-mini, o3-mini, qwq-32b, etc.
+ */
+export function isReasoningModel(modelId?: string): boolean {
+  if (!modelId || typeof modelId !== "string") return false;
+  const lower = modelId.toLowerCase();
+  return (
+    lower.includes("reasoner") ||
+    lower.includes("deepseek-r1") ||
+    lower.startsWith("o1") ||
+    lower.startsWith("o3") ||
+    lower.includes("qwq") ||
+    lower.includes("thinking")
+  );
+}
+
+/**
+ * Resolve temperature based on operation type and target model capabilities.
  * Aligned with Desktop's ai-provider-adapter.mjs.
  */
-function resolveTemperature(operation: string): number {
+function resolveTemperature(operation: string, modelId?: string): number | undefined {
+  if (isReasoningModel(modelId)) return undefined;
   switch (operation) {
     case "todo_maintain":
     case "todo_extract":

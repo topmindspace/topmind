@@ -283,6 +283,16 @@ export async function runStream({ model, system, messages, tools, emit, sessionI
     deltaCoalescer.flush();
 
     if (streamError && !collected) {
+      if (controller.signal.aborted) {
+        return {
+          text: "",
+          usage: null,
+          error: null,
+          cancelled: true,
+          followUps: drainPendingUserMessages(registry, sessionId),
+          steerApplyCount,
+        };
+      }
       return {
         text: "",
         usage: null,
@@ -318,13 +328,15 @@ export async function runStream({ model, system, messages, tools, emit, sessionI
     };
   } catch (err) {
     deltaCoalescer.flush();
-    if (controller.signal.aborted && (visibleAcc.body || collected)) {
+    const isAborted = controller.signal.aborted || err?.name === "AbortError" || /aborted/i.test(err?.message || "");
+    if (isAborted) {
       const split = splitAssistantVisible(collected);
       return {
         text: visibleAcc.body || split.body || "",
         reasoning: visibleAcc.reasoning || split.reasoning || "",
         usage: null,
         error: null,
+        cancelled: true,
         followUps: drainPendingUserMessages(registry, sessionId),
         steerApplyCount,
       };

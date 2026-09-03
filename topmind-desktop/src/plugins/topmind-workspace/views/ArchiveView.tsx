@@ -1,6 +1,11 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Archive, RotateCcw, Loader2, FolderOpen } from "lucide-react";
+import {
+  RiArrowGoBackLine,
+  RiFolderOpenLine,
+  RiInboxArchiveLine,
+  RiLoader4Line,
+} from "@remixicon/react";
 import { api } from "../../../services/api";
 import { formatRelativeTime } from "../../../lib/datetime";
 import { Button } from "../../../components/ui/Button";
@@ -120,7 +125,7 @@ export function ArchiveView() {
   return (
     <ViewContainer>
       <PageHeader
-        icon={<Archive size={ICON.sm} />}
+        icon={<RiInboxArchiveLine size={ICON.sm} />}
         title={t("workspace:archiveView.title")}
         subtitle={
           items.length > 0
@@ -138,7 +143,7 @@ export function ArchiveView() {
       ) : null}
       {visible.length === 0 ? (
         <EmptyState
-          icon={<Archive size={ICON.md} />}
+          icon={<RiInboxArchiveLine size={ICON.md} />}
           title={t("workspace:archiveView.emptyTitle")}
           hint={t("workspace:archiveView.emptyHint")}
           action={
@@ -150,7 +155,7 @@ export function ArchiveView() {
               </Tooltip>
               <Tooltip content={t("workspace:outputsView.title")}>
                 <Button variant="outline" size="sm" onClick={() => select({ kind: "outputs" })}>
-                  <FolderOpen size={ICON.xs} /> {t("workspace:outputsView.title")}
+                  <RiFolderOpenLine size={ICON.xs} /> {t("workspace:outputsView.title")}
                 </Button>
               </Tooltip>
             </div>
@@ -175,7 +180,7 @@ export function ArchiveView() {
             return (
               <FileRow
                 key={a.relativePath}
-                icon={<Archive size={ICON.xs} className="opacity-80" />}
+                icon={<RiInboxArchiveLine size={ICON.xs} className="opacity-80" />}
                 label={friendly}
                 secondary={`${kindLabel} · ${a.relativePath}`}
                 active={active}
@@ -203,9 +208,9 @@ export function ArchiveView() {
                       className="h-7 gap-1 px-2 text-3xs shadow-none"
                     >
                       {busy === a.relativePath ? (
-                        <Loader2 size={ICON.micro} className="animate-spin" />
+                        <RiLoader4Line size={ICON.micro} className="animate-spin" />
                       ) : (
-                        <RotateCcw size={ICON.micro} />
+                        <RiArrowGoBackLine size={ICON.micro} />
                       )}
                       {t("workspace:archiveView.restoreBtn")}
                     </Button>

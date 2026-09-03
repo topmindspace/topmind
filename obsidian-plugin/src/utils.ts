@@ -342,6 +342,45 @@ function frontmatterEndLine(lines: string[]): number {
  * - Prose-first section (wrapped lines, no list markers) → **one** post; line
  *   breaks are paragraphs, not extra list cards. Embedded lists stay in the body.
  */
+export interface StreamPreviewAppend {
+  title: string;
+  body: string;
+  markdown: string;
+}
+
+/**
+ * Split period entry text into main content + append chunks (#### 续 / topmind:append).
+ * Mirrors Desktop's splitMainAndAppendChunks for identical stream card presentation.
+ */
+export function splitStreamPreviewParts(md: string): {
+  main: string;
+  appends: StreamPreviewAppend[];
+} {
+  const text = String(md || "").replace(/\r\n/gu, "\n");
+  if (!text.trim()) return { main: "", appends: [] };
+
+  const parts = text.split(
+    /(?=^<!--\s*topmind:append\b)|(?=^#{2,4}\s*续(?=\s|[·•.]|$))/gmu,
+  );
+  if (parts.length <= 1) {
+    return { main: text.trim(), appends: [] };
+  }
+
+  const main = (parts[0] || "").trim();
+  const appends: StreamPreviewAppend[] = [];
+  for (let i = 1; i < parts.length; i++) {
+    const chunk = (parts[i] || "").trim();
+    if (!chunk) continue;
+    const lines = chunk.split("\n");
+    const first = lines[0] || "";
+    const h = first.match(/^#{1,4}\s+(.+)$/u);
+    const title = h ? h[1].trim() : first.replace(/^#{1,4}\s*/u, "").trim() || "续";
+    const body = lines.slice(1).join("\n").trim();
+    appends.push({ title, markdown: chunk, body });
+  }
+  return { main, appends };
+}
+
 export function parseStreamEntries(content: string): StreamEntry[] {
   const entries: StreamEntry[] = [];
   const lines = String(content || "").split("\n");
@@ -354,20 +393,22 @@ export function parseStreamEntries(content: string): StreamEntry[] {
     if (/^#{2,3}\s+/u.test(lines[i])) headingIdx.push(i);
   }
 
-  type Section = { start: number; end: number };
+  type Section = { start: number; end: number; heading?: string };
   const sections: Section[] = [];
   if (headingIdx.length === 0) {
     sections.push({ start: fmEnd, end: lines.length });
   } else {
     if (headingIdx[0] > fmEnd) sections.push({ start: fmEnd, end: headingIdx[0] });
     for (let h = 0; h < headingIdx.length; h++) {
+      const headingLine = lines[headingIdx[h]];
+      const headingText = headingLine.replace(/^#{2,3}\s+/u, "").trim();
       const start = headingIdx[h] + 1;
       const end = h + 1 < headingIdx.length ? headingIdx[h + 1] : lines.length;
-      sections.push({ start, end });
+      sections.push({ start, end, heading: headingText });
     }
   }
 
-  const pushEntry = (start: number, end: number, firstLine: string, textParts: string[]) => {
+  const pushEntry = (start: number, end: number, firstLine: string, textParts: string[], secHeading?: string) => {
     const timeMatch = firstLine.match(timeRegex);
     const time = timeMatch ? timeMatch[1] : "";
     const text = textParts.join("\n").trim();
@@ -379,6 +420,9 @@ export function parseStreamEntries(content: string): StreamEntry[] {
       tags,
       rawLine: lines.slice(start, end).join("\n"),
       lineOffset: start,
+      heading: secHeading,
+      startLine: start,
+      endLine: end,
     });
   };
 
@@ -406,6 +450,9 @@ export function parseStreamEntries(content: string): StreamEntry[] {
         tags,
         rawLine: text,
         lineOffset: firstIdx >= 0 ? firstIdx : sec.start,
+        heading: sec.heading,
+        startLine: firstIdx >= 0 ? firstIdx : sec.start,
+        endLine: sec.end,
       });
       continue;
     }
@@ -460,7 +507,7 @@ export function parseStreamEntries(content: string): StreamEntry[] {
         textParts.push(cont);
         j += 1;
       }
-      pushEntry(i, j, line, textParts);
+      pushEntry(i, j, line, textParts, sec.heading);
       i = j;
     }
   }

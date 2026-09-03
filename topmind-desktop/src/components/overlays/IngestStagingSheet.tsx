@@ -2,7 +2,7 @@
  * Optional confirm gate for knowledge-ingest pipeline batches.
  * Shown only when confirmBeforeConvert is enabled (or forceConfirm).
  */
-import { AlertTriangle, FileInput, Loader2, X } from "lucide-react";
+import { RiAlertLine, RiCloseLine, RiFileTransferLine, RiLoader4Line } from "@remixicon/react";
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -110,7 +110,7 @@ export function IngestStagingSheet() {
     >
       <div className="flex max-h-[min(32rem,85vh)] w-full max-w-lg flex-col overflow-hidden rounded-[var(--radius-xl)] border border-border-subtle bg-surface shadow-[var(--shadow-overlay)]">
         <header className="flex items-start gap-2 border-b border-border-subtle-dim px-4 py-3">
-          <FileInput size={ICON.sm} className="mt-0.5 shrink-0 text-accent-color" aria-hidden />
+          <RiFileTransferLine size={ICON.sm} className="mt-0.5 shrink-0 text-accent-color" aria-hidden />
           <div className="min-w-0 flex-1">
             <h2 id="ingest-staging-title" className="text-sm font-semibold tracking-tight text-text-primary">
               {t("overlays:staging.title")}
@@ -126,13 +126,13 @@ export function IngestStagingSheet() {
             disabled={busy}
             onClick={() => close()}
           >
-            <X size={ICON.sm} />
+            <RiCloseLine size={ICON.sm} />
           </button>
         </header>
 
         {capped ? (
           <div className="flex items-start gap-1.5 border-b border-warning/20 bg-status-warning-bg/40 px-4 py-2 text-3xs text-warning">
-            <AlertTriangle size={ICON.xs} className="mt-0.5 shrink-0" aria-hidden />
+            <RiAlertLine size={ICON.xs} className="mt-0.5 shrink-0" aria-hidden />
             {t("overlays:staging.cappedWarning")}
           </div>
         ) : null}
@@ -174,7 +174,7 @@ export function IngestStagingSheet() {
           <Button size="sm" disabled={busy || selectedCount === 0} onClick={onConfirm}>
             {busy ? (
               <>
-                <Loader2 size={ICON.xs} className="animate-spin" aria-hidden /> {t("overlays:staging.confirmQueuing")}
+                <RiLoader4Line size={ICON.xs} className="animate-spin" aria-hidden /> {t("overlays:staging.confirmQueuing")}
               </>
             ) : (
               t("overlays:staging.confirmConvert", { count: selectedCount })
@@ -230,7 +230,7 @@ function StagingRow({
         aria-label={t("overlays:staging.removeItem", { name: item.name })}
         onClick={onRemove}
       >
-        <X size={ICON.xs} />
+        <RiCloseLine size={ICON.xs} />
       </button>
     </li>
   );

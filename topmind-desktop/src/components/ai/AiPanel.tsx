@@ -1,8 +1,14 @@
 import { useEffect, useState, useMemo, useRef, memo } from "react";
 import {
-  MessageSquare, Plus, Trash2, ChevronDown, Search,
-  Sparkles, RefreshCw, Loader2,
-} from "lucide-react";
+  RiAddLine,
+  RiArrowDownSLine,
+  RiDeleteBin6Line,
+  RiLoader4Line,
+  RiMessage3Line,
+  RiRefreshLine,
+  RiSearchLine,
+  RiSparklingLine,
+} from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { useAiStore } from "../../stores/ai-store";
 import { useViewStore } from "../../stores/view-store";
@@ -126,7 +132,7 @@ export function AiPanel() {
                     onClick={() => void regenerate()}
                     className="v4-chip text-text-tertiary"
                   >
-                    <RefreshCw size={ICON.xs} /> {t("ai.regenerateLabel")}
+                    <RiRefreshLine size={ICON.xs} /> {t("ai.regenerateLabel")}
                   </button>
                 </Tooltip>
               </div>
@@ -141,7 +147,7 @@ export function AiPanel() {
           className="absolute bottom-3 left-1/2 z-floating flex h-6 -translate-x-1/2 items-center gap-1 rounded-full border border-border-subtle bg-surface-elevated/95 px-2.5 text-3xs font-medium text-text-secondary shadow-[var(--shadow-float)] backdrop-blur-sm transition-colors hover:bg-surface-muted v4-focus-ring"
           aria-label={t("ai.jumpToLatest")}
         >
-          <ChevronDown size={ICON.xs} /> {t("ai.jumpToLatest")}
+          <RiArrowDownSLine size={ICON.xs} /> {t("ai.jumpToLatest")}
         </button>
       ) : null}
       </div>
@@ -170,7 +176,7 @@ function TaskBadge() {
         aria-label={label}
       >
         <span className="relative">
-          <Loader2 size={ICON.xs} className="animate-spin text-accent-color" />
+          <RiLoader4Line size={ICON.xs} className="animate-spin text-accent-color" />
           <span className="absolute -right-1.5 -top-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-accent-color px-0.5 text-5xs font-bold leading-none text-primary-foreground">
             {active.length}
           </span>
@@ -311,11 +317,11 @@ function PanelChrome() {
                 aria-expanded={showSessionList}
                 aria-haspopup="listbox"
               >
-                <MessageSquare size={ICON.xs} className="shrink-0 text-text-quaternary" aria-hidden />
+                <RiMessage3Line size={ICON.xs} className="shrink-0 text-text-quaternary" aria-hidden />
                 <span className="min-w-0 flex-1 truncate text-sm font-medium tracking-tight text-text-primary">
                   {activeSessionLabel}
                 </span>
-                <ChevronDown
+                <RiArrowDownSLine
                   size={ICON.micro}
                   className={cn(
                     "shrink-0 text-text-quaternary transition-transform",
@@ -328,7 +334,7 @@ function PanelChrome() {
         >
           {sessions.length > 8 ? (
             <div className="flex items-center gap-1.5 border-y border-border-subtle-dim px-2.5 py-1.5">
-              <Search size={ICON.micro} className="shrink-0 text-text-quaternary" />
+              <RiSearchLine size={ICON.micro} className="shrink-0 text-text-quaternary" />
               <input
                 value={sessionSearch}
                 onChange={(e) => setSessionSearch(e.target.value)}
@@ -364,7 +370,7 @@ function PanelChrome() {
                   setSessionSearch("");
                 }}
               >
-                <MessageSquare size={ICON.micro} className="shrink-0 opacity-70" />
+                <RiMessage3Line size={ICON.micro} className="shrink-0 opacity-70" />
                 <span className="min-w-0 flex-1 truncate">{label}</span>
               </DropdownItem>
             );
@@ -385,7 +391,7 @@ function PanelChrome() {
             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-primary"
             aria-label={t("ai.newSessionLabel")}
           >
-            <Plus size={ICON.xs} />
+            <RiAddLine size={ICON.xs} />
           </button>
         </Tooltip>
 
@@ -402,7 +408,7 @@ function PanelChrome() {
               )}
               aria-label={t("ai.clearLabel")}
             >
-              <Trash2 size={ICON.xs} />
+              <RiDeleteBin6Line size={ICON.xs} />
             </button>
           </Tooltip>
         ) : null}
@@ -438,7 +444,7 @@ function EmptyConversation({ selection }: { selection: Selection }) {
               disabled={streaming}
               className="group flex w-full items-center gap-2 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface/80 px-2.5 py-1.5 text-left text-3xs text-text-secondary transition-colors hover:border-accent-border-subtle hover:bg-surface-muted hover:text-text-primary disabled:opacity-50"
             >
-              <Sparkles size={ICON.xs} className="shrink-0 text-accent-color/70" />
+              <RiSparklingLine size={ICON.xs} className="shrink-0 text-accent-color/70" />
               <span className="min-w-0 flex-1 truncate">{p}</span>
             </button>
           ))}

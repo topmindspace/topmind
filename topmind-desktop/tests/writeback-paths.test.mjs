@@ -51,17 +51,6 @@ test("writePathCheckpoint returns 99-归档/backups/... relative path", async ()
   assert.equal(readFileSync(abs, "utf8"), content);
 });
 
-test("writeArchiveBackup returns 99-归档/backups/... relative path", async () => {
-  const backup = await writeback.writeArchiveBackup(workspace, {
-    savedAt: new Date().toISOString(),
-    content: "trashed",
-    pathParts: ["trash", "note.md"],
-  });
-  assert.ok(backup);
-  assert.match(backup, /^99-归档\/backups\/trash\/note\.md$/u);
-  assert.ok(existsSync(path.join(workspace.userWorkspaceRoot, backup)));
-});
-
 test("buildWritebackEvidence includes backup in affectedFiles", () => {
   const evidence = writeback.buildWritebackEvidence({
     operation: "update",
@@ -107,7 +96,6 @@ test("mutating workspace ops return WritebackEvidence (source contract)", () => 
     "deletePath",
     "renamePath",
     "publishPath",
-    "deleteTopic",
   ]) {
     assert.match(
       pathOps,
@@ -115,6 +103,9 @@ test("mutating workspace ops return WritebackEvidence (source contract)", () => 
       `${method} must return buildWritebackEvidence`,
     );
   }
+  // deleteTopic must go through the Kernel archive write-gate (single source
+  // for protection/confirm/stamp/receipt — no Desktop-side trash re-impl)
+  assert.match(pathOps, /async deleteTopic[\s\S]{0,2000}?kernelDurableArchive/u);
   assert.match(pathOps, /async publishPath[\s\S]{0,3500}?kernelDurableWrite/u);
   assert.match(pathOps, /async renamePath[\s\S]{0,4500}?kernelDurableWrite/u);
   // renameTopic: dir rename is FS; durable .md frontmatter must use kernel gate
@@ -138,9 +129,11 @@ test("mutating workspace ops return WritebackEvidence (source contract)", () => 
   assert.match(inboxOps, /kernelDurableWrite/u);
   assert.match(archiveOps, /async restoreTopicReceipt[\s\S]{0,2500}?buildWritebackEvidence/u);
   assert.match(archiveOps, /kernelDurableWrite/u);
-  // Unified trash under backups/trash
-  assert.match(pathOps, /trashAbsolute|backups.*trash/u);
-  assert.match(all, /backups.*trash|trashAbsolute/u);
+  // Trash/archive destination is owned by the Kernel write-gate — Desktop ops
+  // delegate (kernelDurableDelete / kernelDurableArchive), never re-implement.
+  assert.match(pathOps, /kernelDurableDelete/u);
+  assert.match(pathOps, /kernelDurableArchive/u);
+  assert.doesNotMatch(pathOps, /trashAbsolute/u);
 
   // workspaceHealth resolves template roles once (hoisted above category loop)
   const healthIdx = scanOps.indexOf("async workspaceHealth");

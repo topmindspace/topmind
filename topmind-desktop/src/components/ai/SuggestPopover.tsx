@@ -16,23 +16,23 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import { createPortal } from "react-dom";
 import {
-  Sparkles,
-  Loader2,
-  RefreshCw,
-  X,
-  FileCheck2,
-  Maximize2,
-  Inbox,
-  Archive,
-  Brain,
-  FileText,
-  FolderClock,
-  Lightbulb,
-  Zap,
-  ZapOff,
-  CheckCheck,
-  XCircle,
-} from "lucide-react";
+  RiBrainLine,
+  RiCheckDoubleLine,
+  RiCloseCircleLine,
+  RiCloseLine,
+  RiFileCheckLine,
+  RiFileTextLine,
+  RiFlashlightFill,
+  RiFlashlightLine,
+  RiFolderHistoryLine,
+  RiFullscreenLine,
+  RiInboxArchiveLine,
+  RiInboxUnarchiveLine,
+  RiLightbulbLine,
+  RiLoader4Line,
+  RiRefreshLine,
+  RiSparklingLine,
+} from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/cn";
 import { ICON } from "../../lib/icons";
@@ -53,21 +53,21 @@ function SuggestionIcon({ kind, isHigh }: { kind?: string; isHigh: boolean }) {
   switch (kind) {
     case "inbox_review":
     case "inbox_organize":
-      return <Inbox size={ICON.nano} className={cls} />;
+      return <RiInboxUnarchiveLine size={ICON.micro} className={cls} />;
     case "stale_topic":
-      return <Archive size={ICON.nano} className={cls} />;
+      return <RiInboxArchiveLine size={ICON.micro} className={cls} />;
     case "stream_digest":
     case "ai_summary":
-      return <Brain size={ICON.nano} className={cls} />;
+      return <RiBrainLine size={ICON.micro} className={cls} />;
     case "promote_memory":
-      return <Lightbulb size={ICON.nano} className={cls} />;
+      return <RiLightbulbLine size={ICON.micro} className={cls} />;
     case "create_topic":
     case "open_profile":
-      return <FileText size={ICON.nano} className={cls} />;
+      return <RiFileTextLine size={ICON.micro} className={cls} />;
     case "catch_all":
-      return <FolderClock size={ICON.nano} className={cls} />;
+      return <RiFolderHistoryLine size={ICON.micro} className={cls} />;
     default:
-      return <Sparkles size={ICON.nano} className={cls} />;
+      return <RiSparklingLine size={ICON.micro} className={cls} />;
   }
 }
 
@@ -129,6 +129,7 @@ export function SuggestPopover() {
   const [reviewId, setReviewId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkResult, setBulkResult] = useState<string | null>(null);
+  const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
 
   // Position immediately when opening — avoid a null first paint (looks like no-op)
   useEffect(() => {
@@ -137,6 +138,7 @@ export function SuggestPopover() {
     } else {
       setPos(null);
       setBulkResult(null);
+      setRemovingIds(new Set());
     }
   }, [open]);
 
@@ -275,10 +277,24 @@ export function SuggestPopover() {
     setBulkResult(t("ai.bulkDismissDone", { defaultValue: "All suggestions dismissed" }));
   };
 
+  const handleDismissItem = (id: string) => {
+    setRemovingIds((prev) => new Set(prev).add(id));
+    setTimeout(() => {
+      dismissItem(id);
+      setRemovingIds((prev) => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }, 180);
+  };
+
   const renderItem = (item: ActionItem) => {
     const isPendingWrite = item.source === "pending_write";
     const isHigh = item.priority === "high";
     const isBusy = busyId === item.id;
+    const isRemoving = removingIds.has(item.id);
     const chip = kindChipKey(item.suggestionKind, item.source);
     const fPath = friendlyPath(item.targetPath);
     return (
@@ -286,6 +302,7 @@ export function SuggestPopover() {
         key={item.id}
         className={cn(
           "rounded-md p-2.5 flex flex-col gap-0.5 transition-colors",
+          isRemoving && "v4-item-removing",
           isPendingWrite || isHigh
             ? "bg-warning/5 ring-1 ring-inset ring-warning/15"
             : "bg-surface-muted/25 hover:bg-surface-muted/40",
@@ -293,7 +310,7 @@ export function SuggestPopover() {
       >
         <div className="flex items-start gap-1.5">
           {isPendingWrite ? (
-            <FileCheck2 size={ICON.nano} className="mt-0.5 shrink-0 text-warning" />
+            <RiFileCheckLine size={ICON.micro} className="mt-0.5 shrink-0 text-warning" />
           ) : (
             <SuggestionIcon kind={item.suggestionKind} isHigh={isHigh} />
           )}
@@ -339,7 +356,7 @@ export function SuggestPopover() {
                 onClick={() => setReviewId(item.id)}
                 disabled={isBusy}
               >
-                <Maximize2 size={ICON.nano} />
+                <RiFullscreenLine size={ICON.micro} />
                 {t("ai.pendingReview")}
               </button>
               <button
@@ -348,7 +365,7 @@ export function SuggestPopover() {
                 onClick={() => void acceptItem(item.id)}
                 disabled={isBusy}
               >
-                {isBusy ? <Loader2 size={ICON.micro} className="animate-spin" /> : null}
+                {isBusy ? <RiLoader4Line size={ICON.micro} className="animate-spin" /> : null}
                 {t("ai.pendingAccept")}
               </button>
               <button
@@ -368,7 +385,7 @@ export function SuggestPopover() {
                 onClick={() => void acceptItem(item.id)}
                 disabled={busyId !== null || bulkBusy}
               >
-                {isBusy ? <Loader2 size={ICON.micro} className="animate-spin" /> : null}
+                {isBusy ? <RiLoader4Line size={ICON.micro} className="animate-spin" /> : null}
                 {suggestionApplyIsWrite(item.suggestionKind, item.source)
                   ? t("ai.suggestConfirm")
                   : t("ai.suggestOpen")}
@@ -386,7 +403,7 @@ export function SuggestPopover() {
               <button
                 type="button"
                 className="inline-flex h-5 items-center rounded-[var(--radius-sm)] px-2 text-3xs text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-secondary v4-focus-ring"
-                onClick={() => dismissItem(item.id)}
+                onClick={() => handleDismissItem(item.id)}
                 disabled={busyId !== null || bulkBusy}
               >
                 {t("ai.suggestIgnore")}
@@ -405,22 +422,22 @@ export function SuggestPopover() {
       data-action-bar
       data-menu-surface=""
       className={cn(
-        "v4-no-drag v4-todo-popover-enter fixed z-[var(--z-popover-overlay)] flex flex-col overflow-hidden",
-        "rounded-lg border border-border-subtle",
-        "bg-surface-elevated/90 backdrop-blur-glass backdrop-saturate-150 shadow-elevated-hairline",
+        "v4-no-drag v4-popover-enter fixed z-[var(--z-popover-overlay)] flex flex-col overflow-hidden",
+        "rounded-xl border border-border-subtle",
+        "bg-surface-elevated/95 backdrop-blur-glass backdrop-saturate-150 shadow-elevated-hairline",
       )}
       style={{
         left: pos.x,
         top: pos.y,
-        width: PANEL_WIDTH,
-        maxHeight: PANEL_MAX_HEIGHT,
+        width: Math.min(PANEL_WIDTH, window.innerWidth - 24),
+        maxHeight: Math.min(PANEL_MAX_HEIGHT, window.innerHeight - 64),
       }}
       role="dialog"
       aria-label={t("ai.suggestTitle")}
     >
       {/* Header: title + count + bulk actions + controls */}
       <div className="flex shrink-0 items-center gap-1.5 border-b border-border-subtle-dim px-3 py-2">
-        <Sparkles
+        <RiSparklingLine
           size={ICON.xs}
           className={cn(hasHigh ? "text-warning" : "text-accent-color", bulkBusy && "animate-pulse")}
           aria-hidden
@@ -447,7 +464,7 @@ export function SuggestPopover() {
               onClick={() => void handleAcceptAll()}
               aria-label={t("ai.bulkAcceptTip", { defaultValue: "Accept all" })}
             >
-              <CheckCheck size={ICON.nano} />
+              <RiCheckDoubleLine size={ICON.micro} />
               <span className="text-3xs font-medium">
                 {t("ai.bulkAccept", { count: items.length, defaultValue: "All ({{count}})" })}
               </span>
@@ -465,7 +482,7 @@ export function SuggestPopover() {
               onClick={handleDismissAll}
               aria-label={t("ai.bulkDismissTip", { defaultValue: "Dismiss all" })}
             >
-              <XCircle size={ICON.nano} />
+              <RiCloseCircleLine size={ICON.micro} />
             </button>
           </Tooltip>
         ) : null}
@@ -480,7 +497,7 @@ export function SuggestPopover() {
             onClick={() => void toggleAutoPrepare()}
             aria-pressed={autoPrepare}
           >
-            {autoPrepare ? <Zap size={ICON.nano} /> : <ZapOff size={ICON.nano} />}
+            {autoPrepare ? <RiFlashlightFill size={ICON.micro} /> : <RiFlashlightLine size={ICON.micro} />}
           </button>
         </Tooltip>
         <button
@@ -494,9 +511,9 @@ export function SuggestPopover() {
           aria-label={t("ai.suggestRefresh")}
         >
           {loading ? (
-            <Loader2 size={ICON.nano} className="animate-spin" />
+            <RiLoader4Line size={ICON.micro} className="animate-spin" />
           ) : (
-            <RefreshCw size={ICON.nano} />
+            <RiRefreshLine size={ICON.micro} />
           )}
         </button>
         <button
@@ -505,7 +522,7 @@ export function SuggestPopover() {
           onClick={() => setPanelOpen(false)}
           aria-label={t("ai.pendingCollapse")}
         >
-          <X size={ICON.nano} />
+          <RiCloseLine size={ICON.micro} />
         </button>
       </div>
 
@@ -526,12 +543,12 @@ export function SuggestPopover() {
           <div className="flex flex-col items-center gap-2 py-8 text-center">
             {loading ? (
               <>
-                <Loader2 size={ICON.sm} className="animate-spin text-accent-color/60" />
+                <RiLoader4Line size={ICON.sm} className="animate-spin text-accent-color/60" />
                 <p className="text-3xs text-text-quaternary">{t("ai.suggestLoading")}</p>
               </>
             ) : (
               <>
-                <Sparkles size={ICON.sm} className="text-text-quaternary/40" />
+                <RiSparklingLine size={ICON.sm} className="text-text-quaternary/40" />
                 <p className="text-3xs text-text-quaternary">{t("ai.suggestEmpty")}</p>
                 {!autoPrepare ? (
                   <button
@@ -539,7 +556,7 @@ export function SuggestPopover() {
                     className="mt-1 inline-flex items-center gap-1 rounded-sm bg-accent-bg-subtle px-2 py-1 text-3xs font-medium text-accent-color hover:bg-accent-bg-faint transition-colors"
                     onClick={() => void toggleAutoPrepare()}
                   >
-                    <Zap size={ICON.nano} />
+                    <RiFlashlightFill size={ICON.micro} />
                     {t("ai.suggestToggleOn")}
                   </button>
                 ) : null}

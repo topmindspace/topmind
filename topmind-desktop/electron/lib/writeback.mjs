@@ -136,39 +136,27 @@ function dataRootOf(workspaceContext) {
 }
 
 // ── Backup Chain ─────────────────────────────────────────────────────────────
-// These Desktop-side backup helpers are a **supplement** to the Kernel's
+// This Desktop-side checkpoint helper is a **supplement** to the Kernel's
 // writeback-engine (`lib/writeback-engine.mjs`), not a replacement.
 //
 // Relationship to Kernel writeback-engine:
 // - Kernel `executeWrite` handles its own high-impact backup (locked file
 //   overwrite → backup + receipt, rotated by BACKUP_KEEP=3).
 // - Kernel `executeDelete` / `executeArchive` handle trash/archive copies.
-// - These Desktop helpers (`writeArchiveBackup` / `writePathCheckpoint`)
-//   are for rare non-content checkpoints (locked binary overwrite).
-//   Connectors, restore, and ordinary content writes MUST NOT call them.
+// - This Desktop helper (`writePathCheckpoint`) is for rare non-content
+//   checkpoints (locked binary overwrite). Connectors, restore, and ordinary
+//   content writes MUST NOT call it.
 // - All content-plane markdown writes MUST go through `kernelDurableWrite`
-//   → Kernel `executeWrite` — never these helpers.
+//   → Kernel `executeWrite` — never this helper.
 // - Backup filenames use the Kernel ISO stamp (`backupStamp`) so Kernel's
 //   lexicographic keep-N rotation in `99-归档/backups/` judges Desktop
 //   checkpoints and Kernel backups on the same sortable axis.
 
-export async function writeArchiveBackup(workspaceContext, { savedAt, content, pathParts }) {
-  if (content === null || content === undefined) return undefined;
-  const stamp = backupStamp(new Date(savedAt));
-  const resolvedParts = typeof pathParts === "function" ? pathParts(stamp) : pathParts;
-  if (!Array.isArray(resolvedParts) || resolvedParts.length === 0) {
-    throw new Error("Missing backup path parts.");
-  }
-  const backupPath = path.join(archiveRoot(workspaceContext), "backups", ...resolvedParts);
-  await assertPathWithin(dataRootOf(workspaceContext), backupPath, { allowMissing: true });
-  await fs.mkdir(path.dirname(backupPath), { recursive: true });
-  await fs.writeFile(backupPath, content, "utf8");
-  return archiveRelative(workspaceContext, "backups", ...resolvedParts);
-}
-
 /**
  * Generic rotating checkpoint keyed by any workspace-relative file path.
  * Backups land in `{99-Archive|99 Archive}/backups/<parent dirs>/<stamp>__<name>`.
+ * `content` may be a string (utf8) or a Buffer (binary checkpoint, stored
+ * as-is so the backup stays directly restorable).
  */
 export async function writePathCheckpoint(workspaceContext, { savedAt, content, relativePath, keep = 5 }) {
   if (content === null || content === undefined) return undefined;
@@ -185,7 +173,7 @@ export async function writePathCheckpoint(workspaceContext, { savedAt, content, 
   const fileName = `${stamp}__${safeRelative}`;
   const filePath = path.join(baseDir, fileName);
   await assertPathWithin(dataRootOf(workspaceContext), filePath, { allowMissing: true });
-  await fs.writeFile(filePath, content, "utf8");
+  await fs.writeFile(filePath, content);
   const backupRelativePath = archiveRelative(workspaceContext, "backups", ...dirParts, fileName);
 
   if (keep > 0) {

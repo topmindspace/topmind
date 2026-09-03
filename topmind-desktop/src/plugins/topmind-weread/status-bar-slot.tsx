@@ -1,7 +1,7 @@
 /**
  * Weread StatusBar — last sync + live progress.
  */
-import { BookOpen, Loader2 } from "lucide-react";
+import { RiBookOpenLine, RiLoader4Line } from "@remixicon/react";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../../services/api";
@@ -58,7 +58,7 @@ function WereadStatusBar() {
           onClick={() => select({ kind: "connector", id: "weread" })}
           className="flex max-w-[180px] items-center gap-1 truncate text-accent-color"
         >
-          <Loader2 size={ICON.micro} className="shrink-0 animate-spin" />
+          <RiLoader4Line size={ICON.micro} className="shrink-0 animate-spin" />
           <span className="truncate">{progress}</span>
         </button>
       </Tooltip>
@@ -86,7 +86,7 @@ function WereadStatusBar() {
         onClick={() => select({ kind: "connector", id: "weread" })}
         className="flex items-center gap-1 text-text-quaternary transition-colors hover:text-text-secondary"
       >
-        <BookOpen size={ICON.micro} />
+        <RiBookOpenLine size={ICON.micro} />
         <span>{t("statusBar.reading", { label })}</span>
       </button>
     </Tooltip>

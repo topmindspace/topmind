@@ -6,9 +6,15 @@
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Copy, FileText, FolderSearch, Trash2, Upload, Files, Edit3,
-  ExternalLink, RotateCcw, FolderOpen,
-} from "lucide-react";
+  RiArrowGoBackLine,
+  RiDeleteBin6Line,
+  RiEditLine,
+  RiExternalLinkLine,
+  RiFileCopyLine,
+  RiFileTextLine,
+  RiFolderOpenLine,
+  RiUpload2Line,
+} from "@remixicon/react";
 import { api } from "../../services/api";
 import { emitLocal } from "../../plugins/host";
 import { toastWriteback } from "../../lib/writeback-toast";
@@ -329,7 +335,7 @@ export function WorkspaceFileContextMenu({
         </ContextMenuLabel>
 
         <ContextMenuItem
-          icon={kind === "topic" || kind === "category" ? <FolderOpen size={ICON.sm} /> : <FileText size={ICON.sm} />}
+          icon={kind === "topic" || kind === "category" ? <RiFolderOpenLine size={ICON.sm} /> : <RiFileTextLine size={ICON.sm} />}
           onClick={handleOpen}
         >
           {showArchive ? t("workspace:menu.readOnlyOpen") : t("workspace:menu.open")}
@@ -337,36 +343,36 @@ export function WorkspaceFileContextMenu({
 
         {showNoteActions ? (
           <>
-            <ContextMenuItem icon={<Edit3 size={ICON.sm} />} onClick={handleRenameRequest}>
+            <ContextMenuItem icon={<RiEditLine size={ICON.sm} />} onClick={handleRenameRequest}>
               {t("workspace:menu.rename")}
             </ContextMenuItem>
-            <ContextMenuItem icon={<Files size={ICON.sm} />} onClick={() => void handleDuplicate()}>
+            <ContextMenuItem icon={<RiFileCopyLine size={ICON.sm} />} onClick={() => void handleDuplicate()}>
               {t("workspace:menu.makeCopy")}
             </ContextMenuItem>
           </>
         ) : null}
 
         {showMove ? (
-          <ContextMenuItem icon={<FolderOpen size={ICON.sm} />} onClick={handleMoveRequest}>
+          <ContextMenuItem icon={<RiFolderOpenLine size={ICON.sm} />} onClick={handleMoveRequest}>
             {t("workspace:menu.moveToTopic")}
           </ContextMenuItem>
         ) : null}
 
         {showPublish ? (
-          <ContextMenuItem icon={<Upload size={ICON.sm} />} onClick={handlePublishRequest}>
+          <ContextMenuItem icon={<RiUpload2Line size={ICON.sm} />} onClick={handlePublishRequest}>
             {t("workspace:menu.publishDelivery")}
           </ContextMenuItem>
         ) : null}
 
         {showArchive ? (
-          <ContextMenuItem icon={<RotateCcw size={ICON.sm} />} onClick={handleRestoreRequest}>
+          <ContextMenuItem icon={<RiArrowGoBackLine size={ICON.sm} />} onClick={handleRestoreRequest}>
             {t("workspace:menu.restoreTo")}
           </ContextMenuItem>
         ) : null}
 
         {showTopic ? (
           <ContextMenuItem
-            icon={<FileText size={ICON.sm} />}
+            icon={<RiFileTextLine size={ICON.sm} />}
             onClick={() => {
               closeAll();
               // Create note via prompt in parent — emit intent for TopicOverview
@@ -379,7 +385,7 @@ export function WorkspaceFileContextMenu({
 
         {showCategory ? (
           <ContextMenuItem
-            icon={<FolderOpen size={ICON.sm} />}
+            icon={<RiFolderOpenLine size={ICON.sm} />}
             onClick={() => {
               closeAll();
               emitLocal("workspace:new-topic", { category: path });
@@ -391,14 +397,14 @@ export function WorkspaceFileContextMenu({
 
         <ContextMenuSeparator />
 
-        <ContextMenuItem icon={<Copy size={ICON.sm} />} onClick={() => void handleCopyPath()} shortcut="⌘⇧C">
+        <ContextMenuItem icon={<RiFileCopyLine size={ICON.sm} />} onClick={() => void handleCopyPath()} shortcut="⌘⇧C">
           {t("workspace:menu.copyPath")}
         </ContextMenuItem>
-        <ContextMenuItem icon={<FolderSearch size={ICON.sm} />} onClick={() => void handleReveal()}>
+        <ContextMenuItem icon={<RiFolderOpenLine size={ICON.sm} />} onClick={() => void handleReveal()}>
           {t("workspace:menu.showInFileManager")}
         </ContextMenuItem>
         {showExternal ? (
-          <ContextMenuItem icon={<ExternalLink size={ICON.sm} />} onClick={() => void handleOpenExternal()}>
+          <ContextMenuItem icon={<RiExternalLinkLine size={ICON.sm} />} onClick={() => void handleOpenExternal()}>
             {t("workspace:menu.openWithDefaultApp")}
           </ContextMenuItem>
         ) : null}
@@ -407,7 +413,7 @@ export function WorkspaceFileContextMenu({
           <>
             <ContextMenuSeparator />
             <ContextMenuItem
-              icon={<Trash2 size={ICON.sm} />}
+              icon={<RiDeleteBin6Line size={ICON.sm} />}
               destructive
               onClick={handleDeleteRequest}
             >

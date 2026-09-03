@@ -1,6 +1,13 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { FolderOpen, FileText, PenLine, Sparkles, Brain, Plus } from "lucide-react";
+import {
+  RiAddLine,
+  RiBrainLine,
+  RiEdit2Line,
+  RiFileTextLine,
+  RiFolderOpenLine,
+  RiSparklingLine,
+} from "@remixicon/react";
 import { api } from "../../../services/api";
 import { useViewStore } from "../../../stores/view-store";
 import { onLocal } from "../../../plugins/host";
@@ -147,7 +154,7 @@ export function TopicOverviewView({ topicId }: Props) {
   return (
     <ViewContainer>
       <PageHeader
-        icon={<FolderOpen size={ICON.sm} />}
+        icon={<RiFolderOpenLine size={ICON.sm} />}
         title={data.topicName}
         subtitle={[
           categoryLabel,
@@ -160,22 +167,22 @@ export function TopicOverviewView({ topicId }: Props) {
           <div className="flex items-center gap-1">
             <Tooltip content={t("workspace:topicOverview.writeMemory")}>
               <Button variant="outline" size="sm" onClick={() => openOverlay("quick-capture", { intent: "memory", topicId })}>
-                <Brain size={ICON.xs} /> {t("workspace:topicOverview.memory")}
+                <RiBrainLine size={ICON.xs} /> {t("workspace:topicOverview.memory")}
               </Button>
             </Tooltip>
             <Tooltip content={hasTopic ? t("workspace:topicOverview.openTopicFile") : t("workspace:topicOverview.createTopicFile")}>
               <Button variant="outline" size="sm" onClick={() => void openTopicMd()}>
-                <PenLine size={ICON.xs} />
+                <RiEdit2Line size={ICON.xs} />
               </Button>
             </Tooltip>
             <Tooltip content={t("workspace:topicOverview.openAiCollaboration")}>
               <Button variant="outline" size="sm" onClick={() => setAiPanelOpen(true)}>
-                <Sparkles size={ICON.xs} />
+                <RiSparklingLine size={ICON.xs} />
               </Button>
             </Tooltip>
             <Tooltip content={t("common:action.new")}>
               <Button size="sm" onClick={handleNewNote}>
-                <Plus size={ICON.xs} /> {t("common:action.new")}
+                <RiAddLine size={ICON.xs} /> {t("common:action.new")}
               </Button>
             </Tooltip>
           </div>
@@ -186,16 +193,16 @@ export function TopicOverviewView({ topicId }: Props) {
         <FeedChrome>
           <FeedLayoutToggle value={feedLayout} onChange={setFeedLayout} />
         </FeedChrome>
-      <SectionHeader icon={<FileText size={ICON.xs} />} label={t("workspace:topicOverview.notes")} count={sortedFiles.length} />
+      <SectionHeader icon={<RiFileTextLine size={ICON.xs} />} label={t("workspace:topicOverview.notes")} count={sortedFiles.length} />
       {sortedFiles.length === 0 ? (
         <EmptyState
-          icon={<FileText size={ICON.md} />}
+          icon={<RiFileTextLine size={ICON.md} />}
           title={t("workspace:topicOverview.noNotes")}
           hint={t("workspace:topicOverview.noNotesHint")}
           action={
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={handleNewNote}>
-                <Plus size={ICON.xs} /> {t("common:action.new")}
+                <RiAddLine size={ICON.xs} /> {t("common:action.new")}
               </Button>
               <Button variant="ghost" size="sm" onClick={() => openOverlay("quick-capture")}>
                 {t("workspace:inbox.captureBtn")}
@@ -218,7 +225,7 @@ export function TopicOverviewView({ topicId }: Props) {
                 <FileRow
                   key={f.name}
                   icon={
-                    <FileText
+                    <RiFileTextLine
                       size={ICON.xs}
                       className={cn(isTopicFile ? "text-accent-color" : "opacity-80")}
                     />

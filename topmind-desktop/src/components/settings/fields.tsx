@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { ExternalLink, Info } from "lucide-react";
+import { RiExternalLinkLine, RiInformationLine } from "@remixicon/react";
 import { api } from "../../services/api";
 import { Tooltip } from "../ui/tooltip";
 import { ICON } from "../../lib/icons";
@@ -29,7 +29,7 @@ export function HelpTip({
         tabIndex={0}
         aria-label={t("common:action.help", { defaultValue: "Help" })}
       >
-        <Info size={ICON.nano} aria-hidden />
+        <RiInformationLine size={ICON.micro} aria-hidden />
       </span>
     </Tooltip>
   );
@@ -222,7 +222,7 @@ export function KeyField({
                 onClick={() => void api.sys.openUrl(helpUrl)}
                 className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-3xs font-medium text-accent-color transition-colors hover:bg-accent-bg-subtle v4-focus-ring"
               >
-                {t("action.getKey")} <ExternalLink size={ICON.nano} aria-hidden />
+                {t("action.getKey")} <RiExternalLinkLine size={ICON.micro} aria-hidden />
               </button>
             </Tooltip>
           ) : null}

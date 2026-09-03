@@ -92,7 +92,7 @@ export function archiveRelativePath(workspaceContext, ...parts) {
 
 /**
  * Absolute path for trash under unified layout: {archive}/backups/trash/...
- * (same tree as writeArchiveBackup pathParts: ["trash", ...]).
+ * (same tree the Kernel writeback-engine uses for recoverable deletes).
  */
 export function trashAbsolute(workspaceContext, ...parts) {
   return path.join(archiveRoot(workspaceContext), "backups", "trash", ...parts);

@@ -63,15 +63,37 @@ export function resolveMaxTokens(context, promptLen = 0) {
 }
 
 /**
- * Resolve temperature based on operation context.
+ * Detect if a model ID is a reasoning / thinking model that prohibits custom temperature.
+ * Examples: deepseek-reasoner, deepseek-r1, o1, o1-mini, o3-mini, qwq-32b, etc.
+ * @param {string} [modelId]
+ * @returns {boolean}
+ */
+export function isReasoningModel(modelId) {
+  if (!modelId || typeof modelId !== "string") return false;
+  const lower = modelId.toLowerCase();
+  return (
+    lower.includes("reasoner") ||
+    lower.includes("deepseek-r1") ||
+    lower.startsWith("o1") ||
+    lower.startsWith("o3") ||
+    lower.includes("qwq") ||
+    lower.includes("thinking")
+  );
+}
+
+/**
+ * Resolve temperature based on operation context and target model capabilities.
  *
  * Extraction/classification tasks benefit from low temperature (deterministic).
  * Creative/analysis tasks benefit from moderate temperature (variety).
+ * Reasoning models (DeepSeek-R1, o1, o3) reject non-default temperature → return undefined.
  *
  * @param {object} context
+ * @param {string} [modelId]
  * @returns {number|undefined}
  */
-function resolveTemperature(context) {
+function resolveTemperature(context, modelId) {
+  if (isReasoningModel(modelId)) return undefined;
   if (typeof context.temperature === "number") return context.temperature;
 
   const LOW_TEMP_OPS = new Set([
@@ -162,8 +184,9 @@ export function createKernelAiProvider(settings, modelOverride) {
     async generate(prompt, context = {}) {
       const startTime = Date.now();
       const maxTokens = resolveMaxTokens(context, prompt.length);
-      const temperature = resolveTemperature(context);
-      const systemPrompt = resolveSystemPrompt(context);
+      let temperature = resolveTemperature(context, res.modelId);
+      let systemPrompt = resolveSystemPrompt(context);
+      let promptText = prompt;
       const maxRetries = 1; // Allow 1 retry for transient errors (network, rate-limit)
 
       let lastError = null;
@@ -181,15 +204,16 @@ export function createKernelAiProvider(settings, modelOverride) {
           }
           logInfo("ai", "kernel-ai-provider generate", {
             model: res.modelId,
-            promptLen: prompt.length,
+            promptLen: promptText.length,
             maxOutputTokens: maxTokens,
             temperature: temperature ?? "default",
+            systemPrompt: systemPrompt ? "present" : "none",
             operation: context.operation || "generic",
             context: context.period || context.topicPath || "generic",
           });
           const genOpts = {
             model: res.model,
-            prompt,
+            prompt: promptText,
             maxOutputTokens: maxTokens,
           };
           if (temperature !== undefined) genOpts.temperature = temperature;
@@ -205,18 +229,57 @@ export function createKernelAiProvider(settings, modelOverride) {
           return text;
         } catch (err) {
           lastError = err;
+          const errMsg = (err?.message || String(err)).toLowerCase();
+
+          // Self-heal 1: temperature unsupported by model → drop temperature and retry
+          if (temperature !== undefined && /temperature.*(?:not supported|unsupported|invalid|does not support)/i.test(errMsg)) {
+            logInfo("ai", "temperature unsupported by model, self-healing without temperature", { model: res.modelId });
+            temperature = undefined;
+            try {
+              const retryGenOpts = {
+                model: res.model,
+                prompt: promptText,
+                maxOutputTokens: maxTokens,
+              };
+              if (systemPrompt) retryGenOpts.system = systemPrompt;
+              const out = await generateText(retryGenOpts);
+              return out.text || "";
+            } catch (retryErr) {
+              lastError = retryErr;
+            }
+          }
+
+          // Self-heal 2: system message unsupported by model (e.g. o1/o1-mini/deepseek-reasoner) → merge into prompt
+          if (systemPrompt && /(?:system|developer).*(?:not supported|unsupported|invalid|role|message)/i.test(errMsg)) {
+            logInfo("ai", "system message unsupported by model, self-healing by merging into prompt", { model: res.modelId });
+            promptText = `${systemPrompt}\n\n${promptText}`;
+            systemPrompt = undefined;
+            try {
+              const retryGenOpts = {
+                model: res.model,
+                prompt: promptText,
+                maxOutputTokens: maxTokens,
+              };
+              if (temperature !== undefined) retryGenOpts.temperature = temperature;
+              const out = await generateText(retryGenOpts);
+              return out.text || "";
+            } catch (retryErr) {
+              lastError = retryErr;
+            }
+          }
+
           // Don't retry on abort/cancel or non-transient errors
-          if (!isTransientError(err) || attempt >= maxRetries) {
+          if (!isTransientError(lastError) || attempt >= maxRetries) {
             logError("ai", "kernel-ai-provider failed", {
               model: res.modelId,
               maxOutputTokens: maxTokens,
-              error: err?.message || String(err),
+              error: lastError?.message || String(lastError),
               durationMs: Date.now() - startTime,
               retried: attempt > 0,
             });
-            throw err;
+            throw lastError;
           }
-          // Transient error — will retry
+          // Transient error — will retry with preserved healed state
         }
       }
       // Unreachable (loop either returns or throws), but TypeScript-safe fallback

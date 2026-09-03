@@ -193,9 +193,6 @@ async function inspectTopic(category, topic, ctx) {
 
 /** Filter flat 88 Outputs/ entries whose frontmatter `topic` matches the given topic. */
 async function filterOutputsByTopic(entries, topic, workspaceRoot) {
-  const { promises: fs } = await import("node:fs");
-  const path = await import("node:path");
-  const { parseFrontmatter } = await import("../core/frontmatter.mjs");
   const result = [];
   for (const entry of entries) {
     try {
@@ -310,26 +307,33 @@ async function listRecentCaptures(ctx, inboxRootPath, limit) {
     }
   }
 
-  const captures = [];
-  for (const candidate of candidates) {
-    const content = await fs.readFile(candidate.path, "utf8");
-    const parsed = parseFrontmatter(content);
-    const capturedAt = parsed.data.captured_at || parsed.data.created || parsed.data.created_at || null;
-    if (!capturedAt) continue;
-    const info = await fileInfo(candidate.path, categoriesRoot, candidate.topic ? "note" : "inbox");
-    captures.push({
-      ...info,
-      category: candidate.category,
-      topic: candidate.topic,
-      title: parsed.data.title || info.name,
-      sourceType: parsed.data.source_type || null,
-      capturedAt,
-      route: {
-        confidence: parsed.data.route_confidence || null,
-        reason: parsed.data.route_reason || null,
-      },
-    });
-  }
+  const captures = (
+    await Promise.all(
+      candidates.map(async (candidate) => {
+        try {
+          const content = await fs.readFile(candidate.path, "utf8");
+          const parsed = parseFrontmatter(content);
+          const capturedAt = parsed.data.captured_at || parsed.data.created || parsed.data.created_at || null;
+          if (!capturedAt) return null;
+          const info = await fileInfo(candidate.path, categoriesRoot, candidate.topic ? "note" : "inbox");
+          return {
+            ...info,
+            category: candidate.category,
+            topic: candidate.topic,
+            title: parsed.data.title || info.name,
+            sourceType: parsed.data.source_type || null,
+            capturedAt,
+            route: {
+              confidence: parsed.data.route_confidence || null,
+              reason: parsed.data.route_reason || null,
+            },
+          };
+        } catch {
+          return null;
+        }
+      }),
+    )
+  ).filter(Boolean);
 
   captures.sort((left, right) => {
     const byCapture = compareStrings(right.capturedAt || "", left.capturedAt || "");

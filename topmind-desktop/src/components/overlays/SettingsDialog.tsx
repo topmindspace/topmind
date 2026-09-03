@@ -1,11 +1,25 @@
 import { useEffect, useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Settings, Bot, FolderTree, Loader2, Puzzle, BookOpen, Twitter, Sparkles, Terminal, FileInput, Boxes, Plug, Stethoscope } from "lucide-react";
+import {
+  RiBookOpenLine,
+  RiBox3Line,
+  RiFileTransferLine,
+  RiLoader4Line,
+  RiNodeTree,
+  RiPlugLine,
+  RiPuzzleLine,
+  RiRobot2Line,
+  RiSettingsLine,
+  RiSparklingLine,
+  RiStethoscopeLine,
+  RiTerminalLine,
+  RiTwitterXLine,
+} from "@remixicon/react";
 import i18n from "../../locales";
 import { useViewStore } from "../../stores/view-store";
 import { useRegistry } from "../../plugins/registry";
 import { ICON } from "../../lib/icons";
-import type { LucideIcon } from "lucide-react";
+import type { RemixiconComponentType } from "@remixicon/react";
 import { GeneralPanel } from "../settings/GeneralPanel";
 import { AiProviderPanel } from "../settings/AiProviderPanel";
 import { WorkspacePanel } from "../settings/WorkspacePanel";
@@ -18,10 +32,10 @@ import { useSettingsController } from "./useSettingsController";
 import { setOverlayCloseGuard } from "../../lib/overlay-close-guard";
 
 /** Icon map for settings slots that use string icon names. */
-const SLOT_ICON_MAP: Record<string, LucideIcon> = {
-  "book-open": BookOpen,
-  twitter: Twitter,
-  "file-input": FileInput,
+const SLOT_ICON_MAP: Record<string, RemixiconComponentType> = {
+  "book-open": RiBookOpenLine,
+  twitter: RiTwitterXLine,
+  "file-input": RiFileTransferLine,
 };
 
 /** Panel id → settings.json top-level sections it renders (for content search). */
@@ -87,12 +101,12 @@ export function SettingsDialog() {
   const tabs = useMemo<SettingsTabItem[]>(() => {
     // IA: 环境 → 智能体 → 扩展 → 管理与更新
     const builtin: SettingsTabItem[] = [
-      { id: "general", label: t("settings:tabs.general"), icon: Settings, order: 0, group: t("settings:groups.environment") },
-      { id: "workspace", label: t("settings:tabs.workspace"), icon: FolderTree, order: 10, group: t("settings:groups.environment") },
-      { id: "ai", label: t("settings:tabs.ai"), icon: Bot, order: 20, group: t("settings:groups.agent") },
-      { id: "skills", label: t("settings:tabs.skills"), icon: Sparkles, order: 25, group: t("settings:groups.agent") },
-      { id: "tools", label: t("settings:tabs.tools"), icon: Terminal, order: 30, group: t("settings:groups.agent") },
-      { id: "plugins", label: t("settings:tabs.plugins"), icon: Puzzle, order: 40, group: t("settings:groups.extensions") },
+      { id: "general", label: t("settings:tabs.general"), icon: RiSettingsLine, order: 0, group: t("settings:groups.environment") },
+      { id: "workspace", label: t("settings:tabs.workspace"), icon: RiNodeTree, order: 10, group: t("settings:groups.environment") },
+      { id: "ai", label: t("settings:tabs.ai"), icon: RiRobot2Line, order: 20, group: t("settings:groups.agent") },
+      { id: "skills", label: t("settings:tabs.skills"), icon: RiSparklingLine, order: 25, group: t("settings:groups.agent") },
+      { id: "tools", label: t("settings:tabs.tools"), icon: RiTerminalLine, order: 30, group: t("settings:groups.agent") },
+      { id: "plugins", label: t("settings:tabs.plugins"), icon: RiPuzzleLine, order: 40, group: t("settings:groups.extensions") },
     ];
     // Panel-content search: flatten the panel's settings.json sections so the
     // nav filter reaches section titles/descriptions, not just page names.
@@ -107,14 +121,14 @@ export function SettingsDialog() {
     const dynamic = settingsSlots.map((slot) => ({
       id: slot.id,
       label: slot.labelKey ? t(slot.labelKey) : slot.label,
-      icon: SLOT_ICON_MAP[slot.icon ?? ""] ?? Puzzle,
+      icon: SLOT_ICON_MAP[slot.icon ?? ""] ?? RiPuzzleLine,
       order: 50 + (slot.order ?? 100),
       group: t("settings:groups.extensions"),
     }));
     const footer = [
-      { id: "about", label: t("settings:tabs.about"), icon: Boxes, order: 990, group: t("settings:groups.manage") },
-      { id: "integrations", label: t("settings:tabs.integrations"), icon: Plug, order: 991, group: t("settings:groups.manage") },
-      { id: "diagnostics", label: t("settings:tabs.diagnostics"), icon: Stethoscope, order: 992, group: t("settings:groups.manage") },
+      { id: "about", label: t("settings:tabs.about"), icon: RiBox3Line, order: 990, group: t("settings:groups.manage") },
+      { id: "integrations", label: t("settings:tabs.integrations"), icon: RiPlugLine, order: 991, group: t("settings:groups.manage") },
+      { id: "diagnostics", label: t("settings:tabs.diagnostics"), icon: RiStethoscopeLine, order: 992, group: t("settings:groups.manage") },
     ];
     const footerWithSearch = footer.map((tab) => {
       const keys = PANEL_SEARCH_KEYS[tab.id];
@@ -173,7 +187,7 @@ export function SettingsDialog() {
         aria-modal="true"
         aria-label={t("settings:title")}
       >
-        <Loader2 size={ICON.md} className="animate-spin text-accent-color/70" />
+        <RiLoader4Line size={ICON.md} className="animate-spin text-accent-color/70" />
         <span className="text-sm">{t("common:status.loading")}</span>
       </div>
     );

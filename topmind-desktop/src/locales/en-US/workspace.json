@@ -93,6 +93,7 @@
     "collapse": "Collapse",
     "otherDay": "Other",
     "backToCurrent": "This week",
+    "backToTop": "Top & write",
     "moreThisYear": "More this year ({{count}})",
     "pastYears": "Past years",
     "archiveYear": "Archive past years",
@@ -113,7 +114,9 @@
     "composeAiPolishTip": "Only rewrites the box · does not save · not the same as title-bar Note it",
     "composeAiPolishing": "Polishing…",
     "composeAiPolishDone": "Composer polished",
-    "composeAiPolishFailed": "AI polish failed — try again",
+    "composeAiPolishFailed": "AI polish failed. Please try again.",
+    "composeRevertOriginal": "Revert to original text before polish",
+    "revert": "Revert",
     "composeUrlHint": "URL detected — open Note it to fetch content (defaults to Inbox / stream)",
     "composeUrlAction": "Note it",
     "openArticle": "Open note",
@@ -433,5 +436,14 @@
     "loop": "Loop — workspace health",
     "loopToast": "✓ Health check passed · {{categories}} categories · {{topics}} topics{{warnings}}",
     "warningsCount": " · {{count}} warnings"
+  },
+  "outline": {
+    "title": "Document Outline",
+    "button": "Outline",
+    "panelAria": "Document outline panel",
+    "showTip": "Show outline (⌘⌥O)",
+    "hideTip": "Hide outline (⌘⌥O)",
+    "empty": "No headings in this note",
+    "emptyHint": "Type # Heading to generate outline"
   }
 }

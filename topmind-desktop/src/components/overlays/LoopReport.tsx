@@ -2,7 +2,14 @@
  * Loop / workspace health report overlay.
  * Shows native workspaceHealth results (deterministic layer of topmind-loop).
  */
-import { Activity, AlertTriangle, CheckCircle2, XCircle, FolderTree, FileWarning } from "lucide-react";
+import {
+  RiAlertLine,
+  RiCheckboxCircleLine,
+  RiCloseCircleLine,
+  RiFileWarningLine,
+  RiNodeTree,
+  RiPulseLine,
+} from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { useViewStore } from "../../stores/view-store";
 import { Button } from "../ui/Button";
@@ -38,7 +45,7 @@ export function LoopReport() {
               ok ? "text-success" : "text-warning",
             )}
           >
-            {ok ? <CheckCircle2 size={ICON.md} /> : <Activity size={ICON.md} />}
+            {ok ? <RiCheckboxCircleLine size={ICON.md} /> : <RiPulseLine size={ICON.md} />}
           </span>
           <div className="min-w-0">
             <h2 id="loop-report-title" className="text-sm font-semibold tracking-tight text-text-primary">
@@ -69,7 +76,7 @@ export function LoopReport() {
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-3">
         {issues.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-10 text-center">
-            <CheckCircle2 size={ICON.lg} className="text-success" />
+            <RiCheckboxCircleLine size={ICON.lg} className="text-success" />
             <div className="text-sm font-medium text-text-secondary">{t("overlays:loop.allClear")}</div>
             <p className="max-w-xs text-3xs leading-relaxed text-text-quaternary">
               {t("overlays:loop.allClearHint")}
@@ -99,7 +106,7 @@ export function LoopReport() {
             select({ kind: "inbox" });
           }}
         >
-          <FolderTree size={ICON.sm} /> {t("overlays:loop.openInbox")}
+          <RiNodeTree size={ICON.sm} /> {t("overlays:loop.openInbox")}
         </Button>
         <Button size="sm" onClick={closeOverlay}>
           {t("overlays:loop.done")}
@@ -129,7 +136,7 @@ function IssueRow({
   tone: "error" | "warning" | "neutral";
   onOpenPath: (sel: { kind: "file"; path: string }) => void;
 }) {
-  const Icon = tone === "error" ? XCircle : tone === "warning" ? AlertTriangle : FileWarning;
+  const Icon = tone === "error" ? RiCloseCircleLine : tone === "warning" ? RiAlertLine : RiFileWarningLine;
   const color =
     tone === "error" ? "text-error border-error/20 bg-status-error-bg" :
     tone === "warning" ? "text-warning border-warning/25 bg-status-warning-bg/40" :

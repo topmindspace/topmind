@@ -5,13 +5,39 @@
 import { useTranslation } from "react-i18next";
 import type { Editor } from "@tiptap/react";
 import {
-  Bold, Italic, Underline as UnderlineIcon, Strikethrough, Code, Braces,
-  Heading1, Heading2, Heading3, Heading4, List, ListOrdered, ListChecks, Quote, Link2,
-  Paperclip, Eye, Edit3, MoreHorizontal,
-  Hash, Minimize2, ChevronLeft, ChevronRight,
-  Upload, Brain, Sparkles, Twitter, Loader2,
-  CalendarClock, Focus, ImagePlus, RemoveFormatting,
-} from "lucide-react";
+  RiArrowLeftSLine,
+  RiArrowRightSLine,
+  RiAttachmentLine,
+  RiBold,
+  RiBrainLine,
+  RiCalendarEventLine,
+  RiCodeBoxLine,
+  RiCodeLine,
+  RiDoubleQuotesL,
+  RiEditLine,
+  RiEyeLine,
+  RiFocus3Line,
+  RiFormatClear,
+  RiFullscreenExitLine,
+  RiH1,
+  RiH2,
+  RiH3,
+  RiH4,
+  RiHashtag,
+  RiImageAddLine,
+  RiItalic,
+  RiLink,
+  RiListCheck2,
+  RiListOrdered,
+  RiListUnordered,
+  RiLoader4Line,
+  RiMoreLine,
+  RiSparklingLine,
+  RiStrikethrough,
+  RiTwitterXLine,
+  RiUnderline as UnderlineIcon,
+  RiUpload2Line,
+} from "@remixicon/react";
 import {
   DropdownItem,
   DropdownMenu,
@@ -40,7 +66,7 @@ export function EditorModeSwitch({
         onClick={() => onChange("edit")}
         className="v4-segmented-item !flex-none gap-1 !px-2 !py-0.5"
       >
-        <Edit3 size={ICON.xs} />
+        <RiEditLine size={ICON.xs} />
         <span className="hidden text-3xs sm:inline" data-compact-hidden>{t("workspace:formatBar.edit")}</span>
       </button>
       <button
@@ -51,7 +77,7 @@ export function EditorModeSwitch({
         onClick={() => onChange("preview")}
         className="v4-segmented-item !flex-none gap-1 !px-2 !py-0.5"
       >
-        <Eye size={ICON.xs} />
+        <RiEyeLine size={ICON.xs} />
         <span className="hidden text-3xs sm:inline" data-compact-hidden>{t("workspace:formatBar.preview")}</span>
       </button>
     </div>
@@ -81,7 +107,7 @@ export function EditorFormatBar({
         active={showFormat}
         tip={showFormat ? t("workspace:formatBar.collapseFormat") : t("workspace:formatBar.expandFormat")}
       >
-        {showFormat ? <ChevronLeft size={ICON.xs} /> : <ChevronRight size={ICON.xs} />}
+        {showFormat ? <RiArrowLeftSLine size={ICON.xs} /> : <RiArrowRightSLine size={ICON.xs} />}
       </ToolbarButton>
       {showFormat ? (
         <div
@@ -90,55 +116,55 @@ export function EditorFormatBar({
           aria-label={t("workspace:formatBar.toolbarAria")}
         >
           <ToolbarButton onClick={() => editor?.chain().focus().toggleBold().run()} active={editor?.isActive("bold") ?? false} tip={`${t("workspace:editor.formatBold")} ⌘B`}>
-            <Bold size={ICON.xs} />
+            <RiBold size={ICON.xs} />
           </ToolbarButton>
           <ToolbarButton onClick={() => editor?.chain().focus().toggleItalic().run()} active={editor?.isActive("italic") ?? false} tip={`${t("workspace:editor.formatItalic")} ⌘I`}>
-            <Italic size={ICON.xs} />
+            <RiItalic size={ICON.xs} />
           </ToolbarButton>
           <ToolbarButton onClick={() => editor?.chain().focus().toggleUnderline().run()} active={editor?.isActive("underline") ?? false} tip={t("workspace:editor.formatUnderline")}>
             <UnderlineIcon size={ICON.xs} />
           </ToolbarButton>
           <ToolbarButton onClick={() => editor?.chain().focus().toggleStrike().run()} active={editor?.isActive("strike") ?? false} tip={t("workspace:editor.formatStrike")}>
-            <Strikethrough size={ICON.xs} />
+            <RiStrikethrough size={ICON.xs} />
           </ToolbarButton>
           <ToolbarButton onClick={() => editor?.chain().focus().toggleCode().run()} active={editor?.isActive("code") ?? false} tip={t("workspace:editor.formatCode")}>
-            <Code size={ICON.xs} />
+            <RiCodeLine size={ICON.xs} />
           </ToolbarButton>
           <ToolbarSep />
           <ToolbarButton onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()} active={editor?.isActive("heading", { level: 1 }) ?? false} tip={t("workspace:formatBarOptions.h1")}>
-            <Heading1 size={ICON.xs} />
+            <RiH1 size={ICON.xs} />
           </ToolbarButton>
           <ToolbarButton onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()} active={editor?.isActive("heading", { level: 2 }) ?? false} tip={t("workspace:formatBarOptions.h2")}>
-            <Heading2 size={ICON.xs} />
+            <RiH2 size={ICON.xs} />
           </ToolbarButton>
           <ToolbarButton onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()} active={editor?.isActive("heading", { level: 3 }) ?? false} tip={t("workspace:formatBarOptions.h3")}>
-            <Heading3 size={ICON.xs} />
+            <RiH3 size={ICON.xs} />
           </ToolbarButton>
           <ToolbarButton onClick={() => editor?.chain().focus().toggleHeading({ level: 4 }).run()} active={editor?.isActive("heading", { level: 4 }) ?? false} tip={t("workspace:formatBarOptions.h4")}>
-            <Heading4 size={ICON.xs} />
+            <RiH4 size={ICON.xs} />
           </ToolbarButton>
           <ToolbarSep />
           <ToolbarButton onClick={() => editor?.chain().focus().toggleBulletList().run()} active={editor?.isActive("bulletList") ?? false} tip={t("workspace:editor.formatBulletList")}>
-            <List size={ICON.xs} />
+            <RiListUnordered size={ICON.xs} />
           </ToolbarButton>
           <ToolbarButton onClick={() => editor?.chain().focus().toggleOrderedList().run()} active={editor?.isActive("orderedList") ?? false} tip={t("workspace:editor.formatOrderedList")}>
-            <ListOrdered size={ICON.xs} />
+            <RiListOrdered size={ICON.xs} />
           </ToolbarButton>
           <ToolbarButton onClick={() => editor?.chain().focus().toggleTaskList().run()} active={editor?.isActive("taskList") ?? false} tip={t("workspace:formatBarOptions.taskList")}>
-            <ListChecks size={ICON.xs} />
+            <RiListCheck2 size={ICON.xs} />
           </ToolbarButton>
           <ToolbarButton onClick={() => editor?.chain().focus().toggleCodeBlock().run()} active={editor?.isActive("codeBlock") ?? false} tip={t("workspace:formatBarOptions.codeBlock")}>
-            <Braces size={ICON.xs} />
+            <RiCodeBoxLine size={ICON.xs} />
           </ToolbarButton>
           <ToolbarButton onClick={() => editor?.chain().focus().toggleBlockquote().run()} active={editor?.isActive("blockquote") ?? false} tip={t("workspace:formatBarOptions.quote")}>
-            <Quote size={ICON.xs} />
+            <RiDoubleQuotesL size={ICON.xs} />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => onInsertLink?.()}
             active={editor?.isActive("link") ?? false}
             tip={t("workspace:formatBarOptions.link")}
           >
-            <Link2 size={ICON.xs} />
+            <RiLink size={ICON.xs} />
           </ToolbarButton>
           {onInsertDateTime ? (
             <ToolbarButton
@@ -146,12 +172,12 @@ export function EditorFormatBar({
               active={false}
               tip={`${t("workspace:formatBar.insertDateTime")} ⌘.`}
             >
-              <CalendarClock size={ICON.xs} />
+              <RiCalendarEventLine size={ICON.xs} />
             </ToolbarButton>
           ) : null}
           {onInsertImage ? (
             <ToolbarButton onClick={onInsertImage} active={false} tip={t("editor:editor.insertImage")}>
-              <ImagePlus size={ICON.xs} />
+              <RiImageAddLine size={ICON.xs} />
             </ToolbarButton>
           ) : null}
           <ToolbarButton
@@ -159,7 +185,7 @@ export function EditorFormatBar({
             active={false}
             tip={t("editor:editor.clearFormatting")}
           >
-            <RemoveFormatting size={ICON.xs} />
+            <RiFormatClear size={ICON.xs} />
           </ToolbarButton>
         </div>
       ) : (
@@ -224,9 +250,9 @@ export function EditorMoreMenu({
           tip={t("workspace:formatBarOptions.publishToOutputsTip")}
         >
           {busyAction === "publish" ? (
-            <Loader2 size={ICON.xs} className="animate-spin" />
+            <RiLoader4Line size={ICON.xs} className="animate-spin" />
           ) : (
-            <Upload size={ICON.xs} />
+            <RiUpload2Line size={ICON.xs} />
           )}
         </ToolbarButton>
       ) : null}
@@ -236,7 +262,7 @@ export function EditorMoreMenu({
           active={false}
           tip={t("workspace:formatBarOptions.aiEditTip")}
         >
-          <Sparkles size={ICON.xs} className="text-accent-color" />
+          <RiSparklingLine size={ICON.xs} className="text-accent-color" />
         </ToolbarButton>
       ) : null}
 
@@ -255,7 +281,7 @@ export function EditorMoreMenu({
           aria-label={focusMode ? t("workspace:formatBarOptions.focusModeOff") : t("workspace:formatBarOptions.focusModeOn")}
           aria-pressed={focusMode}
         >
-          {focusMode ? <Minimize2 size={ICON.xs} /> : <Focus size={ICON.xs} />}
+          {focusMode ? <RiFullscreenExitLine size={ICON.xs} /> : <RiFocus3Line size={ICON.xs} />}
         </button>
       </Tooltip>
 
@@ -284,7 +310,7 @@ export function EditorMoreMenu({
             aria-expanded={moreOpen}
             aria-haspopup="menu"
           >
-            <MoreHorizontal size={ICON.xs} />
+            <RiMoreLine size={ICON.xs} />
           </button>
         }
       >
@@ -295,7 +321,7 @@ export function EditorMoreMenu({
             setMoreOpen(false);
           }}
         >
-          <Hash size={ICON.xs} className="shrink-0 text-text-quaternary" />
+          <RiHashtag size={ICON.xs} className="shrink-0 text-text-quaternary" />
           {showMeta ? t("workspace:formatBarOptions.hideFileInfo") : t("workspace:formatBarOptions.fileInfo")}
         </DropdownItem>
         {resolvedTopicId ? (
@@ -305,7 +331,7 @@ export function EditorMoreMenu({
               onMemory();
             }}
           >
-            <Brain size={ICON.xs} className="shrink-0 text-text-quaternary" />
+            <RiBrainLine size={ICON.xs} className="shrink-0 text-text-quaternary" />
             {t("workspace:formatBarOptions.appendToMemory")}
           </DropdownItem>
         ) : null}
@@ -316,7 +342,7 @@ export function EditorMoreMenu({
               onPostToX();
             }}
           >
-            <Twitter size={ICON.xs} className="shrink-0 text-text-quaternary" />
+            <RiTwitterXLine size={ICON.xs} className="shrink-0 text-text-quaternary" />
             {t("workspace:formatBarOptions.postToX")}
           </DropdownItem>
         ) : null}
@@ -327,7 +353,7 @@ export function EditorMoreMenu({
             onOpenAi();
           }}
         >
-          <Sparkles size={ICON.xs} className="shrink-0 text-accent-color" />
+          <RiSparklingLine size={ICON.xs} className="shrink-0 text-accent-color" />
           {t("workspace:formatBarOptions.openAiPanel")}
         </DropdownItem>
         <DropdownItem
@@ -336,7 +362,7 @@ export function EditorMoreMenu({
             onToggleMount();
           }}
         >
-          <Paperclip size={ICON.xs} className="shrink-0 text-text-quaternary" />
+          <RiAttachmentLine size={ICON.xs} className="shrink-0 text-text-quaternary" />
           {mounted ? t("workspace:previewView.unmountTooltip") : t("workspace:previewView.mountTooltip")}
         </DropdownItem>
       </DropdownMenu>

@@ -8,7 +8,7 @@
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Check, ChevronDown, Search } from "lucide-react";
+import { RiArrowDownSLine, RiCheckLine, RiSearchLine } from "@remixicon/react";
 import {
   DropdownItem,
   DropdownMenu,
@@ -229,7 +229,7 @@ export function MenuSelect({
           >
             {label}
           </span>
-          <ChevronDown
+          <RiArrowDownSLine
             size={ICON.micro}
             className={cn(
               "shrink-0 text-text-quaternary transition-transform duration-100",
@@ -243,7 +243,7 @@ export function MenuSelect({
       {showSearch ? (
         <div className="sticky top-0 z-local mb-1 bg-surface px-1 pb-1 pt-1">
           <div className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-border-subtle-dim bg-input px-2">
-            <Search size={ICON.micro} className="shrink-0 text-text-quaternary" aria-hidden />
+            <RiSearchLine size={ICON.micro} className="shrink-0 text-text-quaternary" aria-hidden />
             <input
               ref={searchRef}
               type="text"
@@ -282,7 +282,7 @@ export function MenuSelect({
       {allowEmpty && !query ? (
         <DropdownItem active={!value} onSelect={() => pick("")}>
           <span className="min-w-0 flex-1 truncate">{emptyLabel || placeholder}</span>
-          {!value ? <Check size={ICON.micro} className="shrink-0 text-accent-color" /> : null}
+          {!value ? <RiCheckLine size={ICON.micro} className="shrink-0 text-accent-color" /> : null}
         </DropdownItem>
       ) : null}
 
@@ -293,7 +293,7 @@ export function MenuSelect({
                 {o.label}
               </span>
               {o.value === value ? (
-                <Check size={ICON.micro} className="shrink-0 text-accent-color" />
+                <RiCheckLine size={ICON.micro} className="shrink-0 text-accent-color" />
               ) : null}
             </DropdownItem>
           ))
@@ -316,7 +316,7 @@ export function MenuSelect({
                     {o.label}
                   </span>
                   {o.value === value ? (
-                    <Check size={ICON.micro} className="shrink-0 text-accent-color" />
+                    <RiCheckLine size={ICON.micro} className="shrink-0 text-accent-color" />
                   ) : null}
                 </DropdownItem>
               ))}

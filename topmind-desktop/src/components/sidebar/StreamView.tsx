@@ -2,23 +2,23 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  CalendarDays,
-  Loader2,
-  AlertCircle,
-  RefreshCw,
-  Zap,
-  FileText,
-  ChevronRight,
-  Maximize2,
-  LayoutDashboard,
-  Sparkles,
-} from "lucide-react";
+  RiArrowRightSLine,
+  RiCalendar2Line,
+  RiDashboardLine,
+  RiErrorWarningLine,
+  RiFileTextLine,
+  RiFlashlightFill,
+  RiFullscreenLine,
+  RiLoader4Line,
+  RiRefreshLine,
+  RiSparklingLine,
+} from "@remixicon/react";
 import { api } from "../../services/api";
 import { emitLocal, onLocal } from "../../plugins/host";
 import { useViewStore } from "../../stores/view-store";
 import { EmptyState } from "../ui/view";
 import { Tooltip } from "../ui/tooltip";
-import { ICON, ICON_STROKE } from "../../lib/icons";
+import { ICON } from "../../lib/icons";
 import { useTodoStore } from "../../stores/todo-store";
 import { cn } from "../../lib/cn";
 import {
@@ -169,7 +169,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
         role="status"
         aria-live="polite"
       >
-        <Loader2 size={ICON.micro} className="animate-spin" aria-hidden />{" "}
+        <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden />{" "}
         {t("sidebar.stream.loading")}
       </div>
     );
@@ -179,7 +179,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
     return (
       <div className="flex flex-col gap-1.5 px-3 py-2" role="alert">
         <div className="flex items-center gap-1.5 text-3xs text-error">
-          <AlertCircle size={ICON.micro} aria-hidden />
+          <RiErrorWarningLine size={ICON.micro} aria-hidden />
           <span>{error}</span>
         </div>
         <Tooltip content={t("sidebar.stream.reloadTooltip")}>
@@ -188,7 +188,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
             onClick={() => void load()}
             className="flex items-center gap-1 self-start rounded-md border border-border-subtle px-2 py-1 text-3xs text-text-tertiary hover:text-accent-color v4-focus-ring"
           >
-            <RefreshCw size={ICON.micro} aria-hidden /> {t("sidebar.stream.retry")}
+            <RiRefreshLine size={ICON.micro} aria-hidden /> {t("sidebar.stream.retry")}
           </button>
         </Tooltip>
       </div>
@@ -200,7 +200,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
       <div className="px-2 py-3">
         <EmptyState
           compact
-          icon={<CalendarDays size={ICON.sm} />}
+          icon={<RiCalendar2Line size={ICON.sm} />}
           title={t("sidebar.stream.emptyTitle")}
           hint={t("sidebar.stream.emptyHint")}
           action={
@@ -209,7 +209,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
               onClick={handleCapture}
               className="inline-flex items-center gap-1 rounded-md border border-border-subtle px-2 py-1 text-3xs font-medium text-text-secondary hover:bg-surface-muted v4-focus-ring"
             >
-              <Zap size={ICON.nano} aria-hidden />
+              <RiFlashlightFill size={ICON.micro} aria-hidden />
               {t("sidebar.stream.capture")}
             </button>
           }
@@ -222,7 +222,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
     <div className="flex h-full flex-col">
       <div className="flex shrink-0 items-center justify-between border-b border-border-subtle-dim px-3 py-1.5">
         <div className="flex min-w-0 items-center gap-1.5">
-          <CalendarDays size={ICON.xs} className="shrink-0 text-accent-color" />
+          <RiCalendar2Line size={ICON.xs} className="shrink-0 text-accent-color" />
           <span className="truncate text-3xs font-semibold text-text-primary">{periodTitle}</span>
           <span className="shrink-0 rounded-full bg-surface-muted px-1.5 py-px text-3xs tabular-nums text-text-quaternary">
             {entries.length}
@@ -243,9 +243,9 @@ export function StreamView({ onNavigate }: StreamViewProps) {
               aria-label={t("sidebar.stream.maintainTodos")}
             >
               {todoMaintaining ? (
-                <Loader2 size={ICON.nano} className="animate-spin" aria-hidden />
+                <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden />
               ) : (
-                <Sparkles size={ICON.nano} aria-hidden />
+                <RiSparklingLine size={ICON.micro} aria-hidden />
               )}
               {todoActiveCount > 0 ? (
                 <span className="tabular-nums text-3xs">{todoActiveCount}</span>
@@ -259,7 +259,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
               aria-label={t("sidebar.stream.openFullView")}
               className="flex items-center rounded-sm p-1 text-text-quaternary transition-colors hover:bg-surface-muted hover:text-accent-color v4-focus-ring"
             >
-              <Maximize2 size={ICON.nano} {...{ strokeWidth: ICON_STROKE.chrome }} aria-hidden />
+              <RiFullscreenLine size={ICON.micro} aria-hidden />
             </button>
           </Tooltip>
           <Tooltip content={t("sidebar.stream.reloadTooltip")}>
@@ -269,7 +269,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
               aria-label={t("sidebar.stream.reloadTooltip")}
               className="flex items-center rounded-sm p-1 text-text-quaternary transition-colors hover:bg-surface-muted hover:text-accent-color v4-focus-ring"
             >
-              <RefreshCw size={ICON.nano} {...{ strokeWidth: ICON_STROKE.chrome }} aria-hidden />
+              <RiRefreshLine size={ICON.micro} aria-hidden />
             </button>
           </Tooltip>
           {periodPath ? (
@@ -280,8 +280,8 @@ export function StreamView({ onNavigate }: StreamViewProps) {
                 aria-label={t("sidebar.stream.openFull")}
                 className="flex items-center gap-0.5 rounded-sm px-1.5 py-0.5 text-3xs text-text-tertiary transition-colors hover:bg-surface-muted hover:text-accent-color v4-focus-ring"
               >
-                <FileText size={ICON.nano} {...{ strokeWidth: ICON_STROKE.chrome }} aria-hidden />
-                <ChevronRight size={ICON.nano} {...{ strokeWidth: ICON_STROKE.chrome }} aria-hidden />
+                <RiFileTextLine size={ICON.micro} aria-hidden />
+                <RiArrowRightSLine size={ICON.nano} aria-hidden />
               </button>
             </Tooltip>
           ) : null}

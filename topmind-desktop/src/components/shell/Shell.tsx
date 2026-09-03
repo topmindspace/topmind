@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback, lazy } from "react";
-import { Lightbulb, ListTodo } from "lucide-react";
+import { RiLightbulbLine, RiListCheck } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { TitleBar } from "./TitleBar";
 import { StatusBar } from "./StatusBar";
@@ -232,8 +232,8 @@ export function Shell({ settings }: ShellProps) {
   const showSidebar = !focusMode && !sidebarCollapsed;
   const showAiPanel = !focusMode && aiPanelOpen;
   const gridRows = focusMode
-    ? "grid-rows-[var(--density-chrome-y,36px)_minmax(0,1fr)]"
-    : "grid-rows-[var(--density-chrome-y,36px)_minmax(0,1fr)_var(--density-status-y,24px)]";
+    ? "grid-rows-[var(--density-chrome-y,40px)_minmax(0,1fr)]"
+    : "grid-rows-[var(--density-chrome-y,40px)_minmax(0,1fr)_var(--density-status-y,24px)]";
 
   const chrome = (
     <div className="relative h-screen overflow-hidden bg-chrome text-text-primary">
@@ -295,7 +295,7 @@ export function Shell({ settings }: ShellProps) {
               className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full border border-border-subtle bg-surface-elevated/95 px-2.5 py-1 text-3xs font-medium text-text-secondary shadow-[var(--shadow-float)] backdrop-blur-sm transition-colors hover:bg-surface-muted v4-focus-ring"
               aria-label={t("shell:statusBar.suggestCountAria", { count: suggestCount })}
             >
-              <Lightbulb size={ICON.xs} className="text-accent-color" aria-hidden />
+              <RiLightbulbLine size={ICON.xs} className="text-accent-color" aria-hidden />
               <span className="tabular-nums">{suggestCount}</span>
             </button>
           ) : null}
@@ -306,7 +306,7 @@ export function Shell({ settings }: ShellProps) {
               className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full border border-border-subtle bg-surface-elevated/95 px-2.5 py-1 text-3xs font-medium text-text-secondary shadow-[var(--shadow-float)] backdrop-blur-sm transition-colors hover:bg-surface-muted v4-focus-ring"
               aria-label={t("shell:todo.openAria", { count: activeTodoCount })}
             >
-              <ListTodo size={ICON.xs} className="text-accent-color" aria-hidden />
+              <RiListCheck size={ICON.xs} className="text-accent-color" aria-hidden />
               <span className="tabular-nums">{activeTodoCount}</span>
             </button>
           ) : null}

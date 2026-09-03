@@ -5,11 +5,11 @@
 import { useTranslation } from "react-i18next";
 import { memo, type MouseEvent, ReactNode } from "react";
 import {
-  Check,
-  AlertCircle,
-  Loader2,
-  CloudUpload,
-} from "lucide-react";
+  RiCheckLine,
+  RiErrorWarningLine,
+  RiLoader4Line,
+  RiUploadCloud2Line,
+} from "@remixicon/react";
 import { Tooltip } from "../../../components/ui/tooltip";
 import { cn } from "../../../lib/cn";
 import { ICON } from "../../../lib/icons";
@@ -71,28 +71,28 @@ export const SaveBadge = memo(function SaveBadge({ state }: { state: SaveState }
   const effective = state === "saved" ? "clean" : state;
   const config = {
     clean: {
-      icon: <Check size={ICON.xs} />,
+      icon: <RiCheckLine size={ICON.xs} />,
       label: t("workspace:editor.saved"),
       color: "text-success",
       bg: "bg-status-success-bg/40",
       tip: t("workspace:editor.saved"),
     },
     dirty: {
-      icon: <CloudUpload size={ICON.xs} />,
+      icon: <RiUploadCloud2Line size={ICON.xs} />,
       label: t("workspace:editor.unsaved"),
       color: "text-warning",
       bg: "bg-status-warning-bg/40",
       tip: t("workspace:editor.unsaved_tip"),
     },
     saving: {
-      icon: <Loader2 size={ICON.xs} className="animate-spin" />,
+      icon: <RiLoader4Line size={ICON.xs} className="animate-spin" />,
       label: t("workspace:editor.saving"),
       color: "text-accent-color",
       bg: "bg-accent-bg-subtle",
       tip: t("workspace:editor.saving"),
     },
     error: {
-      icon: <AlertCircle size={ICON.xs} />,
+      icon: <RiErrorWarningLine size={ICON.xs} />,
       label: t("common:status.error"),
       color: "text-error",
       bg: "bg-status-error-bg/50",

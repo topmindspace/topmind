@@ -3,7 +3,13 @@
  * Click · pin · close · drag reorder · right-click tab actions · close all.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Columns2, FileText, Pin, X, XCircle } from "lucide-react";
+import {
+  RiCloseCircleLine,
+  RiCloseLine,
+  RiFileTextLine,
+  RiLayoutColumnLine,
+  RiPushpinLine,
+} from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { useViewStore } from "../../stores/view-store";
 import { displayNoteTitle } from "../../lib/note-meta";
@@ -206,8 +212,8 @@ export function EditorRecentBar() {
                   className="flex min-w-0 flex-1 items-center gap-1 py-0.5 text-left"
                   title={tab.path}
                 >
-                  <FileText
-                    size={ICON.nano}
+                  <RiFileTextLine
+                    size={ICON.micro}
                     className={cn("shrink-0", active ? "text-accent-color opacity-100" : "opacity-70")}
                     aria-hidden
                   />
@@ -229,7 +235,7 @@ export function EditorRecentBar() {
                     aria-label={tab.pinned ? t("editorRecentBar.unpin") : t("editorRecentBar.pin")}
                     aria-pressed={tab.pinned}
                   >
-                    <Pin size={ICON.nano} className={tab.pinned ? "fill-current" : undefined} aria-hidden />
+                    <RiPushpinLine size={ICON.micro} className={tab.pinned ? "fill-current" : undefined} aria-hidden />
                   </button>
                 </Tooltip>
                 <Tooltip content={t("editorRecentBar.closeTabTip")}>
@@ -245,7 +251,7 @@ export function EditorRecentBar() {
                     )}
                     aria-label={t("editorRecentBar.closeAriaLabel")}
                   >
-                    <X size={ICON.nano} />
+                    <RiCloseLine size={ICON.micro} />
                   </button>
                 </Tooltip>
               </div>
@@ -272,7 +278,7 @@ export function EditorRecentBar() {
                     : "text-text-quaternary hover:bg-surface-muted hover:text-text-secondary",
                 )}
               >
-                <Columns2 size={ICON.xs} />
+                <RiLayoutColumnLine size={ICON.xs} />
               </button>
             </Tooltip>
           </div>
@@ -286,7 +292,7 @@ export function EditorRecentBar() {
               className="inline-flex h-7 w-7 items-center justify-center rounded-sm text-text-quaternary transition-colors hover:bg-surface-muted hover:text-error"
               aria-label={t("editorRecentBar.closeAllTabsAriaLabel")}
             >
-              <XCircle size={ICON.xs} />
+              <RiCloseCircleLine size={ICON.xs} />
             </button>
           </Tooltip>
         </div>
@@ -297,7 +303,7 @@ export function EditorRecentBar() {
         <ContextMenu open x={tabMenu.x} y={tabMenu.y} onClose={() => setTabMenu(null)}>
           <ContextMenuLabel>{tabMenu.label}</ContextMenuLabel>
           <ContextMenuItem
-            icon={<FileText size={ICON.nano} />}
+            icon={<RiFileTextLine size={ICON.micro} />}
             onClick={() => {
               openFile(tabMenu.path);
               setTabMenu(null);
@@ -306,7 +312,7 @@ export function EditorRecentBar() {
             {t("editorRecentBar.open")}
           </ContextMenuItem>
           <ContextMenuItem
-            icon={<Pin size={ICON.nano} />}
+            icon={<RiPushpinLine size={ICON.micro} />}
             onClick={() => {
               pinFileTab(tabMenu.path);
               setTabMenu(null);
@@ -315,7 +321,7 @@ export function EditorRecentBar() {
             {t("editorRecentBar.togglePin")}
           </ContextMenuItem>
           <ContextMenuItem
-            icon={<Columns2 size={ICON.nano} />}
+            icon={<RiLayoutColumnLine size={ICON.micro} />}
             onClick={() => {
               if (splitSecondaryPath === tabMenu.path) clearSplit();
               else openInSplit(tabMenu.path);
@@ -326,7 +332,7 @@ export function EditorRecentBar() {
           </ContextMenuItem>
           <ContextMenuSeparator />
           <ContextMenuItem
-            icon={<X size={ICON.nano} />}
+            icon={<RiCloseLine size={ICON.micro} />}
             shortcut="⌘W"
             onClick={() => {
               closeFileTab(tabMenu.path);
@@ -345,7 +351,7 @@ export function EditorRecentBar() {
           </ContextMenuItem>
           <ContextMenuItem
             destructive
-            icon={<XCircle size={ICON.nano} />}
+            icon={<RiCloseCircleLine size={ICON.micro} />}
             shortcut="⌘⌥W"
             onClick={() => {
               closeAllFileTabs({ closePinned: true });

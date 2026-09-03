@@ -118,7 +118,7 @@ test("TodoPopover panel is a real internal scroll host (flex shrink + overflow)"
   const src = read("src/components/todo/TodoPopover.tsx");
   // Outer shell: flex-col + overflow-hidden under maxHeight
   assert.match(src, /flex flex-col overflow-hidden/);
-  assert.match(src, /maxHeight:\s*PANEL_MAX_HEIGHT/);
+  assert.match(src, /maxHeight:\s*(?:Math\.min\(\s*)?PANEL_MAX_HEIGHT/);
   // Body scroll host classes (order-tolerant: min-h-0 and flex-1 both present with overflow-y-auto)
   assert.match(src, /min-h-0/);
   assert.match(src, /flex-1/);

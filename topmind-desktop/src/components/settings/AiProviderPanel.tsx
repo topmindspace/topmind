@@ -1,9 +1,19 @@
 import { useEffect, useRef, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Loader2, RefreshCw, Github, ChevronDown, Check, Brain,
-  Wrench, Coins, ExternalLink, Server, Search, X,
-} from "lucide-react";
+  RiArrowDownSLine,
+  RiBrainLine,
+  RiCheckLine,
+  RiCloseLine,
+  RiCoinsLine,
+  RiExternalLinkLine,
+  RiGithubLine,
+  RiLoader4Line,
+  RiRefreshLine,
+  RiSearchLine,
+  RiServerLine,
+  RiToolsLine,
+} from "@remixicon/react";
 import { useAiStore } from "../../stores/ai-store";
 import { emitLocal } from "../../plugins/host";
 import { api } from "../../services/api";
@@ -91,14 +101,14 @@ function ModelBadges({ model }: { model: ModelInfo }) {
       {model.toolCall ? (
         <Tooltip content={t("settings:ai.badgeToolCall")}>
           <span className="inline-flex items-center rounded bg-accent-bg-subtle px-1 text-4xs text-accent-color/70">
-            <Wrench size={8} aria-hidden />
+            <RiToolsLine size={ICON.micro} aria-hidden />
           </span>
         </Tooltip>
       ) : null}
       {model.reasoning ? (
         <Tooltip content={t("settings:ai.badgeReasoning")}>
           <span className="inline-flex items-center rounded bg-status-info-bg/40 px-1 text-4xs text-info/70">
-            <Brain size={8} aria-hidden />
+            <RiBrainLine size={ICON.micro} aria-hidden />
           </span>
         </Tooltip>
       ) : null}
@@ -112,7 +122,7 @@ function ModelBadges({ model }: { model: ModelInfo }) {
       {model.costInput !== undefined || model.costOutput !== undefined ? (
         <Tooltip content={t("settings:ai.badgeCost", { cost: formatCost(model.costInput, model.costOutput) })}>
           <span className="inline-flex items-center rounded bg-status-warning-bg/30 px-1 text-4xs text-warning/70">
-            <Coins size={8} aria-hidden />
+            <RiCoinsLine size={ICON.micro} aria-hidden />
           </span>
         </Tooltip>
       ) : null}
@@ -212,7 +222,7 @@ function ProviderCard({
           </span>
         ) : configured ? (
           <span className="shrink-0 text-4xs text-success/70">
-            <Check size={ICON.nano} aria-hidden className="inline" />
+            <RiCheckLine size={ICON.micro} aria-hidden className="inline" />
           </span>
         ) : null}
         {/* Default badge */}
@@ -222,7 +232,7 @@ function ProviderCard({
           </span>
         ) : null}
         {/* Expand chevron */}
-        <ChevronDown
+        <RiArrowDownSLine
           size={ICON.micro}
           className={cn(
             "shrink-0 text-text-quaternary transition-transform",
@@ -258,7 +268,7 @@ function ProviderCard({
                       onClick={() => void api.sys.openUrl(meta.helpUrl!)}
                       className="inline-flex items-center gap-0.5 rounded px-1 text-4xs font-medium text-accent-color transition-colors hover:bg-accent-bg-subtle"
                     >
-                      {t("common:action.getKey")} <ExternalLink size={8} aria-hidden />
+                      {t("common:action.getKey")} <RiExternalLinkLine size={ICON.micro} aria-hidden />
                     </button>
                   ) : null}
                 </div>
@@ -306,9 +316,9 @@ function ProviderCard({
                   aria-label={t("settings:ai.refreshLabel")}
                 >
                   {refreshing ? (
-                    <Loader2 size={ICON.nano} className="animate-spin" aria-hidden />
+                    <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden />
                   ) : (
-                    <RefreshCw size={ICON.nano} aria-hidden />
+                    <RiRefreshLine size={ICON.micro} aria-hidden />
                   )}
                 </button>
               </Tooltip>
@@ -337,7 +347,7 @@ function ProviderCard({
                     </span>
                     <ModelBadges model={model} />
                     {isSelected ? (
-                      <Check size={ICON.nano} className="shrink-0 text-accent-color" aria-hidden />
+                      <RiCheckLine size={ICON.micro} className="shrink-0 text-accent-color" aria-hidden />
                     ) : null}
                   </button>
                 );
@@ -511,7 +521,7 @@ export function AiProviderPanel({
                 "hover:bg-surface-muted hover:text-text-secondary disabled:opacity-40",
               )}
             >
-              <Github size={ICON.nano} aria-hidden />
+              <RiGithubLine size={ICON.micro} aria-hidden />
               {t("settings:ai.refreshModelsDevLabel")}
             </button>
           </Tooltip>
@@ -561,7 +571,7 @@ export function AiProviderPanel({
                     <span className="text-text-quaternary">· {modelCount}</span>
                   ) : null}
                   {isActive ? (
-                    <Check size={ICON.nano} className="text-accent-color" aria-hidden />
+                    <RiCheckLine size={ICON.micro} className="text-accent-color" aria-hidden />
                   ) : null}
                 </button>
               );
@@ -584,9 +594,9 @@ export function AiProviderPanel({
               aria-label={t("settings:ai.refreshLabel")}
             >
               {refreshing ? (
-                <Loader2 size={ICON.xs} className="animate-spin" aria-hidden />
+                <RiLoader4Line size={ICON.xs} className="animate-spin" aria-hidden />
               ) : (
-                <RefreshCw size={ICON.xs} aria-hidden />
+                <RiRefreshLine size={ICON.xs} aria-hidden />
               )}
             </button>
           </Tooltip>
@@ -634,7 +644,7 @@ export function AiProviderPanel({
 
         {/* Local */}
         <div className="mb-1 flex items-center gap-1 text-4xs font-semibold tracking-wide text-text-quaternary">
-          <Server size={ICON.nano} aria-hidden />
+          <RiServerLine size={ICON.micro} aria-hidden />
           {t("settings:ai.localCompatible")}
         </div>
         <div className="space-y-1">

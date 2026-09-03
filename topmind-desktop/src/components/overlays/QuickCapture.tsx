@@ -14,7 +14,14 @@
  */
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Zap, Brain, ClipboardPaste, FileInput, X, Paperclip } from "lucide-react";
+import {
+  RiAttachmentLine,
+  RiBrainLine,
+  RiClipboardLine,
+  RiCloseLine,
+  RiFileTransferLine,
+  RiFlashlightFill,
+} from "@remixicon/react";
 import { api } from "../../services/api";
 import { useViewStore } from "../../stores/view-store";
 import { Tooltip } from "../ui/tooltip";
@@ -137,7 +144,7 @@ export function QuickCapture({ variant, onDone }: QuickCaptureProps = {}) {
               onClick={() => void api.sys.closeQuickCapture()}
               aria-label={t("overlays:capture.close")}
             >
-              <X size={ICON.sm} />
+              <RiCloseLine size={ICON.sm} />
             </button>
           ) : (
             <span className="v4-no-drag w-1" aria-hidden />
@@ -148,7 +155,7 @@ export function QuickCapture({ variant, onDone }: QuickCaptureProps = {}) {
       <div className="mb-3 flex items-center justify-between gap-2">
         <h2 className="flex min-w-0 items-center gap-2 text-sm font-medium tracking-tight text-text-primary">
           <span className="v4-icon-chip-accent flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)]" aria-hidden>
-            {isMemory ? <Brain size={ICON.sm} /> : form.effectiveMode === "docs" ? <FileInput size={ICON.sm} /> : <Zap size={ICON.sm} />}
+            {isMemory ? <RiBrainLine size={ICON.sm} /> : form.effectiveMode === "docs" ? <RiFileTransferLine size={ICON.sm} /> : <RiFlashlightFill size={ICON.sm} />}
           </span>
           <span className="truncate">
             {isMemory
@@ -170,7 +177,7 @@ export function QuickCapture({ variant, onDone }: QuickCaptureProps = {}) {
                   className="v4-titlebar-btn h-7 gap-1 border border-border-subtle-dim px-2 text-3xs v4-focus-ring"
                   aria-label={t("overlays:capture.pasteAriaLabel")}
                 >
-                  <ClipboardPaste size={ICON.xs} aria-hidden /> {t("overlays:capture.pasteLabel")}
+                  <RiClipboardLine size={ICON.xs} aria-hidden /> {t("overlays:capture.pasteLabel")}
                 </button>
               </Tooltip>
               <Tooltip content={t("overlays:capture.attachTooltip")}>
@@ -180,7 +187,7 @@ export function QuickCapture({ variant, onDone }: QuickCaptureProps = {}) {
                   className="v4-titlebar-btn h-7 gap-1 border border-border-subtle-dim px-2 text-3xs v4-focus-ring"
                   aria-label={t("overlays:capture.attachAriaLabel")}
                 >
-                  <Paperclip size={ICON.xs} aria-hidden /> {t("overlays:capture.attachLabel")}
+                  <RiAttachmentLine size={ICON.xs} aria-hidden /> {t("overlays:capture.attachLabel")}
                 </button>
               </Tooltip>
               <kbd className="v4-kbd" aria-hidden>

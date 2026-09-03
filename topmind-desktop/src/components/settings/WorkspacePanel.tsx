@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Loader2,
-  Plus,
-  FolderOpen,
-  ArrowRight,
-  LogOut,
-  AlertTriangle,
-  X,
-  RefreshCw,
-  Eye,
-  EyeOff,
-  Pencil,
-} from "lucide-react";
+  RiAddLine,
+  RiAlertLine,
+  RiArrowRightLine,
+  RiCloseLine,
+  RiEyeLine,
+  RiEyeOffLine,
+  RiFolderOpenLine,
+  RiLoader4Line,
+  RiLogoutBoxRLine,
+  RiPencilLine,
+  RiRefreshLine,
+} from "@remixicon/react";
 import { api } from "../../services/api";
 import { emitLocal } from "../../plugins/host";
 import { useViewStore } from "../../stores/view-store";
@@ -599,7 +599,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
           <div className="flex items-center gap-1">
             <Tooltip content={t("settings:workspace.reloadConfig")}>
               <Button variant="ghost" size="sm" className="h-6" disabled={!!switching} onClick={() => void reloadConfig()}>
-                <RefreshCw size={ICON.xs} />
+                <RiRefreshLine size={ICON.xs} />
               </Button>
             </Tooltip>
             <Button
@@ -609,7 +609,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
               disabled={!!switching || !settings.workspaceRoot}
               onClick={() => setShowAdd((v) => !v)}
             >
-              <Plus size={ICON.xs} /> {t("settings:workspace.addCategory")}
+              <RiAddLine size={ICON.xs} /> {t("settings:workspace.addCategory")}
             </Button>
           </div>
         }
@@ -651,7 +651,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
                 <Select value={newRole} onChange={(e) => setNewRole(e.target.value)} options={Object.entries(ROLE_KEYS).map(([value, key]) => ({ value, label: t(key) }))} />
               </div>
               <Button size="sm" disabled={!!switching} onClick={() => void handleAddCategory()}>
-                {switching === "adding" ? <Loader2 size={ICON.xs} className="animate-spin" /> : null}
+                {switching === "adding" ? <RiLoader4Line size={ICON.xs} className="animate-spin" /> : null}
                 {t("settings:workspace.createCategoryBtn")}
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setShowAdd(false)}>
@@ -735,7 +735,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
                           onClick={() => void handleToggleHidden(c.slot, !c.hidden)}
                           aria-label={c.hidden ? t("settings:workspace.show") : t("settings:workspace.hide")}
                         >
-                          {c.hidden ? <Eye size={ICON.xs} aria-hidden /> : <EyeOff size={ICON.xs} aria-hidden />}
+                          {c.hidden ? <RiEyeLine size={ICON.xs} aria-hidden /> : <RiEyeOffLine size={ICON.xs} aria-hidden />}
                         </button>
                       </Tooltip>
                     ) : null}
@@ -751,7 +751,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
                           }}
                           aria-label={t("settings:workspace.rename")}
                         >
-                          <Pencil size={ICON.xs} aria-hidden />
+                          <RiPencilLine size={ICON.xs} aria-hidden />
                         </button>
                       </Tooltip>
                     ) : null}
@@ -797,7 +797,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
           className="mb-3 flex items-start gap-1.5 rounded-[var(--radius-md)] border border-error/20 bg-status-error-bg px-2.5 py-2 text-3xs text-error"
           role="alert"
         >
-          <AlertTriangle size={ICON.xs} className="mt-0.5 shrink-0" aria-hidden />
+          <RiAlertLine size={ICON.xs} className="mt-0.5 shrink-0" aria-hidden />
           <span>{error}</span>
         </div>
       ) : null}
@@ -809,9 +809,9 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
           <div className="flex items-center gap-1">
             <Button variant="outline" size="sm" className="h-6 text-3xs" onClick={() => void handlePickNew()} disabled={!!switching}>
               {switching === "picking" ? (
-                <Loader2 size={ICON.xs} className="animate-spin" />
+                <RiLoader4Line size={ICON.xs} className="animate-spin" />
               ) : (
-                <Plus size={ICON.xs} />
+                <RiAddLine size={ICON.xs} />
               )}
               {t("common:action.select")}
             </Button>
@@ -824,9 +824,9 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
                 disabled={!!switching}
               >
                 {switching === "closing" ? (
-                  <Loader2 size={ICON.xs} className="animate-spin" />
+                  <RiLoader4Line size={ICON.xs} className="animate-spin" />
                 ) : (
-                  <LogOut size={ICON.xs} />
+                  <RiLogoutBoxRLine size={ICON.xs} />
                 )}
               </Button>
             </Tooltip>
@@ -854,17 +854,17 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
                     className="flex min-w-0 flex-1 items-center justify-between gap-2 px-1 py-0.5 text-left disabled:opacity-60"
                   >
                     <span className="flex min-w-0 items-center gap-2 font-mono">
-                      <FolderOpen size={ICON.xs} className="shrink-0 text-text-tertiary" />
+                      <RiFolderOpenLine size={ICON.xs} className="shrink-0 text-text-tertiary" />
                       <span className="truncate">{w.rootPath}</span>
                     </span>
                     {switching === w.rootPath ? (
-                      <Loader2 size={ICON.xs} className="animate-spin text-accent-color" />
+                      <RiLoader4Line size={ICON.xs} className="animate-spin text-accent-color" />
                     ) : active ? (
                       <span className="rounded-full bg-accent-color px-1.5 py-0.5 text-3xs font-medium text-primary-foreground">
                         {t("settings:workspace.currentWorkspace")}
                       </span>
                     ) : (
-                      <ArrowRight size={ICON.xs} className="text-text-quaternary" />
+                      <RiArrowRightLine size={ICON.xs} className="text-text-quaternary" />
                     )}
                   </button>
                   {!active ? (
@@ -876,7 +876,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
                         onClick={(ev) => void handleRemove(w.rootPath, ev)}
                         aria-label={t("settings:workspace.removeFromListTooltip")}
                       >
-                        <X size={ICON.xs} />
+                        <RiCloseLine size={ICON.xs} />
                       </button>
                     </Tooltip>
                   ) : null}

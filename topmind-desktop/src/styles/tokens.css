@@ -134,8 +134,8 @@
   --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.03);
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.09);
   --shadow-xl: 0 20px 48px rgba(0, 0, 0, 0.11);
-  /* Feed / list cards — subtle lift + faint hairline for refined "floating" feel */
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 0 0 0.5px rgba(0, 0, 0, 0.03);
+  /* Feed / list cards — subtle lift + hairline for refined floating feel */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.045);
   /* Inset field wash — single source for input/textarea/select inner shadow */
   --shadow-input-inset: inset 0 1px 2px rgba(0, 0, 0, 0.04);
   /* Monochrome primary button: quiet lift (no brand glow — ink speaks for itself) */
@@ -185,10 +185,11 @@
   --type-size-body: 14px;
 
   /* Layout density — workbench-first (tighter chrome, airy content)
-     2026-08-07: chrome-y 38→36 for slimmer titlebar; status-y 26→24 */
+     2026-09-02: chrome-y 36→40 — 更大气的 header；同时与 Windows
+     titleBarOverlay(40px) 对齐，消除平台间高度不一致 */
   --density-page-x: 28px;
   --density-page-y: 24px;
-  --density-chrome-y: 36px;
+  --density-chrome-y: 40px;
   /* 24px status meta — slimmer, still readable (2026-08-07: 26→24) */
   --density-status-y: 24px;
   --density-tree-row: 28px;
@@ -254,15 +255,20 @@
 
   /* ── Layout ── */
   --content-max-width: 1120px;
-  --content-max-width-dashboard: 880px;
+  /* List views (Inbox / Category / Topic / Outputs / hubs): fluid column —
+     fills actual available canvas width, value is only the readability cap. */
+  --content-max-width-dashboard: 72rem;
   /* Comfortable reading column (~65–75 CJK chars / ~70 Latin) */
   /* Editor reading column — default wider than classic 42rem for better space use */
   --content-max-width-prose: 52rem;
   --content-max-width-prose-compact: 40rem;
   --content-max-width-prose-reading: 52rem;
   --content-max-width-prose-wide: 72rem;
-  /* Stream / 我的情况: page chrome + compose + cards share one reading column. */
-  --feed-column-max: 44rem;
+  /* Stream / 我的情况: page chrome + compose + cards share one reading column.
+     Fluid: max-width resolves against .v4-main-canvas, so the column fills the
+     actual available width (sidebar / AI panel / split aware); 56rem (~896px)
+     balances spacious UI layout with ergonomic CJK/Latin reading line-length. */
+  --feed-column-max: 56rem;
   --z-local: 1;
   --z-shell-rail: 10;
   --z-header: 20;
@@ -395,7 +401,7 @@
     --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.38);
     --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.44);
     --shadow-xl: 0 20px 48px rgba(0, 0, 0, 0.50);
-    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.30), 0 0 0 0.5px rgba(0, 0, 0, 0.15);
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(255, 255, 255, 0.06), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
     --shadow-input-inset: inset 0 1px 2px rgba(0, 0, 0, 0.28);
     --shadow-button: 0 1px 2px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.10);
     --shadow-button-hover: 0 4px 14px rgba(0, 0, 0, 0.40);

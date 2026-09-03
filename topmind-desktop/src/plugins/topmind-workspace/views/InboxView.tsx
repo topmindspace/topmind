@@ -6,9 +6,20 @@ import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useDraggable } from "@dnd-kit/core";
 import {
-  Inbox, Zap, GripVertical, FolderInput, Trash2, ChevronDown, FileText, Loader2,
-  CheckSquare, Square, FolderOpen, Link2, PenLine,
-} from "lucide-react";
+  RiArrowDownSLine,
+  RiCheckboxBlankLine,
+  RiCheckboxLine,
+  RiDeleteBin6Line,
+  RiDraggable,
+  RiEdit2Line,
+  RiFileTextLine,
+  RiFlashlightFill,
+  RiFolderOpenLine,
+  RiFolderReceivedLine,
+  RiInboxUnarchiveLine,
+  RiLink,
+  RiLoader4Line,
+} from "@remixicon/react";
 import { api } from "../../../services/api";
 import { formatRelativeTime } from "../../../lib/datetime";
 import type { InboxFile as InboxFileMeta, Topic } from "../../../types";
@@ -166,7 +177,7 @@ export function InboxView() {
   return (
     <ViewContainer>
       <PageHeader
-        icon={<Inbox size={ICON.md} />}
+        icon={<RiInboxUnarchiveLine size={ICON.md} />}
         title={t("workspace:inbox.title")}
         subtitle={
           files.length > 0
@@ -178,14 +189,14 @@ export function InboxView() {
             {visible.length > 0 ? (
               <Tooltip content={allSelected ? t("workspace:inbox.deselectAll") : t("workspace:inbox.selectAll")}>
                 <Button variant="outline" size="sm" onClick={toggleAll}>
-                  {allSelected ? <CheckSquare size={ICON.sm} /> : <Square size={ICON.sm} />}
+                  {allSelected ? <RiCheckboxLine size={ICON.sm} /> : <RiCheckboxBlankLine size={ICON.sm} />}
                 </Button>
               </Tooltip>
             ) : null}
             {/* L2 only — titlebar aqua「记一下」is the sole solid capture CTA */}
             <Tooltip content={t("workspace:shared.quickCaptureTooltip")}>
               <Button variant="outline" size="sm" onClick={() => openOverlay("quick-capture")}>
-                <Zap size={ICON.sm} /> {t("workspace:inbox.captureBtn")}
+                <RiFlashlightFill size={ICON.sm} /> {t("workspace:inbox.captureBtn")}
               </Button>
             </Tooltip>
           </div>
@@ -219,18 +230,18 @@ export function InboxView() {
 
       {files.length === 0 ? (
         <EmptyState
-          icon={<Inbox size={ICON.md} />}
+          icon={<RiInboxUnarchiveLine size={ICON.md} />}
           title={t("workspace:inbox.emptyTitle")}
           hint={t("workspace:inbox.emptyHint")}
           action={
             <Button variant="outline" size="sm" onClick={() => openOverlay("quick-capture")}>
-              <Zap size={ICON.sm} /> {t("workspace:inbox.captureBtn")}
+              <RiFlashlightFill size={ICON.sm} /> {t("workspace:inbox.captureBtn")}
             </Button>
           }
         />
       ) : visible.length === 0 ? (
         <EmptyState
-          icon={<Inbox size={ICON.md} />}
+          icon={<RiInboxUnarchiveLine size={ICON.md} />}
           title={t("workspace:inbox.emptyNoMatchTitle")}
           hint={t("workspace:inbox.emptyNoMatchHint")}
           action={
@@ -362,12 +373,12 @@ function BatchToolbar({
               aria-expanded={open}
             >
               {moving ? (
-                <Loader2 size={ICON.sm} className="animate-spin" />
+                <RiLoader4Line size={ICON.sm} className="animate-spin" />
               ) : (
-                <FolderInput size={ICON.sm} />
+                <RiFolderReceivedLine size={ICON.sm} />
               )}
               {t("workspace:inbox.batchMoveBtn")}
-              <ChevronDown
+              <RiArrowDownSLine
                 size={ICON.xs}
                 className={cn("transition-transform", open && "rotate-180")}
               />
@@ -390,7 +401,7 @@ function BatchToolbar({
           onClick={() => void handleBatchDelete()}
           className="text-error hover:bg-status-error-bg"
         >
-          <Trash2 size={ICON.sm} /> {t("workspace:inbox.batchDeleteBtn")}
+          <RiDeleteBin6Line size={ICON.sm} /> {t("workspace:inbox.batchDeleteBtn")}
         </Button>
       </Tooltip>
       <button
@@ -425,7 +436,7 @@ function sourceBadge(file: InboxFileMeta, t: (key: string, options?: Record<stri
         className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-accent-bg-subtle px-1.5 py-0.5 text-3xs font-medium text-accent-color"
         title={file.source || t("workspace:inbox.badgeExcerpt")}
       >
-        <Link2 size={ICON.nano} aria-hidden />
+        <RiLink size={ICON.micro} aria-hidden />
         {t("workspace:inbox.badgeExcerpt")}
       </span>
     );
@@ -433,7 +444,7 @@ function sourceBadge(file: InboxFileMeta, t: (key: string, options?: Record<stri
   if (file.source_type === "user-original") {
     return (
       <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-surface-muted px-1.5 py-0.5 text-3xs font-medium text-text-tertiary">
-        <PenLine size={ICON.nano} aria-hidden />
+        <RiEdit2Line size={ICON.micro} aria-hidden />
         {t("workspace:inbox.badgeOriginal")}
       </span>
     );
@@ -508,7 +519,7 @@ function InboxFileRow({
           aria-pressed={checked}
           aria-label={checked ? t("workspace:inbox.deselectItem") : t("workspace:inbox.selectItem")}
         >
-          {checked ? <CheckSquare size={ICON.sm} aria-hidden /> : <Square size={ICON.sm} aria-hidden />}
+          {checked ? <RiCheckboxLine size={ICON.sm} aria-hidden /> : <RiCheckboxBlankLine size={ICON.sm} aria-hidden />}
         </button>
       </Tooltip>
 
@@ -518,7 +529,7 @@ function InboxFileRow({
           className="flex h-8 w-8 shrink-0 cursor-grab items-center justify-center rounded-[var(--radius-md)] text-text-quaternary hover:bg-surface-muted hover:text-text-secondary active:cursor-grabbing"
           aria-label={t("workspace:inbox.dragToSidebar")}
         >
-          <GripVertical size={ICON.sm} aria-hidden />
+          <RiDraggable size={ICON.sm} aria-hidden />
         </div>
       </Tooltip>
 
@@ -529,7 +540,7 @@ function InboxFileRow({
         className="flex min-w-0 flex-1 items-center gap-2.5 rounded-[var(--radius-sm)] text-left v4-focus-ring"
         title={showFileHint ? `${displayName}\n${file.name}` : displayName}
       >
-        <FileText size={ICON.sm} className="shrink-0 text-text-tertiary opacity-80" aria-hidden />
+        <RiFileTextLine size={ICON.sm} className="shrink-0 text-text-tertiary opacity-80" aria-hidden />
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-1.5">
             <span className="min-w-0 truncate text-sm font-normal text-text-primary group-hover:text-accent-color">
@@ -603,12 +614,12 @@ function MoveToTopicButton({ file }: { file: InboxFileMeta }) {
             className="gap-1.5"
           >
             {moving ? (
-              <Loader2 size={ICON.sm} className="animate-spin" />
+              <RiLoader4Line size={ICON.sm} className="animate-spin" />
             ) : (
-              <FolderInput size={ICON.sm} />
+              <RiFolderReceivedLine size={ICON.sm} />
             )}
             <span className="hidden min-[480px]:inline">{t("workspace:inbox.organize")}</span>
-            <ChevronDown
+            <RiArrowDownSLine
               size={ICON.xs}
               className={cn("transition-transform", open && "rotate-180")}
             />
@@ -665,9 +676,9 @@ function DeleteInboxFileButton({ file }: { file: InboxFileMeta }) {
         aria-label={confirming ? t("common:action.confirm") : t("common:action.delete")}
       >
         {deleting ? (
-          <Loader2 size={ICON.sm} className="animate-spin" />
+          <RiLoader4Line size={ICON.sm} className="animate-spin" />
         ) : (
-          <Trash2 size={ICON.sm} />
+          <RiDeleteBin6Line size={ICON.sm} />
         )}
       </Button>
     </Tooltip>

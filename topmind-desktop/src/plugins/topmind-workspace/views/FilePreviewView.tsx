@@ -5,7 +5,15 @@
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Eye, FileQuestion, ExternalLink, FolderOpen, Paperclip, Loader2, Code2 } from "lucide-react";
+import {
+  RiAttachmentLine,
+  RiCodeView,
+  RiExternalLinkLine,
+  RiEyeLine,
+  RiFileUnknowLine,
+  RiFolderOpenLine,
+  RiLoader4Line,
+} from "@remixicon/react";
 import { api } from "../../../services/api";
 import { useAiStore } from "../../../stores/ai-store";
 import { Button } from "../../../components/ui/Button";
@@ -131,7 +139,7 @@ export function FilePreviewView({ path }: Props) {
         >
           <Tooltip content={path}>
             <span className="flex min-w-0 items-center gap-1.5 text-3xs text-text-tertiary">
-              <Eye size={ICON.xs} className="shrink-0" />
+              <RiEyeLine size={ICON.xs} className="shrink-0" />
               <span className="shrink-0">{isHtml ? "HTML" : t("workspace:editor.readOnly")}</span>
               <span className="min-w-0 truncate font-mono text-text-quaternary">{baseName}</span>
               {truncatedHint ? (
@@ -150,7 +158,7 @@ export function FilePreviewView({ path }: Props) {
                   className="v4-segmented-item !flex-none gap-1 !px-1.5 !py-0.5"
                   onClick={() => setHtmlMode("preview")}
                 >
-                  <Eye size={ICON.xs} />
+                  <RiEyeLine size={ICON.xs} />
                   <span className="text-3xs" data-compact-hidden>{t("workspace:previewView.html")}</span>
                 </button>
                 <button
@@ -161,7 +169,7 @@ export function FilePreviewView({ path }: Props) {
                   className="v4-segmented-item !flex-none gap-1 !px-1.5 !py-0.5"
                   onClick={() => setHtmlMode("source")}
                 >
-                  <Code2 size={ICON.xs} />
+                  <RiCodeView size={ICON.xs} />
                   <span className="text-3xs" data-compact-hidden>{t("workspace:previewView.source")}</span>
                 </button>
               </div>
@@ -181,7 +189,7 @@ export function FilePreviewView({ path }: Props) {
                   aria-pressed={mounted}
                   onClick={() => (mounted ? unmountFile(path) : mountFile({ path, name: baseName }))}
                 >
-                  <Paperclip size={ICON.xs} />
+                  <RiAttachmentLine size={ICON.xs} />
                 </button>
               </Tooltip>
             ) : null}
@@ -192,7 +200,7 @@ export function FilePreviewView({ path }: Props) {
                 aria-label={t("workspace:previewView.openExternalTooltip")}
                 onClick={() => void api.ws.open(path)}
               >
-                <ExternalLink size={ICON.xs} />
+                <RiExternalLinkLine size={ICON.xs} />
               </button>
             </Tooltip>
             <Tooltip content={t("workspace:previewView.revealTooltip")}>
@@ -202,7 +210,7 @@ export function FilePreviewView({ path }: Props) {
                 aria-label={t("workspace:previewView.revealTooltip")}
                 onClick={() => void api.ws.reveal(path)}
               >
-                <FolderOpen size={ICON.xs} />
+                <RiFolderOpenLine size={ICON.xs} />
               </button>
             </Tooltip>
           </div>
@@ -213,7 +221,7 @@ export function FilePreviewView({ path }: Props) {
         {isText ? (
           loading ? (
             <div className="flex items-center gap-2 p-6 text-sm text-text-tertiary">
-              <Loader2 size={ICON.sm} className="animate-spin" /> {t("common:action.loading")}
+              <RiLoader4Line size={ICON.sm} className="animate-spin" /> {t("common:action.loading")}
             </div>
           ) : error ? (
             <div className="p-6 text-sm text-error">{t("common:status.error")}: {error}</div>
@@ -230,7 +238,7 @@ export function FilePreviewView({ path }: Props) {
             <div className="h-full overflow-auto">
               {isHtml && htmlMode === "source" ? (
                 <div className="flex items-center gap-1 border-b border-border-subtle-dim px-3 py-1 text-3xs text-text-quaternary">
-                  <Code2 size={ICON.nano} /> {t("workspace:previewView.source")}
+                  <RiCodeView size={ICON.micro} /> {t("workspace:previewView.source")}
                 </div>
               ) : null}
               <pre className="whitespace-pre-wrap wrap-break-word p-6 font-mono text-2xs leading-relaxed text-text-primary">
@@ -241,14 +249,14 @@ export function FilePreviewView({ path }: Props) {
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
             <div className="v4-icon-chip flex h-14 w-14 rounded-2xl text-text-quaternary">
-              <FileQuestion size={ICON.lg} />
+              <RiFileUnknowLine size={ICON.lg} />
             </div>
             <div className="text-sm font-medium text-text-secondary">{t("workspace:previewView.cannotPreviewTitle")}</div>
             <div className="max-w-sm text-3xs text-text-quaternary">
               {t("workspace:previewView.cannotPreviewHint")}
             </div>
             <Button variant="outline" size="sm" onClick={() => void api.ws.open(path)}>
-              <ExternalLink size={ICON.xs} /> {t("workspace:previewView.openExternal")}
+              <RiExternalLinkLine size={ICON.xs} /> {t("workspace:previewView.openExternal")}
             </Button>
           </div>
         )}

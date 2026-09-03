@@ -11,7 +11,7 @@ import {
   useDraggable,
   useDroppable,
 } from "@dnd-kit/core";
-import { FileText, AlertCircle, RefreshCw, Loader2 } from "lucide-react";
+import { RiErrorWarningLine, RiFileTextLine, RiLoader4Line, RiRefreshLine } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/cn";
 import { api } from "../../services/api";
@@ -158,7 +158,7 @@ export function KanbanView({ onNavigate }: KanbanViewProps) {
         role="status"
         aria-live="polite"
       >
-        <Loader2 size={ICON.micro} className="animate-spin" aria-hidden /> {t("sidebar.kanban.loading")}
+        <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden /> {t("sidebar.kanban.loading")}
       </div>
     );
   }
@@ -167,7 +167,7 @@ export function KanbanView({ onNavigate }: KanbanViewProps) {
     return (
       <div className="flex flex-col gap-1.5 px-3 py-2" role="alert">
         <div className="flex items-center gap-1.5 text-3xs text-error">
-          <AlertCircle size={ICON.micro} aria-hidden />
+          <RiErrorWarningLine size={ICON.micro} aria-hidden />
           <span>{error}</span>
         </div>
         <Tooltip content={t("sidebar.kanban.reloadTooltip")}>
@@ -176,7 +176,7 @@ export function KanbanView({ onNavigate }: KanbanViewProps) {
             onClick={() => void load()}
             className="flex items-center gap-1 self-start rounded-[var(--radius-md)] border border-border-subtle px-2 py-1 text-3xs text-text-tertiary hover:text-accent-color v4-focus-ring"
           >
-            <RefreshCw size={ICON.micro} aria-hidden /> {t("sidebar.kanban.retry")}
+            <RiRefreshLine size={ICON.micro} aria-hidden /> {t("sidebar.kanban.retry")}
           </button>
         </Tooltip>
       </div>
@@ -265,7 +265,7 @@ function KanbanColumn({
       )}
     >
       <div className="mb-1.5 flex items-center gap-1.5 px-1 text-3xs font-medium tracking-wide text-text-quaternary">
-        <FileText size={ICON.micro} aria-hidden />
+        <RiFileTextLine size={ICON.micro} aria-hidden />
         <span>{label}</span>
         <span className="rounded-full bg-surface-muted px-1.5 tabular-nums text-text-quaternary">{notes.length}</span>
       </div>
@@ -348,7 +348,7 @@ function KanbanCard({
           {note.due ? ` · due ${String(note.due).slice(0, 10)}` : ""}
         </div>
       </button>
-      {saving ? <Loader2 size={ICON.micro} className="mt-0.5 shrink-0 animate-spin text-accent-color" /> : null}
+      {saving ? <RiLoader4Line size={ICON.micro} className="mt-0.5 shrink-0 animate-spin text-accent-color" /> : null}
     </li>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../services/api";
+import { useActionStore } from "../../stores/action-store";
 
 export interface EngineHealth {
   ok: boolean;
@@ -36,11 +37,9 @@ export function useWorkspaceHealth(): EngineHealth | null {
     if (!health?.ok || !health.workspaceRoot) return;
     if (suggestBootArmed.current) return;
     suggestBootArmed.current = true;
-    void import("../../stores/action-store").then(({ useActionStore }) => {
-      const st = useActionStore.getState();
-      // Soft path: kernel generateSuggestions without force; durable fingerprint skip survives restart
-      void st.refresh();
-    });
+    const st = useActionStore.getState();
+    // Soft path: kernel generateSuggestions without force; durable fingerprint skip survives restart
+    void st.refresh();
   }, [health?.ok, health?.workspaceRoot]);
 
   return health;

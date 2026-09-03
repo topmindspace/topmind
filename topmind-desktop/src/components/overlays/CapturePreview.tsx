@@ -3,7 +3,7 @@
  * and fetch-result meta (method · words · truncation · enhance actions).
  */
 import { useTranslation } from "react-i18next";
-import { Download, Loader2, AlertTriangle, Sparkles } from "lucide-react";
+import { RiAlertLine, RiDownload2Line, RiLoader4Line, RiSparklingLine } from "@remixicon/react";
 import { cn } from "../../lib/cn";
 import { ICON } from "../../lib/icons";
 import {
@@ -28,7 +28,7 @@ export function CapturePreview({
     <>
       {!isMemory && contentIsUrl && !fetching ? (
         <div className="mt-1.5 flex items-center gap-1.5 text-3xs text-accent-color">
-          <Download size={ICON.micro} className="shrink-0" aria-hidden />
+          <RiDownload2Line size={ICON.micro} className="shrink-0" aria-hidden />
           <span>{t("overlays:capture.urlDetected")}</span>
           <button
             type="button"
@@ -47,7 +47,7 @@ export function CapturePreview({
           aria-live="polite"
           aria-label={t("overlays:capture.fetchAriaLabel")}
         >
-          <Loader2 size={ICON.micro} className="shrink-0 animate-spin text-accent-color" aria-hidden />
+          <RiLoader4Line size={ICON.micro} className="shrink-0 animate-spin text-accent-color" aria-hidden />
           <ol className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-3xs">
             {FETCH_STEP_KEYS.map((step, i) => {
               const done = fetchStage > step.id;
@@ -86,7 +86,7 @@ export function CapturePreview({
           </div>
           {fetchMeta.warning || showEnhance ? (
             <div className="flex items-start gap-1.5 rounded-[var(--radius-md)] border border-warning/25 bg-status-warning-bg/40 px-2 py-1.5 text-3xs leading-relaxed text-warning">
-              <AlertTriangle size={ICON.micro} className="mt-0.5 shrink-0" aria-hidden />
+              <RiAlertLine size={ICON.micro} className="mt-0.5 shrink-0" aria-hidden />
               <div className="min-w-0 flex-1 space-y-1">
                 {fetchMeta.warning ? <div>{fetchMeta.warning}</div> : null}
                 <div className="flex flex-wrap gap-x-3 gap-y-1">
@@ -110,7 +110,7 @@ export function CapturePreview({
                       })}
                       className="inline-flex items-center gap-0.5 font-medium text-accent-color underline hover:opacity-80 disabled:opacity-50"
                     >
-                      <Sparkles size={ICON.micro} />
+                      <RiSparklingLine size={ICON.micro} />
                       {t("overlays:capture.fetchEnhanceRender")}
                     </button>
                   ) : null}

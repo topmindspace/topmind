@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { MoreHorizontal } from "lucide-react";
+import { RiMoreLine } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { cn } from "./cn";
 import { ICON } from "./icons";
@@ -185,7 +185,7 @@ export function ChromeOverflowActions({
                 aria-expanded={menuOpen}
                 onClick={() => setMenuOpen((v) => !v)}
               >
-                <MoreHorizontal size={ICON.xs} />
+                <RiMoreLine size={ICON.xs} />
               </button>
             </Tooltip>
           }

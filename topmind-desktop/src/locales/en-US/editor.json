@@ -372,6 +372,8 @@
     "copyLabel": "Copy",
     "reasoningLabel": "Reasoning",
     "reasoningStreaming": "Thinking…",
+    "reasoningDone": "Thought through",
+    "reasoningChars": "{{count}} chars",
     "openPathTooltip": "Open {{path}}",
     "detailAria": "Details",
     "noTextReply": "(No text reply)",

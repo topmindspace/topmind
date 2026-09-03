@@ -1,7 +1,7 @@
 /**
  * X StatusBar — shows read/write capability; click opens hub.
  */
-import { Twitter } from "lucide-react";
+import { RiTwitterXLine } from "@remixicon/react";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../../services/api";
@@ -59,7 +59,7 @@ function XStatusBar() {
         onClick={() => select({ kind: "connector", id: "x" })}
         className="flex items-center gap-1 text-text-quaternary transition-colors hover:text-text-secondary"
       >
-        <Twitter size={ICON.micro} />
+        <RiTwitterXLine size={ICON.micro} />
         <span>X · {label}</span>
       </button>
     </Tooltip>

@@ -6,7 +6,7 @@
  * status bar may be hidden) as a minimal indicator.
  */
 import { useEffect } from "react";
-import { Loader2, Lightbulb } from "lucide-react";
+import { RiLightbulbLine, RiLoader4Line } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/cn";
 import { ICON } from "../../lib/icons";
@@ -46,7 +46,7 @@ export function ActionBar() {
         data-action-bar
         data-action-bar-loading
       >
-        <Loader2 size={ICON.nano} className="animate-spin text-text-quaternary" />
+        <RiLoader4Line size={ICON.micro} className="animate-spin text-text-quaternary" />
         <span className="text-3xs text-text-quaternary">{t("ai.suggestLoading")}</span>
       </div>
     );
@@ -65,8 +65,8 @@ export function ActionBar() {
       data-action-bar-compact
       aria-label={t("ai.suggestTitle")}
     >
-      <Lightbulb
-        size={ICON.nano}
+      <RiLightbulbLine
+        size={ICON.micro}
         className={hasHigh ? "text-warning" : "text-accent-color"}
       />
       <span
@@ -78,7 +78,7 @@ export function ActionBar() {
         {t("ai.suggestTitle")} · {t("ai.actionBarCount", { count: items.length })}
       </span>
       {loading ? (
-        <Loader2 size={ICON.nano} className="animate-spin text-text-quaternary" />
+        <RiLoader4Line size={ICON.micro} className="animate-spin text-text-quaternary" />
       ) : null}
     </button>
   );

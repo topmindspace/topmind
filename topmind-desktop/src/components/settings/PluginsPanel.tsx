@@ -1,18 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Puzzle,
-  CheckCircle2,
-  AlertTriangle,
-  FolderOpen,
-  RefreshCw,
-  FolderPlus,
-  FileArchive,
-  Trash2,
-  Sparkles,
-  Shield,
-  Copy,
-} from "lucide-react";
+  RiAlertLine,
+  RiCheckboxCircleLine,
+  RiDeleteBin6Line,
+  RiFileCopyLine,
+  RiFileZipLine,
+  RiFolderAddLine,
+  RiFolderOpenLine,
+  RiPuzzleLine,
+  RiRefreshLine,
+  RiShieldLine,
+  RiSparklingLine,
+} from "@remixicon/react";
 import { useViewStore } from "../../stores/view-store";
 import { useRegistry } from "../../plugins/registry";
 import { usePluginStore } from "../../stores/plugin-store";
@@ -337,7 +337,7 @@ export function PluginsPanel({
                 className="flex items-center gap-2 rounded-[var(--radius-lg)] border border-border-subtle-dim bg-surface px-2.5 py-2 shadow-[inset_0_1px_0_0_var(--color-border-subtle-dim)] transition-colors hover:border-border-subtle"
               >
                 <div className="v4-icon-chip flex h-8 w-8 shrink-0 rounded-[var(--radius-md)] text-text-tertiary">
-                  <Puzzle size={ICON.sm} />
+                  <RiPuzzleLine size={ICON.sm} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -358,11 +358,11 @@ export function PluginsPanel({
                     )}
                     {p.status === "error" ? (
                       <span className="inline-flex items-center gap-0.5 rounded-full bg-status-error-bg px-1.5 py-0.5 text-3xs text-error">
-                        <AlertTriangle size={ICON.nano} /> {t("settings:plugins.error")}
+                        <RiAlertLine size={ICON.micro} /> {t("settings:plugins.error")}
                       </span>
                     ) : enabled || p.status === "active" ? (
                       <span className="inline-flex items-center gap-0.5 rounded-full bg-status-success-bg px-1.5 py-0.5 text-3xs text-success">
-                        <CheckCircle2 size={ICON.nano} /> {t("settings:plugins.on")}
+                        <RiCheckboxCircleLine size={ICON.micro} /> {t("settings:plugins.on")}
                       </span>
                     ) : (
                       <span className="rounded-full bg-surface-muted px-1.5 py-0.5 text-3xs text-text-quaternary">
@@ -371,7 +371,7 @@ export function PluginsPanel({
                     )}
                     {enabled && !isBuiltin && !isExternal && !configured ? (
                       <span className="inline-flex items-center gap-0.5 text-3xs text-warning">
-                        <AlertTriangle size={ICON.nano} /> {t("settings:plugins.pendingConfig")}
+                        <RiAlertLine size={ICON.micro} /> {t("settings:plugins.pendingConfig")}
                       </span>
                     ) : null}
                   </div>
@@ -381,7 +381,7 @@ export function PluginsPanel({
                   </div>
                   {isExternal && permissions.length > 0 ? (
                     <div className="mt-1 flex flex-wrap items-center gap-1">
-                      <Shield size={ICON.nano} className="text-text-quaternary" />
+                      <RiShieldLine size={ICON.micro} className="text-text-quaternary" />
                       {permissions.slice(0, 4).map((perm) => (
                         <span key={perm} className="rounded bg-surface-muted px-1 py-px font-mono text-3xs text-text-quaternary">
                           {perm}
@@ -416,7 +416,7 @@ export function PluginsPanel({
                       aria-label={t("settings:plugins.uninstallTooltip")}
                       className="shrink-0 rounded-[var(--radius-sm)] p-1 text-text-quaternary transition-colors hover:bg-surface-muted hover:text-error v4-focus-ring"
                     >
-                      <Trash2 size={ICON.micro} />
+                      <RiDeleteBin6Line size={ICON.micro} />
                     </button>
                   </Tooltip>
                 ) : null}
@@ -473,7 +473,7 @@ export function PluginsPanel({
               onClick={() => void refreshExternal()}
               disabled={Boolean(busy) || extLoading}
             >
-              <RefreshCw size={ICON.micro} className={cn((extLoading || busy === "reload") && "animate-spin")} />
+              <RiRefreshLine size={ICON.micro} className={cn((extLoading || busy === "reload") && "animate-spin")} />
             </Button>
             <Button
               variant="outline"
@@ -485,7 +485,7 @@ export function PluginsPanel({
               {t("settings:plugins.reload")}
             </Button>
             <Button variant="outline" size="sm" className="h-6 text-3xs" onClick={() => void api.sys.openPluginsDir()}>
-              <FolderOpen size={ICON.micro} /> {t("settings:plugins.openFolder")}
+              <RiFolderOpenLine size={ICON.micro} /> {t("settings:plugins.openFolder")}
             </Button>
           </div>
         }
@@ -498,7 +498,7 @@ export function PluginsPanel({
             disabled={Boolean(busy)}
             onClick={() => void beginInstallFolder()}
           >
-            <FolderPlus size={ICON.micro} /> {t("settings:plugins.installFromFolder")}
+            <RiFolderAddLine size={ICON.micro} /> {t("settings:plugins.installFromFolder")}
           </Button>
           <Button
             variant="outline"
@@ -507,7 +507,7 @@ export function PluginsPanel({
             disabled={Boolean(busy)}
             onClick={() => void beginInstallZip()}
           >
-            <FileArchive size={ICON.micro} /> {t("settings:plugins.installFromZip")}
+            <RiFileZipLine size={ICON.micro} /> {t("settings:plugins.installFromZip")}
           </Button>
           <Button
             variant="ghost"
@@ -516,19 +516,19 @@ export function PluginsPanel({
             disabled={Boolean(busy)}
             onClick={() => void handleScaffold()}
           >
-            <Sparkles size={ICON.micro} /> {t("settings:plugins.generateSample")}
+            <RiSparklingLine size={ICON.micro} /> {t("settings:plugins.generateSample")}
           </Button>
         </div>
 
         {actionError ? (
           <div className="mb-2 flex items-start gap-1.5 text-3xs text-error">
-            <AlertTriangle size={ICON.xs} className="mt-0.5 shrink-0" />
+            <RiAlertLine size={ICON.xs} className="mt-0.5 shrink-0" />
             <span>{actionError}</span>
           </div>
         ) : null}
         {actionOk ? (
           <div className="mb-2 flex items-center gap-1 text-3xs text-success">
-            <CheckCircle2 size={ICON.xs} />
+            <RiCheckboxCircleLine size={ICON.xs} />
             {actionOk}
           </div>
         ) : null}
@@ -582,7 +582,7 @@ export function PluginsPanel({
                           disabled={busy === `rm:${p.id}`}
                           onClick={() => setUninstallId(p.id)}
                         >
-                          <Trash2 size={ICON.micro} />
+                          <RiDeleteBin6Line size={ICON.micro} />
                         </button>
                       </Tooltip>
                     </>
@@ -692,7 +692,7 @@ export function PluginsPanel({
                   disabled={!clip.token}
                   onClick={() => void copyClipToken()}
                 >
-                  <Copy size={ICON.micro} />
+                  <RiFileCopyLine size={ICON.micro} />
                 </Button>
               </Tooltip>
               <Tooltip content={t("settings:general.clipRotateToken")}>
@@ -703,7 +703,7 @@ export function PluginsPanel({
                   className="h-8 w-8 shrink-0 p-0"
                   onClick={() => void rotateClipToken()}
                 >
-                  <RefreshCw size={ICON.micro} />
+                  <RiRefreshLine size={ICON.micro} />
                 </Button>
               </Tooltip>
             </div>

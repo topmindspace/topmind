@@ -58,9 +58,9 @@ test("essential busy motion keeps looping under Windows reduced-motion", () => {
   assert.match(v4, /\.v4-ai-busy-icon\.animate-spin/);
   assert.match(v4, /animation:\s*spin /);
   const status = read("src/components/shell/StatusBar.tsx");
-  // Loader2 on task/inline chips must keep animate-spin (not pulse-only)
-  assert.match(status, /Loader2[\s\S]{0,80}animate-spin/);
-  assert.doesNotMatch(status, /Loader2[^>]{0,80}v4-ai-busy-icon animate-spin/);
+  // RiLoader4Line on task/inline chips must keep animate-spin (not pulse-only)
+  assert.match(status, /RiLoader4Line[\s\S]{0,80}animate-spin/);
+  assert.doesNotMatch(status, /RiLoader4Line[^>]{0,80}v4-ai-busy-icon animate-spin/);
   const inline = read("src/components/editor/SelectionAiBar.tsx");
   assert.match(inline, /animate-spin/);
   assert.match(inline, /v4-ai-progress-slide/);

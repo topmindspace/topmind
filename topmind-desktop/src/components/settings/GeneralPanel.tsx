@@ -7,7 +7,7 @@ import { Button } from "../ui/Button";
 import type { AppSettings, AppSettingsPatch } from "../../types";
 import { Field, SwitchField, SettingsSection } from "./fields";
 import { ICON } from "../../lib/icons";
-import { RotateCcw, Copy, RefreshCw } from "lucide-react";
+import { RiArrowGoBackLine, RiFileCopyLine, RiRefreshLine } from "@remixicon/react";
 import { Tooltip } from "../ui/tooltip";
 import { api } from "../../services/api";
 import { emitLocal } from "../../plugins/host";
@@ -131,7 +131,7 @@ export function GeneralPanel({
               className="h-7 shrink-0 text-3xs"
               onClick={resetLayout}
             >
-              <RotateCcw size={ICON.micro} aria-hidden /> {t("settings:general.resetLayout")}
+              <RiArrowGoBackLine size={ICON.micro} aria-hidden /> {t("settings:general.resetLayout")}
             </Button>
           </Tooltip>
         </div>
@@ -192,7 +192,7 @@ export function GeneralPanel({
         action={
           <Tooltip content={t("settings:general.resetEditor")}>
             <Button type="button" variant="ghost" size="sm" className="h-6 text-3xs" onClick={resetEditor} aria-label={t("settings:general.resetEditor")}>
-              <RotateCcw size={ICON.micro} aria-hidden />
+              <RiArrowGoBackLine size={ICON.micro} aria-hidden />
             </Button>
           </Tooltip>
         }

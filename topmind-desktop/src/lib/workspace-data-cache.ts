@@ -38,12 +38,23 @@ function ensureInvalidationListener() {
   });
 }
 
+let inFlightNotesPromise: Promise<{
+  notes: NoteMeta[];
+  total: number;
+  returned?: number;
+  scannedTotal?: number;
+  truncated?: boolean;
+  complete?: boolean;
+}> | null = null;
+
+let inFlightTopicsPromise: Promise<TopicGroup[]> | null = null;
+
 export function invalidateWorkspaceDataCache() {
   notesCache = null;
   topicsCache = null;
 }
 
-/** Cached workspace.listAllNotes — reuses warm index across views. */
+/** Cached workspace.listAllNotes — reuses warm index and collapses concurrent calls. */
 export async function getCachedAllNotes(
   limit = 500,
 ): Promise<{
@@ -67,29 +78,41 @@ export async function getCachedAllNotes(
       complete: notesCache.complete,
     };
   }
-  const result = await api.ws.allNotes(limit);
-  const total = result.total ?? (result.notes || []).length;
-  notesCache = {
-    at: Date.now(), // after fetch so TTL starts when data is ready
-    limit,
-    notes: result.notes || [],
-    total,
-    returned: result.returned ?? (result.notes || []).length,
-    scannedTotal: result.scannedTotal ?? total,
-    truncated: Boolean(result.truncated),
-    complete: result.complete !== false && !result.truncated,
-  };
-  return {
-    notes: notesCache.notes,
-    total: notesCache.total,
-    returned: notesCache.returned,
-    scannedTotal: notesCache.scannedTotal,
-    truncated: notesCache.truncated,
-    complete: notesCache.complete,
-  };
+
+  // Deduplicate concurrent in-flight requests (e.g. multiple tabs/badges mounting simultaneously)
+  if (inFlightNotesPromise) return inFlightNotesPromise;
+
+  inFlightNotesPromise = (async () => {
+    try {
+      const result = await api.ws.allNotes(limit);
+      const total = result.total ?? (result.notes || []).length;
+      notesCache = {
+        at: Date.now(), // after fetch so TTL starts when data is ready
+        limit,
+        notes: result.notes || [],
+        total,
+        returned: result.returned ?? (result.notes || []).length,
+        scannedTotal: result.scannedTotal ?? total,
+        truncated: Boolean(result.truncated),
+        complete: result.complete !== false && !result.truncated,
+      };
+      return {
+        notes: notesCache.notes,
+        total: notesCache.total,
+        returned: notesCache.returned,
+        scannedTotal: notesCache.scannedTotal,
+        truncated: notesCache.truncated,
+        complete: notesCache.complete,
+      };
+    } finally {
+      inFlightNotesPromise = null;
+    }
+  })();
+
+  return inFlightNotesPromise;
 }
 
-/** Cached category→topics for Inbox picker (N+1 collapse across open/close). */
+/** Cached category→topics for Inbox picker (N+1 collapse across open/close & in-flight dedupe). */
 export async function getCachedTopicGroups(includeSystem = false): Promise<TopicGroup[]> {
   ensureInvalidationListener();
   const now = Date.now();
@@ -100,25 +123,36 @@ export async function getCachedTopicGroups(includeSystem = false): Promise<Topic
   ) {
     return topicsCache.groups;
   }
-  const { categories } = await api.ws.categories();
-  // Prefer role when present (workspace-model); fall back to NN prefix for older payloads
-  const list = includeSystem
-    ? categories
-    : categories.filter((c) => {
-        const role = (c as { role?: string }).role;
-        if (role === "system" || role === "buffer" || role === "delivery") return false;
-        if (role) return true;
-        return !/^(00|88|99)[ -]/u.test(c.name);
-      });
-  const results = await Promise.all(
-    list.map(async (c) => {
-      const { topics: ts } = await api.ws.topics(c.name);
-      return { category: c.name, topics: ts };
-    }),
-  );
-  const groups = results.filter((g) => g.topics.length > 0);
-  topicsCache = { at: Date.now(), includeSystem, groups };
-  return groups;
+
+  if (inFlightTopicsPromise) return inFlightTopicsPromise;
+
+  inFlightTopicsPromise = (async () => {
+    try {
+      const { categories } = await api.ws.categories();
+      // Prefer role when present (workspace-model); fall back to NN prefix for older payloads
+      const list = includeSystem
+        ? categories
+        : categories.filter((c) => {
+            const role = (c as { role?: string }).role;
+            if (role === "system" || role === "buffer" || role === "delivery") return false;
+            if (role) return true;
+            return !/^(00|88|99)[ -]/u.test(c.name);
+          });
+      const results = await Promise.all(
+        list.map(async (c) => {
+          const { topics: ts } = await api.ws.topics(c.name);
+          return { category: c.name, topics: ts };
+        }),
+      );
+      const groups = results.filter((g) => g.topics.length > 0);
+      topicsCache = { at: Date.now(), includeSystem, groups };
+      return groups;
+    } finally {
+      inFlightTopicsPromise = null;
+    }
+  })();
+
+  return inFlightTopicsPromise;
 }
 
 /**

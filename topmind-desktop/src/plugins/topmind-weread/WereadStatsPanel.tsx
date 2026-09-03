@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { BarChart3, Loader2, RefreshCw } from "lucide-react";
+import { RiBarChart2Line, RiLoader4Line, RiRefreshLine } from "@remixicon/react";
 import type { WereadStatsCache } from "../../types";
 import { Button } from "../../components/ui/Button";
 import { EmptyState, MetaText, SectionHeader } from "../../components/ui/view";
@@ -37,7 +37,7 @@ export function WereadStatsPanel({
   return (
     <section className="mb-6">
       <SectionHeader
-        icon={<BarChart3 size={ICON.sm} />}
+        icon={<RiBarChart2Line size={ICON.sm} />}
         label={t("settings:wereadStats.title")}
         actions={
           <div className="flex items-center gap-1.5">
@@ -65,7 +65,7 @@ export function WereadStatsPanel({
                 className="rounded-[var(--radius-sm)] p-1 text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary v4-focus-ring disabled:opacity-40"
                 aria-label={t("settings:wereadStats.refreshAria")}
               >
-                <RefreshCw size={ICON.micro} aria-hidden />
+                <RiRefreshLine size={ICON.micro} aria-hidden />
               </button>
             </Tooltip>
           </div>
@@ -73,7 +73,7 @@ export function WereadStatsPanel({
       />
       {!ready ? (
         <EmptyState
-          icon={<BarChart3 size={ICON.md} />}
+          icon={<RiBarChart2Line size={ICON.md} />}
           title={t("settings:wereadStats.configTooltip")}
           action={
             <Button size="sm" variant="outline" onClick={onOpenSettings}>
@@ -135,7 +135,7 @@ export function WereadStatsPanel({
         </div>
       ) : (
         <div className="flex items-center gap-1.5 px-1 py-2 text-3xs text-text-quaternary" role="status">
-          <Loader2 size={ICON.xs} className="animate-spin" aria-hidden /> {t("settings:wereadStats.loading")}
+          <RiLoader4Line size={ICON.xs} className="animate-spin" aria-hidden /> {t("settings:wereadStats.loading")}
         </div>
       )}
     </section>

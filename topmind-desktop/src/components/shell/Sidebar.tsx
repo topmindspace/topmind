@@ -1,7 +1,11 @@
 import { useEffect, useState, useCallback, useRef, lazy } from "react";
 import {
-  Database, AlertCircle, RefreshCw, CalendarDays, UserRound,
-} from "lucide-react";
+  RiCalendar2Line,
+  RiDatabase2Line,
+  RiErrorWarningLine,
+  RiRefreshLine,
+  RiUser3Line,
+} from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { useRegistry } from "../../plugins/registry";
 import { cn } from "../../lib/cn";
@@ -224,7 +228,7 @@ export function Sidebar() {
             <div className="px-2 py-4">
               <EmptyState
                 compact
-                icon={<Database size={ICON.sm} />}
+                icon={<RiDatabase2Line size={ICON.sm} />}
                 title={t("sidebar.waitingDataSources")}
                 hint={t("sidebar.loadingPlugins")}
               />
@@ -298,7 +302,7 @@ function PeriodPill({ pins }: { pins: SidebarPins }) {
         className="inline-flex min-w-0 flex-1 items-center gap-1 truncate rounded-full bg-surface-muted/40 px-2 py-0.5 text-3xs text-text-secondary transition-colors hover:bg-surface-muted"
         aria-label={pins.periodLabel || t("sidebar.streamPinTip")}
       >
-        <CalendarDays size={ICON.nano} className="shrink-0" />
+        <RiCalendar2Line size={ICON.micro} className="shrink-0" />
         <span className="min-w-0 flex-1 truncate">{pins.periodLabel}</span>
       </button>
     </Tooltip>
@@ -336,7 +340,7 @@ function ProfileButton() {
         aria-label={t("sidebar.myProfile")}
         aria-pressed={active}
       >
-        <UserRound size={ICON.nano} className="shrink-0" />
+        <RiUser3Line size={ICON.micro} className="shrink-0" />
       </button>
     </Tooltip>
   );
@@ -707,7 +711,7 @@ function DataSourceSection({
       {/* Multi-DS: show label eyebrow below merged header */}
       {!compactHeader ? (
         <div className="flex items-center gap-1.5 px-2 pb-0.5 text-3xs font-semibold tracking-wide text-text-quaternary">
-          <Database size={ICON.micro} className="shrink-0 text-text-quaternary" aria-hidden />
+          <RiDatabase2Line size={ICON.micro} className="shrink-0 text-text-quaternary" aria-hidden />
           <span className="truncate">{dataSource.label}</span>
         </div>
       ) : null}
@@ -719,14 +723,14 @@ function DataSourceSection({
       ) : error ? (
         <div className="flex flex-col gap-1 px-3 py-1.5">
           <div className="flex items-center gap-1.5 text-3xs text-error" title={error}>
-            <AlertCircle size={ICON.micro} className="shrink-0" />
+            <RiErrorWarningLine size={ICON.micro} className="shrink-0" />
             <span className="truncate">{t("sidebar.loadFailed")}</span>
           </div>
           <button
             onClick={() => { void hardRefresh(); }}
             className="flex items-center gap-1 self-start rounded-[var(--radius-sm)] border border-border-subtle px-1.5 py-0.5 text-3xs text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary v4-focus-ring"
           >
-            <RefreshCw size={ICON.nano} aria-hidden /> {t("sidebar.retry")}
+            <RiRefreshLine size={ICON.micro} aria-hidden /> {t("sidebar.retry")}
           </button>
         </div>
       ) : tree.length === 0 ? (

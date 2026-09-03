@@ -3,10 +3,20 @@
  * Handlers stay in TreeViewNode; this file is presentation only.
  */
 import {
-  Inbox, Layers, Archive, FolderOpen, FileText,
-  Plus, Trash2, Edit3, Upload, Puzzle,
-  Copy, FolderSearch, Files, ChevronsUpDown, ChevronsDownUp,
-} from "lucide-react";
+  RiAddLine,
+  RiContractUpDownLine,
+  RiDeleteBin6Line,
+  RiEditLine,
+  RiExpandUpDownLine,
+  RiFileCopyLine,
+  RiFileTextLine,
+  RiFolderOpenLine,
+  RiInboxArchiveLine,
+  RiInboxUnarchiveLine,
+  RiPuzzleLine,
+  RiStackLine,
+  RiUpload2Line,
+} from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import type { TreeNode } from "../../plugins/types";
 import type { ContextMenuSlot } from "../../plugins/types";
@@ -74,49 +84,49 @@ export function TreeNodeContextMenu({
       <ContextMenuLabel>{label}</ContextMenuLabel>
       {node.kind === "group" && node.id === "section/inbox" ? (
         <>
-          <ContextMenuItem icon={<Inbox size={ICON.sm} />} onClick={h.handleOpenSelection} shortcut="⌘⇧I">
+          <ContextMenuItem icon={<RiInboxUnarchiveLine size={ICON.sm} />} onClick={h.handleOpenSelection} shortcut="⌘⇧I">
             {t("sidebar.contextMenu.openInbox")}
           </ContextMenuItem>
-          <ContextMenuItem icon={<Plus size={ICON.sm} />} shortcut="⌘N" onClick={h.openQuickCapture}>
+          <ContextMenuItem icon={<RiAddLine size={ICON.sm} />} shortcut="⌘N" onClick={h.openQuickCapture}>
             {t("sidebar.contextMenu.quickCapture")}
           </ContextMenuItem>
         </>
       ) : null}
       {node.kind === "group" && node.id === "section/outputs" ? (
-        <ContextMenuItem icon={<Layers size={ICON.sm} />} onClick={h.handleOpenSelection} shortcut="⌘⇧O">
+        <ContextMenuItem icon={<RiStackLine size={ICON.sm} />} onClick={h.handleOpenSelection} shortcut="⌘⇧O">
           {t("sidebar.contextMenu.openOutputs")}
         </ContextMenuItem>
       ) : null}
       {node.kind === "group" && node.id === "section/archive" ? (
-        <ContextMenuItem icon={<Archive size={ICON.sm} />} onClick={h.handleOpenSelection} shortcut="⌘⇧A">
+        <ContextMenuItem icon={<RiInboxArchiveLine size={ICON.sm} />} onClick={h.handleOpenSelection} shortcut="⌘⇧A">
           {t("sidebar.contextMenu.openArchive")}
         </ContextMenuItem>
       ) : null}
 
       {node.kind === "category" ? (
         <>
-          <ContextMenuItem icon={<FolderOpen size={ICON.sm} />} onClick={h.handleOpenSelection}>
+          <ContextMenuItem icon={<RiFolderOpenLine size={ICON.sm} />} onClick={h.handleOpenSelection}>
             {t("sidebar.contextMenu.openCategory")}
           </ContextMenuItem>
           <ContextMenuSeparator />
-          <ContextMenuItem icon={<Plus size={ICON.sm} />} onClick={h.handleNewTopic}>
+          <ContextMenuItem icon={<RiAddLine size={ICON.sm} />} onClick={h.handleNewTopic}>
             {t("sidebar.contextMenu.newTopic")}
           </ContextMenuItem>
-          <ContextMenuItem icon={<Plus size={ICON.sm} />} onClick={h.handleNewCategoryNote}>
+          <ContextMenuItem icon={<RiAddLine size={ICON.sm} />} onClick={h.handleNewCategoryNote}>
             {t("sidebar.contextMenu.newNote")}
           </ContextMenuItem>
           <ContextMenuSeparator />
-          <ContextMenuItem icon={<ChevronsUpDown size={ICON.sm} />} onClick={h.handleExpandAllUnder}>
+          <ContextMenuItem icon={<RiExpandUpDownLine size={ICON.sm} />} onClick={h.handleExpandAllUnder}>
             {t("sidebar.contextMenu.expandAll")}
           </ContextMenuItem>
-          <ContextMenuItem icon={<ChevronsDownUp size={ICON.sm} />} onClick={h.handleCollapseUnder}>
+          <ContextMenuItem icon={<RiContractUpDownLine size={ICON.sm} />} onClick={h.handleCollapseUnder}>
             {t("sidebar.contextMenu.collapseAll")}
           </ContextMenuItem>
           <ContextMenuSeparator />
-          <ContextMenuItem icon={<Copy size={ICON.sm} />} onClick={h.handleCopyPath}>
+          <ContextMenuItem icon={<RiFileCopyLine size={ICON.sm} />} onClick={h.handleCopyPath}>
             {t("sidebar.contextMenu.copyPath")}
           </ContextMenuItem>
-          <ContextMenuItem icon={<FolderSearch size={ICON.sm} />} onClick={h.handleReveal}>
+          <ContextMenuItem icon={<RiFolderOpenLine size={ICON.sm} />} onClick={h.handleReveal}>
             {t("sidebar.contextMenu.revealInFolder")}
           </ContextMenuItem>
         </>
@@ -124,13 +134,13 @@ export function TreeNodeContextMenu({
 
       {node.kind === "folder" ? (
         <>
-          <ContextMenuItem icon={<FolderOpen size={ICON.sm} />} onClick={h.expandFolderIfNeeded}>
+          <ContextMenuItem icon={<RiFolderOpenLine size={ICON.sm} />} onClick={h.expandFolderIfNeeded}>
             {expanded ? t("sidebar.contextMenu.expanded") : t("sidebar.contextMenu.expandFolder")}
           </ContextMenuItem>
-          <ContextMenuItem icon={<Copy size={ICON.sm} />} onClick={h.handleCopyPath}>
+          <ContextMenuItem icon={<RiFileCopyLine size={ICON.sm} />} onClick={h.handleCopyPath}>
             {t("sidebar.contextMenu.copyPath")}
           </ContextMenuItem>
-          <ContextMenuItem icon={<FolderSearch size={ICON.sm} />} onClick={h.handleReveal}>
+          <ContextMenuItem icon={<RiFolderOpenLine size={ICON.sm} />} onClick={h.handleReveal}>
             {t("sidebar.contextMenu.revealInFolder")}
           </ContextMenuItem>
         </>
@@ -138,24 +148,24 @@ export function TreeNodeContextMenu({
 
       {node.kind === "topic" ? (
         <>
-          <ContextMenuItem icon={<FolderOpen size={ICON.sm} />} onClick={h.handleOpenSelection}>
+          <ContextMenuItem icon={<RiFolderOpenLine size={ICON.sm} />} onClick={h.handleOpenSelection}>
             {t("sidebar.contextMenu.openTopic")}
           </ContextMenuItem>
-          <ContextMenuItem icon={<Plus size={ICON.sm} />} onClick={h.handleNewNote}>
+          <ContextMenuItem icon={<RiAddLine size={ICON.sm} />} onClick={h.handleNewNote}>
             {t("sidebar.contextMenu.newNote")}
           </ContextMenuItem>
           <ContextMenuSeparator />
-          <ContextMenuItem icon={<Edit3 size={ICON.sm} />} onClick={h.handleRenameTopic}>
+          <ContextMenuItem icon={<RiEditLine size={ICON.sm} />} onClick={h.handleRenameTopic}>
             {t("sidebar.contextMenu.renameTopic")}
           </ContextMenuItem>
-          <ContextMenuItem icon={<Copy size={ICON.sm} />} onClick={h.handleCopyPath}>
+          <ContextMenuItem icon={<RiFileCopyLine size={ICON.sm} />} onClick={h.handleCopyPath}>
             {t("sidebar.contextMenu.copyPath")}
           </ContextMenuItem>
-          <ContextMenuItem icon={<FolderSearch size={ICON.sm} />} onClick={h.handleReveal}>
+          <ContextMenuItem icon={<RiFolderOpenLine size={ICON.sm} />} onClick={h.handleReveal}>
             {t("sidebar.contextMenu.revealInFolder")}
           </ContextMenuItem>
           <ContextMenuSeparator />
-          <ContextMenuItem icon={<Trash2 size={ICON.sm} />} destructive onClick={h.handleDelete}>
+          <ContextMenuItem icon={<RiDeleteBin6Line size={ICON.sm} />} destructive onClick={h.handleDelete}>
             {t("sidebar.contextMenu.deleteTopic")}
           </ContextMenuItem>
         </>
@@ -164,43 +174,43 @@ export function TreeNodeContextMenu({
       {isFileNode ? (
         isReadOnly ? (
           <>
-            <ContextMenuItem icon={<FileText size={ICON.sm} />} onClick={h.handleOpenSelection}>
+            <ContextMenuItem icon={<RiFileTextLine size={ICON.sm} />} onClick={h.handleOpenSelection}>
               {t("sidebar.contextMenu.openPreview")}
             </ContextMenuItem>
             <ContextMenuSeparator />
-            <ContextMenuItem icon={<Copy size={ICON.sm} />} onClick={h.handleCopyPath}>
+            <ContextMenuItem icon={<RiFileCopyLine size={ICON.sm} />} onClick={h.handleCopyPath}>
               {t("sidebar.contextMenu.copyPath")}
             </ContextMenuItem>
-            <ContextMenuItem icon={<FolderSearch size={ICON.sm} />} onClick={h.handleReveal}>
+            <ContextMenuItem icon={<RiFolderOpenLine size={ICON.sm} />} onClick={h.handleReveal}>
               {t("sidebar.contextMenu.revealInFolder")}
             </ContextMenuItem>
           </>
         ) : (
           <>
-            <ContextMenuItem icon={<FileText size={ICON.sm} />} onClick={h.handleOpenSelection}>
+            <ContextMenuItem icon={<RiFileTextLine size={ICON.sm} />} onClick={h.handleOpenSelection}>
               {t("sidebar.contextMenu.open")}
             </ContextMenuItem>
-            <ContextMenuItem icon={<Edit3 size={ICON.sm} />} onClick={h.handleRename}>
+            <ContextMenuItem icon={<RiEditLine size={ICON.sm} />} onClick={h.handleRename}>
               {t("sidebar.contextMenu.rename")}
             </ContextMenuItem>
-            <ContextMenuItem icon={<Files size={ICON.sm} />} onClick={h.handleDuplicate}>
+            <ContextMenuItem icon={<RiFileCopyLine size={ICON.sm} />} onClick={h.handleDuplicate}>
               {t("sidebar.contextMenu.duplicate")}
             </ContextMenuItem>
-            <ContextMenuItem icon={<Upload size={ICON.sm} />} onClick={h.handlePublish}>
+            <ContextMenuItem icon={<RiUpload2Line size={ICON.sm} />} onClick={h.handlePublish}>
               {t("sidebar.contextMenu.publishToOutputs")}
             </ContextMenuItem>
             <ContextMenuSeparator />
-            <ContextMenuItem icon={<Copy size={ICON.sm} />} onClick={h.handleCopyPath}>
+            <ContextMenuItem icon={<RiFileCopyLine size={ICON.sm} />} onClick={h.handleCopyPath}>
               {t("sidebar.contextMenu.copyPath")}
             </ContextMenuItem>
-            <ContextMenuItem icon={<FolderSearch size={ICON.sm} />} onClick={h.handleReveal}>
+            <ContextMenuItem icon={<RiFolderOpenLine size={ICON.sm} />} onClick={h.handleReveal}>
               {t("sidebar.contextMenu.revealInFolder")}
             </ContextMenuItem>
-            <ContextMenuItem icon={<FileText size={ICON.sm} />} onClick={h.handleOpenExternal}>
+            <ContextMenuItem icon={<RiFileTextLine size={ICON.sm} />} onClick={h.handleOpenExternal}>
               {t("sidebar.contextMenu.openExternal")}
             </ContextMenuItem>
             <ContextMenuSeparator />
-            <ContextMenuItem icon={<Trash2 size={ICON.sm} />} destructive onClick={h.handleDelete}>
+            <ContextMenuItem icon={<RiDeleteBin6Line size={ICON.sm} />} destructive onClick={h.handleDelete}>
               {t("sidebar.contextMenu.delete")}
             </ContextMenuItem>
           </>
@@ -213,7 +223,7 @@ export function TreeNodeContextMenu({
           {pluginMenuItems.map((slot) => (
             <ContextMenuItem
               key={slot.id}
-              icon={<Puzzle size={ICON.sm} />}
+              icon={<RiPuzzleLine size={ICON.sm} />}
               disabled={slot.available ? !slot.available(node) : false}
               onClick={() => h.runPlugin(slot)}
             >

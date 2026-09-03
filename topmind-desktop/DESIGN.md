@@ -3,7 +3,7 @@
 > **理念**：精准、安静、对象优先、**长时阅读友好**、可审查、**可扩展的富工作台**。  
 > **产品北极星**：最低摩擦个人动态流；导航与概念**清晰简单**；AI **内生副驾**（建议默认 · 确认执行）。  
 > **美学**：**Design System 3.0 — ZCode Neutral（中性石墨 × Sky 强调）** — 纯中性灰阶（零色偏，对齐 ZCode 桌面端）+ 单一 sky 主色 + **黑白单色实心主 CTA**（Linear 密度 × Craft 阅读 × 文件对象感）。3.0 取代 2.1 微暖中性：中性更纯净、圆角更利落、主按钮单色化。  
-> **栈**：Tailwind 4 · shadcn 风格 · Radix · Lucide · Design Tokens。  
+> **栈**：Tailwind 4 · shadcn 风格 · Radix · RemixIcon · Design Tokens。  
 > **品牌色**：sky 轴 `#075985` deep → `#0ea5e9` mid + capture teal `#2fa89a`（teal 仅限捕获动作）；强调交互色 = sky `#0284c7`（dark `#38bdf8`）；实心主 CTA = 单色 ink（light 近黑 / dark 近白）。  
 > **实施锁**：[`../docs/ARCHITECTURE-RESET.md`](../docs/ARCHITECTURE-RESET.md) · 产品原则：[`../DESIGN.md`](../DESIGN.md)
 
@@ -67,14 +67,16 @@
 
 ### 0.0.2 图标语义（强制）
 
-| 图标 | 用途 | 禁止 |
+| 图标（RemixIcon） | 用途 | 禁止 |
 |------|------|------|
-| **Zap** | 「记一下」完整捕获 | 用于 AI 润色 / 待办 |
-| **Sparkles** | AI 润色 · AI 待办 · 建议条 AI 动作 | 用于普通保存 |
-| **Send** | 「记下」写入周期本 | 与 Zap 混用为捕获 |
-| **ListTodo** | 标题栏个人待办清单 · 状态栏「AI 整理待办中」chip（可点开清单） | 与 ActionBar 建议混称；**禁止**用于后台 Task 面板 |
-| **Loader2** | 后台任务 busy · AI 轨 TaskBadge · 通用 spinner | 与 ListTodo 混用表示个人清单 |
-| **Wand2** | 整理本周 / 确定性 reconcile | 与 AI 润色混用 |
+| **RiFlashlightFill** | 「记一下」完整捕获 | 用于 AI 润色 / 待办 |
+| **RiSparklingLine** | AI 润色 · AI 待办 · 建议条 AI 动作 | 用于普通保存 |
+| **RiSendPlane2Line** | 「记下」写入周期本 | 与 Flashlight 混用为捕获 |
+| **RiListCheck** | 标题栏个人待办清单 · 状态栏「AI 整理待办中」chip（可点开清单） | 与 ActionBar 建议混称；**禁止**用于后台 Task 面板 |
+| **RiLoader4Line** | 后台任务 busy · AI 轨 TaskBadge · 通用 spinner | 与 ListCheck 混用表示个人清单 |
+| **RiMagicLine** | 整理本周 / 确定性 reconcile | 与 AI 润色混用 |
+
+> 图标体系（2026-09）：全应用 **RemixIcon**（`@remixicon/react`），尺寸标尺集中 `src/lib/icons.ts` `ICON = { nano:10, micro:12, xs:14, sm:17, md:20, lg:24, xl:30 }`。语义边界：**nano 仅限箭头/圆点/kbd；功能图标 micro 起步；header/sidebar/主导航用 sm**。二态开关用 Line/Fill 变体对（如 PanelToggleIcon）。
 
 **捕获英文对译（强制）**：`记一下` = **Note it**（完整捕获）；`记下` = **Log it**（动态主区写入周期本）。禁止用 Save 冒充「记下」、用 Quick Capture 冒充「记一下」。
 
@@ -129,6 +131,13 @@
 - **入口**（`settings.ledger.enabled`，默认开）：标题栏 Apps 菜单 · StatusBar chip · ⌘K「记账」。**不是** PrimaryNav。关掉插件后这些入口消失。
 - **表面**：plugin-app overlay（看板 · 流水 · 分类 · 快捷记账）。「记一下」捕获表单 / 动态 composer 在检测到 记账/记一笔/花了/存入 时注入快捷记账，不另占主 chrome。
 - **NL**：记账 / 记一笔 / 花了 / 存入；读：查看账单 / 账户余额。未点名账本落到默认个人本，不发明 ClassFund / Giggs / Mom。
+
+### 长文大纲目录（EditorOutlinePanel · ⌘⌥O / Ctrl+Alt+O）
+
+- **定位**：长文阅读与结构化编辑辅助抽屉（遵循 Jakob's Law 传统大纲心智），不属于独立视图，仅附着于 `FileEditorView`。
+- **实时同步**：订阅 TipTap 实时更新事件（150ms 节流防抖），正文输入标题时大纲毫秒级即时呈现，杜绝未存盘不同步问题。
+- **Scrollspy**：视口滚动智能跟随，高亮当前阅读章节。
+- **交互与直达**：点击标题平滑直达正文对应位置；桌面端右侧折叠抽屉，窄屏自适应浮层，支持 `Esc` 快速关闭。
 
 ## 0. 视觉与认知原则（Design System 3.0 · ZCode Neutral · 2026-08-30）
 
@@ -275,7 +284,7 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 └──────────────────────────────────────────────────────────────┘
 ```
 
-- **标题栏**（`--density-chrome-y` 36px solid chrome — 2026-08-07: 38→36 纤细化） 
+- **标题栏**（`--density-chrome-y` 40px solid chrome — 2026-09-02: 36→40 大气化，控件 30×30 + sm 17px 图标）  
   - 左：导航控制 + 应用标识 + 工作区切换器  
   - 中：`PrimaryNav` — **动态（默认）** · **收件箱** · **写出来** · **搜索** + ⌘K  
   - 右：**记一下**（唯一主捕获）+ 建议 💡 · 清单 · 设置 · AI  
@@ -324,7 +333,7 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 - **DataSource 区段**：每个注册的 DataSource 渲染为可折叠区段，带 Database 眉头图标 + 半粗体大写标签。
 - **加载状态**：共享 save-dot 旋转动画；错误/空状态使用规范侧栏提示样式。
 - **TreeView**：递归渲染，按深度缩进。首次渲染时自动展开 group/category 节点。
-- **节点图标**（Lucide）：Inbox（00-收件箱 区段）、Layers（88-输出）、Archive（99-归档）、Brain（memory 记忆区段）、Folder/FolderOpen（类别/专题）、FileText（文件）。
+- **节点图标**（RemixIcon）：InboxUnarchive（00-收件箱 区段）、Stack（88-输出）、InboxArchive（99-归档）、Brain（memory 记忆区段）、Folder/FolderOpen（类别/专题）、FileText（文件）。
 - **行交互**：`rounded-md hover:bg-surface-muted`（空闲）、`bg-accent-bg-subtle text-accent-color`（活跃）。箭头随展开状态旋转。
 - **拖放目标**：`.v4-drop-target` **idle 无描边/无底色**；仅 `.v4-drop-target-active`（isOver）显示 wash；DragOverlay elevated hairline。**冲突处理**：专题下同名 → 自动副本名。
 - **右键菜单**：右键任意节点显示上下文操作（新建笔记/专题、重命名、删除、发布）。
@@ -611,11 +620,13 @@ ZCode 阶：`--radius-xs: 2px` · `--radius-sm: 4px` · `--radius-md: 6px` · `-
 
 | Token | 默认 | 用途 |
 |-------|------|------|
-| `--density-chrome-y` | 36px | 标题栏（2026-08-07: 38→36 更纤细） |
+| `--density-chrome-y` | 40px | 标题栏（2026-09-02: 36→40 大气化） |
 | `--density-status-y` | 24px | 状态栏（2026-08-07: 26→24 更纤细） |
 | `--density-tree-row` | 28px | 侧栏树行 |
 | `--density-editor-toolbar-y` | 32px | 编辑器顶栏 |
 | `--content-max-width-prose` | 52rem | 正文列宽（阅读列默认） |
+| `--feed-column-max` | 72rem | 信息流/我的情况/收件箱/专题/写出来 阅读列——**流体**：填充主画布实际可用宽度（侧栏/AI 面板/分栏感知），数值仅为可读性上限 = 编辑器 wide 档（2026-09-03: 固定 44→72，固定窄上限在宽屏两侧留白过大） |
+| `--content-max-width-dashboard` | 72rem | 列表类视图容器上限（同样流体，≤cap） |
 
 编辑器默认：`fontSize: 16` · `lineHeight: 1.7`。
 
@@ -637,7 +648,7 @@ ZCode 阶：`--radius-xs: 2px` · `--radius-sm: 4px` · `--radius-md: 6px` · `-
 - **UI 基础组件**（`src/components/ui/`）：Button, Dialog, Input, Textarea, Select, Card, Tabs, Separator, Splitter, ContextMenu, view（共享视图原语）
 - **共享视图原语**（`view.tsx`）：ViewContainer, PageHeader, SectionHeader, EmptyState, LoadingState, ErrorState, MetaText, FileRow, RowList — **空状态必须用 EmptyState**
 - **设置卡片**：`SettingsSection` / `Field` / `SwitchField`（`settings/fields.tsx`）
-- **图标**: 仅 `lucide-react` + `ICON.*`（nano 9 → xl 28）；面板开合见 `PanelToggleIcon`
+- **图标**: 仅 `@remixicon/react`（RemixIcon）+ `ICON.*`（nano 10 → xl 30）；填充字形读感偏大已按光学权重调校；面板开合见 `PanelToggleIcon`（Line=关 / Fill=开）
 - **排版令牌**：text-5xs(10) → text-4xs(11) → text-3xs(12 UI 下限) → text-2xs(12) → text-xs(13) → text-sm(13) → text-base(14) → text-lg(16) → text-xl(16) → text-2xl(18) → text-3xl(24)
 - **v4 壳层工具类**（`src/styles/v4.css`）：
   - Chrome：`v4-titlebar-glass` · `v4-shell-chrome` · `v4-sidebar-rail` · `v4-ai-panel`
@@ -773,7 +784,7 @@ ZCode 阶：`--radius-xs: 2px` · `--radius-sm: 4px` · `--radius-md: 6px` · `-
 
 ### UIX-404：Chrome 纤细化 ✅
 
-- 标题栏高度 `--density-chrome-y: 36px`（2026-08-07 从 38px 降至 36px）
+- 标题栏高度 `--density-chrome-y: 40px`（2026-08-07 从 38px 降至 36px；2026-09-02 回升 40px 大气化，配合 30px 控件与 sm 图标）
 - 状态栏高度 `--density-status-y: 24px`（2026-08-07 从 26px 降至 24px）
 - 侧栏头部统一：`ViewSwitcher` + `ProfileButton` 在同一行，无重复 border
 - Landing 页噪点清理：workflow chips 已移除（2026-08-07）；brand chip 已移除（2026-08-07）

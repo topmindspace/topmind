@@ -71,5 +71,5 @@ test("AI entry consistency: stream polish chip + selection bar + format action",
   assert.match(stream, /data-stream-compose-polish|composeAiPolish|polishComposerText/);
   assert.match(stream, /v4-ai-btn-ghost/);
   assert.match(bar, /v4-ai-btn/);
-  assert.match(bar, /Sparkles/);
+  assert.match(bar, /RiSparklingLine/);
 });

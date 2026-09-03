@@ -5,8 +5,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  AlertTriangle, CheckCircle2, FileInput, Loader2, RotateCcw, X,
-} from "lucide-react";
+  RiAlertLine,
+  RiArrowGoBackLine,
+  RiCheckboxCircleLine,
+  RiCloseLine,
+  RiFileTransferLine,
+  RiLoader4Line,
+} from "@remixicon/react";
 import { api } from "../../services/api";
 import { onLocal } from "../../plugins/host";
 import type { IngestJob } from "../../types";
@@ -79,13 +84,13 @@ function JobRow({
   const { t } = useTranslation("ingest");
   const statusIcon =
     job.status === "running" || job.status === "queued" ? (
-      <Loader2 size={compact ? ICON.xs : ICON.sm} className="animate-spin text-accent-color" />
+      <RiLoader4Line size={compact ? ICON.xs : ICON.sm} className="animate-spin text-accent-color" />
     ) : job.status === "done" && !job.result?.fallback ? (
-      <CheckCircle2 size={compact ? ICON.xs : ICON.sm} className="text-success" />
+      <RiCheckboxCircleLine size={compact ? ICON.xs : ICON.sm} className="text-success" />
     ) : job.status === "done" && job.result?.fallback ? (
-      <AlertTriangle size={compact ? ICON.xs : ICON.sm} className="text-warning" />
+      <RiAlertLine size={compact ? ICON.xs : ICON.sm} className="text-warning" />
     ) : (
-      <AlertTriangle size={compact ? ICON.xs : ICON.sm} className="text-error" />
+      <RiAlertLine size={compact ? ICON.xs : ICON.sm} className="text-error" />
     );
 
   const statusLabel =
@@ -139,14 +144,14 @@ function JobRow({
       {(job.status === "failed" || (job.status === "done" && job.result?.fallback)) ? (
         <Tooltip content={t("retry")}>
           <Button size="sm" variant="ghost" onClick={onRetry}>
-            <RotateCcw size={ICON.sm} />
+            <RiArrowGoBackLine size={ICON.sm} />
           </Button>
         </Tooltip>
       ) : null}
       {job.status === "queued" ? (
         <Tooltip content={t("cancel")}>
           <Button size="sm" variant="ghost" onClick={onCancel}>
-            <X size={ICON.sm} />
+            <RiCloseLine size={ICON.sm} />
           </Button>
         </Tooltip>
       ) : null}
@@ -194,7 +199,7 @@ export function IngestQueuePanel({
           <div className="text-3xs font-semibold tracking-wide text-text-secondary">
             {activeCount > 0 ? (
               <span className="inline-flex items-center gap-1 text-accent-color">
-                <Loader2 size={ICON.micro} className="animate-spin" aria-hidden />
+                <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden />
                 {t("hub.subtitleActive", { count: activeCount })}
               </span>
             ) : (
@@ -215,14 +220,14 @@ export function IngestQueuePanel({
 
       {loading && list.length === 0 ? (
         <div className="flex items-center gap-1.5 py-2 text-3xs text-text-quaternary">
-          <Loader2 size={ICON.xs} className="animate-spin" /> {t("hub.loading")}
+          <RiLoader4Line size={ICON.xs} className="animate-spin" /> {t("hub.loading")}
         </div>
       ) : list.length === 0 ? (
         compact ? (
           <div className="py-1 text-3xs text-text-quaternary">{resolvedEmptyHint}</div>
         ) : (
           <div className="flex flex-col items-center gap-2 py-6 text-text-quaternary">
-            <FileInput size={ICON.md} />
+            <RiFileTransferLine size={ICON.md} />
             <div className="text-3xs">{resolvedEmptyHint}</div>
           </div>
         )

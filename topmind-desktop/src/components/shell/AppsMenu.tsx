@@ -11,8 +11,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  BookOpen, FileInput, LayoutGrid, Puzzle, Settings, Twitter, Wallet,
-} from "lucide-react";
+  RiBookOpenLine,
+  RiFileTransferLine,
+  RiLayoutGridLine,
+  RiPuzzleLine,
+  RiSettingsLine,
+  RiTwitterXLine,
+  RiWallet3Line,
+} from "@remixicon/react";
 import { usePluginStore } from "../../stores/plugin-store";
 import { useViewStore } from "../../stores/view-store";
 import { getCachedSettings, setCachedSettings } from "../../lib/settings-cache";
@@ -26,18 +32,18 @@ import { api } from "../../services/api";
 import { onLocal } from "../../plugins/host";
 import { DropdownItem, DropdownMenu, DropdownSectionLabel } from "../ui/DropdownMenu";
 import { Tooltip } from "../ui/tooltip";
-import { ICON, ICON_STROKE } from "../../lib/icons";
+import { ICON } from "../../lib/icons";
 import { cn } from "../../lib/cn";
-import type { LucideIcon } from "lucide-react";
+import type { RemixiconComponentType } from "@remixicon/react";
 import type { AppSettings } from "../../types";
 
-const ICON_MAP: Record<string, LucideIcon> = {
-  wallet: Wallet,
-  puzzle: Puzzle,
-  "layout-grid": LayoutGrid,
-  "book-open": BookOpen,
-  twitter: Twitter,
-  "file-input": FileInput,
+const ICON_MAP: Record<string, RemixiconComponentType> = {
+  wallet: RiWallet3Line,
+  puzzle: RiPuzzleLine,
+  "layout-grid": RiLayoutGridLine,
+  "book-open": RiBookOpenLine,
+  twitter: RiTwitterXLine,
+  "file-input": RiFileTransferLine,
 };
 
 /** Warm the settings dialog module so the manage entry opens snappy. */
@@ -110,7 +116,7 @@ export function AppsMenu() {
             aria-haspopup="menu"
             aria-expanded={open}
           >
-            <LayoutGrid size={ICON.sm} strokeWidth={ICON_STROKE.chrome} />
+            <RiLayoutGridLine size={ICON.sm} />
           </button>
         </Tooltip>
       }
@@ -125,7 +131,7 @@ export function AppsMenu() {
       ) : (
         <div className="flex flex-col gap-0.5 px-1.5 pb-1.5" data-apps-menu-grid>
           {launchable.map((p) => {
-            const Icon = ICON_MAP[p.manifest?.icon || ""] || Puzzle;
+            const Icon = ICON_MAP[p.manifest?.icon || ""] || RiPuzzleLine;
             const name = p.manifest?.nameKey
               ? t(p.manifest.nameKey)
               : p.manifest?.name || p.id;
@@ -186,7 +192,7 @@ export function AppsMenu() {
             openConfigure("plugins");
           }}
         >
-          <Settings size={ICON.micro} className="shrink-0 opacity-70" />
+          <RiSettingsLine size={ICON.micro} className="shrink-0 opacity-70" />
           <span className="flex-1">{t("shell:appsMenu.manage")}</span>
         </DropdownItem>
       </div>

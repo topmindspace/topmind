@@ -2,7 +2,7 @@
 // Prevents a single component crash (e.g., infinite-loop in ViewSwitcher)
 // from taking down the entire app. The user can retry to re-mount the tree.
 import { Component, type ReactNode } from "react";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { RiErrorWarningLine, RiRefreshLine } from "@remixicon/react";
 import { ICON } from "../../lib/icons";
 import i18n from "../../locales";
 
@@ -37,7 +37,7 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-status-error-bg/50 text-error">
-            <AlertCircle size={ICON.sm} />
+            <RiErrorWarningLine size={ICON.sm} />
           </div>
           <div className="text-3xs font-medium text-text-secondary">
             {this.props.label || i18n.t("common:errorBoundary.title")}
@@ -50,7 +50,7 @@ export class ErrorBoundary extends Component<Props, State> {
             onClick={this.handleRetry}
             className="mt-1 inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-border-subtle px-2.5 py-1 text-3xs font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary v4-focus-ring"
           >
-            <RefreshCw size={ICON.nano} aria-hidden />
+            <RiRefreshLine size={ICON.micro} aria-hidden />
             {i18n.t("common:action.retry")}
           </button>
         </div>

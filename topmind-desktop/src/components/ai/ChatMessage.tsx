@@ -1,5 +1,18 @@
-import { User, Bot, Loader2, Brain, Wrench, CheckCircle2, ChevronDown, ChevronRight, Copy, Check, RefreshCw, AlertCircle } from "lucide-react";
-import { useState } from "react";
+import {
+  RiArrowDownSLine,
+  RiArrowRightSLine,
+  RiBrainLine,
+  RiCheckLine,
+  RiCheckboxCircleLine,
+  RiErrorWarningLine,
+  RiFileCopyLine,
+  RiLoader4Line,
+  RiRefreshLine,
+  RiRobot2Line,
+  RiToolsLine,
+  RiUserLine,
+} from "@remixicon/react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { AiMessage, AiToolCall, Selection } from "../../types";
 import { cn } from "../../lib/cn";
@@ -31,25 +44,41 @@ function openWorkspacePath(select: (sel: Selection) => void, p: string) {
   }
 }
 
+/** Micro-component for elapsed second ticks: localizes 1s re-render to this leaf element only */
+function ElapsedSeconds() {
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    setElapsed(0);
+    const id = window.setInterval(() => setElapsed((s) => s + 1), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+  if (elapsed < 2) return null;
+  return (
+    <span className="font-mono text-3xs tabular-nums text-text-quaternary/60" aria-hidden>
+      {elapsed}s
+    </span>
+  );
+}
+
 function StreamStatusIndicator({ status, toolName, count, maxSteps }: { status: string; toolName?: string | null; count?: number | null; maxSteps?: number | null }) {
   const { t } = useTranslation("editor");
   if (status === "writing" || status === "done") return null;
 
-  let icon = Brain;
+  let icon = RiBrainLine;
   let spin = false;
   switch (status) {
     case "preparing":
     case "compacting":
     case "steering":
-      icon = Loader2;
+      icon = RiLoader4Line;
       spin = true;
       break;
     case "calling-tool":
-      icon = Wrench;
+      icon = RiToolsLine;
       spin = true;
       break;
     case "thinking":
-      icon = Brain;
+      icon = RiBrainLine;
       break;
     default:
       return null;
@@ -62,7 +91,15 @@ function StreamStatusIndicator({ status, toolName, count, maxSteps }: { status: 
     <div className="flex items-center gap-1.5 px-0.5 py-0.5 text-3xs text-text-quaternary" role="status">
       <Icon size={ICON.xs} className={cn("shrink-0 opacity-80", spin && "animate-spin")} aria-hidden />
       <span className="font-mono text-3xs tracking-tight">{label}</span>
+      <ElapsedSeconds key={status} />
     </div>
+  );
+}
+
+/** Match any shipped AI write tool (covers all mutation operations). */
+export function isAiWriteTool(name: string): boolean {
+  return /^(?:save_|edit_file|capture_|create_|move_|publish_|append_|delete_|rename_|retire_|update_|add_todo|toggle_todo)/u.test(
+    name.replace(/^topmind_/, ""),
   );
 }
 
@@ -74,9 +111,7 @@ function ToolCallTimeline({ tools }: { tools: AiToolCall[] }) {
   // When 3+ tools, show a compact summary line that expands all
   if (tools.length >= 3 && !allOpen) {
     const runningCount = tools.filter((t) => t.status === "running").length;
-    const writeCount = tools.filter((t) =>
-      /save_|edit_file|capture_|create_|move_|publish_|append_|delete_|rename_/u.test(t.name),
-    ).length;
+    const writeCount = tools.filter((t) => isAiWriteTool(t.name)).length;
     return (
       <div className="mb-2">
         <button
@@ -85,11 +120,11 @@ function ToolCallTimeline({ tools }: { tools: AiToolCall[] }) {
           className="flex items-center gap-1.5 rounded-[var(--radius-md)] bg-surface-muted/50 px-2 py-1 text-3xs text-text-tertiary transition-colors hover:bg-surface-muted/70"
         >
           {runningCount > 0 ? (
-            <Loader2 size={ICON.xs} className="shrink-0 animate-spin text-accent-color" />
+            <RiLoader4Line size={ICON.xs} className="shrink-0 animate-spin text-accent-color" />
           ) : (
-            <CheckCircle2 size={ICON.xs} className="shrink-0 text-success" />
+            <RiCheckboxCircleLine size={ICON.xs} className="shrink-0 text-success" />
           )}
-          <Wrench size={ICON.micro} className="shrink-0 opacity-50" />
+          <RiToolsLine size={ICON.micro} className="shrink-0 opacity-50" />
           <span className="font-mono">
             {t("ai:tool.callsCount", { count: tools.length })}
           </span>
@@ -99,7 +134,7 @@ function ToolCallTimeline({ tools }: { tools: AiToolCall[] }) {
           {runningCount > 0 ? (
             <span className="text-accent-color/70">{t("ai:tool.runningCount", { count: runningCount })}</span>
           ) : null}
-          <ChevronRight size={ICON.micro} className="shrink-0 opacity-50" />
+          <RiArrowRightSLine size={ICON.micro} className="shrink-0 opacity-50" />
         </button>
       </div>
     );
@@ -113,7 +148,7 @@ function ToolCallTimeline({ tools }: { tools: AiToolCall[] }) {
           onClick={() => setAllOpen(false)}
           className="mb-0.5 flex items-center gap-1 text-3xs text-text-quaternary hover:text-text-tertiary"
         >
-          <ChevronDown size={ICON.micro} />
+          <RiArrowDownSLine size={ICON.micro} />
           {t("ai:tool.callsCollapse")}
         </button>
       ) : null}
@@ -134,8 +169,7 @@ function ToolCallCard({ tool }: { tool: AiToolCall }) {
     : tool.summary
       ? extractWorkspacePaths(tool.summary)
       : [];
-  const isWrite =
-    /save_|edit_file|capture_|create_|move_|publish_|append_|delete_|rename_/u.test(tool.name);
+  const isWrite = isAiWriteTool(tool.name);
   const shortName = tool.name.replace(/^topmind_/, "");
   const primary = paths[0];
 
@@ -171,9 +205,9 @@ function ToolCallCard({ tool }: { tool: AiToolCall }) {
           title={primary ? t("ai.openPathTooltip", { path: primary }) : tool.summary || shortName}
         >
           {running ? (
-            <Loader2 size={ICON.xs} className="shrink-0 animate-spin text-accent-color" />
+            <RiLoader4Line size={ICON.xs} className="shrink-0 animate-spin text-accent-color" />
           ) : (
-            <CheckCircle2 size={ICON.xs} className="shrink-0 text-success" />
+            <RiCheckboxCircleLine size={ICON.xs} className="shrink-0 text-success" />
           )}
           <code className="min-w-0 flex-1 truncate font-mono text-3xs text-text-secondary">{shortName}</code>
         </button>
@@ -201,7 +235,7 @@ function ToolCallCard({ tool }: { tool: AiToolCall }) {
             }}
             aria-label={t("ai.detailAria")}
           >
-            {open ? <ChevronDown size={ICON.micro} /> : <ChevronRight size={ICON.micro} />}
+            {open ? <RiArrowDownSLine size={ICON.micro} /> : <RiArrowRightSLine size={ICON.micro} />}
           </button>
         ) : running ? (
           <span className="text-3xs text-text-quaternary">…</span>
@@ -258,9 +292,9 @@ function CodeBlock({ code, language }: { code: string; language?: string }) {
   };
 
   return (
-    <div className="group/code relative my-1.5 overflow-hidden rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-muted/80">
-      <div className="flex items-center justify-between gap-2 border-b border-border-subtle-dim px-2.5 py-1">
-        <span className="rounded-full bg-surface/70 px-1.5 py-px font-mono text-3xs text-text-quaternary">
+    <div className="group/code relative my-2 overflow-hidden rounded-[var(--radius-md)] border border-border-subtle bg-surface-inset/40 dark:bg-surface-inset/70 shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)]">
+      <div className="flex items-center justify-between gap-2 border-b border-border-subtle-dim/80 bg-surface-muted/40 px-2.5 py-1">
+        <span className="rounded px-1.5 py-0.5 font-mono text-3xs font-medium text-text-tertiary">
           {lang || "code"}
         </span>
         <Tooltip content={copied ? t("ai.copiedCode") : t("ai.copyCode")}>
@@ -271,16 +305,16 @@ function CodeBlock({ code, language }: { code: string; language?: string }) {
             aria-label={copied ? t("ai.copiedLabel") : t("ai.copyLabel")}
           >
             {copied ? (
-              <Check size={ICON.micro} className="text-success" aria-hidden />
+              <RiCheckLine size={ICON.micro} className="text-success" aria-hidden />
             ) : (
-              <Copy size={ICON.micro} aria-hidden />
+              <RiFileCopyLine size={ICON.micro} aria-hidden />
             )}
             {copied ? t("ai.copiedLabel") : t("ai.copyLabel")}
           </button>
         </Tooltip>
       </div>
-      <pre className="overflow-x-auto p-2.5 text-2xs leading-relaxed">
-        <code className="font-mono">{code}</code>
+      <pre className="overflow-x-auto p-3 text-2xs leading-[1.68] select-text">
+        <code className="font-mono text-text-primary">{code}</code>
       </pre>
     </div>
   );
@@ -476,13 +510,19 @@ function BlockFormatted({ text }: { text: string }) {
 
 function InlineFormatted({ text }: { text: string }) {
   const select = useViewStore((s) => s.select);
-  // Split on **bold**, `code`, [link](url)
-  const segments = text.split(/(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g);
+  // Split on **bold**, ~~strikethrough~~, *italic*, `code`, [link](url)
+  const segments = text.split(/(\*\*[^*]+\*\*|~~[^~]+~~|\*[^*\n]+\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g);
   return (
     <>
       {segments.map((seg, i) => {
         if (seg.startsWith("**") && seg.endsWith("**")) {
-          return <strong key={i} className="font-semibold">{seg.slice(2, -2)}</strong>;
+          return <strong key={i} className="font-semibold text-text-primary">{seg.slice(2, -2)}</strong>;
+        }
+        if (seg.startsWith("~~") && seg.endsWith("~~")) {
+          return <del key={i} className="line-through text-text-quaternary opacity-80">{seg.slice(2, -2)}</del>;
+        }
+        if (seg.startsWith("*") && seg.endsWith("*") && seg.length > 2) {
+          return <em key={i} className="italic text-text-secondary">{seg.slice(1, -1)}</em>;
         }
         if (seg.startsWith("`") && seg.endsWith("`")) {
           const inner = seg.slice(1, -1);
@@ -493,14 +533,14 @@ function InlineFormatted({ text }: { text: string }) {
                 key={i}
                 type="button"
                 onClick={() => select({ kind: "file", path: inner })}
-                className="rounded bg-surface-muted px-1 py-0.5 font-mono text-3xs text-accent-color hover:underline"
+                className="rounded bg-surface-muted px-1.5 py-0.5 font-mono text-3xs text-accent-color hover:underline"
               >
                 {inner}
               </button>
             );
           }
           return (
-            <code key={i} className="rounded bg-surface-muted px-1 py-0.5 text-3xs font-mono">
+            <code key={i} className="rounded bg-surface-muted px-1.5 py-0.5 text-3xs font-mono text-text-primary">
               {inner}
             </code>
           );
@@ -566,7 +606,7 @@ function ErrorBlock({ message, onRetry }: { message: string; onRetry: () => void
   return (
     <div className="flex flex-col gap-1.5 rounded-[var(--radius-md)] border border-error/20 bg-status-error-bg/50 px-2.5 py-2 text-3xs text-error">
       <div className="flex items-start gap-1.5">
-        <AlertCircle size={ICON.xs} className="mt-0.5 shrink-0" />
+        <RiErrorWarningLine size={ICON.xs} className="mt-0.5 shrink-0" />
         <span className="min-w-0 flex-1 whitespace-pre-wrap">{message}</span>
       </div>
       <div className="flex justify-end">
@@ -577,7 +617,7 @@ function ErrorBlock({ message, onRetry }: { message: string; onRetry: () => void
             className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] bg-error/10 px-2 py-0.5 text-3xs font-medium text-error transition-colors hover:bg-error/20"
             aria-label={t("ai.retryLabel")}
           >
-            <RefreshCw size={ICON.nano} />
+            <RiRefreshLine size={ICON.micro} />
             {t("ai.retryLabel")}
           </button>
         </Tooltip>
@@ -590,7 +630,26 @@ function ReasoningBlock({ text, streaming }: { text: string; streaming?: boolean
   const { t } = useTranslation("editor");
   // Default collapsed always — user can expand to inspect reasoning trace.
   const [open, setOpen] = useState(false);
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  // While streaming with the trace open, keep the latest tokens in view.
+  useEffect(() => {
+    if (!streaming || !open) return;
+    const el = bodyRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [text, streaming, open]);
+
   if (!text?.trim()) return null;
+
+  // Live tail preview: last non-empty line, so a collapsed trace still shows progress.
+  const tailPreview = (() => {
+    if (!streaming || open) return "";
+    const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+    return lines.length ? lines[lines.length - 1] : "";
+  })();
+
+  const charCount = text.trim().length;
+
   return (
     <div className="mb-2 rounded-[var(--radius-md)] border border-border-subtle/80 bg-surface-muted/40">
       <button
@@ -599,20 +658,37 @@ function ReasoningBlock({ text, streaming }: { text: string; streaming?: boolean
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
-        <Brain size={ICON.xs} className={cn("shrink-0 opacity-80", streaming && !open && "animate-pulse text-accent-color/70")} />
-        <span className="flex-1 font-medium">{t("ai.reasoningLabel")}</span>
+        <RiBrainLine size={ICON.xs} className={cn("shrink-0 opacity-80", streaming && !open && "animate-pulse text-accent-color/70")} />
+        <span className="shrink-0 font-medium">{t("ai.reasoningLabel")}</span>
         {streaming && !open ? (
-          <span className="text-3xs text-text-quaternary/70">{t("ai.reasoningStreaming")}</span>
+          tailPreview ? (
+            <span className="min-w-0 flex-1 truncate font-normal italic opacity-80" aria-live="polite">
+              {tailPreview}
+            </span>
+          ) : (
+            <span className="min-w-0 flex-1 truncate text-text-quaternary/70">{t("ai.reasoningStreaming")}</span>
+          )
+        ) : (
+          <span className="min-w-0 flex-1" />
+        )}
+        {!streaming ? (
+          <span className="shrink-0 tabular-nums text-text-quaternary/70">
+            {t("ai.reasoningDone")} · {t("ai.reasoningChars", { count: charCount })}
+          </span>
         ) : null}
-        {open ? <ChevronDown size={ICON.micro} /> : <ChevronRight size={ICON.micro} />}
+        {open ? <RiArrowDownSLine size={ICON.micro} className="shrink-0" /> : <RiArrowRightSLine size={ICON.micro} className="shrink-0" />}
       </button>
       <div
         className="v4-reasoning-expand"
         data-open={open}
         aria-hidden={!open}
       >
-        <div className="max-h-40 overflow-auto border-t border-border-subtle/60 px-2.5 py-1.5 text-2xs italic leading-relaxed text-text-quaternary whitespace-pre-wrap">
+        <div
+          ref={bodyRef}
+          className="max-h-40 overflow-auto border-t border-border-subtle/60 px-2.5 py-1.5 text-2xs italic leading-relaxed text-text-quaternary whitespace-pre-wrap"
+        >
           {text}
+          {streaming ? <span className="v4-stream-cursor" aria-hidden /> : null}
         </div>
       </div>
     </div>
@@ -627,12 +703,20 @@ export function ChatMessage({ message, streaming, streamStatus, streamToolName, 
   const isUser = message.role === "user";
   const isError = Boolean(message.isError);
   const tools = message.toolCalls || [];
-  const visible = !isUser && !isError
-    ? visibleAssistantMessage(message.content, message.reasoning)
-    : { body: message.content, reasoning: "" };
+  const visible = useMemo(() => {
+    return !isUser && !isError
+      ? visibleAssistantMessage(message.content, message.reasoning)
+      : { body: message.content, reasoning: "" };
+  }, [isUser, isError, message.content, message.reasoning]);
   const visibleBody = visible.body;
   const visibleReasoning = visible.reasoning;
   const hasReasoning = Boolean(visibleReasoning.trim());
+
+  const renderedMarkdown = useMemo(() => {
+    if (!visibleBody) return null;
+    return renderMarkdown(visibleBody);
+  }, [visibleBody]);
+
   // Reasoning is always collapsed by default — show a pulsing indicator while streaming.
   const showStatusIndicator =
     !isUser && streaming && !message.content && tools.length === 0 && streamStatus;
@@ -652,7 +736,7 @@ export function ChatMessage({ message, streaming, streamStatus, streamToolName, 
           )}
           aria-hidden
         >
-          {isError ? <AlertCircle size={ICON.sm} /> : <Bot size={ICON.sm} />}
+          {isError ? <RiErrorWarningLine size={ICON.sm} /> : <RiRobot2Line size={ICON.sm} />}
         </div>
       ) : null}
       <div
@@ -676,7 +760,7 @@ export function ChatMessage({ message, streaming, streamStatus, streamToolName, 
               <StreamStatusIndicator status={streamStatus!} toolName={streamToolName} count={streamToolCount} maxSteps={streamMaxSteps} />
             ) : null}
             {hasContent ? (
-              <div className="whitespace-pre-wrap">{renderMarkdown(visibleBody)}</div>
+              <div className="whitespace-pre-wrap">{renderedMarkdown}</div>
             ) : streaming && tools.length === 0 && !showStatusIndicator && !hasReasoning ? (
               <StreamStatusIndicator status={streamStatus || "thinking"} toolName={streamToolName} count={streamToolCount} maxSteps={streamMaxSteps} />
             ) : !streaming && !hasContent && tools.length === 0 ? (
@@ -698,7 +782,7 @@ export function ChatMessage({ message, streaming, streamStatus, streamToolName, 
                   }}
                   aria-label={copied ? t("ai.copied") : t("ai.copyReply")}
                 >
-                  {copied ? <Check size={ICON.micro} className="text-success" /> : <Copy size={ICON.micro} />}
+                  {copied ? <RiCheckLine size={ICON.micro} className="text-success" /> : <RiFileCopyLine size={ICON.micro} />}
                   {copied ? t("ai.copied") : t("ai.copyReply")}
                 </button>
               </div>
@@ -711,7 +795,7 @@ export function ChatMessage({ message, streaming, streamStatus, streamToolName, 
           className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[var(--shadow-button)]"
           aria-hidden
         >
-          <User size={ICON.sm} />
+          <RiUserLine size={ICON.sm} />
         </div>
       ) : null}
     </div>

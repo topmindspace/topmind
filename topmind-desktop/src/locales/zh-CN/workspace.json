@@ -93,6 +93,7 @@
     "collapse": "收起",
     "otherDay": "其他",
     "backToCurrent": "回到本周",
+    "backToTop": "回顶并记下",
     "moreThisYear": "本年更多 ({{count}})",
     "pastYears": "往年",
     "archiveYear": "归档往年",
@@ -114,6 +115,8 @@
     "composeAiPolishing": "正在润色…",
     "composeAiPolishDone": "已润色输入框",
     "composeAiPolishFailed": "AI 润色失败，请重试",
+    "composeRevertOriginal": "恢复润色前的原文本",
+    "revert": "恢复原文",
     "composeUrlHint": "检测到链接，建议用「记一下」抓取正文（可进收件箱/动态）",
     "composeUrlAction": "记一下",
     "openArticle": "打开笔记",
@@ -433,5 +436,14 @@
     "loop": "巡检 — 工作区健康",
     "loopToast": "✓ 巡检通过 · {{categories}} 类别 · {{topics}} 专题{{warnings}}",
     "warningsCount": " · {{count}} 警告"
+  },
+  "outline": {
+    "title": "文档大纲",
+    "button": "大纲",
+    "panelAria": "文档大纲面板",
+    "showTip": "显示大纲 (⌘⌥O)",
+    "hideTip": "隐藏大纲 (⌘⌥O)",
+    "empty": "当前文档暂无标题",
+    "emptyHint": "输入 # 一级标题 即可生成大纲"
   }
 }

@@ -641,7 +641,7 @@ X：官方 v2 `GET /2/tweets/search/recent` 与 `GET /2/users/{id}/tweets`（Bea
 - **Tailwind 4** 从 `src/styles/tokens.css` 的 `@theme` 块读取设计令牌
 - **语义别名**（`src/styles/tailwind-theme.css`）：`bg-card`, `bg-primary`, `text-foreground`, `bg-chrome` 等
 - **UI 基础组件**（`src/components/ui/`）：Button, Dialog, Input, Textarea, Select, Card, Tabs, Badge, Separator, Splitter, ContextMenu, view（共享视图原语）
-- **图标**: `lucide-react`
+- **图标**: `@remixicon/react`（RemixIcon）
 - **编辑器**: Tiptap 3（StarterKit + Underline + Typography + Placeholder + CharacterCount + Markdown）
 - **无内联样式** — 所有样式通过 Tailwind 类 + 原语组件
 

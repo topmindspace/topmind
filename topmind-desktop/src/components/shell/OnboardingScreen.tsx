@@ -5,9 +5,16 @@
 import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  FolderOpen, Plus, Loader2, AlertCircle, ArrowRight,
-  Clock, X, CheckCircle2, AlertTriangle,
-} from "lucide-react";
+  RiAddLine,
+  RiAlertLine,
+  RiArrowRightLine,
+  RiCheckboxCircleLine,
+  RiCloseLine,
+  RiErrorWarningLine,
+  RiFolderOpenLine,
+  RiLoader4Line,
+  RiTimeLine,
+} from "@remixicon/react";
 import { api } from "../../services/api";
 import { Button } from "../ui/Button";
 import { Tooltip, TooltipProvider } from "../ui/tooltip";
@@ -264,7 +271,7 @@ export function OnboardingScreen({
               }}
             />
           </div>
-          <Loader2 size={ICON.sm} className="animate-spin text-accent-color" aria-hidden />
+          <RiLoader4Line size={ICON.sm} className="animate-spin text-accent-color" aria-hidden />
           <div className="text-sm font-medium text-text-primary">{t("shell:onboarding.openingWorkspace")}</div>
           <div className="max-w-sm truncate text-center text-3xs text-text-quaternary font-mono">
             {busy === "opening" ? t("shell:onboarding.initFolder") : busy}
@@ -320,9 +327,9 @@ export function OnboardingScreen({
                   data-reseed-contract
                 >
                   {busy === "reseed" ? (
-                    <Loader2 size={ICON.xs} className="animate-spin" aria-hidden />
+                    <RiLoader4Line size={ICON.xs} className="animate-spin" aria-hidden />
                   ) : (
-                    <AlertTriangle size={ICON.xs} aria-hidden />
+                    <RiAlertLine size={ICON.xs} aria-hidden />
                   )}
                   {t("shell:onboarding.reseedContract")}
                 </Button>
@@ -346,7 +353,7 @@ export function OnboardingScreen({
               </div>
               {error ? (
                 <div className="mb-3 flex items-center gap-2 rounded-lg border border-error/30 bg-status-error-bg px-3 py-2.5 text-3xs text-error" role="alert">
-                  <AlertCircle size={ICON.sm} className="shrink-0" aria-hidden />
+                  <RiErrorWarningLine size={ICON.sm} className="shrink-0" aria-hidden />
                   <span className="flex-1">{error}</span>
                 </div>
               ) : null}
@@ -372,7 +379,7 @@ export function OnboardingScreen({
                       )}
                     >
                       {selectedTemplate === tmpl.id ? (
-                        <CheckCircle2 size={ICON.nano} className="text-text-on-accent" />
+                        <RiCheckboxCircleLine size={ICON.micro} className="text-text-on-accent" />
                       ) : null}
                     </span>
                     <div className="min-w-0 flex-1">
@@ -401,9 +408,9 @@ export function OnboardingScreen({
                   data-landing-template-cta
                 >
                   {busy === "opening" ? (
-                    <Loader2 size={ICON.sm} className="animate-spin" aria-hidden />
+                    <RiLoader4Line size={ICON.sm} className="animate-spin" aria-hidden />
                   ) : (
-                    <ArrowRight size={ICON.sm} aria-hidden />
+                    <RiArrowRightLine size={ICON.sm} aria-hidden />
                   )}
                   {t("shell:onboarding.templateConfirm")}
                 </Button>
@@ -416,7 +423,7 @@ export function OnboardingScreen({
 
             {error ? (
                 <div className="mb-4 flex items-center gap-2 rounded-lg border border-error/30 bg-status-error-bg px-3 py-2.5 text-3xs text-error" role="alert">
-                  <AlertCircle size={ICON.sm} className="shrink-0" aria-hidden />
+                  <RiErrorWarningLine size={ICON.sm} className="shrink-0" aria-hidden />
                   <span className="flex-1">{error}</span>
                 </div>
               ) : null}
@@ -425,7 +432,7 @@ export function OnboardingScreen({
               {recent.length > 0 ? (
                 <div className="mb-5">
                   <div className="mb-2 flex items-center gap-1.5 px-0.5 text-3xs font-semibold tracking-wide text-text-quaternary">
-                    <Clock size={ICON.xs} aria-hidden />
+                    <RiTimeLine size={ICON.xs} aria-hidden />
                     {t("shell:onboarding.recentWorkspaces")}
                   </div>
                   <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
@@ -452,7 +459,7 @@ export function OnboardingScreen({
                               data-landing-recent
                             >
                               <span className="v4-icon-chip v4-icon-chip-accent flex h-9 w-9 shrink-0">
-                                <FolderOpen size={ICON.sm} />
+                                <RiFolderOpenLine size={ICON.sm} />
                               </span>
                               <div className="min-w-0 flex-1">
                                 <div className="flex min-w-0 items-center gap-1.5">
@@ -461,7 +468,7 @@ export function OnboardingScreen({
                                   </span>
                                   {health?.kind === "healthy" ? (
                                     <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-success/10 px-1.5 py-px text-3xs font-medium text-success">
-                                      <CheckCircle2 size={ICON.micro} aria-hidden />
+                                      <RiCheckboxCircleLine size={ICON.micro} aria-hidden />
                                       {t("shell:onboarding.healthOk")}
                                     </span>
                                   ) : null}
@@ -472,7 +479,7 @@ export function OnboardingScreen({
                                   ) : null}
                                   {broken ? (
                                     <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-error/10 px-1.5 py-px text-3xs font-medium text-error">
-                                      <AlertTriangle size={ICON.micro} aria-hidden />
+                                      <RiAlertLine size={ICON.micro} aria-hidden />
                                       {t("shell:onboarding.healthBroken")}
                                     </span>
                                   ) : null}
@@ -487,7 +494,7 @@ export function OnboardingScreen({
                                 ) : null}
                               </div>
                               {active ? (
-                                <Loader2 size={ICON.sm} className="shrink-0 animate-spin text-accent-color" aria-label={t("shell:shell.opening")} />
+                                <RiLoader4Line size={ICON.sm} className="shrink-0 animate-spin text-accent-color" aria-label={t("shell:shell.opening")} />
                               ) : (
                                 <>
                                   <Tooltip content={t("shell:onboarding.removeFromList")}>
@@ -503,10 +510,10 @@ export function OnboardingScreen({
                                         }
                                       }}
                                     >
-                                      <X size={ICON.xs} />
+                                      <RiCloseLine size={ICON.xs} />
                                     </span>
                                   </Tooltip>
-                                  <ArrowRight
+                                  <RiArrowRightLine
                                     size={ICON.sm}
                                     className="shrink-0 text-text-quaternary transition-transform group-hover:translate-x-0.5 group-hover:text-accent-color"
                                   />
@@ -536,9 +543,9 @@ export function OnboardingScreen({
                     data-landing-primary-cta
                   >
                     {busy === "picking" ? (
-                      <Loader2 size={ICON.sm} className="animate-spin" aria-hidden />
+                      <RiLoader4Line size={ICON.sm} className="animate-spin" aria-hidden />
                     ) : (
-                      <Plus size={ICON.sm} aria-hidden />
+                      <RiAddLine size={ICON.sm} aria-hidden />
                     )}
                     {t("shell:onboarding.selectFolder")}
                   </Button>

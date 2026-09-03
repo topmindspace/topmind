@@ -3,7 +3,14 @@
 // Advanced (tags / kanban): 「更多」overflow — DESIGN §0.0 高级折叠.
 // Sliding thumb indicator + icon-only when rail is too narrow for labels.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { LayoutList, Clock, Tags, Columns3, Radio, MoreHorizontal } from "lucide-react";
+import {
+  RiBroadcastLine,
+  RiLayoutColumnLine,
+  RiListView,
+  RiMoreLine,
+  RiPriceTag3Line,
+  RiTimeLine,
+} from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/cn";
 import { ICON } from "../../lib/icons";
@@ -13,12 +20,12 @@ import type { SidebarViewMode } from "../../types";
 
 const PRIMARY_MODES: SidebarViewMode[] = ["stream", "category", "timeline"];
 const ADVANCED_MODES: SidebarViewMode[] = ["tags", "kanban"];
-const VIEW_ICONS: Record<SidebarViewMode, typeof LayoutList> = {
-  stream: Radio,
-  category: LayoutList,
-  timeline: Clock,
-  tags: Tags,
-  kanban: Columns3,
+const VIEW_ICONS: Record<SidebarViewMode, typeof RiListView> = {
+  stream: RiBroadcastLine,
+  category: RiListView,
+  timeline: RiTimeLine,
+  tags: RiPriceTag3Line,
+  kanban: RiLayoutColumnLine,
 };
 
 /** Below this width per tab (approx), hide text labels. */
@@ -162,7 +169,7 @@ export function ViewSwitcher({ active, onChange, enabled }: ViewSwitcherProps) {
                 className={cn("v4-segmented-item", isActive && "text-text-primary")}
               >
                 <v.icon
-                  size={ICON.xs}
+                  size={ICON.sm}
                   aria-hidden
                   className={cn(isActive ? "text-accent-color" : "opacity-80")}
                 />
@@ -199,8 +206,8 @@ export function ViewSwitcher({ active, onChange, enabled }: ViewSwitcherProps) {
                   )}
                   onClick={() => setMoreOpen((v) => !v)}
                 >
-                  <MoreHorizontal
-                    size={ICON.xs}
+                  <RiMoreLine
+                    size={ICON.sm}
                     aria-hidden
                     className={cn(
                       advancedActive || moreOpen ? "text-accent-color" : "opacity-80",
@@ -221,7 +228,7 @@ export function ViewSwitcher({ active, onChange, enabled }: ViewSwitcherProps) {
                   onChange(v.mode);
                 }}
               >
-                <v.icon size={ICON.micro} className="shrink-0 opacity-70" />
+                <v.icon size={ICON.xs} className="shrink-0 opacity-70" />
                 <span className="flex-1">{v.label}</span>
                 {active === v.mode ? (
                   <span className="text-3xs text-accent-color">✓</span>

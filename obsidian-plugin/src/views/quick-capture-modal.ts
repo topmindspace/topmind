@@ -5,7 +5,7 @@
 // Auto-resize textarea. Visual feedback on submit.
 // Enhanced: better visual polish, keyboard hints, URL detection indicator.
 
-import { Modal, setIcon } from "obsidian";
+import { Modal, Notice, setIcon } from "obsidian";
 import type TopmindPlugin from "../main";
 import { t } from "../i18n";
 import type { CaptureTarget } from "../types";
@@ -141,6 +141,7 @@ export class QuickCaptureModal extends Modal {
   }
 
   private submit(): void {
+    if (this.submitBtn.disabled) return;
     const text = this.textarea.value.trim();
     if (!text) {
       this.close();
@@ -170,7 +171,9 @@ export class QuickCaptureModal extends Modal {
     const result = this.plugin.kernelService.capture(text, { target, tags });
 
     if (result.ok) {
-      this.close();
+      this.modalEl.addClass("tm-modal-submitted");
+      new Notice(t("quick_capture_success"), 2000);
+      setTimeout(() => this.close(), 120);
     } else {
       this.textarea.disabled = false;
       this.tagInput.disabled = false;

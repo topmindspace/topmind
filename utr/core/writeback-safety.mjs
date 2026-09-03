@@ -44,6 +44,7 @@ export function nextAvailablePath(targetPath, { maxAttempts = 1000 } = {}) {
 
 export async function snapshotAffectedFiles(resolvedPaths) {
   const backedUp = [];
+  const cleanedDirs = new Set();
 
   for (const filePath of resolvedPaths.slice(0, MAX_TRANSACTIONAL_BACKUP_FILES)) {
     try {
@@ -55,7 +56,11 @@ export async function snapshotAffectedFiles(resolvedPaths) {
       await fs.copyFile(filePath, backup);
       backedUp.push(filePath);
 
-      await cleanStaleTransactionalBackups(path.dirname(filePath));
+      const dir = path.dirname(filePath);
+      if (!cleanedDirs.has(dir)) {
+        cleanedDirs.add(dir);
+        await cleanStaleTransactionalBackups(dir);
+      }
     } catch {
       // Missing or unreadable files do not need transactional snapshots.
     }

@@ -12,13 +12,26 @@
  */
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
-  Check, Plus, Trash2, Sparkles, Loader2, AlertCircle,
-  ChevronDown, ChevronRight, Pencil, X, CornerDownLeft,
-  CalendarClock, Clock, AlertTriangle, RefreshCw, ExternalLink,
-} from "lucide-react";
+  RiAddLine,
+  RiAlertLine,
+  RiArrowDownSLine,
+  RiArrowRightSLine,
+  RiCalendarEventLine,
+  RiCheckLine,
+  RiCloseLine,
+  RiCornerDownLeftLine,
+  RiDeleteBin6Line,
+  RiErrorWarningLine,
+  RiExternalLinkLine,
+  RiLoader4Line,
+  RiPencilLine,
+  RiRefreshLine,
+  RiSparklingLine,
+  RiTimeLine,
+} from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/cn";
-import { ICON, ICON_STROKE } from "../../lib/icons";
+import { ICON } from "../../lib/icons";
 import { useTodoStore } from "../../stores/todo-store";
 import { useViewStore } from "../../stores/view-store";
 import type { TodoItem } from "../../types";
@@ -93,9 +106,9 @@ export function TodoListBody() {
         >
           <div className="flex items-center gap-1">
             {maintaining === "error" ? (
-              <AlertCircle size={ICON.nano} className="shrink-0" />
+              <RiErrorWarningLine size={ICON.micro} className="shrink-0" />
             ) : (
-              <Sparkles size={ICON.nano} className="shrink-0" />
+              <RiSparklingLine size={ICON.micro} className="shrink-0" />
             )}
             <span className="flex-1">{maintainMessage}</span>
             <button
@@ -104,7 +117,7 @@ export function TodoListBody() {
               aria-label={t("todo.close")}
               className="text-text-quaternary hover:text-text-secondary"
             >
-              <X size={ICON.nano} />
+              <RiCloseLine size={ICON.micro} />
             </button>
             {/* Force retry button for already-processed case */}
             {maintaining === "done" && maintainReason === "all-periods-processed" && (
@@ -117,7 +130,7 @@ export function TodoListBody() {
                 className="flex items-center gap-0.5 text-text-tertiary hover:text-accent-color ml-1"
                 title={t("todo.maintainForceTip")}
               >
-                <RefreshCw size={ICON.nano} />
+                <RiRefreshLine size={ICON.micro} />
                 {t("todo.maintainForceRetry")}
               </button>
             )}
@@ -129,7 +142,7 @@ export function TodoListBody() {
       {(staleCount > 0 || overdueCount > 0) && showHealthHint ? (
         <div className="mb-1.5 rounded-md border border-warning/20 bg-warning/5 px-2 py-1 text-3xs text-warning">
           <div className="flex items-center gap-1">
-            <AlertTriangle size={ICON.nano} className="shrink-0" />
+            <RiAlertLine size={ICON.micro} className="shrink-0" />
             <span className="flex-1">
               {overdueCount > 0 ? t("todo.healthOverdue", { count: overdueCount }) : ""}
               {overdueCount > 0 && staleCount > 0 ? " · " : ""}
@@ -159,7 +172,7 @@ export function TodoListBody() {
               aria-label={t("todo.close")}
               className="text-text-quaternary hover:text-text-secondary"
             >
-              <X size={ICON.nano} />
+              <RiCloseLine size={ICON.micro} />
             </button>
           </div>
         </div>
@@ -168,7 +181,7 @@ export function TodoListBody() {
       {/* Inline add — Apple Reminders style */}
       <div className="mb-1.5">
         <div className="flex items-center gap-1.5 rounded-md border border-border-subtle-dim bg-surface/50 px-2 py-1.5 focus-within:border-accent-border-subtle">
-          <Plus size={ICON.nano} className="shrink-0 text-text-quaternary" />
+          <RiAddLine size={ICON.micro} className="shrink-0 text-text-quaternary" />
           <input
             ref={inputRef}
             type="text"
@@ -187,9 +200,9 @@ export function TodoListBody() {
               className="flex h-4 w-4 items-center justify-center text-accent-color disabled:opacity-40"
             >
               {adding ? (
-                <Loader2 size={ICON.nano} className="animate-spin" />
+                <RiLoader4Line size={ICON.micro} className="animate-spin" />
               ) : (
-                <CornerDownLeft size={ICON.nano} />
+                <RiCornerDownLeftLine size={ICON.nano} />
               )}
             </button>
           ) : null}
@@ -199,7 +212,7 @@ export function TodoListBody() {
       {/* Active items */}
       {loading && items.length === 0 ? (
         <div className="flex items-center gap-1.5 px-1 py-2 text-3xs text-text-tertiary">
-          <Loader2 size={ICON.micro} className="animate-spin" />
+          <RiLoader4Line size={ICON.micro} className="animate-spin" />
           {t("todo.loading")}
         </div>
       ) : activeItems.length === 0 && completedItems.length === 0 ? (
@@ -230,9 +243,9 @@ export function TodoListBody() {
                 className="flex w-full items-center gap-1 px-1 py-0.5 text-3xs text-text-quaternary transition-colors hover:text-text-tertiary"
               >
                 {showCompleted ? (
-                  <ChevronDown size={ICON.nano} />
+                  <RiArrowDownSLine size={ICON.nano} />
                 ) : (
-                  <ChevronRight size={ICON.nano} />
+                  <RiArrowRightSLine size={ICON.nano} />
                 )}
                 <span>
                   {t("todo.completed", { count: completedItems.length })}
@@ -267,7 +280,7 @@ export function TodoListBody() {
       <div className="mt-1.5 flex items-center gap-2 border-t border-border-subtle-dim pt-1 text-3xs text-text-quaternary">
         {aiCount > 0 ? (
           <span className="inline-flex items-center gap-0.5">
-            <Sparkles size={ICON.nano} className="text-accent-color/60" />
+            <RiSparklingLine size={ICON.micro} className="text-accent-color/60" />
             {t("todo.aiHint", { count: aiCount })}
           </span>
         ) : null}
@@ -277,7 +290,7 @@ export function TodoListBody() {
             onClick={() => setShowHealthHint(true)}
             className="ml-auto inline-flex items-center gap-0.5 text-warning/70 hover:text-warning"
           >
-            <AlertTriangle size={ICON.nano} />
+            <RiAlertLine size={ICON.micro} />
             {overdueCount > 0 ? t("todo.healthOverdue", { count: overdueCount }) : t("todo.healthStale", { count: staleCount })}
           </button>
         ) : null}
@@ -387,14 +400,14 @@ function TodoItemRow({
         aria-checked={item.done}
         onClick={onToggle}
         className={cn(
-          "mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[3px] border transition-colors",
+          "mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[3px] border transition-all duration-150 active:scale-90",
           item.done
-            ? "border-accent-color bg-accent-color text-text-on-accent"
-            : "border-border-subtle hover:border-accent-color/50",
+            ? "border-accent-color bg-accent-color text-text-on-accent shadow-xs"
+            : "border-border-subtle hover:border-accent-color/50 hover:bg-accent-bg-faint/30",
         )}
         aria-label={item.done ? t("todo.uncheck") : t("todo.check")}
       >
-        {item.done ? <Check size={ICON.nano} strokeWidth={ICON_STROKE.emphasis} /> : null}
+        {item.done ? <RiCheckLine size={ICON.micro} className="transition-transform scale-100" /> : null}
       </button>
 
       {/* Content */}
@@ -412,7 +425,7 @@ function TodoItemRow({
         ) : (
           <div
             className={cn(
-              "wrap-break-word text-xs leading-relaxed",
+              "wrap-break-word text-xs leading-relaxed transition-all duration-200",
               item.done
                 ? "text-text-quaternary line-through opacity-60"
                 : "text-text-primary",
@@ -420,14 +433,14 @@ function TodoItemRow({
             onDoubleClick={() => setEditing(true)}
           >
             {isAi ? (
-              <Sparkles
-                size={ICON.nano}
+              <RiSparklingLine
+                size={ICON.micro}
                 className="mr-0.5 inline shrink-0 text-accent-color/60"
               />
             ) : null}
             {sLevel > 0 && !item.done ? (
-              <Clock
-                size={ICON.nano}
+              <RiTimeLine
+                size={ICON.micro}
                 className={cn(
                   "mr-0.5 inline shrink-0",
                   sLevel === 1 && "text-warning/50",
@@ -449,7 +462,7 @@ function TodoItemRow({
                   dueInfo.cls,
                 )}
               >
-                <CalendarClock size={ICON.nano} className="shrink-0" />
+                <RiCalendarEventLine size={ICON.micro} className="shrink-0" />
                 {dueInfo.text}
               </button>
             ) : null}
@@ -489,7 +502,7 @@ function TodoItemRow({
                 className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-accent-bg-subtle px-1 py-0 text-3xs text-accent-color/70 transition-colors hover:bg-accent-bg-faint hover:text-accent-color"
                 title={t("todo.openSource", { defaultValue: "Open source note" })}
               >
-                <ExternalLink size={ICON.nano} className="shrink-0" />
+                <RiExternalLinkLine size={ICON.micro} className="shrink-0" />
                 {item.sourcePeriod}
               </button>
             ) : null}
@@ -507,7 +520,7 @@ function TodoItemRow({
               className="flex h-4 w-4 items-center justify-center rounded-xs text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary"
               aria-label={t("todo.edit")}
             >
-              <Pencil size={ICON.nano} />
+              <RiPencilLine size={ICON.micro} />
             </button>
             <button
               type="button"
@@ -518,7 +531,7 @@ function TodoItemRow({
               className="flex h-4 w-4 items-center justify-center rounded-xs text-text-quaternary transition-colors hover:bg-surface-muted hover:text-accent-color"
               aria-label={t("todo.setDueDate")}
             >
-              <CalendarClock size={ICON.nano} />
+              <RiCalendarEventLine size={ICON.micro} />
             </button>
           </>
         ) : null}
@@ -528,7 +541,7 @@ function TodoItemRow({
           className="flex h-4 w-4 items-center justify-center rounded-xs text-text-quaternary transition-colors hover:bg-surface-muted hover:text-error"
           aria-label={t("todo.delete")}
         >
-          <Trash2 size={ICON.nano} />
+          <RiDeleteBin6Line size={ICON.micro} />
         </button>
       </div>
     </li>

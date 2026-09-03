@@ -3,7 +3,14 @@
  * Changes apply to both edit & preview surfaces; persisted via settings.editor.
  */
 import { useState } from "react";
-import { Type, Minus, Plus, RotateCcw, Settings, ListTree } from "lucide-react";
+import {
+  RiAddLine,
+  RiArrowGoBackLine,
+  RiNodeTree,
+  RiSettingsLine,
+  RiSubtractLine,
+  RiText,
+} from "@remixicon/react";
 import type { Editor } from "@tiptap/react";
 import { useTranslation } from "react-i18next";
 import {
@@ -119,7 +126,7 @@ export function EditorReadingMenu({
             aria-label={t("readingMenu.ariaLabel")}
             aria-expanded={open}
           >
-            <Type size={ICON.xs} />
+            <RiText size={ICON.xs} />
           </button>
         </Tooltip>
       }
@@ -166,7 +173,7 @@ export function EditorReadingMenu({
             onClick={() => bumpSize(-1)}
             aria-label={t("readingMenu.decrease")}
           >
-            <Minus size={ICON.xs} />
+            <RiSubtractLine size={ICON.xs} />
           </button>
           <div className="min-w-[3rem] text-center text-xs font-medium tabular-nums text-text-primary">
             {prefs.fontSize}px
@@ -177,7 +184,7 @@ export function EditorReadingMenu({
             onClick={() => bumpSize(1)}
             aria-label={t("readingMenu.increase")}
           >
-            <Plus size={ICON.xs} />
+            <RiAddLine size={ICON.xs} />
           </button>
           <div className="ml-1 flex flex-wrap gap-0.5">
             {FONT_SIZE_PRESETS.map((n) => (
@@ -270,7 +277,7 @@ export function EditorReadingMenu({
               void applyEditorPrefs({ ...DEFAULT_EDITOR_PREFS });
             }}
           >
-            <RotateCcw size={ICON.micro} /> {t("readingMenu.reset")}
+            <RiArrowGoBackLine size={ICON.micro} /> {t("readingMenu.reset")}
           </button>
           {onOpenSettings ? (
             <button
@@ -281,7 +288,7 @@ export function EditorReadingMenu({
                 onOpenSettings();
               }}
             >
-              <Settings size={ICON.micro} /> {t("readingMenu.allSettings")}
+              <RiSettingsLine size={ICON.micro} /> {t("readingMenu.allSettings")}
             </button>
           ) : null}
         </div>

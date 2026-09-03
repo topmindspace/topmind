@@ -1,8 +1,5 @@
-import { useEffect, useState } from "react";
-import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
-import { Shell } from "./components/shell/Shell";
-import { OnboardingScreen } from "./components/shell/OnboardingScreen";
-import { CaptureSurface } from "./components/shell/CaptureSurface";
+import { useEffect, useState, lazy, Suspense } from "react";
+import { RiErrorWarningLine, RiLoader4Line, RiRefreshLine } from "@remixicon/react";
 import { api } from "./services/api";
 import { applyTheme } from "./lib/theme";
 import { useViewStore } from "./stores/view-store";
@@ -12,6 +9,16 @@ import type { AppSettings, LaunchStatus, RecentWorkspace } from "./types";
 import { setCachedSettings } from "./lib/settings-cache";
 import { applyLocale } from "./locales";
 import { useTranslation } from "react-i18next";
+
+const Shell = lazy(() =>
+  import("./components/shell/Shell").then((m) => ({ default: m.Shell })),
+);
+const CaptureSurface = lazy(() =>
+  import("./components/shell/CaptureSurface").then((m) => ({ default: m.CaptureSurface })),
+);
+const OnboardingScreen = lazy(() =>
+  import("./components/shell/OnboardingScreen").then((m) => ({ default: m.OnboardingScreen })),
+);
 
 type Boot =
   | { state: "loading" }
@@ -38,7 +45,17 @@ export function isCaptureSurfaceBoot(): boolean {
 export default function App() {
   // Floating quick-note window — skip full shell boot (must paint CaptureSurface, never blank shell)
   if (isCaptureSurfaceBoot()) {
-    return <CaptureSurface />;
+    return (
+      <Suspense
+        fallback={
+          <div className="flex h-screen items-center justify-center bg-background">
+            <RiLoader4Line size={ICON.md} className="animate-spin text-accent-color" />
+          </div>
+        }
+      >
+        <CaptureSurface />
+      </Suspense>
+    );
   }
 
   return <MainApp />;
@@ -111,7 +128,7 @@ function MainApp() {
             }}
           />
         </div>
-        <Loader2 size={ICON.sm} className="animate-spin text-accent-color" />
+        <RiLoader4Line size={ICON.sm} className="animate-spin text-accent-color" />
         <div className="text-sm font-medium text-text-primary">{t("shell:shell.loadingWorkspace")} topmind…</div>
         <div className="text-3xs text-text-quaternary">{t("common:status.loading")}</div>
       </div>
@@ -122,7 +139,7 @@ function MainApp() {
     return (
       <div className="v4-boot v4-drag flex h-screen flex-col items-center justify-center gap-3 px-6">
         <div className="v4-icon-chip flex h-12 w-12 items-center justify-center rounded-2xl text-error">
-          <AlertCircle size={ICON.lg} />
+          <RiErrorWarningLine size={ICON.lg} />
         </div>
         <div className="text-sm font-medium text-text-primary">{t("common:status.error")}</div>
         <div className="max-w-sm text-center text-3xs text-text-tertiary">{boot.message}</div>
@@ -135,7 +152,7 @@ function MainApp() {
             void loadBootSettings();
           }}
         >
-          <RefreshCw size={ICON.xs} /> {t("common:action.retry")}
+          <RiRefreshLine size={ICON.xs} /> {t("common:action.retry")}
         </Button>
       </div>
     );
@@ -144,19 +161,37 @@ function MainApp() {
   if (boot.state === "onboarding") {
     const launch = boot.settings.launchStatus;
     return (
-      <OnboardingScreen
-        settings={boot.settings}
-        recent={boot.recent}
-        launchReason={launch?.reason}
-        launchError={launch?.errorMessage}
-        onWorkspaceSwitched={() => {
-          setBoot({ state: "loading" });
-          // Full reload ensures main process ctx + plugins rehydrate cleanly
-          window.location.reload();
-        }}
-      />
+      <Suspense
+        fallback={
+          <div className="flex h-screen items-center justify-center bg-background">
+            <RiLoader4Line size={ICON.md} className="animate-spin text-accent-color" />
+          </div>
+        }
+      >
+        <OnboardingScreen
+          settings={boot.settings}
+          recent={boot.recent}
+          launchReason={launch?.reason}
+          launchError={launch?.errorMessage}
+          onWorkspaceSwitched={() => {
+            setBoot({ state: "loading" });
+            // Full reload ensures main process ctx + plugins rehydrate cleanly
+            window.location.reload();
+          }}
+        />
+      </Suspense>
     );
   }
 
-  return <Shell settings={boot.settings} />;
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center bg-background">
+          <RiLoader4Line size={ICON.md} className="animate-spin text-accent-color" />
+        </div>
+      }
+    >
+      <Shell settings={boot.settings} />
+    </Suspense>
+  );
 }

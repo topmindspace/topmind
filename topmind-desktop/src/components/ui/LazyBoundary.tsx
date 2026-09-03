@@ -1,5 +1,5 @@
 import { Suspense, type ReactNode } from "react";
-import { Loader2 } from "lucide-react";
+import { RiLoader4Line } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { ICON } from "../../lib/icons";
 import { cn } from "../../lib/cn";
@@ -26,7 +26,7 @@ export function LazyBoundary({
           role="status"
           aria-live="polite"
         >
-          <Loader2 size={ICON.sm} className="animate-spin text-accent-color/70" />
+          <RiLoader4Line size={ICON.sm} className="animate-spin text-accent-color/70" />
           <div className="text-3xs font-medium tracking-tight">{label || t("lazyBoundary.loading")}</div>
         </div>
       }

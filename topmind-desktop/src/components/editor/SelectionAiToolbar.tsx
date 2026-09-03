@@ -5,10 +5,22 @@
  */
 import type { Editor } from "@tiptap/react";
 import {
-  Sparkles, Minimize2, Maximize2, List, ListOrdered, Wrench, Type,
-  AlignLeft, FileText, PenLine, TextAlignStart,
-  Bold, Italic, Code, Heading2, Languages,
-} from "lucide-react";
+  RiAlignLeft,
+  RiBold,
+  RiCodeLine,
+  RiEdit2Line,
+  RiFileTextLine,
+  RiFullscreenExitLine,
+  RiFullscreenLine,
+  RiH2,
+  RiItalic,
+  RiListOrdered,
+  RiListUnordered,
+  RiSparklingLine,
+  RiText,
+  RiToolsLine,
+  RiTranslate2,
+} from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { useViewStore } from "../../stores/view-store";
 import { cn } from "../../lib/cn";
@@ -18,18 +30,18 @@ import type { EditorAiAction, Target } from "./useSelectionAi";
 
 const SELECTION_ACTIONS: {
   id: EditorAiAction;
-  icon: typeof Sparkles;
+  icon: typeof RiSparklingLine;
   labelKey: string;
   tipKey: string;
 }[] = [
-  { id: "polish", icon: Sparkles, labelKey: "editor:selectionAi.polishLabel", tipKey: "editor:selectionAi.polishTip" },
-  { id: "shorter", icon: Minimize2, labelKey: "editor:selectionAi.shorterLabel", tipKey: "editor:selectionAi.shorterTip" },
-  { id: "expand", icon: Maximize2, labelKey: "editor:selectionAi.expandLabel", tipKey: "editor:selectionAi.expandTip" },
-  { id: "bullets", icon: List, labelKey: "editor:selectionAi.bulletsLabel", tipKey: "editor:selectionAi.bulletsTip" },
-  { id: "format", icon: TextAlignStart, labelKey: "editor:selectionAi.formatLabel", tipKey: "editor:selectionAi.formatTip" },
-  { id: "fix", icon: Wrench, labelKey: "editor:selectionAi.fixLabel", tipKey: "editor:selectionAi.fixTip" },
-  { id: "summarize", icon: AlignLeft, labelKey: "editor:selectionAi.summarizeLabel", tipKey: "editor:selectionAi.summarizeTip" },
-  { id: "translate", icon: Languages, labelKey: "editor:selectionAi.translateLabel", tipKey: "editor:selectionAi.translateTip" },
+  { id: "polish", icon: RiSparklingLine, labelKey: "editor:selectionAi.polishLabel", tipKey: "editor:selectionAi.polishTip" },
+  { id: "shorter", icon: RiFullscreenExitLine, labelKey: "editor:selectionAi.shorterLabel", tipKey: "editor:selectionAi.shorterTip" },
+  { id: "expand", icon: RiFullscreenLine, labelKey: "editor:selectionAi.expandLabel", tipKey: "editor:selectionAi.expandTip" },
+  { id: "bullets", icon: RiListUnordered, labelKey: "editor:selectionAi.bulletsLabel", tipKey: "editor:selectionAi.bulletsTip" },
+  { id: "format", icon: RiAlignLeft, labelKey: "editor:selectionAi.formatLabel", tipKey: "editor:selectionAi.formatTip" },
+  { id: "fix", icon: RiToolsLine, labelKey: "editor:selectionAi.fixLabel", tipKey: "editor:selectionAi.fixTip" },
+  { id: "summarize", icon: RiAlignLeft, labelKey: "editor:selectionAi.summarizeLabel", tipKey: "editor:selectionAi.summarizeTip" },
+  { id: "translate", icon: RiTranslate2, labelKey: "editor:selectionAi.translateLabel", tipKey: "editor:selectionAi.translateTip" },
 ];
 
 export function SelectionAiToolbar({
@@ -94,7 +106,7 @@ export function SelectionAiToolbar({
             }}
             className="flex h-7 items-center gap-1 rounded-[var(--radius-sm)] px-2 text-3xs font-medium v4-ai-btn-ghost hover:text-accent-color disabled:opacity-45"
           >
-            <PenLine size={ICON.micro} /> {t("selectionAi.continueLabel")}
+            <RiEdit2Line size={ICON.micro} /> {t("selectionAi.continueLabel")}
           </button>
         </Tooltip>
 
@@ -106,7 +118,7 @@ export function SelectionAiToolbar({
               onClick={() => void onRun("summarize")}
               className="flex h-7 items-center gap-1 rounded-[var(--radius-sm)] px-2 text-3xs font-medium v4-ai-btn-ghost hover:text-accent-color disabled:opacity-45"
             >
-              <FileText size={ICON.micro} /> {t("selectionAi.summarizeAllLabel")}
+              <RiFileTextLine size={ICON.micro} /> {t("selectionAi.summarizeAllLabel")}
             </button>
           </Tooltip>
         ) : null}
@@ -118,7 +130,7 @@ export function SelectionAiToolbar({
             onClick={onToggleCustom}
             className="flex h-7 items-center gap-1 rounded-[var(--radius-sm)] px-2 text-3xs text-text-tertiary hover:bg-surface-muted"
           >
-            <Type size={ICON.micro} /> {t("selectionAi.customLabel")}
+            <RiText size={ICON.micro} /> {t("selectionAi.customLabel")}
           </button>
         </Tooltip>
       </div>
@@ -140,42 +152,42 @@ export function SelectionAiToolbar({
               {
                 id: "bold",
                 tip: t("selectionAi.quickFormatBold"),
-                icon: Bold,
+                icon: RiBold,
                 run: () => editor?.chain().focus().setTextSelection({ from: target.from, to: target.to }).toggleBold().run(),
                 active: () => editor?.isActive("bold") ?? false,
               },
               {
                 id: "italic",
                 tip: t("selectionAi.quickFormatItalic"),
-                icon: Italic,
+                icon: RiItalic,
                 run: () => editor?.chain().focus().setTextSelection({ from: target.from, to: target.to }).toggleItalic().run(),
                 active: () => editor?.isActive("italic") ?? false,
               },
               {
                 id: "code",
                 tip: t("selectionAi.quickFormatCode"),
-                icon: Code,
+                icon: RiCodeLine,
                 run: () => editor?.chain().focus().setTextSelection({ from: target.from, to: target.to }).toggleCode().run(),
                 active: () => editor?.isActive("code") ?? false,
               },
               {
                 id: "h2",
                 tip: t("selectionAi.quickFormatH2"),
-                icon: Heading2,
+                icon: RiH2,
                 run: () => editor?.chain().focus().setTextSelection({ from: target.from, to: target.to }).toggleHeading({ level: 2 }).run(),
                 active: () => editor?.isActive("heading", { level: 2 }) ?? false,
               },
               {
                 id: "ul",
                 tip: t("selectionAi.quickFormatBullet"),
-                icon: List,
+                icon: RiListUnordered,
                 run: () => editor?.chain().focus().setTextSelection({ from: target.from, to: target.to }).toggleBulletList().run(),
                 active: () => editor?.isActive("bulletList") ?? false,
               },
               {
                 id: "ol",
                 tip: t("selectionAi.quickFormatOrdered"),
-                icon: ListOrdered,
+                icon: RiListOrdered,
                 run: () => editor?.chain().focus().setTextSelection({ from: target.from, to: target.to }).toggleOrderedList().run(),
                 active: () => editor?.isActive("orderedList") ?? false,
               },

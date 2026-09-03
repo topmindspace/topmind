@@ -122,11 +122,46 @@ title: UI 专题记忆
     assert.deepEqual(filterMemoryFeedByLayer(null, "topic"), []);
   });
 
+  it("profile titles never leak raw markdown chrome (blockquote / heading / hard break)", () => {
+    const markdown = `# 我的情况
+
+> 跨天依然成立的：个人偏好 · 核心目标 · 关键的人 · 进行中的事\\
+> 对应用户动词：「更新我的情况」\\
+
+---
+
+## 偏好
+
+### 1.1 技术栈
+
+1. TypeScript / Electron
+2. Local-First
+
+## 历史记录
+
+- 过期目标
+`;
+    const items = assembleMemoryFeed({
+      profile: { path: "memory/profile.md", markdown },
+      periodic: [],
+      topics: [],
+    });
+    for (const item of items) {
+      assert.doesNotMatch(item.title, /^[>#\s]+/u, `title leaks chrome: ${item.title}`);
+      assert.doesNotMatch(item.title, /\\$/u, `title leaks hard break: ${item.title}`);
+    }
+    const tech = items.find((i) => /TypeScript/.test(i.body));
+    assert.ok(tech, "heading before list must merge into the list chunk");
+    assert.equal(tech.title, "1.1 技术栈");
+    assert.match(tech.body, /^### 1\.1 技术栈/u);
+  });
+
   it("Desktop TS copy matches Kernel lib/memory-feed.mjs on the same fixture", () => {
     const source = {
       profile: {
         path: "memory/custom-profile.md",
-        markdown: "# Title\n\n## 偏好\n\n- alpha\n- beta\n\n## 当前目标\n\nship the feed\n",
+        markdown:
+          "# Title\n\n> quoted preamble line\\\n\n## 偏好\n\n### Sub\n\n- alpha\n- beta\n\n## 当前目标\n\nship the feed\n",
       },
       periodic: [
         { path: "memory/periodic/2026-W01.md", markdown: "---\ntitle: W01\n---\n\nweek one.\n" },

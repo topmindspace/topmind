@@ -4,7 +4,15 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Brain, CalendarDays, FileText, FolderOpen, Loader2, UserRound, Wand2 } from "lucide-react";
+import {
+  RiBrainLine,
+  RiCalendar2Line,
+  RiFileTextLine,
+  RiFolderOpenLine,
+  RiLoader4Line,
+  RiMagicLine,
+  RiUser3Line,
+} from "@remixicon/react";
 import { api } from "../../../services/api";
 import { onLocal } from "../../../plugins/host";
 import { useViewStore } from "../../../stores/view-store";
@@ -64,9 +72,9 @@ async function collectMarkdownFiles(rel: string, depth = 0): Promise<Array<{ pat
 }
 
 function kindIcon(kind: MemoryFeedKind) {
-  if (kind === "periodic") return CalendarDays;
-  if (kind === "topic") return FolderOpen;
-  return UserRound;
+  if (kind === "periodic") return RiCalendar2Line;
+  if (kind === "topic") return RiFolderOpenLine;
+  return RiUser3Line;
 }
 
 export function MemoryBrowseView() {
@@ -194,7 +202,7 @@ export function MemoryBrowseView() {
   return (
     <ViewContainer variant="feed">
       <PageHeader
-        icon={<Brain size={ICON.sm} />}
+        icon={<RiBrainLine size={ICON.sm} />}
         title={t("workspace:memoryBrowse.title")}
         subtitle={
           items.length > 0
@@ -210,7 +218,7 @@ export function MemoryBrowseView() {
                 data-memory-open-folder
                 onClick={() => revealMemoryFolderInTree()}
               >
-                <FolderOpen size={ICON.xs} /> {t("workspace:memoryBrowse.openFolder")}
+                <RiFolderOpenLine size={ICON.xs} /> {t("workspace:memoryBrowse.openFolder")}
               </Button>
             </Tooltip>
             <Tooltip content={t("workspace:memoryBrowse.organizeTip")}>
@@ -222,9 +230,9 @@ export function MemoryBrowseView() {
                 onClick={() => void handleOrganize()}
               >
                 {organizing ? (
-                  <Loader2 size={ICON.xs} className="animate-spin" />
+                  <RiLoader4Line size={ICON.xs} className="animate-spin" />
                 ) : (
-                  <Wand2 size={ICON.xs} />
+                  <RiMagicLine size={ICON.xs} />
                 )}{" "}
                 {t("workspace:memoryBrowse.organize")}
               </Button>
@@ -274,7 +282,7 @@ export function MemoryBrowseView() {
 
       {visible.length === 0 ? (
         <EmptyState
-          icon={<UserRound size={ICON.md} />}
+          icon={<RiUser3Line size={ICON.md} />}
           title={t("workspace:memoryBrowse.emptyTitle")}
           hint={t("workspace:memoryBrowse.emptyHint")}
           action={
@@ -290,7 +298,7 @@ export function MemoryBrowseView() {
                 })();
               }}
             >
-              <FileText size={ICON.xs} /> {t("workspace:memoryBrowse.openEditor")}
+              <RiFileTextLine size={ICON.xs} /> {t("workspace:memoryBrowse.openEditor")}
             </Button>
           }
         />

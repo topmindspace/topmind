@@ -4,7 +4,15 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2, Play, Eye, Terminal, AlertCircle, CheckCircle2, RefreshCw } from "lucide-react";
+import {
+  RiCheckboxCircleLine,
+  RiErrorWarningLine,
+  RiEyeLine,
+  RiLoader4Line,
+  RiPlayLine,
+  RiRefreshLine,
+  RiTerminalLine,
+} from "@remixicon/react";
 import { api } from "../../services/api";
 import { Button } from "../ui/Button";
 import { Select } from "../ui/select";
@@ -169,7 +177,7 @@ export function ToolsPanel({ settings }: { settings: AppSettings }) {
             disabled={loading}
             aria-label={t("settings:tools.refreshLabel")}
           >
-            {loading ? <Loader2 size={ICON.micro} className="animate-spin" aria-hidden /> : <RefreshCw size={ICON.micro} aria-hidden />}
+            {loading ? <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden /> : <RiRefreshLine size={ICON.micro} aria-hidden />}
           </Button>
         }
       >
@@ -177,9 +185,9 @@ export function ToolsPanel({ settings }: { settings: AppSettings }) {
           <div className="space-y-1.5 rounded-[var(--radius-lg)] border border-border-subtle-dim bg-surface px-2.5 py-2 font-mono text-3xs text-text-tertiary shadow-[inset_0_1px_0_0_var(--color-border-subtle-dim)]">
             <div className="flex items-center gap-1.5">
               {status.utrAvailable ? (
-                <CheckCircle2 size={ICON.nano} className="text-success" aria-hidden />
+                <RiCheckboxCircleLine size={ICON.micro} className="text-success" aria-hidden />
               ) : (
-                <AlertCircle size={ICON.nano} className="text-warning" aria-hidden />
+                <RiErrorWarningLine size={ICON.micro} className="text-warning" aria-hidden />
               )}
               <span className="font-sans text-text-secondary">
                 {status.utrAvailable ? t("settings:tools.ready") : t("settings:tools.unavailable")}
@@ -191,7 +199,7 @@ export function ToolsPanel({ settings }: { settings: AppSettings }) {
           </div>
         ) : loading ? (
           <div className="flex items-center gap-1.5 text-3xs text-text-quaternary" role="status">
-            <Loader2 size={ICON.micro} className="animate-spin" aria-hidden /> {t("settings:tools.detecting")}
+            <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden /> {t("settings:tools.detecting")}
           </div>
         ) : null}
       </SettingsSection>
@@ -243,11 +251,11 @@ export function ToolsPanel({ settings }: { settings: AppSettings }) {
         </label>
         <div className="mt-2 flex flex-wrap gap-1.5">
           <Button variant="outline" size="sm" className="h-7 text-3xs" onClick={() => void runPreview()} disabled={!!busy || !kind || !command}>
-            {busy === "preview" ? <Loader2 size={ICON.micro} className="animate-spin" aria-hidden /> : <Eye size={ICON.micro} aria-hidden />}
+            {busy === "preview" ? <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden /> : <RiEyeLine size={ICON.micro} aria-hidden />}
             {t("settings:tools.previewBtn")}
           </Button>
           <Button variant="default" size="sm" className="h-7 text-3xs" onClick={() => void runTool()} disabled={!!busy || !kind || !command}>
-            {busy === "run" ? <Loader2 size={ICON.micro} className="animate-spin" aria-hidden /> : <Play size={ICON.micro} aria-hidden />}
+            {busy === "run" ? <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden /> : <RiPlayLine size={ICON.micro} aria-hidden />}
             {t("settings:tools.runBtn")}
           </Button>
         </div>
@@ -268,7 +276,7 @@ export function ToolsPanel({ settings }: { settings: AppSettings }) {
       ) : null}
 
       <div className="flex items-start gap-2 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-muted/30 px-2.5 py-2 text-3xs text-text-quaternary">
-        <Terminal size={ICON.nano} className="mt-0.5 shrink-0" aria-hidden />
+        <RiTerminalLine size={ICON.micro} className="mt-0.5 shrink-0" aria-hidden />
         <span>
           {t("settings:tools.warnExecute")}{" "}
           {t("settings:tools.noticeUtr")}

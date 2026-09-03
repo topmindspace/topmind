@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Folder, FolderOpen, FileText, Plus } from "lucide-react";
+import { RiAddLine, RiFileTextLine, RiFolderLine, RiFolderOpenLine } from "@remixicon/react";
 import { api } from "../../../services/api";
 import { useViewStore } from "../../../stores/view-store";
 import { onLocal, emitLocal } from "../../../plugins/host";
@@ -106,7 +106,7 @@ export function CategoryView({ category }: Props) {
   return (
     <ViewContainer>
       <PageHeader
-        icon={<Folder size={ICON.md} />}
+        icon={<RiFolderLine size={ICON.md} />}
         title={category}
         subtitle={
           empty
@@ -117,12 +117,12 @@ export function CategoryView({ category }: Props) {
           <div className="flex items-center gap-1.5">
             <Tooltip content={t("workspace:shared.newTopic")}>
               <Button size="sm" onClick={() => setDialog("topic")}>
-                <Plus size={ICON.sm} /> {t("workspace:shared.newTopic")}
+                <RiAddLine size={ICON.sm} /> {t("workspace:shared.newTopic")}
               </Button>
             </Tooltip>
             <Tooltip content={t("workspace:shared.newNote")}>
               <Button variant="outline" size="sm" onClick={() => setDialog("note")}>
-                <Plus size={ICON.sm} /> {t("workspace:shared.newNote")}
+                <RiAddLine size={ICON.sm} /> {t("workspace:shared.newNote")}
               </Button>
             </Tooltip>
           </div>
@@ -131,16 +131,16 @@ export function CategoryView({ category }: Props) {
 
       {empty ? (
         <EmptyState
-          icon={<Folder size={ICON.md} />}
+          icon={<RiFolderLine size={ICON.md} />}
           title={t("workspace:categoryView.noTopicsTitle")}
           hint={t("workspace:categoryView.noTopicsHint")}
           action={
             <>
               <Button variant="outline" size="sm" onClick={() => setDialog("note")}>
-                <Plus size={ICON.sm} /> {t("workspace:shared.newNote")}
+                <RiAddLine size={ICON.sm} /> {t("workspace:shared.newNote")}
               </Button>
               <Button variant="ghost" size="sm" onClick={() => setDialog("topic")}>
-                <Plus size={ICON.sm} /> {t("workspace:shared.newTopic")}
+                <RiAddLine size={ICON.sm} /> {t("workspace:shared.newTopic")}
               </Button>
             </>
           }
@@ -153,13 +153,13 @@ export function CategoryView({ category }: Props) {
         </FeedChrome>
       {topics.length > 0 ? (
         <section className="mb-5">
-          <SectionHeader icon={<FolderOpen size={ICON.sm} />} label={t("workspace:topic.title")} count={topics.length} />
+          <SectionHeader icon={<RiFolderOpenLine size={ICON.sm} />} label={t("workspace:topic.title")} count={topics.length} />
           <CollectionFeed layout={feedLayout} className={feedLayout === "list" ? "v4-dash-card p-1.5" : undefined}>
             <RowList>
               {topics.map((item) => (
                 <FileRow
                   key={item.id}
-                  icon={<FolderOpen size={ICON.xs} className="opacity-80" />}
+                  icon={<RiFolderOpenLine size={ICON.xs} className="opacity-80" />}
                   label={item.name}
                   onClick={() => select({ kind: "topic", topicId: item.id })}
                   onContextMenu={(e) =>
@@ -175,13 +175,13 @@ export function CategoryView({ category }: Props) {
 
       {looseNotes.length > 0 ? (
         <section>
-          <SectionHeader icon={<FileText size={ICON.xs} />} label={t("workspace:categoryView.recentNotes")} count={looseNotes.length} />
+          <SectionHeader icon={<RiFileTextLine size={ICON.xs} />} label={t("workspace:categoryView.recentNotes")} count={looseNotes.length} />
           <CollectionFeed layout={feedLayout} className={feedLayout === "list" ? "v4-dash-card p-1.5" : undefined}>
             <RowList>
               {looseNotes.map((n) => (
                 <FileRow
                   key={n.relativePath}
-                  icon={<FileText size={ICON.xs} className="opacity-80" />}
+                  icon={<RiFileTextLine size={ICON.xs} className="opacity-80" />}
                   label={displayNoteTitle(n.name)}
                   onClick={() => select({ kind: "file", path: n.relativePath })}
                   onContextMenu={(e) =>

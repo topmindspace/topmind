@@ -93,17 +93,26 @@ async function archiveTopic({ category, topic, reason, mode }, ctxObj) {
 
   const stamp = new Date().toISOString().replace(/[:.]/gu, "-").slice(0, 19);
   // v3.4: archived-topic lives at 99 Archive/{category}-{topic}-{stamp}/ (matches inferTopicFromReceipt)
-  const archiveTarget = path.join(ctxObj.archiveRootPath, `${category}-${topic}-${stamp}`);
+  let archiveTarget = path.join(ctxObj.archiveRootPath, `${category}-${topic}-${stamp}`);
+  if (existsSync(archiveTarget)) {
+    archiveTarget = path.join(ctxObj.archiveRootPath, `${category}-${topic}-${stamp}-${Date.now().toString(36)}`);
+  }
   const planned = [{ from: relPath(ctxObj, topicDir), to: relPath(ctxObj, archiveTarget) }];
 
   let receiptPath = null;
   if (mode === "auto") {
     await ensureDir(path.dirname(archiveTarget));
-    await ensureDir(archiveTarget);
-    await copyDir(topicDir, archiveTarget);
-
-    // remove original
-    await fs.rm(topicDir, { recursive: true, force: true });
+    try {
+      await fs.rename(topicDir, archiveTarget);
+    } catch (err) {
+      if (err.code === "EXDEV") {
+        await ensureDir(archiveTarget);
+        await copyDir(topicDir, archiveTarget);
+        await fs.rm(topicDir, { recursive: true, force: true });
+      } else {
+        throw err;
+      }
+    }
 
     // Compact metadata lives WITH the archived topic (destination is the
     // new home). Do not invent a parallel YAML under 99-归档/receipts/.
@@ -300,44 +309,76 @@ async function archiveStreamYear({ year, mode }, ctxObj) {
 async function cleanupEmptyDirs({ mode }, ctxObj) {
   const emptyDirs = [];
 
-  async function scan(root) {
-    if (!await isDirectory(root)) return;
-    const entries = await fs.readdir(root, { withFileTypes: true });
-    let hasContent = false;
-    for (const entry of entries) {
-      if (entry.name.startsWith(".")) continue;
-      const entryPath = path.join(root, entry.name);
-      if (entry.isDirectory()) {
-        const subEmpty = await scan(entryPath);
-        if (!subEmpty) hasContent = true;
-      } else {
-        hasContent = true;
-      }
-    }
-    if (!hasContent && entries.length > 0) {
-      emptyDirs.push(path.relative(ctxObj.userWorkspaceRoot, root));
-      return true;
-    }
-    return false;
-  }
-
-  let hasEmpty = false;
   const categories = discoverCategories(
     ctxObj.categoriesRoot || ctxObj.userWorkspaceRoot,
     ctxObj.engineRoot,
   );
-  for (const category of categories) {
-    const categoryDir = path.join(ctxObj.categoriesRoot, category);
-    if (await scan(categoryDir)) hasEmpty = true;
+
+  // Protected roots: category roots, inbox root, archive root, and workspace root
+  // must NEVER be flagged as empty directories or removed, even when vacant.
+  const protectedRoots = new Set([
+    path.resolve(ctxObj.userWorkspaceRoot),
+    path.resolve(ctxObj.inboxRootPath),
+    path.resolve(ctxObj.archiveRootPath),
+    ...categories.map((c) => path.resolve(ctxObj.categoriesRoot || ctxObj.userWorkspaceRoot, c)),
+  ]);
+
+  async function scanDir(currentDir) {
+    if (!await isDirectory(currentDir)) return false;
+    let entries = [];
+    try {
+      entries = await fs.readdir(currentDir, { withFileTypes: true });
+    } catch {
+      return false;
+    }
+    const visible = entries.filter((e) => !e.name.startsWith("."));
+    if (visible.length === 0) {
+      const abs = path.resolve(currentDir);
+      if (!protectedRoots.has(abs)) {
+        emptyDirs.push(path.relative(ctxObj.userWorkspaceRoot, currentDir).split(path.sep).join("/"));
+        return true;
+      }
+      return false;
+    }
+
+    let allChildrenEmpty = true;
+    let hasDirectFiles = false;
+
+    for (const entry of visible) {
+      const childPath = path.join(currentDir, entry.name);
+      if (entry.isDirectory()) {
+        const childEmpty = await scanDir(childPath);
+        if (!childEmpty) {
+          allChildrenEmpty = false;
+        }
+      } else {
+        hasDirectFiles = true;
+        allChildrenEmpty = false;
+      }
+    }
+
+    if (!hasDirectFiles && allChildrenEmpty) {
+      const abs = path.resolve(currentDir);
+      if (!protectedRoots.has(abs)) {
+        emptyDirs.push(path.relative(ctxObj.userWorkspaceRoot, currentDir).split(path.sep).join("/"));
+        return true;
+      }
+    }
+    return false;
   }
-  if (await scan(ctxObj.inboxRootPath)) hasEmpty = true;
-  if (await scan(ctxObj.archiveRootPath)) hasEmpty = true;
+
+  for (const category of categories) {
+    const categoryDir = path.join(ctxObj.categoriesRoot || ctxObj.userWorkspaceRoot, category);
+    await scanDir(categoryDir);
+  }
+  await scanDir(ctxObj.inboxRootPath);
+  await scanDir(ctxObj.archiveRootPath);
 
   const removed = [];
   if (mode === "auto") {
     for (const relativeDir of emptyDirs) {
       const fullPath = path.join(ctxObj.userWorkspaceRoot, relativeDir);
-      await fs.rm(fullPath, { recursive: true, force: true });
+      await fs.rm(fullPath, { recursive: true, force: true }).catch(() => {});
       removed.push(relativeDir);
     }
   }

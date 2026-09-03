@@ -1,18 +1,17 @@
 /**
- * Shell panel toggle — Lucide only (no custom paths).
+ * Shell panel toggle — RemixIcon only (no custom paths).
  *
- * Open  → LayoutPanelLeft with left rail filled (half-solid, VS Code/Obsidian feel)
- * Closed → PanelLeftInactive / PanelRightInactive (dashed rail)
- *
- * Right side reuses LayoutPanelLeft mirrored via scale-x so we stay on official glyphs.
+ * Open   → RiLayoutLeft/RightFill (filled side rail = active, VS Code/Obsidian feel)
+ * Closed → RiLayoutLeft/RightLine (outline)
  */
 import {
-  LayoutPanelLeft,
-  PanelLeftInactive,
-  PanelRightInactive,
-} from "lucide-react";
+  RiLayoutLeftFill,
+  RiLayoutLeftLine,
+  RiLayoutRightFill,
+  RiLayoutRightLine,
+} from "@remixicon/react";
 import { cn } from "../../lib/cn";
-import { ICON, ICON_STROKE } from "../../lib/icons";
+import { ICON } from "../../lib/icons";
 
 export function PanelToggleIcon({
   side,
@@ -25,30 +24,13 @@ export function PanelToggleIcon({
   size?: number;
   className?: string;
 }) {
-  if (!open) {
-    const Dashed = side === "left" ? PanelLeftInactive : PanelRightInactive;
-    return (
-      <Dashed
-        size={size}
-        strokeWidth={ICON_STROKE.chrome}
-        className={className}
-        aria-hidden
-      />
-    );
-  }
-
-  // Official Lucide layout-panel-left: first <rect> is the side rail.
-  // Fill only that child → half-solid active state (not a hand-drawn SVG).
-  return (
-    <LayoutPanelLeft
-      size={size}
-      strokeWidth={ICON_STROKE.chrome}
-      aria-hidden
-      className={cn(
-        "[&>rect:first-child]:fill-current",
-        side === "right" && "-scale-x-100",
-        className,
-      )}
-    />
-  );
+  const Icon =
+    side === "left"
+      ? open
+        ? RiLayoutLeftFill
+        : RiLayoutLeftLine
+      : open
+        ? RiLayoutRightFill
+        : RiLayoutRightLine;
+  return <Icon size={size} aria-hidden className={cn("shrink-0", className)} />;
 }

@@ -5,8 +5,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  BookOpen, RefreshCw, Loader2, Settings, ChevronRight,
-} from "lucide-react";
+  RiArrowRightSLine,
+  RiBookOpenLine,
+  RiLoader4Line,
+  RiRefreshLine,
+  RiSettingsLine,
+} from "@remixicon/react";
 import { api } from "../../services/api";
 import { onLocal } from "../host";
 import { useViewStore } from "../../stores/view-store";
@@ -187,12 +191,12 @@ function WereadHubView() {
     return (
       <ViewContainer>
         <EmptyState
-          icon={<BookOpen size={ICON.md} />}
+          icon={<RiBookOpenLine size={ICON.md} />}
           title={t("hub.notEnabled")}
           hint={t("hub.notEnabledHint")}
           action={
             <Button size="sm" onClick={() => openOverlay("settings", { topicId: "topmind-weread.settings" })}>
-              <Settings size={ICON.xs} /> {t("hub.openSettings")}
+              <RiSettingsLine size={ICON.xs} /> {t("hub.openSettings")}
             </Button>
           }
         />
@@ -203,7 +207,7 @@ function WereadHubView() {
   return (
     <ViewContainer>
       <ConnectorHubHeader
-        icon={<BookOpen size={ICON.md} />}
+        icon={<RiBookOpenLine size={ICON.md} />}
         title={t("hub.title")}
         subtitle={t("hub.subtitle")}
         meta={
@@ -229,7 +233,7 @@ function WereadHubView() {
               disabled={!ready || syncing}
               onClick={() => void runSync({})}
             >
-              {syncing ? <Loader2 size={ICON.xs} className="animate-spin" aria-hidden /> : <RefreshCw size={ICON.xs} aria-hidden />}
+              {syncing ? <RiLoader4Line size={ICON.xs} className="animate-spin" aria-hidden /> : <RiRefreshLine size={ICON.xs} aria-hidden />}
               {t("hub.syncAll")}
             </Button>
             <Button
@@ -254,7 +258,7 @@ function WereadHubView() {
               onClick={() => openOverlay("settings", { topicId: "topmind-weread.settings" })}
               aria-label={t("hub.settings")}
             >
-              <Settings size={ICON.xs} />
+              <RiSettingsLine size={ICON.xs} />
             </Button>
           </>
         }
@@ -305,7 +309,7 @@ function WereadHubView() {
           />
         ) : null}
         <SectionHeader
-          icon={<BookOpen size={ICON.sm} />}
+          icon={<RiBookOpenLine size={ICON.sm} />}
           label={t("hub.booksWithNotes")}
           count={books.length}
           actions={
@@ -323,18 +327,18 @@ function WereadHubView() {
                 onClick={() => void loadBooks()}
                 className="rounded p-1 text-text-quaternary hover:bg-surface-muted"
               >
-                {loadingBooks ? <Loader2 size={ICON.micro} className="animate-spin" /> : <RefreshCw size={ICON.micro} />}
+                {loadingBooks ? <RiLoader4Line size={ICON.micro} className="animate-spin" /> : <RiRefreshLine size={ICON.micro} />}
               </button>
             </div>
           }
         />
         {!ready ? null : loadingBooks && books.length === 0 ? (
           <div className="flex items-center gap-1.5 px-1 py-2 text-3xs text-text-quaternary">
-            <Loader2 size={ICON.xs} className="animate-spin" /> {t("hub.fetchingBooks")}
+            <RiLoader4Line size={ICON.xs} className="animate-spin" /> {t("hub.fetchingBooks")}
           </div>
         ) : books.length === 0 ? (
           <EmptyState
-            icon={<BookOpen size={ICON.md} />}
+            icon={<RiBookOpenLine size={ICON.md} />}
             title={t("hub.noBooks")}
             hint={t("hub.noBooksHint")}
           />
@@ -373,7 +377,7 @@ function WereadHubView() {
                       {b.bookmarkCount ? ` · ${t("hub.bookmarks", { count: b.bookmarkCount })}` : ""}
                     </div>
                   </div>
-                  <ChevronRight size={ICON.xs} className="shrink-0 text-text-quaternary" />
+                  <RiArrowRightSLine size={ICON.xs} className="shrink-0 text-text-quaternary" />
                 </button>
               );
             })}

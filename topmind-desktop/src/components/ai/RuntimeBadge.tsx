@@ -1,4 +1,4 @@
-import { Circle, Wrench } from "lucide-react";
+import { RiCheckboxBlankCircleLine, RiToolsLine } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { useAiStore } from "../../stores/ai-store";
 import { useViewStore } from "../../stores/view-store";
@@ -16,7 +16,7 @@ export function RuntimeBadge() {
   if (!status) {
     return (
       <span className="inline-flex items-center gap-1 text-3xs text-text-quaternary" role="status" aria-live="polite">
-        <Circle size={ICON.nano} className="opacity-40" aria-hidden /> …
+        <RiCheckboxBlankCircleLine size={ICON.nano} className="opacity-40" aria-hidden /> …
       </span>
     );
   }
@@ -29,7 +29,7 @@ export function RuntimeBadge() {
           onClick={() => openOverlay("settings", { topicId: "ai" })}
           aria-label={t("ai.runtimeOfflineAria")}
         >
-          <Circle size={ICON.nano} className="fill-current opacity-40" aria-hidden /> {t("ai.runtimeOfflineLabel")}
+          <RiCheckboxBlankCircleLine size={ICON.nano} className="fill-current opacity-40" aria-hidden /> {t("ai.runtimeOfflineLabel")}
         </button>
       </Tooltip>
     );
@@ -50,12 +50,12 @@ export function RuntimeBadge() {
           streaming && "bg-success/8",
         )}
       >
-        <Circle
+        <RiCheckboxBlankCircleLine
           size={ICON.nano}
           className={cn("fill-current", streaming && "animate-pulse-soft")}
         />
         <span className="tabular-nums">{n}</span>
-        {agentEnabled ? <Wrench size={ICON.nano} className="text-accent-color/80" /> : null}
+        {agentEnabled ? <RiToolsLine size={ICON.micro} className="text-accent-color/80" /> : null}
       </span>
     </Tooltip>
   );

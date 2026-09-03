@@ -287,6 +287,35 @@ export const AiService = {
         e.code = "aborted";
         throw e;
       }
+      // Self-heal: system message unsupported by model (e.g. o1/o1-mini/deepseek-reasoner) → merge into prompt and retry
+      const errMsg = err?.message || String(err);
+      const systemPrompt = assembled.system || INLINE_SYSTEM;
+      if (systemPrompt && /(?:system|developer).*(?:not supported|unsupported|invalid|role|message)/i.test(errMsg)) {
+        logInfo("ai", "complete: system message unsupported by model, self-healing by merging into prompt", {
+          model: res.modelId,
+          requestId: rid,
+        });
+        try {
+          const healedOut = await generateText({
+            model: res.model,
+            prompt: `${systemPrompt}\n\n${prompt}`,
+            maxOutputTokens: resolveCompleteMaxTokens(resolvedMode, src.length),
+            abortSignal: ac.signal,
+          });
+          let result = sanitizeInlineAiResult(healedOut.text || "");
+          if (result) {
+            return {
+              ok: true,
+              text: result,
+              model: { modelId: res.modelId },
+              usage: healedOut.usage || null,
+              requestId: rid,
+            };
+          }
+        } catch (healErr) {
+          logWarn("ai", "complete: self-heal retry failed", { error: healErr?.message, requestId: rid });
+        }
+      }
       logError("ai", "complete failed", { error: err?.message || String(err), requestId: rid });
       throw err;
     } finally {

@@ -155,7 +155,7 @@ export function createInboxOps(moveSelfRef) {
      *   dest?: { mode?: 'inbox'|'topic'|'category'|'stream', topicId?: string, category?: string, forceAtom?: boolean },
      * }} p
      */
-    async ingestInbox({ content, title, sourceType, source, frontmatter, dest }, ctx) {
+    async ingestInbox({ content, title, sourceType, source, frontmatter, dest, actor, confirmed }, ctx) {
       S(content, "content", { allowEmpty: true, maxLen: 2_000_000 });
       const stamp = timestampStamp();
       const cleaned = cleanCaptureTitle(title || "", { maxLen: 160 });
@@ -223,14 +223,16 @@ export function createInboxOps(moveSelfRef) {
             );
             newBody = imgResult.content;
             const md = injectFrontmatter(newBody, fm);
-            const writeActor = sourceType === "ai-derived" ? "ai" : "user";
+            const writeActor = actor || (sourceType === "ai-derived" ? "ai" : "user");
+            const isConfirmed = confirmed !== undefined ? Boolean(confirmed) : (writeActor === "user");
             const ev = await kernelDurableWrite(
               { relativePath: targetPath, content: md },
               ctx,
               {
                 actor: writeActor,
-                confirmed: writeActor === "user",
+                confirmed: isConfirmed,
                 operation: existed ? "update" : "create",
+                writebackMode: ctx.explicitWritebackMode,
               },
             );
             if (ev.pending || ev.needsConfirm) {
@@ -245,6 +247,8 @@ export function createInboxOps(moveSelfRef) {
                 needsConfirm: true,
                 pending: true,
                 path: targetPath,
+                targetPath,
+                previewContent: md,
                 dest: "stream",
               };
             }
@@ -324,14 +328,16 @@ export function createInboxOps(moveSelfRef) {
       );
       content = imgResult.content;
       const md = injectFrontmatter(content, fm);
-      const writeActor = sourceType === "ai-derived" ? "ai" : "user";
+      const writeActor = actor || (sourceType === "ai-derived" ? "ai" : "user");
+      const isConfirmed = confirmed !== undefined ? Boolean(confirmed) : (writeActor === "user");
       const ev = await kernelDurableWrite(
         { relativePath: targetPath, content: md },
         ctx,
         {
           actor: writeActor,
-          confirmed: writeActor === "user",
+          confirmed: isConfirmed,
           operation: "create",
+          writebackMode: ctx.explicitWritebackMode,
         },
       );
       if (ev.pending || ev.needsConfirm) {
@@ -346,6 +352,8 @@ export function createInboxOps(moveSelfRef) {
           needsConfirm: true,
           pending: true,
           path: targetPath,
+          targetPath,
+          previewContent: md,
           dest: writeMode,
         };
       }
@@ -456,7 +464,7 @@ export function createInboxOps(moveSelfRef) {
      * Move a note into a topic, including local media (images/{slug}/).
      * Accepts `relativePath` (any note) or legacy `inboxRelativePath`.
      */
-    async moveToTopic({ inboxRelativePath, relativePath, targetTopicId }, ctx) {
+    async moveToTopic({ inboxRelativePath, relativePath, targetTopicId, actor, confirmed }, ctx) {
       const srcRel = String(relativePath || inboxRelativePath || "").replace(/\\/gu, "/");
       S(srcRel, "relativePath");
       T(targetTopicId);
@@ -516,14 +524,37 @@ export function createInboxOps(moveSelfRef) {
 
       await fs.mkdir(path.dirname(dest), { recursive: true });
       const movedBody = injectFrontmatter(c, { category, topic });
+      const writeActor = actor || "user";
+      const isConfirmed = confirmed !== undefined ? Boolean(confirmed) : (writeActor === "user");
       const writeEv = await kernelDurableWrite(
         { relativePath: newPath, content: movedBody },
         ctx,
-        { actor: "user", confirmed: true, operation: "create" },
+        {
+          actor: writeActor,
+          confirmed: isConfirmed,
+          operation: "create",
+          writebackMode: ctx.explicitWritebackMode,
+        },
       );
-      // Source removal after gate write of dest.
-      // No backup for move — content is already written to the new location
-      // before source is removed (no data loss risk).
+      if (writeEv.pending || writeEv.needsConfirm) {
+        return {
+          ...buildWritebackEvidence({
+            operation: "move",
+            targetPath: newPath,
+            savedAt: t,
+            wroteFiles: false,
+          }),
+          ok: false,
+          needsConfirm: true,
+          pending: true,
+          newPath,
+          path: newPath,
+          targetPath: newPath,
+          sourcePath: srcRel,
+          previewContent: movedBody,
+        };
+      }
+      // Source removal after confirmed gate write of dest.
       await fs.unlink(src).catch(() => {});
       void writeEv;
 
