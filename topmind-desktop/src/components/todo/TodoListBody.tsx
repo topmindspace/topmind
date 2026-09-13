@@ -1,5 +1,5 @@
 /**
- * TodoListBody — shared todo list rendering for TodoPopover.
+ * TodoListBody — shared todo list rendering (AI workspace 清单 pane + focus-mode TodoPopover).
  *
  * Design principles:
  * - Apple Reminders / Microsoft To Do style: inline add, click to edit, checkbox to toggle
@@ -36,6 +36,7 @@ import { useTodoStore } from "../../stores/todo-store";
 import { useViewStore } from "../../stores/view-store";
 import { api } from "../../services/api";
 import type { TodoItem } from "../../types";
+import { Tooltip } from "../ui/tooltip";
 
 /**
  * Resolve a todo's source period to a real workspace-relative file path.
@@ -78,7 +79,7 @@ export async function resolveTodoSourcePath(item: Pick<TodoItem, "sourcePath" | 
   return null;
 }
 
-export function TodoListBody() {
+export function TodoListBody({ showPaneChrome = true }: { showPaneChrome?: boolean } = {}) {
   const { t } = useTranslation("shell");
   const items = useTodoStore((s) => s.items);
   const loading = useTodoStore((s) => s.loading);
@@ -91,6 +92,8 @@ export function TodoListBody() {
   const clearCompleted = useTodoStore((s) => s.clearCompleted);
   const cleanupStale = useTodoStore((s) => s.cleanupStale);
   const archiveStale = useTodoStore((s) => s.archiveStale);
+  const maintain = useTodoStore((s) => s.maintain);
+  const refresh = useTodoStore((s) => s.refresh);
 
   const [newItemText, setNewItemText] = useState("");
   const [showCompleted, setShowCompleted] = useState(false);
@@ -136,6 +139,46 @@ export function TodoListBody() {
 
   return (
     <div className="flex flex-col">
+      {showPaneChrome ? (
+        <div className="mb-1.5 flex items-center justify-end gap-0.5" data-todo-pane-chrome>
+          <Tooltip content={t("todo.maintainTip")}>
+            <button
+              type="button"
+              onClick={() => {
+                const force = maintainReason === "all-periods-processed";
+                void maintain(force ? { force: true } : undefined);
+              }}
+              disabled={maintaining === "maintaining"}
+              className={cn(
+                "flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] disabled:opacity-40",
+                maintaining === "maintaining"
+                  ? "v4-ai-chip-gradient"
+                  : "text-text-quaternary transition-colors hover:bg-surface-muted hover:text-accent-color",
+              )}
+              aria-label={t("todo.maintain")}
+              data-todo-maintain
+              data-todo-maintain-active={maintaining === "maintaining" || undefined}
+            >
+              {maintaining === "maintaining" ? (
+                <RiLoader4Line size={ICON.micro} className="animate-spin" />
+              ) : (
+                <RiSparklingLine size={ICON.micro} />
+              )}
+            </button>
+          </Tooltip>
+          <Tooltip content={t("todo.refreshTip")}>
+            <button
+              type="button"
+              onClick={() => void refresh()}
+              className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary"
+              aria-label={t("todo.refresh")}
+              data-todo-refresh
+            >
+              <RiRefreshLine size={ICON.micro} />
+            </button>
+          </Tooltip>
+        </div>
+      ) : null}
       {/* AI maintain feedback */}
       {maintainMessage && maintaining !== "maintaining" ? (
         <div

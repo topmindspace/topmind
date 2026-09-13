@@ -148,14 +148,13 @@ export function ChromeOverflowActions({
               onClick={a.onClick}
               aria-label={a.label}
               className={cn(
-                "inline-flex h-7 shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 text-3xs font-medium transition-colors",
-                "v4-focus-ring",
+                "v4-titlebar-btn gap-1 text-xs font-medium",
                 "disabled:opacity-45",
                 a.primary
-                  ? "bg-accent-color text-white hover:opacity-90"
+                  ? "v4-titlebar-btn-primary"
                   : a.aiAction
                     ? "v4-ai-btn"
-                    : "text-text-tertiary hover:bg-surface-muted hover:text-text-primary",
+                    : null,
               )}
             >
               {a.icon ? <span className="shrink-0">{a.icon}</span> : null}
@@ -176,9 +175,8 @@ export function ChromeOverflowActions({
               <button
                 type="button"
                 className={cn(
-                  "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-sm)]",
-                  "text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-primary",
-                  menuOpen && "bg-surface-muted text-text-primary",
+                  "v4-titlebar-btn",
+                  menuOpen && "text-text-primary",
                 )}
                 aria-label={t("action.more", { defaultValue: "More" })}
                 aria-haspopup="menu"

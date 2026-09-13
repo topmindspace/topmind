@@ -294,6 +294,8 @@ export interface StreamPeriod {
   title: string;
   entryCount: number;
   mtime: number;
+  /** Kernel list flag: false = still needs tidy (未整理). Stamp absence is not this signal. */
+  reconciled?: boolean;
 }
 
 /** Stream entry (parsed from period note) */

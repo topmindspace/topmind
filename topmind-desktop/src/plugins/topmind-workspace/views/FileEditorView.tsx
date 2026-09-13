@@ -24,7 +24,6 @@ import {
   RiEyeLine,
   RiFolderReceivedLine,
   RiLoader4Line,
-  RiNodeTree,
   RiSearchLine,
 } from "@remixicon/react";
 import { EditorOutlinePanel } from "../../../components/editor/EditorOutlinePanel";
@@ -36,7 +35,6 @@ import {
   SelectionAiBar,
   requestSelectionAiBar,
 } from "../../../components/editor/SelectionAiBar";
-import { EditorReadingMenu } from "../../../components/editor/EditorReadingMenu";
 import { fontFamilyCss } from "../../../lib/editor-prefs";
 import { Button } from "../../../components/ui/Button";
 import { Tooltip } from "../../../components/ui/tooltip";
@@ -83,7 +81,11 @@ import {
   EditorFormatBar,
   EditorModeSwitch,
   EditorMoreMenu,
+  EditorViewChrome,
+  FileEditorTitleBarActions,
 } from "./file-editor-format-bar";
+import { TitleBarActions } from "../../../lib/chrome-portal";
+import { useTitleBarChrome } from "../../../lib/titlebar-chrome";
 
 interface Props {
   path: string;
@@ -179,6 +181,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
     baseName,
     typeof fileMeta?.frontmatter?.title === "string" ? fileMeta.frontmatter.title : null,
   );
+  useTitleBarChrome(`file:${path}`, { title: docTitle });
   const mounted = mountedFiles.some((m) => m.path === path);
   const resolvedTopicId = topicId
     || (path.includes("/") && !path.startsWith("00") && path.split("/").length >= 2
@@ -891,11 +894,6 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
     openOverlay("quick-capture", { intent: "memory", topicId: resolvedTopicId });
   };
 
-  const handleOpenAi = () => {
-    if (!mounted) mountFile({ path, name: baseName });
-    setAiPanelOpen(true);
-  };
-
   /** Draft current selection (or body start) to X hub for confirmed post. */
   const handlePostToX = () => {
     if (readOnly) return;
@@ -956,9 +954,18 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
   const fileSizeText = fileMeta ? formatFileSize(fileMeta.size) : "";
   const mtimeText = fileMeta?.mtime ? formatDateTime(fileMeta.mtime) : "";
 
-  const pathParts = path.split("/").filter(Boolean);
-  const crumbCategory = pathParts.length >= 2 ? pathParts[0] : null;
-  const crumbTopic = pathParts.length >= 3 ? pathParts[1] : pathParts.length === 2 && !baseName.endsWith(".md") ? pathParts[0] : resolvedTopicId?.split("/")[1] ?? null;
+  const showProperties = !focusMode && !readOnly && path.endsWith(".md");
+  const viewChrome = (
+    <EditorViewChrome
+      showOutline={showOutline}
+      onToggleOutline={() => setShowOutline((v) => !v)}
+      editor={readOnly ? null : editor}
+      onOpenSettings={() => openOverlay("settings", { topicId: "general" })}
+      focusMode={focusMode}
+      onToggleFocus={toggleFocusMode}
+      showFocus={!focusMode}
+    />
+  );
 
   const pagePadding = editorSettings.pagePadding || "comfortable";
   const paper = editorSettings.paper || "default";
@@ -979,7 +986,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
     >
       {/* Row 1: mode · format tools · primary actions (title lives on property row) */}
       <div className="v4-editor-toolbar shrink-0 border-b border-border-subtle-dim bg-surface/80 backdrop-blur-[2px]">
-        <div ref={toolbarRef} className="flex h-(--density-editor-toolbar-y,36px) items-center justify-between gap-1 px-2 sm:px-2.5" data-compact={toolbarCompact ? "true" : undefined}>
+        <div ref={toolbarRef} className="flex h-(--density-editor-toolbar-y,32px) items-center justify-between gap-1 px-2 sm:px-2.5" data-compact={toolbarCompact ? "true" : undefined}>
           <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
             {!readOnly ? (
               <EditorModeSwitch viewMode={viewMode} onChange={switchViewMode} />
@@ -1018,32 +1025,37 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
             )}
           </div>
 
-          <div className="flex min-w-0 max-w-[min(52%,22rem)] shrink items-center justify-end gap-0.5 sm:max-w-104">
-            <Tooltip content={showOutline ? t("workspace:outline.hideTip", { defaultValue: "隐藏大纲 (⌘⌥O)" }) : t("workspace:outline.showTip", { defaultValue: "显示大纲 (⌘⌥O)" })}>
-              <button
-                type="button"
-                onClick={() => setShowOutline((v) => !v)}
-                className={cn(
-                  "flex h-7 shrink-0 items-center gap-1 rounded-sm px-1.5 transition-colors",
-                  showOutline
-                    ? "bg-accent-bg-subtle text-accent-color font-medium"
-                    : "text-text-tertiary hover:bg-surface-muted hover:text-text-primary",
-                )}
-                aria-label={t("workspace:outline.title", { defaultValue: "文档大纲" })}
-                aria-pressed={showOutline}
-              >
-                <RiNodeTree size={ICON.xs} />
-                <span className="hidden text-3xs lg:inline" data-compact-hidden>
-                  {t("workspace:outline.button", { defaultValue: "大纲" })}
-                </span>
-              </button>
-            </Tooltip>
-            <EditorReadingMenu
-              editor={readOnly ? null : editor}
-              onOpenSettings={() => openOverlay("settings", { topicId: "general" })}
+          <div className="flex min-w-0 shrink items-center justify-end gap-0.5">
+            {!showProperties ? viewChrome : null}
+            {!showProperties ? <ToolbarSep /> : null}
+            <EditorMoreMenu
+              moreOpen={moreOpen}
+              setMoreOpen={setMoreOpen}
+              showMeta={showMeta}
+              setShowMeta={setShowMeta}
+              readOnly={readOnly}
+              saveState={saveState}
+              wordCount={wordCount}
             />
-            <ToolbarSep />
-            {!readOnly && canPublish && path.endsWith(".md") && !path.match(/^88[- ]/u) ? (
+          </div>
+        </div>
+      </div>
+
+      <TitleBarActions>
+        <FileEditorTitleBarActions
+          canPublish={canPublish}
+          busyAction={busyAction}
+          onPublish={() => void handlePublish()}
+          resolvedTopicId={resolvedTopicId}
+          onMemory={handleMemory}
+          readOnly={readOnly}
+          xPublishEnabled={xPublishEnabled}
+          onPostToX={handlePostToX}
+          mounted={mounted}
+          onToggleMount={handleToggleMount}
+          onRequestAiBar={requestSelectionAiBar}
+          moveControl={
+            !readOnly && canPublish && path.endsWith(".md") && !path.match(/^88[- ]/u) ? (
               <DropdownMenu
                 open={moveOpen}
                 onOpenChange={setMoveOpen}
@@ -1057,18 +1069,15 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
                       type="button"
                       disabled={moving}
                       onClick={() => setMoveOpen((v) => !v)}
-                      className="flex h-7 shrink-0 items-center gap-1 rounded-sm px-1.5 text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-primary disabled:opacity-50"
+                      className="v4-titlebar-btn"
                       aria-label={t("workspace:menu.moveToTopic")}
                       aria-expanded={moveOpen}
                     >
                       {moving ? (
-                        <RiLoader4Line size={ICON.xs} className="animate-spin" />
+                        <RiLoader4Line size={ICON.sm} className="animate-spin" />
                       ) : (
-                        <RiFolderReceivedLine size={ICON.xs} />
+                        <RiFolderReceivedLine size={ICON.sm} />
                       )}
-                      <span className="hidden text-3xs lg:inline" data-compact-hidden>
-                        {t("workspace:menu.moveToTopic")}
-                      </span>
                     </button>
                   </Tooltip>
                 }
@@ -1080,51 +1089,17 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
                   onPick={(id) => void handleMoveToTopic(id)}
                 />
               </DropdownMenu>
-            ) : null}
-            <EditorMoreMenu
-              moreOpen={moreOpen}
-              setMoreOpen={setMoreOpen}
-              showMeta={showMeta}
-              setShowMeta={setShowMeta}
-              canPublish={canPublish}
-              busyAction={busyAction}
-              onPublish={() => void handlePublish()}
-              resolvedTopicId={resolvedTopicId}
-              onMemory={handleMemory}
-              onRequestAiBar={requestSelectionAiBar}
-              readOnly={readOnly}
-              xPublishEnabled={xPublishEnabled}
-              onPostToX={handlePostToX}
-              mounted={mounted}
-              onToggleMount={handleToggleMount}
-              onOpenAi={handleOpenAi}
-              focusMode={focusMode}
-              onToggleFocus={toggleFocusMode}
-              saveState={saveState}
-              wordCount={wordCount}
-            />
-          </div>
-        </div>
-      </div>
+            ) : null
+          }
+        />
+      </TitleBarActions>
 
-      {/* Properties + identity (title/breadcrumb) — frees toolbar for format tools */}
-      {!focusMode && !readOnly && path.endsWith(".md") ? (
+      {/* Properties — status/priority/due chips + outline / appearance / focus. */}
+      {showProperties ? (
         <FrontmatterBar
           relativePath={path}
           frontmatter={fileMeta?.frontmatter}
-          identity={{
-            title: docTitle,
-            breadcrumb: crumbCategory
-              ? `${crumbCategory}${crumbTopic ? ` / ${crumbTopic}` : ""}`
-              : baseName,
-            onContextMenu: (e) =>
-              fileMenu.open(e, {
-                path,
-                label: baseName,
-                kind: path.match(/^00[- ]/u) ? "inbox" : "note",
-                topicId: resolvedTopicId,
-              }),
-          }}
+          trailing={viewChrome}
           flushBody={async () => {
             // Always drain queue + flush dirty/saving body before FM write (C2)
             if (saveTimer.current) {

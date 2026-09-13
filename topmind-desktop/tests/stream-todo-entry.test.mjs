@@ -13,17 +13,15 @@ function read(rel) {
   return readFileSync(path.join(root, rel), "utf8");
 }
 
-test("StreamDetailView AI todos header calls maintain and opens popover", () => {
+test("StreamDetailView PageHeader does not host AI todos; 清单 pane does", () => {
   const src = read("src/plugins/topmind-workspace/views/StreamDetailView.tsx");
-  assert.match(src, /handleMaintainTodos/u);
-  assert.match(src, /todo:open-popover/u);
-  // Progressive force: first maintain(); re-click after already-processed uses force
-  assert.match(src, /useTodoStore\.getState\(\)/u);
-  assert.match(src, /\.maintain\(/u);
-  assert.match(src, /all-periods-processed/u);
-  assert.match(src, /id:\s*["']ai-todos["']/u);
-  // UX: no duplicate L1 capture in stream header
+  assert.doesNotMatch(src, /handleMaintainTodos/u);
+  assert.doesNotMatch(src, /id:\s*["']ai-todos["']/u);
   assert.doesNotMatch(src, /id:\s*["']capture["']/u);
+  const body = read("src/components/todo/TodoListBody.tsx");
+  assert.match(body, /data-todo-maintain/u);
+  assert.match(body, /all-periods-processed/u);
+  assert.match(body, /\.maintain\(/u);
 });
 
 test("sidebar StreamView AI maintain opens popover then maintain()", () => {
@@ -35,10 +33,14 @@ test("sidebar StreamView AI maintain opens popover then maintain()", () => {
   assert.match(src, /sidebar\.stream\.maintainTodos/u);
 });
 
-test("TitleBar listens for todo:open-popover", () => {
-  const src = read("src/components/shell/TitleBar.tsx");
-  assert.match(src, /todo:open-popover/u);
-  assert.match(src, /setTodoOpen\(true\)/u);
+test("TitleBar opens the AI workspace 清单 pane (not a second list)", () => {
+  // 2026-09 v2: todo/suggest/apps live in AiWorkspace tabs, not TitleBar
+  const src = read("src/components/ai/AiWorkspace.tsx");
+  assert.match(src, /id: "todo"/u);
+  assert.doesNotMatch(read("src/components/shell/TitleBar.tsx"), /data-ai-workspace-open="todo"/u);
+  assert.doesNotMatch(read("src/components/shell/TitleBar.tsx"), /setTodoOpen\(true\)/u);
+  const shell = read("src/components/shell/Shell.tsx");
+  assert.match(shell, /todo:open-popover/u);
 });
 
 test("todo store maintain passes force option to api.todo.maintain", () => {

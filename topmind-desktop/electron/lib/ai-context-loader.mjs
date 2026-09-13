@@ -20,6 +20,34 @@ const PROFILE_MAX_CHARS = 2000;
 const TOPIC_MD_MAX_CHARS = 3000;
 
 /**
+ * Collapse ## 历史记录 / ## History to a one-line count so a raw-file fallback
+ * never injects archived facts as current truth. Idempotent enough for a
+ * Kernel-collapsed body only when we skip calling it (caller must not double-apply
+ * after readProfileActiveBody).
+ * @param {string} body
+ * @param {"zh"|"en"} [locale]
+ * @returns {string}
+ */
+export function collapseHistorySectionForPrompt(body, locale = "zh") {
+  const raw = String(body || "");
+  if (!raw) return "";
+  const headingRe = /^##\s+(历史记录|History)\s*$/mu;
+  const m = raw.match(headingRe);
+  if (!m || m.index == null) return raw;
+  const title = m[1];
+  const start = m.index;
+  const after = raw.slice(start + m[0].length);
+  const next = after.search(/\n##\s+/);
+  const histBody = next === -1 ? after : after.slice(0, next);
+  const rest = next === -1 ? "" : after.slice(next);
+  const retiredCount = histBody.split("\n").filter((l) => /^\s*[-*+]\s+\S/u.test(l)).length;
+  const summaryLine = title === "History" || locale === "en"
+    ? `- ${retiredCount} archived fact(s) (see memory/profile.md)`
+    : `- ${retiredCount} 条已归档条目（略，见 memory/profile.md）`;
+  return `${raw.slice(0, start)}## ${title}\n\n${summaryLine}\n${rest}`;
+}
+
+/**
  * Strip YAML frontmatter for prompt injection (CRLF-safe).
  * Shared by profile + topic.md loaders so Windows period/workspace files
  * do not dump `---` YAML into the agent system prompt.
@@ -83,10 +111,12 @@ export async function loadMemoryProfile(ctx) {
   try {
     const root = resolveDataRoot(ctx.workspaceRoot);
     let collapsed = "";
+    let fromKernel = false;
     try {
       const api = await loadKernelApi();
       if (typeof api.readProfileActiveBody === "function") {
         collapsed = api.readProfileActiveBody(root) || "";
+        fromKernel = Boolean(collapsed);
       }
     } catch {
       collapsed = "";
@@ -99,6 +129,9 @@ export async function loadMemoryProfile(ctx) {
       collapsed = await readText(path.join(root, memDir, profileFile));
     }
     if (!collapsed || collapsed.trim().length < 20) return "";
+    if (!fromKernel) {
+      collapsed = collapseHistorySectionForPrompt(collapsed);
+    }
     const body = stripFrontmatterForPrompt(collapsed);
     if (!body) return "";
     return body.length > PROFILE_MAX_CHARS

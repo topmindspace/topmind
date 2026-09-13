@@ -47,7 +47,7 @@
     "topmind-ingest.settings": "默认只落 Markdown；可开保留原件到 99-Archive。",
     "topmind-weread.settings": "同步预算与类别影响落盘位置。",
     "topmind-x.settings": "MCP 端点仅供外部 Agent 宿主参考，Desktop 本身不走 MCP。",
-    "topmind-ledger.settings": "默认开启；关掉后 Apps 菜单与状态栏不再列出。"
+    "topmind-ledger.settings": "默认开启；关掉后 AI 工作区应用 pane 与状态栏不再列出。"
   },
   "general": {
     "appearance": "外观与布局",
@@ -130,7 +130,7 @@
     "tabModeMulti": "多标签（激活不改顺序）",
     "tabModeSingle": "单标签（只开一个文件）",
     "writeback": "保存设置",
-    "writebackDesc": "自动保存 或 保存前问我 · 也可在 AI 面板切换",
+    "writebackDesc": "自动保存 或 保存前问我 · 工作区契约是真源",
     "writebackMode": "模式",
     "writebackAuto": "自动保存",
     "writebackConfirm": "保存前问我",
@@ -509,7 +509,7 @@
     "permissionsLabel": "权限声明",
     "slotsLabel": "槽位",
     "trustModel": "信任模型 = 用户自装：插件与应用同进程运行。权限做软性约束，非沙箱隔离。仅安装你信任的来源。",
-    "topmind-ledger.settings": "默认开启；关掉后 Apps 菜单与状态栏入口消失。"
+    "topmind-ledger.settings": "默认开启；关掉后 AI 工作区应用 pane 与状态栏入口消失。"
   },
   "ai": {
     "notConfigured": "未配置",

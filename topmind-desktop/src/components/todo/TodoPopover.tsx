@@ -1,9 +1,8 @@
 /**
- * TodoPopover — floating todo panel from TitleBar icon.
+ * TodoPopover — floating todo panel for focus mode (AI column hidden).
  *
- * Triggered by:
- * - TitleBar ListTodo icon click
- * - ⌘⇧T keyboard shortcut (via emitLocal "todo:toggle-popover")
+ * Primary list lives in the AI workspace 清单 pane (`TodoListBody`).
+ * This float is the focus-mode door (parity with SuggestPopover).
  *
  * Two modes:
  * - **Unpinned** (default): dropdown-style — closes on outside click / scroll / Esc
@@ -357,7 +356,7 @@ export function TodoPopover({ open, onOpenChange, children }: TodoPopoverProps) 
         data-scroll-stable-panel=""
         data-todo-scroll-body=""
       >
-        <TodoListBody />
+        <TodoListBody showPaneChrome={false} />
       </div>
     </div>
   ) : null;

@@ -4,7 +4,7 @@
  * 用户视角三层（勿与个人清单混称「待办」）：
  * - 对话 → AiStore（messages / streaming）
  * - 建议 → ActionStore（Kernel suggestions + confirm pending writes）
- * - 个人清单 → TodoStore / TodoPopover（memory/todo.md）
+ * - 个人清单 → TodoStore / AI 工作区 清单 pane（memory/todo.md）
  * - 后台 → TaskStore（reconcile / ai_digest）
  */
 import { create } from 'zustand';
@@ -79,7 +79,7 @@ const sessionSuggestionCache = new Map<
 interface ActionStore {
   items: ActionItem[];
   loading: boolean;
-  expanded: boolean;  // ActionBar / SuggestPopover 展开
+  expanded: boolean;  // SuggestPopover 展开
   /** Global SuggestPopover open (header-centric confirm surface) */
   panelOpen: boolean;
   busyId: string | null;  // 正在处理的项 ID
@@ -95,7 +95,7 @@ interface ActionStore {
   refresh: (opts?: { force?: boolean; pollOnly?: boolean }) => Promise<void>;
   /**
    * Run activity-window AI ops (memory_organize + topic_classify) and merge
-   * confirm-shaped suggestions into the ActionBar list. Does not auto-apply.
+   * confirm-shaped suggestions into the SuggestPopover list. Does not auto-apply.
    */
   runActivityOps: (opts?: { force?: boolean }) => Promise<{ merged: number; summary: string }>;
   /** Merge raw Kernel suggestion-shaped objects into items (dedupe by id). */
@@ -316,8 +316,8 @@ export const useActionStore = create<ActionStore>((set, get) => ({
               ? prevExpanded
               : false,
       });
-      // Auto-open SuggestPopover when background prep produces NEW high-priority
-      // suggestions and panel is not already open — user should always know.
+      // Auto-open the 建议 confirm surface when background prep produces NEW
+      // high-priority suggestions and the panel is not already open.
       if (hasNewItems && hasHigh && !get().panelOpen) {
         set({ panelOpen: true });
       }

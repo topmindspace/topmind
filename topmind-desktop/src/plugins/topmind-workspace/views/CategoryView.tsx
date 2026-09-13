@@ -7,7 +7,6 @@ import { onLocal, emitLocal } from "../../../plugins/host";
 import { Button } from "../../../components/ui/Button";
 import {
   ViewContainer,
-  PageHeader,
   SectionHeader,
   EmptyState,
   MetaText,
@@ -20,6 +19,8 @@ import {
   FeedColumn,
   FeedChrome,
 } from "../../../components/ui/view";
+import { TitleBarActions } from "../../../lib/chrome-portal";
+import { useTitleBarChrome } from "../../../lib/titlebar-chrome";
 import { PromptDialog, ErrorDialog } from "../../../components/ui/Dialog";
 import {
   useFileContextMenu,
@@ -98,36 +99,44 @@ export function CategoryView({ category }: Props) {
     }
   };
 
+  const empty = topics.length === 0 && looseNotes.length === 0;
+
+  useTitleBarChrome("category", {
+    title: category,
+    stats: empty
+      ? t("workspace:categoryView.noTopicsHint")
+      : `${t("workspace:categoryView.topicCount", { count: topics.length })} · ${t("workspace:categoryView.fileCount", { count: looseNotes.length })}`,
+  });
+
   if (loading) return <LoadingState label={t("common:action.loading")} />;
   if (error) return <ErrorState message={error} onRetry={() => void refresh()} />;
 
-  const empty = topics.length === 0 && looseNotes.length === 0;
-
   return (
     <ViewContainer>
-      <PageHeader
-        icon={<RiFolderLine size={ICON.md} />}
-        title={category}
-        subtitle={
-          empty
-            ? t("workspace:categoryView.noTopicsHint")
-            : `${t("workspace:categoryView.topicCount", { count: topics.length })} · ${t("workspace:categoryView.fileCount", { count: looseNotes.length })}`
-        }
-        actions={
-          <div className="flex items-center gap-1.5">
-            <Tooltip content={t("workspace:shared.newTopic")}>
-              <Button size="sm" onClick={() => setDialog("topic")}>
-                <RiAddLine size={ICON.sm} /> {t("workspace:shared.newTopic")}
-              </Button>
-            </Tooltip>
-            <Tooltip content={t("workspace:shared.newNote")}>
-              <Button variant="outline" size="sm" onClick={() => setDialog("note")}>
-                <RiAddLine size={ICON.sm} /> {t("workspace:shared.newNote")}
-              </Button>
-            </Tooltip>
-          </div>
-        }
-      />
+      <TitleBarActions>
+        <Tooltip content={t("workspace:shared.newTopic")}>
+          <button
+            type="button"
+            className="v4-titlebar-btn gap-1 px-2 text-xs"
+            onClick={() => setDialog("topic")}
+            aria-label={t("workspace:shared.newTopic")}
+          >
+            <RiAddLine size={ICON.sm} />
+            <span className="hidden sm:inline">{t("workspace:shared.newTopic")}</span>
+          </button>
+        </Tooltip>
+        <Tooltip content={t("workspace:shared.newNote")}>
+          <button
+            type="button"
+            className="v4-titlebar-btn gap-1 px-2 text-xs"
+            onClick={() => setDialog("note")}
+            aria-label={t("workspace:shared.newNote")}
+          >
+            <RiAddLine size={ICON.sm} />
+            <span className="hidden sm:inline">{t("workspace:shared.newNote")}</span>
+          </button>
+        </Tooltip>
+      </TitleBarActions>
 
       {empty ? (
         <EmptyState

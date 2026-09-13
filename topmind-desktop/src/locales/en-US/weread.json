@@ -26,7 +26,7 @@
     "connectedDate": "Connected · {{date}}",
     "notConfigured": "Not configured",
     "enable": "Enable",
-    "enableDesc": "Hides the Apps-menu entry and sync actions when off",
+    "enableDesc": "Hides the AI workspace Apps pane entry and sync actions when off",
     "apiKeyDesc": "Scan QR code in WeChat to get wrk- prefixed key",
     "test": "Test",
     "sync": "Sync",

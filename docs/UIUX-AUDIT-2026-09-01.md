@@ -1,9 +1,12 @@
 # topmind Desktop — 整体 UI/UX 审查报告
 
-> 审查时间：2026-09-01
-> 范围：主区域布局框架（TitleBar / Sidebar / EditorArea / AI Rail / StatusBar）、导航（PrimaryNav + ViewSwitcher + 树 + History）、内容组织（ViewSlot Registry + Stream 周期本 + File Tabs + 各类列表）
-> 输入：`topmind-desktop/DESIGN.md`（v3.0 ZCode Neutral）、`src/components/shell/*`、`src/plugins/topmind-workspace/views/*`、`src/stores/view-store.ts`、`docs/images/*.jpg`
-> 立场：DESIGN.md 已经在 IA / 视觉系统 / 多路 AI 编排上达到相当成熟的水准（UIX-401 ~ UIX-407 自查全过）。本报告不重做架构，**聚焦在「主区域落地一致性、认知锚点缺失、信息密度不均」三处具体短板**。
+> **状态**：**NON-LIVING** · 2026-09-01 **snapshot** — not current product IA.  
+> Chrome described here (PrimaryNav 含搜索、TitleBar 记一下/💡、ActionBar、36px TitleBar、横跨产品栏) was **superseded 2026-09-07** by three-column AI workspace chrome. Living truth: `topmind-desktop/DESIGN.md` · `docs/adr/2026-09-07-pi-engine-and-three-column-reevaluation.md`. Keep this file as a historical audit dump; do not copy its mermaid or P0 list into living specs.
+>
+> 审查时间：2026-09-01  
+> 范围：主区域布局框架（TitleBar / Sidebar / EditorArea / AI Rail / StatusBar）、导航（PrimaryNav + ViewSwitcher + 树 + History）、内容组织（ViewSlot Registry + Stream 周期本 + File Tabs + 各类列表）  
+> 输入：`topmind-desktop/DESIGN.md`（v3.0 ZCode Neutral）、`src/components/shell/*`、`src/plugins/topmind-workspace/views/*`、`src/stores/view-store.ts`、`docs/images/*.jpg`  
+> 立场：当时 DESIGN.md 已在 IA / 视觉系统 / 多路 AI 编排上收敛。本报告是那一天的短板账，**不是**现行 chrome。
 
 ---
 

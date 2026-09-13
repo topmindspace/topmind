@@ -71,9 +71,8 @@ test("event constants match AiPanel / Stream / task-store emit-subscribe wiring"
   assert.equal(PENDING_WRITES_CHANGED_EVENT, "pending-writes:changed");
 
   const aiPanel = readFileSync(path.join(root, "src/components/ai/AiPanel.tsx"), "utf8");
-  assert.match(aiPanel, /ActionBar/);
+  assert.doesNotMatch(aiPanel, /ActionBar/);
   const actionStore = readFileSync(path.join(root, "src/stores/action-store.ts"), "utf8");
-  const actionBar = readFileSync(path.join(root, "src/components/ai/ActionBar.tsx"), "utf8");
   assert.match(actionStore, /onLocal\(SUGGESTIONS_REFRESH_EVENT/);
   assert.match(actionStore, /onLocal\(PENDING_WRITES_CHANGED_EVENT/);
   assert.match(actionStore, /confirmed:\s*true/);

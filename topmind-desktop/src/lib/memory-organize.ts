@@ -1,6 +1,6 @@
 /**
  * Confirm-only 我的情况 organize — generates suggestions, never writes profile.
- * TaskStore shows progress; SuggestPopover opens when the job finishes.
+ * TaskStore shows progress; the AI workspace 建议 pane opens when the job finishes.
  */
 import { useViewStore } from "../stores/view-store";
 import { useTaskStore } from "../stores/task-store";
@@ -8,8 +8,8 @@ import { emitLocal } from "../plugins/host";
 
 /**
  * Run shipped memory_organize / topic_classify activity ops as a TaskStore job.
- * StatusBar + TaskPanel show progress/result; suggestions land on SuggestPopover
- * when the job finishes (no silent profile write).
+ * StatusBar + TaskPanel show progress/result; suggestions land on the AI workspace
+ * 建议 pane when the job finishes (no silent profile write).
  */
 export async function runMemoryOrganizeConfirm(): Promise<{ merged: number; summary: string }> {
   emitLocal("task-panel:open");

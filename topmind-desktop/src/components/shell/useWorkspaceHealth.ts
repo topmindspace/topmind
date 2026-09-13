@@ -32,7 +32,7 @@ export function useWorkspaceHealth(): EngineHealth | null {
 
   // After workspace is healthy, re-arm suggest once (boot may race empty root before settings).
   // Soft refresh only — force would clear durable activity fingerprints and thrash AI every launch.
-  // Manual regenerate / user toggle autoPrepare still uses force via SuggestPopover & setAutoPrepare.
+  // Manual regenerate / user toggle autoPrepare still uses force via the 建议 pane & setAutoPrepare.
   useEffect(() => {
     if (!health?.ok || !health.workspaceRoot) return;
     if (suggestBootArmed.current) return;

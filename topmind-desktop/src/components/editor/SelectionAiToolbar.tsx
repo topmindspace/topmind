@@ -8,17 +8,18 @@ import {
   RiAlignLeft,
   RiBold,
   RiCodeLine,
-  RiEdit2Line,
+  RiContractUpDownLine,
+  RiExpandUpDownLine,
+  RiFileList3Line,
   RiFileTextLine,
-  RiFullscreenExitLine,
-  RiFullscreenLine,
   RiH2,
   RiItalic,
   RiListOrdered,
   RiListUnordered,
+  RiPencilLine,
+  RiQuillPenLine,
   RiSparklingLine,
   RiText,
-  RiToolsLine,
   RiTranslate2,
 } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
@@ -35,12 +36,12 @@ const SELECTION_ACTIONS: {
   tipKey: string;
 }[] = [
   { id: "polish", icon: RiSparklingLine, labelKey: "editor:selectionAi.polishLabel", tipKey: "editor:selectionAi.polishTip" },
-  { id: "shorter", icon: RiFullscreenExitLine, labelKey: "editor:selectionAi.shorterLabel", tipKey: "editor:selectionAi.shorterTip" },
-  { id: "expand", icon: RiFullscreenLine, labelKey: "editor:selectionAi.expandLabel", tipKey: "editor:selectionAi.expandTip" },
+  { id: "shorter", icon: RiContractUpDownLine, labelKey: "editor:selectionAi.shorterLabel", tipKey: "editor:selectionAi.shorterTip" },
+  { id: "expand", icon: RiExpandUpDownLine, labelKey: "editor:selectionAi.expandLabel", tipKey: "editor:selectionAi.expandTip" },
   { id: "bullets", icon: RiListUnordered, labelKey: "editor:selectionAi.bulletsLabel", tipKey: "editor:selectionAi.bulletsTip" },
   { id: "format", icon: RiAlignLeft, labelKey: "editor:selectionAi.formatLabel", tipKey: "editor:selectionAi.formatTip" },
-  { id: "fix", icon: RiToolsLine, labelKey: "editor:selectionAi.fixLabel", tipKey: "editor:selectionAi.fixTip" },
-  { id: "summarize", icon: RiAlignLeft, labelKey: "editor:selectionAi.summarizeLabel", tipKey: "editor:selectionAi.summarizeTip" },
+  { id: "fix", icon: RiPencilLine, labelKey: "editor:selectionAi.fixLabel", tipKey: "editor:selectionAi.fixTip" },
+  { id: "summarize", icon: RiFileList3Line, labelKey: "editor:selectionAi.summarizeLabel", tipKey: "editor:selectionAi.summarizeTip" },
   { id: "translate", icon: RiTranslate2, labelKey: "editor:selectionAi.translateLabel", tipKey: "editor:selectionAi.translateTip" },
 ];
 
@@ -106,7 +107,7 @@ export function SelectionAiToolbar({
             }}
             className="flex h-7 items-center gap-1 rounded-[var(--radius-sm)] px-2 text-3xs font-medium v4-ai-btn-ghost hover:text-accent-color disabled:opacity-45"
           >
-            <RiEdit2Line size={ICON.micro} /> {t("selectionAi.continueLabel")}
+            <RiQuillPenLine size={ICON.micro} /> {t("selectionAi.continueLabel")}
           </button>
         </Tooltip>
 

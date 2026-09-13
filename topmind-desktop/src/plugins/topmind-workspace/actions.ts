@@ -30,6 +30,7 @@ export function createWorkspaceActions(): ActionSlot[] {
   return [
     // Single stream goto (⌘⇧S lands on 动态; ⌘⇧T toggles the Todo popover — no duplicate Home action)
     gotoAction("topmind-workspace.goto.stream", "overlays:command.actions.gotoStream", "Go to · Stream", 10, { kind: "stream" }, "⌘⇧S"),
+    gotoAction("topmind-workspace.goto.memory", "overlays:command.actions.gotoMemory", "Go to · Memory", 11, { kind: "memory" }),
     gotoAction("topmind-workspace.goto.inbox", "overlays:command.actions.gotoInbox", "Go to · Inbox", 12, { kind: "inbox" }, "⌘⇧I"),
     gotoAction("topmind-workspace.goto.outputs", "overlays:command.actions.gotoOutputs", "Go to · Outputs", 13, { kind: "outputs" }, "⌘⇧O"),
     gotoAction("topmind-workspace.goto.archive", "overlays:command.actions.gotoArchive", "Go to · Archive", 14, { kind: "archive" }, "⌘⇧A"),

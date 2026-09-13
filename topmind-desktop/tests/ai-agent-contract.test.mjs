@@ -8,39 +8,12 @@ import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildSystemPrompt } from "../electron/ai-prompts.mjs";
+import { AI_TOOL_NAMES_READ, AI_TOOL_NAMES_WRITE } from "../electron/lib/ai-tool-names.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-const READ_TOOLS = [
-  "list_skills",
-  "load_skill",
-  "load_skill_resource",
-  "workspace_overview",
-  "list_categories",
-  "list_topics",
-  "list_topic_files",
-  "get_topic",
-  "read_file",
-  "search",
-  "list_inbox",
-  "list_outputs",
-  "fetch_url",
-  "workspace_health",
-];
-const WRITE_TOOLS = [
-  "capture_to_inbox",
-  "save_note",
-  "save_file",
-  "edit_file",
-  "create_topic",
-  "append_topic_memory",
-  "append_core_memory",
-  "reconcile_week",
-  "move_to_topic",
-  "publish_to_outputs",
-  "delete_path",
-  "rename_path",
-];
+const READ_TOOLS = AI_TOOL_NAMES_READ;
+const WRITE_TOOLS = AI_TOOL_NAMES_WRITE;
 
 test("system prompt injects pre-loaded workspace context when provided", () => {
   const prompt = buildSystemPrompt({
@@ -95,6 +68,9 @@ test("system prompt lists actual snake_case tools, not UTR hyphen names", () => 
   assert.match(prompt, /质量|少问多做|结论/i);
   assert.match(prompt, /topic\.md/i);
   assert.match(prompt, /INDEX|留痕|append_topic_memory/i);
+  assert.match(prompt, /retire_core_memory/);
+  assert.match(prompt, /update_core_memory/);
+  assert.match(prompt, /不是只追加/);
 });
 
 test("ai-store invoke does not send view-store writebackMode (yaml is policy)", () => {

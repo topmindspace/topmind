@@ -1,6 +1,6 @@
 ---
 name: topmind-memory
-version: 3.5.4
+version: 4.0.0
 description: >-
   更新「我的情况」或周期反思。Use when 记住这个、更新我的情况、加到专题记忆、沉淀结论。
   Do NOT use for 捕获、仅总结（→organize）、整理本周正文、出稿、开/并专题、doctor/loop.
@@ -62,10 +62,16 @@ degradation: ../shared/capability-degradation.md
 
 ```text
 UTR: memory.append-profile --content "…"
-Host: 读 profile → 段落下 append → 写回（先备份）
+Desktop: append_core_memory · update_core_memory · retire_core_memory
+Host: 读 profile（活跃段）→ ADD / UPDATE 原位 / RETIRE 到 ## 历史记录 → 写回
 ```
 
-**事实生命周期（确认式，无自动遗忘）**：追加（append）· 归档（retire：活跃段 → `## 历史记录`）· 更新（update：原位改写并刷新日期）。用户说「这件事做完了 / 这条过时了」→ 归档到 `## 历史记录`，**不要删除**；`memory_organize` 也会产出归档建议（须确认）。
+**事实生命周期（确认式，无自动遗忘，不是只追加）**：
+- **追加（ADD）**：新稳定事实 → `append_core_memory` / `memory.append-profile`（跨活跃段落去重，禁止第二条活事实）
+- **更新（UPDATE）**：含义变了 → `update_core_memory`（原位改写并刷新日期，不要再 append 一行）
+- **归档（RETIRE）**：已完成/过期 → `retire_core_memory`（活跃段 → `## 历史记录`，加 `（YYYY-MM-DD 归档）` 前缀，**不删内容**）
+
+用户说「这件事做完了 / 这条过时了」→ 归档，**不要删除**；「这条改成…」→ 原位更新。`memory_organize` 产出 `append_profile` / `update_profile` / `retire_profile` 建议（须确认）。AI 上下文只注入活跃事实（历史段折叠为计数）。
 
 ## 周期反思（Periodic）
 

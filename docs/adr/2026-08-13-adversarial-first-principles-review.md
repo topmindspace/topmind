@@ -23,6 +23,8 @@
 | **H4** | Clip 第二套 HTML→MD 转换器 + v3 inbox 回退 | delete / replace | Clip + Desktop converter |
 | **H5** | PrimaryNav 把「归档」升成与动态/收件箱/写出来同级；「搜索」（找回）藏在 L3 | rewrite | Desktop chrome |
 
+> **H5 chrome 后记（2026-09-07）**：归档离开主锚 **仍成立**。把搜索升成 PrimaryNav 对等锚是本轮 after-state；三列改版后搜索改回 ⌘K/⌘P（非主锚）。不要把「搜索在 PrimaryNav」再抄进现行 DESIGN。
+
 Med/Low 明确延期，见各维表格。不在本轮改 embedding / Phase D / 主进程 TS。
 
 ---

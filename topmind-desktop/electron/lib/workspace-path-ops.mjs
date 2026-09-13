@@ -1168,69 +1168,47 @@ export const pathOps = {
   },
 
   /**
-   * Append to 我的情况 (core profile).
+   * Append to 我的情况 (core profile) via Kernel appendProfileEntry —
+   * live-section dedupe, dated `（YYYY-MM-DD）` lines, writeback gate.
    */
   async appendCoreMemory({ entry, section, source, actor, confirmed }, ctx) {
     S(entry, "entry", { maxLen: 100_000 });
-    const wmApi = await import("./workspace-model-api.mjs");
-    const ensured = await wmApi.ensureCoreProfile(ctx.workspaceRoot);
-    if (!ensured.ok || !ensured.profileRelPath) {
-      throw new Error(i18n("pathOps.coreMemoryPathFail"));
-    }
-    const relativePath = ensured.profileRelPath;
-    const fp = await sp(ctx.workspaceRoot, relativePath);
-    const stamp = now();
-    const day = stamp.slice(0, 10);
-    const sectionTitle = section && String(section).trim() ? String(section).trim() : "偏好";
-    const header = `## ${sectionTitle}`;
-    const line = `- [${day}] ${entry.trim()}${source ? `（来源：${source}）` : ""}`;
-
-    let old = await fs.readFile(fp, "utf8").catch(() => null);
-    if (old === null) {
-      await fs.mkdir(path.dirname(fp), { recursive: true });
-      old = "";
-    }
-    const { data, body } = splitMarkdownFrontmatter(old || "");
-    let newBody = (body || "").trimEnd();
-    if (!newBody) {
-      newBody = `# 我的情况\n\n## 偏好\n\n## 当前目标\n\n## 关键的人与协作\n\n## 进行中的事\n`;
-    }
-    if (newBody.includes(header)) {
-      const idx = newBody.indexOf(header);
-      const after = idx + header.length;
-      const rest = newBody.slice(after);
-      const nextH = rest.search(/\n## /u);
-      if (nextH === -1) newBody = `${newBody}\n${line}\n`;
-      else {
-        const insertAt = after + nextH;
-        newBody = `${newBody.slice(0, insertAt).replace(/\s+$/u, "")}\n${line}\n${newBody.slice(insertAt)}`;
-      }
-    } else {
-      newBody = `${newBody}\n\n${header}\n${line}\n`;
-    }
-    const next = injectFrontmatter(newBody, {
-      ...data,
-      title: data?.title || "我的情况",
-      type: "core-memory",
-      updated_at: stamp,
-    });
+    const { loadKernelApi } = await import("./kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const root = resolveDataRoot(ctx.workspaceRoot);
+    const contract = kernel.loadContract(root);
+    const relativePath = kernel.globalProfileRelPath(root);
     const writeActor = actor || ctx.writeActor || "user";
-    const ev = await kernelDurableWrite(
-      { relativePath, content: next },
-      ctx,
-      {
-        actor: writeActor,
-        confirmed: writeActor === "user" ? true : confirmed === true,
-        operation: "update",
-        role: "memory",
-        writebackMode: ctx.explicitWritebackMode,
+    const sectionTitle = section && String(section).trim() ? String(section).trim() : undefined;
+    const sourced = source && String(source).trim()
+      ? `${entry.trim()}（来源：${String(source).trim()}）`
+      : entry.trim();
+    const day = now().slice(0, 10);
+    const content = /^[-*+]\s+（\d{4}-\d{2}-\d{2}）/u.test(sourced)
+      ? sourced
+      : `- （${day}）${sourced.replace(/^[-*+]\s+/u, "")}`;
+
+    const r = kernel.appendProfileEntry({
+      workspaceRoot: root,
+      entry: { section: sectionTitle, content },
+      contract: {
+        ...contract,
+        writeback: {
+          ...contract?.writeback,
+          mode: ctx.explicitWritebackMode || contract?.writeback?.mode,
+        },
       },
-    );
-    if (!ev.pending && !ev.needsConfirm) bumpWorkspaceIndex(relativePath);
+      actor: writeActor,
+      confirmed: writeActor === "user" ? true : confirmed === true,
+      writebackModeOverride: ctx.explicitWritebackMode,
+    });
+
+    if (!r.pending && !r.needsConfirm) bumpWorkspaceIndex(relativePath);
     return {
-      ...asDesktopEvidence({ ...ev, operation: "append-profile" }, relativePath),
-      userMessage: i18n("pathOps.coreMemoryUpdated", { section: sectionTitle }),
+      ...asDesktopEvidence({ ...r, operation: r.operation || "append-profile" }, relativePath),
+      userMessage: i18n("pathOps.coreMemoryUpdated", { section: sectionTitle || "" }),
       section: sectionTitle,
+      reason: r.reason,
     };
   },
 
@@ -1245,6 +1223,7 @@ export const pathOps = {
     const contract = kernel.loadContract(root);
     const relativePath = kernel.globalProfileRelPath(root);
 
+    const writeActor = actor || ctx.writeActor || "user";
     const r = kernel.retireProfileEntry({
       workspaceRoot: root,
       match: match.trim(),
@@ -1256,6 +1235,9 @@ export const pathOps = {
           mode: ctx.explicitWritebackMode || contract?.writeback?.mode,
         },
       },
+      actor: writeActor,
+      confirmed: writeActor === "user" ? true : confirmed === true,
+      writebackModeOverride: ctx.explicitWritebackMode,
     });
 
     if (!r.pending && !r.needsConfirm) bumpWorkspaceIndex(relativePath);
@@ -1279,6 +1261,7 @@ export const pathOps = {
     const contract = kernel.loadContract(root);
     const relativePath = kernel.globalProfileRelPath(root);
 
+    const writeActor = actor || ctx.writeActor || "user";
     const r = kernel.updateProfileEntry({
       workspaceRoot: root,
       match: match.trim(),
@@ -1290,6 +1273,9 @@ export const pathOps = {
           mode: ctx.explicitWritebackMode || contract?.writeback?.mode,
         },
       },
+      actor: writeActor,
+      confirmed: writeActor === "user" ? true : confirmed === true,
+      writebackModeOverride: ctx.explicitWritebackMode,
     });
 
     if (!r.pending && !r.needsConfirm) bumpWorkspaceIndex(relativePath);
@@ -1339,8 +1325,21 @@ export const pathOps = {
         const r = kernel.addTodoItem(root, String(text).trim(), {
           contract,
           actor: actor || "ai",
+          confirmed,
           dueDate: entry?.dueDate,
         });
+        if (r?.pending) {
+          return {
+            ok: false,
+            pending: true,
+            needsConfirm: true,
+            operation: "add-todos",
+            targetPath: todoRel,
+            writebackEvidence: r.writebackEvidence,
+            addedCount: 0,
+            items: [],
+          };
+        }
         if (r?.ok && r.item) added.push(r.item);
       }
     }
@@ -1383,7 +1382,10 @@ export const pathOps = {
       };
     }
 
-    const r = kernel.toggleTodoItem(root, targetItem.id, contract);
+    const r = kernel.toggleTodoItem(root, targetItem.id, contract, {
+      actor: actor || "ai",
+      confirmed,
+    });
     if (r?.ok) {
       bumpWorkspaceIndex(todoRel);
     }

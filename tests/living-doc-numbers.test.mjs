@@ -139,6 +139,71 @@ test("ADR index pairs list 2026-08-27 desktop log rotation", () => {
   assert.match(zh, /2026-08-27-desktop-log-rotation\.md/);
 });
 
+test("ADR index pairs list 2026-09-07 pi/three-column and do not freeze No Pi Agent Base as current", () => {
+  const en = read("docs/README.md");
+  const zh = read("docs/README.zh-CN.md");
+  assert.match(en, /2026-09-07-pi-engine-and-three-column-reevaluation\.md/);
+  assert.match(zh, /2026-09-07-pi-engine-and-three-column-reevaluation\.md/);
+  assert.match(en, /loop choice superseded 2026-09-07/);
+  assert.match(zh, /循环选型被 2026-09-07 覆盖/);
+});
+
+test("living docs do not teach deleted TitleBar chrome as current", () => {
+  const design = read("DESIGN.md");
+  const agents = read("AGENTS.md");
+  const boundaries = read("PRODUCT-BOUNDARIES.md");
+  const model = read("PROJECT-MODEL.md");
+  const streamFirst = read("docs/stream-first-optimization-scheme.md");
+  const reset = read("docs/ARCHITECTURE-RESET.md");
+  const desktopReadme = read("topmind-desktop/README.md");
+  const desktopReadmeZh = read("topmind-desktop/README.zh-CN.md");
+  const audit = read("docs/UIUX-AUDIT-2026-09-01.md");
+
+  assert.doesNotMatch(design, /标题栏灯泡/);
+  assert.doesNotMatch(agents, /作为 Apps 菜单 mini-app/);
+  assert.doesNotMatch(boundaries, /标题栏 Apps 菜单/);
+  assert.doesNotMatch(model, /入口在 Apps 菜单/);
+  assert.doesNotMatch(streamFirst, /合入 ActionBar/);
+  assert.doesNotMatch(streamFirst, /标题栏 💡/);
+  assert.doesNotMatch(desktopReadme, /AI panel \*\*ActionBar\*\*/);
+  assert.doesNotMatch(desktopReadme, /Title-bar \*\*Note it\*\*/);
+  assert.doesNotMatch(desktopReadmeZh, /AI 面板 \*\*ActionBar\*\*/);
+  assert.doesNotMatch(desktopReadmeZh, /顶栏 \*\*记一下\*\*/);
+  assert.match(reset, /搜索=⌘K\/⌘P 非 PrimaryNav/);
+  assert.doesNotMatch(reset, /主锚 动态\/收件箱\/写出来\/搜索；/);
+  assert.match(audit, /\*\*NON-LIVING\*\*/);
+
+  const ledgerZh = read("topmind-desktop/src/locales/zh-CN/ledger.json");
+  const ledgerEn = read("topmind-desktop/src/locales/en-US/ledger.json");
+  const settingsZh = read("topmind-desktop/src/locales/zh-CN/settings.json");
+  const settingsEn = read("topmind-desktop/src/locales/en-US/settings.json");
+  assert.doesNotMatch(ledgerZh, /标题栏 Apps 菜单/);
+  assert.doesNotMatch(ledgerEn, /header Apps menu/i);
+  assert.match(ledgerZh, /AI 工作区应用 pane/);
+  assert.match(ledgerEn, /AI workspace Apps pane/);
+  assert.doesNotMatch(settingsZh, /标题栏 Apps 菜单/);
+  assert.doesNotMatch(settingsEn, /header Apps menu/i);
+  assert.match(settingsZh, /AI 工作区应用 pane/);
+  assert.match(settingsEn, /AI workspace Apps pane/);
+});
+
+test("onboarding tagline is the five user concepts; capture skill and CLI match registry", () => {
+  const zh = JSON.parse(read("topmind-desktop/src/locales/zh-CN/common.json"));
+  const en = JSON.parse(read("topmind-desktop/src/locales/en-US/common.json"));
+  assert.equal(zh.app.tagline, "记一下 · 动态 · 专题 · 我的情况 · 写出来");
+  assert.equal(en.app.tagline, "Note it · Stream · Topic · My profile · Write out");
+  const settingsZh = JSON.parse(read("topmind-desktop/src/locales/zh-CN/settings.json"));
+  const settingsEn = JSON.parse(read("topmind-desktop/src/locales/en-US/settings.json"));
+  assert.doesNotMatch(settingsZh.general.writebackDesc, /也可在 AI 面板切换/);
+  assert.doesNotMatch(settingsEn.general.writebackDesc, /also switchable from AI panel/);
+  const desktopDesign = read("topmind-desktop/DESIGN.md");
+  assert.doesNotMatch(desktopDesign, /点击徽章循环切换模式/);
+  assert.doesNotMatch(desktopDesign, /写回两态 `auto \| confirm` 循环/);
+  const cli = read("utr/bin/topmind-cli.mjs");
+  assert.doesNotMatch(cli, /workspace-check/);
+  assert.match(cli, /contract \| memory \| lifecycle \| derived/);
+});
+
 test("living DESIGN files do not copy surface version digits into headings", () => {
   for (const rel of [
     "DESIGN.md",
@@ -173,9 +238,10 @@ test("living DESIGN/ARCHITECTURE do not present canvas SuggestEntryStrip as curr
   assert.doesNotMatch(arch, /EditorArea（SuggestEntryStrip/);
   assert.doesNotMatch(streamFirst, /画布顶 strip（空则隐藏）/);
   assert.doesNotMatch(streamFirst, /用户在 feed 附近一眼看见建议/);
-  assert.match(arch, /PrimaryNav 文案与默认 selection 为 \*\*动态 · 收件箱 · 写出来 · 搜索\*\*/);
-  assert.doesNotMatch(design, /AI 轨 `ActionBar` 仅为计数跳转/);
-  assert.match(design, /AI 轨 `ActionBar` \*\*仅专注模式\*\*/);
+  assert.match(arch, /PrimaryNav 文案与默认 selection 为 \*\*动态 · 收件箱 · 写出来\*\*/);
+  assert.doesNotMatch(arch, /写出来 · 搜索\*\*/);
+  assert.doesNotMatch(design, /AI 轨 `ActionBar`/);
+  assert.match(design, /浮动 `SuggestPopover`/);
 });
 
 test("living Desktop DESIGN UIX-403 matches Design System 3.0 tokens (not 2.1 leftover)", () => {

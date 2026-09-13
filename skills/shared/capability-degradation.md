@@ -45,7 +45,7 @@ Level 3（最低）: 仅对话
 | 捕获 / 创建 | `create-topic` · `capture-note` · `save-output` |
 | 记忆 | `memory.append-profile` · `memory.append-topic` · `memory.promote` · `memory.digest` |
 | Inbox 路由 | `plan-inbox-routing`（primary；整理 inbox 前规划） |
-| 检查 / 维护 | `doctor-workspace` · `archive-topic` · `restore-safety-receipt` |
+| 检查 / 维护 | `doctor-workspace` · `archive-topic` · `archive-stream-year` · `restore-safety-receipt` · `contract.reseed` |
 
 扩展面见 `TOOLS.md` §Current Command Surface。输入用独立字段 `category` + `topic`。
 

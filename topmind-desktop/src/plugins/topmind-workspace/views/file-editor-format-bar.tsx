@@ -4,6 +4,7 @@
  */
 import { useTranslation } from "react-i18next";
 import type { Editor } from "@tiptap/react";
+import type { ReactNode } from "react";
 import {
   RiArrowLeftSLine,
   RiArrowRightSLine,
@@ -32,6 +33,7 @@ import {
   RiListUnordered,
   RiLoader4Line,
   RiMoreLine,
+  RiNodeTree,
   RiSparklingLine,
   RiStrikethrough,
   RiTwitterXLine,
@@ -47,6 +49,7 @@ import { Tooltip } from "../../../components/ui/tooltip";
 import { ICON } from "../../../lib/icons";
 import { cn } from "../../../lib/cn";
 import { ToolbarButton, ToolbarSep, SaveBadge, type SaveState } from "./file-editor-chrome";
+import { EditorReadingMenu } from "../../../components/editor/EditorReadingMenu";
 
 export function EditorModeSwitch({
   viewMode,
@@ -64,7 +67,7 @@ export function EditorModeSwitch({
         aria-selected={viewMode === "edit"}
         data-active={viewMode === "edit"}
         onClick={() => onChange("edit")}
-        className="v4-segmented-item !flex-none gap-1 !px-2 !py-0.5"
+        className="v4-segmented-item !flex-none gap-0.5 !px-1.5 !py-0"
       >
         <RiEditLine size={ICON.xs} />
         <span className="hidden text-3xs sm:inline" data-compact-hidden>{t("workspace:formatBar.edit")}</span>
@@ -75,7 +78,7 @@ export function EditorModeSwitch({
         aria-selected={viewMode === "preview"}
         data-active={viewMode === "preview"}
         onClick={() => onChange("preview")}
-        className="v4-segmented-item !flex-none gap-1 !px-2 !py-0.5"
+        className="v4-segmented-item !flex-none gap-0.5 !px-1.5 !py-0"
       >
         <RiEyeLine size={ICON.xs} />
         <span className="hidden text-3xs sm:inline" data-compact-hidden>{t("workspace:formatBar.preview")}</span>
@@ -195,11 +198,61 @@ export function EditorFormatBar({
   );
 }
 
-export function EditorMoreMenu({
-  moreOpen,
-  setMoreOpen,
-  showMeta,
-  setShowMeta,
+/** Outline / appearance / focus — lives on the properties row, not the format mop. */
+export function EditorViewChrome({
+  showOutline,
+  onToggleOutline,
+  editor,
+  onOpenSettings,
+  focusMode,
+  onToggleFocus,
+  showFocus = true,
+}: {
+  showOutline: boolean;
+  onToggleOutline: () => void;
+  editor?: Editor | null;
+  onOpenSettings?: () => void;
+  focusMode: boolean;
+  onToggleFocus: () => void;
+  showFocus?: boolean;
+}) {
+  const { t } = useTranslation(["workspace", "common"]);
+  return (
+    <div className="flex items-center gap-0.5" data-editor-view-chrome>
+      <Tooltip content={showOutline ? t("workspace:outline.hideTip") : t("workspace:outline.showTip")}>
+        <button
+          type="button"
+          onClick={onToggleOutline}
+          className={cn("v4-editor-tool-btn", showOutline && "text-accent-color")}
+          aria-label={t("workspace:outline.title")}
+          aria-pressed={showOutline}
+        >
+          <RiNodeTree size={ICON.xs} />
+        </button>
+      </Tooltip>
+      <EditorReadingMenu editor={editor} onOpenSettings={onOpenSettings} />
+      {showFocus ? (
+        <Tooltip content={focusMode ? t("workspace:formatBarOptions.focusModeOff") : t("workspace:formatBarOptions.focusModeOn")}>
+          <button
+            type="button"
+            onClick={onToggleFocus}
+            className={cn(
+              "v4-editor-tool-btn",
+              focusMode && "bg-accent-color text-primary-foreground hover:opacity-90",
+            )}
+            aria-label={focusMode ? t("workspace:formatBarOptions.focusModeOff") : t("workspace:formatBarOptions.focusModeOn")}
+            aria-pressed={focusMode}
+          >
+            {focusMode ? <RiFullscreenExitLine size={ICON.xs} /> : <RiFocus3Line size={ICON.xs} />}
+          </button>
+        </Tooltip>
+      ) : null}
+    </div>
+  );
+}
+
+/** File-context shortcuts injected into TitleBar on file/detail pages. */
+export function FileEditorTitleBarActions({
   canPublish,
   busyAction,
   onPublish,
@@ -210,17 +263,9 @@ export function EditorMoreMenu({
   onPostToX,
   mounted,
   onToggleMount,
-  onOpenAi,
-  focusMode,
-  onToggleFocus,
-  saveState,
-  wordCount,
   onRequestAiBar,
+  moveControl,
 }: {
-  moreOpen: boolean;
-  setMoreOpen: (v: boolean | ((prev: boolean) => boolean)) => void;
-  showMeta: boolean;
-  setShowMeta: (v: boolean | ((prev: boolean) => boolean)) => void;
   canPublish: boolean;
   busyAction: string | null;
   onPublish: () => void;
@@ -231,60 +276,82 @@ export function EditorMoreMenu({
   onPostToX: () => void;
   mounted: boolean;
   onToggleMount: () => void;
-  onOpenAi: () => void;
-  focusMode: boolean;
-  onToggleFocus: () => void;
+  onRequestAiBar: () => void;
+  moveControl?: ReactNode;
+}) {
+  const { t } = useTranslation(["workspace", "common"]);
+  return (
+    <div className="flex items-center gap-0.5" data-file-titlebar-actions>
+      {moveControl}
+      {canPublish ? (
+        <Tooltip content={t("workspace:formatBarOptions.publishToOutputsTip")}>
+          <button type="button" className="v4-titlebar-btn" onClick={onPublish} aria-label={t("workspace:formatBarOptions.publishToOutputsTip")}>
+            {busyAction === "publish" ? (
+              <RiLoader4Line size={ICON.sm} className="animate-spin" />
+            ) : (
+              <RiUpload2Line size={ICON.sm} />
+            )}
+          </button>
+        </Tooltip>
+      ) : null}
+      {!readOnly ? (
+        <Tooltip content={t("workspace:formatBarOptions.aiEditTip")}>
+          <button type="button" className="v4-titlebar-btn" onClick={onRequestAiBar} aria-label={t("workspace:formatBarOptions.aiEditTip")}>
+            <RiSparklingLine size={ICON.sm} className="text-accent-color" />
+          </button>
+        </Tooltip>
+      ) : null}
+      {resolvedTopicId ? (
+        <Tooltip content={t("workspace:formatBarOptions.appendToMemory")}>
+          <button type="button" className="v4-titlebar-btn" onClick={onMemory} aria-label={t("workspace:formatBarOptions.appendToMemory")}>
+            <RiBrainLine size={ICON.sm} />
+          </button>
+        </Tooltip>
+      ) : null}
+      <Tooltip content={mounted ? t("workspace:previewView.unmountTooltip") : t("workspace:previewView.mountTooltip")}>
+        <button
+          type="button"
+          className={cn("v4-titlebar-btn", mounted && "text-accent-color")}
+          onClick={onToggleMount}
+          aria-pressed={mounted}
+          aria-label={mounted ? t("workspace:previewView.unmountTooltip") : t("workspace:previewView.mountTooltip")}
+        >
+          <RiAttachmentLine size={ICON.sm} />
+        </button>
+      </Tooltip>
+      {!readOnly && xPublishEnabled ? (
+        <Tooltip content={t("workspace:formatBarOptions.postToX")}>
+          <button type="button" className="v4-titlebar-btn" onClick={onPostToX} aria-label={t("workspace:formatBarOptions.postToX")}>
+            <RiTwitterXLine size={ICON.sm} />
+          </button>
+        </Tooltip>
+      ) : null}
+    </div>
+  );
+}
+
+/** Format-rail status cluster — words / save / file-info. Outline · appearance · focus live on the properties row. */
+export function EditorMoreMenu({
+  moreOpen,
+  setMoreOpen,
+  showMeta,
+  setShowMeta,
+  readOnly,
+  saveState,
+  wordCount,
+}: {
+  moreOpen: boolean;
+  setMoreOpen: (v: boolean | ((prev: boolean) => boolean)) => void;
+  showMeta: boolean;
+  setShowMeta: (v: boolean | ((prev: boolean) => boolean)) => void;
+  readOnly: boolean;
   saveState: SaveState;
   wordCount: number;
-  onRequestAiBar: () => void;
 }) {
   const { t } = useTranslation(["workspace", "common"]);
 
   return (
-    <div className="flex min-w-0 max-w-[min(100%,18rem)] items-center justify-end gap-1 sm:max-w-[22rem]">
-      {/* Rail actions stay on the rail; the ⋯ menu is exclusive (file info / memory / X / AI). */}
-      {canPublish ? (
-        <ToolbarButton
-          onClick={onPublish}
-          active={false}
-          tip={t("workspace:formatBarOptions.publishToOutputsTip")}
-        >
-          {busyAction === "publish" ? (
-            <RiLoader4Line size={ICON.xs} className="animate-spin" />
-          ) : (
-            <RiUpload2Line size={ICON.xs} />
-          )}
-        </ToolbarButton>
-      ) : null}
-      {!readOnly ? (
-        <ToolbarButton
-          onClick={onRequestAiBar}
-          active={false}
-          tip={t("workspace:formatBarOptions.aiEditTip")}
-        >
-          <RiSparklingLine size={ICON.xs} className="text-accent-color" />
-        </ToolbarButton>
-      ) : null}
-
-      {/* Focus mode — prominent direct button (not in ⋯) */}
-      <Tooltip content={focusMode ? t("workspace:formatBarOptions.focusModeOff") : t("workspace:formatBarOptions.focusModeOn")}>
-        <button
-          type="button"
-          onClick={onToggleFocus}
-          className={cn(
-            "flex h-7 shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 text-3xs font-medium transition-colors",
-            "v4-focus-ring",
-            focusMode
-              ? "bg-accent-color text-primary-foreground shadow-[var(--shadow-button)] hover:opacity-90"
-              : "text-text-tertiary hover:bg-accent-bg-subtle hover:text-accent-color",
-          )}
-          aria-label={focusMode ? t("workspace:formatBarOptions.focusModeOff") : t("workspace:formatBarOptions.focusModeOn")}
-          aria-pressed={focusMode}
-        >
-          {focusMode ? <RiFullscreenExitLine size={ICON.xs} /> : <RiFocus3Line size={ICON.xs} />}
-        </button>
-      </Tooltip>
-
+    <div className="flex min-w-0 items-center justify-end gap-1">
       <span
         className="hidden shrink-0 truncate font-mono text-3xs text-text-quaternary sm:inline"
         data-compact-hidden
@@ -298,14 +365,14 @@ export function EditorMoreMenu({
         open={moreOpen}
         onOpenChange={setMoreOpen}
         align="end"
-        minWidth={200}
+        minWidth={180}
         matchTriggerWidth={false}
         trigger={
           <button
             type="button"
             data-menu-trigger
             onClick={() => setMoreOpen((v) => !v)}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-primary"
+            className="v4-editor-tool-btn"
             aria-label={t("workspace:formatBarOptions.moreActions")}
             aria-expanded={moreOpen}
             aria-haspopup="menu"
@@ -323,47 +390,6 @@ export function EditorMoreMenu({
         >
           <RiHashtag size={ICON.xs} className="shrink-0 text-text-quaternary" />
           {showMeta ? t("workspace:formatBarOptions.hideFileInfo") : t("workspace:formatBarOptions.fileInfo")}
-        </DropdownItem>
-        {resolvedTopicId ? (
-          <DropdownItem
-            onSelect={() => {
-              setMoreOpen(false);
-              onMemory();
-            }}
-          >
-            <RiBrainLine size={ICON.xs} className="shrink-0 text-text-quaternary" />
-            {t("workspace:formatBarOptions.appendToMemory")}
-          </DropdownItem>
-        ) : null}
-        {!readOnly && xPublishEnabled ? (
-          <DropdownItem
-            onSelect={() => {
-              setMoreOpen(false);
-              onPostToX();
-            }}
-          >
-            <RiTwitterXLine size={ICON.xs} className="shrink-0 text-text-quaternary" />
-            {t("workspace:formatBarOptions.postToX")}
-          </DropdownItem>
-        ) : null}
-        <DropdownSectionLabel>{t("workspace:formatBarOptions.aiContext")}</DropdownSectionLabel>
-        <DropdownItem
-          onSelect={() => {
-            setMoreOpen(false);
-            onOpenAi();
-          }}
-        >
-          <RiSparklingLine size={ICON.xs} className="shrink-0 text-accent-color" />
-          {t("workspace:formatBarOptions.openAiPanel")}
-        </DropdownItem>
-        <DropdownItem
-          onSelect={() => {
-            setMoreOpen(false);
-            onToggleMount();
-          }}
-        >
-          <RiAttachmentLine size={ICON.xs} className="shrink-0 text-text-quaternary" />
-          {mounted ? t("workspace:previewView.unmountTooltip") : t("workspace:previewView.mountTooltip")}
         </DropdownItem>
       </DropdownMenu>
     </div>

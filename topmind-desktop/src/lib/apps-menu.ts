@@ -1,8 +1,9 @@
 /**
- * Apps 菜单契约（2026-08-30）— 可选插件 / mini-app 的唯一 chrome 入口。
+ * Apps launchpad 契约 — 可选插件 / mini-app 的 chrome 入口。
  *
  * 侧栏回归纯内容导航；连接器 hub（weread / x / ingest）与 mini-app
- * overlay（ledger / 外部插件）统一从标题栏 Apps 弹出（launchpad）。
+ * overlay（ledger / 外部插件）统一从 **AI 工作区 · 应用 pane** 打开
+ *（AI 工作区 应用 pane；`AppsMenu` 仅为薄 re-export）。
  * 打开方式由插件自己注册的 ViewSlot 决定：声明了 connector hub 视图
  * 的进主画布，其余开 plugin-app overlay — 本模块不写死任何插件 id。
  */
@@ -53,7 +54,7 @@ export function openLaunchablePlugin(pluginId: string): void {
 }
 
 /**
- * Per-plugin readiness + where "configure" lands（Apps 菜单「待配置」引导）。
+ * Per-plugin readiness + where "configure" lands（应用 pane「待配置」引导）。
  * 与 PluginsPanel 同一判定：weread=apiKey · x=bearer/mcp；其余视作就绪。
  * 首方插件知识集中在此（菜单组件不写死插件 id），settingsTopicId 复用
  * 设置槽 id 约定 `topmind-<name>.settings`。
@@ -75,5 +76,5 @@ export function pluginReadiness(
   return { needsConfig: false, settingsTopicId: topicId };
 }
 
-/** Header Apps 菜单开关事件 — 命令面板 / 快捷键复用同一入口。 */
+/** 命令面板 / 总线开关事件 — 打开 AI 工作区应用 pane（宿主在 Shell）。 */
 export const APPS_MENU_TOGGLE_EVENT = "titlebar:apps-toggle" as const;

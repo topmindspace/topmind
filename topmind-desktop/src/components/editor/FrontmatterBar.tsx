@@ -2,7 +2,7 @@
  * Sub-header: status / priority / due chips for edit mode.
  * Uses shared Select(variant="chip") — single border, no nested chrome.
  */
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { RiCalendarLine, RiFlagLine, RiLoader4Line, RiPriceTag3Line } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { api } from "../../services/api";
@@ -19,12 +19,8 @@ interface Props {
   readOnly?: boolean;
   flushBody?: () => Promise<void>;
   onUpdated?: (next: Record<string, unknown>) => void | Promise<void>;
-  /** Title + breadcrumb (moved out of toolbar to free format tools) */
-  identity?: {
-    title: string;
-    breadcrumb?: string | null;
-    onContextMenu?: (e: React.MouseEvent) => void;
-  };
+  /** Outline / reading / focus — lives on this row so the format mop stays format-only. */
+  trailing?: ReactNode;
 }
 
 export function FrontmatterBar({
@@ -33,7 +29,7 @@ export function FrontmatterBar({
   readOnly,
   flushBody,
   onUpdated,
-  identity,
+  trailing,
 }: Props) {
   const { t } = useTranslation("editor");
   const fm = frontmatter || {};
@@ -78,29 +74,11 @@ export function FrontmatterBar({
   };
 
   return (
-    <div className="v4-editor-subheader flex min-w-0 flex-wrap items-center gap-1.5 border-b border-border-subtle-dim px-2.5 py-1">
-      {identity ? (
-        <Tooltip content={t("frontmatterBar.pathTooltip", { path: relativePath })}>
-          <button
-            type="button"
-            className="mr-1 flex min-w-0 max-w-[min(42%,220px)] shrink items-center gap-1.5 rounded-[var(--radius-sm)] px-1 py-0.5 text-left transition-colors hover:bg-surface-muted/60"
-            onContextMenu={identity.onContextMenu}
-          >
-            <span className="min-w-0 truncate text-3xs font-medium text-text-primary">
-              {identity.title}
-            </span>
-            {identity.breadcrumb ? (
-              <span className="hidden min-w-0 truncate font-mono text-3xs text-text-quaternary sm:inline">
-                {identity.breadcrumb}
-              </span>
-            ) : null}
-          </button>
-        </Tooltip>
-      ) : (
-        <span className="mr-0.5 hidden text-3xs font-medium uppercase tracking-wide text-text-quaternary sm:inline">
-          {t("frontmatterBar.properties")}
-        </span>
-      )}
+    <div className="v4-editor-subheader flex min-w-0 items-center gap-1.5 border-b border-border-subtle-dim px-2.5 py-1.5">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+      <span className="mr-0.5 hidden text-3xs font-medium uppercase tracking-wide text-text-quaternary sm:inline">
+        {t("frontmatterBar.properties")}
+      </span>
 
       <Tooltip content={t("frontmatterBar.statusTooltip")}>
         <span className="inline-flex min-w-0">
@@ -145,7 +123,7 @@ export function FrontmatterBar({
       <Tooltip content={t("frontmatterBar.dueTooltip")}>
         <label
           className={cn(
-            "v4-select-chip inline-flex h-7 max-w-[11rem] items-center gap-1 rounded-full",
+            "v4-select-chip inline-flex h-8 max-w-[11rem] items-center gap-1 rounded-full",
             "border border-border-subtle-dim bg-surface-muted/70 px-2",
             "transition-colors hover:bg-surface-muted focus-within:ring-2 focus-within:ring-ring/35",
             (readOnly || busy) && "opacity-50",
@@ -186,6 +164,12 @@ export function FrontmatterBar({
       )}
 
       {busy ? <RiLoader4Line size={ICON.xs} className="animate-spin text-text-quaternary" /> : null}
+      </div>
+      {trailing ? (
+        <div className="ml-auto flex shrink-0 items-center gap-0.5" data-editor-view-chrome-slot>
+          {trailing}
+        </div>
+      ) : null}
     </div>
   );
 }

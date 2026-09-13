@@ -74,12 +74,12 @@ test("StreamDetailView and QuickCapture wire polishComposerText / action polish"
 
 test("stream detail: polish + save primary; full capture demoted; no header 记一下", () => {
   const stream = readFileSync(path.join(root, "src/plugins/topmind-workspace/views/StreamDetailView.tsx"), "utf8");
-  // Maintain todos + polish + save
-  assert.match(stream, /id:\s*["']ai-todos["']/u);
-  // Real path: getState() then st.maintain(...) (progressive force when all-periods-processed)
-  assert.match(stream, /useTodoStore\.getState\(\)/u);
-  assert.match(stream, /\.maintain\(/u);
-  assert.match(stream, /maintainReason\s*===\s*["']all-periods-processed["']/u);
+  // 清单 ✨ lives in AI workspace pane / focus TodoPopover, not Stream chrome
+  assert.doesNotMatch(stream, /id:\s*["']ai-todos["']/u);
+  assert.doesNotMatch(stream, /handleMaintainTodos/u);
+  const todoBody = readFileSync(path.join(root, "src/components/todo/TodoListBody.tsx"), "utf8");
+  assert.match(todoBody, /data-todo-maintain/u);
+  assert.match(todoBody, /maintainReason\s*===\s*["']all-periods-processed["']/u);
   assert.match(stream, /handleComposePolish|polishComposerText/u);
   assert.match(stream, /handleInlineCompose/u);
   // Full capture only as tertiary link (not header primary)

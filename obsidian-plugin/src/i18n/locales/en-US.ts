@@ -37,6 +37,7 @@ export const enUS: typeof zhCN = {
   stream_day_today: "Today",
   stream_day_yesterday: "Yesterday",
   stream_period_label: "Period",
+  stream_unreconciled: "Needs tidy",
 
   // ── Suggestions ──
   suggestions_title: "AI Suggestions",

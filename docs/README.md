@@ -62,7 +62,7 @@
 | [`stream-first-optimization-scheme.md`](./stream-first-optimization-scheme.md) | Stream-first product truth and ideal use |
 | [`capture-clip-matrix.md`](./capture-clip-matrix.md) | Capture · Clip · Ingest capability matrix |
 | [`topmind-vs-others.md`](./topmind-vs-others.md) | Knowledge-management comparison |
-| [`UIUX-AUDIT-2026-09-01.md`](./UIUX-AUDIT-2026-09-01.md) | Comprehensive UI/UX & Information Architecture audit baseline (IA, pain heatmap, proposals) |
+| [`UIUX-AUDIT-2026-09-01.md`](./UIUX-AUDIT-2026-09-01.md) | **NON-LIVING** 2026-09-01 snapshot (not current IA; three-column chrome is `topmind-desktop/DESIGN.md`) |
 
 ---
 
@@ -77,7 +77,7 @@
 | [2026-07-16](./adr/2026-07-16-public-update-and-pack-root.md) | Public Update & Pack | Public `latest.json` (no token) and engine pack |
 | [2026-07-17](./adr/2026-07-17-desktop-utr-bundle-tools-console.md) | Desktop UTR Bundle | Bundled UTR and tools console |
 | [2026-07-19](./adr/2026-07-19-knowledge-ingest-pipeline.md) | Ingest Pipeline | Offline ingest; default anydoc sidecar + optional markitdown/pandoc + built-in JS |
-| [2026-07-21](./adr/2026-07-21-pi-agent-base-decision.md) | No Pi Agent Base | Stay on the Node engine; no Pi Agent shell |
+| [2026-07-21](./adr/2026-07-21-pi-agent-base-decision.md) | No full Pi coding-agent kernel | Fence / writeback / portable Skills still hold; **loop choice superseded 2026-09-07** (hybrid `pi-agent-core`) |
 | [2026-07-22](./adr/2026-07-22-stream-packing-and-core-memory.md) | Stream & Core Memory | Period-note packing and profile memory loop |
 | [2026-08-02](./adr/2026-08-02-kernel-ai-provider-context.md) | Kernel AI Context | Per-call `aiProvider` + `createKernelContext` |
 | [2026-08-02](./adr/2026-08-02-workspace-model-split.md) | Workspace Model Split | `lib/workspace-model.mjs` facade split |
@@ -94,6 +94,7 @@
 | [2026-08-16](./adr/2026-08-16-memory-consolidation.md) | Memory Consolidation | Confirm-gated profile fact lifecycle: append / retire-to-history / update, industry-aligned (mem0 ADD/UPDATE/DELETE) |
 | [2026-08-23](./adr/2026-08-23-contract-settings-integrity.md) | Contract & Settings Integrity | Repair convergence, backup-before-overwrite, atomic write, partial settings patches, bidirectional period-path stickiness, memory-plane contract paths (incl. skip evidence / todo / host open), settings close-path flush |
 | [2026-08-27](./adr/2026-08-27-desktop-log-rotation.md) | Desktop Log Rotation | Size-capped support log (`main.log` 2 MB × 3 archives, self-healing on legacy oversized files) |
+| [2026-09-07](./adr/2026-09-07-pi-engine-and-three-column-reevaluation.md) | Pi engine + three-column re-eval | Hybrid `pi-agent-core` (bash off, fenced FS); AI workspace column peer to canvas |
 
 ---
 

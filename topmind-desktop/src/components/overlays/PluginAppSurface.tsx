@@ -1,5 +1,5 @@
 /**
- * Dedicated plugin mini-app surface. Opens from the header Apps 菜单 or
+ * Dedicated plugin mini-app surface. Opens from the AI workspace Apps pane or
  * plugin actions; close returns to the main canvas (view-store contract).
  */
 import { useTranslation } from "react-i18next";

@@ -73,3 +73,14 @@ test("AI entry consistency: stream polish chip + selection bar + format action",
   assert.match(bar, /v4-ai-btn/);
   assert.match(bar, /RiSparklingLine/);
 });
+
+test("inline AI action icons are unique and match the labeled action", () => {
+  const bar = read("src/components/editor/SelectionAiToolbar.tsx");
+  assert.match(bar, /id: "shorter", icon: RiContractUpDownLine/);
+  assert.match(bar, /id: "expand", icon: RiExpandUpDownLine/);
+  assert.match(bar, /id: "summarize", icon: RiFileList3Line/);
+  assert.match(bar, /id: "format", icon: RiAlignLeft/);
+  assert.match(bar, /id: "fix", icon: RiPencilLine/);
+  assert.doesNotMatch(bar, /id: "summarize", icon: RiAlignLeft/);
+  assert.doesNotMatch(bar, /RiFullscreenExitLine|RiFullscreenLine/);
+});

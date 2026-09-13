@@ -26,8 +26,8 @@
 | workspace-model / stream-period | 经 `workspace-model-api` 等动态加载 **Done** |
 | `electron/lib/kernel-api.mjs` | **Done** — 动态加载 `lib/kernel-api.mjs` |
 | writeback-engine | **Done** — save/edit/updateFrontmatter/delete.md → `kernelDurableWrite/Delete`；AI `actor:"ai"` |
-| 建议条 | **Done** — `generateSuggestions` / `applySuggestion` + **`SuggestPopover`**（`ActionStore` + 标题栏 💡）；high-impact 经 `suggestion-gate` 必须 `confirmed:true`；AI 配置后 `ai_summary` 真实 LLM |
-| 待确认写入 | **Done** — `pending-writes` + **`SuggestPopover`**（`ActionStore`：事件刷新 + 安全网轮询 + 全文审阅）；轨内 ActionBar 仅为跳转 chip |
+| 建议条 | **Done** — `generateSuggestions` / `applySuggestion` + **AI 工作区建议 pane**（`SuggestPopover` 确认列表 · `ActionStore` + 状态栏计数）；high-impact 经 `suggestion-gate` 必须 `confirmed:true`；AI 配置后 `ai_summary` 真实 LLM |
+| 待确认写入 | **Done** — `pending-writes` + **`SuggestPopover`**（`ActionStore`：事件刷新 + 安全网轮询 + 全文审阅） |
 | AI 轨事件 | **Done** — `ai-rail-events`（`suggestions:refresh` / `pending-writes:changed`） |
 | 设置 UI 同步 | **Done** — `ui-settings-sync` 仅 own-key 应用，防 stale full-ui 盖掉壳宽度 |
 | 写出来 shelf | **Done** — `listOutputsEnhanced` 附 `publishedAt`/`title`；OutputsView 已发布/草稿 + HTML 导出 |
@@ -35,7 +35,7 @@
 | 响应式 chrome | **Done** — `ChromeOverflowActions` + TitleBar compact 互斥 + StatusBar 可点 |
 | connectors weread/x | **Done** — 共享 `electron/lib/connector-bridge.mjs`（settings+secret · patch 持久 · `writeConnectorNote` 经 kernel 写闸）；ADR `docs/adr/2026-08-02-connector-bridge.md` |
 | ingest 路由 | **Done** — Desktop commit 经 `resolveIngestRoute`（Kernel） |
-| PrimaryNav 默认 | **Done** — 动态 / 收件箱 / 写出来 / 搜索；selection 默认 `stream`；legacy home→stream；归档不在主锚 |
+| PrimaryNav 默认 | **Done** — 动态 / 收件箱 / 写出来；搜索由统一 ⌘K 触发器打开；selection 默认 `stream`；legacy home→stream；归档不在主锚 |
 | 侧栏 thrift | **Done** — ViewSwitcher 主轨 stream/目录/时间；标签/看板「更多」 |
 | 关键词搜索诚实 | **Done** — notes-index + grep `truncated`/`scannedTotal`；GlobalSearch 截断提示（无 embedding） |
 | 建议可关 | **Done** — `ai.autoPrepareSuggestions`（默认开） |
@@ -48,18 +48,19 @@
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  Shell (React)                                           │
+│  Shell (React) — three through-going columns             │
 │  ┌──────────┬───────────────────┬─────────────┐         │
-│  │ 侧栏     │  编辑区            │  AI 面板     │         │
-│  │ (树导航) │  (Tiptap/预览)     │  (可折叠)    │         │
+│  │ 侧栏     │  中栏薄 chrome     │  AI 工作区   │         │
+│  │ 内容导航 │  视图切换 · 面包屑 │  对话/建议   │         │
+│  │ 底：工作区│  注入动作 · AI开关 │  清单/应用   │         │
+│  │          │  画布（动态/编辑）  │  Composer    │         │
 │  └──────────┴───────────────────┴─────────────┘         │
 │                                                          │
-│  标题栏: 导航 ← 工作流导航 → ⌘K 命令面板                  │
 │  7 个 Store: ViewStore · AiStore · ActionStore · PluginStore · IngestStagingStore · TaskStore · TodoStore  │
 │  i18n 架构: i18next 同步打包 + BCP-47 LocaleResolver + UTR / Engine 多语言解耦 │
 │  插件槽: DataSource · Sidebar · View · Action · Settings · Overlay · StatusBar · ContextMenu │
 │  侧栏视图: ViewSwitcher（动态流/分类/时间线/标签/看板）              │
-│  待办: TodoPopover（TitleBar 弹层 · ⌘⇧T · pin/unpin 可拖动 · 默认右侧）                │
+│  清单: AI 工作区 清单 pane（⌘⇧T）；专注模式才浮动 TodoPopover                │
 ├──────────────────── RPC 桥 ─────────────────────────────┤
 │  invoke(method, params)   ←  单通道                      │
 │  subscribe(event, handler) ←  统一事件总线               │
@@ -106,17 +107,18 @@ contextBridge.exposeInMainWorld('topmind', {
 
 | 模块 | 职责 |
 |------|------|
-| `ai-model.mjs` | 多 provider 解析（AI SDK v7） |
+| `ai-model.mjs` | 多 provider 解析（AI SDK v7）+ `getRuntimeStatus.loop`（`pi-agent-core` / `ai-sdk`） |
+| `ai-pi-runtime.mjs` | 默认 agent 循环：`pi-agent-core`（fenced `read`/`write`/`edit`/`grep`；bash off） |
 | `ai-provider-adapter.mjs` | 桥接 Desktop AI SDK → Kernel `AiProvider` 接口（`generate(prompt, context)`）；根据 `context.operation` 动态调整 `maxOutputTokens`（`OP_LIMITS`：topic_summary → 16K、period/digest/todo/memory_organize → 12K、memory_extract/topic_classify → 4K）+ `temperature`（提取类 0.3 / 分析类 0.5）+ `systemPrompt`（结构化输出操作）；瞬态错误（timeout/429/503）自动重试 1 次（800ms 退避）；`suggest-engine` / `derived-builder` 通过此适配器真实调 LLM |
 | `ai-prompts.mjs` | **skill-first 协议** + Skills Discovery 目录 + 真实 tool 名 |
 | `lib/skills-runtime.mjs` | engine `skills/` + `ai.extraSkillsRoots` / `topmind_SKILLS_EXTRA`（catalog / body / resource） |
 | `lib/skills-extra.mjs` | Desktop 管理目录 `skills-extra/` 安装 · 回执 · pack summary |
-| `ai-tools.mjs` | Workspace 工具（含 `edit_file` / rename / delete 等）+ `list_skills` / `load_skill` / `load_skill_resource` |
-| `ai-stream.mjs` | multi-step（`maxAgentSteps` 默认 **20**，可配 3–50）+ tool-call/result + **prepareStep steer** + **~16ms text/reasoning delta 合流** |
+| `ai-tools.mjs` | 31 named tools（`lib/ai-tool-names.mjs`：skills · browse · windowed read/search · todos · memory ADD/UPDATE/RETIRE · writeback writes）；Pi `read`/`write`/`edit`/`grep` 为围栏别名，无 bash |
+| `ai-stream.mjs` | **fallback** loop when Pi module fails to load：`streamText` + tool-call/result + **prepareStep steer** + **~16ms text/reasoning delta 合流** |
 | `lib/stream-delta-coalesce.mjs` | 纯合流缓冲：帧级节流 IPC；非 delta 事件先 flush |
 | `ai-service.mjs` `complete` | 行内 one-shot（无 tools）；`sanitizeInlineAiResult` 剥离思考标签/元话术后再返回 |
 | `lib/inline-ai-result.mjs` | 行内结果清洗纯函数（主进程 + 单测）；渲染层 `src/lib/inline-ai-result.ts` 镜像 |
-| `ai-service.mjs` | invoke 默认 `useTools!==false`；`steerStream` / `queueFollowUp`；skills catalog；**错误标记 `isError` + `usage`/`modelId` 回传渲染层** |
+| `ai-service.mjs` | invoke 默认 `runPiAgent`（`useTools!==false`）；模块加载失败才 `runStream`；`steerStream` / `queueFollowUp`；skills catalog；**错误标记 `isError` + `usage`/`modelId` 回传渲染层** |
 | `lib/ai-tool-evidence.mjs` | 写回回执归一化 + 工具摘要（路径/备份） |
 | `lib/ai-session-compact.mjs` | token 估算 + 工具时间线折叠 + 中间摘要（maxMessages 60 / keepRecent 24 / maxChars 240K ≈ 80K tokens — 适配 128K+ 现代模型） |
 | `ChatMessage.tsx` | **错误重试按钮**（`isError` → ErrorBlock + `regenerate()`）；**Token 用量徽章**（`usage.promptTokens ↑ / completionTokens ↓`）|
@@ -137,7 +139,7 @@ contextBridge.exposeInMainWorld('topmind', {
 |-------|------|
 | `ViewStore` | 选区、侧栏、AI 面板、覆盖层、写回模式、编辑器设置、主题 |
 | `AiStore` | 会话、消息、流式、上下文胶囊、运行时、模型选择、activeSkillId |
-| `ActionStore` | 建议 + 待确认写入（`SuggestPopover` 主确认面 · 会话缓存 · panelOpen）：refresh / accept / reject / dismiss |
+| `ActionStore` | 建议 + 待确认写入（AI 工作区建议 pane / `SuggestPopover` 确认列表 · 会话缓存 · panelOpen）：refresh / accept / reject / dismiss |
 | `PluginStore` | 插件生命周期与清单缓存 |
 | `IngestStagingStore` | 知识加工待确认批次、降级提示、队列状态 |
 | `TaskStore` | AI 后台任务（`reconcile` 确定性整理 · `ai_digest` AI 分析周期）：创建、执行、取消、重试、进度、日志 |
@@ -246,19 +248,13 @@ AiService.invoke
   → compactMessagesForModel(...)   // token/轮次预算；保留工具路径 gist
   → buildSystemPrompt(...)         // skill-first + 工具名 + edit/read 策略
   → ToolService.buildAiTools(...)  // Desktop-native tools → WorkspaceService（不依赖 UTR）
-  → runStream({ model, messages, tools, emit })
-      → streamText (Vercel AI SDK v7)
-      → prepareStep: drain steers → 注入「用户中途指示」
-      → toUIMessageStream({ sendReasoning, sendStart, sendFinish })
-      → 事件循环:
-          start        → emit status: thinking
-          reasoning-*  → emit reasoning delta（可折叠，不是正文）
-          text-*       → ingest 拆 think/CoT 后只 emit 可见正文（text-reset 可回收误发前缀）
-          tool-input-* → emit status: calling-tool
-          tool-output  → emit tool-result（路径摘要）+ status: writing
-          steer-applied→ emit status: steering
-          finish       → emit status: done
-  → 返回 { text: 可见正文, reasoning, usage, error, followUps, batchEvidence }
+  → runPiAgent({ model, messages, tools, emit, workspaceRoot })
+      → convertDesktopToolsToPi + fenced read/write/edit/grep aliases（bash off）
+      → pi-agent-core Agent loop（AI SDK StreamFn for LLM bytes）
+      → maybeCompactPiMessages（skip in-flight toolResult tail）
+      → 事件循环映射为与 runStream 相同的 renderer events
+  → （仅 Pi 模块加载失败）runStream → streamText (Vercel AI SDK v7)
+  → 返回 { text: 可见正文, reasoning, usage, error, followUps, batchEvidence, runtime }
 ```
 
 超时策略：
@@ -274,19 +270,23 @@ ADR：`docs/adr/2026-07-16-desktop-agent-harness-upgrade.md`。
 
 > UI 像素与 IA 真源：`DESIGN.md` §0.0 / §0（**Design System 3.0 · ZCode Neutral**；token 数值真源 `src/styles/tokens.css`——见 `../docs/adr/2026-08-07-desktop-single-entry-dedupe.md` · `../docs/adr/2026-08-07-comprehensive-design-optimization.md`）。本节约架构职责 + **现状/目标**。
 
-### 目标 IA（Product target · **Done** Wave F–G + 2026-08-07 优化）
+### 目标 IA（Product target · **Done** Wave F–G + 2026-08-07 优化 · **动态（默认）**）
 
 ```
-Shell
-├── TitleBar
-│   ├── 左: 侧栏 + 前进/后退 + WorkspaceSwitcher（⌘⇧W）— 品牌芯片已移除（2026-08-07）
-│   ├── 中: PrimaryNav — **动态（默认）** · **收件箱** · **写出来** · **搜索** + ⌘K
-│   └── 右: **记一下**（⌘N）+ 建议 + 待办 + 设置 + AI
-├── Sidebar — 默认动态流；二级专题树 / 我的情况（记忆浏览） / 归档；高级 tags/kanban/plugins
-├── EditorArea — 默认动态主表面或 ViewSlot 编辑
-├── AiPanel — 副驾：compact ActionBar（跳转）+ 对话区 + Composer
-├── SuggestPopover — **全局建议确认面**（标题栏 💡 / strip / openSuggestSurface）
-├── StatusBar — 健康即沉默；路径不常驻；AI pill + 命名 busy chip（Task/Todo/Suggest/Inline）；多路径 `multiActive` / `AI ×N`
+Shell（三列贯通 · 无横跨产品 header）
+├── Sidebar — 左列
+│   ├── 主 header: SidebarHeaderActions（Profile → 搜索⌘K → 记一下，右对齐避开红绿灯）
+│   ├── 次级 header: ViewSwitcher 纯图标（动态 / 目录 / 时间 / 看板等）
+│   ├── 内容区: TreeView / StreamView / TimelineView / TagsView / KanbanView
+│   └── 底栏: WorkspaceSwitcher
+├── Center column
+│   ├── TitleBar（中栏顶栏 / data-canvas-chrome）
+│   │   ├── 左: 侧栏开关 + 视图切换下拉菜单(动态/收件箱/写出来) + 前进/后退 + 面包屑导航 + 当前页标题
+│   │   └── 右: 动态注入按钮 slot + AI 列开关
+│   └── EditorArea — 默认动态主表面或 ViewSlot 编辑
+├── AiWorkspace — 右列对等：对话 / 建议 / 清单 / 应用；Composer 钉列底
+├── SuggestPopover — **建议确认列表**（嵌入建议 pane；专注模式浮动；openSuggestSurface）
+├── StatusBar — 绿点 + 完整工作区路径；AI pill + 命名 busy chip
 └── OverlayHost（QuickCapture · ⌘K · Search · Settings）
 ```
 
@@ -294,16 +294,17 @@ Shell
 
 ### 现状（已收敛 · Phase B Done）
 
-PrimaryNav 文案与默认 selection 为 **动态 · 收件箱 · 写出来 · 搜索**（`selection: stream`）。  
+PrimaryNav 文案与默认 selection 为 **动态 · 收件箱 · 写出来**（搜索非 PrimaryNav：⌘K 命令面板 · ⌘P 笔记全文）（`selection: stream`）。  
+**2026-09 v4**：三列顶栏共用 `.v4-column-chrome`（44px）。Sidebar 主 header 顺序为 Profile → 搜索 → 记一下；视图切换（动态/收件箱/写出来）是 TitleBar 左侧可点击下拉；面包屑第一层更长、可点击跳转上级。ViewSwitcher 在 Sidebar 次级 header 纯图标展示。编辑器大纲 / 外观 / 专注住在 FrontmatterBar。StatusBar 左端显示工作区完整路径。
 旧「工作台」主锚点已退役（**代码债**清零）；**HomeView 与 `kind:home` 产品类型已删除**（`normalizeSelection` 迁移历史状态 → stream）。归档不在主锚。
 
 ```
-Shell
-├── TitleBar · PrimaryNav（动态 / 收件箱 / 写出来 / 搜索）+ 💡 建议 + 清单
-├── Sidebar（ViewSwitcher: stream/category/timeline/tags/kanban）
-├── EditorArea（StreamDetailView · 文件编辑）
-├── AiPanel（compact ActionBar 仅专注模式 · 对话区 · Composer）
-├── SuggestPopover（唯一完整建议确认列表）
+Shell（data-through-columns）
+├── Sidebar（ViewSwitcher: stream/category/timeline/tags/kanban · 底栏工作区切换）
+├── Center: TitleBar canvas chrome · 面包屑+标题（左）· AI 列开关+动态注入（右）
+│         EditorArea（StreamDetailView · 文件编辑）
+├── AiWorkspace（对话 / 建议 / 清单 / 应用；Composer 钉列底）
+├── SuggestPopover（唯一完整建议确认列表 — 嵌入建议 pane）
 ├── StatusBar（deriveStatusBarBusy · 建议计数 chip · multi-AI 诚实）
 └── OverlayHost …
 ```
@@ -314,7 +315,7 @@ Shell
 
 **已删除、勿再文档化的 Home 仪表盘能力**：问候 CTA、钉住卡、下一步/进行中/截止、最近专题材料条、连接器条。那些只属于已删 `HomeView`。
 
-**建议 / 审阅**：全局 **`SuggestPopover`**（标题栏 💡 · 状态栏计数 chip 仅 count>0 · 不嵌 Stream 列表；画布顶 `SuggestEntryStrip` 已删）。侧栏 pin 可达「本周动态」「我的情况」。
+**建议 / 审阅**：AI 工作区 **建议 pane**（`SuggestPopover` 确认列表；状态栏计数 chip 仅 count>0 · 不嵌 Stream 列表；画布顶 `SuggestEntryStrip` 已删）。侧栏 Profile + ⌘K「转到 · 我的情况」可达记忆浏览。
 
 ### StreamDetailView（主编辑区动态流 · 已实现）
 
@@ -344,7 +345,7 @@ Shell
 - **ContextPills**: 挂载文件以可移除胶囊形式展示
 - **EmptyConversation**: 按选区类型显示上下文感知的快捷提示
 - **ChatThread**: 消息气泡 + 头像 + 流式光标 + 工具结果卡片（含 `edit_file` diff 内联）
-- **ActionBar**: compact 计数 chip → `openSuggestSurface` → **`SuggestPopover`**（完整列表在弹层，≠ 个人清单）
+- **SuggestPopover**: 唯一完整建议确认列表（嵌入建议 pane；专注模式浮动）→ `openSuggestSurface`（≠ 个人清单）
 - **ChatInput**: 自适应输入框 + 发送/停止；**模型选择器与技能同排 chip**（非独占 footer）；仅已配置提供商
 
 ### TaskPanel（浮动后台任务面板）
@@ -352,7 +353,7 @@ Shell
 与 AiPanel 独立的双面板架构组件，负责确定性引擎任务的后台执行与进度展示：
 
 - **定位**：`position: fixed`，浮动在右下角（`z-floating`），不占三栏布局空间
-- **触发**：⌘⇧J 全局快捷键 / TitleBar `ClipboardList` 按钮（与 AiPanel 开关独立）
+- **触发**：⌘⇧J 全局快捷键 / StatusBar 任务 chip（与 AI 工作区开关独立）
 - **状态管理**：`useTaskStore`（Zustand）— 任务队列、并发控制（maxConcurrent: 3）、取消/重试/清除；支持 `reconcile`（确定性）和 `ai_digest`（AI 驱动）两种任务类型
 - **任务类型**：`reconcile`（整理周期本，确定性）+ `ai_digest`（AI 分析周期，真实 LLM）接入真实引擎 API；UI 仅暴露已接线类型。`PendingTaskType`（digest/promote/…）保留类型注释，不渲染入口
 - **面板状态**：正常（任务列表）/ 最小化（仅标题栏 + 运行中数量）/ 展开（任务详情 + 日志 + 结果）
@@ -436,10 +437,11 @@ AiPanel 模型下拉选择器的 `onChange` 不仅更新内存 store，还同步
 | 写回模式 | 暴露的工具 | 说明 |
 |----------|-----------|------|
 | auto | 读 + 写 + fetch_url + health | 每写一处返回 WritebackEvidence；≥2 路径时回合结束汇总 `batchEvidence` → toast + 回执条 |
-| confirm（保存前问我） | 读 + 写工具仍注册 | AI 写经 Kernel pending；`SuggestPopover` 接受/拒绝后落盘 |
+| confirm（保存前问我） | 读 + 写工具仍注册 | AI 写经 Kernel pending；AI 工作区建议 pane（`SuggestPopover`）接受/拒绝后落盘 |
 
-读（`AI_TOOL_NAMES_READ`）：`list_skills` · `load_skill` · `load_skill_resource` · `list_categories` · `list_topics` · `list_topic_files` · `get_topic` · `read_file` · `search` · `list_inbox` · `list_outputs` · `fetch_url`（`maxLen` / `render`）· `workspace_health`  
-写（`AI_TOOL_NAMES_WRITE`）：`capture_to_inbox` · `save_note` · `save_file`（open 覆盖不备份；locked 覆盖才备份）· `edit_file`（唯一片段，**不写 Archive**）· `create_topic` · `append_topic_memory` · `move_to_topic` · `publish_to_outputs` · `delete_path`（仅 recoverable 进归档）· `rename_path`（重命名不备份）
+读（`AI_TOOL_NAMES_READ` 15）：`list_skills` · `load_skill` · `load_skill_resource` · `workspace_overview` · `list_categories` · `list_topics` · `list_topic_files` · `get_topic` · `read_file` · `search` · `list_inbox` · `list_outputs` · `fetch_url`（`maxLen` / `render`）· `workspace_health` · `list_todos`  
+写（`AI_TOOL_NAMES_WRITE` 16）：`capture_to_inbox` · `save_note` · `save_file`（open 覆盖不备份；locked 覆盖才备份）· `edit_file`（唯一片段，**不写 Archive**）· `create_topic` · `append_topic_memory` · `append_core_memory` · `retire_core_memory` · `update_core_memory` · `reconcile_week` · `move_to_topic` · `publish_to_outputs` · `delete_path`（仅 recoverable 进归档）· `rename_path`（重命名不备份）· `add_todo` · `toggle_todo`  
+Pi 围栏别名（不是第二套 FS）：`read`→`read_file` · `write`→`save_file` · `edit`→`edit_file` · `grep`→`search`。**drop**：`bash` / unscoped `shell` / `exec`。
 
 ### 编辑器 Markdown / 预览
 
@@ -523,7 +525,7 @@ UI：消息内 **tool timeline**；输入区 Skill 芯片 + Agent 开关；会�
 
 ### 契约（`src/plugins/types.ts`）
 
-**7 种槽位类型**驱动整个 Shell（`sidebar` 槽位已删除 2026-08-30——插件 chrome 入口统一在标题栏 Apps 菜单）。可选记账 `topmind-ledger` 走 OverlaySlot `plugin-app`（看板 / 流水 / 分类 / 快捷记账），**不是** PrimaryNav / 第六用户概念。
+**7 种槽位类型**驱动整个 Shell（`sidebar` 槽位已删除 2026-08-30——插件 chrome 入口统一在 AI 工作区 **应用** pane）。可选记账 `topmind-ledger` 走 OverlaySlot `plugin-app`（看板 / 流水 / 分类 / 快捷记账），**不是** PrimaryNav / 第六用户概念。
 
 | 槽位 | UI 呈现位置 | 说明 |
 |------|------------|------|
@@ -562,7 +564,7 @@ interface PluginContext {
 |----------|------------|------|
 | DataSource | 侧栏区段 + 树 | "工作区"区段（类别 → 专题 → 文件） |
 | ViewSlot | 编辑区内容 | StreamDetailView, CategoryView, FileEditorView 等 |
-| ActionSlot (goto) | 命令面板 → 导航 | 转到 · 动态/收件箱/交付物/归档 |
+| ActionSlot (goto) | 命令面板 → 导航 | 转到 · 动态/收件箱/写出来/归档 |
 | ActionSlot (skill) | 命令面板 → 技能 | Capture, Organize, Write, Memory, Loop |
 | ActionSlot (sync) | 命令面板 → 同步 | 微信读书同步、X 推文抓取 |
 | SettingsSlot | 设置对话框 → 插件 Tab | 微信读书配置、X/Twitter 配置 |
@@ -594,7 +596,7 @@ togglePlugin(id, wsRoot)
 - **BUILTIN_PLUGINS 注册表** — 单一真源，activateAll 和 togglePlugin 共用，新增插件只需加一行
 - **builtin 保护** — manifest.builtin:true 的插件无法被 deactivatePlugin/togglePlugin 停用
 - **SettingsSlot 始终注册** — 用户可以在插件未启用时配置参数
-- **交互槽位条件注册** — ViewSlot（connector hub）/ StatusBarSlot / ActionSlot 仅在 `settings[key].enabled === true` 时注册；chrome 入口（标题栏 Apps 菜单）随之出现/消失
+- **交互槽位条件注册** — ViewSlot（connector hub）/ StatusBarSlot / ActionSlot 仅在 `settings[key].enabled === true` 时注册；chrome 入口（AI 工作区 **应用** pane）随之出现/消失
 - **PluginStore** — active / disabled / error  
 - **PluginsPanel** — 内置 / 连接器 / 第三方分区；第三方支持预览权限 → 安装、开关、热加载、卸载  
 
@@ -620,7 +622,7 @@ togglePlugin(id, wsRoot)
 #### `topmind-workspace`（核心，始终全量加载）
 - 1 个 DataSource（Category+Topic 文件系统遍历）
 - 7 个 ViewSlot（StreamDetail / Category / TopicOverview / FileEditor / Inbox / Outputs / Archive）
-- 8 个 ActionSlot（4 个导航 · 动态/收件箱/交付物/归档 + 看板 + 全局搜索 + 设置 + 命令面板）
+- 8 个 ActionSlot（4 个导航 · 动态/收件箱/写出来/归档 + 看板 + 全局搜索 + 设置 + 命令面板）
 - 5 个 Skill ActionSlot（Capture / Organize / Write / Memory / Loop）
 
 #### `topmind-weread` / `topmind-x`（connector，`defineConnectorPlugin`）

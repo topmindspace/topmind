@@ -44,6 +44,9 @@ test("file-editor-format-bar exports mode / format / more chrome", () => {
   assert.match(fmt, /export function EditorModeSwitch/);
   assert.match(fmt, /export function EditorFormatBar/);
   assert.match(fmt, /export function EditorMoreMenu/);
+  assert.match(fmt, /export function EditorViewChrome/);
+  assert.match(chromeSrc, /v4-editor-tool-btn/);
+  assert.match(fmt, /v4-editor-tool-btn/);
   assert.match(fmt, /from ["']\.\/file-editor-chrome["']/);
 });
 
@@ -86,8 +89,24 @@ test("EditorFormatBar ships format toggles; more ⋯ is exclusive", () => {
   assert.doesNotMatch(fmt, /ChromeOverflowActions/);
   assert.match(fmt, /formatBarOptions\.fileInfo/);
   assert.match(fmt, /formatBarOptions\.moreActions/);
+  assert.match(fmt, /export function FileEditorTitleBarActions/);
+  assert.match(fmt, /data-file-titlebar-actions/);
   assert.match(fmt, /onPublish/);
   assert.match(fmt, /onRequestAiBar/);
+  assert.match(view, /TitleBarActions/);
+  assert.match(view, /FileEditorTitleBarActions/);
+  const toolbarStart = view.indexOf("v4-editor-toolbar");
+  const titlebarActions = view.indexOf("<TitleBarActions");
+  assert.ok(toolbarStart >= 0 && titlebarActions > toolbarStart);
+  const mop = view.slice(toolbarStart, titlebarActions);
+  assert.doesNotMatch(mop, /workspace:menu\.moveToTopic/);
+  assert.doesNotMatch(mop, /onPublish=\{\(\) => void handlePublish/);
+  assert.match(mop, /EditorFormatBar/);
+  assert.match(mop, /EditorModeSwitch/);
+  assert.match(view, /EditorViewChrome/);
+  assert.match(view, /trailing=\{viewChrome\}/);
+  assert.doesNotMatch(mop, /EditorReadingMenu/);
+  assert.doesNotMatch(fmt, /Format-rail status cluster — file-info \/ focus/);
   assert.match(fmt, /RiH3/);
   const dateIdx = fmt.indexOf("onInsertDateTime ? (");
   const showFormatIdx = fmt.indexOf("{showFormat ? (");

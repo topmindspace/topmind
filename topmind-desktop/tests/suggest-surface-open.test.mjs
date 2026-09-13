@@ -8,6 +8,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { useViewStore } from "../src/stores/view-store.ts";
+import { useActionStore } from "../src/stores/action-store.ts";
+import { toggleSuggestSurface } from "../src/lib/suggest-surface.ts";
+import { toggleAiWorkspacePane } from "../src/lib/ai-workspace.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = (rel) => readFileSync(path.join(root, rel), "utf8");
@@ -31,18 +35,54 @@ test("toggleSuggestSurface toggles panelOpen", () => {
   assert.match(src, /openSuggestSurface/);
 });
 
-test("TitleBar uses toggleSuggestSurface; StatusBar count chip calls toggleSuggestSurface", () => {
-  const title = read("src/components/shell/TitleBar.tsx");
-  assert.match(title, /toggleSuggestSurface/);
-  assert.match(title, /data-suggest-header-trigger/);
-  // TitleBar should NOT import openSuggestSurface (uses toggle helper now)
-  assert.doesNotMatch(title, /import.*openSuggestSurface/);
+test("toggleSuggestSurface: collapsed AI column + panelOpen opens suggest pane", () => {
+  const viewSnap = {
+    aiPanelOpen: useViewStore.getState().aiPanelOpen,
+    aiWorkspaceTab: useViewStore.getState().aiWorkspaceTab,
+  };
+  const actionSnap = {
+    panelOpen: useActionStore.getState().panelOpen,
+    items: useActionStore.getState().items,
+    everLoaded: useActionStore.getState().everLoaded,
+    refresh: useActionStore.getState().refresh,
+  };
+  try {
+    useActionStore.setState({
+      panelOpen: true,
+      everLoaded: true,
+      items: [{ id: "s1", title: "t", summary: "s" }],
+      refresh: async () => {},
+    });
+    useViewStore.setState({ aiPanelOpen: false, aiWorkspaceTab: "chat" });
+    toggleSuggestSurface({ refresh: false });
+    assert.equal(useViewStore.getState().aiPanelOpen, true);
+    assert.equal(useViewStore.getState().aiWorkspaceTab, "suggest");
+
+    toggleSuggestSurface({ refresh: false });
+    assert.equal(useViewStore.getState().aiPanelOpen, false);
+
+    useViewStore.setState({ aiPanelOpen: false, aiWorkspaceTab: "chat" });
+    toggleAiWorkspacePane("todo");
+    assert.equal(useViewStore.getState().aiWorkspaceTab, "todo");
+    toggleAiWorkspacePane("apps");
+    assert.equal(useViewStore.getState().aiWorkspaceTab, "apps");
+  } finally {
+    useViewStore.setState(viewSnap);
+    useActionStore.setState(actionSnap);
+  }
+});
+
+test("StatusBar count chip calls toggleSuggestSurface; AI workspace has suggest tab", () => {
+  // 2026-09: suggest trigger removed from TitleBar — AI workspace tabs serve as entry.
+  const aiWs = read("src/components/ai/AiWorkspace.tsx");
+  assert.match(aiWs, /data-ai-workspace-tab=\{item\.id\}/);
+  assert.match(aiWs, /id: "suggest"/);
   // StatusBar now hosts the suggestion count chip (replaces removed SuggestEntryStrip)
   const sb = read("src/components/shell/StatusBar.tsx");
   assert.match(sb, /data-status-suggest-count/);
   assert.match(sb, /toggleSuggestSurface/);
-  const bar = read("src/components/ai/ActionBar.tsx");
-  assert.match(bar, /openSuggestSurface/);
+  const pop = read("src/components/ai/SuggestPopover.tsx");
+  assert.match(pop, /openSuggestSurface|data-suggest-popover/);
 });
 
 test("StatusBar hosts both suggest busy chip and count chip (2026-08: strip removed from canvas)", () => {
@@ -51,9 +91,7 @@ test("StatusBar hosts both suggest busy chip and count chip (2026-08: strip remo
   assert.match(sb, /data-status-suggest-busy/);
   // Count chip now in StatusBar (replaces removed canvas SuggestEntryStrip)
   assert.match(sb, /data-status-suggest-count/);
-  // TitleBar badge still exists
-  const title = read("src/components/shell/TitleBar.tsx");
-  assert.match(title, /data-suggest-header-badge/);
+  // 2026-09: suggest badge removed from TitleBar — count lives in StatusBar + AI workspace tab
   // EditorArea no longer imports SuggestEntryStrip
   const area = read("src/components/shell/EditorArea.tsx");
   assert.doesNotMatch(area, /SuggestEntryStrip/);

@@ -109,6 +109,32 @@ test("pack.json command_exposure lists match contract exposure levels", async ()
   }
 });
 
+test("capture skill triggers 记一下 not 记下 (Note it ≠ Log it)", async () => {
+  const src = await fs.readFile(path.join(skillsRoot, "topmind-capture", "SKILL.md"), "utf8");
+  const fm = src.split("---")[1] || "";
+  assert.match(fm, /-\s*记一下/u);
+  assert.doesNotMatch(fm, /-\s*记下\s*$/m);
+});
+
+test("topmind SKILL.md MCP primary+danger inventory matches contract registry", async () => {
+  const actual = await loadActualSurface();
+  const skill = await fs.readFile(path.join(skillsRoot, "topmind", "SKILL.md"), "utf8");
+  const block = skill.match(/UTR 可选（MCP primary\+danger[\s\S]*?。/u);
+  assert.ok(block, "SKILL.md must list MCP primary+danger commands");
+  const listed = new Set(
+    (block[0].match(/`([^`]+)`/gu) || []).map((token) => token.slice(1, -1)),
+  );
+  const missing = [];
+  for (const [domain, commands] of Object.entries(actual)) {
+    for (const [name, exposure] of Object.entries(commands)) {
+      if (exposure !== "primary" && exposure !== "danger") continue;
+      const dotted = `${domain}.${name}`;
+      if (!listed.has(name) && !listed.has(dotted)) missing.push(dotted);
+    }
+  }
+  assert.deepEqual(missing, [], `SKILL.md MCP inventory missing: ${missing.join(", ")}`);
+});
+
 test("lib/*.mjs paths referenced in skills docs exist on disk", async () => {
   const markdownFiles = await walkMarkdown(skillsRoot);
   const libRefPattern = /lib\/[\w.-]+\.mjs/gu;

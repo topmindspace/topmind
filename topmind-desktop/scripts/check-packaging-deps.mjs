@@ -34,6 +34,11 @@ const REQUIRED_PACKAGING_PEERS = [
       "Must be in package.json#dependencies so electron-builder includes it in asar node_modules/. " +
       "electron-builder strips node_modules/ from extraResources, so the bridge resolves from asar at runtime.",
   },
+  {
+    name: "typebox",
+    requiredBy: ["@earendil-works/pi-agent-core", "@earendil-works/pi-ai"],
+    reason: "Pi AgentTool schemas — must be a production dep so asar can load Type.Unsafe",
+  },
 ];
 
 async function readJson(rel) {
@@ -45,7 +50,13 @@ function resolveInstalled(name) {
     const pkgPath = require.resolve(`${name}/package.json`);
     return JSON.parse(require("node:fs").readFileSync(pkgPath, "utf8")).version;
   } catch {
-    return null;
+    try {
+      // Packages with strict "exports" (e.g. typebox) may forbid require.resolve(pkg/package.json).
+      const pkgPath = path.join(desktopRoot, "node_modules", name, "package.json");
+      return JSON.parse(require("node:fs").readFileSync(pkgPath, "utf8")).version;
+    } catch {
+      return null;
+    }
   }
 }
 
@@ -82,6 +93,8 @@ const aiPackages = [
   "@ai-sdk/anthropic",
   "@ai-sdk/google",
   "@ai-sdk/openai-compatible",
+  "@earendil-works/pi-agent-core",
+  "@earendil-works/pi-ai",
 ];
 for (const name of aiPackages) {
   if (!deps[name]) {

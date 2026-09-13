@@ -146,7 +146,9 @@ describe("Obsidian labeled-button chrome (shipped)", () => {
 
   test("refresh and organize use distinct icons and handlers", () => {
     assert.match(workbench, /setIcon\(refreshStreamBtn,\s*"refresh-cw"\)/);
-    assert.match(workbench, /setIcon\(this\.organizeBtn,\s*"list-tree"\)/);
+    assert.match(workbench, /setIcon\(this\.organizeBtn,\s*"list-checks"\)/);
+    assert.match(workbench, /stream_unreconciled/);
+    assert.match(workbench, /p\.reconciled === false/);
     assert.match(workbench, /refreshStreamBtn\.addEventListener\("click".*refreshStream/s);
     assert.match(workbench, /this\.organizeBtn\.addEventListener\("click".*organizePeriod/s);
     assert.doesNotMatch(workbench, /setIcon\(this\.organizeBtn,\s*"refresh-cw"\)/);
@@ -958,8 +960,90 @@ describe("AI task manager + chat write-gate hygiene (source)", () => {
     assert.match(src, /runWorkspaceChatTurn/);
     assert.match(src, /<think>/);
     assert.match(ops, /splitAssistantVisible|applyUniqueSpan/);
+    assert.match(ops, /preciseEditWorkspace/);
+    assert.match(ops, /kernel\.executeWrite/);
     assert.doesNotMatch(src, /executeWrite\(\s*\{[\s\S]{0,200}operation:\s*["']chat["']/u);
     assert.doesNotMatch(ops, /executeWrite\(\s*\{[\s\S]{0,200}operation:\s*["']chat["']/u);
+  });
+
+  test("chat reasoning fold defaults collapsed; host stays Pi-free and ledger-free", () => {
+    const sidebar = fs.readFileSync(path.join(srcDir, "views", "sidebar-dock-view.ts"), "utf8");
+    const fold = sidebar.slice(sidebar.indexOf("tm-chat-reasoning"));
+    assert.match(sidebar, /createEl\("details", \{ cls: "tm-chat-reasoning" \}\)/);
+    assert.doesNotMatch(fold.slice(0, 800), /setAttribute\(["']open["']/);
+    assert.doesNotMatch(sidebar, /pi-agent-core|@earendil-works/);
+    const pkg = fs.readFileSync(path.join(srcDir, "..", "package.json"), "utf8");
+    assert.doesNotMatch(pkg, /pi-agent-core|pi-coding-agent/);
+    const design = fs.readFileSync(path.join(srcDir, "..", "DESIGN.md"), "utf8");
+    assert.match(design, /\*\*不发\*\*记账/);
+    assert.match(design, /无 Pi/);
+    const srcTree = [
+      "main.ts",
+      "views/sidebar-dock-view.ts",
+      "views/stream-workbench-view.ts",
+    ].map((rel) => fs.readFileSync(path.join(srcDir, rel), "utf8")).join("\n");
+    assert.doesNotMatch(srcTree, /ledger mini-app|LedgerApp|topmind-ledger/);
+  });
+});
+
+describe("Obsidian chat profile context (active-body collapse)", () => {
+  test("loadChatProfileContext uses Kernel collapse and omits archived facts", async () => {
+    const os = await import("node:os");
+    const { loadChatProfileContext } = await importShipped("services/kernel-workspace-ops.ts");
+    const kernel = await import(
+      pathToFileURL(path.join(__dirname, "..", "..", "lib", "kernel-api.mjs")).href
+    );
+    const ws = fs.mkdtempSync(path.join(os.tmpdir(), "tm-obs-chat-profile-"));
+    try {
+      fs.writeFileSync(path.join(ws, "topmind.yaml"), "schema_version: 4\n", "utf8");
+      fs.mkdirSync(path.join(ws, "memory"), { recursive: true });
+      fs.writeFileSync(
+        path.join(ws, "memory", "profile.md"),
+        `---
+title: 我的情况
+---
+
+# 我的情况
+
+## 进行中的事
+
+- 仍在推进的活事实
+
+## 历史记录
+
+- （2026-01-01 归档）早已过期不该进提示词的事实
+`,
+        "utf8",
+      );
+      const ctx = loadChatProfileContext(kernel, ws, "zh-CN");
+      assert.ok(ctx.includes("仍在推进的活事实"));
+      assert.ok(!ctx.includes("早已过期不该进提示词的事实"));
+      assert.match(ctx, /已归档条目|archived fact/u);
+    } finally {
+      fs.rmSync(ws, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("runWorkspaceChatTurn folds Kernel thinking (shipped)", () => {
+  test("tagged think is reasoning, not the visible body", async () => {
+    const { splitAssistantVisible } = await import(
+      pathToFileURL(path.join(__dirname, "..", "..", "lib", "ai-content-sanitize.mjs")).href
+    );
+    const { runWorkspaceChatTurn } = await importShipped("services/kernel-workspace-ops.ts");
+    const kernel = {
+      loadContract: () => ({ writeback: { mode: "auto" } }),
+      resolveAgentOutputLanguage: () => "zh",
+      splitAssistantVisible,
+    };
+    const result = await runWorkspaceChatTurn(kernel, "/tmp/tm-chat-fold", {
+      userMessage: "总结本周",
+      generate: async () =>
+        "<think>I should inspect the file first and plan a patch.</think>\n\n## 结论\n改中间那段即可。",
+    });
+    assert.doesNotMatch(result.body, /inspect the file|<think>/i);
+    assert.match(result.body, /结论|改中间/);
+    assert.match(result.reasoning, /inspect the file/);
   });
 });
 

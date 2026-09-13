@@ -13,7 +13,7 @@
 |------|------|
 | 整理范围 | **活动窗口**（近期周期 ∪ mtime ∪ 增补 parent）— 非「仅最新周期文件名」 |
 | 条目增补 | 动态卡片续写 · 同 Markdown · `<!-- topmind:append -->` |
-| AI 在动态 | 标题栏 💡 + 有条目时状态栏计数 chip（空则隐藏）→ `openSuggestSurface` → **SuggestPopover** 确认面（无第二套列表；不埋 AI 聊天轨） |
+| AI 在动态 | 有条目时状态栏计数 chip（空则隐藏）→ `openSuggestSurface` → AI 工作区 **建议** pane / 专注模式浮动 **SuggestPopover**（无第二套列表；不埋聊天轨） |
 | 整理按钮 | reconcile 任务 + `runActivityOps`（suggest + memory_organize + topic_classify） |
 | memory | **profile + periodic + topic memory**（浏览面；写入仍 confirm） |
 | topic | **内容大类 `create_topic`**（confirm · 不进 `memory/topics`） |
@@ -34,7 +34,7 @@
   → 随时「记下」一条（最低摩擦）
   → 有时回到某条旧记录上「增补/评论」几句（延续，不是新开平行叙事）
   → 系统根据「近期活动」准备整理建议（待办 / 记忆 / 笔记 / 主题）
-  → 用户在标题栏灯泡 / 状态栏计数看见建议，点头确认 → 沉淀到待办 / 我的情况 / 专题 / 写出来
+  → 用户在状态栏计数看见建议，点头确认 → 沉淀到待办 / 我的情况 / 专题 / 写出来
   → 文件永远是真源；随时可在 Finder / Obsidian 打开同一工作区
 ```
 
@@ -88,8 +88,8 @@ activity_window =
 |------|------|
 | 活动窗口引擎 | `lib/activity-window.mjs` — 周期 ∪ mtime ∪ 增补 parent；默认 21 天 / 30 文件 / 6 周期；语料 suggest 16K · todo extract 16K · maintain 12K |
 | 条目增补 UI | `appendStreamEntry` + StreamDetailView 按日分组 + cohesion |
-| 安静建议 chip | 标题栏 💡 + 状态栏计数 chip（空则隐藏）→ SuggestPopover |
-| organize activity ops | `runActivityOps`（suggest + memory_organize + topic_classify）合入 ActionBar |
+| 安静建议 chip | 状态栏计数 chip（空则隐藏）→ AI 工作区建议 pane / 专注模式 SuggestPopover |
+| organize activity ops | `runActivityOps`（suggest + memory_organize + topic_classify）合入 ActionStore / AI 工作区建议 pane |
 | memory_organize | profile + periodic only（confirm） |
 | topic_classify | 内容大类 `create_topic`（confirm · 不进 `memory/topics`） |
 | 文档诚实 | ARCHITECTURE-RESET §2.3 Wave S\* 行；本文精简为现行真理 |

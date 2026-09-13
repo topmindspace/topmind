@@ -4,7 +4,7 @@
  * 1. Navigate to stream (optional)
  * 2. Enqueue reconcile engine task
  * 3. Refresh activity-window suggestions + run memory/topic AI ops (confirm only)
- * 4. StatusBar chip / SuggestPopover — never auto-apply high-impact
+ * 4. StatusBar chip / AI workspace 建议 pane — never auto-apply high-impact
  *
  * Pure orchestration of store/event side-effects (no React).
  */
@@ -45,7 +45,7 @@ export async function runOrganizeWeek(opts: OrganizeWeekOptions = {}): Promise<s
     useViewStore.getState().select({ kind: "stream" });
   }
   if (openAiPanel) {
-    // Open unified 建议 confirm surface (SuggestPopover), not a second list
+    // Open unified 建议 confirm surface (AI workspace pane), not a second list
     openSuggestSurface();
   }
   if (openTaskPanel) {

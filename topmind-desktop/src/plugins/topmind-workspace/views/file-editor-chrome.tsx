@@ -51,7 +51,7 @@ export function ToolbarButton({
         onClick={onClick}
         onContextMenu={onContextMenu}
         className={cn(
-          "flex h-7 w-7 items-center justify-center rounded-sm",
+          "v4-editor-tool-btn",
           "transition-[background-color,color,box-shadow] duration-(--duration-fast)",
           active
             ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"

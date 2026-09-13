@@ -11,7 +11,7 @@ import {
   RiLoader4Line,
   RiPlayLine,
   RiRefreshLine,
-  RiTerminalLine,
+  RiToolsLine,
 } from "@remixicon/react";
 import { api } from "../../services/api";
 import { Button } from "../ui/Button";
@@ -276,7 +276,7 @@ export function ToolsPanel({ settings }: { settings: AppSettings }) {
       ) : null}
 
       <div className="flex items-start gap-2 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-muted/30 px-2.5 py-2 text-3xs text-text-quaternary">
-        <RiTerminalLine size={ICON.micro} className="mt-0.5 shrink-0" aria-hidden />
+        <RiToolsLine size={ICON.micro} className="mt-0.5 shrink-0" aria-hidden />
         <span>
           {t("settings:tools.warnExecute")}{" "}
           {t("settings:tools.noticeUtr")}

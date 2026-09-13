@@ -3,8 +3,10 @@
 [English](README.md) · [简体中文](README.zh-CN.md)
 
 Compressed UI screenshots and the full-flow product demo live here.  
-High-resolution sources stay on the development machine under `topmind-desktop/resources/img/`.
+High-resolution sources live under `topmind-desktop/resources/img/` in this repo (not a personal home path).
 
+> **Stills are a 2026-08 chrome snapshot** (spanning TitleBar with Note it / 💡 / Search / Apps). Living chrome is three-column (2026-09-07): 记一下 in the left sidebar header; PrimaryNav = 动态 / 收件箱 / 写出来; search = ⌘K / ⌘P; 建议 / 清单 / 应用 in the right AI workspace. Do not copy still composition into living DESIGN.
+>
 > Media policy: the primary still is the compressed export of `topmind-desktop/resources/img/Stream-AI建议.png`. The full-flow demo uses a high-fidelity color GIF as the inline format (GitHub plays `<img>` animation natively). The MP4 is the HD download fallback.
 
 ---
@@ -27,7 +29,7 @@ High-resolution sources stay on the development machine under `topmind-desktop/r
 | `desktop-editor.jpg` | `文章查看-编辑器.png` | Quiet Paper Markdown editor |
 | `desktop-ingest.jpg` | `知识加工.png` | Multi-source ingest hub |
 | `desktop-quick-capture.jpg` | `quicknote.png` | `⌘N` / `⌘⇧N` capture |
-| `desktop-ai-agent.jpg` | `AI建议.png` | Sidebar Agent · todos and write-gate confirm |
+| `desktop-ai-agent.jpg` | `AI建议.png` | 2026-08 still of the old AI rail (not the 2026-09 AI workspace column) |
 | `desktop-ai-todo.jpg` | `AI建议.png` | AI todo maintenance |
 | `desktop-inbox.jpg` | `Stream.png` | Inbox buffer and organize |
 | `desktop-inline-ai.jpg` | `文章查看-编辑器.png` | Inline AI polish and sanitize |

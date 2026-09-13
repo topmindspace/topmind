@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "topmind",
-    "tagline": "记一下 · 动态 · 写出来 · 找回"
+    "tagline": "记一下 · 动态 · 专题 · 我的情况 · 写出来"
   },
   "action": {
     "save": "保存",

@@ -26,7 +26,7 @@
     "connectedDate": "已连接 · {{date}}",
     "notConfigured": "未配置",
     "enable": "启用",
-    "enableDesc": "关闭后 Apps 菜单与同步入口隐藏",
+    "enableDesc": "关闭后 AI 工作区应用 pane 与同步入口隐藏",
     "apiKeyDesc": "微信扫码获取 wrk- 开头密钥",
     "test": "测试",
     "sync": "同步",

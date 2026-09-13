@@ -45,11 +45,13 @@ describe("Desktop todo force + Kernel-only path", () => {
   });
 
   it("manual ✨ surfaces progressive force when already-processed", () => {
-    // After all-periods-processed, re-click ✨ must force (not only body force-retry CTA)
+    // After all-periods-processed, re-click ✨ must force (not only body force-retry CTA).
+    // Canvas StreamDetailView is not a 清单 home (DESIGN: unique home is AI workspace
+    // 清单 pane + focus TodoPopover; sidebar StreamView still opens that path).
     for (const rel of [
       "topmind-desktop/src/components/todo/TodoPopover.tsx",
+      "topmind-desktop/src/components/todo/TodoListBody.tsx",
       "topmind-desktop/src/components/sidebar/StreamView.tsx",
-      "topmind-desktop/src/plugins/topmind-workspace/views/StreamDetailView.tsx",
     ]) {
       const src = read(rel);
       assert.match(
@@ -59,6 +61,8 @@ describe("Desktop todo force + Kernel-only path", () => {
       );
       assert.match(src, /force:\s*true/, `${rel} must pass force:true on progressive path`);
     }
+    const canvas = read("topmind-desktop/src/plugins/topmind-workspace/views/StreamDetailView.tsx");
+    assert.doesNotMatch(canvas, /handleMaintainTodos/);
     // Auto path must NOT always force
     const auto = read("topmind-desktop/src/components/shell/useAutoTodoMaintain.ts");
     assert.match(auto, /\.maintain\(\)/);

@@ -18,7 +18,7 @@ export const RPC_RESULT_SHAPES: Readonly<Record<string, readonly string[]>> = Ob
   // SystemService.getSettings → AppSettings
   "system.getSettings": Object.freeze(["theme", "writebackMode"]),
   // getRuntimeStatus → { ready, message, providers }
-  "ai.getRuntimeStatus": Object.freeze(["ready", "message"]),
+  "ai.getRuntimeStatus": Object.freeze(["ready", "message", "loop"]),
   // listSessions returns AiSession[] — empty schema allows array root
   "ai.listSessions": Object.freeze([] as string[]),
 });

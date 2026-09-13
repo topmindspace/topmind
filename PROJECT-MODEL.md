@@ -344,7 +344,7 @@ AI 分发遇到歧义时按"内容性质"判定；无法判定时 → `00-收件
 | `todo.md` | todo-engine | 个人待办清单 |
 | `ledgers/{id}.md` + `ledgers/catalog.md` | ledger-engine | 可选记账。空工作区只有默认 **Personal / 自己**；用户再加账本和分类。历史上的 ClassFund / Giggs / Mom 只是行格式参考，不是产品默认。 |
 
-Desktop 记账是 enable-gated mini-app（看板 / 流水 / 分类 / 快捷记账），入口在 Apps 菜单，**不是** PrimaryNav / 第六个用户概念。Skills 可选 `topmind-ledger`；日常入口仍只 `topmind`。Obsidian 不发记账小应用。UTR 无独立 ledger 域。
+Desktop 记账是 enable-gated mini-app（看板 / 流水 / 分类 / 快捷记账），入口在 AI 工作区应用 pane，**不是** PrimaryNav / 第六个用户概念。Skills 可选 `topmind-ledger`；日常入口仍只 `topmind`。Obsidian 不发记账小应用。UTR 无独立 ledger 域。
 
 ---
 

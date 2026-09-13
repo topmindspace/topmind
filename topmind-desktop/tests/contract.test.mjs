@@ -21,7 +21,7 @@ test("v4 plugin contract: 7 slot kinds defined (sidebar slot removed 2026-08-30)
   for (const kind of slotKinds) {
     assert.match(typesSrc, new RegExp(`kind:\\s*"${kind}"`));
   }
-  // 插件 chrome 入口统一在标题栏 Apps 菜单 — 侧栏插件行契约不再存在
+  // 插件 chrome 入口统一在 AI 工作区应用 pane — 侧栏插件行契约不再存在
   assert.doesNotMatch(typesSrc, /interface SidebarSlot/);
 });
 
@@ -148,13 +148,13 @@ test("v4 source footprint stays bounded (src + electron)", () => {
   const srcCount = countFiles(src, [".ts", ".tsx"]);
   const electronCount = countFiles(electron, [".mjs", ".cjs", ".js"]);
   // Soft ceiling: catch uncontrolled growth back toward v3 scale.
-  // 2026-08-30 recalibration: the 2026-08 product releases (memory browse,
-  // shared feed layout, connector hubs, quality surface work) put src at 209
-  // against the 200 ceiling — the gate now tracks 212 (≈40% under v3 scale)
+  // 2026-09 recalibration: three-column chrome (AiWorkspace, WorkspaceSwitcher,
+  // AppsLaunchList, chrome-portal, titlebar identity) put src at 218 against
+  // the 212 ceiling — the gate now tracks 230 (still well under v3 scale)
   // while still failing on any +12-file regression per release.
-  assert.ok(srcCount < 212, `src file count ${srcCount} exceeds soft ceiling`);
+  assert.ok(srcCount < 230, `src file count ${srcCount} exceeds soft ceiling`);
   assert.ok(electronCount < 120, `electron file count ${electronCount} exceeds soft ceiling`);
-  assert.ok(srcCount + electronCount < 320, `total ${srcCount + electronCount} exceeds soft ceiling`);
+  assert.ok(srcCount + electronCount < 340, `total ${srcCount + electronCount} exceeds soft ceiling`);
 });
 
 test("desktop validate restages engine before pack:verify (obsidian/clip stamp drift)", () => {

@@ -686,7 +686,7 @@ async function createWindow() {
       autoHideMenuBar: process.platform !== "darwin",
       ...(isWin
         ? {
-            titleBarOverlay: resolveWindowsTitleBarOverlay(stored.theme, 40),
+            titleBarOverlay: resolveWindowsTitleBarOverlay(stored.theme, 44),
           }
         : {}),
       ...(windowIcon ? { icon: windowIcon } : {}),

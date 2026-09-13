@@ -1,6 +1,6 @@
 # Architecture Reset — 理想架构与实施计划
 
-> **状态**：Accepted · **日期**：2026-07-25 · **最后更新**：2026-08-30  
+> **状态**：Accepted · **日期**：2026-07-25 · **最后更新**：2026-09-07  
 > **角色**：架构决策锁 + 实施诚实表（唯一实施真源）  
 > **内容/边界真源**：`PROJECT-MODEL.md` · `PRODUCT-BOUNDARIES.md`  
 > **产品入口**：根 [`README.md`](../README.md)（English）· [`README.zh-CN.md`](../README.zh-CN.md)（简体中文）
@@ -84,7 +84,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | 导航 | **变薄**：默认「动态」主表面；收件箱 / 写出来 / 我的情况 / 搜索 / 记一下 清晰可达 |
 | 概念 | 只暴露 ≤5 用户概念；树/标签/看板/插件为二级或高级 |
 | AI | 内生副驾：默认上下文 = 当前文件 + 本周流 + profile 摘要；**建议条 + 审阅抽屉** |
-| 扩展 | 7 插件槽保留；扩展不占主 chrome（标题栏 Apps 菜单）；connector 外围化 |
+| 扩展 | 7 插件槽保留；扩展不占主 chrome（AI 工作区 · 应用 pane）；connector 外围化 |
 
 详细 IA / 像素：`topmind-desktop/DESIGN.md`。产品原则：根 `DESIGN.md`。
 
@@ -132,10 +132,10 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | stream packing（周期本）+ 年目录 + 归档 | stream-period · model-stream · capture |
 | 写回伦理理念（备份/回执） | writeback-engine（**仅高影响**备份+回执：locked 覆盖 · 锁定/核心笔记 delete/archive；普通开放笔记无 trash；`BACKUP_KEEP=3` · `RECEIPT_KEEP=50`） |
 | Skills 纯 Markdown + 三级降级 | skills/ |
-| skill-first Desktop agent | ai-prompts · skills-runtime（AI SDK v7；会话压缩 240K/60；默认模型 gpt-4o-mini / gemini-3.6-flash / claude-sonnet-5 / grok-3-mini） |
+| skill-first Desktop agent | ai-prompts · skills-runtime（agent 循环 `pi-agent-core`；LLM providers AI SDK v7；会话压缩 240K/60；默认模型 gpt-4o-mini / gemini-3.6-flash / claude-sonnet-5 / grok-3-mini） |
 | 捕获 / Clip / 文档 ingest 队列 | Desktop + extension（默认 anydoc sidecar；可选 markitdown/pandoc；内置 JS 兜底；升级矩阵见 document-ingest） |
 | 质量门 · pack 纪律 | scripts · CI |
-| 拒 coding-agent 内核（Pi） | ADR 2026-07-21 |
+| 拒 coding-agent 内核（Pi） | ADR 2026-07-21；2026-09-07 对 `@earendil-works/pi-*@0.85.1` 再确认（`adr/2026-09-07-pi-engine-and-three-column-reevaluation.md`） |
 
 ### 2.2 Partial → 本目标已推进（核心能力 · **Done**）
 
@@ -146,13 +146,13 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | writeback-engine 唯一写闸 | **Done**（Desktop 耐久 .md 全路径；UTR；AI `actor:"ai"`；memory/todo 全经 executeWrite） |
 | batch writeback mode | **Done**（仅 auto\|confirm；`batch` 硬拒绝） |
 | Memory 产品入口 | **Done**（侧栏「我的情况」钉 → 记忆浏览：画像 / 周期反思 / 专题记忆；点开仍落文件） |
-| 建议条 generate / confirm apply | **Done**（suggest-engine + SuggestPopover + StatusBar 计数 chip） |
+| 建议条 generate / confirm apply | **Done**（suggest-engine + AI 工作区建议 pane + StatusBar 计数 chip） |
 | AI 驱动建议与摘要 | **Done**（ai_summary 真实 LLM；失败诚实不写；变更检测；sanitize；per-operation 动态 temperature/systemPrompt/maxTokens；瞬态错误自动重试） |
 | 动态主表面 PrimaryNav | **Done**（默认 stream） |
 | confirm 写闸 pending | **Done**（settings gate + pending 队列 + 审阅） |
 | lifecycle 全量产品卡片 | **Done**（scan→建议；inbox_organize AI 分析→确认移动） |
 | 备份/回执（高影响 only） | **Done**（open 常规写/移动/重命名不备份不回执；locked 覆盖 + 锁定/核心 **delete** 有 trash+回执；**archive** 迁入 99-归档 当新家；普通开放笔记 delete 无 trash；`BACKUP_KEEP=3` · `RECEIPT_KEEP=50`；Desktop 支持日志大小上限轮转 2 MB × 3 归档，ADR `2026-08-27-desktop-log-rotation.md`） |
-| 个人待办清单 | **Done**（todo-engine + TodoPopover + AI 维护 + ⌘⇧T；complete/update 用 `matchTodoMaintainText` 防单 token 误完成） |
+| 个人待办清单 | **Done**（todo-engine + AI 工作区清单 pane + AI 维护 + ⌘⇧T；complete/update 用 `matchTodoMaintainText` 防单 token 误完成） |
 | 可选记账 | **Done**（ledger-engine 卫星 · `{memory.dir}/ledgers/` · 默认 Personal/自己 · Skills `topmind-ledger` · Desktop enable-gated plugin-app 看板/流水/分类/快捷记账；**不是**第九引擎 / 第六用户概念 / PrimaryNav；Obsidian 不发 mini-app；UTR 无 ledger 域） |
 | 统一 AI 操作引擎 | **Done**（todo_maintain · memory_organize · topic_classify；force；状态追踪） |
 | 活动窗口 Activity Window | **Done**（`lib/activity-window.mjs`；suggest/todo/ai-ops 共用） |
@@ -163,12 +163,12 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | contract-engine 清洁化 | **Done**（2026-08-13：`loadContract()` 只读 `topmind.yaml`；v3 JSON 仅 `ensureContract` 一次迁移落盘；`saveWorkspaceConfig` 经 `writeContract`；Desktop 不再 `projectConfigAliases`） |
 | Todo 手动 progressive force | **Done**（2026-08-08：`all-periods-processed` 后再点 ✨ → force；auto 仍尊重 skip） |
 | 多路 AI 并发策略 | **Done**（2026-08-08：background lane 串行 suggest/todo；agent 独立；soft suggest `agent_busy`；auto-todo 让路；StatusBar multiActive/`AI ×N`） |
-| 表面 UX 诚实（Desktop / Obsidian / Clip） | **Done**（2026-08-13：主锚 动态/收件箱/写出来/搜索；Obsidian 用户文案 动态≠工作台、记下≠记一下、整理我的情况；Clip 选项不教第二套 lite 转换器） |
+| 表面 UX 诚实（Desktop / Obsidian / Clip） | **Done**（2026-08-13 词汇：Obsidian 动态≠工作台、记下≠记一下、整理我的情况；Clip 选项不教第二套 lite 转换器。**2026-09-07 chrome**：主锚 动态/收件箱/写出来；搜索=⌘K/⌘P 非 PrimaryNav；记一下在左栏；建议/清单/应用在右列 AI 工作区 pane） |
 | Stream / 编辑器 / AI 展示诚实 | **Done**（2026-08-13：预览=静态 HTML + 共享阅读偏好；动态多行剥首行 chrome；Obsidian 增补并入卡片并剥 append 注释；AI invoke 不带 view-store writebackMode） |
 | 精确中段改稿 / 思考折叠 | **Done**（2026-08-15：Kernel `applyUniqueSpan` + `formatReadWindow`；Desktop `edit_file`/`read_file` 与 Obsidian chat 工具环共用匹配/写闸，不是第九引擎；`<think>` / CoT 折进可展开思考过程） |
 | 删除文案诚实 | **Done**（2026-08-15：用户文案跟 `isRecoverableLifecycle`——普通开放笔记删除无 trash；锁定 / 专题首页 / 写出来 才进归档；toast 只在 `backupPath` 时提备份） |
 | 连接器官方对齐 | **Done**（2026-08-16：WeRead 官方 Gateway 扁平 body + 无划线/想法不写专题 + `note_fingerprint` 增量；X 官方 v2/`xurl /2/…` + 归档按 tweet id 跳过；Clip 本轮未改） |
-| Memory 整合（画像事实生命周期） | **Done**（2026-08-16：`appendProfileEntry` / `retireProfileEntry` → `## 历史记录` 带日期前缀不删原文 / `updateProfileEntry` 原位更新；`memory_organize` 产出确认式 `retire_profile`；无自动遗忘、无向量索引。ADR `docs/adr/2026-08-16-memory-consolidation.md`） |
+| Memory 整合（画像事实生命周期） | **Done**（2026-08-16：`appendProfileEntry` / `retireProfileEntry` → `## 历史记录` 带日期前缀不删原文 / `updateProfileEntry` 原位更新；`memory_organize` 产出确认式 `append_profile` / `update_profile` / `retire_profile`；Desktop ADD/UPDATE/RETIRE 走同一 Kernel 函数。无自动遗忘、无向量索引。ADR `docs/adr/2026-08-16-memory-consolidation.md`） |
 | AI 输出语言 | **Done**（改写/Agent 正文：用户本轮要求 → 原文 → 工作区 locale；建议条 / AI 待办 / `memory_organize` / `topic_classify`：用户本轮要求 → **当前宿主 UI 语言** → 工作区 locale。`lib/ai-output-locale.mjs`） |
 | 周期路径 / 确认面诚实 | **Done**（2026-08-21：digest 回执走 yearDir；period stem 拒绝 fallback；Obsidian 收件箱新建走写闸；confirm pending 有侧栏审阅；建议确认≠打开周期本；语料/session-compact/建议入口活文档对齐） |
 | Obsidian 建议 force / 会话 / 操作卡片 / 对话语言 | **Done**（2026-08-22：手动刷新 `force:true` 清指纹；soft 会话合并防 AI 卡消失；`memory_organize` / `topic_classify` 确认卡进建议面；对话正文走 Kernel 三层语言，UI 只管 chrome；ops 状态摘要跟宿主 UI 语言） |
@@ -222,17 +222,20 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 ### 3.1 主 chrome（变薄）
 
 ```text
-标题栏：动态（默认） · 收件箱 · 写出来 · 搜索 · 记一下 · AI
-侧栏默认：本周动态时间线 / 周期本（非完整文件树）
+三列贯通（无横跨产品栏）：左栏导航 | 中栏薄 chrome + 画布 | 右栏 AI 工作区
+中栏薄 chrome：动态（默认） · 收件箱 · 写出来 · 注入动作 · AI 列开关
+搜索非 PrimaryNav（⌘K 命令面板 · ⌘P 笔记全文）；记一下在左栏；建议/清单/应用在右列 AI 工作区 pane；设置在 WorkspaceSwitcher / ⌘,
+侧栏默认：本周动态时间线 / 周期本（非完整文件树）；底栏工作区切换
 二级：专题树 · 我的情况（记忆浏览） · 归档
-高级（折叠/⌘K）：标签 · 看板 · 插件 · Tools/UTR
-待办：TitleBar 弹层（⌘⇧T · pin/unpin 可拖动）
+高级（折叠/⌘K）：标签 · 看板 · Tools/UTR
+建议 / 清单 / 应用：右列 AI 工作区 pane（⌘⇧T 清单；专注模式才浮动）
 ```
 
 ### 3.2 AI 副驾（内生）
 
 - 默认上下文：当前文件 + 本周流摘要 + profile 短摘  
-- 顶部 **建议条**：可提升 / Inbox 待整理 / 陈旧专题（确认后执行）  
+- **建议**确认面 = AI 工作区建议 pane（状态栏计数开门；确认后执行）  
+- 对话线程：流式可见正文；回合内工具/状态；思考默认折叠（Kernel `splitAssistantVisible`）；Stop 仍在  
 - 工具结果 → 统一路径回执 Toast + 打开/恢复  
 - skill-first 保持；不引入默认 bash agent  
 
@@ -260,7 +263,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 
 | 决策 | 状态 | 说明 |
 |------|------|------|
-| Desktop AI = AI SDK + 领域工具，不内嵌 Pi/coding-agent | **Accepted** | `adr/2026-07-21-pi-agent-base-decision.md` |
+| Desktop AI = `pi-agent-core` 循环 + 领域工具 + Kernel 写闸（非 full coding-agent / 默认 bash） | **Accepted**（2026-09-07 改判） | `adr/2026-09-07-pi-engine-and-three-column-reevaluation.md`（2026-07-21 被本 ADR 覆盖循环选型；写闸与 Skills 可移植性仍有效） |
 | skill-first + 捆绑 Skills runtime | **Accepted** | `adr/2026-07-16-desktop-skill-first-agent.md` |
 | harness：edit / compact / steer | **Accepted** | `adr/2026-07-16-desktop-agent-harness-upgrade.md` |
 | stream packing + memory 语义平面 | **Accepted**（**Done**） | `adr/2026-07-22-stream-packing-and-core-memory.md` |

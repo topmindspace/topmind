@@ -35,16 +35,64 @@ test("memory skill defaults profile+periodic; topics optional only", () => {
   assert.match(skill, /周期子 memory|memory\/periodic/u);
   assert.match(skill, /非默认|不是\*\*默认/u);
   assert.match(skill, /内容大类/u);
+  assert.match(skill, /update_core_memory|原位/u);
+  assert.match(skill, /retire_core_memory|历史记录/u);
+  assert.match(skill, /不是只追加/u);
 });
 
-test("ActionStore/ActionBar product language: 建议 not 个人清单混称", () => {
+test("Desktop prompts name retire/update not only append", () => {
+  const prompts = read("topmind-desktop/electron/ai-prompts.mjs");
+  assert.match(prompts, /retire_core_memory/);
+  assert.match(prompts, /update_core_memory/);
+  assert.match(prompts, /append_core_memory/);
+  assert.match(prompts, /not append-only|不是只追加/u);
+});
+
+test("Skills pack stays Pi-independent and does not advertise bash", () => {
+  const router = read("skills/topmind/SKILL.md");
+  const write = read("skills/topmind-write/SKILL.md");
+  assert.match(router, /不依赖.*[Pp]i|Pi-independent|不依赖.*pi-agent/u);
+  assert.match(router, /不要编造 bash/u);
+  assert.match(write, /edit_file|唯一片段/u);
+  assert.doesNotMatch(router, /pi-coding-agent|createAgentSession|~\/\.pi/u);
+  assert.doesNotMatch(write, /pi-coding-agent|pi-agent-core/u);
+});
+
+test("Desktop prompts name fenced Pi aliases and keep bash off", () => {
+  const prompts = read("topmind-desktop/electron/ai-prompts.mjs");
+  assert.match(prompts, /`read` \/ `write` \/ `edit` \/ `grep`/);
+  assert.match(prompts, /read_file/);
+  assert.match(prompts, /没有 `bash`|`bash` is not available/u);
+});
+
+test("stream listing computes needs-tidy from reconcile, not stamp absence", () => {
+  const src = read("lib/model-stream.mjs");
+  assert.match(src, /periodNoteNeedsTidy/);
+  assert.doesNotMatch(src, /reconciled = \/\^reconciled_at/u);
+});
+
+test("Obsidian chat guide names unique-span edit_file and no bash", () => {
+  const ops = read("obsidian-plugin/src/services/kernel-workspace-ops.ts");
+  assert.match(ops, /edit_file is unique-span|唯一片段/u);
+  assert.match(ops, /No bash or shell|没有 bash/u);
+});
+
+test("Obsidian chat injects active profile, not a raw history dump", () => {
+  const svc = read("obsidian-plugin/src/services/kernel-service.ts");
+  const ops = read("obsidian-plugin/src/services/kernel-workspace-ops.ts");
+  assert.match(ops, /loadChatProfileContext/);
+  assert.match(ops, /readProfileActiveBody/);
+  assert.match(svc, /loadChatProfileContext/);
+  assert.doesNotMatch(svc, /profile\.slice\(0,\s*3000\)/);
+  assert.match(ops, /retire_core_memory/);
+  assert.match(ops, /update_core_memory/);
+});
+
+test("ActionStore product language: 建议 not 个人清单混称", () => {
   const store = read("topmind-desktop/src/stores/action-store.ts");
-  const bar = read("topmind-desktop/src/components/ai/ActionBar.tsx");
   assert.match(store, /建议/u);
   assert.match(store, /TodoStore|TodoPopover|个人清单/u);
   assert.doesNotMatch(store, /管理「待办」概念/u);
-  assert.match(bar, /建议/u);
-  assert.doesNotMatch(bar, /用户概念：「待办」/u);
 });
 
 test("Desktop DESIGN separates 个人清单 vs 建议 vs 后台", () => {
@@ -58,10 +106,9 @@ test("Desktop DESIGN separates 个人清单 vs 建议 vs 后台", () => {
   assert.doesNotMatch(design, /统一「待办」/u);
   assert.doesNotMatch(design, /· \*\*待办\*\*（ActionBar/u);
   assert.doesNotMatch(design, /概念收敛（3 层）[^\n]*\*\*待办\*\*（ActionBar/u);
-  // SuggestPopover primary; ActionBar is compact pointer (not full expand list)
   assert.match(design, /### 3\.6 建议确认面（`SuggestPopover`/u);
   assert.match(design, /概念收敛（3 层）[^\n]*\*\*建议\*\*/u);
-  assert.match(design, /compact ActionBar|compact 跳转|计数跳转/u);
+  assert.match(design, /浮动 `SuggestPopover`/u);
   // Dual-truth guard: must not still document full expand/collapse ActionBar list UI
   assert.doesNotMatch(design, /### 3\.6 ActionBar（统一建议条）/u);
   assert.doesNotMatch(design, /ActionBar\*\*（统一\*\*建议条\*\*：建议 \+ 待确认写入；折叠默认，高优自动展开）/u);
@@ -70,7 +117,7 @@ test("Desktop DESIGN separates 个人清单 vs 建议 vs 后台", () => {
 test("Desktop ARCHITECTURE SuggestPopover primary; ActionBar not 统一待办", () => {
   const arch = read("topmind-desktop/ARCHITECTURE.md");
   assert.match(arch, /SuggestPopover/u);
-  assert.match(arch, /openSuggestSurface|标题栏.*建议|compact ActionBar/u);
+  assert.match(arch, /openSuggestSurface|状态栏.*建议|SuggestPopover/u);
   assert.doesNotMatch(arch, /统一待办条/u);
   assert.doesNotMatch(arch, /ActionBar（统一待办）/u);
   assert.doesNotMatch(arch, /ActionStore` \| 统一待办/u);

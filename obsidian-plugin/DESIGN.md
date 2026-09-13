@@ -44,6 +44,11 @@
 > 共享串行队列（徽章 + 历史可观测每一次 AI 调用），无直跑旁路。取消为
 > stop-tracking 语义：任务立即标记已取消、结果丢弃；底层 provider 调用无法
 > 中断（requestUrl 无 signal 支持），UI 不暗示引擎级中断。
+>
+> **对话线程**：可见回答是正文；思考/推理默认折叠（`<details class="tm-chat-reasoning">`，不设 `open`）；
+> Kernel `splitAssistantVisible` 把 `<think>` / 思考围栏 / 未标注 CoT 从答案拆出。
+> 写回经 Kernel writeback / `precise-edit`（`edit_file`）。**无 Pi**（不依赖 `pi-agent-core`）。
+> Host HTTP 可能不 token-stream；折叠 + 可见正文仍成立。**不发**记账 mini-app。
 
 ### 1.2 面板可恢复性
 
@@ -468,7 +473,7 @@ System prompt 跟随 UI locale：
 - 使用 Obsidian CSS 变量（`--text-normal`, `--background-primary`, `--interactive-accent` 等）
 - 卡片样式：圆角 + 微阴影 + hover 高亮
 - 输入栏：单行高度起，自适应增长
-- AI 建议卡片：左侧带彩色边条（蓝=create_topic/inbox_review/inbox_organize，橙=stale_topic/catch_all，绿=promote_memory/open_profile，紫=ai_summary/stream_digest）
+- AI 建议卡片：左侧带彩色边条（蓝=create_topic/inbox_review/inbox_organize，橙=stale_topic/catch_all，绿=promote_memory/open_profile，紫=ai_summary/stream_digest）。`promote_memory` 的 `payload.action` 为 `append_profile` / `update_profile` / `retire_profile`（不是只追加）；聊天注入画像走 Kernel `readProfileActiveBody`（历史段折叠为计数，不 dump 全文）
 - AI 对话：用户消息右对齐（强调色背景），AI 消息左对齐（卡片背景）
 - 全中文 UI（可切英文）
 

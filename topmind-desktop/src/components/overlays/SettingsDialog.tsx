@@ -10,9 +10,8 @@ import {
   RiPuzzleLine,
   RiRobot2Line,
   RiSettingsLine,
-  RiSparklingLine,
   RiStethoscopeLine,
-  RiTerminalLine,
+  RiToolsLine,
   RiTwitterXLine,
 } from "@remixicon/react";
 import i18n from "../../locales";
@@ -104,8 +103,8 @@ export function SettingsDialog() {
       { id: "general", label: t("settings:tabs.general"), icon: RiSettingsLine, order: 0, group: t("settings:groups.environment") },
       { id: "workspace", label: t("settings:tabs.workspace"), icon: RiNodeTree, order: 10, group: t("settings:groups.environment") },
       { id: "ai", label: t("settings:tabs.ai"), icon: RiRobot2Line, order: 20, group: t("settings:groups.agent") },
-      { id: "skills", label: t("settings:tabs.skills"), icon: RiSparklingLine, order: 25, group: t("settings:groups.agent") },
-      { id: "tools", label: t("settings:tabs.tools"), icon: RiTerminalLine, order: 30, group: t("settings:groups.agent") },
+      { id: "skills", label: t("settings:tabs.skills"), icon: RiBookOpenLine, order: 25, group: t("settings:groups.agent") },
+      { id: "tools", label: t("settings:tabs.tools"), icon: RiToolsLine, order: 30, group: t("settings:groups.agent") },
       { id: "plugins", label: t("settings:tabs.plugins"), icon: RiPuzzleLine, order: 40, group: t("settings:groups.extensions") },
     ];
     // Panel-content search: flatten the panel's settings.json sections so the

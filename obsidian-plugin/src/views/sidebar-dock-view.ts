@@ -708,7 +708,7 @@ export class SidebarDockView extends ItemView {
     const organizeBtn = refreshBar.createEl("button", {
       cls: "tm-btn-secondary tm-toolbar-btn-labeled",
     });
-    setIcon(organizeBtn, "list-tree");
+    setIcon(organizeBtn, "list-checks");
     organizeBtn.createSpan({ text: t("stream_organize"), cls: "tm-toolbar-btn-label" });
     organizeBtn.setAttribute("aria-label", t("stream_organize"));
     organizeBtn.setAttribute("title", t("stream_organize"));

@@ -29,7 +29,7 @@
 6. **Capture vocabulary** — **Note it** (full capture · 记一下) ≠ **Log it** (stream composer · 记下)  
 7. **Localized AI** — suggestion / todo / op chrome follows host UI language; Agent and inline rewrite follow explicit request → source script → workspace locale (`lib/ai-output-locale.mjs`)  
 8. **Manage & Updates** — detects agent hosts · browser · Obsidian; installs / upgrades / uninstalls Skills, Clip, and the plugin (browser side is guided load-unpacked, never silent inject); unified update check and health diagnosis
-9. **Optional bookkeeping** — enable-gated mini-app (`memory/ledgers/`; Apps menu / StatusBar / ⌘K). Not a 6th user concept or PrimaryNav item.
+9. **Optional bookkeeping** — enable-gated mini-app (`memory/ledgers/`; AI workspace Apps pane / StatusBar / ⌘K). Not a 6th user concept or PrimaryNav item.
 
 ---
 
@@ -59,19 +59,19 @@ Default three columns: **nav → content → AI copilot**. The main narrative is
 
 | Entry | Single job |
 |-------|------------|
-| Title-bar **Note it** `⌘N` | The **only** full capture (note / link / attachment) |
+| Sidebar header **Note it** `⌘N` | The **only** full capture (note / link / attachment) |
 | Global float `⌘⇧N` | Capture from anywhere; submits to the capture queue |
 | Stream **Log it** | Append the composer to this week’s period note |
 | Stream **AI polish** | Inline clean/polish; edits the composer only · does not write disk |
 | Stream / sidebar **AI todos** | Extract todos · detect done · confirm updates |
-| AI panel **ActionBar** | Suggestions + pending writes; Kernel write gate runs after confirm |
+| AI workspace **建议** pane | Suggestions + pending writes; Kernel write gate runs after confirm |
 | Sidebar **My profile** | Memory-plane browse (profile / periodic / topic memory); opening a row still lands on the file |
 | **Ingest hub** | Default anydoc → Markdown (Word / PPT / Excel / ODF / RTF / EPUB / PDF / CSV); optional markitdown / pandoc; mail uses the built-in path |
 
 - **Reading Aa**: size / leading / family / measure / margins / paper (edit and preview share the same chrome; preview is a static HTML snapshot, not live TipTap)  
 - **Files**: `.md` opens in the Markdown editor (primary canvas and split pane); other files use `FilePreviewView` (sandboxed HTML, text, or open-external)  
 - **Inline AI / stream polish**: `ai.complete` (`action: "polish"` and siblings) · sanitize before display  
-- **Agent**: `load_skill` · save settings auto/confirm · ActionBar (suggestions + pending writes)  
+- **Agent**: `load_skill` · save settings auto/confirm · AI workspace 建议 pane (suggestions + pending writes)  
 - **Todos**: `memory/todo.md` · write gate · AI maintain (extract / detect done / force)  
 - Focus `⌘⌥F` · multi-tab / single-tab  
 

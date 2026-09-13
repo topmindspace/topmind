@@ -1,8 +1,8 @@
 /**
  * Mini-app plugin entry contract (pure).
  *
- * Overlay kind: plugin-app — dedicated plugin surface (header Apps 菜单 /
- * 命令面板打开；close 返回主画布)。launchpad grid 已由标题栏 AppsMenu 承担
+ * Overlay kind: plugin-app — dedicated plugin surface（命令面板 / 应用 pane 打开；
+ * close 返回主画布）。launchpad 在 AI 工作区 · 应用 pane（`AppsLaunchList`）
  * （2026-08-30，launcher overlay 删除）。
  *
  * Not a PrimaryNav user concept. First-party optional plugins (settingsKey)
@@ -42,7 +42,7 @@ function isExternalCandidate(plugin: LaunchablePluginInput): boolean {
 }
 
 /**
- * First-party Apps 菜单候选：声明 launchable 的 mini-app、带 settingsKey 的
+ * First-party 应用 pane 候选：声明 launchable 的 mini-app、带 settingsKey 的
  * 可选连接器（weread / x / ledger）、builtin 管道（ingest）。workspace 除外。
  */
 function isFirstPartyCandidate(plugin: LaunchablePluginInput): boolean {
@@ -80,7 +80,7 @@ export function isPluginEnabledForLauncher(
 }
 
 /**
- * Launchpad list for the header Apps 菜单：已启用的首方候选（可选连接器 /
+ * Launchpad list for the AI workspace 应用 pane：已启用的首方候选（可选连接器 /
  * mini-app / builtin 管道）+ 活跃外部插件。未配置的连接器也会列出，
  * 由菜单标注「待配置」并引导到设置（数据来自调用方传入的实时 settings）。
  */

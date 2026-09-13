@@ -171,7 +171,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
 
   return (
     <div
-      className="v4-shell-chrome grid h-(--density-status-y,24px) grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 border-t border-border-subtle-dim px-2.5 text-3xs text-text-quaternary select-none sm:gap-1.5 sm:px-3"
+      className="v4-shell-chrome grid h-(--density-status-y,26px) grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 border-t border-border-subtle-dim px-2.5 text-3xs text-text-quaternary select-none sm:gap-1.5 sm:px-3"
       role="contentinfo"
       aria-label={t("statusBar.ariaLabel")}
       data-status-bar
@@ -184,7 +184,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
             <span className="hidden sm:inline">{t("common:status.loading")}</span>
           </span>
         ) : health.ok ? (
-          /* Healthy = silent (2026-08): a quiet dot, details in tooltip. Text only on error. */
+          /* Healthy: green dot + full workspace path; engine path in tooltip */
           <Tooltip
             content={
               [
@@ -196,11 +196,16 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
             }
           >
             <span
-              className="flex shrink-0 items-center px-0.5"
+              className="flex shrink-0 items-center gap-1 px-0.5"
               role="status"
               aria-label={t("statusBar.workspaceOk")}
             >
               <span className="h-1.5 w-1.5 rounded-full bg-success/80" aria-hidden />
+              {health.workspaceRoot ? (
+                <span className="hidden truncate font-mono text-3xs text-text-tertiary sm:inline" data-status-workspace-path>
+                  {health.workspaceRoot.replace(/\\/g, "/")}
+                </span>
+              ) : null}
             </span>
           </Tooltip>
         ) : (
@@ -216,8 +221,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
             {slot.render()}
           </span>
         ))}
-        {/* 2026-08-07: path button removed — workspace switcher tooltip already
-            shows the full path; this was redundant chrome noise. */}
+        {/* Workspace path is the left health chip (`data-status-workspace-path`). */}
       </div>
 
       {/* Center: current selection (orientation anchor) — clickable */}
@@ -429,8 +433,8 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
  * Center orientation hint — **file selections only**.
  * Primary click focuses the file in the editor (the user's expectation for a
  * "current file" chip); reveal-in-Finder demotes to the context menu.
- * Non-file views are already identified by the canvas PageHeader + active PrimaryNav
- * pill, so repeating them here was pure noise (降噪 2026-08).
+ * Non-file views are already identified by TitleBar identity, so repeating
+ * them here was pure noise (降噪 2026-08).
  */
 function SelectionHint({ selection }: { selection: Selection }) {
   const { t } = useTranslation(["shell", "common"]);

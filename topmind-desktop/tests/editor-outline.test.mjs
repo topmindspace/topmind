@@ -30,6 +30,9 @@ describe("EditorOutlinePanel & StreamDetailView UX enhancements", () => {
     assert.match(src, /editorVersion/);
     // Escape key
     assert.match(src, /e\.key === "Escape"/);
+    // Preview is static HTML — jump must not focus the hidden TipTap instance
+    assert.match(src, /viewMode === "preview"/);
+    assert.match(src, /v4-md-preview \.v4-editor-body/);
   });
 
   it("FileEditorView wires outline with ⌘⌥O shortcut and toolbar button", () => {

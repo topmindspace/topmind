@@ -87,6 +87,13 @@ export function resolveModel(s, req) {
   return null;
 }
 
+/** Last successful agent loop id (`pi-agent-core` | `ai-sdk`). */
+let lastAgentLoop = "pi-agent-core";
+
+export function noteAgentLoop(loop) {
+  if (loop === "pi-agent-core" || loop === "ai-sdk") lastAgentLoop = loop;
+}
+
 export function getRuntimeStatus(s) {
   const m = s?.ai?.manual || {};
   const ps = [];
@@ -101,5 +108,10 @@ export function getRuntimeStatus(s) {
   // Ollama — shown as available when the user has set the endpoint URL
   if (m.ollamaBaseUrl) ps.push({ source: "ollama", label: "Ollama" });
   if (m.customBaseUrl && m.customKey) ps.push({ source: "custom", label: "Custom" });
-  return { ready: ps.length > 0, message: ps.length > 0 ? "" : ei18n("ai.noProvider"), providers: ps };
+  return {
+    ready: ps.length > 0,
+    message: ps.length > 0 ? "" : ei18n("ai.noProvider"),
+    providers: ps,
+    loop: lastAgentLoop,
+  };
 }

@@ -78,7 +78,7 @@
     },
     "commands": {
       "type": "object",
-      "description": "Map of command name -> command definition. Current surface (25): list-categories, list-topics, inspect-topic, list-topic-files, list-inbox, list-recent-captures, list-safety-receipts, create-topic, capture-note, save-output, update-topic, normalize-note-metadata, plan-inbox-routing, migrate-v4, doctor-workspace, archive-topic, restore-safety-receipt, cleanup-empty-dirs, validate, promote, digest, append-profile, append-topic, scan, rebuild.",
+      "description": "Map of command name -> command definition. Current surface (28): list-categories, list-topics, inspect-topic, list-topic-files, list-inbox, list-recent-captures, list-safety-receipts, create-topic, capture-note, save-output, update-topic, normalize-note-metadata, plan-inbox-routing, migrate-v4, doctor-workspace, archive-topic, archive-stream-year, restore-safety-receipt, cleanup-empty-dirs, validate, ensure, reseed, promote, digest, append-profile, append-topic, scan, rebuild.",
       "additionalProperties": {
         "type": "object",
         "required": [

@@ -27,6 +27,9 @@ import {
   previewTruncationLimit,
   truncatePreviewContent,
 } from "../../../lib/file-preview";
+import { TitleBarActions } from "../../../lib/chrome-portal";
+import { useTitleBarChrome } from "../../../lib/titlebar-chrome";
+import { displayPathSegment } from "../../../lib/titlebar-identity";
 
 interface Props {
   path: string;
@@ -40,6 +43,7 @@ export function FilePreviewView({ path }: Props) {
   const isHtml = isHtmlPreviewExt(ext);
   const isText = isPreviewableText(ext);
   const baseName = path.split("/").pop() ?? path;
+  useTitleBarChrome(`preview:${path}`, { title: displayPathSegment(baseName) });
   const [sessionPath, setSessionPath] = useState(path);
   const [content, setContent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -133,20 +137,17 @@ export function FilePreviewView({ path }: Props) {
       <div className="v4-editor-toolbar shrink-0 border-b border-border-subtle-dim bg-surface/80">
         <div
           ref={toolbarRef}
-          className="flex h-(--density-editor-toolbar-y,36px) items-center justify-between gap-1 px-2 sm:px-2.5"
+          className="flex h-(--density-editor-toolbar-y,32px) items-center justify-between gap-1 px-2 sm:px-2.5"
           data-compact={toolbarCompact ? "true" : undefined}
           data-file-preview-toolbar
         >
-          <Tooltip content={path}>
-            <span className="flex min-w-0 items-center gap-1.5 text-3xs text-text-tertiary">
-              <RiEyeLine size={ICON.xs} className="shrink-0" />
-              <span className="shrink-0">{isHtml ? "HTML" : t("workspace:editor.readOnly")}</span>
-              <span className="min-w-0 truncate font-mono text-text-quaternary">{baseName}</span>
-              {truncatedHint ? (
-                <span className="min-w-0 truncate text-warning">· {truncatedHint}</span>
-              ) : null}
-            </span>
-          </Tooltip>
+          <span className="flex min-w-0 items-center gap-1.5 text-3xs text-text-tertiary">
+            <RiEyeLine size={ICON.xs} className="shrink-0" />
+            <span className="shrink-0">{isHtml ? "HTML" : t("workspace:editor.readOnly")}</span>
+            {truncatedHint ? (
+              <span className="min-w-0 truncate text-warning">· {truncatedHint}</span>
+            ) : null}
+          </span>
           <div className="flex shrink-0 items-center gap-0.5">
             {isHtml ? (
               <div className="v4-segmented mr-0.5 !gap-0.5 !p-0.5" role="tablist" aria-label={t("workspace:previewView.html")}>
@@ -174,46 +175,44 @@ export function FilePreviewView({ path }: Props) {
                 </button>
               </div>
             ) : null}
-            {isText ? (
-              <Tooltip content={mounted ? t("workspace:previewView.unmountTooltip") : t("workspace:previewView.mountTooltip")}>
+          </div>
+          <TitleBarActions>
+            <div className="flex items-center gap-0.5" data-file-titlebar-actions>
+              {isText ? (
+                <Tooltip content={mounted ? t("workspace:previewView.unmountTooltip") : t("workspace:previewView.mountTooltip")}>
+                  <button
+                    type="button"
+                    className={cn("v4-titlebar-btn", mounted && "text-accent-color")}
+                    aria-label={mounted ? t("workspace:previewView.unmountTooltip") : t("workspace:previewView.mountTooltip")}
+                    aria-pressed={mounted}
+                    onClick={() => (mounted ? unmountFile(path) : mountFile({ path, name: baseName }))}
+                  >
+                    <RiAttachmentLine size={ICON.sm} />
+                  </button>
+                </Tooltip>
+              ) : null}
+              <Tooltip content={t("workspace:previewView.openExternalTooltip")}>
                 <button
                   type="button"
-                  className={cn(
-                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] transition-colors",
-                    "v4-focus-ring",
-                    mounted
-                      ? "bg-accent-bg-subtle text-accent-color"
-                      : "text-text-tertiary hover:bg-surface-muted hover:text-text-primary",
-                  )}
-                  aria-label={mounted ? t("workspace:previewView.unmountTooltip") : t("workspace:previewView.mountTooltip")}
-                  aria-pressed={mounted}
-                  onClick={() => (mounted ? unmountFile(path) : mountFile({ path, name: baseName }))}
+                  className="v4-titlebar-btn"
+                  aria-label={t("workspace:previewView.openExternalTooltip")}
+                  onClick={() => void api.ws.open(path)}
                 >
-                  <RiAttachmentLine size={ICON.xs} />
+                  <RiExternalLinkLine size={ICON.sm} />
                 </button>
               </Tooltip>
-            ) : null}
-            <Tooltip content={t("workspace:previewView.openExternalTooltip")}>
-              <button
-                type="button"
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-primary v4-focus-ring"
-                aria-label={t("workspace:previewView.openExternalTooltip")}
-                onClick={() => void api.ws.open(path)}
-              >
-                <RiExternalLinkLine size={ICON.xs} />
-              </button>
-            </Tooltip>
-            <Tooltip content={t("workspace:previewView.revealTooltip")}>
-              <button
-                type="button"
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-primary v4-focus-ring"
-                aria-label={t("workspace:previewView.revealTooltip")}
-                onClick={() => void api.ws.reveal(path)}
-              >
-                <RiFolderOpenLine size={ICON.xs} />
-              </button>
-            </Tooltip>
-          </div>
+              <Tooltip content={t("workspace:previewView.revealTooltip")}>
+                <button
+                  type="button"
+                  className="v4-titlebar-btn"
+                  aria-label={t("workspace:previewView.revealTooltip")}
+                  onClick={() => void api.ws.reveal(path)}
+                >
+                  <RiFolderOpenLine size={ICON.sm} />
+                </button>
+              </Tooltip>
+            </div>
+          </TitleBarActions>
         </div>
       </div>
 

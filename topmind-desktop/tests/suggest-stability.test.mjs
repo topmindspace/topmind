@@ -19,20 +19,26 @@ test("ActionStore refresh uses mergeSuggestRefreshItems soft preserve", () => {
   assert.match(store, /decideSuggestRefresh/);
 });
 
-test("StatusBar suggest count chip auto-hides when count is 0", () => {
+test("AI workspace has suggest tab; StatusBar has suggest count", () => {
+  // 2026-09: suggest trigger removed from TitleBar — AI workspace tab is the entry.
+  const ws = read("src/components/ai/AiWorkspace.tsx");
+  assert.match(ws, /data-ai-workspace-tab=\{item\.id\}/);
+  assert.match(ws, /id: "suggest"/);
   const sb = read("src/components/shell/StatusBar.tsx");
-  // Count chip only shows when suggestCount > 0 (via showSuggestCountChip in busy logic)
   assert.match(sb, /data-status-suggest-count/);
   // SuggestEntryStrip was deleted; count lives in StatusBar, not the canvas
   const area = read("src/components/shell/EditorArea.tsx");
   assert.doesNotMatch(area, /SuggestEntryStrip/);
 });
 
-test("TitleBar has global suggest trigger (toggle)", () => {
-  const bar = read("src/components/shell/TitleBar.tsx");
-  assert.match(bar, /data-suggest-header-trigger/);
-  assert.match(bar, /toggleSuggestSurface/);
-  assert.match(bar, /Lightbulb/);
+test("AI workspace tab triggers suggest pane", () => {
+  // 2026-09: TitleBar no longer has suggest trigger; AI workspace tab opens suggest.
+  const ws = read("src/components/ai/AiWorkspace.tsx");
+  assert.match(ws, /data-ai-workspace-tab=\{item\.id\}/);
+  assert.match(ws, /id: "suggest"/);
+  assert.match(ws, /Lightbulb/);
+  const surf = read("src/lib/suggest-surface.ts");
+  assert.match(surf, /openAiWorkspace\("suggest"\)/);
 });
 
 test("SuggestPopover is primary confirm surface mounted in Shell", () => {
@@ -44,14 +50,15 @@ test("SuggestPopover is primary confirm surface mounted in Shell", () => {
   assert.match(pop, /data-action-bar/);
 });
 
-test("openSuggestSurface opens panel not only AI chat rail", () => {
+test("openSuggestSurface opens the AI workspace 建议 pane", () => {
   const surf = read("src/lib/suggest-surface.ts");
   assert.match(surf, /setPanelOpen\(true\)/);
-  assert.doesNotMatch(surf, /setAiPanelOpen/);
+  assert.match(surf, /openAiWorkspace\("suggest"\)/);
 });
 
-test("ActionBar is compact pointer not full dual list", () => {
-  const bar = read("src/components/ai/ActionBar.tsx");
-  assert.match(bar, /openSuggestSurface|data-action-bar-compact/);
-  assert.doesNotMatch(bar, /dismissItem|kindChipKey/);
+test("SuggestPopover is the confirm list; ActionBar is gone", () => {
+  const pop = read("src/components/ai/SuggestPopover.tsx");
+  assert.match(pop, /dismissItem|kindChipKey|data-suggest-popover/);
+  const panel = read("src/components/ai/AiPanel.tsx");
+  assert.doesNotMatch(panel, /ActionBar/);
 });

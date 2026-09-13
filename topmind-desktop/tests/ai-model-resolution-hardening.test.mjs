@@ -15,6 +15,7 @@ test("resolveModel: unconfigured settings return null and do not falsely activat
   const status = getRuntimeStatus(emptySettings);
   assert.equal(status.ready, false);
   assert.equal(status.providers.length, 0);
+  assert.equal(status.loop, "pi-agent-core");
 });
 
 test("resolveModel: ollama only active when ollamaBaseUrl is configured or pref is ollama", () => {

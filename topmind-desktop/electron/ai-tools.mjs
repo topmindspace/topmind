@@ -85,13 +85,13 @@ export async function buildDesktopAiTools(ctx) {
     const promptLocale = resolvePromptLocale(ctx.appSettings?.ui?.locale);
     const writeCopy = promptLocale === "en"
       ? {
-          pendingStashed: "Ask-before-save: write is pending. Accept or reject it in the AI panel pending-writes list.",
+          pendingStashed: "Ask-before-save: write is pending. Accept or reject it in the AI workspace Suggest pane.",
           pendingNoBody: "Ask-before-save: confirmation required, but the body was not cached (retry with save_file).",
           pendingDelete: "Ask-before-save: file deletion requires user confirmation; deletion was blocked.",
           writeFailed: "Write failed; adjust parameters and retry, or accept the write in the review bar when ask-before-save is on.",
         }
       : {
-          pendingStashed: "保存前问我：写入已挂起，请在 AI 面板「待确认写入」中接受或拒绝",
+          pendingStashed: "保存前问我：写入已挂起，请在 AI 工作区建议 pane 中接受或拒绝",
           pendingNoBody: "保存前问我：写入需确认，但未能缓存正文（请重试 save_file 全量写入）",
           pendingDelete: "保存前问我：删除操作已拦截，需用户确认或手动操作",
           writeFailed: "写入失败；可调整参数后重试，或「保存前问我」模式下在审阅条接受写入",

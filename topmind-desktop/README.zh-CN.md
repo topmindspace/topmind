@@ -29,7 +29,7 @@
 6. **捕获词汇** — **记一下**（完整捕获 · EN Note it）≠ **记下**（动态主区 · EN Log it）  
 7. **本地化 AI** — UI 语言与工作区 `locale` 驱动 Agent / 行内 AI / 待办 / 建议的中英提示与结果  
 8. **管理与更新** — 设置内探测 Agent 宿主 · 浏览器 · Obsidian，支持 Skills / 剪藏 / 插件的安装升级卸载（浏览器侧为引导加载，不静默注入）；统一更新检查与健康诊断
-9. **可选记账** — 启用后小应用（`memory/ledgers/`；Apps 菜单 / 状态栏 / ⌘K）。不是第六个用户概念，也不是 PrimaryNav
+9. **可选记账** — 启用后小应用（`memory/ledgers/`；AI 工作区应用 pane / 状态栏 / ⌘K）。不是第六个用户概念，也不是 PrimaryNav
 
 ---
 
@@ -59,19 +59,19 @@
 
 | 入口 | 作用（单一心智） |
 |------|------------------|
-| 顶栏 **记一下** ⌘N | **唯一**完整捕获（笔记 / 链接 / 附件） |
+| 侧栏主 header **记一下** ⌘N | **唯一**完整捕获（笔记 / 链接 / 附件） |
 | 全局浮窗 ⌘⇧N | 随时随地快捷速记，提交至捕获队列 |
 | 动态 **记下** | 把输入框追加到本周周期本 |
 | 动态 **AI 润色** | 行内清洗与润色，只改输入框 · 不落盘 |
 | 动态 / 侧栏 **AI 待办** | 自动提取待办 · 检测完成 · 确认更新 |
-| AI 面板 **ActionBar** | 建议 + 待确认写入；确认后再过 Kernel 写闸 |
+| AI 工作区 **建议** pane | 建议 + 待确认写入；确认后再过 Kernel 写闸 |
 | 侧栏 **我的情况** | 记忆平面浏览（画像 / 周期反思 / 专题记忆）；点开条目仍落文件 |
 | **知识加工 Hub** | 默认 anydoc 转 Markdown（Word / PPT / Excel / ODF / RTF / EPUB / PDF / CSV）；可选 markitdown / pandoc；邮件走内置 |
 
 - **阅读 Aa**：字号 / 行距 / 字族 / 栏宽 / 边距 / 纸张（编辑与预览共用同一阅读偏好；预览是静态 HTML 快照，不是 live TipTap）  
 - **文件**：`.md` 走 Markdown 编辑器（主画布与分屏同一路由）；其它文件走 `FilePreviewView`（HTML 沙箱 / 文本 / 打开外部）  
 - **行内 AI / 动态润色**：`ai.complete`（`action: "polish"` 等）· 结果清洗后再展示  
-- **Agent**：`load_skill` · 写回 auto/confirm · ActionBar（建议 + 待确认写入）  
+- **Agent**：`load_skill` · 写回 auto/confirm · AI 工作区建议 pane（建议 + 待确认写入）  
 - **待办**：`memory/todo.md` · 写闸 · AI maintain（extract / detect done / force）  
 - 专注模式 ⌘⌥F · 多标签 / 单标签  
 

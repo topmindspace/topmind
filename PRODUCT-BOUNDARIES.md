@@ -116,7 +116,7 @@ UTR = 软探测；写回不经 UTR
 
 **必须独立完成**：工作区与 4 模板初始化、导航与编辑、捕获、知识加工、带原生工具的 AI、健康巡检入口。
 
-**可选记账**：enable-gated mini-app（看板 / 流水 / 分类 / 快捷记账），入口在标题栏 Apps 菜单 / 状态栏 chip / ⌘K；**不是** PrimaryNav，也不是第六个用户概念。账本在 `{memory.dir}/ledgers/`。Obsidian 不发记账小应用。
+**可选记账**：enable-gated mini-app（看板 / 流水 / 分类 / 快捷记账），入口在 AI 工作区应用 pane / 状态栏 chip / ⌘K；**不是** PrimaryNav，也不是第六个用户概念。账本在 `{memory.dir}/ledgers/`。Obsidian 不发记账小应用。
 
 **产品形态（Reset B）**：
 
@@ -202,7 +202,7 @@ graph TD
 | 三平面目录与 topmind.yaml v4 | **Done**（约定）/ 契约 UI 非强制 **Intentional Partial** |
 | writeback 唯一写闸 | **Done**（主路径 + confirm Model B + 高影响 only 备份/回执：locked 覆盖 · 锁定/核心笔记 delete/archive · 普通开放笔记无 trash · `permanent` 无副本） |
 | Memory 产品面（我的情况浏览 / 建议条） | **Done** |
-| 主动建议 + 确认执行 | **Done**（high-impact 须 `confirmed:true`；自动准备可关；AI 建议变更检测 `lastAnalyzedHash`；`promote_memory` 真实 AI 提取非占位符） |
+| 主动建议 + 确认执行 | **Done**（high-impact 须 `confirmed:true`；自动准备可关；AI 建议变更检测 `lastAnalyzedHash`；`promote_memory` 真实 AI 提取非占位符；画像 ADD/UPDATE/RETIRE 均确认后执行，不是 append-only） |
 | 写出来 / publishPath | **Done**（副本 + `published_at`；发布后打开交付件；Outputs 复制正文 / HTML 导出） |
 | 整理本周 / 任务面板 | **Done**（reconcile + ai_digest 任务 + 建议条候选确认；KanbanView 拖拽看板 + ViewSwitcher 多视图；digest/promote/archive 不造假任务按钮） |
 | 动态主表面内容 | **Done**（周期解析含结构节软提取；无当前本回退列表；内联记一下 + 整理本周） |

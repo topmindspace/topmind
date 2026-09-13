@@ -5,7 +5,7 @@ import { TitleBar } from "./TitleBar";
 import { StatusBar } from "./StatusBar";
 import { Sidebar } from "./Sidebar";
 import { EditorArea } from "./EditorArea";
-import { AiPanel } from "../ai/AiPanel";
+import { AiWorkspace } from "../ai/AiWorkspace";
 import { OverlayHost } from "./OverlayHost";
 import { FileDropZone } from "./FileDropZone";
 import { IngestStagingSheet } from "../overlays/IngestStagingSheet";
@@ -24,6 +24,7 @@ import { setCachedSettings } from "../../lib/settings-cache";
 import { applyLocale } from "../../locales";
 import { TaskPanel } from "../ai/TaskPanel";
 import { SuggestPopover } from "../ai/SuggestPopover";
+import { TodoPopover } from "../todo/TodoPopover";
 import { InlineAiLeaveHost } from "./InlineAiLeaveHost";
 import { useWorkspaceHealth } from "./useWorkspaceHealth";
 import { usePluginInit } from "./usePluginInit";
@@ -31,6 +32,10 @@ import { useShellSettingsSync } from "./useShellSettingsSync";
 import { useShellShortcuts } from "./useShellShortcuts";
 import { useAutoTodoMaintain } from "./useAutoTodoMaintain";
 import { openSuggestSurface } from "../../lib/suggest-surface";
+import { handleAppsMenuToggle } from "../../lib/ai-workspace";
+import { APPS_MENU_TOGGLE_EVENT } from "../../lib/apps-menu";
+import { toggleWorkspaceSwitcher } from "../../lib/workspace-switcher";
+import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { ICON } from "../../lib/icons";
 import type { ToastPayload } from "../../lib/local-events";
 
@@ -69,6 +74,7 @@ export function Shell({ settings }: ShellProps) {
   const toastSeq = useRef(0);
   const toastTimersRef = useRef(new Map<number, ReturnType<typeof setTimeout>>());
   const [taskPanelOpen, setTaskPanelOpen] = useState(false);
+  const [todoFocusOpen, setTodoFocusOpen] = useState(false);
 
   useShellShortcuts();
 
@@ -157,7 +163,20 @@ export function Shell({ settings }: ShellProps) {
     });
   }, []);
 
-  // Unified 建议 entry (task-store / bus) → SuggestPopover via openSuggestSurface
+  // 应用 / workspace-switcher chords must not die with the unmounted column.
+  useEffect(() => {
+    return onLocal(APPS_MENU_TOGGLE_EVENT, () => {
+      handleAppsMenuToggle();
+    });
+  }, []);
+
+  useEffect(() => {
+    return onLocal("titlebar:workspace-switcher-toggle", () => {
+      toggleWorkspaceSwitcher();
+    });
+  }, []);
+
+  // Unified 建议 entry (task-store / bus) → AI workspace 建议 pane
   useEffect(() => {
     return onLocal("suggest-surface:open", (payload) => {
       void import("../../lib/suggest-surface").then(({ openSuggestSurface }) => {
@@ -167,6 +186,33 @@ export function Shell({ settings }: ShellProps) {
         );
       });
     });
+  }, []);
+
+  useEffect(() => {
+    if (!focusMode) setTodoFocusOpen(false);
+  }, [focusMode]);
+
+  useEffect(() => {
+    const unToggle = onLocal("todo:toggle-popover", () => {
+      if (useViewStore.getState().focusMode) {
+        setTodoFocusOpen((v) => !v);
+        return;
+      }
+      void import("../../lib/ai-workspace").then(({ toggleAiWorkspacePane }) => {
+        toggleAiWorkspacePane("todo");
+      });
+    });
+    const unOpen = onLocal("todo:open-popover", () => {
+      if (useViewStore.getState().focusMode) {
+        setTodoFocusOpen(true);
+        return;
+      }
+      useViewStore.getState().openAiWorkspace("todo");
+    });
+    return () => {
+      unToggle();
+      unOpen();
+    };
   }, []);
 
   // ⌘K / command: 整理本周 — reconcile as engine task + AI rail for candidates
@@ -232,20 +278,13 @@ export function Shell({ settings }: ShellProps) {
   const showSidebar = !focusMode && !sidebarCollapsed;
   const showAiPanel = !focusMode && aiPanelOpen;
   const gridRows = focusMode
-    ? "grid-rows-[var(--density-chrome-y,40px)_minmax(0,1fr)]"
-    : "grid-rows-[var(--density-chrome-y,40px)_minmax(0,1fr)_var(--density-status-y,24px)]";
+    ? "grid-rows-[minmax(0,1fr)]"
+    : "grid-rows-[minmax(0,1fr)_var(--density-status-y,26px)]";
 
   const chrome = (
     <div className="relative h-screen overflow-hidden bg-chrome text-text-primary">
-      <div id="workbench-root" className={cn("grid h-full", gridRows)}>
-      <TitleBar
-        workspaceRoot={settings.workspaceRoot}
-        taskPanelOpen={taskPanelOpen}
-        sidebarCollapsed={sidebarCollapsed}
-        onToggleSidebar={toggleSidebar}
-        onToggleTaskPanel={() => setTaskPanelOpen((prev) => !prev)}
-      />
-      {/* Three-pane workbench: sidebar | canvas | AI — minmax(0) prevents flex blowout */}
+      <div id="workbench-root" className={cn("grid h-full", gridRows)} data-through-columns>
+      {/* Three through-going columns: each owns its top chrome. No spanning product header. */}
       <FileDropZone>
         {showSidebar ? (
           <>
@@ -256,13 +295,22 @@ export function Shell({ settings }: ShellProps) {
           </>
         ) : null}
 
-        <EditorArea />
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col" data-center-column>
+          <TitleBar
+            workspaceRoot={settings.workspaceRoot}
+            sidebarCollapsed={sidebarCollapsed}
+            onToggleSidebar={toggleSidebar}
+            macPad={!showSidebar}
+            winPad={!showAiPanel}
+          />
+          <EditorArea />
+        </div>
 
         {showAiPanel ? (
           <>
-            <Splitter side="right" value={aiPanelWidth} onChange={setAiPanelWidth} min={280} max={800} />
-            <div style={{ width: aiPanelWidth }} className="v4-side-panel">
-              <AiPanel />
+            <Splitter side="right" value={aiPanelWidth} onChange={setAiPanelWidth} min={320} max={800} />
+            <div style={{ width: aiPanelWidth }} className="v4-side-panel" data-ai-workspace-column>
+              <AiWorkspace />
             </div>
           </>
         ) : null}
@@ -275,14 +323,20 @@ export function Shell({ settings }: ShellProps) {
         />
       )}
       </div>
+      <WorkspaceSwitcher currentRoot={settings.workspaceRoot} />
       <OverlayHost />
       <IngestStagingSheet />
       <TaskPanel
         open={taskPanelOpen}
         onClose={() => setTaskPanelOpen(false)}
       />
-      {/* Global 建议 confirm surface — header / strip open this (not Stream-embedded) */}
-      <SuggestPopover />
+      {/* Focus-mode fallback: AI workspace is hidden, so 建议 / 清单 still need a door */}
+      {focusMode ? <SuggestPopover /> : null}
+      {focusMode ? (
+        <TodoPopover open={todoFocusOpen} onOpenChange={setTodoFocusOpen}>
+          <span hidden />
+        </TodoPopover>
+      ) : null}
       {/* Inline AI leave guard — ConfirmDialog before navigation (never navigate-then-block) */}
       <InlineAiLeaveHost />
 
@@ -302,7 +356,7 @@ export function Shell({ settings }: ShellProps) {
           {activeTodoCount > 0 ? (
             <button
               type="button"
-              onClick={() => emitLocal("todo:toggle-popover")}
+              onClick={() => setTodoFocusOpen((v) => !v)}
               className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full border border-border-subtle bg-surface-elevated/95 px-2.5 py-1 text-3xs font-medium text-text-secondary shadow-[var(--shadow-float)] backdrop-blur-sm transition-colors hover:bg-surface-muted v4-focus-ring"
               aria-label={t("shell:todo.openAria", { count: activeTodoCount })}
             >

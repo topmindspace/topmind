@@ -15,6 +15,13 @@ const desktopRoot = path.resolve(__dirname, "..");
 
 const DEAD_PATTERNS = [
   {
+    id: "solid-capture-cta",
+    description: "记一下 is a normal chrome button — no v4-titlebar-btn-capture solid CTA",
+    regex: /v4-titlebar-btn-capture/u,
+    scope: ["src/**/*.ts", "src/**/*.tsx", "src/**/*.css"],
+    allowIn: ["scripts/check-dead-code.mjs"],
+  },
+  {
     id: "v3-ipc-channels",
     description: "v4 uses single RPC bridge (rpc:invoke) — no v3 IPC channels",
     // Channel-style ids (inbox:list) — not object props like `inbox: true` or mode: "inbox"
@@ -130,8 +137,22 @@ const DEAD_PATTERNS = [
     allowIn: ["scripts/check-dead-code.mjs"],
   },
   {
+    id: "removed-actionbar-component",
+    description: "ActionBar was unreachable (mounted in AiPanel, hidden in focus) — SuggestPopover is the confirm surface",
+    regex: /from ["'].*ActionBar["']|<ActionBar[\s/>]/u,
+    scope: ["src/**/*.ts", "src/**/*.tsx"],
+    allowIn: ["scripts/check-dead-code.mjs"],
+  },
+  {
+    id: "unscoped-pi-bash-tool",
+    description: "bash / unscoped shell / exec must never be registered as Desktop AI tools",
+    regex: /tools\.(bash|shell|exec)\s*=\s*tool\(/u,
+    scope: ["electron/**/*.mjs"],
+    allowIn: ["scripts/check-dead-code.mjs"],
+  },
+  {
     id: "removed-suggestion-strip",
-    description: "SuggestionStrip was replaced by ActionBar + ActionStore — no separate suggestion strip component",
+    description: "SuggestionStrip was replaced by ActionStore — no separate suggestion strip component",
     regex: /\bSuggestionStrip\b/u,
     scope: ["src/**/*.ts", "src/**/*.tsx"],
     allowIn: ["scripts/check-dead-code.mjs"],
@@ -220,14 +241,14 @@ const DEAD_PATTERNS = [
   },
   {
     id: "removed-todo-strip",
-    description: "TodoStrip was removed — todo access is via TodoPopover floating panel (TitleBar icon / ⌘⇧T), not an embedded strip in StreamDetailView",
+    description: "TodoStrip was removed — todo access is the AI workspace 清单 pane (TitleBar icon / ⌘⇧T); focus-mode still uses TodoPopover",
     regex: /\bTodoStrip\b/u,
     scope: ["src/**/*.ts", "src/**/*.tsx"],
     allowIn: ["scripts/check-dead-code.mjs"],
   },
   {
     id: "removed-todo-view",
-    description: "TodoView sidebar component was removed — todo UI is via TodoPopover, not a sidebar view tab",
+    description: "TodoView sidebar component was removed — todo UI is the AI workspace 清单 pane, not a sidebar view tab",
     regex: /\bTodoView\b/u,
     scope: ["src/**/*.ts", "src/**/*.tsx"],
     allowIn: ["scripts/check-dead-code.mjs"],
@@ -300,10 +321,9 @@ const DEAD_PATTERNS = [
   },
   {
     id: "actionbar-no-unified-todo-product-word",
-    description: "ActionBar product vocabulary is 建议 / 待确认写入 — not 统一待办条",
+    description: "Suggest / ActionStore product vocabulary is 建议 / 待确认写入 — not 统一待办条",
     regex: /统一待办条|用户概念：「待办」|统一「待办」/u,
     scope: [
-      "src/components/ai/ActionBar.tsx",
       "src/stores/action-store.ts",
       "DESIGN.md",
       "ARCHITECTURE.md",
@@ -369,6 +389,27 @@ const DEAD_PATTERNS = [
     description: "resolveConnectorSyncCategory must read workspace.template / ingest.connectors, not deleted flat aliases",
     regex: /config\.(template|categorySeparator|connectorDefaults)\b/u,
     scope: ["electron/lib/connector-category.mjs"],
+    allowIn: ["scripts/check-dead-code.mjs"],
+  },
+  {
+    id: "titlebar-apps-menu-as-living-chrome",
+    description: "Apps launchpad is AI workspace 应用 pane — not 标题栏 Apps 菜单 / header Apps menu",
+    regex: /标题栏 Apps 菜单|header Apps menu/iu,
+    scope: ["src/**/*.ts", "src/**/*.tsx", "src/**/*.json", "PLUGIN.md", "README.md", "README.zh-CN.md"],
+    allowIn: ["scripts/check-dead-code.mjs"],
+  },
+  {
+    id: "readme-actionbar-as-living-chrome",
+    description: "ActionBar component is deleted; 建议 pane / SuggestPopover is the confirm surface",
+    regex: /AI panel \*\*ActionBar\*\*|AI 面板 \*\*ActionBar\*\*|合入 ActionBar/u,
+    scope: ["README.md", "README.zh-CN.md"],
+    allowIn: ["scripts/check-dead-code.mjs"],
+  },
+  {
+    id: "titlebar-note-it-as-living-capture",
+    description: "记一下 lives in Sidebar header, not TitleBar",
+    regex: /Title-bar \*\*Note it\*\*|顶栏 \*\*记一下\*\*/u,
+    scope: ["README.md", "README.zh-CN.md"],
     allowIn: ["scripts/check-dead-code.mjs"],
   },
 ];

@@ -137,6 +137,8 @@ function contextHint(selection: Selection, t: (key: string, opts?: Record<string
       return t("overlays:command.ctxOutputs");
     case "archive":
       return t("overlays:command.ctxArchive");
+    case "memory":
+      return t("overlays:command.ctxMemory");
     case "connector":
       return selection.id === "weread"
         ? t("overlays:command.ctxWeread")

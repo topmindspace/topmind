@@ -119,9 +119,8 @@ export function EditorReadingMenu({
             type="button"
             onClick={() => setOpen((v) => !v)}
             className={cn(
-              "flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)]",
-              "text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-primary",
-              open && "bg-accent-bg-subtle text-accent-color",
+              "v4-editor-tool-btn",
+              open && "text-accent-color",
             )}
             aria-label={t("readingMenu.ariaLabel")}
             aria-expanded={open}

@@ -29,7 +29,6 @@ import { emitLocal } from "../../../plugins/host";
 import { Button } from "../../../components/ui/Button";
 import {
   ViewContainer,
-  PageHeader,
   EmptyState,
   MetaText,
   RowList,
@@ -41,6 +40,8 @@ import {
   FeedColumn,
   FeedChrome,
 } from "../../../components/ui/view";
+import { TitleBarActions } from "../../../lib/chrome-portal";
+import { useTitleBarChrome } from "../../../lib/titlebar-chrome";
 import { ConfirmDialog } from "../../../components/ui/Dialog";
 import {
   useFileContextMenu,
@@ -237,34 +238,30 @@ export function OutputsView() {
     }
   };
 
+  useTitleBarChrome("outputs", {
+    title: t("workspace:outputsView.title"),
+    stats: files.length > 0
+      ? t("workspace:outputsView.subtitle", { name: outputsName, count: files.length })
+      : t("workspace:outputsView.emptySubtitle", { name: outputsName }),
+  });
+
   if (loading) return <LoadingState label={t("common:action.loading")} />;
   if (error) return <ErrorState message={error} onRetry={() => void refresh()} />;
 
   return (
     <ViewContainer>
-      <PageHeader
-        icon={<RiStackLine size={ICON.sm} />}
-        title={t("workspace:outputsView.title")}
-        subtitle={
-          files.length > 0
-            ? t("workspace:outputsView.subtitle", { name: outputsName, count: files.length })
-            : t("workspace:outputsView.emptySubtitle", { name: outputsName })
-        }
-        actions={
-          <div className="flex items-center gap-1">
-            <Tooltip content={t("common:action.refresh")}>
-              <Button variant="ghost" size="sm" onClick={() => void refresh()} className="h-7 w-7 p-0">
-                <RiRefreshLine size={ICON.xs} />
-              </Button>
-            </Tooltip>
-            <Tooltip content={t("workspace:inbox.captureBtn")}>
-              <Button variant="outline" size="sm" onClick={() => openOverlay("quick-capture")}>
-                <RiFlashlightFill size={ICON.xs} /> {t("workspace:inbox.captureBtn")}
-              </Button>
-            </Tooltip>
-          </div>
-        }
-      />
+      <TitleBarActions>
+        <Tooltip content={t("common:action.refresh")}>
+          <button
+            type="button"
+            className="v4-titlebar-btn"
+            onClick={() => void refresh()}
+            aria-label={t("common:action.refresh")}
+          >
+            <RiRefreshLine size={ICON.sm} />
+          </button>
+        </Tooltip>
+      </TitleBarActions>
       {files.length === 0 ? (
         <EmptyState
           icon={<RiStackLine size={ICON.md} />}

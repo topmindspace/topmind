@@ -2,8 +2,8 @@
  * StreamDetailView — 个人动态流主表面（周期本时间线）。
  *
  * - 随便记下 · 按日时间流 · 条目增补（同文件续写）
- * - 建议入口在 StatusBar 计数 chip（统一）→ SuggestPopover 确认
- * - 本视图不挂第二套建议列表；整理候选合入 SuggestPopover
+ * - 建议入口在 StatusBar 计数 chip（统一）→ AI 工作区 建议 pane
+ * - 本视图不挂第二套建议列表；整理候选合入同一确认面
  */
 import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
 import { useTranslation } from "react-i18next";
@@ -18,7 +18,7 @@ import {
   RiInboxArchiveLine,
   RiLink,
   RiLoader4Line,
-  RiMagicLine,
+  RiListCheck2,
   RiRefreshLine,
   RiSendPlane2Line,
   RiSparklingLine,
@@ -29,7 +29,6 @@ import { emitLocal, onLocal } from "../../../plugins/host";
 import { useViewStore } from "../../../stores/view-store";
 import {
   ViewContainer,
-  PageHeader,
   EmptyState,
   LoadingState,
   ErrorState,
@@ -37,6 +36,8 @@ import {
   FeedColumn,
   FeedChrome,
 } from "../../../components/ui/view";
+import { TitleBarActions } from "../../../lib/chrome-portal";
+import { useTitleBarChrome } from "../../../lib/titlebar-chrome";
 import { Button } from "../../../components/ui/Button";
 import { ConfirmDialog } from "../../../components/ui/Dialog";
 import { LedgerQuickEntry, looksLikeLedgerText } from "../../../components/overlays/LedgerQuickEntry";
@@ -552,6 +553,54 @@ interface PeriodInfo {
   mtime: string | null;
 }
 
+function StreamPeriodChip({
+  p,
+  isActive,
+  isPackingCurrent = false,
+  packingCurrentShort,
+  unreconciledLabel,
+  unreconciledShort,
+  onSelect,
+}: {
+  p: PeriodInfo;
+  isActive: boolean;
+  isPackingCurrent?: boolean;
+  packingCurrentShort?: string;
+  unreconciledLabel: string;
+  unreconciledShort: string;
+  onSelect: (p: PeriodInfo) => void;
+}) {
+  const name = p.title || p.fileName;
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(p)}
+      data-filter-chip
+      data-filter-chip-active={isActive ? "true" : undefined}
+      data-period-needs-tidy={p.reconciled ? undefined : "true"}
+      className={cn(
+        "inline-flex h-(--control-h-chip) max-w-36 items-center truncate rounded-full px-2 text-3xs font-medium leading-none transition-colors",
+        isActive
+          ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
+          : "bg-surface-muted/35 text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
+      )}
+      title={p.reconciled ? name : `${name} · ${unreconciledLabel}`}
+    >
+      <span className="truncate">{name}</span>
+      {isPackingCurrent && !isActive && packingCurrentShort ? (
+        <span className="ml-0.5 shrink-0 rounded-full bg-accent-bg-subtle px-1 text-3xs font-medium leading-4 text-accent-color">
+          {packingCurrentShort}
+        </span>
+      ) : null}
+      {!p.reconciled ? (
+        <span className="ml-0.5 shrink-0 rounded-full bg-warning/10 px-1 text-3xs font-medium leading-4 text-warning">
+          {unreconciledShort}
+        </span>
+      ) : null}
+    </button>
+  );
+}
+
 interface StreamContext {
   packing: string;
   periodRelPath: string | null;
@@ -640,7 +689,6 @@ export function StreamDetailView() {
   const select = useViewStore((s) => s.select);
   const feedLayout = useViewStore((s) => s.feedLayout);
   const setFeedLayout = useViewStore((s) => s.setFeedLayout);
-  const todoMaintaining = useTodoStore((s) => s.maintaining === "maintaining");
   const todoEverLoaded = useTodoStore((s) => s.everLoaded);
   const aiReady = useAiStore((s) => s.runtimeStatus?.ready ?? false);
 
@@ -976,19 +1024,6 @@ export function StreamDetailView() {
     });
   }, []);
 
-  /** AI maintain todos from stream; open todo panel so results / progressive force are visible. */
-  const handleMaintainTodos = useCallback(() => {
-    emitLocal("todo:open-popover");
-    if (!aiReady) {
-      emitLocal("toast:show", t("workspace:streamDetail.suggestionsAiOffline"));
-      return;
-    }
-    // First click respects skip hash; second click after already-processed forces re-scan.
-    const st = useTodoStore.getState();
-    const force = st.maintainReason === "all-periods-processed";
-    void st.maintain(force ? { force: true } : undefined);
-  }, [aiReady, t]);
-
   /** Comment-like append under a stream entry (same Markdown period note). */
   const handleAppendEntry = useCallback(
     async (entry: StreamEntry) => {
@@ -1200,34 +1235,20 @@ export function StreamDetailView() {
   }, [t, loadPeriodContent, loadPeriods, activePath]);
 
   /**
-   * Header actions: no second「记一下」(title bar is the only L1 capture).
-   * 个人清单不在此处重复（降噪 2026-08）——唯一入口是标题栏 ListTodo / ⌘⇧T。
-   * AI 待办 · 整理 · refresh 为情境动作；个人清单 ≠ ActionBar 建议。
+   * Header actions are view-local only (DESIGN §0.0.4).
+   * No 记一下 / 建议 / 清单 — those live on TitleBar / AI workspace.
+   * 整理 · refresh are stream-contextual.
    */
   const headerActions = useMemo((): ChromeAction[] => {
     return [
-      {
-        id: "ai-todos",
-        label: t("workspace:streamDetail.aiMaintainTodos"),
-        title: t("workspace:streamDetail.aiMaintainTodosTip"),
-        icon: todoMaintaining ? (
-          <RiLoader4Line size={ICON.xs} className="animate-spin" />
-        ) : (
-          <RiSparklingLine size={ICON.xs} />
-        ),
-        priority: 10,
-        disabled: todoMaintaining,
-        aiAction: true,
-        onClick: handleMaintainTodos,
-      },
       {
         id: "organize",
         label: t("workspace:streamDetail.organize"),
         title: t("workspace:streamDetail.organizeTip"),
         icon: reconciling ? (
-          <RiLoader4Line size={ICON.xs} className="animate-spin" />
+          <RiLoader4Line size={ICON.sm} className="animate-spin" />
         ) : (
-          <RiMagicLine size={ICON.xs} />
+          <RiListCheck2 size={ICON.sm} />
         ),
         priority: 20,
         disabled: reconciling,
@@ -1237,22 +1258,13 @@ export function StreamDetailView() {
         id: "reload",
         label: t("common:action.refresh"),
         title: t("shell:sidebar.stream.reloadTooltip"),
-        icon: <RiRefreshLine size={ICON.xs} />,
+        icon: <RiRefreshLine size={ICON.sm} />,
         priority: 40,
         iconOnlyWhenCompact: true,
         onClick: () => void loadPeriodContent(activePath, { silent: true }),
       },
     ];
-  }, [
-    t,
-    reconciling,
-    todoMaintaining,
-    aiReady,
-    activePath,
-    loadPeriodContent,
-    handleReconcile,
-    handleMaintainTodos,
-  ]);
+  }, [t, reconciling, activePath, loadPeriodContent, handleReconcile]);
 
   const toggleExpand = useCallback((idx: number) => {
     setExpandedIdx((prev) => {
@@ -1311,6 +1323,16 @@ export function StreamDetailView() {
     viewPeriodTitle ||
     ctx?.periodTitle ||
     t("shell:sidebar.stream.defaultTitle");
+
+  useTitleBarChrome("stream", {
+    title: periodTitle,
+    stats: entries.length > 0
+      ? t("workspace:streamDetail.personalStreamSubtitle", {
+          count: entries.length,
+          packing: ctx?.packing || "weekly",
+        })
+      : t("workspace:streamDetail.emptySubtitle"),
+  });
 
   const isCurrentPeriod =
     !activePath || !ctx?.periodRelPath || activePath === ctx.periodRelPath;
@@ -1374,23 +1396,9 @@ export function StreamDetailView() {
 
   return (
     <ViewContainer variant="feed">
-      <PageHeader
-        icon={<RiCalendar2Line size={ICON.sm} />}
-        title={periodTitle}
-        subtitle={
-          entries.length > 0
-            ? t("workspace:streamDetail.personalStreamSubtitle", {
-                count: entries.length,
-                packing: ctx?.packing || "weekly",
-              })
-            : t("workspace:streamDetail.emptySubtitle")
-        }
-        actions={
-          <div className="flex min-w-0 max-w-[min(100%,28rem)] items-center justify-end gap-1.5 sm:max-w-lg">
-            <ChromeOverflowActions actions={headerActions} />
-          </div>
-        }
-      />
+      <TitleBarActions>
+        <ChromeOverflowActions actions={headerActions} />
+      </TitleBarActions>
 
       {periods.length > 1 ? (
         <div
@@ -1399,42 +1407,18 @@ export function StreamDetailView() {
         >
           <span className="sr-only">{t("workspace:streamDetail.periodSwitcher")}</span>
           {/* Recent 5 periods of the current year (primary chips) */}
-          {thisYearPeriods.slice(0, 5).map((p) => {
-            const isActive = activePath === p.relPath;
-            const isPackingCurrent = ctx?.periodRelPath === p.relPath;
-            return (
-              <button
-                key={p.relPath}
-                type="button"
-                onClick={() => handleSelectPeriod(p)}
-                data-filter-chip
-                data-filter-chip-active={isActive ? "true" : undefined}
-                className={cn(
-                  "inline-flex h-(--control-h-chip) max-w-36 items-center truncate rounded-full px-2 text-3xs font-medium leading-none transition-colors",
-                  isActive
-                    ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
-                    : "bg-surface-muted/35 text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
-                )}
-                title={
-                  !p.reconciled
-                    ? `${p.title || p.fileName} · ${t("workspace:streamDetail.unreconciled")}`
-                    : p.title || p.fileName
-                }
-              >
-                <span className="truncate">{p.title || p.fileName}</span>
-                {isPackingCurrent && !isActive ? (
-                  <span className="ml-0.5 shrink-0 rounded-full bg-accent-bg-subtle px-1 text-3xs font-medium leading-4 text-accent-color">
-                    {t("workspace:streamDetail.packingCurrentShort")}
-                  </span>
-                ) : null}
-                {!p.reconciled && !isActive ? (
-                  <span className="ml-0.5 shrink-0 rounded-full bg-warning/10 px-1 text-3xs font-medium leading-4 text-warning">
-                    {t("workspace:streamDetail.unreconciledShort")}
-                  </span>
-                ) : null}
-              </button>
-            );
-          })}
+          {thisYearPeriods.slice(0, 5).map((p) => (
+            <StreamPeriodChip
+              key={p.relPath}
+              p={p}
+              isActive={activePath === p.relPath}
+              isPackingCurrent={ctx?.periodRelPath === p.relPath}
+              packingCurrentShort={t("workspace:streamDetail.packingCurrentShort")}
+              unreconciledLabel={t("workspace:streamDetail.unreconciled")}
+              unreconciledShort={t("workspace:streamDetail.unreconciledShort")}
+              onSelect={handleSelectPeriod}
+            />
+          ))}
           {/* More this year (expandable) — count reflects only this year's periods */}
           {thisYearPeriods.length > 5 ? (
             <button
@@ -1451,27 +1435,18 @@ export function StreamDetailView() {
           ) : null}
           {showMoreThisYear && thisYearPeriods.length > 5 ? (
             <div className="flex w-full flex-wrap items-center gap-1 pl-2">
-              {thisYearPeriods.slice(5).map((p) => {
-                const isActive = activePath === p.relPath;
-                return (
-                  <button
-                    key={p.relPath}
-                    type="button"
-                    onClick={() => handleSelectPeriod(p)}
-                    data-filter-chip
-                    data-filter-chip-active={isActive ? "true" : undefined}
-                    className={cn(
-                      "inline-flex h-(--control-h-chip) max-w-36 items-center truncate rounded-full px-2 text-3xs font-medium leading-none transition-colors",
-                      isActive
-                        ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
-                        : "bg-surface-muted/35 text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
-                    )}
-                    title={p.title || p.fileName}
-                  >
-                    <span className="truncate">{p.title || p.fileName}</span>
-                  </button>
-                );
-              })}
+              {thisYearPeriods.slice(5).map((p) => (
+                <StreamPeriodChip
+                  key={p.relPath}
+                  p={p}
+                  isActive={activePath === p.relPath}
+                  isPackingCurrent={ctx?.periodRelPath === p.relPath}
+                  packingCurrentShort={t("workspace:streamDetail.packingCurrentShort")}
+                  unreconciledLabel={t("workspace:streamDetail.unreconciled")}
+                  unreconciledShort={t("workspace:streamDetail.unreconciledShort")}
+                  onSelect={handleSelectPeriod}
+                />
+              ))}
             </div>
           ) : null}
           {/* Past years (expandable) */}
@@ -1518,27 +1493,16 @@ export function StreamDetailView() {
                         </button>
                         {isExpanded ? (
                           <>
-                            {(pastYearPeriods[y.year] || []).map((p) => {
-                              const isActive = activePath === p.relPath;
-                              return (
-                                <button
-                                  key={p.relPath}
-                                  type="button"
-                                  onClick={() => handleSelectPeriod(p)}
-                                  data-filter-chip
-                                  data-filter-chip-active={isActive ? "true" : undefined}
-                                  className={cn(
-                                    "inline-flex h-(--control-h-chip) max-w-36 items-center truncate rounded-full px-2 text-3xs font-medium leading-none transition-colors",
-                                    isActive
-                                      ? "bg-accent-bg-subtle text-accent-color"
-                                      : "bg-surface-muted/35 text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
-                                  )}
-                                  title={p.title || p.fileName}
-                                >
-                                  <span className="truncate">{p.title || p.fileName}</span>
-                                </button>
-                              );
-                            })}
+                            {(pastYearPeriods[y.year] || []).map((p) => (
+                              <StreamPeriodChip
+                                key={p.relPath}
+                                p={p}
+                                isActive={activePath === p.relPath}
+                                unreconciledLabel={t("workspace:streamDetail.unreconciled")}
+                                unreconciledShort={t("workspace:streamDetail.unreconciledShort")}
+                                onSelect={handleSelectPeriod}
+                              />
+                            ))}
                             {!y.archived ? (
                               <button
                                 type="button"
@@ -1586,14 +1550,14 @@ export function StreamDetailView() {
       ) : null}
 
       {/*
-        建议入口：StatusBar 计数 chip → SuggestPopover 确认面。
+        建议入口：StatusBar 计数 chip → AI 工作区 建议 pane。
         本视图不挂第二套建议列表。
       */}
 
       {/* Shared reading column: compose + layout toggle + posts (same --feed-column-max). */}
       <FeedColumn stream>
       {/* Inline composer — primary capture path: 润色 → 记下。
-          无 label/hint meta 行（降噪 2026-08）：placeholder 承担引导，计数在 PageHeader subtitle。 */}
+          无 label/hint meta 行（降噪 2026-08）：placeholder 承担引导，计数在 TitleBar stats。 */}
       {composeIsUrl ? (
         <div
           className="mb-2 flex items-center justify-between gap-2 rounded-lg border border-accent-border-subtle/40 bg-accent-bg-faint/30 px-3 py-1.5 transition-all duration-200"
@@ -1668,7 +1632,7 @@ export function StreamDetailView() {
         ) : null}
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-border-subtle-dim/70 pt-2">
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-            {/* Tertiary: full capture lives in title bar「记一下」 */}
+            {/* Tertiary: full capture overlay (not the L1 记一下 word) */}
             <button
               type="button"
               onClick={handleCapture}

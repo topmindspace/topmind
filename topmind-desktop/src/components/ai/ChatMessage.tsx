@@ -88,7 +88,7 @@ function StreamStatusIndicator({ status, toolName, count, maxSteps }: { status: 
     status === "steering" ? t("ai.streamStatusSteering") : streamStatusLabel(status, toolName, count, maxSteps);
   const Icon = icon;
   return (
-    <div className="flex items-center gap-1.5 px-0.5 py-0.5 text-3xs text-text-quaternary" role="status">
+    <div className="flex items-center gap-1.5 px-0.5 py-0.5 text-3xs text-text-quaternary" role="status" data-stream-status={status}>
       <Icon size={ICON.xs} className={cn("shrink-0 opacity-80", spin && "animate-spin")} aria-hidden />
       <span className="font-mono text-3xs tracking-tight">{label}</span>
       <ElapsedSeconds key={status} />
@@ -113,7 +113,7 @@ function ToolCallTimeline({ tools }: { tools: AiToolCall[] }) {
     const runningCount = tools.filter((t) => t.status === "running").length;
     const writeCount = tools.filter((t) => isAiWriteTool(t.name)).length;
     return (
-      <div className="mb-2">
+      <div className="mb-2" data-tool-timeline>
         <button
           type="button"
           onClick={() => setAllOpen(true)}
@@ -141,7 +141,7 @@ function ToolCallTimeline({ tools }: { tools: AiToolCall[] }) {
   }
 
   return (
-    <div className="mb-2 flex flex-col gap-0.5">
+    <div className="mb-2 flex flex-col gap-0.5" data-tool-timeline>
       {tools.length >= 3 ? (
         <button
           type="button"
@@ -651,7 +651,11 @@ function ReasoningBlock({ text, streaming }: { text: string; streaming?: boolean
   const charCount = text.trim().length;
 
   return (
-    <div className="mb-2 rounded-[var(--radius-md)] border border-border-subtle/80 bg-surface-muted/40">
+    <div
+      className="mb-2 rounded-[var(--radius-md)] border border-border-subtle/80 bg-surface-muted/40"
+      data-reasoning-block
+      data-reasoning-open={open ? "true" : "false"}
+    >
       <button
         type="button"
         className="flex w-full items-center gap-1.5 px-2 py-1.5 text-left text-3xs text-text-quaternary hover:text-text-tertiary"
@@ -685,6 +689,7 @@ function ReasoningBlock({ text, streaming }: { text: string; streaming?: boolean
       >
         <div
           ref={bodyRef}
+          data-reasoning-scroll
           className="max-h-40 overflow-auto border-t border-border-subtle/60 px-2.5 py-1.5 text-2xs italic leading-relaxed text-text-quaternary whitespace-pre-wrap"
         >
           {text}

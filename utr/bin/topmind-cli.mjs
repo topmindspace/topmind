@@ -54,7 +54,7 @@ Usage:
 Options:
   --engine-root <path>     topmind engine root (auto-detected by default)
   --workspace-root <path>  topmind user workspace root (auto-detected by default)
-  --skill <name>           Filter by skill domain (workspace-read | workspace-write | workspace-check | workspace-transform | workspace-maintain)
+  --skill <name>           Filter by skill domain (workspace-read | workspace-write | workspace-transform | workspace-maintain | contract | memory | lifecycle | derived)
   --reviewed               Indicates confirm-mode review completed, allows execution
   --input-json '<json>'    Action parameters JSON (or - to read from stdin)
   --json                   doctor output as JSON

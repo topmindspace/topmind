@@ -4,7 +4,7 @@
  * Registers:
  * - SettingsSlot (always)
  * - When enabled: Hub View · Actions · StatusBar
- *   （chrome 入口统一在标题栏 Apps 菜单 + 状态栏 chip；侧栏插件行已移除 2026-08-30）
+ *   （chrome 入口统一在 AI 工作区应用 pane + 状态栏 chip；侧栏插件行已移除 2026-08-30）
  */
 import { defineConnectorPlugin } from "../connector";
 import { createXSettingsSlot } from "./settings-slot";

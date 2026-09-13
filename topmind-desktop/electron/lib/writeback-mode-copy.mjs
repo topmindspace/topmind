@@ -40,14 +40,14 @@ export function describeWritebackModeForPrompt(mode, locale) {
     if (lang === "en") {
       return (
         "Writeback: ask before save — you may call write tools (save_file/edit_file, etc.);" +
-        " tool results enter the pending-writes queue; the user accepts or rejects in the panel before disk write;" +
+        " tool results enter the pending-writes queue; the user accepts or rejects in the Suggest pane before disk write;" +
         " locked notes refuse unconfirmed AI overwrite (protection outranks writeback);" +
         " when files must change, you must call tools — never only rewrite verbally without tools."
       );
     }
     return (
       "写回: 保存前问我 — 可调用 write 工具（save_file/edit_file 等）；" +
-      "工具结果会进入「待确认写入」队列，用户在面板中接受或拒绝后才落盘；" +
+      "工具结果会进入「待确认写入」队列，用户在 AI 工作区建议 pane 中接受或拒绝后才落盘；" +
       "锁定笔记拒绝未确认的 AI 覆盖（保护级别优先于写回模式）；" +
       "需要改文件时必须调用工具，禁止只做口头改写而不走工具。"
     );

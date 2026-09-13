@@ -35,6 +35,7 @@ import {
   preciseEditWorkspace,
   runWorkspaceChatTurn,
   resolveChatDurableLocale,
+  loadChatProfileContext,
   createInboxNoteInWorkspace,
   appendStreamEntryToWorkspace,
   acceptPendingWrite,
@@ -770,11 +771,13 @@ export class KernelService {
     }
 
     try {
-      const profileRel = this.profileRelPath();
-      if (await this.app.vault.adapter.exists(profileRel)) {
-        const profile = await this.app.vault.adapter.read(profileRel);
-        const trimmed = profile.slice(0, 3000);
-        contextParts.push("## User Profile\n" + trimmed);
+      const profileCtx = loadChatProfileContext(
+        getKernel(),
+        this.getVaultPath(),
+        this.settings.localeOverride || getLocale() || "zh-CN",
+      );
+      if (profileCtx) {
+        contextParts.push("## User Profile\n" + profileCtx);
       }
     } catch {
       // Profile unavailable — skip

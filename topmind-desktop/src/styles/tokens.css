@@ -184,15 +184,15 @@
   --type-size-display: 28px;
   --type-size-body: 14px;
 
-  /* Layout density — workbench-first (tighter chrome, airy content)
-     2026-09-02: chrome-y 36→40 — 更大气的 header；同时与 Windows
-     titleBarOverlay(40px) 对齐，消除平台间高度不一致 */
+  /* Layout density — workbench-first (airy chrome, airy content)
+     2026-09-07: chrome-y 40→44 — 三列顶栏对齐、控件 32px；Windows
+     titleBarOverlay 跟随同一高度 */
   --density-page-x: 28px;
   --density-page-y: 24px;
-  --density-chrome-y: 40px;
-  /* 24px status meta — slimmer, still readable (2026-08-07: 26→24) */
-  --density-status-y: 24px;
-  --density-tree-row: 28px;
+  --density-chrome-y: 44px;
+  --density-chrome-control: 32px;
+  --density-status-y: 26px;
+  --density-tree-row: 30px;
   --density-editor-toolbar-y: 32px;
 
   /* --icon-* size scale removed 2026-08-30 — zero references;

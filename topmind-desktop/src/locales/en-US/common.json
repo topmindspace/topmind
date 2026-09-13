@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "topmind",
-    "tagline": "Note it · Stream · Ship it · Find again"
+    "tagline": "Note it · Stream · Topic · My profile · Write out"
   },
   "action": {
     "save": "Save",

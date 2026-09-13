@@ -7,7 +7,7 @@
   "chromeOpenTip": "打开记账小应用 · 账本在记忆平面 ledgers/",
   "bookPath": "账本 · {{path}}",
   "bookPathHint": "写在契约解析的记忆目录 ledgers/，与待办同族，不在 50-其他/",
-  "howToOpen": "启用后从标题栏 Apps 菜单、状态栏「记账」chip 或命令面板「记账」打开；关掉后这些入口消失。不是主导航项。",
+  "howToOpen": "启用后从 AI 工作区应用 pane、状态栏「记账」chip 或命令面板「记账」打开；关掉后这些入口消失。不是主导航项。",
   "close": "关闭",
   "balance": "余额",
   "yuan": "元",
@@ -47,7 +47,7 @@
     "title": "记账",
     "desc": "可选小应用。默认一本「自己」的账本；你可以再加账本和分类。写在契约解析的 memory/ledgers/。",
     "enabled": "启用记账",
-    "enabledDesc": "打开后：标题栏 Apps 菜单与状态栏出现「记账」，⌘K 可搜「记账」。关掉后这些入口消失。",
+    "enabledDesc": "打开后：AI 工作区应用 pane 与状态栏出现「记账」，⌘K 可搜「记账」。关掉后这些入口消失。",
     "defaultRole": "默认账本",
     "defaultRoleDesc": "一句话里没提到账本时记入此本（默认 Personal / 自己）",
     "openApp": "打开记账"

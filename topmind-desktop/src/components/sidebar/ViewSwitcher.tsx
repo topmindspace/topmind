@@ -36,6 +36,8 @@ interface ViewSwitcherProps {
   onChange: (mode: SidebarViewMode) => void;
   /** From `topmind.yaml` presentation.views.enabled — omit to show all */
   enabled?: SidebarViewMode[];
+  /** Force icon-only mode (no text labels) — used in sidebar secondary header */
+  iconOnly?: boolean;
 }
 
 interface ThumbRect {
@@ -44,7 +46,7 @@ interface ThumbRect {
   ready: boolean;
 }
 
-export function ViewSwitcher({ active, onChange, enabled }: ViewSwitcherProps) {
+export function ViewSwitcher({ active, onChange, enabled, iconOnly: forceIconOnly }: ViewSwitcherProps) {
   const { t } = useTranslation("shell");
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -120,6 +122,11 @@ export function ViewSwitcher({ active, onChange, enabled }: ViewSwitcherProps) {
     const el = railRef.current;
     if (!el || typeof ResizeObserver === "undefined") return;
     const ro = new ResizeObserver((entries) => {
+      if (forceIconOnly) {
+        setIconOnly(true);
+        requestAnimationFrame(measureThumb);
+        return;
+      }
       const w = entries[0]?.contentRect.width ?? el.clientWidth;
       // +1 slot when more button present
       const n = Math.max(railTabs.length + (showMore ? 1 : 0), 1);
@@ -127,10 +134,13 @@ export function ViewSwitcher({ active, onChange, enabled }: ViewSwitcherProps) {
       requestAnimationFrame(measureThumb);
     });
     ro.observe(el);
-    const n = Math.max(railTabs.length + (showMore ? 1 : 0), 1);
-    setIconOnly(el.clientWidth / n < LABEL_MIN_TAB_PX);
+    if (forceIconOnly) {
+      setIconOnly(true);
+      requestAnimationFrame(measureThumb);
+      return;
+    }
     return () => ro.disconnect();
-  }, [railTabs.length, showMore, measureThumb]);
+  }, [railTabs.length, showMore, measureThumb, forceIconOnly]);
 
   useLayoutEffect(() => {
     measureThumb();
@@ -138,7 +148,7 @@ export function ViewSwitcher({ active, onChange, enabled }: ViewSwitcherProps) {
 
   return (
     <div
-      className="min-w-0 flex-1 px-1 py-1"
+      className={cn("min-w-0 flex-1", forceIconOnly ? "px-0 py-0" : "px-1 py-1")}
       role="tablist"
       aria-label={t("sidebar.viewSwitcher.ariaTablist")}
     >
@@ -169,7 +179,7 @@ export function ViewSwitcher({ active, onChange, enabled }: ViewSwitcherProps) {
                 className={cn("v4-segmented-item", isActive && "text-text-primary")}
               >
                 <v.icon
-                  size={ICON.sm}
+                  size={iconOnly ? ICON.xs : ICON.sm}
                   aria-hidden
                   className={cn(isActive ? "text-accent-color" : "opacity-80")}
                 />
@@ -207,7 +217,7 @@ export function ViewSwitcher({ active, onChange, enabled }: ViewSwitcherProps) {
                   onClick={() => setMoreOpen((v) => !v)}
                 >
                   <RiMoreLine
-                    size={ICON.sm}
+                    size={iconOnly ? ICON.xs : ICON.sm}
                     aria-hidden
                     className={cn(
                       advancedActive || moreOpen ? "text-accent-color" : "opacity-80",

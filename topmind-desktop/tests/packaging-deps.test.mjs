@@ -27,6 +27,25 @@ test("yaml is a direct production dependency (engine lib runtime for asar)", () 
   assert.match(String(pkg.dependencies.yaml), /^[\^~]?2\./, "yaml major should be 2.x");
 });
 
+test("Pi agent-core and pi-ai are a paired pin, independent of Electron/React/Vite majors", () => {
+  const pkg = readPkg();
+  const core = pkg.dependencies["@earendil-works/pi-agent-core"];
+  const piAi = pkg.dependencies["@earendil-works/pi-ai"];
+  assert.equal(typeof core, "string");
+  assert.equal(core, piAi, "pi-agent-core and pi-ai must share a version spec");
+  const policy = readFileSync(path.join(root, "scripts/check-dependency-policy.mjs"), "utf8");
+  assert.match(policy, /piPinPackages|paired Pi pin/);
+  assert.match(policy, /@earendil-works\/pi-agent-core/);
+  assert.match(policy, /"electron"/);
+  assert.match(policy, /"react"/);
+  assert.match(policy, /"vite"/);
+  const gatedBlock = policy.slice(
+    policy.indexOf("const adrGatedMajors"),
+    policy.indexOf("]);", policy.indexOf("const adrGatedMajors")) + 3,
+  );
+  assert.doesNotMatch(gatedBlock, /pi-agent-core/);
+});
+
 test("AI SDK packages are production deps (main-process runtime)", () => {
   const pkg = readPkg();
   for (const name of [
@@ -35,6 +54,9 @@ test("AI SDK packages are production deps (main-process runtime)", () => {
     "@ai-sdk/anthropic",
     "@ai-sdk/google",
     "@ai-sdk/openai-compatible",
+    "@earendil-works/pi-agent-core",
+    "@earendil-works/pi-ai",
+    "typebox",
   ]) {
     assert.ok(pkg.dependencies?.[name], `${name} must be a production dependency`);
   }

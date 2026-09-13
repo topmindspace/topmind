@@ -226,7 +226,13 @@ usage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number
 /** Model ID used for this response (shown in usage badge). */
 modelId?: string;
 }
-export interface AiRuntimeStatus { ready: boolean; message: string; providers?: ProviderInfo[]; }
+export interface AiRuntimeStatus {
+  ready: boolean;
+  message: string;
+  providers?: ProviderInfo[];
+  /** Desktop agent loop: Pi core (default) or AI SDK fallback. */
+  loop?: "pi-agent-core" | "ai-sdk" | string;
+}
 export interface ProviderInfo {
   id: string;
   label: string;

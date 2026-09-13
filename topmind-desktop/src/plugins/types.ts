@@ -12,7 +12,7 @@
  *
  * Built-in `topmind-workspace` plugin implements the core slots; additional
  * plugins (weread, x, ledger, ingest) register their own.
- * 可选插件的 chrome 入口统一在标题栏 Apps 菜单（lib/apps-menu）；
+ * 可选插件的 chrome 入口统一在 AI 工作区 · 应用 pane（lib/apps-menu）；
  * 侧栏插件行 slot 已删除（2026-08-30）——左栏只承载内容导航。
  */
 import type { ReactNode } from "react";

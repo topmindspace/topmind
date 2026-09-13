@@ -111,3 +111,36 @@ test("ai-store and ChatMessage import the shipped split", () => {
   assert.doesNotMatch(store, /split\.body\s*\|\|/);
   assert.match(stream, /ingestAssistantTextDelta|splitAssistantVisible/);
 });
+
+test("expanded reasoning trace keeps overflow-auto (collapsed clip does not beat the scroll body)", () => {
+  const css = readFileSync(path.join(root, "src/styles/v4.css"), "utf8");
+  const chat = readFileSync(path.join(root, "src/components/ai/ChatMessage.tsx"), "utf8");
+  assert.match(chat, /data-reasoning-scroll/);
+  assert.match(chat, /max-h-40 overflow-auto/);
+  assert.match(css, /\.v4-reasoning-expand:not\(\[data-open=["']true["']\]\)\s*>\s*div/);
+  const expandStart = css.indexOf(".v4-reasoning-expand");
+  assert.ok(expandStart >= 0);
+  const block = css.slice(expandStart, css.indexOf("/* ── Auto-save", expandStart));
+  assert.match(block, /overflow:\s*hidden/);
+  assert.doesNotMatch(
+    block.replace(/\.v4-reasoning-expand:not\(\[data-open=["']true["']\]\)\s*>\s*div\s*\{[^}]+\}/u, ""),
+    /\.v4-reasoning-expand\s*>\s*div\s*\{[^}]*overflow:\s*hidden/u,
+  );
+});
+
+test("ChatMessage presents folded reasoning, in-turn tools/status, never thinking as body", () => {
+  const chat = readFileSync(path.join(root, "src/components/ai/ChatMessage.tsx"), "utf8");
+  assert.match(chat, /function ReasoningBlock/);
+  assert.match(chat, /const \[open, setOpen\] = useState\(false\)/);
+  assert.match(chat, /data-reasoning-block/);
+  assert.match(chat, /data-reasoning-open=\{open \? "true" : "false"\}/);
+  assert.match(chat, /data-tool-timeline/);
+  assert.match(chat, /function ToolCallTimeline/);
+  assert.match(chat, /function StreamStatusIndicator/);
+  assert.match(chat, /data-stream-status=\{status\}/);
+  assert.match(chat, /visibleAssistantMessage\(message\.content, message\.reasoning\)/);
+  assert.doesNotMatch(chat, /visibleBody\s*=\s*visible\.body\s*\|\|/);
+  assert.doesNotMatch(chat, /message\.content\s*\|\|\s*visible/);
+  const input = readFileSync(path.join(root, "src/components/ai/ChatInput.tsx"), "utf8");
+  assert.match(input, /cancelStream/);
+});

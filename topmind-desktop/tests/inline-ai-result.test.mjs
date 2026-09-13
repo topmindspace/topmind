@@ -1,5 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { sanitizeInlineAiResult } from "../electron/lib/inline-ai-result.mjs";
 import {
   sanitizeInlineAiResult as sanitizeInlineAiResultRenderer,
@@ -90,5 +91,21 @@ Hello world`;
     assert.equal(inlineAiSelectionDrifted("hello", "hello"), false);
     assert.equal(inlineAiSelectionDrifted("hello  \nworld", "hello\nworld"), false);
     assert.equal(inlineAiSelectionDrifted("hello", "hello edited"), true);
+  });
+});
+
+describe("inline apply refuses drifted selection", () => {
+  it("useSelectionAi apply/insertBelow both gate on inlineAiSelectionDrifted", () => {
+    const src = readFileSync(
+      new URL("../src/components/editor/useSelectionAi.ts", import.meta.url),
+      "utf8",
+    );
+    assert.match(src, /inlineAiSelectionDrifted\(live, snap\)/);
+    assert.match(src, /errorSelectionChanged/);
+    const applyIdx = src.indexOf("const applyPreview");
+    const insertIdx = src.indexOf("const insertBelowPreview");
+    assert.ok(applyIdx > 0 && insertIdx > applyIdx);
+    assert.match(src.slice(applyIdx, insertIdx), /inlineAiSelectionDrifted/);
+    assert.match(src.slice(insertIdx), /inlineAiSelectionDrifted/);
   });
 });

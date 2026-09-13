@@ -338,6 +338,15 @@ export interface KernelApi {
   ): ReconcilePeriodResult;
   resolveMemoryDir?(workspaceRoot: string): string;
   resolveMemoryLayerPath?(workspaceRoot: string, layer: string, identifier?: string): string;
+  globalProfileRelPath?(workspaceRoot: string): string;
+  readProfileActiveBody?(
+    workspaceRoot: string,
+    opts?: { historySection?: string; locale?: string },
+  ): string;
+  collapseProfileHistoryBody?(
+    body: string,
+    opts?: { historySection?: string; locale?: string; profileRel?: string },
+  ): string;
   resolveTodoPath?(workspaceRoot: string): string;
   resolveTodoRelPath?(workspaceRoot: string): string;
   ensureTodoFile(workspaceRoot: string): void;

@@ -4,7 +4,7 @@
  *
  * - auto: surface only when multi-file (≥2 distinct paths)
  * - confirm（保存前问我）: write tools still run → pending queue; batch path
- *   receipts stay empty here (UI uses ActionBar for pending writes)
+ *   receipts stay empty here (UI uses AI workspace 建议 pane / ActionStore)
  */
 
 import { t } from "./electron-i18n.mjs";
@@ -19,7 +19,7 @@ export function createBatchCollector(writebackMode) {
   const items = [];
   return {
     // confirm: still "active" for API shape, but record skips multi-file batch UI
-    // (pending writes use ActionBar)
+    // (pending writes use ActionStore + 建议 pane)
     active: true,
     mode,
     items,

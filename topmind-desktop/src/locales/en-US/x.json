@@ -17,7 +17,7 @@
     "connectDesc": "Read = Bearer · Post = local xurl OAuth",
     "connectHelp": "Agent hosts use official MCP (not embedded in Desktop).",
     "enable": "Enable",
-    "enableDesc": "Hides the Apps-menu entry and command actions when off",
+    "enableDesc": "Hides the AI workspace Apps pane entry and command actions when off",
     "bearerDesc": "App-only · Search / timeline / archive",
     "probingXurl": "Probing xurl…",
     "xurlNotFound": "xurl not installed",

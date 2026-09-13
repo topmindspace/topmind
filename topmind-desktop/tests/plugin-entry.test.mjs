@@ -1,7 +1,7 @@
 /**
  * Mini-app plugin entry + optional 记账 launcher contract.
- * 2026-08-30: launchpad 已统一到标题栏 Apps 菜单（lib/apps-menu +
- * shell/AppsMenu）；launcher overlay 与侧栏插件行删除，本文件驱动
+ * Launchpad is the AI workspace 应用 pane (lib/apps-menu + AppsLaunchList;
+ * AppsMenu is a thin re-export). launcher overlay 与侧栏插件行删除，本文件驱动
  * listLaunchablePlugins / open-target 解析 / chrome 注册契约。
  */
 import test from "node:test";
@@ -208,12 +208,16 @@ test("OverlayHost + host register plugin-app / topmind-ledger; apps menu is the 
   assert.match(ledgerIndex, /createLedgerStatusBarSlot/);
   assert.match(ledgerIndex, /createLedgerActions/);
 
+  // 2026-09 v4: View-switch lives in TitleBar dropdown; Sidebar has Search + 记一下
+  const sidebar = read("src/components/shell/Sidebar.tsx");
+  assert.match(sidebar, /SidebarHeaderActions/);
+  assert.match(sidebar, /v4-search-trigger/);
+  assert.match(sidebar, /RiFlashlightFill/);
   const titleBar = read("src/components/shell/TitleBar.tsx");
-  assert.match(titleBar, /key:\s*"stream"/);
-  assert.match(titleBar, /key:\s*"inbox"/);
-  assert.match(titleBar, /key:\s*"outputs"/);
-  assert.match(titleBar, /key:\s*"search"/);
-  assert.match(titleBar, /AppsMenu/);
+  assert.match(titleBar, /data-view-switcher/);
+  assert.match(titleBar, /VIEW_OPTIONS/);
+  // 2026-09: apps button moved to AI workspace tab; not in TitleBar anymore.
+  assert.doesNotMatch(titleBar, /data-titlebar-apps/);
   assert.doesNotMatch(titleBar, /key:\s*"ledger"/);
   assert.doesNotMatch(titleBar, /key:\s*"plugin"/);
   assert.doesNotMatch(titleBar, /topmind-ledger/);

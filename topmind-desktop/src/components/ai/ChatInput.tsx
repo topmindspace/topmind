@@ -4,12 +4,12 @@ import {
   RiBrainLine,
   RiCheckboxBlankLine,
   RiCompass3Line,
-  RiEdit2Line,
-  RiLightbulbLine,
   RiListCheck2,
   RiMoreLine,
+  RiQuillPenLine,
   RiRepeat2Line,
   RiSparklingLine,
+  RiStickyNoteAddLine,
   RiToolsLine,
 } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
@@ -25,6 +25,7 @@ import { EmptyState } from "../ui/view";
 import { cn } from "../../lib/cn";
 import { ICON } from "../../lib/icons";
 import { streamStatusLabel } from "../../lib/stream-status";
+import { revealChatThreadOnSend } from "../../lib/ai-workspace";
 import { DropdownItem, DropdownMenu } from "../ui/DropdownMenu";
 
 
@@ -79,10 +80,10 @@ function getDefaultSkillSlash(t: TFunction): Record<string, { label: string; tip
 }
 
 /** Icon map for default skills — keyed by skillId. */
-const SKILL_ICONS: Record<string, typeof RiLightbulbLine> = {
-  "topmind-capture": RiLightbulbLine,
+const SKILL_ICONS: Record<string, typeof RiStickyNoteAddLine> = {
+  "topmind-capture": RiStickyNoteAddLine,
   "topmind-organize": RiListCheck2,
-  "topmind-write": RiEdit2Line,
+  "topmind-write": RiQuillPenLine,
   "topmind-memory": RiBrainLine,
   "topmind-maintain": RiToolsLine,
   "topmind-loop": RiRepeat2Line,
@@ -341,8 +342,8 @@ export function ChatInput() {
           for (const row of st.slash) {
             const cmd = row.command.startsWith("/") ? row.command : `/${row.command}`;
             next[cmd] = {
-              label: row.skillId.replace(/^topmind-?/, "") || row.skillId,
-              tip: `${row.skillId} · skill-first`,
+              label: next[cmd]?.label || row.skillId.replace(/^topmind-?/, "") || row.skillId,
+              tip: next[cmd]?.tip || row.skillId,
               prompt: row.prompt,
               skillId: row.skillId,
             };
@@ -391,6 +392,7 @@ export function ChatInput() {
   const handleSubmit = useCallback((mode: "steer" | "followUp" = "steer") => {
     const trimmed = text.trim();
     if (!trimmed || !ready) return;
+    revealChatThreadOnSend();
     // While streaming: Enter = steer (mid-turn); Alt+Enter = follow-up (after turn).
     if (streaming) {
       setText("");

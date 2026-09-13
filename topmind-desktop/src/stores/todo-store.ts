@@ -11,8 +11,8 @@
  * AI 维护：从动态提取 + 检测完成 + 更新状态；用户可手动增删改查。
  *
  * UI 入口：
- * - TitleBar 图标 → TodoPopover（浮动面板 · pin/unpin · 可拖动）
- * - ⌘⇧T 快捷打开 TodoPopover
+ * - TitleBar 图标 / ⌘⇧T → AI 工作区 清单 pane
+ * - 专注模式（AI 列隐藏）→ 浮动 TodoPopover
  */
 import { create } from "zustand";
 import { api } from "../services/api";

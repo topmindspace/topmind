@@ -14,30 +14,79 @@ function read(rel) {
 }
 
 describe("Desktop primary IA target", () => {
-  it("TitleBar PrimaryNav selects stream and labels via primaryNav.stream", () => {
-    const src = read("src/components/shell/TitleBar.tsx");
-    assert.match(src, /key:\s*"stream"/);
-    assert.match(src, /select\(\{\s*kind:\s*"stream"\s*\}\)/);
-    assert.match(src, /primaryNav\.stream/);
-    assert.match(src, /key:\s*"search"/);
-    assert.match(src, /primaryNav\.search/);
-    assert.match(src, /icon:\s*RiBroadcastLine/);
-    assert.doesNotMatch(src, /icon:\s*Home/);
-    assert.doesNotMatch(src, /RotateCcw/);
-    assert.doesNotMatch(src, /select\(\{\s*kind:\s*"archive"\s*\}\)/);
-    assert.doesNotMatch(src, /三个主锚点：`工作台`/);
-    assert.doesNotMatch(src, /Primary nav — 3 main anchors \(工作台/);
-    assert.doesNotMatch(src, /\+ archive icon/);
-    assert.match(src, /Primary nav — 动态（默认） \/ 收件箱 \/ 写出来 \/ 搜索/);
+  it("Sidebar header has Search + 记一下; TitleBar has view-switch dropdown", () => {
+    const sidebar = read("src/components/shell/Sidebar.tsx");
+    assert.match(sidebar, /SidebarHeaderActions/);
+    assert.match(sidebar, /v4-search-trigger/);
+    assert.match(sidebar, /searchCommandTip/);
+    assert.match(sidebar, /RiFlashlightFill/);
+    assert.match(sidebar, /titleBar\.capture/);
+    assert.match(sidebar, /ProfileButton/);
+    const headerFn = sidebar.slice(
+      sidebar.indexOf("function SidebarHeaderActions"),
+      sidebar.indexOf("function ProfileButton"),
+    );
+    assert.ok(headerFn.indexOf("<ProfileButton") < headerFn.indexOf("v4-search-trigger"));
+    assert.ok(headerFn.indexOf("v4-search-trigger") < headerFn.indexOf("RiFlashlightFill"));
+    assert.doesNotMatch(sidebar, /select\(\{\s*kind:\s*"archive"\s*\}\)/);
+    assert.doesNotMatch(sidebar, /icon:\s*Home/);
+    assert.doesNotMatch(sidebar, /RotateCcw/);
+    // View switch is in TitleBar now
+    const title = read("src/components/shell/TitleBar.tsx");
+    assert.match(title, /data-view-switcher/);
+    assert.match(title, /VIEW_OPTIONS/);
+    assert.match(title, /primaryNav\.stream/);
+    assert.match(title, /primaryNav\.inbox/);
+    assert.match(title, /primaryNav\.outputs/);
+  });
+
+  it("Desktop README does not teach deleted ActionBar or Title-bar Note it", () => {
+    const en = read("README.md");
+    const zh = read("README.zh-CN.md");
+    assert.doesNotMatch(en, /AI panel \*\*ActionBar\*\*/);
+    assert.doesNotMatch(en, /Title-bar \*\*Note it\*\*/);
+    assert.match(en, /Sidebar header \*\*Note it\*\*/);
+    assert.match(en, /AI workspace \*\*建议\*\* pane/);
+    assert.doesNotMatch(zh, /AI 面板 \*\*ActionBar\*\*/);
+    assert.doesNotMatch(zh, /顶栏 \*\*记一下\*\*/);
+    assert.match(zh, /侧栏主 header \*\*记一下\*\*/);
+    assert.match(zh, /AI 工作区 \*\*建议\*\* pane/);
   });
 
   it("living Desktop DESIGN/ARCHITECTURE do not teach archive as a PrimaryNav peer", () => {
     const design = read("DESIGN.md");
     const arch = read("ARCHITECTURE.md");
-    assert.match(design, /标题栏主锚点：动态（默认）· 收件箱 · 写出来 · 搜索/);
-    assert.doesNotMatch(design, /标题栏主锚点：动态（默认）· 收件箱 · 写出来 · 归档/);
-    assert.match(arch, /PrimaryNav[^\n]{0,120}搜索/);
+    assert.match(design, /中栏主锚点：动态（默认）/);
+    // 2026-09 v2: search is a unified ⌘K trigger, not a PrimaryNav anchor
+    assert.match(design, /收件箱 · 写出来/);
+    assert.match(design, /搜索非 PrimaryNav|⌘K 命令面板/);
+    assert.doesNotMatch(design, /主锚点：动态（默认）[^\n]*归档/);
+    assert.match(arch, /PrimaryNav[^\n]{0,120}动态/);
     assert.doesNotMatch(arch, /PrimaryNav[^\n]{0,120}归档图标/);
+  });
+
+  it("DESIGN Header-home table names one home per capability, including collapsed-sidebar reach", () => {
+    const design = read("DESIGN.md");
+    assert.match(design, /0\.0\.4 能力单家（Header homes）/);
+    assert.match(design, /侧栏收起后如何到达/);
+    assert.match(design, /左栏 Sidebar 主 header L1 捕获/);
+    assert.match(design, /中栏 TitleBar 视图切换/);
+    assert.doesNotMatch(design, /左栏 `SidebarHeaderActions` \+ 中栏 TitleBar 视图切换/);
+    assert.match(design, /右列 AI 工作区 \*\*建议\*\* pane/);
+    assert.match(design, /右列 AI 工作区 \*\*清单\*\* pane/);
+    assert.match(design, /右列 AI 工作区 \*\*应用\*\* pane/);
+    assert.match(design, /中栏薄 chrome L1/);
+    assert.match(design, /禁止把 记一下 \/ 建议 \/ 清单/);
+    const sidebar = read("src/components/shell/Sidebar.tsx");
+    assert.match(sidebar, /SidebarHeaderActions/);
+    const title = read("src/components/shell/TitleBar.tsx");
+    assert.match(title, /data-view-switcher/);
+    assert.match(title, /data-canvas-chrome/);
+    const shell = read("src/components/shell/Shell.tsx");
+    const titleIdx = shell.indexOf("<TitleBar");
+    const centerIdx = shell.indexOf("data-center-column");
+    assert.ok(centerIdx >= 0 && titleIdx > centerIdx, "PrimaryNav chrome stays in the center column when sidebar is hidden");
+    assert.match(shell, /showSidebar = !focusMode && !sidebarCollapsed/);
   });
 
   it("ViewSwitcher keeps tags/kanban behind advanced more menu", () => {
@@ -70,13 +119,10 @@ describe("Desktop primary IA target", () => {
     const panel = read("src/components/settings/GeneralPanel.tsx");
     assert.match(panel, /autoPrepareSuggestions/);
     assert.match(panel, /autoMaintainTodos/);
-    // ActionBar + ActionStore replace SuggestionStrip; autoPrepare gate lives in action-store
+    // ActionStore replace SuggestionStrip; autoPrepare gate lives in action-store
     const actionStore = read("src/stores/action-store.ts");
-    const actionBar = read("src/components/ai/ActionBar.tsx");
     assert.match(actionStore, /autoPrepareSuggestions/);
     assert.match(actionStore, /autoPrepare/);
-    assert.match(actionBar, /autoPrepare/);
-    assert.match(actionBar, /return null/);
     // Shell wires opt-in autoMaintainTodos once per session
     const shell = read("src/components/shell/useAutoTodoMaintain.ts");
     assert.match(shell, /autoMaintainTodos/);
@@ -156,8 +202,11 @@ describe("Desktop primary IA target", () => {
     // saveNote / memory / reconcile must not use raw writeText for durable body
     const saveNoteBlock = src.slice(src.indexOf("async saveNote"), src.indexOf("async createTopic"));
     assert.doesNotMatch(saveNoteBlock, /await writeText\(/);
-    const appendCore = src.slice(src.indexOf("async appendCoreMemory"), src.indexOf("async reconcileStreamPeriod"));
+    const appendCore = src.slice(src.indexOf("async appendCoreMemory"), src.indexOf("async retireCoreMemory"));
     assert.doesNotMatch(appendCore, /await writeText\(/);
+    assert.match(appendCore, /appendProfileEntry/);
+    assert.doesNotMatch(appendCore, /kernelDurableWrite/);
+    assert.doesNotMatch(appendCore, /\[\$\{day\}\]|- \[\$\{/);
   });
 
   it("inbox capture durable writes go through kernelDurableWrite", () => {
@@ -227,14 +276,14 @@ describe("Desktop primary IA target", () => {
     }
   });
 
-  it("AiPanel mounts ActionBar for suggestions and pending writes", () => {
+  it("AiPanel does not mount unreachable ActionBar; focus-mode 建议 door is SuggestPopover", () => {
     const src = read("src/components/ai/AiPanel.tsx");
-    assert.match(src, /from "\.\/ActionBar"/);
-    assert.match(src, /<ActionBar\s*\/>/);
-    const actionBody = read("src/components/ai/ActionBar.tsx");
+    assert.doesNotMatch(src, /from "\.\/ActionBar"/);
+    assert.doesNotMatch(src, /<ActionBar\s*\/>/);
+    const shell = read("src/components/shell/Shell.tsx");
+    assert.match(shell, /focusMode \? <SuggestPopover/);
     const storeBody = read("src/stores/action-store.ts");
     assert.match(storeBody, /generateSuggestions|api\.ws\.generateSuggestions/);
-    assert.match(actionBody, /useTranslation\("editor"\)/);
     const zh = JSON.parse(read("src/locales/zh-CN/editor.json"));
     const en = JSON.parse(read("src/locales/en-US/editor.json"));
     for (const key of [

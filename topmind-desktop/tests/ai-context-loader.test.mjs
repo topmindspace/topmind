@@ -130,6 +130,45 @@ test("loadAiContext graceful degradation on invalid workspace", async () => {
   assert.equal(result.topicContext, "");
 });
 
+test("loadMemoryProfile injects active profile and collapses history", async () => {
+  mkdirSync(path.join(workspace.userWorkspaceRoot, "memory"), { recursive: true });
+  writeFileSync(
+    path.join(workspace.userWorkspaceRoot, "topmind.yaml"),
+    "schema_version: 4\n",
+  );
+  writeFileSync(
+    path.join(workspace.userWorkspaceRoot, "memory", "profile.md"),
+    `---
+title: 我的情况
+memory_layer: global
+---
+
+# 我的情况
+
+## 进行中的事
+
+- 仍在推进的活事实
+
+## 历史记录
+
+- （2026-01-01 归档）早已过期不该进提示词的事实
+`,
+  );
+  const profile = await aiContextLoader.loadMemoryProfile(ctx);
+  assert.ok(profile.includes("仍在推进的活事实"), "active fact stays");
+  assert.ok(!profile.includes("早已过期不该进提示词的事实"), "retired fact must not enter prompt");
+  assert.match(profile, /已归档条目|archived fact/u);
+});
+
+test("collapseHistorySectionForPrompt collapses History without Kernel", () => {
+  const { collapseHistorySectionForPrompt } = aiContextLoader;
+  const raw = `# My situation\n\n## In progress\n\n- live\n\n## History\n\n- old archived fact that is long enough\n- another old fact\n`;
+  const out = collapseHistorySectionForPrompt(raw, "en");
+  assert.ok(out.includes("live"));
+  assert.ok(!out.includes("old archived fact that is long enough"));
+  assert.match(out, /archived fact/u);
+});
+
 test("loadAiContext loads topic context when topicId is valid", async () => {
   const topicDir = path.join(workspace.userWorkspaceRoot, "20-研究", "2026-上下文");
   mkdirSync(topicDir, { recursive: true });

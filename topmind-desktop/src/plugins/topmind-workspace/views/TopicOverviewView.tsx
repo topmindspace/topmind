@@ -6,7 +6,6 @@ import {
   RiEdit2Line,
   RiFileTextLine,
   RiFolderOpenLine,
-  RiSparklingLine,
 } from "@remixicon/react";
 import { api } from "../../../services/api";
 import { useViewStore } from "../../../stores/view-store";
@@ -14,7 +13,6 @@ import { onLocal } from "../../../plugins/host";
 import { Button } from "../../../components/ui/Button";
 import {
   ViewContainer,
-  PageHeader,
   SectionHeader,
   EmptyState,
   MetaText,
@@ -27,6 +25,8 @@ import {
   FeedColumn,
   FeedChrome,
 } from "../../../components/ui/view";
+import { TitleBarActions } from "../../../lib/chrome-portal";
+import { useTitleBarChrome } from "../../../lib/titlebar-chrome";
 import { PromptDialog, ErrorDialog } from "../../../components/ui/Dialog";
 import {
   useFileContextMenu,
@@ -64,7 +64,6 @@ export function TopicOverviewView({ topicId }: Props) {
   const selection = useViewStore((s) => s.selection);
   const feedLayout = useViewStore((s) => s.feedLayout);
   const setFeedLayout = useViewStore((s) => s.setFeedLayout);
-  const setAiPanelOpen = useViewStore((s) => s.setAiPanelOpen);
   const openOverlay = useViewStore((s) => s.openOverlay);
   const fileMenu = useFileContextMenu();
 
@@ -143,51 +142,59 @@ export function TopicOverviewView({ topicId }: Props) {
     select({ kind: "file", path: topicPath, topicId });
   };
 
+  const hasTopic = Boolean(data?.files.some((f) => f.name === "topic.md"));
+  const mdCount = data?.files.filter((f) => f.name.endsWith(".md")).length ?? 0;
+  const categoryLabel = data?.category || topicId.split("/")[0] || "";
+
+  useTitleBarChrome("topic", {
+    title: data?.topicName || topicId.split("/").pop() || topicId,
+    stats: data
+      ? [categoryLabel, t("workspace:topicOverview.notesCount", { count: mdCount }), hasTopic ? t("workspace:topicOverview.hasTopicFile") : null]
+          .filter(Boolean)
+          .join(" · ")
+      : "",
+  });
+
   if (loading) return <LoadingState />;
   if (error) return <ErrorState message={error} onRetry={() => void refresh()} />;
   if (!data) return null;
 
-  const hasTopic = data.files.some((f) => f.name === "topic.md");
-  const mdCount = data.files.filter((f) => f.name.endsWith(".md")).length;
-  const categoryLabel = data.category || topicId.split("/")[0] || "";
-
   return (
     <ViewContainer>
-      <PageHeader
-        icon={<RiFolderOpenLine size={ICON.sm} />}
-        title={data.topicName}
-        subtitle={[
-          categoryLabel,
-          t("workspace:topicOverview.notesCount", { count: mdCount }),
-          hasTopic ? t("workspace:topicOverview.hasTopicFile") : null,
-        ]
-          .filter(Boolean)
-          .join(" · ")}
-        actions={
-          <div className="flex items-center gap-1">
-            <Tooltip content={t("workspace:topicOverview.writeMemory")}>
-              <Button variant="outline" size="sm" onClick={() => openOverlay("quick-capture", { intent: "memory", topicId })}>
-                <RiBrainLine size={ICON.xs} /> {t("workspace:topicOverview.memory")}
-              </Button>
-            </Tooltip>
-            <Tooltip content={hasTopic ? t("workspace:topicOverview.openTopicFile") : t("workspace:topicOverview.createTopicFile")}>
-              <Button variant="outline" size="sm" onClick={() => void openTopicMd()}>
-                <RiEdit2Line size={ICON.xs} />
-              </Button>
-            </Tooltip>
-            <Tooltip content={t("workspace:topicOverview.openAiCollaboration")}>
-              <Button variant="outline" size="sm" onClick={() => setAiPanelOpen(true)}>
-                <RiSparklingLine size={ICON.xs} />
-              </Button>
-            </Tooltip>
-            <Tooltip content={t("common:action.new")}>
-              <Button size="sm" onClick={handleNewNote}>
-                <RiAddLine size={ICON.xs} /> {t("common:action.new")}
-              </Button>
-            </Tooltip>
-          </div>
-        }
-      />
+      <TitleBarActions>
+        <Tooltip content={t("workspace:topicOverview.writeMemory")}>
+          <button
+            type="button"
+            className="v4-titlebar-btn gap-1 px-2 text-xs"
+            onClick={() => openOverlay("quick-capture", { intent: "memory", topicId })}
+            aria-label={t("workspace:topicOverview.memory")}
+          >
+            <RiBrainLine size={ICON.sm} />
+            <span className="hidden sm:inline">{t("workspace:topicOverview.memory")}</span>
+          </button>
+        </Tooltip>
+        <Tooltip content={hasTopic ? t("workspace:topicOverview.openTopicFile") : t("workspace:topicOverview.createTopicFile")}>
+          <button
+            type="button"
+            className="v4-titlebar-btn"
+            onClick={() => void openTopicMd()}
+            aria-label={hasTopic ? t("workspace:topicOverview.openTopicFile") : t("workspace:topicOverview.createTopicFile")}
+          >
+            <RiEdit2Line size={ICON.sm} />
+          </button>
+        </Tooltip>
+        <Tooltip content={t("common:action.new")}>
+          <button
+            type="button"
+            className="v4-titlebar-btn gap-1 px-2 text-xs"
+            onClick={handleNewNote}
+            aria-label={t("common:action.new")}
+          >
+            <RiAddLine size={ICON.sm} />
+            <span className="hidden sm:inline">{t("common:action.new")}</span>
+          </button>
+        </Tooltip>
+      </TitleBarActions>
 
       <FeedColumn collection>
         <FeedChrome>

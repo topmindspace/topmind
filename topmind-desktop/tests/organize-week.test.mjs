@@ -111,11 +111,8 @@ test("organize-week runs reconcile + runActivityOps without a post-merge refresh
   assert.match(thenBlock, /engineJobSuggestionFollowUp/);
 });
 
-test("ActionBar is 建议 surface not 个人清单 dual-label", () => {
-  const bar = readFileSync(path.join(root, "src/components/ai/ActionBar.tsx"), "utf8");
+test("ActionStore is 建议 surface not 个人清单 dual-label", () => {
   const store = readFileSync(path.join(root, "src/stores/action-store.ts"), "utf8");
-  assert.match(bar, /建议/);
-  assert.doesNotMatch(bar, /用户概念：「待办」/);
   assert.match(store, /个人清单|TodoPopover/);
   assert.match(store, /memory_organize|topic_classify/);
 });

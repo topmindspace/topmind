@@ -62,7 +62,7 @@
 | [`stream-first-optimization-scheme.md`](./stream-first-optimization-scheme.md) | Stream-first 产品真理与理想使用态 |
 | [`capture-clip-matrix.md`](./capture-clip-matrix.md) | Capture · Clip · Ingest 能力矩阵 |
 | [`topmind-vs-others.md`](./topmind-vs-others.md) | 知识管理方案对比与选型指南 |
-| [`UIUX-AUDIT-2026-09-01.md`](./UIUX-AUDIT-2026-09-01.md) | UI/UX 与信息架构全面审计基线（全景 IA、痛点热力图、改进建议） |
+| [`UIUX-AUDIT-2026-09-01.md`](./UIUX-AUDIT-2026-09-01.md) | **NON-LIVING** 2026-09-01 快照（不是现行 IA；三列 chrome 见 `topmind-desktop/DESIGN.md`） |
 
 ---
 
@@ -77,7 +77,7 @@
 | [2026-07-16](./adr/2026-07-16-public-update-and-pack-root.md) | Public Update & Pack | 公共 `latest.json` 免 Token 更新检查与引擎打包 |
 | [2026-07-17](./adr/2026-07-17-desktop-utr-bundle-tools-console.md) | Desktop UTR Bundle | Desktop 内置 UTR 环境及调试控制台 |
 | [2026-07-19](./adr/2026-07-19-knowledge-ingest-pipeline.md) | Ingest Pipeline | 离线知识加工；默认 anydoc sidecar + 可选 markitdown/pandoc + 内置 JS |
-| [2026-07-21](./adr/2026-07-21-pi-agent-base-decision.md) | No Pi Agent Base | 坚持原汁原味 Node 引擎，不依赖底层 Pi Agent 壳 |
+| [2026-07-21](./adr/2026-07-21-pi-agent-base-decision.md) | 不以完整 Pi coding-agent 为内核 | 围栏 / 写闸 / 可移植 Skills 仍有效；**循环选型被 2026-09-07 覆盖**（hybrid `pi-agent-core`） |
 | [2026-07-22](./adr/2026-07-22-stream-packing-and-core-memory.md) | Stream & Core Memory | 周期本打包与个人画像记忆闭环 |
 | [2026-08-02](./adr/2026-08-02-kernel-ai-provider-context.md) | Kernel AI Context | 支持 per-call `aiProvider` + `createKernelContext` |
 | [2026-08-02](./adr/2026-08-02-workspace-model-split.md) | Workspace Model Split | `lib/workspace-model.mjs` 门面化拆分 |
@@ -94,6 +94,7 @@
 | [2026-08-16](./adr/2026-08-16-memory-consolidation.md) | Memory Consolidation | 确认式画像事实生命周期：追加 / 归档到历史段 / 原位更新，对齐 mem0 ADD/UPDATE/DELETE |
 | [2026-08-23](./adr/2026-08-23-contract-settings-integrity.md) | Contract & Settings Integrity | 契约修复收敛、覆盖前备份、原子写、设置 partial patch、周期路径双向粘滞、Memory/todo 平面契约路径（含 skip 回执与宿主打开入口）、设置关闭冲刷 |
 | [2026-08-27](./adr/2026-08-27-desktop-log-rotation.md) | Desktop Log Rotation | 支持日志按大小轮转（`main.log` 2 MB × 3 份归档；过大遗留文件自愈） |
+| [2026-09-07](./adr/2026-09-07-pi-engine-and-three-column-reevaluation.md) | Pi engine + three-column | Hybrid `pi-agent-core`（bash 关、围栏 FS）；右列 AI 工作区与画布对等 |
 
 ---
 

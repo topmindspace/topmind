@@ -17,7 +17,7 @@
     "connectDesc": "只读 = Bearer · 发帖 = 本机 xurl OAuth",
     "connectHelp": "Agent 宿主用官方 MCP（不嵌进 Desktop）。",
     "enable": "启用",
-    "enableDesc": "关闭后 Apps 菜单与命令入口隐藏",
+    "enableDesc": "关闭后 AI 工作区应用 pane 与命令入口隐藏",
     "bearerDesc": "App-only · 搜索 / 时间线 / 归档",
     "probingXurl": "探测 xurl…",
     "xurlNotFound": "未安装 xurl",

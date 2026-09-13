@@ -289,6 +289,7 @@ export async function listStreamPeriodsForWorkspace(
         title: p.title || period,
         entryCount: 0,
         mtime: Number.isFinite(mtimeMs) ? mtimeMs : 0,
+        reconciled: p.reconciled !== false,
       };
     });
     return { periods, current: periods[0] || null };
@@ -827,6 +828,46 @@ export function resolveChatDurableLocale(
   return "zh";
 }
 
+const CHAT_PROFILE_MAX_CHARS = 2000;
+
+/**
+ * Active profile facts for Obsidian chat. History is collapsed to a count —
+ * never slice raw profile.md (archived lines look like current truth).
+ */
+export function loadChatProfileContext(
+  kernel: KernelApi,
+  workspaceRoot: string,
+  locale?: string | null,
+): string {
+  try {
+    const loc = resolveChatPromptLocale(locale);
+    let collapsed = "";
+    if (typeof kernel.readProfileActiveBody === "function") {
+      collapsed = kernel.readProfileActiveBody(workspaceRoot, { locale: loc }) || "";
+    }
+    if (!collapsed && typeof kernel.collapseProfileHistoryBody === "function") {
+      const rel = typeof kernel.globalProfileRelPath === "function"
+        ? kernel.globalProfileRelPath(workspaceRoot)
+        : "memory/profile.md";
+      const abs = path.join(workspaceRoot, rel);
+      if (fs.existsSync(abs)) {
+        collapsed = kernel.collapseProfileHistoryBody(fs.readFileSync(abs, "utf8"), {
+          locale: loc,
+          profileRel: rel,
+        });
+      }
+    }
+    if (!collapsed) return "";
+    const body = stripFrontmatter(collapsed).trim();
+    if (!body) return "";
+    return body.length > CHAT_PROFILE_MAX_CHARS
+      ? `${body.slice(0, CHAT_PROFILE_MAX_CHARS)}\n…`
+      : body;
+  } catch {
+    return "";
+  }
+}
+
 export function durableChatAnswerGuide(locale: "zh" | "en"): string {
   return locale === "en"
     ? "User-visible answer language: English (unless this turn explicitly asked otherwise). Do not follow the UI chrome language for the answer or for edit_file newText."
@@ -850,8 +891,9 @@ export function buildObsidianChatToolGuide(
       "You can call workspace tools. To read/edit a file, emit a single JSON object and nothing else:",
       '{"tool":"read_file","relativePath":"10-动态/2026-W33.md","around":"unique phrase","limit":80}',
       '{"tool":"edit_file","relativePath":"…","oldText":"unique span","newText":"replacement","startLine":12,"endLine":20}',
-      "read_file returns numbered lines (N|text). edit_file is unique-span (exact, then newline/trailing-space); ambiguous matches refuse — not exact-only.",
+      "read_file returns numbered lines (N|text). edit_file is unique-span (exact, then newline/trailing-space); ambiguous matches refuse — not exact-only. No bash or shell.",
       writeback,
+      "User profile context is active facts only (history collapsed to a count). Do not treat archived ## History lines as current. Memory ADD/UPDATE/RETIRE is confirm-gated via suggestions (append_core_memory / update_core_memory / retire_core_memory on Desktop); never unbounded append.",
       "When done, write only the user-visible answer — no chain-of-thought, <think>, or reasoning fences.",
     ].join("\n");
   }
@@ -862,8 +904,9 @@ export function buildObsidianChatToolGuide(
     "你可以调用工作区工具。需要读/改文件时，只输出一个 JSON 对象（不要夹杂其他文字）：",
     '{"tool":"read_file","relativePath":"10-动态/2026-W33.md","around":"唯一短语","limit":80}',
     '{"tool":"edit_file","relativePath":"…","oldText":"原文唯一片段","newText":"替换","startLine":12,"endLine":20}',
-    "read_file 返回 numbered 行（N|正文）。edit_file 先精确再容忍换行/行尾空白；多处命中会拒绝（不是只接受逐字节精确匹配）。",
+    "read_file 返回 numbered 行（N|正文）。edit_file 先精确再容忍换行/行尾空白；多处命中会拒绝（不是只接受逐字节精确匹配）。没有 bash / shell。",
     writeback,
+    "用户画像上下文仅为活跃事实（历史记录已折叠为计数）。不要把已归档条目当现状。记忆 ADD/UPDATE/RETIRE 经建议确认（Desktop 工具 append_core_memory / update_core_memory / retire_core_memory）；禁止无界追加。",
     "完成后只写用户可见结论，不要输出思考过程、<think> 或推理围栏。",
   ].join("\n");
 }

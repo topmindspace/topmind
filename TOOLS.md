@@ -115,6 +115,39 @@ Tool names use：
 <domain>.<command>
 ```
 
+## Inventory (keep / update / drop)
+
+Living verdict for **Desktop named AI tools**, the **Skills pack**, and the **UTR command registry**. One catalog — this table plus the name-list tests. Do not invent a second tool list.
+
+**Writes** (any surface that mutates `.md`) still go through Kernel `writeback-engine`. Skills stay host-portable. UTR stays **optional**. **No default bash / unscoped FS.** Ledger is a satellite, not a sixth user concept; Obsidian does not ship a ledger mini-app.
+
+### Desktop named AI tools — all **keep**
+
+Names are the shipped list in `topmind-desktop/electron/lib/ai-tool-names.mjs` (15 read + 16 write = 31). Builders in `electron/ai-tools.mjs`; every write uses `wrapWrite` → WorkspaceService → Kernel writeback.
+
+| Class | Names | Verdict |
+|-------|-------|---------|
+| skills | `list_skills` · `load_skill` · `load_skill_resource` | **keep** — portable pack, not `~/.pi` |
+| capture / fetch | `capture_to_inbox` · `fetch_url` | **keep** — not bash `curl` |
+| browse | `workspace_overview` · `list_categories` · `list_topics` · `list_topic_files` · `get_topic` · `list_inbox` · `list_outputs` | **keep** |
+| read / search | `read_file` · `search` | **keep** — windowed / controlled grep |
+| write / edit | `save_note` · `save_file` · `edit_file` · `create_topic` · `move_to_topic` · `publish_to_outputs` · `delete_path` · `rename_path` · `reconcile_week` | **keep** |
+| memory | `append_topic_memory` · `append_core_memory` · `retire_core_memory` · `update_core_memory` | **keep** — ADD / UPDATE / RETIRE; not append-only. Confirm-gated `promote_memory` payload.action `append_profile` / `update_profile` / `retire_profile` |
+| todos | `list_todos` · `add_todo` · `toggle_todo` | **keep** |
+| health | `workspace_health` | **keep** |
+| **drop** | `bash` · unscoped `shell` / `exec` | **drop — never registered** |
+| Pi native aliases | `read` / `write` / `edit` / `grep` | **keep as fenced aliases** onto the Desktop tools above — not replacements, not unscoped Pi native |
+
+**update:** none blocking this wave. Optional later: tighter `edit_file` diagnostics (already has no-match / ambiguous hints).
+
+### Skills pack — all **keep**
+
+Daily entry `topmind`. Core: `topmind-capture` · `topmind-organize` · `topmind-write` · `topmind-memory` · `topmind-maintain` · `topmind-loop`. Optional connectors: `topmind-weread` · `topmind-x`. Optional satellite: `topmind-ledger` (not a PrimaryNav peer). Manifest: `skills/topmind-pack.json`.
+
+### UTR commands — all **keep** (optional surface)
+
+**8 域 / 28 命令** as listed below. MCP default 19 (primary + danger). Not a second Desktop AI catalog. No bash command.
+
 ## Current Command Surface（命令面唯一真源）
 
 **8 域 / 28 命令**。Agent MCP **默认只暴露 primary + danger（19 个）**；`advanced` 需 `topmind_MCP_ALL=1`。
@@ -254,7 +287,7 @@ next_actions: optional string[]
 | `workspace-write.save-output` | 创建交付物到 `88-输出/` 扁平目录 | `ifExists`: `create-new`（默认）· `replace`（查找同名替换）· `fail`（同名报错） |
 | `memory.append-topic` | 追加一条专题稳定结论到 `memory/topics/{topic-slug}.md` | 永不重写已有内容 |
 | `memory.append-profile` | 追加「我的情况」到 `memory/profile.md` | 按段落追加；禁止 capture 静默写 |
-| Desktop `reconcileStreamPeriod` | 确定性整理本周 | 无 LLM：勾选完成、去重；返回候选；写 `reconciled_at` 标记 |
+| Desktop `reconcileStreamPeriod` | 确定性整理本周 | 无 LLM：勾选完成、去重；返回候选；落盘时写 `reconciled_at`。列表 `reconciled` / 未整理 以 `reconcilePeriodBody` 是否还会改正文为准，不是缺 stamp |
 | `workspace-write.update-topic` | 整文替换 `topic.md` | 要 `replaceReason`；经 Kernel 写闸；**仅高影响**（locked 覆盖）才有 backup/receipt，open 不造 99-归档 快照 |
 | `memory.promote` | Stream 条目 → memory/topics/{topic-slug}.md | 标记 promoted_from/to；用户确认制 |
 | `memory.digest` | 写入 UTR adapter 骨架到 memory/periodic/{year}/{period}.md | 非 AI；可重建；真实 AI 反思 = Desktop suggest apply |

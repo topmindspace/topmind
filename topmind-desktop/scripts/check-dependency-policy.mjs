@@ -31,6 +31,9 @@ const adrGatedMajors = new Set([
   "@tailwindcss/vite",
 ]);
 
+/** Paired Pi pin — bump together; not ADR-gated with Electron/React/Vite majors. */
+const piPinPackages = ["@earendil-works/pi-agent-core", "@earendil-works/pi-ai"];
+
 const peerPinnedSuites = {
   tiptap: {
     packagePrefix: "@tiptap/",
@@ -188,8 +191,19 @@ function buildReport(outdated, installedEntries = [], unavailable = null) {
   // that all release in lockstep, so drift accumulates quickly. Major upgrades
   // still fail loudly via `aiSdkInstalled.ok`.
   const aiSdkPatchDrift = aiSdkOutdated.length;
+  const piPin = piPinPackages.map((name) => {
+    const entry = installedByName.get(name);
+    return {
+      name,
+      current: entry?.current ?? null,
+      declared: entry?.declared ?? null,
+    };
+  });
+  const piSpecs = new Set(piPin.map((p) => p.declared).filter(Boolean));
+  const piPinOk = piPin.every((p) => p.declared) && piSpecs.size === 1;
   return {
-    ok: aiSdkPatchDrift <= 10 && aiSdkInstalled.every((entry) => entry.ok),
+    ok: aiSdkPatchDrift <= 10 && aiSdkInstalled.every((entry) => entry.ok) && piPinOk,
+    piPin: { ok: piPinOk, packages: piPin },
     outdatedUnavailable: unavailable,
     aiSdkPatchLine: {
       ok: aiSdkPatchDrift === 0,

@@ -116,6 +116,7 @@ describe("Kernel integration — shipped capture / list / reconcile", () => {
     assert.ok(current.relPath, "relPath mapped");
     assert.ok(current.period, "period stem mapped");
     assert.equal(typeof current.mtime, "number");
+    assert.equal(typeof current.reconciled, "boolean", "Kernel reconciled flag mapped for 未整理");
   });
 
   test("reconcilePeriodNote uses reconcilePeriodBody(body, opts).changed", async () => {

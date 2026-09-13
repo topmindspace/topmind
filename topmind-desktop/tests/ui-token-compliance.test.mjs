@@ -20,17 +20,15 @@ test("UI Token & Modernization Compliance", async (t) => {
     assert.match(content, /\.v4-recent-tab\s*\{[^}]*flex:\s*0 1 auto/);
   });
 
-  await t.test("Badges in TitleBar, AiPanel and ChatInput use compliant >=11px text-4xs", () => {
-    const titleBar = fs.readFileSync(path.join(desktopRoot, "src", "components", "shell", "TitleBar.tsx"), "utf-8");
+  await t.test("Badges in AiPanel and ChatInput use compliant >=11px text-4xs", () => {
     const aiPanel = fs.readFileSync(path.join(desktopRoot, "src", "components", "ai", "AiPanel.tsx"), "utf-8");
     const chatInput = fs.readFileSync(path.join(desktopRoot, "src", "components", "ai", "ChatInput.tsx"), "utf-8");
 
-    // TitleBar SuggestBadge
-    assert.doesNotMatch(titleBar, /data-suggest-header-badge[\s\S]*?text-5xs/);
-    assert.match(titleBar, /text-4xs font-bold leading-none tabular-nums text-text-on-accent/);
+    // 2026-09: TitleBar SuggestBadge removed — suggest count lives in AI workspace tab + StatusBar.
 
-    // TitleBar center track allows shrink
-    assert.match(titleBar, /flex min-w-0 shrink items-center gap-1\.5/);
+    // TitleBar center track: min-w-0 + flex-1 so crumbs can shrink
+    const titleBar = fs.readFileSync(path.join(desktopRoot, "src", "components", "shell", "TitleBar.tsx"), "utf-8");
+    assert.match(titleBar, /flex min-w-0 flex-1 items-center gap-1\.5/);
 
     // AiPanel active tasks badge
     assert.doesNotMatch(aiPanel, /active\.length[\s\S]*?text-5xs/);

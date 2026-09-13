@@ -47,7 +47,7 @@
     "topmind-ingest.settings": "Default: only Markdown output; optionally keep originals to 99-Archive.",
     "topmind-weread.settings": "Sync budget and category affect where files land.",
     "topmind-x.settings": "MCP endpoint is advisory for external agent hosts; Desktop itself does not use MCP.",
-    "topmind-ledger.settings": "On by default; toggling off hides it from the Apps menu and StatusBar."
+    "topmind-ledger.settings": "On by default; toggling off hides it from the AI workspace Apps pane and StatusBar."
   },
   "general": {
     "appearance": "Appearance & Layout",
@@ -130,7 +130,7 @@
     "tabModeMulti": "Multi-tab (active stays in place)",
     "tabModeSingle": "Single tab (one file at a time)",
     "writeback": "Save settings",
-    "writebackDesc": "Plain language: auto-save or ask before save · also switchable from AI panel",
+    "writebackDesc": "Plain language: auto-save or ask before save · workspace contract is the source of truth",
     "writebackMode": "Mode",
     "writebackAuto": "Auto-save",
     "writebackConfirm": "Ask before save",
@@ -509,7 +509,7 @@
     "permissionsLabel": "Declared Permissions",
     "slotsLabel": "Slots",
     "trustModel": "Trust model = user-installed: plugins share the app process. Permissions are soft-gated, not sandboxed. Only install from trusted sources.",
-    "topmind-ledger.settings": "On by default; toggling off hides the Apps-menu and StatusBar entries."
+    "topmind-ledger.settings": "On by default; toggling off hides the AI workspace Apps pane and StatusBar entries."
   },
   "ai": {
     "notConfigured": "Not configured",

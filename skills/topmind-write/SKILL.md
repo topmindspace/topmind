@@ -1,6 +1,6 @@
 ---
 name: topmind-write
-version: 3.5.4
+version: 4.0.0
 description: >-
   写作/润色/出稿到专题或交付层（role:delivery）。Use when 写、起草、续写、润色、出稿、交付、write、draft、deliver。
   Do NOT use for 仅捕获、仅结构整理、只写记忆、doctor/loop、社交连接器.
@@ -64,7 +64,7 @@ Draft · Continue · Revise · Polish · Deliver — 按用户当前意图，不
 1. **读序（先首页再素材）**：`topic.md`（若有）→ 焦点对象 → 仅必要笔记。无 topic.md 不强制创建，照旧扫笔记。禁止一上来 dump 整专题  
 2. 对齐目标、稳定记忆、风格、受众  
 3. 产出可用正文，少过程旁白  
-4. 按保存设置写入；锁定文件建修订副本  
+4. 按保存设置写入；锁定文件建修订副本。宿主若提供唯一片段替换（Desktop / Obsidian `edit_file`），中段改稿优先用它，不要为改一段而整文件覆盖。不要编造 shell / bash 工具。  
 5. Desktop 可选影子流式：`.shadow-*.tmp`，Commit 后再原子落盘  
 
 ## source_type

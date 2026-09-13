@@ -1,7 +1,7 @@
 /**
  * topmind-ledger — optional first-party 记账 mini-app.
  * Books live on the memory plane ({memory.dir}/ledgers/{role}.md).
- * （chrome 入口统一在标题栏 Apps 菜单 + 状态栏 chip；侧栏插件行已移除 2026-08-30）
+ * （chrome 入口统一在 AI 工作区应用 pane + 状态栏 chip；侧栏插件行已移除 2026-08-30）
  */
 import { defineConnectorPlugin } from "../connector";
 import { createLedgerSettingsSlot } from "./settings-slot";

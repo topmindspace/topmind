@@ -17,7 +17,6 @@ import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
 import { ContextPills } from "./ContextPills";
 import { RuntimeBadge } from "./RuntimeBadge";
-import { ActionBar } from "./ActionBar";
 import { Tooltip } from "../ui/tooltip";
 import {
   DropdownItem,
@@ -29,7 +28,7 @@ import { ICON } from "../../lib/icons";
 import type { Selection, AiMessage } from "../../types";
 import { useTaskStore } from "../../stores/task-store";
 
-export function AiPanel() {
+export function AiPanel({ hideComposer = false }: { hideComposer?: boolean } = {}) {
   const { t } = useTranslation("editor");
   const messages = useAiStore((s) => s.messages);
   const streaming = useAiStore((s) => s.streaming);
@@ -152,8 +151,7 @@ export function AiPanel() {
       ) : null}
       </div>
 
-      <ActionBar />
-      <ChatInput />
+      {hideComposer ? null : <ChatInput />}
     </div>
   );
 }

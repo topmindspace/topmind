@@ -242,7 +242,7 @@ export class StreamWorkbenchView extends ItemView {
     this.organizeBtn = streamControls.createEl("button", {
       cls: "tm-btn-secondary",
     });
-    setIcon(this.organizeBtn, "list-tree");
+    setIcon(this.organizeBtn, "list-checks");
     this.organizeBtn.createSpan({ text: t("stream_organize") });
     this.organizeBtn.setAttribute("aria-label", t("stream_organize"));
     this.organizeBtn.addEventListener("click", () => this.organizePeriod());
@@ -619,7 +619,9 @@ export class StreamWorkbenchView extends ItemView {
       for (const p of ctx.periods) {
         this.periodSelect.createEl("option", {
           value: p.relPath,
-          text: p.title,
+          text: p.reconciled === false
+            ? `${p.title} · ${t("stream_unreconciled")}`
+            : p.title,
         });
       }
 
@@ -1120,7 +1122,7 @@ export class StreamWorkbenchView extends ItemView {
       this.organizing = false;
       this.organizeBtn.disabled = false;
       this.organizeBtn.empty();
-      setIcon(this.organizeBtn, "list-tree");
+      setIcon(this.organizeBtn, "list-checks");
       this.organizeBtn.createSpan({ text: t("stream_organize") });
     }
   }

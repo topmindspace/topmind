@@ -389,20 +389,80 @@ expectMatch(
 expectMatch(
   files.desktopDesign,
   desktopDesign,
-  /标题栏主锚点：动态（默认）· 收件箱 · 写出来 · 搜索/u,
-  "Desktop DESIGN UIX-401 PrimaryNav includes 搜索 not 归档",
+  /中栏主锚点：动态（默认）\s*· 收件箱 · 写出来(?!\s*· 搜索)/u,
+  "Desktop DESIGN UIX-401 PrimaryNav is 动态 · 收件箱 · 写出来 (search not a peer)",
+);
+expectMatch(
+  files.desktopDesign,
+  desktopDesign,
+  /搜索非 PrimaryNav|搜索=⌘K|⌘K 命令面板/u,
+  "Desktop DESIGN search is ⌘K/⌘P not PrimaryNav",
 );
 expectNoMatch(
   files.desktopDesign,
   desktopDesign,
-  /标题栏主锚点：动态（默认）· 收件箱 · 写出来 · 归档/u,
+  /主锚点：动态（默认）· 收件箱 · 写出来 · 归档/u,
   "archive as PrimaryNav peer in UIX-401",
 );
 expectMatch(
   files.desktopArchitecture,
   desktopArch,
-  /PrimaryNav[^\n]{0,120}搜索/u,
-  "Desktop ARCHITECTURE PrimaryNav includes 搜索",
+  /搜索=⌘K 统一触发器|搜索非 PrimaryNav|⌘K 命令面板/u,
+  "Desktop ARCHITECTURE search is ⌘K not a PrimaryNav peer",
+);
+expectMatch(
+  files.desktopArchitecture,
+  desktopArch,
+  /workspace_overview/u,
+  "Desktop ARCHITECTURE lists shipped workspace_overview",
+);
+expectMatch(
+  files.desktopArchitecture,
+  desktopArch,
+  /list_todos/u,
+  "Desktop ARCHITECTURE lists shipped list_todos",
+);
+expectMatch(
+  files.desktopArchitecture,
+  desktopArch,
+  /append_core_memory/u,
+  "Desktop ARCHITECTURE lists shipped append_core_memory",
+);
+expectMatch(
+  files.desktopArchitecture,
+  desktopArch,
+  /retire_core_memory/u,
+  "Desktop ARCHITECTURE lists shipped retire_core_memory",
+);
+expectMatch(
+  files.desktopArchitecture,
+  desktopArch,
+  /update_core_memory/u,
+  "Desktop ARCHITECTURE lists shipped update_core_memory",
+);
+expectMatch(
+  files.desktopDesign,
+  desktopDesign,
+  /retire_profile/u,
+  "Desktop DESIGN promote_memory includes retire_profile",
+);
+expectMatch(
+  files.desktopDesign,
+  desktopDesign,
+  /update_profile/u,
+  "Desktop DESIGN promote_memory includes update_profile",
+);
+expectNoMatch(
+  files.desktopDesign,
+  desktopDesign,
+  /追加到契约画像文件（默认 memory\/profile\.md）/u,
+  "promote_memory described as append-only",
+);
+expectNoMatch(
+  "obsidian-plugin/src/services/kernel-service.ts",
+  read("obsidian-plugin/src/services/kernel-service.ts"),
+  /profile\.slice\(0,\s*3000\)/u,
+  "Obsidian chat dumping raw profile.md including history",
 );
 expectNoMatch(
   files.desktopArchitecture,
@@ -480,8 +540,14 @@ expectNoMatch(
 expectMatch(
   files.desktopArchitecture,
   desktopArch,
+  /PrimaryNav 文案与默认 selection 为 \*\*动态 · 收件箱 · 写出来\*\*/u,
+  "ARCHITECTURE 现状 PrimaryNav is 动态 · 收件箱 · 写出来 (search not a peer)",
+);
+expectNoMatch(
+  files.desktopArchitecture,
+  desktopArch,
   /PrimaryNav 文案与默认 selection 为 \*\*动态 · 收件箱 · 写出来 · 搜索\*\*/u,
-  "ARCHITECTURE 现状 PrimaryNav includes 搜索",
+  "ARCHITECTURE 现状 still listing 搜索 as a PrimaryNav peer",
 );
 expectNoMatch(
   files.desktopArchitecture,
@@ -498,14 +564,86 @@ expectNoMatch(
 expectNoMatch(
   files.desktopDesign,
   desktopDesign,
-  /AI 轨 `ActionBar` 仅为计数跳转/u,
-  "DESIGN teaching ActionBar as always-on count jump",
+  /AI 轨 `ActionBar`/u,
+  "DESIGN teaching unreachable ActionBar as living chrome",
+);
+expectNoMatch(
+  files.desktopReadme,
+  read(files.desktopReadme),
+  /AI panel \*\*ActionBar\*\*|Title-bar \*\*Note it\*\*/u,
+  "Desktop README teaching deleted ActionBar or Title-bar Note it as living chrome",
+);
+expectNoMatch(
+  "topmind-desktop/README.zh-CN.md",
+  read("topmind-desktop/README.zh-CN.md"),
+  /AI 面板 \*\*ActionBar\*\*|顶栏 \*\*记一下\*\*/u,
+  "Desktop README.zh-CN teaching deleted ActionBar or 顶栏 记一下 as living chrome",
+);
+expectNoMatch(
+  files.design,
+  read(files.design),
+  /标题栏灯泡/u,
+  "root DESIGN teaching TitleBar 💡 as living suggest entry",
+);
+expectNoMatch(
+  "PRODUCT-BOUNDARIES.md",
+  read("PRODUCT-BOUNDARIES.md"),
+  /标题栏 Apps 菜单/u,
+  "PRODUCT-BOUNDARIES teaching TitleBar Apps menu as living launchpad",
+);
+expectNoMatch(
+  "topmind-desktop/src/locales/zh-CN/ledger.json",
+  read("topmind-desktop/src/locales/zh-CN/ledger.json"),
+  /标题栏 Apps 菜单/u,
+  "ledger zh-CN teaching TitleBar Apps menu",
+);
+expectNoMatch(
+  "topmind-desktop/src/locales/en-US/ledger.json",
+  read("topmind-desktop/src/locales/en-US/ledger.json"),
+  /header Apps menu/iu,
+  "ledger en-US teaching header Apps menu",
+);
+expectMatch(
+  "topmind-desktop/src/locales/zh-CN/ledger.json",
+  read("topmind-desktop/src/locales/zh-CN/ledger.json"),
+  /AI 工作区应用 pane/u,
+  "ledger zh-CN names AI workspace Apps pane",
+);
+expectNoMatch(
+  files.agEnts,
+  read(files.agEnts),
+  /作为 Apps 菜单 mini-app/u,
+  "AGENTS teaching Apps 菜单 as living ledger launchpad",
+);
+expectNoMatch(
+  "docs/stream-first-optimization-scheme.md",
+  read("docs/stream-first-optimization-scheme.md"),
+  /合入 ActionBar|标题栏 💡/u,
+  "stream-first teaching ActionBar or TitleBar 💡 as shipped chrome",
+);
+expectMatch(
+  "docs/README.md",
+  read("docs/README.md"),
+  /2026-09-07-pi-engine-and-three-column-reevaluation\.md/u,
+  "EN ADR index lists 2026-09-07 pi/three-column",
+);
+expectMatch(
+  "docs/README.zh-CN.md",
+  read("docs/README.zh-CN.md"),
+  /2026-09-07-pi-engine-and-three-column-reevaluation\.md/u,
+  "ZH ADR index lists 2026-09-07 pi/three-column",
+);
+expectMatch(
+  "docs/UIUX-AUDIT-2026-09-01.md",
+  read("docs/UIUX-AUDIT-2026-09-01.md"),
+  /\*\*NON-LIVING\*\*/u,
+  "UIUX audit stamped non-living",
 );
 expectMatch(
   files.desktopDesign,
   desktopDesign,
-  /AI 轨 `ActionBar` \*\*仅专注模式\*\*/u,
-  "DESIGN ActionBar is focus-mode fallback only",
+  /浮动 `SuggestPopover`/u,
+  "DESIGN focus-mode 建议 door is floating SuggestPopover",
 );
 
 const suggestEngine = read("lib/suggest-engine.mjs");

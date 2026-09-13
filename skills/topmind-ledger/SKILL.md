@@ -1,6 +1,6 @@
 ---
 name: topmind-ledger
-version: 3.5.4
+version: 4.0.0
 description: >-
   通用记账到记忆平面（默认个人/自己账本，用户自建账本与分类）。Use when 记账、记一笔、花了、存入、查看账单、账户余额。
   Do NOT use for 记一下到动态、待办、微信读书、发推、Feishu/lark-cli.
@@ -77,7 +77,7 @@ degradation: ../shared/capability-degradation.md
 
 Host 文件工具或 Kernel `appendLedgerEntry` / `captureLedgerPhrase`（经 writeback-engine）。回执含目标路径 + affected files。见 [`../shared/writeback-receipt.md`](../shared/writeback-receipt.md)。
 
-Desktop 可选小应用（看板 / 流水 / 分类 / 快捷记账）。**如何打开**：启用后从标题栏 Apps 菜单、状态栏「记账」chip、命令面板「记账」打开；关掉插件后这些入口消失（不是 PrimaryNav，也不是侧栏项）。**账本路径**即 `{memory.dir}/ledgers/...`，小应用展示当前本相对路径。无 Desktop 时本 skill 仍可用。Obsidian 不发记账小应用。
+Desktop 可选小应用（看板 / 流水 / 分类 / 快捷记账）。**如何打开**：启用后从 AI 工作区应用 pane、状态栏「记账」chip、命令面板「记账」打开；关掉插件后这些入口消失（不是 PrimaryNav，也不是侧栏项）。**账本路径**即 `{memory.dir}/ledgers/...`，小应用展示当前本相对路径。无 Desktop 时本 skill 仍可用。Obsidian 不发记账小应用。
 
 ## 保存设置
 

@@ -19,15 +19,16 @@ import {
   RiInboxUnarchiveLine,
   RiLink,
   RiLoader4Line,
+  RiRefreshLine,
+  RiAddLine,
 } from "@remixicon/react";
 import { api } from "../../../services/api";
 import { formatRelativeTime } from "../../../lib/datetime";
 import type { InboxFile as InboxFileMeta, Topic } from "../../../types";
 import { Button } from "../../../components/ui/Button";
-import { ConfirmDialog } from "../../../components/ui/Dialog";
+import { ConfirmDialog, PromptDialog, ErrorDialog } from "../../../components/ui/Dialog";
 import {
   ViewContainer,
-  PageHeader,
   EmptyState,
   MetaText,
   RowList,
@@ -41,6 +42,8 @@ import {
   FeedChrome,
   useCollectionLayout,
 } from "../../../components/ui/view";
+import { TitleBarActions } from "../../../lib/chrome-portal";
+import { useTitleBarChrome } from "../../../lib/titlebar-chrome";
 import {
   DropdownMenu,
   DropdownSectionLabel,
@@ -79,6 +82,8 @@ export function InboxView() {
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<InboxFilter>("all");
+  const [noteDialog, setNoteDialog] = useState(false);
+  const [errorDialog, setErrorDialog] = useState<string | null>(null);
   const openOverlay = useViewStore((s) => s.openOverlay);
   const select = useViewStore((s) => s.select);
   const selection = useViewStore((s) => s.selection);
@@ -164,6 +169,28 @@ export function InboxView() {
 
   const { t } = useTranslation(["workspace", "common"]);
 
+  const confirmNewNote = async (name: string) => {
+    setNoteDialog(false);
+    const filename = name.trim();
+    if (!filename) return;
+    const base = filename.endsWith(".md") ? filename : `${filename}.md`;
+    const relativePath = `${inboxName}/${base}`;
+    try {
+      await api.ws.save({ relativePath, content: `# ${base.replace(/\.md$/u, "")}\n\n` });
+      emitLocal("workspace:file-changed");
+      select({ kind: "file", path: relativePath });
+    } catch (e) {
+      setErrorDialog(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  useTitleBarChrome("inbox", {
+    title: t("workspace:inbox.title"),
+    stats: files.length > 0
+      ? t("workspace:inbox.headerHintHas", { name: inboxName, count: files.length })
+      : t("workspace:inbox.headerHintEmpty", { name: inboxName }),
+  });
+
   if (loading) return <LoadingState label={t("workspace:inbox.loading")} />;
   if (error) return <ErrorState message={error} onRetry={() => void loadFiles()} />;
 
@@ -176,35 +203,40 @@ export function InboxView() {
 
   return (
     <ViewContainer>
-      <PageHeader
-        icon={<RiInboxUnarchiveLine size={ICON.md} />}
-        title={t("workspace:inbox.title")}
-        subtitle={
-          files.length > 0
-            ? t("workspace:inbox.headerHintHas", { name: inboxName, count: files.length })
-            : t("workspace:inbox.headerHintEmpty", { name: inboxName })
-        }
-        actions={
-          <div className="flex items-center gap-1.5">
-            {visible.length > 0 ? (
-              <Tooltip content={allSelected ? t("workspace:inbox.deselectAll") : t("workspace:inbox.selectAll")}>
-                <Button variant="outline" size="sm" onClick={toggleAll}>
-                  {allSelected ? <RiCheckboxLine size={ICON.sm} /> : <RiCheckboxBlankLine size={ICON.sm} />}
-                </Button>
-              </Tooltip>
-            ) : null}
-            {/* L2 only — titlebar aqua「记一下」is the sole solid capture CTA */}
-            <Tooltip content={t("workspace:shared.quickCaptureTooltip")}>
-              <Button variant="outline" size="sm" onClick={() => openOverlay("quick-capture")}>
-                <RiFlashlightFill size={ICON.sm} /> {t("workspace:inbox.captureBtn")}
+      <TitleBarActions>
+        <Tooltip content={t("workspace:shared.newNote")}>
+          <button
+            type="button"
+            className="v4-titlebar-btn gap-1 px-2 text-xs"
+            data-inbox-new-note
+            onClick={() => setNoteDialog(true)}
+            aria-label={t("workspace:shared.newNote")}
+          >
+            <RiAddLine size={ICON.sm} />
+            <span className="hidden sm:inline">{t("workspace:shared.newNote")}</span>
+          </button>
+        </Tooltip>
+        <Tooltip content={t("common:action.refresh")}>
+          <button
+            type="button"
+            className="v4-titlebar-btn"
+            data-inbox-refresh
+            onClick={() => void loadFiles({ silent: true })}
+            aria-label={t("common:action.refresh")}
+          >
+            <RiRefreshLine size={ICON.sm} />
+          </button>
+        </Tooltip>
+      </TitleBarActions>
+      {files.length > 0 ? (
+        <div className="mb-2.5 flex flex-wrap items-center gap-1" role="tablist" aria-label={t("workspace:inbox.filterLabel")}>
+          {visible.length > 0 ? (
+            <Tooltip content={allSelected ? t("workspace:inbox.deselectAll") : t("workspace:inbox.selectAll")}>
+              <Button variant="outline" size="sm" onClick={toggleAll} className="h-7 w-7 p-0">
+                {allSelected ? <RiCheckboxLine size={ICON.sm} /> : <RiCheckboxBlankLine size={ICON.sm} />}
               </Button>
             </Tooltip>
-          </div>
-        }
-      />
-
-      {files.length > 0 ? (
-        <div className="mb-2.5 flex flex-wrap gap-1" role="tablist" aria-label={t("workspace:inbox.filterLabel")}>
+          ) : null}
           {filterChips.map((chip) => (
             <FilterChip
               key={chip.id}
@@ -283,6 +315,19 @@ export function InboxView() {
         menu={fileMenu.menu}
         onClose={fileMenu.close}
         onMutated={() => void loadFiles({ silent: true })}
+      />
+      <PromptDialog
+        open={noteDialog}
+        title={t("workspace:shared.newNote")}
+        defaultValue={`${t("common:action.newNote")}.md`}
+        onConfirm={(v) => void confirmNewNote(v)}
+        onCancel={() => setNoteDialog(false)}
+      />
+      <ErrorDialog
+        open={!!errorDialog}
+        title={t("common:status.error")}
+        message={errorDialog ?? ""}
+        onClose={() => setErrorDialog(null)}
       />
     </ViewContainer>
   );

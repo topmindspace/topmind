@@ -35,6 +35,7 @@ export const zhCN = {
   stream_day_today: "今天",
   stream_day_yesterday: "昨天",
   stream_period_label: "周期",
+  stream_unreconciled: "未整理",
 
   // ── Suggestions ──
   suggestions_title: "AI 建议",

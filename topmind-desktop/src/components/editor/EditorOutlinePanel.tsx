@@ -197,11 +197,11 @@ export function EditorOutlinePanel({
   const handleJump = useCallback(
     (item: OutlineItem) => {
       setActiveId(item.id);
-      if (editor && !editor.isDestroyed) {
-        focusEditorHeading(editor, item.text);
-      } else {
-        // Preview mode: find heading in preview DOM
-        const previewEl = document.querySelector(".v4-editor-body.v4-md-preview");
+      if (viewMode === "preview") {
+        // Preview is a static HTML snapshot, not the hidden TipTap instance.
+        const previewEl =
+          document.querySelector(".v4-md-preview .v4-editor-body")
+          || document.querySelector(".v4-editor-body.v4-md-preview");
         if (previewEl) {
           const els = previewEl.querySelectorAll("h1, h2, h3, h4, h5, h6");
           for (let i = 0; i < els.length; i++) {
@@ -212,9 +212,13 @@ export function EditorOutlinePanel({
             }
           }
         }
+        return;
+      }
+      if (editor && !editor.isDestroyed) {
+        focusEditorHeading(editor, item.text);
       }
     },
-    [editor],
+    [editor, viewMode],
   );
 
   if (!open) return null;
@@ -223,13 +227,13 @@ export function EditorOutlinePanel({
     <aside
       className={cn(
         "v4-editor-outline flex h-full w-56 shrink-0 flex-col border-l border-border-subtle-dim bg-surface/95 backdrop-blur-sm transition-all sm:w-64",
-        "max-md:fixed max-md:right-0 max-md:top-[calc(var(--density-chrome-y,40px)+var(--density-editor-toolbar-y,36px))] max-md:bottom-0 max-md:z-30 max-md:shadow-2xl",
+        "max-md:fixed max-md:right-0 max-md:top-[calc(var(--density-chrome-y,44px)+var(--density-editor-toolbar-y,32px))] max-md:bottom-0 max-md:z-30 max-md:shadow-2xl",
         className,
       )}
       aria-label={t("workspace:outline.panelAria", { defaultValue: "文档大纲" })}
     >
       {/* Header */}
-      <div className="flex h-(--density-editor-toolbar-y,36px) shrink-0 items-center justify-between border-b border-border-subtle-dim px-2.5">
+      <div className="flex h-(--density-editor-toolbar-y,32px) shrink-0 items-center justify-between border-b border-border-subtle-dim px-2.5">
         <div className="flex items-center gap-1.5 text-text-secondary">
           <RiNodeTree size={ICON.xs} className="text-accent-color" aria-hidden />
           <span className="text-3xs font-semibold uppercase tracking-wider text-text-tertiary">

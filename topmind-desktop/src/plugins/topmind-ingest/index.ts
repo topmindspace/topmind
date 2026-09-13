@@ -1,7 +1,7 @@
 /**
  * topmind-ingest — knowledge processing pipeline (builtin).
  * Drop / pick files → convert to Markdown → Inbox or topic.
- * （chrome 入口统一在标题栏 Apps 菜单 + 状态栏 chip；侧栏插件行已移除 2026-08-30）
+ * （chrome 入口统一在 AI 工作区应用 pane + 状态栏 chip；侧栏插件行已移除 2026-08-30）
  */
 import type { Plugin } from "../types";
 import { createIngestHubView } from "./hub-view";

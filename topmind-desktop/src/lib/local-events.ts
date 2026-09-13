@@ -70,9 +70,9 @@ export interface LocalEventMap {
   "todo:close-popover": unknown;
   /** Open the unified suggest surface (popover). `{ refresh: false }` after analysis merge. */
   "suggest-surface:open": { refresh?: boolean } | undefined;
-  /** Toggle the TitleBar workspace switcher. */
+  /** Toggle the workspace switcher (Shell-hosted; sidebar footer when docked). */
   "titlebar:workspace-switcher-toggle": undefined;
-  /** Open / toggle the TitleBar Apps menu (launchable plugins). */
+  /** Open the AI workspace 应用 pane (Shell-hosted; column need not be mounted). */
   "titlebar:apps-toggle": undefined;
   /** Trigger weekly organize flow. */
   "organize:week": unknown;

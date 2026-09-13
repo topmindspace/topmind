@@ -62,7 +62,7 @@ test("X plugin uses defineConnectorPlugin shared activate", () => {
   assert.match(index, /createXActions/);
   assert.match(index, /createXStatusBarSlot/);
   assert.match(index, /settingsKey:\s*["']x["']/);
-  // 侧栏插件行已删除（2026-08-30）— chrome 入口统一在标题栏 Apps 菜单
+  // 侧栏插件行已删除（2026-08-30）— chrome 入口统一在 AI 工作区应用 pane
   assert.doesNotMatch(index, /createXSidebarSlot/);
 });
 

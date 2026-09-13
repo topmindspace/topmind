@@ -37,11 +37,13 @@ profile 事实引入两段生命周期：**活跃**（分布在 `## 偏好` / `#
 
 ### D3: memory_organize 提出「可归档候选」（mem0 DELETE 的确认式翻译）
 
-`ai-operation-engine` 的 `memory_organize` 提示词 schema 增加 `retire` 数组：要求 AI 从**已有画像中逐字/近似引用**被活动材料证明「已完成 / 已过期 / 不再成立」的条目（最多 3 条）。产出 `kind: promote_memory` + `payload.action: "retire_profile"` 的建议条，**默认只生成建议，须用户确认**。
+`ai-operation-engine` 的 `memory_organize` 提示词 schema 增加 `retire` 与 `update` 数组：要求 AI 从**已有画像中逐字/近似引用**被活动材料证明「已完成 / 已过期 / 不再成立」的条目（最多 3 条 retire），以及含义已变、应原位改写的条目（最多 3 条 update）。产出 `kind: promote_memory` + `payload.action: "retire_profile"` / `"update_profile"` / `"append_profile"` 的建议条，**默认只生成建议，须用户确认**。
 
-`applySuggestion`（suggest-engine）新增 `retire_profile` action 分发：match 文本先过 `sanitizeAiContent` + 占位污染拒绝，再调 `retireProfileEntry`；`already-retired` / `no-matching-fact` 视为良性 skip（`ok: true`，不产生错误噪音）。
+`applySuggestion`（suggest-engine）分发：
+- `retire_profile`：match 文本先过 `sanitizeAiContent` + 占位污染拒绝，再调 `retireProfileEntry`；`already-retired` / `no-matching-fact` 视为良性 skip（`ok: true`，不产生错误噪音）。
+- `update_profile`：调 `updateProfileEntry`（原位替换，不 append 第二条活事实）；`duplicate-fact` / `no-matching-fact` 视为良性 skip。
 
-UPDATE 语义 = retire 旧行 + append 新行（两个操作都已存在），不单独做 AI 建议通道，控制 AI 出错面。
+Desktop agent 工具 `update_core_memory` / `retire_core_memory` 与上述 Kernel 函数同源。UPDATE **不再**拆成 retire+append 两条建议（避免活事实重复）。
 
 ### D4: 明确不做的（Non-goals，延续既有立场）
 
@@ -54,8 +56,8 @@ UPDATE 语义 = retire 旧行 + append 新行（两个操作都已存在），�
 
 - `lib/memory-engine.mjs`：`parseProfileSections` / `findProfileFactLineIndexes` 内部助手 + `retireProfileEntry` / `updateProfileEntry` 导出。
 - `lib/kernel-api.mjs`：再导出两个新函数。
-- `lib/ai-operation-engine.mjs`：memory_organize 双语提示词 + 解析 + `mem-retire-*` 建议条。
-- `lib/suggest-engine.mjs`：`promote_memory` case 增加 `retire_profile` action。
+- `lib/ai-operation-engine.mjs`：memory_organize 双语提示词 + 解析 + `mem-retire-*` / `mem-update-*` 建议条。
+- `lib/suggest-engine.mjs`：`promote_memory` case 增加 `retire_profile` / `update_profile` action。
 - `tests/memory-consolidation.test.mjs`：21 条行为测试（移动/幂等/无匹配/无 profile/段落过滤/标题行保护/历史段不可更新/invalid-section/CRLF 归一/readProfileActiveBody/穿越拒绝/原位更新/去重/污染拒绝/AI 建议/applySuggestion 三态）。
 - 加固（同批）：topic slug / period stem 穿越校验（`invalid-slug` / `invalid-period` skip）；`readProfileActiveBody` 供 AI 上下文使用（历史段折叠为一行计数）；suggest/ai-operation 活动指纹排除 `memory/` 平面 + 去掉 mtime（AI 自写不再自我触发）。
 - Desktop / Obsidian：**零改动**——建议条 UI 与 `WorkspaceService.applySuggestion` 走 Kernel 通用管线，retire 建议自动出现并可确认执行。

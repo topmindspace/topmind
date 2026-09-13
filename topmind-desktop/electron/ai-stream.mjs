@@ -8,6 +8,7 @@
  * - steer applied mid-turn (prepareStep injects user instructions between steps)
  */
 import { streamText, stepCountIs } from "ai";
+import { sdkChunkText } from "./lib/pi-sdk-stream.mjs";
 import { logError, logInfo } from "./lib/writeback.mjs";
 import { summarizeToolOutput } from "./lib/ai-tool-evidence.mjs";
 import { t as ei18n } from "./lib/electron-i18n.mjs";
@@ -51,16 +52,20 @@ export function createStreamRegistry() {
     cancel(sid) {
       const e = streams.get(sid);
       if (e) {
+        try { e.agent?.abort?.(); } catch { /* ignore */ }
         e.controller.abort(new Error(ei18n("ai.cancelled")));
         streams.delete(sid);
         return true;
       }
       return false;
     },
-    register(sid, controller) {
+    register(sid, controller, extras = {}) {
       const prev = streams.get(sid);
-      if (prev) prev.controller.abort();
-      streams.set(sid, { controller, steers: [], followUps: [] });
+      if (prev) {
+        try { prev.agent?.abort?.(); } catch { /* ignore */ }
+        prev.controller.abort();
+      }
+      streams.set(sid, { controller, steers: [], followUps: [], agent: extras.agent || null });
     },
     unregister(sid, controller) {
       const e = streams.get(sid);
@@ -71,6 +76,15 @@ export function createStreamRegistry() {
       const t = String(text || "").trim();
       if (!e || !t) return false;
       e.steers.push(t);
+      if (e.agent && typeof e.agent.steer === "function") {
+        try {
+          e.agent.steer({
+            role: "user",
+            content: [{ type: "text", text: t }],
+            timestamp: Date.now(),
+          });
+        } catch { /* queue locally if agent rejects */ }
+      }
       return true;
     },
     followUp(sid, text) {
@@ -221,14 +235,15 @@ export async function runStream({ model, system, messages, tools, emit, sessionI
           emitOut({ type: "status", status: "thinking" });
           break;
         case "reasoning-delta":
-          deltaCoalescer.pushDelta("reasoning", chunk.delta);
+          deltaCoalescer.pushDelta("reasoning", sdkChunkText(chunk));
           break;
         case "text-start":
           emitOut({ type: "status", status: "writing" });
           break;
         case "text-delta": {
-          collected += chunk.delta;
-          const next = ingestAssistantTextDelta(visibleAcc, chunk.delta);
+          const delta = sdkChunkText(chunk);
+          collected += delta;
+          const next = ingestAssistantTextDelta(visibleAcc, delta);
           if (next.resetBody) {
             deltaCoalescer.flush();
             emitOut({ type: "text-reset", text: next.body });
@@ -291,6 +306,7 @@ export async function runStream({ model, system, messages, tools, emit, sessionI
           cancelled: true,
           followUps: drainPendingUserMessages(registry, sessionId),
           steerApplyCount,
+          runtime: "ai-sdk",
         };
       }
       return {
@@ -299,6 +315,7 @@ export async function runStream({ model, system, messages, tools, emit, sessionI
         error: streamError,
         followUps: drainPendingUserMessages(registry, sessionId),
         steerApplyCount,
+        runtime: "ai-sdk",
       };
     }
 
@@ -325,6 +342,7 @@ export async function runStream({ model, system, messages, tools, emit, sessionI
       error: null,
       followUps: drainPendingUserMessages(registry, sessionId),
       steerApplyCount,
+      runtime: "ai-sdk",
     };
   } catch (err) {
     deltaCoalescer.flush();
@@ -339,6 +357,7 @@ export async function runStream({ model, system, messages, tools, emit, sessionI
         cancelled: true,
         followUps: drainPendingUserMessages(registry, sessionId),
         steerApplyCount,
+        runtime: "ai-sdk",
       };
     }
     logError("ai-stream", "failed", { sessionId, error: err.message });
@@ -348,6 +367,7 @@ export async function runStream({ model, system, messages, tools, emit, sessionI
       error: streamError || err,
       followUps: drainPendingUserMessages(registry, sessionId),
       steerApplyCount,
+      runtime: "ai-sdk",
     };
   } finally {
     clearTimeout(timeout);

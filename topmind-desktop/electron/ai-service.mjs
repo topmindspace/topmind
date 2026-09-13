@@ -6,7 +6,7 @@ import { readJson, writeText, ensureDir, readText } from "./lib/fs-utils.mjs";
 import { logInfo, logError, logWarn } from "./lib/writeback.mjs";
 import { buildSystemPrompt, assembleContext, resolvePromptLocale } from "./ai-prompts.mjs";
 import { createStreamRegistry, runStream } from "./ai-stream.mjs";
-import { resolveModel, getRuntimeStatus } from "./ai-model.mjs";
+import { resolveModel, getRuntimeStatus, noteAgentLoop } from "./ai-model.mjs";
 import { resolveDataRoot } from "./lib/path-model.mjs";
 import { t as ei18n } from "./lib/electron-i18n.mjs";
 import { assertPathWithin } from "./lib/path-safety.mjs";
@@ -441,7 +441,7 @@ export const AiService = {
 
     // Per-call override only when the invoke payload explicitly set auto|confirm.
     // Renderer must not send view-store defaults — yaml is the write policy.
-    const { resolveWorkspaceWritebackMode } = await import("./lib/kernel-api.mjs");
+    const { resolveWorkspaceWritebackMode, workspaceRootOf } = await import("./lib/kernel-api.mjs");
     const effectiveMode =
       writebackMode === "confirm" || writebackMode === "auto" ? writebackMode : undefined;
     const contractMode = await resolveWorkspaceWritebackMode(c, {
@@ -532,16 +532,34 @@ export const AiService = {
       maxAgentSteps: maxAgentSteps ?? undefined,
       compacted: compact.compacted,
     });
-    const result = await runStream({
+    const streamArgs = {
       model: res.model,
+      modelId: res.modelId,
       system: sysPrompt,
       messages: compact.messages,
       tools,
       emit,
       sessionId,
       maxAgentSteps,
-    }, sr);
+      workspaceRoot: workspaceRootOf(c.workspaceRoot),
+    };
+    let result;
+    let piRuntime = null;
+    try {
+      piRuntime = await import("./ai-pi-runtime.mjs");
+    } catch (err) {
+      logError("ai", "pi-agent-core module load failed, falling back to AI SDK streamText", {
+        sessionId,
+        error: err?.message || String(err),
+      });
+    }
+    if (piRuntime?.isPiRuntimeAvailable?.()) {
+      result = await piRuntime.runPiAgent(streamArgs, sr);
+    } else {
+      result = await runStream(streamArgs, sr);
+    }
     if (result.error) logError("ai", "invoke failed", { sessionId, error: result.error.message });
+    noteAgentLoop(result.runtime || "ai-sdk");
     const batchEvidence = toolCtx._batchCollector?.summary?.() || null;
     if (batchEvidence) {
       emit?.({ type: "batch-evidence", batchEvidence, sessionId });
@@ -566,6 +584,7 @@ export const AiService = {
       steerApplyCount: result.steerApplyCount || 0,
       compactNote: compact.compacted ? compact.note : null,
       estimatedTokens: compact.estimatedTokens,
+      runtime: result.runtime || "ai-sdk",
     };
   },
 };

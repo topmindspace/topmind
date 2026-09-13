@@ -3,8 +3,10 @@
 [English](README.md) · [简体中文](README.zh-CN.md)
 
 本目录存放项目文档引用的**已智能压缩** UI 界面图与**全流程动态演示**资源。  
-高清源图在开发机 `topmind-desktop/resources/img/`。
+高清源图在本仓库 `topmind-desktop/resources/img/`（不是个人 home 路径）。
 
+> **静帧是 2026-08 chrome 快照**（横跨 TitleBar：记一下 / 💡 / 搜索 / Apps）。现行 chrome 是 2026-09-07 三列：记一下在左栏 header；主锚 动态 / 收件箱 / 写出来；搜索 = ⌘K / ⌘P；建议 / 清单 / 应用在右列 AI 工作区。不要把静帧构图抄进现行 DESIGN。
+>
 > 媒体策略：以 `topmind-desktop/resources/img/Stream-AI建议.png` 压缩导出版本为主要核心截图；全流程动态演示以高保真满彩 GIF 为主显示格式（GitHub 原生支持 `<img>` 内联动画），MP4 高清视频作为备用下载源。
 
 ## 媒体资源列表

@@ -25,6 +25,12 @@ import {
 import { PLUGIN_APP_KIND } from "../lib/plugin-launcher";
 
 export type SidebarViewMode = "category" | "timeline" | "tags" | "kanban" | "stream";
+/** Right-column AI workspace panes — peer to the center content canvas. */
+export type AiWorkspaceTab = "chat" | "suggest" | "todo" | "apps";
+export const AI_WORKSPACE_TABS: readonly AiWorkspaceTab[] = ["chat", "suggest", "todo", "apps"];
+export function isAiWorkspaceTab(v: unknown): v is AiWorkspaceTab {
+  return v === "chat" || v === "suggest" || v === "todo" || v === "apps";
+}
 export type { TreeSortMode };
 
 interface EditorSettings {
@@ -200,12 +206,16 @@ interface ViewState {
   feedLayout: FeedLayout;
   setFeedLayout: (m: FeedLayout) => void;
 
-  /* AI panel */
+  /* AI workspace column (peer to the center canvas — not a chat-only rail) */
   aiPanelOpen: boolean;
   toggleAiPanel: () => void;
   setAiPanelOpen: (v: boolean) => void;
   aiPanelWidth: number;
   setAiPanelWidth: (w: number) => void;
+  aiWorkspaceTab: AiWorkspaceTab;
+  setAiWorkspaceTab: (tab: AiWorkspaceTab) => void;
+  /** Open the AI workspace column on a pane. `apps` also leaves focus mode so the column can mount. */
+  openAiWorkspace: (tab?: AiWorkspaceTab) => void;
 
   /**
    * Focus / zen mode — hide sidebar, AI rail, status bar, tab strip noise.
@@ -245,6 +255,14 @@ interface ViewState {
   /* workspace root — set by Shell on mount, read by CommandPalette */
   workspaceRoot: string;
   setWorkspaceRoot: (w: string) => void;
+
+  /**
+   * Workspace-switcher menu (sidebar footer when docked; Shell host when the
+   * left column is unmounted). Session-only.
+   */
+  workspaceSwitcherOpen: boolean;
+  setWorkspaceSwitcherOpen: (v: boolean) => void;
+  toggleWorkspaceSwitcher: () => void;
 
   /* overlays */
   overlay: OverlayKind;
@@ -535,8 +553,22 @@ export const useViewStore = create<ViewState>((set, get) => ({
   toggleAiPanel: () => set((s) => ({ aiPanelOpen: !s.aiPanelOpen })),
   setAiPanelOpen: (aiPanelOpen) => set({ aiPanelOpen }),
 
-  aiPanelWidth: 420,
+  aiPanelWidth: 480,
   setAiPanelWidth: (aiPanelWidth) => set({ aiPanelWidth }),
+
+  aiWorkspaceTab: "chat",
+  setAiWorkspaceTab: (aiWorkspaceTab) => set({ aiWorkspaceTab }),
+  openAiWorkspace: (tab) =>
+    set((s) => {
+      const aiWorkspaceTab = tab && isAiWorkspaceTab(tab) ? tab : s.aiWorkspaceTab;
+      return {
+        aiPanelOpen: true,
+        aiWorkspaceTab,
+        // 应用 has no focus-mode float (unlike 建议 / 清单). Leave zen so
+        // Shell `showAiPanel = !focusMode && aiPanelOpen` can mount the column.
+        ...(aiWorkspaceTab === "apps" ? { focusMode: false } : {}),
+      };
+    }),
 
   focusMode: false,
   toggleFocusMode: () => set((s) => ({ focusMode: !s.focusMode })),
@@ -598,6 +630,11 @@ export const useViewStore = create<ViewState>((set, get) => ({
       const fileTabs = loadFileTabs(workspaceRoot);
       return { workspaceRoot, expandedNodeIds: nextExpanded, fileTabs };
     }),
+
+  workspaceSwitcherOpen: false,
+  setWorkspaceSwitcherOpen: (workspaceSwitcherOpen) => set({ workspaceSwitcherOpen }),
+  toggleWorkspaceSwitcher: () =>
+    set((s) => ({ workspaceSwitcherOpen: !s.workspaceSwitcherOpen })),
 
   overlay: "none",
   overlayContext: null,

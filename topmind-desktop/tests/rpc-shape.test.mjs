@@ -166,7 +166,7 @@ test("checkRpcResult: unknown method is not checked", () => {
 });
 
 test("guardRpcResult: returns result unchanged on valid production-like shape", () => {
-  const payload = { ready: true, message: "ok", providers: [] };
+  const payload = { ready: true, message: "ok", providers: [], loop: "pi-agent-core" };
   const out = guardRpcResult("ai.getRuntimeStatus", payload, {
     enabled: true,
     throwOnMismatch: true,

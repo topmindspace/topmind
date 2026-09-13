@@ -5,13 +5,13 @@ import {
   RiFolderOpenLine,
   RiInboxArchiveLine,
   RiLoader4Line,
+  RiRefreshLine,
 } from "@remixicon/react";
 import { api } from "../../../services/api";
 import { formatRelativeTime } from "../../../lib/datetime";
 import { Button } from "../../../components/ui/Button";
 import {
   ViewContainer,
-  PageHeader,
   EmptyState,
   MetaText,
   RowList,
@@ -20,6 +20,8 @@ import {
   ErrorState,
   FilterChip,
 } from "../../../components/ui/view";
+import { TitleBarActions } from "../../../lib/chrome-portal";
+import { useTitleBarChrome } from "../../../lib/titlebar-chrome";
 import { PromptDialog } from "../../../components/ui/Dialog";
 import {
   useFileContextMenu,
@@ -119,20 +121,31 @@ export function ArchiveView() {
     trash: items.filter((it) => classifyArchiveRel(it.relativePath) === "trash").length,
   };
 
+  useTitleBarChrome("archive", {
+    title: t("workspace:archiveView.title"),
+    stats: items.length > 0
+      ? t("workspace:archiveView.subtitleItems", { count: items.length })
+      : t("workspace:archiveView.subtitleDefault"),
+  });
+
   if (loading) return <LoadingState label={t("common:action.loading")} />;
   if (error) return <ErrorState message={error} onRetry={() => void refresh()} />;
 
   return (
     <ViewContainer>
-      <PageHeader
-        icon={<RiInboxArchiveLine size={ICON.sm} />}
-        title={t("workspace:archiveView.title")}
-        subtitle={
-          items.length > 0
-            ? t("workspace:archiveView.subtitleItems", { count: items.length })
-            : t("workspace:archiveView.subtitleDefault")
-        }
-      />
+      <TitleBarActions>
+        <Tooltip content={t("common:action.refresh")}>
+          <button
+            type="button"
+            className="v4-titlebar-btn"
+            data-archive-refresh
+            onClick={() => void refresh({ silent: true })}
+            aria-label={t("common:action.refresh")}
+          >
+            <RiRefreshLine size={ICON.sm} />
+          </button>
+        </Tooltip>
+      </TitleBarActions>
       {items.length > 0 ? (
         <div className="mb-2.5 flex flex-wrap items-center gap-1" role="tablist" aria-label={t("workspace:archiveView.layerFilter")}>
           <FilterChip active={layer === "all"} label={t("workspace:archiveView.layerAll")} count={items.length} onClick={() => setLayer("all")} />

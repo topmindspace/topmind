@@ -247,6 +247,56 @@ describe("updateProfileEntry", () => {
   });
 });
 
+describe("appendProfileEntry live-section dedupe", () => {
+  beforeEach(setupWorkspace);
+  afterEach(cleanup);
+
+  it("AI unconfirmed append in confirm mode returns pending and does not write", () => {
+    const result = appendProfileEntry({
+      workspaceRoot: tmpDir,
+      entry: { section: "进行中的事", content: "- （2026-09-13）确认模式不应落盘" },
+      actor: "ai",
+      confirmed: false,
+      writebackModeOverride: "confirm",
+    });
+    assert.equal(result.pending || result.needsConfirm, true);
+    assert.equal(result.wroteFiles, false);
+    assert.doesNotMatch(readProfile(), /确认模式不应落盘/);
+    assert.match(String(result.previewContent || ""), /确认模式不应落盘/);
+  });
+
+  it("a second append of the same fact does not create a live duplicate in another section", () => {
+    const first = appendProfileEntry({
+      workspaceRoot: tmpDir,
+      entry: { section: "进行中的事", content: "- 同一稳定事实只应出现一次" },
+    });
+    assert.equal(first.operation, "update");
+    const second = appendProfileEntry({
+      workspaceRoot: tmpDir,
+      entry: { section: "当前目标", content: "- 同一稳定事实只应出现一次" },
+    });
+    assert.equal(second.operation, "skip");
+    assert.equal(second.reason, "duplicate-fact");
+    const hits = (readProfile().match(/同一稳定事实只应出现一次/g) || []).length;
+    assert.equal(hits, 1);
+  });
+
+  it("re-append of a retired fact is allowed (re-activation, not a live duplicate)", () => {
+    appendProfileEntry({
+      workspaceRoot: tmpDir,
+      entry: { section: "进行中的事", content: "- 可重新激活的事实" },
+    });
+    retireProfileEntry({ workspaceRoot: tmpDir, match: "可重新激活的事实" });
+    const again = appendProfileEntry({
+      workspaceRoot: tmpDir,
+      entry: { section: "进行中的事", content: "- 可重新激活的事实" },
+    });
+    assert.equal(again.operation, "update");
+    const live = readProfile().split("## 历史记录")[0];
+    assert.ok(live.includes("可重新激活的事实"));
+  });
+});
+
 describe("profile section locale honesty", () => {
   beforeEach(setupWorkspace);
   afterEach(cleanup);
@@ -493,6 +543,65 @@ memory_layer: global
     assert.equal(retire[0].title, "Archive a stale My profile fact");
     assert.match(retire[0].summary, /^Finished or stale:/u);
     assert.match(out.summary, /memory suggestion/i);
+  });
+
+  it("converts AI update objects into confirm-gated update_profile suggestions", async () => {
+    fs.mkdirSync(path.join(tmpDir, "10-动态"), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, "10-动态", "2026-W32.md"),
+      `# 2026-W32\n\n## 记录\n\n- 学习 Rust 已转向嵌入式，不再做异步运行时。\n`,
+      "utf8",
+    );
+    const aiProvider = {
+      async generate() {
+        return JSON.stringify({
+          profile: [],
+          periodic: "",
+          retire: [],
+          update: [{ match: "学习 Rust 异步运行时", content: "已转向学习 Rust 嵌入式开发" }],
+        });
+      },
+    };
+    const out = await aiOps.runOperation({
+      id: "memory_organize",
+      workspaceRoot: tmpDir,
+      aiProvider,
+      contract: null,
+    });
+    assert.ok(out.ok, `memory_organize should succeed: ${JSON.stringify(out)}`);
+    const updateSuggestions = (out.suggestions || []).filter(
+      (s) => s.payload?.action === "update_profile",
+    );
+    assert.equal(updateSuggestions.length, 1);
+    assert.equal(updateSuggestions[0].kind, "promote_memory");
+    assert.equal(updateSuggestions[0].payload.match, "学习 Rust 异步运行时");
+    assert.equal(updateSuggestions[0].payload.content, "已转向学习 Rust 嵌入式开发");
+  });
+
+  it("applySuggestion(update_profile) replaces the live line in place", async () => {
+    const result = await suggestEngine.applySuggestion({
+      workspaceRoot: tmpDir,
+      suggestion: {
+        id: "mem-update-test",
+        kind: "promote_memory",
+        title: "更新「我的情况」条目",
+        summary: "已变更：已转向学习 Rust 嵌入式开发",
+        impact: "high",
+        payload: {
+          action: "update_profile",
+          match: "学习 Rust 异步运行时",
+          content: "已转向学习 Rust 嵌入式开发",
+        },
+      },
+    });
+    assert.equal(result.operation, "promote");
+    assert.equal(result.wroteFiles, true);
+    const body = readProfile();
+    assert.ok(!body.includes("学习 Rust 异步运行时"));
+    assert.match(body, /已转向学习 Rust 嵌入式开发/u);
+    assert.doesNotMatch(body, /学习 Rust 异步运行时[\s\S]*已转向学习 Rust 嵌入式开发/u);
+    const liveHits = (body.split("## 历史记录")[0].match(/已转向学习 Rust 嵌入式开发/g) || []).length;
+    assert.equal(liveHits, 1);
   });
 
   it("applySuggestion(retire_profile) rejects polluted match text", async () => {

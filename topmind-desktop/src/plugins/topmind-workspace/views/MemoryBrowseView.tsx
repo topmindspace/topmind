@@ -5,7 +5,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  RiBrainLine,
   RiCalendar2Line,
   RiFileTextLine,
   RiFolderOpenLine,
@@ -18,7 +17,6 @@ import { onLocal } from "../../../plugins/host";
 import { useViewStore } from "../../../stores/view-store";
 import {
   ViewContainer,
-  PageHeader,
   EmptyState,
   LoadingState,
   ErrorState,
@@ -27,6 +25,8 @@ import {
   FeedChrome,
   FilterChip,
 } from "../../../components/ui/view";
+import { TitleBarActions } from "../../../lib/chrome-portal";
+import { useTitleBarChrome } from "../../../lib/titlebar-chrome";
 import { Button } from "../../../components/ui/Button";
 import { ICON } from "../../../lib/icons";
 import { cn } from "../../../lib/cn";
@@ -184,6 +184,13 @@ export function MemoryBrowseView() {
     });
   };
 
+  useTitleBarChrome("memory", {
+    title: t("workspace:memoryBrowse.title"),
+    stats: items.length > 0
+      ? t("workspace:memoryBrowse.subtitleCount", { count: items.length })
+      : t("workspace:memoryBrowse.subtitle"),
+  });
+
   if (loading) {
     return (
       <ViewContainer variant="feed">
@@ -201,45 +208,37 @@ export function MemoryBrowseView() {
 
   return (
     <ViewContainer variant="feed">
-      <PageHeader
-        icon={<RiBrainLine size={ICON.sm} />}
-        title={t("workspace:memoryBrowse.title")}
-        subtitle={
-          items.length > 0
-            ? t("workspace:memoryBrowse.subtitleCount", { count: items.length })
-            : t("workspace:memoryBrowse.subtitle")
-        }
-        actions={
-          <div className="flex items-center gap-1.5">
-            <Tooltip content={t("workspace:memoryBrowse.openFolderTip")}>
-              <Button
-                variant="outline"
-                size="sm"
-                data-memory-open-folder
-                onClick={() => revealMemoryFolderInTree()}
-              >
-                <RiFolderOpenLine size={ICON.xs} /> {t("workspace:memoryBrowse.openFolder")}
-              </Button>
-            </Tooltip>
-            <Tooltip content={t("workspace:memoryBrowse.organizeTip")}>
-              <Button
-                variant="outline"
-                size="sm"
-                data-memory-organize
-                disabled={organizing}
-                onClick={() => void handleOrganize()}
-              >
-                {organizing ? (
-                  <RiLoader4Line size={ICON.xs} className="animate-spin" />
-                ) : (
-                  <RiMagicLine size={ICON.xs} />
-                )}{" "}
-                {t("workspace:memoryBrowse.organize")}
-              </Button>
-            </Tooltip>
-          </div>
-        }
-      />
+      <TitleBarActions>
+        <Tooltip content={t("workspace:memoryBrowse.openFolderTip")}>
+          <button
+            type="button"
+            className="v4-titlebar-btn gap-1 px-2 text-xs"
+            data-memory-open-folder
+            onClick={() => revealMemoryFolderInTree()}
+            aria-label={t("workspace:memoryBrowse.openFolder")}
+          >
+            <RiFolderOpenLine size={ICON.sm} />
+            <span className="hidden sm:inline">{t("workspace:memoryBrowse.openFolder")}</span>
+          </button>
+        </Tooltip>
+        <Tooltip content={t("workspace:memoryBrowse.organizeTip")}>
+          <button
+            type="button"
+            className="v4-titlebar-btn gap-1 px-2 text-xs"
+            data-memory-organize
+            disabled={organizing}
+            onClick={() => void handleOrganize()}
+            aria-label={t("workspace:memoryBrowse.organize")}
+          >
+            {organizing ? (
+              <RiLoader4Line size={ICON.sm} className="animate-spin" />
+            ) : (
+              <RiMagicLine size={ICON.sm} />
+            )}
+            <span className="hidden sm:inline">{t("workspace:memoryBrowse.organize")}</span>
+          </button>
+        </Tooltip>
+      </TitleBarActions>
 
       <FeedColumn>
         <FeedChrome>

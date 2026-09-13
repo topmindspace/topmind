@@ -74,6 +74,12 @@ export function isMemoryPath(rel: string): boolean {
   return rootOf(rel).toLowerCase() === "memory";
 }
 
+/** Stream / 动态 (role, not a hardcoded folder name). */
+export function isStreamRootPath(rel: string): boolean {
+  const root = rootOf(rel);
+  return /^10([- ]|$)/u.test(root) || /(?:^|[- ])(stream|动态)/iu.test(root);
+}
+
 export function topicIdFromRelativePath(rel: string): string {
   const parts = partsOf(rel);
   return parts.length >= 2 ? `${parts[0]}/${parts[1]}` : "";

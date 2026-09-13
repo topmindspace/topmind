@@ -72,6 +72,18 @@ test("system prompt lists the shipped write/read names and honest delete policy"
   assert.match(zh, /仅锁定\/核心笔记进 trash|普通开放笔记不可恢复/u);
   assert.match(en, /ordinary open notes are irreversible|trash only for locked/i);
   assert.doesNotMatch(zh, /删除\uFF08可逆\uFF09与重命名/u);
+  for (const name of ["retire_core_memory", "update_core_memory", "append_core_memory", "list_todos"]) {
+    assert.match(zh, new RegExp(name, "u"));
+    assert.match(en, new RegExp(name, "u"));
+  }
+  assert.match(zh, /不是只追加/u);
+  assert.match(en, /not append-only/i);
+  for (const name of ["read", "write", "edit", "grep"]) {
+    assert.match(zh, new RegExp(`\`${name}\``, "u"), `zh missing alias ${name}`);
+    assert.match(en, new RegExp(`\`${name}\``, "u"), `en missing alias ${name}`);
+  }
+  assert.match(zh, /没有 `bash`/u);
+  assert.match(en, /`bash` is not available/u);
 });
 
 test("name list source stays the single advertised Desktop catalog", () => {
@@ -84,4 +96,48 @@ test("name list source stays the single advertised Desktop catalog", () => {
   assert.ok(AI_TOOL_NAMES_WRITE.includes("update_core_memory"));
   assert.ok(AI_TOOL_NAMES_WRITE.includes("add_todo"));
   assert.ok(AI_TOOL_NAMES_WRITE.includes("toggle_todo"));
+});
+
+test("living TOOLS.md inventory matches shipped names; dropped bash is absent", () => {
+  const toolsMd = readFileSync(path.resolve(root, "../TOOLS.md"), "utf8");
+  assert.match(toolsMd, /## Inventory \(keep \/ update \/ drop\)/);
+  assert.match(toolsMd, /Desktop named AI tools — all \*\*keep\*\*/);
+  assert.match(toolsMd, /Skills pack — all \*\*keep\*\*/);
+  assert.match(toolsMd, /UTR commands — all \*\*keep\*\*/);
+  assert.match(toolsMd, /drop — never registered/);
+  assert.match(toolsMd, /8 域 \/ 28 命令/);
+  const all = [...AI_TOOL_NAMES_READ, ...AI_TOOL_NAMES_WRITE];
+  for (const name of all) {
+    assert.match(toolsMd, new RegExp(`\`${name}\``, "u"), `TOOLS.md missing ${name}`);
+  }
+  for (const dropped of ["bash", "shell", "exec"]) {
+    assert.ok(!all.includes(dropped), `${dropped} must not be in AI_TOOL_NAMES`);
+    assert.doesNotMatch(toolsSrc, new RegExp(`tools\\.${dropped}\\s*=\\s*tool\\(`, "u"));
+  }
+  const pack = JSON.parse(readFileSync(path.resolve(root, "../skills/topmind-pack.json"), "utf8"));
+  const skillIds = pack.skills.map((s) => s.id);
+  for (const id of [
+    "topmind",
+    "topmind-capture",
+    "topmind-organize",
+    "topmind-write",
+    "topmind-memory",
+    "topmind-maintain",
+    "topmind-loop",
+    "topmind-weread",
+    "topmind-x",
+    "topmind-ledger",
+  ]) {
+    assert.ok(skillIds.includes(id), id);
+  }
+  assert.match(toolsMd, /topmind-ledger/);
+  assert.match(toolsMd, /Obsidian does not ship a ledger mini-app/);
+  assert.match(toolsMd, /Pi native aliases/);
+  assert.match(toolsMd, /keep as fenced aliases/);
+  const arch = readFileSync(path.join(root, "ARCHITECTURE.md"), "utf8");
+  for (const name of all) {
+    assert.match(arch, new RegExp(`\`${name}\``, "u"), `ARCHITECTURE.md missing ${name}`);
+  }
+  assert.match(arch, /bash/);
+  assert.match(arch, /read`→`read_file|read.*read_file/u);
 });

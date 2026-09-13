@@ -26,36 +26,53 @@ function read(rel, base = root) {
 
 // ── Chrome hierarchy & single CTA ──────────────────────────────────────
 
-test("TitleBar: L1 capture+AI solid, L2 suggest/todo, L3 tools; single capture solid", () => {
+test("TitleBar: view-switcher + AI toggle; sidebar has capture", () => {
   const titleBar = read("src/components/shell/TitleBar.tsx");
-  assert.match(titleBar, /data-chrome-tier=["']l1["']/);
-  assert.match(titleBar, /data-chrome-tier=["']l2["']/);
-  assert.match(titleBar, /data-chrome-tier=["']l3["']/);
-  assert.match(titleBar, /v4-titlebar-btn-capture/);
+  // 2026-09 v4: TitleBar has view-switcher dropdown + AI toggle
+  assert.match(titleBar, /data-view-switcher/);
+  assert.match(titleBar, /VIEW_OPTIONS/);
+  assert.match(titleBar, /primaryNav\.stream/);
+  assert.match(titleBar, /primaryNav\.inbox/);
+  assert.match(titleBar, /primaryNav\.outputs/);
   assert.match(titleBar, /v4-titlebar-btn-ai/);
-  // L2 must not have capture solid
-  const l2 = titleBar.slice(
-    titleBar.indexOf("v4-titlebar-tier-l2"),
-    titleBar.indexOf('data-chrome-tier="l3"'),
+  assert.doesNotMatch(titleBar, /v4-titlebar-btn-capture/);
+  assert.doesNotMatch(titleBar, /data-chrome-tier=["']l2["']/);
+  assert.doesNotMatch(titleBar, /data-chrome-tier=["']l3["']/);
+  assert.match(titleBar, /data-breadcrumb-title/);
+  assert.match(titleBar, /data-page-title/);
+  assert.match(titleBar, /data-titlebar-actions-slot/);
+  assert.match(titleBar, /resolveTitleBarIdentity/);
+  const sidebar = read("src/components/shell/Sidebar.tsx");
+  const headerFn = sidebar.slice(
+    sidebar.indexOf("function SidebarHeaderActions"),
+    sidebar.indexOf("function ProfileButton"),
   );
-  assert.doesNotMatch(l2, /v4-titlebar-btn-capture/);
+  const profileIdx = headerFn.indexOf("<ProfileButton");
+  const searchIdx = headerFn.indexOf("v4-search-trigger");
+  const captureIdx = headerFn.indexOf("RiFlashlightFill");
+  assert.ok(profileIdx >= 0 && searchIdx > profileIdx && captureIdx > searchIdx, "header order Profile → Search → 记一下");
+  assert.match(headerFn, /titleBar\.capture/);
+  assert.match(headerFn, /v4-capture-accent-icon/);
+  assert.doesNotMatch(headerFn, /v4-titlebar-btn-capture/);
+  assert.match(sidebar, /data-chrome-tier=["']l1["']/);
+  const secondary = sidebar.slice(
+    sidebar.indexOf("data-sidebar-secondary-header"),
+    sidebar.indexOf("data-sidebar-pins"),
+  );
+  assert.match(secondary, /<ViewSwitcher/);
+  assert.match(secondary, /data-sidebar-tree-tools/);
+  assert.match(sidebar, /<TreeToolbar/);
+  const treeSection = sidebar.slice(sidebar.indexOf("function DataSourceSection"));
+  assert.doesNotMatch(treeSection, /<div className="flex items-center gap-0.5 px-1.5 pb-1 pt-0.5">/);
 });
 
-test("TitleBar wide rail renders a theme control (not only the compact ⋯ menu)", () => {
-  const titleBar = read("src/components/shell/TitleBar.tsx");
-  const compactIdx = titleBar.indexOf("{!compactTools ? (");
-  assert.ok(compactIdx >= 0, "expected !compactTools branch");
-  const afterCompact = titleBar.slice(compactIdx);
-  // Wide rail: cycle button (data-titlebar-theme + pickTheme). Compact ⋯:
-  // explicit auto/light/dark via themeMenuSection. Bound the wide branch by
-  // the first `) : (` so the compact menu is not mistaken for the wide control.
-  const elseRel = afterCompact.indexOf(") : (");
-  assert.ok(elseRel > 0, "expected compact fallback branch");
-  const wide = afterCompact.slice(0, elseRel);
-  assert.match(wide, /data-titlebar-theme/);
-  assert.match(wide, /pickTheme/);
-  const compact = afterCompact.slice(elseRel);
-  assert.match(compact, /themeMenuSection/);
+test("WorkspaceSwitcher hosts theme + language + settings (consolidated from TitleBar)", () => {
+  const ws = read("src/components/shell/WorkspaceSwitcher.tsx");
+  assert.match(ws, /preferencesSection/);
+  assert.match(ws, /pickTheme/);
+  assert.match(ws, /pickLocale/);
+  assert.match(ws, /focusMode/);
+  assert.match(ws, /settingsLabel/);
 });
 
 test("List views demote capture to outline (no competing solid CTA)", () => {
@@ -70,6 +87,34 @@ test("List views demote capture to outline (no competing solid CTA)", () => {
       assert.match(m[0], /variant=["'](outline|ghost)["']/, `${rel}: ${m[0]}`);
     }
   }
+});
+
+test("collection canvases do not keep a PageHeader title+actions strip", () => {
+  const views = [
+    "src/plugins/topmind-workspace/views/StreamDetailView.tsx",
+    "src/plugins/topmind-workspace/views/InboxView.tsx",
+    "src/plugins/topmind-workspace/views/OutputsView.tsx",
+    "src/plugins/topmind-workspace/views/TopicOverviewView.tsx",
+    "src/plugins/topmind-workspace/views/CategoryView.tsx",
+    "src/plugins/topmind-workspace/views/MemoryBrowseView.tsx",
+    "src/plugins/topmind-workspace/views/ArchiveView.tsx",
+  ];
+  for (const rel of views) {
+    const src = read(rel);
+    assert.doesNotMatch(src, /<PageHeader/, `${rel} still mounts PageHeader`);
+    assert.doesNotMatch(src, /v4-titlebar-btn-capture/, `${rel} capture solid`);
+    assert.match(src, /useTitleBarChrome/, `${rel} must register TitleBar identity`);
+  }
+  const stream = read("src/plugins/topmind-workspace/views/StreamDetailView.tsx");
+  assert.match(stream, /TitleBarActions/);
+  assert.match(read("src/plugins/topmind-workspace/views/InboxView.tsx"), /data-inbox-refresh/);
+  assert.match(read("src/plugins/topmind-workspace/views/InboxView.tsx"), /data-inbox-new-note/);
+  assert.match(read("src/plugins/topmind-workspace/views/ArchiveView.tsx"), /data-archive-refresh/);
+  assert.doesNotMatch(stream, /id:\s*["']ai-todos["']/);
+  assert.doesNotMatch(stream, /handleMaintainTodos/);
+  const body = read("src/components/todo/TodoListBody.tsx");
+  assert.match(body, /data-todo-pane-chrome/);
+  assert.match(body, /data-todo-maintain/);
 });
 
 test("No purple/indigo marketing colors in UI or extension", () => {
@@ -136,17 +181,18 @@ test("Stream compose uses composeSubmit; placeholder avoids L1 vocabulary", () =
   assert.notEqual(zh.streamDetail.composePlaceholder, "\u8bb0\u4e00\u4e0b");
   assert.notEqual(en.streamDetail.composePlaceholder, "Note it");
   assert.equal(zh.streamDetail.composeSubmit, "\u8bb0\u4e0b");
+  assert.doesNotMatch(zh.streamDetail.composeFullCapture, /记一下/);
+  assert.doesNotMatch(en.streamDetail.composeFullCapture, /Note it/);
 });
 
 // ── Suggest / Todo / AI calm ───────────────────────────────────────────
 
-test("ActionBar demotes outside focus mode; format toolbar defaults expanded", () => {
-  const bar = read("src/components/ai/ActionBar.tsx");
-  assert.match(bar, /focusMode/);
-  assert.match(bar, /return null/);
-
+test("ActionBar is deleted; format toolbar defaults expanded; focus 建议 is SuggestPopover", () => {
   const editor = read("src/plugins/topmind-workspace/views/FileEditorView.tsx");
   assert.match(editor, /const \[showFormat,\s*setShowFormat\]\s*=\s*useState\(\s*true\s*\)/);
+  const shell = read("src/components/shell/Shell.tsx");
+  assert.match(shell, /focusMode \? <SuggestPopover/);
+  assert.doesNotMatch(read("src/components/ai/AiPanel.tsx"), /ActionBar/);
 });
 
 test("StatusBar: single-path named chip (tasks > todo > suggest)", () => {
@@ -208,25 +254,29 @@ test("Settings + overlays use v4 elevated shell; sidebar carries no plugin secti
   assert.match(settings, /surface-elevated|bg-surface-elevated/);
   assert.match(settings, /variant=["']ghost["']/);
 
-  // 2026-08-30: 左栏回归纯内容导航 — 插件入口统一在标题栏 Apps 菜单。
+  // 左栏回归纯内容导航 — 插件入口在 AI 工作区 应用 pane。
+  // 2026-09 v4: Sidebar header Profile → Search → 记一下; TitleBar has view-switcher
   const sidebar = read("src/components/shell/Sidebar.tsx");
   assert.doesNotMatch(sidebar, /data-sidebar-plugins-section/);
   assert.doesNotMatch(sidebar, /sidebarSlots/);
+  assert.match(sidebar, /SidebarHeaderActions/);
+  assert.match(sidebar, /data-sidebar-secondary-header/);
+  assert.match(sidebar, /data-sidebar-tree-tools/);
+  assert.doesNotMatch(sidebar, /data-sidebar-view-switcher/);
 
-  const titleBar = read("src/components/shell/TitleBar.tsx");
-  assert.match(titleBar, /AppsMenu/);
-  const appsMenu = read("src/components/shell/AppsMenu.tsx");
-  assert.match(appsMenu, /data-titlebar-apps/);
-  assert.match(appsMenu, /listLaunchablePlugins/);
-  // 菜单组件不写死插件 id（打开方式/就绪判定都在 lib/apps-menu）
-  assert.doesNotMatch(appsMenu, /topmind-ledger|topmind-weread|topmind-x|topmind-ingest/);
+  const aiWs = read("src/components/ai/AiWorkspace.tsx");
+  assert.match(aiWs, /data-ai-workspace-tab=\{item\.id\}/);
+  assert.match(aiWs, /id: "apps"/);
+  assert.match(aiWs, /AppsLaunchList/);
+  const appsList = read("src/components/shell/AppsLaunchList.tsx");
+  assert.match(appsList, /listLaunchablePlugins/);
+  assert.doesNotMatch(appsList, /topmind-ledger|topmind-weread|topmind-x|topmind-ingest/);
   const appsLib = read("src/lib/apps-menu.ts");
   assert.match(appsLib, /resolveLaunchableOpenTarget/);
   assert.match(appsLib, /PLUGIN_APP_KIND/);
   assert.match(appsLib, /pluginReadiness/);
-  // 菜单数据实时性：打开时拉取 settings + 订阅插件设置变化（不依赖启动快照）
-  assert.match(appsMenu, /api\.sys\.settings\(\)/);
-  assert.match(appsMenu, /plugins:settings-changed/);
+  assert.match(appsList, /api\.sys\.settings\(\)/);
+  assert.match(appsList, /plugins:settings-changed/);
 });
 
 test("Stream and collection canvases expose list/card layout switch + data-layout", () => {
@@ -257,13 +307,9 @@ test("Stream and collection canvases expose list/card layout switch + data-layou
   assert.ok(stream.includes("data-layout={feedLayout}"));
   assert.ok(stream.includes("data-stream-column") || stream.includes("FeedColumn"));
   assert.ok(stream.includes("data-stream-inline-composer"));
-  const headerStart = stream.indexOf("<PageHeader");
-  assert.ok(headerStart >= 0);
-  const headerSlice = stream.slice(headerStart);
-  const headerEnd = headerSlice.search(/\/>/);
-  const headerBlock = headerSlice.slice(0, headerEnd >= 0 ? headerEnd + 2 : 800);
+  assert.doesNotMatch(stream, /<PageHeader/);
   assert.ok(
-    !headerBlock.includes("<FeedLayoutToggle"),
+    !stream.includes("<FeedLayoutToggle") || stream.indexOf("<FeedLayoutToggle") > stream.indexOf("data-stream-inline-composer"),
     "layout toggle must not live in page-title actions",
   );
   const composerIdx = stream.indexOf("data-stream-inline-composer");
@@ -330,6 +376,17 @@ test("Browser extension popup CSS mirrors Design System brand + capture CTA", ()
 
 // ── DESIGN.md documents key patterns ───────────────────────────────────
 
+test("StatusBar shows full workspace path, not a basename", () => {
+  const src = read("src/components/shell/StatusBar.tsx");
+  const marker = "data-status-workspace-path";
+  const idx = src.indexOf(marker);
+  assert.ok(idx >= 0, "missing data-status-workspace-path");
+  const slice = src.slice(Math.max(0, idx - 280), idx + 180);
+  assert.match(slice, /health\.workspaceRoot/);
+  assert.doesNotMatch(slice, /\.split\(["'`]\/["'`]/);
+  assert.match(src, /statusBar\.enginePath/);
+});
+
 test("DESIGN.md documents core UI patterns", () => {
   const design = read("DESIGN.md");
   assert.match(design, /shadow-card|surface-elevated/);
@@ -339,6 +396,9 @@ test("DESIGN.md documents core UI patterns", () => {
   assert.match(design, /showFormat|data-chrome-tier|TitleBar/);
   assert.match(design, /deriveStatusBarBusy/);
   assert.match(design, /FilterChip|data-filter-chip/);
+  assert.match(design, /0\.0\.4 能力单家/);
+  assert.match(design, /ReasoningBlock/);
+  assert.match(design, /默认折叠/);
   assert.match(design, /showFormat=true|默认展开/);
   assert.doesNotMatch(design, /showFormat=false/);
   assert.doesNotMatch(design, /格式工具条 \*\*默认折叠\*\*/);

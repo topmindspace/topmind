@@ -25,11 +25,11 @@ test("openSuggestSurface is shipped export and event name is stable", () => {
   assert.equal(isUnifiedSuggestConfirmSurface(), true);
 });
 
-test("openSuggestSurface opens SuggestPopover panel (not AI chat rail only)", () => {
+test("openSuggestSurface opens the AI workspace 建议 pane (peer column)", () => {
   const src = read("src/lib/suggest-surface.ts");
   assert.match(src, /setPanelOpen\(true\)/);
   assert.match(src, /setExpanded\(true\)/);
-  assert.doesNotMatch(src, /setAiPanelOpen/);
+  assert.match(src, /openAiWorkspace\("suggest"\)/);
   // Must not mount a list component
   assert.doesNotMatch(src, /createElement\s*\(\s*ActionBar|render.*ActionBar/);
 });
@@ -48,13 +48,24 @@ test("StatusBar suggest count chip opens toggleSuggestSurface", () => {
   assert.match(sb, /toggleSuggestSurface|openSuggestSurface/);
 });
 
-test("SuggestPopover is full confirm list; ActionBar is compact pointer", () => {
+test("建议 pane is confirm-gated and distinct from 清单", () => {
   const pop = read("src/components/ai/SuggestPopover.tsx");
-  const bar = read("src/components/ai/ActionBar.tsx");
+  const ai = read("src/components/ai/AiWorkspace.tsx");
+  const design = read("DESIGN.md");
+  assert.match(pop, /acceptItem|dismissItem/);
+  assert.match(ai, /suggest/);
+  assert.match(ai, /todo/);
+  assert.match(design, /建议.*pane|AI 工作区 \*\*建议\*\* pane/u);
+  assert.match(design, /清单 pane/);
+  assert.doesNotMatch(design, /统一待办条/);
+});
+
+test("SuggestPopover is the full confirm list; ActionBar is gone", () => {
+  const pop = read("src/components/ai/SuggestPopover.tsx");
   assert.match(pop, /data-suggest-popover|data-action-bar/);
   assert.match(pop, /acceptItem|dismissItem/);
-  assert.match(bar, /data-action-bar-compact|openSuggestSurface/);
-  assert.doesNotMatch(bar, /dismissItem/);
+  const panel = read("src/components/ai/AiPanel.tsx");
+  assert.doesNotMatch(panel, /ActionBar/);
 });
 
 test("Stream canvas does not mount second full suggestion list or duplicate strip", () => {
@@ -64,7 +75,7 @@ test("Stream canvas does not mount second full suggestion list or duplicate stri
   assert.doesNotMatch(view, /<ActionBar[\s/>]/);
   assert.doesNotMatch(view, /<SuggestEntryStrip/);
   // Still mentions unified path / openSuggestSurface for organize
-  assert.match(view, /openSuggestSurface|SuggestEntryStrip|统一建议|ActionBar/);
+  assert.match(view, /openSuggestSurface/);
   assert.doesNotMatch(view, /data-stream-ai-strip/);
 });
 
@@ -88,10 +99,7 @@ test("task-store surfaces candidates via suggest-surface:open (expands ActionBar
   assert.doesNotMatch(digestBlock, /emitLocal\("ai-panel:open"\)/);
 });
 
-test("AiPanel still mounts single ActionBar", () => {
+test("AiPanel does not mount ActionBar", () => {
   const panel = read("src/components/ai/AiPanel.tsx");
-  assert.match(panel, /<ActionBar\s*\/>/);
-  // Only one ActionBar mount site in panel
-  const matches = panel.match(/<ActionBar/g) || [];
-  assert.equal(matches.length, 1);
+  assert.doesNotMatch(panel, /<ActionBar/);
 });

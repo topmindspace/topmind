@@ -22,7 +22,7 @@ export const RPC_RESULT_SHAPES = Object.freeze({
   // SystemService.getSettings → AppSettings (defaults always include these)
   "system.getSettings": Object.freeze(["theme", "writebackMode"]),
   // getRuntimeStatus → { ready, message, providers }
-  "ai.getRuntimeStatus": Object.freeze(["ready", "message"]),
+  "ai.getRuntimeStatus": Object.freeze(["ready", "message", "loop"]),
   // listSessions returns AiSession[] — empty schema allows array root
   "ai.listSessions": Object.freeze([]),
 });

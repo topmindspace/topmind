@@ -2,6 +2,7 @@
 
 **Date:** 2026-07-21  
 **Status:** Accepted（维持既有 runtime 边界）  
+**Superseded (loop choice):** 2026-09-07 — product chose hybrid `@earendil-works/pi-agent-core` as the Desktop agent loop (bash off, fenced FS). Fence / writeback / portable Skills constraints from this ADR still apply. See [`2026-09-07-pi-engine-and-three-column-reevaluation.md`](./2026-09-07-pi-engine-and-three-column-reevaluation.md).  
 **Surfaces:** Desktop AI · Skills pack · 外部 agent host  
 
 ## Context
@@ -17,10 +18,10 @@ Desktop AI 使用 Vercel AI SDK v7 + skill-first + WorkspaceService 领域工具
 
 ## Decision
 
-1. **不以 Pi 为 Desktop 产品内核**（不嵌入 `pi-coding-agent`，不默认 bash 工具链）。  
-2. **本周期不引入** `pi-agent-core` 适配层、topmind Pi Package 工程、RPC 自由体模式。  
-3. **维持**：内嵌 AI = AI SDK v7 · skill-first · `buildDesktopAiTools` → WorkspaceService 写回。  
-4. Pi / OpenCode / Codex / Hermes 继续为**可选外部 host**；用户可自行安装使用，产品不承诺一等集成、不绑 Pi 版本。  
+1. **不以完整 `pi-coding-agent` 为 Desktop 产品内核**（不默认 bash 工具链，不把 `~/.pi` 当内容真源）。**仍有效。**  
+2. **本周期不引入** topmind Pi Package 工程、RPC 自由体模式、默认 bash。**仍有效。**  
+3. **循环选型（已覆盖）**：2026-09-07 产品选择 hybrid `@earendil-works/pi-agent-core` 作为 Desktop **agent 循环**（bash 关、围栏 FS、领域工具仍走 WorkspaceService → Kernel 写闸）。LLM bytes 仍来自 AI SDK v7。见 [`2026-09-07-pi-engine-and-three-column-reevaluation.md`](./2026-09-07-pi-engine-and-three-column-reevaluation.md)。  
+4. Pi / OpenCode / Codex / Hermes 继续为**可选外部 host**；可移植 Skills 不得被 `~/.pi` 路径绑架。  
 
 ## Rationale
 

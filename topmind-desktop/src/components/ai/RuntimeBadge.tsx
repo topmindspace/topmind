@@ -36,12 +36,14 @@ export function RuntimeBadge() {
   }
   const n = status.providers?.length ?? 0;
   const names = (status.providers || []).map((p) => p.label || p.id).filter(Boolean);
+  const loopLabel = status.loop === "ai-sdk" ? "SDK" : "Pi";
+  const nameText = names.join(" / ") || t("ai.runtimeReadyCount", { count: n });
   return (
     <Tooltip
       content={
         agentEnabled
-          ? t("ai.runtimeReadyWithAgent", { names: names.join(" / ") || t("ai.runtimeReadyCount", { count: n }) })
-          : t("ai.runtimeReadyWithoutAgent", { names: names.join(" / ") || t("ai.runtimeReadyCount", { count: n }) })
+          ? t("ai.runtimeReadyWithAgent", { loop: loopLabel, names: nameText })
+          : t("ai.runtimeReadyWithoutAgent", { loop: loopLabel, names: nameText })
       }
     >
       <span
@@ -55,6 +57,12 @@ export function RuntimeBadge() {
           className={cn("fill-current", streaming && "animate-pulse-soft")}
         />
         <span className="tabular-nums">{n}</span>
+        <span
+          className="text-4xs font-semibold tracking-wide text-accent-color/80"
+          data-ai-loop={status.loop === "ai-sdk" ? "ai-sdk" : "pi-agent-core"}
+        >
+          {status.loop === "ai-sdk" ? "SDK" : "Pi"}
+        </span>
         {agentEnabled ? <RiToolsLine size={ICON.micro} className="text-accent-color/80" /> : null}
       </span>
     </Tooltip>

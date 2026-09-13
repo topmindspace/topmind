@@ -74,6 +74,16 @@ describe("Obsidian suggest force + op-card session", () => {
     const ops = read("obsidian-plugin/src/services/kernel-workspace-ops.ts");
     assert.match(ops, /resolveContractWritebackMode\(kernel, workspaceRoot\)/);
   });
+
+  it("chat profile context uses Kernel active-body collapse, not raw profile.md", () => {
+    const src = read("obsidian-plugin/src/services/kernel-service.ts");
+    const ops = read("obsidian-plugin/src/services/kernel-workspace-ops.ts");
+    assert.match(src, /loadChatProfileContext/);
+    assert.match(ops, /export function loadChatProfileContext/);
+    assert.match(ops, /readProfileActiveBody/);
+    assert.doesNotMatch(src, /adapter\.read\(profileRel\)/);
+    assert.doesNotMatch(src, /profile\.slice\(0,\s*3000\)/);
+  });
 });
 
 describe("extractTodosFromStream force clears period hash", () => {

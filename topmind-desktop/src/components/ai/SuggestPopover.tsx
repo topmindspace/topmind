@@ -1,11 +1,12 @@
 /**
- * SuggestPopover — global 建议 confirm surface (header-centric).
+ * SuggestPopover — 建议 confirm list.
  *
- * Not embedded in Stream body; not buried only in AI chat transcript.
- * Same ActionStore as ActionBar; open via openSuggestSurface / toggleSuggestSurface.
- * 个人清单 stays TodoPopover.
+ * Primary: embedded in the AI workspace 建议 pane.
+ * Focus-mode: floating panel (AI column is hidden).
+ * Same ActionStore as StatusBar / organize paths; open via openSuggestSurface / toggleSuggestSurface.
+ * 个人清单 is the AI workspace 清单 pane (TodoPopover only in focus mode).
  *
- * UX principles (parity with TodoPopover):
+ * UX principles (floating mode, parity with TodoPopover):
  * - Outside click dismisses the panel (unpinned behavior).
  * - Outside scroll dismisses the panel (internal list scroll stays open).
  * - Esc closes the panel.
@@ -104,8 +105,8 @@ function friendlyPath(rawPath?: string): string | null {
   return parts.length > 2 ? `… / ${last}` : last;
 }
 
-/** Floating confirm panel — the primary 建议 surface. */
-export function SuggestPopover() {
+/** Confirm list — floating (focus mode) or embedded in the AI workspace 建议 pane. */
+export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
   const { t } = useTranslation("editor");
   const open = useActionStore((s) => s.panelOpen);
   const setPanelOpen = useActionStore((s) => s.setPanelOpen);
@@ -155,6 +156,7 @@ export function SuggestPopover() {
 
   // Position immediately when opening — avoid a null first paint (looks like no-op)
   useEffect(() => {
+    if (embedded) return;
     if (open) {
       setPos((prev) => prev ?? { x: Math.max(8, window.innerWidth - PANEL_WIDTH - 16), y: 52 });
     } else {
@@ -162,14 +164,15 @@ export function SuggestPopover() {
       setBulkResult(null);
       setRemovingIds(new Set());
     }
-  }, [open]);
+  }, [open, embedded]);
 
   // Modals own the screen — never paint this popover above an open overlay
   // (settings / capture / palette). Closing keeps the layering contract honest.
   const overlay = useViewStore((s) => s.overlay);
   useEffect(() => {
+    if (embedded) return;
     if (open && overlay !== "none") setPanelOpen(false);
-  }, [open, overlay, setPanelOpen]);
+  }, [open, overlay, setPanelOpen, embedded]);
 
   // 建议/待办浮层互斥 — 同一标题栏锚点，空间重叠，不同时叠开
   useEffect(() => {
@@ -180,16 +183,16 @@ export function SuggestPopover() {
   // openSuggestSurface already handles force-refresh on open; this is a safety net
   // for cases where openSuggestSurface was not the entry path (e.g. titlebar toggle).
   useEffect(() => {
-    if (!open) return;
+    if (!embedded && !open) return;
     const st = useActionStore.getState();
     if (!st.everLoaded) {
       void st.refresh({ force: true });
     }
-  }, [open]);
+  }, [open, embedded]);
 
   // Esc closes + Focus trap for Tab navigation
   useEffect(() => {
-    if (!open) return;
+    if (embedded || !open) return;
     const onKey = (e: KeyboardEvent) => {
       // A portaled menu (dropdown/context) owns Esc while open.
       if (isMenuLayerActive()) return;
@@ -221,7 +224,7 @@ export function SuggestPopover() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, setPanelOpen]);
+  }, [open, setPanelOpen, embedded]);
 
   // Outside click dismisses the panel — parity with TodoPopover (unpinned mode).
   // The TitleBar Lightbulb trigger and StatusBar count chip handle their own
@@ -230,7 +233,7 @@ export function SuggestPopover() {
   // closes before this can fire). For other elements (editor, sidebar, etc.)
   // the panel dismisses naturally.
   useEffect(() => {
-    if (!open) return;
+    if (embedded || !open) return;
     const handle = (e: MouseEvent) => {
       const target = e.target as Node;
       // Click inside the panel → keep open
@@ -246,12 +249,12 @@ export function SuggestPopover() {
     // Use mousedown so we dismiss before button onClick fires (avoids flicker)
     document.addEventListener("mousedown", handle);
     return () => document.removeEventListener("mousedown", handle);
-  }, [open, setPanelOpen]);
+  }, [open, setPanelOpen, embedded]);
 
   // Recompute on window resize — open-time position must not strand the panel
   // off-viewport after the window shrinks (parity with TodoPopover).
   useEffect(() => {
-    if (!open) return;
+    if (embedded || !open) return;
     const reposition = () => {
       setPos({
         x: Math.max(8, window.innerWidth - PANEL_WIDTH - 16),
@@ -260,18 +263,18 @@ export function SuggestPopover() {
     };
     window.addEventListener("resize", reposition);
     return () => window.removeEventListener("resize", reposition);
-  }, [open]);
+  }, [open, embedded]);
 
   // Outside scroll dismisses — internal list scroll stays open (parity with TodoPopover)
   useEffect(() => {
-    if (!open) return;
+    if (embedded || !open) return;
     const handle = (e: Event) => {
       if (!shouldCloseOnScroll(e, panelRef.current)) return;
       setPanelOpen(false);
     };
     window.addEventListener("scroll", handle, { capture: true, passive: true });
     return () => window.removeEventListener("scroll", handle, { capture: true });
-  }, [open, setPanelOpen]);
+  }, [open, setPanelOpen, embedded]);
 
   // Auto-clear bulk result message after 3s
   useEffect(() => {
@@ -288,7 +291,7 @@ export function SuggestPopover() {
     return { high, normal };
   }, [items]);
 
-  if (!open || !pos) return null;
+  if (!embedded && (!open || !pos)) return null;
 
   const hasHigh = items.some((i) => i.priority === "high");
   const reviewItem = items.find((i) => i.id === reviewId) || null;
@@ -465,14 +468,16 @@ export function SuggestPopover() {
       data-suggest-popover
       data-action-bar
       data-menu-surface=""
+      data-suggest-embedded={embedded ? "true" : undefined}
       className={cn(
-        "v4-no-drag v4-popover-enter fixed z-[var(--z-popover-overlay)] flex flex-col overflow-hidden",
-        "rounded-xl border border-border-subtle",
-        "bg-surface-elevated/95 backdrop-blur-glass backdrop-saturate-150 shadow-elevated-hairline",
+        "flex flex-col overflow-hidden",
+        embedded
+          ? "h-full min-h-0 bg-transparent"
+          : "v4-no-drag v4-popover-enter fixed z-[var(--z-popover-overlay)] rounded-xl border border-border-subtle bg-surface-elevated/95 backdrop-blur-glass backdrop-saturate-150 shadow-elevated-hairline",
       )}
-      style={{
-        left: pos.x,
-        top: pos.y,
+      style={embedded ? undefined : {
+        left: pos?.x,
+        top: pos?.y,
         width: Math.min(PANEL_WIDTH, window.innerWidth - 24),
         maxHeight: Math.min(PANEL_MAX_HEIGHT, window.innerHeight - 64),
       }}
@@ -662,5 +667,6 @@ export function SuggestPopover() {
     </div>
   );
 
+  if (embedded) return panel;
   return createPortal(panel, document.body);
 }

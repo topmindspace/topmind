@@ -3,7 +3,9 @@ import {
   RiCalendar2Line,
   RiDatabase2Line,
   RiErrorWarningLine,
+  RiFlashlightFill,
   RiRefreshLine,
+  RiSearchLine,
   RiUser3Line,
 } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
@@ -31,6 +33,7 @@ import {
 import { EmptyState } from "../ui/view";
 import { Tooltip } from "../ui/tooltip";
 import { ErrorBoundary } from "../ui/ErrorBoundary";
+import { ChromePortal, notifyChromeSlots } from "../../lib/chrome-portal";
 import type { FileFilterMode } from "../../types";
 
 const TimelineView = lazy(() =>
@@ -115,6 +118,7 @@ export function Sidebar() {
   const select = useViewStore((s) => s.select);
   const viewMode = useViewStore((s) => s.sidebarView);
   const setSidebarView = useViewStore((s) => s.setSidebarView);
+
   const [enabledViews, setEnabledViews] = useState<SidebarViewMode[] | undefined>(undefined);
   const [pins, setPins] = useState<SidebarPins>({
     periodRelPath: null,
@@ -265,13 +269,37 @@ export function Sidebar() {
 
   return (
     <div className="v4-panel-contain v4-sidebar-rail flex h-full min-h-0 flex-col">
-      <div className="flex shrink-0 items-center gap-0.5 pb-1" data-sidebar-header>
+      {/* Sidebar header — Profile + Search + 记一下 (compact, single row) */}
+      <div
+        className="v4-column-chrome v4-drag"
+        data-sidebar-header
+        data-column-chrome="left"
+      >
+        {/* Right-aligned so macOS traffic lights occupy the empty left of this rail. */}
+        <div
+          className="v4-no-drag ml-auto flex shrink-0 items-center justify-end gap-1"
+          data-sidebar-header-actions
+        >
+          <SidebarHeaderActions />
+        </div>
+      </div>
+      {/* Secondary header — ViewSwitcher (icon-only) + tree sort/expand/filter/refresh in one row. */}
+      <div
+        className="flex h-9 shrink-0 items-center gap-0.5 overflow-hidden border-b border-border-subtle-dim px-2"
+        data-sidebar-secondary-header
+      >
         <ErrorBoundary label={t("sidebar.viewSwitcher.ariaTablist")}>
-          <ViewSwitcher active={viewMode} onChange={handleViewModeChange} enabled={enabledViews} />
+          <ViewSwitcher active={viewMode} onChange={handleViewModeChange} enabled={enabledViews} iconOnly />
         </ErrorBoundary>
-        <span className="flex shrink-0 items-center pr-1.5">
-          <ProfileButton />
-        </span>
+        {viewMode === "category" ? (
+          <div
+            className="ml-auto flex shrink-0 items-center gap-0.5"
+            data-sidebar-tree-tools
+            ref={() => {
+              notifyChromeSlots();
+            }}
+          />
+        ) : null}
       </div>
       {/* Period pin — timeline/tags/kanban only.
           Stream has its own period header; category merges the pin into DataSourceSection. */}
@@ -285,6 +313,13 @@ export function Sidebar() {
           {renderView()}
         </ErrorBoundary>
       </div>
+      <div
+        className="flex shrink-0 items-center border-t border-border-subtle-dim px-1.5 py-1.5"
+        data-sidebar-workspace
+        ref={() => {
+          notifyChromeSlots();
+        }}
+      />
     </div>
   );
 }
@@ -306,6 +341,48 @@ function PeriodPill({ pins }: { pins: SidebarPins }) {
         <span className="min-w-0 flex-1 truncate">{pins.periodLabel}</span>
       </button>
     </Tooltip>
+  );
+}
+
+/**
+ * Sidebar header actions — Profile → Search → 记一下.
+ * 记一下 is a normal chrome button (not a solid capture CTA) with accent icon+label.
+ */
+function SidebarHeaderActions() {
+  const { t } = useTranslation("shell");
+  const openOverlay = useViewStore((s) => s.openOverlay);
+  return (
+    <>
+      <span className="flex shrink-0 items-center">
+        <ProfileButton />
+      </span>
+      <Tooltip content={t("titleBar.searchCommandTip")}>
+        <button
+          type="button"
+          className="v4-search-trigger v4-titlebar-btn shrink-0 text-text-quaternary"
+          data-sidebar-search
+          onClick={() => emitLocal("overlay:open", { kind: "command-palette" })}
+          onMouseEnter={() => { void import("../overlays/CommandPalette"); }}
+          aria-label={t("titleBar.searchCommandAriaLabel")}
+        >
+          <RiSearchLine size={ICON.sm} className="shrink-0" />
+        </button>
+      </Tooltip>
+      <Tooltip content={t("titleBar.captureTip")}>
+        <button
+          type="button"
+          className="v4-sidebar-capture v4-titlebar-btn shrink-0 gap-1 text-xs font-medium"
+          data-chrome-tier="l1"
+          data-sidebar-capture
+          onMouseEnter={() => { void import("../overlays/QuickCapture"); }}
+          onClick={() => openOverlay("quick-capture")}
+          aria-label={t("titleBar.capture")}
+        >
+          <RiFlashlightFill size={ICON.sm} className="v4-capture-accent-icon shrink-0" />
+          <span className="v4-capture-accent-label whitespace-nowrap">{t("titleBar.capture")}</span>
+        </button>
+      </Tooltip>
+    </>
   );
 }
 
@@ -332,7 +409,7 @@ function ProfileButton() {
           })();
         }}
         className={cn(
-          "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors v4-focus-ring",
+          "inline-flex h-(--density-chrome-control,32px) w-(--density-chrome-control,32px) shrink-0 items-center justify-center rounded-full transition-colors v4-focus-ring",
           active
             ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
             : "bg-surface-muted/40 text-text-secondary hover:bg-surface-muted",
@@ -340,7 +417,7 @@ function ProfileButton() {
         aria-label={t("sidebar.myProfile")}
         aria-pressed={active}
       >
-        <RiUser3Line size={ICON.micro} className="shrink-0" />
+        <RiUser3Line size={ICON.sm} className="shrink-0" />
       </button>
     </Tooltip>
   );
@@ -686,10 +763,7 @@ function DataSourceSection({
 
   return (
     <div className="mb-2">
-      {/* Unified header: tree tools & file filter (right).
-          周期 pin 不进 category 树头（周期在树里已有节点；窄栏截断只剩噪声 2026-08-30）。 */}
-      <div className="flex items-center gap-0.5 px-1.5 pb-1 pt-0.5">
-        <div className="min-w-0 flex-1" />
+      <ChromePortal selector="[data-sidebar-tree-tools]">
         <TreeToolbar
           tree={tree}
           sortMode={treeSortMode}
@@ -700,7 +774,7 @@ function DataSourceSection({
           refreshing={loading}
           showStructureTools={!error && tree.length > 0}
         />
-      </div>
+      </ChromePortal>
       {/* Multi-DS: show label eyebrow below merged header */}
       {!compactHeader ? (
         <div className="flex items-center gap-1.5 px-2 pb-0.5 text-3xs font-semibold tracking-wide text-text-quaternary">
@@ -742,6 +816,5 @@ function DataSourceSection({
   );
 }
 
-/** Plugin sidebar slots removed (2026-08-30) — 可选插件 / mini-app 统一从
- *  标题栏 Apps 菜单打开（components/shell/AppsMenu + lib/apps-menu）。
- *  左栏回归纯内容导航，不再承载连接器入口。 */
+/** Plugin sidebar slots removed — 可选插件 / mini-app 在 AI 工作区 · 应用 pane。
+ *  左栏回归纯内容导航 + 底栏工作区切换器。 */

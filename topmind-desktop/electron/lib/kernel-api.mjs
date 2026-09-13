@@ -282,6 +282,8 @@ export async function kernelAddTodoItem(p, ctx) {
     source: p.source,
     sourcePeriod: p.sourcePeriod,
     actor: p.actor || "user",
+    confirmed: p.confirmed,
+    writebackModeOverride: desktopWritebackMode(ctx, p),
   });
 }
 

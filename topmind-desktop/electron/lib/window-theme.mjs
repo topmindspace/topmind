@@ -20,7 +20,7 @@ export function resolveWindowBackgroundColor(themeSetting) {
   return isDark ? "#171717" : "#f7f7f7";
 }
 
-export function resolveWindowsTitleBarOverlay(themeSetting, height = 40) {
+export function resolveWindowsTitleBarOverlay(themeSetting, height = 44) {
   const isDark =
     themeSetting === "dark" ||
     (themeSetting !== "light" && nativeTheme.shouldUseDarkColors);
@@ -32,7 +32,7 @@ export function resolveWindowsTitleBarOverlay(themeSetting, height = 40) {
   };
 }
 
-export function updateWindowsTitleBarOverlay(win, themeSetting, height = 40) {
+export function updateWindowsTitleBarOverlay(win, themeSetting, height = 44) {
   if (!win || win.isDestroyed() || process.platform !== "win32") return;
   try {
     const overlay = resolveWindowsTitleBarOverlay(themeSetting, height);
