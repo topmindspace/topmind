@@ -1,8 +1,9 @@
 /** v4 main.mjs — minimal Electron entry. RPC bridge + lifecycle. */
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const { app, BrowserWindow, safeStorage, globalShortcut, dialog, protocol, net, nativeTheme } = require("electron");
-import { resolveWindowsTitleBarOverlay, updateWindowsTitleBarOverlay, resolveWindowBackgroundColor } from "./lib/window-theme.mjs";
+const { app, BrowserWindow, safeStorage, globalShortcut, dialog, protocol, net } = require("electron");
+import { resolveWindowBackgroundColor, applyNativeWindowTheme } from "./lib/window-theme.mjs";
+import { windowShellOptions } from "./lib/window-shell.mjs";
 import {
   registerMediaSchemePrivileged,
   registerMediaProtocolHandler,
@@ -10,7 +11,13 @@ import {
 
 // Custom scheme for workspace images in the editor (must precede app.ready).
 registerMediaSchemePrivileged({ protocol });
-import { installApplicationMenu } from "./lib/app-menu.mjs";
+import {
+  installApplicationMenu,
+  setMenuCommandSink,
+  setMenuLocalActions,
+  updateApplicationMenuState,
+  createDefaultMenuLocalActions,
+} from "./lib/app-menu.mjs";
 import { setLocale as setElectronLocale, t as ei18n } from "./lib/electron-i18n.mjs";
 import path from "node:path";
 import { existsSync } from "node:fs";
@@ -181,6 +188,14 @@ function getContext() {
       };
       return launchStatus;
     },
+    /**
+     * Menu checked-state feed from the renderer. The native menu is the only
+     * surface where the app's UI state (focus mode / sidebar / AI pane / current
+     * view) is rendered outside React, so the renderer pushes those booleans here
+     * and main rebuilds. Settings-derived fields are owned by main instead — see
+     * `syncApplicationMenuFromSettings`.
+     */
+    updateMenuState: (patch) => updateApplicationMenuState(patch),
     /** UI zoom step — apply to the main window and persist under window.uiZoom. */
     setUiZoom: async (mode) => {
       const win = mainWindow && !mainWindow.isDestroyed() ? mainWindow : null;
@@ -197,9 +212,10 @@ function getContext() {
         appSettings?.workspaceRoot || defaultWsRoot,
         { secretAdapter: settingsAdapter },
       );
-      appSettings = await updateAppSettings(
+      const saved = await updateAppSettings(
         settingsFile(), latest, { window: { uiZoom: next } }, { secretAdapter: settingsAdapter },
       );
+      setAppSettings(saved);
       return { ok: true, factor: next };
     },
     /** Return to landing: stop watcher, clear live ctx, keep recents. */
@@ -209,11 +225,11 @@ function getContext() {
       // Keep recents; clear active root so boot does not re-open automatically
       // as "persisted non-default" if user only wanted landing.
       if (appSettings) {
-        appSettings = {
-          ...appSettings,
-          workspaceRoot: "",
-        };
-        await saveAppSettings(settingsFile(), appSettings, { secretAdapter: settingsAdapter }).catch(() => {});
+        // Through setAppSettings: clearing the root must also disable 关闭工作区 /
+        // 复制路径 / 在文件管理器中显示 in the native menu and reset the window
+        // title — otherwise the chrome keeps advertising the workspace just left.
+        const closed = setAppSettings({ ...appSettings, workspaceRoot: "" });
+        await saveAppSettings(settingsFile(), closed, { secretAdapter: settingsAdapter }).catch(() => {});
       }
       launchStatus = {
         ok: false,
@@ -233,16 +249,9 @@ function getContext() {
     // in-memory appSettings in sync. Without it, the window-bounds persist
     // function would save stale settings (with empty API keys) and
     // overwrite the user's freshly-saved keys on the next resize.
-    updateAppSettingsInMemory: (next) => {
-      appSettings = next;
-      if (process.platform === "win32") {
-        updateWindowsTitleBarOverlay(mainWindow, next?.theme, 40);
-        const qWin = getQuickCaptureWindow();
-        if (qWin && !qWin.isDestroyed()) {
-          updateWindowsTitleBarOverlay(qWin, next?.theme, 36);
-        }
-      }
-    },
+    // All the settings-derived chrome (native menu, OS title bar) follows from
+    // the same write — see setAppSettings.
+    updateAppSettingsInMemory: (next) => setAppSettings(next),
     emit: (event, payload) => {
       emitToRenderer(mainWindow, event, payload);
       // macOS dock badge: show ● during AI streaming, clear on done.
@@ -290,7 +299,7 @@ function getContext() {
           ...next,
           clipBridge: { ...next.clipBridge, token: generateClipToken() },
         };
-        appSettings = next;
+        setAppSettings(next);
         await saveAppSettings(settingsFile(), next, { secretAdapter: settingsAdapter }).catch(() => {});
       }
       return syncClipBridgeFromSettings(next, {
@@ -426,14 +435,16 @@ async function activateWorkspace(candidate, opts = {}) {
   if (workspaceWritebackMode) {
     settingsPatch.writebackMode = workspaceWritebackMode;
   }
-  appSettings = await updateAppSettings(
+  const saved = await updateAppSettings(
     settingsFile(),
     appSettings,
     settingsPatch,
     { secretAdapter: settingsAdapter },
   );
-  // Keep in-memory shape consistent even if disk merge reordered
-  appSettings = touchRecentWorkspace(appSettings, context.userWorkspaceRoot);
+  // Keep in-memory shape consistent even if disk merge reordered. Both writes go
+  // through setAppSettings so 工作区 menu state + the window title follow the
+  // switch immediately (this is the path 切换/新建/打开 workspace all take).
+  setAppSettings(touchRecentWorkspace(saved, context.userWorkspaceRoot));
 
   const contractOk = ensureResult?.contractOnDiskValid !== false;
   if (contractOk) {
@@ -489,13 +500,13 @@ async function activateWorkspace(candidate, opts = {}) {
 
 /** Persist pruned settings after removing a bad recent path. */
 async function persistSettingsAfterHistoryChange(nextSettings) {
-  appSettings = nextSettings;
-  await saveAppSettings(settingsFile(), appSettings, { secretAdapter: settingsAdapter }).catch((err) => {
+  const next = setAppSettings(nextSettings);
+  await saveAppSettings(settingsFile(), next, { secretAdapter: settingsAdapter }).catch((err) => {
     logWarn("main", "persist settings after history change failed", {
       error: err instanceof Error ? err.message : String(err),
     });
   });
-  return appSettings;
+  return next;
 }
 
 async function dropRecentAndPersist(rootPath) {
@@ -537,14 +548,14 @@ async function initApp() {
   //   content: ~/topmind/topmind-workspace
   //   state:   ~/topmind/topmind-desktop
   const defRoot = await resolveDefaultUserWorkspaceRootForSettings(defaultWsRoot, defaultEngine);
-  appSettings = await loadAppSettings(settingsFile(), defRoot, { secretAdapter: settingsAdapter });
-
-  // Set Electron main-process locale from settings (for menus, tray, notifications)
-  setElectronLocale(appSettings?.ui?.locale || "auto");
+  // Boot write #1. Through setAppSettings like every other write, which is also
+  // what puts the main-process locale (menus / tray / notifications) and the
+  // native menu's workspace + recents state on the persisted snapshot.
+  setAppSettings(await loadAppSettings(settingsFile(), defRoot, { secretAdapter: settingsAdapter }));
 
   // Prune missing / unreadable recents before picking a launch candidate
   const norm = await normalizeStoredWorkspaceHistory(appSettings, defaultEngine, { pruneMissing: true });
-  appSettings = norm.settings;
+  setAppSettings(norm.settings);
   if (norm.changed || (norm.removed && norm.removed.length)) {
     await saveAppSettings(settingsFile(), appSettings, { secretAdapter: settingsAdapter });
     if (norm.removed?.length) {
@@ -659,6 +670,119 @@ function applyBrandingIcon() {
   return img;
 }
 
+/**
+ * The single writer for `appSettings`.
+ *
+ * Several parts of main replace the settings object directly — boot
+ * (`initApp`), workspace activate / close, window-bounds persist, UI zoom — and
+ * each of those used to leave the settings-derived chrome pointing at the
+ * *previous* settings: the native menu kept the old workspace root and recents
+ * (关闭工作区 / 复制路径 still enabled, 最近打开 still listing the old roots) and
+ * the OS title bar kept the old workspace name until some unrelated settings
+ * write happened to come along.
+ *
+ * Routing every write through here means "settings changed" and "chrome caught
+ * up" can never come apart. `updateAppSettingsInMemory` (the RPC path) is this
+ * same function, so renderer-initiated writes are on it too.
+ *
+ * @param {object|null} next
+ * @returns {object|null}
+ */
+function setAppSettings(next) {
+  const prev = appSettings;
+  const themeChanged = prev?.theme !== next?.theme;
+  const localeChanged = prev?.ui?.locale !== next?.ui?.locale;
+  const workspaceChanged = prev?.workspaceRoot !== next?.workspaceRoot;
+  // Recents only need a repaint when the *list* changes (a switch rewrites
+  // timestamps but keeps the same roots) — compare the roots, not the stamps.
+  const recentChanged =
+    (prev?.workspaces?.recent || []).map((r) => r.rootPath).join("\n") !==
+    (next?.workspaces?.recent || []).map((r) => r.rootPath).join("\n");
+
+  appSettings = next;
+
+  // OS-drawn chrome (title bar / scrollbars / native dialogs) tracks the app
+  // theme — see window-theme.mjs. Returns whether the source actually moved.
+  const sourceChanged = applyNativeWindowTheme(next?.theme);
+
+  if (themeChanged || localeChanged || workspaceChanged || recentChanged || sourceChanged) {
+    if (localeChanged) setElectronLocale(next?.ui?.locale || "auto");
+    syncApplicationMenuFromSettings();
+  }
+  return appSettings;
+}
+
+/**
+ * Window title for the OS-drawn title bar (Windows/Linux now show one).
+ * The renderer never touches document.title, so this is the only writer —
+ * which means two open workspaces stay tellable apart in the taskbar.
+ */
+function refreshWindowTitle() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  const root = appSettings?.workspaceRoot || "";
+  const name = root ? path.basename(root) : "";
+  mainWindow.setTitle(name ? `topmind — ${name}` : "topmind");
+}
+
+/**
+ * Push settings-derived fields into the native menu.
+ *
+ * Ownership split (avoids two writers fighting over one snapshot):
+ *   main  → workspaceRoot / recentWorkspaces / theme / locale   (from settings)
+ *   renderer → focusMode / sidebar / AI pane / current views    (UI state)
+ */
+function syncApplicationMenuFromSettings() {
+  const recent = Array.isArray(appSettings?.workspaces?.recent)
+    ? appSettings.workspaces.recent
+    : [];
+  updateApplicationMenuState({
+    workspaceRoot: appSettings?.workspaceRoot || null,
+    recentWorkspaces: recent.map((r) => ({
+      path: r.rootPath,
+      name: r.rootPath ? path.basename(r.rootPath) : r.rootPath,
+    })),
+    theme: appSettings?.theme || "auto",
+    locale: appSettings?.ui?.locale || "auto",
+  });
+  refreshWindowTitle();
+}
+
+/**
+ * Connect the native menu to the renderer command channel + main-local actions.
+ * Called once the main window exists (menu items navigate/focus that window).
+ */
+function wireApplicationMenu() {
+  setMenuCommandSink((command) => {
+    // Every menu command is a renderer command, so the window must exist and be
+    // visible — a menu click can arrive while the app is hidden to tray (or when
+    // only the float capture window is open, on macOS where the menu bar is
+    // shared). showMainWindow() recreates the window in that case.
+    showMainWindow();
+    emitToRenderer(mainWindow, "app:command", command);
+  });
+  setMenuLocalActions(
+    createDefaultMenuLocalActions({
+      getWorkspaceRoot: () => appSettings?.workspaceRoot || null,
+      toggleMaximize: () => {
+        if (!mainWindow || mainWindow.isDestroyed()) return;
+        if (mainWindow.isMaximized()) mainWindow.unmaximize();
+        else mainWindow.maximize();
+      },
+      closeWindow: () => {
+        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.close();
+      },
+      globalCapture: () => {
+        triggerGlobalCapture();
+      },
+      checkUpdates: () => {
+        void runUpdateCheck({ manual: true });
+      },
+      docsUrl: "https://github.com/topmindspace/topmind",
+    }),
+  );
+  syncApplicationMenuFromSettings();
+}
+
 async function createWindow() {
   // Guard against concurrent calls — on macOS, `activate` can fire during
   // `whenReady` → `initApp()` before the first window is created, causing a
@@ -667,13 +791,11 @@ async function createWindow() {
   windowCreating = true;
   try {
     const stored = appSettings?.window || {};
-    // Single chrome layer:
-    //   macOS  → hiddenInset (traffic lights in custom titlebar)
-    //   Windows → hidden + titleBarOverlay (native caption buttons on our bar — no double header)
-    //   Linux  → default frame (overlay support varies by DE)
-    const isWin = process.platform === "win32";
-    const isMac = process.platform === "darwin";
-    const titleBarStyle = isMac ? "hiddenInset" : isWin ? "hidden" : "default";
+    // OS chrome policy lives in window-shell.mjs (single source of truth):
+    //   macOS  → hiddenInset, traffic lights inside our own 44px column chrome
+    //   Windows/Linux → native frame, so the OS owns the caption buttons and
+    //                   nothing is ever painted over app content
+    const shellOptions = windowShellOptions();
     // Window icon: Win/Linux taskbar of the running window; harmless on mac (Dock separate).
     // Packaged Windows also needs the .exe icon embedded (patch-win-exe-icon) for pins/Start Menu.
     const loadedIcon = loadAppIconImage({ packaged: app.isPackaged });
@@ -681,35 +803,20 @@ async function createWindow() {
     const win = new BrowserWindow({
       width: stored.bounds?.width ?? 1440, height: stored.bounds?.height ?? 980,
       minWidth: 1180, minHeight: 760, backgroundColor: resolveWindowBackgroundColor(stored.theme), title: "topmind",
-      titleBarStyle,
-      // Custom titlebar chrome: no File/Edit strip on Win/Linux (mac keeps minimal menu)
-      autoHideMenuBar: process.platform !== "darwin",
-      ...(isWin
-        ? {
-            titleBarOverlay: resolveWindowsTitleBarOverlay(stored.theme, 44),
-          }
-        : {}),
+      ...shellOptions,
       ...(windowIcon ? { icon: windowIcon } : {}),
       webPreferences: { preload: path.join(__dirname, "preload.cjs"), contextIsolation: true, nodeIntegration: false },
     });
+    // The OS title bar (Windows/Linux) is ours to fill: the renderer never
+    // touches document.title, and without this the page's <title> would win and
+    // every open workspace would look identical in the taskbar.
+    win.on("page-title-updated", (e) => e.preventDefault());
     // Re-assert after construction (some Windows shells ignore ctor icon until setIcon).
     applyWindowIcon(win, windowIcon, { packaged: app.isPackaged });
     if (stored.isMaximized) win.maximize();
     // Persisted UI zoom (Ctrl +/-/0 on Win/Linux; the macOS menu owns its own zoom)
     if (typeof stored.uiZoom === "number" && stored.uiZoom !== 1) {
       win.webContents.setZoomFactor(stored.uiZoom);
-    }
-
-    if (isWin) {
-      nativeTheme.on("updated", () => {
-        if (win && !win.isDestroyed()) {
-          updateWindowsTitleBarOverlay(win, appSettings?.theme, 40);
-        }
-        const qWin = getQuickCaptureWindow();
-        if (qWin && !qWin.isDestroyed()) {
-          updateWindowsTitleBarOverlay(qWin, appSettings?.theme, 36);
-        }
-      });
     }
 
     const devUrl = process.env.topmind_DESKTOP_DEV_SERVER_URL;
@@ -750,7 +857,9 @@ async function createWindow() {
         const latest = await loadAppSettings(settingsFile(), appSettings?.workspaceRoot || defaultWsRoot, { secretAdapter: settingsAdapter });
         // Re-check after async gap — window can be destroyed during the await.
         if (win.isDestroyed()) return;
-        appSettings = await updateAppSettings(settingsFile(), latest, { window: { bounds: win.getNormalBounds(), isMaximized: win.isMaximized() } }, { secretAdapter: settingsAdapter });
+        // Bounds-only write: setAppSettings diffs first, so the resize storm
+        // never rebuilds the menu or resets the title.
+        setAppSettings(await updateAppSettings(settingsFile(), latest, { window: { bounds: win.getNormalBounds(), isMaximized: win.isMaximized() } }, { secretAdapter: settingsAdapter }));
       } catch (err) {
         // Defensive: persist failure during window destruction is harmless.
         if (!win.isDestroyed()) logWarn("main", "window bounds persist failed", { error: err.message });
@@ -806,12 +915,12 @@ async function createWindow() {
                 appSettings?.workspaceRoot || defaultWsRoot,
                 { secretAdapter: settingsAdapter },
               );
-              appSettings = await updateAppSettings(
+              setAppSettings(await updateAppSettings(
                 settingsFile(),
                 latest,
                 { ui: { ...(latest.ui || {}), closeBehavior: choice } },
                 { secretAdapter: settingsAdapter },
-              );
+              ));
             } catch (err) {
               logWarn("main", "persist closeBehavior failed", {
                 error: err instanceof Error ? err.message : String(err),
@@ -952,19 +1061,87 @@ function openCaptureSurface(opts = {}) {
   return { ok: true, mode: "float" };
 }
 
+/**
+ * Check every shipped surface for updates (Desktop / Skills / Clip / Obsidian).
+ *
+ * Shared by the boot check and the 帮助 → 检查更新… menu item. A background run
+ * stays silent on failure and only speaks up when an update exists; a manual run
+ * always answers, so the user isn't left wondering whether the click did nothing.
+ * @param {{ manual?: boolean }} [opts]
+ */
+async function runUpdateCheck(opts = {}) {
+  const manual = Boolean(opts.manual);
+  try {
+    const { checkAllSurfaces, readRunningAppVersion } = await import("./lib/update-check.mjs");
+    const result = await checkAllSurfaces({
+      currentVersion: readRunningAppVersion(),
+      retries: 1,
+      timeoutMs: 10_000,
+    });
+    const surfaces = [];
+    if (result.desktop?.updateAvailable) surfaces.push("desktop");
+    if (result.skills?.updateAvailable) surfaces.push("skills");
+    if (result.extension?.updateAvailable) surfaces.push("extension");
+    if (result.obsidian?.updateAvailable) surfaces.push("obsidian");
+    if (surfaces.length === 0) {
+      if (manual) {
+        // Same toast pipeline the renderer already uses (host.ts forwards it).
+        emitToRenderer(mainWindow, "toast:show", { text: ei18n("update.upToDate"), kind: "success" });
+      }
+      return { surfaces };
+    }
+    logInfo("main", "updates available", {
+      surfaces,
+      manual,
+      desktop: { current: result.desktop?.currentVersion, latest: result.desktop?.latestVersion },
+      skills: { current: result.skills?.currentVersion, latest: result.skills?.latestVersion },
+      extension: { current: result.extension?.currentVersion, latest: result.extension?.latestVersion },
+      obsidian: { current: result.obsidian?.currentVersion, latest: result.obsidian?.latestVersion },
+    });
+    emitToRenderer(mainWindow, "update:available", {
+      surfaces,
+      desktop: result.desktop,
+      skills: result.skills,
+      extension: result.extension,
+      obsidian: result.obsidian,
+      // Legacy fields for backward compat (Desktop surface)
+      currentVersion: result.desktop?.currentVersion,
+      latestVersion: result.desktop?.latestVersion,
+      releaseUrl: result.desktop?.releaseUrl,
+      tagName: result.desktop?.tagName,
+      notes: result.desktop?.notes,
+      publishedAt: result.desktop?.publishedAt,
+    });
+    return { surfaces };
+  } catch (e) {
+    // Silent on background runs — never bother the user about a failed poll.
+    logInfo("main", "update check skipped", {
+      manual,
+      error: e instanceof Error ? e.message : String(e),
+    });
+    if (manual) {
+      emitToRenderer(mainWindow, "toast:show", { text: ei18n("update.checkFailed"), kind: "error" });
+    }
+    return { surfaces: [], failed: true };
+  }
+}
+
+/** Shared by the ⌘⇧N global shortcut, the tray, and the native 记一下（全局）item. */
+function triggerGlobalCapture() {
+  try {
+    openCaptureSurface();
+  } catch (e) {
+    logWarn("main", "global capture failed", {
+      error: e instanceof Error ? e.message : String(e),
+    });
+  }
+}
+
 /** Register OS-level global shortcuts so topmind is usable even when not focused.
  *  ⌘⇧N → floating quick note (default) or main overlay — capture-first from anywhere. */
 function registerGlobalShortcuts() {
   const accelerator = "CommandOrControl+Shift+N";
-  const registered = globalShortcut.register(accelerator, () => {
-    try {
-      openCaptureSurface();
-    } catch (e) {
-      logWarn("main", "global capture failed", {
-        error: e instanceof Error ? e.message : String(e),
-      });
-    }
-  });
+  const registered = globalShortcut.register(accelerator, triggerGlobalCapture);
   if (!registered) {
     logWarn("main", "global shortcut registration failed", { accelerator });
   } else {
@@ -1016,7 +1193,10 @@ if (!hasLock) { app.quit(); } else {
     });
     // Branding — MUST be after ready. macOS Dock + first-window taskbar on Win/Linux.
     applyBrandingIcon();
-    // App menu: macOS minimal native Edit/App; Win/Linux no menubar (custom chrome).
+    // App menu. All three platforms now get the full menu (see menu-spec.mjs):
+    // macOS in the system bar, Windows/Linux as a native menu bar in the frame.
+    // Installed here so it exists before the window paints; the workspace /
+    // theme / locale checkmarks are filled in by wireApplicationMenu below.
     installApplicationMenu({ isDev: !app.isPackaged });
     // Linux: safeStorage needs libsecret / kwallet. Without it, API keys fall
     // back to plaintext in app-settings.json — warn once so users can install.
@@ -1048,6 +1228,9 @@ if (!hasLock) { app.quit(); } else {
       return;
     }
     registerGlobalShortcuts();
+    // Native menu: connect it to the renderer command channel + main-local
+    // actions now that the main window exists, then sync its checked state.
+    wireApplicationMenu();
     // System tray: required for Windows/Linux hide-to-tray visibility; useful on all platforms.
     ensureTray();
     // Close any non-main windows that slipped in during boot.
@@ -1061,52 +1244,8 @@ if (!hasLock) { app.quit(); } else {
     // Respects autoCheckUpdates setting (default true).
     // Checks ALL surfaces (Desktop / Skills / Clip / Obsidian) — any available
     // update triggers a status bar badge; clicking it opens settings → manage.
-    const autoCheck = appSettings?.ui?.autoCheckUpdates !== false;
-    if (autoCheck) {
-      setTimeout(async () => {
-        try {
-          const { checkAllSurfaces, readRunningAppVersion } = await import("./lib/update-check.mjs");
-          const result = await checkAllSurfaces({
-            currentVersion: readRunningAppVersion(),
-            retries: 1,
-            timeoutMs: 10_000,
-          });
-          // Collect all surfaces with available updates
-          const surfaces = [];
-          if (result.desktop?.updateAvailable) surfaces.push("desktop");
-          if (result.skills?.updateAvailable) surfaces.push("skills");
-          if (result.extension?.updateAvailable) surfaces.push("extension");
-          if (result.obsidian?.updateAvailable) surfaces.push("obsidian");
-          if (surfaces.length > 0) {
-            logInfo("main", "updates available", {
-              surfaces,
-              desktop: { current: result.desktop?.currentVersion, latest: result.desktop?.latestVersion },
-              skills: { current: result.skills?.currentVersion, latest: result.skills?.latestVersion },
-              extension: { current: result.extension?.currentVersion, latest: result.extension?.latestVersion },
-              obsidian: { current: result.obsidian?.currentVersion, latest: result.obsidian?.latestVersion },
-            });
-            emitToRenderer(mainWindow, "update:available", {
-              surfaces,
-              desktop: result.desktop,
-              skills: result.skills,
-              extension: result.extension,
-              obsidian: result.obsidian,
-              // Legacy fields for backward compat (Desktop surface)
-              currentVersion: result.desktop?.currentVersion,
-              latestVersion: result.desktop?.latestVersion,
-              releaseUrl: result.desktop?.releaseUrl,
-              tagName: result.desktop?.tagName,
-              notes: result.desktop?.notes,
-              publishedAt: result.desktop?.publishedAt,
-            });
-          }
-        } catch (e) {
-          // Silent — never bother user on background check failure
-          logInfo("main", "background update check skipped", {
-            error: e instanceof Error ? e.message : String(e),
-          });
-        }
-      }, 30_000);
+    if (appSettings?.ui?.autoCheckUpdates !== false) {
+      setTimeout(() => void runUpdateCheck({ manual: false }), 30_000);
     }
   }).catch((e) => {
     showBootError(

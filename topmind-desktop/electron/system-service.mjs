@@ -176,6 +176,18 @@ export const SystemService = {
     return next;
   },
 
+  /**
+   * Feed UI state into the native application menu (checkmarks on 专注模式 /
+   * 显示侧栏 / 视图 radios …). Settings-derived fields are pushed by main itself;
+   * this endpoint is only for state that lives in the renderer's view store.
+   */
+  async updateMenuState({ patch }, ctx) {
+    if (typeof ctx.updateMenuState === "function") {
+      ctx.updateMenuState(patch);
+    }
+    return { ok: true };
+  },
+
   async clipBridgeStatus(_p, ctx) {
     const live = getClipBridgeLive();
     const settings = await SystemService.getSettings({}, ctx);

@@ -23,14 +23,28 @@ test("SettingsDialog registers the overlay close guard on mount", () => {
   assert.match(src, /return \(\) => setOverlayCloseGuard\(null\)/, "guard cleared on unmount");
 });
 
-test("OverlayHost close paths await the guard before closeOverlay", () => {
-  const src = read("src/components/shell/OverlayHost.tsx");
-  assert.match(src, /await runOverlayCloseGuard\(\);\s*\n\s*closeOverlay\(\)/);
-  // Esc shortcut, navigate, sidebar-view and scrim all use the guarded close
-  const guarded = src.match(/void requestCloseOverlay\(\)|\(\) => void requestCloseOverlay\(\)/gu) || [];
-  assert.ok(guarded.length >= 4, `expected >=4 guarded close call sites, got ${guarded.length}`);
+test("every overlay close path awaits the guard before closeOverlay", () => {
+  // 2026-09-14: close paths moved from OverlayHost's inline switch into the
+  // shared dispatcher (keyboard + native menu call the same code). The guard
+  // consequently lives in exactly one place instead of being repeated per
+  // branch — a strictly stronger guarantee, so assert the new shape.
+  const commands = read("src/lib/workbench-commands.ts");
+  assert.match(
+    commands,
+    /await runOverlayCloseGuard\(\);\s*\n\s*useViewStore\.getState\(\)\.closeOverlay\(\)/,
+  );
+  // Esc / overlay-toggle / navigate / sidebar-view all funnel through it
+  const guarded = commands.match(/void closeOverlayGuarded\(\)/gu) || [];
+  assert.ok(guarded.length >= 4, `expected >=4 guarded close paths, got ${guarded.length}`);
+
+  const host = read("src/components/shell/OverlayHost.tsx");
+  // Scrim dismissal is still exported through the guarded wrapper
+  assert.match(host, /await runOverlayCloseGuard\(\);\s*\n\s*closeOverlay\(\)/);
+  assert.match(host, /if \(scrimDismissesOverlay\(overlay\)\) void requestCloseOverlay\(\)/);
   // No direct closeOverlay call remains on the scrim
-  assert.doesNotMatch(src, /onClick=\{closeOverlay\}/);
+  assert.doesNotMatch(host, /onClick=\{closeOverlay\}/);
+  // Keyboard goes through the dispatcher, so a new branch cannot skip the guard
+  assert.match(host, /runWorkbenchAction\(hit\.action\)/);
 });
 
 test("flushPending re-queues the batch on failure (no silent drop)", () => {

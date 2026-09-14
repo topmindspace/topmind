@@ -35,6 +35,7 @@ import { openSuggestSurface } from "../../lib/suggest-surface";
 import { handleAppsMenuToggle } from "../../lib/ai-workspace";
 import { APPS_MENU_TOGGLE_EVENT } from "../../lib/apps-menu";
 import { toggleWorkspaceSwitcher } from "../../lib/workspace-switcher";
+import { installNativeMenuBridge } from "../../lib/native-menu";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { ICON } from "../../lib/icons";
 import type { ToastPayload } from "../../lib/local-events";
@@ -77,6 +78,10 @@ export function Shell({ settings }: ShellProps) {
   const [todoFocusOpen, setTodoFocusOpen] = useState(false);
 
   useShellShortcuts();
+
+  // Native application menu (Windows/Linux menu bar, macOS menu bar) routes its
+  // items through the same command ids as the keyboard — see lib/native-menu.ts.
+  useEffect(() => installNativeMenuBridge(), []);
 
   const dismissToast = useCallback((key: number) => {
     const timer = toastTimersRef.current.get(key);
@@ -301,7 +306,6 @@ export function Shell({ settings }: ShellProps) {
             sidebarCollapsed={sidebarCollapsed}
             onToggleSidebar={toggleSidebar}
             macPad={!showSidebar}
-            winPad={!showAiPanel}
           />
           <EditorArea />
         </div>

@@ -457,7 +457,9 @@ Pi 围栏别名（不是第二套 FS）：`read`→`read_file` · `write`→`sav
   - 取消：前端 ignore 迟到结果 + 主进程 abort `generateText`  
   - 应用：选区替换前校验原文是否漂移  
 
-- Windows：`titleBarStyle: hidden` + `titleBarOverlay`（主窗与记一下浮窗）  
+- 窗口外壳（`lib/window-shell.mjs` 唯一真源）：macOS `hiddenInset`（红绿灯在我们自己的 44px 顶栏内）；**Windows / Linux 原生边框 + 原生菜单栏**。`titleBarOverlay` 已废弃——原生按钮画在内容之上会永久遮住右列（AI 工作区第 4 个 tab / 右列 toggle），改用原生边框后该类遮挡不可能发生。浮窗同策略，Windows/Linux 浮窗 `autoHideMenuBar: true`（应用菜单栏是全局的）
+- 原生菜单（`lib/menu-spec.mjs` 纯模板 + `lib/app-menu.mjs` 接线）：文件 / 编辑 / 工作区 / 显示 / 窗口 / 帮助（mac 另有 App 菜单）。菜单项不自带行为，发出与 `src/lib/shortcuts.ts` 同源的命令 id，渲染侧 `src/lib/native-menu.ts` 经 `runWorkbenchAction` 分发；非 mac 用 `registerAccelerator: false` 只显示不注册，键盘归渲染侧；勾选态由 `system.updateMenuState`（UI 态）+ app-settings（工作区/主题/语言）合并重建。每个 `role` 项显式给 `label`（Electron 的 role 标签跟随**系统**语言，会与应用内语言开关冲突）；`关于` 不走 `role: "about"`，统一进 设置 → 关于与更新；⌘⇧N 归 `globalShortcut`，菜单仅镜像（mac 不给 accelerator，因该平台无法「只显示不注册」）
+- `appSettings` 唯一写方 `main.mjs` 的 `setAppSettings()`：派生 chrome（原生菜单工作区/最近/主题/语言 + OS 标题栏）与设置写入不可能脱节。绕过它的路径会让菜单停在**上一个工作区**（关闭/切换工作区曾经如此）。同处按 diff 早退，resize 持久化不重建菜单
 - 知识加工队列 UI：`IngestQueuePanel`（Hub + 浮窗共享主进程 jobs）  
 - 属性条：`Select variant="chip"` 单层描边  
 

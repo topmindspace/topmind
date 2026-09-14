@@ -30,6 +30,7 @@
 7. **Localized AI** — suggestion / todo / op chrome follows host UI language; Agent and inline rewrite follow explicit request → source script → workspace locale (`lib/ai-output-locale.mjs`)  
 8. **Manage & Updates** — detects agent hosts · browser · Obsidian; installs / upgrades / uninstalls Skills, Clip, and the plugin (browser side is guided load-unpacked, never silent inject); unified update check and health diagnosis
 9. **Optional bookkeeping** — enable-gated mini-app (`memory/ledgers/`; AI workspace Apps pane / StatusBar / ⌘K). Not a 6th user concept or PrimaryNav item.
+10. **Native OS chrome** — Windows/Linux get a real native frame + application menu bar (File / Edit / Workspace / View / Window / Help); macOS gets the complete system menu. Menu items emit the same command ids as the keyboard, so no behavior is implemented twice. Chrome policy: `electron/lib/window-shell.mjs`
 
 ---
 

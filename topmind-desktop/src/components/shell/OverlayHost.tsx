@@ -7,9 +7,10 @@ import { lazy, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useViewStore } from "../../stores/view-store";
-import { onLocal, emitLocal } from "../../plugins/host";
+import { onLocal } from "../../plugins/host";
 import { registry } from "../../plugins/registry";
 import { matchWorkbenchShortcut } from "../../lib/shortcuts";
+import { runWorkbenchAction } from "../../lib/workbench-commands";
 import { runOverlayCloseGuard } from "../../lib/overlay-close-guard";
 import { scrimDismissesOverlay } from "../../lib/overlay-dismiss";
 import {
@@ -57,13 +58,6 @@ export function OverlayHost() {
   const select = useViewStore((s) => s.select);
   const back = useViewStore((s) => s.back);
   const forward = useViewStore((s) => s.forward);
-  const setSidebarView = useViewStore((s) => s.setSidebarView);
-  const closeFileTab = useViewStore((s) => s.closeFileTab);
-  const closeAllFileTabs = useViewStore((s) => s.closeAllFileTabs);
-  const toggleFocusMode = useViewStore((s) => s.toggleFocusMode);
-  const setFocusMode = useViewStore((s) => s.setFocusMode);
-  const fileTabs = useViewStore((s) => s.fileTabs);
-  const selection = useViewStore((s) => s.selection);
   const prevFocusRef = useRef<HTMLElement | null>(null);
   const [portalEl, setPortalEl] = useState<HTMLElement | null>(null);
 
@@ -182,89 +176,14 @@ export function OverlayHost() {
 
       e.preventDefault();
 
-      switch (hit.action.type) {
-        case "close-overlay": {
-          const st = useViewStore.getState();
-          if (st.overlay !== "none") {
-            void requestCloseOverlay();
-          } else if (st.focusMode) {
-            setFocusMode(false);
-          }
-          break;
-        }
-        case "overlay": {
-          const kind = hit.action.kind as OverlayKind;
-          // Toggle semantics: invoking the shortcut for the already-open
-          // surface dismisses it (⌘K ⌘K closes the palette).
-          if (useViewStore.getState().overlay === kind) {
-            void requestCloseOverlay();
-          } else {
-            openOverlay(kind, {
-              intent: hit.action.intent as "capture" | "memory" | undefined,
-              topicId: hit.action.topicId,
-            });
-          }
-          break;
-        }
-        case "navigate":
-          void requestCloseOverlay();
-          select(hit.action.selection);
-          break;
-        case "sidebar-view":
-          void requestCloseOverlay();
-          setSidebarView(hit.action.mode);
-          emitLocal("sidebar:set-view", hit.action.mode);
-          break;
-        case "emit":
-          emitLocal(hit.action.event, hit.action.payload ?? null);
-          break;
-        case "back":
-          back();
-          break;
-        case "forward":
-          forward();
-          break;
-        case "toggle-focus":
-          toggleFocusMode();
-          break;
-        case "close-tab": {
-          const path =
-            selection.kind === "file"
-              ? selection.path
-              : fileTabs.find((t) => !t.pinned)?.path || fileTabs[0]?.path;
-          if (path) closeFileTab(path);
-          break;
-        }
-        case "close-all-tabs":
-          closeAllFileTabs({ closePinned: false });
-          break;
-        case "toggle-split": {
-          // 对照 split: only meaningful on a file selection; toggles the
-          // secondary pane for the active file.
-          const st = useViewStore.getState();
-          if (st.selection.kind !== "file") break;
-          if (st.splitSecondaryPath === st.selection.path) st.clearSplit();
-          else st.openInSplit(st.selection.path);
-          break;
-        }
-      }
+      // Single dispatcher shared with the native application menu — see
+      // lib/workbench-commands.ts. Reading state at call time is why this
+      // effect has no dependencies beyond the listener itself.
+      runWorkbenchAction(hit.action);
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [
-    openOverlay,
-    requestCloseOverlay,
-    select,
-    back,
-    forward,
-    setSidebarView,
-    closeFileTab,
-    closeAllFileTabs,
-    toggleFocusMode,
-    setFocusMode,
-    fileTabs,
-    selection,
-  ]);
+  }, []);
 
   useEffect(() => {
     const onMouseUp = (e: MouseEvent) => {

@@ -217,8 +217,7 @@
   --type-size-body: 14px;
 
   /* Layout density — workbench-first (airy chrome, airy content)
-     2026-09-07: chrome-y 40→44 — 三列顶栏对齐、控件 32px；Windows
-     titleBarOverlay 跟随同一高度 */
+     2026-09-07: chrome-y 40→44 — 三列顶栏对齐、控件 32px */
   --density-page-x: 28px;
   --density-page-y: 24px;
   --density-chrome-y: 44px;

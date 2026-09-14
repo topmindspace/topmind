@@ -27,14 +27,13 @@ import {
 import { Tooltip } from "../ui/tooltip";
 import { PanelToggleIcon } from "../ui/PanelToggleIcon";
 import { ICON } from "../../lib/icons";
-import { isMacOS, isWindows } from "../../lib/platform";
+import { isMacOS } from "../../lib/platform";
 
 interface TitleBarProps {
   workspaceRoot: string;
   sidebarCollapsed: boolean;
   onToggleSidebar: () => void;
   macPad?: boolean;
-  winPad?: boolean;
 }
 
 export function useTitleBarIdentityLabels(): TitleBarIdentityLabels {
@@ -51,10 +50,9 @@ export function useTitleBarIdentityLabels(): TitleBarIdentityLabels {
   );
 }
 
-export function TitleBar({ workspaceRoot: _workspaceRoot, sidebarCollapsed, onToggleSidebar, macPad = false, winPad = false }: TitleBarProps) {
+export function TitleBar({ workspaceRoot: _workspaceRoot, sidebarCollapsed, onToggleSidebar, macPad = false }: TitleBarProps) {
   void _workspaceRoot;
   const trafficMac = Boolean(macPad && isMacOS);
-  const trafficWin = Boolean(winPad && isWindows);
   const { t } = useTranslation(["shell", "workspace"]);
   const back = useViewStore((s) => s.back);
   const forward = useViewStore((s) => s.forward);
@@ -76,7 +74,6 @@ export function TitleBar({ workspaceRoot: _workspaceRoot, sidebarCollapsed, onTo
       data-column-chrome="center"
       className={cn(
         "v4-column-chrome v4-drag relative justify-between gap-2 text-text-secondary select-none",
-        trafficWin && "v4-win-titlebar-pad",
       )}
     >
       {focusMode ? (

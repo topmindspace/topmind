@@ -54,8 +54,10 @@
 
 | 面 | Windows | macOS |
 |----|---------|-------|
-| 主窗 | `hidden` + `titleBarOverlay`（无双 header） | `hiddenInset` |
-| 记一下浮窗 | 同上 + 自定义拖条 | `hiddenInset` + traffic lights |
+| 主窗 | 原生边框 + 原生菜单栏（`window-shell.mjs`） | `hiddenInset`（红绿灯在自有 44px 顶栏内） |
+| 记一下浮窗 | 同策略（原生边框，`autoHideMenuBar: true`）+ 自有拖条与关闭按钮 | `hiddenInset` + traffic lights |
+
+> 2026-09-14：`titleBarOverlay` 已全平台废弃 —— 原生按钮画在内容之上会永久遮住右列（AI 工作区第 4 个 tab、右列 toggle）。外壳策略唯一真源 `topmind-desktop/electron/lib/window-shell.mjs`。
 
 ### 编辑器行内 AI（与捕获并列的「改写」面）
 

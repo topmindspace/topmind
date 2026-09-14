@@ -4,8 +4,14 @@ import { api } from "../../services/api";
 /**
  * Renderer-level chords that bypass the workbench dispatcher:
  * Ctrl +/-/0 zoom (browser convention, works while typing). Meta is
- * deliberately excluded — macOS's app menu owns its own zoom roles, and
- * handling ⌘ here too would step twice on that platform.
+ * deliberately excluded — on macOS the native 显示 menu owns ⌘0/⌘+/⌘-, and
+ * that menu item routes to this very same `api.sys.zoom` call. Handling ⌘ here
+ * as well would step twice on that platform.
+ *
+ * The menu deliberately does NOT use the resetZoom/zoomIn/zoomOut roles: those
+ * register CmdOrCtrl+0/± themselves, which is this listener's chord on
+ * Windows/Linux too — one keypress, two owners, two zoom steps. See
+ * electron/lib/menu-spec.mjs.
  */
 export function useShellShortcuts(): void {
   useEffect(() => {

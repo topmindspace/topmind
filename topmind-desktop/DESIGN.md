@@ -337,7 +337,30 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 └──────────────────────────────────────────────────────────────┘
 ```
 
-三列各自顶栏对齐（`.v4-column-chrome` · `--density-chrome-y` 44px · 控件 32px），**没有**横跨三列的产品命令条。红绿灯 / Windows 标题按钮只在最左/最右列顶栏留垫，不当产品 IA。
+三列各自顶栏对齐（`.v4-column-chrome` · `--density-chrome-y` 44px · 控件 32px），**没有**横跨三列的产品命令条。**操作系统外壳不占产品 IA**（见下方 §窗口外壳）。
+
+- **窗口外壳（OS chrome）** — 唯一真源 `electron/lib/window-shell.mjs`  
+
+  | 平台 | 边框 | 标题栏 | 窗口内菜单栏 |
+  |---|---|---|---|
+  | macOS | `hiddenInset`（无边框内嵌） | 红绿灯在**我们自己**的 44px 顶栏内 | 无（系统菜单栏） |
+  | Windows | 原生边框 | OS 标题栏 | **原生菜单栏（常显）** |
+  | Linux | 原生边框 | DE 标题栏 | **原生菜单栏（常显）** |
+
+  - **禁止**再用 `titleBarOverlay`：把原生最小化/最大化/关闭画在应用内容之上，等于在每列右端永久挖掉一块（AI 工作区第 4 个 tab「应用」、右列开合 toggle 都曾因此被盖）。改原生边框后这类遮挡**不可能发生**。
+  - 因此 mac 之外**没有**标题按钮让位垫；`.v4-column-chrome` 永远用 `padding-left/right` 长写（禁止 `padding` 简写——简写会重置 `padding-right`，而该规则位于样式表末尾，等权重下按源码顺序取胜，正是当年让位垫静默失效的原因）。
+  - 记一下浮窗走同一策略（原生边框 + 显式关闭按钮）；Windows/Linux 的**应用菜单栏是全局的**，浮窗用 `autoHideMenuBar: true` 免得 480px 便签顶上横一条「文件 编辑 …」。  
+- **原生菜单（快捷操作入口）** — `electron/lib/menu-spec.mjs`（纯模板）+ `app-menu.mjs`（Electron 接线）  
+  - 菜单 = **第二个前端**，所以菜单项不自带行为：点菜单项发出的 id 与键盘 `src/lib/shortcuts.ts` 的 id 同源，渲染侧 `src/lib/native-menu.ts` 统一分发（`runWorkbenchAction`）。  
+  - 结构（三平台一致）：**文件**（记一下 / 全局记一下 / 搜索 / 命令面板 / 整理本周；非 mac 另有 设置… · 退出）、**编辑**、**工作区**（打开 · 新建 · 切换 · 最近打开 · 在文件管理器中显示 · 复制路径 · 重新载入 · 关闭）、**显示**（动态/Inbox/交付/归档 · 侧栏视图 · AI pane · 侧栏与 AI 列开关 · 专注模式 · 后退/前进/对照分栏/任务面板/待办 · 外观 · 语言 · 重载/缩放/全屏）、**窗口**、**帮助**；mac 另加 App 菜单。  
+  - 勾选态：设置侧字段（工作区 / 最近 / 主题 / 语言）由主进程从 app-settings 推；UI 态（专注 / 侧栏 / AI pane / 当前视图）由渲染侧推（`system.updateMenuState`），主进程合并后重建。  
+  - **键盘归属**：非 mac 的菜单项用 `registerAccelerator: false` —— 只显示不注册，键盘仍归渲染侧，否则菜单与页面同时触发、开关键自相抵消。mac 菜单本就抢在 web 内容之前处理按键，只触发一次。  
+  - **菜单语言 = 应用语言**：每个 `role` 项都必须显式给 `label`（`t("menu.*")`）。Electron 的 role 标签跟随**系统**语言，而语言是本应用内的开关——不写 label 会让「中文系统 + 应用切英文」的菜单栏恰好混进一块中文（mac 的 App 菜单整条都是 role，最容易漏）。有守护测试兜底。  
+  - **关于**不走 `role: "about"`：那会弹 Electron 原生面板，而其他平台统一进 设置 → 关于与更新。一个产品面、一个门，原生面板只是该 tab 已有的版本 / 更新检查的劣化副本（mac App 菜单同此）。  
+  - **全局记一下**（⌘⇧N）的 chord 归 `main.mjs` 的 `globalShortcut`，菜单项只是镜像：非 mac 显示但不注册；**mac 连 accelerator 都不给**——Electron 只在 Linux/Windows 认 `registerAccelerator`，mac 上「显示」必伴随「注册」，等于给同一个动作再塞一个 owner。取舍是 mac 菜单不显示该 chord，快捷键仍在应用内文案里说明（`window.hideMacHint` / 托盘提示）。chord 与 main.mjs 的一致性由测试锁定。  
+  - 菜单文案在主进程 i18n（`electron/lib/electron-i18n.mjs`），语言切换后重建。
+  - **`appSettings` 只有一个写方**：`main.mjs` 的 `setAppSettings()`。开机、切换/新建/关闭工作区、窗口尺寸持久化、UI 缩放、裁剪令牌、关闭行为选择、最近列表修剪——七条路径全都经过它。原因：菜单的工作区/最近/主题/语言与 OS 标题栏都是从 app-settings 派生的，绕过它就等于**菜单继续展示刚刚离开的那个工作区**（关闭工作区仍可点、最近打开仍是旧列表、标题栏仍是旧名字）。`setAppSettings` 先 diff 再决定是否重建（resize 风暴不会重建菜单）。有守护测试锁「唯一写方」。
+  - **不设** `role: "close"`：它会占用 ⌘W/Ctrl+W，等于悄悄夺走「关闭标签页」（应用是多标签的）；缩放的 `resetZoom/zoomIn/zoomOut` role 同理（自带 ⌘0/⌘±，会与渲染侧撞成「按一次缩两格」），故走渲染侧 `view.zoom.*` 命令。
 
 - **中栏顶栏**（`data-canvas-chrome`）  
   - 侧栏开关 + 前进/后退 + 面包屑（工作区切换器在**左栏底部**）  

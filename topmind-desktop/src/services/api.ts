@@ -566,6 +566,12 @@ export const api = {
       invoke<{ ok: boolean; factor?: number }>("system.zoom", { mode }),
     update: (patch: Record<string, unknown>) =>
       invoke<AppSettings>("system.updateSettings", { patch }),
+    /**
+     * Feed view-store state into the native application menu so its checkmarks
+     * and radio groups stay truthful (see src/lib/native-menu.ts).
+     */
+    updateMenuState: (patch: Record<string, unknown>) =>
+      invoke<{ ok: true }>("system.updateMenuState", { patch }),
     clipBridgeStatus: () =>
       invoke<{
         running: boolean;

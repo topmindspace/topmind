@@ -21,7 +21,6 @@ import { useActionStore } from "../../stores/action-store";
 import { useTodoStore } from "../../stores/todo-store";
 import { cn } from "../../lib/cn";
 import { ICON } from "../../lib/icons";
-import { isWindows } from "../../lib/platform";
 
 const TABS: Array<{ id: AiWorkspaceTab; icon: typeof RiChatAiLine; labelKey: string }> = [
   { id: "chat", icon: RiChatAiLine, labelKey: "aiWorkspace.chat" },
@@ -47,10 +46,7 @@ export function AiWorkspace() {
   return (
     <div className="v4-panel-contain flex h-full min-h-0 flex-col" data-ai-workspace>
       <div
-        className={cn(
-          "v4-column-chrome v4-drag gap-0.5",
-          isWindows && "v4-win-titlebar-pad",
-        )}
+        className="v4-column-chrome v4-drag gap-0.5"
         role="tablist"
         aria-label={t("aiWorkspace.aria")}
         data-ai-workspace-tabs

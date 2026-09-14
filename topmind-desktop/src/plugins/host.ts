@@ -77,6 +77,10 @@ void (async () => {
     }
   });
   subscribe("update:available", (p) => eventBus.emit("update:available", p));
+  // Main-process actions that need a user-visible acknowledgement (e.g. 帮助 →
+  // 检查更新… reporting "already up to date") reuse the shell's toast queue
+  // instead of inventing a second notification surface.
+  subscribe("toast:show", (p) => eventBus.emit("toast:show", p));
   subscribe("clip-bridge:clipped", (p) => {
     eventBus.emit("clip-bridge:clipped", p);
     const clipPath =

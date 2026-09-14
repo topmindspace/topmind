@@ -21,13 +21,11 @@ import {
 import { DropdownItem, DropdownMenu, DropdownSectionLabel } from "../ui/DropdownMenu";
 import { api } from "../../services/api";
 import { emitLocal } from "../../plugins/host";
-import { setCachedSettings } from "../../lib/settings-cache";
-import { invalidateWorkspaceDataCache } from "../../lib/workspace-data-cache";
+import { applyWorkspaceChange } from "../../lib/workspace-switch";
+import { setLocalePreference, setThemePreference } from "../../lib/appearance";
 import { ChromePortal } from "../../lib/chrome-portal";
 import { useViewStore } from "../../stores/view-store";
-import { applyTheme, type Theme } from "../../lib/theme";
-import { patchCachedSettings } from "../../lib/settings-cache";
-import { applyLocale } from "../../locales";
+import type { Theme } from "../../lib/theme";
 import type { AppSettings } from "../../types";
 import { cn } from "../../lib/cn";
 import { Tooltip } from "../ui/tooltip";
@@ -60,7 +58,6 @@ export function WorkspaceSwitcher({
   const [error, setError] = useState<string | null>(null);
 
   const theme = useViewStore((s) => s.theme);
-  const setTheme = useViewStore((s) => s.setTheme);
   const setFocusMode = useViewStore((s) => s.setFocusMode);
 
   const load = () => {
@@ -86,19 +83,8 @@ export function WorkspaceSwitcher({
   }, [open]);
 
   const reloadAfterWorkspaceChange = (settings?: AppSettings | null) => {
-    try {
-      if (settings) setCachedSettings(settings);
-      else setCachedSettings(null);
-    } catch {
-      /* ignore */
-    }
-    try {
-      invalidateWorkspaceDataCache();
-    } catch {
-      /* ignore */
-    }
     setOpen(false);
-    window.setTimeout(() => window.location.reload(), 80);
+    applyWorkspaceChange(settings);
   };
 
   const handleSwitch = async (path: string) => {
@@ -141,18 +127,15 @@ export function WorkspaceSwitcher({
     }
   };
 
-  const pickTheme = async (next: ThemeMode) => {
-    setTheme(next);
-    applyTheme(next);
-    patchCachedSettings({ theme: next });
-    void api.sys.update({ theme: next }).catch(() => {});
+  // Theme + language go through the shared appearance helpers so this menu, the
+  // Settings panel and the native 视图 → 外观/语言 radios can't drift apart.
+  // The store is the single applier (App.tsx applies `useViewStore.theme`).
+  const pickTheme = (next: ThemeMode) => {
+    setThemePreference(next);
   };
 
-  const pickLocale = async (locale: "auto" | "zh-CN" | "en-US") => {
-    patchCachedSettings({ ui: { locale } });
-    applyLocale(locale);
-    void api.sys.update({ ui: { locale } }).catch(() => {});
-    // No reload — i18n hot-swaps
+  const pickLocale = (locale: "auto" | "zh-CN" | "en-US") => {
+    setLocalePreference(locale);
   };
 
   const shortName = (p: string) => {

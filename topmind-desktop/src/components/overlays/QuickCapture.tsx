@@ -122,33 +122,22 @@ export function QuickCapture({ variant, onDone }: QuickCaptureProps = {}) {
       aria-label={isMemory ? t("overlays:capture.ariaMemory") : t("overlays:capture.ariaCapture")}
       {...containerProps}
     >
-      {/* Float drag region — single chrome (Win uses titleBarOverlay, not second native bar) */}
+      {/* Float drag region. Every platform now draws its own title bar, so the
+          header carries an explicit close on all of them — no platform branch,
+          no reserved strip for native caption buttons. */}
       {isFloat ? (
-        <div
-          className={cn(
-            "v4-drag mb-2 flex h-8 items-center justify-between px-0.5",
-            typeof navigator !== "undefined" &&
-              (/Win/i.test(navigator.platform) || /Windows/i.test(navigator.userAgent || "")) &&
-              "v4-win-float-caption-pad",
-          )}
-        >
+        <div className="v4-drag mb-2 flex h-8 items-center justify-between px-0.5">
           <span className="text-3xs font-medium tracking-tight text-text-quaternary">
             {t("overlays:capture.floatTitle")}
           </span>
-          {/* macOS / Linux: explicit close; Windows caption buttons come from titleBarOverlay */}
-          {typeof navigator !== "undefined" &&
-          !(/Win/i.test(navigator.platform) || /Windows/i.test(navigator.userAgent || "")) ? (
-            <button
-              type="button"
-              className="v4-no-drag flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary v4-focus-ring"
-              onClick={() => void api.sys.closeQuickCapture()}
-              aria-label={t("overlays:capture.close")}
-            >
-              <RiCloseLine size={ICON.sm} />
-            </button>
-          ) : (
-            <span className="v4-no-drag w-1" aria-hidden />
-          )}
+          <button
+            type="button"
+            className="v4-no-drag flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary v4-focus-ring"
+            onClick={() => void api.sys.closeQuickCapture()}
+            aria-label={t("overlays:capture.close")}
+          >
+            <RiCloseLine size={ICON.sm} />
+          </button>
         </div>
       ) : null}
 

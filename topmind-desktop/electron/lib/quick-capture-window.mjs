@@ -11,7 +11,8 @@ import { markUtilityBrowserWindow } from "./utility-windows.mjs";
 import { logInfo, logWarn, logError } from "./writeback.mjs";
 import { t } from "./electron-i18n.mjs";
 import { loadAppIconImage, applyWindowIcon } from "./app-icon.mjs";
-import { resolveWindowsTitleBarOverlay, resolveWindowBackgroundColor } from "./window-theme.mjs";
+import { resolveWindowBackgroundColor } from "./window-theme.mjs";
+import { windowShellOptions } from "./window-shell.mjs";
 
 const require = createRequire(import.meta.url);
 const { BrowserWindow } = require("electron");
@@ -90,10 +91,10 @@ export function openQuickCaptureWindow(opts) {
 
   const loadedIcon = loadAppIconImage({ packaged: opts.packaged });
   const windowIcon = loadedIcon?.img || null;
-  const isMac = process.platform === "darwin";
-  const isWin = process.platform === "win32";
-  // Avoid double chrome on Windows: one custom drag bar + native overlay buttons.
-  const titleBarStyle = isMac ? "hiddenInset" : isWin ? "hidden" : "default";
+  // Same OS-chrome policy as the main window (window-shell.mjs). The float used
+  // to keep a Windows caption overlay with a hand-rolled 36px reservation —
+  // both are gone: one policy, no native control over app content.
+  const shellOptions = windowShellOptions({ forFloat: true });
 
   // Opaque surface — transparent + vibrancy previously caused "blank" windows
   // when CSS tokens lagged or content was translucent.
@@ -111,14 +112,7 @@ export function openQuickCaptureWindow(opts) {
     fullscreenable: false,
     title: t("capture.title"),
     backgroundColor: resolveWindowBackgroundColor(opts?.theme),
-    titleBarStyle,
-    trafficLightPosition: isMac ? { x: 12, y: 10 } : undefined,
-    autoHideMenuBar: true,
-    ...(isWin
-      ? {
-          titleBarOverlay: resolveWindowsTitleBarOverlay(opts?.theme, 36),
-        }
-      : {}),
+    ...shellOptions,
     ...(windowIcon ? { icon: windowIcon } : {}),
     webPreferences: {
       preload: path.join(__dirname, "..", "preload.cjs"),
