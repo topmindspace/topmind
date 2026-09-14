@@ -48,7 +48,7 @@ export function RuntimeBadge() {
     >
       <span
         className={cn(
-          "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-3xs text-success/90",
+          "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-3xs text-success",
           streaming && "bg-success/8",
         )}
       >
@@ -58,12 +58,12 @@ export function RuntimeBadge() {
         />
         <span className="tabular-nums">{n}</span>
         <span
-          className="text-4xs font-semibold tracking-wide text-accent-color/80"
+          className="text-4xs font-semibold tracking-wide text-accent-color"
           data-ai-loop={status.loop === "ai-sdk" ? "ai-sdk" : "pi-agent-core"}
         >
           {status.loop === "ai-sdk" ? "SDK" : "Pi"}
         </span>
-        {agentEnabled ? <RiToolsLine size={ICON.micro} className="text-accent-color/80" /> : null}
+        {agentEnabled ? <RiToolsLine size={ICON.micro} className="text-accent-color" /> : null}
       </span>
     </Tooltip>
   );

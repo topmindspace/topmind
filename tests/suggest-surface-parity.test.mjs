@@ -49,7 +49,11 @@ describe("Obsidian suggest force + op-card session", () => {
     // paint is soft (force only when requested) so fingerprint skip + session
     // merge still apply.
     assert.match(sidebar, /renderSuggestionsTab\(container,\s*\{\s*force:\s*true\s*\}\)/);
-    assert.match(sidebar, /force:\s*opts\.force === true/);
+    assert.match(sidebar, /const force = opts\.force === true;/);
+    assert.match(sidebar, /generateSuggestions\(\{\s*force\s*\}\)/);
+    // Cached cards paint immediately; the background pass refreshes them in place
+    assert.match(sidebar, /peekSuggestions\(\)/);
+    assert.match(sidebar, /softRefreshSuggestions\(/);
     // Re-entrancy guard: never two concurrent kernel suggestion passes
     assert.match(sidebar, /suggestionsInFlight/);
 

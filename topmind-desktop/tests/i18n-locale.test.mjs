@@ -82,9 +82,9 @@ test("listTemplateIds excludes locale overlay files", () => {
   assert.ok(!ids.includes("balanced.en-US"));
 });
 
-test("loadTemplate without locale returns Chinese base", () => {
+test("loadTemplate without locale returns base (zh) names", () => {
   const t = loadTemplate(repoRoot, "stream");
-  assert.equal(t.categories["00"].name, "收件箱");
+  assert.equal(t.categories["00"].name, "Inbox");
   assert.equal(t.categories["10"].name, "动态");
   assert.equal(t.memory.profileFile, "profile.md");
 });
@@ -93,7 +93,7 @@ test("loadTemplate with en-US locale returns English names", () => {
   const t = loadTemplate(repoRoot, "stream", { locale: "en-US" });
   assert.equal(t.categories["00"].name, "Inbox");
   assert.equal(t.categories["10"].name, "Stream");
-  assert.equal(t.categories["88"].name, "Outputs");
+  assert.equal(t.categories["88"].name, "Delivery");
   assert.equal(t.categories["99"].name, "Archive");
   assert.equal(t.memory.profileFile, "profile.md");
 });
@@ -114,13 +114,13 @@ test("loadTemplate with en-US preserves structural fields", () => {
 test("loadTemplate with unknown locale falls back to base", () => {
   const t = loadTemplate(repoRoot, "stream", { locale: "fr-FR" });
   // fr-FR is not a supported overlay → base template returned
-  assert.equal(t.categories["00"].name, "收件箱");
+  assert.equal(t.categories["00"].name, "Inbox");
 });
 
 test("loadTemplate with zh-CN locale has no overlay → base returned", () => {
   const t = loadTemplate(repoRoot, "stream", { locale: "zh-CN" });
   // zh-CN is the base, no overlay file → base returned
-  assert.equal(t.categories["00"].name, "收件箱");
+  assert.equal(t.categories["00"].name, "Inbox");
 });
 
 test("listTemplateDescriptors with en-US returns English names", () => {

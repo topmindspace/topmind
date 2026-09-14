@@ -14,7 +14,7 @@ export const manifest = {
   name: "知识加工",
   nameKey: "ingest:title",
   version: "1.0.0",
-  description: "本地文档知识加工管道：类型探测 → Markdown → 收件箱/专题 · 后台队列",
+  description: "本地文档知识加工管道：类型探测 → Markdown → Inbox/专题 · 后台队列",
   descriptionKey: "ingest:manifestDescription",
   builtin: true,
   icon: "file-input",

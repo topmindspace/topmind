@@ -64,7 +64,7 @@ topmind Kernel 引擎（`lib/*.mjs`）使用 Node.js `fs` / `path` / `crypto` �
 2. **Obsidian-native 优先** — 不重建编辑器/文件树/命令面板，复用 Obsidian 原生能力。
 3. **桌面端优先** — 使用 Node.js `fs`（ESM import → CJS require；移动端为 Non-goal，与 Desktop 一致）。
 4. **Vault 即工作区** — Obsidian Vault 根目录 = topmind 工作区根目录。
-5. **用户概念 ≤5** — 记一下 · 动态 · 专题 · 我的情况 · 写出来。
+5. **用户概念 ≤5** — 记一下 · 动态 · 专题 · 我的情况 · 交付。
 
 ---
 
@@ -367,7 +367,7 @@ export class StreamWorkbenchView extends ItemView {
 
   async onOpen() {
     // 渲染：工具栏 + 极速输入框 + 周期本条目卡片流 + AI 涌现建议区
-    // 工具栏：AI 状态 + 模型徽章 + [侧边栏] [设置] [收件箱] [画像]
+    // 工具栏：AI 状态 + 模型徽章 + [侧边栏] [设置] [Inbox] [画像]
     // 监听 vault.on("modify" / "create") 事件 → 450ms 防抖刷新（仅刷新动态流）
     // AI 建议刷新仅在初始加载和用户显式操作时触发（避免频繁 AI 调用）
   }
@@ -411,7 +411,7 @@ export class SidebarDockView extends ItemView {
 export class QuickCaptureModal extends Modal {
   onOpen() {
     // 单行/多行输入 → Enter 提交 → Kernel capture → 关闭
-    // 目标选择：本周动态（默认）/ 收件箱
+    // 目标选择：本周动态（默认）/ Inbox
   }
 }
 ```

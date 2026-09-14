@@ -53,9 +53,9 @@
     "organizeLabel": "整理本周",
     "organizeTip": "理顺流水 / 专题",
     "organizePrompt": "整理本周：理顺当前动态周期本（合并状态、去重、更新进行中），并列出可写入「我的情况」或专题的候选（先 load_skill organize）。",
-    "writeLabel": "写出来",
+    "writeLabel": "交付",
     "writeTip": "起草 / 润色 / 交付",
-    "writePrompt": "帮我基于当前专题写出来或润色，需要时写回（先 load_skill write）。",
+    "writePrompt": "帮我基于当前专题出稿或润色，需要时写回（先 load_skill write）。",
     "memoryLabel": "我的情况",
     "memoryTip": "偏好 / 目标 / 专题结论",
     "memoryPrompt": "把已确认内容写入「我的情况」或专题结论（先 load_skill memory；关于我→我的情况，关于专题→topic.md）。",
@@ -67,6 +67,6 @@
     "loopPrompt": "全面看看工作区，总结问题与建议（先 load_skill loop）。",
     "topmindLabel": "帮我判断",
     "topmindTip": "不知道用哪个流程时",
-    "topmindPrompt": "帮我判断该用哪个流程并处理（记一下 / 整理本周 / 写出来 / 我的情况）："
+    "topmindPrompt": "帮我判断该用哪个流程并处理（记一下 / 整理本周 / 交付 / 我的情况）："
   }
 }

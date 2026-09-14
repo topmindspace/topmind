@@ -36,7 +36,7 @@ Command palette: 「打开应用菜单」（`titlebar:apps-toggle` 事件与按�
 
 **topmind-ledger（记账）**：optional first-party mini-app with a dedicated surface (看板 · 流水 · 分类 · 快捷记账).
 
-**如何打开**（`settings.ledger.enabled`）：AI 工作区应用 pane · StatusBar 「记账」chip · command palette 「记账」/ Bookkeeping (`topmind-ledger.open`) · Settings → Plugins → Open bookkeeping. Toggle the plugin off and those chrome entries are omitted. **Not** a PrimaryNav item (PrimaryNav stays 动态 / 收件箱 / 写出来).
+**如何打开**（`settings.ledger.enabled`）：AI 工作区应用 pane · StatusBar 「记账」chip · command palette 「记账」/ Bookkeeping (`topmind-ledger.open`) · Settings → Plugins → Open bookkeeping. Toggle the plugin off and those chrome entries are omitted. **Not** a PrimaryNav item (PrimaryNav stays 动态 / Inbox / 交付).
 
 **账本路径**：contract-resolved `{memory.dir}/ledgers/{id}.md` (typically `memory/ledgers/Personal.md` for the default **personal / 自己** book). The mini-app shows the live workspace-relative path of the active book. Same family as `todo.md`. Not `50-其他/账本/`. Users add further books and 分类. ClassFund / Giggs / Mom are historical format references, not shipped defaults. Writes go through Kernel writeback. NL triggers: 记账 / 记一笔 / 花了 / 存入.
 

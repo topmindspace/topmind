@@ -18,7 +18,7 @@ import {
   RiInboxArchiveLine,
   RiLink,
   RiLoader4Line,
-  RiListCheck2,
+  RiMagicLine,
   RiRefreshLine,
   RiSendPlane2Line,
   RiSparklingLine,
@@ -82,11 +82,14 @@ function StreamNestedAppends({
   appends,
   showFull,
   needsExpand,
+  notePath,
   t,
 }: {
   appends: Array<StreamEntry & { index: number }>;
   showFull: boolean;
   needsExpand: boolean;
+  /** Period note the appends live in — preview images resolve relative to it. */
+  notePath?: string | null;
   t: TFunction;
 }) {
   if (appends.length === 0) return null;
@@ -107,6 +110,7 @@ function StreamNestedAppends({
                 expanded={showFull}
                 isAppendCard
                 allowClamp={needsExpand}
+                notePath={notePath}
                 className="text-xs leading-[1.55] text-text-secondary"
               />
             </div>
@@ -189,7 +193,7 @@ const StreamFeedRowView = memo(function StreamFeedRowView({
             data-stream-article-open
           >
             <div className="flex items-start gap-2">
-              <RiFileTextLine size={ICON.xs} className="mt-0.5 shrink-0 text-accent-color/80" aria-hidden />
+              <RiFileTextLine size={ICON.xs} className="mt-0.5 shrink-0 text-accent-color" aria-hidden />
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-semibold tracking-tight text-text-primary">
                   {title}
@@ -223,6 +227,7 @@ const StreamFeedRowView = memo(function StreamFeedRowView({
           appends={appends}
           showFull={showFull}
           needsExpand={needsExpand}
+          notePath={activePath}
           t={t}
         />
         {needsExpand ? (
@@ -337,6 +342,7 @@ const StreamFeedRowView = memo(function StreamFeedRowView({
                 expanded={showFull}
                 isAppendCard={kind === "append"}
                 allowClamp={needsExpand}
+                notePath={activePath}
                 className="text-sm leading-[1.58] text-text-primary"
               />
             </div>
@@ -370,6 +376,7 @@ const StreamFeedRowView = memo(function StreamFeedRowView({
             appends={appends}
             showFull={showFull}
             needsExpand={needsExpand}
+            notePath={activePath}
             t={t}
           />
 
@@ -466,12 +473,14 @@ function StreamMdBody({
   /** When false, never clamp — short content always fully visible */
   allowClamp = true,
   className,
+  notePath,
 }: {
   markdown: string;
   expanded?: boolean;
   /** Whole card is an append follow-up */
   isAppendCard?: boolean;
   allowClamp?: boolean;
+  notePath?: string | null;
   className?: string;
 }) {
   const parts = useMemo(() => splitStreamPreviewParts(markdown), [markdown]);
@@ -483,17 +492,17 @@ function StreamMdBody({
   }, [parts.main]);
 
   const mainHtml = useMemo(
-    () => (mainSource ? streamMarkdownToPreviewHtml(mainSource) : ""),
-    [mainSource],
+    () => (mainSource ? streamMarkdownToPreviewHtml(mainSource, notePath || undefined) : ""),
+    [mainSource, notePath],
   );
   const appendHtmls = useMemo(
     () =>
       parts.appends.map((a) => ({
         title: a.title,
-        bodyHtml: a.body ? streamMarkdownToPreviewHtml(a.body) : "",
-        fullHtml: streamMarkdownToPreviewHtml(a.markdown),
+        bodyHtml: a.body ? streamMarkdownToPreviewHtml(a.body, notePath || undefined) : "",
+        fullHtml: streamMarkdownToPreviewHtml(a.markdown, notePath || undefined),
       })),
-    [parts.appends],
+    [parts.appends, notePath],
   );
 
   if (!mainHtml && appendHtmls.length === 0) return null;
@@ -1248,7 +1257,7 @@ export function StreamDetailView() {
         icon: reconciling ? (
           <RiLoader4Line size={ICON.sm} className="animate-spin" />
         ) : (
-          <RiListCheck2 size={ICON.sm} />
+          <RiMagicLine size={ICON.sm} />
         ),
         priority: 20,
         disabled: reconciling,

@@ -4,7 +4,7 @@
   "label": "topmind",
   "description": "topmind skill pack: single daily entry topmind + progressive disclosure (shared/ + references/), Agent Skills open-standard aligned, capture-first template-driven categories, optional weread/x connectors and optional ledger (记账). File-system-first content truth; UTR optional.",
   "daily_entry": "topmind",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "updated": "2026-09-13",
   "license": "MIT",
   "locales": {
@@ -220,7 +220,7 @@
       "periodic"
     ],
     "_default_template": "stream",
-    "_note": "默认 stream（收件箱+动态+输出+归档）。topmind.yaml contract v4 含 stream.packing / memory.layers。解析 lib/workspace-model.mjs + stream-period.mjs。"
+    "_note": "默认 stream（Inbox+动态+交付+归档）。topmind.yaml contract v4 含 stream.packing / memory.layers。解析 lib/workspace-model.mjs + stream-period.mjs。"
   },
   "category_roles": [
     "buffer",

@@ -217,14 +217,14 @@
             "items": {
               "type": "string"
             },
-            "description": "Glob patterns for files read by this command. Patterns: 00-收件箱/**, {category}/** (category-scoped), {category}/{topic}/** (topic-scoped), {category}/*.md (loose notes), 88-输出/** (deliveries), 99-归档/** (recovery), memory/** (semantic plane)."
+            "description": "Glob patterns for files read by this command. Patterns: 00-Inbox/**, {category}/** (category-scoped), {category}/{topic}/** (topic-scoped), {category}/*.md (loose notes), 88-输出/** (deliveries), 99-归档/** (recovery), memory/** (semantic plane)."
           },
           "writes": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Glob patterns for files written by this command. Patterns: 00-收件箱/**, {category}/** (loose note creation), {category}/{topic}/*.md (topic notes), {category}/{topic}/topic.md (topic home), 88-输出/** (deliveries), 99-归档/** (backups), memory/** (semantic plane)."
+            "description": "Glob patterns for files written by this command. Patterns: 00-Inbox/**, {category}/** (loose note creation), {category}/{topic}/*.md (topic notes), {category}/{topic}/topic.md (topic home), 88-输出/** (deliveries), 99-归档/** (backups), memory/** (semantic plane)."
           },
           "artifact_policy": {
             "type": "object",

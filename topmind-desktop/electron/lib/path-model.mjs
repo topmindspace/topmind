@@ -213,7 +213,7 @@ function resolveDirByRole(workspace, role, fallbackHyphen, fallbackSpace) {
 
     // Prefer actual on-disk category with matching role.
     // Slot heuristics cover English / renamed {NN-Name} when the template
-    // only lists Chinese names (00-收件箱) so we do not invent that dir.
+    // only lists Chinese names so we do not invent a stale dir name.
     try {
       const entries = readdirSync(root, { withFileTypes: true });
       for (const e of entries) {
@@ -245,7 +245,7 @@ function resolveDirByRole(workspace, role, fallbackHyphen, fallbackSpace) {
 }
 
 export function inboxRoot(workspace) {
-  return resolveDirByRole(workspace, "buffer", "00-收件箱", "00 收件箱");
+  return resolveDirByRole(workspace, "buffer", "00-Inbox", "00 Inbox");
 }
 
 export function archiveRoot(workspace) {
@@ -253,7 +253,7 @@ export function archiveRoot(workspace) {
 }
 
 export function outputsRoot(workspace) {
-  return resolveDirByRole(workspace, "delivery", "88-输出", "88 输出");
+  return resolveDirByRole(workspace, "delivery", "88-交付", "88 交付");
 }
 
 export function categoryRoot(workspace, category) {

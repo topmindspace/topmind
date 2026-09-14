@@ -297,7 +297,7 @@ export function CommandPalette() {
         {selection.kind === "inbox" ? (
           <RiInboxUnarchiveLine size={ICON.micro} className="text-warning" />
         ) : (
-          <RiSparklingLine size={ICON.micro} className="text-accent-color/60" />
+          <RiSparklingLine size={ICON.micro} className="text-accent-color" />
         )}
         <span className="truncate">{contextHint(selection, t)}</span>
         {!query ? <span className="ml-auto shrink-0 opacity-70">{t("overlays:command.scenePriority")}</span> : null}

@@ -849,7 +849,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
         ? t("workspace:editor.publishMediaExtra", { count: mediaCopied })
         : "";
       toastWriteback(t("workspace:editor.publishDone", { extra }), res);
-      // Open the delivery copy so「写出来」is one click away from the original
+      // Open the delivery copy so「交付」is one click away from the original
       if (target) {
         select({ kind: "file", path: target });
       }

@@ -239,7 +239,7 @@ export function GlobalSearch() {
           className="v4-palette-input"
         />
         {loading ? (
-          <RiLoader4Line size={ICON.xs} className="animate-spin text-accent-color/70" aria-label={t("overlays:search.loadingAria")} />
+          <RiLoader4Line size={ICON.xs} className="animate-spin text-accent-color" aria-label={t("overlays:search.loadingAria")} />
         ) : null}
         <kbd className="v4-kbd v4-kbd-sm" aria-hidden>
           ESC

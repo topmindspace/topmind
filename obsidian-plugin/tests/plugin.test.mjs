@@ -741,6 +741,32 @@ describe("Obsidian profile/todo open paths honor Kernel (no hardcoded memory/)",
   });
 });
 
+describe("suggestion cache and todo force (Desktop parity)", () => {
+  test("kernel-service peeks session cards and throttles soft generate", () => {
+    const svc = fs.readFileSync(path.join(srcDir, "services", "kernel-service.ts"), "utf8");
+    assert.match(svc, /peekSuggestions\(\)/);
+    assert.match(svc, /lastSuggestKernelAt/);
+    assert.match(svc, /< 5000/);
+    assert.match(svc, /notice_executing/);
+    assert.match(svc, /opts: \{ silent\?: boolean \}/);
+  });
+
+  test("boot auto-maintain is quiet and not force; user commands force", () => {
+    const main = fs.readFileSync(path.join(srcDir, "main.ts"), "utf8");
+    assert.match(main, /force = normalized\.force \?\? !quiet/);
+    assert.match(main, /runOperation\(operation, \{ force \}\)/);
+    assert.match(main, /enqueueAiOperation\("todo_maintain".*"sidebar", true\)/);
+    const dock = fs.readFileSync(path.join(srcDir, "views", "sidebar-dock-view.ts"), "utf8");
+    assert.match(dock, /peekSuggestions\(\)/);
+    assert.match(dock, /acceptAllSuggestions/);
+    assert.match(dock, /softRefreshSuggestions/);
+    const stream = fs.readFileSync(path.join(srcDir, "views", "stream-workbench-view.ts"), "utf8");
+    assert.match(stream, /peekSuggestions\(\)/);
+    assert.match(stream, /\[\.\.\.groups\]\.reverse\(\)/);
+    assert.doesNotMatch(stream, /\[\.\.\.entries\]\.reverse\(\)/);
+  });
+});
+
 // ── DEFAULT_SETTINGS + AI presets (shipped) ────────────────────────────────
 
 describe("DEFAULT_SETTINGS and AI_PROVIDER_PRESETS (shipped)", () => {

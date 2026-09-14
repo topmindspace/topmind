@@ -464,8 +464,9 @@ export function softSplitContentEntries(
 }
 
 /**
- * Parse period note markdown into entries (newest-first **posts**).
- * Replies stay nested on each post in file order — never reversed away from the parent.
+ * Parse period note markdown into entries.
+ * Days are newest-first; posts **within a day** stay file order (top → bottom,
+ * morning before evening). Replies stay nested on each post in file order.
  * - CRLF-safe frontmatter
  * - Day / structural sections: first-level list items, 续 attached to the preceding item
  * - Named non-day ## → one 文章卡 (trailing 续 as replies)
@@ -521,8 +522,9 @@ export function parsePeriodNote(markdown: string): StreamEntry[] {
 
   const out: StreamEntry[] = [];
   for (let d = days.length - 1; d >= 0; d--) {
-    const posts = days[d]!;
-    for (let p = posts.length - 1; p >= 0; p--) out.push(posts[p]!);
+    // Newest day first; chronological (file order) within the day so a batch
+    // of 记下 reads top-to-bottom instead of inverting the period note.
+    out.push(...days[d]!);
   }
   return out;
 }
@@ -583,7 +585,7 @@ export function dayKeyFromEntry(entry: StreamEntry): { dayKey: string; dayLabel:
 }
 
 /**
- * Group newest-first entries into day sections (order preserved).
+ * Group entries into day sections (order preserved — caller supplies day order).
  * `otherLabel` used when day cannot be inferred (i18n).
  */
 export function groupEntriesByDay(

@@ -223,8 +223,8 @@ export function globalOutputsRoot(workspace) {
   const opts = systemRootOpts(workspace);
   return resolveSystemRoot(root, "delivery", {
     engineRoot: opts.engineRoot,
-    fallbackHyphen: "88-输出",
-    fallbackSpace: "88 输出",
+    fallbackHyphen: "88-交付",
+    fallbackSpace: "88 交付",
   });
 }
 
@@ -243,8 +243,8 @@ export function inboxRoot(workspace) {
   const opts = systemRootOpts(workspace);
   return resolveSystemRoot(root, "buffer", {
     engineRoot: opts.engineRoot,
-    fallbackHyphen: "00-收件箱",
-    fallbackSpace: "00 收件箱",
+    fallbackHyphen: "00-Inbox",
+    fallbackSpace: "00 Inbox",
   });
 }
 

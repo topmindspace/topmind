@@ -162,7 +162,7 @@ export function IngestStagingSheet() {
         </ul>
 
         {error ? (
-          <p className="px-4 pb-1 text-3xs text-danger" role="alert">
+          <p className="px-4 pb-1 text-3xs text-error" role="alert">
             {error}
           </p>
         ) : null}

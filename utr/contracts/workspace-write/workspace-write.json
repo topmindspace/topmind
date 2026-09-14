@@ -23,7 +23,7 @@
   "commands": {
     "create-topic": {
       "label": "创建专题",
-      "description": "创建 {category}/{topic}/ 目录骨架并写入 topic.md 专题首页（含 frontmatter: title/category/topic/status）。不预建 notes/ 或 outputs/ 子目录——笔记直接放专题根，交付物进 88-输出/ 扁平目录。",
+      "description": "创建 {category}/{topic}/ 目录骨架并写入 topic.md 专题首页（含 frontmatter: title/category/topic/status）。不预建 notes/ 或 outputs/ 子目录——笔记直接放专题根，交付物进 88-交付/ 扁平目录。",
       "group": "workflow",
       "exposure": "primary",
       "risk_level": "medium",
@@ -92,7 +92,7 @@
     },
     "capture-note": {
       "label": "捕获笔记",
-      "description": "把材料保存到专题根、动态周期本（weekly/daily/monthly 追加）、大类根单篇或收件箱。loose-stream 默认追加到当前周期本。保留来源和溯源标记。",
+      "description": "把材料保存到专题根、动态周期本（weekly/daily/monthly 追加）、大类根单篇或 Inbox。loose-stream 默认追加到当前周期本。保留来源和溯源标记。",
       "group": "workflow",
       "exposure": "primary",
       "risk_level": "low",
@@ -106,7 +106,7 @@
           "type": "category-and-topic",
           "label": "路由（category 和 topic 均可选）",
           "required": false,
-          "hint": "category 和 topic 均可选。两者都填则写入 {category}/{topic}/（专题根），只填 category 则写入 {category}/*.md (loose note)，两者都不填则写入现场 role:buffer（常为 00-收件箱/ / 00-Inbox/）。loose-stream 类无 topic 时自动追加到当前周期本。"
+          "hint": "category 和 topic 均可选。两者都填则写入 {category}/{topic}/（专题根），只填 category 则写入 {category}/*.md (loose note)，两者都不填则写入现场 role:buffer（默认 00-Inbox/）。loose-stream 类无 topic 时自动追加到当前周期本。"
         },
         "title": {
           "type": "text",
@@ -228,12 +228,13 @@
       "writes": [
         "{category_root}/{topic}/*.md",
         "{category_root}/*.md",
+        "00-Inbox/**",
         "00-收件箱/**"
       ]
     },
     "save-output": {
       "label": "保存输出",
-      "description": "把交付物保存到 88-输出/ 扁平目录。默认遇到同名文件时新建安全后缀，显式选择 replace 才覆盖。",
+      "description": "把交付物保存到 88-交付/ 扁平目录。默认遇到同名文件时新建安全后缀，显式选择 replace 才覆盖。",
       "group": "workflow",
       "exposure": "primary",
       "risk_level": "medium",
@@ -344,6 +345,7 @@
         "{category_root}/{topic}/topic.md"
       ],
       "writes": [
+        "88-交付/**",
         "88-输出/**"
       ]
     },

@@ -11,7 +11,6 @@ import {
   RiCheckboxLine,
   RiDeleteBin6Line,
   RiDraggable,
-  RiEdit2Line,
   RiFileTextLine,
   RiFlashlightFill,
   RiFolderOpenLine,
@@ -19,6 +18,7 @@ import {
   RiInboxUnarchiveLine,
   RiLink,
   RiLoader4Line,
+  RiQuillPenLine,
   RiRefreshLine,
   RiAddLine,
 } from "@remixicon/react";
@@ -489,7 +489,7 @@ function sourceBadge(file: InboxFileMeta, t: (key: string, options?: Record<stri
   if (file.source_type === "user-original") {
     return (
       <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-surface-muted px-1.5 py-0.5 text-3xs font-medium text-text-tertiary">
-        <RiEdit2Line size={ICON.micro} aria-hidden />
+        <RiQuillPenLine size={ICON.micro} aria-hidden />
         {t("workspace:inbox.badgeOriginal")}
       </span>
     );

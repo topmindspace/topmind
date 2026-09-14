@@ -1,11 +1,18 @@
 /**
  * Dialog primitives — lightweight modal with focus trap + labelled prompts.
- * Design System 2.0: Escape / scrim dismiss; restore focus on close.
+ * Design System 2.0: Escape / buttons dismiss; restore focus on close.
+ *
+ * Scrim clicks deliberately do **not** dismiss: every dialog here is a modal
+ * with an explicit action (confirm / cancel / ok) and, for prompts, user input
+ * that a stray click would discard. Escape and the footer buttons stay the
+ * dismissal paths. Palette-style surfaces (⌘K, search, settings) live in
+ * `OverlayHost` and keep scrim dismissal — they are pickers, not forms.
  */
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "./Button";
+import { Input } from "./Input";
 import { cn } from "../../lib/cn";
 import { acquireOverlayLayer } from "../../lib/overlay-layer";
 
@@ -37,6 +44,7 @@ function DialogBackdrop({
   describedBy,
   panelClassName,
   focusSelector,
+  placement = "center",
 }: {
   children: ReactNode;
   onClose: () => void;
@@ -45,6 +53,8 @@ function DialogBackdrop({
   panelClassName?: string;
   /** Optional selector (resolved inside the panel) that takes initial focus. */
   focusSelector?: string;
+  /** `upper` sits in the top third — closer to native save/rename sheets. */
+  placement?: "center" | "upper";
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -102,18 +112,24 @@ function DialogBackdrop({
 
   return createPortal(
     <div
-      onClick={onClose}
-      className="v4-no-drag isolate fixed inset-0 z-dialog flex items-center justify-center bg-scrim p-4 animate-fade-in"
+      // No onClick: the scrim never dismisses (see file header).
+      data-dialog-scrim=""
+      className={cn(
+        "v4-no-drag isolate fixed inset-0 z-dialog flex justify-center bg-scrim px-4 animate-fade-in",
+        placement === "upper" ? "items-start pt-[min(18vh,7.5rem)] pb-8" : "items-center p-4",
+      )}
     >
       <div
         ref={panelRef}
+        // Clicks inside the sheet must not reach document-level "close on
+        // outside click" handlers (focus-mode 建议 popover, menus).
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
         aria-describedby={describedBy}
         tabIndex={-1}
-        className={cn("v4-overlay-sheet w-full max-w-md p-5 outline-none", panelClassName)}
+        className={cn("v4-overlay-sheet w-full max-w-lg p-5 outline-none", panelClassName)}
       >
         {children}
       </div>
@@ -176,8 +192,7 @@ export function ConfirmDialog({
   );
 }
 
-export function 
-PromptDialog({
+export function PromptDialog({
   open,
   title,
   description,
@@ -192,7 +207,12 @@ PromptDialog({
   defaultValue?: string;
   placeholder?: string;
   onConfirm: (value: string) => void;
-  /** Override default max-w-md (28rem) for wider inputs (e.g. long filenames). */
+  /**
+   * Override the default `max-w-xl` (36rem) — only for unusually long single
+   * values (e.g. archive restore paths). Filename prompts should keep the
+   * default: it is intentionally wider than a name needs so the field is a
+   * comfortable click target and long paths stay readable.
+   */
   maxWidth?: string;
 }) {
   const { t } = useTranslation("common");
@@ -222,7 +242,8 @@ PromptDialog({
       onClose={onCancel}
       labelledBy={titleId}
       describedBy={description ? descId : undefined}
-      panelClassName={maxWidth}
+      panelClassName={maxWidth ?? "max-w-xl"}
+      placement="upper"
     >
       <h2 id={titleId} className="mb-1 text-sm font-semibold tracking-tight text-text-primary">
         {title}
@@ -232,7 +253,7 @@ PromptDialog({
           {description}
         </p>
       ) : null}
-      <input
+      <Input
         id={inputId}
         ref={inputRef}
         value={value}
@@ -251,8 +272,10 @@ PromptDialog({
           }
         }}
         placeholder={placeholder}
-        aria-label={placeholder || title}
-        className="mb-4 h-[var(--control-h-md,34px)] w-full rounded-[var(--radius-md)] border border-border-subtle bg-input px-3 text-sm text-text-primary outline-none transition-[border-color,box-shadow] duration-[var(--duration-fast)] focus-visible:border-accent-color focus-visible:ring-2 focus-visible:ring-ring/35"
+        // Name the field after the dialog intent, not the example value:
+        // `placeholder` is often just "https://" or "2026-新专题".
+        aria-label={title || placeholder}
+        className="mb-4"
       />
       <div className="flex justify-end gap-2" data-dialog-footer>
         <Button variant="outline" size="sm" onClick={onCancel}>{finalCancelText}</Button>

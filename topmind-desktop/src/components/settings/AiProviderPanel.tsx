@@ -100,14 +100,14 @@ function ModelBadges({ model }: { model: ModelInfo }) {
     <span className="inline-flex items-center gap-1">
       {model.toolCall ? (
         <Tooltip content={t("settings:ai.badgeToolCall")}>
-          <span className="inline-flex items-center rounded bg-accent-bg-subtle px-1 text-4xs text-accent-color/70">
+          <span className="inline-flex items-center rounded bg-accent-bg-subtle px-1 text-4xs text-accent-color">
             <RiToolsLine size={ICON.micro} aria-hidden />
           </span>
         </Tooltip>
       ) : null}
       {model.reasoning ? (
         <Tooltip content={t("settings:ai.badgeReasoning")}>
-          <span className="inline-flex items-center rounded bg-status-info-bg/40 px-1 text-4xs text-info/70">
+          <span className="inline-flex items-center rounded bg-status-info-bg/40 px-1 text-4xs text-status-info">
             <RiBrainLine size={ICON.micro} aria-hidden />
           </span>
         </Tooltip>
@@ -121,7 +121,7 @@ function ModelBadges({ model }: { model: ModelInfo }) {
       ) : null}
       {model.costInput !== undefined || model.costOutput !== undefined ? (
         <Tooltip content={t("settings:ai.badgeCost", { cost: formatCost(model.costInput, model.costOutput) })}>
-          <span className="inline-flex items-center rounded bg-status-warning-bg/30 px-1 text-4xs text-warning/70">
+          <span className="inline-flex items-center rounded bg-status-warning-bg/30 px-1 text-4xs text-warning">
             <RiCoinsLine size={ICON.micro} aria-hidden />
           </span>
         </Tooltip>
@@ -221,7 +221,7 @@ function ProviderCard({
             {t("common:status.live")}
           </span>
         ) : configured ? (
-          <span className="shrink-0 text-4xs text-success/70">
+          <span className="shrink-0 text-4xs text-success">
             <RiCheckLine size={ICON.micro} aria-hidden className="inline" />
           </span>
         ) : null}

@@ -35,15 +35,19 @@ function bumpWorkspaceIndex(relativePath) {
  * @param {string} workspaceRoot - workspace root absolute path
  * @returns {Promise<{ content: string, imagesDownloaded: number }>}
  */
-async function localizeImagesForCapture(content, source, targetRelPath, workspaceRoot) {
+async function localizeImagesForCapture(content, source, targetRelPath, workspaceRoot, ctx) {
+  if (ctx?.appSettings?.clipBridge?.downloadImages === false) {
+    return { content, imagesDownloaded: 0 };
+  }
   if (!source || !/^https?:\/\//iu.test(source)) {
     return { content, imagesDownloaded: 0 };
   }
-  if (!/!\[[^\]]*\]\(/u.test(content)) {
+  if (!/!\[[^\]]*\]\(/u.test(content) && !/<img\b/iu.test(content)) {
     return { content, imagesDownloaded: 0 };
   }
   try {
-    const slug = clipImageSlug(source);
+    const stem = path.basename(targetRelPath, ".md") || "clip";
+    const slug = clipImageSlug(stem);
     const targetDir = path.dirname(targetRelPath);
     const imagesDirAbs = path.join(workspaceRoot, targetDir, "images", slug);
     const relPrefix = `images/${slug}`;
@@ -219,7 +223,7 @@ export function createInboxOps(moveSelfRef) {
               streamTarget.periodRelPath || `${cat.directory}/${streamTarget.periodFileName}`;
             // Localize remote images when source is a URL (Desktop fetch URL path)
             const imgResult = await localizeImagesForCapture(
-              newBody, source, targetPath, ctx.workspaceRoot,
+              newBody, source, targetPath, ctx.workspaceRoot, ctx,
             );
             newBody = imgResult.content;
             const md = injectFrontmatter(newBody, fm);
@@ -324,7 +328,7 @@ export function createInboxOps(moveSelfRef) {
       if (source && String(source).trim()) fm.source = String(source).trim();
       // Localize remote images when source is a URL (Desktop fetch URL path)
       const imgResult = await localizeImagesForCapture(
-        content, source, targetPath, ctx.workspaceRoot,
+        content, source, targetPath, ctx.workspaceRoot, ctx,
       );
       content = imgResult.content;
       const md = injectFrontmatter(content, fm);

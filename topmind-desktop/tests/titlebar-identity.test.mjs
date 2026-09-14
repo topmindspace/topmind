@@ -27,10 +27,9 @@ test("TitleBar.tsx imports and uses resolveTitleBarIdentity", () => {
   const src = readFileSync(path.join(root, "src/components/shell/TitleBar.tsx"), "utf8");
   assert.match(src, /from ["']\.\.\/\.\.\/lib\/titlebar-identity["']/);
   assert.match(src, /resolveTitleBarIdentity\(/);
-  assert.match(src, /data-view-switcher/);
+  assert.doesNotMatch(src, /data-view-switcher/);
   assert.match(src, /data-breadcrumb-title/);
   assert.match(src, /data-titlebar-actions-slot/);
-  assert.match(src, /onClick=\{\(\) => setViewMenuOpen\(\(open\) => !open\)\}/);
   assert.match(src, /max-w-36 shrink-0/);
 });
 

@@ -23,7 +23,7 @@
   "commands": {
     "list-categories": {
       "label": "列出大类",
-      "description": "列出工作区中所有动态发现的大类（默认模板 stream：00-收件箱 / 10-动态 / 20-专题 / 88-输出 / 99-归档）。用户可扩展任意 {NN-Name}/ 目录。",
+      "description": "列出工作区中所有动态发现的大类（默认模板 stream：00-Inbox / 10-动态 / 20-专题 / 88-交付 / 99-归档）。用户可扩展任意 {NN-Name}/ 目录。",
       "group": "assistive",
       "exposure": "primary",
       "risk_level": "low",
@@ -34,8 +34,10 @@
       "destructive": false,
       "inputs": {},
       "reads": [
+        "00-Inbox/",
         "00-收件箱/",
         "{category}/",
+        "88-交付/",
         "88-输出/",
         "99-归档/"
       ],
@@ -69,6 +71,7 @@
         "{category}"
       ],
       "reads": [
+        "00-Inbox/**",
         "00-收件箱/**",
         "{category}/"
       ],
@@ -80,7 +83,7 @@
     },
     "inspect-topic": {
       "label": "检查专题",
-      "description": "读取单个专题的 topic.md（可选）+ 根层笔记 + 88-输出/ 中该专题的交付物，按专题结构汇总。",
+      "description": "读取单个专题的 topic.md（可选）+ 根层笔记 + 88-交付/ 中该专题的交付物，按专题结构汇总。",
       "group": "assistive",
       "exposure": "primary",
       "risk_level": "low",
@@ -116,6 +119,7 @@
       "reads": [
         "{category_root}/{topic}/topic.md",
         "{category_root}/{topic}/*.md",
+        "88-交付/**",
         "88-输出/**"
       ],
       "writes": [],
@@ -125,7 +129,7 @@
     },
     "list-topic-files": {
       "label": "列出专题文件",
-      "description": "按物理结构列出专题首页、根层笔记 + 交付层（role:delivery，常为 88-输出/）中该专题相关文件。",
+      "description": "按物理结构列出专题首页、根层笔记 + 交付层（role:delivery，常为 88-交付/）中该专题相关文件。",
       "group": "assistive",
       "exposure": "primary",
       "risk_level": "low",
@@ -191,8 +195,8 @@
       ]
     },
     "list-inbox": {
-      "label": "列出收件箱",
-      "description": "列出 00-收件箱/ 中尚未归属到大类的捕获文件。",
+      "label": "列出 Inbox",
+      "description": "列出 Inbox 类目（role:buffer，默认 00-Inbox/）中尚未归属到大类的捕获文件。",
       "group": "assistive",
       "exposure": "primary",
       "risk_level": "low",
@@ -215,6 +219,7 @@
         "{limit}"
       ],
       "reads": [
+        "00-Inbox/**",
         "00-收件箱/**"
       ],
       "writes": [],
@@ -225,7 +230,7 @@
     },
     "list-recent-captures": {
       "label": "列出最近捕获",
-      "description": "从收件箱和各大类专题根读取最近捕获的笔记，帮助回答“刚才收哪去了”。",
+      "description": "从 Inbox 和各大类专题根读取最近捕获的笔记，帮助回答“刚才收哪去了”。",
       "group": "assistive",
       "exposure": "advanced",
       "risk_level": "low",
@@ -248,6 +253,7 @@
         "{limit}"
       ],
       "reads": [
+        "00-Inbox/**",
         "00-收件箱/**",
         "{category}/{topic}/*.md"
       ],

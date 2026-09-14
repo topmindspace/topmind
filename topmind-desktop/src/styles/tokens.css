@@ -67,52 +67,84 @@
   --color-border-subtle-dim: rgba(23, 23, 23, 0.06);
   --color-border-strong: rgba(23, 23, 23, 0.18);
 
-  /* Sky accent — focus / links / selection / accent washes (ZCode brand axis) */
-  --color-accent-project: var(--color-brand-deep);
-  /* Inbox / capture identity: teal family, darkened for text contrast on light paper */
-  --color-accent-inbox: #12897b;
-  --color-accent-color: #0284c7;
-  --color-accent-hover: #0369a1;
-  --color-accent-active: #075985;
-  --color-accent-muted: rgba(2, 132, 199, 0.10);
-  --color-focus-ring: rgba(2, 132, 199, 0.85);
-  --color-focus-soft: rgba(2, 132, 199, 0.14);
-  --color-status-success: #16a34a;
+  /* Sky accent — focus / links / selection / accent washes (ZCode brand axis)
+     Light = sky-700. It was sky-600 (#0284c7) until 2026-09-14; that stop is
+     4.10:1 on white and 3.59:1 on chrome, under AA as a link / small-text carrier,
+     and 3.27:1 once composited over its own 8% selection wash on chrome.
+     Current light stops, measured: 5.93 white · 5.54 canvas · 5.21 chrome ·
+     4.66 over the accent-bg-subtle wash on chrome (worst plane).
+     These numbers are asserted in tests/ui-token-compliance.test.mjs — if you move
+     a stop, move the assertion with it. */
+  --color-accent-color: #0369a1;
+  --color-accent-hover: #075985;
+  --color-accent-muted: rgba(3, 105, 161, 0.10);
+  --color-focus-ring: rgba(3, 105, 161, 0.85);
+  --color-focus-soft: rgba(3, 105, 161, 0.14);
+  /* Inbox / capture identity: teal family, darkened for text contrast on light paper.
+     teal-800 since 2026-09-14 — the previous #12897b measured 4.29:1 on white and
+     4.27:1 once composited over its own 9% wash on chrome. Current: 7.58 white ·
+     6.65 chrome · 5.82 over its own wash on chrome. */
+  --color-accent-inbox: #115e59;
+  /* ── Status palette (light) ──
+     These stops are used as TEXT ~160x (`text-success` / `text-warning` /
+     `text-error`), almost always sitting on their own `-bg` wash, and the fills
+     that remain are status dots. Bright 500/600-stop greens and oranges are
+     fill-safe but not text-safe: the previous green-600 / orange / red-600 read
+     2.64 / 2.42 / 3.49:1 on the wash over chrome. Moved one to two steps darker
+     on 2026-09-14 — measured on the worst plane (chrome), text over own wash:
+       success green-800 5.49 · warning amber-800 5.44 · error red-700 4.90
+     Reverse direction also holds (white text on the solid stop): 7.13 / 7.09 / 6.47.
+     Asserted in tests/ui-token-compliance.test.mjs. Dark stays untouched. */
+  --color-status-success: #166534;
   --color-success: var(--color-status-success);
-  --color-status-success-bg: rgba(22, 163, 74, 0.09);
-  --color-status-warning: #e07b00;
+  --color-status-success-bg: rgba(22, 101, 52, 0.09);
+  --color-status-warning: #92400e;
   --color-warning: var(--color-status-warning);
-  --color-status-warning-bg: rgba(224, 123, 0, 0.09);
-  --color-status-error: #e03131;
+  --color-status-warning-bg: rgba(146, 64, 14, 0.09);
+  --color-status-error: #b91c1c;
   --color-error: var(--color-status-error);
-  --color-status-error-bg: rgba(224, 49, 49, 0.09);
-  /* Info follows Brand Mid (sky) — secondary signal */
-  --color-status-info: var(--color-brand-mid);
-  --color-status-info-bg: rgba(14, 165, 233, 0.09);
+  --color-status-error-bg: rgba(185, 28, 28, 0.09);
+  /* Info — sky family, secondary signal. Text stop == sky-700 so the info tint is
+     legible as text; the wash keeps a sky tint (5.6:1 for text over it in the
+     AiProviderPanel reasoning chip). sky-500 as a *text* stop is 2.77:1 — unusable. */
+  --color-status-info: #0369a1;
+  --color-status-info-bg: rgba(3, 105, 161, 0.09);
   --color-inset-glow-subtle: rgba(255, 255, 255, 0.06);
-  --color-accent-border-subtle: rgba(2, 132, 199, 0.25);
-  --color-accent-bg-subtle: rgba(2, 132, 199, 0.08);
-  --color-accent-bg-faint: rgba(2, 132, 199, 0.05);
+  --color-accent-border-subtle: rgba(3, 105, 161, 0.25);
+  --color-accent-bg-subtle: rgba(3, 105, 161, 0.08);
+  --color-accent-bg-faint: rgba(3, 105, 161, 0.05);
   --color-scrim: rgba(0, 0, 0, 0.36);
   --color-kbd-bg: rgba(0, 0, 0, 0.05);
-  /* Skill identity — sky/teal axis + amber loop (ZCode trajectory hues) */
 
-  /* Ambient glow — soft sky, never loud */
+  /* ── Badge (numeric count signal) ──
+     Own axis, NOT accent-color — accent flips hue in inbox mode (deep teal), where
+     a white-on-teal fill drops below AA for the 11px bold type these badges use.
+     The badge plane must stay a single fixed sky stop in both app modes.
+     Kept >= 4.5:1 per mode (asserted in tests/ui-token-compliance.test.mjs):
+       light: badge 5.9:1 · alert 5.0:1 (white text on solid fill)
+       dark:  badge 6.5:1 · alert 9.0:1 (dark ink on light fill)
+     Small solid fill, so the badge reads on the chrome plane (#f0f0f0 light /
+     #161616 dark) without becoming a second accent surface.
+     Note: the light badge stop now coincides numerically with the recalibrated
+     accent (#0369a1). That is coincidence, not a licence to merge them — the
+     axis exists for the inbox-mode hue flip, not for the value. */
+  --color-badge: #0369a1;
+  --color-badge-foreground: #ffffff;
+  --color-badge-alert: #b45309;
+  --color-badge-alert-foreground: #ffffff;
 
   /* Surface interaction states — ZCode-style neutral alpha hovers */
   --color-surface-hover: rgba(23, 23, 23, 0.045);
   --color-surface-elevated-hover: #f7f7f7;
-  --color-border-subtle-hover: rgba(23, 23, 23, 0.22);
-  --color-surface-active: var(--color-surface-inset);
   /* Neutral selected wash (ZCode sidebar selection) — tree adds an accent inset bar on top */
   --color-surface-selected: rgba(23, 23, 23, 0.06);
-  --color-border-focus: var(--color-accent-color);
   --color-text-on-accent: #ffffff;
   /* Dialog / overlay semantic aliases */
   --color-dialog-bg: var(--color-surface-elevated);
+  /* Settings section header wash — consumed as an arbitrary value
+     (`bg-[var(--color-dialog-header)]` in SettingsLayout), so the utility-class
+     audit does not see it. Kept because it is genuinely in use. */
   --color-dialog-header: color-mix(in srgb, var(--color-surface-muted) 48%, var(--color-surface-elevated));
-
-  /* Object identity */
 
   /* ── Spacing ──
      Numeric --space-* scale removed 2026-08-30 (zero references anywhere);
@@ -325,13 +357,12 @@
 
   body[data-mode='inbox'] {
     --color-accent-color: var(--color-accent-inbox);
-    --color-accent-muted: rgba(18, 137, 123, 0.11);
-    --color-accent-hover: #0f7568;
-    --color-accent-active: #0d6459;
-    --color-accent-border-subtle: rgba(18, 137, 123, 0.20);
-    --color-accent-bg-subtle: rgba(18, 137, 123, 0.09);
-    --color-focus-ring: rgba(18, 137, 123, 0.88);
-    --color-focus-soft: rgba(18, 137, 123, 0.14);
+    --color-accent-muted: rgba(17, 94, 89, 0.11);
+    --color-accent-hover: #134e4a;
+    --color-accent-border-subtle: rgba(17, 94, 89, 0.20);
+    --color-accent-bg-subtle: rgba(17, 94, 89, 0.09);
+    --color-focus-ring: rgba(17, 94, 89, 0.88);
+    --color-focus-soft: rgba(17, 94, 89, 0.14);
   }
 
   .dark {
@@ -358,16 +389,17 @@
     --color-border-strong: rgba(255, 255, 255, 0.18);
     --color-dialog-bg: var(--color-surface-elevated);
     --color-dialog-header: color-mix(in srgb, var(--color-surface-muted) 55%, var(--color-surface-elevated));
-    /* Dark accent = sky-400 (readable on graphite, ZCode brand family) */
+    /* Dark accent = sky-400 (readable on graphite, ZCode brand family).
+       Measured on the dark ladder: 8.45 chrome · 8.37 canvas · 7.87 surface ·
+       7.06 elevated; 6.22 over the accent-bg-subtle wash. Dark needs no change —
+       only the light axis was under AA. */
     --color-ink: #f2f2f2;
     --color-ink-hover: #d4d4d4;
     --color-ink-active: #ffffff;
     --color-ink-foreground: #0a0a0a;
-    --color-accent-project: #38bdf8;
     --color-accent-inbox: #4fc2b0;
     --color-accent-color: #38bdf8;
     --color-accent-hover: #7dd3fc;
-    --color-accent-active: #0ea5e9;
     --color-accent-muted: rgba(56, 189, 248, 0.16);
     --color-accent-border-subtle: rgba(56, 189, 248, 0.30);
     --color-accent-bg-subtle: rgba(56, 189, 248, 0.13);
@@ -379,20 +411,22 @@
     --color-status-warning: #ff8a30;
     --color-warning: var(--color-status-warning);
     --color-status-warning-bg: rgba(255, 138, 48, 0.12);
-    --color-status-error: #ff5c5c;
-    --color-status-error-bg: rgba(255, 92, 92, 0.12);
+    --color-status-error: #ff7b72;
+    --color-status-error-bg: rgba(255, 123, 114, 0.12);
     --color-status-info: #7dd3fc;
     --color-status-info-bg: rgba(125, 211, 252, 0.12);
     --color-scrim: rgba(0, 0, 0, 0.56);
     --color-kbd-bg: rgba(255, 255, 255, 0.08);
-
+    /* Badge — light fill + dark ink (inverse of light mode), keeps the count
+       reading cleanly off the #161616 chrome without a neon block. */
+    --color-badge: #38bdf8;
+    --color-badge-foreground: #082f49;
+    --color-badge-alert: #fbbf24;
+    --color-badge-alert-foreground: #451a03;
 
     --color-surface-hover: rgba(255, 255, 255, 0.055);
     --color-surface-elevated-hover: #2e2e2e;
-    --color-border-subtle-hover: rgba(255, 255, 255, 0.28);
-    --color-surface-active: var(--color-surface-inset);
     --color-surface-selected: rgba(255, 255, 255, 0.09);
-    --color-border-focus: var(--color-accent-color);
     --color-text-on-accent: #0a0a0a;
 
 
@@ -424,7 +458,6 @@
     --color-accent-color: var(--color-accent-inbox);
     --color-accent-muted: rgba(79, 194, 176, 0.15);
     --color-accent-hover: #6fd4c2;
-    --color-accent-active: #8fe0d0;
     --color-accent-border-subtle: rgba(79, 194, 176, 0.26);
     --color-accent-bg-subtle: rgba(79, 194, 176, 0.11);
     --color-focus-ring: rgba(79, 194, 176, 0.88);

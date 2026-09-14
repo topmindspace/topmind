@@ -303,7 +303,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
                 <span className="truncate font-semibold text-text-tertiary">{group.dayLabel}</span>
                 <span className="tabular-nums text-text-quaternary/70">{group.entries.length}</span>
                 {gi === 0 ? (
-                  <span className="text-accent-color/75">{t("sidebar.stream.todayShort")}</span>
+                  <span className="text-accent-color">{t("sidebar.stream.todayShort")}</span>
                 ) : null}
               </div>
               <div className="divide-y divide-border-subtle-dim/50">

@@ -470,15 +470,19 @@ export default class TopmindPlugin extends Plugin {
     labelKey: LocaleKey,
     doneKey: LocaleKey,
     refresh: "sidebar" | "suggest" | "all",
-    quiet = false,
+    opts: boolean | { quiet?: boolean; force?: boolean } = false,
   ): void {
+    const normalized = typeof opts === "boolean" ? { quiet: opts } : opts;
+    const quiet = normalized.quiet === true;
+    // Background/boot (quiet) respects processedHashes; explicit user commands re-analyze.
+    const force = normalized.force ?? !quiet;
     const label = t(labelKey);
     if (aiTaskManager.isOperationActive(operation)) {
       if (!quiet) new Notice(`${label} ${t("task_running")}`);
       return;
     }
     aiTaskManager.enqueue(operation, label, async () => {
-      const result = await this.kernelService.runOperation(operation, { force: true });
+      const result = await this.kernelService.runOperation(operation, { force });
       if (!quiet) {
         if (result.ok) {
           new Notice(result.summary || t(doneKey));

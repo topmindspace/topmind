@@ -17,7 +17,7 @@ export function ContextPills() {
           key={f.path}
           className="inline-flex max-w-full items-center gap-1 rounded-[var(--radius-full)] border border-border-subtle/80 bg-surface px-1.5 py-px text-3xs text-text-secondary"
         >
-          <RiFileTextLine size={ICON.micro} className="shrink-0 text-accent-color/70" />
+          <RiFileTextLine size={ICON.micro} className="shrink-0 text-accent-color" />
           <Tooltip content={f.path}>
             <span className="max-w-[120px] truncate">{f.name}</span>
           </Tooltip>

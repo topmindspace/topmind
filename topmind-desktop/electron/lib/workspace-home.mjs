@@ -195,8 +195,8 @@ export async function autoRepairWorkspace(workspaceRoot) {
 
   if (targetSeparator === "-") {
     const oldDirs = [
-      ["00 Inbox", "00-Inbox"], ["88 Outputs", "88-Outputs"], ["99 Archive", "99-Archive"],
-      ["00 收件箱", "00-收件箱"], ["88 输出", "88-输出"], ["99 归档", "99-归档"],
+      ["00 Inbox", "00-Inbox"], ["88 Outputs", "88-Outputs"], ["88 Delivery", "88-Delivery"], ["99 Archive", "99-Archive"],
+      ["00 收件箱", "00-收件箱"], ["88 输出", "88-输出"], ["88 交付", "88-交付"], ["99 归档", "99-归档"],
     ];
     for (const [oldName, newName] of oldDirs) {
       const src = path.join(resolved, oldName);
@@ -208,8 +208,8 @@ export async function autoRepairWorkspace(workspaceRoot) {
     }
   } else {
     const oldDirs = [
-      ["00-Inbox", "00 Inbox"], ["88-Outputs", "88 Outputs"], ["99-Archive", "99 Archive"],
-      ["00-收件箱", "00 收件箱"], ["88-输出", "88 输出"], ["99-归档", "99 归档"],
+      ["00-Inbox", "00 Inbox"], ["88-Outputs", "88 Outputs"], ["88-Delivery", "88 Delivery"], ["99-Archive", "99 Archive"],
+      ["00-收件箱", "00 收件箱"], ["88-输出", "88 输出"], ["88-交付", "88 交付"], ["99-归档", "99 归档"],
     ];
     for (const [oldName, newName] of oldDirs) {
       const src = path.join(resolved, oldName);
@@ -282,8 +282,8 @@ export async function ensureWorkspaceStructure(workspaceRoot, templateId = "stre
     } else {
       const suffix = targetSeparator;
       dirs = [
-        `00${suffix}收件箱`, `10${suffix}动态`, `20${suffix}专题`,
-        `88${suffix}输出`, `99${suffix}归档`,
+        `00${suffix}Inbox`, `10${suffix}动态`, `20${suffix}专题`,
+        `88${suffix}交付`, `99${suffix}归档`,
       ];
     }
     await Promise.all(dirs.map((dir) => fs.mkdir(path.join(resolved, dir), { recursive: true })));
@@ -314,7 +314,7 @@ export async function ensureWorkspaceStructure(workspaceRoot, templateId = "stre
     // Last resort when engine lib missing: required role dirs only + Kernel ensure if possible
     const sep = config.workspace?.category_separator || "-";
     const sepChar = sep === " " ? " " : "-";
-    for (const dir of [`00${sepChar}收件箱`, `88${sepChar}输出`, `99${sepChar}归档`]) {
+    for (const dir of [`00${sepChar}Inbox`, `88${sepChar}交付`, `99${sepChar}归档`]) {
       await fs.mkdir(path.join(resolved, dir), { recursive: true });
     }
     try {

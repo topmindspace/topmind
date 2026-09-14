@@ -312,7 +312,7 @@ export const pathOps = {
     const relNorm = String(relativePath).replace(/\\/gu, "/");
     const isMd = relNorm.endsWith(".md");
     const isHtml = relNorm.endsWith(".html") || relNorm.endsWith(".htm");
-    // Markdown notes always; HTML only as 写出来 delivery export (under outputs root).
+    // Markdown notes always; HTML only as 交付 delivery export (under outputs root).
     if (!isMd && !isHtml) throw new Error(i18n("pathOps.saveMdOrHtml"));
     if (isHtml) {
       const outRoot = outputsRoot(ctx.workspaceRoot);

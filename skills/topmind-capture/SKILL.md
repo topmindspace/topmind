@@ -1,6 +1,6 @@
 ---
 name: topmind-capture
-version: 4.0.0
+version: 4.0.1
 description: >-
   把链接、摘录、随手记收进动态周期本、Inbox 或专题。Use when 记一下、收进、剪藏、保存链接、capture、save URL/idea。
   Do NOT use for 整理本周、出稿、写我的情况、doctor/loop、微信读书、X.
@@ -45,7 +45,7 @@ degradation: ../shared/capability-degradation.md
 1. 工作区根 + `list-categories` / 扫盘（跳过 hidden）  
 2. 读 `topmind.yaml` 的 `stream.packing`（默认 **weekly**）  
 3. 按内容性质选 **真实目录名**（role；禁止写死编号）  
-4. **日常/动态** → 追加到当前周期本；专题明确 → 专题根；不清 → 收件箱  
+4. **日常/动态** → 追加到当前周期本；专题明确 → 专题根；不清 → Inbox  
 5. 写 frontmatter；白话回执（如「已记到每周一本」）；**不**自动 organize/write  
 
 ## When NOT to use
@@ -79,7 +79,7 @@ loose-stream + 无专题     → 当前周期本 append（packing≠atom）
   packing daily           → {动态类}/[YYYY/]YYYY-MM-DD.md 追加
   packing monthly         → {动态类}/[YYYY/]YYYY-MM.md 追加
   packing atom / forceAtom→ {大类}/YYYY-MM-DD-标题.md 新文件
-low cat                   → role:buffer（收件箱）
+low cat                   → role:buffer（Inbox）
 ```
 
 默认不访谈分类。存完可移动。禁止写死类名编号。用户只要「记一下」——不要解释 packing 术语（回执可用「本周动态」）。

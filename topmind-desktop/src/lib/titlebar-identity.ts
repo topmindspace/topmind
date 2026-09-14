@@ -45,7 +45,7 @@ export function displayPathSegment(seg: string): string {
 }
 
 /**
- * PrimaryNav kinds for the TitleBar view-switch closed-state icon.
+ * PrimaryNav kinds for the StatusBar persistent switcher.
  * File / topic / memory / archive must not impersonate 动态.
  */
 export function primaryViewSwitchKind(

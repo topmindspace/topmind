@@ -15,10 +15,12 @@
 
 ## 界面与全流程演示
 
-### 动态主表面（Stream 与 AI 建议）
+### 三栏工作台（动态流时间轴 + AI 工作区）
+
+导航 → 动态流时间轴 → AI 工作区（**对话 · 建议 · 清单 · 应用**）。主线是本周动态；AI 负责提议，落盘前一律等你确认。
 
 <p align="center">
-  <img src="./docs/images/desktop-stream.jpg" alt="Topmind Stream · 动态主表面与 AI 建议" width="780" />
+  <img src="./docs/images/desktop-stream.jpg" alt="Topmind Desktop 三栏工作台：动态流时间轴与右栏 AI 建议" width="820" />
 </p>
 
 ### 全流程动态演示
@@ -132,16 +134,16 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Opti
 ```mermaid
 flowchart LR
   A["① 收进来<br/>速记 · 剪藏 · 文档"] --> B["② 继续做<br/>动态 · 专题 · 编辑"]
-  B --> C["③ 交付 / 沉淀<br/>输出 · Memory"]
+  B --> C["③ 交付 / 沉淀<br/>交付 · Memory"]
   C --> D["④ 找回 / 调整<br/>搜索 · 归档 · Loop"]
   D -.-> A
 ```
 
 | 阶段 | 用户动作 | 默认落点 | 说明 |
 |------|----------|----------|------|
-| **① 收进来** | 快捷键速记 · 网页剪藏 · Office/PDF 入队 | 本周**动态**周期本（`10-动态/` 或现场 `role:loose-stream`）；不确定 ➔ 收件箱（`00-收件箱/` / `role:buffer`） | 零摩擦极速捕捉 |
+| **① 收进来** | 快捷键速记 · 网页剪藏 · Office/PDF 入队 | 本周**动态**周期本（`10-动态/` 或现场 `role:loose-stream`）；不确定 ➔ Inbox（`00-Inbox/` / `role:buffer`） | 零摩擦极速捕捉 |
 | **② 继续做** | 编辑 · 行内 AI · 侧栏 Agent · 整理专题 | `{大类}/{YYYY-主题}/` | 动态卡片流与专题沉淀 |
-| **③ 交付 / 沉淀** | 写出成品 · 确认后写入 profile / topics | `88-输出/` · `memory/profile.md` | 产出成品文件，更新个人画像 |
+| **③ 交付 / 沉淀** | 写出成品 · 确认后写入 profile / topics | `88-交付/` · `memory/profile.md` | 产出成品文件，更新个人画像 |
 | **④ 找回 / 调整** | 搜索 · 恢复 · 我的情况浏览 · 周期维护 | `99-归档/` · `memory/` · Loop 巡检 | 安全归档、记忆平面浏览与快速检索 |
 
 ---
@@ -153,11 +155,11 @@ topmind 将工作区组织为清晰的三个平面，逻辑自洽且可预测：
 ```text
 {工作区}/
 ├── topmind.yaml              # 系统平面：行为契约与门面配置
-├── 00-收件箱/                # 内容平面：临时缓冲（或 00-Inbox / 现场 role:buffer）
+├── 00-Inbox/                # 内容平面：临时缓冲（现场 role:buffer）
 ├── 10-动态/                  # 内容平面：周期本（按年分组 {YYYY}/周期本.md）
 ├── 20-专题/2026-某主题/       # 内容平面：涌现专题目录
 │   └── topic.md              # 专题首页
-├── 88-输出/                  # 内容平面：扁平交付文件
+├── 88-交付/                  # 内容平面：扁平交付文件
 ├── 99-归档/                  # 内容平面安全层：backups · backups/trash · receipts
 ├── memory/                   # 语义平面：profile（画像）· periodic（反思）
 └── .topmind/                 # 系统平面：索引与日志（可随时删除与重建）

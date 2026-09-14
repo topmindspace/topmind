@@ -4,7 +4,7 @@
 > 产品入口：根 `README.md`（English）· `README.zh-CN.md`（简体中文）；Skills 模块 README 同此约定。  
 > 路由：`读契约 → 哪个类别？哪个专题？哪个对象？什么动作？`  
 > Pack 版本：`skills/topmind-pack.json`。  
-> **产品北极星**：最低摩擦个人动态流；用户概念 ≤5（记一下 · 动态 · 专题 · 我的情况 · 写出来）。  
+> **产品北极星**：最低摩擦个人动态流；用户概念 ≤5（记一下 · 动态 · 专题 · 我的情况 · 交付）。  
 > **契约**：工作区根 `topmind.yaml` **v4**；写回 **auto | confirm**；memory 在 `memory/profile.md` 等。  
 > **实施**：`docs/ARCHITECTURE-RESET.md`。
 
@@ -26,7 +26,7 @@
 
 ### 0.2 对用户
 
-用户概念 ≤5：**记一下 · 动态 · 专题 · 我的情况 · 写出来**。所有 AI 操作应该透明地路由到正确的位置，用户不需要了解内部模块。
+用户概念 ≤5：**记一下 · 动态 · 专题 · 我的情况 · 交付**。所有 AI 操作应该透明地路由到正确的位置，用户不需要了解内部模块。
 
 - 说"记一下这个链接" → 自动判断类别和专题，保存笔记
 - 说"帮我整理最近的研究" → 自动读取相关笔记，提炼结构
@@ -87,7 +87,7 @@ topmind 用户心智是**三平面工作区**上的**类别 + 专题 + 记忆**�
   动态周期本:       stream.packing=weekly|daily|monthly|atom（默认 weekly）; yearDir=true（按年分组）
   对象（Object）:   topic.md / *.md / 周期本
 动作（Action）:   capture / organize / write / memory / maintain / loop / connector
-用户动词:         记一下 · 整理本周 · 更新我的情况 · 写出来 · 找回
+用户动词:         记一下 · 整理本周 · 更新我的情况 · 交付 · 找回
 解析:             lib/contract-engine.mjs + workspace-model + stream-period + memory-engine
 模板 Profile:     stream | balanced | research | periodic (默认 stream)
 ```
@@ -117,12 +117,12 @@ Layer 1: Engine repo
 Layer 2: User data
   {workspace-root}/
     topmind.yaml          行为契约（先读）
-    00-收件箱/             缓冲层（强制存在）
+    00-Inbox/             缓冲层（强制存在）
     10-动态/               默认流水类（yearDir: true → {YYYY}/周期本.md）
     20-专题/               类别（推荐，可删除）
     ...
     {NN-任意}/             用户扩展类别（动态发现）
-    88-输出/           交付物层（推荐）
+    88-交付/           交付物层（推荐）
     99-归档/           内容安全层（backups · stream-archive · backups/trash · receipts）
     memory/                持续记忆（语义平面：profile.md + periodic/{YYYY}/ + topics/）
     .topmind/              机器态（index/loop/logs；勿当真源）
@@ -138,7 +138,7 @@ Layer 2: User data
 └── .derived/                  # 可选：AI 衍生（topic 摘要、item 历史）
 ```
 
-> `chapters/`、`articles/`、`entities/` 不作为默认推荐结构，仅在用户明确需要时按需创建。Skills 以通用 `*.md` + role:delivery（常为 `88-输出/`）模型工作。
+> `chapters/`、`articles/`、`entities/` 不作为默认推荐结构，仅在用户明确需要时按需创建。Skills 以通用 `*.md` + role:delivery（常为 `88-交付/`）模型工作。
 
 ### 2.2 记忆与三平面结构
 
@@ -259,7 +259,7 @@ skills/topmind/
 高信心类别+专题 → 直接写入 {类别}/{专题}/ 下对应 .md
 高信心类别，中信心专题 → 写入 {类别}/{专题}/ 下对应 .md，回执标注路由理由
 高信心类别，低信心专题 → 写入 {类别}/*.md（单篇），提示"是否升级为专题"
-低信心类别 → 写入 **role:buffer**（常为 `00-收件箱/` / `00-Inbox/`），提示稍后分类
+低信心类别 → 写入 **role:buffer**（常为 `00-Inbox/` / `00-Inbox/`），提示稍后分类
 记一下且无明确归属 → 追加到当前动态周期本（contract stream.packing）
 ```
 
@@ -268,7 +268,7 @@ skills/topmind/
 | 子 skill | action_category | 职责 | 触发场景 |
 |---|---|---|---|
 | `topmind-capture` | capture | 链接/摘录/速记/想法摄入（默认进当前周期本；不改 topic.md / memory） | "记一下"、"保存这个链接"、"收集这个想法" |
-| `topmind-organize` | organize | 整理/分析/提炼/综合证据/审质量/Inbox路由；**综合默认落盘**（不建 INDEX） | "整理一下"、"分析"、"总结要点"、"整理 inbox" |
+| `topmind-organize` | organize | 整理/分析/提炼/综合证据/审质量/Inbox 路由；**综合默认落盘**（不建 INDEX） | "整理一下"、"分析"、"总结要点"、"整理 inbox" |
 | `topmind-write` | write | 起草/续写/修订/润色/改格式/交付；**有 topic.md 先读**；写前求值 protection | "写"、"继续"、"出稿"、"导出" |
 | `topmind-memory` | memory | memory/ 三层维护 + **Stream→Memory 提升**（用户确认制） | "记住这个"、"更新我的情况"、"加到主题记忆" |
 | `topmind-maintain` | maintain | 诊断/清理/索引修复/**契约校验**（topmind.yaml schema） | "检查一下"、"清理工作区"、"修复索引" |
@@ -451,7 +451,7 @@ Source Connector → Object Adapter → Action Registry → Tool Contract → Su
 ```
 
 新功能按类别 → 专题 → 对象三段路由归位，落在这五层之一。
-不新增前台用户心智概念（类别 / 专题 / 记忆 / 输出 已完备）。
+不新增前台用户心智概念（类别 / 专题 / 记忆 / 交付 已完备）。
 
 ---
 
@@ -461,7 +461,7 @@ Source Connector → Object Adapter → Action Registry → Tool Contract → Su
 - 动手前读 `topmind.yaml`；规约引用 `shared/project-model-brief.md`，不内联复制
 - 路径 `{类别}/{YYYY-主题}/`；类型由类别位置表达
 - 内容写 `topic.md`；不默认 outline/setting/style
-- 专题根 `*.md`；交付 `88-输出/`；内容安全层 `99-归档/`；机器态 `.topmind/`
+- 专题根 `*.md`；交付 `88-交付/`；内容安全层 `99-归档/`；机器态 `.topmind/`
 - 记忆写 `memory/`（语义平面，固定英文名，不改名不删除）
 - 写回前求值 protection；仅高影响才落 `99-归档/receipts/`
 - 类别动态自发现；loop 为独立 skill（生命周期执行器）

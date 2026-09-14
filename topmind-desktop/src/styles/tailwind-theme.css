@@ -1,63 +1,52 @@
 /**
- * Semantic theme aliases — shadcn/ui vocabulary on Paper Mind Workbench tokens.
+ * Semantic theme aliases — shadcn/ui vocabulary on topmind Design System 3.0 tokens.
  *
- * tokens.css (truth): brand-deep/mid/aqua, surface ladder, accent-*, status-*.
- * This file only adds non-conflicting shadcn names: card, popover, primary,
- * muted, destructive, foreground, input, ring, secondary, chrome.
+ * tokens.css (truth): brand-*, surface ladder, accent-*, status-*, badge-*.
+ * This file only re-exports names the components actually use. Aliases with zero
+ * references were pruned 2026-09-14 (card, card-foreground, muted, muted-foreground,
+ * foreground, popover-foreground, destructive, destructive-foreground,
+ * border-semantic) — a defined-but-unused alias is how `bg-skill-loop` style ghost
+ * references start, so the set is kept to what resolves today. If you need one of
+ * them back, add the alias *and* a real usage in the same change.
  *
  * Usage:
- * - Solid CTA: `bg-primary` / `bg-accent-color` + `text-primary-foreground`
- * - Subtle fill: `bg-accent-muted` / `bg-accent-bg-subtle` (never solid wash for chrome)
+ * - Solid CTA: `bg-primary` + `text-primary-foreground` (monochrome ink)
+ * - Subtle fill: `bg-accent-bg-subtle` / `bg-accent-bg-faint` (never a solid wash for chrome)
  * - Brand moments: `bg-brand-deep` / mid / aqua (rare; prefer semantic accent)
+ *
+ * Ghost references (a utility whose `--color-*` token does not exist) are guarded by
+ * tests/ui-token-compliance.test.mjs — Tailwind v4 emits nothing for them, so the
+ * failure is silent at runtime.
  */
 @layer base {
   :root,
   .dark {
-    --card: var(--color-surface);
-    --card-foreground: var(--color-text-primary);
     --popover: var(--color-surface-elevated);
-    --popover-foreground: var(--color-text-primary);
     /* Primary CTA = monochrome ink (light: near-black, dark: near-white) — ZCode primary */
     --primary: var(--color-ink);
     --primary-foreground: var(--color-ink-foreground);
     --secondary: var(--color-surface-muted);
     --secondary-foreground: var(--color-text-primary);
-    --muted: var(--color-surface-muted);
-    --muted-foreground: var(--color-text-tertiary);
-    --destructive: var(--color-status-error);
-    --destructive-foreground: #ffffff;
-    --border-semantic: var(--color-border-subtle);
     --input: var(--color-surface-inset);
     --ring: var(--color-accent-color);
-    --foreground: var(--color-text-primary);
     --chrome: var(--color-app-chrome);
   }
 }
 
 @theme {
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-hover: var(--color-ink-hover);
   --color-primary-active: var(--color-ink-active);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border-semantic: var(--border-semantic);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-foreground: var(--foreground);
   --color-chrome: var(--chrome);
 
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
   --radius-xl: 12px;
-
 }

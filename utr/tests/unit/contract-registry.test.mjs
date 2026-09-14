@@ -71,8 +71,10 @@ test("workspace-write save-output defaults to preview before apply", () => {
   assert.equal(entry.command.supports_dry_run, true);
   assert.equal(entry.command.inputs.dryRun.default, true);
   assert.equal(entry.command.inputs.ifExists.default, "create-new");
-  // Outputs go to flat delivery layer (88-输出/ canonical; 88 Outputs/ compatible at FS level)
-  assert.ok(entry.command.writes.some((pattern) => /88[- ]输出/.test(pattern)));
+  // Outputs go to the flat delivery layer: 88-交付/ canonical, 88-输出/ legacy compat
+  const writes = entry.command.writes.join(" ");
+  assert.match(writes, /88-交付/u);
+  assert.match(writes, /88[- ]输出/u);
 });
 
 test("memory append-topic is append-only", () => {

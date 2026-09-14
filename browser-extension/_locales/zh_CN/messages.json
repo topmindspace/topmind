@@ -84,10 +84,10 @@
     "message": "高亮"
   },
   "hint_default": {
-    "message": "剪藏当前页或选区到 topmind 收件箱（Bridge 或本机工作区）。"
+    "message": "剪藏当前页或选区到 topmind Inbox（Bridge 或本机工作区）。"
   },
   "hint_article": {
-    "message": "将剪藏整页正文（Readability）到收件箱"
+    "message": "将剪藏整页正文（Readability）到 Inbox"
   },
   "hint_selection": {
     "message": "将剪藏当前选区 · 标题保留当前页"
@@ -96,7 +96,7 @@
     "message": "将剪藏页面高亮段落（先开启高亮模式划选）"
   },
   "hint_configured_once": {
-    "message": "配置一次后即可一键剪藏到收件箱"
+    "message": "配置一次后即可一键剪藏到 Inbox"
   },
   "hint_needs_auth": {
     "message": "本机模式：首次剪藏或权限过期时，浏览器会再确认一次目录权限"
@@ -207,7 +207,7 @@
     "message": "当前页无法启用高亮（系统页限制）"
   },
   "dest_inbox": {
-    "message": "收件箱"
+    "message": "Inbox"
   },
   "dest_category": {
     "message": "类别 · $1"
@@ -216,10 +216,10 @@
     "message": "专题 · $1"
   },
   "dest_hint_offline": {
-    "message": "落点列表不可用（Bridge 离线）· 默认收件箱"
+    "message": "落点列表不可用（Bridge 离线）· 默认 Inbox"
   },
   "dest_hint_generic": {
-    "message": "落点列表不可用 · 默认收件箱"
+    "message": "落点列表不可用 · 默认 Inbox"
   },
   "clip_mode": {
     "message": "剪藏模式"

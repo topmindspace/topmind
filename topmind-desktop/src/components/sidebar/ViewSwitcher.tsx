@@ -4,7 +4,7 @@
 // Sliding thumb indicator + icon-only when rail is too narrow for labels.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
-  RiBroadcastLine,
+  RiFileList3Line,
   RiLayoutColumnLine,
   RiListView,
   RiMoreLine,
@@ -21,7 +21,7 @@ import type { SidebarViewMode } from "../../types";
 const PRIMARY_MODES: SidebarViewMode[] = ["stream", "category", "timeline"];
 const ADVANCED_MODES: SidebarViewMode[] = ["tags", "kanban"];
 const VIEW_ICONS: Record<SidebarViewMode, typeof RiListView> = {
-  stream: RiBroadcastLine,
+  stream: RiFileList3Line,
   category: RiListView,
   timeline: RiTimeLine,
   tags: RiPriceTag3Line,

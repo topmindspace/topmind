@@ -1,7 +1,7 @@
 # topmind Obsidian Plugin — UI/UX 设计
 
 > **设计北极星**：最低摩擦个人动态流 — 在 Obsidian 中随手记下、AI 默认建议、用户确认后沉淀、文件永远是你的。  
-> **用户概念 ≤5**：记一下 · 动态 · 专题 · 我的情况 · 写出来  
+> **用户概念 ≤5**：记一下 · 动态 · 专题 · 我的情况 · 交付  
 > **Obsidian-native 优先**：复用 Obsidian 原生能力，不重建编辑器/文件树/命令面板。  
 > **记账**：Desktop 可选 mini-app（`memory/ledgers/`）；Obsidian **不发**记账小应用。
 
@@ -107,7 +107,7 @@
 | 模型徽章 | 显示当前 AI 服务商 + 模型（可点击跳转设置） |
 | 侧边栏 | `panel-right` + 文本「侧边栏」，打开/恢复 AI 副驾面板 |
 | 设置 | `settings` + 文本「设置」，跳转插件设置页 |
-| 新笔记 | `file-plus` + 文本「新笔记」，在收件箱建 Untitled |
+| 新笔记 | `file-plus` + 文本「新笔记」，在 Inbox 建 Untitled |
 | 我的情况 | `user` + 文本「我的情况」，打开记忆浏览（画像 + 周期反思 + 专题记忆；点开条目仍落文件） |
 | 列表 / 卡片 | 动态列表旁切换：X 式单列信息流 vs 单列等宽卡片（`settings.feedLayout`，不是多列瀑布） |
 
@@ -280,8 +280,8 @@ AI 操作按钮仅在 AI 已配置时显示。默认显示文本标签模式（`
 - `Enter` 提交 → `KernelService.capture(text, { target, tags })` → writeback-engine → 关闭
 - `Esc` 关闭弹窗（不保存）
 - `Shift+Enter` 换行
-- 自动检测单独 URL 输入，自动切换目标为收件箱
-- 目标选择：本周动态（默认）/ 收件箱
+- 自动检测单独 URL 输入，自动切换目标为 Inbox
+- 目标选择：本周动态（默认）/ Inbox
 - 标签解析：`#标签` 自动提取为 frontmatter tags
 - 提交后：Notice 提示写入路径；若动态页签打开则刷新
 
@@ -378,7 +378,7 @@ AI 操作按钮仅在 AI 已配置时显示。默认显示文本标签模式（`
 | Topmind: 专题分类 | — | 手动触发 topic_classify（共享队列） |
 | Topmind: 整理我的情况 | — | 手动触发 memory_organize |
 | Topmind: 打开我的情况 | — | 打开记忆浏览页（列表/卡片；点开条目落到契约解析的画像/周期/专题文件） |
-| Topmind: 打开收件箱 | — | 打开收件箱目录 |
+| Topmind: 打开 Inbox | — | 打开 Inbox 目录 |
 
 > **快捷键策略**：不设默认快捷键，用户在 Settings → Hotkeys 自行配置（符合 Obsidian 插件规范）。
 

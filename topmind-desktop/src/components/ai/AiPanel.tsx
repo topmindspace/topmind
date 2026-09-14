@@ -2,9 +2,9 @@ import { useEffect, useState, useMemo, useRef, memo } from "react";
 import {
   RiAddLine,
   RiArrowDownSLine,
+  RiChatAiLine,
   RiDeleteBin6Line,
   RiLoader4Line,
-  RiMessage3Line,
   RiRefreshLine,
   RiSearchLine,
   RiSparklingLine,
@@ -18,6 +18,7 @@ import { ChatInput } from "./ChatInput";
 import { ContextPills } from "./ContextPills";
 import { RuntimeBadge } from "./RuntimeBadge";
 import { Tooltip } from "../ui/tooltip";
+import { CountBadge } from "../ui/CountBadge";
 import {
   DropdownItem,
   DropdownMenu,
@@ -175,9 +176,7 @@ function TaskBadge() {
       >
         <span className="relative">
           <RiLoader4Line size={ICON.xs} className="animate-spin text-accent-color" />
-          <span className="absolute -right-1.5 -top-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-accent-color px-1 text-4xs font-bold leading-none text-primary-foreground">
-            {active.length}
-          </span>
+          <CountBadge count={active.length} max={99} className="absolute -right-1.5 -top-1.5" />
         </span>
       </button>
     </Tooltip>
@@ -315,7 +314,7 @@ function PanelChrome() {
                 aria-expanded={showSessionList}
                 aria-haspopup="listbox"
               >
-                <RiMessage3Line size={ICON.xs} className="shrink-0 text-text-quaternary" aria-hidden />
+                <RiChatAiLine size={ICON.xs} className="shrink-0 text-text-quaternary" aria-hidden />
                 <span className="min-w-0 flex-1 truncate text-sm font-medium tracking-tight text-text-primary">
                   {activeSessionLabel}
                 </span>
@@ -368,7 +367,7 @@ function PanelChrome() {
                   setSessionSearch("");
                 }}
               >
-                <RiMessage3Line size={ICON.micro} className="shrink-0 opacity-70" />
+                <RiChatAiLine size={ICON.micro} className="shrink-0 opacity-70" />
                 <span className="min-w-0 flex-1 truncate">{label}</span>
               </DropdownItem>
             );
@@ -442,7 +441,7 @@ function EmptyConversation({ selection }: { selection: Selection }) {
               disabled={streaming}
               className="group flex w-full items-center gap-2 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface/80 px-2.5 py-1.5 text-left text-3xs text-text-secondary transition-colors hover:border-accent-border-subtle hover:bg-surface-muted hover:text-text-primary disabled:opacity-50"
             >
-              <RiSparklingLine size={ICON.xs} className="shrink-0 text-accent-color/70" />
+              <RiSparklingLine size={ICON.xs} className="shrink-0 text-accent-color" />
               <span className="min-w-0 flex-1 truncate">{p}</span>
             </button>
           ))}

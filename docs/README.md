@@ -47,7 +47,7 @@
 | [`ARCHITECTURE-RESET.md`](./ARCHITECTURE-RESET.md) | **Architecture lock and honesty table** (only implementation truth) | Capability table, eight engines, Done / Non-goal |
 | [`PRODUCT-BOUNDARIES.md`](../PRODUCT-BOUNDARIES.md) | **Four-core boundaries** | Skills / Desktop / UTR / Obsidian independence and collaboration |
 | [`PROJECT-MODEL.md`](../PROJECT-MODEL.md) | **Content model and 6 条核心规约** | Three-plane directories, naming, archive rules |
-| [`DESIGN.md`](../DESIGN.md) | **Product interaction** | User concepts ≤ 5: Note it / Stream / Topic / My profile / Write out |
+| [`DESIGN.md`](../DESIGN.md) | **Product interaction** | User concepts ≤ 5: Note it / Stream / Topic / My profile / Delivery |
 | [`SECURITY.md`](../SECURITY.md) | **Security and key boundary** | Local API keys, no telemetry, network scope |
 | [`AGENTS.md`](../AGENTS.md) | **Agent behavior truth** | Quality gate, dead-code checks, multi-surface versioning |
 
@@ -95,6 +95,7 @@
 | [2026-08-23](./adr/2026-08-23-contract-settings-integrity.md) | Contract & Settings Integrity | Repair convergence, backup-before-overwrite, atomic write, partial settings patches, bidirectional period-path stickiness, memory-plane contract paths (incl. skip evidence / todo / host open), settings close-path flush |
 | [2026-08-27](./adr/2026-08-27-desktop-log-rotation.md) | Desktop Log Rotation | Size-capped support log (`main.log` 2 MB × 3 archives, self-healing on legacy oversized files) |
 | [2026-09-07](./adr/2026-09-07-pi-engine-and-three-column-reevaluation.md) | Pi engine + three-column re-eval | Hybrid `pi-agent-core` (bash off, fenced FS); AI workspace column peer to canvas |
+| [2026-09-14](./adr/2026-09-14-product-vocabulary-rename.md) | Product vocabulary rename | Inbox / 交付 / Delivery replace 收件箱 / 写出来 / Ship it; default template seeds move, existing workspace dirs do not |
 
 ---
 

@@ -11,7 +11,7 @@
 收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整
 ```
 
-- 用户概念 ≤5：记一下 · 动态 · 专题 · 我的情况 · 写出来  
+- 用户概念 ≤5：记一下 · 动态 · 专题 · 我的情况 · 交付  
 - 文件系统是唯一真源；Desktop 是**富工作台**视图层（非薄壳）  
 - 技能纯 Markdown（`SKILL-ARCHITECTURE.md`）  
 - **写回**：**Done** 主路径 — WorkspaceService / AI / connectors 耐久 `.md` → Kernel `writeback-engine`（open|locked + auto|confirm；备份/回执仅高影响）；二进制资源（图片等）经 `saveBinary` 写入前检查 `evaluateWritePermission` 保护门，`locked` 文件覆盖前备份；`electron/lib/writeback.mjs` 仅 evidence/日志 helper，非第二闸  
@@ -30,12 +30,12 @@
 | 待确认写入 | **Done** — `pending-writes` + **`SuggestPopover`**（`ActionStore`：事件刷新 + 安全网轮询 + 全文审阅） |
 | AI 轨事件 | **Done** — `ai-rail-events`（`suggestions:refresh` / `pending-writes:changed`） |
 | 设置 UI 同步 | **Done** — `ui-settings-sync` 仅 own-key 应用，防 stale full-ui 盖掉壳宽度 |
-| 写出来 shelf | **Done** — `listOutputsEnhanced` 附 `publishedAt`/`title`；OutputsView 已发布/草稿 + HTML 导出 |
+| 交付 shelf | **Done** — `listOutputsEnhanced` 附 `publishedAt`/`title`；OutputsView 已发布/草稿 + HTML 导出 |
 | 动态 feed 解析 | **Done** — `stream-period-parse` 软提取结构节条目；CRLF；周期回退列表 |
 | 响应式 chrome | **Done** — `ChromeOverflowActions` + TitleBar compact 互斥 + StatusBar 可点 |
 | connectors weread/x | **Done** — 共享 `electron/lib/connector-bridge.mjs`（settings+secret · patch 持久 · `writeConnectorNote` 经 kernel 写闸）；ADR `docs/adr/2026-08-02-connector-bridge.md` |
 | ingest 路由 | **Done** — Desktop commit 经 `resolveIngestRoute`（Kernel） |
-| PrimaryNav 默认 | **Done** — 动态 / 收件箱 / 写出来；搜索由统一 ⌘K 触发器打开；selection 默认 `stream`；legacy home→stream；归档不在主锚 |
+| PrimaryNav 默认 | **Done** — 动态 / Inbox / 交付；搜索由统一 ⌘K 触发器打开；selection 默认 `stream`；legacy home→stream；归档不在主锚 |
 | 侧栏 thrift | **Done** — ViewSwitcher 主轨 stream/目录/时间；标签/看板「更多」 |
 | 关键词搜索诚实 | **Done** — notes-index + grep `truncated`/`scannedTotal`；GlobalSearch 截断提示（无 embedding） |
 | 建议可关 | **Done** — `ai.autoPrepareSuggestions`（默认开） |
@@ -95,7 +95,7 @@ contextBridge.exposeInMainWorld('topmind', {
 
 | 服务 | 文件 | 方法数（约） | 职责 |
 |------|------|-------------|------|
-| WorkspaceService | `workspace-service.mjs` + `lib/workspace-*-ops.mjs` + `notes-index.mjs` | facade 薄 + ops ~35 | path/inbox/archive/scan/fetch；notes-index；CRUD、收件箱、归档、搜索、URL 抓取；`importFile` → Ingest 管道 |
+| WorkspaceService | `workspace-service.mjs` + `lib/workspace-*-ops.mjs` + `notes-index.mjs` | facade 薄 + ops ~35 | path/inbox/archive/scan/fetch；notes-index；CRUD、Inbox、归档、搜索、URL 抓取；`importFile` → Ingest 管道 |
 | AiService | `ai-service.mjs` + `ai-prompts.mjs` + `ai-stream.mjs` + `ai-model.mjs` | ~12 | AI 调用（原生工具 → WorkspaceService）、流式、会话、steer/compact、skills catalog |
 | SystemService | `system-service.mjs` | ~49 | 设置（safeStorage）、路径、原生操作、工作区切换、Clip Bridge、**插件安装/预览**、**skills-extra**、类别管理、更新检查 |
 | ToolService | `tool-service.mjs` + `ai-tools.mjs` | ~6 | Desktop 原生 AI 工具；UTR catalog/run/doctor **软探测**（可选；写回不经 UTR） |
@@ -262,7 +262,7 @@ AiService.invoke
 - 空闲超时：120 秒（无 chunk 时触发，足够覆盖工具执行）
 - 检查间隔：10 秒
 
-写/读工具：`edit_file`（Kernel `applyUniqueSpan`：精确 → 换行/行尾空白规范化；多处拒绝；失败带 nearby/context；**不写 Archive**）· `save_file` 整文件覆盖（**仅 locked 覆盖备份**；open 不备份）· `delete_path` 跟 `isRecoverableLifecycle`（普通开放笔记无 trash；锁定 / 专题首页 / 写出来 才进归档）· `read_file` 带行号窗口 + `around`/`heading` 中段定位 · `search`=`grepWorkspace`（可 scope、默认可跳过 Archive、行号命中）。  
+写/读工具：`edit_file`（Kernel `applyUniqueSpan`：精确 → 换行/行尾空白规范化；多处拒绝；失败带 nearby/context；**不写 Archive**）· `save_file` 整文件覆盖（**仅 locked 覆盖备份**；open 不备份）· `delete_path` 跟 `isRecoverableLifecycle`（普通开放笔记无 trash；锁定 / 专题首页 / 交付 才进归档）· `read_file` 带行号窗口 + `around`/`heading` 中段定位 · `search`=`grepWorkspace`（可 scope、默认可跳过 Archive、行号命中）。  
 中途控制：`ai.steerStream` · `ai.queueFollowUp`；打开文件本轮自动带入（无需点挂载）。  
 ADR：`docs/adr/2026-07-16-desktop-agent-harness-upgrade.md`。
 
@@ -281,12 +281,12 @@ Shell（三列贯通 · 无横跨产品 header）
 │   └── 底栏: WorkspaceSwitcher
 ├── Center column
 │   ├── TitleBar（中栏顶栏 / data-canvas-chrome）
-│   │   ├── 左: 侧栏开关 + 视图切换下拉菜单(动态/收件箱/写出来) + 前进/后退 + 面包屑导航 + 当前页标题
+│   │   ├── 左: 侧栏开关 + 前进/后退 + 面包屑导航 + 当前页标题
 │   │   └── 右: 动态注入按钮 slot + AI 列开关
 │   └── EditorArea — 默认动态主表面或 ViewSlot 编辑
 ├── AiWorkspace — 右列对等：对话 / 建议 / 清单 / 应用；Composer 钉列底
 ├── SuggestPopover — **建议确认列表**（嵌入建议 pane；专注模式浮动；openSuggestSurface）
-├── StatusBar — 绿点 + 完整工作区路径；AI pill + 命名 busy chip
+├── StatusBar — 绿点 + 完整工作区路径；常驻 PrimaryNav（动态 / Inbox / 交付）；AI pill + 命名 busy chip
 └── OverlayHost（QuickCapture · ⌘K · Search · Settings）
 ```
 
@@ -294,8 +294,8 @@ Shell（三列贯通 · 无横跨产品 header）
 
 ### 现状（已收敛 · Phase B Done）
 
-PrimaryNav 文案与默认 selection 为 **动态 · 收件箱 · 写出来**（搜索非 PrimaryNav：⌘K 命令面板 · ⌘P 笔记全文）（`selection: stream`）。  
-**2026-09 v4**：三列顶栏共用 `.v4-column-chrome`（44px）。Sidebar 主 header 顺序为 Profile → 搜索 → 记一下；视图切换（动态/收件箱/写出来）是 TitleBar 左侧可点击下拉；面包屑第一层更长、可点击跳转上级。ViewSwitcher 在 Sidebar 次级 header 纯图标展示。编辑器大纲 / 外观 / 专注住在 FrontmatterBar。StatusBar 左端显示工作区完整路径。
+PrimaryNav 文案与默认 selection 为 **动态 · Inbox · 交付**（搜索非 PrimaryNav：⌘K 命令面板 · ⌘P 笔记全文）（`selection: stream`）。  
+**2026-09 v4**：三列顶栏共用 `.v4-column-chrome`（44px）。Sidebar 主 header 顺序为 Profile → 搜索 → 记一下；视图切换（动态/Inbox/交付）是 TitleBar 左侧可点击下拉；面包屑第一层更长、可点击跳转上级。ViewSwitcher 在 Sidebar 次级 header 纯图标展示。编辑器大纲 / 外观 / 专注住在 FrontmatterBar。StatusBar 左端显示工作区完整路径。
 旧「工作台」主锚点已退役（**代码债**清零）；**HomeView 与 `kind:home` 产品类型已删除**（`normalizeSelection` 迁移历史状态 → stream）。归档不在主锚。
 
 ```
@@ -465,9 +465,9 @@ Pi 围栏别名（不是第二套 FS）：`read`→`read_file` · `write`→`sav
 
 - `workspace.listWorkspaceDir` + `file-filter`（`ui.fileFilter`: default | markdown | all）  
 - 专题 / 88 / 99 / **memory**：**folder 懒加载**；揭示嵌套文件时展开祖先 folder  
-- **记忆区段**：`memory/` 目录（profile / todo / periodic / topics）在类别与输出之间展示
+- **记忆区段**：`memory/` 目录（profile / todo / periodic / topics）在类别与交付之间展示
 - 展开状态：`localStorage topmind:expanded-nodes:{ws}`；**空数组 = 用户全折叠**  
-- softRefresh：debounce 200ms、不切 loading、保留已展开 childrenCache；**listing vs content** 由 `lib/tree-listing-change` 判定——inbox / 输出 / 归档 / 类别根 / add·unlink / ingest 完成走区段重建（空 inbox 变有文件则展开）；专题内部 content-only 带 relativePath 仍定向刷新，避免整树闪烁  
+- softRefresh：debounce 200ms、不切 loading、保留已展开 childrenCache；**listing vs content** 由 `lib/tree-listing-change` 判定——inbox / 交付 / 归档 / 类别根 / add·unlink / ingest 完成走区段重建（空 inbox 变有文件则展开）；专题内部 content-only 带 relativePath 仍定向刷新，避免整树闪烁  
 - 手动刷新：`tree-toolbar` 内 `data-sidebar-refresh`（与展开/折叠/排序/筛选同组），强制 `getTree` 含空 inbox；自动感知是主路径，按钮是逃生口  
 
 - Timeline / Tags / Kanban：`load({ silent: true })`  
@@ -564,7 +564,7 @@ interface PluginContext {
 |----------|------------|------|
 | DataSource | 侧栏区段 + 树 | "工作区"区段（类别 → 专题 → 文件） |
 | ViewSlot | 编辑区内容 | StreamDetailView, CategoryView, FileEditorView 等 |
-| ActionSlot (goto) | 命令面板 → 导航 | 转到 · 动态/收件箱/写出来/归档 |
+| ActionSlot (goto) | 命令面板 → 导航 | 转到 · 动态/Inbox/交付/归档 |
 | ActionSlot (skill) | 命令面板 → 技能 | Capture, Organize, Write, Memory, Loop |
 | ActionSlot (sync) | 命令面板 → 同步 | 微信读书同步、X 推文抓取 |
 | SettingsSlot | 设置对话框 → 插件 Tab | 微信读书配置、X/Twitter 配置 |
@@ -622,7 +622,7 @@ togglePlugin(id, wsRoot)
 #### `topmind-workspace`（核心，始终全量加载）
 - 1 个 DataSource（Category+Topic 文件系统遍历）
 - 7 个 ViewSlot（StreamDetail / Category / TopicOverview / FileEditor / Inbox / Outputs / Archive）
-- 8 个 ActionSlot（4 个导航 · 动态/收件箱/写出来/归档 + 看板 + 全局搜索 + 设置 + 命令面板）
+- 8 个 ActionSlot（4 个导航 · 动态/Inbox/交付/归档 + 看板 + 全局搜索 + 设置 + 命令面板）
 - 5 个 Skill ActionSlot（Capture / Organize / Write / Memory / Loop）
 
 #### `topmind-weread` / `topmind-x`（connector，`defineConnectorPlugin`）
@@ -641,8 +641,8 @@ X：官方 v2 `GET /2/tweets/search/recent` 与 `GET /2/users/{id}/tweets`（Bea
 ## UI 层
 
 - **Tailwind 4** 从 `src/styles/tokens.css` 的 `@theme` 块读取设计令牌
-- **语义别名**（`src/styles/tailwind-theme.css`）：`bg-card`, `bg-primary`, `text-foreground`, `bg-chrome` 等
-- **UI 基础组件**（`src/components/ui/`）：Button, Dialog, Input, Textarea, Select, Card, Tabs, Badge, Separator, Splitter, ContextMenu, view（共享视图原语）
+- **语义别名**（`src/styles/tailwind-theme.css`）：`bg-primary`, `bg-chrome`, `bg-input`, `ring-ring`, `bg-popover` 等——只重导出组件**实际在用**的 shadcn 名；零引用别名（`bg-card` / `text-foreground` / `bg-muted` / `bg-destructive` …）已于 2026-09-14 清除，写它们不再解析。对比度与幽灵引用由 `tests/ui-token-compliance.test.mjs` 守护
+- **UI 基础组件**（`src/components/ui/`）：Button, CountBadge, Dialog, DropdownMenu, context-menu, menu-select, select, Input, textarea, tabs, tooltip, Splitter, PanelToggleIcon, workspace-file-menu, ErrorBoundary, LazyBoundary, view（共享视图原语）。**没有** Card / Separator / Badge 组件
 - **图标**: `@remixicon/react`（RemixIcon）
 - **编辑器**: Tiptap 3（StarterKit + Underline + Typography + Placeholder + CharacterCount + Markdown）
 - **无内联样式** — 所有样式通过 Tailwind 类 + 原语组件

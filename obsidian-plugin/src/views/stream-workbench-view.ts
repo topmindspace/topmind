@@ -275,6 +275,15 @@ export class StreamWorkbenchView extends ItemView {
     refreshSuggBtn.setAttribute("title", t("cmd_refresh_suggestions"));
     refreshSuggBtn.addEventListener("click", () => this.refreshSuggestions({ force: true }));
 
+    const acceptAllBtn = suggControls.createEl("button", {
+      cls: "tm-btn-secondary tm-toolbar-btn-labeled",
+    });
+    setIcon(acceptAllBtn, "check");
+    acceptAllBtn.createSpan({ text: t("suggestions_accept_all"), cls: "tm-toolbar-btn-label" });
+    acceptAllBtn.setAttribute("aria-label", t("suggestions_accept_all"));
+    acceptAllBtn.setAttribute("title", t("suggestions_accept_all"));
+    acceptAllBtn.addEventListener("click", () => { void this.acceptAllSuggestions(); });
+
     this.suggestionContainer = contentEl.createDiv({ cls: "tm-suggestion-container" });
   }
 
@@ -641,9 +650,7 @@ export class StreamWorkbenchView extends ItemView {
       }
 
       const { content, entries } = await this.plugin.kernelService.readPeriodNoteAsync(selectedPath);
-      this.currentEntries = this.plugin.settings.timelineOrder === "desc"
-        ? [...entries].reverse()
-        : entries;
+      this.currentEntries = entries;
 
       this.streamLoading = false;
       streamContainer.empty();
@@ -765,8 +772,11 @@ export class StreamWorkbenchView extends ItemView {
   private renderStreamEntries(container: HTMLElement, entries: StreamEntry[], periodPath: string, fullContent: string): void {
     this.clearCardComponents();
     const groups = this.groupByDayHeading(entries, fullContent);
+    const ordered = this.plugin.settings.timelineOrder === "desc"
+      ? [...groups].reverse()
+      : groups;
 
-    for (const group of groups) {
+    for (const group of ordered) {
       if (groups.length > 1 && group.label) {
         const dayHeader = container.createDiv({ cls: "tm-day-header" });
         dayHeader.createSpan({ text: group.label, cls: "tm-day-label" });
@@ -993,11 +1003,20 @@ export class StreamWorkbenchView extends ItemView {
       return;
     }
 
-    // Show loading spinner only if first load or explicitly forced
-    if (isFirstLoad || opts.force) {
+    const cached = this.plugin.kernelService.peekSuggestions();
+    const force = opts.force === true;
+    if (!force && cached.length > 0 && suggestionContainer.childElementCount > 0) {
+      this.suggestionInFlight = false;
+      return;
+    }
+
+    // Show loading spinner only if first load with no cache, or explicitly forced
+    if ((isFirstLoad && cached.length === 0) || force) {
       suggestionContainer.empty();
       const loadingEl = suggestionContainer.createDiv({ cls: "tm-loading tm-loading-spinner" });
       loadingEl.createSpan({ text: t("suggestions_loading") });
+    } else if (cached.length > 0 && suggestionContainer.childElementCount === 0) {
+      this.paintSuggestionList(suggestionContainer, cached);
     }
 
     try {
@@ -1016,18 +1035,20 @@ export class StreamWorkbenchView extends ItemView {
         return;
       }
 
-      // Suggestion count badge
-      const countEl = suggestionContainer.createDiv({ cls: "tm-suggestion-summary" });
-      countEl.createSpan({
-        text: t("sidebar_suggestions_count", { count: suggestions.length }),
-        cls: "tm-suggestion-count-badge",
-      });
-
-      for (const sugg of suggestions) {
-        this.renderSuggestionCard(suggestionContainer, sugg);
-      }
+      this.paintSuggestionList(suggestionContainer, suggestions);
     } finally {
       this.suggestionInFlight = false;
+    }
+  }
+
+  private paintSuggestionList(container: HTMLElement, suggestions: SuggestionCard[]): void {
+    const countEl = container.createDiv({ cls: "tm-suggestion-summary" });
+    countEl.createSpan({
+      text: t("sidebar_suggestions_count", { count: suggestions.length }),
+      cls: "tm-suggestion-count-badge",
+    });
+    for (const sugg of suggestions) {
+      this.renderSuggestionCard(container, sugg);
     }
   }
 
@@ -1037,6 +1058,29 @@ export class StreamWorkbenchView extends ItemView {
     setIcon(iconDiv, "lightbulb");
     div.createDiv({ text: title, cls: "tm-empty-title" });
     div.createDiv({ text: hint, cls: "tm-empty-hint" });
+  }
+
+  private async acceptAllSuggestions(): Promise<void> {
+    const cards = this.plugin.kernelService.peekSuggestions();
+    if (cards.length === 0) return;
+    const n = new Notice(
+      t("notice_executing_progress", { current: 0, total: cards.length, title: cards[0]?.title || "" }),
+      0,
+    );
+    let ok = 0;
+    for (let i = 0; i < cards.length; i++) {
+      const card = cards[i];
+      n.setMessage(t("notice_executing_progress", {
+        current: i + 1,
+        total: cards.length,
+        title: card.title,
+      }));
+      const result = await this.plugin.kernelService.applySuggestion(card, { silent: true });
+      if (result.ok) ok += 1;
+    }
+    n.hide();
+    new Notice(t("notice_accept_all_done", { count: ok }));
+    await this.refreshSuggestions();
   }
 
   private renderSuggestionCard(container: HTMLElement, sugg: SuggestionCard): void {

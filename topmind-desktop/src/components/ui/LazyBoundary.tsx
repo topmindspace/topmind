@@ -26,7 +26,7 @@ export function LazyBoundary({
           role="status"
           aria-live="polite"
         >
-          <RiLoader4Line size={ICON.sm} className="animate-spin text-accent-color/70" />
+          <RiLoader4Line size={ICON.sm} className="animate-spin text-accent-color" />
           <div className="text-3xs font-medium tracking-tight">{label || t("lazyBoundary.loading")}</div>
         </div>
       }

@@ -5,7 +5,7 @@
 > Local-first **rich workbench** — personal stream · deep editing · AI copilot · reversible writes.  
 > **Version truth:** this directory’s [`package.json`](./package.json) (`npm run versions`).  
 > **Content truth:** always the **workspace folder**. Desktop does not hard-depend on UTR.  
-> User concepts ≤ 5: **Note it · Stream · Topic · My profile · Write out**  
+> User concepts ≤ 5: **Note it · Stream · Topic · My profile · Delivery**  
 > Workflow: `收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整`
 
 [Product overview](../README.md) · [简体中文总览](../README.zh-CN.md) · IA / pixels: [`DESIGN.md`](./DESIGN.md) · Architecture: [`ARCHITECTURE.md`](./ARCHITECTURE.md) · Implementation lock: [`../docs/ARCHITECTURE-RESET.md`](../docs/ARCHITECTURE-RESET.md)
@@ -21,7 +21,7 @@
 | Polishing means switching to a chat app | **Inline AI** + sidebar Agent (output is sanitized) |
 | Switching tools loses format | Plain Markdown · files stay portable |
 
-1. **Stream-first navigation** — concepts stay few; Inbox / Write out / My profile stay reachable  
+1. **Stream-first navigation** — concepts stay few; Inbox / Delivery / My profile stay reachable  
 2. **Quiet Paper** — type size / leading / measure / paper · focus `⌘⌥F`  
 3. **AI copilot** — skill-first · `auto | confirm` save settings · suggestions generate by default and run after you confirm; multi-lane AI keeps prep serial and chat independent (see `DESIGN.md` §0.0.3)  
 4. **Multi-source ingest** — default anydoc (Word · PDF · Excel · PPT · ODF · RTF · EPUB · CSV) + built-in mail/HTML → Markdown; optional markitdown / pandoc  
@@ -35,17 +35,26 @@
 
 ## Interface tour and demo
 
-Screenshots are compressed for docs (full-resolution sources live in `resources/img/` on the development machine only — the directory is gitignored; the shared library is [`../docs/images/`](../docs/images/README.md)).
+Screenshots are compressed for docs (full-resolution sources live in `resources/img/` on the development machine only — the directory is gitignored; the shared library is [`../docs/images/`](../docs/images/README.md)). The stills below are the **2026-09 three-column chrome**.
 
-### 1. Core workbench (`Stream` + AI suggestions)
+### 1. Core workbench (stream timeline + AI workspace)
 
-Default three columns: **nav → content → AI copilot**. The main narrative is the stream timeline.
+Default three columns: **nav → stream → AI workspace**. The main narrative is the stream timeline; the AI workspace holds **Chat · Suggest · List · Apps**.
 
 <p align="center">
-  <img src="../docs/images/desktop-stream.jpg" alt="topmind Desktop · Stream and AI suggestions" width="760" />
+  <img src="../docs/images/desktop-stream-en.jpg" alt="topmind Desktop · three-column workbench with the AI workspace" width="820" />
 </p>
 
-### 2. Full product demo
+### 2. AI workspace panes
+
+**Suggest** collects proposals and pending writes; **List** is the todo list (`memory/todo.md`, with AI provenance marked); **Apps** is the enable-gated mini-app launcher (ingest · WeRead · bookkeeping).
+
+<p align="center">
+  <img src="../docs/images/desktop-ai-todo.jpg" alt="topmind Desktop · AI workspace List pane with AI-extracted todos" width="430" />
+  <img src="../docs/images/desktop-apps.jpg" alt="topmind Desktop · AI workspace Apps pane: ingest · WeRead · bookkeeping" width="430" />
+</p>
+
+### 3. Full product demo
 
 <p align="center">
   <img src="../docs/images/topmind-demo.gif" alt="topmind Desktop product demo" width="820" />
@@ -55,7 +64,7 @@ Default three columns: **nav → content → AI copilot**. The main narrative is
   <sub>If the GIF does not play, download the <a href="../docs/images/topmind-demo.mp4">HD MP4 demo</a>.</sub>
 </p>
 
-### 3. Interaction map
+### 4. Interaction map
 
 | Entry | Single job |
 |-------|------------|

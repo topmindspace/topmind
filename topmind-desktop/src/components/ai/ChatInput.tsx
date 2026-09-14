@@ -4,7 +4,7 @@ import {
   RiBrainLine,
   RiCheckboxBlankLine,
   RiCompass3Line,
-  RiListCheck2,
+  RiMagicLine,
   RiMoreLine,
   RiQuillPenLine,
   RiRepeat2Line,
@@ -18,6 +18,7 @@ import { useAiStore } from "../../stores/ai-store";
 import { useViewStore } from "../../stores/view-store";
 import { api } from "../../services/api";
 import { Button } from "../ui/Button";
+import { CountBadge } from "../ui/CountBadge";
 import type { SelectGroup } from "../ui/select";
 import { MenuSelect } from "../ui/menu-select";
 import { Tooltip } from "../ui/tooltip";
@@ -82,7 +83,7 @@ function getDefaultSkillSlash(t: TFunction): Record<string, { label: string; tip
 /** Icon map for default skills — keyed by skillId. */
 const SKILL_ICONS: Record<string, typeof RiStickyNoteAddLine> = {
   "topmind-capture": RiStickyNoteAddLine,
-  "topmind-organize": RiListCheck2,
+  "topmind-organize": RiMagicLine,
   "topmind-write": RiQuillPenLine,
   "topmind-memory": RiBrainLine,
   "topmind-maintain": RiToolsLine,
@@ -517,12 +518,11 @@ export function ChatInput() {
           >
             <RiSparklingLine size={ICON.micro} />
             {sessionLoadedSkills.length > 0 ? (
-              <span
-                className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-accent-color px-1 text-4xs font-bold leading-none text-primary-foreground"
-                aria-hidden
-              >
-                {sessionLoadedSkills.length}
-              </span>
+              <CountBadge
+                count={sessionLoadedSkills.length}
+                max={99}
+                className="absolute -right-1 -top-1"
+              />
             ) : null}
           </button>
         </Tooltip>

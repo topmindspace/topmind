@@ -5,7 +5,7 @@
 > 本地优先**富工作台** — 动态流 · 深度编辑 · AI 副驾 · 可逆写回。  
 > **版本真源：** 本目录 [`package.json`](./package.json)（`npm run versions`）。  
 > **内容真源：** 始终是**工作区文件夹**；不硬依赖 UTR。  
-> 用户概念 ≤5：**记一下 · 动态 · 专题 · 我的情况 · 写出来**  
+> 用户概念 ≤5：**记一下 · 动态 · 专题 · 我的情况 · 交付**  
 > 工作流：`收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整`
 
 [产品总览](../README.zh-CN.md) · [English overview](../README.md) · IA / 像素：[`DESIGN.md`](./DESIGN.md) · 架构：[`ARCHITECTURE.md`](./ARCHITECTURE.md) · 实施锁：[`../docs/ARCHITECTURE-RESET.md`](../docs/ARCHITECTURE-RESET.md)
@@ -21,7 +21,7 @@
 | 润色要切聊天 | **行内 AI** + 侧栏 Agent（结果已清洗） |
 | 换工具丢格式 | 纯 Markdown · 文件自由 |
 
-1. **动态优先导航** — 概念不堆砌；收件箱 / 写出来 / 我的情况清晰可达  
+1. **动态优先导航** — 概念不堆砌；Inbox / 交付 / 我的情况清晰可达  
 2. **Quiet Paper** — 字号 / 行距 / 栏宽 / 纸张 · 专注 ⌘⌥F  
 3. **AI 副驾** — skill-first · `auto | confirm` 写回 · 建议默认可生成、确认后执行；多路 AI 时 prep 串行、对话独立（见 `DESIGN.md` §0.0.3）  
 4. **多源加工** — 默认 anydoc（Word · PDF · Excel · PPT · ODF · RTF · EPUB · CSV）+ 内置邮件/HTML → Markdown；可选 markitdown / pandoc  
@@ -35,17 +35,26 @@
 
 ## 界面导览与演示
 
-截图已压缩整理（原始高分辨率图仅在开发机的 `resources/img/`——该目录不入库；全局图片库见 [`../docs/images/`](../docs/images/README.md)）。
+截图已压缩整理（原始高分辨率图仅在开发机的 `resources/img/`——该目录不入库；全局图片库见 [`../docs/images/`](../docs/images/README.md)）。以下静帧为 **2026-09 三栏 chrome**。
 
-### 1. 核心工作台表面（`Stream` 与 AI 建议）
+### 1. 核心工作台表面（动态时间轴与 AI 工作区）
 
-默认三栏：**导航 -> 内容 -> AI 副驾**。主叙事是动态时间轴。
+默认三栏：**导航 -> 动态 -> AI 工作区**。主叙事是动态时间轴；右栏 AI 工作区收纳 **对话 · 建议 · 清单 · 应用**。
 
 <p align="center">
-  <img src="../docs/images/desktop-stream.jpg" alt="Topmind Desktop 主表面 · Stream 与 AI 建议" width="760" />
+  <img src="../docs/images/desktop-stream.jpg" alt="Topmind Desktop 三栏工作台 · 动态时间轴与 AI 工作区" width="820" />
 </p>
 
-### 2. 全流程动态演示
+### 2. AI 工作区分面
+
+**建议**收集建议条与待确认写入；**清单**是待办清单（`memory/todo.md`，带 AI 来源标记）；**应用**是启用制 mini-app 入口（知识加工 · 微信读书 · 记账）。
+
+<p align="center">
+  <img src="../docs/images/desktop-ai-todo.jpg" alt="Topmind Desktop · AI 工作区清单分面（含 AI 提取待办）" width="430" />
+  <img src="../docs/images/desktop-apps.jpg" alt="Topmind Desktop · AI 工作区应用分面：知识加工 · 微信读书 · 记账" width="430" />
+</p>
+
+### 3. 全流程动态演示
 
 <p align="center">
   <img src="../docs/images/topmind-demo.gif" alt="Topmind Desktop 完整功能演示动画" width="820" />
@@ -55,7 +64,7 @@
   <sub>如果环境无法自动播放，可直接下载或播放 <a href="../docs/images/topmind-demo.mp4">HD MP4 高清演示视频</a>。</sub>
 </p>
 
-### 3. 核心功能与交互心智
+### 4. 核心功能与交互心智
 
 | 入口 | 作用（单一心智） |
 |------|------------------|

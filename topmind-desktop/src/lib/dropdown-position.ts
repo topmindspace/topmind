@@ -30,6 +30,13 @@ export interface DropdownPositionInput {
   matchTriggerWidth?: boolean;
   gap?: number;
   pad?: number;
+  /** Extra bottom inset (status bar). Default = pad. */
+  padBottom?: number;
+  /**
+   * Force a side when the trigger is docked to an edge (sidebar footer → top).
+   * `auto` keeps the existing “prefer below unless below is clearly worse” rule.
+   */
+  preferPlacement?: DropdownPlacement | "auto";
   viewport?: { width: number; height: number };
 }
 
@@ -57,6 +64,8 @@ export function computeDropdownPosition(input: DropdownPositionInput): DropdownP
   const matchTriggerWidth = input.matchTriggerWidth !== false;
   const gap = input.gap ?? 4;
   const pad = input.pad ?? 8;
+  const padBottom = input.padBottom ?? pad;
+  const prefer = input.preferPlacement ?? "auto";
   const vw = input.viewport?.width ?? (typeof window !== "undefined" ? window.innerWidth : 1280);
   const vh = input.viewport?.height ?? (typeof window !== "undefined" ? window.innerHeight : 800);
   const t = input.trigger;
@@ -80,13 +89,20 @@ export function computeDropdownPosition(input: DropdownPositionInput): DropdownP
     width = clamp(Math.max(minWidth || 160, base), pad, maxAllowed);
   }
 
-  const spaceBelow = vh - t.bottom - gap - pad;
+  const spaceBelow = vh - t.bottom - gap - padBottom;
   const spaceAbove = t.top - gap - pad;
   const measuredH = input.panel?.height ?? 0;
 
-  // Prefer opening below unless below is clearly worse.
-  let placement: DropdownPlacement =
-    spaceBelow >= 120 || spaceBelow >= spaceAbove ? "bottom" : "top";
+  // Prefer opening below unless below is clearly worse — unless the caller
+  // docks the trigger to an edge (sidebar footer must open upward).
+  let placement: DropdownPlacement;
+  if (prefer === "top" && spaceAbove >= 80) {
+    placement = "top";
+  } else if (prefer === "bottom" && spaceBelow >= 80) {
+    placement = "bottom";
+  } else {
+    placement = spaceBelow >= 120 || spaceBelow >= spaceAbove ? "bottom" : "top";
+  }
   let avail = placement === "bottom" ? spaceBelow : spaceAbove;
   if (avail < 80 && (placement === "bottom" ? spaceAbove : spaceBelow) > avail + 16) {
     placement = placement === "bottom" ? "top" : "bottom";
@@ -106,7 +122,8 @@ export function computeDropdownPosition(input: DropdownPositionInput): DropdownP
   // Align panel edge to trigger edge (start = left edges match).
   let left = align === "end" ? t.right - width : t.left;
   left = clamp(left, pad, vw - width - pad);
-  top = clamp(top, pad, Math.max(pad, vh - pad - 40));
+  const maxTop = Math.max(pad, vh - padBottom - 24);
+  top = clamp(top, pad, maxTop);
 
   return {
     top: Math.round(top),

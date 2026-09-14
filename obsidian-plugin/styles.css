@@ -23,11 +23,19 @@
   --tm-radius-lg: 8px;
   --tm-radius-xl: 10px;
   --tm-card-radius: 8px;
-  --tm-card-padding: 6px 10px;
   --tm-input-radius: 6px;
   --tm-suggestion-left-border: 2px solid;
   --tm-transition: 120ms ease;
-  --tm-transition-slow: 250ms ease;
+  /* Interactive-surface transition, spelled out. `transition: all` is on
+     Obsidian's do-not-use list: it animates every property that happens to
+     change (including layout ones a theme may add) and costs style recalc on
+     each attribute change. Only these four ever move on our controls. */
+  --tm-transition-ui:
+    background-color var(--tm-transition),
+    color var(--tm-transition),
+    border-color var(--tm-transition),
+    opacity var(--tm-transition),
+    transform var(--tm-transition);
   --tm-gap-xs: 3px;
   --tm-gap-sm: 5px;
   --tm-gap-md: 8px;
@@ -37,10 +45,20 @@
   --tm-icon-sm: 16px;
   --tm-icon-md: 18px;
   --tm-icon-lg: 20px;
-  --tm-accent-rgb: var(--interactive-accent-rgb);
   --tm-btn-h: 30px;
   --tm-btn-h-sm: 26px;
-  --tm-btn-h-lg: 34px;
+  /* Obsidian splits the accent in two, and the split matters:
+       --interactive-accent  the *control* accent — button/toggle fills, focus
+                             borders, underlines. Themes are not obliged to keep
+                             it readable as body text.
+       --text-accent         the *readable* accent for text; themes tune it for
+                             contrast against the active background.
+     Using the control accent as a text color is the usual reason a plugin goes
+     unreadable on a deep or neon theme accent, so all accent-colored text goes
+     through these two aliases instead. The fallback chain keeps a theme that
+     omits them from inheriting an unset value. */
+  --tm-text-accent: var(--text-accent, var(--interactive-accent));
+  --tm-text-accent-hover: var(--text-accent-hover, var(--text-accent, var(--interactive-accent)));
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -109,14 +127,14 @@
   max-width: 200px;
   font-weight: 500;
   cursor: pointer;
-  transition: all var(--tm-transition);
+  transition: var(--tm-transition-ui);
   flex-shrink: 1;
   min-width: 0;
 }
 
 .tm-toolbar-model[role="button"]:hover {
   background: var(--background-modifier-border-hover);
-  color: var(--interactive-accent);
+  color: var(--tm-text-accent-hover);
 }
 
 .tm-toolbar-actions {
@@ -187,14 +205,14 @@
   align-items: center;
   justify-content: center;
   gap: var(--tm-gap-xs);
-  transition: all var(--tm-transition);
+  transition: var(--tm-transition-ui);
   white-space: nowrap;
 }
 
 .tm-btn-secondary:hover:not(:disabled) {
   border-color: var(--interactive-accent);
   background: var(--background-modifier-hover);
-  color: var(--interactive-accent);
+  color: var(--tm-text-accent-hover);
 }
 
 .tm-btn-secondary:disabled {
@@ -235,14 +253,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--tm-transition);
+  transition: var(--tm-transition-ui);
   flex-shrink: 0;
 }
 
 .tm-toolbar-btn:hover {
   border-color: var(--interactive-accent);
   background: var(--background-modifier-hover);
-  color: var(--interactive-accent);
+  color: var(--tm-text-accent-hover);
 }
 
 /* Toolbar labeled button — icon + text variant */
@@ -272,14 +290,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--tm-transition);
+  transition: var(--tm-transition-ui);
   flex-shrink: 0;
 }
 
 .tm-sidebar-icon-btn:hover {
   border-color: var(--interactive-accent);
   background: var(--background-modifier-hover);
-  color: var(--interactive-accent);
+  color: var(--tm-text-accent-hover);
 }
 
 /* Sidebar labeled button — icon + text variant for narrow sidebar */
@@ -333,7 +351,7 @@
 
 .tm-btn-mini:hover {
   opacity: 1;
-  color: var(--interactive-accent);
+  color: var(--tm-text-accent-hover);
   background: var(--background-modifier-hover);
 }
 
@@ -352,24 +370,27 @@
   font-size: var(--font-ui-smaller);
   padding: 3px 8px;
   border-radius: var(--tm-radius-md);
-  background: color-mix(in srgb, var(--interactive-accent) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--interactive-accent) 20%, transparent);
-  color: var(--interactive-accent);
+  /* Solid accent + --text-on-accent, not a tinted fill with accent-as-text.
+     The tinted variant depends on the theme's accent luminance: a mid-tone
+     purple reads fine on a light background but only ~3:1 against a dark one.
+     Obsidian pairs --interactive-accent with --text-on-accent precisely so the
+     foreground stays legible whatever the theme picks. */
+  background: var(--interactive-accent);
+  border: 1px solid transparent;
+  color: var(--text-on-accent);
   white-space: nowrap;
   font-weight: 500;
   transition: opacity var(--tm-transition);
   flex-shrink: 0;
   max-width: 200px;
   overflow: hidden;
+  cursor: pointer;
 }
 
 .tm-task-badge.tm-task-badge-hidden {
   background: transparent;
   border-color: var(--background-modifier-border);
   color: var(--text-muted);
-  cursor: pointer;
-}
-.tm-task-badge {
   cursor: pointer;
 }
 
@@ -440,7 +461,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: all var(--tm-transition);
+  transition: var(--tm-transition-ui);
 }
 
 .tm-task-badge-abort:hover {
@@ -589,7 +610,7 @@
   gap: 3px;
   font-size: var(--font-ui-smaller);
   font-weight: 500;
-  transition: all var(--tm-transition);
+  transition: var(--tm-transition-ui);
   white-space: nowrap;
   flex-shrink: 0;
   opacity: 0.7;
@@ -607,7 +628,7 @@
 }
 
 .tm-card-action-btn:hover {
-  color: var(--interactive-accent);
+  color: var(--tm-text-accent-hover);
   border-color: var(--background-modifier-border);
   background: var(--background-modifier-hover);
   opacity: 1;
@@ -671,7 +692,9 @@
 .tm-stream-container[data-layout="card"] .tm-card {
   margin-bottom: 0;
   padding: 10px 12px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  /* Obsidian's own shadow scale — adapts to the theme instead of a black alpha
+     that reads as a smudge on dark themes. */
+  box-shadow: var(--shadow-s);
 }
 
 .tm-memory-browse {
@@ -769,7 +792,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--tm-transition);
+  transition: var(--tm-transition-ui);
 }
 
 .tm-btn-ghost:hover {
@@ -778,7 +801,7 @@
 }
 
 .tm-btn-polish {
-  color: var(--interactive-accent);
+  color: var(--tm-text-accent);
 }
 
 .tm-btn-polish:hover {
@@ -960,7 +983,7 @@
 }
 
 .tm-card-tag {
-  color: var(--interactive-accent);
+  color: var(--tm-text-accent);
   background: color-mix(in srgb, var(--interactive-accent) 10%, transparent);
   padding: 1px 6px;
   border-radius: var(--tm-radius-md);
@@ -1171,7 +1194,7 @@
   background: transparent;
   border: none;
   color: var(--text-muted);
-  transition: all var(--tm-transition);
+  transition: var(--tm-transition-ui);
   display: inline-flex;
   align-items: center;
 }
@@ -1215,7 +1238,7 @@
   background: transparent;
   border: 1px solid var(--background-modifier-border);
   color: var(--text-muted);
-  transition: all var(--tm-transition);
+  transition: var(--tm-transition-ui);
   display: inline-flex;
   align-items: center;
 }
@@ -1359,7 +1382,7 @@
   width: 600px;
   max-width: 90vw;
   border-radius: var(--tm-radius-xl);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2), 0 0 0 1px var(--background-modifier-border);
+  box-shadow: var(--shadow-l), 0 0 0 1px var(--background-modifier-border);
   transition: transform 140ms cubic-bezier(0.16, 1, 0.3, 1), opacity 140ms ease-out;
 }
 
@@ -1593,7 +1616,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--tm-gap-xs);
-  transition: all var(--tm-transition);
+  transition: var(--tm-transition-ui);
   border-bottom: 2px solid transparent;
   white-space: nowrap;
 }
@@ -1604,7 +1627,7 @@
 }
 
 .tm-tab-btn.tm-tab-active {
-  color: var(--interactive-accent);
+  color: var(--tm-text-accent);
   border-bottom-color: var(--interactive-accent);
   font-weight: 600;
 }
@@ -1764,7 +1787,7 @@
   margin-top: var(--tm-gap-xs);
   width: 100%;
   text-align: center;
-  color: var(--interactive-accent);
+  color: var(--tm-text-accent);
   font-size: var(--font-ui-smaller);
   font-weight: 500;
 }
@@ -1793,7 +1816,7 @@
 }
 
 .tm-sidebar-stream-item:hover {
-  color: var(--interactive-accent);
+  color: var(--tm-text-accent-hover);
 }
 
 .tm-sidebar-stream-item:last-child {
@@ -2232,7 +2255,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--tm-transition);
+  transition: var(--tm-transition-ui);
   flex-shrink: 0;
 }
 
@@ -2270,7 +2293,7 @@
   background: var(--background-primary);
   color: var(--text-normal);
   cursor: pointer;
-  transition: all var(--tm-transition);
+  transition: var(--tm-transition-ui);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2283,7 +2306,7 @@
 .tm-sidebar-action-btn:hover {
   border-color: var(--interactive-accent);
   background: var(--background-modifier-hover);
-  color: var(--interactive-accent);
+  color: var(--tm-text-accent-hover);
 }
 
 .tm-sidebar-action-btn:active {
@@ -2295,7 +2318,7 @@
   color: var(--text-on-accent);
   border-color: var(--interactive-accent);
   font-weight: 600;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-s);
 }
 
 .tm-sidebar-action-btn.tm-sidebar-capture-primary:hover {
@@ -2493,12 +2516,12 @@
   font-size: var(--font-ui-smaller);
   gap: 3px;
   padding: 0;
-  transition: all var(--tm-transition);
+  transition: var(--tm-transition-ui);
   flex-shrink: 0;
 }
 
 .tm-chat-msg-btn:hover {
-  color: var(--interactive-accent);
+  color: var(--tm-text-accent-hover);
   background: var(--background-modifier-hover);
   border-color: var(--interactive-accent);
 }
@@ -2798,11 +2821,11 @@
 }
 
 .tm-status-bar-item:hover {
-  color: var(--interactive-accent);
+  color: var(--tm-text-accent-hover);
 }
 
 .tm-status-bar-item.tm-status-bar-running {
-  color: var(--interactive-accent);
+  color: var(--tm-text-accent);
 }
 
 .tm-status-bar-icon {

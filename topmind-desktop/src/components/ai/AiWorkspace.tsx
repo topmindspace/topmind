@@ -5,16 +5,17 @@
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  RiLayoutGridLine,
+  RiApps2Line,
+  RiChatAiLine,
   RiLightbulbLine,
   RiListCheck,
-  RiRobot2Line,
 } from "@remixicon/react";
 import { AiPanel } from "./AiPanel";
 import { ChatInput } from "./ChatInput";
 import { SuggestPopover } from "./SuggestPopover";
 import { TodoListBody } from "../todo/TodoListBody";
 import { AppsLaunchList } from "../shell/AppsLaunchList";
+import { CountBadge } from "../ui/CountBadge";
 import { useViewStore, type AiWorkspaceTab } from "../../stores/view-store";
 import { useActionStore } from "../../stores/action-store";
 import { useTodoStore } from "../../stores/todo-store";
@@ -22,11 +23,11 @@ import { cn } from "../../lib/cn";
 import { ICON } from "../../lib/icons";
 import { isWindows } from "../../lib/platform";
 
-const TABS: Array<{ id: AiWorkspaceTab; icon: typeof RiRobot2Line; labelKey: string }> = [
-  { id: "chat", icon: RiRobot2Line, labelKey: "aiWorkspace.chat" },
+const TABS: Array<{ id: AiWorkspaceTab; icon: typeof RiChatAiLine; labelKey: string }> = [
+  { id: "chat", icon: RiChatAiLine, labelKey: "aiWorkspace.chat" },
   { id: "suggest", icon: RiLightbulbLine, labelKey: "aiWorkspace.suggest" },
   { id: "todo", icon: RiListCheck, labelKey: "aiWorkspace.todo" },
-  { id: "apps", icon: RiLayoutGridLine, labelKey: "aiWorkspace.apps" },
+  { id: "apps", icon: RiApps2Line, labelKey: "aiWorkspace.apps" },
 ];
 
 export function AiWorkspace() {
@@ -34,6 +35,7 @@ export function AiWorkspace() {
   const tab = useViewStore((s) => s.aiWorkspaceTab);
   const setTab = useViewStore((s) => s.setAiWorkspaceTab);
   const suggestCount = useActionStore((s) => s.items.length);
+  const suggestHasHigh = useActionStore((s) => s.items.some((i) => i.priority === "high"));
   const todoActive = useTodoStore((s) => s.items.filter((i) => !i.done).length);
 
   useEffect(() => {
@@ -80,11 +82,14 @@ export function AiWorkspace() {
             >
               <Icon size={ICON.sm} className="shrink-0" />
               <span className="hidden truncate sm:inline">{t(item.labelKey)}</span>
-              {badge > 0 ? (
-                <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-xs bg-skill-loop px-1 text-4xs font-bold leading-none text-text-on-accent">
-                  {badge > 9 ? "9+" : badge}
-                </span>
-              ) : null}
+              <CountBadge
+                count={badge}
+                tone={item.id === "suggest" && suggestHasHigh ? "alert" : "default"}
+                /* 2px proud of the tab's top-right: enough to read as a corner
+                   badge, little enough that it never looks owned by the
+                   neighbouring tab (tabs are flush, flex-1). */
+                className="absolute -right-0.5 -top-0.5"
+              />
             </button>
           );
         })}

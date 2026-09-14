@@ -11,6 +11,23 @@ import { deriveStatusBarBusy } from "../src/lib/status-bar-busy.ts";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = (rel) => readFileSync(path.join(root, rel), "utf8");
 
+test("suggest applying: dedicated apply chip, count chip hidden", () => {
+  const v = deriveStatusBarBusy({
+    ready: true,
+    streaming: false,
+    activeTaskCount: 0,
+    todoMaintaining: false,
+    suggestLoading: false,
+    suggestCount: 4,
+    suggestApplying: true,
+  });
+  assert.equal(v.showApplyChip, true);
+  assert.equal(v.showSuggestCountChip, false);
+  assert.equal(v.showSuggestChip, false);
+  assert.equal(v.aiPillBusy, false);
+  assert.ok(v.activeKinds.includes("apply"));
+});
+
 test("todo-only: dedicated todo chip, AI pill not generic working", () => {
   const v = deriveStatusBarBusy({
     ready: true,
@@ -142,6 +159,8 @@ test("StatusBar wires deriveStatusBarBusy (no dual aiBusy OR todo)", () => {
   assert.match(src, /data-status-todo-busy/);
   assert.match(src, /data-status-ai-pill/);
   assert.match(src, /data-status-inline-busy/);
+  assert.match(src, /data-status-suggest-apply/);
+  assert.match(src, /suggestApplying/);
   assert.match(src, /animate-spin/);
 });
 

@@ -1,6 +1,6 @@
 ---
 name: topmind-ledger
-version: 4.0.0
+version: 4.0.1
 description: >-
   通用记账到记忆平面（默认个人/自己账本，用户自建账本与分类）。Use when 记账、记一笔、花了、存入、查看账单、账户余额。
   Do NOT use for 记一下到动态、待办、微信读书、发推、Feishu/lark-cli.
@@ -38,7 +38,7 @@ degradation: ../shared/capability-degradation.md
 
 ## When NOT to use
 
-- 「记一下」到动态/收件箱 → `topmind-capture`
+- 「记一下」到动态/Inbox → `topmind-capture`
 - 待办清单 → `memory/todo.md`（todo-engine）
 - 微信读书 / X → `topmind-weread` / `topmind-x`
 - 飞书多维表格 / `lark-cli` / `sync_feishu_ledger_cache.py` — **不是**本 skill 的写路径

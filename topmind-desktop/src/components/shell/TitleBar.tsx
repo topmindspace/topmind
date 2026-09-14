@@ -3,26 +3,23 @@
  *
  * 2026-09 v4 redesign:
  * - Sidebar header has Profile + Search + 记一下.
- * - TitleBar left: Toggle + view-switch dropdown (动态/收件箱/写出来; trigger toggles open) + clickable breadcrumb + stats.
+ * - TitleBar left: Toggle + history + clickable breadcrumb + stats.
+ * - PrimaryNav (动态 / Inbox / 交付) lives in the StatusBar so it stays
+ *   persistent and does not compete with page identity.
  * - TitleBar right: dynamic injected actions + AI panel toggle.
  * - Three-column headers share `.v4-column-chrome` (44px).
  */
 import {
-  RiArrowDownSLine,
   RiArrowLeftSLine,
   RiArrowRightSLine,
-  RiBroadcastLine,
-  RiInboxUnarchiveLine,
-  RiStackLine,
 } from "@remixicon/react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useViewStore } from "../../stores/view-store";
 import { cn } from "../../lib/cn";
 import { useTitleBarChromeLive } from "../../lib/titlebar-chrome";
 import { notifyChromeSlots } from "../../lib/chrome-portal";
 import {
-  primaryViewSwitchKind,
   resolveTitleBarIdentity,
   type TitleBarIdentityLabels,
 } from "../../lib/titlebar-identity";
@@ -31,10 +28,6 @@ import { Tooltip } from "../ui/tooltip";
 import { PanelToggleIcon } from "../ui/PanelToggleIcon";
 import { ICON } from "../../lib/icons";
 import { isMacOS, isWindows } from "../../lib/platform";
-import {
-  DropdownItem,
-  DropdownMenu,
-} from "../ui/DropdownMenu";
 
 interface TitleBarProps {
   workspaceRoot: string;
@@ -43,13 +36,6 @@ interface TitleBarProps {
   macPad?: boolean;
   winPad?: boolean;
 }
-
-/** View options for the dropdown switcher. */
-const VIEW_OPTIONS = [
-  { kind: "stream", icon: RiBroadcastLine, labelKey: "primaryNav.stream" },
-  { kind: "inbox", icon: RiInboxUnarchiveLine, labelKey: "primaryNav.inbox" },
-  { kind: "outputs", icon: RiStackLine, labelKey: "primaryNav.outputs" },
-] as const;
 
 export function useTitleBarIdentityLabels(): TitleBarIdentityLabels {
   const { t } = useTranslation(["shell", "workspace"]);
@@ -84,13 +70,6 @@ export function TitleBar({ workspaceRoot: _workspaceRoot, sidebarCollapsed, onTo
   const live = useTitleBarChromeLive();
   const { crumbs, title, stats } = resolveTitleBarIdentity(selection, labels, live);
 
-  // View switch dropdown state
-  const [viewMenuOpen, setViewMenuOpen] = useState(false);
-
-  const activeViewKind = primaryViewSwitchKind(selection.kind);
-  const activeView = VIEW_OPTIONS.find((v) => v.kind === activeViewKind);
-  const ActiveViewIcon = activeView?.icon;
-
   return (
     <header
       data-canvas-chrome
@@ -119,42 +98,6 @@ export function TitleBar({ workspaceRoot: _workspaceRoot, sidebarCollapsed, onTo
               <PanelToggleIcon side="left" open={!sidebarCollapsed} size={ICON.sm} />
             </button>
           </Tooltip>
-          {/* View switch dropdown — 动态/收件箱/写出来. Trigger must toggle open (DropdownMenu does not). */}
-          <DropdownMenu
-            open={viewMenuOpen}
-            onOpenChange={setViewMenuOpen}
-            align="start"
-            minWidth={176}
-            matchTriggerWidth={false}
-            className="v4-no-drag"
-            trigger={
-              <Tooltip content={t("titleBar.viewSwitchTip")} disabled={viewMenuOpen}>
-                <button
-                  type="button"
-                  className="v4-titlebar-btn gap-0.5 px-1.5"
-                  aria-label={t("titleBar.viewSwitchAria")}
-                  aria-haspopup="listbox"
-                  aria-expanded={viewMenuOpen}
-                  data-view-switcher
-                  onClick={() => setViewMenuOpen((open) => !open)}
-                >
-                  {ActiveViewIcon ? <ActiveViewIcon size={ICON.sm} className="shrink-0" /> : null}
-                  <RiArrowDownSLine size={ICON.nano} className="shrink-0 text-text-quaternary" />
-                </button>
-              </Tooltip>
-            }
-          >
-            {VIEW_OPTIONS.map((v) => (
-              <DropdownItem
-                key={v.kind}
-                active={selection.kind === v.kind}
-                onSelect={() => { select({ kind: v.kind } as never); setViewMenuOpen(false); }}
-              >
-                <v.icon size={ICON.sm} className="shrink-0" />
-                <span className="min-w-0 flex-1">{t(`shell:${v.labelKey}`)}</span>
-              </DropdownItem>
-            ))}
-          </DropdownMenu>
           {/* History nav */}
           <Tooltip content={t("titleBar.back")}>
             <button type="button" className="v4-titlebar-btn" onClick={back} disabled={!canGoBack} aria-label={t("titleBar.backAriaLabel")}>

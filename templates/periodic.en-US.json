@@ -6,7 +6,7 @@
     "00": { "name": "Inbox" },
     "10": { "name": "Stream" },
     "20": { "name": "Topics" },
-    "88": { "name": "Outputs" },
+    "88": { "name": "Delivery" },
     "99": { "name": "Archive" }
   },
   "memory": {

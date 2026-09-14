@@ -34,8 +34,8 @@ describe("seed-testws-fixtures", () => {
     assert.ok(fs.existsSync(path.join(ws, "topmind.yaml")));
     assert.ok(fs.existsSync(path.join(ws, "memory", "profile.md")));
     assert.ok(fs.existsSync(path.join(ws, "20-专题", "2026-知识管理演示", "topic.md")));
-    assert.ok(fs.existsSync(path.join(ws, "00-收件箱")));
-    assert.ok(fs.existsSync(path.join(ws, "88-输出")));
+    assert.ok(fs.existsSync(path.join(ws, "00-Inbox")));
+    assert.ok(fs.existsSync(path.join(ws, "88-交付")));
 
     const yaml = fs.readFileSync(path.join(ws, "topmind.yaml"), "utf8");
     assert.match(yaml, /contract_version:\s*4/u);

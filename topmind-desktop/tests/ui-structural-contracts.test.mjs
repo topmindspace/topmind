@@ -26,15 +26,16 @@ function read(rel, base = root) {
 
 // ── Chrome hierarchy & single CTA ──────────────────────────────────────
 
-test("TitleBar: view-switcher + AI toggle; sidebar has capture", () => {
+test("TitleBar: AI toggle; sidebar has capture; PrimaryNav is in StatusBar", () => {
   const titleBar = read("src/components/shell/TitleBar.tsx");
-  // 2026-09 v4: TitleBar has view-switcher dropdown + AI toggle
-  assert.match(titleBar, /data-view-switcher/);
-  assert.match(titleBar, /VIEW_OPTIONS/);
-  assert.match(titleBar, /primaryNav\.stream/);
-  assert.match(titleBar, /primaryNav\.inbox/);
-  assert.match(titleBar, /primaryNav\.outputs/);
+  assert.doesNotMatch(titleBar, /data-view-switcher/);
   assert.match(titleBar, /v4-titlebar-btn-ai/);
+  const nav = read("src/components/shell/PrimaryNav.tsx");
+  assert.match(nav, /PRIMARY_NAV_OPTIONS/);
+  assert.match(nav, /primaryNav\.stream/);
+  assert.match(nav, /primaryNav\.inbox/);
+  assert.match(nav, /primaryNav\.outputs/);
+  assert.match(read("src/components/shell/StatusBar.tsx"), /<PrimaryNav/);
   assert.doesNotMatch(titleBar, /v4-titlebar-btn-capture/);
   assert.doesNotMatch(titleBar, /data-chrome-tier=["']l2["']/);
   assert.doesNotMatch(titleBar, /data-chrome-tier=["']l3["']/);
@@ -73,6 +74,9 @@ test("WorkspaceSwitcher hosts theme + language + settings (consolidated from Tit
   assert.match(ws, /pickLocale/);
   assert.match(ws, /focusMode/);
   assert.match(ws, /settingsLabel/);
+  assert.match(ws, /preferPlacement="top"/);
+  assert.match(ws, /data-workspace-name/);
+  assert.match(ws, /padBottom=\{32\}/);
 });
 
 test("List views demote capture to outline (no competing solid CTA)", () => {
@@ -160,7 +164,14 @@ test("Light tokens: surface != elevated; hairline and shadows defined", () => {
   assert.match(light, /--color-border-subtle-dim:\s*rgba\(23,\s*23,\s*23,\s*0\.0[5-9]/);
   // Monochrome ink primary CTA + sky accent (no legacy ink-blue brand)
   assert.match(light, /--color-ink:\s*#1a1a1a/);
-  assert.match(light, /--color-accent-color:\s*#0284c7/);
+  // Accent = sky-700 since 2026-09-14. It was sky-600 (#0284c7), which measures
+  // 4.10:1 on white and 3.59:1 on chrome — under AA for the link / small-text
+  // role this stop carries. Baseline table: DESIGN.md §5.0.1.
+  assert.match(light, /--color-accent-color:\s*#0369a1/);
+  // Badge axis is its own sky stop and must not collapse into accent (accent
+  // flips hue in inbox mode).
+  assert.match(light, /--color-badge:\s*#0369a1/);
+  assert.match(light, /--color-badge-foreground:\s*#ffffff/);
   assert.doesNotMatch(light, /#31548e|#5a7fb8|#7f9fd4/);
   assert.match(light, /--shadow-card:/);
   assert.match(light, /--shadow-elevated-hairline:/);
@@ -468,4 +479,32 @@ test("inline AI auto-open is gated by persisted flag; preview default is not a 1
   assert.ok(pos.top >= 8);
   assert.ok(pos.left >= 8);
   assert.ok(pos.left + 400 <= 800);
+});
+
+test("Dialog sizing: prompts are wide + upper; filename prompts never override narrower", () => {
+  const dialog = read("src/components/ui/Dialog.tsx");
+  // Panel ladder: confirm/error at max-w-lg, prompts at max-w-xl (wider than
+  // the field needs, so the target is comfortable and long paths stay readable).
+  assert.match(dialog, /v4-overlay-sheet w-full max-w-lg p-5/);
+  assert.match(dialog, /panelClassName=\{maxWidth \?\? "max-w-xl"\}/);
+  // Prompts sit in the top third (native rename/save sheet position) and use
+  // the shared Input so the field matches every other text field in the app.
+  assert.match(dialog, /placement="upper"/);
+  assert.match(dialog, /import \{ Input \} from "\.\/Input"/);
+  assert.match(dialog, /<Input\n\s+id=\{inputId\}/);
+  // Filename callers must not shrink the prompt below the shared default.
+  for (const rel of [
+    "src/components/sidebar/TreeView.tsx",
+    "src/components/ui/workspace-file-menu.tsx",
+    "src/plugins/topmind-workspace/views/CategoryView.tsx",
+    "src/plugins/topmind-workspace/views/InboxView.tsx",
+    "src/plugins/topmind-workspace/views/TopicOverviewView.tsx",
+  ]) {
+    const src = read(rel);
+    const prompts = src.match(/<PromptDialog[\s\S]*?\/>/gu) ?? [];
+    assert.ok(prompts.length > 0, `${rel} should open a PromptDialog`);
+    for (const p of prompts) {
+      assert.doesNotMatch(p, /maxWidth=/, `${rel} must not override the prompt width`);
+    }
+  }
 });

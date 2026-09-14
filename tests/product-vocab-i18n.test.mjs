@@ -2,7 +2,7 @@
  * Product vocabulary consistency across Desktop + Obsidian locales.
  * Drives shipped locale files (not re-implemented strings).
  *
- * Core concepts (≤5): 记一下/Note it · 记下/Log it · 动态 · 专题 · 我的情况 · 写出来
+ * Core concepts (≤5): 记一下/Note it · 记下/Log it · 动态 · 专题 · 我的情况 · 交付
  * Clip Extension uses Clip/剪藏 intentionally (companion surface) — covered in extension-i18n-parity.
  */
 import test from "node:test";
@@ -48,12 +48,13 @@ test("Kernel AI op labels say 整理我的情况 not 整理记忆", () => {
   assert.doesNotMatch(src, /Extract "memory" candidates/);
 });
 
-test("Desktop nav chips expose 写出来 / 我的情况 product terms", () => {
+test("Desktop nav chips expose 交付 / 我的情况 product terms", () => {
   const zhShell = readJson("topmind-desktop/src/locales/zh-CN/shell.json");
   const enShell = readJson("topmind-desktop/src/locales/en-US/shell.json");
   const zhWs = readJson("topmind-desktop/src/locales/zh-CN/workspace.json");
   const enWs = readJson("topmind-desktop/src/locales/en-US/workspace.json");
-  assert.equal(zhShell.primaryNav.outputs, "写出来");
+  assert.equal(zhShell.primaryNav.outputs, "交付");
+  assert.equal(zhWs.outputsView.title, "交付");
   assert.equal(zhShell.sidebar.myProfile, "我的情况");
   assert.equal(enShell.sidebar.myProfile, "My profile");
   assert.equal(zhWs.memoryBrowse.title, "我的情况");
@@ -62,7 +63,7 @@ test("Desktop nav chips expose 写出来 / 我的情况 product terms", () => {
   assert.equal(enWs.memoryBrowse.organize, "Organize My profile");
   assert.ok(enShell.primaryNav.outputs, "en outputs present");
   assert.doesNotMatch(enShell.primaryNav.outputs, /写出来/);
-  assert.doesNotMatch(zhShell.primaryNav.outputs, /Ship it|Outputs|Write out/i);
+  assert.doesNotMatch(zhShell.primaryNav.outputs, /Ship it|Outputs|Write out|Delivery/i);
   // 我的情况 is a secondary pin, not a PrimaryNav peer; EN is My profile not About me
   assert.equal(zhShell.primaryNav.memory, undefined);
   assert.equal(enShell.primaryNav.memory, undefined);
@@ -133,7 +134,7 @@ test("Obsidian stream surface is 动态/Stream, not a sixth 工作台/Workbench 
   assert.doesNotMatch(en, /About me/);
 });
 
-test("EN Desktop locales use My profile / Note it / Ship it (not My Status / Quick Note)", () => {
+test("EN Desktop locales use My profile / Note it / Delivery (not My Status / Quick Note)", () => {
   const files = [
     "topmind-desktop/src/locales/en-US/ai.json",
     "topmind-desktop/src/locales/en-US/settings.json",
@@ -149,14 +150,16 @@ test("EN Desktop locales use My profile / Note it / Ship it (not My Status / Qui
     assert.doesNotMatch(src, /\bAbout me\b/, rel);
   }
   const enShell = readJson("topmind-desktop/src/locales/en-US/shell.json");
+  const enWs = readJson("topmind-desktop/src/locales/en-US/workspace.json");
   const enCommon = readJson("topmind-desktop/src/locales/en-US/common.json");
   const enOverlays = readJson("topmind-desktop/src/locales/en-US/overlays.json");
-  assert.equal(enShell.primaryNav.outputs, "Ship it");
-  assert.equal(enCommon.category.outputs, "Ship it");
+  assert.equal(enShell.primaryNav.outputs, "Delivery");
+  assert.equal(enWs.outputsView.title, "Delivery");
+  assert.equal(enCommon.category.outputs, "Delivery");
   assert.equal(enCommon.category.memory, "My profile");
   assert.equal(enOverlays.search.group.memory, "My profile");
-  assert.equal(enShell.sidebar.contextMenu.openOutputs, "Open Ship it");
-  assert.equal(enShell.sidebar.contextMenu.publishToOutputs, "Publish to Ship it");
+  assert.equal(enShell.sidebar.contextMenu.openOutputs, "Open Delivery");
+  assert.equal(enShell.sidebar.contextMenu.publishToOutputs, "Publish to Delivery");
 });
 
 test("command palette actions resolve labels via labelKey (live locale)", () => {
@@ -180,4 +183,87 @@ test("Obsidian compose vs capture call the distinct vocab keys", () => {
   assert.match(modal, /t\("quick_capture_title"\)/);
   assert.doesNotMatch(modal, /t\("quick_capture_submit"\)/);
   assert.doesNotMatch(modal, /t\("quick_capture_log_it"\)/);
+});
+
+/**
+ * Retired product vocabulary must not survive in shipped display copy.
+ * The 2026-09 chrome work renamed only the nav chips, which left 收件箱 / 写出来 /
+ * Ship it scattered across ~60 strings; this keeps the rename all-or-nothing.
+ * See docs/adr/2026-09-14-product-vocabulary-rename.md.
+ */
+test("retired vocabulary 收件箱 / 写出来 / Ship it is gone from shipped locales", () => {
+  const localeFiles = fs
+    .readdirSync(path.join(repoRoot, "topmind-desktop/src/locales/zh-CN"))
+    .filter((f) => f.endsWith(".json"))
+    .flatMap((f) => [
+      `topmind-desktop/src/locales/zh-CN/${f}`,
+      `topmind-desktop/src/locales/en-US/${f}`,
+    ]);
+  for (const rel of localeFiles) {
+    assert.doesNotMatch(read(rel), /收件箱|写出来|Ship it/u, rel);
+  }
+  assert.doesNotMatch(
+    read("obsidian-plugin/src/i18n/locales/zh-CN.ts"),
+    /收件箱|写出来/u,
+    "obsidian zh-CN locale",
+  );
+  assert.doesNotMatch(
+    read("browser-extension/_locales/zh_CN/messages.json"),
+    /收件箱|写出来/u,
+    "clip extension zh_CN locale",
+  );
+});
+
+/** Default template seeds carry the new vocabulary; role resolution stays name-agnostic. */
+test("default templates seed Inbox / 交付 / Delivery", () => {
+  for (const id of ["stream", "balanced", "research", "periodic"]) {
+    const zh = readJson(`templates/${id}.json`);
+    assert.equal(zh.categories["00"].name, "Inbox", `${id} 00`);
+    assert.equal(zh.categories["00"].role, "buffer", `${id} 00 role`);
+    assert.equal(zh.categories["88"].name, "交付", `${id} 88`);
+    assert.equal(zh.categories["88"].role, "delivery", `${id} 88 role`);
+
+    const en = readJson(`templates/${id}.en-US.json`);
+    assert.equal(en.categories["00"].name, "Inbox", `${id} en 00`);
+    assert.equal(en.categories["88"].name, "Delivery", `${id} en 88`);
+  }
+});
+
+/**
+ * Templates are only one of the places a brand-new directory name is decided.
+ * The Kernel/Desktop/UTR fallbacks below also decide it, and Kernel suggestion
+ * copy is user-facing. Both must follow the rename, while legacy on-disk names
+ * stay resolvable (role-based resolution is name-agnostic).
+ */
+test("new-workspace fallback names and Kernel suggestion copy follow the rename", () => {
+  const wsm = read("lib/workspace-model.mjs");
+  assert.match(wsm, /"zh-CN":\s*\{\s*buffer:\s*"Inbox",\s*delivery:\s*"交付"/u);
+  assert.match(wsm, /"en-US":\s*\{\s*buffer:\s*"Inbox",\s*delivery:\s*"Delivery"/u);
+  assert.match(wsm, /\["00-Inbox",\s*"88-交付",\s*"99-归档"\]/u);
+  assert.match(wsm, /\["00-Inbox",\s*"88-Delivery",\s*"99-Archive"\]/u);
+
+  const pathModel = read("topmind-desktop/electron/lib/path-model.mjs");
+  assert.doesNotMatch(pathModel, /"buffer",\s*"00-收件箱"/u);
+  assert.doesNotMatch(pathModel, /"delivery",\s*"88-输出"/u);
+  const utrCtx = read("utr/core/workspace-context.mjs");
+  assert.match(utrCtx, /fallbackHyphen:\s*"00-Inbox"/u);
+  assert.match(utrCtx, /fallbackHyphen:\s*"88-交付"/u);
+
+  // Kernel suggestion copy (zh) is user-facing
+  assert.doesNotMatch(read("lib/suggest-engine.mjs"), /收件箱/u);
+  assert.match(read("lib/suggest-engine.mjs"), /inboxReviewTitle:\s*"Inbox 待整理"/u);
+
+  // Legacy names must stay resolvable / parseable
+  assert.match(read("topmind-desktop/electron/lib/category-pattern.mjs"), /"88-Outputs"/u);
+  assert.match(read("utr/core/safety-receipt-paths.mjs"), /"88-Outputs"/u);
+  const receipt = read("utr/core/safety-receipt-paths.mjs");
+  assert.match(receipt, /"88-交付"/u);
+
+  // UTR contract metadata declares the live default-template layout
+  const listCats = readJson("utr/contracts/workspace-read/workspace-read.json")
+    .commands["list-categories"];
+  const reads = listCats.reads.flat(Infinity).filter((v) => typeof v === "string");
+  assert.ok(reads.includes("00-Inbox/"), JSON.stringify(reads));
+  // Legacy names stay declared so high-risk write snapshots keep covering old workspaces
+  assert.ok(reads.includes("00-收件箱/"), JSON.stringify(reads));
 });

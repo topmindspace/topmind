@@ -5,7 +5,7 @@
 | Scope | Walks | State file |
 |-------|-------|------------|
 | `topics` | 每个 `{大类}/{专题}/` | `.topmind/loop/topics.md` |
-| `inbox` | buffer 类别（常 00-收件箱）下条目 | `.topmind/loop/inbox.md` |
+| `inbox` | buffer 类别（常 00-Inbox）下条目 | `.topmind/loop/inbox.md` |
 | `archive` | system 类别（常 99-归档）下条目（含 `backups/` · `stream-archive/` · `receipts/`） | `.topmind/loop/archive.md` |
 
 默认全跑三 scope。用户可限定：`loop 一下 topics` / `loop 一下 {类别名}` / `继续 loop`。

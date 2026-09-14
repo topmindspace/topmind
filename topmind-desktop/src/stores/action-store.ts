@@ -88,6 +88,8 @@ interface ActionStore {
   everLoaded: boolean;  // 是否曾加载过（用于空态判断）
   /** Timestamp of last refresh — throttles rapid re-fetches from events */
   lastRefreshAt: number;
+  /** Bulk accept progress — null when idle. Surfaces an honest in-progress state. */
+  applying: { current: number; total: number; title: string } | null;
 
   // 数据加载
   /** Soft refresh by default (preserve session suggestions). force=true replaces.
@@ -110,8 +112,11 @@ interface ActionStore {
   }>) => number;
 
   // 操作
-  /** Accept a suggestion or confirm a pending write. opts.skipNav suppresses navigation (used by acceptAll). */
-  acceptItem: (id: string, opts?: { skipNav?: boolean }) => Promise<void>;
+  /** Accept a suggestion or confirm a pending write.
+   *  opts.skipNav suppresses navigation (used by acceptAll).
+   *  opts.silent suppresses per-item toasts / refresh events (bulk).
+   *  Returns whether the item was applied (false on skip, confirm-gate, or error). */
+  acceptItem: (id: string, opts?: { skipNav?: boolean; silent?: boolean }) => Promise<boolean>;
   /** Open the existing associated note (周期本 / profile) without writing. */
   openItem: (id: string) => void;
   rejectItem: (id: string) => Promise<void>;  // 忽略建议或拒绝写入
@@ -161,6 +166,17 @@ function enqueueSuggestRefresh(
   return refreshInFlight;
 }
 
+/** Let React paint bulk-apply progress between sequential writes. */
+function yieldToUi(): Promise<void> {
+  return new Promise((resolve) => {
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(() => resolve());
+    } else {
+      setTimeout(resolve, 0);
+    }
+  });
+}
+
 export const useActionStore = create<ActionStore>((set, get) => ({
   items: [],
   loading: false,
@@ -171,6 +187,7 @@ export const useActionStore = create<ActionStore>((set, get) => ({
   autoPrepare: true,
   everLoaded: false,
   lastRefreshAt: 0,
+  applying: null,
 
   refresh: (opts = {}) => {
     const requestedForce = opts.force === true;
@@ -334,10 +351,12 @@ export const useActionStore = create<ActionStore>((set, get) => ({
     }, requestedForce);
   },
 
-  acceptItem: async (id: string, opts?: { skipNav?: boolean }) => {
+  acceptItem: async (id: string, opts?: { skipNav?: boolean; silent?: boolean }) => {
     const item = get().items.find(x => x.id === id);
-    if (!item) return;
+    if (!item) return false;
     const skipNav = opts?.skipNav === true;
+    const silent = opts?.silent === true;
+    const { t } = i18n;
 
     // Track applied suggestion to prevent re-suggesting in same session
     if (item.source === 'suggestion') {
@@ -346,8 +365,11 @@ export const useActionStore = create<ActionStore>((set, get) => ({
       sessionSuggestionCache.delete(id);
     }
 
-    set({ busyId: id, message: null });
-    const { t } = i18n;
+    // Immediate "still working" copy — do not wait for the write to finish.
+    set({
+      busyId: id,
+      message: silent ? get().message : t('editor:ai.suggestApplying'),
+    });
 
     try {
       if (item.source === 'suggestion') {
@@ -364,8 +386,8 @@ export const useActionStore = create<ActionStore>((set, get) => ({
 
           if (item.priority !== 'high') {
             set(s => ({ items: s.items.filter(x => x.id !== id) }));
-            emitLocal(SUGGESTIONS_REFRESH_EVENT, { reason: 'apply' });
-            return;
+            if (!silent) emitLocal(SUGGESTIONS_REFRESH_EVENT, { reason: 'apply' });
+            return true;
           }
         }
 
@@ -400,18 +422,19 @@ export const useActionStore = create<ActionStore>((set, get) => ({
         if (res.needsConfirm) {
           set({ message: t('editor:ai.suggestNeedsConfirm') });
           emitLocal(PENDING_WRITES_CHANGED_EVENT, { source: 'suggestion' });
-          return;
+          return false;
         }
 
+        const applied = res.ok !== false;
         // Navigation: skip during bulk acceptAll to prevent editor blanking.
         // Digest writes navigate via apply evidence (year subdirectory under memory/periodic).
-        if (!skipNav) {
+        if (!skipNav && applied) {
           if (item.suggestionKind === 'inbox_review' || item.suggestionKind === 'stale_topic' || item.suggestionKind === 'catch_all') {
             select({ kind: 'stream' });
-          } else if (item.suggestionKind === 'inbox_organize' && res.targetPath && res.ok !== false) {
+          } else if (item.suggestionKind === 'inbox_organize' && res.targetPath) {
             // After organizing inbox item → navigate to the moved file in its topic
             select({ kind: 'file', path: String(res.targetPath) });
-          } else if (item.suggestionKind === 'create_topic' && res.targetPath && res.ok !== false) {
+          } else if (item.suggestionKind === 'create_topic' && res.targetPath) {
             // Content-category topic — open topic.md under the category (never memory/topics)
             select({ kind: 'file', path: String(res.targetPath) });
           } else {
@@ -420,45 +443,63 @@ export const useActionStore = create<ActionStore>((set, get) => ({
           }
         }
 
-        set(s => ({ items: s.items.filter(x => x.id !== id) }));
-        const detail = res.targetPath ? String(res.targetPath) : res.note || '';
-        set({ message: detail ? t('editor:ai.suggestAppliedDetail', { detail }) : t('editor:ai.suggestApplied') });
-
-        if (res.ok !== false && res.wroteFiles !== false) {
-          const target = res.targetPath ? String(res.targetPath) : '';
-          toastWriteback(res.note || t('editor:ai.suggestApplied'), {
-            operation: 'update',
-            savedAt: new Date().toISOString(),
-            targetPath: target,
-            wroteFiles: true,
-            ok: true,
-          });
-          if (target) emitLocal('workspace:file-changed', { relativePath: target });
+        if (applied) {
+          set(s => ({ items: s.items.filter(x => x.id !== id) }));
         }
-        emitLocal(SUGGESTIONS_REFRESH_EVENT, { reason: 'apply' });
+        const detail = res.targetPath ? String(res.targetPath) : res.note || '';
+        if (!silent) {
+          set({ message: detail ? t('editor:ai.suggestAppliedDetail', { detail }) : t('editor:ai.suggestApplied') });
+        }
+
+        if (applied && res.wroteFiles !== false) {
+          const target = res.targetPath ? String(res.targetPath) : '';
+          if (!silent) {
+            toastWriteback(res.note || t('editor:ai.suggestApplied'), {
+              operation: 'update',
+              savedAt: new Date().toISOString(),
+              targetPath: target,
+              wroteFiles: true,
+              ok: true,
+            });
+            if (target) emitLocal('workspace:file-changed', { relativePath: target });
+            emitLocal(SUGGESTIONS_REFRESH_EVENT, { reason: 'apply' });
+          }
+        } else if (!silent) {
+          emitLocal(SUGGESTIONS_REFRESH_EVENT, { reason: 'apply' });
+        }
+        return applied;
 
       } else if (item.source === 'pending_write') {
         const select = useViewStore.getState().select;
         const r = await api.ws.confirmPendingWrite(id);
         const p = item.targetPath || '';
         const m = t('editor:ai.pendingWrote', { path: r.targetPath || p });
-        set({ message: m });
-        toastWriteback(m, r);
+        if (!silent) {
+          set({ message: m });
+          toastWriteback(m, r);
+        }
         if (!skipNav) {
           select({ kind: 'file', path: r.targetPath || p });
         }
         set(s => ({ items: s.items.filter(x => x.id !== id) }));
-        emitLocal('workspace:file-changed', { relativePath: r.targetPath || p });
-        emitLocal(SUGGESTIONS_REFRESH_EVENT, { reason: 'apply' });
-        void get().refresh();
+        if (!silent) {
+          emitLocal('workspace:file-changed', { relativePath: r.targetPath || p });
+          emitLocal(SUGGESTIONS_REFRESH_EVENT, { reason: 'apply' });
+          void get().refresh();
+        }
+        return true;
       }
+      return false;
     } catch (e) {
       set({ message: e instanceof Error ? e.message : String(e) });
-      if (item.source === 'suggestion') {
-        toastWritebackError(t('editor:ai.suggestTitle'), e);
-      } else {
-        toastWritebackError(t('editor:ai.pendingTitle'), e);
+      if (!silent) {
+        if (item.source === 'suggestion') {
+          toastWritebackError(t('editor:ai.suggestTitle'), e);
+        } else {
+          toastWritebackError(t('editor:ai.pendingTitle'), e);
+        }
       }
+      return false;
     } finally {
       set({ busyId: null });
     }
@@ -514,8 +555,10 @@ export const useActionStore = create<ActionStore>((set, get) => ({
     let accepted = 0;
     let failed = 0;
     const summaryParts: string[] = [];
+    const changedPaths = new Set<string>();
     let lastTargetPath = '';
     let lastTargetKind = '';
+    const { t } = i18n;
     // Process sequentially to avoid write conflicts and maintain order.
     // Accept suggestions first (sorted by priority), then pending writes.
     const ordered = [...allItems].sort((a, b) => {
@@ -527,27 +570,52 @@ export const useActionStore = create<ActionStore>((set, get) => ({
       if (a.source !== 'pending_write' && b.source === 'pending_write') return -1;
       return 0;
     });
-    const lastIndex = ordered.length - 1;
-    for (let idx = 0; idx < ordered.length; idx++) {
-      const item = ordered[idx];
-      // Skip if item was already removed by a prior accept (e.g. refresh after apply)
-      if (!get().items.some((x) => x.id === item.id)) continue;
-      // Skip navigation for all but the last item to prevent editor blanking.
-      // The last item navigates to its target so the user sees the final result.
-      const skipNav = idx < lastIndex;
-      try {
-        await get().acceptItem(item.id, { skipNav });
-        accepted++;
-        // Collect summary info for user feedback
-        const label = item.title || item.suggestionKind || item.source;
-        summaryParts.push(label);
-        if (item.targetPath) {
-          lastTargetPath = item.targetPath;
-          lastTargetKind = item.suggestionKind || '';
+    set({
+      applying: {
+        current: 0,
+        total: ordered.length,
+        title: ordered[0]?.title || '',
+      },
+      message: t('editor:ai.bulkAcceptProgress', {
+        current: 0,
+        total: ordered.length,
+        title: ordered[0]?.title || '',
+      }),
+    });
+    try {
+      for (let idx = 0; idx < ordered.length; idx++) {
+        const item = ordered[idx];
+        set({
+          applying: {
+            current: idx + 1,
+            total: ordered.length,
+            title: item.title || '',
+          },
+          message: t('editor:ai.bulkAcceptProgress', {
+            current: idx + 1,
+            total: ordered.length,
+            title: item.title || '',
+          }),
+        });
+        await yieldToUi();
+        // Skip if item was already removed by a prior accept (e.g. refresh after apply)
+        if (!get().items.some((x) => x.id === item.id)) continue;
+        const ok = await get().acceptItem(item.id, { skipNav: true, silent: true });
+        if (ok) {
+          accepted++;
+          const label = item.title || item.suggestionKind || item.source;
+          summaryParts.push(label);
+          if (item.targetPath) {
+            lastTargetPath = item.targetPath;
+            lastTargetKind = item.suggestionKind || '';
+            changedPaths.add(item.targetPath);
+          }
+        } else {
+          failed++;
         }
-      } catch {
-        failed++;
       }
+    } finally {
+      set({ applying: null });
     }
     // After all items: navigate once to the most relevant target
     if (accepted > 0 && lastTargetPath) {
@@ -558,9 +626,22 @@ export const useActionStore = create<ActionStore>((set, get) => ({
         select({ kind: 'file', path: lastTargetPath });
       }
     } else if (accepted > 0) {
-      // No specific target — go to stream view to see the results
       const select = useViewStore.getState().select;
       select({ kind: 'stream' });
+    }
+    if (accepted > 0) {
+      toastWriteback(t('editor:ai.bulkAcceptDone', { count: accepted }), {
+        operation: 'update',
+        savedAt: new Date().toISOString(),
+        targetPath: lastTargetPath,
+        wroteFiles: true,
+        ok: true,
+      });
+      for (const p of changedPaths) {
+        emitLocal('workspace:file-changed', { relativePath: p });
+      }
+      if (changedPaths.size === 0) emitLocal('workspace:file-changed');
+      emitLocal(SUGGESTIONS_REFRESH_EVENT, { reason: 'apply' });
     }
     const summary = summaryParts.slice(0, 5).join(' · ') + (summaryParts.length > 5 ? ` +${summaryParts.length - 5}` : '');
     return { accepted, failed, summary };

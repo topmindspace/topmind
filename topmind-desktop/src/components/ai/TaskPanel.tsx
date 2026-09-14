@@ -137,7 +137,7 @@ export function TaskPanel({ open, onClose }: TaskPanelProps) {
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-text-primary">{t("taskPanel.title")}</span>
           {runningCount > 0 ? (
-            <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-muted px-1 text-3xs font-semibold text-accent">
+            <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-muted px-1 text-3xs font-semibold text-accent-color">
               {runningCount}
             </span>
           ) : null}

@@ -106,7 +106,7 @@ test("shipped delete copy does not promise Archive for every delete", () => {
   assert.match(enShell.sidebar.treeView.confirmDeleteFileDesc, /Ordinary notes are not moved to Archive/);
   assert.match(zhShell.sidebar.treeView.confirmDeleteTopicDesc, /topic\.md/);
   assert.match(enShell.sidebar.treeView.confirmDeleteTopicDesc, /topic\.md/);
-  assert.match(zhWs.inbox.confirmBatchDelete, /普通收件箱笔记不会进回收站/);
+  assert.match(zhWs.inbox.confirmBatchDelete, /普通 Inbox 笔记不会进回收站/);
   assert.match(enWs.inbox.confirmBatchDelete, /Ordinary inbox notes are not moved to Archive/);
   assert.match(zhSettings.general.writebackHelpAuto, /普通开放笔记删除不进回收站/);
   assert.match(enSettings.general.writebackHelpAuto, /ordinary open-note deletes do not/);
@@ -128,8 +128,8 @@ test("inbox batch-delete and 写出来 delete use split honest copy", () => {
   assert.doesNotMatch(outputsView, /workspace:inbox\.confirmBatchDelete/);
   assert.match(outputsView, /workspace:outputsView\.confirmDelete/);
 
-  assert.match(zhWs.outputsView.confirmDelete, /写出来稿会先移到归档/);
-  assert.match(enWs.outputsView.confirmDelete, /Ship-it files are moved to Archive/);
+  assert.match(zhWs.outputsView.confirmDelete, /交付稿会先移到归档/);
+  assert.match(enWs.outputsView.confirmDelete, /Delivery files are moved to Archive/);
   assert.doesNotMatch(zhWs.outputsView.confirmDelete, ALWAYS_ARCHIVE_LIE);
   assert.doesNotMatch(enWs.outputsView.confirmDelete, ALWAYS_ARCHIVE_LIE);
 });

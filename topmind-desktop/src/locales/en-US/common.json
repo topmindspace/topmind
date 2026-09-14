@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "topmind",
-    "tagline": "Note it · Stream · Topic · My profile · Write out"
+    "tagline": "Note it · Stream · Topic · My profile · Delivery"
   },
   "action": {
     "save": "Save",
@@ -85,7 +85,7 @@
     "inbox": "Inbox",
     "stream": "Stream",
     "topic": "Topics",
-    "outputs": "Ship it",
+    "outputs": "Delivery",
     "archive": "Archive",
     "reference": "Reference",
     "memory": "My profile"
@@ -100,7 +100,7 @@
     "todo": "Todo list",
     "stream": "Go to Stream",
     "kanban": "Sidebar kanban view",
-    "outputs": "Go to Ship it",
+    "outputs": "Go to Delivery",
     "archive": "Go to Archive",
     "workspaceSwitcher": "Switch workspace",
     "closeTab": "Close current file tab",

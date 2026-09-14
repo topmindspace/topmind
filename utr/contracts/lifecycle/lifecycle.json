@@ -34,9 +34,9 @@
       "destructive": false,
       "inputs": {},
       "reads": [
-        "00-收件箱/",
+        "00-Inbox/",
         "{category}/",
-        "88-输出/",
+        "88-交付/",
         "99-归档/"
       ],
       "writes": []

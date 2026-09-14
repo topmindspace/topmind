@@ -165,7 +165,7 @@ function TaskCard({
             <button
               type="button"
               onClick={onRetry}
-              className="flex h-5 w-5 items-center justify-center rounded-[var(--radius-xs)] text-text-tertiary transition-colors hover:bg-surface-muted hover:text-accent"
+              className="flex h-5 w-5 items-center justify-center rounded-[var(--radius-xs)] text-text-tertiary transition-colors hover:bg-surface-muted hover:text-accent-color"
               aria-label={t("taskPanel.retry")}
             >
               <RiArrowGoBackLine size={ICON.micro} />

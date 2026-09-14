@@ -1,7 +1,7 @@
 {
   "skill_name": "topmind",
   "daily_entry": "topmind",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "evals": [
     {
       "id": 1,
@@ -24,7 +24,7 @@
       "prompt": "基于 30-阅读/2026-示例阅读笔记 专题的材料，写一版适合视频脚本的输出草稿。",
       "primary_skill": "topmind-write",
       "extra_skills": [],
-      "expected_output": "Routes through topmind-write, reads topic.md first when present then necessary notes, drafts an output, and saves or previews under delivery (role:delivery / 88-Outputs) according to writeback_mode. Does not force-create topic.md."
+      "expected_output": "Routes through topmind-write, reads topic.md first when present then necessary notes, drafts an output, and saves or previews under delivery (role:delivery / 88-Delivery) according to writeback_mode. Does not force-create topic.md."
     },
     {
       "id": 4,
@@ -188,14 +188,14 @@
       "extra_skills": [
         "topmind-write"
       ],
-      "expected_output": "Multi-intent: organize + write. First routes through topmind-organize to synthesize research notes, then routes through topmind-write to produce and deliver the report to 88-Outputs/. Runs Delivery Checklist before saving output."
+      "expected_output": "Multi-intent: organize + write. First routes through topmind-organize to synthesize research notes, then routes through topmind-write to produce and deliver the report to 88-Delivery/. Runs Delivery Checklist before saving output."
     },
     {
       "id": 26,
-      "prompt": "写完了，帮我导出到 88-Outputs。",
+      "prompt": "写完了，帮我导出到 88-Delivery。",
       "primary_skill": "topmind-write",
       "extra_skills": [],
-      "expected_output": "Routes through topmind-write (deliver entry point). Runs Delivery Checklist, uses workspace-write.save-output to save to 88-Outputs/ with YYYY-MM-DD-描述 naming. Returns receipt with saved path."
+      "expected_output": "Routes through topmind-write (deliver entry point). Runs Delivery Checklist, uses workspace-write.save-output to save to 88-Delivery/ with YYYY-MM-DD-描述 naming. Returns receipt with saved path."
     },
     {
       "id": 27,

@@ -13,7 +13,7 @@ export const zhCN = {
   quick_capture_placeholder: "在此输入...",
   quick_capture_target: "目标",
   quick_capture_target_stream: "本周动态",
-  quick_capture_target_inbox: "收件箱",
+  quick_capture_target_inbox: "Inbox",
   quick_capture_hint_enter: "⏎ 记下",
   quick_capture_hint_enter_note: "⏎ 记一下",
   quick_capture_hint_shift_enter: "⇧⏎ 换行",
@@ -49,6 +49,11 @@ export const zhCN = {
   suggestions_open: "打开",
   suggestions_dismiss: "忽略",
   suggestions_loading: "AI 正在思考",
+  suggestions_accept_all: "全部确认",
+  suggestions_refreshing: "正在更新建议…",
+  notice_executing: "正在执行",
+  notice_executing_progress: "正在执行 {{current}}/{{total}} · {{title}}",
+  notice_accept_all_done: "已确认 {{count}} 条建议",
   suggestion_impact_high: "高影响",
   suggestion_impact_medium: "中影响",
   suggestion_impact_low: "低影响",
@@ -172,7 +177,7 @@ export const zhCN = {
   cmd_topic_classify: "Topmind: 专题分类",
   cmd_memory_organize: "Topmind: 整理我的情况",
   cmd_open_profile: "Topmind: 打开我的情况",
-  cmd_open_inbox: "Topmind: 打开收件箱",
+  cmd_open_inbox: "Topmind: 打开 Inbox",
 
   // ── Settings ──
   settings_workspace: "工作区与契约",
@@ -257,7 +262,7 @@ export const zhCN = {
   notice_classify_done: "专题分类完成 ✓",
   notice_memory_running: "整理我的情况中...",
   notice_memory_done: "我的情况已整理 ✓",
-  notice_no_inbox: "未找到收件箱目录",
+  notice_no_inbox: "未找到 Inbox 目录",
   notice_new_note_created: "已创建新笔记",
   notice_new_note_failed: "创建笔记失败",
   notice_models_loaded: "已加载 {{count}} 个模型",
@@ -270,8 +275,8 @@ export const zhCN = {
   stream_expand_entry: "点击展开/收起动态条目",
 
   // ── URL detection ──
-  notice_url_to_inbox: "检测到链接，已路由到收件箱",
-  compose_url_hint: "检测到链接，建议使用「记一下」抓取正文到收件箱",
+  notice_url_to_inbox: "检测到链接，已路由到 Inbox",
+  compose_url_hint: "检测到链接，建议使用「记一下」抓取正文到 Inbox",
 
   // ── General ──
   error: "出错了",
@@ -280,7 +285,7 @@ export const zhCN = {
   init_workspace_desc: "在当前 Vault 中创建 topmind 工作区结构",
   init_workspace_success: "工作区已初始化",
   init_workspace_failed: "初始化失败",
-  init_workspace_confirm: "将在当前库中创建 topmind 目录结构（动态 / 收件箱 / memory 等）和 topmind.yaml 契约文件。已存在的内容不会被删除。继续？",
+  init_workspace_confirm: "将在当前库中创建 topmind 目录结构（动态 / Inbox / memory 等）和 topmind.yaml 契约文件。已存在的内容不会被删除。继续？",
   dialog_cancel: "取消",
   dialog_confirm: "确认",
 
@@ -374,7 +379,7 @@ export const zhCN = {
   // ── Button labels (for clarity) ──
   toolbar_btn_sidebar: "侧边栏",
   toolbar_btn_settings: "设置",
-  toolbar_btn_inbox: "收件箱",
+  toolbar_btn_inbox: "Inbox",
   toolbar_btn_new_note: "新笔记",
   toolbar_btn_profile: "我的情况",
   feed_layout_toggle: "信息流展示",

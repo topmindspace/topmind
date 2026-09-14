@@ -1,6 +1,6 @@
 ---
 name: topmind
-version: 4.0.0
+version: 4.0.1
 description: >-
   topmind 总入口与多意图路由（类别/专题/笔记/交付）。Use when 用户说 topmind、意图模糊、或需要
   收→整→写 分步。单意图明确时直接用 topmind-capture|organize|write|memory|maintain|loop|weread|x|ledger。
@@ -41,7 +41,7 @@ degradation: ../shared/capability-degradation.md
 ```text
 用户说什么              → 路由到哪            → 目标位置
 ─────────────────────────────────────────────────────────────
-记/存/收/链接/想法       → topmind-capture     → 动态周期本 / 专题 / 收件箱
+记/存/收/链接/想法       → topmind-capture     → 动态周期本 / 专题 / Inbox
 整理本周/理顺流水        → topmind-organize    → 活动窗口就地理顺 + 建议（确认后写）
 整理/分析/研究/总结/对比 → topmind-organize    → 当前专题 / Inbox 路由 / 活动窗口
 写/改/稿/交付/导出       → topmind-write       → delivery 或专题根
@@ -90,7 +90,7 @@ Which category? Which topic (or loose note)? Which object? Which action? Which s
 - 高信心类别+专题 → `{大类}/{专题}/`  
 - 高信心类别、中信心专题 → 写入专题 + 回执 `route_reason`  
 - 高信心类别、无专题 → `{大类}/*.md`，建议是否升级专题  
-- 低信心类别 → **role:buffer**（常为 `00-收件箱/`）  
+- 低信心类别 → **role:buffer**（常为 `00-Inbox/`）  
 - 跳过 `hidden` 类别  
 
 ### Minimum Context
@@ -157,7 +157,7 @@ UTR 可选（MCP primary+danger，与注册表 19 条对齐）：`list-categorie
 ├── memory/                 # 语义平面（profile / periodic/{YYYY}/ / topics / todo.md / 可选 ledgers/）
 ├── .topmind/               # 系统平面（index / loop / logs，可重建）
 ├── {NN}-{Name}/               # buffer / loose-stream / deep-work / …
-├── {NN}-Outputs/              # role: delivery（常 88-输出）
+├── {NN}-Outputs/              # role: delivery（常 88-交付）
 └── {NN}-Archive/              # role: system（常 99-归档）
 ```
 

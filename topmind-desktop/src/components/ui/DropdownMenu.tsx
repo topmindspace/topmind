@@ -39,6 +39,10 @@ export interface DropdownMenuProps {
   minWidth?: number;
   maxWidth?: number;
   maxHeight?: number;
+  /** Force open direction (sidebar footer → "top"). */
+  preferPlacement?: "top" | "bottom" | "auto";
+  /** Extra bottom inset so the panel clears the status bar. */
+  padBottom?: number;
   /** Default true — panel width tracks trigger (settings). False for wide menus. */
   matchTriggerWidth?: boolean;
   /**
@@ -62,6 +66,8 @@ export function DropdownMenu({
   minWidth = 0,
   maxWidth = 480,
   maxHeight = 320,
+  preferPlacement = "auto",
+  padBottom,
   matchTriggerWidth = true,
   closeOnScroll = true,
   className,
@@ -100,10 +106,12 @@ export function DropdownMenu({
         matchTriggerWidth,
         gap: 4,
         pad: 8,
+        padBottom,
+        preferPlacement,
       });
       return { ...next, ready: measurePanel };
     },
-    [align, matchTriggerWidth, maxHeight, maxWidth, minWidth],
+    [align, matchTriggerWidth, maxHeight, maxWidth, minWidth, padBottom, preferPlacement],
   );
 
   // Open: place without paint → measure once → ready (single visible jump-free paint)

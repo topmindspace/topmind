@@ -190,6 +190,25 @@ title: 2026-W32
     assert.doesNotMatch(day[0].body, /^\s*[-*+]\s/m);
   });
 
+  it("same-day posts stay chronological top-to-bottom; days stay newest-first", () => {
+    const md = [
+      "## 2026-07-24",
+      "- 10:00 a",
+      "- 11:00 b",
+      "",
+      "## 2026-07-25",
+      "- 09:00 c",
+      "- 12:00 d",
+    ].join("\n");
+    const entries = parsePeriodNote(md);
+    assert.equal(entries[0].heading, "2026-07-25");
+    assert.match(entries[0].body, /09:00 c/);
+    assert.match(entries[1].body, /12:00 d/);
+    assert.equal(entries[2].heading, "2026-07-24");
+    assert.match(entries[2].body, /10:00 a/);
+    assert.match(entries[3].body, /11:00 b/);
+  });
+
   it("timed list items stay separate; extra paragraphs stay on the same moment", () => {
     const md = [
       "## 08-03 周一",
@@ -257,7 +276,7 @@ title: 2026-W32
     assert.match(split[0], /a1/);
   });
 
-  it("reverses posts newest-first but keeps 续 nested on the preceding item", () => {
+  it("keeps same-day posts chronological; 续 stays nested on the preceding item", () => {
     const md = [
       "## 08-03 周一",
       "",
@@ -270,11 +289,11 @@ title: 2026-W32
     ].join("\n");
     const day = parsePeriodNote(md).filter((e) => e.heading === "08-03 周一");
     assert.equal(day.length, 2);
-    assert.match(day[0].body, /11:00 second/);
-    assert.equal((day[0].replies || []).length, 1);
-    assert.match(day[0].replies[0].body, /follow/);
-    assert.match(day[1].body, /10:00 first/);
-    assert.equal((day[1].replies || []).length, 0);
+    assert.match(day[0].body, /10:00 first/);
+    assert.equal((day[0].replies || []).length, 0);
+    assert.match(day[1].body, /11:00 second/);
+    assert.equal((day[1].replies || []).length, 1);
+    assert.match(day[1].replies[0].body, /follow/);
   });
 
   it("续 between bullets does not swallow the next 记下", () => {

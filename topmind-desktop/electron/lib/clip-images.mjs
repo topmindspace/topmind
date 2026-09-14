@@ -15,10 +15,16 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
+import { pickImgSrc } from "./html-to-markdown.mjs";
 
 const MAX_IMAGES = 40;
 const MAX_BYTES = 8_000_000;
 const TIMEOUT_MS = 15_000;
+
+/**
+ * One downloadable image reference.
+ * @typedef {{ full: string, alt: string, url: string }} ImageHit
+ */
 
 /**
  * Resolve a media href against an optional page base URL.
@@ -63,21 +69,42 @@ export function resolveMediaUrl(href, baseUrl) {
 /**
  * Collect markdown image matches: ![alt](url) / ![alt](<url>) / with optional title.
  * @param {string} markdown
- * @returns {Array<{ full: string, alt: string, url: string, index: number }>}
+ * @returns {ImageHit[]}
  */
 export function findMarkdownImages(markdown) {
   const md = String(markdown || "");
   const re = /!\[([^\]]*)\]\(\s*<?([^)\s>]+)>?(?:\s+(?:"[^"]*"|'[^']*'))?\s*\)/giu;
-  /** @type {Array<{ full: string, alt: string, url: string, index: number }>} */
+  /** @type {ImageHit[]} */
   const out = [];
   let m;
   while ((m = re.exec(md)) !== null) {
-    out.push({
-      full: m[0],
-      alt: m[1] || "",
-      url: (m[2] || "").trim(),
-      index: m.index,
-    });
+    out.push({ full: m[0], alt: m[1] || "", url: (m[2] || "").trim() });
+  }
+  return out;
+}
+
+/**
+ * Leftover HTML `<img>` that the HTML→Markdown pass kept verbatim.
+ *
+ * Uses the shared `pickImgSrc` so lazy-load attributes (`data-src`,
+ * `data-original`, `data-actualsrc`) and `srcset` are honoured — otherwise a
+ * placeholder `src` (1×1 gif) would be "downloaded" and the real image lost.
+ * Rewritten to markdown by the caller so editor and feed share one path.
+ * @param {string} html
+ * @returns {ImageHit[]}
+ */
+export function findHtmlImages(html) {
+  const src = String(html || "");
+  const re = /<img\b[^>]*>/giu;
+  /** @type {ImageHit[]} */
+  const out = [];
+  let m;
+  while ((m = re.exec(src)) !== null) {
+    const tag = m[0];
+    const url = pickImgSrc(tag);
+    if (!url) continue;
+    const altM = tag.match(/\balt\s*=\s*["']([^"']*)["']/iu);
+    out.push({ full: tag, alt: altM ? altM[1] : "", url: url.trim() });
   }
   return out;
 }
@@ -95,7 +122,9 @@ export function findMarkdownImages(markdown) {
  */
 export async function localizeMarkdownImages(markdown, opts) {
   const md = String(markdown || "");
-  const matches = findMarkdownImages(md);
+  // Markdown and leftover HTML `<img>` are disjoint spans — one URL can appear
+  // in both forms, so both lists feed the same download/replace pass.
+  const matches = [...findMarkdownImages(md), ...findHtmlImages(md)];
   if (!matches.length) {
     return { markdown: md, downloaded: 0, failed: 0, skipped: 0 };
   }
@@ -116,19 +145,18 @@ export async function localizeMarkdownImages(markdown, opts) {
 
   for (const hit of matches.slice(0, maxImages)) {
     const abs = resolveMediaUrl(hit.url, baseUrl);
+    // Non-downloadable (data:, blob:, relative without a base) — leave as-is.
     if (!abs || !/^https?:\/\//iu.test(abs)) {
       skipped += 1;
       continue;
     }
-    // already local (shouldn't happen for http) or already rewritten this pass
+    // Same URL seen earlier in this pass (markdown + leftover <img> can share
+    // one target): reuse the local path instead of downloading twice.
     if (seen.has(abs)) {
       const local = seen.get(abs);
-      replacements.push({ from: hit.full, to: `![${hit.alt}](${local})` });
-      continue;
-    }
-    // skip if already a relative workspace path (no scheme)
-    if (!/^https?:\/\//iu.test(hit.url) && !hit.url.startsWith("//") && !baseUrl) {
-      skipped += 1;
+      // Failed downloads are remembered with an empty path — never rewrite
+      // them, or a titled `![a](<url> "t")` would silently lose its title.
+      if (local) replacements.push({ from: hit.full, to: `![${hit.alt}](${local})` });
       continue;
     }
     try {
@@ -139,17 +167,16 @@ export async function localizeMarkdownImages(markdown, opts) {
       downloaded += 1;
     } catch {
       failed += 1;
-      seen.set(abs, hit.url); // keep original
+      seen.set(abs, "");
     }
   }
 
-  // Apply replacements from end to start so indices stay valid if we used index;
-  // here we use unique full strings — same URL may appear multiple times with same full form.
+  // Replacements are applied by exact full-text match (never by index), so
+  // duplicate forms of the same image collapse into a single pass.
   let out = md;
   const applied = new Set();
   for (const { from, to } of replacements) {
     if (from === to) continue;
-    // Replace only image occurrences (global for identical full match)
     if (!applied.has(from + "→" + to)) {
       // split/join is safer than replaceAll when `from` has regex special chars
       out = out.split(from).join(to);

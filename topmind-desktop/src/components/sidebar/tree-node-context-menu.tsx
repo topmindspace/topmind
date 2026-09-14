@@ -12,9 +12,9 @@ import {
   RiFileTextLine,
   RiFolderOpenLine,
   RiInboxArchiveLine,
-  RiInboxUnarchiveLine,
+  RiInbox2Line,
   RiPuzzleLine,
-  RiStackLine,
+  RiShareForwardLine,
   RiUpload2Line,
 } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
@@ -84,7 +84,7 @@ export function TreeNodeContextMenu({
       <ContextMenuLabel>{label}</ContextMenuLabel>
       {node.kind === "group" && node.id === "section/inbox" ? (
         <>
-          <ContextMenuItem icon={<RiInboxUnarchiveLine size={ICON.sm} />} onClick={h.handleOpenSelection} shortcut="⌘⇧I">
+          <ContextMenuItem icon={<RiInbox2Line size={ICON.sm} />} onClick={h.handleOpenSelection} shortcut="⌘⇧I">
             {t("sidebar.contextMenu.openInbox")}
           </ContextMenuItem>
           <ContextMenuItem icon={<RiAddLine size={ICON.sm} />} shortcut="⌘N" onClick={h.openQuickCapture}>
@@ -93,7 +93,7 @@ export function TreeNodeContextMenu({
         </>
       ) : null}
       {node.kind === "group" && node.id === "section/outputs" ? (
-        <ContextMenuItem icon={<RiStackLine size={ICON.sm} />} onClick={h.handleOpenSelection} shortcut="⌘⇧O">
+        <ContextMenuItem icon={<RiShareForwardLine size={ICON.sm} />} onClick={h.handleOpenSelection} shortcut="⌘⇧O">
           {t("sidebar.contextMenu.openOutputs")}
         </ContextMenuItem>
       ) : null}

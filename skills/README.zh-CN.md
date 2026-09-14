@@ -89,9 +89,9 @@ degradation: ../shared/capability-degradation.md
 ├── topmind.yaml                # contract v4
 ├── memory/                     # profile.md · periodic/ · topics/ · todo.md · 可选 ledgers/
 ├── .topmind/                   # rebuildable machine state
-├── 00-收件箱/ or 00-Inbox/     # role: buffer (live dir name)
+├── 00-Inbox/                   # role: buffer (live dir name)
 ├── 10-动态/ …                  # categories (template-driven)
-├── 88-输出/ or 88-Outputs/     # role: delivery
+├── 88-交付/ or 88-Delivery/     # role: delivery
 └── 99-归档/ or 99-Archive/     # role: system
 ```
 
@@ -128,7 +128,7 @@ degradation: ../shared/capability-degradation.md
 ## 行为规则
 
 - 先捕获；不要因为分类不完美而挡住简单保存  
-- 信号足够强时自动路由；否则走 **role:buffer**（现场收件箱目录，不要只写死 `00-收件箱/`）  
+- 信号足够强时自动路由；否则走 **role:buffer**（现场 Inbox 目录，不要只写死 `00-Inbox/`）  
 - 专题不清时，散篇放在大类根  
 - 每次写入返回回执（路径、路由原因、下一步）  
 - `source_type`: `user-original` | `external-capture` | `ai-derived`  

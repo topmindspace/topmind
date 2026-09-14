@@ -256,7 +256,7 @@ protection: open
 
 # 待路由剪藏
 
-演示收件箱条目：一篇关于个人知识管理的链接摘要。
+演示 Inbox 条目：一篇关于个人知识管理的链接摘要。
 
 - 来源：示例 URL
 - 建议：路由到 20-专题/2026-知识管理演示 或归档
@@ -271,7 +271,7 @@ protection: open
 
 # 演示交付稿
 
-这是 88-输出 中的示例成品，用于验证「写出来」列表与发布标记。
+这是 88-交付 中的示例成品，用于验证「交付」列表与发布标记。
 
 ## 摘要
 
@@ -280,12 +280,12 @@ topmind 以动态流为默认主表面，AI 建议确认后再沉淀。
 
 const written = [];
 written.push(writeFile("topmind.yaml", yaml));
-written.push(writeFile("00-收件箱/2026-08-03-待路由剪藏.md", inboxNote));
+written.push(writeFile("00-Inbox/2026-08-03-待路由剪藏.md", inboxNote));
 written.push(writeFile(`10-动态/${weekStem}.md`, periodCurrent));
 written.push(writeFile(`10-动态/${prevStem}.md`, periodPrev));
 written.push(writeFile("20-专题/2026-知识管理演示/topic.md", topicMd));
 written.push(writeFile("20-专题/2026-知识管理演示/活动窗口笔记.md", topicNote));
-written.push(writeFile("88-输出/2026-08-03-演示交付稿.md", deliveryNote));
+written.push(writeFile("88-交付/2026-08-03-演示交付稿.md", deliveryNote));
 written.push(writeFile("memory/profile.md", profile));
 written.push(writeFile(`memory/periodic/${prevStem}.md`, periodic));
 // ensure empty system dirs exist

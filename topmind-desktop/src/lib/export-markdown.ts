@@ -1,5 +1,5 @@
 /**
- * Light Markdown → HTML export for 写出来 delivery shelf.
+ * Light Markdown → HTML export for 交付 delivery shelf.
  * Intentionally minimal (no second MD engine): headings, lists, code, links, paragraphs.
  */
 

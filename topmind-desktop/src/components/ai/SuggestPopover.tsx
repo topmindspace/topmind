@@ -50,7 +50,7 @@ const PANEL_WIDTH = 400;
 const PANEL_MAX_HEIGHT = 560;
 
 function SuggestionIcon({ kind, isHigh }: { kind?: string; isHigh: boolean }) {
-  const cls = cn("shrink-0 mt-0.5", isHigh ? "text-warning" : "text-accent-color/70");
+  const cls = cn("shrink-0 mt-0.5", isHigh ? "text-warning" : "text-accent-color");
   switch (kind) {
     case "inbox_review":
     case "inbox_organize":
@@ -124,12 +124,12 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
   const toggleAutoPrepare = useActionStore((s) => s.toggleAutoPrepare);
   const acceptAll = useActionStore((s) => s.acceptAll);
   const dismissAll = useActionStore((s) => s.dismissAll);
+  const applying = useActionStore((s) => s.applying);
 
   const panelRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const [reviewId, setReviewId] = useState<string | null>(null);
-  const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkResult, setBulkResult] = useState<string | null>(null);
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
 
@@ -295,11 +295,11 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
 
   const hasHigh = items.some((i) => i.priority === "high");
   const reviewItem = items.find((i) => i.id === reviewId) || null;
+  const bulkBusy = applying !== null;
   const canAcceptAll = items.length > 0 && !bulkBusy && busyId === null;
   const canDismissAll = items.some((i) => i.source === "suggestion") && !bulkBusy && busyId === null;
 
   const handleAcceptAll = async () => {
-    setBulkBusy(true);
     setBulkResult(null);
     try {
       const { accepted, failed, summary } = await acceptAll();
@@ -314,8 +314,6 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
       }
     } catch {
       setBulkResult(t("ai.bulkAcceptError", { defaultValue: "Bulk action error" }));
-    } finally {
-      setBulkBusy(false);
     }
   };
 
@@ -350,6 +348,7 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
         className={cn(
           "rounded-md p-2.5 flex flex-col gap-0.5 transition-colors",
           isRemoving && "v4-item-removing",
+          isBusy && "ring-1 ring-inset ring-accent-color/30 bg-accent-bg-faint/40",
           isPendingWrite || isHigh
             ? "bg-warning/5 ring-1 ring-inset ring-warning/15"
             : "bg-surface-muted/25 hover:bg-surface-muted/40",
@@ -369,7 +368,7 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
               <span
                 className={cn(
                   "shrink-0 rounded-full px-1.5 py-px text-2xs font-medium cursor-default",
-                  isHigh ? "bg-warning/10 text-warning" : "bg-accent-bg-subtle text-accent-color/90",
+                  isHigh ? "bg-warning/10 text-warning" : "bg-accent-bg-subtle text-accent-color",
                 )}
               >
                 {t(`ai.${chip}`)}
@@ -502,8 +501,20 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
           {items.length > 0 ? ` · ${t("ai.actionBarCount", { count: items.length })}` : ""}
         </span>
 
-        {/* Bulk actions — compact icon buttons */}
-        {canAcceptAll ? (
+        {/* Bulk actions — compact icon buttons. Stay visible while applying. */}
+        {bulkBusy && applying ? (
+          <span
+            role="status"
+            aria-live="polite"
+            className="flex h-6 max-w-40 items-center gap-1 rounded-sm bg-accent-bg-subtle px-1.5 text-accent-color"
+            data-suggest-applying
+          >
+            <RiLoader4Line size={ICON.micro} className="shrink-0 animate-spin" />
+            <span className="truncate text-3xs font-medium tabular-nums">
+              {applying.current}/{applying.total}
+            </span>
+          </span>
+        ) : canAcceptAll ? (
           <Tooltip content={t("ai.bulkAcceptTip", { defaultValue: "Accept all" })}>
             <button
               type="button"
@@ -576,8 +587,32 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
         </button>
       </div>
 
-      {/* Bulk result / message feedback */}
-      {bulkResult ? (
+      {/* Bulk result / in-progress / message feedback */}
+      {applying ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="shrink-0 border-b border-accent-border-subtle bg-accent-bg-faint/50 px-3 py-1.5"
+          data-suggest-apply-progress
+        >
+          <p className="flex items-center gap-1.5 text-3xs text-accent-color">
+            <RiLoader4Line size={ICON.micro} className="shrink-0 animate-spin" />
+            <span className="min-w-0 truncate">
+              {t("ai.bulkAcceptProgress", {
+                current: applying.current,
+                total: applying.total,
+                title: applying.title,
+              })}
+            </span>
+          </p>
+          <div className="mt-1 h-0.5 overflow-hidden rounded-full bg-accent-color/15">
+            <div
+              className="h-full bg-accent-color transition-[width] duration-200"
+              style={{ width: `${Math.max(6, (applying.current / Math.max(1, applying.total)) * 100)}%` }}
+            />
+          </div>
+        </div>
+      ) : bulkResult ? (
         <p className="shrink-0 px-3 py-1 text-3xs text-accent-color bg-accent-bg-faint/40">{bulkResult}</p>
       ) : message ? (
         <p className="shrink-0 px-3 py-1 text-3xs text-text-tertiary">{message}</p>
@@ -593,7 +628,7 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
           <div className="flex flex-col items-center gap-2 py-8 text-center">
             {loading ? (
               <>
-                <RiLoader4Line size={ICON.sm} className="animate-spin text-accent-color/60" />
+                <RiLoader4Line size={ICON.sm} className="animate-spin text-accent-color" />
                 <p className="text-3xs text-text-quaternary">{t("ai.suggestLoading")}</p>
               </>
             ) : (

@@ -78,8 +78,12 @@ describe("Obsidian todo force + Kernel-only path", () => {
     assert.match(main, /enqueueAiOperation\(\s*["']todo_maintain["']/);
     assert.match(main, /enqueueAiOperation\(\s*["']topic_classify["']/);
     assert.match(main, /enqueueAiOperation\(\s*["']memory_organize["']/);
-    // The lane's executor forces reprocessing via the Kernel op (no surface-local todo writer)
-    assert.match(main, /runOperation\(\s*operation,\s*\{\s*force:\s*true\s*\}\s*\)/);
+    // The lane's executor forwards a normalized force flag to the Kernel op:
+    // explicit user commands re-analyze; quiet boot/background respects processedHashes.
+    assert.match(main, /const force = normalized\.force \?\? !quiet;/);
+    assert.match(main, /runOperation\(operation,\s*\{\s*force\s*\}\)/);
+    // Boot auto-maintain is dispatched quiet, so it must not force
+    assert.match(main, /enqueueAiOperation\("todo_maintain",[^;]*"sidebar",\s*true\)/u);
     assert.doesNotMatch(main, /runOperation\(\s*["']todo_maintain["']\s*,?\s*\)/);
   });
 

@@ -9,6 +9,8 @@
 
 Current-Pi research capture (npm + `gh api`; `pi.dev` HTTP blocked in the eval environment): see the session scratch `pi-current.md`. Facts needed to follow this ADR without that file are inlined below.
 
+> **Vocabulary superseded (2026-09-14):** the PrimaryNav words recorded below (`动态 · 收件箱 · 写出来`) are now `动态 · Inbox · 交付`. Chrome layout, column model and the Pi verdict are unaffected — see [`2026-09-14-product-vocabulary-rename.md`](./2026-09-14-product-vocabulary-rename.md).
+
 ---
 
 ## Independently readable decisions

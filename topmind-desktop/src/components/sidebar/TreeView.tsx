@@ -102,7 +102,7 @@ function buildNodeTooltip(node: TreeNode, t: (key: string, opts?: Record<string,
   return lines.join("\n");
 }
 
-/** Render category/group labels with muted PARA number prefix (e.g. "00-" in "00-收件箱"). */
+/** Render category/group labels with muted PARA number prefix (e.g. "00-" in "00-Inbox"). */
 function renderCategoryLabel(label: string): React.ReactNode {
   const m = String(label || "").match(/^(\d{2}-)(.+)$/u);
   if (!m) return label;
@@ -787,7 +787,6 @@ const TreeViewNode = memo(function TreeViewNode({
           open
           title={dialog.title}
           defaultValue={dialog.defaultValue}
-          maxWidth="max-w-lg"
           onConfirm={(v) => { dialog.resolve(v); closeDialog(); }}
           onCancel={() => { dialog.resolve(null); closeDialog(); }}
         />

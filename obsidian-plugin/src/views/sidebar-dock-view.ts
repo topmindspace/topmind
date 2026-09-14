@@ -626,7 +626,20 @@ export class SidebarDockView extends ItemView {
     return pending.length;
   }
 
+  private paintSuggestionCards(container: HTMLElement, suggestions: SuggestionCard[]): void {
+    if (suggestions.length === 0) return;
+    const summaryEl = container.createDiv({ cls: "tm-suggestion-summary" });
+    summaryEl.createSpan({
+      text: t("sidebar_suggestions_count", { count: suggestions.length }),
+      cls: "tm-suggestion-count-badge",
+    });
+    for (const sugg of suggestions) {
+      this.renderSuggestionCard(container, sugg);
+    }
+  }
+
   private async renderSuggestionsTab(container: HTMLElement, opts: { force?: boolean } = {}): Promise<void> {
+    const force = opts.force === true;
     container.empty();
     const pendingCount = this.renderPendingWrites(container);
     const aiConfigured = hasConfiguredProvider(this.plugin.settings.ai);
@@ -636,9 +649,18 @@ export class SidebarDockView extends ItemView {
       }
       return;
     }
-    // Re-entrancy guard: tab render + refresh button can both call this while
-    // a kernel AI pass is running — never run two generateSuggestions in
-    // parallel (they would clobber suggestionSession).
+
+    this.renderSuggestionRefreshButton(container);
+
+    const cached = this.plugin.kernelService.peekSuggestions();
+    if (!force && cached.length > 0) {
+      this.paintSuggestionCards(container, cached);
+      if (this.plugin.settings.autoSuggest && !this.suggestionsInFlight) {
+        void this.softRefreshSuggestions(container);
+      }
+      return;
+    }
+
     if (this.suggestionsInFlight) {
       const progressEl = container.createDiv({ cls: "tm-task-progress-inline" });
       progressEl.createDiv({ cls: "tm-loading-spinner tm-loading-spinner-sm" });
@@ -646,24 +668,15 @@ export class SidebarDockView extends ItemView {
       return;
     }
 
-    // Refresh suggestions button at top of suggestions tab (icon-only)
-    this.renderSuggestionRefreshButton(container);
-
-    // Loading indicator
     const loadingEl = container.createDiv({ cls: "tm-loading tm-loading-spinner" });
     loadingEl.createSpan({ text: t("suggestions_loading") });
 
     this.suggestionsInFlight = true;
     try {
-      const suggestions = await this.plugin.kernelService.generateSuggestions({
-        force: opts.force === true,
-      });
+      const suggestions = await this.plugin.kernelService.generateSuggestions({ force });
       container.empty();
       const pendingAfter = this.renderPendingWrites(container);
-
-      // Re-add refresh button after container.empty()
       this.renderSuggestionRefreshButton(container);
-
       if (suggestions.length === 0) {
         if (pendingAfter === 0) {
           const emptyTitle = this.plugin.settings.autoSuggest
@@ -676,17 +689,7 @@ export class SidebarDockView extends ItemView {
         }
         return;
       }
-
-      // Suggestion count badge
-      const summaryEl = container.createDiv({ cls: "tm-suggestion-summary" });
-      summaryEl.createSpan({
-        text: t("sidebar_suggestions_count", { count: suggestions.length }),
-        cls: "tm-suggestion-count-badge",
-      });
-
-      for (const sugg of suggestions) {
-        this.renderSuggestionCard(container, sugg);
-      }
+      this.paintSuggestionCards(container, suggestions);
     } catch (err) {
       container.empty();
       this.renderEmptyState(
@@ -698,6 +701,45 @@ export class SidebarDockView extends ItemView {
     } finally {
       this.suggestionsInFlight = false;
     }
+  }
+
+  /** Background regenerate — keep cached cards on screen. */
+  private async softRefreshSuggestions(container: HTMLElement): Promise<void> {
+    if (this.suggestionsInFlight) return;
+    this.suggestionsInFlight = true;
+    try {
+      const suggestions = await this.plugin.kernelService.generateSuggestions({ force: false });
+      if (this.activeTab !== "suggestions") return;
+      container.empty();
+      this.renderPendingWrites(container);
+      this.renderSuggestionRefreshButton(container);
+      this.paintSuggestionCards(container, suggestions);
+    } finally {
+      this.suggestionsInFlight = false;
+    }
+  }
+
+  private async acceptAllSuggestions(): Promise<void> {
+    const cards = this.plugin.kernelService.peekSuggestions();
+    if (cards.length === 0) return;
+    const n = new Notice(
+      t("notice_executing_progress", { current: 0, total: cards.length, title: cards[0]?.title || "" }),
+      0,
+    );
+    let ok = 0;
+    for (let i = 0; i < cards.length; i++) {
+      const card = cards[i];
+      n.setMessage(t("notice_executing_progress", {
+        current: i + 1,
+        total: cards.length,
+        title: card.title,
+      }));
+      const result = await this.plugin.kernelService.applySuggestion(card, { silent: true });
+      if (result.ok) ok += 1;
+    }
+    n.hide();
+    new Notice(t("notice_accept_all_done", { count: ok }));
+    await this.refreshActiveTab();
   }
 
   /** Action bar at top of suggestions tab: reconcile period + AI operations + force-refresh. */
@@ -755,6 +797,15 @@ export class SidebarDockView extends ItemView {
         menu.showAtMouseEvent(evt);
       });
     }
+
+    const acceptAllBtn = refreshBar.createEl("button", {
+      cls: "tm-btn-secondary tm-toolbar-btn-labeled",
+    });
+    setIcon(acceptAllBtn, "check");
+    acceptAllBtn.createSpan({ text: t("suggestions_accept_all"), cls: "tm-toolbar-btn-label" });
+    acceptAllBtn.setAttribute("aria-label", t("suggestions_accept_all"));
+    acceptAllBtn.setAttribute("title", t("suggestions_accept_all"));
+    acceptAllBtn.addEventListener("click", () => { void this.acceptAllSuggestions(); });
 
     // 3. Force-refresh button
     const refreshBtn = refreshBar.createEl("button", { cls: "tm-btn-secondary tm-btn-icon-only" });
@@ -1326,7 +1377,7 @@ export class SidebarDockView extends ItemView {
 
     if (aiConfigured) {
       this.addActionButton(actionsBar, "list-checks", t("sidebar_btn_todo"), () => {
-        this.plugin.enqueueAiOperation("todo_maintain", "op_label_todo_maintain", "notice_todo_done", "sidebar", true);
+        this.plugin.enqueueAiOperation("todo_maintain", "op_label_todo_maintain", "notice_todo_done", "sidebar");
       }, true);
       this.addActionButton(actionsBar, "tag", t("sidebar_btn_classify"), () => {
         this.plugin.enqueueAiOperation("topic_classify", "op_label_topic_classify", "notice_classify_done", "suggest");

@@ -61,7 +61,7 @@ const scenes = [
   },
   {
     id: 5,
-    title: '00-收件箱 · 缓冲与整理',
+    title: '00-Inbox · 缓冲与整理',
     type: 'single_window',
     img: imgStream
   },
@@ -87,7 +87,7 @@ const scenes = [
   },
   {
     id: 9,
-    title: '88-输出 · 交付成品沉淀',
+    title: '88-交付 · 交付成品沉淀',
     type: 'single_window',
     img: imgEditor
   },

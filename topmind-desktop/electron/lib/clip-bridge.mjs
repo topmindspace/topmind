@@ -10,11 +10,9 @@
  * See docs/adr/2026-07-13-browser-clip-extension.md
  */
 import http from "node:http";
-import path from "node:path";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { logInfo, logWarn, logError } from "./writeback.mjs";
 import { normalizeClipPayload } from "./clip-payload.mjs";
-import { clipImageSlug, localizeMarkdownImages } from "./clip-images.mjs";
 import { applyArticleTemplate } from "./clip-templates.mjs";
 import { CLIP_DEST_MODES } from "./clip-dest-modes.mjs";
 
@@ -266,7 +264,6 @@ async function handleRequest(req, res, deps) {
 
     let content = normalized.content;
     let title = normalized.title;
-    let imagesMeta = null;
 
     // Article / readability: apply template AFTER conversion (body uses clean MD)
     const plainModes = new Set(["selection", "highlights", "bookmark"]);
@@ -309,46 +306,11 @@ async function handleRequest(req, res, deps) {
     }
 
     const dest = resolveClipDest(body?.dest);
-    const wantImages =
-      body?.download_images !== false &&
-      ctx.appSettings?.clipBridge?.downloadImages !== false &&
-      !plainModes.has(normalized.method);
-    // Localize whenever article mode wants images and body has any markdown image.
-    // Relative / protocol-relative URLs are resolved via page source (baseUrl).
-    if (wantImages && /!\[[^\]]*\]\(/u.test(content)) {
-      try {
-        const imageBase = await resolveImageBase(ctx, dest);
-        const slug = clipImageSlug(title || "clip");
-        const imagesDirAbs = path.join(imageBase.abs, "images", slug);
-        // Markdown image paths are relative to the note file (same dest folder)
-        const relPrefix = `images/${slug}`;
-        const pageUrl = normalized.source || "";
-        const loc = await localizeMarkdownImages(content, {
-          imagesDirAbs,
-          relPrefix,
-          baseUrl: pageUrl,
-          referer: pageUrl,
-        });
-        content = loc.markdown;
-        imagesMeta = {
-          downloaded: loc.downloaded,
-          failed: loc.failed,
-          skipped: loc.skipped,
-        };
-        if (loc.downloaded > 0) {
-          normalized.frontmatter = {
-            ...normalized.frontmatter,
-            images_localized: loc.downloaded,
-          };
-        }
-        if (loc.downloaded || loc.failed) {
-          logInfo("clip-bridge", "image localize", imagesMeta);
-        }
-      } catch (e) {
-        logWarn("clip-bridge", "image localize failed", {
-          error: e instanceof Error ? e.message : String(e),
-        });
-      }
+    // Image download happens in ingest (workspace-inbox-ops) once the note
+    // path is known — so stream clips store images next to the period file,
+    // not under Inbox. Honor the clipper/settings off-switch here.
+    if (body?.download_images === false && ctx.appSettings) {
+      ctx.appSettings = { ...ctx.appSettings, clipBridge: { ...(ctx.appSettings.clipBridge || {}), downloadImages: false } };
     }
 
     const evidence = await deps.ingest(
@@ -382,7 +344,9 @@ async function handleRequest(req, res, deps) {
       path: evidence?.targetPath || evidence?.path,
       method: normalized.method,
       dest,
-      images: imagesMeta || undefined,
+      images: evidence?.images_localized
+        ? { downloaded: evidence.images_localized }
+        : undefined,
       evidence: {
         operation: evidence?.operation,
         targetPath: evidence?.targetPath || evidence?.path,
@@ -415,28 +379,6 @@ function resolveClipDest(raw) {
   }
   // inbox | topic/category missing id → inbox
   return { mode: "inbox" };
-}
-
-/**
- * Image root: topic/category folder or Inbox.
- * @param {object} ctx
- * @param {{ mode: string, topicId?: string, category?: string }} dest
- */
-async function resolveImageBase(ctx, dest) {
-  const { inboxRoot, topicRoot, categoryRoot, parseTopicId } = await import("./path-model.mjs");
-  if (dest.mode === "topic" && dest.topicId) {
-    const { category, topic } = parseTopicId(dest.topicId);
-    if (category && topic) {
-      const abs = topicRoot(ctx.workspaceRoot, category, topic);
-      return { abs, rel: `${category}/${topic}` };
-    }
-  }
-  if (dest.mode === "category" && dest.category) {
-    const abs = categoryRoot(ctx.workspaceRoot, dest.category);
-    return { abs, rel: dest.category };
-  }
-  const abs = inboxRoot(ctx.workspaceRoot);
-  return { abs, rel: path.basename(abs) };
 }
 
 /** Sync bridge lifecycle to settings (idempotent). */

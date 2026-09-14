@@ -33,11 +33,11 @@
 
 | 用户说 | 含义 | 系统落点 |
 |--------|------|----------|
-| **记一下** | 存下来 | 当前动态周期本 / 收件箱 / 专题 |
+| **记一下** | 存下来 | 当前动态周期本 / Inbox / 专题 |
 | **动态** | 日常流水 | `role:loose-stream`；默认 weekly 周期本 |
 | **专题** | 长期主题夹 | `{大类}/{YYYY-主题}/` |
 | **我的情况** | 关于我的稳定信息 | 记忆平面浏览（画像 + 周期反思 + 专题记忆）；点开条目仍落文件（默认 `memory/profile.md`） |
-| **写出来** | 出成品 | `role:delivery`（常为 88-输出） |
+| **交付** | 出成品 | `role:delivery`（常为 88-交付） |
 
 UI **不教**：protection、derived、writeback_mode、schema、engine、UTR 命令名。设置用白话（「保存前问我」「重要文件不让 AI 直接改」）。
 
@@ -81,7 +81,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | 维度 | 目标 |
 |------|------|
 | 定位 | 富工作台：浏览 · 深度编辑 · 捕获 · AI 副驾 · 恢复 · 可扩展插件 |
-| 导航 | **变薄**：默认「动态」主表面；收件箱 / 写出来 / 我的情况 / 搜索 / 记一下 清晰可达 |
+| 导航 | **变薄**：默认「动态」主表面；Inbox / 交付 / 我的情况 / 搜索 / 记一下 清晰可达 |
 | 概念 | 只暴露 ≤5 用户概念；树/标签/看板/插件为二级或高级 |
 | AI | 内生副驾：默认上下文 = 当前文件 + 本周流 + profile 摘要；**建议条 + 审阅抽屉** |
 | 扩展 | 7 插件槽保留；扩展不占主 chrome（AI 工作区 · 应用 pane）；connector 外围化 |
@@ -163,14 +163,14 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | contract-engine 清洁化 | **Done**（2026-08-13：`loadContract()` 只读 `topmind.yaml`；v3 JSON 仅 `ensureContract` 一次迁移落盘；`saveWorkspaceConfig` 经 `writeContract`；Desktop 不再 `projectConfigAliases`） |
 | Todo 手动 progressive force | **Done**（2026-08-08：`all-periods-processed` 后再点 ✨ → force；auto 仍尊重 skip） |
 | 多路 AI 并发策略 | **Done**（2026-08-08：background lane 串行 suggest/todo；agent 独立；soft suggest `agent_busy`；auto-todo 让路；StatusBar multiActive/`AI ×N`） |
-| 表面 UX 诚实（Desktop / Obsidian / Clip） | **Done**（2026-08-13 词汇：Obsidian 动态≠工作台、记下≠记一下、整理我的情况；Clip 选项不教第二套 lite 转换器。**2026-09-07 chrome**：主锚 动态/收件箱/写出来；搜索=⌘K/⌘P 非 PrimaryNav；记一下在左栏；建议/清单/应用在右列 AI 工作区 pane） |
+| 表面 UX 诚实（Desktop / Obsidian / Clip） | **Done**（2026-08-13 词汇：Obsidian 动态≠工作台、记下≠记一下、整理我的情况；Clip 选项不教第二套 lite 转换器。**2026-09-07 chrome**：主锚 动态/Inbox/交付；搜索=⌘K/⌘P 非 PrimaryNav；记一下在左栏；建议/清单/应用在右列 AI 工作区 pane） |
 | Stream / 编辑器 / AI 展示诚实 | **Done**（2026-08-13：预览=静态 HTML + 共享阅读偏好；动态多行剥首行 chrome；Obsidian 增补并入卡片并剥 append 注释；AI invoke 不带 view-store writebackMode） |
 | 精确中段改稿 / 思考折叠 | **Done**（2026-08-15：Kernel `applyUniqueSpan` + `formatReadWindow`；Desktop `edit_file`/`read_file` 与 Obsidian chat 工具环共用匹配/写闸，不是第九引擎；`<think>` / CoT 折进可展开思考过程） |
-| 删除文案诚实 | **Done**（2026-08-15：用户文案跟 `isRecoverableLifecycle`——普通开放笔记删除无 trash；锁定 / 专题首页 / 写出来 才进归档；toast 只在 `backupPath` 时提备份） |
+| 删除文案诚实 | **Done**（2026-08-15：用户文案跟 `isRecoverableLifecycle`——普通开放笔记删除无 trash；锁定 / 专题首页 / 交付 才进归档；toast 只在 `backupPath` 时提备份） |
 | 连接器官方对齐 | **Done**（2026-08-16：WeRead 官方 Gateway 扁平 body + 无划线/想法不写专题 + `note_fingerprint` 增量；X 官方 v2/`xurl /2/…` + 归档按 tweet id 跳过；Clip 本轮未改） |
 | Memory 整合（画像事实生命周期） | **Done**（2026-08-16：`appendProfileEntry` / `retireProfileEntry` → `## 历史记录` 带日期前缀不删原文 / `updateProfileEntry` 原位更新；`memory_organize` 产出确认式 `append_profile` / `update_profile` / `retire_profile`；Desktop ADD/UPDATE/RETIRE 走同一 Kernel 函数。无自动遗忘、无向量索引。ADR `docs/adr/2026-08-16-memory-consolidation.md`） |
 | AI 输出语言 | **Done**（改写/Agent 正文：用户本轮要求 → 原文 → 工作区 locale；建议条 / AI 待办 / `memory_organize` / `topic_classify`：用户本轮要求 → **当前宿主 UI 语言** → 工作区 locale。`lib/ai-output-locale.mjs`） |
-| 周期路径 / 确认面诚实 | **Done**（2026-08-21：digest 回执走 yearDir；period stem 拒绝 fallback；Obsidian 收件箱新建走写闸；confirm pending 有侧栏审阅；建议确认≠打开周期本；语料/session-compact/建议入口活文档对齐） |
+| 周期路径 / 确认面诚实 | **Done**（2026-08-21：digest 回执走 yearDir；period stem 拒绝 fallback；Obsidian Inbox 新建走写闸；confirm pending 有侧栏审阅；建议确认≠打开周期本；语料/session-compact/建议入口活文档对齐） |
 | Obsidian 建议 force / 会话 / 操作卡片 / 对话语言 | **Done**（2026-08-22：手动刷新 `force:true` 清指纹；soft 会话合并防 AI 卡消失；`memory_organize` / `topic_classify` 确认卡进建议面；对话正文走 Kernel 三层语言，UI 只管 chrome；ops 状态摘要跟宿主 UI 语言） |
 | 契约完整性 / 旧工作区升级 | **Done**（2026-08-24：repair 收敛到 ok；覆盖前备份；原子写 yaml；v3 迁移一次性改名 sidecar；周期路径双向粘滞；memory/todo 平面只认契约路径；设置关闭先冲刷且失败重排队。ADR `docs/adr/2026-08-23-contract-settings-integrity.md`） |
 
@@ -223,7 +223,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 
 ```text
 三列贯通（无横跨产品栏）：左栏导航 | 中栏薄 chrome + 画布 | 右栏 AI 工作区
-中栏薄 chrome：动态（默认） · 收件箱 · 写出来 · 注入动作 · AI 列开关
+中栏薄 chrome：动态（默认） · Inbox · 交付 · 注入动作 · AI 列开关
 搜索非 PrimaryNav（⌘K 命令面板 · ⌘P 笔记全文）；记一下在左栏；建议/清单/应用在右列 AI 工作区 pane；设置在 WorkspaceSwitcher / ⌘,
 侧栏默认：本周动态时间线 / 周期本（非完整文件树）；底栏工作区切换
 二级：专题树 · 我的情况（记忆浏览） · 归档

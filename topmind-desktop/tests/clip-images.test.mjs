@@ -11,6 +11,7 @@ import {
   localizeMarkdownImages,
   resolveMediaUrl,
   findMarkdownImages,
+  findHtmlImages,
 } from "../electron/lib/clip-images.mjs";
 import { pickImgSrc, resolveMarkdownMediaUrls } from "../electron/lib/html-to-markdown.mjs";
 
@@ -68,6 +69,74 @@ test("resolveMarkdownMediaUrls rewrites relative images", () => {
   const out = resolveMarkdownMediaUrls(md, "https://news.example/p/1");
   assert.match(out, /https:\/\/news\.example\/static\/a\.png/);
   assert.match(out, /https:\/\/cdn\/b\.png/);
+});
+
+test("findHtmlImages honours lazy-load attrs and srcset", () => {
+  const html = [
+    '<img src="data:image/gif;base64,R0lGOD" data-src="https://cdn.example/real.png" alt="lazy">',
+    '<img srcset="https://cdn.example/s.jpg 480w, https://cdn.example/l.jpg 1200w" alt="set">',
+    '<img alt="no-source">',
+  ].join("\n");
+  const hits = findHtmlImages(html);
+  assert.equal(hits.length, 2);
+  assert.equal(hits[0].url, "https://cdn.example/real.png");
+  assert.equal(hits[0].alt, "lazy");
+  assert.equal(hits[1].url, "https://cdn.example/l.jpg");
+});
+
+test("findMarkdownImages / findHtmlImages share one hit shape", () => {
+  const mdHit = findMarkdownImages("![a](https://cdn.example/a.png)")[0];
+  const htmlHit = findHtmlImages('<img src="https://cdn.example/b.png" alt="b">')[0];
+  assert.deepEqual(Object.keys(mdHit).sort(), ["alt", "full", "url"]);
+  assert.deepEqual(Object.keys(htmlHit).sort(), ["alt", "full", "url"]);
+});
+
+test("localizeMarkdownImages rewrites leftover HTML <img> into markdown", async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "mh-clip-html-"));
+  const png1x1 = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+    "base64",
+  );
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = async () =>
+    new Response(png1x1, { status: 200, headers: { "content-type": "image/png" } });
+  try {
+    const md = 'head\n<img src="https://cdn.example/a.png" alt="fig">\ntail';
+    const r = await localizeMarkdownImages(md, {
+      imagesDirAbs: dir,
+      relPrefix: "images/html",
+      baseUrl: "https://blog.example/post",
+    });
+    assert.equal(r.downloaded, 1);
+    assert.equal(r.failed, 0);
+    assert.match(r.markdown, /!\[fig\]\(images\/html\/img-/);
+    assert.doesNotMatch(r.markdown, /<img/);
+    assert.doesNotMatch(r.markdown, /cdn\.example/);
+  } finally {
+    globalThis.fetch = origFetch;
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("localizeMarkdownImages leaves failed downloads byte-identical", async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "mh-clip-fail-"));
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response("nope", { status: 404 });
+  try {
+    // Same URL twice, once with a markdown title — the title must survive.
+    const md = '![a](https://cdn.example/a.png "t")\n![a](https://cdn.example/a.png)';
+    const r = await localizeMarkdownImages(md, {
+      imagesDirAbs: dir,
+      relPrefix: "images/fail",
+      baseUrl: "https://blog.example/post",
+    });
+    assert.equal(r.downloaded, 0);
+    assert.equal(r.failed, 1); // one download attempt; the duplicate reuses the failure
+    assert.equal(r.markdown, md);
+  } finally {
+    globalThis.fetch = origFetch;
+    await fs.rm(dir, { recursive: true, force: true });
+  }
 });
 
 test("localizeMarkdownImages no-op without remote images", async () => {

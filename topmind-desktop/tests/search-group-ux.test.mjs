@@ -28,8 +28,10 @@ describe("GlobalSearch group UX", () => {
       assert.equal(typeof zh.search.group[k], "string", `zh group.${k}`);
       assert.equal(typeof en.search.group[k], "string", `en group.${k}`);
     }
-    assert.match(zh.search.group.outputs, /写出来/);
-    assert.match(en.search.group.outputs, /Ship/i);
+    assert.match(zh.search.group.outputs, /交付/);
+    assert.match(en.search.group.outputs, /Delivery/i);
+    assert.match(zh.search.group.inbox, /Inbox/);
+    assert.match(en.search.group.inbox, /Inbox/i);
   });
 
   it("capture has dest chips and progressive advanced", () => {

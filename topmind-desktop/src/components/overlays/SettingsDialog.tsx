@@ -186,7 +186,7 @@ export function SettingsDialog() {
         aria-modal="true"
         aria-label={t("settings:title")}
       >
-        <RiLoader4Line size={ICON.md} className="animate-spin text-accent-color/70" />
+        <RiLoader4Line size={ICON.md} className="animate-spin text-accent-color" />
         <span className="text-sm">{t("common:status.loading")}</span>
       </div>
     );

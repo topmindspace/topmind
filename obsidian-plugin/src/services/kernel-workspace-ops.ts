@@ -403,10 +403,10 @@ export function seedFullTemplateIfEmpty(
   }
   if (!categories) {
     categories = {
-      "00": { name: "收件箱" },
+      "00": { name: "Inbox" },
       "10": { name: "动态" },
       "20": { name: "专题" },
-      "88": { name: "输出" },
+      "88": { name: "交付" },
       "99": { name: "归档" },
     };
   }

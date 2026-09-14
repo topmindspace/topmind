@@ -6,7 +6,7 @@
 > **行为契约**：工作区根 `topmind.yaml`（顶层键白名单：`contract_version` + workspace / categories / stream / memory / protection / lifecycle / writeback / ingest / agent / presentation）。  
 > UTR 对 Skills/agent 仍为**可选**底座；Desktop 安装包 **捆绑** `utr/`（Tools 控制台 / doctor），但日常编辑与 AI 写回不强制走 UTR（`PRODUCT-BOUNDARIES.md`）。  
 > **架构**：UTR = Kernel 的 CLI/MCP **adapter**（非第三套业务语义）。耐久 `.md` 主写经 `lib/writeback-engine.mjs`（**Done**，见 `docs/ARCHITECTURE-RESET.md` §2.2）；备份/回执**仅高影响**（locked 覆盖 · 锁定/核心 delete）；`executeArchive` 把内容迁入现场 **role:system** 目录当新家（常为 `99-归档` / `99-Archive`，不是备份）；open 常规更新/删除不备份；非 `.md` 二进制可仍直写。  
-> **类别按角色**：inbox / delivery / archive 解析走现场契约与 `{NN-…}` 目录，不把中文 `00-收件箱` 当唯一 inbox。
+> **类别按角色**：inbox / delivery / archive 解析走现场契约与 `{NN-…}` 目录，不把 `00-Inbox` 当唯一 inbox。
 > 保存设置仅 **auto | confirm**（无 batch；UTR 对显式 `batch`/未知模式 **硬拒绝**，不 silent 映射）。
 
 ## Roots
@@ -18,7 +18,7 @@ Engine root:
 User data root（三平面工作区）:
   {workspace}/
   ├── topmind.yaml          系统平面：唯一行为契约
-  ├── 00-收件箱/ … 88-输出/ 99-归档/   内容平面：编号类别（自发现；英文 `00-Inbox` / 用户改名同等有效）
+  ├── 00-Inbox/ … 88-交付/ 99-归档/   内容平面：编号类别（自发现；用户改名同等有效）
   ├── memory/               语义平面：持续记忆（固化目录，英文名不改名）
   └── .topmind/             系统平面：机器态（index/loop/logs）
 
@@ -283,8 +283,8 @@ next_actions: optional string[]
 | Command | Default mutation | Guardrail |
 |---|---|---|
 | `workspace-write.create-topic` | 创建专题目录 + `topic.md` 首页（frontmatter: title/category/topic/status） | 拒绝覆盖已有同名专题；**不**接受 `projectType`（已废弃） |
-| `workspace-write.capture-note` | 在专题根下或 **role:buffer**（常为 `00-收件箱/` / `00-Inbox/`）或**大类根单篇**或**当前动态周期本**创建时间戳笔记 | 永不替换已有笔记 |
-| `workspace-write.save-output` | 创建交付物到 `88-输出/` 扁平目录 | `ifExists`: `create-new`（默认）· `replace`（查找同名替换）· `fail`（同名报错） |
+| `workspace-write.capture-note` | 在专题根下或 **role:buffer**（常为 `00-Inbox/`）或**大类根单篇**或**当前动态周期本**创建时间戳笔记 | 永不替换已有笔记 |
+| `workspace-write.save-output` | 创建交付物到 `88-交付/` 扁平目录 | `ifExists`: `create-new`（默认）· `replace`（查找同名替换）· `fail`（同名报错） |
 | `memory.append-topic` | 追加一条专题稳定结论到 `memory/topics/{topic-slug}.md` | 永不重写已有内容 |
 | `memory.append-profile` | 追加「我的情况」到 `memory/profile.md` | 按段落追加；禁止 capture 静默写 |
 | Desktop `reconcileStreamPeriod` | 确定性整理本周 | 无 LLM：勾选完成、去重；返回候选；落盘时写 `reconciled_at`。列表 `reconciled` / 未整理 以 `reconcilePeriodBody` 是否还会改正文为准，不是缺 stamp |
@@ -384,7 +384,7 @@ UTR 与 Desktop 共用同一三平面模型：
 | `{大类}/{专题}/*.md` | 内容 | 专题根笔记 |
 | `{大类}/*.md` | 内容 | 未专题化笔记 / 周期本 |
 | `{大类}/.derived/**` | 内容 | AI 衍生（摘要/历史，正式知识） |
-| `88-输出/*` | 内容 | 扁平交付物 |
+| `88-交付/*` | 内容 | 扁平交付物 |
 | `99-归档/**` | 内容 | 内容安全层（backups · stream-archive · backups/trash · receipts；legacy 顶层 trash 可共存） |
 | `memory/profile.md` | 语义 | global 层核心记忆 |
 | `memory/periodic/**` | 语义 | periodic 层反思（可重建；按年分组） |
@@ -392,7 +392,7 @@ UTR 与 Desktop 共用同一三平面模型：
 | `.topmind/loop/**` | 系统 | loop 巡检进度 |
 | `.topmind/*.json` | 系统 | 运行时状态（ai-ops · suggest-fingerprints · workspace-map，原子覆盖写） |
 
-`list-safety-receipts` 扫描 `99-归档/backups/`、`99-归档/backups/trash/`（Kernel 删除落点）、legacy `99-归档/trash/`、归档专题目录与 `88-输出/` 修订版；`restore-safety-receipt` 按同一路径形状恢复（不覆盖已有文件，写 `-restored-` 副本）。
+`list-safety-receipts` 扫描 `99-归档/backups/`、`99-归档/backups/trash/`（Kernel 删除落点）、legacy `99-归档/trash/`、归档专题目录与 `88-交付/` 修订版；`restore-safety-receipt` 按同一路径形状恢复（不覆盖已有文件，写 `-restored-` 副本）。
 
 ## CLI
 

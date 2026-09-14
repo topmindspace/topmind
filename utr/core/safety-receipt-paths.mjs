@@ -18,6 +18,10 @@ export const ARCHIVE_ROOT_NAMES = Object.freeze([
 ]);
 
 export const OUTPUTS_ROOT_NAMES = Object.freeze([
+  "88 交付",
+  "88-交付",
+  "88 Delivery",
+  "88-Delivery",
   "88 输出",
   "88-输出",
   "88 Outputs",

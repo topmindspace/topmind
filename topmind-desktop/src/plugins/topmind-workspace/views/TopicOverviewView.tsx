@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import {
   RiAddLine,
   RiBrainLine,
-  RiEdit2Line,
   RiFileTextLine,
   RiFolderOpenLine,
 } from "@remixicon/react";
@@ -180,7 +179,7 @@ export function TopicOverviewView({ topicId }: Props) {
             onClick={() => void openTopicMd()}
             aria-label={hasTopic ? t("workspace:topicOverview.openTopicFile") : t("workspace:topicOverview.createTopicFile")}
           >
-            <RiEdit2Line size={ICON.sm} />
+            <RiFileTextLine size={ICON.sm} />
           </button>
         </Tooltip>
         <Tooltip content={t("common:action.new")}>

@@ -11,7 +11,7 @@
  * so dual-prep concurrency is rare; multiActive still covers agent+prep / tasks+prep.
  */
 
-export type StatusBarBusyKind = "agent" | "task" | "todo" | "suggest" | "inline";
+export type StatusBarBusyKind = "agent" | "task" | "todo" | "suggest" | "inline" | "apply";
 
 export type StatusBarBusyInput = {
   ready: boolean;
@@ -27,6 +27,8 @@ export type StatusBarBusyInput = {
   inlineBusy?: boolean;
   /** Localized label for the inline chip (caller supplies) */
   inlineLabel?: string | null;
+  /** User-confirmed suggestion writeback in flight (accept / accept-all) */
+  suggestApplying?: boolean;
 };
 
 export type StatusBarAiLabelMode = "offline" | "ready" | "working";
@@ -43,6 +45,8 @@ export type StatusBarBusyView = {
   showSuggestCountChip: boolean;
   /** Dedicated inline/polish complete chip */
   showInlineChip: boolean;
+  /** Dedicated suggestion-apply chip (accept / accept-all writeback) */
+  showApplyChip: boolean;
   /**
    * AI pill spinner + “working” chrome.
    * False when the only in-flight work is already named by a dedicated chip
@@ -74,6 +78,7 @@ export function deriveStatusBarBusy(input: StatusBarBusyInput): StatusBarBusyVie
   const todoMaintaining = input.todoMaintaining === true;
   const suggestLoading = input.suggestLoading === true;
   const inlineBusy = input.inlineBusy === true;
+  const suggestApplying = input.suggestApplying === true;
 
   const suggestCount = Math.max(0, Number(input.suggestCount) || 0);
 
@@ -85,6 +90,7 @@ export function deriveStatusBarBusy(input: StatusBarBusyInput): StatusBarBusyVie
       showSuggestChip: false,
       showSuggestCountChip: false,
       showInlineChip: false,
+      showApplyChip: false,
       aiPillBusy: false,
       hasNamedBusyChip: false,
       activeKinds: [],
@@ -99,6 +105,7 @@ export function deriveStatusBarBusy(input: StatusBarBusyInput): StatusBarBusyVie
   const activeKinds: StatusBarBusyKind[] = [];
   if (streaming) activeKinds.push("agent");
   if (taskCount > 0) activeKinds.push("task");
+  if (suggestApplying) activeKinds.push("apply");
   if (todoMaintaining) activeKinds.push("todo");
   if (suggestLoading) activeKinds.push("suggest");
   if (inlineBusy) activeKinds.push("inline");
@@ -106,23 +113,29 @@ export function deriveStatusBarBusy(input: StatusBarBusyInput): StatusBarBusyVie
   const concurrentCount = activeKinds.length;
   const multiActive = concurrentCount >= 2;
 
-  // Named chips: priority task > todo > suggest > inline.
+  // Named chips: apply (user-confirmed writeback) > task > todo > suggest > inline.
   // Allow one prep chip alongside agent stream (user sees "对话 + 建议/待办").
   // Cap prep visibility: at most one of todo/suggest/inline to avoid 4-chip spam.
-  const showTaskChip = taskCount > 0;
-  const showTodoChip = todoMaintaining && !showTaskChip;
+  const showApplyChip = suggestApplying;
+  const showTaskChip = taskCount > 0 && !showApplyChip;
+  const showTodoChip = todoMaintaining && !showTaskChip && !showApplyChip;
   // Suggest may show while streaming (unlike older exclusive-with-stream policy)
-  // so agent+autoPrepare is not invisible — still demoted under todo/task.
-  const showSuggestChip = suggestLoading && !showTaskChip && !showTodoChip;
-  // Suggest count chip: when not loading but items exist (quiet indicator)
+  // so agent+autoPrepare is not invisible — still demoted under todo/task/apply.
+  const showSuggestChip = suggestLoading && !showTaskChip && !showTodoChip && !showApplyChip;
+  // Suggest count chip: when not loading/applying but items exist (quiet indicator)
   const showSuggestCountChip =
-    !suggestLoading && suggestCount > 0 && !showTaskChip && !showTodoChip;
+    !suggestLoading &&
+    !showApplyChip &&
+    suggestCount > 0 &&
+    !showTaskChip &&
+    !showTodoChip;
   const showInlineChip =
     inlineBusy &&
     !showTaskChip &&
     !showTodoChip &&
     !showSuggestChip &&
     !showSuggestCountChip &&
+    !showApplyChip &&
     !streaming; // inline short; agent pill covers while streaming
 
   // Pill busy: agent stream or engine tasks — not solo named prep (own chips)
@@ -137,13 +150,15 @@ export function deriveStatusBarBusy(input: StatusBarBusyInput): StatusBarBusyVie
     showSuggestChip,
     showSuggestCountChip,
     showInlineChip,
+    showApplyChip,
     aiPillBusy,
     hasNamedBusyChip:
       showTaskChip ||
       showTodoChip ||
       showSuggestChip ||
       showSuggestCountChip ||
-      showInlineChip,
+      showInlineChip ||
+      showApplyChip,
     activeKinds,
     multiActive,
     concurrentCount,
@@ -160,6 +175,7 @@ export function statusBarBusyKindLabelKeys(kinds: StatusBarBusyKind[]): string[]
     todo: "statusBar.jobTodo",
     suggest: "statusBar.jobSuggest",
     inline: "statusBar.jobInline",
+    apply: "statusBar.jobApply",
   };
   return kinds.map((k) => map[k]);
 }

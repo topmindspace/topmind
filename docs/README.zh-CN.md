@@ -47,7 +47,7 @@
 | [`ARCHITECTURE-RESET.md`](./ARCHITECTURE-RESET.md) | **架构决策锁与实施诚实表**（唯一实施真源） | 诚实能力表、八引擎规范、全阶段 Done / Non-goal |
 | [`PRODUCT-BOUNDARIES.md`](../PRODUCT-BOUNDARIES.md) | **四体边界** | 定义 Skills / Desktop / UTR / Obsidian 的独立与协同界限 |
 | [`PROJECT-MODEL.md`](../PROJECT-MODEL.md) | **内容模型与 6 条规约** | 定义【三平面】目录架构、6 条命名与归档规约 |
-| [`DESIGN.md`](../DESIGN.md) | **产品交互设计规范** | 约束用户概念 <= 5，定义"记一下/动态/专题/我的情况/写出来" |
+| [`DESIGN.md`](../DESIGN.md) | **产品交互设计规范** | 约束用户概念 <= 5，定义"记一下/动态/专题/我的情况/交付" |
 | [`SECURITY.md`](../SECURITY.md) | **安全与密钥边界** | 约定 API Key 本地明文存储规范、无遥测声明、网络范围 |
 | [`AGENTS.md`](../AGENTS.md) | **Agent 行为纪律真源** | 定义质量门顺序、死代码检测、多表面版本发布策略 |
 
@@ -95,6 +95,7 @@
 | [2026-08-23](./adr/2026-08-23-contract-settings-integrity.md) | Contract & Settings Integrity | 契约修复收敛、覆盖前备份、原子写、设置 partial patch、周期路径双向粘滞、Memory/todo 平面契约路径（含 skip 回执与宿主打开入口）、设置关闭冲刷 |
 | [2026-08-27](./adr/2026-08-27-desktop-log-rotation.md) | Desktop Log Rotation | 支持日志按大小轮转（`main.log` 2 MB × 3 份归档；过大遗留文件自愈） |
 | [2026-09-07](./adr/2026-09-07-pi-engine-and-three-column-reevaluation.md) | Pi engine + three-column | Hybrid `pi-agent-core`（bash 关、围栏 FS）；右列 AI 工作区与画布对等 |
+| [2026-09-14](./adr/2026-09-14-product-vocabulary-rename.md) | 产品词汇改名 | 收件箱 / 写出来 / Ship it → Inbox / 交付 / Delivery；默认模板种子改名，存量工作区目录不动 |
 
 ---
 

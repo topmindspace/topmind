@@ -89,12 +89,33 @@ export function mediaUrlsForEditor(markdown: string, noteRelativePath: string): 
 }
 
 /**
+ * Preview HTML (stream cards / memory feed) — rewrite relative `<img src>`
+ * to `topmind-asset://` so images next to the note actually render.
+ */
+export function rewritePreviewHtmlMedia(html: string, noteRelativePath: string): string {
+  if (!html || !noteRelativePath) return html;
+  return rewriteHtmlImgSrc(html, (url) => {
+    if (isRemoteOrAssetUrl(url)) return null;
+    const absRel = resolveNoteMediaPath(noteRelativePath, url);
+    return absRel ? `${ASSET_PREFIX}${absRel}` : null;
+  });
+}
+
+/**
  * Editor markdown → disk markdown (topmind-asset → relative to note).
  */
 export function mediaUrlsForDisk(markdown: string, noteRelativePath: string): string {
   const dir = noteDir(noteRelativePath);
   const toRelative = (absRelRaw: string): string => {
-    const absRel = normalizePosix(decodeURIComponent(String(absRelRaw || "")));
+    // The editor URL is percent-encoded by the renderer, so decode it back —
+    // but a literal `%` (note path like `100%-方案/`) must not throw here.
+    let decoded = String(absRelRaw || "");
+    try {
+      decoded = decodeURIComponent(decoded);
+    } catch {
+      /* keep the raw form — malformed percent escape */
+    }
+    const absRel = normalizePosix(decoded);
     if (dir && absRel.startsWith(`${dir}/`)) return absRel.slice(dir.length + 1);
     return absRel;
   };

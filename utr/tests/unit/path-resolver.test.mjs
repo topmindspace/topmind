@@ -42,9 +42,9 @@ test("workspace context exposes v3.4 data roots (10-60 + 88/99 numbering)", () =
   eq(categoryRoot(pathContext, "20 研究"), "/tmp/topmind-workspace/20 研究");
   eq(topicRoot(pathContext, "20 研究", "2026-示例专题"), "/tmp/topmind-workspace/20 研究/2026-示例专题");
   // Default separator is hyphen when FS has no dirs (PROJECT-MODEL recommended form)
-  eq(inboxRoot(pathContext), "/tmp/topmind-workspace/00-收件箱");
+  eq(inboxRoot(pathContext), "/tmp/topmind-workspace/00-Inbox");
   eq(archiveRoot(pathContext), "/tmp/topmind-workspace/99-归档");
-  eq(globalOutputsRoot(pathContext), "/tmp/topmind-workspace/88-输出");
+  eq(globalOutputsRoot(pathContext), "/tmp/topmind-workspace/88-交付");
 });
 
 test("workspace context detects active roots under 99 Archive (v3.4 archive safety layer)", async () => {
@@ -93,7 +93,7 @@ test("workspace-read inspect-topic resolves v3.4 category-first roots", () => {
   assert.ok(args.includes("--categories-root"));
   assert.ok(args.some((a) => a.includes("topmind-workspace")));
   assert.ok(args.includes("--inbox-root"));
-  assert.ok(args.some((a) => /00[- ]收件箱/.test(a)));
+  assert.ok(args.some((a) => /00[- ]Inbox/.test(a)));
   // v3.4: archive is 99-Archive / 99 Archive (not archive/)
   assert.ok(args.includes("--archive-root"));
   assert.ok(args.some((a) => /99[- ]归档/.test(a)));
@@ -112,7 +112,7 @@ test("workspace-write capture-note resolves inbox target without v2.x roots", ()
     dryRun: true,
   });
   assert.ok(args.includes("--inbox-root"));
-  assert.ok(args.some((a) => /00[- ]收件箱/.test(a)));
+  assert.ok(args.some((a) => /00[- ]Inbox/.test(a)));
   assert.ok(args.includes("--mode"));
   assert.ok(args.includes("preview"));
   assert.equal(args.includes("--dry-run"), false);

@@ -67,6 +67,8 @@ export class KernelService {
   private cachedModel: CachedModel | null = null;
   /** Kernel generateSuggestions session (soft refresh keeps fingerprint-skipped cards). */
   private suggestionSession: SuggestionCard[] = [];
+  /** Last kernel suggest tick — soft path loads cache when the window has not changed. */
+  private lastSuggestKernelAt = 0;
   /** Confirm-gated cards from memory_organize / topic_classify (survive suggest force). */
   private opSuggestionSession: SuggestionCard[] = [];
   private suggestionDropped = new Set<string>();
@@ -106,6 +108,7 @@ export class KernelService {
     this.suggestionSession = [];
     this.opSuggestionSession = [];
     this.suggestionDropped.clear();
+    this.lastSuggestKernelAt = 0;
   }
 
   /** Drop a suggestion from the session (apply success or user dismiss). */
@@ -123,6 +126,11 @@ export class KernelService {
       this.suggestionSession,
       this.suggestionDropped,
     );
+  }
+
+  /** Cached confirm cards — paint these without a kernel round-trip. */
+  peekSuggestions(): SuggestionCard[] {
+    return this.visibleSuggestions();
   }
 
   /**
@@ -548,13 +556,20 @@ export class KernelService {
    */
   async generateSuggestions(opts: { force?: boolean } = {}): Promise<SuggestionCard[]> {
     const force = opts.force === true;
+    const cached = this.visibleSuggestions();
     if (!this.settings.autoSuggest && !force) {
-      return this.visibleSuggestions();
+      return cached;
+    }
+    // Soft path: reuse session cards when we just ran (Desktop 5s throttle).
+    // Kernel fingerprints still skip the LLM when the activity window is unchanged.
+    if (!force && cached.length > 0 && Date.now() - this.lastSuggestKernelAt < 5000) {
+      return cached;
     }
 
     try {
       const ctx = this.getContext();
       const raw = await ctx.generateSuggestions({ force, localeOverride: this.surfaceUiLocale() });
+      this.lastSuggestKernelAt = Date.now();
       // Kernel returns Suggestion[] directly; normalizeSuggestionList also
       // accepts legacy { suggestions: [] } for forward compatibility.
       const mapped = normalizeSuggestionList(raw)
@@ -575,11 +590,15 @@ export class KernelService {
    * Maps Kernel skip/failure (ok:false, wroteFiles:false, operation:skip) to
    * surface failure so the UI keeps the card and does not show a false success.
    */
-  async applySuggestion(suggestion: SuggestionCard): Promise<{
+  async applySuggestion(suggestion: SuggestionCard, opts: { silent?: boolean } = {}): Promise<{
     ok: boolean;
     error?: string;
     openPath?: string;
   }> {
+    const silent = opts.silent === true;
+    const working = silent
+      ? null
+      : new Notice(`${t("notice_executing")}: ${suggestion.title}`, 0);
     try {
       const ctx = this.getContext();
       const result = await ctx.applySuggestion(
@@ -596,16 +615,18 @@ export class KernelService {
       );
 
       const mapped = mapApplySuggestionResult(result, suggestion);
+      working?.hide();
       if (mapped.ok) {
         this.dropSuggestion(suggestion.id);
-        new Notice(`${t("notice_executed")}: ${suggestion.title}`);
+        if (!silent) new Notice(`${t("notice_executed")}: ${suggestion.title}`);
         return mapped;
       }
-      new Notice(`${t("notice_execute_failed")}: ${mapped.error || suggestion.title}`);
+      if (!silent) new Notice(`${t("notice_execute_failed")}: ${mapped.error || suggestion.title}`);
       return mapped;
     } catch (err) {
+      working?.hide();
       const msg = err instanceof Error ? err.message : String(err);
-      new Notice(`${t("notice_execute_failed")}: ${msg}`);
+      if (!silent) new Notice(`${t("notice_execute_failed")}: ${msg}`);
       return { ok: false, error: msg };
     }
   }

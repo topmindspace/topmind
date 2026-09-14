@@ -1,4 +1,5 @@
 import {
+  RiCheckDoubleLine,
   RiDownload2Line,
   RiErrorWarningLine,
   RiFileTextLine,
@@ -28,6 +29,7 @@ import { useInlineAiStore } from "../../lib/inline-ai-busy";
 import { Tooltip } from "../ui/tooltip";
 import type { Selection } from "../../types";
 import { emitLocal, onLocal } from "../../plugins/host";
+import { PrimaryNav } from "./PrimaryNav";
 
 interface EngineHealth {
   ok: boolean;
@@ -94,6 +96,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
   const suggestPanelOpen = useActionStore((s) => s.panelOpen);
   const suggestCount = useActionStore((s) => s.items.length);
   const suggestHasHigh = useActionStore((s) => s.items.some((i) => i.priority === "high"));
+  const suggestApplying = useActionStore((s) => s.applying);
   const [updateInfo, setUpdateInfo] = useState<UpdateBadgeInfo | null>(null);
   // Subscribe to background update:available events from main process
   useEffect(() => {
@@ -127,6 +130,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
     suggestHasHigh,
     inlineBusy,
     inlineLabel,
+    suggestApplying: Boolean(suggestApplying),
   });
 
   const leftSlots = statusBarSlots.filter((s) => (s.align ?? "right") === "left");
@@ -224,8 +228,9 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
         {/* Workspace path is the left health chip (`data-status-workspace-path`). */}
       </div>
 
-      {/* Center: current selection (orientation anchor) — clickable */}
-      <div className="flex min-w-0 max-w-[var(--status-chip-max,42vw)] items-center justify-center px-1">
+      {/* Center: persistent PrimaryNav (does not change with open note) + file chip */}
+      <div className="flex min-w-0 max-w-[var(--status-chip-max,52vw)] items-center justify-center gap-1.5 px-1">
+        <PrimaryNav />
         <SelectionHint selection={selection} />
       </div>
 
@@ -284,7 +289,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
               activeTasks.length > 0
                 ? "bg-accent-bg-faint text-accent-color hover:bg-accent-bg-subtle"
                 : taskPanelOpen
-                  ? "text-success/90 hover:bg-success/10"
+                  ? "text-success hover:bg-success/10"
                   : "text-text-quaternary hover:bg-surface-muted hover:text-text-secondary",
             )}
           >
@@ -303,6 +308,34 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
             {activeTasks.length > 0 ? <span className="v4-ai-progress-dot" aria-hidden /> : null}
           </StatusChip>
         </Tooltip>
+        {busy.showApplyChip && suggestApplying ? (
+          <Tooltip content={t("statusBar.suggestApplyingTip")}>
+            <StatusChip
+              role="status"
+              aria-live="polite"
+              data-status-suggest-apply
+              onClick={() => {
+                void import("../../lib/suggest-surface").then(({ openSuggestSurface }) => {
+                  openSuggestSurface({ refresh: false });
+                });
+              }}
+              className="bg-accent-bg-faint text-accent-color hover:bg-accent-bg-subtle"
+              aria-label={t("statusBar.suggestApplying", {
+                current: suggestApplying.current,
+                total: suggestApplying.total,
+              })}
+            >
+              <RiCheckDoubleLine size={ICON.micro} className="v4-ai-busy-icon" aria-hidden />
+              <span className="v4-ai-busy-text hidden tabular-nums sm:inline">
+                {t("statusBar.suggestApplying", {
+                  current: suggestApplying.current,
+                  total: suggestApplying.total,
+                })}
+              </span>
+              <span className="v4-ai-progress-dot" aria-hidden />
+            </StatusChip>
+          </Tooltip>
+        ) : null}
         {busy.showTodoChip ? (
           <Tooltip content={t("statusBar.todoMaintainingTip")}>
             <StatusChip
@@ -411,8 +444,8 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
                 : busy.aiPillBusy
                   ? "bg-accent-bg-faint text-accent-color hover:bg-accent-bg-subtle"
                   : aiPanelOpen
-                    ? "text-success/90 hover:bg-success/10"
-                    : "text-text-tertiary hover:bg-surface-muted hover:text-success/90",
+                    ? "text-success hover:bg-success/10"
+                    : "text-text-tertiary hover:bg-surface-muted hover:text-success",
             )}
           >
             {busy.aiPillBusy ? (

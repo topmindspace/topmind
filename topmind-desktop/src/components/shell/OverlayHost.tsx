@@ -11,6 +11,7 @@ import { onLocal, emitLocal } from "../../plugins/host";
 import { registry } from "../../plugins/registry";
 import { matchWorkbenchShortcut } from "../../lib/shortcuts";
 import { runOverlayCloseGuard } from "../../lib/overlay-close-guard";
+import { scrimDismissesOverlay } from "../../lib/overlay-dismiss";
 import {
   OverlayPortalContext,
   acquireOverlayLayer,
@@ -319,7 +320,11 @@ export function OverlayHost() {
   return createPortal(
     <OverlayPortalContext.Provider value={portalEl}>
       <div
-        onClick={() => void requestCloseOverlay()}
+        onClick={() => {
+          // Form overlays (记一下 / plugin mini-apps) keep their draft on a
+          // stray background click — see lib/overlay-dismiss.ts.
+          if (scrimDismissesOverlay(overlay)) void requestCloseOverlay();
+        }}
         onContextMenu={(e) => {
           // Native edit menu stays available in text fields (paste/look-up);
           // suppress it only over non-editable overlay chrome.

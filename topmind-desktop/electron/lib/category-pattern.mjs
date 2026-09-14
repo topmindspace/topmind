@@ -25,9 +25,9 @@ export const SLOT_ROLE_HEURISTICS = Object.freeze({
   "99": "system",
 });
 
-/** Known localized aliases; prefer an existing on-disk name over inventing 00-收件箱. */
+/** Known localized aliases; prefer an existing on-disk name over inventing 00-Inbox. */
 export const ROLE_DIR_ALIASES = Object.freeze({
-  buffer: ["00-收件箱", "00 收件箱", "00-Inbox", "00 Inbox"],
-  delivery: ["88-输出", "88 输出", "88-Outputs", "88 Outputs"],
+  buffer: ["00-Inbox", "00 Inbox", "00-收件箱", "00 收件箱"],
+  delivery: ["88-交付", "88 交付", "88-Delivery", "88 Delivery", "88-输出", "88 输出", "88-Outputs", "88 Outputs"],
   system: ["99-归档", "99 归档", "99-Archive", "99 Archive"],
 });

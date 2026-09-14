@@ -45,16 +45,18 @@
       ],
       "reads": [
         "{category}/{topic}/**",
+        "00-Inbox/**",
         "00-收件箱/**"
       ],
       "writes": [
         "{category}/{topic}/**",
+        "00-Inbox/**",
         "00-收件箱/**"
       ]
     },
     "plan-inbox-routing": {
       "label": "规划 inbox 路由",
-      "description": "读取 00 收件箱 文件并生成建议路由到各大类的方案；不写入。",
+      "description": "读取 Inbox 类目（role:buffer，默认 00-Inbox/）文件并生成建议路由到各大类的方案；不写入。",
       "group": "assistive",
       "exposure": "primary",
       "risk_level": "low",
@@ -77,6 +79,7 @@
         "{limit}"
       ],
       "reads": [
+        "00-Inbox/**",
         "00-收件箱/**",
         "{category}/{topic}/topic.md"
       ],

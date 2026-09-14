@@ -52,7 +52,7 @@ Topmind Stream reduces mental overhead by focusing on 5 plain-language concepts:
 | **Stream** (*动态*) | Daily activity & timeline | `10-Stream/` (weekly file per log) |
 | **Topic** (*专题*) | Long-term subject folder | `{Category}/{YYYY-Topic}/` |
 | **My Profile** (*我的情况*) | Memory-plane browse (profile / periodic / topic memory) | Files under `memory/` (default portrait `memory/profile.md`) |
-| **Deliverables** (*写出来*) | Final outputs & published work | `88-Outputs/` |
+| **Delivery** (*交付*) | Final delivery items & published work | `88-Delivery/` |
 
 ---
 
@@ -120,7 +120,7 @@ Navigate to **Settings -> Topmind Stream -> AI Copilot**:
 - `Cmd/Ctrl + P` -> **Topmind: Open Stream** to open the timeline tab.
 - Click the **Waves icon** in the left ribbon to open **Note it** instantly.
 
-Product vocabulary (aligned with Desktop): **Note it** / 记一下 · **Log it** / 记下 · stream · topic · My profile · write out.
+Product vocabulary (aligned with Desktop): **Note it** / 记一下 · **Log it** / 记下 · stream · topic · My profile · delivery.
 
 ---
 

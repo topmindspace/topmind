@@ -860,7 +860,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
                     {switching === w.rootPath ? (
                       <RiLoader4Line size={ICON.xs} className="animate-spin text-accent-color" />
                     ) : active ? (
-                      <span className="rounded-full bg-accent-color px-1.5 py-0.5 text-3xs font-medium text-primary-foreground">
+                      <span className="rounded-full bg-accent-color px-1.5 py-0.5 text-3xs font-medium text-text-on-accent">
                         {t("settings:workspace.currentWorkspace")}
                       </span>
                     ) : (

@@ -79,6 +79,10 @@ test("ActionStore refresh uses decideSuggestRefresh (shipped wire)", () => {
   // Multi-AI: soft path yields to agent stream; kernel suggest on background lane
   assert.match(store, /agentStreaming/);
   assert.match(store, /enqueueBackgroundAi|ai-background-lane/);
+  assert.match(store, /applying:/);
+  assert.match(store, /silent === true/);
+  assert.match(store, /bulkAcceptProgress/);
+  assert.match(store, /yieldToUi/);
 });
 
 test("soft agentStreaming skips kernel; force still runs", () => {

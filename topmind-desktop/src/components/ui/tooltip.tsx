@@ -75,7 +75,7 @@ export function Tooltip({
         >
           {content}
           <TooltipPrimitive.Arrow
-            className="fill-[var(--color-popover,var(--color-card))]"
+            className="fill-[var(--color-popover)]"
             width={11}
             height={6}
           />

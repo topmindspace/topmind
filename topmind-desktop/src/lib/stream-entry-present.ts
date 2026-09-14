@@ -112,8 +112,9 @@ function indexReply(
 
 /**
  * Group day entries into feed rows.
- * Prefer replies already nested on the post (parse attaches 续 in file order,
- * then reverses only posts). Flat trailing `isAppend` entries still attach
+ * Prefer replies already nested on the post (parse attaches 续 in file order;
+ * days are newest-first, posts within a day stay chronological). Flat trailing
+ * `isAppend` entries still attach
  * to the open moment/prose/article as a fallback.
  */
 export function groupDayFeedRows(

@@ -349,7 +349,7 @@ function XHubView() {
                     className={cn(
                       "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border text-3xs",
                       on
-                        ? "border-accent-color bg-accent-color text-white"
+                        ? "border-accent-color bg-accent-color text-text-on-accent"
                         : "border-border-subtle text-transparent",
                     )}
                   >

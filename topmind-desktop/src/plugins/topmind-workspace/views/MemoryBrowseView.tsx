@@ -317,7 +317,7 @@ export function MemoryBrowseView() {
               .replace(/^#{1,6}\s+/u, "")
               .trim();
             const titleDupesBody = Boolean(item.title) && firstPlain === item.title;
-            const html = streamMarkdownToPreviewHtml(displayMd);
+            const html = streamMarkdownToPreviewHtml(displayMd, item.path);
             const kindText = item.history
               ? t("workspace:memoryBrowse.kindHistory")
               : kindLabel[item.kind];

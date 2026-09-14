@@ -22,13 +22,22 @@ function sliceTitleBarActions(src) {
   return src.slice(start, end);
 }
 
-test("TitleBar view-switcher trigger actually toggles the menu", () => {
-  const src = read("src/components/shell/TitleBar.tsx");
-  assert.match(src, /data-view-switcher/);
-  assert.match(src, /onClick=\{\(\) => setViewMenuOpen\(\(open\) => !open\)\}/);
-  assert.match(src, /aria-expanded=\{viewMenuOpen\}/);
-  assert.match(src, /aria-haspopup="listbox"/);
-  assert.match(src, /disabled=\{viewMenuOpen\}/);
+test("PrimaryNav lives in StatusBar as three labeled buttons", () => {
+  const nav = read("src/components/shell/PrimaryNav.tsx");
+  assert.match(nav, /data-status-primary-nav/);
+  assert.match(nav, /data-nav-kind=\{opt\.kind\}/);
+  assert.match(nav, /kind: "stream"/);
+  assert.match(nav, /kind: "inbox"/);
+  assert.match(nav, /kind: "outputs"/);
+  // Status-bar strip is short, so the click target is bought with width:
+  // every anchor is at least 5.5rem wide and the label is always rendered.
+  assert.match(nav, /min-w-\[5\.5rem\]/);
+  assert.match(nav, /<span className="truncate">\{label\}<\/span>/);
+  assert.doesNotMatch(nav, /compact/);
+  const status = read("src/components/shell/StatusBar.tsx");
+  assert.match(status, /<PrimaryNav/);
+  const title = read("src/components/shell/TitleBar.tsx");
+  assert.doesNotMatch(title, /data-view-switcher/);
 });
 
 test("TitleBar first crumb is longer and more readable than later crumbs", () => {

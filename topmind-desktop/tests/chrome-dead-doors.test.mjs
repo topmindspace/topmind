@@ -141,14 +141,14 @@ test("view-switch closed-state icon does not impersonate 动态 on file/topic/me
   assert.equal(primaryViewSwitchKind("topic"), null);
   assert.equal(primaryViewSwitchKind("memory"), null);
   assert.equal(primaryViewSwitchKind("archive"), null);
-  const title = read("src/components/shell/TitleBar.tsx");
-  assert.match(title, /primaryViewSwitchKind/);
-  assert.doesNotMatch(title, /activeView\?\.icon \?\? RiBroadcastLine/);
+  const nav = read("src/components/shell/PrimaryNav.tsx");
+  assert.match(nav, /primaryViewSwitchKind/);
+  assert.doesNotMatch(nav, /activeView\?\.icon \?\? RiBroadcastLine/);
 });
 
 test("DESIGN §0.0.4 does not name SidebarHeaderActions as the 动态 home", () => {
   const design = read("DESIGN.md");
-  assert.match(design, /中栏 TitleBar 视图切换/);
+  assert.match(design, /状态栏常驻 PrimaryNav/);
   assert.doesNotMatch(design, /左栏 `SidebarHeaderActions` \+ 中栏 TitleBar 视图切换/);
 });
 

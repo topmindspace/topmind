@@ -291,7 +291,7 @@ export async function buildDesktopAiTools(ctx) {
 
     tools.workspace_overview = tool({
       description:
-        "一次性获取工作区全貌：类别列表(含专题数) + 收件箱待处理数 + 最近动态周期本 + 输出数。减少多次 list_* 调用。系统提示词已内联部分概览，此工具获取更完整实时数据。",
+        "一次性获取工作区全貌：类别列表(含专题数) + Inbox 待处理数 + 最近动态周期本 + 交付数。减少多次 list_* 调用。系统提示词已内联部分概览，此工具获取更完整实时数据。",
       inputSchema: jsonSchema({ type: "object", properties: {} }),
       execute: wrapRead(async function workspace_overview() {
         try {
@@ -491,13 +491,13 @@ export async function buildDesktopAiTools(ctx) {
     });
 
     tools.list_inbox = tool({
-      description: "列出收件箱（Inbox）中的待分类材料。capture/organize 常用。",
+      description: "列出 Inbox 中的待分类材料。capture/organize 常用。",
       inputSchema: jsonSchema({ type: "object", properties: {} }),
       async execute() {
         try {
           return summarizeForModel(await WorkspaceService.listInbox({}, ctx));
         } catch (err) {
-          return { ok: false, error: err?.message || String(err), hint: "获取收件箱列表失败。" };
+          return { ok: false, error: err?.message || String(err), hint: "获取 Inbox 列表失败。" };
         }
       },
     });
@@ -594,7 +594,7 @@ export async function buildDesktopAiTools(ctx) {
     if (allowWrite) {
       tools.capture_to_inbox = tool({
         description:
-          "记一下：默认追加到动态周期本（每周一本）；forceInbox=true 时进收件箱；forceAtom=true 时单开文件。",
+          "记一下：默认追加到动态周期本（每周一本）；forceInbox=true 时进 Inbox；forceAtom=true 时单开文件。",
         inputSchema: jsonSchema({
           type: "object",
           properties: {
@@ -602,7 +602,7 @@ export async function buildDesktopAiTools(ctx) {
             title: strProp("可选标题"),
             source: strProp("可选出处 URL/说明"),
             sourceType: strProp("可选 source_type，默认 user-original"),
-            forceInbox: { type: "boolean", description: "true → 收件箱" },
+            forceInbox: { type: "boolean", description: "true → Inbox" },
             forceAtom: { type: "boolean", description: "true → 不追加周期本，单开文件" },
           },
           required: ["content"],

@@ -9,9 +9,9 @@ import {
   RiFolderLine,
   RiFolderOpenLine,
   RiImageLine as ImageIcon,
+  RiInbox2Line,
   RiInboxArchiveLine,
-  RiInboxUnarchiveLine,
-  RiStackLine,
+  RiShareForwardLine,
 } from "@remixicon/react";
 import type { TreeNode } from "../../plugins/types";
 import { cn } from "../../lib/cn";
@@ -32,9 +32,9 @@ export function TreeNodeIcon({
   );
   switch (node.kind) {
     case "group":
-      if (node.id === "section/inbox") return <RiInboxUnarchiveLine size={ICON.xs} className={className} />;
+      if (node.id === "section/inbox") return <RiInbox2Line size={ICON.xs} className={className} />;
       if (node.id === "section/memory") return <RiBrainLine size={ICON.xs} className={className} />;
-      if (node.id === "section/outputs") return <RiStackLine size={ICON.xs} className={className} />;
+      if (node.id === "section/outputs") return <RiShareForwardLine size={ICON.xs} className={className} />;
       if (node.id === "section/archive") return <RiInboxArchiveLine size={ICON.xs} className={className} />;
       return <RiFolderLine size={ICON.xs} className={className} />;
     case "category":

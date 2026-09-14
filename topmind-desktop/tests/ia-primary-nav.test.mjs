@@ -14,7 +14,7 @@ function read(rel) {
 }
 
 describe("Desktop primary IA target", () => {
-  it("Sidebar header has Search + 记一下; TitleBar has view-switch dropdown", () => {
+  it("Sidebar header has Search + 记一下; StatusBar has persistent PrimaryNav", () => {
     const sidebar = read("src/components/shell/Sidebar.tsx");
     assert.match(sidebar, /SidebarHeaderActions/);
     assert.match(sidebar, /v4-search-trigger/);
@@ -31,13 +31,17 @@ describe("Desktop primary IA target", () => {
     assert.doesNotMatch(sidebar, /select\(\{\s*kind:\s*"archive"\s*\}\)/);
     assert.doesNotMatch(sidebar, /icon:\s*Home/);
     assert.doesNotMatch(sidebar, /RotateCcw/);
-    // View switch is in TitleBar now
     const title = read("src/components/shell/TitleBar.tsx");
-    assert.match(title, /data-view-switcher/);
-    assert.match(title, /VIEW_OPTIONS/);
-    assert.match(title, /primaryNav\.stream/);
-    assert.match(title, /primaryNav\.inbox/);
-    assert.match(title, /primaryNav\.outputs/);
+    assert.doesNotMatch(title, /data-view-switcher/);
+    const nav = read("src/components/shell/PrimaryNav.tsx");
+    assert.match(nav, /data-status-primary-nav/);
+    assert.match(nav, /data-view-switcher/);
+    assert.match(nav, /PRIMARY_NAV_OPTIONS/);
+    assert.match(nav, /primaryNav\.stream/);
+    assert.match(nav, /primaryNav\.inbox/);
+    assert.match(nav, /primaryNav\.outputs/);
+    const status = read("src/components/shell/StatusBar.tsx");
+    assert.match(status, /<PrimaryNav/);
   });
 
   it("Desktop README does not teach deleted ActionBar or Title-bar Note it", () => {
@@ -58,7 +62,8 @@ describe("Desktop primary IA target", () => {
     const arch = read("ARCHITECTURE.md");
     assert.match(design, /中栏主锚点：动态（默认）/);
     // 2026-09 v2: search is a unified ⌘K trigger, not a PrimaryNav anchor
-    assert.match(design, /收件箱 · 写出来/);
+    assert.match(design, /Inbox · 交付/);
+    assert.match(design, /Inbox \/ 交付/);
     assert.match(design, /搜索非 PrimaryNav|⌘K 命令面板/);
     assert.doesNotMatch(design, /主锚点：动态（默认）[^\n]*归档/);
     assert.match(arch, /PrimaryNav[^\n]{0,120}动态/);
@@ -70,7 +75,7 @@ describe("Desktop primary IA target", () => {
     assert.match(design, /0\.0\.4 能力单家（Header homes）/);
     assert.match(design, /侧栏收起后如何到达/);
     assert.match(design, /左栏 Sidebar 主 header L1 捕获/);
-    assert.match(design, /中栏 TitleBar 视图切换/);
+    assert.match(design, /状态栏常驻 PrimaryNav/);
     assert.doesNotMatch(design, /左栏 `SidebarHeaderActions` \+ 中栏 TitleBar 视图切换/);
     assert.match(design, /右列 AI 工作区 \*\*建议\*\* pane/);
     assert.match(design, /右列 AI 工作区 \*\*清单\*\* pane/);
@@ -80,8 +85,10 @@ describe("Desktop primary IA target", () => {
     const sidebar = read("src/components/shell/Sidebar.tsx");
     assert.match(sidebar, /SidebarHeaderActions/);
     const title = read("src/components/shell/TitleBar.tsx");
-    assert.match(title, /data-view-switcher/);
+    assert.doesNotMatch(title, /data-view-switcher/);
     assert.match(title, /data-canvas-chrome/);
+    const nav = read("src/components/shell/PrimaryNav.tsx");
+    assert.match(nav, /data-status-primary-nav/);
     const shell = read("src/components/shell/Shell.tsx");
     const titleIdx = shell.indexOf("<TitleBar");
     const centerIdx = shell.indexOf("data-center-column");
@@ -162,13 +169,16 @@ describe("Desktop primary IA target", () => {
     assert.match(src, /history:\s*\[\s*\{\s*kind:\s*"stream"\s*\}\s*\]/);
   });
 
-  it("locale primary labels are 动态 / Stream and 写出来", () => {
+  it("locale primary labels are 动态 / Stream and 交付 / Delivery", () => {
     const zh = JSON.parse(read("src/locales/zh-CN/shell.json"));
     const en = JSON.parse(read("src/locales/en-US/shell.json"));
     assert.equal(zh.primaryNav.stream, "动态");
-    assert.equal(zh.primaryNav.outputs, "写出来");
+    assert.equal(zh.primaryNav.inbox, "Inbox");
+    assert.equal(zh.primaryNav.outputs, "交付");
     assert.ok(en.primaryNav.stream);
     assert.match(en.primaryNav.stream, /Stream/i);
+    assert.equal(en.primaryNav.inbox, "Inbox");
+    assert.equal(en.primaryNav.outputs, "Delivery");
   });
 
   it("capture vocabulary: 记下=Log it · 记一下=Note it (no Save / Quick Capture masquerade)", () => {

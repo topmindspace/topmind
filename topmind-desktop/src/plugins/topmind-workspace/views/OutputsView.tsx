@@ -15,7 +15,7 @@ import {
   RiFolderOpenLine,
   RiLoader4Line,
   RiRefreshLine,
-  RiStackLine,
+  RiShareForwardLine,
 } from "@remixicon/react";
 import { api } from "../../../services/api";
 import { formatRelativeTime } from "../../../lib/datetime";
@@ -264,7 +264,7 @@ export function OutputsView() {
       </TitleBarActions>
       {files.length === 0 ? (
         <EmptyState
-          icon={<RiStackLine size={ICON.md} />}
+          icon={<RiShareForwardLine size={ICON.md} />}
           title={t("workspace:outputsView.emptyTitle")}
           hint={t("workspace:outputsView.emptyHint")}
           action={

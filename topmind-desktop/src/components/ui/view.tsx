@@ -249,7 +249,7 @@ export function LoadingState({ label, className }: { label?: string; className?:
       role="status"
       aria-live="polite"
     >
-      <RiLoader4Line size={ICON.sm} className="animate-spin text-accent-color/75" />
+      <RiLoader4Line size={ICON.sm} className="animate-spin text-accent-color" />
       <span>{displayLabel}</span>
     </div>
   );

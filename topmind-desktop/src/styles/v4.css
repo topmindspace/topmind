@@ -909,6 +909,8 @@ button.v4-dash-card:active,
    Elevated above sidebar rail for clear affordance. */
 [data-sidebar-workspace] {
   background: color-mix(in srgb, var(--color-surface-muted) 30%, var(--color-app-chrome));
+  isolation: isolate;
+  z-index: 2;
 }
 [data-sidebar-view-switcher] {
   background: color-mix(in srgb, var(--color-surface-muted) 12%, var(--color-app-chrome));
@@ -2078,11 +2080,13 @@ html.dark .v4-overlay-sheet {
 /* Electron composites sticky+z-index above later position:fixed scrims
    (settings, ConfirmDialog). Card layout is static so it never leaks.
    Flatten list day headers while any modal layer is held. */
-html[data-overlay-open] [data-stream-feed] [data-stream-day-toggle] {
+html[data-overlay-open] [data-stream-feed] [data-stream-day-toggle],
+html[data-menu-open] [data-stream-feed] [data-stream-day-toggle] {
   position: static;
   z-index: auto;
 }
-html[data-overlay-open] .v4-main-canvas .sticky {
+html[data-overlay-open] .v4-main-canvas .sticky,
+html[data-menu-open] .v4-main-canvas .sticky {
   position: static;
   z-index: auto;
 }

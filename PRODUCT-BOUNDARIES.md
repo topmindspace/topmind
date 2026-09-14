@@ -28,7 +28,7 @@ topmind 是 Agent 时代的本地优先工作台，按需组合四条独立能�
 2. 行为契约（工作区根 **`topmind.yaml` v4 唯一真源**：保护/生命周期/记忆/写回/Ingest/Agent 等）— Desktop / UTR / Skills / Obsidian **同一路径同一契约**；缺失由 Kernel `ensureContract` 创建，可修则自动修复，损坏不可修则诊断 + `reseedContract`（备份坏文件，不删内容目录）
 3. 工作流语言（`收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整`）
 4. 写回伦理（可逆备份、路径回执、`writeback.mode` auto|confirm、open/locked protection）
-5. **用户概念 ≤5**：记一下 · 动态 · 专题 · 我的情况 · 写出来
+5. **用户概念 ≤5**：记一下 · 动态 · 专题 · 我的情况 · 交付
 
 **不共享**：运行时进程、IPC、store、强制 tool 调用链；**表面本地 UI 偏好**（Desktop `app-settings.json`、Obsidian plugin data）— 不得 fork 工作区行为键（locale/template/writeback/stream 等）。写回/locale/template 的操作真源始终是工作区根 `topmind.yaml`；Settings 下拉框若展示这些键，只作缓存并镜像回契约。对比：[`docs/topmind-vs-others.md`](./docs/topmind-vs-others.md)。
 
@@ -38,7 +38,7 @@ topmind 是 Agent 时代的本地优先工作台，按需组合四条独立能�
 
 ### 三平面隔离
 
-1. **内容平面**：`{NN-名称}/` — 用户可见数据（收件箱、动态、专题、输出、归档）
+1. **内容平面**：`{NN-名称}/` — 用户可见数据（Inbox、动态、专题、交付、归档）
 2. **语义平面**：`memory/` — 固化英文名；`profile.md` / `periodic/` / `topics/`；卫星 `todo.md` 与可选 `ledgers/`（记账，不是第六个用户概念）
 3. **系统平面**：`topmind.yaml` + `.topmind/`（index/loop/logs，可删可重建）
 
@@ -203,7 +203,7 @@ graph TD
 | writeback 唯一写闸 | **Done**（主路径 + confirm Model B + 高影响 only 备份/回执：locked 覆盖 · 锁定/核心笔记 delete/archive · 普通开放笔记无 trash · `permanent` 无副本） |
 | Memory 产品面（我的情况浏览 / 建议条） | **Done** |
 | 主动建议 + 确认执行 | **Done**（high-impact 须 `confirmed:true`；自动准备可关；AI 建议变更检测 `lastAnalyzedHash`；`promote_memory` 真实 AI 提取非占位符；画像 ADD/UPDATE/RETIRE 均确认后执行，不是 append-only） |
-| 写出来 / publishPath | **Done**（副本 + `published_at`；发布后打开交付件；Outputs 复制正文 / HTML 导出） |
+| 交付 / publishPath | **Done**（副本 + `published_at`；发布后打开交付件；Outputs 复制正文 / HTML 导出） |
 | 整理本周 / 任务面板 | **Done**（reconcile + ai_digest 任务 + 建议条候选确认；KanbanView 拖拽看板 + ViewSwitcher 多视图；digest/promote/archive 不造假任务按钮） |
 | 动态主表面内容 | **Done**（周期解析含结构节软提取；无当前本回退列表；内联记一下 + 整理本周） |
 | Desktop 响应式 chrome | **Done**（操作轨溢出 ⋯；StatusBar 可点；窄屏文案 aria/tooltip） |

@@ -195,7 +195,7 @@ export function TagsView({ onNavigate }: TagsViewProps) {
                 "text-text-secondary",
               )}
             >
-              <RiPriceTag3Line size={ICON.micro} className="text-accent-color/70" />
+              <RiPriceTag3Line size={ICON.micro} className="text-accent-color" />
               <span>{tag}</span>
               <span className="tabular-nums text-text-quaternary">{count}</span>
             </button>

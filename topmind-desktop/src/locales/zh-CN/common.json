@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "topmind",
-    "tagline": "记一下 · 动态 · 专题 · 我的情况 · 写出来"
+    "tagline": "记一下 · 动态 · 专题 · 我的情况 · 交付"
   },
   "action": {
     "save": "保存",
@@ -82,10 +82,10 @@
     "evening": "晚上好"
   },
   "category": {
-    "inbox": "收件箱",
+    "inbox": "Inbox",
     "stream": "动态",
     "topic": "专题",
-    "outputs": "写出来",
+    "outputs": "交付",
     "archive": "归档",
     "reference": "参考资料",
     "memory": "我的情况"
@@ -96,11 +96,11 @@
     "commandPalette": "命令面板",
     "search": "全局搜索",
     "settings": "设置",
-    "inbox": "转到收件箱",
+    "inbox": "转到 Inbox",
     "todo": "待办清单",
     "stream": "转到动态",
     "kanban": "侧栏看板视图",
-    "outputs": "转到写出来",
+    "outputs": "转到交付",
     "archive": "转到归档",
     "workspaceSwitcher": "切换工作区",
     "closeTab": "关闭当前文件标签",

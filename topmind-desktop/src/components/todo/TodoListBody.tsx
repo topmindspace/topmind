@@ -365,7 +365,7 @@ export function TodoListBody({ showPaneChrome = true }: { showPaneChrome?: boole
       <div className="mt-1.5 flex items-center gap-2 border-t border-border-subtle-dim pt-1 text-3xs text-text-quaternary">
         {aiCount > 0 ? (
           <span className="inline-flex items-center gap-0.5">
-            <RiSparklingLine size={ICON.micro} className="text-accent-color/60" />
+            <RiSparklingLine size={ICON.micro} className="text-accent-color" />
             {t("todo.aiHint", { count: aiCount })}
           </span>
         ) : null}
@@ -373,7 +373,7 @@ export function TodoListBody({ showPaneChrome = true }: { showPaneChrome?: boole
           <button
             type="button"
             onClick={() => setShowHealthHint(true)}
-            className="ml-auto inline-flex items-center gap-0.5 text-warning/70 hover:text-warning"
+            className="ml-auto inline-flex items-center gap-0.5 text-warning hover:text-warning"
           >
             <RiAlertLine size={ICON.micro} />
             {overdueCount > 0 ? t("todo.healthOverdue", { count: overdueCount }) : t("todo.healthStale", { count: staleCount })}
@@ -520,7 +520,7 @@ function TodoItemRow({
             {isAi ? (
               <RiSparklingLine
                 size={ICON.micro}
-                className="mr-0.5 inline shrink-0 text-accent-color/60"
+                className="mr-0.5 inline shrink-0 text-accent-color"
               />
             ) : null}
             {sLevel > 0 && !item.done ? (
@@ -528,9 +528,13 @@ function TodoItemRow({
                 size={ICON.micro}
                 className={cn(
                   "mr-0.5 inline shrink-0",
-                  sLevel === 1 && "text-warning/50",
-                  sLevel === 2 && "text-warning/70",
-                  sLevel === 3 && "text-error/70",
+                  /* Severity ramp by token, not by alpha. Alpha-as-severity used to
+                     stack on top of the status stops, so the "mild" step landed at
+                     ~1.7:1 and the "stale" step at ~2.1:1 — both unreadable.
+                     Ramp: ageing (neutral) → stale (amber) → very stale (red). */
+                  sLevel === 1 && "text-text-tertiary",
+                  sLevel === 2 && "text-warning",
+                  sLevel === 3 && "text-error",
                 )}
               />
             ) : null}
@@ -587,7 +591,7 @@ function TodoItemRow({
                     if (relPath) select({ kind: "file", path: relPath });
                   });
                 }}
-                className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-accent-bg-subtle px-1 py-0 text-3xs text-accent-color/70 transition-colors hover:bg-accent-bg-faint hover:text-accent-color"
+                className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-accent-bg-subtle px-1 py-0 text-3xs text-accent-color transition-colors hover:bg-accent-bg-faint hover:text-accent-color"
                 title={t("todo.openSource")}
               >
                 <RiExternalLinkLine size={ICON.micro} className="shrink-0" />

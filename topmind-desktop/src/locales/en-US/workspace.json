@@ -64,7 +64,7 @@
     "createHint": "Naming: {YYYY-Topic} · Created under {{category}}"
   },
   "outputs": {
-    "title": "Ship it",
+    "title": "Delivery",
     "empty": "Nothing shipped yet",
     "emptyHint": "Publish a finished draft from the editor or a topic — it will show up here"
   },
@@ -188,7 +188,7 @@
     "moveToTopic": "Move to topic…",
     "moveToInbox": "Move to Inbox",
     "moveToArchive": "Archive",
-    "publishToOutput": "Publish to Ship it",
+    "publishToOutput": "Publish to Delivery",
     "openInFinder": "Reveal in file manager",
     "copyPath": "Copy path",
     "noTags": "No tags yet",
@@ -208,7 +208,7 @@
     "makeCopy": "Make Copy",
     "moveToTopic": "Move to Topic…",
     "moveToTopicTooltip": "Move to topic · Select target topic directory",
-    "publishDelivery": "Publish to Ship it…",
+    "publishDelivery": "Publish to Delivery…",
     "restoreTo": "Restore to…",
     "newNote": "New Note…",
     "newTopic": "New Topic…",
@@ -217,9 +217,9 @@
     "openWithDefaultApp": "Open with Default App",
     "delete": "Delete…",
     "confirmDeleteTitle": "Confirm Delete",
-    "confirmDeleteMsg": "Delete {{name}}?\nOrdinary notes are not moved to Archive. Locked notes, topic.md, and Ship-it files are.",
+    "confirmDeleteMsg": "Delete {{name}}?\nOrdinary notes are not moved to Archive. Locked notes, topic.md, and Delivery files are.",
     "publishDeliveryTitle": "Publish Output Copy",
-    "publishDeliveryMsg": "Creates a copy under \"Ship it\" without deleting the original.\nAssociated images are copied and Markdown relative paths kept.\n\nFile: {{name}}",
+    "publishDeliveryMsg": "Creates a copy under \"Delivery\" without deleting the original.\nAssociated images are copied and Markdown relative paths kept.\n\nFile: {{name}}",
     "publishBtn": "Publish",
     "moveToTopicTitle": "Move to Topic",
     "moveToTopicMsg": "Move note and associated images/ resources together into a topic.\nFormat: Category/TopicName\nExample: 20-Research/2026-Sample",
@@ -246,7 +246,7 @@
     "failDelete": "Failed to delete",
     "failRestore": "Failed to restore",
     "mediaAssetCount": "{{count}} media assets",
-    "publish": "Publish to Ship it",
+    "publish": "Publish to Delivery",
     "title": "Menu"
   },
   "categoryView": {
@@ -278,10 +278,10 @@
     "placeholderText": "(to be filled)"
   },
   "outputsView": {
-    "title": "Ship it",
+    "title": "Delivery",
     "subtitle": "{{name}} · {{count}} delivered",
     "emptyTitle": "Nothing shipped yet",
-    "emptyHint": "Use \"Publish to Ship it\" in the editor More menu to make a copy",
+    "emptyHint": "Use \"Publish to Delivery\" in the editor More menu to make a copy",
     "exportBtn": "Export selected",
     "emptySubtitle": "{{name}} is empty",
     "badgePublished": "Published",
@@ -296,7 +296,7 @@
     "copyMarkdown": "Copy body",
     "copyMarkdownDone": "Markdown body copied",
     "openFolder": "Reveal in folder",
-    "confirmDelete": "Delete {{name}}?\nShip-it files are moved to Archive first."
+    "confirmDelete": "Delete {{name}}?\nDelivery files are moved to Archive first."
   },
   "archiveView": {
     "title": "Archive",
@@ -375,7 +375,7 @@
     "postToX": "Post to X",
     "aiContext": "AI Context",
     "openAiPanel": "Open AI Chat Panel",
-    "publishToOutputsTip": "Publish a copy to \"Ship it\" (keeps original)",
+    "publishToOutputsTip": "Publish a copy to \"Delivery\" (keeps original)",
     "aiEditTip": "AI Edit · Right click for sidebar chat",
     "wordCountTitle": "Word Count (Body)",
     "focusModeOn": "Focus Mode · ⌘⌥F",
@@ -392,8 +392,8 @@
     "saving": "Saving…",
     "readOnly": "Read-only",
     "focusHeadingMiss": "Opened period note · heading \"{{heading}}\" not found",
-    "publishTitle": "Publish to Ship it",
-    "publishDesc": "Copy \"{{title}}\" to Ship it (original kept)",
+    "publishTitle": "Publish to Delivery",
+    "publishDesc": "Copy \"{{title}}\" to Delivery (original kept)",
     "publishDone": "Published delivery copy{{extra}}",
     "publishFail": "Publish failed",
     "publishMediaExtra": " · {{count}} assets",

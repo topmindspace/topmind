@@ -129,10 +129,10 @@ function ToolCallTimeline({ tools }: { tools: AiToolCall[] }) {
             {t("ai:tool.callsCount", { count: tools.length })}
           </span>
           {writeCount > 0 ? (
-            <span className="text-success/70">{t("ai:tool.writesCount", { count: writeCount })}</span>
+            <span className="text-success">{t("ai:tool.writesCount", { count: writeCount })}</span>
           ) : null}
           {runningCount > 0 ? (
-            <span className="text-accent-color/70">{t("ai:tool.runningCount", { count: runningCount })}</span>
+            <span className="text-accent-color">{t("ai:tool.runningCount", { count: runningCount })}</span>
           ) : null}
           <RiArrowRightSLine size={ICON.micro} className="shrink-0 opacity-50" />
         </button>
@@ -662,7 +662,7 @@ function ReasoningBlock({ text, streaming }: { text: string; streaming?: boolean
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
-        <RiBrainLine size={ICON.xs} className={cn("shrink-0 opacity-80", streaming && !open && "animate-pulse text-accent-color/70")} />
+        <RiBrainLine size={ICON.xs} className={cn("shrink-0 opacity-80", streaming && !open && "animate-pulse text-accent-color")} />
         <span className="shrink-0 font-medium">{t("ai.reasoningLabel")}</span>
         {streaming && !open ? (
           tailPreview ? (

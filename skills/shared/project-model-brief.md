@@ -7,11 +7,11 @@
 ## 心智（用户词 ≤5 → 系统）
 
 ```text
-记一下            默认 append 动态周期本；低信心 → 收件箱
+记一下            默认 append 动态周期本；低信心 → Inbox
 动态              stream packing（默认 weekly）+ loose-stream；yearDir: true（按年分组）
 专题              {类别}/{YYYY-主题}/
 我的情况          memory/profile.md（global；完成/过期确认后归档到 ## 历史记录）
-写出来            role:delivery（常 88-输出）
+交付            role:delivery（常 88-交付）
 ```
 
 ```text
@@ -23,7 +23,7 @@
 安全层            role:system
 ```
 
-默认模板 **`stream`**：收件箱 · 动态 · 专题 · 输出 · 归档。4 种 Profile：stream / balanced / research / periodic。
+默认模板 **`stream`**：Inbox · 动态 · 专题 · 交付 · 归档。4 种 Profile：stream / balanced / research / periodic。
 
 ## 6 条核心规约（不可破 · 见 PROJECT-MODEL.md §3）
 
@@ -106,7 +106,7 @@ memory:
 3. **扫盘**所有 `^\d{2}[ -].+` 目录 = 活跃类别（FS 真源）  
 4. 角色合并：overrides > extensions > `templates/{template}.json` > 默认 `deep-work`  
 5. 有 UTR 时优先：`workspace-read.list-categories`（返回完整 CategoryDescriptor）  
-6. **禁止**把固定表（如旧 `00 收件箱`…）当合法类别白名单；自定义 `11-健康/` 合法  
+6. **禁止**把写死的名字表当合法类别白名单；自定义 `11-健康/` 合法  
 
 ### CategoryDescriptor（最小字段）
 

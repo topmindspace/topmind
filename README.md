@@ -15,10 +15,12 @@
 
 ## Interface and product demo
 
-### Stream surface (timeline + AI suggestions)
+### Three-column workbench (stream timeline + AI workspace)
+
+Navigation → stream timeline → AI workspace (**Chat · Suggest · List · Apps**). The weekly stream is the main narrative; AI proposes and waits for your confirmation before anything settles.
 
 <p align="center">
-  <img src="./docs/images/desktop-stream.jpg" alt="topmind Stream surface with AI suggestions" width="780" />
+  <img src="./docs/images/desktop-stream-en.jpg" alt="topmind Desktop three-column workbench: stream timeline with the AI workspace suggestion pane" width="820" />
 </p>
 
 ### Full product demo
@@ -140,7 +142,7 @@ flowchart LR
 |-------|-------------|---------------------|-------|
 | **① Capture** | Hotkey notes · web clips · Office/PDF queue | This week’s **stream** (`10-Stream/` or live `role:loose-stream`); uncertain → inbox (`00-Inbox/` / `role:buffer`) | Frictionless instant log |
 | **② Continue** | Edit · inline AI · side Agent · organize topics | `{Category}/{YYYY-Topic}/` | Stream cards and topic crystallization |
-| **③ Ship / Settle** | Write deliverables · confirm profile / topics | `88-Outputs/` · `memory/profile.md` | Finished files; update personal profile |
+| **③ Ship / Settle** | Write deliverables · confirm profile / topics | `88-Delivery/` · `memory/profile.md` | Finished files; update personal profile |
 | **④ Retrieve / Adjust** | Search · restore · My profile browse · periodic Loop | `99-Archive/` · `memory/` · Loop inspections | Safe archive, memory-plane browse, retrieval |
 
 ---
@@ -150,17 +152,17 @@ flowchart LR
 ```text
 {workspace}/
 ├── topmind.yaml              # System plane: behavior contract
-├── 00-Inbox/                 # Content plane: buffer (or 00-收件箱 / live role:buffer)
+├── 00-Inbox/                 # Content plane: buffer (live dir name; role:buffer)
 ├── 10-Stream/                # Content plane: period notes ({YYYY}/period.md)
 ├── 20-Topics/2026-Topic/     # Content plane: emergent topic folders
 │   └── topic.md              # Topic home
-├── 88-Outputs/               # Content plane: flat deliverables
+├── 88-Delivery/               # Content plane: flat deliverables
 ├── 99-Archive/               # Content plane safety: backups · trash · receipts
 ├── memory/                   # Semantic plane: profile · periodic · topics
 └── .topmind/                 # System plane: index & logs (rebuildable)
 ```
 
-Directory names follow the live contract (`en-US` stream template uses the English names above). Chinese names such as `00-收件箱` / `10-动态` / `99-归档` are equally valid.
+Directory names follow the live contract (`en-US` stream template uses the English names above). Localized or user-renamed names — e.g. `10-动态` / `99-归档`, or a renamed `00-收件箱` — are equally valid.
 
 **6 条核心规约** (six core rules — [`PROJECT-MODEL.md`](./PROJECT-MODEL.md) §3): categories do not overlap; topics emerge naturally; the stream class stays flat by default; fallback classes are cleaned on a ~30-day cadence; reference material has a clear home; category names stay stable (rename via migration).
 

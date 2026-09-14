@@ -65,6 +65,25 @@ test("wide menu may exceed trigger when matchTriggerWidth false", () => {
   assert.ok(pos.width >= 280);
 });
 
+test("preferPlacement top opens above a bottom-docked trigger", () => {
+  const pos = computeDropdownPosition({
+    trigger: { top: 740, left: 12, right: 200, bottom: 772, width: 188, height: 32 },
+    panel: { width: 268, height: 360 },
+    align: "start",
+    matchTriggerWidth: false,
+    minWidth: 260,
+    maxHeight: 520,
+    preferPlacement: "top",
+    padBottom: 32,
+    gap: 4,
+    pad: 8,
+    viewport: { width: 1200, height: 800 },
+  });
+  assert.equal(pos.placement, "top");
+  assert.ok(pos.top + Math.min(360, pos.maxHeight) <= 740, "panel sits above the trigger");
+  assert.ok(pos.top >= 8);
+});
+
 test("clamps into viewport padding", () => {
   const pos = computeDropdownPosition({
     trigger: { top: 10, left: 900, right: 990, bottom: 40, width: 90, height: 30 },

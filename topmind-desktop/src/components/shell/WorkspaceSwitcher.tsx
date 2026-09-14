@@ -6,16 +6,16 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   RiAddLine,
-  RiArrowDownSLine,
+  RiArrowUpSLine,
   RiCheckLine,
   RiComputerLine,
-  RiFolderOpenLine,
+  RiFolder3Line,
   RiFullscreenLine,
   RiGlobalLine,
   RiLoader4Line,
   RiLogoutBoxRLine,
   RiMoonLine,
-  RiSettings3Line,
+  RiSettingsLine,
   RiSunLine,
 } from "@remixicon/react";
 import { DropdownItem, DropdownMenu, DropdownSectionLabel } from "../ui/DropdownMenu";
@@ -175,9 +175,11 @@ export function WorkspaceSwitcher({
       open={open}
       onOpenChange={setOpen}
       align="start"
-      minWidth={260}
-      maxHeight={420}
+      minWidth={268}
+      maxHeight={520}
       matchTriggerWidth={false}
+      preferPlacement="top"
+      padBottom={32}
       panelClassName="v4-no-drag p-0"
       trigger={
         <Tooltip content={t("titleBar.workspaceTip", { root: currentRoot })}>
@@ -190,17 +192,19 @@ export function WorkspaceSwitcher({
             aria-expanded={open}
             className={cn(
               sidebar
-                ? "flex w-full min-w-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-3xs font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary v4-focus-ring"
+                ? "flex w-full min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-surface-muted v4-focus-ring"
                 : "v4-titlebar-btn max-w-30 gap-1 px-1.5 font-mono text-3xs sm:max-w-40 xl:max-w-50",
-              open && (sidebar ? "bg-surface-muted text-text-primary" : "bg-surface-muted text-text-secondary"),
+              open && (sidebar ? "bg-surface-muted" : "bg-surface-muted text-text-secondary"),
               !sidebar && !open && "pointer-events-none h-8 w-8 overflow-hidden p-0 opacity-0",
             )}
           >
-            <RiFolderOpenLine size={sidebar ? ICON.xs : ICON.xs} className="shrink-0" />
-            <span className={cn("min-w-0 flex-1 truncate", sidebar ? "font-medium" : "font-mono")}>
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent-bg-subtle text-accent-color">
+              <RiFolder3Line size={ICON.xs} />
+            </span>
+            <span className={cn("min-w-0 flex-1 truncate", sidebar ? "text-xs font-semibold text-text-primary" : "font-mono")}>
               {shortName(currentRoot)}
             </span>
-            <RiArrowDownSLine
+            <RiArrowUpSLine
               size={ICON.nano}
               className={cn("shrink-0 text-text-quaternary transition-transform", open && "rotate-180")}
             />
@@ -208,9 +212,91 @@ export function WorkspaceSwitcher({
         </Tooltip>
       }
     >
-      {/* Recent workspaces — compact list, name only (path in tooltip) */}
+      <div className="border-b border-border-subtle-dim px-3 py-2">
+        <div className="truncate text-xs font-semibold text-text-primary" data-workspace-name>
+          {shortName(currentRoot)}
+        </div>
+        <div className="mt-0.5 truncate font-mono text-3xs text-text-quaternary" title={currentRoot}>
+          {currentRoot.replace(/\\/g, "/")}
+        </div>
+      </div>
+
+      {/* Settings first so they are never clipped below the fold */}
+      <div className="p-1">
+        <DropdownItem
+          onSelect={() => {
+            setOpen(false);
+            void import("../overlays/SettingsDialog");
+            emitLocal("overlay:open", { kind: "settings" });
+          }}
+        >
+          <RiSettingsLine size={ICON.xs} className="shrink-0" />
+          <span className="flex-1">{t("titleBar.settingsLabel")}</span>
+          <kbd className="v4-kbd v4-kbd-sm">⌘,</kbd>
+        </DropdownItem>
+        <DropdownItem
+          active={focusMode}
+          onSelect={() => {
+            setFocusMode(!focusMode);
+            setOpen(false);
+          }}
+        >
+          <RiFullscreenLine size={ICON.xs} className="shrink-0" />
+          <span className="flex-1">{t("titleBar.focusMode")}</span>
+          <kbd className="v4-kbd v4-kbd-sm">⌘⌥F</kbd>
+        </DropdownItem>
+      </div>
+
+      <DropdownSectionLabel>{t("titleBar.preferencesSection")}</DropdownSectionLabel>
+      <div className="flex items-center gap-1 px-2 pb-1.5">
+        {([
+          { id: "auto" as ThemeMode, icon: RiComputerLine, label: t("titleBar.themeAuto") },
+          { id: "light" as ThemeMode, icon: RiSunLine, label: t("titleBar.themeLight") },
+          { id: "dark" as ThemeMode, icon: RiMoonLine, label: t("titleBar.themeDark") },
+        ]).map((opt) => {
+          const Icon = opt.icon;
+          const active = theme === opt.id;
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              title={opt.label}
+              aria-label={opt.label}
+              aria-pressed={active}
+              onClick={() => { void pickTheme(opt.id); }}
+              className={cn(
+                "flex h-7 flex-1 items-center justify-center rounded-md transition-colors v4-focus-ring",
+                active ? "bg-accent-bg-subtle text-accent-color" : "text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
+              )}
+            >
+              <Icon size={ICON.xs} />
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex items-center gap-1 px-2 pb-2">
+        {LOCALE_OPTIONS.map((opt) => {
+          const active = currentLocale === opt.id;
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              aria-pressed={active}
+              onClick={() => { void pickLocale(opt.id); }}
+              className={cn(
+                "flex h-7 min-w-0 flex-1 items-center justify-center gap-0.5 rounded-md px-1 text-3xs font-medium transition-colors v4-focus-ring",
+                active ? "bg-accent-bg-subtle text-accent-color" : "text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
+              )}
+            >
+              {opt.id === "auto" ? <RiGlobalLine size={ICON.micro} className="shrink-0" /> : null}
+              <span className="truncate">{opt.nativeLabel}</span>
+            </button>
+          );
+        })}
+      </div>
+
       <DropdownSectionLabel>{t("titleBar.recentWorkspaces")}</DropdownSectionLabel>
-      <div className="v4-sidebar-scroll max-h-40 overflow-auto px-1 pb-1">
+      <div className="v4-sidebar-scroll max-h-32 overflow-auto px-1 pb-1">
         {recent.length === 0 ? (
           <div className="px-2.5 py-2 text-3xs text-text-quaternary">{t("titleBar.noRecentWorkspaces")}</div>
         ) : (
@@ -223,7 +309,7 @@ export function WorkspaceSwitcher({
                 active={active}
                 onSelect={() => { void handleSwitch(w.rootPath); }}
               >
-                <RiFolderOpenLine size={ICON.micro} className="shrink-0 opacity-70" />
+                <RiFolder3Line size={ICON.micro} className="shrink-0 opacity-70" />
                 <span className="min-w-0 flex-1 truncate" title={w.rootPath}>
                   {shortName(w.rootPath)}
                 </span>
@@ -238,7 +324,6 @@ export function WorkspaceSwitcher({
         )}
       </div>
 
-      {/* Workspace actions */}
       <div className="border-t border-border-subtle-dim p-1">
         <DropdownItem disabled={busy} onSelect={() => { void handlePickNew(); }}>
           {switching === "picking" ? (
@@ -255,73 +340,6 @@ export function WorkspaceSwitcher({
             <RiLogoutBoxRLine size={ICON.xs} className="shrink-0" />
           )}
           <span>{t("titleBar.closeWorkspace")}</span>
-        </DropdownItem>
-      </div>
-
-      {/* Preferences: theme + language in a compact row group */}
-      <DropdownSectionLabel>{t("titleBar.preferencesSection")}</DropdownSectionLabel>
-      <div className="px-1 pb-1">
-        {([
-          { id: "auto", icon: <RiComputerLine size={ICON.micro} /> },
-          { id: "light", icon: <RiSunLine size={ICON.micro} /> },
-          { id: "dark", icon: <RiMoonLine size={ICON.micro} /> },
-        ] as Array<{ id: ThemeMode; icon: React.ReactNode }>).map((opt) => (
-          <DropdownItem
-            key={opt.id}
-            active={theme === opt.id}
-            onSelect={() => {
-              void pickTheme(opt.id);
-            }}
-          >
-            <span className="flex h-[1em] w-[1em] shrink-0 items-center justify-center opacity-70">
-              {opt.icon}
-            </span>
-            <span className="flex-1">
-              {opt.id === "auto" ? t("titleBar.themeAuto") : opt.id === "light" ? t("titleBar.themeLight") : t("titleBar.themeDark")}
-            </span>
-            {theme === opt.id ? <RiCheckLine size={ICON.micro} className="text-accent-color" /> : null}
-          </DropdownItem>
-        ))}
-      </div>
-      <div className="px-1 pb-1">
-        {LOCALE_OPTIONS.map((opt) => (
-          <DropdownItem
-            key={opt.id}
-            active={currentLocale === opt.id}
-            onSelect={() => {
-              void pickLocale(opt.id);
-            }}
-          >
-            <RiGlobalLine size={ICON.micro} className="shrink-0 opacity-70" />
-            <span className="flex-1">{opt.nativeLabel}</span>
-            {currentLocale === opt.id ? <RiCheckLine size={ICON.micro} className="text-accent-color" /> : null}
-          </DropdownItem>
-        ))}
-      </div>
-
-      {/* Settings + Focus mode */}
-      <div className="border-t border-border-subtle-dim p-1">
-        <DropdownItem
-          onSelect={() => {
-            setOpen(false);
-            void import("../overlays/SettingsDialog");
-            emitLocal("overlay:open", { kind: "settings" });
-          }}
-        >
-          <RiSettings3Line size={ICON.xs} className="shrink-0" />
-          <span className="flex-1">{t("titleBar.settingsLabel")}</span>
-          <kbd className="v4-kbd v4-kbd-sm">⌘,</kbd>
-        </DropdownItem>
-        <DropdownItem
-          active={focusMode}
-          onSelect={() => {
-            setFocusMode(!focusMode);
-            setOpen(false);
-          }}
-        >
-          <RiFullscreenLine size={ICON.xs} className="shrink-0" />
-          <span className="flex-1">{t("titleBar.focusMode")}</span>
-          <kbd className="v4-kbd v4-kbd-sm">⌘⌥F</kbd>
         </DropdownItem>
       </div>
 

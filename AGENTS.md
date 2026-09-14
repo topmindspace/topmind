@@ -34,6 +34,24 @@ npm run --prefix topmind-desktop pack:verify
 
 新增 dead pattern：编辑 `topmind-desktop/scripts/check-dead-code.mjs` 的 `DEAD_PATTERNS`（`id` / `description` / `regex` / `scope` / `allowIn`）。
 
+### UI 配色纪律（改 token / 组件颜色前必读）
+
+配色事故的特点是**不报错**：Tailwind v4 对未定义的 `--color-*` 一条规则都不输出，元素保留继承色——界面只是「悄悄变错」。角标隐形、链接字不够黑，都不会让任何一关变红。
+
+- **真源**：`topmind-desktop/src/styles/tokens.css`。改色改 token，不在组件里硬编码 hex。
+- **禁止**写未定义的语义工具类（`bg-skill-loop` / `text-accent` 那类**幽灵引用**）。全量扫描已固化为测试。
+- **禁止**在语义色文字上加透明度修饰符（`text-accent-color/70`）——停止位已按 AA 调好，`/70` 会把它拉回 3.3:1。要更弱的语气请用 `text-text-tertiary`。
+- **禁止**用透明度表达严重度梯度；用 token 阶梯（`text-text-tertiary → text-warning → text-error`）。
+- 状态色通常坐在**自己的 `-bg` 淡底**上，故核算对比度必须按「字 @ 自身淡底 @ 最苛刻表面」，只算白底会漏（深色 error 就是这么漏掉的）。
+- 新增 / 移动 token 后，**同一次改动**里更新 `tests/ui-token-compliance.test.mjs` 断言与 `DESIGN.md` §5.0.1 基线表。
+
+```bash
+# 三条守护：幽灵引用 / 零引用 token / 语义色透明度
+cd topmind-desktop && node --test --test-force-exit tests/ui-token-compliance.test.mjs
+```
+
+工具：技能 `ui-color-token-audit`（`scan-tokens.py` 双向审计 · `contrast.py` 对比度批量核验，支持 alpha 叠加与三段 `fg=bg=surface`）。
+
 ### 报回前 grep 自检
 
 ```bash
@@ -58,10 +76,10 @@ topmind = Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Option
 四体**只共享内容约定与行为契约**，无强制运行时绑定；Clip 为 companion 分发面。边界：`PRODUCT-BOUNDARIES.md`。
 
 核心工作流：`收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整`。  
-用户概念 ≤5：`记一下 · 动态 · 专题 · 我的情况 · 写出来`。
+用户概念 ≤5：`记一下 · 动态 · 专题 · 我的情况 · 交付`。
 
 ### 三平面目录模型
-- **内容平面**：`{NN-名称}/`（00-收件箱、10-动态、20-专题、88-输出、99-归档…）
+- **内容平面**：`{NN-名称}/`（00-Inbox、10-动态、20-专题、88-交付、99-归档…）
 - **语义平面**：`memory/`（profile / periodic / topics；卫星 `todo.md` · 可选 `ledgers/`）
 - **系统平面**：`topmind.yaml` + `.topmind/`（index/loop/logs，可删可重建）
 
@@ -84,7 +102,7 @@ contract · workspace-model · stream · memory · lifecycle · **writeback（�
 > **Memory periodic 语义**：periodic 记忆为「周期反思」（洞察提炼），非事件压缩副本。`memory/periodic/` 按年分组，与 stream 年目录对齐。**Memory 路径单真相**：所有引擎（memory / suggest / ai-operation / todo）与两宿主打开入口的 memory 平面路径一律经契约解析（`memory.dir` + `memory.layers.global.file`），无硬编码 `memory/profile.md` 第二套路径；skip 回执与建议条 `digestPath` 与写入侧同源（含平铺粘滞）。见 ADR `2026-08-23-contract-settings-integrity.md` D12 / D14。  
 > **AI 输出语言**：改写打开的笔记 / Agent 写入正文：用户本轮明确要求 → 原文 → 工作区 locale。**建议条 · AI 待办 · memory_organize / topic_classify**：用户本轮明确要求 → **当前宿主 UI 语言**（Desktop `settings.ui.locale`，或 Obsidian `localeOverride` / 应用语言；`auto` 不算）→ 工作区 locale。Desktop 与 Obsidian 是交替宿主，不叠成一条链。解析：`lib/ai-output-locale.mjs`。  
 > **工作区围栏**：写/移/删/归档不得落到当前工作区根之外（`isPathInsideWorkspace`）。区外本地读须 `evaluateOutsideRead` 显式授权；`fetch_url` 仅 http(s)，不读 `file://`。  
-> **类别按角色发现**：buffer/stream/delivery/system 用现场契约与 `{NN-…}` 目录，不用写死 `00-收件箱` / `99-归档`。英文或用户改名（`00-Inbox` · `99-Archive`）仍按 role 跳过/归档。  
+> **类别按角色发现**：buffer/stream/delivery/system 用现场契约与 `{NN-…}` 目录，不用写死 `00-Inbox` / `99-归档`。用户改名（`00-收件箱` · `99-Archive`）仍按 role 跳过/归档。  
 > **Obsidian AI Key 双层保护**：`saveSettings()` 同时备份密钥到 `.topmind/ai-keys-backup.json`；`loadSettings()` 缺密钥时自动恢复。  
 > **Companion 下载验证**：`crypto.createHash('sha256')` 流式哈希，零外部依赖；安装失败回退 bundled 版本。  
 > **精确中段改稿**：`lib/precise-edit.mjs`（`applyUniqueSpan`）+ `lib/file-window.mjs`（行号窗口 / `heading` / `around`）。Desktop `edit_file`/`read_file` 与 Obsidian chat 工具环共用匹配/拒绝/诊断；写回仍走 `executeWrite`。不是第九引擎。  
@@ -151,9 +169,9 @@ Desktop：`topmind-desktop/{README,ARCHITECTURE,DESIGN}.md`。
 topmind/            = engine（skills · UTR · Desktop · templates · lib）
 topmind-workspace/  = user data
   ├── topmind.yaml    # 工作区行为契约（门面文件）
-  ├── 00-收件箱/
+  ├── 00-Inbox/
   ├── 10-动态/ … 动态类别 …
-  ├── 88-输出/
+  ├── 88-交付/
   ├── 99-归档/        # 内容安全层（backups · backups/trash · receipts）
   ├── memory/         # 语义平面（profile/periodic/topics；卫星 todo.md · 可选 ledgers/）
   └── .topmind/       # 机器态（index/loop/logs，可删可重建）
@@ -269,11 +287,11 @@ Contract-first Node 底座；命令面见 `TOOLS.md`。依赖 engine 根 `lib/` 
 ├── topmind.yaml         # 工作区门面契约
 ├── memory/              # 语义平面：profile / periodic/{YYYY}/ / topics / todo.md / 可选 ledgers/
 ├── .topmind/            # 机器态：index/loop/logs
-├── 00-收件箱/
+├── 00-Inbox/
 ├── 10-动态/             # yearDir: true → 10-动态/{YYYY}/2026-W30.md
 │   └── {YYYY}/           # 往年可归档到 99-归档/stream-archive/
 ├── 20-专题/ … 60-参考资料/
-├── 88-输出/             # 扁平 YYYY-MM-DD-描述.ext
+├── 88-交付/             # 扁平 YYYY-MM-DD-描述.ext
 ├── 99-归档/             # backups / stream-archive / trash / receipts
 └── .obsidian/           # 可选外部工具
 
@@ -284,7 +302,7 @@ Contract-first Node 底座；命令面见 `TOOLS.md`。依赖 engine 根 `lib/` 
 └── .derived/            # 可选：AI 衍生（摘要/历史）
 ```
 
-- 交付物只进 `88-输出/`，不在专题内建 `outputs/`  
+- 交付物只进 `88-交付/`，不在专题内建 `outputs/`  
 - 不默认创建 `outline.md` / `setting.md` / `style.md`  
 - 笔记在专题根，不建强制 `notes/`  
 

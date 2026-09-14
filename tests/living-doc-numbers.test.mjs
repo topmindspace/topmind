@@ -170,7 +170,7 @@ test("living docs do not teach deleted TitleBar chrome as current", () => {
   assert.doesNotMatch(desktopReadmeZh, /AI 面板 \*\*ActionBar\*\*/);
   assert.doesNotMatch(desktopReadmeZh, /顶栏 \*\*记一下\*\*/);
   assert.match(reset, /搜索=⌘K\/⌘P 非 PrimaryNav/);
-  assert.doesNotMatch(reset, /主锚 动态\/收件箱\/写出来\/搜索；/);
+  assert.doesNotMatch(reset, /主锚 动态\/Inbox\/交付\/搜索；/);
   assert.match(audit, /\*\*NON-LIVING\*\*/);
 
   const ledgerZh = read("topmind-desktop/src/locales/zh-CN/ledger.json");
@@ -190,8 +190,8 @@ test("living docs do not teach deleted TitleBar chrome as current", () => {
 test("onboarding tagline is the five user concepts; capture skill and CLI match registry", () => {
   const zh = JSON.parse(read("topmind-desktop/src/locales/zh-CN/common.json"));
   const en = JSON.parse(read("topmind-desktop/src/locales/en-US/common.json"));
-  assert.equal(zh.app.tagline, "记一下 · 动态 · 专题 · 我的情况 · 写出来");
-  assert.equal(en.app.tagline, "Note it · Stream · Topic · My profile · Write out");
+  assert.equal(zh.app.tagline, "记一下 · 动态 · 专题 · 我的情况 · 交付");
+  assert.equal(en.app.tagline, "Note it · Stream · Topic · My profile · Delivery");
   const settingsZh = JSON.parse(read("topmind-desktop/src/locales/zh-CN/settings.json"));
   const settingsEn = JSON.parse(read("topmind-desktop/src/locales/en-US/settings.json"));
   assert.doesNotMatch(settingsZh.general.writebackDesc, /也可在 AI 面板切换/);
@@ -238,8 +238,8 @@ test("living DESIGN/ARCHITECTURE do not present canvas SuggestEntryStrip as curr
   assert.doesNotMatch(arch, /EditorArea（SuggestEntryStrip/);
   assert.doesNotMatch(streamFirst, /画布顶 strip（空则隐藏）/);
   assert.doesNotMatch(streamFirst, /用户在 feed 附近一眼看见建议/);
-  assert.match(arch, /PrimaryNav 文案与默认 selection 为 \*\*动态 · 收件箱 · 写出来\*\*/);
-  assert.doesNotMatch(arch, /写出来 · 搜索\*\*/);
+  assert.match(arch, /PrimaryNav 文案与默认 selection 为 \*\*动态 · Inbox · 交付\*\*/);
+  assert.doesNotMatch(arch, /交付 · 搜索\*\*/);
   assert.doesNotMatch(design, /AI 轨 `ActionBar`/);
   assert.match(design, /浮动 `SuggestPopover`/);
 });

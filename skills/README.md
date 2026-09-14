@@ -89,9 +89,9 @@ Enforced by `skills/tests/package-manifest.test.mjs`. One pack JSON; no per-skil
 ├── topmind.yaml                # contract v4
 ├── memory/                     # profile.md · periodic/ · topics/ · todo.md · optional ledgers/
 ├── .topmind/                   # rebuildable machine state
-├── 00-Inbox/ or 00-收件箱/     # role: buffer (live dir name)
+├── 00-Inbox/                   # role: buffer (live dir name)
 ├── 10-Stream/ …                # categories (template-driven)
-├── 88-Outputs/ or 88-输出/     # role: delivery
+├── 88-Delivery/ or 88-交付/     # role: delivery
 └── 99-Archive/ or 99-归档/     # role: system
 ```
 

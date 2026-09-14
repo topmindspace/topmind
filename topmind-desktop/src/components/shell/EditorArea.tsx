@@ -1,5 +1,5 @@
 import { lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { RiBroadcastLine, RiCloseLine, RiCompass3Line, RiLayoutColumnLine } from "@remixicon/react";
+import { RiCloseLine, RiCompass3Line, RiHome4Line, RiLayoutColumnLine } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { useRegistry } from "../../plugins/registry";
 import { useViewStore } from "../../stores/view-store";
@@ -88,7 +88,7 @@ export function EditorArea() {
             action={
               <Tooltip content={t("editorArea.backToStream")}>
                 <Button variant="outline" size="sm" onClick={() => select({ kind: "stream" })}>
-                  <RiBroadcastLine size={ICON.xs} /> {t("editorArea.goStream")}
+                  <RiHome4Line size={ICON.xs} /> {t("editorArea.goStream")}
                 </Button>
               </Tooltip>
             }
