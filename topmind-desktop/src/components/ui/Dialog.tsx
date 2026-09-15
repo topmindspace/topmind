@@ -165,8 +165,10 @@ export function ConfirmDialog({
       describedBy={description ? descId : undefined}
       panelClassName={panelClassName}
       // Non-destructive confirms start on the primary action; destructive
-      // keeps focus on Cancel (first focusable) so Enter is always safe.
-      focusSelector={destructive ? undefined : "[data-dialog-focus]"}
+      // always starts on Cancel — not "first focusable in the panel", because
+      // children (e.g. a permanent-delete checkbox) sit before the footer and
+      // would make Enter toggle the destructive option instead of dismissing.
+      focusSelector={destructive ? "[data-dialog-cancel]" : "[data-dialog-focus]"}
     >
       <h2 id={titleId} className="mb-1.5 text-sm font-semibold tracking-tight text-text-primary">
         {title}
@@ -178,7 +180,9 @@ export function ConfirmDialog({
       ) : null}
       {children ? <div className="mb-4">{children}</div> : description ? null : <div className="mb-4" />}
       <div className="flex justify-end gap-2" data-dialog-footer>
-        <Button variant="outline" size="sm" onClick={onCancel}>{finalCancelText}</Button>
+        <Button variant="outline" size="sm" onClick={onCancel} data-dialog-cancel="">
+          {finalCancelText}
+        </Button>
         <Button
           variant={destructive ? "destructive" : "default"}
           size="sm"

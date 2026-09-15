@@ -208,15 +208,15 @@ test("OverlayHost + host register plugin-app / topmind-ledger; apps menu is the 
   assert.match(ledgerIndex, /createLedgerStatusBarSlot/);
   assert.match(ledgerIndex, /createLedgerActions/);
 
-  // 2026-09: View-switch lives in StatusBar PrimaryNav; Sidebar has Search + 记一下
+  // 2026-09-16: View-switch lives in the sidebar destinations row; Sidebar has Search + 记一下
   const sidebar = read("src/components/shell/Sidebar.tsx");
   assert.match(sidebar, /SidebarHeaderActions/);
   assert.match(sidebar, /v4-search-trigger/);
   assert.match(sidebar, /RiFlashlightFill/);
+  assert.match(sidebar, /data-sidebar-primary-nav/);
   const titleBar = read("src/components/shell/TitleBar.tsx");
-  assert.doesNotMatch(titleBar, /data-view-switcher/);
   assert.match(read("src/components/shell/PrimaryNav.tsx"), /PRIMARY_NAV_OPTIONS/);
-  assert.match(read("src/components/shell/StatusBar.tsx"), /<PrimaryNav/);
+  assert.doesNotMatch(read("src/components/shell/StatusBar.tsx"), /<PrimaryNav/);
   // 2026-09: apps button moved to AI workspace tab; not in TitleBar anymore.
   assert.doesNotMatch(titleBar, /data-titlebar-apps/);
   assert.doesNotMatch(titleBar, /key:\s*"ledger"/);

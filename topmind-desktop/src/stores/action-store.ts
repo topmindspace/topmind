@@ -421,12 +421,13 @@ export const useActionStore = create<ActionStore>((set, get) => ({
     const silent = opts?.silent === true;
     const { t } = i18n;
 
-    // Track applied suggestion to prevent re-suggesting in same session
-    if (item.source === 'suggestion') {
-      appliedIds.add(id);
-      opSuggestionCache.delete(id);
-      sessionSuggestionCache.delete(id);
-    }
+    // Do NOT mark applied here. `appliedIds` is the session memory that keeps a
+    // suggestion from coming back — it must only fire on success. Marking it
+    // before the write made a retryable failure look applied: the card stayed
+    // in `items` for another try, but the next soft refresh dropped it via
+    // `applied.has(s.id)` and the caches were already cleared, so "keep for
+    // retry" was a lie. Terminal failures mark `dismissedIds` below (same as
+    // acceptAll). open_profile short-circuits and marks applied on its own path.
 
     // Immediate "still working" copy — do not wait for the write to finish.
     set({
@@ -448,6 +449,9 @@ export const useActionStore = create<ActionStore>((set, get) => ({
           }
 
           if (item.priority !== 'high') {
+            appliedIds.add(id);
+            opSuggestionCache.delete(id);
+            sessionSuggestionCache.delete(id);
             set(s => ({ items: s.items.filter(x => x.id !== id) }));
             if (!silent) emitLocal(SUGGESTIONS_REFRESH_EVENT, { reason: 'apply' });
             return true;
@@ -507,6 +511,10 @@ export const useActionStore = create<ActionStore>((set, get) => ({
         }
 
         if (applied) {
+          // Success only: mark applied so a refresh cannot re-serve this card.
+          appliedIds.add(id);
+          opSuggestionCache.delete(id);
+          sessionSuggestionCache.delete(id);
           set(s => ({ items: s.items.filter(x => x.id !== id) }));
           const detail = res.targetPath ? String(res.targetPath) : res.note || '';
           if (!silent) {
@@ -532,9 +540,12 @@ export const useActionStore = create<ActionStore>((set, get) => ({
         // Failed apply. Terminal failures (source file gone, malformed payload,
         // target conflict…) can never succeed on retry, so the failure is
         // equivalent to cancelling the suggestion: remove the card and remember
-        // the dismissal so a refresh cannot revive it. Retryable ones stay.
+        // the dismissal so a refresh cannot revive it. Retryable ones stay —
+        // and keep their session caches so the next soft refresh still has them.
         if (isTerminalApplyFailure(res.reason)) {
           dismissedIds.add(id);
+          opSuggestionCache.delete(id);
+          sessionSuggestionCache.delete(id);
           set(s => ({ items: s.items.filter(x => x.id !== id) }));
           // Same "no" as an explicit reject — make it survive the next pass.
           persistDismissals([id]);

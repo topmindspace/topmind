@@ -30,7 +30,7 @@
 7. **本地化 AI** — UI 语言与工作区 `locale` 驱动 Agent / 行内 AI / 待办 / 建议的中英提示与结果  
 8. **管理与更新** — 设置内探测 Agent 宿主 · 浏览器 · Obsidian，支持 Skills / 剪藏 / 插件的安装升级卸载（浏览器侧为引导加载，不静默注入）；统一更新检查与健康诊断
 9. **可选记账** — 启用后小应用（`memory/ledgers/`；AI 工作区应用 pane / 状态栏 / ⌘K）。不是第六个用户概念，也不是 PrimaryNav
-10. **原生系统外壳** — Windows 自绘标题栏一排（应用标记 / 名称 / 菜单条 / 面包屑），最小化·最大化·关闭仍由 OS 画在同一排右端 —— 菜单与窗口按钮同排，而不是叠成两条；Linux 保持原生边框与原生菜单栏；macOS 补齐完整系统菜单。菜单项发出的命令 id 与键盘同源，菜单条按 id 弹出**真正的原生子菜单**，行为与菜单内容都不实现第二遍。外壳策略真源：`electron/lib/window-shell.mjs`
+10. **原生系统外壳** — Windows 用**横跨三栏之上的全宽 OS 壳层条**（应用标记 / 名称 / 菜单标签），最小化·最大化·关闭仍由 OS 画在该条右端；**产品列 header 不承载 OS 外壳**。Linux 保持原生边框与原生菜单栏；macOS 补齐完整系统菜单。菜单项发出的命令 id 与键盘同源，菜单条按 id 弹出**真正的原生子菜单**，行为与菜单内容都不实现第二遍。外壳策略真源：`electron/lib/window-shell.mjs`
 
 ---
 
@@ -128,6 +128,13 @@
 brew install topmindspace/tap/topmind
 ```
 *通过 Homebrew 安装会自动清理 macOS `quarantine` 属性，免去未签名应用的“已损坏无法打开”报错。*
+
+若 `brew upgrade` 报 `App source '/Applications/Topmind.app' is not there`（旧应用被移动/删除），恢复：
+```bash
+brew uninstall --cask topmind --force && brew install --cask topmind
+# 或原地重装
+brew reinstall --cask topmind
+```
 
 #### 方式二：手动下载安装包
 1. 从 [Releases](https://github.com/topmindspace/topmind/releases) 下载对应系统安装包：`topmind-<ver>-<os>-<arch>.{dmg,exe,AppImage,deb}`  

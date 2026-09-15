@@ -252,8 +252,20 @@ function getContext() {
         // Through setAppSettings: clearing the root must also disable 关闭工作区 /
         // 复制路径 / 在文件管理器中显示 in the native menu and reset the window
         // title — otherwise the chrome keeps advertising the workspace just left.
-        const closed = setAppSettings({ ...appSettings, workspaceRoot: "" });
-        await saveAppSettings(settingsFile(), closed, { secretAdapter: settingsAdapter }).catch(() => {});
+        // Patch-merge under the write lock so a concurrent settings write cannot
+        // be clobbered by a full snapshot of a stale in-memory object.
+        try {
+          const closed = await updateAppSettings(
+            settingsFile(),
+            appSettings,
+            { workspaceRoot: "" },
+            { secretAdapter: settingsAdapter },
+          );
+          setAppSettings(closed);
+        } catch {
+          const closed = setAppSettings({ ...appSettings, workspaceRoot: "" });
+          await saveAppSettings(settingsFile(), closed, { secretAdapter: settingsAdapter }).catch(() => {});
+        }
       }
       launchStatus = {
         ok: false,
@@ -319,12 +331,23 @@ function getContext() {
       if (!s) return;
       let next = s;
       if (next.clipBridge?.enabled && !next.clipBridge?.token) {
-        next = {
-          ...next,
-          clipBridge: { ...next.clipBridge, token: generateClipToken() },
-        };
+        try {
+          // Patch only clipBridge under the write lock — a full snapshot of
+          // `s` could clobber a concurrent settings write.
+          next = await updateAppSettings(
+            settingsFile(),
+            s,
+            { clipBridge: { ...next.clipBridge, token: generateClipToken() } },
+            { secretAdapter: settingsAdapter },
+          );
+        } catch {
+          next = {
+            ...s,
+            clipBridge: { ...s.clipBridge, token: generateClipToken() },
+          };
+          await saveAppSettings(settingsFile(), next, { secretAdapter: settingsAdapter }).catch(() => {});
+        }
         setAppSettings(next);
-        await saveAppSettings(settingsFile(), next, { secretAdapter: settingsAdapter }).catch(() => {});
       }
       return syncClipBridgeFromSettings(next, {
         getContext: () => getContext(),
@@ -525,11 +548,27 @@ async function activateWorkspace(candidate, opts = {}) {
 /** Persist pruned settings after removing a bad recent path. */
 async function persistSettingsAfterHistoryChange(nextSettings) {
   const next = setAppSettings(nextSettings);
-  await saveAppSettings(settingsFile(), next, { secretAdapter: settingsAdapter }).catch((err) => {
-    logWarn("main", "persist settings after history change failed", {
-      error: err instanceof Error ? err.message : String(err),
+  // Prefer a workspaces-only patch under the write lock when the in-memory
+  // object is the structural base — full snapshot replace races with
+  // SystemService.updateSettings.
+  try {
+    const latest = await loadAppSettings(settingsFile(), appSettings?.workspaceRoot || "", {
+      secretAdapter: settingsAdapter,
     });
-  });
+    const saved = await updateAppSettings(
+      settingsFile(),
+      latest || next,
+      { workspaces: next.workspaces },
+      { secretAdapter: settingsAdapter },
+    );
+    return setAppSettings(saved);
+  } catch {
+    await saveAppSettings(settingsFile(), next, { secretAdapter: settingsAdapter }).catch((err) => {
+      logWarn("main", "persist settings after history change failed", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
+  }
   return next;
 }
 
@@ -833,18 +872,19 @@ async function createWindow() {
   try {
     const stored = appSettings?.window || {};
     // OS chrome policy lives in window-shell.mjs (single source of truth):
-    //   macOS  → hiddenInset, traffic lights inside our own 44px column chrome
-    //   Windows → app-owned title bar (one row: icon / name / menu / breadcrumb),
-    //             OS still draws min/max/close over its right end
+    //   macOS  → hiddenInset, traffic lights inside our own 44px product TitleBar
+    //   Windows → full-width OsChromeStrip above the workbench (icon / name /
+    //             menu labels); OS still draws min/max/close on its right end
     //   Linux  → native frame + native menu bar from the desktop environment
     const shellOptions = windowShellOptions();
     // Window icon: Win/Linux taskbar of the running window; harmless on mac (Dock separate).
     // Packaged Windows also needs the .exe icon embedded (patch-win-exe-icon) for pins/Start Menu.
     const loadedIcon = loadAppIconImage({ packaged: app.isPackaged });
     const windowIcon = loadedIcon?.img || null;
+    // Theme lives at appSettings.theme — not on the window shell (bounds/zoom only).
     const win = new BrowserWindow({
       width: stored.bounds?.width ?? 1440, height: stored.bounds?.height ?? 980,
-      minWidth: 1180, minHeight: 760, backgroundColor: resolveWindowBackgroundColor(stored.theme), title: "topmind",
+      minWidth: 1180, minHeight: 760, backgroundColor: resolveWindowBackgroundColor(appSettings?.theme), title: "topmind",
       ...shellOptions,
       ...(windowIcon ? { icon: windowIcon } : {}),
       webPreferences: { preload: path.join(__dirname, "preload.cjs"), contextIsolation: true, nodeIntegration: false },
@@ -1044,9 +1084,9 @@ function hideMainWindowToTray() {
   if (!mainWindow || mainWindow.isDestroyed()) return;
   ensureTray();
   mainWindow.hide();
-  // Windows: balloon so user knows app is still running
+  // Windows/Linux: balloon so user knows app is still running
   if (process.platform === "win32") {
-    notifyTrayHidden(ei18n("window.trayHiddenMac"));
+    notifyTrayHidden(ei18n("window.trayHiddenOther"));
   }
 }
 
@@ -1105,6 +1145,7 @@ function openCaptureSurface(opts = {}) {
         appRoot,
         packaged: app.isPackaged,
         alwaysOnTop,
+        theme: appSettings?.theme,
         getLoadUrl: getRendererLoadUrl,
       });
     }
@@ -1115,6 +1156,7 @@ function openCaptureSurface(opts = {}) {
     appRoot,
     packaged: app.isPackaged,
     alwaysOnTop,
+    theme: appSettings?.theme,
     getLoadUrl: getRendererLoadUrl,
   });
   return { ok: true, mode: "float" };

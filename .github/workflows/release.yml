@@ -523,7 +523,11 @@ jobs:
   pack-skills:
     name: skills pack
     needs: [plan, wait-for-release]
-    if: needs.plan.outputs.skills == 'true'
+    if: >
+      always() &&
+      !cancelled() &&
+      needs.plan.outputs.skills == 'true' &&
+      (needs.wait-for-release.result == 'success' || needs.wait-for-release.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -567,7 +571,11 @@ jobs:
   pack-extension:
     name: extension pack
     needs: [plan, wait-for-release]
-    if: needs.plan.outputs.extension == 'true'
+    if: >
+      always() &&
+      !cancelled() &&
+      needs.plan.outputs.extension == 'true' &&
+      (needs.wait-for-release.result == 'success' || needs.wait-for-release.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -607,7 +615,11 @@ jobs:
   pack-obsidian:
     name: obsidian pack
     needs: [plan, wait-for-release]
-    if: needs.plan.outputs.obsidian == 'true'
+    if: >
+      always() &&
+      !cancelled() &&
+      needs.plan.outputs.obsidian == 'true' &&
+      (needs.wait-for-release.result == 'success' || needs.wait-for-release.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -689,7 +701,11 @@ jobs:
   pack-desktop:
     name: desktop (${{ matrix.os }})
     needs: [plan, wait-for-release]
-    if: needs.plan.outputs.desktop == 'true'
+    if: >
+      always() &&
+      !cancelled() &&
+      needs.plan.outputs.desktop == 'true' &&
+      (needs.wait-for-release.result == 'success' || needs.wait-for-release.result == 'skipped')
     strategy:
       fail-fast: false
       matrix:
@@ -1072,6 +1088,21 @@ jobs:
             fi
           fi
 
+          INTEL_HASH=$(echo "${SUM_CONTENT}" | grep 'topmind-.*-mac-x64\.dmg' | awk '{print $1}' || echo "")
+          if [[ -z "${INTEL_HASH}" ]]; then
+            echo "WARNING: Could not find SHA256 for topmind-*-mac-x64.dmg in checksum file. Falling back to downloading installer..."
+            curl -sL -o mac-intel.dmg "https://github.com/${REPO}/releases/download/${TAG}/topmind-${VERSION}-mac-x64.dmg" || true
+            if [[ -f mac-intel.dmg ]]; then
+              INTEL_HASH=$(sha256sum mac-intel.dmg | awk '{print $1}')
+            fi
+          fi
+          # Intel hash must never silently reuse the arm64 digest — that made every
+          # Intel brew install fail checksum verification.
+          if [[ -z "${INTEL_HASH}" ]]; then
+            echo "ERROR: Unable to resolve SHA256 hash for macOS Intel DMG installer."
+            exit 1
+          fi
+
           if [[ -z "${ARM_HASH}" ]]; then
             echo "ERROR: Unable to resolve SHA256 hash for macOS DMG installer."
             exit 1
@@ -1079,6 +1110,7 @@ jobs:
 
           echo "Resolved version: ${VERSION}"
           echo "Resolved mac-arm64 sha256: ${ARM_HASH}"
+          echo "Resolved mac-x64 sha256: ${INTEL_HASH}"
 
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
@@ -1095,7 +1127,7 @@ jobs:
 
             version "${VERSION}"
             sha256 arm:   "${ARM_HASH}",
-                   intel: "${ARM_HASH}"
+                   intel: "${INTEL_HASH}"
 
             url "https://github.com/${REPO}/releases/download/v#{version}/topmind-#{version}-mac-#{arch}.dmg"
             name "Topmind Desktop"
@@ -1109,14 +1141,26 @@ jobs:
 
             auto_updates true
 
-            # Remove quarantine attribute automatically on install to solve macOS "damaged" gatekeeper error
-            postflight do
-              system_command "xattr",
-                             args: ["-rd", "com.apple.quarantine", "#{appdir}/Topmind.app"],
-                             sudo: false
+            # Remove quarantine attribute automatically on install to solve macOS "damaged" gatekeeper error.
+            # Homebrew requires postflight_steps (legacy postflight is deprecated).
+            postflight_steps do
+              run "/usr/bin/xattr",
+                  args: ["-rd", "com.apple.quarantine", "{{appdir}}/Topmind.app"],
+                  must_succeed: false
             end
 
             app "Topmind.app"
+
+            # Recovery hint when /Applications/Topmind.app was moved/deleted and brew
+            # upgrade can no longer find the previous install target.
+            caveats <<~EOS
+              If brew upgrade fails with "App source '/Applications/Topmind.app' is not there",
+              the previous app was moved or deleted. Recover with:
+                brew uninstall --cask topmind --force
+                brew install --cask topmind
+              Or reinstall in place:
+                brew reinstall --cask topmind
+            EOS
 
             zap trash: [
               "~/topmind/topmind-desktop/logs",

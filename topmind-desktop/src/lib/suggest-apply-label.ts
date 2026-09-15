@@ -93,9 +93,11 @@ export function suggestionNavPathAfterApply(
  * equivalent to cancelling the suggestion instead of leaving a dead card.
  *
  * Keep the reason codes in sync with `lib/suggest-engine.mjs`'s `reason:`
- * fields. Only known hard skips are terminal; unknown reasons (including
- * missing ones, e.g. a raw protection rejection) stay retryable so the user
- * keeps a path to resolve and retry.
+ * fields **and** the codes it *forwards* from callees (`result.reason`,
+ * `analysisUsable.reason`, `evidence.reason` → memory-engine / ai-content-sanitize).
+ * Only known hard skips are terminal; unknown reasons (including missing ones,
+ * e.g. a raw protection rejection) stay retryable so the user keeps a path to
+ * resolve and retry.
  */
 const TERMINAL_APPLY_FAILURES = new Set([
   "source-not-found",
@@ -110,6 +112,17 @@ const TERMINAL_APPLY_FAILURES = new Set([
   // Source resolves outside the workspace root — the same payload would be
   // refused again. (`outside-workspace` in lib/suggest-engine.mjs.)
   "outside-workspace",
+  // Forwarded from memory-engine (profile update/retire) — hard skips.
+  "no-match-text",
+  "invalid-section",
+  "no-profile",
+  // Forwarded from ai-content-sanitize via analysisUsable/evidence — polluted
+  // or empty AI output never becomes usable on retry without a new model call
+  // that this card does not trigger.
+  "json-dump",
+  "thinking-dump",
+  "empty-or-short",
+  "meta-pollution",
 ]);
 
 export function isTerminalApplyFailure(reason?: unknown): boolean {

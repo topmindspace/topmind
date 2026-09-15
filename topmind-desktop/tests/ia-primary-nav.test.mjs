@@ -14,7 +14,7 @@ function read(rel) {
 }
 
 describe("Desktop primary IA target", () => {
-  it("Sidebar header has Search + 记一下; StatusBar has persistent PrimaryNav", () => {
+  it("Sidebar header has Search + 记一下; PrimaryNav lives in sidebar destinations row", () => {
     const sidebar = read("src/components/shell/Sidebar.tsx");
     assert.match(sidebar, /SidebarHeaderActions/);
     assert.match(sidebar, /v4-search-trigger/);
@@ -32,16 +32,23 @@ describe("Desktop primary IA target", () => {
     assert.doesNotMatch(sidebar, /icon:\s*Home/);
     assert.doesNotMatch(sidebar, /RotateCcw/);
     const title = read("src/components/shell/TitleBar.tsx");
-    assert.doesNotMatch(title, /data-view-switcher/);
+    // Destinations live in the sidebar; TitleBar only hosts compact fallback
+    // when the sidebar is collapsed — it must not carry a full view-switcher.
+    assert.doesNotMatch(title, /data-view-switcher=""/);
     const nav = read("src/components/shell/PrimaryNav.tsx");
-    assert.match(nav, /data-status-primary-nav/);
+    assert.match(nav, /data-primary-nav=/);
     assert.match(nav, /data-view-switcher/);
     assert.match(nav, /PRIMARY_NAV_OPTIONS/);
     assert.match(nav, /primaryNav\.stream/);
     assert.match(nav, /primaryNav\.inbox/);
     assert.match(nav, /primaryNav\.outputs/);
+    assert.match(sidebar, /data-sidebar-primary-nav/);
+    assert.match(sidebar, /<PrimaryNav variant="sidebar"/);
+    // Collapsed-sidebar reach: compact icons on TitleBar, not StatusBar.
+    assert.match(title, /variant="compact"/);
+    assert.match(title, /sidebarCollapsed/);
     const status = read("src/components/shell/StatusBar.tsx");
-    assert.match(status, /<PrimaryNav/);
+    assert.doesNotMatch(status, /<PrimaryNav/);
   });
 
   it("Desktop README does not teach deleted ActionBar or Title-bar Note it", () => {
@@ -75,7 +82,8 @@ describe("Desktop primary IA target", () => {
     assert.match(design, /0\.0\.4 能力单家（Header homes）/);
     assert.match(design, /侧栏收起后如何到达/);
     assert.match(design, /左栏 Sidebar 主 header L1 捕获/);
-    assert.match(design, /状态栏常驻 PrimaryNav/);
+    assert.match(design, /侧栏目的地行/);
+    assert.doesNotMatch(design, /状态栏常驻 PrimaryNav/);
     assert.doesNotMatch(design, /左栏 `SidebarHeaderActions` \+ 中栏 TitleBar 视图切换/);
     assert.match(design, /右列 AI 工作区 \*\*建议\*\* pane/);
     assert.match(design, /右列 AI 工作区 \*\*清单\*\* pane/);
@@ -84,15 +92,16 @@ describe("Desktop primary IA target", () => {
     assert.match(design, /禁止把 记一下 \/ 建议 \/ 清单/);
     const sidebar = read("src/components/shell/Sidebar.tsx");
     assert.match(sidebar, /SidebarHeaderActions/);
+    assert.match(sidebar, /data-sidebar-primary-nav/);
     const title = read("src/components/shell/TitleBar.tsx");
-    assert.doesNotMatch(title, /data-view-switcher/);
+    assert.match(title, /PrimaryNav variant="compact"/);
     assert.match(title, /data-canvas-chrome/);
     const nav = read("src/components/shell/PrimaryNav.tsx");
-    assert.match(nav, /data-status-primary-nav/);
+    assert.match(nav, /variant = "sidebar"/);
     const shell = read("src/components/shell/Shell.tsx");
     const titleIdx = shell.indexOf("<TitleBar");
     const centerIdx = shell.indexOf("data-center-column");
-    assert.ok(centerIdx >= 0 && titleIdx > centerIdx, "PrimaryNav chrome stays in the center column when sidebar is hidden");
+    assert.ok(centerIdx >= 0 && titleIdx > centerIdx, "TitleBar chrome stays in the center column");
     assert.match(shell, /showSidebar = !focusMode && !sidebarCollapsed/);
   });
 

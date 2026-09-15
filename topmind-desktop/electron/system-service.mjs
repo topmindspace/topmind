@@ -1992,18 +1992,24 @@ export const SystemService = {
       engineRoot,
       { pruneMissing: true },
     );
+    let saved = next;
     if (changed) {
-      await saveAppSettings(fp, next, { secretAdapter: secretAdapterFromCtx(ctx) });
+      // Patch-merge only the workspaces slice under the write lock — a full
+      // `saveAppSettings(next)` snapshot can clobber concurrent key/settings writes.
+      const { updateAppSettings } = await import("./settings.mjs");
+      saved = await updateAppSettings(fp, current, { workspaces: next.workspaces }, {
+        secretAdapter: secretAdapterFromCtx(ctx),
+      });
       if (typeof ctx.updateAppSettingsInMemory === "function") {
-        ctx.updateAppSettingsInMemory(next);
+        ctx.updateAppSettingsInMemory(saved);
       }
     }
     return {
       ok: true,
       changed,
       removed: removed || [],
-      settings: next,
-      recent: next.workspaces?.recent || [],
+      settings: saved,
+      recent: saved.workspaces?.recent || [],
     };
   },
 

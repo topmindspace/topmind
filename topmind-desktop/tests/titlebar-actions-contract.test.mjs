@@ -22,22 +22,23 @@ function sliceTitleBarActions(src) {
   return src.slice(start, end);
 }
 
-test("PrimaryNav lives in StatusBar as three labeled buttons", () => {
+test("PrimaryNav lives in the sidebar destinations row as three labeled buttons", () => {
   const nav = read("src/components/shell/PrimaryNav.tsx");
-  assert.match(nav, /data-status-primary-nav/);
+  assert.match(nav, /data-primary-nav=/);
   assert.match(nav, /data-nav-kind=\{opt\.kind\}/);
   assert.match(nav, /kind: "stream"/);
   assert.match(nav, /kind: "inbox"/);
   assert.match(nav, /kind: "outputs"/);
-  // Status-bar strip is short, so the click target is bought with width:
-  // every anchor is at least 5.5rem wide and the label is always rendered.
-  assert.match(nav, /min-w-\[5\.5rem\]/);
+  // Sidebar segmented control: equal-width flex tabs with labels always rendered.
+  assert.match(nav, /flex-1/);
   assert.match(nav, /<span className="truncate">\{label\}<\/span>/);
-  assert.doesNotMatch(nav, /compact/);
+  assert.match(nav, /variant = "sidebar"/);
   const status = read("src/components/shell/StatusBar.tsx");
-  assert.match(status, /<PrimaryNav/);
+  assert.doesNotMatch(status, /<PrimaryNav/);
+  const sidebar = read("src/components/shell/Sidebar.tsx");
+  assert.match(sidebar, /data-sidebar-primary-nav/);
   const title = read("src/components/shell/TitleBar.tsx");
-  assert.doesNotMatch(title, /data-view-switcher/);
+  assert.match(title, /PrimaryNav variant="compact"/);
 });
 
 test("TitleBar first crumb is longer and more readable than later crumbs", () => {

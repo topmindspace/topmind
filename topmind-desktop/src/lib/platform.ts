@@ -3,11 +3,12 @@
  *
  * Three shapes exist, and the renderer only has to know about two of them:
  *
- * - **macOS** — traffic lights are inset *inside* our own 44px title bar row, on
- *   the left (`.v4-mac-titlebar-pad`).
- * - **Windows** — the app owns that row and the OS paints minimize / maximize /
- *   close over its *right* end, so the rightmost column header reserves the width
- *   the OS reports (`src/lib/window-controls.ts` → `--wc-inset-right`).
+ * - **macOS** — traffic lights are inset *inside* our own 44px product TitleBar
+ *   row, on the left (`.v4-mac-titlebar-pad`).
+ * - **Windows** — a full-width OS chrome strip (`OsChromeStrip`) sits above the
+ *   workbench; the OS paints minimize / maximize / close over its right end, so
+ *   that strip reserves the measured width (`--wc-inset-right`). Product column
+ *   headers never take OS chrome.
  * - **Linux** — the desktop environment draws the decorations and the native menu
  *   bar, exactly as it always has, so nothing is reserved.
  *
@@ -32,8 +33,8 @@ export const platform: DesktopPlatform = detectPlatform();
 export const isMacOS = platform === "darwin";
 
 /**
- * True when the OS overlays the caption buttons on our own title bar row — which
- * is also what makes the app draw the in-row menu strip there. Mirrors
+ * True when the OS overlays the caption buttons on our own full-width OS chrome
+ * strip — which is also what makes the app draw the menu strip there. Mirrors
  * `usesCaptionOverlay()` in `electron/lib/window-shell.mjs`.
  */
 export const usesCaptionOverlay = platform === "win32";

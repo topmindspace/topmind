@@ -1,13 +1,12 @@
 /**
- * App-owned title bar identity + menu strip (Windows).
+ * App-owned menu strip (Windows OS chrome row content).
  *
  * Windows draws the HMENU in a row of its own *below* the caption, and Electron
- * cannot merge the two — so a visible native menu bar always costs a second ~20px
- * row stacked on top of this 44px one, repeating identity the breadcrumb already
- * carries. This strip is the answer: the labels are drawn here, the menus stay
- * native (`popMenuSection` → `Menu.popup`), and the OS keeps painting minimize /
- * maximize / close over the right end of this very row (which is why the rightmost
- * column reserves `--wc-inset-right`, not a guessed pixel value).
+ * cannot merge the two into one native row. This strip is drawn in the dedicated
+ * full-width OS chrome row (`OsChromeStrip`) — not inside any product column
+ * header — so OS chrome stays out of product IA. Labels are app-drawn; menus stay
+ * native (`popMenuSection` → `Menu.popup`); min/max/close paint on the right end
+ * of the same OS row via `titleBarOverlay` / `--wc-inset-right`.
  *
  * The strip renders whatever main reports — it does not know or care that the
  * labels are 文件 / 编辑 / …, so a new top-level menu needs no change here.
@@ -46,9 +45,9 @@ export function AppMenuBar() {
 
   if (!usesCaptionOverlay || items.length === 0) return null;
 
-  /** The popup hangs from the bottom edge of the row, not of the button. */
+  /** The popup hangs from the bottom edge of the OS chrome row, not of the button. */
   const rowRect = (target: HTMLElement): DOMRect | null =>
-    target.closest("[data-column-chrome]")?.getBoundingClientRect() ?? null;
+    target.closest("[data-os-chrome]")?.getBoundingClientRect() ?? null;
 
   return (
     <div

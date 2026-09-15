@@ -567,7 +567,7 @@ test("no menu chord fights a chord the renderer already owns", () => {
   }
 });
 
-test("the title-bar strip can reach the real menu end to end", () => {
+test("the OS chrome strip can reach the real menu end to end", () => {
   // The strip is an app-drawn front end for a native menu, so the risk is a seam
   // that looks wired in both files but meets nowhere. Each hop is named here.
   const appMenu = read("electron/lib/app-menu.mjs");
@@ -604,9 +604,15 @@ test("the title-bar strip can reach the real menu end to end", () => {
   const component = read("src/components/shell/AppMenuBar.tsx");
   assert.ok(component.includes("usesCaptionOverlay"), "the strip is Windows-only by policy");
   assert.ok(component.includes("popMenuSection("), "and pops the native submenu");
+  // Mounted on the full-width OS chrome strip — never inside product TitleBar
+  // (that merge mixed OS chrome into product IA).
   assert.ok(
-    read("src/components/shell/TitleBar.tsx").includes("<AppMenuBar />"),
-    "the strip must actually be on the title bar row",
+    read("src/components/shell/OsChromeStrip.tsx").includes("<AppMenuBar />"),
+    "the strip must live on the full-width OS chrome row, not a product column header",
+  );
+  assert.ok(
+    !read("src/components/shell/TitleBar.tsx").includes("<AppMenuBar />"),
+    "TitleBar must not mount the menu strip",
   );
 });
 

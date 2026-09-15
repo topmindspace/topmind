@@ -28,6 +28,7 @@ import { Tooltip } from "../ui/tooltip";
 import { cn } from "../../lib/cn";
 import { ICON } from "../../lib/icons";
 import { formatChord } from "../../lib/chord";
+import { isMacOS } from "../../lib/platform";
 import {
   CaptureAttachmentList,
   CaptureDropHint,
@@ -125,12 +126,18 @@ export function QuickCapture({ variant, onDone }: QuickCaptureProps = {}) {
     >
       {/* Float drag region. The note owns its header everywhere: Windows is
           frameless (window-shell.mjs forFloat) so this row is the only drag
-          handle, and on macOS/Linux, which keep native chrome on the note, it
-          is a second grip plus the title — the ✕ below is the single close
+          handle. On macOS the traffic lights sit inside this same row
+          (`trafficLightPosition`), so the title starts after them — otherwise
+          "快速捕获" is painted under the lights. The ✕ is the single close
           affordance regardless of platform. */}
       {isFloat ? (
-        <div className="v4-drag mb-2 flex h-8 items-center justify-between px-0.5">
-          <span className="text-3xs font-medium tracking-tight text-text-quaternary">
+        <div
+          className={cn(
+            "v4-drag mb-2 flex h-8 items-center justify-between pr-0.5",
+            isMacOS ? "pl-[72px]" : "pl-0.5",
+          )}
+        >
+          <span className="truncate text-3xs font-medium tracking-tight text-text-quaternary">
             {t("overlays:capture.floatTitle")}
           </span>
           <button

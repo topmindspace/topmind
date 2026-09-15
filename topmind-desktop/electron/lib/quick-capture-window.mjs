@@ -198,15 +198,6 @@ export function closeQuickCaptureWindow() {
   captureWin = null;
 }
 
-/** Hide float without destroying (sticky note stays warm). */
-export function hideQuickCaptureWindow() {
-  if (captureWin && !captureWin.isDestroyed()) {
-    captureWin.hide();
-    return true;
-  }
-  return false;
-}
-
 export function focusQuickCaptureWindow() {
   if (captureWin && !captureWin.isDestroyed()) {
     captureWin.show();

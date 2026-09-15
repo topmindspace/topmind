@@ -334,7 +334,14 @@
       "outside-workspace": "source file is outside this workspace",
       "write-failed": "failed to write the target",
       "no-result": "no result returned",
-      "error": "execution error"
+      "error": "execution error",
+      "no-match-text": "no match text available to apply against",
+      "invalid-section": "the target section does not allow this change",
+      "no-profile": "the core profile note is missing",
+      "json-dump": "AI returned raw JSON and cannot be applied",
+      "thinking-dump": "AI output still contains unstripped reasoning",
+      "empty-or-short": "AI output was empty or too short",
+      "meta-pollution": "AI output is polluted with meta text"
     },
     "bulkAccept": "All ({{count}})",
     "bulkAcceptTip": "Accept all (sequential)",

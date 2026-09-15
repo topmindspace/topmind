@@ -94,10 +94,11 @@ test("each criterion-1 capability has one primary home in shipped chrome", () =>
   assert.match(sidebar, /SidebarHeaderActions/);
   assert.match(sidebar, /RiFlashlightFill/);
   assert.match(sidebar, /v4-search-trigger/);
-  // View switch (动态/Inbox/交付) is a persistent StatusBar PrimaryNav
-  assert.doesNotMatch(title, /data-view-switcher/);
+  // View switch (动态/Inbox/交付) is a sidebar destinations row; TitleBar
+  // hosts compact fallback when the sidebar is collapsed.
   assert.match(read("src/components/shell/PrimaryNav.tsx"), /PRIMARY_NAV_OPTIONS/);
-  assert.match(read("src/components/shell/StatusBar.tsx"), /<PrimaryNav/);
+  assert.match(sidebar, /data-sidebar-primary-nav/);
+  assert.doesNotMatch(read("src/components/shell/StatusBar.tsx"), /<PrimaryNav/);
   assert.match(ai, /data-ai-workspace-tab=\{item\.id\}/);
   assert.match(ai, /id: "chat"/);
   assert.match(ai, /id: "suggest"/);
@@ -121,8 +122,8 @@ test("workbench is three through-going columns; product chrome is not a spanning
   assert.match(title, /v4-column-chrome/);
   assert.match(read("src/components/shell/Sidebar.tsx"), /v4-column-chrome/);
   assert.match(read("src/components/ai/AiWorkspace.tsx"), /v4-column-chrome/);
-  // 2026-09: TitleBar has AI toggle; PrimaryNav is in StatusBar
-  assert.doesNotMatch(title, /data-view-switcher/);
+  // 2026-09-16: TitleBar has AI toggle; PrimaryNav is sidebar destinations (+ compact when collapsed)
+  assert.match(title, /PrimaryNav variant="compact"|v4-titlebar-btn-ai/);
   assert.match(title, /v4-titlebar-btn-ai/);
   const sidebar = read("src/components/shell/Sidebar.tsx");
   assert.match(sidebar, /data-column-chrome="left"/);

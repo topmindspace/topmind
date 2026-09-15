@@ -18,8 +18,8 @@
 
 ```text
 中栏主锚点：动态（默认） · Inbox · 交付
-状态栏 compact：动态 / Inbox / 交付
-中栏动作：面包屑 · 注入动作 · AI 列开关（主锚在状态栏常驻；搜索非 PrimaryNav：⌘K 命令面板 · ⌘P 笔记全文；记一下在左栏）
+状态栏 compact：状态（路径 · AI · busy）— 主锚不在状态栏
+中栏动作：面包屑 · 注入动作 · AI 列开关（主锚在**侧栏目的地行**；搜索非 PrimaryNav：⌘K 命令面板 · ⌘P 笔记全文；记一下在左栏）
 左栏：内容导航 + 底栏工作区切换 + ViewSwitcher 下沉
 右栏：AI 工作区 pane 对话 / 建议 / 清单 / 应用
 二级入口：专题树 · 我的情况（记忆浏览：列表/卡片，点开条目仍落文件） · 归档（⌘⇧A / 命令面板；不在 PrimaryNav）
@@ -131,12 +131,12 @@
 - **左 Sidebar 主 header**（顺序固定）：Profile → 搜索 ⌘K → 记一下，整组**右对齐**（macOS 红绿灯占左栏顶栏左侧空位，避免遮挡）。记一下是普通 chrome 按钮（非实心 teal CTA），图标与文字用捕获强调色 / 渐变。
 - **左 Sidebar 次级 header**：ViewSwitcher 纯图标（动态 / 目录 / 时间 / 看板等）与树的排序 / 展开折叠 / 筛选 / 刷新合在**同一行**小图标；非目录模式隐藏树工具。
 - **中间 TitleBar**：三列顶栏共用 `.v4-column-chrome`（`--density-chrome-y` 44px · 控件 32px）对齐。左侧 = Toggle + 后退/前进 + 可点击祖先面包屑（第一层 `max-w-36`，后续更短）+ 当前页标题 + 该页统计；右侧 = 视图注入动作 slot（`data-titlebar-actions-slot`）+ AI 面板 toggle。集合页（动态 / Inbox / 交付 / 类别 / 专题 / 我的情况 / 归档）的身份与新建/整理/刷新等动作住在 TitleBar，画布不再重复 PageHeader 标题条。文件页把注入 AI / 发布 / 移动 / 记忆等原编辑器拖把右侧快捷键注入 TitleBar；拖把只留格式与编辑/预览。大纲 / 阅读外观 / 专注模式住在 FrontmatterBar 属性行右侧（`EditorViewChrome`），不挤格式条。
-- **StatusBar**：左端绿点 + **完整工作区路径**（`data-status-workspace-path`，不是 basename）；**中央常驻 PrimaryNav**（图标+文字：动态 / Inbox / 交付，`data-status-primary-nav`，不随打开的笔记变化）；tooltip 含 engine 路径。
+- **StatusBar**：左端绿点 + **完整工作区路径**（`data-status-workspace-path`，不是 basename）；tooltip 含 engine 路径。**不含 PrimaryNav**（状态栏是状态，不是导航；主锚在侧栏目的地行）。
 
 | 能力 | 唯一主家 | 侧栏收起后如何到达 |
 |------|----------|-------------------|
 | **记一下** | 左栏 Sidebar 主 header L1 捕获（⌘N / 全局 ⌘⇧N） | 侧栏收起后 ⌘N / ⌘⇧N 全局快捷键仍可达 |
-| **动态 · Inbox · 交付** | 状态栏常驻 PrimaryNav（图标+文字） | 状态栏始终在；⌘⇧S / ⌘⇧I / ⌘⇧O · ⌘K |
+| **动态 · Inbox · 交付** | **侧栏目的地行**（`data-sidebar-primary-nav` · 分段控件，图标+文字） | 侧栏收起时 TitleBar **紧凑图标**（`PrimaryNav variant=compact`）；⌘⇧S / ⌘⇧I / ⌘⇧O · ⌘K |
 | **建议** | 右列 AI 工作区 **建议** pane；状态栏计数（count>0）只打开该 pane | 状态栏计数仍在（count>0）；专注模式浮动 `SuggestPopover` |
 | **清单** | 右列 AI 工作区 **清单** pane（`TodoListBody`；✨ 维护在 pane 内）；⌘⇧T 开门 | 专注模式浮动 `TodoPopover` |
 | **应用** | 右列 AI 工作区 **应用** pane | ⌘K「打开应用」走 `openAiWorkspace("apps")`（不依赖右列已挂载） |
@@ -218,7 +218,7 @@
 | **动效克制** | `duration-fast` 140ms · `duration-enter` 160ms；列表 stagger ≤8；`prefers-reduced-motion` 全关 |
 | **性能** | `content-visibility` 列表、panel `contain`、AI 面板 lazy、流式滚动尊重用户上滑 |
 | **响应式 chrome** | 操作按钮按宽度 **铺开 ↔ ⋯ 溢出**（`ChromeOverflowActions`）；TitleBar 右轨 ResizeObserver 互斥；主锚文案按窗口宽度（≥960）显示，窄屏 **tooltip + aria-label 必在**；编辑器右侧发布/AI/专注同轨溢出；禁止同动作双入口 |
-| **StatusBar 可交互** | 工作区正常：绿点 + **完整工作区路径**（`data-status-workspace-path`，tooltip 含 engine 路径）；异常才出错误文字。**中央常驻 PrimaryNav**（动态 / Inbox / 交付）。**AI 就绪 pill（唯一主控件）**：离线->设置 · 就绪->toggle AI 面板；流式时 pill 显示会话态；**命名 busy 单路径**（`deriveStatusBarBusy`：apply > tasks > todo > suggest > **inline** 最多一颗命名 chip；todo/suggest/inline/apply 独占时 AI pill 不显示「工作中」）；**进度动效**：每个 busy chip 附带 `v4-ai-progress-dot` 脉动指示器；tooltip 含预期时长。**文件 chip 仅 file 选择时显示**（点击 reveal）。**建议计数在状态栏**（count>0 时 `showSuggestCountChip`；生成中走 busy chip；确认写入走 apply chip） |
+| **StatusBar 可交互** | 工作区正常：绿点 + **完整工作区路径**（`data-status-workspace-path`，tooltip 含 engine 路径）；异常才出错误文字。**不含 PrimaryNav**（主锚在侧栏目的地行；收起时 TitleBar 紧凑图标）。**AI 就绪 pill（唯一主控件）**：离线->设置 · 就绪->toggle AI 面板；流式时 pill 显示会话态；**命名 busy 单路径**（`deriveStatusBarBusy`：apply > tasks > todo > suggest > **inline** 最多一颗命名 chip；todo/suggest/inline/apply 独占时 AI pill 不显示「工作中」）；**进度动效**：每个 busy chip 附带 `v4-ai-progress-dot` 脉动指示器；tooltip 含预期时长。**文件 chip 仅 file 选择时显示**（点击 reveal）。**建议计数在状态栏**（count>0 时 `showSuggestCountChip`；生成中走 busy chip；确认写入走 apply chip） |
 | **TitleBar 右轨分层** | **L1** 视图注入动作（`data-titlebar-actions-slot`）+ AI 轨开关（`.v4-titlebar-btn-ai`）。记一下不在 TitleBar（左栏 Sidebar 主 header）。建议 / 清单 / 应用在 AI 工作区 pane；主题 / 语言 / 设置在 WorkspaceSwitcher。`data-chrome-tier`；**badge 纪律：仅在需要行动时出现**——Inbox（分诊队列）+ 建议计数（状态栏 count>0）保留；交付计数（库存非行动）与清单常驻数字点（恒非零）已移除 |
 | **建议入口降噪** | 建议计数**恰好一处可见入口**：状态栏计数 chip（count>0 才出现）+ AI 工作区建议 tab；专注模式浮动 `SuggestPopover`；画布顶 strip 已删。禁止 strip + 轨 chip + 状态栏 三处等权 |
 | **编辑器默认 chrome** | 格式工具条 **默认展开**（`showFormat=true`，可收起）；常驻 ≤2 条 full-width 分割 |
@@ -346,15 +346,14 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 
   | 平台 | 边框 | 标题栏 | 窗口内菜单栏 |
   |---|---|---|---|
-  | macOS | `hiddenInset`（无边框内嵌） | 红绿灯在**我们自己**的 44px 顶栏内（左侧） | 无（系统菜单栏） |
-  | Windows | 原生边框 + `titleBarOverlay` | **应用自绘**、同一排：图标 · 名称 · 菜单条 · 面包屑；最小化/最大化/关闭仍由 OS 画在这一排右端 | 无原生栏；顶栏那条菜单条弹出**原生**子菜单 |
+  | macOS | `hiddenInset`（无边框内嵌） | 红绿灯在**我们自己**的 44px **产品**顶栏内（左侧） | 无（系统菜单栏） |
+  | Windows | 原生边框 + `titleBarOverlay` | **全宽 OS 壳层条**（`OsChromeStrip`，在三栏之上）：图标 · 名称 · 菜单条；最小化/最大化/关闭画在该条右端 | 无原生栏；OS 条弹出**原生**子菜单 |
   | Linux | 原生边框 | DE 标题栏 | **原生菜单栏（常显）** |
   | 浮窗（mac / Win） | mac `hiddenInset` · Win**无边框** | **应用自绘 32px 头行**：标题 + 显式 ✕ + 拖动区（mac 红绿灯落在这行内） | 无（`autoHideMenuBar`） |
   | 浮窗（Linux） | 原生边框 | DE 标题栏 | 无（`autoHideMenuBar`） |
 
-  - **为什么 Windows 自绘标题栏**：Windows 把 HMENU 画在标题栏**下方**的独立一条，Electron 没有任何 API 能把两者并排。于是「原生菜单栏常显」必然在应用自己的 44px 顶栏之上再叠约 20px（合计约 95px，macOS 只有 44px），且与面包屑重复身份信息。改自绘后 `titleBarStyle: 'hidden'` + `titleBarOverlay`：按钮仍由系统绘制（贴边、缩放边框、贴靠手势全不变），菜单项变成「顶栏自绘标签 + 原生 `Menu.popup` 子菜单」，菜单**内容**仍只定义一次（`menu-spec.mjs`）。Linux 不动：那里的装饰属于桌面环境，能否 overlay 取决于 DE 与 X11/Wayland——**量不出来的让位垫正是要消除的失败模式**。
-  - **让位垫必须量出来，不能猜**：`src/lib/window-controls.ts` 读 `navigator.windowControlsOverlay.getTitlebarAreaRect()`（`geometrychange` 时重算），把左右两侧被占宽度发布成 `--wc-inset-right/-left`；消费它的规则是**复合选择器** `html[data-wc-inset=…] [data-column-chrome=…]`，特异性恒高于 `.v4-column-chrome`。当年正是「写死宽度 + 单类选择器 + 简写重置」三件事同时发生，才让第 4 个 tab「应用」与右列 toggle 被盖——三者现在都在结构上不可能重现，并由 `tests/window-shell.test.mjs` 断言。
-  - 右端为哪一列让位由布局决定（`data-wc-inset="ai" | "center"`）：AI 列开着让 AI 列表头，专注模式 / 关掉 AI 列则交回中栏。
+  - **为什么 Windows 用独立 OS 壳层条（而不是融进中栏 TitleBar）**：Windows 把 HMENU 画在标题栏**下方**的独立一条，Electron 没有任何 API 能把「原生菜单栏 + 原生标题栏」并成**一条原生**行。于是可选只有：① 原生两行（菜单 + 标题栏，约 50px OS chrome）；② `titleBarStyle: 'hidden'` + `titleBarOverlay`，由应用自绘**一行**，系统只负责右端 min/max/close。我们选 ② 的「一行」形态，但该行是**横跨三栏之上**的 `OsChromeStrip`（`data-os-chrome`），**不是**中栏产品 header 的一部分——v4.2.0 把菜单条塞进中栏 TitleBar 会把 OS 外壳混进产品 IA，已废弃。菜单内容仍是原生 `Menu.popup`（`menu-spec.mjs` 只定义一次）。Linux 不动：装饰属于 DE，能否 overlay 取决于 DE 与 X11/Wayland。
+  - **让位垫必须量出来，不能猜**：`src/lib/window-controls.ts` 读 `navigator.windowControlsOverlay.getTitlebarAreaRect()`（`geometrychange` 时重算），发布 `--wc-inset-right/-left`；消费它的规则是**复合选择器** `html[data-wc-inset] [data-os-chrome]`——只让位 OS 条，**不**附着到任何 `[data-column-chrome]` 产品表头。
   - 因此 `.v4-column-chrome` 永远用 `padding-left/right` 长写（禁止 `padding` 简写——简写会重置 `padding-right`，而该规则位于样式表末尾，等权重下按源码顺序取胜，正是当年让位垫静默失效的原因）。
   - **浮窗（快速捕获 / 记一下）自绘头行，不要第二条标题栏**：480px 便签本来就是自带「标题 + ✕ + `v4-drag`」的一行，再叠一条原生标题栏就是把身份信息（`topmind` / 快速捕获）说两遍——Windows 上尤其明显，因为应用菜单栏是全局的，会横穿便签。故 mac `hiddenInset`（红绿灯并进这行）、Windows `frame: false`（连 caption 按钮也不要：`skipTaskbar` 便签上的最小化会把它藏得找不回来；thickFrame 仍留着缩放边与投影）、Linux 保留 DE 装饰（与主窗同理）。三平台一律 `autoHideMenuBar: true`。
 - **原生菜单（快捷操作入口）** — `electron/lib/menu-spec.mjs`（纯模板）+ `app-menu.mjs`（Electron 接线）  
@@ -367,7 +366,7 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
   - **全局记一下**（⌘⇧N）的 chord 归 `main.mjs` 的 `globalShortcut`，菜单项只是镜像：非 mac 显示但不注册；**mac 连 accelerator 都不给**——Electron 只在 Linux/Windows 认 `registerAccelerator`，mac 上「显示」必伴随「注册」，等于给同一个动作再塞一个 owner。取舍是 mac 菜单不显示该 chord，快捷键仍在应用内文案里说明（`window.hideMacHint` / 托盘提示）。chord 与 main.mjs 的一致性由测试锁定。  
   - 菜单文案在主进程 i18n（`electron/lib/electron-i18n.mjs`），语言切换后重建。
   - **`appSettings` 只有一个写方**：`main.mjs` 的 `setAppSettings()`。开机、切换/新建/关闭工作区、窗口尺寸持久化、UI 缩放、裁剪令牌、关闭行为选择、最近列表修剪——七条路径全都经过它。原因：菜单的工作区/最近/主题/语言与 OS 标题栏都是从 app-settings 派生的，绕过它就等于**菜单继续展示刚刚离开的那个工作区**（关闭工作区仍可点、最近打开仍是旧列表、标题栏仍是旧名字）。`setAppSettings` 先 diff 再决定是否重建（resize 风暴不会重建菜单）。有守护测试锁「唯一写方」。
-  - **Windows 没有原生菜单栏**：菜单由顶栏那条自绘菜单条承载（`AppMenuBar`），它只认 id——主进程 `system.menuTopLevel` 给顶层条目（标签已按**应用语言**本地化），`system.menuPopup` 按 id 弹**真正的原生子菜单**。勾选态、子菜单、禁用态、快捷键全由 Electron 渲染，渲染侧不复制任何一条菜单结构，所以新增一个顶层菜单不需要动渲染侧。原生菜单本身仍安装着（只是栏隐藏），它拥有的 F11 / Ctrl+R / Ctrl+Z 等 role 快捷键照常生效，Alt 也仍能唤出原生栏作为纯键盘回退。
+  - **Windows 没有原生菜单栏**：菜单由**全宽 OS 壳层条**承载（`OsChromeStrip` → `AppMenuBar`），它只认 id——主进程 `system.menuTopLevel` 给顶层条目（标签已按**应用语言**本地化），`system.menuPopup` 按 id 弹**真正的原生子菜单**。勾选态、子菜单、禁用态、快捷键全由 Electron 渲染，渲染侧不复制任何一条菜单结构，所以新增一个顶层菜单不需要动渲染侧。原生菜单本身仍安装着（只是栏隐藏），它拥有的 F11 / Ctrl+R / Ctrl+Z 等 role 快捷键照常生效，Alt 也仍能唤出原生栏作为纯键盘回退。**禁止**把该条塞回中栏 TitleBar / 任一产品列 header。
   - **`role` 的隐含 chord 必须一起查**：role 没有「只显示不注册」模式，它的默认 chord 会真注册。本轮据此抓出 `toggleDevTools`（Windows/Linux 上 Ctrl+Shift+I）与渲染侧 Inbox（⌘⇧I）撞键——一次按键同时开 Inbox 和 DevTools，开发构建里必现。改用显式 `F12`。守护测试现在把「role 的生效 chord」与 `WORKBENCH_SHORTCUTS` 交叉比对（此前只比菜单内部，这正是漏掉它的原因）。
   - **不设** `role: "close"`：它会占用 ⌘W/Ctrl+W，等于悄悄夺走「关闭标签页」（应用是多标签的）；缩放的 `resetZoom/zoomIn/zoomOut` role 同理（自带 ⌘0/⌘±，会与渲染侧撞成「按一次缩两格」），故走渲染侧 `view.zoom.*` 命令。
 
@@ -391,7 +390,7 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 - **设置 ↔ 壳同步**：`settings.ui`（含 `aiPanelOpen` / 侧栏视图 / 宽度）经 `lib/ui-settings-sync` 即时写入 view-store；Shell 收到 `ui:settings-applied` 后 **跳过一轮** 布局防抖写盘，避免盖掉设置  
 - **UI 默认**：无效 `sidebarView` normalize 为 **`stream`**（产品默认，非 category）
 
-- **窗体 / 托盘 / Landing / 状态栏 / Overlay** 与实现一致；PrimaryNav = **动态 · Inbox · 交付**（状态栏常驻；搜索非 PrimaryNav：⌘K 命令面板 · ⌘P 笔记全文）
+- **窗体 / 托盘 / Landing / 状态栏 / Overlay** 与实现一致；PrimaryNav = **动态 · Inbox · 交付**（侧栏目的地行；侧栏收起时 TitleBar 紧凑图标；搜索非 PrimaryNav：⌘K 命令面板 · ⌘P 笔记全文）
 
 ### 2.1 中栏顶栏（薄 chrome · 非横跨三列的产品 header）
 
@@ -400,11 +399,11 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 **左侧**:
 - 侧栏开关 · 前进/后退（工作区切换器在左栏底部，⌘⇧W 仍打开）
 
-**状态栏中央** — `PrimaryNav`（常驻图标+文字，不随打开的笔记变化）:
+**侧栏目的地行** — `PrimaryNav variant="sidebar"`（`data-sidebar-primary-nav` · 分段控件，图标+文字）:
 - **动态**（默认，打开工作区落点）· **Inbox** · **交付**
 - 归档不在主锚（⌘⇧A / 侧栏 / 命令面板）
 - 搜索：⌘K 命令面板 · ⌘P 笔记全文（均非 PrimaryNav）
-- 侧栏收起时 **仍在状态栏**（左栏不是主锚的家）
+- 侧栏收起时 **TitleBar 紧凑图标**（`PrimaryNav variant="compact"`，状态栏不承载导航）
 
 **右侧**:
 - 视图注入动作 + AI 列开关  

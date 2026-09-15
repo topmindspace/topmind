@@ -1,13 +1,16 @@
 /**
- * Center-column chrome — context-driven header.
+ * Center-column chrome — context-driven product header.
  *
  * 2026-09 v4 redesign:
  * - Sidebar header has Profile + Search + 记一下.
  * - TitleBar left: Toggle + history + clickable breadcrumb + stats.
- * - PrimaryNav (动态 / Inbox / 交付) lives in the StatusBar so it stays
- *   persistent and does not compete with page identity.
+ * - PrimaryNav (动态 / Inbox / 交付) lives in the sidebar destinations row;
+ *   when the sidebar is collapsed, compact icon PrimaryNav mounts here so
+ *   destinations stay reachable.
  * - TitleBar right: dynamic injected actions + AI panel toggle.
  * - Three-column headers share `.v4-column-chrome` (44px).
+ * - OS chrome (Windows menu strip + caption reserve) lives in OsChromeStrip
+ *   above the workbench — never inside this product header.
  */
 import {
   RiArrowLeftSLine,
@@ -26,7 +29,7 @@ import {
 
 import { Tooltip } from "../ui/tooltip";
 import { PanelToggleIcon } from "../ui/PanelToggleIcon";
-import { AppMenuBar } from "./AppMenuBar";
+import { PrimaryNav } from "./PrimaryNav";
 import { ICON } from "../../lib/icons";
 import { isMacOS } from "../../lib/platform";
 
@@ -79,16 +82,14 @@ export function TitleBar({ workspaceRoot: _workspaceRoot, sidebarCollapsed, onTo
     >
       {focusMode ? (
         <div className={cn("flex min-w-0 items-center gap-1.5", trafficMac && "v4-mac-titlebar-pad")}>
-          {/* Focus mode quietens the canvas, it must not become a trap: on macOS the
-              system menu bar stays reachable, so the Windows strip stays too. */}
-          <AppMenuBar />
+          {/* Focus mode quietens the canvas. On Windows the OS chrome strip stays
+              mounted above the workbench, so the menu remains reachable without
+              parking OS chrome inside this product header. */}
           <span className="text-xs font-semibold tracking-tight text-text-primary">{t("titleBar.focusMode")}</span>
         </div>
       ) : (
       <div className={cn("flex min-w-0 flex-1 items-center gap-1.5", trafficMac && "v4-mac-titlebar-pad")}>
-        {/* Windows: the row IS the title bar now, so it opens with the app mark,
-            app name and the menu strip the OS can't merge into the caption. */}
-        <AppMenuBar />
+        {/* Product chrome only. Windows menu + caption live in OsChromeStrip. */}
         <div className="v4-titlebar-cluster flex items-center gap-0.5">
           <Tooltip content={sidebarCollapsed ? t("titleBar.showSidebar") : t("titleBar.hideSidebar")}>
             <button
@@ -114,6 +115,9 @@ export function TitleBar({ workspaceRoot: _workspaceRoot, sidebarCollapsed, onTo
             </button>
           </Tooltip>
         </div>
+
+        {/* Collapsed-sidebar reach: destinations stay on the chrome row. */}
+        {sidebarCollapsed && !focusMode ? <PrimaryNav variant="compact" /> : null}
 
         {/* Breadcrumb + title + stats — first crumb keeps a longer readable cap. */}
         {title ? (

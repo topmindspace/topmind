@@ -4,38 +4,39 @@
  * | Platform    | Frame           | Title bar row                    | Menu                  |
  * |-------------|-----------------|----------------------------------|-----------------------|
  * | macOS       | frameless inset | traffic lights inside our 44px   | system menu bar       |
- * | Windows     | native frame    | app-owned 44px; OS draws min/max | in-row strip → native |
- * |             |                 | /close over its right end        | popups                |
+ * | Windows     | native frame    | full-width app-owned OS strip;   | strip → native        |
+ * |             |                 | OS draws min/max/close right     | popups                |
  * | Linux       | native frame    | DE title bar                     | native menu bar       |
  * | float mac   | frameless inset | traffic lights inside our 32px   | system menu bar       |
  * | float win   | frameless       | app-owned 32px header            | hidden (global)       |
  * | float linux | native frame    | DE title bar                     | hidden (global)       |
  *
- * **Why Windows became one row.** Windows draws the HMENU in its own strip
- * *below* the caption, and Electron exposes no API that merges the two. A visible
- * native menu bar therefore always costs a second ~20px row stacked on top of the
- * app's own 44px column chrome — 95px of chrome before any content, against 44px
- * on macOS, and it repeats identity the breadcrumb already carries. Owning the
- * title bar (`titleBarStyle: 'hidden'`) collapses icon / name / menu / breadcrumb
- * into that one row while the OS keeps drawing minimize / maximize / close through
- * `titleBarOverlay` — the caption buttons stay native, so snapping, resize borders
- * and hit-testing are unchanged. The menu becomes an app-drawn strip whose items
- * pop up the *real* native menu (`Menu.popup`), so no menu content is reimplemented.
+ * **Why Windows uses a dedicated OS strip (not the center column header).**
+ * Windows draws the HMENU in its own strip *below* the caption, and Electron
+ * exposes no API that merges the two into one *native* row. A visible native
+ * menu bar therefore always costs a second ~20px row stacked on top of app
+ * chrome. Owning the title bar (`titleBarStyle: 'hidden'`) lets the app draw
+ * one row while the OS keeps drawing minimize / maximize / close through
+ * `titleBarOverlay`.
  *
- * **Why that is safe now when the first attempt was not.** The earlier overlay
- * reserved a guessed width and lost the reservation to a `padding` shorthand
- * declared later in the stylesheet. The width is no longer guessed: the renderer
- * reads it from `navigator.windowControlsOverlay.getTitlebarAreaRect()` and
- * republishes it as `--wc-inset-right` on every `geometrychange` (see
- * `src/lib/window-controls.ts`), so DPI, scale factor and RTL take care of
- * themselves; and the reservation rule is a compound selector, so source order
- * cannot reset it. Both halves are asserted in `tests/window-shell.test.mjs`.
+ * That row is **not** product chrome. It is a full-width `OsChromeStrip` above
+ * the three workbench columns (icon · name · menu labels). Column headers stay
+ * pure product IA — merging OS chrome into the center TitleBar (v4.2.0) mixed
+ * the two planes and was rejected. Menu *content* is still native
+ * (`Menu.popup` from `menu-spec.mjs`); nothing is reimplemented.
+ *
+ * **Why the caption reservation is measured.** The width comes from
+ * `navigator.windowControlsOverlay.getTitlebarAreaRect()` via
+ * `src/lib/window-controls.ts` → `--wc-inset-right`, consumed only by
+ * `html[data-wc-inset] [data-os-chrome]` (see `src/styles/v4.css`). Guessed
+ * widths + single-class selectors + `padding` shorthands previously made the
+ * reservation dead code and painted AI tabs under the buttons.
  *
  * **Why Linux stays native.** Decorations there belong to the desktop
  * environment, and whether an overlay is drawn at all depends on the DE and on
  * X11 vs Wayland. A reservation we cannot measure is exactly the failure mode
- * being removed here, so Linux keeps the frame — and the native menu bar — it has
- * always had.
+ * being removed here, so Linux keeps the frame — and the native menu bar — it
+ * has always had.
  *
  * macOS keeps `hiddenInset`: its traffic lights sit inside our own header row and
  * read as one integrated bar already. It returns `frame: null` (not `false`) on

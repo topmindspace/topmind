@@ -26,16 +26,18 @@ function read(rel, base = root) {
 
 // ── Chrome hierarchy & single CTA ──────────────────────────────────────
 
-test("TitleBar: AI toggle; sidebar has capture; PrimaryNav is in StatusBar", () => {
+test("TitleBar: AI toggle; sidebar has capture; PrimaryNav in sidebar destinations row", () => {
   const titleBar = read("src/components/shell/TitleBar.tsx");
-  assert.doesNotMatch(titleBar, /data-view-switcher/);
+  // Compact fallback only when sidebar is collapsed — not a full view-switcher.
+  assert.match(titleBar, /PrimaryNav variant="compact"/);
   assert.match(titleBar, /v4-titlebar-btn-ai/);
   const nav = read("src/components/shell/PrimaryNav.tsx");
   assert.match(nav, /PRIMARY_NAV_OPTIONS/);
   assert.match(nav, /primaryNav\.stream/);
   assert.match(nav, /primaryNav\.inbox/);
   assert.match(nav, /primaryNav\.outputs/);
-  assert.match(read("src/components/shell/StatusBar.tsx"), /<PrimaryNav/);
+  assert.match(read("src/components/shell/Sidebar.tsx"), /data-sidebar-primary-nav/);
+  assert.doesNotMatch(read("src/components/shell/StatusBar.tsx"), /<PrimaryNav/);
   assert.doesNotMatch(titleBar, /v4-titlebar-btn-capture/);
   assert.doesNotMatch(titleBar, /data-chrome-tier=["']l2["']/);
   assert.doesNotMatch(titleBar, /data-chrome-tier=["']l3["']/);

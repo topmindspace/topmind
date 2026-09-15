@@ -16,6 +16,7 @@ import { useViewStore, loadExpandedState, type SidebarViewMode } from "../../sto
 import { TreeView } from "../sidebar/TreeView";
 import { TreeToolbar } from "../sidebar/tree-toolbar";
 import { ViewSwitcher } from "../sidebar/ViewSwitcher";
+import { PrimaryNav } from "./PrimaryNav";
 import { LazyBoundary } from "../ui/LazyBoundary";
 import { api } from "../../services/api";
 import { emitLocal, onLocal } from "../../plugins/host";
@@ -289,6 +290,12 @@ export function Sidebar() {
         >
           <SidebarHeaderActions />
         </div>
+      </div>
+      {/* Destinations row — 动态 / Inbox / 交付. Content IA lives next to the
+          tree, not in the status bar (2026-09-16). Collapsed-sidebar reach is
+          TitleBar compact PrimaryNav. */}
+      <div className="flex shrink-0 items-center px-1.5 py-1" data-sidebar-primary-nav>
+        <PrimaryNav variant="sidebar" />
       </div>
       {/* Secondary header — ViewSwitcher (icon-only) + tree sort/expand/filter/refresh in one row. */}
       <div

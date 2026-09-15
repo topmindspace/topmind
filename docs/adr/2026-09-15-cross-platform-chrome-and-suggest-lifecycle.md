@@ -1,10 +1,14 @@
 # ADR: Cross-platform window chrome, platform-correct chords, and the suggestion lifecycle
 
 **Date:** 2026-09-15  
-**Status:** Accepted  
+**Status:** Accepted (revised 2026-09-16: Windows OS chrome strip moved out of product TitleBar)  
 **Kind:** Desktop UX / cross-platform correctness + AI suggestion lifecycle  
 **Surfaces:** Desktop (renderer + Electron main) · Kernel (`lib/`) · docs  
 **Related:** `topmind-desktop/DESIGN.md` §窗口外壳 / §7 键盘快捷键 / §0.0.3 · `topmind-desktop/ARCHITECTURE.md` · `AGENTS.md` (跨平台文案纪律) · `2026-09-07-pi-engine-and-three-column-reevaluation.md` (chrome layout this builds on) · `2026-09-14-product-vocabulary-rename.md`
+
+> **Revision note (2026-09-16).** v4.2.0 implemented Windows chrome by mounting the menu strip **inside the center column TitleBar**. That gave one OS row, but it mixed OS chrome into product IA (三栏产品 header). The strip is now a dedicated full-width `OsChromeStrip` **above** the workbench; product column headers never take caption reserves. Caption measurement, native `Menu.popup`, Linux/macOS policy, float-window policy, and the suggestion lifecycle below are unchanged.
+>
+> **PrimaryNav placement (2026-09-16).** The three destinations (动态 / Inbox / 交付) left the 26px StatusBar — that bar is status, not navigation. They now live in a **sidebar destinations row** (`data-sidebar-primary-nav`); when the sidebar is collapsed, TitleBar mounts a compact icon-only PrimaryNav so destinations stay reachable. Shortcuts and IA labels are unchanged.
 
 ---
 
@@ -68,12 +72,12 @@ Fix the six, and — more importantly — move each one's rule into a place wher
 
 ## The chrome work in detail
 
-**Windows owns one row.** `titleBarStyle: 'hidden'` + `titleBarOverlay: { height: 44 }` collapses app mark, name, menu strip and breadcrumb into the row the OS would have used for the caption, while the OS keeps painting minimize / maximize / close at its right end — so snapping, resize borders and hit-testing are untouched. The menu becomes an app-drawn strip (`AppMenuBar` ← `src/lib/menu-strip.ts`) whose items pop the **real** native submenu (`Menu.popup`). The strip knows only ids: main supplies the top-level entries, already localized, via `system.menuTopLevel`, and pops by id via `system.menuPopup`. No menu item, label or checkmark is reimplemented in the renderer, so adding a top-level menu does not touch the strip. The native menu stays installed with its bar hidden, so every accelerator it owns (F11 / Ctrl+R / Ctrl+Z) keeps working and Alt still reveals the bar as a keyboard-only fallback.
+**Windows owns one OS chrome row — outside product IA.** `titleBarStyle: 'hidden'` + `titleBarOverlay: { height: 44 }` lets the app draw a full-width strip (`OsChromeStrip`) **above the three workbench columns** (icon · name · menu labels) while the OS keeps painting minimize / maximize / close at its right end — so snapping, resize borders and hit-testing are untouched. Electron still cannot merge the native HMENU into the caption into one *native* row; this is the practical one-row form. **v4.2.0 first put that strip inside the center TitleBar**, which mixed OS chrome into product IA and was rejected: product column headers must never take OS chrome or caption reserves. The menu becomes an app-drawn strip (`OsChromeStrip` → `AppMenuBar` ← `src/lib/menu-strip.ts`) whose items pop the **real** native submenu (`Menu.popup`). The strip knows only ids: main supplies the top-level entries, already localized, via `system.menuTopLevel`, and pops by id via `system.menuPopup`. No menu item, label or checkmark is reimplemented in the renderer, so adding a top-level menu does not touch the strip. The native menu stays installed with its bar hidden, so every accelerator it owns (F11 / Ctrl+R / Ctrl+Z) keeps working and Alt still reveals the bar as a keyboard-only fallback.
 
 **Why the first attempt at this failed, and why it does not now.** The earlier overlay reserved a *guessed* width and lost the reservation to a `padding` shorthand declared later in the stylesheet. Three things had to happen at once for that to break; all three are now structurally impossible:
 
 1. The width is measured, not guessed: `navigator.windowControlsOverlay.getTitlebarAreaRect()` on every `geometrychange`, so DPI, scale and RTL take care of themselves.
-2. The reservation rule is a compound selector (`html[data-wc-inset=…] [data-column-chrome=…]`), so source order cannot reset it.
+2. The reservation rule is a compound selector targeting only the OS strip (`html[data-wc-inset] [data-os-chrome]`) — never `[data-column-chrome]`.
 3. `.v4-column-chrome` uses `padding-left/right` longhand only — the shorthand is banned there because it resets `padding-right`.
 
 **Linux deliberately stays native.** Decorations belong to the desktop environment and whether an overlay is drawn at all depends on the DE and on X11 vs Wayland. A reservation that cannot be measured is exactly the failure mode being removed, so Linux keeps its frame and its always-visible native menu bar. **Linux therefore still costs a second menu row** — that is a deliberate, unmeasured-risk-avoiding trade, not an oversight.

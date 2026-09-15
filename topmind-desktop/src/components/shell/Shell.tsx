@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback, lazy } from "react";
 import { RiLightbulbLine, RiListCheck } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { TitleBar } from "./TitleBar";
+import { OsChromeStrip } from "./OsChromeStrip";
 import { StatusBar } from "./StatusBar";
 import { Sidebar } from "./Sidebar";
 import { EditorArea } from "./EditorArea";
@@ -87,14 +88,14 @@ export function Shell({ settings }: ShellProps) {
   // items through the same command ids as the keyboard — see lib/native-menu.ts.
   useEffect(() => installNativeMenuBridge(), []);
 
-  // Windows draws the menu on the title bar row instead of a native menu bar, so
-  // the strip needs the top-level entries and the caption-button geometry that the
-  // OS overlays there — see lib/menu-strip.ts / lib/window-controls.ts.
+  // Windows draws the menu on a full-width OS chrome strip (not a native menu
+  // bar, not a product column header) — see lib/menu-strip.ts /
+  // OsChromeStrip.tsx. Caption geometry is reserved on that strip only.
   useEffect(() => installMenuStrip(), []);
   useEffect(() => installWindowControlsTracking(), []);
 
   // OS fullscreen collapses the chrome reserves above (traffic-light pad on
-  // macOS, caption insets on Windows) — see lib/fullscreen-chrome.ts.
+  // macOS, Windows caption insets on the OS strip) — see lib/fullscreen-chrome.ts.
   useEffect(() => installFullscreenChrome(), []);
 
   const dismissToast = useCallback((key: number) => {
@@ -300,18 +301,18 @@ export function Shell({ settings }: ShellProps) {
     ? "grid-rows-[minmax(0,1fr)]"
     : "grid-rows-[minmax(0,1fr)_var(--density-status-y,26px)]";
 
-  // The caption buttons are painted over whichever column header ends up rightmost,
-  // so that is the one that reserves their measured width. Focus mode hides the AI
-  // column, which hands the right edge back to the center column — hence the same
-  // predicate the layout uses, not a second one.
+  // Windows owns a full-width OS chrome row (icon · name · menu · caption).
+  // Column headers are product chrome only — the caption reservation belongs to
+  // that strip, not to whichever column ends up rightmost.
   useEffect(() => {
     if (!usesCaptionOverlay) return;
-    document.documentElement.dataset.wcInset = showAiPanel ? "ai" : "center";
-  }, [showAiPanel]);
+    document.documentElement.dataset.wcInset = "os";
+  }, []);
 
   const chrome = (
-    <div className="relative h-screen overflow-hidden bg-chrome text-text-primary">
-      <div id="workbench-root" className={cn("grid h-full", gridRows)} data-through-columns>
+    <div className="relative flex h-screen flex-col overflow-hidden bg-chrome text-text-primary">
+      <OsChromeStrip />
+      <div id="workbench-root" className={cn("grid min-h-0 flex-1", gridRows)} data-through-columns>
       {/* Three through-going columns: each owns its top chrome. No spanning product header. */}
       <FileDropZone>
         {showSidebar ? (

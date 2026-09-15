@@ -49,14 +49,26 @@ function generateCaskContent(version, sha256Arm, sha256Intel) {
 
   auto_updates true
 
-  # Remove quarantine attribute automatically on install to solve macOS "damaged" gatekeeper error
-  postflight do
-    system_command "xattr",
-                   args: ["-rd", "com.apple.quarantine", "#{appdir}/Topmind.app"],
-                   sudo: false
+  # Remove quarantine attribute automatically on install to solve macOS "damaged" gatekeeper error.
+  # Homebrew requires postflight_steps (legacy postflight is deprecated).
+  postflight_steps do
+    run "/usr/bin/xattr",
+        args: ["-rd", "com.apple.quarantine", "{{appdir}}/Topmind.app"],
+        must_succeed: false
   end
 
   app "Topmind.app"
+
+  # Recovery hint when /Applications/Topmind.app was moved/deleted and brew
+  # upgrade can no longer find the previous install target.
+  caveats <<~EOS
+    If brew upgrade fails with "App source '/Applications/Topmind.app' is not there",
+    the previous app was moved or deleted. Recover with:
+      brew uninstall --cask topmind --force
+      brew install --cask topmind
+    Or reinstall in place:
+      brew reinstall --cask topmind
+  EOS
 
   zap trash: [
     "~/topmind/topmind-desktop/logs",

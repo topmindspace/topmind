@@ -334,7 +334,14 @@
       "outside-workspace": "源文件不在当前工作区内",
       "write-failed": "写入目标失败",
       "no-result": "未收到执行结果",
-      "error": "执行出错"
+      "error": "执行出错",
+      "no-match-text": "缺少可匹配的原文片段",
+      "invalid-section": "目标段落不允许该修改",
+      "no-profile": "「我的情况」档案不存在",
+      "json-dump": "AI 输出为原始 JSON，不可用",
+      "thinking-dump": "AI 输出含未剥离的思考过程",
+      "empty-or-short": "AI 输出过短或为空",
+      "meta-pollution": "AI 输出含元信息污染"
     },
     "bulkAccept": "全部 ({{count}})",
     "bulkAcceptTip": "全部确认（逐条执行）",

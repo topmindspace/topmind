@@ -1,24 +1,20 @@
 /**
- * OS window-chrome policy contracts.
- *
  * The accident these lock down: Windows once drew native caption buttons *over*
- * our own 44px column chrome via `titleBarOverlay`, and the CSS class reserving
- * the corner for them was declared above `.v4-column-chrome { padding: 0 8px }` —
- * at equal specificity the later shorthand won on source order, so the reservation
- * silently did nothing and the AI workspace's 4th tab and the AI panel toggle sat
- * under 最小化/最大化/关闭.
+ * product chrome, and the class reserving the corner was declared above
+ * `.v4-column-chrome { padding: 0 8px }` — at equal specificity the later
+ * shorthand won on source order, so the reservation silently did nothing and the
+ * AI workspace's 4th tab and the AI panel toggle sat under 最小化/最大化/关闭.
  *
- * The overlay is back on Windows on purpose (Electron cannot merge the native menu
- * bar into the caption row, so a visible native menu bar costs a second ~20px row
- * on top of ours). What must never come back is the *unmeasured* reservation, so
- * the contract now is:
+ * v4.2.0 then merged the menu strip into the center TitleBar, which fixed the
+ * double-row cost but mixed OS chrome into product IA. The contract now is:
  *
- *   1. macOS keeps inset traffic lights; Windows owns its title bar row with the
- *      OS overlaying the caption buttons; Linux keeps its native frame + menu bar.
+ *   1. macOS keeps inset traffic lights; Windows owns a **full-width OS strip**
+ *      above the workbench (icon · name · menu · caption), never a product
+ *      column header; Linux keeps its native frame + menu bar.
  *   1b. The float capture window draws its own header on every platform, so Windows
  *      makes it frameless too; Linux keeps the DE's decoration.
  *   2. The reserved width is measured at runtime (`getTitlebarAreaRect`), never a
- *      literal pixel value, and the rule consuming it outranks `.v4-column-chrome`.
+ *      literal pixel value, and the rule consuming it targets only `[data-os-chrome]`.
  *   3. The overlay's strip height equals the header row it sits in.
  *   4. Both halves of the policy (main + renderer) agree on which platforms apply.
  */
@@ -48,7 +44,7 @@ function walk(dir, out = []) {
   return out;
 }
 
-test("macOS keeps inset traffic lights; Windows owns its title bar row", () => {
+test("macOS keeps inset traffic lights; Windows owns a dedicated OS strip row", () => {
   const mac = resolveWindowShell({ platform: "darwin" });
   assert.equal(mac.titleBarStyle, "hiddenInset");
   // null (not false): titleBarStyle and an explicit frame flag must not fight
@@ -57,8 +53,8 @@ test("macOS keeps inset traffic lights; Windows owns its title bar row", () => {
   assert.equal(usesNativeFrame({ platform: "darwin" }), false);
   assert.equal(usesCaptionOverlay({ platform: "darwin" }), false);
 
-  // Windows: the app draws icon / name / menu / breadcrumb in the 44px row and the
-  // OS paints min/max/close over its right end (titleBarOverlay).
+  // Windows: the OS paints min/max/close on a full-width strip the app draws
+  // above the workbench (OsChromeStrip) — not inside any product column header.
   const win = resolveWindowShell({ platform: "win32" });
   assert.equal(win.titleBarStyle, "hidden");
   assert.equal(win.frame, null, "frame must be omitted, or it fights titleBarStyle");
@@ -205,17 +201,25 @@ test("the reserved corner is measured, never a literal width", () => {
     "no literal caption width may be published",
   );
 
-  // The consuming rule must reference the measured variable and outrank
-  // `.v4-column-chrome`, which declares `padding-right: 8px` ~850 lines later.
+  // The consuming rule must reference the measured variable, target only the
+  // full-width OS strip (never a product column header), and outrank
+  // `.v4-column-chrome`, which declares `padding-right: 8px` later in the file.
   const css = read(join("src", "styles", "v4.css"));
-  const reservation = css.match(/html\[data-wc-inset[^{]*\{[^}]*\}/u)?.[0] || "";
-  assert.ok(reservation, "the caption reservation rule must exist");
+  const reservation = css.match(/html\[data-wc-inset\] \[data-os-chrome\][^{]*\{[^}]*\}/u)?.[0] || "";
+  assert.ok(reservation, "the caption reservation rule must exist on the OS strip");
   assert.match(reservation, /padding-right:\s*max\(\s*8px,\s*var\(--wc-inset-right/u);
   assert.doesNotMatch(reservation, /padding-right:\s*\d+px/u);
   assert.match(
     css,
-    /html\[data-wc-inset="ai"\] \[data-column-chrome="right"\]/u,
+    /html\[data-wc-inset\] \[data-os-chrome\]/u,
     "a compound selector, so source order cannot reset it",
+  );
+  // Product column headers must NOT reserve caption space — OS chrome stays
+  // out of product IA (the v4.2.0 merge put the strip inside the center TitleBar).
+  assert.doesNotMatch(
+    css,
+    /html\[data-wc-inset[^{]*\[data-column-chrome/u,
+    "caption reserve must not attach to product column chrome",
   );
 });
 
@@ -235,6 +239,45 @@ test("main and renderer agree on where the caption overlay applies", () => {
       `${platform} disagrees between window-shell.mjs and platform.ts`,
     );
   }
+});
+
+test("Windows OS chrome lives in a full-width strip, not a product column header", () => {
+  // The v4.2.0 regression: AppMenuBar was mounted inside TitleBar (center column),
+  // so native menu labels + caption reserve mixed OS chrome into product IA.
+  // The strip is now a dedicated component above the workbench; TitleBar must
+  // not carry it, and Shell must mount OsChromeStrip when caption overlay applies.
+  const titleBar = read(join("src", "components", "shell", "TitleBar.tsx"));
+  assert.doesNotMatch(
+    titleBar,
+    /AppMenuBar/u,
+    "TitleBar must not mount the Windows menu strip (OS chrome ≠ product chrome)",
+  );
+
+  const strip = read(join("src", "components", "shell", "OsChromeStrip.tsx"));
+  assert.match(strip, /data-os-chrome/u, "the strip must expose data-os-chrome for the caption reserve");
+  assert.match(strip, /usesCaptionOverlay/u, "the strip is Windows-only");
+
+  const shell = read(join("src", "components", "shell", "Shell.tsx"));
+  assert.match(shell, /OsChromeStrip/u, "Shell must mount the OS chrome strip");
+  assert.match(
+    shell,
+    /dataset\.wcInset\s*=\s*"os"/u,
+    "Shell must stamp data-wc-inset=os for the strip reservation",
+  );
+  assert.doesNotMatch(
+    shell,
+    /dataset\.wcInset\s*=\s*(showAiPanel\s*\?\s*"ai"| "center")/u,
+    "Shell must not attach caption reserve to whichever column is rightmost",
+  );
+
+  // AppMenuBar pops menus from the OS strip row, not a column header.
+  const menuBar = read(join("src", "components", "shell", "AppMenuBar.tsx"));
+  assert.match(menuBar, /data-os-chrome/u, "AppMenuBar must hang popups from the OS strip");
+  assert.doesNotMatch(
+    menuBar,
+    /data-column-chrome/u,
+    "AppMenuBar must not anchor to product column chrome",
+  );
 });
 
 test("the title bar's app name matches the OS window title main sets", () => {

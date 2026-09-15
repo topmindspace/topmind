@@ -72,7 +72,9 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Opti
   1. Download `.dmg` / `.exe` / `.AppImage` / `.deb` from [Releases](https://github.com/topmindspace/topmind/releases).
   2. Launch the app and press `⌘N` (macOS) / `Ctrl+N` (Windows/Linux) to capture a note.  
      If macOS says the app is damaged after a manual install:  
-     `sudo xattr -rd com.apple.quarantine /Applications/Topmind.app`
+     `sudo xattr -rd com.apple.quarantine /Applications/Topmind.app`  
+     If `brew upgrade` fails with `App source '/Applications/Topmind.app' is not there`:  
+     `brew uninstall --cask topmind --force && brew install --cask topmind` (or `brew reinstall --cask topmind`).
   3. Guide: [`topmind-desktop/README.md`](./topmind-desktop/README.md) · [简体中文](./topmind-desktop/README.zh-CN.md)
 
 ### Scenario 2: Inside Obsidian (topmind Stream plugin)

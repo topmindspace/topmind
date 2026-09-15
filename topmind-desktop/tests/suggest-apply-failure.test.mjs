@@ -30,14 +30,42 @@ const zh = JSON.parse(read(path.join(root, "src/locales/zh-CN/editor.json")));
 const en = JSON.parse(read(path.join(root, "src/locales/en-US/editor.json")));
 
 /**
- * Every reason code the engine can return from an apply. Two spellings exist:
- * a literal (`reason: "x"`) and an analysis-derived fallback
- * (`reason: analysisUsable.reason || "x"`).
+ * Every reason code the engine can return from an apply **as a failure**
+ * (`ok: false`). Two sources:
+ *
+ *  1. Literals and analysis fallbacks inside `lib/suggest-engine.mjs`.
+ *  2. Codes the engine **forwards** from callees without rewriting
+ *     (`reason: result.reason` / `analysisUsable.reason` / `evidence.reason`).
+ *     Those live in memory-engine / ai-content-sanitize and used to be invisible
+ *     to a suggest-engine-only scan, so they stayed "retryable" forever as
+ *     dead cards.
+ *
+ * Note: memory-engine also emits reasons that suggest-engine treats as
+ * **success** (`ok: wrote || reason === "duplicate-fact" | "already-retired" |
+ * "no-matching-fact"`). Those never reach the failure branch and must not be
+ * classified as terminal failures.
  */
+const PASS_THROUGH_FAILURE_CODES = [
+  // memory-engine profile update/retire skips
+  "no-match-text",
+  "invalid-section",
+  "no-profile",
+  // ai-content-sanitize via analysisUsable / evidence
+  "json-dump",
+  "thinking-dump",
+  "empty-or-short",
+  "meta-pollution",
+];
+
 function engineReasonCodes() {
-  const codes = new Set();
+  const codes = new Set(PASS_THROUGH_FAILURE_CODES);
   for (const m of engineSrc.matchAll(/reason:\s*"([a-z0-9-]+)"/gu)) codes.add(m[1]);
   for (const m of engineSrc.matchAll(/reason\s*\|\|\s*"([a-z0-9-]+)"/gu)) codes.add(m[1]);
+  // Drop codes the engine deliberately treats as success (`ok: wrote || reason === …`).
+  // They never reach the failure branch and must not be classified as terminal.
+  codes.delete("duplicate-fact");
+  codes.delete("already-retired");
+  codes.delete("no-matching-fact");
   return codes;
 }
 
@@ -61,6 +89,15 @@ const EXPECTED = {
   "outside-workspace": "cancel",
   "write-failed": "keep",
   "write-pending": "pending",
+  // Forwarded from memory-engine (profile update/retire).
+  "no-match-text": "cancel",
+  "invalid-section": "cancel",
+  "no-profile": "cancel",
+  // Forwarded from ai-content-sanitize via analysisUsable / evidence.
+  "json-dump": "cancel",
+  "thinking-dump": "cancel",
+  "empty-or-short": "cancel",
+  "meta-pollution": "cancel",
 };
 
 test("every engine apply reason code is classified", () => {
@@ -240,7 +277,42 @@ test("single-item accept shares the classification", () => {
   assert.match(branch, /dismissedIds\.add\(/u);
   assert.match(branch, /items\.filter\(/u);
   // The honest path: only a real success removes the card as applied.
-  assert.match(body, /if \(applied\) \{[\s\S]{0,120}items\.filter/u, "success path no longer removes the card");
+  // The success branch now also marks appliedIds + clears caches before the filter.
+  assert.match(body, /if \(applied\) \{[\s\S]{0,400}items\.filter/u, "success path no longer removes the card");
+});
+
+test("single-item accept marks appliedIds only on success", () => {
+  // The v4.2.0 bug: `appliedIds.add(id)` ran *before* applySuggestion. A
+  // retryable failure kept the card in `items` for another try, but the next
+  // soft refresh filtered it out via `applied.has(s.id)` and the session
+  // caches were already cleared — so "keep for retry" was a lie.
+  //
+  // open_profile is the exception: it never reaches applySuggestion and marks
+  // applied on its own short-circuit path. The general apply path must not.
+  const body = storeMethod(storeSrc, "acceptItem: async (", "rejectItem: async (");
+  const applyCall = body.indexOf("api.ws.applySuggestion(");
+  assert.notEqual(applyCall, -1, "acceptItem does not call applySuggestion");
+
+  // No appliedIds.add between the start of the general path and the IPC —
+  // that is the pre-apply mark that made retryable failures vanish.
+  const generalStart = body.indexOf("const suggestionObj = {");
+  assert.notEqual(generalStart, -1, "acceptItem has no general apply payload path");
+  const preApply = body.slice(generalStart, applyCall);
+  assert.equal(
+    /appliedIds\.add\(/u.test(preApply),
+    false,
+    "appliedIds.add(id) must not run before applySuggestion — a retryable failure would look applied",
+  );
+
+  // Success branch owns the post-apply mark.
+  const successIdx = body.indexOf("if (applied) {");
+  assert.notEqual(successIdx, -1, "acceptItem has no success branch");
+  const successBranch = body.slice(successIdx, successIdx + 400);
+  assert.match(
+    successBranch,
+    /appliedIds\.add\(/u,
+    "success path must mark appliedIds so a refresh cannot re-suggest",
+  );
 });
 
 test("dismissal memory survives a soft refresh", () => {

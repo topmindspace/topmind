@@ -29,30 +29,23 @@
 }
 
 /* ── Native control reservations ──
-   Two platforms put native controls *inside* a header row we own:
+   Two platforms put native controls *inside* a row we own:
 
-   · macOS  — inset traffic lights, fixed inset, left side.
-   · Windows — the OS overlays minimize / maximize / close on our 44px title bar
-               row's right end (and on the left under RTL). See
-               electron/lib/window-shell.mjs for why Windows owns that row.
+   · macOS  — inset traffic lights, fixed inset, left side of product TitleBar.
+   · Windows — the OS overlays minimize / maximize / close on the full-width OS
+               chrome strip (`OsChromeStrip` / `data-os-chrome`), never on a
+               product column header. See electron/lib/window-shell.mjs.
 
    The Windows width is MEASURED, never guessed: src/lib/window-controls.ts
    republishes `navigator.windowControlsOverlay.getTitlebarAreaRect()` as
    `--wc-inset-right` / `--wc-inset-left` on every geometrychange. */
 .v4-mac-titlebar-pad { padding-left: 72px; }
 
-/* Compound selectors on purpose. `.v4-column-chrome` declares
-   `padding-right: 8px` ~850 lines below this point; the first version of this
-   reservation was a single class, so at equal specificity the later shorthand won
-   and the reservation was dead code — the AI workspace's 4th tab and the AI panel
-   toggle sat under the caption buttons. `html[data-wc-inset] [data-column-chrome]`
-   always outranks a lone class, so source order can no longer decide this.
-   `max()` keeps the normal 8px inset when the OS overlays nothing. */
-html[data-wc-inset="ai"] [data-column-chrome="right"],
-html[data-wc-inset="center"] [data-column-chrome="center"] {
+/* Compound selector on purpose: outranks `.v4-column-chrome`'s padding
+   longhands regardless of stylesheet source order. `max()` keeps the normal
+   8px inset when the OS overlays nothing. */
+html[data-wc-inset] [data-os-chrome] {
   padding-right: max(8px, var(--wc-inset-right, 0px));
-}
-html[data-wc-inset] [data-column-chrome="left"] {
   padding-left: max(8px, var(--wc-inset-left, 0px));
 }
 
@@ -61,11 +54,8 @@ html[data-wc-inset] [data-column-chrome="left"] {
    collapse to the plain 8px breathing room. `data-fullscreen` is written by
    lib/fullscreen-chrome.ts from main's enter/leave-full-screen events. */
 html[data-fullscreen="true"] .v4-mac-titlebar-pad { padding-left: 0; }
-html[data-fullscreen="true"][data-wc-inset="ai"] [data-column-chrome="right"],
-html[data-fullscreen="true"][data-wc-inset="center"] [data-column-chrome="center"] {
+html[data-fullscreen="true"][data-wc-inset] [data-os-chrome] {
   padding-right: 8px;
-}
-html[data-fullscreen="true"][data-wc-inset] [data-column-chrome="left"] {
   padding-left: 8px;
 }
 
@@ -923,7 +913,7 @@ button.v4-dash-card:active,
      near the top of this file it wins on source order at equal specificity. That is
      exactly how the first Windows caption-button reservation silently did nothing
      and left the AI workspace's 4th tab under the buttons. The current reservation
-     (`.v4-mac-titlebar-pad` / `html[data-wc-inset] …`, top of file) is
+     (`.v4-mac-titlebar-pad` / `html[data-wc-inset] [data-os-chrome]`, top of file) is
      deliberately more specific so this shorthand can never reach it again — but
      keep the longhands: the next reservation will not necessarily be as careful. */
   padding-left: 8px;

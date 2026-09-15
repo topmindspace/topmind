@@ -29,7 +29,6 @@ import { useInlineAiStore } from "../../lib/inline-ai-busy";
 import { Tooltip } from "../ui/tooltip";
 import type { Selection } from "../../types";
 import { emitLocal, onLocal } from "../../plugins/host";
-import { PrimaryNav } from "./PrimaryNav";
 
 interface EngineHealth {
   ok: boolean;
@@ -228,9 +227,10 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
         {/* Workspace path is the left health chip (`data-status-workspace-path`). */}
       </div>
 
-      {/* Center: persistent PrimaryNav (does not change with open note) + file chip */}
+      {/* Center: file chip only. Primary destinations live in the sidebar
+          (compact TitleBar icons when the sidebar is collapsed) — the status
+          bar is status, not navigation. */}
       <div className="flex min-w-0 max-w-[var(--status-chip-max,52vw)] items-center justify-center gap-1.5 px-1">
-        <PrimaryNav />
         <SelectionHint selection={selection} />
       </div>
 
