@@ -23,7 +23,20 @@
  * 3. **No duplicate accelerators.** Reload / zoom / fullscreen come from `role`s
  *    with overridden labels, and the old separate 开发 menu was folded into 帮助
  *    + 视图 precisely because it repeated three accelerators that 视图 owns.
+ *    Off macOS a `role` owns its chord for real (there is no display-only mode
+ *    for roles), so role defaults are compared against `WORKBENCH_SHORTCUTS` too
+ *    — that is how `toggleDevTools` (Ctrl+Shift+I on Windows/Linux) was caught
+ *    fighting the renderer's Inbox chord. See tests/app-menu.test.mjs.
+ *
+ * 4. **Every top-level menu carries a stable `id`.** Windows draws the menu on an
+ *    app-owned title bar row: the strip is app-drawn and asks main to pop the real
+ *    native submenu for the id it was clicked on (`Menu.popup`), so the menu content
+ *    is still rendered once, natively. Ids are the only contract between the two.
  */
+
+/** Top-level ids the template may use. Windows' in-row strip renders whatever
+ * `menuTopLevel()` reports — it never hardcodes this list. */
+export const MENU_TOP_LEVEL_IDS = ["app", "file", "edit", "workspace", "view", "window", "help"];
 
 /** Renderer-owned command ids beyond the keyboard registry. Mirrored in src/lib/native-menu.ts. */
 export const MENU_EXTRA_COMMANDS = [
@@ -321,7 +334,13 @@ export function buildMenuTemplate(opts) {
       sep(),
       { label: t("menu.reload"), role: "reload" },
       { label: t("menu.forceReload"), role: "forceReload" },
-      ...(isDev ? [{ label: t("menu.devTools"), role: "toggleDevTools" }] : []),
+      // Explicit F12 instead of the role default: `toggleDevTools` carries
+      // Ctrl+Shift+I on Windows/Linux, which is the renderer's Inbox chord
+      // (⌘⇧I → `inbox` in shortcuts.ts). Roles have no display-only mode, so the
+      // default really would register — and a dev build would open Inbox and
+      // DevTools on one keypress. F12 is the Windows convention and collides with
+      // nothing on either side.
+      ...(isDev ? [{ label: t("menu.devTools"), role: "toggleDevTools", accelerator: "F12" }] : []),
       sep(),
       // Zoom deliberately does NOT use the resetZoom/zoomIn/zoomOut roles: those
       // register CmdOrCtrl+0 / +/- themselves, and the renderer's useShellShortcuts
@@ -333,7 +352,14 @@ export function buildMenuTemplate(opts) {
       cmd("view.zoom.in", t("menu.zoomIn"), chord("CmdOrCtrl+Plus")),
       cmd("view.zoom.out", t("menu.zoomOut"), chord("CmdOrCtrl+-")),
       sep(),
-      { label: t("menu.fullscreen"), role: "togglefullscreen" },
+      // Label mirrors the live window state (main owns it — the renderer never
+      // pushes fullscreen through updateMenuState): macOS's own 全屏 menu item
+      // flips to 退出全屏 the same way, and off macOS nothing else would tell
+      // the user what the role's F11 / ⌃⌘F press is about to do.
+      {
+        label: state.fullscreen ? t("menu.exitFullscreen") : t("menu.fullscreen"),
+        role: "togglefullscreen",
+      },
     ],
   };
 
@@ -404,14 +430,23 @@ export function buildMenuTemplate(opts) {
     ],
   };
 
+  /**
+   * Top-level menus carry a stable id here, in one visible list, because the
+   * Windows title-bar strip refers to them by id alone: it renders the labels main
+   * reports and asks main to pop the matching submenu (`Menu.popup`). Declaring the
+   * ids next to each other keeps the strip's contract readable — and an item that
+   * forgets its id is a label that opens nothing.
+   */
+  const top = (id, menu) => ({ id, ...menu });
+
   return [
-    ...(mac ? [appMenu] : []),
-    fileMenu,
-    editMenu,
-    workspaceMenu,
-    viewMenu,
-    windowMenu,
-    helpMenu,
+    ...(mac ? [top("app", appMenu)] : []),
+    top("file", fileMenu),
+    top("edit", editMenu),
+    top("workspace", workspaceMenu),
+    top("view", viewMenu),
+    top("window", windowMenu),
+    top("help", helpMenu),
   ];
 }
 

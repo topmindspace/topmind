@@ -3,15 +3,19 @@
  *
  * Policy split (see `menu-spec.mjs` for the template itself):
  *
- * - **Windows** — a real native frame + visible native menu bar. The menu is
- *   the discoverable home for theme / language / view / workspace actions, and
- *   because the OS owns the caption buttons nothing is ever painted over app
- *   content (the failure this replaced: overlay caption buttons covering the AI
- *   workspace's 4th tab and the AI panel toggle).
- * - **Linux** — same native menu bar; only the surrounding frame comes from the
- *   desktop environment.
+ * - **Windows** — the menu bar is hidden, not removed. The app owns the title bar
+ *   row, so it draws an in-row strip of top-level labels and clicking one asks
+ *   main to pop the *real* native submenu (`popupMenuSection`). The application
+ *   menu stays installed, so every accelerator it owns keeps working, and Alt
+ *   still reveals the native bar as a keyboard-only fallback for a menu whose
+ *   visible form is app-drawn. Why one row beats a native bar on Windows (and why
+ *   the reservation that broke the first overlay attempt cannot come back): the
+ *   platform table in `window-shell.mjs`.
+ * - **Linux** — a native frame plus the visible native menu bar; only the
+ *   surrounding decorations come from the desktop environment.
  * - **macOS** — the menu bar is a system surface and is expected to be
- *   complete, so it carries the same actions plus the standard App menu.
+ *   complete, so it carries the same actions plus the standard App menu. Nothing
+ *   is drawn in-window there.
  *
  * The renderer owns in-window chords; menu items therefore emit ids rather than
  * re-implementing behavior, and chords are display-only off macOS
@@ -38,6 +42,7 @@ const { Menu, app, clipboard, shell } = require("electron");
  *   aiWorkspaceTab?: string,
  *   view?: string,
  *   sidebarView?: string,
+ *   fullscreen?: boolean,
  * }}
  */
 let menuState = {
@@ -51,6 +56,7 @@ let menuState = {
   aiWorkspaceTab: "chat",
   view: "stream",
   sidebarView: "stream",
+  fullscreen: false,
 };
 
 /** @type {((command: { id: string, [k: string]: unknown }) => void) | null} */
@@ -60,8 +66,52 @@ let localActions = {};
 /** Rebuild suppression — a burst of state patches rebuilds once. */
 let rebuildScheduled = false;
 
+/**
+ * The installed application menu, kept so the Windows title-bar strip can pop a
+ * real native submenu by top-level id (`Menu.popup`) instead of reimplementing
+ * one. Null until the first install — before that the strip has nothing to show.
+ * @type {import('electron').Menu | null}
+ */
+let currentMenu = null;
+
+/** @type {((items: Array<{ id: string, label: string }>) => void) | null} */
+let topLevelSink = null;
+/** Last published top-level list — labels only change with the app locale. */
+let lastTopLevelJson = "";
+
+/**
+ * Clicking the strip item whose menu is already open must close it rather than
+ * reopen: the mousedown closes the popup first (focus loss), so by the time the
+ * click reaches us the popup is already gone. The timestamp is what tells
+ * "closed by this very click" apart from "opened again on purpose".
+ */
+const TOGGLE_GUARD_MS = 250;
+let popupOpenId = null;
+let lastClosedId = null;
+let popupClosedAt = 0;
+/**
+ * The Menu instance currently on screen. Kept so hover-switching can close the
+ * *previous* section: closing "the new one" would leave the old popup up.
+ * @type {import('electron').Menu | null}
+ */
+let openSubmenu = null;
+
 export function getApplicationMenuState() {
   return { ...menuState };
+}
+
+/**
+ * Top-level entries as the in-row menu strip needs them: id + already-localized
+ * label, in template order. Windows/Linux render exactly this list — the strip
+ * never hardcodes 文件/编辑/… so a new top-level menu appears without a renderer
+ * change, and macOS (system menu bar) simply ignores it.
+ * @returns {Array<{ id: string, label: string }>}
+ */
+export function getMenuTopLevel() {
+  if (!currentMenu) return [];
+  return currentMenu.items
+    .filter((item) => Boolean(item.id))
+    .map((item) => ({ id: item.id, label: item.label }));
 }
 
 /**
@@ -133,12 +183,136 @@ export function installApplicationMenu(opts = {}) {
   });
 
   try {
-    Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+    currentMenu = Menu.buildFromTemplate(template);
+    Menu.setApplicationMenu(currentMenu);
+    publishTopLevel();
   } catch (err) {
     // A malformed template must not take the app down — the previous menu stays.
     // eslint-disable-next-line no-console
     console.error("[app-menu] failed to install application menu", err);
   }
+}
+
+/**
+ * Register the channel that hands the strip its top-level entries. Called with
+ * the full list whenever it actually changes (in practice: on locale switch).
+ * @param {(items: Array<{ id: string, label: string }>) => void} sink
+ */
+export function setMenuTopLevelSink(sink) {
+  topLevelSink = sink;
+  // Publish immediately when a menu already exists: the sink is wired during the
+  // ready sequence, which may run after the first install.
+  publishTopLevel();
+}
+
+function publishTopLevel() {
+  if (typeof topLevelSink !== "function") return;
+  const items = getMenuTopLevel();
+  const json = JSON.stringify(items);
+  if (json === lastTopLevelJson) return;
+  lastTopLevelJson = json;
+  topLevelSink(items);
+}
+
+/**
+ * Register the channel that reports which section popup is on screen, so the
+ * strip can show the pressed state and hover-switch between sections. Main is the
+ * authority here: it is the only side that knows a click closed a menu rather than
+ * opened one.
+ * @param {(state: { openId: string | null }) => void} sink
+ */
+export function setMenuPopupSink(sink) {
+  popupSink = sink;
+}
+
+function publishPopupState() {
+  if (typeof popupSink === "function") popupSink({ openId: popupOpenId });
+}
+
+/**
+ * Pop the real native submenu for a top-level id, anchored under the strip item
+ * the user clicked.
+ *
+ * The menu is not reimplemented anywhere: the strip only says *which* id was
+ * clicked and *where*, and Electron renders the rest — items, accelerators,
+ * checkmarks, submenus, disabled states — from the single template in
+ * `menu-spec.mjs`. Two consequences worth knowing:
+ *
+ * - `x`/`y` arrive in CSS pixels (a `getBoundingClientRect()`). Popup positions
+ *   are DIP, so they are scaled by the window's zoom factor — with ⌘+/Ctrl+ the
+ *   UI zoomed, an unscaled anchor drifts.
+ * - Re-popping while a popup is open is how hover-to-switch between top-level
+ *   items works. The one case that must *not* re-pop is clicking the item that is
+ *   already open (see TOGGLE_GUARD_MS).
+ *
+ * @param {string} id
+ * @param {{ window?: import('electron').BrowserWindow | null, x?: number, y?: number }} [opts]
+ * @returns {boolean} true when a popup was requested
+ */
+export function popupMenuSection(id, opts = {}) {
+  const win = opts.window;
+  if (!currentMenu || !win || win.isDestroyed?.()) return false;
+  const item = currentMenu.items.find((entry) => entry.id === id);
+  if (!item || !item.submenu) return false;
+
+  const now = Date.now();
+  if (openSubmenu === null && lastClosedId === id && now - popupClosedAt < TOGGLE_GUARD_MS) {
+    // The user just closed this very menu by clicking its strip label — the
+    // mousedown already did the closing, so reopening here would make the item
+    // impossible to dismiss.
+    publishPopupState();
+    return true;
+  }
+
+  let zoom = 1;
+  try {
+    zoom = win.webContents.getZoomFactor() || 1;
+  } catch {
+    zoom = 1;
+  }
+  const x = Math.round(Number(opts.x) * zoom) || 0;
+  const y = Math.round(Number(opts.y) * zoom) || 0;
+
+  try {
+    // Hover-switching between two open sections: drop the *previous* popup first,
+    // otherwise the old menu stays up beside the new one.
+    if (openSubmenu) {
+      const previous = openSubmenu;
+      openSubmenu = null;
+      try {
+        previous.closePopup(win);
+      } catch {
+        /* already dismissed by the click that got us here */
+      }
+    }
+
+    const submenu = item.submenu;
+    submenu.removeAllListeners("menu-will-close");
+    submenu.once("menu-will-close", () => {
+      if (openSubmenu === submenu) openSubmenu = null;
+      popupOpenId = null;
+      lastClosedId = id;
+      popupClosedAt = Date.now();
+      publishPopupState();
+    });
+    openSubmenu = submenu;
+    popupOpenId = id;
+    publishPopupState();
+    submenu.popup({ window: win, x, y });
+    return true;
+  } catch (err) {
+    openSubmenu = null;
+    popupOpenId = null;
+    publishPopupState();
+    // eslint-disable-next-line no-console
+    console.error("[app-menu] failed to pop menu section", id, err);
+    return false;
+  }
+}
+
+/** True while a section popup is on screen — used by tests and diagnostics. */
+export function isMenuSectionOpen() {
+  return popupOpenId !== null;
 }
 
 /**

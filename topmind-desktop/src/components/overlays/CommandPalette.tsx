@@ -19,6 +19,7 @@ import type { Selection } from "../../types";
 import type { RemixiconComponentType } from "@remixicon/react";
 import { cn } from "../../lib/cn";
 import { modKey } from "../../lib/shortcuts";
+import { formatChord } from "../../lib/chord";
 import { ICON } from "../../lib/icons";
 
 /** Group presentation: display order + localized label + icon. */
@@ -353,7 +354,7 @@ export function CommandPalette() {
                       <span className="min-w-0 truncate font-medium">{resolveLabel(a)}</span>
                       <div className="ml-2 flex min-w-[5.5rem] shrink-0 items-center justify-end gap-2">
                         {a.shortcut ? (
-                          <kbd className="v4-kbd tabular-nums">{a.shortcut}</kbd>
+                          <kbd className="v4-kbd tabular-nums">{formatChord(a.shortcut)}</kbd>
                         ) : (
                           <span className="w-0" aria-hidden />
                         )}
@@ -377,7 +378,7 @@ export function CommandPalette() {
           <kbd className="v4-kbd">↑↓</kbd> {t("overlays:command.footerSelect")}
         </span>
         <span className="flex items-center gap-1">
-          <kbd className="v4-kbd">↵</kbd> {t("overlays:command.footerRun")}
+          <kbd className="v4-kbd">{formatChord("↵")}</kbd> {t("overlays:command.footerRun")}
         </span>
         <span className="flex items-center gap-1">
           <kbd className="v4-kbd">{modKey()}N</kbd> {t("overlays:command.footerCapture")}

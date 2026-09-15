@@ -15,6 +15,10 @@ import {
   installApplicationMenu,
   setMenuCommandSink,
   setMenuLocalActions,
+  setMenuTopLevelSink,
+  setMenuPopupSink,
+  getMenuTopLevel,
+  popupMenuSection,
   updateApplicationMenuState,
   createDefaultMenuLocalActions,
 } from "./lib/app-menu.mjs";
@@ -196,6 +200,26 @@ function getContext() {
      * `syncApplicationMenuFromSettings`.
      */
     updateMenuState: (patch) => updateApplicationMenuState(patch),
+    /**
+     * Windows in-row menu strip (see window-shell.mjs for why Windows owns its title
+     * bar). The strip asks for the top-level entries and then asks main to pop one —
+     * the menu itself is never reimplemented in the renderer.
+     */
+    menuTopLevel: () => getMenuTopLevel(),
+    menuPopup: ({ id, x, y }) =>
+      popupMenuSection(id, {
+        window: mainWindow && !mainWindow.isDestroyed() ? mainWindow : null,
+        x,
+        y,
+      }),
+    /**
+     * Current OS window chrome state — the renderer's initial fetch for the
+     * pushed `window:fullscreen` events (same boot-race answer as
+     * `menuTopLevel` above: a push that landed before the shell mounted).
+     */
+    windowState: () => ({
+      fullscreen: Boolean(mainWindow && !mainWindow.isDestroyed() && mainWindow.isFullScreen()),
+    }),
     /** UI zoom step — apply to the main window and persist under window.uiZoom. */
     setUiZoom: async (mode) => {
       const win = mainWindow && !mainWindow.isDestroyed() ? mainWindow : null;
@@ -702,8 +726,10 @@ function setAppSettings(next) {
   appSettings = next;
 
   // OS-drawn chrome (title bar / scrollbars / native dialogs) tracks the app
-  // theme — see window-theme.mjs. Returns whether the source actually moved.
-  const sourceChanged = applyNativeWindowTheme(next?.theme);
+  // theme — see window-theme.mjs. Returns whether the source actually moved. The
+  // window is passed through so the Windows caption-button overlay repaints too:
+  // it sits *inside* our header row, so a stale strip color is a visible seam.
+  const sourceChanged = applyNativeWindowTheme(next?.theme, mainWindow);
 
   if (themeChanged || localeChanged || workspaceChanged || recentChanged || sourceChanged) {
     if (localeChanged) setElectronLocale(next?.ui?.locale || "auto");
@@ -780,6 +806,21 @@ function wireApplicationMenu() {
       docsUrl: "https://github.com/topmindspace/topmind",
     }),
   );
+  // Hand the Windows title-bar strip its top-level entries. Labels are localized
+  // by main and the strip renders exactly this list, so adding a top-level menu in
+  // menu-spec.mjs needs no renderer change.
+  setMenuTopLevelSink((items) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      emitToRenderer(mainWindow, "menu:top-level", items);
+    }
+  });
+  // Which section popup is on screen. Main decides — only it can tell a close from
+  // an open — and the strip mirrors it (src/lib/menu-strip.ts).
+  setMenuPopupSink((state) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      emitToRenderer(mainWindow, "menu:popup-state", state);
+    }
+  });
   syncApplicationMenuFromSettings();
 }
 
@@ -793,8 +834,9 @@ async function createWindow() {
     const stored = appSettings?.window || {};
     // OS chrome policy lives in window-shell.mjs (single source of truth):
     //   macOS  → hiddenInset, traffic lights inside our own 44px column chrome
-    //   Windows/Linux → native frame, so the OS owns the caption buttons and
-    //                   nothing is ever painted over app content
+    //   Windows → app-owned title bar (one row: icon / name / menu / breadcrumb),
+    //             OS still draws min/max/close over its right end
+    //   Linux  → native frame + native menu bar from the desktop environment
     const shellOptions = windowShellOptions();
     // Window icon: Win/Linux taskbar of the running window; harmless on mac (Dock separate).
     // Packaged Windows also needs the .exe icon embedded (patch-win-exe-icon) for pins/Start Menu.
@@ -867,6 +909,19 @@ async function createWindow() {
     };
     win.on("resize", () => { clearTimeout(saveTimer); saveTimer = setTimeout(persist, 500); });
     win.on("move", () => { clearTimeout(saveTimer); saveTimer = setTimeout(persist, 500); });
+    // OS fullscreen transitions drive two consumers:
+    //   1. the 视图 menu label (全屏 ↔ 退出全屏) — rebuilt via the state store;
+    //   2. the renderer's chrome reserves — macOS hides the traffic lights and
+    //      Windows hides the caption buttons in fullscreen, so the insets that
+    //      dodge them must collapse too (v4.css `html[data-fullscreen]`).
+    const syncFullscreen = () => {
+      if (win.isDestroyed()) return;
+      const fullscreen = win.isFullScreen();
+      updateApplicationMenuState({ fullscreen });
+      emitToRenderer(win, "window:fullscreen", { fullscreen });
+    };
+    win.on("enter-full-screen", syncFullscreen);
+    win.on("leave-full-screen", syncFullscreen);
     win.on("close", (e) => {
       clearTimeout(saveTimer);
       void persist();
@@ -946,6 +1001,10 @@ async function createWindow() {
     if (devUrl) { await win.loadURL(devUrl); }
     else { await win.loadFile(path.join(appRoot, "dist", "index.html")); }
     mainWindow = win;
+    // Caption-button overlay colors: the theme hook runs on every settings write,
+    // but the window may not have existed yet at that point (boot order), so paint
+    // the strip once the window can accept it.
+    applyNativeWindowTheme(appSettings?.theme, win);
     // Re-assert branding after first paint (Dock on mac; taskbar icon on win/linux).
     applyBrandingIcon();
     applyWindowIcon(win, windowIcon, { packaged: app.isPackaged });
@@ -1193,10 +1252,13 @@ if (!hasLock) { app.quit(); } else {
     });
     // Branding — MUST be after ready. macOS Dock + first-window taskbar on Win/Linux.
     applyBrandingIcon();
-    // App menu. All three platforms now get the full menu (see menu-spec.mjs):
-    // macOS in the system bar, Windows/Linux as a native menu bar in the frame.
-    // Installed here so it exists before the window paints; the workspace /
-    // theme / locale checkmarks are filled in by wireApplicationMenu below.
+    // App menu. All three platforms get the full menu (see menu-spec.mjs):
+    // macOS in the system bar; Windows as an app-drawn strip on the title bar row
+    // that pops the real native submenus (its native bar stays hidden but
+    // installed, so accelerators keep working and Alt still reveals it); Linux as
+    // a plain native menu bar. Installed here so it exists before the window
+    // paints; the workspace / theme / locale checkmarks are filled in by
+    // wireApplicationMenu below.
     installApplicationMenu({ isDev: !app.isPackaged });
     // Linux: safeStorage needs libsecret / kwallet. Without it, API keys fall
     // back to plaintext in app-settings.json — warn once so users can install.

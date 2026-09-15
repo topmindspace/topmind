@@ -30,7 +30,7 @@
 7. **Localized AI** — suggestion / todo / op chrome follows host UI language; Agent and inline rewrite follow explicit request → source script → workspace locale (`lib/ai-output-locale.mjs`)  
 8. **Manage & Updates** — detects agent hosts · browser · Obsidian; installs / upgrades / uninstalls Skills, Clip, and the plugin (browser side is guided load-unpacked, never silent inject); unified update check and health diagnosis
 9. **Optional bookkeeping** — enable-gated mini-app (`memory/ledgers/`; AI workspace Apps pane / StatusBar / ⌘K). Not a 6th user concept or PrimaryNav item.
-10. **Native OS chrome** — Windows/Linux get a real native frame + application menu bar (File / Edit / Workspace / View / Window / Help); macOS gets the complete system menu. Menu items emit the same command ids as the keyboard, so no behavior is implemented twice. Chrome policy: `electron/lib/window-shell.mjs`
+10. **Native OS chrome** — Windows owns its title bar row (app mark / name / menu strip / breadcrumb) with the OS still drawing minimize-maximize-close over its right end, so the menu and the caption share one row instead of stacking two; Linux keeps its native frame and menu bar; macOS gets the complete system menu. Menu items emit the same command ids as the keyboard, and the strip pops the real native submenus by id — no behavior and no menu content is implemented twice. Chrome policy: `electron/lib/window-shell.mjs`
 
 ---
 
@@ -66,6 +66,8 @@ Default three columns: **nav → stream → AI workspace**. The main narrative i
 </p>
 
 ### 4. Interaction map
+
+> Chords below are written in macOS glyph form (`⌘`). Inside the app on Windows / Linux they **render** as `Ctrl` chords (`Ctrl+Shift+N`) — a shortcut is declared once and labelled per platform.
 
 | Entry | Single job |
 |-------|------------|

@@ -30,6 +30,7 @@ import type { AppSettings } from "../../types";
 import { cn } from "../../lib/cn";
 import { Tooltip } from "../ui/tooltip";
 import { ICON } from "../../lib/icons";
+import { formatChord } from "../../lib/chord";
 
 interface RecentWs { rootPath: string; lastOpenedAt: string; }
 
@@ -215,7 +216,7 @@ export function WorkspaceSwitcher({
         >
           <RiSettingsLine size={ICON.xs} className="shrink-0" />
           <span className="flex-1">{t("titleBar.settingsLabel")}</span>
-          <kbd className="v4-kbd v4-kbd-sm">⌘,</kbd>
+          <kbd className="v4-kbd v4-kbd-sm">{formatChord("⌘,")}</kbd>
         </DropdownItem>
         <DropdownItem
           active={focusMode}
@@ -226,7 +227,7 @@ export function WorkspaceSwitcher({
         >
           <RiFullscreenLine size={ICON.xs} className="shrink-0" />
           <span className="flex-1">{t("titleBar.focusMode")}</span>
-          <kbd className="v4-kbd v4-kbd-sm">⌘⌥F</kbd>
+          <kbd className="v4-kbd v4-kbd-sm">{formatChord("⌘⌥F")}</kbd>
         </DropdownItem>
       </div>
 

@@ -27,6 +27,7 @@ import { useViewStore } from "../../stores/view-store";
 import { Tooltip } from "../ui/tooltip";
 import { cn } from "../../lib/cn";
 import { ICON } from "../../lib/icons";
+import { formatChord } from "../../lib/chord";
 import {
   CaptureAttachmentList,
   CaptureDropHint,
@@ -122,9 +123,11 @@ export function QuickCapture({ variant, onDone }: QuickCaptureProps = {}) {
       aria-label={isMemory ? t("overlays:capture.ariaMemory") : t("overlays:capture.ariaCapture")}
       {...containerProps}
     >
-      {/* Float drag region. Every platform now draws its own title bar, so the
-          header carries an explicit close on all of them — no platform branch,
-          no reserved strip for native caption buttons. */}
+      {/* Float drag region. The note owns its header everywhere: Windows is
+          frameless (window-shell.mjs forFloat) so this row is the only drag
+          handle, and on macOS/Linux, which keep native chrome on the note, it
+          is a second grip plus the title — the ✕ below is the single close
+          affordance regardless of platform. */}
       {isFloat ? (
         <div className="v4-drag mb-2 flex h-8 items-center justify-between px-0.5">
           <span className="text-3xs font-medium tracking-tight text-text-quaternary">
@@ -180,7 +183,7 @@ export function QuickCapture({ variant, onDone }: QuickCaptureProps = {}) {
                 </button>
               </Tooltip>
               <kbd className="v4-kbd" aria-hidden>
-                ⌘↵
+                {formatChord("⌘↵")}
               </kbd>
             </>
           )}

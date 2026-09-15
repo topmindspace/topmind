@@ -75,6 +75,7 @@ import { runOrganizeWeek } from "../../../lib/organize-week";
 import { polishComposerText } from "../../../lib/ai-polish-text";
 import { useInlineAiStore } from "../../../lib/inline-ai-busy";
 import { useTodoStore } from "../../../stores/todo-store";
+import { formatChord } from "../../../lib/chord";
 import { useAiStore } from "../../../stores/ai-store";
 import type { TFunction } from "i18next";
 
@@ -1708,7 +1709,7 @@ export function StreamDetailView() {
                 <RiSendPlane2Line size={ICON.xs} />
               )}
               {t("workspace:streamDetail.composeSubmit")}
-              <kbd className="v4-kbd v4-kbd-sm ml-0.5 opacity-80">⌘↵</kbd>
+              <kbd className="v4-kbd v4-kbd-sm ml-0.5 opacity-80">{formatChord("⌘↵")}</kbd>
             </Button>
           </div>
         </div>

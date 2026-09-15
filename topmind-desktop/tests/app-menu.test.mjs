@@ -18,9 +18,15 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildMenuTemplate, collectAccelerators, MENU_EXTRA_COMMANDS, MENU_LOCAL_ACTIONS } from "../electron/lib/menu-spec.mjs";
+import {
+  buildMenuTemplate,
+  collectAccelerators,
+  MENU_EXTRA_COMMANDS,
+  MENU_LOCAL_ACTIONS,
+  MENU_TOP_LEVEL_IDS,
+} from "../electron/lib/menu-spec.mjs";
 import { WORKBENCH_SHORTCUTS } from "../src/lib/shortcuts.ts";
-import { t } from "../electron/lib/electron-i18n.mjs";
+import { t, STRINGS } from "../electron/lib/electron-i18n.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (p) => readFileSync(join(root, p), "utf8");
@@ -61,6 +67,77 @@ function flatten(template, trail = [], out = []) {
     if (Array.isArray(item.submenu)) flatten(item.submenu, [...trail, label], out);
   }
   return out;
+}
+
+/**
+ * Accelerators Electron supplies for `role` items — invisible on the template, and
+ * the reason two separate checks below exist.
+ *
+ * Defaults as documented for the Electron majors this app ships on. If an upgrade
+ * moves one, a test failing here is the signal: a chord that first-wins against
+ * another one is a dead command, not a cosmetic issue.
+ */
+const ROLE_CHORDS = {
+  undo: ["CmdOrCtrl+Z"],
+  redo: ["CmdOrCtrl+Shift+Z"],
+  cut: ["CmdOrCtrl+X"],
+  copy: ["CmdOrCtrl+C"],
+  paste: ["CmdOrCtrl+V"],
+  selectAll: ["CmdOrCtrl+A"],
+  reload: ["CmdOrCtrl+R"],
+  forceReload: ["CmdOrCtrl+Shift+R"],
+  toggleDevTools: ["CmdOrCtrl+Alt+I", "CmdOrCtrl+Shift+I", "F12"],
+  togglefullscreen: ["Ctrl+CmdOrCtrl+F", "F11"],
+  minimize: ["CmdOrCtrl+M"],
+  quit: ["CmdOrCtrl+Q"],
+  hide: ["CmdOrCtrl+H"],
+  hideOthers: ["CmdOrCtrl+Alt+H"],
+  unhide: [],
+  // Explicitly accelerator-free: zoom / front / services / about / help, and the
+  // macOS `editMenu` container (its children are listed individually above).
+  zoom: [],
+  front: [],
+  services: [],
+  help: [],
+  editMenu: [],
+};
+
+/**
+ * "Ctrl+CmdOrCtrl+F" mixes an alias and a concrete key, so normalise token-wise
+ * instead of substring-replacing (which would mangle CommandOrControl twice).
+ */
+const MOD_ORDER = ["ctrl", "alt", "shift", "cmdorctrl"];
+function canonical(chord) {
+  return chord
+    .split("+")
+    .map((token) => {
+      const low = token.trim().toLowerCase();
+      if (["cmdorctrl", "commandorcontrol", "command", "cmd"].includes(low)) return "cmdorctrl";
+      if (["ctrl", "control"].includes(low)) return "ctrl";
+      if (["alt", "option"].includes(low)) return "alt";
+      if (low === "plus") return "+";
+      return low;
+    })
+    .sort((a, b) => MOD_ORDER.indexOf(a) - MOD_ORDER.indexOf(b))
+    .join("+");
+}
+
+/** Chords the renderer owns, rebuilt from the keyboard registry (not from glyphs). */
+function rendererChords() {
+  return WORKBENCH_SHORTCUTS.map((s) => {
+    const tokens = ["CmdOrCtrl"];
+    if (s.shift) tokens.push("Shift");
+    if (s.alt) tokens.push("Alt");
+    tokens.push(s.key.length === 1 ? s.key.toUpperCase() : s.key);
+    return { id: s.id, chord: canonical(tokens.join("+")) };
+  });
+}
+
+/** The chords an item really registers: its own, or the role default it inherits. */
+function effectiveChords(item) {
+  if (item.accelerator) return [item.accelerator];
+  if (item.role) return ROLE_CHORDS[item.role] ?? [];
+  return [];
 }
 
 test("menu structure is identical on Windows and Linux and adds the App menu on macOS", () => {
@@ -316,51 +393,9 @@ test("no explicit chord collides with a chord a role registers implicitly", () =
   // It matters on every platform: off macOS our own items are display-only, but a
   // `role` item still registers for real, and on macOS every item does.
   //
-  // Defaults as documented for the Electron majors this app ships on. If an
-  // upgrade moves one, this test failing is the signal — a menu chord that
-  // first-wins against a role is a dead command, not a cosmetic issue.
-  const ROLE_CHORDS = {
-    undo: ["CmdOrCtrl+Z"],
-    redo: ["CmdOrCtrl+Shift+Z"],
-    cut: ["CmdOrCtrl+X"],
-    copy: ["CmdOrCtrl+C"],
-    paste: ["CmdOrCtrl+V"],
-    selectAll: ["CmdOrCtrl+A"],
-    reload: ["CmdOrCtrl+R"],
-    forceReload: ["CmdOrCtrl+Shift+R"],
-    toggleDevTools: ["CmdOrCtrl+Alt+I", "CmdOrCtrl+Shift+I", "F12"],
-    togglefullscreen: ["Ctrl+CmdOrCtrl+F", "F11"],
-    minimize: ["CmdOrCtrl+M"],
-    quit: ["CmdOrCtrl+Q"],
-    hide: ["CmdOrCtrl+H"],
-    hideOthers: ["CmdOrCtrl+Alt+H"],
-    unhide: [],
-    // Explicitly accelerator-free: zoom / front / services / about / help, and
-    // the macOS `editMenu` container (its children are listed individually above).
-    zoom: [],
-    front: [],
-    services: [],
-    help: [],
-    editMenu: [],
-  };
-
-  // "Ctrl+CmdOrCtrl+F" mixes an alias and a concrete key, so normalise token-wise
-  // instead of substring-replacing (which would mangle CommandOrControl twice).
-  const MOD_ORDER = ["ctrl", "alt", "shift", "cmdorctrl"];
-  const canonical = (chord) =>
-    chord
-      .split("+")
-      .map((token) => {
-        const low = token.trim().toLowerCase();
-        if (["cmdorctrl", "commandorcontrol", "command", "cmd"].includes(low)) return "cmdorctrl";
-        if (["ctrl", "control"].includes(low)) return "ctrl";
-        if (["alt", "option"].includes(low)) return "alt";
-        if (low === "plus") return "+";
-        return low;
-      })
-      .sort((a, b) => MOD_ORDER.indexOf(a) - MOD_ORDER.indexOf(b))
-      .join("+");
-
+  // ROLE_CHORDS / canonical() / effectiveChords() live at module scope: the
+  // menu-vs-renderer check below needs exactly the same table, and two copies of it
+  // would drift the moment one default moves.
   for (const platform of ["win32", "linux", "darwin"]) {
     const { template } = build(platform);
     const nodes = flatten(template);
@@ -399,6 +434,19 @@ test("every role item carries an app-language label", () => {
       );
     }
   }
+});
+
+test("the fullscreen role label mirrors the live window state", () => {
+  // macOS's own 全屏 item flips to 退出全屏 while fullscreen; ours must too,
+  // and main owns the state (the renderer never pushes `fullscreen` through
+  // updateMenuState — only enter/leave-full-screen events write it).
+  const findFs = (template) =>
+    flatten(template).find((n) => n.item.role === "togglefullscreen")?.item;
+  assert.equal(findFs(build("darwin").template).label, t("menu.fullscreen"));
+  assert.equal(
+    findFs(build("win32", { ...STATE, fullscreen: true }).template).label,
+    t("menu.exitFullscreen"),
+  );
 });
 
 test("the global capture chord never diverges from the OS global shortcut", () => {
@@ -471,3 +519,127 @@ test("every main-process settings write goes through the one writer", () => {
     );
   }
 });
+
+test("every top-level menu carries a stable id the title-bar strip can pop", () => {
+  // Windows draws the menu on its title bar row: the strip renders labels and asks
+  // main to pop the submenu *by id* (`system.menuPopup` → `Menu.popup`). A top-level
+  // item without an id is a label you can click that opens nothing, and the strip
+  // would silently drop it.
+  for (const platform of ["win32", "linux", "darwin"]) {
+    const ids = build(platform).template.map((i) => i.id);
+    assert.equal(ids.every(Boolean), true, `${platform}: a top-level menu has no id`);
+    assert.equal(new Set(ids).size, ids.length, `${platform}: duplicate top-level id`);
+    for (const id of ids) {
+      assert.ok(MENU_TOP_LEVEL_IDS.includes(id), `${platform}: 「${id}」 is not a declared top-level id`);
+    }
+  }
+  // The strip takes its order from this list, so it is worth pinning: Linux and
+  // macOS keep native menu bars and never render it.
+  assert.deepEqual(
+    build("win32").template.map((i) => i.id),
+    ["file", "edit", "workspace", "view", "window", "help"],
+  );
+});
+
+test("no menu chord fights a chord the renderer already owns", () => {
+  // Menu-vs-menu is covered above; menu-vs-renderer was the gap, and it is how
+  // `role: "toggleDevTools"` shipped: off macOS a role cannot be display-only, so
+  // its default Ctrl+Shift+I registered for real against the renderer's Inbox
+  // (⌘⇧I) — one keypress would open Inbox and DevTools together. The fix is an
+  // explicitly different chord (F12), and this is what keeps it fixed.
+  //
+  // Only *roles* are compared: our own items are display-only off macOS
+  // (`registerAccelerator: false`) and on macOS the system menu consumes the key
+  // before web content sees it, so their deliberate mirroring is single-owner.
+  const owned = new Map(rendererChords().map((s) => [s.chord, s.id]));
+
+  for (const platform of ["win32", "linux", "darwin"]) {
+    for (const node of flatten(build(platform).template)) {
+      if (!node.item.role) continue;
+      for (const chord of effectiveChords(node.item)) {
+        const clash = owned.get(canonical(chord));
+        assert.ok(
+          !clash,
+          `${platform}: role 「${node.item.role}」 registers ${chord}, which the renderer owns as 「${clash}」 — one keypress, two actions`,
+        );
+      }
+    }
+  }
+});
+
+test("the title-bar strip can reach the real menu end to end", () => {
+  // The strip is an app-drawn front end for a native menu, so the risk is a seam
+  // that looks wired in both files but meets nowhere. Each hop is named here.
+  const appMenu = read("electron/lib/app-menu.mjs");
+  for (const symbol of [
+    "export function getMenuTopLevel",
+    "export function popupMenuSection",
+    "export function setMenuTopLevelSink",
+    "export function setMenuPopupSink",
+  ]) {
+    assert.ok(appMenu.includes(symbol), `app-menu.mjs must export ${symbol}`);
+  }
+  // Strip anchors are CSS pixels from getBoundingClientRect; popup positions are
+  // DIP. At anything other than 100% UI zoom an unscaled anchor drifts.
+  assert.match(appMenu, /getZoomFactor/u, "popup anchors must be scaled by the UI zoom");
+  // Hover-switching must close the *previous* section. Closing "the new one" looks
+  // right in a diff and leaves the old popup on screen next to its successor.
+  assert.match(appMenu, /previous\.closePopup\(win\)/u, "hover-switch must close the previous section");
+
+  const service = read("electron/system-service.mjs");
+  for (const method of ["async menuTopLevel(", "async menuPopup("]) {
+    assert.ok(service.includes(method), `system-service.mjs must serve ${method}`);
+  }
+
+  const main = read("electron/main.mjs");
+  for (const wire of ["menuTopLevel: () => getMenuTopLevel()", "popupMenuSection(id, {", 'emitToRenderer(mainWindow, "menu:top-level"', 'emitToRenderer(mainWindow, "menu:popup-state"']) {
+    assert.ok(main.includes(wire), `main.mjs must wire ${wire}`);
+  }
+
+  const strip = read("src/lib/menu-strip.ts");
+  for (const hop of ['subscribe("menu:top-level"', 'subscribe("menu:popup-state"', ".menuPopup("]) {
+    assert.ok(strip.includes(hop), `menu-strip.ts must ${hop}`);
+  }
+
+  const component = read("src/components/shell/AppMenuBar.tsx");
+  assert.ok(component.includes("usesCaptionOverlay"), "the strip is Windows-only by policy");
+  assert.ok(component.includes("popMenuSection("), "and pops the native submenu");
+  assert.ok(
+    read("src/components/shell/TitleBar.tsx").includes("<AppMenuBar />"),
+    "the strip must actually be on the title bar row",
+  );
+});
+
+test("every label the menu asks for exists in both locales", () => {
+  // `t()` falls back to the raw key, so a typo turns into a menu item literally
+  // labelled "menu.sidebarTags" — and no type check sees it.
+  const spec = read("electron/lib/menu-spec.mjs");
+  const keys = new Set([
+    ...[...spec.matchAll(/t\("([^"]+)"\)/gu)].map((m) => m[1]),
+    // Radio groups name their labels through `key:` fields.
+    ...[...spec.matchAll(/key: "([^"]+)"/gu)].map((m) => m[1]),
+  ]);
+  assert.ok(keys.size >= 50, `expected the full label surface, found ${keys.size}`);
+
+  for (const key of keys) {
+    for (const locale of Object.keys(STRINGS)) {
+      assert.ok(
+        STRINGS[locale][key],
+        `${locale} is missing 「${key}」 — the menu would show the raw key`,
+      );
+    }
+  }
+});
+
+test("main-process locales declare the same keys", () => {
+  // The `check:i18n` gate covers the renderer's locale files; this table (menu, tray,
+  // notifications) had no equivalent, so one locale could quietly fall back to
+  // English mid-menu-bar.
+  const locales = Object.keys(STRINGS).sort();
+  assert.deepEqual(locales, ["en-US", "zh-CN"], "unexpected locale set");
+  const [en, zh] = [STRINGS["en-US"], STRINGS["zh-CN"]];
+  const only = (a, b) => Object.keys(a).filter((k) => !(k in b));
+  assert.deepEqual(only(en, zh), [], "keys missing from zh-CN");
+  assert.deepEqual(only(zh, en), [], "keys missing from en-US");
+});
+

@@ -152,9 +152,14 @@ test("v4 source footprint stays bounded (src + electron)", () => {
   // AppsLaunchList, chrome-portal, titlebar identity) put src at 218 against
   // the 212 ceiling — the gate now tracks 230 (still well under v3 scale)
   // while still failing on any +12-file regression per release.
-  assert.ok(srcCount < 230, `src file count ${srcCount} exceeds soft ceiling`);
+  // 2026-09-14 (+2 src / +0 electron): cross-platform chord formatting
+  // (`lib/chord.ts`, replacing `⌘`/`⌥` glyphs hardcoded across ~15 files) and
+  // full-screen chrome state (`lib/fullscreen-chrome.ts`). Both are single-purpose
+  // modules that delete more scattered logic than they add, so the ceiling moves
+  // by 4 rather than by 20 — the growth-per-release guard stays intact.
+  assert.ok(srcCount < 235, `src file count ${srcCount} exceeds soft ceiling`);
   assert.ok(electronCount < 120, `electron file count ${electronCount} exceeds soft ceiling`);
-  assert.ok(srcCount + electronCount < 340, `total ${srcCount + electronCount} exceeds soft ceiling`);
+  assert.ok(srcCount + electronCount < 345, `total ${srcCount + electronCount} exceeds soft ceiling`);
 });
 
 test("desktop validate restages engine before pack:verify (obsidian/clip stamp drift)", () => {

@@ -26,6 +26,7 @@ import {
 
 import { Tooltip } from "../ui/tooltip";
 import { PanelToggleIcon } from "../ui/PanelToggleIcon";
+import { AppMenuBar } from "./AppMenuBar";
 import { ICON } from "../../lib/icons";
 import { isMacOS } from "../../lib/platform";
 
@@ -78,10 +79,16 @@ export function TitleBar({ workspaceRoot: _workspaceRoot, sidebarCollapsed, onTo
     >
       {focusMode ? (
         <div className={cn("flex min-w-0 items-center gap-1.5", trafficMac && "v4-mac-titlebar-pad")}>
+          {/* Focus mode quietens the canvas, it must not become a trap: on macOS the
+              system menu bar stays reachable, so the Windows strip stays too. */}
+          <AppMenuBar />
           <span className="text-xs font-semibold tracking-tight text-text-primary">{t("titleBar.focusMode")}</span>
         </div>
       ) : (
       <div className={cn("flex min-w-0 flex-1 items-center gap-1.5", trafficMac && "v4-mac-titlebar-pad")}>
+        {/* Windows: the row IS the title bar now, so it opens with the app mark,
+            app name and the menu strip the OS can't merge into the caption. */}
+        <AppMenuBar />
         <div className="v4-titlebar-cluster flex items-center gap-0.5">
           <Tooltip content={sidebarCollapsed ? t("titleBar.showSidebar") : t("titleBar.hideSidebar")}>
             <button

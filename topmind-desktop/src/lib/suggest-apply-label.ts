@@ -85,3 +85,33 @@ export function suggestionNavPathAfterApply(
   }
   return written;
 }
+
+/**
+ * Apply failures that retrying can never fix — the suggestion itself is dead
+ * (source file gone, malformed payload, target conflict, unusable AI output).
+ * Accepting it again produces the same skip, so the UI treats the failure as
+ * equivalent to cancelling the suggestion instead of leaving a dead card.
+ *
+ * Keep the reason codes in sync with `lib/suggest-engine.mjs`'s `reason:`
+ * fields. Only known hard skips are terminal; unknown reasons (including
+ * missing ones, e.g. a raw protection rejection) stay retryable so the user
+ * keeps a path to resolve and retry.
+ */
+const TERMINAL_APPLY_FAILURES = new Set([
+  "source-not-found",
+  "missing-target",
+  "invalid-placement",
+  "target-exists",
+  "invalid-period",
+  "no-usable-digest",
+  "no-usable-analysis",
+  "placeholder-or-polluted",
+  "read-failed",
+  // Source resolves outside the workspace root — the same payload would be
+  // refused again. (`outside-workspace` in lib/suggest-engine.mjs.)
+  "outside-workspace",
+]);
+
+export function isTerminalApplyFailure(reason?: unknown): boolean {
+  return typeof reason === "string" && TERMINAL_APPLY_FAILURES.has(reason);
+}

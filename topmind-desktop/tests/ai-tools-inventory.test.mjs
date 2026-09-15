@@ -86,6 +86,48 @@ test("system prompt lists the shipped write/read names and honest delete policy"
   assert.match(en, /`bash` is not available/u);
 });
 
+test("both locales advertise every shipped tool and teach no phantom name", () => {
+  // The prompt's Tools section is hand-authored — `buildSystemPrompt` accepts a
+  // `toolNames` option but deliberately ignores it. So it can drift from the
+  // registry in two directions, both silent at runtime:
+  //   · a shipped tool the model is never told about (unreachable feature), or
+  //   · a name the model is told to call that no longer exists (phantom call).
+  // Skills are disabled here so the only backticked names left in the prompt are
+  // the authored tool/alias ones — no skill body can dilute the signal.
+  const ALIASES = new Set(["bash", "edit", "find", "grep", "read", "write"]);
+  const registry = [...AI_TOOL_NAMES_READ, ...AI_TOOL_NAMES_WRITE];
+  /** @type {Map<string, string[]>} */
+  const claimed = new Map();
+
+  for (const locale of ["zh-CN", "en-US"]) {
+    const prompt = buildSystemPrompt({
+      workspaceContext: { userWorkspaceRoot: "/tmp/ws" },
+      writebackMode: "auto",
+      skillsEnabled: false,
+      locale,
+    });
+    const toks = new Set();
+    for (const m of prompt.matchAll(/`([a-z][a-z0-9_]{2,})`/gu)) toks.add(m[1]);
+    claimed.set(locale, [...toks].sort());
+
+    const phantom = [...toks].filter((t) => !registry.includes(t) && !ALIASES.has(t)).sort();
+    assert.deepEqual(
+      phantom,
+      [],
+      `${locale} prompt teaches tool name(s) that are not registered: ${phantom.join(", ")}`,
+    );
+    const missing = registry.filter((t) => !toks.has(t)).sort();
+    assert.deepEqual(
+      missing,
+      [],
+      `${locale} prompt never names shipped tool(s) — the model cannot reach them: ${missing.join(", ")}`,
+    );
+  }
+
+  // Symmetry: neither locale may advertise a tool the other hides.
+  assert.deepEqual(claimed.get("zh-CN"), claimed.get("en-US"), "zh-CN / en-US tool lists diverged");
+});
+
 test("name list source stays the single advertised Desktop catalog", () => {
   assert.match(namesSrc, /export const AI_TOOL_NAMES_READ/);
   assert.match(namesSrc, /export const AI_TOOL_NAMES_WRITE/);

@@ -24,6 +24,7 @@ import {
   ContextMenu, ContextMenuItem, ContextMenuSeparator, ContextMenuLabel,
 } from "../ui/context-menu";
 import { ICON } from "../../lib/icons";
+import { formatChord } from "../../lib/chord";
 
 export type TreeNodeMenuHandlers = {
   closeMenu: () => void;
@@ -84,21 +85,21 @@ export function TreeNodeContextMenu({
       <ContextMenuLabel>{label}</ContextMenuLabel>
       {node.kind === "group" && node.id === "section/inbox" ? (
         <>
-          <ContextMenuItem icon={<RiInbox2Line size={ICON.sm} />} onClick={h.handleOpenSelection} shortcut="⌘⇧I">
+          <ContextMenuItem icon={<RiInbox2Line size={ICON.sm} />} onClick={h.handleOpenSelection} shortcut={formatChord("⌘⇧I")}>
             {t("sidebar.contextMenu.openInbox")}
           </ContextMenuItem>
-          <ContextMenuItem icon={<RiAddLine size={ICON.sm} />} shortcut="⌘N" onClick={h.openQuickCapture}>
+          <ContextMenuItem icon={<RiAddLine size={ICON.sm} />} shortcut={formatChord("⌘N")} onClick={h.openQuickCapture}>
             {t("sidebar.contextMenu.quickCapture")}
           </ContextMenuItem>
         </>
       ) : null}
       {node.kind === "group" && node.id === "section/outputs" ? (
-        <ContextMenuItem icon={<RiShareForwardLine size={ICON.sm} />} onClick={h.handleOpenSelection} shortcut="⌘⇧O">
+        <ContextMenuItem icon={<RiShareForwardLine size={ICON.sm} />} onClick={h.handleOpenSelection} shortcut={formatChord("⌘⇧O")}>
           {t("sidebar.contextMenu.openOutputs")}
         </ContextMenuItem>
       ) : null}
       {node.kind === "group" && node.id === "section/archive" ? (
-        <ContextMenuItem icon={<RiInboxArchiveLine size={ICON.sm} />} onClick={h.handleOpenSelection} shortcut="⌘⇧A">
+        <ContextMenuItem icon={<RiInboxArchiveLine size={ICON.sm} />} onClick={h.handleOpenSelection} shortcut={formatChord("⌘⇧A")}>
           {t("sidebar.contextMenu.openArchive")}
         </ContextMenuItem>
       ) : null}

@@ -28,16 +28,60 @@
   -webkit-app-region: no-drag;
 }
 
-/* ── macOS traffic light padding ──
-   macOS is the only platform whose native controls live inside our chrome
-   (hiddenInset traffic lights). Windows/Linux draw their own title bar, so no
-   equivalent reserved zone exists — see electron/lib/window-shell.mjs. */
+/* ── Native control reservations ──
+   Two platforms put native controls *inside* a header row we own:
+
+   · macOS  — inset traffic lights, fixed inset, left side.
+   · Windows — the OS overlays minimize / maximize / close on our 44px title bar
+               row's right end (and on the left under RTL). See
+               electron/lib/window-shell.mjs for why Windows owns that row.
+
+   The Windows width is MEASURED, never guessed: src/lib/window-controls.ts
+   republishes `navigator.windowControlsOverlay.getTitlebarAreaRect()` as
+   `--wc-inset-right` / `--wc-inset-left` on every geometrychange. */
 .v4-mac-titlebar-pad { padding-left: 72px; }
+
+/* Compound selectors on purpose. `.v4-column-chrome` declares
+   `padding-right: 8px` ~850 lines below this point; the first version of this
+   reservation was a single class, so at equal specificity the later shorthand won
+   and the reservation was dead code — the AI workspace's 4th tab and the AI panel
+   toggle sat under the caption buttons. `html[data-wc-inset] [data-column-chrome]`
+   always outranks a lone class, so source order can no longer decide this.
+   `max()` keeps the normal 8px inset when the OS overlays nothing. */
+html[data-wc-inset="ai"] [data-column-chrome="right"],
+html[data-wc-inset="center"] [data-column-chrome="center"] {
+  padding-right: max(8px, var(--wc-inset-right, 0px));
+}
+html[data-wc-inset] [data-column-chrome="left"] {
+  padding-left: max(8px, var(--wc-inset-left, 0px));
+}
+
+/* OS fullscreen hides the chrome these reserves exist to dodge — macOS
+   hides the traffic lights, Windows hides the caption buttons — so they
+   collapse to the plain 8px breathing room. `data-fullscreen` is written by
+   lib/fullscreen-chrome.ts from main's enter/leave-full-screen events. */
+html[data-fullscreen="true"] .v4-mac-titlebar-pad { padding-left: 0; }
+html[data-fullscreen="true"][data-wc-inset="ai"] [data-column-chrome="right"],
+html[data-fullscreen="true"][data-wc-inset="center"] [data-column-chrome="center"] {
+  padding-right: 8px;
+}
+html[data-fullscreen="true"][data-wc-inset] [data-column-chrome="left"] {
+  padding-left: 8px;
+}
 
 /* Platform-stamped extras (set by applyTheme → data-platform) */
 html[data-platform="linux"] .v4-column-chrome {
   /* Linux default frame already has system chrome — lighter bottom hairline */
   box-shadow: none;
+}
+
+/* Windows dialog footers swap to the platform convention: primary action on
+   the left, cancel on the right (macOS keeps cancel-left). DOM order stays
+   cancel-first everywhere, so Tab order — and the destructive dialog's
+   "Enter lands on Cancel" guarantee — never move with the layout. */
+html[data-platform="win"] [data-dialog-footer] {
+  flex-direction: row-reverse;
+  justify-content: flex-start;
 }
 
 /* ── Panel collapse/expand ── */
@@ -875,10 +919,13 @@ button.v4-dash-card:active,
   flex-shrink: 0;
   height: var(--density-chrome-y, 44px);
   /* Explicit longhands, never the `padding` shorthand: a shorthand here resets
-     padding-right, and because this rule sits ~850 lines below every modifier
-     class in this file it wins on source order at equal specificity. That is
-     exactly how `.v4-win-titlebar-pad` (line ~36) silently did nothing and left
-     the AI workspace's 4th tab under the Windows caption buttons. */
+     padding-right, and because this rule sits ~850 lines below the modifier rules
+     near the top of this file it wins on source order at equal specificity. That is
+     exactly how the first Windows caption-button reservation silently did nothing
+     and left the AI workspace's 4th tab under the buttons. The current reservation
+     (`.v4-mac-titlebar-pad` / `html[data-wc-inset] …`, top of file) is
+     deliberately more specific so this shorthand can never reach it again — but
+     keep the longhands: the next reservation will not necessarily be as careful. */
   padding-left: 8px;
   padding-right: 8px;
   border-bottom: 1px solid var(--color-border-subtle-dim);

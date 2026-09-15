@@ -27,6 +27,8 @@ import {
   INLINE_SYSTEM,
 } from "../electron/lib/inline-complete-prompt.mjs";
 
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
 test("resolvePromptLocale maps tags to zh|en", () => {
   assert.equal(resolvePromptLocale(undefined), "zh");
   assert.equal(resolvePromptLocale(""), "zh");
@@ -174,6 +176,33 @@ test("buildSystemPrompt states 3-tier output language and honors outputLocale", 
   assert.match(enChromeZhOut, /Chinese/);
   assert.match(enChromeZhOut, /explicit language request/i);
   assert.doesNotMatch(enChromeZhOut, /你是 topmind 个人知识工作台助手/);
+});
+
+test("the production prompt builder passes outputLocale explicitly", () => {
+  // buildSystemPrompt falls back to the *chrome* locale when outputLocale is
+  // absent. That fallback is only safe if no production caller relies on it —
+  // the documented policy is explicit-request → source material → workspace
+  // locale, and UI language is deliberately not a tier. A caller that passes
+  // only `locale` would silently pin durable text to the UI language.
+  const service = readFileSync(path.join(root, "electron/ai-service.mjs"), "utf8");
+  const callAt = service.indexOf("buildSystemPrompt({");
+  assert.ok(callAt > 0, "ai-service must call buildSystemPrompt");
+  const body = service.slice(callAt, callAt + service.slice(callAt).indexOf("});"));
+  assert.match(body, /outputLocale/u, "ai-service must pass outputLocale to buildSystemPrompt");
+  assert.match(body, /\blocale\b/u, "ai-service must still pass the chrome locale");
+
+  // Provenance, not just the argument list. The resolver is awaited *before* the
+  // call (it is async, so it cannot sit in the argument list), which means a
+  // check scoped to the call body alone would accept any variable that happens to
+  // be called `outputLocale`. Walk back to where it is bound and require that the
+  // binding goes through the shared resolver rather than a bespoke check.
+  const boundAt = service.lastIndexOf("outputLocale", callAt);
+  assert.ok(boundAt > 0, "outputLocale must be bound before buildSystemPrompt");
+  assert.match(
+    service.slice(boundAt, callAt),
+    /resolveDurableOutputLocale|resolveAgentOutputLanguage/u,
+    "outputLocale must come from the shared resolver, not a bespoke check",
+  );
 });
 
 test("inline complete locale follows shipped 3-tier resolver, not workspace/UI", () => {

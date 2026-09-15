@@ -48,6 +48,7 @@ import {
 import { Tooltip } from "../../../components/ui/tooltip";
 import { ICON } from "../../../lib/icons";
 import { cn } from "../../../lib/cn";
+import { formatChord } from "../../../lib/chord";
 import { ToolbarButton, ToolbarSep, SaveBadge, type SaveState } from "./file-editor-chrome";
 import { EditorReadingMenu } from "../../../components/editor/EditorReadingMenu";
 
@@ -118,10 +119,10 @@ export function EditorFormatBar({
           role="toolbar"
           aria-label={t("workspace:formatBar.toolbarAria")}
         >
-          <ToolbarButton onClick={() => editor?.chain().focus().toggleBold().run()} active={editor?.isActive("bold") ?? false} tip={`${t("workspace:editor.formatBold")} ⌘B`}>
+          <ToolbarButton onClick={() => editor?.chain().focus().toggleBold().run()} active={editor?.isActive("bold") ?? false} tip={`${t("workspace:editor.formatBold")} ${formatChord("⌘B")}`}>
             <RiBold size={ICON.xs} />
           </ToolbarButton>
-          <ToolbarButton onClick={() => editor?.chain().focus().toggleItalic().run()} active={editor?.isActive("italic") ?? false} tip={`${t("workspace:editor.formatItalic")} ⌘I`}>
+          <ToolbarButton onClick={() => editor?.chain().focus().toggleItalic().run()} active={editor?.isActive("italic") ?? false} tip={`${t("workspace:editor.formatItalic")} ${formatChord("⌘I")}`}>
             <RiItalic size={ICON.xs} />
           </ToolbarButton>
           <ToolbarButton onClick={() => editor?.chain().focus().toggleUnderline().run()} active={editor?.isActive("underline") ?? false} tip={t("workspace:editor.formatUnderline")}>
@@ -173,7 +174,7 @@ export function EditorFormatBar({
             <ToolbarButton
               onClick={onInsertDateTime}
               active={false}
-              tip={`${t("workspace:formatBar.insertDateTime")} ⌘.`}
+              tip={`${t("workspace:formatBar.insertDateTime")} ${formatChord("⌘.")}`}
             >
               <RiCalendarEventLine size={ICON.xs} />
             </ToolbarButton>

@@ -96,6 +96,7 @@
 | [2026-08-27](./adr/2026-08-27-desktop-log-rotation.md) | Desktop Log Rotation | Size-capped support log (`main.log` 2 MB × 3 archives, self-healing on legacy oversized files) |
 | [2026-09-07](./adr/2026-09-07-pi-engine-and-three-column-reevaluation.md) | Pi engine + three-column re-eval | Hybrid `pi-agent-core` (bash off, fenced FS); AI workspace column peer to canvas |
 | [2026-09-14](./adr/2026-09-14-product-vocabulary-rename.md) | Product vocabulary rename | Inbox / 交付 / Delivery replace 收件箱 / 写出来 / Ship it; default template seeds move, existing workspace dirs do not |
+| [2026-09-15](./adr/2026-09-15-cross-platform-chrome-and-suggest-lifecycle.md) | Cross-platform chrome & suggestion lifecycle | One-row Windows title bar (app-drawn strip → native popups), platform-correct chords via `formatChord`, fullscreen collapses chrome reserves, frameless float note, Windows dialog footer flip in CSS; batched suggest apply with terminal-vs-retryable failures and persisted dismissal |
 
 ---
 

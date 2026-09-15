@@ -12,6 +12,7 @@ import { api } from "../../services/api";
 import { useViewStore } from "../../stores/view-store";
 import { cn } from "../../lib/cn";
 import { ICON } from "../../lib/icons";
+import { formatChord } from "../../lib/chord";
 import type { SearchResult } from "../../types";
 
 type SearchBucket = "stream" | "memory" | "inbox" | "outputs" | "archive" | "topic" | "other";
@@ -424,7 +425,7 @@ export function GlobalSearch() {
           <kbd className="v4-kbd">↑↓</kbd> {t("overlays:search.footerSelect")}
         </span>
         <span className="flex items-center gap-1">
-          <kbd className="v4-kbd">↵</kbd> {t("overlays:search.footerOpen")}
+          <kbd className="v4-kbd">{formatChord("↵")}</kbd> {t("overlays:search.footerOpen")}
         </span>
         {loading ? <span className="text-text-tertiary">{t("overlays:search.footerSearching")}</span> : null}
         <span className="ml-auto tabular-nums">

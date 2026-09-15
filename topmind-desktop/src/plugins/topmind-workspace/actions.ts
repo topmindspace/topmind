@@ -1,10 +1,13 @@
 /**
  * Built-in workspace actions — navigation + app commands for ⌘K.
- * Shortcuts match src/lib/shortcuts.ts (dispatched by OverlayHost).
+ * Shortcuts match src/lib/shortcuts.ts (dispatched by OverlayHost). They are
+ * declared in that same canonical glyph form and passed through formatChord() so
+ * Windows/Linux users read `Ctrl+…` — see src/lib/chord.ts.
  * Labels are resolved via i18n key (overlays:command.actions.*) by CommandPalette.
  */
 import type { ActionSlot } from "../types";
 import type { Selection } from "../../types";
+import { formatChord } from "../../lib/chord";
 
 function gotoAction(
   id: string,
@@ -29,17 +32,17 @@ function gotoAction(
 export function createWorkspaceActions(): ActionSlot[] {
   return [
     // Single stream goto (⌘⇧S lands on 动态; ⌘⇧T toggles the Todo popover — no duplicate Home action)
-    gotoAction("topmind-workspace.goto.stream", "overlays:command.actions.gotoStream", "Go to · Stream", 10, { kind: "stream" }, "⌘⇧S"),
+    gotoAction("topmind-workspace.goto.stream", "overlays:command.actions.gotoStream", "Go to · Stream", 10, { kind: "stream" }, formatChord("⌘⇧S")),
     gotoAction("topmind-workspace.goto.memory", "overlays:command.actions.gotoMemory", "Go to · Memory", 11, { kind: "memory" }),
-    gotoAction("topmind-workspace.goto.inbox", "overlays:command.actions.gotoInbox", "Go to · Inbox", 12, { kind: "inbox" }, "⌘⇧I"),
-    gotoAction("topmind-workspace.goto.outputs", "overlays:command.actions.gotoOutputs", "Go to · Outputs", 13, { kind: "outputs" }, "⌘⇧O"),
-    gotoAction("topmind-workspace.goto.archive", "overlays:command.actions.gotoArchive", "Go to · Archive", 14, { kind: "archive" }, "⌘⇧A"),
+    gotoAction("topmind-workspace.goto.inbox", "overlays:command.actions.gotoInbox", "Go to · Inbox", 12, { kind: "inbox" }, formatChord("⌘⇧I")),
+    gotoAction("topmind-workspace.goto.outputs", "overlays:command.actions.gotoOutputs", "Go to · Outputs", 13, { kind: "outputs" }, formatChord("⌘⇧O")),
+    gotoAction("topmind-workspace.goto.archive", "overlays:command.actions.gotoArchive", "Go to · Archive", 14, { kind: "archive" }, formatChord("⌘⇧A")),
     {
       kind: "action",
       id: "topmind-workspace.action.kanban",
       label: "Sidebar · Kanban view",
       labelKey: "overlays:command.actions.kanban",
-      shortcut: "⌘⇧B",
+      shortcut: formatChord("⌘⇧B"),
       group: "navigate",
       order: 15,
       run: (ctx) => {
@@ -62,7 +65,7 @@ export function createWorkspaceActions(): ActionSlot[] {
       id: "topmind-workspace.action.todo",
       label: "Todo list",
       labelKey: "overlays:command.actions.todo",
-      shortcut: "⌘⇧T",
+      shortcut: formatChord("⌘⇧T"),
       group: "navigate",
       order: 16,
       run: (ctx) => {
@@ -74,7 +77,7 @@ export function createWorkspaceActions(): ActionSlot[] {
       id: "topmind-workspace.action.global-search",
       label: "Global search notes",
       labelKey: "overlays:command.actions.globalSearch",
-      shortcut: "⌘P",
+      shortcut: formatChord("⌘P"),
       group: "navigate",
       order: 20,
       run: (ctx) => {
@@ -86,7 +89,7 @@ export function createWorkspaceActions(): ActionSlot[] {
       id: "topmind-workspace.action.settings",
       label: "Open settings",
       labelKey: "overlays:command.actions.settings",
-      shortcut: "⌘,",
+      shortcut: formatChord("⌘,"),
       group: "navigate",
       order: 30,
       run: (ctx) => {
@@ -98,7 +101,7 @@ export function createWorkspaceActions(): ActionSlot[] {
       id: "topmind-workspace.action.command-palette",
       label: "Command palette",
       labelKey: "overlays:command.actions.commandPalette",
-      shortcut: "⌘K",
+      shortcut: formatChord("⌘K"),
       group: "navigate",
       order: 5,
       run: (ctx) => {
@@ -110,7 +113,7 @@ export function createWorkspaceActions(): ActionSlot[] {
       id: "topmind-workspace.action.task-panel",
       label: "Tasks · Organize period",
       labelKey: "overlays:command.actions.taskPanel",
-      shortcut: "⌘⇧J",
+      shortcut: formatChord("⌘⇧J"),
       group: "navigate",
       order: 22,
       run: (ctx) => {

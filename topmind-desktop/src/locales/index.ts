@@ -13,6 +13,7 @@
 
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
+import { formatChord } from "../lib/chord";
 
 // ── Locale resolution (pure logic, no i18next dependency) ───────────────────
 // Re-export everything from locale-resolver so consumers can import from a
@@ -113,24 +114,39 @@ const resources = {
 // ── i18next initialisation ─────────────────────────────────────────────────
 // Called once at app boot (main.tsx).
 // `lng` is set later by `applyLocale()` after settings load.
-void i18n.use(initReactI18next).init({
-  resources,
-  lng: DEFAULT_LOCALE,
-  fallbackLng: FALLBACK_LOCALE,
-  defaultNS: DEFAULT_NAMESPACE,
-  ns: NAMESPACES,
-  interpolation: {
-    // React already escapes values, so we don't need i18next's escaping.
-    escapeValue: false,
-  },
-  react: {
-    // Re-render on language change.
-    bindI18n: "languageChanged loaded",
-    // Do not suspend — we bundle all resources synchronously.
-    useSuspense: false,
-  },
-  returnEmptyString: false,
-});
+//
+// The `chord` post-processor rewrites the macOS glyphs inside translation values
+// for Windows/Linux (`"设置 · ⌘,"` → `"设置 · Ctrl+,"`). Locale files keep the
+// canonical chord and the platform mapping lives in exactly one place —
+// src/lib/chord.ts. Without it every one of the ~60 translated chords would need
+// its own platform branch, and the first one forgotten would tell a Windows user
+// to press a key their keyboard does not have.
+void i18n
+  .use({
+    type: "postProcessor",
+    name: "chord",
+    process: (value: unknown) => (typeof value === "string" ? formatChord(value) : value),
+  })
+  .use(initReactI18next)
+  .init({
+    resources,
+    lng: DEFAULT_LOCALE,
+    fallbackLng: FALLBACK_LOCALE,
+    defaultNS: DEFAULT_NAMESPACE,
+    ns: NAMESPACES,
+    postProcess: ["chord"],
+    interpolation: {
+      // React already escapes values, so we don't need i18next's escaping.
+      escapeValue: false,
+    },
+    react: {
+      // Re-render on language change.
+      bindI18n: "languageChanged loaded",
+      // Do not suspend — we bundle all resources synchronously.
+      useSuspense: false,
+    },
+    returnEmptyString: false,
+  });
 
 /**
  * Apply a locale at runtime. Called when settings load or user switches language.

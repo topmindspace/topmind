@@ -735,3 +735,50 @@ describe("create_topic apply + append (shipped path)", () => {
     }
   });
 });
+
+describe("activity-window scope is ordered by mtime, not by directory walk order", () => {
+  // The mtime collector walks depth-first in readdir order. It used to stop the
+  // walk once it had "enough" candidates, which pinned the window to whichever
+  // subtree was visited first: a hot file in a later directory could never be
+  // analysed, no matter how recently it was touched.
+  it("a newer file under a later directory still wins the window", () => {
+    const ws = mkWorkspace();
+    try {
+      const early = path.join(ws, "00-收件箱");
+      for (let i = 0; i < 100; i++) {
+        fs.writeFileSync(path.join(early, `early-${String(i).padStart(3, "0")}.md`), `# early ${i}\n`);
+      }
+      const lateDir = path.join(ws, "20-专题", "2026-hot");
+      fs.mkdirSync(lateDir, { recursive: true });
+      const hot = path.join(lateDir, "hot.md");
+      fs.writeFileSync(hot, "# hot\n");
+      // Newest by a clear margin, and the only file in the later directory.
+      const newest = new Date(Date.now() + 60_000);
+      fs.utimesSync(hot, newest, newest);
+
+      const win = resolveActivityWindow({ workspaceRoot: ws, engineRoot, options: { maxFiles: 30 } });
+      const rels = win.items.map((i) => i.relPath);
+      assert.ok(
+        rels.includes("20-专题/2026-hot/hot.md"),
+        `newest file is missing from the window — scope is still bound to walk order:\n${rels.slice(0, 6).join("\n")}`,
+      );
+      assert.equal(rels[0], "20-专题/2026-hot/hot.md", "the newest file must rank first");
+    } finally {
+      fs.rmSync(ws, { recursive: true, force: true });
+    }
+  });
+
+  it("stays capped when far more files are in band than the window holds", () => {
+    const ws = mkWorkspace();
+    try {
+      const dir = path.join(ws, "00-收件箱");
+      for (let i = 0; i < 400; i++) {
+        fs.writeFileSync(path.join(dir, `bulk-${String(i).padStart(3, "0")}.md`), `# ${i}\n`);
+      }
+      const win = resolveActivityWindow({ workspaceRoot: ws, engineRoot, options: { maxFiles: 30 } });
+      assert.equal(win.items.length, 30, "the window must stay at maxFiles, not grow with the workspace");
+    } finally {
+      fs.rmSync(ws, { recursive: true, force: true });
+    }
+  });
+});

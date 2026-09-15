@@ -16,7 +16,13 @@ import { createRequire } from "node:module";
 // are swallowed, silently pinning the main process to zh-CN. See resolveLocale.
 const require = createRequire(import.meta.url);
 
-const STRINGS = {
+/**
+ * Locale tables. Exported so tests can assert the two locales declare the same
+ * keys and that every label the menu template asks for actually exists — a missing
+ * key silently renders as the raw key, which in a menu bar means a menu item
+ * literally labelled "menu.sidebarTags".
+ */
+export const STRINGS = {
   "zh-CN": {
     "menu.file": "文件",
     "menu.edit": "编辑",
@@ -82,6 +88,7 @@ const STRINGS = {
     "menu.zoomIn": "放大",
     "menu.zoomOut": "缩小",
     "menu.fullscreen": "全屏",
+    "menu.exitFullscreen": "退出全屏",
     "menu.minimize": "最小化",
     "menu.maximize": "最大化 / 还原",
     "menu.zoom": "缩放",
@@ -364,6 +371,7 @@ const STRINGS = {
     "menu.zoomIn": "Zoom In",
     "menu.zoomOut": "Zoom Out",
     "menu.fullscreen": "Full Screen",
+    "menu.exitFullscreen": "Exit Full Screen",
     "menu.minimize": "Minimize",
     "menu.maximize": "Maximize / Restore",
     "menu.zoom": "Zoom",

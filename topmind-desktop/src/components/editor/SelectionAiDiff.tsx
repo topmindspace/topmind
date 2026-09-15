@@ -8,6 +8,7 @@ import { RiCheckLine, RiDraggable, RiFileCopyLine, RiLayoutColumnLine } from "@r
 import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/cn";
 import { ICON } from "../../lib/icons";
+import { formatChord } from "../../lib/chord";
 import { lineDiff } from "../../lib/simple-diff";
 import { Tooltip } from "../ui/tooltip";
 import { Button } from "../ui/Button";
@@ -171,7 +172,7 @@ export function SelectionAiDiff({
         ) : null}
         <Button size="sm" onClick={onApply}>
           {targetScope === "selection" ? t("selectionAi.accept") : t("selectionAi.insert")}
-          <kbd className="v4-kbd v4-kbd-sm ml-1 opacity-90">⌘↵</kbd>
+          <kbd className="v4-kbd v4-kbd-sm ml-1 opacity-90">{formatChord("⌘↵")}</kbd>
         </Button>
       </div>
     </div>

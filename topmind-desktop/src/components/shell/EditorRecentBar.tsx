@@ -13,6 +13,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { useViewStore } from "../../stores/view-store";
 import { displayNoteTitle } from "../../lib/note-meta";
+import { formatChord } from "../../lib/chord";
 import { cn } from "../../lib/cn";
 import { ICON } from "../../lib/icons";
 import { Tooltip } from "../ui/tooltip";
@@ -369,7 +370,7 @@ export function EditorRecentBar() {
           <ContextMenuSeparator />
           <ContextMenuItem
             icon={<RiCloseLine size={ICON.micro} />}
-            shortcut="⌘W"
+            shortcut={formatChord("⌘W")}
             onClick={() => {
               closeFileTab(tabMenu.path);
               setTabMenu(null);
@@ -388,7 +389,7 @@ export function EditorRecentBar() {
           <ContextMenuItem
             destructive
             icon={<RiCloseCircleLine size={ICON.micro} />}
-            shortcut="⌘⌥W"
+            shortcut={formatChord("⌘⌥W")}
             onClick={() => {
               closeAllFileTabs({ closePinned: true });
               setTabMenu(null);

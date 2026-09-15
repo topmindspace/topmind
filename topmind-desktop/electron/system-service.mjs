@@ -188,6 +188,35 @@ export const SystemService = {
     return { ok: true };
   },
 
+  /**
+   * Top-level menu entries for the Windows in-row menu strip.
+   *
+   * Labels come from the *same* i18n table the native menu uses, so the strip
+   * renders whatever main reports and the renderer never keeps a second copy of
+   * the menu structure (or a second set of labels).
+   */
+  async menuTopLevel(_p, ctx) {
+    return { items: typeof ctx.menuTopLevel === "function" ? ctx.menuTopLevel() : [] };
+  },
+
+  /**
+   * Pop the native submenu for a top-level id under the strip item that was
+   * clicked. `x`/`y` are CSS pixels; main scales them to DIP (see app-menu.mjs).
+   */
+  async menuPopup({ id, x, y }, ctx) {
+    if (typeof ctx.menuPopup !== "function") return { ok: false };
+    return { ok: ctx.menuPopup({ id, x, y }) };
+  },
+
+  /**
+   * OS window chrome state (fullscreen) — the renderer's initial fetch that
+   * backfills the pushed `window:fullscreen` events after boot.
+   */
+  async windowState(_p, ctx) {
+    if (typeof ctx.windowState === "function") return ctx.windowState();
+    return { fullscreen: false };
+  },
+
   async clipBridgeStatus(_p, ctx) {
     const live = getClipBridgeLive();
     const settings = await SystemService.getSettings({}, ctx);

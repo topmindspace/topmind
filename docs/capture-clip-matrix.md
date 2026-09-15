@@ -54,10 +54,10 @@
 
 | 面 | Windows | macOS |
 |----|---------|-------|
-| 主窗 | 原生边框 + 原生菜单栏（`window-shell.mjs`） | `hiddenInset`（红绿灯在自有 44px 顶栏内） |
+| 主窗 | 自绘标题栏一排（图标/名称/菜单条/面包屑）+ OS 画最小化·最大化·关闭在右端（`titleBarStyle: 'hidden'` + `titleBarOverlay`，`window-shell.mjs`） | `hiddenInset`（红绿灯在自有 44px 顶栏内） |
 | 记一下浮窗 | 同策略（原生边框，`autoHideMenuBar: true`）+ 自有拖条与关闭按钮 | `hiddenInset` + traffic lights |
 
-> 2026-09-14：`titleBarOverlay` 已全平台废弃 —— 原生按钮画在内容之上会永久遮住右列（AI 工作区第 4 个 tab、右列 toggle）。外壳策略唯一真源 `topmind-desktop/electron/lib/window-shell.mjs`。
+> 2026-09-14：Windows 由「原生边框 + 原生菜单栏」改为**自绘标题栏一排**——Electron 无法把 HMENU 并入标题栏，常显原生菜单栏必然在自有 44px 顶栏上再叠约 20px。`titleBarOverlay` 只用于让 OS 继续画最小化/最大化/关闭，让位宽度从 `navigator.windowControlsOverlay` 量出（不再是写死的像素）。外壳策略唯一真源 `topmind-desktop/electron/lib/window-shell.mjs`；Linux 保持原生装饰。详见 `topmind-desktop/DESIGN.md` §窗口外壳。
 
 ### 编辑器行内 AI（与捕获并列的「改写」面）
 

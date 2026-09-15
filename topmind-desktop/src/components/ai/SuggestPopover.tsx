@@ -302,13 +302,19 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
   const handleAcceptAll = async () => {
     setBulkResult(null);
     try {
-      const { accepted, failed, summary } = await acceptAll();
-      if (accepted > 0 && failed === 0) {
-        const detail = summary ? ` · ${summary}` : "";
+      const { accepted, failed, cancelled, summary } = await acceptAll();
+      const detail = summary ? ` · ${summary}` : "";
+      if (accepted > 0 && failed === 0 && cancelled === 0) {
         setBulkResult(t("ai.bulkAcceptDone", { count: accepted, defaultValue: `All accepted (${accepted})` }) + detail);
-      } else if (accepted > 0 && failed > 0) {
-        const detail = summary ? ` · ${summary}` : "";
-        setBulkResult(t("ai.bulkAcceptPartial", { accepted, failed, defaultValue: `Accepted ${accepted} · ${failed} failed` }) + detail);
+      } else if (accepted === 0 && failed === 0 && cancelled > 0) {
+        // Everything was dead weight (files moved/deleted since generation).
+        setBulkResult(t("ai.bulkAcceptCancelled", { count: cancelled, defaultValue: `${cancelled} expired and auto-cancelled` }));
+      } else if (accepted > 0 || cancelled > 0) {
+        const parts = [t("ai.bulkAcceptPartial", { accepted, failed, defaultValue: `Accepted ${accepted} · ${failed} failed` })];
+        if (cancelled > 0) {
+          parts.push(t("ai.bulkAcceptCancelled", { count: cancelled, defaultValue: `${cancelled} expired and auto-cancelled` }));
+        }
+        setBulkResult(parts.join(" · ") + detail);
       } else if (failed > 0) {
         setBulkResult(t("ai.bulkAcceptFailed", { count: failed, defaultValue: `${failed} failed` }));
       }
@@ -565,8 +571,9 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
           type="button"
           className="flex h-6 w-6 items-center justify-center rounded-sm text-text-tertiary hover:bg-surface-muted"
           onClick={() => {
-            clearDismissed();
-            void refresh({ force: true });
+            // Ordered: forgetting the durable rejections must land before the
+            // re-analysis reads them, or the reset is a no-op this round.
+            void clearDismissed().then(() => refresh({ force: true }));
           }}
           disabled={loading}
           aria-label={t("ai.suggestRefresh")}

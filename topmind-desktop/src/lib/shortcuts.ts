@@ -23,7 +23,13 @@ export interface ShortcutDef {
   id: string;
   /** Human label i18n key (settings / about) */
   labelKey: string;
-  /** Display chord e.g. ⌘⇧I */
+  /**
+   * Canonical chord, macOS glyph form (e.g. ⌘⇧I).
+   *
+   * Never render this directly — Windows/Linux users have no ⌘ key. Pass it
+   * through `formatChord()` (lib/chord.ts), which is also what the i18next
+   * post-processor applies to translated chords.
+   */
   display: string;
   /** Requires ⌘ / Ctrl */
   mod: boolean;

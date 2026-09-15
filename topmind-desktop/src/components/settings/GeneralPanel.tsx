@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { modKey } from "../../lib/shortcuts";
+import { formatChord } from "../../lib/chord";
 import { useTranslation } from "react-i18next";
 import { Select } from "../ui/select";
 import { Input } from "../ui/Input";
@@ -19,6 +19,32 @@ const WRITEBACK_HELP_KEY: Record<string, string> = {
   auto: "settings:general.writebackHelpAuto",
   confirm: "settings:general.writebackHelpConfirm",
 };
+
+/**
+ * Shortcut reference rows: [chord, label key].
+ *
+ * Chords are declared in the canonical glyph form the bindings themselves use and
+ * passed through `formatChord()` once, here. The previous version built them by
+ * concatenating `modKey()` ("Ctrl" off macOS) with literal `⇧`/`⌥`, which produced
+ * hybrids like `Ctrl⇧N` on Windows — and two rows skipped the helper entirely and
+ * showed a bare `⌘⇧W`, a key that does not exist on the platform reading it.
+ */
+const SHORTCUT_ROWS: ReadonlyArray<readonly [string, string]> = [
+  [formatChord("⌘N"), "settings:general.shortcutCapture"],
+  [formatChord("⌘⇧N"), "settings:general.shortcutGlobalCapture"],
+  [formatChord("⌘K / ⌘P"), "settings:general.shortcutCommand"],
+  [formatChord("⌘,"), "settings:general.shortcutSettings"],
+  [formatChord("⌘S"), "settings:general.shortcutSave"],
+  [formatChord("⌘⇧I / O / A"), "settings:general.shortcutNav"],
+  [formatChord("⌘⇧S"), "settings:general.shortcutStream"],
+  [formatChord("⌘⇧T"), "settings:general.shortcutTodo"],
+  [formatChord("⌘⇧B"), "settings:general.shortcutKanban"],
+  [formatChord("⌘⌥F"), "settings:general.shortcutFocusMode"],
+  [formatChord("⌘⇧J"), "settings:general.shortcutTaskPanel"],
+  [formatChord("⌘[ / ⌘]"), "settings:general.shortcutHistory"],
+  [formatChord("⌘⇧W"), "settings:general.shortcutWorkspaceSwitch"],
+  [formatChord("⌘⌥W"), "settings:general.shortcutCloseAllTabs"],
+];
 
 const DEFAULT_UI = {
   sidebarWidth: 240,
@@ -473,35 +499,13 @@ export function GeneralPanel({
 
       <SettingsSection title={t("settings:general.shortcuts")} description={t("settings:general.shortcutsDesc")} help={t("settings:general.shortcutsHelp")}>
         <div className="grid grid-cols-1 gap-y-1 sm:grid-cols-2 sm:gap-x-4">
-          {(
-            [
-              ...(() => {
-                const m = modKey();
-                return [
-                  [`${m}N`, t("settings:general.shortcutCapture")],
-                  [`${m}⇧N`, t("settings:general.shortcutGlobalCapture")],
-                  [`${m}K / ${m}P`, t("settings:general.shortcutCommand")],
-                  [`${m},`, t("settings:general.shortcutSettings")],
-                  [`${m}S`, t("settings:general.shortcutSave")],
-                  [`${m}⇧I / O / A`, t("settings:general.shortcutNav")],
-                  [`${m}⇧S`, t("settings:general.shortcutStream")],
-                  [`${m}⇧T`, t("settings:general.shortcutTodo")],
-                  [`${m}⇧B`, t("settings:general.shortcutKanban")],
-                  [`${m}⌥F`, t("settings:general.shortcutFocusMode")],
-                  [`${m}⇧J`, t("settings:general.shortcutTaskPanel")],
-                  [`${m}[ / ${m}]`, t("settings:general.shortcutHistory")],
-                ];
-              })(),
-              ["⌘⇧W", t("settings:general.shortcutWorkspaceSwitch")],
-              ["⌘⌥W", t("settings:general.shortcutCloseAllTabs")],
-            ] as const
-          ).map(([k, v]) => (
+          {SHORTCUT_ROWS.map(([chord, labelKey]) => (
             <div
-              key={k}
+              key={chord}
               className="flex items-center justify-between gap-2 rounded-[var(--radius-sm)] py-0.5"
             >
-              <kbd className="v4-kbd shrink-0 text-5xs">{k}</kbd>
-              <span className="text-3xs text-text-quaternary">{v}</span>
+              <kbd className="v4-kbd shrink-0 text-5xs">{chord}</kbd>
+              <span className="text-3xs text-text-quaternary">{t(labelKey)}</span>
             </div>
           ))}
         </div>

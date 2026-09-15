@@ -9,12 +9,17 @@
  */
 import { create } from 'zustand';
 import { api } from '../services/api';
+import { subscribe as subscribeRpcEvent } from '../services/rpc';
 import { emitLocal, onLocal } from '../plugins/host';
 import { PENDING_WRITES_CHANGED_EVENT, SUGGESTIONS_REFRESH_EVENT } from '../lib/ai-rail-events';
 import { toastWriteback, toastWritebackError } from '../lib/writeback-toast';
 import { mergeSuggestRefreshItems } from '../lib/suggest-session-merge';
 import { decideSuggestRefresh } from '../lib/suggest-boot-policy';
-import { suggestionNavPathAfterApply, suggestionOpenPath } from '../lib/suggest-apply-label';
+import {
+  isTerminalApplyFailure,
+  suggestionNavPathAfterApply,
+  suggestionOpenPath,
+} from '../lib/suggest-apply-label';
 import { useViewStore } from './view-store';
 import i18n from '../locales';
 
@@ -35,12 +40,26 @@ export interface ActionItem {
   createdAt: string;
 }
 
-/** Session-scoped dismissed suggestion IDs — prevents re-surfacing within current session.
- *  Cleared on app restart. persisted dismiss is not needed because underlying
- *  conditions (stale files, inbox items) are themselves transient. */
+/** Session-scoped dismissed suggestion IDs — hides re-surfacing within the session.
+ *  Backed by a durable dismissal file (see persistDismissals) so a rejection also
+ *  survives a restart and a manual force refresh. */
 const dismissedIds = new Set<string>();
 /** Applied suggestion IDs — suppress re-suggesting immediately after action. */
 const appliedIds = new Set<string>();
+
+/**
+ * Write rejections to `.topmind/suggest-dismissed.json` via the Kernel.
+ * Fire-and-forget on purpose: the card is already gone from the UI, so a failed
+ * write must not surface an error or block the interaction. Session memory
+ * (dismissedIds) still holds for the rest of this run.
+ */
+function persistDismissals(ids: string[]): void {
+  const clean = ids.filter((id) => typeof id === 'string' && id.length > 0);
+  if (clean.length === 0) return;
+  void api.ws.dismissSuggestions(clean).catch(() => {
+    /* durable memory is best-effort; session memory already applied */
+  });
+}
 /**
  * Session cache of suggestions from activity AI ops (memory_organize / topic_classify).
  * Survives ActionStore.refresh() so organize path does not wipe confirm cards.
@@ -75,6 +94,47 @@ const sessionSuggestionCache = new Map<
     payload?: Record<string, unknown>;
   }
 >();
+
+/**
+ * Human label for a failed apply — reason code first (localized in the UI
+ * language), the kernel's note as fallback. The engine's notes are written in
+ * the workspace locale, so without this an English-UI user with a Chinese
+ * workspace would read Chinese failure copy.
+ */
+function applyFailureLabel(res: { reason?: string; note?: string }): string {
+  const key = res.reason ? `editor:ai.applyFail.${res.reason}` : "";
+  if (key && i18n.exists(key)) return i18n.t(key);
+  return res.note || res.reason || "";
+}
+
+/** Kernel suggestion object for an item, with the archive-kind payload override. */
+function buildApplyPayload(item: ActionItem): Record<string, unknown> {
+  const suggestionObj = {
+    id: item.id,
+    kind: item.suggestionKind,
+    title: item.title,
+    summary: item.summary,
+    targetPath: item.targetPath,
+    impact: item.priority,
+    payload: item.suggestionPayload,
+  };
+  // inbox_review / stale_topic / catch_all: force archive action on payload
+  // (inbox_organize keeps its own payload: move_to_topic / create_topic_and_move)
+  const isArchiveKind =
+    item.suggestionKind === 'inbox_review'
+    || item.suggestionKind === 'stale_topic'
+    || item.suggestionKind === 'catch_all';
+  return isArchiveKind
+    ? {
+        ...suggestionObj,
+        payload: {
+          ...(suggestionObj.payload || {}),
+          action: 'archive',
+          path: item.targetPath || item.suggestionPayload?.path,
+        },
+      }
+    : suggestionObj;
+}
 
 interface ActionStore {
   items: ActionItem[];
@@ -121,9 +181,12 @@ interface ActionStore {
   openItem: (id: string) => void;
   rejectItem: (id: string) => Promise<void>;  // 忽略建议或拒绝写入
   dismissItem: (id: string) => void;  // 仅从 UI 隐藏（不调后端），并记住 dismiss 以避免重复
-  clearDismissed: () => void;  // 清除 dismiss 记忆（手动刷新时）
-  /** Accept all actionable items sequentially. Stops on first error but continues past non-fatal ones. */
-  acceptAll: () => Promise<{ accepted: number; failed: number; summary: string }>;
+  clearDismissed: () => Promise<void>;  // 清除 dismiss 记忆（含磁盘）；手动刷新前 await
+  /** Accept all actionable items sequentially.
+   *  Suggestions go in ONE batch IPC (main applies sequentially, pushes progress);
+   *  pending writes confirm individually. Terminal failures (source file gone…)
+   *  auto-cancel the card — counted as `cancelled`, not `failed`. */
+  acceptAll: () => Promise<{ accepted: number; failed: number; cancelled: number; summary: string }>;
   /** Dismiss all suggestion items (not pending writes). */
   dismissAll: () => void;
 
@@ -445,29 +508,45 @@ export const useActionStore = create<ActionStore>((set, get) => ({
 
         if (applied) {
           set(s => ({ items: s.items.filter(x => x.id !== id) }));
-        }
-        const detail = res.targetPath ? String(res.targetPath) : res.note || '';
-        if (!silent) {
-          set({ message: detail ? t('editor:ai.suggestAppliedDetail', { detail }) : t('editor:ai.suggestApplied') });
+          const detail = res.targetPath ? String(res.targetPath) : res.note || '';
+          if (!silent) {
+            set({ message: detail ? t('editor:ai.suggestAppliedDetail', { detail }) : t('editor:ai.suggestApplied') });
+          }
+          if (res.wroteFiles !== false) {
+            const target = res.targetPath ? String(res.targetPath) : '';
+            if (!silent) {
+              toastWriteback(res.note || t('editor:ai.suggestApplied'), {
+                operation: 'update',
+                savedAt: new Date().toISOString(),
+                targetPath: target,
+                wroteFiles: true,
+                ok: true,
+              });
+              if (target) emitLocal('workspace:file-changed', { relativePath: target });
+            }
+          }
+          if (!silent) emitLocal(SUGGESTIONS_REFRESH_EVENT, { reason: 'apply' });
+          return true;
         }
 
-        if (applied && res.wroteFiles !== false) {
-          const target = res.targetPath ? String(res.targetPath) : '';
+        // Failed apply. Terminal failures (source file gone, malformed payload,
+        // target conflict…) can never succeed on retry, so the failure is
+        // equivalent to cancelling the suggestion: remove the card and remember
+        // the dismissal so a refresh cannot revive it. Retryable ones stay.
+        if (isTerminalApplyFailure(res.reason)) {
+          dismissedIds.add(id);
+          set(s => ({ items: s.items.filter(x => x.id !== id) }));
+          // Same "no" as an explicit reject — make it survive the next pass.
+          persistDismissals([id]);
           if (!silent) {
-            toastWriteback(res.note || t('editor:ai.suggestApplied'), {
-              operation: 'update',
-              savedAt: new Date().toISOString(),
-              targetPath: target,
-              wroteFiles: true,
-              ok: true,
-            });
-            if (target) emitLocal('workspace:file-changed', { relativePath: target });
+            set({ message: t('editor:ai.suggestFailedCancelled', { reason: applyFailureLabel(res) }) });
             emitLocal(SUGGESTIONS_REFRESH_EVENT, { reason: 'apply' });
           }
         } else if (!silent) {
+          set({ message: t('editor:ai.suggestFailed', { reason: applyFailureLabel(res) }) });
           emitLocal(SUGGESTIONS_REFRESH_EVENT, { reason: 'apply' });
         }
-        return applied;
+        return false;
 
       } else if (item.source === 'pending_write') {
         const select = useViewStore.getState().select;
@@ -520,11 +599,13 @@ export const useActionStore = create<ActionStore>((set, get) => ({
     set({ busyId: id, message: null });
     try {
       if (item.source === 'suggestion') {
-        // Same as dismiss — remember so soft refresh does not revive
+        // Explicit reject — remember it so a soft refresh AND the next launch /
+        // force refresh cannot revive the card (see persistDismissals).
         dismissedIds.add(id);
         opSuggestionCache.delete(id);
         sessionSuggestionCache.delete(id);
         set(s => ({ items: s.items.filter(x => x.id !== id) }));
+        persistDismissals([id]);
       } else if (item.source === 'pending_write') {
         await api.ws.rejectPendingWrite(id);
         set(s => ({ items: s.items.filter(x => x.id !== id) }));
@@ -542,10 +623,18 @@ export const useActionStore = create<ActionStore>((set, get) => ({
     opSuggestionCache.delete(id);
     sessionSuggestionCache.delete(id);
     set(s => ({ items: s.items.filter(x => x.id !== id) }));
+    // Durable memory for the "no": without it the card returns on the next
+    // analysis pass / next launch. Fire-and-forget — the UI must not wait.
+    persistDismissals([id]);
   },
 
-  clearDismissed: () => {
+  clearDismissed: async () => {
     dismissedIds.clear();
+    // Manual Refresh is an explicit "start over": drop the durable rejections
+    // too, otherwise the button appears inert for every card the user dismissed.
+    // Automatic passes and restarts keep respecting them (see persistDismissals).
+    // Awaited by the caller so the reset lands before the re-analysis reads it.
+    await api.ws.clearDismissedSuggestions().catch(() => { /* best-effort */ });
     // Do NOT clear appliedIds — accepted suggestions should never reappear
     // in the same session even after manual refresh.
   },
@@ -554,7 +643,10 @@ export const useActionStore = create<ActionStore>((set, get) => ({
     const allItems = get().items;
     let accepted = 0;
     let failed = 0;
+    let cancelled = 0;
     const summaryParts: string[] = [];
+    /** Ids auto-cancelled because their apply failed terminally — persisted once. */
+    const cancelledIds: string[] = [];
     const changedPaths = new Set<string>();
     let lastTargetPath = '';
     let lastTargetKind = '';
@@ -570,36 +662,115 @@ export const useActionStore = create<ActionStore>((set, get) => ({
       if (a.source !== 'pending_write' && b.source === 'pending_write') return -1;
       return 0;
     });
+    const suggestionItems = ordered.filter((x) => x.source === 'suggestion');
+    const pendingItems = ordered.filter((x) => x.source !== 'suggestion');
+    const total = ordered.length;
     set({
       applying: {
         current: 0,
-        total: ordered.length,
+        total,
         title: ordered[0]?.title || '',
       },
       message: t('editor:ai.bulkAcceptProgress', {
         current: 0,
-        total: ordered.length,
+        total,
         title: ordered[0]?.title || '',
       }),
     });
     try {
-      for (let idx = 0; idx < ordered.length; idx++) {
-        const item = ordered[idx];
-        set({
-          applying: {
-            current: idx + 1,
-            total: ordered.length,
-            title: item.title || '',
-          },
-          message: t('editor:ai.bulkAcceptProgress', {
-            current: idx + 1,
-            total: ordered.length,
-            title: item.title || '',
-          }),
+      // ── Suggestions: ONE IPC round-trip for the whole batch ──
+      // Main loads settings + builds the AI provider once and applies
+      // sequentially, pushing `suggestion:bulk-progress` per item (workspace-
+      // service.mjs applySuggestions). Per-item applySuggestion calls paid the
+      // settings load N times for N cards.
+      if (suggestionItems.length > 0) {
+        const offProgress = subscribeRpcEvent('suggestion:bulk-progress', (payload) => {
+          const p = payload as { current?: number; total?: number } | null;
+          if (typeof p?.current !== 'number') return;
+          const idx = Math.max(0, Math.min(suggestionItems.length - 1, p.current - 1));
+          const title = suggestionItems[idx]?.title || '';
+          set({
+            applying: { current: p.current, total: p.total || suggestionItems.length, title },
+            message: t('editor:ai.bulkAcceptProgress', {
+              current: p.current,
+              total: p.total || suggestionItems.length,
+              title,
+            }),
+          });
         });
+        let results: Array<{
+          ok?: boolean;
+          needsConfirm?: boolean;
+          wroteFiles?: boolean;
+          reason?: string;
+          targetPath?: string;
+          note?: string;
+        }> = [];
+        try {
+          const res = await api.ws.applySuggestions(
+            suggestionItems.map((item) => ({ suggestion: buildApplyPayload(item), confirmed: true })),
+          );
+          results = Array.isArray(res?.results) ? res.results : [];
+        } finally {
+          offProgress();
+        }
+        for (let i = 0; i < suggestionItems.length; i++) {
+          const item = suggestionItems[i];
+          const res = results[i] || { ok: false, reason: 'no-result' };
+          // needsConfirm: stays for the explicit confirm flow (never happens in
+          // bulk — confirmed:true — but the gate is a safety net, not a shortcut).
+          if (res.needsConfirm) {
+            failed++;
+            continue;
+          }
+          if (res.ok !== false) {
+            accepted++;
+            summaryParts.push(item.title || item.suggestionKind || item.source);
+            appliedIds.add(item.id);
+            opSuggestionCache.delete(item.id);
+            sessionSuggestionCache.delete(item.id);
+            set(s => ({ items: s.items.filter(x => x.id !== item.id) }));
+            const nav = suggestionNavPathAfterApply(res, item);
+            const target = nav
+              || (typeof res.targetPath === 'string' && res.targetPath ? res.targetPath : item.targetPath || '');
+            if (target) {
+              lastTargetPath = target;
+              lastTargetKind = item.suggestionKind || '';
+              changedPaths.add(target);
+            }
+            if (item.targetPath) changedPaths.add(item.targetPath);
+          } else if (isTerminalApplyFailure(res.reason)) {
+            // Dead card (source file gone…): retrying can never succeed, so the
+            // failure IS the cancellation — remove it and remember the dismissal.
+            cancelled++;
+            dismissedIds.add(item.id);
+            cancelledIds.push(item.id);
+            opSuggestionCache.delete(item.id);
+            sessionSuggestionCache.delete(item.id);
+            set(s => ({ items: s.items.filter(x => x.id !== item.id) }));
+          } else {
+            // Retryable / unknown failure — keep the card for another attempt.
+            failed++;
+          }
+        }
+      }
+      // ── Pending writes: per-item confirmations stay individual ──
+      for (const item of pendingItems) {
         await yieldToUi();
         // Skip if item was already removed by a prior accept (e.g. refresh after apply)
         if (!get().items.some((x) => x.id === item.id)) continue;
+        set({
+          applying: {
+            current: suggestionItems.length + (pendingItems.indexOf(item) + 1),
+            total,
+            title: item.title || '',
+          },
+          message: t('editor:ai.bulkAcceptProgress', {
+            current: suggestionItems.length + (pendingItems.indexOf(item) + 1),
+            total,
+            title: item.title || '',
+          }),
+        });
         const ok = await get().acceptItem(item.id, { skipNav: true, silent: true });
         if (ok) {
           accepted++;
@@ -617,6 +788,8 @@ export const useActionStore = create<ActionStore>((set, get) => ({
     } finally {
       set({ applying: null });
     }
+    // One batch write for every auto-cancelled card — not one IPC per failure.
+    persistDismissals(cancelledIds);
     // After all items: navigate once to the most relevant target
     if (accepted > 0 && lastTargetPath) {
       const select = useViewStore.getState().select;
@@ -644,17 +817,19 @@ export const useActionStore = create<ActionStore>((set, get) => ({
       emitLocal(SUGGESTIONS_REFRESH_EVENT, { reason: 'apply' });
     }
     const summary = summaryParts.slice(0, 5).join(' · ') + (summaryParts.length > 5 ? ` +${summaryParts.length - 5}` : '');
-    return { accepted, failed, summary };
+    return { accepted, failed, cancelled, summary };
   },
 
   dismissAll: () => {
     const suggestionItems = get().items.filter((i) => i.source === 'suggestion');
+    const ids = suggestionItems.map((i) => i.id);
     for (const item of suggestionItems) {
       dismissedIds.add(item.id);
       opSuggestionCache.delete(item.id);
       sessionSuggestionCache.delete(item.id);
     }
     set((s) => ({ items: s.items.filter((i) => i.source !== 'suggestion') }));
+    persistDismissals(ids);
   },
 
   mergeSuggestions: (suggestions) => {

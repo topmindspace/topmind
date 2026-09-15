@@ -11,6 +11,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { useRegistry } from "../../plugins/registry";
 import { cn } from "../../lib/cn";
+import { isMacOS } from "../../lib/platform";
 import { useViewStore, loadExpandedState, type SidebarViewMode } from "../../stores/view-store";
 import { TreeView } from "../sidebar/TreeView";
 import { TreeToolbar } from "../sidebar/tree-toolbar";
@@ -275,9 +276,15 @@ export function Sidebar() {
         data-sidebar-header
         data-column-chrome="left"
       >
-        {/* Right-aligned so macOS traffic lights occupy the empty left of this rail. */}
+        {/* macOS pushes these right because its traffic lights live in the empty
+            left of this rail. On Windows/Linux nothing occupies that space — the
+            rail IS the window's left edge — so right-aligning left a dead gap
+            between the window edge and the controls; they start at the edge. */}
         <div
-          className="v4-no-drag ml-auto flex shrink-0 items-center justify-end gap-1"
+          className={cn(
+            "v4-no-drag flex shrink-0 items-center gap-1",
+            isMacOS ? "ml-auto justify-end" : "mr-auto justify-start",
+          )}
           data-sidebar-header-actions
         >
           <SidebarHeaderActions />

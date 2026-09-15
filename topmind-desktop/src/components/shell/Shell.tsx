@@ -36,6 +36,10 @@ import { handleAppsMenuToggle } from "../../lib/ai-workspace";
 import { APPS_MENU_TOGGLE_EVENT } from "../../lib/apps-menu";
 import { toggleWorkspaceSwitcher } from "../../lib/workspace-switcher";
 import { installNativeMenuBridge } from "../../lib/native-menu";
+import { installMenuStrip } from "../../lib/menu-strip";
+import { installWindowControlsTracking } from "../../lib/window-controls";
+import { installFullscreenChrome } from "../../lib/fullscreen-chrome";
+import { usesCaptionOverlay } from "../../lib/platform";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { ICON } from "../../lib/icons";
 import type { ToastPayload } from "../../lib/local-events";
@@ -82,6 +86,16 @@ export function Shell({ settings }: ShellProps) {
   // Native application menu (Windows/Linux menu bar, macOS menu bar) routes its
   // items through the same command ids as the keyboard — see lib/native-menu.ts.
   useEffect(() => installNativeMenuBridge(), []);
+
+  // Windows draws the menu on the title bar row instead of a native menu bar, so
+  // the strip needs the top-level entries and the caption-button geometry that the
+  // OS overlays there — see lib/menu-strip.ts / lib/window-controls.ts.
+  useEffect(() => installMenuStrip(), []);
+  useEffect(() => installWindowControlsTracking(), []);
+
+  // OS fullscreen collapses the chrome reserves above (traffic-light pad on
+  // macOS, caption insets on Windows) — see lib/fullscreen-chrome.ts.
+  useEffect(() => installFullscreenChrome(), []);
 
   const dismissToast = useCallback((key: number) => {
     const timer = toastTimersRef.current.get(key);
@@ -285,6 +299,15 @@ export function Shell({ settings }: ShellProps) {
   const gridRows = focusMode
     ? "grid-rows-[minmax(0,1fr)]"
     : "grid-rows-[minmax(0,1fr)_var(--density-status-y,26px)]";
+
+  // The caption buttons are painted over whichever column header ends up rightmost,
+  // so that is the one that reserves their measured width. Focus mode hides the AI
+  // column, which hands the right edge back to the center column — hence the same
+  // predicate the layout uses, not a second one.
+  useEffect(() => {
+    if (!usesCaptionOverlay) return;
+    document.documentElement.dataset.wcInset = showAiPanel ? "ai" : "center";
+  }, [showAiPanel]);
 
   const chrome = (
     <div className="relative h-screen overflow-hidden bg-chrome text-text-primary">

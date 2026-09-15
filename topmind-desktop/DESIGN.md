@@ -41,6 +41,9 @@
 **统一建议入口（全局）**：有 `items` 时**状态栏计数 chip**（**count=0 自动隐藏**）；点击 → `openSuggestSurface()` → AI 工作区 **建议** pane。画布顶 `SuggestEntryStrip` 已删除，不得再挂。无始终可点的标题栏 💡（安静 chrome）。  
 **唯一确认面**：AI 工作区 **建议** pane 内的 `SuggestPopover`（接受 / 忽略 / 待确认写入）；专注模式仍浮动（AI 列被藏）。不在对话 pane 再挂第二套完整列表。  
 **会话稳定**：软刷新 / 15s 轮询不得因 kernel 空 regenerate 清空已展示建议（`sessionSuggestionCache` + `mergeSuggestRefreshItems`）；dismiss/apply 仍可移除。  
+**忽略要落盘**：dismiss 写入 `.topmind/suggest-dismissed.json`（`lib/suggest-dismissed.mjs`），生成侧 `suggest-engine` 返回前过滤。「忽略」不能只是一个会话内的视觉操作——否则下一次轮询会把同一条原样端回来。  
+**「全部接受」= 一个请求，不是一个循环**：渲染侧走单次 `applySuggestions(items)`，主进程串行写、逐条 `ctx.emit` 进度。早期版本是渲染侧 `for` 循环逐条 IPC，N 条建议要 N 次 settings 加载与 N 个往返，且中途失败只留半张卡的中间态。  
+**失败语义分两类**（`src/lib/suggest-apply-label.ts`）：**终态失败**——源文件已不在 / 目标已存在 / 落点越出工作区 / 读写失败等 12 个 reason 码，重试不会变好，故**自动等同「忽略」**（移卡 + 记 dismissed）并给一条说明；**可重试失败**——AI 忙 / 超时 / 引擎暂时不可用，保留卡片让用户再试。两类都要有 i18n 文案，禁止把 reason 码裸露给用户（`editor:applyFail.*`）。  
 **卡片正文**：`stream-md-preview` 轻预览（剥 `<!-- topmind:append -->`；首行子弹/时间进芯片不进正文）；**Feed 稳定**：软 reload 不全页 loading。  
 **信息流两种布局（`settings.ui.feedLayout` · 列表 / 卡片）**：开关在**信息流正文上方**（`data-feed-chrome`，与帖子同列），不在页头 AI 动作条。列表 = X 式单列紧凑帖（细线分隔）；卡片 = **同一套 chunks** 的单列等宽卡片——**不是** Pinterest/masonry 多列。记下输入框、列表、卡片共用 `--feed-column-max`（`.v4-feed-column`）。Inbox / 类别 / 专题 / 交付 共用同一开关。  
 **分块诚实**：日/周期段若是 markdown **列表**（`-` / `*` / `1.`）仍按条目拆帖；**无列表标记的长散文换行**是一条帖（空行分段仍是段落 `<p>`，不是每行一个 `<li>`）；timed/list 条目后续段落留在同一帖。列表与卡片消费同一 parse，切换布局不重拆。  
@@ -97,7 +100,7 @@
 | **Agent 对话** `ai.invoke` | 用户主路径 | 独立（单 stream） | AI pill「工作中」；可取消 |
 | **行内 / 润色** `ai.complete` | 用户短路径 | 独立 | 专用 chip；离开页确认 |
 | **准备建议** | 后台 prep | **background lane**（串行） | 建议 chip · 可点开 AI 工作区建议 pane |
-| **确认写入建议** | 用户确认后的回写 | 顺序逐条（acceptAll） | 建议 pane 进度条 + 状态栏「正在执行 n/m」chip；禁止静默、禁止每条都弹 toast |
+| **确认写入建议** | 用户确认后的回写 | 顺序逐条，**一次 IPC**（`applySuggestions`，主进程内循环，只加载一次 settings） | 建议 pane 进度条 + 状态栏「正在执行 n/m」chip；禁止静默、禁止每条都弹 toast |
 | **AI 整理待办** | 后台 prep | **background lane**（串行） | 待办 chip · 可点开清单；排队时文案「排队等待…」 |
 | **引擎 Task** reconcile 等 | 后台 | TaskStore 队列 | Task chip → TaskPanel |
 
@@ -343,13 +346,17 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 
   | 平台 | 边框 | 标题栏 | 窗口内菜单栏 |
   |---|---|---|---|
-  | macOS | `hiddenInset`（无边框内嵌） | 红绿灯在**我们自己**的 44px 顶栏内 | 无（系统菜单栏） |
-  | Windows | 原生边框 | OS 标题栏 | **原生菜单栏（常显）** |
+  | macOS | `hiddenInset`（无边框内嵌） | 红绿灯在**我们自己**的 44px 顶栏内（左侧） | 无（系统菜单栏） |
+  | Windows | 原生边框 + `titleBarOverlay` | **应用自绘**、同一排：图标 · 名称 · 菜单条 · 面包屑；最小化/最大化/关闭仍由 OS 画在这一排右端 | 无原生栏；顶栏那条菜单条弹出**原生**子菜单 |
   | Linux | 原生边框 | DE 标题栏 | **原生菜单栏（常显）** |
+  | 浮窗（mac / Win） | mac `hiddenInset` · Win**无边框** | **应用自绘 32px 头行**：标题 + 显式 ✕ + 拖动区（mac 红绿灯落在这行内） | 无（`autoHideMenuBar`） |
+  | 浮窗（Linux） | 原生边框 | DE 标题栏 | 无（`autoHideMenuBar`） |
 
-  - **禁止**再用 `titleBarOverlay`：把原生最小化/最大化/关闭画在应用内容之上，等于在每列右端永久挖掉一块（AI 工作区第 4 个 tab「应用」、右列开合 toggle 都曾因此被盖）。改原生边框后这类遮挡**不可能发生**。
-  - 因此 mac 之外**没有**标题按钮让位垫；`.v4-column-chrome` 永远用 `padding-left/right` 长写（禁止 `padding` 简写——简写会重置 `padding-right`，而该规则位于样式表末尾，等权重下按源码顺序取胜，正是当年让位垫静默失效的原因）。
-  - 记一下浮窗走同一策略（原生边框 + 显式关闭按钮）；Windows/Linux 的**应用菜单栏是全局的**，浮窗用 `autoHideMenuBar: true` 免得 480px 便签顶上横一条「文件 编辑 …」。  
+  - **为什么 Windows 自绘标题栏**：Windows 把 HMENU 画在标题栏**下方**的独立一条，Electron 没有任何 API 能把两者并排。于是「原生菜单栏常显」必然在应用自己的 44px 顶栏之上再叠约 20px（合计约 95px，macOS 只有 44px），且与面包屑重复身份信息。改自绘后 `titleBarStyle: 'hidden'` + `titleBarOverlay`：按钮仍由系统绘制（贴边、缩放边框、贴靠手势全不变），菜单项变成「顶栏自绘标签 + 原生 `Menu.popup` 子菜单」，菜单**内容**仍只定义一次（`menu-spec.mjs`）。Linux 不动：那里的装饰属于桌面环境，能否 overlay 取决于 DE 与 X11/Wayland——**量不出来的让位垫正是要消除的失败模式**。
+  - **让位垫必须量出来，不能猜**：`src/lib/window-controls.ts` 读 `navigator.windowControlsOverlay.getTitlebarAreaRect()`（`geometrychange` 时重算），把左右两侧被占宽度发布成 `--wc-inset-right/-left`；消费它的规则是**复合选择器** `html[data-wc-inset=…] [data-column-chrome=…]`，特异性恒高于 `.v4-column-chrome`。当年正是「写死宽度 + 单类选择器 + 简写重置」三件事同时发生，才让第 4 个 tab「应用」与右列 toggle 被盖——三者现在都在结构上不可能重现，并由 `tests/window-shell.test.mjs` 断言。
+  - 右端为哪一列让位由布局决定（`data-wc-inset="ai" | "center"`）：AI 列开着让 AI 列表头，专注模式 / 关掉 AI 列则交回中栏。
+  - 因此 `.v4-column-chrome` 永远用 `padding-left/right` 长写（禁止 `padding` 简写——简写会重置 `padding-right`，而该规则位于样式表末尾，等权重下按源码顺序取胜，正是当年让位垫静默失效的原因）。
+  - **浮窗（快速捕获 / 记一下）自绘头行，不要第二条标题栏**：480px 便签本来就是自带「标题 + ✕ + `v4-drag`」的一行，再叠一条原生标题栏就是把身份信息（`topmind` / 快速捕获）说两遍——Windows 上尤其明显，因为应用菜单栏是全局的，会横穿便签。故 mac `hiddenInset`（红绿灯并进这行）、Windows `frame: false`（连 caption 按钮也不要：`skipTaskbar` 便签上的最小化会把它藏得找不回来；thickFrame 仍留着缩放边与投影）、Linux 保留 DE 装饰（与主窗同理）。三平台一律 `autoHideMenuBar: true`。
 - **原生菜单（快捷操作入口）** — `electron/lib/menu-spec.mjs`（纯模板）+ `app-menu.mjs`（Electron 接线）  
   - 菜单 = **第二个前端**，所以菜单项不自带行为：点菜单项发出的 id 与键盘 `src/lib/shortcuts.ts` 的 id 同源，渲染侧 `src/lib/native-menu.ts` 统一分发（`runWorkbenchAction`）。  
   - 结构（三平台一致）：**文件**（记一下 / 全局记一下 / 搜索 / 命令面板 / 整理本周；非 mac 另有 设置… · 退出）、**编辑**、**工作区**（打开 · 新建 · 切换 · 最近打开 · 在文件管理器中显示 · 复制路径 · 重新载入 · 关闭）、**显示**（动态/Inbox/交付/归档 · 侧栏视图 · AI pane · 侧栏与 AI 列开关 · 专注模式 · 后退/前进/对照分栏/任务面板/待办 · 外观 · 语言 · 重载/缩放/全屏）、**窗口**、**帮助**；mac 另加 App 菜单。  
@@ -360,6 +367,8 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
   - **全局记一下**（⌘⇧N）的 chord 归 `main.mjs` 的 `globalShortcut`，菜单项只是镜像：非 mac 显示但不注册；**mac 连 accelerator 都不给**——Electron 只在 Linux/Windows 认 `registerAccelerator`，mac 上「显示」必伴随「注册」，等于给同一个动作再塞一个 owner。取舍是 mac 菜单不显示该 chord，快捷键仍在应用内文案里说明（`window.hideMacHint` / 托盘提示）。chord 与 main.mjs 的一致性由测试锁定。  
   - 菜单文案在主进程 i18n（`electron/lib/electron-i18n.mjs`），语言切换后重建。
   - **`appSettings` 只有一个写方**：`main.mjs` 的 `setAppSettings()`。开机、切换/新建/关闭工作区、窗口尺寸持久化、UI 缩放、裁剪令牌、关闭行为选择、最近列表修剪——七条路径全都经过它。原因：菜单的工作区/最近/主题/语言与 OS 标题栏都是从 app-settings 派生的，绕过它就等于**菜单继续展示刚刚离开的那个工作区**（关闭工作区仍可点、最近打开仍是旧列表、标题栏仍是旧名字）。`setAppSettings` 先 diff 再决定是否重建（resize 风暴不会重建菜单）。有守护测试锁「唯一写方」。
+  - **Windows 没有原生菜单栏**：菜单由顶栏那条自绘菜单条承载（`AppMenuBar`），它只认 id——主进程 `system.menuTopLevel` 给顶层条目（标签已按**应用语言**本地化），`system.menuPopup` 按 id 弹**真正的原生子菜单**。勾选态、子菜单、禁用态、快捷键全由 Electron 渲染，渲染侧不复制任何一条菜单结构，所以新增一个顶层菜单不需要动渲染侧。原生菜单本身仍安装着（只是栏隐藏），它拥有的 F11 / Ctrl+R / Ctrl+Z 等 role 快捷键照常生效，Alt 也仍能唤出原生栏作为纯键盘回退。
+  - **`role` 的隐含 chord 必须一起查**：role 没有「只显示不注册」模式，它的默认 chord 会真注册。本轮据此抓出 `toggleDevTools`（Windows/Linux 上 Ctrl+Shift+I）与渲染侧 Inbox（⌘⇧I）撞键——一次按键同时开 Inbox 和 DevTools，开发构建里必现。改用显式 `F12`。守护测试现在把「role 的生效 chord」与 `WORKBENCH_SHORTCUTS` 交叉比对（此前只比菜单内部，这正是漏掉它的原因）。
   - **不设** `role: "close"`：它会占用 ⌘W/Ctrl+W，等于悄悄夺走「关闭标签页」（应用是多标签的）；缩放的 `resetZoom/zoomIn/zoomOut` role 同理（自带 ⌘0/⌘±，会与渲染侧撞成「按一次缩两格」），故走渲染侧 `view.zoom.*` 命令。
 
 - **中栏顶栏**（`data-canvas-chrome`）  
@@ -801,6 +810,8 @@ ZCode 阶：`--radius-xs: 2px` · `--radius-sm: 4px` · `--radius-md: 6px` · `-
 
 ## 7. 键盘快捷键
 
+> **本表用 macOS 规范字形书写，不是渲染结果。** 绑定与文案都只声明一次（`⌘⇧I`），显示时一律经 `src/lib/chord.ts` 的 `formatChord()` 落到用户平台：Windows/Linux 读作 `Ctrl+Shift+I`。三个消费点：① 标记里的字面量（`<kbd>`）；② i18next `chord` 后处理器——所有译文里的 `⌘` 都会被改写，所以语言包**只写规范形**，不做平台分支；③ `WORKBENCH_SHORTCUTS[].display` 的文档注释。裸渲染 `display` 等于告诉 Windows 用户按一个他键盘上没有的键。
+
 | 快捷键 | 作用域 | 操作 |
 |--------|--------|------|
 | ⌘⇧N | 全局（任意应用） | 显示窗口 + 记一下 |
@@ -810,8 +821,13 @@ ZCode 阶：`--radius-xs: 2px` · `--radius-sm: 4px` · `--radius-md: 6px` · `-
 | ⌘P | 窗口内 | 全局搜索 |
 | ⌘, | 窗口内 | 设置 |
 | ⌘[ / ⌘] | 窗口内 | 后退 / 前进（历史） |
+| ⌘W | 窗口内 | 关闭当前标签页 |
+| ⌘⌥W | 窗口内 | 关闭全部标签页 |
 | ⌘S | 编辑器中 | 保存当前文件 |
 | ⌘⌥F | 窗口内 | 专注模式开关 |
+| ⌘\ | 窗口内 | 对照分栏开关 |
+| ⌘0 / ⌘+ / ⌘- | 窗口内（输入中也生效） | 缩放：实际大小 / 放大 / 缩小 |
+| ⌃⌘F | 窗口内 | 全屏（菜单「显示 → 全屏」，全屏时该菜单项文案变为「退出全屏」） |
 | ⌘1 | 窗口内（非输入框） | 侧栏视图：流式 |
 | ⌘2 | 窗口内（非输入框） | 侧栏视图：分类 |
 | ⌘3 | 窗口内（非输入框） | 侧栏视图：时间线 |
@@ -829,6 +845,11 @@ ZCode 阶：`--radius-xs: 2px` · `--radius-sm: 4px` · `--radius-md: 6px` · `-
 | ESC | 浮层 / 专注 | 关闭浮层；无浮层时退出专注 |
 | ↑/↓ | 命令面板 / 搜索 | 导航选项 |
 | 右键 | 树节点 | 上下文菜单 |
+
+- **缩放键的 Shift**：`=`/`+` 与 `-`/`_` 是同一物理键的两种拼法，两种都算缩放；Windows 上「Ctrl +」写出来就是 `Ctrl+Shift+=`，所以这个监听**必须**接受 Shift（早期版本一律拒绝 Shift，`"+"` 分支成了死代码，Windows 用户只能按 `Ctrl+=` 放大）。`⌘0/⌘+/⌘-` 归**原生显示菜单**（非 mac 只显示不注册），渲染层只接管 `Ctrl`——否则 mac 上同一次按键会被菜单和监听各处理一遍，一格变两格。故 `menu-spec.mjs` **不**用 `resetZoom/zoomIn/zoomOut` role（role 会自带 accelerator，等于给同一个动作再塞一个 owner），而是发渲染侧命令 `view.zoom.*`。
+- **`role` 的隐含 chord 会被真注册**：`togglefullscreen` / `toggleDevTools` 这类 role 没有「只显示不注册」模式。`toggleDevTools` 的默认 `Ctrl+Shift+I` 与 Inbox（⌘⇧I）撞键——一次按键同时开 Inbox 和 DevTools，故显式改 `F12`。守护测试把「role 的生效 chord」与 `WORKBENCH_SHORTCUTS` 交叉比对。
+- **全屏**：状态由主进程拥有（窗口 `enter-full-screen` / `leave-full-screen` → `window:fullscreen`），渲染侧 `src/lib/fullscreen-chrome.ts` 写 `html[data-fullscreen]`。它驱动的是 **CSS 而非 React**：全屏时系统不再画红绿灯 / caption 按钮，于是那些「只为躲 OS 按钮」的让位垫（mac 左侧 pad、Windows `--wc-inset-right`）一并收回，避免全屏下留一条空白。开机竞态由 `system.windowState` 初值兜底。
+- **对话框按钮顺序**：DOM 顺序恒为「取消在前」，Tab 序与「危险对话框 Enter 落在取消」的保证都不随布局移动；Windows 只在 CSS 里 `flex-direction: row-reverse` 把主操作翻到左边（平台惯例），见 `html[data-platform="win"] [data-dialog-footer]`。
 
 ## 8. 启动与引导
 

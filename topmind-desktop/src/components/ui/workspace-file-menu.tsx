@@ -20,6 +20,7 @@ import { emitLocal } from "../../plugins/host";
 import { toastWriteback } from "../../lib/writeback-toast";
 import { useViewStore } from "../../stores/view-store";
 import { ICON } from "../../lib/icons";
+import { formatChord } from "../../lib/chord";
 import { ConfirmDialog, PromptDialog, ErrorDialog } from "./Dialog";
 import {
   ContextMenu,
@@ -397,7 +398,7 @@ export function WorkspaceFileContextMenu({
 
         <ContextMenuSeparator />
 
-        <ContextMenuItem icon={<RiFileCopyLine size={ICON.sm} />} onClick={() => void handleCopyPath()} shortcut="⌘⇧C">
+        <ContextMenuItem icon={<RiFileCopyLine size={ICON.sm} />} onClick={() => void handleCopyPath()} shortcut={formatChord("⌘⇧C")}>
           {t("workspace:menu.copyPath")}
         </ContextMenuItem>
         <ContextMenuItem icon={<RiFolderOpenLine size={ICON.sm} />} onClick={() => void handleReveal()}>

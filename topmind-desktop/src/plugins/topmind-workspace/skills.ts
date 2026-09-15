@@ -14,6 +14,7 @@
 import type { ActionSlot } from "../types";
 import type { Selection } from "../../types";
 import i18n from "../../locales";
+import { formatChord } from "../../lib/chord";
 
 /** Split a topicId ("10 分类/2024-主题") into category + topic. */
 function splitTopicId(topicId: string): { category: string; topic: string } {
@@ -41,7 +42,7 @@ export function createSkillActions(_lang?: "zh" | "en"): ActionSlot[] {
       id: "skill.capture",
       label: "Note it — full capture",
       labelKey: "workspace:skills.capture",
-      shortcut: "⌘N",
+      shortcut: formatChord("⌘N"),
       group: "skill",
       order: 100,
       run: (ctx) => {

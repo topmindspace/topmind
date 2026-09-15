@@ -216,6 +216,20 @@ export async function kernelApplySuggestion(workspaceRoot, suggestion, engineRoo
 }
 
 /**
+ * Persist a rejection so the same card does not come back on the next pass
+ * (or after a restart, or after a `force` refresh). Best-effort: an older
+ * engine bundle without the module simply no-ops.
+ * @param {string|object} workspaceRoot
+ * @param {string|string[]} ids
+ * @returns {Promise<number>} ids written
+ */
+export async function kernelDismissSuggestions(workspaceRoot, ids) {
+  const kernel = await loadKernelApi();
+  if (typeof kernel.markSuggestionsDismissed !== "function") return 0;
+  return kernel.markSuggestionsDismissed(workspaceRootOf(workspaceRoot), ids);
+}
+
+/**
  * Durable write by absolute path under workspace (connectors / legacy callers).
  * @param {{ absPath: string, content: string }} p
  * @param {object} ctx

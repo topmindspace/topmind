@@ -112,6 +112,90 @@ export const WorkspaceService = {
     return { ok: true, ...result };
   },
 
+  /**
+   * Bulk accept — one IPC round-trip for the whole batch.
+   *
+   * Per-item `applySuggestion` calls re-loaded settings (disk read + secret
+   * decrypt) and rebuilt the AI provider for every card; a 10-card 全部接受
+   * paid that cost ten times. Here settings load once, the provider is built
+   * once, and applies still run sequentially (write order and conflict
+   * avoidance are unchanged). Progress is pushed per item via
+   * `suggestion:bulk-progress` so the renderer keeps its 1/N display.
+   *
+   * One bad card must not kill the batch: each apply is isolated and its
+   * result (ok / reason / note) reported back verbatim — the renderer decides
+   * whether a failure is terminal (auto-cancel) or retryable (keep the card).
+   */
+  async applySuggestions({ items }, ctx) {
+    const list = Array.isArray(items) ? items.filter((x) => x && x.suggestion) : [];
+    const settings = await loadAppSettings(
+      ctx.workspaceStatePaths.settingsFilePath,
+      ctx.workspaceRoot?.userWorkspaceRoot || "",
+      { secretAdapter: ctx.secretAdapter },
+    );
+    const aiProvider = createKernelAiProvider(settings);
+    const uiLocale = settings?.ui?.locale && settings.ui.locale !== "auto" ? settings.ui.locale : null;
+    const { kernelApplySuggestion } = await import("./lib/kernel-api.mjs");
+    const results = [];
+    for (let i = 0; i < list.length; i++) {
+      const entry = list[i];
+      if (typeof ctx.emit === "function") {
+        ctx.emit("suggestion:bulk-progress", { current: i + 1, total: list.length });
+      }
+      const blocked = blockUnconfirmedHighImpact(entry.suggestion, entry.confirmed);
+      if (blocked) {
+        results.push({ ...blocked });
+        continue;
+      }
+      try {
+        const result = await kernelApplySuggestion(
+          ctx.workspaceRoot,
+          entry.suggestion,
+          ctx.engineRoot,
+          aiProvider,
+          { localeOverride: uiLocale },
+        );
+        results.push(result || { ok: false, wroteFiles: false, reason: "no-result", note: "no result" });
+      } catch (err) {
+        results.push({
+          ok: false,
+          wroteFiles: false,
+          reason: "error",
+          note: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+    return { ok: true, results };
+  },
+
+  /**
+   * Persist a rejection so the card stops coming back — across restarts and
+   * across manual `force` refreshes. Without this, dismissing only hid the card
+   * for the current session and the next analysis pass could resurrect it.
+   * Best-effort: a failed write still leaves the renderer-side session memory.
+   */
+  async dismissSuggestions({ ids }, ctx) {
+    const list = (Array.isArray(ids) ? ids : [ids]).map((x) => String(x || "")).filter(Boolean);
+    if (list.length === 0) return { ok: true, dismissed: 0 };
+    const { kernelDismissSuggestions } = await import("./lib/kernel-api.mjs");
+    const dismissed = await kernelDismissSuggestions(ctx.workspaceRoot, list);
+    return { ok: true, dismissed };
+  },
+
+  /**
+   * Full reset for the suggestion surface: forget every durable rejection.
+   * Paired with the renderer's manual Refresh — an explicit user gesture that
+   * means "start over", as opposed to the automatic passes the dismissals
+   * are there to silence. Uses the system-plane file only; no content is touched.
+   */
+  async clearDismissedSuggestions(_p, ctx) {
+    const { loadKernelApi, workspaceRootOf } = await import("./lib/kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    if (typeof kernel.clearDismissedSuggestions !== "function") return { ok: true, cleared: false };
+    kernel.clearDismissedSuggestions(workspaceRootOf(ctx.workspaceRoot));
+    return { ok: true, cleared: true };
+  },
+
   async listPendingWrites() {
     const { listPendingWrites } = await import("./lib/pending-writes.mjs");
     return { ok: true, pending: listPendingWrites() };

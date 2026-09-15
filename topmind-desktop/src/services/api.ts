@@ -426,9 +426,37 @@ export const api = {
         needsConfirm?: boolean;
         pending?: boolean;
         wroteFiles?: boolean;
+        reason?: string;
         targetPath?: string;
         note?: string;
       }>("workspace.applySuggestion", p),
+    /** Bulk accept in ONE round-trip — settings/AI provider load once in main;
+     *  applies stay sequential and progress arrives via `suggestion:bulk-progress`. */
+    applySuggestions: (
+      items: Array<{ suggestion: Record<string, unknown>; confirmed?: boolean }>,
+    ) =>
+      invoke<{
+        ok: boolean;
+        results: Array<{
+          ok: boolean;
+          needsConfirm?: boolean;
+          pending?: boolean;
+          wroteFiles?: boolean;
+          reason?: string;
+          targetPath?: string;
+          note?: string;
+        }>;
+      }>("workspace.applySuggestions", { items }),
+    /**
+     * Remember a rejection durably (`.topmind/suggest-dismissed.json`) so the same
+     * card is not regenerated on the next pass, after a restart, or after a
+     * manual force refresh. Best-effort — a failure only costs the persistence.
+     */
+    dismissSuggestions: (ids: string[]) =>
+      invoke<{ ok: boolean; dismissed: number }>("workspace.dismissSuggestions", { ids }),
+    /** Manual Refresh = full reset: drop the durable rejections too. */
+    clearDismissedSuggestions: () =>
+      invoke<{ ok: boolean; cleared: boolean }>("workspace.clearDismissedSuggestions"),
     listPendingWrites: () =>
       invoke<{
         ok: boolean;
@@ -572,6 +600,17 @@ export const api = {
      */
     updateMenuState: (patch: Record<string, unknown>) =>
       invoke<{ ok: true }>("system.updateMenuState", { patch }),
+    /**
+     * Windows title-bar menu strip (see src/lib/menu-strip.ts): the top-level
+     * entries with labels main already localized, and the request that pops one
+     * as a real native submenu.
+     */
+    menuTopLevel: () =>
+      invoke<{ items: Array<{ id: string; label: string }> }>("system.menuTopLevel"),
+    menuPopup: (p: { id: string; x: number; y: number }) =>
+      invoke<{ ok: boolean }>("system.menuPopup", p),
+    /** OS window chrome state — initial fetch for pushed `window:fullscreen`. */
+    windowState: () => invoke<{ fullscreen: boolean }>("system.windowState"),
     clipBridgeStatus: () =>
       invoke<{
         running: boolean;

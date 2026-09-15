@@ -27,6 +27,8 @@
 | `electron/lib/kernel-api.mjs` | **Done** — 动态加载 `lib/kernel-api.mjs` |
 | writeback-engine | **Done** — save/edit/updateFrontmatter/delete.md → `kernelDurableWrite/Delete`；AI `actor:"ai"` |
 | 建议条 | **Done** — `generateSuggestions` / `applySuggestion` + **AI 工作区建议 pane**（`SuggestPopover` 确认列表 · `ActionStore` + 状态栏计数）；high-impact 经 `suggestion-gate` 必须 `confirmed:true`；AI 配置后 `ai_summary` 真实 LLM |
+| 建议批量执行 | **Done** — `applySuggestions`（一次 IPC，主进程内串行 + `ctx.emit` 逐条进度）；终态失败自动等同 dismiss（`suggest-apply-label.ts` 的 12 个 reason 码），可重试失败留卡 |
+| 建议忽略持久化 | **Done** — `lib/suggest-dismissed.mjs`（`.topmind/suggest-dismissed.json`）；`suggest-engine` 返回前 `filterDismissedSuggestions`，否则每轮生成都会把同一张卡端回来 |
 | 待确认写入 | **Done** — `pending-writes` + **`SuggestPopover`**（`ActionStore`：事件刷新 + 安全网轮询 + 全文审阅） |
 | AI 轨事件 | **Done** — `ai-rail-events`（`suggestions:refresh` / `pending-writes:changed`） |
 | 设置 UI 同步 | **Done** — `ui-settings-sync` 仅 own-key 应用，防 stale full-ui 盖掉壳宽度 |
@@ -457,8 +459,8 @@ Pi 围栏别名（不是第二套 FS）：`read`→`read_file` · `write`→`sav
   - 取消：前端 ignore 迟到结果 + 主进程 abort `generateText`  
   - 应用：选区替换前校验原文是否漂移  
 
-- 窗口外壳（`lib/window-shell.mjs` 唯一真源）：macOS `hiddenInset`（红绿灯在我们自己的 44px 顶栏内）；**Windows / Linux 原生边框 + 原生菜单栏**。`titleBarOverlay` 已废弃——原生按钮画在内容之上会永久遮住右列（AI 工作区第 4 个 tab / 右列 toggle），改用原生边框后该类遮挡不可能发生。浮窗同策略，Windows/Linux 浮窗 `autoHideMenuBar: true`（应用菜单栏是全局的）
-- 原生菜单（`lib/menu-spec.mjs` 纯模板 + `lib/app-menu.mjs` 接线）：文件 / 编辑 / 工作区 / 显示 / 窗口 / 帮助（mac 另有 App 菜单）。菜单项不自带行为，发出与 `src/lib/shortcuts.ts` 同源的命令 id，渲染侧 `src/lib/native-menu.ts` 经 `runWorkbenchAction` 分发；非 mac 用 `registerAccelerator: false` 只显示不注册，键盘归渲染侧；勾选态由 `system.updateMenuState`（UI 态）+ app-settings（工作区/主题/语言）合并重建。每个 `role` 项显式给 `label`（Electron 的 role 标签跟随**系统**语言，会与应用内语言开关冲突）；`关于` 不走 `role: "about"`，统一进 设置 → 关于与更新；⌘⇧N 归 `globalShortcut`，菜单仅镜像（mac 不给 accelerator，因该平台无法「只显示不注册」）
+- 窗口外壳（`lib/window-shell.mjs` 唯一真源）：macOS `hiddenInset`（红绿灯在我们自己的 44px 顶栏内）；**Windows 自绘标题栏** `titleBarStyle: 'hidden'` + `titleBarOverlay`——图标 / 名称 / 菜单条 / 面包屑共占 OS 标题栏原来那一排，最小化/最大化/关闭仍由系统绘制在该排右端（原生菜单栏常显会在其上再叠约 20px，且 Electron 无法把 HMENU 并入标题栏）；**Linux 保持原生边框 + 原生菜单栏**（DE 装饰不可测，不引入无法量化的让位垫）。让位宽度来自 `navigator.windowControlsOverlay.getTitlebarAreaRect()`（`src/lib/window-controls.ts` → `--wc-inset-*`），消费规则是复合选择器，特异性高于 `.v4-column-chrome`。**浮窗（快速捕获 / 记一下）自绘 32px 头行**（标题 + 显式 ✕ + `v4-drag` 拖动区）：mac `hiddenInset`（红绿灯落在这行内）、Windows `frame: false`（只要 thickFrame 留下的缩放边与投影，不要任何标题栏或 caption 按钮——`skipTaskbar` 便签上的最小化会把它藏得找不回来）、Linux 保留 DE 装饰（与主窗同理）。三平台浮窗一律 `autoHideMenuBar: true`（应用菜单栏是全局的，免得 480px 便签顶上横一条「文件 编辑 …」）
+- 原生菜单（`lib/menu-spec.mjs` 纯模板 + `lib/app-menu.mjs` 接线）：文件 / 编辑 / 工作区 / 显示 / 窗口 / 帮助（mac 另有 App 菜单，每个顶层菜单带稳定 `id`）。菜单项不自带行为，发出与 `src/lib/shortcuts.ts` 同源的命令 id，渲染侧 `src/lib/native-menu.ts` 经 `runWorkbenchAction` 分发；非 mac 用 `registerAccelerator: false` 只显示不注册，键盘归渲染侧；勾选态由 `system.updateMenuState`（UI 态）+ app-settings（工作区/主题/语言）合并重建。**Windows 的可见形态是自绘菜单条**（`AppMenuBar` ← `src/lib/menu-strip.ts`）：`system.menuTopLevel` 取顶层条目、`system.menuPopup` 按 id 弹原生子菜单，结构仍单一真源。每个 `role` 项显式给 `label`（Electron 的 role 标签跟随**系统**语言，会与应用内语言开关冲突）；`role` 的隐含 chord 会真注册，故与 `WORKBENCH_SHORTCUTS` 交叉断言（`toggleDevTools` 默认 Ctrl+Shift+I 与 Inbox 撞键，改 F12）；`关于` 不走 `role: "about"`，统一进 设置 → 关于与更新；⌘⇧N 归 `globalShortcut`，菜单仅镜像（mac 不给 accelerator，因该平台无法「只显示不注册」）
 - `appSettings` 唯一写方 `main.mjs` 的 `setAppSettings()`：派生 chrome（原生菜单工作区/最近/主题/语言 + OS 标题栏）与设置写入不可能脱节。绕过它的路径会让菜单停在**上一个工作区**（关闭/切换工作区曾经如此）。同处按 diff 早退，resize 持久化不重建菜单
 - 知识加工队列 UI：`IngestQueuePanel`（Hub + 浮窗共享主进程 jobs）  
 - 属性条：`Select variant="chip"` 单层描边  

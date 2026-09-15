@@ -52,6 +52,31 @@ cd topmind-desktop && node --test --test-force-exit tests/ui-token-compliance.te
 
 工具：技能 `ui-color-token-audit`（`scan-tokens.py` 双向审计 · `contrast.py` 对比度批量核验，支持 alpha 叠加与三段 `fg=bg=surface`）。
 
+### 跨平台文案纪律（写快捷键 / 平台文案前必读）
+
+和配色一样，**平台适配写错了不会报错，只会对一半用户说错话**：macOS 用户看到 `Ctrl+Shift+I`、Windows 用户看到 `⌘⇧I`，构建与测试全绿。
+
+- **chord 只声明一次，用 macOS 规范字形**（`⌘⇧I`）。显示时一律过 `src/lib/chord.ts` 的 `formatChord()`：① 标记里的字面量；② i18next `chord` 后处理器（`src/locales/index.ts`）——**所有译文里的 `⌘` 都会被自动改写，所以语言包只写规范形，不写 `Ctrl`**；③ 菜单 accelerator 走 Electron 自己的 `CmdOrCtrl`。
+- **禁止**在渲染层硬编码 `⌘` / `⌥` / `⇧` 到面向用户的文案里（`<kbd>`、tooltip、设置项、toast 都算）。裸渲染 `WORKBENCH_SHORTCUTS[].display` 属于同一类错误——那个字段是规范形，不是显示形。
+- **OS 窗口外壳**真源 `electron/lib/window-shell.mjs`；**原生菜单模板**真源 `electron/lib/menu-spec.mjs`（纯函数）。新增平台差异改这两个文件，不在组件里分支。
+- **`role` 项自带 accelerator 且会真注册**：加 role 前先与 `WORKBENCH_SHORTCUTS` 交叉查重（`toggleDevTools` 曾与 Inbox 撞 `Ctrl+Shift+I`）。非 mac 用 `registerAccelerator: false` 只显示不注册。
+- **对话框按钮顺序**：DOM 恒为「取消在前」；Windows 只在 CSS 里 `flex-direction: row-reverse` 翻转（`html[data-platform="win"] [data-dialog-footer]`）。**不得**为平台改 DOM 顺序——Tab 序与「危险对话框 Enter 落在取消」的保证都挂在 DOM 序上。
+
+```bash
+# 三条守护：渲染层 chord 硬编码 / 菜单 accelerator 撞键 / 平台分支真源
+cd topmind-desktop && node --test --test-force-exit tests/chord-format.test.mjs tests/app-menu.test.mjs tests/window-shell.test.mjs
+```
+
+### AI 契约纪律（改提示词 / 工具 / 语言解析前必读）
+
+- **工具名唯一真源** `electron/lib/ai-tool-names.mjs`。提示词（`ai-prompts.mjs`）与注册表（`ai-tools.mjs`）由 `tests/ai-tools-inventory.test.mjs` 双向断言（双语对称）——提示词里写一个没注册的工具名，AI 会稳定地调用一个不存在的工具。
+- **输出语言必须显式传**：`buildSystemPrompt` 的生产调用点必须给 `locale` + `outputLocale`；`tests/ai-locale-prompts.test.mjs` 锁死这一点，缺参数时 AI 会退回模型默认语言（通常是英文）。
+- **输出语言解析**：`lib/ai-output-locale.mjs`。`auto` **不算**已定语言；规则见下方 «AI 输出语言»。
+
+```bash
+cd topmind-desktop && node --test --test-force-exit tests/ai-tools-inventory.test.mjs tests/ai-locale-prompts.test.mjs
+```
+
 ### 报回前 grep 自检
 
 ```bash
