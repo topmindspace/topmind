@@ -1,6 +1,6 @@
 {
   "name": "topmind-desktop",
-  "version": "4.2.0",
+  "version": "4.2.1",
   "private": true,
   "description": "topmind local-first desktop workspace for AI-assisted project work.",
   "main": "electron/main.mjs",
@@ -28,6 +28,7 @@
     "postinstall": "node scripts/patch-electron-icon.mjs || true",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "check:electron": "node scripts/check-electron.mjs",
+    "check:undeclared": "node scripts/check-undeclared-idents.mjs",
     "check:dead-code": "node scripts/check-dead-code.mjs",
     "check:i18n": "node scripts/check-i18n-parity.mjs",
     "test": "tsx --test --test-force-exit tests/*.test.mjs && tsx --test --test-force-exit tests/*.test.ts",
@@ -44,7 +45,7 @@
     "pack:mac:ci": "npm run build && npm run pack:prepare && node scripts/electron-builder-ci.mjs mac host && npm run pack:verify:strict",
     "pack:linux:ci": "npm run build && npm run pack:prepare && node scripts/electron-builder-ci.mjs linux host && npm run pack:verify:strict",
     "pack:win:ci": "npm run build && npm run pack:prepare && node scripts/electron-builder-ci.mjs win host && npm run pack:verify:strict",
-    "validate": "npm run deps:packaging && npm run typecheck && npm run check:electron && npm run check:dead-code && npm run check:i18n && npm run test && npm run build && npm run build:report && npm run pack:prepare && npm run pack:verify",
+    "validate": "npm run deps:packaging && npm run typecheck && npm run check:electron && npm run check:undeclared && npm run check:dead-code && npm run check:i18n && npm run test && npm run build && npm run build:report && npm run pack:prepare && npm run pack:verify",
     "check:quality": "npm run validate",
     "start": "electron ."
   },

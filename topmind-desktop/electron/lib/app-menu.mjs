@@ -78,6 +78,16 @@ let currentMenu = null;
 let topLevelSink = null;
 /** Last published top-level list — labels only change with the app locale. */
 let lastTopLevelJson = "";
+/**
+ * Mirror of `topLevelSink` for the *popup* half of the strip: reports which
+ * section's submenu is on screen. Separate from `popupOpenId` — that is the
+ * state, this is the channel that carries it across to the renderer. Assigning
+ * to this without a declaration here is a hard `ReferenceError` under the ESM
+ * strict-mode rules, which is how the 4.2.0 build died before its window
+ * opened; `tests/electron-module-load.test.mjs` now loads every module for real.
+ * @type {((state: { openId: string | null }) => void) | null}
+ */
+let popupSink = null;
 
 /**
  * Clicking the strip item whose menu is already open must close it rather than

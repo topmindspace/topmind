@@ -9,13 +9,16 @@ topmind 是父工作区下的项目工作区，不是 agent 的个人 home works
 改 / 删 / 重构前跑质量门；fail 必须当场修。
 
 ```bash
-# Desktop 完整质量门（deps → typecheck → electron → dead-code → i18n → test → build → pack:verify）
+# Desktop 完整质量门（deps → typecheck → electron → undeclared → dead-code → i18n → test → build → pack:verify）
 npm run desktop:quality
 # 或
 npm run --prefix topmind-desktop check:quality
 
 # 快速 dead-code
 npm run --prefix topmind-desktop check:dead-code
+
+# 未声明标识符（ESM 严格模式下即 ReferenceError）
+npm run --prefix topmind-desktop check:undeclared
 
 # 打包完整性（asar / engine / 禁止 monorepo ../../lib 导入）
 npm run --prefix topmind-desktop pack:verify
@@ -26,11 +29,12 @@ npm run --prefix topmind-desktop pack:verify
 1. `deps:packaging` — AI peer（zod）声明  
 2. `typecheck` — IPC payload + store + props 类型一致  
 3. `check:electron` — 全部 `.mjs` / `.cjs` 语法  
-4. `check:dead-code` — `scripts/check-dead-code.mjs` 输出 0  
-5. `check:i18n` — zh-CN / en-US locale 键严格对齐  
-6. `test` — Desktop 为 `tsx --test --test-force-exit`（Windows 必需，防 tsx 不退出挂起）；root / skills / utr 为 `node --test`  
-7. `build` + `build:report` — `vite build`  
-8. `pack:verify` — 源码 monorepo 导入禁令 + 已有 release/asar 完整性  
+4. `check:undeclared` — 真实 scope 分析：赋值/自增的裸标识符必须有声明（`.mjs` 无类型检查，只能靠这一关）  
+5. `check:dead-code` — `scripts/check-dead-code.mjs` 输出 0  
+6. `check:i18n` — zh-CN / en-US locale 键严格对齐  
+7. `test` — Desktop 为 `tsx --test --test-force-exit`（Windows 必需，防 tsx 不退出挂起）；root / skills / utr 为 `node --test`  
+8. `build` + `build:report` — `vite build`  
+9. `pack:verify` — 源码 monorepo 导入禁令 + 已有 release/asar 完整性  
 
 新增 dead pattern：编辑 `topmind-desktop/scripts/check-dead-code.mjs` 的 `DEAD_PATTERNS`（`id` / `description` / `regex` / `scope` / `allowIn`）。
 
@@ -75,6 +79,24 @@ cd topmind-desktop && node --test --test-force-exit tests/chord-format.test.mjs 
 
 ```bash
 cd topmind-desktop && node --test --test-force-exit tests/ai-tools-inventory.test.mjs tests/ai-locale-prompts.test.mjs
+```
+
+### 启动完整性纪律（改 Electron 主进程 / 仓库脚本前必读）
+
+**绿构建不等于能启动。** v4.2.0 八道关卡全绿（486/41/140/1137 测试 + `tsc` + `check:electron` + `pack:verify` 12/12），三个平台全都开不出窗口：`app-menu.mjs` 里 `popupSink = sink` 赋值给了一个从未声明的名字，ESM 严格模式下于 ready 处理器直接 `ReferenceError`。同一提交还带着一个从初版就存在的语法错误——`scripts/install-skills.mjs` 少一个闭括号，`skills:install` / `skills:update` / `skills:list` 三个命令从未跑通过。
+
+- **`.mjs` 没有任何类型检查**：`tsc --noEmit` 不读它，`node --check` 只解析。**给未声明变量赋值是合法语法**，只在运行时炸。`check:undeclared` 补的就是这个洞（真 scope 分析，会区分同为 4 行内相邻的 `popupOpenId`（已声明）与 `popupSink`（没有））。
+- **禁止用文本断言代替执行**：`assert.ok(src.includes("export function foo"))` 会让一个一调用就崩的函数通过它自己的测试——4.2.0 就是这么溜过去的。行为断言必须 `import` 真模块并调用它。
+- **主进程有 boot 冒烟**：`tests/electron-module-load.test.mjs` 在 stub Electron 下真实加载全部 109 个模块，并**排空 `whenReady`**，让品牌图标 / 菜单安装 / 引擎解析 / 建窗 / 全局快捷键 / 托盘整条链都跑一遍。
+- **boot 失败不是异常**：`showBootError` 只记日志 + 弹原生错误框，进程照样 `exit 0`。所以冒烟断言的是 stub 记录的 `showErrorBox` 调用，而不是退出码。
+- **stub 必须写成真模块**（`tests/helpers/electron-stub.mjs`）：写在模板字符串里的代码不被类型检查、死代码扫描和 `check:undeclared` 覆盖。新增 Electron API 会让 stub 覆盖测试变红，按提示补导出即可。
+- **`scripts/` 也在扫描范围内**：根与 Desktop 的 `.mjs` 一旦无法解析，`check:undeclared` 会把它报成扫描空洞，不再静默跳过。
+
+```bash
+cd topmind-desktop && npm run check:undeclared
+cd topmind-desktop && node --test --test-force-exit tests/electron-module-load.test.mjs
+# 真实启动冒烟（沙箱里必须摘掉该变量，否则跑的是纯 Node，会假报 electron 无命名导出）
+cd topmind-desktop && env -u ELECTRON_RUN_AS_NODE ./node_modules/.bin/electron .
 ```
 
 ### 报回前 grep 自检

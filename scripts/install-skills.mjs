@@ -185,7 +185,7 @@ function parseArgs(argv) {
         const id = part.trim();
         if (id) out.skillsFilter.add(id);
       }
-    else if (a === "--dry-run") out.dryRun = true;
+    } else if (a === "--dry-run") out.dryRun = true;
     else if (a === "--locale") out.locale = next();
     else if (a === "--force" || a === "-f") out.force = true;
     else if (a === "--update" || a === "-u") {

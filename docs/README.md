@@ -97,6 +97,7 @@
 | [2026-09-07](./adr/2026-09-07-pi-engine-and-three-column-reevaluation.md) | Pi engine + three-column re-eval | Hybrid `pi-agent-core` (bash off, fenced FS); AI workspace column peer to canvas |
 | [2026-09-14](./adr/2026-09-14-product-vocabulary-rename.md) | Product vocabulary rename | Inbox / 交付 / Delivery replace 收件箱 / 写出来 / Ship it; default template seeds move, existing workspace dirs do not |
 | [2026-09-15](./adr/2026-09-15-cross-platform-chrome-and-suggest-lifecycle.md) | Cross-platform chrome & suggestion lifecycle | One-row Windows title bar (app-drawn strip → native popups), platform-correct chords via `formatChord`, fullscreen collapses chrome reserves, frameless float note, Windows dialog footer flip in CSS; batched suggest apply with terminal-vs-retryable failures and persisted dismissal |
+| [2026-09-15](./adr/2026-09-15-boot-integrity-and-undeclared-identifiers.md) | Boot integrity & undeclared identifiers | `popupSink` was assigned but never declared — a ReferenceError in the ready handler killed every platform before its first window, past eight green gates; `install-skills.mjs` had been unparseable since the initial commit; adds a real scope-analysis check plus a test that boots the main process under a stubbed Electron |
 
 ---
 

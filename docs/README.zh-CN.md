@@ -97,6 +97,7 @@
 | [2026-09-07](./adr/2026-09-07-pi-engine-and-three-column-reevaluation.md) | Pi engine + three-column | Hybrid `pi-agent-core`（bash 关、围栏 FS）；右列 AI 工作区与画布对等 |
 | [2026-09-14](./adr/2026-09-14-product-vocabulary-rename.md) | 产品词汇改名 | 收件箱 / 写出来 / Ship it → Inbox / 交付 / Delivery；默认模板种子改名，存量工作区目录不动 |
 | [2026-09-15](./adr/2026-09-15-cross-platform-chrome-and-suggest-lifecycle.md) | 跨平台窗口外壳与建议生命周期 | Windows 一行标题栏（自绘菜单条 → 原生子菜单）、chord 经 `formatChord` 按平台渲染、全屏收回让位垫、浮窗无边框、Windows 对话框按钮在 CSS 翻转；建议批量执行 + 终态/可重试失败分类 + 忽略落盘 |
+| [2026-09-15](./adr/2026-09-15-boot-integrity-and-undeclared-identifiers.md) | 启动完整性与未声明标识符 | `popupSink` 被赋值但从未声明——ready 处理器里的 ReferenceError 让三个平台在开出第一个窗口前就死掉，绕过了八道绿灯关卡；`install-skills.mjs` 自初版起就无法解析；新增真正的 scope 分析检查，以及一个在 stub Electron 下真实启动主进程的测试 |
 
 ---
 
