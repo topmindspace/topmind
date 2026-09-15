@@ -47,6 +47,7 @@ export const zhCN = {
   suggestions_no_ai_hint: "配置 AI 服务商后可使用建议功能",
   suggestions_confirm: "确认执行",
   suggestions_open: "打开",
+  suggestions_open_confirm: "打开确认",
   suggestions_dismiss: "忽略",
   suggestions_loading: "AI 正在思考",
   suggestions_accept_all: "全部确认",

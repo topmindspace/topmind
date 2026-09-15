@@ -415,7 +415,11 @@ export const AiService = {
       mountList.push(ambient);
     }
     const resolvedFiles = await resolveMountedFiles(c.workspaceRoot, mountList);
-    const ctxFiles = assembleContext({ files: resolvedFiles }).files;
+    // Prefer the ambient focus path so multi-mount never mid-slices the primary doc.
+    const ctxFiles = assembleContext({
+      files: resolvedFiles,
+      preferPaths: ambient ? [ambient] : [],
+    }).files;
     // AI SDK v7: system prompt via `system` param; messages = user/assistant only.
     const cleanMsgs = messages.filter((m) => m.role !== "system");
     // Smart compaction: long sessions keep recent turns + middle summary (not a hard cut).
@@ -542,6 +546,8 @@ export const AiService = {
       sessionId,
       maxAgentSteps,
       workspaceRoot: workspaceRootOf(c.workspaceRoot),
+      // Real model window when known — Pi stub otherwise defaults to 128k.
+      contextWindow: Number(res.model?.contextLimit || res.model?.contextWindow || 0) || undefined,
     };
     let result;
     let piRuntime = null;

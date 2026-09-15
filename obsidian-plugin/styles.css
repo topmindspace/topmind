@@ -67,7 +67,7 @@
 
 .tm-stream-workbench {
   padding: 8px 16px;
-  max-width: min(var(--tm-feed-max-width, 72rem), 100%);
+  max-width: min(var(--tm-feed-max-width, 56rem), 100%);
   margin: 0 auto;
   container-type: inline-size;
   container-name: tm-workbench;
@@ -1023,6 +1023,47 @@
   min-height: 40px;
 }
 
+/* Quiet count entry in stream view — opens AI Dock 建议 tab (single confirm home) */
+.tm-suggest-entry {
+  min-height: 0;
+}
+
+.tm-suggest-entry:empty {
+  display: none;
+}
+
+.tm-suggest-entry-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--tm-gap-sm);
+  margin-top: var(--tm-gap-md);
+  padding: 6px 10px;
+  border-radius: var(--tm-radius-md);
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+}
+
+.tm-suggest-entry-icon {
+  display: inline-flex;
+  color: var(--tm-text-accent);
+  flex-shrink: 0;
+}
+
+.tm-suggest-entry-icon svg {
+  width: var(--tm-icon-sm);
+  height: var(--tm-icon-sm);
+}
+
+.tm-suggest-entry-label {
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.tm-suggest-entry-open {
+  margin-left: auto;
+}
+
 .tm-suggestion-summary {
   margin-bottom: var(--tm-gap-sm);
 }
@@ -1113,7 +1154,8 @@
 
 .tm-suggestion-card.tm-suggestion-ai-summary,
 .tm-suggestion-card.tm-suggestion-stream-digest {
-  border-left-color: var(--color-purple, var(--text-accent));
+  /* Reflection/digest — blue/info, not purple (Desktop bans purple AI identity) */
+  border-left-color: var(--color-blue, var(--text-accent));
 }
 
 .tm-suggestion-card.tm-suggestion-promote-memory,
@@ -1170,6 +1212,11 @@
   color: var(--text-normal);
   line-height: 1.4;
   margin-bottom: var(--tm-gap-xs);
+  /* Scan-first density: clamp summary; full text stays available via title */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
 /* Target breadcrumb under the summary (Desktop parity: friendly path meta) */

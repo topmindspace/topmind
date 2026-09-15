@@ -352,7 +352,16 @@ export function buildSystemPrompt(opts = {}) {
     }
   }
 
-  parts.push(...P.toolsSection);
+  // When skills are off, do not advertise skill tools the model cannot call.
+  const toolsLines =
+    skillsEnabled !== false
+      ? P.toolsSection
+      : P.toolsSection.filter((line) => {
+          if (/^###\s*Skills\b/u.test(line)) return false;
+          if (/list_skills|load_skill/u.test(line)) return false;
+          return true;
+        });
+  parts.push(...toolsLines);
   parts.push(outputLanguagePolicy(locale, outputLocale));
 
   // Silence unused — toolNames still accepted for callers/tests that pass them
@@ -387,12 +396,23 @@ function outputLanguagePolicy(chromeLocale, outputLocale) {
   ].join("\n");
 }
 
-export function assembleContext({ files, maxChars = 40000 }) {
+export function assembleContext({ files, maxChars = 40000, preferPaths = [] }) {
   const mounted = [];
   let total = 0;
-  const list = Array.isArray(files) ? files : [];
-  // Prefer shorter files first so multi-mount stays balanced
-  const ordered = [...list].sort((a, b) => (a.content?.length || 0) - (b.content?.length || 0));
+  const list = Array.isArray(files) ? [...files] : [];
+  // Focus / preferred paths first so the primary document is never mid-sliced
+  // by shorter ambient mounts. Then shortest-first for remaining balance.
+  const prefer = new Set((preferPaths || []).map((p) => String(p || "").replace(/\\/g, "/")));
+  const rank = (f) => {
+    const p = String(f?.path || f?.relativePath || f?.name || "").replace(/\\/g, "/");
+    return prefer.has(p) ? 0 : 1;
+  };
+  const ordered = list.sort((a, b) => {
+    const ra = rank(a);
+    const rb = rank(b);
+    if (ra !== rb) return ra - rb;
+    return (a.content?.length || 0) - (b.content?.length || 0);
+  });
   for (const f of ordered) {
     const content = typeof f.content === "string" ? f.content : "";
     if (total + content.length > maxChars) {

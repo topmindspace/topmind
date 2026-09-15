@@ -3,7 +3,7 @@ import {
   RiCalendar2Line,
   RiDatabase2Line,
   RiErrorWarningLine,
-  RiFlashlightFill,
+  RiFlashlightLine,
   RiRefreshLine,
   RiSearchLine,
   RiUser3Line,
@@ -291,23 +291,24 @@ export function Sidebar() {
           <SidebarHeaderActions />
         </div>
       </div>
-      {/* Destinations row — 动态 / Inbox / 交付. Content IA lives next to the
-          tree, not in the status bar (2026-09-16). Collapsed-sidebar reach is
-          TitleBar compact PrimaryNav. */}
-      <div className="flex shrink-0 items-center px-1.5 py-1" data-sidebar-primary-nav>
-        <PrimaryNav variant="sidebar" />
-      </div>
-      {/* Secondary header — ViewSwitcher (icon-only) + tree sort/expand/filter/refresh in one row. */}
+      {/* Destinations + view mode + tree tools — one quiet chrome row.
+          PrimaryNav and ViewSwitcher are both dropdowns (2026-09-16) so this
+          row never stacks two segmented rails. */}
       <div
-        className="flex h-9 shrink-0 items-center gap-0.5 overflow-hidden border-b border-border-subtle-dim px-2"
+        className="flex h-10 shrink-0 items-center gap-1 overflow-hidden border-b border-border-subtle-dim px-1.5"
         data-sidebar-secondary-header
       >
+        <div className="min-w-0 flex-1" data-sidebar-primary-nav>
+          <ErrorBoundary label={t("sidebar.viewSwitcher.ariaTablist")}>
+            <PrimaryNav variant="sidebar" />
+          </ErrorBoundary>
+        </div>
         <ErrorBoundary label={t("sidebar.viewSwitcher.ariaTablist")}>
           <ViewSwitcher active={viewMode} onChange={handleViewModeChange} enabled={enabledViews} iconOnly />
         </ErrorBoundary>
         {viewMode === "category" ? (
           <div
-            className="ml-auto flex shrink-0 items-center gap-0.5"
+            className="flex shrink-0 items-center gap-0.5"
             data-sidebar-tree-tools
             ref={() => {
               notifyChromeSlots();
@@ -392,7 +393,7 @@ function SidebarHeaderActions() {
           onClick={() => openOverlay("quick-capture")}
           aria-label={t("titleBar.capture")}
         >
-          <RiFlashlightFill size={ICON.sm} className="v4-capture-accent-icon shrink-0" />
+          <RiFlashlightLine size={ICON.sm} className="v4-capture-accent-icon shrink-0" />
           <span className="v4-capture-accent-label whitespace-nowrap">{t("titleBar.capture")}</span>
         </button>
       </Tooltip>

@@ -120,12 +120,12 @@ export const SUGGESTION_KIND_META: Record<
 > = {
   create_topic: { icon: "folder-plus", border: "blue" },
   promote_memory: { icon: "brain", border: "green" },
-  ai_summary: { icon: "bar-chart-3", border: "purple" },
+  /* Reflection/digest use blue (info) — purple is banned as product AI identity */
+  ai_summary: { icon: "bar-chart-3", border: "blue" },
   inbox_organize: { icon: "folder-input", border: "blue" },
-  inbox_review: { icon: "inbox", border: "blue" },
   stale_topic: { icon: "package", border: "orange" },
   catch_all: { icon: "brush", border: "orange" },
-  stream_digest: { icon: "scroll-text", border: "purple" },
+  stream_digest: { icon: "scroll-text", border: "blue" },
   open_profile: { icon: "user", border: "green" },
 };
 
@@ -135,7 +135,6 @@ export const ALL_SUGGESTION_KINDS: readonly SuggestionKind[] = [
   "promote_memory",
   "ai_summary",
   "inbox_organize",
-  "inbox_review",
   "stale_topic",
   "catch_all",
   "stream_digest",

@@ -18,7 +18,7 @@ import {
   RiDownload2Line,
   RiExternalLinkLine,
   RiFileCopyLine,
-  RiFlashlightFill,
+  RiFlashlightLine,
   RiFolderOpenLine,
   RiGlobeLine,
   RiLoader4Line,
@@ -1131,7 +1131,7 @@ export function ManagePanel({
             {doctorLoading ? (
               <RiLoader4Line size={ICON.micro} className="animate-spin" />
             ) : (
-              <RiFlashlightFill size={ICON.micro} />
+              <RiFlashlightLine size={ICON.micro} />
             )}
             {t("settings:about.diagnoseButton")}
           </Button>

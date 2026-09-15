@@ -92,7 +92,7 @@ test("each criterion-1 capability has one primary home in shipped chrome", () =>
   const design = read("DESIGN.md");
   // 记一下 is in sidebar header (normal button, accent icon)
   assert.match(sidebar, /SidebarHeaderActions/);
-  assert.match(sidebar, /RiFlashlightFill/);
+  assert.match(sidebar, /RiFlashlightLine/);
   assert.match(sidebar, /v4-search-trigger/);
   // View switch (动态/Inbox/交付) is a sidebar destinations row; TitleBar
   // hosts compact fallback when the sidebar is collapsed.

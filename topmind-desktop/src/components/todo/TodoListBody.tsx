@@ -23,6 +23,7 @@ import {
   RiDeleteBin6Line,
   RiErrorWarningLine,
   RiExternalLinkLine,
+  RiListCheck,
   RiLoader4Line,
   RiPencilLine,
   RiRefreshLine,
@@ -138,9 +139,26 @@ export function TodoListBody({ showPaneChrome = true }: { showPaneChrome?: boole
   };
 
   return (
-    <div className="flex flex-col">
+    /* Pane shell mirrors SuggestPopover / AiPanel: sticky header · scroll body · footer.
+       showPaneChrome=false (TodoPopover) skips the outer shell — the float already
+       owns header + scroll host + padding. */
+    <div
+      className={cn(
+        showPaneChrome
+          ? "flex h-full min-h-0 flex-col"
+          : "flex min-h-0 flex-col",
+      )}
+      data-todo-list-body
+    >
       {showPaneChrome ? (
-        <div className="mb-1.5 flex items-center justify-end gap-0.5" data-todo-pane-chrome>
+        <div
+          className="flex shrink-0 items-center gap-1.5 border-b border-border-subtle-dim px-3 py-2"
+          data-todo-pane-chrome
+        >
+          <RiListCheck size={ICON.xs} className="shrink-0 text-accent-color" aria-hidden />
+          <span className="min-w-0 flex-1 truncate text-3xs font-semibold text-text-primary">
+            {t("aiWorkspace.todo")}
+          </span>
           <Tooltip content={t("todo.maintainTip")}>
             <button
               type="button"
@@ -179,207 +197,216 @@ export function TodoListBody({ showPaneChrome = true }: { showPaneChrome?: boole
           </Tooltip>
         </div>
       ) : null}
-      {/* AI maintain feedback */}
-      {maintainMessage && maintaining !== "maintaining" ? (
-        <div
-          className={cn(
-            "mb-1.5 rounded-md px-2 py-1 text-3xs",
-            maintaining === "error"
-              ? "bg-status-error-bg text-error"
-              : "bg-accent-bg-subtle text-accent-color",
-          )}
-        >
-          <div className="flex items-center gap-1">
-            {maintaining === "error" ? (
-              <RiErrorWarningLine size={ICON.micro} className="shrink-0" />
-            ) : (
-              <RiSparklingLine size={ICON.micro} className="shrink-0" />
+
+      <div
+        className={cn(
+          "min-h-0 flex-1",
+          showPaneChrome && "v4-sidebar-scroll overflow-auto p-2",
+        )}
+        data-todo-scroll-body={showPaneChrome ? "" : undefined}
+        data-scroll-stable-panel={showPaneChrome ? "" : undefined}
+      >
+        {/* AI maintain feedback */}
+        {maintainMessage && maintaining !== "maintaining" ? (
+          <div
+            className={cn(
+              "mb-1.5 rounded-md px-2 py-1 text-3xs",
+              maintaining === "error"
+                ? "bg-status-error-bg text-error"
+                : "bg-accent-bg-subtle text-accent-color",
             )}
-            <span className="flex-1">{maintainMessage}</span>
-            <button
-              type="button"
-              onClick={() => useTodoStore.setState({ maintainMessage: null })}
-              aria-label={t("todo.close")}
-              className="text-text-quaternary hover:text-text-secondary"
-            >
-              <RiCloseLine size={ICON.micro} />
-            </button>
-            {/* Force retry button for already-processed case */}
-            {maintaining === "done" && maintainReason === "all-periods-processed" && (
-              <button
-                type="button"
-                onClick={() => {
-                  useTodoStore.setState({ maintainMessage: null, maintainReason: null });
-                  void useTodoStore.getState().maintain({ force: true });
-                }}
-                className="flex items-center gap-0.5 text-text-tertiary hover:text-accent-color ml-1"
-                title={t("todo.maintainForceTip")}
-              >
-                <RiRefreshLine size={ICON.micro} />
-                {t("todo.maintainForceRetry")}
-              </button>
-            )}
-          </div>
-        </div>
-      ) : null}
-
-      {/* Health hint: stale / overdue warnings */}
-      {(staleCount > 0 || overdueCount > 0) && showHealthHint ? (
-        <div className="mb-1.5 rounded-md border border-warning/20 bg-warning/5 px-2 py-1 text-3xs text-warning">
-          <div className="flex items-center gap-1">
-            <RiAlertLine size={ICON.micro} className="shrink-0" />
-            <span className="flex-1">
-              {overdueCount > 0 ? t("todo.healthOverdue", { count: overdueCount }) : ""}
-              {overdueCount > 0 && staleCount > 0 ? " · " : ""}
-              {staleCount > 0 ? t("todo.healthStale", { count: staleCount }) : ""}
-            </span>
-            {(health?.oldCompleted ?? 0) > 0 ? (
-              <button
-                type="button"
-                onClick={() => void cleanupStale()}
-                className="underline hover:no-underline"
-              >
-                {t("todo.cleanupStale")}
-              </button>
-            ) : null}
-            {staleCount > 0 ? (
-              <button
-                type="button"
-                onClick={() => void archiveStale()}
-                className="underline hover:no-underline"
-              >
-                {t("todo.archiveStale")}
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => setShowHealthHint(false)}
-              aria-label={t("todo.close")}
-              className="text-text-quaternary hover:text-text-secondary"
-            >
-              <RiCloseLine size={ICON.micro} />
-            </button>
-          </div>
-        </div>
-      ) : null}
-
-      {/* Inline add — Apple Reminders style */}
-      <div className="mb-1.5">
-        <div className="flex items-center gap-1.5 rounded-md border border-border-subtle-dim bg-surface/50 px-2 py-1.5 focus-within:border-accent-border-subtle">
-          <RiAddLine size={ICON.micro} className="shrink-0 text-text-quaternary" />
-          <input
-            ref={inputRef}
-            type="text"
-            value={newItemText}
-            onChange={(e) => setNewItemText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={t("todo.addPlaceholder")}
-            disabled={adding}
-            className="min-w-0 flex-1 bg-transparent text-xs text-text-primary placeholder:text-text-quaternary focus:outline-none"
-          />
-          {newItemText.trim() ? (
-            <button
-              type="button"
-              onClick={() => void handleAdd()}
-              disabled={adding}
-              className="flex h-4 w-4 items-center justify-center text-accent-color disabled:opacity-40"
-            >
-              {adding ? (
-                <RiLoader4Line size={ICON.micro} className="animate-spin" />
-              ) : (
-                <RiCornerDownLeftLine size={ICON.nano} />
-              )}
-            </button>
-          ) : null}
-        </div>
-      </div>
-
-      {/* Active items */}
-      {loading && items.length === 0 ? (
-        <div className="flex items-center gap-1.5 px-1 py-2 text-3xs text-text-tertiary">
-          <RiLoader4Line size={ICON.micro} className="animate-spin" />
-          {t("todo.loading")}
-        </div>
-      ) : activeItems.length === 0 && completedItems.length === 0 ? (
-        <div className="flex flex-col items-center gap-1.5 py-4 text-center">
-          <span className="text-3xs text-text-tertiary">{t("todo.empty")}</span>
-          <span className="px-3 text-3xs leading-relaxed text-text-quaternary">
-            {t("todo.emptyHint")}
-          </span>
-        </div>
-      ) : (
-        <>
-          <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
-            {activeItems.map((item) => (
-              <TodoItemRow
-                key={item.id}
-                item={item}
-                onToggle={() => void toggle(item.id)}
-              />
-            ))}
-          </ul>
-
-          {/* Completed section */}
-          {completedItems.length > 0 ? (
-            <div className="mt-2">
-              <button
-                type="button"
-                onClick={() => setShowCompleted((v) => !v)}
-                className="flex w-full items-center gap-1 px-1 py-0.5 text-3xs text-text-quaternary transition-colors hover:text-text-tertiary"
-              >
-                {showCompleted ? (
-                  <RiArrowDownSLine size={ICON.nano} />
-                ) : (
-                  <RiArrowRightSLine size={ICON.nano} />
-                )}
-                <span>
-                  {t("todo.completed", { count: completedItems.length })}
-                </span>
-              </button>
-              {showCompleted ? (
-                <ul className="m-0 flex list-none flex-col gap-0.5 p-0 pt-0.5">
-                  {completedItems.map((item) => (
-                    <TodoItemRow
-                      key={item.id}
-                      item={item}
-                      onToggle={() => void toggle(item.id)}
-                    />
-                  ))}
-                  <li className="px-1 py-0.5">
-                    <button
-                      type="button"
-                      onClick={() => void clearCompleted()}
-                      className="text-3xs text-text-quaternary transition-colors hover:text-error"
-                    >
-                      {t("todo.clearCompleted")}
-                    </button>
-                  </li>
-                </ul>
-              ) : null}
-            </div>
-          ) : null}
-        </>
-      )}
-
-      {/* Footer: AI hint + health toggle */}
-      <div className="mt-1.5 flex items-center gap-2 border-t border-border-subtle-dim pt-1 text-3xs text-text-quaternary">
-        {aiCount > 0 ? (
-          <span className="inline-flex items-center gap-0.5">
-            <RiSparklingLine size={ICON.micro} className="text-accent-color" />
-            {t("todo.aiHint", { count: aiCount })}
-          </span>
-        ) : null}
-        {(staleCount > 0 || overdueCount > 0) && !showHealthHint ? (
-          <button
-            type="button"
-            onClick={() => setShowHealthHint(true)}
-            className="ml-auto inline-flex items-center gap-0.5 text-warning hover:text-warning"
           >
-            <RiAlertLine size={ICON.micro} />
-            {overdueCount > 0 ? t("todo.healthOverdue", { count: overdueCount }) : t("todo.healthStale", { count: staleCount })}
-          </button>
+            <div className="flex items-center gap-1">
+              {maintaining === "error" ? (
+                <RiErrorWarningLine size={ICON.micro} className="shrink-0" />
+              ) : (
+                <RiSparklingLine size={ICON.micro} className="shrink-0" />
+              )}
+              <span className="flex-1">{maintainMessage}</span>
+              <button
+                type="button"
+                onClick={() => useTodoStore.setState({ maintainMessage: null })}
+                aria-label={t("todo.close")}
+                className="text-text-quaternary hover:text-text-secondary"
+              >
+                <RiCloseLine size={ICON.micro} />
+              </button>
+              {maintaining === "done" && maintainReason === "all-periods-processed" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    useTodoStore.setState({ maintainMessage: null, maintainReason: null });
+                    void useTodoStore.getState().maintain({ force: true });
+                  }}
+                  className="ml-1 flex items-center gap-0.5 text-text-tertiary hover:text-accent-color"
+                  title={t("todo.maintainForceTip")}
+                >
+                  <RiRefreshLine size={ICON.micro} />
+                  {t("todo.maintainForceRetry")}
+                </button>
+              )}
+            </div>
+          </div>
         ) : null}
+
+        {/* Health hint */}
+        {(staleCount > 0 || overdueCount > 0) && showHealthHint ? (
+          <div className="mb-1.5 rounded-md border border-warning/20 bg-warning/5 px-2 py-1 text-3xs text-warning">
+            <div className="flex items-center gap-1">
+              <RiAlertLine size={ICON.micro} className="shrink-0" />
+              <span className="flex-1">
+                {overdueCount > 0 ? t("todo.healthOverdue", { count: overdueCount }) : ""}
+                {overdueCount > 0 && staleCount > 0 ? " · " : ""}
+                {staleCount > 0 ? t("todo.healthStale", { count: staleCount }) : ""}
+              </span>
+              {(health?.oldCompleted ?? 0) > 0 ? (
+                <button type="button" onClick={() => void cleanupStale()} className="underline hover:no-underline">
+                  {t("todo.cleanupStale")}
+                </button>
+              ) : null}
+              {staleCount > 0 ? (
+                <button type="button" onClick={() => void archiveStale()} className="underline hover:no-underline">
+                  {t("todo.archiveStale")}
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => setShowHealthHint(false)}
+                aria-label={t("todo.close")}
+                className="text-text-quaternary hover:text-text-secondary"
+              >
+                <RiCloseLine size={ICON.micro} />
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Inline add — composer field (parity with ChatInput / suggest quiet strips) */}
+        <div className="mb-1.5">
+          <div className="flex items-center gap-1.5 rounded-md border border-border-subtle-dim bg-surface/50 px-2 py-1.5 focus-within:border-accent-border-subtle">
+            <RiAddLine size={ICON.micro} className="shrink-0 text-text-quaternary" />
+            <input
+              ref={inputRef}
+              type="text"
+              value={newItemText}
+              onChange={(e) => setNewItemText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={t("todo.addPlaceholder")}
+              disabled={adding}
+              className="min-w-0 flex-1 bg-transparent text-xs text-text-primary placeholder:text-text-quaternary focus:outline-none"
+            />
+            {newItemText.trim() ? (
+              <button
+                type="button"
+                onClick={() => void handleAdd()}
+                disabled={adding}
+                className="flex h-4 w-4 items-center justify-center text-accent-color disabled:opacity-40"
+              >
+                {adding ? (
+                  <RiLoader4Line size={ICON.micro} className="animate-spin" />
+                ) : (
+                  <RiCornerDownLeftLine size={ICON.nano} />
+                )}
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        {/* Active items */}
+        {loading && items.length === 0 ? (
+          <div className="flex items-center gap-1.5 px-1 py-2 text-3xs text-text-tertiary">
+            <RiLoader4Line size={ICON.micro} className="animate-spin" />
+            {t("todo.loading")}
+          </div>
+        ) : activeItems.length === 0 && completedItems.length === 0 ? (
+          <div className="flex flex-col items-center gap-1.5 py-6 text-center">
+            <span className="text-3xs text-text-tertiary">{t("todo.empty")}</span>
+            <span className="px-3 text-3xs leading-relaxed text-text-quaternary">
+              {t("todo.emptyHint")}
+            </span>
+          </div>
+        ) : (
+          <>
+            <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
+              {activeItems.map((item) => (
+                <TodoItemRow
+                  key={item.id}
+                  item={item}
+                  onToggle={() => void toggle(item.id)}
+                />
+              ))}
+            </ul>
+
+            {/* Completed section — section header matches suggest「Others」divider density */}
+            {completedItems.length > 0 ? (
+              <div className="mt-2.5 border-t border-border-subtle-dim pt-1.5">
+                <button
+                  type="button"
+                  onClick={() => setShowCompleted((v) => !v)}
+                  className="flex w-full items-center gap-1 rounded-md px-1.5 py-1 text-3xs text-text-quaternary transition-colors hover:bg-surface-muted/50 hover:text-text-tertiary"
+                >
+                  {showCompleted ? (
+                    <RiArrowDownSLine size={ICON.nano} />
+                  ) : (
+                    <RiArrowRightSLine size={ICON.nano} />
+                  )}
+                  <span className="truncate">
+                    {t("todo.completed", { count: completedItems.length })}
+                  </span>
+                </button>
+                {showCompleted ? (
+                  <ul className="m-0 flex list-none flex-col gap-0.5 p-0 pt-0.5">
+                    {completedItems.map((item) => (
+                      <TodoItemRow
+                        key={item.id}
+                        item={item}
+                        onToggle={() => void toggle(item.id)}
+                      />
+                    ))}
+                    <li className="px-1.5 py-1">
+                      <button
+                        type="button"
+                        onClick={() => void clearCompleted()}
+                        className="text-3xs text-text-quaternary transition-colors hover:text-error"
+                      >
+                        {t("todo.clearCompleted")}
+                      </button>
+                    </li>
+                  </ul>
+                ) : null}
+              </div>
+            ) : null}
+          </>
+        )}
       </div>
+
+      {/* Footer — AI provenance + health (workspace pane only; popover keeps its own chrome) */}
+      {showPaneChrome ? (
+        <div className="shrink-0 border-t border-border-subtle-dim px-3 py-1.5 text-2xs text-text-tertiary">
+          <div className="flex items-center gap-2">
+            {aiCount > 0 ? (
+              <span className="inline-flex min-w-0 items-center gap-0.5 truncate">
+                <RiSparklingLine size={ICON.micro} className="shrink-0 text-accent-color" />
+                <span className="truncate">{t("todo.aiHint", { count: aiCount })}</span>
+              </span>
+            ) : (
+              <span className="min-w-0 flex-1 truncate text-text-quaternary">
+                {t("todo.footerIdle")}
+              </span>
+            )}
+            {(staleCount > 0 || overdueCount > 0) && !showHealthHint ? (
+              <button
+                type="button"
+                onClick={() => setShowHealthHint(true)}
+                className="ml-auto inline-flex shrink-0 items-center gap-0.5 text-warning"
+              >
+                <RiAlertLine size={ICON.micro} />
+                {overdueCount > 0 ? t("todo.healthOverdue", { count: overdueCount }) : t("todo.healthStale", { count: staleCount })}
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -477,7 +504,7 @@ function TodoItemRow({
   const dueInfo = item.dueDate ? formatDueDate(item.dueDate, t) : null;
 
   return (
-    <li className="group flex items-start gap-1.5 rounded-md px-1.5 py-1 transition-colors hover:bg-surface-muted/40">
+    <li className="group relative flex items-start gap-2 rounded-md px-1.5 py-1.5 transition-colors hover:bg-surface-muted/40">
       {/* Checkbox */}
       <button
         type="button"
@@ -495,7 +522,7 @@ function TodoItemRow({
         {item.done ? <RiCheckLine size={ICON.micro} className="transition-transform scale-100" /> : null}
       </button>
 
-      {/* Content */}
+      {/* Content — uses full row width; hover actions paint over the right edge */}
       <div className="min-w-0 flex-1">
         {editing ? (
           <input
@@ -602,8 +629,17 @@ function TodoItemRow({
         )}
       </div>
 
-      {/* Row actions — hover, focus-within, and touch-screen visible */}
-      <div className="flex shrink-0 items-center gap-0.5 opacity-0 pointer-events-none transition-opacity group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto">
+      {/* Row actions — absolute float on hover; no reserved gutter */}
+      <div
+        className={cn(
+          "pointer-events-none absolute right-1 top-1/2 -translate-y-1/2",
+          "flex items-center gap-0.5 rounded-md bg-surface/90 px-0.5 py-0.5 shadow-xs",
+          "opacity-0 transition-opacity",
+          "group-hover:pointer-events-auto group-hover:opacity-100",
+          "group-focus-within:pointer-events-auto group-focus-within:opacity-100",
+          "[@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100",
+        )}
+      >
         {!item.done ? (
           <>
             <button

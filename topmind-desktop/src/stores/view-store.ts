@@ -543,7 +543,7 @@ export const useViewStore = create<ViewState>((set, get) => ({
 
   sidebarWidth: 240,
   setSidebarWidth: (sidebarWidth) => set({ sidebarWidth }),
-  sidebarView: "stream",
+  sidebarView: "category",
   setSidebarView: (sidebarView) => set({ sidebarView }),
   feedLayout: DEFAULT_FEED_LAYOUT,
   setFeedLayout: (feedLayout) =>

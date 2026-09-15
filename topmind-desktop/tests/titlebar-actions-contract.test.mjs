@@ -22,17 +22,21 @@ function sliceTitleBarActions(src) {
   return src.slice(start, end);
 }
 
-test("PrimaryNav lives in the sidebar destinations row as three labeled buttons", () => {
+test("PrimaryNav lives in the sidebar destinations row (dropdown + compact icons)", () => {
   const nav = read("src/components/shell/PrimaryNav.tsx");
   assert.match(nav, /data-primary-nav=/);
-  assert.match(nav, /data-nav-kind=\{opt\.kind\}/);
+  // Destinations remain stream / inbox / outputs — compact chips + dropdown items.
   assert.match(nav, /kind: "stream"/);
   assert.match(nav, /kind: "inbox"/);
   assert.match(nav, /kind: "outputs"/);
-  // Sidebar segmented control: equal-width flex tabs with labels always rendered.
-  assert.match(nav, /flex-1/);
-  assert.match(nav, /<span className="truncate">\{label\}<\/span>/);
   assert.match(nav, /variant = "sidebar"/);
+  // Sidebar: one quiet dropdown trigger (not a 3-up segmented rail).
+  assert.match(nav, /data-primary-nav="sidebar"/);
+  assert.match(nav, /DropdownMenu/);
+  assert.match(nav, /aria-haspopup="menu"/);
+  assert.match(nav, /<span className="truncate">\{activeLabel\}<\/span>/);
+  // Compact: icon-only chips still carry data-nav-kind for tests/automation.
+  assert.match(nav, /data-nav-kind=\{opt\.kind\}/);
   const status = read("src/components/shell/StatusBar.tsx");
   assert.doesNotMatch(status, /<PrimaryNav/);
   const sidebar = read("src/components/shell/Sidebar.tsx");

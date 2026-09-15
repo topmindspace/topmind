@@ -290,7 +290,8 @@ export function loadSkillBody(skillId, opts = {}) {
   const id = String(skillId || "").trim().replace(/^\/+/, "");
   if (!id) throw new Error("skillId required");
 
-  const cacheKey = id;
+  // Key by root so multi-vault / engineRoot switches never serve a stale body.
+  const cacheKey = `${skillsRoot}::${id}`;
   if (cache.bodies.has(cacheKey)) {
     const cached = cache.bodies.get(cacheKey);
     return clipBody(
@@ -360,14 +361,17 @@ export function loadSkillResource(rel, opts = {}) {
   const skillsRoot = resolveSkillsRoot(opts.engineRoot);
   const cleaned = String(rel || "")
     .replace(/\\/gu, "/")
-    .replace(/^\/+/, "")
-    .replace(/\.\./gu, "");
+    .replace(/^\/+/, "");
   if (!cleaned || cleaned.includes("..")) throw new Error("Invalid resource path");
   const roots = [skillsRoot, ...resolveExtraSkillsRoots({ extraRoots: opts.extraRoots })];
   let abs = null;
   for (const root of roots) {
-    const candidate = path.join(root, cleaned);
-    if (candidate.startsWith(root) && existsSync(candidate)) {
+    const candidate = path.resolve(root, cleaned);
+    // Path-containment check (not raw startsWith) so sibling dirs like
+    // `skills-evil/` cannot pass a `skills/` root prefix.
+    const relToRoot = path.relative(root, candidate);
+    if (!relToRoot || relToRoot.startsWith("..") || path.isAbsolute(relToRoot)) continue;
+    if (existsSync(candidate)) {
       abs = candidate;
       break;
     }

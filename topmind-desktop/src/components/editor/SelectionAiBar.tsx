@@ -34,7 +34,7 @@ import { useSelectionAi } from "./useSelectionAi";
 import { SelectionAiToolbar } from "./SelectionAiToolbar";
 import { SelectionAiDiff } from "./SelectionAiDiff";
 import { SelectionAiError } from "./SelectionAiError";
-import { clampSelectionAiPanel } from "../../lib/inline-ai-panel";
+import { clampSelectionAiPanel, INLINE_AI_PANEL_WIDTH } from "../../lib/inline-ai-panel";
 
 export type { EditorAiAction } from "./useSelectionAi";
 
@@ -133,9 +133,9 @@ export function SelectionAiBar({
     return null;
   }
 
-  // Smart placement: prefer above selection; flip below when not enough space;
-  // clamp horizontally so ~28rem panel stays in viewport. Drag override honored.
-  const panelW = Math.min(window.innerWidth * 0.96, 28 * 16);
+  // Smart placement: prefer above selection; flip below near chrome/toolbar;
+  // clamp horizontally so the wide panel stays in viewport. Drag override honored.
+  const panelW = Math.min(window.innerWidth * 0.96, INLINE_AI_PANEL_WIDTH);
   const { top: barTop, left: barLeft } = clampSelectionAiPanel({
     dragPos,
     target,
@@ -154,7 +154,7 @@ export function SelectionAiBar({
       aria-label={t("selectionAi.headerSelection")}
       aria-busy={busy}
       className="pointer-events-auto fixed z-floating v4-ai-panel-enter"
-      style={{ top: Math.max(8, barTop), left: barLeft, maxWidth: panelW }}
+      style={{ top: Math.max(8, barTop), left: barLeft, width: panelW, maxWidth: "96vw" }}
       onMouseDown={(e) => {
         // Blanket preventDefault kept the editor selection but also made the
         // editable-preview textarea and inputs mouse-unfocusable — guard
@@ -166,7 +166,7 @@ export function SelectionAiBar({
     >
       <div
         className={cn(
-          "v4-card-elevated flex w-[min(96vw,28rem)] flex-col gap-1.5 px-1.5 py-1.5",
+          "v4-card-elevated flex w-full flex-col gap-1.5 px-2 py-2",
           busy && "ring-1 ring-accent-color/30 shadow-[0_0_0_1px_var(--color-accent-border-subtle)]",
         )}
       >

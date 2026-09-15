@@ -54,7 +54,7 @@ export function renderSuggestionCard(
     header.createSpan({ cls: `tm-impact-badge tm-impact-${sugg.impact}`, text: impactLabel });
   }
 
-  card.createDiv({ cls: "tm-suggestion-body", text: sugg.summary });
+  card.createDiv({ cls: "tm-suggestion-body", text: sugg.summary, attr: { title: sugg.summary } });
 
   // Target breadcrumb (Desktop parity: friendly path under the summary)
   const openTarget = suggestionOpenPath(sugg);

@@ -232,6 +232,9 @@ describe("pi-agent-runtime", () => {
     const result = await grep.execute("g1", { pattern: "foo" });
     assert.match(result.content[0].text, /hits/);
     assert.equal(seen.query, "foo");
+    // Default false — same as Desktop search. Explicit true still enables regex.
+    assert.equal(seen.regex, false);
+    await grep.execute("g1b", { pattern: "foo", regex: true });
     assert.equal(seen.regex, true);
 
     await assert.rejects(

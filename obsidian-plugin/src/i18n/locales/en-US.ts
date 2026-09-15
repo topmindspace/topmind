@@ -49,6 +49,7 @@ export const enUS: typeof zhCN = {
   suggestions_no_ai_hint: "Configure an AI provider to enable suggestions",
   suggestions_confirm: "Confirm",
   suggestions_open: "Open",
+  suggestions_open_confirm: "Review",
   suggestions_dismiss: "Dismiss",
   suggestions_loading: "AI is thinking",
   suggestions_accept_all: "Accept all",

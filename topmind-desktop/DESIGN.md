@@ -55,8 +55,8 @@
 
 | kind | 说明 | 影响 | apply 行为 |
 |------|------|------|-----------|
-| `inbox_review` | Inbox 文件超过回顾天数 | high | 迁入 99-归档（新家，不是删除） |
-| `inbox_organize` | **AI 分析 Inbox → 移入已有专题或新建专题** | medium | 先写目标再删源（与 Desktop moveToTopic 相同） |
+| `inbox_review` | Inbox 文件超过回顾天数（**仅作回顾提示，不再默认归档**） | high | 保留兼容 kind；产品默认走 `inbox_organize` 归位 |
+| `inbox_organize` | **AI/规则建议：移入已有专题或新建专题**（超期笔记优先） | medium/high | 先写目标再删源（与 Desktop moveToTopic 相同） |
 | `stale_topic` | 专题长期未更新 | high | 归档整个专题目录 |
 | `catch_all` | 兜底类文件过期 | high | 迁入 99-归档（新家） |
 | `stream_digest` | 为周期本生成反思 | high | AI 生成真实反思写入 memory/periodic |
@@ -65,9 +65,11 @@
 | `create_topic` | AI 建议新建专题 | medium | 在内容大类下创建专题目录 + topic.md |
 | `open_profile` | 完善「我的情况」 | low | 打开契约画像文件（默认 memory/profile.md） |
 
+**Inbox 生命周期语义（强制）**：超期 **≠** 归档。年龄只触发「待归位」回顾；首选结果是移入合适专题 / 新建专题。归档是用户手动的最后手段，不是确认卡片的默认动作。
+
 **inbox_organize 特殊行为**：
-- AI 可用时：分析每个 Inbox 文件内容，建议移入已有专题或新建专题
-- AI 不可用且 Inbox ≥3 条：提示配置 AI 后可自动整理
+- AI 可用时：分析 Inbox 文件（含嵌套目录，超期优先），建议移入已有专题或新建专题；提示词明确禁止仅因较旧就建议归档
+- AI 不可用且 Inbox ≥3 条 **或** 有超期笔记：出一张「待归位」批量提示（batch_hint，不写盘）
 - 确认后：先 `executeWrite` 写入目标专题，再 unlink 源文件（源失败则保留）
 - 导航：确认后跳转到目标专题中的文件（而非回到动态）
 
@@ -75,7 +77,7 @@
 
 | 图标（RemixIcon） | 用途 | 禁止 |
 |------|------|------|
-| **RiFlashlightFill** | 「记一下」完整捕获 | 用于 AI 润色 / 待办 |
+| **RiFlashlightLine** | 「记一下」完整捕获（线形；禁止 Fill 实心） | 用于 AI 润色 / 待办 |
 | **RiSparklingLine** | AI 润色 · AI 待办 · 建议条 AI 动作 | 用于普通保存 |
 | **RiSendPlane2Line** | 「记下」写入周期本 | 与 Flashlight 混用为捕获 |
 | **RiListCheck** | AI 工作区清单 pane · 状态栏「AI 整理待办中」chip（可点开清单） | 与建议混称；**禁止**用于后台 Task 面板 |
@@ -90,6 +92,20 @@
 | **RiListCheck2** | 编辑器 Markdown 任务列表语法开关（格式条） | 用于产品「清单」pane（那是 RiListCheck） |
 
 > 图标体系（2026-09）：全应用 **RemixIcon**（`@remixicon/react`），尺寸标尺集中 `src/lib/icons.ts` `ICON = { nano:10, micro:12, xs:14, sm:17, md:20, lg:24, xl:30 }`。语义边界：**nano 仅限箭头/圆点/kbd；功能图标 micro 起步；header/sidebar/主导航用 sm**。二态开关用 Line/Fill 变体对（如 PanelToggleIcon）。**一概念一图标**：同一产品概念在所有表面复用同一 glyph（对话 / 清单 / 交付 / 编辑 / 整理），不要在第二个组件另起近似图标。
+
+#### 跨表面图标映射（强制 · Desktop Remix ↔ Obsidian Lucide）
+
+宿主图标库不同，**语义必须一一对应**。Obsidian `setIcon` 用 Lucide 名；禁止用 `list-checks` 表示「整理」（那是清单）。
+
+| 概念 | Desktop (Remix) | Obsidian (Lucide) | 禁止 |
+|------|-----------------|-------------------|------|
+| 记一下 | `RiFlashlightLine` | `zap` | Fill 实心闪电；与记下混用 |
+| 记下 | `RiSendPlane2Line` | `send` | Save 冒充 |
+| 整理 | `RiMagicLine` | `wand-2` | `list-checks` / `refresh-cw` |
+| 清单 / 待办 | `RiListCheck` | `list-checks` | 与整理混用 |
+| 建议 | `RiSparklingLine` / Lightbulb 面板 | `lightbulb` | 三处等权入口 |
+| 对话 | `RiChatAiLine` | `bot` | 普通 `message-circle` |
+| 后台任务 busy | `RiLoader4Line` | spinner / `loader` | 与清单混用 |
 
 **捕获英文对译（强制）**：`记一下` = **Note it**（完整捕获）；`记下` = **Log it**（动态主区写入周期本）。禁止用 Save 冒充「记下」、用 Quick Capture 冒充「记一下」。
 
@@ -212,7 +228,7 @@
 | **统一 chip 语言** | `.v4-chip` / `.v4-segmented` / `.v4-composer` / `CaptureModeBar` / FilterChip |
 | **列表 / 下拉** | 门户 `DropdownMenu`/`MenuSelect` / ContextMenu 共用 `.v4-menu-surface`；**先 hidden 测量再显示**（无打开闪跳）；**滚动即关**；画布菜单在 `html[data-overlay-open]` 时关闭；`z-menu(110)` > tooltip(100) > 工作台 overlay `z-modal`(80) |
 | **空态** | `EmptyState`：图标芯片 + 一句原因 + **一个主 CTA**（侧栏 compact 同构）；时间线/标签空态须有下一步 |
-| **侧栏树** | 图标 `tree-node-icons` · 右键 `tree-node-context-menu` · 展开/排序/筛选 + **手动刷新** `tree-toolbar`（`data-sidebar-refresh` 仍在 toolbar 组件上，视觉上在 `data-sidebar-secondary-header` 与 ViewSwitcher 同一行；目录树本身不再另起工具行）· 路径 `lib/tree-path`；**文件名隐藏 `.md` 后缀**（`stripMdExt`）；**PARA 编号弱化渲染**（`renderCategoryLabel`：`00-` 前缀用 `text-text-quaternary/70`）。**感知**：`lib/tree-listing-change` 区分 listing（inbox/add/unlink/ingest-done）与 topic 内 content-only；空 inbox 写入后重建并展开，不依赖重启 |
+| **侧栏树** | 图标 `tree-node-icons` · 右键 `tree-node-context-menu` · 展开/排序/筛选 + **手动刷新** `tree-toolbar`（`data-sidebar-refresh` 仍在 toolbar 组件上，视觉上与 ViewSwitcher **同一行**——目的地行与视图切换已合并为单条 chrome `data-sidebar-secondary-header`；目录树本身不再另起工具行）· 路径 `lib/tree-path`；**文件名隐藏 `.md` 后缀**（`stripMdExt`）；**PARA 编号弱化渲染**（`renderCategoryLabel`：`00-` 前缀用 `text-text-quaternary/70`）。**感知**：`lib/tree-listing-change` 区分 listing（inbox/add/unlink/ingest-done）与 topic 内 content-only；空 inbox 写入后重建并展开，不依赖重启 |
 | **少硬分割线** | 编辑器常驻 ≤2 条 full-width 分割（工具栏 + 可选属性）；避免斑马纹；**Recent tab strip 无底边框**（`.v4-editor-recents` transparent + `shadow-divider-bottom`）；**标题栏 cluster 透明**（`.v4-titlebar-cluster` 无背景无 inset）；**搜索为侧栏图标按钮**（`.v4-search-trigger`，纯按钮无输入框，⌘K）；**侧栏主 header**（`data-sidebar-header`：Profile → 搜索 → 记一下）；**次级 header**（`data-sidebar-secondary-header`：ViewSwitcher 与树工具一行） |
 | **长时阅读** | UI ≥12px；正文默认 16px / 1.7；列宽 `--content-max-width-prose`；专注模式 ⌘⌥F；边框 alpha 足以勾勒结构、避免糊成一片 |
 | **动效克制** | `duration-fast` 140ms · `duration-enter` 160ms；列表 stagger ≤8；`prefers-reduced-motion` 全关 |
@@ -412,13 +428,12 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 
 ### 2.2 侧栏树
 
-- **ViewSwitcher**：侧栏顶部 `.v4-segmented` + **滑动 thumb**（`.v4-segmented-thumb`）
-  - **主轨（默认可见）**：**动态流** · **目录** · **时间**
-  - **高级（「更多」折叠）**：**标签** · **看板**（不占默认主 chrome；IA thrift / Wave E）
-  - **待办清单**：不占侧栏；⌘⇧T 打开 AI 工作区 清单 pane；专注模式才浮动 `TodoPopover`
-  - 视图模式持久化到 `settings.ui.sidebarView`（Shell 防抖写入；旧 `localStorage` 键启动时清理）
-  - 窄轨自动 icon-only；`prefers-reduced-motion` 时 thumb 无过渡
+- **ViewSwitcher**：侧栏顶部**单一下拉**（触发器显示当前模式文案，如「目录 ▾」；默认 **目录/category**；菜单含 目录 / 流式 / 时间 / 标签 / 看板 + 一句 hint）
+  - 这是**侧栏视图**，不是主画布模式；主画布信息流的列表/卡片开关仍在流上方（`data-feed-chrome`）
+  - 与 PrimaryNav 同排 chrome 行；两控件都必须 `onClick` 切换 `open`（DropdownMenu 不自开）
+- **PrimaryNav**：侧栏**单一下拉**（动态 / Inbox / 交付）；侧栏收起时 TitleBar 紧凑图标
 - **自动刷新**：侧栏订阅 `workspace:file-changed`。目录树用 `classifyTreeFileChange`：inbox / 交付 / 归档 / 类别根 / add·unlink / ingest 完成 = listing 重建（空 inbox 有文件则展开）；专题内部保存 = 定向刷新、不整树闪。Inbox 主列表静默重载（无全页空态闪）。手动刷新在树工具条（展开/折叠/排序旁），不是标题栏第二按钮。StreamView 450ms 防抖。
+- **渐进展开**：每个展开节点默认只渲染 **8** 个子项，其余收成「还有 N 项…」；再点再翻 8 个。避免长目录一展开就刷屏。
 - **DataSource 区段**：每个注册的 DataSource 渲染为可折叠区段，带 Database 眉头图标 + 半粗体大写标签。
 - **加载状态**：共享 save-dot 旋转动画；错误/空状态使用规范侧栏提示样式。
 - **TreeView**：递归渲染，按深度缩进。首次渲染时自动展开 group/category 节点。
@@ -896,7 +911,8 @@ ZCode 阶：`--radius-xs: 2px` · `--radius-sm: 4px` · `--radius-md: 6px` · `-
 
 界面显性概念严格限定为：**记一下 · 动态 · 专题 · 我的情况 · 交付**。
 
-- 中栏主锚点：动态（默认）· Inbox · 交付（状态栏常驻；搜索非 PrimaryNav：⌘K 命令面板 · ⌘P 笔记全文）
+- 目的地行：动态（默认）· Inbox · 交付（**侧栏** `PrimaryNav variant=sidebar`；侧栏收起时 TitleBar compact；StatusBar 不含导航）
+- 搜索非 PrimaryNav：⌘K 命令面板 · ⌘P 笔记全文
 - 侧栏 ViewSwitcher：流式 / 分类 / 时间线 / 标签 / 看板（高级折叠）
 - 捕获词汇：`记一下`（Note it · 完整捕获）vs `记下`（Log it · 周期本追加）— 语义不混
 - 无多余概念暴露

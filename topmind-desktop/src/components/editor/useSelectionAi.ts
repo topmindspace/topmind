@@ -16,7 +16,10 @@ import {
   getEditorMarkdown,
   insertMarkdown,
   insertMarkdownAt,
+  markdownFromEditorRange,
+  prepareMarkdownForEditorInsert,
   replaceSelectionWithMarkdown,
+  selectionInsideList,
 } from "../../lib/editor-markdown";
 import { inlineAiSelectionDrifted, sanitizeInlineAiResult } from "../../lib/inline-ai-result";
 import { useInlineAiStore } from "../../lib/inline-ai-busy";
@@ -220,7 +223,8 @@ export function useSelectionAi({
     if (!editor || readOnly || editor.isDestroyed || !editor.isEditable) return null;
     const { from, to, empty } = editor.state.selection;
     if (empty || to - from < 2) return null; // Min 2 chars to avoid noise
-    const text = editor.state.doc.textBetween(from, to, "\n");
+    // Markdown slice keeps list markers / nesting so AI can preserve them.
+    const text = markdownFromEditorRange(editor, from, to);
     if (!text.trim() || text.length > 32_000) return null;
     const { left, top, bottom } = coordsFor(editor, from, to);
     return { scope: "selection", text, from, to, top, left, bottom };
@@ -546,9 +550,16 @@ export function useSelectionAi({
           const full = getEditorMarkdown(editor).trim();
           if (full && full !== text.trim()) {
             const fm = frontmatter?.trim();
-            documentText = fm
-              ? `---\n${fm.replace(/^---\n?/m, "").replace(/\n?---$/m, "").trim()}\n---\n${full}`.slice(0, 28_000)
-              : full.slice(0, 28_000);
+            const base = fm
+              ? `---\n${fm.replace(/^---\n?/m, "").replace(/\n?---$/m, "").trim()}\n---\n${full}`
+              : full;
+            // Structural note when the range sits in a list but markers were lost.
+            const listNote =
+              selectionInsideList(editor, target.from) &&
+              !/^\s*(?:[-*+]|\d+\.)\s/u.test(text)
+                ? "\n\n[selection is inside a list item — output list-item Markdown with matching markers]"
+                : "";
+            documentText = `${base}${listNote}`.slice(0, 28_000);
           }
         }
       } catch {
@@ -636,9 +647,12 @@ export function useSelectionAi({
       }
       // Capture doc size before replacement to calculate new selection range
       const sizeBefore = editor.state.doc.content.size;
-      const ok = replaceSelectionWithMarkdown(editor, from, to, preview);
+      const sourceForAlign = markdownFromEditorRange(editor, from, to) || target.text;
+      const ok = replaceSelectionWithMarkdown(editor, from, to, preview, { source: sourceForAlign });
       if (!ok) {
-        editor.chain().focus().insertContentAt({ from, to }, preview).run();
+        // Same prepare pipeline as the success path — never raw-insert unprepared text.
+        const prepared = prepareMarkdownForEditorInsert(preview, sourceForAlign, { trimLeading: true });
+        editor.chain().focus().insertContentAt({ from, to }, prepared || preview).run();
       }
       // Re-select the replaced range so user can see the result and re-run AI if needed
       try {
@@ -652,7 +666,12 @@ export function useSelectionAi({
         /* best-effort — editor may not accept selection change */
       }
     } else {
-      insertMarkdown(editor, preview);
+      // Menu / full-document rewrite: replace the whole body, not the caret selection.
+      const size = editor.state.doc.content.size;
+      const ok = replaceSelectionWithMarkdown(editor, 0, size, preview);
+      if (!ok) {
+        insertMarkdown(editor, preview);
+      }
     }
     clearUi();
   }, [editor, target, preview, readOnly, phase, clearUi, t]);

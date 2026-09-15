@@ -69,8 +69,12 @@ export function SelectionAiToolbar({
 
   return (
     <>
-      {/* Actions — same set for toolbar & selection */}
-      <div className="flex flex-wrap items-center gap-0.5">
+      {/* Primary actions — wrap-friendly row so a wide panel shows full labels */}
+      <div
+        className="flex flex-wrap items-center gap-0.5"
+        role="toolbar"
+        aria-label={t("selectionAi.headerSelection")}
+      >
         {SELECTION_ACTIONS.map((a) => (
           <Tooltip key={a.id} content={ready ? t(a.tipKey) : t("selectionAi.errorAiNotReady")}>
             <button
@@ -84,16 +88,19 @@ export function SelectionAiToolbar({
                 void onRun(a.id);
               }}
               className={cn(
-                "flex h-7 items-center gap-1 rounded-[var(--radius-sm)] px-2 text-3xs font-medium",
-                "v4-ai-btn disabled:opacity-45",
+                "flex h-7 items-center gap-1 rounded-[var(--radius-sm)] px-2",
+                "text-3xs font-medium v4-ai-btn disabled:opacity-45",
               )}
             >
-              <a.icon size={ICON.micro} aria-hidden />
-              {t(a.labelKey)}
+              <a.icon size={ICON.micro} className="shrink-0" aria-hidden />
+              <span className="whitespace-nowrap">{t(a.labelKey)}</span>
             </button>
           </Tooltip>
         ))}
+      </div>
 
+      {/* Secondary row — continue / custom (and pinned summarize-all) */}
+      <div className="flex flex-wrap items-center gap-0.5">
         <Tooltip content={ready ? t("selectionAi.continueTip") : t("selectionAi.needConfig")}>
           <button
             type="button"
@@ -129,7 +136,7 @@ export function SelectionAiToolbar({
             type="button"
             disabled={busy}
             onClick={onToggleCustom}
-            className="flex h-7 items-center gap-1 rounded-[var(--radius-sm)] px-2 text-3xs text-text-tertiary hover:bg-surface-muted"
+            className="ml-auto flex h-7 items-center gap-1 rounded-[var(--radius-sm)] px-2 text-3xs text-text-tertiary hover:bg-surface-muted"
           >
             <RiText size={ICON.micro} /> {t("selectionAi.customLabel")}
           </button>

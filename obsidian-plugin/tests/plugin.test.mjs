@@ -146,12 +146,14 @@ describe("Obsidian labeled-button chrome (shipped)", () => {
 
   test("refresh and organize use distinct icons and handlers", () => {
     assert.match(workbench, /setIcon\(refreshStreamBtn,\s*"refresh-cw"\)/);
-    assert.match(workbench, /setIcon\(this\.organizeBtn,\s*"list-checks"\)/);
+    // organize = wand-2 (Desktop RiMagicLine); list-checks is reserved for todos
+    assert.match(workbench, /setIcon\(this\.organizeBtn,\s*"wand-2"\)/);
     assert.match(workbench, /stream_unreconciled/);
     assert.match(workbench, /p\.reconciled === false/);
     assert.match(workbench, /refreshStreamBtn\.addEventListener\("click".*refreshStream/s);
     assert.match(workbench, /this\.organizeBtn\.addEventListener\("click".*organizePeriod/s);
     assert.doesNotMatch(workbench, /setIcon\(this\.organizeBtn,\s*"refresh-cw"\)/);
+    assert.doesNotMatch(workbench, /setIcon\(this\.organizeBtn,\s*"list-checks"\)/);
     assert.match(sidebar, /setIcon\(workbenchBtn,\s*"waves"\)/);
     assert.doesNotMatch(sidebar, /setIcon\(workbenchBtn,\s*"monitor"\)/);
   });
@@ -455,7 +457,7 @@ describe("stream workbench display path (shipped)", () => {
     assert.doesNotMatch(src, /STREAM_EXPAND_CHAR_BUDGET=480/);
   });
 
-  test("sidebar stream preview and createNewNote go through display strip / Kernel", () => {
+  test("stream preview lives in workbench only; createNewNote goes through Kernel", () => {
     const sidebar = fs.readFileSync(
       path.join(srcDir, "views", "sidebar-dock-view.ts"),
       "utf-8",
@@ -464,8 +466,11 @@ describe("stream workbench display path (shipped)", () => {
       path.join(srcDir, "views", "stream-workbench-view.ts"),
       "utf-8",
     );
-    assert.match(sidebar, /prepareStreamEntryTextForDisplay\(entry\.text\)/);
-    assert.doesNotMatch(sidebar, /entry\.text\.slice\(0,\s*80\)/);
+    // Dynamic stream is the main-area Stream View — Dock no longer hosts a stream tab.
+    assert.doesNotMatch(sidebar, /renderStreamTab/);
+    assert.doesNotMatch(sidebar, /sidebar_tab_stream/);
+    assert.doesNotMatch(sidebar, /prepareStreamEntryTextForDisplay\(entry\.text\)/);
+    assert.match(workbench, /prepareStreamEntryTextForDisplay/);
     assert.match(sidebar, /renderPendingWrites/);
     assert.match(sidebar, /pending_writes_accept/);
     assert.match(workbench, /createInboxNote/);
@@ -661,18 +666,24 @@ describe("suggestion helpers (shipped)", () => {
     assert.match(en, /suggestions_open:\s*"Open"/);
   });
 
-  test("both host views render suggestions via the shared card surface (no copy drift)", () => {
+  test("Dock is the single suggestion confirm surface; stream only opens it", () => {
     const shared = fs.readFileSync(path.join(srcDir, "views", "suggestion-card.ts"), "utf-8");
     assert.match(shared, /suggestions_confirm/);
     assert.match(shared, /suggestions_open/);
     assert.match(shared, /suggestionApplyIsWrite/);
     assert.match(shared, /tm-suggestion-path/);
-    for (const name of ["sidebar-dock-view", "stream-workbench-view"]) {
-      const src = fs.readFileSync(path.join(srcDir, "views", `${name}.ts`), "utf-8");
-      assert.match(src, /renderSuggestionCard\(container, sugg, \{/, `${name} must delegate`);
-      assert.doesNotMatch(src, /tm-btn-confirm/, `${name} must not copy card DOM`);
-      assert.doesNotMatch(src, /suggestions_confirm/, `${name} must not copy vocabulary`);
-    }
+
+    const sidebar = fs.readFileSync(path.join(srcDir, "views", "sidebar-dock-view.ts"), "utf-8");
+    assert.match(sidebar, /renderSuggestionCard\(container, sugg, \{/, "sidebar must delegate");
+    assert.doesNotMatch(sidebar, /tm-btn-confirm/, "sidebar must not copy card DOM");
+    assert.doesNotMatch(sidebar, /suggestions_confirm/, "sidebar must not copy vocabulary");
+
+    // Stream view: quiet count entry → revealTab("suggestions"); no second card list.
+    const workbench = fs.readFileSync(path.join(srcDir, "views", "stream-workbench-view.ts"), "utf-8");
+    assert.match(workbench, /tm-suggest-entry/);
+    assert.match(workbench, /revealTab\?\.\("suggestions"\)/);
+    assert.doesNotMatch(workbench, /renderSuggestionCard\(container, sugg, \{/);
+    assert.doesNotMatch(workbench, /tm-btn-confirm/);
   });
 });
 

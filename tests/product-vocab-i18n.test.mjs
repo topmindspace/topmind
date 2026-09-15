@@ -251,7 +251,7 @@ test("new-workspace fallback names and Kernel suggestion copy follow the rename"
 
   // Kernel suggestion copy (zh) is user-facing
   assert.doesNotMatch(read("lib/suggest-engine.mjs"), /收件箱/u);
-  assert.match(read("lib/suggest-engine.mjs"), /inboxReviewTitle:\s*"Inbox 待整理"/u);
+  assert.match(read("lib/suggest-engine.mjs"), /inboxReviewTitle:\s*"Inbox 待归位"/u);
 
   // Legacy names must stay resolvable / parseable
   assert.match(read("topmind-desktop/electron/lib/category-pattern.mjs"), /"88-Outputs"/u);

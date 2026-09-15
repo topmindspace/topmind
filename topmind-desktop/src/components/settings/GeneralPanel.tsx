@@ -51,7 +51,7 @@ const DEFAULT_UI = {
   sidebarCollapsed: false,
   aiPanelOpen: true,
   aiPanelWidth: 420,
-  sidebarView: "stream" as const,
+  sidebarView: "category" as const,
   fileFilter: "default" as const,
   closeBehavior: "ask" as const,
 };
@@ -113,7 +113,7 @@ export function GeneralPanel({
           </Field>
           <Field label={t("settings:general.defaultSidebar")} description={t("settings:general.defaultSidebarDesc")} compact>
             <Select
-              value={ui.sidebarView || "stream"}
+              value={ui.sidebarView || "category"}
               onChange={(e) => update({ ui: { sidebarView: e.target.value } })}
               options={[
                 { value: "stream", label: t("settings:general.sidebarStream") },

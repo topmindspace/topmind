@@ -21,7 +21,8 @@ export function isPiRuntimeAvailable() {
   return true;
 }
 
-function stubModel(modelId) {
+function stubModel(modelId, contextWindow) {
+  const cw = Number(contextWindow) > 0 ? Number(contextWindow) : 128000;
   return {
     id: modelId || "desktop",
     name: modelId || "desktop",
@@ -31,7 +32,7 @@ function stubModel(modelId) {
     reasoning: false,
     input: ["text"],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 128000,
+    contextWindow: cw,
     maxTokens: 8192,
   };
 }
@@ -57,9 +58,11 @@ function flattenPiText(message) {
 
 /**
  * Fold a Pi Agent transcript when Pi's shouldCompact fires, using Desktop's
- * compactMessagesForModel (no second LLM call; tool-result tails are left intact).
+ * compactMessagesForModel (no second LLM call).
+ * Recent toolCall/toolResult turns are kept as structured pairs so path
+ * receipts and read windows survive compaction.
  * @param {object[]} messages
- * @param {{ contextWindow?: number, modelId?: string }} [opts]
+ * @param {{ contextWindow?: number, modelId?: string, keepRecentTools?: number }} [opts]
  */
 export function maybeCompactPiMessages(messages, opts = {}) {
   const list = Array.isArray(messages) ? messages : [];
@@ -67,19 +70,49 @@ export function maybeCompactPiMessages(messages, opts = {}) {
   if (last?.role === "toolResult") {
     return { messages: list, compacted: false, note: null };
   }
-  const flat = list
+  // Keep the most recent tool conversation intact (pairs + surrounding turns).
+  const keepRecentTools = Math.max(0, Number(opts.keepRecentTools ?? 6));
+  let cut = list.length;
+  if (keepRecentTools > 0) {
+    let seen = 0;
+    for (let i = list.length - 1; i >= 0; i--) {
+      const role = list[i]?.role;
+      if (role === "toolCall" || role === "toolResult") {
+        seen += 1;
+        if (seen > keepRecentTools) {
+          cut = i;
+          break;
+        }
+      }
+    }
+  }
+  // Never cut in the middle of an open toolCall→toolResult pair.
+  while (cut > 0 && list[cut - 1]?.role === "toolCall" && list[cut]?.role === "toolResult") {
+    cut -= 1;
+  }
+  const older = list.slice(0, cut);
+  const recentStructured = list.slice(cut);
+
+  const flat = older
     .filter((m) => m && (m.role === "user" || m.role === "assistant"))
     .map((m) => ({ role: m.role, content: flattenPiText(m) }))
     .filter((m) => m.content.trim().length > 0 || m.role === "user");
-  const tokens = flat.reduce((n, m) => n + estimateTokens(m.content), 0);
+  const tokens =
+    flat.reduce((n, m) => n + estimateTokens(m.content), 0) +
+    recentStructured.reduce((n, m) => {
+      const blocks = Array.isArray(m?.content) ? m.content : [];
+      const text = blocks.map((b) => b?.text || b?.thinking || "").join("");
+      return n + estimateTokens(text);
+    }, 0);
   const window = Number(opts.contextWindow) > 0 ? Number(opts.contextWindow) : 128000;
   const overWindow = shouldCompact(tokens, window, DEFAULT_COMPACTION_SETTINGS);
   const compact = compactMessagesForModel(flat);
   if (!overWindow && !compact.compacted) {
     return { messages: list, compacted: false, note: null, estimatedTokens: tokens };
   }
+  const folded = sdkMessagesToPi(compact.messages, opts.modelId || "desktop");
   return {
-    messages: sdkMessagesToPi(compact.messages, opts.modelId || "desktop"),
+    messages: [...folded, ...recentStructured],
     compacted: true,
     note: compact.note || (overWindow ? "pi-shouldCompact" : null),
     estimatedTokens: compact.estimatedTokens,
@@ -115,6 +148,7 @@ export async function runPiAgent(opts, registry) {
     maxAgentSteps,
     workspaceRoot,
     streamFn: streamFnOverride,
+    contextWindow,
   } = opts;
 
   const controller = new AbortController();
@@ -140,13 +174,14 @@ export async function runPiAgent(opts, registry) {
   const agent = new Agent({
     initialState: {
       systemPrompt: system || "",
-      model: stubModel(modelId),
+      model: stubModel(modelId, contextWindow),
       tools: piTools,
       messages: prior,
     },
     streamFn,
     transformContext: async (msgs) => {
-      const folded = maybeCompactPiMessages(msgs, { contextWindow: 128000, modelId });
+      const window = Number(contextWindow) > 0 ? Number(contextWindow) : 128000;
+      const folded = maybeCompactPiMessages(msgs, { contextWindow: window, modelId });
       if (folded.compacted) {
         emitOut({ type: "status", status: "compacting" });
         logInfo("ai-pi", "context compacted", { sessionId, note: folded.note });

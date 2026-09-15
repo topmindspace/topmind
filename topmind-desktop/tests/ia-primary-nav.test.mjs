@@ -19,7 +19,7 @@ describe("Desktop primary IA target", () => {
     assert.match(sidebar, /SidebarHeaderActions/);
     assert.match(sidebar, /v4-search-trigger/);
     assert.match(sidebar, /searchCommandTip/);
-    assert.match(sidebar, /RiFlashlightFill/);
+    assert.match(sidebar, /RiFlashlightLine/);
     assert.match(sidebar, /titleBar\.capture/);
     assert.match(sidebar, /ProfileButton/);
     const headerFn = sidebar.slice(
@@ -27,7 +27,7 @@ describe("Desktop primary IA target", () => {
       sidebar.indexOf("function ProfileButton"),
     );
     assert.ok(headerFn.indexOf("<ProfileButton") < headerFn.indexOf("v4-search-trigger"));
-    assert.ok(headerFn.indexOf("v4-search-trigger") < headerFn.indexOf("RiFlashlightFill"));
+    assert.ok(headerFn.indexOf("v4-search-trigger") < headerFn.indexOf("RiFlashlightLine"));
     assert.doesNotMatch(sidebar, /select\(\{\s*kind:\s*"archive"\s*\}\)/);
     assert.doesNotMatch(sidebar, /icon:\s*Home/);
     assert.doesNotMatch(sidebar, /RotateCcw/);
@@ -105,13 +105,26 @@ describe("Desktop primary IA target", () => {
     assert.match(shell, /showSidebar = !focusMode && !sidebarCollapsed/);
   });
 
-  it("ViewSwitcher keeps tags/kanban behind advanced more menu", () => {
+  it("ViewSwitcher is a single dropdown; tags/kanban stay in the same menu", () => {
     const src = read("src/components/sidebar/ViewSwitcher.tsx");
-    assert.match(src, /PRIMARY_MODES/);
-    assert.match(src, /ADVANCED_MODES/);
-    assert.match(src, /moreLabel/);
+    assert.match(src, /DropdownMenu/);
+    assert.match(src, /ALL_MODES/);
     assert.match(src, /"tags"/);
     assert.match(src, /"kanban"/);
+    assert.match(src, /"category"/);
+    // Default directory mode is first in the menu order
+    assert.match(src, /ALL_MODES: SidebarViewMode\[\] = \["category"/);
+    // DropdownMenu does not self-toggle — trigger must wire onClick
+    assert.match(src, /onClick=\{\(\) => setOpen\(\(v\) => !v\)\}/);
+  });
+
+  it("PrimaryNav sidebar dropdown wires trigger onClick (DropdownMenu is not self-opening)", () => {
+    const src = read("src/components/shell/PrimaryNav.tsx");
+    assert.match(src, /variant="sidebar"|variant = "sidebar"/);
+    assert.match(src, /DropdownMenu/);
+    assert.match(src, /onClick=\{\(\) => setOpen\(\(v\) => !v\)\}/);
+    // Line-only destination icons — no Fill flip on active
+    assert.doesNotMatch(src, /RiHome4Fill|RiInbox2Fill|RiShareForwardFill/);
   });
 
   it("living DESIGN present-tense preview is static HTML, not live TipTap setEditable", () => {

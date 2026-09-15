@@ -92,9 +92,12 @@ test("both locales advertise every shipped tool and teach no phantom name", () =
   // registry in two directions, both silent at runtime:
   //   · a shipped tool the model is never told about (unreachable feature), or
   //   · a name the model is told to call that no longer exists (phantom call).
-  // Skills are disabled here so the only backticked names left in the prompt are
-  // the authored tool/alias ones — no skill body can dilute the signal.
+  // Skills are ON here so skill tools must be advertised; a separate case locks
+  // the skills-off strip so the model cannot call unregistered skill tools.
   const ALIASES = new Set(["bash", "edit", "find", "grep", "read", "write"]);
+  const SKILL_TOOLS = new Set(["list_skills", "load_skill", "load_skill_resource"]);
+  // Skill ids are backticked in the catalog section (routing), not tool names.
+  const SKILL_IDS = new Set(["topmind", "topmind-capture", "topmind-organize", "topmind-write", "topmind-memory", "topmind-maintain", "topmind-loop"]);
   const registry = [...AI_TOOL_NAMES_READ, ...AI_TOOL_NAMES_WRITE];
   /** @type {Map<string, string[]>} */
   const claimed = new Map();
@@ -103,14 +106,16 @@ test("both locales advertise every shipped tool and teach no phantom name", () =
     const prompt = buildSystemPrompt({
       workspaceContext: { userWorkspaceRoot: "/tmp/ws" },
       writebackMode: "auto",
-      skillsEnabled: false,
+      skillsEnabled: true,
       locale,
     });
     const toks = new Set();
     for (const m of prompt.matchAll(/`([a-z][a-z0-9_]{2,})`/gu)) toks.add(m[1]);
     claimed.set(locale, [...toks].sort());
 
-    const phantom = [...toks].filter((t) => !registry.includes(t) && !ALIASES.has(t)).sort();
+    const phantom = [...toks]
+      .filter((t) => !registry.includes(t) && !ALIASES.has(t) && !SKILL_IDS.has(t) && !t.startsWith("topmind"))
+      .sort();
     assert.deepEqual(
       phantom,
       [],
@@ -122,10 +127,28 @@ test("both locales advertise every shipped tool and teach no phantom name", () =
       [],
       `${locale} prompt never names shipped tool(s) — the model cannot reach them: ${missing.join(", ")}`,
     );
+    for (const s of SKILL_TOOLS) {
+      assert.ok(toks.has(s), `${locale} must advertise ${s} when skills are enabled`);
+    }
   }
 
   // Symmetry: neither locale may advertise a tool the other hides.
   assert.deepEqual(claimed.get("zh-CN"), claimed.get("en-US"), "zh-CN / en-US tool lists diverged");
+});
+
+test("skills-disabled prompt strips skill tools the model cannot call", () => {
+  for (const locale of ["zh-CN", "en-US"]) {
+    const prompt = buildSystemPrompt({
+      workspaceContext: { userWorkspaceRoot: "/tmp/ws" },
+      writebackMode: "auto",
+      skillsEnabled: false,
+      locale,
+    });
+    assert.doesNotMatch(prompt, /`list_skills`/u, `${locale} must not advertise list_skills when skills off`);
+    assert.doesNotMatch(prompt, /`load_skill`/u, `${locale} must not advertise load_skill when skills off`);
+    // Core write tools stay available.
+    assert.match(prompt, /`edit_file`/u);
+  }
 });
 
 test("name list source stays the single advertised Desktop catalog", () => {

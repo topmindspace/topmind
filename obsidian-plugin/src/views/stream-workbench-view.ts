@@ -5,7 +5,7 @@
 // - Quick input bar at top (always visible, always focused-ready)
 // - Toolbar with quick access to sidebar + settings + model info + AI task progress
 // - Stream section: period selector + day-grouped entry cards with append
-// - AI Suggestions section: contextual empty states (disabled / no AI / loading)
+// - Suggest entry: count-only strip → AI Dock 建议 tab (single confirm home)
 // - All states (loading / empty / error / ready) are visually polished
 // - Day grouping: entries grouped by ## day headings within period notes
 // - Multi-task progress: AI operations show inline progress badge in toolbar
@@ -29,7 +29,6 @@ import {
   prepareStreamEntryTextForDisplay,
   splitStreamPreviewParts,
 } from "../utils";
-import { renderSuggestionCard } from "./suggestion-card";
 import { hasConfiguredProvider } from "../types";
 import { aiTaskManager, type TaskProgress } from "../services/ai-task-manager";
 
@@ -242,7 +241,8 @@ export class StreamWorkbenchView extends ItemView {
     this.organizeBtn = streamControls.createEl("button", {
       cls: "tm-btn-secondary",
     });
-    setIcon(this.organizeBtn, "list-checks");
+    // wand-2 = 整理（Desktop RiMagicLine）；list-checks 留给「清单」
+    setIcon(this.organizeBtn, "wand-2");
     this.organizeBtn.createSpan({ text: t("stream_organize") });
     this.organizeBtn.setAttribute("aria-label", t("stream_organize"));
     this.organizeBtn.addEventListener("click", () => this.organizePeriod());
@@ -262,29 +262,9 @@ export class StreamWorkbenchView extends ItemView {
     this.streamContainer = feedColumn.createDiv({ cls: "tm-stream-container" });
     this.applyFeedLayout();
 
-    // ── Suggestions Section ──
-    const suggHeader = contentEl.createDiv({ cls: "tm-section-header" });
-    suggHeader.createSpan({ text: t("suggestions_title"), cls: "tm-section-title" });
-
-    const suggControls = suggHeader.createDiv({ cls: "tm-section-controls" });
-    const refreshSuggBtn = suggControls.createEl("button", {
-      cls: "tm-btn-secondary tm-btn-icon-only",
-    });
-    setIcon(refreshSuggBtn, "refresh-cw");
-    refreshSuggBtn.setAttribute("aria-label", t("cmd_refresh_suggestions"));
-    refreshSuggBtn.setAttribute("title", t("cmd_refresh_suggestions"));
-    refreshSuggBtn.addEventListener("click", () => this.refreshSuggestions({ force: true }));
-
-    const acceptAllBtn = suggControls.createEl("button", {
-      cls: "tm-btn-secondary tm-toolbar-btn-labeled",
-    });
-    setIcon(acceptAllBtn, "check");
-    acceptAllBtn.createSpan({ text: t("suggestions_accept_all"), cls: "tm-toolbar-btn-label" });
-    acceptAllBtn.setAttribute("aria-label", t("suggestions_accept_all"));
-    acceptAllBtn.setAttribute("title", t("suggestions_accept_all"));
-    acceptAllBtn.addEventListener("click", () => { void this.acceptAllSuggestions(); });
-
-    this.suggestionContainer = contentEl.createDiv({ cls: "tm-suggestion-container" });
+    // ── Suggest entry strip（非完整确认面）──
+    // 唯一确认面在 AI Dock「建议」tab；此处只在 count>0 时露出计数入口。
+    this.suggestionContainer = contentEl.createDiv({ cls: "tm-suggest-entry" });
   }
 
   // ── Toolbar ────────────────────────────────────────────────────────────
@@ -981,118 +961,57 @@ export class StreamWorkbenchView extends ItemView {
     this.suggestionInFlight = true;
 
     const { suggestionContainer } = this;
-    const isFirstLoad = suggestionContainer.childElementCount === 0;
 
-    // Check states in order: workspace not ready → AI not configured → suggestions disabled → loading → content
     if (!this.plugin.kernelService.isWorkspaceReady()) {
       this.suggestionInFlight = false;
       return;
     }
 
-    const aiConfigured = hasConfiguredProvider(this.plugin.settings.ai);
-    if (!aiConfigured) {
-      suggestionContainer.empty();
-      const quiet = suggestionContainer.createDiv({ cls: "tm-suggestions-quiet" });
-      quiet.createSpan({ text: t("suggestions_no_ai"), cls: "tm-quiet-label" });
-      const configureBtn = quiet.createEl("button", {
-        cls: "tm-btn-ghost tm-btn-sm",
-        text: t("empty_action_configure"),
-      });
-      configureBtn.addEventListener("click", () => this.openSettings());
+    if (!hasConfiguredProvider(this.plugin.settings.ai)) {
+      this.paintSuggestEntry(suggestionContainer, null);
       this.suggestionInFlight = false;
       return;
-    }
-
-    const cached = this.plugin.kernelService.peekSuggestions();
-    const force = opts.force === true;
-    if (!force && cached.length > 0 && suggestionContainer.childElementCount > 0) {
-      this.suggestionInFlight = false;
-      return;
-    }
-
-    // Show loading spinner only if first load with no cache, or explicitly forced
-    if ((isFirstLoad && cached.length === 0) || force) {
-      suggestionContainer.empty();
-      const loadingEl = suggestionContainer.createDiv({ cls: "tm-loading tm-loading-spinner" });
-      loadingEl.createSpan({ text: t("suggestions_loading") });
-    } else if (cached.length > 0 && suggestionContainer.childElementCount === 0) {
-      this.paintSuggestionList(suggestionContainer, cached);
     }
 
     try {
-      const suggestions = await this.plugin.kernelService.generateSuggestions(opts);
-
-      suggestionContainer.empty();
-
-      if (suggestions.length === 0) {
-        const quiet = suggestionContainer.createDiv({ cls: "tm-suggestions-quiet" });
-        quiet.createSpan({
-          text: !this.plugin.settings.autoSuggest && opts.force !== true
-            ? t("suggestions_disabled")
-            : t("suggestions_empty"),
-          cls: "tm-quiet-label",
-        });
-        return;
+      const cached = this.plugin.kernelService.peekSuggestions();
+      const force = opts.force === true;
+      let suggestions = cached;
+      if (force || cached.length === 0) {
+        suggestions = await this.plugin.kernelService.generateSuggestions(opts);
       }
-
-      this.paintSuggestionList(suggestionContainer, suggestions);
+      this.paintSuggestEntry(suggestionContainer, suggestions);
     } finally {
       this.suggestionInFlight = false;
     }
   }
 
-  private paintSuggestionList(container: HTMLElement, suggestions: SuggestionCard[]): void {
-    const countEl = container.createDiv({ cls: "tm-suggestion-summary" });
-    countEl.createSpan({
+  /** Quiet count entry → AI Dock 建议 tab（唯一完整确认面）。count=0 不占位。 */
+  private paintSuggestEntry(container: HTMLElement, suggestions: SuggestionCard[] | null): void {
+    container.empty();
+    if (!suggestions || suggestions.length === 0) return;
+
+    const strip = container.createDiv({ cls: "tm-suggest-entry-strip" });
+    const icon = strip.createSpan({ cls: "tm-suggest-entry-icon" });
+    setIcon(icon, "lightbulb");
+    strip.createSpan({
       text: t("sidebar_suggestions_count", { count: suggestions.length }),
-      cls: "tm-suggestion-count-badge",
+      cls: "tm-suggest-entry-label",
     });
-    for (const sugg of suggestions) {
-      this.renderSuggestionCard(container, sugg);
-    }
-  }
-
-  private renderSuggestionState(container: HTMLElement, title: string, hint: string): void {
-    const div = container.createDiv({ cls: "tm-empty-state tm-suggestion-empty" });
-    const iconDiv = div.createDiv({ cls: "tm-empty-icon" });
-    setIcon(iconDiv, "lightbulb");
-    div.createDiv({ text: title, cls: "tm-empty-title" });
-    div.createDiv({ text: hint, cls: "tm-empty-hint" });
-  }
-
-  private async acceptAllSuggestions(): Promise<void> {
-    const cards = this.plugin.kernelService.peekSuggestions();
-    if (cards.length === 0) return;
-    const n = new Notice(
-      t("notice_executing_progress", { current: 0, total: cards.length, title: cards[0]?.title || "" }),
-      0,
-    );
-    let ok = 0;
-    for (let i = 0; i < cards.length; i++) {
-      const card = cards[i];
-      n.setMessage(t("notice_executing_progress", {
-        current: i + 1,
-        total: cards.length,
-        title: card.title,
-      }));
-      const result = await this.plugin.kernelService.applySuggestion(card, { silent: true });
-      if (result.ok) ok += 1;
-    }
-    n.hide();
-    new Notice(t("notice_accept_all_done", { count: ok }));
-    await this.refreshSuggestions();
-  }
-
-  private renderSuggestionCard(container: HTMLElement, sugg: SuggestionCard): void {
-    // Shared card surface — 动作词汇与 Desktop 对齐（见 views/suggestion-card.ts）
-    renderSuggestionCard(container, sugg, {
-      apply: (s) => this.plugin.kernelService.applySuggestion(s),
-      dismiss: (s) => this.plugin.kernelService.dropSuggestion(s.id),
-      refresh: () => this.refreshAll(),
-      openVaultPath: async (p) => {
-        await this.app.workspace.openLinkText(p, "", false);
-      },
+    const openBtn = strip.createEl("button", {
+      text: t("suggestions_open_confirm"),
+      cls: "tm-btn-ghost tm-btn-sm tm-suggest-entry-open",
     });
+    openBtn.setAttribute("aria-label", t("suggestions_open_confirm"));
+    openBtn.addEventListener("click", () => void this.openSidebarSuggestions());
+  }
+
+  private async openSidebarSuggestions(): Promise<void> {
+    await this.openSidebar();
+    const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_SIDEBAR_DOCK);
+    if (leaves.length === 0) return;
+    const view = leaves[0].view as unknown as { revealTab?: (tab: "suggestions") => void };
+    view.revealTab?.("suggestions");
   }
 
   // ── Actions ────────────────────────────────────────────────────────────
@@ -1154,7 +1073,7 @@ export class StreamWorkbenchView extends ItemView {
         this.plugin.enqueueAiOperation("todo_maintain", "op_label_todo_maintain", "notice_todo_done", "all", true);
       }
 
-      await this.refreshSuggestions();
+      await this.refreshSuggestions({ force: true });
       await this.refreshStream();
       if (!aiQueued) {
         new Notice(t("notice_organize_done"));
@@ -1166,7 +1085,7 @@ export class StreamWorkbenchView extends ItemView {
       this.organizing = false;
       this.organizeBtn.disabled = false;
       this.organizeBtn.empty();
-      setIcon(this.organizeBtn, "list-checks");
+      setIcon(this.organizeBtn, "wand-2");
       this.organizeBtn.createSpan({ text: t("stream_organize") });
     }
   }

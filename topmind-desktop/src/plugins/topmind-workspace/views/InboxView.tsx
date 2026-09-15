@@ -12,7 +12,7 @@ import {
   RiDeleteBin6Line,
   RiDraggable,
   RiFileTextLine,
-  RiFlashlightFill,
+  RiFlashlightLine,
   RiFolderOpenLine,
   RiFolderReceivedLine,
   RiInboxUnarchiveLine,
@@ -267,7 +267,7 @@ export function InboxView() {
           hint={t("workspace:inbox.emptyHint")}
           action={
             <Button variant="outline" size="sm" onClick={() => openOverlay("quick-capture")}>
-              <RiFlashlightFill size={ICON.sm} /> {t("workspace:inbox.captureBtn")}
+              <RiFlashlightLine size={ICON.sm} /> {t("workspace:inbox.captureBtn")}
             </Button>
           }
         />

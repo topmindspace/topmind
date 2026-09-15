@@ -2,7 +2,8 @@
 //
 // Design: tabbed command center — all AI capabilities in one place.
 // - Header: AI status + model badge + quick settings button + task badge
-// - Tab bar: Todos | Suggestions | Chat | Stream | History
+// - Tab bar: Todos | Suggestions | Chat | History
+// - 动态流的家是主区 Stream View（能力单家，不进 Dock）
 // - Tab content: rich, interactive panels
 // - Quick actions row at bottom with optional labels
 //
@@ -21,7 +22,6 @@ import { t } from "../i18n";
 import { VIEW_TYPE_SIDEBAR_DOCK, VIEW_TYPE_STREAM_WORKBENCH } from "../constants";
 import { AI_PROVIDER_PRESETS, PROVIDER_DEFAULT_MODELS } from "../constants";
 import type { SuggestionCard } from "../types";
-import { prepareStreamEntryTextForDisplay } from "../utils";
 import { renderSuggestionCard } from "./suggestion-card";
 import { hasConfiguredProvider } from "../types";
 import { aiTaskManager, type TaskProgress, type AiTask } from "../services/ai-task-manager";
@@ -31,7 +31,7 @@ import { resolveProviderCatalog, applyModelOptions, credentialsForProvider } fro
 import fs from "node:fs";
 import path from "node:path";
 
-type SidebarTab = "todos" | "suggestions" | "chat" | "stream" | "history";
+type SidebarTab = "todos" | "suggestions" | "chat" | "history";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -370,11 +370,11 @@ export class SidebarDockView extends ItemView {
     const tabBar = container.createDiv({ cls: "tm-tab-bar" });
     tabBar.setAttribute("role", "tablist");
 
+    // 动态流的家是主区 Stream View，不进 AI Dock（能力单家 · 对齐 Desktop）
     const tabs: { id: SidebarTab; label: string; icon: string }[] = [
       { id: "todos", label: t("sidebar_tab_todos"), icon: "list-checks" },
       { id: "suggestions", label: t("sidebar_tab_suggestions"), icon: "lightbulb" },
-      { id: "chat", label: t("sidebar_tab_chat"), icon: "message-circle" },
-      { id: "stream", label: t("sidebar_tab_stream"), icon: "waves" },
+      { id: "chat", label: t("sidebar_tab_chat"), icon: "bot" },
       { id: "history", label: t("sidebar_tab_history"), icon: "history" },
     ];
 
@@ -426,9 +426,6 @@ export class SidebarDockView extends ItemView {
         break;
       case "chat":
         this.renderChatTab(this.contentContainer);
-        break;
-      case "stream":
-        await this.renderStreamTab(this.contentContainer);
         break;
       case "history":
         this.renderHistoryTab(this.contentContainer);
@@ -746,11 +743,11 @@ export class SidebarDockView extends ItemView {
   private renderSuggestionRefreshButton(container: HTMLElement): void {
     const refreshBar = container.createDiv({ cls: "tm-suggestion-refresh-bar" });
 
-    // 1. Organize week button
+    // 1. Organize week button — wand-2 (整理), not list-checks (清单)
     const organizeBtn = refreshBar.createEl("button", {
       cls: "tm-btn-secondary tm-toolbar-btn-labeled",
     });
-    setIcon(organizeBtn, "list-checks");
+    setIcon(organizeBtn, "wand-2");
     organizeBtn.createSpan({ text: t("stream_organize"), cls: "tm-toolbar-btn-label" });
     organizeBtn.setAttribute("aria-label", t("stream_organize"));
     organizeBtn.setAttribute("title", t("stream_organize"));
@@ -1195,37 +1192,6 @@ export class SidebarDockView extends ItemView {
     }
   }
 
-  // ── Stream Tab ─────────────────────────────────────────────────────────
-
-  private async renderStreamTab(container: HTMLElement): Promise<void> {
-    const streamSection = container.createDiv({ cls: "tm-sidebar-section" });
-
-    const ctx = await this.plugin.kernelService.getStreamContext();
-    const currentPeriod = ctx.current;
-
-    if (currentPeriod) {
-      const { entries } = this.plugin.kernelService.readPeriodNote(currentPeriod.relPath);
-      const recent = [...entries].reverse().slice(0, 10);
-
-      if (recent.length === 0) {
-        this.renderEmptyState(streamSection, t("sidebar_no_stream"), "", "waves");
-      } else {
-        for (const entry of recent) {
-          const item = streamSection.createDiv({ cls: "tm-sidebar-stream-item" });
-          item.createSpan({ cls: "tm-sidebar-stream-time", text: entry.time });
-          const display = prepareStreamEntryTextForDisplay(entry.text);
-          const textPart = display.slice(0, 80) + (display.length > 80 ? "..." : "");
-          item.createSpan({ cls: "tm-sidebar-stream-text", text: textPart });
-          item.addEventListener("click", () => {
-            this.app.workspace.openLinkText(currentPeriod.relPath, "", false);
-          });
-        }
-      }
-    } else {
-      this.renderEmptyState(streamSection, t("sidebar_no_stream"), "", "waves");
-    }
-  }
-
   // ── History Tab (AI Task History) ───────────────────────────────────────
 
   private renderHistoryTab(container: HTMLElement): void {
@@ -1360,8 +1326,8 @@ export class SidebarDockView extends ItemView {
     captureBtn.setAttribute("title", t("sidebar_btn_capture"));
     captureBtn.addEventListener("click", () => this.plugin.openQuickCapture());
 
-    // Organize: reconcile current period + maintain todos (no AI required for reconcile)
-    this.addActionButton(actionsBar, "refresh-cw", t("sidebar_btn_organize"), async () => {
+    // Organize: reconcile + optional todo maintain. Icon = wand-2 (Desktop RiMagicLine)
+    this.addActionButton(actionsBar, "wand-2", t("sidebar_btn_organize"), async () => {
       new Notice(t("notice_organizing"));
       const streamCtx = await this.plugin.kernelService.getStreamContext();
       if (streamCtx.current) {
@@ -1457,6 +1423,17 @@ export class SidebarDockView extends ItemView {
   /** Public refresh — called from main.ts after operations */
   async refresh(): Promise<void> {
     await this.render();
+  }
+
+  /** Jump to a tab (e.g. stream view count chip → suggestions). */
+  revealTab(tab: SidebarTab): void {
+    if (this.activeTab === tab) {
+      void this.renderActiveTab();
+      return;
+    }
+    this.activeTab = tab;
+    if (tab === "chat") this.chatFocusOnRender = true;
+    void this.render();
   }
 
   private async openWorkbench(): Promise<void> {

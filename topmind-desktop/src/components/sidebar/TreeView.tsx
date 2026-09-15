@@ -27,6 +27,8 @@ import { formatRelativeTime } from "../../lib/datetime";
 const TREE_INDENT_BASE = 12;
 const TREE_INDENT_STEP = 12;
 const TREE_INDENT_GUTTER = 8;
+/** Progressive disclosure: show this many siblings first, then「更多」. */
+const TREE_CHILD_PAGE = 8;
 
 function treeIndent(depth: number): number {
   return TREE_INDENT_BASE + depth * TREE_INDENT_STEP;
@@ -224,6 +226,17 @@ const TreeViewNode = memo(function TreeViewNode({
     }
     return sortTreeSiblings(raw, sortMode);
   }, [node.id, node.meta, node.children, childrenCache, sortMode]);
+
+  // Progressive disclosure — default first page only;「更多」appends another page.
+  const [visibleCount, setVisibleCount] = useState(TREE_CHILD_PAGE);
+  useEffect(() => {
+    setVisibleCount(TREE_CHILD_PAGE);
+  }, [resolvedChildren]);
+  const visibleChildren = useMemo(
+    () => resolvedChildren.slice(0, visibleCount),
+    [resolvedChildren, visibleCount],
+  );
+  const hiddenCount = Math.max(0, resolvedChildren.length - visibleChildren.length);
 
   const hasChildren =
     (resolvedChildren.length > 0)
@@ -677,15 +690,34 @@ const TreeViewNode = memo(function TreeViewNode({
             <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden /> {t("sidebar.treeView.loadingFiles")}
           </div>
         ) : resolvedChildren.length > 0 ? (
-          <TreeView
-            nodes={resolvedChildren}
-            depth={depth + 1}
-            onRefresh={onRefresh}
-            loadChildren={loadChildren}
-            childrenCache={childrenCache}
-            loadingNodes={loadingNodes}
-            sortMode={sortMode}
-          />
+          <>
+            <TreeView
+              nodes={visibleChildren}
+              depth={depth + 1}
+              onRefresh={onRefresh}
+              loadChildren={loadChildren}
+              childrenCache={childrenCache}
+              loadingNodes={loadingNodes}
+              sortMode={sortMode}
+            />
+            {hiddenCount > 0 ? (
+              <button
+                type="button"
+                className="flex w-full items-center gap-1 py-0.5 text-3xs text-text-quaternary transition-colors hover:text-accent-color v4-focus-ring"
+                style={{ paddingLeft: `${treeChildIndent(depth)}px` }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setVisibleCount((c) => c + TREE_CHILD_PAGE);
+                }}
+                aria-label={t("sidebar.treeView.showMore", { count: hiddenCount })}
+              >
+                <RiAddLine size={ICON.nano} className="shrink-0" aria-hidden />
+                <span className="truncate">
+                  {t("sidebar.treeView.showMore", { count: hiddenCount })}
+                </span>
+              </button>
+            ) : null}
+          </>
         ) : (node.kind === "topic" || node.kind === "category") &&
           node.meta?.lazy &&
           (node.meta?.fileCount as number) > 0 &&

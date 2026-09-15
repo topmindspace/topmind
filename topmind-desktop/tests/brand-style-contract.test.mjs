@@ -28,7 +28,7 @@ test("sidebar 记一下 is a quiet chrome button with accent icon, not a solid T
   assert.match(v4, /accent-inbox/u);
   assert.match(sidebar, /v4-sidebar-capture/u);
   assert.match(sidebar, /titleBar\.capture/u);
-  assert.match(sidebar, /RiFlashlightFill/u);
+  assert.match(sidebar, /RiFlashlightLine/u);
   assert.doesNotMatch(sidebar, /v4-titlebar-btn-capture/u);
   assert.doesNotMatch(titleBar, /v4-titlebar-btn-capture/u);
   assert.doesNotMatch(titleBar, /titleBar\.capture/u);

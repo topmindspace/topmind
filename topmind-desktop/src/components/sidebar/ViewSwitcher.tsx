@@ -1,13 +1,15 @@
-// ── ViewSwitcher — segmented sidebar view modes ──────────────────────────
-// Primary rail: stream / category / timeline (IA thrift).
-// Advanced (tags / kanban): 「更多」overflow — DESIGN §0.0 高级折叠.
-// Sliding thumb indicator + icon-only when rail is too narrow for labels.
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+// ── ViewSwitcher — sidebar view mode dropdown ────────────────────────────
+// One trigger shows the current mode (default: category / directory tree).
+// Advanced modes (tags / kanban) share the same menu — no second overflow tab.
+// 2026-09-16: collapsed from a 3-up segmented rail +「更多」into one menu so
+// it stops crowding PrimaryNav and tree tools on the same chrome row.
+import { useMemo, useState } from "react";
 import {
+  RiArrowDownSLine,
   RiFileList3Line,
+  RiFolderOpenLine,
   RiLayoutColumnLine,
   RiListView,
-  RiMoreLine,
   RiPriceTag3Line,
   RiTimeLine,
 } from "@remixicon/react";
@@ -18,236 +20,103 @@ import { Tooltip } from "../ui/tooltip";
 import { DropdownItem, DropdownMenu } from "../ui/DropdownMenu";
 import type { SidebarViewMode } from "../../types";
 
-const PRIMARY_MODES: SidebarViewMode[] = ["stream", "category", "timeline"];
-const ADVANCED_MODES: SidebarViewMode[] = ["tags", "kanban"];
+const ALL_MODES: SidebarViewMode[] = ["category", "stream", "timeline", "tags", "kanban"];
+
+/** Line-only glyphs. category uses an open folder — the default directory mode. */
 const VIEW_ICONS: Record<SidebarViewMode, typeof RiListView> = {
   stream: RiFileList3Line,
-  category: RiListView,
+  category: RiFolderOpenLine,
   timeline: RiTimeLine,
   tags: RiPriceTag3Line,
   kanban: RiLayoutColumnLine,
 };
-
-/** Below this width per tab (approx), hide text labels. */
-const LABEL_MIN_TAB_PX = 56;
 
 interface ViewSwitcherProps {
   active: SidebarViewMode;
   onChange: (mode: SidebarViewMode) => void;
   /** From `topmind.yaml` presentation.views.enabled — omit to show all */
   enabled?: SidebarViewMode[];
-  /** Force icon-only mode (no text labels) — used in sidebar secondary header */
+  /** Unused legacy flag — dropdown is always compact. Kept for call-site compat. */
   iconOnly?: boolean;
 }
 
-interface ThumbRect {
-  left: number;
-  width: number;
-  ready: boolean;
-}
-
-export function ViewSwitcher({ active, onChange, enabled, iconOnly: forceIconOnly }: ViewSwitcherProps) {
+export function ViewSwitcher({ active, onChange, enabled }: ViewSwitcherProps) {
   const { t } = useTranslation("shell");
-  const [moreOpen, setMoreOpen] = useState(false);
+  const [open, setOpen] = useState(false);
 
-  // Memoize tabs so the array reference is stable across renders.
-  const { primaryTabs, advancedTabs, railTabs } = useMemo(() => {
+  const modes = useMemo(() => {
     const allow = (mode: SidebarViewMode) =>
       !enabled || enabled.length === 0 || enabled.includes(mode);
+    const list = ALL_MODES.filter(allow);
+    // Always keep the active mode selectable even if config hid it.
+    if (list.length === 0) return ALL_MODES.slice();
+    if (!list.includes(active)) return [active, ...list];
+    return list;
+  }, [enabled, active]);
 
-    const primaryTabs = PRIMARY_MODES.filter(allow).map((mode) => ({
-      mode,
-      icon: VIEW_ICONS[mode],
-      label: t(`sidebar.viewSwitcher.${mode}Label`),
-      hint: t(`sidebar.viewSwitcher.${mode}Hint`),
-    }));
-    const advancedTabs = ADVANCED_MODES.filter(allow).map((mode) => ({
-      mode,
-      icon: VIEW_ICONS[mode],
-      label: t(`sidebar.viewSwitcher.${mode}Label`),
-      hint: t(`sidebar.viewSwitcher.${mode}Hint`),
-    }));
-
-    // If config only enables advanced modes, surface them on the rail.
-    let railTabs = primaryTabs;
-    if (railTabs.length === 0 && advancedTabs.length > 0) {
-      railTabs = advancedTabs;
-    } else if (ADVANCED_MODES.includes(active) && advancedTabs.some((x) => x.mode === active)) {
-      // Active advanced mode joins the rail so the thumb + selection stay visible.
-      const activeAdv = advancedTabs.find((x) => x.mode === active)!;
-      if (!railTabs.some((x) => x.mode === active)) {
-        railTabs = [...railTabs, activeAdv];
-      }
-    }
-
-    // Fallback: nothing filtered in → show all primary at least
-    if (railTabs.length === 0) {
-      railTabs = PRIMARY_MODES.map((mode) => ({
-        mode,
-        icon: VIEW_ICONS[mode],
-        label: t(`sidebar.viewSwitcher.${mode}Label`),
-        hint: t(`sidebar.viewSwitcher.${mode}Hint`),
-      }));
-    }
-
-    return { primaryTabs, advancedTabs, railTabs };
-  }, [t, enabled, active]);
-
-  const showMore = advancedTabs.length > 0 && primaryTabs.length > 0;
-  const advancedActive = ADVANCED_MODES.includes(active);
-
-  const railRef = useRef<HTMLDivElement>(null);
-  const [iconOnly, setIconOnly] = useState(false);
-  const [thumb, setThumb] = useState<ThumbRect>({ left: 0, width: 0, ready: false });
-
-  const measureThumb = useCallback(() => {
-    const rail = railRef.current;
-    if (!rail) return;
-    const idx = Math.max(0, railTabs.findIndex((tab) => tab.mode === active));
-    const el = rail.querySelector<HTMLButtonElement>(
-      `[data-tab-index="${idx}"]`,
-    );
-    if (!el) return;
-    const railRect = rail.getBoundingClientRect();
-    const elRect = el.getBoundingClientRect();
-    const left = Math.round(elRect.left - railRect.left);
-    const width = Math.round(elRect.width);
-    setThumb((prev) => {
-      if (prev.ready && prev.left === left && prev.width === width) return prev;
-      return { left, width, ready: true };
-    });
-  }, [active, railTabs]);
-
-  useEffect(() => {
-    const el = railRef.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver((entries) => {
-      if (forceIconOnly) {
-        setIconOnly(true);
-        requestAnimationFrame(measureThumb);
-        return;
-      }
-      const w = entries[0]?.contentRect.width ?? el.clientWidth;
-      // +1 slot when more button present
-      const n = Math.max(railTabs.length + (showMore ? 1 : 0), 1);
-      setIconOnly(w / n < LABEL_MIN_TAB_PX);
-      requestAnimationFrame(measureThumb);
-    });
-    ro.observe(el);
-    if (forceIconOnly) {
-      setIconOnly(true);
-      requestAnimationFrame(measureThumb);
-      return;
-    }
-    return () => ro.disconnect();
-  }, [railTabs.length, showMore, measureThumb, forceIconOnly]);
-
-  useLayoutEffect(() => {
-    measureThumb();
-  }, [measureThumb, iconOnly]);
+  const activeMode = modes.includes(active) ? active : (modes[0] ?? "category");
+  const ActiveIcon = VIEW_ICONS[activeMode];
+  const activeLabel = t(`sidebar.viewSwitcher.${activeMode}Label`);
 
   return (
     <div
-      className={cn("min-w-0 flex-1", forceIconOnly ? "px-0 py-0" : "px-1 py-1")}
-      role="tablist"
+      className="shrink-0"
+      role="navigation"
       aria-label={t("sidebar.viewSwitcher.ariaTablist")}
     >
-      <div ref={railRef} className="v4-segmented">
-        <span
-          className="v4-segmented-thumb"
-          aria-hidden
-          data-ready={thumb.ready ? "true" : "false"}
-          style={
-            thumb.ready
-              ? { transform: `translateX(${thumb.left}px)`, width: thumb.width }
-              : { opacity: 0, width: 0 }
-          }
-        />
-        {railTabs.map((v, i) => {
-          const isActive = active === v.mode;
+      <DropdownMenu
+        open={open}
+        onOpenChange={setOpen}
+        align="end"
+        minWidth={168}
+        matchTriggerWidth={false}
+        trigger={
+          <Tooltip content={t("sidebar.viewSwitcher.ariaTablist")} side="bottom">
+            <button
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={open}
+              aria-label={`${t("sidebar.viewSwitcher.ariaTablist")}: ${activeLabel}`}
+              data-sidebar-view-switcher
+              onClick={() => setOpen((v) => !v)}
+              className={cn(
+                "flex h-8 max-w-full min-w-0 items-center gap-1 rounded-md border border-border-subtle-dim",
+                "bg-surface-muted/40 px-2 text-3xs font-medium text-text-secondary",
+                "transition-colors hover:bg-surface-muted/70 hover:text-text-primary",
+                open && "bg-surface-muted/70 text-text-primary",
+                "v4-focus-ring",
+              )}
+            >
+              <ActiveIcon size={ICON.xs} className="shrink-0 text-accent-color" aria-hidden />
+              <span className="truncate">{activeLabel}</span>
+              <RiArrowDownSLine size={ICON.nano} className="shrink-0 opacity-50" aria-hidden />
+            </button>
+          </Tooltip>
+        }
+      >
+        {modes.map((mode) => {
+          const Icon = VIEW_ICONS[mode];
+          const isActive = mode === activeMode;
           return (
-            <Tooltip key={v.mode} content={`${v.label} · ${v.hint}`} side="bottom">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                aria-label={v.label}
-                data-active={isActive}
-                data-tab-index={i}
-                data-icon-only={iconOnly ? "true" : undefined}
-                onClick={() => onChange(v.mode)}
-                className={cn("v4-segmented-item", isActive && "text-text-primary")}
-              >
-                <v.icon
-                  size={iconOnly ? ICON.xs : ICON.sm}
-                  aria-hidden
-                  className={cn(isActive ? "text-accent-color" : "opacity-80")}
-                />
-                {!iconOnly ? <span className="truncate">{v.label}</span> : null}
-              </button>
-            </Tooltip>
+            <DropdownItem
+              key={mode}
+              onSelect={() => {
+                setOpen(false);
+                onChange(mode);
+              }}
+            >
+              <Icon size={ICON.xs} className={cn("shrink-0", isActive ? "text-accent-color" : "opacity-70")} />
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate">{t(`sidebar.viewSwitcher.${mode}Label`)}</span>
+                <span className="truncate text-3xs text-text-quaternary">
+                  {t(`sidebar.viewSwitcher.${mode}Hint`)}
+                </span>
+              </span>
+              {isActive ? <span className="text-3xs text-accent-color">✓</span> : null}
+            </DropdownItem>
           );
         })}
-        {showMore ? (
-          <DropdownMenu
-            open={moreOpen}
-            onOpenChange={setMoreOpen}
-            align="end"
-            minWidth={160}
-            matchTriggerWidth={false}
-            trigger={
-              <Tooltip
-                content={`${t("sidebar.viewSwitcher.moreLabel")} · ${t("sidebar.viewSwitcher.moreHint")}`}
-                side="bottom"
-              >
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={advancedActive && !railTabs.some((x) => x.mode === active)}
-                  aria-label={t("sidebar.viewSwitcher.moreLabel")}
-                  aria-haspopup="menu"
-                  aria-expanded={moreOpen}
-                  data-active={advancedActive && !railTabs.some((x) => x.mode === active) ? "true" : undefined}
-                  data-icon-only={iconOnly ? "true" : undefined}
-                  className={cn(
-                    "v4-segmented-item",
-                    (moreOpen || (advancedActive && !railTabs.some((x) => x.mode === active))) &&
-                      "text-text-primary",
-                  )}
-                  onClick={() => setMoreOpen((v) => !v)}
-                >
-                  <RiMoreLine
-                    size={iconOnly ? ICON.xs : ICON.sm}
-                    aria-hidden
-                    className={cn(
-                      advancedActive || moreOpen ? "text-accent-color" : "opacity-80",
-                    )}
-                  />
-                  {!iconOnly ? (
-                    <span className="truncate">{t("sidebar.viewSwitcher.moreLabel")}</span>
-                  ) : null}
-                </button>
-              </Tooltip>
-            }
-          >
-            {advancedTabs.map((v) => (
-              <DropdownItem
-                key={v.mode}
-                onSelect={() => {
-                  setMoreOpen(false);
-                  onChange(v.mode);
-                }}
-              >
-                <v.icon size={ICON.xs} className="shrink-0 opacity-70" />
-                <span className="flex-1">{v.label}</span>
-                {active === v.mode ? (
-                  <span className="text-3xs text-accent-color">✓</span>
-                ) : null}
-              </DropdownItem>
-            ))}
-          </DropdownMenu>
-        ) : null}
-      </div>
+      </DropdownMenu>
     </div>
   );
 }

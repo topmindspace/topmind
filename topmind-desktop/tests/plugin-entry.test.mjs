@@ -212,7 +212,7 @@ test("OverlayHost + host register plugin-app / topmind-ledger; apps menu is the 
   const sidebar = read("src/components/shell/Sidebar.tsx");
   assert.match(sidebar, /SidebarHeaderActions/);
   assert.match(sidebar, /v4-search-trigger/);
-  assert.match(sidebar, /RiFlashlightFill/);
+  assert.match(sidebar, /RiFlashlightLine/);
   assert.match(sidebar, /data-sidebar-primary-nav/);
   const titleBar = read("src/components/shell/TitleBar.tsx");
   assert.match(read("src/components/shell/PrimaryNav.tsx"), /PRIMARY_NAV_OPTIONS/);

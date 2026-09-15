@@ -118,11 +118,11 @@ function buildApplyPayload(item: ActionItem): Record<string, unknown> {
     impact: item.priority,
     payload: item.suggestionPayload,
   };
-  // inbox_review / stale_topic / catch_all: force archive action on payload
-  // (inbox_organize keeps its own payload: move_to_topic / create_topic_and_move)
+  // stale_topic / catch_all: force archive action on payload.
+  // inbox_review / inbox_organize keep their own payload (move / create / batch hint) —
+  // aged Inbox notes are placement candidates, not archive-by-default.
   const isArchiveKind =
-    item.suggestionKind === 'inbox_review'
-    || item.suggestionKind === 'stale_topic'
+    item.suggestionKind === 'stale_topic'
     || item.suggestionKind === 'catch_all';
   return isArchiveKind
     ? {
@@ -468,11 +468,10 @@ export const useActionStore = create<ActionStore>((set, get) => ({
           payload: item.suggestionPayload
         };
 
-        // inbox_review / stale_topic / catch_all: force archive action on payload
-        // inbox_organize: keep its own payload (move_to_topic / create_topic_and_move)
+        // stale_topic / catch_all: force archive action on payload.
+        // inbox_review / inbox_organize keep their own payload (move / create / batch hint).
         const isArchiveKind =
-          item.suggestionKind === 'inbox_review'
-          || item.suggestionKind === 'stale_topic'
+          item.suggestionKind === 'stale_topic'
           || item.suggestionKind === 'catch_all';
         const suggestion = isArchiveKind
           ? {
@@ -496,7 +495,7 @@ export const useActionStore = create<ActionStore>((set, get) => ({
         // Navigation: skip during bulk acceptAll to prevent editor blanking.
         // Digest writes navigate via apply evidence (year subdirectory under memory/periodic).
         if (!skipNav && applied) {
-          if (item.suggestionKind === 'inbox_review' || item.suggestionKind === 'stale_topic' || item.suggestionKind === 'catch_all') {
+          if (item.suggestionKind === 'stale_topic' || item.suggestionKind === 'catch_all') {
             select({ kind: 'stream' });
           } else if (item.suggestionKind === 'inbox_organize' && res.targetPath) {
             // After organizing inbox item → navigate to the moved file in its topic
@@ -804,7 +803,7 @@ export const useActionStore = create<ActionStore>((set, get) => ({
     // After all items: navigate once to the most relevant target
     if (accepted > 0 && lastTargetPath) {
       const select = useViewStore.getState().select;
-      if (lastTargetKind === 'inbox_review' || lastTargetKind === 'stale_topic' || lastTargetKind === 'catch_all') {
+      if (lastTargetKind === 'stale_topic' || lastTargetKind === 'catch_all') {
         select({ kind: 'stream' });
       } else {
         select({ kind: 'file', path: lastTargetPath });

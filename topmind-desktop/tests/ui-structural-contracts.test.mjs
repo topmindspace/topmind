@@ -52,7 +52,7 @@ test("TitleBar: AI toggle; sidebar has capture; PrimaryNav in sidebar destinatio
   );
   const profileIdx = headerFn.indexOf("<ProfileButton");
   const searchIdx = headerFn.indexOf("v4-search-trigger");
-  const captureIdx = headerFn.indexOf("RiFlashlightFill");
+  const captureIdx = headerFn.indexOf("RiFlashlightLine");
   assert.ok(profileIdx >= 0 && searchIdx > profileIdx && captureIdx > searchIdx, "header order Profile → Search → 记一下");
   assert.match(headerFn, /titleBar\.capture/);
   assert.match(headerFn, /v4-capture-accent-icon/);
@@ -447,6 +447,8 @@ test("inline AI auto-open is gated by persisted flag; preview default is not a 1
   const {
     shouldAutoOpenInlineAi,
     INLINE_AI_PREVIEW_DEFAULT_MAX_H,
+    INLINE_AI_PANEL_WIDTH,
+    INLINE_AI_CHROME_MIN_TOP,
     clampSelectionAiPanel,
     estimatePreviewRows,
   } = await import("../src/lib/inline-ai-panel.ts");
@@ -459,17 +461,31 @@ test("inline AI auto-open is gated by persisted flag; preview default is not a 1
     INLINE_AI_PREVIEW_DEFAULT_MAX_H >= 280,
     `preview default ${INLINE_AI_PREVIEW_DEFAULT_MAX_H} must not silently clip at 160`,
   );
+  // Capabilities breathe horizontally — not a cramped 22rem bubble.
+  assert.ok(INLINE_AI_PANEL_WIDTH >= 32 * 16, `panel width ${INLINE_AI_PANEL_WIDTH} too narrow`);
+  assert.ok(INLINE_AI_CHROME_MIN_TOP >= 48, "chrome floor must clear title/toolbar");
   const hook = read("src/components/editor/useSelectionAi.ts");
   assert.match(hook, /shouldAutoOpenInlineAi/);
   assert.match(hook, /INLINE_AI_PREVIEW_DEFAULT_MAX_H/);
   assert.match(hook, /applyEditorPrefs\(\{ inlineAiAutoPopup/);
   const bar = read("src/components/editor/SelectionAiBar.tsx");
   assert.match(bar, /clampSelectionAiPanel/);
+  assert.match(bar, /INLINE_AI_PANEL_WIDTH/);
   const diff = read("src/components/editor/SelectionAiDiff.tsx");
   assert.match(diff, /data-inline-ai-preview/);
   assert.match(diff, /estimatePreviewRows/);
   const long = "line\n".repeat(40);
   assert.ok(estimatePreviewRows(long) >= 20);
+  // Upper-half selection must flip below chrome, never cover the toolbar.
+  const upper = clampSelectionAiPanel({
+    dragPos: null,
+    target: { top: 70, left: 40, bottom: 90 },
+    panelW: 576,
+    panelH: 240,
+    viewportW: 1200,
+    viewportH: 800,
+  });
+  assert.ok(upper.top >= INLINE_AI_CHROME_MIN_TOP, `top ${upper.top} under chrome`);
   const pos = clampSelectionAiPanel({
     dragPos: null,
     target: { top: 80, left: 40, bottom: 100 },
@@ -478,7 +494,7 @@ test("inline AI auto-open is gated by persisted flag; preview default is not a 1
     viewportW: 800,
     viewportH: 600,
   });
-  assert.ok(pos.top >= 8);
+  assert.ok(pos.top >= INLINE_AI_CHROME_MIN_TOP);
   assert.ok(pos.left >= 8);
   assert.ok(pos.left + 400 <= 800);
 });

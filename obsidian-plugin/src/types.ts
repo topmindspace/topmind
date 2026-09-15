@@ -315,11 +315,14 @@ export interface StreamEntry {
  *
  * `kind` aligns with the Kernel suggest-engine kinds (single truth: the kinds
  * `generateSuggestions` / ai-operation-engine actually emit):
- * - suggest-engine rules: `inbox_review` | `inbox_organize` | `stale_topic` |
- *   `catch_all` | `stream_digest` | `promote_memory` | `open_profile`
+ * - suggest-engine rules: `inbox_organize` | `stale_topic` | `catch_all` |
+ *   `stream_digest` | `promote_memory` | `open_profile`
  * - suggest-engine AI blocks: `ai_summary` (activity digest)
  * - ai-operation-engine ops: `create_topic` (topic_classify),
  *   `promote_memory`/`ai_summary` (memory_organize)
+ *
+ * `inbox_review` is no longer emitted (age is a placement review via
+ * `inbox_organize`, not an archive card). Kernel keeps a legacy apply case.
  *
  * `todo_extract` / `topic_classify` are operation ids, never card kinds —
  * they must not appear here (parity guarded by tests/suggest-surface-parity).
@@ -340,7 +343,6 @@ export type SuggestionKind =
   | "promote_memory"
   | "ai_summary"
   | "inbox_organize"
-  | "inbox_review"
   | "stale_topic"
   | "catch_all"
   | "stream_digest"

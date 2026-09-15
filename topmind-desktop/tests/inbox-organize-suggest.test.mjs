@@ -26,16 +26,14 @@ test("SuggestPopover maps inbox_organize to Inbox icon + kindChipInboxOrganize",
   assert.match(src, /case "inbox_review":\s*\n\s*return "kindChipInbox"/);
 });
 
-test("ActionStore does NOT force archive for inbox_organize (keeps own payload)", () => {
+test("ActionStore does NOT force archive for inbox_organize or inbox_review", () => {
   const src = read("src/stores/action-store.ts");
-  // inbox_organize must NOT be in the archive-kind list
+  // Archive forcing is reserved for stale_topic / catch_all only.
   assert.match(src, /isArchiveKind/);
-  assert.match(src, /inbox_review/);
-  assert.match(src, /inbox_organize.*keep its own payload/);
-  // The archive-forcing ternary must NOT include inbox_organize
+  assert.match(src, /aged Inbox notes are placement candidates/);
   assert.doesNotMatch(
     src,
-    /inbox_review.*\|\|.*inbox_organize.*\|\|.*stale_topic.*\?\s*\{/,
+    /item\.suggestionKind === 'inbox_review'\s*\n\s*\|\| item\.suggestionKind === 'stale_topic'/,
   );
 });
 
@@ -43,8 +41,8 @@ test("ActionStore navigates to target file after inbox_organize apply", () => {
   const src = read("src/stores/action-store.ts");
   // After apply: navigate to the moved file path (not stream)
   assert.match(src, /inbox_organize[\s\S]*?res\.targetPath[\s\S]*?select[\s\S]*?kind.*file/);
-  // Old archive kinds still navigate to stream
-  assert.match(src, /inbox_review[\s\S]*?stale_topic[\s\S]*?catch_all[\s\S]*?select[\s\S]*?kind.*stream/);
+  // Archive kinds (stale/catch-all only) still navigate to stream
+  assert.match(src, /stale_topic[\s\S]*?catch_all[\s\S]*?select[\s\S]*?kind.*stream/);
 });
 
 test("StatusBar uses progress dot for ALL busy chips (unified)", () => {

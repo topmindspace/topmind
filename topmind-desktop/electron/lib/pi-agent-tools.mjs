@@ -151,17 +151,29 @@ export function convertDesktopToolsToPi(sdkTools, opts = {}) {
     "Exact unique-span edit inside the workspace (fenced, Kernel writeback).",
     (p) => {
       const n = normalizePiEditArgs(p);
-      return { relativePath: n.path, oldText: n.oldText, newText: n.newText, replaceAll: n.replaceAll };
+      const out = {
+        relativePath: n.path,
+        oldText: n.oldText,
+        newText: n.newText,
+        replaceAll: n.replaceAll,
+      };
+      // Thread locator params so mid-file / list edits stay unique.
+      if (p.startLine != null) out.startLine = p.startLine;
+      if (p.endLine != null) out.endLine = p.endLine;
+      if (p.heading) out.heading = p.heading;
+      return out;
     },
   );
   alias(
     "grep",
     "search",
-    "Search workspace Markdown/text (fenced grep, no shell). pattern/query; default skips Archive.",
+    "Search workspace Markdown/text (fenced grep, no shell). pattern/query; default skips Archive. Set regex=true only for real regex.",
     (p) => ({
       query: p.pattern || p.query || p.keyword || "",
       scope: p.path || p.scope || "",
-      regex: p.regex === undefined ? true : Boolean(p.regex),
+      // Default false — same as Desktop search. Models often pass literal keywords
+      // that are invalid regex (`.` `+` `(`).
+      regex: p.regex === true,
       maxResults: p.maxResults,
       includeArchive: Boolean(p.includeArchive),
     }),

@@ -45,8 +45,9 @@ export function displayPathSegment(seg: string): string {
 }
 
 /**
- * PrimaryNav kinds for the StatusBar persistent switcher.
+ * PrimaryNav kinds for the sidebar destinations row / TitleBar compact fallback.
  * File / topic / memory / archive must not impersonate 动态.
+ * StatusBar no longer hosts PrimaryNav (status, not navigation).
  */
 export function primaryViewSwitchKind(
   kind: Selection["kind"] | undefined | null,

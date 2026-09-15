@@ -93,11 +93,7 @@ export function AiWorkspace() {
       <div className="min-h-0 flex-1" data-ai-workspace-pane={tab}>
         {tab === "chat" ? <AiPanel hideComposer /> : null}
         {tab === "suggest" ? <SuggestPopover embedded /> : null}
-        {tab === "todo" ? (
-          <div className="flex h-full min-h-0 flex-col" data-todo-workspace>
-            <TodoListBody />
-          </div>
-        ) : null}
+        {tab === "todo" ? <TodoListBody /> : null}
         {tab === "apps" ? <AppsLaunchList /> : null}
       </div>
       <ChatInput />

@@ -274,7 +274,7 @@ AI 分发遇到歧义时按"内容性质"判定；无法判定时 → `00-Inbox/
 > **动态年归档**：`archiveStreamYear(workspaceRoot, year)` 将完整年份的周期本目录原子移到 `99-归档/stream-archive/{year}/`（落点即新家，不另写 receipts YAML）。只允许归档当前年份之前的年份。归档不影响 memory/periodic/（记忆是提炼物，比原始事件更有保留价值）。
 
 > 写操作**回执**是内容安全层的一部分，是"找回/恢复"的依据，不可删。  
-> **备份/回执策略（高影响 only）**：常规 `open` 文件写入（AI/user 更新）**不**创建 backup 与 receipt。仅高影响落盘：`locked` 既有文件覆盖（多为 user；AI 写 locked 被拒）、锁定/核心笔记的非 `permanent` **delete**（trash + 回执）。`executeArchive` 是把内容**迁入** `99-归档` 的新家（inbox_review / catch_all / 专题归档），不是备份；YAML 回执仅锁定/核心。普通开放笔记 **delete** 无 trash。高影响备份/回执旋转上限 `BACKUP_KEEP=3` · `RECEIPT_KEEP=50`。策略集中在 Kernel 写闸，不靠调用方零散 `skipBackup` 拼语义。  
+> **备份/回执策略（高影响 only）**：常规 `open` 文件写入（AI/user 更新）**不**创建 backup 与 receipt。仅高影响落盘：`locked` 既有文件覆盖（多为 user；AI 写 locked 被拒）、锁定/核心笔记的非 `permanent` **delete**（trash + 回执）。`executeArchive` 是把内容**迁入** `99-归档` 的新家（catch_all / 专题归档 / 用户手动），不是备份；YAML 回执仅锁定/核心。Inbox 超期默认走 `inbox_organize` 归位而非归档。普通开放笔记 **delete** 无 trash。高影响备份/回执旋转上限 `BACKUP_KEEP=3` · `RECEIPT_KEEP=50`。策略集中在 Kernel 写闸，不靠调用方零散 `skipBackup` 拼语义。  
 > **删除落点**：`executeDelete` 仅锁定/核心写入 `99-归档/backups/trash/…`；legacy 顶层 `99-归档/trash/` 仍可被 `list-safety-receipts` / `restore-safety-receipt` 识别。  
 > **归档落点**：`executeArchive` 文件 → `{systemDir}/backups/trash/…`；目录 → `{systemDir}/backups/archived-topics/…`。`systemDir` 来自现场契约角色（`99-归档` / `99-Archive` / 用户改名），不写死中文。  
 > **彻底删除**：`executeDelete`/`executeArchive` 支持 `permanent:true`，跳过 trash/archive 副本直接删除（不可恢复，UI 提供复选框确认）。  
@@ -394,6 +394,8 @@ protection:                    # 保护与权限规约
   # 优先级：protection > writeback.mode（locked 时无论 mode 如何，AI 禁止直接写）
 
 lifecycle:                     # 生命周期规约
+  # inbox.review_after_days 只触发「待归位」回顾，不自动归档；
+  # 首选结果是移入合适专题 / 新建专题（inbox_organize）。归档是手动最后手段。
   inbox: { review_after_days: 7 }
   catch_all: { retention_days: 30 }
   stream: { digest_after_periods: 4 }

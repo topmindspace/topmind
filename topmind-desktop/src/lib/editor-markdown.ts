@@ -14,8 +14,59 @@ import { mediaUrlsForDisk, mediaUrlsForEditor } from "./editor-media";
 type MarkdownStorage = {
   markdown?: {
     getMarkdown: () => string;
+    serializer?: { serialize?: (node: unknown) => string };
   };
 };
+
+/**
+ * Serialize a ProseMirror range to Markdown so list markers / nesting survive.
+ * Falls back to plain textBetween when no serializer is available.
+ */
+export function markdownFromEditorRange(
+  editor: Editor | null | undefined,
+  from: number,
+  to: number,
+): string {
+  if (!editor || editor.isDestroyed || from >= to) return "";
+  try {
+    const storage = editor.storage as MarkdownStorage & {
+      markdown?: { serializer?: { serialize?: (node: unknown) => string } };
+    };
+    const serialize = storage.markdown?.serializer?.serialize;
+    if (typeof serialize === "function") {
+      const slice = editor.state.doc.slice(from, to);
+      const md = serialize(slice.content);
+      if (typeof md === "string" && md.trim()) return md;
+    }
+  } catch {
+    /* fall through */
+  }
+  try {
+    return editor.state.doc.textBetween(from, to, "\n");
+  } catch {
+    return "";
+  }
+}
+
+/** True when the range sits inside an ordered or bullet list (any depth). */
+export function selectionInsideList(
+  editor: Editor | null | undefined,
+  from: number,
+): boolean {
+  if (!editor || editor.isDestroyed) return false;
+  try {
+    const $pos = editor.state.doc.resolve(from);
+    for (let d = $pos.depth; d > 0; d--) {
+      const name = $pos.node(d).type.name;
+      if (name === "bulletList" || name === "orderedList" || name === "listItem") {
+        return true;
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
 
 /** Set editor document from Markdown source (string only — never pre-parsed JSON). */
 export function setEditorMarkdown(
@@ -263,13 +314,14 @@ export function replaceSelectionWithMarkdown(
   from: number,
   to: number,
   md: string,
+  opts?: { source?: string },
 ): boolean {
   if (!editor || from > to) return false;
   let source = "";
   try {
-    source = editor.state.doc.textBetween(from, to, "\n");
+    source = opts?.source ?? editor.state.doc.textBetween(from, to, "\n");
   } catch {
-    source = "";
+    source = opts?.source ?? "";
   }
   const text = prepareMarkdownForEditorInsert(md, source, { trimLeading: true });
   if (!text) return false;
