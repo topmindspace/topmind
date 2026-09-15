@@ -631,7 +631,7 @@ export function ManagePanel({
               <>
                 <CmdRow
                   label={t("settings:env.quarantineLabel")}
-                  cmd="sudo xattr -rd com.apple.quarantine /Applications/Topmind.app"
+                  cmd="sudo xattr -rd com.apple.quarantine /Applications/topmind.app"
                 />
                 <div className="text-3xs text-text-quaternary">
                   {t("settings:env.quarantineDesc")}

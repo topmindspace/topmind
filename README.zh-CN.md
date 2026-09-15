@@ -71,7 +71,7 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Opti
 - **方式 B：手动下载安装包**：
   1. 前往 [Releases](https://github.com/topmindspace/topmind/releases) 下载适用于你系统的安装包（`.dmg` / `.exe` / `.AppImage` / `.deb`）。
   2. 安装并打开，快捷键 `⌘N`（Mac）/ `Ctrl+N`（Win/Linux）随时记一条。  
-     *（macOS 若手动安装提示损坏打不开，可在终端运行：`sudo xattr -rd com.apple.quarantine /Applications/Topmind.app`；若 `brew upgrade` 报 `App source ... is not there`，先 `brew uninstall --cask topmind --force` 再 `brew install --cask topmind`，或 `brew reinstall --cask topmind`）*
+     *（macOS 若手动安装提示损坏打不开，可在终端运行：`sudo xattr -rd com.apple.quarantine /Applications/topmind.app`；若 `brew upgrade` 报 `App source ... is not there`，先 `brew uninstall --cask topmind --force` 再 `brew install --cask topmind`，或 `brew reinstall --cask topmind`）*
   3. 详细指南：[`topmind-desktop/README.zh-CN.md`](./topmind-desktop/README.zh-CN.md) · [English](./topmind-desktop/README.md)
 
 ### 场景 2：在 Obsidian 中使用（topmind Stream 插件）

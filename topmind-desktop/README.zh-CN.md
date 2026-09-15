@@ -129,7 +129,7 @@ brew install topmindspace/tap/topmind
 ```
 *通过 Homebrew 安装会自动清理 macOS `quarantine` 属性，免去未签名应用的“已损坏无法打开”报错。*
 
-若 `brew upgrade` 报 `App source '/Applications/Topmind.app' is not there`（旧应用被移动/删除），恢复：
+若 `brew upgrade` 报 `App source '/Applications/topmind.app' is not there`（旧应用被移动/删除），恢复：
 ```bash
 brew uninstall --cask topmind --force && brew install --cask topmind
 # 或原地重装
@@ -140,7 +140,7 @@ brew reinstall --cask topmind
 1. 从 [Releases](https://github.com/topmindspace/topmind/releases) 下载对应系统安装包：`topmind-<ver>-<os>-<arch>.{dmg,exe,AppImage,deb}`  
    （日常产品 tag `v*` 构建 Desktop 矩阵；`desktop-v*` 仅热修逃生口）
 2. 安装并打开；首次选择或创建本地工作区文件夹（内容真源）  
-   *（macOS 若手动安装提示损坏打不开，可在终端运行：`sudo xattr -rd com.apple.quarantine /Applications/Topmind.app`）*
+   *（macOS 若手动安装提示损坏打不开，可在终端运行：`sudo xattr -rd com.apple.quarantine /Applications/topmind.app`）*
 3. 可选：设置 -> AI 配置 Provider；设置 -> 通用 -> 浏览器剪藏 启用 Clip Bridge
 
 ### 设置 -> 管理与更新

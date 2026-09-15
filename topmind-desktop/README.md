@@ -132,7 +132,7 @@ Homebrew clears macOS `quarantine` so unsigned builds do not show as “damaged�
 #### Option 2: Manual installer
 1. Download `topmind-<ver>-<os>-<arch>.{dmg,exe,AppImage,deb}` from [Releases](https://github.com/topmindspace/topmind/releases).  
    For macOS Homebrew: `brew install topmindspace/tap/topmind` (auto-clears quarantine).  
-   If `brew upgrade` fails with `App source '/Applications/Topmind.app' is not there` (previous app moved/deleted):
+   If `brew upgrade` fails with `App source '/Applications/topmind.app' is not there` (previous app moved/deleted):
    ```bash
    brew uninstall --cask topmind --force && brew install --cask topmind
    # or
@@ -141,7 +141,7 @@ Homebrew clears macOS `quarantine` so unsigned builds do not show as “damaged�
    Daily product tag `v*` builds the Desktop matrix; `desktop-v*` is a hotfix-only escape hatch.
 2. Install and open; pick or create a local workspace folder (content truth).  
    If macOS reports a damaged app after a manual install:  
-   `sudo xattr -rd com.apple.quarantine /Applications/Topmind.app`
+   `sudo xattr -rd com.apple.quarantine /Applications/topmind.app`
 3. Optional: Settings → AI to configure a provider; Settings → General → Browser clip to enable Clip Bridge.
 
 ### Settings → Manage & Updates

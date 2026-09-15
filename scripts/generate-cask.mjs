@@ -51,18 +51,20 @@ function generateCaskContent(version, sha256Arm, sha256Intel) {
 
   # Remove quarantine attribute automatically on install to solve macOS "damaged" gatekeeper error.
   # Homebrew requires postflight_steps (legacy postflight is deprecated).
+  # App name must match electron-builder productName (lowercase): the DMG
+  # contains topmind.app — Topmind.app fails "App source is not there" on upgrade.
   postflight_steps do
     run "/usr/bin/xattr",
-        args: ["-rd", "com.apple.quarantine", "{{appdir}}/Topmind.app"],
+        args: ["-rd", "com.apple.quarantine", "{{appdir}}/topmind.app"],
         must_succeed: false
   end
 
-  app "Topmind.app"
+  app "topmind.app"
 
-  # Recovery hint when /Applications/Topmind.app was moved/deleted and brew
+  # Recovery hint when /Applications/topmind.app was moved/deleted and brew
   # upgrade can no longer find the previous install target.
   caveats <<~EOS
-    If brew upgrade fails with "App source '/Applications/Topmind.app' is not there",
+    If brew upgrade fails with "App source '/Applications/topmind.app' is not there",
     the previous app was moved or deleted. Recover with:
       brew uninstall --cask topmind --force
       brew install --cask topmind
