@@ -28,10 +28,30 @@ test("sidebar 记一下 is a quiet chrome button with accent icon, not a solid T
   assert.match(v4, /accent-inbox/u);
   assert.match(sidebar, /v4-sidebar-capture/u);
   assert.match(sidebar, /titleBar\.capture/u);
-  assert.match(sidebar, /RiFlashlightLine/u);
+  assert.match(sidebar, /RiPencilLine/u);
   assert.doesNotMatch(sidebar, /v4-titlebar-btn-capture/u);
   assert.doesNotMatch(titleBar, /v4-titlebar-btn-capture/u);
   assert.doesNotMatch(titleBar, /titleBar\.capture/u);
+  // Hit box must stay chrome-sized — min-width:0 collapses the hover rect.
+  const captureRule = v4.match(/\.v4-sidebar-capture\s*\{[^}]+\}/u)?.[0] || "";
+  assert.doesNotMatch(captureRule, /min-width:\s*0/u);
+});
+
+test("icon-button system: chrome/tool/micro share one hover language", () => {
+  assert.match(v4, /\.v4-icon-btn\s*\{/u);
+  assert.match(v4, /\.v4-icon-btn-chrome\s*\{/u);
+  assert.match(v4, /\.v4-icon-btn-micro\s*\{/u);
+  assert.match(v4, /--color-surface-hover/u);
+  // Hover always paints the full hit box via surface-hover.
+  assert.match(v4, /\.v4-icon-btn:hover[^{]*\{[^}]*surface-hover/su);
+  assert.match(v4, /\.v4-titlebar-btn:hover[^{]*\{[^}]*surface-hover/su);
+  assert.match(v4, /\.v4-editor-tool-btn:hover[^{]*\{[^}]*surface-hover/su);
+  // Chrome tier keeps 32px min box (the 记一下 regression guard).
+  const chrome = v4.match(/\.v4-icon-btn-chrome\s*\{[^}]+\}/u)?.[0] || "";
+  assert.match(chrome, /32px/u);
+  const titlebar = v4.match(/\.v4-titlebar-btn\s*\{[^}]+\}/u)?.[0] || "";
+  assert.match(titlebar, /min-width:\s*var\(--density-chrome-control/u);
+  assert.doesNotMatch(titlebar, /min-width:\s*0/u);
 });
 
 test("stream composer uses focus chrome class", () => {

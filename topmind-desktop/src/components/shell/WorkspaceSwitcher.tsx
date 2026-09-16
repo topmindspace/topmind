@@ -1,21 +1,31 @@
 /**
  * Workspace menu — docked in the left-sidebar footer; Shell always mounts
  * this host so ⌘⇧W still opens the menu when the sidebar is collapsed.
+ *
+ * Footer layout (WorkBuddy-style): identity (icon · name · chevron) opens the
+ * menu; Settings and Theme live as peer icon buttons on the same row so the
+ * two highest-frequency chrome actions never require a menu open.
+ *
+ * Menu is sectioned: identity + copy · recent workspaces · open/close ·
+ * focus/tools/help · language · (theme/settings no longer buried here).
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   RiAddLine,
   RiArrowUpSLine,
   RiCheckLine,
   RiComputerLine,
+  RiFileCopyLine,
   RiFolder3Line,
   RiFullscreenLine,
   RiGlobalLine,
   RiLoader4Line,
   RiLogoutBoxRLine,
   RiMoonLine,
+  RiQuestionLine,
   RiSettingsLine,
+  RiStethoscopeLine,
   RiSunLine,
 } from "@remixicon/react";
 import { DropdownItem, DropdownMenu, DropdownSectionLabel } from "../ui/DropdownMenu";
@@ -36,12 +46,29 @@ interface RecentWs { rootPath: string; lastOpenedAt: string; }
 
 type ThemeMode = Theme;
 
-/** Locale option for the language menu. */
-const LOCALE_OPTIONS: Array<{ id: "auto" | "zh-CN" | "en-US"; nativeLabel: string }> = [
-  { id: "auto", nativeLabel: "Auto" },
-  { id: "zh-CN", nativeLabel: "简体中文" },
-  { id: "en-US", nativeLabel: "English" },
+/** Locale option — short chip label for the footer-style one-row switcher. */
+const LOCALE_OPTIONS: Array<{
+  id: "auto" | "zh-CN" | "en-US";
+  chip: string;
+  nativeLabel: string;
+}> = [
+  { id: "auto", chip: "A", nativeLabel: "Auto" },
+  { id: "zh-CN", chip: "中", nativeLabel: "简体中文" },
+  { id: "en-US", chip: "EN", nativeLabel: "English" },
 ];
+
+const THEME_ORDER: ThemeMode[] = ["auto", "light", "dark"];
+
+function nextTheme(cur: ThemeMode): ThemeMode {
+  const i = THEME_ORDER.indexOf(cur);
+  return THEME_ORDER[(i + 1) % THEME_ORDER.length] ?? "auto";
+}
+
+function themeIcon(theme: ThemeMode) {
+  if (theme === "light") return RiSunLine;
+  if (theme === "dark") return RiMoonLine;
+  return RiComputerLine;
+}
 
 export function WorkspaceSwitcher({
   currentRoot,
@@ -57,6 +84,8 @@ export function WorkspaceSwitcher({
   const [recent, setRecent] = useState<RecentWs[]>([]);
   const [switching, setSwitching] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const theme = useViewStore((s) => s.theme);
   const setFocusMode = useViewStore((s) => s.setFocusMode);
@@ -82,6 +111,9 @@ export function WorkspaceSwitcher({
   useEffect(() => {
     if (open) load();
   }, [open]);
+  useEffect(() => () => {
+    if (copyTimer.current) clearTimeout(copyTimer.current);
+  }, []);
 
   const reloadAfterWorkspaceChange = (settings?: AppSettings | null) => {
     setOpen(false);
@@ -128,9 +160,25 @@ export function WorkspaceSwitcher({
     }
   };
 
+  const openSettings = () => {
+    setOpen(false);
+    void import("../overlays/SettingsDialog");
+    emitLocal("overlay:open", { kind: "settings" });
+  };
+
+  const copyRoot = async () => {
+    try {
+      await navigator.clipboard.writeText(currentRoot.replace(/\\/g, "/"));
+      setCopied(true);
+      if (copyTimer.current) clearTimeout(copyTimer.current);
+      copyTimer.current = setTimeout(() => setCopied(false), 1400);
+    } catch {
+      /* clipboard blocked — silent */
+    }
+  };
+
   // Theme + language go through the shared appearance helpers so this menu, the
   // Settings panel and the native 视图 → 外观/语言 radios can't drift apart.
-  // The store is the single applier (App.tsx applies `useViewStore.theme`).
   const pickTheme = (next: ThemeMode) => {
     setThemePreference(next);
   };
@@ -154,70 +202,194 @@ export function WorkspaceSwitcher({
     return "auto";
   })();
 
+  const themeLabel = (id: ThemeMode) =>
+    id === "light" ? t("titleBar.themeLight") : id === "dark" ? t("titleBar.themeDark") : t("titleBar.themeAuto");
+  const ThemeIcon = themeIcon(theme);
+
+  const identityButton = (
+    <button
+      type="button"
+      data-workspace-switcher
+      data-workspace-switcher-variant={docked ? "sidebar" : "float"}
+      onClick={() => setOpen(!open)}
+      aria-haspopup="listbox"
+      aria-expanded={open}
+      className={cn(
+        sidebar
+          ? "flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-surface-muted v4-focus-ring"
+          : "v4-titlebar-btn max-w-30 gap-1 px-1.5 font-mono text-3xs sm:max-w-40 xl:max-w-50",
+        open && (sidebar ? "bg-surface-muted" : "bg-surface-muted text-text-secondary"),
+        !sidebar && !open && "pointer-events-none h-8 w-8 overflow-hidden p-0 opacity-0",
+      )}
+    >
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent-bg-subtle text-accent-color">
+        <RiFolder3Line size={ICON.xs} />
+      </span>
+      <span className={cn("min-w-0 flex-1 truncate", sidebar ? "text-xs font-semibold text-text-primary" : "font-mono")}>
+        {shortName(currentRoot)}
+      </span>
+      <RiArrowUpSLine
+        size={ICON.nano}
+        className={cn("shrink-0 text-text-quaternary transition-transform", open && "rotate-180")}
+      />
+    </button>
+  );
+
+  const themeBtn = (
+    <Tooltip content={t("titleBar.themeCycleTip", { label: themeLabel(theme), next: themeLabel(nextTheme(theme)) })}>
+      <button
+        type="button"
+        className="v4-icon-btn v4-icon-btn-chrome shrink-0"
+        data-workspace-theme
+        aria-label={t("titleBar.themeCycleTip", { label: themeLabel(theme), next: themeLabel(nextTheme(theme)) })}
+        onClick={() => {
+          setOpen(false);
+          void pickTheme(nextTheme(theme));
+        }}
+      >
+        <ThemeIcon size={ICON.xs} />
+      </button>
+    </Tooltip>
+  );
+
+  const settingsBtn = (
+    <Tooltip content={t("titleBar.settingsTip")}>
+      <button
+        type="button"
+        className="v4-icon-btn v4-icon-btn-chrome shrink-0"
+        data-workspace-settings
+        aria-label={t("titleBar.settingsAriaLabel")}
+        onClick={openSettings}
+      >
+        <RiSettingsLine size={ICON.xs} />
+      </button>
+    </Tooltip>
+  );
+
+  /**
+   * Trigger: identity + trailing chrome actions on one row (docked footer).
+   * Float / collapsed keeps a single compact identity control.
+   * Tooltip only wraps identity — theme/settings carry their own.
+   */
+  const trigger = sidebar ? (
+    <div className="flex w-full min-w-0 items-center gap-0.5" data-workspace-switcher-row>
+      <Tooltip content={t("titleBar.workspaceTip", { root: currentRoot })}>
+        <div className="flex min-w-0 flex-1">{identityButton}</div>
+      </Tooltip>
+      {themeBtn}
+      {settingsBtn}
+    </div>
+  ) : (
+    <Tooltip content={t("titleBar.workspaceTip", { root: currentRoot })}>
+      {identityButton}
+    </Tooltip>
+  );
+
   const menu = (
     <DropdownMenu
       open={open}
       onOpenChange={setOpen}
       align="start"
-      minWidth={268}
-      maxHeight={520}
+      minWidth={320}
+      maxWidth={400}
+      maxHeight={560}
       matchTriggerWidth={false}
       preferPlacement="top"
       padBottom={32}
       panelClassName="v4-no-drag p-0"
-      trigger={
-        <Tooltip content={t("titleBar.workspaceTip", { root: currentRoot })}>
-          <button
-            type="button"
-            data-workspace-switcher
-            data-workspace-switcher-variant={docked ? "sidebar" : "float"}
-            onClick={() => setOpen(!open)}
-            aria-haspopup="listbox"
-            aria-expanded={open}
-            className={cn(
-              sidebar
-                ? "flex w-full min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-surface-muted v4-focus-ring"
-                : "v4-titlebar-btn max-w-30 gap-1 px-1.5 font-mono text-3xs sm:max-w-40 xl:max-w-50",
-              open && (sidebar ? "bg-surface-muted" : "bg-surface-muted text-text-secondary"),
-              !sidebar && !open && "pointer-events-none h-8 w-8 overflow-hidden p-0 opacity-0",
-            )}
-          >
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent-bg-subtle text-accent-color">
-              <RiFolder3Line size={ICON.xs} />
-            </span>
-            <span className={cn("min-w-0 flex-1 truncate", sidebar ? "text-xs font-semibold text-text-primary" : "font-mono")}>
-              {shortName(currentRoot)}
-            </span>
-            <RiArrowUpSLine
-              size={ICON.nano}
-              className={cn("shrink-0 text-text-quaternary transition-transform", open && "rotate-180")}
-            />
-          </button>
-        </Tooltip>
-      }
+      className={sidebar ? "w-full" : undefined}
+      trigger={trigger}
     >
-      <div className="border-b border-border-subtle-dim px-3 py-2">
-        <div className="truncate text-xs font-semibold text-text-primary" data-workspace-name>
-          {shortName(currentRoot)}
+      {/* Identity block — name + copy, path as quiet meta (WorkBuddy header) */}
+      <div className="px-3 pb-2 pt-2.5">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-text-primary" data-workspace-name>
+            {shortName(currentRoot)}
+          </span>
+          <Tooltip content={copied ? t("titleBar.copyWorkspacePathDone") : t("titleBar.copyWorkspacePath")}>
+            <button
+              type="button"
+              className="v4-icon-btn h-6 w-6 shrink-0 rounded-md"
+              data-workspace-copy-path
+              aria-label={t("titleBar.copyWorkspacePath")}
+              onClick={() => { void copyRoot(); }}
+            >
+              {copied ? (
+                <RiCheckLine size={ICON.xs} className="text-accent-color" />
+              ) : (
+                <RiFileCopyLine size={ICON.xs} />
+              )}
+            </button>
+          </Tooltip>
         </div>
-        <div className="mt-0.5 truncate font-mono text-3xs text-text-quaternary" title={currentRoot}>
+        <div
+          className="mt-1 truncate rounded-md bg-surface-muted/50 px-2 py-1 font-mono text-3xs text-text-quaternary"
+          title={currentRoot}
+        >
           {currentRoot.replace(/\\/g, "/")}
         </div>
       </div>
 
-      {/* Settings first so they are never clipped below the fold */}
-      <div className="p-1">
-        <DropdownItem
-          onSelect={() => {
-            setOpen(false);
-            void import("../overlays/SettingsDialog");
-            emitLocal("overlay:open", { kind: "settings" });
-          }}
-        >
-          <RiSettingsLine size={ICON.xs} className="shrink-0" />
-          <span className="flex-1">{t("titleBar.settingsLabel")}</span>
-          <kbd className="v4-kbd v4-kbd-sm">{formatChord("⌘,")}</kbd>
+      <div className="h-px bg-border-subtle-dim" />
+
+      {/* Recent workspaces */}
+      <div className="px-1 py-1.5">
+        <DropdownSectionLabel>{t("titleBar.recentWorkspaces")}</DropdownSectionLabel>
+        <div className="v4-sidebar-scroll max-h-36 overflow-auto">
+          {recent.length === 0 ? (
+            <div className="px-2.5 py-2 text-3xs text-text-quaternary">{t("titleBar.noRecentWorkspaces")}</div>
+          ) : (
+            recent.map((w) => {
+              const active = w.rootPath === currentRoot;
+              return (
+                <DropdownItem
+                  key={w.rootPath}
+                  disabled={busy}
+                  active={active}
+                  onSelect={() => { void handleSwitch(w.rootPath); }}
+                >
+                  <RiFolder3Line size={ICON.xs} className={cn("shrink-0", active ? "text-accent-color" : "opacity-70")} />
+                  <span className="min-w-0 flex-1 truncate text-3xs font-medium" title={w.rootPath}>
+                    {shortName(w.rootPath)}
+                  </span>
+                  {switching === w.rootPath ? (
+                    <RiLoader4Line size={ICON.xs} className="shrink-0 animate-spin" />
+                  ) : active ? (
+                    <RiCheckLine size={ICON.xs} className="shrink-0 text-accent-color" />
+                  ) : null}
+                </DropdownItem>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      <div className="h-px bg-border-subtle-dim" />
+
+      {/* Open / close */}
+      <div className="px-1 py-1.5">
+        <DropdownItem disabled={busy} onSelect={() => { void handlePickNew(); }}>
+          {switching === "picking" ? (
+            <RiLoader4Line size={ICON.xs} className="shrink-0 animate-spin" />
+          ) : (
+            <RiAddLine size={ICON.xs} className="shrink-0" />
+          )}
+          <span className="flex-1">{t("titleBar.openOrCreateWorkspace")}</span>
         </DropdownItem>
+        <DropdownItem disabled={busy} destructive onSelect={() => { void handleCloseWorkspace(); }}>
+          {switching === "closing" ? (
+            <RiLoader4Line size={ICON.xs} className="shrink-0 animate-spin" />
+          ) : (
+            <RiLogoutBoxRLine size={ICON.xs} className="shrink-0" />
+          )}
+          <span className="flex-1">{t("titleBar.closeWorkspace")}</span>
+        </DropdownItem>
+      </div>
+
+      <div className="h-px bg-border-subtle-dim" />
+
+      {/* App actions — focus / tools / help (settings + theme live on the footer) */}
+      <div className="px-1 py-1.5">
         <DropdownItem
           active={focusMode}
           onSelect={() => {
@@ -229,106 +401,65 @@ export function WorkspaceSwitcher({
           <span className="flex-1">{t("titleBar.focusMode")}</span>
           <kbd className="v4-kbd v4-kbd-sm">{formatChord("⌘⌥F")}</kbd>
         </DropdownItem>
-      </div>
-
-      <DropdownSectionLabel>{t("titleBar.preferencesSection")}</DropdownSectionLabel>
-      <div className="flex items-center gap-1 px-2 pb-1.5">
-        {([
-          { id: "auto" as ThemeMode, icon: RiComputerLine, label: t("titleBar.themeAuto") },
-          { id: "light" as ThemeMode, icon: RiSunLine, label: t("titleBar.themeLight") },
-          { id: "dark" as ThemeMode, icon: RiMoonLine, label: t("titleBar.themeDark") },
-        ]).map((opt) => {
-          const Icon = opt.icon;
-          const active = theme === opt.id;
-          return (
-            <button
-              key={opt.id}
-              type="button"
-              title={opt.label}
-              aria-label={opt.label}
-              aria-pressed={active}
-              onClick={() => { void pickTheme(opt.id); }}
-              className={cn(
-                "flex h-7 flex-1 items-center justify-center rounded-md transition-colors v4-focus-ring",
-                active ? "bg-accent-bg-subtle text-accent-color" : "text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
-              )}
-            >
-              <Icon size={ICON.xs} />
-            </button>
-          );
-        })}
-      </div>
-      <div className="flex items-center gap-1 px-2 pb-2">
-        {LOCALE_OPTIONS.map((opt) => {
-          const active = currentLocale === opt.id;
-          return (
-            <button
-              key={opt.id}
-              type="button"
-              aria-pressed={active}
-              onClick={() => { void pickLocale(opt.id); }}
-              className={cn(
-                "flex h-7 min-w-0 flex-1 items-center justify-center gap-0.5 rounded-md px-1 text-3xs font-medium transition-colors v4-focus-ring",
-                active ? "bg-accent-bg-subtle text-accent-color" : "text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
-              )}
-            >
-              {opt.id === "auto" ? <RiGlobalLine size={ICON.micro} className="shrink-0" /> : null}
-              <span className="truncate">{opt.nativeLabel}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      <DropdownSectionLabel>{t("titleBar.recentWorkspaces")}</DropdownSectionLabel>
-      <div className="v4-sidebar-scroll max-h-32 overflow-auto px-1 pb-1">
-        {recent.length === 0 ? (
-          <div className="px-2.5 py-2 text-3xs text-text-quaternary">{t("titleBar.noRecentWorkspaces")}</div>
-        ) : (
-          recent.map((w) => {
-            const active = w.rootPath === currentRoot;
-            return (
-              <DropdownItem
-                key={w.rootPath}
-                disabled={busy}
-                active={active}
-                onSelect={() => { void handleSwitch(w.rootPath); }}
-              >
-                <RiFolder3Line size={ICON.micro} className="shrink-0 opacity-70" />
-                <span className="min-w-0 flex-1 truncate" title={w.rootPath}>
-                  {shortName(w.rootPath)}
-                </span>
-                {switching === w.rootPath ? (
-                  <RiLoader4Line size={ICON.micro} className="shrink-0 animate-spin" />
-                ) : active ? (
-                  <RiCheckLine size={ICON.micro} className="shrink-0 text-accent-color" />
-                ) : null}
-              </DropdownItem>
-            );
-          })
-        )}
-      </div>
-
-      <div className="border-t border-border-subtle-dim p-1">
-        <DropdownItem disabled={busy} onSelect={() => { void handlePickNew(); }}>
-          {switching === "picking" ? (
-            <RiLoader4Line size={ICON.xs} className="shrink-0 animate-spin" />
-          ) : (
-            <RiAddLine size={ICON.xs} className="shrink-0" />
-          )}
-          <span>{t("titleBar.openOrCreateWorkspace")}</span>
+        <DropdownItem
+          onSelect={() => {
+            setOpen(false);
+            emitLocal("overlay:open", { kind: "tools-logs" });
+          }}
+        >
+          <RiStethoscopeLine size={ICON.xs} className="shrink-0" />
+          <span className="flex-1">{t("titleBar.toolsLogs")}</span>
+          <kbd className="v4-kbd v4-kbd-sm">{formatChord("⌘⇧L")}</kbd>
         </DropdownItem>
-        <DropdownItem disabled={busy} onSelect={() => { void handleCloseWorkspace(); }}>
-          {switching === "closing" ? (
-            <RiLoader4Line size={ICON.xs} className="shrink-0 animate-spin" />
-          ) : (
-            <RiLogoutBoxRLine size={ICON.xs} className="shrink-0" />
-          )}
-          <span>{t("titleBar.closeWorkspace")}</span>
+        <DropdownItem
+          onSelect={() => {
+            setOpen(false);
+            emitLocal("overlay:open", { kind: "help" });
+          }}
+        >
+          <RiQuestionLine size={ICON.xs} className="shrink-0" />
+          <span className="flex-1">{t("titleBar.help")}</span>
         </DropdownItem>
+      </div>
+
+      <div className="h-px bg-border-subtle-dim" />
+
+      {/* Language — one row: label left, compact chips right (same rhythm as menu items) */}
+      <div className="px-1 pb-1.5 pt-1">
+        <div className="flex h-8 items-center gap-2 rounded-[var(--radius-md)] px-2.5">
+          <RiGlobalLine size={ICON.xs} className="shrink-0 text-text-tertiary" />
+          <span className="flex-1 text-3xs font-medium text-text-secondary">
+            {t("titleBar.languageMenuSection")}
+          </span>
+          <div className="flex shrink-0 items-center gap-0.5" data-workspace-locale-switch>
+            {LOCALE_OPTIONS.map((opt) => {
+              const active = currentLocale === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  title={opt.nativeLabel}
+                  aria-label={opt.nativeLabel}
+                  aria-pressed={active}
+                  onClick={() => { void pickLocale(opt.id); }}
+                  className={cn(
+                    "flex h-6 min-w-6 items-center justify-center rounded-[var(--radius-sm)] px-1.5",
+                    "text-3xs font-semibold transition-colors v4-focus-ring",
+                    active
+                      ? "bg-accent-bg-subtle text-accent-color"
+                      : "text-text-tertiary hover:bg-surface-hover hover:text-text-secondary",
+                  )}
+                >
+                  {opt.chip}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {error ? (
-        <div className="border-t border-border-subtle px-2.5 py-2 text-3xs text-error" role="alert">
+        <div className="border-t border-border-subtle px-3 py-2 text-3xs text-error" role="alert">
           {error}
         </div>
       ) : null}

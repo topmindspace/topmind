@@ -27,7 +27,8 @@ async function writeMarkdownDurable(fullPath, content, ctxObj) {
     operation: "update",
     actor: "user",
     confirmed: true,
-    skipReceipt: true,
+    // High-impact (locked overwrite) still backups + receipts via the single gate.
+    // Do not force-skip receipts — that breaks the "backup always has a receipt" rule.
   });
 }
 

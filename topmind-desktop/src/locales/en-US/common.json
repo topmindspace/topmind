@@ -103,6 +103,7 @@
     "outputs": "Go to Delivery",
     "archive": "Go to Archive",
     "workspaceSwitcher": "Switch workspace",
+    "toolsLogs": "Tools & Logs",
     "closeTab": "Close current file tab",
     "closeAllTabs": "Close all unpinned tabs",
     "back": "Back",

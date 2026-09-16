@@ -22,7 +22,7 @@ function sliceTitleBarActions(src) {
   return src.slice(start, end);
 }
 
-test("PrimaryNav lives in the sidebar destinations row (dropdown + compact icons)", () => {
+test("PrimaryNav lives on the sidebar primary header (dropdown + compact icons)", () => {
   const nav = read("src/components/shell/PrimaryNav.tsx");
   assert.match(nav, /data-primary-nav=/);
   // Destinations remain stream / inbox / outputs — compact chips + dropdown items.

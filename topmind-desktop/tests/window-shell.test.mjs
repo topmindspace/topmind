@@ -278,6 +278,17 @@ test("Windows OS chrome lives in a full-width strip, not a product column header
     /data-column-chrome/u,
     "AppMenuBar must not anchor to product column chrome",
   );
+  // Popup x must follow the clicked label, not the strip's left edge.
+  assert.match(
+    menuBar,
+    /btn\.left/u,
+    "popup anchor must use the menu item's left edge (not strip.left for every section)",
+  );
+  assert.match(
+    menuBar,
+    /BrandMark/u,
+    "OS chrome strip must use the inline BrandMark (file:// cannot load /favicon.svg)",
+  );
 });
 
 test("the title bar's app name matches the OS window title main sets", () => {

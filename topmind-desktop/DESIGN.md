@@ -19,7 +19,7 @@
 ```text
 中栏主锚点：动态（默认） · Inbox · 交付
 状态栏 compact：状态（路径 · AI · busy）— 主锚不在状态栏
-中栏动作：面包屑 · 注入动作 · AI 列开关（主锚在**侧栏目的地行**；搜索非 PrimaryNav：⌘K 命令面板 · ⌘P 笔记全文；记一下在左栏）
+中栏动作：面包屑 · 注入动作 · AI 列开关（主锚在**侧栏主 header**；搜索非 PrimaryNav：⌘K 命令面板 · ⌘P 笔记全文；记一下在左栏）
 左栏：内容导航 + 底栏工作区切换 + ViewSwitcher 下沉
 右栏：AI 工作区 pane 对话 / 建议 / 清单 / 应用
 二级入口：专题树 · 我的情况（记忆浏览：列表/卡片，点开条目仍落文件） · 归档（⌘⇧A / 命令面板；不在 PrimaryNav）
@@ -144,19 +144,22 @@
 
 **2026-09 v4 三列 header 职责：**
 
-- **左 Sidebar 主 header**（顺序固定）：Profile → 搜索 ⌘K → 记一下，整组**右对齐**（macOS 红绿灯占左栏顶栏左侧空位，避免遮挡）。记一下是普通 chrome 按钮（非实心 teal CTA），图标与文字用捕获强调色 / 渐变。
+- **左 Sidebar 主 header**（顺序固定）：**PrimaryNav（动态 · Inbox · 交付）→ Profile → 搜索 ⌘K → 记一下**。macOS 整组右对齐（红绿灯占左栏左侧）；Windows/Linux 左对齐（栏就是窗口左缘）。记一下是纯图标 chrome 按钮（`RiPencilLine` 铅笔，通用「写」认知），非实心 teal CTA，捕获强调色；tooltip/aria 承载文案（避免 macOS 原生按钮挤压）。
 - **左 Sidebar 次级 header**：ViewSwitcher 纯图标（动态 / 目录 / 时间 / 看板等）与树的排序 / 展开折叠 / 筛选 / 刷新合在**同一行**小图标；非目录模式隐藏树工具。
 - **中间 TitleBar**：三列顶栏共用 `.v4-column-chrome`（`--density-chrome-y` 44px · 控件 32px）对齐。左侧 = Toggle + 后退/前进 + 可点击祖先面包屑（第一层 `max-w-36`，后续更短）+ 当前页标题 + 该页统计；右侧 = 视图注入动作 slot（`data-titlebar-actions-slot`）+ AI 面板 toggle。集合页（动态 / Inbox / 交付 / 类别 / 专题 / 我的情况 / 归档）的身份与新建/整理/刷新等动作住在 TitleBar，画布不再重复 PageHeader 标题条。文件页把注入 AI / 发布 / 移动 / 记忆等原编辑器拖把右侧快捷键注入 TitleBar；拖把只留格式与编辑/预览。大纲 / 阅读外观 / 专注模式住在 FrontmatterBar 属性行右侧（`EditorViewChrome`），不挤格式条。
-- **StatusBar**：左端绿点 + **完整工作区路径**（`data-status-workspace-path`，不是 basename）；tooltip 含 engine 路径。**不含 PrimaryNav**（状态栏是状态，不是导航；主锚在侧栏目的地行）。
+- **StatusBar**：左端绿点 + **完整工作区路径**（`data-status-workspace-path`，不是 basename）；tooltip 含 engine 路径。**不含 PrimaryNav**（状态栏是状态，不是导航；主锚在侧栏主 header）。
 
 | 能力 | 唯一主家 | 侧栏收起后如何到达 |
 |------|----------|-------------------|
 | **记一下** | 左栏 Sidebar 主 header L1 捕获（⌘N / 全局 ⌘⇧N） | 侧栏收起后 ⌘N / ⌘⇧N 全局快捷键仍可达 |
-| **动态 · Inbox · 交付** | **侧栏目的地行**（`data-sidebar-primary-nav` · 分段控件，图标+文字） | 侧栏收起时 TitleBar **紧凑图标**（`PrimaryNav variant=compact`）；⌘⇧S / ⌘⇧I / ⌘⇧O · ⌘K |
+| **动态 · Inbox · 交付** | **侧栏主 header**（`data-sidebar-primary-nav` · 与 Profile/搜索/记一下同行） | 侧栏收起时 TitleBar **紧凑图标**（`PrimaryNav variant=compact`）；⌘⇧S / ⌘⇧I / ⌘⇧O · ⌘K |
 | **建议** | 右列 AI 工作区 **建议** pane；状态栏计数（count>0）只打开该 pane | 状态栏计数仍在（count>0）；专注模式浮动 `SuggestPopover` |
 | **清单** | 右列 AI 工作区 **清单** pane（`TodoListBody`；✨ 维护在 pane 内）；⌘⇧T 开门 | 专注模式浮动 `TodoPopover` |
 | **应用** | 右列 AI 工作区 **应用** pane | ⌘K「打开应用」走 `openAiWorkspace("apps")`（不依赖右列已挂载） |
-| **设置** | WorkspaceSwitcher 菜单 / ⌘, | ⌘, / ⌘⇧W（Shell 常驻宿主，侧栏收起后仍开菜单） |
+| **设置** | 侧栏页脚 **设置图标钮**（`data-workspace-settings`）/ WorkspaceSwitcher 菜单旁 / ⌘, | ⌘, / ⌘⇧W（Shell 常驻宿主，侧栏收起后仍开菜单） |
+| **主题** | 侧栏页脚 **主题循环钮**（`data-workspace-theme`，与工作区名同排；菜单内不再塞三格主题簇） | 专注模式 ⌘⇧W 菜单仍可进设置改主题 |
+| **工具与日志** | WorkspaceSwitcher 菜单 / ⌘⇧L | Overlay `tools-logs`：概览 stats · 操作日志 · 系统日志 · 健康（含契约）· 清理预览/去重 |
+| **帮助** | WorkspaceSwitcher 菜单 | Overlay `help`：快速开始 · 功能 · 工作流 · 理念 · FAQ；可跳转设置 / 工具与日志 |
 | **AI 列开关** | 中栏薄 chrome L1 | TitleBar 仍在 |
 
 **PageHeader** 不再作为集合画布的标题 + 动作条。集合身份（目录名 + 原页头副标题统计）与视图动作注入 TitleBar：动态整理本周 · 刷新；Inbox 新笔记 · 刷新；归档/交付刷新；类别新建专题/笔记；专题记忆 / topic.md / 新建；我的情况打开目录 / 整理。禁止把 记一下 / 建议 / 清单 再做成与顶栏等权的第二命令条。空态 outline「打开记一下」是恢复 CTA，不是第二条产品栏。
@@ -228,13 +231,15 @@
 | **统一 chip 语言** | `.v4-chip` / `.v4-segmented` / `.v4-composer` / `CaptureModeBar` / FilterChip |
 | **列表 / 下拉** | 门户 `DropdownMenu`/`MenuSelect` / ContextMenu 共用 `.v4-menu-surface`；**先 hidden 测量再显示**（无打开闪跳）；**滚动即关**；画布菜单在 `html[data-overlay-open]` 时关闭；`z-menu(110)` > tooltip(100) > 工作台 overlay `z-modal`(80) |
 | **空态** | `EmptyState`：图标芯片 + 一句原因 + **一个主 CTA**（侧栏 compact 同构）；时间线/标签空态须有下一步 |
-| **侧栏树** | 图标 `tree-node-icons` · 右键 `tree-node-context-menu` · 展开/排序/筛选 + **手动刷新** `tree-toolbar`（`data-sidebar-refresh` 仍在 toolbar 组件上，视觉上与 ViewSwitcher **同一行**——目的地行与视图切换已合并为单条 chrome `data-sidebar-secondary-header`；目录树本身不再另起工具行）· 路径 `lib/tree-path`；**文件名隐藏 `.md` 后缀**（`stripMdExt`）；**PARA 编号弱化渲染**（`renderCategoryLabel`：`00-` 前缀用 `text-text-quaternary/70`）。**感知**：`lib/tree-listing-change` 区分 listing（inbox/add/unlink/ingest-done）与 topic 内 content-only；空 inbox 写入后重建并展开，不依赖重启 |
-| **少硬分割线** | 编辑器常驻 ≤2 条 full-width 分割（工具栏 + 可选属性）；避免斑马纹；**Recent tab strip 无底边框**（`.v4-editor-recents` transparent + `shadow-divider-bottom`）；**标题栏 cluster 透明**（`.v4-titlebar-cluster` 无背景无 inset）；**搜索为侧栏图标按钮**（`.v4-search-trigger`，纯按钮无输入框，⌘K）；**侧栏主 header**（`data-sidebar-header`：Profile → 搜索 → 记一下）；**次级 header**（`data-sidebar-secondary-header`：ViewSwitcher 与树工具一行） |
+| **侧栏树** | 图标 `tree-node-icons` · 右键 `tree-node-context-menu` · 展开/排序/筛选 + **手动刷新** `tree-toolbar`（`data-sidebar-refresh` 仍在 toolbar 组件上，视觉上与 ViewSwitcher **同一行**——主 header 承载目的地，次级 chrome `data-sidebar-secondary-header` 只留视图切换与树工具；目录树本身不再另起工具行）· 路径 `lib/tree-path`；**文件名隐藏 `.md` 后缀**（`stripMdExt`）；**PARA 编号弱化渲染**（`renderCategoryLabel`：`00-` 前缀用 `text-text-quaternary/70`）。**感知**：`lib/tree-listing-change` 区分 listing（inbox/add/unlink/ingest-done）与 topic 内 content-only；空 inbox 写入后重建并展开，不依赖重启 |
+| **少硬分割线** | 编辑器常驻 ≤2 条 full-width 分割（工具栏 + 可选属性）；避免斑马纹；**Recent tab strip 无底边框**（`.v4-editor-recents` transparent + `shadow-divider-bottom`）；**标题栏 cluster 透明**（`.v4-titlebar-cluster` 无背景无 inset）；**搜索为侧栏图标按钮**（`.v4-search-trigger`，纯按钮无输入框，⌘K）；**侧栏主 header**（`data-sidebar-header`：PrimaryNav → Profile → 搜索 → 记一下）；**次级 header**（`data-sidebar-secondary-header`：ViewSwitcher 与树工具一行） |
+| **图标按钮三档** | `.v4-icon-btn` 基类 + 尺寸档：**chrome 32**（TitleBar / Sidebar header / AI 列 header）· **tool 26**（编辑器格式条）· **micro 24**（树工具）。hover 一律 `--color-surface-hover` 铺满**完整热区**；**禁止** chrome 按钮写 `min-width:0`（记一下曾因此 hover 盒塌成图标本体）。纯图标 chrome 保持 32×32；带文案的 chrome 动作用 `gap` + padding 自然撑开 |
+| **工作区页脚** | 左：标识（文件夹图标 · 名称 · 上拉）打开菜单；右：**主题循环** + **设置** 两颗 chrome 钮同排（高频动作不进菜单）。菜单分区：名称+复制路径 → 最近工作区 → 打开/关闭 → 专注/工具/帮助 → 语言。禁止把主题三格簇再塞回菜单 |
 | **长时阅读** | UI ≥12px；正文默认 16px / 1.7；列宽 `--content-max-width-prose`；专注模式 ⌘⌥F；边框 alpha 足以勾勒结构、避免糊成一片 |
 | **动效克制** | `duration-fast` 140ms · `duration-enter` 160ms；列表 stagger ≤8；`prefers-reduced-motion` 全关 |
 | **性能** | `content-visibility` 列表、panel `contain`、AI 面板 lazy、流式滚动尊重用户上滑 |
 | **响应式 chrome** | 操作按钮按宽度 **铺开 ↔ ⋯ 溢出**（`ChromeOverflowActions`）；TitleBar 右轨 ResizeObserver 互斥；主锚文案按窗口宽度（≥960）显示，窄屏 **tooltip + aria-label 必在**；编辑器右侧发布/AI/专注同轨溢出；禁止同动作双入口 |
-| **StatusBar 可交互** | 工作区正常：绿点 + **完整工作区路径**（`data-status-workspace-path`，tooltip 含 engine 路径）；异常才出错误文字。**不含 PrimaryNav**（主锚在侧栏目的地行；收起时 TitleBar 紧凑图标）。**AI 就绪 pill（唯一主控件）**：离线->设置 · 就绪->toggle AI 面板；流式时 pill 显示会话态；**命名 busy 单路径**（`deriveStatusBarBusy`：apply > tasks > todo > suggest > **inline** 最多一颗命名 chip；todo/suggest/inline/apply 独占时 AI pill 不显示「工作中」）；**进度动效**：每个 busy chip 附带 `v4-ai-progress-dot` 脉动指示器；tooltip 含预期时长。**文件 chip 仅 file 选择时显示**（点击 reveal）。**建议计数在状态栏**（count>0 时 `showSuggestCountChip`；生成中走 busy chip；确认写入走 apply chip） |
+| **StatusBar 可交互** | 工作区正常：绿点 + **完整工作区路径**（`data-status-workspace-path`，tooltip 含 engine 路径）；异常才出错误文字。**不含 PrimaryNav**（主锚在侧栏主 header；收起时 TitleBar 紧凑图标）。**AI 就绪 pill（唯一主控件）**：离线->设置 · 就绪->toggle AI 面板；流式时 pill 显示会话态；**命名 busy 单路径**（`deriveStatusBarBusy`：apply > tasks > todo > suggest > **inline** 最多一颗命名 chip；todo/suggest/inline/apply 独占时 AI pill 不显示「工作中」）；**进度动效**：每个 busy chip 附带 `v4-ai-progress-dot` 脉动指示器；tooltip 含预期时长。**文件 chip 仅 file 选择时显示**（点击 reveal）。**建议计数在状态栏**（count>0 时 `showSuggestCountChip`；生成中走 busy chip；确认写入走 apply chip） |
 | **TitleBar 右轨分层** | **L1** 视图注入动作（`data-titlebar-actions-slot`）+ AI 轨开关（`.v4-titlebar-btn-ai`）。记一下不在 TitleBar（左栏 Sidebar 主 header）。建议 / 清单 / 应用在 AI 工作区 pane；主题 / 语言 / 设置在 WorkspaceSwitcher。`data-chrome-tier`；**badge 纪律：仅在需要行动时出现**——Inbox（分诊队列）+ 建议计数（状态栏 count>0）保留；交付计数（库存非行动）与清单常驻数字点（恒非零）已移除 |
 | **建议入口降噪** | 建议计数**恰好一处可见入口**：状态栏计数 chip（count>0 才出现）+ AI 工作区建议 tab；专注模式浮动 `SuggestPopover`；画布顶 strip 已删。禁止 strip + 轨 chip + 状态栏 三处等权 |
 | **编辑器默认 chrome** | 格式工具条 **默认展开**（`showFormat=true`，可收起）；常驻 ≤2 条 full-width 分割 |
@@ -406,7 +411,7 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 - **设置 ↔ 壳同步**：`settings.ui`（含 `aiPanelOpen` / 侧栏视图 / 宽度）经 `lib/ui-settings-sync` 即时写入 view-store；Shell 收到 `ui:settings-applied` 后 **跳过一轮** 布局防抖写盘，避免盖掉设置  
 - **UI 默认**：无效 `sidebarView` normalize 为 **`stream`**（产品默认，非 category）
 
-- **窗体 / 托盘 / Landing / 状态栏 / Overlay** 与实现一致；PrimaryNav = **动态 · Inbox · 交付**（侧栏目的地行；侧栏收起时 TitleBar 紧凑图标；搜索非 PrimaryNav：⌘K 命令面板 · ⌘P 笔记全文）
+- **窗体 / 托盘 / Landing / 状态栏 / Overlay** 与实现一致；PrimaryNav = **动态 · Inbox · 交付**（侧栏主 header；侧栏收起时 TitleBar 紧凑图标；搜索非 PrimaryNav：⌘K 命令面板 · ⌘P 笔记全文）
 
 ### 2.1 中栏顶栏（薄 chrome · 非横跨三列的产品 header）
 
@@ -415,7 +420,7 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 **左侧**:
 - 侧栏开关 · 前进/后退（工作区切换器在左栏底部，⌘⇧W 仍打开）
 
-**侧栏目的地行** — `PrimaryNav variant="sidebar"`（`data-sidebar-primary-nav` · 分段控件，图标+文字）:
+**侧栏主 header** — `PrimaryNav variant="sidebar"`（`data-sidebar-primary-nav` · 与 Profile/搜索/记一下同行）:
 - **动态**（默认，打开工作区落点）· **Inbox** · **交付**
 - 归档不在主锚（⌘⇧A / 侧栏 / 命令面板）
 - 搜索：⌘K 命令面板 · ⌘P 笔记全文（均非 PrimaryNav）
@@ -430,7 +435,7 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 
 - **ViewSwitcher**：侧栏顶部**单一下拉**（触发器显示当前模式文案，如「目录 ▾」；默认 **目录/category**；菜单含 目录 / 流式 / 时间 / 标签 / 看板 + 一句 hint）
   - 这是**侧栏视图**，不是主画布模式；主画布信息流的列表/卡片开关仍在流上方（`data-feed-chrome`）
-  - 与 PrimaryNav 同排 chrome 行；两控件都必须 `onClick` 切换 `open`（DropdownMenu 不自开）
+  - 与 ViewSwitcher **不在同一行**（2026-09）：PrimaryNav 升到主 header；次级 header 只留 ViewSwitcher + 树工具
 - **PrimaryNav**：侧栏**单一下拉**（动态 / Inbox / 交付）；侧栏收起时 TitleBar 紧凑图标
 - **自动刷新**：侧栏订阅 `workspace:file-changed`。目录树用 `classifyTreeFileChange`：inbox / 交付 / 归档 / 类别根 / add·unlink / ingest 完成 = listing 重建（空 inbox 有文件则展开）；专题内部保存 = 定向刷新、不整树闪。Inbox 主列表静默重载（无全页空态闪）。手动刷新在树工具条（展开/折叠/排序旁），不是标题栏第二按钮。StreamView 450ms 防抖。
 - **渐进展开**：每个展开节点默认只渲染 **8** 个子项，其余收成「还有 N 项…」；再点再翻 8 个。避免长目录一展开就刷屏。
@@ -831,6 +836,7 @@ ZCode 阶：`--radius-xs: 2px` · `--radius-sm: 4px` · `--radius-md: 6px` · `-
 | ⌘⇧N | 全局（任意应用） | 显示窗口 + 记一下 |
 | ⌘N | 窗口内 | 记一下 |
 | ⌘⇧W | 窗口内 | 切换工作区（下拉菜单） |
+| ⌘⇧L | 窗口内 | 工具与日志（stats · ops journal · 健康 · 清理） |
 | ⌘K | 窗口内 | 命令面板 |
 | ⌘P | 窗口内 | 全局搜索 |
 | ⌘, | 窗口内 | 设置 |
@@ -911,7 +917,7 @@ ZCode 阶：`--radius-xs: 2px` · `--radius-sm: 4px` · `--radius-md: 6px` · `-
 
 界面显性概念严格限定为：**记一下 · 动态 · 专题 · 我的情况 · 交付**。
 
-- 目的地行：动态（默认）· Inbox · 交付（**侧栏** `PrimaryNav variant=sidebar`；侧栏收起时 TitleBar compact；StatusBar 不含导航）
+- 目的地：动态（默认）· Inbox · 交付（**侧栏主 header** `PrimaryNav variant=sidebar`；侧栏收起时 TitleBar compact；StatusBar 不含导航）
 - 搜索非 PrimaryNav：⌘K 命令面板 · ⌘P 笔记全文
 - 侧栏 ViewSwitcher：流式 / 分类 / 时间线 / 标签 / 看板（高级折叠）
 - 捕获词汇：`记一下`（Note it · 完整捕获）vs `记下`（Log it · 周期本追加）— 语义不混

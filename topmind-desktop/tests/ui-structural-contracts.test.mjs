@@ -26,7 +26,7 @@ function read(rel, base = root) {
 
 // ── Chrome hierarchy & single CTA ──────────────────────────────────────
 
-test("TitleBar: AI toggle; sidebar has capture; PrimaryNav in sidebar destinations row", () => {
+test("TitleBar: AI toggle; sidebar has capture; PrimaryNav on primary header row", () => {
   const titleBar = read("src/components/shell/TitleBar.tsx");
   // Compact fallback only when sidebar is collapsed — not a full view-switcher.
   assert.match(titleBar, /PrimaryNav variant="compact"/);
@@ -52,7 +52,7 @@ test("TitleBar: AI toggle; sidebar has capture; PrimaryNav in sidebar destinatio
   );
   const profileIdx = headerFn.indexOf("<ProfileButton");
   const searchIdx = headerFn.indexOf("v4-search-trigger");
-  const captureIdx = headerFn.indexOf("RiFlashlightLine");
+  const captureIdx = headerFn.indexOf("RiPencilLine");
   assert.ok(profileIdx >= 0 && searchIdx > profileIdx && captureIdx > searchIdx, "header order Profile → Search → 记一下");
   assert.match(headerFn, /titleBar\.capture/);
   assert.match(headerFn, /v4-capture-accent-icon/);
@@ -69,16 +69,23 @@ test("TitleBar: AI toggle; sidebar has capture; PrimaryNav in sidebar destinatio
   assert.doesNotMatch(treeSection, /<div className="flex items-center gap-0.5 px-1.5 pb-1 pt-0.5">/);
 });
 
-test("WorkspaceSwitcher hosts theme + language + settings (consolidated from TitleBar)", () => {
+test("WorkspaceSwitcher: footer hosts theme + settings; menu hosts language + focus", () => {
   const ws = read("src/components/shell/WorkspaceSwitcher.tsx");
-  assert.match(ws, /preferencesSection/);
+  // Footer peer controls — not buried in the menu.
+  assert.match(ws, /data-workspace-switcher-row/);
+  assert.match(ws, /data-workspace-theme/);
+  assert.match(ws, /data-workspace-settings/);
+  assert.match(ws, /themeCycleTip/);
+  assert.match(ws, /settingsTip/);
   assert.match(ws, /pickTheme/);
   assert.match(ws, /pickLocale/);
   assert.match(ws, /focusMode/);
-  assert.match(ws, /settingsLabel/);
   assert.match(ws, /preferPlacement="top"/);
   assert.match(ws, /data-workspace-name/);
+  assert.match(ws, /copyWorkspacePath/);
   assert.match(ws, /padBottom=\{32\}/);
+  // Theme cluster no longer lives inside the popup.
+  assert.doesNotMatch(ws, /preferencesSection/);
 });
 
 test("List views demote capture to outline (no competing solid CTA)", () => {

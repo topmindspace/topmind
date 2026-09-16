@@ -1313,12 +1313,12 @@ export class SidebarDockView extends ItemView {
     const actionsBar = container.createDiv({ cls: "tm-sidebar-bottom-actions" });
     const aiConfigured = hasConfiguredProvider(this.plugin.settings.ai);
 
-    // Primary Quick Capture CTA (Always available, broad hit area)
+    // Primary Quick Capture — pen (write), not zap; matches Desktop 记一下
     const captureBtn = actionsBar.createEl("button", {
       cls: "tm-sidebar-action-btn tm-sidebar-capture-primary",
     });
     const iconSpan = captureBtn.createSpan({ cls: "tm-action-icon-span" });
-    setIcon(iconSpan, "zap");
+    setIcon(iconSpan, "pencil");
     if (this.showActionLabels) {
       captureBtn.createSpan({ text: t("sidebar_btn_capture"), cls: "tm-action-label-span" });
     }
@@ -1341,24 +1341,47 @@ export class SidebarDockView extends ItemView {
       this.refreshActiveTab();
     }, false);
 
+    // AI ops collapse into one sparkles menu — the three ops are peers, not
+    // permanent bottom-bar citizens. Header already owns workbench + settings.
     if (aiConfigured) {
-      this.addActionButton(actionsBar, "list-checks", t("sidebar_btn_todo"), () => {
-        this.plugin.enqueueAiOperation("todo_maintain", "op_label_todo_maintain", "notice_todo_done", "sidebar");
-      }, true);
-      this.addActionButton(actionsBar, "tag", t("sidebar_btn_classify"), () => {
-        this.plugin.enqueueAiOperation("topic_classify", "op_label_topic_classify", "notice_classify_done", "suggest");
-      }, true);
-      this.addActionButton(actionsBar, "brain", t("sidebar_btn_memory"), () => {
-        this.plugin.enqueueAiOperation("memory_organize", "op_label_memory_organize", "notice_memory_done", "all");
-      }, true);
+      const aiOpsBtn = actionsBar.createEl("button", {
+        cls: `tm-sidebar-action-btn${this.showActionLabels ? " tm-action-with-label" : ""}`,
+      });
+      const aiIcon = aiOpsBtn.createSpan({ cls: "tm-action-icon-span" });
+      setIcon(aiIcon, "sparkles");
+      if (this.showActionLabels) {
+        aiOpsBtn.createSpan({ text: t("sidebar_op_menu"), cls: "tm-action-label-span" });
+      }
+      aiOpsBtn.setAttribute("aria-label", t("sidebar_op_menu"));
+      aiOpsBtn.setAttribute("title", t("sidebar_op_menu"));
+      aiOpsBtn.addEventListener("click", (evt: MouseEvent) => {
+        const menu = new Menu();
+        menu.addItem((item) => {
+          item.setTitle(t("sidebar_btn_todo"))
+            .setIcon("list-checks")
+            .onClick(() => {
+              this.plugin.enqueueAiOperation("todo_maintain", "op_label_todo_maintain", "notice_todo_done", "sidebar");
+            });
+        });
+        menu.addItem((item) => {
+          item.setTitle(t("sidebar_btn_classify"))
+            .setIcon("tag")
+            .onClick(() => {
+              this.plugin.enqueueAiOperation("topic_classify", "op_label_topic_classify", "notice_classify_done", "suggest");
+            });
+        });
+        menu.addItem((item) => {
+          item.setTitle(t("sidebar_btn_memory"))
+            .setIcon("brain")
+            .onClick(() => {
+              this.plugin.enqueueAiOperation("memory_organize", "op_label_memory_organize", "notice_memory_done", "all");
+            });
+        });
+        menu.showAtMouseEvent(evt);
+      });
     }
 
-    // Workbench entry
-    this.addActionButton(actionsBar, "waves", t("sidebar_btn_workbench"), () => {
-      void this.openWorkbench();
-    }, false);
-
-    // Label visibility toggle
+    // Label visibility toggle — always icon-only
     const toggleLabel = this.showActionLabels ? t("sidebar_action_label_hide") : t("sidebar_action_label_show");
     this.addActionButton(actionsBar, this.showActionLabels ? "eye-off" : "eye", toggleLabel, () => {
       this.showActionLabels = !this.showActionLabels;

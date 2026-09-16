@@ -71,13 +71,14 @@ export function resolveMaxTokens(context, promptLen = 0) {
 export function isReasoningModel(modelId) {
   if (!modelId || typeof modelId !== "string") return false;
   const lower = modelId.toLowerCase();
+  // Tight patterns — avoid matching o10-*, o30-*, or generic "thinking" ids
+  // that accept temperature (many Gemini/OpenRouter models).
   return (
     lower.includes("reasoner") ||
     lower.includes("deepseek-r1") ||
-    lower.startsWith("o1") ||
-    lower.startsWith("o3") ||
+    /^o[13](-mini|-preview)?(?:[-/]|$)/.test(lower) ||
     lower.includes("qwq") ||
-    lower.includes("thinking")
+    /(^|[-/])thinking([-/]|$)/.test(lower)
   );
 }
 

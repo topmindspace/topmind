@@ -375,6 +375,32 @@ export const scanOps = {
     await ensureDir("outputs", outputsRoot(ctx.workspaceRoot));
     await ensureDir("archive", archiveRoot(ctx.workspaceRoot));
 
+    // Contract health — single Kernel inspect (same source as UTR/Obsidian).
+    try {
+      const { kernelInspectContract } = await import("./kernel-api.mjs");
+      const inspection = await kernelInspectContract(ctx.workspaceRoot);
+      checks.contract = {
+        ok: inspection?.status === "ok" || inspection?.ok === true,
+        status: inspection?.status || (inspection?.ok ? "ok" : "unknown"),
+      };
+      const cStatus = checks.contract.status;
+      if (cStatus !== "ok") {
+        issues.push({
+          severity: cStatus === "corrupt" || cStatus === "unrepairable" ? "error" : "warning",
+          code: `contract-${cStatus}`,
+          message: `工作区契约状态：${cStatus}`,
+          path: "topmind.yaml",
+        });
+      }
+    } catch (err) {
+      checks.contract = { ok: false, status: "unavailable", error: err?.message || String(err) };
+      issues.push({
+        severity: "warning",
+        code: "contract-unavailable",
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+
     let categoryCount = 0;
     let topicCount = 0;
     let looseNoteCount = 0;
@@ -422,6 +448,20 @@ export const scanOps = {
           path: path.basename(inboxDir),
         });
       }
+
+      // Out-of-convention top-level entries
+      for (const e of entries) {
+        if (e.startsWith(".")) continue;
+        if (e === "topmind.yaml" || e === "topmind.yml") continue;
+        if (e === "memory") continue;
+        if (CATEGORY_PATTERN.test(e)) continue;
+        issues.push({
+          severity: "warning",
+          code: "out-of-convention",
+          message: `工作区根存在规约外条目：${e}`,
+          path: e,
+        });
+      }
     } catch (err) {
       issues.push({
         severity: "error",
@@ -455,5 +495,30 @@ export const scanOps = {
       checks,
       issues,
     };
+  },
+
+  async workspaceStats(p, ctx) {
+    const { collectWorkspaceStats } = await import("./workspace-stats.mjs");
+    return collectWorkspaceStats(resolveDataRoot(ctx.workspaceRoot), {
+      includeArchive: p?.includeArchive !== false,
+    });
+  },
+
+  async workspaceDuplicates(p, ctx) {
+    const { findDuplicateFiles } = await import("./workspace-duplicates.mjs");
+    return findDuplicateFiles(resolveDataRoot(ctx.workspaceRoot), p || {});
+  },
+
+  async cleanupPreview(_p, ctx) {
+    const { scanCleanupCandidates } = await import("./workspace-cleanup.mjs");
+    return scanCleanupCandidates(resolveDataRoot(ctx.workspaceRoot));
+  },
+
+  async cleanupApply(p, ctx) {
+    const { applyCleanup } = await import("./workspace-cleanup.mjs");
+    return applyCleanup(
+      { ...p, workspaceRoot: resolveDataRoot(ctx.workspaceRoot) },
+      ctx,
+    );
   },
 };

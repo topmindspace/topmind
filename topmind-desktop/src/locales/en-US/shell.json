@@ -54,6 +54,8 @@
   },
   "titleBar": {
     "workspaceTip": "Workspace: {{root}}\nClick to switch / create / close · ⌘⇧W",
+    "copyWorkspacePath": "Copy path",
+    "copyWorkspacePathDone": "Path copied",
     "workspaceMenuTitle": "Workspace · ⌘⇧W",
     "recentWorkspaces": "Recent",
     "noRecentWorkspaces": "No recent workspaces",
@@ -83,6 +85,8 @@
     "settingsTip": "Settings · ⌘,",
     "settingsAriaLabel": "Settings",
     "settingsLabel": "Settings",
+    "toolsLogs": "Tools & Logs",
+    "help": "Help",
     "themeMenuItem": "Theme · {{label}}",
     "themeCycleTip": "Theme: {{label}} · Click for {{next}}",
     "themeAuto": "Follow system",
@@ -555,5 +559,275 @@
     "empty": "No enabled apps. Turn on connectors (WeRead / Bookkeeping / Ingest…) in Settings → Plugins.",
     "manage": "Manage apps…",
     "needsConfig": "Setup needed"
+  },
+  "toolsLogs": {
+    "title": "Tools & Logs",
+    "subtitle": "Workspace usage · operations · health · cleanup",
+    "ok": "OK",
+    "hasIssues": "Issues",
+    "openFolder": "Open log folder",
+    "clearOps": "Clear ops log",
+    "clearMain": "Clear system log",
+    "tabs": {
+      "overview": "Overview",
+      "ops": "Operations",
+      "syslog": "System log",
+      "health": "Health",
+      "care": "Cleanup"
+    },
+    "metrics": {
+      "files": "Files",
+      "size": "Size",
+      "topics": "Topics",
+      "health": "Health"
+    },
+    "sections": {
+      "byTop": "Top-level folders",
+      "delivery": "88-Delivery",
+      "archive": "99-Archive",
+      "largest": "Largest files"
+    },
+    "deliveryLine": "{{count}} files · {{size}} · nested dirs {{nested}}",
+    "archiveLine": "Total {{size}} · backups {{backups}} · receipts {{receipts}}",
+    "empty": {
+      "noStats": "No data yet — refresh to scan"
+    },
+    "ops": {
+      "hint": "Ordinary edits save without snapshots; operations are listed here for review.",
+      "empty": "No operations yet"
+    },
+    "sys": {
+      "all": "All",
+      "empty": "No logs"
+    },
+    "health": {
+      "contract": "Workspace contract",
+      "clean": "No structural issues found",
+      "runDoctor": "Run full doctor"
+    },
+    "care": {
+      "archive": "99-Archive usage",
+      "archiveLine": "About {{size}} · {{files}} files",
+      "pruneHint": "Prunes old receipts by keep policy only; archived notes are not deleted.",
+      "prune": "Prune by policy",
+      "confirm": "Confirm",
+      "cancel": "Cancel",
+      "junk": "Junk files",
+      "noJunk": "No .DS_Store-style junk found",
+      "removeJunk": "Remove junk",
+      "emptyDirs": "Empty directories",
+      "noEmptyDirs": "No empty directories to remove",
+      "removeEmptyDirs": "Remove empty dirs",
+      "convention": "Out-of-convention entries",
+      "noConvention": "Top-level follows workspace conventions",
+      "duplicates": "Duplicate files",
+      "dupLine": "{{groups}} groups · recoverable ~{{waste}}",
+      "keep": "Keep",
+      "trashOthers": "Trash others",
+      "dupHint": "Pick the copy to keep; “Trash others” goes through the write gate (recoverable trash)."
+    }
+  },
+  "help": {
+    "title": "Help",
+    "subtitle": "Getting started · Features · Workflow · Design · FAQ",
+    "close": "Close",
+    "openSettings": "Open Settings",
+    "openTools": "Tools & Logs",
+    "footerHint": "Everything lives in your local folder; AI and tools only read/write inside the workspace.",
+    "tabs": {
+      "start": "Start",
+      "features": "Features",
+      "workflow": "Workflow",
+      "philosophy": "Design",
+      "faq": "FAQ"
+    },
+    "tabBlurb": {
+      "start": "Five steps · try the first two today",
+      "features": "Capabilities around a low-friction personal stream",
+      "workflow": "Capture → Keep working → Deliver/remember → Find/adjust",
+      "philosophy": "Why the product is shaped this way",
+      "faq": "AI · deps · plugins · data"
+    },
+    "start": {
+      "heroKicker": "topmind Desktop",
+      "heroTitle": "Welcome to topmind",
+      "heroDesc": "A local-first personal stream workbench: capture into Inbox / stream, grow topics, deliver outputs, and keep long-term facts in memory. Files are the source of truth — open them in any editor.",
+      "stepsTitle": "Suggested order",
+      "steps": [
+        {
+          "title": "Open or create a workspace",
+          "body": "Use the bottom-left workspace menu to pick a local folder. New workspaces seed category structure (Inbox · Stream · Topics · Delivery · Archive). Your folder is the workspace — not a cloud account."
+        },
+        {
+          "title": "Note it",
+          "body": "⌘N or Note it in the sidebar: by default it appends to this week’s stream note; you can force Inbox or a standalone file. Global ⌘⇧N works from any app."
+        },
+        {
+          "title": "Configure AI (optional)",
+          "body": "Settings → Agent → AI: pick provider/model and API key. Without it the app is fully usable manually; with it you get chat, organize suggestions, and todo maintenance."
+        },
+        {
+          "title": "Install companions (optional)",
+          "body": "Settings → Integrations: Agent Skills, Clip extension, Obsidian plugin. Ingest local tools can be installed from their settings when needed."
+        },
+        {
+          "title": "Daily loop",
+          "body": "Capture → Keep working → Deliver/remember → Find/adjust. Tools & Logs shows usage, ops log, health, and cleanup ideas."
+        }
+      ],
+      "shortcutsTitle": "Essential shortcuts",
+      "shortcuts": [
+        { "keys": "⌘N", "label": "Note it" },
+        { "keys": "⌘⇧N", "label": "Global capture" },
+        { "keys": "⌘K", "label": "Command palette" },
+        { "keys": "⌘P", "label": "Full-text search" },
+        { "keys": "⌘⇧L", "label": "Tools & Logs" },
+        { "keys": "⌘,", "label": "Settings" }
+      ]
+    },
+    "features": {
+      "heroTitle": "Main features",
+      "heroDesc": "Built for a low-friction personal stream: few concepts, concrete files, recoverable mistakes.",
+      "items": [
+        {
+          "title": "Capture",
+          "body": "One line into the weekly stream note; heavier material to Inbox or a topic. Web clip extension and paste paths supported."
+        },
+        {
+          "title": "Stream · Inbox · Delivery",
+          "body": "Primary nav: stream is the default canvas; Inbox is the buffer; Delivery (88) holds flat outputs. Archive is reachable but not a primary peer."
+        },
+        {
+          "title": "Topics",
+          "body": "Create a topic folder only for strong themes (topic.md + notes). Stream stays flat by default."
+        },
+        {
+          "title": "AI copilot",
+          "body": "Right column: Chat / Suggestions / List / Apps. Suggestions generate by default and apply on confirm; the list is your personal todos."
+        },
+        {
+          "title": "My situation (memory)",
+          "body": "Profile and periodic reflections live on the memory plane. Facts can be appended, updated, or retired — after confirm, never silent rewrites."
+        },
+        {
+          "title": "Tools & Logs",
+          "body": "Workspace usage, operations log, system log, health (including contract), cleanup and duplicate previews."
+        },
+        {
+          "title": "Optional connectors",
+          "body": "WeRead, X, bookkeeping, Ingest — enable when you need them; off by default from the main path."
+        },
+        {
+          "title": "Safe writes",
+          "body": "Default write access inside the workspace; AI cannot overwrite locked files; backups only for high-impact ops. Copy matches real recoverability."
+        }
+      ]
+    },
+    "workflow": {
+      "heroTitle": "Core workflow",
+      "heroDesc": "Capture → Keep working → Deliver/remember → Find/adjust. Product vocabulary stays tiny.",
+      "stageLabel": "Stage {{n}}",
+      "stages": [
+        {
+          "title": "Capture",
+          "body": "Note it, clip, Ingest, connectors. Default lands in the stream period note or Inbox without breaking focus."
+        },
+        {
+          "title": "Keep working",
+          "body": "Edit in stream/topics; AI can rewrite selections and discuss mounted files; confirm-gated suggestions organize Inbox and extract todos."
+        },
+        {
+          "title": "Deliver / remember",
+          "body": "Outputs go to 88-Delivery (flat names); long-term facts to memory; research notes stay in topics."
+        },
+        {
+          "title": "Find / adjust",
+          "body": "Search, tree, archive; Tools & Logs for health; lock critical notes against accidental edits."
+        }
+      ],
+      "dirsTitle": "Directory conventions (short)",
+      "dirs": [
+        "00-Inbox — buffer, organize regularly",
+        "10-Stream — period notes / flow (default)",
+        "20-Topics etc. — strong-theme folders (topic.md)",
+        "88-Delivery — outputs, flat YYYY-MM-DD-name",
+        "99-Archive — safety: backups · trash · stream years",
+        "memory/ — semantic plane: profile · reflections · todos",
+        "topmind.yaml — workspace behavior contract"
+      ]
+    },
+    "philosophy": {
+      "heroTitle": "Design principles",
+      "heroDesc": "For a personal dynamic stream — not project management or a general coding agent.",
+      "points": [
+        {
+          "title": "Files are truth",
+          "body": "Markdown lives in your folder; open it in Obsidian, VS Code, or git. App state is rebuildable and never cages your content."
+        },
+        {
+          "title": "Default access, clear fences",
+          "body": "Tools and agents may read/write inside the workspace by default; outside paths and destructive acts ask first. Backups stay minimal (high-impact only)."
+        },
+        {
+          "title": "Suggestions ≠ auto-apply",
+          "body": "The system can propose organize, todos, and memory changes — you confirm before write. AI cannot overwrite locked notes."
+        },
+        {
+          "title": "Optional depth",
+          "body": "AI, UTR, Skills, connectors, Obsidian are optional surfaces. Capture and folders still work without them."
+        },
+        {
+          "title": "Honest copy",
+          "body": "If something is recoverable we say so; we do not claim every delete is archived. Logs and receipts are bounded and clearable."
+        }
+      ],
+      "closing": "User concepts stay few: Note it · Stream · Topics · My situation · Delivery. Everything else is optional depth."
+    },
+    "faq": {
+      "heroTitle": "FAQ",
+      "heroDesc": "AI setup, dependencies, plugins, and data safety.",
+      "items": [
+        {
+          "q": "How do I configure AI?",
+          "a": "Settings → Agent → AI: choose a provider/model, paste an API key, save. You can switch models per chat. Without AI the app is fully usable manually. Keys stay on this machine (Desktop state, safeStorage when available)."
+        },
+        {
+          "q": "Can AI break my notes?",
+          "a": "Durable writes go through the write gate: fenced to the workspace; AI cannot overwrite protection: locked files; confirm mode requires approval. Ordinary edits do not auto-backup; locked overwrites and core deletes land under 99-Archive and can be restored via Tools & Logs / restore receipts."
+        },
+        {
+          "q": "How do I install dependencies?",
+          "a": "When Ingest needs local converters, use Settings → Ingest → local tools (probe/install). Agent Skills, Clip, and Obsidian plugin install from Settings → Integrations. Everyday note-taking needs no extra dependencies."
+        },
+        {
+          "q": "How do plugins / connectors work?",
+          "a": "Settings → Plugins enables WeRead, X, bookkeeping, etc. Settings → Integrations installs Clip and Obsidian. Connector writes still follow the same conventions and write gate."
+        },
+        {
+          "q": "Where is my data?",
+          "a": "Content is in the local folder you chose. Desktop runtime state (settings, logs, session cache) lives in the local app state folder and can be deleted without losing notes. Workspace content is not uploaded unless you use network features (AI / fetch)."
+        },
+        {
+          "q": "How should I back up?",
+          "a": "Back up the folder with your usual tools (Time Machine, sync, git). In-app backups are limited rotating copies for high-impact ops only (see Tools & Logs). Prefer a versioned or regularly synced workspace location."
+        },
+        {
+          "q": "I deleted something — can I restore?",
+          "a": "Ordinary open notes usually delete without trash (honest product policy). Locked or core notes (memory, topic home, delivery) go to 99-Archive trash and can be restored via Tools & Logs or UTR list-safety-receipts / restore. Lock important notes."
+        },
+        {
+          "q": "Can I use Obsidian too?",
+          "a": "Yes. The workspace is a plain Markdown folder. Optionally install the Obsidian plugin for a stream view; without it, open the same folder in Obsidian directly."
+        },
+        {
+          "q": "How do I change theme / language?",
+          "a": "Bottom-left workspace menu toggles theme and language; full preferences live in Settings → General. Workspace template and categories are under Settings → Workspace."
+        },
+        {
+          "q": "Something looks wrong — where first?",
+          "a": "Workspace menu → Tools & Logs: health (contract status), system log, ops log. Settings → Manage → Diagnostics runs the full doctor. Package the logs folder if you need to report an issue."
+        }
+      ]
+    }
   }
 }

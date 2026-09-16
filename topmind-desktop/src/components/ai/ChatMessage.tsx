@@ -586,10 +586,10 @@ function UsageBadge({ usage, modelId }: { usage: NonNullable<AiMessage["usage"]>
   if (total != null && !parts.length) parts.push(`${total}`);
   const label = parts.join(" ");
   const tooltip = [
-    modelId ? `Model: ${modelId}` : null,
-    usage.promptTokens != null ? `Prompt: ${usage.promptTokens}` : null,
-    usage.completionTokens != null ? `Completion: ${usage.completionTokens}` : null,
-    total != null ? `Total: ${total}` : null,
+    modelId ? t("ai.usageModel", { name: modelId }) : null,
+    usage.promptTokens != null ? t("ai.usagePrompt", { count: usage.promptTokens }) : null,
+    usage.completionTokens != null ? t("ai.usageCompletion", { count: usage.completionTokens }) : null,
+    total != null ? t("ai.usageTotal", { count: total }) : null,
   ].filter(Boolean).join(" · ");
   return (
     <Tooltip content={tooltip}>

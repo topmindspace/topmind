@@ -79,7 +79,7 @@ export function TreeToolbar({
             const ids = collectExpandableIds(tree);
             if (ids.length) expandNodes(ids);
           }}
-          className="inline-flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary"
+          className="v4-icon-btn v4-icon-btn-micro"
           aria-label={t("sidebar.treeToolbar.expandAllAria")}
         >
           <RiExpandUpDownLine size={ICON.nano} />
@@ -90,7 +90,7 @@ export function TreeToolbar({
           type="button"
           onClick={() => setExpandedNodes([])}
           disabled={expandedCount === 0}
-          className="inline-flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary disabled:opacity-40"
+          className="v4-icon-btn v4-icon-btn-micro disabled:opacity-40"
           aria-label={t("sidebar.treeToolbar.collapseAllAria")}
         >
           <RiContractUpDownLine size={ICON.nano} />
@@ -109,8 +109,8 @@ export function TreeToolbar({
               type="button"
               onClick={() => setSortOpen((v) => !v)}
               className={cn(
-                "inline-flex h-6 items-center gap-0.5 rounded-[var(--radius-sm)] px-1 text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary",
-                sortOpen && "bg-surface-muted text-text-secondary",
+                "v4-icon-btn v4-icon-btn-micro w-auto gap-0.5 px-1",
+                sortOpen && "bg-surface-hover text-text-secondary",
               )}
               aria-label={t("sidebar.treeToolbar.toggleSortAria")}
               aria-expanded={sortOpen}
@@ -151,8 +151,8 @@ export function TreeToolbar({
               type="button"
               onClick={() => setFilterOpen((v) => !v)}
               className={cn(
-                "inline-flex h-6 items-center gap-0.5 rounded-[var(--radius-sm)] px-1 text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary",
-                filterOpen && "bg-surface-muted text-text-secondary",
+                "v4-icon-btn v4-icon-btn-micro w-auto gap-0.5 px-1",
+                filterOpen && "bg-surface-hover text-text-secondary",
                 filterActive && "text-accent-color",
               )}
               aria-label={t("sidebar.treeToolbar.toggleFileFilterAria")}
@@ -192,7 +192,7 @@ export function TreeToolbar({
             type="button"
             onClick={onRefresh}
             disabled={refreshing}
-            className="inline-flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary v4-focus-ring disabled:opacity-40"
+            className="v4-icon-btn v4-icon-btn-micro v4-focus-ring disabled:opacity-40"
             aria-label={t("sidebar.refreshTooltip")}
             data-sidebar-refresh
           >

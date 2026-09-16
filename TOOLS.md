@@ -134,7 +134,7 @@ Names are the shipped list in `topmind-desktop/electron/lib/ai-tool-names.mjs` (
 | write / edit | `save_note` · `save_file` · `edit_file` · `create_topic` · `move_to_topic` · `publish_to_outputs` · `delete_path` · `rename_path` · `reconcile_week` | **keep** |
 | memory | `append_topic_memory` · `append_core_memory` · `retire_core_memory` · `update_core_memory` | **keep** — ADD / UPDATE / RETIRE; not append-only. Confirm-gated `promote_memory` payload.action `append_profile` / `update_profile` / `retire_profile` |
 | todos | `list_todos` · `add_todo` · `toggle_todo` | **keep** |
-| health | `workspace_health` | **keep** |
+| health | `workspace_health` | **keep** — 结构 + 契约健康（`inspectContract`）+ counts；容量/类型/去重走 Desktop RPC `workspace.workspaceStats` / `workspaceDuplicates`；清理不进默认 AI 集（用户手势） |
 | **drop** | `bash` · unscoped `shell` / `exec` | **drop — never registered** |
 | Pi native aliases | `read` / `write` / `edit` / `grep` | **keep as fenced aliases** onto the Desktop tools above — not replacements, not unscoped Pi native |
 

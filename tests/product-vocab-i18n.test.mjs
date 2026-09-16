@@ -253,11 +253,13 @@ test("new-workspace fallback names and Kernel suggestion copy follow the rename"
   assert.doesNotMatch(read("lib/suggest-engine.mjs"), /收件箱/u);
   assert.match(read("lib/suggest-engine.mjs"), /inboxReviewTitle:\s*"Inbox 待归位"/u);
 
-  // Legacy names must stay resolvable / parseable
+  // Legacy names must stay resolvable / parseable — Kernel ROLE_DIR_ALIASES is single truth
+  const modelCore = read("lib/model-core.mjs");
+  assert.match(modelCore, /"88-Outputs"/u);
+  assert.match(modelCore, /"88-交付"/u);
+  // Desktop snapshot is generated from Kernel; UTR receipt paths import the same list
   assert.match(read("topmind-desktop/electron/lib/category-pattern.mjs"), /"88-Outputs"/u);
-  assert.match(read("utr/core/safety-receipt-paths.mjs"), /"88-Outputs"/u);
-  const receipt = read("utr/core/safety-receipt-paths.mjs");
-  assert.match(receipt, /"88-交付"/u);
+  assert.match(read("utr/core/safety-receipt-paths.mjs"), /ROLE_DIR_ALIASES/u);
 
   // UTR contract metadata declares the live default-template layout
   const listCats = readJson("utr/contracts/workspace-read/workspace-read.json")

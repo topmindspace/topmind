@@ -1,7 +1,7 @@
 /** Types for lib/memory-feed.mjs (memory-plane browse projection). */
 
 export type MemoryFeedKind = "profile" | "periodic" | "topic";
-export type MemoryFeedLayer = "all" | MemoryFeedKind;
+export type MemoryFeedLayer = "all" | MemoryFeedKind | "history";
 
 export interface MemoryFeedItem {
   id: string;
@@ -11,6 +11,7 @@ export interface MemoryFeedItem {
   preview: string;
   body: string;
   heading?: string;
+  history?: boolean;
 }
 
 export interface MemoryFeedSource {

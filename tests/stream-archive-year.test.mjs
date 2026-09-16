@@ -80,7 +80,9 @@ describe("archiveStreamYear honest partial failure", () => {
         fsSync.renameSync = origRename;
       }
 
-      assert.equal(result.ok, true, "archive proceeds with what moved");
+      assert.equal(result.ok, false, "partial move is not full success");
+      assert.equal(result.partial, true, "partial flag set");
+      assert.equal(result.reason, "partial-move");
       assert.equal(result.movedCount, 2, "movedCount counts only successful moves");
       assert.deepEqual(result.failedFiles, ["2024-W02.md"]);
       assert.ok(fsSync.existsSync(path.join(ws2, "10-动态/2024-W02.md")));

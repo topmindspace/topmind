@@ -681,6 +681,8 @@ export type OverlayKind =
   | 'about'
   | 'loop-report'
   | 'plugin-app'
+  | 'tools-logs'
+  | 'help'
   | (string & {});
 
 /* Optional payload carried alongside an overlay. Lets one overlay component

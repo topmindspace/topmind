@@ -158,7 +158,7 @@ function dataRootOf(workspaceContext) {
  * `content` may be a string (utf8) or a Buffer (binary checkpoint, stored
  * as-is so the backup stays directly restorable).
  */
-export async function writePathCheckpoint(workspaceContext, { savedAt, content, relativePath, keep = 5 }) {
+export async function writePathCheckpoint(workspaceContext, { savedAt, content, relativePath, keep = 3 }) {
   if (content === null || content === undefined) return undefined;
   if (!relativePath) throw new Error("writePathCheckpoint requires relativePath.");
   const segments = relativePath.split("/");
@@ -207,13 +207,21 @@ function uniquePaths(paths) {
 export function buildWritebackEvidence({
   operation, targetPath, savedAt, backupPath, receiptPath, revisionPath,
   writebackMode = "auto", affectedFiles, wroteFiles = true, nextActions,
+  actor = "user", ok = true, reason,
 }) {
-  const resolvedReceipt = receiptPath || backupPath;
+  // receiptPath is only a real YAML receipt — never a silent alias of backupPath.
+  // Undo affordances key off backupPath; keeping the fields honest avoids
+  // UI claiming a recovery trail that does not exist.
   const resolvedRevision = revisionPath || backupPath;
-  const resolvedAffected = uniquePaths([...(affectedFiles ?? [targetPath]), backupPath, resolvedReceipt, resolvedRevision]);
+  const resolvedAffected = uniquePaths([
+    ...(affectedFiles ?? [targetPath]),
+    backupPath,
+    receiptPath,
+    resolvedRevision,
+  ]);
 
   const defaultActions = wroteFiles
-    ? [t("writeback.viewTarget", { path: targetPath }), ...(resolvedReceipt ? [t("writeback.restoreIfNeeded", { path: resolvedReceipt })] : [])]
+    ? [t("writeback.viewTarget", { path: targetPath }), ...(backupPath ? [t("writeback.restoreIfNeeded", { path: backupPath })] : [])]
     : [t("writeback.viewPreview")];
 
   return {
@@ -223,9 +231,12 @@ export function buildWritebackEvidence({
     affectedFiles: resolvedAffected,
     wroteFiles,
     backupPath,
-    receiptPath: resolvedReceipt,
+    receiptPath: receiptPath || null,
     revisionPath: resolvedRevision,
     savedAt,
+    actor,
+    ok,
+    reason,
     nextActions: Array.isArray(nextActions) && nextActions.length > 0 ? nextActions.map(String) : defaultActions,
   };
 }

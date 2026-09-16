@@ -1,10 +1,11 @@
 /**
  * PrimaryNav — 动态 / Inbox / 交付 (the three product destinations).
  *
- * Placement (2026-09-16 redesign, 2026-09-16 dropdown collapse):
- * - **Sidebar** (`variant="sidebar"`): one compact dropdown trigger showing the
- *   current destination. Destinations are content IA; a 3-up segmented rail
- *   next to ViewSwitcher crowded the chrome — one menu is quieter.
+ * Placement (2026-09 header lift):
+ * - **Sidebar** (`variant="sidebar"`): one compact dropdown trigger on the
+ *   *primary* header row, next to Profile / Search / 记一下. Destinations
+ *   stay one hop from the other primary actions; the secondary row is only
+ *   ViewSwitcher + tree tools.
  * - **TitleBar compact** (`variant="compact"`): icon-only chips when the sidebar
  *   is collapsed so destinations stay reachable.
  *
@@ -105,7 +106,7 @@ export function PrimaryNav({ variant = "sidebar" }: { variant?: PrimaryNavVarian
       data-primary-nav="sidebar"
       data-status-primary-nav=""
       data-view-switcher
-      className="min-w-0"
+      className="min-w-0 max-w-[9.5rem]"
     >
       <DropdownMenu
         open={open}
@@ -131,7 +132,7 @@ export function PrimaryNav({ variant = "sidebar" }: { variant?: PrimaryNavVarian
             >
               <ActiveIcon size={ICON.xs} className="shrink-0 text-accent-color" aria-hidden />
               <span className="truncate">{activeLabel}</span>
-              <RiArrowDownSLine size={ICON.xs} className="ml-auto shrink-0 opacity-60" aria-hidden />
+              <RiArrowDownSLine size={ICON.nano} className="ml-auto shrink-0 opacity-60" aria-hidden />
             </button>
           </Tooltip>
         }

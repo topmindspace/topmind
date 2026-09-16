@@ -194,6 +194,15 @@ export const WORKBENCH_SHORTCUTS: ShortcutDef[] = [
     action: { type: "emit", event: "titlebar:workspace-switcher-toggle" },
   },
   {
+    id: "tools-logs",
+    labelKey: "common:shortcut.toolsLogs",
+    display: "⌘⇧L",
+    mod: true,
+    shift: true,
+    key: "l",
+    action: { type: "overlay", kind: "tools-logs" },
+  },
+  {
     id: "close-tab",
     labelKey: "common:shortcut.closeTab",
     display: "⌘W",

@@ -4,7 +4,7 @@ import {
   RiCalendarLine,
   RiErrorWarningLine,
   RiFileTextLine,
-  RiFlashlightLine,
+  RiPencilLine,
   RiLoader4Line,
   RiRefreshLine,
 } from "@remixicon/react";
@@ -227,7 +227,7 @@ export function TimelineView({ onNavigate }: TimelineViewProps) {
               onClick={() => useViewStore.getState().openOverlay("quick-capture")}
               className="inline-flex items-center gap-1 rounded-[var(--radius-md)] bg-primary px-2 py-1 text-3xs font-medium text-primary-foreground shadow-[var(--shadow-button)] transition-opacity hover:opacity-90 v4-focus-ring"
             >
-              <RiFlashlightLine size={ICON.micro} aria-hidden />
+              <RiPencilLine size={ICON.micro} aria-hidden />
               {t("sidebar.timeline.capture")}
             </button>
           }

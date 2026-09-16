@@ -1,6 +1,6 @@
 ---
 name: topmind-maintain
-version: 4.4.0
+version: 4.5.0
 description: >-
   确定性体检/清理/结构修复/回执恢复。Use when 快速体检、诊断、doctor、清理、修复、workspace check。
   Do NOT use for 整体巡检 loop、内容整理、捕获、写作、记忆.
@@ -26,7 +26,7 @@ compatibility: topmind engine and/or workspace. Prefer read-only diagnostics fir
 author: TopMindSpace
 license: MIT
 homepage: https://github.com/topmindspace/topmind
-updated: 2026-08-15
+updated: 2026-09-16
 degradation: ../shared/capability-degradation.md
 ---
 
@@ -34,11 +34,13 @@ degradation: ../shared/capability-degradation.md
 
 系统与工作区**确定性**健康。不重塑内容、不写交付稿。
 
+> **日常入口（Desktop）**：工作区下拉 / **⌘⇧L「工具与日志」**——概览 stats · 操作日志 · 系统日志 · 健康（含契约）· 清理预览 / 去重。CLI/MCP 仍走 UTR doctor；清理默认预览后确认，不自动执行。恢复（`restore-safety-receipt`）仍是 UTR 独有能力。
+
 ## Activation checklist
 
-1. 只读诊断优先（`doctor-workspace` / 扫盘）  
+1. 只读诊断优先（`doctor-workspace` / 扫盘 / Desktop 面板健康）  
 2. 自定义 `{NN-Name}/` 合法；用 WorkspaceModel，不硬编码槽位  
-3. 清理/归档必须可逆（role:system 备份 + 回执）  
+3. 高影响清理/删除可逆（见 `../shared/writeback-receipt.md`：仅 locked 覆盖 / 核心 delete 才备份+回执；archive 是迁入新家）  
 4. 语义全库巡检 → 转 **loop**  
 
 ## When NOT to use
@@ -52,19 +54,19 @@ degradation: ../shared/capability-degradation.md
 
 ## Use For
 
-- UTR / CLI / MCP doctor 与 smoke  
-- 工作区清理预览与可逆清理  
+- Desktop **工具与日志**面板（日常）与 UTR / CLI / MCP doctor  
+- 工作区清理预览与可逆清理（高影响 only 备份/回执）  
 - skills/docs 漂移审计、evals  
 - 过时文件、架构漂移  
 - v2 `projects/` → 类别：`migrate-v4`（advanced，dry-run + 可逆）  
 - 一级类重命名 / 角色：Desktop 或 `renameCategory` / topmind.yaml（**不**在 maintain 静默改名）  
-- 撤销/恢复：`list-safety-receipts` → `restore-safety-receipt`  
+- 撤销/恢复：`list-safety-receipts` → `restore-safety-receipt`；面板操作日志可回看写路径（浏览层，非回执）  
 
 ## Workflow
 
 1. 定 scope：workspace / topic / skills / UTR / Desktop  
-2. 先只读诊断：`list-categories`（WorkspaceModel）或 `doctor-workspace`  
-3. 清理/归档必须可逆（备份现场 **role:system** 目录，常为 `99-归档/` / `99-Archive/`，路径回执）  
+2. 先只读诊断：Desktop ⌘⇧L 健康 / `list-categories` 或 `doctor-workspace`  
+3. 清理：先预览；删除走写闸（高影响才有备份+回执，见 writeback-receipt）  
 4. **不**把 `state.json` / `.topmind/workspace-map.json` 当内容真源  
 5. 自定义类合法；禁止用固定槽位表否定用户目录  
 6. 记录证据与 follow-up  

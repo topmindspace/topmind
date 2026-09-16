@@ -34,7 +34,7 @@ export class QuickCaptureModal extends Modal {
     // Title with icon
     const titleDiv = contentEl.createDiv({ cls: "tm-modal-title" });
     const titleIcon = titleDiv.createSpan({ cls: "tm-modal-icon" });
-    setIcon(titleIcon, "zap");
+    setIcon(titleIcon, "pencil");
     titleDiv.createSpan({ text: t("quick_capture_title") });
 
     // Textarea with wrapper for char count

@@ -208,11 +208,11 @@ test("OverlayHost + host register plugin-app / topmind-ledger; apps menu is the 
   assert.match(ledgerIndex, /createLedgerStatusBarSlot/);
   assert.match(ledgerIndex, /createLedgerActions/);
 
-  // 2026-09-16: View-switch lives in the sidebar destinations row; Sidebar has Search + 记一下
+  // 2026-09 v4: Sidebar header PrimaryNav + Search + 记一下; destinations on primary header
   const sidebar = read("src/components/shell/Sidebar.tsx");
   assert.match(sidebar, /SidebarHeaderActions/);
   assert.match(sidebar, /v4-search-trigger/);
-  assert.match(sidebar, /RiFlashlightLine/);
+  assert.match(sidebar, /RiPencilLine/);
   assert.match(sidebar, /data-sidebar-primary-nav/);
   const titleBar = read("src/components/shell/TitleBar.tsx");
   assert.match(read("src/components/shell/PrimaryNav.tsx"), /PRIMARY_NAV_OPTIONS/);

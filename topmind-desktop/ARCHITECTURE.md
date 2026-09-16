@@ -37,7 +37,7 @@
 | 响应式 chrome | **Done** — `ChromeOverflowActions` + TitleBar compact 互斥 + StatusBar 可点 |
 | connectors weread/x | **Done** — 共享 `electron/lib/connector-bridge.mjs`（settings+secret · patch 持久 · `writeConnectorNote` 经 kernel 写闸）；ADR `docs/adr/2026-08-02-connector-bridge.md` |
 | ingest 路由 | **Done** — Desktop commit 经 `resolveIngestRoute`（Kernel） |
-| PrimaryNav 默认 | **Done** — 动态 / Inbox / 交付（侧栏目的地行 `data-sidebar-primary-nav`；侧栏收起时 TitleBar 紧凑图标）；搜索由统一 ⌘K 触发器打开；selection 默认 `stream`；legacy home→stream；归档不在主锚 |
+| PrimaryNav 默认 | **Done** — 动态 / Inbox / 交付（侧栏主 header `data-sidebar-primary-nav`；侧栏收起时 TitleBar 紧凑图标）；搜索由统一 ⌘K 触发器打开；selection 默认 `stream`；legacy home→stream；归档不在主锚 |
 | 侧栏 thrift | **Done** — ViewSwitcher 主轨 stream/目录/时间；标签/看板「更多」 |
 | 关键词搜索诚实 | **Done** — notes-index + grep `truncated`/`scannedTotal`；GlobalSearch 截断提示（无 embedding） |
 | 建议可关 | **Done** — `ai.autoPrepareSuggestions`（默认开） |
@@ -97,9 +97,9 @@ contextBridge.exposeInMainWorld('topmind', {
 
 | 服务 | 文件 | 方法数（约） | 职责 |
 |------|------|-------------|------|
-| WorkspaceService | `workspace-service.mjs` + `lib/workspace-*-ops.mjs` + `notes-index.mjs` | facade 薄 + ops ~35 | path/inbox/archive/scan/fetch；notes-index；CRUD、Inbox、归档、搜索、URL 抓取；`importFile` → Ingest 管道 |
+| WorkspaceService | `workspace-service.mjs` + `lib/workspace-*-ops.mjs` + `notes-index.mjs` | facade 薄 + ops ~40 | path/inbox/archive/scan/fetch；notes-index；CRUD、Inbox、归档、搜索、URL 抓取；`workspaceStats` / `workspaceDuplicates` / `cleanupPreview|Apply`；`importFile` → Ingest 管道 |
 | AiService | `ai-service.mjs` + `ai-prompts.mjs` + `ai-stream.mjs` + `ai-model.mjs` | ~12 | AI 调用（原生工具 → WorkspaceService）、流式、会话、steer/compact、skills catalog |
-| SystemService | `system-service.mjs` | ~49 | 设置（safeStorage）、路径、原生操作、工作区切换、Clip Bridge、**插件安装/预览**、**skills-extra**、类别管理、更新检查 |
+| SystemService | `system-service.mjs` | ~52 | 设置（safeStorage）、路径、原生操作、工作区切换、Clip Bridge、**插件安装/预览**、**skills-extra**、类别管理、更新检查、**logTail / logClear / logOpenFolder** |
 | ToolService | `tool-service.mjs` + `ai-tools.mjs` | ~6 | Desktop 原生 AI 工具；UTR catalog/run/doctor **软探测**（可选；写回不经 UTR） |
 | IngestService | `ingest-service.mjs` + `lib/ingest/*` + `lib/host-bin.mjs` | ~13 | 知识加工队列：探测类型、转换 Markdown、写回 Inbox/专题；默认 anydoc sidecar（userData 热升级，不必重打包）；可选 markitdown/pandoc；内置 JS 兜底 |
 | WereadService | `weread-service.mjs` | ~10 | 微信读书 connector（可选） |
@@ -289,7 +289,7 @@ Shell（三列贯通 · 无横跨产品 header）
 ├── AiWorkspace — 右列对等：对话 / 建议 / 清单 / 应用；Composer 钉列底
 ├── SuggestPopover — **建议确认列表**（嵌入建议 pane；专注模式浮动；openSuggestSurface）
 ├── StatusBar — 绿点 + 完整工作区路径；AI pill + 命名 busy chip（无 PrimaryNav）
-└── OverlayHost（QuickCapture · ⌘K · Search · Settings）
+└── OverlayHost（QuickCapture · ⌘K · Search · Settings · ToolsLogs · LoopReport · PluginApp）
 ```
 
 **多路 AI（实现）**：`src/lib/ai-background-lane.ts` 串行后台 prep（suggest · todo maintain）；Agent 流独立；soft 建议 `agent_busy` 让路；策略与像素见 `DESIGN.md` §0.0.3。
@@ -764,7 +764,12 @@ templates/
 
 ## 工具层（从 v3 移植，已清理）
 
-- `electron/lib/writeback.mjs` — 备份链 + 结构化日志（打包后额外写入 `logs/main.log`；大小上限轮转：默认单文件 2 MB × 保留 3 份归档，`topmind_LOG_MAX_BYTES` / `topmind_LOG_KEEP` 可调，超限轮转 `main.log.1…3`）
+- `electron/lib/writeback.mjs` — 备份链 + 结构化日志（打包后额外写入 `logs/main.log`；大小上限轮转：默认单文件 2 MB × 保留 3 份归档，`topmind_LOG_MAX_BYTES` / `topmind_LOG_KEEP` 可调，超限轮转 `main.log.1…3`）；`receiptPath` 仅真实 YAML 非空
+- `electron/lib/ops-journal.mjs` — 操作日志环形 JSONL（`logs/ops.jsonl`，默认 1 MB × keep 2，`topmind_OPS_*`）；**不是**第二套 receipts
+- `electron/lib/log-tail.mjs` — main/ops 日志 Tail / 清空（Tools & Logs 面板）
+- `electron/lib/workspace-stats.mjs` — 容量/类型/角色目录统计
+- `electron/lib/workspace-duplicates.mjs` — 三阶段重复检测（size → 首尾摘要 → SHA-256）
+- `electron/lib/workspace-cleanup.mjs` — 清理预览/应用（junk · 空目录 · 回执修剪 · 重复 trash，走写闸）
 - `electron/lib/path-model.mjs` — 工作区路径解析
 - `electron/lib/workspace-home.mjs` — Desktop 状态路径
 - `electron/lib/engine-root.mjs` — 开发 monorepo vs 打包 `resources/topmind-engine`

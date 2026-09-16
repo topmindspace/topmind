@@ -159,6 +159,20 @@ async function sst(c, s) {
 }
 function msgDir(c) { return c.workspaceStatePaths.aiSessionMessagesDirPath; }
 
+/**
+ * Validate sessionId shape — reject path separators and `..` so a compromised
+ * renderer cannot escape aiSessionMessagesDirPath via crafted ids.
+ * @param {string} sessionId
+ * @returns {string} sanitized id
+ */
+function safeSessionId(sessionId) {
+  const id = String(sessionId || "").trim();
+  if (!id || !/^[A-Za-z0-9_-]+$/.test(id) || id.includes("..")) {
+    throw new Error(`Invalid sessionId: ${id}`);
+  }
+  return id;
+}
+
 export const AiService = {
   async getRuntimeStatus(_p, c) {
     return getRuntimeStatus(await loadSettingsWithSecrets(c));
@@ -347,18 +361,21 @@ export const AiService = {
     return Object.entries(s.sessions || {}).map(([id, v]) => ({ id, ...v }));
   },
   async loadMessages({ sessionId }, c) {
+    const id = safeSessionId(sessionId);
     await ensureDir(msgDir(c));
-    return readJson(path.join(msgDir(c), sessionId + ".json"), []);
+    return readJson(path.join(msgDir(c), id + ".json"), []);
   },
   async saveMessages({ sessionId, messages }, c) {
+    const id = safeSessionId(sessionId);
     await ensureDir(msgDir(c));
-    await writeText(path.join(msgDir(c), sessionId + ".json"), JSON.stringify(messages, null, 2));
+    await writeText(path.join(msgDir(c), id + ".json"), JSON.stringify(messages, null, 2));
     return { ok: true };
   },
   async clearSession({ sessionId }, c) {
-    await fs.unlink(path.join(msgDir(c), sessionId + ".json")).catch(() => {});
+    const id = safeSessionId(sessionId);
+    await fs.unlink(path.join(msgDir(c), id + ".json")).catch(() => {});
     const s = await lst(c);
-    delete (s.sessions || {})[sessionId];
+    delete (s.sessions || {})[id];
     await sst(c, s);
     return { ok: true };
   },
@@ -427,6 +444,7 @@ export const AiService = {
       maxMessages: settings?.ai?.maxContextMessages,
       keepRecent: settings?.ai?.keepRecentMessages,
       maxChars: settings?.ai?.maxContextChars,
+      locale: settings?.ui?.locale === "en-US" ? "en-US" : "zh-CN",
     });
     if (compact.compacted) {
       emit?.({

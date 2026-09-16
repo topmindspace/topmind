@@ -5,7 +5,7 @@ import {
   RiCompass3Line,
   RiCornerDownLeftLine,
   RiFileTransferLine,
-  RiFlashlightLine,
+  RiPencilLine,
   RiInboxUnarchiveLine,
   RiRefreshLine,
   RiSearchLine,
@@ -66,7 +66,7 @@ const GROUP_ICON: Record<string, RemixiconComponentType> = {
   goto: RiCompass3Line,
   skill: RiSparklingLine,
   navigate: CommandIcon,
-  capture: RiFlashlightLine,
+  capture: RiPencilLine,
   ingest: RiFileTransferLine,
   sync: RiRefreshLine,
 };

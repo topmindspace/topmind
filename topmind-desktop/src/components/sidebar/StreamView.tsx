@@ -7,7 +7,7 @@ import {
   RiDashboardLine,
   RiErrorWarningLine,
   RiFileTextLine,
-  RiFlashlightLine,
+  RiPencilLine,
   RiFullscreenLine,
   RiLoader4Line,
   RiRefreshLine,
@@ -209,7 +209,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
               onClick={handleCapture}
               className="inline-flex items-center gap-1 rounded-md border border-border-subtle px-2 py-1 text-3xs font-medium text-text-secondary hover:bg-surface-muted v4-focus-ring"
             >
-              <RiFlashlightLine size={ICON.micro} aria-hidden />
+              <RiPencilLine size={ICON.micro} aria-hidden />
               {t("sidebar.stream.capture")}
             </button>
           }

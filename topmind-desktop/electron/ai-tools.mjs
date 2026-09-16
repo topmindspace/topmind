@@ -156,8 +156,12 @@ export async function buildDesktopAiTools(ctx) {
                 toolName,
               });
               result.pendingId = stashed.id;
-            } catch {
-              /* ignore stash failure */
+            } catch (stashErr) {
+              // Never claim pending without an id — the UI cannot accept/reject
+              // a body that was never stored.
+              result.ok = false;
+              result.note = `pending stash failed: ${stashErr instanceof Error ? stashErr.message : String(stashErr)}`;
+              return result;
             }
           }
           result.note =
@@ -552,7 +556,7 @@ export async function buildDesktopAiTools(ctx) {
 
     tools.workspace_health = tool({
       description:
-        "工作区健康巡检（loop skill）。返回结构化 JSON：{ ok, checks: [{ name, status, detail }], summary, recommendations }。可用于程序化判断工作区状态。",
+        "工作区健康巡检（结构 + 契约 inspectContract + counts）。返回 JSON：{ ok, checks, summary, issues }。容量/重复/清理走 Desktop「工具与日志」面板（⌘⇧L），不进默认 AI 工具。",
       inputSchema: jsonSchema({ type: "object", properties: {} }),
       execute: wrapRead(async function workspace_health() {
         try {

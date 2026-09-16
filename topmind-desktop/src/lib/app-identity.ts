@@ -11,5 +11,10 @@
 /** Product name — same string main puts in the OS window title. */
 export const APP_NAME = "topmind";
 
-/** App mark. The favicon asset on purpose: row and taskbar can't diverge. */
-export const APP_ICON = "/favicon.svg";
+/**
+ * App mark path for `<img>` fallbacks. Prefer `BrandMark` (inline SVG) — the
+ * packaged app loads via `file://`, so a root-absolute `/favicon.svg` resolves
+ * against the filesystem root and silently 404s. Relative paths work only when
+ * Vite's `base` and the load URL cooperate; the inline mark cannot fail.
+ */
+export const APP_ICON = "./favicon.svg";

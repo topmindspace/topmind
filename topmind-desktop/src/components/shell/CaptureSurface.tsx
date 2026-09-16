@@ -5,7 +5,7 @@
 import { useEffect, useState, lazy, Suspense, type CSSProperties } from "react";
 import {
   RiErrorWarningLine,
-  RiFlashlightLine,
+  RiPencilLine,
   RiFolderOpenLine,
   RiLoader4Line,
 } from "@remixicon/react";
@@ -100,7 +100,7 @@ export function CaptureSurface() {
         <div className={shellClass} style={shellStyle}>
           <div className="flex flex-1 flex-col items-center justify-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-bg-subtle text-accent-color">
-              <RiFlashlightLine size={ICON.md} />
+              <RiPencilLine size={ICON.md} />
             </div>
             <RiLoader4Line size={ICON.sm} className="animate-spin text-text-quaternary" />
             <div className="text-3xs text-text-tertiary">{t("captureSurface.preparing")}</div>

@@ -154,9 +154,12 @@ topmind 的主表面是**个人动态流**——不是文件夹管理器、不�
 
 - **target path** / `target_path`  
 - **affected files** / `affected_files`  
-- **receipt** / 回执（operation · writeback_mode · saved_at · next_actions）  
+- **YAML 回执** `receiptPath` — **仅高影响**（locked 覆盖 · 锁定/核心 delete；archive 仅锁定/核心）非空；**不回退** `backupPath`  
+- **backupPath** — 高影响快照/trash 路径；撤销 UI 以此为准  
 
-完整契约：`TOOLS.md` §Writeback Contract。  
+普通 open 写/删：证据仍含 path + affected files，无备份无 YAML 回执。
+
+完整契约：`TOOLS.md` §Writeback Contract · skills `shared/writeback-receipt.md`。  
 **状态**：Desktop / UTR / AI 耐久 `.md` 主路径经 Kernel `writeback-engine`（**Done**）；非 `.md` 二进制 copy 可仍直写。
 
 ---

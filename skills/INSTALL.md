@@ -108,7 +108,7 @@ ls ~/.claude/skills/topmind   # 常为 symlink → ~/.agents/skills/topmind
 
 #### 社区 CLI 不会装 `shared/`（重要）
 
-社区 CLI 只复制含 `SKILL.md` 的目录。topmind skill 内有 `../shared/*.md` 渐进披露链接（含 `media-assets.md` 等），**缺 `shared/` 时子文档打不开**。
+社区 CLI 只复制含 `SKILL.md` 的目录。topmind skill 内有 `../shared/*.md` 渐进披露链接，**缺 `shared/` 时子文档打不开**。
 
 这是开放标准「单 skill 目录」与 topmind **pack 级 shared** 的已知差异。加载契约见 [`shared/host-loading.md`](./shared/host-loading.md)。
 

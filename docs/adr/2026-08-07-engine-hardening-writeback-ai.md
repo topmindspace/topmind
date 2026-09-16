@@ -34,7 +34,8 @@
 | 普通开放笔记 **delete**（非 permanent） | ❌ | ❌ | 收件箱/动态/专题内普通笔记；evidence 即行为记录 |
 | **archive**（非 permanent） | ✅ 迁入 99-归档（新家） | 仅锁定/核心 | inbox_review / catch_all / 专题归档；不是备份 |
 | permanent 删除/归档 | ❌ | ❌ | 用户明确不可恢复 |
-| forceBackup 显式强制（既有文件） | ✅ | ✅ | 罕见逃逸舱 |
+
+> **forceBackup 已移除（2026-09-16）**：全库零调用方。需要「既有 open 文件也备份」时，用 `skipBackup:false` 且将文件标为 `locked`，或走 Desktop 二进制 checkpoint（`writePathCheckpoint`）——不要再加第三条强制备份旋钮。
 
 ### 3. 目录归档安全加固
 

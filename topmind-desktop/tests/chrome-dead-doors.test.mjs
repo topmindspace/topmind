@@ -148,7 +148,7 @@ test("view-switch closed-state icon does not impersonate 动态 on file/topic/me
 
 test("DESIGN §0.0.4 does not name SidebarHeaderActions as the 动态 home", () => {
   const design = read("DESIGN.md");
-  assert.match(design, /侧栏目的地行/);
+  assert.match(design, /侧栏主 header/);
   assert.doesNotMatch(design, /状态栏常驻 PrimaryNav/);
   assert.doesNotMatch(design, /左栏 `SidebarHeaderActions` \+ 中栏 TitleBar 视图切换/);
 });

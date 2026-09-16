@@ -50,6 +50,23 @@ export function resolveDataRoot(workspace) {
   return path.join(path.resolve(workspace), "..", "topmind-workspace");
 }
 
+/**
+ * Absolute **content** root from either a bare workspace path string or a
+ * context object `{ engineRoot, userWorkspaceRoot }`.
+ *
+ * Prefer this over `resolveDataRoot` when the API may receive a plain path:
+ * `resolveDataRoot(" /path/to/ws ")` walks to a sibling `topmind-workspace`
+ * (engine monorepo layout), which is wrong for user workspace paths.
+ */
+export function absWorkspaceRoot(workspace) {
+  if (typeof workspace === "string") return path.resolve(workspace);
+  if (workspace && typeof workspace === "object"
+    && typeof workspace.userWorkspaceRoot === "string") {
+    return path.resolve(workspace.userWorkspaceRoot);
+  }
+  return path.resolve(resolveDataRoot(workspace));
+}
+
 export async function resolvetopmindRoot(candidatePath) {
   if (isWorkspaceContext(candidatePath)) return resolvetopmindRoot(candidatePath.engineRoot);
   const resolved = path.resolve(candidatePath);
@@ -245,15 +262,18 @@ function resolveDirByRole(workspace, role, fallbackHyphen, fallbackSpace) {
 }
 
 export function inboxRoot(workspace) {
-  return resolveDirByRole(workspace, "buffer", "00-Inbox", "00 Inbox");
+  const a = ROLE_DIR_ALIASES.buffer;
+  return resolveDirByRole(workspace, "buffer", a[0], a[1]);
 }
 
 export function archiveRoot(workspace) {
-  return resolveDirByRole(workspace, "system", "99-归档", "99 归档");
+  const a = ROLE_DIR_ALIASES.system;
+  return resolveDirByRole(workspace, "system", a[0], a[1]);
 }
 
 export function outputsRoot(workspace) {
-  return resolveDirByRole(workspace, "delivery", "88-交付", "88 交付");
+  const a = ROLE_DIR_ALIASES.delivery;
+  return resolveDirByRole(workspace, "delivery", a[0], a[1]);
 }
 
 export function categoryRoot(workspace, category) {

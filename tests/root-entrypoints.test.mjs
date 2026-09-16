@@ -16,6 +16,8 @@ function readJson(relativePath) {
 /** Required root scripts — assert presence + value, not full map equality (avoids brittle CI). */
 const REQUIRED_SCRIPTS = {
   "docs:guard": "node scripts/check-redesign-contract.mjs",
+  "sync:category-pattern": "node scripts/sync-category-pattern.mjs",
+  "check:category-pattern": "node scripts/sync-category-pattern.mjs --check",
   "secrets:scan": "node scripts/check-secrets.mjs",
   versions: "node scripts/print-versions.mjs",
   "skills:test": "node --test skills/tests/*.test.mjs integrations/opencode/tests/*.test.mjs",
@@ -54,7 +56,7 @@ const REQUIRED_SCRIPTS = {
   "obsidian:pack": "cd obsidian-plugin && npm run build && npm run pack",
   test: "npm run root:test && npm run skills:test && npm run utr:test && npm run desktop:test && npm run obsidian:test",
   validate:
-    "npm run secrets:scan && npm run docs:guard && npm run root:test && npm run skills:test && npm run utr:test && npm run utr:doctor:engine && npm run desktop:validate && npm run obsidian:validate",
+    "npm run secrets:scan && npm run docs:guard && npm run check:category-pattern && npm run root:test && npm run skills:test && npm run utr:test && npm run utr:doctor:engine && npm run desktop:validate && npm run obsidian:validate",
   pack: "npm run pack:all",
   "pack:skills": "npm run skills:pack",
   "pack:extension": "npm run extension:pack",

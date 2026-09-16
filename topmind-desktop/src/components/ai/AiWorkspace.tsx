@@ -73,7 +73,7 @@ export function AiWorkspace() {
                 "v4-no-drag relative flex h-(--density-chrome-control,32px) min-w-0 flex-1 items-center justify-center gap-1 rounded-md px-1.5 text-xs font-medium transition-colors v4-focus-ring",
                 active
                   ? "bg-accent-bg-faint text-text-primary"
-                  : "text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
+                  : "text-text-tertiary hover:bg-surface-hover hover:text-text-secondary",
               )}
             >
               <Icon size={ICON.sm} className="shrink-0" />

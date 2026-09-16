@@ -62,7 +62,7 @@ function flattenPiText(message) {
  * Recent toolCall/toolResult turns are kept as structured pairs so path
  * receipts and read windows survive compaction.
  * @param {object[]} messages
- * @param {{ contextWindow?: number, modelId?: string, keepRecentTools?: number }} [opts]
+ * @param {{ contextWindow?: number, modelId?: string, keepRecentTools?: number, locale?: string }} [opts]
  */
 export function maybeCompactPiMessages(messages, opts = {}) {
   const list = Array.isArray(messages) ? messages : [];
@@ -106,7 +106,7 @@ export function maybeCompactPiMessages(messages, opts = {}) {
     }, 0);
   const window = Number(opts.contextWindow) > 0 ? Number(opts.contextWindow) : 128000;
   const overWindow = shouldCompact(tokens, window, DEFAULT_COMPACTION_SETTINGS);
-  const compact = compactMessagesForModel(flat);
+  const compact = compactMessagesForModel(flat, { locale: opts.locale });
   if (!overWindow && !compact.compacted) {
     return { messages: list, compacted: false, note: null, estimatedTokens: tokens };
   }

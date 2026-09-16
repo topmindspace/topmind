@@ -289,6 +289,10 @@ export function loadSkillBody(skillId, opts = {}) {
   const skillsRoot = resolveSkillsRoot(opts.engineRoot);
   const id = String(skillId || "").trim().replace(/^\/+/, "");
   if (!id) throw new Error("skillId required");
+  // Reject path traversal — same discipline as loadSkillResource
+  if (id.includes("..") || id.includes("/") || id.includes("\\")) {
+    throw new Error(`Invalid skillId: ${id}`);
+  }
 
   // Key by root so multi-vault / engineRoot switches never serve a stale body.
   const cacheKey = `${skillsRoot}::${id}`;

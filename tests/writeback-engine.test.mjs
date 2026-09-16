@@ -137,7 +137,7 @@ describe("writeback-engine", () => {
     });
     assert.equal(second.wroteFiles, true);
     assert.ok(!second.backupPath && !second.backup_path, "open AI update must not backup");
-    // receiptPath falls back to backupPath in toSurfaceEvidence; both must be falsy for open
+    // receiptPath is only a real YAML receipt — never a silent backupPath alias
     assert.ok(!second.backup_path, "open AI update: no backup_path");
     assert.equal(second.receipt_path ?? null, null);
 

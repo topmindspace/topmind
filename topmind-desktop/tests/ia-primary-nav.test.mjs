@@ -14,12 +14,12 @@ function read(rel) {
 }
 
 describe("Desktop primary IA target", () => {
-  it("Sidebar header has Search + 记一下; PrimaryNav lives in sidebar destinations row", () => {
+  it("Sidebar header has PrimaryNav + Search + 记一下 (pen icon); compact fallback on TitleBar", () => {
     const sidebar = read("src/components/shell/Sidebar.tsx");
     assert.match(sidebar, /SidebarHeaderActions/);
     assert.match(sidebar, /v4-search-trigger/);
     assert.match(sidebar, /searchCommandTip/);
-    assert.match(sidebar, /RiFlashlightLine/);
+    assert.match(sidebar, /RiPencilLine/);
     assert.match(sidebar, /titleBar\.capture/);
     assert.match(sidebar, /ProfileButton/);
     const headerFn = sidebar.slice(
@@ -27,7 +27,7 @@ describe("Desktop primary IA target", () => {
       sidebar.indexOf("function ProfileButton"),
     );
     assert.ok(headerFn.indexOf("<ProfileButton") < headerFn.indexOf("v4-search-trigger"));
-    assert.ok(headerFn.indexOf("v4-search-trigger") < headerFn.indexOf("RiFlashlightLine"));
+    assert.ok(headerFn.indexOf("v4-search-trigger") < headerFn.indexOf("RiPencilLine"));
     assert.doesNotMatch(sidebar, /select\(\{\s*kind:\s*"archive"\s*\}\)/);
     assert.doesNotMatch(sidebar, /icon:\s*Home/);
     assert.doesNotMatch(sidebar, /RotateCcw/);
@@ -44,6 +44,11 @@ describe("Desktop primary IA target", () => {
     assert.match(nav, /primaryNav\.outputs/);
     assert.match(sidebar, /data-sidebar-primary-nav/);
     assert.match(sidebar, /<PrimaryNav variant="sidebar"/);
+    // PrimaryNav shares the header actions row (with Profile/Search/capture).
+    assert.ok(
+      sidebar.indexOf("data-sidebar-primary-nav") < sidebar.indexOf("SidebarHeaderActions"),
+      "PrimaryNav mounts on the primary header, left of header actions",
+    );
     // Collapsed-sidebar reach: compact icons on TitleBar, not StatusBar.
     assert.match(title, /variant="compact"/);
     assert.match(title, /sidebarCollapsed/);
@@ -82,7 +87,7 @@ describe("Desktop primary IA target", () => {
     assert.match(design, /0\.0\.4 能力单家（Header homes）/);
     assert.match(design, /侧栏收起后如何到达/);
     assert.match(design, /左栏 Sidebar 主 header L1 捕获/);
-    assert.match(design, /侧栏目的地行/);
+    assert.match(design, /侧栏主 header/);
     assert.doesNotMatch(design, /状态栏常驻 PrimaryNav/);
     assert.doesNotMatch(design, /左栏 `SidebarHeaderActions` \+ 中栏 TitleBar 视图切换/);
     assert.match(design, /右列 AI 工作区 \*\*建议\*\* pane/);

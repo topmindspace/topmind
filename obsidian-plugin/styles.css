@@ -278,26 +278,27 @@
   flex-shrink: 0;
 }
 
-/* Sidebar icon button — same as toolbar-btn but for sidebar header */
+/* Sidebar icon button — icon-first header control.
+   Geometry: 28×28 (Obsidian pane chrome). Borderless; hover is the full box. */
 .tm-sidebar-icon-btn {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: var(--tm-radius-md);
-  border: 1px solid var(--background-modifier-border);
+  border: none;
   background: transparent;
-  color: var(--text-normal);
+  color: var(--text-muted);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: var(--tm-transition-ui);
   flex-shrink: 0;
+  padding: 0;
 }
 
 .tm-sidebar-icon-btn:hover {
-  border-color: var(--interactive-accent);
   background: var(--background-modifier-hover);
-  color: var(--tm-text-accent-hover);
+  color: var(--text-normal);
 }
 
 /* Sidebar labeled button — icon + text variant for narrow sidebar */
@@ -326,6 +327,13 @@
 @container tm-sidebar (max-width: 260px) {
   .tm-sidebar-btn-label {
     display: none;
+  }
+  .tm-tab-label {
+    font-size: 10px;
+  }
+  .tm-tab-btn {
+    gap: 2px;
+    padding: 7px 2px;
   }
 }
 
@@ -1604,15 +1612,24 @@
   padding: 6px 8px;
   border-bottom: 1px solid var(--background-modifier-border);
   flex-shrink: 0;
-  flex-wrap: wrap;
-  overflow: visible;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  min-height: 36px;
 }
 
 .tm-sidebar-status {
   display: flex;
   align-items: center;
   gap: var(--tm-gap-xs);
-  flex-shrink: 0;
+  flex-shrink: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.tm-status-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .tm-model-badge {
@@ -1634,6 +1651,27 @@
   gap: var(--tm-gap-xs);
   flex-shrink: 0;
   margin-left: auto;
+  align-items: center;
+}
+
+/* Header action buttons are icon-first; labels only when the pane is wide. */
+.tm-sidebar-header .tm-sidebar-icon-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.tm-sidebar-header .tm-sidebar-icon-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+  border-color: transparent;
+}
+
+.tm-sidebar-header .tm-sidebar-btn-label {
+  display: none;
 }
 
 /* ── Tab Bar ────────────────────────────────────────────────────────── */
@@ -1643,6 +1681,7 @@
   border-bottom: 1px solid var(--background-modifier-border);
   flex-shrink: 0;
   overflow-x: auto;
+  scrollbar-width: none;
 }
 
 .tm-tab-bar::-webkit-scrollbar {
@@ -1650,7 +1689,7 @@
 }
 
 .tm-tab-btn {
-  flex: 1;
+  flex: 1 1 0%;
   min-width: 0;
   padding: 7px var(--tm-gap-xs);
   border: none;
@@ -2329,16 +2368,17 @@
   border-top: 1px solid var(--background-modifier-border);
   flex-shrink: 0;
   background: var(--background-secondary);
+  align-items: center;
 }
 
 .tm-sidebar-action-btn {
   flex: 1 1 0%;
-  min-width: 34px;
+  min-width: 32px;
   height: var(--tm-btn-h);
   border-radius: var(--tm-radius-md);
   border: 1px solid var(--background-modifier-border);
   background: var(--background-primary);
-  color: var(--text-normal);
+  color: var(--text-muted);
   cursor: pointer;
   transition: var(--tm-transition-ui);
   display: flex;
@@ -2351,9 +2391,9 @@
 }
 
 .tm-sidebar-action-btn:hover {
-  border-color: var(--interactive-accent);
+  border-color: var(--background-modifier-border-hover, var(--interactive-accent));
   background: var(--background-modifier-hover);
-  color: var(--tm-text-accent-hover);
+  color: var(--text-normal);
 }
 
 .tm-sidebar-action-btn:active {
@@ -2366,6 +2406,7 @@
   border-color: var(--interactive-accent);
   font-weight: 600;
   box-shadow: var(--shadow-s);
+  flex: 1.2 1 0%;
 }
 
 .tm-sidebar-action-btn.tm-sidebar-capture-primary:hover {
@@ -2383,18 +2424,30 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .tm-action-label-span {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 120px;
+  max-width: 7.5em;
 }
 
 .tm-action-toggle-labels {
   flex: 0 0 34px;
   min-width: 34px;
+}
+
+/* Narrow sidebar: drop labels first, keep primary capture readable */
+@container tm-sidebar (max-width: 280px) {
+  .tm-action-label-span {
+    display: none;
+  }
+  .tm-sidebar-action-btn {
+    padding: 0 6px;
+    min-width: 30px;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════

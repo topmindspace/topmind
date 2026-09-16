@@ -245,18 +245,49 @@ export const SystemService = {
     };
   },
 
-  async openPath({ targetPath }, _ctx) {
+  /**
+   * Allowlist: only paths under the active workspace, desktop state home,
+   * engine root, or extra skills roots may be opened/revealed. Rejects
+   * arbitrary absolute paths from the renderer.
+   */
+  async openPath({ targetPath }, ctx) {
     if (!targetPath) throw new Error("targetPath required.");
-    // shell.openPath resolves with an error *string* on failure (not a throw).
-    // Surface it so Linux (xdg-open missing) / Windows (assoc missing) fail clearly.
-    const err = await shell.openPath(targetPath);
+    const resolved = path.resolve(String(targetPath));
+    const allowedRoots = [
+      ctx?.userWorkspaceRoot,
+      ctx?.workspaceRoot,
+      ctx?.workspaceStatePaths?.desktopStateHome,
+      ctx?.engineRoot,
+    ].filter(Boolean);
+    const inside = allowedRoots.some((root) => {
+      const rel = path.relative(path.resolve(root), resolved);
+      return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
+    });
+    if (!inside) {
+      throw new Error(`Path not in allowed roots: ${resolved}`);
+    }
+    const err = await shell.openPath(resolved);
     if (err) throw new Error(`无法打开路径: ${err}`);
     return { ok: true };
   },
 
-  async revealPath({ targetPath }, _ctx) {
+  async revealPath({ targetPath }, ctx) {
     if (!targetPath) throw new Error("targetPath required.");
-    shell.showItemInFolder(targetPath);
+    const resolved = path.resolve(String(targetPath));
+    const allowedRoots = [
+      ctx?.userWorkspaceRoot,
+      ctx?.workspaceRoot,
+      ctx?.workspaceStatePaths?.desktopStateHome,
+      ctx?.engineRoot,
+    ].filter(Boolean);
+    const inside = allowedRoots.some((root) => {
+      const rel = path.relative(path.resolve(root), resolved);
+      return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
+    });
+    if (!inside) {
+      throw new Error(`Path not in allowed roots: ${resolved}`);
+    }
+    shell.showItemInFolder(resolved);
     return { ok: true };
   },
 
@@ -1054,6 +1085,27 @@ export const SystemService = {
         : arch === "x64" ? "x64"
         : arch,
     };
+  },
+
+  /** Tail main/ops log for Tools & Logs panel. */
+  async logTail(p, _ctx) {
+    const { tailLogFile } = await import("./lib/log-tail.mjs");
+    return tailLogFile(p || {});
+  },
+
+  /** Clear main/ops log (primary, optionally rotated). */
+  async logClear(p, _ctx) {
+    const { clearLogFile } = await import("./lib/log-tail.mjs");
+    return clearLogFile(p || {});
+  },
+
+  /** Open the real logs directory (desktopStateHome/logs). */
+  async logOpenFolder(_p, _ctx) {
+    const { logsDirectory } = await import("./lib/log-tail.mjs");
+    const dir = logsDirectory();
+    if (!dir) return { ok: false, reason: "not-attached" };
+    await shell.openPath(dir);
+    return { ok: true, path: dir };
   },
 
   /** Detect agent hosts, browsers, Obsidian + managed companion status. */

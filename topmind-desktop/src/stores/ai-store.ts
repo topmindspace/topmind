@@ -63,6 +63,7 @@ interface AiState {
   clearSession: (id: string) => Promise<void>;
 
   messages: AiMessage[];
+  messagesError: string | null;
   loadMessages: (sessionId: string) => Promise<void>;
   sendMessage: (text: string) => Promise<void>;
   /**
@@ -142,6 +143,15 @@ function genSessionId(): string {
  * refactor to a Map<sessionId, unsub>.
  */
 let streamUnsub: (() => void) | null = null;
+
+/**
+ * Monotonic generation counter for the active stream. Each performInvocation
+ * increments it; cancelStream bumps it so a cancelled invoke's `finally`
+ * cannot clobber the next turn's state. Session switches also bump it so
+ * a stale saveMsgs cannot write the new session's message array under the
+ * old session id.
+ */
+let streamGeneration = 0;
 
 function patchLastAssistant(
   messages: AiMessage[],
@@ -249,6 +259,7 @@ async function performInvocation(
   sessionId: string,
   apiMessages: AiMessage[],
 ): Promise<void> {
+  const gen = ++streamGeneration;
   set({
     streaming: true,
     streamDelta: "",
@@ -490,16 +501,23 @@ async function performInvocation(
     if (shouldInvalidatePendingWrites(result)) {
       emitLocal(PENDING_WRITES_CHANGED_EVENT, { source: "invoke-result" });
     }
-    await api.ai.saveMsgs({ sessionId, messages: get().messages });
+    // Only persist if this invocation is still the active one for this session.
+    // A session switch mid-stream replaces `messages` — saving then would write
+    // the new session's array under the old session id (silent corruption).
+    if (gen === streamGeneration && get().activeSessionId === sessionId) {
+      await api.ai.saveMsgs({ sessionId, messages: get().messages });
+    }
 
     // Auto-chain queued follow-ups after this turn (Pi-style follow-up queue).
     const followUps = Array.isArray(result.followUps) ? result.followUps.filter(Boolean) : [];
-    if (followUps.length > 0 && result.ok !== false) {
+    if (followUps.length > 0 && result.ok !== false && gen === streamGeneration) {
       set({ pendingFollowUpCount: followUps.length });
       // Run after finally clears streaming so sendMessage can start a new turn.
       queueMicrotask(() => {
         const chain = async () => {
           for (let i = 0; i < followUps.length; i++) {
+            // Abort chain if user cancelled or switched sessions mid-chain
+            if (gen !== streamGeneration) break;
             set({ pendingFollowUpCount: followUps.length - i - 1 });
             await get().sendMessage(followUps[i]);
           }
@@ -520,19 +538,23 @@ async function performInvocation(
   } finally {
     deltaBatcher.flush();
     deltaBatcher.clear();
-    set({
-      streaming: false,
-      streamDelta: "",
-      streamStatus: null,
-      streamToolName: null,
-      streamToolCalls: [],
-      streamToolCount: null,
-      streamMaxSteps: null,
-      lastSteerPreview: null,
-    });
-    if (streamUnsub) {
-      streamUnsub();
-      streamUnsub = null;
+    // Only clear stream state if this invocation is still the active one.
+    // A cancelled or superseded invocation must not clobber the next turn.
+    if (gen === streamGeneration) {
+      set({
+        streaming: false,
+        streamDelta: "",
+        streamStatus: null,
+        streamToolName: null,
+        streamToolCalls: [],
+        streamToolCount: null,
+        streamMaxSteps: null,
+        lastSteerPreview: null,
+      });
+      if (streamUnsub) {
+        streamUnsub();
+        streamUnsub = null;
+      }
     }
   }
 }
@@ -551,6 +573,7 @@ export const useAiStore = create<AiState>((set, get) => ({
   sessions: [],
   activeSessionId: null,
   messages: [],
+  messagesError: null,
   streaming: false,
   streamDelta: "",
   streamStatus: null,
@@ -570,15 +593,11 @@ export const useAiStore = create<AiState>((set, get) => ({
   async loadSessions() {
     try {
       const sessions = await api.ai.sessions();
-      // Filter out empty sessions (default title — never had a real conversation)
+      // Filter out empty placeholder sessions (default title) from the UI list.
+      // Do NOT auto-delete: title matching is locale-dependent and a user-titled
+      // chat equal to the default string would be silently wiped.
       const defaultTitle = i18n.t("ai:store.newSession");
       const meaningful = sessions.filter((s) => s.title !== defaultTitle);
-      // Best-effort cleanup of empty sessions from backend
-      for (const s of sessions) {
-        if (s.title === defaultTitle) {
-          void api.ai.clear(s.id).catch(() => {});
-        }
-      }
       set({ sessions: meaningful });
       // Don't auto-create a session — the UI shows empty conversation
       // and creates one lazily when the user sends the first message.
@@ -599,6 +618,12 @@ export const useAiStore = create<AiState>((set, get) => ({
     return id;
   },
   async selectSession(id) {
+    // Cancel any in-flight stream before switching — otherwise the old
+    // invocation's saveMsgs would write this session's empty array under
+    // the old session id.
+    if (get().streaming) {
+      await get().cancelStream();
+    }
     set({ activeSessionId: id, messages: [] });
     await get().loadMessages(id);
   },
@@ -614,9 +639,15 @@ export const useAiStore = create<AiState>((set, get) => ({
   async loadMessages(sessionId) {
     try {
       const msgs = await api.ai.loadMsgs(sessionId);
-      set({ messages: msgs });
-    } catch {
-      set({ messages: [] });
+      set({ messages: msgs, messagesError: null });
+    } catch (e) {
+      // Distinguish ENOENT (true empty — new session) from parse/IO errors
+      const msg = e instanceof Error ? e.message : String(e);
+      const isMissing = /ENOENT|not found|no such file/i.test(msg);
+      set({
+        messages: [],
+        messagesError: isMissing ? null : msg,
+      });
     }
   },
   async sendMessage(text) {
@@ -690,6 +721,9 @@ export const useAiStore = create<AiState>((set, get) => ({
     await performInvocation(get, set, sessionId, base);
   },
   async cancelStream() {
+    // Bump generation so the cancelled invocation's finally/saveMsgs/follow-ups
+    // are all inert — they check gen === streamGeneration before touching state.
+    streamGeneration += 1;
     const sid = get().activeSessionId;
     if (sid) await api.ai.cancel(sid);
     set({

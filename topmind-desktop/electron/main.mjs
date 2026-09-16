@@ -38,6 +38,7 @@ import { WereadService } from "./weread-service.mjs";
 import { XService } from "./x-service.mjs";
 import { IngestService } from "./ingest-service.mjs";
 import { logInfo, logWarn, logError, attachFileLogger, getLogFilePath } from "./lib/writeback.mjs";
+import { attachOpsJournal } from "./lib/ops-journal.mjs";
 import { loadAppSettings, saveAppSettings, updateAppSettings } from "./settings.mjs";
 import { closeWorkspaceWatcher, startWorkspaceWatcher, markIgnoredFileChanges } from "./watchers.mjs";
 import { invalidateNotesIndex } from "./lib/notes-index.mjs";
@@ -98,6 +99,7 @@ const desktopStateHome = resolveDesktopStateHome();
 // File log early — Windows GUI installers have no console; this is the support surface.
 const mainLogPath = path.join(desktopStateHome, "logs", "main.log");
 attachFileLogger(mainLogPath);
+attachOpsJournal(path.join(desktopStateHome, "logs", "ops.jsonl"));
 const defaultWsRoot = resolveUserWorkspaceRoot();
 let defaultEngine = null, currentCtx = null, mainWindow = null, appSettings = null, launchStatus = null;
 let windowCreating = false; // Guard against concurrent createWindow calls (activate + whenReady race)
@@ -828,6 +830,7 @@ function wireApplicationMenu() {
   setMenuLocalActions(
     createDefaultMenuLocalActions({
       getWorkspaceRoot: () => appSettings?.workspaceRoot || null,
+      getLogFilePath,
       toggleMaximize: () => {
         if (!mainWindow || mainWindow.isDestroyed()) return;
         if (mainWindow.isMaximized()) mainWindow.unmaximize();

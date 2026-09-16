@@ -22,6 +22,7 @@
  * (`registerAccelerator: false`).
  */
 import { createRequire } from "node:module";
+import path from "node:path";
 import { t } from "./electron-i18n.mjs";
 import { buildMenuTemplate } from "./menu-spec.mjs";
 
@@ -334,7 +335,11 @@ export function createDefaultMenuLocalActions(ctx) {
   return {
     "open-logs": () => {
       try {
-        void shell.openPath(app.getPath("logs"));
+        // Real sink is desktopStateHome/logs/main.log — not Electron's logs path
+        // (app.setPath("userData") does not move getPath("logs")).
+        const logFile = typeof ctx.getLogFilePath === "function" ? ctx.getLogFilePath() : null;
+        const dir = logFile ? path.dirname(logFile) : null;
+        void shell.openPath(dir || app.getPath("logs"));
       } catch {
         /* ignore */
       }

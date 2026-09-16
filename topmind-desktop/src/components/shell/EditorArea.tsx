@@ -126,7 +126,7 @@ export function EditorArea() {
               <Tooltip content={t("editorArea.swapPanes")}>
                 <button
                   type="button"
-                  className="v4-titlebar-btn h-6 w-6"
+                  className="v4-icon-btn v4-icon-btn-micro"
                   onClick={() => swapSplitPanes()}
                   aria-label={t("editorArea.swapPanesAriaLabel")}
                 >
@@ -136,7 +136,7 @@ export function EditorArea() {
               <Tooltip content={t("editorArea.closeSplit")}>
                 <button
                   type="button"
-                  className="v4-titlebar-btn h-6 w-6"
+                  className="v4-icon-btn v4-icon-btn-micro"
                   onClick={() => clearSplit()}
                   aria-label={t("editorArea.closeSplitAriaLabel")}
                 >

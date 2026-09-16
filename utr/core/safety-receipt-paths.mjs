@@ -7,26 +7,17 @@
  * Backups: `{archive}/backups/{originalRel}` (not under trash/)
  * Archived topic: `{archive}/{category}-{topic}-{stamp}/…`
  * Output revision: `{outputs}/… - 修订版.md`
+ *
+ * Name lists come from Kernel `ROLE_DIR_ALIASES` (single truth).
  */
+import { ROLE_DIR_ALIASES } from "../../lib/model-core.mjs";
 
 export const ARCHIVE_ROOT_NAMES = Object.freeze([
-  "99 归档",
-  "99-归档",
-  "99 Archive",
-  "99-Archive",
+  ...ROLE_DIR_ALIASES.system,
   "archive", // legacy prefix only
 ]);
 
-export const OUTPUTS_ROOT_NAMES = Object.freeze([
-  "88 交付",
-  "88-交付",
-  "88 Delivery",
-  "88-Delivery",
-  "88 输出",
-  "88-输出",
-  "88 Outputs",
-  "88-Outputs",
-]);
+export const OUTPUTS_ROOT_NAMES = Object.freeze([...ROLE_DIR_ALIASES.delivery]);
 
 /**
  * @param {string} receiptPath workspace-relative

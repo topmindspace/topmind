@@ -1,7 +1,7 @@
 /**
  * Workspace-local write path — no Desktop process required.
  * Uses File System Access API (Chromium) + IndexedDB-persisted directory handle.
- * Writes Markdown into buffer category (00-Inbox / config) per topmind conventions.
+ * Writes Markdown into buffer category (config-discovered role:buffer, default 00-Inbox) per topmind conventions.
  *
  * Permission note (Chrome):
  * - Handles restored from IndexedDB usually report permission "prompt".

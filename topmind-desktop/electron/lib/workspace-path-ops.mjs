@@ -13,6 +13,7 @@ import {
 import {
   buildWritebackEvidence,
 } from "./writeback.mjs";
+import { recordWritebackEvidence } from "./ops-journal.mjs";
 import {
   S, T, sp, now, lf,
 } from "./workspace-helpers.mjs";
@@ -25,16 +26,18 @@ function bumpWorkspaceIndex(relativePath) {
 }
 
 /** Map Kernel surface evidence → legacy Desktop camelCase evidence shape. */
-function asDesktopEvidence(ev, fallbackPath) {
+function asDesktopEvidence(ev, fallbackPath, actor = "user") {
   if (!ev || typeof ev !== "object") {
     return buildWritebackEvidence({
       operation: "update",
       targetPath: fallbackPath,
       savedAt: now(),
       wroteFiles: false,
+      actor,
+      ok: false,
     });
   }
-  return {
+  const evidence = {
     ok: !ev.pending && !ev.needsConfirm,
     ...buildWritebackEvidence({
       operation: ev.operation || "update",
@@ -46,10 +49,11 @@ function asDesktopEvidence(ev, fallbackPath) {
       affectedFiles: ev.affectedFiles,
       wroteFiles: ev.wroteFiles !== false && !ev.pending,
       nextActions: ev.nextActions,
+      actor,
     }),
     protection: ev.protection,
-    needsConfirm: Boolean(ev.needsConfirm || ev.pending),
     pending: Boolean(ev.pending),
+    needsConfirm: Boolean(ev.needsConfirm || ev.pending),
     note: ev.note,
     // Preserve full body for confirm-mode pending stash (append_* / save / edit)
     previewContent:
@@ -59,6 +63,8 @@ function asDesktopEvidence(ev, fallbackPath) {
           ? ev.preview_content
           : undefined,
   };
+  recordWritebackEvidence(evidence, { actor });
+  return evidence;
 }
 
 export const pathOps = {

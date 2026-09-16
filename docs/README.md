@@ -99,6 +99,12 @@
 | [2026-09-15](./adr/2026-09-15-cross-platform-chrome-and-suggest-lifecycle.md) | Cross-platform chrome & suggestion lifecycle | One-row Windows title bar (app-drawn strip → native popups), platform-correct chords via `formatChord`, fullscreen collapses chrome reserves, frameless float note, Windows dialog footer flip in CSS; batched suggest apply with terminal-vs-retryable failures and persisted dismissal |
 | [2026-09-15](./adr/2026-09-15-boot-integrity-and-undeclared-identifiers.md) | Boot integrity & undeclared identifiers | `popupSink` was assigned but never declared — a ReferenceError in the ready handler killed every platform before its first window, past eight green gates; `install-skills.mjs` had been unparseable since the initial commit; adds a real scope-analysis check plus a test that boots the main process under a stubbed Electron |
 
+**Design proposals (non-ADR):**
+
+| Doc | Topic |
+|-----|-------|
+| [design/2026-09-16-tools-and-logs-workspace-care.md](./design/2026-09-16-tools-and-logs-workspace-care.md) | Tools & Logs：stats · ops journal · 健康含契约 · 清理预览/去重 · C1–C9 修复 |
+
 ---
 
 ## Version numbers and truth sources

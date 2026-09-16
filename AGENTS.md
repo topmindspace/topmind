@@ -34,7 +34,8 @@ npm run --prefix topmind-desktop pack:verify
 6. `check:i18n` — zh-CN / en-US locale 键严格对齐  
 7. `test` — Desktop 为 `tsx --test --test-force-exit`（Windows 必需，防 tsx 不退出挂起）；root / skills / utr 为 `node --test`  
 8. `build` + `build:report` — `vite build`  
-9. `pack:verify` — 源码 monorepo 导入禁令 + 已有 release/asar 完整性  
+9. `pack:prepare` — stage engine resources（Obsidian dist / Clip stamp 对齐）  
+10. `pack:verify` — 源码 monorepo 导入禁令 + 已有 release/asar 完整性  
 
 新增 dead pattern：编辑 `topmind-desktop/scripts/check-dead-code.mjs` 的 `DEAD_PATTERNS`（`id` / `description` / `regex` / `scope` / `allowIn`）。
 
@@ -134,6 +135,8 @@ topmind = Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Option
 
 contract · workspace-model · stream · memory · lifecycle · **writeback（唯一写闸）** · derived · ingest。
 
+> 文件名映射：`contract-engine.mjs` · `workspace-model.mjs`（门面，实现拆 `model-core/topic/stream/memory`）· `stream-period.mjs` · `memory-engine.mjs` · `lifecycle-engine.mjs` · `writeback-engine.mjs` · `derived-builder.mjs` · `ingest-pipeline.mjs`。
+
 > **契约生命周期（全表面共享）**：工作区根 `topmind.yaml` v4 为唯一行为契约。`ensureContract` 缺失创建 / 可修则合并默认重写（**保证收敛到 ok**：null section、缺失版本号一次修复盖章；repair 不覆盖盘上用户模板/locale/name）；任何覆盖坏文件的路径（含 legacy v3 迁移、reseed）**先备份**到 `99-*/backups/contract/`（毫秒+随机后缀防冲突）；`writeContract` tmp+rename 原子写。损坏不可修 → 结构化 `unrepairable` + `reseedContract`（对任何状态强制「备份+全新默认」，不删内容目录）。Desktop 打开 · Obsidian vault init · UTR `contract.ensure`/`reseed`/`doctor` 均走 Kernel；UI 偏好（Desktop `app-settings.json` 等）不 fork workspace 行为键。设置写方一律 partial patch（Desktop `AppSettingsPatch`）。见 ADR `docs/adr/2026-08-23-contract-settings-integrity.md`。
 
 > **workspace-model 拆分（2026-08）**：`lib/workspace-model.mjs` 为稳定门面（导入面不变），实现拆到 `model-core / model-topic / model-stream / model-memory`；外部只 import 门面。见 ADR `docs/adr/2026-08-02-workspace-model-split.md`。  
@@ -149,7 +152,7 @@ contract · workspace-model · stream · memory · lifecycle · **writeback（�
 > **Memory periodic 语义**：periodic 记忆为「周期反思」（洞察提炼），非事件压缩副本。`memory/periodic/` 按年分组，与 stream 年目录对齐。**Memory 路径单真相**：所有引擎（memory / suggest / ai-operation / todo）与两宿主打开入口的 memory 平面路径一律经契约解析（`memory.dir` + `memory.layers.global.file`），无硬编码 `memory/profile.md` 第二套路径；skip 回执与建议条 `digestPath` 与写入侧同源（含平铺粘滞）。见 ADR `2026-08-23-contract-settings-integrity.md` D12 / D14。  
 > **Inbox 生命周期**：`lifecycle.inbox.review_after_days`（默认 7）只触发「待归位」回顾；**超期 ≠ 归档**。首选结果是 `inbox_organize`（移入已有专题 / 新建专题）。归档是用户手动最后手段。  
 > **AI 输出语言**：改写打开的笔记 / Agent 写入正文：用户本轮明确要求 → 原文 → 工作区 locale。**建议条 · AI 待办 · memory_organize / topic_classify**：用户本轮明确要求 → **当前宿主 UI 语言**（Desktop `settings.ui.locale`，或 Obsidian `localeOverride` / 应用语言；`auto` 不算）→ 工作区 locale。Desktop 与 Obsidian 是交替宿主，不叠成一条链。解析：`lib/ai-output-locale.mjs`。  
-> **工作区围栏**：写/移/删/归档不得落到当前工作区根之外（`isPathInsideWorkspace`）。区外本地读须 `evaluateOutsideRead` 显式授权；`fetch_url` 仅 http(s)，不读 `file://`。  
+> **工作区围栏**：写/移/删/归档不得落到当前工作区根之外（`isPathInsideWorkspace`，解析 symlink 后再比较——工作区内指向区外的 symlink 不能绕过围栏）。区外本地读须 `evaluateOutsideRead` 显式授权；`fetch_url` 仅 http(s)，不读 `file://`。activity-window 的 append-marker parent 也走同一围栏（绝对路径 / `..` 段被拒绝）。  
 > **类别按角色发现**：buffer/stream/delivery/system 用现场契约与 `{NN-…}` 目录，不用写死 `00-Inbox` / `99-归档`。用户改名（`00-收件箱` · `99-Archive`）仍按 role 跳过/归档。  
 > **Obsidian AI Key 双层保护**：`saveSettings()` 同时备份密钥到 `.topmind/ai-keys-backup.json`；`loadSettings()` 缺密钥时自动恢复。  
 > **Companion 下载验证**：`crypto.createHash('sha256')` 流式哈希，零外部依赖；安装失败回退 bundled 版本。  
@@ -158,7 +161,7 @@ contract · workspace-model · stream · memory · lifecycle · **writeback（�
 > **Agent 步数**：默认 **20**（可配 3–50）。  
 > **删除诚实**：普通开放笔记 delete 无 trash；用户文案不得声称「每次删除都进 99-归档」。
 
-**诚实状态**：引擎在 `lib/`；Desktop / UTR / AI 耐久 `.md` **主写经 writeback-engine**；Memory · 建议条 · 待办 · 可选记账（ledger-engine 卫星）· AI 操作框架 · 活动窗口 · 动态增补 · 剪藏图片本地化 · i18n 门禁 · 多路 AI 并发 · Stream 年目录+归档 · UIUX 深度优化 **Done**。备份/回执：**仅高影响**——`locked` 覆盖，以及锁定/核心笔记的非 `permanent` **delete**（trash+回执）。`executeArchive` 把内容迁入现场 **system** 目录当新家（不是备份）。普通开放笔记 **delete** 无 trash；create/update/move/rename/连接器同步不备份不写回执；`permanent` 彻底删除；产物旋转（`BACKUP_KEEP=3` · `RECEIPT_KEEP=50`）；Desktop 支持日志 `logs/main.log` 大小上限轮转（默认单文件 2 MB × 保留 3 份归档，`topmind_LOG_MAX_BYTES` / `topmind_LOG_KEEP` 可调，见 ADR `docs/adr/2026-08-27-desktop-log-rotation.md`）。AI Provider：per-operation 动态 temperature/systemPrompt/maxTokens + 瞬态错误重试；会话压缩 240K/60。仍 **Intentional Partial**：contract 未强制全 Surface UI。embedding / 全库 Ask 等见 Reset Non-goal。
+**诚实状态**：引擎在 `lib/`；Desktop / UTR / AI 耐久 `.md` **主写经 writeback-engine**；Memory · 建议条 · 待办 · 可选记账（ledger-engine 卫星）· AI 操作框架 · 活动窗口 · 动态增补 · 剪藏图片本地化 · i18n 门禁 · 多路 AI 并发 · Stream 年目录+归档 · UIUX 深度优化 · **工具与日志面板**（工作区下拉 / ⌘⇧L：概览 stats · ops journal · main.log · 健康（含契约）· 清理预览/去重）**Done**。备份/回执：**仅高影响**——`locked` 覆盖，以及锁定/核心笔记的非 `permanent` **delete**（trash+回执）。`executeArchive` 把内容迁入现场 **system** 目录当新家（不是备份）。普通开放笔记 **delete** 无 trash；create/update/move/rename/连接器同步不备份不写回执；`permanent` 彻底删除；产物旋转（`BACKUP_KEEP=3` · `RECEIPT_KEEP=50`）；Desktop 支持日志 `logs/main.log` 大小上限轮转（默认单文件 2 MB × 保留 3 份归档，`topmind_LOG_MAX_BYTES` / `topmind_LOG_KEEP` 可调，见 ADR `docs/adr/2026-08-27-desktop-log-rotation.md`）；ops journal `logs/ops.jsonl`（默认 1 MB × keep 2，`topmind_OPS_*` 可调）——**不是**第二套 receipts。`receiptPath` 仅在真实 YAML 回执时非空（不再回退 `backupPath`）。AI Provider：per-operation 动态 temperature/systemPrompt/maxTokens + 瞬态错误重试；会话压缩 240K/60。**安全加固（2026-09-16）**：`isPathInsideWorkspace` 解析 symlink；activity-window parent 路径围栏；memory/ledger 写闸默认 actor=`ai`；sessionId / skillId 路径消毒；Desktop `openPath`/`revealPath` 白名单。仍 **Intentional Partial**：contract 未强制全 Surface UI。embedding / 全库 Ask 等见 Reset Non-goal。
 
 默认模板 4 种：`stream`（默认）· `balanced` · `research` · `periodic`。
 

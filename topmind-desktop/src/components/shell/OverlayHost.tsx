@@ -41,6 +41,12 @@ const LoopReport = lazy(() =>
 const PluginAppSurface = lazy(() =>
   import("../overlays/PluginAppSurface").then((m) => ({ default: m.PluginAppSurface })),
 );
+const ToolsLogsPanel = lazy(() =>
+  import("../overlays/ToolsLogsPanel").then((m) => ({ default: m.ToolsLogsPanel })),
+);
+const HelpPanel = lazy(() =>
+  import("../overlays/HelpPanel").then((m) => ({ default: m.HelpPanel })),
+);
 
 function isEditableTarget(t: EventTarget | null): boolean {
   const el = t as HTMLElement | null;
@@ -217,6 +223,10 @@ export function OverlayHost() {
         openOverlay("loop-report", { loopReport: p.loopReport });
       else if (p?.kind === "plugin-app")
         openOverlay("plugin-app", { pluginId: p.pluginId });
+      else if (p?.kind === "tools-logs")
+        openOverlay("tools-logs");
+      else if (p?.kind === "help")
+        openOverlay("help");
       else if (p?.kind) openOverlay(p.kind as OverlayKind, p);
     });
     return unsub;
@@ -239,7 +249,9 @@ export function OverlayHost() {
   return createPortal(
     <OverlayPortalContext.Provider value={portalEl}>
       <div
-        onClick={() => {
+        onClick={(e) => {
+          // Only the dimmed backdrop dismisses — not clicks that bubble from the sheet.
+          if (e.target !== e.currentTarget) return;
           // Form overlays (记一下 / plugin mini-apps) keep their draft on a
           // stray background click — see lib/overlay-dismiss.ts.
           if (scrimDismissesOverlay(overlay)) void requestCloseOverlay();
@@ -263,6 +275,8 @@ export function OverlayHost() {
           "v4-no-drag isolate fixed inset-0 z-modal flex justify-center bg-scrim animate-fade-in",
           isPalette ? "items-start pt-[9vh] sm:pt-[11vh]" : "items-center",
           isMiniApp && "p-3 sm:p-6",
+          (overlay === "help" || overlay === "tools-logs" || overlay === "settings") &&
+            "px-3 py-4 sm:px-4 sm:py-6",
         )}
       >
         <div
@@ -270,8 +284,12 @@ export function OverlayHost() {
           onClick={(e) => e.stopPropagation()}
           tabIndex={-1}
           className={cn(
-            "v4-panel-contain max-h-[90vh] outline-none",
-            isPalette ? "max-w-[min(96vw,620px)]" : isMiniApp ? "max-w-[min(96vw,880px)] w-full" : "max-w-[min(96vw,1040px)]",
+            // Shrink-wrap the sheet so the surrounding scrim stays clickable
+            // (a full-width portal swallows backdrop clicks via stopPropagation).
+            // Scrim's justify-center centers this box; max-w-full avoids overflow.
+            "v4-panel-contain flex max-h-full max-w-full items-center justify-center outline-none",
+            isPalette && "items-start",
+            isMiniApp && "w-[min(96vw,880px)]",
           )}
         >
           <LazyBoundary
@@ -301,6 +319,10 @@ function Overlay({ kind }: { kind: OverlayKind }) {
       return <LoopReport />;
     case "plugin-app":
       return <PluginAppSurface />;
+    case "tools-logs":
+      return <ToolsLogsPanel />;
+    case "help":
+      return <HelpPanel />;
     default: {
       const slot = registry.resolveOverlay(kind);
       if (slot) return <>{slot.render()}</>;

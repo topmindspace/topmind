@@ -22,6 +22,7 @@
 .v4-search-trigger,
 .v4-sidebar-search-trigger,
 .v4-sidebar-capture,
+.v4-icon-btn,
 .v4-nav-pill,
 .v4-column-chrome button,
 .v4-column-chrome [role="tab"] {
@@ -950,10 +951,46 @@ button.v4-dash-card:active,
   color: var(--color-accent-color);
   box-shadow: inset 0 -2px 0 0 var(--color-accent-color);
 }
+/* ── Icon-button system (chrome / tool / micro) ──
+   One geometry + one hover language for every header/tool icon control.
+   · chrome 32 — TitleBar · Sidebar header · AI column header · OS strip
+   · tool  26 — editor format / reading menu (dense canvas tools)
+   · micro 24 — tree toolbar row tools
+   Hover is ALWAYS --color-surface-hover on the full hit box (never a
+   glyph-sized rect). Chrome icon-only keeps the 32×32 box via min-width;
+   never set min-width:0 on a chrome button — that is how 记一下 collapsed. */
+.v4-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-quick, 100ms) var(--ease-default),
+    color var(--duration-quick, 100ms) var(--ease-default);
+}
+.v4-icon-btn:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  color: var(--color-text-secondary);
+}
+.v4-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.v4-icon-btn-chrome {
+  height: var(--density-chrome-control, 32px);
+  min-width: var(--density-chrome-control, 32px);
+  width: var(--density-chrome-control, 32px);
+  border-radius: var(--radius-md);
+}
 .v4-titlebar-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   height: var(--density-chrome-control, 32px);
   min-width: var(--density-chrome-control, 32px);
   padding: 0 8px;
@@ -970,16 +1007,18 @@ button.v4-dash-card:active,
   background: var(--color-surface-hover);
   color: var(--color-text-secondary);
 }
-/* Editor format / view chrome — smaller than window titlebar controls. */
+.v4-icon-btn-tool,
 .v4-editor-tool-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   height: 26px;
   min-width: 26px;
+  width: 26px;
   padding: 0;
-  border: none;
   border-radius: var(--radius-sm);
+  border: none;
   background: transparent;
   color: var(--color-text-tertiary);
   cursor: pointer;
@@ -987,9 +1026,36 @@ button.v4-dash-card:active,
     background-color var(--duration-quick, 100ms) var(--ease-default),
     color var(--duration-quick, 100ms) var(--ease-default);
 }
+.v4-icon-btn-tool:hover:not(:disabled),
 .v4-editor-tool-btn:hover:not(:disabled) {
-  background: var(--color-surface-muted);
-  color: var(--color-text-primary);
+  background: var(--color-surface-hover);
+  color: var(--color-text-secondary);
+}
+.v4-icon-btn-micro {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  height: 24px;
+  min-width: 24px;
+  width: 24px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-quick, 100ms) var(--ease-default),
+    color var(--duration-quick, 100ms) var(--ease-default);
+}
+.v4-icon-btn-micro:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  color: var(--color-text-secondary);
+}
+.v4-icon-btn-micro:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 .v4-editor-tool-btn:disabled {
   opacity: 0.35;
@@ -1047,16 +1113,18 @@ button.v4-dash-card:active,
 .v4-titlebar-btn-primary:active {
   transform: scale(0.98);
 }
-/* Sidebar 记一下 — same chrome geometry as other header buttons; accent on icon + label only */
+/* Sidebar 记一下 — pure icon chrome button. Geometry comes from
+   .v4-titlebar-btn (32×32 min box). NEVER min-width:0 — that collapsed the
+   hover rect to the glyph. Accent only on the pencil. */
 .v4-sidebar-capture {
-  min-width: 0;
-  padding: 0 10px;
+  padding: 0 8px;
   border: none;
   background: transparent;
   color: var(--color-text-tertiary);
 }
 .v4-sidebar-capture:hover:not(:disabled) {
   background: var(--color-surface-hover);
+  color: var(--color-text-tertiary);
 }
 .v4-capture-accent-icon {
   color: var(--color-accent-inbox, #12897b);

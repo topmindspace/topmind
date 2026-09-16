@@ -1,7 +1,8 @@
 # topmind Obsidian Plugin — 架构
 
 > **用户文档**：[English](README.md) · [简体中文](README.zh-CN.md) · **边界**：`../PRODUCT-BOUNDARIES.md` · **内容约定**：`../PROJECT-MODEL.md`  
-> **版本真源**：`obsidian-plugin/manifest.json`
+> **版本真源**：`obsidian-plugin/manifest.json`  
+> **Desktop-only**：工具与日志面板（⌘⇧L）、ops journal、workspace stats 仅 Desktop；Obsidian 无 ops journal 对等物（非缺口）。恢复仍用 Kernel 高影响 receipts。
 
 ---
 

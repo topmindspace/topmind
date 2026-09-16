@@ -502,6 +502,44 @@ export const api = {
         };
         issues?: { severity: string; code: string; message: string; path?: string }[];
       }>("workspace.workspaceHealth"),
+    stats: (p?: { includeArchive?: boolean }) =>
+      invoke<{
+        scannedAt: string;
+        skipped?: boolean;
+        totalFiles: number;
+        totalBytes: number;
+        byExt: { ext: string; count: number; bytes: number }[];
+        byTopLevel: { name: string; count: number; bytes: number; role?: string }[];
+        largest: { path: string; bytes: number; mtime?: string | null }[];
+        delivery: { count: number; bytes: number; oldest?: string | null; newest?: string | null; nestedDirs?: number };
+        archive: {
+          count: number; bytes: number;
+          backups?: number; receipts?: number; trash?: number; streamArchive?: number; other?: number;
+        };
+      }>("workspace.workspaceStats", p || {}),
+    duplicates: (p?: { minSize?: number; maxGroups?: number; includeArchive?: boolean }) =>
+      invoke<{
+        scannedAt: string;
+        groupCount: number;
+        wastedBytes: number;
+        truncated?: boolean;
+        groups: { hash: string; size: number; full?: boolean; paths: string[]; mtimes?: string[] }[];
+      }>("workspace.workspaceDuplicates", p || {}),
+    cleanupPreview: () =>
+      invoke<{
+        scannedAt: string;
+        junk: string[];
+        emptyDirs: string[];
+        outOfConvention: { path: string; kind: string }[];
+        archive: { bytes: number; files: number };
+      }>("workspace.cleanupPreview", {}),
+    cleanupApply: (p: { targets: Array<Record<string, unknown>>; confirmed: boolean }) =>
+      invoke<{
+        ok: boolean;
+        wrote?: boolean;
+        reason?: string;
+        results?: Array<{ ok: boolean; path?: string; op: string; reason?: string; pruned?: number }>;
+      }>("workspace.cleanupApply", p),
   },
 
   ai: {
@@ -879,6 +917,38 @@ export const api = {
         platformLabel: string;
         archLabel: string;
       }>("system.getSystemInfo"),
+    logTail: (p?: {
+      file?: "main" | "ops";
+      limit?: number;
+      level?: string;
+      cat?: string;
+      contains?: string;
+      includeRotated?: boolean;
+    }) =>
+      invoke<{
+        ok: boolean;
+        file?: string;
+        path?: string | null;
+        total?: number;
+        entries: Array<{
+          ts?: string;
+          level?: string;
+          cat?: string;
+          msg?: string;
+          actor?: string;
+          op?: string;
+          ok?: boolean;
+          rel?: string;
+          backup?: string | null;
+          receipt?: string | null;
+          reason?: string | null;
+          [k: string]: unknown;
+        }>;
+      }>("system.logTail", p || {}),
+    logClear: (p?: { file?: "main" | "ops"; includeRotated?: boolean }) =>
+      invoke<{ ok: boolean; path?: string; reason?: string }>("system.logClear", p || {}),
+    logOpenFolder: () =>
+      invoke<{ ok: boolean; path?: string; reason?: string }>("system.logOpenFolder", {}),
     installCompanionSkills: (hostId: string, opts?: { mode?: "copy" | "symlink"; dest?: string }) =>
       invoke<CompanionSkillsResult>("system.installCompanionSkills", {
         hostId,

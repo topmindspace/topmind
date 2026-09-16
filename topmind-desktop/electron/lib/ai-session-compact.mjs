@@ -53,20 +53,53 @@ export function estimateTokens(text) {
  * @param {number} [opts.maxChars] total content char budget (default COMPACT_DEFAULT_MAX_CHARS)
  * @param {number} [opts.maxTokens] optional token budget (default ~80k ≈ maxChars/3)
  * @param {number} [opts.maxPerMessage] truncate single message body (default COMPACT_DEFAULT_MAX_PER_MESSAGE)
+ * @param {string} [opts.locale] "zh-CN" | "en-US" — language for injected compaction markers (default zh-CN)
  * @returns {{ messages: CompactMessage[], compacted: boolean, dropped: number, note: string|null, estimatedTokens: number }}
  */
+const COMPACT_L10N = {
+  "zh-CN": {
+    goal: (line) => `[本会话初始目标] ${line}`,
+    folded: (n) => `[会话压缩] 更早 ${n} 轮已折叠：`,
+    ack: "已了解初始目标与历史摘要；以最近对话与工具结果为准继续。",
+    truncated: (len) => `…(已截断，共 ${len} 字)`,
+    toolsBlock: "[本轮工具]",
+    user: "用户",
+    assistant: "助手",
+    paths: "涉及路径",
+    toolsUsed: "曾用工具",
+    moreFolded: "…另有较早轮次已折叠",
+    noContent: "(无实质内容)",
+  },
+  "en-US": {
+    goal: (line) => `[Session goal] ${line}`,
+    folded: (n) => `[Session compacted] ${n} earlier turns folded:`,
+    ack: "Acknowledged the initial goal and history summary; continuing from recent dialogue and tool results.",
+    truncated: (len) => `…(truncated, ${len} chars total)`,
+    toolsBlock: "[Tools this turn]",
+    user: "User",
+    assistant: "Assistant",
+    paths: "Paths",
+    toolsUsed: "Tools used",
+    moreFolded: "…(earlier turns folded)",
+    noContent: "(no substantive content)",
+  },
+};
+function compactL10n(locale) {
+  return COMPACT_L10N[locale] || COMPACT_L10N["zh-CN"];
+}
 export function compactMessagesForModel(messages, opts = {}) {
   const maxMessages = Math.max(6, Number(opts.maxMessages) || COMPACT_DEFAULT_MAX_MESSAGES);
   const keepRecent = Math.max(4, Number(opts.keepRecent) || COMPACT_DEFAULT_KEEP_RECENT);
   const maxChars = Math.max(8000, Number(opts.maxChars) || COMPACT_DEFAULT_MAX_CHARS);
   const maxTokens = Math.max(2000, Number(opts.maxTokens) || Math.floor(maxChars / 3));
   const maxPerMessage = Math.max(800, Number(opts.maxPerMessage) || COMPACT_DEFAULT_MAX_PER_MESSAGE);
+  const L = compactL10n(opts.locale);
 
   const cleaned = (Array.isArray(messages) ? messages : [])
     .filter((m) => m && (m.role === "user" || m.role === "assistant"))
     .map((m) => ({
       role: m.role,
-      content: flattenMessageContent(m),
+      content: flattenMessageContent(m, L),
     }))
     .filter((m) => m.content.trim().length > 0 || m.role === "user");
 
@@ -93,11 +126,11 @@ export function compactMessagesForModel(messages, opts = {}) {
     const tail = working.slice(-keepRecent);
     const middle = working.slice(1, working.length - keepRecent);
     dropped = middle.length;
-    const summary = summarizeMiddle(middle);
+    const summary = summarizeMiddle(middle, L);
 
     const summaryBlock = [
-      goalLine ? `[本会话初始目标] ${goalLine}` : null,
-      `[会话压缩] 更早 ${middle.length} 轮已折叠：`,
+      goalLine ? L.goal(goalLine) : null,
+      L.folded(middle.length),
       summary,
     ].filter(Boolean).join("\n");
 
@@ -110,7 +143,7 @@ export function compactMessagesForModel(messages, opts = {}) {
         },
         {
           role: "assistant",
-          content: "已了解初始目标与历史摘要；以最近对话与工具结果为准继续。",
+          content: L.ack,
         },
         ...tail,
       ];
@@ -123,7 +156,7 @@ export function compactMessagesForModel(messages, opts = {}) {
         },
         {
           role: "assistant",
-          content: "已了解初始目标与历史摘要；以最近对话与工具结果为准继续。",
+          content: L.ack,
         },
         ...tail,
       ];
@@ -140,7 +173,7 @@ export function compactMessagesForModel(messages, opts = {}) {
     compacted = true;
     return {
       ...m,
-      content: `${m.content.slice(0, limit)}\n…(已截断，共 ${m.content.length} 字)`,
+      content: `${m.content.slice(0, limit)}\n${L.truncated(m.content.length)}`,
     };
   });
 
@@ -193,8 +226,9 @@ export function ensureRoleAlternation(msgs) {
 /**
  * Flatten assistant content + tool timeline into one model-visible string.
  * @param {CompactMessage} m
+ * @param {object} L - locale strings
  */
-function flattenMessageContent(m) {
+function flattenMessageContent(m, L) {
   const body = typeof m.content === "string" ? m.content : "";
   const tools = Array.isArray(m.toolCalls) ? m.toolCalls : [];
   if (tools.length === 0) return body;
@@ -205,23 +239,24 @@ function flattenMessageContent(m) {
       return `- ${name}${sum ? `: ${sum}` : ""}`;
     })
     .slice(0, 16);
-  const block = `[本轮工具]\n${lines.join("\n")}`;
+  const toolsLabel = L.toolsBlock || "[本轮工具]";
+  const block = `${toolsLabel}\n${lines.join("\n")}`;
   if (!body.trim()) return block;
-  // Avoid duplicating if body already embeds tool dump
-  if (body.includes("[本轮工具]")) return body;
+  if (body.includes(toolsLabel)) return body;
   return `${body}\n\n${block}`;
 }
 
 /**
  * @param {CompactMessage[]} middle
+ * @param {object} L - locale strings
  */
-function summarizeMiddle(middle) {
+function summarizeMiddle(middle, L) {
   const lines = [];
   const paths = new Set();
   const toolNames = new Set();
 
   for (const m of middle) {
-    const role = m.role === "user" ? "用户" : "助手";
+    const role = m.role === "user" ? (L.user || "用户") : (L.assistant || "助手");
     const oneLine = m.content.replace(/\s+/gu, " ").trim().slice(0, 160);
     if (oneLine) lines.push(`- ${role}: ${oneLine}`);
 
@@ -240,13 +275,13 @@ function summarizeMiddle(middle) {
   }
 
   if (paths.size > 0) {
-    lines.push(`- 涉及路径: ${[...paths].slice(0, 12).join(", ")}`);
+    lines.push(`- ${L.paths || "涉及路径"}: ${[...paths].slice(0, 12).join(", ")}`);
   }
   if (toolNames.size > 0) {
-    lines.push(`- 曾用工具: ${[...toolNames].slice(0, 12).join(", ")}`);
+    lines.push(`- ${L.toolsUsed || "曾用工具"}: ${[...toolNames].slice(0, 12).join(", ")}`);
   }
   if (middle.length > lines.length) {
-    lines.push(`- …另有较早轮次已折叠`);
+    lines.push(`- ${L.moreFolded || "…另有较早轮次已折叠"}`);
   }
   return lines.length ? lines.join("\n") : "(无实质内容)";
 }

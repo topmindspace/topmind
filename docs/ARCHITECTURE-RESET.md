@@ -151,7 +151,8 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | 动态主表面 PrimaryNav | **Done**（默认 stream） |
 | confirm 写闸 pending | **Done**（settings gate + pending 队列 + 审阅） |
 | lifecycle 全量产品卡片 | **Done**（scan→建议；inbox_organize AI 分析→确认移动） |
-| 备份/回执（高影响 only） | **Done**（open 常规写/移动/重命名不备份不回执；locked 覆盖 + 锁定/核心 **delete** 有 trash+回执；**archive** 迁入 99-归档 当新家；普通开放笔记 delete 无 trash；`BACKUP_KEEP=3` · `RECEIPT_KEEP=50`；Desktop 支持日志大小上限轮转 2 MB × 3 归档，ADR `2026-08-27-desktop-log-rotation.md`） |
+| 备份/回执（高影响 only） | **Done**（open 常规写/移动/重命名不备份不回执；locked 覆盖 + 锁定/核心 **delete** 有 trash+回执；**archive** 迁入 99-归档 当新家；普通开放笔记 delete 无 trash；`BACKUP_KEEP=3` · `RECEIPT_KEEP=50`；`receiptPath` 仅真实 YAML 非空；Desktop 支持日志大小上限轮转 2 MB × 3 归档，ADR `2026-08-27-desktop-log-rotation.md`） |
+| 工具与日志面板 | **Done**（2026-09-16：工作区下拉 / ⌘⇧L Overlay——概览 stats · ops journal · main.log · 健康含契约 · 清理预览/去重；ops.jsonl 1MB×2 **非**第二套 receipts。设计 `docs/design/2026-09-16-tools-and-logs-workspace-care.md`） |
 | 个人待办清单 | **Done**（todo-engine + AI 工作区清单 pane + AI 维护 + ⌘⇧T；complete/update 用 `matchTodoMaintainText` 防单 token 误完成） |
 | 可选记账 | **Done**（ledger-engine 卫星 · `{memory.dir}/ledgers/` · 默认 Personal/自己 · Skills `topmind-ledger` · Desktop enable-gated plugin-app 看板/流水/分类/快捷记账；**不是**第九引擎 / 第六用户概念 / PrimaryNav；Obsidian 不发 mini-app；UTR 无 ledger 域） |
 | 统一 AI 操作引擎 | **Done**（todo_maintain · memory_organize · topic_classify；force；状态追踪） |

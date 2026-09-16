@@ -11,7 +11,7 @@ import {
   RiFileDownloadLine,
   RiFileLine,
   RiFileTextLine,
-  RiFlashlightLine,
+  RiPencilLine,
   RiFolderOpenLine,
   RiLoader4Line,
   RiRefreshLine,
@@ -270,7 +270,7 @@ export function OutputsView() {
           action={
             <Tooltip content={t("workspace:inbox.captureBtn")}>
               <Button variant="outline" size="sm" onClick={() => openOverlay("quick-capture")}>
-                <RiFlashlightLine size={ICON.xs} /> {t("workspace:inbox.captureBtn")}
+                <RiPencilLine size={ICON.xs} /> {t("workspace:inbox.captureBtn")}
               </Button>
             </Tooltip>
           }

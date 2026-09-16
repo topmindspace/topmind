@@ -175,9 +175,9 @@ export function ChromeOverflowActions({
               <button
                 type="button"
                 className={cn(
-                  "v4-titlebar-btn",
-                  menuOpen && "text-text-primary",
-                )}
+                "v4-icon-btn v4-icon-btn-chrome",
+                menuOpen && "bg-surface-hover text-text-primary",
+              )}
                 aria-label={t("action.more", { defaultValue: "More" })}
                 aria-haspopup="menu"
                 aria-expanded={menuOpen}

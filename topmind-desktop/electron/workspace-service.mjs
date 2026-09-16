@@ -41,6 +41,10 @@ export const WorkspaceService = {
   search: scanOps.search,
   grepWorkspace: scanOps.grepWorkspace,
   workspaceHealth: scanOps.workspaceHealth,
+  workspaceStats: scanOps.workspaceStats,
+  workspaceDuplicates: scanOps.workspaceDuplicates,
+  cleanupPreview: scanOps.cleanupPreview,
+  cleanupApply: scanOps.cleanupApply,
 
   // ── Path / content ───────────────────────────────────────────────────────
   duplicatePath: pathOps.duplicatePath,

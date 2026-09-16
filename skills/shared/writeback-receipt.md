@@ -35,9 +35,12 @@ writeback:
 
 写入必须返回 **target path + affected files**（UTR 时见 WritebackEvidence）。
 
+**`receiptPath` 仅在存在真实 YAML 回执时非空**——不回退为 `backupPath` 别名。撤销/恢复请看 `backupPath`（或 trash 路径）。
+
 ## 可逆性（高影响 only）
 
-- 锁定 / 核心笔记删除 / 归档 → 移入现场 system 目录的 `backups/trash`（或归档副本）+ 回执；普通开放笔记删除无 trash；`permanent` 则无副本  
+- 锁定 / 核心笔记 **delete** → 移入现场 system 目录的 `backups/trash` + 回执；普通开放笔记删除无 trash；`permanent` 则无副本  
+- **archive** → 迁入现场 system 目录当**新家**（非备份）；YAML 回执仅锁定/核心  
 - **locked** 既有文件覆盖 → 旋转备份 + 回执  
 - 常规 **open** 更新 → 不造备份/回执（不伪造路径）；证据仍含 target path + affected files  
 - AI 不得直接写 locked；须 fork 或用户解锁  

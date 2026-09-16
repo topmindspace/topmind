@@ -22,6 +22,8 @@ const SCRIM_DISMISSES: ReadonlySet<string> = new Set([
   "search",
   "about",
   "loop-report",
+  "tools-logs",
+  "help",
 ]);
 
 /** True when clicking the dimmed background may close this overlay. */

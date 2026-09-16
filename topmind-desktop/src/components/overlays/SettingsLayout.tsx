@@ -114,7 +114,7 @@ export function SettingsLayout({
 
   return (
     <div
-      className="v4-overlay-sheet v4-settings-dialog flex h-[min(860px,94vh)] w-[min(1040px,96vw)] overflow-hidden"
+      className="v4-overlay-sheet v4-settings-dialog flex h-[min(760px,88vh)] w-[min(960px,calc(100vw-2rem))] max-w-full overflow-hidden"
       data-settings-dialog
       role="dialog"
       aria-modal="true"
@@ -162,19 +162,19 @@ export function SettingsLayout({
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-l border-border-subtle-dim bg-surface-elevated">
           <div
-            className="flex shrink-0 items-start justify-between gap-3 border-b border-border-subtle-dim bg-[var(--color-dialog-header)] px-4 py-2.5"
+            className="flex shrink-0 items-center justify-between gap-3 border-b border-border-subtle-dim bg-[var(--color-dialog-header)] px-5 py-3"
             data-settings-header
           >
             <div className="min-w-0">
               <div className="flex items-center gap-1">
-                <div id={titleId} className="text-sm font-semibold tracking-tight text-text-primary">
+                <h2 id={titleId} className="truncate text-sm font-semibold tracking-tight text-text-primary">
                   {activeMeta?.label || t("settings:title")}
-                </div>
+                </h2>
                 {pageHelp ? <HelpTip content={pageHelp} /> : null}
               </div>
-              <p className="mt-0.5 text-3xs leading-snug text-text-quaternary">{pageDesc}</p>
+              <p className="mt-0.5 truncate text-3xs leading-snug text-text-quaternary">{pageDesc}</p>
             </div>
-            <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
+            <div className="flex shrink-0 items-center gap-1.5">
               {saving ? (
                 <span className="inline-flex items-center gap-1 text-3xs text-accent-color" role="status">
                   <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden /> {t("common:action.saving")}
@@ -196,7 +196,7 @@ export function SettingsLayout({
             </div>
           </div>
           <div
-            className="v4-content-scroll min-h-0 flex-1 overflow-auto overscroll-contain bg-background/40 px-3.5 py-3 sm:px-5"
+            className="v4-content-scroll min-h-0 flex-1 overflow-auto overscroll-contain bg-background/40 px-4 py-4 sm:px-5"
             data-settings-content
           >
             {error ? (

@@ -176,8 +176,8 @@ export default class TopmindPlugin extends Plugin {
       (leaf: WorkspaceLeaf) => new MemoryBrowseView(leaf, this),
     );
 
-    // ── Ribbon icon (DESIGN §7: waves) ──
-    this.addRibbonIcon("waves", t("quick_capture_title"), () => {
+    // ── Ribbon icon: quick capture (pen) ──
+    this.addRibbonIcon("pencil", t("quick_capture_title"), () => {
       this.openQuickCapture();
     });
 

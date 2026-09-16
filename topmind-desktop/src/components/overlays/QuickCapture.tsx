@@ -20,7 +20,7 @@ import {
   RiClipboardLine,
   RiCloseLine,
   RiFileTransferLine,
-  RiFlashlightLine,
+  RiPencilLine,
 } from "@remixicon/react";
 import { api } from "../../services/api";
 import { useViewStore } from "../../stores/view-store";
@@ -154,7 +154,7 @@ export function QuickCapture({ variant, onDone }: QuickCaptureProps = {}) {
       <div className="mb-3 flex items-center justify-between gap-2">
         <h2 className="flex min-w-0 items-center gap-2 text-sm font-medium tracking-tight text-text-primary">
           <span className="v4-icon-chip-accent flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)]" aria-hidden>
-            {isMemory ? <RiBrainLine size={ICON.sm} /> : form.effectiveMode === "docs" ? <RiFileTransferLine size={ICON.sm} /> : <RiFlashlightLine size={ICON.sm} />}
+            {isMemory ? <RiBrainLine size={ICON.sm} /> : form.effectiveMode === "docs" ? <RiFileTransferLine size={ICON.sm} /> : <RiPencilLine size={ICON.sm} />}
           </span>
           <span className="truncate">
             {isMemory

@@ -123,7 +123,7 @@ describe("Obsidian labeled-button chrome (shipped)", () => {
   const zh = fs.readFileSync(path.join(srcDir, "i18n", "locales", "zh-CN.ts"), "utf-8");
   const en = fs.readFileSync(path.join(srcDir, "i18n", "locales", "en-US.ts"), "utf-8");
 
-  test("labeled buttons keep width:auto and do not clip labels at default width", () => {
+  test("labeled buttons keep width:auto; header is icon-first (labels CSS-hidden)", () => {
     assert.match(css, /\.tm-toolbar-btn-labeled\s*\{[^}]*width:\s*auto/s);
     assert.match(css, /\.tm-sidebar-btn-labeled\s*\{[^}]*width:\s*auto/s);
     const toolbarLabel = css.match(/\.tm-toolbar-btn-label\s*\{[^}]+\}/)?.[0] || "";
@@ -132,9 +132,11 @@ describe("Obsidian labeled-button chrome (shipped)", () => {
     assert.match(sidebarLabel, /overflow:\s*visible/);
     assert.doesNotMatch(toolbarLabel, /display:\s*none/);
     assert.doesNotMatch(sidebarLabel, /display:\s*none/);
-    // Default toolbar/header must not rely on overflow:hidden alone to hide labels
+    // Toolbar keeps labels visible at default width.
     assert.match(css, /\.tm-toolbar\s*\{[^}]*overflow:\s*visible/s);
-    assert.match(css, /\.tm-sidebar-header\s*\{[^}]*overflow:\s*visible/s);
+    // Header is icon-first: labels are always CSS-hidden (aria-label/title carry names).
+    assert.match(css, /\.tm-sidebar-header \.tm-sidebar-btn-label\s*\{[^}]*display:\s*none/s);
+    assert.match(css, /\.tm-sidebar-header\s*\{[^}]*overflow:\s*hidden/s);
   });
 
   test("narrow pane hides labels only under an explicit container query", () => {

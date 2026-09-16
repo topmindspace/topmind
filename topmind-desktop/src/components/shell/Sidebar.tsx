@@ -3,7 +3,7 @@ import {
   RiCalendar2Line,
   RiDatabase2Line,
   RiErrorWarningLine,
-  RiFlashlightLine,
+  RiPencilLine,
   RiRefreshLine,
   RiSearchLine,
   RiUser3Line,
@@ -271,41 +271,40 @@ export function Sidebar() {
 
   return (
     <div className="v4-panel-contain v4-sidebar-rail flex h-full min-h-0 flex-col">
-      {/* Sidebar header — Profile + Search + 记一下 (compact, single row) */}
+      {/* Sidebar header — PrimaryNav + Profile + Search + 记一下.
+          PrimaryNav sits on this row so destination switching stays one hop
+          from the other primary actions. macOS right-aligns (traffic lights
+          own the left); Windows/Linux left-align (rail is the window edge). */}
       <div
         className="v4-column-chrome v4-drag"
         data-sidebar-header
         data-column-chrome="left"
       >
-        {/* macOS pushes these right because its traffic lights live in the empty
-            left of this rail. On Windows/Linux nothing occupies that space — the
-            rail IS the window's left edge — so right-aligning left a dead gap
-            between the window edge and the controls; they start at the edge. */}
         <div
           className={cn(
-            "v4-no-drag flex shrink-0 items-center gap-1",
+            "v4-no-drag flex min-w-0 shrink-0 items-center gap-1",
             isMacOS ? "ml-auto justify-end" : "mr-auto justify-start",
           )}
           data-sidebar-header-actions
         >
+          <div className="min-w-0 shrink" data-sidebar-primary-nav>
+            <ErrorBoundary label={t("primaryNav.ariaLabel")}>
+              <PrimaryNav variant="sidebar" />
+            </ErrorBoundary>
+          </div>
           <SidebarHeaderActions />
         </div>
       </div>
-      {/* Destinations + view mode + tree tools — one quiet chrome row.
-          PrimaryNav and ViewSwitcher are both dropdowns (2026-09-16) so this
-          row never stacks two segmented rails. */}
+      {/* View mode + tree tools — destinations no longer live here. */}
       <div
         className="flex h-10 shrink-0 items-center gap-1 overflow-hidden border-b border-border-subtle-dim px-1.5"
         data-sidebar-secondary-header
       >
-        <div className="min-w-0 flex-1" data-sidebar-primary-nav>
+        <div className="min-w-0 flex-1" data-sidebar-view-tools>
           <ErrorBoundary label={t("sidebar.viewSwitcher.ariaTablist")}>
-            <PrimaryNav variant="sidebar" />
+            <ViewSwitcher active={viewMode} onChange={handleViewModeChange} enabled={enabledViews} iconOnly />
           </ErrorBoundary>
         </div>
-        <ErrorBoundary label={t("sidebar.viewSwitcher.ariaTablist")}>
-          <ViewSwitcher active={viewMode} onChange={handleViewModeChange} enabled={enabledViews} iconOnly />
-        </ErrorBoundary>
         {viewMode === "category" ? (
           <div
             className="flex shrink-0 items-center gap-0.5"
@@ -361,7 +360,9 @@ function PeriodPill({ pins }: { pins: SidebarPins }) {
 
 /**
  * Sidebar header actions — Profile → Search → 记一下.
- * 记一下 is a normal chrome button (not a solid capture CTA) with accent icon+label.
+ * 记一下 is icon-only pencil (`RiPencilLine`): the universal write glyph.
+ * Pen-nib was too obscure at 17px. Tooltip + aria-label carry the name.
+ * Geometry matches Search exactly so the trailing pair reads as one cluster.
  */
 function SidebarHeaderActions() {
   const { t } = useTranslation("shell");
@@ -374,7 +375,7 @@ function SidebarHeaderActions() {
       <Tooltip content={t("titleBar.searchCommandTip")}>
         <button
           type="button"
-          className="v4-search-trigger v4-titlebar-btn shrink-0 text-text-quaternary"
+          className="v4-search-trigger v4-titlebar-btn shrink-0"
           data-sidebar-search
           onClick={() => emitLocal("overlay:open", { kind: "command-palette" })}
           onMouseEnter={() => { void import("../overlays/CommandPalette"); }}
@@ -386,15 +387,14 @@ function SidebarHeaderActions() {
       <Tooltip content={t("titleBar.captureTip")}>
         <button
           type="button"
-          className="v4-sidebar-capture v4-titlebar-btn shrink-0 gap-1 text-xs font-medium"
+          className="v4-sidebar-capture v4-titlebar-btn shrink-0"
           data-chrome-tier="l1"
           data-sidebar-capture
           onMouseEnter={() => { void import("../overlays/QuickCapture"); }}
           onClick={() => openOverlay("quick-capture")}
           aria-label={t("titleBar.capture")}
         >
-          <RiFlashlightLine size={ICON.sm} className="v4-capture-accent-icon shrink-0" />
-          <span className="v4-capture-accent-label whitespace-nowrap">{t("titleBar.capture")}</span>
+          <RiPencilLine size={ICON.sm} className="v4-capture-accent-icon shrink-0" />
         </button>
       </Tooltip>
     </>
@@ -424,10 +424,10 @@ function ProfileButton() {
           })();
         }}
         className={cn(
-          "inline-flex h-(--density-chrome-control,32px) w-(--density-chrome-control,32px) shrink-0 items-center justify-center rounded-full transition-colors v4-focus-ring",
+          "v4-icon-btn h-(--density-chrome-control,32px) w-(--density-chrome-control,32px) shrink-0 rounded-full v4-focus-ring",
           active
             ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
-            : "bg-surface-muted/40 text-text-secondary hover:bg-surface-muted",
+            : "bg-surface-muted/40 text-text-secondary hover:bg-surface-hover hover:text-text-primary",
         )}
         aria-label={t("sidebar.myProfile")}
         aria-pressed={active}
