@@ -361,13 +361,13 @@ function PanelChrome() {
               <DropdownItem
                 key={s.id}
                 active={s.id === activeSessionId}
+                icon={<RiChatAiLine size={ICON.micro} className="opacity-70" />}
                 onSelect={() => {
                   void selectSession(s.id);
                   setShowSessionList(false);
                   setSessionSearch("");
                 }}
               >
-                <RiChatAiLine size={ICON.micro} className="shrink-0 opacity-70" />
                 <span className="min-w-0 flex-1 truncate">{label}</span>
               </DropdownItem>
             );

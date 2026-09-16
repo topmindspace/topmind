@@ -1,9 +1,14 @@
 /**
  * Splitter — draggable divider for resizing adjacent panels.
- * Pointer-capture based (mouse + touch/pen via pointer events, same as the
- * canvas split divider) and keyboard-operable (←/→ steps, Shift = coarse).
+ *
+ * Pointer-capture based (mouse + touch/pen) and keyboard-operable
+ * (←/→ steps, Shift = coarse). Drag state lives in a ref so a missed
+ * pointerup cannot leave the divider "sticky" — width kept changing
+ * after the button was released (classic setPointerCapture race).
+ * Window-level pointerup / lostpointercapture are hard stoppers.
  */
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/cn";
 
 interface SplitterProps {
@@ -16,48 +21,103 @@ interface SplitterProps {
 }
 
 export function Splitter({ side, value, onChange, min = 180, max = 600, onDragStateChange }: SplitterProps) {
+  const { t } = useTranslation("shell");
+  const draggingRef = useRef(false);
   const [dragging, setDragging] = useState(false);
   const [hovering, setHovering] = useState(false);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const onDragStateChangeRef = useRef(onDragStateChange);
+  onDragStateChangeRef.current = onDragStateChange;
 
   const clamp = useCallback((v: number) => Math.max(min, Math.min(max, v)), [min, max]);
 
+  const endDrag = useCallback(() => {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    setDragging(false);
+    // Pointer may have left the hit area mid-drag — drop hover too so the
+    // divider does not stay lit after a capture-lost release.
+    setHovering(false);
+    onDragStateChangeRef.current?.(false);
+    try {
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  // Safety net: any pointerup outside the element (lost capture, overlay steal)
+  // must end the drag. Element-level pointerup alone is not enough.
+  // Cleanup also restores body styles — unmount mid-drag (⌘B, focus mode,
+  // workspace switch) must not leave user-select/cursor locked.
+  useEffect(() => {
+    if (!dragging) return;
+    const stop = () => endDrag();
+    window.addEventListener("pointerup", stop);
+    window.addEventListener("pointercancel", stop);
+    window.addEventListener("blur", stop);
+    return () => {
+      window.removeEventListener("pointerup", stop);
+      window.removeEventListener("pointercancel", stop);
+      window.removeEventListener("blur", stop);
+      endDrag();
+    };
+  }, [dragging, endDrag]);
+
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
+      // Only primary button starts a resize — right/middle click stays inert.
+      if (e.button !== 0) return;
       e.preventDefault();
-      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      try {
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      } catch {
+        /* capture optional — window listeners still stop the drag */
+      }
+      draggingRef.current = true;
       setDragging(true);
-      onDragStateChange?.(true);
+      onDragStateChangeRef.current?.(true);
+      try {
+        document.body.style.userSelect = "none";
+        document.body.style.cursor = "col-resize";
+      } catch {
+        /* ignore */
+      }
     },
-    [onDragStateChange],
+    [],
   );
 
   const onPointerMove = useCallback(
     (e: React.PointerEvent) => {
-      if (!dragging) return;
+      if (!draggingRef.current) return;
       const parentRect = (e.currentTarget as HTMLElement).parentElement?.getBoundingClientRect();
       if (!parentRect) return;
       // Left panel: width = distance from parent's left edge to the pointer.
       // Right panel: width = distance from the pointer to the parent's right edge.
       const next =
         side === "left" ? e.clientX - parentRect.left : parentRect.right - e.clientX;
-      onChange(clamp(next));
+      onChangeRef.current(clamp(next));
     },
-    [dragging, side, onChange, clamp],
+    [side, clamp],
   );
 
-  const endDrag = useCallback(
+  const onPointerUp = useCallback(
     (e: React.PointerEvent) => {
-      if (!dragging) return;
       try {
         (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
       } catch {
         /* pointer already released */
       }
-      setDragging(false);
-      onDragStateChange?.(false);
+      endDrag();
     },
-    [dragging, onDragStateChange],
+    [endDrag],
   );
+
+  const onLostPointerCapture = useCallback(() => {
+    endDrag();
+  }, [endDrag]);
 
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -65,9 +125,9 @@ export function Splitter({ side, value, onChange, min = 180, max = 600, onDragSt
       e.preventDefault();
       const step = e.shiftKey ? 48 : 16;
       const dir = (e.key === "ArrowLeft" ? -1 : 1) * (side === "left" ? 1 : -1);
-      onChange(clamp(value + dir * step));
+      onChangeRef.current(clamp(value + dir * step));
     },
-    [onChange, clamp, value, side],
+    [clamp, value, side],
   );
 
   const active = dragging || hovering;
@@ -76,18 +136,27 @@ export function Splitter({ side, value, onChange, min = 180, max = 600, onDragSt
     <div
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
-      onPointerUp={endDrag}
-      onPointerCancel={endDrag}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      onLostPointerCapture={onLostPointerCapture}
       onKeyDown={onKeyDown}
       onMouseEnter={() => setHovering(true)}
-      onMouseLeave={() => setHovering(false)}
+      onMouseLeave={() => {
+        // Hover only paints idle highlight — never drives width.
+        if (!draggingRef.current) setHovering(false);
+      }}
+      onPointerLeave={() => {
+        if (!draggingRef.current) setHovering(false);
+      }}
       tabIndex={0}
       role="separator"
       aria-orientation="vertical"
       aria-valuenow={Math.round(value)}
       aria-valuemin={min}
       aria-valuemax={max}
-      aria-label="Resize panel"
+      aria-label={t("splitter.resizePanel")}
+      data-splitter={side}
+      data-dragging={dragging || undefined}
       className={cn(
         "group relative z-local flex w-px cursor-col-resize touch-none items-center justify-center outline-none",
         "transition-[background-color,box-shadow] duration-[var(--duration-fast)] v4-focus-ring",

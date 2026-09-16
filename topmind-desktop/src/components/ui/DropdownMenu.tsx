@@ -328,7 +328,12 @@ export function DropdownItem({
           {icon}
         </span>
       ) : null}
-      <span className="min-w-0 flex-1 truncate">{children}</span>
+      {/*
+        Children are laid out as flex row items (icon · label · trailing check).
+        A non-flex wrapper used to force multi-line stacks when callers passed
+        an SVG + block text as siblings — keep this flex for the whole tree.
+      */}
+      <span className="flex min-w-0 flex-1 items-center gap-2">{children}</span>
       {shortcut ? (
         <span className="v4-kbd shrink-0 text-text-quaternary">{shortcut}</span>
       ) : null}

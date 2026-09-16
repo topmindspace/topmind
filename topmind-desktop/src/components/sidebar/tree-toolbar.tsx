@@ -131,7 +131,7 @@ export function TreeToolbar({
               setSortOpen(false);
             }}
           >
-            <span className="min-w-0 flex-1">{t(`sidebar.treeToolbar.sort${opt.id.replace(/-(.)/gu, (_, c) => c.toUpperCase()).replace(/^./u, (c) => c.toUpperCase())}`)}</span>
+            <span className="min-w-0 flex-1 truncate">{t(`sidebar.treeToolbar.sort${opt.id.replace(/-(.)/gu, (_, c) => c.toUpperCase()).replace(/^./u, (c) => c.toUpperCase())}`)}</span>
             {sortMode === opt.id ? (
               <RiCheckLine size={ICON.micro} className="shrink-0 text-accent-color" />
             ) : null}
@@ -177,7 +177,7 @@ export function TreeToolbar({
               setFilterOpen(false);
             }}
           >
-            <span className="min-w-0 flex-1">{t(`sidebar.treeToolbar.${opt.labelKey}`)}</span>
+            <span className="min-w-0 flex-1 truncate">{t(`sidebar.treeToolbar.${opt.labelKey}`)}</span>
             {fileFilter === opt.id ? (
               <RiCheckLine size={ICON.micro} className="shrink-0 text-accent-color" />
             ) : null}

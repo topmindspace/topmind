@@ -192,12 +192,12 @@ export function ChromeOverflowActions({
             <DropdownItem
               key={a.id}
               disabled={a.disabled}
+              icon={a.icon ? <span className="opacity-80">{a.icon}</span> : undefined}
               onSelect={() => {
                 setMenuOpen(false);
                 a.onClick();
               }}
             >
-              {a.icon ? <span className="shrink-0 opacity-80">{a.icon}</span> : null}
               <span className="min-w-0 flex-1 truncate">{a.label}</span>
             </DropdownItem>
           ))}

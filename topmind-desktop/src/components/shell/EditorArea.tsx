@@ -183,39 +183,79 @@ function SplitDivider({
   const dragging = useRef(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [active, setActive] = useState(false);
+  const onRatioChangeRef = useRef(onRatioChange);
+  onRatioChangeRef.current = onRatioChange;
+
+  const endDrag = useCallback(() => {
+    if (!dragging.current) return;
+    dragging.current = false;
+    setActive(false);
+    try {
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  // Hard stoppers — a lost capture must not leave the divider sticky.
+  // Cleanup restores body styles on unmount mid-drag.
+  useEffect(() => {
+    if (!active) return;
+    const stop = () => endDrag();
+    window.addEventListener("pointerup", stop);
+    window.addEventListener("pointercancel", stop);
+    window.addEventListener("blur", stop);
+    return () => {
+      window.removeEventListener("pointerup", stop);
+      window.removeEventListener("pointercancel", stop);
+      window.removeEventListener("blur", stop);
+      endDrag();
+    };
+  }, [active, endDrag]);
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
+      if (e.button !== 0) return;
       e.preventDefault();
       dragging.current = true;
       setActive(true);
-      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      try {
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      } catch {
+        /* window listeners still stop the drag */
+      }
+      try {
+        document.body.style.userSelect = "none";
+        document.body.style.cursor = "col-resize";
+      } catch {
+        /* ignore */
+      }
     },
     [],
   );
 
-  const onPointerMove = useCallback(
-    (e: React.PointerEvent) => {
-      if (!dragging.current) return;
-      const parent = (e.currentTarget as HTMLElement).parentElement;
-      if (!parent) return;
-      const rect = parent.getBoundingClientRect();
-      if (rect.width < 80) return;
-      const next = (e.clientX - rect.left) / rect.width;
-      onRatioChange(next);
-    },
-    [onRatioChange],
-  );
-
-  const onPointerUp = useCallback((e: React.PointerEvent) => {
-    dragging.current = false;
-    setActive(false);
-    try {
-      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch {
-      /* */
-    }
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragging.current) return;
+    const parent = (e.currentTarget as HTMLElement).parentElement;
+    if (!parent) return;
+    const rect = parent.getBoundingClientRect();
+    if (rect.width < 80) return;
+    const next = (e.clientX - rect.left) / rect.width;
+    onRatioChangeRef.current(next);
   }, []);
+
+  const onPointerUp = useCallback(
+    (e: React.PointerEvent) => {
+      try {
+        (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+      } catch {
+        /* */
+      }
+      endDrag();
+    },
+    [endDrag],
+  );
 
   return (
     <div
@@ -228,8 +268,11 @@ function SplitDivider({
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
+      onLostPointerCapture={endDrag}
+      data-splitter="editor-split"
+      data-dragging={active || undefined}
       className={cn(
-        "group relative z-local flex w-1 shrink-0 cursor-col-resize items-stretch justify-center",
+        "group relative z-local flex w-1 shrink-0 cursor-col-resize touch-none items-stretch justify-center",
         "bg-border-subtle-dim transition-colors",
         active && "bg-accent-color",
       )}

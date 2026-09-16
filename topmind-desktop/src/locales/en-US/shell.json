@@ -256,6 +256,9 @@
     "loadingSplit": "Loading split…",
     "splitSeparatorAriaLabel": "Adjust split pane width"
   },
+  "splitter": {
+    "resizePanel": "Resize panel"
+  },
   "editorRecentBar": {
     "openFiles": "Open files",
     "unpin": "Unpin",

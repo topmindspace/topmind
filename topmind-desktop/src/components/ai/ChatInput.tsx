@@ -179,14 +179,14 @@ function SkillButtonsRow({
             return (
               <DropdownItem
                 key={key}
+                icon={Icon ? <Icon size={ICON.micro} className="opacity-70" /> : undefined}
                 onSelect={() => {
                   onApply(key);
                   setMoreOpen(false);
                 }}
               >
-                {Icon ? <Icon size={ICON.micro} className="shrink-0 opacity-70" /> : null}
-                <span className="flex-1">{v.label}</span>
-                <code className="text-3xs text-text-quaternary">{key}</code>
+                <span className="min-w-0 flex-1 truncate">{v.label}</span>
+                <code className="shrink-0 text-3xs text-text-quaternary">{key}</code>
               </DropdownItem>
             );
           })}

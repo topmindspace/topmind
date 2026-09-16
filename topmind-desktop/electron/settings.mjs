@@ -32,6 +32,32 @@ function settingsBackupPath(settingsFilePath) {
   return `${settingsFilePath}.bak`;
 }
 
+/** Keep at most N parked corrupt primaries next to app-settings.json. */
+const SETTINGS_CORRUPT_PARK_KEEP = 3;
+
+async function pruneCorruptSettingsParks(settingsFilePath) {
+  try {
+    const dir = path.dirname(settingsFilePath);
+    const base = path.basename(settingsFilePath);
+    const entries = await fs.readdir(dir);
+    const parks = entries
+      .filter((n) => n.startsWith(`${base}.corrupt-`))
+      .sort()
+      .map((n) => path.join(dir, n));
+    // Sort is name/lexicographic on timestamp suffix — oldest first.
+    const excess = parks.slice(0, Math.max(0, parks.length - SETTINGS_CORRUPT_PARK_KEEP));
+    for (const p of excess) {
+      try {
+        await fs.unlink(p);
+      } catch {
+        /* ignore */
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
 async function ensureParentDir(filePath) {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
 }
@@ -117,6 +143,24 @@ export async function loadAppSettings(settingsFilePath, defaultWorkspaceRoot, op
   }
 
   if (await exists(settingsFilePath)) {
+    // Never destroy the only copy: park the unreadable primary next to it so
+    // users / tools can recover keys after a bad upgrade or truncated write.
+    try {
+      const raw = await fs.readFile(settingsFilePath, "utf-8");
+      if (raw.trim()) {
+        const park = `${settingsFilePath}.corrupt-${Date.now()}`;
+        await fs.writeFile(park, raw, "utf-8");
+        logWarn("settings", "parked unreadable app-settings.json before rewrite", {
+          path: settingsFilePath,
+          parked: park,
+        });
+        void pruneCorruptSettingsParks(settingsFilePath);
+      }
+    } catch (err) {
+      logWarn("settings", "failed to park unreadable settings file", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
     logWarn("settings", "rewriting empty/corrupt app-settings.json with defaults", {
       path: settingsFilePath,
     });

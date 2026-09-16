@@ -921,6 +921,9 @@ export const api = {
         brewAvailable: boolean;
         nodeVersion: string | null;
         electronVersion: string | null;
+        desktopStateHome?: string | null;
+        settingsFile?: string | null;
+        safeStorage?: boolean;
         platformLabel: string;
         archLabel: string;
       }>("system.getSystemInfo"),

@@ -389,25 +389,29 @@ export function EditorMoreMenu({
         <DropdownSectionLabel>{t("workspace:menu.title")}</DropdownSectionLabel>
         {showPropertiesToggle ? (
           <DropdownItem
+            icon={<RiPriceTag3Line size={ICON.xs} className="text-text-quaternary" />}
             onSelect={() => {
               onToggleProperties();
               setMoreOpen(false);
             }}
           >
-            <RiPriceTag3Line size={ICON.xs} className="shrink-0 text-text-quaternary" />
-            {propertiesOpen
-              ? t("workspace:formatBarOptions.hideProperties")
-              : t("workspace:formatBarOptions.showProperties")}
+            <span className="min-w-0 flex-1 truncate">
+              {propertiesOpen
+                ? t("workspace:formatBarOptions.hideProperties")
+                : t("workspace:formatBarOptions.showProperties")}
+            </span>
           </DropdownItem>
         ) : null}
         <DropdownItem
+          icon={<RiHashtag size={ICON.xs} className="text-text-quaternary" />}
           onSelect={() => {
             setShowMeta((v) => !v);
             setMoreOpen(false);
           }}
         >
-          <RiHashtag size={ICON.xs} className="shrink-0 text-text-quaternary" />
-          {showMeta ? t("workspace:formatBarOptions.hideFileInfo") : t("workspace:formatBarOptions.fileInfo")}
+          <span className="min-w-0 flex-1 truncate">
+            {showMeta ? t("workspace:formatBarOptions.hideFileInfo") : t("workspace:formatBarOptions.fileInfo")}
+          </span>
         </DropdownItem>
         <div className="flex w-full items-center justify-between gap-3 px-2.5 py-[7px] text-3xs font-medium text-text-tertiary">
           <span className="flex min-w-0 items-center gap-2">

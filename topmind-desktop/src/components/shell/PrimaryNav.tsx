@@ -16,6 +16,7 @@
 import { useState } from "react";
 import {
   RiArrowDownSLine,
+  RiCheckLine,
   RiHome4Line,
   RiInbox2Line,
   RiShareForwardLine,
@@ -143,14 +144,21 @@ export function PrimaryNav({ variant = "sidebar" }: { variant?: PrimaryNavVarian
           return (
             <DropdownItem
               key={opt.kind}
+              icon={
+                <Icon
+                  size={ICON.xs}
+                  className={isActive ? "text-accent-color" : "opacity-70"}
+                />
+              }
               onSelect={() => {
                 setOpen(false);
                 select({ kind: opt.kind } as Selection);
               }}
             >
-              <Icon size={ICON.xs} className={cn("shrink-0", isActive ? "text-accent-color" : "opacity-70")} />
-              <span className="flex-1">{t(opt.labelKey)}</span>
-              {isActive ? <span className="text-3xs text-accent-color">✓</span> : null}
+              <span className="min-w-0 flex-1 truncate">{t(opt.labelKey)}</span>
+              {isActive ? (
+                <RiCheckLine size={ICON.micro} className="shrink-0 text-accent-color" />
+              ) : null}
             </DropdownItem>
           );
         })}

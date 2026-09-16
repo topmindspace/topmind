@@ -46,8 +46,6 @@ import { TitleBarActions } from "../../../lib/chrome-portal";
 import { useTitleBarChrome } from "../../../lib/titlebar-chrome";
 import {
   DropdownMenu,
-  DropdownSectionLabel,
-  DropdownItem,
 } from "../../../components/ui/DropdownMenu";
 import {
   useFileContextMenu,

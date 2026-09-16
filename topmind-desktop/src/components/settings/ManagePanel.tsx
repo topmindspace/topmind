@@ -495,6 +495,38 @@ export function ManagePanel({
         </div>
       </div>
 
+      {/* Settings file path — survives app upgrades; helps recover AI keys after reinstall. */}
+      {sysInfo?.settingsFile ? (
+        <div className="mb-3 flex items-start gap-2 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-muted/20 px-2.5 py-2">
+          <div className="min-w-0 flex-1">
+            <div className="text-3xs font-medium text-text-secondary">
+              {t("settings:about.settingsFileLabel")}
+            </div>
+            <div className="mt-0.5 break-all font-mono text-3xs text-text-quaternary" title={sysInfo.settingsFile}>
+              {sysInfo.settingsFile}
+            </div>
+            {sysInfo.safeStorage === false ? (
+              <div className="mt-1 text-3xs text-warning">
+                {t("settings:about.safeStorageOff")}
+              </div>
+            ) : null}
+          </div>
+          <Tooltip content={t("settings:about.copySettingsPath")}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 shrink-0"
+              onClick={() => {
+                void navigator.clipboard.writeText(sysInfo.settingsFile || "");
+              }}
+              aria-label={t("settings:about.copySettingsPath")}
+            >
+              <RiFileCopyLine size={ICON.micro} />
+            </Button>
+          </Tooltip>
+        </div>
+      ) : null}
+
       {/* ── Updates ────────────────────────────────────────────────────── */}
       <SettingsSection
         title={t("settings:about.updateTitle")}

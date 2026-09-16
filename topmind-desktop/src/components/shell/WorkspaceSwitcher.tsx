@@ -346,9 +346,14 @@ export function WorkspaceSwitcher({
                   key={w.rootPath}
                   disabled={busy}
                   active={active}
+                  icon={
+                    <RiFolder3Line
+                      size={ICON.xs}
+                      className={cn("shrink-0", active ? "text-accent-color" : "opacity-70")}
+                    />
+                  }
                   onSelect={() => { void handleSwitch(w.rootPath); }}
                 >
-                  <RiFolder3Line size={ICON.xs} className={cn("shrink-0", active ? "text-accent-color" : "opacity-70")} />
                   <span className="min-w-0 flex-1 truncate text-3xs font-medium" title={w.rootPath}>
                     {shortName(w.rootPath)}
                   </span>
@@ -368,21 +373,32 @@ export function WorkspaceSwitcher({
 
       {/* Open / close */}
       <div className="px-1 py-1.5">
-        <DropdownItem disabled={busy} onSelect={() => { void handlePickNew(); }}>
-          {switching === "picking" ? (
-            <RiLoader4Line size={ICON.xs} className="shrink-0 animate-spin" />
-          ) : (
-            <RiAddLine size={ICON.xs} className="shrink-0" />
-          )}
-          <span className="flex-1">{t("titleBar.openOrCreateWorkspace")}</span>
+        <DropdownItem
+          disabled={busy}
+          icon={
+            switching === "picking" ? (
+              <RiLoader4Line size={ICON.xs} className="animate-spin" />
+            ) : (
+              <RiAddLine size={ICON.xs} />
+            )
+          }
+          onSelect={() => { void handlePickNew(); }}
+        >
+          <span className="min-w-0 flex-1 truncate">{t("titleBar.openOrCreateWorkspace")}</span>
         </DropdownItem>
-        <DropdownItem disabled={busy} destructive onSelect={() => { void handleCloseWorkspace(); }}>
-          {switching === "closing" ? (
-            <RiLoader4Line size={ICON.xs} className="shrink-0 animate-spin" />
-          ) : (
-            <RiLogoutBoxRLine size={ICON.xs} className="shrink-0" />
-          )}
-          <span className="flex-1">{t("titleBar.closeWorkspace")}</span>
+        <DropdownItem
+          disabled={busy}
+          destructive
+          icon={
+            switching === "closing" ? (
+              <RiLoader4Line size={ICON.xs} className="animate-spin" />
+            ) : (
+              <RiLogoutBoxRLine size={ICON.xs} />
+            )
+          }
+          onSelect={() => { void handleCloseWorkspace(); }}
+        >
+          <span className="min-w-0 flex-1 truncate">{t("titleBar.closeWorkspace")}</span>
         </DropdownItem>
       </div>
 
@@ -392,33 +408,33 @@ export function WorkspaceSwitcher({
       <div className="px-1 py-1.5">
         <DropdownItem
           active={focusMode}
+          icon={<RiFullscreenLine size={ICON.xs} />}
+          shortcut={formatChord("⌘⌥F")}
           onSelect={() => {
             setFocusMode(!focusMode);
             setOpen(false);
           }}
         >
-          <RiFullscreenLine size={ICON.xs} className="shrink-0" />
-          <span className="flex-1">{t("titleBar.focusMode")}</span>
-          <kbd className="v4-kbd v4-kbd-sm">{formatChord("⌘⌥F")}</kbd>
+          <span className="min-w-0 flex-1 truncate">{t("titleBar.focusMode")}</span>
         </DropdownItem>
         <DropdownItem
+          icon={<RiStethoscopeLine size={ICON.xs} />}
+          shortcut={formatChord("⌘⇧L")}
           onSelect={() => {
             setOpen(false);
             emitLocal("overlay:open", { kind: "tools-logs" });
           }}
         >
-          <RiStethoscopeLine size={ICON.xs} className="shrink-0" />
-          <span className="flex-1">{t("titleBar.toolsLogs")}</span>
-          <kbd className="v4-kbd v4-kbd-sm">{formatChord("⌘⇧L")}</kbd>
+          <span className="min-w-0 flex-1 truncate">{t("titleBar.toolsLogs")}</span>
         </DropdownItem>
         <DropdownItem
+          icon={<RiQuestionLine size={ICON.xs} />}
           onSelect={() => {
             setOpen(false);
             emitLocal("overlay:open", { kind: "help" });
           }}
         >
-          <RiQuestionLine size={ICON.xs} className="shrink-0" />
-          <span className="flex-1">{t("titleBar.help")}</span>
+          <span className="min-w-0 flex-1 truncate">{t("titleBar.help")}</span>
         </DropdownItem>
       </div>
 

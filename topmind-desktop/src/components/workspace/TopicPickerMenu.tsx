@@ -52,9 +52,13 @@ export function TopicPickerList({
         <div key={g.category} className="mb-1 last:mb-0">
           <DropdownSectionLabel>{g.category}</DropdownSectionLabel>
           {g.topics.map((t) => (
-            <DropdownItem key={t.id} disabled={busy} onSelect={() => onPick(t.id)}>
-              <RiFolderOpenLine size={ICON.xs} className="shrink-0 text-text-quaternary" />
-              <span className="min-w-0 truncate">{t.name}</span>
+            <DropdownItem
+              key={t.id}
+              disabled={busy}
+              icon={<RiFolderOpenLine size={ICON.xs} className="text-text-quaternary" />}
+              onSelect={() => onPick(t.id)}
+            >
+              <span className="min-w-0 flex-1 truncate">{t.name}</span>
             </DropdownItem>
           ))}
         </div>

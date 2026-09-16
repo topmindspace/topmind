@@ -6,6 +6,7 @@
 import { useMemo, useState } from "react";
 import {
   RiArrowDownSLine,
+  RiCheckLine,
   RiFileList3Line,
   RiFolderOpenLine,
   RiLayoutColumnLine,
@@ -100,19 +101,28 @@ export function ViewSwitcher({ active, onChange, enabled }: ViewSwitcherProps) {
           return (
             <DropdownItem
               key={mode}
+              icon={
+                <Icon
+                  size={ICON.xs}
+                  className={cn(isActive ? "text-accent-color" : "opacity-70")}
+                />
+              }
               onSelect={() => {
                 setOpen(false);
                 onChange(mode);
               }}
             >
-              <Icon size={ICON.xs} className={cn("shrink-0", isActive ? "text-accent-color" : "opacity-70")} />
-              <span className="flex min-w-0 flex-1 flex-col">
-                <span className="truncate">{t(`sidebar.viewSwitcher.${mode}Label`)}</span>
-                <span className="truncate text-3xs text-text-quaternary">
+              <span className="flex min-w-0 flex-1 flex-col items-start gap-px">
+                <span className="max-w-full truncate text-3xs font-medium text-text-primary">
+                  {t(`sidebar.viewSwitcher.${mode}Label`)}
+                </span>
+                <span className="max-w-full truncate text-3xs text-text-quaternary">
                   {t(`sidebar.viewSwitcher.${mode}Hint`)}
                 </span>
               </span>
-              {isActive ? <span className="text-3xs text-accent-color">✓</span> : null}
+              {isActive ? (
+                <RiCheckLine size={ICON.micro} className="shrink-0 text-accent-color" />
+              ) : null}
             </DropdownItem>
           );
         })}

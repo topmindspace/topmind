@@ -1054,7 +1054,7 @@ export const SystemService = {
   },
 
   /** System info: platform, arch, homebrew, node version for install guidance. */
-  async getSystemInfo(_p, _ctx) {
+  async getSystemInfo(_p, ctx) {
     const platform = process.platform;
     const arch = process.arch;
     const home = os.homedir();
@@ -1075,6 +1075,12 @@ export const SystemService = {
       brewAvailable,
       nodeVersion: process.versions?.node || null,
       electronVersion: process.versions?.electron || null,
+      /** Stable desktop state home — settings survive app upgrades (never under /Applications). */
+      desktopStateHome: ctx?.workspaceStatePaths?.desktopStateHome || null,
+      /** Canonical app-settings.json path (UI keys · layout · AI provider config). */
+      settingsFile: ctx?.workspaceStatePaths?.settingsFilePath || null,
+      /** Electron safeStorage availability — when false, API keys stay plaintext in settings. */
+      safeStorage: Boolean(ctx?.secretAdapter?.isEncryptionAvailable?.()),
       platformLabel:
         platform === "darwin" ? "macOS"
         : platform === "win32" ? "Windows"
