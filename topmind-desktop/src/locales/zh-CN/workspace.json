@@ -208,6 +208,7 @@
     "toastMovedToTopic": "已移动到专题",
     "failMove": "移动笔记失败",
     "moveToTopic": "移至专题…",
+    "moveToTopicOther": "其他…",
     "moveToTopicTooltip": "移入专题 · 选择目标专题目录",
     "toastDeleted": "已删除",
     "toastPermanentDeleted": "已永久删除（不可恢复）",
@@ -382,7 +383,10 @@
     "focusModeOff": "退出专注 · Esc / ⌘⌥F",
     "moreActions": "更多操作",
     "h4": "四级标题",
-    "taskList": "任务列表"
+    "taskList": "任务列表",
+    "showProperties": "显示属性",
+    "hideProperties": "隐藏属性",
+    "showPropertiesWithSummary": "属性 · {{summary}}"
   },
   "editor": {
     "placeholder": "开始写…",

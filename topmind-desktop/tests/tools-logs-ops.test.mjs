@@ -95,8 +95,51 @@ test("duplicate detection finds identical files by size+hash", async () => {
   assert.ok(dups.groupCount >= 1);
   const group = dups.groups[0];
   assert.equal(group.paths.length, 2);
-  assert.ok(group.wastedBytes === undefined || true);
+  assert.equal(typeof group.suggestedKeepIndex, "number");
+  assert.ok(group.suggestedKeepIndex >= 0 && group.suggestedKeepIndex < group.paths.length);
   assert.ok(dups.wastedBytes > 0);
+});
+
+test("duplicate walk skips __ backup sidecars", async () => {
+  const ws = await tmpDir("ws-dup-bak-");
+  await fs.mkdir(path.join(ws, "10-动态"), { recursive: true });
+  const body = "backup twin content ".repeat(40);
+  await fs.writeFile(path.join(ws, "10-动态", "note.md"), body);
+  await fs.writeFile(path.join(ws, "10-动态", "20260101T120000__note.md"), body);
+
+  const dups = await findDuplicateFiles(ws, { minSize: 16 });
+  assert.equal(dups.groupCount, 0, "writeback stamp backup must not form a duplicate group");
+});
+
+test("suggestKeepIndex prefers non-backup, year-dir, newer mtime", async () => {
+  const { suggestKeepIndex } = await import("../electron/lib/workspace-duplicates.mjs");
+  assert.equal(
+    suggestKeepIndex({
+      full: true,
+      paths: ["10-动态/2026-W30.md", "10-动态/2026/2026-W30.md"],
+      mtimes: ["2026-01-01T00:00:00.000Z", "2026-01-02T00:00:00.000Z"],
+    }),
+    1,
+    "year-dir twin preferred",
+  );
+  assert.equal(
+    suggestKeepIndex({
+      full: true,
+      paths: ["10-动态/20260101T120000__note.md", "10-动态/note.md"],
+      mtimes: ["2026-02-01T00:00:00.000Z", "2026-01-01T00:00:00.000Z"],
+    }),
+    1,
+    "stamp backup loses even when newer",
+  );
+  assert.equal(
+    suggestKeepIndex({
+      full: false,
+      paths: ["a/big.bin", "b/big.bin"],
+      mtimes: ["2026-01-01T00:00:00.000Z", "2026-02-01T00:00:00.000Z"],
+    }),
+    0,
+    "partial-only never auto-picks a winner",
+  );
 });
 
 test("stats/duplicates/cleanup accept workspace context object (RPC shape)", async () => {

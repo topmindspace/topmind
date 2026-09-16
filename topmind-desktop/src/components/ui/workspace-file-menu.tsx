@@ -13,6 +13,8 @@ import {
   RiFileCopyLine,
   RiFileTextLine,
   RiFolderOpenLine,
+  RiFolderTransferLine,
+  RiPuzzleLine,
   RiUpload2Line,
 } from "@remixicon/react";
 import { api } from "../../services/api";
@@ -27,6 +29,7 @@ import {
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuLabel,
+  ContextMenuSubmenu,
 } from "./context-menu";
 
 export type FileMenuKind = "note" | "inbox" | "output" | "archive" | "topic" | "category";
@@ -44,6 +47,14 @@ export interface FileMenuState {
   x: number;
   y: number;
   target: FileMenuTarget;
+}
+
+/** Host-provided extra actions (plugin slots, host-specific tools). */
+export interface FileMenuExtraItem {
+  id: string;
+  label: string;
+  disabled?: boolean;
+  run: () => void;
 }
 
 export function useFileContextMenu() {
@@ -74,12 +85,18 @@ interface WorkspaceFileContextMenuProps {
   onClose: () => void;
   /** Called after a mutating action succeeds */
   onMutated?: () => void;
+  /** Plugin / host extra actions (rendered before delete). */
+  extraItems?: FileMenuExtraItem[];
+  /** When non-empty, "Move to topic" opens a submenu instead of a prompt. */
+  moveTopics?: Array<{ topicId: string; label: string }>;
 }
 
 export function WorkspaceFileContextMenu({
   menu,
   onClose,
   onMutated,
+  extraItems,
+  moveTopics,
 }: WorkspaceFileContextMenuProps) {
   const { t } = useTranslation(["workspace", "common"]);
   const select = useViewStore((s) => s.select);
@@ -205,6 +222,28 @@ export function WorkspaceFileContextMenu({
     setDialog({ kind: "move-topic", path, label });
   };
 
+  const handleMoveToTopicId = async (topicId: string) => {
+    closeAll();
+    if (!path || !topicId.trim()) return;
+    try {
+      const res = await api.ws.move({
+        relativePath: path,
+        targetTopicId: topicId.trim(),
+      });
+      emitLocal("workspace:file-changed");
+      const media = typeof res.mediaMoved === "number" && res.mediaMoved > 0
+        ? ` · ${t("workspace:menu.mediaAssetCount", { count: res.mediaMoved })}`
+        : "";
+      emitLocal("toast:show", t("workspace:menu.toastMovedToTopic", { media }));
+      if (res.newPath || res.path) {
+        select({ kind: "file", path: String(res.newPath || res.path), topicId: topicId.trim() });
+      }
+      onMutated?.();
+    } catch (e) {
+      fail(t("workspace:menu.failMove"), e);
+    }
+  };
+
   const handleMoveConfirm = async (topicId: string) => {
     const d = dialog.kind === "move-topic" ? dialog : null;
     setDialog({ kind: "none" });
@@ -320,6 +359,15 @@ export function WorkspaceFileContextMenu({
         y={menu?.y ?? 0}
         onClose={onClose}
         minWidth={216}
+        ariaLabel={
+          kind === "topic"
+            ? t("common:category.topic")
+            : kind === "category"
+              ? t("workspace:sidebar.categoryView")
+              : kind === "archive"
+                ? t("common:category.archive")
+                : t("workspace:shared.newNote")
+        }
       >
         <ContextMenuLabel>
           {kind === "topic"
@@ -354,9 +402,29 @@ export function WorkspaceFileContextMenu({
         ) : null}
 
         {showMove ? (
-          <ContextMenuItem icon={<RiFolderOpenLine size={ICON.sm} />} onClick={handleMoveRequest}>
-            {t("workspace:menu.moveToTopic")}
-          </ContextMenuItem>
+          moveTopics && moveTopics.length > 0 ? (
+            <ContextMenuSubmenu
+              label={t("workspace:menu.moveToTopic")}
+              icon={<RiFolderTransferLine size={ICON.sm} />}
+            >
+              {moveTopics.map((topic) => (
+                <ContextMenuItem
+                  key={topic.topicId}
+                  onClick={() => void handleMoveToTopicId(topic.topicId)}
+                >
+                  {topic.label}
+                </ContextMenuItem>
+              ))}
+              <ContextMenuSeparator />
+              <ContextMenuItem onClick={handleMoveRequest}>
+                {t("workspace:menu.moveToTopicOther", { defaultValue: "Other…" })}
+              </ContextMenuItem>
+            </ContextMenuSubmenu>
+          ) : (
+            <ContextMenuItem icon={<RiFolderOpenLine size={ICON.sm} />} onClick={handleMoveRequest}>
+              {t("workspace:menu.moveToTopic")}
+            </ContextMenuItem>
+          )
         ) : null}
 
         {showPublish ? (
@@ -408,6 +476,25 @@ export function WorkspaceFileContextMenu({
           <ContextMenuItem icon={<RiExternalLinkLine size={ICON.sm} />} onClick={() => void handleOpenExternal()}>
             {t("workspace:menu.openWithDefaultApp")}
           </ContextMenuItem>
+        ) : null}
+
+        {extraItems && extraItems.length > 0 ? (
+          <>
+            <ContextMenuSeparator />
+            {extraItems.map((item) => (
+              <ContextMenuItem
+                key={item.id}
+                icon={<RiPuzzleLine size={ICON.sm} />}
+                disabled={item.disabled}
+                onClick={() => {
+                  closeAll();
+                  item.run();
+                }}
+              >
+                {item.label}
+              </ContextMenuItem>
+            ))}
+          </>
         ) : null}
 
         {showDelete ? (

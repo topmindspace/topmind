@@ -297,6 +297,7 @@
     "suggestLoadFailed": "建议暂不可用",
     "suggestPaused": "智能建议已暂停",
     "suggestRefresh": "刷新建议",
+    "suggestRefreshHint": "重新分析近期活动；已忽略的建议会保留。Shift+点击可忘记全部忽略。",
     "suggestToggleOn": "开启智能建议",
     "suggestToggleOff": "关闭智能建议",
     "suggestLoading": "准备建议…",

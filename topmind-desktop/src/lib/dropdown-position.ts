@@ -170,3 +170,50 @@ export function resolveTriggerRect(wrapper: HTMLElement | null): RectLike | null
     height: r.height,
   };
 }
+
+export interface ContextMenuPositionInput {
+  /** Cursor (or anchor) client coords. */
+  x: number;
+  y: number;
+  /** Measured panel size; omit for provisional placement. */
+  panel?: { width: number; height: number } | null;
+  minWidth?: number;
+  pad?: number;
+  viewport?: { width: number; height: number };
+}
+
+export interface ContextMenuPosition {
+  top: number;
+  left: number;
+  placement: DropdownPlacement;
+}
+
+/**
+ * Viewport clamp + flip for cursor-anchored menus (right-click).
+ * Same pad/clamp rules as `computeDropdownPosition` so both primitives stay
+ * in lockstep — flip prefers opening up/left when the cursor is near an edge.
+ */
+export function placeContextMenu(input: ContextMenuPositionInput): ContextMenuPosition {
+  const pad = input.pad ?? 8;
+  const minWidth = input.minWidth ?? 200;
+  const vw = input.viewport?.width ?? (typeof window !== "undefined" ? window.innerWidth : 1280);
+  const vh = input.viewport?.height ?? (typeof window !== "undefined" ? window.innerHeight : 800);
+  const w = Math.max(minWidth, Math.ceil(input.panel?.width ?? minWidth));
+  const h = Math.max(40, Math.ceil(input.panel?.height ?? 160));
+
+  let left = input.x;
+  let top = input.y;
+  // Flip left/up when the cursor sits near the right/bottom edge.
+  if (left + w > vw - pad) left = Math.max(pad, input.x - w);
+  if (top + h > vh - pad) top = Math.max(pad, input.y - h);
+  left = clamp(left, pad, Math.max(pad, vw - w - pad));
+  top = clamp(top, pad, Math.max(pad, vh - h - pad));
+
+  // Enter animation direction: bottom when opening downward from cursor.
+  const placement: DropdownPlacement = top + h / 2 >= input.y ? "bottom" : "top";
+  return {
+    left: Math.round(left),
+    top: Math.round(top),
+    placement,
+  };
+}

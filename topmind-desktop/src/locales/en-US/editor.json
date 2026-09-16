@@ -297,6 +297,7 @@
     "suggestLoadFailed": "Suggestions unavailable",
     "suggestPaused": "Smart suggestions paused",
     "suggestRefresh": "Refresh suggestions",
+    "suggestRefreshHint": "Re-analyze recent activity; dismissed cards stay dismissed. Shift+click forgets all dismissals.",
     "suggestToggleOn": "Enable smart suggestions",
     "suggestToggleOff": "Disable smart suggestions",
     "suggestLoading": "Preparing suggestions…",

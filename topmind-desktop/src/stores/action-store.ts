@@ -181,7 +181,7 @@ interface ActionStore {
   openItem: (id: string) => void;
   rejectItem: (id: string) => Promise<void>;  // 忽略建议或拒绝写入
   dismissItem: (id: string) => void;  // 仅从 UI 隐藏（不调后端），并记住 dismiss 以避免重复
-  clearDismissed: () => Promise<void>;  // 清除 dismiss 记忆（含磁盘）；手动刷新前 await
+  clearDismissed: () => Promise<void>;  // 显式忘记全部 reject（Shift+点击刷新）；普通刷新不走这里
   /** Accept all actionable items sequentially.
    *  Suggestions go in ONE batch IPC (main applies sequentially, pushes progress);
    *  pending writes confirm individually. Terminal failures (source file gone…)
@@ -640,9 +640,8 @@ export const useActionStore = create<ActionStore>((set, get) => ({
 
   clearDismissed: async () => {
     dismissedIds.clear();
-    // Manual Refresh is an explicit "start over": drop the durable rejections
-    // too, otherwise the button appears inert for every card the user dismissed.
-    // Automatic passes and restarts keep respecting them (see persistDismissals).
+    // Explicit "forget my nos" (Shift+click 💡). Ordinary refresh only forces
+    // fingerprint re-analysis and keeps durable rejections (Kernel ADR).
     // Awaited by the caller so the reset lands before the re-analysis reads it.
     await api.ws.clearDismissedSuggestions().catch(() => { /* best-effort */ });
     // Do NOT clear appliedIds — accepted suggestions should never reappear

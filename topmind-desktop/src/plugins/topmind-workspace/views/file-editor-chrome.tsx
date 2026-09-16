@@ -69,6 +69,8 @@ export const SaveBadge = memo(function SaveBadge({ state }: { state: SaveState }
   // Merge saved → clean: the visual difference is negligible (/40 vs /50 bg)
   // and the extra state transition causes unnecessary re-renders + flicker.
   const effective = state === "saved" ? "clean" : state;
+  // Clean is icon-only (quiet chrome); dirty/saving/error expand for urgency.
+  const showLabel = effective !== "clean";
   const config = {
     clean: {
       icon: <RiCheckLine size={ICON.xs} />,
@@ -102,14 +104,16 @@ export const SaveBadge = memo(function SaveBadge({ state }: { state: SaveState }
   return (
     <Tooltip content={config.tip}>
       <span
+        data-save-badge={effective}
         className={cn(
-          "ml-0.5 inline-flex min-w-[4.75rem] items-center justify-center gap-1 rounded-full px-2 py-0.5 text-3xs font-medium transition-colors",
+          "ml-0.5 inline-flex items-center justify-center rounded-full text-3xs font-medium transition-colors",
+          showLabel ? "min-w-[4.75rem] gap-1 px-2 py-0.5" : "h-6 w-6",
           config.color,
           config.bg,
         )}
       >
         {config.icon}
-        <span className="truncate">{config.label}</span>
+        {showLabel ? <span className="truncate">{config.label}</span> : null}
       </span>
     </Tooltip>
   );

@@ -114,7 +114,9 @@
     "sidebarTimeline": "Sidebar timeline view",
     "sidebarTags": "Sidebar tags view",
     "taskPanel": "Background task panel",
-    "toggleSplit": "Toggle split view"
+    "toggleSplit": "Toggle split view",
+    "toggleSidebar": "Show/hide sidebar",
+    "toggleAiPanel": "Show/hide AI workspace"
   },
   "streamStatus": {
     "tool": "Tool",

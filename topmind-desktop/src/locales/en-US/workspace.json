@@ -207,6 +207,7 @@
     "rename": "Rename…",
     "makeCopy": "Make Copy",
     "moveToTopic": "Move to Topic…",
+    "moveToTopicOther": "Other…",
     "moveToTopicTooltip": "Move to topic · Select target topic directory",
     "publishDelivery": "Publish to Delivery…",
     "restoreTo": "Restore to…",
@@ -382,7 +383,10 @@
     "focusModeOff": "Exit Focus · Esc / ⌘⌥F",
     "moreActions": "More Actions",
     "h4": "Heading 4",
-    "taskList": "Task list"
+    "taskList": "Task list",
+    "showProperties": "Show properties",
+    "hideProperties": "Hide properties",
+    "showPropertiesWithSummary": "Properties · {{summary}}"
   },
   "editor": {
     "placeholder": "Start writing…",

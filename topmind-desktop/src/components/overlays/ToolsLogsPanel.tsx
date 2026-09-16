@@ -89,7 +89,10 @@ interface CarePreview {
 interface DupGroup {
   hash: string;
   size: number;
+  full?: boolean;
   paths: string[];
+  mtimes?: string[];
+  suggestedKeepIndex?: number;
 }
 
 export function ToolsLogsPanel() {
@@ -659,65 +662,116 @@ export function ToolsLogsPanel() {
                   })}
                 </p>
                 {dupes.length > 0 && (
-                  <ul className="mt-2 space-y-2">
-                    {dupes.slice(0, 8).map((g) => {
-                      const keepIdx = keepMap[g.hash] ?? 0;
-                      return (
-                        <li key={g.hash} className="rounded-md border border-border-subtle p-2 text-3xs">
-                          <div className="mb-1 flex items-center gap-2 text-text-tertiary">
-                            <span>{formatBytes(g.size)} × {g.paths.length}</span>
-                            <div className="flex-1" />
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              disabled={!!busy}
-                              onClick={async () => {
-                                const drop = g.paths.filter((_, i) => i !== keepIdx);
-                                if (!drop.length) return;
-                                setBusy(`dup-${g.hash}`);
-                                try {
-                                  const r = await api.ws.cleanupApply({
-                                    targets: [{
-                                      kind: "duplicate-group",
-                                      keepPath: g.paths[keepIdx],
-                                      dropPaths: drop,
-                                      mode: "trash",
-                                    }],
-                                    confirmed: true,
-                                  });
-                                  if (r.ok) await loadCare();
-                                  else setError(r.reason || "dup cleanup failed");
-                                } catch (e) {
-                                  setError(e instanceof Error ? e.message : String(e));
-                                } finally {
-                                  setBusy(null);
-                                }
-                              }}
-                            >
-                              {busy === `dup-${g.hash}`
-                                ? <RiLoader4Line size={ICON.micro} className="animate-spin" />
-                                : t("toolsLogs.care.trashOthers")}
-                            </Button>
-                          </div>
-                          {g.paths.map((p, i) => (
-                            <label key={p} className="flex cursor-pointer items-center gap-1.5 truncate text-text-secondary" title={p}>
-                              <input
-                                type="radio"
-                                name={`keep-${g.hash}`}
-                                checked={keepIdx === i}
-                                onChange={() => setKeepMap((m) => ({ ...m, [g.hash]: i }))}
-                              />
-                              <RiFileCopyLine size={ICON.micro} className="opacity-50" />
-                              <span className="truncate">{p}</span>
-                              {keepIdx === i ? (
-                                <span className="shrink-0 text-3xs text-accent-color">{t("toolsLogs.care.keep")}</span>
+                  <>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={!!busy}
+                        onClick={async () => {
+                          const targets = dupes
+                            .filter((g) => g.full !== false)
+                            .map((g) => {
+                              const keepIdx = keepMap[g.hash] ?? g.suggestedKeepIndex ?? 0;
+                              const drop = g.paths.filter((_, i) => i !== keepIdx);
+                              if (!drop.length) return null;
+                              return {
+                                kind: "duplicate-group",
+                                keepPath: g.paths[keepIdx],
+                                dropPaths: drop,
+                                mode: "trash",
+                              };
+                            })
+                            .filter(Boolean);
+                          if (!targets.length) return;
+                          setBusy("dup-all");
+                          try {
+                            const r = await api.ws.cleanupApply({
+                              targets: targets as Array<Record<string, unknown>>,
+                              confirmed: true,
+                            });
+                            if (r.ok) await loadCare();
+                            else setError(r.reason || "dup cleanup failed");
+                          } catch (e) {
+                            setError(e instanceof Error ? e.message : String(e));
+                          } finally {
+                            setBusy(null);
+                          }
+                        }}
+                      >
+                        {busy === "dup-all"
+                          ? <RiLoader4Line size={ICON.micro} className="animate-spin" />
+                          : t("toolsLogs.care.trashAllDupes")}
+                      </Button>
+                      {dupes.some((g) => g.full === false) ? (
+                        <span className="text-3xs text-warning">{t("toolsLogs.care.partialHint")}</span>
+                      ) : null}
+                    </div>
+                    <ul className="mt-2 space-y-2">
+                      {dupes.map((g) => {
+                        const keepIdx = keepMap[g.hash] ?? g.suggestedKeepIndex ?? 0;
+                        return (
+                          <li key={g.hash} className="rounded-md border border-border-subtle p-2 text-3xs">
+                            <div className="mb-1 flex items-center gap-2 text-text-tertiary">
+                              <span>{formatBytes(g.size)} × {g.paths.length}</span>
+                              {g.full === false ? (
+                                <span className="rounded bg-warning/10 px-1 text-warning">
+                                  {t("toolsLogs.care.partialOnly")}
+                                </span>
                               ) : null}
-                            </label>
-                          ))}
-                        </li>
-                      );
-                    })}
-                  </ul>
+                              <div className="flex-1" />
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={!!busy || g.full === false}
+                                onClick={async () => {
+                                  const drop = g.paths.filter((_, i) => i !== keepIdx);
+                                  if (!drop.length) return;
+                                  setBusy(`dup-${g.hash}`);
+                                  try {
+                                    const r = await api.ws.cleanupApply({
+                                      targets: [{
+                                        kind: "duplicate-group",
+                                        keepPath: g.paths[keepIdx],
+                                        dropPaths: drop,
+                                        mode: "trash",
+                                      }],
+                                      confirmed: true,
+                                    });
+                                    if (r.ok) await loadCare();
+                                    else setError(r.reason || "dup cleanup failed");
+                                  } catch (e) {
+                                    setError(e instanceof Error ? e.message : String(e));
+                                  } finally {
+                                    setBusy(null);
+                                  }
+                                }}
+                              >
+                                {busy === `dup-${g.hash}`
+                                  ? <RiLoader4Line size={ICON.micro} className="animate-spin" />
+                                  : t("toolsLogs.care.trashOthers")}
+                              </Button>
+                            </div>
+                            {g.paths.map((p, i) => (
+                              <label key={p} className="flex cursor-pointer items-center gap-1.5 truncate text-text-secondary" title={p}>
+                                <input
+                                  type="radio"
+                                  name={`keep-${g.hash}`}
+                                  checked={keepIdx === i}
+                                  onChange={() => setKeepMap((m) => ({ ...m, [g.hash]: i }))}
+                                />
+                                <RiFileCopyLine size={ICON.micro} className="opacity-50" />
+                                <span className="truncate">{p}</span>
+                                {keepIdx === i ? (
+                                  <span className="shrink-0 text-3xs text-accent-color">{t("toolsLogs.care.keep")}</span>
+                                ) : null}
+                              </label>
+                            ))}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </>
                 )}
                 <p className="mt-2 text-3xs text-text-quaternary">{t("toolsLogs.care.dupHint")}</p>
               </Section>

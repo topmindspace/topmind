@@ -11,10 +11,46 @@ import { absWorkspaceRoot } from "./path-model.mjs";
 
 const SKIP_DIR_NAMES = new Set([".git", ".obsidian", ".topmind", "node_modules"]);
 const SKIP_FILE_RE = /\.tmp-|\.shadow-draft\.tmp$|^\.DS_Store$/u;
+// Writeback sidecars (`20260101T120000__note.md`) and classic backup suffixes.
+// Deliberately not a bare `/__/` — user files may legitimately contain `__`.
+const BACKUP_NAME_RE = /(?:^\d{8}(?:T\d{6})?__|__backup\b|\.(?:bak|old|orig|copy)$)/iu;
 const HEAD_TAIL = 4096;
 const DEFAULT_MIN_SIZE = 1024;
 const DEFAULT_MAX_GROUPS = 50;
 const DEFAULT_MAX_FULL_HASH_BYTES = 50 * 1024 * 1024;
+
+/**
+ * Default keep index for a duplicate group — used by Tools panel bulk clean.
+ * Prefer: non-backup name → newest mtime → year-dir path (stream stickiness)
+ * → first walk order. Never auto-pick when `full` is false (partial-only).
+ * @param {{ paths: string[], mtimes?: string[], full?: boolean }} group
+ * @returns {number}
+ */
+export function suggestKeepIndex(group) {
+  const paths = group?.paths || [];
+  if (paths.length <= 1) return 0;
+  if (group?.full === false) return 0;
+  const score = (i) => {
+    const p = String(paths[i] || "");
+    const name = p.split("/").pop() || p;
+    let s = 0;
+    if (!BACKUP_NAME_RE.test(name)) s += 4;
+    if (/\d{4}\/\d{4}-W\d{2}\.md$/u.test(p)) s += 2; // year-dir sticky twin preferred
+    const mtime = group?.mtimes?.[i] ? Date.parse(group.mtimes[i]) : NaN;
+    if (Number.isFinite(mtime)) s += mtime / 1e15; // tiny tiebreak, newest wins
+    return s;
+  };
+  let best = 0;
+  let bestScore = score(0);
+  for (let i = 1; i < paths.length; i++) {
+    const s = score(i);
+    if (s > bestScore) {
+      best = i;
+      bestScore = s;
+    }
+  }
+  return best;
+}
 
 async function headTailDigest(abs, size) {
   const fd = await fs.open(abs, "r");
@@ -77,6 +113,7 @@ export async function findDuplicateFiles(workspaceRoot, opts = {}) {
         continue;
       }
       if (!d.isFile() || SKIP_FILE_RE.test(d.name)) continue;
+      if (BACKUP_NAME_RE.test(d.name)) continue;
       let st;
       try { st = await fs.stat(childAbs); } catch { continue; }
       if (st.size < minSize) continue;
@@ -127,13 +164,15 @@ export async function findDuplicateFiles(workspaceRoot, opts = {}) {
     }
     for (const [hash, files] of byFull) {
       if (files.length < 2) continue;
-      groups.push({
+      const group = {
         hash,
         size: g.size,
         full: hash !== "partial-only",
         paths: files.map((f) => f.rel),
         mtimes: files.map((f) => f.mtime),
-      });
+      };
+      group.suggestedKeepIndex = suggestKeepIndex(group);
+      groups.push(group);
     }
   }
 

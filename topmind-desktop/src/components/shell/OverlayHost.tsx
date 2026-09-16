@@ -180,6 +180,18 @@ export function OverlayHost() {
         return;
       }
 
+      // ⌘B / Ctrl+B is Bold inside ProseMirror. The workbench chord must not
+      // steal it while the editor (or any editable field) has focus — same
+      // rule as close-tab above. Outside the editor ⌘B still toggles the sidebar.
+      if (hit.id === "toggle-sidebar" && isEditableTarget(e.target)) {
+        return;
+      }
+
+      // requireNoOverlay: chords like ⌘B / ⌘W only apply on the workbench canvas.
+      if (hit.requireNoOverlay && useViewStore.getState().overlay !== "none") {
+        return;
+      }
+
       e.preventDefault();
 
       // Single dispatcher shared with the native application menu — see

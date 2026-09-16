@@ -308,6 +308,9 @@
       "errorCopy": "复制失败",
       "errorOperation": "操作失败",
       "toastCopiedPath": "✓ 已复制路径",
+      "promptMoveToTopic": "移入专题（类别/专题名）",
+      "moveToTopicPlaceholder": "20-专题/2026-主题",
+      "toastMovedToTopic": "✓ 已移入专题",
       "tooltipNewTopic": "在此大类下新建专题（YYYY-主题）",
       "ariaNewTopic": "在此大类下新建专题",
       "tooltipNewNote": "在此专题新建笔记",
@@ -454,6 +457,7 @@
       "rename": "重命名",
       "duplicate": "创建副本",
       "publishToOutputs": "发布到交付",
+      "moveToTopic": "移入专题…",
       "openExternal": "用默认程序打开",
       "delete": "删除"
     },
@@ -624,7 +628,10 @@
       "dupLine": "{{groups}} 组 · 可回收约 {{waste}}",
       "keep": "保留",
       "trashOthers": "其余移入回收",
-      "dupHint": "勾选要保留的一份；「其余移入回收」走写闸（可逆 trash），不是静默硬删。"
+      "trashAllDupes": "一键清理全部确认重复",
+      "partialOnly": "仅部分哈希",
+      "partialHint": "大文件未做全文哈希，请人工确认后再清理。",
+      "dupHint": "默认按建议保留（跳过备份名、优先年目录与较新副本）；清理走写闸（可逆 trash）。"
     }
   },
   "help": {

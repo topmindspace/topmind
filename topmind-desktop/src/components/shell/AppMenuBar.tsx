@@ -14,7 +14,7 @@
  * macOS has a system menu bar and Linux keeps the native menu bar from its desktop
  * environment, so this returns null on both (`usesCaptionOverlay`).
  */
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "../../lib/cn";
 import { APP_NAME } from "../../lib/app-identity";
 import { usesCaptionOverlay } from "../../lib/platform";
@@ -112,6 +112,16 @@ function popupAnchor(button: HTMLElement): DOMRect | null {
 export function AppMenuBar() {
   const items = useMenuTopLevelItems();
   const openId = useOpenMenuId();
+  const barRef = useRef<HTMLDivElement>(null);
+
+  const focusSection = useCallback((index: number, pop: boolean) => {
+    const buttons = barRef.current?.querySelectorAll<HTMLButtonElement>("[data-menu-section]");
+    if (!buttons || buttons.length === 0) return;
+    const next = ((index % buttons.length) + buttons.length) % buttons.length;
+    const btn = buttons[next];
+    btn.focus();
+    if (pop) popMenuSection(btn.dataset.menuSection || "", popupAnchor(btn));
+  }, []);
 
   if (!usesCaptionOverlay) return null;
 
@@ -128,7 +138,32 @@ export function AppMenuBar() {
         {APP_NAME}
       </span>
       {items.length > 0 ? (
-        <div role="menubar" aria-label={APP_NAME} className="v4-no-drag flex items-center gap-0">
+        <div
+          ref={barRef}
+          role="menubar"
+          aria-label={APP_NAME}
+          className="v4-no-drag flex items-center gap-0"
+          onKeyDown={(e) => {
+            // Standard menubar: ←/→ move (and switch an open popup), Home/End jump.
+            const buttons = Array.from(
+              barRef.current?.querySelectorAll<HTMLButtonElement>("[data-menu-section]") || [],
+            );
+            const cur = buttons.findIndex((b) => b === document.activeElement);
+            if (e.key === "ArrowRight") {
+              e.preventDefault();
+              focusSection(cur < 0 ? 0 : cur + 1, Boolean(openId));
+            } else if (e.key === "ArrowLeft") {
+              e.preventDefault();
+              focusSection(cur < 0 ? buttons.length - 1 : cur - 1, Boolean(openId));
+            } else if (e.key === "Home") {
+              e.preventDefault();
+              focusSection(0, Boolean(openId));
+            } else if (e.key === "End") {
+              e.preventDefault();
+              focusSection(buttons.length - 1, Boolean(openId));
+            }
+          }}
+        >
           {items.map((item) => {
             const open = openId === item.id;
             return (

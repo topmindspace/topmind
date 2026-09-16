@@ -17,6 +17,8 @@ export type ShortcutAction =
   | { type: "close-tab" }
   | { type: "close-all-tabs" }
   | { type: "toggle-split" }
+  | { type: "toggle-sidebar" }
+  | { type: "toggle-ai-panel" }
   | { type: "toggle-focus" };
 
 export interface ShortcutDef {
@@ -254,6 +256,24 @@ export const WORKBENCH_SHORTCUTS: ShortcutDef[] = [
     alt: true,
     key: "f",
     action: { type: "toggle-focus" },
+  },
+  {
+    id: "toggle-sidebar",
+    labelKey: "common:shortcut.toggleSidebar",
+    display: "⌘B",
+    mod: true,
+    key: "b",
+    action: { type: "toggle-sidebar" },
+    requireNoOverlay: true,
+  },
+  {
+    id: "toggle-ai-panel",
+    labelKey: "common:shortcut.toggleAiPanel",
+    display: "⌘⌥B",
+    mod: true,
+    alt: true,
+    key: "b",
+    action: { type: "toggle-ai-panel" },
   },
 ];
 

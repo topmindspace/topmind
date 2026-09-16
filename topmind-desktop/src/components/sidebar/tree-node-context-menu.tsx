@@ -8,9 +8,11 @@ import {
   RiDeleteBin6Line,
   RiEditLine,
   RiExpandUpDownLine,
+  RiExternalLinkLine,
   RiFileCopyLine,
   RiFileTextLine,
   RiFolderOpenLine,
+  RiFolderTransferLine,
   RiInboxArchiveLine,
   RiInbox2Line,
   RiPuzzleLine,
@@ -41,6 +43,7 @@ export type TreeNodeMenuHandlers = {
   handleRenameTopic: () => void;
   handleDuplicate: () => void;
   handlePublish: () => void;
+  handleMoveToTopic: () => void;
   handleOpenExternal: () => void;
   openQuickCapture: () => void;
   expandFolderIfNeeded: () => void;
@@ -81,7 +84,7 @@ export function TreeNodeContextMenu({
             : t("sidebar.contextMenu.labelDefault");
 
   return (
-    <ContextMenu open={open} x={x} y={y} onClose={h.closeMenu} minWidth={208}>
+    <ContextMenu open={open} x={x} y={y} onClose={h.closeMenu} minWidth={208} ariaLabel={label}>
       <ContextMenuLabel>{label}</ContextMenuLabel>
       {node.kind === "group" && node.id === "section/inbox" ? (
         <>
@@ -124,7 +127,7 @@ export function TreeNodeContextMenu({
             {t("sidebar.contextMenu.collapseAll")}
           </ContextMenuItem>
           <ContextMenuSeparator />
-          <ContextMenuItem icon={<RiFileCopyLine size={ICON.sm} />} onClick={h.handleCopyPath}>
+          <ContextMenuItem icon={<RiFileCopyLine size={ICON.sm} />} onClick={h.handleCopyPath} shortcut={formatChord("⌘⇧C")}>
             {t("sidebar.contextMenu.copyPath")}
           </ContextMenuItem>
           <ContextMenuItem icon={<RiFolderOpenLine size={ICON.sm} />} onClick={h.handleReveal}>
@@ -138,7 +141,7 @@ export function TreeNodeContextMenu({
           <ContextMenuItem icon={<RiFolderOpenLine size={ICON.sm} />} onClick={h.expandFolderIfNeeded}>
             {expanded ? t("sidebar.contextMenu.expanded") : t("sidebar.contextMenu.expandFolder")}
           </ContextMenuItem>
-          <ContextMenuItem icon={<RiFileCopyLine size={ICON.sm} />} onClick={h.handleCopyPath}>
+          <ContextMenuItem icon={<RiFileCopyLine size={ICON.sm} />} onClick={h.handleCopyPath} shortcut={formatChord("⌘⇧C")}>
             {t("sidebar.contextMenu.copyPath")}
           </ContextMenuItem>
           <ContextMenuItem icon={<RiFolderOpenLine size={ICON.sm} />} onClick={h.handleReveal}>
@@ -159,7 +162,7 @@ export function TreeNodeContextMenu({
           <ContextMenuItem icon={<RiEditLine size={ICON.sm} />} onClick={h.handleRenameTopic}>
             {t("sidebar.contextMenu.renameTopic")}
           </ContextMenuItem>
-          <ContextMenuItem icon={<RiFileCopyLine size={ICON.sm} />} onClick={h.handleCopyPath}>
+          <ContextMenuItem icon={<RiFileCopyLine size={ICON.sm} />} onClick={h.handleCopyPath} shortcut={formatChord("⌘⇧C")}>
             {t("sidebar.contextMenu.copyPath")}
           </ContextMenuItem>
           <ContextMenuItem icon={<RiFolderOpenLine size={ICON.sm} />} onClick={h.handleReveal}>
@@ -179,7 +182,7 @@ export function TreeNodeContextMenu({
               {t("sidebar.contextMenu.openPreview")}
             </ContextMenuItem>
             <ContextMenuSeparator />
-            <ContextMenuItem icon={<RiFileCopyLine size={ICON.sm} />} onClick={h.handleCopyPath}>
+            <ContextMenuItem icon={<RiFileCopyLine size={ICON.sm} />} onClick={h.handleCopyPath} shortcut={formatChord("⌘⇧C")}>
               {t("sidebar.contextMenu.copyPath")}
             </ContextMenuItem>
             <ContextMenuItem icon={<RiFolderOpenLine size={ICON.sm} />} onClick={h.handleReveal}>
@@ -200,14 +203,17 @@ export function TreeNodeContextMenu({
             <ContextMenuItem icon={<RiUpload2Line size={ICON.sm} />} onClick={h.handlePublish}>
               {t("sidebar.contextMenu.publishToOutputs")}
             </ContextMenuItem>
+            <ContextMenuItem icon={<RiFolderTransferLine size={ICON.sm} />} onClick={h.handleMoveToTopic}>
+              {t("sidebar.contextMenu.moveToTopic")}
+            </ContextMenuItem>
             <ContextMenuSeparator />
-            <ContextMenuItem icon={<RiFileCopyLine size={ICON.sm} />} onClick={h.handleCopyPath}>
+            <ContextMenuItem icon={<RiFileCopyLine size={ICON.sm} />} onClick={h.handleCopyPath} shortcut={formatChord("⌘⇧C")}>
               {t("sidebar.contextMenu.copyPath")}
             </ContextMenuItem>
             <ContextMenuItem icon={<RiFolderOpenLine size={ICON.sm} />} onClick={h.handleReveal}>
               {t("sidebar.contextMenu.revealInFolder")}
             </ContextMenuItem>
-            <ContextMenuItem icon={<RiFileTextLine size={ICON.sm} />} onClick={h.handleOpenExternal}>
+            <ContextMenuItem icon={<RiExternalLinkLine size={ICON.sm} />} onClick={h.handleOpenExternal}>
               {t("sidebar.contextMenu.openExternal")}
             </ContextMenuItem>
             <ContextMenuSeparator />

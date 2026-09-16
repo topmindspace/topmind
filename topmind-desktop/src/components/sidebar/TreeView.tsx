@@ -13,6 +13,10 @@ import { makeMinCtx } from "../../plugins/min-ctx";
 import { api } from "../../services/api";
 import { emitLocal } from "../../plugins/host";
 import { PromptDialog, ConfirmDialog, ErrorDialog } from "../ui/Dialog";
+import {
+  useFileContextMenu,
+  WorkspaceFileContextMenu,
+} from "../ui/workspace-file-menu";
 import { Tooltip } from "../ui/tooltip";
 import { cn } from "../../lib/cn";
 import { ICON } from "../../lib/icons";
@@ -200,14 +204,38 @@ const TreeViewNode = memo(function TreeViewNode({
   const contextMenuSlots = useRegistry((s) => s.contextMenuSlots);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [dialog, setDialog] = useState<DialogState>({ kind: "none" });
+  // File nodes share WorkspaceFileContextMenu (same as lists / editor tabs).
+  const fileMenu = useFileContextMenu();
+  const [moveTopics, setMoveTopics] = useState<Array<{ topicId: string; label: string }>>([]);
 
   // Plugin-registered context menu items computed lazily only when context menu opens
   const pluginMenuItems = useMemo(() => {
-    if (!menu) return [];
+    if (!menu && !fileMenu.menu) return [];
     return contextMenuSlots.filter((slot) => {
       try { return slot.matches(node); } catch { return false; }
     });
-  }, [menu, contextMenuSlots, node]);
+  }, [menu, fileMenu.menu, contextMenuSlots, node]);
+
+  const loadMoveTopics = useCallback(async () => {
+    if (moveTopics.length > 0) return;
+    try {
+      const { categories } = await api.ws.categories();
+      const deep = categories.filter((c) => c.role === "deep-work" && c.directory);
+      const out: Array<{ topicId: string; label: string }> = [];
+      for (const c of deep) {
+        const res = await api.ws.topics(c.directory!);
+        for (const topic of res.topics || []) {
+          const topicId = topic.id || `${c.directory}/${topic.name || ""}`;
+          if (!topicId || topicId.endsWith("/")) continue;
+          out.push({ topicId, label: topicId });
+        }
+        if (out.length >= 40) break;
+      }
+      setMoveTopics(out.slice(0, 40));
+    } catch {
+      /* prompt fallback still works */
+    }
+  }, [moveTopics.length]);
 
   const showPrompt = (title: string, defaultValue = "") =>
     new Promise<string | null>((resolve) => setDialog({ kind: "prompt", title, defaultValue, resolve }));
@@ -294,8 +322,22 @@ const TreeViewNode = memo(function TreeViewNode({
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (node.kind === "file" && node.selection?.kind === "file") {
+      const path = node.selection.path;
+      const parts = path.split("/");
+      fileMenu.open(e, {
+        path,
+        label: node.label,
+        kind: /(^|\/)99[- ]/u.test(path) ? "archive" : "note",
+        topicId:
+          node.selection.topicId
+          || (parts.length >= 3 ? `${parts[0]}/${parts[1]}` : undefined),
+      });
+      void loadMoveTopics();
+      return;
+    }
     setMenu({ node, x: e.clientX, y: e.clientY });
-  }, [node]);
+  }, [node, fileMenu, loadMoveTopics]);
 
   const closeMenu = () => setMenu(null);
 
@@ -347,6 +389,19 @@ const TreeViewNode = memo(function TreeViewNode({
 
   // Keyboard handler — Enter/Space activates, ArrowLeft collapses, ArrowRight expands
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    // Windows/Linux keyboard context menu: Menu key or Shift+F10 at the row.
+    if (e.key === "ContextMenu" || (e.key === "F10" && e.shiftKey)) {
+      e.preventDefault();
+      const row = e.currentTarget as HTMLElement;
+      const r = row.getBoundingClientRect();
+      handleContextMenu({
+        preventDefault: () => {},
+        stopPropagation: () => {},
+        clientX: r.left + 24,
+        clientY: r.top + r.height / 2,
+      } as unknown as React.MouseEvent);
+      return;
+    }
     switch (e.key) {
       case "Enter":
       case " ":
@@ -366,7 +421,7 @@ const TreeViewNode = memo(function TreeViewNode({
         }
         break;
     }
-  }, [hasChildren, expanded, toggleNode, node, select, loadChildren, resolvedChildren.length]);
+  }, [hasChildren, expanded, toggleNode, node, select, loadChildren, resolvedChildren.length, handleContextMenu]);
 
   const handleNewNote = async () => {
     closeMenu();
@@ -495,6 +550,12 @@ const TreeViewNode = memo(function TreeViewNode({
     }
   };
 
+  const handleMoveToTopic = async () => {
+    // File nodes use WorkspaceFileContextMenu (submenu / prompt). Kept for the
+    // TreeNodeContextMenu contract in case a non-file path ever needs it.
+    closeMenu();
+  };
+
   const handleCopyPath = async () => {
     closeMenu();
     const rel = pathOfTreeNode(node);
@@ -543,10 +604,6 @@ const TreeViewNode = memo(function TreeViewNode({
       showError(t("sidebar.treeView.errorCopy"), e instanceof Error ? e.message : String(e));
     }
   };
-
-  const fileSelection = node.kind === "file" && node.selection?.kind === "file" ? node.selection : null;
-  const isFileNode = fileSelection !== null;
-  const isReadOnly = isFileNode && fileSelection.readOnly === true;
 
   return (
     <li role="none">
@@ -766,14 +823,29 @@ const TreeViewNode = memo(function TreeViewNode({
         ) : null
       ) : null}
 
+      <WorkspaceFileContextMenu
+        menu={fileMenu.menu}
+        onClose={fileMenu.close}
+        onMutated={() => onRefresh?.()}
+        extraItems={pluginMenuItems.map((slot) => ({
+          id: slot.id,
+          label: slot.label,
+          disabled: slot.available ? !slot.available(node) : false,
+          run: () => {
+            void slot.run(makeMinCtx(workspaceRoot), node);
+          },
+        }))}
+        moveTopics={moveTopics}
+      />
+
       <TreeNodeContextMenu
         open={!!menu}
         x={menu?.x ?? 0}
         y={menu?.y ?? 0}
         node={node}
         expanded={expanded}
-        isFileNode={isFileNode}
-        isReadOnly={isReadOnly}
+        isFileNode={false}
+        isReadOnly={false}
         pluginMenuItems={pluginMenuItems}
         h={{
           closeMenu,
@@ -790,6 +862,7 @@ const TreeViewNode = memo(function TreeViewNode({
           handleRenameTopic,
           handleDuplicate,
           handlePublish,
+          handleMoveToTopic,
           handleOpenExternal,
           openQuickCapture: () => {
             closeMenu();

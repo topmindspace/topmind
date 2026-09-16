@@ -26,6 +26,18 @@ describe("Desktop suggest force + Kernel-only path", () => {
     const store = read("topmind-desktop/src/stores/action-store.ts");
     assert.match(store, /generateSuggestions\(\s*\{\s*force:\s*!decision\.soft\s*\}\s*\)/);
   });
+
+  it("SuggestPopover plain refresh does not clear dismissals; Shift+click does", () => {
+    const src = read("topmind-desktop/src/components/ai/SuggestPopover.tsx");
+    // Plain 💡 must only force fingerprint re-analysis — clearing rejections here
+    // resurrected every dismissed card and fought the Kernel ADR.
+    assert.match(src, /if \(e\.shiftKey\)/);
+    assert.match(src, /void clearDismissed\(\)\.then\(\(\) => refresh\(\{ force: true \}\)\)/);
+    // The non-shift path is a bare force refresh (no clearDismissed before it).
+    const handler = src.match(/onClick=\{\(e\) => \{[\s\S]*?aria-label=\{t\("ai\.suggestRefresh"\)\}/u)?.[0] || "";
+    assert.ok(handler.includes("void refresh({ force: true })"));
+    assert.ok(handler.indexOf("if (e.shiftKey)") < handler.indexOf("void refresh({ force: true })"));
+  });
 });
 
 describe("Obsidian suggest force + op-card session", () => {

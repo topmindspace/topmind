@@ -523,7 +523,14 @@ export const api = {
         groupCount: number;
         wastedBytes: number;
         truncated?: boolean;
-        groups: { hash: string; size: number; full?: boolean; paths: string[]; mtimes?: string[] }[];
+        groups: {
+          hash: string;
+          size: number;
+          full?: boolean;
+          paths: string[];
+          mtimes?: string[];
+          suggestedKeepIndex?: number;
+        }[];
       }>("workspace.workspaceDuplicates", p || {}),
     cleanupPreview: () =>
       invoke<{

@@ -103,21 +103,29 @@ test("memory injects open-folder + organize", () => {
   assert.match(slot, /data-memory-organize/);
 });
 
-test("file editor injects file-context actions; outline/appearance/focus live on properties row", () => {
+test("file editor injects file-context actions; outline/appearance/focus live on format toolbar", () => {
   const view = read("src/plugins/topmind-workspace/views/FileEditorView.tsx");
   const fmt = read("src/plugins/topmind-workspace/views/file-editor-format-bar.tsx");
-  const fm = read("src/components/editor/FrontmatterBar.tsx");
   assert.match(sliceTitleBarActions(view), /FileEditorTitleBarActions/);
   assert.match(fmt, /export function EditorViewChrome/);
   assert.match(fmt, /data-editor-view-chrome/);
-  assert.match(fm, /trailing/);
-  assert.match(fm, /data-editor-view-chrome-slot/);
-  assert.match(view, /trailing=\{viewChrome\}/);
-  const mopStart = view.indexOf("v4-editor-toolbar");
-  const propsStart = view.indexOf("showProperties ? (");
-  assert.ok(mopStart >= 0 && propsStart > mopStart);
-  const mop = view.slice(mopStart, propsStart);
-  assert.doesNotMatch(mop, /EditorReadingMenu/);
-  assert.doesNotMatch(mop, /onToggleFocus/);
+  // Properties row is default-collapsed; view chrome stays on the format toolbar
+  // so outline / Aa / focus remain reachable when FrontmatterBar is hidden.
+  assert.match(view, /propertiesOpen/);
+  assert.match(view, /useState\(false\)/);
+  assert.match(view, /showPropertiesRow/);
   assert.match(view, /EditorViewChrome/);
+  assert.doesNotMatch(view, /trailing=\{viewChrome\}/);
+  // viewChrome (outline/Aa/focus) is built before the toolbar and injected into it
+  const chromeDef = view.indexOf("const viewChrome");
+  const mopStart = view.indexOf("v4-editor-toolbar");
+  const propsStart = view.indexOf("showPropertiesRow ? (");
+  assert.ok(chromeDef >= 0 && mopStart > chromeDef, "viewChrome defined before toolbar");
+  assert.ok(propsStart > mopStart, "toolbar precedes optional properties row");
+  const chromeBlock = view.slice(chromeDef, mopStart);
+  assert.match(chromeBlock, /EditorViewChrome/);
+  assert.match(chromeBlock, /onToggleFocus/);
+  const mop = view.slice(mopStart, propsStart);
+  assert.match(mop, /\{viewChrome\}/);
+  assert.match(mop, /data-properties-toggle/);
 });

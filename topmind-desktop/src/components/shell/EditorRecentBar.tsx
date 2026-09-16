@@ -1,6 +1,9 @@
 /**
  * File tab strip — recent + pinned (independent of history).
  * Click · pin · close · drag reorder · right-click tab actions · close all.
+ *
+ * Conditional chrome: hidden when ≤1 tab (TitleBar breadcrumb is identity;
+ * tab ops live on the TitleBar title context menu). Shown slim when ≥2.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -147,7 +150,9 @@ export function EditorRecentBar() {
     };
   }, [fileTabs.length, fileTabs.map((t) => t.path).join("|"), updateEdgeFade]);
 
-  if (fileTabs.length === 0) return null;
+  // Single open file: TitleBar breadcrumb is the identity — skip the strip (~30px).
+  // Tab actions remain via ⌘W and TitleBar title context menu.
+  if (fileTabs.length <= 1) return null;
 
   return (
     <div className="v4-editor-recents shrink-0">
@@ -165,7 +170,7 @@ export function EditorRecentBar() {
           />
         <div
           ref={stripRef}
-          className="v4-content-scroll flex min-w-0 flex-1 items-stretch gap-0.5 overflow-x-auto px-1.5 py-1"
+          className="v4-content-scroll flex min-w-0 flex-1 items-stretch gap-0.5 overflow-x-auto px-1.5 py-0.5"
           role="tablist"
           aria-label={t("editorRecentBar.openFiles")}
           onKeyDown={handleTablistKeyDown}

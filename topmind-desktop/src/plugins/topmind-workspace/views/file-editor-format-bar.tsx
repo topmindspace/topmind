@@ -34,7 +34,9 @@ import {
   RiLoader4Line,
   RiMoreLine,
   RiNodeTree,
+  RiPriceTag3Line,
   RiSparklingLine,
+  RiText,
   RiStrikethrough,
   RiTwitterXLine,
   RiUnderline as UnderlineIcon,
@@ -62,28 +64,32 @@ export function EditorModeSwitch({
   const { t } = useTranslation(["workspace", "common"]);
   return (
     <div className="v4-segmented shrink-0 !gap-0.5 !p-0.5" role="tablist" aria-label={t("workspace:formatBar.edit")}>
-      <button
-        type="button"
-        role="tab"
-        aria-selected={viewMode === "edit"}
-        data-active={viewMode === "edit"}
-        onClick={() => onChange("edit")}
-        className="v4-segmented-item !flex-none gap-0.5 !px-1.5 !py-0"
-      >
-        <RiEditLine size={ICON.xs} />
-        <span className="hidden text-3xs sm:inline" data-compact-hidden>{t("workspace:formatBar.edit")}</span>
-      </button>
-      <button
-        type="button"
-        role="tab"
-        aria-selected={viewMode === "preview"}
-        data-active={viewMode === "preview"}
-        onClick={() => onChange("preview")}
-        className="v4-segmented-item !flex-none gap-0.5 !px-1.5 !py-0"
-      >
-        <RiEyeLine size={ICON.xs} />
-        <span className="hidden text-3xs sm:inline" data-compact-hidden>{t("workspace:formatBar.preview")}</span>
-      </button>
+      <Tooltip content={t("workspace:formatBar.edit")}>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={viewMode === "edit"}
+          data-active={viewMode === "edit"}
+          aria-label={t("workspace:formatBar.edit")}
+          onClick={() => onChange("edit")}
+          className="v4-segmented-item !flex-none gap-0 !px-1.5 !py-0"
+        >
+          <RiEditLine size={ICON.xs} />
+        </button>
+      </Tooltip>
+      <Tooltip content={t("workspace:formatBar.preview")}>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={viewMode === "preview"}
+          data-active={viewMode === "preview"}
+          aria-label={t("workspace:formatBar.preview")}
+          onClick={() => onChange("preview")}
+          className="v4-segmented-item !flex-none gap-0 !px-1.5 !py-0"
+        >
+          <RiEyeLine size={ICON.xs} />
+        </button>
+      </Tooltip>
     </div>
   );
 }
@@ -331,7 +337,7 @@ export function FileEditorTitleBarActions({
   );
 }
 
-/** Format-rail status cluster — words / save / file-info. Outline · appearance · focus live on the properties row. */
+/** Format-rail status cluster — save badge + ⋯. Word count and properties live in the menu. */
 export function EditorMoreMenu({
   moreOpen,
   setMoreOpen,
@@ -340,6 +346,9 @@ export function EditorMoreMenu({
   readOnly,
   saveState,
   wordCount,
+  propertiesOpen,
+  onToggleProperties,
+  showPropertiesToggle = false,
 }: {
   moreOpen: boolean;
   setMoreOpen: (v: boolean | ((prev: boolean) => boolean)) => void;
@@ -348,19 +357,14 @@ export function EditorMoreMenu({
   readOnly: boolean;
   saveState: SaveState;
   wordCount: number;
+  propertiesOpen: boolean;
+  onToggleProperties: () => void;
+  showPropertiesToggle?: boolean;
 }) {
-  const { t } = useTranslation(["workspace", "common"]);
+  const { t } = useTranslation(["workspace", "common", "editor"]);
 
   return (
     <div className="flex min-w-0 items-center justify-end gap-1">
-      <span
-        className="hidden shrink-0 truncate font-mono text-3xs text-text-quaternary sm:inline"
-        data-compact-hidden
-        title={t("workspace:formatBarOptions.wordCountTitle")}
-      >
-        {wordCount}w
-      </span>
-
       {!readOnly ? <SaveBadge state={saveState} /> : null}
       <DropdownMenu
         open={moreOpen}
@@ -383,6 +387,19 @@ export function EditorMoreMenu({
         }
       >
         <DropdownSectionLabel>{t("workspace:menu.title")}</DropdownSectionLabel>
+        {showPropertiesToggle ? (
+          <DropdownItem
+            onSelect={() => {
+              onToggleProperties();
+              setMoreOpen(false);
+            }}
+          >
+            <RiPriceTag3Line size={ICON.xs} className="shrink-0 text-text-quaternary" />
+            {propertiesOpen
+              ? t("workspace:formatBarOptions.hideProperties")
+              : t("workspace:formatBarOptions.showProperties")}
+          </DropdownItem>
+        ) : null}
         <DropdownItem
           onSelect={() => {
             setShowMeta((v) => !v);
@@ -392,6 +409,13 @@ export function EditorMoreMenu({
           <RiHashtag size={ICON.xs} className="shrink-0 text-text-quaternary" />
           {showMeta ? t("workspace:formatBarOptions.hideFileInfo") : t("workspace:formatBarOptions.fileInfo")}
         </DropdownItem>
+        <div className="flex w-full items-center justify-between gap-3 px-2.5 py-[7px] text-3xs font-medium text-text-tertiary">
+          <span className="flex min-w-0 items-center gap-2">
+            <RiText size={ICON.xs} className="shrink-0 text-text-quaternary" aria-hidden />
+            {t("workspace:formatBarOptions.wordCountTitle")}
+          </span>
+          <span className="shrink-0 font-mono text-text-secondary">{wordCount}w</span>
+        </div>
       </DropdownMenu>
     </div>
   );

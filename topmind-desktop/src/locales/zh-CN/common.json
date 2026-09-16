@@ -114,7 +114,9 @@
     "sidebarTimeline": "侧栏时间线视图",
     "sidebarTags": "侧栏标签视图",
     "taskPanel": "后台任务面板",
-    "toggleSplit": "切换对照分屏"
+    "toggleSplit": "切换对照分屏",
+    "toggleSidebar": "显示/隐藏侧栏",
+    "toggleAiPanel": "显示/隐藏 AI 工作区"
   },
   "streamStatus": {
     "tool": "工具",

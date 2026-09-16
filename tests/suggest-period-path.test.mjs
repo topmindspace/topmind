@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 
 import { scanLifecycle } from "../lib/lifecycle-engine.mjs";
 import { generateSuggestions, applySuggestion } from "../lib/suggest-engine.mjs";
-import { writePeriodDigest, periodMemoryRelPath, ensureMemoryPlane } from "../lib/memory-engine.mjs";
+import { writePeriodDigest, periodMemoryRelPath, ensureMemoryPlane, hasUsablePeriodDigest } from "../lib/memory-engine.mjs";
 import { loadContract } from "../lib/contract-engine.mjs";
 
 const engineRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -257,5 +257,84 @@ describe("writePeriodDigest fallback tokens", () => {
     assert.equal(periodMemoryRelPath("period"), "");
     assert.equal(periodMemoryRelPath("近期活动"), "");
     assert.equal(periodMemoryRelPath("2026-W26"), "memory/periodic/2026/2026-W26.md");
+  });
+});
+
+describe("stream_digest content-truth gate after accept", () => {
+  it("does not re-offer period reflection after digest is written (soft refresh)", async () => {
+    const { provider } = mockAi();
+    const first = await generateSuggestions({
+      workspaceRoot: ws,
+      engineRoot,
+      aiProvider: provider,
+    });
+    const digests = first.filter((s) => s.kind === "stream_digest");
+    assert.ok(digests.length > 0, "expected initial stream_digest cards");
+
+    for (const card of digests) {
+      const applied = await applySuggestion({
+        workspaceRoot: ws,
+        engineRoot,
+        suggestion: card,
+        aiProvider: provider,
+      });
+      assert.equal(applied.ok, true, card.payload.period);
+    }
+
+    // Soft refresh: same stream content, digests now on disk → no digest cards.
+    const second = await generateSuggestions({
+      workspaceRoot: ws,
+      engineRoot,
+      aiProvider: provider,
+    });
+    assert.equal(
+      second.filter((s) => s.kind === "stream_digest").length,
+      0,
+      "accepted digests must not reappear on soft refresh",
+    );
+    // Same gate for activity AI summary that would rewrite the same period.
+    assert.equal(
+      second.filter((s) => s.kind === "ai_summary").length,
+      0,
+      "accepted period reflection must suppress ai_summary rewrite cards",
+    );
+  });
+
+  it("force refresh re-offers the digest card", async () => {
+    const { provider } = mockAi();
+    const first = await generateSuggestions({
+      workspaceRoot: ws,
+      engineRoot,
+      aiProvider: provider,
+    });
+    const card = first.find((s) => s.kind === "stream_digest");
+    assert.ok(card);
+    await applySuggestion({
+      workspaceRoot: ws,
+      engineRoot,
+      suggestion: card,
+      aiProvider: provider,
+    });
+
+    const forced = await generateSuggestions({
+      workspaceRoot: ws,
+      engineRoot,
+      aiProvider: provider,
+      force: true,
+    });
+    assert.ok(
+      forced.some((s) => s.kind === "stream_digest" && s.payload?.period === card.payload.period),
+      "force must re-offer the period reflection",
+    );
+  });
+
+  it("stub/empty digest file does not count as organized", () => {
+    const period = "2026-W22";
+    const digestAbs = path.join(ws, "memory/periodic/2026", `${period}.md`);
+    fs.mkdirSync(path.dirname(digestAbs), { recursive: true });
+    fs.writeFileSync(digestAbs, "---\ntitle: stub\n---\n\n\n", "utf8");
+    assert.equal(hasUsablePeriodDigest(ws, period), false);
+    fs.writeFileSync(digestAbs, "---\ntitle: real\n---\n\n## 要点\n\n- 这是一条足够长度的周期反思正文内容，用于验证已有反思时不再重复建议。\n- 第二条要点同样保证超过最小正文长度阈值。\n", "utf8");
+    assert.equal(hasUsablePeriodDigest(ws, period), true);
   });
 });

@@ -23,7 +23,7 @@ function fakeKey(partial) {
 
 test("workbench shortcuts include documented navigate chords", () => {
   const displays = new Set(WORKBENCH_SHORTCUTS.map((s) => s.display));
-  for (const d of ["⌘N", "⌘K", "⌘P", "⌘,", "⌘⇧I", "⌘⇧T", "⌘⇧B", "⌘⇧O", "⌘⇧A", "⌘⇧W", "⌘W", "⌘⌥W", "⌘[", "⌘]", "⌘⌥F"]) {
+  for (const d of ["⌘N", "⌘K", "⌘P", "⌘,", "⌘⇧I", "⌘⇧T", "⌘⇧B", "⌘⇧O", "⌘⇧A", "⌘⇧W", "⌘W", "⌘⌥W", "⌘[", "⌘]", "⌘⌥F", "⌘B", "⌘⌥B"]) {
     assert.ok(displays.has(d), `missing ${d}`);
   }
   assert.ok(GLOBAL_SHORTCUTS.some((g) => g.display === "⌘⇧N"));
@@ -70,6 +70,16 @@ test("matchWorkbenchShortcut: ⌘⌥F toggles focus mode", () => {
   const hit = matchWorkbenchShortcut(fakeKey({ key: "f", metaKey: true, altKey: true }));
   assert.equal(hit?.id, "focus-mode");
   assert.equal(hit?.action.type, "toggle-focus");
+});
+
+test("matchWorkbenchShortcut: ⌘B left sidebar, ⌘⌥B AI panel", () => {
+  assert.equal(matchWorkbenchShortcut(fakeKey({ key: "b", metaKey: true }))?.id, "toggle-sidebar");
+  assert.equal(
+    matchWorkbenchShortcut(fakeKey({ key: "b", metaKey: true, altKey: true }))?.id,
+    "toggle-ai-panel",
+  );
+  // ⌘⇧B stays kanban — shift must not fall through to plain ⌘B.
+  assert.equal(matchWorkbenchShortcut(fakeKey({ key: "b", metaKey: true, shiftKey: true }))?.id, "kanban");
 });
 
 test("TreeView context menu covers groups and topic path copy", async () => {

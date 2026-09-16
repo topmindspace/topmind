@@ -1,8 +1,9 @@
 /**
  * Sub-header: status / priority / due chips for edit mode.
  * Uses shared Select(variant="chip") — single border, no nested chrome.
+ * Default-collapsed in FileEditorView; outline/focus live on the format toolbar.
  */
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { RiCalendarLine, RiFlagLine, RiLoader4Line, RiPriceTag3Line } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { api } from "../../services/api";
@@ -19,8 +20,6 @@ interface Props {
   readOnly?: boolean;
   flushBody?: () => Promise<void>;
   onUpdated?: (next: Record<string, unknown>) => void | Promise<void>;
-  /** Outline / reading / focus — lives on this row so the format mop stays format-only. */
-  trailing?: ReactNode;
 }
 
 export function FrontmatterBar({
@@ -29,7 +28,6 @@ export function FrontmatterBar({
   readOnly,
   flushBody,
   onUpdated,
-  trailing,
 }: Props) {
   const { t } = useTranslation("editor");
   const fm = frontmatter || {};
@@ -165,11 +163,6 @@ export function FrontmatterBar({
 
       {busy ? <RiLoader4Line size={ICON.xs} className="animate-spin text-text-quaternary" /> : null}
       </div>
-      {trailing ? (
-        <div className="ml-auto flex shrink-0 items-center gap-0.5" data-editor-view-chrome-slot>
-          {trailing}
-        </div>
-      ) : null}
     </div>
   );
 }

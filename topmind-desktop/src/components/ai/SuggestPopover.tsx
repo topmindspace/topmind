@@ -570,13 +570,22 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
         <button
           type="button"
           className="flex h-6 w-6 items-center justify-center rounded-sm text-text-tertiary hover:bg-surface-muted"
-          onClick={() => {
-            // Ordered: forgetting the durable rejections must land before the
-            // re-analysis reads them, or the reset is a no-op this round.
-            void clearDismissed().then(() => refresh({ force: true }));
+          onClick={(e) => {
+            // Plain click: force re-analyzes activity fingerprints only.
+            // Durable dismissals stay — matching Kernel
+            // (`filterDismissedSuggestions` runs even after force) and the ADR.
+            // Period reflections already on disk are content-gated in
+            // suggest-engine, so a refresh never re-offers organized periods.
+            // Shift+click is the explicit "forget my nos" power path.
+            if (e.shiftKey) {
+              void clearDismissed().then(() => refresh({ force: true }));
+              return;
+            }
+            void refresh({ force: true });
           }}
           disabled={loading}
           aria-label={t("ai.suggestRefresh")}
+          title={t("ai.suggestRefreshHint")}
         >
           {loading ? (
             <RiLoader4Line size={ICON.micro} className="animate-spin" />

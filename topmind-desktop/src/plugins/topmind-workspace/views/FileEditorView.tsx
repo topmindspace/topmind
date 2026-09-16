@@ -24,6 +24,7 @@ import {
   RiEyeLine,
   RiFolderReceivedLine,
   RiLoader4Line,
+  RiPriceTag3Line,
   RiSearchLine,
 } from "@remixicon/react";
 import { EditorOutlinePanel } from "../../../components/editor/EditorOutlinePanel";
@@ -57,7 +58,7 @@ import {
 } from "../../../components/workspace/TopicPickerMenu";
 import { emitLocal, onLocal } from "../../../plugins/host";
 import { toastWriteback, toastWritebackError } from "../../../lib/writeback-toast";
-import { displayNoteTitle } from "../../../lib/note-meta";
+import { displayNoteTitle, getStatusColumns, resolveStatusColumn } from "../../../lib/note-meta";
 import { joinMarkdownFile, splitMarkdownFile } from "../../../lib/md-frontmatter";
 import {
   EMPTY_PREVIEW_HTML,
@@ -127,6 +128,8 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
   const [showOutline, setShowOutline] = useState(false);
   /** Format tools expanded by default — collapse with chevron when space is tight */
   const [showFormat, setShowFormat] = useState(true);
+  /** Properties (frontmatter chips) row — default collapsed to free content height */
+  const [propertiesOpen, setPropertiesOpen] = useState(false);
   /** Toolbar compact mode — hides text labels when editor area is narrow */
   const toolbarRef = useRef<HTMLDivElement>(null);
   const [toolbarCompact, setToolbarCompact] = useState(false);
@@ -954,7 +957,29 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
   const fileSizeText = fileMeta ? formatFileSize(fileMeta.size) : "";
   const mtimeText = fileMeta?.mtime ? formatDateTime(fileMeta.mtime) : "";
 
-  const showProperties = !focusMode && !readOnly && path.endsWith(".md");
+  const canShowProperties = !focusMode && !readOnly && path.endsWith(".md");
+  const showPropertiesRow = canShowProperties && propertiesOpen;
+  const fmStatusKey = resolveStatusColumn(
+    typeof fileMeta?.frontmatter?.status === "string" ? fileMeta.frontmatter.status : null,
+  );
+  const fmPriority = typeof fileMeta?.frontmatter?.priority === "string" ? fileMeta.frontmatter.priority : "";
+  const fmDue =
+    typeof fileMeta?.frontmatter?.due === "string"
+      ? fileMeta.frontmatter.due
+      : typeof fileMeta?.frontmatter?.deadline === "string"
+        ? String(fileMeta.frontmatter.deadline)
+        : "";
+  const propertiesSummary = useMemo(() => {
+    if (!canShowProperties) return null;
+    const parts: string[] = [];
+    if (fmStatusKey) {
+      const col = getStatusColumns().find((c) => c.key === fmStatusKey);
+      if (col) parts.push(col.label);
+    }
+    if (fmPriority) parts.push(fmPriority);
+    if (fmDue) parts.push(fmDue);
+    return parts.length > 0 ? parts.join(" · ") : null;
+  }, [canShowProperties, fmStatusKey, fmPriority, fmDue]);
   const viewChrome = (
     <EditorViewChrome
       showOutline={showOutline}
@@ -984,7 +1009,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
       data-page-padding={pagePadding}
       data-paper={paper}
     >
-      {/* Row 1: mode · format tools · primary actions (title lives on property row) */}
+      {/* Row 1: mode · format · view chrome · properties toggle · save/⋯ */}
       <div className="v4-editor-toolbar shrink-0 border-b border-border-subtle-dim bg-surface/80 backdrop-blur-[2px]">
         <div ref={toolbarRef} className="flex h-(--density-editor-toolbar-y,32px) items-center justify-between gap-1 px-2 sm:px-2.5" data-compact={toolbarCompact ? "true" : undefined}>
           <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
@@ -1026,8 +1051,49 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
           </div>
 
           <div className="flex min-w-0 shrink items-center justify-end gap-0.5">
-            {!showProperties ? viewChrome : null}
-            {!showProperties ? <ToolbarSep /> : null}
+            {viewChrome}
+            {canShowProperties ? (
+              <>
+                <ToolbarSep />
+                <Tooltip
+                  content={
+                    propertiesOpen
+                      ? t("workspace:formatBarOptions.hideProperties")
+                      : propertiesSummary
+                        ? t("workspace:formatBarOptions.showPropertiesWithSummary", {
+                            summary: propertiesSummary,
+                          })
+                        : t("workspace:formatBarOptions.showProperties")
+                  }
+                >
+                  <button
+                    type="button"
+                    onClick={() => setPropertiesOpen((v) => !v)}
+                    className={cn(
+                      "v4-editor-tool-btn",
+                      !propertiesOpen && propertiesSummary
+                        ? "w-auto max-w-[10rem] gap-1 px-2 text-text-secondary"
+                        : null,
+                      propertiesOpen && "bg-accent-bg-subtle text-accent-color",
+                    )}
+                    aria-pressed={propertiesOpen}
+                    aria-label={
+                      propertiesOpen
+                        ? t("workspace:formatBarOptions.hideProperties")
+                        : t("workspace:formatBarOptions.showProperties")
+                    }
+                    data-properties-toggle
+                  >
+                    <RiPriceTag3Line size={ICON.xs} />
+                    {!propertiesOpen && propertiesSummary ? (
+                      <span className="ml-1 max-w-[7rem] truncate text-3xs font-medium" data-compact-hidden>
+                        {propertiesSummary}
+                      </span>
+                    ) : null}
+                  </button>
+                </Tooltip>
+              </>
+            ) : null}
             <EditorMoreMenu
               moreOpen={moreOpen}
               setMoreOpen={setMoreOpen}
@@ -1036,6 +1102,9 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
               readOnly={readOnly}
               saveState={saveState}
               wordCount={wordCount}
+              propertiesOpen={propertiesOpen}
+              onToggleProperties={() => setPropertiesOpen((v) => !v)}
+              showPropertiesToggle={canShowProperties}
             />
           </div>
         </div>
@@ -1094,12 +1163,11 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
         />
       </TitleBarActions>
 
-      {/* Properties — status/priority/due chips + outline / appearance / focus. */}
-      {showProperties ? (
+      {/* Properties — status/priority/due chips; default collapsed (toolbar toggle). */}
+      {showPropertiesRow ? (
         <FrontmatterBar
           relativePath={path}
           frontmatter={fileMeta?.frontmatter}
-          trailing={viewChrome}
           flushBody={async () => {
             // Always drain queue + flush dirty/saving body before FM write (C2)
             if (saveTimer.current) {

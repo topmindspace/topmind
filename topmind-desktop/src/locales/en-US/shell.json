@@ -308,6 +308,9 @@
       "errorCopy": "Copy failed",
       "errorOperation": "Operation failed",
       "toastCopiedPath": "✓ Path copied",
+      "promptMoveToTopic": "Move to topic (Category/TopicName)",
+      "moveToTopicPlaceholder": "20-Research/2026-Topic",
+      "toastMovedToTopic": "✓ Moved to topic",
       "tooltipNewTopic": "New topic under this category (YYYY-Topic)",
       "ariaNewTopic": "New topic under this category",
       "tooltipNewNote": "New note in this topic",
@@ -454,6 +457,7 @@
       "rename": "Rename",
       "duplicate": "Duplicate",
       "publishToOutputs": "Publish to Delivery",
+      "moveToTopic": "Move to topic…",
       "openExternal": "Open with default app",
       "delete": "Delete"
     },
@@ -624,7 +628,10 @@
       "dupLine": "{{groups}} groups · recoverable ~{{waste}}",
       "keep": "Keep",
       "trashOthers": "Trash others",
-      "dupHint": "Pick the copy to keep; “Trash others” goes through the write gate (recoverable trash)."
+      "trashAllDupes": "Trash all confirmed duplicates",
+      "partialOnly": "Partial hash only",
+      "partialHint": "Large files skipped full hash — review before cleaning.",
+      "dupHint": "Default keep follows the suggestion (skips backup names, prefers year-dir + newer copies). Cleanup goes through the write gate (recoverable trash)."
     }
   },
   "help": {

@@ -11,12 +11,18 @@
  * - Three-column headers share `.v4-column-chrome` (44px).
  * - OS chrome (Windows menu strip + caption reserve) lives in OsChromeStrip
  *   above the workbench — never inside this product header.
+ * - File title context menu carries tab ops when the tab strip is collapsed
+ *   (single open file) so pin/split/close stay reachable without a strip row.
  */
 import {
   RiArrowLeftSLine,
   RiArrowRightSLine,
+  RiCloseCircleLine,
+  RiCloseLine,
+  RiLayoutColumnLine,
+  RiPushpinLine,
 } from "@remixicon/react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useViewStore } from "../../stores/view-store";
 import { cn } from "../../lib/cn";
@@ -32,6 +38,31 @@ import { PanelToggleIcon } from "../ui/PanelToggleIcon";
 import { PrimaryNav } from "./PrimaryNav";
 import { ICON } from "../../lib/icons";
 import { isMacOS } from "../../lib/platform";
+import { formatChord } from "../../lib/chord";
+import {
+  ContextMenu,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuLabel,
+} from "../ui/context-menu";
+import {
+  useFileContextMenu,
+  WorkspaceFileContextMenu,
+} from "../ui/workspace-file-menu";
+
+function fileMenuKind(path: string): "inbox" | "output" | "archive" | "note" {
+  if (/^00[- ]/u.test(path) || /inbox/iu.test(path.split("/")[0] || "")) return "inbox";
+  if (/^88[- ]/u.test(path) || /outputs?/iu.test(path.split("/")[0] || "")) return "output";
+  if (/^99[- ]/u.test(path) || /archive/iu.test(path.split("/")[0] || "")) return "archive";
+  return "note";
+}
+
+type TitleTabMenuState = {
+  x: number;
+  y: number;
+  path: string;
+  label: string;
+};
 
 interface TitleBarProps {
   workspaceRoot: string;
@@ -67,10 +98,35 @@ export function TitleBar({ workspaceRoot: _workspaceRoot, sidebarCollapsed, onTo
   const aiPanelOpen = useViewStore((s) => s.aiPanelOpen);
   const selection = useViewStore((s) => s.selection);
   const select = useViewStore((s) => s.select);
+  const fileTabs = useViewStore((s) => s.fileTabs);
+  const pinFileTab = useViewStore((s) => s.pinFileTab);
+  const closeFileTab = useViewStore((s) => s.closeFileTab);
+  const closeAllFileTabs = useViewStore((s) => s.closeAllFileTabs);
+  const closeOtherFileTabs = useViewStore((s) => s.closeOtherFileTabs);
+  const splitSecondaryPath = useViewStore((s) => s.splitSecondaryPath);
+  const openInSplit = useViewStore((s) => s.openInSplit);
+  const clearSplit = useViewStore((s) => s.clearSplit);
+  const fileMenu = useFileContextMenu();
+  const [titleTabMenu, setTitleTabMenu] = useState<TitleTabMenuState | null>(null);
 
   const labels = useTitleBarIdentityLabels();
   const live = useTitleBarChromeLive();
   const { crumbs, title, stats } = resolveTitleBarIdentity(selection, labels, live);
+
+  const activeFilePath = selection.kind === "file" ? selection.path : null;
+  const activeTab = activeFilePath ? fileTabs.find((t) => t.path === activeFilePath) : null;
+
+  const openTitleTabMenu = (e: React.MouseEvent) => {
+    if (!activeFilePath || !title) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setTitleTabMenu({
+      x: e.clientX,
+      y: e.clientY,
+      path: activeFilePath,
+      label: title,
+    });
+  };
 
   return (
     <header
@@ -91,7 +147,9 @@ export function TitleBar({ workspaceRoot: _workspaceRoot, sidebarCollapsed, onTo
       <div className={cn("flex min-w-0 flex-1 items-center gap-1.5", trafficMac && "v4-mac-titlebar-pad")}>
         {/* Product chrome only. Windows menu + caption live in OsChromeStrip. */}
         <div className="v4-titlebar-cluster flex items-center gap-0.5">
-          <Tooltip content={sidebarCollapsed ? t("titleBar.showSidebar") : t("titleBar.hideSidebar")}>
+          <Tooltip
+            content={`${sidebarCollapsed ? t("titleBar.showSidebar") : t("titleBar.hideSidebar")} · ${formatChord("⌘B")}`}
+          >
             <button
               type="button"
               className="v4-titlebar-btn v4-titlebar-panel-toggle"
@@ -119,9 +177,15 @@ export function TitleBar({ workspaceRoot: _workspaceRoot, sidebarCollapsed, onTo
         {/* Collapsed-sidebar reach: destinations stay on the chrome row. */}
         {sidebarCollapsed && !focusMode ? <PrimaryNav variant="compact" /> : null}
 
-        {/* Breadcrumb + title + stats — first crumb keeps a longer readable cap. */}
+        {/* Breadcrumb + title + stats — first crumb keeps a longer readable cap.
+            Right-click carries tab ops when the tab strip is hidden (≤1 file). */}
         {title ? (
-          <div className="v4-no-drag flex min-w-0 items-center gap-1" data-breadcrumb-title>
+          <div
+            className="v4-no-drag flex min-w-0 items-center gap-1"
+            data-breadcrumb-title
+            onContextMenu={activeFilePath ? openTitleTabMenu : undefined}
+            title={activeFilePath ? `${title}` : undefined}
+          >
             {crumbs.length > 0 ? (
               <>
                 {crumbs.map((c, i) => (
@@ -185,7 +249,9 @@ export function TitleBar({ workspaceRoot: _workspaceRoot, sidebarCollapsed, onTo
           }}
         />
         {!focusMode ? (
-          <Tooltip content={aiPanelOpen ? t("titleBar.hideAiPanel") : t("titleBar.showAiPanel")}>
+          <Tooltip
+            content={`${aiPanelOpen ? t("titleBar.hideAiPanel") : t("titleBar.showAiPanel")} · ${formatChord("⌘⌥B")}`}
+          >
             <button
               type="button"
               className="v4-titlebar-btn v4-titlebar-btn-ai v4-titlebar-panel-toggle"
@@ -215,6 +281,97 @@ export function TitleBar({ workspaceRoot: _workspaceRoot, sidebarCollapsed, onTo
           </Tooltip>
         </div>
       ) : null}
+
+      {/* Tab ops on title — primary path when the file tab strip is hidden (≤1 tab). */}
+      {titleTabMenu ? (
+        <ContextMenu open x={titleTabMenu.x} y={titleTabMenu.y} onClose={() => setTitleTabMenu(null)}>
+          <ContextMenuLabel>{titleTabMenu.label}</ContextMenuLabel>
+          {activeTab ? (
+            <>
+              <ContextMenuItem
+                icon={<RiPushpinLine size={ICON.micro} />}
+                onClick={() => {
+                  pinFileTab(titleTabMenu.path);
+                  setTitleTabMenu(null);
+                }}
+              >
+                {t("editorRecentBar.togglePin")}
+              </ContextMenuItem>
+              <ContextMenuItem
+                icon={<RiLayoutColumnLine size={ICON.micro} />}
+                onClick={() => {
+                  if (splitSecondaryPath === titleTabMenu.path) clearSplit();
+                  else openInSplit(titleTabMenu.path);
+                  setTitleTabMenu(null);
+                }}
+              >
+                {splitSecondaryPath === titleTabMenu.path
+                  ? t("editorRecentBar.closeSplitRight")
+                  : t("editorRecentBar.openSplitRight")}
+              </ContextMenuItem>
+              <ContextMenuSeparator />
+            </>
+          ) : null}
+          <ContextMenuItem
+            icon={<RiCloseLine size={ICON.micro} />}
+            shortcut={formatChord("⌘W")}
+            onClick={() => {
+              closeFileTab(titleTabMenu.path);
+              setTitleTabMenu(null);
+            }}
+          >
+            {t("editorRecentBar.close")}
+          </ContextMenuItem>
+          {activeTab && fileTabs.length > 1 ? (
+            <ContextMenuItem
+              onClick={() => {
+                closeOtherFileTabs(titleTabMenu.path);
+                setTitleTabMenu(null);
+              }}
+            >
+              {t("editorRecentBar.closeOthers")}
+            </ContextMenuItem>
+          ) : null}
+          {fileTabs.length > 0 ? (
+            <ContextMenuItem
+              destructive
+              icon={<RiCloseCircleLine size={ICON.micro} />}
+              shortcut={formatChord("⌘⌥W")}
+              onClick={() => {
+                closeAllFileTabs({ closePinned: true });
+                setTitleTabMenu(null);
+              }}
+            >
+              {t("editorRecentBar.closeAll")}
+            </ContextMenuItem>
+          ) : null}
+          <ContextMenuSeparator />
+          <ContextMenuItem
+            onClick={() => {
+              const { x, y, path, label } = titleTabMenu;
+              setTitleTabMenu(null);
+              void Promise.resolve().then(() => {
+                fileMenu.open(
+                  {
+                    preventDefault() {},
+                    stopPropagation() {},
+                    clientX: x,
+                    clientY: y,
+                  } as React.MouseEvent,
+                  {
+                    path,
+                    label,
+                    kind: fileMenuKind(path),
+                  },
+                );
+              });
+            }}
+          >
+            {t("editorRecentBar.fileOps")}
+          </ContextMenuItem>
+        </ContextMenu>
+      ) : null}
+      <WorkspaceFileContextMenu menu={fileMenu.menu} onClose={fileMenu.close} />
     </header>
   );
 }

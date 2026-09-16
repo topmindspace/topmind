@@ -146,7 +146,7 @@
 
 - **左 Sidebar 主 header**（顺序固定）：**PrimaryNav（动态 · Inbox · 交付）→ Profile → 搜索 ⌘K → 记一下**。macOS 整组右对齐（红绿灯占左栏左侧）；Windows/Linux 左对齐（栏就是窗口左缘）。记一下是纯图标 chrome 按钮（`RiPencilLine` 铅笔，通用「写」认知），非实心 teal CTA，捕获强调色；tooltip/aria 承载文案（避免 macOS 原生按钮挤压）。
 - **左 Sidebar 次级 header**：ViewSwitcher 纯图标（动态 / 目录 / 时间 / 看板等）与树的排序 / 展开折叠 / 筛选 / 刷新合在**同一行**小图标；非目录模式隐藏树工具。
-- **中间 TitleBar**：三列顶栏共用 `.v4-column-chrome`（`--density-chrome-y` 44px · 控件 32px）对齐。左侧 = Toggle + 后退/前进 + 可点击祖先面包屑（第一层 `max-w-36`，后续更短）+ 当前页标题 + 该页统计；右侧 = 视图注入动作 slot（`data-titlebar-actions-slot`）+ AI 面板 toggle。集合页（动态 / Inbox / 交付 / 类别 / 专题 / 我的情况 / 归档）的身份与新建/整理/刷新等动作住在 TitleBar，画布不再重复 PageHeader 标题条。文件页把注入 AI / 发布 / 移动 / 记忆等原编辑器拖把右侧快捷键注入 TitleBar；拖把只留格式与编辑/预览。大纲 / 阅读外观 / 专注模式住在 FrontmatterBar 属性行右侧（`EditorViewChrome`），不挤格式条。
+- **中间 TitleBar**：三列顶栏共用 `.v4-column-chrome`（`--density-chrome-y` 44px · 控件 32px）对齐。左侧 = Toggle + 后退/前进 + 可点击祖先面包屑（第一层 `max-w-36`，后续更短）+ 当前页标题 + 该页统计；右侧 = 视图注入动作 slot（`data-titlebar-actions-slot`）+ AI 面板 toggle。集合页（动态 / Inbox / 交付 / 类别 / 专题 / 我的情况 / 归档）的身份与新建/整理/刷新等动作住在 TitleBar，画布不再重复 PageHeader 标题条。文件页把注入 AI / 发布 / 移动 / 记忆等原编辑器拖把右侧快捷键注入 TitleBar；拖把只留格式 + 编辑/预览图标 + 大纲/阅读/专注 + 属性开关 + 保存/⋯。**大纲 / 阅读外观 / 专注模式住在编辑器工具栏右侧**（`EditorViewChrome`），不再挂在属性行——属性默认收起时它们仍常驻。文件标题**右键**承载页签操作（关闭 / 固定 / 对照 / 文件操作），单页签（无 Tab 条）时这是主路径。
 - **StatusBar**：左端绿点 + **完整工作区路径**（`data-status-workspace-path`，不是 basename）；tooltip 含 engine 路径。**不含 PrimaryNav**（状态栏是状态，不是导航；主锚在侧栏主 header）。
 
 | 能力 | 唯一主家 | 侧栏收起后如何到达 |
@@ -229,7 +229,7 @@
 | **控件分层** | **一级**常显 · **二级**折叠 · **三级**「更多」/ Tooltip / `/slash`（见 §0.1） |
 | **CTA 权重** | 每区域 **一个** `Button variant=default`（主操作）；取消/复制用 outline/secondary；关闭 X 用 ghost。**捕获**：Sidebar 主 header「记一下」普通按钮 + 强调色图标/文字（禁止 `v4-titlebar-btn-capture` 实心）；**列表不再重复捕获**；空态才用 **outline**「打开记一下」作恢复 CTA；动态页实心仅为「记下」（`composeSubmit`），composer 眉题禁止复用「记一下」 |
 | **统一 chip 语言** | `.v4-chip` / `.v4-segmented` / `.v4-composer` / `CaptureModeBar` / FilterChip |
-| **列表 / 下拉** | 门户 `DropdownMenu`/`MenuSelect` / ContextMenu 共用 `.v4-menu-surface`；**先 hidden 测量再显示**（无打开闪跳）；**滚动即关**；画布菜单在 `html[data-overlay-open]` 时关闭；`z-menu(110)` > tooltip(100) > 工作台 overlay `z-modal`(80) |
+| **列表 / 下拉** | 门户 `DropdownMenu`/`MenuSelect` / ContextMenu 共用 `.v4-menu-surface`；**先 hidden 测量再显示**（无打开闪跳）；**滚动即关**；画布菜单在 `html[data-overlay-open]` 时关闭；`z-menu(110)` > tooltip(100) > 工作台 overlay `z-modal`(80)。**视口定位单实现** `lib/dropdown-position.ts`：`computeDropdownPosition`（表单/下拉，贴 trigger、上下 flip、边距 clamp）+ `placeContextMenu`（右键，近边翻转）；侧栏页脚等贴边 trigger 可 `preferPlacement: "top"` |
 | **空态** | `EmptyState`：图标芯片 + 一句原因 + **一个主 CTA**（侧栏 compact 同构）；时间线/标签空态须有下一步 |
 | **侧栏树** | 图标 `tree-node-icons` · 右键 `tree-node-context-menu` · 展开/排序/筛选 + **手动刷新** `tree-toolbar`（`data-sidebar-refresh` 仍在 toolbar 组件上，视觉上与 ViewSwitcher **同一行**——主 header 承载目的地，次级 chrome `data-sidebar-secondary-header` 只留视图切换与树工具；目录树本身不再另起工具行）· 路径 `lib/tree-path`；**文件名隐藏 `.md` 后缀**（`stripMdExt`）；**PARA 编号弱化渲染**（`renderCategoryLabel`：`00-` 前缀用 `text-text-quaternary/70`）。**感知**：`lib/tree-listing-change` 区分 listing（inbox/add/unlink/ingest-done）与 topic 内 content-only；空 inbox 写入后重建并展开，不依赖重启 |
 | **少硬分割线** | 编辑器常驻 ≤2 条 full-width 分割（工具栏 + 可选属性）；避免斑马纹；**Recent tab strip 无底边框**（`.v4-editor-recents` transparent + `shadow-divider-bottom`）；**标题栏 cluster 透明**（`.v4-titlebar-cluster` 无背景无 inset）；**搜索为侧栏图标按钮**（`.v4-search-trigger`，纯按钮无输入框，⌘K）；**侧栏主 header**（`data-sidebar-header`：PrimaryNav → Profile → 搜索 → 记一下）；**次级 header**（`data-sidebar-secondary-header`：ViewSwitcher 与树工具一行） |
@@ -242,7 +242,7 @@
 | **StatusBar 可交互** | 工作区正常：绿点 + **完整工作区路径**（`data-status-workspace-path`，tooltip 含 engine 路径）；异常才出错误文字。**不含 PrimaryNav**（主锚在侧栏主 header；收起时 TitleBar 紧凑图标）。**AI 就绪 pill（唯一主控件）**：离线->设置 · 就绪->toggle AI 面板；流式时 pill 显示会话态；**命名 busy 单路径**（`deriveStatusBarBusy`：apply > tasks > todo > suggest > **inline** 最多一颗命名 chip；todo/suggest/inline/apply 独占时 AI pill 不显示「工作中」）；**进度动效**：每个 busy chip 附带 `v4-ai-progress-dot` 脉动指示器；tooltip 含预期时长。**文件 chip 仅 file 选择时显示**（点击 reveal）。**建议计数在状态栏**（count>0 时 `showSuggestCountChip`；生成中走 busy chip；确认写入走 apply chip） |
 | **TitleBar 右轨分层** | **L1** 视图注入动作（`data-titlebar-actions-slot`）+ AI 轨开关（`.v4-titlebar-btn-ai`）。记一下不在 TitleBar（左栏 Sidebar 主 header）。建议 / 清单 / 应用在 AI 工作区 pane；主题 / 语言 / 设置在 WorkspaceSwitcher。`data-chrome-tier`；**badge 纪律：仅在需要行动时出现**——Inbox（分诊队列）+ 建议计数（状态栏 count>0）保留；交付计数（库存非行动）与清单常驻数字点（恒非零）已移除 |
 | **建议入口降噪** | 建议计数**恰好一处可见入口**：状态栏计数 chip（count>0 才出现）+ AI 工作区建议 tab；专注模式浮动 `SuggestPopover`；画布顶 strip 已删。禁止 strip + 轨 chip + 状态栏 三处等权 |
-| **编辑器默认 chrome** | 格式工具条 **默认展开**（`showFormat=true`，可收起）；常驻 ≤2 条 full-width 分割 |
+| **编辑器默认 chrome** | 格式工具条 **默认展开**（`showFormat=true`，可收起）；**属性行默认收起**；**Tab 条仅 ≥2 文件时出现**；编辑/预览纯图标；Save clean 勾点；常驻 ≤2 条 full-width 分割 |
 | **Todo idle** | `TodoPopover` 维护按钮 idle = ghost Sparkles；**仅 maintaining 时** `.v4-ai-chip-gradient` |
 | **应用 pane** | AI 工作区 **应用** pane（`AppsLaunchList`）：列表行（accent 图标 chip + 名称 + 一句描述）+「管理应用…」；候选 = 已启用首方（settingsKey 连接器 · launchable mini-app · builtin 管道 ingest）+ 活跃外部插件；**打开时实时拉 settings + 订阅 `plugins:settings-changed`**；未配置连接器标「待配置」pill；打开方式由 `resolveLaunchableOpenTarget` 决定；无写死插件 id（就绪判定集中在 `lib/apps-menu.pluginReadiness`）。⌘K「打开应用」经 Shell 调用 `openAiWorkspace("apps")` |
 | **设置 / 弹层** | `SettingsDialog` 用 elevated ladder + quiet nav chrome（`.v4-settings-dialog` / `.v4-settings-nav`）；sheet `role=dialog` `aria-modal`；`SettingsSection` 用 `shadow-card` 卡片；Command/Search palette header 走 elevated 混色；OverlayHost 见「弹层与对比度」 |
@@ -458,10 +458,10 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 - **动态主表面（Done）**：打开即 `StreamDetailView`（本周/当前周期本）。独立 HomeView 仪表盘已删除；「建议」在状态栏计数 → AI 工作区建议 pane；主 CTA「记一下」在左栏 Sidebar 主 header。
 - **CategoryView**：类别头部 + 专题列表 + 散记列表，支持新建专题/笔记快捷操作。
 - **TopicOverviewView**：专题头部 + 笔记列表（含修改时间/大小）。
-- **文件标签条**（`EditorRecentBar`）：多 tab pin/close/中键关/拖拽重排/右键菜单；溢出时左右 **edge fade**；激活 tab 滚入视野；右键 **在右侧打开对照**（分屏）。  
+- **文件标签条**（`EditorRecentBar`）：**条件式**——`fileTabs.length ≤ 1` **不渲染**（TitleBar 面包屑即身份；页签动作走标题右键 / ⌘W）；`≥2` 显示 slim 条（pin/close/中键关/拖拽重排/右键菜单）；溢出时左右 **edge fade**；激活 tab 滚入视野；右键 **在右侧打开对照**（分屏）。  
 - **编辑区对照分屏**（session-only）：`splitSecondaryPath` 在主 selection 旁开第二文件（可编辑）；拖拽中缝调比例；关闭/对调；关 tab 时自动清分屏。**不是**双 history / 双 selection 状态机。主槽与分屏次槽共用 `isMarkdownNotePath`：`.md` → `FileEditorView`，其它 → `FilePreviewView`（禁止第二套 `fileExt`）。  
 
-- **FileEditorView**：Tiptap + ⌘S；chrome 拆 `file-editor-chrome`（SaveBadge）· `file-editor-format-bar`（模式/格式默认展开/更多）· **`EditorReadingMenu`（阅读 Aa）**。格式轨：粗体/斜体/下划线/删除线/代码/H1–H3/列表/引用/链接/日期时间；与选区 AI 浮条独立。发布与 AI 编辑在轨上（icon+tooltip）；**唯一 ⋯** 放文件信息 / 专题记忆 / 发 X / 打开 AI 面板 / 挂载（动作不在轨上再出现一次）。窄宽 `data-compact` 隐藏 `[data-compact-hidden]` 标签，不截半截字。**编辑**用 TipTap；**预览 / 只读**用 `getEditorHtml()` 快照到静态 HTML（`.v4-tiptap`），不是同一实例 `setEditable` 切换。路径切换经 `nextPreviewHtml(..., { pathChanged: true })` 重置，空笔记不保留上一篇 HTML。**同一阅读偏好**（`data-paper` / `data-content-width` / `data-page-padding` + `proseStyle` 字号/行高/字体）包住两边。Frontmatter 在属性条，不进正文。专注模式 ⌘⌥F；`readOnly` 归档只读。  
+- **FileEditorView**：Tiptap + ⌘S；chrome 拆 `file-editor-chrome`（SaveBadge）· `file-editor-format-bar`（模式图标/格式默认展开/更多）· **`EditorReadingMenu`（阅读 Aa）**。**编辑/预览 = 纯图标 segmented**（tooltip 承载语义）；**SaveBadge clean 仅勾点**（dirty/saving/error 才展开文案）。格式轨：粗体/斜体/下划线/删除线/代码/H1–H4/列表/引用/链接/日期时间；与选区 AI 浮条独立。工具栏右侧常驻：`EditorViewChrome`（大纲 · Aa · 专注）+ **属性开关**（`RiPriceTag3Line`；折叠且有 status/priority/due 时显示摘要文案）+ **唯一 ⋯**（显示/隐藏属性 · 文件信息 · 字数）。**FrontmatterBar 属性行默认收起**（`propertiesOpen=false`）；展开才占一行 chips。发布与 AI 等注入 TitleBar，不在轨上双入口。窄宽 `data-compact` 隐藏 `[data-compact-hidden]` 标签。**编辑**用 TipTap；**预览 / 只读**用 `getEditorHtml()` 快照到静态 HTML（`.v4-tiptap`），不是同一实例 `setEditable` 切换。专注模式 ⌘⌥F；`readOnly` 归档只读。典型单文件 chrome：TitleBar 44 + 工具栏 32 ≈ **76px**（无 Tab 条、属性收起）。  
   - **行内 AI**（Notion 式 · `SelectionAiBar` + `ai.complete` / `ai.cancelComplete`）：  
     - **出现**：非空选区 → 浮条；工具栏 ✨ / 右键「AI 改写」→ 主动面板（**同一动作集**）；**无**空行常驻 chip  
     - **动作**：润色 / 简洁 / 扩写 / 列表 / **格式** / 纠错 / 总结 / 续写 / 自定义指令  

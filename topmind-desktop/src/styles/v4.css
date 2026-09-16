@@ -1566,6 +1566,10 @@ html.dark .v4-drop-target-active {
 .v4-menu-item:hover {
   background: var(--color-surface-muted);
 }
+.v4-menu-item:active:not([data-disabled]):not(:disabled) {
+  background: var(--color-surface-muted);
+  filter: brightness(0.97);
+}
 .v4-menu-item:focus-visible,
 .v4-menu-item:focus {
   background: var(--color-accent-bg-faint);

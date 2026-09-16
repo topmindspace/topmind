@@ -40,8 +40,6 @@ export const MENU_TOP_LEVEL_IDS = ["app", "file", "edit", "workspace", "view", "
 
 /** Renderer-owned command ids beyond the keyboard registry. Mirrored in src/lib/native-menu.ts. */
 export const MENU_EXTRA_COMMANDS = [
-  "view.toggle-sidebar",
-  "view.toggle-ai",
   "ai-tab.chat",
   "ai-tab.suggest",
   "ai-tab.todo",
@@ -289,13 +287,15 @@ export function buildMenuTemplate(opts) {
         type: "checkbox",
         label: t("menu.toggleSidebar"),
         checked: !state.sidebarCollapsed,
-        click: () => send({ id: "view.toggle-sidebar" }),
+        ...chord("CmdOrCtrl+B"),
+        click: () => send({ id: "toggle-sidebar" }),
       },
       {
         type: "checkbox",
         label: t("menu.toggleAi"),
         checked: Boolean(state.aiPanelOpen),
-        click: () => send({ id: "view.toggle-ai" }),
+        ...chord("CmdOrCtrl+Alt+B"),
+        click: () => send({ id: "toggle-ai-panel" }),
       },
       {
         type: "checkbox",
@@ -307,6 +307,7 @@ export function buildMenuTemplate(opts) {
       sep(),
       cmd("back", t("menu.back"), chord("CmdOrCtrl+[")),
       cmd("forward", t("menu.forward"), chord("CmdOrCtrl+]")),
+      sep(),
       cmd("toggle-split", t("menu.split"), chord("CmdOrCtrl+\\")),
       cmd("task-panel", t("menu.taskPanel"), chord("CmdOrCtrl+Shift+J")),
       cmd("todo", t("menu.todo"), chord("CmdOrCtrl+Shift+T")),
@@ -331,26 +332,24 @@ export function buildMenuTemplate(opts) {
           })),
         ),
       },
+      {
+        label: t("menu.zoom"),
+        submenu: [
+          cmd("view.zoom.reset", t("menu.resetZoom"), chord("CmdOrCtrl+0")),
+          cmd("view.zoom.in", t("menu.zoomIn"), chord("CmdOrCtrl+Plus")),
+          cmd("view.zoom.out", t("menu.zoomOut"), chord("CmdOrCtrl+-")),
+        ],
+      },
       sep(),
+      // Reload is a rare recovery door; forceReload / DevTools stay out of the
+      // everyday strip except in dev (F12 is the Windows convention).
       { label: t("menu.reload"), role: "reload" },
-      { label: t("menu.forceReload"), role: "forceReload" },
-      // Explicit F12 instead of the role default: `toggleDevTools` carries
-      // Ctrl+Shift+I on Windows/Linux, which is the renderer's Inbox chord
-      // (⌘⇧I → `inbox` in shortcuts.ts). Roles have no display-only mode, so the
-      // default really would register — and a dev build would open Inbox and
-      // DevTools on one keypress. F12 is the Windows convention and collides with
-      // nothing on either side.
-      ...(isDev ? [{ label: t("menu.devTools"), role: "toggleDevTools", accelerator: "F12" }] : []),
-      sep(),
-      // Zoom deliberately does NOT use the resetZoom/zoomIn/zoomOut roles: those
-      // register CmdOrCtrl+0 / +/- themselves, and the renderer's useShellShortcuts
-      // already owns Ctrl+zoom on Windows/Linux — two owners means one keypress
-      // zooms twice. Routing through the renderer command keeps a single owner on
-      // every platform, and the renderer only treats ⌘ as the menu's business
-      // (hence display-only chords off macOS).
-      cmd("view.zoom.reset", t("menu.resetZoom"), chord("CmdOrCtrl+0")),
-      cmd("view.zoom.in", t("menu.zoomIn"), chord("CmdOrCtrl+Plus")),
-      cmd("view.zoom.out", t("menu.zoomOut"), chord("CmdOrCtrl+-")),
+      ...(isDev
+        ? [
+            { label: t("menu.forceReload"), role: "forceReload" },
+            { label: t("menu.devTools"), role: "toggleDevTools", accelerator: "F12" },
+          ]
+        : []),
       sep(),
       // Label mirrors the live window state (main owns it — the renderer never
       // pushes fullscreen through updateMenuState): macOS's own 全屏 menu item

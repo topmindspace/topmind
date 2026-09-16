@@ -46,12 +46,6 @@ function runExtraCommand(cmd: AppMenuCommand): boolean {
   }
 
   switch (id) {
-    case "view.toggle-sidebar":
-      store.toggleSidebar();
-      return true;
-    case "view.toggle-ai":
-      store.toggleAiPanel();
-      return true;
     case "view.zoom.in":
     case "view.zoom.out":
     case "view.zoom.reset":

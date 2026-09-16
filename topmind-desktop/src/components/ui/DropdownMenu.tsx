@@ -287,6 +287,8 @@ export function DropdownItem({
   destructive,
   active,
   className,
+  icon,
+  shortcut,
 }: {
   children: ReactNode;
   onSelect: () => void;
@@ -294,6 +296,10 @@ export function DropdownItem({
   destructive?: boolean;
   active?: boolean;
   className?: string;
+  /** Leading glyph slot — same chrome as ContextMenuItem. */
+  icon?: ReactNode;
+  /** Trailing chord string (already platform-formatted). */
+  shortcut?: string;
 }) {
   return (
     <button
@@ -307,7 +313,7 @@ export function DropdownItem({
         onSelect();
       }}
       className={cn(
-        "v4-menu-item flex w-full items-center gap-2 rounded-[var(--radius-md)] px-2.5 py-[7px] text-left text-3xs font-medium outline-none",
+        "v4-menu-item flex w-full items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-[7px] text-left text-3xs font-medium outline-none",
         "disabled:opacity-40",
         destructive
           ? "text-error hover:bg-status-error-bg focus-visible:bg-status-error-bg focus:bg-status-error-bg"
@@ -317,7 +323,15 @@ export function DropdownItem({
         className,
       )}
     >
-      {children}
+      {icon ? (
+        <span className="flex h-4 w-4 shrink-0 items-center justify-center text-text-tertiary opacity-90">
+          {icon}
+        </span>
+      ) : null}
+      <span className="min-w-0 flex-1 truncate">{children}</span>
+      {shortcut ? (
+        <span className="v4-kbd shrink-0 text-text-quaternary">{shortcut}</span>
+      ) : null}
     </button>
   );
 }

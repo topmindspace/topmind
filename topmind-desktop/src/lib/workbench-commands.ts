@@ -76,6 +76,15 @@ export function runWorkbenchAction(action: ShortcutAction): boolean {
       store.toggleFocusMode();
       return true;
 
+    case "toggle-sidebar":
+      store.toggleSidebar();
+      return true;
+
+    case "toggle-ai-panel":
+      // Same door as the menu / TitleBar: openAiWorkspace steps focus mode aside.
+      store.toggleAiPanel();
+      return true;
+
     case "close-tab": {
       const active = store.selection;
       const path =

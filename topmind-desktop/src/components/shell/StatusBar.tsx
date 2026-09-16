@@ -17,7 +17,6 @@ import { useTaskStore } from "../../stores/task-store";
 import { useTodoStore } from "../../stores/todo-store";
 import { useActionStore } from "../../stores/action-store";
 import { useRegistry } from "../../plugins/registry";
-import { api } from "../../services/api";
 import { cn } from "../../lib/cn";
 import { ICON } from "../../lib/icons";
 import { sessionStatusLabel } from "../../lib/stream-status";
@@ -27,6 +26,10 @@ import {
 } from "../../lib/status-bar-busy";
 import { useInlineAiStore } from "../../lib/inline-ai-busy";
 import { Tooltip } from "../ui/tooltip";
+import {
+  useFileContextMenu,
+  WorkspaceFileContextMenu,
+} from "../ui/workspace-file-menu";
 import type { Selection } from "../../types";
 import { emitLocal, onLocal } from "../../plugins/host";
 
@@ -464,34 +467,42 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
 
 /**
  * Center orientation hint — **file selections only**.
- * Primary click focuses the file in the editor (the user's expectation for a
- * "current file" chip); reveal-in-Finder demotes to the context menu.
- * Non-file views are already identified by TitleBar identity, so repeating
- * them here was pure noise (降噪 2026-08).
+ * Primary click focuses the file in the editor; right-click opens the shared
+ * WorkspaceFileContextMenu (same actions as sidebar / editor tabs), not a bare
+ * reveal side effect. Non-file views stay identified by TitleBar (降噪 2026-08).
  */
 function SelectionHint({ selection }: { selection: Selection }) {
   const { t } = useTranslation(["shell", "common"]);
   const select = useViewStore((s) => s.select);
+  const fileMenu = useFileContextMenu();
   if (selection.kind !== "file") return null;
   const label = selection.path.split("/").pop() ?? selection.path;
   const tip = `${selection.path}\n${t("statusBar.fileChipTip")}`;
+  const parts = selection.path.split("/");
   return (
-    <Tooltip content={tip}>
-      <button
-        type="button"
-        onClick={() => select({ kind: "file", path: selection.path })}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          void api.sys.reveal(selection.path).catch(() => {});
-        }}
-        className={cn(
-          "flex max-w-full items-center gap-1 truncate rounded-sm px-1.5 py-0.5 text-text-quaternary",
-          "transition-colors hover:bg-surface-muted hover:text-text-secondary v4-focus-ring",
-        )}
-      >
-        <RiFileTextLine size={ICON.micro} className="shrink-0" aria-hidden />
-        <span className="truncate">{label}</span>
-      </button>
-    </Tooltip>
+    <>
+      <Tooltip content={tip}>
+        <button
+          type="button"
+          onClick={() => select({ kind: "file", path: selection.path })}
+          onContextMenu={(e) => {
+            fileMenu.open(e, {
+              path: selection.path,
+              label,
+              kind: /(^|\/)99[- ]/u.test(selection.path) ? "archive" : "note",
+              topicId: parts.length >= 3 ? `${parts[0]}/${parts[1]}` : undefined,
+            });
+          }}
+          className={cn(
+            "flex max-w-full items-center gap-1 truncate rounded-sm px-1.5 py-0.5 text-text-quaternary",
+            "transition-colors hover:bg-surface-muted hover:text-text-secondary v4-focus-ring",
+          )}
+        >
+          <RiFileTextLine size={ICON.micro} className="shrink-0" aria-hidden />
+          <span className="truncate">{label}</span>
+        </button>
+      </Tooltip>
+      <WorkspaceFileContextMenu menu={fileMenu.menu} onClose={fileMenu.close} />
+    </>
   );
 }

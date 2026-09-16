@@ -83,6 +83,10 @@ test("EditorFormatBar ships format toggles; more ⋯ is exclusive", () => {
     assert.match(fmt, new RegExp(token));
   }
   assert.match(view, /const \[showFormat, setShowFormat\] = useState\(true\)/);
+  // Properties row default-collapsed; save badge quiet when clean.
+  assert.match(view, /const \[propertiesOpen, setPropertiesOpen\] = useState\(false\)/);
+  assert.match(chromeSrc, /showLabel = effective !== "clean"/);
+  assert.match(fmt, /showPropertiesToggle/);
   assert.match(view, /EditorFormatBar/);
   assert.doesNotMatch(view, /showFormat.*selectionAi|selectionAi.*showFormat/u);
   // Single ⋯ menu — rail publish/AI-edit are not also DropdownItems
@@ -103,16 +107,37 @@ test("EditorFormatBar ships format toggles; more ⋯ is exclusive", () => {
   assert.doesNotMatch(mop, /onPublish=\{\(\) => void handlePublish/);
   assert.match(mop, /EditorFormatBar/);
   assert.match(mop, /EditorModeSwitch/);
+  // View chrome (outline / reading / focus) stays on the format toolbar even when
+  // the properties row is collapsed — not parked on FrontmatterBar.trailing.
   assert.match(view, /EditorViewChrome/);
-  assert.match(view, /trailing=\{viewChrome\}/);
-  assert.doesNotMatch(mop, /EditorReadingMenu/);
+  assert.doesNotMatch(view, /trailing=\{viewChrome\}/);
+  assert.match(mop, /\{viewChrome\}/);
   assert.doesNotMatch(fmt, /Format-rail status cluster — file-info \/ focus/);
   assert.match(fmt, /RiH3/);
   const dateIdx = fmt.indexOf("onInsertDateTime ? (");
   const showFormatIdx = fmt.indexOf("{showFormat ? (");
   assert.ok(showFormatIdx >= 0 && dateIdx > showFormatIdx, "date-time control must sit inside showFormat");
-  // Compact hides labels via data-compact, not truncated unlabeled fragments
+  // Compact hides optional labels via data-compact; mode switch is always icon-only
+  // (tooltip carries meaning) so format-bar no longer ships compact-hidden text labels.
   assert.match(css, /\[data-compact="true"\] \[data-compact-hidden\]/);
   assert.match(view, /data-compact=\{toolbarCompact/);
-  assert.match(fmt, /data-compact-hidden/);
+  assert.match(view, /data-compact-hidden/);
+  assert.doesNotMatch(fmt, /sm:inline.*formatBar\.edit|formatBar\.edit.*sm:inline/s);
+});
+
+test("tab strip is conditional; title bar carries tab ops when strip is hidden", () => {
+  const recents = readFileSync(
+    path.join(root, "src/components/shell/EditorRecentBar.tsx"),
+    "utf8",
+  );
+  const titleBar = readFileSync(
+    path.join(root, "src/components/shell/TitleBar.tsx"),
+    "utf8",
+  );
+  // ≤1 open file: no strip row (TitleBar breadcrumb is the identity)
+  assert.match(recents, /fileTabs\.length <= 1\) return null/);
+  // TitleBar right-click opens the tab/file context menu for the active file
+  assert.match(titleBar, /onContextMenu=\{activeFilePath \? openTitleTabMenu/);
+  assert.match(titleBar, /closeFileTab/);
+  assert.match(titleBar, /editorRecentBar\.close/);
 });
