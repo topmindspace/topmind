@@ -626,7 +626,7 @@ export function friendlySuggestionPath(rawPath?: string): string | null {
  */
 
 export type MemoryFeedKind = "profile" | "periodic" | "topic";
-export type MemoryFeedLayer = "all" | MemoryFeedKind;
+export type MemoryFeedLayer = "all" | MemoryFeedKind | "history";
 
 export interface MemoryFeedItem {
   id: string;
