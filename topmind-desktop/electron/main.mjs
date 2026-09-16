@@ -149,7 +149,28 @@ const settingsAdapter = {
   isEncryptionAvailable: () => safeStorage.isEncryptionAvailable(),
   encryptString: (v) => safeStorage.encryptString(v).toString("base64"),
   decryptString: (v) => safeStorage.decryptString(Buffer.from(v, "base64")),
+  // Local AES fallback attached after ready — survives brew re-sign / keychain ACL change.
+  encryptLocal: null,
+  decryptLocal: null,
 };
+
+/** Attach local AES secret fallback once desktopStateHome exists. */
+async function attachLocalSecretFallback() {
+  try {
+    const { createLocalSecretAdapter } = await import("./lib/local-secret.mjs");
+    const settingsPath = path.join(desktopStateHome, "state", "app-settings.json");
+    const local = await createLocalSecretAdapter(settingsPath);
+    if (local?.available) {
+      settingsAdapter.encryptLocal = local.encryptLocal;
+      settingsAdapter.decryptLocal = local.decryptLocal;
+      logInfo("main", "local AES secret fallback ready");
+    }
+  } catch (err) {
+    logWarn("main", "local AES secret fallback unavailable", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
 
 function statePaths(wsRoot) { return resolveWorkspaceStatePaths(desktopStateHome, wsRoot || defaultWsRoot); }
 function settingsFile() { return statePaths().settingsFilePath; }
@@ -1313,6 +1334,8 @@ if (!hasLock) { app.quit(); } else {
         "safeStorage unavailable — API keys stored without OS encryption. Install libsecret (e.g. libsecret-1-0 + gnome-keyring) for encrypted keys.",
       );
     }
+    // Local AES fallback for API keys (survives brew re-sign / keychain ACL change).
+    await attachLocalSecretFallback();
     // Workspace media for editor relative images (topmind-asset://local/…)
     registerMediaProtocolHandler({ protocol, net }, () => currentCtx);
     try {

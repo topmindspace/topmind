@@ -2,6 +2,7 @@
  * Path / topic mutation ops — no Electron dependency (testable on Node).
  */
 import { promises as fs } from "node:fs";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import {
   resolveDataRoot, outputsRoot, archiveRoot, parseTopicId, buildTopicId, CATEGORY_PATTERN,
@@ -23,6 +24,11 @@ import { t as i18n } from "./electron-i18n.mjs";
 
 function bumpWorkspaceIndex(relativePath) {
   invalidateNotesIndex(relativePath);
+}
+
+/** Short content fingerprint for optimistic concurrency on edit_file. */
+export function contentHash(text) {
+  return createHash("sha256").update(String(text ?? ""), "utf8").digest("hex").slice(0, 16);
 }
 
 /** Map Kernel surface evidence → legacy Desktop camelCase evidence shape. */
@@ -193,16 +199,19 @@ export const pathOps = {
       maxLimit: 5000,
       maxChars: 80_000,
     });
+    const hash = contentHash(full);
     if (win.empty && win.locate !== "query-not-found" && win.locate !== "heading-not-found" && win.locate !== "heading-ambiguous") {
       return {
         ...win,
+        contentHash: hash,
         note: i18n("pathOps.offsetBeyondEnd", { start: win.offset, total: win.totalLines }),
       };
     }
-    if (win.empty) return win;
+    if (win.empty) return { ...win, contentHash: hash };
     const locNote = win.locate ? `${win.locate}; ` : "";
     return {
       ...win,
+      contentHash: hash,
       note: win.truncated
         ? `${locNote}${i18n("pathOps.returnedLinesContinue", { start: win.startLine, end: win.endLine, total: win.totalLines })}`
         : `${locNote}${i18n("pathOps.returnedLines", { start: win.startLine, end: win.endLine, total: win.totalLines })}`,
@@ -214,7 +223,7 @@ export const pathOps = {
    */
   async editPath({
     relativePath, oldText, newText, replaceAll = false,
-    startLine, endLine, heading, actor, confirmed,
+    startLine, endLine, heading, actor, confirmed, expectedHash,
   }, ctx) {
     S(relativePath, "relativePath");
     if (!relativePath.endsWith(".md")) throw new Error(i18n("pathOps.editMdOnly"));
@@ -238,6 +247,16 @@ export const pathOps = {
     const fp = await sp(ctx.workspaceRoot, relativePath);
     const old = await fs.readFile(fp, "utf8").catch(() => null);
     if (old === null) throw new Error(i18n("pathOps.fileNotExist", { path: relativePath }));
+
+    // Optimistic concurrency: refuse when the file changed since the model last read it.
+    const currentHash = contentHash(old);
+    if (typeof expectedHash === "string" && expectedHash.trim() && expectedHash.trim() !== currentHash) {
+      throw new Error(
+        `${i18n("pathOps.hashMismatch", { path: relativePath })}\n` +
+        `currentHash: ${currentHash}\n` +
+        `hint: call read_file({ relativePath: "${relativePath}", around: "keyword", limit: 80 }) to refresh contentHash and oldText, then retry edit_file.`,
+      );
+    }
 
     const { loadKernelApi } = await import("./kernel-api.mjs");
     const kernel = await loadKernelApi();
@@ -292,6 +311,30 @@ export const pathOps = {
     }
     bumpWorkspaceIndex(relativePath);
     const replacements = applied.replacements;
+    // Fresh numbered window around the first replacement so the agent can
+    // continue multi-step edits without re-reading stale line numbers.
+    let postEditWindow = null;
+    try {
+      const firstSpan = applied.spans?.[0];
+      if (firstSpan) {
+        const before = next.slice(0, firstSpan.start);
+        const startLine = before.split("\n").length;
+        const { sliceLineWindow, numberLines } = await import("./file-window.mjs");
+        const win = sliceLineWindow(next, {
+          offset: Math.max(1, startLine - 8),
+          limit: Math.max(24, Math.ceil((firstSpan.end - firstSpan.start) / 40) + 24),
+          maxLimit: 80,
+        });
+        postEditWindow = {
+          startLine: win.startLine,
+          endLine: win.endLine,
+          totalLines: win.totalLines,
+          content: numberLines(win.content, win.startLine),
+        };
+      }
+    } catch {
+      /* window is best-effort; never fail the edit because of it */
+    }
     // Truncate snippets for UI diff display (avoid huge payloads)
     const MAX_SNIPPET = 300;
     const oldSnippet = oldText.length > MAX_SNIPPET
@@ -310,6 +353,8 @@ export const pathOps = {
       note: i18n("pathOps.replacedCount", { count: replacements }),
       oldSnippet,
       newSnippet,
+      postEditWindow,
+      contentHash: contentHash(next),
     };
   },
 

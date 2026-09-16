@@ -122,7 +122,7 @@ contextBridge.exposeInMainWorld('topmind', {
 | `lib/inline-ai-result.mjs` | 行内结果清洗纯函数（主进程 + 单测）；渲染层 `src/lib/inline-ai-result.ts` 镜像 |
 | `ai-service.mjs` | invoke 默认 `runPiAgent`（`useTools!==false`）；模块加载失败才 `runStream`；`steerStream` / `queueFollowUp`；skills catalog；**错误标记 `isError` + `usage`/`modelId` 回传渲染层** |
 | `lib/ai-tool-evidence.mjs` | 写回回执归一化 + 工具摘要（路径/备份） |
-| `lib/ai-session-compact.mjs` | token 估算 + 工具时间线折叠 + 中间摘要（maxMessages 60 / keepRecent 24 / maxChars 240K ≈ 80K tokens — 适配 128K+ 现代模型） |
+| `lib/ai-session-compact.mjs` | token 估算 + 工具时间线折叠 + 中间摘要（默认 maxMessages 60 / keepRecent 24 / maxChars 240K ≈ 80K tokens；另按模型 contextWindow 动态缩放，settings 显式值优先） |
 | `ChatMessage.tsx` | **错误重试按钮**（`isError` → ErrorBlock + `regenerate()`）；**Token 用量徽章**（`usage.promptTokens ↑ / completionTokens ↓`）|
 
 **工作循环（默认）**：Route（对照 catalog）→ Activate（`load_skill`）→ Execute（Workspace 工具）→ Receipt。  
@@ -151,7 +151,7 @@ contextBridge.exposeInMainWorld('topmind', {
 
 | 数据 | 位置 | 说明 |
 |------|------|------|
-| 应用设置 | `~/topmind/topmind-desktop/state/app-settings.json`（+ `.bak`） | 原子写；密钥 safeStorage；含 `plugins.externalEnabled` · `ai.extraSkillsRoots` |
+| 应用设置 | `~/topmind/topmind-desktop/state/app-settings.json`（+ `.bak`） | 原子写；密钥 safeStorage + 本地 AES（`.secret-key`）双层；含 `plugins.externalEnabled` · `ai.extraSkillsRoots` |
 | 第三方插件 | `~/topmind/topmind-desktop/plugins/` | 每插件一文件夹；卸载进 `plugins/.trash/` |
 | Skills 扩展 | `~/topmind/topmind-desktop/skills-extra/` | 可选；回执 `.topmind-skills-extra-install.json`；重装进 `skills-extra/.trash/` |
 | UI 布局 | `settings.ui.*` | Shell 防抖 + pagehide 冲刷 |
@@ -260,8 +260,8 @@ AiService.invoke
 ```
 
 超时策略：
-- 总超时：4 分钟（硬上限，multi-step）
-- 空闲超时：120 秒（无 chunk 时触发，足够覆盖工具执行）
+- 总超时：15 分钟（硬上限，multi-step）
+- 空闲超时：180 秒（无 chunk 时触发，足够覆盖 fetch + 多文件写）
 - 检查间隔：10 秒
 
 写/读工具：`edit_file`（Kernel `applyUniqueSpan`：精确 → 换行/行尾空白规范化；多处拒绝；失败带 nearby/context；**不写 Archive**）· `save_file` 整文件覆盖（**仅 locked 覆盖备份**；open 不备份）· `delete_path` 跟 `isRecoverableLifecycle`（普通开放笔记无 trash；锁定 / 专题首页 / 交付 才进归档）· `read_file` 带行号窗口 + `around`/`heading` 中段定位 · `search`=`grepWorkspace`（可 scope、默认可跳过 Archive、行号命中）。  
@@ -385,7 +385,7 @@ resolveModel 解析: provider=openai, modelId=gpt-4o-mini
 
 ### AI 设置持久化（关键）
 
-API Key 通过 Electron `safeStorage` 加密存储。**所有读取设置的服务必须使用 `loadAppSettings` + `secretAdapter`**，不能直接 `readJson` 读取设置文件——磁盘文件中 `ai.manual` 的 key 字段是空字符串（加密后清空），实际密钥在 `secureStorage.manual` 中。
+API Key 双层加密：Electron `safeStorage` 优先 + 本地 AES-256-GCM（`state/.secret-key`，0600）兜底。brew 升级/重签导致 safeStorage 解密失败时自动走本地 AES。**所有读取设置的服务必须使用 `loadAppSettings` + `secretAdapter`**，不能直接 `readJson` 读取设置文件——磁盘文件中 `ai.manual` 的 key 字段是空字符串（加密后清空），实际密钥在 `secureStorage.manual` / `secureStorage.manualLocal` 中。
 
 ```
 getSettings()     → loadAppSettings(fp, root, { secretAdapter })  ✓ 解密
@@ -434,7 +434,7 @@ AiPanel 模型下拉选择器的 `onChange` 不仅更新内存 store，还同步
 
 ### AI 工具暴露策略（全能力 Agent，无 UTR）
 
-`buildDesktopAiTools`（`electron/ai-tools.mjs`）→ **WorkspaceService**。系统提示只列出实际加载的 snake_case 工具名。多步 tool loop：`maxAgentSteps` 默认 **20**（`AGENT_STEPS_DEFAULT` / `DEFAULT_MAX_AGENT_STEPS`，可配 3–50）。Skills 以 playbook + `/slash` 接入，不是第二进程。
+`buildDesktopAiTools`（`electron/ai-tools.mjs`）→ **WorkspaceService**。系统提示只列出实际加载的 snake_case 工具名。多步 tool loop：`maxAgentSteps` 默认 **32**（`AGENT_STEPS_DEFAULT` / `DEFAULT_MAX_AGENT_STEPS`，可配 3–80）；步数耗尽且任务未完成时 **auto-continue**（最多 2 次，状态 `continuing`）。`edit_file` 支持 `expectedHash` 乐观并发（`contentHash` 来自 `read_file`/`edit_file`）。**模型窗口**：`resolveModel` 从 `ai.modelCache` 注入 `contextWindow`，驱动动态 compact 预算。**思考强度**：agent 模式默认 high（OpenAI `reasoningEffort` / Anthropic `thinking.budgetTokens` / Gemini `thinkingBudget`）。Pi runtime 异常自动降级 AI SDK `streamText`。Skills 以 playbook + `/slash` 接入，不是第二进程。
 
 | 写回模式 | 暴露的工具 | 说明 |
 |----------|-----------|------|

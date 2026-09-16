@@ -132,7 +132,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | stream packing（周期本）+ 年目录 + 归档 | stream-period · model-stream · capture |
 | 写回伦理理念（备份/回执） | writeback-engine（**仅高影响**备份+回执：locked 覆盖 · 锁定/核心笔记 delete/archive；普通开放笔记无 trash；`BACKUP_KEEP=3` · `RECEIPT_KEEP=50`） |
 | Skills 纯 Markdown + 三级降级 | skills/ |
-| skill-first Desktop agent | ai-prompts · skills-runtime（agent 循环 `pi-agent-core`；LLM providers AI SDK v7；会话压缩 240K/60；默认模型 gpt-4o-mini / gemini-3.6-flash / claude-sonnet-5 / grok-3-mini） |
+| skill-first Desktop agent | ai-prompts · skills-runtime（agent 循环 `pi-agent-core`；LLM providers AI SDK v7；会话压缩默认 240K/60 且按模型 contextWindow 动态缩放；默认模型 gpt-4o-mini / gemini-3.6-flash / claude-sonnet-5 / grok-3-mini） |
 | 捕获 / Clip / 文档 ingest 队列 | Desktop + extension（默认 anydoc sidecar；可选 markitdown/pandoc；内置 JS 兜底；升级矩阵见 document-ingest） |
 | 质量门 · pack 纪律 | scripts · CI |
 | 拒 coding-agent 内核（Pi） | ADR 2026-07-21；2026-09-07 对 `@earendil-works/pi-*@0.85.1` 再确认（`adr/2026-09-07-pi-engine-and-three-column-reevaluation.md`） |

@@ -303,7 +303,7 @@ describe("protect gate boundaries (evaluateWritePermission)", () => {
     assert.equal(r.allowed, false);
   });
 
-  it("frontmatter protection: locked denies AI but allows user", () => {
+  it("frontmatter protection: locked denies AI in auto but allows user", () => {
     const contract = buildDefaultContract();
     const target = path.join(ws, "20-专题", "2026-测试", "topic.md");
     const fm = { protection: "locked" };
@@ -311,6 +311,17 @@ describe("protect gate boundaries (evaluateWritePermission)", () => {
     assert.equal(ai.allowed, false);
     const user = evaluateWritePermission({ contract, targetPath: target, workspaceRoot: ws, frontmatter: fm, actor: "user" });
     assert.equal(user.allowed, true);
+  });
+
+  it("confirm mode: locked AI write is pending (user authorization), still protected from silent write", () => {
+    const contract = buildDefaultContract();
+    contract.writeback.mode = "confirm";
+    const target = path.join(ws, "20-专题", "2026-测试", "topic.md");
+    const fm = { protection: "locked" };
+    const ai = evaluateWritePermission({ contract, targetPath: target, workspaceRoot: ws, frontmatter: fm, actor: "ai" });
+    assert.equal(ai.allowed, true);
+    assert.equal(ai.needsConfirm, true);
+    assert.equal(ai.protection, "locked");
   });
 
   it("confirm mode: AI writes need confirm, user writes do not", () => {

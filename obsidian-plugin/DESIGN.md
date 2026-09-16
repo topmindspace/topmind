@@ -400,7 +400,7 @@ AI 对话自动注入以下上下文（无需用户手动选择）：
 | 用户画像 | 前 3000 字符 | `memory/profile.md` |
 | 对话历史 | 最近 10 轮 | 保持对话连贯性 |
 
-对话可经 Kernel 读窗口 / 唯一片段改稿（与 Desktop `read_file` / `edit_file` 同一匹配与写闸契约），不是 generate-only。写回跟随 `topmind.yaml`（confirm 仍可调用 edit；锁定笔记拒绝未确认 AI 覆盖）。指令语言：`en*` → 英文，否则中文。
+对话可经 Kernel 读窗口 / 唯一片段改稿（与 Desktop `read_file` / `edit_file` 同一匹配与写闸契约），不是 generate-only。写回跟随 `topmind.yaml`（confirm 仍可调用 edit；locked+auto 拒绝 AI，confirm 待确认）。指令语言：`en*` → 英文，否则中文。
 
 ### 8.2 对话交互
 

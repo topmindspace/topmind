@@ -87,7 +87,7 @@ topmind 的主表面是**个人动态流**——不是文件夹管理器、不�
 | `auto` | 自动保存（默认） | 单文件直接写（返回路径 evidence）；YAML 回执/备份 **仅高影响**（locked 覆盖；锁定/核心 delete） |
 | `confirm` | 保存前问我 | AI 写工具仍注册；结果进入**审阅入口**（待确认写入 / AI 工作区建议 pane），用户接受后再落盘 |
 
-**优先级**：`protection` > `writeback.mode`（locked 时 AI 禁止直接写）。
+**优先级**：`protection` × `writeback.mode`。locked + AI：`auto` 拒绝；`confirm` 进入待确认（用户授权路径，接受后仍高影响备份）。
 
 **主动智能（Reset D · Done）**：
 

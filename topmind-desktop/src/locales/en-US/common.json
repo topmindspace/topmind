@@ -125,6 +125,7 @@
     "organizingContext": "Organizing context",
     "contextAdded": "Context added",
     "responding": "Responding",
+    "continuing": "Continuing",
     "completed": "Completed",
     "session": "Session",
     "msgCount": "{{count}} msgs"

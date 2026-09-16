@@ -103,6 +103,31 @@ describe("precise-edit matcher", () => {
     assert.equal(applied.ok, false);
     assert.match(applied.diagnostic, /nearby\/context/u);
   });
+
+  it("loose line-level match tolerates blank lines / list markers / bold", () => {
+    const hay = "intro\n\n- **alpha item**\n- beta item\n\noutro\n";
+    const applied = applyUniqueSpan(hay, {
+      oldText: "- alpha item\n- beta item",
+      newText: "- alpha revised\n- beta revised",
+    });
+    assert.equal(applied.ok, true, applied.ok ? "" : applied.diagnostic);
+    assert.equal(applied.mode, "loose");
+    assert.match(applied.next, /alpha revised/);
+    assert.match(applied.next, /beta revised/);
+  });
+
+  it("stale startLine window auto-expands and still finds the span", () => {
+    const hay = bigNote();
+    // Line numbers from an older revision point at empty padding near the top.
+    const applied = applyUniqueSpan(hay, {
+      oldText: "UNIQUE_MIDDLE_PARAGRAPH_TARGET: the original middle thought.",
+      newText: "UNIQUE_MIDDLE_PARAGRAPH_TARGET: after window expand.",
+      startLine: 1,
+      endLine: 20,
+    });
+    assert.equal(applied.ok, true, applied.ok ? "" : applied.diagnostic);
+    assert.match(applied.next, /after window expand/);
+  });
 });
 
 describe("file-window mid-file locate", () => {

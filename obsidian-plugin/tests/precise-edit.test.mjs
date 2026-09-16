@@ -76,7 +76,7 @@ describe("Obsidian chat locale + tool guide", () => {
         assert.match(guide, /unique-span|唯一片段|先精确再容忍/i);
         assert.doesNotMatch(guide, /must match file content exactly|必须精确匹配文件内容/);
         assert.doesNotMatch(guide, /no write tools|不注册写工具|只读草稿/);
-        assert.match(guide, /protection outranks|保护级别优先/);
+        assert.match(guide, /locked|锁定/);
         if (mode === "confirm") {
           assert.match(guide, /ask before save|保存前问我|pending|待确认/);
         } else {

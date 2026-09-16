@@ -231,7 +231,7 @@
 | **统一 chip 语言** | `.v4-chip` / `.v4-segmented` / `.v4-composer` / `CaptureModeBar` / FilterChip |
 | **列表 / 下拉** | 门户 `DropdownMenu`/`MenuSelect` / ContextMenu 共用 `.v4-menu-surface`；**先 hidden 测量再显示**（无打开闪跳）；**滚动即关**；画布菜单在 `html[data-overlay-open]` 时关闭；`z-menu(110)` > tooltip(100) > 工作台 overlay `z-modal`(80)。**视口定位单实现** `lib/dropdown-position.ts`：`computeDropdownPosition`（表单/下拉，贴 trigger、上下 flip、边距 clamp）+ `placeContextMenu`（右键，近边翻转）；侧栏页脚等贴边 trigger 可 `preferPlacement: "top"`。**`DropdownItem` 行布局契约（强制）**：children 装在 `flex min-w-0 flex-1 items-center gap-2` 行容器内——icon · 主文案 · trailing check/shortcut **同一行**。禁止用非 flex span 包 children（SVG + block 文案会竖排成三行）。调用方一律走 `icon` / `shortcut` prop，不再把图标当第一个 child 手塞；双行条目（ViewSwitcher 标题+提示）中间用 `flex flex-col` 子块。测试：`tests/dropdown-item-layout.test.mjs` |
 | **分栏拖拽** | `Splitter` / 编辑器 `SplitDivider`：**drag 标志必须是 ref**（state 会因 pointerup 丢失而粘滞）；窗口级 `pointerup` / `pointercancel` / `blur` + `lostpointercapture` 硬停；拖拽期 `document.body` 锁 `user-select` / `cursor`；仅主键启动。禁止只靠元素级 `onPointerUp` 结束拖拽。测试：`tests/splitter-drag-contract.test.mjs` |
-| **设置持久化** | 规范路径 `~/topmind/topmind-desktop/state/app-settings.json`（升级不丢）。主文件不可读时**先备份** `.corrupt-<ts>` 再重写默认，禁止静默销毁。密钥解密失败只清内存明文，保存时保留密文。About 页展示 settings 路径 + safeStorage 状态。测试：`tests/settings-durability.test.mjs` |
+| **设置持久化** | 规范路径 `~/topmind/topmind-desktop/state/app-settings.json`（升级不丢）。主文件不可读时**先备份** `.corrupt-<ts>` 再重写默认，禁止静默销毁。密钥双层：safeStorage 优先 + 本地 AES（`.secret-key`）兜底（brew 重装/重签后仍可解密）；解密失败只清内存明文，保存时保留两层密文。About 页展示 settings 路径 + safeStorage 状态。测试：`tests/settings-durability.test.mjs` |
 | **空态** | `EmptyState`：图标芯片 + 一句原因 + **一个主 CTA**（侧栏 compact 同构）；时间线/标签空态须有下一步 |
 | **侧栏树** | 图标 `tree-node-icons` · 右键 `tree-node-context-menu` · 展开/排序/筛选 + **手动刷新** `tree-toolbar`（`data-sidebar-refresh` 仍在 toolbar 组件上，视觉上与 ViewSwitcher **同一行**——主 header 承载目的地，次级 chrome `data-sidebar-secondary-header` 只留视图切换与树工具；目录树本身不再另起工具行）· 路径 `lib/tree-path`；**文件名隐藏 `.md` 后缀**（`stripMdExt`）；**PARA 编号弱化渲染**（`renderCategoryLabel`：`00-` 前缀用 `text-text-quaternary/70`）。**感知**：`lib/tree-listing-change` 区分 listing（inbox/add/unlink/ingest-done）与 topic 内 content-only；空 inbox 写入后重建并展开，不依赖重启 |
 | **少硬分割线** | 编辑器常驻 ≤2 条 full-width 分割（工具栏 + 可选属性）；避免斑马纹；**Recent tab strip 无底边框**（`.v4-editor-recents` transparent + `shadow-divider-bottom`）；**标题栏 cluster 透明**（`.v4-titlebar-cluster` 无背景无 inset）；**搜索为侧栏图标按钮**（`.v4-search-trigger`，纯按钮无输入框，⌘K）；**侧栏主 header**（`data-sidebar-header`：PrimaryNav → Profile → 搜索 → 记一下）；**次级 header**（`data-sidebar-secondary-header`：ViewSwitcher 与树工具一行） |
@@ -555,7 +555,7 @@ topmind 设计系统原生支持多语言排版（Simplified Chinese / English�
 | 读缓存 | `read_file` / `search` / `workspace_overview` / `workspace_health` 结果在单轮 agent loop 内缓存；写操作自动失效缓存 |
 | 改稿 | **优先** `edit_file` 唯一片段（先精确，再换行/行尾空白规范化；`startLine`/`endLine`/`heading` 可限定；失败回 nearby/context；不进 Archive）；整文件 `save_file` **仅 locked 覆盖才备份**；长文 `read_file` 带行号，中段用 `around=` / `heading=` |
 | 搜索 | 受控 `search`/grep（可 scope；默认不搜 Archive；无 shell）|
-| 步骤 | `maxAgentSteps`（默认 **20**，可配 3–50）；近上限自动收尾提示 |
+| 步骤 | `maxAgentSteps`（默认 **32**，可配 3–80）；近上限继续完成核心步骤；步数耗尽可 auto-continue（最多 2 次） |
 | 中途 | 流式中可继续输入补充（Enter）；stop 取消 |
 | 焦点 | 当前打开文件**自动**进入本轮上下文（「固定」才常驻胶囊）|
 | Skills | skill-first 底座；用户侧 slash 用中文短标签 |
@@ -672,7 +672,7 @@ IA 分组（左侧 nav）：
 | 序列化保护 | 若内存为空但磁盘仍有密文 → **保留密文**（防 race / 空字段覆盖） |
 | 原子写 | temp → fsync → rename；写前备份 `.bak`；清理 0-byte `.tmp.*` |
 
-> **说明**：若密钥已在磁盘 `secureStorage` 被写成空，无法从应用内恢复，需重新填写。优化代码本身不会迁移/删除 `~/topmind` 目录；换机或重装 macOS 钥匙串可能导致 safeStorage 密文无法解密。
+> **说明**：密钥双层持久化——safeStorage（系统钥匙串）+ 本地 AES（`state/.secret-key`）。brew 升级/重签导致 safeStorage 解密失败时自动走本地 AES。若两层密文都损坏，需重新填写。
 
 ## 5. 设计令牌（Design System 3.0 · ZCode Neutral）
 

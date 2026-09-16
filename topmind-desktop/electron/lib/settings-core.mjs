@@ -18,7 +18,8 @@ import {
 const AI_SOURCE_PREFERENCES = new Set(["", "openai", "anthropic", "google", "deepseek", "moonshot", "zhipu", "minimax", "xai", "ollama", "custom"]);
 
 const MANUAL_SECRET_KEYS = ["openAiKey", "anthropicKey", "deepseekKey", "googleKey", "moonshotKey", "zhipuKey", "minimaxKey", "xaiKey", "customKey"];
-const SECURE_STORAGE_VERSION = 1;
+/** v2 adds local AES fallback maps so brew/app reinstall does not lose keys. */
+const SECURE_STORAGE_VERSION = 2;
 
 /**
  * Secret merge policy (critical — empty string must never wipe a stored key):
@@ -82,8 +83,8 @@ const UI_LOCALES = new Set(["auto", "zh-CN", "en-US"]);
 // MAX_RECENT_WORKSPACES imported from workspace-path-id.mjs
 /** Agent multi-step loop bounds (inclusive). */
 const AGENT_STEPS_MIN = 3;
-const AGENT_STEPS_MAX = 50;
-const AGENT_STEPS_DEFAULT = 20;
+const AGENT_STEPS_MAX = 80;
+const AGENT_STEPS_DEFAULT = 32;
 
 function clone(value) {
   return structuredClone(value);
@@ -748,34 +749,78 @@ function secretAdapterAvailable(secretAdapter) {
   return Boolean(secretAdapter?.isEncryptionAvailable?.());
 }
 
+function localSecretAvailable(secretAdapter) {
+  return typeof secretAdapter?.encryptLocal === "function" && typeof secretAdapter?.decryptLocal === "function";
+}
+
 function createSecureStorageEnvelope() {
-  return { version: SECURE_STORAGE_VERSION, provider: "electron-safeStorage", manual: {}, integration: {} };
+  return {
+    version: SECURE_STORAGE_VERSION,
+    provider: "electron-safeStorage+local-aes",
+    manual: {},
+    manualLocal: {},
+    integration: {},
+    integrationLocal: {},
+  };
+}
+
+/**
+ * Try safeStorage first, then local AES (brew reinstall / ad-hoc re-sign).
+ * @returns {string} plaintext or ""
+ */
+function decryptSecretEither(secretAdapter, ssBlob, localBlob) {
+  if (typeof ssBlob === "string" && ssBlob) {
+    try {
+      const v = secretAdapter?.decryptString?.(ssBlob);
+      if (typeof v === "string" && v) return v;
+    } catch {
+      /* fall through to local */
+    }
+  }
+  if (localSecretAvailable(secretAdapter) && typeof localBlob === "string" && localBlob) {
+    try {
+      const v = secretAdapter.decryptLocal(localBlob);
+      if (typeof v === "string" && v) return v;
+    } catch {
+      /* unreadable */
+    }
+  }
+  return "";
 }
 
 function hydrateManualSecrets(settings, persisted, secretAdapter) {
-  if (!secretAdapterAvailable(secretAdapter) || !isObject(persisted?.secureStorage)) {
-    return settings;
-  }
+  const secure = persisted?.secureStorage;
+  if (!isObject(secure)) return settings;
+  const canSs = secretAdapterAvailable(secretAdapter);
+  const canLocal = localSecretAvailable(secretAdapter);
+  if (!canSs && !canLocal) return settings;
   const next = clone(settings);
-  // Hydrate AI provider keys from secureStorage.manual
-  if (isObject(persisted.secureStorage.manual)) {
+  const localMap = isObject(secure.manualLocal) ? secure.manualLocal : {};
+  // Hydrate AI provider keys: safeStorage first, local AES fallback
+  if (isObject(secure.manual) || isObject(secure.manualLocal)) {
     for (const key of MANUAL_SECRET_KEYS) {
-      const encrypted = persisted.secureStorage.manual[key];
-      if (typeof encrypted !== "string" || !encrypted) continue;
-      try {
-        next.ai.manual[key] = secretAdapter.decryptString(encrypted);
-      } catch {
-        next.ai.manual[key] = "";
-      }
+      next.ai.manual[key] = decryptSecretEither(
+        secretAdapter,
+        secure.manual?.[key],
+        localMap[key],
+      );
     }
   }
-  // Hydrate integration keys from secureStorage.integration
-  if (isObject(persisted.secureStorage.integration)) {
-    if (next.weread && persisted.secureStorage.integration.wereadApiKey) {
-      try { next.weread.apiKey = secretAdapter.decryptString(persisted.secureStorage.integration.wereadApiKey); } catch { next.weread.apiKey = ""; }
+  const integLocal = isObject(secure.integrationLocal) ? secure.integrationLocal : {};
+  if (isObject(secure.integration) || isObject(secure.integrationLocal)) {
+    if (next.weread) {
+      next.weread.apiKey = decryptSecretEither(
+        secretAdapter,
+        secure.integration?.wereadApiKey,
+        integLocal.wereadApiKey,
+      );
     }
-    if (next.x && persisted.secureStorage.integration.xBearerToken) {
-      try { next.x.bearerToken = secretAdapter.decryptString(persisted.secureStorage.integration.xBearerToken); } catch { next.x.bearerToken = ""; }
+    if (next.x) {
+      next.x.bearerToken = decryptSecretEither(
+        secretAdapter,
+        secure.integration?.xBearerToken,
+        integLocal.xBearerToken,
+      );
     }
   }
   return next;
@@ -797,52 +842,67 @@ function serializeSettingsForDisk(settings, secretAdapter, previousSecureStorage
   const clearSecrets = isObject(settings?._clearSecrets) ? settings._clearSecrets : {};
   const payload = clone(settings);
   delete payload._clearSecrets;
-  if (!secretAdapterAvailable(secretAdapter)) {
+  const canSs = secretAdapterAvailable(secretAdapter);
+  const canLocal = localSecretAvailable(secretAdapter);
+  if (!canSs && !canLocal) {
     delete payload.secureStorage;
     return payload;
   }
   const prev = isObject(previousSecureStorage) ? previousSecureStorage : null;
   const prevManual = isObject(prev?.manual) ? prev.manual : {};
+  const prevManualLocal = isObject(prev?.manualLocal) ? prev.manualLocal : {};
   const prevInteg = isObject(prev?.integration) ? prev.integration : {};
+  const prevIntegLocal = isObject(prev?.integrationLocal) ? prev.integrationLocal : {};
   const secureStorage = createSecureStorageEnvelope();
 
-  // Encrypt AI provider keys (or preserve previous ciphertext when plaintext empty)
+  /** Write both cipher layers when plaintext is present; preserve either previous layer when empty. */
+  const pack = (value, prevSs, prevLocal, cleared) => {
+    const out = { ss: "", local: "" };
+    if (value) {
+      if (canSs) {
+        try { out.ss = secretAdapter.encryptString(value); } catch { out.ss = ""; }
+      }
+      if (canLocal) {
+        try { out.local = secretAdapter.encryptLocal(value); } catch { out.local = ""; }
+      }
+    } else if (cleared) {
+      out.ss = "";
+      out.local = "";
+    } else {
+      out.ss = typeof prevSs === "string" ? prevSs : "";
+      out.local = typeof prevLocal === "string" ? prevLocal : "";
+    }
+    return out;
+  };
+
   for (const key of MANUAL_SECRET_KEYS) {
     const value = String(payload.ai?.manual?.[key] || "");
-    if (value) {
-      secureStorage.manual[key] = secretAdapter.encryptString(value);
-    } else if (clearSecrets[key]) {
-      secureStorage.manual[key] = "";
-    } else if (typeof prevManual[key] === "string" && prevManual[key]) {
-      secureStorage.manual[key] = prevManual[key];
-    } else {
-      secureStorage.manual[key] = "";
-    }
+    const packed = pack(value, prevManual[key], prevManualLocal[key], clearSecrets[key]);
+    secureStorage.manual[key] = packed.ss;
+    secureStorage.manualLocal[key] = packed.local;
     if (payload.ai?.manual) payload.ai.manual[key] = "";
   }
 
   const wereadKey = String(payload.weread?.apiKey || "");
-  if (wereadKey) {
-    secureStorage.integration.wereadApiKey = secretAdapter.encryptString(wereadKey);
-  } else if (clearSecrets.wereadApiKey) {
-    secureStorage.integration.wereadApiKey = "";
-  } else if (typeof prevInteg.wereadApiKey === "string" && prevInteg.wereadApiKey) {
-    secureStorage.integration.wereadApiKey = prevInteg.wereadApiKey;
-  } else {
-    secureStorage.integration.wereadApiKey = "";
-  }
+  const wereadPacked = pack(
+    wereadKey,
+    prevInteg.wereadApiKey,
+    prevIntegLocal.wereadApiKey,
+    clearSecrets.wereadApiKey,
+  );
+  secureStorage.integration.wereadApiKey = wereadPacked.ss;
+  secureStorage.integrationLocal.wereadApiKey = wereadPacked.local;
   if (payload.weread) payload.weread.apiKey = "";
 
   const xToken = String(payload.x?.bearerToken || "");
-  if (xToken) {
-    secureStorage.integration.xBearerToken = secretAdapter.encryptString(xToken);
-  } else if (clearSecrets.xBearerToken) {
-    secureStorage.integration.xBearerToken = "";
-  } else if (typeof prevInteg.xBearerToken === "string" && prevInteg.xBearerToken) {
-    secureStorage.integration.xBearerToken = prevInteg.xBearerToken;
-  } else {
-    secureStorage.integration.xBearerToken = "";
-  }
+  const xPacked = pack(
+    xToken,
+    prevInteg.xBearerToken,
+    prevIntegLocal.xBearerToken,
+    clearSecrets.xBearerToken,
+  );
+  secureStorage.integration.xBearerToken = xPacked.ss;
+  secureStorage.integrationLocal.xBearerToken = xPacked.local;
   if (payload.x) payload.x.bearerToken = "";
 
   payload.secureStorage = secureStorage;

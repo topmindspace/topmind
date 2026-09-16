@@ -16,6 +16,40 @@ export const COMPACT_DEFAULT_KEEP_RECENT = 24;
 export const COMPACT_DEFAULT_MAX_CHARS = 240_000;
 export const COMPACT_DEFAULT_MAX_PER_MESSAGE = 16_000;
 
+/**
+ * Scale compaction budgets by the model's actual context window.
+ * Large-window models keep more history; small windows compress earlier.
+ * Overrides from settings still win when provided by the caller.
+ *
+ * @param {number} [contextWindow] model context window in tokens (0 / unknown → defaults)
+ * @returns {{ maxMessages: number, keepRecent: number, maxChars: number, maxPerMessage: number, maxTokens: number }}
+ */
+export function resolveCompactBudget(contextWindow) {
+  const cw = Number(contextWindow);
+  const known = Number.isFinite(cw) && cw > 0;
+  // Reserve ~40% of the window for system + tools + tools results + response.
+  const usableTokens = known ? Math.floor(cw * 0.55) : Math.floor(COMPACT_DEFAULT_MAX_CHARS / 3);
+  const maxChars = known
+    ? Math.max(40_000, Math.min(1_200_000, Math.floor(usableTokens * 2.2)))
+    : COMPACT_DEFAULT_MAX_CHARS;
+  const maxMessages = known
+    ? Math.max(24, Math.min(160, Math.round(usableTokens / 900)))
+    : COMPACT_DEFAULT_MAX_MESSAGES;
+  const keepRecent = known
+    ? Math.max(8, Math.min(48, Math.round(maxMessages * 0.4)))
+    : COMPACT_DEFAULT_KEEP_RECENT;
+  const maxPerMessage = known
+    ? Math.max(4_000, Math.min(64_000, Math.floor(maxChars / 12)))
+    : COMPACT_DEFAULT_MAX_PER_MESSAGE;
+  return {
+    maxMessages,
+    keepRecent,
+    maxChars,
+    maxPerMessage,
+    maxTokens: usableTokens,
+  };
+}
+
 /** @typedef {{
  *   role: string,
  *   content?: string,

@@ -258,7 +258,7 @@ writeback:
 | `auto` | 直接写入 + path receipt（默认）；危险改动可逆 |
 | `confirm` | 写入前审阅 |
 
-**优先级**：`protection` > `writeback.mode`（locked 时无论 mode 如何，AI 禁止直接写）。
+**优先级**：`protection` × `writeback.mode`。locked + AI：`auto` 拒绝；`confirm` 待确认（用户授权）；用户始终可写（高影响备份）。
 
 ### Write Evidence Format
 

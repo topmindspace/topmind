@@ -17,12 +17,17 @@ import {
   AGENT_STEPS_DEFAULT,
   clampMaxAgentSteps,
 } from "./lib/settings-core.mjs";
+import { reasoningProviderOptions } from "./ai-provider-adapter.mjs";
 
 /** ~1 frame — bounds high-frequency token IPC to the renderer. */
 const DELTA_COALESCE_MS = 16;
 
-const TIMEOUT_MS = 240_000;       // 4 min hard cap (multi-step agent)
-const IDLE_TIMEOUT_MS = 120_000;  // 120s idle — tool chains (fetch + multi-write)
+/**
+ * Hard wall-clock cap for a single agent invoke. Multi-file edits +
+ * fetch + memory work regularly exceed 4 minutes on real workspaces.
+ */
+const TIMEOUT_MS = 900_000;       // 15 min hard cap (multi-step agent)
+const IDLE_TIMEOUT_MS = 180_000;  // 180s idle — tool chains (fetch + multi-write)
 const IDLE_CHECK_INTERVAL = 10_000;
 
 /** Same triple as settings-core / Settings UI (do not fork). */
@@ -120,7 +125,7 @@ function drainPendingUserMessages(registry, sessionId) {
   return [...leftoverSteers, ...followUps];
 }
 
-export async function runStream({ model, system, messages, tools, emit, sessionId, maxAgentSteps }, registry) {
+export async function runStream({ model, modelId, system, messages, tools, emit, sessionId, maxAgentSteps }, registry) {
   const controller = new AbortController();
   registry?.register(sessionId, controller);
   let collected = "";
@@ -151,6 +156,7 @@ export async function runStream({ model, system, messages, tools, emit, sessionI
   let lastChunk = Date.now();
   let toolCallCount = 0;
   let steerApplyCount = 0;
+  let stepLimitHit = false;
   const agentSteps = clampAgentSteps(maxAgentSteps);
 
   // Coalesce high-frequency text/reasoning deltas (~1 frame) before IPC emit.
@@ -179,6 +185,7 @@ export async function runStream({ model, system, messages, tools, emit, sessionI
       tools,
       stopWhen: tools ? stepCountIs(agentSteps) : stepCountIs(1),
       abortSignal: controller.signal,
+      providerOptions: reasoningProviderOptions(modelId),
       // Inject mid-turn steers; soft nudge near step budget (backend only, no UI).
       prepareStep: tools
         ? ({ messages: stepMessages, stepNumber }) => {
@@ -200,13 +207,19 @@ export async function runStream({ model, system, messages, tools, emit, sessionI
               content: ei18n("ai.steer", { body }),
             });
           }
-          // Near step cap (once): prefer finish with path receipt over more exploration
-          if (stepNumber === Math.max(2, agentSteps - 2)) {
+          // Near step cap: do NOT force a premature finish. Nudge to keep
+          // working the current goal; if steps run out the follow-up queue
+          // can resume from the last path receipts (see autoContinue).
+          if (stepNumber === Math.max(2, agentSteps - 1)) {
             extras.push({
               role: "user",
               content:
-                ei18n("ai.stepLimit"),
+                ei18n("ai.stepNudge"),
             });
+          }
+          // Flag budget exhaustion so ai-service can auto-continue.
+          if (stepNumber >= agentSteps) {
+            stepLimitHit = true;
           }
           if (extras.length === 0) return {};
           return { messages: [...stepMessages, ...extras] };
@@ -340,6 +353,8 @@ export async function runStream({ model, system, messages, tools, emit, sessionI
       reasoning,
       usage,
       error: null,
+      stepLimitHit,
+      toolCallCount,
       followUps: drainPendingUserMessages(registry, sessionId),
       steerApplyCount,
       runtime: "ai-sdk",

@@ -181,7 +181,12 @@ export async function buildDesktopAiTools(ctx) {
         if (toolName === "edit_file") {
           const isNoMatch = message.includes("未能找到") || message.includes("no-match") || message.includes("not found");
           const isAmbiguous = message.includes("多处") || message.includes("ambiguous");
-          if (isNoMatch) {
+          const isHashStale = message.includes("expectedHash") || message.includes("hashMismatch") || message.includes("已被修改");
+          if (isHashStale) {
+            hint = promptLocale === "en"
+              ? `Edit refused: file changed since your last read. Call read_file({ relativePath: "${args?.relativePath || ""}", around: "keyword", limit: 80 }) to refresh contentHash and oldText, then retry edit_file with the new contentHash.`
+              : `编辑被拒绝：文件在你上次读取后已被修改。请先调用 read_file({ relativePath: "${args?.relativePath || ""}", around: "关键词", limit: 80 }) 刷新 contentHash 与 oldText，再用新的 contentHash 重试 edit_file。`;
+          } else if (isNoMatch) {
             hint = promptLocale === "en"
               ? `Edit failed: oldText was not found in the file. First call read_file({ relativePath: "${args?.relativePath || ""}", around: "keyword", offset: 1, limit: 100 }) to read the exact text and line numbers, then retry edit_file with actual lines or specify startLine/endLine.`
               : `编辑失败：未在文件中匹配到 oldText。建议先调用 read_file({ relativePath: "${args?.relativePath || ""}", around: "关键词", offset: 1, limit: 100 }) 查看带有行号的最新真实内容，重新复制精确的 oldText（可多带前后1-2行以确保唯一），或传入 startLine/endLine 缩小范围重试。`;
@@ -191,10 +196,10 @@ export async function buildDesktopAiTools(ctx) {
               : `编辑失败：oldText 在文件中命中多处。建议在 oldText 中多包含前后 1~2 行上下文以保证唯一性，或传入 startLine/endLine 或 heading 限定范围，若确实需要全部替换可设置 replaceAll: true。`;
           }
         } else if (toolName === "save_file" || toolName === "save_note") {
-          if (message.includes("locked") || message.includes("保护")) {
+          if (message.includes("locked") || message.includes("保护") || message.includes("auto mode")) {
             hint = promptLocale === "en"
-              ? "Write failed: target file is locked or protected. AI is not permitted to overwrite locked files."
-              : "写入失败：目标文件被锁定或保护（locked），系统禁止 AI 覆盖受保护笔记。";
+              ? "Write failed: target is locked and writeback is auto. Ask the user to switch to confirm mode (user authorization path) or unlock the file, then retry."
+              : "写入失败：目标被锁定且当前为 auto 写回。请提示用户切换到「保存前问我」（confirm，用户授权路径）或先解锁该文件，然后重试。";
           }
         }
         return {
@@ -391,7 +396,7 @@ export async function buildDesktopAiTools(ctx) {
 
     tools.read_file = tool({
       description:
-        "读取工作区相对路径的 Markdown/文本。返回带行号的 numbered 窗口（N|正文）。长文用 around= 关键词或 heading= 跳到中间，勿一次吞全文。edit_file 可把行号当 startLine/endLine。",
+        "读取工作区相对路径的 Markdown/文本。返回带行号的 numbered 窗口（N|正文）+ contentHash（传给 edit_file 的 expectedHash）。长文用 around= 关键词或 heading= 跳到中间，勿一次吞全文。edit_file 可把行号当 startLine/endLine。",
       inputSchema: jsonSchema({
         type: "object",
         properties: {
@@ -667,7 +672,7 @@ export async function buildDesktopAiTools(ctx) {
 
       tools.edit_file = tool({
         description:
-          "精确局部修改 .md：oldText→newText。先唯一精确匹配，再容忍换行/行尾空白；多处命中则拒绝（或 replaceAll）。可用 startLine/endLine/heading 限定范围。失败返回 nearby/context。不写 99-Archive；整文件覆盖用 save_file。受 protection/locked 约束。",
+          "精确局部修改 .md：oldText→newText。匹配阶梯：唯一精确 → 换行/行尾空白归一 → 行级宽松（空行/列表标记/加粗）。多处命中则拒绝（或 replaceAll）。可用 startLine/endLine/heading 限定范围（行号过期时会自动外扩重试）。推荐传 expectedHash（read_file/edit_file 返回的 contentHash）做乐观并发校验。成功返回 postEditWindow + 新 contentHash，多步编辑请用它们，勿沿用更早 read 的行号。失败返回 nearby/context。不写 99-Archive；整文件覆盖用 save_file。",
         inputSchema: jsonSchema({
           type: "object",
           properties: {
@@ -680,18 +685,19 @@ export async function buildDesktopAiTools(ctx) {
             },
             startLine: {
               type: "number",
-              description: "可选：限定匹配的起始行（1-based）",
+              description: "可选：限定匹配的起始行（1-based；过期时自动外扩）",
             },
             endLine: {
               type: "number",
-              description: "可选：限定匹配的结束行（含）",
+              description: "可选：限定匹配的结束行（含；过期时自动外扩）",
             },
             heading: strProp("可选：限定在该 Markdown 标题节内匹配（须唯一）"),
+            expectedHash: strProp("可选：最近 read_file/edit_file 返回的 contentHash；文件被外部修改时拒绝并提示重读"),
           },
           required: ["relativePath", "oldText", "newText"],
         }),
         execute: wrapWrite("edit_file", ({
-          relativePath, oldText, newText, replaceAll, startLine, endLine, heading, actor, confirmed,
+          relativePath, oldText, newText, replaceAll, startLine, endLine, heading, expectedHash, actor, confirmed,
         }) =>
           WorkspaceService.editPath(
             {
@@ -702,6 +708,7 @@ export async function buildDesktopAiTools(ctx) {
               startLine,
               endLine,
               heading,
+              expectedHash,
               actor: actor || "ai",
               confirmed,
             },

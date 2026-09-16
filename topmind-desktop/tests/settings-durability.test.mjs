@@ -24,10 +24,12 @@ test("loadAppSettings parks corrupt primary before rewriting defaults", () => {
 
 test("decrypt failure blanks key in memory but preserves ciphertext on save", () => {
   const core = read("lib/settings-core.mjs");
-  assert.match(core, /secureStorage\.manual\[key\] = ""/);
-  // Empty plaintext + previous blob → keep previous ciphertext.
-  assert.match(
-    core,
-    /else if \(typeof prevManual\[key\] === "string" && prevManual\[key\]\) \{\s*secureStorage\.manual\[key\] = prevManual\[key\];/,
-  );
+  // pack() writes both layers; empty plaintext keeps previous ciphertext.
+  assert.match(core, /const pack = \(value, prevSs, prevLocal, cleared\)/);
+  assert.match(core, /out\.ss = typeof prevSs === "string" \? prevSs : ""/);
+  assert.match(core, /out\.local = typeof prevLocal === "string" \? prevLocal : ""/);
+  // Local AES fallback for brew re-sign survival.
+  assert.match(core, /manualLocal/);
+  assert.match(core, /decryptSecretEither/);
+  assert.match(core, /SECURE_STORAGE_VERSION = 2/);
 });

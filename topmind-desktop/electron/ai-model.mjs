@@ -7,6 +7,22 @@ import { t as ei18n } from "./lib/electron-i18n.mjs";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 
+/**
+ * Look up a model's context window from the live/catalog cache.
+ * @param {object} settings
+ * @param {string} provider
+ * @param {string} modelId
+ * @returns {number} 0 when unknown
+ */
+export function lookupContextLimit(settings, provider, modelId) {
+  const catalog = settings?.ai?.modelCache?.catalog;
+  if (!Array.isArray(catalog) || !provider || !modelId) return 0;
+  const entry = catalog.find((c) => c && c.id === provider);
+  if (!entry || !Array.isArray(entry.models)) return 0;
+  const hit = entry.models.find((m) => m && m.id === modelId);
+  return Number(hit?.contextLimit) > 0 ? Number(hit.contextLimit) : 0;
+}
+
 export function resolveModel(s, req) {
   const m = s?.ai?.manual || {};
   const pref = s?.ai?.sourcePreference || "";
@@ -55,7 +71,8 @@ export function resolveModel(s, req) {
     const p = providers.find((pp) => pp.source === reqProvider && pp.k);
     if (p) {
       try {
-        return { model: p.mk()(reqModelId), modelId: reqModelId };
+        const contextWindow = lookupContextLimit(s, reqProvider, reqModelId);
+        return { model: p.mk()(reqModelId), modelId: reqModelId, provider: reqProvider, contextWindow: contextWindow || undefined };
       } catch {}
     }
   }
@@ -81,7 +98,8 @@ export function resolveModel(s, req) {
       } else {
         modelId = p.d;
       }
-      return { model: provider(modelId), modelId };
+      const contextWindow = lookupContextLimit(s, p.source, modelId);
+      return { model: provider(modelId), modelId, provider: p.source, contextWindow: contextWindow || undefined };
     } catch {}
   }
   return null;

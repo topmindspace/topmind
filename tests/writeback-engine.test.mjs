@@ -155,7 +155,7 @@ describe("writeback-engine", () => {
     assert.ok(!userUpdate.backupPath && !userUpdate.backup_path, "open user update must not backup");
   });
 
-  it("locked file: AI denied; user overwrite gets backup + receipt", () => {
+  it("locked file: AI denied in auto; user overwrite gets backup + receipt", () => {
     const target = path.join(env.ws, "10-动态/locked.md");
     const content = "---\nprotection: locked\n---\n\nsecret\n";
     fs.writeFileSync(target, content, "utf8");
@@ -202,6 +202,53 @@ describe("writeback-engine", () => {
       : path.join(env.ws, userWrite.backup_path || userWrite.backupPath);
     assert.ok(fs.existsSync(absBackup), "backup file must exist on disk");
     assert.equal(fs.readFileSync(absBackup, "utf8"), content);
+  });
+
+  it("locked file + confirm mode: AI write becomes pending (user authorization path)", () => {
+    const target = path.join(env.ws, "10-动态/locked-confirm.md");
+    const content = "---\nprotection: locked\n---\n\nconfirm secret\n";
+    fs.writeFileSync(target, content, "utf8");
+
+    const perm = evaluateWritePermission({
+      contract: env.contract,
+      targetPath: target,
+      workspaceRoot: env.ws,
+      frontmatter: { protection: "locked" },
+      actor: "ai",
+      writebackModeOverride: "confirm",
+    });
+    assert.equal(perm.allowed, true);
+    assert.equal(perm.needsConfirm, true);
+    assert.equal(perm.protection, "locked");
+
+    const pending = executeWrite({
+      targetPath: target,
+      content: content + " pending\n",
+      workspaceRoot: env.ws,
+      contract: env.contract,
+      actor: "ai",
+      confirmed: false,
+      writebackModeOverride: "confirm",
+    });
+    assert.equal(pending.pending, true);
+    assert.equal(pending.wroteFiles ?? pending.wrote_files, false);
+
+    const accepted = executeWrite({
+      targetPath: target,
+      content: "---\nprotection: locked\n---\n\nconfirm secret accepted\n",
+      workspaceRoot: env.ws,
+      contract: env.contract,
+      actor: "ai",
+      confirmed: true,
+      writebackModeOverride: "confirm",
+      skipShadow: true,
+    });
+    assert.equal(accepted.wroteFiles ?? accepted.wrote_files, true);
+    assert.ok(accepted.backupPath || accepted.backup_path, "accepted locked AI write must backup");
+    assert.equal(
+      fs.readFileSync(target, "utf8"),
+      "---\nprotection: locked\n---\n\nconfirm secret accepted\n",
+    );
   });
 
   it("existing locked file: overwrite still backs up when new FM omits protection", () => {

@@ -101,7 +101,7 @@ topmind 用户心智是**三平面工作区**上的**类别 + 专题 + 记忆**�
 5. **参考资料定位明确** — `referenceOnly` 只放反复引用素材
 6. **类别命名稳定** — 改名走 `renameCategory` / 显式 migration
 
-**保护级别**（写回前必须求值，见 `PROJECT-MODEL.md` §11）：文件 frontmatter `protection` > contract `protection.defaults.by_role` > `open`。`locked` 只读或 fork 新版本；`open` 可直接写。优先级：protection > writeback.mode。
+**保护级别**（写回前必须求值，见 `PROJECT-MODEL.md` §11）：文件 frontmatter `protection` > contract `protection.defaults.by_role` > `open`。`locked` + AI：auto 拒绝 / confirm 待确认（用户授权）；用户可直接写（高影响备份）。`open` 可直接写。
 
 ---
 
@@ -335,7 +335,7 @@ Level 3（最低）: 仅对话
 | protection | AI 行为 |
 |---|---|
 | `open`（默认） | 按写回规约直接修改（仍受 `writeback.mode` auto\|confirm） |
-| `locked` | AI 禁止直接写；需人工解锁或 fork 新版本 |
+| `locked` | AI 在 auto 写回下禁止直接写；confirm 写回进入待确认（用户授权）；或人工解锁/fork |
 
 完整字段定义见 `TOOLS.md` §Frontmatter Schema。
 

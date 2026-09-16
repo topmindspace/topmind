@@ -391,7 +391,7 @@ protection:                    # 保护与权限规约
       delivery: open         # 交付层：AI 可生成/更新（文件级可覆盖 locked）
       system: locked         # 归档层：锁（唯一默认 locked）
   # 文件级 frontmatter protection 可覆盖目录默认
-  # 优先级：protection > writeback.mode（locked 时无论 mode 如何，AI 禁止直接写）
+  # locked + AI：auto 拒绝；confirm 待确认（用户授权路径）；用户始终可写（高影响备份）
 
 lifecycle:                     # 生命周期规约
   # inbox.review_after_days 只触发「待归位」回顾，不自动归档；
@@ -495,7 +495,7 @@ presentation:                  # 呈现规约
 
 求值顺序：文件 frontmatter `protection` > contract `protection.defaults.by_role` > `open`。
 
-**优先级**：`protection` > `writeback.mode`（locked 时无论 mode 如何，AI 禁止直接写）。
+**优先级**：`protection` × `writeback.mode`。locked + AI：auto 拒绝；confirm 待确认（用户授权）；用户始终可写（高影响备份）。
 
 ### 11.2 数据溯源（这是谁写的）
 

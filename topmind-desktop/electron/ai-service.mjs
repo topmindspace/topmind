@@ -11,7 +11,7 @@ import { resolveDataRoot } from "./lib/path-model.mjs";
 import { t as ei18n } from "./lib/electron-i18n.mjs";
 import { assertPathWithin } from "./lib/path-safety.mjs";
 import { loadAppSettings } from "./settings.mjs";
-import { compactMessagesForModel } from "./lib/ai-session-compact.mjs";
+import { compactMessagesForModel, resolveCompactBudget } from "./lib/ai-session-compact.mjs";
 import { sanitizeInlineAiResult } from "./lib/inline-ai-result.mjs";
 import {
   INLINE_SYSTEM,
@@ -439,11 +439,17 @@ export const AiService = {
     }).files;
     // AI SDK v7: system prompt via `system` param; messages = user/assistant only.
     const cleanMsgs = messages.filter((m) => m.role !== "system");
+    // Dynamic budget: scale by the model's real context window when known.
+    const modelContextWindow =
+      Number(res.contextWindow || res.model?.contextLimit || res.model?.contextWindow || 0) || undefined;
+    const dynamicBudget = resolveCompactBudget(modelContextWindow);
     // Smart compaction: long sessions keep recent turns + middle summary (not a hard cut).
+    // Explicit settings override the dynamic budget; otherwise scale with the model window.
     const compact = compactMessagesForModel(cleanMsgs, {
-      maxMessages: settings?.ai?.maxContextMessages,
-      keepRecent: settings?.ai?.keepRecentMessages,
-      maxChars: settings?.ai?.maxContextChars,
+      maxMessages: settings?.ai?.maxContextMessages ?? dynamicBudget.maxMessages,
+      keepRecent: settings?.ai?.keepRecentMessages ?? dynamicBudget.keepRecent,
+      maxChars: settings?.ai?.maxContextChars ?? dynamicBudget.maxChars,
+      maxPerMessage: settings?.ai?.maxContextChars ? undefined : dynamicBudget.maxPerMessage,
       locale: settings?.ui?.locale === "en-US" ? "en-US" : "zh-CN",
     });
     if (compact.compacted) {
@@ -565,9 +571,8 @@ export const AiService = {
       maxAgentSteps,
       workspaceRoot: workspaceRootOf(c.workspaceRoot),
       // Real model window when known — Pi stub otherwise defaults to 128k.
-      contextWindow: Number(res.model?.contextLimit || res.model?.contextWindow || 0) || undefined,
+      contextWindow: modelContextWindow,
     };
-    let result;
     let piRuntime = null;
     try {
       piRuntime = await import("./ai-pi-runtime.mjs");
@@ -577,13 +582,119 @@ export const AiService = {
         error: err?.message || String(err),
       });
     }
-    if (piRuntime?.isPiRuntimeAvailable?.()) {
-      result = await piRuntime.runPiAgent(streamArgs, sr);
-    } else {
-      result = await runStream(streamArgs, sr);
+
+    // Auto-continue: when the step budget is exhausted mid-task, re-enter the
+    // loop with a system continue prompt instead of dying. Bounded so a
+    // runaway agent cannot spin forever.
+    const MAX_AUTO_CONTINUES = 2;
+    let autoContinues = 0;
+    let workingMessages = compact.messages;
+    let result = null;
+    let combinedText = "";
+    let combinedReasoning = "";
+    let lastFollowUps = [];
+    let lastSteerApplyCount = 0;
+    let lastRuntime = "ai-sdk";
+    let lastUsage = null;
+
+    for (;;) {
+      const runArgs = { ...streamArgs, messages: workingMessages };
+      try {
+        result = piRuntime?.isPiRuntimeAvailable?.()
+          ? await piRuntime.runPiAgent(runArgs, sr)
+          : await runStream(runArgs, sr);
+      } catch (piErr) {
+        // Pi runtime crashed mid-loop — degrade to AI SDK streamText once.
+        logError("ai", "pi-agent-core threw, falling back to ai-sdk", {
+          sessionId,
+          error: piErr instanceof Error ? piErr.message : String(piErr),
+        });
+        try {
+          result = await runStream(runArgs, sr);
+          lastRuntime = "ai-sdk";
+        } catch (sdkErr) {
+          result = {
+            text: "",
+            error: sdkErr instanceof Error ? sdkErr : new Error(String(sdkErr)),
+            runtime: lastRuntime,
+          };
+        }
+      }
+      lastRuntime = result.runtime || lastRuntime;
+      lastUsage = result.usage || lastUsage;
+      lastSteerApplyCount += result.steerApplyCount || 0;
+      if (Array.isArray(result.followUps) && result.followUps.length) {
+        lastFollowUps = result.followUps;
+      }
+      if (result.text) {
+        combinedText = combinedText
+          ? `${combinedText}\n\n${result.text}`
+          : result.text;
+      }
+      if (result.reasoning) {
+        combinedReasoning = combinedReasoning
+          ? `${combinedReasoning}\n\n${result.reasoning}`
+          : result.reasoning;
+      }
+
+      if (result.error || result.cancelled) break;
+      if (!result.stepLimitHit) break;
+      if (!tools) break;
+      if (autoContinues >= MAX_AUTO_CONTINUES) {
+        logInfo("ai", "auto-continue budget exhausted", { sessionId, autoContinues });
+        break;
+      }
+      // Skip continue when the last answer already looks like a real finish.
+      const lastBody = String(result.text || "").trim();
+      if (lastBody.length > 400 && /(?:路径回执|path receipt|完成|done|结论)/iu.test(lastBody.slice(-200))) {
+        break;
+      }
+
+      autoContinues += 1;
+      emit?.({ type: "status", status: "continuing", sessionId, autoContinues });
+      logInfo("ai", "auto-continue after step limit", { sessionId, autoContinues });
+      workingMessages = [
+        ...workingMessages,
+        ...(lastBody ? [{ role: "assistant", content: lastBody }] : []),
+        { role: "user", content: ei18n("ai.continuePrompt") },
+      ];
+      // Re-compact if the transcript grew past the dynamic budget.
+      if (workingMessages.length > dynamicBudget.maxMessages) {
+        const recompacted = compactMessagesForModel(workingMessages, {
+          maxMessages: dynamicBudget.maxMessages,
+          keepRecent: dynamicBudget.keepRecent,
+          maxChars: dynamicBudget.maxChars,
+          locale: settings?.ui?.locale === "en-US" ? "en-US" : "zh-CN",
+        });
+        workingMessages = recompacted.messages;
+      }
     }
-    if (result.error) logError("ai", "invoke failed", { sessionId, error: result.error.message });
-    noteAgentLoop(result.runtime || "ai-sdk");
+
+    if (result?.error) logError("ai", "invoke failed", { sessionId, error: result.error.message });
+    // Map provider failures to actionable copy (rate limit / auth / network).
+    let friendlyError = result?.error ? (result.error.message || String(result.error)) : "";
+    if (result?.error) {
+      const raw = friendlyError.toLowerCase();
+      const zh = locale === "zh";
+      if (/401|unauthorized|invalid.?api.?key|authentication/i.test(raw)) {
+        friendlyError = zh
+          ? "API Key 无效或未配置。请到「设置 → AI」检查密钥。"
+          : "Invalid or missing API key. Check Settings → AI.";
+      } else if (/429|rate.?limit|too many requests|quota/i.test(raw)) {
+        friendlyError = zh
+          ? "触发限流/配额。稍后重试，或换一个模型/供应商。"
+          : "Rate limited or quota exceeded. Retry later or switch model/provider.";
+      } else if (/timeout|etimedout|econnreset|network|fetch failed/i.test(raw)) {
+        friendlyError = zh
+          ? "网络超时或连接失败。检查网络后重试；长任务可稍后再发。"
+          : "Network timeout or connection failed. Check connectivity and retry.";
+      } else if (/context.?length|maximum context|too many tokens/i.test(raw)) {
+        friendlyError = zh
+          ? "上下文超长。请新开会话，或缩短挂载文件/历史。"
+          : "Context too long. Start a new session or reduce mounted files/history.";
+      }
+    }
+    noteAgentLoop(lastRuntime);
     const batchEvidence = toolCtx._batchCollector?.summary?.() || null;
     if (batchEvidence) {
       emit?.({ type: "batch-evidence", batchEvidence, sessionId });
@@ -592,23 +703,23 @@ export const AiService = {
         writeCount: batchEvidence.writeCount,
       });
     }
-    const followUps = Array.isArray(result.followUps) ? result.followUps : [];
-    if (followUps.length) {
-      emit?.({ type: "follow-up-ready", count: followUps.length, sessionId });
+    if (lastFollowUps.length) {
+      emit?.({ type: "follow-up-ready", count: lastFollowUps.length, sessionId });
     }
     return {
-      ok: !result.error,
-      text: result.text,
-      reasoning: result.reasoning || "",
-      error: result.error ? result.error.message : "",
-      usage: result.usage,
-      model: { modelId: res.modelId },
+      ok: !result?.error,
+      text: combinedText || result?.text || "",
+      reasoning: combinedReasoning || result?.reasoning || "",
+      error: friendlyError,
+      usage: lastUsage,
+      model: { modelId: res.modelId, contextWindow: modelContextWindow },
       batchEvidence,
-      followUps,
-      steerApplyCount: result.steerApplyCount || 0,
+      followUps: lastFollowUps,
+      steerApplyCount: lastSteerApplyCount,
+      autoContinues,
       compactNote: compact.compacted ? compact.note : null,
       estimatedTokens: compact.estimatedTokens,
-      runtime: result.runtime || "ai-sdk",
+      runtime: lastRuntime,
     };
   },
 };

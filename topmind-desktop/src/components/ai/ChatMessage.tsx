@@ -69,6 +69,7 @@ function StreamStatusIndicator({ status, toolName, count, maxSteps }: { status: 
   switch (status) {
     case "preparing":
     case "compacting":
+    case "continuing":
     case "steering":
       icon = RiLoader4Line;
       spin = true;
@@ -628,9 +629,25 @@ function ErrorBlock({ message, onRetry }: { message: string; onRetry: () => void
 
 function ReasoningBlock({ text, streaming }: { text: string; streaming?: boolean }) {
   const { t } = useTranslation("editor");
-  // Default collapsed always — user can expand to inspect reasoning trace.
+  // Collapsed by default after done; auto-open while streaming so long
+  // reasoning stays readable without a second click mid-run.
   const [open, setOpen] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const userToggled = useRef(false);
+
+  // Auto-open on first substantial stream content (unless user closed it).
+  useEffect(() => {
+    if (streaming && text.trim().length > 80 && !userToggled.current) {
+      setOpen(true);
+    }
+  }, [streaming, text]);
+
+  // Collapse once streaming ends unless the user expanded it manually.
+  useEffect(() => {
+    if (!streaming && !userToggled.current) {
+      setOpen(false);
+    }
+  }, [streaming]);
 
   // While streaming with the trace open, keep the latest tokens in view.
   useEffect(() => {
@@ -641,11 +658,12 @@ function ReasoningBlock({ text, streaming }: { text: string; streaming?: boolean
 
   if (!text?.trim()) return null;
 
-  // Live tail preview: last non-empty line, so a collapsed trace still shows progress.
+  // Live tail preview: last two non-empty lines so a collapsed trace still shows progress.
   const tailPreview = (() => {
-    if (!streaming || open) return "";
+    if (streaming && open) return "";
     const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
-    return lines.length ? lines[lines.length - 1] : "";
+    if (!lines.length) return "";
+    return lines.slice(-2).join(" ");
   })();
 
   const charCount = text.trim().length;
@@ -659,7 +677,10 @@ function ReasoningBlock({ text, streaming }: { text: string; streaming?: boolean
       <button
         type="button"
         className="flex w-full items-center gap-1.5 px-2 py-1.5 text-left text-3xs text-text-quaternary hover:text-text-tertiary"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          userToggled.current = true;
+          setOpen((v) => !v);
+        }}
         aria-expanded={open}
       >
         <RiBrainLine size={ICON.xs} className={cn("shrink-0 opacity-80", streaming && !open && "animate-pulse text-accent-color")} />
@@ -679,7 +700,11 @@ function ReasoningBlock({ text, streaming }: { text: string; streaming?: boolean
           <span className="shrink-0 tabular-nums text-text-quaternary/70">
             {t("ai.reasoningDone")} · {t("ai.reasoningChars", { count: charCount })}
           </span>
-        ) : null}
+        ) : (
+          <span className="shrink-0 tabular-nums text-text-quaternary/70">
+            {t("ai.reasoningChars", { count: charCount })}
+          </span>
+        )}
         {open ? <RiArrowDownSLine size={ICON.micro} className="shrink-0" /> : <RiArrowRightSLine size={ICON.micro} className="shrink-0" />}
       </button>
       <div
@@ -690,7 +715,7 @@ function ReasoningBlock({ text, streaming }: { text: string; streaming?: boolean
         <div
           ref={bodyRef}
           data-reasoning-scroll
-          className="max-h-40 overflow-auto border-t border-border-subtle/60 px-2.5 py-1.5 text-2xs italic leading-relaxed text-text-quaternary whitespace-pre-wrap"
+          className="max-h-[min(22rem,50vh)] min-h-24 overflow-auto border-t border-border-subtle/60 px-2.5 py-1.5 text-2xs italic leading-relaxed text-text-quaternary whitespace-pre-wrap"
         >
           {text}
           {streaming ? <span className="v4-stream-cursor" aria-hidden /> : null}

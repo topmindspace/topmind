@@ -144,6 +144,7 @@ export function createAiSdkStreamFn(aiSdkModel, meta = {}) {
           tools: sdkTools,
           abortSignal: signal,
           stopWhen: stepCountIs(1),
+          providerOptions: meta.reasoningProviderOptions || {},
         });
 
         let text = "";

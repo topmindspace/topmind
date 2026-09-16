@@ -12,6 +12,7 @@ import { summarizeToolOutput } from "./lib/ai-tool-evidence.mjs";
 import { t as ei18n } from "./lib/electron-i18n.mjs";
 import { createDeltaCoalescer } from "./lib/stream-delta-coalesce.mjs";
 import { AGENT_STEPS_DEFAULT, clampMaxAgentSteps } from "./lib/settings-core.mjs";
+import { reasoningProviderOptions } from "./ai-provider-adapter.mjs";
 import { convertDesktopToolsToPi, beforePiToolCall } from "./lib/pi-agent-tools.mjs";
 import { createAiSdkStreamFn, sdkMessagesToPi } from "./lib/pi-sdk-stream.mjs";
 import { compactMessagesForModel, estimateTokens } from "./lib/ai-session-compact.mjs";
@@ -158,6 +159,7 @@ export async function runPiAgent(opts, registry) {
   let toolCallCount = 0;
   let steerApplyCount = 0;
   let turns = 0;
+  let stepLimitHit = false;
 
   const rawEmit = typeof emit === "function" ? emit : () => {};
   const deltaCoalescer = createDeltaCoalescer({ intervalMs: 16, emit: rawEmit });
@@ -167,9 +169,21 @@ export async function runPiAgent(opts, registry) {
   const history = sdkMessagesToPi(messages, modelId);
   const last = history[history.length - 1];
   const prior = last?.role === "user" ? history.slice(0, -1) : history;
-  const promptInput = last?.role === "user" ? last : "Continue.";
+  // When the transcript ends on assistant (follow-up / auto-continue), a bare
+  // "Continue." is too weak — models often treat it as "nothing to do".
+  // Anchor the continuation on the original goal + latest tool results.
+  const promptInput = last?.role === "user"
+    ? last
+    : {
+        role: "user",
+        content: [{ type: "text", text: ei18n("ai.continuePrompt") }],
+        timestamp: Date.now(),
+      };
 
-  const streamFn = streamFnOverride || createAiSdkStreamFn(model, { modelId });
+  const streamFn = streamFnOverride || createAiSdkStreamFn(model, {
+    modelId,
+    reasoningProviderOptions: reasoningProviderOptions(modelId, "agent"),
+  });
 
   const agent = new Agent({
     initialState: {
@@ -192,7 +206,11 @@ export async function runPiAgent(opts, registry) {
     beforeToolCall: async (ctx) => beforePiToolCall(ctx),
     shouldStopAfterTurn: () => {
       turns += 1;
-      return turns >= agentSteps;
+      if (turns >= agentSteps) {
+        stepLimitHit = true;
+        return true;
+      }
+      return false;
     },
     prepareNextTurn: () => {
       const steers = registry?.drainSteers?.(sessionId) || [];
@@ -292,6 +310,8 @@ export async function runPiAgent(opts, registry) {
       reasoning,
       usage: null,
       error: null,
+      stepLimitHit,
+      toolCallCount,
       followUps: [...leftoverSteers, ...followUps],
       steerApplyCount,
       runtime: "pi-agent-core",

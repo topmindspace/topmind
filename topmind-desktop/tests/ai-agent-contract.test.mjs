@@ -144,6 +144,22 @@ test("session compact default constants match ARCHITECTURE living copy", async (
   assert.ok(r.messages.length <= COMPACT_DEFAULT_MAX_MESSAGES);
 });
 
+test("resolveCompactBudget scales with model context window", async () => {
+  const { resolveCompactBudget, COMPACT_DEFAULT_MAX_CHARS } = await import("../electron/lib/ai-session-compact.mjs");
+  const unknown = resolveCompactBudget(0);
+  assert.equal(unknown.maxChars, COMPACT_DEFAULT_MAX_CHARS);
+
+  const large = resolveCompactBudget(1_000_000);
+  assert.ok(large.maxChars > COMPACT_DEFAULT_MAX_CHARS, "1M window should keep more history");
+  assert.ok(large.maxMessages > 60);
+  assert.ok(large.keepRecent >= 8);
+
+  const small = resolveCompactBudget(32_000);
+  assert.ok(small.maxChars < COMPACT_DEFAULT_MAX_CHARS);
+  assert.ok(small.maxMessages <= 48);
+  assert.ok(small.maxTokens < large.maxTokens);
+});
+
 test("session compact keeps recent turns and summarizes middle", async () => {
   const { compactMessagesForModel, estimateTokens } = await import("../electron/lib/ai-session-compact.mjs");
   assert.ok(estimateTokens("你好世界") >= 2);

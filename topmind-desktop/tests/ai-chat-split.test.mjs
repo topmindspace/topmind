@@ -116,7 +116,7 @@ test("expanded reasoning trace keeps overflow-auto (collapsed clip does not beat
   const css = readFileSync(path.join(root, "src/styles/v4.css"), "utf8");
   const chat = readFileSync(path.join(root, "src/components/ai/ChatMessage.tsx"), "utf8");
   assert.match(chat, /data-reasoning-scroll/);
-  assert.match(chat, /max-h-40 overflow-auto/);
+  assert.match(chat, /max-h-\[min\(22rem,50vh\)\] min-h-24 overflow-auto/);
   assert.match(css, /\.v4-reasoning-expand:not\(\[data-open=["']true["']\]\)\s*>\s*div/);
   const expandStart = css.indexOf(".v4-reasoning-expand");
   assert.ok(expandStart >= 0);

@@ -125,6 +125,7 @@
     "organizingContext": "整理上下文",
     "contextAdded": "已补充",
     "responding": "回复中",
+    "continuing": "继续中",
     "completed": "完成",
     "session": "会话",
     "msgCount": "{{count}} 条"

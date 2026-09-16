@@ -252,7 +252,7 @@ interface AiProvider {
 → 侧栏 Markdown 渲染正文；`<details>` 折叠思考过程
 ```
 
-**对齐 Desktop 的是行为契约**（唯一片段匹配 / 拒绝 / nearby 诊断 / 写闸 / `en*`→英文指令否则中文 / 保护级别优先于写回），不是 React UI。confirm 仍可调用 `edit_file`；锁定笔记未确认 AI 覆盖拒绝。
+**对齐 Desktop 的是行为契约**（唯一片段匹配 / 拒绝 / nearby 诊断 / 写闸 / `en*`→英文指令否则中文 / locked×mode 策略），不是 React UI。confirm 仍可调用 `edit_file`；锁定笔记在 auto 拒绝、confirm 待确认（用户授权）。
 
 **上下文自动注入**：用户无需手动选择上下文 — 系统自动从工作区数据构建。对话历史保留最近 10 轮。
 

@@ -885,8 +885,8 @@ export function buildObsidianChatToolGuide(
   const confirm = writebackMode === "confirm";
   if (lang === "en") {
     const writeback = confirm
-      ? "Writeback: ask before save — you may call edit_file/read_file; results pending until accept; locked notes refuse unconfirmed AI overwrite (protection outranks writeback)."
-      : "Writeback: auto-save — you may call edit_file; locked notes refuse unconfirmed AI overwrite (protection outranks writeback).";
+      ? "Writeback: ask before save — you may call edit_file/read_file; results pending until accept; locked notes also pending (user authorization path)."
+      : "Writeback: auto-save — you may call edit_file; locked notes refuse AI overwrite in auto mode (switch to confirm or unlock).";
     return [
       "You can call workspace tools. To read/edit a file, emit a single JSON object and nothing else:",
       '{"tool":"read_file","relativePath":"10-动态/2026-W33.md","around":"unique phrase","limit":80}',
@@ -898,8 +898,8 @@ export function buildObsidianChatToolGuide(
     ].join("\n");
   }
   const writeback = confirm
-    ? "写回: 保存前问我 — 可调用 edit_file/read_file；结果待确认后落盘；锁定笔记拒绝未确认的 AI 覆盖（保护级别优先于写回模式）。"
-    : "写回: 自动保存 — 可调用 edit_file；锁定笔记拒绝未确认的 AI 覆盖（保护级别优先于写回模式）。";
+    ? "写回: 保存前问我 — 可调用 edit_file/read_file；结果待确认后落盘；锁定笔记同样进入待确认（用户授权路径）。"
+    : "写回: 自动保存 — 可调用 edit_file；锁定笔记在 auto 模式拒绝 AI 覆盖（请改用 confirm 或先解锁）。";
   return [
     "你可以调用工作区工具。需要读/改文件时，只输出一个 JSON 对象（不要夹杂其他文字）：",
     '{"tool":"read_file","relativePath":"10-动态/2026-W33.md","around":"唯一短语","limit":80}',

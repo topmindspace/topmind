@@ -527,7 +527,7 @@ export interface AppSettings {
      * Merged with env topmind_SKILLS_EXTRA and managed skills-extra installs.
      */
     extraSkillsRoots?: string[];
-    /** Multi-step agent loop cap (3–50). */
+    /** Multi-step agent loop cap (3–80). */
     maxAgentSteps?: number;
     manual: {
       openAiKey: string;

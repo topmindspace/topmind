@@ -31,7 +31,7 @@ Do **not** open a public issue with exploit details or live credentials.
 - **`topmind.yaml` Protection Levels**: Two-tier model (`open` | `locked`) governed by workspace `topmind.yaml` and the writeback engine.
   - `open` (default): User and AI may write under `writeback.mode` (`auto` | `confirm`).
   - `locked`: AI cannot write directly (user may still write; AI must fork/unlock first). File frontmatter overrides role defaults.
-- Priority: **protection > writeback.mode**. The **writeback-engine** is the single gate for durable content writes.
+- Priority: **protection × writeback.mode**. locked + AI: auto denies; confirm is pending (user authorization). The **writeback-engine** is the single gate for durable content writes.
 
 ## Clip Bridge
 

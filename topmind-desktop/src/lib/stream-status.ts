@@ -9,6 +9,7 @@ import i18n from "../locales";
 export type StreamStatusKey =
   | "preparing"
   | "compacting"
+  | "continuing"
   | "thinking"
   | "calling-tool"
   | "steering"
@@ -32,6 +33,8 @@ export function streamStatusLabel(
       return i18n.t("common:streamStatus.preparing");
     case "compacting":
       return i18n.t("common:streamStatus.organizingContext");
+    case "continuing":
+      return i18n.t("common:streamStatus.continuing");
     case "steering":
       return i18n.t("common:streamStatus.contextAdded");
     case "writing":

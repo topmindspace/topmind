@@ -164,9 +164,9 @@ test("shared activity-window is single product scope for suggest+todo+ops", () =
 test("living DESIGN/ARCHITECTURE do not claim stale step budget 12 or 3-24", () => {
   const desktopDesign = read("topmind-desktop/DESIGN.md");
   const desktopArch = read("topmind-desktop/ARCHITECTURE.md");
-  assert.match(desktopDesign, /默认 \*\*20\*\*|默认 20/u);
-  assert.match(desktopArch, /默认 \*\*20\*\*/u);
-  assert.match(desktopArch, /3–50|3-50/u);
+  assert.match(desktopDesign, /默认 \*\*32\*\*|默认 32/u);
+  assert.match(desktopArch, /默认 \*\*32\*\*/u);
+  assert.match(desktopArch, /3–80|3-80/u);
   assert.doesNotMatch(desktopDesign, /maxAgentSteps`（默认 12）/u);
   assert.doesNotMatch(desktopArch, /默认 \*\*12\*\*/u);
   assert.doesNotMatch(desktopArch, /可配 3–24/u);

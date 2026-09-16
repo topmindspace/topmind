@@ -42,8 +42,8 @@ function assertPromptContract(prompt, { locale, writeback }) {
   }
   assert.doesNotMatch(prompt, MODEL_A_FORBIDDEN_RE);
   assert.doesNotMatch(prompt, /must match file content exactly|必须精确匹配文件内容/u);
-  assert.match(prompt, /unique-span|unique span|唯一片段|先精确再容忍|newline\/trailing-space/i);
-  assert.match(prompt, /protection outranks|保护级别优先/u);
+  assert.match(prompt, /unique-span|unique span|唯一片段|先精确再容忍|newline\/trailing-space|行级宽松/i);
+  assert.match(prompt, /locked|锁定/u);
   if (writeback === "confirm") {
     assert.match(prompt, /ask before save|pending|保存前问我|待确认写入/u);
     assert.match(prompt, /write tools|write 工具|save_file|edit_file/u);
@@ -73,20 +73,20 @@ test("buildSystemPrompt zh/en × auto/confirm names real tools and unique-span w
   }
 });
 
-test("describeWritebackModeForPrompt mentions protection outranks + Model B", () => {
+test("describeWritebackModeForPrompt mentions locked policy + Model B", () => {
   for (const mode of ["auto", "confirm"]) {
     for (const loc of ["zh", "en"]) {
       const line = describeWritebackModeForPrompt(mode, loc);
       assert.doesNotMatch(line, MODEL_A_FORBIDDEN_RE);
-      assert.match(line, /protection outranks|保护级别优先/u);
+      assert.match(line, /locked|锁定/u);
     }
   }
 });
 
 test("step-budget triple is one number set: settings-core = stream = Settings UI", () => {
   assert.equal(AGENT_STEPS_MIN, 3);
-  assert.equal(AGENT_STEPS_DEFAULT, 20);
-  assert.equal(AGENT_STEPS_MAX, 50);
+  assert.equal(AGENT_STEPS_DEFAULT, 32);
+  assert.equal(AGENT_STEPS_MAX, 80);
   assert.equal(UI_MIN, AGENT_STEPS_MIN);
   assert.equal(UI_DEFAULT, AGENT_STEPS_DEFAULT);
   assert.equal(UI_MAX, AGENT_STEPS_MAX);

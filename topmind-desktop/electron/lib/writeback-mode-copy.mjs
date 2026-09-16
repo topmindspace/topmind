@@ -41,21 +41,21 @@ export function describeWritebackModeForPrompt(mode, locale) {
       return (
         "Writeback: ask before save — you may call write tools (save_file/edit_file, etc.);" +
         " tool results enter the pending-writes queue; the user accepts or rejects in the Suggest pane before disk write;" +
-        " locked notes refuse unconfirmed AI overwrite (protection outranks writeback);" +
+        " locked notes also go pending (user authorization path) and still get high-impact backup on accept;" +
         " when files must change, you must call tools — never only rewrite verbally without tools."
       );
     }
     return (
       "写回: 保存前问我 — 可调用 write 工具（save_file/edit_file 等）；" +
       "工具结果会进入「待确认写入」队列，用户在 AI 工作区建议 pane 中接受或拒绝后才落盘；" +
-      "锁定笔记拒绝未确认的 AI 覆盖（保护级别优先于写回模式）；" +
+      "锁定笔记同样进入待确认（用户授权路径），接受后仍做高影响备份；" +
       "需要改文件时必须调用工具，禁止只做口头改写而不走工具。"
     );
   }
   if (lang === "en") {
     return (
       "Writeback: auto-save — you may call write tools;" +
-      " locked notes refuse unconfirmed AI overwrite (protection outranks writeback);" +
+      " locked notes refuse AI overwrite in auto mode (switch to confirm or unlock);" +
       " only high-impact writes get backup/receipt (locked overwrite; locked/core delete);" +
       " archive moves content to the system archive dir as its new home (not a backup);" +
       " multi-file turns summarize path receipts."
@@ -63,7 +63,7 @@ export function describeWritebackModeForPrompt(mode, locale) {
   }
   return (
     "写回: 自动保存 — 可调用 write 工具；" +
-    "锁定笔记拒绝未确认的 AI 覆盖（保护级别优先于写回模式）；" +
+    "锁定笔记在 auto 模式拒绝 AI 覆盖（请改用 confirm 或先解锁）；" +
     "仅高影响写入备份/回执（锁定覆盖、锁定/核心删除）；归档是迁入系统归档目录的新家（不是备份）；多文件轮次汇总路径回执。"
   );
 }

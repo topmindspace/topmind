@@ -76,10 +76,39 @@ export function isReasoningModel(modelId) {
   return (
     lower.includes("reasoner") ||
     lower.includes("deepseek-r1") ||
-    /^o[13](-mini|-preview)?(?:[-/]|$)/.test(lower) ||
+    /^o[134](-mini|-preview)?(?:[-/]|$)/.test(lower) ||
     lower.includes("qwq") ||
     /(^|[-/])thinking([-/]|$)/.test(lower)
   );
+}
+
+/**
+ * Provider-specific thinking / reasoning-effort knobs for agent mode.
+ * Agent work (multi-step tools + edits) should reason at least "high" when
+ * the provider supports an effort/budget control. Unknown models get {}.
+ *
+ * @param {string} [modelId]
+ * @param {"agent"|"inline"} [mode="agent"]
+ * @returns {object} AI SDK v7 providerOptions
+ */
+export function reasoningProviderOptions(modelId, mode = "agent") {
+  const id = String(modelId || "").toLowerCase();
+  const agent = mode !== "inline";
+  // OpenAI o-series / GPT-5 reasoning — reasoning_effort
+  if (/^o[134](-|$)/.test(id) || /gpt-5/.test(id) || /o4-mini/.test(id)) {
+    return { openai: { reasoningEffort: agent ? "high" : "medium" } };
+  }
+  // Anthropic extended thinking (Claude 3.7+ / 4 / 5)
+  if (/claude/.test(id) && /(3-7|sonnet|opus|haiku|4|5)/.test(id)) {
+    const budget = agent ? 8192 : 2048;
+    return { anthropic: { thinking: { type: "enabled", budgetTokens: budget } } };
+  }
+  // Gemini 2.5+ / 3.x thinking budget
+  if (/gemini/.test(id) && /(2\.5|3\.)/.test(id)) {
+    return { google: { thinkingConfig: { thinkingBudget: agent ? 4096 : 1024 } } };
+  }
+  // DeepSeek Reasoner / QwQ always think — no extra provider option.
+  return {};
 }
 
 /**
