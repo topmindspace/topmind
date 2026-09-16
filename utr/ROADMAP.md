@@ -36,7 +36,7 @@ UTR is the optional deterministic substrate for topmind. The external surface is
 
 - `writebackMode:"auto"|"confirm"` — auto persist (path evidence; YAML receipt only on high-impact); confirm returns review plan
 - High-risk writes require a meaningful reason when the contract says so
-- Locked files: AI denied in auto; confirm mode pending (user authorization path)
+- Locked files: AI denied when auto-persisting; review path is pending user authorization
 
 ## Verification commands
 
