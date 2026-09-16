@@ -1090,17 +1090,7 @@ jobs:
 
           INTEL_HASH=$(echo "${SUM_CONTENT}" | grep 'topmind-.*-mac-x64\.dmg' | awk '{print $1}' || echo "")
           if [[ -z "${INTEL_HASH}" ]]; then
-            echo "WARNING: Could not find SHA256 for topmind-*-mac-x64.dmg in checksum file. Falling back to downloading installer..."
-            curl -sL -o mac-intel.dmg "https://github.com/${REPO}/releases/download/${TAG}/topmind-${VERSION}-mac-x64.dmg" || true
-            if [[ -f mac-intel.dmg ]]; then
-              INTEL_HASH=$(sha256sum mac-intel.dmg | awk '{print $1}')
-            fi
-          fi
-          # Intel hash must never silently reuse the arm64 digest — that made every
-          # Intel brew install fail checksum verification.
-          if [[ -z "${INTEL_HASH}" ]]; then
-            echo "ERROR: Unable to resolve SHA256 hash for macOS Intel DMG installer."
-            exit 1
+            echo "NOTE: No mac-x64.dmg in checksum file (host-arch-only build). Cask will be arm64-only."
           fi
 
           if [[ -z "${ARM_HASH}" ]]; then
@@ -1110,7 +1100,7 @@ jobs:
 
           echo "Resolved version: ${VERSION}"
           echo "Resolved mac-arm64 sha256: ${ARM_HASH}"
-          echo "Resolved mac-x64 sha256: ${INTEL_HASH}"
+          echo "Resolved mac-x64 sha256: ${INTEL_HASH:-none (arm64-only cask)}"
 
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
@@ -1121,7 +1111,9 @@ jobs:
           cd homebrew-tap
           mkdir -p Casks
 
-          cat <<EOF | sed 's/^          //' > Casks/topmind.rb
+          if [[ -n "${INTEL_HASH}" ]]; then
+            # Dual-arch cask
+            cat <<EOF | sed 's/^          //' > Casks/topmind.rb
           cask "topmind" do
             arch arm: "arm64", intel: "x64"
 
@@ -1141,9 +1133,6 @@ jobs:
 
             auto_updates true
 
-            # Remove quarantine attribute automatically on install to solve macOS "damaged" gatekeeper error.
-            # Homebrew requires postflight_steps (legacy postflight is deprecated).
-            # Must match electron-builder productName: DMG contains topmind.app.
             postflight_steps do
               run "/usr/bin/xattr",
                   args: ["-rd", "com.apple.quarantine", "{{appdir}}/topmind.app"],
@@ -1152,8 +1141,6 @@ jobs:
 
             app "topmind.app"
 
-            # Recovery hint when /Applications/topmind.app was moved/deleted and brew
-            # upgrade can no longer find the previous install target.
             caveats <<~EOS
               If brew upgrade fails with "App source '/Applications/topmind.app' is not there",
               the previous app was moved or deleted. Recover with:
@@ -1171,6 +1158,51 @@ jobs:
             ]
           end
           EOF
+          else
+            # arm64-only cask (host-arch build; no x64 DMG in release)
+            cat <<EOF | sed 's/^          //' > Casks/topmind.rb
+          cask "topmind" do
+            version "${VERSION}"
+            sha256 "${ARM_HASH}"
+
+            url "https://github.com/${REPO}/releases/download/v#{version}/topmind-#{version}-mac-arm64.dmg"
+            name "Topmind Desktop"
+            desc "Local-first personal knowledge desktop workspace with stream and AI co-pilot"
+            homepage "https://github.com/${REPO}"
+
+            livecheck do
+              url :url
+              strategy :github_latest
+            end
+
+            auto_updates true
+
+            postflight_steps do
+              run "/usr/bin/xattr",
+                  args: ["-rd", "com.apple.quarantine", "{{appdir}}/topmind.app"],
+                  must_succeed: false
+            end
+
+            app "topmind.app"
+
+            caveats <<~EOS
+              If brew upgrade fails with "App source '/Applications/topmind.app' is not there",
+              the previous app was moved or deleted. Recover with:
+                brew uninstall --cask topmind --force
+                brew install --cask topmind
+              Or reinstall in place:
+                brew reinstall --cask topmind
+            EOS
+
+            zap trash: [
+              "~/topmind/topmind-desktop/logs",
+              "~/Library/Application Support/topmind",
+              "~/Library/Preferences/com.topmindspace.topmind.plist",
+              "~/Library/Saved Application State/com.topmindspace.topmind.savedState",
+            ]
+          end
+          EOF
+          fi
 
           git add Casks/topmind.rb
           if git diff --staged --quiet; then
