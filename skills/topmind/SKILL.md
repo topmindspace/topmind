@@ -142,7 +142,7 @@ UTR 可选（MCP primary+danger，与注册表 19 条对齐）：`list-categorie
 写入失败时：
 - 磁盘满 / 权限不足 → 报错 + 已备回复制位置；不静默丢数据
 - 路径过长 / 非法字符 → 提示用户缩短专题名
-- protection:locked → 拒绝写入 + 建议fork修订版
+- protection:locked → auto 拒绝 / confirm 待确认；或建议 fork 修订版
 - 工作区不存在 topmind.yaml → 按默认契约解释 + 回执标注「默认契约」
 
 

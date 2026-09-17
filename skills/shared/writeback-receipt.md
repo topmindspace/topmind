@@ -20,7 +20,7 @@ writeback:
 - **保存前问我** → `confirm`  
 
 **主动建议 ≠ 自动写**：系统可默认生成建议卡片；执行高影响写入仍须确认 + protection。  
-优先级：`protection`（open|locked）> `writeback.mode`。
+**locked × 保存设置**：`auto` 下 AI 拒绝写 locked；`confirm` 下 locked 进入待确认（用户授权路径），接受后仍做高影响备份。用户写 locked 始终可以（高影响备份）。
 
 ## 回执最小字段
 
@@ -43,7 +43,7 @@ writeback:
 - **archive** → 迁入现场 system 目录当**新家**（非备份）；YAML 回执仅锁定/核心  
 - **locked** 既有文件覆盖 → 旋转备份 + 回执  
 - 常规 **open** 更新 → 不造备份/回执（不伪造路径）；证据仍含 target path + affected files  
-- AI 不得直接写 locked；须 fork 或用户解锁  
+- AI + locked：auto 拒绝；confirm 待确认（用户授权）；或用户解锁 / fork 修订版  
 
 ## 错误处理（共享）
 
@@ -53,7 +53,7 @@ writeback:
 |---------|------|
 | 磁盘满 / 权限不足 | 报错 + 已备回复制位置；不静默丢数据 |
 | 路径过长 / 非法字符 | 提示用户缩短专题名或使用合法字符 |
-| `protection: locked` | 拒绝写入 + 建议 fork 修订版 |
+| `protection: locked` | auto 拒绝；confirm 待确认；或建议 fork / 解锁 |
 | 工作区无 `topmind.yaml` | 按默认契约解释 + 回执标注「默认契约」 |
 | UTR 不可用 | 降级为 Host 文件工具（见 `capability-degradation.md`） |
 | 网络抓取失败 | 保留 URL + 摘录；不假装已成功 capture |

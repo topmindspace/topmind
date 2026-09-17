@@ -5,6 +5,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { createHash } from "node:crypto";
 import type { KernelApi } from "../bridge/kernel-loader.ts";
 import {
   stripFrontmatter,
@@ -586,6 +587,7 @@ export function readWorkspaceWindow(
 ): {
   ok: boolean;
   error?: string;
+  contentHash?: string;
   window?: ReturnType<NonNullable<KernelApi["formatReadWindow"]>>;
 } {
   const loc = resolveInsideWorkspace(kernel, workspaceRoot, opts.relativePath);
@@ -597,6 +599,7 @@ export function readWorkspaceWindow(
     return { ok: false, error: "kernel-formatReadWindow-missing" };
   }
   const full = fs.readFileSync(loc.abs, "utf-8");
+  const contentHash = createHash("sha256").update(full, "utf8").digest("hex").slice(0, 16);
   const win = kernel.formatReadWindow(full, {
     relativePath: loc.rel,
     offset: opts.offset,
@@ -607,7 +610,7 @@ export function readWorkspaceWindow(
     maxLimit: 5000,
     maxChars: 80_000,
   });
-  return { ok: true, window: win };
+  return { ok: true, window: win, contentHash };
 }
 
 export interface WorkspaceEditOpts {
@@ -618,6 +621,8 @@ export interface WorkspaceEditOpts {
   startLine?: number;
   endLine?: number;
   heading?: string;
+  /** Optimistic concurrency: contentHash from the latest read/edit of this file. */
+  expectedHash?: string;
   actor?: "user" | "ai";
   confirmed?: boolean;
   writebackMode?: "auto" | "confirm";
@@ -644,6 +649,7 @@ export function preciseEditWorkspace(
   replacements?: number;
   matchMode?: string;
   wroteFiles?: boolean;
+  contentHash?: string;
 } {
   if (!opts.relativePath?.endsWith(".md")) {
     return { ok: false, error: "md-only", reason: "md-only" };
@@ -657,6 +663,21 @@ export function preciseEditWorkspace(
     return { ok: false, error: "kernel-applyUniqueSpan-missing", reason: "missing-matcher" };
   }
   const old = fs.readFileSync(loc.abs, "utf-8");
+  // Optimistic concurrency: refuse when the file changed since the model last read it.
+  if (typeof opts.expectedHash === "string" && opts.expectedHash.trim()) {
+    const currentHash = createHash("sha256").update(old, "utf8").digest("hex").slice(0, 16);
+    if (currentHash !== opts.expectedHash.trim()) {
+      return {
+        ok: false,
+        error: "hash-mismatch",
+        reason: "hash-mismatch",
+        diagnostic: `File changed since last read (expectedHash mismatch): ${loc.rel}. Re-read with read_file to refresh contentHash/oldText, then retry.`,
+        targetPath: loc.rel,
+        replacements: 0,
+        wroteFiles: false,
+      };
+    }
+  }
   const applied = kernel.applyUniqueSpan(old, {
     oldText: opts.oldText,
     newText: opts.newText,
@@ -730,6 +751,7 @@ export function preciseEditWorkspace(
       replacements: applied.replacements,
       matchMode: applied.mode,
       wroteFiles: result.wroteFiles !== false,
+      contentHash: createHash("sha256").update(applied.next, "utf8").digest("hex").slice(0, 16),
     };
   } catch (err) {
     return {
@@ -890,8 +912,8 @@ export function buildObsidianChatToolGuide(
     return [
       "You can call workspace tools. To read/edit a file, emit a single JSON object and nothing else:",
       '{"tool":"read_file","relativePath":"10-动态/2026-W33.md","around":"unique phrase","limit":80}',
-      '{"tool":"edit_file","relativePath":"…","oldText":"unique span","newText":"replacement","startLine":12,"endLine":20}',
-      "read_file returns numbered lines (N|text). edit_file is unique-span (exact, then newline/trailing-space); ambiguous matches refuse — not exact-only. No bash or shell.",
+      '{"tool":"edit_file","relativePath":"…","oldText":"unique span","newText":"replacement","startLine":12,"endLine":20,"expectedHash":"<optional contentHash>"}',
+      "read_file returns numbered lines (N|text) + contentHash. edit_file is unique-span (matching ladder: exact → newline/trailing-space → loose lines / blank / list markers / emphasis). Ambiguous matches refuse. Multi-step: follow postEditWindow + contentHash as expectedHash. No bash or shell.",
       writeback,
       "User profile context is active facts only (history collapsed to a count). Do not treat archived ## History lines as current. Memory ADD/UPDATE/RETIRE is confirm-gated via suggestions (append_core_memory / update_core_memory / retire_core_memory on Desktop); never unbounded append.",
       "When done, write only the user-visible answer — no chain-of-thought, <think>, or reasoning fences.",
@@ -903,8 +925,8 @@ export function buildObsidianChatToolGuide(
   return [
     "你可以调用工作区工具。需要读/改文件时，只输出一个 JSON 对象（不要夹杂其他文字）：",
     '{"tool":"read_file","relativePath":"10-动态/2026-W33.md","around":"唯一短语","limit":80}',
-    '{"tool":"edit_file","relativePath":"…","oldText":"原文唯一片段","newText":"替换","startLine":12,"endLine":20}',
-    "read_file 返回 numbered 行（N|正文）。edit_file 先精确再容忍换行/行尾空白；多处命中会拒绝（不是只接受逐字节精确匹配）。没有 bash / shell。",
+    '{"tool":"edit_file","relativePath":"…","oldText":"原文唯一片段","newText":"替换","startLine":12,"endLine":20,"expectedHash":"<可选 contentHash>"}',
+    "read_file 返回 numbered 行（N|正文）+ contentHash。edit_file 匹配阶梯：精确 → 换行/行尾空白 → 行级宽松（空行/列表标记/加粗）；多处命中会拒绝。多步编辑跟 postEditWindow + contentHash 作 expectedHash。没有 bash / shell。",
     writeback,
     "用户画像上下文仅为活跃事实（历史记录已折叠为计数）。不要把已归档条目当现状。记忆 ADD/UPDATE/RETIRE 经建议确认（Desktop 工具 append_core_memory / update_core_memory / retire_core_memory）；禁止无界追加。",
     "完成后只写用户可见结论，不要输出思考过程、<think> 或推理围栏。",
@@ -959,7 +981,7 @@ export async function runWorkspaceChatTurn(
         heading: typeof call.heading === "string" ? call.heading : undefined,
       });
       conversation.push(`Assistant: ${lastRaw}`);
-      conversation.push(`Tool result (read_file):\n${toolResultForModel(read.ok ? { ...read.window, content: read.window?.numbered || read.window?.content } : read)}`);
+      conversation.push(`Tool result (read_file):\n${toolResultForModel(read.ok ? { ...read.window, content: read.window?.numbered || read.window?.content, contentHash: read.contentHash } : read)}`);
       continue;
     }
     if (tool === "edit_file") {
@@ -971,6 +993,7 @@ export async function runWorkspaceChatTurn(
         startLine: typeof call.startLine === "number" ? call.startLine : undefined,
         endLine: typeof call.endLine === "number" ? call.endLine : undefined,
         heading: typeof call.heading === "string" ? call.heading : undefined,
+        expectedHash: typeof call.expectedHash === "string" ? call.expectedHash : undefined,
         actor: "ai",
         confirmed: mode !== "confirm",
         writebackMode: mode,
