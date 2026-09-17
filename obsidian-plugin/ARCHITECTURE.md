@@ -50,7 +50,7 @@ topmind Kernel 引擎（`lib/*.mjs`）使用 Node.js `fs` / `path` / `crypto` �
 |------|---------|-----------------|
 | 运行环境 | Electron 主进程 | Obsidian Electron 渲染进程 |
 | Kernel 加载 | 动态 import from engine root | esbuild 打包进 `main.js` |
-| AI Provider | Vercel AI SDK v7 (`generateText`) | `fetch` API 直调（OpenAI-compatible + Anthropic 原生） |
+| AI Provider | Vercel AI SDK v7 (`generateText`) | `fetch` API 直调（OpenAI-compatible + Anthropic 原生）；无 Pi loop |
 | AI 对话 | Agent 流式（React）+ 精确 `edit_file` | KernelService.chat（fetch + 有界 read/edit 工具环 + 思考折叠） |
 | UI 框架 | React + Tailwind + Tiptap | Obsidian 原生 (ItemView + DOM) |
 | 文件系统 | Node.js `fs` | ESM import → esbuild CJS require（Electron 渲染进程） |
@@ -245,7 +245,7 @@ interface AiProvider {
 2. 当前待办（未完成的前 10 条）
 3. 用户画像（契约 memory 平面 global 文件前 3000 字符；默认 memory/profile.md）
 4. 近期周期反思（契约 memory.dir/periodic/，平铺与 {YYYY}/ 双扫描，最新文件前 2000 字符）
-→ runWorkspaceChatTurn（有界工具环，最多 6 步）
+→ runWorkspaceChatTurn（有界工具环，默认 10 / 最多 16 步；匹配阶梯 + postEditWindow + expectedHash）
    read_file  → formatReadWindow（行号 + around/heading）
    edit_file  → applyUniqueSpan + executeWrite（写闸 / confirm|auto）
 → splitAssistantVisible：正文 = 结论；思考折进 reasoning

@@ -650,6 +650,7 @@ export function preciseEditWorkspace(
   matchMode?: string;
   wroteFiles?: boolean;
   contentHash?: string;
+  postEditWindow?: { startLine: number; endLine: number; totalLines: number; content: string };
 } {
   if (!opts.relativePath?.endsWith(".md")) {
     return { ok: false, error: "md-only", reason: "md-only" };
@@ -745,6 +746,33 @@ export function preciseEditWorkspace(
         reason: "pending",
       };
     }
+    // Fresh numbered window around the first replacement so multi-step edits
+    // can continue without stale line numbers (Desktop postEditWindow parity).
+    let postEditWindow: { startLine: number; endLine: number; totalLines: number; content: string } | undefined;
+    try {
+      const firstSpan = applied.spans?.[0];
+      if (firstSpan && typeof kernel.formatReadWindow === "function") {
+        const before = applied.next.slice(0, firstSpan.start);
+        const startLine = before.split("\n").length;
+        const win = kernel.formatReadWindow(applied.next, {
+          relativePath: loc.rel,
+          offset: Math.max(1, startLine - 8),
+          limit: 32,
+          maxLimit: 80,
+          maxChars: 8000,
+        });
+        if (win && !win.empty) {
+          postEditWindow = {
+            startLine: win.startLine,
+            endLine: win.endLine,
+            totalLines: win.totalLines,
+            content: win.numbered || win.content || "",
+          };
+        }
+      }
+    } catch {
+      /* best-effort */
+    }
     return {
       ok: true,
       targetPath: loc.rel,
@@ -752,6 +780,7 @@ export function preciseEditWorkspace(
       matchMode: applied.mode,
       wroteFiles: result.wroteFiles !== false,
       contentHash: createHash("sha256").update(applied.next, "utf8").digest("hex").slice(0, 16),
+      postEditWindow,
     };
   } catch (err) {
     return {
@@ -912,10 +941,10 @@ export function buildObsidianChatToolGuide(
     return [
       "You can call workspace tools. To read/edit a file, emit a single JSON object and nothing else:",
       '{"tool":"read_file","relativePath":"10-动态/2026-W33.md","around":"unique phrase","limit":80}',
-      '{"tool":"edit_file","relativePath":"…","oldText":"unique span","newText":"replacement","startLine":12,"endLine":20,"expectedHash":"<optional contentHash>"}',
-      "read_file returns numbered lines (N|text) + contentHash. edit_file is unique-span (matching ladder: exact → newline/trailing-space → loose lines / blank / list markers / emphasis). Ambiguous matches refuse. Multi-step: follow postEditWindow + contentHash as expectedHash. No bash or shell.",
+      '{"tool":"edit_file","relativePath":"…","oldText":"unique span","newText":"replacement","startLine":12,"endLine":20,"expectedHash":"<optional contentHash>","replaceAll":false,"heading":"Optional section"}',
+      "read_file returns numbered lines (N|text) + contentHash. edit_file is unique-span (matching ladder: exact → newline/trailing-space → loose lines / blank / list markers / emphasis). Use replaceAll or heading/startLine/endLine to disambiguate. Multi-step: follow postEditWindow + contentHash as expectedHash. No bash or shell.",
       writeback,
-      "User profile context is active facts only (history collapsed to a count). Do not treat archived ## History lines as current. Memory ADD/UPDATE/RETIRE is confirm-gated via suggestions (append_core_memory / update_core_memory / retire_core_memory on Desktop); never unbounded append.",
+      "User profile context is active facts only (history collapsed to a count). Do not treat archived ## History lines as current. Memory writes are NOT callable here — propose them in your answer and the user applies via the Suggest tab; never invent append_core_memory / update_core_memory / retire_core_memory tools in this host.",
       "When done, write only the user-visible answer — no chain-of-thought, <think>, or reasoning fences.",
     ].join("\n");
   }
@@ -925,10 +954,10 @@ export function buildObsidianChatToolGuide(
   return [
     "你可以调用工作区工具。需要读/改文件时，只输出一个 JSON 对象（不要夹杂其他文字）：",
     '{"tool":"read_file","relativePath":"10-动态/2026-W33.md","around":"唯一短语","limit":80}',
-    '{"tool":"edit_file","relativePath":"…","oldText":"原文唯一片段","newText":"替换","startLine":12,"endLine":20,"expectedHash":"<可选 contentHash>"}',
-    "read_file 返回 numbered 行（N|正文）+ contentHash。edit_file 匹配阶梯：精确 → 换行/行尾空白 → 行级宽松（空行/列表标记/加粗）；多处命中会拒绝。多步编辑跟 postEditWindow + contentHash 作 expectedHash。没有 bash / shell。",
+    '{"tool":"edit_file","relativePath":"…","oldText":"原文唯一片段","newText":"替换","startLine":12,"endLine":20,"expectedHash":"<可选 contentHash>","replaceAll":false,"heading":"可选小节标题"}',
+    "read_file 返回 numbered 行（N|正文）+ contentHash。edit_file 匹配阶梯：精确 → 换行/行尾空白 → 行级宽松（空行/列表标记/加粗）；可用 replaceAll 或 heading/startLine/endLine 消歧。多步编辑跟 postEditWindow + contentHash 作 expectedHash。没有 bash / shell。",
     writeback,
-    "用户画像上下文仅为活跃事实（历史记录已折叠为计数）。不要把已归档条目当现状。记忆 ADD/UPDATE/RETIRE 经建议确认（Desktop 工具 append_core_memory / update_core_memory / retire_core_memory）；禁止无界追加。",
+    "用户画像上下文仅为活跃事实（历史记录已折叠为计数）。不要把已归档条目当现状。本宿主**不可直接写记忆**——在回答里提出建议，由用户在「建议」tab 确认；不要编造 append_core_memory / update_core_memory / retire_core_memory 工具。",
     "完成后只写用户可见结论，不要输出思考过程、<think> 或推理围栏。",
   ].join("\n");
 }
@@ -944,7 +973,9 @@ export async function runWorkspaceChatTurn(
 ): Promise<{ body: string; reasoning: string; edits: Array<Record<string, unknown>>; steps: number }> {
   const durable = resolveChatDurableLocale(kernel, workspaceRoot, opts.userMessage);
   const chromeZh = resolveChatPromptLocale(opts.locale) === "zh";
-  const maxSteps = Math.max(1, Math.min(8, Math.floor(Number(opts.maxSteps) || 6)));
+  // Bounded multi-step loop (fetch-based; no Pi). 16 allows multi-file tidy
+  // without unbounded cost; Desktop agent is 32–80 with auto-continue.
+  const maxSteps = Math.max(1, Math.min(16, Math.floor(Number(opts.maxSteps) || 10)));
   const modeHint = resolveContractWritebackMode(kernel, workspaceRoot) || opts.writebackMode || "auto";
   const toolGuide = buildObsidianChatToolGuide(opts.locale, modeHint);
   const answerGuide = durableChatAnswerGuide(durable);
@@ -964,7 +995,7 @@ export async function runWorkspaceChatTurn(
     const raw = await opts.generate(prompt, {
       operation: "chat",
       systemPrompt: `${opts.systemExtra || ""}\n\n${answerGuide}\n\n${toolGuide}`.trim(),
-      maxOutputTokens: 4096,
+      maxOutputTokens: 8192,
       temperature: 0.4,
     });
     lastRaw = String(raw || "");
@@ -1000,7 +1031,13 @@ export async function runWorkspaceChatTurn(
       });
       edits.push({ ...edited, tool: "edit_file", relativePath: call.relativePath });
       conversation.push(`Assistant: ${lastRaw}`);
-      conversation.push(`Tool result (edit_file):\n${toolResultForModel(edited)}`);
+      let editNote = toolResultForModel(edited);
+      if (edited.reason === "hash-mismatch" || edited.error === "hash-mismatch") {
+        editNote += `\nHINT: file changed since last read — call read_file around= to refresh contentHash/oldText, then retry edit_file with the new expectedHash.`;
+      } else if (edited.reason === "no-match" || edited.reason === "ambiguous") {
+        editNote += `\nHINT: use nearby/context from the diagnostic, or read_file around= the phrase, then retry with exact oldText + expectedHash.`;
+      }
+      conversation.push(`Tool result (edit_file):\n${editNote}`);
       continue;
     }
     break;
@@ -1093,7 +1130,8 @@ export function appendStreamEntryToWorkspace(
   });
 
   if (result.pending || result.needsConfirm) {
-    return { ok: true, path: rel, pending: true, needsConfirm: true };
+    // pending is not success — UI must distinguish await-confirm from written.
+    return { ok: false, path: rel, pending: true, needsConfirm: true, error: "pending-confirmation" };
   }
   if (!result.ok) {
     return { ok: false, error: String(result.reason || "Write failed") };

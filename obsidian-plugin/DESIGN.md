@@ -345,7 +345,7 @@ AI 操作按钮仅在 AI 已配置时显示。默认显示文本标签模式（`
 |--------|---------|
 | writeback_mode: auto | 自动保存 |
 | writeback_mode: confirm | 保存前问我 |
-| protection: locked | （Kernel 契约始终强制，无需用户开关） |
+| protection: locked | auto 下 AI 拒绝；confirm 待确认（用户授权）；用户写始终可（高影响备份） |
 | autoPrepareSuggestions | 自动准备 AI 建议 |
 | autoMaintainTodos | 自动整理待办 |
 | BACKUP_KEEP | 备份保留份数 |
@@ -400,7 +400,7 @@ AI 对话自动注入以下上下文（无需用户手动选择）：
 | 用户画像 | 前 3000 字符 | `memory/profile.md` |
 | 对话历史 | 最近 10 轮 | 保持对话连贯性 |
 
-对话可经 Kernel 读窗口 / 唯一片段改稿（与 Desktop `read_file` / `edit_file` 同一匹配与写闸契约），不是 generate-only。写回跟随 `topmind.yaml`（confirm 仍可调用 edit；locked+auto 拒绝 AI，confirm 待确认）。指令语言：`en*` → 英文，否则中文。
+对话可经 Kernel 读窗口 / 唯一片段改稿（与 Desktop `read_file` / `edit_file` 同一匹配与写闸契约：匹配阶梯 + postEditWindow + contentHash/expectedHash），不是 generate-only。写回跟随 `topmind.yaml`（confirm 仍可调用 edit；locked+auto 拒绝 AI，confirm 待确认）。指令语言：`en*` → 英文，否则中文。
 
 ### 8.2 对话交互
 

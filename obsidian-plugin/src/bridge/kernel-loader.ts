@@ -98,7 +98,7 @@ export interface PreciseEditOk {
   ok: true;
   next: string;
   replacements: number;
-  mode: "exact" | "normalized";
+  mode: "exact" | "normalized" | "loose";
   spans: { start: number; end: number }[];
 }
 
