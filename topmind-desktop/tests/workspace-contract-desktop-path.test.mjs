@@ -248,9 +248,10 @@ describe("writebackMode is not forked from app-settings for Kernel writes", () =
         ctx,
         { actor: "ai", isCreate: true },
       );
-      assert.equal(confirmWrite.pending, true, "yaml confirm: AI write must stay pending");
-      assert.equal(confirmWrite.wroteFiles, false);
-      assert.ok(!fs.existsSync(path.join(ws, "20-专题", "from-confirm.md")));
+      // Graded confirm: content create lands immediately; yaml still wins for mode resolution.
+      assert.equal(confirmWrite.pending, false, "yaml confirm graded: content create must land");
+      assert.equal(confirmWrite.wroteFiles, true);
+      assert.ok(fs.existsSync(path.join(ws, "20-专题", "from-confirm.md")));
     } finally {
       fs.rmSync(ws, { recursive: true, force: true });
     }

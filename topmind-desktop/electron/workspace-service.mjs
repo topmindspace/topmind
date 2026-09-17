@@ -200,14 +200,65 @@ export const WorkspaceService = {
     return { ok: true, cleared: true };
   },
 
-  async listPendingWrites() {
+  /**
+   * Structured profile inventory for the memory browse (M1/M6).
+   */
+  async listProfileFacts(_p, ctx) {
+    const { loadKernelApi, workspaceRootOf } = await import("./lib/kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const root = workspaceRootOf(ctx.workspaceRoot);
+    return { ok: true, ...kernel.listProfileFacts(root) };
+  },
+
+  /**
+   * Deterministic health: near-dupes, empty sections, oversized active.
+   */
+  async profileHealth(_p, ctx) {
+    const { loadKernelApi, workspaceRootOf } = await import("./lib/kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const root = workspaceRootOf(ctx.workspaceRoot);
+    return { ok: true, health: kernel.analyzeProfileHealth(root) };
+  },
+
+  /**
+   * Search profile facts (active + history).
+   */
+  async searchProfile({ query, includeHistory = true, limit = 20 }, ctx) {
+    const { loadKernelApi, workspaceRootOf } = await import("./lib/kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const root = workspaceRootOf(ctx.workspaceRoot);
+    return { ok: true, ...kernel.searchProfile(root, query, { includeHistory, limit }) };
+  },
+
+  /**
+   * Restore an archived profile fact back to a live section.
+   */
+  async restoreProfileFact({ match, section }, ctx) {
+    const { loadKernelApi, workspaceRootOf } = await import("./lib/kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const root = workspaceRootOf(ctx.workspaceRoot);
+    const ev = kernel.restoreProfileEntry({
+      workspaceRoot: root,
+      match,
+      section,
+      actor: "user",
+      confirmed: true,
+    });
+    return {
+      ok: ev.wroteFiles !== false && ev.operation !== "skip",
+      ...ev,
+      wroteFiles: ev.wroteFiles !== false,
+    };
+  },
+
+  async listPendingWrites(_p, ctx) {
     const { listPendingWrites } = await import("./lib/pending-writes.mjs");
-    return { ok: true, pending: listPendingWrites() };
+    return { ok: true, pending: listPendingWrites(ctx?.workspaceRoot) };
   },
 
   async confirmPendingWrite({ id }, ctx) {
     const { takePendingWrite } = await import("./lib/pending-writes.mjs");
-    const entry = takePendingWrite(id);
+    const entry = takePendingWrite(ctx?.workspaceRoot, id);
     if (!entry) throw new Error("pending write not found or already handled");
     return pathOps.savePath(
       {
@@ -220,9 +271,9 @@ export const WorkspaceService = {
     );
   },
 
-  async rejectPendingWrite({ id }) {
+  async rejectPendingWrite({ id }, ctx) {
     const { rejectPendingWrite } = await import("./lib/pending-writes.mjs");
-    return { ok: rejectPendingWrite(id) };
+    return { ok: rejectPendingWrite(ctx?.workspaceRoot, id) };
   },
 
   // ── Inbox ────────────────────────────────────────────────────────────────
@@ -252,6 +303,8 @@ export const WorkspaceService = {
   listTopicReceipts: archiveOps.listTopicReceipts,
   readTopicReceipt: archiveOps.readTopicReceipt,
   restoreTopicReceipt: archiveOps.restoreTopicReceipt,
+  listTrashItems: archiveOps.listTrashItems,
+  restoreTrashItem: archiveOps.restoreTrashItem,
 
   // ── Fetch ────────────────────────────────────────────────────────────────
   /**

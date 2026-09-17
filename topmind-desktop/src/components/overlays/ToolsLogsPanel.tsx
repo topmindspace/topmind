@@ -18,9 +18,11 @@ import {
   RiHistoryLine,
   RiStethoscopeLine,
   RiSparklingLine,
+  RiArrowGoBackLine,
 } from "@remixicon/react";
 import { api } from "../../services/api";
 import { useViewStore } from "../../stores/view-store";
+import { emitLocal } from "../../plugins/host";
 import { Button } from "../ui/Button";
 import { ICON } from "../../lib/icons";
 import { cn } from "../../lib/cn";
@@ -113,6 +115,9 @@ export function ToolsLogsPanel() {
   const [dupWaste, setDupWaste] = useState(0);
   const [confirmCare, setConfirmCare] = useState(false);
   const [keepMap, setKeepMap] = useState<Record<string, number>>({});
+  const [trash, setTrash] = useState<
+    { trashRelativePath: string; originalRelativePath: string; name: string; size: number; mtime: string }[]
+  >([]);
 
   const loadOverview = useCallback(async () => {
     setBusy("overview");
@@ -160,13 +165,15 @@ export function ToolsLogsPanel() {
   const loadCare = useCallback(async () => {
     setBusy("care");
     try {
-      const [c, d] = await Promise.all([
+      const [c, d, tr] = await Promise.all([
         api.ws.cleanupPreview(),
         api.ws.duplicates({ minSize: 1024, maxGroups: 20 }),
+        api.ws.listTrashItems(20).catch(() => ({ items: [] })),
       ]);
       setCare(c);
       setDupes(d.groups || []);
       setDupWaste(d.wastedBytes || 0);
+      setTrash(tr.items || []);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -578,6 +585,69 @@ export function ToolsLogsPanel() {
                       {t("toolsLogs.care.cancel")}
                     </Button>
                   </div>
+                )}
+              </Section>
+
+              <Section title={t("toolsLogs.care.trash")}>
+                {!trash.length ? (
+                  <Empty text={t("toolsLogs.care.noTrash")} />
+                ) : (
+                  <>
+                    <p className="mb-2 text-3xs text-text-tertiary">{t("toolsLogs.care.trashHint")}</p>
+                    <ul className="max-h-40 space-y-1 overflow-auto">
+                      {trash.map((item) => (
+                        <li
+                          key={item.trashRelativePath}
+                          className="flex items-center justify-between gap-2 text-3xs"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-text-secondary" title={item.originalRelativePath}>
+                              {item.originalRelativePath}
+                            </div>
+                            <div className="truncate text-text-quaternary">
+                              {formatBytes(item.size)} · {new Date(item.mtime).toLocaleString()}
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={!!busy}
+                            onClick={async () => {
+                              setBusy("restore-trash");
+                              try {
+                                const r = await api.ws.restoreTrashItem({
+                                  trashRelativePath: item.trashRelativePath,
+                                });
+                                if (r?.ok || r?.wroteFiles || r?.path) {
+                                  setTrash((prev) =>
+                                    prev.filter((x) => x.trashRelativePath !== item.trashRelativePath),
+                                  );
+                                  emitLocal("toast:show", {
+                                    text: t("toolsLogs.care.restored", { path: r.path || item.originalRelativePath }),
+                                    kind: "success",
+                                  });
+                                  emitLocal("workspace:file-changed", { relativePath: r.path });
+                                } else {
+                                  setError(t("toolsLogs.care.restoreFailed"));
+                                }
+                              } catch (e) {
+                                setError(e instanceof Error ? e.message : String(e));
+                              } finally {
+                                setBusy(null);
+                              }
+                            }}
+                          >
+                            {busy === "restore-trash" ? (
+                              <RiLoader4Line size={ICON.micro} className="animate-spin" />
+                            ) : (
+                              <RiArrowGoBackLine size={ICON.micro} aria-hidden />
+                            )}
+                            {t("toolsLogs.care.restore")}
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
                 )}
               </Section>
 

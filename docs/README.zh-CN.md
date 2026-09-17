@@ -59,7 +59,7 @@
 |----------|------|
 | [`PACKAGING.md`](./PACKAGING.md) | 打包与发布规范：安装包命名矩阵、GitHub Actions 独立/全量 Release 工作流、Win/Mac/Linux 构建说明 |
 | [`images/README.md`](./images/README.md) | 媒体与截图资源索引 |
-| [`stream-first-optimization-scheme.md`](./stream-first-optimization-scheme.md) | Stream-first 产品真理与理想使用态 |
+| [`stream-first-optimization-scheme.md`](./stream-first-optimization-scheme.md) | Stream-first 理想使用态备忘（**非策略真源** — 见 DESIGN / TOOLS / Reset） |
 | [`capture-clip-matrix.md`](./capture-clip-matrix.md) | Capture · Clip · Ingest 能力矩阵 |
 | [`topmind-vs-others.md`](./topmind-vs-others.md) | 知识管理方案对比与选型指南 |
 | [`UIUX-AUDIT-2026-09-01.md`](./UIUX-AUDIT-2026-09-01.md) | **NON-LIVING** 2026-09-01 快照（不是现行 IA；三列 chrome 见 `topmind-desktop/DESIGN.md`） |
@@ -98,6 +98,16 @@
 | [2026-09-14](./adr/2026-09-14-product-vocabulary-rename.md) | 产品词汇改名 | 收件箱 / 写出来 / Ship it → Inbox / 交付 / Delivery；默认模板种子改名，存量工作区目录不动 |
 | [2026-09-15](./adr/2026-09-15-cross-platform-chrome-and-suggest-lifecycle.md) | 跨平台窗口外壳与建议生命周期 | Windows 一行标题栏（自绘菜单条 → 原生子菜单）、chord 经 `formatChord` 按平台渲染、全屏收回让位垫、浮窗无边框、Windows 对话框按钮在 CSS 翻转；建议批量执行 + 终态/可重试失败分类 + 忽略落盘 |
 | [2026-09-15](./adr/2026-09-15-boot-integrity-and-undeclared-identifiers.md) | 启动完整性与未声明标识符 | `popupSink` 被赋值但从未声明——ready 处理器里的 ReferenceError 让三个平台在开出第一个窗口前就死掉，绕过了八道绿灯关卡；`install-skills.mjs` 自初版起就无法解析；新增真正的 scope 分析检查，以及一个在 stub Electron 下真实启动主进程的测试 |
+| [2026-09-17](./adr/2026-09-17-adversarial-deep-review.md) | 对抗性深度审查 | 生命周期结构平面围栏、归档面 containment、捕获脏 Esc 守卫、openPath realpath、todo 默认 actor=ai |
+| [2026-09-17b](./adr/2026-09-17b-writeback-authorization-model.md) | 写回授权模型 | `locked` = 任务级首写快照（非 AI 禁区）；分级 confirm（内容落盘；仅删/归档 pending）；永久删 locked/core 仅用户 |
+| [2026-09-17c](./adr/2026-09-17c-adversarial-pass-fences-and-honesty.md) | 对抗审查：围栏与诚实 | 悬空 symlink fail-closed；系统安全叶子；归档校验 fail-closed；Memory 单真源；分级 confirm UI 改名；Esc 守卫重臂 |
+| [2026-09-17e](./adr/2026-09-17e-global-memory-quality.md) | 全局记忆质量 | 事实清单 · 健康（近重复）· 恢复 · 排序注入 · 整理分区路由 |
+
+**设计提案（非 ADR）：**
+
+| 文档 | 主题 |
+|------|------|
+| [design/2026-09-16-tools-and-logs-workspace-care.md](./design/2026-09-16-tools-and-logs-workspace-care.md) | 工具与日志：stats · ops journal · 健康含契约 · 清理预览/去重 · C1–C9 修复 |
 
 ---
 

@@ -303,33 +303,48 @@ describe("protect gate boundaries (evaluateWritePermission)", () => {
     assert.equal(r.allowed, false);
   });
 
-  it("frontmatter protection: locked denies AI in auto but allows user", () => {
+  it("frontmatter protection: locked allows AI content edit with snapshot; user allowed", () => {
     const contract = buildDefaultContract();
     const target = path.join(ws, "20-专题", "2026-测试", "topic.md");
     const fm = { protection: "locked" };
     const ai = evaluateWritePermission({ contract, targetPath: target, workspaceRoot: ws, frontmatter: fm, actor: "ai" });
-    assert.equal(ai.allowed, false);
+    assert.equal(ai.allowed, true, "locked is editable, not an AI deny-list");
+    assert.equal(ai.preBackupRequired, true);
+    // Recoverable lifecycle allowed for AI in auto
+    const aiLifecycle = evaluateWritePermission({
+      contract, targetPath: target, workspaceRoot: ws, frontmatter: fm, actor: "ai", lifecycle: true,
+    });
+    assert.equal(aiLifecycle.allowed, true);
+    assert.equal(aiLifecycle.needsConfirm, false);
     const user = evaluateWritePermission({ contract, targetPath: target, workspaceRoot: ws, frontmatter: fm, actor: "user" });
     assert.equal(user.allowed, true);
   });
 
-  it("confirm mode: locked AI write is pending (user authorization), still protected from silent write", () => {
+  it("confirm mode is graded: content edits land; lifecycle pending", () => {
     const contract = buildDefaultContract();
     contract.writeback.mode = "confirm";
     const target = path.join(ws, "20-专题", "2026-测试", "topic.md");
     const fm = { protection: "locked" };
     const ai = evaluateWritePermission({ contract, targetPath: target, workspaceRoot: ws, frontmatter: fm, actor: "ai" });
     assert.equal(ai.allowed, true);
-    assert.equal(ai.needsConfirm, true);
+    assert.equal(ai.needsConfirm, false, "locked content edit lands in graded confirm");
     assert.equal(ai.protection, "locked");
+    const aiLifecycle = evaluateWritePermission({
+      contract, targetPath: target, workspaceRoot: ws, frontmatter: fm, actor: "ai", lifecycle: true,
+    });
+    assert.equal(aiLifecycle.needsConfirm, true);
   });
 
-  it("confirm mode: AI writes need confirm, user writes do not", () => {
+  it("confirm mode: AI lifecycle ops need confirm, content edits and user writes do not", () => {
     const contract = buildDefaultContract();
     contract.writeback.mode = "confirm";
     const target = path.join(ws, "10-动态", "2026-W32.md");
-    const ai = evaluateWritePermission({ contract, targetPath: target, workspaceRoot: ws, actor: "ai" });
-    assert.equal(ai.needsConfirm, true);
+    const aiEdit = evaluateWritePermission({ contract, targetPath: target, workspaceRoot: ws, actor: "ai" });
+    assert.equal(aiEdit.needsConfirm, false);
+    const aiDel = evaluateWritePermission({
+      contract, targetPath: target, workspaceRoot: ws, actor: "ai", lifecycle: true,
+    });
+    assert.equal(aiDel.needsConfirm, true);
     const user = evaluateWritePermission({ contract, targetPath: target, workspaceRoot: ws, actor: "user" });
     assert.equal(user.needsConfirm, false);
   });
@@ -338,12 +353,12 @@ describe("protect gate boundaries (evaluateWritePermission)", () => {
     const contract = buildDefaultContract(); // auto
     const target = path.join(ws, "10-动态", "x.md");
     const forced = evaluateWritePermission({
-      contract, targetPath: target, workspaceRoot: ws, actor: "ai", writebackModeOverride: "confirm",
+      contract, targetPath: target, workspaceRoot: ws, actor: "ai", writebackModeOverride: "confirm", lifecycle: true,
     });
     assert.equal(forced.needsConfirm, true);
     contract.writeback.mode = "confirm";
     const relaxed = evaluateWritePermission({
-      contract, targetPath: target, workspaceRoot: ws, actor: "ai", writebackModeOverride: "auto",
+      contract, targetPath: target, workspaceRoot: ws, actor: "ai", writebackModeOverride: "auto", lifecycle: true,
     });
     assert.equal(relaxed.needsConfirm, false);
   });

@@ -679,7 +679,7 @@ export class KernelService {
       const kernel = getKernel();
       const workspaceRoot = this.getVaultPath();
       const contract = this.loadContract();
-      const result = kernel.toggleTodoItem(workspaceRoot, id, contract);
+      const result = kernel.toggleTodoItem(workspaceRoot, id, contract, { actor: "user" });
       if (result && result.ok === false) {
         new Notice(t("notice_execute_failed"));
         return { ok: false, error: "write-failed" };
@@ -699,7 +699,7 @@ export class KernelService {
       const kernel = getKernel();
       const workspaceRoot = this.getVaultPath();
       const contract = this.loadContract();
-      kernel.deleteTodoItem?.(workspaceRoot, id, contract);
+      kernel.deleteTodoItem?.(workspaceRoot, id, contract, { actor: "user" });
     } catch (err) {
       console.error("[topmind] deleteTodo failed:", err);
     }
@@ -711,7 +711,7 @@ export class KernelService {
       const kernel = getKernel();
       const workspaceRoot = this.getVaultPath();
       const contract = this.loadContract();
-      kernel.clearCompleted?.(workspaceRoot, contract);
+      kernel.clearCompleted?.(workspaceRoot, contract, { actor: "user" });
     } catch (err) {
       console.error("[topmind] clearCompleted failed:", err);
     }

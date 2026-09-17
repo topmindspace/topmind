@@ -60,7 +60,7 @@ after(() => {
 });
 
 describe("Workspace writeback.mode drives Kernel gate (not app-settings)", () => {
-  it("yaml confirm + appSettings auto + AI unconfirmed → pending, no disk write", async () => {
+  it("yaml confirm + appSettings auto + AI content save → lands (graded confirm)", async () => {
     kernelApi.resetKernelApiCache();
     const rel = "10-动态/confirm-ai.md";
     const content = "---\ntitle: t\nprotection: open\n---\n\nhello\n";
@@ -68,9 +68,8 @@ describe("Workspace writeback.mode drives Kernel gate (not app-settings)", () =>
       { relativePath: rel, content, actor: "ai", confirmed: false },
       ctx,
     );
-    assert.equal(ev.pending || ev.needsConfirm, true, `expected pending, got ${JSON.stringify(ev)}`);
-    assert.equal(ev.wroteFiles, false);
-    assert.ok(!fs.existsSync(path.join(ws, rel)), "must not write when pending");
+    assert.equal(ev.pending || ev.needsConfirm, false, `graded confirm: content lands, got ${JSON.stringify(ev)}`);
+    assert.ok(fs.existsSync(path.join(ws, rel)), "content write lands in graded confirm");
   });
 
   it("stash + confirmPendingWrite via savePath confirmed writes body", async () => {
@@ -81,8 +80,9 @@ describe("Workspace writeback.mode drives Kernel gate (not app-settings)", () =>
       relativePath: rel,
       content,
       toolName: "save_file",
+      workspaceRoot: ws,
     });
-    const taken = pending.takePendingWrite(stashed.id);
+    const taken = pending.takePendingWrite(ws, stashed.id);
     assert.ok(taken);
     const ev = await pathOps.savePath(
       {
@@ -98,7 +98,7 @@ describe("Workspace writeback.mode drives Kernel gate (not app-settings)", () =>
     assert.match(fs.readFileSync(path.join(ws, rel), "utf8"), /accepted body/);
   });
 
-  it("edit_file path with confirm leaves file unchanged until accept", async () => {
+  it("edit_file path with graded confirm lands immediately", async () => {
     kernelApi.resetKernelApiCache();
     const rel = "10-动态/edit-me.md";
     fs.writeFileSync(path.join(ws, rel), "---\ntitle: e\n---\n\nold text here\n", "utf8");
@@ -112,19 +112,11 @@ describe("Workspace writeback.mode drives Kernel gate (not app-settings)", () =>
       },
       ctx,
     );
-    assert.equal(ev.pending || ev.needsConfirm, true, JSON.stringify(ev));
-    assert.match(fs.readFileSync(path.join(ws, rel), "utf8"), /old text here/);
-    const next = "---\ntitle: e\n---\n\nnew text here\n";
-    const done = await pathOps.savePath(
-      { relativePath: rel, content: next, actor: "ai", confirmed: true },
-      ctx,
-    );
-    assert.ok(!done.pending);
+    assert.equal(ev.pending || ev.needsConfirm, false, JSON.stringify(ev));
     assert.match(fs.readFileSync(path.join(ws, rel), "utf8"), /new text here/);
   });
 
-  it("executeWrite with writebackModeOverride=confirm and yaml auto yields pending", async () => {
-    // temp auto contract for override-only case
+  it("executeWrite content with confirm override lands; lifecycle still pending", async () => {
     const autoWs = path.join(tmp, "auto-ws");
     fs.mkdirSync(path.join(autoWs, "10-动态"), { recursive: true });
     fs.writeFileSync(
@@ -132,9 +124,11 @@ describe("Workspace writeback.mode drives Kernel gate (not app-settings)", () =>
       "contract_version: 4\nwriteback:\n  mode: auto\n  backup_to: 99-归档/backups\n  receipts: 99-归档/receipts\n",
       "utf8",
     );
-    const { executeWrite } = await import(pathToFileURL(path.join(root, "lib/writeback-engine.mjs")).href);
+    const { executeWrite, executeDelete, evaluateWritePermission } = await import(
+      pathToFileURL(path.join(root, "lib/writeback-engine.mjs")).href
+    );
     const target = path.join(autoWs, "10-动态/override.md");
-    const pendingEv = executeWrite({
+    const landed = executeWrite({
       targetPath: target,
       content: "---\ntitle: o\n---\n\nx\n",
       workspaceRoot: autoWs,
@@ -143,15 +137,32 @@ describe("Workspace writeback.mode drives Kernel gate (not app-settings)", () =>
       writebackModeOverride: "confirm",
       skipShadow: true,
     });
-    assert.equal(pendingEv.pending || pendingEv.needsConfirm, true);
-    assert.ok(!fs.existsSync(target));
-    assert.equal(typeof pendingEv.previewContent, "string");
-    assert.match(pendingEv.previewContent, /title: o/);
+    assert.equal(landed.pending || landed.needsConfirm, false);
+    assert.ok(fs.existsSync(target));
+
+    const delPerm = evaluateWritePermission({
+      contract: undefined,
+      targetPath: target,
+      workspaceRoot: autoWs,
+      actor: "ai",
+      writebackModeOverride: "confirm",
+      lifecycle: true,
+    });
+    assert.equal(delPerm.needsConfirm, true);
+
+    const pendingDel = executeDelete({
+      targetPath: target,
+      workspaceRoot: autoWs,
+      actor: "ai",
+      confirmed: false,
+      writebackModeOverride: "confirm",
+    });
+    assert.equal(pendingDel.pending || pendingDel.needsConfirm, true, JSON.stringify(pendingDel));
+    assert.ok(fs.existsSync(target), "delete stays pending under graded confirm");
   });
 
-  it("previewContent survives toSurfaceEvidence and asDesktopEvidence for append-style pending", async () => {
+  it("appendCoreMemory lands immediately under graded confirm", async () => {
     kernelApi.resetKernelApiCache();
-    // appendCoreMemory builds full file body then gates — surface must keep previewContent
     const ev = await pathOps.appendCoreMemory(
       {
         entry: "prefer dark mode",
@@ -161,27 +172,8 @@ describe("Workspace writeback.mode drives Kernel gate (not app-settings)", () =>
       },
       ctx,
     );
-    assert.equal(ev.pending || ev.needsConfirm, true, JSON.stringify(ev));
-    assert.equal(typeof ev.previewContent, "string", "previewContent must survive surface evidence");
-    assert.match(ev.previewContent, /prefer dark mode/);
+    assert.equal(ev.pending || ev.needsConfirm, false, JSON.stringify(ev));
     assert.ok(ev.targetPath || ev.target_path);
-
-    // wrapWrite-equivalent stash using previewContent (no args.content)
-    const rel = ev.targetPath || "memory/profile.md";
-    const stashed = pending.stashPendingWrite({
-      relativePath: rel,
-      content: ev.previewContent,
-      toolName: "append_core_memory",
-    });
-    assert.ok(stashed.id);
-    const taken = pending.takePendingWrite(stashed.id);
-    assert.match(taken.content, /prefer dark mode/);
-    const done = await pathOps.savePath(
-      { relativePath: taken.relativePath, content: taken.content, actor: "ai", confirmed: true },
-      ctx,
-    );
-    assert.ok(!done.pending);
-    assert.match(fs.readFileSync(path.join(ws, taken.relativePath), "utf8"), /prefer dark mode/);
   });
 
   it("buildSystemPrompt(confirm) is Model B — tools write → 待确认, never 只读/可粘贴草稿", async () => {
@@ -213,14 +205,15 @@ describe("Workspace writeback.mode drives Kernel gate (not app-settings)", () =>
     assert.match(src, /needsUserConfirm/);
   });
 
-  it("describeWritebackModeForPrompt(confirm) is Model B only", async () => {
+  it("describeWritebackModeForPrompt(confirm) describes graded confirm", async () => {
     const { describeWritebackModeForPrompt, MODEL_A_FORBIDDEN_RE } = await import(
       pathToFileURL(path.join(electronLib, "writeback-mode-copy.mjs")).href
     );
     const line = describeWritebackModeForPrompt("confirm");
     assert.doesNotMatch(line, MODEL_A_FORBIDDEN_RE);
-    assert.match(line, /待确认写入|保存前问我/);
-    assert.match(line, /write 工具|save_file/);
+    assert.match(line, /分级|graded/);
+    assert.match(line, /删除|归档|delete|archive/);
+    assert.match(line, /write 工具|工具|tools/i);
   });
 
   it("toSurfaceEvidence keeps previewContent for pure Kernel pending", async () => {
@@ -229,6 +222,7 @@ describe("Workspace writeback.mode drives Kernel gate (not app-settings)", () =>
     );
     const target = path.join(ws, "10-动态/preview-keep.md");
     const body = "---\ntitle: keep\n---\n\nfull body for stash\n";
+    // Lifecycle pending still carries previewContent under graded confirm
     const pendingEv = executeWrite({
       targetPath: target,
       content: body,
@@ -237,12 +231,14 @@ describe("Workspace writeback.mode drives Kernel gate (not app-settings)", () =>
       confirmed: false,
       writebackModeOverride: "confirm",
       skipShadow: true,
+      // force lifecycle semantics via delete is separate; for write, content lands.
+      // Use a synthetic pending evidence for the surface contract:
     });
-    assert.match(pendingEv.previewContent || "", /full body for stash/);
-    // double-normalize should still keep it
+    // Content lands under graded confirm — previewContent is for lifecycle pending only.
+    assert.ok(pendingEv.wroteFiles || pendingEv.wrote_files);
     const again = toSurfaceEvidence(
       {
-        operation: "update",
+        operation: "delete",
         writeback_mode: "confirm",
         target_path: target,
         affected_files: [target],
@@ -271,7 +267,7 @@ describe("Workspace writeback.mode drives Kernel gate (not app-settings)", () =>
     assert.doesNotMatch(svc, /effectiveMode \|\| "auto"/);
   });
 
-  it("explicitWritebackMode session override can force confirm over yaml auto", async () => {
+  it("explicitWritebackMode session override forces graded confirm on lifecycle", async () => {
     const autoWs = path.join(tmp, "explicit-ws");
     fs.mkdirSync(path.join(autoWs, "10-动态"), { recursive: true });
     fs.mkdirSync(path.join(autoWs, "99-归档", "backups"), { recursive: true });
@@ -298,7 +294,8 @@ describe("Workspace writeback.mode drives Kernel gate (not app-settings)", () =>
       },
       localCtx,
     );
-    assert.equal(ev.pending || ev.needsConfirm, true, JSON.stringify(ev));
-    assert.ok(!fs.existsSync(path.join(autoWs, rel)));
+    // Graded: content lands even when session forces confirm
+    assert.equal(ev.pending || ev.needsConfirm, false, JSON.stringify(ev));
+    assert.ok(fs.existsSync(path.join(autoWs, rel)));
   });
 });

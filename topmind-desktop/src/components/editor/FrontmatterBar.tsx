@@ -4,7 +4,7 @@
  * Default-collapsed in FileEditorView; outline/focus live on the format toolbar.
  */
 import { useState } from "react";
-import { RiCalendarLine, RiFlagLine, RiLoader4Line, RiPriceTag3Line } from "@remixicon/react";
+import { RiCalendarLine, RiFlagLine, RiLoader4Line, RiLockLine, RiPriceTag3Line } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { api } from "../../services/api";
 import { emitLocal } from "../../plugins/host";
@@ -47,6 +47,7 @@ export function FrontmatterBar({
       : "";
   const category = typeof fm.category === "string" ? fm.category : "";
   const topic = typeof fm.topic === "string" ? fm.topic : "";
+  const isLocked = fm.protection === "locked";
 
   const [busy, setBusy] = useState(false);
 
@@ -77,6 +78,18 @@ export function FrontmatterBar({
       <span className="mr-0.5 hidden text-3xs font-medium uppercase tracking-wide text-text-quaternary sm:inline">
         {t("frontmatterBar.properties")}
       </span>
+
+      {isLocked ? (
+        <Tooltip content={t("frontmatterBar.lockedTooltip")}>
+          <span
+            className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] border border-warning/30 bg-warning/10 px-1.5 py-0.5 text-3xs text-warning"
+            data-testid="frontmatter-locked-chip"
+          >
+            <RiLockLine size={ICON.micro} aria-hidden />
+            {t("frontmatterBar.locked")}
+          </span>
+        </Tooltip>
+      ) : null}
 
       <Tooltip content={t("frontmatterBar.statusTooltip")}>
         <span className="inline-flex min-w-0">

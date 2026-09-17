@@ -159,7 +159,7 @@ const DEAD_PATTERNS = [
   },
   {
     id: "removed-pending-write-strip",
-    description: "PendingWriteStrip was replaced by ActionBar + ActionStore — no separate pending write strip component",
+    description: "PendingWriteStrip was removed — confirm surface is ActionStore / SuggestPopover; ActionBar is also deleted",
     regex: /\bPendingWriteStrip\b/u,
     scope: ["src/**/*.ts", "src/**/*.tsx"],
     allowIn: ["scripts/check-dead-code.mjs"],

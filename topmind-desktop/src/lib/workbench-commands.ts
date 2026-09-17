@@ -20,8 +20,12 @@ import type { OverlayKind } from "../types";
 /**
  * Execute a workbench action. Returns false when the action could not apply
  * (e.g. 对照分栏 on a non-file selection) so callers can decide to fall through.
+ *
+ * Async so navigate/sidebar-view can honor a dirty-overlay veto *before*
+ * mutating selection — otherwise a Capture draft stays open while the
+ * underlying view has already changed underneath it.
  */
-export function runWorkbenchAction(action: ShortcutAction): boolean {
+export async function runWorkbenchAction(action: ShortcutAction): Promise<boolean> {
   const store = useViewStore.getState();
 
   switch (action.type) {
@@ -49,16 +53,22 @@ export function runWorkbenchAction(action: ShortcutAction): boolean {
       return true;
     }
 
-    case "navigate":
-      void closeOverlayGuarded();
-      store.select(action.selection);
+    case "navigate": {
+      const allowed = await runOverlayCloseGuard();
+      if (!allowed) return true;
+      useViewStore.getState().closeOverlay();
+      useViewStore.getState().select(action.selection);
       return true;
+    }
 
-    case "sidebar-view":
-      void closeOverlayGuarded();
-      store.setSidebarView(action.mode);
+    case "sidebar-view": {
+      const allowed = await runOverlayCloseGuard();
+      if (!allowed) return true;
+      useViewStore.getState().closeOverlay();
+      useViewStore.getState().setSidebarView(action.mode);
       emitLocal("sidebar:set-view", action.mode);
       return true;
+    }
 
     case "emit":
       emitLocal(action.event, action.payload ?? null);
@@ -114,10 +124,12 @@ export function runWorkbenchAction(action: ShortcutAction): boolean {
 }
 
 /**
- * Close through the active overlay's guard (settings flush) — `closeOverlay`
- * alone would unmount before the debounced batch is persisted.
+ * Close through the active overlay's guard (settings flush / dirty veto) —
+ * `closeOverlay` alone would unmount before the debounced batch is persisted
+ * or drop a capture draft without confirm.
  */
 export async function closeOverlayGuarded(): Promise<void> {
-  await runOverlayCloseGuard();
+  const allowed = await runOverlayCloseGuard();
+  if (!allowed) return;
   useViewStore.getState().closeOverlay();
 }

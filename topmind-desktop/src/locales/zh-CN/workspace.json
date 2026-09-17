@@ -166,7 +166,11 @@
     "organize": "整理我的情况",
     "organizeTip": "生成确认建议 · 不会直接改画像",
     "openFolder": "在目录中显示",
-    "openFolderTip": "在侧栏展开 memory/"
+    "openFolderTip": "在侧栏展开 memory/",
+    "searchPlaceholder": "搜索记忆…",
+    "restore": "恢复",
+    "restoring": "恢复中…",
+    "healthIssues": "{{count}} 项待整理"
   },
   "archive": {
     "title": "归档",

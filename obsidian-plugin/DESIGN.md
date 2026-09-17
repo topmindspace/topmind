@@ -319,7 +319,7 @@ AI 操作按钮仅在 AI 已配置时显示。默认显示文本标签模式（`
 │  xAI / Grok         MiniMax                               │
 │                                                           │
 │  [测试连接]  ← 验证 AI 连通性                            │
-│  写回模式            [保存前问我 ▾]                      │
+│  写回模式            [删除/归档前问我 ▾]                  │
 │  自动准备 AI 建议    [☑]                                  │
 │  自动整理待办        [☐] (省 Token)                      │
 │                                                           │
@@ -344,8 +344,8 @@ AI 操作按钮仅在 AI 已配置时显示。默认显示文本标签模式（`
 | 技术词 | UI 白话 |
 |--------|---------|
 | writeback_mode: auto | 自动保存 |
-| writeback_mode: confirm | 保存前问我 |
-| protection: locked | auto 下 AI 拒绝；confirm 待确认（用户授权）；用户写始终可（高影响备份） |
+| writeback_mode: confirm | 删除/归档前问我（分级：内容直接落，仅删/归档待确认） |
+| protection: locked | 内容可编辑（任务级首写快照）；可恢复删/归档允许；永久删仅用户 |
 | autoPrepareSuggestions | 自动准备 AI 建议 |
 | autoMaintainTodos | 自动整理待办 |
 | BACKUP_KEEP | 备份保留份数 |
@@ -400,7 +400,7 @@ AI 对话自动注入以下上下文（无需用户手动选择）：
 | 用户画像 | 前 3000 字符 | `memory/profile.md` |
 | 对话历史 | 最近 10 轮 | 保持对话连贯性 |
 
-对话可经 Kernel 读窗口 / 唯一片段改稿（与 Desktop `read_file` / `edit_file` 同一匹配与写闸契约：匹配阶梯 + postEditWindow + contentHash/expectedHash），不是 generate-only。写回跟随 `topmind.yaml`（confirm 仍可调用 edit；locked+auto 拒绝 AI，confirm 待确认）。指令语言：`en*` → 英文，否则中文。
+对话可经 Kernel 读窗口 / 唯一片段改稿（与 Desktop `read_file` / `edit_file` 同一匹配与写闸契约：匹配阶梯 + postEditWindow + contentHash/expectedHash），不是 generate-only。写回跟随 `topmind.yaml`（confirm 分级：内容编辑直接落盘，仅删/归档待确认；locked 可编辑，任务级首写快照）。指令语言：`en*` → 英文，否则中文。
 
 ### 8.2 对话交互
 

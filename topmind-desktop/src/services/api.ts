@@ -289,6 +289,21 @@ export const api = {
       invoke<string>("workspace.readTopicReceipt", { archiveRelativePath }),
     restoreReceipt: (p: { archiveRelativePath: string; targetRelativePath: string }) =>
       invoke<WritebackEvidence>("workspace.restoreTopicReceipt", p),
+    listTrashItems: (limit?: number) =>
+      invoke<{
+        items: {
+          trashRelativePath: string;
+          originalRelativePath: string;
+          name: string;
+          size: number;
+          mtime: string;
+        }[];
+      }>("workspace.listTrashItems", { limit }),
+    restoreTrashItem: (p: { trashRelativePath: string; targetRelativePath?: string }) =>
+      invoke<WritebackEvidence & { path?: string; restoredFrom?: string }>(
+        "workspace.restoreTrashItem",
+        p,
+      ),
     search: (query: string) =>
       invoke<SearchResponse>("workspace.search", { query }),
     fetchUrl: (url: string, maxLen?: number, opts?: { render?: boolean }) =>
@@ -407,6 +422,64 @@ export const api = {
         files?: string[];
         reason?: string;
       }>("workspace.ensureCoreProfile"),
+    listProfileFacts: () =>
+      invoke<{
+        ok: boolean;
+        exists: boolean;
+        profilePath: string;
+        sections: Array<{
+          title: string;
+          role: string | null;
+          isHistory: boolean;
+          facts: Array<{
+            text: string;
+            key: string;
+            date: string | null;
+            fid: string | null;
+            src: string | null;
+            reason: string | null;
+            sup: string | null;
+            line: string;
+          }>;
+        }>;
+        activeCount: number;
+        historyCount: number;
+      }>("workspace.listProfileFacts"),
+    profileHealth: () =>
+      invoke<{
+        ok: boolean;
+        health: {
+          exists: boolean;
+          healthy: boolean;
+          activeCount: number;
+          historyCount: number;
+          nearDupes: Array<{ a: string; b: string; score: number; sectionA: string; sectionB: string }>;
+          exactDupes: Array<{ a: string; b: string; score: number; sectionA: string; sectionB: string }>;
+          emptySections: string[];
+          issues: string[];
+        };
+      }>("workspace.profileHealth"),
+    searchProfile: (p: { query: string; includeHistory?: boolean; limit?: number }) =>
+      invoke<{
+        ok: boolean;
+        query: string;
+        hits: Array<{
+          section: string;
+          role: string | null;
+          isHistory: boolean;
+          text: string;
+          date: string | null;
+          fid: string | null;
+          src: string | null;
+          reason: string | null;
+          score: number;
+        }>;
+      }>("workspace.searchProfile", p),
+    restoreProfileFact: (p: { match: string; section?: string }) =>
+      invoke<{ ok: boolean; wroteFiles?: boolean; reason?: string; note?: string; targetPath?: string }>(
+        "workspace.restoreProfileFact",
+        p,
+      ),
     generateSuggestions: (p?: { force?: boolean }) =>
       invoke<{
         ok: boolean;

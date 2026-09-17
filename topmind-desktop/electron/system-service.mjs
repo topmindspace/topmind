@@ -17,6 +17,7 @@ import { ensureWorkspaceStructure, autoRepairWorkspace, loadWorkspaceConfig, get
 import { listTemplateDescriptors } from "./lib/template-api.mjs";
 import { defaultEngineCandidate } from "./lib/engine-root.mjs";
 import { platformTag } from "./lib/platform.mjs";
+import { assertPathWithin } from "./lib/path-safety.mjs";
 import {
   generateClipToken,
   getClipBridgeLive,
@@ -99,6 +100,35 @@ const MODELS_DEV_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 let modelsDevCache = null;
 let modelsDevCacheFetchedAt = 0;
 
+/**
+ * Resolve a renderer-supplied path under an allowlist of roots, after
+ * realpath so workspace-internal symlinks cannot escape.
+ * @param {string} targetPath
+ * @param {object} ctx
+ * @returns {Promise<string>} real absolute path
+ */
+async function resolveAllowedOpenPath(targetPath, ctx) {
+  const resolved = path.resolve(String(targetPath));
+  const allowedRoots = [
+    ctx?.userWorkspaceRoot,
+    ctx?.workspaceRoot,
+    ctx?.workspaceStatePaths?.desktopStateHome,
+    ctx?.engineRoot,
+  ].filter(Boolean).map((root) => path.resolve(String(root)));
+  if (allowedRoots.length === 0) {
+    throw new Error(`Path not in allowed roots: ${resolved}`);
+  }
+  // assertPathWithin realpaths both sides; allowMissing lets us open not-yet-created? no — open/reveal need existing.
+  for (const root of allowedRoots) {
+    try {
+      return await assertPathWithin(root, resolved, { allowMissing: false });
+    } catch {
+      /* try next root */
+    }
+  }
+  throw new Error(`Path not in allowed roots: ${resolved}`);
+}
+
 export const SystemService = {
   async getSettings(_p, ctx) {
     const fp = ctx.workspaceStatePaths.settingsFilePath;
@@ -133,6 +163,8 @@ export const SystemService = {
     }
     // writebackMode is workspace behavior truth (topmind.yaml), not app-settings alone.
     // Mirror UI preference into Kernel contract when an active workspace exists.
+    // Failure MUST surface — otherwise Settings shows 「删除/归档前问我」 while
+    // Kernel still auto-writes (honesty failure).
     if (
       patch?.writebackMode !== undefined &&
       (patch.writebackMode === "auto" || patch.writebackMode === "confirm") &&
@@ -144,9 +176,25 @@ export const SystemService = {
           ctx,
         );
       } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
         logError("system", "mirror writebackMode to workspace contract failed", {
-          error: e instanceof Error ? e.message : String(e),
+          error: msg,
         });
+        // Reflect the on-disk truth back into the settings response and fail loudly.
+        try {
+          const { loadKernelApi } = await import("./lib/kernel-api.mjs");
+          const kernel = await loadKernelApi();
+          const contract = kernel.loadContract(ctx.workspaceRoot.userWorkspaceRoot);
+          const onDisk = contract?.writeback?.mode;
+          if (onDisk === "auto" || onDisk === "confirm") {
+            next.writebackMode = onDisk;
+          }
+        } catch {
+          /* keep optimistic patch */
+        }
+        throw new Error(
+          `writebackMode mirror to topmind.yaml failed: ${msg}`,
+        );
       }
     }
     // CRITICAL: sync the in-memory appSettings so the window-bounds persist
@@ -248,24 +296,12 @@ export const SystemService = {
   /**
    * Allowlist: only paths under the active workspace, desktop state home,
    * engine root, or extra skills roots may be opened/revealed. Rejects
-   * arbitrary absolute paths from the renderer.
+   * arbitrary absolute paths from the renderer. Symlink-resolved (realpath)
+   * so a workspace-internal link cannot open an outside location.
    */
   async openPath({ targetPath }, ctx) {
     if (!targetPath) throw new Error("targetPath required.");
-    const resolved = path.resolve(String(targetPath));
-    const allowedRoots = [
-      ctx?.userWorkspaceRoot,
-      ctx?.workspaceRoot,
-      ctx?.workspaceStatePaths?.desktopStateHome,
-      ctx?.engineRoot,
-    ].filter(Boolean);
-    const inside = allowedRoots.some((root) => {
-      const rel = path.relative(path.resolve(root), resolved);
-      return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
-    });
-    if (!inside) {
-      throw new Error(`Path not in allowed roots: ${resolved}`);
-    }
+    const resolved = await resolveAllowedOpenPath(targetPath, ctx);
     const err = await shell.openPath(resolved);
     if (err) throw new Error(`无法打开路径: ${err}`);
     return { ok: true };
@@ -273,20 +309,7 @@ export const SystemService = {
 
   async revealPath({ targetPath }, ctx) {
     if (!targetPath) throw new Error("targetPath required.");
-    const resolved = path.resolve(String(targetPath));
-    const allowedRoots = [
-      ctx?.userWorkspaceRoot,
-      ctx?.workspaceRoot,
-      ctx?.workspaceStatePaths?.desktopStateHome,
-      ctx?.engineRoot,
-    ].filter(Boolean);
-    const inside = allowedRoots.some((root) => {
-      const rel = path.relative(path.resolve(root), resolved);
-      return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
-    });
-    if (!inside) {
-      throw new Error(`Path not in allowed roots: ${resolved}`);
-    }
+    const resolved = await resolveAllowedOpenPath(targetPath, ctx);
     shell.showItemInFolder(resolved);
     return { ok: true };
   },
@@ -729,6 +752,7 @@ export const SystemService = {
     const m = settings?.ai?.manual || {};
     const providers = [];
 
+    const { isHeaderSafeSecret } = await import("./lib/header-safety.mjs");
     // OpenAI-compatible providers — each returns { data: [{ id }] }
     const openaiCompat = [
       { source: "openai", key: m.openAiKey, baseURL: "https://api.openai.com/v1" },
@@ -740,7 +764,15 @@ export const SystemService = {
       { source: "custom", key: m.customKey, baseURL: m.customBaseUrl || "" },
     ];
     for (const p of openaiCompat) {
-      if (!p.key || (p.source === "custom" && !p.baseURL)) continue;
+      if (!isHeaderSafeSecret(p.key) || (p.source === "custom" && !p.baseURL)) {
+        if (p.key && !isHeaderSafeSecret(p.key)) {
+          logError("system", "fetchLiveModels skipped invalid key", {
+            provider: p.source,
+            reason: "API key contains non-Latin1 characters (corrupted secret?) — re-enter the key in Settings",
+          });
+        }
+        continue;
+      }
       try {
         const models = await fetchOpenAICompatModels(p.baseURL, p.key);
         if (models.length > 0) {
@@ -755,7 +787,7 @@ export const SystemService = {
     }
 
     // Google — returns { models: [{ name, displayName, supportedGenerationMethods }] }
-    if (m.googleKey) {
+    if (isHeaderSafeSecret(m.googleKey)) {
       try {
         const models = await fetchGoogleModels(m.googleKey);
         if (models.length > 0) {
@@ -767,11 +799,18 @@ export const SystemService = {
         logError("system", "fetchLiveModels failed", { provider: "google", error: err.message });
         providers.push({ id: "google", label: "Google", models: [], live: false, error: err.message });
       }
+    } else if (m.googleKey) {
+      logError("system", "fetchLiveModels skipped invalid key", {
+        provider: "google",
+        reason: "API key contains non-Latin1 characters (corrupted secret?) — re-enter the key in Settings",
+      });
     }
 
     // Anthropic has no public list-models API — community/curated overlay happens in discoverModels.
 
-    // Ollama — local OpenAI-compatible endpoint (no key required)
+    // Ollama — local OpenAI-compatible endpoint (no key required).
+    // Absent local server is the common case (ollama not installed): log at
+    // info-equivalent noise-free skip, not as an error storm on every refresh.
     const ollamaUrl = m.ollamaBaseUrl || "http://127.0.0.1:11434/v1";
     try {
       const ollamaModels = await fetchOpenAICompatModels(ollamaUrl, "ollama");
@@ -779,7 +818,17 @@ export const SystemService = {
         providers.push({ id: "ollama", label: "Ollama", models: ollamaModels, live: true, source: "official" });
       }
     } catch (err) {
-      logError("system", "fetchLiveModels ollama skipped", { error: err.message });
+      // fetch failed / ECONNREFUSED = ollama not running — expected, skip quietly.
+      const code = err?.cause?.code || err?.code || "";
+      const quiet =
+        err?.message === "fetch failed" ||
+        code === "ECONNREFUSED" ||
+        code === "ENOTFOUND" ||
+        code === "ECONNRESET" ||
+        code === "UND_ERR_SOCKET";
+      if (!quiet) {
+        logError("system", "fetchLiveModels ollama skipped", { error: err.message });
+      }
     }
 
     // Persist only successful official entries. Keep prior good official on failure.

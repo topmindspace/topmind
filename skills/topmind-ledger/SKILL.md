@@ -1,6 +1,6 @@
 ---
 name: topmind-ledger
-version: 4.6.0
+version: 4.7.0
 description: >-
   通用记账到记忆平面（默认个人/自己账本，用户自建账本与分类）。Use when 记账、记一笔、花了、存入、查看账单、账户余额。
   Do NOT use for 记一下到动态、待办、微信读书、发推、Feishu/lark-cli.

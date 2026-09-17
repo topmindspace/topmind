@@ -439,7 +439,7 @@ AiPanel 模型下拉选择器的 `onChange` 不仅更新内存 store，还同步
 | 写回模式 | 暴露的工具 | 说明 |
 |----------|-----------|------|
 | auto | 读 + 写 + fetch_url + health | 每写一处返回 WritebackEvidence；≥2 路径时回合结束汇总 `batchEvidence` → toast + 回执条 |
-| confirm（保存前问我） | 读 + 写工具仍注册 | AI 写经 Kernel pending；AI 工作区建议 pane（`SuggestPopover`）接受/拒绝后落盘 |
+| confirm（删除/归档前问我） | 读 + 写工具仍注册 | **分级**：内容写直接落盘；仅删/归档 pending → AI 工作区建议 pane（`SuggestPopover`）接受/拒绝后执行 |
 
 读（`AI_TOOL_NAMES_READ` 15）：`list_skills` · `load_skill` · `load_skill_resource` · `workspace_overview` · `list_categories` · `list_topics` · `list_topic_files` · `get_topic` · `read_file` · `search` · `list_inbox` · `list_outputs` · `fetch_url`（`maxLen` / `render`）· `workspace_health` · `list_todos`  
 写（`AI_TOOL_NAMES_WRITE` 16）：`capture_to_inbox` · `save_note` · `save_file`（open 覆盖不备份；locked 覆盖才备份）· `edit_file`（唯一片段，**不写 Archive**）· `create_topic` · `append_topic_memory` · `append_core_memory` · `retire_core_memory` · `update_core_memory` · `reconcile_week` · `move_to_topic` · `publish_to_outputs` · `delete_path`（仅 recoverable 进归档）· `rename_path`（重命名不备份）· `add_todo` · `toggle_todo`  

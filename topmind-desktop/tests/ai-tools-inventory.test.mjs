@@ -32,10 +32,13 @@ test("write tools go through wrapWrite; reads are windowed/summarized", () => {
   for (const name of AI_TOOL_NAMES_WRITE) {
     const idx = toolsSrc.indexOf(`tools.${name} = tool(`);
     assert.ok(idx >= 0, name);
-    const slice = toolsSrc.slice(idx, idx + 1800);
+    // Window must cover bilingual d(zh,en) schema descriptions before execute.
+    const nextTool = toolsSrc.indexOf("tools.", idx + 10);
+    const end = nextTool > idx ? nextTool : idx + 8000;
+    const slice = toolsSrc.slice(idx, end);
     assert.match(slice, /wrapWrite\s*\(/u, `${name} must use wrapWrite`);
   }
-  assert.match(toolsSrc, /tools\.read_file = tool\([\s\S]{0,1200}?readPathWindow/u);
+  assert.match(toolsSrc, /tools\.read_file = tool\([\s\S]{0,4000}?readPathWindow/u);
   assert.match(toolsSrc, /summarizeForModel/u);
 });
 

@@ -16,8 +16,12 @@ export const OPEN_SUGGEST_SURFACE_EVENT = "suggest-surface:open";
  * Open the one 建议 confirm surface (AI workspace 建议 pane + ActionStore).
  * Does not re-emit bus events (no loops).
  *
- * Always ensures a refresh when the list is empty / never loaded so open is never a
- * silent no-op; force when empty so soft throttle cannot skip the first paint.
+ * Refresh policy (2026-09-17d):
+ * - Empty / never-loaded open → **soft** refresh. Force-on-empty re-offered
+ *   every already-written period digest on every cold open — the #1 source of
+ *   「已经处置过，仍然要提示」.
+ * - Explicit `refresh: true` (StatusBar chip when count > 0) → force.
+ * - Re-open with items → soft re-sync only.
  */
 export function openSuggestSurface(opts?: { refresh?: boolean }): void {
   const store = useActionStore.getState();
@@ -25,18 +29,13 @@ export function openSuggestSurface(opts?: { refresh?: boolean }): void {
   store.setExpanded(true);
   useViewStore.getState().openAiWorkspace("suggest");
 
-  const empty = store.items.length === 0;
-  const neverLoaded = !store.everLoaded;
-  const forceRefresh = opts?.refresh === true || empty || neverLoaded;
-
-  if (forceRefresh) {
-    // force bypasses soft throttle; still respects autoPrepare for suggestion scan
-    // (pending writes always load inside refresh)
+  if (opts?.refresh === true) {
     void store.refresh({ force: true });
-  } else if (opts?.refresh !== false) {
-    // Soft re-sync when re-opening with existing items
-    void store.refresh();
+    return;
   }
+  if (opts?.refresh === false) return;
+  // Soft: pending writes always load; suggestions merge without force re-analysis
+  void store.refresh();
 }
 
 /**

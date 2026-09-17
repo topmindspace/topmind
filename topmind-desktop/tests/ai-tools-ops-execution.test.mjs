@@ -96,38 +96,40 @@ test("workspace pathOps: memory lifecycle & todo operations", async () => {
     const listAll = await pathOps.listTodos({ completed: true }, ctx);
     assert.equal(listAll.completedCount, 1);
 
-    // Confirm-mode AI ADD/UPDATE/RETIRE must pending, not write immediately.
+    // Graded confirm (2026-09-17c): content memory edits land immediately.
+    // Only lifecycle (delete/archive) is pending.
     const gateRes = await pathOps.appendCoreMemory(
       { entry: "用于确认闸的活事实", section: "进行中的事", actor: "ai", confirmed: true },
       ctx,
     );
     assert.equal(gateRes.wroteFiles, true);
     const confirmCtx = { ...ctx, explicitWritebackMode: "confirm" };
-    const beforeConfirm = await fs.readFile(profPath, "utf8");
-    const pendingAdd = await pathOps.appendCoreMemory(
-      { entry: "确认模式下不应落盘的新事实", section: "偏好", actor: "ai", confirmed: false },
+    const landedAdd = await pathOps.appendCoreMemory(
+      { entry: "分级 confirm 下内容编辑直接落盘", section: "偏好", actor: "ai", confirmed: false },
       confirmCtx,
     );
-    assert.equal(pendingAdd.pending || pendingAdd.needsConfirm, true);
-    assert.equal(pendingAdd.wroteFiles, false);
-    assert.doesNotMatch(await fs.readFile(profPath, "utf8"), /确认模式下不应落盘的新事实/);
-    assert.match(String(pendingAdd.previewContent || ""), /确认模式下不应落盘的新事实/);
+    assert.equal(landedAdd.pending || landedAdd.needsConfirm, false);
+    assert.equal(landedAdd.wroteFiles, true);
+    assert.match(await fs.readFile(profPath, "utf8"), /分级 confirm 下内容编辑直接落盘/);
 
-    const pendingUp = await pathOps.updateCoreMemory(
-      { match: "用于确认闸的活事实", content: "确认更新不应落盘", actor: "ai", confirmed: false },
+    const landedUp = await pathOps.updateCoreMemory(
+      { match: "分级 confirm 下内容编辑直接落盘", content: "分级 confirm 更新也直接落盘", actor: "ai", confirmed: false },
       confirmCtx,
     );
-    assert.equal(pendingUp.pending || pendingUp.needsConfirm, true);
-    assert.equal(pendingUp.wroteFiles, false);
-    assert.equal(await fs.readFile(profPath, "utf8"), beforeConfirm);
+    assert.equal(landedUp.pending || landedUp.needsConfirm, false);
+    assert.equal(landedUp.wroteFiles, true);
+    assert.match(await fs.readFile(profPath, "utf8"), /分级 confirm 更新也直接落盘/);
 
-    const pendingRet = await pathOps.retireCoreMemory(
-      { match: "用于确认闸的活事实", actor: "ai", confirmed: false },
+    const landedRet = await pathOps.retireCoreMemory(
+      { match: "分级 confirm 更新也直接落盘", actor: "ai", confirmed: false },
       confirmCtx,
     );
-    assert.equal(pendingRet.pending || pendingRet.needsConfirm, true);
-    assert.equal(pendingRet.wroteFiles, false);
-    assert.equal(await fs.readFile(profPath, "utf8"), beforeConfirm);
+    assert.equal(landedRet.pending || landedRet.needsConfirm, false);
+    assert.equal(landedRet.wroteFiles, true);
+    // Retired facts move under ## 历史记录 with a date prefix — not active.
+    const afterRet = await fs.readFile(profPath, "utf8");
+    assert.match(afterRet, /## 历史记录[\s\S]*分级 confirm 更新也直接落盘/);
+    assert.doesNotMatch(afterRet.split("## 历史记录")[0], /分级 confirm 更新也直接落盘/);
   } finally {
     await fs.rm(wsRoot, { recursive: true, force: true }).catch(() => {});
   }

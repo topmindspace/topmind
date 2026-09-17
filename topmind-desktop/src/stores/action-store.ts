@@ -515,6 +515,29 @@ export const useActionStore = create<ActionStore>((set, get) => ({
           opSuggestionCache.delete(id);
           sessionSuggestionCache.delete(id);
           set(s => ({ items: s.items.filter(x => x.id !== id) }));
+          // Sibling period-reflection cards (digest- / ai-summary- / mem-periodic-
+          // same stem) share one effect — accept one must drop the others from
+          // the session chip immediately (Kernel also durable-marks them).
+          const period =
+            (item.suggestionPayload?.period as string | undefined) ||
+            (typeof id === "string" && id.startsWith("digest-")
+              ? id.slice("digest-".length)
+              : typeof id === "string" && id.startsWith("ai-summary-")
+                ? id.slice("ai-summary-".length)
+                : undefined);
+          if (period && /^\d{4}-[WM]\d{2}$/u.test(period)) {
+            for (const sid of [`digest-${period}`, `ai-summary-${period}`, `mem-periodic-${period}`]) {
+              appliedIds.add(sid);
+              opSuggestionCache.delete(sid);
+              sessionSuggestionCache.delete(sid);
+            }
+            set(s => ({
+              items: s.items.filter(x => {
+                const xp = x.suggestionPayload?.period as string | undefined;
+                return !(x.source === "suggestion" && xp === period);
+              }),
+            }));
+          }
           const detail = res.targetPath ? String(res.targetPath) : res.note || '';
           if (!silent) {
             set({ message: detail ? t('editor:ai.suggestAppliedDetail', { detail }) : t('editor:ai.suggestApplied') });

@@ -170,7 +170,7 @@ test("all install-targets/*.json declare metadata (license / authors / repositor
   const manifest = await readJson("skills/topmind-pack.json");
 
   for (const target of manifest.install_targets) {
-    const config = await readJson(target.path);
+    const config = await readJson(`skills/${target.path}`);
     assert.ok(config.metadata, `${target.id} should declare metadata block`);
     assert.equal(config.metadata.license, "MIT", `${target.id} license should be MIT`);
     assert.ok(Array.isArray(config.metadata.authors) && config.metadata.authors.length >= 1, `${target.id} should have authors`);
@@ -212,7 +212,7 @@ test("topmind skill pack declares one daily entry and action modules including l
   assert.ok(manifest.surfaces.includes("opencode"));
   assert.ok(manifest.surfaces.includes("desktop"));
   assert.ok(manifest.surfaces.includes("mcp"));
-  assert.ok(manifest.install_targets.every((target) => target.path.startsWith("skills/install-targets/")));
+  assert.ok(manifest.install_targets.every((target) => target.path.startsWith("install-targets/")));
 
   // v4.1: topmind-loop registered as independent skill
   const loopSkill = manifest.skills.find((s) => s.id === "topmind-loop");
@@ -315,7 +315,7 @@ test("agent install target manifests include topmind-loop and use v3.4 content t
   const manifest = await readJson("skills/topmind-pack.json");
 
   for (const target of manifest.install_targets) {
-    const config = await readJson(target.path);
+    const config = await readJson(`skills/${target.path}`);
     assert.equal(config.package, "topmind");
     assert.equal(config.daily_entry, "topmind");
     assert.deepEqual(config.skills, EXPECTED_SKILLS);

@@ -478,6 +478,13 @@ export function useCaptureForm({
     (fetchMeta.canEnhance || fetchMeta.likelySpa || (fetchMeta.wordCount ?? 0) < 40);
 
   const canSubmit = Boolean(content.trim() || attachments.length > 0) && !submitting;
+  /** Unsaved draft — Esc/Cancel must not silently discard this. */
+  const isDirty = Boolean(
+    content.trim() ||
+      title.trim() ||
+      source.trim() ||
+      attachments.length > 0,
+  ) && !submitting;
 
   const modeHint =
     effectiveMode === "docs"
@@ -511,6 +518,7 @@ export function useCaptureForm({
     contentIsUrl,
     showEnhance,
     canSubmit,
+    isDirty,
     modeHint,
     setTitle,
     setSource,
@@ -541,6 +549,7 @@ export function CaptureForm({
   wrapperClassName,
   attachmentsSlot,
   previewSlot,
+  onRequestClose,
 }: {
   form: CaptureFormApi;
   isFloat: boolean;
@@ -550,10 +559,11 @@ export function CaptureForm({
   wrapperClassName?: string;
   attachmentsSlot?: ReactNode;
   previewSlot?: ReactNode;
+  /** Parent-owned close (dirty-confirm + surface close). Defaults to overlay guard. */
+  onRequestClose?: () => void;
 }) {
   const { t } = useTranslation();
   const select = useViewStore((s) => s.select);
-  const closeOverlay = useViewStore((s) => s.closeOverlay);
   const {
     content,
     title,
@@ -812,8 +822,14 @@ export function CaptureForm({
             variant="ghost"
             size="sm"
             onClick={() => {
-              if (isFloat) void api.sys.closeQuickCapture();
-              else closeOverlay();
+              if (onRequestClose) {
+                onRequestClose();
+                return;
+              }
+              // Route through the shared close guard so dirty drafts confirm.
+              void import("../../lib/workbench-commands").then((m) =>
+                m.closeOverlayGuarded(),
+              );
             }}
           >
             {showQueue && isFloat ? t("overlays:capture.close") : t("overlays:capture.cancel")}

@@ -16,12 +16,14 @@ import { toggleAiWorkspacePane } from "../src/lib/ai-workspace.ts";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = (rel) => readFileSync(path.join(root, rel), "utf8");
 
-test("openSuggestSurface sets panelOpen and refreshes when empty", () => {
+test("openSuggestSurface sets panelOpen and soft-refreshes (never force on empty)", () => {
   const src = read("src/lib/suggest-surface.ts");
   assert.match(src, /setPanelOpen\(true\)/);
   assert.match(src, /setExpanded\(true\)/);
+  // 2026-09-17d: empty open is soft — force-on-empty re-offered every written digest.
+  assert.match(src, /opts\?\.refresh === true/);
   assert.match(src, /refresh\(\{\s*force:\s*true\s*\}\)/);
-  assert.match(src, /items\.length === 0|neverLoaded|!store\.everLoaded/);
+  assert.match(src, /void store\.refresh\(\)/);
   // No bus re-emit loop
   assert.doesNotMatch(src, /emitLocal\s*\(\s*OPEN_SUGGEST_SURFACE_EVENT/);
 });

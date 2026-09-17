@@ -4,8 +4,8 @@
   "label": "topmind",
   "description": "topmind skill pack: single daily entry topmind + progressive disclosure (shared/ + references/), Agent Skills open-standard aligned, capture-first template-driven categories, optional weread/x connectors and optional ledger (记账). File-system-first content truth; UTR optional.",
   "daily_entry": "topmind",
-  "version": "4.6.0",
-  "updated": "2026-09-16",
+  "version": "4.7.0",
+  "updated": "2026-09-17",
   "license": "MIT",
   "locales": {
     "default": "zh-CN",
@@ -261,6 +261,7 @@
     "codex",
     "hermes",
     "opencode",
+    "claude-code",
     "desktop",
     "mcp",
     "obsidian"
@@ -289,19 +290,19 @@
   "install_targets": [
     {
       "id": "opencode",
-      "path": "skills/install-targets/opencode.json"
+      "path": "install-targets/opencode.json"
     },
     {
       "id": "hermes",
-      "path": "skills/install-targets/hermes.json"
+      "path": "install-targets/hermes.json"
     },
     {
       "id": "codex",
-      "path": "skills/install-targets/codex.json"
+      "path": "install-targets/codex.json"
     },
     {
       "id": "claude-code",
-      "path": "skills/install-targets/claude-code.json"
+      "path": "install-targets/claude-code.json"
     }
   ],
   "utr": {

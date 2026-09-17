@@ -513,9 +513,15 @@ export const pathOps = {
     const workspaceRoot = ctx.workspaceRoot?.userWorkspaceRoot || ctx.workspaceRoot;
     const contract = kernel.loadContract(workspaceRoot);
 
+    // Snapshot markdown head + recoverable flag BEFORE the delete, but do NOT
+    // touch media until the Kernel gate commits. Under graded confirm a pending
+    // delete must leave note + assets intact until the user accepts.
+    let noteMarkdown = null;
+    let recoverable = false;
     if (relativePath.endsWith(".md")) {
       const old = await fs.readFile(fp, "utf8").catch(() => null);
       if (old !== null) {
+        noteMarkdown = old;
         const fm = kernel.peekFrontmatter(old);
         const perm = kernel.evaluateWritePermission({
           contract,
@@ -523,63 +529,18 @@ export const pathOps = {
           workspaceRoot,
           frontmatter: fm,
           actor: writeActor,
+          lifecycle: true,
         });
-        const recoverable =
+        recoverable =
           !isPermanent &&
           kernel.isRecoverableLifecycle({
             protection: perm.protection,
             relativePath,
             workspaceRoot,
           });
-        try {
-          const { trashNoteMedia } = await import("./workspace-note-media.mjs");
-          const media = await trashNoteMedia(
-            { noteRelativePath: relativePath, markdown: old, toTrash: recoverable },
-            ctx,
-          );
-          mediaTrashed = media.trashed || [];
-        } catch {
-          /* non-fatal */
-        }
       }
-      const ev = await kernelDurableDelete(
-        { relativePath },
-        ctx,
-        {
-          actor: writeActor,
-          confirmed: confirmed === true || writeActor === "user",
-          permanent: isPermanent,
-        },
-      );
-      if (ev.pending || ev.needsConfirm) {
-        return {
-          ...asDesktopEvidence(ev, relativePath),
-          ok: false,
-          needsConfirm: true,
-          pending: true,
-          path: relativePath,
-          targetPath: relativePath,
-          mediaTrashed: 0,
-        };
-      }
-      bumpWorkspaceIndex(relativePath);
-      return {
-        ...asDesktopEvidence(ev, relativePath),
-        ok: true,
-        mediaTrashed: mediaTrashed.length,
-        affectedFiles: [...(ev.affectedFiles || [relativePath]), ...mediaTrashed],
-        note:
-          isPermanent
-            ? i18n("pathOps.permanentlyDeleted")
-            : mediaTrashed.length > 0
-              ? i18n("pathOps.deletedWithMedia", { count: mediaTrashed.length })
-              : i18n("pathOps.deleted"),
-      };
     }
 
-    // Non-md: route through the Kernel write-gate (same as .md) — locked/core
-    // assets get trash + receipt + rotation; ordinary open assets are a plain
-    // unlink. No parallel Desktop-side trash implementation.
     const ev = await kernelDurableDelete(
       { relativePath },
       ctx,
@@ -600,7 +561,36 @@ export const pathOps = {
         mediaTrashed: 0,
       };
     }
+
+    // Gate committed — only now may media be moved/trashed with the note.
+    if (noteMarkdown !== null) {
+      try {
+        const { trashNoteMedia } = await import("./workspace-note-media.mjs");
+        const media = await trashNoteMedia(
+          { noteRelativePath: relativePath, markdown: noteMarkdown, toTrash: recoverable },
+          ctx,
+        );
+        mediaTrashed = media.trashed || [];
+      } catch {
+        /* non-fatal */
+      }
+    }
+
     bumpWorkspaceIndex(relativePath);
+    if (relativePath.endsWith(".md")) {
+      return {
+        ...asDesktopEvidence(ev, relativePath),
+        ok: true,
+        mediaTrashed: mediaTrashed.length,
+        affectedFiles: [...(ev.affectedFiles || [relativePath]), ...mediaTrashed],
+        note:
+          isPermanent
+            ? i18n("pathOps.permanentlyDeleted")
+            : mediaTrashed.length > 0
+              ? i18n("pathOps.deletedWithMedia", { count: mediaTrashed.length })
+              : i18n("pathOps.deleted"),
+      };
+    }
     return {
       ...asDesktopEvidence(ev, relativePath),
       ok: true,
@@ -625,35 +615,14 @@ export const pathOps = {
     const c = await fs.readFile(oldFp, "utf8").catch(() => null);
 
     const writeActor = actor || "user";
-    const isConfirmed = confirmed !== undefined ? Boolean(confirmed) : (writeActor === "user");
+    // Graded confirm: rename is a content move (like create/update) — it lands
+    // immediately. Do not invent a pending type whose accept path is savePath.
+    // User renames are always confirmed; AI renames land under the write gate.
+    const isConfirmed = writeActor === "user" ? true : confirmed === true;
 
-    // Protection check: locked notes cannot be renamed or rewritten by AI
-    if (c !== null && relativePath.endsWith(".md")) {
-      const { data: fm } = splitMarkdownFrontmatter(c);
-      if (fm?.protection === "locked" && writeActor === "ai") {
-        throw new Error(i18n("pathOps.lockedDeniedAi"));
-      }
-    }
-
-    // If AI in confirm mode without confirmation, return pending without touching disk
-    if (writeActor === "ai" && !isConfirmed) {
-      return {
-        ...buildWritebackEvidence({
-          operation: "rename",
-          targetPath: nextRel,
-          savedAt: t,
-          wroteFiles: false,
-        }),
-        ok: false,
-        needsConfirm: true,
-        pending: true,
-        path: nextRel,
-        targetPath: nextRel,
-        sourcePath: relativePath,
-        previewContent: c || "",
-      };
-    }
-
+    // Locked notes are editable (task-scoped first-write snapshot), not an AI
+    // deny-list. Route the new body through kernelDurableWrite so the snapshot
+    // policy applies — do not hard-deny rename while save/edit are allowed.
     let mediaRenamed = null;
     let bodyOut = c;
     if (relativePath.endsWith(".md") && c !== null) {
@@ -729,18 +698,6 @@ export const pathOps = {
     // No backup for publish — original note stays in workspace; output is a copy.
     // Old output overwrite is low-risk (source is always available for re-publish).
 
-    // Copy media into 88-Outputs/images/{slug}/ (relative paths unchanged)
-    const { transferNoteMedia } = await import("./workspace-note-media.mjs");
-    const media = await transferNoteMedia(
-      {
-        noteRelativePath: relativePath,
-        destNoteDir: outputsName,
-        markdown: c,
-        mode: "copy",
-      },
-      ctx,
-    );
-
     const fm = {
       published_at: t,
       source_path: relativePath,
@@ -749,7 +706,7 @@ export const pathOps = {
     if (topic) fm.topic = topic;
     const targetPath = `${outputsName}/${outName}`;
     const writeActor = actor || "user";
-    const isConfirmed = confirmed !== undefined ? Boolean(confirmed) : (writeActor === "user");
+    const isConfirmed = writeActor === "user" ? true : confirmed === true;
     const writeEv = await kernelDurableWrite(
       { relativePath: targetPath, content: injectFrontmatter(c, fm) },
       ctx,
@@ -777,6 +734,20 @@ export const pathOps = {
         previewContent: injectFrontmatter(c, fm),
       };
     }
+
+    // Copy media only after the write gate commits — a pending/failed publish
+    // must not leave orphan images under Outputs.
+    const { transferNoteMedia } = await import("./workspace-note-media.mjs");
+    const media = await transferNoteMedia(
+      {
+        noteRelativePath: relativePath,
+        destNoteDir: outputsName,
+        markdown: c,
+        mode: "copy",
+      },
+      ctx,
+    );
+
     bumpWorkspaceIndex(targetPath);
     const affected = [relativePath, targetPath, ...media.movedDirs, ...media.movedFiles];
     return {
@@ -841,24 +812,8 @@ export const pathOps = {
     S(category, "category"); S(name, "name");
     if (!/^\d{4}-.+/u.test(name)) throw new Error(i18n("pathOps.topicNameYearPrefix"));
 
-    // Respect confirm gate from workspace contract (not app-settings fork)
-    const { resolveWorkspaceWritebackMode } = await import("./kernel-api.mjs");
-    const writebackMode = await resolveWorkspaceWritebackMode(ctx, {
-      writebackMode: ctx.explicitWritebackMode,
-    });
-    if (writebackMode === "confirm" && !confirmed && actor === "ai") {
-      const topicId = buildTopicId(category, name);
-      return {
-        ok: false,
-        needsConfirm: true,
-        pending: true,
-        topicId,
-        targetPath: topicId,
-        previewContent: i18n("pathOps.aboutToCreateTopic", { topicId: `${category}/${name}` }),
-        operation: "create-topic",
-      };
-    }
-
+    // Graded confirm: content create (mkdir topic) lands immediately —
+    // no Desktop-side pending gate. Kernel writeback still owns protection.
     const dir = await sp(ctx.workspaceRoot, `${category}/${name}`);
     const stat = await statSafe(dir);
     if (stat) throw new Error(i18n("pathOps.topicExists", { topicId: `${category}/${name}` }));

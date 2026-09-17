@@ -515,21 +515,13 @@ export function createInboxOps(moveSelfRef) {
       const c = await readText(src);
       const newPath = `${destDirRel}/${targetFileName}`;
 
-      // Media first (same relative images/… under dest note dir)
-      const media = await transferNoteMedia(
-        {
-          noteRelativePath: srcRel,
-          destNoteDir: destDirRel,
-          markdown: c,
-          mode: "move",
-        },
-        ctx,
-      );
-
       await fs.mkdir(path.dirname(dest), { recursive: true });
       const movedBody = injectFrontmatter(c, { category, topic });
       const writeActor = actor || "user";
-      const isConfirmed = confirmed !== undefined ? Boolean(confirmed) : (writeActor === "user");
+      const isConfirmed = writeActor === "user" ? true : confirmed === true;
+      // Write dest first (graded confirm: create lands). Media moves only after
+      // the gate commits so a pending/failed move never orphans assets under
+      // the topic while the source note still lives in Inbox.
       const writeEv = await kernelDurableWrite(
         { relativePath: newPath, content: movedBody },
         ctx,
@@ -558,6 +550,18 @@ export function createInboxOps(moveSelfRef) {
           previewContent: movedBody,
         };
       }
+
+      // Media after write gate commit
+      const media = await transferNoteMedia(
+        {
+          noteRelativePath: srcRel,
+          destNoteDir: destDirRel,
+          markdown: c,
+          mode: "move",
+        },
+        ctx,
+      );
+
       // Source removal after confirmed gate write of dest.
       await fs.unlink(src).catch(() => {});
       void writeEv;

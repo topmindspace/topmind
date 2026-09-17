@@ -133,7 +133,7 @@ async function pickAndOpenWorkspace({ create }: { create: boolean }): Promise<vo
 }
 
 /** Run a menu command. Returns false when the id is unknown to the renderer. */
-export function runMenuCommand(cmd: AppMenuCommand): boolean {
+export async function runMenuCommand(cmd: AppMenuCommand): Promise<boolean> {
   if (!cmd || typeof cmd.id !== "string") return false;
   const def = WORKBENCH_SHORTCUTS.find((s) => s.id === cmd.id);
   if (def) return runWorkbenchAction(def.action);
@@ -167,7 +167,7 @@ function pushMenuState(): void {
 export function installNativeMenuBridge(): () => void {
   const offCommand = subscribe("app:command", (payload) => {
     const cmd = payload as AppMenuCommand | null;
-    if (cmd) runMenuCommand(cmd);
+    if (cmd) void runMenuCommand(cmd);
   });
 
   // The store fires on every mutation — splitter drags alone would be dozens of

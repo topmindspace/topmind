@@ -1,6 +1,6 @@
 ---
 name: topmind-write
-version: 4.6.0
+version: 4.7.0
 description: >-
   写作/润色/出稿到专题或交付层（role:delivery）。Use when 写、起草、续写、润色、出稿、交付、write、draft、deliver。
   Do NOT use for 仅捕获、仅结构整理、只写记忆、doctor/loop、社交连接器.
@@ -28,7 +28,7 @@ triggers:
   - export
 tags: [write, draft, revise, polish, deliver]
 entrypoint: false
-compatibility: topmind workspace. Delivery role category (often 88-输出/).
+compatibility: topmind workspace. Delivery role category (often 88-交付 / 88-Delivery).
 author: TopMindSpace
 license: MIT
 homepage: https://github.com/topmindspace/topmind
@@ -64,7 +64,7 @@ Draft · Continue · Revise · Polish · Deliver — 按用户当前意图，不
 1. **读序（先首页再素材）**：`topic.md`（若有）→ 焦点对象 → 仅必要笔记。无 topic.md 不强制创建，照旧扫笔记。禁止一上来 dump 整专题  
 2. 对齐目标、稳定记忆、风格、受众  
 3. 产出可用正文，少过程旁白  
-4. 按保存设置写入；锁定文件：auto 拒绝 / confirm 待确认，或建修订副本。宿主若提供唯一片段替换（Desktop / Obsidian `edit_file`），中段改稿优先用它：匹配阶梯（精确→换行/空白→行级宽松），多步编辑跟 postEditWindow + contentHash/expectedHash，不要为改一段而整文件覆盖。不要编造 shell / bash 工具。  
+4. 按保存设置写入；锁定文件：内容编辑允许（任务级首写快照），可恢复删/归档允许，永久删仅用户。宿主若提供唯一片段替换（Desktop / Obsidian `edit_file`），中段改稿优先用它：匹配阶梯（精确→换行/空白→行级宽松），多步编辑跟 postEditWindow + contentHash/expectedHash，不要为改一段而整文件覆盖。不要编造 shell / bash 工具。  
 5. Desktop 可选影子流式：`.shadow-*.tmp`，Commit 后再原子落盘  
 
 ## source_type

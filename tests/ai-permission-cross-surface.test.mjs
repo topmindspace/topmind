@@ -70,45 +70,45 @@ describe("AI permission cross-surface", () => {
     assert.equal(fs.readFileSync(path.join(autoWs, rel), "utf8").includes("hello"), true);
   });
 
-  it("AI confirm leaves file unchanged until accept", async () => {
+  it("AI confirm graded: content save lands immediately", async () => {
     kernelApi.resetKernelApiCache();
     const rel = "20-专题/2026-权限/pending.md";
     const ev = await pathOps.savePath(
       { relativePath: rel, content: "---\ntitle: p\n---\n\nsecret\n", actor: "ai", confirmed: false },
       desktopCtx(confirmWs),
     );
-    assert.equal(ev.pending || ev.needsConfirm, true, JSON.stringify(ev));
-    assert.ok(!fs.existsSync(path.join(confirmWs, rel)));
+    assert.equal(ev.pending || ev.needsConfirm, false, JSON.stringify(ev));
+    assert.ok(fs.existsSync(path.join(confirmWs, rel)));
   });
 
-  it("AI locked overwrite refuses and writes nothing (Desktop + Obsidian)", async () => {
+  it("AI locked overwrite is allowed with task snapshot (Desktop + Obsidian)", async () => {
     const rel = "20-专题/2026-权限/locked.md";
     const locked = "---\nprotection: locked\n---\n\nkeep-me\n";
     fs.writeFileSync(path.join(autoWs, rel), locked, "utf8");
     kernelApi.resetKernelApiCache();
-    await assert.rejects(
-      () => pathOps.savePath(
-        { relativePath: rel, content: "---\nprotection: locked\n---\n\nhacked\n", actor: "ai", confirmed: true },
-        desktopCtx(autoWs),
-      ),
-      /denied|locked|Write/i,
+    // Desktop path: allowed — first write in task snapshots
+    const ev = await pathOps.savePath(
+      { relativePath: rel, content: "---\nprotection: locked\n---\n\nedited\n", actor: "ai", confirmed: true },
+      desktopCtx(autoWs),
     );
-    assert.match(fs.readFileSync(path.join(autoWs, rel), "utf8"), /keep-me/);
+    assert.ok(ev.wroteFiles || ev.wrote_files || ev.ok, JSON.stringify(ev));
+    assert.match(fs.readFileSync(path.join(autoWs, rel), "utf8"), /edited/);
+    assert.ok(ev.backupPath || ev.backup_path, "locked first write must snapshot");
 
     fs.writeFileSync(path.join(autoWs, rel), locked, "utf8");
     const obs = preciseEditWorkspace(kernel, autoWs, {
       relativePath: rel,
       oldText: "keep-me",
-      newText: "hacked",
+      newText: "edited-obs",
       actor: "ai",
       confirmed: true,
       writebackMode: "auto",
     });
-    assert.equal(obs.ok, false, JSON.stringify(obs));
-    assert.match(fs.readFileSync(path.join(autoWs, rel), "utf8"), /keep-me/);
+    assert.equal(obs.ok, true, JSON.stringify(obs));
+    assert.match(fs.readFileSync(path.join(autoWs, rel), "utf8"), /edited-obs/);
   });
 
-  it("Obsidian confirm edit is pending and does not write", () => {
+  it("Obsidian confirm edit lands immediately (graded confirm)", () => {
     const rel = "20-专题/2026-权限/obs-confirm.md";
     fs.writeFileSync(path.join(confirmWs, rel), "---\ntitle: c\n---\n\nold span here\n", "utf8");
     const ev = preciseEditWorkspace(kernel, confirmWs, {
@@ -119,8 +119,7 @@ describe("AI permission cross-surface", () => {
       confirmed: false,
       writebackMode: "confirm",
     });
-    assert.equal(ev.pending || ev.ok === false, true, JSON.stringify(ev));
-    assert.match(fs.readFileSync(path.join(confirmWs, rel), "utf8"), /old span here/);
-    assert.doesNotMatch(fs.readFileSync(path.join(confirmWs, rel), "utf8"), /new span here/);
+    assert.equal(ev.ok, true, JSON.stringify(ev));
+    assert.match(fs.readFileSync(path.join(confirmWs, rel), "utf8"), /new span here/);
   });
 });

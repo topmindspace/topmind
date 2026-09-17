@@ -238,7 +238,7 @@ describe("Obsidian precise edit / read window", () => {
     assert.match(fs.readFileSync(path.join(tmp, rel), "utf8"), /agent-loop edit/);
   });
 
-  test("runWorkspaceChatTurn confirm-pending is not reported as a failed edit", async () => {
+  test("runWorkspaceChatTurn graded confirm: content edit lands immediately", async () => {
     const confirmWs = fs.mkdtempSync(path.join(os.tmpdir(), "tm-obs-pending-"));
     try {
       fs.writeFileSync(
@@ -263,18 +263,14 @@ describe("Obsidian precise edit / read window", () => {
         writebackMode: "confirm",
         maxSteps: 1,
       });
+      // Graded confirm (2026-09-17c): content edits land immediately.
       assert.equal(turn.edits.length, 1);
-      assert.equal(turn.edits[0].pending || turn.edits[0].needsConfirm, true, JSON.stringify(turn.edits[0]));
-      assert.match(turn.body, /pending/i);
-      assert.doesNotMatch(turn.body, /did not apply|未能完成/i);
-      assert.match(fs.readFileSync(path.join(confirmWs, rel), "utf8"), /old span here/);
-      assert.doesNotMatch(fs.readFileSync(path.join(confirmWs, rel), "utf8"), /new span here/);
-      const pending = listPendingWrites();
-      assert.ok(pending.length >= 1, "pending write must be stashed");
-      assert.match(pending[0].content, /new span here/);
-      const accepted = acceptPendingWrite(kernel, confirmWs, pending[0].id);
-      assert.equal(accepted.ok, true, accepted.error);
+      assert.ok(
+        !(turn.edits[0].pending || turn.edits[0].needsConfirm),
+        `content edit must not be pending: ${JSON.stringify(turn.edits[0])}`,
+      );
       assert.match(fs.readFileSync(path.join(confirmWs, rel), "utf8"), /new span here/);
+      assert.doesNotMatch(fs.readFileSync(path.join(confirmWs, rel), "utf8"), /old span here/);
     } finally {
       clearPendingWrites();
       fs.rmSync(confirmWs, { recursive: true, force: true });

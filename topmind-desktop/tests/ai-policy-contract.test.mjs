@@ -45,7 +45,7 @@ function assertPromptContract(prompt, { locale, writeback }) {
   assert.match(prompt, /unique-span|unique span|唯一片段|先精确再容忍|newline\/trailing-space|行级宽松/i);
   assert.match(prompt, /locked|锁定/u);
   if (writeback === "confirm") {
-    assert.match(prompt, /ask before save|pending|保存前问我|待确认写入/u);
+    assert.match(prompt, /ask before delete|pending|删除\/归档前问我|待确认/u);
     assert.match(prompt, /write tools|write 工具|save_file|edit_file/u);
   } else {
     assert.match(prompt, /auto-save|自动保存/u);

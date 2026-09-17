@@ -67,10 +67,12 @@ export function OverlayHost() {
   const prevFocusRef = useRef<HTMLElement | null>(null);
   const [portalEl, setPortalEl] = useState<HTMLElement | null>(null);
 
-  // Close through the active overlay's guard (settings flush) — closeOverlay
-  // alone would unmount before the debounced batch is persisted.
+  // Close through the active overlay's guard (settings flush / dirty veto) —
+  // closeOverlay alone would unmount before the debounced batch is persisted
+  // or discard a capture draft without confirm.
   const requestCloseOverlay = useCallback(async () => {
-    await runOverlayCloseGuard();
+    const allowed = await runOverlayCloseGuard();
+    if (!allowed) return;
     closeOverlay();
   }, [closeOverlay]);
 
@@ -197,7 +199,7 @@ export function OverlayHost() {
       // Single dispatcher shared with the native application menu — see
       // lib/workbench-commands.ts. Reading state at call time is why this
       // effect has no dependencies beyond the listener itself.
-      runWorkbenchAction(hit.action);
+      void runWorkbenchAction(hit.action);
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);

@@ -3,6 +3,7 @@
  * Opening a row lands on the live markdown file (no parallel store).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { MouseEvent as ReactMouseEvent } from "react";
 import { useTranslation } from "react-i18next";
 import {
   RiCalendar2Line,
@@ -84,6 +85,9 @@ export function MemoryBrowseView() {
   const [error, setError] = useState<string | null>(null);
   const [layer, setLayer] = useState<MemoryFeedLayer>("all");
   const [organizing, setOrganizing] = useState(false);
+  const [query, setQuery] = useState("");
+  const [healthIssues, setHealthIssues] = useState<string[]>([]);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
   const select = useViewStore((s) => s.select);
   const feedLayout = useViewStore((s) => s.feedLayout);
   const setFeedLayout = useViewStore((s) => s.setFeedLayout);
@@ -116,6 +120,13 @@ export function MemoryBrowseView() {
       if (gen !== loadGen.current) return;
       setItems(assembleMemoryFeed({ profile, periodic, topics }));
       setError(null);
+      // Best-effort health badge (near-dupes / oversized) — never blocks browse.
+      void api.ws
+        .profileHealth()
+        .then((h) => {
+          if (gen === loadGen.current) setHealthIssues(h.health?.issues || []);
+        })
+        .catch(() => setHealthIssues([]));
     } catch (e) {
       if (gen !== loadGen.current) return;
       if (!silent) setError(e instanceof Error ? e.message : String(e));
@@ -153,10 +164,15 @@ export function MemoryBrowseView() {
     [t],
   );
 
-  const visible = useMemo(
-    () => filterMemoryFeedByLayer(items, layer),
-    [items, layer],
-  );
+  const visible = useMemo(() => {
+    const byLayer = filterMemoryFeedByLayer(items, layer);
+    const q = query.trim().toLowerCase();
+    if (!q) return byLayer;
+    return byLayer.filter((i) => {
+      const hay = `${i.title || ""}\n${i.preview || ""}\n${i.body || ""}\n${i.path || ""}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [items, layer, query]);
 
   const layerCounts = useMemo(() => {
     const counts = { profile: 0, periodic: 0, topic: 0, history: 0 };
@@ -173,6 +189,24 @@ export function MemoryBrowseView() {
       await runMemoryOrganizeConfirm();
     } finally {
       setOrganizing(false);
+    }
+  };
+
+  const handleRestore = async (item: MemoryFeedItem, e: ReactMouseEvent) => {
+    e.stopPropagation();
+    if (restoringId) return;
+    const match = stripListChromeForDisplay(item.body || item.title || "").trim();
+    if (!match) return;
+    setRestoringId(item.id);
+    try {
+      const res = await api.ws.restoreProfileFact({ match });
+      if (res.ok) {
+        await load({ silent: true });
+      }
+    } catch {
+      /* keep row; user can retry */
+    } finally {
+      setRestoringId(null);
     }
   };
 
@@ -275,8 +309,29 @@ export function MemoryBrowseView() {
                 onClick={() => setLayer("history")}
               />
             ) : null}
+            {healthIssues.length > 0 ? (
+              <Tooltip content={healthIssues.join(" · ")}>
+                <span
+                  data-memory-health-issues
+                  className="rounded-full bg-status-warning-bg px-1.5 py-px text-3xs text-warning"
+                >
+                  {t("workspace:memoryBrowse.healthIssues", { count: healthIssues.length })}
+                </span>
+              </Tooltip>
+            ) : null}
           </div>
-          <FeedLayoutToggle value={feedLayout} onChange={setFeedLayout} />
+          <div className="flex items-center gap-2">
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t("workspace:memoryBrowse.searchPlaceholder")}
+              aria-label={t("workspace:memoryBrowse.searchPlaceholder")}
+              data-memory-search
+              className="h-7 w-36 min-w-0 rounded-[var(--radius-md)] border border-border-subtle bg-surface px-2 text-xs text-text-primary outline-none v4-focus-ring sm:w-48"
+            />
+            <FeedLayoutToggle value={feedLayout} onChange={setFeedLayout} />
+          </div>
         </FeedChrome>
 
       {visible.length === 0 ? (
@@ -356,6 +411,19 @@ export function MemoryBrowseView() {
                       <span className="rounded-full bg-surface-muted px-1.5 py-px text-3xs text-text-quaternary">
                         {kindText}
                       </span>
+                      {item.history && item.kind === "profile" ? (
+                        <button
+                          type="button"
+                          data-memory-restore
+                          disabled={restoringId === item.id}
+                          className="rounded-full bg-surface-muted px-1.5 py-px text-3xs text-text-secondary hover:text-text-primary v4-focus-ring"
+                          onClick={(e) => void handleRestore(item, e)}
+                        >
+                          {restoringId === item.id
+                            ? t("workspace:memoryBrowse.restoring")
+                            : t("workspace:memoryBrowse.restore")}
+                        </button>
+                      ) : null}
                     </div>
                     {html ? (
                       <div

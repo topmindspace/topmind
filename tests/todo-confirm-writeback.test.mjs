@@ -39,26 +39,18 @@ after(() => {
   }
 });
 
-describe("AI todo writes respect yaml confirm", () => {
-  it("user ensure seeds todo.md; AI add without confirmed stays pending", () => {
+describe("AI todo writes respect graded yaml confirm", () => {
+  it("user ensure seeds todo.md; AI add lands immediately (graded confirm)", () => {
     ensureTodoFile(ws);
     const rel = resolveTodoRelPath(ws);
     const abs = path.join(ws, rel);
     assert.equal(fs.existsSync(abs), true);
-    const before = readTodoList(ws);
-    const beforeCount = before?.items?.length || 0;
 
-    const r = addTodoItem(ws, "AI should not silent-write this", { actor: "ai", confirmed: false });
-    assert.equal(r.ok, false, `expected pending, got ${JSON.stringify(r)}`);
-    assert.equal(r.pending, true);
-    assert.equal(r.writebackEvidence?.pending || r.writebackEvidence?.needsConfirm, true);
-    assert.equal(r.writebackEvidence?.wroteFiles, false);
-    assert.equal(r.item, null);
-
-    const after = readTodoList(ws);
-    assert.equal(after?.items?.length || 0, beforeCount, "confirm mode must not land the AI todo");
+    const r = addTodoItem(ws, "Graded confirm lands this todo", { actor: "ai", confirmed: false });
+    assert.equal(r.ok, true, `graded confirm: todo content lands, got ${JSON.stringify(r)}`);
+    assert.equal(r.pending, false);
     const body = fs.readFileSync(abs, "utf8");
-    assert.doesNotMatch(body, /AI should not silent-write this/);
+    assert.match(body, /Graded confirm lands this todo/);
   });
 
   it("user actor still writes immediately under yaml confirm", () => {
@@ -69,14 +61,14 @@ describe("AI todo writes respect yaml confirm", () => {
     assert.match(fs.readFileSync(abs, "utf8"), /I typed this todo/);
   });
 
-  it("AI snapshotTodoList does not silent-write todo-history under yaml confirm", () => {
+  it("AI snapshotTodoList lands under graded confirm", () => {
     const items = readTodoList(ws)?.items || [];
     snapshotTodoList(ws, items, "2026-W40");
     const snap = path.join(ws, "memory", "periodic", "todo-history", "2026-W40.md");
-    assert.equal(fs.existsSync(snap), false, "confirm mode must not land AI todo snapshot");
+    assert.equal(fs.existsSync(snap), true, "graded confirm: snapshot lands");
   });
 
-  it("AI archiveStaleTodos does not silent-write todo-history under yaml confirm", () => {
+  it("AI archiveStaleTodos lands under graded confirm", () => {
     const oldDate = new Date(Date.now() - 40 * 86400000).toISOString().slice(0, 10);
     const todoAbs = path.join(ws, resolveTodoRelPath(ws));
     const prev = fs.readFileSync(todoAbs, "utf8");
@@ -86,12 +78,9 @@ describe("AI todo writes respect yaml confirm", () => {
       "utf8",
     );
     const r = archiveStaleTodos(ws);
-    assert.equal(r.ok, false);
-    assert.equal(r.pending, true);
-    assert.equal(r.writebackEvidence?.wroteFiles, false);
+    assert.equal(r.ok, true, JSON.stringify(r));
     const histDir = path.join(ws, "memory", "periodic", "todo-history");
     const files = fs.existsSync(histDir) ? fs.readdirSync(histDir) : [];
-    assert.equal(files.some((f) => f.endsWith("-archived.md")), false);
-    assert.match(fs.readFileSync(todoAbs, "utf8"), /stale confirm-archive item/);
+    assert.equal(files.some((f) => f.endsWith("-archived.md")), true);
   });
 });

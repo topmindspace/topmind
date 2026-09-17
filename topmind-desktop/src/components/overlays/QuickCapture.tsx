@@ -12,7 +12,7 @@
  * Form state/submit lives in CaptureForm (useCaptureForm); link fetch preview in
  * CapturePreview; paste/drag-drop wiring in CaptureAttachments (useCaptureDrop).
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   RiAttachmentLine,
@@ -25,10 +25,12 @@ import {
 import { api } from "../../services/api";
 import { useViewStore } from "../../stores/view-store";
 import { Tooltip } from "../ui/tooltip";
+import { ConfirmDialog } from "../ui/Dialog";
 import { cn } from "../../lib/cn";
 import { ICON } from "../../lib/icons";
 import { formatChord } from "../../lib/chord";
 import { isMacOS } from "../../lib/platform";
+import { setOverlayCloseGuard } from "../../lib/overlay-close-guard";
 import {
   CaptureAttachmentList,
   CaptureDropHint,
@@ -66,6 +68,32 @@ export function QuickCapture({ variant, onDone }: QuickCaptureProps = {}) {
     setError: form.setError,
   });
   const sheetRef = useRef<HTMLDivElement>(null);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const isDirtyRef = useRef(form.isDirty);
+  isDirtyRef.current = form.isDirty;
+  const forceCloseRef = useRef(false);
+
+  // Dirty close guard: Esc / menu / scrim path all go through the shared
+  // overlay-close-guard. A non-empty draft is not discarded without confirm.
+  useEffect(() => {
+    if (isFloat) return;
+    setOverlayCloseGuard(() => {
+      if (forceCloseRef.current || !isDirtyRef.current) return true;
+      setConfirmDiscard(true);
+      return false;
+    });
+    return () => setOverlayCloseGuard(null);
+  }, [isFloat]);
+
+  const confirmDiscardAndClose = () => {
+    forceCloseRef.current = true;
+    setConfirmDiscard(false);
+    if (isFloat) {
+      void api.sys.closeQuickCapture();
+      return;
+    }
+    void useViewStore.getState().closeOverlay();
+  };
 
   // ⌘/Ctrl+Enter submit — ref always points at the latest handleSubmit closure
   const submitRef = useRef(form.handleSubmit);
@@ -78,7 +106,11 @@ export function QuickCapture({ variant, onDone }: QuickCaptureProps = {}) {
       }
       if (e.key === "Escape" && isFloat) {
         e.preventDefault();
-        void api.sys.closeQuickCapture();
+        if (forceCloseRef.current || !isDirtyRef.current) {
+          void api.sys.closeQuickCapture();
+        } else {
+          setConfirmDiscard(true);
+        }
       }
     };
     window.addEventListener("keydown", onKey);
@@ -143,7 +175,10 @@ export function QuickCapture({ variant, onDone }: QuickCaptureProps = {}) {
           <button
             type="button"
             className="v4-no-drag flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary v4-focus-ring"
-            onClick={() => void api.sys.closeQuickCapture()}
+            onClick={() => {
+              if (forceCloseRef.current || !form.isDirty) void api.sys.closeQuickCapture();
+              else setConfirmDiscard(true);
+            }}
             aria-label={t("overlays:capture.close")}
           >
             <RiCloseLine size={ICON.sm} />
@@ -212,6 +247,25 @@ export function QuickCapture({ variant, onDone }: QuickCaptureProps = {}) {
           </>
         }
         previewSlot={<CapturePreview form={form} isMemory={isMemory} />}
+        onRequestClose={() => {
+          if (forceCloseRef.current || !form.isDirty) {
+            if (isFloat) void api.sys.closeQuickCapture();
+            else void useViewStore.getState().closeOverlay();
+            return;
+          }
+          setConfirmDiscard(true);
+        }}
+      />
+
+      <ConfirmDialog
+        open={confirmDiscard}
+        title={t("overlays:capture.discardTitle")}
+        description={t("overlays:capture.discardDescription")}
+        confirmText={t("overlays:capture.discardConfirm")}
+        cancelText={t("overlays:capture.discardCancel")}
+        destructive
+        onConfirm={confirmDiscardAndClose}
+        onCancel={() => setConfirmDiscard(false)}
       />
     </div>
   );

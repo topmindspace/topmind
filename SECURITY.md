@@ -18,7 +18,8 @@ Do **not** open a public issue with exploit details or live credentials.
 
 ## Local secrets
 
-- Desktop encrypts API keys via Electron `safeStorage` in the **user settings file** (outside the repo).
+- Desktop encrypts API keys via Electron `safeStorage` (primary) with a **local AES-256-GCM fallback key** at Desktop state `state/.secret-key` (file mode `0600`). Dual-layer keeps secrets decryptable across host reinstalls that would otherwise wipe the safeStorage keychain entry.
+- **Linux without libsecret**: Electron `safeStorage` may fall back to a plaintext store. Desktop surfaces a startup warning in that case — treat key exposure as host-level risk and prefer a working secret store.
 - Clip Bridge tokens live in Desktop settings (default: off). Never commit them.
 - Copy tokens into the browser extension storage via the options page only.
 - Root `.mcp.json` / `opencode.json` / `.env*` are **machine-local** (gitignored). Use `integrations/*/…example*` for shareable shapes.
@@ -30,8 +31,8 @@ Do **not** open a public issue with exploit details or live credentials.
 - **Machine State**: The `.topmind/` directory at the root of the workspace contains local machine state (index, derived, loop, receipts, logs). It is designed to be fully reproducible, must remain local, and should be gitignored if the workspace is under version control.
 - **`topmind.yaml` Protection Levels**: Two-tier model (`open` | `locked`) governed by workspace `topmind.yaml` and the writeback engine.
   - `open` (default): User and AI may write under `writeback.mode` (`auto` | `confirm`).
-  - `locked`: AI cannot write directly (user may still write; AI must fork/unlock first). File frontmatter overrides role defaults.
-- Priority: **protection × writeback.mode**. locked + AI: auto denies; confirm is pending (user authorization). The **writeback-engine** is the single gate for durable content writes.
+  - `locked`: **Important content, not an AI deny-list.** Content edits are allowed; the first overwrite in an agent task takes a one-time rotating snapshot + YAML receipt. Recoverable delete/archive is allowed in `auto` (trash/destination + receipt). Irreversible `permanent` delete of locked/core is user-only. File frontmatter overrides role defaults.
+- Priority: **protection × writeback.mode**. The **writeback-engine** is the single gate for durable content writes. Workspace path containment is absolute (symlink-resolved).
 
 ## Clip Bridge
 

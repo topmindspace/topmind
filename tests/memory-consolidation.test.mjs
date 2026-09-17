@@ -193,8 +193,11 @@ describe("updateProfileEntry", () => {
     });
     assert.equal(result.operation, "update");
     const body = readProfile();
-    assert.ok(!body.includes("学习 Rust 异步运行时"));
-    assert.match(body, /^- （\d{4}-\d{2}-\d{2}）已转向学习 Rust 嵌入式开发$/mu);
+    // Active section holds the new fact; superseded wording is archived (not lost).
+    const active = body.split(/##\s*历史记录/u)[0];
+    assert.ok(!active.includes("学习 Rust 异步运行时"));
+    assert.match(active, /^- （\d{4}-\d{2}-\d{2}）已转向学习 Rust 嵌入式开发/mu);
+    assert.match(body, /归档）学习 Rust 异步运行时/u);
   });
 
   it("dedupes when the corrected fact already exists in the same section", () => {
@@ -251,18 +254,17 @@ describe("appendProfileEntry live-section dedupe", () => {
   beforeEach(setupWorkspace);
   afterEach(cleanup);
 
-  it("AI unconfirmed append in confirm mode returns pending and does not write", () => {
+  it("AI append in graded confirm mode lands immediately", () => {
     const result = appendProfileEntry({
       workspaceRoot: tmpDir,
-      entry: { section: "进行中的事", content: "- （2026-09-13）确认模式不应落盘" },
+      entry: { section: "进行中的事", content: "- （2026-09-13）分级确认下内容编辑直接落盘" },
       actor: "ai",
       confirmed: false,
       writebackModeOverride: "confirm",
     });
-    assert.equal(result.pending || result.needsConfirm, true);
-    assert.equal(result.wroteFiles, false);
-    assert.doesNotMatch(readProfile(), /确认模式不应落盘/);
-    assert.match(String(result.previewContent || ""), /确认模式不应落盘/);
+    assert.equal(result.pending || result.needsConfirm, false);
+    assert.equal(result.wroteFiles, true);
+    assert.match(readProfile(), /分级确认下内容编辑直接落盘/);
   });
 
   it("a second append of the same fact does not create a live duplicate in another section", () => {
@@ -386,7 +388,8 @@ title: My situation
     const body = readProfile();
     assert.match(body, /^## History$/mu);
     assert.ok(!body.includes("## 历史记录"));
-    assert.match(body, /归档）wrap up the memory design/u);
+    // English profiles use the English archive marker (2026-09-17e M5).
+    assert.match(body, /\(2026-\d{2}-\d{2} archived\)\s*wrap up the memory design/u);
   });
 });
 
@@ -597,10 +600,12 @@ memory_layer: global
     assert.equal(result.operation, "promote");
     assert.equal(result.wroteFiles, true);
     const body = readProfile();
-    assert.ok(!body.includes("学习 Rust 异步运行时"));
+    const active = body.split(/##\s*历史记录/u)[0];
+    assert.ok(!active.includes("学习 Rust 异步运行时"));
     assert.match(body, /已转向学习 Rust 嵌入式开发/u);
-    assert.doesNotMatch(body, /学习 Rust 异步运行时[\s\S]*已转向学习 Rust 嵌入式开发/u);
-    const liveHits = (body.split("## 历史记录")[0].match(/已转向学习 Rust 嵌入式开发/g) || []).length;
+    // Superseded wording is archived, not deleted.
+    assert.match(body, /归档）学习 Rust 异步运行时/u);
+    const liveHits = (active.match(/已转向学习 Rust 嵌入式开发/g) || []).length;
     assert.equal(liveHits, 1);
   });
 

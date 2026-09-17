@@ -4,9 +4,10 @@
  * Product boundary: map to WorkspaceService — never require UTR, never spawn
  * extra Electron windows/processes. All I/O stays in the main process.
  *
- * Write tools respect writebackMode:
+ * Write tools respect writebackMode (graded confirm, 2026-09-17c):
  * - auto → write tools execute immediately (subject to protection)
- * - confirm（保存前问我）→ write tools still registered; Kernel pending → stash full body → AiPanel accept/reject
+ * - confirm（删除/归档前问我）→ content create/update/edit land immediately;
+ *   only delete/archive return pending → stash → AiPanel accept/reject
  */
 import { jsonSchema, tool } from "ai";
 import path from "node:path";
@@ -83,18 +84,20 @@ export async function buildDesktopAiTools(ctx) {
     });
 
     const promptLocale = resolvePromptLocale(ctx.appSettings?.ui?.locale);
+    /** Tool catalog language follows host UI locale (same as system prompt). */
+    const d = (zh, en) => (promptLocale === "en" ? en : zh);
     const writeCopy = promptLocale === "en"
       ? {
-          pendingStashed: "Ask-before-save: write is pending. Accept or reject it in the AI workspace Suggest pane.",
-          pendingNoBody: "Ask-before-save: confirmation required, but the body was not cached (retry with save_file).",
-          pendingDelete: "Ask-before-save: file deletion requires user confirmation; deletion was blocked.",
-          writeFailed: "Write failed; adjust parameters and retry, or accept the write in the review bar when ask-before-save is on.",
+          pendingStashed: "Ask before delete/archive: the op is pending. Accept or reject it in the AI workspace Suggest pane.",
+          pendingNoBody: "Ask before delete/archive: confirmation required, but the body was not cached (retry with save_file).",
+          pendingDelete: "Ask before delete/archive: file deletion requires user confirmation; deletion was blocked.",
+          writeFailed: "Write failed; adjust parameters and retry.",
         }
       : {
-          pendingStashed: "保存前问我：写入已挂起，请在 AI 工作区建议 pane 中接受或拒绝",
-          pendingNoBody: "保存前问我：写入需确认，但未能缓存正文（请重试 save_file 全量写入）",
-          pendingDelete: "保存前问我：删除操作已拦截，需用户确认或手动操作",
-          writeFailed: "写入失败；可调整参数后重试，或「保存前问我」模式下在审阅条接受写入",
+          pendingStashed: "删除/归档前问我：操作已挂起，请在 AI 工作区建议 pane 中接受或拒绝",
+          pendingNoBody: "删除/归档前问我：需确认，但未能缓存正文（请重试 save_file 全量写入）",
+          pendingDelete: "删除/归档前问我：删除操作已拦截，需用户确认或手动操作",
+          writeFailed: "写入失败；可调整参数后重试",
         };
 
     const wrapWrite = (toolName, fn) => async (args) => {
@@ -154,6 +157,7 @@ export async function buildDesktopAiTools(ctx) {
                 relativePath: rel,
                 content,
                 toolName,
+                workspaceRoot: ctx.workspaceRoot,
               });
               result.pendingId = stashed.id;
             } catch (stashErr) {
@@ -196,10 +200,13 @@ export async function buildDesktopAiTools(ctx) {
               : `编辑失败：oldText 在文件中命中多处。建议在 oldText 中多包含前后 1~2 行上下文以保证唯一性，或传入 startLine/endLine 或 heading 限定范围，若确实需要全部替换可设置 replaceAll: true。`;
           }
         } else if (toolName === "save_file" || toolName === "save_note") {
-          if (message.includes("locked") || message.includes("保护") || message.includes("auto mode")) {
+          // locked is editable under graded model (task-scoped snapshot).
+          // Do NOT tell the agent to unlock or switch modes — that was the
+          // retired "locked + AI auto = deny" policy.
+          if (message.includes("workspace") || message.includes("outside")) {
             hint = promptLocale === "en"
-              ? "Write failed: target is locked and writeback is auto. Ask the user to switch to confirm mode (user authorization path) or unlock the file, then retry."
-              : "写入失败：目标被锁定且当前为 auto 写回。请提示用户切换到「保存前问我」（confirm，用户授权路径）或先解锁该文件，然后重试。";
+              ? "Write failed: path is outside the workspace fence. Use a workspace-relative path."
+              : "写入失败：路径在工作区围栏之外。请使用工作区相对路径。";
           }
         }
         return {
@@ -228,8 +235,10 @@ export async function buildDesktopAiTools(ctx) {
       setConfiguredExtraSkillsRoots(extraRoots);
 
       tools.list_skills = tool({
-        description:
+        description: d(
           "列出可用 skills（id + 简述）。路由起点；动手前 load_skill 激活全文。",
+          "List available skills (id + short description). Start here for routing; load_skill before acting.",
+        ),
         inputSchema: jsonSchema({ type: "object", properties: {} }),
         async execute() {
           const catalog = listSkillCatalog({ engineRoot, enabledIds, extraRoots });
@@ -246,12 +255,16 @@ export async function buildDesktopAiTools(ctx) {
       });
 
       tools.load_skill = tool({
-        description:
+        description: d(
           "激活 skill 全文（Activation）。skillId 如 topmind-capture / topmind。执行流程前调用。",
+          "Activate a skill body. skillId examples: topmind-capture / topmind. Call before following a workflow.",
+        ),
         inputSchema: jsonSchema({
           type: "object",
           properties: {
-            skillId: strProp("skill id，如 topmind-capture、topmind、topmind-organize"),
+            skillId: strProp(
+              d("skill id，如 topmind-capture、topmind、topmind-organize", "skill id, e.g. topmind-capture, topmind, topmind-organize"),
+            ),
           },
           required: ["skillId"],
         }),
@@ -269,12 +282,16 @@ export async function buildDesktopAiTools(ctx) {
       });
 
       tools.load_skill_resource = tool({
-        description:
+        description: d(
           "加载 skill 资源（Resources）：shared/*.md 或 skill references/*。路径相对 skills 根，如 shared/project-model-brief.md。",
+          "Load a skill resource: shared/*.md or skill references/*. Path is relative to the skills root, e.g. shared/project-model-brief.md.",
+        ),
         inputSchema: jsonSchema({
           type: "object",
           properties: {
-            path: strProp("相对 skills 根路径，如 shared/capability-degradation.md"),
+            path: strProp(
+              d("相对 skills 根路径，如 shared/capability-degradation.md", "Path under the skills root, e.g. shared/capability-degradation.md"),
+            ),
           },
           required: ["path"],
         }),
@@ -286,8 +303,10 @@ export async function buildDesktopAiTools(ctx) {
     }
 
     tools.list_categories = tool({
-      description:
+      description: d(
         "列出工作区类别（directory/slot/role/specialBehavior）。系统提示词已内联概览时无需调用。",
+        "List workspace categories (directory/slot/role/specialBehavior). Skip if the system prompt already inlines an overview.",
+      ),
       inputSchema: jsonSchema({ type: "object", properties: {} }),
       async execute() {
         try {
@@ -299,8 +318,10 @@ export async function buildDesktopAiTools(ctx) {
     });
 
     tools.workspace_overview = tool({
-      description:
+      description: d(
         "一次性获取工作区全貌：类别列表(含专题数) + Inbox 待处理数 + 最近动态周期本 + 交付数。减少多次 list_* 调用。系统提示词已内联部分概览，此工具获取更完整实时数据。",
+        "One-shot workspace overview: categories (with topic counts) + Inbox count + current stream period + outputs count. Prefer this over many list_* calls.",
+      ),
       inputSchema: jsonSchema({ type: "object", properties: {} }),
       execute: wrapRead(async function workspace_overview() {
         try {
@@ -347,10 +368,12 @@ export async function buildDesktopAiTools(ctx) {
     });
 
     tools.list_topics = tool({
-      description: "列出某类别下的专题与单篇笔记。",
+      description: d("列出某类别下的专题与单篇笔记。", "List topics and loose notes under a category."),
       inputSchema: jsonSchema({
         type: "object",
-        properties: { category: strProp("类别目录名，如 20-研究") },
+        properties: {
+          category: strProp(d("类别目录名，如 20-研究", "Category directory name, e.g. 20-研究")),
+        },
         required: ["category"],
       }),
       async execute({ category }) {
@@ -363,10 +386,12 @@ export async function buildDesktopAiTools(ctx) {
     });
 
     tools.list_topic_files = tool({
-      description: "列出专题目录下的文件（不含内容）。",
+      description: d("列出专题目录下的文件（不含内容）。", "List files under a topic directory (names only)."),
       inputSchema: jsonSchema({
         type: "object",
-        properties: { topicId: strProp("专题 ID：类别/专题名") },
+        properties: {
+          topicId: strProp(d("专题 ID：类别/专题名", "Topic id: category/topic")),
+        },
         required: ["topicId"],
       }),
       async execute({ topicId }) {
@@ -379,10 +404,15 @@ export async function buildDesktopAiTools(ctx) {
     });
 
     tools.get_topic = tool({
-      description: "获取专题概览（文件列表 + 元信息）。organize/write 常用。",
+      description: d(
+        "获取专题概览（文件列表 + 元信息）。organize/write 常用。",
+        "Get a topic overview (file list + metadata). Common for organize/write.",
+      ),
       inputSchema: jsonSchema({
         type: "object",
-        properties: { topicId: strProp("专题 ID：类别/专题名") },
+        properties: {
+          topicId: strProp(d("专题 ID：类别/专题名", "Topic id: category/topic")),
+        },
         required: ["topicId"],
       }),
       async execute({ topicId }) {
@@ -395,22 +425,24 @@ export async function buildDesktopAiTools(ctx) {
     });
 
     tools.read_file = tool({
-      description:
+      description: d(
         "读取工作区相对路径的 Markdown/文本。返回带行号的 numbered 窗口（N|正文）+ contentHash（传给 edit_file 的 expectedHash）。长文用 around= 关键词或 heading= 跳到中间，勿一次吞全文。edit_file 可把行号当 startLine/endLine。",
+        "Read a workspace-relative markdown/text file. Returns a numbered window (N|body) + contentHash (pass to edit_file expectedHash). For long files use around= or heading= instead of swallowing the whole file. edit_file accepts the same line numbers as startLine/endLine.",
+      ),
       inputSchema: jsonSchema({
         type: "object",
         properties: {
-          relativePath: strProp("工作区相对路径"),
+          relativePath: strProp(d("工作区相对路径", "Workspace-relative path")),
           offset: {
             type: "number",
-            description: "起始行号（1-based，默认 1）",
+            description: d("起始行号（1-based，默认 1）", "Start line (1-based, default 1)"),
           },
           limit: {
             type: "number",
-            description: "返回行数（默认 400；最大 2000）",
+            description: d("返回行数（默认 400；最大 2000）", "Lines to return (default 400; max 2000)"),
           },
-          around: strProp("跳到包含该短语的行，返回其前后窗口（中段编辑首选）"),
-          heading: strProp("跳到该 Markdown 标题所在节（须唯一）"),
+          around: strProp(d("跳到包含该短语的行，返回其前后窗口（中段编辑首选）", "Jump to the line containing this phrase and return a window (preferred for mid-file edits)")),
+          heading: strProp(d("跳到该 Markdown 标题所在节（须唯一）", "Jump to the unique markdown heading section")),
         },
         required: ["relativePath"],
       }),
@@ -446,28 +478,30 @@ export async function buildDesktopAiTools(ctx) {
     });
 
     tools.search = tool({
-      description:
+      description: d(
         "只读搜索工作区 Markdown/文本（受控 grep，无 shell）。默认跳过 99-Archive。可 scope 到类别或专题路径。返回 relativePath + line + preview。",
+        "Read-only workspace markdown/text search (controlled grep, no shell). Skips 99-Archive by default. Optional scope prefix. Returns relativePath + line + preview.",
+      ),
       inputSchema: jsonSchema({
         type: "object",
         properties: {
-          query: strProp("关键词；regex=true 时为正则"),
-          scope: strProp("可选：类别或专题路径前缀，如 20-研究 或 20-研究/2026-示例"),
+          query: strProp(d("关键词；regex=true 时为正则", "Keyword; regex when regex=true")),
+          scope: strProp(d("可选：类别或专题路径前缀，如 20-研究 或 20-研究/2026-示例", "Optional category/topic path prefix")),
           maxResults: {
             type: "number",
-            description: "最多命中条数（默认 40，上限 80）",
+            description: d("最多命中条数（默认 40，上限 80）", "Max hits (default 40, cap 80)"),
           },
           regex: {
             type: "boolean",
-            description: "true 时按正则匹配（默认 false，普通关键词）",
+            description: d("true 时按正则匹配（默认 false，普通关键词）", "true = regex match (default false)"),
           },
           includeArchive: {
             type: "boolean",
-            description: "true 才搜索 Archive（默认 false）",
+            description: d("true 才搜索 Archive（默认 false）", "true includes Archive (default false)"),
           },
           context: {
             type: "number",
-            description: "命中行前后上下文行数 0–2（默认 0）",
+            description: d("命中行前后上下文行数 0–2（默认 0）", "Context lines around hits 0–2 (default 0)"),
           },
         },
         required: ["query"],
@@ -500,7 +534,10 @@ export async function buildDesktopAiTools(ctx) {
     });
 
     tools.list_inbox = tool({
-      description: "列出 Inbox 中的待分类材料。capture/organize 常用。",
+      description: d(
+        "列出 Inbox 中的待分类材料。capture/organize 常用。",
+        "List unfiled Inbox materials. Common for capture/organize.",
+      ),
       inputSchema: jsonSchema({ type: "object", properties: {} }),
       async execute() {
         try {
@@ -512,7 +549,7 @@ export async function buildDesktopAiTools(ctx) {
     });
 
     tools.list_outputs = tool({
-      description: "列出 88-Outputs 交付物。",
+      description: d("列出 88-Outputs 交付物。", "List delivery artifacts under 88-Outputs."),
       inputSchema: jsonSchema({ type: "object", properties: {} }),
       async execute() {
         try {
@@ -524,19 +561,21 @@ export async function buildDesktopAiTools(ctx) {
     });
 
     tools.fetch_url = tool({
-      description:
+      description: d(
         "抓取网页正文并转为 Markdown。默认静态 HTTP+Readability；render=true 时用隐藏 Chromium 渲染 SPA。返回 truncated/likelySpa/canEnhance/warning。",
+        "Fetch a web page and convert to Markdown. Default static HTTP+Readability; render=true uses hidden Chromium for SPA shells. Returns truncated/likelySpa/canEnhance/warning.",
+      ),
       inputSchema: jsonSchema({
         type: "object",
         properties: {
           url: strProp("http(s) URL"),
           maxLen: {
             type: "number",
-            description: "正文提取上限字符（默认 40000，长文可到 200000）",
+            description: d("正文提取上限字符（默认 40000，长文可到 200000）", "Max body chars (default 40000; long docs up to 200000)"),
           },
           render: {
             type: "boolean",
-            description: "true 时启用增强渲染（SPA 空壳页）",
+            description: d("true 时启用增强渲染（SPA 空壳页）", "true enables enhanced rendering for SPA shells"),
           },
         },
         required: ["url"],
@@ -560,8 +599,10 @@ export async function buildDesktopAiTools(ctx) {
     });
 
     tools.workspace_health = tool({
-      description:
+      description: d(
         "工作区健康巡检（结构 + 契约 inspectContract + counts）。返回 JSON：{ ok, checks, summary, issues }。容量/重复/清理走 Desktop「工具与日志」面板（⌘⇧L），不进默认 AI 工具。",
+        "Workspace health check (structure + inspectContract + counts). Returns { ok, checks, summary, issues }. Capacity/dedupe/cleanup live in the Tools & Logs panel (⌘⇧L), not this tool.",
+      ),
       inputSchema: jsonSchema({ type: "object", properties: {} }),
       execute: wrapRead(async function workspace_health() {
         try {
@@ -573,18 +614,20 @@ export async function buildDesktopAiTools(ctx) {
     });
 
     tools.list_todos = tool({
-      description:
+      description: d(
         "列出个人待办清单（memory/todo.md）。返回活跃任务与统计；completed=true 时返回全部（含已完成）。",
+        "List the personal todo list (memory/todo.md). Returns open tasks + stats; completed=true includes finished items.",
+      ),
       inputSchema: jsonSchema({
         type: "object",
         properties: {
           completed: {
             type: "boolean",
-            description: "true 时包含已完成项；默认 false（只返回未完成项）",
+            description: d("true 时包含已完成项；默认 false（只返回未完成项）", "true includes completed items (default false)"),
           },
           limit: {
             type: "number",
-            description: "最多返回条数（默认 50）",
+            description: d("最多返回条数（默认 50）", "Max items (default 50)"),
           },
         },
       }),
@@ -602,17 +645,19 @@ export async function buildDesktopAiTools(ctx) {
 
     if (allowWrite) {
       tools.capture_to_inbox = tool({
-        description:
+        description: d(
           "记一下：默认追加到动态周期本（每周一本）；forceInbox=true 时进 Inbox；forceAtom=true 时单开文件。",
+          "Capture: append to the current stream period note by default; forceInbox=true routes to Inbox; forceAtom=true creates a standalone file.",
+        ),
         inputSchema: jsonSchema({
           type: "object",
           properties: {
-            content: strProp("正文 Markdown"),
-            title: strProp("可选标题"),
-            source: strProp("可选出处 URL/说明"),
-            sourceType: strProp("可选 source_type，默认 user-original"),
-            forceInbox: { type: "boolean", description: "true → Inbox" },
-            forceAtom: { type: "boolean", description: "true → 不追加周期本，单开文件" },
+            content: strProp(d("正文 Markdown", "Markdown body")),
+            title: strProp(d("可选标题", "Optional title")),
+            source: strProp(d("可选出处 URL/说明", "Optional source URL/note")),
+            sourceType: strProp(d("可选 source_type，默认 user-original", "Optional source_type, default user-original")),
+            forceInbox: { type: "boolean", description: d("true → Inbox", "true → Inbox") },
+            forceAtom: { type: "boolean", description: d("true → 不追加周期本，单开文件", "true → standalone file, not period note") },
           },
           required: ["content"],
         }),
@@ -634,14 +679,17 @@ export async function buildDesktopAiTools(ctx) {
       });
 
       tools.save_note = tool({
-        description: "在专题下新建或更新笔记（带 frontmatter；经写闸；仅 locked 等高影响才备份）。",
+        description: d(
+          "在专题下新建或更新笔记的便捷入口（等价于 save_file 到 {topicId}/{filename}）。多数场景请直接用 save_file 指定完整相对路径。",
+          "Convenience create/update under a topic (same as save_file to {topicId}/{filename}). Prefer save_file with a full relative path in most cases.",
+        ),
         inputSchema: jsonSchema({
           type: "object",
           properties: {
-            topicId: strProp("专题 ID：类别/专题名"),
-            filename: strProp("文件名，如 note.md"),
-            content: strProp("正文"),
-            sourceType: strProp("可选 source_type"),
+            topicId: strProp(d("专题 ID：类别/专题名", "Topic id: category/topic")),
+            filename: strProp(d("文件名，如 note.md", "Filename, e.g. note.md")),
+            content: strProp(d("正文", "Body content")),
+            sourceType: strProp(d("可选 source_type", "Optional source_type")),
           },
           required: ["topicId", "filename", "content"],
         }),
@@ -653,13 +701,17 @@ export async function buildDesktopAiTools(ctx) {
       });
 
       tools.save_file = tool({
-        description:
-          "整文件覆盖写入 .md（经写闸；open 不备份，locked/删除才备份）。仅用于新建/大段重写；局部修改请优先 edit_file。",
+        description: d(
+          "统一写入入口：新建或整文件覆盖工作区相对路径 .md（经写闸）。多段重写/结构调整/新建首选；locked 可编辑（任务内首写快照一次）。小改用 edit_file。",
+          "Primary write entry: create or fully overwrite a workspace-relative .md via the write gate. Prefer for multi-section rewrites, structural edits, and new files. Locked notes are editable (one pre-write snapshot per task). Use edit_file for small spans.",
+        ),
         inputSchema: jsonSchema({
           type: "object",
           properties: {
-            relativePath: strProp("工作区相对路径"),
-            content: strProp("完整文件内容"),
+            relativePath: strProp(
+              d("工作区相对路径", "Workspace-relative path"),
+            ),
+            content: strProp(d("完整文件内容", "Full file content")),
           },
           required: ["relativePath", "content"],
         }),
@@ -671,28 +723,40 @@ export async function buildDesktopAiTools(ctx) {
       });
 
       tools.edit_file = tool({
-        description:
+        description: d(
           "精确局部修改 .md：oldText→newText。匹配阶梯：唯一精确 → 换行/行尾空白归一 → 行级宽松（空行/列表标记/加粗）。多处命中则拒绝（或 replaceAll）。可用 startLine/endLine/heading 限定范围（行号过期时会自动外扩重试）。推荐传 expectedHash（read_file/edit_file 返回的 contentHash）做乐观并发校验。成功返回 postEditWindow + 新 contentHash，多步编辑请用它们，勿沿用更早 read 的行号。失败返回 nearby/context。不写 99-Archive；整文件覆盖用 save_file。",
+          "Precise span edit on .md: oldText→newText. Match ladder: unique exact → newline/trailing-ws normalize → relaxed line (blank/list/bold). Multiple hits are rejected (or use replaceAll). Optional startLine/endLine/heading scope (auto-widens if stale). Prefer expectedHash from read_file/edit_file for optimistic concurrency. Success returns postEditWindow + new contentHash — reuse those for multi-step edits. Failure returns nearby/context. Never writes 99-Archive; full overwrite uses save_file.",
+        ),
         inputSchema: jsonSchema({
           type: "object",
           properties: {
-            relativePath: strProp("工作区相对路径"),
-            oldText: strProp("要替换的原文片段（建议含前后几行；可从 numbered 窗口复制，行号前缀会被剥掉）"),
-            newText: strProp("替换后的文本（可为更长或更短）"),
+            relativePath: strProp(d("工作区相对路径", "Workspace-relative path")),
+            oldText: strProp(
+              d(
+                "要替换的原文片段（建议含前后几行；可从 numbered 窗口复制，行号前缀会被剥掉）",
+                "Exact span to replace (include a few surrounding lines; strip N| prefixes from numbered windows)",
+              ),
+            ),
+            newText: strProp(d("替换后的文本（可为更长或更短）", "Replacement text (may be longer or shorter)")),
             replaceAll: {
               type: "boolean",
-              description: "true 时替换全部匹配；默认 false（必须唯一）",
+              description: d("true 时替换全部匹配；默认 false（必须唯一）", "true replaces all matches (default false — must be unique)"),
             },
             startLine: {
               type: "number",
-              description: "可选：限定匹配的起始行（1-based；过期时自动外扩）",
+              description: d("可选：限定匹配的起始行（1-based；过期时自动外扩）", "Optional start line (1-based; auto-widens if stale)"),
             },
             endLine: {
               type: "number",
-              description: "可选：限定匹配的结束行（含；过期时自动外扩）",
+              description: d("可选：限定匹配的结束行（含；过期时自动外扩）", "Optional inclusive end line (auto-widens if stale)"),
             },
-            heading: strProp("可选：限定在该 Markdown 标题节内匹配（须唯一）"),
-            expectedHash: strProp("可选：最近 read_file/edit_file 返回的 contentHash；文件被外部修改时拒绝并提示重读"),
+            heading: strProp(d("可选：限定在该 Markdown 标题节内匹配（须唯一）", "Optional unique markdown heading scope")),
+            expectedHash: strProp(
+              d(
+                "可选：最近 read_file/edit_file 返回的 contentHash；文件被外部修改时拒绝并提示重读",
+                "Optional contentHash from the latest read_file/edit_file; rejects if the file changed externally",
+              ),
+            ),
           },
           required: ["relativePath", "oldText", "newText"],
         }),
@@ -717,12 +781,15 @@ export async function buildDesktopAiTools(ctx) {
       });
 
       tools.create_topic = tool({
-        description: "在指定类别下创建新专题（名称须 YYYY-主题）。",
+        description: d(
+          "在指定类别下创建新专题（名称须 YYYY-主题）。",
+          "Create a new topic under a category (name must be YYYY-theme).",
+        ),
         inputSchema: jsonSchema({
           type: "object",
           properties: {
-            category: strProp("类别目录名"),
-            name: strProp("专题名，如 2026-示例研究"),
+            category: strProp(d("类别目录名", "Category directory name")),
+            name: strProp(d("专题名，如 2026-示例研究", "Topic name, e.g. 2026-sample-research")),
           },
           required: ["category", "name"],
         }),
@@ -733,13 +800,16 @@ export async function buildDesktopAiTools(ctx) {
       });
 
       tools.append_topic_memory = tool({
-        description: "向专题 topic.md 的 Stable Memory 段追加稳定结论（memory skill）。",
+        description: d(
+          "向专题 topic.md 的 Stable Memory 段追加稳定结论（memory skill）。",
+          "Append a stable conclusion to the topic.md Stable Memory section (memory skill).",
+        ),
         inputSchema: jsonSchema({
           type: "object",
           properties: {
-            topicId: strProp("专题 ID：类别/专题名"),
-            entry: strProp("要追加的记忆内容"),
-            source: strProp("可选来源说明"),
+            topicId: strProp(d("专题 ID：类别/专题名", "Topic id: category/topic")),
+            entry: strProp(d("要追加的记忆内容", "Memory entry to append")),
+            source: strProp(d("可选来源说明", "Optional source note")),
           },
           required: ["topicId", "entry"],
         }),
@@ -751,13 +821,16 @@ export async function buildDesktopAiTools(ctx) {
       });
 
       tools.append_core_memory = tool({
-        description: "更新「我的情况」（核心记忆）。仅用户明确要记住偏好/目标/关系时使用。",
+        description: d(
+          "更新「我的情况」（核心记忆）。仅用户明确要记住偏好/目标/关系时使用。",
+          "Update core memory (about me). Use only when the user explicitly wants a preference/goal/relationship remembered.",
+        ),
         inputSchema: jsonSchema({
           type: "object",
           properties: {
-            entry: strProp("要追加的稳定信息"),
-            section: strProp("段落：偏好 / 当前目标 / 关键的人与协作 / 进行中的事"),
-            source: strProp("可选来源"),
+            entry: strProp(d("要追加的稳定信息", "Stable fact to append")),
+            section: strProp(d("段落：偏好 / 当前目标 / 关键的人与协作 / 进行中的事", "Section: preferences / current goals / key people / in progress")),
+            source: strProp(d("可选来源", "Optional source")),
           },
           required: ["entry"],
         }),
@@ -769,14 +842,16 @@ export async function buildDesktopAiTools(ctx) {
       });
 
       tools.retire_core_memory = tool({
-        description:
+        description: d(
           "归档「我的情况」中的过期事实：将其从当前活跃段落安全转移至「## 历史记录」，带归档日期标记，不删除原内容。仅在用户明确表示某目标已完成、偏好已过时或不再成立时调用。",
+          "Retire a stale fact from core memory: move it from the active section into ## 历史记录 with a dated marker — never delete the original. Call only when the user says a goal finished or a preference no longer holds.",
+        ),
         inputSchema: jsonSchema({
           type: "object",
           properties: {
-            match: strProp("要归档的事实原文关键词或片段（需能唯一或清晰匹配）"),
-            section: strProp("可选：限定所在的活跃段落（如 当前目标 / 进行中的事 / 偏好）"),
-            reason: strProp("可选：归档原因说明"),
+            match: strProp(d("要归档的事实原文关键词或片段（需能唯一或清晰匹配）", "Keywords/span of the fact to retire (must match clearly)")),
+            section: strProp(d("可选：限定所在的活跃段落（如 当前目标 / 进行中的事 / 偏好）", "Optional active section scope")),
+            reason: strProp(d("可选：归档原因说明", "Optional reason")),
           },
           required: ["match"],
         }),
@@ -788,13 +863,15 @@ export async function buildDesktopAiTools(ctx) {
       });
 
       tools.update_core_memory = tool({
-        description:
+        description: d(
           "原位更新「我的情况」中的事实：用新的表述替换旧的事实行（保持原段落结构，自动带日期）。仅在用户明确纠正或更新现有偏好、目标等事实时调用。",
+          "Update a core-memory fact in place: replace the old fact line (section structure kept, date stamped). Call only when the user explicitly corrects or updates a preference/goal.",
+        ),
         inputSchema: jsonSchema({
           type: "object",
           properties: {
-            match: strProp("要修正的旧事实片段（需匹配）"),
-            content: strProp("更新后的新事实内容"),
+            match: strProp(d("要修正的旧事实片段（需匹配）", "Old fact span to match")),
+            content: strProp(d("更新后的新事实内容", "Updated fact content")),
           },
           required: ["match", "content"],
         }),
@@ -806,13 +883,15 @@ export async function buildDesktopAiTools(ctx) {
       });
 
       tools.reconcile_week = tool({
-        description:
+        description: d(
           "确定性整理本周动态周期本（合并完成状态、去重）。返回 changes 与候选（我的情况/专题），不自动写核心记忆。",
+          "Deterministic tidy of the current stream period (merge completions, dedupe). Returns changes + candidates (memory/topics); never auto-writes core memory.",
+        ),
         inputSchema: jsonSchema({
           type: "object",
           properties: {
-            dryRun: { type: "boolean", description: "true=仅预览" },
-            relativePath: strProp("可选指定文件；默认当前周期本"),
+            dryRun: { type: "boolean", description: d("true=仅预览", "true = preview only") },
+            relativePath: strProp(d("可选指定文件；默认当前周期本", "Optional file; defaults to the current period note")),
           },
         }),
         execute: wrapWrite("reconcile_week", ({ dryRun, relativePath, actor, confirmed }) =>
@@ -823,14 +902,16 @@ export async function buildDesktopAiTools(ctx) {
       });
 
       tools.move_to_topic = tool({
-        description:
-          "把笔记移入专题（organize）。会一并移动 images/{slug}/ 关联资源；相对 Markdown 路径保持不变。可用 relativePath（任意 .md）或 inboxRelativePath。",
+        description: d(
+          "把笔记移入专题（organize）。写闸提交后才会移动 images/{slug}/ 关联资源；相对 Markdown 路径保持不变。可用 relativePath（任意 .md）或 inboxRelativePath。",
+          "Move a note into a topic (organize). images/{slug}/ assets move only after the write gate commits; relative markdown refs stay intact. Use relativePath (any .md) or inboxRelativePath.",
+        ),
         inputSchema: jsonSchema({
           type: "object",
           properties: {
-            relativePath: strProp("工作区相对路径（优先；任意位置的 .md）"),
-            inboxRelativePath: strProp("兼容：Inbox 内相对路径"),
-            targetTopicId: strProp("目标专题 ID：类别/专题名"),
+            relativePath: strProp(d("工作区相对路径（优先；任意位置的 .md）", "Workspace-relative path (preferred; any .md)")),
+            inboxRelativePath: strProp(d("兼容：Inbox 内相对路径", "Compat: path relative to Inbox")),
+            targetTopicId: strProp(d("目标专题 ID：类别/专题名", "Target topic id: category/topic")),
           },
           required: ["targetTopicId"],
         }),
@@ -839,12 +920,16 @@ export async function buildDesktopAiTools(ctx) {
       });
 
       tools.publish_to_outputs = tool({
-        description:
-          "发布交付副本到 88-Outputs（write 交付）。原文保留；关联 images/ 会复制到 Outputs。不是移动。",
+        description: d(
+          "发布交付副本到 88-Outputs（write 交付）。原文保留；关联 images/ 会在写闸提交后复制到 Outputs。不是移动。",
+          "Publish a delivery snapshot into 88-Outputs. Original note stays; associated images/ are copied after the write gate commits. This is a copy, not a move.",
+        ),
         inputSchema: jsonSchema({
           type: "object",
           properties: {
-            relativePath: strProp("要发布的工作区相对路径（.md）"),
+            relativePath: strProp(
+              d("要发布的工作区相对路径（.md）", "Workspace-relative .md path to publish"),
+            ),
           },
           required: ["relativePath"],
         }),
@@ -853,12 +938,16 @@ export async function buildDesktopAiTools(ctx) {
       });
 
       tools.delete_path = tool({
-        description:
+        description: d(
           "删除工作区文件。锁定/核心笔记（memory、topic.md、交付）会移入 99-Archive trash（可恢复）；普通开放笔记直接删除、无备份。删除 .md 时一并处理关联 images/{slug}/。仅在用户明确要求删除时使用。",
+          "Delete a workspace file. Locked/core notes (memory, topic.md, delivery) move to 99-Archive trash (recoverable); ordinary open notes are unlinked with no trash. Associated images/{slug}/ are handled after the write gate commits. Use only when the user explicitly asked to delete.",
+        ),
         inputSchema: jsonSchema({
           type: "object",
           properties: {
-            relativePath: strProp("工作区相对路径，如 00-Inbox/foo.md"),
+            relativePath: strProp(
+              d("工作区相对路径，如 00-Inbox/foo.md", "Workspace-relative path, e.g. 00-Inbox/foo.md"),
+            ),
           },
           required: ["relativePath"],
         }),
@@ -884,13 +973,15 @@ export async function buildDesktopAiTools(ctx) {
       });
 
       tools.rename_path = tool({
-        description:
+        description: d(
           "重命名工作区内的文件（同目录改名；经写闸）。.md 重命名时会同步 images/{旧stem}/→images/{新stem}/ 并改写正文引用。跨目录请用 move_to_topic。",
+          "Rename a file in place (same directory; via write gate). Renaming .md also renames images/{oldStem}/ → images/{newStem}/ and rewrites body refs. Use move_to_topic for cross-directory moves.",
+        ),
         inputSchema: jsonSchema({
           type: "object",
           properties: {
-            relativePath: strProp("原相对路径"),
-            newName: strProp("新文件名（不含路径，如 note-v2.md）"),
+            relativePath: strProp(d("原相对路径", "Original relative path")),
+            newName: strProp(d("新文件名（不含路径，如 note-v2.md）", "New filename only, e.g. note-v2.md")),
           },
           required: ["relativePath", "newName"],
         }),
@@ -901,18 +992,20 @@ export async function buildDesktopAiTools(ctx) {
       });
 
       tools.add_todo = tool({
-        description:
+        description: d(
           "向个人待办清单（memory/todo.md）原子化追加一条或多条任务。支持在任务文本中嵌入截止日期（如「完成架构重构 📅 2026-09-10」）或通过 dueDate 指定。自动去重。",
+          "Atomically append one or more todos to memory/todo.md. Due dates can be embedded in the text (e.g. 'finish refactor 📅 2026-09-10') or passed via dueDate. Auto-dedupes.",
+        ),
         inputSchema: jsonSchema({
           type: "object",
           properties: {
-            text: strProp("待办任务文本（单条）"),
+            text: strProp(d("待办任务文本（单条）", "Single todo text")),
             items: {
               type: "array",
               items: { type: "string" },
-              description: "可选：批量追加的多条待办任务文本",
+              description: d("可选：批量追加的多条待办任务文本", "Optional batch of todo texts"),
             },
-            dueDate: strProp("可选：截止日期（YYYY-MM-DD）"),
+            dueDate: strProp(d("可选：截止日期（YYYY-MM-DD）", "Optional due date YYYY-MM-DD")),
           },
         }),
         execute: wrapWrite("add_todo", ({ text, items, dueDate, actor, confirmed }) => {
@@ -926,15 +1019,17 @@ export async function buildDesktopAiTools(ctx) {
       });
 
       tools.toggle_todo = tool({
-        description:
+        description: d(
           "切换待办事项的完成状态（已完成与未完成之间切换）。idOrText 可以是待办的文本片段或 id。标记完成时会自动打勾并记录完成时间，并同步到当前动态周期本。",
+          "Toggle a todo between open and done. idOrText may be a text fragment or id. Completing checks the item, stamps completion time, and syncs to the current stream period.",
+        ),
         inputSchema: jsonSchema({
           type: "object",
           properties: {
-            idOrText: strProp("待办文本片段或待办 ID"),
+            idOrText: strProp(d("待办文本片段或待办 ID", "Todo text fragment or id")),
             completed: {
               type: "boolean",
-              description: "可选：显式指定目标状态（true=标记完成，false=取消完成）",
+              description: d("可选：显式指定目标状态（true=标记完成，false=取消完成）", "Optional explicit target state"),
             },
           },
           required: ["idOrText"],

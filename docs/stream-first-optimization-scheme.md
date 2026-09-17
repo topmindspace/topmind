@@ -1,13 +1,14 @@
-# Stream-first 个人动态流 — 现行产品真理与决策记录
+# Stream-first 个人动态流 — 理想使用态（历史方案记录）
 
-> **状态**：**Shipped** · **日期**：2026-08-03  
-> **角色**：理想使用态 + 现行产品真理  
+> **状态**：Shipped 作为产品方向 · **非现行策略真源** — 交互与写闸以 `DESIGN.md` · `topmind-desktop/DESIGN.md` · `TOOLS.md` · `docs/ARCHITECTURE-RESET.md` 为准。  
+> **日期**：2026-08-03  
+> **角色**：理想使用态备忘（活动窗口 / 整理闭环）  
 > **基线真源**：`docs/ARCHITECTURE-RESET.md` · `DESIGN.md` · `topmind-desktop/DESIGN.md`  
 > **实现**：`lib/activity-window.mjs` · suggest/todo/ai-ops · Desktop `StreamDetailView` / `ActionStore.runActivityOps` / `organize-week`
 
 ---
 
-## 0. 现行产品真理
+## 0. 能力备忘（与现行真源对齐）
 
 | 能力 | 现状 |
 |------|------|
@@ -15,8 +16,8 @@
 | 条目增补 | 动态卡片续写 · 同 Markdown · `<!-- topmind:append -->` |
 | AI 在动态 | 有条目时状态栏计数 chip（空则隐藏）→ `openSuggestSurface` → AI 工作区 **建议** pane / 专注模式浮动 **SuggestPopover**（无第二套列表；不埋聊天轨） |
 | 整理按钮 | reconcile 任务 + `runActivityOps`（suggest + memory_organize + topic_classify） |
-| memory | **profile + periodic + topic memory**（浏览面；写入仍 confirm） |
-| topic | **内容大类 `create_topic`**（confirm · 不进 `memory/topics`） |
+| memory | **profile + periodic + topic memory**（浏览面；写入经写闸，confirm 分级） |
+| topic | **内容大类 `create_topic**（不进 `memory/topics`） |
 | 写闸 | 全部 apply 经 writeback / applySuggestion + high-impact gate |
 | 展示净化 | feed 对 `\[ \]` / `\-` 等转义做 **display-only** normalize（不静默写回用户文件） |
 | 待办 complete 匹配 | maintain 完成/更新用语义/实质短语匹配（禁单 token 拉丁误完成）；见 `matchTodoMaintainText` |

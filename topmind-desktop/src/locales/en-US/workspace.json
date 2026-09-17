@@ -166,7 +166,11 @@
     "organize": "Organize My profile",
     "organizeTip": "Generate suggestions to confirm · does not write the profile",
     "openFolder": "Show in tree",
-    "openFolderTip": "Expand memory/ in the sidebar"
+    "openFolderTip": "Expand memory/ in the sidebar",
+    "searchPlaceholder": "Search memory…",
+    "restore": "Restore",
+    "restoring": "Restoring…",
+    "healthIssues": "{{count}} tidy-up"
   },
   "archive": {
     "title": "Archive",

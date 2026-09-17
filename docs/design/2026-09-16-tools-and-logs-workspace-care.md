@@ -1,6 +1,6 @@
 # 设计：工作区工具与日志（Tools & Logs）
 
-> **状态**：Implemented (P0–P2 core)  
+> **状态**：Implemented (P0–P2 core) — **非现行策略真源**；写闸/授权以 `TOOLS.md` · `PROJECT-MODEL.md` · ADR `2026-09-17b/c` 为准。  
 > **日期**：2026-09-16  
 > **范围**：Kernel `lib/` · Desktop electron/services · Desktop UI（WorkspaceSwitcher + Overlay）· 可选 UTR 透出  
 > **相关**：`docs/adr/2026-08-27-desktop-log-rotation.md` · `docs/adr/2026-08-07-engine-hardening-writeback-ai.md` · `PROJECT-MODEL.md` · `topmind-desktop/DESIGN.md`
@@ -24,7 +24,7 @@
 | 项 | 结论 |
 |----|------|
 | 工作区围栏 | `isPathInsideWorkspace` + Desktop `assertPathWithin` + AI `fetch_url` 仅 http(s)；bash 默认不注册 |
-| 默认授权模型 | 契约 `writeback.mode` 默认 `auto`；AI 不可写 `locked`；confirm 仅在模式要求时挂起 |
+| 默认授权模型 | 契约 `writeback.mode` 默认 `auto`；`locked` 内容可编辑（任务级首写快照）；confirm **分级**——仅删/归档 pending |
 | 备份策略 | 高影响 only：locked 覆盖备份+回执；锁定/核心 delete → trash+回执；archive 是目的地迁入 |
 | 日志轮转 | `main.log` 2MB × keep 3（ADR 2026-08-27） |
 | Pi 混合 | `pi-agent-core` + 围栏 FS 别名 + 写闸唯一；不引入 full coding-agent |

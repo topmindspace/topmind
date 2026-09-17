@@ -64,7 +64,8 @@ test("install target manifests share the v3.4 portable host prohibitions", async
   const pack = await readJson("skills/topmind-pack.json");
 
   for (const target of pack.install_targets) {
-    const config = await readJson(target.path);
+    // path is pack-relative (install-targets/…); monorepo layout lives under skills/
+    const config = await readJson(`skills/${target.path}`);
 
     assert.equal(config.daily_entry, pack.daily_entry);
     assert.equal(config.content_truth, pack.portable_contract.content_truth);

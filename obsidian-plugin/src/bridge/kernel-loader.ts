@@ -351,17 +351,17 @@ export interface KernelApi {
   resolveTodoRelPath?(workspaceRoot: string): string;
   ensureTodoFile(workspaceRoot: string): void;
   readTodoList(workspaceRoot: string): { items: unknown[] } | null;
-  toggleTodoItem(workspaceRoot: string, id: string, contract?: unknown): {
+  toggleTodoItem(workspaceRoot: string, id: string, contract?: unknown, options?: { actor?: "user" | "ai" }): {
     ok: boolean;
     items: unknown[];
     targetPath: string;
   };
-  deleteTodoItem?(workspaceRoot: string, id: string, contract?: unknown): {
+  deleteTodoItem?(workspaceRoot: string, id: string, contract?: unknown, options?: { actor?: "user" | "ai" }): {
     ok: boolean;
     items: unknown[];
     targetPath: string;
   };
-  clearCompleted?(workspaceRoot: string, contract?: unknown): {
+  clearCompleted?(workspaceRoot: string, contract?: unknown, options?: { actor?: "user" | "ai" }): {
     ok: boolean;
     removed: number;
     targetPath: string;

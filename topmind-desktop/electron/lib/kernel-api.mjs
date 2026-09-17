@@ -117,6 +117,8 @@ export async function kernelDurableWrite(p, ctx, opts = {}) {
     frontmatter: opts.frontmatter,
     previewOnly: opts.previewOnly === true,
     writebackModeOverride: desktopWritebackMode(ctx, opts),
+    // Once-per-task locked snapshot (agent session id).
+    taskId: opts.taskId || ctx?.aiTaskId || ctx?.sessionId,
   });
 
   return evidence;
@@ -157,6 +159,7 @@ export async function kernelDurableArchive(p, ctx, opts = {}) {
     confirmed: opts.confirmed === true || opts.actor === "user" || !opts.actor,
     role: opts.role,
     permanent: opts.permanent === true,
+    writebackModeOverride: desktopWritebackMode(ctx, opts),
   });
 }
 
@@ -244,8 +247,10 @@ export async function kernelDurableWriteAbs(p, ctx, opts = {}) {
       throw new Error("kernelDurableWriteAbs: path outside workspace");
     }
   } else {
-    const rel = path.relative(path.resolve(workspaceRoot), abs);
-    if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) {
+    // Lexical fallback only when old Kernel lacks isPathInsideWorkspace.
+    // Same rule as Kernel: reject parent hops, allow in-root names like `..foo`.
+    const rel = path.relative(path.resolve(workspaceRoot), abs).replace(/\\/g, "/");
+    if (!rel || path.isAbsolute(rel) || rel === ".." || rel.startsWith("../")) {
       throw new Error("kernelDurableWriteAbs: path outside workspace");
     }
   }
@@ -304,7 +309,11 @@ export async function kernelAddTodoItem(p, ctx) {
 export async function kernelToggleTodoItem(p, ctx) {
   const kernel = await loadKernelApi();
   const workspaceRoot = workspaceRootOf(ctx.workspaceRoot);
-  return kernel.toggleTodoItem(workspaceRoot, p.id);
+  // Renderer todo RPCs are user gestures — pass actor:"user" (kernel default is ai).
+  return kernel.toggleTodoItem(workspaceRoot, p.id, undefined, {
+    actor: "user",
+    writebackModeOverride: desktopWritebackMode(ctx, p),
+  });
 }
 
 export async function kernelUpdateTodoItem(p, ctx) {
@@ -312,25 +321,35 @@ export async function kernelUpdateTodoItem(p, ctx) {
   const workspaceRoot = workspaceRootOf(ctx.workspaceRoot);
   return kernel.updateTodoItem(workspaceRoot, p.id, p.text, undefined, {
     dueDate: p.dueDate,
+    actor: "user",
+    writebackModeOverride: desktopWritebackMode(ctx, p),
   });
 }
 
 export async function kernelSetTodoDueDate(p, ctx) {
   const kernel = await loadKernelApi();
   const workspaceRoot = workspaceRootOf(ctx.workspaceRoot);
-  return kernel.setTodoDueDate(workspaceRoot, p.id, p.dueDate);
+  return kernel.setTodoDueDate(workspaceRoot, p.id, p.dueDate, {
+    actor: "user",
+    writebackModeOverride: desktopWritebackMode(ctx, p),
+  });
 }
 
 export async function kernelDeleteTodoItem(p, ctx) {
   const kernel = await loadKernelApi();
   const workspaceRoot = workspaceRootOf(ctx.workspaceRoot);
-  return kernel.deleteTodoItem(workspaceRoot, p.id);
+  return kernel.deleteTodoItem(workspaceRoot, p.id, {
+    actor: "user",
+    writebackModeOverride: desktopWritebackMode(ctx, p),
+  });
 }
 
 export async function kernelClearCompletedTodos(ctx) {
   const kernel = await loadKernelApi();
   const workspaceRoot = workspaceRootOf(ctx.workspaceRoot);
-  return kernel.clearCompleted(workspaceRoot);
+  return kernel.clearCompleted(workspaceRoot, {
+    actor: "user",
+  });
 }
 
 export async function kernelExtractTodosFromStream(p, ctx) {

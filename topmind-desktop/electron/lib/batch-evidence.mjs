@@ -3,7 +3,7 @@
  * Not a content truth store — session-scoped projection for UI summary.
  *
  * - auto: surface only when multi-file (≥2 distinct paths)
- * - confirm（保存前问我）: write tools still run → pending queue; batch path
+ * - confirm（删除/归档前问我）: content edits land; only delete/archive → pending queue; batch path
  *   receipts stay empty here (UI uses AI workspace 建议 pane / ActionStore)
  */
 

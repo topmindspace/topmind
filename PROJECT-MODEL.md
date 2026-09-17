@@ -33,7 +33,7 @@
 | **检查一下** | 健康/恢复 | maintain / 99-归档 |
 | **找回** | 找以前的东西 | 搜索 + memory/ + 主题/记忆视图 |
 
-**不要**在产品 UI 教用户：沉淀、涌现、protection、derived、writeback_mode（设置里用白话：「保存前问我」）。
+**不要**在产品 UI 教用户：沉淀、涌现、protection、derived、writeback_mode（设置里用白话：「删除/归档前问我」）。
 
 ### 三块地方 + 一个记忆（语义，不是物理根清单）
 
@@ -391,7 +391,8 @@ protection:                    # 保护与权限规约
       delivery: open         # 交付层：AI 可生成/更新（文件级可覆盖 locked）
       system: locked         # 归档层：锁（唯一默认 locked）
   # 文件级 frontmatter protection 可覆盖目录默认
-  # locked + AI：auto 拒绝；confirm 待确认（用户授权路径）；用户始终可写（高影响备份）
+  # locked = 重要内容：内容编辑允许（任务级首写快照+回执）；可恢复删/归档 auto 允许；永久删 locked/core 仅用户
+  # confirm 为分级：内容编辑直接落盘；仅删除/归档待确认
 
 lifecycle:                     # 生命周期规约
   # inbox.review_after_days 只触发「待归位」回顾，不自动归档；
@@ -403,7 +404,7 @@ lifecycle:                     # 生命周期规约
   output: { lock_after_days: 30 }
 
 writeback:                     # 写回与伦理规约
-  mode: auto                   # auto | confirm（设置白话：保存前问我）
+  mode: auto                   # auto | confirm（设置白话：删除/归档前问我；分级——内容直接落，仅删/归档待确认）
   shadow: true
   backup_to: 99-归档/backups
   receipts: 99-归档/receipts   # receipts 留在内容安全层
@@ -491,11 +492,11 @@ presentation:                  # 呈现规约
 | protection | 含义 | 典型区域 |
 |---|---|---|
 | `open` | AI 可按写回规约直接修改 | 动态、Inbox、专题、记忆、交付（默认） |
-| `locked` | 只读；任何写需先人工解锁或 fork 新版本 | 99-归档、锁定输出（文件级覆盖） |
+| `locked` | 重要内容（非 AI 禁区）：编辑允许+任务级首写快照；可恢复删/归档允许；永久删仅用户 | 99-归档、锁定输出（文件级覆盖） |
 
 求值顺序：文件 frontmatter `protection` > contract `protection.defaults.by_role` > `open`。
 
-**优先级**：`protection` × `writeback.mode`。locked + AI：auto 拒绝；confirm 待确认（用户授权）；用户始终可写（高影响备份）。
+**优先级**：`protection` × `writeback.mode`。**授权模型（2026-09-17c）**：围栏内 agent 会话即授权写；locked 内容编辑允许（任务级首写快照+回执）；可恢复 delete/archive 在 auto 下允许；永久删除 locked/core 仅用户；`confirm` **分级**——内容编辑直接落盘，仅删/归档 pending。
 
 ### 11.2 数据溯源（这是谁写的）
 

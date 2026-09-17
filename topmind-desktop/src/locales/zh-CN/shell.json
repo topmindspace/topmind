@@ -634,7 +634,13 @@
       "trashAllDupes": "一键清理全部确认重复",
       "partialOnly": "仅部分哈希",
       "partialHint": "大文件未做全文哈希，请人工确认后再清理。",
-      "dupHint": "默认按建议保留（跳过备份名、优先年目录与较新副本）；清理走写闸（可逆 trash）。"
+      "dupHint": "默认按建议保留（跳过备份名、优先年目录与较新副本）；清理走写闸（可逆 trash）。",
+      "trash": "可恢复删除",
+      "noTrash": "回收站为空",
+      "trashHint": "锁定/核心笔记删除会先进这里；恢复会写回原路径。",
+      "restore": "恢复",
+      "restored": "已恢复到 {{path}}",
+      "restoreFailed": "恢复失败"
     }
   },
   "help": {

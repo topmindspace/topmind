@@ -255,10 +255,12 @@ writeback:
 
 | 模式 | 行为 |
 |------|------|
-| `auto` | 直接写入 + path receipt（默认）；危险改动可逆 |
-| `confirm` | 写入前审阅 |
+| `auto` | 内容与生命周期直接执行（默认）；危险改动可逆；path receipt |
+| `confirm` | **分级**：内容新建/更新/编辑直接落盘；仅删除/归档进入待确认 |
 
-**优先级**：`protection` × `writeback.mode`。locked + AI：`auto` 拒绝；`confirm` 待确认（用户授权）；用户始终可写（高影响备份）。
+**优先级**：`protection` × `writeback.mode`。`locked` = 重要内容——内容编辑允许（任务级首写快照）；可恢复 delete/archive 在 auto 下允许；永久删 locked/core 仅用户。confirm 下仅删/归档 pending。
+
+**围栏（2026-09-17）**：契约/系统面/memory 根不可 lifecycle；策略路径名大小写不敏感；`protection: Locked` 归一为 locked；删除/移动/关联媒体仅在写闸提交后处理。
 
 ### Write Evidence Format
 

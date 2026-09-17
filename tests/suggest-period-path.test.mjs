@@ -263,22 +263,24 @@ describe("writePeriodDigest fallback tokens", () => {
 describe("stream_digest content-truth gate after accept", () => {
   it("does not re-offer period reflection after digest is written (soft refresh)", async () => {
     const { provider } = mockAi();
-    const first = await generateSuggestions({
-      workspaceRoot: ws,
-      engineRoot,
-      aiProvider: provider,
-    });
-    const digests = first.filter((s) => s.kind === "stream_digest");
-    assert.ok(digests.length > 0, "expected initial stream_digest cards");
-
-    for (const card of digests) {
-      const applied = await applySuggestion({
+    // Digest cards are capped (2 newest eligible). Apply in waves until none remain.
+    for (let wave = 0; wave < 8; wave++) {
+      const batch = await generateSuggestions({
         workspaceRoot: ws,
         engineRoot,
-        suggestion: card,
         aiProvider: provider,
       });
-      assert.equal(applied.ok, true, card.payload.period);
+      const digests = batch.filter((s) => s.kind === "stream_digest");
+      if (digests.length === 0) break;
+      for (const card of digests) {
+        const applied = await applySuggestion({
+          workspaceRoot: ws,
+          engineRoot,
+          suggestion: card,
+          aiProvider: provider,
+        });
+        assert.equal(applied.ok, true, card.payload.period);
+      }
     }
 
     // Soft refresh: same stream content, digests now on disk → no digest cards.
@@ -300,7 +302,7 @@ describe("stream_digest content-truth gate after accept", () => {
     );
   });
 
-  it("force refresh re-offers the digest card", async () => {
+  it("force refresh does NOT re-offer an already-written digest (2026-09-17d)", async () => {
     const { provider } = mockAi();
     const first = await generateSuggestions({
       workspaceRoot: ws,
@@ -323,8 +325,12 @@ describe("stream_digest content-truth gate after accept", () => {
       force: true,
     });
     assert.ok(
-      forced.some((s) => s.kind === "stream_digest" && s.payload?.period === card.payload.period),
-      "force must re-offer the period reflection",
+      !forced.some((s) => s.kind === "stream_digest" && s.payload?.period === card.payload.period),
+      "force must not re-offer a period that already has a usable reflection",
+    );
+    assert.ok(
+      !forced.some((s) => s.kind === "ai_summary" && s.payload?.period === card.payload.period),
+      "force must not re-offer sibling ai_summary for the same period",
     );
   });
 

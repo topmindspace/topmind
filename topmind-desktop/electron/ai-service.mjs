@@ -479,6 +479,9 @@ export const AiService = {
       ...c,
       explicitWritebackMode: effectiveMode,
       appSettings: { ...settings, writebackMode: contractMode },
+      // Once-per-task locked snapshot key for writeback-engine.
+      aiTaskId: sessionId,
+      sessionId,
     };
 
     // Agent mode default ON: tools unless caller explicitly sets useTools:false.

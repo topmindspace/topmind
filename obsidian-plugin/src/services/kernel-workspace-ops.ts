@@ -937,7 +937,7 @@ export function buildObsidianChatToolGuide(
   if (lang === "en") {
     const writeback = confirm
       ? "Writeback: ask before save — you may call edit_file/read_file; results pending until accept; locked notes also pending (user authorization path)."
-      : "Writeback: auto-save — you may call edit_file; locked notes refuse AI overwrite in auto mode (switch to confirm or unlock).";
+      : "Writeback: auto-save — you may call edit_file freely; locked notes are editable with a one-time task snapshot; recoverable delete/archive is allowed (trash + receipt); permanent locked delete is user-only.";
     return [
       "You can call workspace tools. To read/edit a file, emit a single JSON object and nothing else:",
       '{"tool":"read_file","relativePath":"10-动态/2026-W33.md","around":"unique phrase","limit":80}',

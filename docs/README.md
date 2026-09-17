@@ -59,7 +59,7 @@
 |-------|-------|
 | [`PACKAGING.md`](./PACKAGING.md) | Pack and release rules: installer names, GitHub Actions, Win/Mac/Linux |
 | [`images/README.md`](./images/README.md) | Screenshot and demo media index |
-| [`stream-first-optimization-scheme.md`](./stream-first-optimization-scheme.md) | Stream-first product truth and ideal use |
+| [`stream-first-optimization-scheme.md`](./stream-first-optimization-scheme.md) | Stream-first ideal-use memo (**not policy truth** — see DESIGN / TOOLS / Reset) |
 | [`capture-clip-matrix.md`](./capture-clip-matrix.md) | Capture · Clip · Ingest capability matrix |
 | [`topmind-vs-others.md`](./topmind-vs-others.md) | Knowledge-management comparison |
 | [`UIUX-AUDIT-2026-09-01.md`](./UIUX-AUDIT-2026-09-01.md) | **NON-LIVING** 2026-09-01 snapshot (not current IA; three-column chrome is `topmind-desktop/DESIGN.md`) |
@@ -98,6 +98,10 @@
 | [2026-09-14](./adr/2026-09-14-product-vocabulary-rename.md) | Product vocabulary rename | Inbox / 交付 / Delivery replace 收件箱 / 写出来 / Ship it; default template seeds move, existing workspace dirs do not |
 | [2026-09-15](./adr/2026-09-15-cross-platform-chrome-and-suggest-lifecycle.md) | Cross-platform chrome & suggestion lifecycle | One-row Windows title bar (app-drawn strip → native popups), platform-correct chords via `formatChord`, fullscreen collapses chrome reserves, frameless float note, Windows dialog footer flip in CSS; batched suggest apply with terminal-vs-retryable failures and persisted dismissal |
 | [2026-09-15](./adr/2026-09-15-boot-integrity-and-undeclared-identifiers.md) | Boot integrity & undeclared identifiers | `popupSink` was assigned but never declared — a ReferenceError in the ready handler killed every platform before its first window, past eight green gates; `install-skills.mjs` had been unparseable since the initial commit; adds a real scope-analysis check plus a test that boots the main process under a stubbed Electron |
+| [2026-09-17](./adr/2026-09-17-adversarial-deep-review.md) | Adversarial deep review | Lifecycle structural-plane fences, archive-plane containment, capture dirty Esc guard, openPath realpath, todo actor=ai default |
+| [2026-09-17b](./adr/2026-09-17b-writeback-authorization-model.md) | Writeback authorization model | `locked` = task-scoped snapshot (not AI deny); graded confirm (content lands; only delete/archive pending); permanent locked/core delete user-only |
+| [2026-09-17c](./adr/2026-09-17c-adversarial-pass-fences-and-honesty.md) | Adversarial pass: fences & honesty | Dangling-symlink fail-closed; system safety leaves; archive verify fail-closed; memory single truth; graded-confirm UI rename; Esc guard re-arm |
+| [2026-09-17e](./adr/2026-09-17e-global-memory-quality.md) | Global memory quality | Fact inventory · health (near-dupe) · restore · ranked prompt injection · organize section routing |
 
 **Design proposals (non-ADR):**
 

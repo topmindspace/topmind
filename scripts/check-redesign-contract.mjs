@@ -633,6 +633,61 @@ expectMatch(
   /2026-09-07-pi-engine-and-three-column-reevaluation\.md/u,
   "ZH ADR index lists 2026-09-07 pi/three-column",
 );
+
+// EN ↔ ZH ADR index parity: every living ADR basename must appear in both indexes.
+{
+  const adrDir = path.join(repoRoot, "docs/adr");
+  const enIndex = read("docs/README.md");
+  const zhIndex = read("docs/README.zh-CN.md");
+  const adrFiles = fs
+    .readdirSync(adrDir)
+    .filter((n) => n.endsWith(".md") && !n.startsWith("."))
+    .sort();
+  for (const name of adrFiles) {
+    if (!enIndex.includes(name)) {
+      fail(`docs/README.md: ADR index missing ${name}`);
+    }
+    if (!zhIndex.includes(name)) {
+      fail(`docs/README.zh-CN.md: ADR index missing ${name}`);
+    }
+  }
+}
+
+// Graded-confirm living copy (2026-09-17b/c): living docs must not teach
+// the old "保存前问我 / locked AI deny" model. Frozen ADRs may still
+// describe the superseded policy historically.
+const gradedConfirmForbidden = [
+  /保存前问我/u,
+  /重要文件不让 AI 直接改/u,
+  /AI 在 auto 写回下禁止直接写/u,
+  /locked[^\n]{0,40}auto 拒绝/u,
+];
+const gradedConfirmLivingDocs = [
+  "AGENTS.md",
+  "DESIGN.md",
+  "PROJECT-MODEL.md",
+  "PRODUCT-BOUNDARIES.md",
+  "SKILL-ARCHITECTURE.md",
+  "TOOLS.md",
+  "docs/ARCHITECTURE-RESET.md",
+  "skills/shared/writeback-receipt.md",
+  "topmind-desktop/ARCHITECTURE.md",
+  "topmind-desktop/DESIGN.md",
+  "obsidian-plugin/DESIGN.md",
+  "obsidian-plugin/README.zh-CN.md",
+];
+for (const relativePath of gradedConfirmLivingDocs) {
+  const source = read(relativePath);
+  for (const pattern of gradedConfirmForbidden) {
+    expectNoMatch(
+      relativePath,
+      source,
+      pattern,
+      "stale pre-graded-confirm copy — use 删除/归档前问我 + locked=editable snapshot",
+    );
+  }
+}
+
 expectMatch(
   "docs/UIUX-AUDIT-2026-09-01.md",
   read("docs/UIUX-AUDIT-2026-09-01.md"),

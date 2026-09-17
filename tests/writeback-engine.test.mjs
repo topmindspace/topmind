@@ -155,7 +155,9 @@ describe("writeback-engine", () => {
     assert.ok(!userUpdate.backupPath && !userUpdate.backup_path, "open user update must not backup");
   });
 
-  it("locked file: AI denied in auto; user overwrite gets backup + receipt", () => {
+  it("locked file: AI auto-edit allowed with snapshot; task multi-edit snapshots once", async () => {
+    const { resetTaskBackupLedger } = await import("../lib/writeback-engine.mjs");
+    resetTaskBackupLedger();
     const target = path.join(env.ws, "10-动态/locked.md");
     const content = "---\nprotection: locked\n---\n\nsecret\n";
     fs.writeFileSync(target, content, "utf8");
@@ -167,20 +169,58 @@ describe("writeback-engine", () => {
       frontmatter: { protection: "locked" },
       actor: "ai",
     });
-    assert.equal(perm.allowed, false);
+    assert.equal(perm.allowed, true, "locked is editable, not an AI deny-list");
+    assert.equal(perm.needsConfirm, false);
+    assert.equal(perm.preBackupRequired, true);
 
-    assert.throws(
-      () =>
-        executeWrite({
-          targetPath: target,
-          content: content + "x",
-          workspaceRoot: env.ws,
-          contract: env.contract,
-          actor: "ai",
-          confirmed: true,
-        }),
-      /Write denied|locked/i,
+    const first = executeWrite({
+      targetPath: target,
+      content: content + "edit1\n",
+      workspaceRoot: env.ws,
+      contract: env.contract,
+      actor: "ai",
+      confirmed: true,
+      taskId: "task-locked-1",
+      skipShadow: true,
+    });
+    assert.equal(first.wroteFiles, true);
+    assert.ok(first.backupPath || first.backup_path, "first locked write in task must snapshot");
+
+    const second = executeWrite({
+      targetPath: target,
+      content: content + "edit1\nedit2\n",
+      workspaceRoot: env.ws,
+      contract: env.contract,
+      actor: "ai",
+      confirmed: true,
+      taskId: "task-locked-1",
+      skipShadow: true,
+    });
+    assert.equal(second.wroteFiles, true);
+    assert.ok(
+      !(second.backupPath || second.backup_path),
+      "same-task second locked write must not re-snapshot",
     );
+    assert.ok(!(second.receiptPath || second.receipt_path), "no second YAML receipt in same task");
+
+    // New task → new snapshot
+    const third = executeWrite({
+      targetPath: target,
+      content: content + "edit1\nedit2\nedit3\n",
+      workspaceRoot: env.ws,
+      contract: env.contract,
+      actor: "ai",
+      confirmed: true,
+      taskId: "task-locked-2",
+      skipShadow: true,
+    });
+    assert.ok(third.backupPath || third.backup_path, "new task snapshots again");
+  });
+
+  it("locked file: user overwrite still snapshots without taskId", () => {
+    const target = path.join(env.ws, "10-动态/locked-user.md");
+    const content = "---\nprotection: locked\n---\n\nsecret\n";
+    fs.writeFileSync(target, content, "utf8");
 
     const userWrite = executeWrite({
       targetPath: target,
@@ -204,7 +244,50 @@ describe("writeback-engine", () => {
     assert.equal(fs.readFileSync(absBackup, "utf8"), content);
   });
 
-  it("locked file + confirm mode: AI write becomes pending (user authorization path)", () => {
+  it("locked file: AI delete/archive allowed in auto (recoverable); permanent denied", async () => {
+    const { executeDelete } = await import("../lib/writeback-engine.mjs");
+    const target = path.join(env.ws, "10-动态/locked-del.md");
+    fs.writeFileSync(target, "---\nprotection: locked\n---\nx\n", "utf8");
+    const perm = evaluateWritePermission({
+      contract: env.contract,
+      targetPath: target,
+      workspaceRoot: env.ws,
+      frontmatter: { protection: "locked" },
+      actor: "ai",
+      lifecycle: true,
+    });
+    assert.equal(perm.allowed, true, "recoverable locked delete is allowed in auto");
+    assert.equal(perm.needsConfirm, false);
+
+    // permanent AI delete of locked is denied
+    assert.throws(
+      () =>
+        executeDelete({
+          targetPath: target,
+          workspaceRoot: env.ws,
+          contract: env.contract,
+          actor: "ai",
+          confirmed: true,
+          permanent: true,
+        }),
+      /Permanent delete denied/i,
+    );
+
+    // recoverable AI delete works → trash
+    const ev = executeDelete({
+      targetPath: target,
+      workspaceRoot: env.ws,
+      contract: env.contract,
+      actor: "ai",
+      confirmed: true,
+    });
+    assert.equal(ev.wroteFiles, true);
+    assert.ok(ev.backupPath || ev.backup_path, "locked AI delete → trash");
+    assert.ok(ev.receiptPath || ev.receipt_path, "locked AI delete → receipt");
+    assert.ok(!fs.existsSync(target));
+  });
+
+  it("confirm mode is graded: locked content edit lands; lifecycle still pending", () => {
     const target = path.join(env.ws, "10-动态/locked-confirm.md");
     const content = "---\nprotection: locked\n---\n\nconfirm secret\n";
     fs.writeFileSync(target, content, "utf8");
@@ -218,20 +301,8 @@ describe("writeback-engine", () => {
       writebackModeOverride: "confirm",
     });
     assert.equal(perm.allowed, true);
-    assert.equal(perm.needsConfirm, true);
+    assert.equal(perm.needsConfirm, false, "content edit lands even in confirm mode");
     assert.equal(perm.protection, "locked");
-
-    const pending = executeWrite({
-      targetPath: target,
-      content: content + " pending\n",
-      workspaceRoot: env.ws,
-      contract: env.contract,
-      actor: "ai",
-      confirmed: false,
-      writebackModeOverride: "confirm",
-    });
-    assert.equal(pending.pending, true);
-    assert.equal(pending.wroteFiles ?? pending.wrote_files, false);
 
     const accepted = executeWrite({
       targetPath: target,
@@ -239,40 +310,56 @@ describe("writeback-engine", () => {
       workspaceRoot: env.ws,
       contract: env.contract,
       actor: "ai",
-      confirmed: true,
+      confirmed: false,
       writebackModeOverride: "confirm",
       skipShadow: true,
+      taskId: "task-confirm-edit",
     });
     assert.equal(accepted.wroteFiles ?? accepted.wrote_files, true);
-    assert.ok(accepted.backupPath || accepted.backup_path, "accepted locked AI write must backup");
+    assert.ok(accepted.backupPath || accepted.backup_path, "locked AI write must snapshot");
     assert.equal(
       fs.readFileSync(target, "utf8"),
       "---\nprotection: locked\n---\n\nconfirm secret accepted\n",
     );
+
+    // Lifecycle still pending under confirm
+    const delPerm = evaluateWritePermission({
+      contract: env.contract,
+      targetPath: target,
+      workspaceRoot: env.ws,
+      frontmatter: { protection: "locked" },
+      actor: "ai",
+      writebackModeOverride: "confirm",
+      lifecycle: true,
+    });
+    assert.equal(delPerm.needsConfirm, true);
   });
 
   it("existing locked file: overwrite still backs up when new FM omits protection", () => {
     const target = path.join(env.ws, "10-动态/locked-drop-fm.md");
     const original = "---\nprotection: locked\n---\n\nold\n";
     fs.writeFileSync(target, original, "utf8");
-    // Callers that rebuild frontmatter without protection: locked must still
-    // treat existing locked file as high-impact (and deny AI).
-    assert.throws(
-      () =>
-        executeWrite({
-          targetPath: target,
-          content: "---\ntitle: unlocked-looking\n---\n\nnew\n",
-          workspaceRoot: env.ws,
-          contract: env.contract,
-          actor: "ai",
-          confirmed: true,
-          skipShadow: true,
-        }),
-      /Write denied|locked/i,
-    );
-    const ev = executeWrite({
+    // Callers that rebuild frontmatter without protection: existing locked on disk
+    // still counts as high-impact (AI edit allowed + snapshot).
+    const aiEv = executeWrite({
       targetPath: target,
       content: "---\ntitle: unlocked-looking\n---\n\nnew\n",
+      workspaceRoot: env.ws,
+      contract: env.contract,
+      actor: "ai",
+      confirmed: true,
+      skipShadow: true,
+      taskId: "task-fm-drop",
+    });
+    assert.equal(aiEv.wroteFiles, true);
+    assert.ok(aiEv.backup_path || aiEv.backupPath, "existing locked must backup even if new FM open");
+
+    // Separate file still locked on disk: user overwrite without taskId always snapshots.
+    const target2 = path.join(env.ws, "10-动态/locked-drop-fm-user.md");
+    fs.writeFileSync(target2, original, "utf8");
+    const ev = executeWrite({
+      targetPath: target2,
+      content: "---\ntitle: unlocked-looking\n---\n\nnew user\n",
       workspaceRoot: env.ws,
       contract: env.contract,
       actor: "user",
@@ -281,7 +368,7 @@ describe("writeback-engine", () => {
       frontmatter: { title: "unlocked-looking" },
     });
     assert.equal(ev.wroteFiles, true);
-    assert.ok(ev.backup_path || ev.backupPath, "existing locked must backup even if new FM open");
+    assert.ok(ev.backup_path || ev.backupPath, "user overwrite of still-locked on disk must backup");
   });
 
   it("BACKUP_KEEP / RECEIPT_KEEP rotation bounds high-impact artifacts", () => {
@@ -352,13 +439,13 @@ describe("writeback-engine", () => {
     );
   });
 
-  it("confirm mode returns pending without confirmed", () => {
+  it("confirm mode is graded: content lands; lifecycle pending", () => {
     const contract = {
       ...env.contract,
       writeback: { ...(env.contract.writeback || {}), mode: "confirm" },
     };
     const target = path.join(env.ws, "10-动态/confirm.md");
-    const pending = executeWrite({
+    const landed = executeWrite({
       targetPath: target,
       content: "---\ntitle: c\n---\n\nx\n",
       workspaceRoot: env.ws,
@@ -367,22 +454,20 @@ describe("writeback-engine", () => {
       confirmed: false,
       skipShadow: true,
     });
-    assert.equal(pending.pending || pending.needsConfirm, true);
-    assert.equal(pending.wroteFiles, false);
-    assert.ok(!fs.existsSync(target));
+    assert.equal(landed.pending || landed.needsConfirm, false, "content lands in graded confirm");
+    assert.equal(landed.wroteFiles, true);
+    assert.ok(fs.existsSync(target));
+    assert.ok(!landed.backup_path && !landed.backupPath, "open confirm write still no backup");
 
-    const done = executeWrite({
+    const pendingDel = executeDelete({
       targetPath: target,
-      content: "---\ntitle: c\n---\n\nx\n",
       workspaceRoot: env.ws,
       contract,
       actor: "ai",
-      confirmed: true,
-      skipShadow: true,
+      confirmed: false,
     });
-    assert.equal(done.wroteFiles, true);
+    assert.equal(pendingDel.pending || pendingDel.needsConfirm, true, "delete pending under graded confirm");
     assert.ok(fs.existsSync(target));
-    assert.ok(!done.backup_path && !done.backupPath, "open confirm write still no backup");
   });
 
   it("executeDelete: ordinary open scratch has no trash/receipt; core/locked do; permanent has neither", () => {
@@ -472,7 +557,7 @@ describe("writeback-engine", () => {
     assert.ok(!ev.receipt_path, "ordinary archive: dest only, no extra YAML receipt");
   });
 
-  it("executeArchive directory peeks topic.md protection (locked denies AI)", async () => {
+  it("executeArchive directory peeks topic.md protection (locked AI archive recoverable)", async () => {
     const { executeArchive } = await import("../lib/writeback-engine.mjs");
     const topicDir = path.join(env.ws, "20-专题", "2020-locked");
     fs.mkdirSync(topicDir, { recursive: true });
@@ -481,30 +566,18 @@ describe("writeback-engine", () => {
       "---\ntitle: Locked topic\nprotection: locked\n---\n\nbody\n",
       "utf8",
     );
-    assert.throws(
-      () =>
-        executeArchive({
-          targetPath: topicDir,
-          workspaceRoot: env.ws,
-          contract: env.contract,
-          actor: "ai",
-          confirmed: true,
-        }),
-      /locked|Write denied/i,
-    );
-    assert.ok(fs.existsSync(topicDir), "dir must remain when AI denied");
-    // user may still archive locked topic
-    const ev = executeArchive({
+    // AI may archive locked topics in auto — destination is recoverable + receipt
+    const aiEv = executeArchive({
       targetPath: topicDir,
       workspaceRoot: env.ws,
       contract: env.contract,
-      actor: "user",
+      actor: "ai",
       confirmed: true,
     });
-    assert.equal(ev.wroteFiles, true);
+    assert.equal(aiEv.wroteFiles, true);
     assert.ok(!fs.existsSync(topicDir));
-    assert.ok(ev.backupPath || ev.backup_path, "archive has recoverable copy");
-    assert.ok(ev.receipt_path || ev.receiptPath, "archive writes receipt");
+    assert.ok(aiEv.backupPath || aiEv.backup_path, "locked AI archive has recoverable copy");
+    assert.ok(aiEv.receipt_path || aiEv.receiptPath, "locked AI archive writes receipt");
   });
 });
 

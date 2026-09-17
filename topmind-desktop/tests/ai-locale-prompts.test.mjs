@@ -80,9 +80,9 @@ test("buildSystemPrompt en confirm writeback is Model B English", () => {
     locale: "en",
   });
   assert.doesNotMatch(prompt, MODEL_A_FORBIDDEN_RE);
-  assert.match(prompt, /ask before save|pending/i);
+  assert.match(prompt, /ask before delete|pending|graded/i);
   assert.match(prompt, /write tools|save_file/i);
-  assert.doesNotMatch(prompt, /保存前问我|待确认写入/);
+  assert.doesNotMatch(prompt, /保存前问我/);
 });
 
 test("buildSystemPrompt zh confirm still Chinese Model B", () => {
@@ -92,7 +92,7 @@ test("buildSystemPrompt zh confirm still Chinese Model B", () => {
     locale: "zh-CN",
   });
   assert.doesNotMatch(prompt, MODEL_A_FORBIDDEN_RE);
-  assert.match(prompt, /保存前问我|待确认写入/);
+  assert.match(prompt, /删除\/归档前问我|待确认/);
   assert.match(prompt, /write 工具|save_file/);
 });
 
@@ -106,9 +106,9 @@ test("describeWritebackModeForPrompt bilingual", () => {
   assert.match(enAuto, /auto-save|Writeback/i);
   assert.doesNotMatch(enAuto, /自动保存/);
 
-  assert.match(zhConfirm, /保存前问我|待确认写入/);
-  assert.match(enConfirm, /ask before save|pending/i);
-  assert.doesNotMatch(enConfirm, /待确认写入/);
+  assert.match(zhConfirm, /删除\/归档前问我|待确认/);
+  assert.match(enConfirm, /ask before delete|pending|graded/i);
+  assert.doesNotMatch(enConfirm, /删除\/归档前问我/);
   assert.doesNotMatch(zhConfirm, MODEL_A_FORBIDDEN_RE);
   assert.doesNotMatch(enConfirm, MODEL_A_FORBIDDEN_RE);
 });

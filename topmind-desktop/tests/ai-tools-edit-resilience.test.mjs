@@ -31,12 +31,16 @@ test("system prompt: enforces active open document grounding & editing protocol"
   assert.match(promptZh, /当前打开的活跃文档:\s*20-研究\/2026-AI\/topic\.md/);
   assert.match(promptZh, /默认操作目标即为此文档/);
 
-  // Writing & Editing Protocol
+  // Writing & Editing Protocol (graded: small edit_file, multi-para save_file)
   assert.match(promptZh, /文件编辑与写操作心智协议/);
   assert.match(promptZh, /感知先于行动/);
-  assert.match(promptZh, /必须使用 edit_file/);
-  assert.match(promptZh, /严禁为了修改一两句话使用 save_file 全篇覆盖/);
-  assert.match(promptZh, /自愈循环/);
+  assert.match(promptZh, /工具分级/);
+  assert.match(promptZh, /edit_file/);
+  assert.match(promptZh, /save_file/);
+  assert.match(promptZh, /自愈/);
+  // Must NOT force edit_file for every change (2026-09-17b D4)
+  assert.doesNotMatch(promptZh, /必须使用 edit_file/);
+  assert.doesNotMatch(promptZh, /严禁为了修改一两句话使用 save_file 全篇覆盖/);
 
   // English prompt parity
   const promptEn = buildSystemPrompt({
@@ -48,5 +52,5 @@ test("system prompt: enforces active open document grounding & editing protocol"
   assert.match(promptEn, /Active open document:\s*20-Research\/2026-AI\/topic\.md/);
   assert.match(promptEn, /Writing & Editing Protocol/);
   assert.match(promptEn, /Read Before Write/);
-  assert.match(promptEn, /MUST use edit_file/);
+  assert.doesNotMatch(promptEn, /MUST use edit_file/);
 });

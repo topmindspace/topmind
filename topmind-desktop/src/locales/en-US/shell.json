@@ -634,7 +634,13 @@
       "trashAllDupes": "Trash all confirmed duplicates",
       "partialOnly": "Partial hash only",
       "partialHint": "Large files skipped full hash — review before cleaning.",
-      "dupHint": "Default keep follows the suggestion (skips backup names, prefers year-dir + newer copies). Cleanup goes through the write gate (recoverable trash)."
+      "dupHint": "Default keep follows the suggestion (skips backup names, prefers year-dir + newer copies). Cleanup goes through the write gate (recoverable trash).",
+      "trash": "Recoverable deletes",
+      "noTrash": "Trash is empty",
+      "trashHint": "Locked/core deletes land here first; restore writes back to the original path.",
+      "restore": "Restore",
+      "restored": "Restored to {{path}}",
+      "restoreFailed": "Restore failed"
     }
   },
   "help": {
@@ -716,7 +722,7 @@
           "body": "Right column: Chat / Suggestions / List / Apps. Suggestions generate by default and apply on confirm; the list is your personal todos."
         },
         {
-          "title": "My situation (memory)",
+          "title": "My profile (memory)",
           "body": "Profile and periodic reflections live on the memory plane. Facts can be appended, updated, or retired — after confirm, never silent rewrites."
         },
         {
@@ -791,7 +797,7 @@
           "body": "If something is recoverable we say so; we do not claim every delete is archived. Logs and receipts are bounded and clearable."
         }
       ],
-      "closing": "User concepts stay few: Note it · Stream · Topics · My situation · Delivery. Everything else is optional depth."
+      "closing": "User concepts stay few: Note it · Stream · Topics · My profile · Delivery. Everything else is optional depth."
     },
     "faq": {
       "heroTitle": "FAQ",

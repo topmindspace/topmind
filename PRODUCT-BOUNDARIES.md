@@ -57,7 +57,7 @@ topmind 是 Agent 时代的本地优先工作台，按需组合四条独立能�
 
 **卫星（不是第九引擎）**：`todo-engine`（`memory/todo.md`）· `ledger-engine`（可选 `{memory.dir}/ledgers/`，默认个人/自己账本；经 writeback 写入）。记账不是第六个用户概念，也不是 UTR 域。
 
-**铁律（目标）**：Surface 不得平行实现业务语义。现状见 `docs/ARCHITECTURE-RESET.md` §2。
+**铁律（目标）**：Surface 不得平行实现业务语义。**Desktop / UTR / Obsidian / AI 耐久内容写** 必须经 writeback-engine。Skills 宿主文件工具与 Clip workspace-direct 属于 **capture-class 开放写**（用户手势即确认；无 Node 写闸），不是第二套保护/备份/回执实现。现状见 `docs/ARCHITECTURE-RESET.md` §2。
 
 ---
 
@@ -200,18 +200,18 @@ graph TD
 | 捕获 / 周期本 / 编辑 / 剪藏 / 文档加工 | **Done**（抓取网页图片本地化到 `images/{slug}/`） |
 | skill-first AI 对话与领域工具 | **Done**（副驾建议条 + 待确认写入 **Done**） |
 | 三平面目录与 topmind.yaml v4 | **Done**（约定）/ 契约 UI 非强制 **Intentional Partial** |
-| writeback 唯一写闸 | **Done**（主路径 + confirm Model B + 高影响 only 备份/回执：locked 覆盖 · 锁定/核心笔记 delete/archive · 普通开放笔记无 trash · `permanent` 无副本） |
+| writeback 唯一写闸 | **Done**（主路径 + **分级 confirm**（内容落盘，仅删/归档 pending） + 高影响 only 备份/回执：locked 覆盖 · 锁定/核心笔记 delete/archive · 普通开放笔记无 trash · `permanent` 无副本） |
 | Memory 产品面（我的情况浏览 / 建议条） | **Done** |
 | 主动建议 + 确认执行 | **Done**（high-impact 须 `confirmed:true`；自动准备可关；AI 建议变更检测 `lastAnalyzedHash`；`promote_memory` 真实 AI 提取非占位符；画像 ADD/UPDATE/RETIRE 均确认后执行，不是 append-only） |
-| 交付 / publishPath | **Done**（副本 + `published_at`；发布后打开交付件；Outputs 复制正文 / HTML 导出） |
+| 交付 / publishPath | **Done**（副本 + `published_at`；发布后打开交付件；交付复制正文 / HTML 导出） |
 | 整理本周 / 任务面板 | **Done**（reconcile + ai_digest 任务 + 建议条候选确认；KanbanView 拖拽看板 + ViewSwitcher 多视图；digest/promote/archive 不造假任务按钮） |
 | 动态主表面内容 | **Done**（周期解析含结构节软提取；无当前本回退列表；内联记一下 + 整理本周） |
 | Desktop 响应式 chrome | **Done**（操作轨溢出 ⋯；StatusBar 可点；窄屏文案 aria/tooltip） |
-| 关键词搜索诚实截断 | **Done** |
-| embedding / 全库 Ask / 移动端 | **Non-goal 本阶段** |
+| 关键词搜索诚实截断 | **Done**（无 embedding） |
 | 动态默认主表面 PrimaryNav | **Done** |
-| 关键词搜索截断诚实 | **Done**（无 embedding） |
-| 语义索引 / embedding / Ask | **Non-goal 本阶段** / Ask **Target 延后** |
+| embedding / 语义索引 | **Non-goal 本阶段** |
+| 全库 Ask | **Target 延后** |
+| 移动端 | **Non-goal 本阶段** |
 | 建议可关 · 侧栏 thrift | **Done** · 见 `docs/ARCHITECTURE-RESET.md` §2.2 |
 | 可选记账（ledger-engine 卫星） | **Done**（`memory/ledgers/`；Skills `topmind-ledger`；Desktop enable-gated mini-app；非第九引擎 / 非第六概念） |
 

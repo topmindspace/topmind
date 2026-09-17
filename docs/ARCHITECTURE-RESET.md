@@ -1,6 +1,6 @@
 # Architecture Reset — 理想架构与实施计划
 
-> **状态**：Accepted · **日期**：2026-07-25 · **最后更新**：2026-09-07  
+> **状态**：Accepted · **日期**：2026-07-25 · **最后更新**：2026-09-17  
 > **角色**：架构决策锁 + 实施诚实表（唯一实施真源）  
 > **内容/边界真源**：`PROJECT-MODEL.md` · `PRODUCT-BOUNDARIES.md`  
 > **产品入口**：根 [`README.md`](../README.md)（English）· [`README.zh-CN.md`](../README.zh-CN.md)（简体中文）
@@ -39,7 +39,7 @@
 | **我的情况** | 关于我的稳定信息 | 记忆平面浏览（画像 + 周期反思 + 专题记忆）；点开条目仍落文件（默认 `memory/profile.md`） |
 | **交付** | 出成品 | `role:delivery`（常为 88-交付） |
 
-UI **不教**：protection、derived、writeback_mode、schema、engine、UTR 命令名。设置用白话（「保存前问我」「重要文件不让 AI 直接改」）。
+UI **不教**：protection、derived、writeback_mode、schema、engine、UTR 命令名。设置用白话（「删除/归档前问我」；锁定笔记可编辑——任务内首写快照，不是 AI 禁区）。
 
 工作流（不变）：`收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整`
 
@@ -114,7 +114,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | todo-engine maintain | ✅ 真实 LLM（配置后） | 语义级新增/完成/更新，Jaccard 语义去重 |
 | ai-operation-engine | ✅ 真实 LLM（配置后） | `memory_organize`/`topic_classify` 注入画像（历史段折叠）+ 可归档候选；建议条标题跟随宿主 UI 语言 |
 
-设置白话：**自动准备建议**（默认开） · **自动 AI 整理待办**（默认关） · **保存前问我**（confirm） · **手动整理**（始终可用）
+设置白话：**自动准备建议**（默认开） · **自动 AI 整理待办**（默认关） · **删除/归档前问我**（confirm 分级） · **手动整理**（始终可用）
 
 ---
 
@@ -149,7 +149,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | 建议条 generate / confirm apply | **Done**（suggest-engine + AI 工作区建议 pane + StatusBar 计数 chip） |
 | AI 驱动建议与摘要 | **Done**（ai_summary 真实 LLM；失败诚实不写；变更检测；sanitize；per-operation 动态 temperature/systemPrompt/maxTokens；瞬态错误自动重试） |
 | 动态主表面 PrimaryNav | **Done**（默认 stream） |
-| confirm 写闸 pending | **Done**（settings gate + pending 队列 + 审阅） |
+| confirm 写闸 pending | **Done**（分级 confirm：内容编辑直接落盘；仅删除/归档进 pending 队列 + 审阅。设置白话「删除/归档前问我」） |
 | lifecycle 全量产品卡片 | **Done**（scan→建议；inbox_organize AI 分析→确认移动） |
 | 备份/回执（高影响 only） | **Done**（open 常规写/移动/重命名不备份不回执；locked 覆盖 + 锁定/核心 **delete** 有 trash+回执；**archive** 迁入 99-归档 当新家；普通开放笔记 delete 无 trash；`BACKUP_KEEP=3` · `RECEIPT_KEEP=50`；`receiptPath` 仅真实 YAML 非空；Desktop 支持日志大小上限轮转 2 MB × 3 归档，ADR `2026-08-27-desktop-log-rotation.md`） |
 | 工具与日志面板 | **Done**（2026-09-16：工作区下拉 / ⌘⇧L Overlay——概览 stats · ops journal · main.log · 健康含契约 · 清理预览/去重；ops.jsonl 1MB×2 **非**第二套 receipts。设计 `docs/design/2026-09-16-tools-and-logs-workspace-care.md`） |
@@ -174,6 +174,8 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | 周期路径 / 确认面诚实 | **Done**（2026-08-21：digest 回执走 yearDir；period stem 拒绝 fallback；Obsidian Inbox 新建走写闸；confirm pending 有侧栏审阅；建议确认≠打开周期本；语料/session-compact/建议入口活文档对齐） |
 | Obsidian 建议 force / 会话 / 操作卡片 / 对话语言 | **Done**（2026-08-22：手动刷新 `force:true` 清指纹；soft 会话合并防 AI 卡消失；`memory_organize` / `topic_classify` 确认卡进建议面；对话正文走 Kernel 三层语言，UI 只管 chrome；ops 状态摘要跟宿主 UI 语言） |
 | 契约完整性 / 旧工作区升级 | **Done**（2026-08-24：repair 收敛到 ok；覆盖前备份；原子写 yaml；v3 迁移一次性改名 sidecar；周期路径双向粘滞；memory/todo 平面只认契约路径；设置关闭先冲刷且失败重排队。ADR `docs/adr/2026-08-23-contract-settings-integrity.md`） |
+| 生命周期围栏 / 授权模型 | **Done**（2026-09-17：结构平面不可归档（含系统安全叶子 backups/trash/receipts/stream-archive）；dangling symlink 围栏 fail-closed；locked=任务级首写快照非 AI 禁区；confirm 分级；永久删 locked/core 仅用户。ADR `docs/adr/2026-09-17-adversarial-deep-review.md` · `2026-09-17b-writeback-authorization-model.md`） |
+| 对抗审查加固（路径名大小写 · 媒体时序 · archive override） | **Done**（2026-09-17 续：policy 路径名大小写不敏感；`protection: Locked` 归一；Desktop path-safety 与 Kernel 悬空 symlink 对齐；删除/移动/发布媒体仅在写闸提交后；`executeArchive` 支持 `writebackModeOverride`；`backup_to` 落在内容类目下不再冻死整个类目；AI 工具 schema 跟随宿主 UI 双语） |
 
 **Intentional Partial（保留，非未完成）**：contract UI 非全 Surface；非 `.md` 二进制可仍直写。
 
@@ -191,7 +193,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 
 ### 2.3 已合闸里程碑
 
-所有波次（E–M + S\* + Phase D 硬化 + 引擎硬化 + v2.1 + Stream 年目录/归档/记忆重设计）均已 **Done**。详细决策见各 ADR；产品真理见 `docs/stream-first-optimization-scheme.md`。
+所有波次（E–M + S\* + Phase D 硬化 + 引擎硬化 + v2.1 + Stream 年目录/归档/记忆重设计）均已 **Done**。详细决策见各 ADR；实施真源为本文；理想使用态备忘见 `docs/stream-first-optimization-scheme.md`（非策略真源）。
 
 ### 2.4 完成度分数卡
 

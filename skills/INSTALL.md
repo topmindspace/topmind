@@ -225,7 +225,7 @@ node scripts/install-skills.mjs add topmindspace/topmind -g
 | `--host codex` 等 | 换默认 dest |
 | `--mode symlink` | 仅本地源；开发时热更新 |
 | `--skill topmind` | 只装列出的 skill id（可重复） |
-| `--locale en-US` | 安装 locale overlay（回退到 `topmind_LOCALE` 环境变量） |
+| `--locale en-US` | 安装 locale overlay（回退到 `topmind_LOCALE` 环境变量）。**当前未随包提供任何 overlay**——技能正文以 zh-CN 为准，`--locale` 会回退到中文正文，不是英文版技能。 |
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: topmind
-version: 4.6.0
+version: 4.7.0
 description: >-
   topmind 总入口与多意图路由（类别/专题/笔记/交付）。Use when 用户说 topmind、意图模糊、或需要
   收→整→写 分步。单意图明确时直接用 topmind-capture|organize|write|memory|maintain|loop|weread|x|ledger。
@@ -125,7 +125,7 @@ Connector：[`references/connector-resolution.md`](references/connector-resoluti
 主路径：host 文件工具 + project-model-brief。Skills pack **不依赖** Pi / `pi-agent-core`；不要编造 bash / shell。宿主若有唯一片段替换，中段改稿优先用它。  
 降级：[`../shared/capability-degradation.md`](../shared/capability-degradation.md)。
 
-UTR 可选（MCP primary+danger，与注册表 19 条对齐）：`list-categories` · `list-topics` · `inspect-topic` · `list-topic-files` · `list-inbox` · `create-topic` · `capture-note` · `save-output` · `contract.validate` · `contract.reseed` · `memory.promote` · `memory.digest` · `memory.append-profile` · `memory.append-topic` · `doctor-workspace` · `plan-inbox-routing` · `archive-topic` · `archive-stream-year` · `restore-safety-receipt`。
+UTR 可选（MCP primary+danger 共 19；注册表 28 = 8 域 / 28 命令，见 TOOLS.md）：`list-categories` · `list-topics` · `inspect-topic` · `list-topic-files` · `list-inbox` · `create-topic` · `capture-note` · `save-output` · `contract.validate` · `contract.reseed` · `memory.promote` · `memory.digest` · `memory.append-profile` · `memory.append-topic` · `doctor-workspace` · `plan-inbox-routing` · `archive-topic` · `archive-stream-year` · `restore-safety-receipt`。
 
 字段始终独立 **`category` + `topic`**（真实目录名，非写死编号）。
 
@@ -142,7 +142,7 @@ UTR 可选（MCP primary+danger，与注册表 19 条对齐）：`list-categorie
 写入失败时：
 - 磁盘满 / 权限不足 → 报错 + 已备回复制位置；不静默丢数据
 - 路径过长 / 非法字符 → 提示用户缩短专题名
-- protection:locked → auto 拒绝 / confirm 待确认；或建议 fork 修订版
+- protection:locked → 内容编辑允许（任务级首写快照）；可恢复删/归档允许；永久删 locked 仅用户
 - 工作区不存在 topmind.yaml → 按默认契约解释 + 回执标注「默认契约」
 
 

@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import { resolveIngestRoute } from "../lib/ingest-pipeline.mjs";
 import { buildDefaultContract } from "../lib/contract-engine.mjs";
 import { stashPendingWrite, listPendingWrites, takePendingWrite, rejectPendingWrite } from "../topmind-desktop/electron/lib/pending-writes.mjs";
-import { executeWrite } from "../lib/writeback-engine.mjs";
+import { executeWrite, executeDelete } from "../lib/writeback-engine.mjs";
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "topmind-ingest-"));
 
@@ -65,28 +65,34 @@ describe("resolveIngestRoute", () => {
 
 describe("pending-writes queue", () => {
   it("stash list confirm take reject", () => {
+    const pwWs = path.join(tmp, "pw-durable");
+    fs.mkdirSync(pwWs, { recursive: true });
     const e = stashPendingWrite({
       relativePath: "00-收件箱/a.md",
       content: "# hi\n",
       toolName: "save_file",
+      workspaceRoot: pwWs,
     });
     assert.ok(e.id);
-    const list = listPendingWrites();
+    const list = listPendingWrites(pwWs);
     assert.ok(list.some((x) => x.id === e.id));
-    const taken = takePendingWrite(e.id);
+    // Durable on disk (restart survival)
+    assert.ok(fs.existsSync(path.join(pwWs, ".topmind/pending-writes.json")));
+    const taken = takePendingWrite(pwWs, e.id);
     assert.equal(taken?.content, "# hi\n");
-    assert.equal(listPendingWrites().some((x) => x.id === e.id), false);
+    assert.equal(listPendingWrites(pwWs).some((x) => x.id === e.id), false);
 
     const e2 = stashPendingWrite({
       relativePath: "00-收件箱/b.md",
       content: "x",
       toolName: "save_file",
+      workspaceRoot: pwWs,
     });
-    assert.equal(rejectPendingWrite(e2.id), true);
-    assert.equal(listPendingWrites().some((x) => x.id === e2.id), false);
+    assert.equal(rejectPendingWrite(pwWs, e2.id), true);
+    assert.equal(listPendingWrites(pwWs).some((x) => x.id === e2.id), false);
   });
 
-  it("confirm path: pending then executeWrite with confirmed", () => {
+  it("graded confirm: content lands; lifecycle still pending", () => {
     const ws = path.join(tmp, "pw-ws");
     fs.mkdirSync(path.join(ws, "00-收件箱"), { recursive: true });
     fs.mkdirSync(path.join(ws, "99-归档", "backups"), { recursive: true });
@@ -96,7 +102,7 @@ describe("pending-writes queue", () => {
       "utf8",
     );
     const target = path.join(ws, "00-收件箱/pending.md");
-    const pending = executeWrite({
+    const landed = executeWrite({
       targetPath: target,
       content: "---\ntitle: p\n---\n\nbody\n",
       workspaceRoot: ws,
@@ -104,18 +110,25 @@ describe("pending-writes queue", () => {
       confirmed: false,
       skipShadow: true,
     });
-    assert.equal(pending.pending || pending.needsConfirm, true);
-    assert.ok(!fs.existsSync(target));
+    assert.equal(landed.pending || landed.needsConfirm, false, "content lands in graded confirm");
+    assert.ok(fs.existsSync(target));
 
-    const done = executeWrite({
+    const pendingDel = executeDelete({
       targetPath: target,
-      content: "---\ntitle: p\n---\n\nbody\n",
+      workspaceRoot: ws,
+      actor: "ai",
+      confirmed: false,
+    });
+    assert.equal(pendingDel.pending || pendingDel.needsConfirm, true, "delete pending");
+    assert.ok(fs.existsSync(target));
+
+    const done = executeDelete({
+      targetPath: target,
       workspaceRoot: ws,
       actor: "ai",
       confirmed: true,
-      skipShadow: true,
     });
     assert.equal(done.wroteFiles, true);
-    assert.ok(fs.existsSync(target));
+    assert.ok(!fs.existsSync(target));
   });
 });
