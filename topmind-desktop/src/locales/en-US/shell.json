@@ -1,0 +1,849 @@
+{
+  "onboarding": {
+    "openingWorkspace": "Opening workspace…",
+    "initFolder": "Initializing folder structure",
+    "noWorkspaceTitle": "No workspace opened yet",
+    "noWorkspaceHint": "Pick a folder to get started · Nothing is auto-created",
+    "selectFolder": "Select folder / New workspace",
+    "selectFolderTip": "Choose a local folder as workspace root (empty dirs get initialized with category structure)",
+    "recentWorkspaces": "Recent workspaces",
+    "removeFromList": "Remove from list (does not delete files)",
+    "removeLabel": "Remove {{name}} from list",
+    "statusClosed": "Workspace closed · Pick one to continue",
+    "statusInvalid": "Last workspace couldn't open · Please choose another path",
+    "statusNoWorkspace": "Select or create a local folder as workspace",
+    "footerLine1": "Workspace = your local folder (stream · topics · ship · archive)",
+    "companionsHint": "After opening: Settings → Companions to install Agent Skills / Clip / Obsidian (optional, non-blocking)",
+    "healthOk": "OK",
+    "healthEmpty": "Empty",
+    "healthBroken": "Unavailable",
+    "templateTitle": "Choose a template",
+    "templateConfirm": "Continue",
+    "templateStreamName": "Minimal Stream",
+    "templateStreamDesc": "Minimal: Inbox · Stream · Topics · Delivery · Archive",
+    "templateBalancedName": "Balanced Knowledge",
+    "templateBalancedDesc": "Low-friction capture with knowledge sink",
+    "templateResearchName": "Academic Research",
+    "templateResearchDesc": "Deep research · source tracking · references",
+    "templatePeriodicName": "Periodic Review",
+    "templatePeriodicDesc": "Strong periodic review · memory sink",
+    "statusContractUnrepairable": "Workspace topmind.yaml is corrupt and cannot be auto-repaired. You can reseed the contract (notes are kept).",
+    "reseedContract": "Backup & reseed topmind.yaml",
+    "reseedContractHint": "The bad file is backed up under archive/contract or .topmind/contract-backups; content dirs are not deleted.",
+    "reseedFailed": "Failed to reseed contract"
+  },
+  "shell": {
+    "loadingAi": "Loading AI…",
+    "loadingWorkspace": "Starting workspace…",
+    "opening": "Opening"
+  },
+  "lazyBoundary": {
+    "loadingAi": "Loading AI…",
+    "loadingWorkspace": "Starting workspace…",
+    "loading": "Loading…"
+  },
+  "toast": {
+    "moveFailed": "Move failed",
+    "moveFailedDetail": "Move failed: {{error}}",
+    "importFailedSkipped": "Import failed — could not read file path ({{count}}). Use \"Knowledge Ingest → Import Files\" instead",
+    "importFailed": "Import failed — could not read dropped file path",
+    "enqueued": "Enqueued {{count}} tasks · converting in background",
+    "staging": "{{count}} items staged · select and confirm to convert",
+    "empty": "No files to import",
+    "enqueueFailed": "Enqueue failed"
+  },
+  "titleBar": {
+    "workspaceTip": "Workspace: {{root}}\nClick to switch / create / close · ⌘⇧W",
+    "copyWorkspacePath": "Copy path",
+    "copyWorkspacePathDone": "Path copied",
+    "workspaceMenuTitle": "Workspace · ⌘⇧W",
+    "recentWorkspaces": "Recent",
+    "noRecentWorkspaces": "No recent workspaces",
+    "openOrCreateWorkspace": "Open / New workspace…",
+    "closeWorkspace": "Close workspace · Back to home",
+    "focusMode": "topmind · Focus",
+    "exitFocusTip": "Exit focus · Esc / ⌘⌥F",
+    "exitFocus": "Exit focus",
+    "exitFocusAriaLabel": "Exit focus mode",
+    "showSidebar": "Show sidebar",
+    "hideSidebar": "Hide sidebar",
+    "back": "Back · ⌘[",
+    "forward": "Forward · ⌘]",
+    "backAriaLabel": "Back",
+    "forwardAriaLabel": "Forward",
+    "commandPaletteTip": "Command palette · ⌘K",
+    "commandPaletteAriaLabel": "Command palette",
+    "searchCommandTip": "Search / Command palette · ⌘K",
+    "searchCommandAriaLabel": "Search / Command palette",
+    "searchCommand": "Search…",
+    "captureTip": "Note it · ⌘N (this week’s stream by default)\nGlobal ⌘⇧N from any app",
+    "capture": "Note it",
+    "viewSwitchTip": "Switch view · Stream / Inbox / Delivery",
+    "viewSwitchAria": "Switch main view",
+    "searchTip": "Full-text search · ⌘P",
+    "searchLabel": "Search",
+    "settingsTip": "Settings · ⌘,",
+    "settingsAriaLabel": "Settings",
+    "settingsLabel": "Settings",
+    "toolsLogs": "Tools & Logs",
+    "help": "Help",
+    "themeMenuItem": "Theme · {{label}}",
+    "themeCycleTip": "Theme: {{label}} · Click for {{next}}",
+    "themeAuto": "Follow system",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "moreTip": "More · Settings / Theme",
+    "moreAriaLabel": "More tools",
+    "hideAiPanel": "Hide AI workspace",
+    "showAiPanel": "Show AI workspace",
+    "hideTaskPanel": "Hide task panel",
+    "showTaskPanel": "Show task panel",
+    "todoTip": "Personal list · ⌘⇧T",
+    "todoAriaLabel": "Personal list",
+    "suggestTip": "Suggestions · confirm before write (≠ personal list)",
+    "suggestAriaLabel": "Open suggestions",
+    "commandField": "Commands · Jump",
+    "themeMenuSection": "Theme",
+    "languageMenuSection": "Language",
+    "preferencesSection": "Preferences",
+    "appsTip": "Apps · open in the AI workspace",
+    "appsAriaLabel": "Open apps"
+  },
+  "aiWorkspace": {
+    "aria": "AI workspace",
+    "chat": "Chat",
+    "suggest": "Suggest",
+    "todo": "List",
+    "apps": "Apps"
+  },
+  "taskPanel": {
+    "title": "AI Tasks",
+    "empty": "No background tasks",
+    "emptyHint": "Organize this week reconciles the period note. AI analysis only prepares suggestions — nothing is written until you confirm",
+    "triggerReconcile": "Organize this week",
+    "taskTypeReconcile": "Organize this week",
+    "taskTypeAi_digest": "AI analysis",
+    "taskTypeMemory_organize": "Organize My profile",
+    "triggerMemoryOrganize": "Organize My profile",
+    "memoryOrganizeStart": "Starting My profile organize…",
+    "memoryOrganizeScan": "Scanning recent activity and profile",
+    "memoryOrganizeRun": "Generating suggestions to confirm (no silent profile write)…",
+    "memoryOrganizeFound": "Organize complete · {{count}} new suggestion(s) ({{total}} pending)",
+    "memoryOrganizeDoneToast": "✓ My profile organize done · {{count}} suggestion(s) to confirm",
+    "memoryOrganizeMerged": "Merged {{count}} new suggestion(s)",
+    "status": {
+      "queued": "Queued",
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
+    "logs": "Logs",
+    "result": "Result",
+    "error": "Error",
+    "collapse": "Collapse",
+    "expand": "Expand",
+    "clearCompleted": "Clear completed",
+    "close": "Close",
+    "cancel": "Cancel",
+    "retry": "Retry",
+    "minimize": "Minimize",
+    "restore": "Restore panel",
+    "resultOk": "✓ Operation successful",
+    "resultFail": "✗ Operation incomplete",
+    "resultChanged": "Changes detected and applied",
+    "resultNoChange": "No changes needed",
+    "resultPath": "Path: {{path}}",
+    "resultPacking": "Period: {{packing}}",
+    "resultChanges": "Changes ({{count}}):",
+    "resultCoreCandidates": "Core memory candidates: {{count}}",
+    "resultTopicCandidates": "Topic candidates: {{topics}}",
+    "reconcileStart": "Starting period reconcile…",
+    "reconcileReadPeriod": "Reading period notebook",
+    "reconcileProcess": "Processing results…",
+    "reconcileChanged": "Changes detected, applied",
+    "reconcileNoChange": "No changes needed",
+    "triggerAiDigest": "AI Analysis",
+    "aiDigestStart": "Preparing suggestions from the activity window…",
+    "aiDigestAnalyzing": "Analyzing recent activity (writes wait for confirm)…",
+    "aiDigestFound": "Analysis complete · {{count}} suggestions to confirm",
+    "aiDigestDone": "AI analysis complete",
+    "reconcileDone": "✓ Organize complete",
+    "aiDigestDoneToast": "✓ AI analysis complete · {{count}} suggestions to confirm",
+    "taskFailed": "✗ Task failed: {{error}}",
+    "tasksRunning": "{{count}} tasks running"
+  },
+  "primaryNav": {
+    "ariaLabel": "Primary navigation",
+    "stream": "Stream",
+    "streamTipIdle": "This week's stream · ⌘⇧S",
+    "inbox": "Inbox",
+    "inboxTipActive": "Inbox {{count}} items to organize · ⌘⇧I",
+    "inboxTipIdle": "Inbox · ⌘⇧I",
+    "outputs": "Delivery",
+    "outputsTipIdle": "Delivery · ⌘⇧O",
+    "search": "Search",
+    "searchTip": "Search notes · ⌘P"
+  },
+  "statusBar": {
+    "ariaLabel": "Status bar",
+    "aiReady": "AI ready",
+    "aiOffline": "AI offline · Click to configure",
+    "initializing": "Initializing…",
+    "enginePath": "Engine: {{root}}",
+    "ready": "Ready",
+    "workspaceOk": "Workspace OK",
+    "workspaceOkTip": "Workspace ready · your files live in a local folder",
+    "workspaceBad": "Workspace issue",
+    "workspaceBadTip": "Can't reach the workspace — try opening the folder again",
+    "engineUnavailableTip": "Engine path unavailable — check installation and workspace",
+    "unavailable": "Unavailable",
+    "workspacePath": "Workspace: {{root}}",
+    "workspacePathLabel": "Workspace path",
+    "aiRuntimeReady": "AI runtime ready",
+    "openSettingsTip": "Open settings to configure API key",
+    "aiPanelShowTip": "Expand AI panel",
+    "aiPanelHideTip": "Collapse AI panel",
+    "sessionGenerating": "Current session generating",
+    "sessionMessageCount": "Current session message count",
+    "aiWorking": "AI working",
+    "aiWorkingTip": "Chat generation / background tasks in progress · toggle AI panel",
+    "aiMultiWorking": "AI ×{{count}}",
+    "aiMultiWorkingTip": "In parallel: {{jobs}} · click to toggle AI panel",
+    "jobAgent": "Chat",
+    "jobTask": "Background tasks",
+    "jobTodo": "Todo maintain",
+    "jobSuggest": "Suggestions",
+    "jobApply": "Writing suggestions",
+    "suggestApplying": "Applying {{current}}/{{total}}",
+    "suggestApplyingTip": "Writing confirmed suggestions · click to view progress",
+    "jobInline": "Inline AI",
+    "taskRunning": "{{count}} background task(s)",
+    "taskRunningTip": "Background tasks in progress · click for details and progress",
+    "taskPanelTip": "Task panel · engine tasks & history (⌘⇧J)",
+    "taskPanelAria": "Task panel",
+    "todoMaintaining": "AI organizing list",
+    "todoMaintainingTip": "Extracting/updating the personal list from stream · click to open the list",
+    "suggestLoading": "Preparing suggestions",
+    "suggestLoadingTip": "Scanning tidy-up candidates and generating suggestions · click to view",
+    "suggestCount": "{{count}} suggestion(s)",
+    "suggestCountTip": "{{count}} suggestion(s) to review · click to open",
+    "suggestCountAria": "{{count}} suggestions",
+    "inlineAiWorking": "AI working",
+    "inlineAiWorkingTip": "Polish / inline rewrite in progress · leaving may cancel this result · click does nothing",
+    "inlineAiLeaveTitle": "Leave will cancel AI work",
+    "inlineAiLeaveConfirm": "AI is still working or has an unapplied result. Leaving will cancel this AI work. Continue?",
+    "inlineAiLeaveConfirmWithLabel": "“{{label}}” is still running or has an unapplied result. Leaving will cancel this AI work.",
+    "inlineAiLeaveForce": "Leave anyway",
+    "inlineAiLeaveStay": "Keep waiting",
+    "revealWorkspaceTip": "Click to reveal in Finder",
+    "revealFileTip": "Click to reveal in file manager",
+    "updatesBadgeCount": "{{count}} updates",
+    "updatesAvailableMulti": "{{count}} updates available · click to download",
+    "updateAvailable": "v{{version}} available · click to download",
+    "fileChipTip": "Click to open in editor · right-click to reveal in folder"
+  },
+  "editorArea": {
+    "loadingWorkspace": "Loading workspace…",
+    "noViewMatch": "Can't open this view",
+    "noViewMatchHint": "Try another place, or go back to this week's stream",
+    "backToStream": "Back to stream",
+    "goStream": "Go to stream",
+    "swapPanes": "Swap with left",
+    "swapPanesAriaLabel": "Swap left and right files",
+    "closeSplit": "Close split",
+    "closeSplitAriaLabel": "Close split",
+    "loadingSplit": "Loading split…",
+    "splitSeparatorAriaLabel": "Adjust split pane width"
+  },
+  "splitter": {
+    "resizePanel": "Resize panel"
+  },
+  "editorRecentBar": {
+    "openFiles": "Open files",
+    "unpin": "Unpin",
+    "pin": "Pin",
+    "closeTabTip": "Close · Middle-click also works",
+    "closeAriaLabel": "Close",
+    "closeAllUnpinned": "Close all unpinned · ⌘⌥W",
+    "closeAllTabs": "Close all tabs (including pinned)",
+    "closeAllTabsAriaLabel": "Close all tabs",
+    "open": "Open",
+    "togglePin": "Pin / Unpin",
+    "closeSplitRight": "Close right split",
+    "openSplitRight": "Open in right split",
+    "close": "Close",
+    "closeOthers": "Close others",
+    "closeAll": "Close all",
+    "fileOps": "File operations…"
+  },
+  "sidebar": {
+    "streamDefault": "This week's stream",
+    "waitingDataSources": "Waiting for data sources…",
+    "loadingPlugins": "Loading workspace plugins",
+    "loadingTimeline": "Loading timeline…",
+    "loadingTags": "Loading tags…",
+    "loadingKanban": "Loading kanban…",
+    "loadingStream": "Loading stream…",
+    "streamPinTip": "Note it defaults to this week’s stream",
+    "profileTip": "Browse My profile · portrait, periodic reflections, topic memory",
+    "myProfile": "My profile",
+    "loading": "Loading…",
+    "loadFailed": "Load failed",
+    "retry": "Retry",
+    "refreshTooltip": "Refresh file tree",
+    "empty": "Empty",
+    "treeView": {
+      "promptNewNote": "Note filename (with .md extension)",
+      "defaultNewNote": "New note.md",
+      "promptNewTopic": "Topic name (YYYY-Topic format)",
+      "defaultNewTopic": "{{year}}-New topic",
+      "promptRename": "New filename",
+      "promptRenameTopic": "New topic name",
+      "confirmDeleteFile": "Confirm delete",
+      "confirmDeleteFileDesc": "Delete {{name}}?\nOrdinary notes are not moved to Archive. Locked notes, topic.md, and Delivery files are.",
+      "confirmDeleteTopic": "Confirm delete topic",
+      "confirmDeleteTopicDesc": "Delete topic {{name}} and its notes?\nA topic with topic.md is moved to Archive first.",
+      "errorCreate": "Create failed",
+      "errorDelete": "Delete failed",
+      "errorRename": "Rename failed",
+      "errorPublish": "Publish failed",
+      "errorCopy": "Copy failed",
+      "errorOperation": "Operation failed",
+      "toastCopiedPath": "✓ Path copied",
+      "promptMoveToTopic": "Move to topic (Category/TopicName)",
+      "moveToTopicPlaceholder": "20-Research/2026-Topic",
+      "toastMovedToTopic": "✓ Moved to topic",
+      "tooltipNewTopic": "New topic under this category (YYYY-Topic)",
+      "ariaNewTopic": "New topic under this category",
+      "tooltipNewNote": "New note in this topic",
+      "ariaNewNote": "New note in this topic",
+      "dropHintTopic": "Release to move into this topic",
+      "loadingFiles": "Loading files…",
+      "showMore": "{{count}} more…",
+      "emptyCategory": "Empty category · Click to create topic (YYYY-Topic)",
+      "emptyTopic": "No notes · Click to create",
+      "tooltipPath": "Path",
+      "tooltipModified": "Modified",
+      "tooltipFileCount": "{{count}} notes",
+      "tooltipTopicCount": "{{count}} topics"
+    },
+    "timeline": {
+      "weekThis": "This week {{key}}",
+      "monthThis": "This month {{key}}",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "packingWeekly": "Grouped by week · Weekly notebook first",
+      "packingDaily": "Grouped by day",
+      "packingMonthly": "Grouped by month",
+      "packingAtom": "Grouped by modified date",
+      "loading": "Loading…",
+      "retry": "Retry",
+      "emptyTitle": "No notes yet",
+      "emptyHint": "Write on stream and Log it · or sidebar Note it",
+      "capture": "Note it",
+      "truncatedHint": "Showing latest {{shown}} of ~{{total}} in workspace"
+    },
+    "tags": {
+      "loading": "Loading…",
+      "retry": "Retry",
+      "emptyTitle": "No tags yet",
+      "emptyHint": "Add tags: [\"research\"] to frontmatter to group by tag",
+      "goWorkspace": "Open a note in workspace",
+      "truncatedHint": "Tags based on latest {{shown}} of ~{{total}} in workspace"
+    },
+    "kanban": {
+      "loading": "Loading kanban…",
+      "retry": "Retry",
+      "reloadTooltip": "Reload note status distribution",
+      "hintTooltip": "Dragging to another column writes back frontmatter.status · Drives workspace \"in progress\" and today's focus",
+      "hint": "Drag cards to change status · Writes frontmatter · Right-click for more · ⌘⇧B",
+      "backToStream": "Back to stream",
+      "dropOver": "Release to drop",
+      "dropEmpty": "Drag here",
+      "toastMoved": "✓ {{name}} → {{status}}",
+      "toastMoveFailed": "✗ Status update failed: {{error}}",
+      "truncatedHint": "Kanban based on latest {{shown}} of ~{{total}} in workspace",
+      "statusDraft": "Draft",
+      "statusInProgress": "In progress",
+      "statusDone": "Done",
+      "statusArchived": "Archived"
+    },
+    "todo": {
+      "title": "List",
+      "loading": "Loading list…",
+      "empty": "List is empty",
+      "emptyHint": "Add below · or click ✨ for AI maintenance from stream",
+      "addPlaceholder": "Add an item…",
+      "add": "Add",
+      "check": "Mark done",
+      "uncheck": "Undo done",
+      "edit": "Edit",
+      "delete": "Delete",
+      "completed": "Completed ({{count}})",
+      "clearCompleted": "Clear completed",
+      "refresh": "Refresh",
+      "refreshTip": "Reload personal list",
+      "maintain": "AI Maintain",
+      "maintainTip": "AI extracts new items · detects completed · updates status from stream",
+      "aiHint": "✨ {{count}} from AI",
+      "pin": "Pin panel",
+      "unpin": "Unpin",
+      "close": "Close",
+      "duplicateItem": "This item already exists",
+      "maintainDone": "AI maintenance complete",
+      "maintainDoneWithChanges": "AI maintenance complete: {{parts}} (from {{period}})",
+      "maintainNoChanges": "No list changes in stream",
+      "maintainNoAiProvider": "Configure AI first to auto-maintain the list",
+      "maintainNoPeriodNote": "No stream period note to analyze",
+      "maintainAiFailed": "AI analysis failed, please retry",
+      "maintainFailed": "Maintenance failed",
+      "maintainAdded": "Added {{count}}",
+      "maintainCompleted": "Completed {{count}}",
+      "maintainUpdated": "Updated {{count}}"
+    },
+    "viewSwitcher": {
+      "streamLabel": "Stream",
+      "streamHint": "Current period notebook · quick notes (default)",
+      "categoryLabel": "Tree",
+      "categoryHint": "Categories → Topics → Files",
+      "timelineLabel": "Timeline",
+      "timelineHint": "Sorted by last modified",
+      "tagsLabel": "Tags",
+      "tagsHint": "Grouped by frontmatter tags",
+      "kanbanLabel": "Kanban",
+      "kanbanHint": "Columns by status · Drag to change · ⌘⇧B",
+      "moreLabel": "More",
+      "moreHint": "Tags · Kanban (advanced)",
+      "ariaTablist": "Sidebar views"
+    },
+    "stream": {
+      "loading": "Loading…",
+      "retry": "Retry",
+      "reloadTooltip": "Reload period notebook",
+      "defaultTitle": "This week's stream",
+      "emptyTitle": "No entries yet",
+      "emptyHint": "Log it on the stream page · or sidebar Note it",
+      "capture": "Note it",
+      "openFull": "Open full notebook",
+      "taskBoardTip": "Task board · by status · ⌘⇧B",
+      "openFullView": "Expand in main area",
+      "maintainTodos": "AI maintain todos",
+      "maintainTodosTip": "AI extracts list items from stream · detects completion · updates status",
+      "otherDay": "Other",
+      "todayShort": "Today"
+    },
+    "contextMenu": {
+      "labelFile": "Note",
+      "labelTopic": "Topic",
+      "labelCategory": "Category",
+      "labelGroup": "Navigation",
+      "labelDefault": "Actions",
+      "openInbox": "Open Inbox",
+      "quickCapture": "Note it…",
+      "openOutputs": "Open Delivery",
+      "openArchive": "Open Archive",
+      "openCategory": "Open category",
+      "newTopic": "New topic",
+      "newNote": "New note",
+      "expandAll": "Expand below",
+      "collapseAll": "Collapse below",
+      "copyPath": "Copy path",
+      "revealInFolder": "Reveal in folder",
+      "expanded": "Expanded",
+      "expandFolder": "Expand folder",
+      "openTopic": "Open topic",
+      "deleteTopic": "Delete topic",
+      "renameTopic": "Rename topic",
+      "openPreview": "Open preview",
+      "open": "Open",
+      "rename": "Rename",
+      "duplicate": "Duplicate",
+      "publishToOutputs": "Publish to Delivery",
+      "moveToTopic": "Move to topic…",
+      "openExternal": "Open with default app",
+      "delete": "Delete"
+    },
+    "treeToolbar": {
+      "sort": "Sort",
+      "expandAll": "Expand all categories and topics",
+      "expandAllAria": "Expand all",
+      "collapseAll": "Collapse all",
+      "collapseAllAria": "Collapse all",
+      "sortTooltip": "Sort: {{label}}",
+      "toggleSortAria": "Toggle sort",
+      "sortSectionLabel": "Sort",
+      "sortMtimeDesc": "Time · New→Old",
+      "sortMtimeAsc": "Time · Old→New",
+      "sortNameAsc": "Name · A→Z",
+      "sortNameDesc": "Name · Z→A",
+      "fileFilterTooltip": "File filter: {{label}}",
+      "toggleFileFilterAria": "Toggle file filter",
+      "fileFilterSectionLabel": "Show files",
+      "fileFilterDefault": "Default (notes & common docs)",
+      "fileFilterMarkdown": "Markdown only",
+      "fileFilterAll": "All files"
+    }
+  },
+  "captureSurface": {
+    "preparing": "Preparing Note it…",
+    "launchFailed": "Note it window failed to start",
+    "close": "Close",
+    "needWorkspace": "Workspace required",
+    "openMainWindow": "Open main window",
+    "pleaseOpenWorkspace": "Please open a workspace in the main window first",
+    "pleaseOpenWorkspaceHint": "Please open a workspace in the main window before using Note it"
+  },
+  "fileDropZone": {
+    "releaseToImport": "Release to import knowledge",
+    "dropHint": "Office / PDF / Email → ingest pipeline · Path reference, no pre-copy",
+    "preparing": "Preparing…"
+  },
+  "overlayHost": {
+    "loading": "Loading…"
+  },
+  "todo": {
+    "title": "List",
+    "loading": "Loading list…",
+    "empty": "List is empty",
+    "emptyHint": "Add below · or click ✨ for AI maintenance from stream",
+    "addPlaceholder": "Add an item…",
+    "add": "Add",
+    "check": "Mark done",
+    "uncheck": "Undo done",
+    "edit": "Edit",
+    "delete": "Delete",
+    "completed": "Completed ({{count}})",
+    "clearCompleted": "Clear completed",
+    "refresh": "Refresh",
+    "refreshTip": "Reload personal list",
+    "maintain": "AI Maintain",
+    "maintainTip": "AI extracts new items · detects completed · updates status from stream",
+    "aiHint": "✨ {{count}} from AI",
+    "footerIdle": "Personal list · memory/todo.md",
+    "pin": "Pin panel",
+    "unpin": "Unpin",
+    "close": "Close",
+    "duplicateItem": "This item already exists",
+    "dismissedItem": "This item was deleted and won't be re-extracted by AI",
+    "maintainDone": "AI maintenance complete",
+    "maintainDoneWithChanges": "AI maintenance complete: {{parts}} (from {{period}})",
+    "maintainNoChanges": "No list changes in stream",
+    "maintainNoAiProvider": "Configure AI first to auto-maintain the list",
+    "maintainNoPeriodNote": "No stream period note to analyze",
+    "maintainAiFailed": "AI analysis failed, please retry",
+    "maintainFailed": "Maintenance failed",
+    "maintainAdded": "Added {{count}}",
+    "maintainCompleted": "Completed {{count}}",
+    "maintainUpdated": "Updated {{count}}",
+    "maintainAlreadyProcessed": "This period was already processed. Click 'Force retry' to re-analyze",
+    "maintainQueued": "Queued — waiting for other AI prep to finish…",
+    "maintainForceRetry": "Force retry",
+    "maintainForceTip": "Clear processed mark and re-analyze period note",
+    "setDueDate": "Set due date",
+    "clearDueDate": "Clear due date",
+    "openSource": "Open source note",
+    "openFile": "Open list file",
+    "dueToday": "Today",
+    "dueTomorrow": "Tomorrow",
+    "dueYesterday": "Yesterday",
+    "dueInDays": "in {{count}} days",
+    "dueDaysAgo": "{{count}} days ago",
+    "overdue": "Overdue",
+    "staleHint": "{{count}} items are over 30 days old — consider cleaning up",
+    "cleanupStale": "Clean up stale items",
+    "cleanupStaleConfirm": "Will remove {{count}} completed items older than 7 days. Continue?",
+    "cleanupDone": "Cleaned up {{count}} stale items",
+    "healthOverdue": "{{count}} overdue",
+    "healthStale": "{{count}} stale",
+    "archiveStale": "Archive stale items",
+    "archiveStaleConfirm": "Will archive {{count}} items older than 30 days to history snapshot. Continue?",
+    "archiveDone": "Archived {{count}} stale items",
+    "openAria": "Personal list ({{count}})"
+  },
+  "appsMenu": {
+    "section": "Apps",
+    "empty": "No enabled apps. Turn on connectors (WeRead / Bookkeeping / Ingest…) in Settings → Plugins.",
+    "manage": "Manage apps…",
+    "needsConfig": "Setup needed"
+  },
+  "toolsLogs": {
+    "title": "Tools & Logs",
+    "subtitle": "Workspace usage · operations · health · cleanup",
+    "ok": "OK",
+    "hasIssues": "Issues",
+    "openFolder": "Open log folder",
+    "clearOps": "Clear ops log",
+    "clearMain": "Clear system log",
+    "tabs": {
+      "overview": "Overview",
+      "ops": "Operations",
+      "syslog": "System log",
+      "health": "Health",
+      "care": "Cleanup"
+    },
+    "metrics": {
+      "files": "Files",
+      "size": "Size",
+      "topics": "Topics",
+      "health": "Health"
+    },
+    "sections": {
+      "byTop": "Top-level folders",
+      "delivery": "88-Delivery",
+      "archive": "99-Archive",
+      "largest": "Largest files"
+    },
+    "deliveryLine": "{{count}} files · {{size}} · nested dirs {{nested}}",
+    "archiveLine": "Total {{size}} · backups {{backups}} · receipts {{receipts}}",
+    "empty": {
+      "noStats": "No data yet — refresh to scan"
+    },
+    "ops": {
+      "hint": "Ordinary edits save without snapshots; operations are listed here for review.",
+      "empty": "No operations yet"
+    },
+    "sys": {
+      "all": "All",
+      "empty": "No logs"
+    },
+    "health": {
+      "contract": "Workspace contract",
+      "clean": "No structural issues found",
+      "runDoctor": "Run full doctor"
+    },
+    "care": {
+      "archive": "99-Archive usage",
+      "archiveLine": "About {{size}} · {{files}} files",
+      "pruneHint": "Prunes old receipts by keep policy only; archived notes are not deleted.",
+      "prune": "Prune by policy",
+      "confirm": "Confirm",
+      "cancel": "Cancel",
+      "junk": "Junk files",
+      "noJunk": "No .DS_Store-style junk found",
+      "removeJunk": "Remove junk",
+      "emptyDirs": "Empty directories",
+      "noEmptyDirs": "No empty directories to remove",
+      "removeEmptyDirs": "Remove empty dirs",
+      "convention": "Out-of-convention entries",
+      "noConvention": "Top-level follows workspace conventions",
+      "duplicates": "Duplicate files",
+      "dupLine": "{{groups}} groups · recoverable ~{{waste}}",
+      "keep": "Keep",
+      "trashOthers": "Trash others",
+      "trashAllDupes": "Trash all confirmed duplicates",
+      "partialOnly": "Partial hash only",
+      "partialHint": "Large files skipped full hash — review before cleaning.",
+      "dupHint": "Default keep follows the suggestion (skips backup names, prefers year-dir + newer copies). Cleanup goes through the write gate (recoverable trash).",
+      "trash": "Recoverable deletes",
+      "noTrash": "Trash is empty",
+      "trashHint": "Locked/core deletes land here first; restore writes back to the original path.",
+      "restore": "Restore",
+      "restored": "Restored to {{path}}",
+      "restoreFailed": "Restore failed"
+    }
+  },
+  "help": {
+    "title": "Help",
+    "subtitle": "Getting started · Features · Workflow · Design · FAQ",
+    "close": "Close",
+    "openSettings": "Open Settings",
+    "openTools": "Tools & Logs",
+    "footerHint": "Everything lives in your local folder; AI and tools only read/write inside the workspace.",
+    "tabs": {
+      "start": "Start",
+      "features": "Features",
+      "workflow": "Workflow",
+      "philosophy": "Design",
+      "faq": "FAQ"
+    },
+    "tabBlurb": {
+      "start": "Five steps · try the first two today",
+      "features": "Capabilities around a low-friction personal stream",
+      "workflow": "Capture → Keep working → Deliver/remember → Find/adjust",
+      "philosophy": "Why the product is shaped this way",
+      "faq": "AI · deps · plugins · data"
+    },
+    "start": {
+      "heroKicker": "topmind Desktop",
+      "heroTitle": "Welcome to topmind",
+      "heroDesc": "A local-first personal stream workbench: capture into Inbox / stream, grow topics, deliver outputs, and keep long-term facts in memory. Files are the source of truth — open them in any editor.",
+      "stepsTitle": "Suggested order",
+      "steps": [
+        {
+          "title": "Open or create a workspace",
+          "body": "Use the bottom-left workspace menu to pick a local folder. New workspaces seed category structure (Inbox · Stream · Topics · Delivery · Archive). Your folder is the workspace — not a cloud account."
+        },
+        {
+          "title": "Note it",
+          "body": "⌘N or Note it in the sidebar: by default it appends to this week’s stream note; you can force Inbox or a standalone file. Global ⌘⇧N works from any app."
+        },
+        {
+          "title": "Configure AI (optional)",
+          "body": "Settings → Agent → AI: pick provider/model and API key. Without it the app is fully usable manually; with it you get chat, organize suggestions, and todo maintenance."
+        },
+        {
+          "title": "Install companions (optional)",
+          "body": "Settings → Integrations: Agent Skills, Clip extension, Obsidian plugin. Ingest local tools can be installed from their settings when needed."
+        },
+        {
+          "title": "Daily loop",
+          "body": "Capture → Keep working → Deliver/remember → Find/adjust. Tools & Logs shows usage, ops log, health, and cleanup ideas."
+        }
+      ],
+      "shortcutsTitle": "Essential shortcuts",
+      "shortcuts": [
+        { "keys": "⌘N", "label": "Note it" },
+        { "keys": "⌘⇧N", "label": "Global capture" },
+        { "keys": "⌘K", "label": "Command palette" },
+        { "keys": "⌘P", "label": "Full-text search" },
+        { "keys": "⌘⇧L", "label": "Tools & Logs" },
+        { "keys": "⌘,", "label": "Settings" }
+      ]
+    },
+    "features": {
+      "heroTitle": "Main features",
+      "heroDesc": "Built for a low-friction personal stream: few concepts, concrete files, recoverable mistakes.",
+      "items": [
+        {
+          "title": "Capture",
+          "body": "One line into the weekly stream note; heavier material to Inbox or a topic. Web clip extension and paste paths supported."
+        },
+        {
+          "title": "Stream · Inbox · Delivery",
+          "body": "Primary nav: stream is the default canvas; Inbox is the buffer; Delivery (88) holds flat outputs. Archive is reachable but not a primary peer."
+        },
+        {
+          "title": "Topics",
+          "body": "Create a topic folder only for strong themes (topic.md + notes). Stream stays flat by default."
+        },
+        {
+          "title": "AI copilot",
+          "body": "Right column: Chat / Suggestions / List / Apps. Suggestions generate by default and apply on confirm; the list is your personal list."
+        },
+        {
+          "title": "My profile (memory)",
+          "body": "Profile and periodic reflections live on the memory plane. Facts can be appended, updated, or retired — after confirm, never silent rewrites."
+        },
+        {
+          "title": "Tools & Logs",
+          "body": "Workspace usage, operations log, system log, health (including contract), cleanup and duplicate previews."
+        },
+        {
+          "title": "Optional connectors",
+          "body": "WeRead, X, bookkeeping, Ingest — enable when you need them; off by default from the main path."
+        },
+        {
+          "title": "Safe writes",
+          "body": "Default write access inside the workspace; AI cannot overwrite locked files; backups only for high-impact ops. Copy matches real recoverability."
+        }
+      ]
+    },
+    "workflow": {
+      "heroTitle": "Core workflow",
+      "heroDesc": "Capture → Keep working → Deliver/remember → Find/adjust. Product vocabulary stays tiny.",
+      "stageLabel": "Stage {{n}}",
+      "stages": [
+        {
+          "title": "Capture",
+          "body": "Note it, clip, Ingest, connectors. Default lands in the stream period note or Inbox without breaking focus."
+        },
+        {
+          "title": "Keep working",
+          "body": "Edit in stream/topics; AI can rewrite selections and discuss mounted files; confirm-gated suggestions organize Inbox and extract list items."
+        },
+        {
+          "title": "Deliver / remember",
+          "body": "Outputs go to 88-Delivery (flat names); long-term facts to memory; research notes stay in topics."
+        },
+        {
+          "title": "Find / adjust",
+          "body": "Search, tree, archive; Tools & Logs for health; lock critical notes against accidental edits."
+        }
+      ],
+      "dirsTitle": "Directory conventions (short)",
+      "dirs": [
+        "00-Inbox — buffer, organize regularly",
+        "10-Stream — period notes / flow (default)",
+        "20-Topics etc. — strong-theme folders (topic.md)",
+        "88-Delivery — outputs, flat YYYY-MM-DD-name",
+        "99-Archive — safety: backups · trash · stream years",
+        "memory/ — semantic plane: profile · reflections · list",
+        "topmind.yaml — workspace behavior contract"
+      ]
+    },
+    "philosophy": {
+      "heroTitle": "Design principles",
+      "heroDesc": "For a personal dynamic stream — not project management or a general coding agent.",
+      "points": [
+        {
+          "title": "Files are truth",
+          "body": "Markdown lives in your folder; open it in Obsidian, VS Code, or git. App state is rebuildable and never cages your content."
+        },
+        {
+          "title": "Default access, clear fences",
+          "body": "Tools and agents may read/write inside the workspace by default; outside paths and destructive acts ask first. Backups stay minimal (high-impact only)."
+        },
+        {
+          "title": "Suggestions ≠ auto-apply",
+          "body": "The system can propose organize, list, and memory changes — you confirm before write. AI cannot overwrite locked notes."
+        },
+        {
+          "title": "Optional depth",
+          "body": "AI, UTR, Skills, connectors, Obsidian are optional surfaces. Capture and folders still work without them."
+        },
+        {
+          "title": "Honest copy",
+          "body": "If something is recoverable we say so; we do not claim every delete is archived. Logs and receipts are bounded and clearable."
+        }
+      ],
+      "closing": "User concepts stay few: Note it · Stream · Topics · My profile · Delivery. Everything else is optional depth."
+    },
+    "faq": {
+      "heroTitle": "FAQ",
+      "heroDesc": "AI setup, dependencies, plugins, and data safety.",
+      "items": [
+        {
+          "q": "How do I configure AI?",
+          "a": "Settings → Agent → AI: choose a provider/model, paste an API key, save. You can switch models per chat. Without AI the app is fully usable manually. Keys stay on this machine (Desktop state, safeStorage when available)."
+        },
+        {
+          "q": "Can AI break my notes?",
+          "a": "Durable writes go through the write gate: fenced to the workspace; AI cannot overwrite protection: locked files; confirm mode requires approval. Ordinary edits do not auto-backup; locked overwrites and core deletes land under 99-Archive and can be restored via Tools & Logs / restore receipts."
+        },
+        {
+          "q": "How do I install dependencies?",
+          "a": "When Ingest needs local converters, use Settings → Ingest → local tools (probe/install). Agent Skills, Clip, and Obsidian plugin install from Settings → Integrations. Everyday note-taking needs no extra dependencies."
+        },
+        {
+          "q": "How do plugins / connectors work?",
+          "a": "Settings → Plugins enables WeRead, X, bookkeeping, etc. Settings → Integrations installs Clip and Obsidian. Connector writes still follow the same conventions and write gate."
+        },
+        {
+          "q": "Where is my data?",
+          "a": "Content is in the local folder you chose. Desktop runtime state (settings, logs, session cache) lives in the local app state folder and can be deleted without losing notes. Workspace content is not uploaded unless you use network features (AI / fetch)."
+        },
+        {
+          "q": "How should I back up?",
+          "a": "Back up the folder with your usual tools (Time Machine, sync, git). In-app backups are limited rotating copies for high-impact ops only (see Tools & Logs). Prefer a versioned or regularly synced workspace location."
+        },
+        {
+          "q": "I deleted something — can I restore?",
+          "a": "Ordinary open notes usually delete without trash (honest product policy). Locked or core notes (memory, topic home, delivery) go to 99-Archive trash and can be restored via Tools & Logs or UTR list-safety-receipts / restore. Lock important notes."
+        },
+        {
+          "q": "Can I use Obsidian too?",
+          "a": "Yes. The workspace is a plain Markdown folder. Optionally install the Obsidian plugin for a stream view; without it, open the same folder in Obsidian directly."
+        },
+        {
+          "q": "How do I change theme / language?",
+          "a": "Bottom-left workspace menu toggles theme and language; full preferences live in Settings → General. Workspace template and categories are under Settings → Workspace."
+        },
+        {
+          "q": "Something looks wrong — where first?",
+          "a": "Workspace menu → Tools & Logs: health (contract status), system log, ops log. Settings → Manage → Diagnostics runs the full doctor. Package the logs folder if you need to report an issue."
+        }
+      ]
+    }
+  }
+}

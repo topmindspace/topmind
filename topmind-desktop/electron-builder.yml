@@ -1,0 +1,139 @@
+# topmind Desktop — electron-builder
+# Prepare engine first: npm run pack:prepare  (also runs deps:packaging peer gate)
+# Build: npm run pack:mac | pack:linux | pack:win | pack:dir
+# Signing: set CSC_* / WIN_CSC_* env secrets — never commit certs (SECURITY.md / docs/PACKAGING.md)
+#
+# Artifact naming (user-facing, one installer family per OS):
+#   macOS:  topmind-<ver>-mac-arm64.dmg  (+ .zip for portable)
+#   Linux:  topmind-<ver>-linux-x64.{AppImage,deb,tar.gz}
+#           topmind-<ver>-linux-arm64.{AppImage,deb,tar.gz}
+#   Windows: topmind-<ver>-win-x64.exe  (NSIS)
+#
+# Production node_modules (incl. AI peer deps like zod) are packed via
+# electron-builder dependency walk — declare peers in package.json#dependencies.
+# Do NOT set ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES=true in CI.
+#
+# Arch policy:
+#   - Default = host arch (mac arm64 on M-series, linux x64/arm64 on matching runner)
+#   - Do not force multi-arch on CI unless intentional (dual-arch mac is flaky unsigned)
+#   - Linux arm64: build on ubuntu-24.04-arm (release matrix) or local aarch64 host
+#   - Cross-arch from foreign host needs electron-builder Docker (not default)
+
+# Keep in sync with electron/main.mjs app.setAppUserModelId (Windows taskbar pins).
+# Frozen across patch releases once set; changing appId creates a second install identity.
+appId: com.topmindspace.topmind
+productName: topmind
+copyright: Copyright © TopMindSpace
+
+directories:
+  output: release
+  buildResources: build
+
+# App icons (scripts/generate-icons.py ← build/logo-mark.png):
+#   icon.icns / icon-mac.png  macOS white rounded plate (Dock optical size)
+#   icon.ico / icon-win.png   Windows transparent fuller mark
+#   icon.png + icons/*        Linux / generic transparent mark
+# Runtime: electron/assets/{icon.png, icon-mac.png, icon.ico} (in asar)
+
+# App code only — production deps are resolved from package.json by electron-builder
+files:
+  - dist/**/*
+  - electron/**/*
+  - package.json
+  - "!**/*.map"
+  - "!electron/**/*.test.*"
+  - "!resources/**"
+  - "!**/.env"
+  - "!**/.env.*"
+  - "!**/*secret*"
+  - "!**/*.pem"
+  - "!**/*.p12"
+  - "!**/*.ts"
+  - "!**/README.md"
+  - "!**/CHANGELOG.md"
+  - "!**/docs/**"
+
+extraResources:
+  - from: resources/topmind-engine
+    to: topmind-engine
+
+# GitHub Releases are assembled by Actions (softprops), not electron-builder publish
+publish: null
+
+asar: true
+
+# Unified artifact names: topmind-<version>-<os>-<arch>.<ext>
+# os values from electron-builder: mac | linux | win
+artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+
+# Default under buildResources (build/)
+icon: icon.png
+
+mac:
+  category: public.app-category.productivity
+  icon: icon.icns
+  # Host arch only (arm64 on current macos-latest). Avoid dual-arch CI flakes.
+  target:
+    - dmg
+    - zip
+  darkModeSupport: true
+  # CI sets CSC_IDENTITY_AUTO_DISCOVERY=false for unsigned builds.
+  # With CSC_LINK secret set, electron-builder signs automatically.
+  gatekeeperAssess: false
+
+dmg:
+  title: topmind ${version}
+  # Skip fancy background if assets missing
+  writeUpdateInfo: false
+
+linux:
+  category: Office
+  icon: icons
+  synopsis: Local-first personal knowledge workspace
+  description: >-
+    topmind Desktop is a local-first personal workspace for capture, organize,
+    write, and AI-assisted work against a folder of Markdown notes.
+    Supports x86_64 and aarch64 (Ubuntu ARM and similar).
+  maintainer: TopMindSpace
+  vendor: TopMindSpace
+  # Host arch: x64 on ubuntu-latest, arm64 on ubuntu-24.04-arm
+  executableName: topmind
+  # AppImage: portable; deb: apt install; tar.gz: unpack without FUSE/dpkg
+  target:
+    - AppImage
+    - deb
+    - tar.gz
+  # electron-builder 26: LinuxDesktopFile must use { entry, desktopActions }
+  # (flat Name/Comment under desktop is rejected by scheme — CI failure).
+  # entry overwrites generated [Desktop Entry] keys.
+  desktop:
+    entry:
+      Name: topmind
+      Comment: Local-first personal knowledge workspace
+      Categories: Office;TextEditor;Utility;
+      StartupWMClass: topmind
+      Keywords: notes;markdown;knowledge;workspace;
+
+win:
+  icon: icon.ico
+  target:
+    - nsis
+  # Signing uses WIN_CSC_* when set; otherwise unsigned.
+  # CI/local unsigned builds force signAndEditExecutable=false via electron-builder-ci.mjs
+  # (empty WIN_CSC_LINK secrets otherwise crash rcedit on Windows runners).
+  # artifactName uses ${os}=win → topmind-<ver>-win-x64.exe
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  allowElevation: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: topmind
+  uninstallDisplayName: topmind ${version}
+  installerIcon: icon.ico
+  uninstallerIcon: icon.ico
+  installerHeaderIcon: icon.ico
+  # Per-user default is friendlier for personal knowledge tools (no admin required).
+  perMachine: false
+  deleteAppDataOnUninstall: false

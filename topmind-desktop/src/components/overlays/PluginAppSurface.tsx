@@ -1,0 +1,62 @@
+/**
+ * Dedicated plugin mini-app surface. Opens from the AI workspace Apps pane or
+ * plugin actions; close returns to the main canvas (view-store contract).
+ *
+ * DS 4.2: mini-apps (ledger etc.) use a light scrim + elevated panel so the
+ * workbench remains visible behind — full-black modal felt "covered".
+ */
+import { useTranslation } from "react-i18next";
+import { RiCloseLine, RiPuzzleLine } from "@remixicon/react";
+import { useViewStore } from "../../stores/view-store";
+import { useRegistry } from "../../plugins/registry";
+import { Button } from "../ui/Button";
+import { ICON } from "../../lib/icons";
+
+export function PluginAppSurface() {
+  const { t } = useTranslation("overlays");
+  const pluginId = useViewStore((s) => s.overlayContext?.pluginId || "");
+  const closeOverlay = useViewStore((s) => s.closeOverlay);
+  const overlaySlots = useRegistry((s) => s.overlaySlots);
+
+  const slot =
+    overlaySlots.find((s) => {
+      try {
+        return s.matches(`plugin-app:${pluginId}`);
+      } catch {
+        return false;
+      }
+    }) || overlaySlots.find((s) => s.pluginId === pluginId);
+
+  if (slot) {
+    return (
+      <div
+        className="v4-plugin-app-sheet flex h-full min-h-0 w-full flex-col overflow-hidden"
+        data-plugin-app={pluginId || "unknown"}
+      >
+        {slot.render()}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="v4-overlay-sheet v4-plugin-app-sheet flex max-h-[min(88vh,640px)] w-full flex-col overflow-hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-label={pluginId || t("pluginApp.title")}
+    >
+      <div className="flex items-center justify-between gap-3 border-b border-border-subtle px-5 py-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="v4-icon-chip flex h-7 w-7 items-center justify-center rounded-[var(--radius-md)] text-text-tertiary">
+            <RiPuzzleLine size={ICON.sm} />
+          </span>
+          <h2 className="truncate text-sm font-semibold text-text-primary">{pluginId || t("pluginApp.title")}</h2>
+        </div>
+        <Button variant="ghost" size="sm" onClick={closeOverlay} aria-label={t("pluginApp.close")}>
+          <RiCloseLine size={ICON.sm} />
+        </Button>
+      </div>
+      <div className="px-5 py-8 text-center text-3xs text-text-tertiary">{t("pluginApp.missing")}</div>
+    </div>
+  );
+}

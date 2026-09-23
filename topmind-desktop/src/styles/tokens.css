@@ -1,0 +1,892 @@
+@import "tailwindcss";
+
+/**
+ * topmind Design Tokens — Design System 4.0.1 "ZCode Neutral + MD3-informed"
+ * (4.0.1: dual-theme color refinement · typography scale cleanup · paper tokens ·
+ *  stale-hex purge — 2026-09-17)
+ *
+ * Brand: sky axis (deep #075985 → mid #0ea5e9) + capture teal #2fa89a.
+ * Solid CTA = monochrome ink. Sky = focus / links / selection / accent washes.
+ *
+ * Surface ladder (never collapse elevated into surface):
+ *   app-chrome → background → surface → surface-elevated
+ *
+ * Type policy (long-read workbench, CJK+Latin):
+ *   UI ≥12px · base UI 14/1.5 · prose/editor 16/1.72 · tracking near-neutral for CJK
+ */
+@theme {
+  /* ── Brand stops (sky axis; prefer semantic accent-* in UI) ── */
+  --color-brand-deep: #075985;
+  --color-brand-mid: #0ea5e9;
+  --color-brand-aqua: #2fa89a;
+  /* Soft brand wash for landing / empty states only — never full chrome fills */
+
+  /* ── Monochrome ink primary (solid CTA; ZCode primary language) ── */
+  --color-ink: #1a1a1a;
+  --color-ink-hover: #383838;
+  --color-ink-active: #0d0d0d;
+  --color-ink-foreground: #ffffff;
+
+  /* ── Colors (light) ──
+     Ladder: chrome → soft canvas → near-white surface → pure-white elevated.
+     Ink steps are evenly spaced for long scanning without muddy mid-tones. */
+  --color-app-chrome: #eeeeee;
+  --color-background: #f4f4f4;
+  --color-surface: #fafafa;
+  --color-surface-elevated: #ffffff;
+  --color-surface-muted: #f0f0f0;
+  --color-surface-inset: #e8e8e8;
+  --color-sidebar: #ececec;
+  --color-text-primary: #232323;
+  --color-text-secondary: #4e4e4e;
+  --color-text-tertiary: #6a6a6a;
+  --color-text-quaternary: #7c7c7c;
+  /* Prose body — one step softer than UI primary for long reading */
+  --color-text-prose: #2c2c2c;
+  /* Hairlines: pure-black alpha */
+  --color-border-subtle: rgba(23, 23, 23, 0.10);
+  --color-border-subtle-dim: rgba(23, 23, 23, 0.06);
+  --color-border-strong: rgba(23, 23, 23, 0.18);
+
+  /* Sky accent — focus / links / selection / accent washes (ZCode brand axis)
+     Light = sky-700. It was sky-600 (#0284c7) until 2026-09-14; that stop is
+     4.10:1 on white and 3.59:1 on chrome, under AA as a link / small-text carrier,
+     and 3.27:1 once composited over its own 8% selection wash on chrome.
+     Current light stops, measured: 5.93 white · 5.54 canvas · 5.21 chrome ·
+     4.66 over the accent-bg-subtle wash on chrome (worst plane).
+     These numbers are asserted in tests/ui-token-compliance.test.mjs — if you move
+     a stop, move the assertion with it. */
+  --color-accent-color: #0369a1;
+  --color-accent-hover: #075985;
+  --color-accent-muted: rgba(3, 105, 161, 0.10);
+  --color-focus-ring: rgba(3, 105, 161, 0.85);
+  --color-focus-soft: rgba(3, 105, 161, 0.14);
+  /* Inbox / capture identity: teal family, darkened for text contrast on light paper.
+     teal-800 since 2026-09-14 — the previous #12897b measured 4.29:1 on white and
+     4.27:1 once composited over its own 9% wash on chrome. Current: 7.58 white ·
+     6.65 chrome · 5.82 over its own wash on chrome. */
+  --color-accent-inbox: #115e59;
+  /* ── Status palette (light) ──
+     These stops are used as TEXT ~160x (`text-success` / `text-warning` /
+     `text-error`), almost always sitting on their own `-bg` wash, and the fills
+     that remain are status dots. Bright 500/600-stop greens and oranges are
+     fill-safe but not text-safe: the previous green-600 / orange / red-600 read
+     2.64 / 2.42 / 3.49:1 on the wash over chrome. Moved one to two steps darker
+     on 2026-09-14 — measured on the worst plane (chrome), text over own wash:
+       success green-800 5.49 · warning amber-800 5.44 · error red-700 4.90
+     Reverse direction also holds (white text on the solid stop): 7.13 / 7.09 / 6.47.
+     Asserted in tests/ui-token-compliance.test.mjs. Dark stays untouched. */
+  --color-status-success: #166534;
+  --color-success: var(--color-status-success);
+  --color-status-success-bg: rgba(22, 101, 52, 0.09);
+  --color-status-warning: #92400e;
+  --color-warning: var(--color-status-warning);
+  --color-status-warning-bg: rgba(146, 64, 14, 0.09);
+  --color-status-error: #b91c1c;
+  --color-error: var(--color-status-error);
+  --color-status-error-bg: rgba(185, 28, 28, 0.09);
+  /* Info — sky family, secondary signal. Text stop == sky-700 so the info tint is
+     legible as text; the wash keeps a sky tint (5.6:1 for text over it in the
+     AiProviderPanel reasoning chip). sky-500 as a *text* stop is 2.77:1 — unusable. */
+  --color-status-info: #0369a1;
+  --color-status-info-bg: rgba(3, 105, 161, 0.09);
+  --color-inset-glow-subtle: rgba(255, 255, 255, 0.06);
+  --color-accent-border-subtle: rgba(3, 105, 161, 0.25);
+  --color-accent-bg-subtle: rgba(3, 105, 161, 0.08);
+  --color-accent-bg-faint: rgba(3, 105, 161, 0.05);
+  --color-scrim: rgba(0, 0, 0, 0.36);
+  /* Mini-app overlay (ledger etc.) — canvas stays visible; only a soft dim */
+  --color-scrim-mini: rgba(0, 0, 0, 0.14);
+  --color-kbd-bg: rgba(0, 0, 0, 0.05);
+
+  /* ── Badge (numeric count signal) ──
+     Own axis, NOT accent-color — accent flips hue in inbox mode (deep teal), where
+     a white-on-teal fill drops below AA for the 11px bold type these badges use.
+     The badge plane must stay a single fixed sky stop in both app modes.
+     Kept >= 4.5:1 per mode (asserted in tests/ui-token-compliance.test.mjs):
+       light: badge 5.9:1 · alert 5.0:1 (white text on solid fill)
+       dark:  badge 6.5:1 · alert 9.0:1 (dark ink on light fill)
+     Small solid fill, so the badge reads on the chrome plane (#f0f0f0 light /
+     #161616 dark) without becoming a second accent surface.
+     Note: the light badge stop now coincides numerically with the recalibrated
+     accent (#0369a1). That is coincidence, not a licence to merge them — the
+     axis exists for the inbox-mode hue flip, not for the value. */
+  --color-badge: #0369a1;
+  --color-badge-foreground: #ffffff;
+  --color-badge-alert: #b45309;
+  --color-badge-alert-foreground: #ffffff;
+
+  /* State layers — composited on interactive controls (not text colors).
+     MD3: hover 8% · focus 12–16% · pressed 10% · drag 16% · disabled = no layer */
+  --color-state-hover: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  --color-state-focus: color-mix(in srgb, var(--color-accent-color) 14%, transparent);
+  --color-state-pressed: color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  --color-state-dragged: color-mix(in srgb, var(--color-accent-color) 16%, transparent);
+  --color-state-on-primary-hover: color-mix(in srgb, var(--color-ink-foreground) 12%, transparent);
+  --color-state-on-primary-pressed: color-mix(in srgb, var(--color-ink-foreground) 18%, transparent);
+
+  /* Tonal containers — secondary emphasis (not a second solid CTA) */
+  --color-accent-container: color-mix(in srgb, var(--color-accent-color) 12%, var(--color-surface));
+  --color-on-accent-container: var(--color-accent-color);
+  --color-error-container: color-mix(in srgb, var(--color-status-error) 12%, var(--color-surface));
+  --color-on-error-container: var(--color-status-error);
+  --color-success-container: color-mix(in srgb, var(--color-status-success) 12%, var(--color-surface));
+  --color-on-success-container: var(--color-status-success);
+
+  /* Editor paper tones (canvas only — never global chrome) */
+  --color-paper-soft: #f2f0ea;
+  --color-paper-cream: #faf7f0;
+  --color-paper-sepia: #f4ecdf;
+
+  /* Surface interaction states */
+  --color-surface-hover: rgba(23, 23, 23, 0.045);
+  --color-surface-elevated-hover: #f5f5f5;
+  /* Neutral selected wash (ZCode sidebar selection) — tree adds an accent inset bar on top */
+  --color-surface-selected: rgba(23, 23, 23, 0.06);
+  --color-text-on-accent: #ffffff;
+  /* Dialog / overlay semantic aliases */
+  --color-dialog-bg: var(--color-surface-elevated);
+  /* Settings section header wash — consumed as an arbitrary value
+     (`bg-[var(--color-dialog-header)]` in SettingsLayout), so the utility-class
+     audit does not see it. Kept because it is genuinely in use. */
+  --color-dialog-header: color-mix(in srgb, var(--color-surface-muted) 48%, var(--color-surface-elevated));
+
+  /* ── Spacing ──
+     Numeric --space-* scale removed 2026-08-30 (zero references anywhere);
+     spacing uses Tailwind's 4px utility grid. Off-scale values map to the
+     nearest grid slot. */
+
+  /* ── Radius — ZCode chrome steps + MD3-informed floating surfaces ── */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-full: 9999px;
+  /* Floating chrome (dialogs / menus) — softer than tool buttons for presence */
+  --radius-menu: 12px;
+  --radius-dialog: 16px;
+  --radius-card: 12px;
+  --radius-toast: 12px;
+
+  /* ── Elevation (neutral black tints; hairline on floating overlays) ── */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.09);
+  --shadow-xl: 0 20px 48px rgba(0, 0, 0, 0.11);
+  /* Feed / list cards — subtle lift + hairline for refined floating feel */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.045), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  /* Inset field wash — single source for input/textarea/select inner shadow */
+  --shadow-input-inset: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+  /* Monochrome primary button: quiet lift (no brand glow — ink speaks for itself) */
+  --shadow-button: 0 1px 2px rgba(0, 0, 0, 0.10);
+  --shadow-button-hover: 0 3px 10px rgba(0, 0, 0, 0.14);
+  --shadow-divider-bottom: 0 1px 0 0 var(--color-border-subtle-dim);
+  --shadow-overlay: 0 24px 64px rgba(0, 0, 0, 0.14), 0 8px 20px rgba(0, 0, 0, 0.06), 0 0 0 1px var(--color-border-subtle);
+  --shadow-float: 0 10px 28px rgba(0, 0, 0, 0.09), 0 0 0 1px var(--color-border-subtle);
+  /* Elevated panels: depth + optional top hairline (light: soft; dark: inset glow) */
+  --shadow-elevated-hairline: var(--shadow-float);
+  --shadow-overlay-hairline: var(--shadow-overlay);
+
+  /* Elevation levels — after concrete shadows so aliases resolve cleanly */
+  --elevation-0: none;
+  --elevation-1: var(--shadow-card);
+  --elevation-2: var(--shadow-float);
+  --elevation-3: var(--shadow-overlay);
+
+  /* ── Transition shorthands ── */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  /* MD3-informed emphasized easing — modal enter / terminal feedback only */
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --transition-interactive: color var(--duration-fast) var(--ease-default),
+    background-color var(--duration-fast) var(--ease-default),
+    border-color var(--duration-fast) var(--ease-default),
+    box-shadow var(--duration-fast) var(--ease-default),
+    transform var(--duration-fast) var(--ease-spring),
+    opacity var(--duration-fast) var(--ease-default);
+
+  /* ── Typography ──
+     Workbench system stacks — no webfont CDN. Latin first for UI chrome;
+     editor long-read prefers CJK faces. Display stays sans (not editorial). */
+  --font-family-ui: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", sans-serif;
+  --font-family-display: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --font-family-editor-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans SC", "Noto Sans CJK SC", "Segoe UI", "Helvetica Neue", ui-sans-serif, system-ui, sans-serif;
+  --font-family-editor-serif: "Source Han Serif SC", "Noto Serif SC", "Songti SC", "STSong", Georgia, "Times New Roman", serif;
+  --font-family-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Cascadia Mono", "Microsoft YaHei UI", "PingFang SC", monospace;
+  --font-sans: var(--font-family-ui);
+  --font-mono: var(--font-family-mono);
+  /* MD3 type-role aliases (docs / future consumers; UI uses Tailwind text-*) */
+  --type-role-display: var(--text-4xl);
+  --type-role-headline: var(--text-2xl);
+  --type-role-title: var(--text-lg);
+  --type-role-body: var(--text-base);
+  --type-role-label: var(--text-3xs);
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
+  /* Tracking — near-neutral for CJK+Latin mixed UI (Linear/Obsidian register) */
+  --letter-spacing-tighter: -0.02em;
+  --letter-spacing-tight: -0.012em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.02em;
+
+  --type-size-display: 28px;
+  --type-size-body: 14px;
+
+  /* Layout density */
+  --density-page-x: 28px;
+  --density-page-y: 24px;
+  --density-chrome-y: 44px;
+  --density-chrome-control: 32px;
+  --density-status-y: 26px;
+  --density-tree-row: 32px;
+  --density-editor-toolbar-y: 32px;
+
+  --control-h-chip: 22px;
+  --control-h-sm: 30px;
+  --control-h-md: 34px;
+  --control-h-lg: 40px;
+  --type-weight-regular: var(--font-weight-normal);
+  --type-weight-medium: var(--font-weight-medium);
+  --type-weight-strong: var(--font-weight-semibold);
+
+  /* Leading — UI denser, prose looser (editor 16/1.72) */
+  --type-leading-compact: 1.35;
+  --type-leading-ui: 1.5;
+  --type-leading-body: 1.72;
+  --type-leading-heading-tight: 1.22;
+  --type-leading-heading: 1.3;
+  --type-tracking-ui: var(--letter-spacing-normal);
+
+  --tracking-tighter: var(--letter-spacing-tighter);
+  --tracking-tight: var(--letter-spacing-tight);
+  --tracking-normal: var(--letter-spacing-normal);
+  --tracking-wide: var(--letter-spacing-wide);
+
+  /* Type scale — integer steps for CJK+Latin workbench
+     5xs/4xs = kbd & badge only · UI floor 12px · base 14 · title 16 · section 18 */
+  --text-5xs: 10px;
+  --text-5xs--line-height: var(--type-leading-compact);
+  --text-4xs: 11px;
+  --text-4xs--line-height: var(--type-leading-compact);
+  --text-3xs: 12px;
+  --text-3xs--line-height: var(--type-leading-compact);
+  --text-2xs: 12px;
+  --text-2xs--line-height: var(--type-leading-compact);
+  --text-xs: 13px;
+  --text-xs--line-height: var(--type-leading-ui);
+  --text-sm: 13px;
+  --text-sm--line-height: var(--type-leading-ui);
+  --text-base: 14px;
+  --text-base--line-height: var(--type-leading-ui);
+  --text-md: 14px;
+  --text-md--line-height: var(--type-leading-ui);
+  --text-lg: 16px;
+  --text-lg--line-height: var(--type-leading-compact);
+  --text-xl: 16px;
+  --text-xl--line-height: var(--type-leading-heading);
+  --text-2xl: 18px;
+  --text-2xl--line-height: var(--type-leading-heading);
+  --text-3xl: 24px;
+  --text-3xl--line-height: var(--type-leading-heading);
+  --text-4xl: 28px;
+  --text-4xl--line-height: var(--type-leading-heading-tight);
+
+
+  /* ── Layout ── */
+  --content-max-width: 1120px;
+  /* List views (Inbox / Category / Topic / Outputs / hubs): fluid column —
+     fills actual available canvas width, value is only the readability cap. */
+  --content-max-width-dashboard: 72rem;
+  /* Comfortable reading column (~65–75 CJK chars / ~70 Latin) */
+  /* Editor reading column — default wider than classic 42rem for better space use */
+  --content-max-width-prose: 52rem;
+  --content-max-width-prose-compact: 40rem;
+  --content-max-width-prose-reading: 52rem;
+  --content-max-width-prose-wide: 72rem;
+  /* Stream / 我的情况: page chrome + compose + cards share one reading column.
+     Fluid: max-width resolves against .v4-main-canvas, so the column fills the
+     actual available width (sidebar / AI panel / split aware); 56rem (~896px)
+     balances spacious UI layout with ergonomic CJK/Latin reading line-length. */
+  --feed-column-max: 56rem;
+  --z-local: 1;
+  --z-shell-rail: 10;
+  --z-header: 20;
+  --z-popover: 30;
+  --z-floating: 50;
+  --z-overlay: 70;
+  --z-modal: 80;
+  --z-notification: 90;
+  --z-toast: 100;
+  /* Open menus/listboxes must paint above tooltips (see DESIGN § dropdown) */
+  --z-menu: 110;
+  /* Popovers that must paint above open menus (e.g. todo popover over dropdowns) */
+  --z-popover-overlay: 120;
+  /* Full-viewport Confirm/Prompt/Error — above floating popovers; OverlayHost
+     stays at z-modal so settings-owned menus (z-menu) still paint on top. */
+  --z-dialog: 130;
+
+  /* ── Animation — snappy workbench (avoid long enter delays) ── */
+  --duration-instant: 60ms;
+  --duration-quick: 100ms;
+  --duration-fast: 140ms;
+  --duration-normal: 200ms;
+  --duration-enter: 160ms;
+  --duration-exit: 120ms;
+  --ease-default: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+
+  /* ── Status-bar chip truncation (see StatusBar.tsx) ──
+     Center selection hint: 42vw base, 36vw from sm up (media override in base layer).
+     Inline-AI busy / AI pill labels use fixed caps so the right rail never wraps. */
+  --status-chip-max: 42vw;
+  --status-chip-max-inline: 7.5rem;
+  --status-chip-max-ai: 9rem;
+
+  /* ── Blur — small surfaces only; never full-viewport scrim ── */
+  --blur-sm: 6px;
+  --blur-md: 12px;
+  --blur-lg: 18px;
+  --blur-glass: 14px;
+}
+
+/* Unified focus ring */
+@theme {
+  --shadow-focus-inset: inset 0 0 0 1px var(--color-accent-color), inset 0 0 0 4px var(--color-focus-soft);
+}
+
+/* ── MD3 role aliases (plain custom properties — not Tailwind utilities) ──
+   Design/docs mapping only; UI continues to use topmind semantic names.
+   Values resolve at use time against the active theme. */
+@layer base {
+  :root,
+  .dark {
+    --md-sys-color-primary: var(--color-ink);
+    --md-sys-color-on-primary: var(--color-ink-foreground);
+    --md-sys-color-secondary: var(--color-accent-color);
+    --md-sys-color-secondary-container: var(--color-accent-container);
+    --md-sys-color-on-secondary-container: var(--color-on-accent-container);
+    --md-sys-color-tertiary: var(--color-accent-inbox);
+    --md-sys-color-surface: var(--color-surface);
+    --md-sys-color-surface-container: var(--color-surface-elevated);
+    --md-sys-color-surface-container-high: var(--color-surface-elevated);
+    --md-sys-color-on-surface: var(--color-text-primary);
+    --md-sys-color-on-surface-variant: var(--color-text-tertiary);
+    --md-sys-color-outline: var(--color-border-subtle);
+    --md-sys-color-outline-variant: var(--color-border-subtle-dim);
+    --md-sys-color-error: var(--color-status-error);
+  }
+}
+
+@layer base, layout, components;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  body[data-mode='inbox'] {
+    --color-accent-color: var(--color-accent-inbox);
+    --color-accent-muted: rgba(17, 94, 89, 0.11);
+    --color-accent-hover: #134e4a;
+    --color-accent-border-subtle: rgba(17, 94, 89, 0.20);
+    --color-accent-bg-subtle: rgba(17, 94, 89, 0.09);
+    --color-focus-ring: rgba(17, 94, 89, 0.88);
+    --color-focus-soft: rgba(17, 94, 89, 0.14);
+  }
+
+  .dark {
+    color-scheme: dark;
+    /* Graphite ladder — rails deepest → canvas → paper → elevated modal plane */
+    --color-app-chrome: #131313;
+    --color-background: #161616;
+    --color-surface: #1b1b1b;
+    --color-surface-elevated: #242424;
+    --color-surface-muted: #1f1f1f;
+    --color-surface-inset: #0e0e0e;
+    --color-sidebar: #0c0c0c;
+    /* Long-read dark ink: primary bright enough for AA, prose one step softer */
+    --color-text-primary: #e6e6e6;
+    --color-text-secondary: #bcbcbc;
+    --color-text-tertiary: #969696;
+    --color-text-quaternary: #7e7e7e;
+    --color-text-prose: #d8d8d8;
+    --color-border-subtle: rgba(255, 255, 255, 0.10);
+    --color-border-subtle-dim: rgba(255, 255, 255, 0.06);
+    --color-border-strong: rgba(255, 255, 255, 0.18);
+    --color-dialog-bg: var(--color-surface-elevated);
+    --color-dialog-header: color-mix(in srgb, var(--color-surface-muted) 55%, var(--color-surface-elevated));
+    /* Ink CTA = near-white on graphite */
+    --color-ink: #f0f0f0;
+    --color-ink-hover: #dcdcdc;
+    --color-ink-active: #ffffff;
+    --color-ink-foreground: #0a0a0a;
+    --color-accent-inbox: #4fc2b0;
+    --color-accent-color: #38bdf8;
+    --color-accent-hover: #7dd3fc;
+    --color-accent-muted: rgba(56, 189, 248, 0.16);
+    --color-accent-border-subtle: rgba(56, 189, 248, 0.30);
+    --color-accent-bg-subtle: rgba(56, 189, 248, 0.13);
+    --color-accent-bg-faint: rgba(56, 189, 248, 0.07);
+    --color-focus-ring: rgba(56, 189, 248, 0.90);
+    --color-focus-soft: rgba(56, 189, 248, 0.16);
+    /* Status on graphite — AA on elevated plane + own wash */
+    --color-status-success: #4ade80;
+    --color-status-success-bg: rgba(74, 222, 128, 0.12);
+    --color-status-warning: #fbbf24;
+    --color-warning: var(--color-status-warning);
+    --color-status-warning-bg: rgba(251, 191, 36, 0.12);
+    --color-status-error: #f87171;
+    --color-status-error-bg: rgba(248, 113, 113, 0.12);
+    --color-status-info: #7dd3fc;
+    --color-status-info-bg: rgba(125, 211, 252, 0.12);
+    --color-scrim: rgba(0, 0, 0, 0.56);
+    --color-scrim-mini: rgba(0, 0, 0, 0.28);
+    --color-kbd-bg: rgba(255, 255, 255, 0.08);
+    --color-badge: #38bdf8;
+    --color-badge-foreground: #082f49;
+    --color-badge-alert: #fbbf24;
+    --color-badge-alert-foreground: #451a03;
+
+    --color-surface-hover: rgba(255, 255, 255, 0.055);
+    --color-surface-elevated-hover: #2a2a2a;
+    --color-surface-selected: rgba(255, 255, 255, 0.09);
+    --color-text-on-accent: #0a0a0a;
+
+    /* Dark state layers */
+    --color-state-hover: color-mix(in srgb, var(--color-text-primary) 7%, transparent);
+    --color-state-focus: color-mix(in srgb, var(--color-accent-color) 16%, transparent);
+    --color-state-pressed: color-mix(in srgb, var(--color-text-primary) 9%, transparent);
+    --color-state-dragged: color-mix(in srgb, var(--color-accent-color) 20%, transparent);
+    --color-state-on-primary-hover: color-mix(in srgb, var(--color-ink-foreground) 10%, transparent);
+    --color-state-on-primary-pressed: color-mix(in srgb, var(--color-ink-foreground) 16%, transparent);
+    --color-accent-container: color-mix(in srgb, var(--color-accent-color) 14%, var(--color-surface));
+    --color-on-accent-container: var(--color-accent-color);
+    --color-error-container: color-mix(in srgb, var(--color-status-error) 16%, var(--color-surface));
+    --color-on-error-container: var(--color-status-error);
+    --color-success-container: color-mix(in srgb, var(--color-status-success) 16%, var(--color-surface));
+    --color-on-success-container: var(--color-status-success);
+
+    /* Dark paper tones — warm graphite, not neon */
+    --color-paper-soft: color-mix(in srgb, var(--color-surface) 88%, #3a3428);
+    --color-paper-cream: color-mix(in srgb, var(--color-surface) 90%, #2f281c);
+    --color-paper-sepia: color-mix(in srgb, var(--color-surface) 84%, #4a3824);
+
+
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.30);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.34);
+    --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.38);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.44);
+    --shadow-xl: 0 20px 48px rgba(0, 0, 0, 0.50);
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(255, 255, 255, 0.06), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+    --shadow-input-inset: inset 0 1px 2px rgba(0, 0, 0, 0.28);
+    --shadow-button: 0 1px 2px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.10);
+    --shadow-button-hover: 0 4px 14px rgba(0, 0, 0, 0.40);
+    --shadow-overlay: 0 28px 72px rgba(0, 0, 0, 0.54), 0 10px 24px rgba(0, 0, 0, 0.32), 0 0 0 1px var(--color-border-subtle);
+    --shadow-float: 0 12px 32px rgba(0, 0, 0, 0.42), 0 0 0 1px var(--color-border-subtle);
+    /* Raycast/Linear-style dark polish: outer hairline + 1px top inset glow */
+    --shadow-elevated-hairline:
+      var(--shadow-float),
+      0 0 0 1px color-mix(in srgb, #fff 6%, transparent),
+      inset 0 1px 0 0 var(--color-inset-glow-subtle);
+    --shadow-overlay-hairline:
+      var(--shadow-overlay),
+      0 0 0 1px color-mix(in srgb, #fff 7%, transparent),
+      inset 0 1px 0 0 var(--color-inset-glow-subtle);
+    --color-inset-glow-subtle: rgba(255, 255, 255, 0.07);
+    --shadow-divider-bottom: 0 1px 0 0 var(--color-border-subtle);
+  }
+
+  .dark body[data-mode='inbox'] {
+    --color-accent-color: var(--color-accent-inbox);
+    --color-accent-muted: rgba(79, 194, 176, 0.15);
+    --color-accent-hover: #6fd4c2;
+    --color-accent-border-subtle: rgba(79, 194, 176, 0.26);
+    --color-accent-bg-subtle: rgba(79, 194, 176, 0.11);
+    --color-focus-ring: rgba(79, 194, 176, 0.88);
+    --color-focus-soft: rgba(79, 194, 176, 0.14);
+    --color-text-on-accent: #12100c;
+  }
+}
+
+.dark.high-contrast {
+  --color-background: #000000;
+  --color-surface: #000000;
+  --color-surface-elevated: #111111;
+  --color-surface-muted: #222222;
+  --color-surface-inset: #1a1a1a;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #e0e0e0;
+  --color-text-tertiary: #cccccc;
+  --color-text-quaternary: #aaaaaa;
+  --color-border-subtle: #ffffff;
+  --color-border-strong: #ffffff;
+  --color-accent-color: #7dd3fc;
+  --color-accent-muted: rgba(125, 211, 252, 0.22);
+}
+
+/* ── Pre-generated theme seeds (DS 4.0.3) ──
+   Accent axis only — ink CTA, surfaces, density, IA unchanged.
+   sky = default (no attribute). Stops keep AA on the 4.0 surface ladder.
+   Inbox capture mode still wins via body[data-mode=inbox] overrides. */
+html[data-theme-seed="teal"] {
+  --color-accent-color: #0f766e;
+  --color-accent-hover: #115e59;
+  --color-accent-muted: rgba(15, 118, 110, 0.10);
+  --color-accent-container: color-mix(in srgb, #0f766e 12%, var(--color-surface));
+  --color-on-accent-container: #0f766e;
+  --color-focus-ring: rgba(15, 118, 110, 0.85);
+  --color-focus-soft: rgba(15, 118, 110, 0.14);
+  --color-accent-bg-subtle: rgba(15, 118, 110, 0.08);
+  --color-accent-bg-faint: rgba(15, 118, 110, 0.05);
+  --color-accent-border-subtle: rgba(15, 118, 110, 0.25);
+  --color-badge: #0f766e;
+  --color-status-info: #0f766e;
+  --color-status-info-bg: rgba(15, 118, 110, 0.09);
+  --color-brand-deep: #115e59;
+  --color-brand-mid: #14b8a6;
+  --color-brand-aqua: #2fa89a;
+}
+html.dark[data-theme-seed="teal"] {
+  --color-accent-color: #5eead4;
+  --color-accent-hover: #99f6e4;
+  --color-accent-muted: rgba(94, 234, 212, 0.16);
+  --color-accent-container: color-mix(in srgb, #5eead4 14%, var(--color-surface));
+  --color-on-accent-container: #5eead4;
+  --color-focus-ring: rgba(94, 234, 212, 0.90);
+  --color-focus-soft: rgba(94, 234, 212, 0.16);
+  --color-accent-bg-subtle: rgba(94, 234, 212, 0.13);
+  --color-accent-bg-faint: rgba(94, 234, 212, 0.07);
+  --color-accent-border-subtle: rgba(94, 234, 212, 0.30);
+  --color-badge: #5eead4;
+  --color-badge-foreground: #042f2a;
+  --color-status-info: #99f6e4;
+  --color-status-info-bg: rgba(153, 246, 228, 0.12);
+  --color-text-on-accent: #042f2a;
+}
+html[data-theme-seed="graphite"] {
+  --color-accent-color: #3f3f46;
+  --color-accent-hover: #27272a;
+  --color-accent-muted: rgba(63, 63, 70, 0.10);
+  --color-accent-container: color-mix(in srgb, #3f3f46 10%, var(--color-surface));
+  --color-on-accent-container: #3f3f46;
+  --color-focus-ring: rgba(63, 63, 70, 0.80);
+  --color-focus-soft: rgba(63, 63, 70, 0.12);
+  --color-accent-bg-subtle: rgba(63, 63, 70, 0.08);
+  --color-accent-bg-faint: rgba(63, 63, 70, 0.05);
+  --color-accent-border-subtle: rgba(63, 63, 70, 0.22);
+  --color-badge: #3f3f46;
+  --color-status-info: #3f3f46;
+  --color-status-info-bg: rgba(63, 63, 70, 0.08);
+  --color-brand-deep: #18181b;
+  --color-brand-mid: #71717a;
+  --color-brand-aqua: #a1a1aa;
+}
+html.dark[data-theme-seed="graphite"] {
+  --color-accent-color: #d4d4d8;
+  --color-accent-hover: #f4f4f5;
+  --color-accent-muted: rgba(212, 212, 216, 0.16);
+  --color-accent-container: color-mix(in srgb, #d4d4d8 14%, var(--color-surface));
+  --color-on-accent-container: #d4d4d8;
+  --color-focus-ring: rgba(212, 212, 216, 0.85);
+  --color-focus-soft: rgba(212, 212, 216, 0.16);
+  --color-accent-bg-subtle: rgba(212, 212, 216, 0.12);
+  --color-accent-bg-faint: rgba(212, 212, 216, 0.06);
+  --color-accent-border-subtle: rgba(212, 212, 216, 0.28);
+  --color-badge: #d4d4d8;
+  --color-badge-foreground: #18181b;
+  --color-status-info: #d4d4d8;
+  --color-status-info-bg: rgba(212, 212, 216, 0.12);
+  --color-text-on-accent: #18181b;
+}
+
+/* ── Base resets ── */
+@layer base {
+
+html {
+  scroll-behavior: auto;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-size-body);
+  font-weight: var(--type-weight-regular);
+  line-height: var(--type-leading-ui);
+  letter-spacing: var(--type-tracking-ui);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+}
+
+code,
+pre,
+kbd,
+samp,
+.font-mono {
+  font-family: var(--font-family-mono);
+}
+
+a {
+  color: var(--color-accent-color);
+  text-decoration: underline;
+  text-underline-offset: 2.5px;
+  text-decoration-thickness: 1px;
+  transition: color var(--duration-fast) var(--ease-default);
+}
+
+a:hover {
+  color: var(--color-accent-hover);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-accent-color) 22%, transparent);
+  color: var(--color-text-primary);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  touch-action: manipulation;
+}
+
+button {
+  cursor: pointer;
+  transition: var(--transition-interactive);
+}
+
+button:active:not(:disabled),
+.interactive-scale:active:not(:disabled) {
+  /* 2026-08-07: subtle press feedback (0.985 → 0.992 for refined feel) */
+  transform: scale(0.992);
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--color-focus-soft);
+}
+
+/* Base scrollbar — slightly roomy for general surfaces (lists, dialogs) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-text-tertiary) 40%, transparent) transparent;
+}
+
+::-webkit-scrollbar,
+.custom-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track,
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb,
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-text-tertiary) 36%, transparent);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background-color var(--duration-fast) var(--ease-default);
+}
+
+::-webkit-scrollbar-thumb:hover,
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--color-text-tertiary) 58%, transparent);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+::-webkit-scrollbar-thumb:active,
+.custom-scrollbar::-webkit-scrollbar-thumb:active {
+  background: color-mix(in srgb, var(--color-text-tertiary) 72%, transparent);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+}
+
+/* Center selection hint cap tightens on sm+ viewports (single media override for
+   --status-chip-max; components just reference the token). */
+@media (min-width: 640px) {
+  :root,
+  .dark {
+    --status-chip-max: 36vw;
+  }
+}
+
+/* Unified focus ring + MD3-informed state helpers */
+@layer components {
+  .v4-focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35;
+  }
+  .v4-state-hover { background: var(--color-state-hover); }
+  .v4-state-pressed { background: var(--color-state-pressed); }
+  .v4-state-dragged { background: var(--color-state-dragged); }
+  /* Snackbar surface — elevated paper; dark uses light glass */
+  .v4-toast {
+    backdrop-filter: blur(var(--blur-sm, 6px));
+    -webkit-backdrop-filter: blur(var(--blur-sm, 6px));
+  }
+  html.dark .v4-toast {
+    backdrop-filter: blur(var(--blur-glass, 14px)) saturate(140%);
+    -webkit-backdrop-filter: blur(var(--blur-glass, 14px)) saturate(140%);
+  }
+}
+
+
+/* Motion: opacity-first, micro translate — cheaper than large transforms */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fade-in-scale {
+  from { opacity: 0; transform: scale(0.985); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, 4px) scale(0.98); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+.animate-fade-in {
+  animation: fade-in var(--duration-enter) var(--ease-out);
+}
+
+.animate-fade-in-scale {
+  animation: fade-in-scale var(--duration-enter) var(--ease-out);
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up var(--duration-enter) var(--ease-out);
+}
+
+.animate-toast-in {
+  animation: toast-in var(--duration-enter) var(--ease-spring);
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-surface-muted) 70%, transparent) 25%,
+    color-mix(in srgb, var(--color-surface-elevated) 95%, var(--color-accent-muted)) 50%,
+    color-mix(in srgb, var(--color-surface-muted) 70%, transparent) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+.animate-spin {
+  animation: spin 0.65s linear infinite;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 1.8s ease-in-out infinite;
+}
+
+/* Stagger — short cascade; only first few items delay (lists stay scrollable) */
+.stagger-children > * {
+  animation: fade-in var(--duration-fast) var(--ease-out) both;
+}
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 20ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 40ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 55ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 70ms; }
+.stagger-children > *:nth-child(n+6) { animation-delay: 80ms; }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  button:active:not(:disabled),
+  .interactive-scale:active:not(:disabled) {
+    transform: none;
+  }
+  .stagger-children > * {
+    animation: none !important;
+  }
+  /* Essential busy: Windows often maps OS "动画效果" to reduced-motion.
+     Keep in-flight indicators looping so work is visible (not a 0.01ms one-shot). */
+  .animate-spin,
+  .v4-ai-progress-slide,
+  .v4-ai-progress-dot,
+  .v4-ai-busy-icon,
+  .v4-ai-busy-text,
+  .animate-shimmer,
+  .animate-pulse-soft {
+    animation-iteration-count: infinite !important;
+  }
+  .animate-spin {
+    animation-duration: 0.65s !important;
+  }
+  .v4-ai-progress-slide {
+    animation-duration: 1.4s !important;
+  }
+  .v4-ai-progress-dot {
+    animation-duration: 1.2s !important;
+  }
+  .v4-ai-busy-icon {
+    animation-duration: 1.4s !important;
+  }
+  .v4-ai-busy-text {
+    animation-duration: 1.6s !important;
+  }
+  .animate-shimmer {
+    animation-duration: 1.6s !important;
+  }
+  .animate-pulse-soft {
+    animation-duration: 1.8s !important;
+  }
+}

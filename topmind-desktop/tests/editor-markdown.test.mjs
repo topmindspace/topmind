@@ -1,0 +1,175 @@
+/**
+ * Editor markdown helpers — contentWidth normalize + pure contracts.
+ */
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { pathToFileURL } from "node:url";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+test("normalizeContentWidth accepts known modes and defaults to reading", async () => {
+  // Import compiled TS via tsx (test runner)
+  const mod = await import(pathToFileURL(path.join(root, "src/lib/editor-markdown.ts")).href);
+  assert.equal(mod.normalizeContentWidth("compact"), "compact");
+  assert.equal(mod.normalizeContentWidth("wide"), "wide");
+  assert.equal(mod.normalizeContentWidth("full"), "full");
+  assert.equal(mod.normalizeContentWidth("reading"), "reading");
+  assert.equal(mod.normalizeContentWidth("nope"), "reading");
+  assert.equal(mod.normalizeContentWidth(undefined), "reading");
+  assert.ok(mod.EDITOR_CONTENT_WIDTHS.length >= 4);
+  // setEditorMarkdown must only pass strings (Markdown extension parses once)
+  const src = await import("node:fs").then((fs) =>
+    fs.readFileSync(path.join(root, "src/lib/editor-markdown.ts"), "utf8"),
+  );
+  assert.match(src, /export function setEditorMarkdown[\s\S]*?setContent\(body/);
+  // Executable path must not call parser.parse (strip line comments first)
+  const fnBody = (src.match(/export function setEditorMarkdown[\s\S]*?\n\}/u)?.[0] || "")
+    .replace(/\/\/.*$/gmu, "");
+  assert.doesNotMatch(fnBody, /parser\.parse\s*\(/);
+  assert.match(fnBody, /setContent\(body/);
+});
+
+test("getEditorHtml is empty without an editor", async () => {
+  const { getEditorHtml } = await import(
+    pathToFileURL(path.join(root, "src/lib/editor-markdown.ts")).href
+  );
+  assert.equal(getEditorHtml(null), "");
+  assert.equal(getEditorHtml(undefined), "");
+  assert.equal(getEditorHtml({ isDestroyed: true }), "");
+});
+
+test("nextPreviewHtml resets on path change; empty B does not keep A's HTML", async () => {
+  const { nextPreviewHtml, EMPTY_PREVIEW_HTML, isEmptyPreviewHtml } = await import(
+    pathToFileURL(path.join(root, "src/lib/editor-markdown.ts")).href
+  );
+  const noteA = "<p>Note A body</p>";
+  // Path change while editor still holds A — must not keep A
+  assert.equal(
+    nextPreviewHtml(noteA, noteA, { pathChanged: true }),
+    EMPTY_PREVIEW_HTML,
+  );
+  assert.equal(
+    nextPreviewHtml(noteA, "", { pathChanged: true }),
+    EMPTY_PREVIEW_HTML,
+  );
+  // Post-load of empty / frontmatter-only note B
+  assert.equal(
+    nextPreviewHtml(EMPTY_PREVIEW_HTML, "", { pathChanged: false }),
+    EMPTY_PREVIEW_HTML,
+  );
+  assert.equal(
+    nextPreviewHtml(EMPTY_PREVIEW_HTML, "<p></p>", { pathChanged: false }),
+    EMPTY_PREVIEW_HTML,
+  );
+  assert.ok(isEmptyPreviewHtml(nextPreviewHtml(noteA, "<p></p>", { pathChanged: false })));
+  // Same-path load of real content
+  assert.equal(
+    nextPreviewHtml(EMPTY_PREVIEW_HTML, "<p>Note B</p>", { pathChanged: false }),
+    "<p>Note B</p>",
+  );
+  // A → empty B: reset then apply empty — never retain A
+  const afterPath = nextPreviewHtml(noteA, noteA, { pathChanged: true });
+  const afterLoad = nextPreviewHtml(afterPath, "<p></p>", { pathChanged: false });
+  assert.equal(afterPath, EMPTY_PREVIEW_HTML);
+  assert.equal(afterLoad, EMPTY_PREVIEW_HTML);
+  assert.notEqual(afterLoad, noteA);
+});
+
+test("FileEditorView preview is static HTML with shared reading prefs (not live TipTap)", async () => {
+  const fs = await import("node:fs");
+  const view = fs.readFileSync(
+    path.join(root, "src/plugins/topmind-workspace/views/FileEditorView.tsx"),
+    "utf8",
+  );
+  assert.match(view, /getEditorHtml/);
+  assert.match(view, /dangerouslySetInnerHTML=\{\{\s*__html:\s*previewHtml/);
+  assert.match(view, /data-paper=\{paper\}/);
+  assert.match(view, /data-content-width=\{contentWidth\}/);
+  assert.match(view, /data-page-padding=\{pagePadding\}/);
+  assert.match(view, /style=\{proseStyle\}/);
+  assert.match(view, /fontSize: `\$\{editorSettings\.fontSize\}px`/);
+  // Visible preview is static HTML; TipTap stays mounted (hidden) so the view exists
+  assert.match(view, /<EditorContent/);
+  assert.match(view, /className=\{cn\(\(viewMode === "preview" \|\| readOnly\) && "hidden"\)\}/);
+  assert.match(view, /bumpPreview\(\)/);
+  assert.match(view, /nextPreviewHtml/);
+  assert.match(view, /pathChanged:\s*true/);
+  assert.match(view, /loadedPathRef/);
+  assert.match(view, /if \(mode === "preview"\)/);
+  assert.doesNotMatch(view, /html && html !== ["']<p><\/p>["']/);
+  assert.doesNotMatch(
+    view,
+    /viewMode === "preview" \|\| readOnly \? \([\s\S]*?<EditorContent/,
+  );
+});
+
+test("mergeEditorPrefs (shipped) clamps and defaults reading fields", async () => {
+  const { mergeEditorPrefs, DEFAULT_EDITOR_PREFS } = await import(
+    pathToFileURL(path.join(root, "src/lib/editor-prefs.ts")).href
+  );
+  const next = mergeEditorPrefs({ fontSize: 99, paper: "sepia", contentWidth: "wide" }, null);
+  assert.equal(next.fontSize, 24);
+  assert.equal(next.paper, "sepia");
+  assert.equal(next.contentWidth, "wide");
+  assert.equal(next.lineHeight, DEFAULT_EDITOR_PREFS.lineHeight);
+  assert.equal(next.inlineAiAutoPopup, true);
+  const bad = mergeEditorPrefs({ paper: "neon", fontFamily: "comic" }, DEFAULT_EDITOR_PREFS);
+  assert.equal(bad.paper, "default");
+  assert.equal(bad.fontFamily, "sans");
+  const off = mergeEditorPrefs({ fontSize: 18 }, { inlineAiAutoPopup: false });
+  assert.equal(off.inlineAiAutoPopup, false);
+  assert.equal(off.fontSize, 18);
+});
+
+test("settings normalizeEditorSettings preserves contentWidth", async () => {
+  const mod = await import(pathToFileURL(path.join(root, "electron/settings.mjs")).href);
+  const { createDefaultAppSettings, __settingsTest } = mod;
+  const base = createDefaultAppSettings("/tmp/ws");
+  assert.equal(base.editor.contentWidth, "reading");
+  const next = __settingsTest.normalizeEditorSettings(
+    { contentWidth: "wide", fontSize: 18 },
+    base.editor,
+  );
+  assert.equal(next.contentWidth, "wide");
+  assert.equal(next.fontSize, 18);
+  const bad = __settingsTest.normalizeEditorSettings({ contentWidth: "huge" }, base.editor);
+  assert.equal(bad.contentWidth, "reading");
+  const off = __settingsTest.normalizeEditorSettings(
+    { inlineAiAutoPopup: false },
+    base.editor,
+  );
+  assert.equal(off.inlineAiAutoPopup, false);
+});
+
+test("preprocessMarkdownForBlocks does not invent blank lines between list items", async () => {
+  const { preprocessMarkdownForBlocks, alignMarkdownIndent, prepareMarkdownForEditorInsert } =
+    await import(pathToFileURL(path.join(root, "src/lib/editor-markdown.ts")).href);
+
+  assert.equal(preprocessMarkdownForBlocks("- a\n- b"), "- a\n- b");
+  assert.equal(preprocessMarkdownForBlocks("- a\n  - nested"), "- a\n  - nested");
+  assert.equal(preprocessMarkdownForBlocks("para\n- a"), "para\n\n- a");
+  assert.equal(preprocessMarkdownForBlocks("para\n## Heading"), "para\n\n## Heading");
+  assert.equal(preprocessMarkdownForBlocks("- a\n\n\n- b"), "- a\n- b");
+  assert.equal(preprocessMarkdownForBlocks("- a\n1. b"), "- a\n\n1. b");
+
+  assert.equal(alignMarkdownIndent("- item", "    - item"), "- item");
+  assert.equal(alignMarkdownIndent("  - item", "- item"), "  - item");
+  assert.equal(alignMarkdownIndent("- a\n  - b", "- a\n  - b"), "- a\n  - b");
+
+  const prepared = prepareMarkdownForEditorInsert("\n\n- a\n\n- b\n\n", "- a\n- b");
+  assert.equal(prepared, "- a\n- b");
+  const nested = prepareMarkdownForEditorInsert("    - child", "  - child");
+  assert.equal(nested, "  - child");
+
+  // Fenced samples must keep blank lines — do not rewrite code as tight lists
+  assert.equal(
+    preprocessMarkdownForBlocks("```\n- a\n\n- b\n```"),
+    "```\n- a\n\n- b\n```",
+  );
+  assert.equal(
+    preprocessMarkdownForBlocks("para\n```\n- a\n\n- b\n```\n- c\n- d"),
+    "para\n```\n- a\n\n- b\n```\n- c\n- d",
+  );
+});

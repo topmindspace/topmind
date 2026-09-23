@@ -1,0 +1,50 @@
+/**
+ * Semantic theme aliases — shadcn/ui vocabulary on topmind Design System 4.0 tokens.
+ *
+ * tokens.css (truth): brand-*, surface ladder, accent-*, status-*, state-*, paper-*.
+ * This file only re-exports names the components actually use. Aliases with zero
+ * references stay pruned — a defined-but-unused alias is how ghost references start.
+ *
+ * Usage:
+ * - Solid CTA: `bg-primary` + `text-primary-foreground` (monochrome ink)
+ * - Subtle fill: `bg-accent-bg-subtle` / `bg-accent-bg-faint`
+ * - Tonal: `bg-accent-container` + `text-on-accent-container`
+ * - State layers: `bg-state-hover` / `bg-state-pressed`
+ *
+ * Ghost references are guarded by tests/ui-token-compliance.test.mjs.
+ */
+@layer base {
+  :root,
+  .dark {
+    --popover: var(--color-surface-elevated);
+    /* Primary CTA = monochrome ink (light: near-black, dark: near-white) — ZCode primary */
+    --primary: var(--color-ink);
+    --primary-foreground: var(--color-ink-foreground);
+    --secondary: var(--color-surface-muted);
+    --secondary-foreground: var(--color-text-primary);
+    --input: var(--color-surface-inset);
+    --ring: var(--color-accent-color);
+    --chrome: var(--color-app-chrome);
+  }
+}
+
+@theme {
+  --color-popover: var(--popover);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--color-ink-hover);
+  --color-primary-active: var(--color-ink-active);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chrome: var(--chrome);
+
+  /* State / tonal live in tokens.css @theme — not re-aliased here (avoid cycles).
+     Utilities: bg-accent-container · text-on-accent-container · bg-state-hover … */
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+}

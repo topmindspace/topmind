@@ -1,0 +1,322 @@
+/**
+ * Dialog primitives — lightweight modal with focus trap + labelled prompts.
+ * Design System 2.0: Escape / buttons dismiss; restore focus on close.
+ *
+ * Scrim clicks deliberately do **not** dismiss: every dialog here is a modal
+ * with an explicit action (confirm / cancel / ok) and, for prompts, user input
+ * that a stray click would discard. Escape and the footer buttons stay the
+ * dismissal paths. Palette-style surfaces (⌘K, search, settings) live in
+ * `OverlayHost` and keep scrim dismissal — they are pickers, not forms.
+ */
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
+import { Button } from "./Button";
+import { Input } from "./Input";
+import { cn } from "../../lib/kit";
+import { acquireOverlayLayer } from "../../lib/overlay-layer";
+
+interface BaseDialogProps {
+  open: boolean;
+  title: string;
+  description?: string;
+  confirmText?: string;
+  cancelText?: string;
+  destructive?: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+  children?: ReactNode;
+}
+
+const FOCUSABLE =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+export function getFocusable(container: HTMLElement): HTMLElement[] {
+  return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+    (el) => !el.hasAttribute("disabled") && el.tabIndex !== -1 && el.offsetParent !== null,
+  );
+}
+
+function DialogBackdrop({
+  children,
+  onClose,
+  labelledBy,
+  describedBy,
+  panelClassName,
+  focusSelector,
+  placement = "center",
+}: {
+  children: ReactNode;
+  onClose: () => void;
+  labelledBy: string;
+  describedBy?: string;
+  panelClassName?: string;
+  /** Optional selector (resolved inside the panel) that takes initial focus. */
+  focusSelector?: string;
+  /** `upper` sits in the top third — closer to native save/rename sheets. */
+  placement?: "center" | "upper";
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    previousFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const releaseLayer = acquireOverlayLayer();
+
+    const panel = panelRef.current;
+    if (panel) {
+      const preferred = focusSelector ? panel.querySelector<HTMLElement>(focusSelector) : null;
+      const target = preferred ?? getFocusable(panel)[0] ?? panel;
+      requestAnimationFrame(() => target.focus());
+    }
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab" || !panelRef.current) return;
+      const focusables = getFocusable(panelRef.current);
+      if (focusables.length === 0) {
+        e.preventDefault();
+        panelRef.current.focus();
+        return;
+      }
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      if (e.shiftKey) {
+        if (active === first || !panelRef.current.contains(active)) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else if (active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown, true);
+      releaseLayer();
+      const prev = previousFocusRef.current;
+      if (prev && typeof prev.focus === "function" && document.contains(prev)) {
+        prev.focus();
+      }
+    };
+  }, [onClose, focusSelector]);
+
+  return createPortal(
+    <div
+      // No onClick: the scrim never dismisses (see file header).
+      data-dialog-scrim=""
+      className={cn(
+        "v4-no-drag isolate fixed inset-0 z-dialog flex justify-center bg-scrim px-4 animate-fade-in",
+        placement === "upper" ? "items-start pt-[min(18vh,7.5rem)] pb-8" : "items-center p-4",
+      )}
+    >
+      <div
+        ref={panelRef}
+        // Clicks inside the sheet must not reach document-level "close on
+        // outside click" handlers (focus-mode 建议 popover, menus).
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={labelledBy}
+        aria-describedby={describedBy}
+        tabIndex={-1}
+        className={cn("v4-overlay-sheet w-full max-w-lg p-5 outline-none", panelClassName)}
+      >
+        {children}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+export function ConfirmDialog({
+  open,
+  title,
+  description,
+  confirmText,
+  cancelText,
+  destructive,
+  onConfirm,
+  onCancel,
+  children,
+  panelClassName,
+}: BaseDialogProps & { panelClassName?: string }) {
+  const { t } = useTranslation("common");
+  const titleId = useId();
+  const descId = useId();
+
+  const finalConfirmText = confirmText ?? t("action.confirm");
+  const finalCancelText = cancelText ?? t("action.cancel");
+
+  if (!open) return null;
+  return (
+    <DialogBackdrop
+      onClose={onCancel}
+      labelledBy={titleId}
+      describedBy={description ? descId : undefined}
+      panelClassName={panelClassName}
+      // Non-destructive confirms start on the primary action; destructive
+      // always starts on Cancel — not "first focusable in the panel", because
+      // children (e.g. a permanent-delete checkbox) sit before the footer and
+      // would make Enter toggle the destructive option instead of dismissing.
+      focusSelector={destructive ? "[data-dialog-cancel]" : "[data-dialog-focus]"}
+    >
+      <h2 id={titleId} className="mb-1.5 text-base font-semibold tracking-tight text-text-primary">
+        {title}
+      </h2>
+      {description ? (
+        <p id={descId} className="mb-3 whitespace-pre-line text-xs leading-relaxed text-text-secondary">
+          {description}
+        </p>
+      ) : null}
+      {children ? <div className="mb-4">{children}</div> : description ? null : <div className="mb-4" />}
+      <div className="flex justify-end gap-2" data-dialog-footer>
+        <Button variant="outline" size="sm" onClick={onCancel} data-dialog-cancel="">
+          {finalCancelText}
+        </Button>
+        <Button
+          variant={destructive ? "destructive" : "default"}
+          size="sm"
+          onClick={onConfirm}
+          data-dialog-focus={!destructive ? "" : undefined}
+        >
+          {finalConfirmText}
+        </Button>
+      </div>
+    </DialogBackdrop>
+  );
+}
+
+export function PromptDialog({
+  open,
+  title,
+  description,
+  defaultValue = "",
+  placeholder = "",
+  confirmText,
+  cancelText,
+  onConfirm,
+  onCancel,
+  maxWidth,
+}: Omit<BaseDialogProps, "onConfirm"> & {
+  defaultValue?: string;
+  placeholder?: string;
+  onConfirm: (value: string) => void;
+  /**
+   * Override the default `max-w-xl` (36rem) — only for unusually long single
+   * values (e.g. archive restore paths). Filename prompts should keep the
+   * default: it is intentionally wider than a name needs so the field is a
+   * comfortable click target and long paths stay readable.
+   */
+  maxWidth?: string;
+}) {
+  const { t } = useTranslation("common");
+  const [value, setValue] = useState(defaultValue);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const composingRef = useRef(false);
+  const titleId = useId();
+  const descId = useId();
+  const inputId = useId();
+
+  const finalConfirmText = confirmText ?? t("action.confirm");
+  const finalCancelText = cancelText ?? t("action.cancel");
+
+  useEffect(() => {
+    if (open) {
+      setValue(defaultValue);
+      requestAnimationFrame(() => inputRef.current?.focus());
+    }
+  }, [open, defaultValue]);
+
+  if (!open) return null;
+
+  const handleSubmit = () => onConfirm(value);
+
+  return (
+    <DialogBackdrop
+      onClose={onCancel}
+      labelledBy={titleId}
+      describedBy={description ? descId : undefined}
+      panelClassName={maxWidth ?? "max-w-xl"}
+      placement="upper"
+    >
+      <h2 id={titleId} className="mb-1 text-sm font-semibold tracking-tight text-text-primary">
+        {title}
+      </h2>
+      {description ? (
+        <p id={descId} className="mb-3 text-3xs leading-relaxed text-text-tertiary">
+          {description}
+        </p>
+      ) : null}
+      <Input
+        id={inputId}
+        ref={inputRef}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onCompositionStart={() => {
+          composingRef.current = true;
+        }}
+        onCompositionEnd={() => {
+          composingRef.current = false;
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            if (composingRef.current || e.nativeEvent.isComposing) return;
+            e.preventDefault();
+            handleSubmit();
+          }
+        }}
+        placeholder={placeholder}
+        // Name the field after the dialog intent, not the example value:
+        // `placeholder` is often just "https://" or "2026-新专题".
+        aria-label={title || placeholder}
+        className="mb-4"
+      />
+      <div className="flex justify-end gap-2" data-dialog-footer>
+        <Button variant="outline" size="sm" onClick={onCancel}>{finalCancelText}</Button>
+        <Button variant="default" size="sm" onClick={handleSubmit}>{finalConfirmText}</Button>
+      </div>
+    </DialogBackdrop>
+  );
+}
+
+export function ErrorDialog({
+  open,
+  title,
+  message,
+  onClose,
+}: {
+  open: boolean;
+  title: string;
+  message: string;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation("common");
+  const titleId = useId();
+  const descId = useId();
+  if (!open) return null;
+  return (
+    <DialogBackdrop onClose={onClose} labelledBy={titleId} describedBy={descId}>
+      <h2 id={titleId} className="mb-2 text-sm font-semibold text-error">
+        {title}
+      </h2>
+      <p id={descId} className={cn("mb-4 text-3xs leading-relaxed text-text-tertiary")}>
+        {message}
+      </p>
+      <div className="flex justify-end">
+        <Button size="sm" onClick={onClose}>
+          {t("action.ok")}
+        </Button>
+      </div>
+    </DialogBackdrop>
+  );
+}

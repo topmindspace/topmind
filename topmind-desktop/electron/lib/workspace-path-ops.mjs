@@ -1,0 +1,1749 @@
+/**
+ * Path / topic mutation ops — no Electron dependency (testable on Node).
+ */
+import { promises as fs } from "node:fs";
+import { createHash } from "node:crypto";
+import path from "node:path";
+import {
+  resolveDataRoot, outputsRoot, archiveRoot, parseTopicId, buildTopicId, CATEGORY_PATTERN,
+} from "./path-model.mjs";
+import { exists, readText, writeText, listDir, statSafe, readTextPreview } from "./fs-utils.mjs";
+import {
+  injectFrontmatter, splitMarkdownFrontmatter, stringifyYamlFrontmatter,
+} from "./frontmatter.mjs";
+import {
+  buildWritebackEvidence,
+} from "./writeback.mjs";
+import { recordWritebackEvidence } from "./ops-journal.mjs";
+import {
+  S, T, sp, now, lf,
+} from "./workspace-helpers.mjs";
+import { invalidateNotesIndex } from "./notes-index.mjs";
+import { kernelDurableWrite, kernelDurableDelete, kernelDurableArchive, loadKernelApi } from "./kernel-api.mjs";
+import { t as i18n } from "./electron-i18n.mjs";
+
+function bumpWorkspaceIndex(relativePath) {
+  invalidateNotesIndex(relativePath);
+}
+
+/** Short content fingerprint for optimistic concurrency on edit_file. */
+export function contentHash(text) {
+  return createHash("sha256").update(String(text ?? ""), "utf8").digest("hex").slice(0, 16);
+}
+
+/** Normalize agent `encoding` arg → Buffer encoding, or null when not forced. */
+function normalizeReadEncoding(encoding) {
+  if (encoding == null || encoding === "") return null;
+  const n = String(encoding).trim().toLowerCase().replace(/[-_]/gu, "");
+  if (!n || n === "binary" || n === "buffer") return null;
+  if (n === "utf8" || n === "utf16le" || n === "latin1" || n === "ascii" || n === "base64" || n === "hex") {
+    return n === "utf8" ? "utf8" : n === "utf16le" ? "utf16le" : n;
+  }
+  // Unknown encoding → force lossy utf8 rather than throwing on binary.
+  return "utf8";
+}
+
+/**
+ * Engine text-note surface via loadKernelApi (pack-safe — never static-import
+ * monorepo `../../lib`). Single source: `lib/text-note.mjs`.
+ */
+async function textNoteGate() {
+  const kernel = await loadKernelApi();
+  return {
+    isTextNotePath: kernel.isTextNotePath,
+    TEXT_NOTE_EXTS: kernel.TEXT_NOTE_EXTS,
+  };
+}
+
+/** Map Kernel surface evidence → legacy Desktop camelCase evidence shape. */
+function asDesktopEvidence(ev, fallbackPath, actor = "user") {
+  if (!ev || typeof ev !== "object") {
+    return buildWritebackEvidence({
+      operation: "update",
+      targetPath: fallbackPath,
+      savedAt: now(),
+      wroteFiles: false,
+      actor,
+      ok: false,
+    });
+  }
+  const evidence = {
+    ok: !ev.pending && !ev.needsConfirm,
+    ...buildWritebackEvidence({
+      operation: ev.operation || "update",
+      targetPath: ev.targetPath || fallbackPath,
+      savedAt: ev.savedAt || now(),
+      backupPath: ev.backupPath,
+      receiptPath: ev.receiptPath,
+      writebackMode: ev.writebackMode || "auto",
+      affectedFiles: ev.affectedFiles,
+      wroteFiles: ev.wroteFiles !== false && !ev.pending,
+      nextActions: ev.nextActions,
+      actor,
+    }),
+    protection: ev.protection,
+    pending: Boolean(ev.pending),
+    needsConfirm: Boolean(ev.needsConfirm || ev.pending),
+    note: ev.note,
+    // Preserve full body for confirm-mode pending stash (append_* / save / edit)
+    previewContent:
+      typeof ev.previewContent === "string"
+        ? ev.previewContent
+        : typeof ev.preview_content === "string"
+          ? ev.preview_content
+          : undefined,
+  };
+  recordWritebackEvidence(evidence, { actor });
+  return evidence;
+}
+
+export const pathOps = {
+  async duplicatePath({ relativePath }, ctx) {
+    S(relativePath, "relativePath");
+    const oldFp = await sp(ctx.workspaceRoot, relativePath);
+    const dir = relativePath.split("/").slice(0, -1).join("/");
+    const ext = path.extname(relativePath);
+    const base = path.basename(relativePath, ext);
+    let attempt = 0;
+    let newName = `${base}_copy${ext}`;
+    let nextRel = dir ? `${dir}/${newName}` : newName;
+    while (await exists(await sp(ctx.workspaceRoot, nextRel))) {
+      attempt++;
+      newName = `${base}_copy${attempt}${ext}`;
+      nextRel = dir ? `${dir}/${newName}` : newName;
+    }
+    const nextFp = await sp(ctx.workspaceRoot, nextRel);
+    const content = await fs.readFile(oldFp, "utf8").catch(() => null);
+    if (content !== null && relativePath.endsWith(".md")) {
+      await kernelDurableWrite(
+        { relativePath: nextRel, content },
+        ctx,
+        { actor: "user", confirmed: true, operation: "create" },
+      );
+    } else if (content !== null) {
+      await writeText(nextFp, content);
+    } else {
+      await fs.copyFile(oldFp, nextFp);
+    }
+    bumpWorkspaceIndex(nextRel);
+    return {
+      ...buildWritebackEvidence({
+        operation: "create",
+        targetPath: nextRel,
+        savedAt: now(),
+      }),
+      ok: true,
+      path: nextRel,
+    };
+  },
+
+  async getFileMeta({ relativePath }, ctx) {
+    S(relativePath, "relativePath");
+    const fp = await sp(ctx.workspaceRoot, relativePath);
+    const preview = await readTextPreview(fp, 4096);
+    const { data, body } = splitMarkdownFrontmatter(preview);
+    const s = await statSafe(fp);
+    return {
+      frontmatter: data,
+      bodyPreview: body.slice(0, 200),
+      size: s?.size ?? 0,
+      mtime: s?.mtime.toISOString() ?? null,
+    };
+  },
+
+  async updateFrontmatter({ relativePath, fields, actor, confirmed }, ctx) {
+    S(relativePath, "relativePath");
+    if (!relativePath.endsWith(".md")) throw new Error(i18n("pathOps.frontmatterMdOnly"));
+    if (!fields || typeof fields !== "object" || Array.isArray(fields)) {
+      throw new Error("fields object required.");
+    }
+    const fp = await sp(ctx.workspaceRoot, relativePath);
+    const old = await readText(fp);
+    const { data, body } = splitMarkdownFrontmatter(old);
+    const merged = { ...(data && typeof data === "object" ? data : {}) };
+    for (const [key, value] of Object.entries(fields)) {
+      if (!key || key.startsWith("_")) continue;
+      if (value === null || value === undefined || value === "") {
+        delete merged[key];
+      } else {
+        merged[key] = value;
+      }
+    }
+    const next = Object.keys(merged).length > 0
+      ? `---\n${stringifyYamlFrontmatter(merged)}\n---\n\n${body}`
+      : body;
+    if (next === old) {
+      return buildWritebackEvidence({
+        operation: "update",
+        targetPath: relativePath,
+        savedAt: now(),
+        wroteFiles: false,
+      });
+    }
+    if (typeof ctx.markIgnoredFileChanges === "function") {
+      ctx.markIgnoredFileChanges([fp], 1500);
+    }
+    const writeActor = actor || ctx.writeActor || "user";
+    const ev = await kernelDurableWrite(
+      { relativePath, content: next },
+      ctx,
+      {
+        actor: writeActor,
+        confirmed: writeActor === "user" ? true : confirmed === true,
+        operation: "update",
+        frontmatter: merged,
+        writebackMode: ctx.explicitWritebackMode,
+      },
+    );
+    if (!ev.pending && !ev.needsConfirm) bumpWorkspaceIndex(relativePath);
+    return asDesktopEvidence(ev, relativePath);
+  },
+
+  async readPath({ relativePath }, ctx) {
+    S(relativePath, "relativePath");
+    return readText(await sp(ctx.workspaceRoot, relativePath));
+  },
+
+  /**
+   * Read a binary asset as base64 (images for WeChat embed-images export).
+   * Size-capped; only media extensions — mirrors saveBinary's allow-list.
+   */
+  async readBinary({ relativePath }, ctx) {
+    S(relativePath, "relativePath");
+    const rel = String(relativePath).replace(/\\/gu, "/");
+    const ext = path.extname(rel).toLowerCase();
+    const okExt = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".avif"]);
+    if (!okExt.has(ext)) throw new Error("readBinary: unsupported extension");
+    if (rel.includes("..") || path.isAbsolute(rel)) throw new Error("readBinary: invalid path");
+    const fp = await sp(ctx.workspaceRoot, rel);
+    const buf = await fs.readFile(fp);
+    if (!buf.length || buf.length > 8_000_000) throw new Error("readBinary: size limit");
+    return {
+      relativePath: rel,
+      base64: buf.toString("base64"),
+      contentType: ext === ".png" ? "image/png"
+        : ext === ".jpg" || ext === ".jpeg" ? "image/jpeg"
+        : ext === ".gif" ? "image/gif"
+        : ext === ".webp" ? "image/webp"
+        : ext === ".svg" ? "image/svg+xml"
+        : ext === ".avif" ? "image/avif"
+        : "application/octet-stream",
+    };
+  },
+
+  /**
+   * Line-windowed read for agent tools (offset/limit are 1-based line start + count).
+   * Optional around= / heading= jump to a mid-file span. `numbered` is model-facing.
+   * `encoding` tolerates binary-ish buffers (replacement chars) instead of failing.
+   */
+  async readPathWindow({ relativePath, offset = 1, limit, around, heading, contextLines, encoding }, ctx) {
+    S(relativePath, "relativePath");
+    const fp = await sp(ctx.workspaceRoot, relativePath);
+    let full;
+    let binaryNote;
+    try {
+      const buf = await fs.readFile(fp);
+      const looksBinary = buf.includes(0);
+      const enc = normalizeReadEncoding(encoding);
+      if (looksBinary && !enc) {
+        return {
+          ok: false,
+          relativePath,
+          error: "binary-file",
+          note: "Binary file. Pass encoding (e.g. utf8) to force-decode, or use readBinary for media.",
+          empty: true,
+        };
+      }
+      full = buf.toString(enc || "utf8");
+      if (looksBinary) binaryNote = "decoded binary-ish buffer (NUL bytes replaced)";
+    } catch (err) {
+      const msg = err?.message || String(err);
+      if (msg.includes("ENOENT")) throw err;
+      // Binary-friendly: fall back to lossy utf8 rather than hard-failing the window.
+      full = await readText(fp);
+      binaryNote = `read fallback after decode error: ${msg}`;
+    }
+    const { loadKernelApi } = await import("./kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const win = kernel.formatReadWindow(full, {
+      relativePath,
+      offset,
+      limit,
+      around,
+      heading,
+      contextLines,
+      maxLimit: 5000,
+      maxChars: 80_000,
+    });
+    const hash = contentHash(full);
+    const notes = [];
+    if (binaryNote) notes.push(binaryNote);
+    if (win.empty && win.locate !== "query-not-found" && win.locate !== "heading-not-found" && win.locate !== "heading-ambiguous") {
+      notes.push(i18n("pathOps.offsetBeyondEnd", { start: win.offset, total: win.totalLines }));
+      return {
+        ...win,
+        contentHash: hash,
+        note: notes.join("; "),
+      };
+    }
+    if (win.empty) return { ...win, contentHash: hash, note: notes.length ? notes.join("; ") : win.note };
+    const locNote = win.locate ? `${win.locate}; ` : "";
+    notes.unshift(
+      win.truncated
+        ? `${locNote}${i18n("pathOps.returnedLinesContinue", { start: win.startLine, end: win.endLine, total: win.totalLines })}`
+        : `${locNote}${i18n("pathOps.returnedLines", { start: win.startLine, end: win.endLine, total: win.totalLines })}`,
+    );
+    return {
+      ...win,
+      contentHash: hash,
+      truncated: Boolean(win.truncated),
+      note: notes.join("; "),
+    };
+  },
+
+  /**
+   * Surgical text edit via Kernel writeback (actor defaults user; AI tools pass actor:"ai").
+   */
+  async editPath({
+    relativePath, oldText, newText, replaceAll = false,
+    startLine, endLine, heading, actor, confirmed, expectedHash,
+  }, ctx) {
+    S(relativePath, "relativePath");
+    const { isTextNotePath } = await textNoteGate();
+    if (!isTextNotePath(relativePath)) throw new Error(i18n("pathOps.editMdOnly"));
+    S(oldText, "oldText", { allowEmpty: false, maxLen: 500_000 });
+    if (typeof newText !== "string") throw new Error(i18n("pathOps.newTextNotString"));
+    if (newText.length > 5_000_000) throw new Error(i18n("pathOps.newTextTooLong"));
+    if (oldText === newText) {
+      return {
+        ...buildWritebackEvidence({
+          operation: "edit",
+          targetPath: relativePath,
+          savedAt: now(),
+          wroteFiles: false,
+        }),
+        ok: true,
+        replacements: 0,
+        note: i18n("pathOps.sameTextNoWrite"),
+      };
+    }
+
+    const fp = await sp(ctx.workspaceRoot, relativePath);
+    const old = await fs.readFile(fp, "utf8").catch(() => null);
+    if (old === null) throw new Error(i18n("pathOps.fileNotExist", { path: relativePath }));
+
+    // Optimistic concurrency: soft-verify expectedHash. Hard reject only when
+    // the unique-span matcher cannot find oldText either — otherwise a stale
+    // hash from a prior read must not block a still-valid edit (AI 编辑宽松).
+    const currentHash = contentHash(old);
+    let hashStale = false;
+    if (typeof expectedHash === "string" && expectedHash.trim() && expectedHash.trim() !== currentHash) {
+      hashStale = true;
+    }
+
+    const { loadKernelApi } = await import("./kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const applied = kernel.applyUniqueSpan(old, {
+      oldText,
+      newText,
+      replaceAll: Boolean(replaceAll),
+      startLine,
+      endLine,
+      heading,
+      path: relativePath,
+    });
+    if (!applied.ok) {
+      if (hashStale) {
+        throw new Error(
+          `${i18n("pathOps.hashMismatch", { path: relativePath })}\n` +
+          `currentHash: ${currentHash}\n` +
+          `hint: call read_file({ relativePath: "${relativePath}", around: "keyword", limit: 80 }) to refresh contentHash and oldText, then retry edit_file.`,
+        );
+      }
+      const head = applied.reason === "ambiguous"
+        ? i18n("pathOps.oldTextMultiMatch", { count: applied.count, path: relativePath })
+        : i18n("pathOps.oldTextNoMatch", { path: relativePath });
+      throw new Error(`${head}\n${applied.diagnostic || ""}`.trim());
+    }
+    // Hash was stale but unique span still matched — proceed with a note.
+
+    const next = applied.next;
+    if (next === old) {
+      return {
+        ...buildWritebackEvidence({
+          operation: "edit",
+          targetPath: relativePath,
+          savedAt: now(),
+          wroteFiles: false,
+        }),
+        ok: true,
+        replacements: 0,
+        note: i18n("pathOps.contentUnchanged"),
+      };
+    }
+
+    if (typeof ctx.markIgnoredFileChanges === "function") {
+      ctx.markIgnoredFileChanges([fp], 1500);
+    }
+    // Surgical edit still hits protection gate; backup/receipt only if high-impact (locked) per writeback-engine.
+    const writeActor = actor || ctx.writeActor || "user";
+    const ev = await kernelDurableWrite(
+      { relativePath, content: next },
+      ctx,
+      {
+        actor: writeActor,
+        confirmed: writeActor === "user" ? true : confirmed === true,
+        operation: "edit",
+        writebackMode: ctx.explicitWritebackMode,
+      },
+    );
+    if (ev.pending || ev.needsConfirm) {
+      return { ...asDesktopEvidence(ev, relativePath), ok: false, replacements: 0 };
+    }
+    bumpWorkspaceIndex(relativePath);
+    const replacements = applied.replacements;
+    // Fresh numbered window around the first replacement so the agent can
+    // continue multi-step edits without re-reading stale line numbers.
+    let postEditWindow = null;
+    try {
+      const firstSpan = applied.spans?.[0];
+      if (firstSpan) {
+        const before = next.slice(0, firstSpan.start);
+        const startLine = before.split("\n").length;
+        const { sliceLineWindow, numberLines } = await import("./file-window.mjs");
+        const win = sliceLineWindow(next, {
+          offset: Math.max(1, startLine - 8),
+          limit: Math.max(24, Math.ceil((firstSpan.end - firstSpan.start) / 40) + 24),
+          maxLimit: 80,
+        });
+        postEditWindow = {
+          startLine: win.startLine,
+          endLine: win.endLine,
+          totalLines: win.totalLines,
+          content: numberLines(win.content, win.startLine),
+        };
+      }
+    } catch {
+      /* window is best-effort; never fail the edit because of it */
+    }
+    // Truncate snippets for UI diff display (avoid huge payloads)
+    const MAX_SNIPPET = 300;
+    const oldSnippet = oldText.length > MAX_SNIPPET
+      ? `${oldText.slice(0, MAX_SNIPPET)}…`
+      : oldText;
+    const newSnippet = newText.length > MAX_SNIPPET
+      ? `${newText.slice(0, MAX_SNIPPET)}…`
+      : newText;
+    return {
+      ...asDesktopEvidence(ev, relativePath),
+      ok: true,
+      replacements,
+      matchMode: applied.mode,
+      charsDelta: next.length - old.length,
+      archived: false,
+      note: hashStale
+        ? `${i18n("pathOps.replacedCount", { count: replacements })} (expectedHash was stale; unique-span still matched)`
+        : i18n("pathOps.replacedCount", { count: replacements }),
+      oldSnippet,
+      newSnippet,
+      postEditWindow,
+      contentHash: contentHash(next),
+    };
+  },
+
+  async savePath({ relativePath, content, actor, confirmed, skipBackup: explicitSkipBackup }, ctx) {
+    S(relativePath, "relativePath");
+    const relNorm = String(relativePath).replace(/\\/gu, "/");
+    // Text notes (markdown + common text/source/config) are writable anywhere
+    // inside the workspace. Binary assets use saveBinary (separate gate).
+    const { isTextNotePath } = await textNoteGate();
+    if (!isTextNotePath(relNorm)) throw new Error(i18n("pathOps.saveTextOnly"));
+    S(content, "content", { allowEmpty: true, maxLen: 5_000_000 });
+    const fp = await sp(ctx.workspaceRoot, relativePath);
+    const old = await fs.readFile(fp, "utf8").catch(() => null);
+    if (typeof ctx.markIgnoredFileChanges === "function") {
+      ctx.markIgnoredFileChanges([fp], 1500);
+    }
+    const writeActor = actor || ctx.writeActor || "user";
+    const isUserSave = writeActor === "user";
+    const ev = await kernelDurableWrite(
+      { relativePath, content },
+      ctx,
+      {
+        actor: writeActor,
+        confirmed: isUserSave ? true : confirmed === true,
+        operation: old === null ? "create" : "update",
+        isCreate: old === null,
+        // Gate owns high-impact backup/receipt (locked overwrite only).
+        // Explicit skipBackup only when caller forces skip (escape hatch).
+        ...(explicitSkipBackup === true ? { skipBackup: true, skipReceipt: true } : {}),
+        writebackMode: ctx.explicitWritebackMode,
+      },
+    );
+    if (!ev.pending && !ev.needsConfirm) {
+      bumpWorkspaceIndex(relativePath);
+    }
+    return asDesktopEvidence(ev, relativePath);
+  },
+
+  /**
+   * Write a binary asset next to notes (images/… only by convention).
+   * Routes through Kernel writeback-engine protection gate so locked files
+   * are not overwritten by AI without permission. Binary content bypasses
+   * the string-only executeWrite but still checks evaluateWritePermission.
+   * No Archive checkpoint (binary assets; reversible via trash on delete).
+   * @param {{ relativePath: string, base64: string, contentType?: string, actor?: string }} p
+   */
+  async saveBinary({ relativePath, base64, contentType, actor }, ctx) {
+    S(relativePath, "relativePath");
+    const rel = String(relativePath).replace(/\\/gu, "/");
+    // Safety: only allow under images/ segments or known media extensions
+    const ext = path.extname(rel).toLowerCase();
+    const okExt = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".avif", ".bin"]);
+    if (!okExt.has(ext)) throw new Error("saveBinary: unsupported extension");
+    if (rel.includes("..") || path.isAbsolute(rel)) throw new Error("saveBinary: invalid path");
+    const b64 = String(base64 || "");
+    if (!b64 || b64.length > 12_000_000) throw new Error("saveBinary: empty or too large");
+    const buf = Buffer.from(b64, "base64");
+    if (!buf.length || buf.length > 8_000_000) throw new Error("saveBinary: size limit");
+    const fp = await sp(ctx.workspaceRoot, rel);
+
+    // Protection gate: evaluate write permission before touching the file.
+    // Binary assets go through the same gate as markdown — locked files
+    // cannot be overwritten by AI, and high-impact overwrites get backed up.
+    const writeActor = actor || ctx.writeActor || "user";
+    const { loadKernelApi } = await import("./kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const workspaceRoot = ctx.workspaceRoot?.userWorkspaceRoot || ctx.workspaceRoot;
+    const contract = kernel.loadContract(workspaceRoot);
+    const fileExists = await exists(fp);
+    let frontmatter = undefined;
+    if (fileExists) {
+      // Binary files have no frontmatter; peek existing protection from contract defaults
+      frontmatter = {};
+    }
+    const permission = kernel.evaluateWritePermission({
+      contract,
+      targetPath: fp,
+      workspaceRoot,
+      role: "deep-work",
+      frontmatter,
+      actor: writeActor,
+    });
+    if (!permission.allowed) {
+      throw new Error(`saveBinary write denied: ${permission.reason}`);
+    }
+    if (permission.needsConfirm) {
+      // Confirm mode must gate binary writes too — returning pending evidence
+      // (same contract as markdown writes) instead of writing silently.
+      return asDesktopEvidence(
+        {
+          operation: "update",
+          writebackMode: permission.writebackMode,
+          targetPath: rel,
+          affectedFiles: [rel],
+          wroteFiles: false,
+          pending: true,
+          protection: permission.protection,
+          savedAt: now(),
+          note: "confirm required for binary write",
+        },
+        rel,
+      );
+    }
+
+    // High-impact backup: if overwriting a locked file, back up first
+    if (fileExists && permission.protection === "locked") {
+      const { writePathCheckpoint } = await import("./writeback.mjs");
+      const existingBuf = await fs.readFile(fp);
+      // Binary checkpoint (not base64): smaller on disk, directly restorable.
+      await writePathCheckpoint(
+        { workspaceRoot },
+        {
+          savedAt: now(),
+          content: existingBuf,
+          relativePath: rel,
+          keep: 3,
+        },
+      );
+    }
+
+    // Binary assets intentionally bypass Kernel writeback-engine (text-oriented:
+    // atomic tmp+rename, frontmatter, receipt). Protection is handled above via
+    // evaluateWritePermission + writePathCheckpoint backup for locked overwrites.
+    await fs.mkdir(path.dirname(fp), { recursive: true });
+    if (typeof ctx.markIgnoredFileChanges === "function") {
+      ctx.markIgnoredFileChanges([fp], 1500);
+    }
+    await fs.writeFile(fp, buf);
+    bumpWorkspaceIndex(rel);
+    const t = now();
+    return buildWritebackEvidence({
+      operation: "create",
+      targetPath: rel,
+      savedAt: t,
+      note: contentType ? `binary ${contentType}` : "binary asset",
+    });
+  },
+
+  async deletePath({ relativePath, actor, confirmed, permanent }, ctx) {
+    S(relativePath, "relativePath");
+    const fp = await sp(ctx.workspaceRoot, relativePath);
+    const writeActor = actor || ctx.writeActor || "user";
+    const isPermanent = permanent === true;
+    /** @type {string[]} */
+    let mediaTrashed = [];
+
+    const { loadKernelApi } = await import("./kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const workspaceRoot = ctx.workspaceRoot?.userWorkspaceRoot || ctx.workspaceRoot;
+    const contract = kernel.loadContract(workspaceRoot);
+
+    // Snapshot markdown head + recoverable flag BEFORE the delete, but do NOT
+    // touch media until the Kernel gate commits. Under graded confirm a pending
+    // delete must leave note + assets intact until the user accepts.
+    let noteMarkdown = null;
+    let recoverable = false;
+    if (relativePath.endsWith(".md")) {
+      const old = await fs.readFile(fp, "utf8").catch(() => null);
+      if (old !== null) {
+        noteMarkdown = old;
+        const fm = kernel.peekFrontmatter(old);
+        const perm = kernel.evaluateWritePermission({
+          contract,
+          targetPath: fp,
+          workspaceRoot,
+          frontmatter: fm,
+          actor: writeActor,
+          lifecycle: true,
+        });
+        recoverable =
+          !isPermanent &&
+          kernel.isRecoverableLifecycle({
+            protection: perm.protection,
+            relativePath,
+            workspaceRoot,
+          });
+      }
+    }
+
+    const ev = await kernelDurableDelete(
+      { relativePath },
+      ctx,
+      {
+        actor: writeActor,
+        confirmed: confirmed === true || writeActor === "user",
+        permanent: isPermanent,
+      },
+    );
+    if (ev.pending || ev.needsConfirm) {
+      return {
+        ...asDesktopEvidence(ev, relativePath),
+        ok: false,
+        needsConfirm: true,
+        pending: true,
+        path: relativePath,
+        targetPath: relativePath,
+        mediaTrashed: 0,
+      };
+    }
+
+    // Gate committed — only now may media be moved/trashed with the note.
+    if (noteMarkdown !== null) {
+      try {
+        const { trashNoteMedia } = await import("./workspace-note-media.mjs");
+        const media = await trashNoteMedia(
+          { noteRelativePath: relativePath, markdown: noteMarkdown, toTrash: recoverable },
+          ctx,
+        );
+        mediaTrashed = media.trashed || [];
+      } catch {
+        /* non-fatal */
+      }
+    }
+
+    bumpWorkspaceIndex(relativePath);
+    if (relativePath.endsWith(".md")) {
+      return {
+        ...asDesktopEvidence(ev, relativePath),
+        ok: true,
+        mediaTrashed: mediaTrashed.length,
+        affectedFiles: [...(ev.affectedFiles || [relativePath]), ...mediaTrashed],
+        note:
+          isPermanent
+            ? i18n("pathOps.permanentlyDeleted")
+            : mediaTrashed.length > 0
+              ? i18n("pathOps.deletedWithMedia", { count: mediaTrashed.length })
+              : i18n("pathOps.deleted"),
+      };
+    }
+    return {
+      ...asDesktopEvidence(ev, relativePath),
+      ok: true,
+      note: isPermanent ? i18n("pathOps.permanentlyDeleted") : i18n("pathOps.deleted"),
+    };
+  },
+
+  async renamePath({ relativePath, newName, actor, confirmed }, ctx) {
+    S(relativePath, "relativePath"); S(newName, "newName");
+    if (/[\\/]/u.test(newName)) throw new Error(i18n("pathOps.newNameNoSeparator"));
+    const dir = relativePath.split("/").slice(0, -1).join("/");
+    let finalName = newName;
+    // Ensure .md extension preserved when renaming markdown notes
+    if (relativePath.endsWith(".md") && !finalName.endsWith(".md")) {
+      finalName = `${finalName}.md`;
+    }
+    const nextRel = dir ? `${dir}/${finalName}` : finalName;
+    const oldFp = await sp(ctx.workspaceRoot, relativePath);
+    const nextFp = await sp(ctx.workspaceRoot, nextRel);
+    if (await statSafe(nextFp)) throw new Error(i18n("pathOps.targetExists", { path: nextRel }));
+    const t = now();
+    const c = await fs.readFile(oldFp, "utf8").catch(() => null);
+
+    const writeActor = actor || "user";
+    // Graded confirm: rename is a content move (like create/update) — it lands
+    // immediately. Do not invent a pending type whose accept path is savePath.
+    // User renames are always confirmed; AI renames land under the write gate.
+    const isConfirmed = writeActor === "user" ? true : confirmed === true;
+
+    // Every rename (md stem change, same-stem, binary) is a write — evaluate
+    // protection before moving. Same path as save/edit so locked/core rules match.
+    {
+      const { loadKernelApi } = await import("./kernel-api.mjs");
+      const kernel = await loadKernelApi();
+      const workspaceRoot = ctx.workspaceRoot?.userWorkspaceRoot || ctx.workspaceRoot;
+      const contract = kernel.loadContract?.(workspaceRoot) || undefined;
+      const fm = c !== null ? kernel.peekFrontmatter(c) : {};
+      const perm = kernel.evaluateWritePermission({
+        contract,
+        targetPath: oldFp,
+        workspaceRoot,
+        role: "deep-work",
+        frontmatter: fm,
+        actor: writeActor,
+        writebackModeOverride: ctx.explicitWritebackMode,
+      });
+      if (!perm.allowed) throw new Error(i18n("pathOps.writeDenied", { reason: perm.reason || "" }));
+    }
+
+    // Locked notes are editable (task-scoped first-write snapshot), not an AI
+    // deny-list. Route the new body through kernelDurableWrite so the snapshot
+    // policy applies — do not hard-deny rename while save/edit are allowed.
+    let mediaRenamed = null;
+    let bodyOut = c;
+    if (relativePath.endsWith(".md") && c !== null) {
+      const oldStem = path.basename(relativePath, ".md");
+      const newStem = path.basename(finalName, ".md");
+      if (oldStem !== newStem) {
+        const { renameNoteMediaSlug } = await import("./workspace-note-media.mjs");
+        const r = await renameNoteMediaSlug(
+          {
+            noteDir: dir,
+            oldStem,
+            newStem,
+            markdown: c,
+          },
+          ctx,
+        );
+        bodyOut = r.markdown;
+        mediaRenamed = r.renamedDir;
+        // Write rewritten body via Kernel gate, then remove old file
+        await kernelDurableWrite(
+          { relativePath: nextRel, content: bodyOut },
+          ctx,
+          { actor: writeActor, confirmed: isConfirmed, operation: "create", writebackMode: ctx.explicitWritebackMode },
+        );
+        await fs.unlink(oldFp).catch(() => {});
+      } else {
+        await fs.rename(oldFp, nextFp);
+      }
+    } else {
+      await fs.rename(oldFp, nextFp);
+    }
+
+    bumpWorkspaceIndex(relativePath);
+    bumpWorkspaceIndex(nextRel);
+    const affected = [relativePath, nextRel];
+    if (mediaRenamed) affected.push(mediaRenamed);
+    return {
+      ...buildWritebackEvidence({
+        operation: "rename",
+        targetPath: nextRel,
+        savedAt: t,
+        affectedFiles: affected,
+      }),
+      ok: true,
+      path: nextRel,
+      mediaRenamed: mediaRenamed || undefined,
+      note: mediaRenamed
+        ? i18n("pathOps.renamedWithMedia", { dir: mediaRenamed })
+        : undefined,
+    };
+  },
+
+  /**
+   * Publish = copy delivery snapshot into 88-Outputs (original note stays).
+   * Copies note-local images/ so relative markdown keeps working under Outputs.
+   */
+  async publishPath({ relativePath, actor, confirmed }, ctx) {
+    S(relativePath, "relativePath");
+    if (!relativePath.endsWith(".md")) throw new Error(i18n("pathOps.publishMdOnly"));
+    const src = await sp(ctx.workspaceRoot, relativePath);
+    const c = await readText(src);
+    const parts = relativePath.split("/");
+    const category = parts[0];
+    const topic = parts.length >= 3 ? parts[1] : null;
+    const base = path.basename(relativePath).replace(/\.md$/u, "");
+    const ds = new Date().toISOString().slice(0, 10);
+    const outName = `${ds}-${base}.md`;
+    const outRoot = outputsRoot(ctx.workspaceRoot);
+    const outputsName = path.basename(outRoot);
+    const dest = path.join(outRoot, outName);
+    const t = now();
+    const old = await fs.readFile(dest, "utf8").catch(() => null);
+    // No backup for publish — original note stays in workspace; output is a copy.
+    // Old output overwrite is low-risk (source is always available for re-publish).
+
+    const fm = {
+      published_at: t,
+      source_path: relativePath,
+    };
+    if (category && CATEGORY_PATTERN.test(category)) fm.category = category;
+    if (topic) fm.topic = topic;
+    const targetPath = `${outputsName}/${outName}`;
+    const writeActor = actor || "user";
+    const isConfirmed = writeActor === "user" ? true : confirmed === true;
+    const writeEv = await kernelDurableWrite(
+      { relativePath: targetPath, content: injectFrontmatter(c, fm) },
+      ctx,
+      {
+        actor: writeActor,
+        confirmed: isConfirmed,
+        operation: "create",
+        frontmatter: fm,
+        writebackMode: ctx.explicitWritebackMode,
+      },
+    );
+    if (writeEv.pending || writeEv.needsConfirm) {
+      return {
+        ...buildWritebackEvidence({
+          operation: "publish",
+          targetPath,
+          savedAt: t,
+          wroteFiles: false,
+        }),
+        ok: false,
+        needsConfirm: true,
+        pending: true,
+        path: targetPath,
+        targetPath,
+        previewContent: injectFrontmatter(c, fm),
+      };
+    }
+
+    // Copy media only after the write gate commits — a pending/failed publish
+    // must not leave orphan images under Outputs.
+    const { transferNoteMedia } = await import("./workspace-note-media.mjs");
+    const media = await transferNoteMedia(
+      {
+        noteRelativePath: relativePath,
+        destNoteDir: outputsName,
+        markdown: c,
+        mode: "copy",
+      },
+      ctx,
+    );
+
+    bumpWorkspaceIndex(targetPath);
+    const affected = [relativePath, targetPath, ...media.movedDirs, ...media.movedFiles];
+    return {
+      ...buildWritebackEvidence({
+        operation: "publish",
+        targetPath,
+        savedAt: t,
+        affectedFiles: affected,
+      }),
+      ok: true,
+      path: targetPath,
+      mediaCopied: media.count,
+      note:
+        media.count > 0
+          ? i18n("pathOps.publishedWithMedia", { count: media.count })
+          : i18n("pathOps.published"),
+    };
+  },
+
+  async saveNote({ topicId, filename, content, sourceType, actor, confirmed, skipBackup: explicitSkipBackup }, ctx) {
+    T(topicId); S(filename, "filename");
+    const { category, topic } = parseTopicId(topicId);
+    const relativePath = `${category}/${topic}/${filename}`;
+    const fp = await sp(ctx.workspaceRoot, relativePath);
+    const t = now();
+    const old = await fs.readFile(fp, "utf8").catch(() => null);
+    // Create: set captured_at. Update: preserve original captured_at, set updated_at.
+    const prevFm = old ? (splitMarkdownFrontmatter(old).data || {}) : {};
+    const fm = {
+      title: filename.replace(/\.md$/u, ""),
+      source_type: sourceType || prevFm.source_type || "user-original",
+      category,
+      topic,
+    };
+    if (old === null) {
+      fm.captured_at = t;
+    } else {
+      if (prevFm.captured_at) fm.captured_at = prevFm.captured_at;
+      else fm.captured_at = t;
+      fm.updated_at = t;
+    }
+    const writeActor = actor || ctx.writeActor || (sourceType === "ai-derived" ? "ai" : "user");
+    const isUserSave = writeActor === "user";
+    const ev = await kernelDurableWrite(
+      { relativePath, content: injectFrontmatter(content, fm) },
+      ctx,
+      {
+        actor: writeActor,
+        confirmed: isUserSave ? true : confirmed === true,
+        operation: old === null ? "create" : "update",
+        frontmatter: fm,
+        // Gate owns high-impact backup/receipt; explicit skip only when forced.
+        ...(explicitSkipBackup === true ? { skipBackup: true, skipReceipt: true } : {}),
+        writebackMode: ctx.explicitWritebackMode,
+      },
+    );
+    if (!ev.pending && !ev.needsConfirm) bumpWorkspaceIndex(relativePath);
+    return asDesktopEvidence(ev, relativePath);
+  },
+
+  async createTopic({ category, name, actor, confirmed }, ctx) {
+    S(category, "category"); S(name, "name");
+    if (!/^\d{4}-.+/u.test(name)) throw new Error(i18n("pathOps.topicNameYearPrefix"));
+
+    // Graded confirm: content create (mkdir topic) lands immediately —
+    // no Desktop-side pending gate. Kernel writeback still owns protection.
+    const dir = await sp(ctx.workspaceRoot, `${category}/${name}`);
+    const stat = await statSafe(dir);
+    if (stat) throw new Error(i18n("pathOps.topicExists", { topicId: `${category}/${name}` }));
+    await fs.mkdir(dir, { recursive: true });
+    const topicId = buildTopicId(category, name);
+    bumpWorkspaceIndex(`${category}/${name}`);
+    return { ok: true, topicId };
+  },
+
+  /**
+   * Create a workspace directory (agent mkdir). Recursive; lands immediately
+   * under graded confirm (content create). Path fence via `sp`.
+   * @param {{ relativePath: string, actor?: string, confirmed?: boolean }} p
+   */
+  async createDir({ relativePath, actor, confirmed }, ctx) {
+    S(relativePath, "relativePath");
+    const rel = String(relativePath).replace(/\\/gu, "/").replace(/^\/+|\/+$/gu, "");
+    if (!rel) throw new Error("createDir: path required");
+    const fp = await sp(ctx.workspaceRoot, rel);
+    const st = await statSafe(fp);
+    if (st?.isDirectory()) {
+      return { ok: true, operation: "mkdir", targetPath: rel, existed: true, wroteFiles: false };
+    }
+    if (st) throw new Error(i18n("pathOps.targetExists", { path: rel }));
+    const writeActor = actor || ctx.writeActor || "user";
+    // mkdir is a write — evaluate protection before creating (same gate as save).
+    {
+      const { loadKernelApi } = await import("./kernel-api.mjs");
+      const kernel = await loadKernelApi();
+      const workspaceRoot = ctx.workspaceRoot?.userWorkspaceRoot || ctx.workspaceRoot;
+      const contract = kernel.loadContract(workspaceRoot);
+      const perm = kernel.evaluateWritePermission({
+        contract,
+        targetPath: fp,
+        workspaceRoot,
+        actor: writeActor,
+        writebackModeOverride: ctx.explicitWritebackMode,
+      });
+      if (!perm.allowed) throw new Error(i18n("pathOps.writeDenied", { reason: perm.reason || "" }));
+    }
+    await fs.mkdir(fp, { recursive: true });
+    bumpWorkspaceIndex(rel);
+    return {
+      ...buildWritebackEvidence({
+        operation: "mkdir",
+        targetPath: rel,
+        savedAt: now(),
+      }),
+      ok: true,
+      operation: "mkdir",
+      targetPath: rel,
+      existed: false,
+    };
+  },
+
+  /**
+   * Copy a file inside the workspace (agent cp). Text bodies go through Kernel
+   * writeback; binaries use copyFile after the permission gate. Refuses when
+   * dest exists unless `overwrite`.
+   * @param {{ relativePath: string, destRelativePath: string, overwrite?: boolean, actor?: string, confirmed?: boolean }} p
+   */
+  async copyFileTo({ relativePath, destRelativePath, overwrite, actor, confirmed }, ctx) {
+    S(relativePath, "relativePath");
+    S(destRelativePath, "destRelativePath");
+    const srcRel = String(relativePath).replace(/\\/gu, "/");
+    const destRel = String(destRelativePath).replace(/\\/gu, "/");
+    if (srcRel === destRel) throw new Error("copyFileTo: source and dest are the same path");
+    const srcFp = await sp(ctx.workspaceRoot, srcRel);
+    const destFp = await sp(ctx.workspaceRoot, destRel);
+    const srcSt = await statSafe(srcFp);
+    if (!srcSt?.isFile()) throw new Error(i18n("pathOps.fileNotExist", { path: srcRel }));
+    const destSt = await statSafe(destFp);
+    if (destSt && overwrite !== true) {
+      throw new Error(i18n("pathOps.targetExists", { path: destRel }));
+    }
+    const writeActor = actor || ctx.writeActor || "user";
+    const isConfirmed = writeActor === "user" ? true : confirmed === true;
+
+    // Protection gate on the dest (create/overwrite) — same rules as save.
+    {
+      const { loadKernelApi } = await import("./kernel-api.mjs");
+      const kernel = await loadKernelApi();
+      const workspaceRoot = ctx.workspaceRoot?.userWorkspaceRoot || ctx.workspaceRoot;
+      const contract = kernel.loadContract(workspaceRoot);
+      const perm = kernel.evaluateWritePermission({
+        contract,
+        targetPath: destFp,
+        workspaceRoot,
+        actor: writeActor,
+        writebackModeOverride: ctx.explicitWritebackMode,
+      });
+      if (!perm.allowed) throw new Error(i18n("pathOps.writeDenied", { reason: perm.reason || "" }));
+    }
+
+    const { isTextNotePath } = await textNoteGate();
+    if (isTextNotePath(srcRel)) {
+      const content = await fs.readFile(srcFp, "utf8");
+      await fs.mkdir(path.dirname(destFp), { recursive: true });
+      if (typeof ctx.markIgnoredFileChanges === "function") {
+        ctx.markIgnoredFileChanges([destFp], 1500);
+      }
+      const ev = await kernelDurableWrite(
+        { relativePath: destRel, content },
+        ctx,
+        {
+          actor: writeActor,
+          confirmed: isConfirmed,
+          operation: destSt ? "update" : "create",
+          isCreate: !destSt,
+          writebackMode: ctx.explicitWritebackMode,
+        },
+      );
+      if (ev.pending || ev.needsConfirm) {
+        return { ...asDesktopEvidence(ev, destRel), ok: false, operation: "copy" };
+      }
+      bumpWorkspaceIndex(destRel);
+      return {
+        ...asDesktopEvidence(ev, destRel),
+        ok: true,
+        operation: "copy",
+        sourcePath: srcRel,
+        targetPath: destRel,
+        overwritten: Boolean(destSt),
+      };
+    }
+    // Binary / non-text: copy bytes after gate.
+    await fs.mkdir(path.dirname(destFp), { recursive: true });
+    if (typeof ctx.markIgnoredFileChanges === "function") {
+      ctx.markIgnoredFileChanges([destFp], 1500);
+    }
+    await fs.copyFile(srcFp, destFp);
+    bumpWorkspaceIndex(destRel);
+    return {
+      ...buildWritebackEvidence({
+        operation: "copy",
+        targetPath: destRel,
+        savedAt: now(),
+      }),
+      ok: true,
+      operation: "copy",
+      sourcePath: srcRel,
+      targetPath: destRel,
+      overwritten: Boolean(destSt),
+      note: "binary asset copied",
+    };
+  },
+
+  async deleteTopic({ topicId }, ctx) {
+    T(topicId);
+    const { category, topic } = parseTopicId(topicId);
+    const rel = `${category}/${topic}`;
+    // Single write-gate: Kernel executeArchive owns protection, confirm,
+    // copy-verify, ISO stamp, receipt and rotation. No Desktop-side trash copy.
+    const ev = await kernelDurableArchive({ relativePath: rel }, ctx, {
+      actor: ctx.writeActor || "user",
+      role: "deep-work",
+    });
+    if (ev.pending || ev.needsConfirm) {
+      return { ...asDesktopEvidence(ev, rel), ok: false };
+    }
+    bumpWorkspaceIndex(rel);
+    return {
+      ...asDesktopEvidence(ev, rel),
+      ok: true,
+    };
+  },
+
+  /**
+   * Rename a topic directory. Updates frontmatter `topic` field in all .md
+   * files inside. No backup (rename preserves content; old dir name is gone).
+   */
+  async renameTopic({ topicId, newName }, ctx) {
+    T(topicId);
+    S(newName, "newName");
+    if (/[\\/]/u.test(newName)) throw new Error(i18n("pathOps.topicNameNoSeparator"));
+    const { category, topic: oldTopic } = parseTopicId(topicId);
+    if (!category || !oldTopic) throw new Error(i18n("pathOps.invalidTopicId", { topicId }));
+    const trimmed = newName.trim();
+    if (trimmed === oldTopic) throw new Error(i18n("pathOps.sameName"));
+    const oldDir = await sp(ctx.workspaceRoot, `${category}/${oldTopic}`);
+    const newDir = await sp(ctx.workspaceRoot, `${category}/${trimmed}`);
+    if (await statSafe(newDir)) throw new Error(i18n("pathOps.targetExists", { path: `${category}/${trimmed}` }));
+    const t = now();
+
+    // Read all .md files before rename so we can update frontmatter after
+    const oldDirAbs = oldDir;
+    let mdFiles = [];
+    try {
+      const entries = await fs.readdir(oldDirAbs, { withFileTypes: true });
+      mdFiles = entries.filter((e) => e.isFile() && e.name.endsWith(".md")).map((e) => e.name);
+    } catch {
+      /* dir may not exist if already moved */
+    }
+
+    // Rename the directory (FS rename — not a content write)
+    await fs.rename(oldDir, newDir);
+
+    // Durable .md frontmatter/body updates must go through Kernel writeback
+    // (same gate as renameCategory → executeWrite), not raw fs.writeFile.
+    // Backup/receipt only when high-impact (locked) per writeback-engine.
+    const writeGateOpts = {
+      actor: "user",
+      confirmed: true,
+      operation: "update",
+    };
+    let updatedCount = 0;
+    const affected = [`${category}/${oldTopic}`, `${category}/${trimmed}`];
+
+    for (const fn of mdFiles) {
+      const rel = `${category}/${trimmed}/${fn}`;
+      const fp = path.join(newDir, fn);
+      try {
+        const raw = await readText(fp);
+        const { data, body } = splitMarkdownFrontmatter(raw);
+        const nextData = { ...(data && typeof data === "object" ? data : {}) };
+        let bodyOut = body;
+        let dirty = false;
+
+        if (nextData.topic !== trimmed) {
+          nextData.topic = trimmed;
+          dirty = true;
+        }
+        // topic.md: keep title + H1 in sync with the new topic name
+        if (fn === "topic.md") {
+          if (nextData.title === oldTopic || nextData.title === undefined) {
+            nextData.title = trimmed;
+            dirty = true;
+          }
+          if (bodyOut.trimStart().startsWith(`# ${oldTopic}`)) {
+            bodyOut = bodyOut.replace(`# ${oldTopic}`, `# ${trimmed}`);
+            dirty = true;
+          }
+        }
+
+        if (!dirty) continue;
+        const updated = Object.keys(nextData).length > 0
+          ? `---\n${stringifyYamlFrontmatter(nextData)}\n---\n\n${bodyOut}`
+          : bodyOut;
+        if (updated === raw) continue;
+        await kernelDurableWrite(
+          { relativePath: rel, content: updated },
+          ctx,
+          writeGateOpts,
+        );
+        updatedCount++;
+        affected.push(rel);
+      } catch {
+        /* non-fatal — frontmatter update is best-effort */
+      }
+    }
+
+    const newTopicId = buildTopicId(category, trimmed);
+    bumpWorkspaceIndex(`${category}/${oldTopic}`);
+    bumpWorkspaceIndex(`${category}/${trimmed}`);
+    return {
+      ...buildWritebackEvidence({
+        operation: "rename-topic",
+        targetPath: `${category}/${trimmed}`,
+        savedAt: t,
+        affectedFiles: affected,
+      }),
+      ok: true,
+      topicId: newTopicId,
+      note: i18n("pathOps.topicRenamed", { count: updatedCount }),
+    };
+  },
+
+  async appendTopicMemory({ topicId, entry, source, actor, confirmed }, ctx) {
+    T(topicId);
+    S(entry, "entry", { maxLen: 100_000 });
+    const { category, topic } = parseTopicId(topicId);
+    const relativePath = `${category}/${topic}/topic.md`;
+    const fp = await sp(ctx.workspaceRoot, relativePath);
+    const stamp = now();
+    const sourceLine = source && String(source).trim() ? `\n\n_Source: ${String(source).trim()}_` : "";
+    const newEntry = `\n### ${stamp}\n\n${entry.trim()}${sourceLine}\n`;
+    const blockHeader = "## Stable Memory";
+
+    let old = await fs.readFile(fp, "utf8").catch(() => null);
+    if (old === null) {
+      await fs.mkdir(path.dirname(fp), { recursive: true });
+      old = injectFrontmatter(
+        `# ${topic}\n\n${blockHeader}\n\n(待补充)\n\n## Working Notes\n\n(待补充)\n`,
+        { title: topic, category, topic, status: "active" },
+      );
+    }
+
+    const { data, body } = splitMarkdownFrontmatter(old);
+    let newBody = body;
+    if (newBody.includes(blockHeader)) {
+      newBody = newBody.replace(blockHeader, `${blockHeader}${newEntry}`);
+    } else {
+      newBody = `${newBody.trimEnd()}\n\n${blockHeader}${newEntry}\n`;
+    }
+    const next = injectFrontmatter(newBody, { ...data, updated_at: stamp });
+    const writeActor = actor || ctx.writeActor || "user";
+    const ev = await kernelDurableWrite(
+      { relativePath, content: next },
+      ctx,
+      {
+        actor: writeActor,
+        confirmed: writeActor === "user" ? true : confirmed === true,
+        operation: "update",
+        writebackMode: ctx.explicitWritebackMode,
+      },
+    );
+    if (!ev.pending && !ev.needsConfirm) bumpWorkspaceIndex(relativePath);
+    return asDesktopEvidence({ ...ev, operation: "append-memory" }, relativePath);
+  },
+
+  /**
+   * Stream / memory context for UI pins and capture defaults.
+   * When the current period file doesn't exist on disk, fall back to the
+   * newest existing period so the UI never shows an empty/error state.
+   */
+  async getStreamContext(_p, ctx) {
+    const wmApi = await import("./workspace-model-api.mjs");
+    const stream = await wmApi.resolveStreamTarget(ctx.workspaceRoot);
+    const memory = await wmApi.resolveMemoryPaths(ctx.workspaceRoot);
+
+    // Check if the current period file exists; if not, find the latest existing one.
+    let periodRelPath = stream.periodRelPath;
+    let periodFileName = stream.periodFileName;
+    let periodTitle = stream.title;
+    if (periodRelPath) {
+      const fp = path.join(resolveDataRoot(ctx.workspaceRoot), periodRelPath);
+      const exists = await fs.access(fp).then(() => true).catch(() => false);
+      if (!exists) {
+        try {
+          const periods = await wmApi.listStreamPeriods(ctx.workspaceRoot, { limit: 1 });
+          if (periods && periods.length > 0) {
+            periodRelPath = periods[0].relPath;
+            periodFileName = periods[0].fileName;
+            periodTitle = periods[0].title || periodTitle;
+          }
+        } catch {
+          /* keep current period path even if file doesn't exist */
+        }
+      }
+    }
+
+    return {
+      packing: stream.packing,
+      packingLabel: stream.packing, // client maps label
+      appendHeading: stream.appendHeading,
+      streamCategory: stream.streamCategory
+        ? {
+            directory: stream.streamCategory.directory,
+            role: stream.streamCategory.role,
+            name: stream.streamCategory.name,
+          }
+        : null,
+      periodRelPath,
+      periodFileName,
+      periodTitle,
+      memory: {
+        dir: memory.memoryDirRel,
+        profileFile: memory.profileFile,
+        profileRelPath: memory.profileRelPath,
+        files: memory.files || [],
+      },
+    };
+  },
+
+  /**
+   * List all period notes in the stream category (for "整理过往" UI).
+   * Optional `year` filter keeps both year-dir ({year}/) and flat ({year}-*)
+   * periods of that year — no limit truncation misses.
+   * Returns sorted (newest first) list with reconciled flag.
+   */
+  async listStreamPeriods(p, ctx) {
+    const wmApi = await import("./workspace-model-api.mjs");
+    const year =
+      p && typeof p === "object" && p.year !== undefined && p.year !== null
+        ? String(p.year).trim()
+        : undefined;
+    if (year && !/^\d{4}$/.test(year)) {
+      throw new Error("Invalid year format");
+    }
+    return wmApi.listStreamPeriods(ctx.workspaceRoot, { limit: 50, year });
+  },
+
+  /**
+   * List all year directories in the stream category for year navigation.
+   * Returns sorted (newest first) list of { year, periodCount, archived }.
+   */
+  async listStreamYears(_p, ctx) {
+    const wmApi = await import("./workspace-model-api.mjs");
+    return wmApi.listStreamYears(ctx.workspaceRoot);
+  },
+
+  /**
+   * Archive a complete year of stream period notes to 99-归档/stream-archive/{year}/.
+   * Only allows archiving years before the current calendar year.
+   */
+  async archiveStreamYear({ year }, ctx) {
+    S(year, "year");
+    const yearStr = String(year).trim();
+    if (!/^\d{4}$/.test(yearStr)) throw new Error("Invalid year format");
+    const wmApi = await import("./workspace-model-api.mjs");
+    const result = await wmApi.archiveStreamYear(ctx.workspaceRoot, yearStr);
+    if (!result.ok) {
+      const reasonMap = {
+        "current-or-future-year": i18n("pathOps.archiveCurrentOrFuture"),
+        "year-dir-not-found": i18n("pathOps.archiveYearNotFound"),
+        "no-period-files": i18n("pathOps.archiveNoPeriodFiles"),
+        "already-archived": i18n("pathOps.archiveAlreadyArchived"),
+        "no-stream-category": i18n("pathOps.archiveNoStreamCategory"),
+        "no-archive-category": i18n("pathOps.archiveNoArchiveCategory"),
+      };
+      const msg = reasonMap[result.reason] || result.reason || i18n("pathOps.archiveFailed");
+      throw new Error(msg);
+    }
+    return {
+      ok: true,
+      ...result,
+      userMessage: i18n("pathOps.archiveDone", { year: yearStr, count: result.movedCount, path: result.archivePath }),
+    };
+  },
+
+  /**
+   * Append a comment-like continuation under a stream/note entry (Wave S2).
+   * Same Markdown file; marker <!-- topmind:append ... --> for activity window parents.
+   * Uses Kernel appendToStreamEntry only (no monorepo-relative lib import).
+   */
+  async appendStreamEntry({ relativePath, heading, content, parentRel, startLine, endLine, anchorText }, ctx) {
+    S(relativePath, "relativePath");
+    S(content, "content", { maxLen: 50_000 });
+    const rel = String(relativePath).replace(/\\/g, "/");
+    const text = String(content || "").trim();
+    if (!text) throw new Error(i18n("pathOps.appendContentEmpty"));
+    const fp = await sp(ctx.workspaceRoot, rel);
+    const old = await fs.readFile(fp, "utf8").catch(() => null);
+    if (old === null) throw new Error(i18n("pathOps.fileNotExist", { path: rel }));
+
+    const { loadKernelApi, kernelDurableWrite } = await import("./kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    if (typeof kernel.appendToStreamEntry !== "function") {
+      throw new Error("Kernel appendToStreamEntry unavailable");
+    }
+    const intOrUndef = (v) =>
+      Number.isInteger(v) && v >= 0 && v <= 1_000_000 ? v : undefined;
+    // Detailed variant reports where the block landed (exact heading vs end-of-file)
+    const appendFn =
+      typeof kernel.appendToStreamEntryDetailed === "function"
+        ? kernel.appendToStreamEntryDetailed.bind(kernel)
+        : (body, opts) => ({ body: kernel.appendToStreamEntry(body, opts), location: { appendedAt: "end" } });
+    const { body: next, location } = appendFn(old, {
+      heading: heading ? String(heading) : undefined,
+      content: text,
+      parentRel: parentRel ? String(parentRel) : undefined,
+      date: new Date(),
+      startLine: intOrUndef(startLine),
+      endLine: intOrUndef(endLine),
+      anchorText: typeof anchorText === "string" && anchorText.trim() ? String(anchorText) : undefined,
+    });
+    if (next === old) {
+      throw new Error(i18n("pathOps.appendNoChange"));
+    }
+
+    const ev = await kernelDurableWrite(
+      { relativePath: rel, content: next },
+      ctx,
+      {
+        actor: "user",
+        operation: "update",
+      },
+    );
+    if (!ev.pending && !ev.needsConfirm) bumpWorkspaceIndex(rel);
+    return asDesktopEvidence(
+      {
+        ...ev,
+        operation: "append-entry",
+        appendLocation: location || { appendedAt: "end" },
+        userMessage: i18n("pathOps.appendedToStream"),
+      },
+      rel,
+    );
+  },
+
+  /**
+   * Ensure core profile exists; return paths.
+   */
+  async ensureCoreProfile(_p, ctx) {
+    const wmApi = await import("./workspace-model-api.mjs");
+    const ensured = await wmApi.ensureCoreProfile(ctx.workspaceRoot);
+    return {
+      ok: Boolean(ensured.ok),
+      created: Boolean(ensured.created),
+      profileRelPath: ensured.profileRelPath,
+      memoryDirRel: ensured.memoryDirRel,
+      profileFile: ensured.profileFile,
+      files: ensured.files || [],
+      reason: ensured.reason,
+    };
+  },
+
+  /**
+   * Append to 我的情况 (core profile) via Kernel appendProfileEntry —
+   * live-section dedupe, dated `（YYYY-MM-DD）` lines, writeback gate.
+   */
+  async appendCoreMemory({ entry, section, source, actor, confirmed }, ctx) {
+    S(entry, "entry", { maxLen: 100_000 });
+    const { loadKernelApi } = await import("./kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const root = resolveDataRoot(ctx.workspaceRoot);
+    const contract = kernel.loadContract(root);
+    const relativePath = kernel.globalProfileRelPath(root);
+    const writeActor = actor || ctx.writeActor || "user";
+    const sectionTitle = section && String(section).trim() ? String(section).trim() : undefined;
+    const sourced = source && String(source).trim()
+      ? `${entry.trim()}（来源：${String(source).trim()}）`
+      : entry.trim();
+    const day = now().slice(0, 10);
+    const content = /^[-*+]\s+（\d{4}-\d{2}-\d{2}）/u.test(sourced)
+      ? sourced
+      : `- （${day}）${sourced.replace(/^[-*+]\s+/u, "")}`;
+
+    const r = kernel.appendProfileEntry({
+      workspaceRoot: root,
+      entry: { section: sectionTitle, content },
+      contract: {
+        ...contract,
+        writeback: {
+          ...contract?.writeback,
+          mode: ctx.explicitWritebackMode || contract?.writeback?.mode,
+        },
+      },
+      actor: writeActor,
+      confirmed: writeActor === "user" ? true : confirmed === true,
+      writebackModeOverride: ctx.explicitWritebackMode,
+    });
+
+    if (!r.pending && !r.needsConfirm) bumpWorkspaceIndex(relativePath);
+    return {
+      ...asDesktopEvidence({ ...r, operation: r.operation || "append-profile" }, relativePath),
+      userMessage: i18n("pathOps.coreMemoryUpdated", { section: sectionTitle || "" }),
+      section: sectionTitle,
+      reason: r.reason,
+    };
+  },
+
+  /**
+   * Retire a fact from active profile sections into the history section.
+   */
+  async retireCoreMemory({ match, section, reason, actor, confirmed }, ctx) {
+    S(match, "match", { allowEmpty: false, maxLen: 10_000 });
+    const { loadKernelApi } = await import("./kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const root = resolveDataRoot(ctx.workspaceRoot);
+    const contract = kernel.loadContract(root);
+    const relativePath = kernel.globalProfileRelPath(root);
+
+    const writeActor = actor || ctx.writeActor || "user";
+    const r = kernel.retireProfileEntry({
+      workspaceRoot: root,
+      match: match.trim(),
+      section: section ? String(section).trim() : undefined,
+      contract: {
+        ...contract,
+        writeback: {
+          ...contract?.writeback,
+          mode: ctx.explicitWritebackMode || contract?.writeback?.mode,
+        },
+      },
+      actor: writeActor,
+      confirmed: writeActor === "user" ? true : confirmed === true,
+      writebackModeOverride: ctx.explicitWritebackMode,
+    });
+
+    if (!r.pending && !r.needsConfirm) bumpWorkspaceIndex(relativePath);
+    return {
+      ...asDesktopEvidence({ ...r, operation: "retire-profile" }, relativePath),
+      userMessage: "已将条目归档至历史记录",
+      match,
+      reason: reason || undefined,
+    };
+  },
+
+  /**
+   * Update an existing fact in place in profile.md.
+   */
+  async updateCoreMemory({ match, content, actor, confirmed }, ctx) {
+    S(match, "match", { allowEmpty: false, maxLen: 10_000 });
+    S(content, "content", { allowEmpty: false, maxLen: 100_000 });
+    const { loadKernelApi } = await import("./kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const root = resolveDataRoot(ctx.workspaceRoot);
+    const contract = kernel.loadContract(root);
+    const relativePath = kernel.globalProfileRelPath(root);
+
+    const writeActor = actor || ctx.writeActor || "user";
+    const r = kernel.updateProfileEntry({
+      workspaceRoot: root,
+      match: match.trim(),
+      content: content.trim(),
+      contract: {
+        ...contract,
+        writeback: {
+          ...contract?.writeback,
+          mode: ctx.explicitWritebackMode || contract?.writeback?.mode,
+        },
+      },
+      actor: writeActor,
+      confirmed: writeActor === "user" ? true : confirmed === true,
+      writebackModeOverride: ctx.explicitWritebackMode,
+    });
+
+    if (!r.pending && !r.needsConfirm) bumpWorkspaceIndex(relativePath);
+    return {
+      ...asDesktopEvidence({ ...r, operation: "update-profile" }, relativePath),
+      userMessage: "已更新核心记忆事实",
+      match,
+      content,
+    };
+  },
+
+  /**
+   * Read todo items with optional filter.
+   */
+  async listTodos({ completed = false, limit = 50 } = {}, ctx) {
+    const { loadKernelApi } = await import("./kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const root = resolveDataRoot(ctx.workspaceRoot);
+    const todoList = kernel.readTodoList(root);
+    const items = Array.isArray(todoList?.items) ? todoList.items : [];
+    const filtered = completed ? items : items.filter((i) => !i.done);
+    return {
+      items: filtered.slice(0, Number(limit) || 50),
+      totalCount: items.length,
+      activeCount: items.filter((i) => !i.done).length,
+      completedCount: items.filter((i) => i.done).length,
+      targetPath: kernel.resolveTodoRelPath(root),
+    };
+  },
+
+  /**
+   * Add one or more todo items atomically with deduplication and dueDate parsing.
+   */
+  async addTodos({ items, actor, confirmed }, ctx) {
+    const list = Array.isArray(items) ? items : [items];
+    if (list.length === 0) throw new Error("addTodos: items required");
+    const { loadKernelApi } = await import("./kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const root = resolveDataRoot(ctx.workspaceRoot);
+    const contract = kernel.loadContract(root);
+    const todoRel = kernel.resolveTodoRelPath(root);
+
+    const added = [];
+    for (const entry of list) {
+      const text = typeof entry === "string" ? entry : entry?.text;
+      if (text && String(text).trim()) {
+        const r = kernel.addTodoItem(root, String(text).trim(), {
+          contract,
+          actor: actor || "ai",
+          confirmed,
+          dueDate: entry?.dueDate,
+        });
+        if (r?.pending) {
+          return {
+            ok: false,
+            pending: true,
+            needsConfirm: true,
+            operation: "add-todos",
+            targetPath: todoRel,
+            writebackEvidence: r.writebackEvidence,
+            addedCount: 0,
+            items: [],
+          };
+        }
+        if (r?.ok && r.item) added.push(r.item);
+      }
+    }
+
+    if (added.length > 0) {
+      bumpWorkspaceIndex(todoRel);
+    }
+    return {
+      ok: true,
+      operation: "add-todos",
+      targetPath: todoRel,
+      addedCount: added.length,
+      items: added,
+    };
+  },
+
+  /**
+   * Toggle a todo item's completion status.
+   */
+  async toggleTodo({ idOrText, completed, actor, confirmed }, ctx) {
+    if (!idOrText) throw new Error("toggleTodo: idOrText required");
+    const { loadKernelApi } = await import("./kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const root = resolveDataRoot(ctx.workspaceRoot);
+    const contract = kernel.loadContract(root);
+    const todoRel = kernel.resolveTodoRelPath(root);
+
+    // If idOrText matches text, find matching id
+    const todoList = kernel.readTodoList(root);
+    const items = Array.isArray(todoList?.items) ? todoList.items : [];
+    const targetItem = items.find(
+      (i) => i.id === idOrText || i.text === idOrText || i.text.includes(idOrText),
+    );
+    if (!targetItem) {
+      return {
+        ok: false,
+        operation: "toggle-todo",
+        targetPath: todoRel,
+        error: `未找到匹配的待办任务: "${idOrText}"。请先使用 list_todos 查看当前待办列表。`,
+      };
+    }
+
+    const r = kernel.toggleTodoItem(root, targetItem.id, contract, {
+      actor: actor || "ai",
+      confirmed,
+    });
+    if (r?.ok) {
+      bumpWorkspaceIndex(todoRel);
+    }
+    return {
+      ok: Boolean(r?.ok),
+      operation: "toggle-todo",
+      targetPath: todoRel,
+      toggledItem: targetItem,
+      nowCompleted: !targetItem.done,
+    };
+  },
+
+  /**
+   * Deterministic 整理本周 on current period note (or explicit path).
+   * @param {{ relativePath?: string, dryRun?: boolean, apply?: boolean, actor?: string, confirmed?: boolean }} p
+   */
+  async reconcileStreamPeriod({ dryRun = true, apply = false, relativePath = null, actor, confirmed } = {}, ctx) {
+    const shouldWrite = Boolean(apply && !dryRun);
+    const stamp = now();
+    const { loadWorkspaceModelLib, resolveStreamTarget } = await import(
+      "./workspace-model-api.mjs"
+    );
+    const wm = await loadWorkspaceModelLib();
+    const stream = await resolveStreamTarget(ctx.workspaceRoot);
+    const rel = relativePath || stream.periodRelPath;
+    if (!rel) {
+      return {
+        ok: false,
+        reason: "no-period-note",
+        packing: stream.packing,
+        message: stream.packing === "atom"
+          ? i18n("pathOps.reconcileAtomPacking")
+          : i18n("pathOps.reconcileNoPeriod"),
+      };
+    }
+    const fp = await sp(ctx.workspaceRoot, rel);
+    const old = await fs.readFile(fp, "utf8").catch(() => null);
+    if (old === null) {
+      return {
+        ok: false,
+        reason: "missing",
+        path: rel,
+        packing: stream.packing,
+        message: i18n("pathOps.reconcilePeriodMissing", { path: rel }),
+      };
+    }
+    const { data, body } = splitMarkdownFrontmatter(old);
+    let reconciled;
+    if (typeof wm.reconcilePeriodBody === "function") {
+      reconciled = wm.reconcilePeriodBody(body || "", { packing: stream.packing });
+    } else {
+      const { pathToFileURL } = await import("node:url");
+      const { getEngineRoot } = await import("./workspace-home.mjs");
+      const { defaultEngineCandidate } = await import("./engine-root.mjs");
+      const engineRoot = getEngineRoot() || defaultEngineCandidate();
+      const periodMod = await import(
+        pathToFileURL(path.join(engineRoot, "lib", "stream-period.mjs")).href
+      );
+      reconciled = periodMod.reconcilePeriodBody(body || "", { packing: stream.packing });
+    }
+
+    const nextContent = injectFrontmatter(reconciled.body, {
+      ...data,
+      type: data?.type || "stream-period",
+      stream_packing: stream.packing,
+      updated_at: stamp,
+      ...(shouldWrite && reconciled.changed ? { reconciled_at: stamp } : {}),
+    });
+
+    let evidence = null;
+    if (shouldWrite && reconciled.changed) {
+      const writeActor = actor || "user";
+      const isConfirmed = confirmed !== undefined ? Boolean(confirmed) : (writeActor === "user");
+      evidence = await kernelDurableWrite(
+        { relativePath: rel, content: nextContent },
+        ctx,
+        {
+          actor: writeActor,
+          confirmed: isConfirmed,
+          operation: "update",
+          writebackMode: ctx.explicitWritebackMode,
+        },
+      );
+      if (!evidence.pending && !evidence.needsConfirm) {
+        bumpWorkspaceIndex(rel);
+      }
+    }
+
+    return {
+      ok: true,
+      path: rel,
+      packing: stream.packing,
+      changed: Boolean(reconciled.changed),
+      changes: reconciled.changes || [],
+      candidates: reconciled.candidates || { core: [], topics: [] },
+      dryRun: !shouldWrite,
+      applied: Boolean(shouldWrite && reconciled.changed && evidence && !evidence.pending),
+      ...(shouldWrite && reconciled.changed && evidence
+        ? asDesktopEvidence({ ...evidence, operation: "reconcile-stream" }, rel)
+        : {}),
+      userMessage: reconciled.changed
+        ? shouldWrite
+          ? i18n("pathOps.reconcileApplied", { count: (reconciled.changes || []).length })
+          : i18n("pathOps.reconcilePreview", { count: (reconciled.changes || []).length })
+        : i18n("pathOps.reconcileClean"),
+    };
+  },
+};
+
+// re-export helpers used by sibling modules that need listDir of topic files
+export { lf, sp, S, T, now };

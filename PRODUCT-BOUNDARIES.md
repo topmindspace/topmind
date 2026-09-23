@@ -1,0 +1,235 @@
+# PRODUCT-BOUNDARIES.md — 产品边界
+
+> **边界唯一真源**。与 `PROJECT-MODEL.md`（内容约定）并列；实现与文档冲突时以二者为准。  
+> **实施与诚实状态**：`docs/ARCHITECTURE-RESET.md`（决策锁 · Target vs Done）。  
+> **仓库拓扑与维护**：`docs/REPO-MAINTENANCE.md`（三仓拆分 · 发版 · 集成）。
+
+---
+
+## 0. 仓库边界（交付面 = 仓库）
+
+| 仓库 | 交付面 | 内容 |
+|------|--------|------|
+| **topmind**（本仓） | Desktop 安装包 · Clip · UTR | `lib/` Kernel · `templates/` · `topmind-desktop/` · `browser-extension/` · `utr/` |
+| **topmind-skills** | Agent Skills Pack | skill 目录 · `shared/` · installer · pack 构建 |
+| **topmind-obsidian** | Obsidian 社区插件 | 插件壳 · esbuild（构建时引用本仓 `lib/`） |
+
+- **Kernel 不是独立交付面**：不单独安装、不发 npm 包；与 Desktop 同仓。
+- **契约文本单源**：`PROJECT-MODEL.md` / 本文 / `TOOLS.md` / `SKILL-ARCHITECTURE.md` 只在本仓；姊妹仓摘要 + 链接 + CI 断言。
+- **跨仓仅 3 通道**：Obsidian 构建时 checkout 本仓 tag；契约链接；Desktop `pack:prepare` 拉姊妹 Release 产物（可降级）。
+- 原则：**交付面 = 仓库**。用户单独拿到 / 安装 / 更新 → 独立仓；否则留本仓子目录。
+
+---
+
+## 1. 第一性原理
+
+```text
+唯一内容真源 = 用户工作区文件系统（topmind.yaml + 内容/语义/系统三平面目录模型）
+```
+
+**北极星**：**最低摩擦个人动态流** — 记下来尽可能简单；持续维护交给 AI **建议**（用户确认后执行）；找回尽可能自然。
+
+topmind 是 Agent 时代的本地优先工作台，按需组合四条独立能力，非强耦合单体：
+
+| 模块 | 是什么 | 不是什么 |
+|------|--------|----------|
+| **Skills Pack** | 可独立安装在任意 Agent 上的流程与技能包 | 不是 Desktop 的专属插件 |
+| **Desktop** | **富工作台**：浏览、深度编辑、捕获、AI 副驾、恢复、可扩展 | 不是必需前置壳；也不是薄聊天壳 |
+| **UTR** | 可选 CLI / MCP（Kernel 的 adapter） | 不是 Desktop 或 Skills 的强制依赖；不是第三套业务实现 |
+| **Obsidian Plugin** | Obsidian 内嵌动态流工作台 + AI 副驾 | 不是 Desktop 替代品；不是 Obsidian 编辑器重建 |
+
+**共享**：
+
+1. 内容约定（`PROJECT-MODEL.md`：三平面、`topic.md`、Frontmatter、6 条规约）
+2. 行为契约（工作区根 **`topmind.yaml` v4 唯一真源**：保护/生命周期/记忆/写回/Ingest/Agent 等）— Desktop / UTR / Skills / Obsidian **同一路径同一契约**；缺失由 Kernel `ensureContract` 创建，可修则自动修复，损坏不可修则诊断 + `reseedContract`（备份坏文件，不删内容目录）
+3. 工作流语言（`收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整`）
+4. 写回伦理（可逆备份、路径回执、`writeback.mode` auto|confirm、open/locked protection）
+5. **用户概念 ≤5**：记一下 · 动态 · 专题 · 我的情况 · 交付
+
+**不共享**：运行时进程、IPC、store、强制 tool 调用链；**表面本地 UI 偏好**（Desktop `app-settings.json`、Obsidian plugin data）— 不得 fork 工作区行为键（locale/template/writeback/stream 等）。写回/locale/template 的操作真源始终是工作区根 `topmind.yaml`；Settings 下拉框若展示这些键，只作缓存并镜像回契约。对比：[`docs/topmind-vs-others.md`](./docs/topmind-vs-others.md)。
+
+---
+
+## 2. 三平面与 Kernel
+
+### 三平面隔离
+
+1. **内容平面**：`{NN-名称}/` — 用户可见数据（Inbox、动态、专题、交付、归档）
+2. **语义平面**：`memory/` — 固化英文名；`profile.md` / `periodic/` / `topics/`；卫星 `todo.md` 与可选 `ledgers/`（记账，不是第六个用户概念）
+3. **系统平面**：`topmind.yaml` + `.topmind/`（index/loop/logs，可删可重建）
+
+### Kernel 八引擎（目标：唯一领域逻辑）
+
+| 引擎 | 职责 | 实现状态（诚实） |
+|------|------|------------------|
+| contract-engine | 规约加载/校验/迁移/ensure/repair/reseed/求值 | **Done 主路径** — `loadContract` 只读 `topmind.yaml`；v3 JSON 仅 `ensureContract` 一次迁移；`saveWorkspaceConfig` 经 `writeContract`；**Intentional Partial** 非全 Surface 契约 UI |
+| workspace-model | 类别/专题/路径 | **Done** — Desktop/UTR 共用 |
+| stream-engine | 周期本/reconcile + **活动窗口** | **Done** — packing · reconcile · `activity-window`（suggest/todo/ops 共用）· 条目增补；**年目录 `yearDir` + 年归档 `archiveStreamYear`**；todo skip hash = 活动 corpus 非仅周期 raw；Desktop 多路 AI 见 `topmind-desktop/DESIGN.md` §0.0.3（prep lane · agent 独立） |
+| memory-engine | 分层记忆/提升物理操作 | **Done** — profile + **periodic（反思语义·年目录对齐）**；建议 apply；**非**专题默认落点（专题在内容大类） |
+| lifecycle-engine | 归档/清理/回顾扫描 | **Done** — scan→建议条；确认 apply 经 `executeArchive` 写闸 |
+| writeback-engine | 保护/影子/回执/备份（**唯一写闸**） | **Done** — Desktop 主写 + UTR + AI `actor:"ai"` 经 Kernel；settings confirm 覆盖 gate；备份/回执仅高影响（locked 覆盖 · 锁定/核心 delete · 归档=迁入 role:system `{archive}/{category}-{topic}-{stamp}/` · `BACKUP_KEEP=3`/`RECEIPT_KEEP=50` · 普通开放笔记 delete 无 trash · `permanent` 彻底删除） |
+| derived-builder | `.derived/` 生成重建 | **Done 最小** — topic summary + **item-history**；AI 摘要可占位 |
+| ingest-pipeline | URL/文档路由语义 | **Done** 路由 — Desktop commit 经 `resolveIngestRoute`；HTML→MD 与 Clip 共用同一算法（Desktop `html-to-markdown.mjs`） |
+
+**卫星（不是第九引擎）**：`todo-engine`（`memory/todo.md`）· `ledger-engine`（可选 `{memory.dir}/ledgers/`，默认个人/自己账本；经 writeback 写入）。记账不是第六个用户概念，也不是 UTR 域。
+
+**铁律（目标）**：Surface 不得平行实现业务语义。**Desktop / UTR / Obsidian / AI 耐久内容写** 必须经 writeback-engine。Skills 宿主文件工具与 Clip workspace-direct 属于 **capture-class 开放写**（用户手势即确认；无 Node 写闸），不是第二套保护/备份/回执实现。现状见 `docs/ARCHITECTURE-RESET.md` §2。
+
+---
+
+## 3. 边界判定
+
+| 命题 | 结论 |
+|------|------|
+| Desktop 必须调 UTR 才能保存 / 捕获 / AI 写回？ | **否** — WorkspaceService → Kernel writeback-engine |
+| Skills 必须调 UTR？ | **否** — Host 文件工具 + 内容约定 |
+| 全部 UTR 命令日常必需？ | **否** — 注册表 28，MCP 默认 19 |
+| 无 UTR 时是否可用？ | **是** |
+| 保留 UTR 的理由？ | Agent Host / CI / doctor / 脚本的确定性命令面（Kernel adapter） |
+
+### Desktop 是否捆绑 UTR？
+
+| 问题 | 结论 |
+|------|------|
+| 安装包是否含 `utr/`？ | **是**（Tools / doctor / CLI 对齐） |
+| 日常编辑 / AI 写回是否强制走 UTR？ | **否** |
+| Skills pack 是否含 UTR？ | **否** |
+
+### 本机持久化
+
+```text
+~/topmind/
+├── topmind-workspace/     # 内容真源
+└── topmind-desktop/       # Desktop runtime（settings / plugins / skills-extra / logs）
+```
+
+原则：**内容**与 **runtime** 分离。
+
+---
+
+## 4. 四体职责
+
+### 4.1 Skills Pack
+
+```text
+topmind (router)
+  ├── capture / organize / write / memory / maintain / loop
+  └── optional: weread / x / ledger（记账）
+```
+
+- 纯 Markdown + `topmind-pack.json`
+- 执行面：Host 文件工具 → 可选 UTR → 对话建议
+- 禁止把 Desktop 会话状态当内容真源
+
+### 4.2 Desktop（富工作台）
+
+```text
+Shell = 变薄导航 + 深度编辑区 + AI 副驾
+数据 = WorkspaceService →（目标）Kernel
+AI = skill-first · 领域工具 · 建议条 + 确认执行
+UTR = 软探测；写回不经 UTR
+```
+
+**必须独立完成**：工作区与 4 模板初始化、导航与编辑、捕获、知识加工、带原生工具的 AI、健康巡检入口。
+
+**可选记账**：enable-gated mini-app（看板 / 流水 / 分类 / 快捷记账），入口在 AI 工作区应用 pane / 状态栏 chip / ⌘K；**不是** PrimaryNav，也不是第六个用户概念。账本在 `{memory.dir}/ledgers/`。Obsidian 不发记账小应用。
+
+**产品形态（Reset B）**：
+
+- **富**：Tiptap 阅读/写作、多视图（二级）、插件槽、Clip、连接器
+- **薄**：默认主表面 = 动态；用户概念 ≤5；标签/看板/Tools 不进主 chrome
+- **AI 内生**：默认上下文感知；建议默认生成、高影响须确认（Reset D）
+
+**Clip companion 分发面**（非第五「体」）：`browser-extension/`（MV3 剪藏）。经 Bridge 写入 Desktop 工作区；不单独实现 Kernel 业务语义。版本矩阵与四体并列，见根 `README.md`（English）与 `README.zh-CN.md`（简体中文）。
+
+### 4.3 UTR
+
+面向无 Desktop、有 agent/脚本的确定性命令面。
+
+- **8 域 / 28 命令**；MCP 默认 **19**
+- 完整表：`TOOLS.md`
+- 目标：薄 adapter，业务在 Kernel
+
+### 4.4 Obsidian Plugin（可选）
+
+面向已使用 Obsidian 的用户，在 Vault 内嵌 topmind 动态流。
+
+- 复用 Kernel `lib/` 八引擎（esbuild 打包内联）
+- `require('fs')` 直访文件系统（Electron 渲染进程）
+- `fetch` API 直调 AI（不引入 AI SDK）；对话可走 Kernel `applyUniqueSpan` + `executeWrite`（精确中段改稿），与 Desktop 共享匹配/拒绝/诊断契约，不共享 React/IPC
+- 详见 [topmind-obsidian](https://github.com/topmindspace/topmind-obsidian) · ADR `docs/adr/2026-08-07-obsidian-plugin-architecture.md`
+
+---
+
+## 5. 边界拓扑
+
+```mermaid
+graph TD
+    WS["用户工作区<br/>唯一内容真源"]
+    SP["Skills Pack"]
+    DT["Desktop 富工作台"]
+    UTR["UTR adapter"]
+    CE["Clip Extension"]
+    OB["Obsidian Plugin"]
+    K["Kernel lib/"]
+
+    SP -->|"Host FS / 可选 UTR"| WS
+    DT -->|"WorkspaceService → Kernel"| K
+    UTR --> K
+    K --> WS
+    CE -->|"Bridge 或直写"| WS
+    CE -.-> DT
+    OB -->|"esbuild 内联 Kernel → writeback"| K
+```
+
+---
+
+## 6. 版本层
+
+版本数字**只**维护在真源文件；`npm run versions`。
+
+**独立版本策略**：各表面有独立版本号，大版本对齐，小版本独立。GitHub 对外 **一个** `v*` Release（Latest）：有更新的现场打包，未更新的复用上一份产物。详见 `AGENTS.md` §版本层。
+
+| 层 | 真源文件 | 策略 |
+|----|----------|------|
+| Skills Pack | `topmind-skills` 仓 `topmind-pack.json` | 独立 |
+| Desktop | `topmind-desktop/package.json` | 独立 |
+| Clip Extension | `browser-extension/manifest.json` | 独立 |
+| UTR（可选） | `utr/VERSION` | 跟随 Desktop |
+| Obsidian Plugin | `topmind-obsidian` 仓 `manifest.json` | 独立 |
+
+---
+
+## 7. 用户心智（对外）
+
+- **topmind**：本地优先的最低摩擦「个人动态流 + 轻量持续记忆」— 记简单，建议交给 AI，你确认，文件是你的。
+- **Skills**：装进 AI 助手，按契约整理与写回。
+- **Desktop**：富工作台；导航清晰；AI 是副驾不是喧宾夺主的聊天站。
+- **UTR**（可选）：CLI/MCP；没有它，Skills 与 Desktop 仍可用。
+
+---
+
+## 8. 能力诚实表（摘要）
+
+| 能力 | 状态 |
+|------|------|
+| 捕获 / 周期本 / 编辑 / 剪藏 / 文档加工 | **Done**（抓取网页图片本地化到 `images/{slug}/`） |
+| **媒体时序** | Desktop：关联媒体仅在写闸提交后移动/trash。**Obsidian 豁免**：附件由 Vault 管理，Plugin 不维护 `images/{slug}/` 链路，故无 Desktop 同序媒体操作 |
+| skill-first AI 对话与领域工具 | **Done**（副驾建议条 + 待确认写入 **Done**） |
+| 三平面目录与 topmind.yaml v4 | **Done**（约定）/ 契约 UI 非强制 **Intentional Partial** |
+| writeback 唯一写闸 | **Done**（主路径 + **分级 confirm**（内容落盘，仅删/归档 pending） + 高影响 only 备份/回执：locked 覆盖 · 锁定/核心笔记 delete/archive · 普通开放笔记无 trash · `permanent` 无副本） |
+| Memory 产品面（我的情况浏览 / 建议条） | **Done** |
+| 主动建议 + 确认执行 | **Done**（high-impact 须 `confirmed:true`；自动准备可关；AI 建议变更检测 `lastAnalyzedHash`；`promote_memory` 真实 AI 提取非占位符；画像 ADD/UPDATE/RETIRE 均确认后执行，不是 append-only） |
+| 交付 / publishPath | **Done**（副本 + `published_at`；发布后打开交付件；交付复制正文 / HTML 导出） |
+| 整理本周 / 任务面板 | **Done**（reconcile + ai_digest 任务 + 建议条候选确认；KanbanView 拖拽看板 + ViewSwitcher 多视图；digest/promote/archive 不造假任务按钮） |
+| 动态主表面内容 | **Done**（周期解析含结构节软提取；无当前本回退列表；内联记一下 + 整理本周） |
+| Desktop 响应式 chrome | **Done**（操作轨溢出 ⋯；StatusBar 可点；窄屏文案 aria/tooltip） |
+| 关键词搜索诚实截断 | **Done**（无 embedding） |
+| 动态默认主表面 PrimaryNav | **Done** |
+| embedding / 语义索引 | **Non-goal 本阶段** |
+| 全库 Ask | **Target 延后** |
+| 移动端 | **Non-goal 本阶段** |
+| 建议可关 · 侧栏 thrift | **Done** · 见 `docs/ARCHITECTURE-RESET.md` §2.2 |
+| 可选记账（ledger-engine 卫星） | **Done**（`memory/ledgers/`；Skills `topmind-ledger`；Desktop enable-gated mini-app；非第九引擎 / 非第六概念） |
+
+详见 `docs/ARCHITECTURE-RESET.md`。

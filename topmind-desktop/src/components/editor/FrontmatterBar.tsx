@@ -1,0 +1,187 @@
+/**
+ * Sub-header: status / priority / due chips for edit mode.
+ * Uses shared Select(variant="chip") — single border, no nested chrome.
+ * Default-collapsed in FileEditorView; outline/focus live on the format toolbar.
+ */
+import { useState } from "react";
+import { RiCalendarLine, RiFlagLine, RiLoader4Line, RiLockLine, RiPriceTag3Line } from "@remixicon/react";
+import { useTranslation } from "react-i18next";
+import { api } from "../../services/api";
+import { emitLocal } from "../../plugins/host";
+import { getStatusColumns, getPriorityOptions, resolveStatusColumn } from "../../lib/note-meta";
+import { cn } from "../../lib/kit";
+import { ICON } from "../../lib/icons";
+import { Tooltip } from "../ui/tooltip";
+import { MenuSelect } from "../ui/menu-select";
+
+interface Props {
+  relativePath: string;
+  frontmatter: Record<string, unknown> | null | undefined;
+  readOnly?: boolean;
+  flushBody?: () => Promise<void>;
+  onUpdated?: (next: Record<string, unknown>) => void | Promise<void>;
+}
+
+export function FrontmatterBar({
+  relativePath,
+  frontmatter,
+  readOnly,
+  flushBody,
+  onUpdated,
+}: Props) {
+  const { t } = useTranslation("editor");
+  const fm = frontmatter || {};
+  const statusRaw = typeof fm.status === "string" ? fm.status : null;
+  const statusKey = resolveStatusColumn(statusRaw);
+  const priority = typeof fm.priority === "string" ? fm.priority : "";
+  const due =
+    typeof fm.due === "string"
+      ? fm.due
+      : typeof fm.deadline === "string"
+        ? String(fm.deadline)
+        : "";
+  const tags = Array.isArray(fm.tags)
+    ? (fm.tags as unknown[]).map(String).join(", ")
+    : typeof fm.tags === "string"
+      ? fm.tags
+      : "";
+  const category = typeof fm.category === "string" ? fm.category : "";
+  const topic = typeof fm.topic === "string" ? fm.topic : "";
+  const isLocked = fm.protection === "locked";
+
+  const [busy, setBusy] = useState(false);
+
+  const patch = async (fields: Record<string, unknown>) => {
+    if (readOnly || busy) return;
+    setBusy(true);
+    try {
+      if (flushBody) await flushBody();
+      await api.ws.updateFrontmatter({ relativePath, fields });
+      const next = { ...fm };
+      for (const [k, v] of Object.entries(fields)) {
+        if (v === null || v === "") delete next[k];
+        else next[k] = v;
+      }
+      await onUpdated?.(next);
+      emitLocal("workspace:file-changed", { relativePath });
+      emitLocal("toast:show", { text: t("frontmatterBar.toastUpdated"), kind: "success" });
+    } catch (e) {
+      emitLocal("toast:show", { text: t("frontmatterBar.toastError", { error: e instanceof Error ? e.message : String(e) }), kind: "error" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="v4-editor-subheader flex min-w-0 items-center gap-1.5 border-b border-border-subtle-dim px-2.5 py-1.5">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+      <span className="mr-0.5 hidden text-3xs font-medium uppercase tracking-wide text-text-quaternary sm:inline">
+        {t("frontmatterBar.properties")}
+      </span>
+
+      {isLocked ? (
+        <Tooltip content={t("frontmatterBar.lockedTooltip")}>
+          <span
+            className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] border border-warning/30 bg-warning/10 px-1.5 py-0.5 text-3xs text-warning"
+            data-testid="frontmatter-locked-chip"
+          >
+            <RiLockLine size={ICON.micro} aria-hidden />
+            {t("frontmatterBar.locked")}
+          </span>
+        </Tooltip>
+      ) : null}
+
+      <Tooltip content={t("frontmatterBar.statusTooltip")}>
+        <span className="inline-flex min-w-0">
+          <MenuSelect
+            variant="chip"
+            disabled={readOnly || busy}
+            value={statusKey}
+            aria-label={t("frontmatterBar.statusAria")}
+            leading={<RiFlagLine size={ICON.micro} />}
+            onChange={(v) => {
+              const col = getStatusColumns().find((c) => c.key === v);
+              if (col) void patch({ status: col.value });
+            }}
+            options={getStatusColumns().map((c) => ({ value: c.key, label: c.label }))}
+            minWidth={140}
+            maxHeight={260}
+          />
+        </span>
+      </Tooltip>
+
+      <Tooltip content={t("frontmatterBar.priorityTooltip")}>
+        <span className="inline-flex min-w-0">
+          <MenuSelect
+            variant="chip"
+            disabled={readOnly || busy}
+            value={priority}
+            aria-label={t("frontmatterBar.priorityAria")}
+            onChange={(v) => void patch({ priority: v || null })}
+            options={getPriorityOptions().map((p) => {
+              const priorityLabelMap: Record<string, string> = { high: "priorityHigh", med: "priorityMedium", low: "priorityLow" };
+              return {
+                value: p.value,
+                label: p.value === "" ? t("frontmatterBar.priorityNone") : t("frontmatterBar.priorityLabel", { label: t(`frontmatterBar.${priorityLabelMap[p.value]}`) }),
+              };
+            })}
+            minWidth={140}
+            maxHeight={220}
+          />
+        </span>
+      </Tooltip>
+
+      <Tooltip content={t("frontmatterBar.dueTooltip")}>
+        <label
+          className={cn(
+            "v4-select-chip inline-flex h-8 max-w-[11rem] items-center gap-1 rounded-full",
+            "border border-border-subtle-dim bg-surface-muted/70 px-2",
+            "transition-colors hover:bg-surface-muted focus-within:ring-2 focus-within:ring-ring/35",
+            (readOnly || busy) && "opacity-50",
+          )}
+        >
+          <RiCalendarLine size={ICON.micro} className="shrink-0 opacity-60" aria-hidden />
+          <input
+            type="date"
+            disabled={readOnly || busy}
+            value={normalizeDateInput(due)}
+            aria-label={t("frontmatterBar.dueAria")}
+            onChange={(e) => void patch({ due: e.target.value || null })}
+            className={cn(
+              "h-full min-w-[6.5rem] max-w-[8.5rem] cursor-pointer border-0 bg-transparent",
+              "py-0 text-3xs font-medium text-text-secondary outline-none",
+              "disabled:cursor-not-allowed",
+            )}
+          />
+        </label>
+      </Tooltip>
+
+      {tags ? (
+        <Tooltip content={t("frontmatterBar.tagsTooltip", { tags })}>
+          <span className="inline-flex max-w-[28%] items-center gap-1 truncate rounded-full border border-border-subtle-dim bg-surface px-2 py-0.5 text-3xs text-text-tertiary">
+            <RiPriceTag3Line size={ICON.micro} className="shrink-0 opacity-60" />
+            <span className="truncate">{tags}</span>
+          </span>
+        </Tooltip>
+      ) : null}
+
+      {(category || topic) && (
+        <span
+          className="hidden max-w-[30%] truncate font-mono text-3xs text-text-quaternary lg:inline"
+          title={[category, topic].filter(Boolean).join(" / ")}
+        >
+          {[category, topic].filter(Boolean).join(" / ")}
+        </span>
+      )}
+
+      {busy ? <RiLoader4Line size={ICON.xs} className="animate-spin text-text-quaternary" /> : null}
+      </div>
+    </div>
+  );
+}
+
+function normalizeDateInput(raw: string): string {
+  if (!raw) return "";
+  const m = String(raw).match(/^(\d{4}-\d{2}-\d{2})/u);
+  return m ? m[1] : "";
+}

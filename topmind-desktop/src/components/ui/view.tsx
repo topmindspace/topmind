@@ -1,0 +1,529 @@
+/**
+ * Shared view primitives — page scaffolding for workspace views.
+ *
+ * Token contract (see tokens.css) — Design System 2.0 / long-read:
+ *   text-5xs 10px  — kbd glyphs only
+ *   text-3xs 12px  — MetaText, empty hints, status (UI floor; matches text-2xs)
+ *   text-2xs 12px  — caption
+ *   text-xs  12.5px — form controls
+ *   text-sm  13px  — UI body, list primary
+ *   text-base 14px — page section titles / dense body
+ *   text-lg  15px  — list page titles
+ *   text-3xl 22px  — rare display moments
+ */
+import { createContext, useContext, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  RiAlignJustify,
+  RiErrorWarningLine,
+  RiGalleryView2,
+  RiLoader4Line,
+} from "@remixicon/react";
+import { cn } from "../../lib/kit";
+import { ICON } from "../../lib/icons";
+import type { FeedLayout } from "../../types";
+import { Tooltip } from "./tooltip";
+
+const CollectionLayoutContext = createContext<FeedLayout>("list");
+
+export function useCollectionLayout(): FeedLayout {
+  return useContext(CollectionLayoutContext);
+}
+
+/** Centered content column with density rhythm. */
+export function ViewContainer({
+  children,
+  className,
+  variant = "page",
+}: {
+  children: ReactNode;
+  className?: string;
+  /** `feed` = stream / 我的情况 reading column (header + posts share --feed-column-max). */
+  variant?: "page" | "feed";
+}) {
+  return (
+    <div
+      className={cn(
+        "mx-auto w-full",
+        variant === "feed"
+          ? "max-w-[min(var(--feed-column-max,72rem),100%)]"
+          : "max-w-[min(var(--content-max-width-dashboard,72rem),100%)]",
+        "px-[var(--density-page-x,28px)] py-[var(--density-page-y,24px)]",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** Page header: accent icon + title, optional subtitle + actions. */
+export function PageHeader({
+  icon,
+  title,
+  subtitle,
+  actions,
+  className,
+}: {
+  icon?: ReactNode;
+  title: ReactNode;
+  subtitle?: ReactNode;
+  actions?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <header className={cn("mb-4 sm:mb-5", className)}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          {icon ? (
+            <span className="v4-icon-chip-accent flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] opacity-90">
+              {icon}
+            </span>
+          ) : null}
+          {/* Page titles: one step above list body for hierarchy (DS 4.0 type role) */}
+          <h1 className="truncate text-xl font-semibold tracking-tight text-text-primary">{title}</h1>
+        </div>
+        {actions ? (
+          <div className="flex min-w-0 max-w-[min(58%,24rem)] shrink items-center justify-end gap-1.5 sm:max-w-[28rem]">
+            {actions}
+          </div>
+        ) : null}
+      </div>
+      {subtitle ? (
+        <p className={cn("mt-1 max-w-prose text-3xs leading-relaxed text-text-tertiary", icon && "pl-9")}>
+          {subtitle}
+        </p>
+      ) : null}
+    </header>
+  );
+}
+
+/** Section label with optional count + trailing actions. */
+export function SectionHeader({
+  icon,
+  label,
+  count,
+  actions,
+  className,
+}: {
+  icon?: ReactNode;
+  label: ReactNode;
+  count?: number;
+  actions?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("mb-1.5 flex items-center justify-between gap-2", className)}>
+      <h2 className="flex items-center gap-1.5 text-3xs font-medium tracking-wide text-text-tertiary">
+        {icon ? <span className="opacity-70">{icon}</span> : null}
+        <span>{label}</span>
+        {typeof count === "number" ? (
+          <span className="rounded-full bg-surface-muted px-1.5 py-px text-3xs tabular-nums text-text-quaternary">
+            {count}
+          </span>
+        ) : null}
+      </h2>
+      {actions ? <div className="flex items-center gap-1">{actions}</div> : null}
+    </div>
+  );
+}
+
+/**
+ * Empty state — calm soft panel (not marketing dashed box / loud gradient).
+ * Contract: icon chip + title + optional hint + **one primary action** (+ optional secondary).
+ * compact: sidebar / dense rails
+ */
+export function EmptyState({
+  icon,
+  title,
+  hint,
+  action,
+  className,
+  compact,
+}: {
+  icon?: ReactNode;
+  title: ReactNode;
+  hint?: ReactNode;
+  /** Prefer a single primary Button; wrap multiple only when secondary is clearly subordinate */
+  action?: ReactNode;
+  className?: string;
+  compact?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex flex-col items-center border border-border-subtle-dim bg-surface/80 text-center",
+        "shadow-[var(--elevation-1,var(--shadow-card))]",
+        compact
+          ? "rounded-[var(--radius-lg)] px-3 py-5"
+          : "rounded-[var(--radius-card,var(--radius-xl))] px-5 py-8",
+        className,
+      )}
+      role="status"
+    >
+      {icon ? (
+        <div
+          className={cn(
+            "v4-icon-chip mb-2 flex items-center justify-center rounded-full text-text-tertiary",
+            compact ? "h-8 w-8" : "mb-2.5 h-9 w-9",
+          )}
+          aria-hidden
+        >
+          {icon}
+        </div>
+      ) : null}
+      <div
+        className={cn(
+          "font-medium tracking-tight text-text-primary",
+          compact ? "text-3xs" : "text-sm",
+        )}
+      >
+        {title}
+      </div>
+      {hint ? (
+        <div
+          className={cn(
+            "mt-1.5 leading-relaxed text-text-tertiary",
+            compact ? "max-w-[14rem] text-3xs" : "max-w-xs text-3xs",
+          )}
+        >
+          {hint}
+        </div>
+      ) : null}
+      {action ? (
+        <div className={cn("flex flex-wrap justify-center gap-2", compact ? "mt-2.5" : "mt-3.5")}>
+          {action}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** Compact filter / mode chip — chip-weight only (never solid button height/fill). */
+export function FilterChip({
+  active,
+  label,
+  count,
+  onClick,
+}: {
+  active?: boolean;
+  label: ReactNode;
+  count?: number;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={Boolean(active)}
+      data-filter-chip
+      data-filter-chip-active={active ? "true" : undefined}
+      className={cn(
+        "inline-flex h-[var(--control-h-chip)] max-w-full items-center rounded-full px-2.5 text-3xs font-medium leading-none transition-colors",
+        "v4-focus-ring",
+        active
+          ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
+          : "bg-surface-muted/35 text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
+      )}
+    >
+      <span className="min-w-0 truncate">{label}</span>
+      {typeof count === "number" ? (
+        <span className="ml-1 shrink-0 tabular-nums opacity-70" aria-hidden>
+          {count}
+        </span>
+      ) : null}
+    </button>
+  );
+}
+
+/** Shared loading state. */
+export function LoadingState({ label, className }: { label?: string; className?: string }) {
+  const { t } = useTranslation("common");
+  const displayLabel = label ?? t("action.loading");
+  return (
+    <div
+      className={cn(
+        "flex items-center justify-center gap-2.5 px-6 py-16 text-sm text-text-tertiary",
+        className,
+      )}
+      role="status"
+      aria-live="polite"
+    >
+      <RiLoader4Line size={ICON.sm} className="animate-spin text-accent-color" />
+      <span>{displayLabel}</span>
+    </div>
+  );
+}
+
+/** Shared error state with optional retry. */
+export function ErrorState({
+  message,
+  onRetry,
+  className,
+}: {
+  message: string;
+  onRetry?: () => void;
+  className?: string;
+}) {
+  const { t } = useTranslation("common");
+  return (
+    <div
+      className={cn(
+        "flex flex-wrap items-center gap-2.5 rounded-[var(--radius-lg)] border border-error/20 bg-status-error-bg px-4 py-3 text-sm text-error",
+        className,
+      )}
+      role="alert"
+    >
+      <RiErrorWarningLine size={ICON.sm} className="shrink-0" />
+      <span className="min-w-0 flex-1 text-2xs leading-relaxed">{t("action.loadFailed", { message })}</span>
+      {onRetry ? (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="shrink-0 rounded-[var(--radius-md)] border border-border-subtle bg-surface px-2.5 py-1 text-3xs font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary"
+        >
+          {t("action.retry")}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+/** Inline metadata (relative time · size). */
+export function MetaText({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <span className={cn("whitespace-nowrap font-mono text-3xs tabular-nums text-text-tertiary", className)}>
+      {children}
+    </span>
+  );
+}
+
+/** Canonical className for selectable list rows — fill highlight, no wireframe borders. */
+export function listRowClass(active?: boolean, className?: string) {
+  return cn(
+    "v4-list-virtual flex items-center justify-between gap-2 rounded-[var(--radius-md)] border border-transparent px-2.5 py-2 text-sm",
+    "transition-[background-color,box-shadow,color] duration-[var(--duration-fast)] ease-[var(--ease-default)]",
+    active
+      ? "bg-accent-container text-on-accent-container shadow-[inset_3px_0_0_0_var(--color-accent-color)] font-medium"
+      : "text-text-secondary hover:bg-state-hover hover:text-text-primary active:bg-state-pressed",
+    className,
+  );
+}
+
+/** Vertical list wrapper. */
+export function RowList({ children, className }: { children: ReactNode; className?: string }) {
+  // No stagger-children here — long lists stay scroll-smooth without entrance cascade
+  return <ul className={cn("m-0 list-none space-y-0.5 p-0", className)}>{children}</ul>;
+}
+
+/** Unified file/topic list row. */
+export function FileRow({
+  icon,
+  label,
+  secondary,
+  meta,
+  active,
+  onClick,
+  onContextMenu,
+  actions,
+  className,
+}: {
+  icon?: ReactNode;
+  label: ReactNode;
+  secondary?: ReactNode;
+  meta?: ReactNode;
+  active?: boolean;
+  onClick?: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
+  actions?: ReactNode;
+  className?: string;
+}) {
+  const layout = useCollectionLayout();
+  const card = layout === "card";
+  return (
+    <li
+      data-collection-item
+      onClick={onClick}
+      onContextMenu={onContextMenu}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      className={
+        card
+          ? cn(
+              "v4-row-focus group/row flex items-start justify-between gap-2 text-sm",
+              "transition-[background-color,box-shadow] duration-[var(--duration-fast)] ease-[var(--ease-default)]",
+              onClick && "cursor-pointer v4-focus-ring",
+              active && "ring-1 ring-inset ring-accent-color/25",
+              className,
+            )
+          : listRowClass(
+              active,
+              cn(
+                "v4-row-focus group/row v4-list-virtual",
+                onClick && "cursor-pointer v4-focus-ring",
+                className,
+              ),
+            )
+      }
+    >
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        {icon ? <span className="shrink-0 text-text-tertiary opacity-80">{icon}</span> : null}
+        <div className="min-w-0 flex-1">
+          {/* Content titles: regular weight reads calmer in long lists */}
+          <div className="truncate text-sm font-normal leading-snug text-text-primary">{label}</div>
+          {secondary ? (
+            <div className="mt-px truncate font-mono text-3xs text-text-quaternary">{secondary}</div>
+          ) : null}
+        </div>
+      </div>
+      {meta ? <div className="flex shrink-0 items-center gap-1.5 opacity-90">{meta}</div> : null}
+      {actions ? (
+        <div className="flex shrink-0 items-center gap-0.5 opacity-70 transition-opacity group-hover/row:opacity-100">
+          {actions}
+        </div>
+      ) : null}
+    </li>
+  );
+}
+
+/** Shared reading column for compose + list + cards (single-column feed). */
+export function FeedColumn({
+  children,
+  className,
+  stream,
+  collection,
+}: {
+  children: ReactNode;
+  className?: string;
+  stream?: boolean;
+  collection?: boolean;
+}) {
+  return (
+    <div
+      className={cn("v4-feed-column", className)}
+      data-stream-column={stream ? "true" : undefined}
+      data-collection-column={collection ? "true" : undefined}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** Chrome immediately above the feed body (layout toggle, layer chips) — not page-title actions. */
+export function FeedChrome({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "v4-feed-chrome mb-2 flex flex-wrap items-center justify-between gap-2",
+        className,
+      )}
+      data-feed-chrome
+    >
+      {children}
+    </div>
+  );
+}
+
+/** List vs 卡片式 toggle — one control in view chrome; parent persists via settings.ui. */
+export function FeedLayoutToggle({
+  value,
+  onChange,
+  className,
+}: {
+  value: FeedLayout;
+  onChange: (v: FeedLayout) => void;
+  className?: string;
+}) {
+  const { t } = useTranslation(["workspace", "common"]);
+  const options: Array<{ id: FeedLayout; icon: typeof RiAlignJustify; label: string; hint: string }> = [
+    {
+      id: "list",
+      icon: RiAlignJustify,
+      label: t("workspace:feedLayout.list"),
+      hint: t("workspace:feedLayout.listHint"),
+    },
+    {
+      id: "card",
+      icon: RiGalleryView2,
+      label: t("workspace:feedLayout.card"),
+      hint: t("workspace:feedLayout.cardHint"),
+    },
+  ];
+  return (
+    <div
+      className={cn("v4-feed-layout-toggle inline-flex shrink-0 items-center", className)}
+      role="group"
+      aria-label={t("workspace:feedLayout.toggleAria")}
+      data-feed-layout-toggle
+    >
+      {options.map((opt) => {
+        const active = value === opt.id;
+        return (
+          <Tooltip key={opt.id} content={`${opt.label} · ${opt.hint}`} side="bottom">
+            <button
+              type="button"
+              data-layout-option={opt.id}
+              data-active={active ? "true" : undefined}
+              aria-pressed={active}
+              aria-label={opt.label}
+              onClick={() => onChange(opt.id)}
+              className={cn(
+                "inline-flex h-7 items-center gap-1 rounded-full px-2 text-3xs font-medium leading-none transition-colors",
+                "v4-focus-ring",
+                active
+                  ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
+                  : "text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
+              )}
+            >
+              <opt.icon size={ICON.xs} aria-hidden />
+              <span className="hidden sm:inline">{opt.label}</span>
+            </button>
+          </Tooltip>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Shared list/card feed wrapper for Inbox / Category / Topic / Outputs / memory. */
+export function CollectionFeed({
+  layout,
+  children,
+  className,
+}: {
+  layout: FeedLayout;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <CollectionLayoutContext.Provider value={layout}>
+      <div
+        data-collection-feed
+        data-layout={layout}
+        className={cn(
+          "v4-feed",
+          layout === "card" ? "v4-feed-card" : "v4-feed-list",
+          className,
+        )}
+      >
+        {children}
+      </div>
+    </CollectionLayoutContext.Provider>
+  );
+}

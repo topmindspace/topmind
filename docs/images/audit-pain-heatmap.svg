@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" font-family="ui-sans-serif, system-ui, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0a0a0a"/>
+      <stop offset="100%" stop-color="#000"/>
+    </linearGradient>
+    <linearGradient id="hot" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#dc2626" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#7f1d1d" stop-opacity="0.1"/>
+    </linearGradient>
+    <linearGradient id="warm" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#78350f" stop-opacity="0.08"/>
+    </linearGradient>
+    <linearGradient id="mild" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0ea5e9" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#0c4a6e" stop-opacity="0.06"/>
+    </linearGradient>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#e5e5e5"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="760" fill="url(#bg)"/>
+
+  <text x="40" y="40" fill="#e5e5e5" font-size="20" font-weight="600">痛点热力图 · 10 项发现定位</text>
+  <text x="40" y="62" fill="#8c8c8c" font-size="12">P0 红色 · P1 琥珀 · P2 蓝色  ·  编号对应报告 §4.1</text>
+
+  <!-- Window frame -->
+  <g transform="translate(60,100)">
+    <rect width="1080" height="600" rx="12" fill="#171717" stroke="#2a2a2a"/>
+
+    <!-- Title bar -->
+    <rect width="1080" height="36" fill="#0f0f0f" stroke="#262626"/>
+    <text x="14" y="22" fill="#a1a1a1" font-size="10">●●●</text>
+
+    <!-- Region labels -->
+    <g font-size="9" fill="#8c8c8c" font-weight="600" letter-spacing="0.5">
+      <text x="100" y="22">[ TITLE BAR ]</text>
+      <text x="14" y="58">[ SIDEBAR ]</text>
+      <text x="252" y="58">[ CANVAS ]</text>
+      <text x="850" y="58">[ AI RAIL ]</text>
+      <text x="14" y="582">[ STATUS BAR ]</text>
+    </g>
+
+    <!-- Hot zones overlay -->
+    <!-- H1: PageHeader 缺面包屑 — canvas 多处 -->
+    <g>
+      <rect x="252" y="60" width="590" height="36" fill="url(#hot)" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="3 2"/>
+      <circle cx="262" cy="78" r="11" fill="#dc2626"/>
+      <text x="262" y="82" text-anchor="middle" fill="white" font-size="11" font-weight="700">H1</text>
+      <text x="278" y="82" fill="#fca5a5" font-size="10" font-weight="500">无面包屑 — Topic/Category/Inbox/Outputs 全视图</text>
+    </g>
+
+    <!-- H2: 周期 chip 单轴 — canvas top -->
+    <g>
+      <rect x="252" y="100" width="280" height="26" fill="url(#hot)" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="3 2"/>
+      <circle cx="262" cy="113" r="11" fill="#dc2626"/>
+      <text x="262" y="117" text-anchor="middle" fill="white" font-size="11" font-weight="700">H2</text>
+      <text x="278" y="117" fill="#fca5a5" font-size="10" font-weight="500">周期 chip 只显 5 个 · 无年份/日期下拉</text>
+    </g>
+
+    <!-- H3: Suggestion banner 重复 -->
+    <g>
+      <rect x="252" y="132" width="590" height="20" fill="url(#warm)" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="3 2"/>
+      <circle cx="262" cy="142" r="9" fill="#f59e0b"/>
+      <text x="262" y="146" text-anchor="middle" fill="white" font-size="10" font-weight="700">H3</text>
+      <text x="278" y="146" fill="#fcd34d" font-size="10">Stream 画布建议 banner 重复标题栏/状态栏</text>
+    </g>
+
+    <!-- H4: Quick capture (no rect, but callout) -->
+    <g>
+      <rect x="780" y="40" width="280" height="200" fill="none" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="3 2" opacity="0.7"/>
+      <circle cx="900" cy="40" r="9" fill="#f59e0b"/>
+      <text x="900" y="44" text-anchor="middle" fill="white" font-size="10" font-weight="700">H4</text>
+      <text x="900" y="262" text-anchor="middle" fill="#fcd34d" font-size="10">QuickCapture 「Save to」+「Note mode」双选择 + 重复文案</text>
+    </g>
+
+    <!-- H5: TitleBar right rail 5+ icons -->
+    <g>
+      <rect x="800" y="2" width="276" height="36" fill="url(#warm)" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="3 2"/>
+      <circle cx="1066" cy="20" r="9" fill="#f59e0b"/>
+      <text x="1066" y="24" text-anchor="middle" fill="white" font-size="10" font-weight="700">H5</text>
+      <text x="1010" y="20" text-anchor="end" fill="#fcd34d" font-size="10">5+ 图标无视觉分组</text>
+    </g>
+
+    <!-- H6: EditorRecentBar 条件渲染 -->
+    <g>
+      <rect x="252" y="158" width="590" height="20" fill="url(#mild)" stroke="#0ea5e9" stroke-width="1" stroke-dasharray="3 2"/>
+      <circle cx="262" cy="168" r="9" fill="#0ea5e9"/>
+      <text x="262" y="172" text-anchor="middle" fill="white" font-size="10" font-weight="700">H6</text>
+      <text x="278" y="172" fill="#7dd3fc" font-size="10">EditorRecentBar 仅编辑器显示，Stream 无 tab 条</text>
+    </g>
+
+    <!-- H7: Back/Forward 禁用态 -->
+    <g>
+      <rect x="20" y="2" width="60" height="36" fill="url(#mild)" stroke="#0ea5e9" stroke-width="1" stroke-dasharray="3 2"/>
+      <circle cx="50" cy="20" r="9" fill="#0ea5e9"/>
+      <text x="50" y="24" text-anchor="middle" fill="white" font-size="10" font-weight="700">H7</text>
+      <text x="50" y="48" text-anchor="middle" fill="#7dd3fc" font-size="9">回退按钮</text>
+    </g>
+
+    <!-- H8: 行内 AI 关闭 icon 重复 (callout) -->
+    <g>
+      <rect x="850" y="100" width="220" height="80" fill="none" stroke="#0ea5e9" stroke-width="1" stroke-dasharray="3 2" opacity="0.5"/>
+      <circle cx="1056" cy="100" r="9" fill="#0ea5e9"/>
+      <text x="1056" y="104" text-anchor="middle" fill="white" font-size="10" font-weight="700">H8</text>
+      <text x="960" y="194" text-anchor="middle" fill="#7dd3fc" font-size="9">行内 AI × close icon 重复</text>
+    </g>
+
+    <!-- H9: Inbox 行操作 -->
+    <g>
+      <rect x="14" y="80" width="220" height="180" fill="url(#mild)" stroke="#0ea5e9" stroke-width="1" stroke-dasharray="3 2"/>
+      <circle cx="220" cy="92" r="9" fill="#0ea5e9"/>
+      <text x="220" y="96" text-anchor="middle" fill="white" font-size="10" font-weight="700">H9</text>
+      <text x="124" y="276" text-anchor="middle" fill="#7dd3fc" font-size="9">Inbox 收件箱 5 条 · 操作按钮常驻</text>
+    </g>
+
+    <!-- H10: AI rail 固定宽度 -->
+    <g>
+      <rect x="850" y="40" width="230" height="540" fill="url(#mild)" stroke="#0ea5e9" stroke-width="1" stroke-dasharray="3 2"/>
+      <circle cx="856" cy="46" r="9" fill="#0ea5e9"/>
+      <text x="856" y="50" text-anchor="middle" fill="white" font-size="10" font-weight="700">H10</text>
+      <text x="965" y="600" text-anchor="middle" fill="#7dd3fc" font-size="9">AI 轨固定 280–800px · 无最小化/浮层</text>
+    </g>
+
+    <!-- Status bar interaction -->
+    <rect y="564" width="1080" height="36" fill="#0f0f0f" stroke="#262626"/>
+  </g>
+
+  <!-- Legend -->
+  <g transform="translate(60,720)" font-size="11">
+    <rect x="0" y="0" width="16" height="16" fill="url(#hot)" stroke="#dc2626"/>
+    <text x="22" y="12" fill="#fca5a5">P0 严重（影响主路径）</text>
+    <rect x="200" y="0" width="16" height="16" fill="url(#warm)" stroke="#f59e0b"/>
+    <text x="222" y="12" fill="#fcd34d">P1 应做（每月打磨）</text>
+    <rect x="380" y="0" width="16" height="16" fill="url(#mild)" stroke="#0ea5e9"/>
+    <text x="402" y="12" fill="#7dd3fc">P2 可选（季度精修）</text>
+  </g>
+</svg>

@@ -1,0 +1,123 @@
+/**
+ * Kernel API surface loads and re-exports writeback / suggest / derived / ai-ops.
+ */
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+import * as kernel from "../lib/kernel-api.mjs";
+
+describe("kernel-api", () => {
+  it("exports version and write gate", () => {
+    assert.equal(kernel.KERNEL_API_VERSION, 1);
+    assert.equal(typeof kernel.SUGGEST_CORPUS_MAX_CHARS, "number");
+    assert.equal(typeof kernel.DEFAULT_WINDOW_DAYS, "number");
+    assert.equal(typeof kernel.DEFAULT_MAX_FILES, "number");
+    assert.equal(typeof kernel.DEFAULT_MAX_PERIODS, "number");
+    assert.equal(typeof kernel.isSafePeriodStem, "function");
+    assert.equal(typeof kernel.periodStemFromCandidate, "function");
+    assert.equal(typeof kernel.periodMemoryRelPath, "function");
+    assert.equal(kernel.periodMemoryRelPath("2026-W26"), "memory/periodic/2026/2026-W26.md");
+    assert.equal(kernel.periodMemoryRelPath("undefined"), "");
+    assert.equal(kernel.periodMemoryRelPath("period"), "");
+    assert.equal(kernel.isSafePeriodStem("2026-W26"), true);
+    assert.equal(kernel.isSafePeriodStem("近期活动"), false);
+    assert.equal(typeof kernel.executeWrite, "function");
+    assert.equal(typeof kernel.evaluateWritePermission, "function");
+    assert.equal(typeof kernel.generateSuggestions, "function");
+    assert.equal(typeof kernel.applySuggestion, "function");
+    assert.equal(typeof kernel.loadContract, "function");
+    assert.equal(typeof kernel.scanLifecycle, "function");
+    assert.equal(typeof kernel.applyUniqueSpan, "function");
+    assert.equal(typeof kernel.splitAssistantVisible, "function");
+    assert.equal(typeof kernel.formatReadWindow, "function");
+    assert.equal(typeof kernel.resolveOutputLanguage, "function");
+    assert.equal(typeof kernel.resolveAiLocale, "function");
+    assert.equal(typeof kernel.resolveAgentOutputLanguage, "function");
+    assert.equal(typeof kernel.pickDocumentSourceForOutputLanguage, "function");
+    assert.equal(typeof kernel.resolveProductAiLanguage, "function");
+    assert.equal(typeof kernel.assembleMemoryFeed, "function");
+    assert.equal(typeof kernel.filterMemoryFeedByLayer, "function");
+    assert.deepEqual(kernel.assembleMemoryFeed(null), []);
+  });
+
+  it("exports derived-builder rebuild (per-call aiProvider only)", () => {
+    assert.equal(typeof kernel.rebuildAllDerived, "function");
+    assert.equal(kernel.setAiProvider, undefined);
+    assert.equal(kernel.getAiProvider, undefined);
+  });
+
+  it("exports todo-engine functions", () => {
+    assert.equal(typeof kernel.ensureTodoFile, "function");
+    assert.equal(typeof kernel.readTodoList, "function");
+    assert.equal(typeof kernel.maintainTodos, "function");
+    assert.equal(typeof kernel.extractTodosFromStream, "function");
+    assert.equal(typeof kernel.getTodoHealth, "function");
+  });
+
+  it("exports ledger-engine functions", () => {
+    assert.equal(typeof kernel.parseLedgerMarkdown, "function");
+    assert.equal(typeof kernel.serializeLedger, "function");
+    assert.equal(typeof kernel.appendLedgerEntry, "function");
+    assert.equal(typeof kernel.listLedgers, "function");
+    assert.equal(typeof kernel.captureLedgerPhrase, "function");
+    assert.equal(typeof kernel.parseLedgerCapture, "function");
+    assert.ok(Array.isArray(kernel.DEFAULT_LEDGER_ROLES));
+    assert.equal(kernel.PERSONAL_LEDGER_ID, "Personal");
+    assert.ok(kernel.DEFAULT_LEDGER_ROLES.some((r) => r.id === "Personal"));
+    assert.ok(!kernel.DEFAULT_LEDGER_ROLES.some((r) => r.id === "ClassFund"));
+    assert.equal(typeof kernel.summarizeLedgerBooks, "function");
+    assert.equal(typeof kernel.listLedgerCategories, "function");
+    assert.equal(typeof kernel.knownLedgerRoleId, "function");
+    assert.equal(kernel.knownLedgerRoleId("ClassFund", kernel.DEFAULT_LEDGER_ROLES), "Personal");
+  });
+
+  it("exports ai-operation-engine functions", () => {
+    assert.equal(typeof kernel.registerOperationType, "function");
+    assert.equal(typeof kernel.listOperationTypes, "function");
+    assert.equal(typeof kernel.getOperationType, "function");
+    assert.equal(typeof kernel.runOperation, "function");
+    assert.equal(typeof kernel.getOperationState, "function");
+    assert.equal(typeof kernel.clearOperationState, "function");
+  });
+
+  it("createKernelContext binds workspace + per-call AI provider", async () => {
+    assert.equal(typeof kernel.createKernelContext, "function");
+    assert.throws(() => kernel.createKernelContext({}), /workspaceRoot/);
+
+    const fs = await import("node:fs");
+    const path = await import("node:path");
+    const os = await import("node:os");
+    const ws = fs.mkdtempSync(path.join(os.tmpdir(), "topmind-ctx-"));
+    try {
+      for (const d of ["00-收件箱", "10-动态", "20-专题", "88-输出", "99-归档"]) {
+        fs.mkdirSync(path.join(ws, d), { recursive: true });
+      }
+      fs.mkdirSync(path.join(ws, "20-专题", "2026-上下文测试"), { recursive: true });
+      fs.writeFileSync(path.join(ws, "20-专题", "2026-上下文测试", "note.md"), "# 笔记\n\n一些内容。\n", "utf8");
+
+      const calls = [];
+      const ctx = kernel.createKernelContext({
+        workspaceRoot: ws,
+        aiProvider: {
+          generate: async (prompt) => {
+            calls.push(prompt);
+            return "这是一份由上下文注入 provider 生成的摘要，包含要点若干。";
+          },
+        },
+      });
+      assert.equal(ctx.workspaceRoot, ws);
+      assert.ok(ctx.contract);
+
+      const generated = await ctx.buildTopicDerived({
+        topicPath: path.join(ws, "20-专题", "2026-上下文测试"),
+      });
+      assert.ok(generated.summary);
+      assert.equal(calls.length, 1);
+      const summary = fs.readFileSync(generated.summary, "utf8");
+      assert.match(summary, /上下文注入 provider 生成/);
+      // No module-level singleton — per-call provider only.
+      assert.equal(typeof kernel.createKernelContext, "function");
+    } finally {
+      fs.rmSync(ws, { recursive: true, force: true });
+    }
+  });
+});

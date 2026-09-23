@@ -1,0 +1,20 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "skills": {
+    "paths": [
+      "${topmind_ENGINE_ROOT}/skills"
+    ]
+  },
+  "mcp": {
+    "topmind": {
+      "type": "local",
+      "command": [
+        "node",
+        "${topmind_ENGINE_ROOT}/utr/server/topmind-mcp.mjs"
+      ]
+    }
+  },
+  "plugin": [
+    "${topmind_ENGINE_ROOT}/integrations/opencode/plugins/topmind-plugin.ts"
+  ]
+}

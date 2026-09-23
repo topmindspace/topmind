@@ -1,0 +1,124 @@
+# Continuous integration — Kernel / UTR / Desktop / Clip.
+# Skills & Obsidian live in sibling repos (topmind-skills / topmind-obsidian).
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      # Contract cross-checks need sister delivery repos (sibling paths after 3-repo split)
+      - name: Checkout topmind-skills
+        uses: actions/checkout@v5
+        with:
+          repository: topmindspace/topmind-skills
+          ref: main
+          path: topmind-skills
+        continue-on-error: true
+
+      - name: Checkout topmind-obsidian
+        uses: actions/checkout@v5
+        with:
+          repository: topmindspace/topmind-obsidian
+          ref: main
+          path: topmind-obsidian
+        continue-on-error: true
+
+      # Obsidian #kernel/* imports resolve to ./lib (ensure-engine symlink)
+      - name: Link engine lib for topmind-obsidian
+        shell: bash
+        run: |
+          if [ -d topmind-obsidian ] && [ -d lib ]; then
+            rm -rf topmind-obsidian/lib
+            ln -s "$GITHUB_WORKSPACE/lib" topmind-obsidian/lib
+            echo "linked topmind-obsidian/lib -> engine lib"
+          fi
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            topmind-desktop/package-lock.json
+
+      - name: Install root (scripts only)
+        run: npm ci --ignore-scripts
+
+      - name: Install Desktop deps
+        working-directory: topmind-desktop
+        run: npm ci
+
+      - name: Secret / PII scan
+        run: node scripts/check-secrets.mjs
+
+      - name: Docs redesign contract
+        env:
+          TOPMIND_SKILLS_SRC: ${{ github.workspace }}/topmind-skills
+          TOPMIND_OBSIDIAN_SRC: ${{ github.workspace }}/topmind-obsidian
+        run: npm run docs:guard
+
+      - name: Root + UTR tests
+        env:
+          TOPMIND_SKILLS_SRC: ${{ github.workspace }}/topmind-skills
+          TOPMIND_OBSIDIAN_SRC: ${{ github.workspace }}/topmind-obsidian
+        run: |
+          npm run root:test
+          npm run utr:test
+          npm run utr:doctor:engine
+
+      - name: Desktop packaging deps gate (zod / AI peers)
+        working-directory: topmind-desktop
+        run: npm run deps:packaging
+
+      - name: Desktop validate
+        working-directory: topmind-desktop
+        env:
+          TOPMIND_SKILLS_SRC: ${{ github.workspace }}/topmind-skills
+          TOPMIND_OBSIDIAN_SRC: ${{ github.workspace }}/topmind-obsidian
+        run: npm run validate
+        # includes deps:packaging, tests, build, pack:verify (source + staged-engine guards)
+
+      - name: Desktop pack:dir smoke (host OS integrity)
+        working-directory: topmind-desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: |
+          # Unpacked app only — catches asar main-load failures (e.g. monorepo lib import)
+          # that unit tests miss. Timeout-friendly: --dir, no DMG/NSIS.
+          npm run pack:dir
+
+      - name: Pack browser extension (smoke)
+        run: npm run extension:pack
+
+      - name: Assert surface-prefixed artifact names
+        shell: bash
+        run: |
+          set -euo pipefail
+          ls dist/topmind-clip-extension-*.zip
+
+      - name: Upload pack artifacts (PR smoke)
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v5
+        with:
+          name: pack-smoke
+          path: |
+            dist/topmind-clip-extension-*.zip
+            dist/*.SHA256SUMS
+          if-no-files-found: warn
+          retention-days: 3

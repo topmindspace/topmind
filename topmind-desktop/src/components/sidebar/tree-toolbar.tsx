@@ -1,0 +1,205 @@
+/**
+ * Tree expand/collapse + sibling sort + file filter — Workspace header chrome for category view.
+ * Sort menu uses portal DropdownMenu (never clipped by sidebar overflow).
+ */
+import { useState } from "react";
+import {
+  RiArrowUpDownLine,
+  RiCheckLine,
+  RiContractUpDownLine,
+  RiExpandUpDownLine,
+  RiFilterLine,
+  RiRefreshLine,
+} from "@remixicon/react";
+import { useTranslation } from "react-i18next";
+import { Tooltip } from "../ui/tooltip";
+import {
+  DropdownItem,
+  DropdownMenu,
+  DropdownSectionLabel,
+} from "../ui/DropdownMenu";
+import { useViewStore } from "../../stores/view-store";
+import type { TreeNode } from "../../plugins/types";
+import { collectExpandableIds } from "../../lib/tree-reveal";
+import { getTreeSortOptions, type TreeSortMode } from "../../lib/tree-sort";
+import { cn } from "../../lib/kit";
+import { ICON } from "../../lib/icons";
+import type { FileFilterMode } from "../../types";
+
+const FILE_FILTER_OPTIONS: { id: FileFilterMode; labelKey: string }[] = [
+  { id: "default", labelKey: "fileFilterDefault" },
+  { id: "markdown", labelKey: "fileFilterMarkdown" },
+  { id: "all", labelKey: "fileFilterAll" },
+];
+
+export function TreeToolbar({
+  tree,
+  sortMode,
+  onSortChange,
+  fileFilter,
+  onFileFilterChange,
+  onRefresh,
+  refreshing = false,
+  showStructureTools = true,
+}: {
+  tree: TreeNode[];
+  sortMode: TreeSortMode;
+  onSortChange: (m: TreeSortMode) => void;
+  fileFilter: FileFilterMode;
+  onFileFilterChange: (f: FileFilterMode) => void;
+  onRefresh?: () => void;
+  refreshing?: boolean;
+  showStructureTools?: boolean;
+}) {
+  const expandNodes = useViewStore((s) => s.expandNodes);
+  const setExpandedNodes = useViewStore((s) => s.setExpandedNodes);
+  const expandedCount = useViewStore((s) => s.expandedNodeIds.size);
+  const { t } = useTranslation("shell");
+  const [sortOpen, setSortOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+
+  const sortOptions = getTreeSortOptions();
+  const currentSortOpt = sortOptions.find((o) => o.id === sortMode);
+  const sortLabel = currentSortOpt?.label || t("sidebar.treeToolbar.sort");
+
+  const currentFilterOpt = FILE_FILTER_OPTIONS.find((o) => o.id === fileFilter);
+  const filterLabel = currentFilterOpt
+    ? t(`sidebar.treeToolbar.${currentFilterOpt.labelKey}`)
+    : t("sidebar.treeToolbar.fileFilterDefault");
+  const filterActive = fileFilter !== "default";
+
+  return (
+    <div className="flex shrink-0 items-center gap-0.5">
+      {showStructureTools ? (
+      <>
+      <Tooltip content={t("sidebar.treeToolbar.expandAll")}>
+        <button
+          type="button"
+          onClick={() => {
+            const ids = collectExpandableIds(tree);
+            if (ids.length) expandNodes(ids);
+          }}
+          className="v4-icon-btn v4-icon-btn-micro"
+          aria-label={t("sidebar.treeToolbar.expandAllAria")}
+        >
+          <RiExpandUpDownLine size={ICON.nano} />
+        </button>
+      </Tooltip>
+      <Tooltip content={t("sidebar.treeToolbar.collapseAll")}>
+        <button
+          type="button"
+          onClick={() => setExpandedNodes([])}
+          disabled={expandedCount === 0}
+          className="v4-icon-btn v4-icon-btn-micro disabled:opacity-40"
+          aria-label={t("sidebar.treeToolbar.collapseAllAria")}
+        >
+          <RiContractUpDownLine size={ICON.nano} />
+        </button>
+      </Tooltip>
+      <DropdownMenu
+        open={sortOpen}
+        onOpenChange={setSortOpen}
+        align="end"
+        minWidth={148}
+        maxHeight={240}
+        matchTriggerWidth={false}
+        trigger={
+          <Tooltip content={t("sidebar.treeToolbar.sortTooltip", { label: sortLabel })}>
+            <button
+              type="button"
+              onClick={() => setSortOpen((v) => !v)}
+              className={cn(
+                "v4-icon-btn v4-icon-btn-micro w-auto gap-0.5 px-1",
+                sortOpen && "bg-surface-hover text-text-secondary",
+              )}
+              aria-label={t("sidebar.treeToolbar.toggleSortAria")}
+              aria-expanded={sortOpen}
+              aria-haspopup="listbox"
+            >
+              <RiArrowUpDownLine size={ICON.nano} />
+            </button>
+          </Tooltip>
+        }
+      >
+        <DropdownSectionLabel>{t("sidebar.treeToolbar.sortSectionLabel")}</DropdownSectionLabel>
+        {sortOptions.map((opt) => (
+          <DropdownItem
+            key={opt.id}
+            active={sortMode === opt.id}
+            onSelect={() => {
+              onSortChange(opt.id);
+              setSortOpen(false);
+            }}
+          >
+            <span className="min-w-0 flex-1 truncate">{t(`sidebar.treeToolbar.sort${opt.id.replace(/-(.)/gu, (_, c) => c.toUpperCase()).replace(/^./u, (c) => c.toUpperCase())}`)}</span>
+            {sortMode === opt.id ? (
+              <RiCheckLine size={ICON.micro} className="shrink-0 text-accent-color" />
+            ) : null}
+          </DropdownItem>
+        ))}
+      </DropdownMenu>
+      <DropdownMenu
+        open={filterOpen}
+        onOpenChange={setFilterOpen}
+        align="end"
+        minWidth={168}
+        maxHeight={240}
+        matchTriggerWidth={false}
+        trigger={
+          <Tooltip content={t("sidebar.treeToolbar.fileFilterTooltip", { label: filterLabel })}>
+            <button
+              type="button"
+              onClick={() => setFilterOpen((v) => !v)}
+              className={cn(
+                "v4-icon-btn v4-icon-btn-micro w-auto gap-0.5 px-1",
+                filterOpen && "bg-surface-hover text-text-secondary",
+                filterActive && "text-accent-color",
+              )}
+              aria-label={t("sidebar.treeToolbar.toggleFileFilterAria")}
+              aria-expanded={filterOpen}
+              aria-haspopup="listbox"
+            >
+              <RiFilterLine size={ICON.micro} />
+              {filterActive ? (
+                <span className="h-1 w-1 rounded-full bg-accent-color" aria-hidden />
+              ) : null}
+            </button>
+          </Tooltip>
+        }
+      >
+        <DropdownSectionLabel>{t("sidebar.treeToolbar.fileFilterSectionLabel")}</DropdownSectionLabel>
+        {FILE_FILTER_OPTIONS.map((opt) => (
+          <DropdownItem
+            key={opt.id}
+            active={fileFilter === opt.id}
+            onSelect={() => {
+              onFileFilterChange(opt.id);
+              setFilterOpen(false);
+            }}
+          >
+            <span className="min-w-0 flex-1 truncate">{t(`sidebar.treeToolbar.${opt.labelKey}`)}</span>
+            {fileFilter === opt.id ? (
+              <RiCheckLine size={ICON.micro} className="shrink-0 text-accent-color" />
+            ) : null}
+          </DropdownItem>
+        ))}
+      </DropdownMenu>
+      </>
+      ) : null}
+      {onRefresh ? (
+        <Tooltip content={t("sidebar.refreshTooltip")}>
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={refreshing}
+            className="v4-icon-btn v4-icon-btn-micro v4-focus-ring disabled:opacity-40"
+            aria-label={t("sidebar.refreshTooltip")}
+            data-sidebar-refresh
+          >
+            <RiRefreshLine size={ICON.micro} className={refreshing ? "animate-spin" : ""} />
+          </button>
+        </Tooltip>
+      ) : null}
+    </div>
+  );
+}

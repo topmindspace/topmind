@@ -1,0 +1,849 @@
+{
+  "onboarding": {
+    "openingWorkspace": "正在打开工作区…",
+    "initFolder": "初始化文件夹结构",
+    "noWorkspaceTitle": "还没有打开过工作区",
+    "noWorkspaceHint": "选择一个文件夹即可开始 · 不会自动创建",
+    "selectFolder": "选择文件夹 / 新建工作区",
+    "selectFolderTip": "选择本地文件夹作为工作区根目录（空目录会初始化类别结构）",
+    "recentWorkspaces": "最近工作区",
+    "removeFromList": "从列表移除（不删除磁盘文件）",
+    "removeLabel": "从列表移除 {{name}}",
+    "statusClosed": "已关闭工作区 · 选择一个继续",
+    "statusInvalid": "上次工作区无法打开 · 请选择其他路径",
+    "statusNoWorkspace": "选择或新建本地文件夹作为工作区",
+    "footerLine1": "工作区 = 你自己的本地文件夹（动态 · 专题 · 交付 · 归档）",
+    "companionsHint": "打开后可在 设置 → 集成 安装 Agent Skills / 剪藏扩展 / Obsidian 插件（可选，不阻塞）",
+    "healthOk": "可用",
+    "healthEmpty": "空目录",
+    "healthBroken": "不可用",
+    "templateTitle": "选择一个模板",
+    "templateConfirm": "选择并继续",
+    "templateStreamName": "极简流式",
+    "templateStreamDesc": "最少心智：Inbox · 动态 · 专题 · 交付 · 归档",
+    "templateBalancedName": "平衡知识型",
+    "templateBalancedDesc": "兼顾低摩擦记录与知识沉淀",
+    "templateResearchName": "学术研究型",
+    "templateResearchDesc": "深度研究 · 来源追踪 · 参考资料",
+    "templatePeriodicName": "周期回顾型",
+    "templatePeriodicDesc": "强周期复盘 · 记忆沉淀",
+    "statusContractUnrepairable": "工作区 topmind.yaml 损坏且无法自动修复。可备份后重建契约（不删除笔记内容）。",
+    "reseedContract": "备份并重建 topmind.yaml",
+    "reseedContractHint": "坏文件会备份到归档/contract 或 .topmind/contract-backups；笔记目录不会删除。",
+    "reseedFailed": "重建契约失败"
+  },
+  "shell": {
+    "loadingAi": "加载 AI…",
+    "loadingWorkspace": "启动工作区…",
+    "opening": "打开中"
+  },
+  "lazyBoundary": {
+    "loadingAi": "加载 AI…",
+    "loadingWorkspace": "启动工作区…",
+    "loading": "加载中…"
+  },
+  "toast": {
+    "moveFailed": "移动失败",
+    "moveFailedDetail": "移动失败: {{error}}",
+    "importFailedSkipped": "导入失败 — 未能读取文件路径（{{count}} 个）。请改用「知识加工 → 导入文件」",
+    "importFailed": "导入失败 — 未能读取拖入的文件路径",
+    "enqueued": "已入队 {{count}} 个任务 · 后台转换中",
+    "staging": "待确认 {{count}} 项 · 请勾选后转换",
+    "empty": "没有可导入的文件",
+    "enqueueFailed": "入队失败"
+  },
+  "titleBar": {
+    "workspaceTip": "工作区：{{root}}\n点击切换 / 新建 / 关闭 · ⌘⇧W",
+    "copyWorkspacePath": "复制路径",
+    "copyWorkspacePathDone": "路径已复制",
+    "workspaceMenuTitle": "工作区 · ⌘⇧W",
+    "recentWorkspaces": "最近打开",
+    "noRecentWorkspaces": "暂无最近工作区",
+    "openOrCreateWorkspace": "打开 / 新建工作区…",
+    "closeWorkspace": "关闭工作区 · 返回首页",
+    "focusMode": "topmind · 专注",
+    "exitFocusTip": "退出专注 · Esc / ⌘⌥F",
+    "exitFocus": "退出专注",
+    "exitFocusAriaLabel": "退出专注模式",
+    "showSidebar": "显示侧栏",
+    "hideSidebar": "隐藏侧栏",
+    "back": "后退 · ⌘[",
+    "forward": "前进 · ⌘]",
+    "backAriaLabel": "后退",
+    "forwardAriaLabel": "前进",
+    "commandPaletteTip": "命令面板 · ⌘K",
+    "commandPaletteAriaLabel": "命令面板",
+    "searchCommandTip": "搜索 / 命令面板 · ⌘K",
+    "searchCommandAriaLabel": "搜索 / 命令面板",
+    "searchCommand": "搜索…",
+    "captureTip": "记一下 · ⌘N（默认进本周动态）\n全局任意应用 ⌘⇧N",
+    "capture": "记一下",
+    "viewSwitchTip": "切换视图 · 动态 / Inbox / 交付",
+    "viewSwitchAria": "切换主视图",
+    "searchTip": "全文搜索 · ⌘P",
+    "searchLabel": "全文搜索",
+    "settingsTip": "设置 · ⌘,",
+    "settingsAriaLabel": "设置",
+    "settingsLabel": "设置",
+    "toolsLogs": "工具与日志",
+    "help": "帮助",
+    "themeMenuItem": "主题 · {{label}}",
+    "themeCycleTip": "主题：{{label}} · 点击切换到{{next}}",
+    "themeAuto": "跟随系统",
+    "themeLight": "浅色",
+    "themeDark": "深色",
+    "moreTip": "更多 · 设置 / 主题",
+    "moreAriaLabel": "更多工具",
+    "hideAiPanel": "隐藏 AI 工作区",
+    "showAiPanel": "显示 AI 工作区",
+    "hideTaskPanel": "隐藏任务面板",
+    "showTaskPanel": "显示任务面板",
+    "todoTip": "个人清单 · ⌘⇧T",
+    "todoAriaLabel": "个人清单",
+    "suggestTip": "建议 · 确认后写入（≠ 个人清单）",
+    "suggestAriaLabel": "打开建议",
+    "commandField": "命令 · 跳转",
+    "themeMenuSection": "主题",
+    "languageMenuSection": "语言",
+    "preferencesSection": "偏好设置",
+    "appsTip": "应用 · 在 AI 工作区打开",
+    "appsAriaLabel": "打开应用"
+  },
+  "aiWorkspace": {
+    "aria": "AI 工作区",
+    "chat": "对话",
+    "suggest": "建议",
+    "todo": "清单",
+    "apps": "应用"
+  },
+  "taskPanel": {
+    "title": "AI 任务",
+    "empty": "暂无后台任务",
+    "emptyHint": "整理本周会整理当前周期本；AI 分析只准备建议，确认后才写入记忆",
+    "triggerReconcile": "整理本周",
+    "taskTypeReconcile": "整理本周",
+    "taskTypeAi_digest": "AI 分析",
+    "taskTypeMemory_organize": "整理我的情况",
+    "triggerMemoryOrganize": "整理我的情况",
+    "memoryOrganizeStart": "开始整理我的情况…",
+    "memoryOrganizeScan": "扫描近期活动与画像",
+    "memoryOrganizeRun": "生成确认建议（不直接改画像）…",
+    "memoryOrganizeFound": "整理完成 · 新建议 {{count}} 条（待确认共 {{total}}）",
+    "memoryOrganizeDoneToast": "✓ 我的情况已整理 · {{count}} 条建议待确认",
+    "memoryOrganizeMerged": "新合并建议 {{count}} 条",
+    "status": {
+      "queued": "排队中",
+      "running": "运行中",
+      "completed": "已完成",
+      "failed": "失败",
+      "cancelled": "已取消"
+    },
+    "logs": "运行日志",
+    "result": "结果",
+    "error": "错误",
+    "collapse": "收起",
+    "expand": "展开",
+    "clearCompleted": "清除已完成",
+    "close": "关闭",
+    "cancel": "取消",
+    "retry": "重试",
+    "minimize": "最小化",
+    "restore": "展开面板",
+    "resultOk": "✓ 操作成功",
+    "resultFail": "✗ 操作未完成",
+    "resultChanged": "检测到变更并已应用",
+    "resultNoChange": "无需变更",
+    "resultPath": "路径: {{path}}",
+    "resultPacking": "周期: {{packing}}",
+    "resultChanges": "变更 ({{count}} 处):",
+    "resultCoreCandidates": "核心记忆候选: {{count}} 条",
+    "resultTopicCandidates": "专题候选: {{topics}}",
+    "reconcileStart": "开始整理周期本…",
+    "reconcileReadPeriod": "读取周期本",
+    "reconcileProcess": "处理结果…",
+    "reconcileChanged": "检测到变更，已应用",
+    "reconcileNoChange": "无需变更",
+    "triggerAiDigest": "AI 分析",
+    "aiDigestStart": "开始从活动窗口准备建议…",
+    "aiDigestAnalyzing": "正在分析近期活动（确认后才写入）…",
+    "aiDigestFound": "分析完成 · {{count}} 条建议待确认",
+    "aiDigestDone": "AI 分析完成",
+    "reconcileDone": "✓ 整理完成",
+    "aiDigestDoneToast": "✓ AI 分析完成 · {{count}} 条建议待确认",
+    "taskFailed": "✗ 任务失败：{{error}}",
+    "tasksRunning": "{{count}} 个任务运行中"
+  },
+  "primaryNav": {
+    "ariaLabel": "主导航",
+    "stream": "动态",
+    "streamTipIdle": "本周动态 · ⌘⇧S",
+    "inbox": "Inbox",
+    "inboxTipActive": "Inbox {{count}} 条待整理 · ⌘⇧I",
+    "inboxTipIdle": "Inbox · ⌘⇧I",
+    "outputs": "交付",
+    "outputsTipIdle": "交付 · ⌘⇧O",
+    "search": "搜索",
+    "searchTip": "搜索笔记 · ⌘P"
+  },
+  "statusBar": {
+    "ariaLabel": "状态栏",
+    "aiReady": "AI 就绪",
+    "aiOffline": "AI 离线 · 点此配置",
+    "initializing": "初始化…",
+    "enginePath": "引擎: {{root}}",
+    "ready": "就绪",
+    "workspaceOk": "工作区正常",
+    "workspaceOkTip": "工作区已就绪 · 文件在本地文件夹里",
+    "workspaceBad": "工作区异常",
+    "workspaceBadTip": "无法访问工作区 — 试试重新打开文件夹",
+    "engineUnavailableTip": "引擎路径不可用 — 检查安装与工作区",
+    "unavailable": "不可用",
+    "workspacePath": "工作区: {{root}}",
+    "workspacePathLabel": "工作区路径",
+    "aiRuntimeReady": "AI 运行时就绪",
+    "openSettingsTip": "打开设置配置 API Key",
+    "aiPanelShowTip": "展开 AI 面板",
+    "aiPanelHideTip": "收起 AI 面板",
+    "sessionGenerating": "当前会话生成中",
+    "sessionMessageCount": "当前会话消息数",
+    "aiWorking": "AI 工作中",
+    "aiWorkingTip": "对话生成 / 后台任务进行中 · 点此切换 AI 面板",
+    "aiMultiWorking": "AI ×{{count}}",
+    "aiMultiWorkingTip": "同时进行：{{jobs}} · 点此切换 AI 面板",
+    "jobAgent": "对话",
+    "jobTask": "后台任务",
+    "jobTodo": "整理待办",
+    "jobSuggest": "准备建议",
+    "jobInline": "行内 AI",
+    "jobApply": "写入建议",
+    "suggestApplying": "正在执行 {{current}}/{{total}}",
+    "suggestApplyingTip": "正在把已确认的建议写入工作区 · 点此查看进度",
+    "taskRunning": "{{count}} 个后台任务",
+    "taskRunningTip": "后台任务进行中 · 点此查看详情和进度",
+    "taskPanelTip": "任务面板 · 引擎任务与历史（⌘⇧J）",
+    "taskPanelAria": "任务面板",
+    "todoMaintaining": "AI 整理待办中",
+    "todoMaintainingTip": "正在从动态提取/更新个人清单 · 点此打开清单",
+    "suggestLoading": "准备建议中",
+    "suggestLoadingTip": "正在扫描可整理项并生成建议 · 点此查看",
+    "suggestCount": "{{count}} 条建议",
+    "suggestCountTip": "{{count}} 条建议待确认 · 点此查看",
+    "suggestCountAria": "AI 建议（{{count}}）",
+    "inlineAiWorking": "AI 处理中",
+    "inlineAiWorkingTip": "润色 / 行内改写进行中 · 切换页面可能取消本次结果 · 点此不做任何操作",
+    "inlineAiLeaveTitle": "离开将取消 AI 工作",
+    "inlineAiLeaveConfirm": "AI 仍在处理或有未应用的结果。强制离开将取消本次 AI 工作，是否继续？",
+    "inlineAiLeaveConfirmWithLabel": "「{{label}}」仍在进行或有未应用结果。强制离开将取消本次 AI 工作。",
+    "inlineAiLeaveForce": "强制离开",
+    "inlineAiLeaveStay": "继续等待",
+    "revealWorkspaceTip": "点击在文件管理器中显示",
+    "revealFileTip": "点击在文件管理器中显示",
+    "updatesBadgeCount": "{{count}} 个更新",
+    "updatesAvailableMulti": "{{count}} 个表面有更新 · 点击下载",
+    "updateAvailable": "新版本 v{{version}} 可用 · 点击下载",
+    "fileChipTip": "点击在编辑器中打开 · 右键在文件夹中显示"
+  },
+  "editorArea": {
+    "loadingWorkspace": "正在加载工作区…",
+    "noViewMatch": "这里暂时打不开",
+    "noViewMatchHint": "换一个位置试试，或回到本周动态",
+    "backToStream": "返回动态",
+    "goStream": "回到动态",
+    "swapPanes": "与左侧对调",
+    "swapPanesAriaLabel": "对调左右文件",
+    "closeSplit": "关闭对照",
+    "closeSplitAriaLabel": "关闭对照",
+    "loadingSplit": "加载对照…",
+    "splitSeparatorAriaLabel": "调整对照分栏宽度"
+  },
+  "splitter": {
+    "resizePanel": "调整面板宽度"
+  },
+  "editorRecentBar": {
+    "openFiles": "打开的文件",
+    "unpin": "取消固定",
+    "pin": "固定",
+    "closeTabTip": "关闭 · 中键也可",
+    "closeAriaLabel": "关闭",
+    "closeAllUnpinned": "关闭全部未固定 · ⌘⌥W",
+    "closeAllTabs": "关闭全部标签（含固定）",
+    "closeAllTabsAriaLabel": "关闭全部标签",
+    "open": "打开",
+    "togglePin": "固定 / 取消固定",
+    "closeSplitRight": "关闭右侧对照",
+    "openSplitRight": "在右侧打开对照",
+    "close": "关闭",
+    "closeOthers": "关闭其他",
+    "closeAll": "关闭全部",
+    "fileOps": "文件操作…"
+  },
+  "sidebar": {
+    "streamDefault": "本周动态",
+    "waitingDataSources": "等待数据源…",
+    "loadingPlugins": "工作区插件加载中",
+    "loadingTimeline": "加载时间线…",
+    "loadingTags": "加载标签…",
+    "loadingKanban": "加载看板…",
+    "loadingStream": "加载动态…",
+    "streamPinTip": "记一下会写入当前周期本",
+    "profileTip": "浏览我的情况 · 画像与周期反思",
+    "myProfile": "我的情况",
+    "loading": "加载中…",
+    "loadFailed": "加载失败",
+    "retry": "重试",
+    "refreshTooltip": "刷新文件树",
+    "empty": "空",
+    "treeView": {
+      "promptNewNote": "笔记文件名（含 .md 后缀）",
+      "defaultNewNote": "新笔记.md",
+      "promptNewTopic": "专题名（YYYY-主题 格式）",
+      "defaultNewTopic": "{{year}}-新专题",
+      "promptRename": "新文件名",
+      "promptRenameTopic": "新专题名",
+      "confirmDeleteFile": "确认删除",
+      "confirmDeleteFileDesc": "确认删除 {{name}}？\n普通笔记不会进回收站。锁定、专题首页或「交付」稿会先移到归档。",
+      "confirmDeleteTopic": "确认删除专题",
+      "confirmDeleteTopicDesc": "确认删除专题 {{name}} 及其笔记？\n含 topic.md 的专题会先移到归档。",
+      "errorCreate": "创建失败",
+      "errorDelete": "删除失败",
+      "errorRename": "重命名失败",
+      "errorPublish": "发布失败",
+      "errorCopy": "复制失败",
+      "errorOperation": "操作失败",
+      "toastCopiedPath": "✓ 已复制路径",
+      "promptMoveToTopic": "移入专题（类别/专题名）",
+      "moveToTopicPlaceholder": "20-专题/2026-主题",
+      "toastMovedToTopic": "✓ 已移入专题",
+      "tooltipNewTopic": "在此大类下新建专题（YYYY-主题）",
+      "ariaNewTopic": "在此大类下新建专题",
+      "tooltipNewNote": "在此专题新建笔记",
+      "ariaNewNote": "在此专题新建笔记",
+      "dropHintTopic": "松开以移入此专题",
+      "loadingFiles": "加载文件…",
+      "showMore": "还有 {{count}} 项…",
+      "emptyCategory": "空类别 · 点击新建专题（YYYY-主题）",
+      "emptyTopic": "暂无笔记 · 点击新建",
+      "tooltipPath": "路径",
+      "tooltipModified": "修改",
+      "tooltipFileCount": "{{count}} 篇笔记",
+      "tooltipTopicCount": "{{count}} 个专题"
+    },
+    "timeline": {
+      "weekThis": "本周 {{key}}",
+      "monthThis": "本月 {{key}}",
+      "today": "今天",
+      "yesterday": "昨天",
+      "packingWeekly": "按周聚合 · 周本优先",
+      "packingDaily": "按日聚合",
+      "packingMonthly": "按月聚合",
+      "packingAtom": "按修改日聚合",
+      "loading": "加载中…",
+      "retry": "重试",
+      "emptyTitle": "暂无笔记",
+      "emptyHint": "在动态页写下并「记下」· 或侧栏「记一下」",
+      "capture": "记一下",
+      "truncatedHint": "显示最近 {{shown}} 条 · 工作区约 {{total}} 篇"
+    },
+    "tags": {
+      "loading": "加载中…",
+      "retry": "重试",
+      "emptyTitle": "暂无标签",
+      "emptyHint": "在笔记 frontmatter 写 tags: [\"研究\"] 后按标签聚合",
+      "goWorkspace": "打开笔记",
+      "truncatedHint": "标签基于最近 {{shown}} 条 · 工作区约 {{total}} 篇"
+    },
+    "kanban": {
+      "loading": "加载看板…",
+      "retry": "重试",
+      "reloadTooltip": "重新加载笔记 status 分布",
+      "hintTooltip": "拖到其他列会写回 frontmatter.status · 驱动「进行中」与今日焦点",
+      "hint": "拖卡片改 status · 写回 frontmatter · 右键更多操作 · ⌘⇧B",
+      "backToStream": "返回动态",
+      "dropOver": "松开以放入",
+      "dropEmpty": "拖到这里",
+      "toastMoved": "✓ {{name}} → {{status}}",
+      "toastMoveFailed": "✗ 更新状态失败: {{error}}",
+      "truncatedHint": "看板基于最近 {{shown}} 条 · 工作区约 {{total}} 篇",
+      "statusDraft": "草稿",
+      "statusInProgress": "进行中",
+      "statusDone": "已完成",
+      "statusArchived": "已归档"
+    },
+    "todo": {
+      "title": "清单",
+      "loading": "加载清单…",
+      "empty": "清单还是空的",
+      "emptyHint": "输入下方添加 · 或点 ✨ 让 AI 从动态维护",
+      "addPlaceholder": "添加一项…",
+      "add": "添加",
+      "check": "标记完成",
+      "uncheck": "取消完成",
+      "edit": "编辑",
+      "delete": "删除",
+      "completed": "已完成 ({{count}})",
+      "clearCompleted": "清除已完成",
+      "refresh": "刷新",
+      "refreshTip": "重新加载个人清单",
+      "maintain": "AI 维护",
+      "maintainTip": "AI 从动态提取新条目 · 检测完成 · 更新状态",
+      "aiHint": "✨ {{count}} 条来自 AI",
+      "pin": "固定面板",
+      "unpin": "取消固定",
+      "close": "关闭",
+      "duplicateItem": "该条目已存在",
+      "maintainDone": "AI 维护完成",
+      "maintainDoneWithChanges": "AI 维护完成：{{parts}}（来自 {{period}}）",
+      "maintainNoChanges": "动态内容无清单变化",
+      "maintainNoAiProvider": "需要先配置 AI 才能自动整理清单",
+      "maintainNoPeriodNote": "暂无动态周期本可分析",
+      "maintainAiFailed": "AI 分析失败，请稍后重试",
+      "maintainFailed": "维护失败",
+      "maintainAdded": "新增 {{count}} 条",
+      "maintainCompleted": "完成 {{count}} 条",
+      "maintainUpdated": "更新 {{count}} 条"
+    },
+    "viewSwitcher": {
+      "streamLabel": "动态",
+      "streamHint": "当前周期本 · 随手记（默认）",
+      "categoryLabel": "目录",
+      "categoryHint": "类别 → 专题 → 文件",
+      "timelineLabel": "时间",
+      "timelineHint": "按最近修改排序",
+      "tagsLabel": "标签",
+      "tagsHint": "按 frontmatter tags 聚合",
+      "kanbanLabel": "看板",
+      "kanbanHint": "按 status 分列 · 拖拽改状态 · ⌘⇧B",
+      "moreLabel": "更多",
+      "moreHint": "标签 · 看板（高级）",
+      "ariaTablist": "侧栏视图"
+    },
+    "stream": {
+      "loading": "加载动态…",
+      "retry": "重试",
+      "reloadTooltip": "重新加载周期本",
+      "defaultTitle": "本周动态",
+      "emptyTitle": "暂无动态",
+      "emptyHint": "在动态主区「记下」· 或侧栏「记一下」",
+      "capture": "记一下",
+      "openFull": "打开完整周期本",
+      "taskBoardTip": "任务看板 · 按状态分组 · ⌘⇧B",
+      "openFullView": "在主区域展开",
+      "maintainTodos": "AI 整理待办",
+      "maintainTodosTip": "AI 从动态提取清单项 · 检测完成 · 更新状态",
+      "otherDay": "其他",
+      "todayShort": "今天"
+    },
+    "contextMenu": {
+      "labelFile": "笔记",
+      "labelTopic": "专题",
+      "labelCategory": "类别",
+      "labelGroup": "导航",
+      "labelDefault": "操作",
+      "openInbox": "打开 Inbox",
+      "quickCapture": "记一下…",
+      "openOutputs": "打开交付",
+      "openArchive": "打开归档",
+      "openCategory": "打开大类",
+      "newTopic": "新建专题",
+      "newNote": "新建笔记",
+      "expandAll": "展开下级",
+      "collapseAll": "折叠下级",
+      "copyPath": "复制路径",
+      "revealInFolder": "在文件夹中显示",
+      "expanded": "已展开",
+      "expandFolder": "展开文件夹",
+      "openTopic": "打开专题",
+      "deleteTopic": "删除专题",
+      "renameTopic": "重命名专题",
+      "openPreview": "打开预览",
+      "open": "打开",
+      "rename": "重命名",
+      "duplicate": "创建副本",
+      "publishToOutputs": "发布到交付",
+      "moveToTopic": "移入专题…",
+      "openExternal": "用默认程序打开",
+      "delete": "删除"
+    },
+    "treeToolbar": {
+      "sort": "排序",
+      "expandAll": "展开全部类别与专题",
+      "expandAllAria": "展开全部",
+      "collapseAll": "折叠全部",
+      "collapseAllAria": "折叠全部",
+      "sortTooltip": "排序：{{label}}",
+      "toggleSortAria": "切换排序",
+      "sortSectionLabel": "排序",
+      "sortMtimeDesc": "时间 · 新→旧",
+      "sortMtimeAsc": "时间 · 旧→新",
+      "sortNameAsc": "名称 · A→Z",
+      "sortNameDesc": "名称 · Z→A",
+      "fileFilterTooltip": "文件筛选：{{label}}",
+      "toggleFileFilterAria": "切换文件筛选",
+      "fileFilterSectionLabel": "显示文件",
+      "fileFilterDefault": "默认（笔记与常见文档）",
+      "fileFilterMarkdown": "仅 Markdown",
+      "fileFilterAll": "全部文件"
+    }
+  },
+  "captureSurface": {
+    "preparing": "准备记一下…",
+    "launchFailed": "记一下窗口启动失败",
+    "close": "关闭",
+    "needWorkspace": "需要工作区",
+    "openMainWindow": "打开主窗口",
+    "pleaseOpenWorkspace": "请先在主窗口打开工作区",
+    "pleaseOpenWorkspaceHint": "请先在主窗口打开工作区，再使用记一下"
+  },
+  "fileDropZone": {
+    "releaseToImport": "松开以导入知识",
+    "dropHint": "Office / PDF / 邮件 → 加工管道 · 路径引用不预拷贝",
+    "preparing": "正在准备…"
+  },
+  "overlayHost": {
+    "loading": "加载…"
+  },
+  "todo": {
+    "title": "清单",
+    "loading": "加载清单…",
+    "empty": "清单还是空的",
+    "emptyHint": "输入下方添加 · 或点 ✨ 让 AI 从动态维护",
+    "addPlaceholder": "添加一项…",
+    "add": "添加",
+    "check": "标记完成",
+    "uncheck": "取消完成",
+    "edit": "编辑",
+    "delete": "删除",
+    "completed": "已完成 ({{count}})",
+    "clearCompleted": "清除已完成",
+    "refresh": "刷新",
+    "refreshTip": "重新加载个人清单",
+    "maintain": "AI 维护",
+    "maintainTip": "AI 从动态提取新条目 · 检测完成 · 更新状态",
+    "aiHint": "✨ {{count}} 条来自 AI",
+    "footerIdle": "个人清单 · memory/todo.md",
+    "pin": "固定面板",
+    "unpin": "取消固定",
+    "close": "关闭",
+    "duplicateItem": "该条目已存在",
+    "dismissedItem": "该条目已被删除，不会被 AI 重新提取",
+    "maintainDone": "AI 维护完成",
+    "maintainDoneWithChanges": "AI 维护完成：{{parts}}（来自 {{period}}）",
+    "maintainNoChanges": "动态内容无清单变化",
+    "maintainNoAiProvider": "需要先配置 AI 才能自动整理清单",
+    "maintainNoPeriodNote": "暂无动态周期本可分析",
+    "maintainAiFailed": "AI 分析失败，请稍后重试",
+    "maintainFailed": "维护失败",
+    "maintainAdded": "新增 {{count}} 条",
+    "maintainCompleted": "完成 {{count}} 条",
+    "maintainUpdated": "更新 {{count}} 条",
+    "maintainAlreadyProcessed": "该周期已处理过，点击「强制重试」重新分析",
+    "maintainQueued": "排队等待其他 AI 准备完成…",
+    "maintainForceRetry": "强制重试",
+    "maintainForceTip": "清除已处理标记，重新分析周期本",
+    "setDueDate": "设置截止日期",
+    "clearDueDate": "清除截止日期",
+    "openSource": "打开源笔记",
+    "openFile": "打开清单文件",
+    "dueToday": "今天",
+    "dueTomorrow": "明天",
+    "dueYesterday": "昨天",
+    "dueInDays": "{{count}} 天后",
+    "dueDaysAgo": "{{count}} 天前",
+    "overdue": "已逾期",
+    "staleHint": "{{count}} 条已超过 30 天，考虑清理或完成",
+    "cleanupStale": "清理过期项",
+    "cleanupStaleConfirm": "将清除 {{count}} 条已完成超过 7 天的条目，确定？",
+    "cleanupDone": "已清理 {{count}} 条过期项",
+    "healthOverdue": "{{count}} 条已逾期",
+    "healthStale": "{{count}} 条过期未处理",
+    "archiveStale": "归档过期项",
+    "archiveStaleConfirm": "将归档 {{count}} 条超过 30 天的条目到历史快照，确定？",
+    "archiveDone": "已归档 {{count}} 条过期项",
+    "openAria": "个人清单（{{count}}）"
+  },
+  "appsMenu": {
+    "section": "应用",
+    "empty": "暂无启用的应用。可在设置 → 扩展与集成中开启连接器（微信读书 / 记账 / 知识加工…）。",
+    "manage": "管理应用…",
+    "needsConfig": "待配置"
+  },
+  "toolsLogs": {
+    "title": "工具与日志",
+    "subtitle": "工作区占用 · 操作记录 · 健康检查 · 清理建议",
+    "ok": "正常",
+    "hasIssues": "有提示",
+    "openFolder": "打开日志目录",
+    "clearOps": "清空操作日志",
+    "clearMain": "清空系统日志",
+    "tabs": {
+      "overview": "概览",
+      "ops": "操作日志",
+      "syslog": "系统日志",
+      "health": "健康检查",
+      "care": "清理与整理"
+    },
+    "metrics": {
+      "files": "文件数",
+      "size": "占用",
+      "topics": "专题数",
+      "health": "健康"
+    },
+    "sections": {
+      "byTop": "顶层目录",
+      "delivery": "88-交付",
+      "archive": "99-归档",
+      "largest": "较大文件"
+    },
+    "deliveryLine": "{{count}} 个文件 · {{size}} · 嵌套子目录 {{nested}}",
+    "archiveLine": "合计 {{size}} · 备份 {{backups}} · 回执 {{receipts}}",
+    "empty": {
+      "noStats": "暂无数据，点击刷新扫描"
+    },
+    "ops": {
+      "hint": "普通编辑直接保存，不会留下快照；操作会记在这里，方便回看。",
+      "empty": "暂无操作记录"
+    },
+    "sys": {
+      "all": "全部",
+      "empty": "暂无日志"
+    },
+    "health": {
+      "contract": "工作区契约",
+      "clean": "未发现结构问题",
+      "runDoctor": "运行完整诊断"
+    },
+    "care": {
+      "archive": "99-归档占用",
+      "archiveLine": "当前约 {{size}} · {{files}} 个文件",
+      "pruneHint": "仅按保留策略修剪旧回执；笔记归档不会删除。",
+      "prune": "按策略修剪",
+      "confirm": "确认执行",
+      "cancel": "取消",
+      "junk": "垃圾文件",
+      "noJunk": "未发现 .DS_Store 等垃圾文件",
+      "removeJunk": "删除垃圾文件",
+      "emptyDirs": "空目录",
+      "noEmptyDirs": "未发现可清理的空目录",
+      "removeEmptyDirs": "删除空目录",
+      "convention": "规约外条目",
+      "noConvention": "顶层均符合工作区规约",
+      "duplicates": "重复文件",
+      "dupLine": "{{groups}} 组 · 可回收约 {{waste}}",
+      "keep": "保留",
+      "trashOthers": "其余移入回收",
+      "trashAllDupes": "一键清理全部确认重复",
+      "partialOnly": "仅部分哈希",
+      "partialHint": "大文件未做全文哈希，请人工确认后再清理。",
+      "dupHint": "默认按建议保留（跳过备份名、优先年目录与较新副本）；清理走写闸（可逆 trash）。",
+      "trash": "可恢复删除",
+      "noTrash": "回收站为空",
+      "trashHint": "锁定/核心笔记删除会先进这里；恢复会写回原路径。",
+      "restore": "恢复",
+      "restored": "已恢复到 {{path}}",
+      "restoreFailed": "恢复失败"
+    }
+  },
+  "help": {
+    "title": "帮助",
+    "subtitle": "快速开始 · 主要功能 · 工作流 · 设计理念 · 常见问题",
+    "close": "关闭",
+    "openSettings": "打开设置",
+    "openTools": "工具与日志",
+    "footerHint": "所有内容存在你自己的本地文件夹；AI 与工具只在工作区内读写。",
+    "tabs": {
+      "start": "快速开始",
+      "features": "主要功能",
+      "workflow": "工作流",
+      "philosophy": "设计理念",
+      "faq": "常见问题"
+    },
+    "tabBlurb": {
+      "start": "五步上手 · 建议顺序完成前两步",
+      "features": "围绕最低摩擦动态流的能力一览",
+      "workflow": "收进来 → 继续做 → 交付/沉淀 → 找回/调整",
+      "philosophy": "为什么这样设计产品",
+      "faq": "AI · 依赖 · 插件 · 数据"
+    },
+    "start": {
+      "heroKicker": "topmind Desktop",
+      "heroTitle": "欢迎使用 topmind",
+      "heroDesc": "topmind 是本地优先的个人动态流工作台：把碎片记进 Inbox / 动态，整理成专题，交付成果，用记忆沉淀长期事实。文件就是真源，可在任意编辑器中打开。",
+      "stepsTitle": "建议顺序",
+      "steps": [
+        {
+          "title": "打开或创建工作区",
+          "body": "左下角工作区菜单可选择本地文件夹。新建会按模板初始化类别结构（Inbox · 动态 · 专题 · 交付 · 归档）。工作区 = 你的文件夹，不是云端账号。"
+        },
+        {
+          "title": "记一下",
+          "body": "⌘N 或左上「记一下」：默认写入本周动态周期本；也可强制进 Inbox 或单开文件。全局任意应用 ⌘⇧N 可唤起捕获。"
+        },
+        {
+          "title": "配置 AI（可选）",
+          "body": "设置 → 智能体 → AI：选择服务商与模型、填入 API Key。未配置时仍可完全手动使用；配置后可对话、建议整理、清单维护。"
+        },
+        {
+          "title": "安装扩展（可选）",
+          "body": "设置 → 集成：可安装 Agent Skills、剪藏扩展、Obsidian 插件。知识加工（Ingest）依赖本机工具时可在对应设置里一键安装。"
+        },
+        {
+          "title": "日常循环",
+          "body": "收进来 → 继续做 → 交付/沉淀 → 找回/调整。左下「工具与日志」可看占用、操作记录、健康检查与清理建议。"
+        }
+      ],
+      "shortcutsTitle": "常用快捷键",
+      "shortcuts": [
+        { "keys": "⌘N", "label": "记一下" },
+        { "keys": "⌘⇧N", "label": "全局记一下" },
+        { "keys": "⌘K", "label": "命令面板" },
+        { "keys": "⌘P", "label": "全文搜索" },
+        { "keys": "⌘⇧L", "label": "工具与日志" },
+        { "keys": "⌘,", "label": "设置" }
+      ]
+    },
+    "features": {
+      "heroTitle": "主要功能",
+      "heroDesc": "围绕「最低摩擦个人动态流」设计：少概念、可落地、可恢复。",
+      "items": [
+        {
+          "title": "记一下 / Capture",
+          "body": "一句话进动态周期本；复杂材料可进 Inbox 或专题。支持网页剪藏扩展与剪贴板路径。"
+        },
+        {
+          "title": "动态 · Inbox · 交付",
+          "body": "侧栏主锚点：动态是默认主表面；Inbox 是缓冲；交付（88）存放扁平成果文件。归档在侧栏可达，但不是主锚。"
+        },
+        {
+          "title": "专题",
+          "body": "强主题才建专题目录（topic.md + 笔记）。动态默认平铺，避免过早结构化。"
+        },
+        {
+          "title": "AI 副驾",
+          "body": "右栏工作区：对话 / 建议 / 清单 / 应用。建议默认可生成、确认后执行；清单是个人清单，可 AI 维护。"
+        },
+        {
+          "title": "我的情况（记忆）",
+          "body": "画像 / 周期反思沉淀在 memory/ 平面。事实可追加、更新、退休归档——确认后写入，不静默改画像。"
+        },
+        {
+          "title": "工具与日志",
+          "body": "工作区占用统计、操作日志、系统日志、健康检查（含契约）、清理与去重预览。"
+        },
+        {
+          "title": "可选连接器",
+          "body": "微信读书、X、记账卫星、知识加工（Ingest）按需启用，默认不打扰主流程。"
+        },
+        {
+          "title": "写回安全",
+          "body": "工作区内默认可写；锁定文件 AI 不可覆盖；高影响操作才自动备份。删除文案与真实可恢复性一致。"
+        }
+      ]
+    },
+    "workflow": {
+      "heroTitle": "核心工作流",
+      "heroDesc": "收进来 → 继续做 → 交付/沉淀 → 找回/调整。用户概念控制在最少几个词内。",
+      "stageLabel": "阶段 {{n}}",
+      "stages": [
+        {
+          "title": "收进来",
+          "body": "记一下、剪藏、Ingest、连接器。默认落动态周期本或 Inbox，不打断当前思路。"
+        },
+        {
+          "title": "继续做",
+          "body": "在动态 / 专题编辑；AI 可改写选区、挂载文件讨论；确认式建议帮你归位 Inbox、提炼清单。"
+        },
+        {
+          "title": "交付 / 沉淀",
+          "body": "成果进 88-交付（扁平命名）；长期事实进「我的情况」；专题内沉淀研究笔记。"
+        },
+        {
+          "title": "找回 / 调整",
+          "body": "全文搜索、侧栏树、归档；工具与日志做体检；锁定关键笔记防误改。"
+        }
+      ],
+      "dirsTitle": "目录约定（简表）",
+      "dirs": [
+        "00-Inbox — 缓冲，定期整理归位",
+        "10-动态 — 周期本 / 流式记录（默认）",
+        "20-专题 等 — 强主题目录（topic.md）",
+        "88-交付 — 成果，扁平 YYYY-MM-DD-描述",
+        "99-归档 — 安全层：备份 · 回收 · 流年归档",
+        "memory/ — 语义平面：画像 · 周期反思 · 清单",
+        "topmind.yaml — 工作区行为契约"
+      ]
+    },
+    "philosophy": {
+      "heroTitle": "设计理念",
+      "heroDesc": "为「个人动态流」而不是项目管理或通用 coding agent 做产品。",
+      "points": [
+        {
+          "title": "文件是真源",
+          "body": "Markdown 就在你的文件夹里，可用 Obsidian、VS Code、git 同时打开。应用状态可删可重建，不绑架内容。"
+        },
+        {
+          "title": "默认授权、边界清晰",
+          "body": "工作区内工具与智能体默认可读写；区外与危险动作才额外确认。备份极简：仅锁定覆盖与核心删除等高影响操作。"
+        },
+        {
+          "title": "建议不等于自动执行",
+          "body": "系统可以生成整理建议、清单变更、记忆变更卡片，但落盘前可审阅。锁定笔记 AI 不能覆盖。"
+        },
+        {
+          "title": "可选能力不绑架主流程",
+          "body": "AI、UTR、Skills、连接器、Obsidian 都是可选表面。没有它们，记一下与文件夹仍然完整可用。"
+        },
+        {
+          "title": "诚实的产品文案",
+          "body": "能恢复的说能恢复，不能的不说「每次删除都进归档」。日志与回执有上限，可清理。"
+        }
+      ],
+      "closing": "用户概念保持精简：记一下 · 动态 · 专题 · 我的情况 · 交付。其余都是可选深度。"
+    },
+    "faq": {
+      "heroTitle": "常见问题",
+      "heroDesc": "AI 配置、依赖安装、插件与数据安全。",
+      "items": [
+        {
+          "q": "如何配置 AI？",
+          "a": "设置 → 智能体 → AI：选择提供商（OpenAI 兼容 / 其他已支持渠道）、模型，填入 API Key 并保存。可在对话面板切换会话模型。未配置时应用完全可用，只是没有智能体能力。密钥保存在本机 Desktop 状态目录（safeStorage 加密，可用时）。"
+        },
+        {
+          "q": "AI 会不会改坏我的笔记？",
+          "a": "耐久写入统一走写闸：工作区围栏内写入；锁定（protection: locked）文件 AI 不能覆盖；confirm 模式下需确认。普通编辑不自动备份；锁定覆盖与核心删除会进 99-归档 并可从工具与日志 / 恢复入口找回。"
+        },
+        {
+          "q": "如何安装依赖 / 本机工具？",
+          "a": "知识加工等能力需要本机转换工具时，设置 → 知识加工（Ingest）里有「本机工具」探测与安装。Agent Skills / 剪藏扩展 / Obsidian 插件在 设置 → 集成 安装。一般日常记笔记不需要额外依赖。"
+        },
+        {
+          "q": "插件 / 连接器怎么用？",
+          "a": "设置 → 扩展与集成：打开微信读书/X/记账等连接器，并安装或升级剪藏扩展、Obsidian 插件、Skills。连接器写入仍走同一工作区规约与写闸。"
+        },
+        {
+          "q": "我的数据存在哪里？",
+          "a": "工作区内容在你选择的本地文件夹。Desktop 运行态（设置、日志、会话缓存）在本机 topmind 状态目录，可删不影响笔记。不上传工作区内容到服务器（除非你显式使用需要网络的 AI / 抓取功能）。"
+        },
+        {
+          "q": "如何备份工作区？",
+          "a": "整个文件夹用你习惯的方式备份即可（Time Machine、网盘、git）。应用内只对高影响操作做有限旋转备份（见工具与日志）。建议把工作区放在可版本管理或定期同步的位置。"
+        },
+        {
+          "q": "忘记锁定 / 误删怎么办？",
+          "a": "普通开放笔记删除通常无回收站（产品诚实策略）。锁定或核心（记忆、专题首页、交付）删除会进 99-归档 回收区，可在工具与日志或 UTR list-safety-receipts / restore 找回。重要笔记请使用锁定。"
+        },
+        {
+          "q": "可以和 Obsidian 一起用吗？",
+          "a": "可以。工作区是普通 Markdown 文件夹。可选安装 Obsidian 插件以获得动态流视图；不装插件也可用 Obsidian 直接打开同一文件夹。"
+        },
+        {
+          "q": "如何重置界面 / 语言 / 主题？",
+          "a": "左下工作区菜单可切主题与语言；完整偏好在 设置 → 通用。工作区模板与类别在 设置 → 工作区。"
+        },
+        {
+          "q": "出了问题先看哪里？",
+          "a": "左下工作区菜单 → 工具与日志：健康检查（含契约状态）、系统日志、操作日志。设置 → 管理 → 诊断可跑完整 doctor。仍异常时可打包日志目录内容反馈。"
+        }
+      ]
+    }
+  }
+}
