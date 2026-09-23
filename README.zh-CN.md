@@ -229,7 +229,7 @@ npm run versions            # 打印各表面当前版本号
 | 打包发布与 CI/CD 说明 | [`docs/PACKAGING.md`](./docs/PACKAGING.md) |
 | 全局文档索引中心 | [`docs/README.zh-CN.md`](./docs/README.zh-CN.md) · [English](./docs/README.md) |
 
-**README 约定：** 各模块以 `README.md` 为简体中文主文档（GitHub 默认），`README.en.md` 为英文；`README.zh-CN.md` 仅作兼容跳转。
+**README 约定：** 各模块以 `README.md` 为简体中文主文档（GitHub 默认），`README.en.md` 为英文；`README.zh-CN.md` 为完整中文兼容副本。
 
 ---
 

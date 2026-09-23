@@ -62,7 +62,7 @@
 | [`stream-first-optimization-scheme.md`](./stream-first-optimization-scheme.md) | Stream-first 理想使用态备忘（**非策略真源** — 见 DESIGN / TOOLS / Reset） |
 | [`capture-clip-matrix.md`](./capture-clip-matrix.md) | Capture · Clip · Ingest 能力矩阵 |
 | [`topmind-vs-others.md`](./topmind-vs-others.md) | 知识管理方案对比与选型指南 |
-| [`UIUX-AUDIT-2026-09-01.md`](./UIUX-AUDIT-2026-09-01.md) | **NON-LIVING** 2026-09-01 快照（不是现行 IA；三列 chrome 见 `topmind-desktop/DESIGN.md`） |
+| [`UIUX-AUDIT-2026-09-01.md`](./UIUX-AUDIT-2026-09-01.md) | **NON-LIVING** 历史锚点（现行 IA 见 `topmind-desktop/DESIGN.md`） |
 
 ---
 

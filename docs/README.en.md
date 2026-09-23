@@ -62,7 +62,7 @@
 | [`stream-first-optimization-scheme.md`](./stream-first-optimization-scheme.md) | Stream-first ideal-use memo (**not policy truth** — see DESIGN / TOOLS / Reset) |
 | [`capture-clip-matrix.md`](./capture-clip-matrix.md) | Capture · Clip · Ingest capability matrix |
 | [`topmind-vs-others.md`](./topmind-vs-others.md) | Knowledge-management comparison |
-| [`UIUX-AUDIT-2026-09-01.md`](./UIUX-AUDIT-2026-09-01.md) | **NON-LIVING** 2026-09-01 snapshot (not current IA; three-column chrome is `topmind-desktop/DESIGN.md`) |
+| [`UIUX-AUDIT-2026-09-01.md`](./UIUX-AUDIT-2026-09-01.md) | **NON-LIVING** historical anchor (living IA: `topmind-desktop/DESIGN.md`) |
 
 ---
 
