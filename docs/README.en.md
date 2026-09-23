@@ -59,56 +59,53 @@
 |-------|-------|
 | [`PACKAGING.md`](./PACKAGING.md) | Pack and release rules: installer names, GitHub Actions, Win/Mac/Linux |
 | [`images/README.md`](./images/README.md) | Screenshot and demo media index |
-| [`stream-first-optimization-scheme.md`](./stream-first-optimization-scheme.md) | Stream-first ideal-use memo (**not policy truth** — see DESIGN / TOOLS / Reset) |
+| [`stream-first-optimization-scheme.md`](./stream-first-optimization-scheme.md) | Stream-first use memo (numbers track `lib/activity-window.mjs`; policy: DESIGN / TOOLS / Reset) |
 | [`capture-clip-matrix.md`](./capture-clip-matrix.md) | Capture · Clip · Ingest capability matrix |
 | [`topmind-vs-others.md`](./topmind-vs-others.md) | Knowledge-management comparison |
 | [`UIUX-AUDIT-2026-09-01.md`](./UIUX-AUDIT-2026-09-01.md) | **NON-LIVING** historical anchor (living IA: `topmind-desktop/DESIGN.md`) |
 
 ---
 
-## 4. Active ADRs
+## 4. Architecture Decision Records
 
-| Date | Subject | Decision |
-|------|---------|----------|
-| [2026-06-14](./adr/2026-06-14-desktop-ai-runtime.md) | Desktop AI Runtime | Vercel AI SDK for Desktop AI |
-| [2026-07-13](./adr/2026-07-13-browser-clip-extension.md) | Browser Clip Extension | Manifest V3 + Readability + `content_html` |
-| [2026-07-16](./adr/2026-07-16-desktop-agent-harness-upgrade.md) | Agent Harness Upgrade | edit / compact / steer helper sessions |
-| [2026-07-16](./adr/2026-07-16-desktop-skill-first-agent.md) | Skill-First Agent | Prefer bundled topmind skills |
-| [2026-07-16](./adr/2026-07-16-public-update-and-pack-root.md) | Public Update & Pack | Public `latest.json` (no token) and engine pack |
-| [2026-07-17](./adr/2026-07-17-desktop-utr-bundle-tools-console.md) | Desktop UTR Bundle | Bundled UTR and tools console |
-| [2026-07-19](./adr/2026-07-19-knowledge-ingest-pipeline.md) | Ingest Pipeline | Offline ingest; default anydoc sidecar + optional markitdown/pandoc + built-in JS |
-| [2026-07-21](./adr/2026-07-21-pi-agent-base-decision.md) | No full Pi coding-agent kernel | Fence / writeback / portable Skills still hold; **loop choice superseded 2026-09-07** (hybrid `pi-agent-core`) |
-| [2026-07-22](./adr/2026-07-22-stream-packing-and-core-memory.md) | Stream & Core Memory | Period-note packing and profile memory loop |
-| [2026-08-02](./adr/2026-08-02-kernel-ai-provider-context.md) | Kernel AI Context | Per-call `aiProvider` + `createKernelContext` |
-| [2026-08-02](./adr/2026-08-02-workspace-model-split.md) | Workspace Model Split | `lib/workspace-model.mjs` facade split |
-| [2026-08-02](./adr/2026-08-02-connector-bridge.md) | Connector Bridge | External connector Bridge contract |
-| [2026-08-06](./adr/2026-08-06-phase-d-desktop-hardening.md) | Phase D Hardening | Desktop hardening, RPC validation, typed events |
-| [2026-08-07](./adr/2026-08-07-desktop-single-entry-dedupe.md) | Single Entry Dedupe | Single-entry noise cut and UI tightening |
-| [2026-08-07](./adr/2026-08-07-comprehensive-design-optimization.md) | Design Optimization | Visual refine (36/24px chrome, borders, shadows) |
-| [2026-08-07](./adr/2026-08-07-engine-hardening-writeback-ai.md) | Engine Hardening | Receipt rotation, backoff retries, independent versions |
-| [2026-08-07](./adr/2026-08-07-obsidian-plugin-architecture.md) | Obsidian Plugin Architecture | esbuild-inlined Kernel |
-| [2026-08-09](./adr/2026-08-09-stream-year-archive-memory-redesign.md) | Stream Year Archive & Memory | Stream year dirs + year archive + periodic-as-reflection |
-| [2026-08-13](./adr/2026-08-13-adversarial-first-principles-review.md) | Adversarial first-principles review | Single contract writer, AI must not overwrite yaml, delete home, one Clip converter, search in primary nav |
-| [2026-08-13](./adr/2026-08-13-surface-ux-review.md) | Surface UX review | Stream ≠ workbench; Note it ≠ Log it; Clip must not teach a lite converter; archive is not a primary nav peer |
-| [2026-08-13](./adr/2026-08-13-desktop-stream-editor-ai-review.md) | Stream / editor / AI review | Preview is not a live TipTap; stream composer strips chrome; Obsidian append is visible and comment-free |
-| [2026-08-16](./adr/2026-08-16-memory-consolidation.md) | Memory Consolidation | Confirm-gated profile fact lifecycle: append / retire-to-history / update, industry-aligned (mem0 ADD/UPDATE/DELETE) |
-| [2026-08-23](./adr/2026-08-23-contract-settings-integrity.md) | Contract & Settings Integrity | Repair convergence, backup-before-overwrite, atomic write, partial settings patches, bidirectional period-path stickiness, memory-plane contract paths (incl. skip evidence / todo / host open), settings close-path flush |
-| [2026-08-27](./adr/2026-08-27-desktop-log-rotation.md) | Desktop Log Rotation | Size-capped support log (`main.log` 2 MB × 3 archives, self-healing on legacy oversized files) |
-| [2026-09-07](./adr/2026-09-07-pi-engine-and-three-column-reevaluation.md) | Pi engine + three-column re-eval | Hybrid `pi-agent-core` (bash off, fenced FS); AI workspace column peer to canvas |
-| [2026-09-14](./adr/2026-09-14-product-vocabulary-rename.md) | Product vocabulary rename | Inbox / 交付 / Delivery replace 收件箱 / 写出来 / Ship it; default template seeds move, existing workspace dirs do not |
-| [2026-09-15](./adr/2026-09-15-cross-platform-chrome-and-suggest-lifecycle.md) | Cross-platform chrome & suggestion lifecycle | One-row Windows title bar (app-drawn strip → native popups), platform-correct chords via `formatChord`, fullscreen collapses chrome reserves, frameless float note, Windows dialog footer flip in CSS; batched suggest apply with terminal-vs-retryable failures and persisted dismissal |
-| [2026-09-15](./adr/2026-09-15-boot-integrity-and-undeclared-identifiers.md) | Boot integrity & undeclared identifiers | `popupSink` was assigned but never declared — a ReferenceError in the ready handler killed every platform before its first window, past eight green gates; `install-skills.mjs` had been unparseable since the initial commit; adds a real scope-analysis check plus a test that boots the main process under a stubbed Electron |
-| [2026-09-17](./adr/2026-09-17-adversarial-deep-review.md) | Adversarial deep review | Lifecycle structural-plane fences, archive-plane containment, capture dirty Esc guard, openPath realpath, todo actor=ai default |
-| [2026-09-17b](./adr/2026-09-17b-writeback-authorization-model.md) | Writeback authorization model | `locked` = task-scoped snapshot (not AI deny); graded confirm (content lands; only delete/archive pending); permanent locked/core delete user-only |
-| [2026-09-17c](./adr/2026-09-17c-adversarial-pass-fences-and-honesty.md) | Adversarial pass: fences & honesty | Dangling-symlink fail-closed; system safety leaves; archive verify fail-closed; memory single truth; graded-confirm UI rename; Esc guard re-arm |
-| [2026-09-17e](./adr/2026-09-17e-global-memory-quality.md) | Global memory quality | Fact inventory · health (near-dupe) · restore · ranked prompt injection · organize section routing |
+Archive: [`./adr/`](./adr/). Index is **one line per decision** — read the ADR for history.
 
-**Design proposals (non-ADR):**
+| Date | Current constraint (one line) |
+|------|-------------------------------|
+| [2026-06-14](./adr/2026-06-14-desktop-ai-runtime.md) | Desktop AI Runtime — Vercel AI SDK |
+| [2026-07-13](./adr/2026-07-13-browser-clip-extension.md) | Clip extension — MV3 + Readability + content_html |
+| [2026-07-16](./adr/2026-07-16-desktop-agent-harness-upgrade.md) | Agent harness — edit / compact / steer |
+| [2026-07-16](./adr/2026-07-16-desktop-skill-first-agent.md) | Skill-first — prefer bundled skills |
+| [2026-07-16](./adr/2026-07-16-public-update-and-pack-root.md) | Public update + engine pack |
+| [2026-07-17](./adr/2026-07-17-desktop-utr-bundle-tools-console.md) | Desktop UTR bundle + tools console |
+| [2026-07-19](./adr/2026-07-19-knowledge-ingest-pipeline.md) | Ingest — anydoc sidecar / optional markitdown |
+| [2026-07-21](./adr/2026-07-21-pi-agent-base-decision.md) | Fence / writeback / Skills still hold; **loop choice superseded 2026-09-07** |
+| [2026-07-22](./adr/2026-07-22-stream-packing-and-core-memory.md) | Period-note packing + profile memory loop |
+| [2026-08-02](./adr/2026-08-02-connector-bridge.md) | Connector Bridge contract |
+| [2026-08-02](./adr/2026-08-02-kernel-ai-provider-context.md) | per-call aiProvider + createKernelContext |
+| [2026-08-02](./adr/2026-08-02-workspace-model-split.md) | workspace-model facade split |
+| [2026-08-06](./adr/2026-08-06-phase-d-desktop-hardening.md) | Desktop hardening · RPC · typed events |
+| [2026-08-07](./adr/2026-08-07-comprehensive-design-optimization.md) | Visual refine (thin chrome / borders) |
+| [2026-08-07](./adr/2026-08-07-desktop-single-entry-dedupe.md) | Single-entry noise cut |
+| [2026-08-07](./adr/2026-08-07-engine-hardening-writeback-ai.md) | Receipt rotation · backoff · independent versions |
+| [2026-08-07](./adr/2026-08-07-obsidian-plugin-architecture.md) | Standalone plugin repo · inlined Kernel |
+| [2026-08-09](./adr/2026-08-09-stream-year-archive-memory-redesign.md) | Stream year dirs · periodic=reflection |
+| [2026-08-13](./adr/2026-08-13-adversarial-first-principles-review.md) | Single contract writer · no AI yaml overwrite |
+| [2026-08-13](./adr/2026-08-13-desktop-stream-editor-ai-review.md) | Preview ≠ live TipTap · stream strips chrome |
+| [2026-08-13](./adr/2026-08-13-surface-ux-review.md) | Stream ≠ workbench · Note it ≠ Log it |
+| [2026-08-16](./adr/2026-08-16-memory-consolidation.md) | Confirm-gated profile fact lifecycle |
+| [2026-08-23](./adr/2026-08-23-contract-settings-integrity.md) | Repair convergence · atomic write · period stickiness |
+| [2026-08-27](./adr/2026-08-27-desktop-log-rotation.md) | Support log rotation (2 MB × 3) |
+| [2026-09-07](./adr/2026-09-07-pi-engine-and-three-column-reevaluation.md) | Hybrid pi-agent-core · three-column AI workspace |
+| [2026-09-14](./adr/2026-09-14-product-vocabulary-rename.md) | Vocabulary: Inbox / Delivery |
+| [2026-09-15](./adr/2026-09-15-boot-integrity-and-undeclared-identifiers.md) | Boot integrity · undeclared-identifier guard |
+| [2026-09-15](./adr/2026-09-15-cross-platform-chrome-and-suggest-lifecycle.md) | Cross-platform chrome · batched suggest apply |
+| [2026-09-17](./adr/2026-09-17-adversarial-deep-review.md) | Structural-plane fences · archive containment |
+| [2026-09-17](./adr/2026-09-17b-writeback-authorization-model.md) | locked=task snapshot · graded confirm |
+| [2026-09-17](./adr/2026-09-17c-adversarial-pass-fences-and-honesty.md) | Symlink fail-closed · memory single truth |
+| [2026-09-17](./adr/2026-09-17e-global-memory-quality.md) | Global memory quality (dupe/restore/inject) |
 
-| Doc | Topic |
-|-----|-------|
-| [design/2026-09-16-tools-and-logs-workspace-care.md](./design/2026-09-16-tools-and-logs-workspace-care.md) | Tools & Logs：stats · ops journal · 健康含契约 · 清理预览/去重 · C1–C9 修复 |
-
+Design proposals (non-ADR): [`./design/`](./design/).
 ---
 
 ## Version numbers and truth sources

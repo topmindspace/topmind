@@ -1,5 +1,9 @@
 # 公众号创作 · 方案设计（技能子包 + Desktop 应用 + 移动伴面）
 
+> **定位**：**实验伴面**设计稿，产物在 [`experiments/wechat-studio/`](./experiments/wechat-studio/)。  
+> 非产品核心交付面；现行技能真源见 `topmind-skills/topmind-wechat/`。勿把本文件当现行产品规范。
+
+
 > 状态：**已实施（含审计修复）**；下列「本期不做」仍有效  
 > 真源能力：`skills/topmind-wechat/scripts/*.py`（自 workbuddy 沉淀移植）+ 工作区交付包约定  
 > 业界对照：doocs/md · gzh-design-skill · md2wechat-skill · wechat-article-skills · Humanizer-zh · qu-ai-wei
