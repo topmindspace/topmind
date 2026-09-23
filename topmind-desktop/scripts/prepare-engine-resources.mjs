@@ -39,7 +39,12 @@ function readManifestVersion(file) {
 function resolveOptionalSource(envKey, siblingName) {
   const candidates = [
     process.env[envKey],
+    // monorepo parent: {parent}/topmind-skills next to topmind/
     path.resolve(repoRoot, "..", siblingName),
+    // solutions container: {parent}/topmind-solutions/topmind-skills
+    path.resolve(repoRoot, "..", "..", siblingName),
+    // CI sister checkout under workspace (.sister/*)
+    path.resolve(repoRoot, ".sister", siblingName),
     path.resolve(repoRoot, siblingName),
   ].filter(Boolean);
   for (const dir of candidates) {
@@ -70,11 +75,14 @@ function stageObsidianFromSibling(obsidianDest) {
     process.stdout.write("[prepare-engine] obsidian-plugin: no sibling checkout — skip (optional)\n");
     return null;
   }
+  // Prefer built dist/ (has main.js). A source root with only manifest.json
+  // would install an incomplete plugin that does nothing when enabled.
   const distDir = path.join(srcRoot, "dist");
   const manifest = path.join(distDir, "manifest.json");
-  if (!existsSync(manifest)) {
+  const mainJs = path.join(distDir, "main.js");
+  if (!existsSync(manifest) || !existsSync(mainJs)) {
     process.stdout.write(
-      `[prepare-engine] obsidian-plugin: ${srcRoot} has no dist/manifest.json — skip (optional)\n`,
+      `[prepare-engine] obsidian-plugin: ${srcRoot} has no dist/manifest.json+main.js — skip (optional; run npm run build in topmind-obsidian)\n`,
     );
     return null;
   }
@@ -114,7 +122,23 @@ function stageSkillsFromSibling(skillsDest) {
   }
   fsSync.mkdirSync(skillsDest, { recursive: true });
   for (const entry of readdirSync(packPath, { withFileTypes: true })) {
-    if (entry.name.startsWith(".") || entry.name === "node_modules" || entry.name === "dist") continue;
+    // Only stage the installable pack surface — skip repo tooling (bin/scripts/tests/…)
+    // so packaged engine skills/ stays lean and matches install-skills entries.
+    if (
+      entry.name.startsWith(".") ||
+      entry.name === "node_modules" ||
+      entry.name === "dist" ||
+      entry.name === "bin" ||
+      entry.name === "scripts" ||
+      entry.name === "tests" ||
+      entry.name === "evals" ||
+      entry.name === "integrations" ||
+      entry.name === "install-targets" ||
+      entry.name === "package.json" ||
+      entry.name === "package-lock.json"
+    ) {
+      continue;
+    }
     const from = path.join(packPath, entry.name);
     const to = path.join(skillsDest, entry.name);
     if (entry.isDirectory()) fsSync.cpSync(from, to, { recursive: true, force: true });
@@ -183,14 +207,6 @@ async function main() {
   let extensionVer = null;
   let desktopVer = null;
   let utrVer = null;
-  try {
-    const man = JSON.parse(
-      await fs.readFile(path.join(repoRoot, "browser-extension", "manifest.json"), "utf8"),
-    );
-    extensionVer = man.version || null;
-  } catch {
-    /* */
-  }
   try {
     const man = JSON.parse(
       await fs.readFile(path.join(repoRoot, "browser-extension", "manifest.json"), "utf8"),

@@ -76,6 +76,17 @@ export async function resolveSkillsPackRoot(dir) {
   if (await isSkillsPackRoot(abs)) return abs;
   const nested = path.join(abs, "skills");
   if (await isSkillsPackRoot(nested)) return nested;
+  // Unzipped release assets often nest under topmind-skills-<ver>/
+  try {
+    const ents = await fs.readdir(abs, { withFileTypes: true });
+    for (const e of ents) {
+      if (!e.isDirectory() || e.name.startsWith(".")) continue;
+      const child = path.join(abs, e.name);
+      if (await isSkillsPackRoot(child)) return child;
+    }
+  } catch {
+    /* */
+  }
   return abs;
 }
 
@@ -113,94 +124,147 @@ async function parkSkillsDir(dir, skillsExtraRoot) {
 
 /**
  * Install a local skills pack into dest (default managed skills-extra).
+ * Accepts a pack directory **or** a `topmind-skills-*.zip` release asset
+ * (auto-extracted) so companion-download can hand its zipPath straight through.
  * Copies skill dirs + shared/ + topmind-pack.json when present.
  *
- * @param {string} sourceDir pack root or monorepo skills/
+ * @param {string} source pack root, monorepo skills/, or .zip release asset
  * @param {{ dest?: string, skillIds?: string[]|null }} [opts]
  */
-export async function installSkillsPackLocal(sourceDir, opts = {}) {
-  const packRoot = await resolveSkillsPackRoot(sourceDir);
-  if (!(await isSkillsPackRoot(packRoot))) {
-    return { ok: false, error: `not a skills pack: ${packRoot}` };
-  }
-  const dest = path.resolve(opts.dest || (await ensureSkillsExtraRoot()));
-  await fs.mkdir(dest, { recursive: true });
-
-  const filter = opts.skillIds && opts.skillIds.length
-    ? new Set(opts.skillIds.map(String))
-    : null;
-
-  const entries = await fs.readdir(packRoot, { withFileTypes: true });
-  /** @type {string[]} */
-  const installed = [];
-  for (const ent of entries) {
-    if (SKIP_DIRS.has(ent.name) || ent.name.startsWith(".")) continue;
-    const from = path.join(packRoot, ent.name);
-    const to = path.join(dest, ent.name);
-
-    if (ent.isDirectory()) {
-      const isSkill = await pathExists(path.join(from, "SKILL.md"));
-      const isShared = ent.name === "shared";
-      if (isSkill) {
-        if (filter && !filter.has(ent.name)) continue;
-        if (await pathExists(to)) {
-          await parkSkillsDir(to, dest);
-        }
-        await copyDirFiltered(from, to);
-        installed.push(ent.name);
-      } else if (isShared) {
-        if (await pathExists(to)) {
-          await parkSkillsDir(to, dest);
-        }
-        await copyDirFiltered(from, to);
-        installed.push("shared");
-      }
-    } else if (ent.isFile() && (ent.name === "topmind-pack.json" || ent.name === "INSTALL.md")) {
-      await fs.copyFile(from, to);
-      installed.push(ent.name);
+export async function installSkillsPackLocal(source, opts = {}) {
+  let sourceDir = source;
+  let tempUnpack = null;
+  const zipLike = /\.zip$/i.test(String(source || "")) && (await pathExists(source));
+  if (zipLike) {
+    const os = require("node:os");
+    tempUnpack = await fs.mkdtemp(path.join(os.tmpdir(), "topmind-skills-zip-"));
+    const unpacked = await extractZipToDir(source, tempUnpack);
+    if (!unpacked) {
+      await fs.rm(tempUnpack, { recursive: true, force: true }).catch(() => {});
+      return { ok: false, error: `failed to extract skills zip: ${source}` };
     }
+    sourceDir = await resolveSkillsPackRoot(unpacked) || unpacked;
   }
-
-  if (!installed.some((x) => x !== "shared" && x !== "topmind-pack.json" && x !== "INSTALL.md")) {
-    return { ok: false, error: "no skill directories with SKILL.md found to install" };
-  }
-
-  // Receipt for Desktop extras (+ pack version when available)
-  let packVersion = null;
-  let packName = null;
   try {
-    const packPath = path.join(packRoot, "topmind-pack.json");
-    if (await pathExists(packPath)) {
-      const pack = JSON.parse(await fs.readFile(packPath, "utf8"));
-      packVersion = pack.version || null;
-      packName = pack.name || null;
+    const packRoot = await resolveSkillsPackRoot(sourceDir);
+    if (!(await isSkillsPackRoot(packRoot))) {
+      return { ok: false, error: `not a skills pack: ${packRoot}` };
     }
-  } catch {
-    /* ignore */
-  }
-  const receipt = {
-    installedAt: new Date().toISOString(),
-    source: packRoot,
-    dest,
-    entries: installed,
-    version: packVersion,
-    name: packName,
-  };
-  await fs.writeFile(
-    path.join(dest, RECEIPT_NAME),
-    `${JSON.stringify(receipt, null, 2)}\n`,
-    "utf8",
-  );
+    const dest = path.resolve(opts.dest || (await ensureSkillsExtraRoot()));
+    await fs.mkdir(dest, { recursive: true });
 
-  return {
-    ok: true,
-    dest,
-    installed,
-    source: packRoot,
-    version: packVersion,
-    name: packName,
-    receipt,
+    const filter = opts.skillIds && opts.skillIds.length
+      ? new Set(opts.skillIds.map(String))
+      : null;
+
+    const entries = await fs.readdir(packRoot, { withFileTypes: true });
+    /** @type {string[]} */
+    const installed = [];
+    for (const ent of entries) {
+      if (SKIP_DIRS.has(ent.name) || ent.name.startsWith(".")) continue;
+      const from = path.join(packRoot, ent.name);
+      const to = path.join(dest, ent.name);
+
+      if (ent.isDirectory()) {
+        const isSkill = await pathExists(path.join(from, "SKILL.md"));
+        const isShared = ent.name === "shared";
+        if (isSkill) {
+          if (filter && !filter.has(ent.name)) continue;
+          if (await pathExists(to)) {
+            await parkSkillsDir(to, dest);
+          }
+          await copyDirFiltered(from, to);
+          installed.push(ent.name);
+        } else if (isShared) {
+          if (await pathExists(to)) {
+            await parkSkillsDir(to, dest);
+          }
+          await copyDirFiltered(from, to);
+          installed.push("shared");
+        }
+      } else if (ent.isFile() && (ent.name === "topmind-pack.json" || ent.name === "INSTALL.md")) {
+        await fs.copyFile(from, to);
+        installed.push(ent.name);
+      }
+    }
+
+    if (!installed.some((x) => x !== "shared" && x !== "topmind-pack.json" && x !== "INSTALL.md")) {
+      return { ok: false, error: "no skill directories with SKILL.md found to install" };
+    }
+
+    // Receipt for Desktop extras (+ pack version when available)
+    let packVersion = null;
+    let packName = null;
+    try {
+      const packPath = path.join(packRoot, "topmind-pack.json");
+      if (await pathExists(packPath)) {
+        const pack = JSON.parse(await fs.readFile(packPath, "utf8"));
+        packVersion = pack.version || null;
+        packName = pack.name || null;
+      }
+    } catch {
+      /* ignore */
+    }
+    const receipt = {
+      installedAt: new Date().toISOString(),
+      source: packRoot,
+      sourceInput: source,
+      dest,
+      entries: installed,
+      version: packVersion,
+      name: packName,
+    };
+    await fs.writeFile(
+      path.join(dest, RECEIPT_NAME),
+      `${JSON.stringify(receipt, null, 2)}\n`,
+      "utf8",
+    );
+
+    return {
+      ok: true,
+      dest,
+      installed,
+      version: packVersion,
+      name: packName,
+      fromZip: Boolean(zipLike),
+    };
+  } finally {
+    if (tempUnpack) await fs.rm(tempUnpack, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
+/**
+ * Extract a zip into destDir using system tools (unzip / tar / PowerShell).
+ * @param {string} zipPath
+ * @param {string} destDir
+ * @returns {Promise<string|null>} destDir on success
+ */
+async function extractZipToDir(zipPath, destDir) {
+  const { spawnSync } = require("node:child_process");
+  await fs.mkdir(destDir, { recursive: true });
+  const abs = path.resolve(zipPath);
+  const tryCmd = (cmd, args) => {
+    try {
+      const r = spawnSync(cmd, args, { encoding: "utf8" });
+      return r.status === 0;
+    } catch {
+      return false;
+    }
   };
+  if (tryCmd("unzip", ["-q", abs, "-d", destDir])) return destDir;
+  if (tryCmd("tar", ["xf", abs, "-C", destDir])) return destDir;
+  if (process.platform === "win32") {
+    if (
+      tryCmd("powershell.exe", [
+        "-NoProfile",
+        "-Command",
+        `Expand-Archive -LiteralPath '${abs.replace(/'/g, "''")}' -DestinationPath '${destDir.replace(/'/g, "''")}' -Force`,
+      ])
+    ) {
+      return destDir;
+    }
+  }
+  return null;
 }
 
 /**

@@ -371,25 +371,37 @@ function verifySourceGuards() {
  * after bumping a surface version (e.g. obsidian-plugin manifest.json).
  */
 function verifyBundledVersionParity(enginePath) {
+  const desktopRootResolved = path.resolve(desktopRoot);
+  const skillSourceCandidates = [
+    path.join(desktopRootResolved, "..", "..", "topmind-skills", "topmind-pack.json"),
+    path.join(desktopRootResolved, "..", "topmind-skills", "topmind-pack.json"),
+    path.join(desktopRootResolved, "..", "skills", "topmind-pack.json"),
+  ];
+  const obsidianSourceCandidates = [
+    path.join(desktopRootResolved, "..", "..", "topmind-obsidian", "manifest.json"),
+    path.join(desktopRootResolved, "..", "topmind-obsidian", "manifest.json"),
+    path.join(desktopRootResolved, "..", "obsidian-plugin", "manifest.json"),
+  ];
+  const firstExisting = (cands) => cands.find((p) => existsSync(p)) || cands[0];
   const checks = [
     {
       id: "version-parity-obsidian",
       bundled: path.join(enginePath, "obsidian-plugin", "manifest.json"),
-      source: path.join(desktopRoot, "..", "obsidian-plugin", "manifest.json"),
+      source: firstExisting(obsidianSourceCandidates),
       key: "version",
       label: "obsidian-plugin",
     },
     {
       id: "version-parity-extension",
       bundled: path.join(enginePath, "browser-extension", "manifest.json"),
-      source: path.join(desktopRoot, "..", "browser-extension", "manifest.json"),
+      source: path.join(desktopRootResolved, "..", "browser-extension", "manifest.json"),
       key: "version",
       label: "clip-extension",
     },
     {
       id: "version-parity-skills",
       bundled: path.join(enginePath, "skills", "topmind-pack.json"),
-      source: path.join(desktopRoot, "..", "skills", "topmind-pack.json"),
+      source: firstExisting(skillSourceCandidates),
       key: "version",
       label: "skills-pack",
     },

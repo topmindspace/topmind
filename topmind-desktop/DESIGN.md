@@ -973,7 +973,7 @@ ZCode 阶 + 浮动层：`--radius-xs: 2px` · `--radius-sm: 4px` · `--radius-md
 ## 截图与文档
 
 产品截图真源：`docs/images/`（索引见 `docs/images/README.md`）。  
-仓库默认 README 为**英文**（`README.md`）；简体中文 `README.zh-CN.md`。各模块 README 同此约定。
+仓库默认 README 为**简体中文**（`README.md`）；英文 `README.en.md`（`README.zh-CN.md` 为完整中文兼容副本）。各模块 README 同此约定。
 
 ---
 

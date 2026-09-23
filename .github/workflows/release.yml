@@ -551,6 +551,28 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # Sister surfaces (skills / obsidian) live in separate repos after the
+      # split. Checkout them under .sister/ and point TOPMIND_*_SRC so
+      # pack:prepare can stage resources/topmind-engine/{skills,obsidian-plugin}/
+      # into the installers. Without this, packaged Desktop has no bundled
+      # skills/obsidian source and Settings → Install reports
+      # "skills source not found: (none)".
+      - name: Checkout topmind-skills (sister)
+        uses: actions/checkout@v5
+        with:
+          repository: topmindspace/topmind-skills
+          ref: main
+          path: .sister/topmind-skills
+        continue-on-error: true
+
+      - name: Checkout topmind-obsidian (sister)
+        uses: actions/checkout@v5
+        with:
+          repository: topmindspace/topmind-obsidian
+          ref: main
+          path: .sister/topmind-obsidian
+        continue-on-error: true
+
       - uses: actions/setup-node@v5
         with:
           node-version: "24"
@@ -590,6 +612,8 @@ jobs:
           WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TOPMIND_SKILLS_SRC: ${{ github.workspace }}/.sister/topmind-skills
+          TOPMIND_OBSIDIAN_SRC: ${{ github.workspace }}/.sister/topmind-obsidian
         run: npm run ${{ matrix.pack }}
 
       - name: List release outputs
@@ -663,6 +687,23 @@ jobs:
             echo "ERROR: upload failed after 5 attempts"; return 1
           }
           upload_with_retry "${TAG}" "${files[@]}"
+
+  # ── Keep only the newest 2 Releases (product policy) ─────────────────────
+  prune-releases:
+    name: prune old releases (keep 2)
+    needs: [plan, finalize-release]
+    if: always() && !cancelled() && needs.plan.outputs.tag != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - name: Prune to latest 2 releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/prune-releases.mjs --keep 2
 
   # ── Finalize: write latest.json + generate release notes ─────────────────
   finalize-release:

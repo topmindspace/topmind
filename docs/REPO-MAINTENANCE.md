@@ -76,7 +76,7 @@ Vault UI / 插件壳 / esbuild            → topmind-obsidian
 |------|------|----------|
 | A. Obsidian → Kernel | esbuild：`TOPMIND_SRC` → sibling `../topmind` → CI `.topmind-src` | 明确报错，不产出坏包 |
 | B. 契约对齐 | 主仓文档真源 + skills CI 断言 | PR 不合并 |
-| C. Desktop 姊妹产物 | `pack:prepare`：sibling → 下载 Release zip → 跳过 | 安装包仅 Desktop+Clip+UTR |
+| C. Desktop 姊妹产物 | `pack:prepare`：sibling / `TOPMIND_*_SRC` / `.sister/*` staging；CI `pack-desktop` 检出姊妹仓 | 无 sister 时跳过 staging；运行时安装再走 GitHub Release 下载 |
 
 集成测试清单：
 
@@ -98,15 +98,27 @@ Vault UI / 插件壳 / esbuild            → topmind-obsidian
 
 ---
 
+## 5.1 GitHub Releases 保留策略（产品约定）
+
+**默认每个仓库只保留最新 2 个 GitHub Release，更旧的发版在下一次发版时自动清理。**
+
+- 主仓 `scripts/prune-releases.mjs` + `release.yml` `prune-releases` job
+- `topmind-skills` / `topmind-obsidian` 各自 `release.yml` 末尾 prune step
+- 不删 git tag；只删 Release（含 assets）。需要长期留档请另存到对象存储/制品库
+
+---
+
 ## 6. 版本对齐备忘
 
-| 表面 | 当前 | 引用 |
-|------|------|------|
-| Desktop | 4.12.2 | 主叙事 |
-| Skills Pack | 4.12.2 | 独立 |
-| Clip | 4.12.2 | 独立 |
-| UTR | 跟 Desktop | `utr/VERSION` |
-| Obsidian | 4.12.2 | 独立；Kernel ref 发版时写入 release notes |
+版本数字**只**写在各表面真源；此处只链路径（`npm run versions` 可打印）：
+
+| 表面 | 真源 |
+|------|------|
+| Desktop | `topmind-desktop/package.json` |
+| Skills Pack | `topmind-skills/topmind-pack.json` |
+| Clip | `browser-extension/manifest.json` |
+| UTR | `utr/VERSION`（跟随 Desktop） |
+| Obsidian | `topmind-obsidian/manifest.json` |
 
 拆分迁移时以 `git tag pre-split-2026-09-23` 为回滚锚点。
 

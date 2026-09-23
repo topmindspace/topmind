@@ -1,6 +1,6 @@
 # topmind Desktop
 
-[English](README.md) · [简体中文](README.zh-CN.md)
+[简体中文](README.md) · [English](README.en.md)
 
 > 本地优先**富工作台** — 动态流 · 深度编辑 · AI 副驾 · 可逆写回。  
 > **版本真源：** 本目录 [`package.json`](./package.json)（`npm run versions`）。  
@@ -8,7 +8,7 @@
 > 用户概念 ≤5：**记一下 · 动态 · 专题 · 我的情况 · 交付**  
 > 工作流：`收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整`
 
-[产品总览](../README.zh-CN.md) · [English overview](../README.md) · IA / 像素：[`DESIGN.md`](./DESIGN.md) · 架构：[`ARCHITECTURE.md`](./ARCHITECTURE.md) · 实施锁：[`../docs/ARCHITECTURE-RESET.md`](../docs/ARCHITECTURE-RESET.md)
+[产品总览](../README.md) · [English overview](../README.en.md) · IA / 像素：[`DESIGN.md`](./DESIGN.md) · 架构：[`ARCHITECTURE.md`](./ARCHITECTURE.md) · 实施锁：[`../docs/ARCHITECTURE-RESET.md`](../docs/ARCHITECTURE-RESET.md)
 
 ---
 

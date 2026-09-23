@@ -339,12 +339,12 @@ export function ManagePanel({
       } else if (surface === "obsidian") {
         // Pass vault path so installObsidianPlugin knows where to install.
         // vaultPluginsRoot is {vault}/.obsidian/plugins — derive vault root.
+        // Use POSIX+Win separators: packaged Windows paths use `\`.
         if (obsidian?.vaultPluginsRoot) {
           const pluginsRoot = obsidian.vaultPluginsRoot;
-          // Remove trailing /plugins and /.obsidian to get vault root
           opts.vaultPath = pluginsRoot
-            .replace(/\/plugins\/?$/, "")
-            .replace(/\/\.obsidian\/?$/, "");
+            .replace(/[\\/]plugins[\\/]??$/i, "")
+            .replace(/[\\/]\.obsidian[\\/]??$/i, "");
         }
       }
       await api.sys.downloadAndInstallCompanion(surface, version, tag, opts);
@@ -659,7 +659,7 @@ export function ManagePanel({
             ) : null}
             <CmdRow
               label={t("settings:env.skillsInstallLabel")}
-              cmd="npx skills add topmindspace/topmind -g -y"
+              cmd="npx skills add topmindspace/topmind-skills -g -y"
             />
             <CmdRow
               label={t("settings:env.skillsUpgradeLabel")}
@@ -1063,9 +1063,15 @@ export function ManagePanel({
                 variant="outline"
                 size="sm"
                 className="h-6 text-3xs"
-                disabled={Boolean(busy) || !obsidian?.vaultPluginsRoot}
+                disabled={Boolean(busy)}
                 onClick={() =>
                   void runCompanion("obsidian-install", async () => {
+                    if (!obsidian?.vaultPluginsRoot) {
+                      // Surface the reason instead of a dead disabled button.
+                      throw new Error(
+                        `${t("settings:companions.vaultNotReady")} ${t("settings:companions.vaultNotReadyHint")}`,
+                      );
+                    }
                     const r = await api.sys.installObsidianPlugin();
                     if (r.ok === false) {
                       // Always throw — runCompanion catch sets compError and

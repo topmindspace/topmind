@@ -14,15 +14,40 @@ import { tryExec, pythonRunners } from "./lib/host-bin.mjs";
 import { defaultEngineCandidate, desktopAppRoot } from "./lib/engine-root.mjs";
 import { sp } from "./lib/workspace-helpers.mjs";
 
-const THEME_FILES = new Set(["minimal-ink", "tech-blue", "newsprint", "graphite"]);
+const THEME_FILES = new Set([
+  "minimal-ink",
+  "tech-blue",
+  "newsprint",
+  "graphite",
+  "amber-review",
+]);
+
+function skillPackageRoots() {
+  const desktop = desktopAppRoot();
+  return [
+    // packaged / staged engine
+    path.join(defaultEngineCandidate(), "skills", "topmind-wechat"),
+    path.join(desktop, "resources", "topmind-engine", "skills", "topmind-wechat"),
+    // three-repo split siblings
+    path.join(desktop, "..", "..", "topmind-skills", "topmind-wechat"),
+    path.join(desktop, "..", "topmind-skills", "topmind-wechat"),
+    // legacy monorepo
+    path.join(desktop, "..", "skills", "topmind-wechat"),
+    // managed skills-extra cache
+    (() => {
+      try {
+        const { getSkillsExtraRoot } = require("./lib/skills-extra.mjs");
+        return path.join(getSkillsExtraRoot(), "topmind-wechat");
+      } catch {
+        return null;
+      }
+    })(),
+  ].filter(Boolean);
+}
 
 function skillScriptsDir() {
-  const candidates = [
-    path.join(defaultEngineCandidate(), "skills", "topmind-wechat", "scripts"),
-    path.join(desktopAppRoot(), "..", "skills", "topmind-wechat", "scripts"),
-  ];
-  for (const dir of candidates) {
-    const abs = path.resolve(dir);
+  for (const root of skillPackageRoots()) {
+    const abs = path.resolve(path.join(root, "scripts"));
     if (existsSync(path.join(abs, "md2wechat.py"))) return abs;
   }
   return null;
@@ -30,12 +55,8 @@ function skillScriptsDir() {
 
 function skillThemePath(themeId) {
   const id = THEME_FILES.has(themeId) ? themeId : "minimal-ink";
-  const candidates = [
-    path.join(defaultEngineCandidate(), "skills", "topmind-wechat", "assets", "themes", `${id}.json`),
-    path.join(desktopAppRoot(), "..", "skills", "topmind-wechat", "assets", "themes", `${id}.json`),
-  ];
-  for (const p of candidates) {
-    const abs = path.resolve(p);
+  for (const root of skillPackageRoots()) {
+    const abs = path.resolve(path.join(root, "assets", "themes", `${id}.json`));
     if (existsSync(abs)) return abs;
   }
   return null;

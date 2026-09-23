@@ -57,7 +57,8 @@ describe("Desktop primary IA target", () => {
   });
 
   it("Desktop README does not teach deleted ActionBar or Title-bar Note it", () => {
-    const en = read("README.md");
+    // README.md = 简体中文 default · README.en.md = English
+    const en = read("README.en.md");
     const zh = read("README.zh-CN.md");
     assert.doesNotMatch(en, /AI panel \*\*ActionBar\*\*/);
     assert.doesNotMatch(en, /Title-bar \*\*Note it\*\*/);

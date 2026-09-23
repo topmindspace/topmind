@@ -1,6 +1,6 @@
 # 知识管理方案对比与选型指南
 
-产品入口：根 [`README.md`](../README.md)（English）· [`README.zh-CN.md`](../README.zh-CN.md)（简体中文）。
+产品入口：根 [`README.md`](../README.md)（简体中文）· [`README.en.md`](../README.en.md)（English）。
 
 没有「最好」的工具，只有「最适合你」的工具。每种方案都是在**数据主权、上手门槛、组织灵活度、AI 介入深度**之间做出特定取舍。
 

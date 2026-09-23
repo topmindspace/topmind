@@ -141,14 +141,15 @@ test("optional 记账 is memory-plane satellite, not a sixth concept or ninth en
 });
 
 test("ADR index pairs list 2026-08-27 desktop log rotation", () => {
-  const en = read("docs/README.md");
+  const en = read("docs/README.en.md");
   const zh = read("docs/README.zh-CN.md");
   assert.match(en, /2026-08-27-desktop-log-rotation\.md/);
   assert.match(zh, /2026-08-27-desktop-log-rotation\.md/);
 });
 
 test("ADR index pairs list 2026-09-07 pi/three-column and do not freeze No Pi Agent Base as current", () => {
-  const en = read("docs/README.md");
+  // docs/README.md = 简体中文 default · docs/README.en.md = English
+  const en = read("docs/README.en.md");
   const zh = read("docs/README.zh-CN.md");
   assert.match(en, /2026-09-07-pi-engine-and-three-column-reevaluation\.md/);
   assert.match(zh, /2026-09-07-pi-engine-and-three-column-reevaluation\.md/);

@@ -1,6 +1,6 @@
 # topmind UTR — 可选 CLI / MCP
 
-[English](README.md) · [简体中文](README.zh-CN.md) · [根目录 README](../README.zh-CN.md) · [TOOLS.md](../TOOLS.md)
+[简体中文](README.md) · [English](README.en.md) · [根目录 README](../README.md) · [TOOLS.md](../TOOLS.md)
 
 > **边界：** UTR 是 Kernel（`lib/`）之上的**可选** CLI / MCP **适配器**。  
 > Skills 主路径 = Host 文件工具。Desktop 主路径 = WorkspaceService → Kernel `writeback-engine`。  

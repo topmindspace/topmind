@@ -1089,15 +1089,18 @@ export const SystemService = {
     } else if (surface === "extension") {
       bundledVersion = readBundledExtensionVersion({ engineRoot: engineRootResolved });
     }
+    // No bundled source at all → always prefer a remote download when any
+    // release exists. Otherwise install falls through to "source not found".
+    const bundledMissing = !bundledVersion;
     try {
       const updateResult = await checkAllSurfaces({
         currentVersion: readRunningAppVersion(),
         engineRoot: engineRootResolved,
       });
       const surfaceInfo = updateResult?.[surface];
-      if (surfaceInfo?.updateAvailable && surfaceInfo?.latestVersion && surfaceInfo?.tagName) {
+      if (surfaceInfo?.latestVersion && surfaceInfo?.tagName) {
         const cmp = compareSemver(surfaceInfo.latestVersion, bundledVersion || "0.0.0");
-        if (cmp > 0) {
+        if (bundledMissing || cmp > 0) {
           return {
             needsDownload: true,
             latestVersion: surfaceInfo.latestVersion,
@@ -1106,11 +1109,14 @@ export const SystemService = {
           };
         }
       }
-      return { needsDownload: false, bundledVersion };
+      return { needsDownload: bundledMissing, bundledVersion };
     } catch {
       // Network/API failure is non-blocking — install from bundled
-      logInfo("system", "companion latest check failed (non-blocking)", { surface });
-      return { needsDownload: false, bundledVersion };
+      logInfo("system", "companion latest check failed (non-blocking)", {
+        surface,
+        bundledMissing,
+      });
+      return { needsDownload: bundledMissing, bundledVersion };
     }
   },
 
@@ -1218,13 +1224,17 @@ export const SystemService = {
         if (dlResult.ok) {
           try {
             const { installSkillsPackLocal } = await import("./lib/skills-extra.mjs");
+            // zipPath is auto-extracted by installSkillsPackLocal
             const localResult = await installSkillsPackLocal(dlResult.zipPath);
+            if (!localResult?.ok) {
+              throw new Error(localResult?.error || "skills pack install from zip failed");
+            }
             // Also install to the agent host from the downloaded pack
             const hostResult = await installSkillsToHost({
               hostId,
               mode: mode === "symlink" ? "symlink" : "copy",
               dest: dest || undefined,
-              sourceRoot: localResult.dest || dlResult.zipPath,
+              sourceRoot: localResult.dest,
               engineRoot,
             });
             if (!hostResult.ok) throw new Error(hostResult.error || "skills install failed");
@@ -1251,7 +1261,12 @@ export const SystemService = {
       sourceRoot,
       engineRoot,
     });
-    if (!result.ok) throw new Error(result.error || "skills install failed");
+    if (!result.ok) {
+      const hint = latest.needsDownload
+        ? " Download from GitHub Releases also failed — check network, then retry or install a local skills pack (Settings → Skills)."
+        : "";
+      throw new Error((result.error || "skills install failed") + hint);
+    }
     const fallbackSource = latest.needsDownload ? "bundled-fallback" : "bundled";
     logInfo("system", "companion skills installed", {
       hostId,
@@ -1289,12 +1304,16 @@ export const SystemService = {
         if (dlResult.ok) {
           try {
             const { installSkillsPackLocal } = await import("./lib/skills-extra.mjs");
+            // zipPath is auto-extracted by installSkillsPackLocal
             const localResult = await installSkillsPackLocal(dlResult.zipPath);
+            if (!localResult?.ok) {
+              throw new Error(localResult?.error || "skills pack install from zip failed");
+            }
             const hostResult = await upgradeSkillsOnHost({
               hostId,
               mode,
               dest: dest || undefined,
-              sourceRoot: localResult.dest || dlResult.zipPath,
+              sourceRoot: localResult.dest,
               engineRoot,
             });
             if (!hostResult.ok) throw new Error(hostResult.error || "skills upgrade failed");
@@ -1321,7 +1340,12 @@ export const SystemService = {
       sourceRoot,
       engineRoot,
     });
-    if (!result.ok) throw new Error(result.error || "skills upgrade failed");
+    if (!result.ok) {
+      const hint = latest.needsDownload
+        ? " Download from GitHub Releases also failed — check network, then retry or install a local skills pack (Settings → Skills)."
+        : "";
+      throw new Error((result.error || "skills upgrade failed") + hint);
+    }
     logInfo("system", "companion skills upgraded", {
       hostId,
       dest: result.dest,
@@ -1482,10 +1506,13 @@ export const SystemService = {
       engineRoot,
     });
     if (!result.ok) {
-      if (result.guided) {
+      if (result.guided && !result.needsDownload) {
         return result;
       }
-      throw new Error(result.error || "obsidian plugin install failed");
+      const hint = result.needsDownload
+        ? " Download from GitHub Releases also failed — check network, or build topmind-obsidian and retry."
+        : "";
+      throw new Error((result.error || "obsidian plugin install failed") + hint);
     }
     logInfo("system", "obsidian plugin installed", {
       path: result.path,
@@ -1625,7 +1652,7 @@ export const SystemService = {
       const zipPath = dlResult.zipPath;
 
       if (surface === "skills") {
-        // Install skills pack from downloaded zip
+        // Install skills pack from downloaded zip (auto-extracted)
         const { installSkillsPackLocal } = await import("./lib/skills-extra.mjs");
         const result = await installSkillsPackLocal(zipPath);
         if (!result.ok) {

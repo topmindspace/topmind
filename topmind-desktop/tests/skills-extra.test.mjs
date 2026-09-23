@@ -48,6 +48,42 @@ test("installSkillsPackLocal copies skill + shared", async () => {
   assert.match(body, /hello/);
 });
 
+test("installSkillsPackLocal accepts a release zip (auto-extract)", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const pack = await fs.mkdtemp(path.join(os.tmpdir(), "mh-packzip-src-"));
+  const dest = await fs.mkdtemp(path.join(os.tmpdir(), "mh-packzip-dest-"));
+  const work = await fs.mkdtemp(path.join(os.tmpdir(), "mh-packzip-work-"));
+  // Nested release layout: topmind-skills-0.0.2/demo-skill/...
+  const nested = path.join(work, "topmind-skills-0.0.2");
+  await fs.mkdir(path.join(nested, "demo-skill"), { recursive: true });
+  await fs.writeFile(
+    path.join(nested, "demo-skill", "SKILL.md"),
+    "---\nname: demo-skill\ndescription: fromzip\n---\nbody\n",
+    "utf8",
+  );
+  await fs.writeFile(
+    path.join(nested, "topmind-pack.json"),
+    JSON.stringify({ version: "0.0.2", name: "demo" }),
+    "utf8",
+  );
+  const zipPath = path.join(pack, "topmind-skills-0.0.2.zip");
+  const z = spawnSync("zip", ["-q", "-r", zipPath, "topmind-skills-0.0.2"], {
+    cwd: work,
+    encoding: "utf8",
+  });
+  if (z.status !== 0) {
+    // zip unavailable — skip without failing the suite
+    return;
+  }
+
+  const r = await installSkillsPackLocal(zipPath, { dest });
+  assert.equal(r.ok, true, r.error || "zip install should succeed");
+  assert.equal(r.fromZip, true);
+  assert.ok(r.installed.includes("demo-skill"));
+  const body = await fs.readFile(path.join(dest, "demo-skill", "SKILL.md"), "utf8");
+  assert.match(body, /fromzip/);
+});
+
 test("resolveExtraSkillsRoots merges configured + exists filter", async () => {
   invalidateSkillsCache();
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "mh-extra-"));

@@ -1,12 +1,12 @@
 # topmind 文档全景导览中心
 
-[English](README.md) · [简体中文](README.zh-CN.md)
+[简体中文](README.md) · [English](README.en.md)
 
-> **根目录入口** [`../README.zh-CN.md`](../README.zh-CN.md) · **English** [`../README.md`](../README.md)  
+> **根目录入口** [`../README.md`](../README.md)（简体中文） · **English** [`../README.en.md`](../README.en.md)  
 > 本目录收录架构设计锁、ADR 决策记录、打包发布规范与全表面导览。  
 > 工作流：`收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整` · 写回只经 Kernel `writeback-engine`（唯一写闸）· UTR `8 域 / 28 命令`
 
-**README 约定：** 各模块以 `README.md` 为英文主文档（GitHub 默认），`README.zh-CN.md` 为简体中文。
+**README 约定：** 各模块以 `README.md` 为简体中文主文档（GitHub 默认），`README.en.md` 为英文；`README.zh-CN.md` 仅作兼容跳转。
 
 ---
 

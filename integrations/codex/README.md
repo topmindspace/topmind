@@ -1,6 +1,6 @@
 # topmind · Codex Integration
 
-[English](../../README.md) · [简体中文](../../README.zh-CN.md) · [Skills install](../../skills/INSTALL.md)
+[简体中文](../../README.md) · [English](../../README.en.md) · [Skills install](../../skills/INSTALL.md)
 
 Codex consumes topmind through the same portable skill pack as other hosts.
 

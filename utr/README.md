@@ -1,16 +1,16 @@
-# topmind UTR — optional CLI / MCP
+# topmind UTR — 可选 CLI / MCP
 
-[English](README.md) · [简体中文](README.zh-CN.md) · [Root README](../README.md) · [TOOLS.md](../TOOLS.md)
+[简体中文](README.md) · [English](README.en.md) · [根目录 README](../README.md) · [TOOLS.md](../TOOLS.md)
 
-> **Boundary:** UTR is an **optional** CLI / MCP **adapter** over Kernel (`lib/`).  
-> Skills main path = host file tools. Desktop main path = WorkspaceService → Kernel `writeback-engine`.  
-> UTR is **not** content truth (the workspace filesystem is). Write modes: **auto | confirm** only.  
-> Workflow: `收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整`  
-> See [`../PRODUCT-BOUNDARIES.md`](../PRODUCT-BOUNDARIES.md) · [`../docs/ARCHITECTURE-RESET.md`](../docs/ARCHITECTURE-RESET.md).
+> **边界：** UTR 是 Kernel（`lib/`）之上的**可选** CLI / MCP **适配器**。  
+> Skills 主路径 = Host 文件工具。Desktop 主路径 = WorkspaceService → Kernel `writeback-engine`。  
+> UTR **不是**内容真源（工作区文件系统才是）。写入模式仅 **auto | confirm**。  
+> 工作流：`收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整`  
+> 见 [`../PRODUCT-BOUNDARIES.md`](../PRODUCT-BOUNDARIES.md) · [`../docs/ARCHITECTURE-RESET.md`](../docs/ARCHITECTURE-RESET.md)。
 
-UTR (Unified Tool Runtime) exposes **deterministic workspace commands**. The only CLI entry is `topmind-cli`.
+UTR（Unified Tool Runtime）暴露**确定性工作区命令**。唯一 CLI 入口是 `topmind-cli`。
 
-**6 条核心规约** ([`../PROJECT-MODEL.md`](../PROJECT-MODEL.md) §3):
+**6 条核心规约**（[`../PROJECT-MODEL.md`](../PROJECT-MODEL.md) §3）：
 
 1. **大类不重叠**  
 2. **专题自然涌现**  
@@ -21,14 +21,14 @@ UTR (Unified Tool Runtime) exposes **deterministic workspace commands**. The onl
 
 ---
 
-## Command surface
+## 命令面
 
 ```text
 workspace-read · workspace-write · workspace-transform · workspace-maintain
 contract · memory · lifecycle · derived
 ```
 
-**8 域 / 28 命令** · MCP default **19** (primary + danger) · advanced 9 folded (`topmind_MCP_ALL=1` opens all)
+**8 域 / 28 命令** · MCP 默认 **19**（primary + danger）· advanced 9 折叠（`topmind_MCP_ALL=1` 全开）
 
 | Kind | Primary / Danger | Advanced |
 |------|------------------|----------|
@@ -41,42 +41,42 @@ contract · memory · lifecycle · derived
 | `lifecycle` | — | `scan` |
 | `derived` | — | `rebuild` |
 
-Full contracts: [`../TOOLS.md`](../TOOLS.md).
+完整契约：[`../TOOLS.md`](../TOOLS.md)。
 
 ---
 
-## Layout
+## 目录布局
 
-| Path | Role |
+| 路径 | 角色 |
 |------|------|
-| `utr/contracts/*/*.json` | Domains, commands, risk, review policy (authoritative) |
-| `utr/core/` | Paths, envelopes, doctor, writeback helpers |
-| `utr/bin/topmind-cli.mjs` | CLI: `doctor` · `tool <list\|inspect\|preview\|run>` |
-| `utr/server/topmind-mcp.mjs` | MCP server |
-| `utr/tools/*` | Command implementations (Kernel-backed writes) |
+| `utr/contracts/*/*.json` | 域、命令、风险、审阅策略（权威） |
+| `utr/core/` | 路径、信封、doctor、写回辅助 |
+| `utr/bin/topmind-cli.mjs` | CLI：`doctor` · `tool <list\|inspect\|preview\|run>` |
+| `utr/server/topmind-mcp.mjs` | MCP 服务器 |
+| `utr/tools/*` | 命令实现（写入走 Kernel） |
 
-- Runtime: **Node only** (`execution.runtime`).  
-- Desktop does **not** hard-depend on UTR (Tools console may soft-load the same tree).  
-- Durable `.md` writes go through Kernel `lib/writeback-engine.mjs`.  
-- `writeback-safety.mjs` = executor transactional snapshots only (not a second content gate).  
-- `safety-receipt-paths.mjs` = list/restore path shapes for `99-Archive` backups/trash/legacy.
+- 运行时：**仅 Node**（`execution.runtime`）。  
+- Desktop **不**硬依赖 UTR（工具控制台可软加载同一棵树）。  
+- 耐久 `.md` 写入走 Kernel `lib/writeback-engine.mjs`。  
+- `writeback-safety.mjs` = 执行器事务快照（不是第二套内容闸口）。  
+- `safety-receipt-paths.mjs` = `99-归档` backups/trash/legacy 的列出/恢复路径形状。
 
 ---
 
-## Content truth
+## 内容真源
 
 ```text
-User workspace filesystem  (categories / topics / memory / archive)
+用户工作区文件系统  (categories / topics / memory / archive)
 ```
 
-Engine share: monorepo `lib/` + `templates/*.json` (no Desktop runtime required).
+引擎共享：monorepo `lib/` + `templates/*.json`（不要求 Desktop 运行时）。
 
 ---
 
-## Verify
+## 校验
 
 ```bash
-# From repo root
+# 仓库根
 npm run utr:test
 npm run utr:doctor:engine
 npm run utr:doctor
@@ -88,21 +88,21 @@ node utr/bin/topmind-cli.mjs tool preview workspace-read list-categories
 
 ---
 
-## Call conventions
+## 调用约定
 
-- Identity: `kind` + `command` (e.g. `workspace-write.capture-note`) — 操作命令面  
-- Writes use separate `category` + `topic` fields (not a single `projectId`)  
-- Type is expressed by **physical category path** — no `project_type` input  
-- Writeback: `writebackMode: auto | confirm`  
-- **操作执行审阅:** under `confirm`, high-risk writes return a review plan; under `auto`, execute + receipt  
-- **操作结果审查:** all writes return `affectedFiles` + `receipt`（回执）; dangerous changes go through `99-Archive/`  
-- `list-safety-receipts` / `restore-safety-receipt` understand Kernel `backups/trash` and legacy trash layouts  
+- 身份：`kind` + `command`（例如 `workspace-write.capture-note`）— 操作命令面  
+- 写入使用分开的 `category` + `topic` 字段（不是单个 `projectId`）  
+- 类型由**物理类别路径**表达 — 无 `project_type` 输入  
+- 写回：`writebackMode: auto | confirm`  
+- **操作执行审阅：** `confirm` 下高风险写入返回审阅计划；`auto` 下执行 + 回执  
+- **操作结果审查：** 所有写入返回 `affectedFiles` + `receipt`（回执）；危险改动走 `99-归档/`  
+- `list-safety-receipts` / `restore-safety-receipt` 理解 Kernel `backups/trash` 与遗留 trash 布局  
 
-Maintenance policy: [`ROADMAP.md`](./ROADMAP.md).
+维护政策：[`ROADMAP.md`](./ROADMAP.md)。
 
-## Version
+## 版本
 
-Truth source: [`utr/VERSION`](./VERSION) — use `npm run versions`.
+真源：[`utr/VERSION`](./VERSION) — 使用 `npm run versions`。
 
-Desktop **bundles** the same tree under `topmind-engine/utr/` for Settings → Tools and doctor (pathContext shares engineRoot + userWorkspaceRoot). AI durable writes still use WorkspaceService → Kernel, not UTR `executeTool`.  
-Subprocess runtime: `core/node-runtime.mjs` (never raw Electron without `ELECTRON_RUN_AS_NODE`).
+Desktop 把同一棵树打包进 `topmind-engine/utr/`，供设置 → 工具 与 doctor 使用（pathContext 共享 engineRoot + userWorkspaceRoot）。AI 耐久写入仍走 WorkspaceService → Kernel，不走 UTR `executeTool`。  
+子进程运行时：`core/node-runtime.mjs`（没有 `ELECTRON_RUN_AS_NODE` 时不要直接跑 Electron）。

@@ -1,6 +1,6 @@
 # Desktop 媒体与截图资源索引
 
-[English](README.md) · [简体中文](README.zh-CN.md)
+[简体中文](README.md) · [English](README.en.md)
 
 本目录存放项目文档引用的**已智能压缩** UI 界面图与**全流程动态演示**资源。  
 高清源图在 `topmind-desktop/resources/img/`——该目录**已被 gitignore**（只存在于开发机），请把它当作本机源图库，而不是仓库路径。

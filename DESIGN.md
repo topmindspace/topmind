@@ -4,7 +4,7 @@
 > **产品北极星**：**最低摩擦个人动态流** — 记下来尽可能简单；AI 默认可生成建议；用户确认后再沉淀。  
 > 四体边界：`PRODUCT-BOUNDARIES.md` · 内容约定：`PROJECT-MODEL.md` · 实施锁：`docs/ARCHITECTURE-RESET.md`  
 > Desktop 像素 / IA 细节：`topmind-desktop/DESIGN.md`（UI 唯一真源，本文不复制线框）。  
-> 产品入口：根 `README.md`（English default）· `README.zh-CN.md`（简体中文）。各模块 README 同此约定。
+> 产品入口：根 `README.md`（简体中文 default）· `README.en.md`（English）。各模块 README 同此约定。
 
 ---
 

@@ -1,6 +1,6 @@
 # Packaging — independent distributables
 
-Product entry: root [`README.md`](../README.md) (English) · [`README.zh-CN.md`](../README.zh-CN.md) (简体中文). Module READMEs follow the same pair.
+Product entry: root [`README.md`](../README.md) (简体中文) · [`README.en.md`](../README.en.md) (English). Module READMEs follow the same pair.
 
 topmind has **four core surfaces** (Skills · Desktop · UTR · Obsidian) plus **Clip Extension** as a Desktop capture companion. They share content conventions, not a single binary. Artifact names always include the **surface** so downloads are unambiguous.
 
@@ -35,17 +35,17 @@ Desktop **Settings → Manage & Updates** can install/upgrade/uninstall Skills i
 
 | Command | Output |
 |---------|--------|
-| `npm run pack:skills` / `skills:pack` | Skills portable pack under `dist/` |
 | `npm run pack:extension` / `extension:pack` | Extension zip under `dist/` |
+| `npm run pack:all` (= `pack`) | Currently extension pack only; Skills/Obsidian ship from their own repos |
+| *(moved)* | Skills pack lives in [topmind-skills](https://github.com/topmindspace/topmind-skills) (`npm run pack`) |
 | *(moved)* | Obsidian pack lives in [topmind-obsidian](https://github.com/topmindspace/topmind-obsidian) (`npm run pack`) |
 | `npm run cask:generate` | Local snapshot at `casks/topmind.rb` (gitignored; needs a local mac pack for real SHA256). Live Homebrew recipe is `topmindspace/homebrew-tap`, written by `release.yml` `update-homebrew-cask` |
-| `npm run pack:all` | Skills + extension + Obsidian (no Desktop installers) |
 | `npm run desktop:pack:prepare` | Stage `resources/topmind-engine/` + deps gate |
 | `npm run desktop:pack:verify` | Asar / engine / import integrity (no build) |
 | `npm run desktop:pack:dir` | Unpacked app dir + verify (CI smoke) |
 | `npm run desktop:pack:mac` / `:linux` / `:win` | Platform installers + verify |
 
-Desktop always runs `pack:prepare` first → stages `resources/topmind-engine/` (gitignored) from monorepo `templates/` + `lib/` + `skills/` + **`utr/`**, and runs the packaging dependency gate (`deps:packaging`).
+Desktop always runs `pack:prepare` first → stages `resources/topmind-engine/` (gitignored) from monorepo `templates/` + `lib/` + **`utr/`** + `browser-extension/`, and optionally stages `skills/` + `obsidian-plugin/` when a **sister checkout** is present (`TOPMIND_SKILLS_SRC` / `TOPMIND_OBSIDIAN_SRC` or `../topmind-skills` / `../topmind-obsidian`). CI `pack-desktop` checks out those sisters under `.sister/` so installers ship with companions. Without a sister checkout, skills/obsidian are **skipped** (Desktop still packs; inline install then downloads from GitHub Releases).
 
 Every pack path then runs **`pack:verify`** (CI: `pack:verify:strict`):
 
@@ -264,15 +264,20 @@ Local engines still accept `>=20.11`.
 plan             (v*: pack vs reuse from previous Latest latest.json; dispatch: checkboxes)
 create-release   (creates empty GitHub Release for the tag)
 wait-for-release (polls API until release is visible — eventual consistency buffer)
-pack-skills      (truth version changed | skills-v* hotfix | dispatch pack_skills=true)
 pack-extension   (truth version changed | extension-v* | dispatch pack_extension=true)
-pack-obsidian    (truth version changed | obsidian-v* | dispatch pack_obsidian=true)
 pack-desktop     (truth version changed | desktop-v* | dispatch pack_desktop=true)
+                 # checkouts topmind-skills + topmind-obsidian under .sister/
+                 # so pack:prepare stages companions into the installers
 reuse-previous   (v* only: copy unchanged surface assets from previous Latest)
 finalize         (when pack or reuse produced assets)
                  → also uploads latest.json (public update stamp for Desktop, no API)
 update-cask      (when desktop=='true'; updates version & sha256 to topmindspace/homebrew-tap using HOMEBREW_TAP_TOKEN secret)
+prune-releases   (keep only the newest 2 GitHub Releases — product policy)
 ```
+
+Skills and Obsidian ship from their own repos (`topmind-skills` / `topmind-obsidian`
+`release.yml`), each with the same keep-2 prune policy. This repo only packs
+**extension + desktop** and may **reuse** previous surface assets on a `v*` ship.
 
 **Concurrent release protection:**
 
@@ -306,17 +311,17 @@ git push origin "v$(node -p "require('./topmind-desktop/package.json').version")
 # in topmind-obsidian: git tag v$(node -p "require('./manifest.json').version")
 # git push origin v$VER
 
-# Note: skills.sh / npx skills will automatically index the GitHub repo for `npx skills add topmindspace/topmind`
+# Note: skills.sh / npx skills will automatically index the GitHub repo for `npx skills add topmindspace/topmind-skills`
 # Or Actions → Release → Run workflow (draft; set release_tag)
 ```
 
-### Desktop in-app update check (legacy reference)
+### Desktop in-app update check
 
-> See [Desktop in-app update check (API-merged)](#desktop-in-app-update-check-api-merged) above for the current strategy.
-
-About → **检查更新** uses the API-merged strategy described above. The GitHub API sees ALL releases (full `v*` + surface-specific `obsidian-v*`, `skills-v*`, etc.) and picks the highest version per surface. `latest.json` serves as a fast CDN-backed fallback when the API is unavailable.
-
-Env overrides: `topmind_UPDATE_REPO`, `topmind_UPDATE_API`, `topmind_UPDATE_SKIP_API`, optional `GH_TOKEN`.
+About → **检查更新** uses the API-merged strategy: the GitHub API sees ALL releases
+(product `v*` + surface hotfix tags) and picks the highest version per surface.
+`latest.json` (this repo + sister repos) is a fast CDN-backed fallback when the
+API is unavailable. Env overrides: `topmind_UPDATE_REPO`, `topmind_UPDATE_API`,
+`topmind_UPDATE_SKIP_API`, optional `GH_TOKEN`.
 
 ### Windows taskbar / .exe icon
 
@@ -332,14 +337,16 @@ The `plan` job in `release.yml` is the **single source of truth** for which surf
 
 | Output | Tag push | workflow_dispatch |
 |--------|----------|-------------------|
-| `skills` | `v*`: pack if truth ≠ previous Latest; `skills-v*` hotfix | `${{ inputs.pack_skills }}` |
 | `extension` | `v*`: pack if truth ≠ previous Latest; `extension-v*` hotfix | `${{ inputs.pack_extension }}` |
-| `obsidian` | `v*`: pack if truth ≠ previous Latest; `obsidian-v*` hotfix | `${{ inputs.pack_obsidian }}` |
 | `desktop` | `v*`: pack if truth ≠ previous Latest; `desktop-v*` hotfix | `${{ inputs.pack_desktop }}` |
 | `reuse_*` | `v*`: true when that surface's truth version equals previous Latest | always false |
 | `prev_tag` | previous GitHub Latest tag (for reuse) | empty |
 | `tag` | `${GITHUB_REF_NAME}` (product `v*` following Desktop) | `${{ inputs.release_tag }}` — strip `refs/tags/` prefix if present |
 | `create_release` | always `true` (tag pushes always release) | `${{ inputs.create_release }}` |
+
+Skills / Obsidian plan outputs live in their own repos. On a product `v*` ship
+this repo may still **reuse** their previous Release assets onto the product
+Release for one-download convenience.
 
 ### workflow_dispatch behavior (important)
 

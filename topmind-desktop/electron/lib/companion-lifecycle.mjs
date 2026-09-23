@@ -79,6 +79,14 @@ export function resolveEngineSkillsRoot(opts = {}) {
   } catch {
     /* tests / non-electron */
   }
+  // Managed skills-extra cache (inline-upgrade download target) — last resort
+  // so a previous downloadAndInstallCompanion can feed host install without re-download.
+  try {
+    const { getSkillsExtraRoot } = require("./skills-extra.mjs");
+    candidates.push(getSkillsExtraRoot());
+  } catch {
+    /* skills-extra optional */
+  }
 
   for (const c of candidates) {
     if (!c) continue;
@@ -249,7 +257,7 @@ export async function writeSkillsInstallReceipt(dest, meta) {
     host: meta.hostId || meta.host || null,
     skill_ids: meta.skillIds || [],
     entries: meta.entries || [],
-    repository: "https://github.com/topmindspace/topmind",
+    repository: "https://github.com/topmindspace/topmind-skills",
     update: {
       command: "add",
       source: meta.sourceRaw || meta.source || null,
@@ -308,7 +316,14 @@ export async function installSkillsToHost(opts) {
       engineRoot: opts.engineRoot,
     });
   if (!sourceRoot || !(await pathExists(sourceRoot))) {
-    return { ok: false, error: `skills source not found: ${sourceRoot || "(none)"}` };
+    return {
+      ok: false,
+      error:
+        `skills source not found: ${sourceRoot || "(none)"}. ` +
+        `Tried engine skills/, sibling topmind-skills/, TOPMIND_SKILLS_SRC, resources/topmind-engine/skills, skills-extra/. ` +
+        `Fix: connect network and retry (auto-download from GitHub Releases), or Settings → Skills → Install local pack, or set TOPMIND_SKILLS_SRC to a topmind-skills checkout.`,
+      needsDownload: true,
+    };
   }
 
   const filter =
@@ -781,7 +796,14 @@ export function resolveObsidianPluginSource(opts = {}) {
     /* */
   }
   for (const d of dirCandidates) {
-    if (existsSync(path.join(d, "manifest.json"))) return { kind: "dir", path: d };
+    // Require a loadable plugin (manifest + main.js). A bare source root with
+    // only manifest.json would install an incomplete plugin that "does nothing".
+    if (
+      existsSync(path.join(d, "manifest.json")) &&
+      existsSync(path.join(d, "main.js"))
+    ) {
+      return { kind: "dir", path: d };
+    }
   }
   // release zips (sibling repo release/ after the split)
   for (const releaseDir of [
@@ -838,7 +860,15 @@ export async function installObsidianPlugin(opts = {}) {
     engineRoot: opts.engineRoot,
   });
   if (!source) {
-    return { ok: false, error: "obsidian plugin source not found", guided: true };
+    return {
+      ok: false,
+      error:
+        "obsidian plugin source not found (need manifest.json + main.js, or a release zip). " +
+        "Tried engine obsidian-plugin/, sibling topmind-obsidian/, TOPMIND_OBSIDIAN_SRC, resources/topmind-engine/obsidian-plugin/. " +
+        "Fix: connect network and retry (auto-download from GitHub Releases), or build topmind-obsidian (npm run build) first.",
+      guided: true,
+      needsDownload: true,
+    };
   }
 
   let pkgDir = source.path;

@@ -1,6 +1,6 @@
 # topmind
 
-[English](README.md) · [简体中文](README.zh-CN.md)
+[简体中文](README.md) · [English](README.en.md)
 
 [![Release](https://img.shields.io/github/v/release/topmindspace/topmind?style=flat-square&color=blue)](https://github.com/topmindspace/topmind/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
@@ -229,7 +229,7 @@ npm run versions            # 打印各表面当前版本号
 | 打包发布与 CI/CD 说明 | [`docs/PACKAGING.md`](./docs/PACKAGING.md) |
 | 全局文档索引中心 | [`docs/README.zh-CN.md`](./docs/README.zh-CN.md) · [English](./docs/README.md) |
 
-**README 约定：** 各模块以 `README.md` 为英文主文档（GitHub 默认），`README.zh-CN.md` 为简体中文。
+**README 约定：** 各模块以 `README.md` 为简体中文主文档（GitHub 默认），`README.en.md` 为英文；`README.zh-CN.md` 仅作兼容跳转。
 
 ---
 

@@ -194,8 +194,8 @@ Intentional Partial：contract 非全 Surface UI。embedding / 全库 Ask：Non-
 
 ## Read First
 
-1. `README.md`（**English default**）· `README.zh-CN.md`（简体中文）  
-   各模块 README 同此约定：`README.md` = English；`README.zh-CN.md` = 简体中文。
+1. `README.md`（**简体中文 default**）· `README.en.md`（English）  
+   各模块 README 同此约定：`README.md` = 简体中文；`README.en.md` = English；`README.zh-CN.md` 为完整中文兼容副本。
 2. `docs/ARCHITECTURE-RESET.md` — **决策锁 · Target/Done · 实施阶段**  
 3. `PRODUCT-BOUNDARIES.md` — 四体边界  
 4. `PROJECT-MODEL.md` — 内容真源最高优先级  

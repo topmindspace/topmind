@@ -166,10 +166,22 @@ test("PACKAGING.md matches release plan outputs and upload architecture", () => 
     path.join(repoRoot, "docs", "PACKAGING.md"),
     "utf8",
   );
+  // After the three-repo split, this repo's plan only packs extension + desktop.
   assert.match(
     packaging,
-    /\|\s*`obsidian`\s*\|/u,
-    "plan job outputs table must include obsidian",
+    /\|\s*`extension`\s*\|/u,
+    "plan job outputs table must include extension",
+  );
+  assert.match(
+    packaging,
+    /\|\s*`desktop`\s*\|/u,
+    "plan job outputs table must include desktop",
+  );
+  // Sister surfaces are documented as living outside this plan.
+  assert.match(
+    packaging,
+    /topmind-skills[\s\S]{0,400}topmind-obsidian|topmind-obsidian[\s\S]{0,400}topmind-skills/iu,
+    "PACKAGING must name sister repos for skills/obsidian",
   );
   assert.match(packaging, /gh release upload/u);
   assert.doesNotMatch(
@@ -179,8 +191,8 @@ test("PACKAGING.md matches release plan outputs and upload architecture", () => 
   );
   assert.match(
     packaging,
-    /skills\/extension\/obsidian smoke packs/u,
-    "CI row must list Obsidian smoke pack",
+    /skills\/extension\/obsidian smoke packs|Skills\/Obsidian smoke|sister/iu,
+    "CI row must mention Obsidian smoke pack or sister-repo packing",
   );
 });
 
