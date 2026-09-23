@@ -52,7 +52,7 @@ Vault UI / 插件壳 / esbuild            → topmind-obsidian
 1. bump `manifest.json` **与** `package.json`（保持一致）
 2. 设置 `TOPMIND_SRC` 或 sibling `../topmind`，对齐引用的主仓 tag
 3. `npm run typecheck && npm test && npm run build && npm run pack:verify`
-4. `git tag v<manifest-version> && git push --tags`（tag 必须等于 manifest.version）
+4. `git tag <manifest-version> && git push --tags`（tag **必须等于** `manifest.version` 本身，如 `4.13.0`，**不要**加 `v` 前缀——社区目录按该 tag 找 Release 资产）
 5. 验收：空白 Vault 启用；社区收录后检查市场更新
 
 ---
