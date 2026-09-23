@@ -73,7 +73,7 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Opti
   2. Launch the app and press `⌘N` (macOS) / `Ctrl+N` (Windows/Linux) to capture a note.  
      If macOS says the app is damaged after a manual install:  
      `sudo xattr -rd com.apple.quarantine /Applications/topmind.app`  
-     If `brew upgrade` fails with `App source '/Applications/topmind.app' is not there`:  
+     If `brew upgrade --cask topmind --greedy` fails with `App source '/Applications/topmind.app' is not there`:  
      `brew uninstall --cask topmind --force && brew install --cask topmind` (or `brew reinstall --cask topmind`).
   3. Guide: [`topmind-desktop/README.md`](./topmind-desktop/README.md)（简体中文） · [English](./topmind-desktop/README.en.md)
 

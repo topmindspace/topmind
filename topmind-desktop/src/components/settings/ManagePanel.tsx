@@ -654,7 +654,7 @@ export function ManagePanel({
             {sysInfo.platform === "darwin" && sysInfo.brewAvailable ? (
               <CmdRow
                 label={t("settings:env.brewUpgradeLabel")}
-                cmd="brew upgrade topmind"
+                cmd="brew upgrade --cask topmind --greedy"
               />
             ) : null}
             <CmdRow
@@ -662,9 +662,16 @@ export function ManagePanel({
               cmd="npx skills add topmindspace/topmind-skills -g -y"
             />
             <CmdRow
-              label={t("settings:env.skillsUpgradeLabel")}
-              cmd="npx skills update -g -y"
+              label={t("settings:env.skillsInstallPackLabel")}
+              cmd="npx --yes github:topmindspace/topmind-skills install -g"
             />
+            <CmdRow
+              label={t("settings:env.skillsUpgradeLabel")}
+              cmd="npx --yes github:topmindspace/topmind-skills update -g"
+            />
+            <div className="text-3xs text-text-quaternary">
+              {t("settings:env.skillsUpgradeHelp")}
+            </div>
             {sysInfo.platform === "darwin" ? (
               <>
                 <CmdRow

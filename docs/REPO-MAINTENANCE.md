@@ -37,7 +37,7 @@ Vault UI / 插件壳 / esbuild            → topmind-obsidian
 1. bump `topmind-desktop/package.json`（必要时 `browser-extension/manifest.json`）
 2. `npm run validate`
 3. `git tag v$(node -p "require('./topmind-desktop/package.json').version") && git push --tags`
-4. 验收：Releases 安装包 + `brew upgrade topmind`
+4. 验收：Releases 安装包 + `brew upgrade --cask topmind --greedy`
 5. 热修逃生口：`desktop-v*` / `extension-v*`（不标 Latest）
 
 ### 3.2 topmind-skills

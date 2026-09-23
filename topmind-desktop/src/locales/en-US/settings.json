@@ -417,7 +417,9 @@
     "brewInstallLabel": "macOS install",
     "brewUpgradeLabel": "macOS upgrade",
     "skillsInstallLabel": "Skills install",
+    "skillsInstallPackLabel": "Skills install (pack-aware)",
     "skillsUpgradeLabel": "Skills upgrade",
+    "skillsUpgradeHelp": "Pack-aware installer includes shared/ and is recommended for production; community CLI is fine for a quick try.",
     "quarantineLabel": "Fix damaged",
     "quarantineDesc": "Run this when macOS says the app is \"damaged and can't be opened\""
   },

@@ -191,7 +191,7 @@ The `downloadAndInstallCompanion` IPC handler in `system-service.mjs` passes the
 
 **Regression**: Previously `sourcePath` was passed instead of `zipPath`/`bundledZipPath`, causing the downloaded zip to be silently ignored — the install function fell back to the bundled/monorepo version, defeating the inline upgrade. Both the correct property name and aliases are now accepted for robustness.
 
-**Desktop itself** cannot be upgraded inline — it requires a full installer download (DMG/EXE/AppImage) or `brew upgrade topmind`. When Desktop is updated, it always bundles the latest companions from the same monorepo commit.
+**Desktop itself** cannot be upgraded inline — it requires a full installer download (DMG/EXE/AppImage) or `brew upgrade --cask topmind --greedy`. When Desktop is updated, it always bundles the latest companions from the same monorepo commit.
 
 ### Pre-install version guard (auto-download latest)
 

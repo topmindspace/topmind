@@ -417,7 +417,9 @@
     "brewInstallLabel": "macOS 安装",
     "brewUpgradeLabel": "macOS 升级",
     "skillsInstallLabel": "Skills 安装",
+    "skillsInstallPackLabel": "Skills 安装（pack-aware）",
     "skillsUpgradeLabel": "Skills 升级",
+    "skillsUpgradeHelp": "pack-aware 安装器含 shared/，推荐生产使用；社区 CLI 适合快速试用。",
     "quarantineLabel": "修复已损坏",
     "quarantineDesc": "macOS 手动安装提示「已损坏，无法打开」时执行此命令解除隔离属性"
   },

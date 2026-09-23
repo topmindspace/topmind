@@ -129,7 +129,7 @@ brew install topmindspace/tap/topmind
 ```
 *通过 Homebrew 安装会自动清理 macOS `quarantine` 属性，免去未签名应用的“已损坏无法打开”报错。*
 
-若 `brew upgrade` 报 `App source '/Applications/topmind.app' is not there`（旧应用被移动/删除），恢复：
+若 `brew upgrade --cask topmind --greedy` 报 `App source '/Applications/topmind.app' is not there`（旧应用被移动/删除），恢复：
 ```bash
 brew uninstall --cask topmind --force && brew install --cask topmind
 # 或原地重装
@@ -157,7 +157,7 @@ brew reinstall --cask topmind
 ### 升级
 | 方式 | 操作 |
 |------|------|
-| Homebrew | 终端运行 `brew upgrade topmind` 检查并自动升级至最新版本 |
+| Homebrew | 终端运行 `brew upgrade --cask topmind --greedy` 检查并自动升级至最新版本 |
 | 应用内检查 | 关于与更新 -> **检查更新**（Desktop / Skills / Clip / Obsidian 多表面；读公开 `latest.json`，无需 GitHub token） |
 | 内联升级 | 扩展与集成 / 关于与更新 -> 对 Skills / Clip / Obsidian 点下载按钮，直接从 GitHub Releases 下载并安装最新包（无需升级 Desktop 本身） |
 | 模块升级 | 设置 -> 扩展与集成 -> 对各宿主 / 插件点升级 |

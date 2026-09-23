@@ -132,7 +132,7 @@ Homebrew clears macOS `quarantine` so unsigned builds do not show as “damaged�
 #### Option 2: Manual installer
 1. Download `topmind-<ver>-<os>-<arch>.{dmg,exe,AppImage,deb}` from [Releases](https://github.com/topmindspace/topmind/releases).  
    For macOS Homebrew: `brew install topmindspace/tap/topmind` (auto-clears quarantine).  
-   If `brew upgrade` fails with `App source '/Applications/topmind.app' is not there` (previous app moved/deleted):
+   If `brew upgrade --cask topmind --greedy` fails with `App source '/Applications/topmind.app' is not there` (previous app moved/deleted):
    ```bash
    brew uninstall --cask topmind --force && brew install --cask topmind
    # or
@@ -158,7 +158,7 @@ Onboarding after the first workspace open can offer optional modules; it does no
 ### Upgrade
 | Method | What to do |
 |--------|------------|
-| Homebrew | `brew upgrade topmind` |
+| Homebrew | `brew upgrade --cask topmind --greedy` |
 | In-app check | About & updates / Extensions & integrations → **Check for updates** (Desktop / Skills / Clip / Obsidian; reads public `latest.json`, no GitHub token) |
 | Inline upgrade | About & updates / Extensions & integrations → download button for Skills / Clip / Obsidian (installs from GitHub Releases without upgrading Desktop itself) |
 | Module upgrade | Settings → About & updates / Extensions & integrations → upgrade per host / plugin |
