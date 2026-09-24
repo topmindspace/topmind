@@ -36,6 +36,9 @@ const DOWNLOAD_TIMEOUT_MS = 120_000; // 2 minutes for large files
 
 /**
  * Asset name patterns for each surface.
+ * Obsidian community-plugin releases ship bare main.js / manifest.json /
+ * styles.css (no versioned zip) — downloadCompanionAsset falls back to that
+ * three-file set when the zip 404s.
  * @type {Record<string, (ver: string) => string>}
  */
 const ASSET_PATTERNS = {
@@ -43,6 +46,9 @@ const ASSET_PATTERNS = {
   obsidian: (ver) => `topmind-obsidian-${ver}.zip`,
   extension: (ver) => `topmind-clip-extension-${ver}.zip`,
 };
+
+/** Community-plugin loose files (Obsidian community catalog layout). */
+const OBSIDIAN_COMMUNITY_FILES = ["main.js", "manifest.json", "styles.css"];
 
 /**
  * SHA256SUMS file name pattern for each surface.
@@ -221,9 +227,29 @@ export async function downloadCompanionAsset(opts) {
   const sumsPath = sumsName ? path.join(tempDir, sumsName) : null;
 
   try {
-    // Download asset
+    // Download asset (zip). Obsidian community releases often have no zip —
+    // fall back to the three-file community layout into packageDir.
     const dlResult = await downloadFile(assetUrl, zipPath, { fetchImpl: opts.fetchImpl });
     if (!dlResult.ok) {
+      if (surface === "obsidian") {
+        const pkgDir = path.join(tempDir, "package");
+        await fs.mkdir(pkgDir, { recursive: true });
+        let got = 0;
+        for (const name of OBSIDIAN_COMMUNITY_FILES) {
+          const r = await downloadFile(`${baseUrl}/${name}`, path.join(pkgDir, name), {
+            fetchImpl: opts.fetchImpl,
+          });
+          if (r.ok) got += 1;
+        }
+        if (got >= 2 && existsSync(path.join(pkgDir, "manifest.json")) && existsSync(path.join(pkgDir, "main.js"))) {
+          return { ok: true, zipPath: null, packageDir: pkgDir, tempDir };
+        }
+        await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+        return {
+          ok: false,
+          error: `download failed: ${dlResult.error}; community file set also incomplete (${got}/${OBSIDIAN_COMMUNITY_FILES.length})`,
+        };
+      }
       return { ok: false, error: `download failed: ${dlResult.error}` };
     }
 

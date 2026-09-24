@@ -120,7 +120,15 @@ export function extensionVersionFromTag(tag) {
 }
 
 /**
- * Tag → obsidian version for obsidian-v* tags.
+ * Tag → obsidian version.
+ *
+ * Accepts every shipped tag shape:
+ * - `obsidian-v4.7.0` — product-repo escape hatch
+ * - `v4.7.0`          — older sister-repo / product tags
+ * - `4.16.0`          — community plugin HARD RULE: tag == manifest.version,
+ *                       no `v` prefix (Obsidian community directory lookup).
+ *                       Desktop used to miss these releases entirely.
+ *
  * @param {string} tag
  * @returns {string | null}
  */
@@ -128,9 +136,11 @@ export function obsidianVersionFromTag(tag) {
   const t = String(tag || "").trim();
   const m = /^obsidian-v(.+)$/i.exec(t);
   if (m) return m[1];
-  // topmind-obsidian repo uses plain v* tags (community plugin hard rule)
   const plain = /^v(\d[\d.]*.*)$/i.exec(t);
-  return plain ? plain[1] : null;
+  if (plain) return plain[1];
+  // Bare semver (community plugin tag == manifest.version)
+  const bare = /^(\d+\.\d+\.\d+[\w.-]*)$/.exec(t);
+  return bare ? bare[1] : null;
 }
 
 /**
@@ -190,6 +200,8 @@ export function extensionVersionFromAssets(assets) {
 
 /**
  * topmind-obsidian-1.0.0.zip / topmind-obsidian-2.2.0.zip
+ * Community-plugin releases ship bare main.js / manifest.json / styles.css
+ * (no versioned zip) — those return null and the caller falls back to the tag.
  * @param {Array<{ name?: string }>} assets
  */
 export function obsidianVersionFromAssets(assets) {

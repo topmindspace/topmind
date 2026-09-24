@@ -31,6 +31,15 @@ test("skills/obsidian version-from-tag accepts sister-repo plain v* tags", () =>
   assert.equal(obsidianVersionFromTag("v4.7.0"), "4.7.0");
 });
 
+test("obsidian version-from-tag accepts community bare tags (no v prefix)", () => {
+  // Community plugin HARD RULE: tag == manifest.version exactly (4.16.0).
+  // Missing this made Desktop "check for updates" ignore every community release.
+  assert.equal(obsidianVersionFromTag("4.16.0"), "4.16.0");
+  assert.equal(obsidianVersionFromTag("4.15.0"), "4.15.0");
+  assert.equal(obsidianVersionFromTag("not-a-version"), null);
+  assert.equal(obsidianVersionFromTag(""), null);
+});
+
 test("downloadCompanionAsset builds URLs against the surface repo", async () => {
   /** @type {string[]} */
   const urls = [];

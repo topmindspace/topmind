@@ -1472,6 +1472,7 @@ export const SystemService = {
             const result = await installObsidianPlugin({
               vaultRoot,
               zipPath: dlResult.zipPath,
+              sourceDir: dlResult.packageDir || undefined,
               engineRoot,
             });
             if (!result.ok) {
@@ -1683,18 +1684,19 @@ export const SystemService = {
       }
 
       if (surface === "obsidian") {
-        // Install Obsidian plugin from downloaded zip
-        // CRITICAL: pass zipPath (not sourcePath) — installObsidianPlugin
+        // Install Obsidian plugin from downloaded zip OR community file set.
+        // CRITICAL: pass zipPath / sourceDir (not sourcePath) — installObsidianPlugin
         // resolves the source via resolveObsidianPluginSource which checks
-        // opts.zipPath. A wrong property name silently falls back to the
-        // bundled/monorepo version, defeating the inline upgrade.
+        // opts.zipPath then opts.sourceDir. A wrong property name silently
+        // falls back to the bundled/monorepo version, defeating the inline upgrade.
         const vaultRoot =
           (vaultPath && String(vaultPath).trim()) ||
           ctx?.workspaceRoot?.userWorkspaceRoot ||
           null;
         const result = await installObsidianPlugin({
           vaultRoot,
-          zipPath,
+          zipPath: dlResult.zipPath || undefined,
+          sourceDir: dlResult.packageDir || undefined,
         });
         if (!result.ok) {
           throw new Error(result.error || "obsidian plugin install from zip failed");
