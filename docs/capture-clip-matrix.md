@@ -1,7 +1,7 @@
 # Capture · Clip · Ingest 能力矩阵
 
 > 对标常见 Web Clipper + topmind 统一「收进来」体验。  
-> 图片约定：[`../skills/shared/media-assets.md`](../skills/shared/media-assets.md) · 扩展说明：[`../browser-extension/README.md`](../browser-extension/README.md) · [简体中文](../browser-extension/README.zh-CN.md)
+> 图片约定就在本表（`images/{slug}/`）。扩展说明：[`../browser-extension/README.md`](../browser-extension/README.md) · [简体中文](../browser-extension/README.zh-CN.md)
 
 ## Web Clipper（`browser-extension/`；版本见 `browser-extension/manifest.json`）
 
@@ -16,7 +16,7 @@
 | Desktop Bridge 高质量 MD | ✅ | 共享 `html-to-markdown` |
 | 工作区直写（无 Desktop） | ✅ | FS Access + 同一 `html-to-markdown` + 模板 + 下图 |
 | 落点 Inbox / 类别 / 专题 | ✅ | `GET /v1/destinations` + popup 选择 |
-| 图片本地化 | ✅ | Bridge + 工作区；lazy/srcset/相对 URL→绝对→下载；`images/{slug}/` 相对路径（见 `skills/shared/media-assets.md`） |
+| 图片本地化 | ✅ | Bridge + 工作区；lazy/srcset/相对 URL→绝对→下载；`images/{slug}/` 相对路径 |
 | 整理移专题 | ✅ | 笔记 + `images/{slug}/` **一并移动**；编辑器/Inbox/右键 |
 | 发布交付 | ✅ | **副本**到 `88-交付/` + 资源复制；原文保留；**需确认** |
 | 快捷键 ⌘⇧M | ✅ | |

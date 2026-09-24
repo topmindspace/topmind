@@ -33,9 +33,38 @@ test("v4 plugin contract: 7 slot kinds defined (sidebar slot removed 2026-08-30)
   }
   // 插件 chrome 入口统一在 AI 工作区应用 pane — 侧栏插件行契约不再存在
   assert.doesNotMatch(typesSrc, /interface SidebarSlot/);
+
+  const architecture = readFileSync(path.join(root, "ARCHITECTURE.md"), "utf8");
+  const slotLine = architecture.split("\n").find((line) => line.includes("插件槽:"));
+  assert.ok(slotLine, "ARCHITECTURE panorama must name the plugin slots");
+  const labels = slotLine
+    .split("插件槽:")[1]
+    .split("·")
+    .map((part) => part.replace(/[│\s]/g, ""))
+    .filter(Boolean);
+  assert.deepEqual(labels, ["DataSource", "View", "Action", "Settings", "Overlay", "StatusBar", "ContextMenu"]);
+  assert.equal(labels.length, slotKinds.length);
+  assert.doesNotMatch(architecture, /Sidebar 同步|Sidebar \/ Hub/u);
+
+  function countFiles(dir, accept) {
+    let count = 0;
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const abs = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name === "node_modules" || entry.name === "dist") continue;
+        count += countFiles(abs, accept);
+      } else if (accept(entry.name)) {
+        count += 1;
+      }
+    }
+    return count;
+  }
+  const srcCount = countFiles(src, (name) => name.endsWith(".ts") || name.endsWith(".tsx"));
+  const electronCount = countFiles(electron, (name) => /\.(?:mjs|ts|js)$/u.test(name));
+  assert.match(architecture, new RegExp(`源文件计数：\`src/\` ${srcCount} · \`electron/\` ${electronCount}`));
 });
 
-test("v4 Selection model: 7 living kinds (no home product surface)", () => {
+test("v4 Selection model: 8 living kinds (no home product surface)", () => {
   const selectionKinds = ["inbox", "stream", "category", "topic", "file", "outputs", "archive", "connector"];
   assert.equal(selectionKinds.length, 8);
   const typesSrc = readFileSync(path.join(src, "types.ts"), "utf8");

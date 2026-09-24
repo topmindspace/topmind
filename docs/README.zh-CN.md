@@ -21,7 +21,7 @@
        ▼                              ▼                              ▼
    使用者                         架构 / 开发者                   Agent 宿主
    • README.md (产品总览)          • ARCHITECTURE-RESET.md         • SKILL-ARCHITECTURE.md
-   • topmind-desktop/README.md     • PROJECT-MODEL.md (模型规约)  • skills/INSTALL.md
+   • topmind-desktop/README.md     • PROJECT-MODEL.md (模型规约)  • topmind-skills/INSTALL.md
    • topmind-obsidian (姊妹仓)      • DESIGN.md (UI/UX 规范)        • TOOLS.md (UTR CLI/MCP)
    • browser-extension/README.md   • PACKAGING.md (打包/CI)
 ```
@@ -34,7 +34,7 @@
 |-------------|----------|-------------|-------------|------------|
 | **Desktop** | 本地富文本工作台 / Electron 应用 | [`topmind-desktop/README.md`](../topmind-desktop/README.md) | [`README.zh-CN`](../topmind-desktop/README.zh-CN.md) | [`ARCHITECTURE`](../topmind-desktop/ARCHITECTURE.md) · [`DESIGN`](../topmind-desktop/DESIGN.md) |
 | **Obsidian 插件** | Obsidian Vault 内嵌动态流视图 | [topmind-obsidian](https://github.com/topmindspace/topmind-obsidian) | [README.zh-CN](https://github.com/topmindspace/topmind-obsidian/blob/main/README.zh-CN.md) | [ARCHITECTURE](https://github.com/topmindspace/topmind-obsidian/blob/main/ARCHITECTURE.md) |
-| **Skills** | Agent 可移植技能包 | [`skills/README.md`](../skills/README.md) | [`README.zh-CN`](../skills/README.zh-CN.md) | [`SKILL-ARCHITECTURE`](../SKILL-ARCHITECTURE.md) · [`INSTALL`](../skills/INSTALL.md) |
+| **Skills** | Agent 可移植技能包 | [README](https://github.com/topmindspace/topmind-skills/blob/main/README.md) | [README.zh-CN](https://github.com/topmindspace/topmind-skills/blob/main/README.zh-CN.md) | [`SKILL-ARCHITECTURE`](../SKILL-ARCHITECTURE.md) · [INSTALL](https://github.com/topmindspace/topmind-skills/blob/main/INSTALL.md) |
 | **剪藏扩展** | 浏览器一键网页正文加工与剪藏 | [`browser-extension/README.md`](../browser-extension/README.md) | [`README.zh-CN`](../browser-extension/README.zh-CN.md) | [`capture-clip-matrix`](./capture-clip-matrix.md) |
 | **UTR** | 确定性 CLI / MCP 工具链 | [`utr/README.md`](../utr/README.md) | [`README.zh-CN`](../utr/README.zh-CN.md) | [`TOOLS.md`](../TOOLS.md) |
 

@@ -2,7 +2,7 @@
  * Note-local media helpers — keep images/ assets with the markdown note
  * when moving, publishing, deleting, or renaming.
  *
- * Convention (skills/shared/media-assets.md):
+ * Convention (docs/capture-clip-matrix.md):
  *   {noteDir}/note.md
  *   {noteDir}/images/{slug}/img-….png
  *   Markdown: ![alt](images/{slug}/img-….png)

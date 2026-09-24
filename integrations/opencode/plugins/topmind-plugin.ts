@@ -9,7 +9,7 @@ export default async function topmindPlugin(app?: OpenCodeApp) {
 
   return {
     name: "topmind",
-    contentTruth: "topmind-workspace/categories-and-topics",
+    contentTruth: "topmind-workspace",
     dailyEntry: "topmind",
     writesContent: false,
     capabilities: ["skills", "mcp", "commands", "plugin"],

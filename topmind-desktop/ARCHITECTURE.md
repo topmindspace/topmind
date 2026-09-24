@@ -1,6 +1,6 @@
 # topmind Desktop — 架构
 
-> **现状描述 + Target 标注**。约 300 源文件（`src/` ~195 + `electron/` ~104）。  
+> **现状描述 + Target 标注**。源文件计数：`src/` 239 · `electron/` 117。  
 > **1 RPC · Stores（View / Ai / Action / Plugin / IngestStaging / Task / Todo）· 1 Shell · 5+2 Service · 7 插件槽**  
 > UI 真源：`DESIGN.md`。边界：`../PRODUCT-BOUNDARIES.md`。  
 > **实施锁**：[`../docs/ARCHITECTURE-RESET.md`](../docs/ARCHITECTURE-RESET.md)（写闸合闸 · 建议副驾 · 导航变薄）。
@@ -60,7 +60,7 @@
 │                                                          │
 │  7 个 Store: ViewStore · AiStore · ActionStore · PluginStore · IngestStagingStore · TaskStore · TodoStore  │
 │  i18n 架构: i18next 同步打包 + BCP-47 LocaleResolver + UTR / Engine 多语言解耦 │
-│  插件槽: DataSource · Sidebar · View · Action · Settings · Overlay · StatusBar · ContextMenu │
+│  插件槽: DataSource · View · Action · Settings · Overlay · StatusBar · ContextMenu │
 │  侧栏视图: ViewSwitcher（动态流/分类/时间线/标签/看板）              │
 │  清单: AI 工作区 清单 pane（⌘⇧T）；专注模式才浮动 TodoPopover                │
 ├──────────────────── RPC 桥 ─────────────────────────────┤
@@ -507,7 +507,7 @@ L3+ Browser Extension → POST /v1/clip → clip-bridge.mjs
 - Ephemeral 窗：`markEphemeralBrowserWindow` — 不触发 Dock 双图标误杀  
 - Clip Bridge：仅 `127.0.0.1`、Bearer token、默认关闭；见 `lib/clip-bridge.mjs` · `lib/clip-payload.mjs`  
 - 返回 / 落盘：`method`（readability|heuristic|render|selection|manual）· `truncated` · `likelySpa` · `warning`  
-- 分层约定：`../skills/shared/long-url-capture.md` · ADR `../docs/adr/2026-07-13-browser-clip-extension.md`
+- 分层约定：`skills/shared/long-url-capture.md` · ADR `../docs/adr/2026-07-13-browser-clip-extension.md`
 
 ### 统一捕获 + 知识加工
 
@@ -527,7 +527,7 @@ Float win: utility BrowserWindow (skipTaskbar, not destroyed by dual-dock guard)
 - 插件 Hub：`src/plugins/topmind-ingest/`  
 - 转换：`convert-policy.mjs`（偏好 → 回退）+ `anydoc-sidecar.mjs`（PATH / userData / 可选 bundled）；设置 `ingest.preferredConverter` 默认 `auto`  
 - **升级**：anydoc sidecar / 本机 PATH **不必重打包 Desktop**；asar 内应用代码、Electron、内置 JS 转换器需要新版 Desktop  
-- 约定：`../skills/shared/document-ingest.md` · ADR `../docs/adr/2026-07-19-knowledge-ingest-pipeline.md`
+- 约定：`skills/shared/document-ingest.md` · ADR `../docs/adr/2026-07-19-knowledge-ingest-pipeline.md`
 
 UI：消息内 **tool timeline**；输入区 Skill 芯片 + Agent 开关；会话首条自动标题。
 
@@ -645,8 +645,8 @@ togglePlugin(id, wsRoot)
 
 | 插件 | Settings | 交互槽 |
 |------|----------|--------|
-| weread | API Key · `syncCategory: auto` · `includeThoughts` · `syncBudgetMinutes`（1–15，默认 4） | Sidebar 同步 / Hub / Action / StatusBar |
-| x | Bearer + xurl 探测/安装引导 · `syncCategory: auto` · `autoArchivePosts` · MCP URL（仅 Agent 文档） | Sidebar / Hub 预览勾选归档 / 发帖 / Action / StatusBar |
+| weread | API Key · `syncCategory: auto` · `includeThoughts` · `syncBudgetMinutes`（1–15，默认 4） | Hub / Action / StatusBar |
+| x | Bearer + xurl 探测/安装引导 · `syncCategory: auto` · `autoArchivePosts` · MCP URL（仅 Agent 文档） | Hub / 预览勾选归档 / 发帖 / Action / StatusBar |
 
 官方 Gateway：`POST https://i.weread.qq.com/api/agent/gateway`，`Authorization: Bearer wrk-*`，body 为 **flat** `api_name` + `skill_version` + 业务字段（`lastSort` / `synckey`，禁止 `params: {…}` 包裹）。`/user/notebooks` 分页；想法走 `/review/list/mine`。增量：本地条数 / `note_fingerprint` 跳过，**不用** `lastSyncAt` 做时间过滤。`noteCount + reviewCount == 0`（或拉完 bookmarklist+reviews 仍空）不写专题。`upgrade_info` 只展示，不因新 zip 单独硬失败。
 

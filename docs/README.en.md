@@ -21,7 +21,7 @@
        ▼                              ▼                              ▼
    Users                          Architects / devs              Agent hosts
    • README.md                    • ARCHITECTURE-RESET.md        • SKILL-ARCHITECTURE.md
-   • topmind-desktop/README.md    • PROJECT-MODEL.md             • skills/INSTALL.md
+   • topmind-desktop/README.md    • PROJECT-MODEL.md             • topmind-skills/INSTALL.md
    • topmind-obsidian (sister repo)  • DESIGN.md                    • TOOLS.md
    • browser-extension/README.md  • PACKAGING.md
 ```
@@ -34,7 +34,7 @@
 |---------|------|----------------|----------------|-----------------------|
 | **Desktop** | Local rich-text workbench (Electron) | [`topmind-desktop/README.md`](../topmind-desktop/README.md) | [`README.zh-CN`](../topmind-desktop/README.zh-CN.md) | [`ARCHITECTURE`](../topmind-desktop/ARCHITECTURE.md) · [`DESIGN`](../topmind-desktop/DESIGN.md) |
 | **Obsidian plugin** | Stream view inside an Obsidian vault | [topmind-obsidian](https://github.com/topmindspace/topmind-obsidian) | [README.zh-CN](https://github.com/topmindspace/topmind-obsidian/blob/main/README.zh-CN.md) | [ARCHITECTURE](https://github.com/topmindspace/topmind-obsidian/blob/main/ARCHITECTURE.md) |
-| **Skills** | Portable agent skill pack | [`skills/README.md`](../skills/README.md) | [`README.zh-CN`](../skills/README.zh-CN.md) | [`SKILL-ARCHITECTURE`](../SKILL-ARCHITECTURE.md) · [`INSTALL`](../skills/INSTALL.md) |
+| **Skills** | Portable agent skill pack | [README](https://github.com/topmindspace/topmind-skills/blob/main/README.en.md) | [README.zh-CN](https://github.com/topmindspace/topmind-skills/blob/main/README.zh-CN.md) | [`SKILL-ARCHITECTURE`](../SKILL-ARCHITECTURE.md) · [INSTALL](https://github.com/topmindspace/topmind-skills/blob/main/INSTALL.md) |
 | **Clip extension** | One-click web clip and cleanup | [`browser-extension/README.md`](../browser-extension/README.md) | [`README.zh-CN`](../browser-extension/README.zh-CN.md) | [`capture-clip-matrix`](./capture-clip-matrix.md) |
 | **UTR** | Deterministic CLI / MCP | [`utr/README.md`](../utr/README.md) | [`README.zh-CN`](../utr/README.zh-CN.md) | [`TOOLS.md`](../TOOLS.md) |
 

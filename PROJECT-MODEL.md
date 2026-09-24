@@ -248,7 +248,7 @@ AI 分发遇到歧义时按"内容性质"判定；无法判定时 → `00-Inbox/
 {大类目录}/{专题目录}/
 ├── topic.md            # 可选：专题首页 + 稳定记忆 + 索引 + 下一步
 ├── *.md                # 笔记即主题核心内容，直接放专题根目录
-├── images/             # 可选：局部资源（约定见 skills/shared/media-assets.md）
+├── images/             # 可选：局部资源（约定见 docs/capture-clip-matrix.md）
 └── .derived/           # 可选：AI 衍生（topic 摘要、item 历史）
 ```
 

@@ -161,6 +161,62 @@ test("release.yml does not use Actions artifact storage for pack aggregation", (
   );
 });
 
+function codeWithoutComments(src) {
+  return src
+    .split("\n")
+    .filter((line) => {
+      const trimmed = line.trim();
+      return trimmed && !trimmed.startsWith("#");
+    })
+    .join("\n");
+}
+
+test("release prune keeps git tags in every repo that ships a prune step", (t) => {
+  const maintenance = fs.readFileSync(path.join(repoRoot, "docs", "REPO-MAINTENANCE.md"), "utf8");
+  assert.match(maintenance, /不删 git tag/);
+  const prune = fs.readFileSync(path.join(repoRoot, "scripts", "prune-releases.mjs"), "utf8");
+  assert.match(prune, /left in git/);
+  assert.doesNotMatch(codeWithoutComments(prune), /git\/refs\/tags/u);
+
+  const workflows = [
+    ["topmind", releaseYml],
+  ];
+  if (skillsRoot && fs.existsSync(path.join(skillsRoot, ".github/workflows/release.yml"))) {
+    workflows.push(["skills", path.join(skillsRoot, ".github/workflows/release.yml")]);
+  } else {
+    t.skip(SKIP_SKILLS || "topmind-skills checkout not found");
+    return;
+  }
+  if (obsidianRoot && fs.existsSync(path.join(obsidianRoot, ".github/workflows/release.yml"))) {
+    workflows.push(["obsidian", path.join(obsidianRoot, ".github/workflows/release.yml")]);
+  }
+  for (const [label, file] of workflows) {
+    const src = fs.readFileSync(file, "utf8");
+    assert.doesNotMatch(
+      codeWithoutComments(src),
+      /git\/refs\/tags/u,
+      `${label} release workflow must not delete git tags`,
+    );
+  }
+});
+
+test("obsidian release fails closed when the Kernel checkout fails", (t) => {
+  if (!obsidianRoot || !fs.existsSync(path.join(obsidianRoot, ".github/workflows/release.yml"))) {
+    t.skip(SKIP_OBSIDIAN || "topmind-obsidian checkout not found");
+    return;
+  }
+  const src = fs.readFileSync(path.join(obsidianRoot, ".github/workflows/release.yml"), "utf8");
+  const marker = "name: Checkout topmind engine";
+  const start = src.indexOf(marker);
+  assert.ok(start >= 0, "obsidian release must check out the Kernel");
+  const step = src.slice(start, start + 500);
+  assert.doesNotMatch(
+    step,
+    /continue-on-error:\s*true/u,
+    "a failed Kernel checkout must not continue into a vendored release build",
+  );
+});
+
 test("PACKAGING.md matches release plan outputs and upload architecture", () => {
   const packaging = fs.readFileSync(
     path.join(repoRoot, "docs", "PACKAGING.md"),

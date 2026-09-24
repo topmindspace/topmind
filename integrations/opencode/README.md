@@ -1,6 +1,6 @@
 # topmind · OpenCode Integration
 
-[简体中文](../../README.md) · [English](../../README.en.md) · [Skills install](../../skills/INSTALL.md)
+[简体中文](../../README.md) · [English](../../README.en.md) · [Skills install](https://github.com/topmindspace/topmind-skills/blob/main/INSTALL.md)
 
 topmind should not fork OpenCode by default. Prefer a thin adapter layer.
 
@@ -10,7 +10,7 @@ topmind should not fork OpenCode by default. Prefer a thin adapter layer.
 2. **Expose only `topmind`** as the daily user-facing entry — sub-skills are internal.  
 3. Expose UTR through MCP when available; **UTR is optional** otherwise use host file tools.  
 4. Optional OpenCode commands for common capture and doctor flows (`commands/`).  
-5. Keep content truth in `topmind-workspace/categories-and-topics`. OpenCode state must not become topmind content truth.
+5. Keep content truth in `topmind-workspace`. OpenCode state must not become topmind content truth.
 
 ## Config shape
 

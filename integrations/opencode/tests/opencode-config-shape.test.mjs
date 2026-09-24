@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,6 +8,18 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const integrationRoot = path.resolve(__dirname, "..");
 const repoRoot = path.resolve(integrationRoot, "..", "..");
+
+function resolveSkillsRoot() {
+  const candidates = [
+    process.env.TOPMIND_SKILLS_SRC,
+    path.resolve(repoRoot, "..", "topmind-skills"),
+    path.resolve(repoRoot, "topmind-skills"),
+  ].filter(Boolean);
+  for (const dir of candidates) {
+    if (existsSync(path.join(dir, "topmind-pack.json"))) return dir;
+  }
+  return null;
+}
 
 test("OpenCode example config keeps a thin adapter shape", async () => {
   const raw = await fs.readFile(path.join(integrationRoot, "opencode.example.json"), "utf8");
@@ -41,10 +54,15 @@ test("OpenCode plugin skeleton exports a topmind plugin", async () => {
   assert.match(source, /name: "topmind"/u);
 });
 
-test("OpenCode adapter follows the portable skill-pack contract", async () => {
+test("OpenCode adapter follows the portable skill-pack contract", async (t) => {
+  const skillsRoot = resolveSkillsRoot();
+  if (!skillsRoot) {
+    t.skip("topmind-skills checkout not found");
+    return;
+  }
   const [pack, target, readme, pluginSource] = await Promise.all([
-    fs.readFile(path.join(repoRoot, "skills", "topmind-pack.json"), "utf8").then(JSON.parse),
-    fs.readFile(path.join(repoRoot, "skills", "install-targets", "opencode.json"), "utf8").then(JSON.parse),
+    fs.readFile(path.join(skillsRoot, "topmind-pack.json"), "utf8").then(JSON.parse),
+    fs.readFile(path.join(skillsRoot, "install-targets", "opencode.json"), "utf8").then(JSON.parse),
     fs.readFile(path.join(integrationRoot, "README.md"), "utf8"),
     fs.readFile(path.join(repoRoot, "integrations", "opencode", "plugins", "topmind-plugin.ts"), "utf8"),
   ]);
@@ -57,7 +75,9 @@ test("OpenCode adapter follows the portable skill-pack contract", async () => {
   assert.match(readme, /content truth/u);
   assert.match(readme, /Expose only `topmind`|only daily.*`topmind`/iu);
 
-  assert.match(pluginSource, /contentTruth:\s*"topmind-workspace\/categories-and-topics"/u);
+  const truth = String(pack.portable_contract.content_truth).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  assert.match(pluginSource, new RegExp(`contentTruth:\\s*"${truth}"`));
+  assert.doesNotMatch(pluginSource, /categories-and-topics/u);
   assert.match(pluginSource, /writesContent:\s*false/u);
   assert.doesNotMatch(readme + "\n" + pluginSource, /should fork OpenCode|write topmind content directly:\s*true|writesContent:\s*true/u);
 });

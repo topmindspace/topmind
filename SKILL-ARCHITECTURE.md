@@ -172,8 +172,7 @@ skills/
 │   ├── writeback-receipt.md       # 写回回执形状
 │   ├── trigger-disambiguation.md  # 触发词消歧
 │   ├── long-url-capture.md        # 长链/网页抓取
-│   ├── document-ingest.md         # 本地文档 → Markdown 知识加工
-│   └── media-assets.md            # 图片/媒体资源约定
+│   └── document-ingest.md         # 本地文档 → Markdown 知识加工
 ├── topmind/                       # router（唯一日常入口）
 │   ├── SKILL.md
 │   └── references/                # multi-intent · template · connector
