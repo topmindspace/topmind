@@ -140,6 +140,76 @@ function countFiles(dir, accept) {
   return count;
 }
 
+function frontmatterActionCategory(markdown) {
+  const fm = String(markdown).split("---")[1] || "";
+  return fm.match(/^action_category:\s*(\S+)/m)?.[1] || "";
+}
+
+test("SKILL-ARCHITECTURE action rows match shipped SKILL.md categories", (t) => {
+  const skillsRoot = resolveSkillsRoot();
+  if (!skillsRoot) {
+    t.skip(SKIP_SKILLS);
+    return;
+  }
+  const arch = read("SKILL-ARCHITECTURE.md");
+  const pack = JSON.parse(readFileSync(path.join(skillsRoot, "topmind-pack.json"), "utf8"));
+  const start = arch.indexOf("### 3.3 Action Subskills");
+  const end = arch.indexOf("\n### ", start + 10);
+  assert.ok(start >= 0 && end > start);
+  const rows = [];
+  for (const line of arch.slice(start, end).split("\n")) {
+    const match = line.match(/^\|\s*`([^`]+)`\s*\|\s*([^|]+?)\s*\|/u);
+    if (!match || match[1] === "子 skill") continue;
+    rows.push({
+      ids: match[1].split(/[·,]/u).map((part) => part.trim()).filter(Boolean),
+      category: match[2].trim(),
+    });
+  }
+  for (const skill of pack.skills) {
+    const markdown = readFileSync(path.join(skillsRoot, skill.path, "SKILL.md"), "utf8");
+    const category = frontmatterActionCategory(markdown);
+    assert.ok(category, `${skill.id} action_category`);
+    if (category === "router") continue;
+    const hits = rows.filter((row) => row.ids.includes(skill.id));
+    assert.equal(hits.length, 1, skill.id);
+    assert.deepEqual(hits[0].ids, [skill.id], `${skill.id} must not share a row`);
+    assert.equal(hits[0].category, category, skill.id);
+  }
+});
+
+test("SKILL-ARCHITECTURE install-target sentence matches pack.install_targets", (t) => {
+  const skillsRoot = resolveSkillsRoot();
+  if (!skillsRoot) {
+    t.skip(SKIP_SKILLS);
+    return;
+  }
+  const arch = read("SKILL-ARCHITECTURE.md");
+  const pack = JSON.parse(readFileSync(path.join(skillsRoot, "topmind-pack.json"), "utf8"));
+  const ids = pack.install_targets.map((target) => target.id);
+  const mentions = [...arch.matchAll(/(\d+)\s*个安装目标（([^）]+)）/gu)];
+  assert.ok(mentions.length >= 1);
+  for (const mention of mentions) {
+    assert.equal(Number(mention[1]), ids.length);
+    assert.deepEqual(mention[2].split("/").map((part) => part.trim()), ids);
+  }
+});
+
+test("PRODUCT-BOUNDARIES optional-skill sketch lists every optional pack skill", (t) => {
+  const skillsRoot = resolveSkillsRoot();
+  if (!skillsRoot) {
+    t.skip(SKIP_SKILLS);
+    return;
+  }
+  const pack = JSON.parse(readFileSync(path.join(skillsRoot, "topmind-pack.json"), "utf8"));
+  const boundaries = read("PRODUCT-BOUNDARIES.md");
+  const section = boundaries.split("### 4.1 Skills Pack")[1]?.split("### 4.2")[0] || "";
+  assert.ok(section);
+  for (const skill of pack.skills.filter((item) => item.optional)) {
+    assert.match(section, new RegExp(skill.id), skill.id);
+  }
+  assert.match(section, /不是第六个用户概念|不是新的用户概念/u);
+});
+
 test("Desktop ARCHITECTURE slot line and source counts match the tree", () => {
   const architecture = read("topmind-desktop/ARCHITECTURE.md");
   const types = read("topmind-desktop/src/plugins/types.ts");

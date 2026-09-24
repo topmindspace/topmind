@@ -57,12 +57,12 @@ Skills 是一组纯 Markdown 指令集，告诉 AI 如何操作 topmind 工作�
 | 错误处理 | 写入失败可逆 + 回执 + 错误指导 | 无内建错误恢复 | 协议层 | 无内建错误恢复 | 无内建错误恢复 | 无 |
 | 语义消歧 | `action_category`(skill) vs 笔记 `category`(大类目录) | 无数据大类概念 | n/a | 无 | 无 | 无 |
 | 行为契约 | 工作区根 `topmind.yaml`（顶层键白名单，机器可读） | 无 | 无 | 无 | 无 | 无 |
-| 可移植性 | 5 安装目标（claude-code/codex/hermes/opencode/generic），MCP/Obsidian 经各自宿主接入 | 按 host 独立 | MCP 协议层 | Claude-only | Codex-only | Cursor-only |
+| 可移植性 | 6 个安装目标（opencode/hermes/codex/claude-code/mimocode/universal），MCP/Obsidian 经各自宿主接入 | 按 host 独立 | MCP 协议层 | Claude-only | Codex-only | Cursor-only |
 | 数据模型 | 三平面（内容/语义/系统）+ 6 条规约 | 无 | 无 | 无 | 无 | 无 |
 | 写回安全 | writeback-engine 唯一写闸 + 保护级别 + 备份回执 | 无 | 无 | 无 | 无 | 无 |
 
 **设计选择说明**：
-- **Hybrid Pack**：10 个标准 skill 目录（7 核心 + 2 connector + optional ledger；兼容开放标准），**只有一份** pack 级 JSON；子 skill 自包含可激活，但不各自版本/内容模型。
+- **Hybrid Pack**：skill 目录与 `topmind-pack.json` 的 `skills` 一一对应（兼容开放标准），**只有一份** pack 级 JSON；子 skill 自包含可激活，但不各自版本/内容模型。
 - **frontmatter 用 `action_category` 而非 `category`**：避免与用户笔记 `category`（物理大类）碰撞。
 - **`description` 是触发器**：What + Use when + Do NOT；≤1024 字符；不是 README 摘要。
 - **Router 勿过宽**：禁止「any knowledge task」淹没子 skill；单意图优先子 skill。
@@ -71,7 +71,7 @@ Skills 是一组纯 Markdown 指令集，告诉 AI 如何操作 topmind 工作�
 - **Pack 级 `shared/`**：开放标准按 skill 目录分发；topmind 需 `shared/` 与 skill **同级**（见 `skills/shared/host-loading.md`）。
 - **纯 Markdown**：无 Loader/Registry；`topmind-pack.json` 是 pack 机器契约，不是运行时。
 - **写回安全链是 topmind 独有**：业界 skills 均无内建写入安全机制；topmind 通过 writeback-engine 实现保护判定 → 备份 → 原子落盘 → 回执的全链路可逆。
-- **多 host 可移植**：Claude/Codex/Cursor skills 均绑定单一 host；topmind 同一 pack 可安装到 5 个官方目标（claude-code/codex/hermes/opencode/generic），共享内容约定与行为契约。
+- **多 host 可移植**：Claude/Codex/Cursor skills 均绑定单一 host；topmind 同一 pack 可安装到 6 个安装目标（opencode/hermes/codex/claude-code/mimocode/universal），共享内容约定与行为契约。
 
 ---
 
@@ -274,12 +274,14 @@ skills/topmind/
 | `topmind-loop` | loop | 生命周期执行器：reconcile/digest/提升候选/归档建议；可中断可恢复，进度落 `.topmind/loop/` | "跑一遍 loop"、"巡检"、"复盘" |
 | `topmind-weread` | connector | 微信读书划线/笔记/统计同步 | "同步微信读书"、"划线同步" |
 | `topmind-x` | connector | X (Twitter) 发布/搜索/时间线 | "发推"、"搜索推文" |
-| `topmind-ledger · topmind-wechat` | memory | 通用记账到 `memory/ledgers/`（默认个人本，可选） | "记账"、"记一笔"、"花了"、"存入" |
+| `topmind-ledger` | memory | 通用记账到 `memory/ledgers/`（默认个人本，可选） | "记账"、"记一笔"、"花了"、"存入" |
+| `topmind-wechat` | write | 公众号交付包 / 审校 / 排版（`topmind-write` 的可选子技能） | "公众号"、"微信排版"、"发公众号" |
 
 子 skill 是实现模块，**不是独立前台产品**。用户不需要知道或选择它们。
 
 > **Connector 类型**：`topmind-weread` 和 `topmind-x` 是可选的 source connector skill，落点遵循 contract `ingest.connectors.*`。  
-> **记账**：`topmind-ledger` 是可选 skill（非连接器）；账本在记忆平面，与 `todo.md` 同族，不是第六个用户概念。
+> **记账**：`topmind-ledger` 是可选 skill（非连接器）；账本在记忆平面，与 `todo.md` 同族，不是第六个用户概念。  
+> **公众号**：`topmind-wechat` 是可选 write 子技能，不是第六个用户概念，也不是记账。
 
 ### 3.4 移植性（Portability）
 

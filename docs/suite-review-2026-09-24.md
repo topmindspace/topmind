@@ -10,9 +10,9 @@
 
 Skills pack 把内容真源写成不存在的嵌套目录 categories-and-topics。`PRODUCT-BOUNDARIES.md` 的本机布局里，标成内容真源的目录是工作区根本身，下面直接是三平面。OpenCode 插件、六个 install target、两仓的宿主说明都在重复这个路径。宿主若按字面建目录，会偏离 `PROJECT-MODEL.md`。
 
-同一次核对还看到：`../topmind-skills/README.md` 漏了已打包的 topmind-wechat；`../topmind-skills/evals/evals.json` 把循环状态写成已经迁移走的旧隐藏目录，并把技能总数写成 10，而 `../topmind-skills/topmind-pack.json` 的 skills 数组更长；Codex 说明写了过期的模块个数；技能仓里的安装链接指向仓内不存在的 skills/INSTALL 路径。
+同一次核对还看到：技能清单在 `../topmind-skills/README.md`、`PRODUCT-BOUNDARIES.md`、`SKILL-ARCHITECTURE.md` 和 `../topmind-skills/shared/host-loading.md` 里少了已打包的 topmind-wechat，架构表还把它和记账写在同一行。`../topmind-skills/evals/evals.json` 把循环状态写成已经迁移走的旧隐藏目录，并把技能总数写成 10，而 `../topmind-skills/topmind-pack.json` 的 skills 数组更长。`../topmind-skills/install-targets/mimocode.json` 与 `../topmind-skills/install-targets/universal.json` 当时不在 pack 的 install_targets 里。技能仓里的安装链接也指向过不存在的 skills/INSTALL 路径。
 
-改动：`../topmind-skills/topmind-pack.json`、`../topmind-skills/README.md`、`../topmind-skills/evals/evals.json`、`../topmind-skills/integrations/codex/README.md`、`../topmind-skills/integrations/opencode/plugins/topmind-plugin.ts`、`integrations/opencode/plugins/topmind-plugin.ts`。守卫：`tests/canon-claim-guards.test.mjs`、`../topmind-skills/tests/package-manifest.test.mjs`、`../topmind-skills/tests/portable-surfaces-contract.test.mjs`。这些测试从 `PRODUCT-BOUNDARIES.md` 读出内容真源目录名，再拿去对比 pack，不把目录名写死在断言里。
+改动：`../topmind-skills/topmind-pack.json`、`../topmind-skills/README.md`、`../topmind-skills/evals/evals.json`、`../topmind-skills/shared/host-loading.md`、`../topmind-skills/install-targets/mimocode.json`、`../topmind-skills/install-targets/universal.json`、`PRODUCT-BOUNDARIES.md`、`SKILL-ARCHITECTURE.md`、`../topmind-skills/integrations/codex/README.md`、`../topmind-skills/integrations/opencode/plugins/topmind-plugin.ts`、`integrations/opencode/plugins/topmind-plugin.ts`。守卫：`tests/canon-claim-guards.test.mjs`、`../topmind-skills/tests/package-manifest.test.mjs`、`../topmind-skills/tests/portable-surfaces-contract.test.mjs`。动作类别从各篇 SKILL.md 读出，安装目标从 `install-targets` 目录读出，不在测试里再写一份技能表。
 
 ## 工具
 

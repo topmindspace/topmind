@@ -114,8 +114,10 @@ topmind 是 Agent 时代的本地优先工作台，按需组合四条独立能�
 ```text
 topmind (router)
   ├── capture / organize / write / memory / maintain / loop
-  └── optional: weread / x / ledger（记账）
+  └── optional: topmind-weread / topmind-x / topmind-ledger / topmind-wechat
 ```
+
+可选技能不是新的用户概念：`topmind-ledger` 是记账卫星，`topmind-wechat` 是 write 子技能。
 
 - 纯 Markdown + `topmind-pack.json`
 - 执行面：Host 文件工具 → 可选 UTR → 对话建议
