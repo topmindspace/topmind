@@ -51,7 +51,7 @@ Extension (Mozilla Readability on live DOM)
 ```bash
 # repo root
 npm run pack:extension   # dist/topmind-clip-extension-<version>.zip
-# or with pack:all (skills + extension + obsidian)
+# or npm run pack:all (this repo packs the Clip zip only; Skills / Obsidian pack in their own repos)
 ```
 
 The Latest snapshot on product tag `v*` includes the current extension zip; `extension-v*` is a hotfix-only escape hatch. Version truth: [`manifest.json`](./manifest.json) (`npm run versions`).

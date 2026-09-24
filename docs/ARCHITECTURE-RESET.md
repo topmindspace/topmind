@@ -193,7 +193,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 
 ### 2.3 已合闸里程碑
 
-所有波次（E–M + S\* + Phase D 硬化 + 引擎硬化 + v2.1 + Stream 年目录/归档/记忆重设计）均已 **Done**。详细决策见各 ADR；实施真源为本文；理想使用态备忘见 `docs/stream-first-optimization-scheme.md`（非策略真源）。
+所有波次（E–M + S\* + Phase D 硬化 + 引擎硬化 + v2.1 + Stream 年目录/归档/记忆重设计）均已 **Done**。详细决策见各 ADR；实施真源为本文。使用态以 `DESIGN.md` 与 `topmind-desktop/DESIGN.md` 为准，不再另存一份方案备忘。
 
 ### 2.4 完成度分数卡
 

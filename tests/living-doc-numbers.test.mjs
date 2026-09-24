@@ -5,7 +5,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -68,17 +68,6 @@ test("Desktop DESIGN corpus budget matches todo-engine", () => {
     src,
     new RegExp(`${DEFAULT_WINDOW_DAYS} 天 / ${DEFAULT_MAX_FILES} 文件 / ${DEFAULT_MAX_PERIODS} 周期`),
   );
-});
-
-test("stream-first scheme states the same window and corpus budgets", () => {
-  const src = read("docs/stream-first-optimization-scheme.md");
-  assert.match(
-    src,
-    new RegExp(`${DEFAULT_WINDOW_DAYS} 天 / ${DEFAULT_MAX_FILES} 文件 / ${DEFAULT_MAX_PERIODS} 周期`),
-  );
-  assert.match(src, new RegExp(`suggest ${suggestK}K`));
-  assert.match(src, new RegExp(`todo extract ${extractK}K`));
-  assert.match(src, new RegExp(`maintain ${maintainK}K`));
 });
 
 test("suggest / todo / ops call activity-window defaults, not magic 21/30/16000", () => {
@@ -162,7 +151,6 @@ test("living docs do not teach deleted TitleBar chrome as current", () => {
   const agents = read("AGENTS.md");
   const boundaries = read("PRODUCT-BOUNDARIES.md");
   const model = read("PROJECT-MODEL.md");
-  const streamFirst = read("docs/stream-first-optimization-scheme.md");
   const reset = read("docs/ARCHITECTURE-RESET.md");
   const desktopReadme = read("topmind-desktop/README.md");
   const desktopReadmeZh = read("topmind-desktop/README.zh-CN.md");
@@ -172,8 +160,6 @@ test("living docs do not teach deleted TitleBar chrome as current", () => {
   assert.doesNotMatch(agents, /作为 Apps 菜单 mini-app/);
   assert.doesNotMatch(boundaries, /标题栏 Apps 菜单/);
   assert.doesNotMatch(model, /入口在 Apps 菜单/);
-  assert.doesNotMatch(streamFirst, /合入 ActionBar/);
-  assert.doesNotMatch(streamFirst, /标题栏 💡/);
   assert.doesNotMatch(desktopReadme, /AI panel \*\*ActionBar\*\*/);
   assert.doesNotMatch(desktopReadme, /Title-bar \*\*Note it\*\*/);
   assert.doesNotMatch(desktopReadmeZh, /AI 面板 \*\*ActionBar\*\*/);
@@ -241,13 +227,15 @@ test("living DESIGN files do not copy surface version digits into headings", (t)
 test("living DESIGN/ARCHITECTURE do not present canvas SuggestEntryStrip as current chrome", () => {
   const design = read("topmind-desktop/DESIGN.md");
   const arch = read("topmind-desktop/ARCHITECTURE.md");
-  const streamFirst = read("docs/stream-first-optimization-scheme.md");
   assert.match(design, /状态栏(?:建议)?计数 chip/);
   assert.doesNotMatch(design, /有 `items` 时画布顶 `SuggestEntryStrip`/);
   assert.doesNotMatch(design, /建议计数\*\*恰好两处\*\*：标题栏 💡 badge \+ 画布顶/);
   assert.doesNotMatch(arch, /EditorArea（SuggestEntryStrip/);
-  assert.doesNotMatch(streamFirst, /画布顶 strip（空则隐藏）/);
-  assert.doesNotMatch(streamFirst, /用户在 feed 附近一眼看见建议/);
+  assert.equal(
+    existsSync(path.join(repo, "docs/stream-first-optimization-scheme.md")),
+    false,
+    "stream-first memo was a second spec; numbers live in DESIGN.md",
+  );
   assert.match(arch, /PrimaryNav 文案与默认 selection 为 \*\*动态 · Inbox · 交付\*\*/);
   assert.doesNotMatch(arch, /交付 · 搜索\*\*/);
   assert.doesNotMatch(design, /AI 轨 `ActionBar`/);

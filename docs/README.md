@@ -59,7 +59,6 @@
 |----------|------|
 | [`PACKAGING.md`](./PACKAGING.md) | 打包与发布规范：安装包命名矩阵、GitHub Actions 独立/全量 Release 工作流、Win/Mac/Linux 构建说明 |
 | [`images/README.md`](./images/README.md) | 媒体与截图资源索引 |
-| [`stream-first-optimization-scheme.md`](./stream-first-optimization-scheme.md) | Stream-first 使用态备忘（数字与 `lib/activity-window.mjs` 对齐；策略真源：DESIGN / TOOLS / Reset） |
 | [`capture-clip-matrix.md`](./capture-clip-matrix.md) | Capture · Clip · Ingest 能力矩阵 |
 | [`topmind-vs-others.md`](./topmind-vs-others.md) | 知识管理方案对比与选型指南 |
 | [`UIUX-AUDIT-2026-09-01.md`](./UIUX-AUDIT-2026-09-01.md) | **NON-LIVING** 历史锚点（现行 IA 见 `topmind-desktop/DESIGN.md`） |

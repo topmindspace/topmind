@@ -59,7 +59,6 @@
 |-------|-------|
 | [`PACKAGING.md`](./PACKAGING.md) | Pack and release rules: installer names, GitHub Actions, Win/Mac/Linux |
 | [`images/README.md`](./images/README.md) | Screenshot and demo media index |
-| [`stream-first-optimization-scheme.md`](./stream-first-optimization-scheme.md) | Stream-first use memo (numbers track `lib/activity-window.mjs`; policy: DESIGN / TOOLS / Reset) |
 | [`capture-clip-matrix.md`](./capture-clip-matrix.md) | Capture · Clip · Ingest capability matrix |
 | [`topmind-vs-others.md`](./topmind-vs-others.md) | Knowledge-management comparison |
 | [`UIUX-AUDIT-2026-09-01.md`](./UIUX-AUDIT-2026-09-01.md) | **NON-LIVING** historical anchor (living IA: `topmind-desktop/DESIGN.md`) |

@@ -74,6 +74,24 @@ test("root package exposes stable daily scripts for skills, UTR, Desktop, extens
   assert.doesNotMatch(packageJson.description, /TUI/u, "package description should not mention TUI");
 });
 
+test("pack:all only packs the Clip extension, and docs do not say otherwise", () => {
+  const scripts = readJson("package.json").scripts ?? {};
+  assert.equal(scripts["pack:all"], "npm run extension:pack");
+  for (const rel of [
+    "AGENTS.md",
+    "docs/PACKAGING.md",
+    "browser-extension/README.md",
+    "browser-extension/README.en.md",
+    "browser-extension/README.zh-CN.md",
+  ]) {
+    assert.doesNotMatch(
+      readText(rel),
+      /pack:all[^\n]{0,120}skills \+ extension \+ obsidian/u,
+      rel,
+    );
+  }
+});
+
 test("root docs guard script is the canonical redesign contract check", () => {
   const guardScript = readText("scripts/check-redesign-contract.mjs");
 

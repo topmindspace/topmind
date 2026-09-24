@@ -454,8 +454,8 @@ Runtime diagnostics RPC: `system.getDiagnostics` (version, packaged, engineRoot,
 
 ```bash
 npm run secrets:scan
-npm run validate          # full gate (includes Desktop + Obsidian + packaging deps + pack:verify)
-npm run pack:all          # skills + extension + obsidian
+npm run validate          # docs guard, Kernel/UTR tests, Desktop validate (includes pack:verify)
+npm run pack:all          # Clip extension zip only; Skills/Obsidian pack in their own repos
 # Desktop smoke (unpacked app + asar integrity):
 npm run desktop:pack:dir
 ```

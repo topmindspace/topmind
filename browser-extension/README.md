@@ -51,7 +51,7 @@ Extension (Mozilla Readability on live DOM)
 ```bash
 # 仓库根
 npm run pack:extension   # dist/topmind-clip-extension-<version>.zip
-# 或随 pack:all（skills + extension + obsidian）
+# 或 npm run pack:all（本仓只打 Clip zip；Skills / Obsidian 在各自仓库打包）
 ```
 
 产品 tag `v*` 的 Latest 快照含当前扩展 zip；`extension-v*` 仅热修逃生口。版本真源：[`manifest.json`](./manifest.json)（`npm run versions`）。

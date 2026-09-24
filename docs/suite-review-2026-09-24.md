@@ -98,7 +98,9 @@ Obsidian 发布检出 Kernel 时带了 `continue-on-error`。手册要求这条�
 
 `docs/README.md`、`docs/README.en.md`、`docs/README.zh-CN.md` 把 Skills 的中文说明和安装文档链到本仓 skills 目录。拆仓之后那里只剩迁移短文 `skills/README.md`，没有中文跳转，也没有安装说明。这三份导览现在改链到技能仓的 GitHub 地址，和 Obsidian 那一行一样。Clip 的本仓文档 `browser-extension/README.md` 链接是好的。历史 ADR 仍可能出现拆仓前的路径，它们记录当时的决定，这次不改写。
 
-改动：`docs/README.md`、`docs/README.en.md`、`docs/README.zh-CN.md`，以及「共享层」里已经改掉的失效共享文件引用。守卫：`tests/canon-claim-guards.test.mjs` 检查这三份导览的相对链接都能在本仓打开。
+已落地的平行方案不再留第二份正文：`docs/design/2026-09-17-md3-informed-ui-system.md`、`docs/design/2026-09-16-tools-and-logs-workspace-care.md`、`docs/wechat-studio-DESIGN.md` 只保留决定。用浏览器本地存储的公众号实验页已删除。`package.json` 的 pack:all 只打 Clip，`AGENTS.md` 和 `docs/PACKAGING.md` 不再写成三个仓一起打包。
+
+改动：`docs/README.md`、`docs/README.en.md`、`docs/README.zh-CN.md`、`AGENTS.md`、`docs/PACKAGING.md`、`browser-extension/README.md`，以及「共享层」里已经改掉的失效共享文件引用。守卫：`tests/canon-claim-guards.test.mjs`、`tests/living-doc-numbers.test.mjs`、`tests/root-entrypoints.test.mjs`。
 
 ## 整体结构
 

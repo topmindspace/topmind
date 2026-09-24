@@ -300,7 +300,7 @@ npm run desktop:dev
 npm run desktop:validate
 npm run desktop:quality
 npm run pack:extension        # dist/topmind-clip-extension-<ver>.zip
-npm run pack:all              # skills + extension + obsidian (not Desktop)
+npm run pack:all              # Clip extension zip only; Skills/Obsidian pack in their own repos
 npm run desktop:pack:dir      # optional installers: pack:mac / pack:linux / pack:linux:arm64 / pack:win
 # Desktop artifacts: topmind-<ver>-<os>-<arch>.{dmg,exe,AppImage,deb}
 ```

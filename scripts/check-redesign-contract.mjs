@@ -593,12 +593,6 @@ expectNoMatch(
   "ARCHITECTURE 现状 still mounting canvas SuggestEntryStrip",
 );
 expectNoMatch(
-  "docs/stream-first-optimization-scheme.md",
-  read("docs/stream-first-optimization-scheme.md"),
-  /画布顶 strip（空则隐藏）/u,
-  "stream-first teaching canvas strip as living entry",
-);
-expectNoMatch(
   files.desktopDesign,
   desktopDesign,
   /AI 轨 `ActionBar`/u,
@@ -651,12 +645,6 @@ expectNoMatch(
   read(files.agEnts),
   /作为 Apps 菜单 mini-app/u,
   "AGENTS teaching Apps 菜单 as living ledger launchpad",
-);
-expectNoMatch(
-  "docs/stream-first-optimization-scheme.md",
-  read("docs/stream-first-optimization-scheme.md"),
-  /合入 ActionBar|标题栏 💡/u,
-  "stream-first teaching ActionBar or TitleBar 💡 as shipped chrome",
 );
 expectMatch(
   "docs/README.md",
