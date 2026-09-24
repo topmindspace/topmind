@@ -78,6 +78,8 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Opti
 
 > 适用：希望在现有 Obsidian Vault 中直接使用动态流。
 
+![topmind Stream in Obsidian](docs/images/obsidian-stream-zh.png)
+
 - **方式 A：Obsidian 官方社区插件市场**：
   *（官方社区插件审核发布中）* 上架后可在 Obsidian **设置 ➔ 社区插件 ➔ 浏览** 搜索 `topmind stream` 一键安装。
 - **方式 B：BRAT 插件一键安装**：
@@ -85,7 +87,7 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Opti
 - **方式 C：手动解压安装**：
   从 [topmind-obsidian Releases](https://github.com/topmindspace/topmind-obsidian/releases) 下载 zip 解压至 `<Vault>/.obsidian/plugins/topmind-stream/`。
 - 打开插件后，在 Obsidian 中按 `⌘P` / `Ctrl+P` 打开命令面板，运行 **Topmind: 打开动态**。
-- 详细指南：[topmind-obsidian](https://github.com/topmindspace/topmind-obsidian) · [中文](https://github.com/topmindspace/topmind-obsidian/blob/main/README.zh-CN.md)
+- 详细指南与更多截图：[topmind-obsidian](https://github.com/topmindspace/topmind-obsidian) · [中文](https://github.com/topmindspace/topmind-obsidian/blob/main/README.zh-CN.md)
 
 ### 场景 3：为 Agent（Claude Code / OpenCode / Codex）导入 Skills
 

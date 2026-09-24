@@ -81,11 +81,13 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Opti
 
 > Best when you want the personal stream inside an existing Obsidian vault.
 
+![topmind Stream in Obsidian](docs/images/obsidian-stream-en.png)
+
 - **Option A — Community Plugin Store** *(submission in review)*: after listing, search `Topmind Stream` under **Settings → Community plugins → Browse**.
 - **Option B — BRAT**: add the GitHub repo `topmindspace/topmind-obsidian` in BRAT.
 - **Option C — Manual zip**: download `topmind-obsidian-<ver>.zip` from [Releases](https://github.com/topmindspace/topmind-obsidian/releases) and extract to `<Vault>/.obsidian/plugins/topmind-stream/`.
 - After enabling, open the command palette (`⌘P` / `Ctrl+P`) and run **Topmind: Open Stream**.
-- Guide: [topmind-obsidian](https://github.com/topmindspace/topmind-obsidian)
+- Guide & screenshots: [topmind-obsidian](https://github.com/topmindspace/topmind-obsidian)
 
 ### Scenario 3: Agent Skills (Claude Code / OpenCode / Codex)
 
