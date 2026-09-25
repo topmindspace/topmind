@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect, useCallback, useMemo, useLayoutEffect } from "react";
 import {
   RiArrowUpLine,
-  RiBrainLine,
+  RiUserLine,
   RiCheckboxBlankLine,
   RiCompass3Line,
-  RiMagicLine,
+  RiSortDesc,
   RiMoreLine,
-  RiQuillPenLine,
+  RiBallPenLine,
   RiRepeat2Line,
   RiSparklingLine,
   RiStickyNoteAddLine,
@@ -83,9 +83,9 @@ function getDefaultSkillSlash(t: TFunction): Record<string, { label: string; tip
 /** Icon map for default skills — keyed by skillId. */
 const SKILL_ICONS: Record<string, typeof RiStickyNoteAddLine> = {
   "topmind-capture": RiStickyNoteAddLine,
-  "topmind-organize": RiMagicLine,
-  "topmind-write": RiQuillPenLine,
-  "topmind-memory": RiBrainLine,
+  "topmind-organize": RiSortDesc,
+  "topmind-write": RiBallPenLine,
+  "topmind-memory": RiUserLine,
   "topmind-maintain": RiToolsLine,
   "topmind-loop": RiRepeat2Line,
   "topmind": RiCompass3Line,

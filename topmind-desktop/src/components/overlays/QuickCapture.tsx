@@ -16,7 +16,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   RiAttachmentLine,
-  RiBrainLine,
+  RiUserLine,
   RiClipboardLine,
   RiCloseLine,
   RiFileTransferLine,
@@ -189,7 +189,7 @@ export function QuickCapture({ variant, onDone }: QuickCaptureProps = {}) {
       <div className="mb-3 flex items-center justify-between gap-2">
         <h2 className="flex min-w-0 items-center gap-2 text-sm font-medium tracking-tight text-text-primary">
           <span className="v4-icon-chip-accent flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)]" aria-hidden>
-            {isMemory ? <RiBrainLine size={ICON.sm} /> : form.effectiveMode === "docs" ? <RiFileTransferLine size={ICON.sm} /> : <RiPencilLine size={ICON.sm} />}
+            {isMemory ? <RiUserLine size={ICON.sm} /> : form.effectiveMode === "docs" ? <RiFileTransferLine size={ICON.sm} /> : <RiPencilLine size={ICON.sm} />}
           </span>
           <span className="truncate">
             {isMemory
@@ -199,7 +199,7 @@ export function QuickCapture({ variant, onDone }: QuickCaptureProps = {}) {
         </h2>
         <span className="flex shrink-0 items-center gap-1 text-3xs text-text-tertiary">
           {isMemory ? (
-            <span className="max-w-[140px] truncate" title={topicName}>
+            <span className="min-w-0 max-w-[min(14rem,46vw)] truncate" title={topicName}>
               {topicName}
             </span>
           ) : (

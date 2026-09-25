@@ -71,6 +71,7 @@ export function expandIdsForSelection(sel: Selection): string[] {
       return ids.length ? ids : [`cat/${parts[0]}`];
     }
     case "stream":
+    case "home":
       return [];
     case "memory":
       return ["section/memory"];
@@ -125,6 +126,8 @@ export function collectExpandableIds(
 export function selectionKey(sel: Selection | null | undefined): string {
   if (!sel) return "";
   switch (sel.kind) {
+    case "home":
+      return "home";
     case "stream":
       return "stream";
     case "inbox":

@@ -149,7 +149,7 @@ contract · workspace-model · stream · memory · lifecycle · **writeback（�
 | 写回授权 | **分级 confirm**：内容直接落盘；仅删/归档 pending。`locked`=重要内容可编辑（任务级首写快照）；可恢复删/归档 auto 允许；永久删 locked/core 仅用户 | ADR 2026-09-17b/c · TOOLS.md |
 | 围栏 | `isPathInsideWorkspace` 解析 symlink；策略路径名大小写不敏感；契约/system/memory 根不可 lifecycle；媒体仅在写闸提交后 | ADR 2026-09-17 · lib/writeback-engine |
 | 备份/回执 | **仅高影响**：locked 覆盖 · 锁定/核心非 permanent delete。普通开放笔记 delete 无 trash。`BACKUP_KEEP=3` · `RECEIPT_KEEP=50` | writeback-engine |
-| Memory | 路径经契约；profile 事实 append/retire/update（确认式）；periodic=周期反思；无自动遗忘/向量 | ADR 2026-08-16 · 2026-08-23 |
+| Memory | 路径经契约；profile 事实 **append 融合 / retire / update / compact-history**（确认式，近重复原位合并保留最新，不堆第二条 live）；periodic=周期反思（同周期原位替换）；无自动遗忘/向量 | ADR 2026-08-16 · 2026-08-23 · memory-engine |
 | Stream / 活动窗口 | `yearDir` 默认 true；周期路径双向粘滞；`archiveStreamYear` → `{system}/stream-archive/{year}/`。活动窗口 **21 天 / 30 文件 / 6 周期**；语料预算 suggest 16K · todo extract 16K · maintain 12K | ADR 2026-08-09 · `lib/activity-window.mjs` |
 | AI 语言 | 正文：用户要求→原文→workspace locale；建议/待办：用户要求→宿主 UI 语言→workspace locale | `lib/ai-output-locale.mjs` |
 | Agent | 步数默认 32/上限 80；`edit_file` 匹配阶梯 + `expectedHash`；思考折叠 | Desktop ARCHITECTURE |
@@ -195,7 +195,8 @@ Intentional Partial：contract 非全 Surface UI。embedding / 全库 Ask：Non-
 ## Read First
 
 1. `README.md`（**简体中文 default**）· `README.en.md`（English）  
-   各模块 README 同此约定：`README.md` = 简体中文；`README.en.md` = English；`README.zh-CN.md` 为完整中文兼容副本。
+   各模块 README 同此约定：`README.md` = 简体中文；`README.en.md` = English；`README.zh-CN.md` 为完整中文兼容副本。  
+   **例外**：`topmind-obsidian` 社区插件仓 `README.md` = English default（社区目录展示需要）；简体中文在 `README.zh-CN.md`。
 2. `docs/ARCHITECTURE-RESET.md` — **决策锁 · Target/Done · 实施阶段**  
 3. `PRODUCT-BOUNDARIES.md` — 四体边界  
 4. `PROJECT-MODEL.md` — 内容真源最高优先级  

@@ -29,6 +29,8 @@ export type TitleBarIdentityLabels = {
   outputs: string;
   memory: string;
   archive: string;
+  /** In-workspace home. Optional so older callers still resolve other kinds. */
+  home?: string;
 };
 
 /** Live overlay from the active canvas (period name, counts, …). */
@@ -54,6 +56,28 @@ export function primaryViewSwitchKind(
 ): "stream" | "inbox" | "outputs" | null {
   if (kind === "stream" || kind === "inbox" || kind === "outputs") return kind;
   return null;
+}
+
+/** Sidebar destination switcher. Home leads; it is not a new concept and not 动态. */
+export const DESTINATION_SWITCH_KINDS = ["home", "stream", "inbox", "outputs"] as const;
+
+export type DestinationKind = (typeof DESTINATION_SWITCH_KINDS)[number];
+
+/**
+ * Closed switcher target. 动态 / Inbox / 交付 stay themselves.
+ * Home, and every other canvas, shows home — never the 动态 label.
+ */
+export function destinationSwitchKind(
+  kind: Selection["kind"] | undefined | null,
+): DestinationKind {
+  return primaryViewSwitchKind(kind) ?? "home";
+}
+
+export function destinationSwitchLabel(
+  kind: Selection["kind"] | undefined | null,
+  labels: Record<DestinationKind, string>,
+): string {
+  return labels[destinationSwitchKind(kind)];
 }
 
 function posixParts(rel: string): string[] {
@@ -120,6 +144,8 @@ export function resolveTitleBarIdentity(
   }
 
   switch (selection.kind) {
+    case "home":
+      return withLive({ crumbs: [], title: labels.home || "", stats: "" }, live);
     case "stream":
       return withLive({ crumbs: [], title: labels.stream, stats: "" }, live);
     case "inbox":

@@ -15,6 +15,7 @@ import { InboxView } from "./views/InboxView";
 import { OutputsView } from "./views/OutputsView";
 import { ArchiveView } from "./views/ArchiveView";
 import { MemoryBrowseView } from "./views/MemoryBrowseView";
+import { WorkspaceHomeView } from "./views/WorkspaceHomeView";
 import { isEditableNotePath } from "../../lib/file-preview";
 
 const FileEditorView = lazy(() =>
@@ -27,6 +28,13 @@ function withLazy(node: ReactNode) {
 
 export function createWorkspaceViews(): ViewSlot[] {
   return [
+    {
+      kind: "view",
+      id: "topmind-workspace.view.home",
+      order: 10,
+      matches: (sel) => sel.kind === "home",
+      render: () => <WorkspaceHomeView />,
+    },
     {
       kind: "view",
       id: "topmind-workspace.view.stream",

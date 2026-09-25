@@ -21,6 +21,7 @@ import { AI_TOOL_NAMES_READ, AI_TOOL_NAMES_WRITE } from "./lib/ai-tool-names.mjs
 import { resolvePromptLocale } from "./ai-prompts.mjs";
 import { allowsJsonWriteBody } from "./lib/pi-fenced-fs.mjs";
 import { loadKernelApi } from "./lib/kernel-api.mjs";
+import { memoryFence as memoryFenceCheck } from "./lib/memory-fence.mjs";
 
 // Re-export for backward compatibility (existing imports from ai-tools.mjs)
 export { AI_TOOL_NAMES_READ, AI_TOOL_NAMES_WRITE };
@@ -144,9 +145,22 @@ export async function buildDesktopAiTools(ctx) {
           writeFailed: "写入失败；可调整参数后重试",
         };
 
+    /**
+     * Memory-plane fence: generic file tools must not raw-rewrite
+     * memory/profile|periodic|topics|todo. Pure rules live in
+     * `lib/memory-fence.mjs` (checked against every path arg, ledgers/ allowed).
+     */
+    const memoryFence = (toolName, args) => memoryFenceCheck(toolName, args, {
+      blocked: promptLocale === "en"
+        ? "memory/ is gated (except memory/ledgers/). Use append_core_memory / update_core_memory / retire_core_memory / append_topic_memory / add_todo / toggle_todo instead of generic file writes."
+        : "memory/ 受保护（memory/ledgers/ 除外）。请使用 append_core_memory / update_core_memory / retire_core_memory / append_topic_memory / add_todo / toggle_todo，不要用通用写文件工具改记忆平面。",
+    });
+
     const wrapWrite = (toolName, fn) => async (args) => {
       // Invalidate read cache on any write — prevents stale reads after edit/save
       readCache.clear();
+      const fence = memoryFence(toolName, args);
+      if (fence) return fence;
       const blocked = sanitizeWriteArgs(toolName, args);
       if (blocked) return blocked;
       try {

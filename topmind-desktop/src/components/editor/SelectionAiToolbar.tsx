@@ -17,7 +17,7 @@ import {
   RiListOrdered,
   RiListUnordered,
   RiPencilLine,
-  RiQuillPenLine,
+  RiBallPenLine,
   RiSparklingLine,
   RiText,
   RiTranslate2,
@@ -124,7 +124,7 @@ export function SelectionAiToolbar({
               busy && "opacity-45",
             )}
           >
-            <RiQuillPenLine size={ICON.micro} /> {t("selectionAi.continueLabel")}
+            <RiBallPenLine size={ICON.micro} /> {t("selectionAi.continueLabel")}
           </button>
         </Tooltip>
 

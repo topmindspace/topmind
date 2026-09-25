@@ -209,6 +209,26 @@ title: 2026-W32
     assert.match(entries[3].body, /11:00 b/);
   });
 
+  it("feed groups reverse clock time within a day and keep a same-minute batch in order", () => {
+    const md = [
+      "## 2026-07-25",
+      "- 09:00 morning",
+      "- 12:00 noon-first",
+      "- 12:00 noon-second",
+      "- 18:30 evening",
+      "- untimed tail",
+    ].join("\n");
+    const groups = groupEntriesByDay(parsePeriodNote(md), "Other");
+    assert.equal(groups.length, 1);
+    const bodies = groups[0].entries.map((e) => e.body);
+    // Later clock first; equal 12:00 keeps file order; missing time sinks last.
+    assert.match(bodies[0], /18:30 evening/);
+    assert.match(bodies[1], /12:00 noon-first/);
+    assert.match(bodies[2], /12:00 noon-second/);
+    assert.match(bodies[3], /09:00 morning/);
+    assert.match(bodies[4], /untimed tail/);
+  });
+
   it("timed list items stay separate; extra paragraphs stay on the same moment", () => {
     const md = [
       "## 08-03 周一",

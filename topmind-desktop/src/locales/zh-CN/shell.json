@@ -175,6 +175,8 @@
   },
   "primaryNav": {
     "ariaLabel": "主导航",
+    "home": "工作区",
+    "homeTip": "工作区主页",
     "stream": "动态",
     "streamTipIdle": "本周动态 · ⌘⇧S",
     "inbox": "Inbox",
@@ -246,7 +248,7 @@
   "editorArea": {
     "loadingWorkspace": "正在加载工作区…",
     "noViewMatch": "这里暂时打不开",
-    "noViewMatchHint": "换一个位置试试，或回到本周动态",
+    "noViewMatchHint": "换一个位置试试，或回到工作区主页",
     "backToStream": "返回动态",
     "goStream": "回到动态",
     "swapPanes": "与左侧对调",

@@ -202,7 +202,7 @@ function XHubView() {
 
   if (!settings?.x?.enabled) {
     return (
-      <ViewContainer>
+      <ViewContainer className="v4-hub-page">
         <EmptyState
           icon={<RiTwitterXLine size={ICON.md} />}
           title={t("hub.notEnabled")}

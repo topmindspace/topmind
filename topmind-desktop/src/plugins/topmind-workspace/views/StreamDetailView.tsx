@@ -18,7 +18,7 @@ import {
   RiInboxArchiveLine,
   RiLink,
   RiLoader4Line,
-  RiMagicLine,
+  RiSortDesc,
   RiRefreshLine,
   RiSendPlane2Line,
   RiSparklingLine,
@@ -1264,7 +1264,7 @@ export function StreamDetailView() {
         icon: reconciling ? (
           <RiLoader4Line size={ICON.sm} className="animate-spin" />
         ) : (
-          <RiMagicLine size={ICON.sm} />
+          <RiSortDesc size={ICON.sm} />
         ),
         priority: 20,
         disabled: reconciling,

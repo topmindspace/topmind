@@ -30,13 +30,13 @@
 
 ## 1. 表面与组件专有文档
 
-| 表面 / 模块 | 核心职责 | 英文 README | 中文 README | 架构与设计 |
-|-------------|----------|-------------|-------------|------------|
-| **Desktop** | 本地富文本工作台 / Electron 应用 | [`topmind-desktop/README.md`](../topmind-desktop/README.md) | [`README.zh-CN`](../topmind-desktop/README.zh-CN.md) | [`ARCHITECTURE`](../topmind-desktop/ARCHITECTURE.md) · [`DESIGN`](../topmind-desktop/DESIGN.md) |
-| **Obsidian 插件** | Obsidian Vault 内嵌动态流视图 | [topmind-obsidian](https://github.com/topmindspace/topmind-obsidian) | [README.zh-CN](https://github.com/topmindspace/topmind-obsidian/blob/main/README.zh-CN.md) | [ARCHITECTURE](https://github.com/topmindspace/topmind-obsidian/blob/main/ARCHITECTURE.md) |
-| **Skills** | Agent 可移植技能包 | [README](https://github.com/topmindspace/topmind-skills/blob/main/README.md) | [README.zh-CN](https://github.com/topmindspace/topmind-skills/blob/main/README.zh-CN.md) | [`SKILL-ARCHITECTURE`](../SKILL-ARCHITECTURE.md) · [INSTALL](https://github.com/topmindspace/topmind-skills/blob/main/INSTALL.md) |
-| **剪藏扩展** | 浏览器一键网页正文加工与剪藏 | [`browser-extension/README.md`](../browser-extension/README.md) | [`README.zh-CN`](../browser-extension/README.zh-CN.md) | [`capture-clip-matrix`](./capture-clip-matrix.md) |
-| **UTR** | 确定性 CLI / MCP 工具链 | [`utr/README.md`](../utr/README.md) | [`README.zh-CN`](../utr/README.zh-CN.md) | [`TOOLS.md`](../TOOLS.md) |
+| 表面 / 模块 | 核心职责 | 中文 README | English README | 架构与设计 |
+|-------------|----------|-------------|----------------|------------|
+| **Desktop** | 本地富文本工作台 / Electron 应用 | [`topmind-desktop/README.md`](../topmind-desktop/README.md) | [`README.en`](../topmind-desktop/README.en.md) | [`ARCHITECTURE`](../topmind-desktop/ARCHITECTURE.md) · [`DESIGN`](../topmind-desktop/DESIGN.md) |
+| **Obsidian 插件** | Obsidian Vault 内嵌动态流视图 | [README.zh-CN](https://github.com/topmindspace/topmind-obsidian/blob/main/README.zh-CN.md) | [README](https://github.com/topmindspace/topmind-obsidian/blob/main/README.md) | [ARCHITECTURE](https://github.com/topmindspace/topmind-obsidian/blob/main/ARCHITECTURE.md) |
+| **Skills** | Agent 可移植技能包 | [README](https://github.com/topmindspace/topmind-skills/blob/main/README.md) | [README.en](https://github.com/topmindspace/topmind-skills/blob/main/README.en.md) | [`SKILL-ARCHITECTURE`](../SKILL-ARCHITECTURE.md) · [INSTALL](https://github.com/topmindspace/topmind-skills/blob/main/INSTALL.md) |
+| **剪藏扩展** | 浏览器一键网页正文加工与剪藏 | [`browser-extension/README.md`](../browser-extension/README.md) | [`README.en`](../browser-extension/README.en.md) | [`capture-clip-matrix`](./capture-clip-matrix.md) |
+| **UTR** | 确定性 CLI / MCP 工具链 | [`utr/README.md`](../utr/README.md) | [`README.en`](../utr/README.en.md) | [`TOOLS.md`](../TOOLS.md) |
 
 ---
 
@@ -102,7 +102,7 @@
 | [2026-09-17](./adr/2026-09-17-adversarial-deep-review.md) | 结构平面围栏 · 归档 containment |
 | [2026-09-17](./adr/2026-09-17b-writeback-authorization-model.md) | locked=任务快照 · 分级 confirm |
 | [2026-09-17](./adr/2026-09-17c-adversarial-pass-fences-and-honesty.md) | symlink fail-closed · Memory 单真源 |
-| [2026-09-17](./adr/2026-09-17e-global-memory-quality.md) | 全局记忆质量（去重/恢复/注入） |
+| [2026-09-17](./adr/2026-09-17e-global-memory-quality.md) | 全局记忆质量（去重/恢复/注入）· 2026-09-25 融合门 |
 
 设计提案（非 ADR）：[`./design/`](./design/)。
 ---
@@ -114,6 +114,8 @@
 ```bash
 npm run versions
 ```
+
+真源路径（策略表见 [`../AGENTS.md` §版本层](../AGENTS.md)）：
 
 | 表面 | 真源文件 | 策略 |
 |------|----------|------|

@@ -19,6 +19,7 @@ import {
   RiArrowRightSLine,
   RiCloseCircleLine,
   RiCloseLine,
+  RiHome4Line,
   RiLayoutColumnLine,
   RiPushpinLine,
 } from "@remixicon/react";
@@ -32,6 +33,7 @@ import {
   resolveTitleBarIdentity,
   type TitleBarIdentityLabels,
 } from "../../lib/titlebar-identity";
+import { defaultCanvasSelection } from "../../types";
 
 import { Tooltip } from "../ui/tooltip";
 import { PanelToggleIcon } from "../ui/PanelToggleIcon";
@@ -76,6 +78,7 @@ export function useTitleBarIdentityLabels(): TitleBarIdentityLabels {
   return useMemo(
     () => ({
       stream: t("shell:primaryNav.stream"),
+      home: t("workspace:home.title"),
       inbox: t("workspace:inbox.title", { defaultValue: t("shell:primaryNav.inbox") }),
       outputs: t("workspace:outputsView.title", { defaultValue: t("shell:primaryNav.outputs") }),
       memory: t("shell:sidebar.myProfile"),
@@ -170,6 +173,19 @@ export function TitleBar({ workspaceRoot: _workspaceRoot, sidebarCollapsed, onTo
           <Tooltip content={t("titleBar.forward")}>
             <button type="button" className="v4-titlebar-btn" onClick={forward} disabled={!canGoForward} aria-label={t("titleBar.forwardAriaLabel")}>
               <RiArrowRightSLine size={ICON.sm} />
+            </button>
+          </Tooltip>
+          <Tooltip content={t("workspace:home.goHomeTip")}>
+            <button
+              type="button"
+              className="v4-titlebar-btn"
+              data-go-workspace-home
+              data-active={selection.kind === "home" ? "true" : undefined}
+              aria-current={selection.kind === "home" ? "page" : undefined}
+              aria-label={t("workspace:home.goHome")}
+              onClick={() => select(defaultCanvasSelection())}
+            >
+              <RiHome4Line size={ICON.sm} aria-hidden />
             </button>
           </Tooltip>
         </div>

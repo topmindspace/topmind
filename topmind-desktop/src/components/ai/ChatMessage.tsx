@@ -1,7 +1,7 @@
 import {
   RiArrowDownSLine,
   RiArrowRightSLine,
-  RiBrainLine,
+  RiFileTextLine,
   RiCheckLine,
   RiCheckboxCircleLine,
   RiErrorWarningLine,
@@ -10,7 +10,6 @@ import {
   RiRefreshLine,
   RiRobot2Line,
   RiToolsLine,
-  RiUserLine,
 } from "@remixicon/react";
 import { useEffect, useRef, useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -64,7 +63,7 @@ function StreamStatusIndicator({ status, toolName, count, maxSteps }: { status: 
   const { t } = useTranslation("editor");
   if (status === "writing" || status === "done") return null;
 
-  let icon = RiBrainLine;
+  let icon = RiFileTextLine;
   let spin = false;
   switch (status) {
     case "preparing":
@@ -79,7 +78,7 @@ function StreamStatusIndicator({ status, toolName, count, maxSteps }: { status: 
       spin = true;
       break;
     case "thinking":
-      icon = RiBrainLine;
+      icon = RiFileTextLine;
       break;
     default:
       return null;
@@ -683,7 +682,7 @@ function ReasoningBlock({ text, streaming }: { text: string; streaming?: boolean
         }}
         aria-expanded={open}
       >
-        <RiBrainLine size={ICON.xs} className={cn("shrink-0 opacity-80", streaming && !open && "animate-pulse text-accent-color")} />
+        <RiFileTextLine size={ICON.xs} className={cn("shrink-0 opacity-80", streaming && !open && "animate-pulse text-accent-color")} />
         <span className="shrink-0 font-medium">{t("ai.reasoningLabel")}</span>
         {streaming && !open ? (
           tailPreview ? (
@@ -825,7 +824,7 @@ export function ChatMessage({ message, streaming, streamStatus, streamToolName, 
           className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[var(--shadow-button)]"
           aria-hidden
         >
-          <RiUserLine size={ICON.sm} />
+          <RiFileTextLine size={ICON.sm} />
         </div>
       ) : null}
     </div>

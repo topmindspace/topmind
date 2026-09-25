@@ -122,7 +122,7 @@ function IngestHubView() {
   const enhancedReady = Boolean(tools.anydoc || tools.markitdown);
 
   return (
-    <ViewContainer>
+    <ViewContainer className="v4-hub-page">
       <ConnectorHubHeader
         icon={<RiFileTransferLine size={ICON.md} />}
         title={t("hub.title")}

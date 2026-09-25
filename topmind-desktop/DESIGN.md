@@ -2,7 +2,7 @@
 
 > **理念**：精准、安静、对象优先、**长时阅读友好**、可审查、**可扩展的富工作台**。  
 > **产品北极星**：最低摩擦个人动态流；导航与概念**清晰简单**；AI **内生副驾**（建议默认 · 确认执行）。  
-> **美学**：**Design System 4.0.3 — ZCode Neutral + MD3-informed（2026-09-17）** — 双主题长读色阶 · 状态层 · tonal/error-container · soft-disabled · 完成微动效 · 预生成色彩种子（sky/teal/graphite）。主 CTA 仍为单色 ink。  
+> **美学**：**Design System 4.0.4 — ZCode Neutral + MD3-informed** — 双主题长读色阶 · 状态层 · tonal/error-container · soft-disabled · 完成微动效 · 预生成色彩种子（sky/teal/graphite）。主 CTA 仍为单色 ink。  
 > **栈**：Tailwind 4 · shadcn 风格 · Radix · RemixIcon · Design Tokens。  
 > **品牌色**：sky 轴 `#075985` → `#0ea5e9` + capture teal；强调 = sky-700 `#0369a1`（dark sky-400）。对比度见 §5.0.1。  
 > **文档**：[`../docs/design/2026-09-17-md3-informed-ui-system.md`](../docs/design/2026-09-17-md3-informed-ui-system.md)  
@@ -18,7 +18,9 @@
 用户概念硬上限 ≤5：**记一下 · 动态 · 专题 · 我的情况 · 交付**。
 
 ```text
-中栏主锚点：动态（默认） · Inbox · 交付
+侧栏主 header 同一个图标按钮，菜单是：工作区 · 动态 · Inbox · 交付（工作区用首页图标 `RiHome4Line`，动态用 `RiNewspaperLine`）
+中栏主锚点：动态 · Inbox · 交付
+打开工作区后，主画布默认是工作区主页（不是第四主锚）。动态仍由该下拉 / ⌘⇧S 显式打开。
 状态栏 compact：状态（路径 · AI · busy）— 主锚不在状态栏
 中栏动作：面包屑 · 注入动作 · AI 列开关（主锚在**侧栏主 header**；搜索非 PrimaryNav：⌘K 命令面板 · ⌘P 笔记全文；记一下在左栏）
 左栏：内容导航 + 底栏工作区切换 + ViewSwitcher 下沉
@@ -83,16 +85,21 @@
 | **RiSendPlane2Line** | 「记下」写入周期本 | 与 Flashlight 混用为捕获 |
 | **RiListCheck** | AI 工作区清单 pane · 状态栏「AI 整理待办中」chip（可点开清单） | 与建议混称；**禁止**用于后台 Task 面板 |
 | **RiLoader4Line** | 后台任务 busy · AI 轨 TaskBadge · 通用 spinner | 与 ListCheck 混用表示个人清单 |
-| **RiMagicLine** | 整理本周 / 确定性 reconcile | 与 AI 润色混用 |
-| **RiHome4Line / Fill** | 侧栏主 header PrimaryNav「动态」（默认主页） | 与后台 Task 的 Pulse 混用 |
+| **RiMagicLine** | *(retired 2026-09)* 整理本周 — 见 RiSortDesc | — |
+| **RiSortDesc** | 整理本周 / 确定性 reconcile（简单排序形） | 与 AI 润色混用 |
+| **RiHome4Line** | 工作区主页（侧栏目的地、回到主页、主页眉标） | 动态、后台 Task 的 Pulse |
+| **RiNewspaperLine** | 动态（侧栏目的地、主页动作、侧栏视图模式） | 工作区主页、目录树 |
 | **RiInbox2Line / Fill** | 侧栏主 header PrimaryNav「Inbox」· 侧栏 Inbox 节点 | 用 Unarchive 冒充 Inbox |
 | **RiShareForwardLine / Fill** | 侧栏主 header PrimaryNav「交付」· 侧栏交付 / 交付节点 | 与「记下」SendPlane 混用 |
 | **RiChatAiLine** | AI 工作区「对话」pane + 该 pane 内会话列表 | 用机器人图标冒充对话；普通「消息」不要另起第三个聊天气泡图标 |
 | **RiEditLine** | 重命名 / 编辑（右键菜单 · 格式条编辑模式） | 用 RiEdit2Line / RiPencilLine 另起一套「编辑」 |
-| **RiQuillPenLine** | 用户原创（Inbox badge）· 交付 skill | 用于重命名 |
+| **RiBallPenLine** | 用户原创（Inbox badge）· 交付 skill（简洁圆珠笔） | 用于重命名 |
+| **RiUserLine** | 我的情况 / memory（树节点 · 技能 · 捕获 memory 模式） | 用 Brain 冒充画像 |
+| **RiFileTextLine** | 思考过程折叠 · 推理模型徽标 · 文稿类建议 | 用 Brain 表示 thinking |
+| **RiPulseLine** | 工具与日志（健康/诊断） | 听诊器等复杂字形 |
 | **RiListCheck2** | 编辑器 Markdown 任务列表语法开关（格式条） | 用于产品「清单」pane（那是 RiListCheck） |
 
-> 图标体系（2026-09）：全应用 **RemixIcon**（`@remixicon/react`），尺寸标尺集中 `src/lib/icons.ts` `ICON = { nano:10, micro:12, xs:14, sm:17, md:20, lg:24, xl:30 }`。语义边界：**nano 仅限箭头/圆点/kbd；功能图标 micro 起步；header/sidebar/主导航用 sm**。二态开关用 Line/Fill 变体对（如 PanelToggleIcon）。**一概念一图标**：同一产品概念在所有表面复用同一 glyph（对话 / 清单 / 交付 / 编辑 / 整理），不要在第二个组件另起近似图标。
+> 图标体系（2026-09）：全应用 **RemixIcon**（`@remixicon/react`），尺寸标尺集中 `src/lib/icons.ts` `ICON = { nano:10, micro:12, xs:14, sm:17, md:20, lg:24, xl:30 }`。语义边界：**nano 仅限箭头/圆点/kbd；功能图标 micro 起步；header/sidebar/主导航用 sm**。面板开合（`PanelToggleIcon`）始终用 Line 字形，打开时用强调色，不用 Fill 实心。**一概念一图标**：同一产品概念在所有表面复用同一 glyph（对话 / 清单 / 交付 / 编辑 / 整理），不要在第二个组件另起近似图标。
 
 #### 跨表面图标映射（强制 · Desktop Remix ↔ Obsidian Lucide）
 
@@ -102,11 +109,14 @@
 |------|-----------------|-------------------|------|
 | 记一下 | `RiPencilLine` | `pencil` | Fill 实心闪电；与记下/编辑混用 |
 | 记下 | `RiSendPlane2Line` | `send` | Save 冒充 |
-| 整理 | `RiMagicLine` | `wand-2` | `list-checks` / `refresh-cw` |
+| 整理 | `RiSortDesc` | `arrow-down-wide-narrow` | `list-checks` / `refresh-cw` / `wand-2` |
+| 我的情况 / memory | `RiUserLine` | `user` | `brain` |
+| 思考过程 | `RiFileTextLine` | `file-text` | `brain` |
 | 清单 / 待办 | `RiListCheck` | `list-checks` | 与整理混用 |
 | 建议 | `RiSparklingLine` / Lightbulb 面板 | `lightbulb` | 三处等权入口 |
 | 对话 | `RiChatAiLine` | `bot` | 普通 `message-circle` |
 | 后台任务 busy | `RiLoader4Line` | spinner / `loader` | 与清单混用 |
+| 工具与日志 | `RiPulseLine` | `activity` | `stethoscope` |
 
 **捕获英文对译（强制）**：`记一下` = **Note it**（完整捕获）；`记下` = **Log it**（动态主区写入周期本）。禁止用 Save 冒充「记下」、用 Quick Capture 冒充「记一下」。
 
@@ -131,13 +141,13 @@
 
 | 原则 | 落地 |
 |------|------|
-| **一条主路径** | 打开 = **动态**（`StreamDetailView` 周期本）+ 侧栏「记一下」；**建议**走全局入口（AI 工作区建议 pane / 状态栏计数），不在主画布堆仪表盘 |
+| **一条主路径** | 打开工作区 = **工作区主页**；**动态**（`StreamDetailView` 周期本）由主锚 / ⌘⇧S 打开；侧栏「记一下」；**建议**走 AI 工作区建议 pane / 状态栏计数，不在主页或动态堆确认列表 |
 | **富而不挤** | 编辑器深度、阅读 Aa、多标签、插件能力保留；不一次性摊开全部视图 |
 | **建议条** | AI 工作区 **建议** pane（状态栏计数打开；`SuggestPopover` 为确认列表）= 唯一完整确认面；专注模式浮动 `SuggestPopover`；状态栏 count=0 自动隐藏（≠ 个人清单） |
 | **设置白话** | 「删除/归档前问我」「自动准备 AI 建议」「自动 AI 整理待办（默认关）」 |
 | **扩展外围** | connector / 第三方插件不占默认主 chrome：入口统一在 **AI 工作区 · 应用** pane（`AppsLaunchList` · `lib/apps-menu`），侧栏只承载内容导航 |
 
-**IA 已收敛（Wave F–M · S\*）**：默认 **动态** = `StreamDetailView`（按日分组 · 周期 chip · 条目增补）；Home 已删。侧栏主轨 = 动态安静列表 / 目录 / 时间；标签/看板在「更多」；**个人清单**在 AI 工作区 清单 pane（⌘⇧T；专注模式浮动）。**建议**在状态栏计数 → AI 工作区建议 pane（会话缓存防闪烁）；右列四 pane：**对话** · **建议** · **清单** · **应用**；后台仍是 TaskBadge + TaskPanel。交付列表展示 `published_at`。行内 AI 可拖动。
+**IA 已收敛（Wave F–M · S\*）**：打开工作区的主画布 = 工作区主页（身份、记一下 / 动态 / Inbox / 交付 / 我的情况 / 专题、周期与 Inbox / 交付实况）。**动态** = `StreamDetailView`（按日分组 · 周期 chip · 条目增补），由主锚或 ⌘⇧S 打开。旧仪表盘（问候、钉住、截止、材料条、连接器条）已删。侧栏主轨 = 动态安静列表 / 目录 / 时间；标签/看板在「更多」；**个人清单**在 AI 工作区 清单 pane（⌘⇧T；专注模式浮动）。**建议**在状态栏计数 → AI 工作区建议 pane（会话缓存防闪烁）；右列四 pane：**对话** · **建议** · **清单** · **应用**；后台仍是 TaskBadge + TaskPanel。交付列表展示 `published_at`。行内 AI 可拖动。
 
 ### 0.0.4 能力单家（Header homes）
 
@@ -145,8 +155,8 @@
 
 **2026-09 v4 三列 header 职责：**
 
-- **左 Sidebar 主 header**（顺序固定）：**PrimaryNav（动态 · Inbox · 交付）→ Profile → 搜索 ⌘K → 记一下**。macOS 整组右对齐（红绿灯占左栏左侧）；Windows/Linux 左对齐（栏就是窗口左缘）。记一下是纯图标 chrome 按钮（`RiPencilLine` 铅笔，通用「写」认知），非实心 teal CTA，捕获强调色；tooltip/aria 承载文案（避免 macOS 原生按钮挤压）。
-- **左 Sidebar 次级 header**：ViewSwitcher 纯图标（动态 / 目录 / 时间 / 看板等）与树的排序 / 展开折叠 / 筛选 / 刷新合在**同一行**小图标；非目录模式隐藏树工具。
+- **左 Sidebar 主 header**（顺序固定）：**目的地图标（工作区 · 动态 · Inbox · 交付）→ Profile → 搜索 ⌘K → 记一下**。四个控件同为 32px 图标、间距一致；收起的按钮只显示当前目的地的线形图标，名称在 tooltip / aria 和菜单里。macOS 这一行在红绿灯留白之内**右对齐**（`.v4-mac-titlebar-pad` 取代列的 8px 左内边距，全屏收起）；Windows/Linux **左对齐**，不留红绿灯空位。记一下是纯图标 chrome 按钮（`RiPencilLine` 铅笔，通用「写」认知），非实心 teal CTA，捕获强调色。
+- **左 Sidebar 次级 header**：各平台都从目录树左缘起（`pl-1.5`，不垫 72px）。ViewSwitcher（当前模式文案，如「目录」）**靠左**；树的排序 / 展开折叠 / 筛选 / 刷新 **靠右**。非目录模式隐藏树工具。
 - **中间 TitleBar**：三列顶栏共用 `.v4-column-chrome`（`--density-chrome-y` 44px · 控件 32px）对齐。左侧 = Toggle + 后退/前进 + 可点击祖先面包屑（第一层 `max-w-36`，后续更短）+ 当前页标题 + 该页统计；右侧 = 视图注入动作 slot（`data-titlebar-actions-slot`）+ AI 面板 toggle。集合页（动态 / Inbox / 交付 / 类别 / 专题 / 我的情况 / 归档）的身份与新建/整理/刷新等动作住在 TitleBar，画布不再重复 PageHeader 标题条。文件页把注入 AI / 发布 / 移动 / 记忆等原编辑器拖把右侧快捷键注入 TitleBar；拖把只留格式 + 编辑/预览图标 + 大纲/阅读/专注 + 属性开关 + 保存/⋯。**大纲 / 阅读外观 / 专注模式住在编辑器工具栏右侧**（`EditorViewChrome`），不再挂在属性行——属性默认收起时它们仍常驻。文件标题**右键**承载页签操作（关闭 / 固定 / 对照 / 文件操作），单页签（无 Tab 条）时这是主路径。
 - **StatusBar**：左端绿点 + **完整工作区路径**（`data-status-workspace-path`，不是 basename）；tooltip 含 engine 路径。**不含 PrimaryNav**（状态栏是状态，不是导航；主锚在侧栏主 header）。
 
@@ -174,7 +184,7 @@
 | 项 | 规定 |
 |----|------|
 | 形状 | `--radius-xs`(2px) 方圆角，**不是**胶囊——与 `v4-chip` 语言一致，避免圆点抢读 |
-| 字号 | `text-4xs`(11px) / `font-bold` / `leading-none`；**不得**用 `text-5xs`(10px) |
+| 字号 | `text-4xs`(12px) / `font-bold` / `leading-none`；**不得**用 `text-5xs`(10px) |
 | 填充 | `--color-badge` 轴（`bg-badge`），告警用 `bg-badge-alert`。**不用** `accent-color`：它在 inbox 模式翻成 teal，白字掉到 4.3:1 |
 | 前景 | `--color-badge-foreground` / `--color-badge-alert-foreground`；**禁止**硬编码 `text-white`（深色模式角标是浅底 + 深字） |
 | 定位 | 由**调用方**给（如 `className="absolute -right-0.5 -top-0.5"`）。组件只管视觉不管坐标——两个 offset 工具类并列时按 CSS 生成顺序决胜、不按书写顺序，坐标必须只有一处说了算 |
@@ -250,11 +260,11 @@
 
 **CTA**：每步/每区 **一个** `variant=default`；其余 ghost/outline/ai。**禁止**自写第二套 header/toast/空态。卡槽统一 `AppSlot` / `StatSlot`（docs/APP-SHELL-PARADIGM.md）。
 
-| **Surface 阶梯** | light：`sidebar/chrome` `#ececec/#eeeeee` → `background` `#f4f4f4` → `surface` `#fafafa` → **`elevated` `#ffffff`**；dark：`sidebar` `#0c0c0c` → `chrome` `#131313` → `background` `#161616` → `surface` `#1b1b1b` → **`elevated` `#242424`**。Feed 卡 = `--elevation-1` + `surface`（非 elevated） |
+| **Surface 阶梯** | light：`sidebar/chrome` `#e2ded6/#f1efe8` → `background` `#f3f1eb` → `surface` `#f7f5f0` → **`elevated` `#fffcf7`**；dark：`sidebar` `#141311` → `chrome` `#171614` → `background` `#1c1a17` → `surface` `#221f1c` → **`elevated` `#2b2824`**。暖纸 / 抬起的石墨，长时阅读少眩光。Feed 卡 = `--elevation-1` + `surface`（非 elevated） |
 | **低视觉负担** | 选中/hover 用浅 brand wash（`accent-bg-subtle` / `surface-selected`）；每区一个实心 CTA；边框优先 `border-subtle-dim`（light `rgba(23,23,23,0.06)` · dark `rgba(255,255,255,0.06)`；`border-subtle` = fg @ 10%，ZCode 同源）；避免多重 box-shadow + 边框叠厚；**侧栏树隐藏 `.md` 后缀**（`stripMdExt`）；**PARA 编号弱化**（`renderCategoryLabel`：`00-` 用 `text-quaternary/70`）；**卡片优先 bg + shadow 而非 border**（`--shadow-card` token）；**今日卡片 accent ring**（`ring-1 ring-inset ring-accent-color/15`） |
 | **弹层与对比度** | `.v4-overlay-sheet` / Dialog 用 `surface-elevated` + `border-subtle`；**工作台 OverlayHost**（设置 / 捕获 / ⌘K / 搜索 / plugin-app）**门户到 `document.body`**、`z-modal`、`isolate`、`v4-no-drag`；Confirm/Prompt/Error 门户到 body、`z-dialog`(130)。打开时 `acquireOverlayLayer` 盖 `html[data-overlay-open]` 并 inert `#workbench-root`。**列表日头**（`data-stream-day-toggle` sticky）在该 attr 下必须 `position: static`——Electron 会把 sticky+z-index 合成到任何 `position:fixed` 对话框之上（卡片模式无 sticky，故正常）。`.v4-main-canvas` `isolation: isolate` 约束 sticky 合成层。**浮动弹窗**（`TodoPopover` / `SuggestPopover` / `TaskPanel`）采用 **毛玻璃质感**（`backdrop-blur-[var(--blur-glass)] backdrop-saturate-150` + `bg-surface-elevated/90` + `border-border-subtle` + `shadow-[var(--shadow-elevated-hairline)]`）；**交互一致**：点击外部 + 外部滚动 + Esc 关闭（内部列表滚动不关）；文本对比度达 WCAG AA 4.5:1+ (dark Primary `#e5e5e5` · Secondary `#c9c9c9` · Tertiary `#a1a1a1` · Quaternary `#8c8c8c`) |
 | **玻璃面边界** | 暗色 `.v4-menu-surface` 内置 glass+hairline（Dropdown/ContextMenu）；主壳 / 侧栏 / 编辑画布保持 solid |
-| **一条主路径** | 侧栏主 header **动态（默认）** · Inbox · 交付（PrimaryNav）；**记一下**在左栏 Sidebar 主 header；搜索/AI 可达；深度动作放 ⌘K / 二级；右侧工具 **图标 XOR「更多」**（禁止同动作双入口） |
+| **一条主路径** | 侧栏主 header 同一个下拉：**工作区** · **动态** · Inbox · 交付（工作区不是新概念）；**记一下**在左栏 Sidebar 主 header；搜索/AI 可达；深度动作放 ⌘K / 二级；右侧工具 **图标 XOR「更多」**（禁止同动作双入口） |
 | **控件分层** | **一级**常显 · **二级**折叠 · **三级**「更多」/ Tooltip / `/slash`（见 §0.1） |
 | **CTA 权重** | 每区域 **一个** `Button variant=default`（主操作）；取消/复制用 outline/secondary；关闭 X 用 ghost。**捕获**：Sidebar 主 header「记一下」普通按钮 + 强调色图标/文字（禁止 `v4-titlebar-btn-capture` 实心）；**列表不再重复捕获**；空态才用 **outline**「打开记一下」作恢复 CTA；动态页实心仅为「记下」（`composeSubmit`），composer 眉题禁止复用「记一下」 |
 | **统一 chip 语言** | `.v4-chip` / `.v4-segmented` / `.v4-composer` / `CaptureModeBar` / FilterChip |
@@ -266,7 +276,7 @@
 | **少硬分割线** | 编辑器常驻 ≤2 条 full-width 分割（工具栏 + 可选属性）；避免斑马纹；**Recent tab strip 无底边框**（`.v4-editor-recents` transparent + `shadow-divider-bottom`）；**标题栏 cluster 透明**（`.v4-titlebar-cluster` 无背景无 inset）；**搜索为侧栏图标按钮**（`.v4-search-trigger`，纯按钮无输入框，⌘K）；**侧栏主 header**（`data-sidebar-header`：PrimaryNav → Profile → 搜索 → 记一下）；**次级 header**（`data-sidebar-secondary-header`：ViewSwitcher 与树工具一行） |
 | **图标按钮三档** | `.v4-icon-btn` 基类 + 尺寸档：**chrome 32**（TitleBar / Sidebar header / AI 列 header）· **tool 26**（编辑器格式条）· **micro 24**（树工具）。hover 一律 `--color-surface-hover` 铺满**完整热区**；**禁止** chrome 按钮写 `min-width:0`（记一下曾因此 hover 盒塌成图标本体）。纯图标 chrome 保持 32×32；带文案的 chrome 动作用 `gap` + padding 自然撑开 |
 | **工作区页脚** | 左：标识（文件夹图标 · 名称 · 上拉）打开菜单；右：**主题循环** + **设置** 两颗 chrome 钮同排（高频动作不进菜单）。菜单分区：名称+复制路径 → 最近工作区 → 打开/关闭 → 专注/工具/帮助 → 语言。禁止把主题三格簇再塞回菜单 |
-| **长时阅读** | UI ≥12px；正文默认 16px / **1.72**；UI base 14 / **1.5**；列宽 `--content-max-width-prose`；专注模式 ⌘⌥F；dark prose `#d8d8d8` |
+| **长时阅读** | UI ≥12px（`text-4xs` 起）；正文默认 16px / **1.72**；UI base 14 / **1.55**；列宽 `--content-max-width-prose`；专注模式 ⌘⌥F；dark prose `#d9d4cc` |
 | **动效克制** | `duration-fast` 140ms · `duration-enter` 160ms；列表 stagger ≤8；`prefers-reduced-motion` 全关 |
 | **性能** | `content-visibility` 列表、panel `contain`、AI 面板 lazy、流式滚动尊重用户上滑 |
 | **响应式 chrome** | 操作按钮按宽度 **铺开 ↔ ⋯ 溢出**（`ChromeOverflowActions`）；TitleBar 右轨 ResizeObserver 互斥；主锚文案按窗口宽度（≥960）显示，窄屏 **tooltip + aria-label 必在**；编辑器右侧发布/AI/专注同轨溢出；禁止同动作双入口 |
@@ -295,8 +305,8 @@
 
 | 角色 | Token | 尺寸 | 用途 |
 |------|-------|------|------|
-| kbd glyph / 极小徽章 | `text-5xs` / `text-4xs` | 10px / 11px | 快捷键单字符、绝对微缩标记 |
-| 快捷键 Chip / 计数角标 | `text-3xs` / `text-4xs` | **12px** / **11px** | Kbd Badge、`CountBadge` 数字、微缩行内状态指示 |
+| kbd glyph / 极小徽章 | `text-5xs` / `text-4xs` | 10px / 12px | 快捷键单字符、绝对微缩标记 |
+| 快捷键 Chip / 计数角标 | `text-3xs` / `text-4xs` | **12px** / **12px** | Kbd Badge、`CountBadge` 数字、微缩行内状态指示 |
 | 标注说明 / Badge | `text-2xs` | **12px** | 状态栏、路径、FilterChip、说明文字 |
 | 表单 / 按钮 / 控件 | `text-xs` | **13px** | 控件标签、下拉选项、操作按钮 |
 | UI 主文 / 树节点 | `text-sm` | **13px** | 侧边栏树节点、列表主行 |
@@ -307,11 +317,11 @@
 | 章节大标题 | `text-2xl` | **18px** | 模块章节标题 |
 | 页面主标题 | `text-3xl` | **24px** | 页面 Head Title |
 | 巨幕 Display | `text-4xl` | **28px** | 展台 Header 气场标题 |
-| 正文 prose | settings.editor | **默认 16 / 1.72** | 编辑/预览共用；UI base 14 / **1.5**（`--type-leading-ui`） |
+| 正文 prose | settings.editor | **默认 16 / 1.72** | 编辑/预览共用；UI base 14 / **1.55**（`--type-leading-ui`） |
 
-**禁止**：新增 &lt;12px 的 UI 主文案（UI 下限 = `text-2xs` / `text-3xs` = 12px）；9px 路径/状态已淘汰。`text-4xs`(11px) 仅限计数角标数字与 kbd glyph，`text-5xs`(10px) 仅限 kbd glyph——两者都不是承载句子的档位。3.0 起字号对齐 ZCode 整数阶（13/14/16）。
+**禁止**：新增 &lt;12px 的 UI 主文案（UI 下限 = `text-4xs` / `text-3xs` / `text-2xs` = 12px）；9px 路径/状态已淘汰。`text-5xs`(10px) 仅限 kbd glyph，不承载句子。3.0 起字号对齐 ZCode 整数阶（13/14/16）。
 
-**4.0 长读**：canvas `#f4f4f4` 去眩光；`text-prose` 略软于 UI primary；侧栏树行高 **32px**；树节点 `data-tree-kind` 三档层次（category/group → topic → file）；列表选中用 `surface-selected` + accent inset bar（标签用 primary ink，不用 accent 字）。
+**4.0 长读**：暖纸画布 `#f3f1eb`（chrome `#f1efe8`）去眩光；`text-prose` 略软于 UI primary；四档灰色在最苛刻表面上仍 ≥4.5:1；侧栏树行高 **32px**；树节点 `data-tree-kind` 三档层次（category/group → topic → file）；列表选中用 `surface-selected` + accent inset bar（标签用 primary ink，不用 accent 字）。
 
 **状态层（4.0 · MD3-informed）**：交互控件 hover/focus/pressed/**dragged** 使用 `--color-state-*`；实心 CTA 用 `--color-state-on-primary-*`。**软禁用** `Button softDisabled`：看起来不可用但仍可聚焦（工具条可发现性，MD3 soft-disabled）。Toast = elevation-2 + `--radius-toast` + success/error **container** 语义（非细边框色条）。
 
@@ -406,7 +416,7 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 │ 左栏贯通  │  中栏贯通                           │  右栏贯通      │
 │ Profile  │  Toggle · 视图菜单 · 面包屑 · 动作   │  对话·建议     │
 │ 搜索·记一下│  画布身份 + 注入动作 + AI 开关      │  清单·应用     │
-│ 次级：模式 │  内容画布（默认本周动态 / 编辑器）    │  Composer     │
+│ 次级：模式 │  内容画布（默认工作区主页 / 动态 / 编辑器） │  Composer     │
 │ 底：工作区│                                     │               │
 ├──────────┴───────────────────────────────────┴───────────────┤
 │ 状态栏 · 路径 · 动态 / Inbox / 交付 · 引擎 · AI                 │
@@ -449,7 +459,7 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
   - **记一下**在左栏 Sidebar 主 header（唯一主捕获）；建议 / 清单 / 应用在右列 AI 工作区 pane（状态栏计数开门）  
   - **禁止**再增加等权主锚点；「工作台」三元组不再是产品目标  
 - **侧栏默认**：本周动态 / 周期本时间线；专题树 · 记忆 · 我的情况 · 归档为二级；标签/看板为高级（折叠或 ⌘K）；**底栏工作区切换器**（Outlook / ZCode）；可选插件 / mini-app 在 **AI 工作区 · 应用** pane  
-- **主画布默认**：`StreamDetailView` — 当前周期本条目卡片 + **内联记下** + reconcile / 周期切换（**无**建议数角标、无旧仪表盘）；未知 selection kind → 同视图
+- **主画布默认**：工作区主页 — 打开的工作区身份、记一下 / 动态 / Inbox / 交付 / 我的情况 / 专题、当前或最近周期，以及 Inbox 与交付的数量或最近条目。空工作区仍是这块结构并写明为空。未知 selection、关掉最后一个文件标签 → 同一主页。**动态**仍是 `StreamDetailView`（内联记下 · reconcile / 周期切换；**无**建议确认列表、无旧仪表盘），由主锚或 ⌘⇧S 打开
 - **AI 工作区**（右列，与内容工作区**对等**）：pane **对话 / 建议 / 清单 / 应用**（`AiWorkspace`）；Composer **钉在列底**（切 pane 仍可对话）；不是「聊天侧栏」  
 - **建议确认面**：AI 工作区 **建议** pane（状态栏计数 / `openSuggestSurface` 打开该 pane）；专注模式仍用浮动 `SuggestPopover`  
 - **看板可写 / Inbox 批处理 / 知识加工 / tokens / 图标** 等能力保留（富工作台）  
@@ -473,7 +483,7 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 - 侧栏开关 · 前进/后退（工作区切换器在左栏底部，⌘⇧W 仍打开）
 
 **侧栏主 header** — `PrimaryNav variant="sidebar"`（`data-sidebar-primary-nav` · 与 Profile/搜索/记一下同行）:
-- **动态**（默认，打开工作区落点）· **Inbox** · **交付**
+- **工作区** · **动态** · **Inbox** · **交付**（侧栏主 header 的图标按钮，菜单里仍是这四项。工作区用 `RiHome4Line`，动态用 `RiNewspaperLine`。打开工作区落在主页，⌘⇧S 仍进动态）
 - 归档不在主锚（⌘⇧A / 侧栏 / 命令面板）
 - 搜索：⌘K 命令面板 · ⌘P 笔记全文（均非 PrimaryNav）
 - 侧栏收起时 **TitleBar 紧凑图标**（`PrimaryNav variant="compact"`，状态栏不承载导航）
@@ -485,10 +495,10 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 
 ### 2.2 侧栏树
 
-- **ViewSwitcher**：侧栏顶部**单一下拉**（触发器显示当前模式文案，如「目录 ▾」；默认 **目录/category**；菜单含 目录 / 流式 / 时间 / 标签 / 看板 + 一句 hint）
+- **ViewSwitcher**：侧栏次级 header **靠左的单一下拉**（触发器显示当前模式文案，如「目录 ▾」；默认 **目录/category**；菜单含 目录 / 流式 / 时间 / 标签 / 看板 + 一句 hint）。这一行在红绿灯下方，与目录树左缘对齐
   - 这是**侧栏视图**，不是主画布模式；主画布信息流的列表/卡片开关仍在流上方（`data-feed-chrome`）
   - 与 ViewSwitcher **不在同一行**（2026-09）：PrimaryNav 升到主 header；次级 header 只留 ViewSwitcher + 树工具
-- **PrimaryNav**：侧栏**单一下拉**（动态 / Inbox / 交付）；侧栏收起时 TitleBar 紧凑图标
+- **PrimaryNav**：侧栏主 header **图标按钮**（菜单：工作区 / 动态 / Inbox / 交付）；侧栏收起时 TitleBar 紧凑图标
 - **自动刷新**：侧栏订阅 `workspace:file-changed`。目录树用 `classifyTreeFileChange`：inbox / 交付 / 归档 / 类别根 / add·unlink / ingest 完成 = listing 重建（空 inbox 有文件则展开）；专题内部保存 = 定向刷新、不整树闪。Inbox 主列表静默重载（无全页空态闪）。手动刷新在树工具条（展开/折叠/排序旁），不是标题栏第二按钮。StreamView 450ms 防抖。
 - **渐进展开**：每个展开节点默认只渲染 **8** 个子项，其余收成「还有 N 项…」；再点再翻 8 个。避免长目录一展开就刷屏。
 - **DataSource 区段**：每个注册的 DataSource 渲染为可折叠区段，带 Database 眉头图标 + 半粗体大写标签。
@@ -504,10 +514,10 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 ### 2.3 编辑区
 
 - **ViewSlot 解析**：`registry.resolveView(sel)` 返回第一个匹配槽位（order 最低）。
-- **内置视图**：StreamDetailView（默认动态）、CategoryView、TopicOverviewView、FileEditorView、InboxView、OutputsView、ArchiveView。
+- **内置视图**：WorkspaceHomeView（打开工作区的默认画布）、StreamDetailView（动态）、CategoryView、TopicOverviewView、FileEditorView、InboxView、OutputsView、ArchiveView、MemoryBrowseView。
 - **连接器中心**：`Selection.kind=connector` + `id=weread|x` → 阅读/X 轻中心页（状态 · 同步 · 选书/预览 · 统计缓存）；侧栏仅一行摘要，设置只做凭据与偏好。
-- **兜底**：无 ViewSlot 匹配时显示共享 EmptyState（下一步 CTA：**回到动态** / 记一下）。
-- **动态主表面（Done）**：打开即 `StreamDetailView`（本周/当前周期本）。独立 HomeView 仪表盘已删除；「建议」在状态栏计数 → AI 工作区建议 pane；主 CTA「记一下」在左栏 Sidebar 主 header。
+- **兜底**：无 ViewSlot 匹配时回到工作区主页（安静的「回到工作区」）。
+- **动态主表面（Done）**：显式打开才是 `StreamDetailView`（本周/当前周期本）。工作区主页是默认画布，不是已删的仪表盘；「建议」在状态栏计数 → AI 工作区建议 pane；主 CTA「记一下」在左栏 Sidebar 主 header，主页上的记一下打开同一捕获。
 - **CategoryView**：类别头部 + 专题列表 + 散记列表，支持新建专题/笔记快捷操作。
 - **TopicOverviewView**：专题头部 + 笔记列表（含修改时间/大小）。
 - **文件标签条**（`EditorRecentBar`）：**条件式**——`fileTabs.length ≤ 1` **不渲染**（TitleBar 面包屑即身份；页签动作走标题右键 / ⌘W）；`≥2` 显示 slim 条（pin/close/中键关/拖拽重排/右键菜单）；溢出时左右 **edge fade**；激活 tab 滚入视野；右键 **在右侧打开对照**（分屏）。  
@@ -727,7 +737,7 @@ IA 分组（左侧 nav）：
 
 > **说明**：密钥双层持久化——safeStorage（系统钥匙串）+ 本地 AES（`state/.secret-key`）。brew 升级/重签导致 safeStorage 解密失败时自动走本地 AES。若两层密文都损坏，需重新填写。
 
-## 5. 设计令牌（Design System 3.0 · ZCode Neutral）
+## 5. 设计令牌（Design System 4.0.4 · ZCode Neutral + MD3-informed）
 
 定义在 `src/styles/tokens.css` 的 `@theme` 块。浅色 + 深色（`.dark` 类）。语义别名见 `tailwind-theme.css`。
 
@@ -746,7 +756,7 @@ IA 分组（左侧 nav）：
 
 **品牌渐变停不是文字色**。`brand-mid` / `brand-aqua` 为渐变与浅底淡彩而选，白底对比度只有 2.77 / 2.83:1；需要「强调色文字」时一律用 `accent-color` / `text-accent` 一档。
 
-**中性色**：纯中性灰；light 画布 `#f4f4f4`，dark 画布 `#161616` / elevated `#242424` / sidebar `#0c0c0c`；dark prose `#d8d8d8`（长读减眩光）。编辑器纸张色 token：`--color-paper-soft|cream|sepia`（双主题自动切换）。
+**中性色**：暖纸（light）与抬起的暖石墨（dark），避免纯黑纯白的长时眩光。light 画布 `#f3f1eb`，chrome `#f1efe8`，elevated `#fffcf7`；dark 画布 `#1c1a17` / elevated `#2b2824` / sidebar `#141311`；dark prose `#d9d4cc`。四档文字在最苛刻表面上仍 ≥4.5:1（light quaternary `#635f59`，dark quaternary `#988f86`）。编辑器纸张色 token：`--color-paper-soft|cream|sepia`（双主题自动切换）。
 
 **Dark**：accent = sky-400（`#38bdf8`）；`text-on-accent` 用深墨；**禁止**回退 lavender indigo。
 
@@ -763,9 +773,9 @@ IA 分组（左侧 nav）：
 3. 状态色几乎总是坐在**自己的 `-bg` 淡底**上，故基线按「字 @ 自身 9–12% 淡底 @ 最苛刻表面」核算，不能只算白底。
 4. 一个设计意图 = 一个 token。**禁止**用透明度表达严重度梯度（用 `text-text-tertiary → text-warning → text-error`）。
 
-**基线表（light · 画布 `#f4f4f4` · chrome `#eeeeee` · 4.0.1）**
+**基线表（light · 画布 `#f3f1eb` · chrome `#f1efe8` · 4.0.4）**
 
-| 角色 | 停止位 | 白底 `#ffffff` | 画布 `#f4f4f4` | chrome `#eeeeee` | 自身淡底 @chrome |
+| 角色 | 停止位 | 白底 / elevated `#fffcf7` | 画布 `#f3f1eb` | chrome `#f1efe8` | 自身淡底 @chrome |
 |------|--------|----------------|----------------|------------------|------------------|
 | accent | `#0369a1` | 5.93 | ~5.5 | ~5.2 | ≥4.5 |
 | accent · inbox | `#115e59` | 7.58 | ~7.0 | ~6.6 | ≥4.5 |
@@ -777,7 +787,7 @@ IA 分组（左侧 nav）：
 
 > 精确数值由 `tests/ui-token-compliance.test.mjs` 以当前 `tokens.css` 实时计算并断言 ≥4.5:1；改 stop 必须跑该测试。
 
-**基线表（dark · chrome `#131313` · canvas `#161616` · elevated `#242424`）**
+**基线表（dark · chrome `#171614` · canvas `#1c1a17` · elevated `#2b2824`）**
 
 | 角色 | 停止位 | 备注 |
 |------|--------|------|
@@ -785,8 +795,8 @@ IA 分组（左侧 nav）：
 | success | `#4ade80` | 文本/状态点 |
 | warning | `#fbbf24` | 文本/状态点 |
 | error | `#f87171` | 文本/状态点（较旧 `#ff7b72` 更柔） |
-| prose | `#d8d8d8` | 长读正文（低于 primary 一档，减眩光） |
-| primary | `#e6e6e6` | UI 主文 |
+| prose | `#d9d4cc` | 长读正文（低于 primary 一档，减眩光） |
+| primary | `#e8e4de` | UI 主文 |
 
 ### 5.1 色彩层级
 
@@ -838,7 +848,7 @@ ZCode 阶 + 浮动层：`--radius-xs: 2px` · `--radius-sm: 4px` · `--radius-md
 | `--feed-column-max` | 56rem | 信息流/我的情况/Inbox/专题/交付 阅读列——**流体**：填充主画布实际可用宽度（侧栏/AI 面板/分栏感知），数值仅为可读性上限（≈896px，兼顾 CJK/Latin 行长与宽松 UI）。**注意与 `--content-max-width-dashboard` 区分**：后者 72rem，是列表类视图容器上限 |
 | `--content-max-width-dashboard` | 72rem | 列表类视图容器上限（同样流体，≤cap） |
 
-编辑器默认：`fontSize: 16` · `lineHeight: 1.72`。字体栈：UI `ui-sans-serif, system-ui…`；编辑 `PingFang SC / Hiragino / YaHei…`；serif 阅读可选 Source Han Serif；mono `ui-monospace` + CJK 回退。字距：UI `letter-spacing: 0`（CJK 友好）；标题 `tracking-tight`。
+编辑器默认：`fontSize: 16` · `lineHeight: 1.72`。字体栈：UI `--font-family-ui`（`ui-sans-serif, system-ui…`，非 Inter）；编辑 `PingFang SC / Hiragino / YaHei…`；serif 阅读可选 Source Han Serif；mono `ui-monospace` + CJK 回退。字距：UI `letter-spacing: 0`（CJK 友好）；标题 `tracking-tight`。
 
 ### 5.5 动效
 
@@ -859,8 +869,9 @@ ZCode 阶 + 浮动层：`--radius-xs: 2px` · `--radius-sm: 4px` · `--radius-md
 - **UI 基础组件**（`src/components/ui/`，**以目录为准**）：`Button` · `CountBadge` · `Dialog` · `DropdownMenu` · `context-menu` · `menu-select` · `select`（menu-select 的 shim）· `Input` · `textarea` · `tabs` · `tooltip` · `Splitter` · `PanelToggleIcon` · `workspace-file-menu` · `ErrorBoundary` · `LazyBoundary` · `view`（共享视图原语）。**没有** `Card` / `Separator` / `Badge` 组件——卡面与分隔用 token + 工具类，计数角标用 `CountBadge`
 - **共享视图原语**（`view.tsx`）：ViewContainer, PageHeader, SectionHeader, EmptyState, LoadingState, ErrorState, MetaText, FileRow, RowList — **空状态必须用 EmptyState**
 - **设置卡片**：`SettingsSection` / `Field` / `SwitchField`（`settings/fields.tsx`）
-- **图标**: 仅 `@remixicon/react`（RemixIcon）+ `ICON.*`（nano 10 → xl 30）；填充字形读感偏大已按光学权重调校；面板开合见 `PanelToggleIcon`（Line=关 / Fill=开）
-- **排版令牌**：text-5xs(10) → text-4xs(11) → text-3xs(12 UI 下限) → text-2xs(12) → text-xs(13) → text-sm(13) → text-base(14) → text-lg(16) → text-xl(16) → text-2xl(18) → text-3xl(24)
+- **图标**: 仅 `@remixicon/react`（RemixIcon）+ `ICON.*`（nano 10 → xl 30）；填充字形读感偏大已按光学权重调校；面板开合见 `PanelToggleIcon`（始终 Line，打开时强调色，不用 Fill）。工作区主页 = `RiHome4Line`；动态 = `RiNewspaperLine`；工作区文件夹（切换工作区）仍是 `RiFolder3Line`
+- **页面表面（MD3）**：画布是 `--color-background`，卡片是 `--color-surface-elevated`（`.v4-dash-card` / `AppSlot`）。工作区主页和连接器 hub 顶部可以有一层不超过 6% 的强调色晕，不铺实色、不染侧栏或顶栏 chrome。主页列宽随中栏变宽，上限 `72rem`。内置小应用（记账 / 公众号）的 `.v4-plugin-app-panel` 用同一纸色，卡片浮在上面。一页一个实心主按钮，其余用 tonal 或 outline；图标保持线形
+- **排版令牌**：text-5xs(10) → text-4xs(12 UI 下限) → text-3xs(12) → text-2xs(12) → text-xs(13) → text-sm(13) → text-base(14) → text-lg(16) → text-xl(16) → text-2xl(18) → text-3xl(24)
 - **v4 壳层工具类**（`src/styles/v4.css`；下表为**当前实际定义**的类，文档提到但代码不存在的已删除）：
   - Chrome：`v4-column-chrome` · `v4-shell-chrome` · `v4-sidebar-rail` · `v4-ai-panel` · `v4-ai-chrome`
   - 导航：`v4-nav-pill` · `v4-cmd-trigger` · `v4-segmented` / `v4-segmented-item` / `v4-segmented-thumb`
@@ -941,109 +952,10 @@ ZCode 阶 + 浮动层：`--radius-xs: 2px` · `--radius-sm: 4px` · `--radius-md
 
 ---
 
-## 变更摘要
+## 发版与历史
 
-> **现在时规范是 §0–§3**（尤其 §2.2 侧栏 · §2.3 编辑区）。本节是发版指针，不是第二套 spec。
+> **现在时规范是 §0–§3**（尤其 §2.2 侧栏 · §2.3 编辑区）。版本数字只看 `package.json` 与 git tag，本文不再维护逐版本变更账。
 
-- **4.11.0（2026-09-20）**：记账/迷你应用浅色遮罩（背景工作区可见）· 设置「组织与维护」= 工作区组织 + 升级安装 · AI 密钥升级后自动补写本地 AES · UI 层次与阅读 token 规范
-- **4.10.0**：DS 4.0–4.1 UIUX · 设置 IA · 记账一站式
-
-- **4.10.0 / Skills 4.8.0 / Clip 4.6.0（2026-09-20）**：设置 IA 四组导航 · 记账一站式 · MD3-informed 4.0.x 交互与双主题 · 质量门与文档对齐
-- **2026-09-17 DS 4.1 设置 IA + 记账一站化**：扩展与集成合并伴侣模块；关于与更新含诊断；记账 App 常驻 AI/表单 + 解析预览
-- **2026-09-17 Design System 4.0.3**：softDisabled · 建议完成微动效 · themeSeed
-- **2026-09-17 Design System 4.0.2**：MD3 按钮语义 · Input aria-invalid · Toast snackbar
-- **2026-09-17 Design System 4.0.1**：双主题色阶 · 字体/行高 · 纸张 token
-- **2026-09-17 Design System 4.0.2（MD3 交互深化）**：Button `softDisabled` + `data-variant` + tonal/error-container · Input `aria-invalid` · Toast snackbar 语义 · 图标按钮 focus · 列表/导航 tonal 选中
-- **2026-09-17 Design System 4.0.1（双主题深化）**：色阶 · dark prose · 字体/行高 · 纸张 token · 过时 hex 清理
-- **2026-09-14 对比度校准 + token 收敛**：accent/status 停止位 AA 校准；幽灵 token 清理；CountBadge 单实现
-- Design System **4.0** ZCode Neutral + MD3-informed（token 真源 `src/styles/tokens.css`）
-- 捕获词汇：用户可见文案一律 `记一下` / `Note it` · `记下` / `Log it`（禁止 Quick Capture 冒充）
-- 建议确认面 = AI 工作区建议 pane（`SuggestPopover` 确认列表）；编辑 = TipTap、预览 = `getEditorHtml()` 静态 HTML
-- 建议 kind 与 Kernel 对齐（无 `archive_path` / 卡片级 `todo_extract` / `topic_classify`）
-
-## Sidebar · 一级类与交付物
-
-- **一级类（category）**：始终按 `NN` / slot 排序；时间/名称排序只影响专题与文件。
-- **结构带**：`00-Inbox` → 用户类 → **`88-交付`** → `99-归档`。交付物固定在类列表之后（非插件区），便于日常找回。
-- **标签页**：设置 → 通用 → 多标签（激活不改顺序）/ 单标签。
-- **非 Markdown 文件**：知识区列出全部类型；`.html` 沙箱 iframe（截断）；其它文本等宽；二进制打开外部。Markdown 预览见 §2.3（静态 HTML，不是 live TipTap）。
-- **图标**：macOS `.icns` + `icon-mac.png` = **peer 几何预裁白圆角板**（板 ~80.5% 画布 + 圆角 ~25% 板边，与 VS Code/Claude 一致）；Win/Linux/扩展为透明 mark；`setIcon` 仅 plate PNG。
-
-
-## 截图与文档
-
-产品截图真源：`docs/images/`（索引见 `docs/images/README.md`）。  
-仓库默认 README 为**简体中文**（`README.md`）；英文 `README.en.md`（`README.zh-CN.md` 为完整中文兼容副本）。各模块 README 同此约定。
-
----
-
-## UI/UX 审查清单（UIX-401 ~ UIX-407 · 2026-08-10）
-
-### UIX-401：用户概念 ≤5 硬上限 ✅
-
-界面显性概念严格限定为：**记一下 · 动态 · 专题 · 我的情况 · 交付**。
-
-- 目的地：动态（默认）· Inbox · 交付（**侧栏主 header** `PrimaryNav variant=sidebar`；侧栏收起时 TitleBar compact；StatusBar 不含导航）
-- 搜索非 PrimaryNav：⌘K 命令面板 · ⌘P 笔记全文
-- 侧栏 ViewSwitcher：流式 / 分类 / 时间线 / 标签 / 看板（高级折叠）
-- 捕获词汇：`记一下`（Note it · 完整捕获）vs `记下`（Log it · 周期本追加）— 语义不混
-- 无多余概念暴露
-
-### UIX-402：底层术语屏蔽 ✅（已修复）
-
-已清理的内核术语暴露：
-
-| 位置 | 修复前 | 修复后 |
-|------|--------|--------|
-| `settings.json` zh/en `currentHelp` | `schema v4` | 移除 |
-| `settings.json` zh/en `firstLevelCatsHelp` | `categoryExtensions` / `overrides` / `buffer/delivery/system` | 白话化 |
-| `settings.json` zh/en `rebuildIndex` | `重建派生索引` / `Rebuild derived index` | `重建索引` / `Rebuild index` |
-| `settings.json` zh/en `tabDesc.tools` | `UTR 工具目录` | `工具目录` |
-| `settings.json` zh/en `tabHelp.tools` | `node-runtime` / `ELECTRON_RUN_AS_NODE` / `WorkspaceService` | 白话化 |
-| `settings.json` zh/en `helpUtr` | `engine 的 utr/` / `pathContext` / `engineRoot` | 白话化 |
-| `settings.json` zh/en `warnExecute` | `写回伦理` / `CLI` / `契约 exposure` | 白话化 |
-| `settings.json` zh/en `trustModel` | `renderer` / `ctx.rpc` / `ctx.register` / `soft gate` | 白话化 |
-| `settings.json` zh/en `writebackHelpAuto` | `受保护级别约束` / `protection` | 移除 |
-| `settings.json` zh/en `writebackHelpConfirm` | `高影响记忆` / `high-impact` | `重要记忆` / `important` |
-| `settings.json` zh/en `updateHelp` | `UTR` / `topmind-engine` | `引擎` / `engine` |
-| `editor.json` zh/en `writebackAutoHint` | `Agent 可写盘` | `AI 可写入` |
-| `editor.json` zh/en `writebackConfirmHint` | `Agent 写工具结果` | `AI 写入结果` |
-| `ai.json` zh/en `writebackMode` | `写回模式` / `Writeback mode` | `保存模式` / `Save mode` |
-| Obsidian `zh-CN.ts` / `en-US.ts` `settings_writeback_mode` | `写回模式` / `Writeback Mode` | `保存模式` / `Save Mode` |
-| Obsidian `en-US.ts` `settings_ai` | `AI Co-pilot & Writeback` | `AI Co-pilot & Save` |
-
-### UIX-403：视觉品质 ✅
-
-- **深色模式**：DS 4.0.1 石墨阶梯（sidebar `#0c0c0c` → chrome `#131313` → canvas `#161616` → surface `#1b1b1b` → elevated `#242424`）；prose `#d8d8d8` · primary `#e6e6e6` · AA+ 状态色
-- **Glassmorphism**：浮动弹层 `backdrop-blur-[var(--blur-glass)]`（14px）+ `backdrop-saturate-150`，仅限浮层（菜单/弹出/下拉），不用于主 chrome
-- **微交互动画**：`--duration-quick: 100ms` / `--duration-fast: 140ms` / `--ease-default: cubic-bezier(0.2, 0.8, 0.2, 1)` — 统一快捷柔和
-- **Typography**：系统 UI 字栈（`--font-family-ui`，非 Inter）+ ZCode 整数字号阶（`text-5xs: 10px` → `text-4xl: 28px`）
-
-### UIX-404：Chrome 纤细化 ✅
-
-- 标题栏高度 `--density-chrome-y: 44px`（2026-09-07 三列 `.v4-column-chrome` 对齐；控件 `--density-chrome-control: 32px`）
-- 状态栏高度 `--density-status-y: 26px`
-- 侧栏主 header：Profile → 搜索 → 记一下；次级 header：ViewSwitcher + 树工具，无重复 border
-- Landing 页噪点清理：workflow chips 已移除（2026-08-07）；brand chip 已移除（2026-08-07）
-
-### UIX-405：建议条与 confirm 二阶段 ✅
-
-- 专注模式浮动 `SuggestPopover`；非 focus mode 由 StatusBar 计数 chip + AI 工作区建议 pane 承担入口
-- 主动 AI **只生成建议**，用户确认后才调 writeback 执行
-- AI 工作区建议 pane（`SuggestPopover` 确认列表）为唯一完整确认面：接受 / 忽略 / 待确认写入三模式
-- 空态自动隐藏（`count=0` 不占位）
-
-### UIX-406：SuggestPopover 与 Pending 审阅 ✅
-
-- 外部点击关闭（unpinned 模式）；Esc 关闭；面板内滚动不关闭
-- 批量操作：Accept All（顺序执行）+ Dismiss All（仅建议）
-- 待确认写入（`pending_write`）：`ConfirmDialog` 预览完整内容 → 接受/拒绝后落盘
-- 卡片信息精简，长文 tooltip；路径显示为友好面包屑（非 raw monospace）
-
-### UIX-407：StatusBar 多路 AI 并发 ✅
-
-- `deriveStatusBarBusy` 纯函数追踪 5 种并发工作类型（agent / task / todo / suggest / inline）
-- `multiActive` 在 2+ 并发时激活；pill 显示 `AI ×N`
-- tip 列出所有活跃工作（如「同时进行：对话 · 准备建议…」）
-- 同路径不双标：后台 prep 有独立 named chip，不与 AI pill 重复
-- 后台 prep 串行（`ai-background-lane`），防 token 踩踏
+- 变更历史：`git log` / GitHub Releases
+- 2026-08-10 UIX-401–407 审查已完成并合入规范；清单本体已删（考古走 git history）
+- Design System 4.x 交互与双主题基线见 §5；token 真源 `src/styles/tokens.css`

@@ -236,7 +236,10 @@ test("living DESIGN/ARCHITECTURE do not present canvas SuggestEntryStrip as curr
     false,
     "stream-first memo was a second spec; numbers live in DESIGN.md",
   );
-  assert.match(arch, /PrimaryNav 文案与默认 selection 为 \*\*动态 · Inbox · 交付\*\*/);
+  // PrimaryNav lists 工作区 · 动态 · Inbox · 交付; default selection is home
+  // (workspace canvas), not a fourth product concept.
+  assert.match(arch, /PrimaryNav 文案为 \*\*动态 · Inbox · 交付\*\*/);
+  assert.match(arch, /默认 selection 是 `\{ kind: "home" \}`/);
   assert.doesNotMatch(arch, /交付 · 搜索\*\*/);
   assert.doesNotMatch(design, /AI 轨 `ActionBar`/);
   assert.match(design, /浮动 `SuggestPopover`/);

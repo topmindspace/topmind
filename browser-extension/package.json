@@ -1,7 +1,7 @@
 {
   "name": "topmind-clip-extension",
   "private": true,
-  "version": "4.13.1",
+  "version": "4.13.2",
   "description": "topmind browser clipper. Version truth: manifest.json (kept in sync for tooling only).",
   "type": "module"
 }

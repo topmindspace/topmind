@@ -812,7 +812,7 @@ export function CaptureForm({
       ) : null}
 
       <div className="mt-4 flex items-center justify-between gap-2">
-        <span className="hidden min-w-0 max-w-[240px] truncate text-3xs text-text-quaternary sm:inline" title={modeHint}>
+        <span className="hidden min-w-0 max-w-[min(16rem,50vw)] truncate text-3xs text-text-tertiary sm:inline" title={modeHint}>
           {isFloat
             ? t("overlays:capture.floatHint")
             : modeHint}

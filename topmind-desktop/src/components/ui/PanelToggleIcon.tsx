@@ -1,15 +1,8 @@
 /**
- * Shell panel toggle — RemixIcon only (no custom paths).
- *
- * Open   → RiLayoutLeft/RightFill (filled side rail = active, VS Code/Obsidian feel)
- * Closed → RiLayoutLeft/RightLine (outline)
+ * Shell panel toggle — RemixIcon line glyphs only.
+ * Open uses accent color on the same outline; it does not swap in a Fill icon.
  */
-import {
-  RiLayoutLeftFill,
-  RiLayoutLeftLine,
-  RiLayoutRightFill,
-  RiLayoutRightLine,
-} from "@remixicon/react";
+import { RiLayoutLeftLine, RiLayoutRightLine } from "@remixicon/react";
 import { cn } from "../../lib/kit";
 import { ICON } from "../../lib/icons";
 
@@ -24,13 +17,12 @@ export function PanelToggleIcon({
   size?: number;
   className?: string;
 }) {
-  const Icon =
-    side === "left"
-      ? open
-        ? RiLayoutLeftFill
-        : RiLayoutLeftLine
-      : open
-        ? RiLayoutRightFill
-        : RiLayoutRightLine;
-  return <Icon size={size} aria-hidden className={cn("shrink-0", className)} />;
+  const Icon = side === "left" ? RiLayoutLeftLine : RiLayoutRightLine;
+  return (
+    <Icon
+      size={size}
+      aria-hidden
+      className={cn("shrink-0", open && "text-accent-color", className)}
+    />
+  );
 }

@@ -7,8 +7,8 @@
  * 2. Size: always `ICON.*` — never raw numbers at call sites.
  * 3. Variant: default `*Line` (outline) for chrome; `*Fill` (solid) is reserved
  *    for binary "on" states and emphasis (e.g. Zap=flashlight fill, pinned pin).
- * 4. Panel toggles: `PanelToggleIcon` — open = RiLayoutLeft/RightFill (filled
- *    side rail); closed = RiLayoutLeft/RightLine. See components/ui/PanelToggleIcon.tsx.
+ * 4. Panel toggles: `PanelToggleIcon` — always RiLayoutLeft/RightLine.
+ *    Open is accent color on that outline, not a Fill glyph.
  * 5. Color: parent owns `text-*` / pressed bg; icons inherit currentColor via fill.
  * 6. RemixIcon glyphs are fill-based and read slightly larger than stroke icons
  *    at equal px — the scale below is tuned for that optical weight.

@@ -30,11 +30,20 @@ test("PrimaryNav lives on the sidebar primary header (dropdown + compact icons)"
   assert.match(nav, /kind: "inbox"/);
   assert.match(nav, /kind: "outputs"/);
   assert.match(nav, /variant = "sidebar"/);
-  // Sidebar: one quiet dropdown trigger (not a 3-up segmented rail).
+  // Sidebar: one 32px icon trigger. Names stay in the menu, not on the closed button.
   assert.match(nav, /data-primary-nav="sidebar"/);
   assert.match(nav, /DropdownMenu/);
   assert.match(nav, /aria-haspopup="menu"/);
-  assert.match(nav, /<span className="truncate">\{activeLabel\}<\/span>/);
+  assert.match(nav, /v4-sidebar-chrome-btn/);
+  assert.match(nav, /data-sidebar-destination=\{active\}/);
+  assert.match(nav, /\{t\(opt\.labelKey\)\}/);
+  assert.doesNotMatch(nav, /\{activeLabel\}<\/span>/);
+  assert.match(nav, /kind:\s*"home"/);
+  const homeAt = nav.indexOf('kind: "home"');
+  const homeSlice = nav.slice(homeAt, nav.indexOf('kind: "stream"', homeAt));
+  assert.match(homeSlice, /RiHome4Line/);
+  assert.doesNotMatch(homeSlice, /RiNewspaperLine/);
+  assert.match(nav, /kind:\s*"stream"[\s\S]{0,80}RiNewspaperLine/);
   // Compact: icon-only chips still carry data-nav-kind for tests/automation.
   assert.match(nav, /data-nav-kind=\{opt\.kind\}/);
   const status = read("src/components/shell/StatusBar.tsx");

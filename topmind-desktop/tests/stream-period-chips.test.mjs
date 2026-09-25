@@ -24,7 +24,7 @@ test("period chips bind 未整理 to p.reconciled and keep it on the active peri
 test("capture / write skill dock icons match the labeled skill", () => {
   const src = read("src/components/ai/ChatInput.tsx");
   assert.match(src, /"topmind-capture": RiStickyNoteAddLine/);
-  assert.match(src, /"topmind-write": RiQuillPenLine/);
+  assert.match(src, /"topmind-write": RiBallPenLine/);
   assert.doesNotMatch(src, /"topmind-capture": RiLightbulbLine/);
 });
 

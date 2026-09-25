@@ -311,7 +311,7 @@ Treat third-party code as **trusted by install** (Obsidian-like). Do not install
 ### Permissions vocabulary (enforced for external)
 
 ```text
-slot:dataSource | slot:sidebar | slot:view | slot:action | slot:settings |
+slot:dataSource | slot:view | slot:action | slot:settings |
 slot:overlay | slot:statusBar | slot:contextMenu
 rpc:workspace | rpc:system | rpc:ai | rpc:tool | rpc:weread | rpc:x
 fs:read-workspace | fs:write-workspace

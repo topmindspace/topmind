@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 /**
- * topmind Design Tokens — Design System 4.0.1 "ZCode Neutral + MD3-informed"
- * (4.0.1: dual-theme color refinement · typography scale cleanup · paper tokens ·
- *  stale-hex purge — 2026-09-17)
+ * topmind Design Tokens — Design System 4.0.4 "ZCode Neutral + MD3-informed"
+ * (4.0.4: warm paper / lifted graphite for long sessions · UI type floor 12px ·
+ *  quaternary ink lifted to AA on the chrome plane — 2026-09-24)
  *
  * Brand: sky axis (deep #075985 → mid #0ea5e9) + capture teal #2fa89a.
  * Solid CTA = monochrome ink. Sky = focus / links / selection / accent washes.
@@ -30,19 +30,19 @@
   /* ── Colors (light) ──
      Ladder: chrome → soft canvas → near-white surface → pure-white elevated.
      Ink steps are evenly spaced for long scanning without muddy mid-tones. */
-  --color-app-chrome: #eeeeee;
-  --color-background: #f4f4f4;
-  --color-surface: #fafafa;
-  --color-surface-elevated: #ffffff;
-  --color-surface-muted: #f0f0f0;
-  --color-surface-inset: #e8e8e8;
-  --color-sidebar: #ececec;
-  --color-text-primary: #232323;
-  --color-text-secondary: #4e4e4e;
-  --color-text-tertiary: #6a6a6a;
-  --color-text-quaternary: #7c7c7c;
+  --color-app-chrome: #f1efe8;
+  --color-background: #f3f1eb;
+  --color-surface: #f7f5f0;
+  --color-surface-elevated: #fffcf7;
+  --color-surface-muted: #efece5;
+  --color-surface-inset: #e4e0d7;
+  --color-sidebar: #e2ded6;
+  --color-text-primary: #242220;
+  --color-text-secondary: #4a4743;
+  --color-text-tertiary: #5c5853;
+  --color-text-quaternary: #635f59;
   /* Prose body — one step softer than UI primary for long reading */
-  --color-text-prose: #2c2c2c;
+  --color-text-prose: #2e2c28;
   /* Hairlines: pure-black alpha */
   --color-border-subtle: rgba(23, 23, 23, 0.10);
   --color-border-subtle-dim: rgba(23, 23, 23, 0.06);
@@ -134,13 +134,13 @@
   --color-on-success-container: var(--color-status-success);
 
   /* Editor paper tones (canvas only — never global chrome) */
-  --color-paper-soft: #f2f0ea;
-  --color-paper-cream: #faf7f0;
-  --color-paper-sepia: #f4ecdf;
+  --color-paper-soft: #f1ece3;
+  --color-paper-cream: #f8f3ea;
+  --color-paper-sepia: #f3eadc;
 
   /* Surface interaction states */
   --color-surface-hover: rgba(23, 23, 23, 0.045);
-  --color-surface-elevated-hover: #f5f5f5;
+  --color-surface-elevated-hover: #f4f0e8;
   /* Neutral selected wash (ZCode sidebar selection) — tree adds an accent inset bar on top */
   --color-surface-selected: rgba(23, 23, 23, 0.06);
   --color-text-on-accent: #ffffff;
@@ -239,8 +239,8 @@
   --type-size-body: 14px;
 
   /* Layout density */
-  --density-page-x: 28px;
-  --density-page-y: 24px;
+  --density-page-x: 32px;
+  --density-page-y: 28px;
   --density-chrome-y: 44px;
   --density-chrome-control: 32px;
   --density-status-y: 26px;
@@ -255,9 +255,9 @@
   --type-weight-medium: var(--font-weight-medium);
   --type-weight-strong: var(--font-weight-semibold);
 
-  /* Leading — UI denser, prose looser (editor 16/1.72) */
-  --type-leading-compact: 1.35;
-  --type-leading-ui: 1.5;
+  /* Leading — UI a touch looser for long sessions; prose stays 16/1.72 */
+  --type-leading-compact: 1.4;
+  --type-leading-ui: 1.55;
   --type-leading-body: 1.72;
   --type-leading-heading-tight: 1.22;
   --type-leading-heading: 1.3;
@@ -269,10 +269,10 @@
   --tracking-wide: var(--letter-spacing-wide);
 
   /* Type scale — integer steps for CJK+Latin workbench
-     5xs/4xs = kbd & badge only · UI floor 12px · base 14 · title 16 · section 18 */
+     5xs = kbd glyphs only · 4xs/3xs = 12px UI floor · base 14 · title 16 · section 18 */
   --text-5xs: 10px;
   --text-5xs--line-height: var(--type-leading-compact);
-  --text-4xs: 11px;
+  --text-4xs: 12px;
   --text-4xs--line-height: var(--type-leading-compact);
   --text-3xs: 12px;
   --text-3xs--line-height: var(--type-leading-compact);
@@ -404,19 +404,20 @@
   .dark {
     color-scheme: dark;
     /* Graphite ladder — rails deepest → canvas → paper → elevated modal plane */
-    --color-app-chrome: #131313;
-    --color-background: #161616;
-    --color-surface: #1b1b1b;
-    --color-surface-elevated: #242424;
-    --color-surface-muted: #1f1f1f;
-    --color-surface-inset: #0e0e0e;
-    --color-sidebar: #0c0c0c;
-    /* Long-read dark ink: primary bright enough for AA, prose one step softer */
-    --color-text-primary: #e6e6e6;
-    --color-text-secondary: #bcbcbc;
-    --color-text-tertiary: #969696;
-    --color-text-quaternary: #7e7e7e;
-    --color-text-prose: #d8d8d8;
+    --color-app-chrome: #171614;
+    --color-background: #1c1a17;
+    --color-surface: #221f1c;
+    --color-surface-elevated: #2b2824;
+    --color-surface-muted: #262320;
+    --color-surface-inset: #12110f;
+    --color-sidebar: #141311;
+    /* Long-read dark ink: primary bright enough for AA, prose one step softer.
+       Quaternary stays above the tertiary step and still clears AA on elevated. */
+    --color-text-primary: #e8e4de;
+    --color-text-secondary: #c8c2b8;
+    --color-text-tertiary: #a8a196;
+    --color-text-quaternary: #988f86;
+    --color-text-prose: #d9d4cc;
     --color-border-subtle: rgba(255, 255, 255, 0.10);
     --color-border-subtle-dim: rgba(255, 255, 255, 0.06);
     --color-border-strong: rgba(255, 255, 255, 0.18);
@@ -455,7 +456,7 @@
     --color-badge-alert-foreground: #451a03;
 
     --color-surface-hover: rgba(255, 255, 255, 0.055);
-    --color-surface-elevated-hover: #2a2a2a;
+    --color-surface-elevated-hover: #342f2a;
     --color-surface-selected: rgba(255, 255, 255, 0.09);
     --color-text-on-accent: #0a0a0a;
 

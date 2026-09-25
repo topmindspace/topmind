@@ -174,7 +174,12 @@ export type Selection =
   /** 我的情况 browse — profile + periodic + topic memory as a feed (not a sixth concept). */
   | { kind: 'memory' }
   /** Connector hub views (weread / x) — light center pages, not a second truth store. */
-  | { kind: 'connector'; id: string };
+  | { kind: 'connector'; id: string }
+  /**
+   * In-workspace main canvas. Not a PrimaryNav anchor and not the deleted
+   * dashboard (no greeting, pins, due board, or connector strip).
+   */
+  | { kind: 'home' };
 
 const KNOWN_SELECTION_KINDS = new Set([
   "inbox",
@@ -186,12 +191,32 @@ const KNOWN_SELECTION_KINDS = new Set([
   "archive",
   "memory",
   "connector",
+  "home",
 ]);
 
-/** Unknown / persisted junk kinds collapse to stream. */
+/** Canvas shown once a workspace is open, and the fallback for null / unknown kinds. */
+export function defaultCanvasSelection(): Selection {
+  return { kind: "home" };
+}
+
+/**
+ * Selection after the active file tab closes.
+ * A remaining tab stays on that file; the last tab lands on the in-workspace home.
+ */
+export function selectionAfterFileTabsClose(remainingPaths: readonly string[]): Selection {
+  const next = remainingPaths.find((p) => typeof p === "string" && p.trim().length > 0);
+  if (!next) return defaultCanvasSelection();
+  const parts = next.split("/");
+  const topicId = parts.length >= 3 ? `${parts[0]}/${parts[1]}` : undefined;
+  return topicId
+    ? { kind: "file", path: next, topicId }
+    : { kind: "file", path: next };
+}
+
+/** Unknown / persisted junk kinds collapse to the in-workspace home. Explicit kinds stay. */
 export function normalizeSelection(sel: Selection | { kind: string } | null | undefined): Selection {
-  if (!sel || typeof sel !== "object" || !("kind" in sel)) return { kind: "stream" };
-  if (!KNOWN_SELECTION_KINDS.has((sel as { kind: string }).kind)) return { kind: "stream" };
+  if (!sel || typeof sel !== "object" || !("kind" in sel)) return defaultCanvasSelection();
+  if (!KNOWN_SELECTION_KINDS.has((sel as { kind: string }).kind)) return defaultCanvasSelection();
   return sel as Selection;
 }
 

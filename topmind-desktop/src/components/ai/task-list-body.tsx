@@ -9,7 +9,7 @@ import {
   RiCloseCircleLine,
   RiCloseLine,
   RiLoader4Line,
-  RiMagicLine,
+  RiSortDesc,
   RiSparklingLine,
   RiTimeLine,
 } from "@remixicon/react";
@@ -52,7 +52,7 @@ export function TaskListBody({ compact = false }: { compact?: boolean }) {
             onClick={() => void createTask("reconcile")}
             className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] border border-accent-border-subtle bg-accent-bg-subtle px-2.5 py-1 text-3xs font-medium text-accent-color transition-colors hover:bg-accent-bg-subtle/80"
           >
-            <RiMagicLine size={ICON.micro} />
+            <RiSortDesc size={ICON.micro} />
             {t("taskPanel.taskTypeReconcile")}
           </button>
           <button

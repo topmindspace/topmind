@@ -1,39 +1,41 @@
 /**
- * PrimaryNav — 动态 / Inbox / 交付 (the three product destinations).
+ * PrimaryNav — workspace home · 动态 / Inbox / 交付.
  *
- * Placement (2026-09 header lift):
- * - **Sidebar** (`variant="sidebar"`): one compact dropdown trigger on the
- *   *primary* header row, next to Profile / Search / 记一下. Destinations
- *   stay one hop from the other primary actions; the secondary row is only
- *   ViewSwitcher + tree tools.
- * - **TitleBar compact** (`variant="compact"`): icon-only chips when the sidebar
- *   is collapsed so destinations stay reachable.
- *
- * StatusBar no longer hosts PrimaryNav: that bar is status (path · AI · busy),
- * not navigation. Search is never a peer here (⌘K / ⌘P).
+ * One icon button on the sidebar header row, the same 32px box as
+ * Profile / Search / 记一下. The menu lists 工作区 · 动态 · Inbox · 交付.
+ * Home is the open-workspace canvas, not a fourth product concept, and it does
+ * uses the home glyph (`RiHome4Line`). 动态 uses `RiNewspaperLine`.
+ * Compact icon chips mount on the TitleBar only when the sidebar is collapsed.
+ * StatusBar does not host this control. Search stays ⌘K / ⌘P.
  * Icons stay Line-only — active state is color, not a Fill glyph.
  */
 import { useState } from "react";
 import {
-  RiArrowDownSLine,
   RiCheckLine,
   RiHome4Line,
   RiInbox2Line,
+  RiNewspaperLine,
   RiShareForwardLine,
 } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { useViewStore } from "../../stores/view-store";
 import { cn } from "../../lib/kit";
 import { ICON } from "../../lib/icons";
-import { primaryViewSwitchKind } from "../../lib/titlebar-identity";
+import { destinationSwitchKind } from "../../lib/titlebar-identity";
 import { Tooltip } from "../ui/tooltip";
 import { DropdownItem, DropdownMenu } from "../ui/DropdownMenu";
 import type { Selection } from "../../types";
 
 export const PRIMARY_NAV_OPTIONS = [
   {
-    kind: "stream" as const,
+    kind: "home" as const,
     icon: RiHome4Line,
+    labelKey: "primaryNav.home",
+    tipKey: "primaryNav.homeTip",
+  },
+  {
+    kind: "stream" as const,
+    icon: RiNewspaperLine,
     labelKey: "primaryNav.stream",
     tipKey: "primaryNav.streamTipIdle",
   },
@@ -57,13 +59,14 @@ export function PrimaryNav({ variant = "sidebar" }: { variant?: PrimaryNavVarian
   const { t } = useTranslation("shell");
   const selection = useViewStore((s) => s.selection);
   const select = useViewStore((s) => s.select);
-  const active = primaryViewSwitchKind(selection.kind);
+  const active = destinationSwitchKind(selection.kind);
   const compact = variant === "compact";
   const [open, setOpen] = useState(false);
 
   const activeOpt = PRIMARY_NAV_OPTIONS.find((o) => o.kind === active) ?? PRIMARY_NAV_OPTIONS[0];
   const ActiveIcon = activeOpt.icon;
   const activeLabel = t(activeOpt.labelKey);
+  const activeTip = t(activeOpt.tipKey);
 
   if (compact) {
     return (
@@ -107,7 +110,7 @@ export function PrimaryNav({ variant = "sidebar" }: { variant?: PrimaryNavVarian
       data-primary-nav="sidebar"
       data-status-primary-nav=""
       data-view-switcher
-      className="min-w-0 max-w-[9.5rem]"
+      className="shrink-0"
     >
       <DropdownMenu
         open={open}
@@ -116,24 +119,20 @@ export function PrimaryNav({ variant = "sidebar" }: { variant?: PrimaryNavVarian
         minWidth={180}
         matchTriggerWidth={false}
         trigger={
-          <Tooltip content={t(activeOpt.tipKey)} side="bottom">
+          <Tooltip content={`${activeLabel} · ${activeTip}`} side="bottom">
             <button
               type="button"
               aria-haspopup="menu"
               aria-expanded={open}
               aria-label={activeLabel}
+              data-sidebar-destination={active}
               onClick={() => setOpen((v) => !v)}
               className={cn(
-                "flex h-8 w-full min-w-0 items-center gap-1.5 rounded-md border border-border-subtle-dim",
-                "bg-surface-muted/40 px-2 text-xs font-medium text-text-secondary",
-                "transition-colors hover:bg-surface-muted/70 hover:text-text-primary",
-                open && "bg-surface-muted/70 text-text-primary",
-                "v4-focus-ring",
+                "v4-icon-btn v4-sidebar-chrome-btn rounded-md text-accent-color v4-focus-ring",
+                open && "bg-surface-hover text-text-primary",
               )}
             >
-              <ActiveIcon size={ICON.xs} className="shrink-0 text-accent-color" aria-hidden />
-              <span className="truncate">{activeLabel}</span>
-              <RiArrowDownSLine size={ICON.nano} className="ml-auto shrink-0 opacity-60" aria-hidden />
+              <ActiveIcon size={ICON.sm} className="shrink-0" aria-hidden />
             </button>
           </Tooltip>
         }

@@ -10,7 +10,7 @@ import {
   RiArrowRightSLine,
   RiAttachmentLine,
   RiBold,
-  RiBrainLine,
+  RiUserLine,
   RiCalendarEventLine,
   RiCodeBoxLine,
   RiCodeLine,
@@ -311,7 +311,7 @@ export function FileEditorTitleBarActions({
       {resolvedTopicId ? (
         <Tooltip content={t("workspace:formatBarOptions.appendToMemory")}>
           <button type="button" className="v4-titlebar-btn" onClick={onMemory} aria-label={t("workspace:formatBarOptions.appendToMemory")}>
-            <RiBrainLine size={ICON.sm} />
+            <RiUserLine size={ICON.sm} />
           </button>
         </Tooltip>
       ) : null}

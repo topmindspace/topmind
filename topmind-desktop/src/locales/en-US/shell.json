@@ -175,6 +175,8 @@
   },
   "primaryNav": {
     "ariaLabel": "Primary navigation",
+    "home": "Workspace",
+    "homeTip": "Workspace home",
     "stream": "Stream",
     "streamTipIdle": "This week's stream · ⌘⇧S",
     "inbox": "Inbox",
@@ -246,7 +248,7 @@
   "editorArea": {
     "loadingWorkspace": "Loading workspace…",
     "noViewMatch": "Can't open this view",
-    "noViewMatchHint": "Try another place, or go back to this week's stream",
+    "noViewMatchHint": "Try another place, or go back to the workspace home",
     "backToStream": "Back to stream",
     "goStream": "Go to stream",
     "swapPanes": "Swap with left",

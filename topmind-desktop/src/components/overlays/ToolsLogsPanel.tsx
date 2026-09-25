@@ -16,7 +16,7 @@ import {
   RiRefreshLine,
   RiFileTextLine,
   RiHistoryLine,
-  RiStethoscopeLine,
+  RiPulseLine,
   RiSparklingLine,
   RiArrowGoBackLine,
 } from "@remixicon/react";
@@ -34,7 +34,7 @@ const TABS: { id: TabId; icon: typeof RiBarChartBoxLine }[] = [
   { id: "overview", icon: RiBarChartBoxLine },
   { id: "ops", icon: RiHistoryLine },
   { id: "syslog", icon: RiFileTextLine },
-  { id: "health", icon: RiStethoscopeLine },
+  { id: "health", icon: RiPulseLine },
   { id: "care", icon: RiSparklingLine },
 ];
 
@@ -242,7 +242,7 @@ export function ToolsLogsPanel() {
         aria-label={t("toolsLogs.title")}
       >
         <div className="mb-1.5 flex items-center gap-2 px-1.5 py-1">
-          <RiStethoscopeLine size={ICON.xs} className="shrink-0 text-accent-color" aria-hidden />
+          <RiPulseLine size={ICON.xs} className="shrink-0 text-accent-color" aria-hidden />
           <span className="truncate text-3xs font-semibold text-text-primary">{t("toolsLogs.title")}</span>
         </div>
         {TABS.map(({ id, icon: Icon }) => (

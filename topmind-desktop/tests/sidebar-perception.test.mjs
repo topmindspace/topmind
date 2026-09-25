@@ -140,11 +140,13 @@ test("shipped tree uses classifier + inbox expand; refresh sits in tree toolbar"
   assert.doesNotMatch(sidebar, /data-sidebar-refresh/);
   assert.match(sidebar, /data-sidebar-header/);
   assert.match(sidebar, /data-sidebar-header-actions/);
-  // Sidebar header actions follow the platform: macOS pushes them right because
-  // its traffic lights sit in the empty left of this rail; Windows/Linux put them
-  // at the rail's left edge, where the window's edge is — right-aligning them
-  // there left a dead gap between the window edge and the controls.
-  assert.match(sidebar, /isMacOS \? "ml-auto justify-end" : "mr-auto justify-start"/);
+  // macOS reserves the traffic-light inset on the header row only.
+  // The view-mode row is left-aligned with the tree on every platform.
+  assert.match(sidebar, /isMacOS && "v4-mac-titlebar-pad"/);
+  assert.match(sidebar, /justify-start/);
+  assert.match(sidebar, /pl-1\.5/);
+  assert.doesNotMatch(sidebar, /isMacOS \? "v4-mac-titlebar-pad"/);
+  assert.doesNotMatch(sidebar, /ml-auto justify-end/);
   assert.match(sidebar, /data-sidebar-secondary-header/);
   assert.match(sidebar, /data-sidebar-tree-tools/);
   assert.match(sidebar, /<ViewSwitcher/);

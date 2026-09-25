@@ -1,6 +1,6 @@
 # topmind Desktop — 架构
 
-> **现状描述 + Target 标注**。源文件计数：`src/` 239 · `electron/` 117。  
+> **现状描述 + Target 标注**。源文件计数：`src/` 241 · `electron/` 118。  
 > **1 RPC · Stores（View / Ai / Action / Plugin / IngestStaging / Task / Todo）· 1 Shell · 5+2 Service · 7 插件槽**  
 > UI 真源：`DESIGN.md`。边界：`../PRODUCT-BOUNDARIES.md`。  
 > **实施锁**：[`../docs/ARCHITECTURE-RESET.md`](../docs/ARCHITECTURE-RESET.md)（写闸合闸 · 建议副驾 · 导航变薄）。
@@ -37,7 +37,7 @@
 | 响应式 chrome | **Done** — `ChromeOverflowActions` + TitleBar compact 互斥 + StatusBar 可点 |
 | connectors weread/x | **Done** — 共享 `electron/lib/connector-bridge.mjs`（settings+secret · patch 持久 · `writeConnectorNote` 经 kernel 写闸）；ADR `docs/adr/2026-08-02-connector-bridge.md` |
 | ingest 路由 | **Done** — Desktop commit 经 `resolveIngestRoute`（Kernel） |
-| PrimaryNav 默认 | **Done** — 动态 / Inbox / 交付（侧栏主 header `data-sidebar-primary-nav`；侧栏收起时 TitleBar 紧凑图标）；搜索由统一 ⌘K 触发器打开；selection 默认 `stream`；legacy home→stream；归档不在主锚 |
+| PrimaryNav | **Done** — 动态 / Inbox / 交付（侧栏主 header `data-sidebar-primary-nav`；侧栏收起时 TitleBar 紧凑图标）；搜索由统一 ⌘K 触发器打开；打开工作区后 selection 默认 `{ kind: "home" }`（工作区主页，不是第四主锚）；显式动态仍是 `stream`；未知 kind → home；归档不在主锚 |
 | 侧栏 thrift | **Done** — ViewSwitcher 主轨 stream/目录/时间；标签/看板「更多」 |
 | 关键词搜索诚实 | **Done** — notes-index + grep `truncated`/`scannedTotal`；GlobalSearch 截断提示（无 embedding） |
 | 建议可关 | **Done** — `ai.autoPrepareSuggestions`（默认开） |
@@ -272,20 +272,20 @@ ADR：`docs/adr/2026-07-16-desktop-agent-harness-upgrade.md`。
 
 > UI 像素与 IA 真源：`DESIGN.md` §0.0 / §0（**Design System 3.0 · ZCode Neutral**；token 数值真源 `src/styles/tokens.css`——见 `../docs/adr/2026-08-07-desktop-single-entry-dedupe.md` · `../docs/adr/2026-08-07-comprehensive-design-optimization.md`）。本节约架构职责 + **现状/目标**。
 
-### 目标 IA（Product target · **Done** Wave F–G + 2026-08-07 优化 · **动态（默认）**）
+### 目标 IA（Product target · **Done** Wave F–G + 2026-08-07 优化 · 工作区主页默认 · 动态显式）
 
 ```
 Shell（三列贯通 · 无横跨产品 header）
 ├── Sidebar — 左列
-│   ├── 主 header: SidebarHeaderActions（Profile → 搜索⌘K → 记一下，右对齐避开红绿灯）
-│   ├── 次级 header: ViewSwitcher 纯图标（动态 / 目录 / 时间 / 看板等）
+│   ├── 主 header: 目的地图标 → Profile → 搜索⌘K → 记一下（32px 一排；macOS 右对齐，其他系统左对齐）
+│   ├── 次级 header: ViewSwitcher 靠左；排序等树工具靠右
 │   ├── 内容区: TreeView / StreamView / TimelineView / TagsView / KanbanView
 │   └── 底栏: WorkspaceSwitcher
 ├── Center column
 │   ├── TitleBar（中栏顶栏 / data-canvas-chrome）
 │   │   ├── 左: 侧栏开关 + 前进/后退 + 面包屑导航 + 当前页标题
 │   │   └── 右: 动态注入按钮 slot + AI 列开关
-│   └── EditorArea — 默认动态主表面或 ViewSlot 编辑
+│   └── EditorArea — 默认工作区主页，或显式动态 / 其它 ViewSlot
 ├── AiWorkspace — 右列对等：对话 / 建议 / 清单 / 应用；Composer 钉列底
 ├── SuggestPopover — **建议确认列表**（嵌入建议 pane；专注模式浮动；openSuggestSurface）
 ├── StatusBar — 绿点 + 完整工作区路径；AI pill + 命名 busy chip（无 PrimaryNav）
@@ -296,32 +296,36 @@ Shell（三列贯通 · 无横跨产品 header）
 
 ### 现状（已收敛 · Phase B Done）
 
-PrimaryNav 文案与默认 selection 为 **动态 · Inbox · 交付**（搜索非 PrimaryNav：⌘K 命令面板 · ⌘P 笔记全文）（`selection: stream`）。  
-**2026-09 v4**：三列顶栏共用 `.v4-column-chrome`（44px）。Sidebar 主 header 顺序为 Profile → 搜索 → 记一下；视图切换（动态/Inbox/交付）是 TitleBar 左侧可点击下拉；面包屑第一层更长、可点击跳转上级。ViewSwitcher 在 Sidebar 次级 header 纯图标展示。编辑器大纲 / 外观 / 专注住在 FrontmatterBar。StatusBar 左端显示工作区完整路径。
-旧「工作台」主锚点已退役（**代码债**清零）；**HomeView 与 `kind:home` 产品类型已删除**（`normalizeSelection` 迁移历史状态 → stream）。归档不在主锚。
+PrimaryNav 文案为 **动态 · Inbox · 交付**（搜索非 PrimaryNav：⌘K 命令面板 · ⌘P 笔记全文）。打开工作区后的默认 selection 是 `{ kind: "home" }`（工作区主页）。显式动态仍是 `{ kind: "stream" }`。  
+**2026-09 v4**：三列顶栏共用 `.v4-column-chrome`（44px）。Sidebar 主 header 是一排 32px 图标：当前目的地（工作区用 `RiHome4Line`，动态用 `RiNewspaperLine`，Inbox，交付）→ Profile → 搜索 → 记一下。macOS 这一行在红绿灯留白内右对齐（`.v4-mac-titlebar-pad` 取代 8px 左内边距，全屏收起）；Windows/Linux 左对齐。次级 header 的 ViewSwitcher 靠左，树工具靠右，与目录树同一左缘。编辑器大纲 / 外观 / 专注住在 FrontmatterBar。StatusBar 左端显示工作区完整路径。中栏顶栏的「回到工作区」用首页图标。左右栏开关始终是线形图标。
+旧「工作台」主锚点已退役。**已删仪表盘**（问候 CTA、钉住卡、下一步/进行中/截止、最近专题材料条、连接器条）不得回来。`kind: "home"` 现在是工作区主页，不是那个仪表盘。`normalizeSelection` 把空值和未知 kind 收到主页；显式 `stream` 保持动态。归档不在主锚。
 
 ```
 Shell（data-through-columns）
 ├── Sidebar（ViewSwitcher: stream/category/timeline/tags/kanban · 底栏工作区切换）
 ├── Center: TitleBar canvas chrome · 面包屑+标题（左）· AI 列开关+动态注入（右）
-│         EditorArea（StreamDetailView · 文件编辑）
+│         EditorArea（工作区主页 · StreamDetailView · 文件编辑）
 ├── AiWorkspace（对话 / 建议 / 清单 / 应用；Composer 钉列底）
 ├── SuggestPopover（唯一完整建议确认列表 — 嵌入建议 pane）
 ├── StatusBar（deriveStatusBarBusy · 建议计数 chip · multi-AI 诚实）
 └── OverlayHost …
 ```
 
-### Stream 主表面（默认着陆 · 与代码一致）
+### 工作区主页（默认着陆 · 与代码一致）
 
-默认 `selection: { kind: "stream" }` → **`StreamDetailView`**（周期本浏览器，非旧 Home 仪表盘）。
+默认 `selection: { kind: "home" }` → **`WorkspaceHomeView`**。无文件、未知 selection、关掉最后一个文件标签都落在这里。主页展示当前工作区身份、六个既有入口（记一下、动态、Inbox、交付、我的情况、专题），以及周期 / Inbox / 交付的真实计数或最近条目。空工作区仍是这块结构，并写明是空的。
 
-**已删除、勿再文档化的 Home 仪表盘能力**：问候 CTA、钉住卡、下一步/进行中/截止、最近专题材料条、连接器条。那些只属于已删 `HomeView`。
+**已删除、勿再文档化的仪表盘能力**：问候 CTA、钉住卡、下一步/进行中/截止、最近专题材料条、连接器条。建议确认列表仍只在 AI 工作区建议 pane，不在主页，也不在动态。
+
+### Stream 主表面（动态 · 显式打开）
+
+显式 `selection: { kind: "stream" }` → **`StreamDetailView`**（周期本浏览器）。侧栏目的地下拉里的「动态」、⌘⇧S、命令面板 `goto.stream` 都走这条。工作区在同一个下拉里，但不是新概念；它使用 `RiHome4Line`，动态使用 `RiNewspaperLine`。
 
 **建议 / 审阅**：AI 工作区 **建议 pane**（`SuggestPopover` 确认列表；状态栏计数 chip 仅 count>0 · 不嵌 Stream 列表；画布顶 `SuggestEntryStrip` 已删）。侧栏 Profile + ⌘K「转到 · 我的情况」可达记忆浏览。
 
 ### StreamDetailView（主编辑区动态流 · 已实现）
 
-`selection: { kind: "stream" }` 或 legacy `home` → 同一组件：
+`selection: { kind: "stream" }` → 本组件（工作区主页是另一条 selection，不进这里）：
 
 - **数据源**：`api.ws.getStreamContext()` → `api.ws.read(periodRelPath)` + `api.ws.listStreamPeriods()`
 - **条目展示**：当前周期本条目按时间倒序卡片；可展开/折叠

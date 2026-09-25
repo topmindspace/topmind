@@ -352,7 +352,7 @@ export function CommandPalette() {
                       )}
                     >
                       <span className="min-w-0 truncate font-medium">{resolveLabel(a)}</span>
-                      <div className="ml-2 flex min-w-[5.5rem] shrink-0 items-center justify-end gap-2">
+                      <div className="ml-2 flex min-w-0 shrink-0 items-center justify-end gap-2">
                         {a.shortcut ? (
                           <kbd className="v4-kbd tabular-nums">{formatChord(a.shortcut)}</kbd>
                         ) : (

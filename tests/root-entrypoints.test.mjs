@@ -203,3 +203,18 @@ test("entry docs describe root scripts and do not keep known stale commands", ()
   }
   assert.doesNotMatch(rootReadme, /memory-archive/);
 });
+
+test("README.zh-CN.md stays a byte-copy of README.md (Chinese-default surfaces)", () => {
+  // Convention: README.md = 简体中文 default; README.zh-CN.md = full Chinese
+  // compatibility copy. A silent fork is how the two drift apart.
+  for (const dir of [".", "docs", "topmind-desktop", "utr", "browser-extension", "docs/images"]) {
+    const main = path.join(repoRoot, dir, "README.md");
+    const zh = path.join(repoRoot, dir, "README.zh-CN.md");
+    if (!fs.existsSync(main) || !fs.existsSync(zh)) continue;
+    assert.equal(
+      readText(path.join(dir, "README.zh-CN.md")),
+      readText(path.join(dir, "README.md")),
+      `${dir}/README.zh-CN.md must stay identical to ${dir}/README.md`,
+    );
+  }
+});

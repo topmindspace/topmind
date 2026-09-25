@@ -129,7 +129,7 @@ export function SettingsLayout({
     >
       <Tabs value={activeTab} onValueChange={onTabChange} className="flex w-full min-h-0">
         <TabsList
-          className="v4-sidebar-scroll v4-settings-nav m-2.5 mr-0 flex h-auto w-[188px] shrink-0 flex-col items-stretch gap-0.5 self-stretch overflow-y-auto rounded-[var(--radius-lg)] border border-border-subtle-dim bg-app-chrome/50 p-1.5 shadow-none ring-0"
+          className="v4-sidebar-scroll v4-settings-nav m-2.5 mr-0 flex h-auto w-[clamp(9.5rem,22vw,13.5rem)] min-w-0 shrink-0 flex-col items-stretch gap-0.5 self-stretch overflow-y-auto rounded-[var(--radius-lg)] border border-border-subtle-dim bg-app-chrome p-1.5 shadow-none ring-0"
           data-settings-nav
         >
           <div className="mb-1.5 shrink-0 px-0.5">
@@ -158,9 +158,10 @@ export function SettingsLayout({
                 <TabsTrigger
                   key={item.tab.id}
                   value={item.tab.id}
-                  className="h-8 justify-start gap-1.5 rounded-[var(--radius-md)] px-2 text-3xs text-text-secondary data-[state=active]:bg-accent-container data-[state=active]:font-semibold data-[state=active]:text-on-accent-container data-[state=active]:shadow-[var(--shadow-card)] data-[state=active]:ring-1 data-[state=active]:ring-border-subtle-dim"
+                  className="h-8 min-w-0 justify-start gap-1.5 overflow-hidden rounded-[var(--radius-md)] px-2 text-3xs text-text-secondary data-[state=active]:bg-accent-container data-[state=active]:font-semibold data-[state=active]:text-on-accent-container data-[state=active]:shadow-[var(--shadow-card)] data-[state=active]:ring-1 data-[state=active]:ring-border-subtle-dim"
                 >
-                  <item.tab.icon size={ICON.xs} className="shrink-0 opacity-70" /> {item.tab.label}
+                  <item.tab.icon size={ICON.xs} className="shrink-0 opacity-70" aria-hidden />
+                  <span className="min-w-0 flex-1 truncate text-left">{item.tab.label}</span>
                 </TabsTrigger>
               ),
             )

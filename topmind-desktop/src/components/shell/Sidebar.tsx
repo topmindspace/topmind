@@ -271,43 +271,44 @@ export function Sidebar() {
 
   return (
     <div className="v4-panel-contain v4-sidebar-rail flex h-full min-h-0 flex-col">
-      {/* Sidebar header — PrimaryNav + Profile + Search + 记一下.
-          PrimaryNav sits on this row so destination switching stays one hop
-          from the other primary actions. macOS right-aligns (traffic lights
-          own the left); Windows/Linux left-align (rail is the window edge). */}
+      {/* Sidebar header — destination + Profile + Search + 记一下.
+          macOS keeps the traffic-light reserve and right-aligns this cluster.
+          Windows/Linux left-align it at the rail edge. */}
       <div
-        className="v4-column-chrome v4-drag"
+        className={cn("v4-column-chrome v4-drag", isMacOS && "v4-mac-titlebar-pad")}
         data-sidebar-header
         data-column-chrome="left"
       >
         <div
           className={cn(
-            "v4-no-drag flex min-w-0 shrink-0 items-center gap-1",
-            isMacOS ? "ml-auto justify-end" : "mr-auto justify-start",
+            "v4-no-drag flex min-w-0 flex-1 items-center gap-1",
+            isMacOS ? "justify-end" : "justify-start",
           )}
           data-sidebar-header-actions
         >
-          <div className="min-w-0 shrink" data-sidebar-primary-nav>
+          <div className="v4-sidebar-destination" data-sidebar-primary-nav>
             <ErrorBoundary label={t("primaryNav.ariaLabel")}>
               <PrimaryNav variant="sidebar" />
             </ErrorBoundary>
           </div>
-          <SidebarHeaderActions />
+          <div className="v4-sidebar-header-tools gap-1" data-sidebar-header-tools>
+            <SidebarHeaderActions />
+          </div>
         </div>
       </div>
-      {/* View mode + tree tools — destinations no longer live here. */}
+      {/* View mode stays left with the tree. Sort and the other tree tools sit right. */}
       <div
-        className="flex h-10 shrink-0 items-center gap-1 overflow-hidden border-b border-border-subtle-dim px-1.5"
+        className="flex h-10 min-w-0 shrink-0 items-center justify-start gap-1 overflow-hidden border-b border-border-subtle-dim pl-1.5 pr-2"
         data-sidebar-secondary-header
       >
-        <div className="min-w-0 flex-1" data-sidebar-view-tools>
+        <div className="v4-sidebar-mode" data-sidebar-view-tools>
           <ErrorBoundary label={t("sidebar.viewSwitcher.ariaTablist")}>
             <ViewSwitcher active={viewMode} onChange={handleViewModeChange} enabled={enabledViews} iconOnly />
           </ErrorBoundary>
         </div>
         {viewMode === "category" ? (
           <div
-            className="flex shrink-0 items-center gap-0.5"
+            className="v4-sidebar-mode-tools flex items-center gap-0.5"
             data-sidebar-tree-tools
             ref={() => {
               notifyChromeSlots();
@@ -375,7 +376,7 @@ function SidebarHeaderActions() {
       <Tooltip content={t("titleBar.searchCommandTip")}>
         <button
           type="button"
-          className="v4-search-trigger v4-titlebar-btn shrink-0"
+          className="v4-search-trigger v4-titlebar-btn v4-sidebar-chrome-btn"
           data-sidebar-search
           onClick={() => emitLocal("overlay:open", { kind: "command-palette" })}
           onMouseEnter={() => { void import("../overlays/CommandPalette"); }}
@@ -387,7 +388,7 @@ function SidebarHeaderActions() {
       <Tooltip content={t("titleBar.captureTip")}>
         <button
           type="button"
-          className="v4-sidebar-capture v4-titlebar-btn shrink-0"
+          className="v4-sidebar-capture v4-titlebar-btn v4-sidebar-chrome-btn"
           data-chrome-tier="l1"
           data-sidebar-capture
           onMouseEnter={() => { void import("../overlays/QuickCapture"); }}
@@ -424,7 +425,7 @@ function ProfileButton() {
           })();
         }}
         className={cn(
-          "v4-icon-btn h-(--density-chrome-control,32px) w-(--density-chrome-control,32px) shrink-0 rounded-full v4-focus-ring",
+          "v4-icon-btn v4-sidebar-chrome-btn shrink-0 rounded-full v4-focus-ring",
           active
             ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
             : "bg-surface-muted/40 text-text-secondary hover:bg-surface-hover hover:text-text-primary",

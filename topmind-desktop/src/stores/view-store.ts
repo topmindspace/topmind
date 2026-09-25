@@ -9,8 +9,10 @@ import {
   type OverlayContext,
   type FeedLayout,
   DEFAULT_FEED_LAYOUT,
+  defaultCanvasSelection,
   isFeedLayout,
   normalizeSelection,
+  selectionAfterFileTabsClose,
 } from "../types";
 import type { Theme } from "../lib/theme";
 import {
@@ -296,7 +298,7 @@ function commitSelect(
 }
 
 export const useViewStore = create<ViewState>((set, get) => ({
-  selection: { kind: "stream" },
+  selection: defaultCanvasSelection(),
   select: (sel) => {
     const next = normalizeSelection(sel);
     const prev = get().selection;
@@ -318,7 +320,7 @@ export const useViewStore = create<ViewState>((set, get) => ({
     set((s) => commitSelect(s, next));
   },
 
-  history: [{ kind: "stream" }],
+  history: [defaultCanvasSelection()],
   historyIndex: 0,
   back: () => {
     const s = get();
@@ -373,17 +375,11 @@ export const useViewStore = create<ViewState>((set, get) => ({
       const clearSplit = s.splitSecondaryPath === path ? { splitSecondaryPath: null as string | null } : {};
       // If closing the active file, jump to next tab or home
       if (s.selection.kind === "file" && s.selection.path === path) {
-        const next = fileTabs[0];
-        if (next) {
-          const parts = next.path.split("/");
-          const topicId = parts.length >= 3 ? `${parts[0]}/${parts[1]}` : undefined;
-          return {
-            fileTabs,
-            selection: { kind: "file" as const, path: next.path, topicId },
-            ...clearSplit,
-          };
+        const selection = selectionAfterFileTabsClose(fileTabs.map((t) => t.path));
+        if (selection.kind === "file") {
+          return { fileTabs, selection, ...clearSplit };
         }
-        return { fileTabs, selection: { kind: "stream" as const }, splitSecondaryPath: null };
+        return { fileTabs, selection, splitSecondaryPath: null };
       }
       return { fileTabs, ...clearSplit };
     }),
@@ -394,24 +390,15 @@ export const useViewStore = create<ViewState>((set, get) => ({
       persistFileTabs(s.workspaceRoot, fileTabs);
       const activePath = s.selection.kind === "file" ? s.selection.path : null;
       const stillOpen = activePath && fileTabs.some((t) => t.path === activePath);
-      if (stillOpen) {
-        const splitStill =
-          s.splitSecondaryPath && fileTabs.some((t) => t.path === s.splitSecondaryPath)
-            ? s.splitSecondaryPath
-            : null;
+      const splitStill =
+        s.splitSecondaryPath && fileTabs.some((t) => t.path === s.splitSecondaryPath)
+          ? s.splitSecondaryPath
+          : null;
+      if (stillOpen || s.selection.kind !== "file") {
         return { fileTabs, splitSecondaryPath: splitStill };
       }
-      if (fileTabs[0]) {
-        const p = fileTabs[0].path;
-        const parts = p.split("/");
-        const topicId = parts.length >= 3 ? `${parts[0]}/${parts[1]}` : undefined;
-        return {
-          fileTabs,
-          selection: { kind: "file" as const, path: p, topicId },
-          splitSecondaryPath: null,
-        };
-      }
-      return { fileTabs, selection: { kind: "stream" as const }, splitSecondaryPath: null };
+      const selection = selectionAfterFileTabsClose(fileTabs.map((t) => t.path));
+      return { fileTabs, selection, splitSecondaryPath: null };
     }),
   closeOtherFileTabs: (path) =>
     set((s) => {

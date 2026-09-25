@@ -97,7 +97,7 @@ describe("editor focusHeading / pending review / task in AI", () => {
     assert.match(en.editor.focusHeadingMiss, /not found/i);
   });
 
-  it("AI TaskBadge and shared TaskListBody exist; home i18n namespace gone", () => {
+  it("AI TaskBadge and shared TaskListBody exist; home i18n is the workspace page", () => {
     const ai = fs.readFileSync(path.join(root, "src/components/ai/AiPanel.tsx"), "utf8");
     assert.match(ai, /function TaskBadge/);
     const body = fs.readFileSync(
@@ -120,7 +120,10 @@ describe("editor focusHeading / pending review / task in AI", () => {
     const zh = JSON.parse(
       fs.readFileSync(path.join(root, "src/locales/zh-CN/workspace.json"), "utf8"),
     );
-    assert.equal(zh.home, undefined);
+    assert.equal(zh.home.capture, "记一下");
+    assert.equal(zh.home.stream, "动态");
+    assert.equal(zh.home.greeting, undefined);
+    assert.equal(zh.home.pinned, undefined);
     assert.ok(zh.shared);
   });
 });

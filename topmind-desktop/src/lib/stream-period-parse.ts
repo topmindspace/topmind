@@ -465,8 +465,9 @@ export function softSplitContentEntries(
 
 /**
  * Parse period note markdown into entries.
- * Days are newest-first; posts **within a day** stay file order (top → bottom,
- * morning before evening). Replies stay nested on each post in file order.
+ * Days are newest-first. The feed (`groupEntriesByDay`) then orders each day
+ * by clock time descending, keeping a same-minute batch in file order.
+ * Replies stay nested on each post in file order.
  * - CRLF-safe frontmatter
  * - Day / structural sections: first-level list items, 续 attached to the preceding item
  * - Named non-day ## → one 文章卡 (trailing 续 as replies)
@@ -522,8 +523,8 @@ export function parsePeriodNote(markdown: string): StreamEntry[] {
 
   const out: StreamEntry[] = [];
   for (let d = days.length - 1; d >= 0; d--) {
-    // Newest day first; chronological (file order) within the day so a batch
-    // of 记下 reads top-to-bottom instead of inverting the period note.
+    // Newest day first. Within a day the feed reorders by clock time
+    // (groupEntriesByDay); this array stays file order so append anchors hold.
     out.push(...days[d]!);
   }
   return out;
@@ -584,8 +585,40 @@ export function dayKeyFromEntry(entry: StreamEntry): { dayKey: string; dayLabel:
   return { dayKey: "other", dayLabel: "" };
 }
 
+function clockMinutesOf(body: string): number | null {
+  const stamp = extractBodyTimestamp(body);
+  if (!stamp) return null;
+  const m = stamp.match(/^(\d{1,2}):(\d{2})$/u);
+  if (!m) return null;
+  const hh = Number(m[1]);
+  const mm = Number(m[2]);
+  if (hh > 23 || mm > 59) return null;
+  return hh * 60 + mm;
+}
+
 /**
- * Group entries into day sections (order preserved — caller supplies day order).
+ * Later clock times first. Equal times keep the order they were passed in,
+ * so one capture batch is not flipped.
+ */
+function orderEntriesTimeDesc<T extends { body: string }>(entries: T[]): T[] {
+  return entries
+    .map((entry, i) => ({ entry, i }))
+    .sort((a, b) => {
+      const ta = clockMinutesOf(a.entry.body);
+      const tb = clockMinutesOf(b.entry.body);
+      if (ta == null && tb == null) return a.i - b.i;
+      if (ta == null) return 1;
+      if (tb == null) return -1;
+      if (tb !== ta) return tb - ta;
+      return a.i - b.i;
+    })
+    .map((row) => row.entry);
+}
+
+/**
+ * Group entries into day sections (caller supplies day order — newest day first
+ * when the list comes from `parsePeriodNote`).
+ * Within a day, later times come first; a same-minute batch stays in order.
  * `otherLabel` used when day cannot be inferred (i18n).
  */
 export function groupEntriesByDay(
@@ -606,6 +639,10 @@ export function groupEntriesByDay(
     }
     groups[gi].entries.push({ ...entry, index });
   });
+
+  for (const group of groups) {
+    group.entries = orderEntriesTimeDesc(group.entries);
+  }
 
   return groups;
 }

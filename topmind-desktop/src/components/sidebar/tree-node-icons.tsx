@@ -2,7 +2,7 @@
  * Tree sidebar icons — file type + node kind (Design System 2.0).
  */
 import {
-  RiBrainLine,
+  RiUserLine,
   RiFileCodeLine,
   RiFileLine,
   RiFileTextLine,
@@ -33,7 +33,7 @@ export function TreeNodeIcon({
   switch (node.kind) {
     case "group":
       if (node.id === "section/inbox") return <RiInbox2Line size={ICON.xs} className={className} />;
-      if (node.id === "section/memory") return <RiBrainLine size={ICON.xs} className={className} />;
+      if (node.id === "section/memory") return <RiUserLine size={ICON.xs} className={className} />;
       if (node.id === "section/outputs") return <RiShareForwardLine size={ICON.xs} className={className} />;
       if (node.id === "section/archive") return <RiInboxArchiveLine size={ICON.xs} className={className} />;
       return <RiFolderLine size={ICON.xs} className={className} />;

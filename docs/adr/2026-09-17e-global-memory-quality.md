@@ -52,12 +52,28 @@ No embeddings · no auto-forgetting · no persisted numeric scores · no JSON fa
 
 - Bullet shape: `- （YYYY-MM-DD）正文 <!-- fid:xxxxxxxx src:path reason:x -->`
 - `updateProfileEntry` archives superseded wording to history (`sup:newFid`) — audit trail
-- `appendMemoryJournal` → `.topmind/memory-journal.jsonl` (system plane)
+- `appendMemoryJournal` → `.topmind/memory-journal.jsonl`（system plane）
 - Desktop RPC: `listProfileFacts` · `profileHealth` · `searchProfile` · `restoreProfileFact`
+
+### Follow-up 2026-09-25 — Fusion floors (not blind append)
+
+`appendProfileEntry` is now a consolidation gate, not a raw append:
+
+| Score / shape | Action |
+|---|---|
+| exact key (1.0) | `skip duplicate-fact` |
+| containment (≥0.92) **and** `isContainmentNearDupe` | **fuse** — `updateProfileEntry` to the newest wording (one live line) |
+| Jaccard 0.72–0.91 | append (may be a distinct fact, e.g. numbered details); `memory_organize` / `findIntraProfileNearDups` emit a **confirm-gated** fuse card |
+| <0.72 | append as a new fact |
+
+- `factSimilarity` Latin suffix fold (`ing`/`ed`/s) + small irregular map (`prefers`/`preference` → `prefer`) so English inflection paraphrases clear the 0.72 floor. Numbered details (`item 1` vs `item 2`) stay below and never auto-fuse.
+- `compactProfileHistory` — collapse near-dup archive rows, keep the newest. `memory_organize` offers `compact_history` (confirm-gated).
+- `update`/`retire` fuzzy match returns `matchedText` / `matchExact` / `matchScore`; UI toast shows 「相似命中」.
+- **memory/ plane fence** — Desktop `save_file`/`edit_file` and Obsidian agent file tools cannot raw-rewrite `memory/`; writes must go through `append/update/retire_core_memory` or the Suggest confirm surface.
 
 ## Verification
 
 ```
-node --test tests/memory-quality.test.mjs tests/memory-consolidation.test.mjs
+node --test tests/memory-quality.test.mjs tests/memory-consolidation.test.mjs tests/memory-and-ai-alignment.test.mjs
 npm run root:test
 ```

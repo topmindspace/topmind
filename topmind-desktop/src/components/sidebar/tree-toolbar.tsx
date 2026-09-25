@@ -69,7 +69,7 @@ export function TreeToolbar({
   const filterActive = fileFilter !== "default";
 
   return (
-    <div className="flex shrink-0 items-center gap-0.5">
+    <div className="flex min-w-0 max-w-full items-center gap-0.5 overflow-hidden">
       {showStructureTools ? (
       <>
       <Tooltip content={t("sidebar.treeToolbar.expandAll")}>

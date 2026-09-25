@@ -189,7 +189,7 @@ function WereadHubView() {
 
   if (!settings?.weread?.enabled) {
     return (
-      <ViewContainer>
+      <ViewContainer className="v4-hub-page">
         <EmptyState
           icon={<RiBookOpenLine size={ICON.md} />}
           title={t("hub.notEnabled")}

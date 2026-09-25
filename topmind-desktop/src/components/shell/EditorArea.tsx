@@ -3,6 +3,7 @@ import { RiCloseLine, RiCompass3Line, RiHome4Line, RiLayoutColumnLine } from "@r
 import { useTranslation } from "react-i18next";
 import { useRegistry } from "../../plugins/registry";
 import { useViewStore } from "../../stores/view-store";
+import { defaultCanvasSelection } from "../../types";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/view";
 import { LazyBoundary } from "../ui/LazyBoundary";
@@ -31,13 +32,13 @@ function topicIdFromPath(path: string): string | undefined {
 
 /**
  * Main canvas. Always keeps tab strip when tabs exist and never leaves a
- * fully blank pane after closing all file tabs — falls back to stream.
+ * fully blank pane after closing all file tabs — falls back to the in-workspace home.
  *
  * Vertical split: session-only secondary path (对照) beside primary file
  * selection — not a dual navigation history.
  */
 export function EditorArea() {
-  const { t } = useTranslation("shell");
+  const { t } = useTranslation(["shell", "workspace"]);
   const selection = useViewStore((s) => s.selection);
   const resolveView = useRegistry((s) => s.resolveView);
   const select = useViewStore((s) => s.select);
@@ -51,7 +52,7 @@ export function EditorArea() {
 
   const effectiveSel: Selection = useMemo(() => {
     if (resolveView(selection)) return selection;
-    return { kind: "stream" };
+    return defaultCanvasSelection();
   }, [selection, resolveView, viewSlots.length]);
 
   const viewSlot = resolveView(effectiveSel);
@@ -61,11 +62,11 @@ export function EditorArea() {
     Boolean(splitSecondaryPath) &&
     splitSecondaryPath !== effectiveSel.path;
 
-  // Heal unknown/orphan selection → stream
+  // Heal unknown/orphan selection → in-workspace home
   useEffect(() => {
     if (viewSlots.length === 0) return;
     if (!resolveView(selection)) {
-      select({ kind: "stream" });
+      select(defaultCanvasSelection());
     }
   }, [selection, viewSlots.length, resolveView, select]);
 
@@ -86,9 +87,9 @@ export function EditorArea() {
             title={viewSlots.length === 0 ? t("editorArea.loadingWorkspace") : t("editorArea.noViewMatch")}
             hint={viewSlots.length === 0 ? undefined : t("editorArea.noViewMatchHint")}
             action={
-              <Tooltip content={t("editorArea.backToStream")}>
-                <Button variant="outline" size="sm" onClick={() => select({ kind: "stream" })}>
-                  <RiHome4Line size={ICON.xs} /> {t("editorArea.goStream")}
+              <Tooltip content={t("workspace:home.goHomeTip")}>
+                <Button variant="outline" size="sm" onClick={() => select(defaultCanvasSelection())}>
+                  <RiHome4Line size={ICON.xs} /> {t("workspace:home.goHome")}
                 </Button>
               </Tooltip>
             }

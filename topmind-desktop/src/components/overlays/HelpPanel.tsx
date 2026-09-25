@@ -14,7 +14,7 @@ import {
   RiRocketLine,
   RiSettingsLine,
   RiSparklingLine,
-  RiStethoscopeLine,
+  RiPulseLine,
 } from "@remixicon/react";
 import { useViewStore } from "../../stores/view-store";
 import { emitLocal } from "../../plugins/host";
@@ -142,7 +142,7 @@ export function HelpPanel() {
             {t("help.openSettings")}
           </Button>
           <Button size="sm" variant="ghost" onClick={openToolsLogs}>
-            <RiStethoscopeLine size={ICON.micro} className="mr-1" aria-hidden />
+            <RiPulseLine size={ICON.micro} className="mr-1" aria-hidden />
             {t("help.openTools")}
           </Button>
         </footer>
@@ -192,7 +192,7 @@ function StartTab({
               {t("help.openSettings")}
             </Button>
             <Button size="sm" variant="outline" onClick={onTools}>
-              <RiStethoscopeLine size={ICON.micro} className="mr-1" aria-hidden />
+              <RiPulseLine size={ICON.micro} className="mr-1" aria-hidden />
               {t("help.openTools")}
             </Button>
           </div>
@@ -414,7 +414,7 @@ function InlineActions({
         {t("help.openSettings")}
       </Button>
       <Button size="sm" variant="outline" onClick={onTools}>
-        <RiStethoscopeLine size={ICON.micro} className="mr-1" aria-hidden />
+        <RiPulseLine size={ICON.micro} className="mr-1" aria-hidden />
         {t("help.openTools")}
       </Button>
     </div>

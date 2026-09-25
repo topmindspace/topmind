@@ -25,7 +25,7 @@ import {
   RiMoonLine,
   RiQuestionLine,
   RiSettingsLine,
-  RiStethoscopeLine,
+  RiPulseLine,
   RiSunLine,
 } from "@remixicon/react";
 import { DropdownItem, DropdownMenu, DropdownSectionLabel } from "../ui/DropdownMenu";
@@ -418,7 +418,7 @@ export function WorkspaceSwitcher({
           <span className="min-w-0 flex-1 truncate">{t("titleBar.focusMode")}</span>
         </DropdownItem>
         <DropdownItem
-          icon={<RiStethoscopeLine size={ICON.xs} />}
+          icon={<RiPulseLine size={ICON.xs} />}
           shortcut={formatChord("⌘⇧L")}
           onSelect={() => {
             setOpen(false);

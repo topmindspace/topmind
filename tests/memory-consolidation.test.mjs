@@ -297,6 +297,148 @@ describe("appendProfileEntry live-section dedupe", () => {
     const live = readProfile().split("## 历史记录")[0];
     assert.ok(live.includes("可重新激活的事实"));
   });
+
+  it("near-duplicate append fuses into the existing live fact (keeps newest wording)", () => {
+    appendProfileEntry({
+      workspaceRoot: tmpDir,
+      entry: { section: "进行中的事", content: "- 推进 topmind 记忆机制设计" },
+    });
+    const fused = appendProfileEntry({
+      workspaceRoot: tmpDir,
+      entry: { section: "进行中的事", content: "- 推进 topmind 记忆机制设计联调" },
+    });
+    // Not a second live line — the near-dup became an in-place update.
+    assert.notEqual(fused.reason, "duplicate-fact");
+    const live = readProfile().split(/## 历史记录|## History/u)[0];
+    const liveHits = (live.match(/推进 topmind 记忆机制设计/gu) || []).length;
+    assert.equal(liveHits, 1, `expected one live line, got ${liveHits}:\n${live}`);
+    assert.match(live, /推进 topmind 记忆机制设计联调/u);
+  });
+});
+
+describe("update/retire fuzzy match diagnostics", () => {
+  beforeEach(setupWorkspace);
+  afterEach(cleanup);
+
+  it("updateProfileEntry reports the fact it actually rewrote on a paraphrase match", async () => {
+    appendProfileEntry({
+      workspaceRoot: tmpDir,
+      entry: { section: "进行中的事", content: "- 推进 topmind 记忆机制设计" },
+    });
+    const result = updateProfileEntry({
+      workspaceRoot: tmpDir,
+      // Paraphrase, not the exact bullet
+      match: "topmind 记忆机制设计推进",
+      content: "推进 topmind 记忆机制设计联调",
+    });
+    assert.equal(result.wroteFiles, true, JSON.stringify(result));
+    assert.equal(result.matchExact, false);
+    assert.match(String(result.matchedText || ""), /推进 topmind 记忆机制设计/u);
+    assert.ok(typeof result.matchScore === "number" && result.matchScore >= 0.72, String(result.matchScore));
+  });
+
+  it("irregular Latin folds (preference/prefers) share a key", async () => {
+    const { factSimilarity } = await import("../lib/memory-engine.mjs");
+    assert.ok(factSimilarity("preference dark mode", "prefers dark mode") >= 0.72);
+    assert.ok(factSimilarity("item 1 detail complete phrase", "item 2 detail complete phrase") < 0.72);
+  });
+
+  it("English inflection paraphrase still hits update (suffix fold)", async () => {
+    appendProfileEntry({
+      workspaceRoot: tmpDir,
+      entry: { section: "In progress", content: "- learn Rust async runtime" },
+    });
+    const result = updateProfileEntry({
+      workspaceRoot: tmpDir,
+      match: "Rust async learning",
+      content: "learn Rust async runtime and embedded",
+    });
+    assert.equal(result.wroteFiles, true, JSON.stringify(result));
+    assert.equal(result.matchExact, false);
+    assert.ok(Number(result.matchScore) >= 0.72, String(result.matchScore));
+  });
+
+  it("exact update is marked matchExact", async () => {
+    appendProfileEntry({
+      workspaceRoot: tmpDir,
+      entry: { section: "进行中的事", content: "- 精确匹配条目" },
+    });
+    const result = updateProfileEntry({
+      workspaceRoot: tmpDir,
+      match: "精确匹配条目",
+      content: "精确匹配条目（已更新）",
+    });
+    assert.equal(result.matchExact, true);
+  });
+});
+
+describe("consolidation helpers (fuse / history compact / topic dedupe)", () => {
+  beforeEach(setupWorkspace);
+  afterEach(cleanup);
+
+  it("findIntraProfileNearDups reports live near-dup pairs", async () => {
+    const { findIntraProfileNearDups } = await import("../lib/memory-engine.mjs");
+    // Seed two near-dup live lines directly (pre-fusion backlog the organizer
+    // must still be able to find and fold).
+    fs.mkdirSync(path.join(tmpDir, "memory"), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, "memory", "profile.md"),
+      `---
+title: 我的情况
+memory_layer: global
+---
+
+# 我的情况
+
+## 进行中的事
+
+- （2026-08-01）学习 Rust 异步运行时
+- （2026-08-12）学习 Rust 异步运行时进阶
+
+## 偏好
+
+- （2026-08-01）喜欢安静的工作环境
+`,
+      "utf8",
+    );
+    const pairs = findIntraProfileNearDups(tmpDir, { threshold: 0.72 });
+    assert.equal(pairs.length, 1, `expected 1 pair, got ${JSON.stringify(pairs)}`);
+    assert.match(pairs[0].keep.text, /进阶/u);
+    assert.match(pairs[0].merge.text, /学习 Rust 异步运行时$/u);
+  });
+
+  it("compactProfileHistory drops older near-dup archive rows, keeps newest", async () => {
+    const { compactProfileHistory } = await import("../lib/memory-engine.mjs");
+    appendProfileEntry({ workspaceRoot: tmpDir, entry: { section: "进行中的事", content: "- 旧版本事实：记忆机制设计中" } });
+    retireProfileEntry({ workspaceRoot: tmpDir, match: "旧版本事实：记忆机制设计中" });
+    appendProfileEntry({ workspaceRoot: tmpDir, entry: { section: "进行中的事", content: "- 旧版本事实：记忆机制设计中（更早）" } });
+    retireProfileEntry({ workspaceRoot: tmpDir, match: "旧版本事实：记忆机制设计中（更早）" });
+    const before = (readProfile().match(/旧版本事实/gu) || []).length;
+    assert.equal(before, 2);
+    const result = compactProfileHistory({ workspaceRoot: tmpDir, confirmed: true });
+    assert.equal(result.wroteFiles, true);
+    const after = (readProfile().match(/旧版本事实/gu) || []).length;
+    assert.equal(after, 1, `history should compact to 1, got ${after}:\n${readProfile()}`);
+  });
+
+  it("appendTopicEntry refuses to stack a near-duplicate topic fact", async () => {
+    const first = appendTopicEntry({
+      workspaceRoot: tmpDir,
+      slug: "rust",
+      entry: { content: "- 专题稳定记忆：Rust 所有权模型" },
+    });
+    assert.equal(first.wroteFiles, true);
+    const second = appendTopicEntry({
+      workspaceRoot: tmpDir,
+      slug: "rust",
+      entry: { content: "- 专题稳定记忆：Rust 所有权模型进阶" },
+    });
+    assert.equal(second.wroteFiles, false);
+    assert.ok(
+      second.reason === "duplicate-fact" || second.reason === "near-duplicate-fact",
+      `unexpected reason ${second.reason}`,
+    );
+  });
 });
 
 describe("profile section locale honesty", () => {
@@ -579,6 +721,54 @@ memory_layer: global
     assert.equal(updateSuggestions[0].kind, "promote_memory");
     assert.equal(updateSuggestions[0].payload.match, "学习 Rust 异步运行时");
     assert.equal(updateSuggestions[0].payload.content, "已转向学习 Rust 嵌入式开发");
+  });
+
+  it("near-duplicate profile candidates fuse into update, never a second live line", async () => {
+    fs.writeFileSync(
+      path.join(tmpDir, "memory", "profile.md"),
+      `---
+title: 我的情况
+memory_layer: global
+---
+
+# 我的情况
+
+## 进行中的事
+
+- （2026-08-01）推进 topmind 记忆机制设计
+`,
+      "utf8",
+    );
+    fs.mkdirSync(path.join(tmpDir, "10-动态"), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, "10-动态", "2026-W32.md"),
+      `# 2026-W32\n\n## 记录\n\n- 记忆机制设计进入联调阶段。\n`,
+      "utf8",
+    );
+    const aiProvider = {
+      async generate() {
+        return JSON.stringify({
+          // Semantically close to the live fact — must become update/merge.
+          profile: [{ text: "推进 topmind 记忆机制设计联调", section: "inProgress" }],
+          periodic: "",
+          retire: [],
+          update: [],
+        });
+      },
+    };
+    const out = await aiOps.runOperation({
+      id: "memory_organize",
+      workspaceRoot: tmpDir,
+      aiProvider,
+      contract: null,
+    });
+    assert.ok(out.ok, `memory_organize should succeed: ${JSON.stringify(out)}`);
+    const appends = (out.suggestions || []).filter((s) => s.payload?.action === "append_profile");
+    const merges = (out.suggestions || []).filter((s) => s.payload?.action === "update_profile");
+    assert.equal(appends.length, 0, `expected no append for near-dup, got ${JSON.stringify(appends)}`);
+    assert.equal(merges.length, 1, `expected one merge/update, got ${JSON.stringify(merges)}`);
+    assert.match(merges[0].payload.match, /推进 topmind 记忆机制设计/u);
+    assert.match(merges[0].payload.content, /推进 topmind 记忆机制设计联调/u);
   });
 
   it("applySuggestion(update_profile) replaces the live line in place", async () => {

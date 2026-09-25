@@ -10,7 +10,7 @@ import {
   RiFileTextLine,
   RiFolderOpenLine,
   RiLoader4Line,
-  RiMagicLine,
+  RiSortDesc,
   RiUser3Line,
 } from "@remixicon/react";
 import { api } from "../../../services/api";
@@ -267,7 +267,7 @@ export function MemoryBrowseView() {
             {organizing ? (
               <RiLoader4Line size={ICON.sm} className="animate-spin" />
             ) : (
-              <RiMagicLine size={ICON.sm} />
+              <RiSortDesc size={ICON.sm} />
             )}
             <span className="hidden sm:inline">{t("workspace:memoryBrowse.organize")}</span>
           </button>

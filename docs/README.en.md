@@ -102,7 +102,7 @@ Archive: [`./adr/`](./adr/). Index is **one line per decision** — read the ADR
 | [2026-09-17](./adr/2026-09-17-adversarial-deep-review.md) | Structural-plane fences · archive containment |
 | [2026-09-17](./adr/2026-09-17b-writeback-authorization-model.md) | locked=task snapshot · graded confirm |
 | [2026-09-17](./adr/2026-09-17c-adversarial-pass-fences-and-honesty.md) | Symlink fail-closed · memory single truth |
-| [2026-09-17](./adr/2026-09-17e-global-memory-quality.md) | Global memory quality (dupe/restore/inject) |
+| [2026-09-17](./adr/2026-09-17e-global-memory-quality.md) | Global memory quality (dupe/restore/inject) · 2026-09-25 fusion floors |
 
 Design proposals (non-ADR): [`./design/`](./design/).
 ---

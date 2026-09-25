@@ -209,21 +209,17 @@ const DEAD_PATTERNS = [
   },
   {
     id: "removed-home-view",
-    description: "HomeView was deleted — default surface is StreamDetailView; no living home product",
+    description: "Old HomeView dashboard name stays deleted. The living canvas is WorkspaceHomeView",
     regex: /\bHomeView\b/u,
     scope: ["src/**/*.ts", "src/**/*.tsx"],
     allowIn: ["scripts/check-dead-code.mjs"],
   },
   {
-    id: "no-living-home-selection",
-    description: "Selection must not reintroduce kind:home product surface",
-    regex: /kind:\s*['"]home['"]/u,
+    id: "no-dashboard-selection",
+    description: "Deleted dashboard selection stays banned. The in-workspace home is kind home",
+    regex: /kind:\s*['"]dashboard['"]/u,
     scope: ["src/**/*.ts", "src/**/*.tsx"],
-    allowIn: [
-      "scripts/check-dead-code.mjs",
-      // soft-heal migration only
-      "src/types.ts",
-    ],
+    allowIn: ["scripts/check-dead-code.mjs"],
   },
   {
     id: "no-duplicate-goto-home-action",
@@ -233,10 +229,17 @@ const DEAD_PATTERNS = [
     allowIn: ["scripts/check-dead-code.mjs"],
   },
   {
-    id: "no-workspace-home-i18n-namespace",
-    description: "Use workspace:shared.* for shared actions — home.* product namespace is deleted",
-    regex: /workspace:home\./u,
-    scope: ["src/**/*.ts", "src/**/*.tsx"],
+    id: "no-deleted-home-dashboard-i18n",
+    description: "Deleted dashboard copy stays banned. workspace:home.* is the living in-workspace home",
+    regex: /workspace:home\.(greeting|pinned|due|nextUp|materialStrip|connectorStrip)\b/u,
+    scope: ["src/**/*.ts", "src/**/*.tsx", "src/locales/**/*.json"],
+    allowIn: ["scripts/check-dead-code.mjs"],
+  },
+  {
+    id: "stream-not-home-glyph",
+    description: "动态 in the destination switcher must not use the workspace-home glyph RiHome4Line",
+    regex: /kind:\s*["']stream["'][\s\S]{0,80}RiHome4Line/u,
+    scope: ["src/components/shell/PrimaryNav.tsx"],
     allowIn: ["scripts/check-dead-code.mjs"],
   },
   {
@@ -278,15 +281,11 @@ const DEAD_PATTERNS = [
     allowIn: ["scripts/check-dead-code.mjs", "scripts/verify-pack.mjs"],
   },
   {
-    id: "stream-first-no-home-selection-product",
-    description: "Product selection must not revive kind:home as a living view",
-    regex: /kind:\s*["']home["']/u,
-    scope: ["src/**/*.ts", "src/**/*.tsx"],
-    allowIn: [
-      "scripts/check-dead-code.mjs",
-      "src/types.ts", // normalizeSelection may mention home for migration only
-      "tests/**",
-    ],
+    id: "home-no-suggest-confirm-list",
+    description: "In-workspace home must not host a suggestion confirm list or the deleted dashboard strips",
+    regex: /SuggestEntryStrip|<ActionBar[\s/>]|GreetingCta|PinnedCards|DueBoard|MaterialStrip|ConnectorStrip/u,
+    scope: ["src/plugins/topmind-workspace/views/WorkspaceHomeView.tsx"],
+    allowIn: ["scripts/check-dead-code.mjs"],
   },
   {
     id: "stream-no-pre-only-entry-rest",

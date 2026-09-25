@@ -279,8 +279,24 @@ const withWarnings = process.argv.includes("--all");
 const babel = await loadBabel();
 
 if (!babel) {
-  console.log("check-undeclared-idents: SKIPPED — @babel/parser unavailable");
-  console.log("  This is not a pass. Reinstall dependencies to restore the check.");
+  // The gate is only skippable in a pristine tree with no node_modules. Once
+  // dependencies are installed, a missing parser is a broken quality gate —
+  // silent exit 0 would hide an unaudited electron/ surface.
+  const hasNodeModules = (() => {
+    try {
+      statSync(join(repoRoot, "node_modules"));
+      return true;
+    } catch {
+      return false;
+    }
+  })();
+  console.error("check-undeclared-idents: @babel/parser + @babel/traverse unavailable");
+  console.error("  npm install --save-dev @babel/parser @babel/traverse @babel/types");
+  if (hasNodeModules) {
+    console.error("  FAIL — node_modules is present but the parser cannot load.");
+    process.exit(1);
+  }
+  console.log("check-undeclared-idents: SKIPPED — no node_modules yet");
   process.exit(0);
 }
 

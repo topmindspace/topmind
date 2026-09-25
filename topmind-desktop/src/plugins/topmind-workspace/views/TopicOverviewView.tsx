@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
   RiAddLine,
-  RiBrainLine,
+  RiUserLine,
   RiFileTextLine,
   RiFolderOpenLine,
 } from "@remixicon/react";
@@ -168,7 +168,7 @@ export function TopicOverviewView({ topicId }: Props) {
             onClick={() => openOverlay("quick-capture", { intent: "memory", topicId })}
             aria-label={t("workspace:topicOverview.memory")}
           >
-            <RiBrainLine size={ICON.sm} />
+            <RiUserLine size={ICON.sm} />
             <span className="hidden sm:inline">{t("workspace:topicOverview.memory")}</span>
           </button>
         </Tooltip>

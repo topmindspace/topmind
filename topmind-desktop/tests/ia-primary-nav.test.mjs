@@ -73,7 +73,8 @@ describe("Desktop primary IA target", () => {
   it("living Desktop DESIGN/ARCHITECTURE do not teach archive as a PrimaryNav peer", () => {
     const design = read("DESIGN.md");
     const arch = read("ARCHITECTURE.md");
-    assert.match(design, /中栏主锚点：动态（默认）/);
+    assert.match(design, /中栏主锚点：动态 · Inbox · 交付/);
+    assert.match(design, /主画布默认是工作区主页/);
     // 2026-09 v2: search is a unified ⌘K trigger, not a PrimaryNav anchor
     assert.match(design, /Inbox · 交付/);
     assert.match(design, /Inbox \/ 交付/);
@@ -191,15 +192,55 @@ describe("Desktop primary IA target", () => {
     assert.match(stream, /kind:\s*"memory"/);
   });
 
-  it("view-store default selection is stream", () => {
+  it("macOS sidebar header reserves the traffic-light inset", () => {
+    const sidebar = read("src/components/shell/Sidebar.tsx");
+    const css = read("src/styles/v4.css");
+    const nav = read("src/components/shell/PrimaryNav.tsx");
+    assert.match(sidebar, /isMacOS && "v4-mac-titlebar-pad"/);
+    assert.match(sidebar, /data-sidebar-header/);
+    assert.match(sidebar, /data-sidebar-secondary-header/);
+    assert.match(sidebar, /isMacOS \? "justify-end" : "justify-start"/);
+    assert.match(sidebar, /pl-1\.5/);
+    assert.match(css, /\.v4-sidebar-mode-tools \{[^}]*margin-left:\s*auto/);
+    // The view-mode row is below the traffic lights and stays on the tree edge.
+    assert.doesNotMatch(sidebar, /isMacOS \? "v4-mac-titlebar-pad"/);
+    assert.doesNotMatch(sidebar, /data-sidebar-secondary-header[\s\S]{0,240}v4-mac-titlebar-pad/);
+    assert.doesNotMatch(sidebar, /data-sidebar-header[^>]*v4-mac-titlebar-pad/);
+    assert.doesNotMatch(sidebar, /ml-auto justify-end/);
+    assert.match(css, /html\[data-fullscreen="true"\] \.v4-mac-titlebar-pad \{ padding-left: 0; \}/);
+    assert.match(css, /\.v4-mac-titlebar-pad \{ padding-left: 72px; \}/);
+    assert.match(css, /\.v4-column-chrome\.v4-mac-titlebar-pad \{\s*padding-left:\s*72px;\s*\}/);
+    // Closed destination trigger is one 32px icon; the menu still carries the names.
+    const sidebarAt = nav.indexOf('data-primary-nav="sidebar"');
+    const sidebarNav = nav.slice(sidebarAt, nav.indexOf("PRIMARY_NAV_OPTIONS.map", sidebarAt));
+    assert.match(sidebarNav, /v4-sidebar-chrome-btn/);
+    assert.match(sidebarNav, /data-sidebar-destination=\{active\}/);
+    assert.doesNotMatch(sidebarNav, /\{activeLabel\}<\/span>/);
+    assert.match(nav, /PRIMARY_NAV_OPTIONS\.map/);
+    assert.match(css, /\.v4-titlebar-btn\.v4-sidebar-chrome-btn[\s\S]*flex-shrink:\s*0/);
+    assert.match(css, /\.v4-sidebar-chrome-btn \{[^}]*width:\s*var\(--density-chrome-control,\s*32px\)/);
+    assert.match(sidebar, /v4-sidebar-chrome-btn/);
+    assert.doesNotMatch(css, /min-width:\s*6\.25rem/);
+    assert.doesNotMatch(css, /min-width:\s*5\.25rem/);
+    const toggle = read("src/components/ui/PanelToggleIcon.tsx");
+    assert.match(toggle, /RiLayoutLeftLine/);
+    assert.match(toggle, /RiLayoutRightLine/);
+    assert.doesNotMatch(toggle, /RiLayoutLeftFill|RiLayoutRightFill/);
+  });
+
+  it("view-store default selection is the in-workspace home", () => {
     const src = read("src/stores/view-store.ts");
-    assert.match(src, /selection:\s*\{\s*kind:\s*"stream"\s*\}/);
-    assert.match(src, /history:\s*\[\s*\{\s*kind:\s*"stream"\s*\}\s*\]/);
+    assert.match(src, /selection:\s*defaultCanvasSelection\(\)/);
+    assert.match(src, /history:\s*\[\s*defaultCanvasSelection\(\)\s*\]/);
+    assert.match(read("src/plugins/topmind-workspace/actions.ts"), /kind:\s*"stream"/);
+    assert.match(read("src/lib/shortcuts.ts"), /kind:\s*"stream"/);
   });
 
   it("locale primary labels are 动态 / Stream and 交付 / Delivery", () => {
     const zh = JSON.parse(read("src/locales/zh-CN/shell.json"));
     const en = JSON.parse(read("src/locales/en-US/shell.json"));
+    assert.equal(zh.primaryNav.home, "工作区");
+    assert.equal(en.primaryNav.home, "Workspace");
     assert.equal(zh.primaryNav.stream, "动态");
     assert.equal(zh.primaryNav.inbox, "Inbox");
     assert.equal(zh.primaryNav.outputs, "交付");
@@ -253,19 +294,36 @@ describe("Desktop primary IA target", () => {
     assert.match(src, /from "\.\/kernel-api\.mjs"/);
   });
 
-  it("navigation has no living home selection product", () => {
+  it("default canvas is the in-workspace home; explicit 动态 stays stream", () => {
     const editor = read("src/components/shell/EditorArea.tsx");
-    assert.match(editor, /select\(\{\s*kind:\s*"stream"\s*\}\)/);
-    assert.doesNotMatch(editor, /select\(\{\s*kind:\s*"home"\s*\}\)/);
+    assert.match(editor, /defaultCanvasSelection\(\)/);
+    assert.doesNotMatch(editor, /select\(\{\s*kind:\s*"stream"\s*\}\)/);
     const actions = read("src/plugins/topmind-workspace/actions.ts");
-    assert.match(actions, /goto\.stream[\s\S]{0,120}kind:\s*"stream"/);
+    assert.match(actions, /goto\.stream[\s\S]{0,160}kind:\s*"stream"/);
     assert.doesNotMatch(actions, /goto\.home/);
     const views = read("src/plugins/topmind-workspace/views.tsx");
-    assert.doesNotMatch(views, /sel\.kind === "home"/);
+    assert.match(views, /sel\.kind === "home"/);
+    assert.match(views, /WorkspaceHomeView/);
     assert.match(views, /StreamDetailView/);
+    assert.doesNotMatch(views, /\bHomeView\b/);
     const types = read("src/types.ts");
-    assert.doesNotMatch(types, /\| \{ kind: ['"]home['"] \}/);
+    assert.match(types, /\| \{ kind: ['"]home['"] \}/);
+    assert.match(types, /function defaultCanvasSelection/);
     assert.match(types, /normalizeSelection/);
+    const store = read("src/stores/view-store.ts");
+    assert.match(store, /defaultCanvasSelection\(\)/);
+    assert.match(store, /selectionAfterFileTabsClose/);
+    const nav = read("src/components/shell/PrimaryNav.tsx");
+    assert.match(nav, /kind:\s*"home"/);
+    assert.match(nav, /RiHome4Line/);
+    const homeAt = nav.indexOf('kind: "home"');
+    const homeSlice = nav.slice(homeAt, nav.indexOf('kind: "stream"', homeAt));
+    assert.match(homeSlice, /RiHome4Line/);
+    assert.doesNotMatch(homeSlice, /RiNewspaperLine/);
+    assert.match(nav, /primaryNav\.home/);
+    assert.match(nav, /primaryNav\.stream/);
+    assert.match(nav, /primaryNav\.inbox/);
+    assert.match(nav, /primaryNav\.outputs/);
   });
 
   it("connectors write note bodies via connector-bridge writeConnectorNote (kernel write gate)", () => {
@@ -277,12 +335,20 @@ describe("Desktop primary IA target", () => {
     assert.match(bridge, /kernelDurableWriteAbs/);
   });
 
-  it("HomeView component file is deleted; no home view slot", () => {
-    const homePath = path.join(root, "src/plugins/topmind-workspace/views/HomeView.tsx");
-    assert.equal(fs.existsSync(homePath), false, "HomeView.tsx must not exist");
+  it("WorkspaceHomeView is the default canvas; the old dashboard file stays deleted", () => {
+    const oldPath = path.join(root, "src/plugins/topmind-workspace/views/HomeView.tsx");
+    const homePath = path.join(root, "src/plugins/topmind-workspace/views/WorkspaceHomeView.tsx");
+    assert.equal(fs.existsSync(oldPath), false, "HomeView.tsx must not exist");
+    assert.equal(fs.existsSync(homePath), true, "WorkspaceHomeView.tsx is the living home");
     const views = read("src/plugins/topmind-workspace/views.tsx");
-    assert.doesNotMatch(views, /HomeView/);
-    assert.doesNotMatch(views, /topmind-workspace\.view\.home|sel\.kind === "home"/);
+    assert.match(views, /WorkspaceHomeView/);
+    assert.match(views, /topmind-workspace\.view\.home/);
+    assert.match(views, /sel\.kind === "home"/);
+    assert.doesNotMatch(views, /\bHomeView\b/);
+    const home = read("src/plugins/topmind-workspace/views/WorkspaceHomeView.tsx");
+    assert.match(home, /summarizeWorkspaceHome/);
+    assert.match(home, /quick-capture/);
+    assert.doesNotMatch(home, /SuggestEntryStrip|<ActionBar|GreetingCta|PinnedCards|DueBoard|MaterialStrip|ConnectorStrip|记下/);
   });
 
   it("shortcut and command labels do not teach living 工作台 home", () => {
@@ -358,9 +424,12 @@ describe("Desktop primary IA target", () => {
     assert.equal(typeof en.archiveView.goStreamTip, "string");
     assert.match(zh.archiveView.goStream, /动态/);
     assert.match(en.archiveView.goStream, /Stream/i);
-    // dead Home dashboard residue must not remain as living product chrome
-    assert.equal(zh.home, undefined);
-    assert.equal(en.home, undefined);
+    assert.equal(zh.home.capture, "记一下");
+    assert.equal(en.home.capture, "Note it");
+    assert.doesNotMatch(zh.home.capture, /记下/);
+    assert.equal(zh.home.greeting, undefined);
+    assert.equal(zh.home.pinned, undefined);
+    assert.equal(en.home.greeting, undefined);
     assert.ok(zh.shared?.newNote);
     assert.ok(en.shared?.newNote);
   });
@@ -374,7 +443,7 @@ describe("Desktop primary IA target", () => {
         if (ent.isDirectory()) walk(p);
         else if (/\.(tsx|ts)$/.test(ent.name)) {
           const text = fs.readFileSync(p, "utf8");
-          assert.doesNotMatch(text, /workspace:home\./);
+          assert.doesNotMatch(text, /workspace:home\.(greeting|pinned|due|nextUp|materialStrip|connectorStrip)/);
           for (const m of text.matchAll(/workspace:shared\.([a-zA-Z0-9_]+)/g)) {
             used.add(m[1]);
           }

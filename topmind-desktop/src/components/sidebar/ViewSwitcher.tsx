@@ -7,7 +7,7 @@ import { useMemo, useState } from "react";
 import {
   RiArrowDownSLine,
   RiCheckLine,
-  RiFileList3Line,
+  RiNewspaperLine,
   RiFolderOpenLine,
   RiLayoutColumnLine,
   RiListView,
@@ -25,7 +25,7 @@ const ALL_MODES: SidebarViewMode[] = ["category", "stream", "timeline", "tags", 
 
 /** Line-only glyphs. category uses an open folder — the default directory mode. */
 const VIEW_ICONS: Record<SidebarViewMode, typeof RiListView> = {
-  stream: RiFileList3Line,
+  stream: RiNewspaperLine,
   category: RiFolderOpenLine,
   timeline: RiTimeLine,
   tags: RiPriceTag3Line,
@@ -61,14 +61,14 @@ export function ViewSwitcher({ active, onChange, enabled }: ViewSwitcherProps) {
 
   return (
     <div
-      className="shrink-0"
+      className="inline-flex min-w-0 max-w-full"
       role="navigation"
       aria-label={t("sidebar.viewSwitcher.ariaTablist")}
     >
       <DropdownMenu
         open={open}
         onOpenChange={setOpen}
-        align="end"
+        align="start"
         minWidth={168}
         matchTriggerWidth={false}
         trigger={
@@ -81,7 +81,7 @@ export function ViewSwitcher({ active, onChange, enabled }: ViewSwitcherProps) {
               data-sidebar-view-switcher
               onClick={() => setOpen((v) => !v)}
               className={cn(
-                "flex h-8 max-w-full min-w-0 items-center gap-1 rounded-md border border-border-subtle-dim",
+                "inline-flex h-8 w-auto max-w-full min-w-0 items-center gap-1 rounded-md border border-border-subtle-dim",
                 "bg-surface-muted/40 px-2 text-3xs font-medium text-text-secondary",
                 "transition-colors hover:bg-surface-muted/70 hover:text-text-primary",
                 open && "bg-surface-muted/70 text-text-primary",
@@ -89,7 +89,7 @@ export function ViewSwitcher({ active, onChange, enabled }: ViewSwitcherProps) {
               )}
             >
               <ActiveIcon size={ICON.xs} className="shrink-0 text-accent-color" aria-hidden />
-              <span className="truncate">{activeLabel}</span>
+              <span className="min-w-0 truncate">{activeLabel}</span>
               <RiArrowDownSLine size={ICON.nano} className="shrink-0 opacity-50" aria-hidden />
             </button>
           </Tooltip>

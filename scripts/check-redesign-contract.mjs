@@ -388,19 +388,20 @@ for (const relativePath of underclaimSurfaces) {
   }
 }
 
-// Desktop DESIGN / ARCHITECTURE: target IA must be 动态-default, not legacy 工作台 triad as sole present-tense PrimaryNav
+// Desktop DESIGN / ARCHITECTURE: target IA is home landing + destination anchors
+// 动态 · Inbox · 交付 (search not a peer). Legacy 工作台 triad is 现状/代码债 only.
 const desktopDesign = read(files.desktopDesign);
 const desktopArch = read(files.desktopArchitecture);
 expectMatch(
   files.desktopDesign,
   desktopDesign,
-  /动态（默认）/u,
-  "Desktop DESIGN target IA: 动态（默认）",
+  /中栏主锚点：动态\s*· Inbox · 交付/u,
+  "Desktop DESIGN target IA: destination anchors 动态 · Inbox · 交付",
 );
 expectMatch(
   files.desktopDesign,
   desktopDesign,
-  /PrimaryNav[^\n]{0,80}动态|中间[^\n]{0,40}动态（默认）/u,
+  /PrimaryNav[^\n]{0,80}动态|中栏主锚点：动态/u,
   "Desktop DESIGN PrimaryNav targets 动态",
 );
 // Living design must not present 工作台·Inbox·交付 as the only unlabeled present-tense primary anchors
@@ -414,19 +415,25 @@ expectNoMatch(
 expectMatch(
   files.desktopArchitecture,
   desktopArch,
-  /动态（默认）/u,
-  "Desktop ARCHITECTURE target IA includes 动态（默认）",
+  /默认 selection 是 `\{ kind: "home" \}`/u,
+  "Desktop ARCHITECTURE default selection is home workspace canvas",
 );
 expectMatch(
   files.desktopArchitecture,
   desktopArch,
-  /现状[^\n]{0,40}工作台|工作台[^\n]{0,40}现状|代码债/u,
-  "Desktop ARCHITECTURE labels legacy 工作台 triad as 现状/代码债",
+  /PrimaryNav 文案为 \*\*动态 · Inbox · 交付\*\*/u,
+  "Desktop ARCHITECTURE PrimaryNav labels 动态 · Inbox · 交付",
+);
+expectMatch(
+  files.desktopArchitecture,
+  desktopArch,
+  /现状[^\n]{0,40}工作台|工作台[^\n]{0,40}现状|代码债|「工作台」主锚点已退役/u,
+  "Desktop ARCHITECTURE labels legacy 工作台 triad as 现状/代码债/已退役",
 );
 expectMatch(
   files.desktopDesign,
   desktopDesign,
-  /中栏主锚点：动态（默认）\s*· Inbox · 交付(?!\s*· 搜索)/u,
+  /中栏主锚点：动态\s*· Inbox · 交付(?!\s*· 搜索)/u,
   "Desktop DESIGN UIX-401 PrimaryNav is 动态 · Inbox · 交付 (search not a peer)",
 );
 expectMatch(
@@ -438,7 +445,7 @@ expectMatch(
 expectNoMatch(
   files.desktopDesign,
   desktopDesign,
-  /主锚点：动态（默认）· Inbox · 交付 · 归档/u,
+  /主锚点：动态\s*· Inbox · 交付 · 归档/u,
   "archive as PrimaryNav peer in UIX-401",
 );
 expectMatch(
@@ -577,13 +584,13 @@ expectNoMatch(
 expectMatch(
   files.desktopArchitecture,
   desktopArch,
-  /PrimaryNav 文案与默认 selection 为 \*\*动态 · Inbox · 交付\*\*/u,
+  /PrimaryNav 文案为 \*\*动态 · Inbox · 交付\*\*/u,
   "ARCHITECTURE 现状 PrimaryNav is 动态 · Inbox · 交付 (search not a peer)",
 );
 expectNoMatch(
   files.desktopArchitecture,
   desktopArch,
-  /PrimaryNav 文案与默认 selection 为 \*\*动态 · Inbox · 交付 · 搜索\*\*/u,
+  /PrimaryNav 文案为 \*\*动态 · Inbox · 交付 · 搜索\*\*/u,
   "ARCHITECTURE 现状 still listing 搜索 as a PrimaryNav peer",
 );
 expectNoMatch(

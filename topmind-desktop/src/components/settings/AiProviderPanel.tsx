@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   RiAlertLine,
-  RiBrainLine,
+  RiFileTextLine,
   RiCoinsLine,
   RiExternalLinkLine,
   RiGithubLine,
@@ -106,7 +106,7 @@ function ModelBadges({ model }: { model: ModelInfo }) {
       {model.reasoning ? (
         <Tooltip content={t("settings:ai.badgeReasoning")}>
           <span className="inline-flex items-center rounded bg-status-info-bg/40 px-1 text-4xs text-status-info">
-            <RiBrainLine size={ICON.micro} aria-hidden />
+            <RiFileTextLine size={ICON.micro} aria-hidden />
           </span>
         </Tooltip>
       ) : null}

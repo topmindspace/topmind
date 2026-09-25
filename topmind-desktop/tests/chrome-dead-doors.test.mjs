@@ -12,7 +12,7 @@ import { useViewStore } from "../src/stores/view-store.ts";
 import { handleAppsMenuToggle, openAiWorkspace } from "../src/lib/ai-workspace.ts";
 import { toggleWorkspaceSwitcher } from "../src/lib/workspace-switcher.ts";
 import { createWorkspaceActions } from "../src/plugins/topmind-workspace/actions.ts";
-import { primaryViewSwitchKind } from "../src/lib/titlebar-identity.ts";
+import { destinationSwitchKind, primaryViewSwitchKind } from "../src/lib/titlebar-identity.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = (rel) => readFileSync(path.join(root, rel), "utf8");
@@ -141,8 +141,11 @@ test("view-switch closed-state icon does not impersonate 动态 on file/topic/me
   assert.equal(primaryViewSwitchKind("topic"), null);
   assert.equal(primaryViewSwitchKind("memory"), null);
   assert.equal(primaryViewSwitchKind("archive"), null);
+  assert.equal(destinationSwitchKind("home"), "home");
+  assert.equal(destinationSwitchKind("file"), "home");
+  assert.equal(destinationSwitchKind("stream"), "stream");
   const nav = read("src/components/shell/PrimaryNav.tsx");
-  assert.match(nav, /primaryViewSwitchKind/);
+  assert.match(nav, /destinationSwitchKind/);
   assert.doesNotMatch(nav, /activeView\?\.icon \?\? RiBroadcastLine/);
 });
 

@@ -55,6 +55,71 @@ html[data-wc-inset] [data-os-chrome] {
    collapse to the plain 8px breathing room. `data-fullscreen` is written by
    lib/fullscreen-chrome.ts from main's enter/leave-full-screen events. */
 html[data-fullscreen="true"] .v4-mac-titlebar-pad { padding-left: 0; }
+
+/* Sidebar header: the 72px reserve replaces the column's left 8px (no 8+72
+   stack) and only on the row that shares the traffic-light band. The view-mode
+   row is below that band and stays left-aligned with the tree on every OS.
+   Header controls share one 32px box — they do not shrink into each other. */
+.v4-column-chrome.v4-mac-titlebar-pad {
+  padding-left: 72px;
+}
+html[data-fullscreen="true"] .v4-column-chrome.v4-mac-titlebar-pad {
+  padding-left: 8px;
+}
+.v4-titlebar-btn.v4-sidebar-chrome-btn,
+.v4-icon-btn.v4-sidebar-chrome-btn {
+  width: var(--density-chrome-control, 32px);
+  min-width: var(--density-chrome-control, 32px);
+  max-width: var(--density-chrome-control, 32px);
+  height: var(--density-chrome-control, 32px);
+  padding: 0;
+  flex-shrink: 0;
+}
+.v4-sidebar-destination,
+.v4-sidebar-mode {
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+.v4-sidebar-header-tools {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  min-width: 0;
+}
+.v4-sidebar-mode-tools {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+  margin-left: auto;
+}
+
+/* In-workspace home — paper canvas, content in a reading column.
+   Surface tokens only; not a brand wash and not a chrome fill. */
+.v4-workspace-home {
+  min-height: 100%;
+  background:
+    radial-gradient(
+      720px 320px at 8% -8%,
+      color-mix(in srgb, var(--color-accent-color) 6%, transparent),
+      transparent 68%
+    ),
+    linear-gradient(180deg, var(--color-surface) 0, var(--color-background) 280px);
+}
+.v4-workspace-home-column {
+  width: min(72rem, 100%);
+  margin-inline: auto;
+}
+.v4-hub-page {
+  background:
+    radial-gradient(
+      640px 240px at 0% 0%,
+      color-mix(in srgb, var(--color-accent-color) 5%, transparent),
+      transparent 72%
+    );
+}
 html[data-fullscreen="true"][data-wc-inset] [data-os-chrome] {
   padding-right: 8px;
   padding-left: 8px;
@@ -1001,7 +1066,8 @@ button.v4-dash-card:active,
 .v4-icon-btn:active:not(:disabled) {
   background: var(--color-state-pressed, var(--color-surface-hover));
 }
-.v4-icon-btn:focus-visible {
+.v4-icon-btn:focus-visible,
+.v4-titlebar-btn:focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 1px;
   background: var(--color-state-focus, var(--color-accent-bg-faint));
@@ -1886,7 +1952,12 @@ html.dark .v4-plugin-app-sheet {
   min-height: 0;
 }
 .v4-plugin-app-panel {
-  background: var(--color-surface-elevated);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-surface) 65%, var(--color-background)) 0,
+      var(--color-background) 200px
+    );
 }
 
 /* Overlay sheet — elevated surface above canvas (dialog ladder)

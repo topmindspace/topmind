@@ -17,7 +17,8 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { createPortal } from "react-dom";
 import {
-  RiBrainLine,
+  RiBookOpenLine,
+  RiUserLine,
   RiCheckDoubleLine,
   RiCheckLine,
   RiCloseCircleLine,
@@ -60,7 +61,7 @@ function SuggestionIcon({ kind, isHigh }: { kind?: string; isHigh: boolean }) {
       return <RiInboxArchiveLine size={ICON.micro} className={cls} />;
     case "stream_digest":
     case "ai_summary":
-      return <RiBrainLine size={ICON.micro} className={cls} />;
+      return <RiBookOpenLine size={ICON.micro} className={cls} />;
     case "promote_memory":
       return <RiLightbulbLine size={ICON.micro} className={cls} />;
     case "create_topic":

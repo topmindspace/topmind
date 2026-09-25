@@ -28,15 +28,11 @@ UTR 仍是 Kernel 的薄适配。`TOOLS.md` 与 `utr/tests/unit/contract-registr
 
 ## 整体方案
 
-处置：discussion
+处置：fixed（2026-09-25 清理）
 
-问题：解决方案根上的 `../index.html`、`../app.js`、`../styles.css`、`../obsidian-plugin-account.png` 是一份标了「AI生成」的界面预览，不在三仓的交付面里。要不要删掉，还是留在本机当对照？
+问题：解决方案根上曾有一份标了「AI生成」的界面预览（HTML/CSS/JS 三件 + 截图），以及 Playwright 控制台日志目录，都不在三仓的交付面里。
 
-选项：删掉预览，只留三仓；或继续放在解决方案根，明确它不是产品。
-
-建议：留下，不把它收成第四个仓库，也不写进安装说明。
-
-在你回答之前保持不变：不删除这些文件，不把它们链进 `README.md`，不把它当成 Desktop 或 Obsidian 的运行时。
+改动：预览四件套、Playwright 日志目录与 .DS_Store 已删除。解决方案根只保留 topmind · topmind-obsidian · topmind-skills 三仓。不写进安装说明，不收成第四仓。
 
 ## 共享层
 
