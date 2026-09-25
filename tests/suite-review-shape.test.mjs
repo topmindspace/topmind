@@ -12,6 +12,24 @@ import { fileURLToPath } from "node:url";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const reviewPath = path.join(repoRoot, "docs", "suite-review-2026-09-24.md");
 
+const { resolveSkillsRoot, resolveObsidianRoot } = await import("./helpers/sister-repos.mjs");
+
+/** Resolve a cited token: repo-relative, or `../topmind-skills|obsidian/...` against the live checkout. */
+function resolveCited(token) {
+  let rel = token;
+  for (const [prefix, root] of [
+    ["../topmind-skills/", resolveSkillsRoot()],
+    ["../topmind-obsidian/", resolveObsidianRoot()],
+    ["../topmind/", repoRoot],
+  ]) {
+    if (root && rel.startsWith(prefix)) {
+      rel = path.join(root, rel.slice(prefix.length));
+      return path.resolve(rel);
+    }
+  }
+  return path.resolve(repoRoot, rel);
+}
+
 const AXES = [
   "技能",
   "工具",
@@ -91,7 +109,9 @@ test("every repo-relative path cited by a fixed item exists", () => {
   }
   assert.ok(cited.length > 0, "fixed sections should cite paths");
   for (const { axis, token } of cited) {
-    const abs = path.resolve(repoRoot, token);
+    if (token.startsWith("../topmind-skills/") && !resolveSkillsRoot()) continue;
+    if (token.startsWith("../topmind-obsidian/") && !resolveObsidianRoot()) continue;
+    const abs = resolveCited(token);
     assert.ok(existsSync(abs), `${axis} cites missing path ${token}`);
   }
 });

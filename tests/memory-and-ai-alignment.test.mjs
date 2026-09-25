@@ -6,11 +6,13 @@ import path from "node:path";
 import os from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+const { resolveObsidianRoot, SKIP_OBSIDIAN } = await import("./helpers/sister-repos.mjs");
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(__dirname, ".."); // topmind/
-const parent = path.resolve(repo, ".."); // topmind-solutions/
 const desktop = path.join(repo, "topmind-desktop");
-const obsidian = path.join(parent, "topmind-obsidian");
+const obsidian = resolveObsidianRoot();
+const parentDocs = repo;
 
 describe("memory consolidation is fusion, not blind append", () => {
   test("appendProfileEntry near-dup fuses to newest wording", async () => {
@@ -61,7 +63,11 @@ describe("memory consolidation is fusion, not blind append", () => {
   });
 });
 
-describe("Obsidian AI engine aligns with Desktop", () => {
+describe("Obsidian AI engine aligns with Desktop", (t) => {
+  if (!obsidian) {
+    t.skip(SKIP_OBSIDIAN || "topmind-obsidian checkout not found");
+    return;
+  }
   const adapter = fs.readFileSync(path.join(desktop, "electron", "ai-provider-adapter.mjs"), "utf8");
   const provider = fs.readFileSync(path.join(obsidian, "src", "bridge", "ai-provider.ts"), "utf8");
   const ops = fs.readFileSync(path.join(obsidian, "src", "services", "kernel-workspace-ops.ts"), "utf8");
@@ -114,8 +120,6 @@ describe("Obsidian AI engine aligns with Desktop", () => {
 });
 
 describe("living docs state the fusion + AI alignment contract", () => {
-  const parentDocs = path.join(parent, "topmind");
-
   test("PROJECT-MODEL documents fusion, not blind append", () => {
     const pm = fs.readFileSync(path.join(parentDocs, "PROJECT-MODEL.md"), "utf8");
     assert.match(pm, /融合到最新表述/);
@@ -129,8 +133,12 @@ describe("living docs state the fusion + AI alignment contract", () => {
     assert.match(agents, /compact-history/);
   });
 
-  test("Obsidian ARCHITECTURE documents Desktop AI alignment", () => {
-    const arch = fs.readFileSync(path.join(parentDocs, "..", "topmind-obsidian", "ARCHITECTURE.md"), "utf8");
+  test("Obsidian ARCHITECTURE documents Desktop AI alignment", (t) => {
+    if (!obsidian) {
+      t.skip(SKIP_OBSIDIAN || "topmind-obsidian checkout not found");
+      return;
+    }
+    const arch = fs.readFileSync(path.join(obsidian, "ARCHITECTURE.md"), "utf8");
     assert.match(arch, /OP_LIMITS/);
     assert.match(arch, /chat 480s/);
     assert.match(arch, /system 自愈|折进首条 user/);
@@ -138,8 +146,12 @@ describe("living docs state the fusion + AI alignment contract", () => {
     assert.match(arch, /会话压缩|maxMessages 60/);
   });
 
-  test("Obsidian DESIGN documents compact_history and chat compact", () => {
-    const design = fs.readFileSync(path.join(parentDocs, "..", "topmind-obsidian", "DESIGN.md"), "utf8");
+  test("Obsidian DESIGN documents compact_history and chat compact", (t) => {
+    if (!obsidian) {
+      t.skip(SKIP_OBSIDIAN || "topmind-obsidian checkout not found");
+      return;
+    }
+    const design = fs.readFileSync(path.join(obsidian, "DESIGN.md"), "utf8");
     assert.match(design, /compact_history/);
     assert.match(design, /会话压缩|maxMessages 60/);
     assert.match(design, /相似命中/);
