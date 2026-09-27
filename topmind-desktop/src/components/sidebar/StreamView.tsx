@@ -207,7 +207,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
             <button
               type="button"
               onClick={handleCapture}
-              className="inline-flex items-center gap-1 rounded-md border border-border-subtle px-2 py-1 text-3xs font-medium text-text-secondary hover:bg-surface-muted v4-focus-ring"
+              className="inline-flex items-center gap-1 rounded-md border border-border-subtle px-2 py-1 text-3xs font-medium text-text-secondary hover:bg-state-hover v4-focus-ring"
             >
               <RiPencilLine size={ICON.micro} aria-hidden />
               {t("sidebar.stream.capture")}
@@ -224,7 +224,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
         <div className="flex min-w-0 items-center gap-1.5">
           <RiCalendar2Line size={ICON.xs} className="shrink-0 text-accent-color" />
           <span className="truncate text-3xs font-semibold text-text-primary">{periodTitle}</span>
-          <span className="shrink-0 rounded-full bg-surface-muted px-1.5 py-px text-3xs tabular-nums text-text-quaternary">
+          <span className="shrink-0 rounded-[var(--radius-xs)] bg-surface-muted px-1.5 py-px text-3xs tabular-nums text-text-quaternary">
             {entries.length}
           </span>
         </div>
@@ -257,7 +257,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
               type="button"
               onClick={handleOpenStreamView}
               aria-label={t("sidebar.stream.openFullView")}
-              className="flex items-center rounded-sm p-1 text-text-quaternary transition-colors hover:bg-surface-muted hover:text-accent-color v4-focus-ring"
+              className="flex items-center rounded-sm p-1 text-text-quaternary transition-colors hover:bg-state-hover hover:text-accent-color v4-focus-ring"
             >
               <RiFullscreenLine size={ICON.micro} aria-hidden />
             </button>
@@ -267,7 +267,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
               type="button"
               onClick={() => void load()}
               aria-label={t("sidebar.stream.reloadTooltip")}
-              className="flex items-center rounded-sm p-1 text-text-quaternary transition-colors hover:bg-surface-muted hover:text-accent-color v4-focus-ring"
+              className="flex items-center rounded-sm p-1 text-text-quaternary transition-colors hover:bg-state-hover hover:text-accent-color v4-focus-ring"
             >
               <RiRefreshLine size={ICON.micro} aria-hidden />
             </button>
@@ -278,7 +278,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
                 type="button"
                 onClick={() => handleOpenPeriod()}
                 aria-label={t("sidebar.stream.openFull")}
-                className="flex items-center gap-0.5 rounded-sm px-1.5 py-0.5 text-3xs text-text-tertiary transition-colors hover:bg-surface-muted hover:text-accent-color v4-focus-ring"
+                className="flex items-center gap-0.5 rounded-sm px-1.5 py-0.5 text-3xs text-text-tertiary transition-colors hover:bg-state-hover hover:text-accent-color v4-focus-ring"
               >
                 <RiFileTextLine size={ICON.micro} aria-hidden />
                 <RiArrowRightSLine size={ICON.nano} aria-hidden />
@@ -301,7 +301,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
             >
               <div className="flex items-center gap-1 bg-surface-muted/20 px-1.5 py-1 text-3xs font-medium tracking-wide text-text-quaternary">
                 <span className="truncate font-semibold text-text-tertiary">{group.dayLabel}</span>
-                <span className="tabular-nums text-text-quaternary/70">{group.entries.length}</span>
+                <span className="tabular-nums text-text-quaternary">{group.entries.length}</span>
                 {gi === 0 ? (
                   <span className="text-accent-color">{t("sidebar.stream.todayShort")}</span>
                 ) : null}
@@ -317,12 +317,12 @@ export function StreamView({ onNavigate }: StreamViewProps) {
                       className={cn(
                         "group flex w-full items-start gap-1.5 px-2 py-1 text-left",
                         "transition-colors duration-fast",
-                        "hover:bg-surface-muted/50",
+                        "hover:bg-state-hover",
                         "v4-focus-ring",
                       )}
                     >
                       {bodyTime ? (
-                        <span className="mt-px w-7 shrink-0 text-right text-3xs tabular-nums leading-none text-text-quaternary/80">
+                        <span className="mt-px w-7 shrink-0 text-right text-3xs tabular-nums leading-none text-text-quaternary">
                           {bodyTime}
                         </span>
                       ) : (
@@ -330,7 +330,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
                           <span className="h-1 w-1 rounded-full bg-text-quaternary/30" aria-hidden />
                         </span>
                       )}
-                      <div className="line-clamp-4 min-w-0 flex-1 text-3xs leading-snug text-text-primary">
+                      <div className="line-clamp-4 min-w-0 flex-1 text-xs leading-snug text-text-primary">
                         {entry.preview || entry.body || entry.heading}
                       </div>
                     </button>

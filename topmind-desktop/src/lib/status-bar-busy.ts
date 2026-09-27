@@ -29,6 +29,11 @@ export type StatusBarBusyInput = {
   inlineLabel?: string | null;
   /** User-confirmed suggestion writeback in flight (accept / accept-all) */
   suggestApplying?: boolean;
+  /**
+   * Agent goal is blocked waiting on user input ([NEEDS-USER] / blocked).
+   * Distinct from "working" — the pill must say 需要你, not 工作中.
+   */
+  goalBlocked?: boolean;
 };
 
 export type StatusBarAiLabelMode = "offline" | "ready" | "working";
@@ -65,6 +70,8 @@ export type StatusBarBusyView = {
   suggestCount: number;
   /** Whether any suggestion has high priority */
   suggestHasHigh: boolean;
+  /** Agent is waiting on the user (blocked / NEEDS-USER) — not "working" */
+  showNeedsYouChip: boolean;
 };
 
 /**
@@ -79,6 +86,7 @@ export function deriveStatusBarBusy(input: StatusBarBusyInput): StatusBarBusyVie
   const suggestLoading = input.suggestLoading === true;
   const inlineBusy = input.inlineBusy === true;
   const suggestApplying = input.suggestApplying === true;
+  const goalBlocked = input.goalBlocked === true;
 
   const suggestCount = Math.max(0, Number(input.suggestCount) || 0);
 
@@ -98,6 +106,7 @@ export function deriveStatusBarBusy(input: StatusBarBusyInput): StatusBarBusyVie
       concurrentCount: 0,
       suggestCount: 0,
       suggestHasHigh: false,
+      showNeedsYouChip: false,
     };
   }
 
@@ -141,6 +150,9 @@ export function deriveStatusBarBusy(input: StatusBarBusyInput): StatusBarBusyVie
   // Pill busy: agent stream or engine tasks — not solo named prep (own chips)
   const aiPillBusy = streaming || showTaskChip;
 
+  // Needs-you is a wait state, not work: show its own chip and keep the pill
+  // from saying "working" when the only agent activity is a blocked goal.
+  const showNeedsYouChip = goalBlocked && !streaming;
   const aiLabelMode: StatusBarAiLabelMode = aiPillBusy ? "working" : "ready";
 
   return {
@@ -158,12 +170,14 @@ export function deriveStatusBarBusy(input: StatusBarBusyInput): StatusBarBusyVie
       showSuggestChip ||
       showSuggestCountChip ||
       showInlineChip ||
-      showApplyChip,
+      showApplyChip ||
+      showNeedsYouChip,
     activeKinds,
     multiActive,
     concurrentCount,
     suggestCount,
     suggestHasHigh: input.suggestHasHigh === true,
+    showNeedsYouChip,
   };
 }
 

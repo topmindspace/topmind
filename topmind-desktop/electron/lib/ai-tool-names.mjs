@@ -37,6 +37,8 @@ export const AI_TOOL_NAMES_WRITE = [
   "append_core_memory",
   "retire_core_memory",
   "update_core_memory",
+  "restore_core_memory",
+  "compact_core_memory_history",
   "reconcile_week",
   "move_to_topic",
   "publish_to_outputs",

@@ -4,7 +4,7 @@
  * Tests the stdio JSON-RPC transport: initialize, tools/list, tools/call,
  * and the two-phase confirm-mode review flow within a single server process.
  *
- * Current UTR: 8 domains / 28 commands; MCP default 19.
+ * Current UTR: 8 domains / 32 commands; MCP default 23.
  * No v2.x commands (create-project / list-projects / archive-project / append-project-memory) — those are removed.
  */
 import test from "node:test";
@@ -101,9 +101,9 @@ test("tools/list returns current MCP tool commands", async () => {
   const response = await client.request("tools/list");
 
   assert.ok(Array.isArray(response.result.tools));
-  // Default MCP surface: primary + danger only (19). Full 28 via topmind_MCP_ALL=1.
+  // Default MCP surface: primary + danger only (23). Full 32 via topmind_MCP_ALL=1.
   const toolCount = response.result.tools.length;
-  assert.equal(toolCount, 19, `expected 19 primary+danger MCP tools, got ${toolCount}`);
+  assert.equal(toolCount, 23, `expected 23 primary+danger MCP tools, got ${toolCount}`);
   assert.ok(!response.result.tools.some((t) => t.name.includes("migrate-categories")), "advanced migrate should be hidden by default");
 
   // Check MCP tool schema shape for representative commands

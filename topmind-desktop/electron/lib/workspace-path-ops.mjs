@@ -1430,13 +1430,13 @@ export const pathOps = {
     const relativePath = kernel.globalProfileRelPath(root);
     const writeActor = actor || ctx.writeActor || "user";
     const sectionTitle = section && String(section).trim() ? String(section).trim() : undefined;
-    const sourced = source && String(source).trim()
-      ? `${entry.trim()}（来源：${String(source).trim()}）`
-      : entry.trim();
+    // Provenance is a fact-meta comment (`<!-- src:… -->`), never glued into the
+    // fact text — gluing pollutes normalizeProfileFactKey and dedupe keys.
+    const srcHint = source && String(source).trim() ? String(source).trim() : undefined;
     const day = now().slice(0, 10);
-    const content = /^[-*+]\s+（\d{4}-\d{2}-\d{2}）/u.test(sourced)
-      ? sourced
-      : `- （${day}）${sourced.replace(/^[-*+]\s+/u, "")}`;
+    const content = /^[-*+]\s+（\d{4}-\d{2}-\d{2}）/u.test(entry.trim())
+      ? entry.trim()
+      : `- （${day}）${entry.trim().replace(/^[-*+]\s+/u, "")}`;
 
     const r = kernel.appendProfileEntry({
       workspaceRoot: root,
@@ -1451,6 +1451,7 @@ export const pathOps = {
       actor: writeActor,
       confirmed: writeActor === "user" ? true : confirmed === true,
       writebackModeOverride: ctx.explicitWritebackMode,
+      src: srcHint,
     });
 
     if (!r.pending && !r.needsConfirm) bumpWorkspaceIndex(relativePath);

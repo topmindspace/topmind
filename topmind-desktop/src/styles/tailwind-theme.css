@@ -32,8 +32,8 @@
   --color-popover: var(--popover);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
-  --color-primary-hover: var(--color-ink-hover);
-  --color-primary-active: var(--color-ink-active);
+  /* primary-hover/active retired 2026-09-26: Button uses MD3 state layers
+     (`state-on-primary-hover/pressed`), not base-fill color swaps. */
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-input: var(--input);

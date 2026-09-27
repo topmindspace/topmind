@@ -26,7 +26,7 @@ export function ContextPills() {
               type="button"
               onClick={() => unmountFile(f.path)}
               aria-label={t("ai.removeContextTooltip")}
-              className="rounded-full p-0.5 text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-primary"
+              className="rounded-full p-0.5 text-text-quaternary transition-colors hover:bg-state-hover hover:text-text-primary"
             >
               <RiCloseLine size={ICON.micro} />
             </button>

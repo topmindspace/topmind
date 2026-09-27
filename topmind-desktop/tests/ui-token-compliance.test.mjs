@@ -145,6 +145,46 @@ test("UI Token & Modernization Compliance", async (t) => {
     assert.doesNotMatch(countBadge, /text-5xs/);
     assert.match(countBadge, /bg-badge\b/);
     assert.match(countBadge, /bg-badge-alert\b/);
+    // Spec §0.0.5: radius-xs (2px) rounded rect — NOT a capsule. Capsules
+    // compete with content for attention on every count signal.
+    assert.match(countBadge, /rounded-\[var\(--radius-xs\)\]/);
+    assert.doesNotMatch(countBadge, /rounded-full/);
+  });
+
+  await t.test("status washes are never double-diluted", () => {
+    // `bg-status-error-bg/50` stacks a second alpha on a wash whose stop is
+    // already 9% — the error text sitting on it drops under AA. Wash tokens
+    // (`status-*-bg`) ARE the contrast budget; do not re-thin them. Use the
+    // wash token at full strength, or a container token.
+    // Decorative solid-ish fills (`bg-success/80` status dots) and progress
+    // tracks are out of scope — only *wash tokens with alpha* are banned.
+    const offenders = [];
+    const BANNED = /bg-status-(?:success|warning|error|info)-bg\/\d+/;
+    const walk = (dir) => {
+      for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+        const p = path.join(dir, ent.name);
+        if (ent.isDirectory()) {
+          if (ent.name === "node_modules" || ent.name === "dist") continue;
+          walk(p);
+        } else if (/\.tsx?$/.test(ent.name)) {
+          const raw = fs
+            .readFileSync(p, "utf-8")
+            .replace(/\/\*[\s\S]*?\*\//g, " ")
+            .replace(/^\s*\/\/.*$/gm, " ");
+          raw.split("\n").forEach((line, i) => {
+            if (BANNED.test(line)) {
+              offenders.push(`${path.relative(desktopRoot, p)}:${i + 1}: ${line.trim().slice(0, 120)}`);
+            }
+          });
+        }
+      }
+    };
+    walk(path.join(desktopRoot, "src"));
+    assert.deepEqual(
+      offenders,
+      [],
+      `Double-diluted status washes (use the *-bg token at full strength):\n${offenders.join("\n")}`,
+    );
   });
 
   await t.test("every color utility resolves to a defined --color-* token", () => {
@@ -378,7 +418,14 @@ test("UI Token & Modernization Compliance", async (t) => {
       "accent-color", "success", "warning", "error", "status-info", "status-error",
       "status-success", "status-warning", "badge", "badge-alert",
     ];
-    const re = new RegExp(`text-(?:${NAMES.join("|")})/\\d+`, "g");
+    // Neutral text stops are also contrast-budgeted: `text-text-quaternary/60`
+    // re-opens the same gap the muted ladder was tuned to close. Mute by token
+    // step (quaternary → 3xs size), never by alpha on a text stop.
+    const TEXT_NEUTRAL = ["text-quaternary", "text-tertiary", "text-secondary", "text-primary"];
+    const textRe = new RegExp(`text-(?:${NAMES.join("|")}|${TEXT_NEUTRAL.join("|")})/\\d+`, "g");
+    // Wash tokens are already a low-alpha stop — `bg-accent-bg-subtle/55` is a
+    // second dilution of a wash, same class of bug as `bg-status-error-bg/50`.
+    const washRe = /bg-accent-bg-(?:subtle|faint)\/\d+/g;
 
     const srcDir = path.join(desktopRoot, "src");
     const offenders = [];
@@ -391,12 +438,49 @@ test("UI Token & Modernization Compliance", async (t) => {
             .readFileSync(p, "utf-8")
             .replace(/\/\*[\s\S]*?\*\//g, " ")
             .replace(/^\s*\/\/.*$/gm, " ");
-          for (const m of raw.matchAll(re)) offenders.push(`${path.relative(srcDir, p)} → ${m[0]}`);
+          for (const m of raw.matchAll(textRe)) offenders.push(`${path.relative(srcDir, p)} → ${m[0]}`);
+          for (const m of raw.matchAll(washRe)) offenders.push(`${path.relative(srcDir, p)} → ${m[0]}`);
         }
       }
     })(srcDir);
 
-    assert.deepEqual(offenders, [], `alpha-diluted semantic text colors:\n${offenders.join("\n")}`);
+    assert.deepEqual(offenders, [], `alpha-diluted semantic/wash colors:\n${offenders.join("\n")}`);
+  });
+
+  await t.test("interactive paints carry no bg-surface-muted alpha", () => {
+    // `bg-surface-muted/35` on a FilterChip / button recolors the control with a
+    // hand-tuned dilution that has no contrast stop behind it. Interactive paints
+    // must use a full token (`bg-surface-muted`, `bg-state-hover`, or a wash).
+    // Non-interactive container tints (page washes, card fills) may still use
+    // `bg-surface-muted/NN` — only *interactive* surfaces are banned here.
+    // Interactive = same class string is state-layered or focusable/pointer:
+    // hover:, active:, v4-focus-ring, cursor-pointer, or data-filter-chip.
+    const srcDir = path.join(desktopRoot, "src");
+    const offenders = [];
+    const INTERACTIVE = /\b(?:hover:|active:|v4-focus-ring|cursor-pointer|data-filter-chip)/;
+    (function walk(dir) {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const p = path.join(dir, e.name);
+        if (e.isDirectory()) walk(p);
+        else if (/\.tsx?$/.test(e.name)) {
+          const raw = fs
+            .readFileSync(p, "utf-8")
+            .replace(/\/\*[\s\S]*?\*\//g, " ")
+            .replace(/^\s*\/\/.*$/gm, " ");
+          raw.split("\n").forEach((line, i) => {
+            if (/bg-surface-muted\/\d+/.test(line) && INTERACTIVE.test(line)) {
+              offenders.push(`${path.relative(srcDir, p)}:${i + 1}: ${line.trim().slice(0, 120)}`);
+            }
+          });
+        }
+      }
+    })(srcDir);
+
+    assert.deepEqual(
+      offenders,
+      [],
+      `Interactive paints with bg-surface-muted alpha (use a full token):\n${offenders.join("\n")}`,
+    );
   });
 
   await t.test("Obsidian styles.css supports focus-within and hover:none for delete and abort buttons", () => {

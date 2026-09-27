@@ -1,6 +1,17 @@
 /**
  * Smart session compaction for AI model context.
  *
+ * Compaction hierarchy (single semantics, two layers — not two products):
+ * 1. **Pi-native LLM summary** (`ai-pi-runtime.compactPiMessagesLlm` →
+ *    `prepareCompaction`/`compact`) — primary inside the Agent loop near the
+ *    model window. Keeps goal/plan/receipts via customInstructions.
+ * 2. **This module** — deterministic char/token fold: pre-invoke budgeting,
+ *    overflow hard-retry, AI-SDK fallback path, and Obsidian chat history.
+ *    Never invents user content; drops only middle turns + truncates bodies.
+ *
+ * Token estimate here is CJK-aware (Pi `estimateTokens` is Latin-biased);
+ * both feed the same budget formula (`resolveCompactBudget`).
+ *
  * Goals:
  * - Keep recent dialogue intact (working memory)
  * - Compress older turns so long sessions stay within budget

@@ -232,7 +232,7 @@ export function TitleBar({ workspaceRoot: _workspaceRoot, sidebarCollapsed, onTo
                         {c.label}
                       </span>
                     )}
-                    <span className="shrink-0 text-xs text-text-quaternary/80" aria-hidden>/</span>
+                    <span className="shrink-0 text-xs text-text-quaternary" aria-hidden>/</span>
                   </span>
                 ))}
               </>

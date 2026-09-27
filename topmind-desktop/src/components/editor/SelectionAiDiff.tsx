@@ -71,7 +71,7 @@ export function SelectionAiDiff({
                 type="button"
                 className={cn(
                   "flex h-6 items-center gap-0.5 rounded px-1.5 text-3xs",
-                  showDiff ? "bg-accent-bg-subtle text-accent-color" : "text-text-tertiary hover:bg-surface-muted",
+                  showDiff ? "bg-accent-bg-subtle text-accent-color" : "text-text-tertiary hover:bg-state-hover",
                 )}
                 onClick={onToggleDiff}
                 aria-pressed={showDiff}
@@ -87,7 +87,7 @@ export function SelectionAiDiff({
                 type="button"
                 className={cn(
                   "flex h-6 w-6 items-center justify-center rounded text-text-tertiary",
-                  "hover:bg-surface-muted hover:text-text-primary",
+                  "hover:bg-state-hover hover:text-text-primary",
                   copied && "text-success",
                 )}
                 onClick={onCopy}

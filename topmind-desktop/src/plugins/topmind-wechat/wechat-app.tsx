@@ -851,7 +851,7 @@ export function WechatApp() {
               {quality ? (
                 <span
                   className={cn(
-                    "rounded-full px-2 py-0.5 font-mono text-3xs tabular-nums",
+                    "rounded-[var(--radius-xs)] px-2 py-0.5 font-mono text-3xs tabular-nums",
                     aiOk ? "bg-status-success-bg text-success" : "bg-status-warning-bg text-warning",
                   )}
                   title={t("aiScoreTitle")}
@@ -875,7 +875,7 @@ export function WechatApp() {
                   <button
                     key={b.id}
                     type="button"
-                    className="rounded-full border border-border-subtle-dim px-2 py-0.5 text-3xs text-text-tertiary hover:bg-state-hover v4-focus-ring"
+                    className="rounded-[var(--radius-xs)] border border-border-subtle-dim px-2 py-0.5 text-3xs text-text-tertiary hover:bg-state-hover v4-focus-ring"
                     onClick={() => insertSnippet(b.snip)}
                   >
                     {b.label}
@@ -891,7 +891,7 @@ export function WechatApp() {
                 setDraft(e.target.value);
                 setDirty(true);
               }}
-              className="min-h-[320px] w-full flex-1 resize-none rounded-[var(--radius-card)] border border-border-subtle-dim bg-surface px-4 py-3 font-mono text-2xs leading-[1.7] text-text-primary v4-focus-ring"
+              className="min-h-[320px] w-full flex-1 resize-none rounded-[var(--radius-card)] border border-border-subtle-dim bg-surface px-4 py-3 font-mono text-xs leading-[1.7] text-text-primary v4-focus-ring"
               spellCheck={false}
               aria-label={t("draftLabel")}
             />
@@ -901,7 +901,7 @@ export function WechatApp() {
               data-wechat-live-preview
             >
               <div
-                className={phoneFrame ? "mx-auto max-w-[375px] rounded-[28px] border border-border-subtle-dim bg-surface-elevated px-3 py-5 text-[15px] leading-[1.75] shadow-[var(--shadow-float)]" : "mx-auto max-w-[42rem] text-[15px] leading-[1.75]"}
+                className={phoneFrame ? "mx-auto max-w-[375px] rounded-[28px] border border-border-subtle-dim bg-surface-elevated px-3 py-5 text-base leading-[1.75] shadow-[var(--shadow-float)]" : "mx-auto max-w-[42rem] text-base leading-[1.75]"}
                 style={{ color: theme.ink }}
                 dangerouslySetInnerHTML={{ __html: previewEmbedded }}
               />
@@ -1073,7 +1073,7 @@ export function WechatApp() {
                   onClick={() => setThemeId(id)}
                   aria-pressed={themeId === id}
                   className={cn(
-                    "rounded-full border px-2.5 py-1 text-3xs v4-focus-ring",
+                    "rounded-[var(--radius-xs)] border px-2.5 py-1 text-3xs v4-focus-ring",
                     themeId === id
                       ? "border-transparent bg-accent-container font-medium text-on-accent-container"
                       : "border-border-subtle-dim text-text-secondary hover:bg-state-hover",
@@ -1119,7 +1119,7 @@ export function WechatApp() {
               data-phone-frame={phoneFrame ? "on" : undefined}
             >
               <div
-                className={phoneFrame ? "mx-auto max-w-[375px] rounded-[28px] border border-border-subtle-dim bg-surface-elevated px-3 py-5 text-[15px] leading-[1.75] shadow-[var(--shadow-float)]" : "mx-auto max-w-[42rem] text-[15px] leading-[1.75]"}
+                className={phoneFrame ? "mx-auto max-w-[375px] rounded-[28px] border border-border-subtle-dim bg-surface-elevated px-3 py-5 text-base leading-[1.75] shadow-[var(--shadow-float)]" : "mx-auto max-w-[42rem] text-base leading-[1.75]"}
                 style={{ color: theme.ink }}
                 dangerouslySetInnerHTML={{ __html: previewEmbedded }}
               />

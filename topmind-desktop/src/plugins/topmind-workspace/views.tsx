@@ -15,7 +15,6 @@ import { InboxView } from "./views/InboxView";
 import { OutputsView } from "./views/OutputsView";
 import { ArchiveView } from "./views/ArchiveView";
 import { MemoryBrowseView } from "./views/MemoryBrowseView";
-import { WorkspaceHomeView } from "./views/WorkspaceHomeView";
 import { isEditableNotePath } from "../../lib/file-preview";
 
 const FileEditorView = lazy(() =>
@@ -30,10 +29,12 @@ export function createWorkspaceViews(): ViewSlot[] {
   return [
     {
       kind: "view",
+      // Stream homepage: home and stream share one surface (2026-09-26 merge).
+      // Landing action-cards moved to the ActivityBar; no second canvas.
       id: "topmind-workspace.view.home",
       order: 10,
-      matches: (sel) => sel.kind === "home",
-      render: () => <WorkspaceHomeView />,
+      matches: (sel) => sel.kind === "home" || sel.kind === "stream",
+      render: () => <StreamDetailView />,
     },
     {
       kind: "view",

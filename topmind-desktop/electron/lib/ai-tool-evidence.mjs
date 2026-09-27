@@ -119,3 +119,32 @@ function inferOperation(toolName) {
   };
   return map[toolName] || toolName;
 }
+
+/** @type {{ readFiles: string[], modifiedFiles: string[] } | null} */
+let lastDistillHint = null;
+
+/**
+ * Remember Pi CompactionDetails + path receipts from the last agent run so
+ * `memory_organize` can distill from files the user just touched.
+ * @param {{ readFiles?: string[], modifiedFiles?: string[] } | null} hint
+ */
+export function rememberDistillHint(hint) {
+  if (!hint || (!hint.readFiles?.length && !hint.modifiedFiles?.length)) {
+    lastDistillHint = null;
+    return;
+  }
+  lastDistillHint = {
+    readFiles: (hint.readFiles || []).slice(0, 24),
+    modifiedFiles: (hint.modifiedFiles || []).slice(0, 24),
+  };
+}
+
+/**
+ * Consume (clear) the remembered hint — single-use so organize does not
+ * re-use stale file lists across unrelated runs.
+ */
+export function consumeDistillHint() {
+  const hit = lastDistillHint;
+  lastDistillHint = null;
+  return hit;
+}

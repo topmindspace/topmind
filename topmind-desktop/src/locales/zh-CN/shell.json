@@ -185,7 +185,9 @@
     "outputs": "交付",
     "outputsTipIdle": "交付 · ⌘⇧O",
     "search": "搜索",
-    "searchTip": "搜索笔记 · ⌘P"
+    "searchTip": "搜索笔记 · ⌘P",
+    "profile": "我的情况",
+    "workspace": "工作区"
   },
   "statusBar": {
     "ariaLabel": "状态栏",
@@ -220,6 +222,8 @@
     "jobApply": "写入建议",
     "suggestApplying": "正在执行 {{current}}/{{total}}",
     "suggestApplyingTip": "正在把已确认的建议写入工作区 · 点此查看进度",
+    "needsYou": "需要你",
+    "needsYouTip": "智能体等待你的输入 · 点此打开对话",
     "taskRunning": "{{count}} 个后台任务",
     "taskRunningTip": "后台任务进行中 · 点此查看详情和进度",
     "taskPanelTip": "任务面板 · 引擎任务与历史（⌘⇧J）",
@@ -695,12 +699,30 @@
       ],
       "shortcutsTitle": "常用快捷键",
       "shortcuts": [
-        { "keys": "⌘N", "label": "记一下" },
-        { "keys": "⌘⇧N", "label": "全局记一下" },
-        { "keys": "⌘K", "label": "命令面板" },
-        { "keys": "⌘P", "label": "全文搜索" },
-        { "keys": "⌘⇧L", "label": "工具与日志" },
-        { "keys": "⌘,", "label": "设置" }
+        {
+          "keys": "⌘N",
+          "label": "记一下"
+        },
+        {
+          "keys": "⌘⇧N",
+          "label": "全局记一下"
+        },
+        {
+          "keys": "⌘K",
+          "label": "命令面板"
+        },
+        {
+          "keys": "⌘P",
+          "label": "全文搜索"
+        },
+        {
+          "keys": "⌘⇧L",
+          "label": "工具与日志"
+        },
+        {
+          "keys": "⌘,",
+          "label": "设置"
+        }
       ]
     },
     "features": {
@@ -847,5 +869,16 @@
         }
       ]
     }
+  },
+  "activityBar": {
+    "ariaLabel": "主导航",
+    "home": "工作区主页",
+    "search": "搜索",
+    "capture": "记一下",
+    "apps": "应用",
+    "ai": "AI 工作区",
+    "focus": "专注模式",
+    "theme": "切换主题",
+    "settings": "设置"
   }
 }

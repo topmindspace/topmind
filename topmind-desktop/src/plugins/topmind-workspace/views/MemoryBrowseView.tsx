@@ -313,7 +313,7 @@ export function MemoryBrowseView() {
               <Tooltip content={healthIssues.join(" · ")}>
                 <span
                   data-memory-health-issues
-                  className="rounded-full bg-status-warning-bg px-1.5 py-px text-3xs text-warning"
+                  className="rounded-[var(--radius-xs)] bg-status-warning-bg px-1.5 py-px text-3xs text-warning"
                 >
                   {t("workspace:memoryBrowse.healthIssues", { count: healthIssues.length })}
                 </span>
@@ -404,11 +404,11 @@ export function MemoryBrowseView() {
                         <h2 className="truncate text-sm font-medium text-text-primary">{item.title}</h2>
                       )}
                       {item.heading && item.heading !== item.title ? (
-                        <span className="rounded-full bg-surface-muted px-1.5 py-px text-3xs text-text-tertiary">
+                        <span className="rounded-[var(--radius-xs)] bg-surface-muted px-1.5 py-px text-3xs text-text-tertiary">
                           {item.heading}
                         </span>
                       ) : null}
-                      <span className="rounded-full bg-surface-muted px-1.5 py-px text-3xs text-text-quaternary">
+                      <span className="rounded-[var(--radius-xs)] bg-surface-muted px-1.5 py-px text-3xs text-text-quaternary">
                         {kindText}
                       </span>
                       {item.history && item.kind === "profile" ? (
@@ -416,7 +416,7 @@ export function MemoryBrowseView() {
                           type="button"
                           data-memory-restore
                           disabled={restoringId === item.id}
-                          className="rounded-full bg-surface-muted px-1.5 py-px text-3xs text-text-secondary hover:text-text-primary v4-focus-ring"
+                          className="rounded-[var(--radius-xs)] bg-surface-muted px-1.5 py-px text-3xs text-text-secondary hover:text-text-primary v4-focus-ring"
                           onClick={(e) => void handleRestore(item, e)}
                         >
                           {restoringId === item.id
@@ -435,7 +435,7 @@ export function MemoryBrowseView() {
                         dangerouslySetInnerHTML={{ __html: html }}
                       />
                     ) : item.preview ? (
-                      <p className="mt-0.5 line-clamp-2 text-3xs leading-relaxed text-text-tertiary">
+                      <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-text-tertiary">
                         {item.preview}
                       </p>
                     ) : null}

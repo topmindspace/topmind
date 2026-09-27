@@ -53,11 +53,6 @@ export async function loadWorkspaceModelLib() {
   return cache.promise;
 }
 
-/** Drop cache (e.g. after setEngineRoot in tests). */
-export function resetWorkspaceModelLibCache() {
-  cache = { root: null, mod: null, promise: null };
-}
-
 export async function resolveWorkspaceModel(workspaceRoot, options = {}) {
   const wm = await loadWorkspaceModelLib();
   const r = toRoots(workspaceRoot, options.engineRoot);

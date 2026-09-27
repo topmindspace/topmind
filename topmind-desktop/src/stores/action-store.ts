@@ -119,8 +119,9 @@ function buildApplyPayload(item: ActionItem): Record<string, unknown> {
     payload: item.suggestionPayload,
   };
   // stale_topic / catch_all: force archive action on payload.
-  // inbox_review / inbox_organize keep their own payload (move / create / batch hint) —
-  // aged Inbox notes are placement candidates, not archive-by-default.
+  // inbox_organize (and legacy inbox_review) keep their own payload
+  // (move / create / batch hint) — aged Inbox notes are placement
+  // candidates, not archive-by-default.
   const isArchiveKind =
     item.suggestionKind === 'stale_topic'
     || item.suggestionKind === 'catch_all';
@@ -159,7 +160,13 @@ interface ActionStore {
    * Run activity-window AI ops (memory_organize + topic_classify) and merge
    * confirm-shaped suggestions into the SuggestPopover list. Does not auto-apply.
    */
-  runActivityOps: (opts?: { force?: boolean }) => Promise<{ merged: number; summary: string }>;
+  runActivityOps: (opts?: { force?: boolean }) => Promise<{
+    merged: number;
+    summary: string;
+    ok: boolean;
+    errors: string[];
+    attempted: number;
+  }>;
   /** Merge raw Kernel suggestion-shaped objects into items (dedupe by id). */
   mergeSuggestions: (suggestions: Array<{
     id: string;
@@ -469,7 +476,7 @@ export const useActionStore = create<ActionStore>((set, get) => ({
         };
 
         // stale_topic / catch_all: force archive action on payload.
-        // inbox_review / inbox_organize keep their own payload (move / create / batch hint).
+        // inbox_organize (and legacy inbox_review) keep their own payload (move / create / batch hint).
         const isArchiveKind =
           item.suggestionKind === 'stale_topic'
           || item.suggestionKind === 'catch_all';
@@ -930,6 +937,8 @@ export const useActionStore = create<ActionStore>((set, get) => ({
     const force = opts.force === true;
     let merged = 0;
     const parts: string[] = [];
+    const errors: string[] = [];
+    let attempted = 0;
     // Rule + activity-window suggest path (does not clear dismiss memory)
     await get().refresh();
     try {
@@ -938,6 +947,7 @@ export const useActionStore = create<ActionStore>((set, get) => ({
         .map((t) => t.id)
         .filter((id) => id === "memory_organize" || id === "topic_classify");
       for (const id of ids) {
+        attempted += 1;
         try {
           const res = await api.aiOps.run(id, { force });
           const suggestions = (res.suggestions || []) as Array<{
@@ -953,12 +963,12 @@ export const useActionStore = create<ActionStore>((set, get) => ({
             merged += get().mergeSuggestions(suggestions);
           }
           if (res.summary) parts.push(res.summary);
-        } catch {
-          /* single op failure must not block others */
+        } catch (err) {
+          errors.push(err instanceof Error ? err.message : String(err));
         }
       }
-    } catch {
-      /* list/run unavailable when AI/kernel offline */
+    } catch (err) {
+      errors.push(err instanceof Error ? err.message : String(err));
     }
     if (merged > 0) {
       set({ expanded: true });
@@ -966,6 +976,10 @@ export const useActionStore = create<ActionStore>((set, get) => ({
     return {
       merged,
       summary: parts.filter(Boolean).join(" · ") || (merged > 0 ? `+${merged}` : ""),
+      // Honest failure surface: all ops failed (or list/run unreachable).
+      ok: errors.length === 0 || merged > 0,
+      errors,
+      attempted,
     };
   },
 

@@ -8,8 +8,8 @@ import {
   RiLoader4Line,
   RiNodeTree,
   RiPuzzleLine,
-  RiRobot2Line,
   RiSettingsLine,
+  RiSparklingLine,
   RiToolsLine,
   RiTwitterXLine,
   RiWallet3Line,
@@ -104,7 +104,7 @@ export function SettingsDialog() {
     const builtin: SettingsTabItem[] = [
       { id: "general", label: t("settings:tabs.general"), icon: RiSettingsLine, order: 0, group: t("settings:groups.environment") },
       
-      { id: "ai", label: t("settings:tabs.ai"), icon: RiRobot2Line, order: 20, group: t("settings:groups.agent") },
+      { id: "ai", label: t("settings:tabs.ai"), icon: RiSparklingLine, order: 20, group: t("settings:groups.agent") },
       { id: "skills", label: t("settings:tabs.skills"), icon: RiBookOpenLine, order: 25, group: t("settings:groups.agent") },
       { id: "tools", label: t("settings:tabs.tools"), icon: RiToolsLine, order: 30, group: t("settings:groups.agent") },
       { id: "plugins", label: t("settings:tabs.plugins"), icon: RiPuzzleLine, order: 40, group: t("settings:groups.extensions") },

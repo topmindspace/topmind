@@ -123,7 +123,7 @@
     "tool": "工具",
     "thinking": "思考中",
     "preparing": "准备中",
-    "organizingContext": "整理上下文",
+    "organizingContext": "压缩历史以继续（保留目标与回执）",
     "contextAdded": "已补充",
     "responding": "回复中",
     "continuing": "继续中",

@@ -18,7 +18,7 @@ import { cleanCaptureTitle, sanitizeCaptureFilename } from "./fetch-article.mjs"
 import { transferNoteMedia } from "./workspace-note-media.mjs";
 import { kernelDurableWrite } from "./kernel-api.mjs";
 import { localizeMarkdownImages, clipImageSlug } from "./clip-images.mjs";
-import { CLIP_DEST_MODES } from "./clip-dest-modes.mjs";
+import { CLIP_DEST_MODES } from "./fs-utils.mjs";
 import { t as i18n } from "./electron-i18n.mjs";
 
 function bumpWorkspaceIndex(relativePath) {

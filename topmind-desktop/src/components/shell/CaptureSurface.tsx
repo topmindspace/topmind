@@ -144,7 +144,7 @@ export function CaptureSurface() {
       ) : (
         <div className={shellClass} style={shellStyle}>
           {message ? (
-            <div className="border-b border-border-subtle-dim bg-status-warning-bg/50 px-3 py-1.5 text-center text-3xs text-warning">
+            <div className="border-b border-border-subtle-dim bg-status-warning-bg px-3 py-1.5 text-center text-3xs text-warning">
               {message}
             </div>
           ) : null}

@@ -162,17 +162,29 @@ test("name list source stays the single advertised Desktop catalog", () => {
   assert.match(namesSrc, /export const AI_TOOL_NAMES_READ/);
   assert.match(namesSrc, /export const AI_TOOL_NAMES_WRITE/);
   assert.equal(AI_TOOL_NAMES_READ.length, 18);
-  assert.equal(AI_TOOL_NAMES_WRITE.length, 18);
+  assert.equal(AI_TOOL_NAMES_WRITE.length, 20);
   assert.ok(AI_TOOL_NAMES_READ.includes("list_todos"));
   assert.ok(AI_TOOL_NAMES_READ.includes("list_files"));
   assert.ok(AI_TOOL_NAMES_READ.includes("glob_files"));
   assert.ok(AI_TOOL_NAMES_READ.includes("stat_path"));
   assert.ok(AI_TOOL_NAMES_WRITE.includes("retire_core_memory"));
   assert.ok(AI_TOOL_NAMES_WRITE.includes("update_core_memory"));
+  assert.ok(AI_TOOL_NAMES_WRITE.includes("restore_core_memory"));
+  assert.ok(AI_TOOL_NAMES_WRITE.includes("compact_core_memory_history"));
   assert.ok(AI_TOOL_NAMES_WRITE.includes("add_todo"));
   assert.ok(AI_TOOL_NAMES_WRITE.includes("toggle_todo"));
   assert.ok(AI_TOOL_NAMES_WRITE.includes("create_dir"));
   assert.ok(AI_TOOL_NAMES_WRITE.includes("copy_file"));
+});
+
+test("living docs state the 18+20=38 totals (no stale 36)", () => {
+  const toolsMd = readFileSync(path.resolve(root, "../TOOLS.md"), "utf8");
+  const arch = readFileSync(path.join(root, "ARCHITECTURE.md"), "utf8");
+  assert.match(toolsMd, /18 read \+ 20 write = 38/);
+  assert.doesNotMatch(toolsMd, /18 read \+ 18 write = 36/);
+  assert.match(arch, /38 named tools/);
+  assert.match(arch, /RESTORE\/COMPACT-HISTORY/);
+  assert.doesNotMatch(arch, /36 named tools/);
 });
 
 test("living TOOLS.md inventory matches shipped names; dropped bash is absent", () => {
@@ -182,7 +194,7 @@ test("living TOOLS.md inventory matches shipped names; dropped bash is absent", 
   assert.match(toolsMd, /Skills pack — all \*\*keep\*\*/);
   assert.match(toolsMd, /UTR commands — all \*\*keep\*\*/);
   assert.match(toolsMd, /drop — never registered/);
-  assert.match(toolsMd, /8 域 \/ 28 命令/);
+  assert.match(toolsMd, /8 域 \/ 32 命令/);
   const all = [...AI_TOOL_NAMES_READ, ...AI_TOOL_NAMES_WRITE];
   for (const name of all) {
     assert.match(toolsMd, new RegExp(`\`${name}\``, "u"), `TOOLS.md missing ${name}`);

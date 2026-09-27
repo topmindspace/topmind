@@ -257,6 +257,42 @@ export const WorkspaceService = {
     };
   },
 
+  /** AI chat: restore archived core-memory fact (memory lifecycle parity with UTR/UI). */
+  async restoreCoreMemory({ match, section, actor, confirmed }, ctx) {
+    const { loadKernelApi, workspaceRootOf } = await import("./lib/kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const root = workspaceRootOf(ctx.workspaceRoot);
+    const ev = kernel.restoreProfileEntry({
+      workspaceRoot: root,
+      match,
+      section,
+      actor: actor || "ai",
+      confirmed,
+    });
+    return {
+      ok: ev.wroteFiles !== false && ev.operation !== "skip",
+      ...ev,
+      wroteFiles: ev.wroteFiles !== false,
+    };
+  },
+
+  /** AI chat: compact near-duplicate core-memory history rows (confirm-gated). */
+  async compactCoreMemoryHistory({ actor, confirmed }, ctx) {
+    const { loadKernelApi, workspaceRootOf } = await import("./lib/kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const root = workspaceRootOf(ctx.workspaceRoot);
+    const ev = kernel.compactProfileHistory({
+      workspaceRoot: root,
+      actor: actor || "ai",
+      confirmed,
+    });
+    return {
+      ok: ev.wroteFiles !== false && ev.operation !== "skip",
+      ...ev,
+      wroteFiles: ev.wroteFiles !== false,
+    };
+  },
+
   async listPendingWrites(_p, ctx) {
     const { listPendingWrites } = await import("./lib/pending-writes.mjs");
     return { ok: true, pending: listPendingWrites(ctx?.workspaceRoot) };
@@ -452,6 +488,17 @@ export const WorkspaceService = {
   },
   async runOperation(p, ctx) {
     const { kernelRunOperation } = await import("./lib/kernel-api.mjs");
+    // Feed the last agent-run file ops into memory_organize (single-use).
+    if (p?.id === "memory_organize") {
+      const { consumeDistillHint } = await import("./lib/ai-tool-evidence.mjs");
+      const hint = consumeDistillHint();
+      if (hint) {
+        p = {
+          ...p,
+          options: { ...(p.options || {}), distillHint: hint, memoryDistillHint: hint },
+        };
+      }
+    }
     return kernelRunOperation(p, ctx);
   },
   async getOperationState(p, ctx) {

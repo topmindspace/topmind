@@ -113,7 +113,7 @@ export function FileDropZone({ children }: { children: React.ReactNode }) {
     >
       {children}
       {dragging ? (
-        <div className="pointer-events-none absolute inset-0 z-floating flex items-center justify-center bg-accent-bg-subtle/90 animate-fade-in">
+        <div className="pointer-events-none absolute inset-0 z-floating flex items-center justify-center bg-accent-bg-subtle animate-fade-in">
           <div className="flex flex-col items-center gap-2.5 rounded-[var(--radius-xl)] border-2 border-dashed border-accent-color bg-surface px-10 py-8 text-accent-color shadow-[var(--shadow-overlay)]">
             <RiDownload2Line size={ICON.xl} />
             <div className="text-sm font-semibold tracking-tight">{t("fileDropZone.releaseToImport")}</div>

@@ -45,7 +45,8 @@ export function CountBadge({ count, max = DEFAULT_MAX, tone = "default", classNa
       aria-hidden
       data-count-badge={tone}
       className={cn(
-        "pointer-events-none flex h-3.5 min-w-3.5 items-center justify-center rounded-full px-1 text-4xs font-bold leading-none tabular-nums",
+        /* radius-xs (2px) rounded rect — spec §0.0.5: not a capsule, quiet read */
+        "pointer-events-none flex h-3.5 min-w-3.5 items-center justify-center rounded-[var(--radius-xs)] px-1 text-4xs font-bold leading-none tabular-nums",
         tone === "alert"
           ? "bg-badge-alert text-badge-alert-foreground"
           : "bg-badge text-badge-foreground",

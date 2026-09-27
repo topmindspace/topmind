@@ -149,7 +149,7 @@ function WereadPanel({ settings, update }: { settings: AppSettings; update: (p: 
           onChange={() => patchWeread({ enabled: !w.enabled })}
         />
         <KeyField
-          label="API Key"
+          label={t("settings:ai.apiKeyLabel")}
           helpUrl="https://weread.qq.com/r/weread-skills"
           configured={Boolean(w.apiKey)}
           onClear={() => patchWeread({ apiKey: null as unknown as string })}
@@ -168,7 +168,7 @@ function WereadPanel({ settings, update }: { settings: AppSettings; update: (p: 
           <Button
             variant="outline"
             size="sm"
-            className="h-7 text-3xs"
+            className="h-7"
             onClick={() => void handleTest()}
             disabled={testing || !w.apiKey || !w.enabled}
           >
@@ -178,7 +178,7 @@ function WereadPanel({ settings, update }: { settings: AppSettings; update: (p: 
           <Button
             variant="outline"
             size="sm"
-            className="h-7 text-3xs"
+            className="h-7"
             onClick={() => void handleSync()}
             disabled={syncing || !w.apiKey || !w.enabled}
           >
@@ -188,7 +188,7 @@ function WereadPanel({ settings, update }: { settings: AppSettings; update: (p: 
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 text-3xs"
+            className="h-7"
             disabled={!w.enabled}
             onClick={() => select({ kind: "connector", id: "weread" })}
           >

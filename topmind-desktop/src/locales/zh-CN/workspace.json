@@ -101,7 +101,7 @@
     "emptyHint": "在编辑器或专题里发布完成稿，会出现在这里"
   },
   "streamDetail": {
-    "entryCount": "{{count}} 条记录 · {{packing}}",
+    "entryCount": "{{count}} 条 · {{packing}}",
     "personalStreamSubtitle": "个人动态 · {{count}} 条 · {{packing}} · 随便记下 · 确认后整理",
     "emptySubtitle": "在下方写下 · 或用侧栏「记一下」",
     "appendBadge": "{{count}} 续",
@@ -173,7 +173,16 @@
     "suggestionsPreparing": "正在准备建议…",
     "suggestionsPreparingTip": "扫描可整理项 · 完成后可点查看",
     "openMemory": "我的情况",
-    "openMemoryTip": "打开我的情况 · 画像 / 周期反思 / 专题记忆"
+    "openMemoryTip": "打开我的情况 · 画像 / 周期反思 / 专题记忆",
+    "title": "动态",
+    "quickInbox": "Inbox",
+    "quickOutputs": "交付",
+    "quickMemory": "我的情况",
+    "quickSuggest": "AI 建议",
+    "packingWeekly": "按周",
+    "packingDaily": "按日",
+    "packingMonthly": "按月",
+    "packingAtom": "逐条"
   },
   "feedLayout": {
     "list": "列表",

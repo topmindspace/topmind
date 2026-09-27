@@ -205,7 +205,7 @@ export function ToolsPanel({ settings }: { settings: AppSettings }) {
       </SettingsSection>
 
       {!status?.utrAvailable && !loading ? (
-        <div className="rounded-[var(--radius-md)] border border-warning/25 bg-status-warning-bg/50 px-3 py-2 text-3xs text-warning" role="status">
+        <div className="rounded-[var(--radius-md)] border border-border-subtle-dim bg-status-warning-bg px-3 py-2 text-3xs text-warning" role="status">
           {t("settings:tools.notFoundHelp")}
         </div>
       ) : null}
@@ -213,7 +213,7 @@ export function ToolsPanel({ settings }: { settings: AppSettings }) {
       <SettingsSection title={t("settings:tools.titleExecute")} description={t("settings:tools.descExecute")}>
         <div className="grid gap-2 sm:grid-cols-2">
           <label className="flex flex-col gap-1">
-            <span className="text-3xs font-medium text-text-secondary">Kind</span>
+            <span className="text-3xs font-medium text-text-secondary">{t("settings:tools.kindLabel")}</span>
             <Select
               value={kind}
               onChange={(e) => setKind(e.target.value)}
@@ -222,7 +222,7 @@ export function ToolsPanel({ settings }: { settings: AppSettings }) {
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-3xs font-medium text-text-secondary">Command</span>
+            <span className="text-3xs font-medium text-text-secondary">{t("settings:tools.commandLabel")}</span>
             <Select
               value={command}
               onChange={(e) => setCommand(e.target.value)}
@@ -240,9 +240,9 @@ export function ToolsPanel({ settings }: { settings: AppSettings }) {
           </p>
         ) : null}
         <label className="mt-2 flex flex-col gap-1">
-          <span className="text-3xs font-medium text-text-secondary">Input JSON</span>
+          <span className="text-3xs font-medium text-text-secondary">{t("settings:tools.inputJsonLabel")}</span>
           <textarea
-            className="min-h-[88px] w-full resize-y rounded-[var(--radius-md)] border border-border-subtle bg-input px-2 py-1.5 font-mono text-3xs leading-relaxed text-text-primary outline-none focus-visible:border-accent-color focus-visible:ring-2 focus-visible:ring-ring/35"
+            className="min-h-[88px] w-full resize-y rounded-[var(--radius-md)] border border-border-subtle bg-input px-2 py-1.5 font-mono text-3xs leading-relaxed text-text-primary focus-visible:border-accent-color v4-focus-ring"
             value={inputJson}
             onChange={(e) => setInputJson(e.target.value)}
             spellCheck={false}
@@ -250,11 +250,11 @@ export function ToolsPanel({ settings }: { settings: AppSettings }) {
           />
         </label>
         <div className="mt-2 flex flex-wrap gap-1.5">
-          <Button variant="outline" size="sm" className="h-7 text-3xs" onClick={() => void runPreview()} softDisabled={!kind || !command} disabled={!!busy}>
+          <Button variant="outline" size="sm" className="h-7" onClick={() => void runPreview()} softDisabled={!!busy || !kind || !command}>
             {busy === "preview" ? <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden /> : <RiEyeLine size={ICON.micro} aria-hidden />}
             {t("settings:tools.previewBtn")}
           </Button>
-          <Button variant="default" size="sm" className="h-7 text-3xs" onClick={() => void runTool()} softDisabled={!kind || !command} disabled={!!busy}>
+          <Button variant="default" size="sm" className="h-7" onClick={() => void runTool()} softDisabled={!!busy || !kind || !command}>
             {busy === "run" ? <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden /> : <RiPlayLine size={ICON.micro} aria-hidden />}
             {t("settings:tools.runBtn")}
           </Button>
@@ -262,7 +262,7 @@ export function ToolsPanel({ settings }: { settings: AppSettings }) {
       </SettingsSection>
 
       {error ? (
-        <div className="rounded-[var(--radius-md)] border border-error/20 bg-status-error-bg px-2.5 py-2 text-3xs text-error" role="alert">
+        <div className="rounded-[var(--radius-md)] border border-border-subtle-dim bg-status-error-bg px-2.5 py-2 text-3xs text-error" role="alert">
           {error}
         </div>
       ) : null}

@@ -18,12 +18,7 @@
 .v4-titlebar-btn-primary,
 .v4-titlebar-btn-ai,
 .v4-titlebar-cluster,
-.v4-cmd-trigger,
-.v4-search-trigger,
-.v4-sidebar-search-trigger,
-.v4-sidebar-capture,
 .v4-icon-btn,
-.v4-nav-pill,
 .v4-column-chrome button,
 .v4-column-chrome [role="tab"] {
   -webkit-app-region: no-drag;
@@ -75,17 +70,10 @@ html[data-fullscreen="true"] .v4-column-chrome.v4-mac-titlebar-pad {
   padding: 0;
   flex-shrink: 0;
 }
-.v4-sidebar-destination,
 .v4-sidebar-mode {
   flex: 0 0 auto;
   min-width: 0;
   max-width: 100%;
-}
-.v4-sidebar-header-tools {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  min-width: 0;
 }
 .v4-sidebar-mode-tools {
   display: flex;
@@ -96,22 +84,6 @@ html[data-fullscreen="true"] .v4-column-chrome.v4-mac-titlebar-pad {
   margin-left: auto;
 }
 
-/* In-workspace home — paper canvas, content in a reading column.
-   Surface tokens only; not a brand wash and not a chrome fill. */
-.v4-workspace-home {
-  min-height: 100%;
-  background:
-    radial-gradient(
-      720px 320px at 8% -8%,
-      color-mix(in srgb, var(--color-accent-color) 6%, transparent),
-      transparent 68%
-    ),
-    linear-gradient(180deg, var(--color-surface) 0, var(--color-background) 280px);
-}
-.v4-workspace-home-column {
-  width: min(72rem, 100%);
-  margin-inline: auto;
-}
 .v4-hub-page {
   background:
     radial-gradient(
@@ -332,15 +304,6 @@ html[data-platform="win"] [data-dialog-footer] {
 }
 .v4-ai-chip-gradient:active:not(:disabled) {
   filter: brightness(0.95);
-}
-
-/* ── Todo popover enter ── */
-@keyframes v4-todo-popover-enter {
-  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-.v4-todo-popover-enter {
-  animation: v4-todo-popover-enter 0.12s ease-out;
 }
 
 /* ── AI progress slide ── */
@@ -1009,6 +972,29 @@ button.v4-dash-card:active,
   border-bottom: 1px solid var(--color-border-subtle-dim);
   background: var(--color-app-chrome);
 }
+
+/* Density tiers — window-width driven, no JS. Full 44 · Condensed 36 · Immersive 32.
+   Chrome control height follows so 32px buttons don't overflow a 32px bar. */
+@media (max-width: 1100px) {
+  :root {
+    --density-chrome-y: 36px;
+    --density-chrome-control: 28px;
+    --density-editor-toolbar-y: 28px;
+  }
+}
+@media (max-width: 720px) {
+  :root {
+    --density-chrome-y: 32px;
+    --density-chrome-control: 26px;
+    --density-editor-toolbar-y: 26px;
+    --density-status-y: 22px;
+  }
+}
+/* Focus / immersive mode already collapses rails; keep a single 32px title line. */
+html[data-focus-mode="true"] {
+  --density-chrome-y: 32px;
+  --density-chrome-control: 26px;
+}
 /* Titlebar control cluster — transparent group (no inset frame noise) */
 .v4-titlebar-cluster {
   display: inline-flex;
@@ -1108,7 +1094,6 @@ button.v4-dash-card:active,
 .v4-titlebar-btn:active:not(:disabled) {
   background: var(--color-state-pressed, var(--color-surface-hover));
 }
-.v4-icon-btn-tool,
 .v4-editor-tool-btn {
   display: inline-flex;
   align-items: center;
@@ -1127,7 +1112,6 @@ button.v4-dash-card:active,
     background-color var(--duration-quick, 100ms) var(--ease-default),
     color var(--duration-quick, 100ms) var(--ease-default);
 }
-.v4-icon-btn-tool:hover:not(:disabled),
 .v4-editor-tool-btn:hover:not(:disabled) {
   background: var(--color-surface-hover);
   color: var(--color-text-secondary);
@@ -1239,33 +1223,6 @@ button.v4-dash-card:active,
 .v4-titlebar-btn-primary:focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
-}
-/* Sidebar 记一下 — pure icon chrome button. Geometry comes from
-   .v4-titlebar-btn (32×32 min box). NEVER min-width:0 — that collapsed the
-   hover rect to the glyph. Accent only on the pencil. */
-.v4-sidebar-capture {
-  padding: 0 8px;
-  border: none;
-  background: transparent;
-  color: var(--color-text-tertiary);
-}
-.v4-sidebar-capture:hover:not(:disabled) {
-  background: var(--color-surface-hover);
-  color: var(--color-text-tertiary);
-}
-.v4-capture-accent-icon {
-  color: var(--color-accent-inbox);
-}
-.v4-capture-accent-label {
-  background-image: linear-gradient(
-    90deg,
-    var(--color-accent-inbox),
-    var(--color-accent-color)
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  font-weight: 600;
 }
 /* Stream inline composer — focus ring matches AI composer language */
 .v4-stream-composer {
@@ -1832,74 +1789,6 @@ html[data-overlay-open] body > [data-radix-popper-content-wrapper]:has([data-rad
   overflow: hidden;
   background: var(--color-app-chrome);
 }
-.v4-nav-pill {
-  border-radius: var(--radius-md);
-  transition:
-    background-color var(--duration-fast) var(--ease-default),
-    color var(--duration-fast) var(--ease-default),
-    box-shadow var(--duration-fast) var(--ease-default);
-}
-.v4-nav-pill[data-active="true"] {
-  /* Active = tonal container + medium weight (MD3-informed; calm primary nav) */
-  background: var(--color-accent-container, var(--color-accent-bg-faint));
-  color: var(--color-on-accent-container, var(--color-accent-color));
-  font-weight: 600;
-}
-.v4-nav-pill:not([data-active="true"]):hover {
-  background: var(--color-state-hover, color-mix(in srgb, var(--color-surface) 70%, transparent));
-  color: var(--color-text-secondary);
-}
-.v4-nav-pill:not([data-active="true"]):active {
-  background: var(--color-state-pressed, var(--color-surface-muted));
-}
-
-/* Search/command trigger — unified search button (replaces old cmd input).
-   2026-09 v2: pure button, no input field. Quiet accent on hover.
-   Also serves as sidebar search trigger (v4-sidebar-search-trigger). */
-.v4-search-trigger,
-.v4-sidebar-search-trigger {
-  border: 1px solid var(--color-border-subtle-dim);
-  background: color-mix(in srgb, var(--color-surface-muted) 40%, transparent);
-  box-shadow: var(--shadow-input-inset);
-  transition:
-    background-color var(--duration-quick, 100ms) var(--ease-default),
-    border-color var(--duration-quick, 100ms) var(--ease-default),
-    color var(--duration-quick, 100ms) var(--ease-default);
-}
-.v4-search-trigger:hover,
-.v4-sidebar-search-trigger:hover {
-  border-color: var(--color-border-subtle);
-  background: color-mix(in srgb, var(--color-surface-muted) 60%, transparent);
-  color: var(--color-text-secondary);
-}
-/* Sidebar header search is an icon button, not a boxed field. */
-.v4-titlebar-btn.v4-search-trigger,
-.v4-titlebar-btn.v4-search-trigger:hover {
-  border: none;
-  background: transparent;
-  box-shadow: none;
-}
-.v4-titlebar-btn.v4-search-trigger:hover {
-  background: var(--color-state-hover, var(--color-surface-hover));
-}
-.v4-titlebar-btn.v4-search-trigger:active {
-  background: var(--color-state-pressed, var(--color-surface-hover));
-}
-/* Legacy compat — old class still referenced in no-drag list */
-.v4-cmd-trigger {
-  border: 1px solid var(--color-border-subtle-dim);
-  background: color-mix(in srgb, var(--color-surface-muted) 40%, transparent);
-  box-shadow: var(--shadow-input-inset);
-  transition:
-    background-color var(--duration-quick, 100ms) var(--ease-default),
-    border-color var(--duration-quick, 100ms) var(--ease-default),
-    color var(--duration-quick, 100ms) var(--ease-default);
-}
-.v4-cmd-trigger:hover {
-  border-color: var(--color-border-subtle);
-  background: color-mix(in srgb, var(--color-surface-muted) 60%, transparent);
-  color: var(--color-text-secondary);
-}
 
 /* Quiet hairline divider in chrome toolbars — slimmer (2026-08-07) */
 .v4-chrome-sep {
@@ -2060,6 +1949,8 @@ html.dark .v4-overlay-sheet {
 
 /* ── AI panel — same quiet rail language as sidebar ── */
 .v4-ai-panel {
+  container-type: inline-size;
+  container-name: v4-chat;
   background: var(--color-app-chrome);
   min-height: 0;
   height: 100%;
@@ -2177,7 +2068,7 @@ html.dark .v4-overlay-sheet {
   opacity: 0.12;
 }
 
-/* Segmented control (ViewSwitcher family) — sliding thumb under items */
+/* Segmented control (ViewSwitcher family) */
 .v4-segmented {
   position: relative;
   display: flex;
@@ -2188,27 +2079,6 @@ html.dark .v4-overlay-sheet {
   background: color-mix(in srgb, var(--color-surface-muted) 88%, var(--color-app-chrome));
   box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.03);
   border: none;
-}
-.v4-segmented-thumb {
-  position: absolute;
-  top: 3px;
-  bottom: 3px;
-  left: 0;
-  z-index: 0;
-  border-radius: var(--radius-md);
-  background: var(--color-surface-elevated);
-  box-shadow: var(--shadow-xs);
-  outline: 1px solid color-mix(in srgb, var(--color-accent-color) 18%, transparent);
-  outline-offset: -1px;
-  pointer-events: none;
-  transition:
-    transform var(--duration-fast) var(--ease-default),
-    width var(--duration-fast) var(--ease-default),
-    opacity var(--duration-fast) var(--ease-default);
-  will-change: transform, width;
-}
-.v4-segmented-thumb[data-ready="false"] {
-  opacity: 0;
 }
 .v4-segmented-item {
   position: relative;
@@ -2238,7 +2108,6 @@ html.dark .v4-overlay-sheet {
   background: var(--color-state-pressed, var(--color-surface-muted));
 }
 .v4-segmented-item[data-active="true"] {
-  /* Thumb provides elevated surface — item stays transparent */
   background: transparent;
   color: var(--color-text-primary);
   box-shadow: none;
@@ -2248,11 +2117,6 @@ html.dark .v4-overlay-sheet {
 .v4-segmented-item:focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 1px;
-}
-@media (prefers-reduced-motion: reduce) {
-  .v4-segmented-thumb {
-    transition: none;
-  }
 }
 
 /* ── Focus row highlight for lists ── */
@@ -2266,21 +2130,37 @@ html.dark .v4-overlay-sheet {
 
 /* ── Skeleton block ── */
 
-/* Message bubbles — slightly softer radius for long AI reading */
+/* Message bubbles — user = "mine" (accent wash); assistant = quiet paper.
+   Previously near-twins on the same elevated fill.
+   Paper reading column (wide AI rail): assistant becomes a full-width paper
+   row sharing the reading language with feed/editor; user stays a right chip. */
 .v4-msg-user {
   border-radius: var(--radius-lg) var(--radius-lg) var(--radius-sm) var(--radius-lg);
-  border: 1px solid var(--color-border-subtle);
-  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-accent-border-subtle);
+  background: var(--color-accent-bg-subtle);
   color: var(--color-text-primary);
-  box-shadow: var(--elevation-1, 0 1px 2px rgba(0, 0, 0, 0.04));
+  box-shadow: none;
 }
 /* Assistant: document-like paper, not chat bubble chrome */
 .v4-msg-assistant {
   border-radius: var(--radius-card, var(--radius-lg));
-  background: var(--color-surface-elevated);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle-dim);
   box-shadow: var(--shadow-xs);
   color: var(--color-text-prose, var(--color-text-primary));
   max-width: 100%;
+}
+/* Wide AI rail (>480px): paper column — no side gutter, same language as feed. */
+@container (min-width: 480px) {
+  .v4-msg-assistant {
+    max-width: min(100%, 40rem);
+    align-self: stretch;
+    border-radius: var(--radius-lg);
+    border-color: transparent;
+    box-shadow: none;
+    background: transparent;
+    padding-inline: 0.25rem;
+  }
 }
 
 /* ── Feed layouts: list (X-like dense column) vs card (single-column aligned) ──
@@ -2580,4 +2460,127 @@ html[data-menu-open] .v4-main-canvas .sticky {
   inset: 0;
   background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-accent-color) 40%, transparent), transparent);
   animation: v4-shimmer-flow 1.6s infinite cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Previously-undefined hooks (referenced by views; give them a real style) ── */
+.v4-feed-post {
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+.v4-code-block {
+  border-radius: var(--radius-md);
+  background: var(--color-surface-inset);
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+}
+.v4-input {
+  border: 1px solid var(--color-border-subtle-dim);
+  border-radius: var(--radius-md);
+  background: var(--color-input);
+  padding: 0.35rem 0.6rem;
+}
+.v4-editor-outline {
+  width: 240px;
+  border-left: 1px solid var(--color-border-subtle-dim);
+  background: var(--color-surface);
+}
+.v4-split-chrome {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+}
+
+/* ── ActivityBar — primary destination rail (48px, leftmost) ── */
+.v4-activity-bar {
+  /* inherits app-chrome; sits as its own column beside the sidebar */
+  z-index: 1;
+}
+.v4-activity-bar .v4-focus-ring:focus-visible {
+  outline-offset: -2px;
+}
+
+/* ── Stream home (2026-09-26) — airy compose + quiet identity strip ── */
+[data-stream-home-header] h1 {
+  letter-spacing: -0.015em;
+}
+.v4-stream-composer {
+  /* Hero compose: taller, softer, more inviting than a list row */
+  padding: 14px 16px 12px;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+}
+.v4-stream-composer:focus-within {
+  box-shadow: var(--shadow-md), 0 0 0 1px var(--color-accent-border-subtle);
+}
+[data-stream-inline-composer] textarea {
+  min-height: 56px;
+  font-size: 15px;
+  line-height: 1.65;
+}
+/* Day groups — quieter chrome, more breathing room */
+[data-stream-feed][data-layout="list"] [data-stream-day-toggle],
+[data-stream-feed][data-layout="card"] [data-stream-day-toggle] {
+  min-height: 28px;
+  letter-spacing: 0.01em;
+}
+[data-stream-feed][data-layout="card"] [data-stream-day-group] {
+  margin-bottom: 14px;
+}
+[data-stream-feed][data-layout="list"] [data-stream-day-body] {
+  padding-top: 2px;
+}
+
+/* ── Stream workbench homepage — web-like hero + comfortable wash ──
+   Soft sky→paper gradient behind identity + quick access + compose.
+   Content below (feed) stays on the plain canvas for long-read calm. */
+[data-stream-home-header] {
+  position: relative;
+  padding: 20px 20px 8px;
+  margin: -4px -4px 12px;
+  border-radius: var(--radius-2xl);
+  background:
+    radial-gradient(120% 90% at 12% 0%, color-mix(in srgb, var(--color-accent-color) 7%, transparent), transparent 55%),
+    radial-gradient(80% 70% at 92% 8%, color-mix(in srgb, var(--color-accent-inbox) 5%, transparent), transparent 50%),
+    linear-gradient(180deg, var(--color-surface-elevated) 0%, var(--color-background) 100%);
+  overflow: hidden;
+}
+[data-stream-home-header]::before {
+  /* subtle paper grain / highlight arc — web hero feel */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(140% 60% at 50% -10%, color-mix(in srgb, var(--color-surface-elevated) 80%, transparent), transparent 70%);
+  pointer-events: none;
+}
+[data-stream-home-header] > * {
+  position: relative;
+}
+[data-stream-home-header] h1 {
+  letter-spacing: -0.02em;
+  font-size: 22px;
+  line-height: 1.25;
+}
+/* Quick access chips — soft cards on the hero */
+[data-stream-workbench-strip] {
+  position: relative;
+}
+[data-stream-workbench-strip] button {
+  box-shadow: var(--shadow-xs);
+  backdrop-filter: none;
+}
+[data-stream-workbench-strip] button:hover {
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+[data-stream-workbench-strip] button {
+  transition: background-color var(--duration-fast) var(--ease-default),
+    box-shadow var(--duration-fast) var(--ease-default),
+    transform var(--duration-fast) var(--ease-default);
+}
+/* Hero composer — floats on the wash */
+[data-stream-home-header] ~ .v4-stream-composer,
+.v4-feed-column > .v4-stream-composer {
+  border-radius: var(--radius-xl);
 }

@@ -174,7 +174,7 @@ export function QuickCapture({ variant, onDone }: QuickCaptureProps = {}) {
           </span>
           <button
             type="button"
-            className="v4-no-drag flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary v4-focus-ring"
+            className="v4-no-drag flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-state-hover hover:text-text-secondary v4-focus-ring"
             onClick={() => {
               if (forceCloseRef.current || !form.isDirty) void api.sys.closeQuickCapture();
               else setConfirmDiscard(true);

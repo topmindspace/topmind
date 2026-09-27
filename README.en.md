@@ -121,7 +121,7 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Opti
 - Inspect the current action surface:
   ```bash
   npm run utr:doctor            # toolchain diagnosis
-  npm run utr:list              # 8 domains / 28 commands
+  npm run utr:list              # 8 domains / 32 commands
   ```
 - Guide: [`TOOLS.md`](./TOOLS.md) · [`utr/README.md`](./utr/README.md)（简体中文） · [English](./utr/README.en.md)
 

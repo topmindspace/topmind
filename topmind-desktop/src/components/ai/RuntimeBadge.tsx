@@ -25,7 +25,7 @@ export function RuntimeBadge() {
       <Tooltip content={t("ai.runtimeOfflineTooltip")}>
         <button
           type="button"
-          className="v4-chip text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary"
+          className="v4-chip text-text-quaternary transition-colors hover:bg-state-hover hover:text-text-secondary"
           onClick={() => openOverlay("settings", { topicId: "ai" })}
           aria-label={t("ai.runtimeOfflineAria")}
         >
@@ -48,8 +48,8 @@ export function RuntimeBadge() {
     >
       <span
         className={cn(
-          "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-3xs text-success",
-          streaming && "bg-success/8",
+          "inline-flex items-center gap-1 rounded-[var(--radius-xs)] px-1.5 py-0.5 text-3xs text-success",
+          streaming && "bg-status-success-bg",
         )}
       >
         <RiCheckboxBlankCircleLine
@@ -57,12 +57,7 @@ export function RuntimeBadge() {
           className={cn("fill-current", streaming && "animate-pulse-soft")}
         />
         <span className="tabular-nums">{n}</span>
-        <span
-          className="text-4xs font-semibold tracking-wide text-accent-color"
-          data-ai-loop={status.loop === "ai-sdk" ? "ai-sdk" : "pi-agent-core"}
-        >
-          {status.loop === "ai-sdk" ? "SDK" : "Pi"}
-        </span>
+        {/* Loop label (Pi/SDK) is engineer-facing — lives in the tooltip only. */}
         {agentEnabled ? <RiToolsLine size={ICON.micro} className="text-accent-color" /> : null}
       </span>
     </Tooltip>

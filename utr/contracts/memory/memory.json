@@ -3,7 +3,7 @@
   "kind": "memory",
   "skill": "memory",
   "label": "记忆工具",
-  "description": "分层记忆管理：提升、反思、追加。",
+  "description": "分层记忆管理：提升、反思、追加、归档、原位更新、历史压缩、恢复。",
   "execution": {
     "runtime": "node",
     "cwd_mode": "engine_root",
@@ -230,6 +230,190 @@
       "writes": [
         "memory/topics/{slug}.md"
       ]
+    },
+    "retire-profile": {
+      "label": "归档我的情况",
+      "description": "把匹配的「我的情况」活跃事实移入 ## 历史记录（带归档日期，不删除原文）。匹配不到或已在历史则良性 skip。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "medium",
+      "review_policy": "preview_or_auto",
+      "requires_topic": false,
+      "idempotent": true,
+      "supports_dry_run": true,
+      "destructive": false,
+      "inputs": {
+        "match": {
+          "type": "text",
+          "label": "匹配原文",
+          "required": true,
+          "hint": "画像中该事实的原文或近似原文"
+        },
+        "section": {
+          "type": "text",
+          "label": "限定段落",
+          "required": false,
+          "hint": "可选：只在该活跃段落内匹配"
+        },
+        "reason": {
+          "type": "text",
+          "label": "归档原因",
+          "required": false
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            { "value": "auto", "label": "自动保存并返回回执" },
+            { "value": "confirm", "label": "需要审阅" }
+          ]
+        }
+      },
+      "args_extra": [
+        "--match",
+        "{match}",
+        "--section",
+        "{section}",
+        "--reason",
+        "{reason}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": ["memory/profile.md"],
+      "writes": ["memory/profile.md"]
+    },
+    "update-profile": {
+      "label": "更新我的情况",
+      "description": "原位更新匹配的活跃事实为最新表述（旧表述进历史 sup 标记）。禁止在历史段原位改写。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "medium",
+      "review_policy": "preview_or_auto",
+      "requires_topic": false,
+      "idempotent": false,
+      "supports_dry_run": true,
+      "destructive": false,
+      "inputs": {
+        "match": {
+          "type": "text",
+          "label": "匹配原文",
+          "required": true
+        },
+        "content": {
+          "type": "text",
+          "label": "新内容",
+          "required": true
+        },
+        "section": {
+          "type": "text",
+          "label": "限定段落",
+          "required": false
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            { "value": "auto", "label": "自动保存并返回回执" },
+            { "value": "confirm", "label": "需要审阅" }
+          ]
+        }
+      },
+      "args_extra": [
+        "--match",
+        "{match}",
+        "--content",
+        "{content}",
+        "--section",
+        "{section}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": ["memory/profile.md"],
+      "writes": ["memory/profile.md"]
+    },
+    "compact-history": {
+      "label": "压缩历史记录",
+      "description": "合并「历史记录」近重复归档行，保留最新一条。不碰活跃事实。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "low",
+      "review_policy": "auto",
+      "requires_topic": false,
+      "idempotent": true,
+      "supports_dry_run": true,
+      "destructive": false,
+      "inputs": {
+        "threshold": {
+          "type": "text",
+          "label": "相似度阈值",
+          "required": false,
+          "hint": "默认 0.72"
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            { "value": "auto", "label": "自动保存并返回回执" },
+            { "value": "confirm", "label": "需要审阅" }
+          ]
+        }
+      },
+      "args_extra": [
+        "--threshold",
+        "{threshold}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": ["memory/profile.md"],
+      "writes": ["memory/profile.md"]
+    },
+    "restore-profile": {
+      "label": "恢复我的情况",
+      "description": "把历史记录中的事实恢复到活跃段落（retire 的逆操作）。目标段落已有等价活事实则 skip。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "medium",
+      "review_policy": "preview_or_auto",
+      "requires_topic": false,
+      "idempotent": true,
+      "supports_dry_run": true,
+      "destructive": false,
+      "inputs": {
+        "match": {
+          "type": "text",
+          "label": "匹配原文",
+          "required": true,
+          "hint": "历史记录中该事实的原文（可含归档日期前缀）"
+        },
+        "section": {
+          "type": "text",
+          "label": "目标段落",
+          "required": false,
+          "hint": "默认：进行中的事 / In progress"
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            { "value": "auto", "label": "自动保存并返回回执" },
+            { "value": "confirm", "label": "需要审阅" }
+          ]
+        }
+      },
+      "args_extra": [
+        "--match",
+        "{match}",
+        "--section",
+        "{section}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": ["memory/profile.md"],
+      "writes": ["memory/profile.md"]
     }
   }
 }

@@ -15,6 +15,7 @@
  */
 import { promises as fs, readFileSync, existsSync, readdirSync } from "node:fs";
 import path from "node:path";
+import { formatSkillsForSystemPrompt } from "@earendil-works/pi-agent-core";
 import { getEngineRoot } from "./workspace-home.mjs";
 import { defaultEngineCandidate } from "./engine-root.mjs";
 import { getSkillsExtraRoot } from "./skills-extra.mjs";
@@ -444,18 +445,34 @@ const ACTION_LABEL = {
 };
 
 /**
- * Compact catalog for discovery — short Chinese label + trigger-focused slice.
- * Full SKILL.md still via load_skill (activation).
+ * Discovery catalog for the system prompt — Pi `formatSkillsForSystemPrompt`
+ * (agentskills.io `<available_skills>` with absolute `location`) plus a compact
+ * topmind routing line (slash → id). Full SKILL.md still via load_skill.
  */
 export function formatCatalogForPrompt(catalog) {
   if (!catalog?.length) {
     return "（未发现 skills — 仅用工作区工具）";
   }
-  return catalog
+  // Pi-native discovery block (name / description / location). Resolve relative
+  // skill refs against the skill directory, not the workspace root.
+  /** @type {string[]} */
+  const parts = [];
+  try {
+    const piSkills = catalog.map((s) => ({
+      name: String(s.id || s.name),
+      description: String(s.description || "").slice(0, 400),
+      filePath: String(s.path || ""),
+    }));
+    const xml = formatSkillsForSystemPrompt(piSkills);
+    if (xml) parts.push(xml);
+  } catch {
+    /* fall through to compact list */
+  }
+  // Compact routing (action labels + slash) — model still activates via load_skill.
+  const compact = catalog
     .map((s) => {
       const label = ACTION_LABEL[s.actionCategory] || s.actionCategory || "";
       const entry = s.entrypoint ? " · 入口" : "";
-      // Prefer the "Use when" half of Agent Skills descriptions for routing
       const raw = String(s.description || "").replace(/\s+/gu, " ").trim();
       const when = raw.match(/Use when[^.]*\./iu)?.[0]
         || raw.match(/当用户[^。]*。/u)?.[0]
@@ -464,6 +481,23 @@ export function formatCatalogForPrompt(catalog) {
       return `- \`${s.id}\`${label ? ` [${label}]` : ""}${entry} — ${desc}`;
     })
     .join("\n");
+  if (!parts.length) return compact;
+  return `${parts.join("\n")}\n\n${compact}`;
+}
+
+/**
+ * Map catalog entries to Pi `Skill[]` (name / description / content / filePath).
+ * Used by tests and any host that wants `formatSkillInvocation`.
+ * @param {Array<{ id?: string, name?: string, description?: string, path?: string }>} catalog
+ * @returns {Array<{ name: string, description: string, content: string, filePath: string }>}
+ */
+export function toPiSkills(catalog) {
+  return (catalog || []).map((s) => ({
+    name: String(s.id || s.name || "skill"),
+    description: String(s.description || ""),
+    content: "",
+    filePath: String(s.path || ""),
+  }));
 }
 
 /**
@@ -487,8 +521,4 @@ export function invalidateSkillsCache() {
   cache.pack = null;
   cache.catalog = null;
   cache.bodies = new Map();
-}
-
-export async function listSkillCatalogAsync(opts = {}) {
-  return listSkillCatalog(opts);
 }

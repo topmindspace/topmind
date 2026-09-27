@@ -3,13 +3,13 @@
  *
  * Token contract (see tokens.css) — Design System 2.0 / long-read:
  *   text-5xs 10px  — kbd glyphs only
- *   text-3xs 12px  — MetaText, empty hints, status (UI floor; matches text-2xs)
- *   text-2xs 12px  — caption
- *   text-xs  12.5px — form controls
- *   text-sm  13px  — UI body, list primary
- *   text-base 14px — page section titles / dense body
- *   text-lg  15px  — list page titles
- *   text-3xl 22px  — rare display moments
+ *   text-2xs 11px  — muted meta (no sentences)
+ *   text-3xs 12px  — MetaText, labels, badges (label floor)
+ *   text-xs  13px  — form controls + content floor
+ *   text-sm  14px  — UI body, list primary
+ *   text-base 15px — reading body
+ *   text-lg  16px  — list page titles
+ *   text-3xl 24px  — rare display moments
  */
 import { createContext, useContext, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -22,6 +22,7 @@ import {
 import { cn } from "../../lib/kit";
 import { ICON } from "../../lib/icons";
 import type { FeedLayout } from "../../types";
+import { Chip } from "./Chip";
 import { Tooltip } from "./tooltip";
 
 const CollectionLayoutContext = createContext<FeedLayout>("list");
@@ -118,7 +119,7 @@ export function SectionHeader({
         {icon ? <span className="opacity-70">{icon}</span> : null}
         <span>{label}</span>
         {typeof count === "number" ? (
-          <span className="rounded-full bg-surface-muted px-1.5 py-px text-3xs tabular-nums text-text-quaternary">
+          <span className="rounded-[var(--radius-xs)] bg-surface-muted px-1.5 py-px text-3xs tabular-nums text-text-quaternary">
             {count}
           </span>
         ) : null}
@@ -184,7 +185,7 @@ export function EmptyState({
         <div
           className={cn(
             "mt-1.5 leading-relaxed text-text-tertiary",
-            compact ? "max-w-[14rem] text-3xs" : "max-w-xs text-3xs",
+            compact ? "max-w-[14rem] text-3xs" : "max-w-xs text-xs",
           )}
         >
           {hint}
@@ -199,7 +200,7 @@ export function EmptyState({
   );
 }
 
-/** Compact filter / mode chip — chip-weight only (never solid button height/fill). */
+/** Compact filter / mode chip — thin Chip wrapper (DS 4.0.5 single language). */
 export function FilterChip({
   active,
   label,
@@ -212,19 +213,15 @@ export function FilterChip({
   onClick?: () => void;
 }) {
   return (
-    <button
-      type="button"
+    <Chip
+      tone={active ? "accent" : "neutral"}
+      active={Boolean(active)}
+      size="md"
       onClick={onClick}
       aria-pressed={Boolean(active)}
       data-filter-chip
       data-filter-chip-active={active ? "true" : undefined}
-      className={cn(
-        "inline-flex h-[var(--control-h-chip)] max-w-full items-center rounded-full px-2.5 text-3xs font-medium leading-none transition-colors",
-        "v4-focus-ring",
-        active
-          ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
-          : "bg-surface-muted/35 text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
-      )}
+      className="max-w-full"
     >
       <span className="min-w-0 truncate">{label}</span>
       {typeof count === "number" ? (
@@ -232,7 +229,7 @@ export function FilterChip({
           {count}
         </span>
       ) : null}
-    </button>
+    </Chip>
   );
 }
 
@@ -269,18 +266,18 @@ export function ErrorState({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-2.5 rounded-[var(--radius-lg)] border border-error/20 bg-status-error-bg px-4 py-3 text-sm text-error",
+        "flex flex-wrap items-center gap-2.5 rounded-[var(--radius-lg)] border border-border-subtle-dim bg-status-error-bg px-4 py-3 text-sm text-error",
         className,
       )}
       role="alert"
     >
       <RiErrorWarningLine size={ICON.sm} className="shrink-0" />
-      <span className="min-w-0 flex-1 text-2xs leading-relaxed">{t("action.loadFailed", { message })}</span>
+      <span className="min-w-0 flex-1 text-3xs leading-relaxed">{t("action.loadFailed", { message })}</span>
       {onRetry ? (
         <button
           type="button"
           onClick={onRetry}
-          className="shrink-0 rounded-[var(--radius-md)] border border-border-subtle bg-surface px-2.5 py-1 text-3xs font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary"
+          className="shrink-0 rounded-[var(--radius-md)] border border-border-subtle bg-surface px-2.5 py-1 text-3xs font-medium text-text-secondary transition-colors hover:bg-state-hover hover:text-text-primary"
         >
           {t("action.retry")}
         </button>
@@ -476,24 +473,20 @@ export function FeedLayoutToggle({
         const active = value === opt.id;
         return (
           <Tooltip key={opt.id} content={`${opt.label} · ${opt.hint}`} side="bottom">
-            <button
-              type="button"
+            <Chip
+              tone={active ? "accent" : "neutral"}
+              active={active}
+              size="md"
               data-layout-option={opt.id}
               data-active={active ? "true" : undefined}
               aria-pressed={active}
               aria-label={opt.label}
               onClick={() => onChange(opt.id)}
-              className={cn(
-                "inline-flex h-7 items-center gap-1 rounded-full px-2 text-3xs font-medium leading-none transition-colors",
-                "v4-focus-ring",
-                active
-                  ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
-                  : "text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
-              )}
+              className="gap-1"
             >
               <opt.icon size={ICON.xs} aria-hidden />
               <span className="hidden sm:inline">{opt.label}</span>
-            </button>
+            </Chip>
           </Tooltip>
         );
       })}

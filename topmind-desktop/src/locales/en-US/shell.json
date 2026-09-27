@@ -185,7 +185,9 @@
     "outputs": "Delivery",
     "outputsTipIdle": "Delivery · ⌘⇧O",
     "search": "Search",
-    "searchTip": "Search notes · ⌘P"
+    "searchTip": "Search notes · ⌘P",
+    "profile": "My situation",
+    "workspace": "Workspace"
   },
   "statusBar": {
     "ariaLabel": "Status bar",
@@ -219,6 +221,8 @@
     "jobApply": "Writing suggestions",
     "suggestApplying": "Applying {{current}}/{{total}}",
     "suggestApplyingTip": "Writing confirmed suggestions · click to view progress",
+    "needsYou": "Needs you",
+    "needsYouTip": "The agent is waiting on your input · click to open chat",
     "jobInline": "Inline AI",
     "taskRunning": "{{count}} background task(s)",
     "taskRunningTip": "Background tasks in progress · click for details and progress",
@@ -695,12 +699,30 @@
       ],
       "shortcutsTitle": "Essential shortcuts",
       "shortcuts": [
-        { "keys": "⌘N", "label": "Note it" },
-        { "keys": "⌘⇧N", "label": "Global capture" },
-        { "keys": "⌘K", "label": "Command palette" },
-        { "keys": "⌘P", "label": "Full-text search" },
-        { "keys": "⌘⇧L", "label": "Tools & Logs" },
-        { "keys": "⌘,", "label": "Settings" }
+        {
+          "keys": "⌘N",
+          "label": "Note it"
+        },
+        {
+          "keys": "⌘⇧N",
+          "label": "Global capture"
+        },
+        {
+          "keys": "⌘K",
+          "label": "Command palette"
+        },
+        {
+          "keys": "⌘P",
+          "label": "Full-text search"
+        },
+        {
+          "keys": "⌘⇧L",
+          "label": "Tools & Logs"
+        },
+        {
+          "keys": "⌘,",
+          "label": "Settings"
+        }
       ]
     },
     "features": {
@@ -847,5 +869,16 @@
         }
       ]
     }
+  },
+  "activityBar": {
+    "ariaLabel": "Primary navigation",
+    "home": "Workspace home",
+    "search": "Search",
+    "capture": "Note it",
+    "apps": "Apps",
+    "ai": "AI workspace",
+    "focus": "Focus mode",
+    "theme": "Toggle theme",
+    "settings": "Settings"
   }
 }

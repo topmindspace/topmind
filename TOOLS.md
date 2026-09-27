@@ -123,7 +123,7 @@ Living verdict for **Desktop named AI tools**, the **Skills pack**, and the **UT
 
 ### Desktop named AI tools — all **keep**
 
-Names are the shipped list in `topmind-desktop/electron/lib/ai-tool-names.mjs` (18 read + 18 write = 36). Builders in `electron/ai-tools.mjs`; every write uses `wrapWrite` → WorkspaceService → Kernel writeback.
+Names are the shipped list in `topmind-desktop/electron/lib/ai-tool-names.mjs` (18 read + 20 write = 38). Builders in `electron/ai-tools.mjs`; every write uses `wrapWrite` → WorkspaceService → Kernel writeback.
 
 | Class | Names | Verdict |
 |-------|-------|---------|
@@ -133,7 +133,7 @@ Names are the shipped list in `topmind-desktop/electron/lib/ai-tool-names.mjs` (
 | fs browse | `list_files` · `glob_files` · `stat_path` | **keep** — structured list/glob/stat (all planes); replaces bare `ls`/`find` |
 | read / search | `read_file` · `search` | **keep** — windowed / controlled grep; `encoding=` binary-friendly |
 | write / edit | `save_note` · `save_file` · `edit_file` · `create_topic` · `create_dir` · `copy_file` · `move_to_topic` · `publish_to_outputs` · `delete_path` · `rename_path` · `reconcile_week` | **keep** — body writes sanitized (thinking/JSON dump block) |
-| memory | `append_topic_memory` · `append_core_memory` · `retire_core_memory` · `update_core_memory` | **keep** — ADD / UPDATE / RETIRE; not append-only. Suggest kind `promote_memory` (payload.action `append_profile` / `update_profile` / `retire_profile`) is confirm-gated and is **not** a chat tool name |
+| memory | `append_topic_memory` · `append_core_memory` · `retire_core_memory` · `update_core_memory` · `restore_core_memory` · `compact_core_memory_history` | **keep** — ADD / UPDATE / RETIRE / RESTORE / COMPACT-HISTORY (full lifecycle, UTR parity). Suggest kind `promote_memory` (payload.action `append_profile` / `update_profile` / `retire_profile` / `compact_history`) is confirm-gated and is **not** a chat tool name. `compact_core_memory_history` drops older near-dup History rows — confirm-gated |
 | todos | `list_todos` · `add_todo` · `toggle_todo` | **keep** |
 | health | `workspace_health` | **keep** — 结构 + 契约健康（`inspectContract`）+ counts；容量/类型/去重走 Desktop RPC `workspace.workspaceStats` / `workspaceDuplicates`；清理不进默认 AI 集（用户手势） |
 | **drop** | `bash` · unscoped `shell` / `exec` · `run_in_workspace` | **drop — never registered** |
@@ -147,13 +147,13 @@ Daily entry `topmind`. Core: `topmind-capture` · `topmind-organize` · `topmind
 
 ### UTR commands — all **keep** (optional surface)
 
-**8 域 / 28 命令** as listed below. MCP default 19 (primary + danger). Not a second Desktop AI catalog. No bash command.
+**8 域 / 32 命令** as listed below. MCP default 23 (primary + danger). Not a second Desktop AI catalog. No bash command.
 
 ## Current Command Surface（命令面唯一真源）
 
-**8 域 / 28 命令**。Agent MCP **默认只暴露 primary + danger（19 个）**；`advanced` 需 `topmind_MCP_ALL=1`。
+**8 域 / 32 命令**。Agent MCP **默认只暴露 primary + danger（23 个）**；`advanced` 需 `topmind_MCP_ALL=1`。
 
-### Primary（Agent 日常 15）
+### Primary（Agent 日常 19）
 
 | Domain | Commands |
 |---|---|
@@ -162,7 +162,7 @@ Daily entry `topmind`. Core: `topmind-capture` · `topmind-organize` · `topmind
 | `workspace-transform` | `plan-inbox-routing` |
 | `workspace-maintain` | `doctor-workspace` |
 | `contract` | `validate` |
-| `memory` | `promote` · `digest` · `append-profile` · `append-topic` |
+| `memory` | `promote` · `digest` · `append-profile` · `append-topic` · `retire-profile` · `update-profile` · `compact-history` · `restore-profile` |
 
 ### Danger（高风险 4，MCP 默认可见）
 
@@ -194,6 +194,10 @@ Daily entry `topmind`. Core: `topmind-capture` · `topmind-organize` · `topmind
 | `memory.digest` | memory | 确定性 adapter 骨架写入 memory/periodic/{year}/{period}.md（**无 AI 模型**；产品 AI 反思走 Desktop 建议管线确认后写） |
 | `memory.append-profile` | memory | 追加「我的情况」到 memory/profile.md（原 append-core-memory） |
 | `memory.append-topic` | memory | 追加专题稳定结论到 memory/topics/{topic-slug}.md（原 append-topic-memory） |
+| `memory.retire-profile` | memory | 活跃事实 → ## 历史记录（带归档日期，不删原文）；匹配不到良性 skip |
+| `memory.update-profile` | memory | 原位更新活跃事实为最新表述（旧表述进历史 sup）；历史段不可改 |
+| `memory.compact-history` | memory | 压缩历史区近重复归档行，保留最新 |
+| `memory.restore-profile` | memory | 历史事实恢复到活跃段落（retire 逆操作）；目标已有等价活事实则 skip |
 | `lifecycle.scan` | lifecycle | 按 contract `lifecycle` 扫描：inbox 超期、catch-all 清理、stale 专题、output lock |
 | `derived.rebuild` | derived | 从真源全量重建各大类 `.derived/` 子目录 |
 | `workspace-transform.migrate-v4` | workspace-transform | 一次性迁移：config v3→topmind.yaml、旧专题首页→topic.md、我的情况.md→memory/profile.md 等 |
@@ -290,6 +294,10 @@ next_actions: optional string[]
 | `workspace-write.save-output` | 创建交付物到 `88-交付/` 扁平目录 | `ifExists`: `create-new`（默认）· `replace`（查找同名替换）· `fail`（同名报错） |
 | `memory.append-topic` | 追加一条专题稳定结论到 `memory/topics/{topic-slug}.md` | 永不重写已有内容 |
 | `memory.append-profile` | 追加「我的情况」到 `memory/profile.md` | 按段落追加；禁止 capture 静默写 |
+| `memory.retire-profile` | 活跃事实移入 `## 历史记录` | 可逆归档，不删原文 |
+| `memory.update-profile` | 原位替换活跃事实 | 旧表述进历史 `sup` |
+| `memory.compact-history` | 历史近重复折叠保留最新 | 不碰活跃事实 |
+| `memory.restore-profile` | 历史事实回到活跃段落 | 可逆；目标重复则 skip |
 | Desktop `reconcileStreamPeriod` | 确定性整理本周 | 无 LLM：勾选完成、去重；返回候选；落盘时写 `reconciled_at`。列表 `reconciled` / 未整理 以 `reconcilePeriodBody` 是否还会改正文为准，不是缺 stamp |
 | `workspace-write.update-topic` | 整文替换 `topic.md` | 要 `replaceReason`；经 Kernel 写闸；**仅高影响**（locked 覆盖）才有 backup/receipt，open 不造 99-归档 快照 |
 | `memory.promote` | Stream 条目 → memory/topics/{topic-slug}.md | 标记 promoted_from/to；用户确认制 |

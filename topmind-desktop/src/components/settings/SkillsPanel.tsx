@@ -282,7 +282,7 @@ export function SkillsPanel({
             <Button
               variant="outline"
               size="sm"
-              className="h-6 text-3xs"
+              className="h-6"
               disabled={Boolean(busy)}
               onClick={() => void beginAddRoot()}
             >
@@ -291,7 +291,7 @@ export function SkillsPanel({
             <Button
               variant="outline"
               size="sm"
-              className="h-6 text-3xs"
+              className="h-6"
               disabled={Boolean(busy)}
               onClick={() => void beginInstallToManaged()}
             >
@@ -300,7 +300,7 @@ export function SkillsPanel({
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 text-3xs"
+              className="h-6"
               onClick={() => void api.sys.openSkillsExtraDir()}
             >
               <RiFolderOpenLine size={ICON.micro} />
@@ -478,7 +478,7 @@ export function SkillsPanel({
                         </span>
                       ) : null}
                       {s.source === "external" ? (
-                        <span className="rounded bg-warning/15 px-1.5 py-px text-3xs text-warning">ext</span>
+                        <span className="rounded bg-status-warning-bg px-1.5 py-px text-3xs text-warning">ext</span>
                       ) : null}
                     </span>
                     <span className="mt-1 block leading-relaxed text-text-tertiary">

@@ -201,7 +201,7 @@ export async function loadContractRegistry(options = {}) {
 }
 
 // v3.2: legacy v2.x project-* command aliases (previously injected by
-// injectLegacyCommandAliases) have been removed entirely. The 28 commands
+// injectLegacyCommandAliases) have been removed entirely. The 32 commands
 // are the source of truth. See contract files under utr/contracts/ for details.
 
 /** Get a single tool contract by kind. */

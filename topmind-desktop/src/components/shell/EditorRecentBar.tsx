@@ -228,7 +228,7 @@ export function EditorRecentBar() {
                   "v4-recent-tab v4-drop-target group relative inline-flex shrink-0 cursor-grab items-center gap-0.5 rounded-t-md py-1 pl-2 pr-1 text-3xs font-medium transition-colors active:cursor-grabbing",
                   active
                     ? "v4-recent-tab-active bg-surface text-text-primary shadow-sm"
-                    : "text-text-tertiary hover:bg-surface-muted/70 hover:text-text-secondary",
+                    : "text-text-tertiary hover:bg-state-hover hover:text-text-secondary",
                   tab.pinned && !active && "text-text-secondary",
                   splitSecondaryPath === tab.path && !active && "ring-1 ring-inset ring-accent-border-subtle",
                   dragOver === index && "v4-drop-target-active",
@@ -272,7 +272,7 @@ export function EditorRecentBar() {
                       "flex h-6 w-6 shrink-0 items-center justify-center rounded-sm transition-opacity pointer-events-none group-hover:pointer-events-auto focus-visible:pointer-events-auto [@media(hover:none)]:pointer-events-auto",
                       tab.pinned
                         ? "text-accent-color opacity-100 pointer-events-auto"
-                        : "text-text-quaternary opacity-0 group-hover:opacity-100 hover:bg-surface-muted focus-visible:opacity-100 [@media(hover:none)]:opacity-100",
+                        : "text-text-quaternary opacity-0 group-hover:opacity-100 hover:bg-state-hover focus-visible:opacity-100 [@media(hover:none)]:opacity-100",
                     )}
                     aria-label={tab.pinned ? t("editorRecentBar.unpin") : t("editorRecentBar.pin")}
                     aria-pressed={tab.pinned}
@@ -288,7 +288,7 @@ export function EditorRecentBar() {
                       closeFileTab(tab.path);
                     }}
                     className={cn(
-                      "flex h-6 w-6 shrink-0 items-center justify-center rounded-sm text-text-quaternary transition-opacity pointer-events-none group-hover:pointer-events-auto focus-visible:pointer-events-auto hover:bg-surface-muted hover:text-error [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100 focus-visible:opacity-100",
+                      "flex h-6 w-6 shrink-0 items-center justify-center rounded-sm text-text-quaternary transition-opacity pointer-events-none group-hover:pointer-events-auto focus-visible:pointer-events-auto hover:bg-state-hover hover:text-error [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100 focus-visible:opacity-100",
                       active ? "opacity-80 pointer-events-auto" : "opacity-0 group-hover:opacity-100",
                     )}
                     aria-label={t("editorRecentBar.closeAriaLabel")}
@@ -317,7 +317,7 @@ export function EditorRecentBar() {
                   "inline-flex h-7 w-7 items-center justify-center rounded-sm transition-colors v4-focus-ring",
                   splitSecondaryPath === activePath
                     ? "bg-accent-bg-subtle text-accent-color"
-                    : "text-text-quaternary hover:bg-surface-muted hover:text-text-secondary",
+                    : "text-text-quaternary hover:bg-state-hover hover:text-text-secondary",
                 )}
               >
                 <RiLayoutColumnLine size={ICON.xs} />
@@ -331,7 +331,7 @@ export function EditorRecentBar() {
             <button
               type="button"
               onClick={() => closeAllFileTabs({ closePinned: !hasUnpinned })}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-sm text-text-quaternary transition-colors hover:bg-surface-muted hover:text-error"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-sm text-text-quaternary transition-colors hover:bg-state-hover hover:text-error"
               aria-label={t("editorRecentBar.closeAllTabsAriaLabel")}
             >
               <RiCloseCircleLine size={ICON.xs} />

@@ -246,10 +246,33 @@ reasoningProvider?: string;
 toolCalls?: AiToolCall[];
 /** Mark this assistant message as an error (network failure, abort, etc.). */
 isError?: boolean;
+/** User cancelled this run mid-stream (honest stop marker). */
+cancelled?: boolean;
+/**
+ * Why the run stopped: paused | cancelled | timeout | stalled | error | null.
+ * `paused` is NOT a cancel — finished edits stay, goal ledger stays live,
+ * and the turn can be resumed.
+ */
+stopReason?: string | null;
 /** Token usage from the AI provider (shown as a subtle badge after streaming). */
 usage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number };
 /** Model ID used for this response (shown in usage badge). */
 modelId?: string;
+/** Goal-protocol snapshot for this turn (plan / open criteria / incomplete). */
+goal?: {
+  goal: string;
+  plan: string[];
+  criteria: string[];
+  openCriteria: string[];
+  pathReceipts: string[];
+  status: string;
+  blockReason?: string | null;
+  autoContinues: number;
+  /** Honesty footer: real check evidence (tests/commands). Never invent. */
+  checksRun?: string[];
+  /** Honesty footer: unverified premises. Never invent. */
+  assumptions?: string[];
+} | null;
 }
 export interface AiRuntimeStatus {
   ready: boolean;

@@ -72,7 +72,22 @@ interface AiState {
    */
   sendOrSteer: (text: string, mode?: "steer" | "followUp") => Promise<void>;
   regenerate: () => Promise<void>;
+  /** Hard stop: mark cancelled, drop the live goal UI. */
   cancelStream: () => Promise<void>;
+  /**
+   * Pause (pattern 12 · interrupt): abort the model call but do NOT mark
+   * cancelled. Goal ledger stays on the message; `paused` opens Resume.
+   */
+  pauseStream: () => Promise<void>;
+  /**
+   * Resume a paused turn. Optional `redirect` is folded into the continue
+   * prompt ("怎么改?"). A bare resume continues the open criteria.
+   */
+  resumeStream: (redirect?: string) => Promise<void>;
+  /** Abandon a paused turn (true cancel after pause). */
+  abandonPaused: () => Promise<void>;
+  /** True while a turn is paused and waiting for continue / redirect / abandon. */
+  paused: boolean;
 
   streaming: boolean;
   streamDelta: string;
@@ -88,6 +103,23 @@ interface AiState {
   lastSteerPreview: string | null;
   /** Count of follow-ups still pending after current turn. */
   pendingFollowUpCount: number;
+  /** Goal-protocol summary for the current/last run (plan / open criteria / incomplete). */
+  streamGoal: {
+    goal: string;
+    plan: string[];
+    criteria: string[];
+    openCriteria: string[];
+    pathReceipts: string[];
+    status: string;
+    blockReason?: string | null;
+    autoContinues: number;
+    /** Honesty footer: real check evidence. Never invent. */
+    checksRun?: string[];
+    /** Honesty footer: unverified premises. Never invent. */
+    assumptions?: string[];
+  } | null;
+  /** Auto-continue counter for the current run (continuing ×N). */
+  streamAutoContinues: number;
 
   mountedFiles: { path: string; name: string }[];
   mountFile: (f: { path: string; name: string }) => void;
@@ -143,7 +175,6 @@ function genSessionId(): string {
  * refactor to a Map<sessionId, unsub>.
  */
 let streamUnsub: (() => void) | null = null;
-
 /**
  * Monotonic generation counter for the active stream. Each performInvocation
  * increments it; cancelStream bumps it so a cancelled invoke's `finally`
@@ -152,6 +183,8 @@ let streamUnsub: (() => void) | null = null;
  * old session id.
  */
 let streamGeneration = 0;
+/** Set on cancel — aborts the queued follow-up chain (sendMessage bumps gen). */
+let followUpChainAborted = false;
 
 function patchLastAssistant(
   messages: AiMessage[],
@@ -266,6 +299,8 @@ async function performInvocation(
     streamStatus: "preparing",
     streamToolName: null,
     streamToolCalls: [],
+    streamGoal: null,
+    streamAutoContinues: 0,
     streamToolCount: null,
     streamMaxSteps: null,
   });
@@ -274,6 +309,8 @@ async function performInvocation(
 
   if (streamUnsub) streamUnsub();
   streamUnsub = subscribe("ai:stream", (payload) => {
+    // Stale generation (cancel/supersede) must never write into the next turn.
+    if (gen !== streamGeneration) return;
     const p = payload as {
       type: string;
       delta?: string;
@@ -393,16 +430,63 @@ async function performInvocation(
       if (shouldInvalidatePendingWrites(p.output) || shouldInvalidatePendingWrites(p)) {
         emitLocal(PENDING_WRITES_CHANGED_EVENT, { source: "tool-result", tool: name });
       }
+      // Track skill activations for session UI (must run before this branch returns).
+      if (name === "load_skill") {
+        try {
+          const out = p.output as { id?: string } | undefined;
+          const sid = out?.id;
+          if (sid) {
+            set((s) => ({
+              sessionLoadedSkills: s.sessionLoadedSkills.includes(sid)
+                ? s.sessionLoadedSkills
+                : [...s.sessionLoadedSkills, sid],
+            }));
+          }
+        } catch { /* ignore */ }
+      }
       return;
     }
 
     if (p.type === "status") {
-      set({
+      const autoContinues = (payload as { autoContinues?: number }).autoContinues;
+      set((s) => ({
         streamStatus: p.status || null,
         streamToolName: p.tool || null,
         streamToolCount: p.count ?? null,
         streamMaxSteps: p.maxSteps ?? null,
-      });
+        streamAutoContinues:
+          typeof autoContinues === "number" ? autoContinues : s.streamAutoContinues,
+      }));
+    }
+
+    if (p.type === "goal-status") {
+      const goal = (payload as {
+        goal?: {
+          goal?: string;
+          plan?: string[];
+          criteria?: string[];
+          openCriteria?: string[];
+          pathReceipts?: string[];
+          status?: string;
+          blockReason?: string | null;
+          autoContinues?: number;
+        };
+      }).goal;
+      if (goal) {
+        set({
+          streamGoal: {
+            goal: goal.goal || "",
+            plan: goal.plan || [],
+            criteria: goal.criteria || [],
+            openCriteria: goal.openCriteria || [],
+            pathReceipts: goal.pathReceipts || [],
+            status: goal.status || "idle",
+            blockReason: goal.blockReason || null,
+            autoContinues: goal.autoContinues ?? 0,
+          },
+          streamAutoContinues: goal.autoContinues ?? 0,
+        });
+      }
     }
 
     if (p.type === "steer-applied" && p.delta == null) {
@@ -411,21 +495,6 @@ async function performInvocation(
         streamStatus: "steering",
         lastSteerPreview: preview.slice(0, 120) || i18n.t("ai:store.steerInjected"),
       });
-    }
-
-    // Track skill activations for session UI
-    if (p.type === "tool-result" && p.tool === "load_skill") {
-      try {
-        const out = p.output as { id?: string } | undefined;
-        const sid = out?.id;
-        if (sid) {
-          set((s) => ({
-            sessionLoadedSkills: s.sessionLoadedSkills.includes(sid)
-              ? s.sessionLoadedSkills
-              : [...s.sessionLoadedSkills, sid],
-          }));
-        }
-      } catch { /* ignore */ }
     }
   });
 
@@ -460,34 +529,59 @@ async function performInvocation(
       useTools: get().agentEnabled,
       activeSkillId: get().activeSkillId || undefined,
     });
-    set((s) => {
-      const updated = patchLastAssistant(s.messages, (last) => {
-        const partial = last.content;
-        if (result.ok === false) {
-          const errText = result.error?.trim() || i18n.t("ai:store.generationFailed");
+    // Stamp result onto the assistant row only when this invoke is still live.
+    if (gen === streamGeneration) {
+      set((s) => {
+        const updated = patchLastAssistant(s.messages, (last) => {
+          const partial = last.content;
+          if (result.ok === false) {
+            const errText = result.error?.trim() || i18n.t("ai:store.generationFailed");
+            return {
+              ...last,
+              content: errText,
+              isError: true,
+              toolCalls: last.toolCalls?.length ? last.toolCalls : s.streamToolCalls,
+              goal: s.streamGoal || last.goal || null,
+            };
+          }
+          const incoming = result.text || partial;
+          const split = splitAssistantVisible(incoming);
+          const resultReasoning = (result as { reasoning?: string }).reasoning || "";
+          const resultGoal = (result as {
+            goal?: {
+              goal: string;
+              plan: string[];
+              criteria: string[];
+              openCriteria: string[];
+              pathReceipts: string[];
+              status: string;
+              blockReason?: string | null;
+              autoContinues: number;
+            } | null;
+          }).goal;
           return {
             ...last,
-            content: errText,
-            isError: true,
+            content: split.body,
+            contentRaw: incoming,
+            reasoning: mergeReasoning(resultReasoning || last.reasoningProvider, split.reasoning || last.reasoning),
+            isError: false,
+            cancelled: Boolean((result as { cancelled?: boolean }).cancelled) || last.cancelled,
+            stopReason: (result as { stopReason?: string | null }).stopReason ?? last.stopReason ?? null,
+            usage: (result as { usage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number } }).usage,
+            modelId: (result as { model?: { modelId?: string } }).model?.modelId,
             toolCalls: last.toolCalls?.length ? last.toolCalls : s.streamToolCalls,
+            goal: resultGoal || s.streamGoal || null,
           };
-        }
-        const incoming = result.text || partial;
-        const split = splitAssistantVisible(incoming);
-        const resultReasoning = (result as { reasoning?: string }).reasoning || "";
+        });
         return {
-          ...last,
-          content: split.body,
-          contentRaw: incoming,
-          reasoning: mergeReasoning(resultReasoning || last.reasoningProvider, split.reasoning || last.reasoning),
-          isError: false,
-          usage: (result as { usage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number } }).usage,
-          modelId: (result as { model?: { modelId?: string } }).model?.modelId,
-          toolCalls: last.toolCalls?.length ? last.toolCalls : s.streamToolCalls,
+          messages: updated,
+          // Stamp goal onto the message, then clear live stream state so older
+          // history rows do not keep rendering the same chip.
+          streamGoal: null,
+          streamAutoContinues: 0,
         };
       });
-      return { messages: updated };
-    });
+    }
     // Batch mode: surface multi-file write receipts after the turn (toast + sticky banner).
     if (result && typeof result === "object" && "batchEvidence" in result) {
       const be = (result as { batchEvidence?: BatchEvidenceSummary | null }).batchEvidence;
@@ -508,36 +602,67 @@ async function performInvocation(
       await api.ai.saveMsgs({ sessionId, messages: get().messages });
     }
 
+    // G11 memory distill closed loop: after a run that touched files, offer
+    // confirm-shaped memory suggestions (never auto-write). Single-use hint
+    // is consumed by memory_organize via workspace-service.
+    const distill = (result as {
+      memoryDistillHint?: { readFiles?: string[]; modifiedFiles?: string[] };
+    }).memoryDistillHint;
+    const touched = (distill?.modifiedFiles?.length || 0) + (distill?.readFiles?.length || 0);
+    if (
+      result.ok !== false &&
+      touched >= 2 &&
+      gen === streamGeneration &&
+      !get().streaming
+    ) {
+      queueMicrotask(() => {
+        void import("./action-store")
+          .then((m) => m.useActionStore.getState().runActivityOps({ force: false }))
+          .catch(() => {});
+      });
+    }
+
     // Auto-chain queued follow-ups after this turn (Pi-style follow-up queue).
+    // Compare against the *chain* generation, not this invoke's gen — each
+    // sendMessage bumps streamGeneration, so the original gen would abort on
+    // iteration 2 and drop follow-ups 2..n.
     const followUps = Array.isArray(result.followUps) ? result.followUps.filter(Boolean) : [];
     if (followUps.length > 0 && result.ok !== false && gen === streamGeneration) {
       set({ pendingFollowUpCount: followUps.length });
+      followUpChainAborted = false;
       // Run after finally clears streaming so sendMessage can start a new turn.
       queueMicrotask(() => {
         const chain = async () => {
           for (let i = 0; i < followUps.length; i++) {
-            // Abort chain if user cancelled or switched sessions mid-chain
-            if (gen !== streamGeneration) break;
+            if (followUpChainAborted || get().activeSessionId !== sessionId) break;
             set({ pendingFollowUpCount: followUps.length - i - 1 });
             await get().sendMessage(followUps[i]);
           }
-          set({ pendingFollowUpCount: 0 });
+          if (!followUpChainAborted) set({ pendingFollowUpCount: 0 });
         };
         void chain();
       });
     }
   } catch (e) {
     const errMsg = e instanceof Error ? e.message : String(e);
-    set((s) => ({
-      messages: patchLastAssistant(s.messages, (last) => ({
-        ...last,
-        content: errMsg,
-        isError: true,
-      })),
-    }));
+    if (gen === streamGeneration) {
+      set((s) => ({
+        messages: patchLastAssistant(s.messages, (last) => ({
+          ...last,
+          content: errMsg,
+          isError: true,
+          goal: s.streamGoal || last.goal || null,
+        })),
+      }));
+    }
   } finally {
-    deltaBatcher.flush();
-    deltaBatcher.clear();
+    if (gen === streamGeneration) {
+      deltaBatcher.flush();
+      deltaBatcher.clear();
+    } else {
+      // Superseded — drop buffered deltas so they cannot land in the next turn.
+      deltaBatcher.clear();
+    }
     // Only clear stream state if this invocation is still the active one.
     // A cancelled or superseded invocation must not clobber the next turn.
     if (gen === streamGeneration) {
@@ -575,6 +700,7 @@ export const useAiStore = create<AiState>((set, get) => ({
   messages: [],
   messagesError: null,
   streaming: false,
+  paused: false,
   streamDelta: "",
   streamStatus: null,
   streamToolName: null,
@@ -583,6 +709,8 @@ export const useAiStore = create<AiState>((set, get) => ({
   streamMaxSteps: null,
   lastSteerPreview: null,
   pendingFollowUpCount: 0,
+  streamGoal: null,
+  streamAutoContinues: 0,
   mountedFiles: [],
   model: null,
   agentEnabled: true,
@@ -675,7 +803,7 @@ export const useAiStore = create<AiState>((set, get) => ({
     const userMsg: AiMessage = { role: "user", content: text };
     const assistantPlaceholder: AiMessage = { role: "assistant", content: "", toolCalls: [] };
     const nextMessages = [...get().messages, userMsg, assistantPlaceholder];
-    set({ messages: nextMessages });
+    set({ messages: nextMessages, paused: false });
     await performInvocation(get, set, sessionId, nextMessages.slice(0, -1));
   },
   async sendOrSteer(text, mode = "steer") {
@@ -690,9 +818,12 @@ export const useAiStore = create<AiState>((set, get) => ({
       const r = await api.ai.followUp(sessionId, trimmed);
       if (r.ok) {
         set((s) => ({ pendingFollowUpCount: s.pendingFollowUpCount + 1 }));
-      } else {
-        // No active stream handle — fall back to normal send after current ends is impossible; send now
+      } else if (!get().streaming) {
+        // Safe to start a new invoke only when nothing is streaming.
         await get().sendMessage(trimmed);
+      } else {
+        // Stream still live — queue locally instead of racing two invokes.
+        set((s) => ({ pendingFollowUpCount: s.pendingFollowUpCount + 1 }));
       }
       return;
     }
@@ -702,8 +833,11 @@ export const useAiStore = create<AiState>((set, get) => ({
         lastSteerPreview: trimmed.slice(0, 120),
         streamStatus: "steering",
       });
-    } else {
+    } else if (!get().streaming) {
       await get().sendMessage(trimmed);
+    } else {
+      // Do not double-invoke while the current stream owns the last assistant row.
+      set((s) => ({ pendingFollowUpCount: s.pendingFollowUpCount + 1 }));
     }
   },
   async regenerate() {
@@ -724,23 +858,133 @@ export const useAiStore = create<AiState>((set, get) => ({
     // Bump generation so the cancelled invocation's finally/saveMsgs/follow-ups
     // are all inert — they check gen === streamGeneration before touching state.
     streamGeneration += 1;
+    followUpChainAborted = true;
     const sid = get().activeSessionId;
-    if (sid) await api.ai.cancel(sid);
-    set({
-      streaming: false,
-      streamDelta: "",
-      streamStatus: null,
-      streamToolName: null,
-      streamToolCalls: [],
-      streamToolCount: null,
-      streamMaxSteps: null,
-      lastSteerPreview: null,
-      pendingFollowUpCount: 0,
+    // Keep the incomplete goal + an honest cancelled marker on the last assistant.
+    set((s) => {
+      return {
+        messages: patchLastAssistant(s.messages, (last) => ({
+          ...last,
+          cancelled: true,
+          goal: s.streamGoal
+            ? (last.goal || { ...s.streamGoal!, status: s.streamGoal!.status === "done" ? "done" : "incomplete" })
+            : last.goal || null,
+        })),
+      };
     });
-    if (streamUnsub) {
-      streamUnsub();
-      streamUnsub = null;
+    try {
+      if (sid) await api.ai.cancel(sid);
+    } finally {
+      // Always clear UI even if the IPC cancel rejects — otherwise a failed
+      // cancel leaves a permanent spinner (old invoke's finally is gen-skipped).
+      set({
+        streaming: false,
+        streamDelta: "",
+        streamStatus: null,
+        streamToolName: null,
+        streamToolCalls: [],
+        streamToolCount: null,
+        streamMaxSteps: null,
+        lastSteerPreview: null,
+        pendingFollowUpCount: 0,
+        streamGoal: null,
+        streamAutoContinues: 0,
+      });
+      if (streamUnsub) {
+        streamUnsub();
+        streamUnsub = null;
+      }
     }
+  },
+
+  async pauseStream() {
+    // Pause ≠ cancel: abort the model call, keep the goal ledger and finished
+    // edits. stopReason="paused" so ChatMessage can offer Resume instead of
+    // painting an abandoned run. Bump generation so the old invoke's finally
+    // is inert (same as cancelStream).
+    streamGeneration += 1;
+    followUpChainAborted = true;
+    const sid = get().activeSessionId;
+    const goalSnapshot = get().streamGoal;
+    set((s) => ({
+      paused: true,
+      messages: patchLastAssistant(s.messages, (last) => ({
+        ...last,
+        cancelled: false,
+        stopReason: "paused",
+        goal: goalSnapshot
+          ? {
+              ...goalSnapshot,
+              status: goalSnapshot.status === "done" ? "done" : "incomplete",
+            }
+          : last.goal || null,
+      })),
+    }));
+    try {
+      if (sid) await api.ai.cancel(sid);
+    } finally {
+      set({
+        streaming: false,
+        streamDelta: "",
+        streamStatus: null,
+        streamToolName: null,
+        streamToolCalls: [],
+        streamToolCount: null,
+        streamMaxSteps: null,
+        lastSteerPreview: null,
+        pendingFollowUpCount: 0,
+        // Keep streamGoal so Resume can rebuild the continue prompt.
+        streamAutoContinues: 0,
+      });
+      if (streamUnsub) {
+        streamUnsub();
+        streamUnsub = null;
+      }
+    }
+  },
+
+  async resumeStream(redirect) {
+    const goal = get().streamGoal;
+    set({ paused: false });
+    const zh = !String(i18n.language || "").startsWith("en");
+    const parts = [
+      zh
+        ? "[系统] 任务被用户暂停后恢复，可能尚未完成。请继续完成用户原始目标；若已完成则给出简短结论与路径回执。"
+        : "[System] Task was paused and is now resumed; it may be incomplete. Continue toward the original goal; if finished, give a short conclusion with path receipts.",
+    ];
+    if (goal?.goal) {
+      parts.push(zh ? `原目标：${goal.goal}` : `Original goal: ${goal.goal}`);
+    }
+    if (goal?.plan?.length) {
+      parts.push(
+        zh
+          ? `计划：\n${goal.plan.map((s, i) => `${i + 1}. ${s}`).join("\n")}`
+          : `Plan:\n${goal.plan.map((s, i) => `${i + 1}. ${s}`).join("\n")}`,
+      );
+    }
+    if (goal?.openCriteria?.length) {
+      parts.push(
+        zh
+          ? `未完成验收项：\n${goal.openCriteria.map((s) => `- ${s}`).join("\n")}`
+          : `Open acceptance criteria:\n${goal.openCriteria.map((s) => `- ${s}`).join("\n")}`,
+      );
+    }
+    const extra = String(redirect || "").trim();
+    if (extra) {
+      parts.push(zh ? `用户补充指示：${extra}` : `User redirect: ${extra}`);
+    }
+    parts.push(
+      zh
+        ? "先更新/执行剩余步骤，再收尾。收尾时输出结论 + 路径回执 + [DONE]；若无法完成则 [INCOMPLETE 原因]。"
+        : "Continue remaining steps first, then close. Finish with conclusion + path receipts + [DONE]; if blocked use [INCOMPLETE reason].",
+    );
+    await get().sendMessage(parts.join("\n"));
+  },
+
+  async abandonPaused() {
+    // True cancel after pause — honest abandoned marker, drop live goal UI.
+    set({ paused: false, streamGoal: null });
+    await get().cancelStream();
   },
 
   mountFile(f) {

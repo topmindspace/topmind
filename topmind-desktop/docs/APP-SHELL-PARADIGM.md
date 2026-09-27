@@ -1,6 +1,6 @@
 # 窗体 · 卡槽 · 布局 · 交互现代范式（App Shell Paradigm）
 
-> 状态：设计锁（DS 4.2+）· 适用：plugin-app mini-app · connector hub · 未来新 APP  
+> 状态：设计锁（范式修订 4.2+ · 设计系统 DS 4.0.5）· 适用：plugin-app mini-app · connector hub · 未来新 APP  
 > 原则：**现代 · 优雅 · 减负**——不堆步骤、不叠 chrome、不做老式「表单向导」。
 
 ---
@@ -9,7 +9,7 @@
 
 | 维度 | 锁 |
 |------|-----|
-| 风格锚点 | ZCode Neutral + MD3-informed；**工具感**而非后台 SaaS、非 Windows 95 对话框 |
+| 风格锚点 | ZCode Neutral + MD3（DS 4.0.5）；**工具感**而非后台 SaaS、非 Windows 95 对话框 |
 | 窗体 | 浅遮罩 `scrim-mini` + 圆角 elevated sheet；**工作台可读**（不全黑蒙层） |
 | 卡槽 | 统一 `AppSlot`：surface 卡、细线、`radius-lg`、一区一主张 |
 | 色 | token only；语义色坐自有 `-bg`；禁幽灵类 / 语义色透明度 |

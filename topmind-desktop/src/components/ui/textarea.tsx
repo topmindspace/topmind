@@ -16,8 +16,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         "shadow-[var(--shadow-input-inset)]",
         "transition-[border-color,box-shadow,background-color] duration-[var(--duration-fast)]",
         "hover:border-border-subtle",
-        "focus-visible:border-accent-color focus-visible:bg-surface focus-visible:outline-none",
-        "focus-visible:ring-2 focus-visible:ring-ring/35 focus-visible:ring-offset-0",
+        "focus-visible:border-accent-color focus-visible:bg-surface v4-focus-ring",
         "disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}

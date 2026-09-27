@@ -1,14 +1,16 @@
 import {
   RiArrowDownSLine,
   RiArrowRightSLine,
+  RiChatAiLine,
   RiFileTextLine,
   RiCheckLine,
+  RiCheckboxBlankCircleLine,
   RiCheckboxCircleLine,
+  RiCloseCircleLine,
   RiErrorWarningLine,
   RiFileCopyLine,
   RiLoader4Line,
   RiRefreshLine,
-  RiRobot2Line,
   RiToolsLine,
 } from "@remixicon/react";
 import { useEffect, useRef, useState, useMemo } from "react";
@@ -22,6 +24,7 @@ import { useAiStore } from "../../stores/ai-store";
 import { ICON } from "../../lib/icons";
 import { visibleAssistantMessage } from "../../lib/ai-chat-split";
 import { Tooltip } from "../ui/tooltip";
+import { Chip, ChipLabel } from "../ui/Chip";
 
 interface Props {
   message: AiMessage;
@@ -53,13 +56,13 @@ function ElapsedSeconds() {
   }, []);
   if (elapsed < 2) return null;
   return (
-    <span className="font-mono text-3xs tabular-nums text-text-quaternary/60" aria-hidden>
+    <span className="font-mono text-3xs tabular-nums text-text-quaternary" aria-hidden>
       {elapsed}s
     </span>
   );
 }
 
-function StreamStatusIndicator({ status, toolName, count, maxSteps }: { status: string; toolName?: string | null; count?: number | null; maxSteps?: number | null }) {
+function StreamStatusIndicator({ status, toolName, count, maxSteps, autoContinues, elapsedSec }: { status: string; toolName?: string | null; count?: number | null; maxSteps?: number | null; autoContinues?: number | null; elapsedSec?: number | null }) {
   const { t } = useTranslation("editor");
   if (status === "writing" || status === "done") return null;
 
@@ -88,10 +91,312 @@ function StreamStatusIndicator({ status, toolName, count, maxSteps }: { status: 
     status === "steering" ? t("ai.streamStatusSteering") : streamStatusLabel(status, toolName, count, maxSteps);
   const Icon = icon;
   return (
-    <div className="flex items-center gap-1.5 px-0.5 py-0.5 text-3xs text-text-quaternary" role="status" data-stream-status={status}>
+    <div
+      className="flex items-center gap-1.5 px-0.5 py-0.5 text-3xs text-text-quaternary"
+      role="status"
+      aria-live="polite"
+      data-stream-status={status}
+    >
       <Icon size={ICON.xs} className={cn("shrink-0 opacity-80", spin && "animate-spin")} aria-hidden />
       <span className="font-mono text-3xs tracking-tight">{label}</span>
+      {elapsedSec != null && elapsedSec >= 5 ? (
+        <span className="font-mono text-3xs text-text-quaternary" data-stream-elapsed>
+          {elapsedSec < 60 ? `${elapsedSec}s` : `${Math.floor(elapsedSec / 60)}m${elapsedSec % 60}s`}
+        </span>
+      ) : null}
+      {status === "continuing" && autoContinues ? (
+        <span className="font-mono text-3xs text-accent-color" data-auto-continue-count>
+          ×{autoContinues}
+        </span>
+      ) : null}
       <ElapsedSeconds key={status} />
+    </div>
+  );
+}
+
+/**
+ * Run Card — goal-protocol surface (DS 4.0.5).
+ * Plan progress + acceptance criteria + receipts + honesty status.
+ * Collapsed one-line chip row by default; expanded is a real document
+ * (numbered steps + checklist), not mono telemetry.
+ */
+function GoalStatusChip({
+  goal,
+  autoContinues,
+}: {
+  goal: {
+    goal: string;
+    plan: string[];
+    criteria: string[];
+    openCriteria: string[];
+    pathReceipts: string[];
+    status: string;
+    blockReason?: string | null;
+    autoContinues: number;
+  } | null;
+  autoContinues?: number;
+}) {
+  const { t } = useTranslation("editor");
+  const select = useViewStore((s) => s.select);
+  const [ledgerOpen, setLedgerOpen] = useState(false);
+  if (!goal || (!goal.plan.length && !goal.criteria.length && goal.status === "idle")) return null;
+  const open = goal.openCriteria?.length || 0;
+  const planTotal = goal.criteria?.length || goal.plan.length || 0;
+  const planDone = goal.criteria?.length
+    ? Math.max(0, goal.criteria.length - open)
+    : 0;
+  const incomplete = goal.status === "incomplete" || (goal.status !== "done" && goal.status !== "blocked" && open > 0);
+  const blocked = goal.status === "blocked";
+  const receipts = (goal.pathReceipts || []).slice(0, 4);
+  const openSet = new Set(goal.openCriteria || []);
+  const continues = autoContinues || goal.autoContinues;
+  return (
+    <div className="mb-1.5" data-goal-status={goal.status}>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {goal.plan.length > 0 || goal.criteria.length > 0 ? (
+          <Chip
+            tone="neutral"
+            size="sm"
+            onClick={() => setLedgerOpen((v) => !v)}
+            aria-expanded={ledgerOpen}
+            data-goal-ledger-toggle
+            icon={
+              ledgerOpen ? (
+                <RiArrowDownSLine size={ICON.nano} />
+              ) : (
+                <RiArrowRightSLine size={ICON.nano} />
+              )
+            }
+          >
+            {t("ai.goalPlan", { done: planDone, total: planTotal })}
+          </Chip>
+        ) : null}
+        {open > 0 ? (
+          <ChipLabel tone="warn" size="sm" data-goal-open-criteria>
+            {t("ai.goalOpenCriteria", { count: open })}
+          </ChipLabel>
+        ) : null}
+        {continues ? (
+          <ChipLabel tone="accent" size="sm">
+            {t("ai.goalContinuing", { count: continues })}
+          </ChipLabel>
+        ) : null}
+        {blocked ? (
+          <ChipLabel tone="warn" size="sm" data-goal-blocked title={goal.blockReason || undefined}>
+            {t("ai.goalBlocked")}
+          </ChipLabel>
+        ) : incomplete ? (
+          <ChipLabel tone="error" size="sm" data-goal-incomplete>
+            {t("ai.goalIncomplete")}
+          </ChipLabel>
+        ) : goal.status === "done" ? (
+          <ChipLabel tone="success" size="sm" data-goal-done>
+            {t("ai.goalDone")}
+          </ChipLabel>
+        ) : null}
+        {receipts.length ? (
+          <span className="inline-flex flex-wrap items-center gap-1">
+            {receipts.map((p) => (
+              <Chip
+                key={p}
+                tone="outline"
+                size="sm"
+                className="max-w-[10rem]"
+                title={p}
+                onClick={() => openWorkspacePath(select, p)}
+                icon={<RiFileTextLine size={ICON.nano} />}
+              >
+                <span className="truncate">{p.split("/").pop() || p}</span>
+              </Chip>
+            ))}
+            {goal.pathReceipts.length > receipts.length ? (
+              <span className="text-4xs text-text-quaternary">
+                {t("ai.goalReceipts", { count: goal.pathReceipts.length })}
+              </span>
+            ) : null}
+          </span>
+        ) : null}
+      </div>
+      {ledgerOpen && (goal.plan.length > 0 || goal.criteria.length > 0) ? (
+        <div
+          className="mt-1.5 rounded-[var(--radius-card)] border border-border-subtle-dim bg-surface px-2.5 py-2 shadow-[var(--shadow-xs)]"
+          data-goal-ledger
+        >
+          {goal.goal ? (
+            <p className="mb-1.5 text-xs text-text-primary" data-goal-title>
+              {goal.goal}
+            </p>
+          ) : null}
+          {goal.plan.length > 0 ? (
+            <ol className="mb-2 space-y-1" data-goal-plan-list>
+              {goal.plan.map((step, i) => {
+                // Derive pin state from acceptance progress (no per-step
+                // telemetry in GoalState): done when criteria are exhausted
+                // ahead of this step; running on the first open step while
+                // working; pending otherwise.
+                const total = goal.plan.length || 1;
+                const doneCount =
+                  goal.status === "done"
+                    ? total
+                    : goal.criteria.length
+                      ? Math.round(
+                          (Math.max(0, goal.criteria.length - open) / goal.criteria.length) * total,
+                        )
+                      : 0;
+                const stepState =
+                  goal.status === "done" || i < doneCount
+                    ? "done"
+                    : goal.status === "working" || goal.status === "verifying"
+                      ? i === doneCount
+                        ? "running"
+                        : "pending"
+                      : goal.status === "incomplete" && i === doneCount
+                        ? "failed"
+                        : "pending";
+                return (
+                  <li
+                    key={`${i}-${step.slice(0, 24)}`}
+                    className={cn(
+                      "flex items-start gap-1.5 text-xs",
+                      stepState === "done" ? "text-text-tertiary" : "text-text-secondary",
+                    )}
+                    data-goal-plan-step={stepState}
+                  >
+                    <span
+                      className={cn(
+                        "mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-[var(--radius-xs)] text-4xs font-semibold tabular-nums",
+                        stepState === "done"
+                          ? "bg-status-success-bg text-success"
+                          : stepState === "running"
+                            ? "bg-accent-container text-on-accent-container"
+                            : stepState === "failed"
+                              ? "bg-status-error-bg text-error"
+                              : "bg-surface-muted text-text-tertiary",
+                      )}
+                    >
+                      {stepState === "done" ? (
+                        <RiCheckLine size={ICON.nano} />
+                      ) : (
+                        i + 1
+                      )}
+                    </span>
+                    <span className={cn("min-w-0 flex-1", stepState === "done" && "opacity-70")}>
+                      {step}
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+          ) : null}
+          {goal.criteria.length > 0 ? (
+            <ul className="space-y-1" data-goal-criteria-list>
+              {goal.criteria.map((c) => {
+                const isDone = !openSet.has(c);
+                return (
+                  <li
+                    key={c}
+                    className={cn(
+                      "flex items-start gap-1.5 text-xs",
+                      isDone ? "text-text-tertiary" : "text-text-primary",
+                    )}
+                    data-goal-criterion={isDone ? "done" : "open"}
+                  >
+                    <span className="mt-0.5 shrink-0" aria-hidden="true">
+                      {isDone ? (
+                        <RiCheckboxCircleLine size={ICON.micro} className="text-success" />
+                      ) : (
+                        <RiCheckboxBlankCircleLine size={ICON.micro} className="text-warning" />
+                      )}
+                    </span>
+                    <span className={cn("min-w-0 flex-1", isDone && "line-through opacity-70")}>
+                      {c}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Result footer (pattern 14 · Verified / Assumed / Could not) + diff-first
+ * footprint. Receipts are risk-sorted (deletes → external → local edits) so
+ * the one line that matters is not buried alphabetically.
+ *
+ * Honesty contract: path receipts are a write footprint — never label them
+ * "Verified". Verified/Assumed show real evidence only (checksRun/assumptions);
+ * empty sections read "none" so silence is never mistaken for success.
+ */
+function ResultFooter({
+  goal,
+}: {
+  goal: {
+    pathReceipts: string[];
+    openCriteria: string[];
+    status: string;
+    checksRun?: string[];
+    assumptions?: string[];
+  } | null;
+}) {
+  const { t } = useTranslation("editor");
+  if (!goal) return null;
+  const terminal =
+    goal.status === "done" || goal.status === "incomplete" || goal.status === "blocked";
+  if (!terminal) return null;
+  // Risk order: trash/delete paths first, then media/exports, then ordinary notes.
+  const riskRank = (p: string) => {
+    if (/trash|delete|归档\/backups/i.test(p)) return 0;
+    if (/\.(png|jpe?g|webp|pdf|html)$/i.test(p) || /88-交付|outputs/i.test(p)) return 1;
+    return 2;
+  };
+  const receipts = [...(goal.pathReceipts || [])].sort(
+    (a, b) => riskRank(a) - riskRank(b) || a.localeCompare(b),
+  );
+  const open = goal.openCriteria || [];
+  const checks = goal.checksRun || [];
+  const assumed = goal.assumptions || [];
+  return (
+    <div
+      className="mt-2 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-muted/40 px-2.5 py-1.5"
+      data-result-footer
+    >
+      <div className="mb-1 text-4xs font-medium uppercase tracking-wide text-text-quaternary">
+        {t("ai.resultFooterTitle")}
+      </div>
+      {receipts.length ? (
+        <dl className="mb-1 space-y-0.5 text-xs" data-result-changes>
+          <div className="flex items-start gap-2">
+            <dt className="w-12 shrink-0 text-text-tertiary">{t("ai.resultChanges")}</dt>
+            <dd className="min-w-0 flex-1 text-text-secondary">
+              {receipts.map((p) => p.split("/").pop() || p).join(" · ")}
+            </dd>
+          </div>
+        </dl>
+      ) : null}
+      <dl className="space-y-0.5 text-xs">
+        <div className="flex items-start gap-2">
+          <dt className="w-12 shrink-0 text-success">{t("ai.resultVerified")}</dt>
+          <dd className="min-w-0 flex-1 text-text-secondary">
+            {checks.length ? checks.join(" · ") : t("ai.resultNone")}
+          </dd>
+        </div>
+        <div className="flex items-start gap-2">
+          <dt className="w-12 shrink-0 text-text-tertiary">{t("ai.resultAssumed")}</dt>
+          <dd className="min-w-0 flex-1 text-text-secondary">
+            {assumed.length ? assumed.join(" · ") : t("ai.resultNone")}
+          </dd>
+        </div>
+        <div className="flex items-start gap-2">
+          <dt className="w-12 shrink-0 text-warning">{t("ai.resultCouldNot")}</dt>
+          <dd className="min-w-0 flex-1 text-text-secondary">
+            {open.length ? open.join(" · ") : t("ai.resultNone")}
+          </dd>
+        </div>
+      </dl>
     </div>
   );
 }
@@ -108,31 +413,38 @@ function ToolCallTimeline({ tools }: { tools: AiToolCall[] }) {
   const [allOpen, setAllOpen] = useState(false);
   if (!tools.length) return null;
 
-  // When 3+ tools, show a compact summary line that expands all
-  if (tools.length >= 3 && !allOpen) {
-    const runningCount = tools.filter((t) => t.status === "running").length;
-    const writeCount = tools.filter((t) => isAiWriteTool(t.name)).length;
+  // Always surface the live step(s); collapse only the finished ones.
+  const running = tools.filter((tc) => tc.status === "running");
+  const finished = tools.filter((tc) => tc.status !== "running");
+  const writeCount = tools.filter((tc) => isAiWriteTool(tc.name)).length;
+
+  // 3+ finished tools collapse to a summary that expands in place.
+  if (finished.length >= 3 && !allOpen) {
     return (
       <div className="mb-2" data-tool-timeline>
+        {running.map((tc) => (
+          <ToolCallCard key={tc.id} tool={tc} />
+        ))}
         <button
           type="button"
           onClick={() => setAllOpen(true)}
-          className="flex items-center gap-1.5 rounded-[var(--radius-md)] bg-surface-muted/50 px-2 py-1 text-3xs text-text-tertiary transition-colors hover:bg-surface-muted/70"
+          aria-expanded={false}
+          className="flex items-center gap-1.5 rounded-[var(--radius-md)] bg-surface-muted px-2 py-1 text-3xs text-text-tertiary transition-colors hover:bg-state-hover v4-focus-ring"
         >
-          {runningCount > 0 ? (
+          {running.length > 0 ? (
             <RiLoader4Line size={ICON.xs} className="shrink-0 animate-spin text-accent-color" />
           ) : (
             <RiCheckboxCircleLine size={ICON.xs} className="shrink-0 text-success" />
           )}
           <RiToolsLine size={ICON.micro} className="shrink-0 opacity-50" />
-          <span className="font-mono">
+          <span>
             {t("ai:tool.callsCount", { count: tools.length })}
           </span>
           {writeCount > 0 ? (
             <span className="text-success">{t("ai:tool.writesCount", { count: writeCount })}</span>
           ) : null}
-          {runningCount > 0 ? (
-            <span className="text-accent-color">{t("ai:tool.runningCount", { count: runningCount })}</span>
+          {running.length > 0 ? (
+            <span className="text-accent-color">{t("ai:tool.runningCount", { count: running.length })}</span>
           ) : null}
           <RiArrowRightSLine size={ICON.micro} className="shrink-0 opacity-50" />
         </button>
@@ -142,10 +454,11 @@ function ToolCallTimeline({ tools }: { tools: AiToolCall[] }) {
 
   return (
     <div className="mb-2 flex flex-col gap-0.5" data-tool-timeline>
-      {tools.length >= 3 ? (
+      {finished.length >= 3 ? (
         <button
           type="button"
           onClick={() => setAllOpen(false)}
+          aria-expanded={true}
           className="mb-0.5 flex items-center gap-1 text-3xs text-text-quaternary hover:text-text-tertiary"
         >
           <RiArrowDownSLine size={ICON.micro} />
@@ -182,11 +495,11 @@ function ToolCallCard({ tool }: { tool: AiToolCall }) {
   return (
     <div
       className={cn(
-        "rounded-[var(--radius-md)] px-2 py-0.5 text-3xs transition-colors",
+        "rounded-[var(--radius-md)] px-2 py-0.5 text-xs transition-colors",
         running
-          ? "bg-accent-bg-subtle/55 text-text-secondary"
+          ? "bg-accent-bg-subtle text-text-secondary"
           : isWrite
-            ? "bg-status-success-bg/25 text-text-tertiary"
+            ? "bg-status-success-bg text-text-tertiary"
             : "bg-surface-muted/40 text-text-tertiary",
       )}
     >
@@ -206,10 +519,12 @@ function ToolCallCard({ tool }: { tool: AiToolCall }) {
         >
           {running ? (
             <RiLoader4Line size={ICON.xs} className="shrink-0 animate-spin text-accent-color" />
+          ) : tool.status === "error" ? (
+            <RiErrorWarningLine size={ICON.xs} className="shrink-0 text-error" />
           ) : (
             <RiCheckboxCircleLine size={ICON.xs} className="shrink-0 text-success" />
           )}
-          <code className="min-w-0 flex-1 truncate font-mono text-3xs text-text-secondary">{shortName}</code>
+          <code className="min-w-0 flex-1 truncate font-mono text-xs text-text-secondary">{shortName}</code>
         </button>
         {primary && !running ? (
           <Tooltip content={primary}>
@@ -219,7 +534,7 @@ function ToolCallCard({ tool }: { tool: AiToolCall }) {
                 e.stopPropagation();
                 openWorkspacePath(select, primary);
               }}
-              className="max-w-[7rem] shrink-0 truncate rounded-[var(--radius-sm)] bg-surface/80 px-1.5 py-0.5 font-mono text-3xs text-accent-color hover:underline"
+              className="max-w-[7rem] shrink-0 truncate rounded-[var(--radius-sm)] bg-surface/80 px-1.5 py-0.5 font-mono text-xs text-accent-color hover:underline"
             >
               {primary.split("/").pop() || primary}
             </button>
@@ -251,7 +566,7 @@ function ToolCallCard({ tool }: { tool: AiToolCall }) {
                   <button
                     type="button"
                     onClick={() => openWorkspacePath(select, p)}
-                    className="max-w-full truncate rounded-[var(--radius-sm)] bg-surface/80 px-1.5 py-0.5 font-mono text-3xs text-accent-color hover:underline"
+                    className="max-w-full truncate rounded-[var(--radius-sm)] bg-surface/80 px-1.5 py-0.5 font-mono text-xs text-accent-color hover:underline"
                   >
                     {p.split("/").pop() || p}
                   </button>
@@ -260,13 +575,13 @@ function ToolCallCard({ tool }: { tool: AiToolCall }) {
             </div>
           ) : null}
           {hasDiff ? (
-            <div className="rounded-[var(--radius-xs)] bg-surface-muted p-1.5 font-mono text-2xs">
+            <div className="rounded-[var(--radius-xs)] bg-surface-muted p-1.5 font-mono text-xs">
               <div className="text-error line-through whitespace-pre-wrap">- {oldSnippet}</div>
               <div className="text-success whitespace-pre-wrap">+ {newSnippet}</div>
             </div>
           ) : null}
           {tool.summary ? (
-            <pre className="max-h-24 overflow-auto whitespace-pre-wrap break-all rounded bg-surface px-1.5 py-1 font-mono text-2xs text-text-quaternary">
+            <pre className="max-h-24 overflow-auto whitespace-pre-wrap break-all rounded bg-surface px-1.5 py-1 font-mono text-xs text-text-quaternary">
               {tool.summary}
             </pre>
           ) : null}
@@ -313,7 +628,7 @@ function CodeBlock({ code, language }: { code: string; language?: string }) {
           </button>
         </Tooltip>
       </div>
-      <pre className="overflow-x-auto p-3 text-2xs leading-[1.68] select-text">
+      <pre className="overflow-x-auto p-3 text-xs leading-[1.68] select-text">
         <code className="font-mono text-text-primary">{code}</code>
       </pre>
     </div>
@@ -409,7 +724,7 @@ function BlockFormatted({ text }: { text: string }) {
     const rows = tableLines.slice(2).map(parseRow);
     elements.push(
       <div key={key++} className="my-2 overflow-x-auto">
-        <table className="w-full border-collapse text-2xs">
+        <table className="w-full border-collapse text-xs">
           <thead>
             <tr>
               {header.map((h, i) => (
@@ -604,7 +919,7 @@ function UsageBadge({ usage, modelId }: { usage: NonNullable<AiMessage["usage"]>
 function ErrorBlock({ message, onRetry }: { message: string; onRetry: () => void }) {
   const { t } = useTranslation("editor");
   return (
-    <div className="flex flex-col gap-1.5 rounded-[var(--radius-md)] border border-error/20 bg-status-error-bg/50 px-2.5 py-2 text-3xs text-error">
+    <div className="flex flex-col gap-1.5 rounded-[var(--radius-md)] border border-border-subtle-dim bg-status-error-bg px-2.5 py-2 text-3xs text-error">
       <div className="flex items-start gap-1.5">
         <RiErrorWarningLine size={ICON.xs} className="mt-0.5 shrink-0" />
         <span className="min-w-0 flex-1 whitespace-pre-wrap">{message}</span>
@@ -614,7 +929,7 @@ function ErrorBlock({ message, onRetry }: { message: string; onRetry: () => void
           <button
             type="button"
             onClick={onRetry}
-            className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] bg-error/10 px-2 py-0.5 text-3xs font-medium text-error transition-colors hover:bg-error/20"
+            className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] bg-status-error-bg px-2 py-0.5 text-3xs font-medium text-error transition-colors hover:bg-status-error-bg"
             aria-label={t("ai.retryLabel")}
           >
             <RiRefreshLine size={ICON.micro} />
@@ -690,17 +1005,17 @@ function ReasoningBlock({ text, streaming }: { text: string; streaming?: boolean
               {tailPreview}
             </span>
           ) : (
-            <span className="min-w-0 flex-1 truncate text-text-quaternary/70">{t("ai.reasoningStreaming")}</span>
+            <span className="min-w-0 flex-1 truncate text-text-quaternary">{t("ai.reasoningStreaming")}</span>
           )
         ) : (
           <span className="min-w-0 flex-1" />
         )}
         {!streaming ? (
-          <span className="shrink-0 tabular-nums text-text-quaternary/70">
+          <span className="shrink-0 tabular-nums text-text-quaternary">
             {t("ai.reasoningDone")} · {t("ai.reasoningChars", { count: charCount })}
           </span>
         ) : (
-          <span className="shrink-0 tabular-nums text-text-quaternary/70">
+          <span className="shrink-0 tabular-nums text-text-quaternary">
             {t("ai.reasoningChars", { count: charCount })}
           </span>
         )}
@@ -714,7 +1029,7 @@ function ReasoningBlock({ text, streaming }: { text: string; streaming?: boolean
         <div
           ref={bodyRef}
           data-reasoning-scroll
-          className="max-h-[min(22rem,50vh)] min-h-24 overflow-auto border-t border-border-subtle/60 px-2.5 py-1.5 text-2xs italic leading-relaxed text-text-quaternary whitespace-pre-wrap"
+          className="max-h-[min(22rem,50vh)] min-h-24 overflow-auto border-t border-border-subtle/60 px-2.5 py-1.5 text-xs italic leading-relaxed text-text-quaternary whitespace-pre-wrap"
         >
           {text}
           {streaming ? <span className="v4-stream-cursor" aria-hidden /> : null}
@@ -727,11 +1042,30 @@ function ReasoningBlock({ text, streaming }: { text: string; streaming?: boolean
 export function ChatMessage({ message, streaming, streamStatus, streamToolName, streamToolCount, streamMaxSteps }: Props) {
   const { t } = useTranslation("editor");
   const regenerate = useAiStore((s) => s.regenerate);
+  const streamGoal = useAiStore((s) => s.streamGoal);
+  const streamAutoContinues = useAiStore((s) => s.streamAutoContinues);
+  // Prefer the goal stamped on this message; fall back to live stream state
+  // only while this row is still streaming (avoids repeating the chip).
+  const goal = message.goal || (streaming ? streamGoal : null);
+  const goalContinues = goal?.autoContinues || (streaming ? streamAutoContinues : 0);
   const [copied, setCopied] = useState(false);
-  if (message.role === "system") return null;
   const isUser = message.role === "user";
+  const [elapsedSec, setElapsedSec] = useState<number | null>(null);
+  useEffect(() => {
+    if (!streaming || isUser) {
+      setElapsedSec(null);
+      return;
+    }
+    const started = Date.now();
+    setElapsedSec(0);
+    const id = window.setInterval(() => {
+      setElapsedSec(Math.floor((Date.now() - started) / 1000));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [streaming, isUser]);
   const isError = Boolean(message.isError);
   const tools = message.toolCalls || [];
+  // Hooks must run for every role — compute before the system early-return.
   const visible = useMemo(() => {
     return !isUser && !isError
       ? visibleAssistantMessage(message.content, message.reasoning)
@@ -740,11 +1074,11 @@ export function ChatMessage({ message, streaming, streamStatus, streamToolName, 
   const visibleBody = visible.body;
   const visibleReasoning = visible.reasoning;
   const hasReasoning = Boolean(visibleReasoning.trim());
-
   const renderedMarkdown = useMemo(() => {
     if (!visibleBody) return null;
     return renderMarkdown(visibleBody);
   }, [visibleBody]);
+  if (message.role === "system") return null;
 
   // Reasoning is always collapsed by default — show a pulsing indicator while streaming.
   const showStatusIndicator =
@@ -765,13 +1099,18 @@ export function ChatMessage({ message, streaming, streamStatus, streamToolName, 
           )}
           aria-hidden
         >
-          {isError ? <RiErrorWarningLine size={ICON.sm} /> : <RiRobot2Line size={ICON.sm} />}
+          {isError ? <RiErrorWarningLine size={ICON.sm} /> : <RiChatAiLine size={ICON.sm} />}
         </div>
       ) : null}
       <div
         className={cn(
-          "max-w-[min(85%,36rem)] wrap-break-word px-3.5 py-2.5 text-sm leading-[1.65]",
-          isUser ? "v4-msg-user whitespace-pre-wrap" : "v4-msg-assistant text-text-primary",
+          /* Paper reading column: assistant = full-width paper row when the
+             rail is wide (container query); user stays a compact right bubble.
+             Narrow rails keep the classic side-by-side chat geometry. */
+          "wrap-break-word px-3.5 py-2.5 text-sm leading-[1.65]",
+          isUser
+            ? "v4-msg-user max-w-[min(85%,36rem)] whitespace-pre-wrap"
+            : "v4-msg-assistant text-text-primary",
           streaming && !isUser && hasContent && "v4-stream-cursor",
         )}
       >
@@ -786,14 +1125,39 @@ export function ChatMessage({ message, streaming, streamStatus, streamToolName, 
               <ReasoningBlock text={visibleReasoning} streaming={streaming} />
             ) : null}
             {showStatusIndicator ? (
-              <StreamStatusIndicator status={streamStatus!} toolName={streamToolName} count={streamToolCount} maxSteps={streamMaxSteps} />
+              <StreamStatusIndicator status={streamStatus!} toolName={streamToolName} count={streamToolCount} maxSteps={streamMaxSteps} autoContinues={goalContinues} elapsedSec={elapsedSec} />
+            ) : null}
+            {goal && (goal.plan.length > 0 || goal.criteria.length > 0 || goal.status === "incomplete" || goal.status === "done" || goal.status === "blocked") ? (
+              <GoalStatusChip goal={goal} autoContinues={goalContinues} />
+            ) : null}
+            {!streaming && message.stopReason === "paused" && !message.cancelled ? (
+              <ChipLabel tone="warn" size="sm" className="mt-1" data-msg-paused>
+                {t("ai.stoppedPaused")}
+              </ChipLabel>
+            ) : null}
+            {!streaming && message.cancelled ? (
+              <ChipLabel
+                tone="neutral"
+                size="sm"
+                className="mt-1"
+                data-msg-cancelled
+              >
+                {message.stopReason === "timeout"
+                  ? t("ai.stoppedTimeout")
+                  : message.stopReason === "stalled"
+                    ? t("ai.stoppedStalled")
+                    : t("ai.stoppedCancelled")}
+              </ChipLabel>
             ) : null}
             {hasContent ? (
               <div className="whitespace-pre-wrap">{renderedMarkdown}</div>
             ) : streaming && tools.length === 0 && !showStatusIndicator && !hasReasoning ? (
-              <StreamStatusIndicator status={streamStatus || "thinking"} toolName={streamToolName} count={streamToolCount} maxSteps={streamMaxSteps} />
+              <StreamStatusIndicator status={streamStatus || "thinking"} toolName={streamToolName} count={streamToolCount} maxSteps={streamMaxSteps} autoContinues={goalContinues} elapsedSec={elapsedSec} />
             ) : !streaming && !hasContent && tools.length === 0 ? (
               <span className="text-3xs text-text-quaternary">{t("ai.noTextReply")}</span>
+            ) : null}
+            {!streaming && goal && (goal.status === "done" || goal.status === "incomplete" || goal.status === "blocked") ? (
+              <ResultFooter goal={goal} />
             ) : null}
             {showUsage && message.usage ? (
               <UsageBadge usage={message.usage} modelId={message.modelId} />

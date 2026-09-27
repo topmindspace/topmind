@@ -14,7 +14,7 @@ import { randomBytes, timingSafeEqual } from "node:crypto";
 import { logInfo, logWarn, logError } from "./writeback.mjs";
 import { normalizeClipPayload } from "./clip-payload.mjs";
 import { applyArticleTemplate } from "./clip-templates.mjs";
-import { CLIP_DEST_MODES } from "./clip-dest-modes.mjs";
+import { CLIP_DEST_MODES } from "./fs-utils.mjs";
 
 export const CLIP_BRIDGE_DEFAULT_PORT = 19827;
 export const CLIP_BRIDGE_MAX_BODY = 2_000_000;

@@ -25,7 +25,7 @@ import {
   RiExternalLinkLine,
   RiListCheck,
   RiLoader4Line,
-  RiPencilLine,
+  RiEditLine,
   RiRefreshLine,
   RiSparklingLine,
   RiTimeLine,
@@ -156,22 +156,24 @@ export function TodoListBody({ showPaneChrome = true }: { showPaneChrome?: boole
           data-todo-pane-chrome
         >
           <RiListCheck size={ICON.xs} className="shrink-0 text-accent-color" aria-hidden />
-          <span className="min-w-0 flex-1 truncate text-3xs font-semibold text-text-primary">
+          <span className="min-w-0 flex-1 truncate text-xs font-semibold text-text-primary">
             {t("aiWorkspace.todo")}
           </span>
           <Tooltip content={t("todo.maintainTip")}>
             <button
               type="button"
               onClick={() => {
+                if (maintaining === "maintaining") return;
                 const force = maintainReason === "all-periods-processed";
                 void maintain(force ? { force: true } : undefined);
               }}
-              disabled={maintaining === "maintaining"}
+              data-soft-disabled={maintaining === "maintaining" || undefined}
+              aria-disabled={maintaining === "maintaining" || undefined}
               className={cn(
                 "flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] disabled:opacity-40",
                 maintaining === "maintaining"
                   ? "v4-ai-chip-gradient"
-                  : "text-text-quaternary transition-colors hover:bg-surface-muted hover:text-accent-color",
+                  : "text-text-quaternary transition-colors hover:bg-state-hover hover:text-accent-color",
               )}
               aria-label={t("todo.maintain")}
               data-todo-maintain
@@ -188,7 +190,7 @@ export function TodoListBody({ showPaneChrome = true }: { showPaneChrome?: boole
             <button
               type="button"
               onClick={() => void refresh()}
-              className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary"
+              className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-state-hover hover:text-text-secondary"
               aria-label={t("todo.refresh")}
               data-todo-refresh
             >
@@ -251,7 +253,7 @@ export function TodoListBody({ showPaneChrome = true }: { showPaneChrome?: boole
 
         {/* Health hint */}
         {(staleCount > 0 || overdueCount > 0) && showHealthHint ? (
-          <div className="mb-1.5 rounded-md border border-warning/20 bg-warning/5 px-2 py-1 text-3xs text-warning">
+          <div className="mb-1.5 rounded-md border border-border-subtle-dim bg-status-warning-bg px-2 py-1 text-3xs text-warning">
             <div className="flex items-center gap-1">
               <RiAlertLine size={ICON.micro} className="shrink-0" />
               <span className="flex-1">
@@ -292,15 +294,20 @@ export function TodoListBody({ showPaneChrome = true }: { showPaneChrome?: boole
               onChange={(e) => setNewItemText(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={t("todo.addPlaceholder")}
-              disabled={adding}
+              data-soft-disabled={adding || undefined}
+              aria-disabled={adding || undefined}
               className="min-w-0 flex-1 bg-transparent text-xs text-text-primary placeholder:text-text-quaternary focus:outline-none"
             />
             {newItemText.trim() ? (
               <button
                 type="button"
-                onClick={() => void handleAdd()}
-                disabled={adding}
-                className="flex h-4 w-4 items-center justify-center text-accent-color disabled:opacity-40"
+                onClick={() => {
+                  if (adding) return;
+                  void handleAdd();
+                }}
+                data-soft-disabled={adding || undefined}
+                aria-disabled={adding || undefined}
+                className={cn("flex h-6 w-6 items-center justify-center text-accent-color", adding && "opacity-50")}
               >
                 {adding ? (
                   <RiLoader4Line size={ICON.micro} className="animate-spin" />
@@ -321,7 +328,7 @@ export function TodoListBody({ showPaneChrome = true }: { showPaneChrome?: boole
         ) : activeItems.length === 0 && completedItems.length === 0 ? (
           <div className="flex flex-col items-center gap-1.5 py-6 text-center">
             <span className="text-3xs text-text-tertiary">{t("todo.empty")}</span>
-            <span className="px-3 text-3xs leading-relaxed text-text-quaternary">
+            <span className="px-3 text-xs leading-relaxed text-text-quaternary">
               {t("todo.emptyHint")}
             </span>
           </div>
@@ -343,7 +350,7 @@ export function TodoListBody({ showPaneChrome = true }: { showPaneChrome?: boole
                 <button
                   type="button"
                   onClick={() => setShowCompleted((v) => !v)}
-                  className="flex w-full items-center gap-1 rounded-md px-1.5 py-1 text-3xs text-text-quaternary transition-colors hover:bg-surface-muted/50 hover:text-text-tertiary"
+                  className="flex w-full items-center gap-1 rounded-md px-1.5 py-1 text-3xs text-text-quaternary transition-colors hover:bg-state-hover hover:text-text-tertiary"
                 >
                   {showCompleted ? (
                     <RiArrowDownSLine size={ICON.nano} />
@@ -382,7 +389,7 @@ export function TodoListBody({ showPaneChrome = true }: { showPaneChrome?: boole
 
       {/* Footer — AI provenance + health (workspace pane only; popover keeps its own chrome) */}
       {showPaneChrome ? (
-        <div className="shrink-0 border-t border-border-subtle-dim px-3 py-1.5 text-2xs text-text-tertiary">
+        <div className="shrink-0 border-t border-border-subtle-dim px-3 py-1.5 text-3xs text-text-tertiary">
           <div className="flex items-center gap-2">
             {aiCount > 0 ? (
               <span className="inline-flex min-w-0 items-center gap-0.5 truncate">
@@ -504,7 +511,7 @@ function TodoItemRow({
   const dueInfo = item.dueDate ? formatDueDate(item.dueDate, t) : null;
 
   return (
-    <li className="group relative flex items-start gap-2 rounded-md px-1.5 py-1.5 transition-colors hover:bg-surface-muted/40">
+    <li className="group relative flex items-start gap-2 rounded-md px-1.5 py-1.5 transition-colors hover:bg-state-hover">
       {/* Checkbox */}
       <button
         type="button"
@@ -515,7 +522,7 @@ function TodoItemRow({
           "mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[3px] border transition-all duration-150 active:scale-90",
           item.done
             ? "border-accent-color bg-accent-color text-text-on-accent shadow-xs"
-            : "border-border-subtle hover:border-accent-color/50 hover:bg-accent-bg-faint/30",
+            : "border-border-subtle hover:border-accent-color/50 hover:bg-accent-bg-faint",
         )}
         aria-label={item.done ? t("todo.uncheck") : t("todo.check")}
       >
@@ -574,7 +581,7 @@ function TodoItemRow({
                   setShowDatePicker((v) => !v);
                 }}
                 className={cn(
-                  "ml-1.5 inline-flex items-center gap-0.5 rounded-full px-1 py-0 text-3xs transition-colors hover:opacity-80",
+                  "ml-1.5 inline-flex items-center gap-0.5 rounded-[var(--radius-xs)] px-1 py-0 text-3xs transition-colors hover:opacity-80",
                   dueInfo.cls,
                 )}
               >
@@ -590,7 +597,7 @@ function TodoItemRow({
                   value={item.dueDate || ""}
                   onChange={(e) => void handleDateChange(e)}
                   onBlur={() => setShowDatePicker(false)}
-                  className="text-3xs text-text-primary bg-transparent focus:outline-none"
+                  className="text-xs text-text-primary bg-transparent focus:outline-none"
                   autoFocus
                 />
                 {item.dueDate ? (
@@ -618,7 +625,7 @@ function TodoItemRow({
                     if (relPath) select({ kind: "file", path: relPath });
                   });
                 }}
-                className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-accent-bg-subtle px-1 py-0 text-3xs text-accent-color transition-colors hover:bg-accent-bg-faint hover:text-accent-color"
+                className="ml-1 inline-flex items-center gap-0.5 rounded-[var(--radius-xs)] bg-accent-bg-subtle px-1 py-0 text-3xs text-accent-color transition-colors hover:bg-accent-bg-faint hover:text-accent-color"
                 title={t("todo.openSource")}
               >
                 <RiExternalLinkLine size={ICON.micro} className="shrink-0" />
@@ -645,10 +652,10 @@ function TodoItemRow({
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="flex h-6 w-6 items-center justify-center rounded-xs text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary focus-visible:opacity-100 v4-focus-ring"
+              className="flex h-6 w-6 items-center justify-center rounded-xs text-text-quaternary transition-colors hover:bg-state-hover hover:text-text-secondary focus-visible:opacity-100 v4-focus-ring"
               aria-label={t("todo.edit")}
             >
-              <RiPencilLine size={ICON.micro} />
+              <RiEditLine size={ICON.micro} />
             </button>
             <button
               type="button"
@@ -656,7 +663,7 @@ function TodoItemRow({
                 e.stopPropagation();
                 setShowDatePicker((v) => !v);
               }}
-              className="flex h-6 w-6 items-center justify-center rounded-xs text-text-quaternary transition-colors hover:bg-surface-muted hover:text-accent-color focus-visible:opacity-100 v4-focus-ring"
+              className="flex h-6 w-6 items-center justify-center rounded-xs text-text-quaternary transition-colors hover:bg-state-hover hover:text-accent-color focus-visible:opacity-100 v4-focus-ring"
               aria-label={t("todo.setDueDate")}
             >
               <RiCalendarEventLine size={ICON.micro} />
@@ -666,7 +673,7 @@ function TodoItemRow({
         <button
           type="button"
           onClick={() => void remove(item.id)}
-          className="flex h-6 w-6 items-center justify-center rounded-xs text-text-quaternary transition-colors hover:bg-surface-muted hover:text-error focus-visible:opacity-100 v4-focus-ring"
+          className="flex h-6 w-6 items-center justify-center rounded-xs text-text-quaternary transition-colors hover:bg-state-hover hover:text-error focus-visible:opacity-100 v4-focus-ring"
           aria-label={t("todo.delete")}
         >
           <RiDeleteBin6Line size={ICON.micro} />

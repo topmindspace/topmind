@@ -16,7 +16,7 @@ export function SelectionAiError({
   const openOverlay = useViewStore((s) => s.openOverlay);
 
   return (
-    <div className="rounded-[var(--radius-md)] border border-error/20 bg-status-error-bg px-2 py-1.5 text-3xs text-error" role="alert">
+    <div className="rounded-[var(--radius-md)] border border-border-subtle-dim bg-status-error-bg px-2 py-1.5 text-3xs text-error" role="alert">
       {error}
       <div className="mt-1 flex gap-2">
         <button

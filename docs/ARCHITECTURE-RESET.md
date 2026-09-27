@@ -169,7 +169,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | 精确中段改稿 / 思考折叠 | **Done**（2026-08-15：Kernel `applyUniqueSpan` + `formatReadWindow`；Desktop `edit_file`/`read_file` 与 Obsidian chat 工具环共用匹配/写闸，不是第九引擎；`<think>` / CoT 折进可展开思考过程） |
 | 删除文案诚实 | **Done**（2026-08-15：用户文案跟 `isRecoverableLifecycle`——普通开放笔记删除无 trash；锁定 / 专题首页 / 交付 才进归档；toast 只在 `backupPath` 时提备份） |
 | 连接器官方对齐 | **Done**（2026-08-16：WeRead 官方 Gateway 扁平 body + 无划线/想法不写专题 + `note_fingerprint` 增量；X 官方 v2/`xurl /2/…` + 归档按 tweet id 跳过；Clip 本轮未改） |
-| Memory 整合（画像事实生命周期） | **Done**（2026-08-16：`appendProfileEntry` / `retireProfileEntry` → `## 历史记录` 带日期前缀不删原文 / `updateProfileEntry` 原位更新；`memory_organize` 产出确认式 `append_profile` / `update_profile` / `retire_profile`；Desktop ADD/UPDATE/RETIRE 走同一 Kernel 函数。无自动遗忘、无向量索引。ADR `docs/adr/2026-08-16-memory-consolidation.md`） |
+| Memory 整合（画像事实生命周期） | **Done**（`appendProfileEntry` / `retireProfileEntry` → `## 历史记录` 带日期前缀不删原文 / `updateProfileEntry` 原位更新 / `restoreProfileEntry` / `compactProfileHistory`；`memory_organize` 产出确认式 `append_profile` / `update_profile` / `retire_profile` / `compact_history`；Desktop ADD/UPDATE/RETIRE/RESTORE/COMPACT-HISTORY 走同一 Kernel 函数。无自动遗忘、无向量索引。ADR `docs/adr/2026-08-16-memory-consolidation.md`） |
 | AI 输出语言 | **Done**（改写/Agent 正文：用户本轮要求 → 原文 → 工作区 locale；建议条 / AI 待办 / `memory_organize` / `topic_classify`：用户本轮要求 → **当前宿主 UI 语言** → 工作区 locale。`lib/ai-output-locale.mjs`） |
 | 周期路径 / 确认面诚实 | **Done**（2026-08-21：digest 回执走 yearDir；period stem 拒绝 fallback；Obsidian Inbox 新建走写闸；confirm pending 有侧栏审阅；建议确认≠打开周期本；语料/session-compact/建议入口活文档对齐） |
 | Obsidian 建议 force / 会话 / 操作卡片 / 对话语言 | **Done**（2026-08-22：手动刷新 `force:true` 清指纹；soft 会话合并防 AI 卡消失；`memory_organize` / `topic_classify` 确认卡进建议面；对话正文走 Kernel 三层语言，UI 只管 chrome；ops 状态摘要跟宿主 UI 语言） |
@@ -202,10 +202,11 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 | **产品决策锁 A/B/C/D** | **~99%** | 北极星、富工作台、Kernel 合闸、主动 AI 已锁 |
 | **文档体系完整性** | **~99%** | 单一实施真源 = 本文；DESIGN / ARCHITECTURE 对齐 |
 | **Phase A 合闸** | **~98%** | 写闸主路径 Done；高影响 only 备份/回执 Done |
-| **Phase B 记忆/建议/导航** | **~99%** | Memory · 建议条 · confirm 审阅 · PrimaryNav · 待办引擎 · **周期反思语义 + 年目录** · **画像事实生命周期（追加/归档/原位更新）** |
+| **Phase B 记忆/建议/导航** | **~99%** | Memory · 建议条 · confirm 审阅 · PrimaryNav · 待办引擎 · **周期反思语义 + 年目录** · **画像事实生命周期（追加/归档/原位更新/恢复/历史压缩）** |
 | **Desktop IA / UIUX** | **~99%** | 动态默认 · 侧栏 thrift · 整理闭环 · AI Markdown · i18n 门禁 · 2026-08-07 设计优化 |
 | **Kernel 八引擎贯穿** | **~99%** | 主写 Done；todo-engine / ledger-engine 卫星（非第九引擎）；**stream 年目录 + 归档**；**AI 语义深度优化**（关键字过滤→语义预算、画像注入、语料扩容）；contract/edit-backup Intentional Partial |
 | **Phase C 找回（无 embedding）** | **~55%** | 关键词投影诚实 + 搜索分组 Done；Ask / 语义索引 Non-goal |
+| **Desktop Agent / Autopilot** | **~95%** | 目标协议 + GoalState 会话持久 + 任务账本 UI + stopReason 诚实 + blocked/NEEDS-USER + 溢出压缩重试 + 外部 evaluator（/goal 模式）+ 行为测试（agent-autopilot-behavior）Done；余 loadSkills 原生 / Obsidian token 流式 / SessionRepo 迁移评估 |
 | **Phase D 互操作** | **0%** | 明确未来 |
 | **可交付质量门** | **~99%** | check:quality + validate + pack:verify + i18n parity |
 

@@ -47,11 +47,11 @@ export function WereadStatsPanel({
                 type="button"
                 onClick={() => onStatsMode(m)}
                 className={cn(
-                  "rounded-full px-2 py-0.5 text-3xs font-medium transition-colors",
+                  "rounded-[var(--radius-xs)] px-2 py-0.5 text-3xs font-medium transition-colors",
                   "v4-focus-ring",
                   statsMode === m
                     ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
-                    : "text-text-quaternary hover:bg-surface-muted hover:text-text-secondary",
+                    : "text-text-quaternary hover:bg-state-hover hover:text-text-secondary",
                 )}
               >
                 {modeLabels[m]}
@@ -62,7 +62,7 @@ export function WereadStatsPanel({
                 type="button"
                 disabled={!ready}
                 onClick={onRefresh}
-                className="rounded-[var(--radius-sm)] p-1 text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary v4-focus-ring disabled:opacity-40"
+                className="rounded-[var(--radius-sm)] p-1 text-text-quaternary transition-colors hover:bg-state-hover hover:text-text-secondary v4-focus-ring disabled:opacity-40"
                 aria-label={t("settings:wereadStats.refreshAria")}
               >
                 <RiRefreshLine size={ICON.micro} aria-hidden />
@@ -106,7 +106,7 @@ export function WereadStatsPanel({
               {stats.readStat.map((s) => (
                 <span
                   key={s.stat}
-                  className="rounded-full bg-surface-muted px-2 py-0.5 text-3xs text-text-secondary"
+                  className="rounded-[var(--radius-xs)] bg-surface-muted px-2 py-0.5 text-3xs text-text-secondary"
                 >
                   {s.stat} {s.counts}
                 </span>

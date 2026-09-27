@@ -260,7 +260,7 @@ export function TodoPopover({ open, onOpenChange, children }: TodoPopoverProps) 
           {t("todo.title")}
         </span>
         {activeCount > 0 ? (
-          <span className="rounded-full bg-surface-muted px-1.5 text-3xs tabular-nums text-text-quaternary">
+          <span className="rounded-[var(--radius-xs)] bg-surface-muted px-1.5 text-3xs tabular-nums text-text-quaternary">
             {activeCount}
           </span>
         ) : null}
@@ -277,10 +277,10 @@ export function TodoPopover({ open, onOpenChange, children }: TodoPopoverProps) 
             }}
             disabled={maintaining === "maintaining"}
             className={cn(
-              "flex h-5 w-5 items-center justify-center rounded-[var(--radius-sm)] disabled:opacity-40",
+              "flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] disabled:opacity-40",
               maintaining === "maintaining"
                 ? "v4-ai-chip-gradient"
-                : "text-text-quaternary transition-colors hover:bg-surface-muted hover:text-accent-color",
+                : "text-text-quaternary transition-colors hover:bg-state-hover hover:text-accent-color",
             )}
             aria-label={t("todo.maintain")}
             data-todo-maintain
@@ -297,7 +297,7 @@ export function TodoPopover({ open, onOpenChange, children }: TodoPopoverProps) 
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); void refresh(); }}
-            className="flex h-5 w-5 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary"
+            className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-state-hover hover:text-text-secondary v4-focus-ring"
             aria-label={t("todo.refresh")}
           >
             <RiRefreshLine size={ICON.micro} />
@@ -312,7 +312,7 @@ export function TodoPopover({ open, onOpenChange, children }: TodoPopoverProps) 
               useViewStore.getState().select({ kind: "file", path: "memory/todo.md" });
               if (!pinned) onOpenChange(false);
             }}
-            className="flex h-5 w-5 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary"
+            className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-state-hover hover:text-text-secondary v4-focus-ring"
             aria-label={t("todo.openFile")}
           >
             <RiFileTextLine size={ICON.micro} />
@@ -324,7 +324,7 @@ export function TodoPopover({ open, onOpenChange, children }: TodoPopoverProps) 
             type="button"
             onClick={(e) => { e.stopPropagation(); setPinned((v) => !v); }}
             className={cn(
-              "flex h-5 w-5 items-center justify-center rounded-[var(--radius-sm)] transition-colors hover:bg-surface-muted",
+              "flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] transition-colors hover:bg-state-hover",
               pinned ? "text-accent-color" : "text-text-quaternary hover:text-text-secondary",
             )}
             aria-label={pinned ? t("todo.unpin") : t("todo.pin")}
@@ -337,7 +337,7 @@ export function TodoPopover({ open, onOpenChange, children }: TodoPopoverProps) 
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onOpenChange(false); }}
-            className="flex h-5 w-5 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary"
+            className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary transition-colors hover:bg-state-hover hover:text-text-secondary v4-focus-ring"
             aria-label={t("todo.close")}
           >
             <RiCloseLine size={ICON.micro} />

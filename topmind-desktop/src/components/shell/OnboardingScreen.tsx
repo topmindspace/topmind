@@ -352,7 +352,7 @@ export function OnboardingScreen({
                 </div>
               </div>
               {error ? (
-                <div className="mb-3 flex items-center gap-2 rounded-lg border border-error/30 bg-status-error-bg px-3 py-2.5 text-3xs text-error" role="alert">
+                <div className="mb-3 flex items-center gap-2 rounded-lg border border-border-subtle-dim bg-status-error-bg px-3 py-2.5 text-3xs text-error" role="alert">
                   <RiErrorWarningLine size={ICON.sm} className="shrink-0" aria-hidden />
                   <span className="flex-1">{error}</span>
                 </div>
@@ -366,7 +366,7 @@ export function OnboardingScreen({
                     className={cn(
                       "flex items-start gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-[border-color,background-color] duration-(--duration-fast)",
                       selectedTemplate === tmpl.id
-                        ? "border-accent-border-subtle bg-accent-bg-subtle/40"
+                        ? "border-accent-border-subtle bg-accent-bg-subtle"
                         : "border-border-subtle-dim bg-surface-elevated hover:border-border-subtle",
                     )}
                   >
@@ -422,7 +422,7 @@ export function OnboardingScreen({
                 repeating education on every landing adds visual noise. */}
 
             {error ? (
-                <div className="mb-4 flex items-center gap-2 rounded-lg border border-error/30 bg-status-error-bg px-3 py-2.5 text-3xs text-error" role="alert">
+                <div className="mb-4 flex items-center gap-2 rounded-lg border border-border-subtle-dim bg-status-error-bg px-3 py-2.5 text-3xs text-error" role="alert">
                   <RiErrorWarningLine size={ICON.sm} className="shrink-0" aria-hidden />
                   <span className="flex-1">{error}</span>
                 </div>
@@ -453,8 +453,8 @@ export function OnboardingScreen({
                                 "hover:border-accent-border-subtle hover:shadow-(--shadow-md) hover:-translate-y-0.5 hover:bg-surface-elevated-hover",
                                 "v4-focus-ring",
                                 "disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:border-border-subtle-dim",
-                                active && "border-accent-border-subtle bg-accent-bg-subtle/40",
-                                broken && "border-error/25 bg-status-error-bg/30",
+                                active && "border-accent-border-subtle bg-accent-bg-subtle",
+                                broken && "border-border-subtle-dim bg-status-error-bg",
                               )}
                               data-landing-recent
                             >
@@ -467,18 +467,18 @@ export function OnboardingScreen({
                                     {shortName(w.rootPath)}
                                   </span>
                                   {health?.kind === "healthy" ? (
-                                    <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-success/10 px-1.5 py-px text-3xs font-medium text-success">
+                                    <span className="inline-flex shrink-0 items-center gap-0.5 rounded-[var(--radius-xs)] bg-status-success-bg px-1.5 py-px text-3xs font-medium text-success">
                                       <RiCheckboxCircleLine size={ICON.micro} aria-hidden />
                                       {t("shell:onboarding.healthOk")}
                                     </span>
                                   ) : null}
                                   {health?.kind === "empty" ? (
-                                    <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-surface-muted px-1.5 py-px text-3xs text-text-quaternary">
+                                    <span className="inline-flex shrink-0 items-center gap-0.5 rounded-[var(--radius-xs)] bg-surface-muted px-1.5 py-px text-3xs text-text-quaternary">
                                       {t("shell:onboarding.healthEmpty")}
                                     </span>
                                   ) : null}
                                   {broken ? (
-                                    <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-error/10 px-1.5 py-px text-3xs font-medium text-error">
+                                    <span className="inline-flex shrink-0 items-center gap-0.5 rounded-[var(--radius-xs)] bg-status-error-bg px-1.5 py-px text-3xs font-medium text-error">
                                       <RiAlertLine size={ICON.micro} aria-hidden />
                                       {t("shell:onboarding.healthBroken")}
                                     </span>
@@ -502,7 +502,7 @@ export function OnboardingScreen({
                                       role="button"
                                       tabIndex={0}
                                       aria-label={t("shell:onboarding.removeLabel", { name: shortName(w.rootPath) })}
-                                      className="rounded p-1 text-text-quaternary opacity-0 pointer-events-none transition-opacity hover:bg-surface-muted hover:text-error group-hover:opacity-100 group-hover:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto v4-focus-ring"
+                                      className="rounded p-1 text-text-quaternary opacity-0 pointer-events-none transition-opacity hover:bg-state-hover hover:text-error group-hover:opacity-100 group-hover:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto v4-focus-ring"
                                       onClick={(ev) => void handleRemoveRecent(w.rootPath, ev)}
                                       onKeyDown={(ev) => {
                                         if (ev.key === "Enter" || ev.key === " ") {
@@ -558,7 +558,7 @@ export function OnboardingScreen({
             {t("shell:onboarding.footerLine1")}
           </p>
           {/* Non-blocking companions CTA — install after workspace is ready (Settings → Companions). */}
-          <p className="mt-2 text-center text-3xs leading-relaxed text-text-quaternary/90">
+          <p className="mt-2 text-center text-3xs leading-relaxed text-text-quaternary">
             {t("shell:onboarding.companionsHint")}
           </p>
         </div>

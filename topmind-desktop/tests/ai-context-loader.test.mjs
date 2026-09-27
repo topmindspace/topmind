@@ -157,7 +157,7 @@ memory_layer: global
   const profile = await aiContextLoader.loadMemoryProfile(ctx);
   assert.ok(profile.includes("仍在推进的活事实"), "active fact stays");
   assert.ok(!profile.includes("早已过期不该进提示词的事实"), "retired fact must not enter prompt");
-  assert.match(profile, /已归档条目|archived fact/u);
+  assert.match(profile, /已归档条目|已归档事实|archived fact/u);
 });
 
 test("collapseHistorySectionForPrompt collapses History without Kernel", () => {

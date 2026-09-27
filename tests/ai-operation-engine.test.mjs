@@ -233,6 +233,50 @@ stream:
       assert.ok(!JSON.stringify(result).includes("memory/topics"));
     });
 
+    it("memory_organize injects distillHint file candidates into the prompt", async () => {
+      fs.mkdirSync(path.join(tmpDir, "10-动态"), { recursive: true });
+      fs.writeFileSync(
+        path.join(tmpDir, "topmind.yaml"),
+        `schema_version: 4
+categories:
+  - directory: 10-动态
+    role: loose-stream
+stream:
+  packing: weekly
+`,
+        "utf8",
+      );
+      fs.writeFileSync(
+        path.join(tmpDir, "10-动态", "2026-W31.md"),
+        `# 2026-W31\n\n- 本周把笔记排版规则定下来了。\n`.repeat(2),
+        "utf8",
+      );
+      let capturedPrompt = "";
+      const aiProvider = {
+        async generate(prompt) {
+          capturedPrompt = String(prompt || "");
+          return JSON.stringify({ profile: [], periodic: "", retire: [], update: [] });
+        },
+      };
+      const result = await runOperation({
+        id: "memory_organize",
+        workspaceRoot: tmpDir,
+        engineRoot,
+        aiProvider,
+        options: {
+          force: true,
+          distillHint: {
+            modifiedFiles: ["20-专题/2026-主题/note.md"],
+            readFiles: ["10-动态/2026-W31.md"],
+          },
+        },
+      });
+      assert.equal(result.ok, true);
+      assert.match(capturedPrompt, /本轮触达文件|Files touched this run/);
+      assert.match(capturedPrompt, /20-专题\/2026-主题\/note\.md/);
+      assert.match(capturedPrompt, /10-动态\/2026-W31\.md/);
+    });
+
     it("topic_classify returns create_topic under content category (not memory)", async () => {
       fs.mkdirSync(path.join(tmpDir, "10-动态"), { recursive: true });
       fs.mkdirSync(path.join(tmpDir, "20-专题"), { recursive: true });

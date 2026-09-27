@@ -74,3 +74,9 @@ export async function statSafe(targetPath) {
     return null;
   }
 }
+
+/**
+ * Clip destination modes — single source of truth (merged from clip-dest-modes.mjs).
+ * Used by clip-bridge.mjs (resolveClipDest) and workspace-inbox-ops.mjs (ingestInbox).
+ */
+export const CLIP_DEST_MODES = Object.freeze(["inbox", "stream", "topic", "category"]);

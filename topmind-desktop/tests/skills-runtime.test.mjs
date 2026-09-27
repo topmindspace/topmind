@@ -91,3 +91,20 @@ test("formatCatalogForPrompt is compact discovery text", () => {
   assert.match(text, /Use when|收进来|路由/i);
   assert.ok(text.length < 5000);
 });
+
+test("formatCatalogForPrompt emits Pi available_skills XML + compact routing", async () => {
+  const { formatCatalogForPrompt, listSkillCatalog } = await import("../electron/lib/skills-runtime.mjs");
+  const catalog = listSkillCatalog({ engineRoot }).slice(0, 3);
+  const text = formatCatalogForPrompt(catalog);
+  assert.match(text, /<available_skills>/);
+  assert.match(text, /<name>/);
+  assert.match(text, /<location>/);
+  assert.match(text, /`topmind/);
+});
+
+test("toPiSkills maps catalog to Pi Skill shape", async () => {
+  const { toPiSkills } = await import("../electron/lib/skills-runtime.mjs");
+  const skills = toPiSkills([{ id: "topmind-memory", description: "d", path: "/x/SKILL.md" }]);
+  assert.equal(skills[0].name, "topmind-memory");
+  assert.equal(skills[0].filePath, "/x/SKILL.md");
+});

@@ -83,7 +83,7 @@ export function HelpPanel() {
                 "flex h-8 items-center gap-1.5 rounded-[var(--radius-md)] px-2 text-left text-3xs transition-colors v4-focus-ring",
                 tab === id
                   ? "bg-surface-elevated font-semibold text-text-primary shadow-[var(--shadow-card)] ring-1 ring-border-subtle-dim"
-                  : "text-text-secondary hover:bg-surface-muted hover:text-text-primary",
+                  : "text-text-secondary hover:bg-state-hover hover:text-text-primary",
               )}
             >
               <Icon size={ICON.xs} className="shrink-0 opacity-70" />
@@ -171,11 +171,7 @@ function StartTab({
   return (
     <div className="space-y-6">
       {/* Hero — soft brand wash, not marketing chrome */}
-      <section className="relative overflow-hidden rounded-[var(--radius-xl)] border border-border-subtle bg-surface-muted/50 px-5 py-6 sm:px-6 sm:py-7">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-accent-muted blur-2xl"
-        />
+      <section className="relative overflow-hidden rounded-[var(--radius-xl)] border border-border-subtle bg-surface-muted px-5 py-6 sm:px-6 sm:py-7">
         <div className="relative">
           <p className="text-3xs font-medium uppercase tracking-[0.12em] text-accent-color">
             {t("help.start.heroKicker")}
@@ -183,7 +179,7 @@ function StartTab({
           <h3 className="mt-1.5 text-xl font-semibold tracking-tight text-text-primary">
             {t("help.start.heroTitle")}
           </h3>
-          <p className="mt-2 max-w-[36rem] text-3xs leading-relaxed text-text-secondary">
+          <p className="mt-2 max-w-[36rem] text-xs leading-relaxed text-text-secondary">
             {t("help.start.heroDesc")}
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -209,7 +205,7 @@ function StartTab({
             <li key={s.title} className="relative pb-4 last:pb-0">
               <span
                 aria-hidden
-                className="absolute -left-[1.4rem] top-0.5 flex h-5 w-5 items-center justify-center rounded-full border border-border-subtle bg-surface-elevated text-[10px] font-bold tabular-nums text-accent-color"
+                className="absolute -left-[1.4rem] top-0.5 flex h-5 w-5 items-center justify-center rounded-[var(--radius-xs)] border border-border-subtle bg-surface-elevated text-5xs font-bold tabular-nums text-accent-color"
               >
                 {i + 1}
               </span>

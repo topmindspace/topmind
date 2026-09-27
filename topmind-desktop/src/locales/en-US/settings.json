@@ -575,7 +575,8 @@
     "baseUrlDefault": "Default: {{url}}",
     "baseUrlInvalid": "Invalid URL — https:// required, or local http://localhost",
     "baseUrlEmpty": "No base URL set",
-    "secretLostWarning": "These keys still have ciphertext but can no longer be decrypted (upgrade / re-sign / lost local key file): {{keys}}. Please re-enter them."
+    "secretLostWarning": "These keys still have ciphertext but can no longer be decrypted (upgrade / re-sign / lost local key file): {{keys}}. Please re-enter them.",
+    "apiKeyLabel": "API Key"
   },
   "tools": {
     "jsonErrorObject": "Input must be a JSON object",
@@ -596,7 +597,10 @@
     "titleResult": "Result",
     "descResult": "JSON parsed from stdout",
     "warnExecute": "Preview high-risk write ops first; save confirmation matches CLI behavior.",
-    "noticeUtr": "Use editor & AI for daily notes and organizing; UTR is not required."
+    "noticeUtr": "Use editor & AI for daily notes and organizing; UTR is not required.",
+    "kindLabel": "Kind",
+    "commandLabel": "Command",
+    "inputJsonLabel": "Input JSON"
   },
   "chatInput": {
     "placeholder": "Type message or command… (⏎ to send, ⇧⏎ for newline, ⌘K for options)",
@@ -639,5 +643,6 @@
     "cache": "Cache",
     "realtime": "Realtime",
     "loading": "Loading statistics…"
-  }
+  },
+  "groupsNavLabel": "Settings groups"
 }

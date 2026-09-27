@@ -168,12 +168,6 @@ export async function kernelLoadContract(workspaceRoot) {
   return kernel.loadContract(workspaceRootOf(workspaceRoot));
 }
 
-/** Ensure/repair on-disk topmind.yaml via Kernel (shared with UTR/Obsidian). */
-export async function kernelEnsureContract(workspaceRoot, options = {}) {
-  const kernel = await loadKernelApi();
-  return kernel.ensureContract(workspaceRootOf(workspaceRoot), options);
-}
-
 /** User-triggered recovery: backup bad contract + reseed defaults. */
 export async function kernelReseedContract(workspaceRoot, options = {}) {
   const kernel = await loadKernelApi();

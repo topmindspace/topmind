@@ -214,7 +214,7 @@ export function IngestQueuePanel({
       ) : null}
 
       {error ? (
-        <div className="mb-1.5 rounded-[var(--radius-md)] border border-error/20 bg-status-error-bg px-2 py-1 text-3xs text-error">
+        <div className="mb-1.5 rounded-[var(--radius-md)] border border-border-subtle-dim bg-status-error-bg px-2 py-1 text-3xs text-error">
           {error}
         </div>
       ) : null}

@@ -14,6 +14,7 @@ import { toastWriteback } from "../../lib/writeback-toast";
 import { ICON } from "../../lib/icons";
 import { cn } from "../../lib/kit";
 import { Input } from "../ui/Input";
+import { Button } from "../ui/Button";
 
 /** Light client-side trigger check — mirrors lib/ledger-engine triggers. */
 const LEDGER_TEXT_RE = /记账|记一笔|花了|存入|支出|收入|买了|消费|账户余额|账单/u;
@@ -164,10 +165,10 @@ export function LedgerQuickEntry({
             type="button"
             onClick={onToggleExpand}
             className={cn(
-              "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-3xs font-medium transition-colors v4-focus-ring",
+              "inline-flex items-center gap-1 rounded-[var(--radius-xs)] px-2.5 py-0.5 text-3xs font-medium transition-colors v4-focus-ring",
               looksLedger
                 ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
-                : "bg-surface-muted/50 text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
+                : "bg-surface-muted text-text-tertiary hover:bg-state-hover hover:text-text-secondary",
             )}
             aria-expanded={open}
           >
@@ -288,15 +289,16 @@ export function LedgerQuickEntry({
               aria-label={t("note")}
               className="h-7 min-w-0 max-w-40 flex-1 text-3xs"
             />
-            <button
-              type="button"
+            <Button
+              variant="default"
+              size="sm"
               onClick={() => void submit()}
-              disabled={busy || !amount.trim()}
-              className="inline-flex h-7 shrink-0 items-center gap-1 rounded-[var(--radius-md)] bg-primary px-2.5 text-3xs font-medium text-primary-foreground shadow-[var(--shadow-button)] transition-[background-color,opacity] duration-[var(--duration-fast)] hover:bg-primary-hover active:bg-primary-active disabled:opacity-50"
+              softDisabled={busy || !amount.trim()}
+              className="h-7 shrink-0 gap-1 px-2.5 text-3xs"
             >
               {busy ? <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden /> : null}
               {t("nlSubmit")}
-            </button>
+            </Button>
           </div>
 
           {err ? (

@@ -14,6 +14,7 @@ import { cn } from "../../lib/kit";
 import { onLocal } from "../../plugins/host";
 import type { NoteMeta } from "../../types";
 import { ICON } from "../../lib/icons";
+import { Button } from "../ui/Button";
 import { getCachedAllNotes } from "../../lib/workspace-data-cache";
 import { EmptyState } from "../ui/view";
 import {
@@ -205,7 +206,7 @@ export function TimelineView({ onNavigate }: TimelineViewProps) {
         <button
           type="button"
           onClick={() => void load()}
-          className="flex items-center gap-1 self-start rounded-[var(--radius-md)] border border-border-subtle px-2 py-1 text-3xs text-text-secondary transition-colors hover:bg-surface-muted v4-focus-ring"
+          className="flex items-center gap-1 self-start rounded-[var(--radius-md)] border border-border-subtle px-2 py-1 text-3xs text-text-secondary transition-colors hover:bg-state-hover v4-focus-ring"
         >
           <RiRefreshLine size={ICON.micro} /> {t("sidebar.timeline.retry")}
         </button>
@@ -222,14 +223,14 @@ export function TimelineView({ onNavigate }: TimelineViewProps) {
           title={t("sidebar.timeline.emptyTitle")}
           hint={t("sidebar.timeline.emptyHint")}
           action={
-            <button
-              type="button"
+            <Button
+              variant="default"
+              size="sm"
               onClick={() => useViewStore.getState().openOverlay("quick-capture")}
-              className="inline-flex items-center gap-1 rounded-[var(--radius-md)] bg-primary px-2 py-1 text-3xs font-medium text-primary-foreground shadow-[var(--shadow-button)] transition-opacity hover:opacity-90 v4-focus-ring"
             >
               <RiPencilLine size={ICON.micro} aria-hidden />
               {t("sidebar.timeline.capture")}
-            </button>
+            </Button>
           }
         />
       </div>
@@ -254,7 +255,7 @@ export function TimelineView({ onNavigate }: TimelineViewProps) {
           <div className="sticky top-0 z-local flex items-center gap-1.5 bg-chrome px-3 py-1.5 text-3xs font-medium tracking-wide text-text-quaternary">
             <RiCalendarLine size={ICON.micro} className="text-text-quaternary" />
             <span>{group.label}</span>
-            <span className="rounded-full bg-surface-muted px-1.5 tabular-nums text-text-quaternary/70">
+            <span className="rounded-[var(--radius-xs)] bg-surface-muted px-1.5 tabular-nums text-text-quaternary">
               {group.entries.length}
             </span>
           </div>
@@ -272,7 +273,7 @@ export function TimelineView({ onNavigate }: TimelineViewProps) {
               }
               className={cn(
                 "v4-dense-row flex w-full items-start gap-2 rounded-[var(--radius-md)] px-3 py-2 text-left",
-                "transition-colors duration-[var(--duration-fast)] hover:bg-surface-muted",
+                "transition-colors duration-[var(--duration-fast)] hover:bg-state-hover",
               )}
             >
               <RiFileTextLine size={ICON.xs} className="mt-0.5 shrink-0 text-text-quaternary" />
@@ -283,7 +284,7 @@ export function TimelineView({ onNavigate }: TimelineViewProps) {
                 <div className="mt-0.5 flex items-center gap-1.5 text-3xs text-text-quaternary">
                   {entry.topic ? <span className="truncate">{entry.topic}</span> : null}
                   {entry.category ? (
-                    <span className="shrink-0 text-text-quaternary/60">{entry.category}</span>
+                    <span className="shrink-0 text-text-quaternary">{entry.category}</span>
                   ) : null}
                 </div>
               </div>

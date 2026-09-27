@@ -121,7 +121,7 @@ export function IngestStagingSheet() {
           </div>
           <button
             type="button"
-            className="rounded-[var(--radius-md)] p-1 text-text-quaternary hover:bg-surface-muted hover:text-text-secondary"
+            className="rounded-[var(--radius-md)] p-1 text-text-quaternary hover:bg-state-hover hover:text-text-secondary"
             aria-label={t("overlays:staging.close")}
             disabled={busy}
             onClick={() => close()}
@@ -131,7 +131,7 @@ export function IngestStagingSheet() {
         </header>
 
         {capped ? (
-          <div className="flex items-start gap-1.5 border-b border-warning/20 bg-status-warning-bg/40 px-4 py-2 text-3xs text-warning">
+          <div className="flex items-start gap-1.5 border-b border-border-subtle-dim bg-status-warning-bg px-4 py-2 text-3xs text-warning">
             <RiAlertLine size={ICON.xs} className="mt-0.5 shrink-0" aria-hidden />
             {t("overlays:staging.cappedWarning")}
           </div>
@@ -171,7 +171,7 @@ export function IngestStagingSheet() {
           <Button variant="ghost" size="sm" disabled={busy} onClick={() => close()}>
             {t("overlays:staging.cancel")}
           </Button>
-          <Button size="sm" softDisabled={selectedCount === 0} disabled={busy} onClick={onConfirm}>
+          <Button size="sm" softDisabled={busy || selectedCount === 0} onClick={onConfirm}>
             {busy ? (
               <>
                 <RiLoader4Line size={ICON.xs} className="animate-spin" aria-hidden /> {t("overlays:staging.confirmQueuing")}
@@ -226,7 +226,7 @@ function StagingRow({
       </div>
       <button
         type="button"
-        className="shrink-0 rounded p-0.5 text-text-quaternary hover:bg-surface-muted hover:text-text-secondary"
+        className="shrink-0 rounded p-0.5 text-text-quaternary hover:bg-state-hover hover:text-text-secondary"
         aria-label={t("overlays:staging.removeItem", { name: item.name })}
         onClick={onRemove}
       >

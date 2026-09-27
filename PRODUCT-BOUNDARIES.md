@@ -83,7 +83,7 @@ topmind 是 Agent 时代的本地优先工作台，按需组合四条独立能�
 |------|------|
 | Desktop 必须调 UTR 才能保存 / 捕获 / AI 写回？ | **否** — WorkspaceService → Kernel writeback-engine |
 | Skills 必须调 UTR？ | **否** — Host 文件工具 + 内容约定 |
-| 全部 UTR 命令日常必需？ | **否** — 注册表 28，MCP 默认 19 |
+| 全部 UTR 命令日常必需？ | **否** — 注册表 32，MCP 默认 23 |
 | 无 UTR 时是否可用？ | **是** |
 | 保留 UTR 的理由？ | Agent Host / CI / doctor / 脚本的确定性命令面（Kernel adapter） |
 
@@ -148,7 +148,7 @@ UTR = 软探测；写回不经 UTR
 
 面向无 Desktop、有 agent/脚本的确定性命令面。
 
-- **8 域 / 28 命令**；MCP 默认 **19**
+- **8 域 / 32 命令**；MCP 默认 **23**
 - 完整表：`TOOLS.md`
 - 目标：薄 adapter，业务在 Kernel
 
@@ -223,7 +223,7 @@ graph TD
 | 三平面目录与 topmind.yaml v4 | **Done**（约定）/ 契约 UI 非强制 **Intentional Partial** |
 | writeback 唯一写闸 | **Done**（主路径 + **分级 confirm**（内容落盘，仅删/归档 pending） + 高影响 only 备份/回执：locked 覆盖 · 锁定/核心笔记 delete/archive · 普通开放笔记无 trash · `permanent` 无副本） |
 | Memory 产品面（我的情况浏览 / 建议条） | **Done** |
-| 主动建议 + 确认执行 | **Done**（high-impact 须 `confirmed:true`；自动准备可关；AI 建议变更检测 `lastAnalyzedHash`；`promote_memory` 真实 AI 提取非占位符；画像 ADD/UPDATE/RETIRE 均确认后执行，不是 append-only） |
+| 主动建议 + 确认执行 | **Done**（high-impact 须 `confirmed:true`；自动准备可关；AI 建议变更检测 `lastAnalyzedHash`；`promote_memory` 真实 AI 提取非占位符；画像 ADD/UPDATE/RETIRE/RESTORE/COMPACT-HISTORY 均确认后执行，不是 append-only） |
 | 交付 / publishPath | **Done**（副本 + `published_at`；发布后打开交付件；交付复制正文 / HTML 导出） |
 | 整理本周 / 任务面板 | **Done**（reconcile + ai_digest 任务 + 建议条候选确认；KanbanView 拖拽看板 + ViewSwitcher 多视图；digest/promote/archive 不造假任务按钮） |
 | 动态主表面内容 | **Done**（周期解析含结构节软提取；无当前本回退列表；内联记一下 + 整理本周） |

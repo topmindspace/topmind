@@ -350,22 +350,22 @@ Skill 路由时的最小读取顺序（**默认不加载整工作区**）：
 2. 扫描 `{workspace-root}/` → 发现所有类别目录 + `memory/`
 3. 读目标类别的 `{类别}/{专题}/topic.md`（如存在）
 4. 读当前对象（专题根下 `*.md` / delivery 层相关文件）
-5. 必要时才读专题内其他文件 / `memory/主题/{主题}.md`
+5. 必要时才读专题内其他文件 / `memory/topics/{topic-slug}.md`
 
 **默认不加载整工作区；`.topmind/` 不作为内容读取**（derived 摘要可作为上下文线索引用，需标注为衍生）。
 
 ---
 
-## 7. Engine → UTR 命令映射 (8 域 / 28 命令)
+## 7. Engine → UTR 命令映射 (8 域 / 32 命令)
 
 Kernel 八引擎是内部领域逻辑；UTR 8 域是其 CLI/MCP adapter 暴露面。并非每个引擎都有独立 UTR 域——`stream` / `writeback` / `ingest` 是内部引擎，由其他 UTR 命令内部调用，不直接暴露。
 
-| 引擎 (Engine) | 职责 | UTR 确定性命令（真实 8 域 / 28） | 降级边界 |
+| 引擎 (Engine) | 职责 | UTR 确定性命令（真实 8 域 / 32） | 降级边界 |
 |---|---|---|---|
 | **contract** | 契约加载/校验/ensure/reseed/求值 | `contract.validate` · `contract.ensure` · `contract.reseed` | Kernel `inspectContract` / `ensureContract` / `reseedContract`（v4 白名单） |
 | **workspace-model** | 类别/专题/路径 | `workspace-read`：`list-categories` · `list-topics` · `inspect-topic` · `list-topic-files` · `list-inbox` · `list-recent-captures` · `list-safety-receipts`；`workspace-write`：`create-topic` · `capture-note` · `save-output` · `update-topic`；`workspace-transform`：`plan-inbox-routing` · `normalize-note-metadata` · `migrate-v4`；`workspace-maintain`：`doctor-workspace` · `archive-topic` · `archive-stream-year` · `restore-safety-receipt` · `cleanup-empty-dirs` | 目录扫描 + 基础读写 |
 | **stream** | 周期本/reconcile | （无独立 UTR 域；`workspace-write.capture-note` 内部走 stream-engine 落周期本） | 文本追加 |
-| **memory** | 分层记忆/提升 | `memory.promote` · `memory.digest` · `memory.append-profile` · `memory.append-topic` | 跨层复制 + frontmatter 标记 |
+| **memory** | 分层记忆/提升 | `memory.promote` · `memory.digest` · `memory.append-profile` · `memory.append-topic` · `memory.retire-profile` · `memory.update-profile` · `memory.compact-history` · `memory.restore-profile` | 跨层复制 + frontmatter 标记 + 确认式事实生命周期 |
 | **lifecycle** | 归档/清理/回顾扫描 | `lifecycle.scan`；归档/恢复经 `workspace-maintain.archive-topic` · `restore-safety-receipt` · `cleanup-empty-dirs` | 文件移动操作 |
 | **writeback** | 保护/备份/回执（唯一写闸） | （无独立 UTR 域；所有 UTR 写命令内部经 writeback-engine） | 文件暂存与覆写 |
 | **derived** | `.derived/` 生成重建 | `derived.rebuild` | 从真源重新生成 |

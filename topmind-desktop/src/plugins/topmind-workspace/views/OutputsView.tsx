@@ -348,7 +348,7 @@ export function OutputsView() {
                               className={cn(
                                 "mr-1.5 inline-flex rounded px-1 py-px text-3xs font-medium",
                                 isPublished
-                                  ? "bg-success/10 text-success"
+                                  ? "bg-status-success-bg text-success"
                                   : "bg-surface-muted text-text-quaternary",
                               )}
                             >

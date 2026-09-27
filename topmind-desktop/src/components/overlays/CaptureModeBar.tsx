@@ -1,8 +1,8 @@
 /**
- * Capture mode segmented control — FilterChip language (Design System 2.0).
+ * Capture mode segmented control — Chip language (DS 4.0.5).
  */
 import { useTranslation } from "react-i18next";
-import { cn } from "../../lib/kit";
+import { Chip } from "../ui/Chip";
 import type { CaptureMode } from "./quick-capture-helpers";
 
 const MODE_KEYS: { id: CaptureMode; labelKey: string }[] = [
@@ -33,24 +33,21 @@ export function CaptureModeBar({
       {MODE_KEYS.map(({ id, labelKey }) => {
         const active = mode === id;
         return (
-          <button
+          <Chip
             key={id}
-            type="button"
+            tone={active ? "accent" : "neutral"}
+            active={active}
+            size="md"
             role="tab"
             aria-selected={active}
+            /* Tabs announce selection via aria-selected, not aria-pressed. */
+            aria-pressed={undefined}
             data-filter-chip
             data-filter-chip-active={active ? "true" : undefined}
             onClick={() => onChange(id)}
-            className={cn(
-              "inline-flex h-[var(--control-h-chip)] items-center rounded-full px-2.5 text-3xs font-medium leading-none transition-colors",
-              "v4-focus-ring",
-              active
-                ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
-                : "bg-surface-muted/35 text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
-            )}
           >
             {t(labelKey)}
-          </button>
+          </Chip>
         );
       })}
       <span className="ml-1 max-w-[12rem] truncate text-3xs text-text-quaternary" title={shown}>

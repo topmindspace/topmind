@@ -81,14 +81,17 @@ test("FilterChip exposes aria-pressed", () => {
   assert.match(src, /aria-pressed=\{Boolean\(active\)\}/);
 });
 
-test("QuickCapture mode chips use CaptureModeBar (FilterChip language)", () => {
+test("QuickCapture mode chips use CaptureModeBar (Chip language)", () => {
   const src = read("src/components/overlays/CaptureForm.tsx");
   assert.match(src, /CaptureModeBar/);
   assert.match(src, /from ["']\.\/CaptureModeBar["']/);
   const bar = read("src/components/overlays/CaptureModeBar.tsx");
   assert.match(bar, /role="tablist"/);
   assert.match(bar, /aria-label=\{t\("overlays:capture\.modeAriaLabel"\)\}/);
-  assert.match(bar, /text-3xs font-medium/);
+  // Chip md carries words on the 13px content floor (text-xs font-medium).
+  assert.match(bar, /<Chip\b/);
+  assert.match(bar, /role="tab"/);
+  assert.match(bar, /aria-selected=\{active\}/);
 });
 
 test("quick-capture-helpers exports pure title cleaners", () => {

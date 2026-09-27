@@ -76,7 +76,7 @@ export function AppsLaunchList() {
         </span>
         <button
           type="button"
-          className="flex h-6 items-center gap-1 rounded-sm px-1.5 text-3xs text-text-tertiary hover:bg-surface-muted hover:text-text-primary v4-focus-ring"
+          className="flex h-6 items-center gap-1 rounded-sm px-1.5 text-3xs text-text-tertiary hover:bg-state-hover hover:text-text-primary v4-focus-ring"
           onClick={() => openConfigure("plugins")}
         >
           <RiSettingsLine size={ICON.micro} />
@@ -114,7 +114,7 @@ export function AppsLaunchList() {
                   }}
                   className={cn(
                     "flex min-w-0 items-start gap-2.5 rounded-[var(--radius-md)] border border-transparent px-2 py-2 text-left",
-                    "hover:border-border-subtle-dim hover:bg-surface-muted v4-focus-ring",
+                    "hover:border-border-subtle-dim hover:bg-state-hover v4-focus-ring",
                   )}
                 >
                   <span className="v4-icon-chip-accent flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)]">
@@ -124,7 +124,7 @@ export function AppsLaunchList() {
                     <span className="flex min-w-0 items-center gap-1.5">
                       <span className="truncate text-3xs font-medium text-text-primary">{name}</span>
                       {readiness.needsConfig ? (
-                        <span className="shrink-0 rounded-full bg-status-warning-bg px-1.5 py-px text-4xs font-medium leading-none text-warning">
+                        <span className="shrink-0 rounded-[var(--radius-xs)] bg-status-warning-bg px-1.5 py-px text-4xs font-medium leading-none text-warning">
                           {t("shell:appsMenu.needsConfig")}
                         </span>
                       ) : null}

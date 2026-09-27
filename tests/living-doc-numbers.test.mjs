@@ -272,9 +272,11 @@ test("living Desktop DESIGN matches shipped Design System tokens (not legacy lef
   assert.match(obsidian, /inbox_organize/);
 });
 
-test("PrimaryNav lives on the sidebar primary header (not StatusBar)", () => {
+test("PrimaryNav lives on ActivityBar (StatusBar never hosts nav)", () => {
   const design = read("topmind-desktop/DESIGN.md");
-  assert.match(design, /侧栏主 header.*PrimaryNav|PrimaryNav.*侧栏主 header/u);
+  // 2026-09-26: destinations ride the ActivityBar; PrimaryNav is only the
+  // compact TitleBar fallback when the sidebar is collapsed.
+  assert.match(design, /ActivityBar[\s\S]{0,80}PrimaryNav|PrimaryNav[\s\S]{0,80}ActivityBar/u);
   assert.match(design, /不含 PrimaryNav/u);
   assert.doesNotMatch(design, /状态栏 PrimaryNav/u);
   assert.doesNotMatch(design, /状态栏常驻 \*\*动态/u);

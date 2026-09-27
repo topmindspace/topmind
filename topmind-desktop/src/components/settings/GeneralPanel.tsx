@@ -237,7 +237,7 @@ export function GeneralPanel({
         description={t("settings:general.editorReadingDesc")}
         action={
           <Tooltip content={t("settings:general.resetEditor")}>
-            <Button type="button" variant="ghost" size="sm" className="h-6 text-3xs" onClick={resetEditor} aria-label={t("settings:general.resetEditor")}>
+            <Button type="button" variant="ghost" size="sm" className="h-6" onClick={resetEditor} aria-label={t("settings:general.resetEditor")}>
               <RiArrowGoBackLine size={ICON.micro} aria-hidden />
             </Button>
           </Tooltip>
@@ -540,7 +540,7 @@ export function GeneralPanel({
           <Button
             variant="tonal"
             size="sm"
-            className="h-7 text-3xs"
+            className="h-7"
             onClick={() => useViewStore.getState().openOverlay("settings", { topicId: "plugins" })}
           >
             {t("settings:general.quickExtensions")}
@@ -548,7 +548,7 @@ export function GeneralPanel({
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 text-3xs"
+            className="h-7"
             onClick={() => useViewStore.getState().openOverlay("settings", { topicId: "about" })}
           >
             {t("settings:general.quickAbout")}

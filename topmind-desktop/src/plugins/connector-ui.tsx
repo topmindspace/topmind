@@ -1,6 +1,6 @@
 /**
  * Shared connector UI primitives — keep weread / x / ingest hubs visually aligned.
- * Design System 2.0: text-lg hub titles, status pills, soft toast banners.
+ * Design System 4.0.5 (MD3 state layers): text-lg hub titles, status pills, soft toast banners.
  */
 import type { ReactNode } from "react";
 import { ConfirmDialog } from "../components/ui/Dialog";
@@ -27,7 +27,7 @@ export function ConnectorStatusPill({
   const { t } = useTranslation("common");
   if (loading) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-surface-muted/60 px-1.5 py-0.5 text-3xs text-text-quaternary">
+      <span className="inline-flex items-center gap-1 rounded-[var(--radius-xs)] bg-surface-muted/60 px-1.5 py-0.5 text-3xs text-text-quaternary">
         <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden /> {t("action.loading")}
       </span>
     );
@@ -35,7 +35,7 @@ export function ConnectorStatusPill({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-3xs font-medium",
+        "inline-flex items-center gap-1 rounded-[var(--radius-xs)] px-1.5 py-0.5 text-3xs font-medium",
         ok
           ? "bg-status-success-bg text-success"
           : badTone === "muted"
@@ -109,7 +109,7 @@ export function ChipToggleGroup<T extends string>({
             aria-pressed={active}
             onClick={() => onChange(item.id)}
             className={cn(
-              "rounded-full border px-2 py-0.5 text-3xs v4-focus-ring",
+              "rounded-[var(--radius-xs)] border px-2 py-0.5 text-3xs v4-focus-ring",
               tone
                 ? tone(item.id, active)
                 : active
@@ -157,7 +157,7 @@ export function PluginAppHeader({
       </span>
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-semibold tracking-tight text-text-primary">{title}</div>
-        <div className="truncate text-3xs text-text-quaternary">{subtitle}</div>
+        <div className="truncate text-xs text-text-quaternary">{subtitle}</div>
       </div>
       {tools ? <div className="flex shrink-0 items-center gap-1">{tools}</div> : null}
       {meta ? <div className="hidden max-w-[12rem] shrink-0 truncate text-3xs text-text-quaternary sm:block">{meta}</div> : null}
@@ -244,8 +244,8 @@ export function ConnectorHubHeader({
         </div>
         <div className="min-w-0">
           {/* Match PageHeader hierarchy: subtitle role, not display marketing */}
-          <h1 className="truncate text-xl font-semibold tracking-tight text-text-primary">{title}</h1>
-          <p className="mt-0.5 max-w-prose text-3xs leading-relaxed text-text-quaternary">{subtitle}</p>
+          <h1 className="truncate text-lg font-semibold tracking-tight text-text-primary">{title}</h1>
+          <p className="mt-0.5 max-w-prose text-xs leading-relaxed text-text-quaternary">{subtitle}</p>
           {meta ? (
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-3xs text-text-quaternary">
               {meta}
@@ -281,9 +281,9 @@ export function ConnectorToastBanner({
         progress
           ? "border-accent-border-subtle bg-accent-bg-subtle text-accent-color"
           : resultText?.startsWith("✓")
-            ? "border-success/20 bg-status-success-bg text-success"
+            ? "border-border-subtle-dim bg-status-success-bg text-success"
             : resultText?.startsWith("✗")
-              ? "border-error/20 bg-status-error-bg text-error"
+              ? "border-border-subtle-dim bg-status-error-bg text-error"
               : "border-border-subtle bg-surface-muted/40 text-text-tertiary",
       )}
       role="status"
@@ -307,7 +307,7 @@ export function ConnectorToolChip({ label, ok }: { label: string; ok?: boolean }
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-3xs font-medium",
+        "inline-flex items-center gap-1 rounded-[var(--radius-xs)] px-2 py-0.5 text-3xs font-medium",
         ok ? "bg-status-success-bg text-success" : "bg-surface-muted text-text-tertiary",
       )}
     >
@@ -350,14 +350,14 @@ export function AppSlot({
         <header className="mb-2 flex items-center gap-2">
           {titleIcon ? <span className="text-accent-color">{titleIcon}</span> : null}
           {title ? (
-            <h3 className="min-w-0 flex-1 truncate text-3xs font-semibold tracking-tight text-text-secondary">{title}</h3>
+            <h3 className="min-w-0 flex-1 truncate text-xs font-semibold tracking-tight text-text-secondary">{title}</h3>
           ) : (
             <span className="flex-1" />
           )}
           {actions ? <div className="flex shrink-0 items-center gap-1">{actions}</div> : null}
         </header>
       ) : null}
-      {hint ? <p className="mb-2 text-3xs leading-relaxed text-text-quaternary">{hint}</p> : null}
+      {hint ? <p className="mb-2 text-xs leading-relaxed text-text-quaternary">{hint}</p> : null}
       <div className={bodyClassName}>{children}</div>
     </section>
   );
@@ -440,7 +440,7 @@ export function ListRow({
     >
       {leading ? <span className="shrink-0 text-text-quaternary">{leading}</span> : null}
       <div className="min-w-0 flex-1">
-        <div className="truncate text-3xs font-medium text-text-primary">{title}</div>
+        <div className="truncate text-sm font-medium text-text-primary">{title}</div>
         {meta ? <div className="mt-0.5 flex flex-wrap gap-2 text-3xs text-text-quaternary">{meta}</div> : null}
       </div>
       {actions ? <div className="shrink-0">{actions}</div> : null}

@@ -10,7 +10,7 @@ import {
   RiCloseLine,
   RiDashboardLine,
   RiListUnordered,
-  RiPencilLine,
+  RiEditLine,
   RiPriceTag3Line,
   RiSparklingLine,
   RiWallet3Line,
@@ -315,7 +315,7 @@ export function LedgerApp() {
           {(
             [
               { id: "ai" as const, icon: RiSparklingLine, label: t("nlLabel") },
-              { id: "form" as const, icon: RiPencilLine, label: t("formLabel") },
+              { id: "form" as const, icon: RiEditLine, label: t("formLabel") },
             ] as const
           ).map((m) => (
             <button
@@ -324,7 +324,7 @@ export function LedgerApp() {
               onClick={() => setMode(m.id)}
               aria-pressed={mode === m.id}
               className={cn(
-                "inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-3xs font-medium transition-colors v4-focus-ring",
+                "inline-flex h-7 items-center gap-1 rounded-[var(--radius-xs)] px-2.5 text-3xs font-medium transition-colors v4-focus-ring",
                 mode === m.id
                   ? "bg-accent-container text-on-accent-container"
                   : "text-text-tertiary hover:bg-state-hover hover:text-text-secondary",
@@ -401,7 +401,7 @@ export function LedgerApp() {
         )}
 
         {nlPreview ? (
-          <div className="mt-2 flex items-start gap-1.5 rounded-[var(--radius-md)] border border-warning/25 bg-status-warning-bg px-2.5 py-1.5 text-3xs text-warning" role="status">
+          <div className="mt-2 flex items-start gap-1.5 rounded-[var(--radius-md)] border border-border-subtle-dim bg-status-warning-bg px-2.5 py-1.5 text-3xs text-warning" role="status">
             <RiSparklingLine size={ICON.micro} className="mt-0.5 shrink-0" aria-hidden />
             <span className="min-w-0 flex-1">
               {t("nlPreviewLabel")}: {nlPreview}
@@ -471,7 +471,7 @@ export function LedgerApp() {
                 type="button"
                 onClick={() => setFlowCategory("")}
                 className={cn(
-                  "rounded-full border px-2 py-0.5 text-3xs v4-focus-ring",
+                  "rounded-[var(--radius-xs)] border px-2 py-0.5 text-3xs v4-focus-ring",
                   !flowCategory
                     ? "border-accent-border-subtle bg-accent-bg-subtle text-accent-color"
                     : "border-border-subtle-dim text-text-tertiary",
@@ -485,7 +485,7 @@ export function LedgerApp() {
                   type="button"
                   onClick={() => setFlowCategory(c)}
                   className={cn(
-                    "rounded-full border px-2 py-0.5 text-3xs v4-focus-ring",
+                    "rounded-[var(--radius-xs)] border px-2 py-0.5 text-3xs v4-focus-ring",
                     flowCategory === c
                       ? "border-accent-border-subtle bg-accent-bg-subtle text-accent-color"
                       : "border-border-subtle-dim text-text-tertiary",
@@ -529,7 +529,7 @@ export function LedgerApp() {
             ) : (
               <ul className="flex flex-wrap gap-1.5">
                 {categories.map((c) => (
-                  <li key={c} className="inline-flex items-center gap-1 rounded-full border border-border-subtle-dim bg-surface px-2.5 py-1 text-3xs text-text-secondary">
+                  <li key={c} className="inline-flex items-center gap-1 rounded-[var(--radius-xs)] border border-border-subtle-dim bg-surface px-2.5 py-1 text-3xs text-text-secondary">
                     {c}
                     <button type="button" className="text-text-quaternary hover:text-error v4-focus-ring" onClick={() => setRemoveConfirm(c)} aria-label={t("removeCategory")}>
                       <RiCloseLine size={ICON.nano} />
@@ -622,7 +622,7 @@ function BookChips({
           onClick={() => onSelect(b.roleId)}
           aria-pressed={b.roleId === currentId}
           className={cn(
-            "rounded-full border px-2.5 py-1 text-3xs transition-colors v4-focus-ring",
+            "rounded-[var(--radius-xs)] border px-2.5 py-1 text-3xs transition-colors v4-focus-ring",
             b.roleId === currentId
               ? "border-transparent bg-accent-container font-medium text-on-accent-container"
               : "border-border-subtle-dim text-text-secondary hover:bg-state-hover",

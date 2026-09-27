@@ -27,6 +27,8 @@ export interface MenuSelectProps {
   groups?: SelectGroup[];
   placeholder?: string;
   disabled?: boolean;
+  /** Soft-disabled: looks off but stays keyboard-focusable (busy gates). */
+  softDisabled?: boolean;
   "aria-label"?: string;
   className?: string;
   variant?: MenuSelectVariant;
@@ -75,6 +77,7 @@ export function MenuSelect({
   groups,
   placeholder,
   disabled,
+  softDisabled,
   "aria-label": ariaLabel,
   className,
   variant = "field",
@@ -159,14 +162,15 @@ export function MenuSelect({
 
   const triggerClass = cn(
     "inline-flex w-full min-w-0 items-center gap-1 text-left outline-none transition-colors",
-    "focus-visible:ring-2 focus-visible:ring-ring/35",
+    "v4-focus-ring",
     disabled && "cursor-not-allowed opacity-50",
+    softDisabled && "opacity-50",
     variant === "composer" &&
-      "h-7 rounded-[var(--radius-md)] border border-transparent bg-surface-muted/70 px-2 text-3xs font-medium text-text-secondary hover:border-border-subtle-dim hover:bg-surface hover:text-text-primary data-[open=true]:border-border-subtle-dim data-[open=true]:bg-surface data-[open=true]:text-text-primary",
+      "h-7 rounded-[var(--radius-md)] border border-transparent bg-surface-muted px-2 text-3xs font-medium text-text-secondary hover:border-border-subtle-dim hover:bg-surface hover:text-text-primary data-[open=true]:border-border-subtle-dim data-[open=true]:bg-surface data-[open=true]:text-text-primary",
     variant === "field" &&
-      "h-[var(--control-h-md,34px)] w-full rounded-[var(--radius-md)] border border-border-subtle-dim bg-input px-2.5 text-3xs text-text-primary shadow-[var(--shadow-input-inset)] hover:border-border-subtle data-[open=true]:border-accent-color data-[open=true]:ring-2 data-[open=true]:ring-ring/35",
+      "h-[var(--control-h-md,34px)] w-full rounded-[var(--radius-md)] border border-border-subtle-dim bg-input px-2.5 text-3xs text-text-primary shadow-[var(--shadow-input-inset)] hover:border-border-subtle data-[open=true]:border-accent-color data-[open=true]:ring-2 data-[open=true]:ring-ring",
     variant === "chip" &&
-      "h-7 max-w-[12rem] rounded-full border border-border-subtle-dim bg-surface-muted/70 px-2 text-3xs font-medium text-text-secondary hover:bg-surface-muted data-[open=true]:bg-surface-muted",
+      "h-7 max-w-[12rem] rounded-[var(--radius-xs)] border border-border-subtle-dim bg-surface-muted px-2 text-3xs font-medium text-text-secondary hover:bg-state-hover data-[open=true]:bg-surface-muted",
     variant === "ghost" &&
       "h-[var(--control-h-sm,30px)] border-0 bg-transparent px-1 text-3xs text-text-secondary hover:text-text-primary data-[open=true]:text-text-primary",
     className,
@@ -185,7 +189,7 @@ export function MenuSelect({
     <DropdownMenu
       open={open}
       onOpenChange={(v) => {
-        if (disabled) return;
+        if (disabled || softDisabled) return;
         setOpenBoth(v);
       }}
       align={align}
@@ -203,6 +207,8 @@ export function MenuSelect({
           name={name}
           data-menu-trigger
           disabled={disabled}
+          data-soft-disabled={softDisabled || undefined}
+          aria-disabled={softDisabled || undefined}
           aria-label={ariaLabel || displayPlaceholder}
           aria-haspopup="listbox"
           aria-expanded={open}
@@ -212,7 +218,7 @@ export function MenuSelect({
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            if (!disabled) setOpenBoth((v) => !v);
+            if (!disabled && !softDisabled) setOpenBoth((v) => !v);
           }}
         >
           {leading ? (

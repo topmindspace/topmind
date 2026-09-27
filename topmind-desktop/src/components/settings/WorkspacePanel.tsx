@@ -10,7 +10,7 @@ import {
   RiFolderOpenLine,
   RiLoader4Line,
   RiLogoutBoxRLine,
-  RiPencilLine,
+  RiEditLine,
   RiRefreshLine,
 } from "@remixicon/react";
 import { api } from "../../services/api";
@@ -533,7 +533,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
                 disabled={!!switching || (id === "category" && on && enabledViews.length === 1)}
                 onClick={() => toggleView(id)}
                 className={
-                  "rounded-full border px-2.5 py-1 text-3xs transition-colors " +
+                  "rounded-[var(--radius-xs)] border px-2.5 py-1 text-3xs transition-colors " +
                   (on
                     ? "border-accent-border-subtle bg-accent-bg-subtle text-accent-color"
                     : "border-border-subtle-dim text-text-tertiary hover:border-border-subtle")
@@ -605,7 +605,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
             <Button
               variant="outline"
               size="sm"
-              className="h-6 text-3xs"
+              className="h-6"
               disabled={!!switching || !settings.workspaceRoot}
               onClick={() => setShowAdd((v) => !v)}
             >
@@ -618,7 +618,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 text-3xs"
+            className="h-6"
             disabled={!!switching || !settings.workspaceRoot}
             onClick={() => void handleRebuildMap()}
           >
@@ -630,7 +630,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
         </div>
 
         {showAdd ? (
-          <div className="mb-3 space-y-2 rounded-[var(--radius-md)] border border-accent-border-subtle bg-accent-bg-subtle/25 p-3">
+          <div className="mb-3 space-y-2 rounded-[var(--radius-md)] border border-accent-border-subtle bg-accent-bg-subtle p-3">
             <div className="text-3xs font-medium text-text-secondary">{t("settings:workspace.newCategory")}</div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-[7rem_1fr]">
               <Input
@@ -679,21 +679,21 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="break-all font-mono text-2xs font-semibold tracking-tight text-text-primary">
+                      <span className="break-all font-mono text-xs font-semibold tracking-tight text-text-primary">
                         {c.directory}
                       </span>
                       {c.hidden ? (
-                        <span className="rounded-full bg-surface-muted px-1.5 py-0.5 text-3xs font-medium text-text-tertiary">
+                        <span className="rounded-[var(--radius-xs)] bg-surface-muted px-1.5 py-0.5 text-3xs font-medium text-text-tertiary">
                           {t("settings:workspace.hidden")}
                         </span>
                       ) : null}
                       {isSystem ? (
-                        <span className="rounded-full bg-accent-bg-subtle px-1.5 py-0.5 text-3xs font-medium text-accent-color">
+                        <span className="rounded-[var(--radius-xs)] bg-accent-bg-subtle px-1.5 py-0.5 text-3xs font-medium text-accent-color">
                           {t("settings:workspace.system")}
                         </span>
                       ) : null}
                       {c.ok === false ? (
-                        <span className="rounded-full bg-status-warning-bg px-1.5 py-0.5 text-3xs font-medium text-warning">
+                        <span className="rounded-[var(--radius-xs)] bg-status-warning-bg px-1.5 py-0.5 text-3xs font-medium text-warning">
                           {t("settings:workspace.dirError")}
                         </span>
                       ) : null}
@@ -730,7 +730,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
                       <Tooltip content={c.hidden ? t("settings:workspace.showTooltip") : t("settings:workspace.hideTooltip")}>
                         <button
                           type="button"
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] border border-border-subtle-dim text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary v4-focus-ring disabled:opacity-50"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] border border-border-subtle-dim text-text-quaternary transition-colors hover:bg-state-hover hover:text-text-secondary v4-focus-ring disabled:opacity-50"
                           disabled={!!switching}
                           onClick={() => void handleToggleHidden(c.slot, !c.hidden)}
                           aria-label={c.hidden ? t("settings:workspace.show") : t("settings:workspace.hide")}
@@ -743,7 +743,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
                       <Tooltip content={t("settings:workspace.renameTooltip")}>
                         <button
                           type="button"
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] border border-border-subtle-dim text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary v4-focus-ring disabled:opacity-50"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] border border-border-subtle-dim text-text-quaternary transition-colors hover:bg-state-hover hover:text-text-secondary v4-focus-ring disabled:opacity-50"
                           disabled={!!switching}
                           onClick={() => {
                             setRenameSlot(c.slot);
@@ -751,7 +751,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
                           }}
                           aria-label={t("settings:workspace.rename")}
                         >
-                          <RiPencilLine size={ICON.xs} aria-hidden />
+                          <RiEditLine size={ICON.xs} aria-hidden />
                         </button>
                       </Tooltip>
                     ) : null}
@@ -794,7 +794,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
 
       {error ? (
         <div
-          className="mb-3 flex items-start gap-1.5 rounded-[var(--radius-md)] border border-error/20 bg-status-error-bg px-2.5 py-2 text-3xs text-error"
+          className="mb-3 flex items-start gap-1.5 rounded-[var(--radius-md)] border border-border-subtle-dim bg-status-error-bg px-2.5 py-2 text-3xs text-error"
           role="alert"
         >
           <RiAlertLine size={ICON.xs} className="mt-0.5 shrink-0" aria-hidden />
@@ -807,7 +807,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
         description={t("settings:workspace.switchWorkspaceDesc")}
         action={
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="sm" className="h-6 text-3xs" onClick={() => void handlePickNew()} disabled={!!switching}>
+            <Button variant="outline" size="sm" className="h-6" onClick={() => void handlePickNew()} disabled={!!switching}>
               {switching === "picking" ? (
                 <RiLoader4Line size={ICON.xs} className="animate-spin" />
               ) : (
@@ -844,7 +844,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
                     "group flex w-full items-center gap-1 rounded-[var(--radius-md)] border px-2 py-2 text-left text-3xs transition-[border-color,background-color,box-shadow] duration-[var(--duration-fast)] " +
                     (active
                       ? "border-accent-border-subtle bg-accent-bg-subtle text-accent-color shadow-xs"
-                      : "border-border-subtle text-text-secondary hover:border-border-strong hover:bg-surface-muted")
+                      : "border-border-subtle text-text-secondary hover:border-border-strong hover:bg-state-hover")
                   }
                 >
                   <button
@@ -860,7 +860,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
                     {switching === w.rootPath ? (
                       <RiLoader4Line size={ICON.xs} className="animate-spin text-accent-color" />
                     ) : active ? (
-                      <span className="rounded-full bg-accent-color px-1.5 py-0.5 text-3xs font-medium text-text-on-accent">
+                      <span className="rounded-[var(--radius-xs)] bg-accent-color px-1.5 py-0.5 text-3xs font-medium text-text-on-accent">
                         {t("settings:workspace.currentWorkspace")}
                       </span>
                     ) : (

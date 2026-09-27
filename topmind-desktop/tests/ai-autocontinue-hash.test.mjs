@@ -22,10 +22,11 @@ test("contentHash is stable 16-hex and changes with content", () => {
 
 test("ai-service auto-continues after stepLimitHit with bounded loop", () => {
   const src = readFileSync(path.join(root, "electron/ai-service.mjs"), "utf8");
-  assert.match(src, /MAX_AUTO_CONTINUES/);
+  assert.match(src, /BASE_MAX_AUTO_CONTINUES|MAX_AUTO_CONTINUES/);
   assert.match(src, /stepLimitHit/);
   assert.match(src, /status: "continuing"/);
-  assert.match(src, /ai\.continuePrompt/);
+  assert.match(src, /buildContinuePrompt/);
+  assert.match(src, /assessGoalCompletion|decideAutoContinue/);
 });
 
 test("stream runtimes surface stepLimitHit for auto-continue", () => {

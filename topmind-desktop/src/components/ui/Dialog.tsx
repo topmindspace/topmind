@@ -253,7 +253,7 @@ export function PromptDialog({
         {title}
       </h2>
       {description ? (
-        <p id={descId} className="mb-3 text-3xs leading-relaxed text-text-tertiary">
+        <p id={descId} className="mb-3 text-xs leading-relaxed text-text-tertiary">
           {description}
         </p>
       ) : null}
@@ -309,7 +309,7 @@ export function ErrorDialog({
       <h2 id={titleId} className="mb-2 text-sm font-semibold text-error">
         {title}
       </h2>
-      <p id={descId} className={cn("mb-4 text-3xs leading-relaxed text-text-tertiary")}>
+      <p id={descId} className={cn("mb-4 text-xs leading-relaxed text-text-tertiary")}>
         {message}
       </p>
       <div className="flex justify-end">

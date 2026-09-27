@@ -255,7 +255,7 @@ export function ToolsLogsPanel() {
               "flex h-8 items-center gap-1.5 rounded-[var(--radius-md)] px-2 text-left text-3xs transition-colors v4-focus-ring",
               tab === id
                 ? "bg-surface-elevated font-semibold text-text-primary shadow-[var(--shadow-card)] ring-1 ring-border-subtle-dim"
-                : "text-text-secondary hover:bg-surface-muted hover:text-text-primary",
+                : "text-text-secondary hover:bg-state-hover hover:text-text-primary",
             )}
           >
             <Icon size={ICON.xs} className="shrink-0 opacity-70" />
@@ -307,7 +307,7 @@ export function ToolsLogsPanel() {
           <div className="mx-auto w-full max-w-[42rem] px-4 py-4 sm:px-5">
             {error ? (
               <div
-                className="mb-3 rounded-[var(--radius-md)] border border-error/20 bg-status-error-bg px-3 py-2 text-3xs text-error"
+                className="mb-3 rounded-[var(--radius-md)] border border-border-subtle-dim bg-status-error-bg px-3 py-2 text-3xs text-error"
                 role="alert"
               >
                 <span className="break-words">{error}</span>
@@ -453,7 +453,7 @@ export function ToolsLogsPanel() {
                     }}
                     className={cn(
                       "rounded-md px-2 py-1 text-3xs v4-focus-ring",
-                      sysLevel === lv ? "bg-accent-bg-subtle text-accent-color" : "text-text-tertiary hover:bg-surface-muted",
+                      sysLevel === lv ? "bg-accent-bg-subtle text-accent-color" : "text-text-tertiary hover:bg-state-hover",
                     )}
                   >
                     {lv || t("toolsLogs.sys.all")}
@@ -481,7 +481,7 @@ export function ToolsLogsPanel() {
               ) : (
                 <ul className="space-y-1 font-mono text-3xs">
                   {[...syslog].reverse().map((e, i) => (
-                    <li key={`${e.ts}-${i}`} className="flex gap-2 rounded px-1.5 py-0.5 hover:bg-surface-muted">
+                    <li key={`${e.ts}-${i}`} className="flex gap-2 rounded px-1.5 py-0.5 hover:bg-state-hover">
                       <span className="shrink-0 text-text-quaternary">{String(e.ts || "").slice(11, 19)}</span>
                       <span
                         className={cn(
@@ -509,7 +509,7 @@ export function ToolsLogsPanel() {
                 <span
                   className={cn(
                     "rounded px-1.5 py-0.5 font-medium",
-                    contractStatus === "ok" ? "bg-success/10 text-success" : "bg-warning/10 text-warning",
+                    contractStatus === "ok" ? "bg-status-success-bg text-success" : "bg-status-warning-bg text-warning",
                   )}
                 >
                   {contractStatus}
@@ -525,9 +525,9 @@ export function ToolsLogsPanel() {
                       className={cn(
                         "rounded-md border px-2.5 py-2 text-3xs",
                         issue.severity === "error"
-                          ? "border-error/30 bg-error/5"
+                          ? "border-border-subtle-dim bg-status-error-bg"
                           : issue.severity === "warning"
-                            ? "border-warning/30 bg-warning/5"
+                            ? "border-border-subtle-dim bg-status-warning-bg"
                             : "border-border-subtle",
                       )}
                     >
@@ -785,7 +785,7 @@ export function ToolsLogsPanel() {
                             <div className="mb-1 flex items-center gap-2 text-text-tertiary">
                               <span>{formatBytes(g.size)} × {g.paths.length}</span>
                               {g.full === false ? (
-                                <span className="rounded bg-warning/10 px-1 text-warning">
+                                <span className="rounded bg-status-warning-bg px-1 text-warning">
                                   {t("toolsLogs.care.partialOnly")}
                                 </span>
                               ) : null}

@@ -9,7 +9,7 @@
  */
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { RiCloseLine, RiListCheck3, RiNodeTree } from "@remixicon/react";
+import { RiCloseLine, RiNodeTree } from "@remixicon/react";
 import type { Editor } from "@tiptap/react";
 import { ICON } from "../../lib/icons";
 import { cn } from "../../lib/kit";
@@ -240,7 +240,7 @@ export function EditorOutlinePanel({
             {t("workspace:outline.title", { defaultValue: "文档大纲" })}
           </span>
           {headings.length > 0 ? (
-            <span className="rounded-full bg-surface-muted px-1.5 py-0.2 text-4xs font-mono text-text-quaternary">
+            <span className="rounded-[var(--radius-xs)] bg-surface-muted px-1.5 py-0.2 text-4xs font-mono text-text-quaternary">
               {headings.length}
             </span>
           ) : null}
@@ -248,7 +248,7 @@ export function EditorOutlinePanel({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-[var(--radius-sm)] p-1 text-text-quaternary hover:bg-surface-muted hover:text-text-primary v4-focus-ring"
+          className="rounded-[var(--radius-sm)] p-1 text-text-quaternary hover:bg-state-hover hover:text-text-primary v4-focus-ring"
           title={t("common:action.close")}
           aria-label={t("common:action.close")}
         >
@@ -260,9 +260,9 @@ export function EditorOutlinePanel({
       <div className="v4-sidebar-scroll min-h-0 flex-1 overflow-y-auto px-1.5 py-2">
         {headings.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-6 text-center text-3xs text-text-quaternary">
-            <RiListCheck3 size={ICON.md} className="mb-1.5 opacity-40" />
+            <RiNodeTree size={ICON.md} className="mb-1.5 opacity-40" />
             <p>{t("workspace:outline.empty", { defaultValue: "当前文档暂无标题" })}</p>
-            <span className="mt-1 text-4xs text-text-quaternary/70">
+            <span className="mt-1 text-4xs text-text-quaternary">
               {t("workspace:outline.emptyHint", { defaultValue: "输入 # 一级标题 即可生成大纲" })}
             </span>
           </div>

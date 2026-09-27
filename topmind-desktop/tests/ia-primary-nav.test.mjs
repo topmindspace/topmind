@@ -14,49 +14,35 @@ function read(rel) {
 }
 
 describe("Desktop primary IA target", () => {
-  it("Sidebar header has PrimaryNav + Search + 记一下 (pen icon); compact fallback on TitleBar", () => {
+    it("ActivityBar owns key nav; sidebar header keeps workspace name + search", () => {
     const sidebar = read("src/components/shell/Sidebar.tsx");
-    assert.match(sidebar, /SidebarHeaderActions/);
-    assert.match(sidebar, /v4-search-trigger/);
-    assert.match(sidebar, /searchCommandTip/);
-    assert.match(sidebar, /RiPencilLine/);
-    assert.match(sidebar, /titleBar\.capture/);
-    assert.match(sidebar, /ProfileButton/);
-    const headerFn = sidebar.slice(
-      sidebar.indexOf("function SidebarHeaderActions"),
-      sidebar.indexOf("function ProfileButton"),
-    );
-    assert.ok(headerFn.indexOf("<ProfileButton") < headerFn.indexOf("v4-search-trigger"));
-    assert.ok(headerFn.indexOf("v4-search-trigger") < headerFn.indexOf("RiPencilLine"));
-    assert.doesNotMatch(sidebar, /select\(\{\s*kind:\s*"archive"\s*\}\)/);
-    assert.doesNotMatch(sidebar, /icon:\s*Home/);
-    assert.doesNotMatch(sidebar, /RotateCcw/);
+    const activity = read("src/components/shell/ActivityBar.tsx");
+    // Sidebar header: workspace name + search only.
+    assert.match(sidebar, /data-sidebar-ws-name/);
+    assert.match(sidebar, /data-sidebar-search/);
+    assert.doesNotMatch(sidebar, /SidebarHeaderActions/);
+    assert.doesNotMatch(sidebar, /data-sidebar-capture/);
+    // ActivityBar: destinations + capture + apps + chrome.
+    assert.match(activity, /data-activity-bar/);
+    assert.match(activity, /data-activity-group="views"/);
+    assert.match(activity, /data-activity-group="apps"/);
+    assert.match(activity, /data-activity-group="chrome"/);
+    assert.match(activity, /RiPencilLine/);
+    assert.match(activity, /RiApps2Line/);
+    assert.match(activity, /RiFocus3Line/);
+    assert.match(activity, /RiSettingsLine/);
+    assert.match(activity, /data-activity-logo/);
     const title = read("src/components/shell/TitleBar.tsx");
-    // Destinations live in the sidebar; TitleBar only hosts compact fallback
-    // when the sidebar is collapsed — it must not carry a full view-switcher.
     assert.doesNotMatch(title, /data-view-switcher=""/);
     const nav = read("src/components/shell/PrimaryNav.tsx");
-    assert.match(nav, /data-primary-nav=/);
-    assert.match(nav, /data-view-switcher/);
     assert.match(nav, /PRIMARY_NAV_OPTIONS/);
-    assert.match(nav, /primaryNav\.stream/);
-    assert.match(nav, /primaryNav\.inbox/);
-    assert.match(nav, /primaryNav\.outputs/);
-    assert.match(sidebar, /data-sidebar-primary-nav/);
-    assert.match(sidebar, /<PrimaryNav variant="sidebar"/);
-    // PrimaryNav shares the header actions row (with Profile/Search/capture).
-    assert.ok(
-      sidebar.indexOf("data-sidebar-primary-nav") < sidebar.indexOf("SidebarHeaderActions"),
-      "PrimaryNav mounts on the primary header, left of header actions",
-    );
-    // Collapsed-sidebar reach: compact icons on TitleBar, not StatusBar.
     assert.match(title, /variant="compact"/);
     assert.match(title, /sidebarCollapsed/);
     const status = read("src/components/shell/StatusBar.tsx");
     assert.doesNotMatch(status, /<PrimaryNav/);
   });
 
-  it("Desktop README does not teach deleted ActionBar or Title-bar Note it", () => {
+it("Desktop README does not teach deleted ActionBar or Title-bar Note it", () => {
     // README.md = 简体中文 default · README.en.md = English
     const en = read("README.en.md");
     const zh = read("README.zh-CN.md");
@@ -73,8 +59,8 @@ describe("Desktop primary IA target", () => {
   it("living Desktop DESIGN/ARCHITECTURE do not teach archive as a PrimaryNav peer", () => {
     const design = read("DESIGN.md");
     const arch = read("ARCHITECTURE.md");
-    assert.match(design, /中栏主锚点：动态 · Inbox · 交付/);
-    assert.match(design, /主画布默认是工作区主页/);
+    assert.match(design, /ActivityBar/);
+    assert.match(design, /stream homepage|Stream 主页|动态流主表面|StreamDetailView/);
     // 2026-09 v2: search is a unified ⌘K trigger, not a PrimaryNav anchor
     assert.match(design, /Inbox · 交付/);
     assert.match(design, /Inbox \/ 交付/);
@@ -88,8 +74,8 @@ describe("Desktop primary IA target", () => {
     const design = read("DESIGN.md");
     assert.match(design, /0\.0\.4 能力单家（Header homes）/);
     assert.match(design, /侧栏收起后如何到达/);
-    assert.match(design, /左栏 Sidebar 主 header L1 捕获/);
-    assert.match(design, /侧栏主 header/);
+    assert.match(design, /ActivityBar/);
+    assert.match(design, /侧栏 header|ActivityBar/);
     assert.doesNotMatch(design, /状态栏常驻 PrimaryNav/);
     assert.doesNotMatch(design, /左栏 `SidebarHeaderActions` \+ 中栏 TitleBar 视图切换/);
     assert.match(design, /右列 AI 工作区 \*\*建议\*\* pane/);
@@ -98,8 +84,9 @@ describe("Desktop primary IA target", () => {
     assert.match(design, /中栏薄 chrome L1/);
     assert.match(design, /禁止把 记一下 \/ 建议 \/ 清单/);
     const sidebar = read("src/components/shell/Sidebar.tsx");
-    assert.match(sidebar, /SidebarHeaderActions/);
-    assert.match(sidebar, /data-sidebar-primary-nav/);
+    assert.match(sidebar, /data-sidebar-ws-name/);
+    assert.doesNotMatch(sidebar, /data-sidebar-primary-nav/);
+    assert.match(read("src/components/shell/ActivityBar.tsx"), /data-activity-bar/);
     const title = read("src/components/shell/TitleBar.tsx");
     assert.match(title, /PrimaryNav variant="compact"/);
     assert.match(title, /data-canvas-chrome/);
@@ -165,13 +152,12 @@ describe("Desktop primary IA target", () => {
     assert.match(shell, /autoTodoArmed/);
   });
 
-  it("我的情况 sidebar control opens memory browse, not only a raw file", () => {
-    const sidebar = read("src/components/shell/Sidebar.tsx");
-    const profileFn = sidebar.slice(sidebar.indexOf("function ProfileButton"));
-    assert.match(profileFn, /kind:\s*"memory"/);
-    assert.match(profileFn, /sidebar\.myProfile/);
+  it("我的情况 ActivityBar control opens memory browse, not only a raw file", () => {
+    const activity = read("src/components/shell/ActivityBar.tsx");
+    assert.match(activity, /dest\("memory"\)/);
+    assert.match(activity, /RiUserLine/);
     assert.doesNotMatch(
-      profileFn,
+      activity,
       /select\(\{\s*kind:\s*"file",\s*path:\s*ensured\.profileRelPath/,
     );
     const views = read("src/plugins/topmind-workspace/views.tsx");
@@ -199,7 +185,7 @@ describe("Desktop primary IA target", () => {
     assert.match(sidebar, /isMacOS && "v4-mac-titlebar-pad"/);
     assert.match(sidebar, /data-sidebar-header/);
     assert.match(sidebar, /data-sidebar-secondary-header/);
-    assert.match(sidebar, /isMacOS \? "justify-end" : "justify-start"/);
+    assert.match(sidebar, /isMacOS && "v4-mac-titlebar-pad"/);
     assert.match(sidebar, /pl-1\.5/);
     assert.match(css, /\.v4-sidebar-mode-tools \{[^}]*margin-left:\s*auto/);
     // The view-mode row is below the traffic lights and stays on the tree edge.
@@ -219,7 +205,7 @@ describe("Desktop primary IA target", () => {
     assert.match(nav, /PRIMARY_NAV_OPTIONS\.map/);
     assert.match(css, /\.v4-titlebar-btn\.v4-sidebar-chrome-btn[\s\S]*flex-shrink:\s*0/);
     assert.match(css, /\.v4-sidebar-chrome-btn \{[^}]*width:\s*var\(--density-chrome-control,\s*32px\)/);
-    assert.match(sidebar, /v4-sidebar-chrome-btn/);
+    assert.match(sidebar, /v4-icon-btn-chrome/);
     assert.doesNotMatch(css, /min-width:\s*6\.25rem/);
     assert.doesNotMatch(css, /min-width:\s*5\.25rem/);
     const toggle = read("src/components/ui/PanelToggleIcon.tsx");
@@ -303,7 +289,7 @@ describe("Desktop primary IA target", () => {
     assert.doesNotMatch(actions, /goto\.home/);
     const views = read("src/plugins/topmind-workspace/views.tsx");
     assert.match(views, /sel\.kind === "home"/);
-    assert.match(views, /WorkspaceHomeView/);
+    assert.match(views, /StreamDetailView/);
     assert.match(views, /StreamDetailView/);
     assert.doesNotMatch(views, /\bHomeView\b/);
     const types = read("src/types.ts");
@@ -335,20 +321,17 @@ describe("Desktop primary IA target", () => {
     assert.match(bridge, /kernelDurableWriteAbs/);
   });
 
-  it("WorkspaceHomeView is the default canvas; the old dashboard file stays deleted", () => {
+  it("Stream is the homepage; landing view is retired", () => {
     const oldPath = path.join(root, "src/plugins/topmind-workspace/views/HomeView.tsx");
     const homePath = path.join(root, "src/plugins/topmind-workspace/views/WorkspaceHomeView.tsx");
     assert.equal(fs.existsSync(oldPath), false, "HomeView.tsx must not exist");
-    assert.equal(fs.existsSync(homePath), true, "WorkspaceHomeView.tsx is the living home");
+    assert.equal(fs.existsSync(homePath), false, "WorkspaceHomeView.tsx retired — stream is the homepage");
     const views = read("src/plugins/topmind-workspace/views.tsx");
-    assert.match(views, /WorkspaceHomeView/);
+    assert.match(views, /StreamDetailView/);
     assert.match(views, /topmind-workspace\.view\.home/);
     assert.match(views, /sel\.kind === "home"/);
     assert.doesNotMatch(views, /\bHomeView\b/);
-    const home = read("src/plugins/topmind-workspace/views/WorkspaceHomeView.tsx");
-    assert.match(home, /summarizeWorkspaceHome/);
-    assert.match(home, /quick-capture/);
-    assert.doesNotMatch(home, /SuggestEntryStrip|<ActionBar|GreetingCta|PinnedCards|DueBoard|MaterialStrip|ConnectorStrip|记下/);
+    assert.doesNotMatch(views, /WorkspaceHomeView/);
   });
 
   it("shortcut and command labels do not teach living 工作台 home", () => {

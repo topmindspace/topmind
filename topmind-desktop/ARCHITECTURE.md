@@ -115,7 +115,7 @@ contextBridge.exposeInMainWorld('topmind', {
 | `ai-prompts.mjs` | **skill-first 协议** + Skills Discovery 目录 + 真实 tool 名 |
 | `lib/skills-runtime.mjs` | engine `skills/` + `ai.extraSkillsRoots` / `topmind_SKILLS_EXTRA`（catalog / body / resource） |
 | `lib/skills-extra.mjs` | Desktop 管理目录 `skills-extra/` 安装 · 回执 · pack summary |
-| `ai-tools.mjs` | 36 named tools（`lib/ai-tool-names.mjs`：skills · browse · windowed read/search · fs list/glob/stat · todos · memory ADD/UPDATE/RETIRE · writeback writes）；Pi `read`/`write`/`edit`/`grep`/`list`/`glob`/`stat`/`mkdir`/`mv`/`cp`/`rm` 为围栏别名，无 bash |
+| `ai-tools.mjs` | 38 named tools（`lib/ai-tool-names.mjs`：skills · browse · windowed read/search · fs list/glob/stat · todos · memory ADD/UPDATE/RETIRE/RESTORE/COMPACT-HISTORY · writeback writes）；Pi `read`/`write`/`edit`/`grep`/`list`/`glob`/`stat`/`mkdir`/`mv`/`cp`/`rm` 为围栏别名，无 bash |
 | `ai-stream.mjs` | **fallback** loop when Pi module fails to load：`streamText` + tool-call/result + **prepareStep steer** + **~16ms text/reasoning delta 合流** |
 | `lib/stream-delta-coalesce.mjs` | 纯合流缓冲：帧级节流 IPC；非 delta 事件先 flush |
 | `ai-service.mjs` `complete` | 行内 one-shot（无 tools）；`sanitizeInlineAiResult` 剥离思考标签/元话术后再返回 |
@@ -270,7 +270,7 @@ ADR：`docs/adr/2026-07-16-desktop-agent-harness-upgrade.md`。
 
 ## Shell 结构
 
-> UI 像素与 IA 真源：`DESIGN.md` §0.0 / §0（**Design System 3.0 · ZCode Neutral**；token 数值真源 `src/styles/tokens.css`——见 `../docs/adr/2026-08-07-desktop-single-entry-dedupe.md` · `../docs/adr/2026-08-07-comprehensive-design-optimization.md`）。本节约架构职责 + **现状/目标**。
+> UI 像素与 IA 真源：`DESIGN.md` §0.0 / §0（**Design System 4.0.5 · ZCode Neutral + MD3**；token 数值真源 `src/styles/tokens.css`——见 `../../docs/design/UIUX-MD3-TRANSFORMATION-2026-09.md`）。本节约架构职责 + **现状/目标**。
 
 ### 目标 IA（Product target · **Done** Wave F–G + 2026-08-07 优化 · 工作区主页默认 · 动态显式）
 
@@ -313,7 +313,7 @@ Shell（data-through-columns）
 
 ### 工作区主页（默认着陆 · 与代码一致）
 
-默认 `selection: { kind: "home" }` → **`WorkspaceHomeView`**。无文件、未知 selection、关掉最后一个文件标签都落在这里。主页展示当前工作区身份、六个既有入口（记一下、动态、Inbox、交付、我的情况、专题），以及周期 / Inbox / 交付的真实计数或最近条目。空工作区仍是这块结构，并写明是空的。
+默认 `selection: { kind: "home" }` → **`StreamDetailView`**（Stream 工作台首页，2026-09-26 合并 Landing）。无文件、未知 selection、关掉最后一个文件标签都落在这里。首页 = 身份条 + 快捷入口（Inbox/交付/我的情况/AI 建议）+ Hero compose + 动态流。WorkspaceHomeView 已退役。
 
 **已删除、勿再文档化的仪表盘能力**：问候 CTA、钉住卡、下一步/进行中/截止、最近专题材料条、连接器条。建议确认列表仍只在 AI 工作区建议 pane，不在主页，也不在动态。
 
@@ -446,7 +446,7 @@ AiPanel 模型下拉选择器的 `onChange` 不仅更新内存 store，还同步
 
 ### AI 工具暴露策略（全能力 Agent，无 UTR）
 
-`buildDesktopAiTools`（`electron/ai-tools.mjs`）→ **WorkspaceService**。系统提示只列出实际加载的 snake_case 工具名。多步 tool loop：`maxAgentSteps` 默认 **32**（`AGENT_STEPS_DEFAULT` / `DEFAULT_MAX_AGENT_STEPS`，可配 3–80）；步数耗尽且任务未完成时 **auto-continue**（最多 2 次，状态 `continuing`）。`edit_file` 的 `expectedHash` 为 **soft 乐观并发**（`contentHash` 来自 `read_file`/`edit_file`）：hash 过期但 unique-span 仍可匹配则放行（note 标注）；仅 matcher 也失败才报 hash-mismatch。**AI 写成功后主动 `ctx.emit("workspace:file-changed", { source: "ai:<tool>" })`**（写操作会 `markIgnoredFileChanges` 压掉 watcher 回声，必须由工具通知 UI）。内容创建/更新/编辑恒 `confirmed:true`（分级 confirm 直接落盘）；仅 `delete_path`/`rename_path` 在 confirm 模式保持 pending。**模型窗口**：`resolveModel` 从 `ai.modelCache` 注入 `contextWindow`，驱动动态 compact 预算。**思考强度**：agent 模式默认 high（OpenAI `reasoningEffort` / Anthropic `thinking.budgetTokens` / Gemini `thinkingBudget`）。Pi runtime 异常自动降级 AI SDK `streamText`。Skills 以 playbook + `/slash` 接入，不是第二进程。
+`buildDesktopAiTools`（`electron/ai-tools.mjs`）→ **WorkspaceService**。系统提示只列出实际加载的 snake_case 工具名。多步 tool loop：`maxAgentSteps` 默认 **32**（`AGENT_STEPS_DEFAULT` / `DEFAULT_MAX_AGENT_STEPS`，可配 3–80）；Pi 循环用 **`finishTurn`** 做步数闸（`shouldStopAfterTurn` 在 pi-agent-core 0.87 已移除，必须走 `finishTurn` → `{action:"end"}`）。**目标协议**（`electron/lib/agent-goal-protocol.mjs`，与 `../lib/` 及 Obsidian 快照字节一致；禁 `../../lib` 静态导入）：多步任务先出 `[PLAN]`/`done-when`，收尾前验收；`assessGoalCompletion` 驱动 **goal-aware auto-continue**（未完成验收项最多 4 次，状态 `continuing`），续跑提示带任务台账与路径回执；上下文溢出时压缩预算递减 + 任务台账前插，**最多重试 3 次** 而不是直接报错。`edit_file` 的 `expectedHash` 为 **soft 乐观并发**（`contentHash` 来自 `read_file`/`edit_file`）：hash 过期但 unique-span 仍可匹配则放行（note 标注）；仅 matcher 也失败才报 hash-mismatch。**AI 写成功后主动 `ctx.emit("workspace:file-changed", { source: "ai:<tool>" })`**（写操作会 `markIgnoredFileChanges` 压掉 watcher 回声，必须由工具通知 UI）。内容创建/更新/编辑恒 `confirmed:true`（分级 confirm 直接落盘）；仅 `delete_path`/`rename_path` 在 confirm 模式保持 pending。**模型窗口**：`resolveModel` 从 `ai.modelCache` 注入 `contextWindow`，驱动动态 compact 预算。**思考强度**：agent 模式默认 high（OpenAI `reasoningEffort` / Anthropic `thinking.budgetTokens` / Gemini `thinkingBudget`）。Pi runtime 异常自动降级 AI SDK `streamText`。Skills 以 playbook + `/slash` 接入，不是第二进程。
 
 | 写回模式 | 暴露的工具 | 说明 |
 |----------|-----------|------|
@@ -454,7 +454,7 @@ AiPanel 模型下拉选择器的 `onChange` 不仅更新内存 store，还同步
 | confirm（删除/归档前问我） | 读 + 写工具仍注册 | **分级**：内容写直接落盘；仅删/归档 pending → AI 工作区建议 pane（`SuggestPopover`）接受/拒绝后执行 |
 
 读（`AI_TOOL_NAMES_READ` 18）：`list_skills` · `load_skill` · `load_skill_resource` · `workspace_overview` · `list_categories` · `list_topics` · `list_topic_files` · `get_topic` · `read_file`（`encoding=` 二进制友好）· `search` · `list_inbox` · `list_outputs` · `fetch_url`（`maxLen` / `render`）· `workspace_health` · `list_todos` · `list_files` · `glob_files` · `stat_path`  
-写（`AI_TOOL_NAMES_WRITE` 18）：`capture_to_inbox` · `save_note` · `save_file`（**文本类** .md/.txt/.json/.yaml/.csv/代码/配置；open 覆盖不备份；locked 覆盖才备份；二进制走 `saveBinary`；正文过 `sanitizeAiWriteBody`）· `edit_file`（唯一片段，同文本类白名单，**不写 Archive**；newText 同样消毒）· `create_topic` · `create_dir` · `copy_file` · `append_topic_memory` · `append_core_memory` · `retire_core_memory` · `update_core_memory` · `reconcile_week` · `move_to_topic` · `publish_to_outputs` · `delete_path`（仅 recoverable 进归档）· `rename_path`（重命名不备份）· `add_todo` · `toggle_todo`  
+写（`AI_TOOL_NAMES_WRITE` 20）：`capture_to_inbox` · `save_note` · `save_file`（**文本类** .md/.txt/.json/.yaml/.csv/代码/配置；open 覆盖不备份；locked 覆盖才备份；二进制走 `saveBinary`；正文过 `sanitizeAiWriteBody`）· `edit_file`（唯一片段，同文本类白名单，**不写 Archive**；newText 同样消毒）· `create_topic` · `create_dir` · `copy_file` · `append_topic_memory` · `append_core_memory` · `retire_core_memory` · `update_core_memory` · `restore_core_memory` · `compact_core_memory_history` · `reconcile_week` · `move_to_topic` · `publish_to_outputs` · `delete_path`（仅 recoverable 进归档）· `rename_path`（重命名不备份）· `add_todo` · `toggle_todo`  
 Pi 围栏别名（不是第二套 FS）：`read`→`read_file` · `write`→`save_file` · `edit`→`edit_file` · `grep`→`search` · `list`/`ls`/`list_dir`→`list_files` · `glob`/`find`→`glob_files` · `stat`→`stat_path` · `mkdir`→`create_dir` · `mv`/`move`→`rename_path` · `cp`/`copy`→`copy_file` · `rm`/`delete`→`delete_path`。**drop**：`bash` / unscoped `shell` / `exec` / `run_in_workspace`。
 
 ### 编辑器 Markdown / 预览
@@ -660,7 +660,7 @@ X：官方 v2 `GET /2/tweets/search/recent` 与 `GET /2/users/{id}/tweets`（Bea
 
 - **Tailwind 4** 从 `src/styles/tokens.css` 的 `@theme` 块读取设计令牌
 - **语义别名**（`src/styles/tailwind-theme.css`）：`bg-primary`, `bg-chrome`, `bg-input`, `ring-ring`, `bg-popover` 等——只重导出组件**实际在用**的 shadcn 名；零引用别名（`bg-card` / `text-foreground` / `bg-muted` / `bg-destructive` …）已于 2026-09-14 清除，写它们不再解析。对比度与幽灵引用由 `tests/ui-token-compliance.test.mjs` 守护
-- **UI 基础组件**（`src/components/ui/`）：Button, CountBadge, Dialog, DropdownMenu, context-menu, menu-select, select, Input, textarea, tabs, tooltip, Splitter, PanelToggleIcon, workspace-file-menu, ErrorBoundary, LazyBoundary, view（共享视图原语）。**没有** Card / Separator / Badge 组件
+- **UI 基础组件**（`src/components/ui/`）：Button, Chip/ChipLabel, CountBadge, Dialog, DropdownMenu, context-menu, menu-select, select, Input, textarea, tabs, tooltip, Splitter, PanelToggleIcon, workspace-file-menu, ErrorBoundary, LazyBoundary, view（共享视图原语）。**没有** Card / Separator / Badge 组件
 - **图标**: `@remixicon/react`（RemixIcon）
 - **编辑器**: Tiptap 3（StarterKit + Underline + Typography + Placeholder + CharacterCount + Markdown）
 - **无内联样式** — 所有样式通过 Tailwind 类 + 原语组件

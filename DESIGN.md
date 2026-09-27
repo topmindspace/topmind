@@ -64,11 +64,13 @@ topmind 的主表面是**个人动态流**——不是文件夹管理器、不�
 
 **产品特色一句话**：随便记 → 自动建议 / 整理 / 待办 / 记忆 → **你点头再落盘**。
 
-### 2.2 导航变薄（Done · Phase B）
+### 2.2 导航变薄（Done · Phase B · ActivityBar 承接 2026-09-26）
 
 ```text
-中栏主锚点：动态（默认） · Inbox · 交付
-中栏动作：面包屑 · 注入动作 · AI 列开关（主锚在**侧栏主 header**；搜索非 PrimaryNav：⌘K 命令面板 · ⌘P 笔记全文；记一下在左栏；建议/清单/应用在 AI 工作区）
+ActivityBar（最左 48px · 三分组）：动态(home≡stream) · Inbox · 交付 · 我的情况 · 记一下
+                                  底：专注 · 主题 · 设置
+中栏动作：面包屑 · 注入动作 · AI 列开关（主锚在 **ActivityBar**；搜索非 PrimaryNav：⌘K 命令面板 · ⌘P 笔记全文；建议/清单/应用在 AI 工作区）
+侧栏 header：工作区名+菜单 · 搜索
 侧栏默认：本周动态 / 周期本
 二级：专题树 · 我的情况（记忆浏览） · 归档
 高级（折叠 / ⌘K / AI 工作区应用 pane）：标签 · 看板 · 可选插件（含记账 mini-app） · Tools
@@ -76,7 +78,7 @@ topmind 的主表面是**个人动态流**——不是文件夹管理器、不�
 
 - **富**：编辑器、阅读 Aa、插件槽、连接器、多视图能力保留  
 - **薄**：同屏 chrome 与概念一次摊开的数量下降  
-- Desktop `PrimaryNav` 默认 selection = **动态**；未知 kind（含已删除的 home）一律落到 stream；归档不在主锚，搜索不是主锚（⌘K / ⌘P，见 `topmind-desktop/DESIGN.md`）  
+- Desktop 默认 selection = **`{ kind: "home" }`**（`defaultCanvasSelection`）→ **StreamDetailView**（home ≡ stream，同一画布；仅旧 `WorkspaceHomeView` 仪表盘已删）。`home` kind **仍存在**；未知 kind 落到 home。主锚在 ActivityBar 三分组（侧栏收起时 TitleBar 紧凑图标回退）；归档不在主锚，搜索不是主锚（⌘K / ⌘P，见 `topmind-desktop/DESIGN.md`）  
 
 ### 2.3 保存设置（AI 写回）
 

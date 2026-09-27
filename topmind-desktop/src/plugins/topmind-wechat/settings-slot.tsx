@@ -53,8 +53,8 @@ function WechatPanel({
                 aria-pressed={(w.theme || "minimal-ink") === id}
                 className={
                   (w.theme || "minimal-ink") === id
-                    ? "rounded-full border border-transparent bg-accent-container px-2.5 py-1 text-3xs font-medium text-on-accent-container v4-focus-ring"
-                    : "rounded-full border border-border-subtle-dim px-2.5 py-1 text-3xs text-text-secondary hover:bg-state-hover v4-focus-ring"
+                    ? "rounded-[var(--radius-xs)] border border-transparent bg-accent-container px-2.5 py-1 text-3xs font-medium text-on-accent-container v4-focus-ring"
+                    : "rounded-[var(--radius-xs)] border border-border-subtle-dim px-2.5 py-1 text-3xs text-text-secondary hover:bg-state-hover v4-focus-ring"
                 }
               >
                 {t(`wechat:themes.${id}`)}

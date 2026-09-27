@@ -185,7 +185,7 @@ function XPanel({ settings, update }: { settings: AppSettings; update: (p: Parti
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 text-3xs"
+            className="h-6"
             disabled={probe.loading || !x.enabled}
             onClick={() => void refreshProbe()}
           >
@@ -194,7 +194,7 @@ function XPanel({ settings, update }: { settings: AppSettings; update: (p: Parti
           <Button
             variant="outline"
             size="sm"
-            className="h-6 text-3xs"
+            className="h-6"
             disabled={testing || !x.enabled}
             onClick={() => void runTest()}
           >
@@ -221,7 +221,7 @@ function XPanel({ settings, update }: { settings: AppSettings; update: (p: Parti
                 <Tooltip content={copied === key ? t("settings.copied") : t("settings.copy")}>
                   <button
                     type="button"
-                    className="shrink-0 rounded p-1 hover:bg-surface-muted"
+                    className="shrink-0 rounded p-1 hover:bg-state-hover"
                     aria-label={copied === key ? t("settings.copied") : t("settings.copy")}
                     onClick={() => void copyCmd(cmd, key)}
                   >

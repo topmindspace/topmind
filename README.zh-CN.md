@@ -121,7 +121,7 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Opti
 - 查看当前 UTR 动作域和命令：
   ```bash
   npm run utr:doctor            # UTR 工具链诊断
-  npm run utr:list              # 查看当前 8 域 / 28 命令
+  npm run utr:list              # 查看当前 8 域 / 32 命令
   ```
 - 详细指南：[`TOOLS.md`](./TOOLS.md) · [`utr/README.zh-CN.md`](./utr/README.zh-CN.md) · [English](./utr/README.md)
 

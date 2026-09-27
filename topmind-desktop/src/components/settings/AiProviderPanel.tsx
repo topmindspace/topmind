@@ -105,7 +105,7 @@ function ModelBadges({ model }: { model: ModelInfo }) {
       ) : null}
       {model.reasoning ? (
         <Tooltip content={t("settings:ai.badgeReasoning")}>
-          <span className="inline-flex items-center rounded bg-status-info-bg/40 px-1 text-4xs text-status-info">
+          <span className="inline-flex items-center rounded bg-status-info-bg px-1 text-4xs text-status-info">
             <RiFileTextLine size={ICON.micro} aria-hidden />
           </span>
         </Tooltip>
@@ -119,7 +119,7 @@ function ModelBadges({ model }: { model: ModelInfo }) {
       ) : null}
       {model.costInput !== undefined || model.costOutput !== undefined ? (
         <Tooltip content={t("settings:ai.badgeCost", { cost: formatCost(model.costInput, model.costOutput) })}>
-          <span className="inline-flex items-center rounded bg-status-warning-bg/30 px-1 text-4xs text-warning">
+          <span className="inline-flex items-center rounded bg-status-warning-bg px-1 text-4xs text-warning">
             <RiCoinsLine size={ICON.micro} aria-hidden />
           </span>
         </Tooltip>
@@ -317,13 +317,13 @@ export function AiProviderPanel({
   return (
     <div>
       {refreshError ? (
-        <div className="mb-2 rounded-[var(--radius-md)] border border-error/20 bg-status-error-bg px-2.5 py-1.5 text-3xs text-error">
+        <div className="mb-2 rounded-[var(--radius-md)] border border-border-subtle-dim bg-status-error-bg px-2.5 py-1.5 text-3xs text-error">
           {refreshError}
         </div>
       ) : null}
 
       {secretLost.size > 0 ? (
-        <div className="mb-2 flex items-start gap-1.5 rounded-[var(--radius-md)] border border-warning/30 bg-status-warning-bg/40 px-2.5 py-1.5 text-3xs text-warning">
+        <div className="mb-2 flex items-start gap-1.5 rounded-[var(--radius-md)] border border-border-subtle-dim bg-status-warning-bg px-2.5 py-1.5 text-3xs text-warning">
           <RiAlertLine size={ICON.micro} className="mt-0.5 shrink-0" aria-hidden />
           <span>
             {t("settings:ai.secretLostWarning", { keys: Array.from(secretLost).join(", ") })}
@@ -342,8 +342,8 @@ export function AiProviderPanel({
               onClick={() => fetchLive({ forceModelsDev: true, silent: false })}
               disabled={refreshing}
               className={cn(
-                "inline-flex h-6 items-center gap-1 rounded-[var(--radius-md)] border border-border-subtle-dim px-1.5 text-4xs text-text-tertiary transition-colors",
-                "hover:bg-surface-muted hover:text-text-secondary disabled:opacity-40",
+                "inline-flex h-6 items-center gap-1 rounded-[var(--radius-md)] border border-border-subtle-dim px-1.5 text-3xs text-text-tertiary transition-colors",
+                "hover:bg-state-hover hover:text-text-secondary disabled:opacity-40",
               )}
             >
               <RiGithubLine size={ICON.micro} aria-hidden />
@@ -379,7 +379,7 @@ export function AiProviderPanel({
               type="button"
               onClick={() => fetchLive({ silent: false, forceLive: true })}
               disabled={refreshing}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] border border-border-subtle-dim text-text-secondary transition-colors hover:bg-surface-muted disabled:opacity-40"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] border border-border-subtle-dim text-text-secondary transition-colors hover:bg-state-hover disabled:opacity-40"
               aria-label={t("settings:ai.refreshLabel")}
             >
               {refreshing ? (
@@ -391,7 +391,7 @@ export function AiProviderPanel({
           </Tooltip>
         </div>
 
-        <div className="mt-1.5 flex flex-wrap items-center gap-2 text-4xs text-text-quaternary">
+        <div className="mt-1.5 flex flex-wrap items-center gap-2 text-3xs text-text-quaternary">
           <StatusDot ok={configuredCount > 0} label={statusLabel} />
           {lastFetchedAt ? (
             <span>
@@ -408,7 +408,7 @@ export function AiProviderPanel({
 
         {/* Credentials for the selected provider */}
         <div className="mt-2 border-t border-border-subtle-dim/50 pt-2">
-          <div className="mb-1.5 flex flex-wrap items-center gap-1.5 text-4xs text-text-quaternary">
+          <div className="mb-1.5 flex flex-wrap items-center gap-1.5 text-3xs text-text-quaternary">
             <span
               className={cn(
                 "h-1.5 w-1.5 rounded-full",
@@ -431,7 +431,7 @@ export function AiProviderPanel({
           </div>
 
           {activeMeta.keyField ? (
-            <Field label="API Key" compact>
+            <Field label={t("settings:ai.apiKeyLabel")} compact>
               <div className="flex items-center gap-1">
                 <Input
                   type="password"
@@ -445,7 +445,7 @@ export function AiProviderPanel({
                   <button
                     type="button"
                     onClick={() => patchManual(activeMeta.keyField!, null)}
-                    className="inline-flex h-8 shrink-0 items-center rounded-[var(--radius-md)] px-2 text-4xs text-text-quaternary transition-colors hover:bg-surface-muted hover:text-error"
+                    className="inline-flex h-8 shrink-0 items-center rounded-[var(--radius-md)] px-2 text-3xs text-text-quaternary transition-colors hover:bg-state-hover hover:text-error"
                   >
                     {t("common:action.clearKey")}
                   </button>
@@ -483,7 +483,7 @@ export function AiProviderPanel({
               placeholder={activeMeta.defaultBaseUrl || "https://…"}
               aria-invalid={Boolean(baseUrlError) || undefined}
             />
-            {baseUrlError ? <p className="mt-1 text-4xs text-error">{baseUrlError}</p> : null}
+            {baseUrlError ? <p className="mt-1 text-xs text-error">{baseUrlError}</p> : null}
           </Field>
 
           <Field label={t("settings:ai.customModelId")} compact>
@@ -509,7 +509,7 @@ export function AiProviderPanel({
                   patchAi({ defaultModel: customModel.trim() });
                   setCustomModel("");
                 }}
-                className="inline-flex h-8 shrink-0 items-center rounded-[var(--radius-md)] border border-border-subtle-dim px-2 text-4xs text-text-secondary transition-colors hover:bg-surface-muted disabled:opacity-40"
+                className="inline-flex h-8 shrink-0 items-center rounded-[var(--radius-md)] border border-border-subtle-dim px-2 text-3xs text-text-secondary transition-colors hover:bg-state-hover disabled:opacity-40"
               >
                 {t("settings:ai.useCustomModel")}
               </button>
@@ -518,7 +518,7 @@ export function AiProviderPanel({
 
           {selectedModelInfo ? (
             <div className="mt-1 flex items-center gap-1.5">
-              <span className="font-mono text-4xs text-text-quaternary">
+              <span className="font-mono text-3xs text-text-quaternary">
                 {selectedModelInfo.id}
               </span>
               <ModelBadges model={selectedModelInfo} />
@@ -526,7 +526,7 @@ export function AiProviderPanel({
           ) : null}
 
           {activeMeta.id === "ollama" ? (
-            <p className="mt-1 text-4xs leading-snug text-text-quaternary">
+            <p className="mt-1 text-xs leading-snug text-text-tertiary">
               {t("settings:ai.ollamaHint")}
             </p>
           ) : null}

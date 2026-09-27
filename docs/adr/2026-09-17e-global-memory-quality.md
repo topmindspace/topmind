@@ -44,7 +44,7 @@ No embeddings · no auto-forgetting · no persisted numeric scores · no JSON fa
 | M1 | Fact ids (`<!-- fid -->`) + provenance comments + match-by-fid | **done** |
 | M2 | Conflict cards (new candidate vs live fact) | **done** (organize ≥0.92 → update card) |
 | M3 | `reviewStaleProfileEntries` + history search | **done** (`searchProfile` + browse filter) |
-| M4 | Cross-process CAS / profile journal | **journal done**; cross-process CAS still open |
+| M4 | Cross-process CAS / profile journal | **journal done**; **CAS done 2026-09-25** (`executeWrite expectedHash` + `profile.cas.lock` + retry) |
 | M5 | Locale-aware date markers on English profiles | **done** |
 | M6 | Desktop browse: search · per-row 恢复 · health chip | **done** |
 

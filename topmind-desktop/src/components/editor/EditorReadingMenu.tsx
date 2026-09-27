@@ -56,7 +56,7 @@ function Chip({
         "v4-focus-ring",
         active
           ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
-          : "bg-surface-muted/60 text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
+          : "bg-surface-muted text-text-tertiary hover:bg-state-hover hover:text-text-secondary",
       )}
     >
       {children}
@@ -145,7 +145,7 @@ export function EditorReadingMenu({
                     key={`${i}:${h.text}`}
                     type="button"
                     className={cn(
-                      "block w-full truncate rounded-[var(--radius-sm)] px-1.5 py-1 text-left text-3xs text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary v4-focus-ring",
+                      "block w-full truncate rounded-[var(--radius-sm)] px-1.5 py-1 text-left text-3xs text-text-secondary transition-colors hover:bg-state-hover hover:text-text-primary v4-focus-ring",
                       h.level === 1 && "font-medium",
                       h.level === 2 && "pl-3",
                       h.level >= 3 && "pl-5 text-text-tertiary",
@@ -168,7 +168,7 @@ export function EditorReadingMenu({
         <div className="mb-2 flex items-center gap-1.5 px-1">
           <button
             type="button"
-            className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] text-text-tertiary hover:bg-surface-muted"
+            className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] text-text-tertiary hover:bg-state-hover"
             onClick={() => bumpSize(-1)}
             aria-label={t("readingMenu.decrease")}
           >
@@ -179,7 +179,7 @@ export function EditorReadingMenu({
           </div>
           <button
             type="button"
-            className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] text-text-tertiary hover:bg-surface-muted"
+            className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] text-text-tertiary hover:bg-state-hover"
             onClick={() => bumpSize(1)}
             aria-label={t("readingMenu.increase")}
           >
@@ -271,7 +271,7 @@ export function EditorReadingMenu({
         <div className="mt-1 flex items-center justify-between gap-2 border-t border-border-subtle-dim px-1 pt-2">
           <button
             type="button"
-            className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] px-1.5 py-1 text-3xs text-text-tertiary hover:bg-surface-muted hover:text-text-secondary"
+            className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] px-1.5 py-1 text-3xs text-text-tertiary hover:bg-state-hover hover:text-text-secondary"
             onClick={() => {
               void applyEditorPrefs({ ...DEFAULT_EDITOR_PREFS });
             }}

@@ -4,7 +4,7 @@
 
 > **Product entry** [`../README.md`](../README.md) · **简体中文** [`../README.zh-CN.md`](../README.zh-CN.md)  
 > Architecture lock, ADRs, packaging rules, and per-surface guides.  
-> Workflow: `收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整` · durable writes go only through Kernel `writeback-engine` · UTR `8 域 / 28 命令`
+> Workflow: `收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整` · durable writes go only through Kernel `writeback-engine` · UTR `8 域 / 32 命令`
 
 **README convention:** every module uses `README.md` for Simplified Chinese (GitHub default) and `README.en.md` for English. `README.zh-CN.md` is a compatibility redirect.
 
@@ -103,6 +103,7 @@ Archive: [`./adr/`](./adr/). Index is **one line per decision** — read the ADR
 | [2026-09-17](./adr/2026-09-17b-writeback-authorization-model.md) | locked=task snapshot · graded confirm |
 | [2026-09-17](./adr/2026-09-17c-adversarial-pass-fences-and-honesty.md) | Symlink fail-closed · memory single truth |
 | [2026-09-17](./adr/2026-09-17e-global-memory-quality.md) | Global memory quality (dupe/restore/inject) · 2026-09-25 fusion floors |
+| [2026-09-25](./adr/2026-09-25-goal-oriented-agent-loop.md) | Goal-oriented agent loop (plan/verify/continue/compact) |
 
 Design proposals (non-ADR): [`./design/`](./design/).
 ---

@@ -177,7 +177,7 @@ export function AppMenuBar() {
                 data-open={open ? "true" : undefined}
                 className={cn(
                   "rounded-[var(--radius-sm)] px-2 py-1 text-xs leading-none text-text-secondary transition-colors",
-                  "hover:bg-surface-muted/60 hover:text-text-primary v4-focus-ring",
+                  "hover:bg-state-hover hover:text-text-primary v4-focus-ring",
                   open && "bg-surface-muted text-text-primary",
                 )}
                 onClick={(event) => popMenuSection(item.id, popupAnchor(event.currentTarget))}

@@ -18,7 +18,7 @@ Skills pack 把内容真源写成不存在的嵌套目录 categories-and-topics�
 
 处置：non-goal
 
-UTR 仍是 Kernel 的薄适配。`TOOLS.md` 与 `utr/tests/unit/contract-registry.test.mjs` 都锁在 8 域 / 28 命令，MCP 默认暴露 primary 加 danger。Desktop 命名工具清单在 `topmind-desktop/tests/ai-tools-inventory.test.mjs` 里对照 `TOOLS.md`。这次没有发现命令表和注册表打架，所以不改工具面。Clip 的工具边界仍是剪藏，不实现第二套写闸，见 `browser-extension/README.md`。
+UTR 仍是 Kernel 的薄适配。`TOOLS.md` 与 `utr/tests/unit/contract-registry.test.mjs` 都锁在 8 域 / 32 命令（本文写于 28 命令时代；现行为 19 primary + 4 danger + 9 advanced，MCP 默认 23），MCP 默认暴露 primary 加 danger。Desktop 命名工具清单在 `topmind-desktop/tests/ai-tools-inventory.test.mjs` 里对照 `TOOLS.md`。这次没有发现命令表和注册表打架，所以不改工具面。Clip 的工具边界仍是剪藏，不实现第二套写闸，见 `browser-extension/README.md`。
 
 ## 工作流
 

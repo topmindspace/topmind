@@ -91,18 +91,6 @@ export function SettingsLayout({
       })
     : tabs;
 
-  // Group labels for nav (环境 / 智能体 / 扩展 / 管理与更新)
-  const navItems: Array<{ type: "group"; label: string } | { type: "tab"; tab: SettingsTabItem }> = [];
-  let lastGroup = "";
-  for (const tab of filteredTabs) {
-    const g = tab.group || "";
-    if (g && g !== lastGroup) {
-      navItems.push({ type: "group", label: g });
-      lastGroup = g;
-    }
-    navItems.push({ type: "tab", tab });
-  }
-
   const pageDesc =
     t(TAB_DESC_KEYS[activeTab] || "") ||
     (activeMeta?.group ? `${activeMeta.group}` : t("common:action.autoSave"));
@@ -119,9 +107,25 @@ export function SettingsLayout({
     activeTab === "manage" ||
     activeTab === "diagnostics";
 
+  // Grouped text nav (环境 / 智能体 / 扩展 / 管理与更新) — no icon rail.
+  // Settings is a modal sheet: a second activity bar here felt cramped and
+  // duplicated the group headers already in the list.
+  const navItems: Array<{ type: "group"; label: string } | { type: "tab"; tab: SettingsTabItem }> = [];
+  {
+    let lastGroup = "";
+    for (const tab of filteredTabs) {
+      const g = tab.group || "";
+      if (g && g !== lastGroup) {
+        navItems.push({ type: "group", label: g });
+        lastGroup = g;
+      }
+      navItems.push({ type: "tab", tab });
+    }
+  }
+
   return (
     <div
-      className="v4-overlay-sheet v4-settings-dialog flex h-[min(760px,88vh)] w-[min(960px,calc(100vw-2rem))] max-w-full overflow-hidden"
+      className="v4-overlay-sheet v4-settings-dialog flex h-[min(880px,94vh)] w-[min(1020px,calc(100vw-1.5rem))] max-w-full overflow-hidden"
       data-settings-dialog
       role="dialog"
       aria-modal="true"
@@ -129,7 +133,7 @@ export function SettingsLayout({
     >
       <Tabs value={activeTab} onValueChange={onTabChange} className="flex w-full min-h-0">
         <TabsList
-          className="v4-sidebar-scroll v4-settings-nav m-2.5 mr-0 flex h-auto w-[clamp(9.5rem,22vw,13.5rem)] min-w-0 shrink-0 flex-col items-stretch gap-0.5 self-stretch overflow-y-auto rounded-[var(--radius-lg)] border border-border-subtle-dim bg-app-chrome p-1.5 shadow-none ring-0"
+          className="v4-sidebar-scroll v4-settings-nav m-2.5 mr-0 flex h-auto w-[clamp(9.5rem,20vw,12.5rem)] min-w-0 shrink-0 flex-col items-stretch gap-0.5 self-stretch overflow-y-auto rounded-[var(--radius-lg)] border border-border-subtle-dim bg-app-chrome p-1.5 shadow-none ring-0"
           data-settings-nav
         >
           <div className="mb-1.5 shrink-0 px-0.5">
@@ -139,7 +143,7 @@ export function SettingsLayout({
               onChange={(e) => setNavQuery(e.target.value)}
               placeholder={t("settings:filterPlaceholder")}
               aria-label={t("settings:filterLabel")}
-              className="h-7 w-full rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface px-2 text-3xs text-text-primary outline-none placeholder:text-text-quaternary focus-visible:border-accent-color focus-visible:ring-2 focus-visible:ring-ring/35"
+              className="h-7 w-full rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface px-2 text-3xs text-text-primary placeholder:text-text-quaternary focus-visible:border-accent-color v4-focus-ring"
             />
           </div>
           {navItems.length === 0 ? (
@@ -216,7 +220,7 @@ export function SettingsLayout({
             data-settings-content
           >
             {error ? (
-              <div className="mb-2.5 rounded-[var(--radius-md)] border border-error/20 bg-status-error-bg px-2.5 py-1.5 text-3xs text-error">
+              <div className="mb-2.5 rounded-[var(--radius-md)] border border-border-subtle-dim bg-status-error-bg px-2.5 py-1.5 text-3xs text-error">
                 {error}
               </div>
             ) : null}

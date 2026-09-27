@@ -36,10 +36,6 @@ export function invalidateNotesIndex(relativePath) {
   caches.clear();
 }
 
-export function peekNotesIndex(workspaceRoot) {
-  return caches.get(rootKey(workspaceRoot)) || null;
-}
-
 /**
  * Count eligible markdown files under non-system / non-hidden categories.
  * No frontmatter parse — used for scannedTotal when the metadata walk is capped.

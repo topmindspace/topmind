@@ -15,6 +15,7 @@ import {
 } from "@remixicon/react";
 import { cn } from "../../lib/kit";
 import { ICON } from "../../lib/icons";
+import { Button } from "../ui/Button";
 import { useTaskStore, type Task } from "../../stores/task-store";
 
 const STATUS_ICON: Record<Task["status"], ReactNode> = {
@@ -43,34 +44,34 @@ export function TaskListBody({ compact = false }: { compact?: boolean }) {
         {!compact ? (
           <div className="flex max-w-[16rem] flex-col gap-1">
             <span className="text-3xs text-text-tertiary">{t("taskPanel.empty")}</span>
-            <span className="text-3xs text-text-quaternary leading-snug">{t("taskPanel.emptyHint")}</span>
+            <span className="text-xs text-text-quaternary leading-snug">{t("taskPanel.emptyHint")}</span>
           </div>
         ) : null}
         <div className="flex items-center gap-1.5">
-          <button
-            type="button"
+          <Button
+            variant="ai"
+            size="sm"
             onClick={() => void createTask("reconcile")}
-            className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] border border-accent-border-subtle bg-accent-bg-subtle px-2.5 py-1 text-3xs font-medium text-accent-color transition-colors hover:bg-accent-bg-subtle/80"
           >
             <RiSortDesc size={ICON.micro} />
             {t("taskPanel.taskTypeReconcile")}
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="ai"
+            size="sm"
             onClick={() => void createTask("ai_digest")}
-            className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] border border-accent-border-subtle bg-accent-bg-subtle px-2.5 py-1 text-3xs font-medium text-accent-color transition-colors hover:bg-accent-bg-subtle/80"
           >
             <RiSparklingLine size={ICON.micro} />
             {t("taskPanel.triggerAiDigest")}
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="ai"
+            size="sm"
             onClick={() => void createTask("memory_organize")}
-            className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] border border-accent-border-subtle bg-accent-bg-subtle px-2.5 py-1 text-3xs font-medium text-accent-color transition-colors hover:bg-accent-bg-subtle/80"
           >
             <RiSparklingLine size={ICON.micro} />
             {t("taskPanel.triggerMemoryOrganize")}
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -80,13 +81,14 @@ export function TaskListBody({ compact = false }: { compact?: boolean }) {
     <div className="flex flex-col gap-1.5">
       {!compact && hasCompleted ? (
         <div className="flex justify-end">
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={clearCompleted}
-            className="rounded-[var(--radius-sm)] px-1.5 py-0.5 text-3xs text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-secondary"
+            className="h-auto px-1.5 py-0.5 text-3xs text-text-quaternary"
           >
             {t("taskPanel.clearCompleted")}
-          </button>
+          </Button>
         </div>
       ) : null}
       {list.map((task) => (
@@ -141,7 +143,7 @@ function TaskCard({
       <div className="flex items-start gap-2">
         <span className="mt-0.5 shrink-0">{STATUS_ICON[task.status]}</span>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-3xs font-medium text-text-primary">{task.title}</div>
+          <div className="truncate text-xs font-medium text-text-primary">{task.title}</div>
           <div className="mt-0.5 text-3xs text-text-quaternary">
             {task.status === "queued" && t("taskPanel.status.queued")}
             {task.status === "running" && (task.currentStep || t("taskPanel.status.running"))}
@@ -155,7 +157,7 @@ function TaskCard({
             <button
               type="button"
               onClick={onCancel}
-              className="flex h-5 w-5 items-center justify-center rounded-[var(--radius-xs)] text-text-tertiary transition-colors hover:bg-surface-muted hover:text-error"
+              className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-xs)] text-text-tertiary transition-colors hover:bg-state-hover hover:text-error"
               aria-label={t("taskPanel.cancel")}
             >
               <RiCloseLine size={ICON.micro} />
@@ -165,7 +167,7 @@ function TaskCard({
             <button
               type="button"
               onClick={onRetry}
-              className="flex h-5 w-5 items-center justify-center rounded-[var(--radius-xs)] text-text-tertiary transition-colors hover:bg-surface-muted hover:text-accent-color"
+              className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-xs)] text-text-tertiary transition-colors hover:bg-state-hover hover:text-accent-color"
               aria-label={t("taskPanel.retry")}
             >
               <RiArrowGoBackLine size={ICON.micro} />
@@ -190,7 +192,7 @@ function TaskCard({
         <button
           type="button"
           onClick={onToggleExpand}
-          className="mt-1 w-full text-3xs text-text-quaternary transition-colors hover:text-text-secondary"
+          className="mt-1 w-full text-xs text-text-quaternary transition-colors hover:text-text-secondary"
         >
           {t("taskPanel.expand")}
         </button>
@@ -200,10 +202,10 @@ function TaskCard({
         <div className="mt-2 space-y-2 border-t border-border-subtle-dim pt-2">
           {task.logs.length > 0 ? (
             <div>
-              <div className="mb-1 text-3xs font-medium text-text-quaternary">{t("taskPanel.logs")}</div>
-              <div className="v4-sidebar-scroll max-h-28 overflow-y-auto rounded-[var(--radius-sm)] bg-surface-muted p-1.5">
+              <div className="mb-1 text-xs font-medium text-text-quaternary">{t("taskPanel.logs")}</div>
+              <div className="v4-focus-ring v4-sidebar-scroll max-h-28 overflow-y-auto rounded-[var(--radius-sm)] bg-surface-muted p-1.5">
                 {task.logs.map((log, idx) => (
-                  <div key={idx} className="text-3xs leading-relaxed text-text-secondary">
+                  <div key={idx} className="text-xs leading-relaxed text-text-secondary">
                     {log}
                   </div>
                 ))}
@@ -212,8 +214,8 @@ function TaskCard({
           ) : null}
           {task.status === "completed" && Boolean(task.result) ? (
             <div>
-              <div className="mb-1 text-3xs font-medium text-text-quaternary">{t("taskPanel.result")}</div>
-              <div className="rounded-[var(--radius-sm)] bg-surface-muted p-1.5 text-3xs text-text-secondary">
+              <div className="mb-1 text-xs font-medium text-text-quaternary">{t("taskPanel.result")}</div>
+              <div className="v4-focus-ring rounded-[var(--radius-sm)] bg-surface-muted p-1.5 text-xs text-text-secondary">
                 <TaskResultView result={task.result} />
               </div>
             </div>
@@ -221,7 +223,7 @@ function TaskCard({
           {task.status === "failed" && task.error ? (
             <div>
               <div className="mb-1 text-3xs font-medium text-error">{t("taskPanel.error")}</div>
-              <div className="rounded-[var(--radius-sm)] bg-status-error-bg p-1.5 text-3xs text-error">
+              <div className="v4-focus-ring rounded-[var(--radius-sm)] bg-status-error-bg p-1.5 text-xs text-error">
                 {task.error}
               </div>
             </div>

@@ -4,7 +4,7 @@
  */
 
 export type DropdownAlign = "start" | "end";
-export type DropdownPlacement = "bottom" | "top";
+export type DropdownPlacement = "bottom" | "top" | "right";
 
 export interface RectLike {
   top: number;
@@ -33,8 +33,9 @@ export interface DropdownPositionInput {
   /** Extra bottom inset (status bar). Default = pad. */
   padBottom?: number;
   /**
-   * Force a side when the trigger is docked to an edge (sidebar footer → top).
-   * `auto` keeps the existing “prefer below unless below is clearly worse” rule.
+   * Force a side when the trigger is docked to an edge (sidebar footer → top;
+   * ActivityBar apps → right, top-aligned). `auto` keeps the existing
+   * “prefer below unless below is clearly worse” rule.
    */
   preferPlacement?: DropdownPlacement | "auto";
   viewport?: { width: number; height: number };
@@ -91,7 +92,22 @@ export function computeDropdownPosition(input: DropdownPositionInput): DropdownP
 
   const spaceBelow = vh - t.bottom - gap - padBottom;
   const spaceAbove = t.top - gap - pad;
+  const spaceRight = vw - t.right - gap - pad;
   const measuredH = input.panel?.height ?? 0;
+
+  // Right placement (ActivityBar rail menus): flush to the right of the
+  // trigger, top-aligned — VS Code activity-bar grammar.
+  if (prefer === "right" && spaceRight >= Math.min(160, width)) {
+    const maxH = clamp(Math.min(maxHeight, vh - t.top - pad - padBottom), 80, maxHeight);
+    const left = t.right + gap;
+    return {
+      top: Math.round(clamp(t.top, pad, Math.max(pad, vh - padBottom - 24))),
+      left: Math.round(clamp(left, pad, Math.max(pad, vw - width - pad))),
+      width: Math.round(width),
+      maxHeight: Math.round(maxH),
+      placement: "right",
+    };
+  }
 
   // Prefer opening below unless below is clearly worse — unless the caller
   // docks the trigger to an edge (sidebar footer must open upward).

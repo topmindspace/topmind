@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback, useMemo, useLayoutEffect } from "react";
 import {
   RiArrowUpLine,
+  RiCloseLine,
+  RiFileTextLine,
   RiUserLine,
   RiCheckboxBlankLine,
   RiCompass3Line,
@@ -11,6 +13,7 @@ import {
   RiSparklingLine,
   RiStickyNoteAddLine,
   RiToolsLine,
+  RiPlayLine,
 } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -18,6 +21,7 @@ import { useAiStore } from "../../stores/ai-store";
 import { useViewStore } from "../../stores/view-store";
 import { api } from "../../services/api";
 import { Button } from "../ui/Button";
+import { ChipLabel } from "../ui/Chip";
 import { CountBadge } from "../ui/CountBadge";
 import type { SelectGroup } from "../ui/select";
 import { MenuSelect } from "../ui/menu-select";
@@ -25,6 +29,7 @@ import { Tooltip } from "../ui/tooltip";
 import { EmptyState } from "../ui/view";
 import { cn } from "../../lib/kit";
 import { ICON } from "../../lib/icons";
+import { formatChord } from "../../lib/chord";
 import { streamStatusLabel } from "../../lib/stream-status";
 import { revealChatThreadOnSend } from "../../lib/ai-workspace";
 import { DropdownItem, DropdownMenu } from "../ui/DropdownMenu";
@@ -201,7 +206,10 @@ export function ChatInput() {
   const [text, setText] = useState("");
   const streaming = useAiStore((s) => s.streaming);
   const sendOrSteer = useAiStore((s) => s.sendOrSteer);
-  const cancelStream = useAiStore((s) => s.cancelStream);
+  const pauseStream = useAiStore((s) => s.pauseStream);
+  const resumeStream = useAiStore((s) => s.resumeStream);
+  const abandonPaused = useAiStore((s) => s.abandonPaused);
+  const paused = useAiStore((s) => s.paused);
   const ready = useAiStore((s) => s.runtimeStatus?.ready ?? false);
   const streamStatus = useAiStore((s) => s.streamStatus);
   const streamToolCount = useAiStore((s) => s.streamToolCount);
@@ -221,6 +229,13 @@ export function ChatInput() {
   const activeSkillId = useAiStore((s) => s.activeSkillId);
   const setActiveSkillId = useAiStore((s) => s.setActiveSkillId);
   const sessionLoadedSkills = useAiStore((s) => s.sessionLoadedSkills);
+
+  /** Composer tokens: /skill and @file as removable chips (command-field grammar). */
+  type FieldToken = { id: string; kind: "skill" | "file" | "focus"; label: string; detail?: string };
+  const [fieldTokens, setFieldTokens] = useState<FieldToken[]>([]);
+  const [atHints, setAtHints] = useState<string[]>([]);
+  const mountFile = useAiStore((s) => s.mountFile);
+  const unmountFile = useAiStore((s) => s.unmountFile);
 
   /**
    * Composer model list = configured providers only (same set as settings keys / runtimeStatus).
@@ -367,17 +382,52 @@ export function ChatInput() {
     const skill = skillSlash[key];
     if (!skill) return;
     if (skill.skillId) setActiveSkillId(skill.skillId);
+    // Token-in-field: keep the skill as a removable chip; prompt fills the text.
+    setFieldTokens((prev) => {
+      const next = prev.filter((x) => x.kind !== "skill");
+      return [
+        ...next,
+        {
+          id: skill.skillId || key,
+          kind: "skill" as const,
+          label: skill.label || key,
+          detail: key,
+        },
+      ];
+    });
     setText(skill.prompt);
     setSlashHints([]);
+    setAtHints([]);
     setShowSkills(false);
     textareaRef.current?.focus();
+  };
+
+  const attachFileToken = (path: string) => {
+    const name = path.split("/").pop() || path;
+    mountFile({ path, name });
+    setFieldTokens((prev) => {
+      if (prev.some((x) => x.kind === "file" && x.id === path)) return prev;
+      return [...prev, { id: path, kind: "file" as const, label: name, detail: path }];
+    });
+    // Strip the trailing @query from the text.
+    setText((cur) => cur.replace(/@[^\s@]*$/, "").trimEnd());
+    setAtHints([]);
+    textareaRef.current?.focus();
+  };
+
+  const removeFieldToken = (tok: FieldToken) => {
+    setFieldTokens((prev) => prev.filter((x) => !(x.kind === tok.kind && x.id === tok.id)));
+    if (tok.kind === "file") unmountFile(tok.id);
+    if (tok.kind === "skill" && activeSkillId === tok.id) setActiveSkillId(null);
   };
 
   useEffect(() => {
     const ta = textareaRef.current;
     if (!ta) return;
     ta.style.height = "auto";
-    ta.style.height = `${Math.min(ta.scrollHeight, 160)}px`;
+    // Cap at 40vh so multi-paragraph prompts stay fully visible (was 160px).
+    const max = Math.round(window.innerHeight * 0.4);
+    ta.style.height = `${Math.min(ta.scrollHeight, max)}px`;
   }, [text]);
 
   useEffect(() => {
@@ -385,28 +435,76 @@ export function ChatInput() {
     if (trimmed.startsWith("/") && !trimmed.includes(" ")) {
       const keys = Object.keys(skillSlash).filter((k) => k.startsWith(trimmed.toLowerCase()));
       setSlashHints(keys);
+      setAtHints([]);
     } else {
       setSlashHints([]);
+      // @file mention: last token starts with @ and has no space after it.
+      const atMatch = text.match(/(^|\s)@([^\s@]*)$/);
+      if (atMatch) {
+        const q = atMatch[2].toLowerCase();
+        // Prefer the current selection path; fall back to mounted + skill names.
+        const candidates: string[] = [];
+        if (selection.kind === "file" && selection.path) candidates.push(selection.path);
+        for (const f of useAiStore.getState().mountedFiles) candidates.push(f.path);
+        const hits = [...new Set(candidates)].filter((p) => {
+          const name = (p.split("/").pop() || p).toLowerCase();
+          return !q || name.includes(q) || p.toLowerCase().includes(q);
+        });
+        setAtHints(hits.slice(0, 5));
+      } else {
+        setAtHints([]);
+      }
     }
-  }, [text, skillSlash]);
+  }, [text, skillSlash, selection]);
 
   const handleSubmit = useCallback((mode: "steer" | "followUp" = "steer") => {
     const trimmed = text.trim();
     if (!trimmed || !ready) return;
+    // Fold attached tokens into the prompt context (skill + file chips).
+    const tokenNotes = fieldTokens
+      .map((tok) =>
+        tok.kind === "skill"
+          ? `[skill:${tok.label}]`
+          : tok.kind === "file"
+            ? `[file:${tok.detail || tok.id}]`
+            : `[focus:${tok.label}]`,
+      )
+      .join(" ");
+    const payload = tokenNotes ? `${tokenNotes} ${trimmed}` : trimmed;
     revealChatThreadOnSend();
+    // Paused turn: Enter / send resumes, folding the typed text as redirect.
+    if (paused && !streaming) {
+      setText("");
+      setSlashHints([]);
+      setAtHints([]);
+      setFieldTokens([]);
+      void resumeStream(payload);
+      return;
+    }
     // While streaming: Enter = steer (mid-turn); Alt+Enter = follow-up (after turn).
     if (streaming) {
       setText("");
       setSlashHints([]);
-      void sendOrSteer(trimmed, mode);
+      setAtHints([]);
+      setFieldTokens([]);
+      void sendOrSteer(payload, mode);
       return;
     }
     setText("");
     setSlashHints([]);
-    void sendOrSteer(trimmed, "steer");
-  }, [text, streaming, ready, sendOrSteer]);
+    setAtHints([]);
+    setFieldTokens([]);
+    void sendOrSteer(payload, "steer");
+  }, [text, streaming, paused, ready, sendOrSteer, resumeStream, fieldTokens]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Esc while streaming → PAUSE (pattern 12: interrupt, not abandon).
+    // Finished edits stay; the goal ledger stays live for Resume.
+    if (e.key === "Escape" && streaming) {
+      e.preventDefault();
+      void pauseStream();
+      return;
+    }
     if (e.key === "Enter" && !e.shiftKey) {
       if (composingRef.current || e.nativeEvent.isComposing) return;
       if (!streaming && slashHints.length === 1) {
@@ -473,12 +571,9 @@ export function ChatInput() {
     );
   }
 
+  // Single stream-status vocabulary (stream-status.ts) — no parallel label forks.
   const statusHint = streaming
-    ? streamStatus === "calling-tool"
-      ? `${streamToolName || t("ai.toolLabel", { name: "…" })}${streamToolCount && streamMaxSteps ? ` ${streamToolCount}/${streamMaxSteps}` : streamToolCount ? ` ${streamToolCount}` : ""}`
-      : streamStatus === "steering"
-        ? t("ai.steeringQueued")
-        : streamStatusLabel(streamStatus || "thinking", streamToolName, streamToolCount, streamMaxSteps)
+    ? streamStatusLabel(streamStatus || "thinking", streamToolName, streamToolCount, streamMaxSteps)
     : null;
 
   return (
@@ -566,13 +661,43 @@ export function ChatInput() {
         />
       ) : null}
 
+      {/* Command-field tokens: /skill and @file chips, removable. */}
+      {fieldTokens.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-1 px-2.5 pt-1" data-composer-tokens>
+          {fieldTokens.map((tok) => (
+            <ChipLabel
+              key={`${tok.kind}:${tok.id}`}
+              tone={tok.kind === "skill" ? "accent" : tok.kind === "file" ? "outline" : "neutral"}
+              size="sm"
+              title={tok.detail || tok.id}
+            >
+              <span className="max-w-[10rem] truncate">
+                {tok.kind === "skill" ? "/" : tok.kind === "file" ? "@" : "· "}
+                {tok.label}
+              </span>
+              <button
+                type="button"
+                className="rounded-full p-0.5 text-text-quaternary hover:text-text-primary"
+                aria-label={t("ai.removeContextTooltip")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeFieldToken(tok);
+                }}
+              >
+                <RiCloseLine size={ICON.nano} />
+              </button>
+            </ChipLabel>
+          ))}
+        </div>
+      ) : null}
+
       {slashHints.length > 0 ? (
         <div className="rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface p-1 shadow-sm">
           {slashHints.map((k) => (
-            <button
+            <Button
               key={k}
-              type="button"
-              className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 py-1.5 text-left text-3xs text-text-secondary hover:bg-surface-muted"
+              variant="ghost"
+              className="h-auto w-full justify-start gap-2 rounded-[var(--radius-sm)] px-2 py-1.5 text-left text-3xs"
               onClick={() => applySlash(k)}
             >
               <code className="font-mono text-accent-color">{k}</code>
@@ -580,7 +705,27 @@ export function ChatInput() {
                 {skillSlash[k]?.tip?.split("\n")[0] || skillSlash[k]?.label}
               </span>
               <kbd className="v4-kbd shrink-0">Tab</kbd>
-            </button>
+            </Button>
+          ))}
+        </div>
+      ) : null}
+
+      {atHints.length > 0 ? (
+        <div className="rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface p-1 shadow-sm" data-at-hints>
+          {atHints.map((p) => (
+            <Button
+              key={p}
+              variant="ghost"
+              className="h-auto w-full justify-start gap-2 rounded-[var(--radius-sm)] px-2 py-1.5 text-left text-3xs"
+              onClick={() => attachFileToken(p)}
+            >
+              <RiFileTextLine size={ICON.micro} className="shrink-0 text-accent-color" />
+              <span className="min-w-0 flex-1 truncate">
+                {p.split("/").pop() || p}
+                <span className="ml-1 text-text-quaternary">{p.split("/").slice(0, -1).join("/")}</span>
+              </span>
+              <kbd className="v4-kbd shrink-0">{formatChord("↵")}</kbd>
+            </Button>
           ))}
         </div>
       ) : null}
@@ -588,14 +733,14 @@ export function ChatInput() {
       {lastSteerPreview || pendingFollowUpCount > 0 ? (
         <div className="flex flex-wrap items-center gap-1.5 px-0.5 text-3xs text-text-quaternary">
           {lastSteerPreview ? (
-            <span className="max-w-full truncate rounded border border-accent-border-subtle bg-accent-bg-subtle/40 px-1.5 py-0.5 text-accent-color">
-              {t("ai.steerHint", { text: lastSteerPreview })}
-            </span>
+            <ChipLabel tone="accent" size="sm" className="max-w-full">
+              <span className="truncate">{t("ai.steerHint", { text: lastSteerPreview })}</span>
+            </ChipLabel>
           ) : null}
           {pendingFollowUpCount > 0 ? (
-            <span className="rounded border border-border-subtle bg-surface-muted/60 px-1.5 py-0.5">
+            <ChipLabel tone="neutral" size="sm">
               {t("ai.followUpQueued", { count: pendingFollowUpCount })}
-            </span>
+            </ChipLabel>
           ) : null}
         </div>
       ) : null}
@@ -623,50 +768,76 @@ export function ChatInput() {
           className={cn(
             "flex-1 resize-none bg-transparent px-3 py-2 text-sm leading-relaxed text-text-primary outline-none",
             "placeholder:text-text-quaternary",
-            "max-h-[160px]",
+            /* Grow with content up to 40vh so multi-paragraph prompts stay visible */
+            "max-h-[40vh] overflow-y-auto",
           )}
         />
         {streaming ? (
           <div className="mb-1.5 mr-1.5 flex shrink-0 items-center gap-1">
             {canSend ? (
               <Tooltip content={t("ai.enterSteerLabel")}>
-                <button
-                  type="button"
+                <Button
+                  variant="default"
+                  size="icon"
                   onClick={() => handleSubmit("steer")}
                   aria-label={t("ai.enterSteerLabel")}
-                  className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-md)] bg-primary text-primary-foreground shadow-[var(--shadow-button)] hover:bg-primary-hover active:scale-95"
                 >
                   <RiArrowUpLine size={ICON.sm} />
-                </button>
+                </Button>
               </Tooltip>
             ) : null}
-            <Tooltip content={t("ai.stopGeneration")}>
+            {/* Pause is an interrupt, not destructive — outline. Esc is the
+                keyboard twin. Resume/abandon appear once paused. */}
+            <Tooltip content={t("ai.pauseGeneration")}>
               <Button
-                variant="destructive"
+                variant="outline"
                 size="icon"
-                onClick={() => void cancelStream()}
-                className="h-7 w-7"
+                onClick={() => void pauseStream()}
+                aria-label={t("ai.pauseGeneration")}
               >
                 <RiCheckboxBlankLine size={ICON.xs} className="fill-current" />
               </Button>
             </Tooltip>
           </div>
+        ) : paused ? (
+          <div className="mb-1.5 mr-1.5 flex shrink-0 items-center gap-1">
+            <Tooltip content={t("ai.resumeGeneration")}>
+              <Button
+                variant="default"
+                size="icon"
+                onClick={() => {
+                  const redirect = text.trim();
+                  void resumeStream(redirect || undefined);
+                }}
+                aria-label={t("ai.resumeGeneration")}
+              >
+                <RiPlayLine size={ICON.sm} />
+              </Button>
+            </Tooltip>
+            <Tooltip content={t("ai.abandonPaused")}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => void abandonPaused()}
+                aria-label={t("ai.abandonPaused")}
+              >
+                <RiCloseLine size={ICON.sm} />
+              </Button>
+            </Tooltip>
+          </div>
         ) : (
           <Tooltip content={canSend ? t("ai.enterSendLabel") : t("ai.enterSendDisabled")}>
-            <button
-              type="button"
+            <Button
+              variant="default"
+              size="icon"
               onClick={() => handleSubmit("steer")}
               disabled={!canSend}
+              softDisabled={!canSend}
               aria-label={canSend ? t("ai.enterSendLabel") : t("ai.enterSendDisabled")}
-              className={cn(
-                "mb-1.5 mr-1.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] transition-[background-color,color,box-shadow,transform] duration-[var(--duration-fast)]",
-                canSend
-                  ? "bg-primary text-primary-foreground shadow-[var(--shadow-button)] hover:bg-primary-hover hover:shadow-[var(--shadow-button-hover)] active:scale-95"
-                  : "cursor-not-allowed bg-surface-muted text-text-quaternary",
-              )}
+              className="mb-1.5 mr-1.5"
             >
               <RiArrowUpLine size={ICON.sm} />
-            </button>
+            </Button>
           </Tooltip>
         )}
       </div>

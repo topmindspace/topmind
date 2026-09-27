@@ -476,7 +476,7 @@ function sourceBadge(file: InboxFileMeta, t: (key: string, options?: Record<stri
   if (file.source_type === "external-capture") {
     return (
       <span
-        className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-accent-bg-subtle px-1.5 py-0.5 text-3xs font-medium text-accent-color"
+        className="inline-flex shrink-0 items-center gap-0.5 rounded-[var(--radius-xs)] bg-accent-bg-subtle px-1.5 py-0.5 text-3xs font-medium text-accent-color"
         title={file.source || t("workspace:inbox.badgeExcerpt")}
       >
         <RiLink size={ICON.micro} aria-hidden />
@@ -486,7 +486,7 @@ function sourceBadge(file: InboxFileMeta, t: (key: string, options?: Record<stri
   }
   if (file.source_type === "user-original") {
     return (
-      <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-surface-muted px-1.5 py-0.5 text-3xs font-medium text-text-tertiary">
+      <span className="inline-flex shrink-0 items-center gap-0.5 rounded-[var(--radius-xs)] bg-surface-muted px-1.5 py-0.5 text-3xs font-medium text-text-tertiary">
         <RiBallPenLine size={ICON.micro} aria-hidden />
         {t("workspace:inbox.badgeOriginal")}
       </span>
@@ -557,7 +557,7 @@ function InboxFileRow({
             "v4-focus-ring",
             checked
               ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
-              : "text-text-tertiary hover:bg-surface-muted hover:text-text-primary",
+              : "text-text-tertiary hover:bg-state-hover hover:text-text-primary",
           )}
           aria-pressed={checked}
           aria-label={checked ? t("workspace:inbox.deselectItem") : t("workspace:inbox.selectItem")}
@@ -569,7 +569,7 @@ function InboxFileRow({
       <Tooltip content={t("workspace:inbox.dragToSidebar")}>
         <div
           {...listeners}
-          className="flex h-8 w-8 shrink-0 cursor-grab items-center justify-center rounded-[var(--radius-md)] text-text-quaternary hover:bg-surface-muted hover:text-text-secondary active:cursor-grabbing"
+          className="flex h-8 w-8 shrink-0 cursor-grab items-center justify-center rounded-[var(--radius-md)] text-text-quaternary hover:bg-state-hover hover:text-text-secondary active:cursor-grabbing"
           aria-label={t("workspace:inbox.dragToSidebar")}
         >
           <RiDraggable size={ICON.sm} aria-hidden />

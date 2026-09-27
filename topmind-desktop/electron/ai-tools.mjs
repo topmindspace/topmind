@@ -88,9 +88,15 @@ export async function buildDesktopAiTools(ctx) {
      * writebackMode=confirm so the gate can stash for user accept.
      */
     const LIFECYCLE_TOOLS = new Set(["delete_path", "rename_path"]);
+    /** Destructive memory maintenance — never auto-confirm from the tool layer. */
+    const CONFIRM_REQUIRED_TOOLS = new Set(["compact_core_memory_history"]);
     const aiWriteOpts = (toolName) => ({
       actor: "ai",
-      confirmed: LIFECYCLE_TOOLS.has(toolName) ? !needsUserConfirm : true,
+      confirmed: CONFIRM_REQUIRED_TOOLS.has(toolName)
+        ? false
+        : LIFECYCLE_TOOLS.has(toolName)
+          ? !needsUserConfirm
+          : true,
     });
 
     /** Body-payload tools: sanitize thinking/JSON dumps before Kernel writeback. */
@@ -1043,6 +1049,42 @@ export async function buildDesktopAiTools(ctx) {
         execute: wrapWrite("update_core_memory", ({ match, content, actor, confirmed }) =>
           WorkspaceService.updateCoreMemory(
             { match, content, actor: actor || "ai", confirmed },
+            ctx,
+          )),
+      });
+
+      tools.restore_core_memory = tool({
+        description: d(
+          "恢复「我的情况」历史记录中的事实到活跃段落（retire 的逆操作）。仅在用户确认某条历史事实仍有效、需要重新生效时调用。",
+          "Restore an archived core-memory fact from ## 历史记录 back to a live section (inverse of retire). Call only when the user confirms a historical fact should be live again.",
+        ),
+        inputSchema: jsonSchema({
+          type: "object",
+          properties: {
+            match: strProp(d("历史事实原文关键词或片段", "Keywords/span of the archived fact")),
+            section: strProp(d("可选：目标活跃段落", "Optional target live section")),
+          },
+          required: ["match"],
+        }),
+        execute: wrapWrite("restore_core_memory", ({ match, section, actor, confirmed }) =>
+          WorkspaceService.restoreCoreMemory(
+            { match, section, actor: actor || "ai", confirmed },
+            ctx,
+          )),
+      });
+
+      tools.compact_core_memory_history = tool({
+        description: d(
+          "压缩「我的情况」历史记录中的近重复行（保留最新，丢弃更早近重复）。会永久丢弃历史行，必须用户确认后才可调用。",
+          "Compact near-duplicate rows in core-memory ## 历史记录 (keep newest, drop older near-dups). Permanently drops history lines — only call after the user confirms.",
+        ),
+        inputSchema: jsonSchema({
+          type: "object",
+          properties: {},
+        }),
+        execute: wrapWrite("compact_core_memory_history", ({ actor, confirmed }) =>
+          WorkspaceService.compactCoreMemoryHistory(
+            { actor: actor || "ai", confirmed },
             ctx,
           )),
       });

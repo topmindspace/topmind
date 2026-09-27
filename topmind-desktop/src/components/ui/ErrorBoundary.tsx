@@ -36,19 +36,19 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.error) {
       return (
         <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-status-error-bg/50 text-error">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-status-error-bg text-error">
             <RiErrorWarningLine size={ICON.sm} />
           </div>
           <div className="text-3xs font-medium text-text-secondary">
             {this.props.label || i18n.t("common:errorBoundary.title")}
           </div>
-          <div className="max-w-[16rem] text-4xs leading-relaxed text-text-quaternary">
+          <div className="max-w-[16rem] text-3xs leading-relaxed text-text-quaternary">
             {this.state.error.message || i18n.t("common:errorBoundary.message")}
           </div>
           <button
             type="button"
             onClick={this.handleRetry}
-            className="mt-1 inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-border-subtle px-2.5 py-1 text-3xs font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary v4-focus-ring"
+            className="mt-1 inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-border-subtle px-2.5 py-1 text-3xs font-medium text-text-secondary transition-colors hover:bg-state-hover hover:text-text-primary v4-focus-ring"
           >
             <RiRefreshLine size={ICON.micro} aria-hidden />
             {i18n.t("common:action.retry")}

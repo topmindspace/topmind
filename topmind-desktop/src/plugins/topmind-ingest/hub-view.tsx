@@ -218,7 +218,7 @@ function IngestHubView() {
                 "v4-focus-ring",
                 active
                   ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
-                  : "text-text-tertiary hover:bg-surface-muted",
+                  : "text-text-tertiary hover:bg-state-hover",
               )}
             >
               {label}
@@ -227,7 +227,7 @@ function IngestHubView() {
         })}
         {destMode === "topic" ? (
           <select
-            className="max-w-[240px] rounded-[var(--radius-md)] border border-border-subtle bg-surface px-2 py-1 text-3xs outline-none focus-visible:border-accent-color focus-visible:ring-2 focus-visible:ring-ring/35"
+            className="max-w-[240px] rounded-[var(--radius-md)] border border-border-subtle bg-surface px-2 py-1 text-3xs focus-visible:border-accent-color v4-focus-ring"
             value={topicId}
             onChange={(e) => setTopicId(e.target.value)}
             aria-label={t("hub.destTopic")}
@@ -245,7 +245,7 @@ function IngestHubView() {
         className={cn(
           "mb-4 flex flex-col items-center justify-center gap-3 rounded-[var(--radius-xl)]",
           "border border-dashed border-border-subtle bg-surface-muted/30 px-6 py-8",
-          "transition-colors hover:border-accent-border-subtle hover:bg-accent-bg-faint/40",
+          "transition-colors hover:border-accent-border-subtle hover:bg-accent-bg-faint",
           busy && "pointer-events-none opacity-70",
         )}
         onDragOver={(e) => {

@@ -131,7 +131,7 @@ export function ChromeOverflowActions({
   return (
     <div
       ref={railRef}
-      className={cn(
+      className={cn("v4-focus-ring", 
         "flex min-w-0 items-center gap-1.5",
         align === "end" ? "justify-end" : "justify-start",
         className,
@@ -147,7 +147,7 @@ export function ChromeOverflowActions({
               disabled={a.disabled}
               onClick={a.onClick}
               aria-label={a.label}
-              className={cn(
+              className={cn("v4-focus-ring", 
                 "v4-titlebar-btn gap-1 text-xs font-medium",
                 "disabled:opacity-45",
                 a.primary
@@ -174,7 +174,7 @@ export function ChromeOverflowActions({
             <Tooltip content={t("action.more", { defaultValue: "More" })}>
               <button
                 type="button"
-                className={cn(
+                className={cn("v4-focus-ring", 
                 "v4-icon-btn v4-icon-btn-chrome",
                 menuOpen && "bg-surface-hover text-text-primary",
               )}

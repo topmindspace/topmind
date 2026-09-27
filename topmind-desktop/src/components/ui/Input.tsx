@@ -18,10 +18,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         "px-3 py-1.5 text-sm leading-none text-text-primary placeholder:text-text-quaternary",
         "shadow-[var(--shadow-input-inset)]",
         "transition-[border-color,box-shadow,background-color] duration-[var(--duration-fast)] ease-[var(--ease-default)]",
-        "hover:border-border-subtle hover:bg-surface-muted/40",
-        "focus-visible:border-accent-color focus-visible:bg-surface-elevated focus-visible:outline-none",
-        "focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-0",
-        "aria-[invalid=true]:border-status-error aria-[invalid=true]:bg-status-error-bg/40",
+        "hover:border-border-subtle hover:bg-state-hover",
+        "focus-visible:border-accent-color focus-visible:bg-surface-elevated v4-focus-ring",
+        "aria-[invalid=true]:border-status-error aria-[invalid=true]:bg-status-error-bg",
         "disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none",
         className,
       )}

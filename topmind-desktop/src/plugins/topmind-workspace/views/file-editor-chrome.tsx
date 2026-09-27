@@ -55,7 +55,7 @@ export function ToolbarButton({
           "transition-[background-color,color,box-shadow] duration-(--duration-fast)",
           active
             ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
-            : "text-text-tertiary hover:bg-surface-muted hover:text-text-primary",
+            : "text-text-tertiary hover:bg-state-hover hover:text-text-primary",
         )}
       >
         {children}
@@ -76,14 +76,14 @@ export const SaveBadge = memo(function SaveBadge({ state }: { state: SaveState }
       icon: <RiCheckLine size={ICON.xs} />,
       label: t("workspace:editor.saved"),
       color: "text-success",
-      bg: "bg-status-success-bg/40",
+      bg: "bg-status-success-bg",
       tip: t("workspace:editor.saved"),
     },
     dirty: {
       icon: <RiUploadCloud2Line size={ICON.xs} />,
       label: t("workspace:editor.unsaved"),
       color: "text-warning",
-      bg: "bg-status-warning-bg/40",
+      bg: "bg-status-warning-bg",
       tip: t("workspace:editor.unsaved_tip"),
     },
     saving: {
@@ -97,7 +97,7 @@ export const SaveBadge = memo(function SaveBadge({ state }: { state: SaveState }
       icon: <RiErrorWarningLine size={ICON.xs} />,
       label: t("common:status.error"),
       color: "text-error",
-      bg: "bg-status-error-bg/50",
+      bg: "bg-status-error-bg",
       tip: t("common:status.error"),
     },
   }[effective];

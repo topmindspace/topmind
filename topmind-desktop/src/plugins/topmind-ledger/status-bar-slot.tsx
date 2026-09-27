@@ -30,7 +30,7 @@ function LedgerStatusBar() {
         data-ledger-open
         aria-label={label}
         onClick={() => openOverlay(PLUGIN_APP_KIND, { pluginId: LEDGER_PLUGIN_ID })}
-        className="flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary v4-focus-ring"
+        className="flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 text-text-secondary transition-colors hover:bg-state-hover hover:text-text-primary v4-focus-ring"
       >
         <RiWallet3Line size={ICON.micro} aria-hidden />
         <span className="hidden text-3xs sm:inline">{label}</span>

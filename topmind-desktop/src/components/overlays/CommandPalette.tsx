@@ -327,7 +327,7 @@ export function CommandPalette() {
               <div className="flex items-center gap-1.5 px-2 py-1 text-3xs font-medium uppercase tracking-wide text-text-quaternary">
                 <group.icon size={ICON.micro} aria-hidden />
                 {group.label}
-                <span className="font-normal normal-case tabular-nums text-text-quaternary/70" aria-hidden>
+                <span className="font-normal normal-case tabular-nums text-text-quaternary" aria-hidden>
                   {group.items.length}
                 </span>
               </div>

@@ -80,7 +80,9 @@ export function createStreamRegistry() {
       const e = streams.get(sid);
       const t = String(text || "").trim();
       if (!e || !t) return false;
-      e.steers.push(t);
+      // Prefer Pi Agent's native steering queue (prepareStep/prepareNextTurn drain).
+      // Only fall back to the local steers buffer when the agent is missing or
+      // rejects — never both, or the same user text is injected twice.
       if (e.agent && typeof e.agent.steer === "function") {
         try {
           e.agent.steer({
@@ -88,8 +90,10 @@ export function createStreamRegistry() {
             content: [{ type: "text", text: t }],
             timestamp: Date.now(),
           });
-        } catch { /* queue locally if agent rejects */ }
+          return true;
+        } catch { /* fall through to local queue */ }
       }
+      e.steers.push(t);
       return true;
     },
     followUp(sid, text) {
@@ -364,12 +368,26 @@ export async function runStream({ model, modelId, system, messages, tools, emit,
     const isAborted = controller.signal.aborted || err?.name === "AbortError" || /aborted/i.test(err?.message || "");
     if (isAborted) {
       const split = splitAssistantVisible(collected);
+      // Distinguish user cancel vs wall-clock timeout vs idle stall (G4).
+      // Prefer the AbortController reason (our timers); fall back to message
+      // text in either locale.
+      const reasonMsg = String(
+        (controller.signal?.reason && (controller.signal.reason.message || controller.signal.reason)) ||
+        err?.message ||
+        "",
+      );
+      const stopReason = /timeout|超时/iu.test(reasonMsg)
+        ? "timeout"
+        : /stall|卡住|停滞/iu.test(reasonMsg)
+          ? "stalled"
+          : "cancelled";
       return {
         text: visibleAcc.body || split.body || "",
         reasoning: visibleAcc.reasoning || split.reasoning || "",
         usage: null,
         error: null,
         cancelled: true,
+        stopReason,
         followUps: drainPendingUserMessages(registry, sessionId),
         steerApplyCount,
         runtime: "ai-sdk",

@@ -84,20 +84,26 @@ test("DESIGN suggestion kinds include retire/update, not append-only promote_mem
 });
 
 test("each criterion-1 capability has one primary home in shipped chrome", () => {
-  // 2026-09 v4: Sidebar header has Profile + Search + 记一下;
-  // TitleBar has view-switch dropdown + breadcrumb + AI toggle.
+  // 2026-09 v4: ActivityBar (left 48px) owns destinations + capture + apps +
+  // focus/theme/settings. Sidebar header = workspace name + search only.
   const sidebar = read("src/components/shell/Sidebar.tsx");
   const title = read("src/components/shell/TitleBar.tsx");
+  const activity = read("src/components/shell/ActivityBar.tsx");
   const ai = read("src/components/ai/AiWorkspace.tsx");
   const design = read("DESIGN.md");
-  // 记一下 is in sidebar header (normal button, accent icon)
-  assert.match(sidebar, /SidebarHeaderActions/);
-  assert.match(sidebar, /RiPencilLine/);
-  assert.match(sidebar, /v4-search-trigger/);
-  // View switch (动态/Inbox/交付) is a sidebar destinations row; TitleBar
-  // hosts compact fallback when the sidebar is collapsed.
+  // Sidebar header: workspace identity + search (no capture, no destinations).
+  assert.match(sidebar, /data-sidebar-search/);
+  assert.match(sidebar, /data-sidebar-ws-name|data-sidebar-workspace/);
+  assert.doesNotMatch(sidebar, /RiPencilLine/);
+  assert.doesNotMatch(sidebar, /data-sidebar-primary-nav/);
+  // 记一下 is on the ActivityBar (RiPencilLine + capture flag).
+  assert.match(activity, /RiPencilLine/);
+  assert.match(activity, /activityBar\.capture/);
+  assert.match(activity, /data-activity-bar/);
+  // Destinations live on ActivityBar group 1; PrimaryNav remains the compact
+  // TitleBar fallback and sidebar dropdown (PRIMARY_NAV_OPTIONS).
   assert.match(read("src/components/shell/PrimaryNav.tsx"), /PRIMARY_NAV_OPTIONS/);
-  assert.match(sidebar, /data-sidebar-primary-nav/);
+  assert.match(activity, /data-activity-group="views"/);
   assert.doesNotMatch(read("src/components/shell/StatusBar.tsx"), /<PrimaryNav/);
   assert.match(ai, /data-ai-workspace-tab=\{item\.id\}/);
   assert.match(ai, /id: "chat"/);
@@ -195,9 +201,9 @@ test("openSuggestSurface opens the suggest workspace tab", () => {
 
 test("RuntimeBadge names the Pi loop (and SDK fallback)", () => {
   const src = read("src/components/ai/RuntimeBadge.tsx");
-  assert.match(src, /data-ai-loop=\{/);
-  assert.match(src, /pi-agent-core/);
-  assert.match(src, /ai-sdk/);
+  // Loop label is derived from runtimeStatus.loop: "ai-sdk" → SDK, else Pi.
+  assert.match(src, /status\.loop === "ai-sdk"/);
+  assert.match(src, /"Pi"/);
 });
 
 test("focus-mode mounts floating SuggestPopover and TodoPopover because the AI column is hidden", () => {

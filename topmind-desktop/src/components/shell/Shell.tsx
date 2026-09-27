@@ -5,6 +5,7 @@ import { TitleBar } from "./TitleBar";
 import { OsChromeStrip } from "./OsChromeStrip";
 import { StatusBar } from "./StatusBar";
 import { Sidebar } from "./Sidebar";
+import { ActivityBar } from "./ActivityBar";
 import { EditorArea } from "./EditorArea";
 import { AiWorkspace } from "../ai/AiWorkspace";
 import { OverlayHost } from "./OverlayHost";
@@ -64,6 +65,13 @@ export function Shell({ settings }: ShellProps) {
   const setAiPanelWidth = useViewStore((s) => s.setAiPanelWidth);
   const focusMode = useViewStore((s) => s.focusMode);
 
+  // Density tier: focus mode collapses chrome to the immersive 32px line.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (focusMode) root.setAttribute("data-focus-mode", "true");
+    else root.removeAttribute("data-focus-mode");
+  }, [focusMode]);
+
   const health = useWorkspaceHealth();
 
   // Focus-mode fallback (DESIGN §0.0.3): the status bar is hidden in focus
@@ -77,7 +85,7 @@ export function Shell({ settings }: ShellProps) {
 
   // Toast queue: stacked (max 3, newest visible), hover pauses the dwell —
   // a capture + docs enqueue + AI polish burst no longer overwrites itself.
-  const [toasts, setToasts] = useState<Array<ToastPayload & { key: number; dwell: number }>>([]);
+  const [toasts, setToasts] = useState<Array<ToastPayload & { key: number; dwell: number; leaving?: boolean }>>([]);
   const toastSeq = useRef(0);
   const toastTimersRef = useRef(new Map<number, ReturnType<typeof setTimeout>>());
   const [taskPanelOpen, setTaskPanelOpen] = useState(false);
@@ -105,7 +113,13 @@ export function Shell({ settings }: ShellProps) {
       clearTimeout(timer);
       toastTimersRef.current.delete(key);
     }
-    setToasts((prev) => prev.filter((x) => x.key !== key));
+    // Mark leaving so CSS plays toast-out before unmount.
+    setToasts((prev) =>
+      prev.map((x) => (x.key === key ? { ...x, leaving: true } : x)),
+    );
+    window.setTimeout(() => {
+      setToasts((prev) => prev.filter((x) => x.key !== key));
+    }, 120);
   }, []);
 
   const pauseToast = useCallback((key: number) => {
@@ -340,8 +354,19 @@ export function Shell({ settings }: ShellProps) {
     <div className="relative flex h-screen flex-col overflow-hidden bg-chrome text-text-primary">
       <OsChromeStrip />
       <div id="workbench-root" className={cn("grid min-h-0 flex-1", gridRows)} data-through-columns>
-      {/* Three through-going columns: each owns its top chrome. No spanning product header. */}
+      {/* Three through-going columns: each owns its top chrome. No spanning product header.
+          ActivityBar is the leftmost destination rail (key nav out of the sidebar header). */}
       <FileDropZone>
+        {!focusMode ? (
+          <div className="v4-side-panel w-[48px] shrink-0" data-activity-bar-column>
+            <ActivityBar
+              onCapture={() => {
+                void import("../overlays/QuickCapture");
+                useViewStore.getState().openOverlay("quick-capture");
+              }}
+            />
+          </div>
+        ) : null}
         {showSidebar ? (
           <>
             <div style={{ width: sidebarWidth }} className="v4-side-panel">
@@ -401,7 +426,7 @@ export function Shell({ settings }: ShellProps) {
             <button
               type="button"
               onClick={() => openSuggestSurface()}
-              className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full border border-border-subtle bg-surface-elevated/95 px-2.5 py-1 text-3xs font-medium text-text-secondary shadow-[var(--shadow-float)] backdrop-blur-sm transition-colors hover:bg-surface-muted v4-focus-ring"
+              className="pointer-events-auto inline-flex items-center gap-1.5 rounded-[var(--radius-xs)] border border-border-subtle bg-surface-elevated/95 px-2.5 py-1 text-3xs font-medium text-text-secondary shadow-[var(--shadow-float)] backdrop-blur-sm transition-colors hover:bg-state-hover v4-focus-ring"
               aria-label={t("shell:statusBar.suggestCountAria", { count: suggestCount })}
             >
               <RiLightbulbLine size={ICON.xs} className="text-accent-color" aria-hidden />
@@ -412,7 +437,7 @@ export function Shell({ settings }: ShellProps) {
             <button
               type="button"
               onClick={() => setTodoFocusOpen((v) => !v)}
-              className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full border border-border-subtle bg-surface-elevated/95 px-2.5 py-1 text-3xs font-medium text-text-secondary shadow-[var(--shadow-float)] backdrop-blur-sm transition-colors hover:bg-surface-muted v4-focus-ring"
+              className="pointer-events-auto inline-flex items-center gap-1.5 rounded-[var(--radius-xs)] border border-border-subtle bg-surface-elevated/95 px-2.5 py-1 text-3xs font-medium text-text-secondary shadow-[var(--shadow-float)] backdrop-blur-sm transition-colors hover:bg-state-hover v4-focus-ring"
               aria-label={t("shell:todo.openAria", { count: activeTodoCount })}
             >
               <RiListCheck size={ICON.xs} className="text-accent-color" aria-hidden />
@@ -441,7 +466,8 @@ export function Shell({ settings }: ShellProps) {
               className={cn(
                 "v4-toast pointer-events-auto flex max-w-[min(420px,90vw)] items-center gap-2",
                 "rounded-[var(--radius-toast,var(--radius-menu))] border px-3.5 py-2 text-3xs font-medium",
-                "shadow-[var(--elevation-2,var(--shadow-float))] animate-toast-in",
+                "shadow-[var(--elevation-2,var(--shadow-float))]",
+                toast.leaving ? "animate-toast-out" : "animate-toast-in",
                 toast.kind === "error"
                   ? "border-transparent bg-error-container text-on-error-container"
                   : toast.kind === "success"

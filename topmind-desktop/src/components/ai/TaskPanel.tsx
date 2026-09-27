@@ -7,6 +7,7 @@ import { useTaskStore } from "../../stores/task-store";
 import { computeTaskPanelDragPosition } from "../../stores/task-store";
 import { RiCloseLine, RiFullscreenExitLine, RiFullscreenLine } from "@remixicon/react";
 import { ICON } from "../../lib/icons";
+import { CountBadge } from "../ui/CountBadge";
 import { TaskListBody } from "./task-list-body";
 import {
   loadTaskPanelPos,
@@ -111,16 +112,18 @@ export function TaskPanel({ open, onClose }: TaskPanelProps) {
       ref={panelRef}
       data-task-panel
       className={cn(
-        "fixed z-floating flex flex-col overflow-hidden",
-        "rounded-[var(--radius-lg)] border border-border-subtle",
-        "bg-surface-elevated/90 backdrop-blur-[var(--blur-glass)] backdrop-saturate-150 shadow-[var(--shadow-overlay)]",
-        "animate-fade-in-scale",
+        "v4-no-drag v4-popover-enter fixed z-[var(--z-popover-overlay)] flex flex-col overflow-hidden",
+        "rounded-xl border border-border-subtle",
+        "bg-surface-elevated/95 backdrop-blur-[var(--blur-glass)] backdrop-saturate-150",
+        "shadow-[var(--shadow-elevated-hairline)]",
       )}
       style={{
         right: position.x,
         bottom: position.y,
         width: minimized ? 220 : 340,
-        height: minimized ? 44 : Math.min(480, Math.max(220, tasks.length * 100 + 72)),
+        height: minimized ? 44 : undefined,
+        maxHeight: minimized ? 44 : 480,
+        minHeight: minimized ? 44 : 220,
         transition:
           "width var(--duration-fast) var(--ease-default), height var(--duration-fast) var(--ease-default)",
       }}
@@ -135,26 +138,25 @@ export function TaskPanel({ open, onClose }: TaskPanelProps) {
         )}
       >
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-text-primary">{t("taskPanel.title")}</span>
+          <span className="text-xs font-medium text-text-primary">{t("taskPanel.title")}</span>
           {runningCount > 0 ? (
-            <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-muted px-1 text-3xs font-semibold text-accent-color">
-              {runningCount}
-            </span>
+            <CountBadge count={runningCount} className="static" />
           ) : null}
         </div>
         <div className="flex items-center gap-0.5">
           <button
             type="button"
             onClick={() => setMinimized(!minimized)}
-            className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-primary"
+            className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-tertiary transition-colors hover:bg-state-hover hover:text-text-primary v4-focus-ring"
             aria-label={minimized ? t("taskPanel.restore") : t("taskPanel.minimize")}
+            aria-expanded={!minimized}
           >
             {minimized ? <RiFullscreenLine size={ICON.micro} /> : <RiFullscreenExitLine size={ICON.micro} />}
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-primary"
+            className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-tertiary transition-colors hover:bg-state-hover hover:text-text-primary v4-focus-ring"
             aria-label={t("taskPanel.close")}
           >
             <RiCloseLine size={ICON.micro} />

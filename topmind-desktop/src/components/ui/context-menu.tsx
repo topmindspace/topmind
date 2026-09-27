@@ -28,7 +28,7 @@ export function ContextMenu({ open, x, y, onClose, children, minWidth = 200, ari
   const focusIndexRef = useRef(-1);
   const typeBufRef = useRef({ buf: "", t: 0 });
   /** ready=false first paint at cursor (invisible) → measure → ready=true (no mid-flight jump) */
-  const [pos, setPos] = useState<{ left: number; top: number; ready: boolean; placement: "top" | "bottom" }>({
+  const [pos, setPos] = useState<{ left: number; top: number; ready: boolean; placement: "top" | "bottom" | "right" }>({
     left: x,
     top: y,
     ready: false,

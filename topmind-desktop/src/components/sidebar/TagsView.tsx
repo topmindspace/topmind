@@ -103,7 +103,7 @@ export function TagsView({ onNavigate }: TagsViewProps) {
         <button
           type="button"
           onClick={() => void load()}
-          className="flex items-center gap-1 self-start rounded-[var(--radius-md)] border border-border-subtle px-2 py-1 text-3xs text-text-secondary hover:bg-surface-muted v4-focus-ring"
+          className="flex items-center gap-1 self-start rounded-[var(--radius-md)] border border-border-subtle px-2 py-1 text-3xs text-text-secondary hover:bg-state-hover v4-focus-ring"
         >
           <RiRefreshLine size={ICON.micro} /> {t("sidebar.tags.retry")}
         </button>
@@ -123,7 +123,7 @@ export function TagsView({ onNavigate }: TagsViewProps) {
             <button
               type="button"
               onClick={() => useViewStore.getState().select({ kind: "stream" })}
-              className="inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-border-subtle bg-surface px-2 py-1 text-3xs font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary v4-focus-ring"
+              className="inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-border-subtle bg-surface px-2 py-1 text-3xs font-medium text-text-secondary transition-colors hover:bg-state-hover hover:text-text-primary v4-focus-ring"
             >
               <RiFileEditLine size={ICON.micro} aria-hidden />
               {t("sidebar.tags.goWorkspace")}
@@ -141,12 +141,12 @@ export function TagsView({ onNavigate }: TagsViewProps) {
         <button
           type="button"
           onClick={() => setSelectedTag(null)}
-          className="flex w-full items-center gap-1.5 border-b border-border-subtle px-3 py-2 text-3xs font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary"
+          className="flex w-full items-center gap-1.5 border-b border-border-subtle px-3 py-2 text-3xs font-medium text-text-secondary transition-colors hover:bg-state-hover hover:text-text-primary"
         >
           <RiArrowLeftSLine size={ICON.xs} />
           <RiPriceTag3Line size={ICON.micro} className="text-accent-color" />
           <span className="truncate">{selectedTag}</span>
-          <span className="ml-auto rounded-full bg-surface-muted px-1.5 tabular-nums text-3xs text-text-quaternary">{files.length}</span>
+          <span className="ml-auto rounded-[var(--radius-xs)] bg-surface-muted px-1.5 tabular-nums text-3xs text-text-quaternary">{files.length}</span>
         </button>
         {files.map((f, i) => (
           <button
@@ -156,7 +156,7 @@ export function TagsView({ onNavigate }: TagsViewProps) {
             onContextMenu={(e) =>
               fileMenu.open(e, { path: f.path, label: f.name, kind: "note" })
             }
-            className="v4-dense-row flex w-full items-center gap-2 rounded-[var(--radius-md)] px-3 py-2 transition-colors hover:bg-surface-muted"
+            className="v4-dense-row flex w-full items-center gap-2 rounded-[var(--radius-md)] px-3 py-2 transition-colors hover:bg-state-hover"
           >
             <RiFileTextLine size={ICON.xs} className="shrink-0 text-text-quaternary" />
             <span className="truncate text-sm font-medium text-text-primary">{f.title || f.name.replace(/\.md$/u, "")}</span>
@@ -190,7 +190,7 @@ export function TagsView({ onNavigate }: TagsViewProps) {
               className={cn(
                 "flex items-center gap-1 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-muted/40 px-2 py-1.5 text-3xs",
                 "transition-[background-color,border-color,box-shadow] duration-[var(--duration-fast)]",
-                "hover:border-border-subtle hover:bg-surface-muted hover:shadow-xs",
+                "hover:border-border-subtle hover:bg-state-hover hover:shadow-xs",
                 weight,
                 "text-text-secondary",
               )}

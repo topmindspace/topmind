@@ -421,6 +421,20 @@ memory_layer: global
     assert.equal(after, 1, `history should compact to 1, got ${after}:\n${readProfile()}`);
   });
 
+  it("compactProfileHistory requires explicit confirmed for AI actor (no auto-confirm bypass)", async () => {
+    const { compactProfileHistory } = await import("../lib/memory-engine.mjs");
+    appendProfileEntry({ workspaceRoot: tmpDir, entry: { section: "进行中的事", content: "- AI闸门事实：待压缩A" } });
+    retireProfileEntry({ workspaceRoot: tmpDir, match: "AI闸门事实：待压缩A" });
+    appendProfileEntry({ workspaceRoot: tmpDir, entry: { section: "进行中的事", content: "- AI闸门事实：待压缩A（更早）" } });
+    retireProfileEntry({ workspaceRoot: tmpDir, match: "AI闸门事实：待压缩A（更早）" });
+    // AI without confirmed must NOT silently drop archive rows.
+    const blocked = compactProfileHistory({ workspaceRoot: tmpDir, actor: "ai" });
+    assert.notEqual(blocked.wroteFiles, true, `AI compact without confirmed must not write: ${JSON.stringify(blocked)}`);
+    // Explicit confirm still works for AI (suggestion apply path).
+    const ok = compactProfileHistory({ workspaceRoot: tmpDir, actor: "ai", confirmed: true });
+    assert.equal(ok.wroteFiles, true);
+  });
+
   it("appendTopicEntry refuses to stack a near-duplicate topic fact", async () => {
     const first = appendTopicEntry({
       workspaceRoot: tmpDir,

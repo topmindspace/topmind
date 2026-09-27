@@ -13,6 +13,7 @@ import {
   SLASH_TO_SKILL,
 } from "./lib/skills-runtime.mjs";
 import { describeWritebackModeForPrompt } from "./lib/writeback-mode-copy.mjs";
+import { buildGoalProtocolPrompt } from "./lib/agent-goal-protocol.mjs";
 
 /**
  * Normalize any locale tag to prompt language key.
@@ -90,6 +91,9 @@ function promptCopy(locale) {
         "- New stable fact: `append_core_memory` (deduped across live sections; never a second live duplicate)",
         "- Changed fact: `update_core_memory` (in place; do not append a second live line)",
         "- Finished/obsolete fact: `retire_core_memory` (moves to ## History with a date prefix; never silent delete)",
+        "- Fact should be live again: `restore_core_memory` (from History)",
+        "- User asked to tidy History near-dups: `compact_core_memory_history` (confirm-gated; drops older near-dups)",
+        "- Write only durable facts (preferences, goals, people, stable constraints). Never spray process logs, step narration, or transient project status — those belong in stream/topic notes.",
         "- Inlined My profile above is active facts only (history collapsed to a count). Do not dump memory/.",
         "- `reconcile_week`: deterministic period cleanup (dedupe / completion detection)",
         "- `delete_path` / `rename_path`: delete (locked/core go to trash + receipt; ordinary open notes are irreversible; permanent locked delete is user-only) and rename",
@@ -193,6 +197,9 @@ function promptCopy(locale) {
       "- 新稳定事实：`append_core_memory`（跨活跃段落去重；禁止第二条活事实）",
       "- 已有事实含义变了：`update_core_memory`（原位更新；不要再 append 一行）",
       "- 已完成/过期：`retire_core_memory`（移入 ## 历史记录 并加日期前缀；禁止静默删除）",
+      "- 历史事实需重新生效：`restore_core_memory`（从历史恢复到活跃段）",
+      "- 用户要求清理历史近重复：`compact_core_memory_history`（需确认；会丢更早近重复行）",
+      "- 只记耐久事实（偏好/目标/关键的人/稳定约束）。禁止把过程日志、步骤叙述、临时项目状态喷进画像——那些进动态/专题笔记。",
       "- 上方「我的情况」仅为活跃事实（历史段折叠为计数）。不要整库倾倒 memory/。",
       "- `reconcile_week`：确定性整理周期本（去重/完成检测）",
       "- `delete_path` / `rename_path`：删除（锁定/核心进 trash+回执；普通开放笔记不可恢复；永久删 locked 仅用户）与重命名",
@@ -373,6 +380,7 @@ export function buildSystemPrompt(opts = {}) {
           return true;
         });
   parts.push(...toolsLines);
+  parts.push("", buildGoalProtocolPrompt(resolvePromptLocale(locale)));
   parts.push(outputLanguagePolicy(locale, outputLocale));
 
   // Silence unused — toolNames still accepted for callers/tests that pass them

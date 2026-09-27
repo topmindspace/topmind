@@ -65,10 +65,13 @@ test("aged Inbox notes never become per-file archive cards", async () => {
 
 test("suggest-engine copy steers toward topic placement, not archive", () => {
   const src = fs.readFileSync(path.join(root, "lib/suggest-engine.mjs"), "utf8");
-  assert.match(src, /inboxReviewTitle:\s*"Inbox 待归位"/u);
+  assert.match(src, /inboxAgedHintTitle:\s*"Inbox 待归位"/u);
   assert.doesNotMatch(src, /确认后可归档到 99-归档/u);
   assert.match(src, /create_topic_and_move/u);
   assert.match(src, /不要仅因笔记较旧就建议归档/u);
+  // Product no longer emits inbox_review; Inbox age → inbox_organize.
+  assert.doesNotMatch(src, /kind:\s*"inbox_review"/u);
+  assert.match(src, /kind:\s*"inbox_organize"/u);
 });
 
 test("Desktop ActionStore does not force archive for inbox_review", () => {

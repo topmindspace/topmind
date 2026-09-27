@@ -9,6 +9,8 @@ export const WRITE_SUGGESTION_KINDS = [
   "stream_digest",
   "ai_summary",
   "promote_memory",
+  // Compatibility kind — product no longer emits it (Inbox age → inbox_organize).
+  // Kept so already-persisted session cards can still confirm-apply.
   "inbox_review",
   "stale_topic",
   "catch_all",

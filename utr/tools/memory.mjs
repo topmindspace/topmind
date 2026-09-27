@@ -15,6 +15,10 @@ import {
   appendTopicEntry,
   writePeriodDigest,
   promoteStreamItem,
+  retireProfileEntry,
+  updateProfileEntry,
+  compactProfileHistory,
+  restoreProfileEntry,
 } from "../../lib/kernel-api.mjs";
 
 // ── promote ─────────────────────────────────────────────────────────────────
@@ -143,6 +147,121 @@ async function appendTopic({ slug, content }, ctxObj) {
   };
 }
 
+// ── retire-profile ──────────────────────────────────────────────────────────
+
+async function retireProfile({ match, section, reason, mode }, ctxObj) {
+  if (!match) throw new Error(t("error.matchRequired") || "match required");
+  if (mode === "preview") {
+    return {
+      command: "retire-profile",
+      mode,
+      match,
+      applied: false,
+      preview: true,
+      note: "dry-run: would retire matching live fact into ## 历史记录",
+    };
+  }
+  const evidence = retireProfileEntry({
+    workspaceRoot: ctxObj.userWorkspaceRoot,
+    match,
+    section: section || undefined,
+    reason: reason || undefined,
+    actor: "user",
+    confirmed: true,
+  });
+  return {
+    command: "retire-profile",
+    match,
+    targetPath: ctxObj.userWorkspaceRoot ? path.relative(ctxObj.userWorkspaceRoot, evidence.target_path || evidence.targetPath || "") : (evidence.target_path || evidence.targetPath),
+    evidence,
+  };
+}
+
+// ── update-profile ──────────────────────────────────────────────────────────
+
+async function updateProfile({ match, content, section, mode }, ctxObj) {
+  if (!match) throw new Error(t("error.matchRequired") || "match required");
+  if (!content) throw new Error(t("error.contentRequired"));
+  if (mode === "preview") {
+    return {
+      command: "update-profile",
+      mode,
+      match,
+      applied: false,
+      preview: true,
+      note: "dry-run: would replace matching live fact in place (superseded wording archived)",
+    };
+  }
+  const evidence = updateProfileEntry({
+    workspaceRoot: ctxObj.userWorkspaceRoot,
+    match,
+    content,
+    section: section || undefined,
+    actor: "user",
+    confirmed: true,
+  });
+  return {
+    command: "update-profile",
+    match,
+    targetPath: ctxObj.userWorkspaceRoot ? path.relative(ctxObj.userWorkspaceRoot, evidence.target_path || evidence.targetPath || "") : (evidence.target_path || evidence.targetPath),
+    evidence,
+  };
+}
+
+// ── compact-history ─────────────────────────────────────────────────────────
+
+async function compactHistory({ threshold, mode }, ctxObj) {
+  if (mode === "preview") {
+    return {
+      command: "compact-history",
+      mode,
+      applied: false,
+      preview: true,
+      note: "dry-run: would collapse near-dup history rows keeping the newest",
+    };
+  }
+  const evidence = compactProfileHistory({
+    workspaceRoot: ctxObj.userWorkspaceRoot,
+    threshold: threshold != null && threshold !== "" ? Number(threshold) : undefined,
+    actor: "user",
+    confirmed: true,
+  });
+  return {
+    command: "compact-history",
+    targetPath: ctxObj.userWorkspaceRoot ? path.relative(ctxObj.userWorkspaceRoot, evidence.target_path || evidence.targetPath || "") : (evidence.target_path || evidence.targetPath),
+    evidence,
+  };
+}
+
+// ── restore-profile ─────────────────────────────────────────────────────────
+
+async function restoreProfile({ match, section, mode }, ctxObj) {
+  if (!match) throw new Error(t("error.matchRequired") || "match required");
+  if (mode === "preview") {
+    return {
+      command: "restore-profile",
+      mode,
+      match,
+      applied: false,
+      preview: true,
+      note: "dry-run: would restore archived fact back into an active section",
+    };
+  }
+  const evidence = restoreProfileEntry({
+    workspaceRoot: ctxObj.userWorkspaceRoot,
+    match,
+    section: section || undefined,
+    actor: "user",
+    confirmed: true,
+  });
+  return {
+    command: "restore-profile",
+    match,
+    targetPath: ctxObj.userWorkspaceRoot ? path.relative(ctxObj.userWorkspaceRoot, evidence.target_path || evidence.targetPath || "") : (evidence.target_path || evidence.targetPath),
+    evidence,
+  };
+}
+
 // ── dispatcher ─────────────────────────────────────────────────────────────
 
 async function main() {
@@ -165,6 +284,18 @@ async function main() {
       break;
     case "append-topic":
       data = await appendTopic({ slug: args.slug, content: args.content }, ctxObj);
+      break;
+    case "retire-profile":
+      data = await retireProfile({ match: args.match, section: args.section, reason: args.reason, mode }, ctxObj);
+      break;
+    case "update-profile":
+      data = await updateProfile({ match: args.match, content: args.content, section: args.section, mode }, ctxObj);
+      break;
+    case "compact-history":
+      data = await compactHistory({ threshold: args.threshold, mode }, ctxObj);
+      break;
+    case "restore-profile":
+      data = await restoreProfile({ match: args.match, section: args.section, mode }, ctxObj);
       break;
     default:
       throw new Error(t("error.unknownCommand", { command: args.command || "(empty)" }));

@@ -57,7 +57,7 @@ function XStatusBar() {
       <button
         type="button"
         onClick={() => select({ kind: "connector", id: "x" })}
-        className="flex items-center gap-1 text-text-quaternary transition-colors hover:text-text-secondary"
+        className="v4-focus-ring flex items-center gap-1 text-text-quaternary transition-colors hover:text-text-secondary"
       >
         <RiTwitterXLine size={ICON.micro} />
         <span>X · {label}</span>

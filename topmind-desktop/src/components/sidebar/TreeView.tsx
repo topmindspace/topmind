@@ -620,7 +620,7 @@ const TreeViewNode = memo(function TreeViewNode({
         className={cn(
           "v4-tree-node group flex min-h-(--density-tree-row,32px) cursor-pointer items-center gap-1.5 rounded-md py-1 pr-2 outline-none select-none",
           "transition-[background-color,color,box-shadow] duration-(--duration-fast)",
-          "focus-visible:ring-2 focus-visible:ring-ring/35",
+          "v4-focus-ring",
           /* Kind hierarchy also lives in CSS via data-tree-kind; classes keep TW happy */
           node.kind === "group" || node.kind === "category"
             ? "text-xs font-medium text-text-primary"
@@ -671,7 +671,7 @@ const TreeViewNode = memo(function TreeViewNode({
             && !isLoading ? (
             <span
               className={cn(
-                "rounded-full bg-surface-muted/90 px-1.5 py-0.5 text-3xs tabular-nums text-text-quaternary transition-opacity duration-(--duration-fast)",
+                "rounded-[var(--radius-xs)] bg-surface-muted/90 px-1.5 py-0.5 text-3xs tabular-nums text-text-quaternary transition-opacity duration-(--duration-fast)",
                 (node.kind === "topic") && "group-hover:opacity-0 group-focus-within:opacity-0",
                 (node.kind === "topic") && isActive && "opacity-0",
               )}

@@ -311,3 +311,45 @@ describe("memory journal (M4)", () => {
     assert.ok(lines.every((l) => l.ts && l.op));
   });
 });
+
+describe("profile CAS (lost-update protection)", () => {
+  it("executeWrite expectedHash rejects concurrent overwrite and retry recovers", async () => {
+    const r1 = appendProfileEntry({
+      workspaceRoot: ws,
+      entry: { section: "偏好", content: "CAS 事实甲" },
+      actor: "user",
+      confirmed: true,
+    });
+    assert.equal(r1.operation, "update");
+    // Simulate a concurrent writer flipping the file after our read.
+    const profilePath = path.join(ws, "memory", "profile.md");
+    const before = fs.readFileSync(profilePath, "utf8");
+    fs.writeFileSync(profilePath, `${before}\n- （2026-01-01）并发写入者\n`, "utf8");
+    const { executeWrite } = await import("../lib/writeback-engine.mjs");
+    const { contentHash } = await import("../lib/content-hash.mjs");
+    const stale = executeWrite({
+      targetPath: profilePath,
+      content: `${before}\n- （2026-01-01）基于旧读的覆盖\n`,
+      expectedHash: contentHash(before.replace(/\r\n?/gu, "\n")),
+      workspaceRoot: ws,
+      role: "memory",
+      actor: "user",
+      confirmed: true,
+      operation: "update",
+      skipShadow: true,
+    });
+    assert.equal(stale.reason, "cas-mismatch");
+    assert.equal(stale.wroteFiles, false);
+    assert.match(fs.readFileSync(profilePath, "utf8"), /并发写入者/);
+    // Fresh append under lock/retry still lands.
+    const r2 = appendProfileEntry({
+      workspaceRoot: ws,
+      entry: { section: "偏好", content: "CAS 事实乙" },
+      actor: "user",
+      confirmed: true,
+    });
+    assert.equal(r2.operation, "update");
+    assert.match(fs.readFileSync(profilePath, "utf8"), /CAS 事实乙/);
+    assert.match(fs.readFileSync(profilePath, "utf8"), /并发写入者/);
+  });
+});

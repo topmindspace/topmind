@@ -208,12 +208,16 @@ test("OverlayHost + host register plugin-app / topmind-ledger; apps menu is the 
   assert.match(ledgerIndex, /createLedgerStatusBarSlot/);
   assert.match(ledgerIndex, /createLedgerActions/);
 
-  // 2026-09 v4: Sidebar header PrimaryNav + Search + 记一下; destinations on primary header
+  // 2026-09 v4: ActivityBar owns destinations + capture + apps; Sidebar header
+  // keeps workspace name + search only.
   const sidebar = read("src/components/shell/Sidebar.tsx");
-  assert.match(sidebar, /SidebarHeaderActions/);
-  assert.match(sidebar, /v4-search-trigger/);
-  assert.match(sidebar, /RiPencilLine/);
-  assert.match(sidebar, /data-sidebar-primary-nav/);
+  assert.match(sidebar, /data-sidebar-search/);
+  assert.match(sidebar, /data-sidebar-ws-name|data-sidebar-workspace/);
+  assert.doesNotMatch(sidebar, /RiPencilLine/);
+  assert.doesNotMatch(sidebar, /data-sidebar-primary-nav/);
+  const activityBar = read("src/components/shell/ActivityBar.tsx");
+  assert.match(activityBar, /RiPencilLine/);
+  assert.match(activityBar, /data-activity-bar/);
   const titleBar = read("src/components/shell/TitleBar.tsx");
   assert.match(read("src/components/shell/PrimaryNav.tsx"), /PRIMARY_NAV_OPTIONS/);
   assert.doesNotMatch(read("src/components/shell/StatusBar.tsx"), /<PrimaryNav/);

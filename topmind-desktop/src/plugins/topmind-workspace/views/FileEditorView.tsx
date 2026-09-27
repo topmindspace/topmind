@@ -994,7 +994,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
   if (loadError && saveState !== "dirty" && saveState !== "saving") {
     return (
       <div className="flex h-full items-center justify-center p-6">
-        <div className="flex flex-col items-center gap-3 rounded-lg border border-error/20 bg-status-error-bg px-5 py-4 text-sm text-error">
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-border-subtle-dim bg-status-error-bg px-5 py-4 text-sm text-error">
           <span>
             {t("common:status.error")}: {loadError}
           </span>
@@ -1087,7 +1087,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
             {!readOnly ? (
               <EditorModeSwitch viewMode={viewMode} onChange={switchViewMode} />
             ) : (
-              <span className="inline-flex items-center gap-1 rounded-full bg-surface-muted px-2 py-0.5 text-3xs text-text-tertiary">
+              <span className="inline-flex items-center gap-1 rounded-[var(--radius-xs)] bg-surface-muted px-2 py-0.5 text-3xs text-text-tertiary">
                 <RiEyeLine size={ICON.micro} /> {t("workspace:formatBar.preview")}
               </span>
             )}

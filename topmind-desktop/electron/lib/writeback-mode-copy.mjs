@@ -75,17 +75,6 @@ export function describeWritebackModeForPrompt(mode, locale) {
   );
 }
 
-/**
- * Short English/internal comment for batch collector docs.
- * @param {string} [mode]
- */
-export function describeWritebackModeBrief(mode) {
-  if (normalizeWritebackMode(mode) === "confirm") {
-    return "confirm (graded): content edits land immediately; delete/archive pending until user accept/reject";
-  }
-  return "auto: write tools execute immediately; locked = one snapshot per task; multi-path turns get batch path receipts";
-}
-
 /** Forbidden Model-A phrases (for tests / docs:guard). Works for both locales. */
 export const MODEL_A_FORBIDDEN_RE =
   /只读\s*[—\-–].*只分析|可粘贴草稿|no write tools|不注册写工具/iu;

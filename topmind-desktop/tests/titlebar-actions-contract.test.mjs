@@ -22,7 +22,7 @@ function sliceTitleBarActions(src) {
   return src.slice(start, end);
 }
 
-test("PrimaryNav lives on the sidebar primary header (dropdown + compact icons)", () => {
+test("PrimaryNav is the compact TitleBar fallback; sidebar header is workspace name + search", () => {
   const nav = read("src/components/shell/PrimaryNav.tsx");
   assert.match(nav, /data-primary-nav=/);
   // Destinations remain stream / inbox / outputs — compact chips + dropdown items.
@@ -30,7 +30,7 @@ test("PrimaryNav lives on the sidebar primary header (dropdown + compact icons)"
   assert.match(nav, /kind: "inbox"/);
   assert.match(nav, /kind: "outputs"/);
   assert.match(nav, /variant = "sidebar"/);
-  // Sidebar: one 32px icon trigger. Names stay in the menu, not on the closed button.
+  // Sidebar variant: one 32px icon trigger. Names stay in the menu, not on the closed button.
   assert.match(nav, /data-primary-nav="sidebar"/);
   assert.match(nav, /DropdownMenu/);
   assert.match(nav, /aria-haspopup="menu"/);
@@ -48,8 +48,11 @@ test("PrimaryNav lives on the sidebar primary header (dropdown + compact icons)"
   assert.match(nav, /data-nav-kind=\{opt\.kind\}/);
   const status = read("src/components/shell/StatusBar.tsx");
   assert.doesNotMatch(status, /<PrimaryNav/);
+  // 2026-09 ActivityBar IA: destinations are on the ActivityBar rail; the Sidebar
+  // header is workspace name + search only (no PrimaryNav mount).
   const sidebar = read("src/components/shell/Sidebar.tsx");
-  assert.match(sidebar, /data-sidebar-primary-nav/);
+  assert.doesNotMatch(sidebar, /data-sidebar-primary-nav/);
+  assert.match(sidebar, /data-sidebar-search/);
   const title = read("src/components/shell/TitleBar.tsx");
   assert.match(title, /PrimaryNav variant="compact"/);
 });

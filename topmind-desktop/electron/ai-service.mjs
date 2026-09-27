@@ -13,6 +13,23 @@ import { assertPathWithin } from "./lib/path-safety.mjs";
 import { loadAppSettings } from "./settings.mjs";
 import { compactMessagesForModel, resolveCompactBudget } from "./lib/ai-session-compact.mjs";
 import { sanitizeInlineAiResult } from "./lib/inline-ai-result.mjs";
+import { rememberDistillHint } from "./lib/ai-tool-evidence.mjs";
+import {
+  applyGoalUpdate,
+  assessGoalCompletion,
+  buildContinuePrompt,
+  buildGoalEvaluatorPrompt,
+  buildTaskLedger,
+  createGoalState,
+  decideAutoContinue,
+  harvestPathReceipts,
+  isTaskLedgerText,
+  isMetaInstructionText,
+  mergeGoalState,
+  parseGoalEvaluatorResult,
+  reconcileGoalVerdicts,
+  resolveMaxAutoContinues,
+} from "./lib/agent-goal-protocol.mjs";
 import {
   INLINE_SYSTEM,
   buildInlineCompletePrompt,
@@ -171,6 +188,39 @@ function safeSessionId(sessionId) {
     throw new Error(`Invalid sessionId: ${id}`);
   }
   return id;
+}
+
+/** Session-level GoalState persistence (G2) — next to messages JSON. */
+function sessionGoalPath(sessionId, c) {
+  const id = safeSessionId(sessionId);
+  return path.join(msgDir(c), id + ".goal.json");
+}
+
+async function loadSessionGoal(sessionId, c) {
+  try {
+    return await readJson(sessionGoalPath(sessionId, c), null);
+  } catch {
+    return null;
+  }
+}
+
+async function saveSessionGoal(sessionId, goalState, c) {
+  try {
+    await ensureDir(msgDir(c));
+    await writeText(
+      sessionGoalPath(sessionId, c),
+      JSON.stringify({
+        goal: goalState?.goal || "",
+        plan: goalState?.plan || [],
+        criteria: goalState?.criteria || [],
+        doneCriteria: goalState?.doneCriteria || [],
+        pathReceipts: (goalState?.pathReceipts || []).slice(-24),
+        status: goalState?.status || "idle",
+        blockReason: goalState?.blockReason || null,
+        updatedAt: new Date().toISOString(),
+      }, null, 2),
+    );
+  } catch { /* goal persistence must not break invoke */ }
 }
 
 export const AiService = {
@@ -374,6 +424,7 @@ export const AiService = {
   async clearSession({ sessionId }, c) {
     const id = safeSessionId(sessionId);
     await fs.unlink(path.join(msgDir(c), id + ".json")).catch(() => {});
+    await fs.unlink(path.join(msgDir(c), id + ".goal.json")).catch(() => {});
     const s = await lst(c);
     delete (s.sessions || {})[id];
     await sst(c, s);
@@ -586,10 +637,11 @@ export const AiService = {
       });
     }
 
-    // Auto-continue: when the step budget is exhausted mid-task, re-enter the
-    // loop with a system continue prompt instead of dying. Bounded so a
-    // runaway agent cannot spin forever.
-    const MAX_AUTO_CONTINUES = 2;
+    // Auto-continue: when the step budget is exhausted mid-task (or the goal
+    // still has open acceptance criteria), re-enter the loop with a goal-aware
+    // continue prompt instead of dying. Bounded so a runaway agent cannot spin
+    // forever; incomplete goals get a slightly higher budget.
+    const BASE_MAX_AUTO_CONTINUES = 2;
     let autoContinues = 0;
     let workingMessages = compact.messages;
     let result = null;
@@ -599,6 +651,52 @@ export const AiService = {
     let lastSteerApplyCount = 0;
     let lastRuntime = "ai-sdk";
     let lastUsage = null;
+    let goalState = createGoalState(
+      (() => {
+        // Latest non-ledger user task wins (multi-turn session).
+        let last = "";
+        for (const m of compact.messages || []) {
+          if (m?.role === "user") {
+            const c = typeof m.content === "string" ? m.content : "";
+            if (c && !isTaskLedgerText(c) && !/^\[系统\]|^\[System\]/u.test(c)) last = c;
+          }
+        }
+        return last;
+      })(),
+    );
+    // Restore session-level GoalState if we saved one (G2: criteria survive
+    // user turns and restarts even when the model never re-emits [PLAN]).
+    // A *new* user task (goal text changed) must not inherit the old plan/criteria.
+    {
+      const saved = await loadSessionGoal(sessionId, c).catch(() => null);
+      const currentGoal = goalState.goal || "";
+      const sameTask =
+        saved &&
+        saved.goal &&
+        (currentGoal === saved.goal ||
+          currentGoal.startsWith(saved.goal.slice(0, 40)) ||
+          saved.goal.startsWith(currentGoal.slice(0, 40)));
+      if (saved && sameTask && (saved.plan?.length || saved.doneCriteria?.length || saved.goal)) {
+        goalState = mergeGoalState(saved, goalState);
+      }
+      // Fold history so [PLAN]/done-when from earlier turns stay live.
+      for (const m of compact.messages || []) {
+        if (m?.role !== "assistant" && m?.role !== "user") continue;
+        const ctext = typeof m.content === "string" ? m.content : Array.isArray(m.content)
+          ? m.content.map((b) => b?.text || "").join(" ")
+          : "";
+        if (!ctext || isTaskLedgerText(ctext) || isMetaInstructionText(ctext)) continue;
+        // Only fold plan markers when this message belongs to the current goal
+        // (assistant [PLAN] after the latest user task). Receipts always fold.
+        harvestPathReceipts(ctext, goalState.pathReceipts);
+        if (m.role === "assistant" || ctext.includes(currentGoal.slice(0, 24))) {
+          goalState = applyGoalUpdate(goalState, { text: ctext });
+        }
+      }
+    }
+    let contextRetries = 0;
+    /** File ops harvested from Pi compaction + tool path receipts (memory distill). */
+    const fileOps = { readFiles: [], modifiedFiles: [] };
 
     for (;;) {
       const runArgs = { ...streamArgs, messages: workingMessages };
@@ -629,37 +727,222 @@ export const AiService = {
       if (Array.isArray(result.followUps) && result.followUps.length) {
         lastFollowUps = result.followUps;
       }
-      if (result.text) {
+      // Detect overflow BEFORE appending partial text (P2: avoid duplicated fragments).
+      const errText0 = result.error ? String(result.error.message || result.error) : "";
+      const willOverflowRetry =
+        Boolean(result.error) &&
+        /context.?length|maximum context|too many tokens|context.?window/iu.test(errText0) &&
+        contextRetries < 3;
+      if (result.text && !willOverflowRetry) {
         combinedText = combinedText
           ? `${combinedText}\n\n${result.text}`
           : result.text;
       }
-      if (result.reasoning) {
+      if (result.reasoning && !willOverflowRetry) {
         combinedReasoning = combinedReasoning
           ? `${combinedReasoning}\n\n${result.reasoning}`
           : result.reasoning;
       }
+      // Fold run output into the shared goal ledger (plan / criteria / receipts).
+      // MERGE — never clobber the outer plan/criteria with an empty per-run rebuild
+      // (Pi runPiAgent starts a fresh GoalState; after auto-continue #1 the model
+      // often does not re-emit [PLAN], so replace() would drop open criteria).
+      const prevOpen = goalState.doneCriteria?.length || 0;
+      const prevPlan = goalState.plan?.length || 0;
+      if (result.goalState) {
+        goalState = mergeGoalState(goalState, result.goalState);
+      } else if (result.text) {
+        goalState = applyGoalUpdate(goalState, { text: result.text });
+      }
+      if (result.text) harvestPathReceipts(result.text, goalState.pathReceipts);
+      if (result.fileOps) {
+        for (const p of result.fileOps.readFiles || []) {
+          if (p && !fileOps.readFiles.includes(p)) fileOps.readFiles.push(p);
+        }
+        for (const p of result.fileOps.modifiedFiles || []) {
+          if (p && !fileOps.modifiedFiles.includes(p)) fileOps.modifiedFiles.push(p);
+        }
+      }
+      // Path receipts are also distill candidates (written/updated this run).
+      for (const p of goalState.pathReceipts || []) {
+        if (p && !fileOps.modifiedFiles.includes(p) && /\.(?:md|txt|json|ya?ml|csv)$/iu.test(p)) {
+          fileOps.modifiedFiles.push(p);
+        }
+      }
+      // Live goal chip: emit when plan/criteria first appear or status flips.
+      if (
+        (goalState.plan?.length || 0) !== prevPlan ||
+        (goalState.doneCriteria?.length || 0) !== prevOpen ||
+        goalState.status === "done" ||
+        goalState.status === "incomplete" ||
+        goalState.status === "blocked"
+      ) {
+        emit?.({
+          type: "goal-status",
+          sessionId,
+          goal: {
+            goal: goalState.goal || "",
+            plan: goalState.plan || [],
+            criteria: goalState.criteria || [],
+            openCriteria: goalState.doneCriteria || [],
+            pathReceipts: (goalState.pathReceipts || []).slice(-12),
+            status: goalState.status || "idle",
+            blockReason: goalState.blockReason || null,
+            autoContinues,
+          },
+        });
+      }
+
+      // Context overflow: compact harder and retry (G8: up to 3, not tools-gated).
+      const errText = result.error ? String(result.error.message || result.error) : "";
+      const isContextOverflow = /context.?length|maximum context|too many tokens|context.?window/iu.test(errText);
+      if (result.error && isContextOverflow && contextRetries < 3) {
+        contextRetries += 1;
+        logWarn("ai", "context overflow — compacting and retrying", { sessionId, contextRetries });
+        emit?.({ type: "status", status: "compacting", sessionId });
+        const hard = compactMessagesForModel(workingMessages, {
+          maxMessages: Math.max(8, Math.floor(dynamicBudget.maxMessages / (1 + contextRetries))),
+          keepRecent: Math.max(4, Math.floor(dynamicBudget.keepRecent / (1 + contextRetries))),
+          maxChars: Math.max(8000, Math.floor(dynamicBudget.maxChars / (1 + contextRetries))),
+          locale: settings?.ui?.locale === "en-US" ? "en-US" : "zh-CN",
+        });
+        workingMessages = [
+          { role: "user", content: buildTaskLedger(goalState, locale === "en" ? "en-US" : "zh-CN") },
+          ...hard.messages,
+        ];
+        result.error = null;
+        continue;
+      }
 
       if (result.error || result.cancelled) break;
-      if (!result.stepLimitHit) break;
-      if (!tools) break;
-      if (autoContinues >= MAX_AUTO_CONTINUES) {
-        logInfo("ai", "auto-continue budget exhausted", { sessionId, autoContinues });
+      const heuristic = assessGoalCompletion({
+        state: goalState,
+        lastBody: String(result.text || ""),
+        stepLimitHit: Boolean(result.stepLimitHit),
+        toolCallCount: result.toolCallCount || 0,
+      });
+      // External goal evaluator (industry /goal): a separate judge when the
+      // worker claims done or criteria are open — never worker self-grading.
+      let evaluator = null;
+      const wantsJudge =
+        goalState.doneCriteria?.length > 0 ||
+        heuristic.reason === "done-mark" ||
+        heuristic.confidence === "medium";
+      if (wantsJudge && res.modelId && !heuristic.reason?.includes("incomplete-mark")) {
+        try {
+          const judge = await generateText({
+            model: res.model,
+            system: "You are a strict goal-completion judge. JSON only.",
+            prompt: buildGoalEvaluatorPrompt({
+              state: goalState,
+              lastBody: String(result.text || ""),
+              toolSummaries: (result.toolCallCount
+                ? [`toolCallCount=${result.toolCallCount}`]
+                : []).concat((goalState.pathReceipts || []).slice(-6)),
+            }),
+            maxOutputTokens: 200,
+            temperature: 0,
+          });
+          evaluator = parseGoalEvaluatorResult(judge?.text || "");
+          if (evaluator) {
+            logInfo("ai", "goal evaluator", {
+              sessionId,
+              verdict: evaluator.verdict,
+              reason: evaluator.reason,
+            });
+          }
+        } catch (evalErr) {
+          logWarn("ai", "goal evaluator unavailable — heuristic only", {
+            sessionId,
+            error: evalErr instanceof Error ? evalErr.message : String(evalErr),
+          });
+        }
+      }
+      const assessment = reconcileGoalVerdicts({ heuristic, evaluator });
+      // Evaluator `met` is a completed verdict — clear open criteria so the
+      // persisted session goal does not look perpetually incomplete.
+      if (evaluator?.verdict === "met" && assessment.finished) {
+        goalState = {
+          ...goalState,
+          status: "done",
+          doneCriteria: [],
+          blockReason: null,
+        };
+      }
+      const maxContinues = resolveMaxAutoContinues({
+        assessment,
+        baseMax: BASE_MAX_AUTO_CONTINUES,
+      });
+      const decision = decideAutoContinue({
+        assessment,
+        autoContinues,
+        maxAutoContinues: maxContinues,
+        hasTools: Boolean(tools),
+        error: Boolean(result.error),
+        cancelled: Boolean(result.cancelled),
+      });
+      // High-confidence done always stops — even at the step cap (G5):
+      // never spend continue budget re-closing a finished task.
+      // Accept both worker `[DONE]` and evaluator `met` verdicts.
+      if (
+        assessment.finished &&
+        assessment.confidence === "high" &&
+        (assessment.reason === "done-mark" || String(assessment.reason || "").startsWith("met"))
+      ) {
         break;
       }
-      // Skip continue when the last answer already looks like a real finish.
-      const lastBody = String(result.text || "").trim();
-      if (lastBody.length > 400 && /(?:路径回执|path receipt|完成|done|结论)/iu.test(lastBody.slice(-200))) {
+      // Hard stops win even at stepLimitHit (G7): blocked / incomplete / impossible / no-tools.
+      const hardStop =
+        decision.reason === "blocked" ||
+        decision.reason === "incomplete-mark" ||
+        String(decision.reason || "").startsWith("impossible") ||
+        decision.reason === "no-tools" ||
+        decision.reason === "error-or-cancelled";
+      if (hardStop) {
+        if (goalState.status !== "done" && decision.reason !== "blocked") {
+          // Keep blocked as-is; otherwise honest terminal for the stop reason.
+          if (decision.reason === "incomplete-mark" || String(decision.reason || "").startsWith("impossible")) {
+            goalState = {
+              ...goalState,
+              status: "incomplete",
+              blockReason: goalState.blockReason || decision.reason,
+            };
+          }
+        }
         break;
       }
+      // Budget exhaustion is terminal BEFORE any continue (G6): decideAutoContinue
+      // already returns continue:false at budget — terminalize then break.
+      if (autoContinues >= maxContinues || (!decision.continue && decision.reason === "continue-budget")) {
+        logInfo("ai", "auto-continue budget exhausted", { sessionId, autoContinues, maxContinues });
+        if (goalState.status !== "done") {
+          goalState = {
+            ...goalState,
+            status: goalState.status === "blocked" ? "blocked" : "incomplete",
+            blockReason: goalState.blockReason || "budget_exhausted",
+          };
+        }
+        break;
+      }
+      // Step limit offers a continue (fresh budget) unless a hard stop/done; otherwise goal-aware.
+      if (!result.stepLimitHit && !decision.continue) break;
 
       autoContinues += 1;
       emit?.({ type: "status", status: "continuing", sessionId, autoContinues });
-      logInfo("ai", "auto-continue after step limit", { sessionId, autoContinues });
+      logInfo("ai", "auto-continue after step limit / open goal", {
+        sessionId,
+        autoContinues,
+        reason: assessment.reason,
+      });
+      const continueBody = buildContinuePrompt(
+        settings?.ui?.locale === "en-US" ? "en-US" : "zh-CN",
+        goalState,
+      );
+      const lastBody = String(result.text || "").trim();
       workingMessages = [
         ...workingMessages,
         ...(lastBody ? [{ role: "assistant", content: lastBody }] : []),
-        { role: "user", content: ei18n("ai.continuePrompt") },
+        { role: "user", content: continueBody },
       ];
       // Re-compact if the transcript grew past the dynamic budget.
       if (workingMessages.length > dynamicBudget.maxMessages) {
@@ -669,7 +952,10 @@ export const AiService = {
           maxChars: dynamicBudget.maxChars,
           locale: settings?.ui?.locale === "en-US" ? "en-US" : "zh-CN",
         });
-        workingMessages = recompacted.messages;
+        workingMessages = [
+          { role: "user", content: buildTaskLedger(goalState, locale === "en" ? "en-US" : "zh-CN") },
+          ...recompacted.messages,
+        ];
       }
     }
 
@@ -709,8 +995,30 @@ export const AiService = {
     if (lastFollowUps.length) {
       emit?.({ type: "follow-up-ready", count: lastFollowUps.length, sessionId });
     }
+    // Goal-layer summary for the renderer (plan / open criteria / incomplete).
+    const goalSummary = {
+      goal: goalState.goal || "",
+      plan: goalState.plan || [],
+      criteria: goalState.criteria || [],
+      openCriteria: goalState.doneCriteria || [],
+      pathReceipts: (goalState.pathReceipts || []).slice(-12),
+      status: goalState.status || "idle",
+      blockReason: goalState.blockReason || null,
+      autoContinues,
+    };
+    emit?.({ type: "goal-status", goal: goalSummary, sessionId });
+    rememberDistillHint(fileOps);
+    // Persist session-level GoalState so criteria survive user turns / restart.
+    await saveSessionGoal(sessionId, goalState, c).catch(() => {});
+    // Stop-reason honesty (G4): cancel ≠ timeout ≠ stall ≠ incomplete.
+    const cancelled = Boolean(result?.cancelled);
+    const stopReason = result?.stopReason
+      || (cancelled ? "cancelled" : result?.error ? "error" : null);
     return {
       ok: !result?.error,
+      cancelled,
+      stopReason,
+      stepLimitHit: Boolean(result?.stepLimitHit),
       text: combinedText || result?.text || "",
       reasoning: combinedReasoning || result?.reasoning || "",
       error: friendlyError,
@@ -720,6 +1028,13 @@ export const AiService = {
       followUps: lastFollowUps,
       steerApplyCount: lastSteerApplyCount,
       autoContinues,
+      goal: goalSummary,
+      taskLedger: buildTaskLedger(goalState, locale === "en" ? "en-US" : "zh-CN"),
+      /** Post-run memory distill candidates (Pi CompactionDetails + path receipts). */
+      memoryDistillHint: {
+        readFiles: fileOps.readFiles.slice(0, 24),
+        modifiedFiles: fileOps.modifiedFiles.slice(0, 24),
+      },
       compactNote: compact.compacted ? compact.note : null,
       estimatedTokens: compact.estimatedTokens,
       runtime: lastRuntime,

@@ -124,7 +124,7 @@ export function SelectionAiBar({
           data-selection-ai
           className="pointer-events-none fixed bottom-6 left-1/2 z-floating -translate-x-1/2"
         >
-          <div className="rounded-full border border-border-subtle bg-surface-elevated px-3 py-1.5 text-3xs text-text-secondary shadow-[var(--shadow-float)]">
+          <div className="rounded-[var(--radius-xs)] border border-border-subtle bg-surface-elevated px-3 py-1.5 text-3xs text-text-secondary shadow-[var(--shadow-float)]">
             {statusHint}
           </div>
         </div>
@@ -181,7 +181,7 @@ export function SelectionAiBar({
         {/* Header: drag handle + status + auto-popup toggle + close */}
         <div className="flex items-center gap-1 border-b border-border-subtle-dim px-1 pb-1">
           <span
-            className="flex h-6 w-4 shrink-0 cursor-grab items-center justify-center text-text-quaternary/50 hover:text-text-tertiary active:cursor-grabbing"
+            className="flex h-6 w-4 shrink-0 cursor-grab items-center justify-center text-text-quaternary hover:text-text-tertiary active:cursor-grabbing"
             onMouseDown={onDragStart}
             title={t("selectionAi.dragHint")}
             aria-label={t("selectionAi.dragHint")}
@@ -230,7 +230,7 @@ export function SelectionAiBar({
                 "v4-focus-ring",
                 inlineAiAutoPopup
                   ? "text-accent-color hover:bg-accent-bg-faint"
-                  : "text-text-quaternary hover:bg-surface-muted",
+                  : "text-text-quaternary hover:bg-state-hover",
               )}
               onClick={() => setInlineAiAutoPopup(!inlineAiAutoPopup)}
               aria-pressed={inlineAiAutoPopup}
@@ -246,7 +246,7 @@ export function SelectionAiBar({
           ) : null}
           <button
             type="button"
-            className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary hover:bg-surface-muted hover:text-text-secondary"
+            className="flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-quaternary hover:bg-state-hover hover:text-text-secondary"
             aria-label={t("selectionAi.closeAria")}
             onClick={() => {
               if (busy) cancelRun();
@@ -336,7 +336,7 @@ export function SelectionAiBar({
                 {statusHint || t("selectionAi.statusHintRequestModel")} {t("selectionAi.statusHintCancelOrEsc")}
               </span>
             </div>
-            <div className="h-0.5 w-full overflow-hidden rounded-full bg-accent-bg-subtle/60">
+            <div className="h-0.5 w-full overflow-hidden rounded-full bg-accent-bg-subtle">
               <div className="h-full w-1/3 v4-ai-progress-slide rounded-full bg-accent-color/50" />
             </div>
           </div>

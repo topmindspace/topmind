@@ -1,9 +1,10 @@
 @import "tailwindcss";
 
 /**
- * topmind Design Tokens — Design System 4.0.4 "ZCode Neutral + MD3-informed"
- * (4.0.4: warm paper / lifted graphite for long sessions · UI type floor 12px ·
- *  quaternary ink lifted to AA on the chrome plane — 2026-09-24)
+ * topmind Design Tokens — Design System 4.0.5 "ZCode Neutral + MD3"
+ * (4.0.5: MD3 state-layer ::after · surface container 5-step · re-opened
+ *  type scale (2xs=11 meta, xs=13 content floor, sm=14 UI, base=15) ·
+ *  inverse-surface trio · 2026-09-26)
  *
  * Brand: sky axis (deep #075985 → mid #0ea5e9) + capture teal #2fa89a.
  * Solid CTA = monochrome ink. Sky = focus / links / selection / accent washes.
@@ -24,7 +25,6 @@
   /* ── Monochrome ink primary (solid CTA; ZCode primary language) ── */
   --color-ink: #1a1a1a;
   --color-ink-hover: #383838;
-  --color-ink-active: #0d0d0d;
   --color-ink-foreground: #ffffff;
 
   /* ── Colors (light) ──
@@ -218,13 +218,6 @@
   --font-family-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Cascadia Mono", "Microsoft YaHei UI", "PingFang SC", monospace;
   --font-sans: var(--font-family-ui);
   --font-mono: var(--font-family-mono);
-  /* MD3 type-role aliases (docs / future consumers; UI uses Tailwind text-*) */
-  --type-role-display: var(--text-4xl);
-  --type-role-headline: var(--text-2xl);
-  --type-role-title: var(--text-lg);
-  --type-role-body: var(--text-base);
-  --type-role-label: var(--text-3xs);
-
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
@@ -242,6 +235,8 @@
   --density-page-x: 32px;
   --density-page-y: 28px;
   --density-chrome-y: 44px;
+  /* Density tiers are window-driven media overrides in v4.css
+     (full 44 · condensed 36 · immersive 32). Keep one live token. */
   --density-chrome-control: 32px;
   --density-status-y: 26px;
   --density-tree-row: 32px;
@@ -268,23 +263,26 @@
   --tracking-normal: var(--letter-spacing-normal);
   --tracking-wide: var(--letter-spacing-wide);
 
-  /* Type scale — integer steps for CJK+Latin workbench
-     5xs = kbd glyphs only · 4xs/3xs = 12px UI floor · base 14 · title 16 · section 18 */
+  /* Type scale — re-opened 2026-09-26 (was 9 names → 4 sizes).
+     5xs = kbd glyphs only · 4xs = 12px labels · 2xs = 11px muted meta
+     xs = 13px controls · sm = 14px UI primary · base = 15px reading body.
+     Content floor: goal criteria / tool summaries / suggestion body ≥13px
+     (text-xs). Do not paint sentences at the label floor. */
   --text-5xs: 10px;
   --text-5xs--line-height: var(--type-leading-compact);
   --text-4xs: 12px;
   --text-4xs--line-height: var(--type-leading-compact);
   --text-3xs: 12px;
   --text-3xs--line-height: var(--type-leading-compact);
-  --text-2xs: 12px;
+  --text-2xs: 11px;
   --text-2xs--line-height: var(--type-leading-compact);
   --text-xs: 13px;
   --text-xs--line-height: var(--type-leading-ui);
-  --text-sm: 13px;
+  --text-sm: 14px;
   --text-sm--line-height: var(--type-leading-ui);
-  --text-base: 14px;
+  --text-base: 15px;
   --text-base--line-height: var(--type-leading-ui);
-  --text-md: 14px;
+  --text-md: 15px;
   --text-md--line-height: var(--type-leading-ui);
   --text-lg: 16px;
   --text-lg--line-height: var(--type-leading-compact);
@@ -361,28 +359,10 @@
   --shadow-focus-inset: inset 0 0 0 1px var(--color-accent-color), inset 0 0 0 4px var(--color-focus-soft);
 }
 
-/* ── MD3 role aliases (plain custom properties — not Tailwind utilities) ──
-   Design/docs mapping only; UI continues to use topmind semantic names.
-   Values resolve at use time against the active theme. */
-@layer base {
-  :root,
-  .dark {
-    --md-sys-color-primary: var(--color-ink);
-    --md-sys-color-on-primary: var(--color-ink-foreground);
-    --md-sys-color-secondary: var(--color-accent-color);
-    --md-sys-color-secondary-container: var(--color-accent-container);
-    --md-sys-color-on-secondary-container: var(--color-on-accent-container);
-    --md-sys-color-tertiary: var(--color-accent-inbox);
-    --md-sys-color-surface: var(--color-surface);
-    --md-sys-color-surface-container: var(--color-surface-elevated);
-    --md-sys-color-surface-container-high: var(--color-surface-elevated);
-    --md-sys-color-on-surface: var(--color-text-primary);
-    --md-sys-color-on-surface-variant: var(--color-text-tertiary);
-    --md-sys-color-outline: var(--color-border-subtle);
-    --md-sys-color-outline-variant: var(--color-border-subtle-dim);
-    --md-sys-color-error: var(--color-status-error);
-  }
-}
+/* MD3 surface-container roles live as product tokens (--color-surface-elevated,
+   --color-surface, --color-background, --color-surface-muted, --color-surface-inset)
+   and are consumed directly by menu/sheet/dialog/card/toast. No --md-sys-*
+   documentation aliases — zero-ref tokens are banned (ui-token-compliance). */
 
 @layer base, layout, components;
 
@@ -426,7 +406,6 @@
     /* Ink CTA = near-white on graphite */
     --color-ink: #f0f0f0;
     --color-ink-hover: #dcdcdc;
-    --color-ink-active: #ffffff;
     --color-ink-foreground: #0a0a0a;
     --color-accent-inbox: #4fc2b0;
     --color-accent-color: #38bdf8;
@@ -443,7 +422,8 @@
     --color-status-warning: #fbbf24;
     --color-warning: var(--color-status-warning);
     --color-status-warning-bg: rgba(251, 191, 36, 0.12);
-    --color-status-error: #f87171;
+    /* #fa8080 (not #f87171): AA on elevated plane + own wash (4.81:1) */
+    --color-status-error: #fa8080;
     --color-status-error-bg: rgba(248, 113, 113, 0.12);
     --color-status-info: #7dd3fc;
     --color-status-info-bg: rgba(125, 211, 252, 0.12);
@@ -740,10 +720,17 @@ select:focus-visible {
   }
 }
 
-/* Unified focus ring + MD3-informed state helpers */
+/* Unified focus ring + MD3-informed state helpers.
+   ONE recipe (no ring/35 alpha): token outline + soft halo. Pair with
+   outline-none only when the element would double-outline. */
 @layer components {
   .v4-focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/35;
+    @apply focus-visible:outline-none;
+  }
+  .v4-focus-ring:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px var(--color-focus-soft);
   }
   .v4-state-hover { background: var(--color-state-hover); }
   .v4-state-pressed { background: var(--color-state-pressed); }
@@ -809,6 +796,17 @@ select:focus-visible {
 
 .animate-toast-in {
   animation: toast-in var(--duration-enter) var(--ease-spring);
+}
+
+.animate-toast-out {
+  animation: toast-out var(--duration-exit, 120ms) ease-in forwards;
+}
+
+@keyframes toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
 }
 
 .animate-shimmer {

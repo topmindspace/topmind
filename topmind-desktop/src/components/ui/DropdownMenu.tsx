@@ -40,7 +40,7 @@ export interface DropdownMenuProps {
   maxWidth?: number;
   maxHeight?: number;
   /** Force open direction (sidebar footer → "top"). */
-  preferPlacement?: "top" | "bottom" | "auto";
+  preferPlacement?: "top" | "bottom" | "right" | "auto";
   /** Extra bottom inset so the panel clears the status bar. */
   padBottom?: number;
   /** Default true — panel width tracks trigger (settings). False for wide menus. */

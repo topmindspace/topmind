@@ -283,6 +283,20 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
             }),
           );
           if (opResult.summary) _appendLog(taskId, opResult.summary);
+          // Honest failure: never toast success when every op failed (offline/no AI).
+          if (opResult.ok === false && opResult.merged === 0) {
+            _updateTask(taskId, {
+              status: "failed",
+              error: opResult.errors?.[0] || i18n.t("shell:taskPanel.taskFailed", { ns: "shell", error: "AI ops failed" }),
+              completedAt: Date.now(),
+            });
+            emitLocal("toast:show", {
+              text: opResult.errors?.[0]
+                || i18n.t("shell:taskPanel.taskFailed", { ns: "shell", error: "AI ops failed" }),
+              kind: "error",
+            });
+            return;
+          }
           for (const item of allItems.slice(0, 8)) {
             _appendLog(taskId, `  • ${item.title}`);
           }

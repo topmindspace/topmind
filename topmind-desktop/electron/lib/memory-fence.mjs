@@ -11,6 +11,7 @@
 
 export const MEMORY_WRITE_TOOLS = new Set([
   "append_core_memory", "update_core_memory", "retire_core_memory",
+  "restore_core_memory", "compact_core_memory_history",
   "append_topic_memory", "add_todo", "toggle_todo",
 ]);
 

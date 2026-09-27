@@ -3,7 +3,6 @@ import {
   RiCalendar2Line,
   RiDatabase2Line,
   RiErrorWarningLine,
-  RiPencilLine,
   RiRefreshLine,
   RiSearchLine,
   RiUser3Line,
@@ -16,7 +15,6 @@ import { useViewStore, loadExpandedState, type SidebarViewMode } from "../../sto
 import { TreeView } from "../sidebar/TreeView";
 import { TreeToolbar } from "../sidebar/tree-toolbar";
 import { ViewSwitcher } from "../sidebar/ViewSwitcher";
-import { PrimaryNav } from "./PrimaryNav";
 import { LazyBoundary } from "../ui/LazyBoundary";
 import { api } from "../../services/api";
 import { emitLocal, onLocal } from "../../plugins/host";
@@ -120,6 +118,9 @@ export function Sidebar() {
   const select = useViewStore((s) => s.select);
   const viewMode = useViewStore((s) => s.sidebarView);
   const setSidebarView = useViewStore((s) => s.setSidebarView);
+  const openOverlay = useViewStore((s) => s.openOverlay);
+  const workspaceRoot = useViewStore((s) => s.workspaceRoot);
+  const workspaceName = workspaceRoot ? workspaceRoot.split(/[\\/]/).filter(Boolean).pop() || workspaceRoot : t("sidebar.streamDefault");
 
   const [enabledViews, setEnabledViews] = useState<SidebarViewMode[] | undefined>(undefined);
   const [pins, setPins] = useState<SidebarPins>({
@@ -271,29 +272,38 @@ export function Sidebar() {
 
   return (
     <div className="v4-panel-contain v4-sidebar-rail flex h-full min-h-0 flex-col">
-      {/* Sidebar header — destination + Profile + Search + 记一下.
-          macOS keeps the traffic-light reserve and right-aligns this cluster.
-          Windows/Linux left-align it at the rail edge. */}
+      {/* Sidebar header — workspace name + search (quick actions).
+          Destinations / capture / theme / focus / settings live on the
+          ActivityBar. macOS traffic lights still need a drag strip here. */}
       <div
         className={cn("v4-column-chrome v4-drag", isMacOS && "v4-mac-titlebar-pad")}
         data-sidebar-header
         data-column-chrome="left"
       >
-        <div
-          className={cn(
-            "v4-no-drag flex min-w-0 flex-1 items-center gap-1",
-            isMacOS ? "justify-end" : "justify-start",
-          )}
-          data-sidebar-header-actions
-        >
-          <div className="v4-sidebar-destination" data-sidebar-primary-nav>
-            <ErrorBoundary label={t("primaryNav.ariaLabel")}>
-              <PrimaryNav variant="sidebar" />
-            </ErrorBoundary>
-          </div>
-          <div className="v4-sidebar-header-tools gap-1" data-sidebar-header-tools>
-            <SidebarHeaderActions />
-          </div>
+        <div className="v4-no-drag flex min-w-0 flex-1 items-center gap-1">
+          {/* Workspace identity + menu (ported WorkspaceSwitcher) — top header */}
+          <div
+            className="flex min-w-0 flex-1 items-center"
+            data-sidebar-workspace
+            data-sidebar-ws-name
+            ref={() => {
+              notifyChromeSlots();
+            }}
+          />
+          <Tooltip content={t("titleBar.searchCommandTip")}>
+            <button
+              type="button"
+              className="v4-icon-btn v4-icon-btn-chrome shrink-0"
+              data-sidebar-search
+              onClick={() => openOverlay("command-palette")}
+              onMouseEnter={() => {
+                void import("../overlays/CommandPalette");
+              }}
+              aria-label={t("titleBar.searchCommandAriaLabel")}
+            >
+              <RiSearchLine size={ICON.sm} />
+            </button>
+          </Tooltip>
         </div>
       </div>
       {/* View mode stays left with the tree. Sort and the other tree tools sit right. */}
@@ -328,13 +338,6 @@ export function Sidebar() {
           {renderView()}
         </ErrorBoundary>
       </div>
-      <div
-        className="flex shrink-0 items-center border-t border-border-subtle-dim px-1.5 py-1.5"
-        data-sidebar-workspace
-        ref={() => {
-          notifyChromeSlots();
-        }}
-      />
     </div>
   );
 }
@@ -349,91 +352,11 @@ function PeriodPill({ pins }: { pins: SidebarPins }) {
       <button
         type="button"
         onClick={() => select({ kind: "stream" })}
-        className="inline-flex min-w-0 flex-1 items-center gap-1 truncate rounded-full bg-surface-muted/40 px-2 py-0.5 text-3xs text-text-secondary transition-colors hover:bg-surface-muted"
+        className="inline-flex min-w-0 flex-1 items-center gap-1 truncate rounded-[var(--radius-xs)] bg-surface-muted px-2 py-0.5 text-3xs text-text-secondary transition-colors hover:bg-state-hover"
         aria-label={pins.periodLabel || t("sidebar.streamPinTip")}
       >
         <RiCalendar2Line size={ICON.micro} className="shrink-0" />
         <span className="min-w-0 flex-1 truncate">{pins.periodLabel}</span>
-      </button>
-    </Tooltip>
-  );
-}
-
-/**
- * Sidebar header actions — Profile → Search → 记一下.
- * 记一下 is icon-only pencil (`RiPencilLine`): the universal write glyph.
- * Pen-nib was too obscure at 17px. Tooltip + aria-label carry the name.
- * Geometry matches Search exactly so the trailing pair reads as one cluster.
- */
-function SidebarHeaderActions() {
-  const { t } = useTranslation("shell");
-  const openOverlay = useViewStore((s) => s.openOverlay);
-  return (
-    <>
-      <span className="flex shrink-0 items-center">
-        <ProfileButton />
-      </span>
-      <Tooltip content={t("titleBar.searchCommandTip")}>
-        <button
-          type="button"
-          className="v4-search-trigger v4-titlebar-btn v4-sidebar-chrome-btn"
-          data-sidebar-search
-          onClick={() => emitLocal("overlay:open", { kind: "command-palette" })}
-          onMouseEnter={() => { void import("../overlays/CommandPalette"); }}
-          aria-label={t("titleBar.searchCommandAriaLabel")}
-        >
-          <RiSearchLine size={ICON.sm} className="shrink-0" />
-        </button>
-      </Tooltip>
-      <Tooltip content={t("titleBar.captureTip")}>
-        <button
-          type="button"
-          className="v4-sidebar-capture v4-titlebar-btn v4-sidebar-chrome-btn"
-          data-chrome-tier="l1"
-          data-sidebar-capture
-          onMouseEnter={() => { void import("../overlays/QuickCapture"); }}
-          onClick={() => openOverlay("quick-capture")}
-          aria-label={t("titleBar.capture")}
-        >
-          <RiPencilLine size={ICON.sm} className="v4-capture-accent-icon shrink-0" />
-        </button>
-      </Tooltip>
-    </>
-  );
-}
-
-/** Profile button — ensures core profile exists and navigates to it. */
-function ProfileButton() {
-  const { t } = useTranslation("shell");
-  const select = useViewStore((s) => s.select);
-  const active = useViewStore((s) => s.selection.kind === "memory");
-  return (
-    <Tooltip content={t("sidebar.profileTip")}>
-      <button
-        type="button"
-        onClick={() => {
-          void (async () => {
-            try {
-              const ensured = await api.ws.ensureCoreProfile();
-              if (ensured.profileRelPath || ensured.ok) {
-                select({ kind: "memory" });
-                if (ensured.created) emitLocal("workspace:file-changed");
-              }
-            } catch {
-              /* ignore */
-            }
-          })();
-        }}
-        className={cn(
-          "v4-icon-btn v4-sidebar-chrome-btn shrink-0 rounded-full v4-focus-ring",
-          active
-            ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
-            : "bg-surface-muted/40 text-text-secondary hover:bg-surface-hover hover:text-text-primary",
-        )}
-        aria-label={t("sidebar.myProfile")}
-        aria-pressed={active}
-      >
-        <RiUser3Line size={ICON.sm} className="shrink-0" />
       </button>
     </Tooltip>
   );
@@ -811,7 +734,7 @@ function DataSourceSection({
           </div>
           <button
             onClick={() => { void hardRefresh(); }}
-            className="flex items-center gap-1 self-start rounded-[var(--radius-sm)] border border-border-subtle px-1.5 py-0.5 text-3xs text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary v4-focus-ring"
+            className="flex items-center gap-1 self-start rounded-[var(--radius-sm)] border border-border-subtle px-1.5 py-0.5 text-3xs text-text-secondary transition-colors hover:bg-state-hover hover:text-text-primary v4-focus-ring"
           >
             <RiRefreshLine size={ICON.micro} aria-hidden /> {t("sidebar.retry")}
           </button>

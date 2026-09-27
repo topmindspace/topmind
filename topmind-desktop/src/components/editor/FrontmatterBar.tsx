@@ -82,7 +82,7 @@ export function FrontmatterBar({
       {isLocked ? (
         <Tooltip content={t("frontmatterBar.lockedTooltip")}>
           <span
-            className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] border border-warning/30 bg-warning/10 px-1.5 py-0.5 text-3xs text-warning"
+            className="inline-flex items-center gap-1 rounded-[var(--radius-sm)] border border-border-subtle-dim bg-status-warning-bg px-1.5 py-0.5 text-3xs text-warning"
             data-testid="frontmatter-locked-chip"
           >
             <RiLockLine size={ICON.micro} aria-hidden />
@@ -95,7 +95,8 @@ export function FrontmatterBar({
         <span className="inline-flex min-w-0">
           <MenuSelect
             variant="chip"
-            disabled={readOnly || busy}
+            disabled={readOnly}
+            softDisabled={busy && !readOnly}
             value={statusKey}
             aria-label={t("frontmatterBar.statusAria")}
             leading={<RiFlagLine size={ICON.micro} />}
@@ -114,7 +115,8 @@ export function FrontmatterBar({
         <span className="inline-flex min-w-0">
           <MenuSelect
             variant="chip"
-            disabled={readOnly || busy}
+            disabled={readOnly}
+            softDisabled={busy && !readOnly}
             value={priority}
             aria-label={t("frontmatterBar.priorityAria")}
             onChange={(v) => void patch({ priority: v || null })}
@@ -134,16 +136,18 @@ export function FrontmatterBar({
       <Tooltip content={t("frontmatterBar.dueTooltip")}>
         <label
           className={cn(
-            "v4-select-chip inline-flex h-8 max-w-[11rem] items-center gap-1 rounded-full",
-            "border border-border-subtle-dim bg-surface-muted/70 px-2",
-            "transition-colors hover:bg-surface-muted focus-within:ring-2 focus-within:ring-ring/35",
+            "v4-select-chip inline-flex h-8 max-w-[11rem] items-center gap-1 rounded-[var(--radius-xs)]",
+            "border border-border-subtle-dim bg-surface-muted px-2",
+            "transition-colors hover:bg-state-hover focus-within:v4-focus-ring",
             (readOnly || busy) && "opacity-50",
           )}
         >
           <RiCalendarLine size={ICON.micro} className="shrink-0 opacity-60" aria-hidden />
           <input
             type="date"
-            disabled={readOnly || busy}
+            disabled={readOnly}
+            data-soft-disabled={busy && !readOnly ? true : undefined}
+            aria-disabled={busy && !readOnly ? true : undefined}
             value={normalizeDateInput(due)}
             aria-label={t("frontmatterBar.dueAria")}
             onChange={(e) => void patch({ due: e.target.value || null })}
@@ -158,7 +162,7 @@ export function FrontmatterBar({
 
       {tags ? (
         <Tooltip content={t("frontmatterBar.tagsTooltip", { tags })}>
-          <span className="inline-flex max-w-[28%] items-center gap-1 truncate rounded-full border border-border-subtle-dim bg-surface px-2 py-0.5 text-3xs text-text-tertiary">
+          <span className="inline-flex max-w-[28%] items-center gap-1 truncate rounded-[var(--radius-xs)] border border-border-subtle-dim bg-surface px-2 py-0.5 text-3xs text-text-tertiary">
             <RiPriceTag3Line size={ICON.micro} className="shrink-0 opacity-60" />
             <span className="truncate">{tags}</span>
           </span>

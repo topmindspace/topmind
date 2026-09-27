@@ -26,7 +26,7 @@ function read(rel, base = root) {
 
 // ── Chrome hierarchy & single CTA ──────────────────────────────────────
 
-test("TitleBar: AI toggle; sidebar has capture; PrimaryNav on primary header row", () => {
+test("ActivityBar owns key nav; TitleBar keeps AI toggle + compact fallback", () => {
   const titleBar = read("src/components/shell/TitleBar.tsx");
   // Compact fallback only when sidebar is collapsed — not a full view-switcher.
   assert.match(titleBar, /PrimaryNav variant="compact"/);
@@ -36,7 +36,6 @@ test("TitleBar: AI toggle; sidebar has capture; PrimaryNav on primary header row
   assert.match(nav, /primaryNav\.stream/);
   assert.match(nav, /primaryNav\.inbox/);
   assert.match(nav, /primaryNav\.outputs/);
-  assert.match(read("src/components/shell/Sidebar.tsx"), /data-sidebar-primary-nav/);
   assert.doesNotMatch(read("src/components/shell/StatusBar.tsx"), /<PrimaryNav/);
   assert.doesNotMatch(titleBar, /v4-titlebar-btn-capture/);
   assert.doesNotMatch(titleBar, /data-chrome-tier=["']l2["']/);
@@ -45,19 +44,38 @@ test("TitleBar: AI toggle; sidebar has capture; PrimaryNav on primary header row
   assert.match(titleBar, /data-page-title/);
   assert.match(titleBar, /data-titlebar-actions-slot/);
   assert.match(titleBar, /resolveTitleBarIdentity/);
+
+  // ActivityBar is the key-nav rail: three groups (views / apps menu / chrome).
+  // home ≡ stream — one icon; search lives on the Sidebar header.
+  const activityBar = read("src/components/shell/ActivityBar.tsx");
+  assert.match(activityBar, /data-activity-bar/);
+  assert.match(activityBar, /data-activity-logo/);
+  assert.match(activityBar, /data-activity-group="views"/);
+  assert.match(activityBar, /data-activity-group="apps"/);
+  assert.match(activityBar, /data-activity-group="chrome"/);
+  assert.match(activityBar, /RiHome4Line/); // home ≡ stream
+  assert.match(activityBar, /RiInbox2Line/);
+  assert.match(activityBar, /RiShareForwardLine/);
+  assert.match(activityBar, /RiUserLine/);
+  assert.match(activityBar, /RiPencilLine/); // capture
+  assert.match(activityBar, /RiApps2Line/); // apps menu
+  assert.match(activityBar, /openLaunchablePlugin/); // launches apps directly
+  assert.match(activityBar, /RiFocus3Line/); // focus
+  assert.match(activityBar, /RiSettingsLine/); // settings
+  assert.doesNotMatch(activityBar, /RiSearchLine/); // search is on sidebar header
+  assert.doesNotMatch(activityBar, /RiNewspaperLine/); // single home icon
+  // Shell mounts it as the leftmost column.
+  assert.match(read("src/components/shell/Shell.tsx"), /ActivityBar/);
+  assert.match(read("src/components/shell/Shell.tsx"), /data-activity-bar-column/);
+
+  // Sidebar header: workspace name + search only.
   const sidebar = read("src/components/shell/Sidebar.tsx");
-  const headerFn = sidebar.slice(
-    sidebar.indexOf("function SidebarHeaderActions"),
-    sidebar.indexOf("function ProfileButton"),
-  );
-  const profileIdx = headerFn.indexOf("<ProfileButton");
-  const searchIdx = headerFn.indexOf("v4-search-trigger");
-  const captureIdx = headerFn.indexOf("RiPencilLine");
-  assert.ok(profileIdx >= 0 && searchIdx > profileIdx && captureIdx > searchIdx, "header order Profile → Search → 记一下");
-  assert.match(headerFn, /titleBar\.capture/);
-  assert.match(headerFn, /v4-capture-accent-icon/);
-  assert.doesNotMatch(headerFn, /v4-titlebar-btn-capture/);
-  assert.match(sidebar, /data-chrome-tier=["']l1["']/);
+  assert.match(sidebar, /data-sidebar-ws-name/);
+  assert.match(sidebar, /data-sidebar-search/);
+  assert.doesNotMatch(sidebar, /data-sidebar-primary-nav/);
+  assert.doesNotMatch(sidebar, /data-sidebar-capture/);
+  assert.match(sidebar, /data-sidebar-secondary-header/);
+  // View tools still live on the secondary header.
   const secondary = sidebar.slice(
     sidebar.indexOf("data-sidebar-secondary-header"),
     sidebar.indexOf("data-sidebar-pins"),
@@ -65,27 +83,30 @@ test("TitleBar: AI toggle; sidebar has capture; PrimaryNav on primary header row
   assert.match(secondary, /<ViewSwitcher/);
   assert.match(secondary, /data-sidebar-tree-tools/);
   assert.match(sidebar, /<TreeToolbar/);
-  const treeSection = sidebar.slice(sidebar.indexOf("function DataSourceSection"));
-  assert.doesNotMatch(treeSection, /<div className="flex items-center gap-0.5 px-1.5 pb-1 pt-0.5">/);
 });
 
-test("WorkspaceSwitcher: footer hosts theme + settings; menu hosts language + focus", () => {
+test("WorkspaceSwitcher: top-header identity; theme/settings on ActivityBar; menu hosts language + focus", () => {
   const ws = read("src/components/shell/WorkspaceSwitcher.tsx");
-  // Footer peer controls — not buried in the menu.
+  // Identity row lives on the sidebar top header (data-sidebar-workspace portal).
   assert.match(ws, /data-workspace-switcher-row/);
-  assert.match(ws, /data-workspace-theme/);
-  assert.match(ws, /data-workspace-settings/);
-  assert.match(ws, /themeCycleTip/);
-  assert.match(ws, /settingsTip/);
-  assert.match(ws, /pickTheme/);
-  assert.match(ws, /pickLocale/);
-  assert.match(ws, /focusMode/);
-  assert.match(ws, /preferPlacement="top"/);
   assert.match(ws, /data-workspace-name/);
   assert.match(ws, /copyWorkspacePath/);
-  assert.match(ws, /padBottom=\{32\}/);
+  // Theme / settings moved to ActivityBar — not duplicated beside the name.
+  assert.doesNotMatch(ws, /data-workspace-theme/);
+  assert.doesNotMatch(ws, /data-workspace-settings/);
+  assert.match(ws, /pickLocale/);
+  assert.match(ws, /focusMode/);
+  assert.match(ws, /preferPlacement="bottom"/);
   // Theme cluster no longer lives inside the popup.
   assert.doesNotMatch(ws, /preferencesSection/);
+  // Sidebar: workspace portal on the header; no footer bar.
+  const sidebar = read("src/components/shell/Sidebar.tsx");
+  assert.match(sidebar, /data-sidebar-workspace/);
+  assert.doesNotMatch(sidebar, /border-t border-border-subtle-dim px-1\.5 py-1\.5/);
+  // ActivityBar owns theme + settings.
+  const activity = read("src/components/shell/ActivityBar.tsx");
+  assert.match(activity, /RiSettingsLine/);
+  assert.match(activity, /setThemePreference/);
 });
 
 test("List views demote capture to outline (no competing solid CTA)", () => {
@@ -275,14 +296,16 @@ test("Settings + overlays use v4 elevated shell; sidebar carries no plugin secti
   assert.match(settings, /variant=["']ghost["']/);
 
   // 左栏回归纯内容导航 — 插件入口在 AI 工作区 应用 pane。
-  // 2026-09 v4: Sidebar header Profile → Search → 记一下; TitleBar has view-switcher
+  // 2026-09 ActivityBar: destinations / capture / search / settings on the rail;
+  // sidebar keeps only view tools (secondary header).
   const sidebar = read("src/components/shell/Sidebar.tsx");
   assert.doesNotMatch(sidebar, /data-sidebar-plugins-section/);
   assert.doesNotMatch(sidebar, /sidebarSlots/);
-  assert.match(sidebar, /SidebarHeaderActions/);
+  assert.doesNotMatch(sidebar, /SidebarHeaderActions/);
   assert.match(sidebar, /data-sidebar-secondary-header/);
   assert.match(sidebar, /data-sidebar-tree-tools/);
   assert.doesNotMatch(sidebar, /data-sidebar-view-switcher/);
+  assert.match(read("src/components/shell/ActivityBar.tsx"), /data-activity-bar/);
 
   const aiWs = read("src/components/ai/AiWorkspace.tsx");
   assert.match(aiWs, /data-ai-workspace-tab=\{item\.id\}/);
@@ -370,11 +393,20 @@ test("Stream and collection canvases expose list/card layout switch + data-layou
 test("FilterChip is chip-weight; EmptyState one-primary-CTA; CaptureModeBar chip language", () => {
   const view = read("src/components/ui/view.tsx");
   assert.match(view, /data-filter-chip/);
-  assert.match(view, /h-\[var\(--control-h-chip\)\]/);
+  // FilterChip is a thin Chip wrapper — geometry lives in Chip, not a second
+  // hand-rolled `inline-flex h-* rounded-[var(--radius-xs)]` cluster.
+  assert.match(view, /export function FilterChip/);
+  assert.match(view, /from ["']\.\/Chip["']/);
+  assert.match(view, /tone=\{active \? "accent" : "neutral"\}/);
   assert.match(view, /export function EmptyState/);
+
+  const chip = read("src/components/ui/Chip.tsx");
+  assert.match(chip, /h-\[var\(--control-h-chip/);
+  assert.match(chip, /rounded-\[var\(--radius-xs\)\]/);
 
   const bar = read("src/components/overlays/CaptureModeBar.tsx");
   assert.match(bar, /data-capture-mode-bar|data-filter-chip/);
+  assert.match(bar, /from ["']\.\.\/ui\/Chip["']/);
 });
 
 // ── Extension brand sync ───────────────────────────────────────────────
@@ -532,4 +564,57 @@ test("Dialog sizing: prompts are wide + upper; filename prompts never override n
       assert.doesNotMatch(p, /maxWidth=/, `${rel} must not override the prompt width`);
     }
   }
+});
+
+// ── Cross-surface icon contract (DESIGN §0.0.2) ─────────────────────────
+
+test("icon contract: forbidden glyphs never appear; chat is RiChatAiLine / bot", () => {
+  // Desktop: robot glyph is forbidden for conversation identity.
+  const chatMessage = read("src/components/ai/ChatMessage.tsx");
+  assert.doesNotMatch(chatMessage, /RiRobot2Line/, "chat avatar must not use robot glyph");
+  assert.match(chatMessage, /RiChatAiLine/);
+  // Stop is an interrupt, not a destructive action.
+  const chatInput = read("src/components/ai/ChatInput.tsx");
+  assert.doesNotMatch(chatInput, /variant="destructive"[\s\S]{0,80}cancelStream/, "stop must not be destructive");
+
+  // Obsidian: message-circle is forbidden for chat; pencil is capture-only.
+  function resolveObsidian() {
+    const cands = [
+      path.resolve(repoRoot, "..", "topmind-obsidian"),
+      path.resolve(repoRoot, "topmind-obsidian"),
+      path.resolve(repoRoot, "obsidian-plugin"),
+    ];
+    for (const c of cands) {
+      try {
+        readFileSync(path.join(c, "src", "views", "sidebar-dock-view.ts"));
+        return c;
+      } catch {
+        /* try next */
+      }
+    }
+    return null;
+  }
+  const obs = resolveObsidian();
+  if (obs) {
+    const dock = readFileSync(path.join(obs, "src", "views", "sidebar-dock-view.ts"), "utf8");
+    assert.doesNotMatch(dock, /setIcon\([^,]+,\s*"message-circle"\)/, "chat empty state must use bot");
+    assert.match(dock, /setIcon\([^,]+,\s*"bot"\)/);
+    // Edit/open-in-editor must not reuse capture pencil.
+    const stream = readFileSync(path.join(obs, "src", "views", "stream-workbench-view.ts"), "utf8");
+    assert.match(stream, /setIcon\(editBtn,\s*"square-pen"\)/);
+    assert.doesNotMatch(stream, /setIcon\(editBtn,\s*"pencil"\)/);
+    // Dock order: chat first (agent spine).
+    assert.match(dock, /\{\s*id:\s*"chat"[\s\S]{0,80}id:\s*"suggestions"/);
+  }
+});
+
+test("CountBadge stays radius-xs; Button uses MD3 state layers", () => {
+  const badge = read("src/components/ui/CountBadge.tsx");
+  assert.match(badge, /rounded-\[var\(--radius-xs\)\]/);
+  assert.doesNotMatch(badge, /rounded-full/);
+  const button = read("src/components/ui/Button.tsx");
+  // State layer overlay, not hover color-swap on the base fill.
+  assert.match(button, /after:absolute after:inset-0/);
+  assert.match(button, /state-on-primary-hover|state-hover/);
+  assert.doesNotMatch(button, /hover:bg-primary-hover/);
 });

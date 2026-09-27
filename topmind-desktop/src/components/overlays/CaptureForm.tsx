@@ -626,10 +626,10 @@ export function CaptureForm({
               type="button"
               onClick={() => handleSetNoteDest(d.id)}
               className={cn(
-                "rounded-full px-2.5 py-0.5 text-3xs font-medium transition-colors",
+                "rounded-[var(--radius-xs)] px-2.5 py-0.5 text-3xs font-medium transition-colors",
                 noteDest === d.id
                   ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
-                  : "bg-surface-muted/50 text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
+                  : "bg-surface-muted text-text-tertiary hover:bg-state-hover hover:text-text-secondary",
               )}
             >
               {d.label}
@@ -709,7 +709,7 @@ export function CaptureForm({
                   "px-2.5 py-1.5 text-3xs font-medium transition-colors",
                   sourceType === val
                     ? "bg-accent-bg-subtle text-accent-color"
-                    : "text-text-tertiary hover:bg-surface-muted",
+                    : "text-text-tertiary hover:bg-state-hover",
                 )}
               >
                 {label}
@@ -758,7 +758,7 @@ export function CaptureForm({
       ) : null}
 
       {error ? (
-        <div className="mt-2.5 rounded-[var(--radius-md)] border border-error/20 bg-status-error-bg px-2.5 py-1.5 text-3xs text-error" role="alert">
+        <div className="mt-2.5 rounded-[var(--radius-md)] border border-border-subtle-dim bg-status-error-bg px-2.5 py-1.5 text-3xs text-error" role="alert">
           {error}
         </div>
       ) : null}

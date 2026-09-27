@@ -190,7 +190,7 @@ function IngestSettingsPanel({
           </label>
           <select
             id="ingest-pref-converter"
-            className="w-full max-w-[18rem] rounded-[var(--radius-md)] border border-border-subtle bg-surface px-2 py-1.5 text-3xs text-text-primary outline-none focus-visible:border-accent-color focus-visible:ring-2 focus-visible:ring-ring/35"
+            className="w-full max-w-[18rem] rounded-[var(--radius-md)] border border-border-subtle bg-surface px-2 py-1.5 text-3xs text-text-primary focus-visible:border-accent-color v4-focus-ring"
             value={preferred}
             onChange={(e) => {
               const next = e.target.value as NonNullable<IngestSettings["preferredConverter"]>;
@@ -213,7 +213,7 @@ function IngestSettingsPanel({
           </label>
           <select
             id="ingest-max-mb"
-            className="w-full max-w-[12rem] rounded-[var(--radius-md)] border border-border-subtle bg-surface px-2 py-1.5 text-3xs text-text-primary outline-none focus-visible:border-accent-color focus-visible:ring-2 focus-visible:ring-ring/35"
+            className="w-full max-w-[12rem] rounded-[var(--radius-md)] border border-border-subtle bg-surface px-2 py-1.5 text-3xs text-text-primary focus-visible:border-accent-color v4-focus-ring"
             value={String(
               [25, 50, 80, 100, 150, 200].includes(maxFileMb) ? maxFileMb : 80,
             )}
@@ -251,7 +251,7 @@ function IngestSettingsPanel({
               <p className="text-3xs text-text-quaternary">{t("settingsSlot.notYetChecked")}</p>
             )}
           </div>
-          <Button size="sm" variant="outline" className="h-7 text-3xs" onClick={() => void refreshTools(true)} disabled={probing || installing}>
+          <Button size="sm" variant="outline" className="h-7" onClick={() => void refreshTools(true)} disabled={probing || installing}>
             {probing ? <RiLoader4Line size={ICON.xs} className="animate-spin" aria-hidden /> : <RiRefreshLine size={ICON.xs} aria-hidden />}
             {t("settingsSlot.recheck")}
           </Button>
@@ -355,7 +355,7 @@ function ToolRow({
           <Button
             size="sm"
             variant={ok ? "outline" : "default"}
-            className="h-7 text-3xs"
+            className="h-7"
             onClick={onSidecarInstall}
             disabled={installing}
           >
@@ -364,11 +364,11 @@ function ToolRow({
           </Button>
         ) : null}
         {ok ? (
-          <span className="rounded-full bg-status-success-bg px-1.5 py-0.5 text-3xs font-medium text-success">
+          <span className="rounded-[var(--radius-xs)] bg-status-success-bg px-1.5 py-0.5 text-3xs font-medium text-success">
             {t("settingsSlot.ready")}
           </span>
         ) : (
-          <Button size="sm" variant="ghost" className="h-7 text-3xs" onClick={onDocs}>
+          <Button size="sm" variant="ghost" className="h-7" onClick={onDocs}>
             <RiExternalLinkLine size={ICON.xs} aria-hidden /> {t("settingsSlot.docs")}
           </Button>
         )}

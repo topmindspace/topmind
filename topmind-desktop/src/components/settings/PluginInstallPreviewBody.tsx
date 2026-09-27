@@ -8,9 +8,9 @@ import { ICON } from "../../lib/icons";
 import { cn } from "../../lib/kit";
 
 const RISK_ICONS = {
-  low: { Icon: RiShieldCheckLine, key: "settings:plugins.riskLow", className: "text-success bg-success/10" },
-  medium: { Icon: RiShieldLine, key: "settings:plugins.riskMedium", className: "text-warning bg-warning/10" },
-  high: { Icon: RiShieldFlashLine, key: "settings:plugins.riskHigh", className: "text-error bg-error/10" },
+  low: { Icon: RiShieldCheckLine, key: "settings:plugins.riskLow", className: "text-success bg-status-success-bg" },
+  medium: { Icon: RiShieldLine, key: "settings:plugins.riskMedium", className: "text-warning bg-status-warning-bg" },
+  high: { Icon: RiShieldFlashLine, key: "settings:plugins.riskHigh", className: "text-error bg-status-error-bg" },
 } as const;
 
 export function PluginInstallPreviewBody({
@@ -32,7 +32,7 @@ export function PluginInstallPreviewBody({
           <span className="font-medium text-text-primary">{m.name}</span>
           <span className="font-mono text-3xs text-text-quaternary">{m.id}</span>
           <span className="tabular-nums text-text-quaternary">v{m.version}</span>
-          <span className={cn("inline-flex items-center gap-0.5 rounded-full px-1.5 py-px text-3xs", risk.className)}>
+          <span className={cn("inline-flex items-center gap-0.5 rounded-[var(--radius-xs)] px-1.5 py-px text-3xs", risk.className)}>
             <RiskIcon size={ICON.micro} />
             {t(risk.key)}
           </span>
@@ -47,7 +47,7 @@ export function PluginInstallPreviewBody({
       </div>
 
       {preview.replaces ? (
-        <div className="flex items-start gap-1.5 rounded-[var(--radius-md)] border border-warning/30 bg-warning/5 px-2 py-1.5 text-3xs text-warning">
+        <div className="flex items-start gap-1.5 rounded-[var(--radius-md)] border border-border-subtle-dim bg-status-warning-bg px-2 py-1.5 text-3xs text-warning">
           <RiAlertLine size={ICON.xs} className="mt-0.5 shrink-0" />
           <span>
             {t("settings:plugins.replacesWarning", {
@@ -79,7 +79,7 @@ export function PluginInstallPreviewBody({
       </div>
 
       {preview.riskReasons?.length ? (
-        <ul className="m-0 list-disc space-y-0.5 pl-4 text-3xs text-text-tertiary">
+        <ul className="m-0 list-disc space-y-0.5 pl-4 text-xs text-text-tertiary">
           {preview.riskReasons.map((r) => (
             <li key={r}>{r}</li>
           ))}

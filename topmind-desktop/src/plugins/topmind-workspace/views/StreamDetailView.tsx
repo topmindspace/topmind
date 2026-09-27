@@ -13,11 +13,13 @@ import {
   RiArrowRightSLine,
   RiArrowUpLine,
   RiCalendar2Line,
-  RiChatNewLine,
+  RiChatAiLine,
   RiFileTextLine,
+  RiInbox2Line,
   RiInboxArchiveLine,
   RiLink,
   RiLoader4Line,
+  RiShareForwardLine,
   RiSortDesc,
   RiRefreshLine,
   RiSendPlane2Line,
@@ -76,6 +78,7 @@ import { polishComposerText } from "../../../lib/ai-polish-text";
 import { useInlineAiStore } from "../../../lib/inline-ai-busy";
 import { useTodoStore } from "../../../stores/todo-store";
 import { formatChord } from "../../../lib/chord";
+import { useActionStore } from "../../../stores/action-store";
 import { useAiStore } from "../../../stores/ai-store";
 import type { TFunction } from "i18next";
 
@@ -188,7 +191,7 @@ const StreamFeedRowView = memo(function StreamFeedRowView({
             onClick={() => onOpenPeriod(entry.heading || undefined)}
             className={cn(
               "flex min-w-0 flex-1 flex-col gap-0.5 rounded-md bg-surface-muted/15 px-2.5 py-2 text-left",
-              "transition-colors hover:bg-accent-bg-faint/30",
+              "transition-colors hover:bg-accent-bg-faint",
               "v4-focus-ring",
             )}
             data-stream-article-open
@@ -216,10 +219,10 @@ const StreamFeedRowView = memo(function StreamFeedRowView({
               <button
                 type="button"
                 onClick={() => onToggleAppend(entry.index, headingOrPreview)}
-                className="flex h-6 w-6 items-center justify-center rounded-sm text-text-quaternary hover:bg-surface-muted hover:text-accent-color focus-visible:opacity-100 v4-focus-ring"
+                className="flex h-6 w-6 items-center justify-center rounded-sm text-text-quaternary hover:bg-state-hover hover:text-accent-color focus-visible:opacity-100 v4-focus-ring"
                 aria-label={t("workspace:streamDetail.append")}
               >
-                <RiChatNewLine size={ICON.xs} />
+                <RiChatAiLine size={ICON.xs} />
               </button>
             </Tooltip>
           </div>
@@ -281,7 +284,7 @@ const StreamFeedRowView = memo(function StreamFeedRowView({
                 type="button"
                 size="sm"
                 variant="ghost"
-                className="h-7 text-3xs"
+                className="h-7"
                 disabled={appending}
                 onClick={() => onAppendCancel(headingOrPreview)}
               >
@@ -297,7 +300,7 @@ const StreamFeedRowView = memo(function StreamFeedRowView({
                 {appending ? (
                   <RiLoader4Line size={ICON.xs} className="animate-spin" />
                 ) : (
-                  <RiChatNewLine size={ICON.xs} />
+                  <RiChatAiLine size={ICON.xs} />
                 )}
                 {t("workspace:streamDetail.appendSubmit")}
               </Button>
@@ -353,17 +356,17 @@ const StreamFeedRowView = memo(function StreamFeedRowView({
                 <button
                   type="button"
                   onClick={() => onToggleAppend(entry.index, headingOrPreview)}
-                  className="flex h-6 w-6 items-center justify-center rounded-sm text-text-quaternary hover:bg-surface-muted hover:text-accent-color focus-visible:opacity-100 v4-focus-ring"
+                  className="flex h-6 w-6 items-center justify-center rounded-sm text-text-quaternary hover:bg-state-hover hover:text-accent-color focus-visible:opacity-100 v4-focus-ring"
                   aria-label={t("workspace:streamDetail.append")}
                 >
-                  <RiChatNewLine size={ICON.xs} />
+                  <RiChatAiLine size={ICON.xs} />
                 </button>
               </Tooltip>
               <Tooltip content={t("workspace:streamDetail.openInEditorTip")}>
                 <button
                   type="button"
                   onClick={() => onOpenPeriod(entry.heading || undefined)}
-                  className="flex h-6 w-6 items-center justify-center rounded-sm text-text-quaternary hover:bg-surface-muted hover:text-accent-color focus-visible:opacity-100 v4-focus-ring"
+                  className="flex h-6 w-6 items-center justify-center rounded-sm text-text-quaternary hover:bg-state-hover hover:text-accent-color focus-visible:opacity-100 v4-focus-ring"
                   aria-label={t("workspace:streamDetail.openInEditor")}
                   data-stream-open-segment
                 >
@@ -432,7 +435,7 @@ const StreamFeedRowView = memo(function StreamFeedRowView({
                   type="button"
                   size="sm"
                   variant="ghost"
-                  className="h-7 text-3xs"
+                  className="h-7"
                   disabled={appending}
                   onClick={() => onAppendCancel(headingOrPreview)}
                 >
@@ -448,7 +451,7 @@ const StreamFeedRowView = memo(function StreamFeedRowView({
                   {appending ? (
                     <RiLoader4Line size={ICON.xs} className="animate-spin" />
                   ) : (
-                    <RiChatNewLine size={ICON.xs} />
+                    <RiChatAiLine size={ICON.xs} />
                   )}
                   {t("workspace:streamDetail.appendSubmit")}
                 </Button>
@@ -589,21 +592,21 @@ function StreamPeriodChip({
       data-filter-chip-active={isActive ? "true" : undefined}
       data-period-needs-tidy={p.reconciled ? undefined : "true"}
       className={cn(
-        "inline-flex h-(--control-h-chip) max-w-36 items-center truncate rounded-full px-2 text-3xs font-medium leading-none transition-colors",
+        "inline-flex h-(--control-h-chip) max-w-36 items-center truncate rounded-[var(--radius-xs)] px-2 text-3xs font-medium leading-none transition-colors",
         isActive
           ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
-          : "bg-surface-muted/35 text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
+          : "bg-surface-muted text-text-tertiary hover:bg-state-hover hover:text-text-secondary",
       )}
       title={p.reconciled ? name : `${name} · ${unreconciledLabel}`}
     >
       <span className="truncate">{name}</span>
       {isPackingCurrent && !isActive && packingCurrentShort ? (
-        <span className="ml-0.5 shrink-0 rounded-full bg-accent-bg-subtle px-1 text-3xs font-medium leading-4 text-accent-color">
+        <span className="ml-0.5 shrink-0 rounded-[var(--radius-xs)] bg-accent-bg-subtle px-1 text-3xs font-medium leading-4 text-accent-color">
           {packingCurrentShort}
         </span>
       ) : null}
       {!p.reconciled ? (
-        <span className="ml-0.5 shrink-0 rounded-full bg-warning/10 px-1 text-3xs font-medium leading-4 text-warning">
+        <span className="ml-0.5 shrink-0 rounded-[var(--radius-xs)] bg-status-warning-bg px-1 text-3xs font-medium leading-4 text-warning">
           {unreconciledShort}
         </span>
       ) : null}
@@ -701,6 +704,26 @@ export function StreamDetailView() {
   const setFeedLayout = useViewStore((s) => s.setFeedLayout);
   const todoEverLoaded = useTodoStore((s) => s.everLoaded);
   const aiReady = useAiStore((s) => s.runtimeStatus?.ready ?? false);
+  /** Workbench homepage quick stats (Landing thinking, integrated into stream). */
+  const [workbenchStats, setWorkbenchStats] = useState<{ inbox: number; outputs: number }>({ inbox: 0, outputs: 0 });
+  const suggestCount = useActionStore((s) => s.items.length);
+
+  useEffect(() => {
+    let alive = true;
+    void Promise.all([
+      api.ws.inbox().catch(() => ({ files: [] as unknown[] })),
+      api.ws.outputs().catch(() => ({ files: [] as unknown[] })),
+    ]).then(([inbox, outputs]) => {
+      if (!alive) return;
+      setWorkbenchStats({
+        inbox: (inbox?.files || []).length,
+        outputs: (outputs?.files || []).length,
+      });
+    });
+    return () => {
+      alive = false;
+    };
+  }, [entries.length, viewPeriodPath]);
 
   const activePath = viewPeriodPath ?? ctx?.periodRelPath ?? null;
 
@@ -1416,6 +1439,83 @@ export function StreamDetailView() {
         <ChromeOverflowActions actions={headerActions} />
       </TitleBarActions>
 
+      {/* Stream workbench homepage — identity + quick access (Landing thinking
+          integrated into the stream surface; not a separate canvas). */}
+      <div className="mb-3" data-stream-home-header>
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <h1 className="text-lg font-semibold tracking-tight text-text-primary">
+            {viewPeriodTitle || t("workspace:streamDetail.title", { defaultValue: "动态" })}
+          </h1>
+          <span className="text-3xs text-text-quaternary">
+            {activePath ? activePath.replace(/\.md$/u, "").split("/").pop() : ""}
+          </span>
+          {entries.length > 0 ? (
+            <span className="text-3xs text-text-quaternary">
+              · {t("workspace:streamDetail.entryCount", {
+                  count: entries.length,
+                  packing: t(`workspace:streamDetail.packing${(ctx?.packing || "weekly").replace(/^./u, (c) => c.toUpperCase())}` as never, {
+                    defaultValue: ctx?.packing || "weekly",
+                  }),
+                })}
+            </span>
+          ) : null}
+        </div>
+        {/* Quick access strip — Inbox / 交付 / 我的情况 / AI 建议 (workbench) */}
+        <div className="mt-2.5 flex flex-wrap items-center gap-1.5" data-stream-workbench-strip>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded-[var(--radius-lg)] border border-border-subtle-dim bg-surface px-2.5 py-1.5 text-3xs font-medium text-text-secondary transition-colors hover:bg-state-hover v4-focus-ring"
+            onClick={() => select({ kind: "inbox" })}
+            data-stream-quick="inbox"
+          >
+            <RiInbox2Line size={ICON.xs} className="text-accent-color" />
+            <span>{t("workspace:streamDetail.quickInbox", { defaultValue: "Inbox" })}</span>
+            {workbenchStats.inbox > 0 ? (
+              <span className="rounded-[var(--radius-xs)] bg-accent-bg-subtle px-1 text-4xs font-semibold text-accent-color tabular-nums">
+                {workbenchStats.inbox}
+              </span>
+            ) : null}
+          </button>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded-[var(--radius-lg)] border border-border-subtle-dim bg-surface px-2.5 py-1.5 text-3xs font-medium text-text-secondary transition-colors hover:bg-state-hover v4-focus-ring"
+            onClick={() => select({ kind: "outputs" })}
+            data-stream-quick="outputs"
+          >
+            <RiShareForwardLine size={ICON.xs} className="text-accent-color" />
+            <span>{t("workspace:streamDetail.quickOutputs", { defaultValue: "交付" })}</span>
+            {workbenchStats.outputs > 0 ? (
+              <span className="rounded-[var(--radius-xs)] bg-surface-muted px-1 text-4xs font-semibold text-text-tertiary tabular-nums">
+                {workbenchStats.outputs}
+              </span>
+            ) : null}
+          </button>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded-[var(--radius-lg)] border border-border-subtle-dim bg-surface px-2.5 py-1.5 text-3xs font-medium text-text-secondary transition-colors hover:bg-state-hover v4-focus-ring"
+            onClick={() => select({ kind: "memory" })}
+            data-stream-quick="memory"
+          >
+            <RiUser3Line size={ICON.xs} className="text-accent-color" />
+            <span>{t("workspace:streamDetail.quickMemory", { defaultValue: "我的情况" })}</span>
+          </button>
+          {suggestCount > 0 ? (
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-[var(--radius-lg)] border border-accent-border-subtle bg-accent-bg-subtle px-2.5 py-1.5 text-3xs font-medium text-accent-color transition-colors hover:bg-accent-bg-faint v4-focus-ring"
+              onClick={() => openSuggestSurface({ refresh: false })}
+              data-stream-quick="suggest"
+            >
+              <RiSparklingLine size={ICON.xs} />
+              <span>{t("workspace:streamDetail.quickSuggest", { defaultValue: "AI 建议" })}</span>
+              <span className="rounded-[var(--radius-xs)] bg-accent-container px-1 text-4xs font-semibold text-on-accent-container tabular-nums">
+                {suggestCount}
+              </span>
+            </button>
+          ) : null}
+        </div>
+      </div>
+
       {periods.length > 1 ? (
         <div
           className="mb-2 flex flex-wrap items-center gap-1"
@@ -1440,7 +1540,7 @@ export function StreamDetailView() {
             <button
               type="button"
               onClick={() => setShowMoreThisYear((v) => !v)}
-              className="inline-flex h-(--control-h-chip) items-center gap-0.5 rounded-full px-2 text-3xs font-medium text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-secondary"
+              className="inline-flex h-(--control-h-chip) items-center gap-0.5 rounded-[var(--radius-xs)] px-2 text-3xs font-medium text-text-tertiary transition-colors hover:bg-state-hover hover:text-text-secondary"
             >
               <RiArrowDownSLine
                 size={ICON.nano}
@@ -1471,7 +1571,7 @@ export function StreamDetailView() {
               <button
                 type="button"
                 onClick={() => setExpandedPastYear(expandedPastYear ? null : "list")}
-                className="inline-flex h-(--control-h-chip) items-center gap-0.5 rounded-full px-2 text-3xs font-medium text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-secondary"
+                className="inline-flex h-(--control-h-chip) items-center gap-0.5 rounded-[var(--radius-xs)] px-2 text-3xs font-medium text-text-tertiary transition-colors hover:bg-state-hover hover:text-text-secondary"
               >
                 <RiArrowDownSLine
                   size={ICON.nano}
@@ -1496,10 +1596,10 @@ export function StreamDetailView() {
                             }
                           }}
                           className={cn(
-                            "inline-flex h-(--control-h-chip) items-center gap-1 rounded-full px-2 text-3xs font-medium transition-colors",
+                            "inline-flex h-(--control-h-chip) items-center gap-1 rounded-[var(--radius-xs)] px-2 text-3xs font-medium transition-colors",
                             isExpanded
                               ? "bg-accent-bg-subtle text-accent-color"
-                              : "text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
+                              : "text-text-tertiary hover:bg-state-hover hover:text-text-secondary",
                           )}
                         >
                           <span>{y.year}</span>
@@ -1524,7 +1624,7 @@ export function StreamDetailView() {
                                 type="button"
                                 disabled={archivingYear === y.year}
                                 onClick={() => void handleArchiveYear(y.year, y.periodCount)}
-                                className="inline-flex h-(--control-h-chip) items-center gap-0.5 rounded-full px-2 text-3xs font-medium text-text-tertiary transition-colors hover:bg-warning/10 hover:text-warning"
+                                className="inline-flex h-(--control-h-chip) items-center gap-0.5 rounded-[var(--radius-xs)] px-2 text-3xs font-medium text-text-tertiary transition-colors hover:bg-status-warning-bg hover:text-warning"
                                 title={t("workspace:streamDetail.archiveYear")}
                               >
                                 {archivingYear === y.year ? (
@@ -1535,7 +1635,7 @@ export function StreamDetailView() {
                                 {t("workspace:streamDetail.archiveYear")}
                               </button>
                             ) : (
-                              <span className="inline-flex h-(--control-h-chip) items-center gap-0.5 rounded-full px-2 text-3xs font-medium text-text-quaternary">
+                              <span className="inline-flex h-(--control-h-chip) items-center gap-0.5 rounded-[var(--radius-xs)] px-2 text-3xs font-medium text-text-quaternary">
                                 <RiInboxArchiveLine size={ICON.micro} />
                                 {t("common:status.archived")}
                               </span>
@@ -1576,7 +1676,7 @@ export function StreamDetailView() {
           无 label/hint meta 行（降噪 2026-08）：placeholder 承担引导，计数在 TitleBar stats。 */}
       {composeIsUrl ? (
         <div
-          className="mb-2 flex items-center justify-between gap-2 rounded-lg border border-accent-border-subtle/40 bg-accent-bg-faint/30 px-3 py-1.5 transition-all duration-200"
+          className="mb-2 flex items-center justify-between gap-2 rounded-lg border border-accent-border-subtle/40 bg-accent-bg-faint px-3 py-1.5 transition-all duration-200"
           data-stream-compose-url-hint
         >
           <div className="flex min-w-0 items-center gap-1.5">
@@ -1591,7 +1691,7 @@ export function StreamDetailView() {
               emitLocal("overlay:open", { kind: "quick-capture", prefill: { source: composeText.trim() } } as never);
               updateComposeText("");
             }}
-            className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent-color/10 px-2.5 py-0.5 text-3xs font-medium text-accent-color transition-colors hover:bg-accent-color/20 v4-focus-ring"
+            className="inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-xs)] bg-accent-bg-subtle px-2.5 py-0.5 text-3xs font-medium text-accent-color transition-colors hover:bg-accent-bg-faint v4-focus-ring"
           >
             <span>{t("workspace:streamDetail.composeUrlAction")}</span>
             <RiArrowRightSLine size={ICON.nano} aria-hidden />
@@ -1728,7 +1828,7 @@ export function StreamDetailView() {
             type="button"
             data-stream-open-memory
             onClick={() => select({ kind: "memory" })}
-            className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-3xs font-medium text-text-tertiary transition-colors hover:bg-surface-muted hover:text-accent-color v4-focus-ring"
+            className="inline-flex h-7 items-center gap-1 rounded-[var(--radius-xs)] px-2 text-3xs font-medium text-text-tertiary transition-colors hover:bg-state-hover hover:text-accent-color v4-focus-ring"
             aria-label={t("workspace:streamDetail.openMemory")}
           >
             <RiUser3Line size={ICON.xs} aria-hidden />
@@ -1772,7 +1872,7 @@ export function StreamDetailView() {
                 <button
                   type="button"
                   onClick={() => toggleDayCollapsed(group.dayKey)}
-                  className="flex w-full items-center gap-1.5 text-left hover:bg-surface-muted/35 v4-focus-ring"
+                  className="flex w-full items-center gap-1.5 text-left hover:bg-state-hover v4-focus-ring"
                   aria-expanded={!dayCollapsed}
                   data-stream-day-toggle
                 >
@@ -1791,7 +1891,7 @@ export function StreamDetailView() {
                     {rows.length}
                   </span>
                   {isTodayGroupKey(group.dayKey) && isCurrentPeriod ? (
-                    <span className="rounded-full bg-accent-bg-subtle px-1.5 py-px text-3xs font-medium text-accent-color">
+                    <span className="rounded-[var(--radius-xs)] bg-accent-bg-subtle px-1.5 py-px text-3xs font-medium text-accent-color">
                       {t("workspace:streamDetail.todayBadge")}
                     </span>
                   ) : null}

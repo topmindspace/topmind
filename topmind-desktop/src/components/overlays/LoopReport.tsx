@@ -138,8 +138,8 @@ function IssueRow({
 }) {
   const Icon = tone === "error" ? RiCloseCircleLine : tone === "warning" ? RiAlertLine : RiFileWarningLine;
   const color =
-    tone === "error" ? "text-error border-error/20 bg-status-error-bg" :
-    tone === "warning" ? "text-warning border-warning/25 bg-status-warning-bg/40" :
+    tone === "error" ? "text-error border-border-subtle-dim bg-status-error-bg" :
+    tone === "warning" ? "text-warning border-border-subtle-dim bg-status-warning-bg" :
     "text-text-secondary border-border-subtle bg-surface-muted/30";
 
   return (

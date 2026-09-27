@@ -114,6 +114,16 @@ export async function loadMemoryProfile(ctx) {
     let fromKernel = false;
     try {
       const api = await loadKernelApi();
+      // Ranked prompt builder (goals > preferences > people > inProgress) with
+      // whole bullets and history omitted — never a raw mid-bullet char slice.
+      if (typeof api.formatProfileForPrompt === "function") {
+        const ranked = api.formatProfileForPrompt(root, { totalCap: 24, perSectionCap: 6 });
+        if (ranked && ranked.trim().length >= 20) {
+          return ranked.length > PROFILE_MAX_CHARS
+            ? `${ranked.slice(0, PROFILE_MAX_CHARS)}${t("aiContext.truncated")}`
+            : ranked;
+        }
+      }
       if (typeof api.readProfileActiveBody === "function") {
         collapsed = api.readProfileActiveBody(root) || "";
         fromKernel = Boolean(collapsed);
@@ -134,9 +144,12 @@ export async function loadMemoryProfile(ctx) {
     }
     const body = stripFrontmatterForPrompt(collapsed);
     if (!body) return "";
-    return body.length > PROFILE_MAX_CHARS
-      ? `${body.slice(0, PROFILE_MAX_CHARS)}${t("aiContext.truncated")}`
-      : body;
+    // Fallback only: never mid-slice a bullet — cut at the last full line.
+    if (body.length > PROFILE_MAX_CHARS) {
+      const cut = body.lastIndexOf("\n", PROFILE_MAX_CHARS);
+      return `${body.slice(0, cut > 200 ? cut : PROFILE_MAX_CHARS)}\n${t("aiContext.truncated")}`;
+    }
+    return body;
   } catch {
     return "";
   }

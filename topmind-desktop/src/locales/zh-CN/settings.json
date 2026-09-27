@@ -575,7 +575,8 @@
     "baseUrlDefault": "默认：{{url}}",
     "baseUrlInvalid": "地址无效：仅支持 https://，或本机 http://localhost",
     "baseUrlEmpty": "未设置接口地址",
-    "secretLostWarning": "以下密钥仍留有密文但无法解密（升级 / 重签 / 本地密钥丢失）：{{keys}}。请重新填写。"
+    "secretLostWarning": "以下密钥仍留有密文但无法解密（升级 / 重签 / 本地密钥丢失）：{{keys}}。请重新填写。",
+    "apiKeyLabel": "API Key"
   },
   "tools": {
     "jsonErrorObject": "输入须为 JSON 对象",
@@ -596,7 +597,10 @@
     "titleResult": "结果",
     "descResult": "stdout 解析后的 JSON",
     "warnExecute": "危险写操作请先预览；保存确认与命令行一致。",
-    "noticeUtr": "日常记/整/写请继续用编辑器与 AI，不必经 UTR。"
+    "noticeUtr": "日常记/整/写请继续用编辑器与 AI，不必经 UTR。",
+    "kindLabel": "类型",
+    "commandLabel": "命令",
+    "inputJsonLabel": "输入 JSON"
   },
   "chatInput": {
     "placeholder": "输入消息或指令…（⏎ 发送，⇧⏎ 换行，⌘K 选项）",
@@ -639,5 +643,6 @@
     "cache": "缓存",
     "realtime": "实时",
     "loading": "加载统计中…"
-  }
+  },
+  "groupsNavLabel": "设置分组"
 }

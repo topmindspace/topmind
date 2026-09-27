@@ -325,7 +325,7 @@ function WereadHubView() {
                 type="button"
                 disabled={!ready || loadingBooks}
                 onClick={() => void loadBooks()}
-                className="rounded p-1 text-text-quaternary hover:bg-surface-muted"
+                className="rounded p-1 text-text-quaternary hover:bg-state-hover"
               >
                 {loadingBooks ? <RiLoader4Line size={ICON.micro} className="animate-spin" /> : <RiRefreshLine size={ICON.micro} />}
               </button>
@@ -353,7 +353,7 @@ function WereadHubView() {
                   onClick={() => toggleBook(b.bookId)}
                   className={cn(
                     "flex w-full items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-2 text-left transition-colors",
-                    on ? "bg-accent-bg-subtle" : "hover:bg-surface-muted",
+                    on ? "bg-surface-selected" : "hover:bg-state-hover",
                   )}
                 >
                   <span
@@ -383,7 +383,7 @@ function WereadHubView() {
             })}
           </div>
         )}
-        <p className="mt-2 text-3xs leading-relaxed text-text-quaternary">
+        <p className="mt-2 text-xs leading-relaxed text-text-quaternary">
           {t("hub.bookFormatHint")}
         </p>
         {status?.lastSyncSummary ? (

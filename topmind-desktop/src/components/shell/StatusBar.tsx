@@ -1,4 +1,5 @@
 import {
+  RiChatAiLine,
   RiCheckDoubleLine,
   RiDownload2Line,
   RiErrorWarningLine,
@@ -7,7 +8,6 @@ import {
   RiListCheck,
   RiLoader4Line,
   RiPulseLine,
-  RiRobot2Line,
 } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
@@ -122,6 +122,8 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
     inlineSessions[inlineSessions.length - 1]?.label
     || t("statusBar.inlineAiWorking");
   const activeTasks = tasks.filter((x) => x.status === "running" || x.status === "queued");
+  const streamGoal = useAiStore((s) => s.streamGoal);
+  const lastGoalBlocked = streamGoal?.status === "blocked";
   const busy = deriveStatusBarBusy({
     ready: Boolean(runtimeStatus?.ready),
     streaming,
@@ -133,6 +135,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
     inlineBusy,
     inlineLabel,
     suggestApplying: Boolean(suggestApplying),
+    goalBlocked: lastGoalBlocked,
   });
 
   const leftSlots = statusBarSlots.filter((s) => (s.align ?? "right") === "left");
@@ -260,7 +263,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
                 onClick={() => {
                   useViewStore.getState().openOverlay("settings", { topicId: "manage" });
                 }}
-                className="bg-success/10 text-success hover:bg-success/20"
+                className="bg-status-success-bg text-success hover:bg-status-success-bg"
                 aria-label={label}
               >
                 <RiDownload2Line size={ICON.micro} aria-hidden />
@@ -292,8 +295,8 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
               activeTasks.length > 0
                 ? "bg-accent-bg-faint text-accent-color hover:bg-accent-bg-subtle"
                 : taskPanelOpen
-                  ? "text-success hover:bg-success/10"
-                  : "text-text-quaternary hover:bg-surface-muted hover:text-text-secondary",
+                  ? "text-success hover:bg-status-success-bg"
+                  : "text-text-quaternary hover:bg-state-hover hover:text-text-secondary",
             )}
           >
             {/* Loader2 while running (engine tasks); Activity otherwise — never
@@ -311,6 +314,25 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
             {activeTasks.length > 0 ? <span className="v4-ai-progress-dot" aria-hidden /> : null}
           </StatusChip>
         </Tooltip>
+        {busy.showNeedsYouChip ? (
+          <Tooltip content={t("statusBar.needsYouTip")}>
+            <StatusChip
+              role="status"
+              aria-live="polite"
+              data-status-needs-you
+              onClick={() => {
+                useViewStore.getState().openAiWorkspace("chat");
+              }}
+              className="bg-status-warning-bg text-warning hover:bg-status-warning-bg"
+              aria-label={t("statusBar.needsYou")}
+            >
+              <RiErrorWarningLine size={ICON.micro} aria-hidden />
+              <span className="v4-ai-busy-text hidden sm:inline">
+                {t("statusBar.needsYou")}
+              </span>
+            </StatusChip>
+          </Tooltip>
+        ) : null}
         {busy.showApplyChip && suggestApplying ? (
           <Tooltip content={t("statusBar.suggestApplyingTip")}>
             <StatusChip
@@ -392,7 +414,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
               }}
               className={cn(
                 busy.suggestHasHigh
-                  ? "bg-warning/10 text-warning hover:bg-warning/20"
+                  ? "bg-status-warning-bg text-warning hover:bg-status-warning-bg"
                   : "bg-accent-bg-faint text-accent-color hover:bg-accent-bg-subtle",
                 suggestPanelOpen && "ring-1 ring-inset ring-accent-border-subtle",
               )}
@@ -443,18 +465,18 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
             aria-live="polite"
             className={cn(
               !runtimeStatus?.ready
-                ? "text-text-quaternary hover:bg-surface-muted hover:text-warning"
+                ? "text-text-quaternary hover:bg-state-hover hover:text-warning"
                 : busy.aiPillBusy
                   ? "bg-accent-bg-faint text-accent-color hover:bg-accent-bg-subtle"
                   : aiPanelOpen
-                    ? "text-success hover:bg-success/10"
-                    : "text-text-tertiary hover:bg-surface-muted hover:text-success",
+                    ? "text-success hover:bg-status-success-bg"
+                    : "text-text-tertiary hover:bg-state-hover hover:text-success",
             )}
           >
             {busy.aiPillBusy ? (
               <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden />
             ) : (
-              <RiRobot2Line size={ICON.micro} aria-hidden />
+              <RiChatAiLine size={ICON.micro} aria-hidden />
             )}
             <span className={cn("hidden max-w-[var(--status-chip-max-ai,9rem)] truncate md:inline", busy.aiPillBusy && "v4-ai-busy-text")}>{aiLabel}</span>
             {busy.aiPillBusy ? <span className="v4-ai-progress-dot" aria-hidden /> : null}
@@ -495,7 +517,7 @@ function SelectionHint({ selection }: { selection: Selection }) {
           }}
           className={cn(
             "flex max-w-full items-center gap-1 truncate rounded-sm px-1.5 py-0.5 text-text-quaternary",
-            "transition-colors hover:bg-surface-muted hover:text-text-secondary v4-focus-ring",
+            "transition-colors hover:bg-state-hover hover:text-text-secondary v4-focus-ring",
           )}
         >
           <RiFileTextLine size={ICON.micro} className="shrink-0" aria-hidden />

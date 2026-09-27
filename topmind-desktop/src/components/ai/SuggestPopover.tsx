@@ -40,6 +40,7 @@ import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/kit";
 import { ICON } from "../../lib/icons";
 import { Tooltip } from "../ui/tooltip";
+import { Button } from "../ui/Button";
 import { ConfirmDialog, getFocusable } from "../ui/Dialog";
 import { shouldCloseOnScroll } from "../../lib/scroll-dismiss";
 import { isMenuLayerActive } from "../../lib/menu-layer";
@@ -54,6 +55,7 @@ const PANEL_MAX_HEIGHT = 560;
 function SuggestionIcon({ kind, isHigh }: { kind?: string; isHigh: boolean }) {
   const cls = cn("shrink-0 mt-0.5", isHigh ? "text-warning" : "text-accent-color");
   switch (kind) {
+    // inbox_review: legacy cards only — product emits inbox_organize.
     case "inbox_review":
     case "inbox_organize":
       return <RiInboxUnarchiveLine size={ICON.micro} className={cls} />;
@@ -86,6 +88,7 @@ function kindChipKey(kind?: string, source?: ActionItem["source"]): string | nul
     case "ai_summary":
       return "kindChipDigest";
     case "inbox_review":
+      // Legacy cards only — product emits inbox_organize.
       return "kindChipInbox";
     case "inbox_organize":
       return "kindChipInboxOrganize";
@@ -396,10 +399,10 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
         className={cn(
           "rounded-md p-2.5 flex flex-col gap-0.5 transition-colors",
           isRemoving && "v4-item-removing",
-          isBusy && "ring-1 ring-inset ring-accent-color/30 bg-accent-bg-faint/40",
+          isBusy && "ring-1 ring-inset ring-accent-color/30 bg-accent-bg-faint",
           isPendingWrite || isHigh
-            ? "bg-warning/5 ring-1 ring-inset ring-warning/15"
-            : "bg-surface-muted/25 hover:bg-surface-muted/40",
+            ? "bg-status-warning-bg ring-1 ring-inset ring-warning/15"
+            : "bg-surface-muted hover:bg-state-hover",
         )}
       >
         <div className="flex items-start gap-1.5">
@@ -408,15 +411,15 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
           ) : (
             <SuggestionIcon kind={item.suggestionKind} isHigh={isHigh} />
           )}
-          <div className="min-w-0 flex-1 text-3xs font-medium text-text-primary leading-tight">
+          <div className="min-w-0 flex-1 text-xs font-medium text-text-primary leading-tight">
             {item.title}
           </div>
           {chip ? (
             <Tooltip content={t(`ai.${chip}`)}>
               <span
                 className={cn(
-                  "shrink-0 rounded-full px-1.5 py-px text-2xs font-medium cursor-default",
-                  isHigh ? "bg-warning/10 text-warning" : "bg-accent-bg-subtle text-accent-color",
+                  "shrink-0 rounded-[var(--radius-xs)] px-1.5 py-px text-3xs font-medium cursor-default",
+                  isHigh ? "bg-status-warning-bg text-warning" : "bg-accent-bg-subtle text-accent-color",
                 )}
               >
                 {t(`ai.${chip}`)}
@@ -430,13 +433,13 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
           disabled={!item.summary || item.summary.length < 80}
           side="bottom"
         >
-          <div className="line-clamp-2 pl-4.5 text-3xs text-text-tertiary leading-snug">
+          <div className="line-clamp-2 pl-4.5 text-xs text-text-tertiary leading-snug">
             {item.summary}
           </div>
         </Tooltip>
         {fPath ? (
           <Tooltip content={item.targetPath} side="bottom">
-            <div className="truncate pl-4.5 text-3xs text-text-quaternary/80">
+            <div className="truncate pl-4.5 text-3xs text-text-quaternary">
               {fPath}
             </div>
           </Tooltip>
@@ -444,38 +447,42 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
         <div className="flex gap-2 pl-4.5 pt-1">
           {isPendingWrite ? (
             <>
-              <button
-                type="button"
-                className="inline-flex h-5 items-center gap-1 rounded-[var(--radius-sm)] px-2 text-3xs font-medium text-accent-color transition-colors hover:bg-accent-bg-subtle v4-focus-ring"
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-5 gap-1 px-2 text-3xs text-accent-color"
                 onClick={() => setReviewId(item.id)}
                 disabled={isBusy}
               >
                 <RiFullscreenLine size={ICON.micro} />
                 {t("ai.pendingReview")}
-              </button>
-              <button
-                type="button"
-                className="inline-flex h-5 items-center gap-1 rounded-[var(--radius-sm)] bg-accent-bg-subtle px-2 text-3xs font-medium text-accent-color transition-colors hover:bg-accent-bg-faint v4-focus-ring"
+              </Button>
+              <Button
+                variant="tonal"
+                size="sm"
+                className="h-5 gap-1 px-2 text-3xs"
                 onClick={() => void acceptWithFeedback(item.id)}
                 disabled={isBusy}
               >
                 {isBusy ? <RiLoader4Line size={ICON.micro} className="animate-spin" /> : null}
                 {t("ai.pendingAccept")}
-              </button>
-              <button
-                type="button"
-                className="inline-flex h-5 items-center rounded-[var(--radius-sm)] px-2 text-3xs text-text-tertiary transition-colors hover:bg-surface-muted hover:text-error v4-focus-ring"
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-5 px-2 text-3xs text-text-tertiary hover:text-error"
                 onClick={() => handleRejectItem(item.id)}
                 disabled={isBusy}
               >
                 {t("ai.pendingReject")}
-              </button>
+              </Button>
             </>
           ) : (
             <>
-              <button
-                type="button"
-                className="inline-flex h-5 items-center gap-1 rounded-[var(--radius-sm)] bg-accent-bg-subtle px-2 text-3xs font-medium text-accent-color transition-colors hover:bg-accent-bg-faint v4-focus-ring"
+              <Button
+                variant="tonal"
+                size="sm"
+                className="h-5 gap-1 px-2 text-3xs"
                 onClick={() => void acceptWithFeedback(item.id)}
                 disabled={busyId !== null || bulkBusy}
               >
@@ -483,25 +490,27 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
                 {suggestionApplyIsWrite(item.suggestionKind, item.source)
                   ? t("ai.suggestConfirm")
                   : t("ai.suggestOpen")}
-              </button>
+              </Button>
               {suggestionApplyIsWrite(item.suggestionKind, item.source) && suggestionOpenPath(item) ? (
-                <button
-                  type="button"
-                  className="inline-flex h-5 items-center rounded-[var(--radius-sm)] px-2 text-3xs text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-secondary v4-focus-ring"
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-5 px-2 text-3xs"
                   onClick={() => openItem(item.id)}
                   disabled={busyId !== null || bulkBusy}
                 >
                   {t("ai.suggestOpen")}
-                </button>
+                </Button>
               ) : null}
-              <button
-                type="button"
-                className="inline-flex h-5 items-center rounded-[var(--radius-sm)] px-2 text-3xs text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-secondary v4-focus-ring"
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-5 px-2 text-3xs"
                 onClick={() => handleDismissItem(item.id)}
                 disabled={busyId !== null || bulkBusy}
               >
                 {t("ai.suggestIgnore")}
-              </button>
+              </Button>
             </>
           )}
         </div>
@@ -541,7 +550,7 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
         />
         <span
           className={cn(
-            "min-w-0 flex-1 text-3xs font-semibold",
+            "min-w-0 flex-1 text-xs font-semibold",
             hasHigh ? "text-warning" : "text-text-primary",
           )}
         >
@@ -586,7 +595,7 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
               type="button"
               className={cn(
                 "flex h-6 items-center gap-0.5 rounded-sm px-1.5",
-                "text-text-quaternary hover:bg-surface-muted hover:text-text-tertiary transition-colors",
+                "text-text-quaternary hover:bg-state-hover hover:text-text-tertiary transition-colors",
               )}
               onClick={handleDismissAll}
               aria-label={t("ai.bulkDismissTip", { defaultValue: "Dismiss all" })}
@@ -601,7 +610,7 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
             type="button"
             className={cn(
               "flex h-6 w-6 items-center justify-center rounded-sm",
-              autoPrepare ? "v4-ai-chip-gradient" : "text-text-quaternary hover:bg-surface-muted",
+              autoPrepare ? "v4-ai-chip-gradient" : "text-text-quaternary hover:bg-state-hover",
             )}
             onClick={() => void toggleAutoPrepare()}
             aria-pressed={autoPrepare}
@@ -611,7 +620,7 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
         </Tooltip>
         <button
           type="button"
-          className="flex h-6 w-6 items-center justify-center rounded-sm text-text-tertiary hover:bg-surface-muted"
+          className="flex h-6 w-6 items-center justify-center rounded-sm text-text-tertiary hover:bg-state-hover"
           onClick={(e) => {
             // Plain click: force re-analyzes activity fingerprints only.
             // Durable dismissals stay — matching Kernel
@@ -637,7 +646,7 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
         </button>
         <button
           type="button"
-          className="flex h-6 w-6 items-center justify-center rounded-sm text-text-tertiary hover:bg-surface-muted"
+          className="flex h-6 w-6 items-center justify-center rounded-sm text-text-tertiary hover:bg-state-hover"
           onClick={() => setPanelOpen(false)}
           aria-label={t("ai.pendingCollapse")}
         >
@@ -650,7 +659,7 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
         <div
           role="status"
           aria-live="polite"
-          className="shrink-0 border-b border-accent-border-subtle bg-accent-bg-faint/50 px-3 py-1.5"
+          className="shrink-0 border-b border-accent-border-subtle bg-accent-bg-faint px-3 py-1.5"
           data-suggest-apply-progress
         >
           <p className="flex items-center gap-1.5 text-3xs text-accent-color">
@@ -671,7 +680,7 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
           </div>
         </div>
       ) : bulkResult ? (
-        <p className="shrink-0 px-3 py-1 text-3xs text-accent-color bg-accent-bg-faint/40">{bulkResult}</p>
+        <p className="shrink-0 px-3 py-1 text-3xs text-accent-color bg-accent-bg-faint">{bulkResult}</p>
       ) : message ? (
         <p className="shrink-0 px-3 py-1 text-3xs text-text-tertiary">{message}</p>
       ) : null}
@@ -691,7 +700,7 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
               </>
             ) : (
               <>
-                <RiSparklingLine size={ICON.sm} className="text-text-quaternary/40" />
+                <RiSparklingLine size={ICON.sm} className="text-text-quaternary" />
                 <p className="text-3xs text-text-quaternary">{t("ai.suggestEmpty")}</p>
                 {!autoPrepare ? (
                   <button
@@ -732,7 +741,7 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
             {grouped.normal.length > 0 && grouped.high.length > 0 ? (
               <div className="flex items-center gap-1.5 px-1 pt-0.5">
                 <span className="h-px flex-1 bg-border-subtle-dim" />
-                <span className="text-2xs text-text-tertiary">{t("ai.suggestOther", { defaultValue: "Others" })}</span>
+                <span className="text-3xs text-text-tertiary">{t("ai.suggestOther", { defaultValue: "Others" })}</span>
                 <span className="h-px flex-1 bg-border-subtle-dim" />
               </div>
             ) : null}
@@ -747,7 +756,7 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
 
       {/* Footer hint when items exist */}
       {items.length > 0 ? (
-        <div className="shrink-0 border-t border-border-subtle-dim px-3 py-1 text-2xs text-text-tertiary">
+        <div className="shrink-0 border-t border-border-subtle-dim px-3 py-1 text-3xs text-text-tertiary">
           {t("ai.suggestFooterHint", { defaultValue: "Accept to write · Dismiss hides for this session" })}
         </div>
       ) : null}
@@ -766,7 +775,7 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
           }}
           onCancel={() => setReviewId(null)}
         >
-          <pre className="mb-2 max-h-[min(50vh,360px)] overflow-auto whitespace-pre-wrap wrap-break-word rounded-md border border-border-subtle-dim bg-surface-muted/40 p-2.5 text-3xs leading-relaxed text-text-secondary">
+          <pre className="mb-2 max-h-[min(50vh,360px)] overflow-auto whitespace-pre-wrap wrap-break-word rounded-md border border-border-subtle-dim bg-surface-muted/60 p-2.5 text-xs leading-relaxed text-text-secondary">
             {reviewItem.writeContent || reviewItem.summary}
           </pre>
         </ConfirmDialog>

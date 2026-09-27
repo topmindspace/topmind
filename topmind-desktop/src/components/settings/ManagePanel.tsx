@@ -543,7 +543,7 @@ export function ManagePanel({
             <Button
               variant="outline"
               size="sm"
-              className="h-6 text-3xs"
+              className="h-6"
               onClick={() => void checkUpdates()}
               disabled={updateLoading}
             >
@@ -577,7 +577,7 @@ export function ManagePanel({
         {updateInfo && !updateLoading ? (
           updateInfo.ok === false ? (
             <div className="space-y-1.5">
-              <div className="rounded-[var(--radius-md)] border border-warning/30 bg-warning/5 px-2 py-1.5 text-3xs text-warning">
+              <div className="rounded-[var(--radius-md)] border border-border-subtle-dim bg-status-warning-bg px-2 py-1.5 text-3xs text-warning">
                 {updateInfo.error || t("settings:about.checkFailed")}
               </div>
               <div className="text-3xs text-text-quaternary">{t("settings:about.checkFailedHint")}</div>
@@ -585,7 +585,7 @@ export function ManagePanel({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-6 text-3xs"
+                  className="h-6"
                   onClick={() =>
                     void api.sys.openUrl(
                       updateInfo.releasesUrl || updateInfo.releaseUrl || PRODUCT.releasesUrl,
@@ -618,14 +618,14 @@ export function ManagePanel({
           description={t("settings:env.desc")}
         >
           <div className="mb-2 flex flex-wrap items-center gap-1.5">
-            <span className="inline-flex items-center gap-1 rounded-full border border-border-subtle bg-surface-muted/40 px-2 py-0.5 text-3xs text-text-secondary">
+            <span className="inline-flex items-center gap-1 rounded-[var(--radius-xs)] border border-border-subtle bg-surface-muted/40 px-2 py-0.5 text-3xs text-text-secondary">
               <RiTerminalLine size={ICON.micro} />
               {sysInfo.platformLabel} · {sysInfo.archLabel}
             </span>
             {sysInfo.platform === "darwin" ? (
               <span
                 className={cn(
-                  "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-3xs",
+                  "inline-flex items-center gap-1 rounded-[var(--radius-xs)] border px-2 py-0.5 text-3xs",
                   sysInfo.brewAvailable
                     ? "border-border-subtle bg-surface-muted/40 text-text-secondary"
                     : "border-border-subtle-dim text-text-quaternary",
@@ -637,7 +637,7 @@ export function ManagePanel({
               </span>
             ) : null}
             {sysInfo.nodeVersion ? (
-              <span className="inline-flex items-center gap-1 rounded-full border border-border-subtle-dim px-2 py-0.5 text-3xs text-text-quaternary">
+              <span className="inline-flex items-center gap-1 rounded-[var(--radius-xs)] border border-border-subtle-dim px-2 py-0.5 text-3xs text-text-quaternary">
                 Node {sysInfo.nodeVersion}
               </span>
             ) : null}
@@ -710,7 +710,7 @@ export function ManagePanel({
         }
       >
         {compError ? (
-          <div className="mb-2 rounded-[var(--radius-md)] border border-warning/30 bg-warning/5 px-2 py-1.5 text-3xs text-warning">
+          <div className="mb-2 rounded-[var(--radius-md)] border border-border-subtle-dim bg-status-warning-bg px-2 py-1.5 text-3xs text-warning">
             {compError}
           </div>
         ) : null}
@@ -733,7 +733,7 @@ export function ManagePanel({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-6 text-3xs"
+                      className="h-6"
                       disabled={Boolean(busy)}
                       onClick={() => void installAllSkills()}
                     >
@@ -751,7 +751,7 @@ export function ManagePanel({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-6 text-3xs"
+                      className="h-6"
                       disabled={Boolean(busy)}
                       onClick={() => void upgradeAllSkills()}
                     >
@@ -814,7 +814,7 @@ export function ManagePanel({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-6 text-3xs"
+                      className="h-6"
                       disabled={!host.skillsRoot || Boolean(busy)}
                       onClick={() =>
                         void runCompanion(`install:${host.id}`, async () => {
@@ -840,7 +840,7 @@ export function ManagePanel({
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-6 text-3xs"
+                        className="h-6"
                         disabled={Boolean(busy)}
                         onClick={() =>
                           void runCompanion(`upgrade:${host.id}`, async () => {
@@ -864,7 +864,7 @@ export function ManagePanel({
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-6 text-3xs"
+                        className="h-6"
                         disabled={Boolean(busy)}
                         onClick={() =>
                           void runCompanion(`uninstall:${host.id}`, async () => {
@@ -909,7 +909,7 @@ export function ManagePanel({
               <span
                 key={b.id}
                 className={cn(
-                  "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-3xs",
+                  "inline-flex items-center gap-1 rounded-[var(--radius-xs)] border px-2 py-0.5 text-3xs",
                   b.present
                     ? "border-border-subtle bg-surface-muted/40 text-text-secondary"
                     : "border-border-subtle-dim text-text-quaternary",
@@ -932,7 +932,7 @@ export function ManagePanel({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-6 text-3xs"
+                className="h-6"
                 disabled={Boolean(busy)}
                 onClick={() =>
                   void runCompanion("clip", async () => {
@@ -954,7 +954,7 @@ export function ManagePanel({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 text-3xs"
+                  className="h-6"
                   disabled={Boolean(busy)}
                   onClick={() =>
                     void runCompanion("clip-uninstall", async () => {
@@ -974,7 +974,7 @@ export function ManagePanel({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 text-3xs"
+                className="h-6"
                 onClick={() => void api.sys.openClipExtensionFolder()}
               >
                 <RiFolderOpenLine size={ICON.micro} />
@@ -983,7 +983,7 @@ export function ManagePanel({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 text-3xs"
+                className="h-6"
                 onClick={() =>
                   void api.sys.openUrl(
                     "https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world#load-unpacked",
@@ -1040,7 +1040,7 @@ export function ManagePanel({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="ml-auto h-6 text-3xs"
+                  className="ml-auto h-6"
                   onClick={() => void api.sys.openPath(obsidian.appPath!)}
                 >
                   <RiExternalLinkLine size={ICON.micro} />
@@ -1069,7 +1069,7 @@ export function ManagePanel({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-6 text-3xs"
+                className="h-6"
                 disabled={Boolean(busy)}
                 onClick={() =>
                   void runCompanion("obsidian-install", async () => {
@@ -1112,7 +1112,7 @@ export function ManagePanel({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 text-3xs"
+                  className="h-6"
                   disabled={Boolean(busy)}
                   onClick={() =>
                     void runCompanion("obsidian-uninstall", async () => {
@@ -1135,7 +1135,7 @@ export function ManagePanel({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 text-3xs"
+                    className="h-6"
                     onClick={() =>
                       void api.sys.openPath(
                         obsidian.pluginPath || obsidian.vaultPluginsRoot!,
@@ -1175,7 +1175,7 @@ export function ManagePanel({
           <Button
             variant="outline"
             size="sm"
-            className="h-6 text-3xs"
+            className="h-6"
             onClick={() => void runDoctor()}
             disabled={doctorLoading}
           >

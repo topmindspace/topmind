@@ -13,6 +13,7 @@ import { useViewStore } from "../../stores/view-store";
 import { cn } from "../../lib/kit";
 import { ICON } from "../../lib/icons";
 import { formatChord } from "../../lib/chord";
+import { FilterChip } from "../ui/view";
 import type { SearchResult } from "../../types";
 
 type SearchBucket = "stream" | "memory" | "inbox" | "outputs" | "archive" | "topic" | "other";
@@ -272,7 +273,7 @@ export function GlobalSearch() {
                 <span className="flex-1">{t("overlays:search.recentTitle")}</span>
                 <button
                   type="button"
-                  className="rounded-[var(--radius-sm)] px-1.5 py-0.5 normal-case transition-colors hover:bg-surface-muted hover:text-text-secondary v4-focus-ring"
+                  className="rounded-[var(--radius-sm)] px-1.5 py-0.5 normal-case transition-colors hover:bg-state-hover hover:text-text-secondary v4-focus-ring"
                   onClick={() => {
                     clearRecent();
                     setRecent([]);
@@ -324,38 +325,20 @@ export function GlobalSearch() {
         ) : null}
         {query.trim() && !loading && results.length > 0 ? (
           <li className="flex flex-wrap items-center gap-1 px-2 py-1" role="presentation">
-            <button
-              type="button"
-              data-filter-chip
-              data-filter-chip-active={bucketFilter === "all" ? "true" : undefined}
+            <FilterChip
+              active={bucketFilter === "all"}
+              label={t("overlays:search.filterAll")}
+              count={results.length}
               onClick={() => setBucketFilter("all")}
-              className={cn(
-                "inline-flex h-(--control-h-chip) items-center rounded-full px-2 text-3xs font-medium leading-none transition-colors",
-                bucketFilter === "all"
-                  ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
-                  : "bg-surface-muted/35 text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
-              )}
-            >
-              {t("overlays:search.filterAll")}
-              <span className="ml-1 tabular-nums opacity-70">{results.length}</span>
-            </button>
+            />
             {BUCKET_ORDER.filter((b) => bucketCounts.has(b)).map((b) => (
-              <button
+              <FilterChip
                 key={b}
-                type="button"
-                data-filter-chip
-                data-filter-chip-active={bucketFilter === b ? "true" : undefined}
+                active={bucketFilter === b}
+                label={t(`overlays:search.group.${b}`)}
+                count={bucketCounts.get(b)}
                 onClick={() => setBucketFilter(b)}
-                className={cn(
-                  "inline-flex h-(--control-h-chip) items-center rounded-full px-2 text-3xs font-medium leading-none transition-colors",
-                  bucketFilter === b
-                    ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
-                    : "bg-surface-muted/35 text-text-tertiary hover:bg-surface-muted hover:text-text-secondary",
-                )}
-              >
-                {t(`overlays:search.group.${b}`)}
-                <span className="ml-1 tabular-nums opacity-70">{bucketCounts.get(b)}</span>
-              </button>
+              />
             ))}
           </li>
         ) : null}
@@ -388,7 +371,7 @@ export function GlobalSearch() {
                   <div className="min-w-0 flex-1">
                     <div
                       className={cn(
-                        "truncate font-mono text-2xs",
+                        "truncate font-mono text-3xs",
                         i === activeIdx ? "text-accent-color" : "text-text-secondary",
                       )}
                     >
@@ -399,7 +382,7 @@ export function GlobalSearch() {
                     </div>
                   </div>
                   {r.nameMatch ? (
-                    <span className="flex shrink-0 items-center gap-0.5 rounded-full bg-accent-bg-subtle px-1.5 py-0.5 text-3xs font-medium text-accent-color">
+                    <span className="flex shrink-0 items-center gap-0.5 rounded-[var(--radius-xs)] bg-accent-bg-subtle px-1.5 py-0.5 text-3xs font-medium text-accent-color">
                       <RiHashtag size={ICON.micro} aria-hidden /> {t("overlays:search.nameMatch")}
                     </span>
                   ) : null}
@@ -481,7 +464,7 @@ function HighlightText({ text, query }: { text: string; query: string }) {
     <HighlightAll
       text={text}
       query={query}
-      markClassName="rounded-[var(--radius-xs)] bg-warning/20 px-0.5 text-text-primary"
+      markClassName="rounded-[var(--radius-xs)] bg-status-warning-bg px-0.5 text-text-primary"
     />
   );
 }
@@ -492,7 +475,7 @@ function HighlightPath({ path, query }: { path: string; query: string }) {
     <HighlightAll
       text={path}
       query={query}
-      markClassName="rounded-[var(--radius-xs)] bg-warning/20 px-0.5 text-accent-color"
+      markClassName="rounded-[var(--radius-xs)] bg-status-warning-bg px-0.5 text-accent-color"
     />
   );
 }

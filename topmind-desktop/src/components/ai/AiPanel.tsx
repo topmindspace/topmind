@@ -25,6 +25,7 @@ import {
   DropdownSectionLabel,
 } from "../ui/DropdownMenu";
 import { cn } from "../../lib/kit";
+import { Button } from "../ui/Button";
 import { ICON } from "../../lib/icons";
 import type { Selection, AiMessage } from "../../types";
 import { useTaskStore } from "../../stores/task-store";
@@ -144,7 +145,7 @@ export function AiPanel({ hideComposer = false }: { hideComposer?: boolean } = {
         <button
           type="button"
           onClick={jumpToLatest}
-          className="absolute bottom-3 left-1/2 z-floating flex h-6 -translate-x-1/2 items-center gap-1 rounded-full border border-border-subtle bg-surface-elevated/95 px-2.5 text-3xs font-medium text-text-secondary shadow-[var(--shadow-float)] backdrop-blur-sm transition-colors hover:bg-surface-muted v4-focus-ring"
+          className="absolute bottom-3 left-1/2 z-floating flex h-6 -translate-x-1/2 items-center gap-1 rounded-[var(--radius-xs)] border border-border-subtle bg-surface-elevated/95 px-2.5 text-3xs font-medium text-text-secondary shadow-[var(--shadow-float)] backdrop-blur-sm transition-colors hover:bg-state-hover v4-focus-ring"
           aria-label={t("ai.jumpToLatest")}
         >
           <RiArrowDownSLine size={ICON.xs} /> {t("ai.jumpToLatest")}
@@ -170,7 +171,7 @@ function TaskBadge() {
     <Tooltip content={label}>
       <button
         type="button"
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-primary"
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-tertiary transition-colors hover:bg-state-hover hover:text-text-primary"
         onClick={() => emitLocal("task-panel:toggle")}
         aria-label={label}
       >
@@ -310,7 +311,7 @@ function PanelChrome() {
                   setShowSessionList((v) => !v);
                   setConfirmingClear(false);
                 }}
-                className="flex min-w-0 w-full items-center gap-1.5 rounded-[var(--radius-md)] px-1.5 py-1 text-left transition-colors hover:bg-surface-muted v4-focus-ring"
+                className="flex min-w-0 w-full items-center gap-1.5 rounded-[var(--radius-md)] px-1.5 py-1 text-left transition-colors hover:bg-state-hover v4-focus-ring"
                 aria-expanded={showSessionList}
                 aria-haspopup="listbox"
               >
@@ -336,7 +337,7 @@ function PanelChrome() {
                 value={sessionSearch}
                 onChange={(e) => setSessionSearch(e.target.value)}
                 placeholder={t("ai.searchSessionPlaceholder")}
-                className="min-w-0 flex-1 bg-transparent text-3xs text-text-primary outline-none placeholder:text-text-quaternary"
+                className="min-w-0 flex-1 bg-transparent text-xs text-text-primary outline-none placeholder:text-text-quaternary"
                 onClick={(e) => e.stopPropagation()}
                 onKeyDown={(e) => e.stopPropagation()}
               />
@@ -385,7 +386,7 @@ function PanelChrome() {
           <button
             type="button"
             onClick={() => void handleNewSession()}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-tertiary transition-colors hover:bg-surface-muted hover:text-text-primary"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-tertiary transition-colors hover:bg-state-hover hover:text-text-primary"
             aria-label={t("ai.newSessionLabel")}
           >
             <RiAddLine size={ICON.xs} />
@@ -401,7 +402,7 @@ function PanelChrome() {
                 "flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] transition-colors",
                 confirmingClear
                   ? "bg-status-error-bg text-error"
-                  : "text-text-tertiary hover:bg-surface-muted hover:text-error",
+                  : "text-text-tertiary hover:bg-state-hover hover:text-error",
               )}
               aria-label={t("ai.clearLabel")}
             >
@@ -428,7 +429,7 @@ function EmptyConversation({ selection }: { selection: Selection }) {
       <div className="mx-auto mb-2 text-3xs font-medium tracking-tight text-text-secondary">
         {ready ? t("ai.emptyReadyHint") : t("ai.emptyNotReadyHint")}
       </div>
-      <div className="mx-auto mb-3 max-w-[220px] text-3xs leading-relaxed text-text-quaternary">
+      <div className="mx-auto mb-3 max-w-[220px] text-xs leading-relaxed text-text-quaternary">
         {ready ? hint : t("ai.emptyReadyBody")}
       </div>
       {ready ? (
@@ -439,7 +440,7 @@ function EmptyConversation({ selection }: { selection: Selection }) {
               type="button"
               onClick={() => void sendMessage(p)}
               disabled={streaming}
-              className="group flex w-full items-center gap-2 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface/80 px-2.5 py-1.5 text-left text-3xs text-text-secondary transition-colors hover:border-accent-border-subtle hover:bg-surface-muted hover:text-text-primary disabled:opacity-50"
+              className="group flex w-full items-center gap-2 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface/80 px-2.5 py-1.5 text-left text-3xs text-text-secondary transition-colors hover:border-accent-border-subtle hover:bg-state-hover hover:text-text-primary disabled:opacity-50"
             >
               <RiSparklingLine size={ICON.xs} className="shrink-0 text-accent-color" />
               <span className="min-w-0 flex-1 truncate">{p}</span>
@@ -447,13 +448,14 @@ function EmptyConversation({ selection }: { selection: Selection }) {
           ))}
         </div>
       ) : (
-        <button
-          type="button"
+        <Button
+          variant="default"
+          size="sm"
+          className="mx-auto"
           onClick={() => useViewStore.getState().openOverlay("settings", { topicId: "ai" })}
-          className="mx-auto rounded-[var(--radius-md)] bg-primary px-3 py-1.5 text-3xs font-medium text-primary-foreground shadow-[var(--shadow-button)] transition-opacity hover:opacity-90"
         >
           {t("ai.goConfigureLabel")}
-        </button>
+        </Button>
       )}
     </div>
   );

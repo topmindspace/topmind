@@ -267,14 +267,14 @@ function KanbanColumn({
       <div className="mb-1.5 flex items-center gap-1.5 px-1 text-3xs font-medium tracking-wide text-text-quaternary">
         <RiFileTextLine size={ICON.micro} aria-hidden />
         <span>{label}</span>
-        <span className="rounded-full bg-surface-muted px-1.5 tabular-nums text-text-quaternary">{notes.length}</span>
+        <span className="rounded-[var(--radius-xs)] bg-surface-muted px-1.5 tabular-nums text-text-quaternary">{notes.length}</span>
       </div>
       <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
         {notes.length === 0 ? (
           <li
             className={cn(
               "rounded-[var(--radius-md)] border border-dashed border-border-subtle-dim bg-surface/40 px-2 py-3 text-center text-3xs text-text-quaternary transition-colors",
-              isOver && "border-accent-color/40 bg-accent-bg-subtle/40 text-accent-color",
+              isOver && "border-accent-color/40 bg-accent-bg-subtle text-accent-color",
             )}
           >
             {isOver ? t("shell:sidebar.kanban.dropOver") : t("shell:sidebar.kanban.dropEmpty")}

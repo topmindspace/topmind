@@ -240,7 +240,7 @@ export function FilePreviewView({ path }: Props) {
                   <RiCodeView size={ICON.micro} /> {t("workspace:previewView.source")}
                 </div>
               ) : null}
-              <pre className="whitespace-pre-wrap wrap-break-word p-6 font-mono text-2xs leading-relaxed text-text-primary">
+              <pre className="whitespace-pre-wrap wrap-break-word p-6 font-mono text-xs leading-relaxed text-text-primary">
                 {content}
               </pre>
             </div>

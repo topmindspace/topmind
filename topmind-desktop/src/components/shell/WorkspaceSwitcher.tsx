@@ -59,17 +59,6 @@ const LOCALE_OPTIONS: Array<{
 
 const THEME_ORDER: ThemeMode[] = ["auto", "light", "dark"];
 
-function nextTheme(cur: ThemeMode): ThemeMode {
-  const i = THEME_ORDER.indexOf(cur);
-  return THEME_ORDER[(i + 1) % THEME_ORDER.length] ?? "auto";
-}
-
-function themeIcon(theme: ThemeMode) {
-  if (theme === "light") return RiSunLine;
-  if (theme === "dark") return RiMoonLine;
-  return RiComputerLine;
-}
-
 export function WorkspaceSwitcher({
   currentRoot,
 }: {
@@ -179,10 +168,6 @@ export function WorkspaceSwitcher({
 
   // Theme + language go through the shared appearance helpers so this menu, the
   // Settings panel and the native 视图 → 外观/语言 radios can't drift apart.
-  const pickTheme = (next: ThemeMode) => {
-    setThemePreference(next);
-  };
-
   const pickLocale = (locale: "auto" | "zh-CN" | "en-US") => {
     setLocalePreference(locale);
   };
@@ -202,9 +187,6 @@ export function WorkspaceSwitcher({
     return "auto";
   })();
 
-  const themeLabel = (id: ThemeMode) =>
-    id === "light" ? t("titleBar.themeLight") : id === "dark" ? t("titleBar.themeDark") : t("titleBar.themeAuto");
-  const ThemeIcon = themeIcon(theme);
 
   const identityButton = (
     <button
@@ -216,7 +198,7 @@ export function WorkspaceSwitcher({
       aria-expanded={open}
       className={cn(
         sidebar
-          ? "flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-surface-muted v4-focus-ring"
+          ? "flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-state-hover v4-focus-ring"
           : "v4-titlebar-btn max-w-30 gap-1 px-1.5 font-mono text-3xs sm:max-w-40 xl:max-w-50",
         open && (sidebar ? "bg-surface-muted" : "bg-surface-muted text-text-secondary"),
         !sidebar && !open && "pointer-events-none h-8 w-8 overflow-hidden p-0 opacity-0",
@@ -235,49 +217,16 @@ export function WorkspaceSwitcher({
     </button>
   );
 
-  const themeBtn = (
-    <Tooltip content={t("titleBar.themeCycleTip", { label: themeLabel(theme), next: themeLabel(nextTheme(theme)) })}>
-      <button
-        type="button"
-        className="v4-icon-btn v4-icon-btn-chrome shrink-0"
-        data-workspace-theme
-        aria-label={t("titleBar.themeCycleTip", { label: themeLabel(theme), next: themeLabel(nextTheme(theme)) })}
-        onClick={() => {
-          setOpen(false);
-          void pickTheme(nextTheme(theme));
-        }}
-      >
-        <ThemeIcon size={ICON.xs} />
-      </button>
-    </Tooltip>
-  );
-
-  const settingsBtn = (
-    <Tooltip content={t("titleBar.settingsTip")}>
-      <button
-        type="button"
-        className="v4-icon-btn v4-icon-btn-chrome shrink-0"
-        data-workspace-settings
-        aria-label={t("titleBar.settingsAriaLabel")}
-        onClick={openSettings}
-      >
-        <RiSettingsLine size={ICON.xs} />
-      </button>
-    </Tooltip>
-  );
-
   /**
-   * Trigger: identity + trailing chrome actions on one row (docked footer).
-   * Float / collapsed keeps a single compact identity control.
-   * Tooltip only wraps identity — theme/settings carry their own.
+   * Trigger: identity only on the docked footer.
+   * Theme / settings / focus live on the ActivityBar (2026-09-26) — no
+   * duplicate chrome buttons beside the workspace name.
    */
   const trigger = sidebar ? (
     <div className="flex w-full min-w-0 items-center gap-0.5" data-workspace-switcher-row>
       <Tooltip content={t("titleBar.workspaceTip", { root: currentRoot })}>
         <div className="flex min-w-0 flex-1">{identityButton}</div>
       </Tooltip>
-      {themeBtn}
-      {settingsBtn}
     </div>
   ) : (
     <Tooltip content={t("titleBar.workspaceTip", { root: currentRoot })}>
@@ -294,7 +243,7 @@ export function WorkspaceSwitcher({
       maxWidth={400}
       maxHeight={560}
       matchTriggerWidth={false}
-      preferPlacement="top"
+      preferPlacement="bottom"
       padBottom={32}
       panelClassName="v4-no-drag p-0"
       className={sidebar ? "w-full" : undefined}

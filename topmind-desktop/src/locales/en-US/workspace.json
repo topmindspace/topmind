@@ -173,7 +173,16 @@
     "suggestionsPreparing": "Preparing suggestions…",
     "suggestionsPreparingTip": "Scanning tidy-up candidates · open when ready",
     "openMemory": "My profile",
-    "openMemoryTip": "Open My profile · portrait / periodic / topic memory"
+    "openMemoryTip": "Open My profile · portrait / periodic / topic memory",
+    "title": "Stream",
+    "quickInbox": "Inbox",
+    "quickOutputs": "Outputs",
+    "quickMemory": "My situation",
+    "quickSuggest": "AI suggestions",
+    "packingWeekly": "weekly",
+    "packingDaily": "daily",
+    "packingMonthly": "monthly",
+    "packingAtom": "atomic"
   },
   "feedLayout": {
     "list": "List",

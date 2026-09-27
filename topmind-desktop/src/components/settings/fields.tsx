@@ -25,7 +25,7 @@ export function HelpTip({
   return (
     <Tooltip content={content} side={side}>
       <span
-        className="inline-flex shrink-0 cursor-help rounded-full p-0.5 text-text-quaternary transition-colors hover:bg-surface-muted hover:text-text-tertiary v4-focus-ring"
+        className="inline-flex shrink-0 cursor-help rounded-full p-0.5 text-text-quaternary transition-colors hover:bg-state-hover hover:text-text-tertiary v4-focus-ring"
         tabIndex={0}
         aria-label={t("common:action.help", { defaultValue: "Help" })}
       >
@@ -56,7 +56,7 @@ export function Field({
   return (
     <div className={cn(compact ? "mb-0" : "mb-2.5 last:mb-0", className)}>
       <div className="mb-1 flex items-center gap-1">
-        <label className="block text-3xs font-medium tracking-tight text-text-secondary">
+        <label className="block text-xs font-medium tracking-tight text-text-secondary">
           {label}
         </label>
         {hint ? <HelpTip content={hint} /> : null}
@@ -144,7 +144,7 @@ export function SwitchField({
     >
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1">
-          <span className="text-3xs font-medium tracking-tight text-text-secondary">
+          <span className="text-xs font-medium tracking-tight text-text-secondary">
             {label}
           </span>
           {hint ? <HelpTip content={hint} /> : null}
@@ -193,11 +193,11 @@ export function KeyField({
     <div className="mb-2 last:mb-0">
       <div className="mb-1 flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1.5">
-          <label className="text-3xs font-medium tracking-tight text-text-secondary">
+          <label className="text-xs font-medium tracking-tight text-text-secondary">
             {label}
           </label>
           {configured ? (
-            <span className="rounded-full bg-status-success-bg px-1.5 py-0.5 text-3xs font-medium text-success">
+            <span className="rounded-[var(--radius-xs)] bg-status-success-bg px-1.5 py-0.5 text-3xs font-medium text-success">
               {t("action.configured")}
             </span>
           ) : null}
@@ -209,7 +209,7 @@ export function KeyField({
               <button
                 type="button"
                 onClick={onClear}
-                className="rounded px-1.5 py-0.5 text-3xs text-text-quaternary transition-colors hover:bg-surface-muted hover:text-error v4-focus-ring"
+                className="rounded px-1.5 py-0.5 text-3xs text-text-quaternary transition-colors hover:bg-state-hover hover:text-error v4-focus-ring"
               >
                 {t("action.clearKey")}
               </button>
@@ -247,7 +247,7 @@ export function StatusDot({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-3xs font-medium",
+        "inline-flex items-center gap-1 rounded-[var(--radius-xs)] px-2 py-0.5 text-3xs font-medium",
         ok ? "bg-status-success-bg text-success" : "bg-status-warning-bg text-warning",
       )}
     >

@@ -323,12 +323,12 @@ function XHubView() {
               <div className="flex gap-2">
                 <button
                   type="button"
-                  className="hover:text-accent-color"
+                  className="v4-focus-ring rounded hover:text-accent-color"
                   onClick={() => setSelected(new Set(tweets.map((_, i) => i)))}
                 >
                   {t("hub.selectAll")}
                 </button>
-                <button type="button" className="hover:text-accent-color" onClick={() => setSelected(new Set())}>
+                <button type="button" className="v4-focus-ring rounded hover:text-accent-color" onClick={() => setSelected(new Set())}>
                   {t("hub.clear")}
                 </button>
               </div>
@@ -342,7 +342,7 @@ function XHubView() {
                   onClick={() => toggle(i)}
                   className={cn(
                     "flex w-full items-start gap-2 rounded-[var(--radius-md)] px-2.5 py-2 text-left transition-colors",
-                    on ? "bg-accent-bg-subtle" : "hover:bg-surface-muted",
+                    on ? "bg-surface-selected" : "hover:bg-state-hover",
                   )}
                 >
                   <span
@@ -364,7 +364,7 @@ function XHubView() {
                         </MetaText>
                       ) : null}
                     </div>
-                    <div className="mt-0.5 line-clamp-3 text-3xs text-text-secondary whitespace-pre-wrap">
+                    <div className="mt-0.5 line-clamp-3 text-xs text-text-secondary whitespace-pre-wrap">
                       {t.text}
                     </div>
                   </div>

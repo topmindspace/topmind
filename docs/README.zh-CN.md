@@ -4,7 +4,7 @@
 
 > **根目录入口** [`../README.md`](../README.md)（简体中文） · **English** [`../README.en.md`](../README.en.md)  
 > 本目录收录架构设计锁、ADR 决策记录、打包发布规范与全表面导览。  
-> 工作流：`收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整` · 写回只经 Kernel `writeback-engine`（唯一写闸）· UTR `8 域 / 28 命令`
+> 工作流：`收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整` · 写回只经 Kernel `writeback-engine`（唯一写闸）· UTR `8 域 / 32 命令`
 
 **README 约定：** 各模块以 `README.md` 为简体中文主文档（GitHub 默认），`README.en.md` 为英文；`README.zh-CN.md` 仅作兼容跳转。
 
@@ -103,6 +103,7 @@
 | [2026-09-17](./adr/2026-09-17b-writeback-authorization-model.md) | locked=任务快照 · 分级 confirm |
 | [2026-09-17](./adr/2026-09-17c-adversarial-pass-fences-and-honesty.md) | symlink fail-closed · Memory 单真源 |
 | [2026-09-17](./adr/2026-09-17e-global-memory-quality.md) | 全局记忆质量（去重/恢复/注入）· 2026-09-25 融合门 |
+| [2026-09-25](./adr/2026-09-25-goal-oriented-agent-loop.md) | 目标导向智能体循环（规划/验收/续跑/压缩） |
 
 设计提案（非 ADR）：[`./design/`](./design/)。
 ---

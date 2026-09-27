@@ -16,7 +16,7 @@ import {
   RiItalic,
   RiListOrdered,
   RiListUnordered,
-  RiPencilLine,
+  RiEditLine,
   RiBallPenLine,
   RiSparklingLine,
   RiText,
@@ -40,7 +40,7 @@ const SELECTION_ACTIONS: {
   { id: "expand", icon: RiExpandUpDownLine, labelKey: "editor:selectionAi.expandLabel", tipKey: "editor:selectionAi.expandTip" },
   { id: "bullets", icon: RiListUnordered, labelKey: "editor:selectionAi.bulletsLabel", tipKey: "editor:selectionAi.bulletsTip" },
   { id: "format", icon: RiAlignLeft, labelKey: "editor:selectionAi.formatLabel", tipKey: "editor:selectionAi.formatTip" },
-  { id: "fix", icon: RiPencilLine, labelKey: "editor:selectionAi.fixLabel", tipKey: "editor:selectionAi.fixTip" },
+  { id: "fix", icon: RiEditLine, labelKey: "editor:selectionAi.fixLabel", tipKey: "editor:selectionAi.fixTip" },
   { id: "summarize", icon: RiFileList3Line, labelKey: "editor:selectionAi.summarizeLabel", tipKey: "editor:selectionAi.summarizeTip" },
   { id: "translate", icon: RiTranslate2, labelKey: "editor:selectionAi.translateLabel", tipKey: "editor:selectionAi.translateTip" },
 ];
@@ -155,7 +155,7 @@ export function SelectionAiToolbar({
             aria-disabled={busy || undefined}
             onClick={() => { if (!busy) onToggleCustom(); }}
             className={cn(
-              "ml-auto flex h-7 items-center gap-1 rounded-[var(--radius-sm)] px-2 text-3xs text-text-tertiary hover:bg-surface-muted",
+              "ml-auto flex h-7 items-center gap-1 rounded-[var(--radius-sm)] px-2 text-3xs text-text-tertiary hover:bg-state-hover",
               busy && "opacity-45",
             )}
           >
@@ -233,7 +233,7 @@ export function SelectionAiToolbar({
                 }}
                 className={cn(
                   "flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-tertiary",
-                  "hover:bg-surface-muted hover:text-text-primary disabled:opacity-40",
+                  "hover:bg-state-hover hover:text-text-primary disabled:opacity-40",
                   btn.active() && "bg-accent-bg-subtle text-accent-color",
                 )}
                 aria-label={btn.tip}

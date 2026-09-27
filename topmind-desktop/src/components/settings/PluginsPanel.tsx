@@ -345,28 +345,28 @@ export function PluginsPanel({
                     <span className="text-3xs font-medium text-text-primary">{p.manifest.nameKey ? t(p.manifest.nameKey) : p.manifest.name}</span>
                     <span className="text-3xs tabular-nums text-text-quaternary">v{p.manifest.version}</span>
                     {isBuiltin ? (
-                      <span className="rounded-full bg-accent-bg-subtle px-1.5 py-0.5 text-3xs font-medium text-accent-color">
+                      <span className="rounded-[var(--radius-xs)] bg-accent-bg-subtle px-1.5 py-0.5 text-3xs font-medium text-accent-color">
                         {t("settings:plugins.builtIn")}
                       </span>
                     ) : isExternal ? (
-                      <span className="rounded-full bg-surface-muted px-1.5 py-0.5 text-3xs text-text-tertiary">
+                      <span className="rounded-[var(--radius-xs)] bg-surface-muted px-1.5 py-0.5 text-3xs text-text-tertiary">
                         {t("settings:plugins.thirdParty")}
                       </span>
                     ) : (
-                      <span className="rounded-full bg-surface-muted px-1.5 py-0.5 text-3xs text-text-tertiary">
+                      <span className="rounded-[var(--radius-xs)] bg-surface-muted px-1.5 py-0.5 text-3xs text-text-tertiary">
                         {t("settings:plugins.connector")}
                       </span>
                     )}
                     {p.status === "error" ? (
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-status-error-bg px-1.5 py-0.5 text-3xs text-error">
+                      <span className="inline-flex items-center gap-0.5 rounded-[var(--radius-xs)] bg-status-error-bg px-1.5 py-0.5 text-3xs text-error">
                         <RiAlertLine size={ICON.micro} /> {t("settings:plugins.error")}
                       </span>
                     ) : enabled || p.status === "active" ? (
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-status-success-bg px-1.5 py-0.5 text-3xs text-success">
+                      <span className="inline-flex items-center gap-0.5 rounded-[var(--radius-xs)] bg-status-success-bg px-1.5 py-0.5 text-3xs text-success">
                         <RiCheckboxCircleLine size={ICON.micro} /> {t("settings:plugins.on")}
                       </span>
                     ) : (
-                      <span className="rounded-full bg-surface-muted px-1.5 py-0.5 text-3xs text-text-quaternary">
+                      <span className="rounded-[var(--radius-xs)] bg-surface-muted px-1.5 py-0.5 text-3xs text-text-quaternary">
                         {t("settings:plugins.off")}
                       </span>
                     )}
@@ -402,7 +402,7 @@ export function PluginsPanel({
                       onClick={() =>
                         useViewStore.getState().openOverlay("settings", { topicId: settingsSlot.id })
                       }
-                      className="shrink-0 rounded-[var(--radius-md)] border border-border-subtle px-2 py-1 text-3xs text-text-secondary transition-colors hover:bg-surface-muted v4-focus-ring"
+                      className="shrink-0 rounded-[var(--radius-md)] border border-border-subtle px-2 py-1 text-3xs text-text-secondary transition-colors hover:bg-state-hover v4-focus-ring"
                     >
                       {t("settings:plugins.configBtn")}
                     </button>
@@ -415,7 +415,7 @@ export function PluginsPanel({
                       disabled={busy === `rm:${p.id}`}
                       onClick={() => setUninstallId(p.id)}
                       aria-label={t("settings:plugins.uninstallTooltip")}
-                      className="shrink-0 rounded-[var(--radius-sm)] p-1 text-text-quaternary transition-colors hover:bg-surface-muted hover:text-error v4-focus-ring"
+                      className="shrink-0 rounded-[var(--radius-sm)] p-1 text-text-quaternary transition-colors hover:bg-state-hover hover:text-error v4-focus-ring"
                     >
                       <RiDeleteBin6Line size={ICON.micro} />
                     </button>
@@ -479,13 +479,13 @@ export function PluginsPanel({
             <Button
               variant="outline"
               size="sm"
-              className="h-6 text-3xs"
+              className="h-6"
               disabled={Boolean(busy) || !settings.workspaceRoot}
               onClick={() => void handleReload()}
             >
               {t("settings:plugins.reload")}
             </Button>
-            <Button variant="outline" size="sm" className="h-6 text-3xs" onClick={() => void api.sys.openPluginsDir()}>
+            <Button variant="outline" size="sm" className="h-6" onClick={() => void api.sys.openPluginsDir()}>
               <RiFolderOpenLine size={ICON.micro} /> {t("settings:plugins.openFolder")}
             </Button>
           </div>
@@ -495,7 +495,7 @@ export function PluginsPanel({
           <Button
             variant="outline"
             size="sm"
-            className="h-7 text-3xs"
+            className="h-7"
             disabled={Boolean(busy)}
             onClick={() => void beginInstallFolder()}
           >
@@ -504,7 +504,7 @@ export function PluginsPanel({
           <Button
             variant="outline"
             size="sm"
-            className="h-7 text-3xs"
+            className="h-7"
             disabled={Boolean(busy)}
             onClick={() => void beginInstallZip()}
           >
@@ -513,7 +513,7 @@ export function PluginsPanel({
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 text-3xs"
+            className="h-7"
             disabled={Boolean(busy)}
             onClick={() => void handleScaffold()}
           >
@@ -687,10 +687,11 @@ export function PluginsPanel({
               <Tooltip content={clipCopied ? t("common:action.copied") : t("settings:general.clipCopyToken")}>
                 <Button
                   type="button"
-                  variant="default"
-                  size="sm"
-                  className="h-8 w-8 shrink-0 p-0"
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
                   disabled={!clip.token}
+                  softDisabled={!clip.token}
                   onClick={() => void copyClipToken()}
                 >
                   <RiFileCopyLine size={ICON.micro} />
@@ -710,7 +711,7 @@ export function PluginsPanel({
             </div>
           </Field>
         </div>
-        <ol className="mt-2 list-decimal space-y-1 rounded-[var(--radius-md)] border border-border-subtle bg-surface-muted/50 px-3.5 py-2 pl-7 text-3xs leading-relaxed text-text-secondary">
+        <ol className="mt-2 list-decimal space-y-1 rounded-[var(--radius-md)] border border-border-subtle bg-surface-muted/50 px-3.5 py-2 pl-7 text-xs leading-relaxed text-text-secondary">
           <li>{t("settings:general.clipSteps1")}</li>
           <li>{t("settings:general.clipSteps2")}</li>
           <li>{t("settings:general.clipSteps3")}</li>
