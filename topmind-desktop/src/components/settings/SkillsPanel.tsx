@@ -357,7 +357,7 @@ export function SkillsPanel({
             {extraSummaries.map((s) => (
               <div
                 key={s.path}
-                className="flex items-start gap-2 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-muted/20 px-2 py-1.5 text-3xs"
+                className="flex items-start gap-2 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-wash-15 px-2 py-1.5 text-3xs"
               >
                 <RiBox3Line size={ICON.xs} className="mt-0.5 shrink-0 text-text-quaternary" />
                 <div className="min-w-0 flex-1">
@@ -454,7 +454,7 @@ export function SkillsPanel({
                     "flex cursor-pointer items-start gap-2.5 rounded-[var(--radius-md)] border px-2.5 py-2 text-3xs transition-colors",
                     isSkillOn(s.id)
                       ? "border-border-subtle-dim bg-surface hover:border-border-subtle"
-                      : "border-border-subtle-dim/60 bg-surface-muted/20 opacity-65",
+                      : "border-border-subtle-dim/60 bg-surface-wash-15 opacity-65",
                   )}
                 >
                   <input

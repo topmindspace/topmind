@@ -144,7 +144,7 @@ export function WereadStatsPanel({
 
 function StatChip({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[var(--radius-md)] bg-surface-muted/60 p-2">
+    <div className="rounded-[var(--radius-md)] bg-surface-wash-65 p-2">
       <div className="text-3xs text-text-quaternary">{label}</div>
       <div className="mt-0.5 font-mono text-xs font-medium text-text-primary">{value}</div>
     </div>

@@ -711,7 +711,7 @@ export function PluginsPanel({
             </div>
           </Field>
         </div>
-        <ol className="mt-2 list-decimal space-y-1 rounded-[var(--radius-md)] border border-border-subtle bg-surface-muted/50 px-3.5 py-2 pl-7 text-xs leading-relaxed text-text-secondary">
+        <ol className="mt-2 list-decimal space-y-1 rounded-[var(--radius-md)] border border-border-subtle bg-surface-wash-45 px-3.5 py-2 pl-7 text-xs leading-relaxed text-text-secondary">
           <li>{t("settings:general.clipSteps1")}</li>
           <li>{t("settings:general.clipSteps2")}</li>
           <li>{t("settings:general.clipSteps3")}</li>

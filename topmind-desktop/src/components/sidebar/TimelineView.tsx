@@ -244,7 +244,7 @@ export function TimelineView({ onNavigate }: TimelineViewProps) {
       </div>
       {truncated && scannedTotal != null && scannedTotal > entries.length ? (
         <div
-          className="mx-2 mb-1 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-muted/50 px-2 py-1 text-3xs text-text-tertiary"
+          className="mx-2 mb-1 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-wash-45 px-2 py-1 text-3xs text-text-tertiary"
           role="status"
         >
           {t("sidebar.timeline.truncatedHint", { shown: entries.length, total: scannedTotal })}

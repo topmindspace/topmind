@@ -364,7 +364,7 @@ function ResultFooter({
   const assumed = goal.assumptions || [];
   return (
     <div
-      className="mt-2 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-muted/40 px-2.5 py-1.5"
+      className="mt-2 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-wash-45 px-2.5 py-1.5"
       data-result-footer
     >
       <div className="mb-1 text-4xs font-medium uppercase tracking-wide text-text-quaternary">
@@ -503,7 +503,7 @@ function ToolCallCard({ tool }: { tool: AiToolCall }) {
           ? "bg-accent-bg-subtle text-text-secondary"
           : isWrite
             ? "bg-status-success-bg text-text-tertiary"
-            : "bg-surface-muted/40 text-text-tertiary",
+            : "bg-surface-wash-45 text-text-tertiary",
       )}
     >
       <div className="flex w-full items-center gap-1.5">
@@ -611,7 +611,7 @@ function CodeBlock({ code, language }: { code: string; language?: string }) {
 
   return (
     <div className="group/code relative my-2 overflow-hidden rounded-[var(--radius-md)] border border-border-subtle bg-surface-inset/40 dark:bg-surface-inset/70 shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)]">
-      <div className="flex items-center justify-between gap-2 border-b border-border-subtle-dim/80 bg-surface-muted/40 px-2.5 py-1">
+      <div className="flex items-center justify-between gap-2 border-b border-border-subtle-dim/80 bg-surface-wash-45 px-2.5 py-1">
         <span className="rounded px-1.5 py-0.5 font-mono text-3xs font-medium text-text-tertiary">
           {lang || "code"}
         </span>
@@ -733,7 +733,7 @@ function BlockFormatted({ text }: { text: string }) {
               {header.map((h, i) => (
                 <th
                   key={i}
-                  className="border border-border-subtle-dim bg-surface-muted/60 px-2 py-1 font-semibold text-text-secondary"
+                  className="border border-border-subtle-dim bg-surface-wash-65 px-2 py-1 font-semibold text-text-secondary"
                   style={{ textAlign: aligns[i] || "left" }}
                 >
                   {<InlineFormatted text={h} />}
@@ -987,7 +987,7 @@ function ReasoningBlock({ text, streaming }: { text: string; streaming?: boolean
 
   return (
     <div
-      className="mb-2 rounded-[var(--radius-md)] border border-border-subtle/80 bg-surface-muted/40"
+      className="mb-2 rounded-[var(--radius-md)] border border-border-subtle/80 bg-surface-wash-45"
       data-reasoning-block
       data-reasoning-open={open ? "true" : "false"}
     >

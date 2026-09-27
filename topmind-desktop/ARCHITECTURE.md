@@ -37,7 +37,7 @@
 | 响应式 chrome | **Done** — `ChromeOverflowActions` + TitleBar compact 互斥 + StatusBar 可点 |
 | connectors weread/x | **Done** — 共享 `electron/lib/connector-bridge.mjs`（settings+secret · patch 持久 · `writeConnectorNote` 经 kernel 写闸）；ADR `docs/adr/2026-08-02-connector-bridge.md` |
 | ingest 路由 | **Done** — Desktop commit 经 `resolveIngestRoute`（Kernel） |
-| PrimaryNav | **Done** — 动态 / Inbox / 交付（侧栏主 header `data-sidebar-primary-nav`；侧栏收起时 TitleBar 紧凑图标）；搜索由统一 ⌘K 触发器打开；打开工作区后 selection 默认 `{ kind: "home" }`（工作区主页，不是第四主锚）；显式动态仍是 `stream`；未知 kind → home；归档不在主锚 |
+| PrimaryNav | **Done** — 动态 / Inbox / 交付（目的地主锚在 **ActivityBar**；侧栏收起时 TitleBar 紧凑图标 `PrimaryNav variant=compact`）；搜索由统一 ⌘K 触发器打开；打开工作区后 selection 默认 `{ kind: "home" }`（工作区主页，不是第四主锚）；显式动态仍是 `stream`；未知 kind → home；归档不在主锚 |
 | 侧栏 thrift | **Done** — ViewSwitcher 主轨 stream/目录/时间；标签/看板「更多」 |
 | 关键词搜索诚实 | **Done** — notes-index + grep `truncated`/`scannedTotal`；GlobalSearch 截断提示（无 embedding） |
 | 建议可关 | **Done** — `ai.autoPrepareSuggestions`（默认开） |
@@ -123,9 +123,10 @@ contextBridge.exposeInMainWorld('topmind', {
 | `ai-service.mjs` | invoke 默认 `runPiAgent`（`useTools!==false`）；模块加载失败才 `runStream`；`steerStream` / `queueFollowUp`；skills catalog；**错误标记 `isError` + `usage`/`modelId` 回传渲染层** |
 | `lib/ai-tool-evidence.mjs` | 写回回执归一化 + 工具摘要（路径/备份） |
 | `lib/ai-session-compact.mjs` | token 估算 + 工具时间线折叠 + 中间摘要（默认 maxMessages 60 / keepRecent 24 / maxChars 240K ≈ 80K tokens；另按模型 contextWindow 动态缩放，settings 显式值优先） |
-| `ChatMessage.tsx` | **错误重试按钮**（`isError` → ErrorBlock + `regenerate()`）；**Token 用量徽章**（`usage.promptTokens ↑ / completionTokens ↓`）|
+| `ChatMessage.tsx` | **错误重试按钮**（`isError` → ErrorBlock + `regenerate()`）；**Token 用量徽章**（`usage.promptTokens ↑ / completionTokens ↓`）；**Run Card / ResultFooter**（计划进度 + `planBaseline` 计划变更 chips；变更足迹 ≠ Verified）|
 
 **工作循环（默认）**：Route（对照 catalog）→ Activate（`load_skill`）→ Execute（Workspace 工具）→ Receipt。  
+**Pause ≠ Abandon（stopReason 诚实）**：流式中 Esc / 中断钮 = `pauseStream`（`stopReason:"paused"`，**不**标 cancelled；已完成编辑与目标台账保留）；暂停后 `resumeStream`（可带 redirect）或 `abandonPaused`（真 cancel）。`paused ≠ cancelled ≠ error ≠ incomplete ≠ stepLimitHit`。Run Card 相对 `planBaseline` 显示计划变更 chips（`diffPlan`）。  
 **设置**：`Settings → Skills`（`ai.skillsEnabled` / `enabledSkillIds` / `extraSkillsRoots`；回执与扩展根 summary）。  
 **打包**：`pack:prepare` → `resources/topmind-engine/skills/`（与 templates/lib 同源）。
 
@@ -297,7 +298,7 @@ Shell（三列贯通 · 无横跨产品 header）
 ### 现状（已收敛 · Phase B Done）
 
 PrimaryNav 文案为 **动态 · Inbox · 交付**（搜索非 PrimaryNav：⌘K 命令面板 · ⌘P 笔记全文）。打开工作区后的默认 selection 是 `{ kind: "home" }`（工作区主页）。显式动态仍是 `{ kind: "stream" }`。  
-**2026-09 v4**：三列顶栏共用 `.v4-column-chrome`（44px）。Sidebar 主 header 是一排 32px 图标：当前目的地（工作区用 `RiHome4Line`，动态用 `RiNewspaperLine`，Inbox，交付）→ Profile → 搜索 → 记一下。macOS 这一行在红绿灯留白内右对齐（`.v4-mac-titlebar-pad` 取代 8px 左内边距，全屏收起）；Windows/Linux 左对齐。次级 header 的 ViewSwitcher 靠左，树工具靠右，与目录树同一左缘。编辑器大纲 / 外观 / 专注住在 FrontmatterBar。StatusBar 左端显示工作区完整路径。中栏顶栏的「回到工作区」用首页图标。左右栏开关始终是线形图标。
+**2026-09 v4**：三列顶栏共用 `.v4-column-chrome`（44px）。主目的地轨是 **ActivityBar**（最左 48px 三分组：home≡stream `RiHome4Line` + Inbox · 交付 · 我的情况 · 记一下；中 应用菜单；底 专注 · 主题 · 设置）。Sidebar 主 header 只有**工作区名+菜单 → 搜索 ⌘K**（`data-sidebar-ws-name` / `data-sidebar-search`）——目的地 / 捕获 / 主题 / 设置不在侧栏头。macOS 这一行在红绿灯留白内右对齐（`.v4-mac-titlebar-pad` 取代 8px 左内边距，全屏收起）；Windows/Linux 左对齐。次级 header 的 ViewSwitcher 靠左，树工具靠右，与目录树同一左缘。编辑器大纲 / 外观 / 专注住在 FrontmatterBar。StatusBar 左端显示工作区完整路径。中栏顶栏的「回到工作区」用首页图标。左右栏开关始终是线形图标。
 旧「工作台」主锚点已退役。**已删仪表盘**（问候 CTA、钉住卡、下一步/进行中/截止、最近专题材料条、连接器条）不得回来。`kind: "home"` 现在是工作区主页，不是那个仪表盘。`normalizeSelection` 把空值和未知 kind 收到主页；显式 `stream` 保持动态。归档不在主锚。
 
 ```
@@ -319,7 +320,7 @@ Shell（data-through-columns）
 
 ### Stream 主表面（动态 · 显式打开）
 
-显式 `selection: { kind: "stream" }` → **`StreamDetailView`**（周期本浏览器）。侧栏目的地下拉里的「动态」、⌘⇧S、命令面板 `goto.stream` 都走这条。工作区在同一个下拉里，但不是新概念；它使用 `RiHome4Line`，动态使用 `RiNewspaperLine`。
+显式 `selection: { kind: "stream" }` → **`StreamDetailView`**（周期本浏览器）。ActivityBar home≡stream 单图标、⌘⇧S、命令面板 `goto.stream` 都走这条。`home` kind 仍存在（`defaultCanvasSelection`），但与 `stream` 同渲同一画布（home≡stream）；PrimaryNav 收起回退下拉里仍分列工作区 / 动态，工作区用 `RiHome4Line`，动态用 `RiNewspaperLine`（Desktop 轨上不双图标）。
 
 **建议 / 审阅**：AI 工作区 **建议 pane**（`SuggestPopover` 确认列表；状态栏计数 chip 仅 count>0 · 不嵌 Stream 列表；画布顶 `SuggestEntryStrip` 已删）。侧栏 Profile + ⌘K「转到 · 我的情况」可达记忆浏览。
 
@@ -354,11 +355,11 @@ Shell（data-through-columns）
 - **SuggestPopover**: 唯一完整建议确认列表（嵌入建议 pane；专注模式浮动）→ `openSuggestSurface`（≠ 个人清单）
 - **ChatInput**: 自适应输入框 + 发送/停止；**模型选择器与技能同排 chip**（非独占 footer）；仅已配置提供商
 
-### TaskPanel（浮动后台任务面板）
+### TaskPanel（停靠后台任务面板）
 
 与 AiPanel 独立的双面板架构组件，负责确定性引擎任务的后台执行与进度展示：
 
-- **定位**：`position: fixed`，浮动在右下角（`z-floating`），不占三栏布局空间
+- **定位**：`position: fixed`（`z-floating`），**默认停靠**在状态栏任务触发钮上方（`computeDockTaskPanelPos` 右对齐）；拖拽后改自由浮层并记住位置（`task-panel-pos`）；不占三栏布局空间
 - **触发**：⌘⇧J 全局快捷键 / StatusBar 任务 chip（与 AI 工作区开关独立）
 - **状态管理**：`useTaskStore`（Zustand）— 任务队列、并发控制（maxConcurrent: 3）、取消/重试/清除；支持 `reconcile`（确定性）和 `ai_digest`（AI 驱动）两种任务类型
 - **任务类型**：`reconcile`（整理周期本，确定性）+ `ai_digest`（AI 分析周期，真实 LLM）接入真实引擎 API；UI 仅暴露已接线类型。`PendingTaskType`（digest/promote/…）保留类型注释，不渲染入口

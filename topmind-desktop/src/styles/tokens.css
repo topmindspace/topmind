@@ -36,6 +36,12 @@
   --color-surface-elevated: #fffcf7;
   --color-surface-muted: #efece5;
   --color-surface-inset: #e4e0d7;
+  /* Soft container fills — named stops instead of bg-surface-muted/NN
+     (alpha modifiers on semantic utilities are banned). */
+  --color-surface-wash-15: color-mix(in srgb, var(--color-surface-muted) 18%, transparent);
+  --color-surface-wash-30: color-mix(in srgb, var(--color-surface-muted) 32%, transparent);
+  --color-surface-wash-45: color-mix(in srgb, var(--color-surface-muted) 48%, transparent);
+  --color-surface-wash-65: color-mix(in srgb, var(--color-surface-muted) 68%, transparent);
   --color-sidebar: #e2ded6;
   --color-text-primary: #242220;
   --color-text-secondary: #4a4743;
@@ -732,9 +738,6 @@ select:focus-visible {
     outline-offset: 2px;
     box-shadow: 0 0 0 4px var(--color-focus-soft);
   }
-  .v4-state-hover { background: var(--color-state-hover); }
-  .v4-state-pressed { background: var(--color-state-pressed); }
-  .v4-state-dragged { background: var(--color-state-dragged); }
   /* Snackbar surface — elevated paper; dark uses light glass */
   .v4-toast {
     backdrop-filter: blur(var(--blur-sm, 6px));

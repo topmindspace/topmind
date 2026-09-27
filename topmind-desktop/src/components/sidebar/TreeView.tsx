@@ -671,7 +671,7 @@ const TreeViewNode = memo(function TreeViewNode({
             && !isLoading ? (
             <span
               className={cn(
-                "rounded-[var(--radius-xs)] bg-surface-muted/90 px-1.5 py-0.5 text-3xs tabular-nums text-text-quaternary transition-opacity duration-(--duration-fast)",
+                "rounded-[var(--radius-xs)] bg-surface-wash-65 px-1.5 py-0.5 text-3xs tabular-nums text-text-quaternary transition-opacity duration-(--duration-fast)",
                 (node.kind === "topic") && "group-hover:opacity-0 group-focus-within:opacity-0",
                 (node.kind === "topic") && isActive && "opacity-0",
               )}
@@ -792,7 +792,7 @@ const TreeViewNode = memo(function TreeViewNode({
           </div>
         ) : node.kind === "topic" || node.kind === "category" ? (
           <div
-            className="mx-2 mb-1 mt-0.5 rounded-md border border-dashed border-border-subtle bg-surface-muted/25 px-2 py-2 text-3xs text-text-quaternary"
+            className="mx-2 mb-1 mt-0.5 rounded-md border border-dashed border-border-subtle bg-surface-wash-15 px-2 py-2 text-3xs text-text-quaternary"
             style={{ marginLeft: `${treeIndent(depth)}px` }}
           >
             {node.kind === "category" ? (

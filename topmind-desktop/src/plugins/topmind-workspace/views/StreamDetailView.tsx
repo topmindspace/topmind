@@ -190,7 +190,7 @@ const StreamFeedRowView = memo(function StreamFeedRowView({
             type="button"
             onClick={() => onOpenPeriod(entry.heading || undefined)}
             className={cn(
-              "flex min-w-0 flex-1 flex-col gap-0.5 rounded-md bg-surface-muted/15 px-2.5 py-2 text-left",
+              "flex min-w-0 flex-1 flex-col gap-0.5 rounded-md bg-surface-wash-15 px-2.5 py-2 text-left",
               "transition-colors hover:bg-accent-bg-faint",
               "v4-focus-ring",
             )}
@@ -252,7 +252,7 @@ const StreamFeedRowView = memo(function StreamFeedRowView({
         ) : null}
         {appendOpen ? (
           <div
-            className="mt-2 rounded-md border border-border-subtle-dim bg-surface-muted/25 p-2"
+            className="mt-2 rounded-md border border-border-subtle-dim bg-surface-wash-15 p-2"
             data-stream-entry-append
           >
             <textarea
@@ -315,7 +315,7 @@ const StreamFeedRowView = memo(function StreamFeedRowView({
     <article
       className={cn(
         "group relative v4-feed-post",
-        kind === "append" && "bg-surface-muted/10",
+        kind === "append" && "bg-surface-wash-15",
       )}
       data-stream-entry-card
       data-stream-entry-kind={kind}
@@ -403,7 +403,7 @@ const StreamFeedRowView = memo(function StreamFeedRowView({
 
           {appendOpen ? (
             <div
-              className="mt-2 rounded-md border border-border-subtle-dim bg-surface-muted/25 p-2"
+              className="mt-2 rounded-md border border-border-subtle-dim bg-surface-wash-15 p-2"
               data-stream-entry-append
             >
               <textarea

@@ -498,7 +498,7 @@ export function ManagePanel({
 
       {/* Settings file path — survives app upgrades; helps recover AI keys after reinstall. */}
       {sysInfo?.settingsFile ? (
-        <div className="mb-3 flex items-start gap-2 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-muted/20 px-2.5 py-2">
+        <div className="mb-3 flex items-start gap-2 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-wash-15 px-2.5 py-2">
           <div className="min-w-0 flex-1">
             <div className="text-3xs font-medium text-text-secondary">
               {t("settings:about.settingsFileLabel")}
@@ -618,7 +618,7 @@ export function ManagePanel({
           description={t("settings:env.desc")}
         >
           <div className="mb-2 flex flex-wrap items-center gap-1.5">
-            <span className="inline-flex items-center gap-1 rounded-[var(--radius-xs)] border border-border-subtle bg-surface-muted/40 px-2 py-0.5 text-3xs text-text-secondary">
+            <span className="inline-flex items-center gap-1 rounded-[var(--radius-xs)] border border-border-subtle bg-surface-wash-45 px-2 py-0.5 text-3xs text-text-secondary">
               <RiTerminalLine size={ICON.micro} />
               {sysInfo.platformLabel} · {sysInfo.archLabel}
             </span>
@@ -627,7 +627,7 @@ export function ManagePanel({
                 className={cn(
                   "inline-flex items-center gap-1 rounded-[var(--radius-xs)] border px-2 py-0.5 text-3xs",
                   sysInfo.brewAvailable
-                    ? "border-border-subtle bg-surface-muted/40 text-text-secondary"
+                    ? "border-border-subtle bg-surface-wash-45 text-text-secondary"
                     : "border-border-subtle-dim text-text-quaternary",
                 )}
               >
@@ -911,7 +911,7 @@ export function ManagePanel({
                 className={cn(
                   "inline-flex items-center gap-1 rounded-[var(--radius-xs)] border px-2 py-0.5 text-3xs",
                   b.present
-                    ? "border-border-subtle bg-surface-muted/40 text-text-secondary"
+                    ? "border-border-subtle bg-surface-wash-45 text-text-secondary"
                     : "border-border-subtle-dim text-text-quaternary",
                 )}
               >

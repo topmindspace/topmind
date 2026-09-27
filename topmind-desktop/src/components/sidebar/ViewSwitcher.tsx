@@ -82,9 +82,9 @@ export function ViewSwitcher({ active, onChange, enabled }: ViewSwitcherProps) {
               onClick={() => setOpen((v) => !v)}
               className={cn(
                 "inline-flex h-8 w-auto max-w-full min-w-0 items-center gap-1 rounded-md border border-border-subtle-dim",
-                "bg-surface-muted/40 px-2 text-3xs font-medium text-text-secondary",
+                "bg-surface-wash-45 px-2 text-3xs font-medium text-text-secondary",
                 "transition-colors hover:bg-state-hover hover:text-text-primary",
-                open && "bg-surface-muted/70 text-text-primary",
+                open && "bg-surface-wash-65 text-text-primary",
                 "v4-focus-ring",
               )}
             >

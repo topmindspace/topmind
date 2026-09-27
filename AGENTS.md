@@ -48,10 +48,12 @@ npm run --prefix topmind-desktop pack:verify
 - **禁止**在语义色文字上加透明度修饰符（`text-accent-color/70`）——停止位已按 AA 调好，`/70` 会把它拉回 3.3:1。要更弱的语气请用 `text-text-tertiary`。
 - **禁止**用透明度表达严重度梯度；用 token 阶梯（`text-text-tertiary → text-warning → text-error`）。
 - **禁止**对 `status-*-bg` wash token 再加 `/NN`（`bg-status-error-bg/50`）——wash 本身就是 9% 停止位，二次稀释会让字掉到 AA 下。solid status 作 chip 底也用完整 wash token。
+- **禁止** `bg-surface-muted/NN`——软填充用 `bg-surface-wash-15/30/45/65` token（对比度停止位已定）。
 - 状态色通常坐在**自己的 `-bg` 淡底**上，故核算对比度必须按「字 @ 自身淡底 @ 最苛刻表面」，只算白底会漏（深色 error 就是这么漏掉的）。
 - 新增 / 移动 token 后，**同一次改动**里更新 `tests/ui-token-compliance.test.mjs` 断言与 `DESIGN.md` §5.0.1 基线表。
 - **内容字号下限 13px**（`text-xs`）：建议正文 / tool 摘要 / 列表主行 / goal 验收项 / Dialog 描述不得用 `text-3xs`（12px 是 label/badge 档）。
 - **图标合同**见 `topmind-desktop/DESIGN.md` §0.0.2：`RiPencilLine` 仅捕获；编辑/重命名用 `RiEditLine`；对话用 `RiChatAiLine`（禁 robot）。
+- **hover 用状态层**：交互 hover 填 `hover:bg-state-hover`（禁止 `hover:bg-surface-muted` 换底色）；**软禁用** `softDisabled` 看起来不可用但仍可聚焦。
 
 ```bash
 # 三条守护：幽灵引用 / 零引用 token / 语义色透明度
@@ -155,7 +157,7 @@ contract · workspace-model · stream · memory · lifecycle · **writeback（�
 | Memory | 路径经契约；profile 事实 **append 融合 / retire / update / restore / compact-history**（确认式，近重复原位合并保留最新，不堆第二条 live；restore=历史区事实回活跃；compact-history 折叠历史近重复需用户确认）；periodic=周期反思（同周期原位替换）；无自动遗忘/向量 | ADR 2026-08-16 · 2026-08-23 · memory-engine |
 | Stream / 活动窗口 | `yearDir` 默认 true；周期路径双向粘滞；`archiveStreamYear` → `{system}/stream-archive/{year}/`。活动窗口 **21 天 / 30 文件 / 6 周期**；语料预算 suggest 16K · todo extract 16K · maintain 12K | ADR 2026-08-09 · `lib/activity-window.mjs` |
 | AI 语言 | 正文：用户要求→原文→workspace locale；建议/待办：用户要求→宿主 UI 语言→workspace locale | `lib/ai-output-locale.mjs` |
-| Agent | 步数默认 32/上限 80；目标协议（`[PLAN]`/`done-when`/`[DONE]`/`[NEEDS-USER]`）+ `finishTurn` 步数闸 + 目标感知续跑（未完成验收项最多 4 次）+ 溢出压缩重试 + **外部 evaluator**（`met|not_met|impossible`，不覆盖 worker `[INCOMPLETE]`/`blocked`）；**GoalState 会话级持久**（`.goal.json` 随 session 落盘，跨轮次/重启可恢复）；`blocked` / `[NEEDS-USER]` 需用户输入一等状态；取消/超时/卡住 **stopReason 诚实**（cancelled ≠ error ≠ incomplete ≠ stepLimitHit）；`edit_file` 匹配阶梯 + `expectedHash`；思考折叠 | Desktop ARCHITECTURE · ADR 2026-09-25 |
+| Agent | 步数默认 32/上限 80；目标协议（`[PLAN]`/`done-when`/`[DONE]`/`[NEEDS-USER]`）+ `finishTurn` 步数闸 + 目标感知续跑（未完成验收项最多 4 次）+ 溢出压缩重试 + **外部 evaluator**（`met|not_met|impossible`，不覆盖 worker `[INCOMPLETE]`/`blocked`）；**GoalState 会话级持久**（`.goal.json` 随 session 落盘，跨轮次/重启可恢复）；`blocked` / `[NEEDS-USER]` 需用户输入一等状态；取消/超时/卡住/暂停 **stopReason 诚实**（paused ≠ cancelled ≠ error ≠ incomplete ≠ stepLimitHit；Pause 保留已完成编辑与目标台账，Resume 可带 redirect / Abandon 才是真 cancel）；Run Card `planBaseline` 计划变更 chips；ResultFooter 变更足迹 ≠ Verified；`edit_file` 匹配阶梯 + `expectedHash`；思考折叠 | Desktop ARCHITECTURE · ADR 2026-09-25 |
 
 **Agent 记忆面差异（诚实）**：Desktop 聊天工具提供 `append/update/retire/restore_core_memory` + `compact_core_memory_history`（全生命周期，与 UTR 对齐；compact 需确认）；Obsidian 聊天**不注册**记忆写工具，记忆变更在回答中提案 →「建议」tab 确认（同一 Kernel 写闸）。Obsidian 接受 `capture` / `capture_to_inbox` 别名。
 

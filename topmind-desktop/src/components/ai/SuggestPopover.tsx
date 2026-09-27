@@ -775,7 +775,7 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
           }}
           onCancel={() => setReviewId(null)}
         >
-          <pre className="mb-2 max-h-[min(50vh,360px)] overflow-auto whitespace-pre-wrap wrap-break-word rounded-md border border-border-subtle-dim bg-surface-muted/60 p-2.5 text-xs leading-relaxed text-text-secondary">
+          <pre className="mb-2 max-h-[min(50vh,360px)] overflow-auto whitespace-pre-wrap wrap-break-word rounded-md border border-border-subtle-dim bg-surface-wash-65 p-2.5 text-xs leading-relaxed text-text-secondary">
             {reviewItem.writeContent || reviewItem.summary}
           </pre>
         </ConfirmDialog>

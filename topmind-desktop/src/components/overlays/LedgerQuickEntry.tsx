@@ -182,7 +182,7 @@ export function LedgerQuickEntry({
         </div>
       ) : (
         <div
-          className="rounded-[var(--radius-md)] border border-border-subtle bg-surface-muted/40 px-2.5 py-2"
+          className="rounded-[var(--radius-md)] border border-border-subtle bg-surface-wash-45 px-2.5 py-2"
           role="group"
           aria-label={t("quickEntry")}
         >

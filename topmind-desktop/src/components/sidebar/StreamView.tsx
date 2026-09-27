@@ -299,7 +299,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
                 gi === 0 && "ring-1 ring-inset ring-accent-color/10",
               )}
             >
-              <div className="flex items-center gap-1 bg-surface-muted/20 px-1.5 py-1 text-3xs font-medium tracking-wide text-text-quaternary">
+              <div className="flex items-center gap-1 bg-surface-wash-15 px-1.5 py-1 text-3xs font-medium tracking-wide text-text-quaternary">
                 <span className="truncate font-semibold text-text-tertiary">{group.dayLabel}</span>
                 <span className="tabular-nums text-text-quaternary">{group.entries.length}</span>
                 {gi === 0 ? (

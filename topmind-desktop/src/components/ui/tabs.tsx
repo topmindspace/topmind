@@ -14,7 +14,7 @@ export const TabsList = forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      "inline-flex h-9 items-center justify-center gap-0.5 rounded-[var(--radius-lg)] bg-surface-muted/80 p-0.5 text-text-tertiary",
+      "inline-flex h-9 items-center justify-center gap-0.5 rounded-[var(--radius-lg)] bg-surface-wash-65 p-0.5 text-text-tertiary",
       "shadow-[var(--shadow-input-inset)] ring-1 ring-border-subtle/50",
       className,
     )}

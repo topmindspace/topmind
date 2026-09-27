@@ -377,7 +377,7 @@ function ToolRow({
         <ul className="mt-2 space-y-1 border-t border-border-subtle-dim pt-2">
           {commands.map((cmd, i) => (
             <li key={cmd} className="flex items-center gap-1.5">
-              <code className="min-w-0 flex-1 truncate rounded bg-surface-muted/80 px-1.5 py-0.5 font-mono text-3xs text-text-secondary" title={cmd}>
+              <code className="min-w-0 flex-1 truncate rounded bg-surface-wash-65 px-1.5 py-0.5 font-mono text-3xs text-text-secondary" title={cmd}>
                 {cmd}
               </code>
               <Button

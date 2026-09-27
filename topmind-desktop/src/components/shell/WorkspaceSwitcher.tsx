@@ -272,7 +272,7 @@ export function WorkspaceSwitcher({
           </Tooltip>
         </div>
         <div
-          className="mt-1 truncate rounded-md bg-surface-muted/50 px-2 py-1 font-mono text-3xs text-text-quaternary"
+          className="mt-1 truncate rounded-md bg-surface-wash-45 px-2 py-1 font-mono text-3xs text-text-quaternary"
           title={currentRoot}
         >
           {currentRoot.replace(/\\/g, "/")}

@@ -338,7 +338,7 @@ function PhilosophyTab() {
           </div>
         ))}
       </div>
-      <p className="rounded-[var(--radius-lg)] bg-surface-muted/50 px-3.5 py-3 text-3xs leading-relaxed text-text-tertiary">
+      <p className="rounded-[var(--radius-lg)] bg-surface-wash-45 px-3.5 py-3 text-3xs leading-relaxed text-text-tertiary">
         {t("help.philosophy.closing")}
       </p>
     </div>
@@ -365,7 +365,7 @@ function FaqTab({
         {items.map((item) => (
           <details
             key={item.q}
-            className="group rounded-[var(--radius-lg)] border border-border-subtle bg-surface open:bg-surface-muted/40"
+            className="group rounded-[var(--radius-lg)] border border-border-subtle bg-surface open:bg-surface-wash-45"
           >
             <summary className="flex cursor-pointer list-none items-start gap-2 px-3.5 py-3 text-sm font-medium text-text-primary marker:content-none [&::-webkit-details-marker]:hidden">
               <span className="mt-0.5 shrink-0 text-3xs font-bold text-accent-color" aria-hidden>

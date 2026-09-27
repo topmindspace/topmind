@@ -856,7 +856,7 @@ export function ToolsLogsPanel() {
 
 function Metric({ label, value, tone }: { label: string; value: string; tone?: "ok" | "warn" }) {
   return (
-    <div className="rounded-[var(--radius-md)] border border-border-subtle bg-surface-muted/40 px-3 py-2">
+    <div className="rounded-[var(--radius-md)] border border-border-subtle bg-surface-wash-45 px-3 py-2">
       <div className="text-3xs text-text-tertiary">{label}</div>
       <div
         className={cn(

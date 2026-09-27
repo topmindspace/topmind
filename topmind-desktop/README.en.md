@@ -71,7 +71,7 @@ Default three columns: **nav → stream → AI workspace**. The main narrative i
 
 | Entry | Single job |
 |-------|------------|
-| Sidebar header **Note it** `⌘N` | The **only** full capture (note / link / attachment) |
+| ActivityBar **Note it** `⌘N` | The **only** full capture (note / link / attachment) |
 | Global float `⌘⇧N` | Capture from anywhere; submits to the capture queue |
 | Stream **Log it** | Append the composer to this week’s period note |
 | Stream **AI polish** | Inline clean/polish; edits the composer only · does not write disk |

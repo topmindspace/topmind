@@ -447,17 +447,12 @@ test("UI Token & Modernization Compliance", async (t) => {
     assert.deepEqual(offenders, [], `alpha-diluted semantic/wash colors:\n${offenders.join("\n")}`);
   });
 
-  await t.test("interactive paints carry no bg-surface-muted alpha", () => {
-    // `bg-surface-muted/35` on a FilterChip / button recolors the control with a
-    // hand-tuned dilution that has no contrast stop behind it. Interactive paints
-    // must use a full token (`bg-surface-muted`, `bg-state-hover`, or a wash).
-    // Non-interactive container tints (page washes, card fills) may still use
-    // `bg-surface-muted/NN` — only *interactive* surfaces are banned here.
-    // Interactive = same class string is state-layered or focusable/pointer:
-    // hover:, active:, v4-focus-ring, cursor-pointer, or data-filter-chip.
+  await t.test("no bg-surface-muted alpha utilities (use wash tokens)", () => {
+    // Soft container fills have named stops (`bg-surface-wash-15/30/45/65`).
+    // A raw `bg-surface-muted/NN` is a second ad-hoc dilution with no contrast
+    // stop behind it — banned everywhere, not just on interactive paints.
     const srcDir = path.join(desktopRoot, "src");
     const offenders = [];
-    const INTERACTIVE = /\b(?:hover:|active:|v4-focus-ring|cursor-pointer|data-filter-chip)/;
     (function walk(dir) {
       for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
         const p = path.join(dir, e.name);
@@ -468,7 +463,7 @@ test("UI Token & Modernization Compliance", async (t) => {
             .replace(/\/\*[\s\S]*?\*\//g, " ")
             .replace(/^\s*\/\/.*$/gm, " ");
           raw.split("\n").forEach((line, i) => {
-            if (/bg-surface-muted\/\d+/.test(line) && INTERACTIVE.test(line)) {
+            if (/bg-surface-muted\/\d+/.test(line)) {
               offenders.push(`${path.relative(srcDir, p)}:${i + 1}: ${line.trim().slice(0, 120)}`);
             }
           });
@@ -479,7 +474,7 @@ test("UI Token & Modernization Compliance", async (t) => {
     assert.deepEqual(
       offenders,
       [],
-      `Interactive paints with bg-surface-muted alpha (use a full token):\n${offenders.join("\n")}`,
+      `bg-surface-muted alpha (use bg-surface-wash-* tokens):\n${offenders.join("\n")}`,
     );
   });
 

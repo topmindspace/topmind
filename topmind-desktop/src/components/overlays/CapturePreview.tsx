@@ -42,7 +42,7 @@ export function CapturePreview({
 
       {fetching ? (
         <div
-          className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-muted/60 px-2 py-1.5"
+          className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-wash-65 px-2 py-1.5"
           role="status"
           aria-live="polite"
           aria-label={t("overlays:capture.fetchAriaLabel")}

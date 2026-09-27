@@ -196,7 +196,7 @@ export function KanbanView({ onNavigate }: KanbanViewProps) {
         {truncatedHint ? (
           <div
             role="status"
-            className="rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-muted/50 px-2 py-1 text-3xs text-text-tertiary"
+            className="rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-wash-45 px-2 py-1 text-3xs text-text-tertiary"
           >
             {truncatedHint}
           </div>
@@ -260,7 +260,7 @@ function KanbanColumn({
     <div
       ref={setNodeRef}
       className={cn(
-        "v4-drop-target rounded-[var(--radius-lg)] border border-border-subtle-dim bg-surface-muted/35 p-2",
+        "v4-drop-target rounded-[var(--radius-lg)] border border-border-subtle-dim bg-surface-wash-30 p-2",
         isOver && "v4-drop-target-active",
       )}
     >

@@ -209,8 +209,8 @@ const DEAD_PATTERNS = [
   },
   {
     id: "removed-home-view",
-    description: "Old HomeView dashboard name stays deleted. The living canvas is WorkspaceHomeView",
-    regex: /\bHomeView\b/u,
+    description: "HomeView / WorkspaceHomeView stay deleted. The living canvas is StreamDetailView (home≡stream)",
+    regex: /\b(?:HomeView|WorkspaceHomeView)\b/u,
     scope: ["src/**/*.ts", "src/**/*.tsx"],
     allowIn: ["scripts/check-dead-code.mjs"],
   },
@@ -284,7 +284,7 @@ const DEAD_PATTERNS = [
     id: "home-no-suggest-confirm-list",
     description: "In-workspace home must not host a suggestion confirm list or the deleted dashboard strips",
     regex: /SuggestEntryStrip|<ActionBar[\s/>]|GreetingCta|PinnedCards|DueBoard|MaterialStrip|ConnectorStrip/u,
-    scope: ["src/plugins/topmind-workspace/views/WorkspaceHomeView.tsx"],
+    scope: ["src/plugins/topmind-workspace/views/StreamDetailView.tsx"],
     allowIn: ["scripts/check-dead-code.mjs"],
   },
   {

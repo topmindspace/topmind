@@ -27,7 +27,7 @@ export function ConnectorStatusPill({
   const { t } = useTranslation("common");
   if (loading) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-[var(--radius-xs)] bg-surface-muted/60 px-1.5 py-0.5 text-3xs text-text-quaternary">
+      <span className="inline-flex items-center gap-1 rounded-[var(--radius-xs)] bg-surface-wash-65 px-1.5 py-0.5 text-3xs text-text-quaternary">
         <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden /> {t("action.loading")}
       </span>
     );
@@ -284,7 +284,7 @@ export function ConnectorToastBanner({
             ? "border-border-subtle-dim bg-status-success-bg text-success"
             : resultText?.startsWith("✗")
               ? "border-border-subtle-dim bg-status-error-bg text-error"
-              : "border-border-subtle bg-surface-muted/40 text-text-tertiary",
+              : "border-border-subtle bg-surface-wash-45 text-text-tertiary",
       )}
       role="status"
     >
@@ -391,7 +391,7 @@ export function StatSlot({
     <div
       className={cn(
         "inline-flex items-baseline gap-1.5 rounded-[var(--radius-md)] px-2.5 py-1",
-        tone === "accent" ? "bg-accent-container" : "bg-surface-muted/40",
+        tone === "accent" ? "bg-accent-container" : "bg-surface-wash-45",
       )}
       data-stat-slot
     >

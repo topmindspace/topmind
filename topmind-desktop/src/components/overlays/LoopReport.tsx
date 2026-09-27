@@ -118,7 +118,7 @@ export function LoopReport() {
 
 function Stat({ label, value, warn }: { label: string; value: number; warn?: boolean }) {
   return (
-    <div className="rounded-[var(--radius-md)] border border-border-subtle bg-surface-muted/40 px-2 py-1.5 text-center">
+    <div className="rounded-[var(--radius-md)] border border-border-subtle bg-surface-wash-45 px-2 py-1.5 text-center">
       <div className={cn("text-sm font-semibold tabular-nums", warn ? "text-warning" : "text-text-primary")}>
         {value}
       </div>
@@ -140,7 +140,7 @@ function IssueRow({
   const color =
     tone === "error" ? "text-error border-border-subtle-dim bg-status-error-bg" :
     tone === "warning" ? "text-warning border-border-subtle-dim bg-status-warning-bg" :
-    "text-text-secondary border-border-subtle bg-surface-muted/30";
+    "text-text-secondary border-border-subtle bg-surface-wash-30";
 
   return (
     <li className={cn("rounded-[var(--radius-md)] border px-3 py-2 text-3xs", color)}>

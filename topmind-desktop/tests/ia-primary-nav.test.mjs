@@ -48,11 +48,11 @@ it("Desktop README does not teach deleted ActionBar or Title-bar Note it", () =>
     const zh = read("README.zh-CN.md");
     assert.doesNotMatch(en, /AI panel \*\*ActionBar\*\*/);
     assert.doesNotMatch(en, /Title-bar \*\*Note it\*\*/);
-    assert.match(en, /Sidebar header \*\*Note it\*\*/);
+    assert.match(en, /ActivityBar \*\*Note it\*\*/);
     assert.match(en, /AI workspace \*\*建议\*\* pane/);
     assert.doesNotMatch(zh, /AI 面板 \*\*ActionBar\*\*/);
     assert.doesNotMatch(zh, /顶栏 \*\*记一下\*\*/);
-    assert.match(zh, /侧栏主 header \*\*记一下\*\*/);
+    assert.match(zh, /ActivityBar \*\*记一下\*\*/);
     assert.match(zh, /AI 工作区 \*\*建议\*\* pane/);
   });
 

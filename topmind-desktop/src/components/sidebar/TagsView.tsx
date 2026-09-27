@@ -174,7 +174,7 @@ export function TagsView({ onNavigate }: TagsViewProps) {
   return (
     <div className="overflow-auto px-2.5 py-2">
       {truncatedHint ? (
-        <div className="mb-2 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-muted/50 px-2 py-1 text-3xs text-text-tertiary" role="status">
+        <div className="mb-2 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-wash-45 px-2 py-1 text-3xs text-text-tertiary" role="status">
           {truncatedHint}
         </div>
       ) : null}
@@ -188,7 +188,7 @@ export function TagsView({ onNavigate }: TagsViewProps) {
               type="button"
               onClick={() => setSelectedTag(tag)}
               className={cn(
-                "flex items-center gap-1 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-muted/40 px-2 py-1.5 text-3xs",
+                "flex items-center gap-1 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-wash-45 px-2 py-1.5 text-3xs",
                 "transition-[background-color,border-color,box-shadow] duration-[var(--duration-fast)]",
                 "hover:border-border-subtle hover:bg-state-hover hover:shadow-xs",
                 weight,

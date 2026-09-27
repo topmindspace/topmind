@@ -275,7 +275,7 @@ export function ToolsPanel({ settings }: { settings: AppSettings }) {
         </SettingsSection>
       ) : null}
 
-      <div className="flex items-start gap-2 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-muted/30 px-2.5 py-2 text-3xs text-text-quaternary">
+      <div className="flex items-start gap-2 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-wash-30 px-2.5 py-2 text-3xs text-text-quaternary">
         <RiToolsLine size={ICON.micro} className="mt-0.5 shrink-0" aria-hidden />
         <span>
           {t("settings:tools.warnExecute")}{" "}

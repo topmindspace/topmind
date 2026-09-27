@@ -404,7 +404,7 @@ export function GeneralPanel({
             ]}
           />
         </Field>
-        <p className="mt-1.5 rounded-[var(--radius-md)] bg-surface-muted/50 px-2.5 py-1.5 text-3xs leading-relaxed text-text-tertiary">
+        <p className="mt-1.5 rounded-[var(--radius-md)] bg-surface-wash-45 px-2.5 py-1.5 text-3xs leading-relaxed text-text-tertiary">
           {t(WRITEBACK_HELP_KEY[wb] || WRITEBACK_HELP_KEY.auto)}
         </p>
         <SwitchField

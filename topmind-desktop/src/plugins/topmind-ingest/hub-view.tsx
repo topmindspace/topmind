@@ -244,7 +244,7 @@ function IngestHubView() {
       <div
         className={cn(
           "mb-4 flex flex-col items-center justify-center gap-3 rounded-[var(--radius-xl)]",
-          "border border-dashed border-border-subtle bg-surface-muted/30 px-6 py-8",
+          "border border-dashed border-border-subtle bg-surface-wash-30 px-6 py-8",
           "transition-colors hover:border-accent-border-subtle hover:bg-accent-bg-faint",
           busy && "pointer-events-none opacity-70",
         )}
