@@ -301,7 +301,7 @@ export function listRowClass(active?: boolean, className?: string) {
     "v4-list-virtual flex items-center justify-between gap-2 rounded-[var(--radius-md)] border border-transparent px-2.5 py-2 text-sm",
     "transition-[background-color,box-shadow,color] duration-[var(--duration-fast)] ease-[var(--ease-default)]",
     active
-      ? "bg-accent-container text-on-accent-container shadow-[inset_3px_0_0_0_var(--color-accent-color)] font-medium"
+      ? "bg-surface-selected text-text-primary font-medium"
       : "text-text-secondary hover:bg-state-hover hover:text-text-primary active:bg-state-pressed",
     className,
   );

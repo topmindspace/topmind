@@ -34,6 +34,12 @@
   --color-background: #f3f1eb;
   --color-surface: #f7f5f0;
   --color-surface-elevated: #fffcf7;
+  /* MD3 container steps. Each floating role is its own mix — none is an alias of elevated. */
+  --color-surface-container: var(--color-surface);
+  --color-surface-container-high: color-mix(in srgb, var(--color-surface-elevated) 84%, var(--color-text-primary) 16%);
+  --color-surface-container-highest: color-mix(in srgb, var(--color-surface-elevated) 70%, var(--color-background) 30%);
+  --color-inverse-surface: var(--color-ink);
+  --color-inverse-on-surface: var(--color-ink-foreground);
   --color-surface-muted: #efece5;
   --color-surface-inset: #e4e0d7;
   /* Soft container fills — named stops instead of bg-surface-muted/NN
@@ -147,11 +153,11 @@
   /* Surface interaction states */
   --color-surface-hover: rgba(23, 23, 23, 0.045);
   --color-surface-elevated-hover: #f4f0e8;
-  /* Neutral selected wash (ZCode sidebar selection) — tree adds an accent inset bar on top */
+  /* Neutral selected wash. Selection is this fill plus primary ink — no side or bottom accent bar. */
   --color-surface-selected: rgba(23, 23, 23, 0.06);
   --color-text-on-accent: #ffffff;
-  /* Dialog / overlay semantic aliases */
-  --color-dialog-bg: var(--color-surface-elevated);
+  /* Dialog plane — a muted mix, not an alias of surface-elevated. */
+  --color-dialog-bg: color-mix(in srgb, var(--color-surface-elevated) 72%, var(--color-surface-muted) 28%);
   /* Settings section header wash — consumed as an arbitrary value
      (`bg-[var(--color-dialog-header)]` in SettingsLayout), so the utility-class
      audit does not see it. Kept because it is genuinely in use. */
@@ -396,6 +402,12 @@
     --color-surface-elevated: #2b2824;
     --color-surface-muted: #262320;
     --color-surface-inset: #12110f;
+    /* Same container steps as light, resolved against the graphite ladder. */
+    --color-surface-container: var(--color-surface);
+    --color-surface-container-high: color-mix(in srgb, var(--color-surface-elevated) 84%, var(--color-text-primary) 16%);
+    --color-surface-container-highest: color-mix(in srgb, var(--color-surface-elevated) 70%, var(--color-background) 30%);
+    --color-inverse-surface: var(--color-ink);
+    --color-inverse-on-surface: var(--color-ink-foreground);
     --color-sidebar: #141311;
     /* Long-read dark ink: primary bright enough for AA, prose one step softer.
        Quaternary stays above the tertiary step and still clears AA on elevated. */
@@ -407,7 +419,7 @@
     --color-border-subtle: rgba(255, 255, 255, 0.10);
     --color-border-subtle-dim: rgba(255, 255, 255, 0.06);
     --color-border-strong: rgba(255, 255, 255, 0.18);
-    --color-dialog-bg: var(--color-surface-elevated);
+    --color-dialog-bg: color-mix(in srgb, var(--color-surface-elevated) 72%, var(--color-surface-muted) 28%);
     --color-dialog-header: color-mix(in srgb, var(--color-surface-muted) 55%, var(--color-surface-elevated));
     /* Ink CTA = near-white on graphite */
     --color-ink: #f0f0f0;

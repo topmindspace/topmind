@@ -120,8 +120,7 @@ function buildApplyPayload(item: ActionItem): Record<string, unknown> {
   };
   // stale_topic / catch_all: force archive action on payload.
   // inbox_organize (and legacy inbox_review) keep their own payload
-  // (move / create / batch hint) — aged Inbox notes are placement
-  // candidates, not archive-by-default.
+  // (move / create / batch hint) — aged Inbox notes are placement candidates, not archive-by-default.
   const isArchiveKind =
     item.suggestionKind === 'stale_topic'
     || item.suggestionKind === 'catch_all';

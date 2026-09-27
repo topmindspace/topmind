@@ -236,7 +236,7 @@ export function ContextMenuItem({
       disabled={disabled}
       onClick={disabled ? undefined : onClick}
       className={cn(
-        "v4-menu-item flex w-full cursor-pointer items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-[7px] text-left text-3xs font-medium outline-none select-none",
+        "v4-menu-item flex w-full cursor-pointer items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-[7px] text-left text-xs font-medium outline-none select-none",
         destructive
           ? "text-error hover:bg-status-error-bg focus:bg-status-error-bg focus-visible:bg-status-error-bg"
           : "text-text-primary",
@@ -353,7 +353,7 @@ export function ContextMenuSubmenu({
         onMouseEnter={() => setOpen(true)}
         onFocus={() => setOpen(true)}
         className={cn(
-          "v4-menu-item flex w-full cursor-pointer items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-[7px] text-left text-3xs font-medium outline-none select-none",
+          "v4-menu-item flex w-full cursor-pointer items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-[7px] text-left text-xs font-medium outline-none select-none",
           "text-text-primary",
           disabled && "pointer-events-none opacity-45",
         )}

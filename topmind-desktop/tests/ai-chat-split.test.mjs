@@ -142,5 +142,9 @@ test("ChatMessage presents folded reasoning, in-turn tools/status, never thinkin
   assert.doesNotMatch(chat, /visibleBody\s*=\s*visible\.body\s*\|\|/);
   assert.doesNotMatch(chat, /message\.content\s*\|\|\s*visible/);
   const input = readFileSync(path.join(root, "src/components/ai/ChatInput.tsx"), "utf8");
-  assert.match(input, /cancelStream/);
+  // Pause interrupts; Abandon is the only cancel. Pause is not the error treatment.
+  assert.match(input, /pauseStream/);
+  assert.match(input, /abandonPaused/);
+  assert.match(input, /variant="outline"/);
+  assert.doesNotMatch(input, /pauseStream[\s\S]{0,180}variant="destructive"/);
 });

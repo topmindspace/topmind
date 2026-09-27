@@ -275,7 +275,7 @@ ActivityBar（最左 48px · 三分组）：
 
 | **Surface 阶梯** | light：`sidebar/chrome` `#e2ded6/#f1efe8` → `background` `#f3f1eb` → `surface` `#f7f5f0` → **`elevated` `#fffcf7`**；dark：`sidebar` `#141311` → `chrome` `#171614` → `background` `#1c1a17` → `surface` `#221f1c` → **`elevated` `#2b2824`**。暖纸 / 抬起的石墨，长时阅读少眩光。Feed 卡 = `--elevation-1` + `surface`（非 elevated） |
 | **低视觉负担** | 选中/hover 用浅 brand wash（`accent-bg-subtle` / `surface-selected`）；每区一个实心 CTA；边框优先 `border-subtle-dim`（light `rgba(23,23,23,0.06)` · dark `rgba(255,255,255,0.06)`；`border-subtle` = fg @ 10%，ZCode 同源）；避免多重 box-shadow + 边框叠厚；**侧栏树隐藏 `.md` 后缀**（`stripMdExt`）；**PARA 编号弱化**（`renderCategoryLabel`：`00-` 用 `text-quaternary/70`）；**卡片优先 bg + shadow 而非 border**（`--shadow-card` token）；**今日卡片 accent ring**（`ring-1 ring-inset ring-accent-color/15`） |
-| **弹层与对比度** | `.v4-overlay-sheet` / Dialog 用 `surface-elevated` + `border-subtle`；**工作台 OverlayHost**（设置 / 捕获 / ⌘K / 搜索 / plugin-app）**门户到 `document.body`**、`z-modal`、`isolate`、`v4-no-drag`；Confirm/Prompt/Error 门户到 body、`z-dialog`(130)。打开时 `acquireOverlayLayer` 盖 `html[data-overlay-open]` 并 inert `#workbench-root`。**列表日头**（`data-stream-day-toggle` sticky）在该 attr 下必须 `position: static`——Electron 会把 sticky+z-index 合成到任何 `position:fixed` 对话框之上（卡片模式无 sticky，故正常）。`.v4-main-canvas` `isolation: isolate` 约束 sticky 合成层。**浮动弹窗**（`TodoPopover` / `SuggestPopover` / `TaskPanel`）采用 **毛玻璃质感**（`backdrop-blur-[var(--blur-glass)] backdrop-saturate-150` + `bg-surface-elevated/90` + `border-border-subtle` + `shadow-[var(--shadow-elevated-hairline)]`）；**交互一致**：点击外部 + 外部滚动 + Esc 关闭（内部列表滚动不关）；文本对比度达 WCAG AA 4.5:1+ (dark Primary `#e5e5e5` · Secondary `#c9c9c9` · Tertiary `#a1a1a1` · Quaternary `#8c8c8c`) |
+| **弹层与对比度** | `.v4-overlay-sheet` 用 `surface-container-highest`，Dialog 用 `dialog-bg`（muted mix，不是 `surface-elevated` 的别名），菜单用 `surface-container-high`；三者都加 `border-subtle`；**工作台 OverlayHost**（设置 / 捕获 / ⌘K / 搜索 / plugin-app）**门户到 `document.body`**、`z-modal`、`isolate`、`v4-no-drag`；Confirm/Prompt/Error 门户到 body、`z-dialog`(130)。打开时 `acquireOverlayLayer` 盖 `html[data-overlay-open]` 并 inert `#workbench-root`。**列表日头**（`data-stream-day-toggle` sticky）在该 attr 下必须 `position: static`——Electron 会把 sticky+z-index 合成到任何 `position:fixed` 对话框之上（卡片模式无 sticky，故正常）。`.v4-main-canvas` `isolation: isolate` 约束 sticky 合成层。**浮动弹窗**（`TodoPopover` / `SuggestPopover` / `TaskPanel`）采用 **毛玻璃质感**（`backdrop-blur-[var(--blur-glass)] backdrop-saturate-150` + `bg-surface-elevated/90` + `border-border-subtle` + `shadow-[var(--shadow-elevated-hairline)]`）；**交互一致**：点击外部 + 外部滚动 + Esc 关闭（内部列表滚动不关）；文本对比度达 WCAG AA 4.5:1+ (dark Primary `#e5e5e5` · Secondary `#c9c9c9` · Tertiary `#a1a1a1` · Quaternary `#8c8c8c`) |
 | **玻璃面边界** | 暗色 `.v4-menu-surface` 内置 glass+hairline（Dropdown/ContextMenu）；主壳 / 侧栏 / 编辑画布保持 solid |
 | **一条主路径** | **ActivityBar 三分组**目的地（home≡stream · Inbox · 交付 · 我的情况 · 记一下）；搜索/AI 可达；深度动作放 ⌘K / 二级；右侧工具 **图标 XOR「更多」**（禁止同动作双入口） |
 | **控件分层** | **一级**常显 · **二级**折叠 · **三级**「更多」/ Tooltip / `/slash`（见 §0.1） |
@@ -334,9 +334,9 @@ ActivityBar（最左 48px · 三分组）：
 
 **禁止**：内容文字低于 **13px**（内容下限 = `text-xs`；`text-3xs`/`text-4xs` 仅限标签/角标 12px）。`text-2xs`(11px) 仅限极 muted meta（**禁止**句子）；`text-5xs`(10px) 仅限 kbd glyph，不承载句子。9px 路径/状态已淘汰。3.0 起字号对齐 ZCode 整数阶（13/14/16）。
 
-**4.0 长读**：暖纸画布 `#f3f1eb`（chrome `#f1efe8`）去眩光；`text-prose` 略软于 UI primary；四档灰色在最苛刻表面上仍 ≥4.5:1；侧栏树行高 **32px**；树节点 `data-tree-kind` 三档层次（category/group → topic → file）；列表选中用 `surface-selected` + accent inset bar（标签用 primary ink，不用 accent 字）。
+**4.0 长读**：暖纸画布 `#f3f1eb`（chrome `#f1efe8`）去眩光；`text-prose` 略软于 UI primary；四档灰色在最苛刻表面上仍 ≥4.5:1；侧栏树行高 **32px**；树节点 `data-tree-kind` 三档层次（category/group → topic → file）；列表选中用 `surface-selected`（标签用 primary ink，不用 accent 字，无侧边或底部衬条）。
 
-**状态层（4.0.5 · MD3）**：交互控件 hover/pressed 用 **`::after` 半透明覆盖层**（`--color-state-*`；实心 CTA 用 `--color-state-on-primary-*`），**不换底色**。Ghost/图标钮 hover 填 `hover:bg-state-hover`（禁止 `hover:bg-surface-muted` 换色）。`hover:text-*` 仅限**语义色**（error/warning/success/状态）或对比度抬升一档（quaternary→tertiary/secondary）；禁止 hover 把正文染成 accent。**软禁用** `Button/MenuSelect softDisabled`：看起来不可用但仍可聚焦。Toast = elevation-2 + `--radius-toast` + success/error **container** 语义。深度走 product surface tokens（`--color-surface-elevated` / `--color-surface` / `--color-background` / `--color-surface-muted` / `--color-surface-inset`）；软容器填充用 `bg-surface-wash-15/30/45/65`（**禁止** `bg-surface-muted/NN`）。无 `--md-sys-*` 死别名。
+**状态层（4.0.5 · MD3）**：交互控件 hover/pressed 用 **`::after` 半透明覆盖层**（`--color-state-*`；实心 CTA 用 `--color-state-on-primary-*`），**不换底色**。Ghost/图标钮 hover 填 `hover:bg-state-hover`（禁止 `hover:bg-surface-muted` 换色）。`hover:text-*` 仅限**语义色**（error/warning/success/状态）或对比度抬升一档（quaternary→tertiary/secondary）；禁止 hover 把正文染成 accent。**软禁用** `Button/MenuSelect softDisabled`：看起来不可用但仍可聚焦。Toast = elevation-2 + `--radius-toast` + success/error **container** 语义。深度走 product surface tokens（`--color-surface-elevated` / `--color-surface-container-high` 菜单 / `--color-surface-container-highest` sheet / `--color-dialog-bg` 对话框 / `--color-surface` / `--color-background` / `--color-surface-muted` / `--color-surface-inset`）。菜单、sheet、对话框不得收成同一个 elevated 别名；软容器填充用 `bg-surface-wash-15/30/45/65`（**禁止** `bg-surface-muted/NN`）。无 `--md-sys-*` 死别名。
 
 **MD3 按钮语义映射（桌面适配 · 非 Material 克隆）**：
 
@@ -818,10 +818,12 @@ IA 分组（左侧 nav）：
 
 ```
 chrome（中性框架）→ background（净白画布）→ surface（工作面板）
-→ surface-elevated（弹层 / 菜单 / 对话框）→ surface-inset（凹陷输入）
+→ surface-elevated（卡片浮层）
+→ surface-container-high（菜单）→ surface-container-highest（overlay sheet）
+→ dialog-bg（对话框；muted mix，不是 elevated 的别名）→ surface-inset（凹陷输入）
 ```
 
-**强制**：light 下 `surface` 与 `surface-elevated` 不得同色塌陷；弹层用 elevated + `shadow-overlay` / `shadow-float`。Accent / 正文 ink **只引用 token 名**，组件禁止硬编码旧 hex；输入框凹陷统一用 `--shadow-input-inset`。Inbox 模式切换为 teal 系 accent。
+**强制**：light 下 `surface` 与 `surface-elevated` 不得同色塌陷；菜单、sheet、对话框各自一步，不得互为同一个 elevated 别名。浮动层用对应表面 + `shadow-overlay` / `shadow-float`。Accent / 正文 ink **只引用 token 名**，组件禁止硬编码旧 hex；输入框凹陷统一用 `--shadow-input-inset`。Inbox 模式切换为 teal 系 accent。
 
 ### 5.2 语义别名（`tailwind-theme.css`）
 

@@ -139,7 +139,11 @@ test("shipped tree uses classifier + inbox expand; refresh sits in tree toolbar"
   assert.equal((toolbar.match(/data-sidebar-refresh/g) || []).length, 1);
   assert.doesNotMatch(sidebar, /data-sidebar-refresh/);
   assert.match(sidebar, /data-sidebar-header/);
-  assert.match(sidebar, /data-sidebar-header-actions/);
+  // Header keeps search. Destinations and profile moved to the ActivityBar.
+  assert.match(sidebar, /data-sidebar-search/);
+  assert.doesNotMatch(sidebar, /data-sidebar-header-actions/);
+  const activity = read("src/components/shell/ActivityBar.tsx");
+  assert.match(activity, /primaryNav\.profile/);
   // macOS reserves the traffic-light inset on the header row only.
   // The view-mode row is left-aligned with the tree on every platform.
   assert.match(sidebar, /isMacOS && "v4-mac-titlebar-pad"/);
@@ -151,15 +155,12 @@ test("shipped tree uses classifier + inbox expand; refresh sits in tree toolbar"
   assert.match(sidebar, /data-sidebar-tree-tools/);
   assert.match(sidebar, /<ViewSwitcher/);
   assert.match(sidebar, /<TreeToolbar/);
-  assert.match(sidebar, /<ProfileButton/);
   const headerIdx = sidebar.indexOf("data-sidebar-header");
   const secondaryIdx = sidebar.indexOf("data-sidebar-secondary-header");
   const pinsIdx = sidebar.indexOf("data-sidebar-pins");
-  const profileIdx = sidebar.indexOf("function ProfileButton");
   const treeToolsIdx = sidebar.indexOf("data-sidebar-tree-tools");
   assert.ok(headerIdx >= 0 && secondaryIdx > headerIdx && pinsIdx > secondaryIdx, "header → secondary → pins");
   assert.ok(treeToolsIdx > secondaryIdx && treeToolsIdx < pinsIdx, "tree tools live in secondary header");
-  assert.ok(profileIdx > 0);
   const ds = sidebar.slice(sidebar.indexOf("function DataSourceSection"));
   assert.match(ds, /ChromePortal selector=\[data-sidebar-tree-tools\]|selector="\[data-sidebar-tree-tools\]"/);
   assert.doesNotMatch(ds, /className="flex items-center gap-0.5 px-1.5 pb-1 pt-0.5"/);

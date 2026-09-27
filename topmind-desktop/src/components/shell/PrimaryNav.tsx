@@ -89,10 +89,8 @@ export function PrimaryNav({ variant = "sidebar" }: { variant?: PrimaryNavVarian
                 aria-current={isActive ? "page" : undefined}
                 aria-label={label}
                 onClick={() => select({ kind: opt.kind } as Selection)}
-                className={cn(
-                  "v4-titlebar-btn flex h-8 min-w-8 items-center justify-center rounded-md px-1.5",
-                  isActive && "data-active bg-accent-container text-on-accent-container",
-                )}
+                className="v4-titlebar-btn flex h-8 min-w-8 items-center justify-center rounded-md px-1.5"
+                data-active={isActive ? "true" : undefined}
               >
                 <Icon size={ICON.sm} className="shrink-0" aria-hidden />
               </button>

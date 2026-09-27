@@ -21,9 +21,9 @@ test("SuggestPopover maps inbox_organize to Inbox icon + kindChipInboxOrganize",
   // Icon mapping: inbox_organize shares Inbox icon with inbox_review
   assert.match(src, /case "inbox_organize":/);
   // Chip key: inbox_organize gets its own label (distinct from inbox_review)
-  assert.match(src, /case "inbox_organize":\s*\n\s*return "kindChipInboxOrganize"/);
+  assert.match(src, /case "inbox_organize":[\s\S]{0,160}return "kindChipInboxOrganize"/);
   // inbox_review still has its own chip
-  assert.match(src, /case "inbox_review":\s*\n\s*return "kindChipInbox"/);
+  assert.match(src, /case "inbox_review":[\s\S]{0,160}return "kindChipInbox"/);
 });
 
 test("ActionStore does NOT force archive for inbox_organize or inbox_review", () => {

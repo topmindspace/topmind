@@ -32,10 +32,11 @@ import {
   assessGoalCompletion,
   buildContinuePrompt,
   buildTaskLedger,
-  createGoalState,
+  foldGoalHistory,
   harvestPathReceipts,
   isTaskLedgerText,
-  isMetaInstructionText,
+  rejectBareDone,
+  seedGoalFromMessages,
 } from "./lib/agent-goal-protocol.mjs";
 
 // ── Pi-native compaction + goal hooks (root exports only; no deep imports) ──
@@ -450,32 +451,9 @@ export async function runPiAgent(opts, registry) {
     locale: opts.locale || "zh-CN",
     max: 1,
   });
-  let goalState = createGoalState(
-    (() => {
-      // Latest non-ledger user task wins (multi-turn: "继续" / new goal).
-      let last = "";
-      for (const m of messages || []) {
-        if (m?.role === "user") {
-          const c = typeof m.content === "string" ? m.content : "";
-          if (c && !isTaskLedgerText(c) && !/^\[系统\]|^\[System\]/u.test(c)) last = c;
-        }
-      }
-      return last;
-    })(),
-  );
+  let goalState = foldGoalHistory(seedGoalFromMessages(messages), messages);
   /** Pi CompactionDetails file ops (for post-run memory distill). */
   let compactFileOps = { readFiles: [], modifiedFiles: [] };
-  // Fold historical assistant text so [PLAN]/done-when from earlier turns survive
-  // into this run (auto-continue / session resume). Skip meta-instruction text
-  // so quoted `[DONE]` in continue prompts never marks the goal done.
-  for (const m of messages || []) {
-    if (m?.role !== "assistant" && m?.role !== "user") continue;
-    const blocks = Array.isArray(m?.content) ? m.content : [];
-    const text = typeof m?.content === "string" ? m.content : blocks.map((b) => b?.text || "").join(" ");
-    if (!text || isTaskLedgerText(text) || isMetaInstructionText(text)) continue;
-    goalState = applyGoalUpdate(goalState, { text });
-    harvestPathReceipts(text, goalState.pathReceipts);
-  }
 
   const rawEmit = typeof emit === "function" ? emit : () => {};
   const deltaCoalescer = createDeltaCoalescer({ intervalMs: 16, emit: rawEmit });
@@ -562,17 +540,9 @@ export async function runPiAgent(opts, registry) {
         const t = blocks.map((b) => b?.text || "").join(" ") || (typeof tr?.content === "string" ? tr.content : "");
         if (t) harvestPathReceipts(t, goalState.pathReceipts);
       }
-      // Verification-before-done: if tools ran and the model claims done without
-      // any path receipt, treat as incomplete (industry practice: receipts prove work).
-      if (
-        asstText &&
-        goalState.status === "done" &&
-        toolCallCount > 0 &&
-        goalState.pathReceipts.length === 0 &&
-        !/路径回执|path receipt|affected files|受影响文件/iu.test(asstText)
-      ) {
-        goalState = { ...goalState, status: "incomplete", blockReason: "missing-path-receipts" };
-      }
+      // Same verdict as the outer loop: tools + [DONE] without a path receipt
+      // is incomplete, and open criteria come back so the chip stays honest.
+      goalState = rejectBareDone(goalState, { toolCallCount, lastBody: asstText });
       if (turns >= agentSteps) {
         stepLimitHit = true;
         const assessment = assessGoalCompletion({

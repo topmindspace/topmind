@@ -687,7 +687,7 @@ const TreeViewNode = memo(function TreeViewNode({
                 type="button"
                 aria-label={t("titleBar.capture")}
                 className={cn(
-                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-sm text-text-quaternary transition-[opacity,background-color,color] duration-(--duration-fast) hover:bg-surface hover:text-accent-color focus-visible:opacity-100 focus-visible:pointer-events-auto v4-focus-ring group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto",
+                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-sm text-text-quaternary transition-[opacity,background-color,color] duration-(--duration-fast) hover:bg-state-hover hover:text-accent-color focus-visible:opacity-100 focus-visible:pointer-events-auto v4-focus-ring group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto",
                   isActive ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
                 )}
                 onClick={(e) => {
@@ -706,7 +706,7 @@ const TreeViewNode = memo(function TreeViewNode({
                 type="button"
                 aria-label={t("sidebar.treeView.ariaNewTopic")}
                 className={cn(
-                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-sm text-text-quaternary transition-[opacity,background-color,color] duration-(--duration-fast) hover:bg-surface hover:text-accent-color focus-visible:opacity-100 focus-visible:pointer-events-auto v4-focus-ring group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto",
+                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-sm text-text-quaternary transition-[opacity,background-color,color] duration-(--duration-fast) hover:bg-state-hover hover:text-accent-color focus-visible:opacity-100 focus-visible:pointer-events-auto v4-focus-ring group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto",
                   isActive ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
                 )}
                 onClick={(e) => {
@@ -724,7 +724,7 @@ const TreeViewNode = memo(function TreeViewNode({
                 type="button"
                 aria-label={t("sidebar.treeView.ariaNewNote")}
                 className={cn(
-                  "absolute right-0 flex h-6 w-6 shrink-0 items-center justify-center rounded-sm text-text-quaternary transition-[opacity,background-color,color] duration-(--duration-fast) hover:bg-surface hover:text-accent-color focus-visible:opacity-100 focus-visible:pointer-events-auto v4-focus-ring group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto",
+                  "absolute right-0 flex h-6 w-6 shrink-0 items-center justify-center rounded-sm text-text-quaternary transition-[opacity,background-color,color] duration-(--duration-fast) hover:bg-state-hover hover:text-accent-color focus-visible:opacity-100 focus-visible:pointer-events-auto v4-focus-ring group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto",
                   isActive ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
                 )}
                 onClick={(e) => {

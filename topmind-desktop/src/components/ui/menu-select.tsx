@@ -166,7 +166,7 @@ export function MenuSelect({
     disabled && "cursor-not-allowed opacity-50",
     softDisabled && "opacity-50",
     variant === "composer" &&
-      "h-7 rounded-[var(--radius-md)] border border-transparent bg-surface-muted px-2 text-3xs font-medium text-text-secondary hover:border-border-subtle-dim hover:bg-surface hover:text-text-primary data-[open=true]:border-border-subtle-dim data-[open=true]:bg-surface data-[open=true]:text-text-primary",
+      "h-7 rounded-[var(--radius-md)] border border-transparent bg-surface-muted px-2 text-3xs font-medium text-text-secondary hover:border-border-subtle-dim hover:bg-state-hover hover:text-text-primary data-[open=true]:border-border-subtle-dim data-[open=true]:bg-state-hover data-[open=true]:text-text-primary",
     variant === "field" &&
       "h-[var(--control-h-md,34px)] w-full rounded-[var(--radius-md)] border border-border-subtle-dim bg-input px-2.5 text-3xs text-text-primary shadow-[var(--shadow-input-inset)] hover:border-border-subtle data-[open=true]:border-accent-color data-[open=true]:ring-2 data-[open=true]:ring-ring",
     variant === "chip" &&

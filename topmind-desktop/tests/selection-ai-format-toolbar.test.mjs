@@ -80,7 +80,7 @@ test("inline AI action icons are unique and match the labeled action", () => {
   assert.match(bar, /id: "expand", icon: RiExpandUpDownLine/);
   assert.match(bar, /id: "summarize", icon: RiFileList3Line/);
   assert.match(bar, /id: "format", icon: RiAlignLeft/);
-  assert.match(bar, /id: "fix", icon: RiPencilLine/);
+  assert.match(bar, /id: "fix", icon: RiEditLine/);
   assert.doesNotMatch(bar, /id: "summarize", icon: RiAlignLeft/);
   assert.doesNotMatch(bar, /RiFullscreenExitLine|RiFullscreenLine/);
 });

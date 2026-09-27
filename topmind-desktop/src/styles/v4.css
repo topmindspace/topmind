@@ -167,8 +167,7 @@ html[data-platform="win"] [data-dialog-footer] {
 }
 
 /* ── Sidebar tree — content-visibility skips off-screen paint ──
-   4.0: clearer kind hierarchy + state layers; selected keeps accent rail,
-   label stays primary ink for long-scan readability (not accent-on-accent). */
+   Selected row is the neutral wash plus primary ink. No side or bottom accent bar. */
 .v4-tree-node {
   min-height: var(--density-tree-row, 32px);
   content-visibility: auto;
@@ -190,7 +189,7 @@ html[data-platform="win"] [data-dialog-footer] {
 }
 .v4-tree-node.is-selected {
   background: var(--color-surface-selected);
-  box-shadow: inset 2px 0 0 0 var(--color-accent-color);
+  box-shadow: none;
   color: var(--color-text-primary);
   font-weight: 500;
   /* Selected row must stay fully painted (no content-visibility skip glitches) */
@@ -1020,9 +1019,9 @@ html[data-focus-mode="true"] {
   color: var(--color-text-secondary);
 }
 .v4-titlebar-btn-ai[data-active="true"] {
-  background: var(--color-accent-bg-faint);
-  color: var(--color-accent-color);
-  box-shadow: inset 0 -2px 0 0 var(--color-accent-color);
+  background: var(--color-surface-selected);
+  color: var(--color-text-primary);
+  box-shadow: none;
 }
 /* ── Icon-button system (chrome / tool / micro) ──
    One geometry + one hover language for every header/tool icon control.
@@ -1151,9 +1150,9 @@ html[data-focus-mode="true"] {
   cursor: default;
 }
 .v4-titlebar-btn[data-active="true"] {
-  background: var(--color-accent-container, var(--color-accent-bg-faint));
-  color: var(--color-on-accent-container, var(--color-accent-color));
-  box-shadow: inset 0 -2px 0 0 var(--color-accent-color);
+  background: var(--color-surface-selected);
+  color: var(--color-text-primary);
+  box-shadow: none;
 }
 /* Panel toggle buttons (sidebar / AI rail) — pure icon-only state without bottom underline border or tint */
 .v4-titlebar-panel-toggle,
@@ -1519,7 +1518,7 @@ html[data-focus-mode="true"] {
 .v4-menu-surface {
   border-radius: var(--radius-menu, 12px);
   border: 1px solid var(--color-border-subtle);
-  background: var(--color-popover, var(--color-surface-elevated));
+  background: var(--color-surface-container-high);
   box-shadow: var(--elevation-2, var(--shadow-elevated-hairline, var(--shadow-float)));
   color: var(--color-text-primary);
   /* Keep menu snappy — isolate paint from shell scroll */
@@ -1527,16 +1526,10 @@ html[data-focus-mode="true"] {
   overscroll-behavior: contain;
   /* Subpixel-stable edges on retina */
   transform: translateZ(0);
-  /* Light: soft top wash; dark: glass + hairline (see below) */
-  background-image: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--color-surface-elevated) 96%, #fff) 0%,
-    var(--color-surface-elevated) 100%
-  );
 }
 html.dark .v4-menu-surface {
   background-image: none;
-  background: color-mix(in srgb, var(--color-surface-elevated) 92%, transparent);
+  background: var(--color-surface-container-high);
   backdrop-filter: blur(12px) saturate(160%);
   -webkit-backdrop-filter: blur(12px) saturate(160%);
   box-shadow: var(--shadow-elevated-hairline, var(--shadow-float));
@@ -1658,10 +1651,10 @@ html.dark .v4-drop-target-active {
     color var(--duration-instant, 60ms) var(--ease-default);
 }
 .v4-menu-item:hover {
-  background: var(--color-state-hover, var(--color-surface-muted));
+  background: var(--color-state-hover);
 }
 .v4-menu-item:active:not([data-disabled]):not(:disabled) {
-  background: var(--color-state-pressed, var(--color-surface-muted));
+  background: var(--color-state-pressed);
 }
 .v4-menu-item:focus-visible,
 .v4-menu-item:focus {
@@ -1856,7 +1849,7 @@ html.dark .v4-plugin-app-sheet {
 .v4-overlay-sheet {
   border-radius: var(--radius-dialog, 16px);
   border: 1px solid var(--color-border-subtle);
-  background: var(--color-dialog-bg, var(--color-surface-elevated));
+  background: var(--color-surface-container-highest);
   box-shadow: var(--elevation-3, var(--shadow-overlay-hairline, var(--shadow-overlay)));
   animation: v4-sheet-in var(--duration-enter, 160ms) var(--ease-emphasized, var(--ease-out));
   /* layout/style only — paint containment can confuse fixed portal perception */
@@ -1864,6 +1857,10 @@ html.dark .v4-plugin-app-sheet {
 }
 html.dark .v4-overlay-sheet {
   box-shadow: var(--elevation-3, var(--shadow-overlay-hairline, var(--shadow-overlay)));
+}
+/* Dialogs sit one step off the sheet so the two planes are not one elevated color. */
+.v4-dialog-surface {
+  background: var(--color-dialog-bg);
 }
 
 /* Elevated cards / floating chrome pieces (tabs, AI bar, sheets) */

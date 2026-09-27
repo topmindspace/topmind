@@ -472,7 +472,7 @@ export function Shell({ settings }: ShellProps) {
                   ? "border-transparent bg-error-container text-on-error-container"
                   : toast.kind === "success"
                     ? "border-transparent bg-success-container text-on-success-container"
-                    : "border-border-subtle-dim bg-surface-elevated text-text-secondary",
+                    : "border-border-subtle-dim bg-inverse-surface text-inverse-on-surface",
               )}
             >
               <span className="min-w-0 flex-1 truncate" title={toast.text}>

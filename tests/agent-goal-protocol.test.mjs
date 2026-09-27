@@ -9,6 +9,7 @@ import {
   buildContinuePrompt,
   buildGoalEvaluatorPrompt,
   buildGoalProtocolPrompt,
+  buildResultFooter,
   buildTaskLedger,
   createGoalState,
   decideAutoContinue,
@@ -18,7 +19,11 @@ import {
   parseGoalEvaluatorResult,
   parsePlanBlock,
   reconcileGoalVerdicts,
+  rejectBareDone,
   resolveMaxAutoContinues,
+  restoreSessionGoal,
+  isContinuationTurn,
+  prepareTurnGoal,
   DONE_MARK,
   INCOMPLETE_MARK,
   PLAN_CLOSE,
@@ -206,6 +211,157 @@ test("quoted [DONE] in meta-instruction text never marks goal done (P0-1)", () =
   // Real worker claim still works.
   s = applyGoalUpdate(s, { text: "已完成，见 88-交付/a.md [DONE]" });
   assert.equal(s.status, "done");
+});
+
+test("bare [DONE] after tools is not success without a path receipt", () => {
+  let s = createGoalState("写交付稿");
+  s = applyGoalUpdate(s, {
+    text: `${PLAN_OPEN}\ngoal: 写交付稿\nsteps: 1) 写\ndone-when:\n- 成稿存在\n${PLAN_CLOSE}`,
+  });
+  s = applyGoalUpdate(s, { text: `全部完成 ${DONE_MARK}` });
+  assert.equal(s.status, "done");
+  const bare = assessGoalCompletion({
+    state: s,
+    lastBody: `全部完成 ${DONE_MARK}`,
+    toolCallCount: 2,
+  });
+  assert.equal(bare.finished, false);
+  assert.equal(bare.reason, "missing-path-receipts");
+  const folded = rejectBareDone(s, { toolCallCount: 2, lastBody: `全部完成 ${DONE_MARK}` });
+  assert.equal(folded.status, "incomplete");
+  assert.equal(folded.blockReason, "missing-path-receipts");
+  assert.deepEqual(folded.doneCriteria, ["成稿存在"]);
+  const decision = decideAutoContinue({
+    assessment: bare,
+    autoContinues: 0,
+    maxAutoContinues: 2,
+    hasTools: true,
+  });
+  assert.equal(decision.continue, true, "missing receipts stay in the verify loop");
+  const phraseOnly = assessGoalCompletion({
+    state: s,
+    lastBody: `全部完成 路径回执 ${DONE_MARK}`,
+    toolCallCount: 2,
+  });
+  assert.equal(phraseOnly.finished, false);
+  assert.equal(phraseOnly.reason, "missing-path-receipts");
+  const phraseFolded = rejectBareDone(s, {
+    toolCallCount: 2,
+    lastBody: `全部完成 路径回执 ${DONE_MARK}`,
+  });
+  assert.equal(phraseFolded.status, "incomplete");
+  assert.notEqual(phraseFolded.status, "done");
+  const withPath = assessGoalCompletion({
+    state: { ...s, pathReceipts: ["88-交付/a.md"] },
+    lastBody: `全部完成 ${DONE_MARK}`,
+    toolCallCount: 2,
+  });
+  assert.equal(withPath.finished, true);
+  assert.equal(withPath.reason, "done-mark");
+  const overridden = reconcileGoalVerdicts({
+    heuristic: bare,
+    evaluator: { verdict: "met", reason: "looks done", openCriteria: [] },
+  });
+  assert.equal(overridden.finished, false);
+  assert.equal(overridden.reason, "missing-path-receipts");
+});
+
+test("idle inner rebuild does not drop a blocked ledger", () => {
+  let outer = createGoalState("整理交付");
+  outer = applyGoalUpdate(outer, {
+    text: `${PLAN_OPEN}\ngoal: 整理交付\nsteps: 1) 读\ndone-when:\n- 成稿存在\n${PLAN_CLOSE}`,
+  });
+  outer = { ...outer, status: "blocked", blockReason: "确认覆盖" };
+  const merged = mergeGoalState(outer, createGoalState("整理交付"));
+  assert.equal(merged.status, "blocked");
+  assert.equal(merged.blockReason, "确认覆盖");
+  assert.equal(merged.plan.length, 1);
+  assert.equal(merged.doneCriteria.length, 1);
+});
+
+test("继续 after a bare [DONE] keeps the saved goal, open criteria, and incomplete", () => {
+  const saved = {
+    goal: "整理交付稿",
+    plan: ["读原文", "写成稿"],
+    criteria: ["成稿存在"],
+    doneCriteria: ["成稿存在"],
+    openCriteria: ["成稿存在"],
+    pathReceipts: [],
+    status: "incomplete",
+    blockReason: "missing-path-receipts",
+  };
+  const messages = [
+    { role: "user", content: "整理交付稿" },
+    { role: "assistant", content: `全部完成 ${DONE_MARK}` },
+    { role: "user", content: "继续" },
+  ];
+  // Pi still seeds goal "继续" and would have folded the bare [DONE] to done.
+  const piSeed = applyGoalUpdate(createGoalState("继续"), { text: `全部完成 ${DONE_MARK}` });
+  assert.equal(piSeed.goal, "继续");
+  assert.equal(piSeed.status, "done");
+  assert.equal(piSeed.doneCriteria.length, 0);
+  const next = prepareTurnGoal({ saved, messages, piState: piSeed });
+  assert.equal(next.goal, "整理交付稿");
+  assert.deepEqual(next.doneCriteria, ["成稿存在"]);
+  assert.equal(next.status, "incomplete");
+  const prelude = prepareTurnGoal({ saved, messages });
+  assert.equal(prelude.goal, "整理交付稿");
+  assert.deepEqual(prelude.doneCriteria, ["成稿存在"]);
+  assert.equal(prelude.status, "incomplete");
+});
+
+test("继续 and the host resume prompt keep the saved ledger", () => {
+  const prior = {
+    ...createGoalState("整理交付稿"),
+    plan: ["读原文", "写成稿"],
+    criteria: ["成稿存在"],
+    doneCriteria: ["成稿存在"],
+    openCriteria: ["成稿存在"],
+    pathReceipts: ["20-专题/2026-主题/note.md"],
+    status: /** @type {const} */ ("working"),
+  };
+  const resume = [
+    "[系统] 任务被用户暂停后恢复，可能尚未完成。请继续完成用户原始目标；若已完成则给出简短结论与路径回执。",
+    "原目标：整理交付稿",
+    "计划：\n1. 读原文\n2. 写成稿",
+    "未完成验收项：\n- 成稿存在",
+    "先更新/执行剩余步骤，再收尾。收尾时输出结论 + 路径回执 + [DONE]；若无法完成则 [INCOMPLETE 原因]。",
+  ].join("\n");
+  assert.equal(isContinuationTurn(resume), true);
+  assert.equal(isContinuationTurn("继续"), true);
+  for (const text of [resume, "继续"]) {
+    const restored = restoreSessionGoal(prior, text);
+    assert.equal(restored.goal, "整理交付稿", text.slice(0, 12));
+    assert.deepEqual(restored.plan, ["读原文", "写成稿"]);
+    assert.deepEqual(restored.doneCriteria, ["成稿存在"]);
+    assert.ok(restored.pathReceipts.includes("20-专题/2026-主题/note.md"));
+    assert.notEqual(restored.status, "idle");
+  }
+  const other = restoreSessionGoal(prior, "写一篇完全不同的周报");
+  assert.equal(other.plan.length, 0);
+  assert.equal(other.goal, "写一篇完全不同的周报");
+});
+
+test("result footer keeps receipts out of Verified and empty segments empty", () => {
+  const footer = buildResultFooter({
+    status: "done",
+    pathReceipts: ["88-交付/a.md"],
+    openCriteria: [],
+    checksRun: [],
+    assumptions: [],
+  });
+  assert.deepEqual(footer.changes, ["88-交付/a.md"]);
+  assert.deepEqual(footer.verified, []);
+  assert.deepEqual(footer.assumed, []);
+  assert.deepEqual(footer.couldNot, []);
+  const blocked = buildResultFooter({
+    status: "blocked",
+    pathReceipts: [],
+    openCriteria: ["成稿存在"],
+    blockReason: "确认覆盖",
+  });
+  assert.deepEqual(blocked.couldNot, ["成稿存在", "确认覆盖"]);
+  assert.equal(buildResultFooter({ status: "working", pathReceipts: ["a.md"] }), null);
 });
 
 test("external goal evaluator parse + reconcile (industry /goal)", () => {

@@ -871,7 +871,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
                     <Tooltip content={t("settings:workspace.removeFromListTooltip")}>
                       <button
                         type="button"
-                        className="rounded p-1 text-text-quaternary hover:bg-surface hover:text-error"
+                        className="rounded p-1 text-text-quaternary hover:bg-state-hover hover:text-error"
                         disabled={!!switching}
                         onClick={(ev) => void handleRemove(w.rootPath, ev)}
                         aria-label={t("settings:workspace.removeFromListTooltip")}

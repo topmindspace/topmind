@@ -183,6 +183,30 @@ test("z-index is semantic tokens; no Tailwind numeric z-10 or dead glow tokens",
   assert.match(todoBody, /z-local/);
 });
 
+test("menu, sheet, dialog, toast, and run card are not one elevated color", () => {
+  const tokens = read("src/styles/tokens.css");
+  const css = read("src/styles/v4.css");
+  const shell = read("src/components/shell/Shell.tsx");
+  const card = read("src/components/ai/ChatMessage.tsx");
+  const dialog = read("src/components/ui/Dialog.tsx");
+  assert.match(tokens, /--color-surface-container-high:\s*color-mix/);
+  assert.match(tokens, /--color-surface-container-highest:\s*color-mix/);
+  assert.match(tokens, /--color-dialog-bg:\s*color-mix/);
+  assert.doesNotMatch(tokens, /--color-dialog-bg:\s*var\(--color-surface-elevated\)/);
+  assert.match(css, /\.v4-menu-surface[\s\S]*?background:\s*var\(--color-surface-container-high\)/);
+  assert.match(css, /\.v4-overlay-sheet[\s\S]*?background:\s*var\(--color-surface-container-highest\)/);
+  assert.match(css, /\.v4-dialog-surface[\s\S]*?background:\s*var\(--color-dialog-bg\)/);
+  assert.match(css, /\.v4-menu-item:hover[\s\S]*?background:\s*var\(--color-state-hover\)/);
+  assert.doesNotMatch(css, /\.v4-menu-item:hover[\s\S]{0,120}surface-muted/);
+  assert.match(shell, /bg-inverse-surface/);
+  assert.match(card, /bg-surface-container[\s\S]{0,180}data-goal-ledger/);
+  assert.match(dialog, /v4-dialog-surface/);
+  const design = read("DESIGN.md");
+  assert.doesNotMatch(design, /surface-elevated（弹层 \/ 菜单 \/ 对话框）/);
+  assert.match(design, /surface-container-high（菜单）/);
+  assert.match(design, /dialog-bg（对话框/);
+});
+
 test("Light tokens: surface != elevated; hairline and shadows defined", () => {
   const tokens = read("src/styles/tokens.css");
   const light = tokens.split(/\.dark\s*\{/)[0];
@@ -542,7 +566,7 @@ test("Dialog sizing: prompts are wide + upper; filename prompts never override n
   const dialog = read("src/components/ui/Dialog.tsx");
   // Panel ladder: confirm/error at max-w-lg, prompts at max-w-xl (wider than
   // the field needs, so the target is comfortable and long paths stay readable).
-  assert.match(dialog, /v4-overlay-sheet w-full max-w-lg p-5/);
+  assert.match(dialog, /v4-overlay-sheet v4-dialog-surface w-full max-w-lg p-5/);
   assert.match(dialog, /panelClassName=\{maxWidth \?\? "max-w-xl"\}/);
   // Prompts sit in the top third (native rename/save sheet position) and use
   // the shared Input so the field matches every other text field in the app.
@@ -606,6 +630,67 @@ test("icon contract: forbidden glyphs never appear; chat is RiChatAiLine / bot",
     // Dock order: chat first (agent spine).
     assert.match(dock, /\{\s*id:\s*"chat"[\s\S]{0,80}id:\s*"suggestions"/);
   }
+});
+
+test("selected controls use the neutral wash and have no side or bottom accent bar", () => {
+  const css = read("src/styles/v4.css");
+  const tokens = read("src/styles/tokens.css");
+  const design = read("DESIGN.md");
+  const view = read("src/components/ui/view.tsx");
+  const outline = read("src/components/editor/EditorOutlinePanel.tsx");
+  const nav = read("src/components/shell/PrimaryNav.tsx");
+  const chat = read("src/components/ai/ChatMessage.tsx");
+  const stream = read("src/plugins/topmind-workspace/views/StreamDetailView.tsx");
+
+  // Side strip: inset Npx 0 0 0 accent. Bottom strip: inset 0 -Npx 0 0 accent.
+  // A full inset ring (inset 0 0 0 1px) and a top input shadow are not strips.
+  const accentStrip = /inset\s+[1-9]\d*px\s+0\s+0\s+0[^;]*accent|inset\s+0\s+-[1-9]\d*px\s+0\s+0[^;]*accent|shadow-\[inset_[1-9]\d*px_0_0_0_[^\]]*accent|shadow-\[inset_0_-[1-9]\d*px[^\]]*accent/;
+  const blocks = [];
+  const ruleRe = /([^{}]+)\{([^{}]*)\}/g;
+  let match;
+  while ((match = ruleRe.exec(css))) blocks.push({ selector: match[1], body: match[2] });
+  const selectedSel = /is-selected|\[data-active|\.is-active|recent-tab-active/;
+  const offenders = blocks
+    .filter((b) => selectedSel.test(b.selector) && (accentStrip.test(b.body) || /border-(?:left|bottom)\s*:\s*[1-9]\d*px[^;]*accent/.test(b.body)))
+    .map((b) => b.selector.trim().slice(0, 80));
+  assert.deepEqual(offenders, []);
+
+  const sources = [css, view, outline, nav, chat];
+  for (const src of sources) assert.doesNotMatch(src, accentStrip);
+
+  const treeBlock = blocks.find((b) => b.selector.includes(".v4-tree-node.is-selected") && b.body.includes("surface-selected"));
+  assert.ok(treeBlock, "tree selection keeps the neutral wash");
+  assert.match(treeBlock.body, /color:\s*var\(--color-text-primary\)/);
+  assert.match(treeBlock.body, /box-shadow:\s*none/);
+  const title = blocks.find((b) => b.selector.includes(".v4-titlebar-btn[data-active") && b.body.includes("surface-selected"));
+  assert.ok(title, "title-bar active control uses the neutral wash");
+  assert.match(title.body, /color:\s*var\(--color-text-primary\)/);
+  assert.match(title.body, /box-shadow:\s*none/);
+  const panel = blocks.find((b) => b.selector.includes(".v4-titlebar-panel-toggle[data-active") && b.body.includes("box-shadow"));
+  assert.ok(panel);
+  assert.match(panel.body, /box-shadow:\s*none/);
+
+  const row = view.slice(view.indexOf("export function listRowClass"), view.indexOf("export function RowList"));
+  assert.match(row, /bg-surface-selected text-text-primary/);
+  assert.doesNotMatch(row, /inset_|accent-container/);
+  const outlineRow = outline.slice(outline.indexOf("const isActive = activeId"), outline.indexOf("<span className=\"min-w-0 flex-1 truncate\">"));
+  assert.match(outlineRow, /is-selected bg-surface-selected text-text-primary/);
+  assert.doesNotMatch(outlineRow, /inset_|text-accent-color/);
+  assert.match(nav, /data-active=\{isActive \? "true" : undefined\}/);
+  assert.doesNotMatch(nav, /bg-accent-container text-on-accent-container/);
+
+  // Exceptions that are not a selection bar.
+  assert.match(css, /\.v4-tiptap blockquote[\s\S]{0,180}border-left:\s*3px/);
+  assert.match(css, /\.v4-stream-md blockquote[\s\S]{0,220}border-left:\s*2\.5px/);
+  assert.match(css, /\.v4-palette-row\[data-active="true"\][\s\S]{0,160}inset 0 0 0 1px/);
+  assert.match(tokens, /--shadow-input-inset:\s*inset 0 1px 2px/);
+  assert.match(tokens, /--shadow-focus-inset:\s*inset 0 0 0 1px/);
+  assert.match(chat, /border-l-2 border-accent-color\/40/);
+  assert.match(stream, /data-stream-nested-appends/);
+  assert.match(stream, /border-l-2 border-accent-border-subtle/);
+  assert.doesNotMatch(design, /accent inset bar/);
+  assert.match(design, /无侧边或底部衬条/);
+  assert.match(tokens, /no side or bottom accent bar/);
 });
 
 test("CountBadge stays radius-xs; Button uses MD3 state layers", () => {

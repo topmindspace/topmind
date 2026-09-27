@@ -281,7 +281,7 @@ export function EditorOutlinePanel({
                     "group flex w-full items-center gap-1.5 rounded-[var(--radius-sm)] py-1 pr-2 text-left text-3xs transition-colors",
                     "v4-focus-ring",
                     isActive
-                      ? "bg-accent-bg-subtle text-accent-color font-medium shadow-[inset_2px_0_0_0_var(--color-accent-color)]"
+                      ? "is-selected bg-surface-selected text-text-primary font-medium"
                       : "text-text-tertiary hover:bg-surface-hover hover:text-text-primary",
                   )}
                   title={h.text}
@@ -289,7 +289,7 @@ export function EditorOutlinePanel({
                   <span
                     className={cn(
                       "font-mono text-5xs text-text-quaternary group-hover:text-text-tertiary shrink-0",
-                      isActive && "text-accent-color",
+                      isActive && "text-text-primary",
                     )}
                   >
                     H{h.level}

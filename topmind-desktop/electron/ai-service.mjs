@@ -20,14 +20,13 @@ import {
   buildContinuePrompt,
   buildGoalEvaluatorPrompt,
   buildTaskLedger,
-  createGoalState,
   decideAutoContinue,
   harvestPathReceipts,
-  isTaskLedgerText,
-  isMetaInstructionText,
-  mergeGoalState,
+  mergeRunGoal,
   parseGoalEvaluatorResult,
+  prepareTurnGoal,
   reconcileGoalVerdicts,
+  rejectBareDone,
   resolveMaxAutoContinues,
 } from "./lib/agent-goal-protocol.mjs";
 import {
@@ -651,49 +650,9 @@ export const AiService = {
     let lastSteerApplyCount = 0;
     let lastRuntime = "ai-sdk";
     let lastUsage = null;
-    let goalState = createGoalState(
-      (() => {
-        // Latest non-ledger user task wins (multi-turn session).
-        let last = "";
-        for (const m of compact.messages || []) {
-          if (m?.role === "user") {
-            const c = typeof m.content === "string" ? m.content : "";
-            if (c && !isTaskLedgerText(c) && !/^\[系统\]|^\[System\]/u.test(c)) last = c;
-          }
-        }
-        return last;
-      })(),
-    );
-    // Restore session-level GoalState if we saved one (G2: criteria survive
-    // user turns and restarts even when the model never re-emits [PLAN]).
-    // A *new* user task (goal text changed) must not inherit the old plan/criteria.
-    {
-      const saved = await loadSessionGoal(sessionId, c).catch(() => null);
-      const currentGoal = goalState.goal || "";
-      const sameTask =
-        saved &&
-        saved.goal &&
-        (currentGoal === saved.goal ||
-          currentGoal.startsWith(saved.goal.slice(0, 40)) ||
-          saved.goal.startsWith(currentGoal.slice(0, 40)));
-      if (saved && sameTask && (saved.plan?.length || saved.doneCriteria?.length || saved.goal)) {
-        goalState = mergeGoalState(saved, goalState);
-      }
-      // Fold history so [PLAN]/done-when from earlier turns stay live.
-      for (const m of compact.messages || []) {
-        if (m?.role !== "assistant" && m?.role !== "user") continue;
-        const ctext = typeof m.content === "string" ? m.content : Array.isArray(m.content)
-          ? m.content.map((b) => b?.text || "").join(" ")
-          : "";
-        if (!ctext || isTaskLedgerText(ctext) || isMetaInstructionText(ctext)) continue;
-        // Only fold plan markers when this message belongs to the current goal
-        // (assistant [PLAN] after the latest user task). Receipts always fold.
-        harvestPathReceipts(ctext, goalState.pathReceipts);
-        if (m.role === "assistant" || ctext.includes(currentGoal.slice(0, 24))) {
-          goalState = applyGoalUpdate(goalState, { text: ctext });
-        }
-      }
-    }
+    const savedGoal = await loadSessionGoal(sessionId, c).catch(() => null);
+    // Restore, fold history, and merge Pi's "继续" seed as one prelude.
+    let goalState = prepareTurnGoal({ saved: savedGoal, messages: compact.messages });
     let contextRetries = 0;
     /** File ops harvested from Pi compaction + tool path receipts (memory distill). */
     const fileOps = { readFiles: [], modifiedFiles: [] };
@@ -750,11 +709,16 @@ export const AiService = {
       const prevOpen = goalState.doneCriteria?.length || 0;
       const prevPlan = goalState.plan?.length || 0;
       if (result.goalState) {
-        goalState = mergeGoalState(goalState, result.goalState);
+        goalState = mergeRunGoal(goalState, result.goalState);
       } else if (result.text) {
         goalState = applyGoalUpdate(goalState, { text: result.text });
       }
       if (result.text) harvestPathReceipts(result.text, goalState.pathReceipts);
+      // Bare [DONE] after tools, with no path receipt, is not success on either runtime.
+      goalState = rejectBareDone(goalState, {
+        toolCallCount: Number(result.toolCallCount) || 0,
+        lastBody: String(result.text || ""),
+      });
       if (result.fileOps) {
         for (const p of result.fileOps.readFiles || []) {
           if (p && !fileOps.readFiles.includes(p)) fileOps.readFiles.push(p);

@@ -325,7 +325,7 @@ export function DropdownItem({
         onSelect();
       }}
       className={cn(
-        "v4-menu-item flex w-full items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-[7px] text-left text-3xs font-medium outline-none",
+        "v4-menu-item flex w-full items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-[7px] text-left text-xs font-medium outline-none",
         "disabled:opacity-40 data-[soft-disabled=true]:opacity-45 data-[soft-disabled=true]:cursor-default",
         destructive
           ? "text-error hover:bg-status-error-bg focus-visible:bg-status-error-bg focus:bg-status-error-bg"

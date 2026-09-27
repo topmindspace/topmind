@@ -236,7 +236,7 @@ function GoalStatusChip({
       </div>
       {ledgerOpen && (goal.plan.length > 0 || goal.criteria.length > 0) ? (
         <div
-          className="mt-1.5 rounded-[var(--radius-card)] border border-border-subtle-dim bg-surface px-2.5 py-2 shadow-[var(--shadow-xs)]"
+          className="mt-1.5 rounded-[var(--radius-card)] border border-border-subtle-dim bg-surface-container px-2.5 py-2 shadow-[var(--shadow-xs)]"
           data-goal-ledger
         >
           {goal.goal ? (
@@ -341,6 +341,7 @@ function ResultFooter({
     pathReceipts: string[];
     openCriteria: string[];
     status: string;
+    blockReason?: string | null;
     checksRun?: string[];
     assumptions?: string[];
   } | null;
@@ -359,7 +360,8 @@ function ResultFooter({
   const receipts = [...(goal.pathReceipts || [])].sort(
     (a, b) => riskRank(a) - riskRank(b) || a.localeCompare(b),
   );
-  const open = goal.openCriteria || [];
+  const couldNot = [...(goal.openCriteria || [])];
+  if (goal.status === "blocked" && goal.blockReason) couldNot.push(goal.blockReason);
   const checks = goal.checksRun || [];
   const assumed = goal.assumptions || [];
   return (
@@ -396,7 +398,7 @@ function ResultFooter({
         <div className="flex items-start gap-2">
           <dt className="w-12 shrink-0 text-warning">{t("ai.resultCouldNot")}</dt>
           <dd className="min-w-0 flex-1 text-text-secondary">
-            {open.length ? open.join(" · ") : t("ai.resultNone")}
+            {couldNot.length ? couldNot.join(" · ") : t("ai.resultNone")}
           </dd>
         </div>
       </dl>
@@ -619,7 +621,7 @@ function CodeBlock({ code, language }: { code: string; language?: string }) {
           <button
             type="button"
             onClick={() => void handleCopy()}
-            className="inline-flex h-6 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 text-3xs text-text-tertiary transition-colors hover:bg-surface hover:text-text-primary v4-focus-ring"
+            className="inline-flex h-6 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 text-3xs text-text-tertiary transition-colors hover:bg-state-hover hover:text-text-primary v4-focus-ring"
             aria-label={copied ? t("ai.copiedLabel") : t("ai.copyLabel")}
           >
             {copied ? (

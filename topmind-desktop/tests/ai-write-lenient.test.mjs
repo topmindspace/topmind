@@ -19,7 +19,12 @@ describe("AI write gate leniency + file-changed notify", () => {
   test("ai-tools: content confirmed true, lifecycle confirmed false under confirm; emits file-changed", () => {
     const src = fs.readFileSync(path.join(desktopRoot, "electron", "ai-tools.mjs"), "utf8");
     assert.match(src, /LIFECYCLE_TOOLS/);
-    assert.match(src, /confirmed: LIFECYCLE_TOOLS\.has\(toolName\) \? !needsUserConfirm : true/);
+    assert.match(src, /CONFIRM_REQUIRED_TOOLS/);
+    // Content lands immediately. Lifecycle asks under confirm. Memory compact never auto-confirms.
+    assert.match(
+      src,
+      /confirmed: CONFIRM_REQUIRED_TOOLS\.has\(toolName\)\s*\?\s*false\s*:\s*LIFECYCLE_TOOLS\.has\(toolName\)\s*\?\s*!needsUserConfirm\s*:\s*true/,
+    );
     assert.match(src, /workspace:file-changed/);
     assert.match(src, /source: `ai:\$\{toolName\}`/);
     // Content path must not force confirmed:false (that invites accidental pending).

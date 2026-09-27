@@ -122,7 +122,7 @@ export function AppsLaunchList() {
                   </span>
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="flex min-w-0 items-center gap-1.5">
-                      <span className="truncate text-3xs font-medium text-text-primary">{name}</span>
+                      <span className="truncate text-xs font-medium text-text-primary">{name}</span>
                       {readiness.needsConfig ? (
                         <span className="shrink-0 rounded-[var(--radius-xs)] bg-status-warning-bg px-1.5 py-px text-4xs font-medium leading-none text-warning">
                           {t("shell:appsMenu.needsConfig")}

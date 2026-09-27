@@ -129,7 +129,7 @@ function DialogBackdrop({
         aria-labelledby={labelledBy}
         aria-describedby={describedBy}
         tabIndex={-1}
-        className={cn("v4-overlay-sheet w-full max-w-lg p-5 outline-none", panelClassName)}
+        className={cn("v4-overlay-sheet v4-dialog-surface w-full max-w-lg p-5 outline-none", panelClassName)}
       >
         {children}
       </div>
