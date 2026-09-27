@@ -12,6 +12,8 @@ import { TaskListBody } from "./task-list-body";
 import {
   loadTaskPanelPos,
   saveTaskPanelPos,
+  hasCustomTaskPanelPos,
+  computeDockTaskPanelPos,
   type TaskPanelPos,
 } from "../../lib/task-panel-pos";
 import { shouldDismissTaskPanel } from "../../lib/engine-job-follow-up";
@@ -29,11 +31,37 @@ export function TaskPanel({ open, onClose }: TaskPanelProps) {
   const runningOrQueued = tasks.some((task) => task.status === "running" || task.status === "queued");
 
   const [minimized, setMinimized] = useState(false);
-  const [position, setPosition] = useState<TaskPanelPos>(() => loadTaskPanelPos());
+  const [position, setPosition] = useState<TaskPanelPos>(() =>
+    hasCustomTaskPanelPos()
+      ? loadTaskPanelPos()
+      : computeDockTaskPanelPos({
+          triggerRight: window.innerWidth - 24,
+          triggerTop: window.innerHeight - 26,
+          viewportW: window.innerWidth,
+          viewportH: window.innerHeight,
+        }),
+  );
   const [isDragging, setIsDragging] = useState(false);
   const positionRef = useRef(position);
   positionRef.current = position;
   const dragStartRef = useRef({ mouseX: 0, mouseY: 0, posX: 0, posY: 0 });
+
+  // Docked (no custom pos): re-anchor to the status-bar trigger on open.
+  useEffect(() => {
+    if (!open || hasCustomTaskPanelPos()) return;
+    const trigger = document.querySelector("[data-task-panel-trigger]");
+    if (!trigger) return;
+    const r = trigger.getBoundingClientRect();
+    setPosition(
+      computeDockTaskPanelPos({
+        triggerRight: r.right,
+        triggerTop: r.top,
+        viewportW: window.innerWidth,
+        viewportH: window.innerHeight,
+        panelW: minimized ? 220 : 340,
+      }),
+    );
+  }, [open, minimized]);
 
   const handleDragStart = useCallback((e: React.MouseEvent) => {
     if (!(e.target as HTMLElement).closest(".task-panel-drag")) return;

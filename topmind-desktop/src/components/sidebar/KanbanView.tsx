@@ -339,7 +339,7 @@ function KanbanCard({
         }}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <div className="truncate font-normal text-text-primary group-hover:text-accent-color">
+        <div className="truncate font-normal text-text-primary">
           {note.title || note.name}
         </div>
         <div className="mt-0.5 line-clamp-2 text-3xs leading-relaxed text-text-quaternary">

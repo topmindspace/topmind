@@ -268,6 +268,8 @@ goal?: {
   status: string;
   blockReason?: string | null;
   autoContinues: number;
+  /** Plan snapshot at first sight (or at pause) for Run Card plan-diff chips. */
+  planBaseline?: string[];
   /** Honesty footer: real check evidence (tests/commands). Never invent. */
   checksRun?: string[];
   /** Honesty footer: unverified premises. Never invent. */

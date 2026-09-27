@@ -586,7 +586,7 @@ function InboxFileRow({
         <RiFileTextLine size={ICON.sm} className="shrink-0 text-text-tertiary opacity-80" aria-hidden />
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-1.5">
-            <span className="min-w-0 truncate text-sm font-normal text-text-primary group-hover:text-accent-color">
+            <span className="min-w-0 truncate text-sm font-normal text-text-primary">
               {displayName}
             </span>
             {sourceBadge(file, t)}

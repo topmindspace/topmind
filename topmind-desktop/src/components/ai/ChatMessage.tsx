@@ -23,7 +23,7 @@ import { useViewStore } from "../../stores/view-store";
 import { useAiStore } from "../../stores/ai-store";
 import { ICON } from "../../lib/icons";
 import { visibleAssistantMessage } from "../../lib/ai-chat-split";
-import { derivePlanStepState } from "../../lib/plan-step-state";
+import { derivePlanStepState, diffPlan } from "../../lib/plan-step-state";
 import { Tooltip } from "../ui/tooltip";
 import { Chip, ChipLabel } from "../ui/Chip";
 
@@ -134,6 +134,7 @@ function GoalStatusChip({
     status: string;
     blockReason?: string | null;
     autoContinues: number;
+    planBaseline?: string[];
   } | null;
   autoContinues?: number;
 }) {
@@ -151,6 +152,10 @@ function GoalStatusChip({
   const receipts = (goal.pathReceipts || []).slice(0, 4);
   const openSet = new Set(goal.openCriteria || []);
   const continues = autoContinues || goal.autoContinues;
+  const planDelta = goal.planBaseline?.length
+    ? diffPlan(goal.planBaseline, goal.plan)
+    : null;
+  const addedPlan = new Set(planDelta?.added || []);
   return (
     <div className="mb-1.5" data-goal-status={goal.status}>
       <div className="flex flex-wrap items-center gap-1.5">
@@ -180,6 +185,17 @@ function GoalStatusChip({
         {continues ? (
           <ChipLabel tone="accent" size="sm">
             {t("ai.goalContinuing", { count: continues })}
+          </ChipLabel>
+        ) : null}
+        {planDelta?.changed ? (
+          <ChipLabel tone="neutral" size="sm" data-goal-plan-diff title={[
+            ...planDelta.added.map((s) => `+ ${s}`),
+            ...planDelta.removed.map((s) => `- ${s}`),
+          ].join("\n")}>
+            {t("ai.goalPlanChanged", {
+              added: planDelta.added.length,
+              removed: planDelta.removed.length,
+            })}
           </ChipLabel>
         ) : null}
         {blocked ? (
@@ -244,8 +260,10 @@ function GoalStatusChip({
                     className={cn(
                       "flex items-start gap-1.5 text-xs",
                       stepState === "done" ? "text-text-tertiary" : "text-text-secondary",
+                      addedPlan.has(step) && "text-accent-color",
                     )}
                     data-goal-plan-step={stepState}
+                    data-goal-plan-added={addedPlan.has(step) || undefined}
                   >
                     <span
                       className={cn(

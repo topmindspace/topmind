@@ -611,7 +611,7 @@ topmind 设计系统原生支持多语言排版（Simplified Chinese / English�
 - **EmptyConversation**：短文案 + 按选区最多 2 条上下文快捷提示；stagger 入场。
 - **离线 composer**：单 CTA「前往设置」，无冗长说明。
 - **工具时间线**：助手消息内 `toolCalls` 卡片（`data-tool-timeline`；running/done + 路径跳转 + `edit_file` diff 内联）；回合内 status 走 `StreamStatusIndicator`（`data-stream-status`）。
-- **TaskBadge**：Header 中的微型 spinner + 数字角标，点击展开 TaskPanel。
+- **TaskBadge / TaskPanel**：StatusBar 任务钮（安静/运行 spinner）点击展开 **停靠 TaskPanel**（默认锚定状态栏触发钮上方；拖拽后改自由浮层并记住位置）。表面走 popover chrome（elevated/hairline），不再像调试窗。
 - **思考过程**：Kernel `splitAssistantVisible` / `ingestAssistantTextDelta` / `visibleAssistantMessage` 把 `<think>`、思考围栏、未标注 CoT 从正文拆出；`ReasoningBlock` **默认折叠**（`useState(false)` · `data-reasoning-open="false"`）；气泡正文只渲染可见结论，禁止 `split.body || raw` 回退把思考当回复。Stop/interrupt 仍在 Composer。
 - **流式状态文案**：`lib/stream-status.ts` 统一 StatusBar / ChatMessage / ChatInput。
 - **Pause ≠ Abandon（诚实语义）**：流式中 Esc / 中断钮 = **Pause**（`pauseStream`；**不**标 cancelled，已完成编辑与目标台账保留）。暂停后提供 **继续**（`resumeStream`，可带「怎么改」作 redirect）与 **放弃**（`abandonPaused` → 真 cancel）。流式中 Enter = steer（中途注入）。文案禁止把 Pause 说成已放弃。
@@ -619,7 +619,7 @@ topmind 设计系统原生支持多语言排版（Simplified Chinese / English�
 - **会话标题**：首条用户消息自动截断命名。
 - **AI 按钮视觉体系**：`.v4-ai-btn`（accent tint）/ `.v4-ai-btn-ghost`（text only）/ `.v4-ai-chip-gradient`（紧凑 icon-only）；`ChromeOverflowActions` 支持 `aiAction` 属性自动应用 accent 样式。**禁止**另起紫/靛渐变 AI 按钮——与 §0「禁止 indigo/purple 渐变」冲突，AI 身份由 deep→mid→aqua 轴承担。
 - **助手消息 Markdown**：`ChatMessage` 结构化渲染 — 代码块（语言 pill + 复制）/ H1-H4 / 有序无序列表 / 引用块 / 段落；`BlockFormatted` + `InlineFormatted` 组合；轻量内联解析器（非 full remark）。
-- **Run Card / GoalStatusChip**（`ChatMessage.tsx` · 目标协议面）：计划进度 + 验收项勾选 + 路径回执 chips + 诚实状态。默认折叠一行 chip 行；展开是真文档（编号步骤 + checklist），不是 mono 遥测。计划步骤按验收进度推导 `done/running/failed/pending` 图钉（`data-goal-plan-step`）。`data-goal-status` 暴露 `idle|running|done|incomplete|blocked`；blocked 即「需要你」。
+- **Run Card / GoalStatusChip**（`ChatMessage.tsx` · 目标协议面）：计划进度 + 验收项勾选 + 路径回执 chips + 诚实状态。默认折叠一行 chip 行；展开是真文档（编号步骤 + checklist），不是 mono 遥测。计划步骤按验收进度推导 `done/running/failed/pending` 图钉（`data-goal-plan-step`，floor 不虚报 done）。相对 `planBaseline` 显示 **计划变更** 芯片（`data-goal-plan-diff`）与新增步骤高亮（`data-goal-plan-added`）。`data-goal-status` 暴露 `idle|running|done|incomplete|blocked`；blocked 即「需要你」。
 - **ResultFooter**（`ChatMessage.tsx` · 终态页脚）：`变更` 足迹 + `Verified / Assumed / Could not` 三行。回执按**风险排序**（删除 → 外部/导出 → 本地编辑），**不**把路径回执标成 Verified；Verified 只认 `checksRun`，Assumed 只认 `assumptions`，空区读「none」——沉默不等于成功。仅 `done|incomplete|blocked` 终态渲染。
 
 ### 3.2 Agent 能力面

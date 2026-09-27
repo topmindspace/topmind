@@ -60,3 +60,36 @@ export function saveTaskPanelPos(
   setItem(TASK_PANEL_POS_KEY, serializeTaskPanelPos(next));
   return next;
 }
+
+/** True when the user has dragged a custom position (vs. dock default). */
+export function hasCustomTaskPanelPos(
+  getItem: (key: string) => string | null = (k) => {
+    try {
+      return localStorage.getItem(k);
+    } catch {
+      return null;
+    }
+  },
+): boolean {
+  return getItem(TASK_PANEL_POS_KEY) != null;
+}
+
+/**
+ * Dock position: sit just above the status-bar task trigger (right-aligned).
+ * Pure given trigger rect + viewport so it stays unit-testable.
+ */
+export function computeDockTaskPanelPos(input: {
+  triggerRight: number;
+  triggerTop: number;
+  viewportW: number;
+  viewportH: number;
+  panelW?: number;
+}): TaskPanelPos {
+  const panelW = input.panelW ?? 340;
+  const gap = 8;
+  const x = Math.max(0, input.viewportW - input.triggerRight);
+  const y = Math.max(0, input.viewportH - input.triggerTop + gap);
+  // Keep the panel's right edge near the trigger's right edge.
+  const xAligned = Math.max(0, x - Math.max(0, panelW - 80));
+  return clampTaskPanelPos({ x: xAligned, y });
+}

@@ -415,6 +415,7 @@
     "detailAria": "详情",
     "noTextReply": "（无文本回复）",
     "goalPlan": "计划 {{done}}/{{total}}",
+    "goalPlanChanged": "计划变更（+{{added}} / −{{removed}}）",
     "goalOpenCriteria": "待验收 {{count}}",
     "goalContinuing": "续跑 ×{{count}}",
     "goalIncomplete": "任务未完成",

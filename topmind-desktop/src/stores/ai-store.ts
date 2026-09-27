@@ -113,6 +113,8 @@ interface AiState {
     status: string;
     blockReason?: string | null;
     autoContinues: number;
+    /** Plan snapshot at first sight (or at pause) for Run Card plan-diff chips. */
+    planBaseline?: string[];
     /** Honesty footer: real check evidence. Never invent. */
     checksRun?: string[];
     /** Honesty footer: unverified premises. Never invent. */
@@ -473,18 +475,33 @@ async function performInvocation(
         };
       }).goal;
       if (goal) {
-        set({
-          streamGoal: {
-            goal: goal.goal || "",
-            plan: goal.plan || [],
-            criteria: goal.criteria || [],
-            openCriteria: goal.openCriteria || [],
-            pathReceipts: goal.pathReceipts || [],
-            status: goal.status || "idle",
-            blockReason: goal.blockReason || null,
-            autoContinues: goal.autoContinues ?? 0,
-          },
-          streamAutoContinues: goal.autoContinues ?? 0,
+        const nextPlan = goal.plan || [];
+        set((s) => {
+          // Baseline = first plan we see for this run (or pause snapshot).
+          // Later plan edits are the "after" side of the Run Card diff.
+          const prev = s.streamGoal;
+          const planBaseline =
+            prev?.planBaseline && prev.planBaseline.length
+              ? prev.planBaseline
+              : prev?.plan?.length
+                ? prev.plan
+                : nextPlan.slice();
+          return {
+            streamGoal: {
+              goal: goal.goal || "",
+              plan: nextPlan,
+              criteria: goal.criteria || [],
+              openCriteria: goal.openCriteria || [],
+              pathReceipts: goal.pathReceipts || [],
+              status: goal.status || "idle",
+              blockReason: goal.blockReason || null,
+              autoContinues: goal.autoContinues ?? 0,
+              planBaseline,
+              checksRun: prev?.checksRun,
+              assumptions: prev?.assumptions,
+            },
+            streamAutoContinues: goal.autoContinues ?? 0,
+          };
         });
       }
     }
