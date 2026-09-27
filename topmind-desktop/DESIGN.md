@@ -336,7 +336,7 @@ ActivityBar（最左 48px · 三分组）：
 
 **4.0 长读**：暖纸画布 `#f3f1eb`（chrome `#f1efe8`）去眩光；`text-prose` 略软于 UI primary；四档灰色在最苛刻表面上仍 ≥4.5:1；侧栏树行高 **32px**；树节点 `data-tree-kind` 三档层次（category/group → topic → file）；列表选中用 `surface-selected` + accent inset bar（标签用 primary ink，不用 accent 字）。
 
-**状态层（4.0.5 · MD3）**：交互控件 hover/pressed 用 **`::after` 半透明覆盖层**（`--color-state-*`；实心 CTA 用 `--color-state-on-primary-*`），**不换底色**。Ghost/图标钮 hover 填 `hover:bg-state-hover`（禁止 `hover:bg-surface-muted` 换色）。**软禁用** `Button/MenuSelect softDisabled`：看起来不可用但仍可聚焦。Toast = elevation-2 + `--radius-toast` + success/error **container** 语义。深度走 product surface tokens（`--color-surface-elevated` / `--color-surface` / `--color-background` / `--color-surface-muted` / `--color-surface-inset`），无 `--md-sys-*` 死别名。
+**状态层（4.0.5 · MD3）**：交互控件 hover/pressed 用 **`::after` 半透明覆盖层**（`--color-state-*`；实心 CTA 用 `--color-state-on-primary-*`），**不换底色**。Ghost/图标钮 hover 填 `hover:bg-state-hover`（禁止 `hover:bg-surface-muted` 换色）。`hover:text-*` 仅限**语义色**（error/warning/success/状态）或对比度抬升一档（quaternary→tertiary/secondary）；禁止 hover 把正文染成 accent。**软禁用** `Button/MenuSelect softDisabled`：看起来不可用但仍可聚焦。Toast = elevation-2 + `--radius-toast` + success/error **container** 语义。深度走 product surface tokens（`--color-surface-elevated` / `--color-surface` / `--color-background` / `--color-surface-muted` / `--color-surface-inset`），无 `--md-sys-*` 死别名。
 
 **MD3 按钮语义映射（桌面适配 · 非 Material 克隆）**：
 

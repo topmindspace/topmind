@@ -1,6 +1,6 @@
 # topmind Desktop — 架构
 
-> **现状描述 + Target 标注**。源文件计数：`src/` 241 · `electron/` 118。  
+> **现状描述 + Target 标注**。源文件计数：`src/` 242 · `electron/` 118。  
 > **1 RPC · Stores（View / Ai / Action / Plugin / IngestStaging / Task / Todo）· 1 Shell · 5+2 Service · 7 插件槽**  
 > UI 真源：`DESIGN.md`。边界：`../PRODUCT-BOUNDARIES.md`。  
 > **实施锁**：[`../docs/ARCHITECTURE-RESET.md`](../docs/ARCHITECTURE-RESET.md)（写闸合闸 · 建议副驾 · 导航变薄）。

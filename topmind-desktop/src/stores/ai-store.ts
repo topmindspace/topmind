@@ -902,6 +902,7 @@ export const useAiStore = create<AiState>((set, get) => ({
     // edits. stopReason="paused" so ChatMessage can offer Resume instead of
     // painting an abandoned run. Bump generation so the old invoke's finally
     // is inert (same as cancelStream).
+    if (!get().streaming || get().paused) return;
     streamGeneration += 1;
     followUpChainAborted = true;
     const sid = get().activeSessionId;
@@ -944,6 +945,8 @@ export const useAiStore = create<AiState>((set, get) => ({
   },
 
   async resumeStream(redirect) {
+    // Only resume a paused, idle turn — never race a live stream.
+    if (!get().paused || get().streaming) return;
     const goal = get().streamGoal;
     set({ paused: false });
     const zh = !String(i18n.language || "").startsWith("en");
@@ -983,6 +986,7 @@ export const useAiStore = create<AiState>((set, get) => ({
 
   async abandonPaused() {
     // True cancel after pause — honest abandoned marker, drop live goal UI.
+    if (!get().paused) return;
     set({ paused: false, streamGoal: null });
     await get().cancelStream();
   },

@@ -23,6 +23,7 @@ import { useViewStore } from "../../stores/view-store";
 import { useAiStore } from "../../stores/ai-store";
 import { ICON } from "../../lib/icons";
 import { visibleAssistantMessage } from "../../lib/ai-chat-split";
+import { derivePlanStepState } from "../../lib/plan-step-state";
 import { Tooltip } from "../ui/tooltip";
 import { Chip, ChipLabel } from "../ui/Chip";
 
@@ -230,29 +231,13 @@ function GoalStatusChip({
           {goal.plan.length > 0 ? (
             <ol className="mb-2 space-y-1" data-goal-plan-list>
               {goal.plan.map((step, i) => {
-                // Derive pin state from acceptance progress (no per-step
-                // telemetry in GoalState): done when criteria are exhausted
-                // ahead of this step; running on the first open step while
-                // working; pending otherwise.
-                const total = goal.plan.length || 1;
-                const doneCount =
-                  goal.status === "done"
-                    ? total
-                    : goal.criteria.length
-                      ? Math.round(
-                          (Math.max(0, goal.criteria.length - open) / goal.criteria.length) * total,
-                        )
-                      : 0;
-                const stepState =
-                  goal.status === "done" || i < doneCount
-                    ? "done"
-                    : goal.status === "working" || goal.status === "verifying"
-                      ? i === doneCount
-                        ? "running"
-                        : "pending"
-                      : goal.status === "incomplete" && i === doneCount
-                        ? "failed"
-                        : "pending";
+                const stepState = derivePlanStepState({
+                  index: i,
+                  total: goal.plan.length,
+                  status: goal.status,
+                  criteriaTotal: goal.criteria.length,
+                  openCount: open,
+                });
                 return (
                   <li
                     key={`${i}-${step.slice(0, 24)}`}
