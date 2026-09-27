@@ -513,11 +513,10 @@ html[data-platform="win"] [data-dialog-footer] {
   white-space: nowrap;
   overflow: hidden;
 }
-/* Active editor tab — clean surface lift (no heavy border nesting) */
+/* Active editor tab — neutral wash, primary ink, no side or bottom accent bar. */
 .v4-recent-tab-active {
-  background: var(--color-surface);
-  box-shadow:
-    0 1px 0 color-mix(in srgb, var(--color-surface) 100%, transparent);
+  background: var(--color-surface-selected);
+  box-shadow: none;
   color: var(--color-text-primary);
 }
 .v4-segmented-item[data-icon-only="true"] {

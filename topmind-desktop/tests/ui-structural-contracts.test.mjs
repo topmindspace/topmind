@@ -12,7 +12,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { deriveStatusBarBusy } from "../src/lib/status-bar-busy.ts";
@@ -641,6 +641,7 @@ test("selected controls use the neutral wash and have no side or bottom accent b
   const nav = read("src/components/shell/PrimaryNav.tsx");
   const chat = read("src/components/ai/ChatMessage.tsx");
   const stream = read("src/plugins/topmind-workspace/views/StreamDetailView.tsx");
+  const recent = read("src/components/shell/EditorRecentBar.tsx");
 
   // Side strip: inset Npx 0 0 0 accent. Bottom strip: inset 0 -Npx 0 0 accent.
   // A full inset ring (inset 0 0 0 1px) and a top input shadow are not strips.
@@ -655,8 +656,34 @@ test("selected controls use the neutral wash and have no side or bottom accent b
     .map((b) => b.selector.trim().slice(0, 80));
   assert.deepEqual(offenders, []);
 
-  const sources = [css, view, outline, nav, chat];
+  const sources = [css, view, outline, nav, chat, recent];
   for (const src of sources) assert.doesNotMatch(src, accentStrip);
+
+  // Selected tabs and other controls: a side or bottom accent strip in a class
+  // string (the editor-tab underline was one). Full rings and progress tracks
+  // do not use bottom-0 / left-0 with a short accent bar.
+  const classStrip = /bottom-0\s+h-(?:0\.5|px|\[2px\])[^"'\n]*bg-accent|inset-x-\S+\s+bottom-0\s+h-|left-0\s+w-(?:0\.5|\[2px\]|\[3px\])[^"'\n]*bg-accent-color|Active indicator bar/;
+  function walk(dir, out = []) {
+    for (const name of readdirSync(dir, { withFileTypes: true })) {
+      const abs = path.join(dir, name.name);
+      if (name.isDirectory()) walk(abs, out);
+      else if (/\.(tsx|css)$/.test(name.name)) out.push(abs);
+    }
+    return out;
+  }
+  const stripHits = [];
+  for (const file of walk(path.join(root, "src"))) {
+    const text = readFileSync(file, "utf8");
+    if (classStrip.test(text)) stripHits.push(path.relative(root, file));
+  }
+  assert.deepEqual(stripHits, []);
+  const recentActive = recent.slice(recent.indexOf("v4-recent-tab v4-drop-target"), recent.indexOf("tab.pinned && !active"));
+  assert.match(recentActive, /v4-recent-tab-active bg-surface-selected text-text-primary/);
+  assert.doesNotMatch(recentActive, /bg-accent|shadow-sm|h-0\.5/);
+  const recentRule = blocks.find((b) => b.selector.includes(".v4-recent-tab-active") && b.body.includes("surface-selected"));
+  assert.ok(recentRule, "selected editor tab uses the neutral wash");
+  assert.match(recentRule.body, /box-shadow:\s*none/);
+  assert.match(recentRule.body, /color:\s*var\(--color-text-primary\)/);
 
   const treeBlock = blocks.find((b) => b.selector.includes(".v4-tree-node.is-selected") && b.body.includes("surface-selected"));
   assert.ok(treeBlock, "tree selection keeps the neutral wash");

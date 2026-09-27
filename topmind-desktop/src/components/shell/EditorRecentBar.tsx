@@ -227,20 +227,13 @@ export function EditorRecentBar() {
                 className={cn(
                   "v4-recent-tab v4-drop-target group relative inline-flex shrink-0 cursor-grab items-center gap-0.5 rounded-t-md py-1 pl-2 pr-1 text-3xs font-medium transition-colors active:cursor-grabbing",
                   active
-                    ? "v4-recent-tab-active bg-surface text-text-primary shadow-sm"
+                    ? "v4-recent-tab-active bg-surface-selected text-text-primary"
                     : "text-text-tertiary hover:bg-state-hover hover:text-text-secondary",
                   tab.pinned && !active && "text-text-secondary",
                   splitSecondaryPath === tab.path && !active && "ring-1 ring-inset ring-accent-border-subtle",
                   dragOver === index && "v4-drop-target-active",
                 )}
               >
-                {/* Active indicator bar */}
-                {active ? (
-                  <span
-                    aria-hidden
-                    className="absolute inset-x-1 bottom-0 h-0.5 rounded-full bg-accent-color"
-                  />
-                ) : null}
                 <button
                   type="button"
                   tabIndex={active ? 0 : -1}
@@ -256,7 +249,7 @@ export function EditorRecentBar() {
                 >
                   <RiFileTextLine
                     size={ICON.micro}
-                    className={cn("shrink-0", active ? "text-accent-color opacity-100" : "opacity-70")}
+                    className={cn("shrink-0", active ? "text-text-primary opacity-100" : "opacity-70")}
                     aria-hidden
                   />
                   <span className={cn("min-w-0 truncate", active && "font-semibold")}>{label}</span>
