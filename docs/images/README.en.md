@@ -40,6 +40,16 @@ High-resolution sources live under `topmind-desktop/resources/img/` — that dir
 | `desktop-outputs.jpg` | `文章查看-编辑器.png` | Delivery |
 | `desktop-settings-*.jpg` | Settings page sources | Settings center pages |
 
+### Obsidian plugin screenshots
+
+| Asset | Notes |
+|-------|-------|
+| `obsidian-stream-zh.png` | topmind Stream plugin · stream timeline (Chinese UI) |
+| `obsidian-stream-en.png` | topmind Stream plugin · stream timeline (English UI) |
+| `obsidian-profile-zh.png` | Plugin "My Profile" memory browse (Chinese UI) |
+| `obsidian-suggestions-zh.png` | Plugin sidebar AI suggestions (Chinese UI) |
+| `obsidian-todos-zh.png` | Plugin sidebar todos (Chinese UI) |
+
 Stills other than the four panes above were exported before the three-column switch and are marked in their index rows; re-shoot them before reusing their composition for anything normative.
 
 ## Where they are used

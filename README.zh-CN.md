@@ -84,6 +84,10 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Opti
 
 ![topmind Stream in Obsidian](docs/images/obsidian-stream-zh.png)
 
+| AI 建议 | 清单 |
+|---|---|
+| ![AI 建议](docs/images/obsidian-suggestions-zh.png) | ![清单](docs/images/obsidian-todos-zh.png) |
+
 - **方式 A：Obsidian 官方社区插件市场**：
   *（官方社区插件审核发布中）* 上架后可在 Obsidian **设置 ➔ 社区插件 ➔ 浏览** 搜索 `topmind stream` 一键安装。
 - **方式 B：BRAT 插件一键安装**：

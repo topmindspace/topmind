@@ -38,6 +38,16 @@
 | `desktop-outputs.jpg` | `文章查看-编辑器.png` | 88-交付 / 交付成品沉淀 |
 | `desktop-settings-*.jpg` | 各设置页源图 | 设置中心各分页截图 |
 
+### Obsidian 插件截图
+
+| 文档图 | 说明 |
+|--------|------|
+| `obsidian-stream-zh.png` | topmind Stream 插件 · 动态时间轴（中文 UI） |
+| `obsidian-stream-en.png` | topmind Stream 插件 · 动态时间轴（英文 UI） |
+| `obsidian-profile-zh.png` | 插件「我的情况」记忆浏览（中文 UI） |
+| `obsidian-suggestions-zh.png` | 插件侧栏 AI 建议（中文 UI） |
+| `obsidian-todos-zh.png` | 插件侧栏清单（中文 UI） |
+
 除上表四个分面外的静帧多为三栏改版前导出，已在行内标注；把这些构图当规范引用前请重新截图。
 
 ## 引用位置

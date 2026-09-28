@@ -87,6 +87,10 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Opti
 
 ![topmind Stream in Obsidian](docs/images/obsidian-stream-en.png)
 
+| AI Suggestions | Todos |
+|---|---|
+| ![AI Suggestions](docs/images/obsidian-suggestions-zh.png) | ![Todos](docs/images/obsidian-todos-zh.png) |
+
 - **Option A — Community Plugin Store** *(submission in review)*: after listing, search `Topmind Stream` under **Settings → Community plugins → Browse**.
 - **Option B — BRAT**: add the GitHub repo `topmindspace/topmind-obsidian` in BRAT.
 - **Option C — Manual zip**: download `topmind-obsidian-<ver>.zip` from [Releases](https://github.com/topmindspace/topmind-obsidian/releases) and extract to `<Vault>/.obsidian/plugins/topmind-stream/`.
