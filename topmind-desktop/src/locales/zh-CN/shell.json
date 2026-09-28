@@ -878,7 +878,22 @@
     "apps": "应用",
     "ai": "AI 工作区",
     "focus": "专注模式",
-    "theme": "切换主题",
+    "theme": "外观",
     "settings": "设置"
+  },
+  "themeMenu": {
+    "mode": "显示",
+    "mode-auto": "系统",
+    "mode-light": "浅色",
+    "mode-dark": "深色",
+    "tone": "界面色调",
+    "tone-warm": "暖纸",
+    "tone-cool": "冷灰",
+    "tone-neutral": "中性",
+    "tone-slate": "石板",
+    "seed": "强调色",
+    "seed-sky": "Sky",
+    "seed-teal": "Teal",
+    "seed-graphite": "Graphite"
   }
 }

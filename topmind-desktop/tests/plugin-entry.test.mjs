@@ -219,7 +219,7 @@ test("OverlayHost + host register plugin-app / topmind-ledger; apps menu is the 
   assert.match(activityBar, /RiPencilLine/);
   assert.match(activityBar, /data-activity-bar/);
   const titleBar = read("src/components/shell/TitleBar.tsx");
-  assert.match(read("src/components/shell/PrimaryNav.tsx"), /PRIMARY_NAV_OPTIONS/);
+  assert.match(read("src/components/shell/ActivityBar.tsx"), /data-activity-group="views"/);
   assert.doesNotMatch(read("src/components/shell/StatusBar.tsx"), /<PrimaryNav/);
   // 2026-09: apps button moved to AI workspace tab; not in TitleBar anymore.
   assert.doesNotMatch(titleBar, /data-titlebar-apps/);

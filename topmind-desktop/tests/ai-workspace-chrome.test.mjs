@@ -100,10 +100,9 @@ test("each criterion-1 capability has one primary home in shipped chrome", () =>
   assert.match(activity, /RiPencilLine/);
   assert.match(activity, /activityBar\.capture/);
   assert.match(activity, /data-activity-bar/);
-  // Destinations live on ActivityBar group 1; PrimaryNav remains the compact
-  // TitleBar fallback and sidebar dropdown (PRIMARY_NAV_OPTIONS).
-  assert.match(read("src/components/shell/PrimaryNav.tsx"), /PRIMARY_NAV_OPTIONS/);
+  // Destinations live on ActivityBar group 1 only (PrimaryNav retired).
   assert.match(activity, /data-activity-group="views"/);
+  assert.doesNotMatch(read("src/components/shell/TitleBar.tsx"), /<PrimaryNav/);
   assert.doesNotMatch(read("src/components/shell/StatusBar.tsx"), /<PrimaryNav/);
   assert.match(ai, /data-ai-workspace-tab=\{item\.id\}/);
   assert.match(ai, /id: "chat"/);
@@ -128,9 +127,9 @@ test("workbench is three through-going columns; product chrome is not a spanning
   assert.match(title, /v4-column-chrome/);
   assert.match(read("src/components/shell/Sidebar.tsx"), /v4-column-chrome/);
   assert.match(read("src/components/ai/AiWorkspace.tsx"), /v4-column-chrome/);
-  // 2026-09-16: TitleBar has AI toggle; PrimaryNav is sidebar destinations (+ compact when collapsed)
-  assert.match(title, /PrimaryNav variant="compact"|v4-titlebar-btn-ai/);
+  // TitleBar has AI toggle; destinations stay on ActivityBar (no TitleBar nav row).
   assert.match(title, /v4-titlebar-btn-ai/);
+  assert.doesNotMatch(title, /PrimaryNav/);
   const sidebar = read("src/components/shell/Sidebar.tsx");
   assert.match(sidebar, /data-column-chrome="left"/);
   const ai = read("src/components/ai/AiWorkspace.tsx");

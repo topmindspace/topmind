@@ -84,7 +84,7 @@ UTR 命令必须支持该工作流，**不暴露** 大类/专题命名、命令 
 7. **derived-builder**（衍生层生成与重建）
 8. **ingest-pipeline**（URL/文档/连接器入管）
 
-**卫星**（不是第九引擎，也不是 UTR 域）：`todo-engine`（`memory/todo.md`）· `ledger-engine`（可选 `{memory.dir}/ledgers/`；默认个人/自己账本）。记账不是第六个用户概念。
+**卫星**（不是第九引擎）：`todo-engine`（`memory/todo.md`；UTR `memory.list-todos/add-todo/toggle-todo`）· `ai-operation-engine` · `suggest-engine` · `ledger-engine`（可选 `{memory.dir}/ledgers/`，无独立 UTR 域）。记账不是第六个用户概念。
 
 **Stream AI（产品路径）**：Desktop `runActivityOps` / `generateSuggestions` / `todo_maintain` / `memory_organize`（profile+periodic confirm）/ `topic_classify`（内容大类 `create_topic` confirm）均经 Kernel；UTR **无**平行 activity-window 业务实现（可选将来薄只读 adapter）。
 
@@ -143,17 +143,17 @@ Names are the shipped list in `topmind-desktop/electron/lib/ai-tool-names.mjs` (
 
 ### Skills pack — all **keep**
 
-Daily entry `topmind`. Core: `topmind-capture` · `topmind-organize` · `topmind-write` · `topmind-memory` · `topmind-maintain` · `topmind-loop`. Optional connectors: `topmind-weread` · `topmind-x`. Optional satellite: `topmind-ledger` (not a PrimaryNav peer). Manifest: [topmind-skills/topmind-pack.json](https://github.com/topmindspace/topmind-skills/blob/main/topmind-pack.json).
+Daily entry `topmind`. Core: `topmind-capture` · `topmind-organize` · `topmind-write` · `topmind-memory` · `topmind-maintain` · `topmind-loop`. Optional connectors: `topmind-weread` · `topmind-x`. Optional satellite: `topmind-ledger` (not a PrimaryNav peer). Optional write sub-skill: `topmind-wechat`. Manifest: [topmind-skills/topmind-pack.json](https://github.com/topmindspace/topmind-skills/blob/main/topmind-pack.json).
 
 ### UTR commands — all **keep** (optional surface)
 
-**8 域 / 32 命令** as listed below. MCP default 23 (primary + danger). Not a second Desktop AI catalog. No bash command.
+**8 域 / 35 命令** as listed below. MCP default 26 (primary + danger). Not a second Desktop AI catalog. No bash command.
 
 ## Current Command Surface（命令面唯一真源）
 
-**8 域 / 32 命令**。Agent MCP **默认只暴露 primary + danger（23 个）**；`advanced` 需 `topmind_MCP_ALL=1`。
+**8 域 / 35 命令**。Agent MCP **默认只暴露 primary + danger（26 个）**；`advanced` 需 `topmind_MCP_ALL=1`。
 
-### Primary（Agent 日常 19）
+### Primary（Agent 日常 22）
 
 | Domain | Commands |
 |---|---|
@@ -162,7 +162,7 @@ Daily entry `topmind`. Core: `topmind-capture` · `topmind-organize` · `topmind
 | `workspace-transform` | `plan-inbox-routing` |
 | `workspace-maintain` | `doctor-workspace` |
 | `contract` | `validate` |
-| `memory` | `promote` · `digest` · `append-profile` · `append-topic` · `retire-profile` · `update-profile` · `compact-history` · `restore-profile` |
+| `memory` | `promote` · `digest` · `append-profile` · `append-topic` · `retire-profile` · `update-profile` · `compact-history` · `restore-profile` · `list-todos` · `add-todo` · `toggle-todo` |
 
 ### Danger（高风险 4，MCP 默认可见）
 
@@ -183,7 +183,7 @@ Daily entry `topmind`. Core: `topmind-capture` · `topmind-organize` · `topmind
 | `derived` | `rebuild` |
 | `contract` | `ensure` |
 
-### New Commands（v4 新增）
+### New Commands（v4 新增 · 摘要，完整表见上方 Primary/Danger/Advanced）
 
 | Command | Domain | 职责 |
 |---|---|---|
@@ -198,6 +198,9 @@ Daily entry `topmind`. Core: `topmind-capture` · `topmind-organize` · `topmind
 | `memory.update-profile` | memory | 原位更新活跃事实为最新表述（旧表述进历史 sup）；历史段不可改 |
 | `memory.compact-history` | memory | 压缩历史区近重复归档行，保留最新 |
 | `memory.restore-profile` | memory | 历史事实恢复到活跃段落（retire 逆操作）；目标已有等价活事实则 skip |
+| `memory.list-todos` | memory | 读 `memory/todo.md` 个人待办（语义平面卫星；对齐 Desktop `list_todos`） |
+| `memory.add-todo` | memory | 原子追加待办（去重；文本可嵌截止日期；对齐 Desktop `add_todo`） |
+| `memory.toggle-todo` | memory | 切换待办完成态（id 或文本片段；完成记时间并同步周期本；对齐 Desktop `toggle_todo`） |
 | `lifecycle.scan` | lifecycle | 按 contract `lifecycle` 扫描：inbox 超期、catch-all 清理、stale 专题、output lock |
 | `derived.rebuild` | derived | 从真源全量重建各大类 `.derived/` 子目录 |
 | `workspace-transform.migrate-v4` | workspace-transform | 一次性迁移：config v3→topmind.yaml、旧专题首页→topic.md、我的情况.md→memory/profile.md 等 |

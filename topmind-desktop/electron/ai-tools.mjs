@@ -733,8 +733,8 @@ export async function buildDesktopAiTools(ctx) {
 
     tools.fetch_url = tool({
       description: d(
-        "抓取网页正文并转为 Markdown。默认静态 HTTP+Readability；render=true 时用隐藏 Chromium 渲染 SPA。返回 truncated/likelySpa/canEnhance/warning。",
-        "Fetch a web page and convert to Markdown. Default static HTTP+Readability; render=true uses hidden Chromium for SPA shells. Returns truncated/likelySpa/canEnhance/warning.",
+        "抓取网页正文并转为 Markdown。默认静态 HTTP+Readability；GitHub md/README 走 raw 直取；render=true 时用隐藏 Chromium 渲染 SPA。返回 truncated/likelySpa/canEnhance/warning。",
+        "Fetch a web page and convert to Markdown. Default static HTTP+Readability; GitHub md/README uses raw fetch; render=true uses hidden Chromium for SPA shells. Returns truncated/likelySpa/canEnhance/warning.",
       ),
       inputSchema: jsonSchema({
         type: "object",

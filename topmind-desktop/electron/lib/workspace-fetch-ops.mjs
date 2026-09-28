@@ -3,6 +3,8 @@
  * Enhanced SPA render is layered in WorkspaceService via fetch-render.mjs.
  */
 import { extractArticle, cleanCaptureUrl } from "./fetch-article.mjs";
+import { isGithubMarkdownFileUrl } from "./github-md.mjs";
+import { fetchGithubMarkdown, GithubMdError } from "./github-fetch.mjs";
 import { S } from "./workspace-helpers.mjs";
 import { t } from "./electron-i18n.mjs";
 
@@ -64,9 +66,64 @@ export function buildFetchResult(article, meta) {
   };
 }
 
+/**
+ * GitHub markdown / README path — raw fetch + image rewrite.
+ * @param {{ url: string, maxLen: number }} p
+ */
+async function fetchGithubCapture({ url, maxLen }) {
+  try {
+    const gh = await fetchGithubMarkdown(url);
+    let text = gh.markdown;
+    let truncated = false;
+    if (text.length > maxLen) {
+      text = `${text.slice(0, maxLen)}\n\n...(内容已截断)`;
+      truncated = true;
+    }
+    const wordCount = countWords(text);
+    return {
+      title: gh.title || "",
+      text,
+      url: gh.url,
+      description: undefined,
+      author: undefined,
+      siteName: "GitHub",
+      image: undefined,
+      method: gh.fetchMethod || "github-raw",
+      wordCount,
+      canonical: gh.url,
+      truncated,
+      extractedChars: text.replace(/\n\n\.\.\.\(内容已截断\)\s*$/u, "").length,
+      maxLen,
+      likelySpa: false,
+      rawBytes: 0,
+      warning: truncated ? t("fetch.truncated", { cap: maxLen }) : undefined,
+    };
+  } catch (e) {
+    if (e instanceof GithubMdError) {
+      const err = new Error(e.message);
+      err.code = e.code || "github_error";
+      throw err;
+    }
+    throw e;
+  }
+}
+
+function countWords(text) {
+  const s = String(text || "").trim();
+  if (!s) return 0;
+  // CJK chars count as words; Latin split on whitespace (parity with fetch-article.mjs)
+  const cjk = (s.match(/[\u4e00-\u9fff\u3400-\u4dbf]/gu) || []).length;
+  const latin = s
+    .replace(/[\u4e00-\u9fff\u3400-\u4dbf]/gu, " ")
+    .split(/\s+/u)
+    .filter(Boolean).length;
+  return cjk + latin;
+}
+
 export const fetchOps = {
   /**
    * Static HTTP fetch → Readability extract → clean Markdown.
+   * GitHub markdown/README URLs use the dedicated raw path first.
    * @param {{ url: string, maxLen?: number }} p
    */
   async fetchUrl({ url, maxLen }, _ctx) {
@@ -78,6 +135,11 @@ export const fetchOps = {
     }
     const cleanedUrl = cleanCaptureUrl(url);
     const cap = Math.min(Math.max(Number(maxLen) || 40_000, 5_000), 200_000);
+
+    // GitHub markdown file / repo README → raw path (no HTML scrape).
+    if (isGithubMarkdownFileUrl(cleanedUrl) || isGithubMarkdownFileUrl(url)) {
+      return fetchGithubCapture({ url: cleanedUrl || url, maxLen: cap });
+    }
 
     let res;
     try {

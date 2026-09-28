@@ -1,8 +1,8 @@
 # AI 智能体平台全面整改方案（2026-09-25）
 
-> **状态**：Accepted · **角色**：实施真源（本波次）  
+> **状态**：**NON-LIVING · 波次已收官**（见文末 Done 表）  
+> **角色**：历史实施记录；现行行为契约见 `AGENTS.md` / `docs/adr/2026-09-25-goal-oriented-agent-loop.md` / `docs/ARCHITECTURE-RESET.md`  
 > **范围**：topmind Desktop AI · Kernel agent 协议 · Obsidian 插件 · Skills 一致性 · UI/UX  
-> **相关**：`docs/adr/2026-09-25-goal-oriented-agent-loop.md` · `docs/adr/2026-09-07-pi-engine-and-three-column-reevaluation.md` · `docs/ARCHITECTURE-RESET.md`  
 > **北极星不变**：最低摩擦个人动态流；用户概念 ≤5；Kernel writeback 唯一写闸；不重复造轮子。
 
 ---

@@ -1,13 +1,10 @@
 @import "tailwindcss";
 
 /**
- * topmind Design Tokens — Design System 4.0.5 "ZCode Neutral + MD3"
- * (4.0.5: MD3 state-layer ::after · surface container 5-step · re-opened
- *  type scale (2xs=11 meta, xs=13 content floor, sm=14 UI, base=15) ·
- *  inverse-surface trio · 2026-09-26)
+ * topmind Design Tokens — Design System 4.2 "ZCode Neutral + MD3"
  *
- * Brand: sky axis (deep #075985 → mid #0ea5e9) + capture teal #2fa89a.
- * Solid CTA = monochrome ink. Sky = focus / links / selection / accent washes.
+ * Brand: sky axis + capture teal. Solid CTA = monochrome ink.
+ * Three axes: mode (.dark) · tone (data-theme-tone) · seed (data-theme-seed).
  *
  * Surface ladder (never collapse elevated into surface):
  *   app-chrome → background → surface → surface-elevated
@@ -60,34 +57,21 @@
   --color-border-subtle-dim: rgba(23, 23, 23, 0.06);
   --color-border-strong: rgba(23, 23, 23, 0.18);
 
-  /* Sky accent — focus / links / selection / accent washes (ZCode brand axis)
-     Light = sky-700. It was sky-600 (#0284c7) until 2026-09-14; that stop is
-     4.10:1 on white and 3.59:1 on chrome, under AA as a link / small-text carrier,
-     and 3.27:1 once composited over its own 8% selection wash on chrome.
-     Current light stops, measured: 5.93 white · 5.54 canvas · 5.21 chrome ·
-     4.66 over the accent-bg-subtle wash on chrome (worst plane).
-     These numbers are asserted in tests/ui-token-compliance.test.mjs — if you move
-     a stop, move the assertion with it. */
+  /* Sky accent — focus / links / selection / accent washes (ZCode brand axis).
+     Light stop is sky-700 so links stay AA on every plane (worst: 4.66 over
+     accent-bg-subtle on chrome). Asserted in tests/ui-token-compliance.test.mjs. */
   --color-accent-color: #0369a1;
   --color-accent-hover: #075985;
   --color-accent-muted: rgba(3, 105, 161, 0.10);
   --color-focus-ring: rgba(3, 105, 161, 0.85);
   --color-focus-soft: rgba(3, 105, 161, 0.14);
-  /* Inbox / capture identity: teal family, darkened for text contrast on light paper.
-     teal-800 since 2026-09-14 — the previous #12897b measured 4.29:1 on white and
-     4.27:1 once composited over its own 9% wash on chrome. Current: 7.58 white ·
-     6.65 chrome · 5.82 over its own wash on chrome. */
+  /* Inbox / capture identity: teal-800 for AA as text on light paper
+     (worst plane: 5.82 over its own wash on chrome). */
   --color-accent-inbox: #115e59;
   /* ── Status palette (light) ──
-     These stops are used as TEXT ~160x (`text-success` / `text-warning` /
-     `text-error`), almost always sitting on their own `-bg` wash, and the fills
-     that remain are status dots. Bright 500/600-stop greens and oranges are
-     fill-safe but not text-safe: the previous green-600 / orange / red-600 read
-     2.64 / 2.42 / 3.49:1 on the wash over chrome. Moved one to two steps darker
-     on 2026-09-14 — measured on the worst plane (chrome), text over own wash:
-       success green-800 5.49 · warning amber-800 5.44 · error red-700 4.90
-     Reverse direction also holds (white text on the solid stop): 7.13 / 7.09 / 6.47.
-     Asserted in tests/ui-token-compliance.test.mjs. Dark stays untouched. */
+     Used as TEXT (~160x) on their own `-bg` wash. Stops are text-safe on the
+     worst plane (chrome): success 5.49 · warning 5.44 · error 4.90; white-on-solid
+     reverse also clears AA. Asserted in tests/ui-token-compliance.test.mjs. */
   --color-status-success: #166534;
   --color-success: var(--color-status-success);
   --color-status-success-bg: rgba(22, 101, 52, 0.09);
@@ -112,17 +96,9 @@
   --color-kbd-bg: rgba(0, 0, 0, 0.05);
 
   /* ── Badge (numeric count signal) ──
-     Own axis, NOT accent-color — accent flips hue in inbox mode (deep teal), where
-     a white-on-teal fill drops below AA for the 11px bold type these badges use.
-     The badge plane must stay a single fixed sky stop in both app modes.
-     Kept >= 4.5:1 per mode (asserted in tests/ui-token-compliance.test.mjs):
-       light: badge 5.9:1 · alert 5.0:1 (white text on solid fill)
-       dark:  badge 6.5:1 · alert 9.0:1 (dark ink on light fill)
-     Small solid fill, so the badge reads on the chrome plane (#f0f0f0 light /
-     #161616 dark) without becoming a second accent surface.
-     Note: the light badge stop now coincides numerically with the recalibrated
-     accent (#0369a1). That is coincidence, not a licence to merge them — the
-     axis exists for the inbox-mode hue flip, not for the value. */
+     Own axis (not accent-color): accent flips hue in inbox mode, which would
+     drop white-on-fill below AA for 11px bold. Kept ≥ 4.5:1 both modes
+     (asserted in tests/ui-token-compliance.test.mjs). Do not merge with accent. */
   --color-badge: #0369a1;
   --color-badge-foreground: #ffffff;
   --color-badge-alert: #b45309;
@@ -163,10 +139,7 @@
      audit does not see it. Kept because it is genuinely in use. */
   --color-dialog-header: color-mix(in srgb, var(--color-surface-muted) 48%, var(--color-surface-elevated));
 
-  /* ── Spacing ──
-     Numeric --space-* scale removed 2026-08-30 (zero references anywhere);
-     spacing uses Tailwind's 4px utility grid. Off-scale values map to the
-     nearest grid slot. */
+  /* ── Spacing ── Tailwind 4px grid; no custom --space-* scale. */
 
   /* ── Radius — ZCode chrome steps + MD3-informed floating surfaces ── */
   --radius-xs: 2px;
@@ -512,6 +485,134 @@
     --color-focus-soft: rgba(79, 194, 176, 0.14);
     --color-text-on-accent: #12100c;
   }
+}
+
+/* ── Surface tone packs (DS 4.1) ──
+   Orthogonal to mode (.dark) and accent seeds. Own the *neutral* axis only:
+   surface ladder · text steps · paper tones. Ink CTA, status, accent, badge
+   stay on their own axes so a tone swap never flips brand identity.
+   warm = default (no attribute — same pattern as the sky seed).
+   Derived color-mix stops (dialog-*, container-*, washes) re-resolve from
+   these bases automatically — do not restate them here.
+   Contrast floor 4.5:1 for text steps on the worst plane of each pack
+   (light: sidebar/chrome · dark: surface-elevated). Asserted in
+   tests/ui-token-compliance.test.mjs. */
+html[data-theme-tone="cool"] {
+  /* Cool blue-gray paper — less yellow than warm, still not pure white */
+  --color-app-chrome: #eef1f5;
+  --color-background: #f2f5f8;
+  --color-surface: #f7f9fb;
+  --color-surface-elevated: #fbfcfe;
+  --color-surface-muted: #e9eef3;
+  --color-surface-inset: #dce3ea;
+  --color-sidebar: #e5eaef;
+  --color-surface-elevated-hover: #e8eef5;
+  --color-text-primary: #1c2430;
+  --color-text-secondary: #445060;
+  --color-text-tertiary: #4f5c6c;
+  --color-text-quaternary: #5a6778;
+  --color-text-prose: #28303c;
+  --color-paper-soft: #e8eef4;
+  --color-paper-cream: #f0f4f8;
+  --color-paper-sepia: #e6ebe8;
+}
+
+html.dark[data-theme-tone="cool"] {
+  /* Cool graphite — slightly blue cast, same ladder order as warm dark */
+  --color-app-chrome: #151a21;
+  --color-background: #1a2028;
+  --color-surface: #1f2630;
+  --color-surface-elevated: #28303c;
+  --color-surface-muted: #232a34;
+  --color-surface-inset: #10151b;
+  --color-sidebar: #12151a;
+  --color-surface-elevated-hover: #2f3846;
+  --color-text-primary: #e6ebf2;
+  --color-text-secondary: #c2cad6;
+  --color-text-tertiary: #a0aab8;
+  --color-text-quaternary: #929cab;
+  --color-text-prose: #d5dbe4;
+  --color-paper-soft: #1e242c;
+  --color-paper-cream: #222a34;
+  --color-paper-sepia: #2a2820;
+}
+
+html[data-theme-tone="neutral"] {
+  /* True neutral gray — no chroma cast; default for accessibility-minded setups */
+  --color-app-chrome: #f0f0f0;
+  --color-background: #f4f4f4;
+  --color-surface: #f8f8f8;
+  --color-surface-elevated: #ffffff;
+  --color-surface-muted: #ececec;
+  --color-surface-inset: #e0e0e0;
+  --color-sidebar: #e6e6e6;
+  --color-surface-elevated-hover: #f0f0f0;
+  --color-text-primary: #1f1f1f;
+  --color-text-secondary: #454545;
+  --color-text-tertiary: #555555;
+  --color-text-quaternary: #5e5e5e;
+  --color-text-prose: #2a2a2a;
+  --color-paper-soft: #efefef;
+  --color-paper-cream: #f5f5f5;
+  --color-paper-sepia: #ebe8e2;
+}
+
+html.dark[data-theme-tone="neutral"] {
+  --color-app-chrome: #161616;
+  --color-background: #1a1a1a;
+  --color-surface: #202020;
+  --color-surface-elevated: #282828;
+  --color-surface-muted: #242424;
+  --color-surface-inset: #121212;
+  --color-sidebar: #141414;
+  --color-surface-elevated-hover: #303030;
+  --color-text-primary: #e8e8e8;
+  --color-text-secondary: #c4c4c4;
+  --color-text-tertiary: #a4a4a4;
+  --color-text-quaternary: #969696;
+  --color-text-prose: #d6d6d6;
+  --color-paper-soft: #222222;
+  --color-paper-cream: #262626;
+  --color-paper-sepia: #2a2620;
+}
+
+html[data-theme-tone="slate"] {
+  /* Pro-tool slate — deeper cool gray than cool, less chroma than blue paper */
+  --color-app-chrome: #e4e9ef;
+  --color-background: #eaeef3;
+  --color-surface: #f0f3f7;
+  --color-surface-elevated: #f7f9fb;
+  --color-surface-muted: #dce2e9;
+  --color-surface-inset: #c9d2dc;
+  --color-sidebar: #dde3ea;
+  --color-surface-elevated-hover: #e8edf3;
+  --color-text-primary: #15202b;
+  --color-text-secondary: #3d4a58;
+  --color-text-tertiary: #4c5a6a;
+  --color-text-quaternary: #556373;
+  --color-text-prose: #1e2a36;
+  --color-paper-soft: #e2e8ef;
+  --color-paper-cream: #ebeff4;
+  --color-paper-sepia: #e4e6e2;
+}
+
+html.dark[data-theme-tone="slate"] {
+  --color-app-chrome: #12171e;
+  --color-background: #161c24;
+  --color-surface: #1b222c;
+  --color-surface-elevated: #242c38;
+  --color-surface-muted: #1f2732;
+  --color-surface-inset: #0c1016;
+  --color-sidebar: #0e1218;
+  --color-surface-elevated-hover: #2b3542;
+  --color-text-primary: #e4eaf2;
+  --color-text-secondary: #b8c2d0;
+  --color-text-tertiary: #96a2b2;
+  --color-text-quaternary: #8894a4;
+  --color-text-prose: #d2dae4;
+  --color-paper-soft: #1a212a;
+  --color-paper-cream: #1e2630;
+  --color-paper-sepia: #242820;
 }
 
 .dark.high-contrast {

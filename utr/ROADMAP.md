@@ -15,7 +15,7 @@ UTR is the optional deterministic substrate for topmind. The external surface is
 
 ## Current State
 
-1. **Command surface** — `workspace-read`, `workspace-write`, `workspace-transform`, `workspace-maintain`, `contract`, `memory`, `lifecycle`, and `derived` on Node contracts and Node tool bodies. **32 commands** total; MCP default **23** (primary+danger); advanced folded. Canonical: `TOOLS.md` §Current Command Surface + `PRODUCT-BOUNDARIES.md`.
+1. **Command surface** — `workspace-read`, `workspace-write`, `workspace-transform`, `workspace-maintain`, `contract`, `memory`, `lifecycle`, and `derived` on Node contracts and Node tool bodies. **35 commands** total; MCP default **26** (primary+danger); advanced folded. Canonical: `TOOLS.md` §Current Command Surface + `PRODUCT-BOUNDARIES.md`.
    - Primary: list-categories/topics/files/inbox/inspect · create-topic · capture-note · save-output · memory.promote · memory.digest · memory.append-profile · memory.append-topic · contract.validate · doctor-workspace · plan-inbox-routing
    - Danger: archive-topic · archive-stream-year · restore-safety-receipt · contract.reseed
    - Advanced: list-recent-captures · list-safety-receipts · update-topic · normalize-note-metadata · migrate-v4 · cleanup-empty-dirs · lifecycle.scan · derived.rebuild · contract.ensure

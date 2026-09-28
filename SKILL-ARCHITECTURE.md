@@ -87,7 +87,7 @@ topmind 用户心智是**三平面工作区**上的**类别 + 专题 + 记忆**�
   动态周期本:       stream.packing=weekly|daily|monthly|atom（默认 weekly）; yearDir=true（按年分组）
   对象（Object）:   topic.md / *.md / 周期本
 动作（Action）:   capture / organize / write / memory / maintain / loop / connector
-用户动词:         记一下 · 整理本周 · 更新我的情况 · 交付 · 找回
+用户动词:         记一下 · 动态 · 专题 · 我的情况 · 交付
 解析:             lib/contract-engine.mjs + workspace-model + stream-period + memory-engine
 模板 Profile:     stream | balanced | research | periodic (默认 stream)
 ```
@@ -170,6 +170,7 @@ skills/
 │   ├── output-language.md         # 模型输出语言：用户要求 → 原文 → 工作区 locale
 │   ├── capability-degradation.md  # 三级降级表（唯一）
 │   ├── writeback-receipt.md       # 写回回执形状
+│   ├── auto-suggest.md            # 自动建议阶梯（L0 落盘 · L1 建议 · L2 确认）
 │   ├── trigger-disambiguation.md  # 触发词消歧
 │   ├── long-url-capture.md        # 长链/网页抓取
 │   └── document-ingest.md         # 本地文档 → Markdown 知识加工
@@ -204,11 +205,11 @@ license: MIT
 homepage: https://github.com/topmindspace/topmind
 updated: 2026-07-23
 degradation: ../shared/capability-degradation.md
-# v2 新增字段示例（根据需要可选）
+# v4 新增字段示例（根据需要可选）
 protection: open                   # open | locked
 promoted_from: <path>              # Stream→Memory 提升源
 promoted_to: <path>                # 被提升至何处
-memory_layer: periodic             # global | periodic | topics
+memory_layer: periodic             # global | periodic | topic
 review_after: 2026-12-31           # 生命周期扫描依据
 derived_from: <path>               # 衍生层追溯真源
 ---
@@ -356,16 +357,16 @@ Skill 路由时的最小读取顺序（**默认不加载整工作区**）：
 
 ---
 
-## 7. Engine → UTR 命令映射 (8 域 / 32 命令)
+## 7. Engine → UTR 命令映射 (8 域 / 35 命令)
 
 Kernel 八引擎是内部领域逻辑；UTR 8 域是其 CLI/MCP adapter 暴露面。并非每个引擎都有独立 UTR 域——`stream` / `writeback` / `ingest` 是内部引擎，由其他 UTR 命令内部调用，不直接暴露。
 
-| 引擎 (Engine) | 职责 | UTR 确定性命令（真实 8 域 / 32） | 降级边界 |
+| 引擎 (Engine) | 职责 | UTR 确定性命令（真实 8 域 / 35） | 降级边界 |
 |---|---|---|---|
 | **contract** | 契约加载/校验/ensure/reseed/求值 | `contract.validate` · `contract.ensure` · `contract.reseed` | Kernel `inspectContract` / `ensureContract` / `reseedContract`（v4 白名单） |
 | **workspace-model** | 类别/专题/路径 | `workspace-read`：`list-categories` · `list-topics` · `inspect-topic` · `list-topic-files` · `list-inbox` · `list-recent-captures` · `list-safety-receipts`；`workspace-write`：`create-topic` · `capture-note` · `save-output` · `update-topic`；`workspace-transform`：`plan-inbox-routing` · `normalize-note-metadata` · `migrate-v4`；`workspace-maintain`：`doctor-workspace` · `archive-topic` · `archive-stream-year` · `restore-safety-receipt` · `cleanup-empty-dirs` | 目录扫描 + 基础读写 |
 | **stream** | 周期本/reconcile | （无独立 UTR 域；`workspace-write.capture-note` 内部走 stream-engine 落周期本） | 文本追加 |
-| **memory** | 分层记忆/提升 | `memory.promote` · `memory.digest` · `memory.append-profile` · `memory.append-topic` · `memory.retire-profile` · `memory.update-profile` · `memory.compact-history` · `memory.restore-profile` | 跨层复制 + frontmatter 标记 + 确认式事实生命周期 |
+| **memory** | 分层记忆/提升 + 待办卫星 | `memory.promote` · `memory.digest` · `memory.append-profile` · `memory.append-topic` · `memory.retire-profile` · `memory.update-profile` · `memory.compact-history` · `memory.restore-profile` · `memory.list-todos` · `memory.add-todo` · `memory.toggle-todo` | 跨层复制 + frontmatter 标记 + 确认式事实生命周期；todo=`memory/todo.md` 卫星 |
 | **lifecycle** | 归档/清理/回顾扫描 | `lifecycle.scan`；归档/恢复经 `workspace-maintain.archive-topic` · `restore-safety-receipt` · `cleanup-empty-dirs` | 文件移动操作 |
 | **writeback** | 保护/备份/回执（唯一写闸） | （无独立 UTR 域；所有 UTR 写命令内部经 writeback-engine） | 文件暂存与覆写 |
 | **derived** | `.derived/` 生成重建 | `derived.rebuild` | 从真源重新生成 |
@@ -401,6 +402,16 @@ writeback:
 
 完整写回契约和 evidence 格式见 `TOOLS.md` §Writeback Contract。
 
+### 自动建议阶梯（skills `shared/auto-suggest.md`）
+
+| 级 | 行为 | 例 |
+|----|------|----|
+| **L0** | 零提问落盘 + 路径回执 | capture 分类/周期本 append |
+| **L1** | 默认准备建议，一键接受 | 分类备选 · 待办提取 → `memory/todo.md` · 记忆候选 · 专题升级 |
+| **L2** | 确认后写 | profile / topics · 建专题 · 删档 |
+
+与 Desktop Reset D 同义：**建议默认生成，高影响确认后执行**。待办是 `memory/todo.md` 卫星，不是第六概念。
+
 ---
 
 ## 9. Desktop Boundary
@@ -417,8 +428,8 @@ Desktop 定位：**通用个人工作台**，不限于特定写作场景。
 - 不内置段落管理、实体提取器等特定场景工具
 - 以通用笔记编辑 + AI 辅助为核心
 - 建议卡片（提升为记忆 / 归档 / 冲突）是一等交互；AI 动作默认可配置为「需确认」
-- URL 抓取：L1 静态 Readability · L2 可选增强渲染 · L3 浏览器扩展 Clip Bridge；与 `shared/long-url-capture.md` 对齐
-- 扩展与 Desktop **共用** Readability / HTML→Markdown，不维护第二套转换器
+- URL 抓取：L1 静态 Readability · L1-GH GitHub raw/README（`lib/github-md.mjs`）· L2 可选增强渲染 · L3 浏览器扩展 Clip Bridge；与 `shared/long-url-capture.md` 对齐
+- 扩展与 Desktop **共用** Readability / HTML→Markdown，不维护第二套转换器；GitHub URL 语义单源在 Kernel `lib/github-md.mjs`
 - Inbox 按 `source_type` 筛选；捕获回执路径可见
 - 记忆视图（global / 周期 / 主题三层）与保护状态指示可见
 - Desktop 状态不成为内容真源

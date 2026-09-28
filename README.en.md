@@ -17,10 +17,14 @@
 
 ### Three-column workbench (stream timeline + AI workspace)
 
-Navigation → stream timeline → AI workspace (**Chat · Suggest · List · Apps**). The weekly stream is the main narrative; AI proposes and waits for your confirmation before anything settles.
+Navigation → stream timeline → AI workspace (**Chat · Suggest · List · Apps**). The weekly stream is the main narrative; AI proposes and waits for your confirmation before anything settles. Chrome ships in **Simplified Chinese and English** (follows the OS language; your notes stay in their own language).
 
 <p align="center">
-  <img src="./docs/images/desktop-stream-en.jpg" alt="topmind Desktop three-column workbench: stream timeline with the AI workspace suggestion pane" width="820" />
+  <img src="./docs/images/desktop-stream-en.jpg" alt="topmind Desktop three-column workbench: stream timeline with the AI workspace (English chrome)" width="820" />
+</p>
+
+<p align="center">
+  <img src="./docs/images/desktop-stream.jpg" alt="Topmind Desktop 三栏工作台（简体中文）" width="820" />
 </p>
 
 ### Full product demo
@@ -121,7 +125,7 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Opti
 - Inspect the current action surface:
   ```bash
   npm run utr:doctor            # toolchain diagnosis
-  npm run utr:list              # 8 domains / 32 commands
+  npm run utr:list              # 8 domains / 35 commands
   ```
 - Guide: [`TOOLS.md`](./TOOLS.md) · [`utr/README.md`](./utr/README.md)（简体中文） · [English](./utr/README.en.md)
 
@@ -161,8 +165,8 @@ flowchart LR
 ├── 20-Topics/2026-Topic/     # Content plane: emergent topic folders
 │   └── topic.md              # Topic home
 ├── 88-Delivery/               # Content plane: flat deliverables
-├── 99-Archive/               # Content plane safety: backups · trash · receipts
-├── memory/                   # Semantic plane: profile · periodic · topics
+├── 99-Archive/               # Content plane safety: backups · trash · receipts · stream-archive/
+├── memory/                   # Semantic plane: profile · periodic · todo.md (satellite)
 └── .topmind/                 # System plane: index & logs (rebuildable)
 ```
 
@@ -177,10 +181,12 @@ Directory names follow the live contract (`en-US` stream template uses the Engli
 | Capability | Status | Notes |
 |------------|--------|-------|
 | Capture / period notes / editor / clip / ingest | **Done** | Frictionless stream log; Desktop defaults to anydoc → Markdown (optional markitdown/pandoc + built-in fallback) |
-| Kernel write gate · Memory loop · stream surface | **Done** | Confirm before durable writes; high-impact actions are reversible |
+| Kernel write gate · Memory loop · stream surface | **Done** | Graded confirm: content lands directly; high-impact actions are reversible |
 | Inline AI sanitization | **Done** | Strips thinking tags from model output |
 | Keyword search with honest truncation · **no** full-library embeddings | **Done** | Lightweight and transparent |
 | AI operations: todo maintain · memory organize · topic classify | **Done** | Activity-window driven; confirm path is safe |
+| Goal-protocol agent (plan / verify / continue) | **Done** | Session-persistent GoalState · Run Card plan diffs · Pause ≠ Abandon · external evaluator |
+| Bilingual UI + AI output (zh-CN / en-US) | **Done** | UI follows the OS language; document AI follows request → source → workspace locale; product AI follows host UI language |
 | Optional bookkeeping (`memory/ledgers/`) | **Done** | ledger-engine satellite; Skills `topmind-ledger`; Desktop enable-gated mini-app — not a 6th user concept |
 | Multi-lane AI (serial prep + independent agent) | **Done** | Background prep is serial; agent streaming yields |
 
@@ -222,7 +228,7 @@ Requires **Node.js ≥ 20.11**.
 |-------|----------|
 | Architecture lock and honesty table | [`docs/ARCHITECTURE-RESET.md`](./docs/ARCHITECTURE-RESET.md) |
 | Surface capabilities and hard boundaries | [`PRODUCT-BOUNDARIES.md`](./PRODUCT-BOUNDARIES.md) |
-| Data model and 6 条核心规约 | [`PROJECT-MODEL.md`](./PROJECT-MODEL.md) |
+| Data model and the six core rules | [`PROJECT-MODEL.md`](./PROJECT-MODEL.md) |
 | Product interaction and UX | [`DESIGN.md`](./DESIGN.md) |
 | Desktop workbench | [`topmind-desktop/README.md`](./topmind-desktop/README.md)（简体中文） · [English](./topmind-desktop/README.en.md) |
 | Obsidian plugin | [topmind-obsidian](https://github.com/topmindspace/topmind-obsidian) |
@@ -232,7 +238,7 @@ Requires **Node.js ≥ 20.11**.
 | Packaging and CI | [`docs/PACKAGING.md`](./docs/PACKAGING.md) |
 | Docs sitemap | [`docs/README.md`](./docs/README.md)（简体中文） · [English](./docs/README.en.md) |
 
-**README convention:** every module uses `README.md` for Simplified Chinese (GitHub default) and `README.en.md` for English. `README.zh-CN.md` is a compatibility redirect.
+**README convention:** every module uses `README.md` for Simplified Chinese (GitHub default) and `README.en.md` for English. `README.zh-CN.md` is a full Simplified Chinese compatibility copy.
 
 ---
 

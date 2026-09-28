@@ -16,7 +16,7 @@ const QuickCapture = lazy(() =>
   import("../overlays/QuickCapture").then((m) => ({ default: m.QuickCapture })),
 );
 import { api } from "../../services/api";
-import { applyTheme } from "../../lib/theme";
+import { applyTheme, applyThemeSeed, applyThemeTone } from "../../lib/theme";
 import { applyLocale } from "../../locales";
 import { useViewStore } from "../../stores/view-store";
 import { Button } from "../ui/Button";
@@ -48,6 +48,8 @@ export function CaptureSurface() {
         applyLocale(settings.ui?.locale || "auto");
         useViewStore.getState().setTheme(settings.theme || "auto");
         applyTheme(settings.theme || "auto");
+        applyThemeTone(settings.themeTone);
+        applyThemeSeed(settings.themeSeed);
 
         // Prefer live launchStatus; fall back to workspaceRoot string
         const launch = settings.launchStatus;

@@ -47,9 +47,8 @@ export function displayPathSegment(seg: string): string {
 }
 
 /**
- * PrimaryNav kinds for the sidebar destinations row / TitleBar compact fallback.
- * File / topic / memory / archive must not impersonate 动态.
- * StatusBar no longer hosts PrimaryNav (status, not navigation).
+ * Destination kinds owned by ActivityBar. File / topic / memory / archive must
+ * not impersonate 动态. StatusBar is status, not navigation.
  */
 export function primaryViewSwitchKind(
   kind: Selection["kind"] | undefined | null,
@@ -58,26 +57,11 @@ export function primaryViewSwitchKind(
   return null;
 }
 
-/** Sidebar destination switcher. Home leads; it is not a new concept and not 动态. */
-export const DESTINATION_SWITCH_KINDS = ["home", "stream", "inbox", "outputs"] as const;
-
-export type DestinationKind = (typeof DESTINATION_SWITCH_KINDS)[number];
-
-/**
- * Closed switcher target. 动态 / Inbox / 交付 stay themselves.
- * Home, and every other canvas, shows home — never the 动态 label.
- */
+/** Closed-switcher target. Home leads; it is not a new concept and not 动态. */
 export function destinationSwitchKind(
   kind: Selection["kind"] | undefined | null,
-): DestinationKind {
+): "home" | "stream" | "inbox" | "outputs" {
   return primaryViewSwitchKind(kind) ?? "home";
-}
-
-export function destinationSwitchLabel(
-  kind: Selection["kind"] | undefined | null,
-  labels: Record<DestinationKind, string>,
-): string {
-  return labels[destinationSwitchKind(kind)];
 }
 
 function posixParts(rel: string): string[] {

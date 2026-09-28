@@ -1,6 +1,6 @@
 /**
- * QuickCapture link/fetch preview — URL-detected prompt, staged fetch progress,
- * and fetch-result meta (method · words · truncation · enhance actions).
+ * QuickCapture link/fetch preview — URL-detected prompt with kind hint,
+ * staged fetch progress, and fetch-result meta (method · words · truncation · enhance).
  */
 import { useTranslation } from "react-i18next";
 import { RiAlertLine, RiDownload2Line, RiLoader4Line, RiSparklingLine } from "@remixicon/react";
@@ -10,7 +10,9 @@ import {
   FETCH_DEFAULT,
   FETCH_FULL,
   FETCH_STEP_KEYS,
+  classifyCaptureUrlKind,
   methodLabelKey,
+  urlKindLabelKey,
 } from "./quick-capture-helpers";
 import type { CaptureFormApi } from "./CaptureForm";
 
@@ -22,14 +24,19 @@ export function CapturePreview({
   isMemory: boolean;
 }) {
   const { t } = useTranslation();
-  const { contentIsUrl, fetching, fetchStage, fetchMeta, showEnhance, handleFetchUrl } = form;
+  const { contentIsUrl, fetching, fetchStage, fetchMeta, showEnhance, handleFetchUrl, source, content } = form;
+  const urlText = (source.trim() || content.trim());
+  const urlKind = contentIsUrl || /^https?:\/\/\S+$/iu.test(urlText) ? classifyCaptureUrlKind(urlText) : null;
 
   return (
     <>
       {!isMemory && contentIsUrl && !fetching ? (
         <div className="mt-1.5 flex items-center gap-1.5 text-3xs text-accent-color">
           <RiDownload2Line size={ICON.micro} className="shrink-0" aria-hidden />
-          <span>{t("overlays:capture.urlDetected")}</span>
+          <span>
+            {t("overlays:capture.urlDetected")}
+            {urlKind ? t(urlKindLabelKey(urlKind)) : null}
+          </span>
           <button
             type="button"
             onClick={() => void handleFetchUrl()}

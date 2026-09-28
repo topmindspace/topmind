@@ -945,9 +945,17 @@ button.v4-dash-card:active,
   box-shadow: none;
 }
 
-/* ── Shell chrome — solid rails (no permanent full-width blur = cheaper scroll) ── */
+/* ── Shell chrome — solid rails (no permanent full-width blur = cheaper scroll) ──
+   Depth wash (DS 4.1): vertical luminance only — top lift → mid → soft settle.
+   Not a brand gradient (those stay Landing/logo-only); never chroma-shifts hue. */
 .v4-shell-chrome {
-  background: var(--color-app-chrome);
+  background-color: var(--color-app-chrome);
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-app-chrome) 82%, #ffffff 18%) 0%,
+    var(--color-app-chrome) 48%,
+    color-mix(in srgb, var(--color-app-chrome) 90%, #000000 10%) 100%
+  );
   border-color: var(--color-border-subtle-dim);
 }
 /* Three-column top chrome — same box so Sidebar / TitleBar / AI headers align. */
@@ -968,7 +976,13 @@ button.v4-dash-card:active,
   padding-left: 8px;
   padding-right: 8px;
   border-bottom: 1px solid var(--color-border-subtle-dim);
-  background: var(--color-app-chrome);
+  background-color: var(--color-app-chrome);
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-app-chrome) 82%, #ffffff 18%) 0%,
+    var(--color-app-chrome) 55%,
+    color-mix(in srgb, var(--color-app-chrome) 92%, #000000 8%) 100%
+  );
 }
 
 /* Density tiers — window-width driven, no JS. Full 44 · Condensed 36 · Immersive 32.
@@ -1744,7 +1758,15 @@ html[data-overlay-open] body > [data-radix-popper-content-wrapper]:has([data-rad
   min-height: 0;
   flex: 1 1 auto;
   overflow: auto;
-  background: var(--color-background);
+  /* Soft air at the top of large workspaces — luminance only, never brand chroma.
+     Content cards still sit on surface/elevated; this is the paper plane itself. */
+  background-color: var(--color-background);
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-background) 88%, #ffffff 12%) 0%,
+    var(--color-background) 120px
+  );
+  background-attachment: local;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: auto;
@@ -1937,9 +1959,16 @@ html.dark .v4-overlay-sheet {
 }
 
 /* ── Sidebar rail — deepest plane (ZCode: sidebar darker than canvas) ──
-   4.0: soft right edge so the rail separates from paper without a hard rule */
+   4.0: soft right edge so the rail separates from paper without a hard rule
+   4.1: vertical depth wash matching shell chrome language */
 .v4-sidebar-rail {
-  background: var(--color-sidebar, var(--color-app-chrome));
+  background-color: var(--color-sidebar, var(--color-app-chrome));
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-sidebar, var(--color-app-chrome)) 86%, #ffffff 14%) 0%,
+    var(--color-sidebar, var(--color-app-chrome)) 50%,
+    color-mix(in srgb, var(--color-sidebar, var(--color-app-chrome)) 90%, #000000 10%) 100%
+  );
   box-shadow: 1px 0 0 0 var(--color-border-subtle-dim);
 }
 
@@ -2204,13 +2233,19 @@ html.dark .v4-overlay-sheet {
 /* Collection canvases (Inbox / Category / Topic / Outputs / memory) */
 [data-collection-feed][data-layout="list"] ul {
   margin: 0;
-  padding: 0.2rem;
+  padding: 0.15rem;
   list-style: none;
+}
+[data-collection-feed][data-layout="list"] [data-collection-item] {
+  border-radius: var(--radius-md);
+}
+[data-collection-feed][data-layout="list"] [data-collection-item]:hover {
+  background: var(--color-surface-wash-15);
 }
 [data-collection-feed][data-layout="card"] ul {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.55rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -2221,26 +2256,26 @@ html.dark .v4-overlay-sheet {
   gap: 0.65rem;
   margin: 0;
   padding: 0.95rem 1.05rem;
-  border: 1px solid transparent;
   border-radius: var(--radius-card, var(--radius-lg));
   background: var(--color-surface);
-  box-shadow: var(--elevation-1, var(--shadow-card));
+  box-shadow: var(--shadow-xs);
   min-height: 3.25rem;
-  transition:
-    box-shadow var(--duration-fast) var(--ease-default),
-    border-color var(--duration-fast) var(--ease-default);
+  transition: box-shadow var(--duration-fast) var(--ease-default);
 }
 [data-collection-feed][data-layout="card"] [data-collection-item]:hover {
   background: var(--color-surface);
-  box-shadow: var(--elevation-2, var(--shadow-elevated-hairline, var(--shadow-card)));
-  border-color: color-mix(in srgb, var(--color-accent-color) 18%, transparent);
+  box-shadow: var(--shadow-sm);
 }
 
-/* Stream: list = hairline posts; card = bounded same-width posts */
+/* ── Stream feed ──
+   list  = quiet reading stream (spacing only; no rails / dots / hairline boxes)
+   card  = soft paper tiles (shadow lift, no hairline ring)
+   4.2 declutter: day rules, timeline rail, and card outline rings removed —
+   hierarchy comes from type weight + spacing, not stacked borders. */
 [data-stream-feed] {
   width: 100%;
 }
-[data-stream-feed][data-layout="list"] [data-stream-day-group] {
+[data-stream-feed] [data-stream-day-group] {
   background: transparent;
   box-shadow: none;
   border-radius: 0;
@@ -2250,16 +2285,11 @@ html.dark .v4-overlay-sheet {
   position: sticky;
   top: 0;
   z-index: 1;
-  padding: 0.55rem 0.35rem 0.35rem;
-  /* Opaque canvas fill — never backdrop-filter on sticky chrome.
-     4.0: match current canvas token so sticky header disappears into paper. */
+  padding: 0.85rem 0.15rem 0.35rem;
   background: var(--color-background);
-  border-bottom: 1px solid var(--color-border-subtle-dim);
   border-radius: 0;
 }
-/* Electron composites sticky+z-index above later position:fixed scrims
-   (settings, ConfirmDialog). Card layout is static so it never leaks.
-   Flatten list day headers while any modal layer is held. */
+/* Electron composites sticky+z-index above body-portaled modals — flatten while open. */
 html[data-overlay-open] [data-stream-feed] [data-stream-day-toggle],
 html[data-menu-open] [data-stream-feed] [data-stream-day-toggle] {
   position: static;
@@ -2273,101 +2303,70 @@ html[data-menu-open] .v4-main-canvas .sticky {
 [data-stream-feed][data-layout="list"] [data-stream-day-body] {
   display: flex;
   flex-direction: column;
+  padding-top: 2px;
 }
 [data-stream-feed][data-layout="list"] [data-stream-entry-card] {
-  padding: 0.55rem 0.2rem 0.6rem;
-  border-bottom: 1px solid var(--color-border-subtle-dim);
+  padding: 0.55rem 0.15rem;
   background: transparent;
+  box-shadow: none;
+  border-radius: var(--radius-md);
   content-visibility: auto;
   contain-intrinsic-size: 0 46px;
 }
-[data-stream-feed][data-layout="list"] [data-stream-entry-card]:last-child {
-  border-bottom: none;
-}
-[data-stream-feed][data-layout="card"] [data-stream-day-group] {
-  background: transparent;
+[data-stream-feed][data-layout="list"] [data-stream-entry-card]:hover {
+  background: var(--color-surface-wash-15);
   box-shadow: none;
-  border-radius: 0;
-  overflow: visible;
 }
 [data-stream-feed][data-layout="card"] [data-stream-day-toggle] {
   position: static;
   z-index: auto;
-  padding: 0.45rem 0.15rem;
+  padding: 0.55rem 0.15rem 0.35rem;
   background: transparent;
   border-radius: 0;
 }
 [data-stream-feed][data-layout="card"] [data-stream-day-body] {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.25rem 0 0.55rem;
+  gap: 0.55rem;
+  padding: 0.15rem 0 0.65rem;
 }
 [data-stream-feed][data-layout="card"] [data-stream-entry-card] {
-  padding: 0.75rem 0.9rem;
-  border: 1px solid transparent;
+  padding: 0.8rem 0.95rem;
   border-radius: var(--radius-card, var(--radius-lg));
-  /* Paper on canvas — not elevated (elevated reserved for overlays) */
+  /* Soft lift only — hairline ring removed (it read as a second border). */
   background: var(--color-surface);
-  box-shadow: var(--elevation-1, var(--shadow-card));
+  box-shadow: var(--shadow-xs);
   content-visibility: auto;
   contain-intrinsic-size: 0 68px;
-  transition: border-color var(--duration-fast) var(--ease-default), box-shadow var(--duration-fast) var(--ease-default);
+  transition: box-shadow var(--duration-fast) var(--ease-default), background-color var(--duration-fast) var(--ease-default);
 }
 [data-stream-feed][data-layout="card"] [data-stream-entry-card]:hover {
-  border-color: color-mix(in srgb, var(--color-accent-color) 16%, transparent);
-  box-shadow: var(--elevation-2, var(--shadow-elevated-hairline, var(--shadow-card)));
+  box-shadow: var(--shadow-sm);
 }
 [data-stream-feed] [data-stream-entry-card] [data-stream-nested-appends] {
-  margin-top: 0.55rem;
+  margin-top: 0.45rem;
 }
 
-/* Memory browse uses the same feed chrome */
+/* Memory browse shares the same quiet chrome */
 [data-memory-feed][data-layout="list"] [data-memory-feed-item] {
-  padding: 0.55rem 0.2rem;
-  border-bottom: 1px solid var(--color-border-subtle-dim);
+  padding: 0.55rem 0.15rem;
+}
+[data-memory-feed][data-layout="list"] [data-memory-feed-item]:hover {
+  background: var(--color-surface-wash-15);
+  border-radius: var(--radius-md);
 }
 [data-memory-feed][data-layout="card"] {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.55rem;
   max-width: none;
   margin-inline: 0;
 }
 [data-memory-feed][data-layout="card"] [data-memory-feed-item] {
-  padding: 0.75rem 0.9rem;
-  border: 1px solid transparent;
+  padding: 0.8rem 0.95rem;
   border-radius: var(--radius-card, var(--radius-lg));
   background: var(--color-surface);
-  box-shadow: var(--elevation-1, var(--shadow-card));
-}
-
-/* ── Refined Timeline Track for List Feed ── */
-[data-stream-feed][data-layout="list"] [data-stream-day-body] {
-  position: relative;
-  padding-left: 1.15rem;
-  margin-left: 0.35rem;
-  border-left: 1px dashed color-mix(in srgb, var(--color-border-subtle) 70%, transparent);
-}
-[data-stream-feed][data-layout="list"] [data-stream-entry-card] {
-  position: relative;
-  padding: 0.6rem 0.2rem 0.65rem 0.4rem;
-}
-[data-stream-feed][data-layout="list"] [data-stream-entry-card]::before {
-  content: '';
-  position: absolute;
-  left: -1.42rem;
-  top: 1.05rem;
-  width: 6px;
-  height: 6px;
-  border-radius: 9999px;
-  background: var(--color-border-subtle);
-  border: 1.5px solid var(--color-background);
-  transition: background-color var(--duration-fast) var(--ease-default), transform var(--duration-fast) var(--ease-default);
-}
-[data-stream-feed][data-layout="list"] [data-stream-entry-card]:hover::before {
-  background: var(--color-accent-color);
-  transform: scale(1.25);
+  box-shadow: var(--shadow-xs);
 }
 
 /* ── Micro-interaction & Popover Animation Utilities ── */
@@ -2458,11 +2457,14 @@ html[data-menu-open] .v4-main-canvas .sticky {
   animation: v4-shimmer-flow 1.6s infinite cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ── Previously-undefined hooks (referenced by views; give them a real style) ── */
+/* Feed post tiles (card layout + collection) — soft lift, no hairline ring */
 .v4-feed-post {
   border-radius: var(--radius-card);
   background: var(--color-surface);
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-xs);
+}
+.v4-feed-post:hover {
+  box-shadow: var(--shadow-sm);
 }
 .v4-code-block {
   border-radius: var(--radius-md);
@@ -2489,8 +2491,15 @@ html[data-menu-open] .v4-main-canvas .sticky {
 
 /* ── ActivityBar — primary destination rail (48px, leftmost) ── */
 .v4-activity-bar {
-  /* inherits app-chrome; sits as its own column beside the sidebar */
+  /* Depth wash along the rail (top lift → settle); solid chroma, no brand gradient */
   z-index: 1;
+  background-color: var(--color-app-chrome);
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-app-chrome) 84%, #ffffff 16%) 0%,
+    var(--color-app-chrome) 42%,
+    color-mix(in srgb, var(--color-app-chrome) 88%, #000000 12%) 100%
+  );
 }
 .v4-activity-bar .v4-focus-ring:focus-visible {
   outline-offset: -2px;
@@ -2514,17 +2523,13 @@ html[data-menu-open] .v4-main-canvas .sticky {
   font-size: 15px;
   line-height: 1.65;
 }
-/* Day groups — quieter chrome, more breathing room */
-[data-stream-feed][data-layout="list"] [data-stream-day-toggle],
-[data-stream-feed][data-layout="card"] [data-stream-day-toggle] {
+/* Day groups — type + spacing only (no rule under the header) */
+[data-stream-feed] [data-stream-day-toggle] {
   min-height: 28px;
   letter-spacing: 0.01em;
 }
 [data-stream-feed][data-layout="card"] [data-stream-day-group] {
-  margin-bottom: 14px;
-}
-[data-stream-feed][data-layout="list"] [data-stream-day-body] {
-  padding-top: 2px;
+  margin-bottom: 12px;
 }
 
 /* ── Stream workbench homepage — web-like hero + comfortable wash ──
@@ -2558,22 +2563,9 @@ html[data-menu-open] .v4-main-canvas .sticky {
   font-size: 22px;
   line-height: 1.25;
 }
-/* Quick access chips — soft cards on the hero */
-[data-stream-workbench-strip] {
-  position: relative;
-}
-[data-stream-workbench-strip] button {
-  box-shadow: var(--shadow-xs);
-  backdrop-filter: none;
-}
-[data-stream-workbench-strip] button:hover {
-  box-shadow: var(--shadow-sm);
-  transform: translateY(-1px);
-}
-[data-stream-workbench-strip] button {
-  transition: background-color var(--duration-fast) var(--ease-default),
-    box-shadow var(--duration-fast) var(--ease-default),
-    transform var(--duration-fast) var(--ease-default);
+/* Quiet inventory counts beside the stream title (destinations stay on ActivityBar) */
+[data-stream-workbench-counts] {
+  white-space: nowrap;
 }
 /* Hero composer — floats on the wash */
 [data-stream-home-header] ~ .v4-stream-composer,

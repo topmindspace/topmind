@@ -99,7 +99,23 @@ function readTokenPalettes() {
   const dark = { ...light, ...cssVars(cssBlock(css, "\n  .dark {")) };
   const inbox = { ...light, ...cssVars(cssBlock(css, "body[data-mode='inbox']")) };
   const darkInbox = { ...dark, ...cssVars(cssBlock(css, ".dark body[data-mode='inbox']")) };
-  return { light, dark, inbox, darkInbox };
+  /** Surface tone packs (DS 4.1) — warm is the base ladder (no attribute). */
+  const tones = {
+    warm: { light, dark },
+    cool: {
+      light: { ...light, ...cssVars(cssBlock(css, 'html[data-theme-tone="cool"]')) },
+      dark: { ...dark, ...cssVars(cssBlock(css, 'html.dark[data-theme-tone="cool"]')) },
+    },
+    neutral: {
+      light: { ...light, ...cssVars(cssBlock(css, 'html[data-theme-tone="neutral"]')) },
+      dark: { ...dark, ...cssVars(cssBlock(css, 'html.dark[data-theme-tone="neutral"]')) },
+    },
+    slate: {
+      light: { ...light, ...cssVars(cssBlock(css, 'html[data-theme-tone="slate"]')) },
+      dark: { ...dark, ...cssVars(cssBlock(css, 'html.dark[data-theme-tone="slate"]')) },
+    },
+  };
+  return { light, dark, inbox, darkInbox, tones };
 }
 
 test("UI Token & Modernization Compliance", async (t) => {
@@ -352,6 +368,47 @@ test("UI Token & Modernization Compliance", async (t) => {
     }
 
     assert.deepEqual(failures, [], `contrast failures:\n${failures.join("\n")}`);
+  });
+
+  await t.test("surface tone packs keep text AA on their worst plane", () => {
+    // Tone packs own the neutral ladder. A stop that is AA on warm paper can
+    // fall under 4.5:1 on cool/neutral — contrast failures are silent, so each
+    // pack is measured against its own worst plane (light: sidebar/chrome ·
+    // dark: elevated).
+    const { tones } = readTokenPalettes();
+    const failures = [];
+    const TEXT = [
+      "--color-text-primary",
+      "--color-text-secondary",
+      "--color-text-tertiary",
+      "--color-text-quaternary",
+      "--color-text-prose",
+    ];
+    const PLANES = {
+      light: ["--color-sidebar", "--color-app-chrome", "--color-background", "--color-surface", "--color-surface-elevated"],
+      dark: ["--color-surface-elevated", "--color-surface", "--color-background", "--color-app-chrome", "--color-sidebar"],
+    };
+    for (const [toneName, modes] of Object.entries(tones)) {
+      for (const [mode, palette] of Object.entries(modes)) {
+        for (const fgToken of TEXT) {
+          for (const plane of PLANES[mode]) {
+            const fg = parseColor(resolve(palette, fgToken));
+            const bg = parseColor(resolve(palette, plane));
+            if (!fg || !bg) {
+              failures.push(`${toneName}/${mode}: unparseable ${fgToken} or ${plane}`);
+              continue;
+            }
+            const r = contrast(fg, bg);
+            if (r < 4.5) {
+              failures.push(
+                `${toneName}/${mode} ${fgToken} on ${plane}: ${r.toFixed(2)}:1 < 4.5`,
+              );
+            }
+          }
+        }
+      }
+    }
+    assert.deepEqual(failures, [], `tone contrast failures:\n${failures.join("\n")}`);
   });
 
   await t.test("every defined --color-* token is referenced somewhere", () => {

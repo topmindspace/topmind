@@ -115,7 +115,15 @@
     "metaNoBody": "(Could not extract content — paste manually)",
     "methodReadability": "Readability",
     "methodRender": "Enhanced render",
-    "methodHeuristic": "Heuristic"
+    "methodHeuristic": "Heuristic",
+    "methodGithubRaw": "GitHub raw",
+    "methodGithubReadme": "GitHub README",
+    "urlKindGithubFile": "GitHub Markdown file · will fetch raw",
+    "urlKindGithubReadme": "GitHub repo · will fetch README",
+    "urlKindGithubOther": "GitHub page · will extract as web",
+    "urlKindXStatus": "X post · will extract as web",
+    "urlKindXArticle": "X article · will extract as web",
+    "urlKindWeb": "Web page · will extract article"
   },
   "search": {
     "ariaLabel": "Full-text search",

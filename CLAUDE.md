@@ -14,7 +14,7 @@ TOOLS.md                       ← UTR 命令面（可选）+ 写回契约
 DESIGN.md                      ← 交互与体验原则（用户概念 ≤5）
 README.md                      ← 入口导航（简体中文 default）
 README.en.md                   ← English
-README.zh-CN.md                ← 兼容跳转
+README.zh-CN.md                ← 简体中文兼容副本（= README.md）
 docs/README.md                 ← 文档索引 · ADR · 打包
 ```
 
@@ -30,7 +30,7 @@ topmind = Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Option
 - 用户概念：记一下 · 动态 · 专题 · 我的情况（记忆浏览） · 交付  
 - Skills：唯一入口 `topmind`；Host 文件工具为主；UTR 可选  
 - Desktop：**富工作台**；导航变薄；不硬依赖 UTR  
-- UTR：可选 CLI/MCP（**8 域 / 32 命令**；MCP 默认 23）  
+- UTR：可选 CLI/MCP（**8 域 / 35 命令**；MCP 默认 26）  
 - Obsidian 插件：可选；Obsidian 内嵌动态流 + AI 副驾；复用 Kernel `lib/` 八引擎  
 - Kernel 写闸 · Memory · 建议条/待确认写入 · 待办 · 可选记账（ledger-engine 卫星，非第九引擎 / 非第六概念）· AI 操作框架 · **活动窗口 / 动态增补** · **高影响 only 备份/回执 + AI Provider 动态参数**：**Done** — 见 `docs/ARCHITECTURE-RESET.md` §2 · `docs/adr/2026-08-07-engine-hardening-writeback-ai.md`
 

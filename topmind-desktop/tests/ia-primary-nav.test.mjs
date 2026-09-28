@@ -31,12 +31,14 @@ describe("Desktop primary IA target", () => {
     assert.match(activity, /RiApps2Line/);
     assert.match(activity, /RiFocus3Line/);
     assert.match(activity, /RiSettingsLine/);
-    assert.match(activity, /data-activity-logo/);
+    // No brand logo — traffic-light reserve only (icons stay clear of macOS buttons).
+    assert.doesNotMatch(activity, /data-activity-logo/);
+    assert.match(activity, /data-activity-traffic-reserve/);
     const title = read("src/components/shell/TitleBar.tsx");
     assert.doesNotMatch(title, /data-view-switcher=""/);
-    const nav = read("src/components/shell/PrimaryNav.tsx");
-    assert.match(nav, /PRIMARY_NAV_OPTIONS/);
-    assert.match(title, /variant="compact"/);
+    // Destinations retired from the title bar — ActivityBar-only even when the sidebar collapses.
+    assert.doesNotMatch(title, /<PrimaryNav|from ["'][^"']*PrimaryNav["']/);
+    assert.doesNotMatch(title, /data-go-workspace-home/);
     assert.match(title, /sidebarCollapsed/);
     const status = read("src/components/shell/StatusBar.tsx");
     assert.doesNotMatch(status, /<PrimaryNav/);
@@ -88,10 +90,9 @@ it("Desktop README does not teach deleted ActionBar or Title-bar Note it", () =>
     assert.doesNotMatch(sidebar, /data-sidebar-primary-nav/);
     assert.match(read("src/components/shell/ActivityBar.tsx"), /data-activity-bar/);
     const title = read("src/components/shell/TitleBar.tsx");
-    assert.match(title, /PrimaryNav variant="compact"/);
+    assert.doesNotMatch(title, /PrimaryNav variant="compact"/);
+    assert.doesNotMatch(title, /<PrimaryNav/);
     assert.match(title, /data-canvas-chrome/);
-    const nav = read("src/components/shell/PrimaryNav.tsx");
-    assert.match(nav, /variant = "sidebar"/);
     const shell = read("src/components/shell/Shell.tsx");
     const titleIdx = shell.indexOf("<TitleBar");
     const centerIdx = shell.indexOf("data-center-column");
@@ -112,12 +113,9 @@ it("Desktop README does not teach deleted ActionBar or Title-bar Note it", () =>
     assert.match(src, /onClick=\{\(\) => setOpen\(\(v\) => !v\)\}/);
   });
 
-  it("PrimaryNav sidebar dropdown wires trigger onClick (DropdownMenu is not self-opening)", () => {
-    const src = read("src/components/shell/PrimaryNav.tsx");
-    assert.match(src, /variant="sidebar"|variant = "sidebar"/);
-    assert.match(src, /DropdownMenu/);
-    assert.match(src, /onClick=\{\(\) => setOpen\(\(v\) => !v\)\}/);
-    // Line-only destination icons — no Fill flip on active
+  it("destination icons stay Line-only on ActivityBar (no Fill flip on active)", () => {
+    const src = read("src/components/shell/ActivityBar.tsx");
+    assert.match(src, /data-activity-group="views"/);
     assert.doesNotMatch(src, /RiHome4Fill|RiInbox2Fill|RiShareForwardFill/);
   });
 
@@ -181,7 +179,7 @@ it("Desktop README does not teach deleted ActionBar or Title-bar Note it", () =>
   it("macOS sidebar header reserves the traffic-light inset", () => {
     const sidebar = read("src/components/shell/Sidebar.tsx");
     const css = read("src/styles/v4.css");
-    const nav = read("src/components/shell/PrimaryNav.tsx");
+    const activity = read("src/components/shell/ActivityBar.tsx");
     assert.match(sidebar, /isMacOS && "v4-mac-titlebar-pad"/);
     assert.match(sidebar, /data-sidebar-header/);
     assert.match(sidebar, /data-sidebar-secondary-header/);
@@ -196,13 +194,9 @@ it("Desktop README does not teach deleted ActionBar or Title-bar Note it", () =>
     assert.match(css, /html\[data-fullscreen="true"\] \.v4-mac-titlebar-pad \{ padding-left: 0; \}/);
     assert.match(css, /\.v4-mac-titlebar-pad \{ padding-left: 72px; \}/);
     assert.match(css, /\.v4-column-chrome\.v4-mac-titlebar-pad \{\s*padding-left:\s*72px;\s*\}/);
-    // Closed destination trigger is one 32px icon; the menu still carries the names.
-    const sidebarAt = nav.indexOf('data-primary-nav="sidebar"');
-    const sidebarNav = nav.slice(sidebarAt, nav.indexOf("PRIMARY_NAV_OPTIONS.map", sidebarAt));
-    assert.match(sidebarNav, /v4-sidebar-chrome-btn/);
-    assert.match(sidebarNav, /data-sidebar-destination=\{active\}/);
-    assert.doesNotMatch(sidebarNav, /\{activeLabel\}<\/span>/);
-    assert.match(nav, /PRIMARY_NAV_OPTIONS\.map/);
+    // ActivityBar keeps a traffic-light reserve so icons never sit under native buttons.
+    assert.match(activity, /data-activity-traffic-reserve/);
+    assert.doesNotMatch(activity, /data-activity-logo/);
     assert.match(css, /\.v4-titlebar-btn\.v4-sidebar-chrome-btn[\s\S]*flex-shrink:\s*0/);
     assert.match(css, /\.v4-sidebar-chrome-btn \{[^}]*width:\s*var\(--density-chrome-control,\s*32px\)/);
     assert.match(sidebar, /v4-icon-btn-chrome/);
@@ -299,17 +293,12 @@ it("Desktop README does not teach deleted ActionBar or Title-bar Note it", () =>
     const store = read("src/stores/view-store.ts");
     assert.match(store, /defaultCanvasSelection\(\)/);
     assert.match(store, /selectionAfterFileTabsClose/);
-    const nav = read("src/components/shell/PrimaryNav.tsx");
-    assert.match(nav, /kind:\s*"home"/);
-    assert.match(nav, /RiHome4Line/);
-    const homeAt = nav.indexOf('kind: "home"');
-    const homeSlice = nav.slice(homeAt, nav.indexOf('kind: "stream"', homeAt));
-    assert.match(homeSlice, /RiHome4Line/);
-    assert.doesNotMatch(homeSlice, /RiNewspaperLine/);
-    assert.match(nav, /primaryNav\.home/);
-    assert.match(nav, /primaryNav\.stream/);
-    assert.match(nav, /primaryNav\.inbox/);
-    assert.match(nav, /primaryNav\.outputs/);
+    const activity = read("src/components/shell/ActivityBar.tsx");
+    assert.match(activity, /RiHome4Line/);
+    assert.match(activity, /dest\("stream"\)/);
+    assert.match(activity, /primaryNav\.workspace|primaryNav\.home/);
+    assert.match(activity, /primaryNav\.inbox/);
+    assert.match(activity, /primaryNav\.outputs/);
   });
 
   it("connectors write note bodies via connector-bridge writeConnectorNote (kernel write gate)", () => {

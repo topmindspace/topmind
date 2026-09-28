@@ -19,6 +19,11 @@ import {
   updateProfileEntry,
   compactProfileHistory,
   restoreProfileEntry,
+  ensureTodoFile,
+  readTodoList,
+  addTodoItem,
+  toggleTodoItem,
+  resolveTodoRelPath,
 } from "../../lib/kernel-api.mjs";
 
 // ── promote ─────────────────────────────────────────────────────────────────
@@ -262,6 +267,136 @@ async function restoreProfile({ match, section, mode }, ctxObj) {
   };
 }
 
+// ── list-todos ──────────────────────────────────────────────────────────────
+
+async function listTodos({ completed, limit }, ctxObj) {
+  ensureTodoFile(ctxObj.userWorkspaceRoot);
+  const list = readTodoList(ctxObj.userWorkspaceRoot);
+  const items = Array.isArray(list?.items) ? list.items : [];
+  const includeCompleted = completed === true || completed === "true";
+  const max = Number(limit) > 0 ? Number(limit) : 50;
+  const filtered = includeCompleted ? items : items.filter((i) => !i.done);
+  return {
+    command: "list-todos",
+    targetPath: resolveTodoRelPath(ctxObj.userWorkspaceRoot),
+    total: items.length,
+    activeCount: items.filter((i) => !i.done).length,
+    completedCount: items.filter((i) => i.done).length,
+    items: filtered.slice(0, max),
+  };
+}
+
+// ── add-todo ────────────────────────────────────────────────────────────────
+
+async function addTodo({ text, items, dueDate, mode }, ctxObj) {
+  let list = [];
+  if (items) {
+    try {
+      const parsed = JSON.parse(items);
+      if (Array.isArray(parsed)) list = parsed.map((x) => String(x));
+      else if (typeof parsed === "string") list = [parsed];
+      // non-array/string JSON (e.g. 42) is not a todo payload — ignore it
+    } catch {
+      // not JSON — treat the raw string as a single todo text
+      list = [String(items)];
+    }
+  }
+  if (text) list.push(String(text));
+  list = list.map((s) => String(s).trim()).filter(Boolean);
+  if (list.length === 0) throw new Error(t("error.contentRequired"));
+
+  const targetPath = resolveTodoRelPath(ctxObj.userWorkspaceRoot);
+  // preview must short-circuit BEFORE any engine write — graded-confirm
+  // policy writes content through even in "confirm" mode.
+  if (mode === "preview") {
+    return {
+      command: "add-todo",
+      mode,
+      preview: true,
+      applied: false,
+      targetPath,
+      wouldAdd: list.map((entry) =>
+        dueDate && !entry.includes("📅") ? `${entry} 📅 ${dueDate}` : entry,
+      ),
+      note: "dry-run: would add todo item(s)",
+    };
+  }
+
+  ensureTodoFile(ctxObj.userWorkspaceRoot);
+  const added = [];
+  const skipped = [];
+  let lastEvidence = null;
+  for (const entry of list) {
+    const body = dueDate && !entry.includes("📅") ? `${entry} 📅 ${dueDate}` : entry;
+    const r = addTodoItem(ctxObj.userWorkspaceRoot, body, {
+      actor: "ai",
+      dueDate: dueDate || undefined,
+    });
+    if (r?.ok && r.item) {
+      added.push(r.item);
+      if (r.writebackEvidence) lastEvidence = r.writebackEvidence;
+    } else {
+      skipped.push({ text: entry, reason: r?.reason || "rejected" });
+    }
+  }
+
+  return {
+    command: "add-todo",
+    mode,
+    targetPath,
+    addedCount: added.length,
+    added,
+    skipped,
+    applied: added.length > 0,
+    ...(lastEvidence ? { evidence: lastEvidence } : {}),
+  };
+}
+
+// ── toggle-todo ─────────────────────────────────────────────────────────────
+
+async function toggleTodo({ idOrText, mode }, ctxObj) {
+  if (!idOrText) throw new Error(t("error.contentRequired"));
+  ensureTodoFile(ctxObj.userWorkspaceRoot);
+  const list = readTodoList(ctxObj.userWorkspaceRoot);
+  const items = Array.isArray(list?.items) ? list.items : [];
+  const target = items.find(
+    (i) => i.id === idOrText || i.text === idOrText || i.text.includes(idOrText),
+  );
+  if (!target) {
+    return {
+      command: "toggle-todo",
+      mode,
+      ok: false,
+      targetPath: resolveTodoRelPath(ctxObj.userWorkspaceRoot),
+      error: `no matching todo: ${idOrText}`,
+    };
+  }
+  if (mode === "preview") {
+    return {
+      command: "toggle-todo",
+      mode,
+      ok: true,
+      preview: true,
+      applied: false,
+      targetPath: resolveTodoRelPath(ctxObj.userWorkspaceRoot),
+      match: { id: target.id, text: target.text, done: target.done },
+      note: "dry-run: would toggle completion",
+    };
+  }
+  const r = toggleTodoItem(ctxObj.userWorkspaceRoot, target.id, undefined, {
+    actor: "ai",
+  });
+  return {
+    command: "toggle-todo",
+    mode,
+    ok: Boolean(r?.ok),
+    targetPath: resolveTodoRelPath(ctxObj.userWorkspaceRoot),
+    match: { id: target.id, text: target.text, wasDone: target.done },
+    nowCompleted: !target.done,
+    ...(r?.writebackEvidence ? { evidence: r.writebackEvidence } : {}),
+  };
+}
+
 // ── dispatcher ─────────────────────────────────────────────────────────────
 
 async function main() {
@@ -296,6 +431,15 @@ async function main() {
       break;
     case "restore-profile":
       data = await restoreProfile({ match: args.match, section: args.section, mode }, ctxObj);
+      break;
+    case "list-todos":
+      data = await listTodos({ completed: args.completed, limit: args.limit }, ctxObj);
+      break;
+    case "add-todo":
+      data = await addTodo({ text: args.text, items: args.items, dueDate: args.dueDate, mode }, ctxObj);
+      break;
+    case "toggle-todo":
+      data = await toggleTodo({ idOrText: args.idOrText, mode }, ctxObj);
       break;
     default:
       throw new Error(t("error.unknownCommand", { command: args.command || "(empty)" }));

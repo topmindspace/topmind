@@ -15,27 +15,23 @@ import {
   RiAddLine,
   RiArrowUpSLine,
   RiCheckLine,
-  RiComputerLine,
   RiFileCopyLine,
   RiFolder3Line,
   RiFullscreenLine,
   RiGlobalLine,
   RiLoader4Line,
   RiLogoutBoxRLine,
-  RiMoonLine,
   RiQuestionLine,
   RiSettingsLine,
   RiPulseLine,
-  RiSunLine,
 } from "@remixicon/react";
 import { DropdownItem, DropdownMenu, DropdownSectionLabel } from "../ui/DropdownMenu";
 import { api } from "../../services/api";
 import { emitLocal } from "../../plugins/host";
 import { applyWorkspaceChange } from "../../lib/workspace-switch";
-import { setLocalePreference, setThemePreference } from "../../lib/appearance";
+import { setLocalePreference } from "../../lib/appearance";
 import { ChromePortal } from "../../lib/chrome-portal";
 import { useViewStore } from "../../stores/view-store";
-import type { Theme } from "../../lib/theme";
 import type { AppSettings } from "../../types";
 import { cn } from "../../lib/kit";
 import { Tooltip } from "../ui/tooltip";
@@ -43,8 +39,6 @@ import { ICON } from "../../lib/icons";
 import { formatChord } from "../../lib/chord";
 
 interface RecentWs { rootPath: string; lastOpenedAt: string; }
-
-type ThemeMode = Theme;
 
 /** Locale option — short chip label for the footer-style one-row switcher. */
 const LOCALE_OPTIONS: Array<{
@@ -56,8 +50,6 @@ const LOCALE_OPTIONS: Array<{
   { id: "zh-CN", chip: "中", nativeLabel: "简体中文" },
   { id: "en-US", chip: "EN", nativeLabel: "English" },
 ];
-
-const THEME_ORDER: ThemeMode[] = ["auto", "light", "dark"];
 
 export function WorkspaceSwitcher({
   currentRoot,
@@ -76,7 +68,6 @@ export function WorkspaceSwitcher({
   const [copied, setCopied] = useState(false);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const theme = useViewStore((s) => s.theme);
   const setFocusMode = useViewStore((s) => s.setFocusMode);
 
   const load = () => {

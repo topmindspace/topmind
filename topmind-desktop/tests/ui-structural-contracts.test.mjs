@@ -12,7 +12,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { deriveStatusBarBusy } from "../src/lib/status-bar-busy.ts";
@@ -26,16 +26,14 @@ function read(rel, base = root) {
 
 // ── Chrome hierarchy & single CTA ──────────────────────────────────────
 
-test("ActivityBar owns key nav; TitleBar keeps AI toggle + compact fallback", () => {
+test("ActivityBar owns key nav; TitleBar keeps AI toggle (no destination fallback)", () => {
   const titleBar = read("src/components/shell/TitleBar.tsx");
-  // Compact fallback only when sidebar is collapsed — not a full view-switcher.
-  assert.match(titleBar, /PrimaryNav variant="compact"/);
+  // Destinations are ActivityBar-only — no compact destination row on the title bar.
+  assert.doesNotMatch(titleBar, /<PrimaryNav|from ["'][^"']*PrimaryNav["']/);
+  assert.doesNotMatch(titleBar, /data-go-workspace-home/);
   assert.match(titleBar, /v4-titlebar-btn-ai/);
-  const nav = read("src/components/shell/PrimaryNav.tsx");
-  assert.match(nav, /PRIMARY_NAV_OPTIONS/);
-  assert.match(nav, /primaryNav\.stream/);
-  assert.match(nav, /primaryNav\.inbox/);
-  assert.match(nav, /primaryNav\.outputs/);
+  // Destination component retired 2026-09-28 — file must not come back.
+  assert.equal(existsSync(path.join(root, "src/components/shell/PrimaryNav.tsx")), false);
   assert.doesNotMatch(read("src/components/shell/StatusBar.tsx"), /<PrimaryNav/);
   assert.doesNotMatch(titleBar, /v4-titlebar-btn-capture/);
   assert.doesNotMatch(titleBar, /data-chrome-tier=["']l2["']/);
@@ -49,7 +47,10 @@ test("ActivityBar owns key nav; TitleBar keeps AI toggle + compact fallback", ()
   // home ≡ stream — one icon; search lives on the Sidebar header.
   const activityBar = read("src/components/shell/ActivityBar.tsx");
   assert.match(activityBar, /data-activity-bar/);
-  assert.match(activityBar, /data-activity-logo/);
+  // No brand logo — top band is a traffic-light reserve only.
+  assert.doesNotMatch(activityBar, /data-activity-logo/);
+  assert.doesNotMatch(activityBar, /favicon\.svg/);
+  assert.match(activityBar, /data-activity-traffic-reserve/);
   assert.match(activityBar, /data-activity-group="views"/);
   assert.match(activityBar, /data-activity-group="apps"/);
   assert.match(activityBar, /data-activity-group="chrome"/);
@@ -103,10 +104,14 @@ test("WorkspaceSwitcher: top-header identity; theme/settings on ActivityBar; men
   const sidebar = read("src/components/shell/Sidebar.tsx");
   assert.match(sidebar, /data-sidebar-workspace/);
   assert.doesNotMatch(sidebar, /border-t border-border-subtle-dim px-1\.5 py-1\.5/);
-  // ActivityBar owns theme + settings.
+  // ActivityBar owns theme + settings (theme opens the horizontal chip menu).
   const activity = read("src/components/shell/ActivityBar.tsx");
   assert.match(activity, /RiSettingsLine/);
-  assert.match(activity, /setThemePreference/);
+  assert.match(activity, /ThemeMenuButton/);
+  const themeMenu = read("src/components/shell/ThemeMenuButton.tsx");
+  assert.match(themeMenu, /setThemePreference/);
+  assert.match(themeMenu, /setThemeTonePreference/);
+  assert.match(themeMenu, /setThemeSeedPreference/);
 });
 
 test("List views demote capture to outline (no competing solid CTA)", () => {
@@ -638,7 +643,7 @@ test("selected controls use the neutral wash and have no side or bottom accent b
   const design = read("DESIGN.md");
   const view = read("src/components/ui/view.tsx");
   const outline = read("src/components/editor/EditorOutlinePanel.tsx");
-  const nav = read("src/components/shell/PrimaryNav.tsx");
+  const activity = read("src/components/shell/ActivityBar.tsx");
   const chat = read("src/components/ai/ChatMessage.tsx");
   const stream = read("src/plugins/topmind-workspace/views/StreamDetailView.tsx");
   const recent = read("src/components/shell/EditorRecentBar.tsx");
@@ -656,7 +661,7 @@ test("selected controls use the neutral wash and have no side or bottom accent b
     .map((b) => b.selector.trim().slice(0, 80));
   assert.deepEqual(offenders, []);
 
-  const sources = [css, view, outline, nav, chat, recent];
+  const sources = [css, view, outline, activity, chat, recent];
   for (const src of sources) assert.doesNotMatch(src, accentStrip);
 
   // Selected tabs and other controls: a side or bottom accent strip in a class
@@ -703,8 +708,9 @@ test("selected controls use the neutral wash and have no side or bottom accent b
   const outlineRow = outline.slice(outline.indexOf("const isActive = activeId"), outline.indexOf("<span className=\"min-w-0 flex-1 truncate\">"));
   assert.match(outlineRow, /is-selected bg-surface-selected text-text-primary/);
   assert.doesNotMatch(outlineRow, /inset_|text-accent-color/);
-  assert.match(nav, /data-active=\{isActive \? "true" : undefined\}/);
-  assert.doesNotMatch(nav, /bg-accent-container text-on-accent-container/);
+  // ActivityBar rail active state is a filled container, not an accent strip.
+  assert.match(activity, /data-active=\{item\.active\}|aria-pressed=\{item\.active\}/);
+  assert.doesNotMatch(activity, /inset\s+[1-9]\d*px\s+0\s+0\s+0/);
 
   // Exceptions that are not a selection bar.
   assert.match(css, /\.v4-tiptap blockquote[\s\S]{0,180}border-left:\s*3px/);
@@ -714,7 +720,8 @@ test("selected controls use the neutral wash and have no side or bottom accent b
   assert.match(tokens, /--shadow-focus-inset:\s*inset 0 0 0 1px/);
   assert.match(chat, /border-l-2 border-accent-color\/40/);
   assert.match(stream, /data-stream-nested-appends/);
-  assert.match(stream, /border-l-2 border-accent-border-subtle/);
+  // Nested appends are indent-only (4.2 declutter) — no accent selection-style bar.
+  assert.doesNotMatch(stream, /border-l-2 border-accent-border-subtle/);
   assert.doesNotMatch(design, /accent inset bar/);
   assert.match(design, /无侧边或底部衬条/);
   assert.match(tokens, /no side or bottom accent bar/);

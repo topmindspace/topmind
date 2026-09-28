@@ -115,7 +115,15 @@
     "metaNoBody": "(无法提取正文内容 — 可手动粘贴)",
     "methodReadability": "Readability",
     "methodRender": "增强渲染",
-    "methodHeuristic": "启发式"
+    "methodHeuristic": "启发式",
+    "methodGithubRaw": "GitHub 原文",
+    "methodGithubReadme": "GitHub README",
+    "urlKindGithubFile": "GitHub Markdown 文件 · 将抓取原文",
+    "urlKindGithubReadme": "GitHub 仓库 · 将抓取 README",
+    "urlKindGithubOther": "GitHub 页面 · 将按网页提取",
+    "urlKindXStatus": "X 动态 · 将按网页提取",
+    "urlKindXArticle": "X 文章 · 将按网页提取",
+    "urlKindWeb": "网页 · 将提取正文"
   },
   "search": {
     "ariaLabel": "全文搜索",

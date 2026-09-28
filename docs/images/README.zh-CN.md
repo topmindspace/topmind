@@ -5,9 +5,9 @@
 本目录存放项目文档引用的**已智能压缩** UI 界面图与**全流程动态演示**资源。  
 高清源图在 `topmind-desktop/resources/img/`——该目录**已被 gitignore**（只存在于开发机），请把它当作本机源图库，而不是仓库路径。
 
-> **静帧为 2026-09 三栏 chrome**：记一下在左栏 header；主锚 动态 / Inbox / 交付；搜索 = ⌘K / ⌘P；右栏是 AI 工作区（对话 / 建议 / 清单 / 应用）。若某行仍沿用 2026-08 旧 chrome（TitleBar：记一下 / 💡 / 搜索 / Apps），该行会明确标注——不要当成现行界面。
+> **静帧为 2026-09 三栏 chrome · Design System 4.0.5（ZCode Neutral + MD3 暖纸色）**：ActivityBar 记一下；主锚 动态 / Inbox / 交付 / 我的情况；搜索 = ⌘K / ⌘P；右栏是 AI 工作区（对话 / 建议 / 清单 / 应用）。像素 / IA 真源见 `topmind-desktop/DESIGN.md`。若某行仍沿用 2026-08 旧 chrome（TitleBar：记一下 / 💡 / 搜索 / Apps）或冷灰/深色旧主题，该行会明确标注——不要当成现行界面。
 >
-> 媒体策略：主截图是 `topmind-desktop/resources/img/Stream-AI建议.png`（中文）与 `Stream-AI建议-en.png`（同一界面、英文 chrome）的压缩导出版本；全流程动态演示以高保真满彩 GIF 为主显示格式（GitHub 原生支持 `<img>` 内联动画），MP4 高清视频作为备用下载源。
+> 媒体策略：主截图是同一界面的中英双份压缩导出（`desktop-stream.jpg` / `desktop-stream-en.jpg`；源图为开发机 `resources/img/Stream-AI建议.png` 与 `Stream-AI建议-en.png`）；全流程动态演示以高保真满彩 GIF 为主显示格式（GitHub 原生支持 `<img>` 内联动画），MP4 高清视频作为备用下载源。
 
 ---
 
@@ -25,8 +25,8 @@
 
 | 文档图 | 源（resources/img） | 典型用途 |
 |--------|---------------------|----------|
-| `desktop-stream.jpg` | `Stream-AI建议.png` | **中文主截图**：三栏工作台 · 动态时间轴 + 右栏 AI 建议 |
-| `desktop-stream-en.jpg` | `Stream-AI建议-en.png` | **英文主截图**：同一界面，英文 chrome |
+| `desktop-stream.jpg` | `Stream-AI建议.png` | **中文主截图**（2026-09 ZCode 暖纸主题）：三栏工作台 · 动态时间轴 + 右栏 AI 工作区 |
+| `desktop-stream-en.jpg` | `Stream-AI建议-en.png` | **英文主截图**：同一界面，英文 chrome（与中文同主题，不再用深色旧图） |
 | `desktop-ai-todo.jpg` | `AI清单.png` | AI 工作区**清单**分面 —— 带 AI 来源标记的待办 |
 | `desktop-apps.jpg` | `AI应用.png` | AI 工作区**应用**分面 —— 知识加工 · 微信读书 · 记账 |
 | `desktop-editor.jpg` | `文章查看-编辑器.png` | Quiet Paper 专注 Markdown 编辑器 |
@@ -44,10 +44,10 @@
 
 | 文档 | 用法 |
 |------|------|
-| [`../../README.md`](../../README.md) | 英文总览：`desktop-stream-en.jpg` + GIF + MP4 备用 |
-| [`../../README.zh-CN.md`](../../README.zh-CN.md) | 中文总览：`desktop-stream.jpg` + GIF + MP4 备用 |
-| [`../../topmind-desktop/README.md`](../../topmind-desktop/README.md) | 富工作台：核心截图 + 清单/应用分面 + GIF + 功能心智表 |
-| [`../../topmind-desktop/README.zh-CN.md`](../../topmind-desktop/README.zh-CN.md) | 同上，中文版 |
+| [`../../README.md`](../../README.md) · [`README.zh-CN.md`](../../README.zh-CN.md) | 中文总览：`desktop-stream.jpg` 为主图，并列英文 chrome（双语演示）+ GIF + MP4 备用 |
+| [`../../README.en.md`](../../README.en.md) | 英文总览：`desktop-stream-en.jpg` 为主图，并列中文 chrome + GIF + MP4 备用 |
+| [`../../topmind-desktop/README.md`](../../topmind-desktop/README.md) · [`README.zh-CN.md`](../../topmind-desktop/README.zh-CN.md) | 富工作台：中文核心截图 + 清单/应用分面 + GIF + 功能心智表 |
+| [`../../topmind-desktop/README.en.md`](../../topmind-desktop/README.en.md) | 富工作台：英文核心截图 + 同上 |
 
 ## 更新与合成流程
 

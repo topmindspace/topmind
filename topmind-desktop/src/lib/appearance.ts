@@ -19,7 +19,13 @@ import { api } from "../services/api";
 import { useViewStore } from "../stores/view-store";
 import { patchCachedSettings } from "./settings-cache";
 import { applyLocale } from "../locales";
-import { applyThemeSeed, type Theme, type ThemeSeed } from "./theme";
+import {
+  applyThemeSeed,
+  applyThemeTone,
+  type Theme,
+  type ThemeSeed,
+  type ThemeTone,
+} from "./theme";
 
 export type LocalePreference = "auto" | "zh-CN" | "en-US";
 
@@ -28,6 +34,13 @@ export function setThemePreference(theme: Theme): void {
   useViewStore.getState().setTheme(theme);
   patchCachedSettings({ theme });
   void api.sys.update({ theme }).catch(() => {});
+}
+
+/** Apply + persist a surface tone pack (neutral ladder). */
+export function setThemeTonePreference(tone: ThemeTone): void {
+  applyThemeTone(tone);
+  patchCachedSettings({ themeTone: tone });
+  void api.sys.update({ themeTone: tone }).catch(() => {});
 }
 
 /** Apply + persist a pre-generated color seed (accent axis). */

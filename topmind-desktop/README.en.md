@@ -36,7 +36,7 @@
 
 ## Interface tour and demo
 
-Screenshots are compressed for docs (full-resolution sources live in `resources/img/` on the development machine only — the directory is gitignored; the shared library is [`../docs/images/`](../docs/images/README.md)). The stills below are the **2026-09 three-column chrome**.
+Screenshots are compressed for docs (full-resolution sources live in `resources/img/` on the development machine only — the directory is gitignored; the shared library is [`../docs/images/`](../docs/images/README.md)). The stills below are the **2026-09 three-column chrome · ZCode Neutral + MD3 warm-paper theme** (Chinese and English UI).
 
 ### 1. Core workbench (stream timeline + AI workspace)
 

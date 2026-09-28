@@ -7,7 +7,8 @@
  *   3. App chrome: focus · theme · settings
  *
  * home ≡ stream (one icon). Search lives on the Sidebar header.
- * Logo sits above group 1. One icon per concept (DESIGN §0.0.2).
+ * No brand logo — the top band is a traffic-light reserve so the icon stack
+ * stays clear of native macOS window buttons. One icon per concept (DESIGN §0.0.2).
  */
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -19,9 +20,6 @@ import {
   RiPencilLine,
   RiApps2Line,
   RiFocus3Line,
-  RiSunLine,
-  RiMoonLine,
-  RiComputerLine,
   RiSettingsLine,
   RiArrowRightSLine,
   RiExternalLinkLine,
@@ -29,30 +27,15 @@ import {
 import type { RemixiconComponentType } from "@remixicon/react";
 import { useViewStore } from "../../stores/view-store";
 import { usePluginStore } from "../../stores/plugin-store";
-import { setThemePreference } from "../../lib/appearance";
 import { listLaunchablePlugins } from "../../lib/plugin-launcher";
 import { openLaunchablePlugin, pluginReadiness } from "../../lib/apps-menu";
 import { getCachedSettings } from "../../lib/settings-cache";
-import type { Theme } from "../../lib/theme";
 import { cn } from "../../lib/kit";
 import { ICON } from "../../lib/icons";
 import { Tooltip } from "../ui/tooltip";
 import { DropdownMenu, DropdownItem } from "../ui/DropdownMenu";
+import { ThemeMenuButton } from "./ThemeMenuButton";
 import type { Selection } from "../../types";
-
-type ThemeMode = Theme;
-const THEME_ORDER: ThemeMode[] = ["auto", "light", "dark"];
-
-function nextTheme(cur: ThemeMode): ThemeMode {
-  const i = THEME_ORDER.indexOf(cur);
-  return THEME_ORDER[(i + 1) % THEME_ORDER.length] ?? "auto";
-}
-
-function themeIcon(theme: ThemeMode): RemixiconComponentType {
-  if (theme === "light") return RiSunLine;
-  if (theme === "dark") return RiMoonLine;
-  return RiComputerLine;
-}
 
 interface ActivityItem {
   id: string;
@@ -170,7 +153,6 @@ export function ActivityBar({ onCapture }: { onCapture?: () => void }) {
   const openOverlay = useViewStore((s) => s.openOverlay);
   const focusMode = useViewStore((s) => s.focusMode);
   const toggleFocusMode = useViewStore((s) => s.toggleFocusMode);
-  const theme = useViewStore((s) => s.theme);
 
   const dest = (kind: Selection["kind"]) => () => select({ kind } as Selection);
   // home ≡ stream — one icon on the rail.
@@ -215,29 +197,20 @@ export function ActivityBar({ onCapture }: { onCapture?: () => void }) {
     },
   ];
 
-  /** Group 3 — app chrome (focus / theme / settings) */
-  const ThemeIcon = themeIcon(theme);
-  const chromeItems: ActivityItem[] = [
-    {
-      id: "focus",
-      icon: RiFocus3Line,
-      labelKey: "activityBar.focus",
-      onSelect: toggleFocusMode,
-      active: focusMode,
-    },
-    {
-      id: "theme",
-      icon: ThemeIcon,
-      labelKey: "activityBar.theme",
-      onSelect: () => setThemePreference(nextTheme(theme)),
-    },
-    {
-      id: "settings",
-      icon: RiSettingsLine,
-      labelKey: "activityBar.settings",
-      onSelect: () => openOverlay("settings"),
-    },
-  ];
+  /** Group 3 — app chrome (focus / theme menu / settings) */
+  const focusItem: ActivityItem = {
+    id: "focus",
+    icon: RiFocus3Line,
+    labelKey: "activityBar.focus",
+    onSelect: toggleFocusMode,
+    active: focusMode,
+  };
+  const settingsItem: ActivityItem = {
+    id: "settings",
+    icon: RiSettingsLine,
+    labelKey: "activityBar.settings",
+    onSelect: () => openOverlay("settings"),
+  };
 
   return (
     <nav
@@ -245,10 +218,14 @@ export function ActivityBar({ onCapture }: { onCapture?: () => void }) {
       data-activity-bar
       aria-label={t("activityBar.ariaLabel")}
     >
-      {/* Logo — topmind mark */}
-      <div className="v4-no-drag mb-1 flex h-8 w-8 items-center justify-center" data-activity-logo aria-hidden>
-        <img src="./favicon.svg" alt="" width={22} height={22} className="rounded-[6px]" />
-      </div>
+      {/* Traffic-light reserve — same 36px band the retired logo occupied.
+          Keeps the icon stack clear of native macOS window buttons. Not a
+          brand slot; stays put so icons never jump under the traffic lights. */}
+      <div
+        className="mb-1 h-8 w-full shrink-0"
+        data-activity-traffic-reserve
+        aria-hidden
+      />
 
       {/* Group 1 — workspace views */}
       <div className="flex flex-col items-center gap-1" data-activity-group="views">
@@ -266,11 +243,11 @@ export function ActivityBar({ onCapture }: { onCapture?: () => void }) {
 
       <div className="flex-1" aria-hidden />
 
-      {/* Group 3 — app chrome */}
+      {/* Group 3 — app chrome (theme menu sits between focus and settings) */}
       <div className="flex flex-col items-center gap-1" data-activity-group="chrome">
-        {chromeItems.map((item) => (
-          <ActivityButton key={item.id} item={item} />
-        ))}
+        <ActivityButton item={focusItem} />
+        <ThemeMenuButton />
+        <ActivityButton item={settingsItem} />
       </div>
     </nav>
   );

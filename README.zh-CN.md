@@ -17,10 +17,14 @@
 
 ### 三栏工作台（动态流时间轴 + AI 工作区）
 
-导航 → 动态流时间轴 → AI 工作区（**对话 · 建议 · 清单 · 应用**）。主线是本周动态；AI 负责提议，落盘前一律等你确认。
+导航 → 动态流时间轴 → AI 工作区（**对话 · 建议 · 清单 · 应用**）。主线是本周动态；AI 负责提议，落盘前一律等你确认。界面提供 **简体中文 / English** 双语 chrome（跟系统语言；工作区内容语言不受影响）。
 
 <p align="center">
-  <img src="./docs/images/desktop-stream.jpg" alt="Topmind Desktop 三栏工作台：动态流时间轴与右栏 AI 建议" width="820" />
+  <img src="./docs/images/desktop-stream.jpg" alt="Topmind Desktop 三栏工作台：动态流时间轴与右栏 AI 工作区（简体中文）" width="820" />
+</p>
+
+<p align="center">
+  <img src="./docs/images/desktop-stream-en.jpg" alt="topmind Desktop three-column workbench (English chrome)" width="820" />
 </p>
 
 ### 全流程动态演示
@@ -121,7 +125,7 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Opti
 - 查看当前 UTR 动作域和命令：
   ```bash
   npm run utr:doctor            # UTR 工具链诊断
-  npm run utr:list              # 查看当前 8 域 / 32 命令
+  npm run utr:list              # 查看当前 8 域 / 35 命令
   ```
 - 详细指南：[`TOOLS.md`](./TOOLS.md) · [`utr/README.zh-CN.md`](./utr/README.zh-CN.md) · [English](./utr/README.md)
 
@@ -162,8 +166,8 @@ topmind 将工作区组织为清晰的三个平面，逻辑自洽且可预测：
 ├── 20-专题/2026-某主题/       # 内容平面：涌现专题目录
 │   └── topic.md              # 专题首页
 ├── 88-交付/                  # 内容平面：扁平交付文件
-├── 99-归档/                  # 内容平面安全层：backups · backups/trash · receipts
-├── memory/                   # 语义平面：profile（画像）· periodic（反思）
+├── 99-归档/                  # 内容平面安全层：backups · backups/trash · receipts · stream-archive/
+├── memory/                   # 语义平面：profile · periodic · todo.md（卫星）
 └── .topmind/                 # 系统平面：索引与日志（可随时删除与重建）
 ```
 
@@ -178,10 +182,12 @@ topmind 将工作区组织为清晰的三个平面，逻辑自洽且可预测：
 | 能力 | 状态 | 说明 |
 |------|------|------|
 | 捕获 / 周期本 / 编辑 / 剪藏 / 知识加工 | **Done** | 零摩擦流式记录；Desktop 默认 anydoc 转 MD（可选 markitdown/pandoc + 内置兜底） |
-| Kernel 写闸 · Memory 分层体系 · 动态主表面 | **Done** | 确认后再落盘，高影响改动可撤销与恢复 |
+| Kernel 写闸 · Memory 分层体系 · 动态主表面 | **Done** | 分级 confirm：内容直接落盘；高影响改动可撤销与恢复 |
 | 行内 AI 结果清洗 | **Done** | 自动过滤与清洗思考标签（Thought Tags） |
 | 关键词搜索诚实截断 · **无** embedding 全库语义检索 | **Done** | 保持轻量与透明，防全库泛滥 |
 | AI 操作：todo 维护 · 记忆整理 · 专题建议 | **Done** | 活动窗口驱动，confirm 路径安全控制 |
+| 目标协议 Agent（规划 / 验收 / 续跑） | **Done** | GoalState 会话持久 · Run Card 计划变更 · Pause ≠ Abandon · 外部 evaluator |
+| 界面与 AI 双语（zh-CN / en-US） | **Done** | UI 跟系统语言；文档 AI 跟原文 → 工作区 locale；产品 AI 跟宿主 UI 语言 |
 | 可选记账（`memory/ledgers/`） | **Done** | ledger-engine 卫星；Skills `topmind-ledger`；Desktop 启用后小应用 — 不是第六个用户概念 |
 | 多路 AI 串行与独立会话 | **Done** | 后台 Prep 串行，Agent streaming 时让路 |
 
@@ -223,7 +229,7 @@ npm run versions            # 打印各表面当前版本号
 | 表面能力与硬边界 | [`PRODUCT-BOUNDARIES.md`](./PRODUCT-BOUNDARIES.md) |
 | 数据模型与 6 条核心规约 | [`PROJECT-MODEL.md`](./PROJECT-MODEL.md) |
 | UI/UX 产品设计交互 | [`DESIGN.md`](./DESIGN.md) |
-| Desktop 富工作台说明 | [`topmind-desktop/README.zh-CN.md`](./topmind-desktop/README.zh-CN.md) · [English](./topmind-desktop/README.md) |
+| Desktop 富工作台说明（含双语 UI / 本地化 AI） | [`topmind-desktop/README.zh-CN.md`](./topmind-desktop/README.zh-CN.md) · [English](./topmind-desktop/README.md) |
 | Obsidian 插件说明 | [topmind-obsidian](https://github.com/topmindspace/topmind-obsidian) |
 | Agent Skills 架构与安装 | [`SKILL-ARCHITECTURE.md`](./SKILL-ARCHITECTURE.md) · [topmind-skills INSTALL](https://github.com/topmindspace/topmind-skills/blob/main/INSTALL.md) |
 | UTR CLI/MCP 命令字典 | [`TOOLS.md`](./TOOLS.md) · [`utr/README.zh-CN.md`](./utr/README.zh-CN.md) |

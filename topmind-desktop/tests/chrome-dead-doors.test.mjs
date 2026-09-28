@@ -144,9 +144,11 @@ test("view-switch closed-state icon does not impersonate 动态 on file/topic/me
   assert.equal(destinationSwitchKind("home"), "home");
   assert.equal(destinationSwitchKind("file"), "home");
   assert.equal(destinationSwitchKind("stream"), "stream");
-  const nav = read("src/components/shell/PrimaryNav.tsx");
-  assert.match(nav, /destinationSwitchKind/);
-  assert.doesNotMatch(nav, /activeView\?\.icon \?\? RiBroadcastLine/);
+  // Destinations are ActivityBar-only (PrimaryNav retired 2026-09-28).
+  assert.equal(existsSync(path.join(root, "src/components/shell/PrimaryNav.tsx")), false);
+  const activity = read("src/components/shell/ActivityBar.tsx");
+  assert.match(activity, /RiHome4Line/);
+  assert.doesNotMatch(activity, /RiNewspaperLine/);
 });
 
 test("DESIGN §0.0.4 does not name SidebarHeaderActions as the 动态 home", () => {

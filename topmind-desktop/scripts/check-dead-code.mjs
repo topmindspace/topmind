@@ -236,10 +236,10 @@ const DEAD_PATTERNS = [
     allowIn: ["scripts/check-dead-code.mjs"],
   },
   {
-    id: "stream-not-home-glyph",
-    description: "动态 in the destination switcher must not use the workspace-home glyph RiHome4Line",
-    regex: /kind:\s*["']stream["'][\s\S]{0,80}RiHome4Line/u,
-    scope: ["src/components/shell/PrimaryNav.tsx"],
+    id: "no-resurrected-primary-nav",
+    description: "PrimaryNav retired 2026-09-28 — destinations live only on ActivityBar (no TitleBar compact fallback)",
+    regex: /from\s+["'][^"']*PrimaryNav["']|<PrimaryNav\b|PRIMARY_NAV_OPTIONS/u,
+    scope: ["src/**/*.ts", "src/**/*.tsx"],
     allowIn: ["scripts/check-dead-code.mjs"],
   },
   {

@@ -220,10 +220,14 @@ test("v4 source footprint stays bounded (src + electron)", () => {
   // (+1 electron, no new logic) so the plane rules are unit-testable without Electron.
   // Prefer merge over raising; this is the last +1 for the extraction.
   // 2026-09-27: shipped src is 242 (Activity Bar / home already in tree).
-  // This pass added no src file. Ceiling stays a one-file tripwire.
+  // 2026-09-28: PrimaryNav.tsx retired (−1 src → 241) — destinations live on ActivityBar only.
+  // 2026-09-28b: ThemeMenuButton.tsx (+1 src → 242) — ActivityBar appearance menu.
+  // 2026-09-28c: GitHub capture path (+2 electron: lib/github-md.mjs pure URL
+  // semantics vendored from kernel, lib/github-fetch.mjs raw/README network).
+  // Prefer merge over raising; this ceiling is a one-file tripwire.
   assert.ok(srcCount < 243, `src file count ${srcCount} exceeds soft ceiling`);
-  assert.ok(electronCount < 120, `electron file count ${electronCount} exceeds soft ceiling`);
-  assert.ok(srcCount + electronCount < 362, `total ${srcCount + electronCount} exceeds soft ceiling`);
+  assert.ok(electronCount < 122, `electron file count ${electronCount} exceeds soft ceiling`);
+  assert.ok(srcCount + electronCount < 364, `total ${srcCount + electronCount} exceeds soft ceiling`);
 });
 
 test("desktop validate restages engine before pack:verify (obsidian/clip stamp drift)", () => {

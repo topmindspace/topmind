@@ -36,7 +36,7 @@
 
 ## 界面导览与演示
 
-截图已压缩整理（原始高分辨率图仅在开发机的 `resources/img/`——该目录不入库；全局图片库见 [`../docs/images/`](../docs/images/README.md)）。以下静帧为 **2026-09 三栏 chrome**。
+截图已压缩整理（原始高分辨率图仅在开发机的 `resources/img/`——该目录不入库；全局图片库见 [`../docs/images/`](../docs/images/README.md)）。以下静帧为 **2026-09 三栏 chrome · ZCode Neutral + MD3 暖纸主题**（中英 UI 各一张）。
 
 ### 1. 核心工作台表面（动态时间轴与 AI 工作区）
 

@@ -2,11 +2,12 @@
  * Center-column chrome — context-driven product header.
  *
  * 2026-09 v4 redesign:
- * - Sidebar header has Profile + Search + 记一下.
+ * - Sidebar header has workspace name + search; destinations live on ActivityBar.
  * - TitleBar left: Toggle + history + clickable breadcrumb + stats.
- * - PrimaryNav (动态 / Inbox / 交付) lives in the sidebar destinations row;
- *   when the sidebar is collapsed, compact icon PrimaryNav mounts here so
- *   destinations stay reachable.
+ * - Destinations (动态 / Inbox / 交付 / 我的情况) are ActivityBar-only — no
+ *   compact destination row here. ActivityBar stays mounted when the
+ *   sidebar collapses, so a second icon row in the title bar is pure noise
+ *   and collides with the macOS traffic-light band.
  * - TitleBar right: dynamic injected actions + AI panel toggle.
  * - Three-column headers share `.v4-column-chrome` (44px).
  * - OS chrome (Windows menu strip + caption reserve) lives in OsChromeStrip
@@ -19,7 +20,6 @@ import {
   RiArrowRightSLine,
   RiCloseCircleLine,
   RiCloseLine,
-  RiHome4Line,
   RiLayoutColumnLine,
   RiPushpinLine,
 } from "@remixicon/react";
@@ -33,11 +33,9 @@ import {
   resolveTitleBarIdentity,
   type TitleBarIdentityLabels,
 } from "../../lib/titlebar-identity";
-import { defaultCanvasSelection } from "../../types";
 
 import { Tooltip } from "../ui/tooltip";
 import { PanelToggleIcon } from "../ui/PanelToggleIcon";
-import { PrimaryNav } from "./PrimaryNav";
 import { ICON } from "../../lib/icons";
 import { isMacOS } from "../../lib/platform";
 import { formatChord } from "../../lib/chord";
@@ -175,23 +173,7 @@ export function TitleBar({ workspaceRoot: _workspaceRoot, sidebarCollapsed, onTo
               <RiArrowRightSLine size={ICON.sm} />
             </button>
           </Tooltip>
-          <Tooltip content={t("workspace:home.goHomeTip")}>
-            <button
-              type="button"
-              className="v4-titlebar-btn"
-              data-go-workspace-home
-              data-active={selection.kind === "home" ? "true" : undefined}
-              aria-current={selection.kind === "home" ? "page" : undefined}
-              aria-label={t("workspace:home.goHome")}
-              onClick={() => select(defaultCanvasSelection())}
-            >
-              <RiHome4Line size={ICON.sm} aria-hidden />
-            </button>
-          </Tooltip>
         </div>
-
-        {/* Collapsed-sidebar reach: destinations stay on the chrome row. */}
-        {sidebarCollapsed && !focusMode ? <PrimaryNav variant="compact" /> : null}
 
         {/* Breadcrumb + title + stats — first crumb keeps a longer readable cap.
             Right-click carries tab ops when the tab strip is hidden (≤1 file). */}

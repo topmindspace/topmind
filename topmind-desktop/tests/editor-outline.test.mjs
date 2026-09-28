@@ -45,7 +45,7 @@ describe("EditorOutlinePanel & StreamDetailView UX enhancements", () => {
     assert.match(editor, /e\.altKey && e\.key\.toLowerCase\(\) === "o"/);
   });
 
-  it("StreamDetailView implements auto-grow composer, append shortcuts and thread branch line", () => {
+  it("StreamDetailView implements auto-grow composer, append shortcuts and quiet nested indent", () => {
     const stream = fs.readFileSync(
       path.join(root, "src/plugins/topmind-workspace/views/StreamDetailView.tsx"),
       "utf8",
@@ -56,8 +56,9 @@ describe("EditorOutlinePanel & StreamDetailView UX enhancements", () => {
     // Append textarea shortcuts (Cmd/Ctrl+Enter submit and Escape cancel)
     assert.match(stream, /onAppendSubmit/);
     assert.match(stream, /onAppendCancel/);
-    // Thread branch line
-    assert.match(stream, /-left-3 top-2\.5 h-px w-2/);
+    // Nested appends: indent only (4.2 declutter — no accent branch bars)
+    assert.match(stream, /data-stream-nested-appends/);
+    assert.doesNotMatch(stream, /-left-3 top-2\.5 h-px w-2/);
     // Floating back to top button
     assert.match(stream, /showBackToTop/);
     assert.match(stream, /window\.scrollTo\(\{ top: 0, behavior: "smooth" \}\)/);

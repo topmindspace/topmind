@@ -414,6 +414,129 @@
       ],
       "reads": ["memory/profile.md"],
       "writes": ["memory/profile.md"]
+    },
+    "list-todos": {
+      "label": "列出待办",
+      "description": "读取个人待办清单（memory/todo.md 语义平面卫星）。默认只返回未完成项；completed=true 时含已完成。",
+      "group": "assistive",
+      "exposure": "primary",
+      "risk_level": "low",
+      "review_policy": "auto",
+      "requires_topic": false,
+      "idempotent": true,
+      "supports_dry_run": false,
+      "destructive": false,
+      "inputs": {
+        "completed": {
+          "type": "toggle",
+          "label": "含已完成",
+          "default": false,
+          "hint": "true 时返回全部（含已完成）；默认只返回未完成项"
+        },
+        "limit": {
+          "type": "text",
+          "label": "最多返回条数",
+          "required": false,
+          "hint": "默认 50"
+        }
+      },
+      "args_extra": [
+        "--completed",
+        "{completed}",
+        "--limit",
+        "{limit}"
+      ],
+      "reads": ["memory/todo.md"],
+      "writes": []
+    },
+    "add-todo": {
+      "label": "添加待办",
+      "description": "向 memory/todo.md 原子追加一条或多条待办。支持文本内嵌截止日期（如「完成报告 📅 2026-09-10」）或 dueDate。自动去重；用户删过的条目不回灌。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "medium",
+      "review_policy": "preview_or_auto",
+      "requires_topic": false,
+      "idempotent": false,
+      "supports_dry_run": true,
+      "destructive": false,
+      "inputs": {
+        "text": {
+          "type": "text",
+          "label": "待办文本",
+          "required": false,
+          "hint": "单条；与 items 二选一"
+        },
+        "items": {
+          "type": "text",
+          "label": "批量待办 JSON 数组",
+          "required": false,
+          "hint": "如 [\"交报告\",\"订机票\"]；与 text 二选一"
+        },
+        "dueDate": {
+          "type": "text",
+          "label": "截止日期",
+          "required": false,
+          "hint": "YYYY-MM-DD；也可写在文本里"
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            { "value": "auto", "label": "自动保存并返回回执" },
+            { "value": "confirm", "label": "需要审阅" }
+          ]
+        }
+      },
+      "args_extra": [
+        "--text",
+        "{text}",
+        "--items",
+        "{items}",
+        "--due-date",
+        "{dueDate}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": ["memory/todo.md"],
+      "writes": ["memory/todo.md"]
+    },
+    "toggle-todo": {
+      "label": "切换待办完成",
+      "description": "在未完成/已完成之间切换待办。idOrText 可为待办 ID 或文本片段。标记完成会记完成时间并同步到当前动态周期本。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "medium",
+      "review_policy": "preview_or_auto",
+      "requires_topic": false,
+      "idempotent": false,
+      "supports_dry_run": true,
+      "destructive": false,
+      "inputs": {
+        "idOrText": {
+          "type": "text",
+          "label": "待办 ID 或文本片段",
+          "required": true
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            { "value": "auto", "label": "自动保存并返回回执" },
+            { "value": "confirm", "label": "需要审阅" }
+          ]
+        }
+      },
+      "args_extra": [
+        "--id-or-text",
+        "{idOrText}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": ["memory/todo.md"],
+      "writes": ["memory/todo.md"]
     }
   }
 }

@@ -878,7 +878,22 @@
     "apps": "Apps",
     "ai": "AI workspace",
     "focus": "Focus mode",
-    "theme": "Toggle theme",
+    "theme": "Appearance",
     "settings": "Settings"
+  },
+  "themeMenu": {
+    "mode": "Display",
+    "mode-auto": "System",
+    "mode-light": "Light",
+    "mode-dark": "Dark",
+    "tone": "Surface tone",
+    "tone-warm": "Warm",
+    "tone-cool": "Cool",
+    "tone-neutral": "Neutral",
+    "tone-slate": "Slate",
+    "seed": "Accent",
+    "seed-sky": "Sky",
+    "seed-teal": "Teal",
+    "seed-graphite": "Graphite"
   }
 }

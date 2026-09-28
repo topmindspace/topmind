@@ -194,7 +194,7 @@ test("living TOOLS.md inventory matches shipped names; dropped bash is absent", 
   assert.match(toolsMd, /Skills pack — all \*\*keep\*\*/);
   assert.match(toolsMd, /UTR commands — all \*\*keep\*\*/);
   assert.match(toolsMd, /drop — never registered/);
-  assert.match(toolsMd, /8 域 \/ 32 命令/);
+  assert.match(toolsMd, /8 域 \/ 35 命令/);
   const all = [...AI_TOOL_NAMES_READ, ...AI_TOOL_NAMES_WRITE];
   for (const name of all) {
     assert.match(toolsMd, new RegExp(`\`${name}\``, "u"), `TOOLS.md missing ${name}`);

@@ -101,6 +101,10 @@ function mergeManualSecrets(baseManual, patchManual, clearSink = null) {
   return next;
 }
 const THEMES = new Set(["auto", "light", "dark"]);
+/** Surface tone packs (DS 4.1) — neutral ladder only. */
+const THEME_TONES = new Set(["warm", "cool", "neutral", "slate"]);
+/** Accent seed axis (DS 4.0.3) — does not replace theme mode. */
+const THEME_SEEDS = new Set(["sky", "teal", "graphite"]);
 const WRITEBACK_MODES = new Set(["auto", "confirm"]);
 const EDITOR_FONT_FAMILIES = new Set(["sans", "serif", "mono"]);
 const SIDEBAR_VIEWS = new Set(["stream", "category", "timeline", "tags", "kanban"]);
@@ -1166,6 +1170,12 @@ function mergeAppSettings(baseSettings, patch, options = {}) {
   const strictValidation = Boolean(options.strictValidation);
 
   if (typeof patch.theme === "string" && THEMES.has(patch.theme)) next.theme = patch.theme;
+  if (typeof patch.themeTone === "string" && THEME_TONES.has(patch.themeTone)) {
+    next.themeTone = patch.themeTone;
+  }
+  if (typeof patch.themeSeed === "string" && THEME_SEEDS.has(patch.themeSeed)) {
+    next.themeSeed = patch.themeSeed;
+  }
   if (typeof patch.workspaceRoot === "string" && patch.workspaceRoot.trim()) next.workspaceRoot = patch.workspaceRoot;
   if (patch.writebackMode !== undefined) next.writebackMode = normalizeWritebackMode(patch.writebackMode, next.writebackMode);
 
@@ -1387,6 +1397,12 @@ function parseSettingsBody(raw, defaultWorkspaceRoot, secretAdapter) {
   if (typeof merged.theme !== "string" || !THEMES.has(merged.theme)) {
     merged.theme = "auto";
   }
+  if (merged.themeTone !== undefined && (typeof merged.themeTone !== "string" || !THEME_TONES.has(merged.themeTone))) {
+    delete merged.themeTone;
+  }
+  if (merged.themeSeed !== undefined && (typeof merged.themeSeed !== "string" || !THEME_SEEDS.has(merged.themeSeed))) {
+    delete merged.themeSeed;
+  }
   return hydrateManualSecrets(merged, parsed, secretAdapter);
 }
 
@@ -1456,6 +1472,8 @@ export {
   isAcceptedSourcePreference,
   MANUAL_SECRET_KEYS,
   WRITEBACK_MODES,
+  THEME_TONES,
+  THEME_SEEDS,
   SIDEBAR_VIEWS,
   FEED_LAYOUTS,
   UI_LOCALES,
@@ -1538,6 +1556,8 @@ export const settingsCoreTest = {
   AI_SOURCE_PREFERENCES,
   isAcceptedSourcePreference,
   WRITEBACK_MODES,
+  THEME_TONES,
+  THEME_SEEDS,
   SIDEBAR_VIEWS,
   FEED_LAYOUTS,
   AGENT_STEPS_MIN,

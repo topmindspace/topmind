@@ -22,30 +22,19 @@ function sliceTitleBarActions(src) {
   return src.slice(start, end);
 }
 
-test("PrimaryNav is the compact TitleBar fallback; sidebar header is workspace name + search", () => {
-  const nav = read("src/components/shell/PrimaryNav.tsx");
-  assert.match(nav, /data-primary-nav=/);
-  // Destinations remain stream / inbox / outputs — compact chips + dropdown items.
-  assert.match(nav, /kind: "stream"/);
-  assert.match(nav, /kind: "inbox"/);
-  assert.match(nav, /kind: "outputs"/);
-  assert.match(nav, /variant = "sidebar"/);
-  // Sidebar variant: one 32px icon trigger. Names stay in the menu, not on the closed button.
-  assert.match(nav, /data-primary-nav="sidebar"/);
-  assert.match(nav, /DropdownMenu/);
-  assert.match(nav, /aria-haspopup="menu"/);
-  assert.match(nav, /v4-sidebar-chrome-btn/);
-  assert.match(nav, /data-sidebar-destination=\{active\}/);
-  assert.match(nav, /\{t\(opt\.labelKey\)\}/);
-  assert.doesNotMatch(nav, /\{activeLabel\}<\/span>/);
-  assert.match(nav, /kind:\s*"home"/);
-  const homeAt = nav.indexOf('kind: "home"');
-  const homeSlice = nav.slice(homeAt, nav.indexOf('kind: "stream"', homeAt));
-  assert.match(homeSlice, /RiHome4Line/);
-  assert.doesNotMatch(homeSlice, /RiNewspaperLine/);
-  assert.match(nav, /kind:\s*"stream"[\s\S]{0,80}RiNewspaperLine/);
-  // Compact: icon-only chips still carry data-nav-kind for tests/automation.
-  assert.match(nav, /data-nav-kind=\{opt\.kind\}/);
+test("Destinations are ActivityBar-only; sidebar header is workspace name + search", () => {
+  // Destinations retired from the title bar — no compact fallback, no dual home.
+  const title = read("src/components/shell/TitleBar.tsx");
+  assert.doesNotMatch(title, /<PrimaryNav|from ["'][^"']*PrimaryNav["']/);
+  assert.doesNotMatch(title, /data-go-workspace-home/);
+  assert.match(title, /data-canvas-chrome/);
+  const activity = read("src/components/shell/ActivityBar.tsx");
+  assert.match(activity, /data-activity-group="views"/);
+  assert.match(activity, /RiHome4Line/);
+  assert.match(activity, /RiInbox2Line/);
+  assert.match(activity, /RiShareForwardLine/);
+  assert.doesNotMatch(activity, /data-activity-logo/);
+  assert.match(activity, /data-activity-traffic-reserve/);
   const status = read("src/components/shell/StatusBar.tsx");
   assert.doesNotMatch(status, /<PrimaryNav/);
   // 2026-09 ActivityBar IA: destinations are on the ActivityBar rail; the Sidebar
@@ -53,8 +42,6 @@ test("PrimaryNav is the compact TitleBar fallback; sidebar header is workspace n
   const sidebar = read("src/components/shell/Sidebar.tsx");
   assert.doesNotMatch(sidebar, /data-sidebar-primary-nav/);
   assert.match(sidebar, /data-sidebar-search/);
-  const title = read("src/components/shell/TitleBar.tsx");
-  assert.match(title, /PrimaryNav variant="compact"/);
 });
 
 test("TitleBar first crumb is longer and more readable than later crumbs", () => {

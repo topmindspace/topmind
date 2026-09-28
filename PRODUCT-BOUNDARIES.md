@@ -71,7 +71,7 @@ topmind 是 Agent 时代的本地优先工作台，按需组合四条独立能�
 | derived-builder | `.derived/` 生成重建 | **Done 最小** — topic summary + **item-history**；AI 摘要可占位 |
 | ingest-pipeline | URL/文档路由语义 | **Done** 路由 — Desktop commit 经 `resolveIngestRoute`；HTML→MD 与 Clip 共用同一算法（Desktop `html-to-markdown.mjs`） |
 
-**卫星（不是第九引擎）**：`todo-engine`（`memory/todo.md`）· `ledger-engine`（可选 `{memory.dir}/ledgers/`，默认个人/自己账本；经 writeback 写入）。记账不是第六个用户概念，也不是 UTR 域。
+**卫星（不是第九引擎）**：`todo-engine` · `ai-operation-engine` · `suggest-engine` · `ledger-engine`（`memory/todo.md`：UTR `memory.list-todos/add-todo/toggle-todo` ≡ Desktop `list_todos/add_todo/toggle_todo`；账本可选 `{memory.dir}/ledgers/`，经 writeback）。记账不是第六个用户概念，也不是 UTR 域。技能侧自动建议阶梯见 skills pack `shared/auto-suggest.md`（L0 落盘 · L1 建议 · L2 确认）。
 
 **铁律（目标）**：Surface 不得平行实现业务语义。**Desktop / UTR / Obsidian / AI 耐久内容写** 必须经 writeback-engine。Skills 宿主文件工具与 Clip workspace-direct 属于 **capture-class 开放写**（用户手势即确认；无 Node 写闸），不是第二套保护/备份/回执实现。现状见 `docs/ARCHITECTURE-RESET.md` §2。
 
@@ -83,7 +83,7 @@ topmind 是 Agent 时代的本地优先工作台，按需组合四条独立能�
 |------|------|
 | Desktop 必须调 UTR 才能保存 / 捕获 / AI 写回？ | **否** — WorkspaceService → Kernel writeback-engine |
 | Skills 必须调 UTR？ | **否** — Host 文件工具 + 内容约定 |
-| 全部 UTR 命令日常必需？ | **否** — 注册表 32，MCP 默认 23 |
+| 全部 UTR 命令日常必需？ | **否** — 注册表 35，MCP 默认 26 |
 | 无 UTR 时是否可用？ | **是** |
 | 保留 UTR 的理由？ | Agent Host / CI / doctor / 脚本的确定性命令面（Kernel adapter） |
 
@@ -148,7 +148,7 @@ UTR = 软探测；写回不经 UTR
 
 面向无 Desktop、有 agent/脚本的确定性命令面。
 
-- **8 域 / 32 命令**；MCP 默认 **23**
+- **8 域 / 35 命令**；MCP 默认 **26**
 - 完整表：`TOOLS.md`
 - 目标：薄 adapter，业务在 Kernel
 
@@ -220,6 +220,8 @@ graph TD
 | 捕获 / 周期本 / 编辑 / 剪藏 / 文档加工 | **Done**（抓取网页图片本地化到 `images/{slug}/`） |
 | **媒体时序** | Desktop：关联媒体仅在写闸提交后移动/trash。**Obsidian 豁免**：附件由 Vault 管理，Plugin 不维护 `images/{slug}/` 链路，故无 Desktop 同序媒体操作 |
 | skill-first AI 对话与领域工具 | **Done**（副驾建议条 + 待确认写入 **Done**） |
+| 目标协议 Agent（规划 / 验收 / 续跑 / 压缩） | **Done**（`lib/agent-goal-protocol` · GoalState 会话持久 `.goal.json` · Run Card `planBaseline` 计划变更 chips · Pause ≠ Abandon（`paused ≠ cancelled`）· 外部 evaluator · 溢出压缩重试） |
+| 界面与 AI 输出语言（zh-CN / en-US） | **Done**（UI 跟系统 / 宿主语言；文档 AI：本轮要求 → 原文 → 工作区 locale；产品 AI：本轮要求 → 宿主 UI 语言 → 工作区 locale。`lib/ai-output-locale.mjs`） |
 | 三平面目录与 topmind.yaml v4 | **Done**（约定）/ 契约 UI 非强制 **Intentional Partial** |
 | writeback 唯一写闸 | **Done**（主路径 + **分级 confirm**（内容落盘，仅删/归档 pending） + 高影响 only 备份/回执：locked 覆盖 · 锁定/核心笔记 delete/archive · 普通开放笔记无 trash · `permanent` 无副本） |
 | Memory 产品面（我的情况浏览 / 建议条） | **Done** |

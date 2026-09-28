@@ -32,16 +32,14 @@
   --color-popover: var(--popover);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
-  /* primary-hover/active retired 2026-09-26: Button uses MD3 state layers
-     (`state-on-primary-hover/pressed`), not base-fill color swaps. */
+  /* Button hover/active use MD3 state layers, not base-fill swaps. */
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-chrome: var(--chrome);
 
-  /* State / tonal live in tokens.css @theme — not re-aliased here (avoid cycles).
-     Utilities: bg-accent-container · text-on-accent-container · bg-state-hover … */
+  /* State / tonal live in tokens.css — not re-aliased here (avoid cycles). */
 
   --radius-sm: 4px;
   --radius-md: 6px;

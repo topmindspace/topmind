@@ -95,11 +95,34 @@ export function computeDropdownPosition(input: DropdownPositionInput): DropdownP
   const spaceRight = vw - t.right - gap - pad;
   const measuredH = input.panel?.height ?? 0;
 
-  // Right placement (ActivityBar rail menus): flush to the right of the
-  // trigger, top-aligned — VS Code activity-bar grammar.
+  // Right placement (ActivityBar rail menus): flush to the right of the trigger.
+  // Top-aligned when the trigger has room below (VS Code activity-bar grammar).
+  // Bottom-docked triggers (chrome group near the status bar) must grow *upward*:
+  // bottom-align the panel to the status-bar top edge so the full menu is visible
+  // without an inner scrollbar.
   if (prefer === "right" && spaceRight >= Math.min(160, width)) {
-    const maxH = clamp(Math.min(maxHeight, vh - t.top - pad - padBottom), 80, maxHeight);
     const left = t.right + gap;
+    const availFromTriggerTop = vh - t.top - pad - padBottom;
+    const availFull = vh - pad - padBottom;
+    // Content height when known; otherwise assume the caller wants as much as fits.
+    const wantH = measuredH > 0 ? measuredH : maxHeight;
+    const needsUpward = wantH > availFromTriggerTop - gap && spaceAbove + t.height > 80;
+
+    if (needsUpward) {
+      // Dock bottom edge to status-bar top (vh - padBottom) and grow up.
+      const maxH = clamp(Math.min(maxHeight, availFull), 80, maxHeight);
+      const panelH = measuredH > 0 ? Math.min(measuredH, maxH) : maxH;
+      const top = clamp(vh - padBottom - panelH, pad, Math.max(pad, vh - padBottom - 24));
+      return {
+        top: Math.round(top),
+        left: Math.round(clamp(left, pad, Math.max(pad, vw - width - pad))),
+        width: Math.round(width),
+        maxHeight: Math.round(maxH),
+        placement: "right",
+      };
+    }
+
+    const maxH = clamp(Math.min(maxHeight, availFromTriggerTop), 80, maxHeight);
     return {
       top: Math.round(clamp(t.top, pad, Math.max(pad, vh - padBottom - 24))),
       left: Math.round(clamp(left, pad, Math.max(pad, vw - width - pad))),

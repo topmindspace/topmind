@@ -1,6 +1,6 @@
 # topmind Desktop — 架构
 
-> **现状描述 + Target 标注**。源文件计数：`src/` 242 · `electron/` 118。  
+> **现状描述 + Target 标注**。源文件计数：`src/` 242 · `electron/` 120。  
 > **1 RPC · Stores（View / Ai / Action / Plugin / IngestStaging / Task / Todo）· 1 Shell · 5+2 Service · 7 插件槽**  
 > UI 真源：`DESIGN.md`。边界：`../PRODUCT-BOUNDARIES.md`。  
 > **实施锁**：[`../docs/ARCHITECTURE-RESET.md`](../docs/ARCHITECTURE-RESET.md)（写闸合闸 · 建议副驾 · 导航变薄）。
@@ -37,7 +37,7 @@
 | 响应式 chrome | **Done** — `ChromeOverflowActions` + TitleBar compact 互斥 + StatusBar 可点 |
 | connectors weread/x | **Done** — 共享 `electron/lib/connector-bridge.mjs`（settings+secret · patch 持久 · `writeConnectorNote` 经 kernel 写闸）；ADR `docs/adr/2026-08-02-connector-bridge.md` |
 | ingest 路由 | **Done** — Desktop commit 经 `resolveIngestRoute`（Kernel） |
-| PrimaryNav | **Done** — 动态 / Inbox / 交付（目的地主锚在 **ActivityBar**；侧栏收起时 TitleBar 紧凑图标 `PrimaryNav variant=compact`）；搜索由统一 ⌘K 触发器打开；打开工作区后 selection 默认 `{ kind: "home" }`（工作区主页，不是第四主锚）；显式动态仍是 `stream`；未知 kind → home；归档不在主锚 |
+| PrimaryNav | **Done** — 动态 / Inbox / 交付（目的地主锚在 **ActivityBar**，常驻；`PrimaryNav` 组件已退役 2026-09-28，TitleBar 无紧凑回退）；搜索由统一 ⌘K 触发器打开；打开工作区后 selection 默认 `{ kind: "home" }`（工作区主页，不是第四主锚）；显式动态仍是 `stream`；未知 kind → home；归档不在主锚 |
 | 侧栏 thrift | **Done** — ViewSwitcher 主轨 stream/目录/时间；标签/看板「更多」 |
 | 关键词搜索诚实 | **Done** — notes-index + grep `truncated`/`scannedTotal`；GlobalSearch 截断提示（无 embedding） |
 | 建议可关 | **Done** — `ai.autoPrepareSuggestions`（默认开） |
@@ -297,8 +297,8 @@ Shell（三列贯通 · 无横跨产品 header）
 
 ### 现状（已收敛 · Phase B Done）
 
-PrimaryNav 文案为 **动态 · Inbox · 交付**（搜索非 PrimaryNav：⌘K 命令面板 · ⌘P 笔记全文）。打开工作区后的默认 selection 是 `{ kind: "home" }`（工作区主页）。显式动态仍是 `{ kind: "stream" }`。  
-**2026-09 v4**：三列顶栏共用 `.v4-column-chrome`（44px）。主目的地轨是 **ActivityBar**（最左 48px 三分组：home≡stream `RiHome4Line` + Inbox · 交付 · 我的情况 · 记一下；中 应用菜单；底 专注 · 主题 · 设置）。Sidebar 主 header 只有**工作区名+菜单 → 搜索 ⌘K**（`data-sidebar-ws-name` / `data-sidebar-search`）——目的地 / 捕获 / 主题 / 设置不在侧栏头。macOS 这一行在红绿灯留白内右对齐（`.v4-mac-titlebar-pad` 取代 8px 左内边距，全屏收起）；Windows/Linux 左对齐。次级 header 的 ViewSwitcher 靠左，树工具靠右，与目录树同一左缘。编辑器大纲 / 外观 / 专注住在 FrontmatterBar。StatusBar 左端显示工作区完整路径。中栏顶栏的「回到工作区」用首页图标。左右栏开关始终是线形图标。
+PrimaryNav 文案为 **动态 · Inbox · 交付**（搜索非 PrimaryNav：⌘K 命令面板 · ⌘P 笔记全文）。打开工作区后的默认 selection 是 `{ kind: "home" }`（工作区主页）。显式动态仍是 `{ kind: "stream" }`。目的地组件已收敛到 **ActivityBar**（无 TitleBar 紧凑回退）。  
+**2026-09 v4**：三列顶栏共用 `.v4-column-chrome`（44px）。主目的地轨是 **ActivityBar**（最左 48px 三分组：顶部红绿灯安全区 `data-activity-traffic-reserve`（无 logo）+ home≡stream `RiHome4Line` + Inbox · 交付 · 我的情况 · 记一下；中 应用菜单；底 专注 · 主题 · 设置）。Sidebar 主 header 只有**工作区名+菜单 → 搜索 ⌘K**（`data-sidebar-ws-name` / `data-sidebar-search`）——目的地 / 捕获 / 主题 / 设置不在侧栏头。macOS 这一行在红绿灯留白内右对齐（`.v4-mac-titlebar-pad` 取代 8px 左内边距，全屏收起）；Windows/Linux 左对齐。次级 header 的 ViewSwitcher 靠左，树工具靠右，与目录树同一左缘。编辑器大纲 / 外观 / 专注住在 FrontmatterBar。StatusBar 左端显示工作区完整路径。中栏顶栏**无**「回到工作区」图标（ActivityBar home 唯一）。左右栏开关始终是线形图标。
 旧「工作台」主锚点已退役。**已删仪表盘**（问候 CTA、钉住卡、下一步/进行中/截止、最近专题材料条、连接器条）不得回来。`kind: "home"` 现在是工作区主页，不是那个仪表盘。`normalizeSelection` 把空值和未知 kind 收到主页；显式 `stream` 保持动态。归档不在主锚。
 
 ```
@@ -314,13 +314,13 @@ Shell（data-through-columns）
 
 ### 工作区主页（默认着陆 · 与代码一致）
 
-默认 `selection: { kind: "home" }` → **`StreamDetailView`**（Stream 工作台首页，2026-09-26 合并 Landing）。无文件、未知 selection、关掉最后一个文件标签都落在这里。首页 = 身份条 + 快捷入口（Inbox/交付/我的情况/AI 建议）+ Hero compose + 动态流。WorkspaceHomeView 已退役。
+默认 `selection: { kind: "home" }` → **`StreamDetailView`**（Stream 工作台首页，2026-09-26 合并 Landing）。无文件、未知 selection、关掉最后一个文件标签都落在这里。首页 = 身份条 + Inbox/交付库存计数（安静统计）+ Hero compose + 动态流。WorkspaceHomeView 已退役。
 
 **已删除、勿再文档化的仪表盘能力**：问候 CTA、钉住卡、下一步/进行中/截止、最近专题材料条、连接器条。建议确认列表仍只在 AI 工作区建议 pane，不在主页，也不在动态。
 
 ### Stream 主表面（动态 · 显式打开）
 
-显式 `selection: { kind: "stream" }` → **`StreamDetailView`**（周期本浏览器）。ActivityBar home≡stream 单图标、⌘⇧S、命令面板 `goto.stream` 都走这条。`home` kind 仍存在（`defaultCanvasSelection`），但与 `stream` 同渲同一画布（home≡stream）；PrimaryNav 收起回退下拉里仍分列工作区 / 动态，工作区用 `RiHome4Line`，动态用 `RiNewspaperLine`（Desktop 轨上不双图标）。
+显式 `selection: { kind: "stream" }` → **`StreamDetailView`**（周期本浏览器）。ActivityBar home≡stream 单图标、⌘⇧S、命令面板 `goto.stream` 都走这条。`home` kind 仍存在（`defaultCanvasSelection`），但与 `stream` 同渲同一画布（home≡stream）；Desktop 轨上不双图标（无 `RiNewspaperLine` 目的地）。
 
 **建议 / 审阅**：AI 工作区 **建议 pane**（`SuggestPopover` 确认列表；状态栏计数 chip 仅 count>0 · 不嵌 Stream 列表；画布顶 `SuggestEntryStrip` 已删）。侧栏 Profile + ⌘K「转到 · 我的情况」可达记忆浏览。
 
@@ -334,7 +334,7 @@ Shell（data-through-columns）
 - **自动刷新**：订阅 `workspace:file-changed`，450ms 防抖静默重载
 - **AI 整合**：reconcile 失败时可 fallback AI 整理 prompt；有候选条目时提示（非静默高影响写）
 - **快捷键**：⌘⇧S / ⌘⇧T 均导航到 `{ kind: "stream" }`
-- **入口**：PrimaryNav「动态」· 侧栏 pin · 命令面板 · 快捷键
+- **入口**：ActivityBar「动态」· 侧栏 pin · 命令面板 · 快捷键
 
 ### 连接器 Hub UI（共享原语）
 
@@ -500,6 +500,9 @@ Pi 围栏别名（不是第二套 FS）：`read`→`read_file` · `write`→`sav
 L1  workspace.fetchUrl
       HTTP + @mozilla/readability + html-to-markdown
       (workspace-fetch-ops / fetch-article)
+L1-GH  GitHub md / README
+      lib/github-md.mjs（纯解析/图片改写）+ github-fetch.mjs（raw/README 网络）
+      blob/raw → raw.githubusercontent；repo/tree → README API + raw 回退
 L2  fetchUrl({ render: true })
       fetch-render.mjs — offscreen BrowserWindow（ephemeral，不占 Dock）
 L3+ Browser Extension → POST /v1/clip → clip-bridge.mjs
@@ -508,10 +511,11 @@ L3+ Browser Extension → POST /v1/clip → clip-bridge.mjs
       → ingestInbox + fetch_method / word_count frontmatter
 ```
 
-- 默认 L1；`render: true` 或用户点「增强渲染」走 L2  
+- 默认 L1；GitHub md/README 自动走 L1-GH；`render: true` 或用户点「增强渲染」走 L2  
 - Ephemeral 窗：`markEphemeralBrowserWindow` — 不触发 Dock 双图标误杀  
 - Clip Bridge：仅 `127.0.0.1`、Bearer token、默认关闭；见 `lib/clip-bridge.mjs` · `lib/clip-payload.mjs`  
-- 返回 / 落盘：`method`（readability|heuristic|render|selection|manual）· `truncated` · `likelySpa` · `warning`  
+- 返回 / 落盘：`method`（readability|heuristic|render|github-raw|github-readme|selection|manual）· `truncated` · `likelySpa` · `warning`  
+- GitHub URL 语义单源：`lib/github-md.mjs`（Desktop electron/lib 与 Obsidian lib 为 vendored 字节一致拷贝）  
 - 分层约定：`skills/shared/long-url-capture.md` · ADR `../docs/adr/2026-07-13-browser-clip-extension.md`
 
 ### 统一捕获 + 知识加工

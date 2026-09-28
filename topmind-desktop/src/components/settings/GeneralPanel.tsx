@@ -14,7 +14,7 @@ import { emitLocal } from "../../plugins/host";
 import { useViewStore } from "../../stores/view-store";
 import { useActionStore } from "../../stores/action-store";
 import { applyLocale } from "../../locales";
-import { applyThemeSeed } from "../../lib/theme";
+import { applyThemeSeed, applyThemeTone } from "../../lib/theme";
 
 const WRITEBACK_HELP_KEY: Record<string, string> = {
   auto: "settings:general.writebackHelpAuto",
@@ -109,6 +109,26 @@ export function GeneralPanel({
                 { value: "auto", label: t("settings:general.themeAuto") },
                 { value: "light", label: t("settings:general.themeLight") },
                 { value: "dark", label: t("settings:general.themeDark") },
+              ]}
+            />
+          </Field>
+          <Field
+            label={t("settings:general.themeTone")}
+            description={t("settings:general.themeToneDesc")}
+            compact
+          >
+            <Select
+              value={settings.themeTone || "warm"}
+              onChange={(e) => {
+                const tone = (e.target.value || "warm") as NonNullable<AppSettings["themeTone"]>;
+                update({ themeTone: tone });
+                applyThemeTone(tone);
+              }}
+              options={[
+                { value: "warm", label: t("settings:general.themeToneWarm") },
+                { value: "cool", label: t("settings:general.themeToneCool") },
+                { value: "neutral", label: t("settings:general.themeToneNeutral") },
+                { value: "slate", label: t("settings:general.themeToneSlate") },
               ]}
             />
           </Field>

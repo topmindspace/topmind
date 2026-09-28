@@ -4,9 +4,9 @@
 
 > **根目录入口** [`../README.md`](../README.md)（简体中文） · **English** [`../README.en.md`](../README.en.md)  
 > 本目录收录架构设计锁、ADR 决策记录、打包发布规范与全表面导览。  
-> 工作流：`收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整` · 写回只经 Kernel `writeback-engine`（唯一写闸）· UTR `8 域 / 32 命令`
+> 工作流：`收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整` · 写回只经 Kernel `writeback-engine`（唯一写闸）· UTR `8 域 / 35 命令`
 
-**README 约定：** 各模块以 `README.md` 为简体中文主文档（GitHub 默认），`README.en.md` 为英文；`README.zh-CN.md` 仅作兼容跳转。
+**README 约定：** 各模块以 `README.md` 为简体中文主文档（GitHub 默认），`README.en.md` 为英文；`README.zh-CN.md` 与 `README.md` 字节一致（兼容副本）。
 
 ---
 
@@ -58,10 +58,19 @@
 | 指南文档 | 说明 |
 |----------|------|
 | [`PACKAGING.md`](./PACKAGING.md) | 打包与发布规范：安装包命名矩阵、GitHub Actions 独立/全量 Release 工作流、Win/Mac/Linux 构建说明 |
+| [`REPO-MAINTENANCE.md`](./REPO-MAINTENANCE.md) | 三仓维护手册与升级日志 |
 | [`images/README.md`](./images/README.md) | 媒体与截图资源索引 |
 | [`capture-clip-matrix.md`](./capture-clip-matrix.md) | Capture · Clip · Ingest 能力矩阵 |
 | [`topmind-vs-others.md`](./topmind-vs-others.md) | 知识管理方案对比与选型指南 |
-| [`UIUX-AUDIT-2026-09-01.md`](./UIUX-AUDIT-2026-09-01.md) | **NON-LIVING** 历史锚点（现行 IA 见 `topmind-desktop/DESIGN.md`） |
+
+### 历史快照（NON-LIVING）
+
+| 文档 | 说明 |
+|------|------|
+| [`UIUX-AUDIT-2026-09-01.md`](./UIUX-AUDIT-2026-09-01.md) | 历史锚点；现行 IA 见 `topmind-desktop/DESIGN.md` |
+| [`suite-review-2026-09-24.md`](./suite-review-2026-09-24.md) | 套件评审快照（2026-09-24） |
+| [`AI-AGENT-PLATFORM-REMEDIATION-2026-09-25.md`](./AI-AGENT-PLATFORM-REMEDIATION-2026-09-25.md) | 智能体平台整改波次记录（已收官） |
+| [`wechat-studio-DESIGN.md`](./wechat-studio-DESIGN.md) | 实验页已删；公众号能力在 skills `topmind-wechat` |
 
 ---
 

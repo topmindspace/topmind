@@ -274,8 +274,8 @@ test("living Desktop DESIGN matches shipped Design System tokens (not legacy lef
 
 test("PrimaryNav lives on ActivityBar (StatusBar never hosts nav)", () => {
   const design = read("topmind-desktop/DESIGN.md");
-  // 2026-09-26: destinations ride the ActivityBar; PrimaryNav is only the
-  // compact TitleBar fallback when the sidebar is collapsed.
+  // 2026-09-28: destinations ride the ActivityBar only — TitleBar compact
+  // fallback retired (ActivityBar stays mounted when the sidebar collapses).
   assert.match(design, /ActivityBar[\s\S]{0,80}PrimaryNav|PrimaryNav[\s\S]{0,80}ActivityBar/u);
   assert.match(design, /不含 PrimaryNav/u);
   assert.doesNotMatch(design, /状态栏 PrimaryNav/u);

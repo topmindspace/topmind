@@ -4,7 +4,7 @@
 
 > **Product entry** [`../README.md`](../README.md) · **简体中文** [`../README.zh-CN.md`](../README.zh-CN.md)  
 > Architecture lock, ADRs, packaging rules, and per-surface guides.  
-> Workflow: `收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整` · durable writes go only through Kernel `writeback-engine` · UTR `8 域 / 32 命令`
+> Workflow: `收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整` · durable writes go only through Kernel `writeback-engine` · UTR `8 域 / 35 命令`
 
 **README convention:** every module uses `README.md` for Simplified Chinese (GitHub default) and `README.en.md` for English. `README.zh-CN.md` is a compatibility redirect.
 
@@ -32,11 +32,11 @@
 
 | Surface | Role | English README | Chinese README | Architecture / design |
 |---------|------|----------------|----------------|-----------------------|
-| **Desktop** | Local rich-text workbench (Electron) | [`topmind-desktop/README.md`](../topmind-desktop/README.md) | [`README.zh-CN`](../topmind-desktop/README.zh-CN.md) | [`ARCHITECTURE`](../topmind-desktop/ARCHITECTURE.md) · [`DESIGN`](../topmind-desktop/DESIGN.md) |
-| **Obsidian plugin** | Stream view inside an Obsidian vault | [topmind-obsidian](https://github.com/topmindspace/topmind-obsidian) | [README.zh-CN](https://github.com/topmindspace/topmind-obsidian/blob/main/README.zh-CN.md) | [ARCHITECTURE](https://github.com/topmindspace/topmind-obsidian/blob/main/ARCHITECTURE.md) |
-| **Skills** | Portable agent skill pack | [README](https://github.com/topmindspace/topmind-skills/blob/main/README.en.md) | [README.zh-CN](https://github.com/topmindspace/topmind-skills/blob/main/README.zh-CN.md) | [`SKILL-ARCHITECTURE`](../SKILL-ARCHITECTURE.md) · [INSTALL](https://github.com/topmindspace/topmind-skills/blob/main/INSTALL.md) |
-| **Clip extension** | One-click web clip and cleanup | [`browser-extension/README.md`](../browser-extension/README.md) | [`README.zh-CN`](../browser-extension/README.zh-CN.md) | [`capture-clip-matrix`](./capture-clip-matrix.md) |
-| **UTR** | Deterministic CLI / MCP | [`utr/README.md`](../utr/README.md) | [`README.zh-CN`](../utr/README.zh-CN.md) | [`TOOLS.md`](../TOOLS.md) |
+| **Desktop** | Local rich-text workbench (Electron) | [`README.en`](../topmind-desktop/README.en.md) | [`README`](../topmind-desktop/README.md) | [`ARCHITECTURE`](../topmind-desktop/ARCHITECTURE.md) · [`DESIGN`](../topmind-desktop/DESIGN.md) |
+| **Obsidian plugin** | Stream view inside an Obsidian vault | [README](https://github.com/topmindspace/topmind-obsidian/blob/main/README.md) | [README.zh-CN](https://github.com/topmindspace/topmind-obsidian/blob/main/README.zh-CN.md) | [ARCHITECTURE](https://github.com/topmindspace/topmind-obsidian/blob/main/ARCHITECTURE.md) |
+| **Skills** | Portable agent skill pack | [README.en](https://github.com/topmindspace/topmind-skills/blob/main/README.en.md) | [README](https://github.com/topmindspace/topmind-skills/blob/main/README.md) | [`SKILL-ARCHITECTURE`](../SKILL-ARCHITECTURE.md) · [INSTALL](https://github.com/topmindspace/topmind-skills/blob/main/INSTALL.md) |
+| **Clip extension** | One-click web clip and cleanup | [`README.en`](../browser-extension/README.en.md) | [`README`](../browser-extension/README.md) | [`capture-clip-matrix`](./capture-clip-matrix.md) |
+| **UTR** | Deterministic CLI / MCP | [`README.en`](../utr/README.en.md) | [`README`](../utr/README.md) | [`TOOLS.md`](../TOOLS.md) |
 
 ---
 

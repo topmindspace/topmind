@@ -19,6 +19,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const ENGINE_FILES = [
   "agent-goal-protocol.mjs",
   "agent-goal-protocol.d.mts",
+  "github-md.mjs",
+  "github-md.d.mts",
   "memory-engine.mjs",
   "writeback-engine.mjs",
   "ai-operation-engine.mjs",

@@ -16,6 +16,7 @@ import { archiveOps } from "./lib/workspace-archive-ops.mjs";
 import { scanOps } from "./lib/workspace-scan-ops.mjs";
 import { fetchOps, buildFetchResult } from "./lib/workspace-fetch-ops.mjs";
 import { extractArticle, cleanCaptureUrl } from "./lib/fetch-article.mjs";
+import { isGithubMarkdownFileUrl } from "./lib/github-md.mjs";
 import { fetchRenderedHtml } from "./lib/fetch-render.mjs";
 import { S, sp } from "./lib/workspace-helpers.mjs";
 import { t as ei18n } from "./lib/electron-i18n.mjs";
@@ -355,7 +356,8 @@ export const WorkspaceService = {
    */
   async fetchUrl(p, ctx) {
     const wantRender = p?.render === true || p?.render === "true" || p?.enhanced === true;
-    if (!wantRender) {
+    // GitHub markdown/README always prefers raw/README path — HTML render is worse.
+    if (!wantRender || isGithubMarkdownFileUrl(p?.url || "")) {
       const staticResult = await fetchOps.fetchUrl(p, ctx);
       // Auto-upgrade once when body is empty SPA shell (opt-in path still available)
       if (staticResult.likelySpa && (staticResult.wordCount || 0) < 40) {

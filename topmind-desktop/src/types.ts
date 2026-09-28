@@ -556,6 +556,11 @@ export function isFeedLayout(v: unknown): v is FeedLayout {
 export interface AppSettings {
   theme: 'auto' | 'light' | 'dark';
   /**
+   * Surface tone pack (DS 4.1). Optional — absent / 'warm' = default paper ladder.
+   * Orthogonal to theme light/dark/auto and to themeSeed.
+   */
+  themeTone?: 'warm' | 'cool' | 'neutral' | 'slate';
+  /**
    * Pre-generated color seed (DS 4.0.3). Optional — absent / 'sky' = default
    * brand sky axis. Does not replace theme light/dark/auto.
    */

@@ -58,6 +58,20 @@ test("defaults: theme auto, agent on, skills on, autoSave 1500, wordWrap, maxAge
   assert.equal(normalizeWritebackMode("auto"), "auto");
 });
 
+test("mergeAppSettings persists themeTone / themeSeed and rejects unknown ids", () => {
+  const base = createDefaultAppSettings("/tmp/ws");
+  assert.equal(base.themeTone, undefined);
+  assert.equal(base.themeSeed, undefined);
+
+  const next = mergeAppSettings(base, { themeTone: "cool", themeSeed: "teal" });
+  assert.equal(next.themeTone, "cool");
+  assert.equal(next.themeSeed, "teal");
+
+  const rejected = mergeAppSettings(next, { themeTone: "neon", themeSeed: "rainbow" });
+  assert.equal(rejected.themeTone, "cool");
+  assert.equal(rejected.themeSeed, "teal");
+});
+
 test("normalizePluginsSettings keeps boolean enable map", () => {
   const n = normalizePluginsSettings({
     externalEnabled: { "example-hello": false, bad: "yes", "": true, ok: true },

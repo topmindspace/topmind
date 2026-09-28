@@ -15,11 +15,9 @@ import {
   RiCalendar2Line,
   RiChatAiLine,
   RiFileTextLine,
-  RiInbox2Line,
   RiInboxArchiveLine,
   RiLink,
   RiLoader4Line,
-  RiShareForwardLine,
   RiSortDesc,
   RiRefreshLine,
   RiSendPlane2Line,
@@ -43,6 +41,7 @@ import { useTitleBarChrome } from "../../../lib/titlebar-chrome";
 import { Button } from "../../../components/ui/Button";
 import { ConfirmDialog } from "../../../components/ui/Dialog";
 import { LedgerQuickEntry, looksLikeLedgerText } from "../../../components/overlays/LedgerQuickEntry";
+import { classifyCaptureUrlKind, urlKindLabelKey } from "../../../components/overlays/quick-capture-helpers";
 import { getCachedSettings, setCachedSettings } from "../../../lib/settings-cache";
 import { Tooltip } from "../../../components/ui/tooltip";
 import { ICON } from "../../../lib/icons";
@@ -78,7 +77,6 @@ import { polishComposerText } from "../../../lib/ai-polish-text";
 import { useInlineAiStore } from "../../../lib/inline-ai-busy";
 import { useTodoStore } from "../../../stores/todo-store";
 import { formatChord } from "../../../lib/chord";
-import { useActionStore } from "../../../stores/action-store";
 import { useAiStore } from "../../../stores/ai-store";
 import type { TFunction } from "i18next";
 
@@ -98,13 +96,11 @@ function StreamNestedAppends({
 }) {
   if (appends.length === 0) return null;
   return (
-    <div className="relative mt-2 space-y-1.5 border-l-2 border-accent-border-subtle/50 pl-3" data-stream-nested-appends>
+    <div className="mt-2 space-y-1 pl-3" data-stream-nested-appends>
       {(showFull ? appends : appends.slice(0, 1)).map((a) => {
         const replyTime = extractBodyTimestamp(a.body);
         return (
-          <div key={a.index} className="relative flex items-start gap-1.5 text-3xs text-text-secondary" data-stream-append-card>
-            {/* Thread branch line indicator */}
-            <span className="absolute -left-3 top-2.5 h-px w-2 bg-accent-border-subtle/60" aria-hidden />
+          <div key={a.index} className="flex items-start gap-1.5 text-3xs text-text-secondary" data-stream-append-card>
             {replyTime ? (
               <span className="mt-0.5 shrink-0 font-medium tabular-nums text-text-quaternary">{replyTime}</span>
             ) : null}
@@ -122,8 +118,7 @@ function StreamNestedAppends({
         );
       })}
       {!showFull && appends.length > 1 ? (
-        <div className="relative pl-0.5 text-3xs text-text-quaternary">
-          <span className="absolute -left-3 top-2 h-px w-2 bg-accent-border-subtle/40" aria-hidden />
+        <div className="pl-0.5 text-3xs text-text-quaternary">
           +{appends.length - 1} {t("workspace:streamDetail.moreAppends")}
         </div>
       ) : null}
@@ -683,6 +678,10 @@ export function StreamDetailView() {
     () => /^https?:\/\/\S+$/iu.test(composeText.trim()),
     [composeText],
   );
+  const composeUrlKind = useMemo(
+    () => (composeIsUrl ? classifyCaptureUrlKind(composeText.trim()) : null),
+    [composeIsUrl, composeText],
+  );
 
   // 记账意图检测 — 驱动记下区域上方的快速记账注入口
   const composerLooksLedger = useMemo(
@@ -706,7 +705,6 @@ export function StreamDetailView() {
   const aiReady = useAiStore((s) => s.runtimeStatus?.ready ?? false);
   /** Workbench homepage quick stats (Landing thinking, integrated into stream). */
   const [workbenchStats, setWorkbenchStats] = useState<{ inbox: number; outputs: number }>({ inbox: 0, outputs: 0 });
-  const suggestCount = useActionStore((s) => s.items.length);
 
   useEffect(() => {
     let alive = true;
@@ -1439,8 +1437,8 @@ export function StreamDetailView() {
         <ChromeOverflowActions actions={headerActions} />
       </TitleBarActions>
 
-      {/* Stream workbench homepage — identity + quick access (Landing thinking
-          integrated into the stream surface; not a separate canvas). */}
+      {/* Stream workbench homepage — identity + quiet inventory counts.
+          Destinations live on ActivityBar (no second nav row under the title). */}
       <div className="mb-3" data-stream-home-header>
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
           <h1 className="text-lg font-semibold tracking-tight text-text-primary">
@@ -1459,59 +1457,19 @@ export function StreamDetailView() {
                 })}
             </span>
           ) : null}
-        </div>
-        {/* Quick access strip — Inbox / 交付 / 我的情况 / AI 建议 (workbench) */}
-        <div className="mt-2.5 flex flex-wrap items-center gap-1.5" data-stream-workbench-strip>
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 rounded-[var(--radius-lg)] border border-border-subtle-dim bg-surface px-2.5 py-1.5 text-3xs font-medium text-text-secondary transition-colors hover:bg-state-hover v4-focus-ring"
-            onClick={() => select({ kind: "inbox" })}
-            data-stream-quick="inbox"
-          >
-            <RiInbox2Line size={ICON.xs} className="text-accent-color" />
-            <span>{t("workspace:streamDetail.quickInbox", { defaultValue: "Inbox" })}</span>
-            {workbenchStats.inbox > 0 ? (
-              <span className="rounded-[var(--radius-xs)] bg-accent-bg-subtle px-1 text-4xs font-semibold text-accent-color tabular-nums">
-                {workbenchStats.inbox}
-              </span>
-            ) : null}
-          </button>
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 rounded-[var(--radius-lg)] border border-border-subtle-dim bg-surface px-2.5 py-1.5 text-3xs font-medium text-text-secondary transition-colors hover:bg-state-hover v4-focus-ring"
-            onClick={() => select({ kind: "outputs" })}
-            data-stream-quick="outputs"
-          >
-            <RiShareForwardLine size={ICON.xs} className="text-accent-color" />
-            <span>{t("workspace:streamDetail.quickOutputs", { defaultValue: "交付" })}</span>
-            {workbenchStats.outputs > 0 ? (
-              <span className="rounded-[var(--radius-xs)] bg-surface-muted px-1 text-4xs font-semibold text-text-tertiary tabular-nums">
-                {workbenchStats.outputs}
-              </span>
-            ) : null}
-          </button>
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 rounded-[var(--radius-lg)] border border-border-subtle-dim bg-surface px-2.5 py-1.5 text-3xs font-medium text-text-secondary transition-colors hover:bg-state-hover v4-focus-ring"
-            onClick={() => select({ kind: "memory" })}
-            data-stream-quick="memory"
-          >
-            <RiUser3Line size={ICON.xs} className="text-accent-color" />
-            <span>{t("workspace:streamDetail.quickMemory", { defaultValue: "我的情况" })}</span>
-          </button>
-          {suggestCount > 0 ? (
-            <button
-              type="button"
-              className="inline-flex items-center gap-1.5 rounded-[var(--radius-lg)] border border-accent-border-subtle bg-accent-bg-subtle px-2.5 py-1.5 text-3xs font-medium text-accent-color transition-colors hover:bg-accent-bg-faint v4-focus-ring"
-              onClick={() => openSuggestSurface({ refresh: false })}
-              data-stream-quick="suggest"
-            >
-              <RiSparklingLine size={ICON.xs} />
-              <span>{t("workspace:streamDetail.quickSuggest", { defaultValue: "AI 建议" })}</span>
-              <span className="rounded-[var(--radius-xs)] bg-accent-container px-1 text-4xs font-semibold text-on-accent-container tabular-nums">
-                {suggestCount}
-              </span>
-            </button>
+          {workbenchStats.inbox > 0 || workbenchStats.outputs > 0 ? (
+            <span className="text-3xs text-text-quaternary" data-stream-workbench-counts>
+              {workbenchStats.inbox > 0 ? (
+                <span title={t("workspace:streamDetail.quickInbox", { defaultValue: "Inbox" })}>
+                  · {t("workspace:streamDetail.quickInbox", { defaultValue: "Inbox" })} {workbenchStats.inbox}
+                </span>
+              ) : null}
+              {workbenchStats.outputs > 0 ? (
+                <span title={t("workspace:streamDetail.quickOutputs", { defaultValue: "交付" })}>
+                  {" "}· {t("workspace:streamDetail.quickOutputs", { defaultValue: "交付" })} {workbenchStats.outputs}
+                </span>
+              ) : null}
+            </span>
           ) : null}
         </div>
       </div>
@@ -1683,6 +1641,7 @@ export function StreamDetailView() {
             <RiLink size={ICON.xs} className="shrink-0 text-accent-color" aria-hidden />
             <span className="min-w-0 truncate text-3xs font-medium text-text-secondary">
               {t("workspace:streamDetail.composeUrlHint")}
+              {composeUrlKind ? ` · ${t(urlKindLabelKey(composeUrlKind))}` : ""}
             </span>
           </div>
           <button

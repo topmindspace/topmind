@@ -5,11 +5,11 @@
 Compressed UI screenshots and the full-flow product demo live here.  
 High-resolution sources live under `topmind-desktop/resources/img/` — that directory is **gitignored** (development machine only), so treat it as the local source library, not as a repo path.
 
-> **Stills are the 2026-09 three-column chrome**: 记一下 sits in the left sidebar header; PrimaryNav = 动态 / Inbox / 交付 lives in the **sidebar destinations row** (TitleBar compact only when the rail is collapsed); search = ⌘K / ⌘P; the right column is the AI workspace (对话 / 建议 / 清单 / 应用). Status bar is status only (path · AI · busy · suggest count) — not navigation.
+> **Stills are the 2026-09 three-column chrome · Design System 4.0.5 (ZCode Neutral + MD3 warm paper)**: capture (**记一下**) lives on the ActivityBar; PrimaryNav = 动态 / Inbox / 交付 / 我的情况; search = ⌘K / ⌘P; the right column is the AI workspace (Chat · Suggest · List · Apps). Pixel/IA truth: `topmind-desktop/DESIGN.md`. Rows that still use 2026-08 chrome (TitleBar capture / 💡 / search / Apps) or the old cool-gray / dark theme are labeled as such — do not treat them as current.
 >
-> 2026-09-16 refresh: `desktop-quick-capture.jpg`, `desktop-stream-en.jpg`, `desktop-editor.jpg` re-shot from the live app. `desktop-stream.jpg` (zh primary) still needs a matching re-shoot once the zh locale is open. `desktop-ai-agent.jpg` remains a 2026-08 still of the old AI rail.
+> 2026-09-27 refresh: `desktop-stream.jpg` and `desktop-stream-en.jpg` both re-shot from the live app in the warm-paper theme (the English still is no longer dark mode). `desktop-ai-agent.jpg` remains a 2026-08 still of the old AI rail.
 >
-> Media policy: the primary still is the compressed export of `topmind-desktop/resources/img/Stream-AI建议.png` (Chinese) and `Stream-AI建议-en.png` (same surface, English chrome). The full-flow demo uses a high-fidelity color GIF as the inline format (GitHub plays `<img>` animation natively). The MP4 is the HD download fallback.
+> Media policy: the primary stills are the compressed exports of `Stream-AI建议.png` (Chinese) and `Stream-AI建议-en.png` (same surface, English chrome). The full-flow demo uses a high-fidelity color GIF as the inline format (GitHub plays `<img>` animation natively). The MP4 is the HD download fallback.
 
 ---
 
@@ -27,8 +27,8 @@ High-resolution sources live under `topmind-desktop/resources/img/` — that dir
 
 | Docs image | Source (`resources/img`) | Typical use |
 |------------|--------------------------|-------------|
-| `desktop-stream.jpg` | `Stream-AI建议.png` | **Primary still (zh)** — **pending re-shoot** after sidebar destinations move |
-| `desktop-stream-en.jpg` | live app (2026-09-16) | Primary still (en): three-column workbench |
+| `desktop-stream.jpg` | `Stream-AI建议.png` | **Primary still (zh)** — 2026-09 ZCode warm-paper three-column workbench |
+| `desktop-stream-en.jpg` | `Stream-AI建议-en.png` | **Primary still (en)** — same surface, English chrome, same theme |
 | `desktop-ai-todo.jpg` | `AI清单.png` | AI workspace **List** pane — todos with AI provenance |
 | `desktop-apps.jpg` | `AI应用.png` | AI workspace **Apps** pane — ingest · WeRead · bookkeeping |
 | `desktop-editor.jpg` | live app (2026-09-16) | Quiet Paper Markdown editor + sidebar destinations row |
@@ -46,10 +46,10 @@ Stills other than the four panes above were exported before the three-column swi
 
 | Document | Usage |
 |----------|-------|
-| [`../../README.md`](../../README.md) | Overview (en): `desktop-stream-en.jpg` + GIF + MP4 fallback |
-| [`../../README.zh-CN.md`](../../README.zh-CN.md) | Overview (zh): `desktop-stream.jpg` + GIF + MP4 fallback |
-| [`../../topmind-desktop/README.md`](../../topmind-desktop/README.md) | Workbench: core still + List/Apps panes + GIF + interaction map |
-| [`../../topmind-desktop/README.zh-CN.md`](../../topmind-desktop/README.zh-CN.md) | Same, Chinese |
+| [`../../README.md`](../../README.md) · [`README.zh-CN.md`](../../README.zh-CN.md) | Overview (zh): `desktop-stream.jpg` primary, English chrome alongside (bilingual demo) + GIF + MP4 fallback |
+| [`../../README.en.md`](../../README.en.md) | Overview (en): `desktop-stream-en.jpg` primary, Chinese chrome alongside + GIF + MP4 fallback |
+| [`../../topmind-desktop/README.md`](../../topmind-desktop/README.md) · [`README.zh-CN.md`](../../topmind-desktop/README.zh-CN.md) | Workbench (zh): core still + List/Apps panes + GIF + interaction map |
+| [`../../topmind-desktop/README.en.md`](../../topmind-desktop/README.en.md) | Workbench (en): English core still + same panes |
 
 ## Update and compose
 

@@ -44,7 +44,71 @@ export function splitTopicId(topicId: string): { category: string; topic: string
 export function methodLabelKey(method?: string): string {
   if (method === "readability") return "overlays:capture.methodReadability";
   if (method === "render") return "overlays:capture.methodRender";
+  if (method === "github-raw") return "overlays:capture.methodGithubRaw";
+  if (method === "github-readme") return "overlays:capture.methodGithubReadme";
   return "overlays:capture.methodHeuristic";
+}
+
+/** Capture URL kinds used for paste / source hints. */
+export type CaptureUrlKind =
+  | "github-file"
+  | "github-readme"
+  | "github-other"
+  | "x-status"
+  | "x-article"
+  | "web";
+
+/** Classify a URL for UI routing hints (pure; mirrors lib/github-md.mjs classifyCaptureUrl). */
+export function classifyCaptureUrlKind(raw: string): CaptureUrlKind | null {
+  const s = String(raw || "").trim();
+  if (!s) return null;
+  let u: URL;
+  try {
+    u = new URL(s);
+  } catch {
+    return null;
+  }
+  if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+  const host = u.hostname.toLowerCase();
+  const bare = host.replace(/^www\./, "");
+  if (host === "raw.githubusercontent.com" || bare === "github.com") {
+    const parts = u.pathname.replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
+    if (host === "raw.githubusercontent.com") {
+      const path = parts.slice(3).join("/");
+      return /\.(md|mdx|txt|markdown)$/i.test(path) ? "github-file" : "github-other";
+    }
+    if (parts.length >= 5 && (parts[2] === "blob" || parts[2] === "raw")) {
+      const path = parts.slice(4).join("/");
+      return /\.(md|mdx|txt|markdown)$/i.test(path) ? "github-file" : "github-other";
+    }
+    if (parts.length === 2) return "github-readme";
+    if (parts[2] === "tree" && parts.length >= 4) return "github-readme";
+    return "github-other";
+  }
+  if (bare === "x.com" || bare === "twitter.com" || bare === "mobile.twitter.com") {
+    const parts = u.pathname.replace(/^\/+|\/+$/g, "").split("/");
+    if (parts[0] === "i" && parts[1] === "article" && parts[2]) return "x-article";
+    if (parts.includes("status")) return "x-status";
+  }
+  return "web";
+}
+
+/** i18n key for a capture URL kind hint. */
+export function urlKindLabelKey(kind: CaptureUrlKind): string {
+  switch (kind) {
+    case "github-file":
+      return "overlays:capture.urlKindGithubFile";
+    case "github-readme":
+      return "overlays:capture.urlKindGithubReadme";
+    case "github-other":
+      return "overlays:capture.urlKindGithubOther";
+    case "x-status":
+      return "overlays:capture.urlKindXStatus";
+    case "x-article":
+      return "overlays:capture.urlKindXArticle";
+    default:
+      return "overlays:capture.urlKindWeb";
+  }
 }
 
 export function cleanCaptureTitle(raw: string, siteName?: string): string {

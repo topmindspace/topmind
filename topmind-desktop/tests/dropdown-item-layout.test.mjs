@@ -40,8 +40,7 @@ test("ViewSwitcher two-line rows keep icon slot + trailing check", () => {
   assert.match(src, /flex min-w-0 flex-1 flex-col/);
 });
 
-test("PrimaryNav / TopicPicker / format-bar use icon slots", () => {
-  assert.match(read("components/shell/PrimaryNav.tsx"), /icon=\{/);
+test("TopicPicker / format-bar use icon slots", () => {
   assert.match(read("components/workspace/TopicPickerMenu.tsx"), /icon=\{<RiFolderOpenLine/);
   assert.match(read("plugins/topmind-workspace/views/file-editor-format-bar.tsx"), /icon=\{<RiPriceTag3Line/);
 });

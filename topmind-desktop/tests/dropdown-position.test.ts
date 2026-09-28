@@ -96,3 +96,43 @@ test("clamps into viewport padding", () => {
   assert.ok(pos.left + pos.width <= 1000 - 8);
   assert.ok(pos.left >= 8);
 });
+
+test("right placement bottom-docks near the status bar and grows upward", () => {
+  // ActivityBar chrome button sitting just above a 32px status-bar inset.
+  const pos = computeDropdownPosition({
+    trigger: { top: 720, left: 8, right: 56, bottom: 760, width: 48, height: 40 },
+    panel: { width: 300, height: 280 },
+    align: "start",
+    matchTriggerWidth: false,
+    minWidth: 300,
+    maxHeight: 420,
+    preferPlacement: "right",
+    padBottom: 32,
+    gap: 4,
+    pad: 8,
+    viewport: { width: 1200, height: 800 },
+  });
+  assert.equal(pos.placement, "right");
+  assert.equal(pos.left, 56 + 4);
+  // Bottom edge docks to the status-bar top (800 - 32), expanding upward.
+  assert.equal(pos.top + Math.min(280, pos.maxHeight), 800 - 32);
+  assert.ok(pos.maxHeight >= 280, "full menu fits without an inner scrollbar");
+});
+
+test("right placement stays top-aligned when the trigger has room below", () => {
+  const pos = computeDropdownPosition({
+    trigger: { top: 120, left: 8, right: 56, bottom: 160, width: 48, height: 40 },
+    panel: { width: 300, height: 280 },
+    align: "start",
+    matchTriggerWidth: false,
+    minWidth: 300,
+    maxHeight: 420,
+    preferPlacement: "right",
+    padBottom: 32,
+    gap: 4,
+    pad: 8,
+    viewport: { width: 1200, height: 800 },
+  });
+  assert.equal(pos.placement, "right");
+  assert.equal(pos.top, 120);
+});

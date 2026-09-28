@@ -11,7 +11,7 @@ import { markUtilityBrowserWindow } from "./utility-windows.mjs";
 import { logInfo, logWarn, logError } from "./writeback.mjs";
 import { t } from "./electron-i18n.mjs";
 import { loadAppIconImage, applyWindowIcon } from "./app-icon.mjs";
-import { resolveWindowBackgroundColor } from "./window-theme.mjs";
+import { resolveWindowBackgroundColor, resolveChromeSymbolColor, wantsDark } from "./window-theme.mjs";
 import { windowShellOptions } from "./window-shell.mjs";
 
 const require = createRequire(import.meta.url);
@@ -71,6 +71,8 @@ async function loadCaptureSurface(win, opts) {
  *   packaged?: boolean,
  *   alwaysOnTop?: boolean,
  *   getLoadUrl?: () => string,
+ *   theme?: string,
+ *   themeTone?: string,
  * }} opts
  */
 export function openQuickCaptureWindow(opts) {
@@ -111,7 +113,7 @@ export function openQuickCaptureWindow(opts) {
     resizable: true,
     fullscreenable: false,
     title: t("capture.title"),
-    backgroundColor: resolveWindowBackgroundColor(opts?.theme),
+    backgroundColor: resolveWindowBackgroundColor(opts?.theme, opts?.themeTone),
     ...shellOptions,
     ...(windowIcon ? { icon: windowIcon } : {}),
     webPreferences: {
@@ -131,9 +133,9 @@ export function openQuickCaptureWindow(opts) {
     logError("capture-float", "did-fail-load", { code, desc, url });
     if (!win.isDestroyed()) {
       const msg = t("capture.loadFail", { code, desc });
-      const errBg = resolveWindowBackgroundColor(opts?.theme);
-      const isDark = errBg === "#171717";
-      const errFg = isDark ? "#e5e5e5" : "#262626";
+      const errBg = resolveWindowBackgroundColor(opts?.theme, opts?.themeTone);
+      const isDark = wantsDark(opts?.theme);
+      const errFg = resolveChromeSymbolColor(opts?.theme, opts?.themeTone);
       const errMuted = isDark ? "#8c8c8c" : "#6f6f6f";
       void win.loadURL(
         `data:text/html;charset=utf-8,${encodeURIComponent(

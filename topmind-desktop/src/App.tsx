@@ -1,12 +1,12 @@
 import { useEffect, useState, lazy, Suspense } from "react";
 import { RiErrorWarningLine, RiLoader4Line, RiRefreshLine } from "@remixicon/react";
 import { api } from "./services/api";
-import { applyTheme, applyThemeSeed } from "./lib/theme";
+import { applyTheme, applyThemeSeed, applyThemeTone } from "./lib/theme";
 import { useViewStore } from "./stores/view-store";
 import { Button } from "./components/ui/Button";
 import { ICON } from "./lib/icons";
 import type { AppSettings, LaunchStatus, RecentWorkspace } from "./types";
-import { setCachedSettings } from "./lib/settings-cache";
+import { setCachedSettings, getCachedSettings } from "./lib/settings-cache";
 import { applyLocale } from "./locales";
 import { useTranslation } from "react-i18next";
 
@@ -86,6 +86,7 @@ function MainApp() {
         return;
       }
       useViewStore.getState().setTheme(settings.theme);
+      applyThemeTone(settings.themeTone);
       applyThemeSeed(settings.themeSeed);
       setBoot({ state: "ready", settings });
     } catch (err) {
@@ -98,19 +99,20 @@ function MainApp() {
   }, []);
 
   const theme = useViewStore((s) => s.theme);
-  const themeSeed =
-    boot.state === "ready" || boot.state === "onboarding"
-      ? boot.settings.themeSeed
-      : undefined;
+  // Tone/seed live-update through appearance helpers (they patch the settings
+  // cache). Re-read from cache on every apply so a mode flip cannot re-stamp a
+  // stale boot snapshot over a tone/seed the user just picked.
   useEffect(() => {
+    const cached = getCachedSettings();
     applyTheme(theme);
-    applyThemeSeed(themeSeed);
+    applyThemeTone(cached?.themeTone);
+    applyThemeSeed(cached?.themeSeed);
     if (theme !== "auto") return;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const handler = () => applyTheme("auto");
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
-  }, [theme, themeSeed]);
+  }, [theme]);
 
   if (boot.state === "loading") {
     return (

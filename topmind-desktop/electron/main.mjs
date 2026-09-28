@@ -2,7 +2,7 @@
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const { app, BrowserWindow, safeStorage, globalShortcut, dialog, protocol, net } = require("electron");
-import { resolveWindowBackgroundColor, applyNativeWindowTheme } from "./lib/window-theme.mjs";
+import { resolveWindowBackgroundColor, applyNativeWindowTheme, applyTitleBarOverlayTheme } from "./lib/window-theme.mjs";
 import { windowShellOptions } from "./lib/window-shell.mjs";
 import {
   registerMediaSchemePrivileged,
@@ -813,6 +813,7 @@ function applyBrandingIcon() {
 function setAppSettings(next) {
   const prev = appSettings;
   const themeChanged = prev?.theme !== next?.theme;
+  const toneChanged = prev?.themeTone !== next?.themeTone;
   const localeChanged = prev?.ui?.locale !== next?.ui?.locale;
   const workspaceChanged = prev?.workspaceRoot !== next?.workspaceRoot;
   // Recents only need a repaint when the *list* changes (a switch rewrites
@@ -824,12 +825,17 @@ function setAppSettings(next) {
   appSettings = next;
 
   // OS-drawn chrome (title bar / scrollbars / native dialogs) tracks the app
-  // theme — see window-theme.mjs. Returns whether the source actually moved. The
-  // window is passed through so the Windows caption-button overlay repaints too:
-  // it sits *inside* our header row, so a stale strip color is a visible seam.
-  const sourceChanged = applyNativeWindowTheme(next?.theme, mainWindow);
+  // theme + surface tone — see window-theme.mjs. Returns whether the source
+  // actually moved. The window is passed through so the Windows caption-button
+  // overlay repaints too: it sits *inside* our header row, so a stale strip
+  // color is a visible seam. Tone changes repaint the overlay even when
+  // light/dark is unchanged.
+  const sourceChanged = applyNativeWindowTheme(next?.theme, mainWindow, next?.themeTone);
+  if (toneChanged && mainWindow && !mainWindow.isDestroyed()) {
+    applyTitleBarOverlayTheme(mainWindow, next?.theme, next?.themeTone);
+  }
 
-  if (themeChanged || localeChanged || workspaceChanged || recentChanged || sourceChanged) {
+  if (themeChanged || toneChanged || localeChanged || workspaceChanged || recentChanged || sourceChanged) {
     if (localeChanged) setElectronLocale(next?.ui?.locale || "auto");
     syncApplicationMenuFromSettings();
   }
@@ -944,7 +950,7 @@ async function createWindow() {
     // Theme lives at appSettings.theme — not on the window shell (bounds/zoom only).
     const win = new BrowserWindow({
       width: stored.bounds?.width ?? 1440, height: stored.bounds?.height ?? 980,
-      minWidth: 1180, minHeight: 760, backgroundColor: resolveWindowBackgroundColor(appSettings?.theme), title: "topmind",
+      minWidth: 1180, minHeight: 760, backgroundColor: resolveWindowBackgroundColor(appSettings?.theme, appSettings?.themeTone), title: "topmind",
       ...shellOptions,
       ...(windowIcon ? { icon: windowIcon } : {}),
       webPreferences: { preload: path.join(__dirname, "preload.cjs"), contextIsolation: true, nodeIntegration: false },
@@ -1104,7 +1110,7 @@ async function createWindow() {
     // Caption-button overlay colors: the theme hook runs on every settings write,
     // but the window may not have existed yet at that point (boot order), so paint
     // the strip once the window can accept it.
-    applyNativeWindowTheme(appSettings?.theme, win);
+    applyNativeWindowTheme(appSettings?.theme, win, appSettings?.themeTone);
     // Re-assert branding after first paint (Dock on mac; taskbar icon on win/linux).
     applyBrandingIcon();
     applyWindowIcon(win, windowIcon, { packaged: app.isPackaged });
@@ -1206,6 +1212,7 @@ function openCaptureSurface(opts = {}) {
         packaged: app.isPackaged,
         alwaysOnTop,
         theme: appSettings?.theme,
+        themeTone: appSettings?.themeTone,
         getLoadUrl: getRendererLoadUrl,
       });
     }
@@ -1217,6 +1224,7 @@ function openCaptureSurface(opts = {}) {
     packaged: app.isPackaged,
     alwaysOnTop,
     theme: appSettings?.theme,
+    themeTone: appSettings?.themeTone,
     getLoadUrl: getRendererLoadUrl,
   });
   return { ok: true, mode: "float" };

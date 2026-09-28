@@ -16,7 +16,7 @@
 >
 > **Kernel 八引擎**（文件在 `lib/`；合闸状态见 ARCHITECTURE-RESET §2）：  
 > contract · workspace-model · stream · memory · lifecycle · **writeback（唯一写闸 · Done 主路径）** · derived · ingest。  
-> **卫星**（不是第九引擎）：`todo-engine`（`memory/todo.md`）· `ledger-engine`（可选 `{memory.dir}/ledgers/`）。记账不是第六个用户概念。
+> **卫星**（不是第九引擎）：`todo-engine` · `ledger-engine` · `ai-operation-engine` · `suggest-engine`。记账不是第六个用户概念。
 
 ---
 
@@ -186,7 +186,8 @@ AI 分发遇到歧义时按"内容性质"判定；无法判定时 → `00-Inbox/
 | `88-89` | 交付物 | `88-交付` |
 | `90-99` | 系统/安全 | `99-归档` |
 
-> 两位数 `NN`，推荐按 10 的倍数跳跃。用户可在区间内插入。语义平面的 `memory/` 不占编号槽。
+> 两位数 `NN`，推荐按 10 的倍数跳跃。用户可在区间内插入。语义平面的 `memory/` 不占编号槽。  
+> **区间表是通用推荐，不是槽位白名单**；模板可在区间内重排语义（research：`30-研究` · `40-参考资料`）。真源 `templates/*.json` + 运行时发现。
 
 ---
 
@@ -288,8 +289,6 @@ AI 分发遇到歧义时按"内容性质"判定；无法判定时 → `00-Inbox/
 
 ### 7.1 三层结构
 
-记忆是定位的一半：**Stream 解决「记下来」，Memory 解决「持续维护与找回」**。
-
 > **D4 (2026-08-09) 语义转变**：periodic 记忆从「周期摘要」（事件压缩副本）转为「周期反思」（关于用户的洞察提炼）。不是「本周发生了什么」，而是「本周揭示了什么」——模式识别、偏好信号、知识积累、行为洞察。参考业界最佳实践：episodic memory（Stream 原始事件）vs semantic memory（Memory 提炼认知）。
 
 | 层 | 物理 | 内容 | 更新方式 |
@@ -305,6 +304,7 @@ AI 分发遇到歧义时按"内容性质"判定；无法判定时 → `00-Inbox/
 - **追加/融合**（ADD）：`appendProfileEntry` —— 消毒后写入活跃段落；**同事实 skip，包含级近重复（score≥0.92）原位融合到最新表述**（只留 1 条 live），词面相近（0.72–0.91）可由 `memory_organize` 出确认卡折叠。
 - **归档**（DELETE 的确认式翻译）：`retireProfileEntry` —— 把已完成/过期的事实行移入 `## 历史记录`，加 `（YYYY-MM-DD 归档）` 前缀；**不删除任何内容**，用户可手工移回。段落标题行永不参与匹配；历史段不可原位更新；AI 上下文注入时历史段折叠为一行计数（`readProfileActiveBody`）。
 - **更新**（UPDATE）：`updateProfileEntry` —— 原位替换匹配行并刷新日期；支持改述 fuzzy 命中（返回 `matchedText`/`matchScore`）；或等价地「归档旧行 + 追加新行」。
+- **恢复**（RESTORE）：`restoreProfileEntry` —— 历史事实回到活跃段；活跃已有等价事实则拒绝。
 - **历史压缩**：`compactProfileHistory` —— 合并历史区同类项，保留最新归档行（`memory_organize` 可出 `compact_history` 确认卡）。
 
 触发路径：`memory_organize` AI 操作从活动窗口中识别可归档/可融合候选（要求逐字/近似引用画像原文，最多 3 条），产出 `retire_profile` / `update_profile` / `compact_history` 建议条，**用户确认后**经 `applySuggestion` 执行。无自动遗忘、无定时扫描、不建向量索引。
@@ -342,7 +342,7 @@ AI 分发遇到歧义时按"内容性质"判定；无法判定时 → `00-Inbox/
 
 | 文件 | 引擎 | 说明 |
 |------|------|------|
-| `todo.md` | todo-engine | 个人待办清单 |
+| `todo.md` | todo-engine | 个人待办清单。Desktop `list_todos/add_todo/toggle_todo` · UTR `memory.list-todos/add-todo/toggle-todo`；技能侧 L1 提取见 skills `shared/auto-suggest.md` |
 | `ledgers/{id}.md` + `ledgers/catalog.md` | ledger-engine | 可选记账。空工作区只有默认 **Personal / 自己**；用户再加账本和分类。历史上的 ClassFund / Giggs / Mom 只是行格式参考，不是产品默认。 |
 
 Desktop 记账是 enable-gated mini-app（看板 / 流水 / 分类 / 快捷记账），入口在 AI 工作区应用 pane，**不是** PrimaryNav / 第六个用户概念。Skills 可选 `topmind-ledger`；日常入口仍只 `topmind`。Obsidian 不发记账小应用。UTR 无独立 ledger 域。
