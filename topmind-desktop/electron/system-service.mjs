@@ -13,6 +13,7 @@ import { logInfo, logError } from "./lib/writeback.mjs";
 import { loadAppSettings, updateAppSettings, saveAppSettings, createDefaultAppSettings } from "./settings.mjs";
 import { normalizeStoredWorkspaceHistory } from "./workspace-history.mjs";
 import { getRuntimeStatus } from "./ai-model.mjs";
+import { bearerHeader } from "./lib/header-safe.mjs";
 import { ensureWorkspaceStructure, autoRepairWorkspace, loadWorkspaceConfig, getEngineRoot } from "./lib/workspace-home.mjs";
 import { listTemplateDescriptors } from "./lib/template-api.mjs";
 import { defaultEngineCandidate } from "./lib/engine-root.mjs";
@@ -2207,7 +2208,7 @@ function defaultModelsFor(source) {
 async function fetchOpenAICompatModels(baseURL, apiKey) {
   const url = baseURL.replace(/\/+$/u, "") + "/models";
   const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${apiKey}` },
+    headers: bearerHeader(apiKey),
     signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);

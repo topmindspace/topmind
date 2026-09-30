@@ -194,8 +194,10 @@ test("menu, sheet, dialog, toast, and run card are not one elevated color", () =
   const shell = read("src/components/shell/Shell.tsx");
   const card = read("src/components/ai/ChatMessage.tsx");
   const dialog = read("src/components/ui/Dialog.tsx");
-  assert.match(tokens, /--color-surface-container-high:\s*color-mix/);
+  assert.match(tokens, /--color-surface-container-high:\s*(?:var\(--color-surface-elevated\)|color-mix)/);
   assert.match(tokens, /--color-surface-container-highest:\s*color-mix/);
+  // Ladder must climb toward white / elevated-hover — never invert dark.
+  assert.doesNotMatch(tokens, /--color-surface-container-highest:\s*color-mix\(in srgb,\s*var\(--color-surface-elevated\)[^)]*var\(--color-(?:background|text-primary)\)/);
   assert.match(tokens, /--color-dialog-bg:\s*color-mix/);
   assert.doesNotMatch(tokens, /--color-dialog-bg:\s*var\(--color-surface-elevated\)/);
   assert.match(css, /\.v4-menu-surface[\s\S]*?background:\s*var\(--color-surface-container-high\)/);
@@ -387,7 +389,19 @@ test("Stream and collection canvases expose list/card layout switch + data-layou
   const composerIdx = stream.indexOf("data-stream-inline-composer");
   const toggleIdx = stream.indexOf("<FeedLayoutToggle");
   const feedIdx = stream.indexOf("data-stream-feed");
-  assert.ok(composerIdx > 0 && toggleIdx > composerIdx && feedIdx > toggleIdx);
+  assert.ok(composerIdx > 0 && toggleIdx > 0 && feedIdx > 0);
+  // Render order in the main return is composer → layout toggle → feed body.
+  // (Helper components like StreamFeedBody may sit above StreamDetailView.)
+  const retSlice = stream.slice(stream.indexOf("export function StreamDetailView"));
+  assert.ok(
+    retSlice.indexOf("data-stream-inline-composer") < retSlice.indexOf("<FeedLayoutToggle"),
+    "layout toggle must not live in page-title actions",
+  );
+  assert.ok(retSlice.includes("StreamFeedBody"));
+  assert.ok(
+    retSlice.indexOf("<FeedLayoutToggle") < retSlice.indexOf("<StreamFeedBody"),
+    "feed body must render after the layout toggle",
+  );
   assert.ok(stream.includes("data-stream-open-memory"));
   assert.ok(stream.includes('kind: "memory"'));
   const tokens = read("src/styles/tokens.css");
@@ -716,9 +730,10 @@ test("selected controls use the neutral wash and have no side or bottom accent b
   assert.match(css, /\.v4-tiptap blockquote[\s\S]{0,180}border-left:\s*3px/);
   assert.match(css, /\.v4-stream-md blockquote[\s\S]{0,220}border-left:\s*2\.5px/);
   assert.match(css, /\.v4-palette-row\[data-active="true"\][\s\S]{0,160}inset 0 0 0 1px/);
-  assert.match(tokens, /--shadow-input-inset:\s*inset 0 1px 2px/);
+  // Field inset shadow retired 2026-09-29 (quiet wash fill, no gray rectangle).
+  assert.doesNotMatch(tokens, /--shadow-input-inset/);
   assert.match(tokens, /--shadow-focus-inset:\s*inset 0 0 0 1px/);
-  assert.match(chat, /border-l-2 border-accent-color\/40/);
+  assert.match(chat, /border-l-2 border-accent-border-subtle/);
   assert.match(stream, /data-stream-nested-appends/);
   // Nested appends are indent-only (4.2 declutter) — no accent selection-style bar.
   assert.doesNotMatch(stream, /border-l-2 border-accent-border-subtle/);

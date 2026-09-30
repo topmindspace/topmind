@@ -25,27 +25,33 @@
   --color-ink-foreground: #ffffff;
 
   /* ── Colors (light) ──
-     Ladder: chrome → soft canvas → near-white surface → pure-white elevated.
-     Ink steps are evenly spaced for long scanning without muddy mid-tones. */
-  --color-app-chrome: #f1efe8;
-  --color-background: #f3f1eb;
-  --color-surface: #f7f5f0;
-  --color-surface-elevated: #fffcf7;
-  /* MD3 container steps. Each floating role is its own mix — none is an alias of elevated. */
+     4.3 Muse-softened warm pack: lighter canvas, less yellow cast, elevated
+     near-white. Still warm enough for long-read paper comfort (not Cue cold white).
+     Ladder: chrome → soft canvas → near-white surface → pure-white elevated. */
+  --color-app-chrome: #f2f1ee;
+  --color-background: #f6f5f2;
+  --color-surface: #faf9f6;
+  --color-surface-elevated: #fffefb;
+  /* MD3 container steps. Each floating role is its own mix — none is an alias of elevated.
+     2026-09-29: high/highest stay near-white (text-primary mix ≤8%) — a 16% ink mix
+     reads as a gray rectangle against the warm/cool paper ladder. */
   --color-surface-container: var(--color-surface);
-  --color-surface-container-high: color-mix(in srgb, var(--color-surface-elevated) 84%, var(--color-text-primary) 16%);
-  --color-surface-container-highest: color-mix(in srgb, var(--color-surface-elevated) 70%, var(--color-background) 30%);
+  /* Monotonic elevation (same direction in both modes): high = menus sits on
+     elevated; highest = sheets one step *above* elevated. Never mix
+     text-primary/background into the ladder — that inverted dark. */
+  --color-surface-container-high: var(--color-surface-elevated);
+  --color-surface-container-highest: color-mix(in srgb, var(--color-surface-elevated) 82%, #ffffff 18%);
   --color-inverse-surface: var(--color-ink);
   --color-inverse-on-surface: var(--color-ink-foreground);
-  --color-surface-muted: #efece5;
-  --color-surface-inset: #e4e0d7;
+  --color-surface-muted: #efeeea;
+  --color-surface-inset: #e6e4de;
   /* Soft container fills — named stops instead of bg-surface-muted/NN
      (alpha modifiers on semantic utilities are banned). */
   --color-surface-wash-15: color-mix(in srgb, var(--color-surface-muted) 18%, transparent);
   --color-surface-wash-30: color-mix(in srgb, var(--color-surface-muted) 32%, transparent);
   --color-surface-wash-45: color-mix(in srgb, var(--color-surface-muted) 48%, transparent);
   --color-surface-wash-65: color-mix(in srgb, var(--color-surface-muted) 68%, transparent);
-  --color-sidebar: #e2ded6;
+  --color-sidebar: #e9e7e2;
   --color-text-primary: #242220;
   --color-text-secondary: #4a4743;
   --color-text-tertiary: #5c5853;
@@ -86,6 +92,10 @@
      AiProviderPanel reasoning chip). sky-500 as a *text* stop is 2.77:1 — unusable. */
   --color-status-info: #0369a1;
   --color-status-info-bg: rgba(3, 105, 161, 0.09);
+  /* Neutral status — fill-only axis (StatusDot idle). Not a text stop: text
+     mutes live on the text-tertiary/quaternary ladder. */
+  --color-status-neutral: #7a756e;
+  --color-status-neutral-bg: rgba(122, 117, 110, 0.12);
   --color-inset-glow-subtle: rgba(255, 255, 255, 0.06);
   --color-accent-border-subtle: rgba(3, 105, 161, 0.25);
   --color-accent-bg-subtle: rgba(3, 105, 161, 0.08);
@@ -103,6 +113,11 @@
   --color-badge-foreground: #ffffff;
   --color-badge-alert: #b45309;
   --color-badge-alert-foreground: #ffffff;
+
+  /* Theme-seed picker swatches (settings appearance only — preview fills). */
+  --color-theme-swatch-sky: #0369a1;
+  --color-theme-swatch-teal: #0f766e;
+  --color-theme-swatch-graphite: #3f3f46;
 
   /* State layers — composited on interactive controls (not text colors).
      MD3: hover 8% · focus 12–16% · pressed 10% · drag 16% · disabled = no layer */
@@ -128,43 +143,42 @@
 
   /* Surface interaction states */
   --color-surface-hover: rgba(23, 23, 23, 0.045);
-  --color-surface-elevated-hover: #f4f0e8;
+  --color-surface-elevated-hover: #f7f5f1;
   /* Neutral selected wash. Selection is this fill plus primary ink — no side or bottom accent bar. */
   --color-surface-selected: rgba(23, 23, 23, 0.06);
   --color-text-on-accent: #ffffff;
   /* Dialog plane — a muted mix, not an alias of surface-elevated. */
-  --color-dialog-bg: color-mix(in srgb, var(--color-surface-elevated) 72%, var(--color-surface-muted) 28%);
+  --color-dialog-bg: color-mix(in srgb, var(--color-surface-elevated) 88%, var(--color-surface-muted) 12%);
   /* Settings section header wash — consumed as an arbitrary value
      (`bg-[var(--color-dialog-header)]` in SettingsLayout), so the utility-class
      audit does not see it. Kept because it is genuinely in use. */
-  --color-dialog-header: color-mix(in srgb, var(--color-surface-muted) 48%, var(--color-surface-elevated));
+  --color-dialog-header: color-mix(in srgb, var(--color-surface-muted) 28%, var(--color-surface-elevated));
 
   /* ── Spacing ── Tailwind 4px grid; no custom --space-* scale. */
 
-  /* ── Radius — ZCode chrome steps + MD3-informed floating surfaces ── */
-  --radius-xs: 2px;
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 12px;
-  --radius-2xl: 16px;
+  /* ── Radius — softer content language (Muse/Cue register 2026-09-29).
+     Content cards / floating surfaces go generous; tiny tool chips stay tight
+     only where hit-target density matters (kbd, count badge). */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
   --radius-full: 9999px;
-  /* Floating chrome (dialogs / menus) — softer than tool buttons for presence */
-  --radius-menu: 12px;
-  --radius-dialog: 16px;
-  --radius-card: 12px;
-  --radius-toast: 12px;
+  /* Floating chrome (dialogs / menus) — soft presence */
+  --radius-menu: 16px;
+  --radius-dialog: 20px;
+  --radius-card: 16px;
+  --radius-toast: 16px;
 
   /* ── Elevation (neutral black tints; hairline on floating overlays) ── */
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
   --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.03);
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.09);
-  --shadow-xl: 0 20px 48px rgba(0, 0, 0, 0.11);
   /* Feed / list cards — subtle lift + hairline for refined floating feel */
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.045), 0 0 0 1px rgba(0, 0, 0, 0.04);
-  /* Inset field wash — single source for input/textarea/select inner shadow */
-  --shadow-input-inset: inset 0 1px 2px rgba(0, 0, 0, 0.04);
   /* Monochrome primary button: quiet lift (no brand glow — ink speaks for itself) */
   --shadow-button: 0 1px 2px rgba(0, 0, 0, 0.10);
   --shadow-button-hover: 0 3px 10px rgba(0, 0, 0, 0.14);
@@ -176,8 +190,6 @@
   --shadow-overlay-hairline: var(--shadow-overlay);
 
   /* Elevation levels — after concrete shadows so aliases resolve cleanly */
-  --elevation-0: none;
-  --elevation-1: var(--shadow-card);
   --elevation-2: var(--shadow-float);
   --elevation-3: var(--shadow-overlay);
 
@@ -219,18 +231,20 @@
   /* Layout density */
   --density-page-x: 32px;
   --density-page-y: 28px;
+  /* Content surfaces (stream / suggestions / goals) — Muse-breathing register.
+     Tool chrome keeps the tighter 4px grid; do not apply to editor toolbars. */
+  --density-content-gap: 14px;
+  --density-content-section: 24px;
   --density-chrome-y: 44px;
   /* Density tiers are window-driven media overrides in v4.css
      (full 44 · condensed 36 · immersive 32). Keep one live token. */
   --density-chrome-control: 32px;
   --density-status-y: 26px;
-  --density-tree-row: 32px;
+  --density-tree-row: 34px;
   --density-editor-toolbar-y: 32px;
 
   --control-h-chip: 22px;
-  --control-h-sm: 30px;
-  --control-h-md: 34px;
-  --control-h-lg: 40px;
+  --control-h-sm: 32px;
   --type-weight-regular: var(--font-weight-normal);
   --type-weight-medium: var(--font-weight-medium);
   --type-weight-strong: var(--font-weight-semibold);
@@ -273,12 +287,8 @@
   --text-lg--line-height: var(--type-leading-compact);
   --text-xl: 16px;
   --text-xl--line-height: var(--type-leading-heading);
-  --text-2xl: 18px;
-  --text-2xl--line-height: var(--type-leading-heading);
   --text-3xl: 24px;
   --text-3xl--line-height: var(--type-leading-heading);
-  --text-4xl: 28px;
-  --text-4xl--line-height: var(--type-leading-heading-tight);
 
 
   /* ── Layout ── */
@@ -298,13 +308,9 @@
      balances spacious UI layout with ergonomic CJK/Latin reading line-length. */
   --feed-column-max: 56rem;
   --z-local: 1;
-  --z-shell-rail: 10;
-  --z-header: 20;
   --z-popover: 30;
   --z-floating: 50;
-  --z-overlay: 70;
   --z-modal: 80;
-  --z-notification: 90;
   --z-toast: 100;
   /* Open menus/listboxes must paint above tooltips (see DESIGN § dropdown) */
   --z-menu: 110;
@@ -335,7 +341,6 @@
   /* ── Blur — small surfaces only; never full-viewport scrim ── */
   --blur-sm: 6px;
   --blur-md: 12px;
-  --blur-lg: 18px;
   --blur-glass: 14px;
 }
 
@@ -368,17 +373,19 @@
 
   .dark {
     color-scheme: dark;
-    /* Graphite ladder — rails deepest → canvas → paper → elevated modal plane */
+    /* Graphite ladder — rails deepest → canvas → paper → elevated modal plane
+       4.3: elevated one step lighter so floating cards read (Muse presence). */
     --color-app-chrome: #171614;
     --color-background: #1c1a17;
-    --color-surface: #221f1c;
-    --color-surface-elevated: #2b2824;
-    --color-surface-muted: #262320;
+    --color-surface: #232019;
+    --color-surface-elevated: #2e2b26;
+    --color-surface-muted: #272420;
     --color-surface-inset: #12110f;
     /* Same container steps as light, resolved against the graphite ladder. */
     --color-surface-container: var(--color-surface);
-    --color-surface-container-high: color-mix(in srgb, var(--color-surface-elevated) 84%, var(--color-text-primary) 16%);
-    --color-surface-container-highest: color-mix(in srgb, var(--color-surface-elevated) 70%, var(--color-background) 30%);
+    --color-surface-container-high: var(--color-surface-elevated);
+    /* Dark: climb toward elevated-hover (lighter graphite), not toward canvas. */
+    --color-surface-container-highest: color-mix(in srgb, var(--color-surface-elevated) 78%, var(--color-surface-elevated-hover) 22%);
     --color-inverse-surface: var(--color-ink);
     --color-inverse-on-surface: var(--color-ink-foreground);
     --color-sidebar: #141311;
@@ -386,14 +393,14 @@
        Quaternary stays above the tertiary step and still clears AA on elevated. */
     --color-text-primary: #e8e4de;
     --color-text-secondary: #c8c2b8;
-    --color-text-tertiary: #a8a196;
-    --color-text-quaternary: #988f86;
+    --color-text-tertiary: #aca59b;
+    --color-text-quaternary: #9c948c;
     --color-text-prose: #d9d4cc;
     --color-border-subtle: rgba(255, 255, 255, 0.10);
     --color-border-subtle-dim: rgba(255, 255, 255, 0.06);
     --color-border-strong: rgba(255, 255, 255, 0.18);
-    --color-dialog-bg: color-mix(in srgb, var(--color-surface-elevated) 72%, var(--color-surface-muted) 28%);
-    --color-dialog-header: color-mix(in srgb, var(--color-surface-muted) 55%, var(--color-surface-elevated));
+    --color-dialog-bg: color-mix(in srgb, var(--color-surface-elevated) 88%, var(--color-surface-muted) 12%);
+    --color-dialog-header: color-mix(in srgb, var(--color-surface-muted) 35%, var(--color-surface-elevated));
     /* Ink CTA = near-white on graphite */
     --color-ink: #f0f0f0;
     --color-ink-hover: #dcdcdc;
@@ -418,6 +425,8 @@
     --color-status-error-bg: rgba(248, 113, 113, 0.12);
     --color-status-info: #7dd3fc;
     --color-status-info-bg: rgba(125, 211, 252, 0.12);
+    --color-status-neutral: #a8a29e;
+    --color-status-neutral-bg: rgba(168, 162, 158, 0.16);
     --color-scrim: rgba(0, 0, 0, 0.56);
     --color-scrim-mini: rgba(0, 0, 0, 0.28);
     --color-kbd-bg: rgba(255, 255, 255, 0.08);
@@ -455,9 +464,7 @@
     --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.34);
     --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.38);
     --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.44);
-    --shadow-xl: 0 20px 48px rgba(0, 0, 0, 0.50);
     --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(255, 255, 255, 0.06), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
-    --shadow-input-inset: inset 0 1px 2px rgba(0, 0, 0, 0.28);
     --shadow-button: 0 1px 2px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.10);
     --shadow-button-hover: 0 4px 14px rgba(0, 0, 0, 0.40);
     --shadow-overlay: 0 28px 72px rgba(0, 0, 0, 0.54), 0 10px 24px rgba(0, 0, 0, 0.32), 0 0 0 1px var(--color-border-subtle);
@@ -615,22 +622,6 @@ html.dark[data-theme-tone="slate"] {
   --color-paper-sepia: #242820;
 }
 
-.dark.high-contrast {
-  --color-background: #000000;
-  --color-surface: #000000;
-  --color-surface-elevated: #111111;
-  --color-surface-muted: #222222;
-  --color-surface-inset: #1a1a1a;
-  --color-text-primary: #ffffff;
-  --color-text-secondary: #e0e0e0;
-  --color-text-tertiary: #cccccc;
-  --color-text-quaternary: #aaaaaa;
-  --color-border-subtle: #ffffff;
-  --color-border-strong: #ffffff;
-  --color-accent-color: #7dd3fc;
-  --color-accent-muted: rgba(125, 211, 252, 0.22);
-}
-
 /* ── Pre-generated theme seeds (DS 4.0.3) ──
    Accent axis only — ink CTA, surfaces, density, IA unchanged.
    sky = default (no attribute). Stops keep AA on the 4.0 surface ladder.
@@ -706,6 +697,28 @@ html.dark[data-theme-seed="graphite"] {
   --color-text-on-accent: #18181b;
 }
 
+/* High-contrast sits AFTER tone/seed: same specificity as
+   `html.dark[data-theme-tone=…]` / `[data-theme-seed=…]`, so source order
+   decides. `html.dark.high-contrast` must win whenever the user asks for it. */
+html.dark.high-contrast {
+  --color-background: #000000;
+  --color-surface: #000000;
+  --color-surface-elevated: #111111;
+  --color-surface-muted: #222222;
+  --color-surface-inset: #1a1a1a;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #e0e0e0;
+  --color-text-tertiary: #cccccc;
+  --color-text-quaternary: #aaaaaa;
+  /* High-contrast borders stay strong but not pure white wireframe. */
+  --color-border-subtle: rgba(255, 255, 255, 0.55);
+  --color-border-subtle-dim: rgba(255, 255, 255, 0.35);
+  --color-border-strong: rgba(255, 255, 255, 0.85);
+  --color-accent-color: #7dd3fc;
+  --color-accent-muted: rgba(125, 211, 252, 0.22);
+  --color-sidebar: #0a0a0a;
+}
+
 /* ── Base resets ── */
 @layer base {
 
@@ -768,6 +781,28 @@ select {
   touch-action: manipulation;
 }
 
+/* Kill UA default inset borders on *text-like* controls — form fields own
+   their shape via wash + radius. Checkbox / radio / range / file / color /
+   date-time must keep their UA chrome (appearance:none would blank the
+   checkbox glyph or the calendar picker). */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="date"]):not([type="time"]):not([type="datetime-local"]):not([type="month"]):not([type="week"]),
+textarea,
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  background: transparent;
+}
+/* Date/time: still drop the inset box, but keep the picker chrome. */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+input[type="month"],
+input[type="week"] {
+  border: none;
+  background: transparent;
+}
+
 button {
   cursor: pointer;
   transition: var(--transition-interactive);
@@ -779,13 +814,45 @@ button:active:not(:disabled),
   transform: scale(0.992);
 }
 
-button:focus-visible,
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible {
+/* Focus recipes:
+   - Buttons keep the heavier ring (v4-focus-ring / the rule below).
+   - Text-like fields already sit in a wash fill — a 2px outline + 4px halo
+     around them reads as a hard "square box". Give them a 2px accent halo
+     only. Checkbox/radio/file keep UA chrome and a simple ring. */
+button:focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
   box-shadow: 0 0 0 4px var(--color-focus-soft);
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+.v4-quiet-field:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent-color) 28%, transparent);
+}
+
+input[type="checkbox"]:focus-visible,
+input[type="radio"]:focus-visible,
+input[type="range"]:focus-visible,
+input[type="file"]:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Composer field: the shell owns focus chrome; inner textarea stays flat. */
+.v4-composer-field:focus-within {
+  outline: none;
+}
+.v4-composer-field textarea {
+  border: none;
+  outline: none;
+  background: transparent;
+  resize: none;
+}
+.v4-composer-field textarea:focus-visible {
+  box-shadow: none;
 }
 
 /* Base scrollbar — slightly roomy for general surfaces (lists, dialogs) */

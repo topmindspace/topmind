@@ -28,6 +28,8 @@ import {
   reconcileGoalVerdicts,
   rejectBareDone,
   resolveMaxAutoContinues,
+  classifyTurn,
+  matchQueryIntents,
 } from "./lib/agent-goal-protocol.mjs";
 import {
   INLINE_SYSTEM,
@@ -574,6 +576,55 @@ export const AiService = {
       : Array.isArray(lastUser?.content)
         ? lastUser.content.map((p) => (typeof p === "string" ? p : p?.text || "")).join("\n")
         : "";
+
+    // Progressive tool exposure + session-health instrumentation: each tool
+    // outcome feeds a failure-rate circuit breaker so a thrashing loop stops
+    // spending continues and closes honestly.
+    let turnKind = "task";
+    let sessionHealth = { recent: [], totalCalls: 0, totalFailures: 0, tripped: false, tripReason: null, lastFailedTool: null };
+    if (enableTools && tools) {
+      try {
+        const { filterToolsForTurn, resolveTurnKind } = await import("./lib/tool-progressive.mjs");
+        const { recordToolOutcome, createSessionHealth } = await import("./lib/session-health.mjs");
+        sessionHealth = createSessionHealth();
+        turnKind = resolveTurnKind(lastUserText);
+        const filtered = filterToolsForTurn(tools, turnKind);
+        /** @type {Record<string, unknown>} */
+        const instrumented = {};
+        for (const [name, t] of Object.entries(filtered)) {
+          const sdk = /** @type {{ execute?: Function }} */ (t);
+          if (typeof sdk.execute !== "function") {
+            instrumented[name] = t;
+            continue;
+          }
+          const orig = sdk.execute.bind(sdk);
+          instrumented[name] = {
+            ...sdk,
+            execute: async (...a) => {
+              try {
+                const r = await orig(...a);
+                const ok = !(r && typeof r === "object" && (r.ok === false || r.error));
+                sessionHealth = recordToolOutcome(sessionHealth, { name, ok });
+                return r;
+              } catch (err) {
+                sessionHealth = recordToolOutcome(sessionHealth, { name, ok: false });
+                throw err;
+              }
+            },
+          };
+        }
+        tools = instrumented;
+        toolNames = Object.keys(tools);
+        if (turnKind !== "task") {
+          logInfo("ai", "progressive tools", { sessionId, turnKind, toolCount: toolNames.length });
+        }
+      } catch (err) {
+        logWarn("ai", "progressive tool filter failed (keeping full set)", {
+          sessionId,
+          error: err?.message || String(err),
+        });
+      }
+    }
     const [locale, outputLocale] = await Promise.all([
       resolveChromeLocale(settings, c),
       resolveDurableOutputLocale({
@@ -583,6 +634,29 @@ export const AiService = {
         c,
       }),
     ]);
+    // Host-side forced grounding: for todos/memory/stream lookups, run the
+    // read tools NOW and inject results so the model cannot answer from priors.
+    let queryEvidenceBlock = null;
+    try {
+      const { buildQueryEvidence } = await import("./lib/query-evidence.mjs");
+      queryEvidenceBlock = await buildQueryEvidence({
+        userText: lastUserText,
+        tools,
+        locale,
+      });
+      if (queryEvidenceBlock) {
+        logInfo("ai", "query evidence injected", {
+          sessionId,
+          tools: matchQueryIntents(lastUserText)?.tools || [],
+          chars: queryEvidenceBlock.length,
+        });
+      }
+    } catch (err) {
+      logWarn("ai", "query evidence failed (non-fatal)", {
+        sessionId,
+        error: err?.message || String(err),
+      });
+    }
     const sysPrompt = buildSystemPrompt({
       workspaceContext: c.workspaceRoot,
       topicId,
@@ -596,6 +670,9 @@ export const AiService = {
       activeSkillId: activeSkillId || null,
       focusPath: ambient || null,
       focusHint: typeof focusHint === "string" ? focusHint : null,
+      queryHint: matchQueryIntents(lastUserText)?.tools || null,
+      queryEvidence: queryEvidenceBlock,
+      turnKind,
       workspaceOverview: aiContext.overview,
       memoryProfile: aiContext.profile,
       topicContext: aiContext.topicContext,
@@ -603,7 +680,38 @@ export const AiService = {
       outputLocale,
     });
 
-    const maxAgentSteps = settings?.ai?.maxAgentSteps;
+    // Adaptive session budget: steps / continues / compact tightness follow
+    // turn kind + workload (light → 0 steps, query → few, task → scaled).
+    let sessionBudget = {
+      maxAgentSteps: settings?.ai?.maxAgentSteps || 12,
+      maxAutoContinues: 2,
+      contextTighten: 1,
+      turnKind: "task",
+      reason: "default",
+    };
+    try {
+      const { resolveSessionBudget } = await import("./lib/session-budget.mjs");
+      sessionBudget = resolveSessionBudget({
+        userText: lastUserText,
+        // goalState is prepared later; text workload is the primary signal here.
+        settings: settings?.ai,
+        contextWindow: modelContextWindow,
+      });
+      logInfo("ai", "session budget", {
+        sessionId,
+        steps: sessionBudget.maxAgentSteps,
+        continues: sessionBudget.maxAutoContinues,
+        tighten: sessionBudget.contextTighten,
+        turnKind: sessionBudget.turnKind,
+        reason: sessionBudget.reason,
+      });
+    } catch (err) {
+      logWarn("ai", "session budget resolve failed (using defaults)", {
+        sessionId,
+        error: err?.message || String(err),
+      });
+    }
+    const maxAgentSteps = sessionBudget.maxAgentSteps;
     logInfo("ai", "invoke started", {
       sessionId,
       model: res.modelId,
@@ -640,9 +748,28 @@ export const AiService = {
     // still has open acceptance criteria), re-enter the loop with a goal-aware
     // continue prompt instead of dying. Bounded so a runaway agent cannot spin
     // forever; incomplete goals get a slightly higher budget.
-    const BASE_MAX_AUTO_CONTINUES = 2;
+    const BASE_MAX_AUTO_CONTINUES = sessionBudget.maxAutoContinues;
     let autoContinues = 0;
     let workingMessages = compact.messages;
+    // Dual injection: evidence lives in the system prompt AND the last user
+    // turn. Some mid-size models weight the user tail far more than a system
+    // appendix — without this they answer from priors and never open tools.
+    if (queryEvidenceBlock && Array.isArray(workingMessages) && workingMessages.length > 0) {
+      const idx = [...workingMessages].map((m, i) => ({ m, i })).reverse()
+        .find(({ m }) => m?.role === "user")?.i;
+      if (idx != null) {
+        const m = workingMessages[idx];
+        const prev = typeof m.content === "string" ? m.content : "";
+        const note = `\n\n---\n[系统附注 · 工作区查询证据 · 回答时必须引用]\n${queryEvidenceBlock}`;
+        workingMessages = workingMessages.map((msg, i) =>
+          i === idx ? { ...msg, content: `${prev}${note}` } : msg,
+        );
+        logInfo("ai", "query evidence appended to user turn", {
+          sessionId,
+          chars: note.length,
+        });
+      }
+    }
     let result = null;
     let combinedText = "";
     let combinedReasoning = "";
@@ -789,9 +916,10 @@ export const AiService = {
       // worker claims done or criteria are open — never worker self-grading.
       let evaluator = null;
       const wantsJudge =
-        goalState.doneCriteria?.length > 0 ||
-        heuristic.reason === "done-mark" ||
-        heuristic.confidence === "medium";
+        goalState.kind !== "light" &&
+        (goalState.doneCriteria?.length > 0 ||
+          heuristic.reason === "done-mark" ||
+          heuristic.confidence === "medium");
       if (wantsJudge && res.modelId && !heuristic.reason?.includes("incomplete-mark")) {
         try {
           const judge = await generateText({
@@ -844,7 +972,25 @@ export const AiService = {
         hasTools: Boolean(tools),
         error: Boolean(result.error),
         cancelled: Boolean(result.cancelled),
+        turnKind: goalState.kind || classifyTurn(goalState.goal || ""),
       });
+      // Failure-rate circuit breaker: a thrashing loop must stop, not spin.
+      if (sessionHealth?.tripped) {
+        logWarn("ai", "session health circuit open — stopping auto-continue", {
+          sessionId,
+          reason: sessionHealth.tripReason,
+          calls: sessionHealth.totalCalls,
+          failures: sessionHealth.totalFailures,
+        });
+        if (goalState.status !== "done") {
+          goalState = {
+            ...goalState,
+            status: goalState.status === "blocked" ? "blocked" : "incomplete",
+            blockReason: goalState.blockReason || "tool-thrash",
+          };
+        }
+        break;
+      }
       // High-confidence done always stops — even at the step cap (G5):
       // never spend continue budget re-closing a finished task.
       // Accept both worker `[DONE]` and evaluator `met` verdicts.
@@ -855,17 +1001,22 @@ export const AiService = {
       ) {
         break;
       }
-      // Hard stops win even at stepLimitHit (G7): blocked / incomplete / impossible / no-tools.
+      // Hard stops win even at stepLimitHit (G7): blocked / incomplete / impossible / no-tools / empty-turn.
       const hardStop =
         decision.reason === "blocked" ||
         decision.reason === "incomplete-mark" ||
+        decision.reason === "empty-turn" ||
         String(decision.reason || "").startsWith("impossible") ||
         decision.reason === "no-tools" ||
         decision.reason === "error-or-cancelled";
       if (hardStop) {
         if (goalState.status !== "done" && decision.reason !== "blocked") {
           // Keep blocked as-is; otherwise honest terminal for the stop reason.
-          if (decision.reason === "incomplete-mark" || String(decision.reason || "").startsWith("impossible")) {
+          if (
+            decision.reason === "incomplete-mark" ||
+            decision.reason === "empty-turn" ||
+            String(decision.reason || "").startsWith("impossible")
+          ) {
             goalState = {
               ...goalState,
               status: "incomplete",
@@ -945,6 +1096,18 @@ export const AiService = {
         friendlyError = zh
           ? "上下文超长。请新开会话，或缩短挂载文件/历史。"
           : "Context too long. Start a new session or reduce mounted files/history.";
+      } else if (/bytestring|character at index/i.test(raw)) {
+        friendlyError = zh
+          ? "API Key 含非英文字符（HTTP 头只能是 ASCII）。请到「设置 → AI」重新粘贴纯英文密钥。"
+          : "API key contains non-ASCII characters (HTTP headers must be ASCII). Re-paste a plain-ASCII key in Settings → AI.";
+      } else if (/header or cookie too large|request header|413|431/i.test(raw)) {
+        friendlyError = zh
+          ? "请求头过大，通常因 API Key 异常超长或已损坏。请到「设置 → AI」删除当前 Key 后重新粘贴官方纯英文密钥。"
+          : "Request headers too large — the API key is likely corrupt or oversized. Re-paste a plain-ASCII key in Settings → AI.";
+      } else if (/400 bad request|bad request/i.test(raw)) {
+        friendlyError = zh
+          ? "模型服务拒绝了请求（400）。请检查 API Key 是否正确、模型名是否有效，或稍后重试。"
+          : "Provider rejected the request (400). Check the API key and model id, then retry.";
       }
     }
     noteAgentLoop(lastRuntime);
@@ -966,9 +1129,11 @@ export const AiService = {
       criteria: goalState.criteria || [],
       openCriteria: goalState.doneCriteria || [],
       pathReceipts: (goalState.pathReceipts || []).slice(-12),
+      sourceUrls: (goalState.sourceUrls || []).slice(-8),
       status: goalState.status || "idle",
       blockReason: goalState.blockReason || null,
       autoContinues,
+      kind: goalState.kind || classifyTurn(goalState.goal || ""),
     };
     emit?.({ type: "goal-status", goal: goalSummary, sessionId });
     rememberDistillHint(fileOps);

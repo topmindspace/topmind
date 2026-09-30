@@ -60,7 +60,8 @@ test("v4 plugin contract: 7 slot kinds defined (sidebar slot removed 2026-08-30)
     return count;
   }
   const srcCount = countFiles(src, (name) => name.endsWith(".ts") || name.endsWith(".tsx"));
-  const electronCount = countFiles(electron, (name) => /\.(?:mjs|ts|js)$/u.test(name));
+  // Include .cjs (preload) so this count matches the footprint gate.
+  const electronCount = countFiles(electron, (name) => /\.(?:mjs|cjs|js)$/u.test(name));
   assert.match(architecture, new RegExp(`源文件计数：\`src/\` ${srcCount} · \`electron/\` ${electronCount}`));
 });
 
@@ -224,10 +225,26 @@ test("v4 source footprint stays bounded (src + electron)", () => {
   // 2026-09-28b: ThemeMenuButton.tsx (+1 src → 242) — ActivityBar appearance menu.
   // 2026-09-28c: GitHub capture path (+2 electron: lib/github-md.mjs pure URL
   // semantics vendored from kernel, lib/github-fetch.mjs raw/README network).
-  // Prefer merge over raising; this ceiling is a one-file tripwire.
-  assert.ok(srcCount < 243, `src file count ${srcCount} exceeds soft ceiling`);
-  assert.ok(electronCount < 122, `electron file count ${electronCount} exceeds soft ceiling`);
-  assert.ok(srcCount + electronCount < 364, `total ${srcCount + electronCount} exceeds soft ceiling`);
+  // 2026-09-28d: X structured capture (+1 electron: lib/x-fetch.mjs fxtwitter
+  // author/title/media path — HTML scrape on x.com is an SPA shell). Shared
+  // LinkCaptureCard lives in CapturePreview.tsx (no +src).
+  // 2026-09-29 Muse/Cue kit: StatusDot · ChoiceCard · SuggestionCard ·
+  // AgentPresence · ProactiveSuggestStrip (+5 src). RowActions merged into
+  // view.tsx (−1). Net +4 → ceiling 248. These are design-system primitives
+  // named in DESIGN.md §UI kit — not feature sprawl.
+  // 2026-09-29d: header-safe.mjs (+1 electron → 123) — ByteString sanitizer for API keys.
+  // 2026-09-29c: ingest-jobs-store.ts (+1 src → 248) — single shared poller
+  // replaces 2–3 parallel useIngestJobs intervals (perf P0). Prefer merge
+  // over raising; this ceiling is a one-file tripwire.
+  // 2026-09-30 full agent stack (+8 electron → 131): web-search(.mjs) +
+  // web-search-core(.mjs) external retrieval, query-evidence forced grounding,
+  // tool-progressive turn-kind tool surface, session-budget adaptive steps,
+  // session-health circuit breaker, tool-result-digest clamp,
+  // tool-retry-hints recovery copy. Each is a documented single-purpose
+  // module (TOOLS.md); none is feature sprawl. Ceiling moves by 8, total to 382.
+  assert.ok(srcCount < 249, `src file count ${srcCount} exceeds soft ceiling`);
+  assert.ok(electronCount < 132, `electron file count ${electronCount} exceeds soft ceiling`);
+  assert.ok(srcCount + electronCount < 383, `total ${srcCount + electronCount} exceeds soft ceiling`);
 });
 
 test("desktop validate restages engine before pack:verify (obsidian/clip stamp drift)", () => {

@@ -185,8 +185,10 @@ interface ActionStore {
   acceptItem: (id: string, opts?: { skipNav?: boolean; silent?: boolean }) => Promise<boolean>;
   /** Open the existing associated note (周期本 / profile) without writing. */
   openItem: (id: string) => void;
-  rejectItem: (id: string) => Promise<void>;  // 忽略建议或拒绝写入
-  dismissItem: (id: string) => void;  // 仅从 UI 隐藏（不调后端），并记住 dismiss 以避免重复
+  rejectItem: (id: string) => Promise<void>;  // 忽略建议（持久）或拒绝待写（调后端）
+  /** Durable "no" for suggestions (session + persistDismissals). Confirm-pane only.
+   *  Proactive strip cards use React-local hide — they never call this. */
+  dismissItem: (id: string) => void;
   clearDismissed: () => Promise<void>;  // 显式忘记全部 reject（Shift+点击刷新）；普通刷新不走这里
   /** Accept all actionable items sequentially.
    *  Suggestions go in ONE batch IPC (main applies sequentially, pushes progress);
@@ -662,8 +664,8 @@ export const useActionStore = create<ActionStore>((set, get) => ({
     opSuggestionCache.delete(id);
     sessionSuggestionCache.delete(id);
     set(s => ({ items: s.items.filter(x => x.id !== id) }));
-    // Durable memory for the "no": without it the card returns on the next
-    // analysis pass / next launch. Fire-and-forget — the UI must not wait.
+    // Durable "no" (same as rejectItem for suggestions): without persist the
+    // card returns on the next analysis pass / next launch. Fire-and-forget.
     persistDismissals([id]);
   },
 
@@ -857,11 +859,11 @@ export const useActionStore = create<ActionStore>((set, get) => ({
     // Partial / total failure must not be a silent panel-only note — surface it.
     if (failed > 0) {
       emitLocal("toast:show", {
-        text: `✗ ${t('editor:ai.bulkAcceptPartial', {
+        text: t('editor:ai.bulkAcceptPartial', {
           accepted,
           failed,
           defaultValue: `Accepted ${accepted} · ${failed} failed`,
-        })}`,
+        }),
         kind: "error",
       });
       emitLocal(SUGGESTIONS_REFRESH_EVENT, { reason: 'apply' });
@@ -1030,15 +1032,17 @@ onLocal(PENDING_WRITES_CHANGED_EVENT, () => {
 let safetyPoll: ReturnType<typeof setInterval> | null = null;
 function ensureSafetyPoll() {
   if (safetyPoll) return;
-safetyPoll = setInterval(() => {
-const st = useActionStore.getState();
-// Skip poll entirely when autoPrepare is off and no pending writes exist
-// — nothing to discover, and kernel suggest is disabled in this mode
-if (!st.autoPrepare && !st.items.some((i) => i.source === "pending_write")) return;
-void st.refresh({ pollOnly: true });
-}, 30000);
-// Note: Node.js Timer.unref() is not available in Electron renderer process.
-// The interval is cleaned up when the renderer is destroyed (window close).
+  safetyPoll = setInterval(() => {
+    // Hidden window: skip entirely — nothing to show, avoid IPC while off-screen.
+    if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+    const st = useActionStore.getState();
+    // Skip poll entirely when autoPrepare is off and no pending writes exist
+    // — nothing to discover, and kernel suggest is disabled in this mode
+    if (!st.autoPrepare && !st.items.some((i) => i.source === "pending_write")) return;
+    void st.refresh({ pollOnly: true });
+  }, 30000);
+  // Note: Node.js Timer.unref() is not available in Electron renderer process.
+  // The interval is cleaned up when the renderer is destroyed (window close).
 }
 ensureSafetyPoll();
 

@@ -135,7 +135,9 @@ test("shipped tree uses classifier + inbox expand; refresh sits in tree toolbar"
   assert.match(sidebar, /classifyTreeFileChange/);
   assert.match(sidebar, /shouldExpandInboxSection/);
   assert.match(sidebar, /inboxChildCount/);
-  assert.match(sidebar, /onRefresh=\{\(\) => void hardRefresh\(\)\}/);
+  // Stable identity (hoisted useCallback) — inline arrows voided memo(TreeViewNode).
+  assert.match(sidebar, /onRefresh=\{handleHardRefresh\}/);
+  assert.match(sidebar, /const handleHardRefresh = useCallback/);
   assert.equal((toolbar.match(/data-sidebar-refresh/g) || []).length, 1);
   assert.doesNotMatch(sidebar, /data-sidebar-refresh/);
   assert.match(sidebar, /data-sidebar-header/);

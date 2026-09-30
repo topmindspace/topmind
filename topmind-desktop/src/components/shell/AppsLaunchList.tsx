@@ -70,7 +70,7 @@ export function AppsLaunchList() {
   return (
     <div className="flex h-full min-h-0 flex-col" data-apps-workspace>
       <div className="flex shrink-0 items-center gap-1.5 border-b border-border-subtle-dim px-3 py-2">
-        <RiLayoutGridLine size={ICON.xs} className="text-accent-color" aria-hidden />
+        <RiLayoutGridLine size={ICON.xs} className="text-text-tertiary" aria-hidden />
         <span className="min-w-0 flex-1 text-3xs font-semibold text-text-primary">
           {t("shell:appsMenu.section")}
         </span>
@@ -85,7 +85,7 @@ export function AppsLaunchList() {
       </div>
       <div className="v4-content-scroll min-h-0 flex-1 overflow-auto px-2 py-2">
         {launchable.length === 0 ? (
-          <p className="px-1.5 py-2 text-3xs leading-relaxed text-text-quaternary">
+          <p className="px-1.5 py-2 text-xs leading-relaxed text-text-quaternary">
             {t("shell:appsMenu.empty")}
           </p>
         ) : (
@@ -130,7 +130,7 @@ export function AppsLaunchList() {
                       ) : null}
                     </span>
                     {desc ? (
-                      <span className="line-clamp-2 text-3xs leading-snug text-text-quaternary">{desc}</span>
+                      <span className="line-clamp-2 text-xs leading-snug text-text-quaternary">{desc}</span>
                     ) : null}
                   </span>
                 </button>

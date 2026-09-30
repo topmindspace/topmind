@@ -125,6 +125,7 @@ export function LedgerQuickEntry({
   }, [open, toggle, prefill]);
 
   const submit = useCallback(async () => {
+    if (busy) return; // Enter can fire while a submit is in flight
     const n = Number(amount);
     if (!Number.isFinite(n) || n <= 0) {
       setErr(t("errorIncomplete"));
@@ -168,7 +169,7 @@ export function LedgerQuickEntry({
               "inline-flex items-center gap-1 rounded-[var(--radius-xs)] px-2.5 py-0.5 text-3xs font-medium transition-colors v4-focus-ring",
               looksLedger
                 ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
-                : "bg-surface-muted text-text-tertiary hover:bg-state-hover hover:text-text-secondary",
+                : "bg-surface-wash-15 text-text-tertiary hover:bg-state-hover hover:text-text-secondary",
             )}
             aria-expanded={open}
           >
@@ -247,7 +248,7 @@ export function LedgerQuickEntry({
                 value={roleId}
                 onChange={(e) => setRoleId(e.target.value)}
                 aria-label={t("quickBook")}
-                className="h-7 rounded-[var(--radius-md)] border border-border-subtle bg-input px-2 text-3xs text-text-primary outline-none"
+                className="h-7 rounded-[var(--radius-md)] border border-transparent bg-surface-wash-15 px-2 text-3xs text-text-primary outline-none hover:bg-surface-wash-30 focus-visible:border-accent-color"
               >
                 {books.map((b) => (
                   <option key={b.roleId} value={b.roleId}>
@@ -261,7 +262,7 @@ export function LedgerQuickEntry({
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 aria-label={t("category")}
-                className="h-7 max-w-28 rounded-[var(--radius-md)] border border-border-subtle bg-input px-2 text-3xs text-text-primary outline-none"
+                className="h-7 max-w-28 rounded-[var(--radius-md)] border border-transparent bg-surface-wash-15 px-2 text-3xs text-text-primary outline-none hover:bg-surface-wash-30 focus-visible:border-accent-color"
               >
                 <option value="">{t("quickNoCategory")}</option>
                 {categories.map((c) => (

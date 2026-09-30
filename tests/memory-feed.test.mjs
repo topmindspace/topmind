@@ -158,8 +158,14 @@ test("kernel-api re-exports memory-feed; Obsidian utils re-exports Kernel (no tw
   assert.doesNotMatch(utils, /function memoryItemsFromBlock/);
   assert.equal(existsSync(path.join(repo, "lib/memory-feed.d.mts")), true);
   const tsconfig = JSON.parse(readFileSync(path.join(obsidianRoot, "tsconfig.json"), "utf8"));
+  // Explicit filename or the `lib/*.d.mts` glob both cover the type stub.
   assert.ok(
-    (tsconfig.include || []).some((x) => String(x).includes("memory-feed.d.mts")),
-    "obsidian tsconfig must include memory-feed.d.mts",
+    (tsconfig.include || []).some(
+      (x) =>
+        String(x).includes("memory-feed.d.mts") ||
+        String(x) === "lib/*.d.mts" ||
+        String(x) === "lib/**/*.d.mts",
+    ),
+    "obsidian tsconfig must include memory-feed.d.mts (explicit or lib/*.d.mts glob)",
   );
 });

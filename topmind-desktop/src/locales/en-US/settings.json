@@ -128,7 +128,7 @@
     "wordWrap": "Word wrap",
     "wordWrapDesc": "Off = horizontal scroll for long lines",
     "inlineAiAutoPopup": "Auto-popup AI on text selection",
-    "inlineAiAutoPopupDesc": "Off = trigger via toolbar ✨ or context menu only",
+    "inlineAiAutoPopupDesc": "Off = trigger via toolbar AI or context menu only",
     "tabMode": "Tabs",
     "tabModeDesc": "Chrome-style multi-tab · or single file",
     "tabModeMulti": "Multi-tab (active stays in place)",
@@ -143,7 +143,7 @@
     "autoPrepareSuggestions": "Auto-prepare AI suggestions",
     "autoPrepareSuggestionsDesc": "When the workspace is ready, scan tidy-up candidates (Inbox / stale topics / memory). With a model configured this may call AI for extract/promote; never writes silently — you confirm each apply. Off = manual refresh only (saves tokens).",
     "autoMaintainTodos": "Auto AI maintain list",
-    "autoMaintainTodosDesc": "When the workspace is ready and AI is available, extract/update the personal list from the stream (memory/todo.md). Default off to avoid background token use; or trigger manually via Stream ✨ / List panel.",
+    "autoMaintainTodosDesc": "When the workspace is ready and AI is available, extract/update the personal list from the stream (memory/todo.md). Default off to avoid background token use; or trigger manually via Stream AI / List panel.",
     "clipBridge": "Browser clip",
     "clipBridgeDescRunning": "Running · {{endpoint}}",
     "clipBridgeDescStopped": "Local HTTP bridge for browser extension to write to Inbox",
@@ -210,7 +210,8 @@
     "themeSeedGraphite": "Graphite",
     "quickExtensions": "Extensions",
     "quickExtensionsDesc": "Connectors, Clip bridge, companions & updates",
-    "quickAbout": "About & updates"
+    "quickAbout": "About & updates",
+    "themeDesc": "Light, dark, or match the system"
   },
   "skills": {
     "mode": "Mode",
@@ -582,7 +583,10 @@
     "baseUrlInvalid": "Invalid URL — https:// required, or local http://localhost",
     "baseUrlEmpty": "No base URL set",
     "secretLostWarning": "These keys still have ciphertext but can no longer be decrypted (upgrade / re-sign / lost local key file): {{keys}}. Please re-enter them.",
-    "apiKeyLabel": "API Key"
+    "apiKeyLabel": "API Key",
+    "providerMarkCurrent": "Current",
+    "providerMarkConfigured": "Configured",
+    "entrypointMark": "Primary"
   },
   "tools": {
     "jsonErrorObject": "Input must be a JSON object",
@@ -650,5 +654,12 @@
     "realtime": "Realtime",
     "loading": "Loading statistics…"
   },
-  "groupsNavLabel": "Settings groups"
+  "groupsNavLabel": "Settings groups",
+  "action": {
+    "dismiss": "Dismiss"
+  },
+  "nav": {
+    "workspaceLabel": "Workspace",
+    "productTier": "TopMind Desktop"
+  }
 }

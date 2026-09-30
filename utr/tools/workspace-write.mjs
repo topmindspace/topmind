@@ -14,7 +14,7 @@ import {
   buildCliContext,
   validateRequiredRoots,
 } from "../core/workspace-context.mjs";
-import { parseArgs, resolveMode } from "../core/cli-args.mjs";
+import { parseArgs, resolveMode, resolveActor, isUserActor } from "../core/cli-args.mjs";
 import { ensureDir, pathExists, workspaceRelative } from "../core/topic-files.mjs";
 import {
   parseFrontmatter,
@@ -82,8 +82,8 @@ async function createTopic({ category, topic, title, mode }, ctx) {
         workspaceRoot: ctx.userWorkspaceRoot,
         contract,
         operation: "create",
-        actor: "user",
-        confirmed: true,
+        actor: resolveActor(),
+        confirmed: isUserActor(),
         skipShadow: true,
         frontmatter: fm,
       });
@@ -217,8 +217,8 @@ async function captureNote(
           workspaceRoot: ctx.userWorkspaceRoot,
           contract,
           operation: existed ? "update" : "create",
-          actor: "user",
-          confirmed: true,
+          actor: resolveActor(),
+          confirmed: isUserActor(),
           skipShadow: true,
           role: "loose-stream",
           frontmatter,
@@ -298,8 +298,8 @@ async function captureNote(
       workspaceRoot: ctx.userWorkspaceRoot,
       contract,
       operation: "create",
-      actor: "user",
-      confirmed: true,
+      actor: resolveActor(),
+      confirmed: isUserActor(),
       skipShadow: true,
       frontmatter,
     });
@@ -391,8 +391,8 @@ async function saveOutput({ category, topic, title, content, sourceType, ifExist
       workspaceRoot: ctx.userWorkspaceRoot,
       contract,
       operation: fileExists ? "update" : "create",
-      actor: "user",
-      confirmed: true,
+      actor: resolveActor(),
+      confirmed: isUserActor(),
       skipShadow: true,
       role: "delivery",
       frontmatter,
@@ -462,8 +462,8 @@ async function updateTopic({ category, topic, content, replaceReason, mode }, ct
       workspaceRoot: ctx.userWorkspaceRoot,
       contract,
       operation: "update",
-      actor: "user",
-      confirmed: true,
+      actor: resolveActor(),
+      confirmed: isUserActor(),
       skipShadow: true,
       frontmatter: fm,
     });

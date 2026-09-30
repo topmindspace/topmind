@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import {
   RiArrowRightSLine,
   RiBookOpenLine,
+  RiCheckLine,
   RiLoader4Line,
   RiRefreshLine,
   RiSettingsLine,
@@ -174,7 +175,7 @@ function WereadHubView() {
       void refreshCore();
       void loadBooks();
     } catch (e) {
-      setResult(`✗ ${e instanceof Error ? e.message : String(e)}`);
+      setResult(e instanceof Error ? e.message : String(e));
     } finally {
       setSyncing(false);
       setProgress(null);
@@ -364,7 +365,7 @@ function WereadHubView() {
                         : "border-border-subtle text-transparent",
                     )}
                   >
-                    ✓
+                    <RiCheckLine size={ICON.micro} aria-hidden />
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-3xs font-medium text-text-primary">{b.title || b.bookId}</div>

@@ -326,13 +326,13 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
       >
         <Field label={t("settings:workspace.pathLabel")} description={t("settings:workspace.pathDesc")} compact>
           <Input
-            value={settings.workspaceRoot || "（未打开 · Landing）"}
+            value={settings.workspaceRoot || t("settings:workspace.noWorkspace")}
             readOnly
             className="font-mono text-3xs"
           />
         </Field>
 
-        <div className="mt-2 grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
+        <div className="flex flex-col">
           <Field label={t("settings:workspace.templateLabel")} description={t("settings:workspace.templateDesc")} compact>
             <Input value={template} readOnly className="font-mono text-3xs" />
           </Field>
@@ -448,7 +448,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
             />
           </Field>
         </div>
-        <div className="mt-2 grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
+        <div className="flex flex-col">
           <Field
             label={t("settings:workspace.memoryDirLabel")}
             description={t("settings:workspace.memoryDirDesc")}
@@ -598,14 +598,13 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
         action={
           <div className="flex items-center gap-1">
             <Tooltip content={t("settings:workspace.reloadConfig")}>
-              <Button variant="ghost" size="sm" className="h-6" disabled={!!switching} onClick={() => void reloadConfig()}>
+              <Button variant="ghost" size="sm" disabled={!!switching} onClick={() => void reloadConfig()}>
                 <RiRefreshLine size={ICON.xs} />
               </Button>
             </Tooltip>
             <Button
               variant="outline"
               size="sm"
-              className="h-6"
               disabled={!!switching || !settings.workspaceRoot}
               onClick={() => setShowAdd((v) => !v)}
             >
@@ -618,7 +617,6 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
           <Button
             variant="ghost"
             size="sm"
-            className="h-6"
             disabled={!!switching || !settings.workspaceRoot}
             onClick={() => void handleRebuildMap()}
           >
@@ -631,7 +629,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
 
         {showAdd ? (
           <div className="mb-3 space-y-2 rounded-[var(--radius-md)] border border-accent-border-subtle bg-accent-bg-subtle p-3">
-            <div className="text-3xs font-medium text-text-secondary">{t("settings:workspace.newCategory")}</div>
+            <div className="text-xs font-medium text-text-secondary">{t("settings:workspace.newCategory")}</div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-[7rem_1fr]">
               <Input
                 placeholder={t("settings:workspace.slotPlaceholder")}
@@ -683,7 +681,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
                         {c.directory}
                       </span>
                       {c.hidden ? (
-                        <span className="rounded-[var(--radius-xs)] bg-surface-muted px-1.5 py-0.5 text-3xs font-medium text-text-tertiary">
+                        <span className="rounded-[var(--radius-xs)] bg-surface-wash-30 px-1.5 py-0.5 text-3xs font-medium text-text-tertiary">
                           {t("settings:workspace.hidden")}
                         </span>
                       ) : null}
@@ -698,7 +696,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
                         </span>
                       ) : null}
                     </div>
-                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-3xs leading-relaxed text-text-quaternary">
+                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs leading-relaxed text-text-quaternary">
                         <span>
                           {t("settings:workspace.slot")} <span className="font-mono text-text-tertiary">{c.slot}</span>
                         </span>
@@ -807,7 +805,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
         description={t("settings:workspace.switchWorkspaceDesc")}
         action={
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="sm" className="h-6" onClick={() => void handlePickNew()} disabled={!!switching}>
+            <Button variant="outline" size="sm" onClick={() => void handlePickNew()} disabled={!!switching}>
               {switching === "picking" ? (
                 <RiLoader4Line size={ICON.xs} className="animate-spin" />
               ) : (
@@ -819,7 +817,6 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6"
                 onClick={() => void handleCloseWorkspace()}
                 disabled={!!switching}
               >
@@ -858,7 +855,7 @@ export function WorkspacePanel({ settings }: { settings: AppSettings }) {
                       <span className="truncate">{w.rootPath}</span>
                     </span>
                     {switching === w.rootPath ? (
-                      <RiLoader4Line size={ICON.xs} className="animate-spin text-accent-color" />
+                      <RiLoader4Line size={ICON.xs} className="animate-spin text-text-tertiary" />
                     ) : active ? (
                       <span className="rounded-[var(--radius-xs)] bg-accent-color px-1.5 py-0.5 text-3xs font-medium text-text-on-accent">
                         {t("settings:workspace.currentWorkspace")}

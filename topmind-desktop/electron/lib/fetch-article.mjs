@@ -124,7 +124,7 @@ export function cleanCaptureUrl(raw) {
  * }}
  */
 export function extractArticle(html, opts = {}) {
-  const maxLen = opts.maxLen ?? 40_000;
+  const maxLen = opts.maxLen ?? 200_000;
   const meta = extractMeta(html || "");
   let title = meta.og_title || meta.title || "";
   let description = meta.og_description || meta.description || undefined;

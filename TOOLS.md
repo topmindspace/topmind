@@ -84,7 +84,7 @@ UTR 命令必须支持该工作流，**不暴露** 大类/专题命名、命令 
 7. **derived-builder**（衍生层生成与重建）
 8. **ingest-pipeline**（URL/文档/连接器入管）
 
-**卫星**（不是第九引擎）：`todo-engine`（`memory/todo.md`；UTR `memory.list-todos/add-todo/toggle-todo`）· `ai-operation-engine` · `suggest-engine` · `ledger-engine`（可选 `{memory.dir}/ledgers/`，无独立 UTR 域）。记账不是第六个用户概念。
+**卫星**（不是第九引擎）：`todo-engine`（`memory/todo.md`；UTR `memory.list-todos/add-todo/toggle-todo/update-todo/set-todo-due/delete-todo`）· `ai-operation-engine` · `suggest-engine` · `ledger-engine`（可选 `{memory.dir}/ledgers/`，无独立 UTR 域）。记账不是第六个用户概念。
 
 **Stream AI（产品路径）**：Desktop `runActivityOps` / `generateSuggestions` / `todo_maintain` / `memory_organize`（profile+periodic confirm）/ `topic_classify`（内容大类 `create_topic` confirm）均经 Kernel；UTR **无**平行 activity-window 业务实现（可选将来薄只读 adapter）。
 
@@ -123,21 +123,39 @@ Living verdict for **Desktop named AI tools**, the **Skills pack**, and the **UT
 
 ### Desktop named AI tools — all **keep**
 
-Names are the shipped list in `topmind-desktop/electron/lib/ai-tool-names.mjs` (18 read + 20 write = 38). Builders in `electron/ai-tools.mjs`; every write uses `wrapWrite` → WorkspaceService → Kernel writeback.
+Names are the shipped list in `topmind-desktop/electron/lib/ai-tool-names.mjs` (22 read + 25 write = 47). Builders in `electron/ai-tools.mjs`; every write uses `wrapWrite` → WorkspaceService → Kernel writeback.
 
 | Class | Names | Verdict |
 |-------|-------|---------|
 | skills | `list_skills` · `load_skill` · `load_skill_resource` | **keep** — portable pack, not `~/.pi` |
-| capture / fetch | `capture_to_inbox` · `fetch_url` | **keep** — not bash `curl` |
+| capture / fetch / search | `capture_to_inbox` · `web_search` · `fetch_url` · `capture_url` | **keep** — `web_search` = no-key DDG shortlist (scored + host-deduped); `fetch_url` = page→Markdown with source receipts; `capture_url` = one-shot fetch+ingest (source URL attached). Research loop: search → fetch → cite → optional capture. Not bash `curl` |
+
+**Deep research budget（产品约定）**：调研/对比/综述类任务走多跳 `web_search` → `fetch_url` → 交叉引用。预算：搜索 ≤3 轮 · 抓取 ≤5 页 · 同域去重（rankResults perHost=2）· 关键论断 ≥2 独立来源 · 单源必须标注「据 [来源]」。落库用 `capture_url`（source URL 随笔记）。禁止编造 URL；冲突来源并列呈现。
+
+**Progressive tool exposure（渐进/按需）**：按回合类型裁剪工具面——`light`（问候）= 0 域工具；`query`（任务/记忆/动态查询）= 仅读工具；`task` = 全量写面。真源 `topmind-desktop/electron/lib/tool-progressive.mjs`。查询类问题由宿主**强制取证**（`query-evidence.mjs` 先调工具再注入 system+user），不依赖模型自觉调工具。
+
+**Adaptive session budget（会话内自适应）**：`session-budget.mjs` 按回合类型 + 负载估算步数/续跑/紧凑度——light=0 步 · query=2–6 步 · task=8–48 步随负载伸缩；续跑 0–6；小上下文窗自动收紧。用户设置 `maxAgentSteps` 只增不减。无向量/语义检索。
+
+**Adaptive retry hints（工具失败自愈）**：`tool-retry-hints.mjs` 按错误类别给**一条**可执行恢复步骤（edit hash-stale → read_file 刷 hash；no-match → 复制精确 oldText；write-blocked → 只输出正文；locked → 请用户；capture 空页 → render:true/换源）。Desktop `wrapWrite` 与 Obsidian edit/capture 共用。
+
+**Tool-result digest（结果摘要压缩）**：`tool-result-digest.mjs` 结构化压缩大结果——字符串头尾保留、数组收束、对象丢噪声字段；保留 `ok/error/hint/relativePath` 判词。防长 read/列表打爆上下文。
+
+**Session health circuit breaker（失败熔断）**：`session-health.mjs` 滑窗监测工具失败率；失败率 ≥60% 或同工具连败 ×3 → 熔断，停止 auto-continue，诚实收尾 `incomplete`（blockReason=`tool-thrash`）。
+
+**跨表面**：`web-search-core.mjs` / `tool-retry-hints.mjs`（纯函数）三份同步（engine `lib/` · Desktop `electron/lib/` · Obsidian `lib/`）。`capture_url` 两侧对齐（`url/title/note/forceInbox/forceAtom`，source 随笔记）。`agent-goal-protocol.mjs` 双拷贝字节一致。Skills pack **v4.15.0**。
 | browse | `workspace_overview` · `list_categories` · `list_topics` · `list_topic_files` · `get_topic` · `list_inbox` · `list_outputs` | **keep** |
 | fs browse | `list_files` · `glob_files` · `stat_path` | **keep** — structured list/glob/stat (all planes); replaces bare `ls`/`find` |
 | read / search | `read_file` · `search` | **keep** — windowed / controlled grep; `encoding=` binary-friendly |
 | write / edit | `save_note` · `save_file` · `edit_file` · `create_topic` · `create_dir` · `copy_file` · `move_to_topic` · `publish_to_outputs` · `delete_path` · `rename_path` · `reconcile_week` | **keep** — body writes sanitized (thinking/JSON dump block) |
-| memory | `append_topic_memory` · `append_core_memory` · `retire_core_memory` · `update_core_memory` · `restore_core_memory` · `compact_core_memory_history` | **keep** — ADD / UPDATE / RETIRE / RESTORE / COMPACT-HISTORY (full lifecycle, UTR parity). Suggest kind `promote_memory` (payload.action `append_profile` / `update_profile` / `retire_profile` / `compact_history`) is confirm-gated and is **not** a chat tool name. `compact_core_memory_history` drops older near-dup History rows — confirm-gated |
-| todos | `list_todos` · `add_todo` · `toggle_todo` | **keep** |
+| memory | `list_recent_memories` (read) · `append_topic_memory` · `append_core_memory` · `retire_core_memory` · `update_core_memory` · `restore_core_memory` · `compact_core_memory_history` | **keep** — read is `list_recent_memories` (profile/periodic/topic feed, no path guessing); writes are ADD / UPDATE / RETIRE / RESTORE / COMPACT-HISTORY (full lifecycle, UTR parity). Suggest kind `promote_memory` (payload.action `append_profile` / `update_profile` / `retire_profile` / `compact_history`) is confirm-gated and is **not** a chat tool name. `compact_core_memory_history` drops older near-dup History rows — confirm-gated |
+| stream | `list_recent_stream` (read) · `append_stream_entry` | **keep** — recent period-note entries; 增补 = comment-like follow-up under an entry (same file). New entries stay `capture_to_inbox` |
+| todos | `list_todos` · `add_todo` · `toggle_todo` · `update_todo` · `set_todo_due` · `delete_todo` | **keep** — full lifecycle (prefer toggle-to-done over delete) |
+| pending | `list_pending_writes` | **keep** — confirm-mode queue visibility |
 | health | `workspace_health` | **keep** — 结构 + 契约健康（`inspectContract`）+ counts；容量/类型/去重走 Desktop RPC `workspace.workspaceStats` / `workspaceDuplicates`；清理不进默认 AI 集（用户手势） |
 | **drop** | `bash` · unscoped `shell` / `exec` · `run_in_workspace` | **drop — never registered** |
 | Pi native aliases | `read` / `write` / `edit` / `grep` / `list` / `ls` / `list_dir` / `glob` / `find` / `stat` / `mkdir` / `mv` / `move` / `cp` / `copy` / `rm` / `delete` | **keep as fenced aliases** onto the Desktop tools above — not replacements, not unscoped Pi native |
+
+**Pi 复用边界（2026-09-29 审视）**：`pi-agent-core` 自带 harness 只有 **read / write / edit / bash / image**。Desktop 的做法是**围栏转发**而非重写：`read/write/edit` → `read_file/save_file/edit_file`（Kernel writeback + 围栏 + 精确片段/heading/expectedHash）；`bash/shell/exec` **永不注册**。领域工具（capture / memory / todos / topics）保持 Desktop 命名，不伪装成 Pi 原生。压缩两层同源：Pi-native LLM summary（环内）+ 确定性 `compactMessagesForModel`（无二次 LLM）。技能发现用 Pi `formatSkillsForSystemPrompt`；`precise-edit` / `file-window` / `memory-feed` / `todo-engine` 走 Kernel 单真源。
 
 **update:** none blocking this wave. Optional later: tighter `edit_file` diagnostics (already has no-match / ambiguous hints).
 
@@ -147,13 +165,13 @@ Daily entry `topmind`. Core: `topmind-capture` · `topmind-organize` · `topmind
 
 ### UTR commands — all **keep** (optional surface)
 
-**8 域 / 35 命令** as listed below. MCP default 26 (primary + danger). Not a second Desktop AI catalog. No bash command.
+**8 域 / 38 命令** as listed below. MCP default 29 (primary + danger). Not a second Desktop AI catalog. No bash command.
 
 ## Current Command Surface（命令面唯一真源）
 
-**8 域 / 35 命令**。Agent MCP **默认只暴露 primary + danger（26 个）**；`advanced` 需 `topmind_MCP_ALL=1`。
+**8 域 / 38 命令**。Agent MCP **默认只暴露 primary + danger（29 个）**；`advanced` 需 `topmind_MCP_ALL=1`。
 
-### Primary（Agent 日常 22）
+### Primary（Agent 日常 25）
 
 | Domain | Commands |
 |---|---|
@@ -162,7 +180,7 @@ Daily entry `topmind`. Core: `topmind-capture` · `topmind-organize` · `topmind
 | `workspace-transform` | `plan-inbox-routing` |
 | `workspace-maintain` | `doctor-workspace` |
 | `contract` | `validate` |
-| `memory` | `promote` · `digest` · `append-profile` · `append-topic` · `retire-profile` · `update-profile` · `compact-history` · `restore-profile` · `list-todos` · `add-todo` · `toggle-todo` |
+| `memory` | `promote` · `digest` · `append-profile` · `append-topic` · `retire-profile` · `update-profile` · `compact-history` · `restore-profile` · `list-todos` · `add-todo` · `toggle-todo` · `update-todo` · `set-todo-due` · `delete-todo` |
 
 ### Danger（高风险 4，MCP 默认可见）
 
@@ -201,6 +219,9 @@ Daily entry `topmind`. Core: `topmind-capture` · `topmind-organize` · `topmind
 | `memory.list-todos` | memory | 读 `memory/todo.md` 个人待办（语义平面卫星；对齐 Desktop `list_todos`） |
 | `memory.add-todo` | memory | 原子追加待办（去重；文本可嵌截止日期；对齐 Desktop `add_todo`） |
 | `memory.toggle-todo` | memory | 切换待办完成态（id 或文本片段；完成记时间并同步周期本；对齐 Desktop `toggle_todo`） |
+| `memory.update-todo` | memory | 改写待办文本（对齐 Desktop `update_todo`） |
+| `memory.set-todo-due` | memory | 设置/清除待办截止（对齐 Desktop `set_todo_due`） |
+| `memory.delete-todo` | memory | 删除待办（prefer toggle；记 dismissed 不回灌；对齐 Desktop `delete_todo`） |
 | `lifecycle.scan` | lifecycle | 按 contract `lifecycle` 扫描：inbox 超期、catch-all 清理、stale 专题、output lock |
 | `derived.rebuild` | derived | 从真源全量重建各大类 `.derived/` 子目录 |
 | `workspace-transform.migrate-v4` | workspace-transform | 一次性迁移：config v3→topmind.yaml、旧专题首页→topic.md、我的情况.md→memory/profile.md 等 |

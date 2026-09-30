@@ -19,6 +19,7 @@ import { ContextPills } from "./ContextPills";
 import { RuntimeBadge } from "./RuntimeBadge";
 import { Tooltip } from "../ui/tooltip";
 import { CountBadge } from "../ui/CountBadge";
+import { AgentPresence, type AgentPresenceState } from "../ui/AgentPresence";
 import {
   DropdownItem,
   DropdownMenu,
@@ -36,6 +37,8 @@ export function AiPanel({ hideComposer = false }: { hideComposer?: boolean } = {
   const streaming = useAiStore((s) => s.streaming);
   const streamStatus = useAiStore((s) => s.streamStatus);
   const streamToolName = useAiStore((s) => s.streamToolName);
+  const streamGoal = useAiStore((s) => s.streamGoal);
+  const streamAutoContinues = useAiStore((s) => s.streamAutoContinues);
   const streamToolCount = useAiStore((s) => s.streamToolCount);
   const streamMaxSteps = useAiStore((s) => s.streamMaxSteps);
   const regenerate = useAiStore((s) => s.regenerate);
@@ -50,14 +53,23 @@ export function AiPanel({ hideComposer = false }: { hideComposer?: boolean } = {
   const scrollRef = useRef<HTMLDivElement>(null);
   const autoScrollRef = useRef(true);
   const [detachedFromBottom, setDetachedFromBottom] = useState(false);
+  const scrollRafRef = useRef(0);
 
   const handleScroll = () => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
-    autoScrollRef.current = atBottom;
-    setDetachedFromBottom(!atBottom);
+    if (scrollRafRef.current) return;
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = 0;
+      const el = scrollRef.current;
+      if (!el) return;
+      const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+      autoScrollRef.current = atBottom;
+      setDetachedFromBottom((prev) => (prev === !atBottom ? prev : !atBottom));
+    });
   };
+
+  useEffect(() => () => {
+    if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+  }, []);
 
   const jumpToLatest = () => {
     const el = scrollRef.current;
@@ -122,6 +134,8 @@ export function AiPanel({ hideComposer = false }: { hideComposer?: boolean } = {
                   streamToolName={isStreamingTail ? streamToolName : null}
                   streamToolCount={isStreamingTail ? streamToolCount : null}
                   streamMaxSteps={isStreamingTail ? streamMaxSteps : null}
+                  streamGoal={isStreamingTail ? streamGoal : null}
+                  streamAutoContinues={isStreamingTail ? streamAutoContinues : null}
                 />
               );
             })}
@@ -194,6 +208,8 @@ const MessageRow = memo(function MessageRow({
   streamToolName,
   streamToolCount,
   streamMaxSteps,
+  streamGoal,
+  streamAutoContinues,
 }: {
   message: AiMessage;
   isLast: boolean;
@@ -202,6 +218,8 @@ const MessageRow = memo(function MessageRow({
   streamToolName: string | null;
   streamToolCount: number | null;
   streamMaxSteps: number | null;
+  streamGoal: AiMessage["goal"] | null;
+  streamAutoContinues: number | null;
 }) {
   return (
     <div className={cn(!isLast && "v4-list-virtual", isLast && streaming && "v4-msg-enter")}>
@@ -212,6 +230,8 @@ const MessageRow = memo(function MessageRow({
         streamToolName={streamToolName}
         streamToolCount={streamToolCount}
         streamMaxSteps={streamMaxSteps}
+        streamGoal={streamGoal}
+        streamAutoContinues={streamAutoContinues}
       />
     </div>
   );
@@ -229,9 +249,21 @@ function PanelChrome() {
   const createSession = useAiStore((s) => s.createSession);
   const clearSession = useAiStore((s) => s.clearSession);
   const messages = useAiStore((s) => s.messages);
+  const streaming = useAiStore((s) => s.streaming);
+  const streamStatus = useAiStore((s) => s.streamStatus);
+  const streamToolName = useAiStore((s) => s.streamToolName);
+  const streamGoal = useAiStore((s) => s.streamGoal);
   const [showSessionList, setShowSessionList] = useState(false);
   const [confirmingClear, setConfirmingClear] = useState(false);
   const [sessionSearch, setSessionSearch] = useState("");
+
+  const lastStopReason = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (m.role === "assistant" && m.stopReason) return m.stopReason;
+    }
+    return null;
+  }, [messages]);
 
   const handleNewSession = async () => {
     await createSession();
@@ -379,6 +411,23 @@ function PanelChrome() {
         </DropdownMenu>
 
         <RuntimeBadge />
+
+        <AgentPresence
+          state={
+            (streaming
+              ? streamGoal?.status === "blocked" || streamGoal?.status === "needs-user"
+                ? "needs-you"
+                : "working"
+              : lastStopReason === "paused"
+                ? "paused"
+                : lastStopReason === "error"
+                  ? "error"
+                  : "idle") as AgentPresenceState
+          }
+          detail={streaming ? streamToolName || streamStatus || undefined : undefined}
+          compact
+          className="shrink-0"
+        />
 
         <TaskBadge />
 

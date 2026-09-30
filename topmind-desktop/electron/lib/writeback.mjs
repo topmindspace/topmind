@@ -82,7 +82,8 @@ function log(level, category, message, meta = {}) {
       ...meta,
     }) + "\n";
   try {
-    process.stderr.write(line);
+    // Force UTF-8: a non-UTF-8 stderr code page must not rewrite braces / paths.
+    process.stderr.write(Buffer.from(line, "utf8"));
   } catch {
     /* ignore broken pipe */
   }
@@ -104,6 +105,31 @@ function log(level, category, message, meta = {}) {
 export function logInfo(cat, msg, meta) { log("info", cat, msg, meta); }
 export function logWarn(cat, msg, meta) { log("warn", cat, msg, meta); }
 export function logError(cat, msg, meta) { log("error", cat, msg, meta); }
+
+/**
+ * Compact, encoding-safe summary of an error for logs / boot dialogs.
+ * Never echoes request/response bodies, headers, or raw key material — those
+ * dumps are huge, can contain binary, and become mojibake when copied across
+ * terminals with different code pages.
+ * @param {unknown} err
+ * @returns {string}
+ */
+export function summarizeError(err) {
+  if (err == null) return "unknown error";
+  if (typeof err === "string") return err.slice(0, 500);
+  const e = /** @type {Record<string, unknown>} */ (err);
+  const name = typeof e.name === "string" ? e.name : "Error";
+  const msg = typeof e.message === "string" ? e.message : String(err);
+  const status = e.statusCode ?? e.status ?? e.code;
+  const statusBit = status != null && status !== "" ? ` [${String(status)}]` : "";
+  // Keep a short stack tail (file:line) without dumping own properties.
+  let loc = "";
+  if (typeof e.stack === "string") {
+    const frame = e.stack.split("\n").find((l) => l.trim().startsWith("at "));
+    if (frame) loc = ` @ ${frame.trim().replace(/^at\s+/u, "").slice(0, 160)}`;
+  }
+  return `${name}${statusBit}: ${msg.slice(0, 400)}${loc}`;
+}
 
 /**
  * Short, human-readable timestamp for backup filenames and conflict resolution.

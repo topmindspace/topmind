@@ -5,6 +5,7 @@
 import { extractArticle, cleanCaptureUrl } from "./fetch-article.mjs";
 import { isGithubMarkdownFileUrl } from "./github-md.mjs";
 import { fetchGithubMarkdown, GithubMdError } from "./github-fetch.mjs";
+import { parseXStatusOrArticle, fetchXStatus, XFetchError } from "./x-fetch.mjs";
 import { S } from "./workspace-helpers.mjs";
 import { t } from "./electron-i18n.mjs";
 
@@ -46,9 +47,17 @@ export function buildFetchResult(article, meta) {
     warning = t("fetch.noContent");
   }
 
+  // Ensure cover image is present in the body so capture + image localization
+  // can download it (metadata-only `image` was previously dropped on save).
+  let text = article.text || "";
+  const cover = article.image;
+  if (cover && !text.includes(cover) && !/!\[[^\]]*\]\(/u.test(text.slice(0, 400))) {
+    text = `![cover](${cover})\n\n${text}`.trim();
+  }
+
   return {
     title: article.title || "",
-    text: article.text,
+    text,
     url: meta.url,
     description: article.description,
     author: article.author,
@@ -80,12 +89,21 @@ async function fetchGithubCapture({ url, maxLen }) {
       truncated = true;
     }
     const wordCount = countWords(text);
+    const ghAuthor = (() => {
+      try {
+        const u = new URL(gh.url || url);
+        const parts = u.pathname.replace(/^\/+/, "").split("/");
+        return parts[0] || undefined;
+      } catch {
+        return undefined;
+      }
+    })();
     return {
       title: gh.title || "",
       text,
       url: gh.url,
       description: undefined,
-      author: undefined,
+      author: ghAuthor,
       siteName: "GitHub",
       image: undefined,
       method: gh.fetchMethod || "github-raw",
@@ -134,11 +152,29 @@ export const fetchOps = {
       throw err;
     }
     const cleanedUrl = cleanCaptureUrl(url);
-    const cap = Math.min(Math.max(Number(maxLen) || 40_000, 5_000), 200_000);
+    const cap = Math.min(Math.max(Number(maxLen) || 200_000, 5_000), 200_000);
 
     // GitHub markdown file / repo README → raw path (no HTML scrape).
     if (isGithubMarkdownFileUrl(cleanedUrl) || isGithubMarkdownFileUrl(url)) {
       return fetchGithubCapture({ url: cleanedUrl || url, maxLen: cap });
+    }
+
+    // X status → structured fxtwitter path (HTML scrape on x.com is an SPA shell).
+    const xParsed = parseXStatusOrArticle(cleanedUrl) || parseXStatusOrArticle(url);
+    if (xParsed?.statusId && xParsed.screenName) {
+      try {
+        return await fetchXStatus(xParsed.canonical, { maxLen: cap });
+      } catch (e) {
+        if (e instanceof XFetchError && e.code === "x_article_fallback") {
+          // fall through to generic HTML
+        } else if (e instanceof XFetchError) {
+          const err = new Error(e.message);
+          err.code = e.code || "x_error";
+          throw err;
+        } else {
+          throw e;
+        }
+      }
     }
 
     let res;

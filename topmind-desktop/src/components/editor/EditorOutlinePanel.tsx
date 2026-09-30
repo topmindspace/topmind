@@ -235,12 +235,12 @@ export function EditorOutlinePanel({
       {/* Header */}
       <div className="flex h-(--density-editor-toolbar-y,32px) shrink-0 items-center justify-between border-b border-border-subtle-dim px-2.5">
         <div className="flex items-center gap-1.5 text-text-secondary">
-          <RiNodeTree size={ICON.xs} className="text-accent-color" aria-hidden />
+          <RiNodeTree size={ICON.xs} className="text-text-tertiary" aria-hidden />
           <span className="text-3xs font-semibold uppercase tracking-wider text-text-tertiary">
             {t("workspace:outline.title", { defaultValue: "文档大纲" })}
           </span>
           {headings.length > 0 ? (
-            <span className="rounded-[var(--radius-xs)] bg-surface-muted px-1.5 py-0.2 text-4xs font-mono text-text-quaternary">
+            <span className="rounded-[var(--radius-xs)] bg-surface-wash-30 px-1.5 py-0.2 text-4xs font-mono text-text-quaternary">
               {headings.length}
             </span>
           ) : null}

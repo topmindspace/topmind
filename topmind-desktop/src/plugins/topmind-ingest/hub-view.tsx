@@ -286,7 +286,7 @@ function IngestHubView() {
 
       {error ? (
         <div className="mb-3">
-          <ConnectorToastBanner result={`✗ ${error}`} />
+          <ConnectorToastBanner tone="error" result={error} />
         </div>
       ) : null}
 

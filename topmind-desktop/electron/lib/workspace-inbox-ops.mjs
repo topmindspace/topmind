@@ -39,10 +39,14 @@ async function localizeImagesForCapture(content, source, targetRelPath, workspac
   if (ctx?.appSettings?.clipBridge?.downloadImages === false) {
     return { content, imagesDownloaded: 0 };
   }
-  if (!source || !/^https?:\/\//iu.test(source)) {
+  const hasImages = /!\[[^\]]*\]\(/u.test(content) || /<img\b/iu.test(content);
+  if (!hasImages) {
     return { content, imagesDownloaded: 0 };
   }
-  if (!/!\[[^\]]*\]\(/u.test(content) && !/<img\b/iu.test(content)) {
+  // Absolute remote images can localize without a page URL; relative ones need source.
+  const hasAbsolute = /!\[[^\]]*\]\(\s*<?https?:\/\//iu.test(content) || /<img\b[^>]*src\s*=\s*["']https?:\/\//iu.test(content);
+  const hasSource = Boolean(source && /^https?:\/\//iu.test(source));
+  if (!hasSource && !hasAbsolute) {
     return { content, imagesDownloaded: 0 };
   }
   try {
@@ -54,8 +58,8 @@ async function localizeImagesForCapture(content, source, targetRelPath, workspac
     const loc = await localizeMarkdownImages(content, {
       imagesDirAbs,
       relPrefix,
-      baseUrl: source,
-      referer: source,
+      baseUrl: hasSource ? source : undefined,
+      referer: hasSource ? source : undefined,
     });
     return { content: loc.markdown, imagesDownloaded: loc.downloaded };
   } catch {
@@ -226,6 +230,9 @@ export function createInboxOps(moveSelfRef) {
               newBody, source, targetPath, ctx.workspaceRoot, ctx,
             );
             newBody = imgResult.content;
+            if (imgResult.imagesDownloaded > 0) {
+              fm.images_localized = imgResult.imagesDownloaded;
+            }
             const md = injectFrontmatter(newBody, fm);
             const writeActor = actor || (sourceType === "ai-derived" ? "ai" : "user");
             const isConfirmed = confirmed !== undefined ? Boolean(confirmed) : (writeActor === "user");
@@ -331,6 +338,9 @@ export function createInboxOps(moveSelfRef) {
         content, source, targetPath, ctx.workspaceRoot, ctx,
       );
       content = imgResult.content;
+      if (imgResult.imagesDownloaded > 0) {
+        fm.images_localized = imgResult.imagesDownloaded;
+      }
       const md = injectFrontmatter(content, fm);
       const writeActor = actor || (sourceType === "ai-derived" ? "ai" : "user");
       const isConfirmed = confirmed !== undefined ? Boolean(confirmed) : (writeActor === "user");

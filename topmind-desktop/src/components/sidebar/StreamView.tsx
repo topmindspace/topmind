@@ -224,7 +224,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
         <div className="flex min-w-0 items-center gap-1.5">
           <RiCalendar2Line size={ICON.xs} className="shrink-0 text-accent-color" />
           <span className="truncate text-3xs font-semibold text-text-primary">{periodTitle}</span>
-          <span className="shrink-0 rounded-[var(--radius-xs)] bg-surface-muted px-1.5 py-px text-3xs tabular-nums text-text-quaternary">
+          <span className="shrink-0 rounded-[var(--radius-xs)] bg-surface-wash-30 px-1.5 py-px text-3xs tabular-nums text-text-quaternary">
             {entries.length}
           </span>
         </div>
@@ -296,7 +296,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
               key={group.dayKey}
               className={cn(
                 "overflow-hidden rounded-md bg-surface/50",
-                gi === 0 && "ring-1 ring-inset ring-accent-color/10",
+                gi === 0 && "rounded-[var(--radius-card)] bg-accent-bg-faint px-2 py-1",
               )}
             >
               <div className="flex items-center gap-1 bg-surface-wash-15 px-1.5 py-1 text-3xs font-medium tracking-wide text-text-quaternary">
@@ -327,7 +327,7 @@ export function StreamView({ onNavigate }: StreamViewProps) {
                         </span>
                       ) : (
                         <span className="flex w-7 shrink-0 justify-end pt-1" aria-hidden>
-                          <span className="h-1 w-1 rounded-full bg-text-quaternary/30" aria-hidden />
+                          <span className="h-1 w-1 rounded-full bg-surface-wash-65" aria-hidden />
                         </span>
                       )}
                       <div className="line-clamp-4 min-w-0 flex-1 text-xs leading-snug text-text-primary">

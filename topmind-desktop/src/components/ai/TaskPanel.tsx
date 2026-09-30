@@ -87,11 +87,18 @@ export function TaskPanel({ open, onClose }: TaskPanelProps) {
       // Persist the last computed coords (ref), not a stale effect closure.
       saveTaskPanelPos(positionRef.current);
     };
+    // Hard-stop: pointercancel / window blur must end the drag (splitter contract).
+    const onPointerCancel = () => onUp();
+    const onBlur = () => onUp();
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mouseup", onUp);
+    window.addEventListener("pointercancel", onPointerCancel);
+    window.addEventListener("blur", onBlur);
     return () => {
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
+      window.removeEventListener("pointercancel", onPointerCancel);
+      window.removeEventListener("blur", onBlur);
     };
   }, [isDragging]);
 

@@ -2,7 +2,7 @@
  * Cross-surface behavior parity:
  * - memory-fence rules (ledgers exemption + path keys) Desktop vs Obsidian
  * - compact budget formula resolveCompactBudget vs resolveChatCompactBudget
- * - UTR command counts (35 / MCP 26) registry vs TOOLS.md vs topmind-pack.json
+ * - UTR command counts (38 / MCP 29) registry vs TOOLS.md vs topmind-pack.json
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -130,20 +130,20 @@ test("Obsidian resolveChatCompactBudget matches Desktop formula", async (t) => {
 
 // ── UTR command counts ────────────────────────────────────────────────────────
 
-test("UTR registry exposes 35 commands / MCP default 26", async () => {
+test("UTR registry exposes 38 commands / MCP default 29", async () => {
   const reg = await import(pathToFileURL(path.join(root, "utr", "core", "contract-registry.mjs")).href);
   const registry = await reg.loadContractRegistry();
   const cmds = reg.listCommands(registry);
-  assert.equal(cmds.length, 35, `expected 35 UTR commands, got ${cmds.length}`);
+  assert.equal(cmds.length, 38, `expected 38 UTR commands, got ${cmds.length}`);
   const byExp = { primary: 0, danger: 0, advanced: 0 };
   for (const c of cmds) {
     const exp = c.exposure || "advanced";
     byExp[exp] = (byExp[exp] || 0) + 1;
   }
-  assert.equal(byExp.primary, 22, `expected 22 primary, got ${byExp.primary}`);
+  assert.equal(byExp.primary, 25, `expected 25 primary, got ${byExp.primary}`);
   assert.equal(byExp.danger, 4, `expected 4 danger, got ${byExp.danger}`);
   assert.equal(byExp.advanced, 9, `expected 9 advanced, got ${byExp.advanced}`);
-  assert.equal(byExp.primary + byExp.danger, 26, `MCP default (primary+danger) must be 26`);
+  assert.equal(byExp.primary + byExp.danger, 29, `MCP default (primary+danger) must be 29`);
   // 8 command domains (kind field).
   const domains = new Set(cmds.map((c) => c.kind || c.domain || c.tool));
   assert.equal(domains.size, 8, `expected 8 command domains, got ${domains.size}`);
@@ -151,10 +151,10 @@ test("UTR registry exposes 35 commands / MCP default 26", async () => {
 
 test("TOOLS.md command counts match the registry", () => {
   const tools = read("TOOLS.md");
-  assert.match(tools, /8\s*(?:域|domains)\s*[\/／]\s*35\s*(?:命令|commands)/iu);
-  assert.match(tools, /MCP default 26|默认只暴露 primary \+ danger（26 个）/u);
-  // Section headers track the shipped exposure split (22 primary / 4 danger / 9 advanced).
-  assert.match(tools, /Primary（Agent 日常 22）/u);
+  assert.match(tools, /8\s*(?:域|domains)\s*[\/／]\s*38\s*(?:命令|commands)/iu);
+  assert.match(tools, /MCP default 29|默认只暴露 primary \+ danger（29 个）/u);
+  // Section headers track the shipped exposure split (25 primary / 4 danger / 9 advanced).
+  assert.match(tools, /Primary（Agent 日常 25）/u);
   assert.match(tools, /Danger（高风险 4/u);
   assert.match(tools, /Advanced（扩展 9/u);
 });
@@ -165,23 +165,23 @@ test("topmind-pack.json command counts match the registry", (t) => {
     return;
   }
   const pack = JSON.parse(read(path.join(resolveSkillsRoot(), "topmind-pack.json")));
-  assert.equal(pack.utr.command_count, 35);
-  assert.equal(pack.utr.mcp_default_count, 26);
+  assert.equal(pack.utr.command_count, 38);
+  assert.equal(pack.utr.mcp_default_count, 29);
   const vocab = pack.utr.command_vocabulary;
   const vocabTotal = Object.values(vocab).reduce((n, list) => n + list.length, 0);
-  assert.equal(vocabTotal, 35, `pack.json vocabulary must total 35, got ${vocabTotal}`);
+  assert.equal(vocabTotal, 38, `pack.json vocabulary must total 38, got ${vocabTotal}`);
   const exp = pack.utr.command_exposure;
   const primary = exp.primary.length;
   const danger = exp.danger.length;
   const advanced = exp.advanced.length;
-  assert.equal(primary + danger, 26, `pack.json MCP default must be 26, got ${primary + danger}`);
-  assert.equal(primary + danger + advanced, 35);
+  assert.equal(primary + danger, 29, `pack.json MCP default must be 29, got ${primary + danger}`);
+  assert.equal(primary + danger + advanced, 38);
   // Domain list covers the same 8 domains.
   assert.equal(pack.utr.command_domains.length, 8);
 });
 
 test("UTR README command counts match the registry", () => {
   const readme = read("utr/README.md");
-  assert.match(readme, /8\s*(?:域|domains)\s*[\/／]\s*35\s*(?:命令|commands)/iu);
-  assert.match(readme, /MCP 默认 \*\*26\*\*/u);
+  assert.match(readme, /8\s*(?:域|domains)\s*[\/／]\s*38\s*(?:命令|commands)/iu);
+  assert.match(readme, /MCP 默认 \*\*29\*\*/u);
 });

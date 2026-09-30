@@ -7,6 +7,21 @@ import { t as ei18n } from "./lib/electron-i18n.mjs";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { resolveEffectiveBaseUrl } from "./lib/model-catalog.mjs";
+import { headerSafe, keyHadNonLatin1, isUsableSecret, MAX_SECRET_BYTES } from "./lib/header-safe.mjs";
+
+export { headerSafe, keyHadNonLatin1 };
+
+/**
+ * Sanitize a raw API key for HTTP headers. Returns "" when the value cannot
+ * legally travel (non-Latin-1, controls, or oversized) so the provider is
+ * treated as unconfigured instead of sending a crashing / CDNs-rejected header.
+ * @param {unknown} raw
+ * @returns {string}
+ */
+function safeKey(raw) {
+  if (!isUsableSecret(raw)) return "";
+  return headerSafe(raw);
+}
 
 /**
  * Look up a model's context window from the live/catalog cache.
@@ -29,34 +44,46 @@ export function resolveModel(s, req) {
   const pref = s?.ai?.sourcePreference || "";
   const defaultModel = s?.ai?.defaultModel || null;
   const base = (id) => resolveEffectiveBaseUrl(m, id);
+  // A pasted key with CJK/emoji would crash `new Headers()` in the AI SDK
+  // (ByteString); an oversized garbage decrypt would trip the CDN's
+  // `Request Header Or Cookie Too Large`. safeKey() rejects both — the
+  // provider stays unconfigured instead of sending a fatal header.
+  for (const [k, raw] of Object.entries(m)) {
+    if (typeof raw === "string" && /Key$/i.test(k) && raw.trim() && keyHadNonLatin1(raw)) {
+      const tooLong = raw.length > MAX_SECRET_BYTES;
+      console.warn(
+        `[ai-model] ${k} ${tooLong ? `is oversized (${raw.length} > ${MAX_SECRET_BYTES})` : "contains non-Latin-1 characters"} — rejected before HTTP headers. Re-paste the API key as plain ASCII.`,
+      );
+    }
+  }
   const providers = [
-    { source: "openai", k: m.openAiKey, mk: () => createOpenAI({ apiKey: m.openAiKey, baseURL: base("openai") || undefined }), d: "gpt-4o-mini" },
-    { source: "anthropic", k: m.anthropicKey, mk: () => createAnthropic({ apiKey: m.anthropicKey, baseURL: base("anthropic") || undefined }), d: "claude-sonnet-5" },
-    { source: "google", k: m.googleKey, mk: () => createGoogleGenerativeAI({ apiKey: m.googleKey, baseURL: base("google") || undefined }), d: "gemini-3.6-flash" },
-    { source: "xai", k: m.xaiKey, mk: () => createOpenAICompatible({ name: "xai", apiKey: m.xaiKey, baseURL: base("xai") }), d: "grok-3-mini" },
-    { source: "groq", k: m.groqKey, mk: () => createOpenAICompatible({ name: "groq", apiKey: m.groqKey, baseURL: base("groq") }), d: "llama-3.3-70b-versatile" },
-    { source: "mistral", k: m.mistralKey, mk: () => createOpenAICompatible({ name: "mistral", apiKey: m.mistralKey, baseURL: base("mistral") }), d: "mistral-small-latest" },
-    { source: "openrouter", k: m.openrouterKey, mk: () => createOpenAICompatible({ name: "openrouter", apiKey: m.openrouterKey, baseURL: base("openrouter") }), d: "openai/gpt-4o-mini" },
-    { source: "deepseek", k: m.deepseekKey, mk: () => createOpenAICompatible({ name: "deepseek", apiKey: m.deepseekKey, baseURL: base("deepseek") }), d: "deepseek-chat" },
-    { source: "moonshot", k: m.moonshotKey, mk: () => createOpenAICompatible({ name: "moonshot", apiKey: m.moonshotKey, baseURL: base("moonshot") }), d: "kimi-k2.5" },
-    { source: "zhipu", k: m.zhipuKey, mk: () => createOpenAICompatible({ name: "zhipu", apiKey: m.zhipuKey, baseURL: base("zhipu") }), d: "glm-4.7-flash" },
-    { source: "minimax", k: m.minimaxKey, mk: () => createOpenAICompatible({ name: "minimax", apiKey: m.minimaxKey, baseURL: base("minimax") }), d: "MiniMax-M2.5" },
-    { source: "qwen", k: m.qwenKey, mk: () => createOpenAICompatible({ name: "qwen", apiKey: m.qwenKey, baseURL: base("qwen") }), d: "qwen-plus" },
-    { source: "doubao", k: m.doubaoKey, mk: () => createOpenAICompatible({ name: "doubao", apiKey: m.doubaoKey, baseURL: base("doubao") }), d: "doubao-1-5-pro-32k" },
-    { source: "siliconflow", k: m.siliconflowKey, mk: () => createOpenAICompatible({ name: "siliconflow", apiKey: m.siliconflowKey, baseURL: base("siliconflow") }), d: "deepseek-ai/DeepSeek-V3" },
-    { source: "baidu", k: m.baiduKey, mk: () => createOpenAICompatible({ name: "baidu", apiKey: m.baiduKey, baseURL: base("baidu") }), d: "ernie-4.5-turbo-128k" },
-    { source: "hunyuan", k: m.hunyuanKey, mk: () => createOpenAICompatible({ name: "hunyuan", apiKey: m.hunyuanKey, baseURL: base("hunyuan") }), d: "hunyuan-turbos-latest" },
+    { source: "openai", k: safeKey(m.openAiKey), mk: () => createOpenAI({ apiKey: safeKey(m.openAiKey), baseURL: base("openai") || undefined }), d: "gpt-4o-mini" },
+    { source: "anthropic", k: safeKey(m.anthropicKey), mk: () => createAnthropic({ apiKey: safeKey(m.anthropicKey), baseURL: base("anthropic") || undefined }), d: "claude-sonnet-5" },
+    { source: "google", k: safeKey(m.googleKey), mk: () => createGoogleGenerativeAI({ apiKey: safeKey(m.googleKey), baseURL: base("google") || undefined }), d: "gemini-3.6-flash" },
+    { source: "xai", k: safeKey(m.xaiKey), mk: () => createOpenAICompatible({ name: "xai", apiKey: safeKey(m.xaiKey), baseURL: base("xai") }), d: "grok-3-mini" },
+    { source: "groq", k: safeKey(m.groqKey), mk: () => createOpenAICompatible({ name: "groq", apiKey: safeKey(m.groqKey), baseURL: base("groq") }), d: "llama-3.3-70b-versatile" },
+    { source: "mistral", k: safeKey(m.mistralKey), mk: () => createOpenAICompatible({ name: "mistral", apiKey: safeKey(m.mistralKey), baseURL: base("mistral") }), d: "mistral-small-latest" },
+    { source: "openrouter", k: safeKey(m.openrouterKey), mk: () => createOpenAICompatible({ name: "openrouter", apiKey: safeKey(m.openrouterKey), baseURL: base("openrouter") }), d: "openai/gpt-4o-mini" },
+    { source: "deepseek", k: safeKey(m.deepseekKey), mk: () => createOpenAICompatible({ name: "deepseek", apiKey: safeKey(m.deepseekKey), baseURL: base("deepseek") }), d: "deepseek-chat" },
+    { source: "moonshot", k: safeKey(m.moonshotKey), mk: () => createOpenAICompatible({ name: "moonshot", apiKey: safeKey(m.moonshotKey), baseURL: base("moonshot") }), d: "kimi-k2.5" },
+    { source: "zhipu", k: safeKey(m.zhipuKey), mk: () => createOpenAICompatible({ name: "zhipu", apiKey: safeKey(m.zhipuKey), baseURL: base("zhipu") }), d: "glm-4.7-flash" },
+    { source: "minimax", k: safeKey(m.minimaxKey), mk: () => createOpenAICompatible({ name: "minimax", apiKey: safeKey(m.minimaxKey), baseURL: base("minimax") }), d: "MiniMax-M2.5" },
+    { source: "qwen", k: safeKey(m.qwenKey), mk: () => createOpenAICompatible({ name: "qwen", apiKey: safeKey(m.qwenKey), baseURL: base("qwen") }), d: "qwen-plus" },
+    { source: "doubao", k: safeKey(m.doubaoKey), mk: () => createOpenAICompatible({ name: "doubao", apiKey: safeKey(m.doubaoKey), baseURL: base("doubao") }), d: "doubao-1-5-pro-32k" },
+    { source: "siliconflow", k: safeKey(m.siliconflowKey), mk: () => createOpenAICompatible({ name: "siliconflow", apiKey: safeKey(m.siliconflowKey), baseURL: base("siliconflow") }), d: "deepseek-ai/DeepSeek-V3" },
+    { source: "baidu", k: safeKey(m.baiduKey), mk: () => createOpenAICompatible({ name: "baidu", apiKey: safeKey(m.baiduKey), baseURL: base("baidu") }), d: "ernie-4.5-turbo-128k" },
+    { source: "hunyuan", k: safeKey(m.hunyuanKey), mk: () => createOpenAICompatible({ name: "hunyuan", apiKey: safeKey(m.hunyuanKey), baseURL: base("hunyuan") }), d: "hunyuan-turbos-latest" },
   ];
   // Ollama — local endpoint. Only consider ready when user configured ollamaBaseUrl or preferred ollama.
   const ollamaConfigured = Boolean(m.ollamaBaseUrl || pref === "ollama");
   providers.push({
     source: "ollama",
     k: ollamaConfigured ? 1 : 0,
-    mk: () => createOpenAICompatible({ name: "ollama", apiKey: "ollama", baseURL: base("ollama") }),
+    mk: () => createOpenAICompatible({ name: "ollama", apiKey: safeKey("ollama"), baseURL: base("ollama") }),
     d: "qwen2.5:7b",
   });
-  if (m.customBaseUrl && m.customKey)
-    providers.push({ source: "custom", k: 1, mk: () => createOpenAICompatible({ name: "custom", apiKey: m.customKey, baseURL: base("custom") }), d: "default" });
+  if (m.customBaseUrl && safeKey(m.customKey))
+    providers.push({ source: "custom", k: safeKey(m.customKey), mk: () => createOpenAICompatible({ name: "custom", apiKey: safeKey(m.customKey), baseURL: base("custom") }), d: "default" });
 
   // Parse "provider/modelId" format from per-call override (AiPanel selector).
   // This ensures the model is always routed to the correct provider's SDK,

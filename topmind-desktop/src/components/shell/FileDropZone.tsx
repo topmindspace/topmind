@@ -129,7 +129,7 @@ export function FileDropZone({ children }: { children: React.ReactNode }) {
         <div className="absolute bottom-10 left-1/2 z-floating flex max-w-[min(420px,90vw)] -translate-x-1/2 items-center gap-2 rounded-[var(--radius-lg)] border border-border-subtle-dim bg-surface px-3.5 py-2 text-3xs font-medium text-text-secondary shadow-[var(--shadow-float)] animate-toast-in">
           {busy ? (
             <span className="flex items-center gap-1.5">
-              <RiLoader4Line size={ICON.micro} className="animate-spin text-accent-color" /> {t("fileDropZone.preparing")}
+              <RiLoader4Line size={ICON.micro} className="animate-spin text-text-tertiary" /> {t("fileDropZone.preparing")}
             </span>
           ) : (
             toast

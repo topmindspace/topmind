@@ -1,8 +1,9 @@
 /**
  * Shared knowledge-ingest queue UI — used by Hub and float Quick Capture.
- * Same jobs store (main process); both surfaces subscribe to queue events.
+ * One module-level jobs store (`lib/ingest-jobs-store`) owns the list + poll;
+ * every surface subscribes instead of spawning its own interval.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import {
   RiAlertLine,
@@ -13,13 +14,17 @@ import {
   RiLoader4Line,
 } from "@remixicon/react";
 import { api } from "../../services/api";
-import { onLocal } from "../../plugins/host";
 import type { IngestJob } from "../../types";
 import { Button } from "../ui/Button";
 import { Tooltip } from "../ui/tooltip";
 import { cn } from "../../lib/kit";
 import { EmptyState } from "../ui/view";
 import { ICON } from "../../lib/icons";
+import {
+  getIngestJobsSnapshot,
+  refreshIngestJobs,
+  subscribeIngestJobs,
+} from "../../lib/ingest-jobs-store";
 
 function shortJobDetail(text: string | undefined, max = 100): string {
   if (!text) return "";
@@ -27,46 +32,13 @@ function shortJobDetail(text: string | undefined, max = 100): string {
   return s.length > max ? `${s.slice(0, max - 1)}…` : s;
 }
 
-export function useIngestJobs(opts?: { limit?: number; pollMs?: number }) {
+export function useIngestJobs(opts?: { limit?: number }) {
   const limit = opts?.limit ?? 40;
-  const [jobs, setJobs] = useState<IngestJob[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const refresh = useCallback(async () => {
-    try {
-      const r = await api.ingest.list();
-      const list = r.jobs || [];
-      setJobs(list.slice(0, limit));
-      setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setLoading(false);
-    }
-  }, [limit]);
-
-  useEffect(() => {
-    void refresh();
-    const u1 = onLocal("ingest:queue-changed", () => void refresh());
-    const u2 = onLocal("ingest:job-updated", () => void refresh());
-    return () => {
-      u1();
-      u2();
-    };
-  }, [refresh]);
-
-  // Light poll while active jobs exist (float may miss some IPC)
-  useEffect(() => {
-    const active = jobs.some((j) => j.status === "queued" || j.status === "running");
-    if (!active) return;
-    const ms = opts?.pollMs ?? 1500;
-    const t = window.setInterval(() => void refresh(), ms);
-    return () => window.clearInterval(t);
-  }, [jobs, refresh, opts?.pollMs]);
-
+  const snap = useSyncExternalStore(subscribeIngestJobs, getIngestJobsSnapshot, getIngestJobsSnapshot);
+  const jobs = snap.jobs.slice(0, limit);
+  const refresh = useCallback(() => void refreshIngestJobs(), []);
   const activeCount = jobs.filter((j) => j.status === "queued" || j.status === "running").length;
-  return { jobs, loading, error, refresh, activeCount };
+  return { jobs, loading: snap.loading, error: snap.error, refresh, activeCount };
 }
 
 function JobRow({
@@ -85,7 +57,7 @@ function JobRow({
   const { t } = useTranslation("ingest");
   const statusIcon =
     job.status === "running" || job.status === "queued" ? (
-      <RiLoader4Line size={compact ? ICON.xs : ICON.sm} className="animate-spin text-accent-color" />
+      <RiLoader4Line size={compact ? ICON.xs : ICON.sm} className="animate-spin text-text-tertiary" />
     ) : job.status === "done" && !job.result?.fallback ? (
       <RiCheckboxCircleLine size={compact ? ICON.xs : ICON.sm} className="text-success" />
     ) : job.status === "done" && job.result?.fallback ? (
@@ -186,7 +158,6 @@ export function IngestQueuePanel({
   const compact = variant === "compact";
   const { jobs, loading, error, refresh, activeCount } = useIngestJobs({
     limit: maxItems,
-    pollMs: compact ? 1200 : 2000,
   });
   const list = jobs.slice(0, maxItems);
   const resolvedEmptyHint = emptyHint ?? t("empty");

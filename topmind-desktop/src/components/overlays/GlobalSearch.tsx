@@ -260,7 +260,7 @@ export function GlobalSearch() {
               <RiSearchLine size={ICON.sm} />
             </div>
             <div className="text-sm font-medium tracking-tight text-text-secondary">{t("overlays:search.noResultsTitle")}</div>
-            <div className="max-w-[260px] text-3xs leading-relaxed text-text-quaternary">
+            <div className="max-w-[260px] text-xs leading-relaxed text-text-tertiary">
               {t("overlays:search.noResultsHint")}
             </div>
           </li>
@@ -317,7 +317,7 @@ export function GlobalSearch() {
                 <RiSearchLine size={ICON.sm} />
               </div>
               <div className="text-sm font-medium tracking-tight text-text-secondary">{t("overlays:search.emptyTitle")}</div>
-              <div className="max-w-[280px] text-3xs leading-relaxed text-text-quaternary">
+              <div className="max-w-[280px] text-xs leading-relaxed text-text-tertiary">
                 {t("overlays:search.emptyHint")}
               </div>
             </li>
@@ -397,7 +397,7 @@ export function GlobalSearch() {
       </ul>
       {truncated && query.trim() && results.length > 0 ? (
         <div
-          className="border-t border-border-subtle-dim px-3 py-1.5 text-3xs leading-relaxed text-warning"
+          className="border-t border-border-subtle-dim px-3 py-1.5 text-xs leading-relaxed text-warning"
           role="status"
         >
           {searchNote || t("overlays:search.truncatedHint", { count: results.length })}

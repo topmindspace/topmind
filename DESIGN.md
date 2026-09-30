@@ -66,30 +66,15 @@ topmind 的主表面是**个人动态流**——不是文件夹管理器、不�
 
 ### 2.2 导航变薄（Done · Phase B · ActivityBar 承接 2026-09-26）
 
-```text
-ActivityBar（最左 48px · 三分组）：动态(home≡stream) · Inbox · 交付 · 我的情况 · 记一下
-                                  底：专注 · 主题 · 设置
-中栏动作：面包屑 · 注入动作 · AI 列开关（主锚在 **ActivityBar**；搜索非 PrimaryNav：⌘K 命令面板 · ⌘P 笔记全文；建议/清单/应用在 AI 工作区）
-侧栏 header：工作区名+菜单 · 搜索
-侧栏默认：本周动态 / 周期本
-二级：专题树 · 我的情况（记忆浏览） · 归档
-高级（折叠 / ⌘K / AI 工作区应用 pane）：标签 · 看板 · 可选插件（含记账 mini-app） · Tools
-```
+IA 真源见 `topmind-desktop/DESIGN.md` §0.0（ActivityBar 三分组 · Stream = 工作台首页 · 搜索在侧栏 · 目的地只在 ActivityBar）。本文件不复制像素线框。
 
 - **富**：编辑器、阅读 Aa、插件槽、连接器、多视图能力保留  
 - **薄**：同屏 chrome 与概念一次摊开的数量下降  
-- Desktop 默认 selection = **`{ kind: "home" }`**（`defaultCanvasSelection`）→ **StreamDetailView**（home ≡ stream，同一画布；仅旧 `WorkspaceHomeView` 仪表盘已删）。`home` kind **仍存在**；未知 kind 落到 home。主锚在 ActivityBar 三分组（侧栏收起时 TitleBar 紧凑图标回退）；归档不在主锚，搜索不是主锚（⌘K / ⌘P，见 `topmind-desktop/DESIGN.md`）  
+- Desktop 默认 selection = **`{ kind: "home" }`** → StreamDetailView（home ≡ stream）。主锚在 ActivityBar（常驻，无 TitleBar 图标回退）；归档不在主锚；搜索非主锚（⌘K / ⌘P）。
 
 ### 2.3 保存设置（AI 写回）
 
-协议：`writeback_mode: auto | confirm`。
-
-| 档位 | 白话 | 语义 |
-|------|------|------|
-| `auto` | 自动保存（默认） | 单文件直接写（返回路径 evidence）；YAML 回执/备份 **仅高影响**（locked 覆盖；锁定/核心 delete） |
-| `confirm` | 删除/归档前问我 | **分级**：内容新建/更新/编辑直接落盘；仅 **删除/归档** 进入**审阅入口**（待确认写入 / AI 工作区建议 pane），用户接受后执行 |
-
-**优先级**：`protection` × `writeback.mode`。**授权模型（2026-09-17c）**：工作区围栏绝对；围栏内 agent 会话即授权写。locked = 重要内容：内容编辑允许，**任务内首写**做一次快照+回执；**可恢复删除/归档**在 auto 下允许（trash/目的地+回执）；**永久删除** locked/core 仅用户。`confirm` **分级**：内容编辑直接落盘，仅删除/归档 pending。
+协议与分级授权真源：`TOOLS.md` Writeback Contract（`writeback_mode: auto | confirm`；内容直接落盘；仅删/归档 pending；locked 任务级首写快照；永久删 locked/core 仅用户）。
 
 **主动智能（Reset D · Done）**：
 

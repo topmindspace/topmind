@@ -191,6 +191,49 @@ function isTransientError(err) {
 }
 
 /**
+ * Map provider failures to actionable copy before they reach suggestions /
+ * todo extract / other kernel lanes (those surfaces show err.message raw).
+ * Mirrors the chat-path mapping in ai-service.mjs.
+ * @param {unknown} err
+ * @param {string} locale
+ * @returns {Error}
+ */
+function mapProviderError(err, locale) {
+  const raw = String(err?.message || err || "");
+  const zh = locale !== "en-US" && locale !== "en";
+  let friendly = raw;
+  const low = raw.toLowerCase();
+  if (/401|unauthorized|invalid.?api.?key|authentication/i.test(low)) {
+    friendly = zh
+      ? "API Key 无效或未配置。请到「设置 → AI」检查密钥。"
+      : "Invalid or missing API key. Check Settings → AI.";
+  } else if (/429|rate.?limit|too many requests|quota/i.test(low)) {
+    friendly = zh
+      ? "触发限流/配额。稍后重试，或换一个模型/供应商。"
+      : "Rate limited or quota exceeded. Retry later or switch model/provider.";
+  } else if (/timeout|etimedout|econnreset|network|fetch failed/i.test(low)) {
+    friendly = zh
+      ? "网络超时或连接失败。检查网络后重试。"
+      : "Network timeout or connection failed. Check connectivity and retry.";
+  } else if (/header or cookie too large|request header|413|431/i.test(low)) {
+    friendly = zh
+      ? "请求头过大，通常因 API Key 异常超长或已损坏。请到「设置 → AI」删除当前 Key 后重新粘贴官方纯英文密钥。"
+      : "Request headers too large — the API key is likely corrupt or oversized. Re-paste a plain-ASCII key in Settings → AI.";
+  } else if (/bytestring|character at index/i.test(low)) {
+    friendly = zh
+      ? "API Key 含非英文字符（HTTP 头只能是 ASCII）。请到「设置 → AI」重新粘贴纯英文密钥。"
+      : "API key contains non-ASCII characters (HTTP headers must be ASCII). Re-paste a plain-ASCII key in Settings → AI.";
+  } else if (/400 bad request|bad request/i.test(low)) {
+    friendly = zh
+      ? "模型服务拒绝了请求（400）。请检查 API Key 是否正确、模型名是否有效。"
+      : "Provider rejected the request (400). Check the API key and model id.";
+  }
+  const mapped = new Error(friendly);
+  mapped.cause = err;
+  return mapped;
+}
+
+/**
  * Create a Kernel-compatible AiProvider from Desktop settings.
  *
  * @param {object} settings - Full app settings (with decrypted secrets)
@@ -307,13 +350,13 @@ export function createKernelAiProvider(settings, modelOverride) {
               durationMs: Date.now() - startTime,
               retried: attempt > 0,
             });
-            throw lastError;
+            throw mapProviderError(lastError, settings?.ui?.locale);
           }
           // Transient error — will retry with preserved healed state
         }
       }
       // Unreachable (loop either returns or throws), but TypeScript-safe fallback
-      throw lastError || new Error("kernel-ai-provider: unreachable");
+      throw mapProviderError(lastError || new Error("kernel-ai-provider: unreachable"), settings?.ui?.locale);
     },
   };
 }

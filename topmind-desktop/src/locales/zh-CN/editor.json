@@ -93,8 +93,8 @@
     "paperSepiaHint": "暖褐 · 夜间长读"
   },
   "frontmatterBar": {
-    "toastUpdated": "✓ 已更新属性",
-    "toastError": "✗ {{error}}",
+    "toastUpdated": "已更新属性",
+    "toastError": "{{error}}",
     "pathTooltip": "{{path}}\n右键打开文件菜单",
     "properties": "属性",
     "locked": "锁定",
@@ -272,8 +272,8 @@
     "mountTooltip": "固定到对话上下文",
     "mountLabel": "固定",
     "mountedLabel": "已固定",
-    "notReadyTitle": "配置 AI 后开始对话",
-    "notReadyHint": "填入 API Key 即可使用 Agent 与 Skills",
+    "notReadyTitle": "配好 AI 就能开始",
+    "notReadyHint": "填入 API Key，即可使用 Agent 与 Skills",
     "openSettingsTooltip": "打开 AI 设置 · 填入任一 API Key 或 Ollama",
     "openSettingsLabel": "前往设置",
     "writebackAutoLabel": "自动保存",
@@ -295,7 +295,7 @@
     "kindChipSuggest": "建议",
     "kindChipOrganize": "整理",
     "kindChipInboxOrganize": "Inbox 整理",
-    "suggestEmpty": "暂无建议",
+    "suggestEmpty": "暂时没有建议",
     "suggestLoadFailed": "建议暂不可用",
     "suggestPaused": "智能建议已暂停",
     "suggestRefresh": "刷新建议",
@@ -414,6 +414,7 @@
     "usageTotal": "合计：{{count}}",
     "detailAria": "详情",
     "noTextReply": "（无文本回复）",
+    "noTextReplyIncomplete": "（本轮无文本回复 — 任务未完成，可点「重新生成」继续）",
     "goalPlan": "计划 {{done}}/{{total}}",
     "goalPlanChanged": "计划变更（+{{added}} / −{{removed}}）",
     "goalOpenCriteria": "待验收 {{count}}",
@@ -426,10 +427,15 @@
     "stoppedStalled": "已卡住停止",
     "goalReceipts": "路径回执 {{count}}",
     "resultChanges": "变更",
+    "resultSources": "来源",
     "resultVerified": "已核实",
     "resultAssumed": "假定",
     "resultCouldNot": "未完成",
     "resultNone": "无",
+    "resultIncompleteNoReason": "任务未在预算内完成（可点「重新生成」继续）",
+    "stopReasonBudget": "续跑预算用尽，任务未完成",
+    "stopReasonEmptyTurn": "本轮模型未产出内容或工具调用",
+    "stopReasonMissingReceipts": "声称完成但缺少路径回执",
     "resultFooterTitle": "结果说明",
     "runtimeOfflineLabel": "离线",
     "runtimeOfflineTooltip": "点击配置 API Key · 设置 → AI",
@@ -442,6 +448,7 @@
     "removeContextTooltip": "从 AI 上下文移除",
     "jumpToLatest": "回到底部",
     "copyReply": "复制回复",
-    "copied": "已复制"
+    "copied": "已复制",
+    "entrypointMark": "主"
   }
 }

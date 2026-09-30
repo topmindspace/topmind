@@ -317,7 +317,7 @@ export function CommandPalette() {
               <RiSearchLine size={ICON.sm} />
             </div>
             <div className="text-sm text-text-secondary">{t("overlays:command.noMatchTitle")}</div>
-            <div className="max-w-[240px] text-3xs leading-relaxed text-text-quaternary">
+            <div className="max-w-[240px] text-xs leading-relaxed text-text-tertiary">
               {t("overlays:command.noMatchHint")}
             </div>
           </li>

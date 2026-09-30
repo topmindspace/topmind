@@ -6,7 +6,14 @@ import type { ReactNode } from "react";
 import { ConfirmDialog } from "../components/ui/Dialog";
 import { listRowClass } from "../components/ui/view";
 import { useTranslation } from "react-i18next";
-import { RiAlertLine, RiCheckboxCircleLine, RiCloseLine, RiLoader4Line } from "@remixicon/react";
+import {
+  RiAlertLine,
+  RiCheckboxCircleLine,
+  RiCloseCircleLine,
+  RiCloseLine,
+  RiInformationLine,
+  RiLoader4Line,
+} from "@remixicon/react";
 import { cn } from "../lib/kit";
 import { ICON } from "../lib/icons";
 
@@ -39,7 +46,7 @@ export function ConnectorStatusPill({
         ok
           ? "bg-status-success-bg text-success"
           : badTone === "muted"
-            ? "bg-surface-muted text-text-quaternary"
+            ? "bg-surface-wash-30 text-text-quaternary"
             : "bg-status-warning-bg text-warning",
       )}
     >
@@ -202,7 +209,7 @@ export function AppModeTabs<T extends string>({
           className={cn(
             "inline-flex h-7 items-center gap-1 rounded-[var(--radius-md)] px-2.5 text-3xs font-medium transition-colors v4-focus-ring",
             value === item.id
-              ? "bg-accent-container text-on-accent-container"
+              ? "bg-accent-bg-subtle text-accent-color"
               : item.disabled
                 ? "text-text-quaternary"
                 : "text-text-tertiary hover:bg-state-hover hover:text-text-secondary",
@@ -232,22 +239,21 @@ export function ConnectorHubHeader({
 }) {
   return (
     <header
-      className="mb-4 flex flex-wrap items-start justify-between gap-3 sm:mb-5"
+      className="mb-[var(--density-content-section)] flex flex-wrap items-start justify-between gap-3"
       data-connector-hub-header
     >
-      <div className="flex min-w-0 items-start gap-2.5">
+      <div className="flex min-w-0 items-start gap-3">
         <div
-          className="v4-icon-chip-accent flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-md)] opacity-90"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-card)] bg-accent-bg-subtle text-accent-color"
           aria-hidden
         >
           {icon}
         </div>
         <div className="min-w-0">
-          {/* Match PageHeader hierarchy: subtitle role, not display marketing */}
-          <h1 className="truncate text-lg font-semibold tracking-tight text-text-primary">{title}</h1>
-          <p className="mt-0.5 max-w-prose text-xs leading-relaxed text-text-quaternary">{subtitle}</p>
+          <h1 className="truncate text-3xl font-semibold tracking-tight text-text-primary">{title}</h1>
+          <p className="mt-1.5 max-w-prose text-sm leading-relaxed text-text-tertiary">{subtitle}</p>
           {meta ? (
-            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-3xs text-text-quaternary">
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-3xs text-text-quaternary">
               {meta}
             </div>
           ) : null}
@@ -265,24 +271,26 @@ export function ConnectorHubHeader({
 export function ConnectorToastBanner({
   progress,
   result,
+  tone,
   children,
 }: {
   progress?: string | null;
-  /** Prefer string with ✓ / ✗ prefix for auto coloring; ReactNode for rich content */
+  /** Plain result text (no ✓/✗ prefixes). Pair with `tone` for coloring. */
   result?: ReactNode;
+  /** Explicit severity. Preferred over parsing symbol prefixes. */
+  tone?: "success" | "error" | "neutral";
   children?: ReactNode;
 }) {
   if (!progress && result == null && !children) return null;
-  const resultText = typeof result === "string" ? result : null;
   return (
     <div
       className={cn(
         "mb-4 rounded-[var(--radius-lg)] border px-3.5 py-2.5 text-3xs",
         progress
           ? "border-accent-border-subtle bg-accent-bg-subtle text-accent-color"
-          : resultText?.startsWith("✓")
+          : tone === "success"
             ? "border-border-subtle-dim bg-status-success-bg text-success"
-            : resultText?.startsWith("✗")
+            : tone === "error"
               ? "border-border-subtle-dim bg-status-error-bg text-error"
               : "border-border-subtle bg-surface-wash-45 text-text-tertiary",
       )}
@@ -294,7 +302,20 @@ export function ConnectorToastBanner({
         </span>
       ) : (
         <div className="space-y-1.5">
-          {result != null ? <div>{result}</div> : null}
+          {result != null ? (
+            <div className="flex items-start gap-1.5">
+              <span className="mt-0.5 shrink-0" aria-hidden>
+                {tone === "success" ? (
+                  <RiCheckboxCircleLine size={ICON.micro} />
+                ) : tone === "error" ? (
+                  <RiCloseCircleLine size={ICON.micro} />
+                ) : (
+                  <RiInformationLine size={ICON.micro} />
+                )}
+              </span>
+              <div className="min-w-0 flex-1">{result}</div>
+            </div>
+          ) : null}
           {children}
         </div>
       )}
@@ -308,12 +329,61 @@ export function ConnectorToolChip({ label, ok }: { label: string; ok?: boolean }
     <span
       className={cn(
         "inline-flex items-center gap-1 rounded-[var(--radius-xs)] px-2 py-0.5 text-3xs font-medium",
-        ok ? "bg-status-success-bg text-success" : "bg-surface-muted text-text-tertiary",
+        ok ? "bg-status-success-bg text-success" : "bg-surface-wash-30 text-text-tertiary",
       )}
     >
       {ok ? <RiCheckboxCircleLine size={ICON.micro} aria-hidden /> : <RiAlertLine size={ICON.micro} aria-hidden />}
       {label}
     </span>
+  );
+}
+
+/**
+ * ConnectorCard — Cue-capability register: line icon + name + one capability line + action.
+ * Standard Remix icon only (no emoji / brand logo collage).
+ */
+export function ConnectorCard({
+  icon,
+  title,
+  description,
+  action,
+  status,
+  className,
+}: {
+  icon: ReactNode;
+  title: string;
+  description?: string;
+  action?: ReactNode;
+  status?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-start gap-2.5 rounded-[var(--radius-card,var(--radius-xl))]",
+        "border border-border-subtle-dim bg-surface px-3 py-2.5",
+        "shadow-[var(--shadow-card)]",
+        className,
+      )}
+      data-connector-card
+    >
+      <div
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-surface-wash-30 text-text-tertiary"
+        aria-hidden
+      >
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <h4 className="min-w-0 truncate text-sm font-medium tracking-tight text-text-primary" title={title}>{title}</h4>
+          {status}
+        </div>
+        {description ? (
+          <p className="mt-0.5 text-xs leading-relaxed text-text-tertiary">{description}</p>
+        ) : null}
+      </div>
+      {action ? <div className="shrink-0">{action}</div> : null}
+    </div>
   );
 }
 

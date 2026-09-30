@@ -203,7 +203,7 @@ function IngestSettingsPanel({
             <option value="pandoc">{t("settingsSlot.prefPandoc")}</option>
             <option value="builtin">{t("settingsSlot.prefBuiltin")}</option>
           </select>
-          <p className="mt-1 text-3xs leading-snug text-text-quaternary">
+          <p className="mt-1 text-xs leading-snug text-text-quaternary">
             {t("settingsSlot.preferredConverterDesc")}
           </p>
         </div>
@@ -229,7 +229,7 @@ function IngestSettingsPanel({
             <option value="150">150 MB</option>
             <option value="200">{t("settingsSlot.maxFile200Max")}</option>
           </select>
-          <p className="mt-1 text-3xs leading-snug text-text-quaternary">
+          <p className="mt-1 text-xs leading-snug text-text-quaternary">
             {t("settingsSlot.maxFileHint")}
           </p>
         </div>
@@ -239,7 +239,7 @@ function IngestSettingsPanel({
         title={t("settingsSlot.enhanceTitle")}
         description={t("settingsSlot.enhanceDesc")}
       >
-        <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="mb-2 flex items-center justify-between gap-2 px-4 pt-3">
           <div className="min-w-0">
             <span className="text-3xs font-medium text-text-secondary">{t("settingsSlot.localTools")}</span>
             {checkedAt ? (
@@ -256,7 +256,7 @@ function IngestSettingsPanel({
             {t("settingsSlot.recheck")}
           </Button>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-2 px-4 pb-3">
           <ToolRow
             name="anydoc"
             subtitle={t("settingsSlot.anydocSubtitle")}
@@ -287,10 +287,10 @@ function IngestSettingsPanel({
             {hint}
           </p>
         ) : null}
-        <p className="mt-2 text-3xs leading-relaxed text-text-quaternary">
+        <p className="mt-2 text-xs leading-relaxed text-text-quaternary">
           {t("settingsSlot.installHint")}
         </p>
-        <p className="mt-1.5 text-3xs leading-relaxed text-text-quaternary">
+        <p className="mt-1.5 text-xs leading-relaxed text-text-quaternary">
           {t("settingsSlot.upgradeRule")}
         </p>
       </SettingsSection>
@@ -332,7 +332,7 @@ function ToolRow({
           className={
             ok
               ? "h-2 w-2 shrink-0 rounded-full bg-success"
-              : "h-2 w-2 shrink-0 rounded-full bg-text-quaternary/40"
+              : "h-2 w-2 shrink-0 rounded-full bg-surface-wash-65"
           }
           aria-hidden
         />
@@ -394,7 +394,7 @@ function ToolRow({
         </ul>
       ) : null}
       {!ok && installHint ? (
-        <p className="mt-1.5 text-3xs leading-relaxed text-text-quaternary">{installHint}</p>
+        <p className="mt-1.5 text-xs leading-relaxed text-text-quaternary">{installHint}</p>
       ) : null}
     </div>
   );

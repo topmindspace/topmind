@@ -112,7 +112,7 @@ function ModelBadges({ model }: { model: ModelInfo }) {
       ) : null}
       {model.contextLimit ? (
         <Tooltip content={t("settings:ai.badgeContext", { count: formatContext(model.contextLimit) })}>
-          <span className="inline-flex items-center rounded bg-surface-muted px-1 text-4xs text-text-quaternary">
+          <span className="inline-flex items-center rounded bg-surface-wash-30 px-1 text-4xs text-text-quaternary">
             {formatContext(model.contextLimit)}
           </span>
         </Tooltip>
@@ -136,17 +136,18 @@ function sourceLabel(source: ProviderInfo["source"] | undefined, t: (k: string) 
 
 /**
  * Flat provider options — standard listbox, no search, no empty group labels.
- * Markers: ★ current · ✓ configured.
+ * Markers are plain text labels (not ★/✓ glyphs) so Select stays icon-clean.
  */
 function buildProviderOptions(
   m: AppSettings["ai"]["manual"],
   pref: string,
+  t: (key: string) => string,
 ): SelectOption[] {
   return PROVIDERS.map((p) => {
     const marks: string[] = [];
-    if (pref === p.id) marks.push("★");
-    if (isProviderConfigured(p, m)) marks.push("✓");
-    const suffix = marks.length ? `  ${marks.join(" ")}` : "";
+    if (pref === p.id) marks.push(t("settings:ai.providerMarkCurrent"));
+    if (isProviderConfigured(p, m)) marks.push(t("settings:ai.providerMarkConfigured"));
+    const suffix = marks.length ? `  · ${marks.join(" · ")}` : "";
     return { value: p.id, label: `${p.label}${suffix}` };
   });
 }
@@ -198,7 +199,7 @@ export function AiProviderPanel({
     update({ ai: { manual: { [key]: value } } } as unknown as Partial<AppSettings>);
   };
 
-  const providerOptions = useMemo(() => buildProviderOptions(m, pref), [m, pref]);
+  const providerOptions = useMemo(() => buildProviderOptions(m, pref, t), [m, pref, t]);
 
   // Single edit target = preferred provider (or first configured / openai).
   const activeMeta = useMemo(() => {
@@ -352,8 +353,8 @@ export function AiProviderPanel({
           </Tooltip>
         }
       >
-        <div className="flex flex-wrap items-end gap-2">
-          <Field label={t("settings:ai.providerLabel")} compact className="min-w-[10rem] flex-1">
+        <div className="flex flex-wrap items-end gap-2 px-4 pt-1">
+          <Field label={t("settings:ai.providerLabel")} compact flush className="min-w-[10rem] flex-1">
             <Select
               value={activeMeta.id}
               options={providerOptions}
@@ -364,7 +365,7 @@ export function AiProviderPanel({
               aria-label={t("settings:ai.providerLabel")}
             />
           </Field>
-          <Field label={t("settings:ai.modelLabel")} compact className="min-w-[10rem] flex-1">
+          <Field label={t("settings:ai.modelLabel")} compact flush className="min-w-[10rem] flex-1">
             <Select
               value={settings.ai.defaultModel || ""}
               searchable
@@ -379,7 +380,7 @@ export function AiProviderPanel({
               type="button"
               onClick={() => fetchLive({ silent: false, forceLive: true })}
               disabled={refreshing}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] border border-border-subtle-dim text-text-secondary transition-colors hover:bg-state-hover disabled:opacity-40"
+              className="mb-0.5 inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] border border-transparent bg-surface-wash-15 text-text-secondary transition-colors hover:bg-surface-wash-30 hover:text-text-primary disabled:opacity-40"
               aria-label={t("settings:ai.refreshLabel")}
             >
               {refreshing ? (
@@ -391,7 +392,7 @@ export function AiProviderPanel({
           </Tooltip>
         </div>
 
-        <div className="mt-1.5 flex flex-wrap items-center gap-2 text-3xs text-text-quaternary">
+        <div className="mt-1.5 flex flex-wrap items-center gap-2 px-4 text-3xs text-text-quaternary">
           <StatusDot ok={configuredCount > 0} label={statusLabel} />
           {lastFetchedAt ? (
             <span>
@@ -408,11 +409,11 @@ export function AiProviderPanel({
 
         {/* Credentials for the selected provider */}
         <div className="mt-2 border-t border-border-subtle-dim/50 pt-2">
-          <div className="mb-1.5 flex flex-wrap items-center gap-1.5 text-3xs text-text-quaternary">
+          <div className="mb-1.5 flex flex-wrap items-center gap-1.5 px-4 text-3xs text-text-quaternary">
             <span
               className={cn(
                 "h-1.5 w-1.5 rounded-full",
-                configured ? "bg-success" : "bg-text-quaternary/40",
+                configured ? "bg-success" : "bg-surface-wash-65",
               )}
               aria-hidden
             />
@@ -432,25 +433,23 @@ export function AiProviderPanel({
 
           {activeMeta.keyField ? (
             <Field label={t("settings:ai.apiKeyLabel")} compact>
-              <div className="flex items-center gap-1">
-                <Input
-                  type="password"
-                  value={keyVal}
-                  onChange={(e) => patchManual(activeMeta.keyField!, e.target.value)}
-                  placeholder={activeMeta.keyPlaceholder || "…"}
-                  autoComplete="off"
-                  className="flex-1"
-                />
-                {configured ? (
-                  <button
-                    type="button"
-                    onClick={() => patchManual(activeMeta.keyField!, null)}
-                    className="inline-flex h-8 shrink-0 items-center rounded-[var(--radius-md)] px-2 text-3xs text-text-quaternary transition-colors hover:bg-state-hover hover:text-error"
-                  >
-                    {t("common:action.clearKey")}
-                  </button>
-                ) : null}
-              </div>
+              <Input
+                type="password"
+                value={keyVal}
+                onChange={(e) => patchManual(activeMeta.keyField!, e.target.value)}
+                placeholder={activeMeta.keyPlaceholder || "…"}
+                autoComplete="off"
+                className="min-w-0 flex-1"
+              />
+              {configured ? (
+                <button
+                  type="button"
+                  onClick={() => patchManual(activeMeta.keyField!, null)}
+                  className="inline-flex h-8 shrink-0 items-center rounded-[var(--radius-md)] px-2 text-3xs text-text-quaternary transition-colors hover:bg-state-hover hover:text-error"
+                >
+                  {t("common:action.clearKey")}
+                </button>
+              ) : null}
             </Field>
           ) : null}
 
@@ -482,43 +481,42 @@ export function AiProviderPanel({
               }}
               placeholder={activeMeta.defaultBaseUrl || "https://…"}
               aria-invalid={Boolean(baseUrlError) || undefined}
+              className="min-w-0 w-full"
             />
             {baseUrlError ? <p className="mt-1 text-xs text-error">{baseUrlError}</p> : null}
           </Field>
 
           <Field label={t("settings:ai.customModelId")} compact>
-            <div className="flex items-center gap-1">
-              <Input
-                value={customModel}
-                onChange={(e) => setCustomModel(e.target.value)}
-                placeholder={settings.ai.defaultModel || "model-id"}
-                className="flex-1"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && customModel.trim()) {
-                    e.preventDefault();
-                    patchAi({ defaultModel: customModel.trim() });
-                    setCustomModel("");
-                  }
-                }}
-              />
-              <button
-                type="button"
-                disabled={!customModel.trim()}
-                onClick={() => {
-                  if (!customModel.trim()) return;
+            <Input
+              value={customModel}
+              onChange={(e) => setCustomModel(e.target.value)}
+              placeholder={settings.ai.defaultModel || "model-id"}
+              className="min-w-0 flex-1"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && customModel.trim()) {
+                  e.preventDefault();
                   patchAi({ defaultModel: customModel.trim() });
                   setCustomModel("");
-                }}
-                className="inline-flex h-8 shrink-0 items-center rounded-[var(--radius-md)] border border-border-subtle-dim px-2 text-3xs text-text-secondary transition-colors hover:bg-state-hover disabled:opacity-40"
-              >
-                {t("settings:ai.useCustomModel")}
-              </button>
-            </div>
+                }
+              }}
+            />
+            <button
+              type="button"
+              disabled={!customModel.trim()}
+              onClick={() => {
+                if (!customModel.trim()) return;
+                patchAi({ defaultModel: customModel.trim() });
+                setCustomModel("");
+              }}
+              className="inline-flex h-8 shrink-0 items-center rounded-[var(--radius-md)] border border-transparent bg-surface-wash-15 px-2 text-3xs text-text-secondary transition-colors hover:bg-surface-wash-30 hover:text-text-primary disabled:opacity-40"
+            >
+              {t("settings:ai.useCustomModel")}
+            </button>
           </Field>
 
           {selectedModelInfo ? (
-            <div className="mt-1 flex items-center gap-1.5">
-              <span className="font-mono text-3xs text-text-quaternary">
+            <div className="mt-1 flex flex-wrap items-center gap-1.5 px-4 pb-3">
+              <span className="min-w-0 truncate font-mono text-3xs text-text-quaternary" title={selectedModelInfo.id}>
                 {selectedModelInfo.id}
               </span>
               <ModelBadges model={selectedModelInfo} />

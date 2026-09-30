@@ -61,15 +61,6 @@ html[data-fullscreen="true"] .v4-mac-titlebar-pad { padding-left: 0; }
 html[data-fullscreen="true"] .v4-column-chrome.v4-mac-titlebar-pad {
   padding-left: 8px;
 }
-.v4-titlebar-btn.v4-sidebar-chrome-btn,
-.v4-icon-btn.v4-sidebar-chrome-btn {
-  width: var(--density-chrome-control, 32px);
-  min-width: var(--density-chrome-control, 32px);
-  max-width: var(--density-chrome-control, 32px);
-  height: var(--density-chrome-control, 32px);
-  padding: 0;
-  flex-shrink: 0;
-}
 .v4-sidebar-mode {
   flex: 0 0 auto;
   min-width: 0;
@@ -167,25 +158,26 @@ html[data-platform="win"] [data-dialog-footer] {
 }
 
 /* ── Sidebar tree — content-visibility skips off-screen paint ──
-   Selected row is the neutral wash plus primary ink. No side or bottom accent bar. */
+   Selected row is the neutral wash plus primary ink. No side or bottom accent bar.
+   Soft hover wash (Muse register): larger radius, gentler fill. */
 .v4-tree-node {
-  min-height: var(--density-tree-row, 32px);
+  min-height: var(--density-tree-row, 34px);
   content-visibility: auto;
-  contain-intrinsic-size: auto var(--density-tree-row, 32px);
-  border-radius: var(--radius-md);
+  contain-intrinsic-size: auto var(--density-tree-row, 34px);
+  border-radius: var(--radius-lg);
   transition:
     background-color var(--duration-quick) var(--ease-default),
     color var(--duration-quick) var(--ease-default),
     box-shadow var(--duration-quick) var(--ease-default);
 }
 .v4-tree-node:hover {
-  background: var(--color-state-hover, var(--color-surface-hover));
+  background: var(--color-surface-hover);
 }
 .v4-tree-node:focus-visible {
-  background: var(--color-state-focus, var(--color-accent-bg-faint));
+  background: var(--color-focus-soft, var(--color-accent-bg-faint));
 }
 .v4-tree-node:active:not(.is-selected) {
-  background: var(--color-state-pressed, var(--color-surface-hover));
+  background: var(--color-surface-selected);
 }
 .v4-tree-node.is-selected {
   background: var(--color-surface-selected);
@@ -211,8 +203,7 @@ html[data-platform="win"] [data-dialog-footer] {
 .v4-tree-node[data-tree-kind="file"]:hover {
   color: var(--color-text-primary);
 }
-.v4-tree-node.is-selected[data-tree-kind],
-.v4-tree-node.is-selected {
+.v4-tree-node.is-selected[data-tree-kind] {
   color: var(--color-text-primary);
 }
 
@@ -589,6 +580,15 @@ html[data-platform="win"] [data-dialog-footer] {
 .v4-editor-shell[data-content-width="full"] .v4-editor-body {
   max-width: 100%;
 }
+/* Article title sits on the same reading column as the body. */
+.v4-editor-article-head {
+  max-width: min(var(--content-max-width-prose, 52rem), 100%);
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+.v4-editor-shell[data-content-width="full"] .v4-editor-article-head {
+  max-width: 100%;
+}
 
 /* ── Tiptap + shared preview prose ──
  * Explicit sizes beat Tailwind preflight (h1–h6 → inherit).
@@ -829,7 +829,7 @@ html.dark .v4-tiptap pre {
   opacity: 0.55;
 }
 @media (prefers-reduced-motion: reduce) {
-  .v4-tiptap ul.v4-task-list input[type="checkbox"] {
+  .v4-tiptap ul[data-type="taskList"] input[type="checkbox"] {
     transition: none;
   }
 }
@@ -935,7 +935,7 @@ button.v4-dash-card:active,
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-md);
-  background: var(--color-surface-muted);
+  background: var(--color-surface-wash-30);
   color: var(--color-text-tertiary);
   box-shadow: none;
 }
@@ -952,9 +952,9 @@ button.v4-dash-card:active,
   background-color: var(--color-app-chrome);
   background-image: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--color-app-chrome) 82%, #ffffff 18%) 0%,
+    color-mix(in srgb, var(--color-app-chrome) 90%, var(--color-surface-elevated) 10%) 0%,
     var(--color-app-chrome) 48%,
-    color-mix(in srgb, var(--color-app-chrome) 90%, #000000 10%) 100%
+    color-mix(in srgb, var(--color-app-chrome) 94%, var(--color-text-primary) 6%) 100%
   );
   border-color: var(--color-border-subtle-dim);
 }
@@ -979,9 +979,9 @@ button.v4-dash-card:active,
   background-color: var(--color-app-chrome);
   background-image: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--color-app-chrome) 82%, #ffffff 18%) 0%,
+    color-mix(in srgb, var(--color-app-chrome) 90%, var(--color-surface-elevated) 10%) 0%,
     var(--color-app-chrome) 55%,
-    color-mix(in srgb, var(--color-app-chrome) 92%, #000000 8%) 100%
+    color-mix(in srgb, var(--color-app-chrome) 94%, var(--color-text-primary) 6%) 100%
   );
 }
 
@@ -1020,13 +1020,30 @@ html[data-focus-mode="true"] {
 /* ── Sidebar footer — workspace menu zone (Outlook / ZCode pattern) ──
    2026-09 v2: workspace switcher footer + view switcher above it.
    Elevated above sidebar rail for clear affordance. */
+/* ── Sidebar chrome — workspace menu zone ──
+   Must match .v4-column-chrome exactly so the identity button never reads
+   as a sticker pasted onto the titlebar. */
 [data-sidebar-workspace] {
-  background: color-mix(in srgb, var(--color-surface-muted) 30%, var(--color-app-chrome));
+  background: transparent;
   isolation: isolate;
   z-index: 2;
 }
+[data-sidebar-workspace] [data-workspace-switcher] {
+  border-radius: var(--radius-md);
+}
+[data-sidebar-workspace] [data-workspace-switcher]:hover {
+  background: color-mix(in srgb, var(--color-text-primary) 6%, transparent);
+}
+[data-sidebar-workspace] [data-workspace-switcher][aria-expanded="true"] {
+  background: color-mix(in srgb, var(--color-text-primary) 9%, transparent);
+}
+/* Icon chip: quiet, chrome-native — no accent card floating on the bar. */
+[data-sidebar-workspace] [data-workspace-switcher] > span:first-child {
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  color: var(--color-text-secondary);
+}
 [data-sidebar-view-switcher] {
-  background: color-mix(in srgb, var(--color-surface-muted) 12%, var(--color-app-chrome));
+  background: transparent;
 }
 .v4-titlebar-btn-ai {
   color: var(--color-text-secondary);
@@ -1080,6 +1097,7 @@ html[data-focus-mode="true"] {
   height: var(--density-chrome-control, 32px);
   min-width: var(--density-chrome-control, 32px);
   width: var(--density-chrome-control, 32px);
+  flex-shrink: 0;
   border-radius: var(--radius-md);
 }
 .v4-titlebar-btn {
@@ -1236,17 +1254,11 @@ html[data-focus-mode="true"] {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
-/* Stream inline composer — focus ring matches AI composer language */
+/* Stream inline composer — focus ring lives with the hero compose block (§Stream home) */
 .v4-stream-composer {
   transition:
     border-color var(--duration-fast) var(--ease-default),
     box-shadow var(--duration-fast) var(--ease-default);
-}
-.v4-stream-composer:focus-within {
-  border-color: var(--color-accent-border-subtle) !important;
-  box-shadow:
-    0 0 0 3px var(--color-focus-soft),
-    var(--shadow-elevated-hairline, 0 1px 2px rgba(0, 0, 0, 0.04));
 }
 
 /* Stream feed card Markdown preview — quiet paper prose (not full editor chrome)
@@ -1341,25 +1353,6 @@ html[data-focus-mode="true"] {
 .v4-stream-md li::marker {
   color: var(--color-text-tertiary);
   font-size: 0.85em;
-}
-/* Task list checkboxes — render properly in preview */
-.v4-stream-md ul.task-list {
-  list-style: none;
-  padding-left: 0.5em;
-}
-.v4-stream-md .task-list-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.4em;
-}
-.v4-stream-md .task-list-item input[type="checkbox"] {
-  margin-top: 0.3em;
-  flex-shrink: 0;
-  accent-color: var(--color-accent-color);
-}
-.v4-stream-md .task-list-item[data-checked="true"] > span {
-  text-decoration: line-through;
-  color: var(--color-text-quaternary);
 }
 .v4-stream-md strong,
 .v4-stream-md b {
@@ -1460,6 +1453,33 @@ html[data-focus-mode="true"] {
 .v4-stream-md del {
   opacity: 0.7;
 }
+.v4-stream-md table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.45em 0;
+  font-size: 0.94em;
+  display: block;
+  overflow-x: auto;
+}
+.v4-stream-md th,
+.v4-stream-md td {
+  border: 1px solid var(--color-border-subtle-dim, rgba(0, 0, 0, 0.1));
+  padding: 0.32em 0.55em;
+  text-align: left;
+  vertical-align: top;
+}
+.v4-stream-md th {
+  background: var(--color-surface-muted, rgba(0, 0, 0, 0.03));
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.v4-stream-md h5,
+.v4-stream-md h6 {
+  font-size: 0.88em;
+  font-weight: 600;
+  margin: 0.55em 0 0.2em;
+  color: var(--color-text-secondary);
+}
 
 /* Append sub-blocks inside a card (when main + 续 share a body) */
 .v4-stream-appends {
@@ -1527,10 +1547,14 @@ html[data-focus-mode="true"] {
 }
 
 /* Shared menu surface (context + dropdown) — elevated above canvas
-   4.0: --radius-menu + elevation-2 for native floating presence */
+   4.0: --radius-menu + elevation-2 for native floating presence
+   2026-09-29: near-white elevated (not container-high gray) so list items
+   read as a clean sheet, not stacked gray boxes. */
 .v4-menu-surface {
-  border-radius: var(--radius-menu, 12px);
-  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-menu, 16px);
+  border: 1px solid var(--color-border-subtle-dim);
+  /* Ladder: elevated cards < menu (container-high) < sheet (highest) < dialog.
+     2026-09-29 container-high is near-white (≤6% ink) — not a gray box. */
   background: var(--color-surface-container-high);
   box-shadow: var(--elevation-2, var(--shadow-elevated-hairline, var(--shadow-float)));
   color: var(--color-text-primary);
@@ -1692,20 +1716,21 @@ html[data-overlay-open] body > [data-radix-popper-content-wrapper]:has([data-rad
   pointer-events: none !important;
 }
 
-/* Overlay palette (command / search) — elevated ladder, quiet chrome */
+/* Overlay palette (command / search) — soft elevated sheet (Muse register) */
 .v4-palette {
   display: flex;
   flex-direction: column;
   overflow: hidden;
   width: min(580px, 94vw);
+  border-radius: var(--radius-dialog, 20px);
 }
 .v4-palette-header {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 14px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--color-border-subtle-dim);
-  background: color-mix(in srgb, var(--color-surface-elevated) 92%, var(--color-app-chrome));
+  background: var(--color-surface-elevated);
 }
 .v4-palette-input {
   flex: 1;
@@ -1713,7 +1738,7 @@ html[data-overlay-open] body > [data-radix-popper-content-wrapper]:has([data-rad
   background: transparent;
   border: none;
   outline: none;
-  font-size: var(--text-sm);
+  font-size: var(--text-base, 15px);
   font-weight: 500;
   letter-spacing: -0.01em;
   color: var(--color-text-primary);
@@ -1727,30 +1752,32 @@ html[data-overlay-open] body > [data-radix-popper-content-wrapper]:has([data-rad
   flex-wrap: wrap;
   align-items: center;
   gap: 4px 12px;
-  padding: 8px 14px;
+  padding: 10px 16px;
   border-top: 1px solid var(--color-border-subtle-dim);
-  background: color-mix(in srgb, var(--color-surface-muted) 40%, var(--color-surface));
-  font-size: var(--text-4xs);
+  background: var(--color-surface-elevated);
+  font-size: var(--text-3xs);
   color: var(--color-text-tertiary);
 }
 .v4-palette-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  border-radius: var(--radius-md);
-  padding: 8px 12px;
+  border-radius: var(--radius-lg);
+  padding: 9px 12px;
   cursor: pointer;
   content-visibility: auto;
-  contain-intrinsic-size: auto 40px;
+  contain-intrinsic-size: auto 42px;
   transition: background-color var(--duration-fast) var(--ease-default);
 }
 .v4-palette-row[data-active="true"] {
-  background: var(--color-accent-bg-subtle);
-  box-shadow: inset 0 0 0 1px var(--color-accent-border-subtle);
-  color: var(--color-accent-color);
+  background: var(--color-surface-selected);
+  /* Full inset ring is allowed (not a side/bottom accent strip) — keeps keyboard focus clear. */
+  box-shadow: inset 0 0 0 1px var(--color-border-strong);
+  color: var(--color-text-primary);
+  font-weight: 500;
 }
 .v4-palette-row:not([data-active="true"]):hover {
-  background: var(--color-surface-muted);
+  background: var(--color-surface-hover);
 }
 /* Main editor/list canvas between chrome rails */
 .v4-main-canvas {
@@ -1763,7 +1790,7 @@ html[data-overlay-open] body > [data-radix-popper-content-wrapper]:has([data-rad
   background-color: var(--color-background);
   background-image: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--color-background) 88%, #ffffff 12%) 0%,
+    color-mix(in srgb, var(--color-background) 92%, var(--color-surface-elevated) 8%) 0%,
     var(--color-background) 120px
   );
   background-attachment: local;
@@ -1833,23 +1860,6 @@ html.dark .v4-plugin-app-sheet {
   box-shadow: var(--elevation-3, var(--shadow-overlay-hairline, var(--shadow-overlay)));
 }
 
-/* ── Plugin mini-app sheet (ledger etc.) ──
-   Light scrim + elevated panel; canvas remains readable behind. */
-.v4-plugin-app-sheet {
-  border-radius: var(--radius-dialog, 16px);
-  border: 1px solid var(--color-border-subtle);
-  background: var(--color-surface-elevated);
-  box-shadow: var(--elevation-3, var(--shadow-overlay-hairline, var(--shadow-overlay)));
-  animation: v4-sheet-in var(--duration-enter, 160ms) var(--ease-emphasized, var(--ease-out));
-  overflow: hidden;
-  contain: layout style;
-  width: 100%;
-  max-height: min(94vh, 960px);
-  min-height: min(78vh, 680px);
-}
-html.dark .v4-plugin-app-sheet {
-  box-shadow: var(--elevation-3, var(--shadow-overlay-hairline, var(--shadow-overlay)));
-}
 /* Mini-app body fills the sheet; ledger/header use surface tokens for hierarchy */
 .v4-plugin-app-sheet > * {
   min-height: 0;
@@ -1868,7 +1878,7 @@ html.dark .v4-plugin-app-sheet {
    Opacity-only motion: a lingering transform on a full-viewport overlay
    becomes a containing block and breaks fixed descendants (popovers). */
 .v4-overlay-sheet {
-  border-radius: var(--radius-dialog, 16px);
+  border-radius: var(--radius-dialog, 20px);
   border: 1px solid var(--color-border-subtle);
   background: var(--color-surface-container-highest);
   box-shadow: var(--elevation-3, var(--shadow-overlay-hairline, var(--shadow-overlay)));
@@ -1882,12 +1892,13 @@ html.dark .v4-overlay-sheet {
 /* Dialogs sit one step off the sheet so the two planes are not one elevated color. */
 .v4-dialog-surface {
   background: var(--color-dialog-bg);
+  border-radius: var(--radius-dialog, 20px);
 }
 
 /* Elevated cards / floating chrome pieces (tabs, AI bar, sheets) */
 .v4-card-elevated {
   background: var(--color-surface-elevated);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card, 16px);
   box-shadow: var(--shadow-elevated-hairline, var(--shadow-float));
 }
 
@@ -1960,14 +1971,16 @@ html.dark .v4-overlay-sheet {
 
 /* ── Sidebar rail — deepest plane (ZCode: sidebar darker than canvas) ──
    4.0: soft right edge so the rail separates from paper without a hard rule
-   4.1: vertical depth wash matching shell chrome language */
+   4.1: vertical depth wash matching shell chrome language
+   4.3: wash uses surface-elevated / text-primary mixes (no pure #fff/#000 —
+   those mud the warm pack and blow out cool/neutral tones). */
 .v4-sidebar-rail {
   background-color: var(--color-sidebar, var(--color-app-chrome));
   background-image: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--color-sidebar, var(--color-app-chrome)) 86%, #ffffff 14%) 0%,
-    var(--color-sidebar, var(--color-app-chrome)) 50%,
-    color-mix(in srgb, var(--color-sidebar, var(--color-app-chrome)) 90%, #000000 10%) 100%
+    color-mix(in srgb, var(--color-sidebar, var(--color-app-chrome)) 92%, var(--color-surface-elevated) 8%) 0%,
+    var(--color-sidebar, var(--color-app-chrome)) 55%,
+    color-mix(in srgb, var(--color-sidebar, var(--color-app-chrome)) 94%, var(--color-text-primary) 6%) 100%
   );
   box-shadow: 1px 0 0 0 var(--color-border-subtle-dim);
 }
@@ -1976,7 +1989,7 @@ html.dark .v4-overlay-sheet {
 .v4-ai-panel {
   container-type: inline-size;
   container-name: v4-chat;
-  background: var(--color-app-chrome);
+  background: var(--color-sidebar, var(--color-app-chrome));
   min-height: 0;
   height: 100%;
   box-shadow: -1px 0 0 0 var(--color-border-subtle-dim);
@@ -2017,8 +2030,8 @@ html.dark .v4-overlay-sheet {
 .v4-chip[data-active="true"],
 .v4-chip.is-active {
   border-color: transparent;
-  background: var(--color-accent-container, var(--color-accent-bg-subtle));
-  color: var(--color-on-accent-container, var(--color-accent-color));
+  background: var(--color-accent-bg-subtle);
+  color: var(--color-accent-color);
   font-weight: 600;
 }
 /* Chip select: single outer border on .v4-select-chip; inner select is borderless */
@@ -2034,10 +2047,10 @@ html.dark .v4-overlay-sheet {
 .v4-composer {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   border-top: 1px solid var(--color-border-subtle-dim);
   background: color-mix(in srgb, var(--color-surface) 55%, var(--color-app-chrome));
-  padding: 8px 10px 10px;
+  padding: 10px 12px 12px;
 }
 .v4-composer-toolbar {
   display: flex;
@@ -2049,18 +2062,23 @@ html.dark .v4-overlay-sheet {
 .v4-composer-field {
   display: flex;
   align-items: flex-end;
-  gap: 6px;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border-subtle-dim);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-xs);
+  gap: 8px;
+  border-radius: var(--radius-xl);
+  /* No hairline box: the wash fill alone separates the field from chrome.
+     A visible 1px ring reads as a rectangle bolted onto the composer. */
+  border: none;
+  background: var(--color-surface-wash-15);
+  padding-inline: 4px;
   transition:
-    border-color var(--duration-fast) var(--ease-default),
-    box-shadow var(--duration-fast) var(--ease-default);
+    box-shadow var(--duration-fast) var(--ease-default),
+    background-color var(--duration-fast) var(--ease-default);
+}
+.v4-composer-field:hover {
+  background: var(--color-surface-wash-30);
 }
 .v4-composer-field:focus-within {
-  border-color: color-mix(in srgb, var(--color-accent-color) 38%, transparent);
-  box-shadow: 0 0 0 3px var(--color-focus-soft);
+  background: var(--color-surface-elevated);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent-color) 28%, transparent);
 }
 /* Composer model / skill use MenuSelect (portal listbox) — not native <select>.
  * Keep native .v4-select option styling for remaining short form fields. */
@@ -2075,22 +2093,15 @@ html.dark .v4-overlay-sheet {
   color: var(--color-text-tertiary);
 }
 
-/* AI chrome — one dense row (no duplicate title / multi-row header) */
+/* AI chrome — one dense row (no duplicate title / multi-row header)
+   Soft chrome: no accent hairline gradient (Muse quiet rail). */
 .v4-ai-chrome {
   border-bottom: 1px solid var(--color-border-subtle-dim);
-  background: color-mix(in srgb, var(--color-app-chrome) 88%, var(--color-surface));
-  /* Subtle accent tint to distinguish AI rail from file sidebar */
+  background: color-mix(in srgb, var(--color-app-chrome) 92%, var(--color-surface));
   position: relative;
 }
 .v4-ai-chrome::after {
-  content: "";
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--color-accent-color) 15%, var(--color-accent-color) 85%, transparent);
-  opacity: 0.12;
+  display: none;
 }
 
 /* Segmented control (ViewSwitcher family) */
@@ -2100,9 +2111,9 @@ html.dark .v4-overlay-sheet {
   align-items: center;
   gap: 2px;
   padding: 3px;
-  border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--color-surface-muted) 88%, var(--color-app-chrome));
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.03);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-surface-muted) 70%, transparent);
+  box-shadow: none;
   border: none;
 }
 .v4-segmented-item {
@@ -2113,8 +2124,8 @@ html.dark .v4-overlay-sheet {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  border-radius: var(--radius-md);
-  padding: 6px 8px;
+  border-radius: 999px;
+  padding: 6px 10px;
   font-size: var(--text-3xs);
   font-weight: 500;
   color: var(--color-text-quaternary);
@@ -2155,20 +2166,19 @@ html.dark .v4-overlay-sheet {
 
 /* ── Skeleton block ── */
 
-/* Message bubbles — user = "mine" (accent wash); assistant = quiet paper.
-   Previously near-twins on the same elevated fill.
-   Paper reading column (wide AI rail): assistant becomes a full-width paper
-   row sharing the reading language with feed/editor; user stays a right chip. */
+/* Message bubbles — user = soft accent chip (Muse soft-bubble register);
+   assistant = quiet paper. Large radius, low chrome. */
 .v4-msg-user {
-  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-sm) var(--radius-lg);
+  border-radius: 18px 18px 6px 18px;
   border: 1px solid var(--color-accent-border-subtle);
   background: var(--color-accent-bg-subtle);
   color: var(--color-text-primary);
   box-shadow: none;
+  padding-block: 0.55rem;
 }
 /* Assistant: document-like paper, not chat bubble chrome */
 .v4-msg-assistant {
-  border-radius: var(--radius-card, var(--radius-lg));
+  border-radius: var(--radius-card, 16px);
   background: var(--color-surface);
   border: 1px solid var(--color-border-subtle-dim);
   box-shadow: var(--shadow-xs);
@@ -2204,12 +2214,6 @@ html.dark .v4-overlay-sheet {
 .v4-feed-column .v4-stream-composer {
   max-width: none;
   margin-inline: 0;
-}
-.v4-stream-composer {
-  transition: box-shadow var(--duration-fast) var(--ease-default), border-color var(--duration-fast) var(--ease-default);
-}
-.v4-stream-composer:focus-within {
-  box-shadow: var(--shadow-card), 0 0 0 1px var(--color-accent-border-subtle);
 }
 .v4-feed-layout-toggle {
   gap: 2px;
@@ -2306,15 +2310,15 @@ html[data-menu-open] .v4-main-canvas .sticky {
   padding-top: 2px;
 }
 [data-stream-feed][data-layout="list"] [data-stream-entry-card] {
-  padding: 0.55rem 0.15rem;
+  padding: 0.85rem 0.25rem;
   background: transparent;
   box-shadow: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   content-visibility: auto;
-  contain-intrinsic-size: 0 46px;
+  contain-intrinsic-size: 0 56px;
 }
 [data-stream-feed][data-layout="list"] [data-stream-entry-card]:hover {
-  background: var(--color-surface-wash-15);
+  background: var(--color-surface-hover);
   box-shadow: none;
 }
 [data-stream-feed][data-layout="card"] [data-stream-day-toggle] {
@@ -2327,21 +2331,22 @@ html[data-menu-open] .v4-main-canvas .sticky {
 [data-stream-feed][data-layout="card"] [data-stream-day-body] {
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
-  padding: 0.15rem 0 0.65rem;
+  gap: var(--density-content-gap, 14px);
+  padding: 0.15rem 0 0.85rem;
 }
 [data-stream-feed][data-layout="card"] [data-stream-entry-card] {
-  padding: 0.8rem 0.95rem;
-  border-radius: var(--radius-card, var(--radius-lg));
+  padding: 1rem 1.15rem;
+  border-radius: var(--radius-card, 16px);
   /* Soft lift only — hairline ring removed (it read as a second border). */
   background: var(--color-surface);
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow-card);
   content-visibility: auto;
-  contain-intrinsic-size: 0 68px;
+  contain-intrinsic-size: 0 72px;
   transition: box-shadow var(--duration-fast) var(--ease-default), background-color var(--duration-fast) var(--ease-default);
 }
 [data-stream-feed][data-layout="card"] [data-stream-entry-card]:hover {
   box-shadow: var(--shadow-sm);
+  background: var(--color-surface-elevated);
 }
 [data-stream-feed] [data-stream-entry-card] [data-stream-nested-appends] {
   margin-top: 0.45rem;
@@ -2353,20 +2358,20 @@ html[data-menu-open] .v4-main-canvas .sticky {
 }
 [data-memory-feed][data-layout="list"] [data-memory-feed-item]:hover {
   background: var(--color-surface-wash-15);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
 }
 [data-memory-feed][data-layout="card"] {
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
+  gap: var(--density-content-gap, 14px);
   max-width: none;
   margin-inline: 0;
 }
 [data-memory-feed][data-layout="card"] [data-memory-feed-item] {
-  padding: 0.8rem 0.95rem;
-  border-radius: var(--radius-card, var(--radius-lg));
+  padding: 1rem 1.15rem;
+  border-radius: var(--radius-card, 16px);
   background: var(--color-surface);
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow-card);
 }
 
 /* ── Micro-interaction & Popover Animation Utilities ── */
@@ -2457,11 +2462,14 @@ html[data-menu-open] .v4-main-canvas .sticky {
   animation: v4-shimmer-flow 1.6s infinite cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Feed post tiles (card layout + collection) — soft lift, no hairline ring */
+/* Feed post tiles (card layout + collection) — soft lift, no hairline ring.
+   content-visibility skips off-screen paint on long streams (same as list rows). */
 .v4-feed-post {
   border-radius: var(--radius-card);
   background: var(--color-surface);
   box-shadow: var(--shadow-xs);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 120px;
 }
 .v4-feed-post:hover {
   box-shadow: var(--shadow-sm);
@@ -2473,10 +2481,17 @@ html[data-menu-open] .v4-main-canvas .sticky {
   overflow-x: auto;
 }
 .v4-input {
-  border: 1px solid var(--color-border-subtle-dim);
+  border: none;
   border-radius: var(--radius-md);
-  background: var(--color-input);
+  background: var(--color-surface-wash-15);
   padding: 0.35rem 0.6rem;
+}
+.v4-input:hover {
+  background: var(--color-surface-wash-30);
+}
+.v4-input:focus-visible {
+  background: var(--color-surface-elevated);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent-color) 28%, transparent);
 }
 .v4-editor-outline {
   width: 240px;
@@ -2491,14 +2506,14 @@ html[data-menu-open] .v4-main-canvas .sticky {
 
 /* ── ActivityBar — primary destination rail (48px, leftmost) ── */
 .v4-activity-bar {
-  /* Depth wash along the rail (top lift → settle); solid chroma, no brand gradient */
+  /* Depth wash along the rail (top lift → settle); no pure #fff/#000 mixes */
   z-index: 1;
   background-color: var(--color-app-chrome);
   background-image: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--color-app-chrome) 84%, #ffffff 16%) 0%,
-    var(--color-app-chrome) 42%,
-    color-mix(in srgb, var(--color-app-chrome) 88%, #000000 12%) 100%
+    color-mix(in srgb, var(--color-app-chrome) 92%, var(--color-surface-elevated) 8%) 0%,
+    var(--color-app-chrome) 48%,
+    color-mix(in srgb, var(--color-app-chrome) 94%, var(--color-text-primary) 6%) 100%
   );
 }
 .v4-activity-bar .v4-focus-ring:focus-visible {

@@ -41,7 +41,7 @@ export function TopicPickerList({
   }
   if (flatCount === 0) {
     return (
-      <div className="px-2.5 py-3 text-3xs leading-relaxed text-text-quaternary">
+      <div className="px-2.5 py-3 text-xs leading-relaxed text-text-quaternary">
         {defaultEmptyHint}
       </div>
     );

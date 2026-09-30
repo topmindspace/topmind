@@ -38,7 +38,7 @@ export function PluginInstallPreviewBody({
           </span>
         </div>
         {m.description ? (
-          <p className="mt-1 text-3xs leading-relaxed text-text-tertiary">{m.description}</p>
+          <p className="mt-1 text-xs leading-relaxed text-text-tertiary">{m.description}</p>
         ) : null}
         <p className="mt-1 text-3xs text-text-quaternary">
           {t("settings:plugins.sourceLabel")} · {sourceKind === "zip" ? t("settings:plugins.sourceZip") : t("settings:plugins.sourceFolder")}
@@ -60,12 +60,12 @@ export function PluginInstallPreviewBody({
       ) : null}
 
       <div>
-        <div className="mb-1 text-3xs font-medium text-text-secondary">{t("settings:plugins.permissionsLabel")}</div>
+        <div className="mb-1 text-xs font-medium text-text-secondary">{t("settings:plugins.permissionsLabel")}</div>
         <div className="flex flex-wrap gap-1">
           {(preview.permissions || []).map((p) => (
             <span
               key={p}
-              className="rounded bg-surface-muted px-1.5 py-0.5 font-mono text-3xs text-text-tertiary"
+              className="rounded bg-surface-wash-30 px-1.5 py-0.5 font-mono text-3xs text-text-tertiary"
             >
               {p}
             </span>
@@ -86,7 +86,7 @@ export function PluginInstallPreviewBody({
         </ul>
       ) : null}
 
-      <p className="text-3xs leading-relaxed text-text-quaternary">
+      <p className="text-xs leading-relaxed text-text-quaternary">
         {t("settings:plugins.trustModel")}
       </p>
     </div>

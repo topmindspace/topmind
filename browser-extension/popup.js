@@ -97,23 +97,37 @@ function parseDestValue(v) {
 
 async function loadDestinations() {
   if (!destSelect) return;
-  // Show loading state
-  destSelect.innerHTML = `<option value="inbox" disabled>${t("dest_loading")}</option>`;
+  // Build options via DOM — never interpolate workspace ids into innerHTML.
+  destSelect.replaceChildren();
+  {
+    const loading = document.createElement("option");
+    loading.value = "inbox";
+    loading.disabled = true;
+    loading.textContent = t("dest_loading");
+    destSelect.append(loading);
+  }
   const res = await sendMessageSafe({ type: "fetch-destinations" }, 5000);
   const prefBag = await chrome.storage.local.get(DEST_PREF_KEY);
   const pref = prefBag[DEST_PREF_KEY] || "inbox";
 
-  const opts = [`<option value="inbox">${t("dest_inbox")}</option>`];
+  const addOpt = (value, label) => {
+    const o = document.createElement("option");
+    o.value = value;
+    o.textContent = label;
+    destSelect.append(o);
+  };
+  destSelect.replaceChildren();
+  addOpt("inbox", t("dest_inbox"));
   if (res?.ok) {
     if (destHint) destHint.hidden = true;
     for (const c of res.categories || []) {
       const id = c.id || c.name;
       if (!id) continue;
-      opts.push(`<option value="cat:${id}">${t("dest_category", id)}</option>`);
+      addOpt(`cat:${id}`, t("dest_category", id));
     }
     for (const tp of res.topics || []) {
       if (!tp.id) continue;
-      opts.push(`<option value="topic:${tp.id}">${t("dest_topic", tp.id)}</option>`);
+      addOpt(`topic:${tp.id}`, t("dest_topic", tp.id));
     }
   } else if (destHint) {
     destHint.hidden = false;
@@ -121,7 +135,6 @@ async function loadDestinations() {
       ? t("dest_hint_offline")
       : t("dest_hint_generic");
   }
-  destSelect.innerHTML = opts.join("");
   if ([...destSelect.options].some((o) => o.value === pref)) {
     destSelect.value = pref;
   } else {
@@ -328,6 +341,7 @@ async function loadExtractPreview(tab) {
     const modeKey = res.mode === "readability" ? "mode_label_readability"
       : res.mode === "heuristic" ? "mode_label_heuristic"
       : res.mode === "selection" ? "mode_label_selection"
+      : res.mode === "highlights" ? "mode_label_highlights"
       : null;
     metaMode.textContent = modeKey ? t(modeKey) : (res.mode || t("mode_label_readability"));
   }

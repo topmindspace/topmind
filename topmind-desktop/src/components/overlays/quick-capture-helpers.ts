@@ -21,9 +21,11 @@ export type FetchMeta = {
   warning?: string;
   canEnhance?: boolean;
   enhanced?: boolean;
+  /** Cover / first image URL from the fetch result (remote until localized). */
+  image?: string | null;
 };
 
-export const FETCH_DEFAULT = 40_000;
+/** Highest-quality single fetch — full article length. */
 export const FETCH_FULL = 200_000;
 
 /** Staged URL-fetch progress labels (reads → extract → markdown). */
@@ -46,6 +48,7 @@ export function methodLabelKey(method?: string): string {
   if (method === "render") return "overlays:capture.methodRender";
   if (method === "github-raw") return "overlays:capture.methodGithubRaw";
   if (method === "github-readme") return "overlays:capture.methodGithubReadme";
+  if (method === "x-status" || method === "x-article") return "overlays:capture.methodXStatus";
   return "overlays:capture.methodHeuristic";
 }
 
@@ -148,6 +151,50 @@ export function deriveTitleFromContent(content: string): string | undefined {
     if (t.length >= 2) return t.slice(0, 120);
   }
   return undefined;
+}
+
+/** Minimal fetch-result shape used by surfaces that only need markdown assembly. */
+export type FetchMarkdownResult = {
+  url?: string;
+  text?: string;
+  author?: string | null;
+  siteName?: string | null;
+  image?: string | null;
+  title?: string;
+  method?: string;
+  wordCount?: number;
+  truncated?: boolean;
+  maxLen?: number;
+  likelySpa?: boolean;
+  warning?: string | null;
+  canEnhance?: boolean;
+  enhanced?: boolean;
+};
+
+/**
+ * Build the compact source header + body markdown from a fetch result.
+ * Cover image is included in the body so later localization can download it.
+ */
+export function buildFetchMarkdown(
+  result: FetchMarkdownResult,
+  t: (key: string, opts?: Record<string, unknown>) => string,
+  existing = "",
+  opts: { replaceBareUrl?: boolean } = {},
+): string {
+  const metaLines = [`> ${t("overlays:capture.metaSource")}: ${result.url}`];
+  if (result.author) metaLines.push(`> ${t("overlays:capture.metaAuthor")}: ${result.author}`);
+  if (result.siteName) metaLines.push(`> ${t("overlays:capture.metaSite")}: ${result.siteName}`);
+  const header = `${metaLines.join("\n")}\n\n`;
+  let body = (result.text || "").trim() || t("overlays:capture.metaNoBody");
+  const cover = typeof result.image === "string" ? result.image : "";
+  if (cover && !body.includes(cover) && !/!\[[^\]]*\]\(/u.test(body.slice(0, 400))) {
+    body = `![cover](${cover})\n\n${body}`.trim();
+  }
+  const bare = /^https?:\/\/\S+$/iu.test(existing.trim());
+  const replaceBare = opts.replaceBareUrl !== false;
+  if (bare && replaceBare) return `${header}${body}`;
+  if (existing.trim()) return `${existing.trim()}\n\n${header}${body}`;
+  return `${header}${body}`;
 }
 
 export function isCaptureSurface(): boolean {

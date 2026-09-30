@@ -8,7 +8,7 @@
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { RiArrowDownSLine, RiCheckLine, RiSearchLine } from "@remixicon/react";
+import { RiArrowDownSLine, RiCheckLine, RiCloseLine, RiSearchLine } from "@remixicon/react";
 import {
   DropdownItem,
   DropdownMenu,
@@ -162,15 +162,15 @@ export function MenuSelect({
 
   const triggerClass = cn(
     "inline-flex w-full min-w-0 items-center gap-1 text-left outline-none transition-colors",
-    "v4-focus-ring",
+    "v4-focus-ring v4-quiet-field",
     disabled && "cursor-not-allowed opacity-50",
     softDisabled && "opacity-50",
     variant === "composer" &&
-      "h-7 rounded-[var(--radius-md)] border border-transparent bg-surface-muted px-2 text-3xs font-medium text-text-secondary hover:border-border-subtle-dim hover:bg-state-hover hover:text-text-primary data-[open=true]:border-border-subtle-dim data-[open=true]:bg-state-hover data-[open=true]:text-text-primary",
+      "h-7 rounded-[var(--radius-md)] border-none bg-surface-wash-15 px-2 text-3xs font-medium text-text-secondary hover:bg-surface-wash-30 hover:text-text-primary data-[open=true]:bg-surface-wash-30 data-[open=true]:text-text-primary",
     variant === "field" &&
-      "h-[var(--control-h-md,34px)] w-full rounded-[var(--radius-md)] border border-border-subtle-dim bg-input px-2.5 text-3xs text-text-primary shadow-[var(--shadow-input-inset)] hover:border-border-subtle data-[open=true]:border-accent-color data-[open=true]:ring-2 data-[open=true]:ring-ring",
+      "h-9 w-full min-w-[9.5rem] rounded-[var(--radius-md)] border-none bg-surface-wash-15 px-3 text-base text-text-primary hover:bg-surface-wash-30 data-[open=true]:bg-surface-elevated data-[open=true]:shadow-[0_0_0_2px_color-mix(in_srgb,var(--color-accent-color)_28%,transparent)]",
     variant === "chip" &&
-      "h-7 max-w-[12rem] rounded-[var(--radius-xs)] border border-border-subtle-dim bg-surface-muted px-2 text-3xs font-medium text-text-secondary hover:bg-state-hover data-[open=true]:bg-surface-muted",
+      "h-7 max-w-[12rem] rounded-[var(--radius-sm)] border border-transparent bg-surface-wash-15 px-2 text-3xs font-medium text-text-secondary hover:bg-surface-wash-30 hover:text-text-primary data-[open=true]:bg-surface-wash-30 data-[open=true]:text-text-primary",
     variant === "ghost" &&
       "h-[var(--control-h-sm,30px)] border-0 bg-transparent px-1 text-3xs text-text-secondary hover:text-text-primary data-[open=true]:text-text-primary",
     className,
@@ -248,7 +248,7 @@ export function MenuSelect({
     >
       {showSearch ? (
         <div className="sticky top-0 z-local mb-1 bg-surface px-1 pb-1 pt-1">
-          <div className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-border-subtle-dim bg-input px-2">
+          <div className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-wash-15 px-2">
             <RiSearchLine size={ICON.micro} className="shrink-0 text-text-quaternary" aria-hidden />
             <input
               ref={searchRef}
@@ -264,7 +264,7 @@ export function MenuSelect({
                 }
               }}
               placeholder={t("action.search", { defaultValue: "Search…" })}
-              className="h-7 min-w-0 flex-1 bg-transparent text-3xs text-text-primary outline-none placeholder:text-text-quaternary"
+              className="h-7 min-w-0 flex-1 bg-transparent text-xs text-text-primary outline-none placeholder:text-text-quaternary"
               autoComplete="off"
               spellCheck={false}
             />
@@ -275,10 +275,10 @@ export function MenuSelect({
                   setQuery("");
                   searchRef.current?.focus();
                 }}
-                className="shrink-0 text-text-quaternary hover:text-text-secondary"
+                className="shrink-0 rounded p-0.5 text-text-quaternary hover:bg-state-hover hover:text-text-secondary v4-focus-ring"
                 aria-label={t("action.clear", { defaultValue: "Clear" })}
               >
-                ✕
+                <RiCloseLine size={ICON.micro} aria-hidden />
               </button>
             ) : null}
           </div>

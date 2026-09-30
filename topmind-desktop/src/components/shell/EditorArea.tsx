@@ -120,7 +120,7 @@ export function EditorArea() {
             style={{ flex: `${1 - splitPrimaryRatio} 1 0%` }}
           >
             <div className="v4-split-chrome flex h-7 shrink-0 items-center gap-1 border-b border-border-subtle-dim bg-app-chrome/60 px-2">
-              <RiLayoutColumnLine size={ICON.micro} className="shrink-0 text-accent-color" aria-hidden />
+              <RiLayoutColumnLine size={ICON.micro} className="shrink-0 text-text-tertiary" aria-hidden />
               <span className="min-w-0 flex-1 truncate font-mono text-3xs text-text-tertiary" title={splitSecondaryPath!}>
                 {splitSecondaryPath!.split("/").pop()}
               </span>

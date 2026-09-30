@@ -265,8 +265,14 @@
           "label": "保存设置",
           "default": "auto",
           "options": [
-            { "value": "auto", "label": "自动保存并返回回执" },
-            { "value": "confirm", "label": "需要审阅" }
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
           ]
         }
       },
@@ -280,8 +286,12 @@
         "--mode",
         "{mode}"
       ],
-      "reads": ["memory/profile.md"],
-      "writes": ["memory/profile.md"]
+      "reads": [
+        "memory/profile.md"
+      ],
+      "writes": [
+        "memory/profile.md"
+      ]
     },
     "update-profile": {
       "label": "更新我的情况",
@@ -315,8 +325,14 @@
           "label": "保存设置",
           "default": "auto",
           "options": [
-            { "value": "auto", "label": "自动保存并返回回执" },
-            { "value": "confirm", "label": "需要审阅" }
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
           ]
         }
       },
@@ -330,8 +346,12 @@
         "--mode",
         "{mode}"
       ],
-      "reads": ["memory/profile.md"],
-      "writes": ["memory/profile.md"]
+      "reads": [
+        "memory/profile.md"
+      ],
+      "writes": [
+        "memory/profile.md"
+      ]
     },
     "compact-history": {
       "label": "压缩历史记录",
@@ -356,8 +376,14 @@
           "label": "保存设置",
           "default": "auto",
           "options": [
-            { "value": "auto", "label": "自动保存并返回回执" },
-            { "value": "confirm", "label": "需要审阅" }
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
           ]
         }
       },
@@ -367,8 +393,12 @@
         "--mode",
         "{mode}"
       ],
-      "reads": ["memory/profile.md"],
-      "writes": ["memory/profile.md"]
+      "reads": [
+        "memory/profile.md"
+      ],
+      "writes": [
+        "memory/profile.md"
+      ]
     },
     "restore-profile": {
       "label": "恢复我的情况",
@@ -399,8 +429,14 @@
           "label": "保存设置",
           "default": "auto",
           "options": [
-            { "value": "auto", "label": "自动保存并返回回执" },
-            { "value": "confirm", "label": "需要审阅" }
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
           ]
         }
       },
@@ -412,8 +448,12 @@
         "--mode",
         "{mode}"
       ],
-      "reads": ["memory/profile.md"],
-      "writes": ["memory/profile.md"]
+      "reads": [
+        "memory/profile.md"
+      ],
+      "writes": [
+        "memory/profile.md"
+      ]
     },
     "list-todos": {
       "label": "列出待办",
@@ -446,7 +486,9 @@
         "--limit",
         "{limit}"
       ],
-      "reads": ["memory/todo.md"],
+      "reads": [
+        "memory/todo.md"
+      ],
       "writes": []
     },
     "add-todo": {
@@ -484,8 +526,14 @@
           "label": "保存设置",
           "default": "auto",
           "options": [
-            { "value": "auto", "label": "自动保存并返回回执" },
-            { "value": "confirm", "label": "需要审阅" }
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
           ]
         }
       },
@@ -499,8 +547,12 @@
         "--mode",
         "{mode}"
       ],
-      "reads": ["memory/todo.md"],
-      "writes": ["memory/todo.md"]
+      "reads": [
+        "memory/todo.md"
+      ],
+      "writes": [
+        "memory/todo.md"
+      ]
     },
     "toggle-todo": {
       "label": "切换待办完成",
@@ -524,8 +576,14 @@
           "label": "保存设置",
           "default": "auto",
           "options": [
-            { "value": "auto", "label": "自动保存并返回回执" },
-            { "value": "confirm", "label": "需要审阅" }
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
           ]
         }
       },
@@ -535,8 +593,172 @@
         "--mode",
         "{mode}"
       ],
-      "reads": ["memory/todo.md"],
-      "writes": ["memory/todo.md"]
+      "reads": [
+        "memory/todo.md"
+      ],
+      "writes": [
+        "memory/todo.md"
+      ]
+    },
+    "update-todo": {
+      "label": "改写待办文本",
+      "description": "修改一条待办的完整文本。idOrText 定位原条目，newText 是完整新文本；可同时设置截止日期。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "medium",
+      "review_policy": "preview_or_auto",
+      "requires_topic": false,
+      "idempotent": false,
+      "supports_dry_run": true,
+      "destructive": false,
+      "inputs": {
+        "idOrText": {
+          "type": "text",
+          "label": "待办 ID 或文本片段",
+          "required": true
+        },
+        "newText": {
+          "type": "text",
+          "label": "完整新文本",
+          "required": true
+        },
+        "dueDate": {
+          "type": "text",
+          "label": "截止日期",
+          "required": false,
+          "hint": "YYYY-MM-DD；空=不变"
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
+        }
+      },
+      "args_extra": [
+        "--id-or-text",
+        "{idOrText}",
+        "--new-text",
+        "{newText}",
+        "--due-date",
+        "{dueDate}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [
+        "memory/todo.md"
+      ],
+      "writes": [
+        "memory/todo.md"
+      ]
+    },
+    "set-todo-due": {
+      "label": "设置待办截止",
+      "description": "设置或清除一条待办的截止日期。dueDate 传 YYYY-MM-DD；传空清除。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "low",
+      "review_policy": "preview_or_auto",
+      "requires_topic": false,
+      "idempotent": true,
+      "supports_dry_run": true,
+      "destructive": false,
+      "inputs": {
+        "idOrText": {
+          "type": "text",
+          "label": "待办 ID 或文本片段",
+          "required": true
+        },
+        "dueDate": {
+          "type": "text",
+          "label": "截止日期（空=清除）",
+          "required": true
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
+        }
+      },
+      "args_extra": [
+        "--id-or-text",
+        "{idOrText}",
+        "--due-date",
+        "{dueDate}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [
+        "memory/todo.md"
+      ],
+      "writes": [
+        "memory/todo.md"
+      ]
+    },
+    "delete-todo": {
+      "label": "删除待办",
+      "description": "删除一条待办（用户明确说不要了才用）。优先切换为完成而不是删除。删除记入 dismissed，不回灌。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "medium",
+      "review_policy": "preview_or_auto",
+      "requires_topic": false,
+      "idempotent": false,
+      "supports_dry_run": true,
+      "destructive": true,
+      "inputs": {
+        "idOrText": {
+          "type": "text",
+          "label": "待办 ID 或文本片段",
+          "required": true
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
+        }
+      },
+      "args_extra": [
+        "--id-or-text",
+        "{idOrText}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [
+        "memory/todo.md"
+      ],
+      "writes": [
+        "memory/todo.md"
+      ]
     }
   }
 }

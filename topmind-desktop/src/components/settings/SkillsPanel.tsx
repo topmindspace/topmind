@@ -267,7 +267,7 @@ export function SkillsPanel({
           </div>
         </div>
         <div className="mt-1 flex justify-end">
-          <Button variant="ghost" size="sm" className="h-6" onClick={() => void reload()} disabled={loading}>
+          <Button variant="ghost" size="sm" onClick={() => void reload()} disabled={loading}>
             {loading ? <RiLoader4Line size={ICON.xs} className="animate-spin" /> : <RiRefreshLine size={ICON.xs} />}
           </Button>
         </div>
@@ -282,7 +282,6 @@ export function SkillsPanel({
             <Button
               variant="outline"
               size="sm"
-              className="h-6"
               disabled={Boolean(busy)}
               onClick={() => void beginAddRoot()}
             >
@@ -291,7 +290,6 @@ export function SkillsPanel({
             <Button
               variant="outline"
               size="sm"
-              className="h-6"
               disabled={Boolean(busy)}
               onClick={() => void beginInstallToManaged()}
             >
@@ -300,7 +298,6 @@ export function SkillsPanel({
             <Button
               variant="ghost"
               size="sm"
-              className="h-6"
               onClick={() => void api.sys.openSkillsExtraDir()}
             >
               <RiFolderOpenLine size={ICON.micro} />
@@ -308,6 +305,7 @@ export function SkillsPanel({
           </div>
         }
       >
+        <div className="px-4 py-3">
         {managedExtraRoot ? (
           <div className="mb-1.5 text-3xs text-text-quaternary">{t("settings:skills.managedDir", { path: managedExtraRoot })}</div>
         ) : null}
@@ -335,7 +333,7 @@ export function SkillsPanel({
                 {receipt.entries?.length ? (
                   <div className="flex flex-wrap gap-1 pt-0.5">
                     {receipt.entries.slice(0, 12).map((e) => (
-                      <span key={e} className="rounded bg-surface-muted px-1.5 py-px font-mono text-3xs">
+                      <span key={e} className="rounded bg-surface-wash-30 px-1.5 py-px font-mono text-3xs">
                         {e}
                       </span>
                     ))}
@@ -428,6 +426,7 @@ export function SkillsPanel({
             {actionMsg}
           </div>
         ) : null}
+        </div>
       </SettingsSection>
 
       {error ? (
@@ -442,11 +441,11 @@ export function SkillsPanel({
         description={t("settings:skills.catalogDesc")}
       >
         {loading && catalog.length === 0 ? (
-          <div className="flex items-center gap-2 text-3xs text-text-tertiary">
+          <div className="flex items-center gap-2 px-4 py-3 text-3xs text-text-tertiary">
             <RiLoader4Line size={ICON.xs} className="animate-spin" /> {t("settings:skills.loadingSkills")}
           </div>
         ) : (
-          <ul className="m-0 list-none space-y-1.5 p-0">
+          <ul className="m-0 list-none space-y-1.5 p-4 pt-3">
             {catalog.map((s) => (
               <li key={s.id}>
                 <label
@@ -473,7 +472,7 @@ export function SkillsPanel({
                       )}
                       <span className="font-mono text-3xs">{s.id.replace(/^topmind-?/, "") || s.id}</span>
                       {s.actionCategory ? (
-                        <span className="rounded bg-surface-muted px-1.5 py-px text-3xs text-text-tertiary">
+                        <span className="rounded bg-surface-wash-30 px-1.5 py-px text-3xs text-text-tertiary">
                           {s.actionCategory}
                         </span>
                       ) : null}
@@ -551,7 +550,7 @@ export function SkillsPanel({
             {pendingInstall.summary.skillIds?.length ? (
               <div className="mt-1.5 flex flex-wrap gap-1">
                 {pendingInstall.summary.skillIds.slice(0, 10).map((id) => (
-                  <span key={id} className="rounded bg-surface-muted px-1.5 py-px font-mono text-3xs">
+                  <span key={id} className="rounded bg-surface-wash-30 px-1.5 py-px font-mono text-3xs">
                     {id}
                   </span>
                 ))}

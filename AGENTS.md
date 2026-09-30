@@ -157,9 +157,11 @@ contract · workspace-model · stream · memory · lifecycle · **writeback（�
 | Memory | 路径经契约；profile 事实 **append 融合 / retire / update / restore / compact-history**（确认式，近重复原位合并保留最新，不堆第二条 live；restore=历史区事实回活跃；compact-history 折叠历史近重复需用户确认）；periodic=周期反思（同周期原位替换）；无自动遗忘/向量 | ADR 2026-08-16 · 2026-08-23 · memory-engine |
 | Stream / 活动窗口 | `yearDir` 默认 true；周期路径双向粘滞；`archiveStreamYear` → `{system}/stream-archive/{year}/`。活动窗口 **21 天 / 30 文件 / 6 周期**；语料预算 suggest 16K · todo extract 16K · maintain 12K | ADR 2026-08-09 · `lib/activity-window.mjs` |
 | AI 语言 | 正文：用户要求→原文→workspace locale；建议/待办：用户要求→宿主 UI 语言→workspace locale | `lib/ai-output-locale.mjs` |
-| Agent | 步数默认 32/上限 80；目标协议（`[PLAN]`/`done-when`/`[DONE]`/`[NEEDS-USER]`）+ `finishTurn` 步数闸；目标感知续跑（验收未达 ≤4）+ 溢出压缩重试；外部 evaluator（`met\|not_met\|impossible`）；`GoalState` 会话级持久（`.goal.json`）；`blocked`/`[NEEDS-USER]` 一等状态；stopReason 诚实（paused ≠ cancelled ≠ error）；`edit_file` `expectedHash` 软乐观并发。细节 Desktop ARCHITECTURE · ADR 2026-09-25 |
+| Agent | **会话内自适应预算**（light=0/query=2–6/task=8–48 步随负载，续跑 0–6；`session-budget.mjs`）；目标协议（`[PLAN]`/`done-when`/`[DONE]`/`[NEEDS-USER]`）+ `finishTurn` 步数闸；查询**宿主强制取证**（`query-evidence` 双注入）；目标感知续跑 + 溢出压缩重试；外部 evaluator；`GoalState` 会话级持久；stopReason 诚实；`edit_file` `expectedHash` 软乐观并发。细节 Desktop ARCHITECTURE · ADR 2026-09-25 |
 
 **Agent 记忆面差异（诚实）**：Desktop 聊天工具提供 `append/update/retire/restore_core_memory` + `compact_core_memory_history`（全生命周期，与 UTR 对齐；compact 需确认）；Obsidian 聊天**不注册**记忆写工具，记忆变更在回答中提案 →「建议」tab 确认（同一 Kernel 写闸）。Obsidian 接受 `capture` / `capture_to_inbox` 别名。
+
+**Agent 读工具分流（2026-09-29）**：`list_recent_memories` = 我的情况（画像/周期反思/专题）；`list_recent_stream` = 动态（周期本条目）；`list_todos` = 个人清单。待办全生命周期 `add_todo`/`toggle_todo`/`update_todo`/`set_todo_due`/`delete_todo`（优先 toggle 不 delete）；增补用 `append_stream_entry`，新开条目仍 `capture_to_inbox`。Catalog 见 `TOOLS.md`（21 read + 24 write = 45）。
 
 Intentional Partial：contract 非全 Surface UI。embedding / 全库 Ask：Non-goal / Target 延后（Reset）。
 
@@ -270,7 +272,7 @@ Frontmatter schema：`SKILL-ARCHITECTURE.md`。
 ## Tool Boundary
 
 UTR **可选**。域：`workspace-read` · `workspace-write` · `workspace-transform` · `workspace-maintain` · `contract` · `memory` · `lifecycle` · `derived`（见 `TOOLS.md` / `utr/core/contract-registry.mjs`）。  
-MCP 默认 **26**；注册表 **35**（8 域 / 35 命令）。见 `TOOLS.md`。  
+MCP 默认 **29**；注册表 **38**（8 域 / 38 命令）。见 `TOOLS.md`。  
 写回：`writeback_mode: auto | confirm`，受保护级别（open/locked）判定约束。  
 Desktop AI 写回走 WorkspaceService，不经 UTR `executeTool`。
 

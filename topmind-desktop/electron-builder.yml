@@ -45,7 +45,15 @@ files:
   - "!resources/**"
   - "!**/.env"
   - "!**/.env.*"
-  - "!**/*secret*"
+  # Secret *material* only — never the local-secret.mjs code module.
+  # `!**/*secret*` used to strip electron/lib/local-secret.mjs out of the asar,
+  # so the packaged app lost the local AES fallback after a re-sign.
+  - "!**/.secret*"
+  - "!**/*secret*.pem"
+  - "!**/*secret*.p12"
+  - "!**/*secret*.key"
+  - "!**/secrets/**"
+  - "!**/ai-keys-backup.json"
   - "!**/*.pem"
   - "!**/*.p12"
   - "!**/*.ts"

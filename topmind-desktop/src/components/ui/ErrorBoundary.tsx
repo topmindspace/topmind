@@ -42,7 +42,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="text-3xs font-medium text-text-secondary">
             {this.props.label || i18n.t("common:errorBoundary.title")}
           </div>
-          <div className="max-w-[16rem] text-3xs leading-relaxed text-text-quaternary">
+          <div className="max-w-[16rem] text-xs leading-relaxed text-text-quaternary">
             {this.state.error.message || i18n.t("common:errorBoundary.message")}
           </div>
           <button

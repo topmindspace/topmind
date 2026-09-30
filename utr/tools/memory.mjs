@@ -6,7 +6,7 @@ import {
   buildCliContext,
   validateRequiredRoots,
 } from "../core/workspace-context.mjs";
-import { parseArgs, resolveMode } from "../core/cli-args.mjs";
+import { parseArgs, resolveMode, resolveActor, isUserActor } from "../core/cli-args.mjs";
 import { emitResult } from "../core/result-envelope.mjs";
 import { t } from "../core/i18n-strings.mjs";
 import { pathExists } from "../core/topic-files.mjs";
@@ -23,7 +23,11 @@ import {
   readTodoList,
   addTodoItem,
   toggleTodoItem,
+  updateTodoItem,
+  setTodoDueDate,
+  deleteTodoItem,
   resolveTodoRelPath,
+  isPathInsideWorkspace,
 } from "../../lib/kernel-api.mjs";
 
 // ── promote ─────────────────────────────────────────────────────────────────
@@ -32,6 +36,11 @@ async function promote({ sourcePath, targetSlug, mode }, ctxObj) {
   if (!sourcePath) throw new Error(t("error.sourcePathRequired"));
   if (!targetSlug) throw new Error(t("error.slugRequired"));
   const sourceAbsPath = path.join(ctxObj.userWorkspaceRoot, sourcePath);
+  // Workspace fence (symlink-aware): a `../` sourcePath must not read
+  // arbitrary local files into memory/topics.
+  if (!isPathInsideWorkspace(ctxObj.userWorkspaceRoot, sourceAbsPath)) {
+    throw new Error(t("error.safetyPathFailed", { path: sourcePath }));
+  }
   if (!await pathExists(sourceAbsPath)) {
     throw new Error(t("error.sourcePathNotFound", { path: sourcePath }));
   }
@@ -171,8 +180,8 @@ async function retireProfile({ match, section, reason, mode }, ctxObj) {
     match,
     section: section || undefined,
     reason: reason || undefined,
-    actor: "user",
-    confirmed: true,
+    actor: resolveActor(),
+    confirmed: isUserActor(),
   });
   return {
     command: "retire-profile",
@@ -202,8 +211,8 @@ async function updateProfile({ match, content, section, mode }, ctxObj) {
     match,
     content,
     section: section || undefined,
-    actor: "user",
-    confirmed: true,
+    actor: resolveActor(),
+    confirmed: isUserActor(),
   });
   return {
     command: "update-profile",
@@ -228,8 +237,8 @@ async function compactHistory({ threshold, mode }, ctxObj) {
   const evidence = compactProfileHistory({
     workspaceRoot: ctxObj.userWorkspaceRoot,
     threshold: threshold != null && threshold !== "" ? Number(threshold) : undefined,
-    actor: "user",
-    confirmed: true,
+    actor: resolveActor(),
+    confirmed: isUserActor(),
   });
   return {
     command: "compact-history",
@@ -256,8 +265,8 @@ async function restoreProfile({ match, section, mode }, ctxObj) {
     workspaceRoot: ctxObj.userWorkspaceRoot,
     match,
     section: section || undefined,
-    actor: "user",
-    confirmed: true,
+    actor: resolveActor(),
+    confirmed: isUserActor(),
   });
   return {
     command: "restore-profile",
@@ -397,6 +406,122 @@ async function toggleTodo({ idOrText, mode }, ctxObj) {
   };
 }
 
+// ── update-todo / set-todo-due / delete-todo ────────────────────────────────
+
+function resolveTodoTarget(ctxObj, idOrText, command) {
+  ensureTodoFile(ctxObj.userWorkspaceRoot);
+  const list = readTodoList(ctxObj.userWorkspaceRoot);
+  const items = Array.isArray(list?.items) ? list.items : [];
+  const target = items.find(
+    (i) => i.id === idOrText || i.text === idOrText || i.text.includes(idOrText),
+  );
+  return {
+    target,
+    fail: target
+      ? null
+      : {
+          command,
+          mode: "auto",
+          ok: false,
+          targetPath: resolveTodoRelPath(ctxObj.userWorkspaceRoot),
+          error: `no matching todo: ${idOrText}`,
+        },
+  };
+}
+
+async function updateTodo({ idOrText, newText, dueDate, mode }, ctxObj) {
+  if (!idOrText || !newText) throw new Error(t("error.contentRequired"));
+  const { target, fail } = resolveTodoTarget(ctxObj, idOrText, "update-todo");
+  if (fail) return fail;
+  const todoRel = resolveTodoRelPath(ctxObj.userWorkspaceRoot);
+  if (mode === "preview") {
+    return {
+      command: "update-todo",
+      mode,
+      ok: true,
+      preview: true,
+      applied: false,
+      targetPath: todoRel,
+      match: { id: target.id, text: target.text },
+      note: "dry-run: would rewrite todo text",
+    };
+  }
+  const r = updateTodoItem(ctxObj.userWorkspaceRoot, target.id, newText, undefined, {
+    dueDate: dueDate === undefined || dueDate === "" ? undefined : dueDate,
+    actor: resolveActor(),
+  });
+  return {
+    command: "update-todo",
+    mode,
+    ok: Boolean(r?.ok),
+    targetPath: todoRel,
+    match: { id: target.id, wasText: target.text },
+    newText,
+    ...(r?.writebackEvidence ? { evidence: r.writebackEvidence } : {}),
+  };
+}
+
+async function setTodoDue({ idOrText, dueDate, mode }, ctxObj) {
+  if (!idOrText) throw new Error(t("error.contentRequired"));
+  const { target, fail } = resolveTodoTarget(ctxObj, idOrText, "set-todo-due");
+  if (fail) return fail;
+  const todoRel = resolveTodoRelPath(ctxObj.userWorkspaceRoot);
+  if (mode === "preview") {
+    return {
+      command: "set-todo-due",
+      mode,
+      ok: true,
+      preview: true,
+      applied: false,
+      targetPath: todoRel,
+      match: { id: target.id, text: target.text, wasDue: target.dueDate || null },
+      note: dueDate ? "dry-run: would set due date" : "dry-run: would clear due date",
+    };
+  }
+  const r = setTodoDueDate(ctxObj.userWorkspaceRoot, target.id, dueDate || null, undefined, {
+    actor: resolveActor(),
+  });
+  return {
+    command: "set-todo-due",
+    mode,
+    ok: Boolean(r?.ok),
+    targetPath: todoRel,
+    match: { id: target.id, text: target.text, wasDue: target.dueDate || null },
+    dueDate: dueDate || null,
+    ...(r?.writebackEvidence ? { evidence: r.writebackEvidence } : {}),
+  };
+}
+
+async function deleteTodo({ idOrText, mode }, ctxObj) {
+  if (!idOrText) throw new Error(t("error.contentRequired"));
+  const { target, fail } = resolveTodoTarget(ctxObj, idOrText, "delete-todo");
+  if (fail) return fail;
+  const todoRel = resolveTodoRelPath(ctxObj.userWorkspaceRoot);
+  if (mode === "preview") {
+    return {
+      command: "delete-todo",
+      mode,
+      ok: true,
+      preview: true,
+      applied: false,
+      targetPath: todoRel,
+      match: { id: target.id, text: target.text },
+      note: "dry-run: would delete todo (prefer toggle-to-done)",
+    };
+  }
+  const r = deleteTodoItem(ctxObj.userWorkspaceRoot, target.id, undefined, {
+    actor: resolveActor(),
+  });
+  return {
+    command: "delete-todo",
+    mode,
+    ok: Boolean(r?.ok),
+    targetPath: todoRel,
+    deleted: { id: target.id, text: target.text },
+    ...(r?.writebackEvidence ? { evidence: r.writebackEvidence } : {}),
+  };
+}
+
 // ── dispatcher ─────────────────────────────────────────────────────────────
 
 async function main() {
@@ -440,6 +565,15 @@ async function main() {
       break;
     case "toggle-todo":
       data = await toggleTodo({ idOrText: args.idOrText, mode }, ctxObj);
+      break;
+    case "update-todo":
+      data = await updateTodo({ idOrText: args.idOrText, newText: args.newText, dueDate: args.dueDate, mode }, ctxObj);
+      break;
+    case "set-todo-due":
+      data = await setTodoDue({ idOrText: args.idOrText, dueDate: args.dueDate, mode }, ctxObj);
+      break;
+    case "delete-todo":
+      data = await deleteTodo({ idOrText: args.idOrText, mode }, ctxObj);
       break;
     default:
       throw new Error(t("error.unknownCommand", { command: args.command || "(empty)" }));

@@ -249,6 +249,21 @@ export function markdownToHtmlFragment(md: string): string {
       continue;
     }
 
+    // GFM tables: | a | b |  +  | --- | --- |
+    if (/^\s*\|.*\|\s*$/u.test(line) && i + 1 < lines.length && /^\s*\|?[\s:|-]+\|?\s*$/u.test(lines[i + 1])) {
+      flushPara();
+      flushList();
+      flushBq();
+      const tableLines = [line, lines[i + 1]];
+      i += 2;
+      while (i < lines.length && /^\s*\|.*\|\s*$/u.test(lines[i])) {
+        tableLines.push(lines[i]);
+        i += 1;
+      }
+      out.push(renderMarkdownTable(tableLines));
+      continue;
+    }
+
     if (/^\s*$/u.test(line)) {
       // Look ahead: if the next non-blank line is a list item, keep the list
       // open (user intentionally spaced items). Just flush para/bq.
@@ -279,8 +294,8 @@ export function markdownToHtmlFragment(md: string): string {
       continue;
     }
 
-    // Headings h1–h4 (stream append uses #### 续 · …)
-    const h = line.match(/^(#{1,4})\s+(.+)$/u);
+    // Headings h1–h6 (stream append uses #### 续 · …)
+    const h = line.match(/^(#{1,6})\s+(.+)$/u);
     if (h) {
       flushPara();
       flushList();
@@ -325,6 +340,40 @@ export function markdownToHtmlFragment(md: string): string {
   flushList();
   flushBq();
   return out.join("\n");
+}
+
+/** Split a GFM table row into cells (respects \| escapes). */
+function splitTableRow(row: string): string[] {
+  const trimmed = row.trim().replace(/^\|/u, "").replace(/\|$/u, "");
+  const cells: string[] = [];
+  let buf = "";
+  for (let i = 0; i < trimmed.length; i++) {
+    const ch = trimmed[i];
+    if (ch === "\\" && trimmed[i + 1] === "|") {
+      buf += "|";
+      i += 1;
+      continue;
+    }
+    if (ch === "|") {
+      cells.push(buf.trim());
+      buf = "";
+      continue;
+    }
+    buf += ch;
+  }
+  cells.push(buf.trim());
+  return cells;
+}
+
+/** Render GFM table lines (header + separator + body) to HTML. */
+function renderMarkdownTable(tableLines: string[]): string {
+  const header = splitTableRow(tableLines[0]);
+  const rows = tableLines.slice(2).map(splitTableRow);
+  const th = header.map((c) => `<th>${inlineFormat(c)}</th>`).join("");
+  const body = rows
+    .map((r) => `<tr>${r.map((c) => `<td>${inlineFormat(c)}</td>`).join("")}</tr>`)
+    .join("");
+  return `<table><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table>`;
 }
 
 /** Named entities commonly used to obfuscate schemes (decode before scheme check). */

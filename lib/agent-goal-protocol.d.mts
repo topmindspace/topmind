@@ -12,14 +12,19 @@ export type GoalStatus =
   | "incomplete"
   | "blocked";
 
+/** Turn layer — gates whether goal ceremony applies. */
+export type TurnKind = "light" | "query" | "task";
+
 export interface GoalState {
   goal: string;
   plan: string[];
   criteria: string[];
   doneCriteria: string[];
   pathReceipts: string[];
+  sourceUrls?: string[];
   status: GoalStatus;
   blockReason: string | null;
+  kind?: TurnKind;
 }
 
 export interface GoalAssessment {
@@ -88,11 +93,14 @@ export declare function reconcileGoalVerdicts(input: {
   evaluator?: { verdict: string; reason: string; openCriteria?: string[] } | null;
 }): GoalAssessment & { source: "evaluator" | "heuristic" };
 
-export declare function createGoalState(userGoal: string): GoalState;
+export declare function createGoalState(userGoal: string, kind?: TurnKind): GoalState;
+export declare function classifyTurn(text: string): TurnKind;
+export declare function matchQueryIntents(text: string): { tools: string[]; note: string } | null;
 export declare function parsePlanBlock(
   text: string,
 ): { plan: string[]; criteria: string[] } | null;
 export declare function harvestPathReceipts(text: string, into?: string[]): string[];
+export declare function harvestSourceUrls(text: string, into?: string[]): string[];
 export declare function applyGoalUpdate(
   state: GoalState,
   update: { text?: string; toolName?: string; toolOk?: boolean },
@@ -128,6 +136,7 @@ export declare function decideAutoContinue(input: {
   hasTools: boolean;
   error?: boolean;
   cancelled?: boolean;
+  turnKind?: TurnKind;
 }): { continue: boolean; reason: string };
 export declare function buildContinuePrompt(
   locale: string,

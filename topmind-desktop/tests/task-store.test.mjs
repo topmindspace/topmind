@@ -140,15 +140,17 @@ test("task-store ai_digest uses follow-up helper; no post-merge suggestions:refr
 
 test("task list empty actions are engine jobs; no ListTodo", () => {
   const body = read("src/components/ai/task-list-body.tsx");
-  assert.match(body, /createTask\("reconcile"\)/);
-  assert.match(body, /createTask\("ai_digest"\)/);
-  assert.match(body, /createTask\("memory_organize"\)/);
+  // Single source of empty engine jobs — each job name appears once.
+  assert.match(body, /EMPTY_ENGINE_JOBS/);
+  assert.match(body, /job:\s*"reconcile"/);
+  assert.match(body, /job:\s*"ai_digest"/);
+  assert.match(body, /job:\s*"memory_organize"/);
   assert.doesNotMatch(body, /ListTodo/);
-  const creates = body.match(/createTask\("([^"]+)"\)/g) || [];
-  assert.deepEqual(creates, [
-    'createTask("reconcile")',
-    'createTask("ai_digest")',
-    'createTask("memory_organize")',
+  const jobs = body.match(/job:\s*"([^"]+)"/g) || [];
+  assert.deepEqual(jobs, [
+    'job: "reconcile"',
+    'job: "ai_digest"',
+    'job: "memory_organize"',
   ]);
 });
 

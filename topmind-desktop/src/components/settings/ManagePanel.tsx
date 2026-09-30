@@ -113,7 +113,7 @@ function SurfaceUpdateRow({
   const isInstalling = inlineInstalling === surface;
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[var(--radius-md)] border border-border-subtle bg-surface px-2 py-1.5">
-      <span className="w-14 shrink-0 text-3xs font-medium text-text-secondary">
+      <span className="w-14 shrink-0 truncate text-xs font-medium text-text-secondary" title={surfaceLabel(surface, t)}>
         {surfaceLabel(surface, t)}
       </span>
       <span
@@ -135,7 +135,6 @@ function SurfaceUpdateRow({
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 px-1.5 text-3xs"
             disabled={isInstalling}
             onClick={() => onInlineInstall(surface as "skills" | "extension" | "obsidian", info.latestVersion!, info.tagName!)}
           >
@@ -151,7 +150,6 @@ function SurfaceUpdateRow({
         <Button
           variant="ghost"
           size="sm"
-          className="h-6 px-1.5 text-3xs"
           onClick={() => void api.sys.openUpdateDownload(info.assets[0].url, surface)}
         >
           <RiExternalLinkLine size={ICON.micro} />
@@ -161,7 +159,6 @@ function SurfaceUpdateRow({
         <Button
           variant="ghost"
           size="sm"
-          className="h-6 px-1.5 text-3xs"
           onClick={() => void api.sys.openUrl(info.releaseUrl!)}
         >
           <RiExternalLinkLine size={ICON.micro} />
@@ -207,7 +204,6 @@ function CmdRow({ label, cmd }: { label: string; cmd: string }) {
       <Button
         variant="ghost"
         size="sm"
-        className="h-6 shrink-0 px-1.5"
         onClick={() => void copy()}
       >
         {copied ? (
@@ -500,7 +496,7 @@ export function ManagePanel({
       {sysInfo?.settingsFile ? (
         <div className="mb-3 flex items-start gap-2 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface-wash-15 px-2.5 py-2">
           <div className="min-w-0 flex-1">
-            <div className="text-3xs font-medium text-text-secondary">
+            <div className="text-xs font-medium text-text-secondary">
               {t("settings:about.settingsFileLabel")}
             </div>
             <div className="mt-0.5 break-all font-mono text-3xs text-text-quaternary" title={sysInfo.settingsFile}>
@@ -521,7 +517,6 @@ export function ManagePanel({
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 shrink-0"
               onClick={() => {
                 void navigator.clipboard.writeText(sysInfo.settingsFile || "");
               }}
@@ -543,7 +538,6 @@ export function ManagePanel({
             <Button
               variant="outline"
               size="sm"
-              className="h-6"
               onClick={() => void checkUpdates()}
               disabled={updateLoading}
             >
@@ -558,7 +552,6 @@ export function ManagePanel({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6"
                 onClick={() => void api.sys.openUrl(PRODUCT.releasesUrl)}
               >
                 <RiExternalLinkLine size={ICON.micro} />
@@ -585,7 +578,6 @@ export function ManagePanel({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-6"
                   onClick={() =>
                     void api.sys.openUrl(
                       updateInfo.releasesUrl || updateInfo.releaseUrl || PRODUCT.releasesUrl,
@@ -697,7 +689,6 @@ export function ManagePanel({
           <Button
             variant="ghost"
             size="sm"
-            className="h-6"
             onClick={() => void reloadCompanions()}
             disabled={compLoading || Boolean(busy)}
           >
@@ -723,7 +714,7 @@ export function ManagePanel({
 
         {/* Agent host skills */}
         <div className="mb-3 space-y-1.5">
-          <div className="mb-1 flex items-center gap-1 text-3xs font-medium text-text-secondary">
+          <div className="mb-1 flex items-center gap-1 text-xs font-medium text-text-secondary">
             <RiSparklingLine size={ICON.micro} className="text-text-quaternary" />
             {t("settings:companions.agentsTitle")}
             {agents.length > 0 ? (
@@ -733,7 +724,6 @@ export function ManagePanel({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-6"
                       disabled={Boolean(busy)}
                       onClick={() => void installAllSkills()}
                     >
@@ -751,7 +741,6 @@ export function ManagePanel({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-6"
                       disabled={Boolean(busy)}
                       onClick={() => void upgradeAllSkills()}
                     >
@@ -814,7 +803,6 @@ export function ManagePanel({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-6"
                       disabled={!host.skillsRoot || Boolean(busy)}
                       onClick={() =>
                         void runCompanion(`install:${host.id}`, async () => {
@@ -840,7 +828,6 @@ export function ManagePanel({
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-6"
                         disabled={Boolean(busy)}
                         onClick={() =>
                           void runCompanion(`upgrade:${host.id}`, async () => {
@@ -864,7 +851,6 @@ export function ManagePanel({
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-6"
                         disabled={Boolean(busy)}
                         onClick={() =>
                           void runCompanion(`uninstall:${host.id}`, async () => {
@@ -886,7 +872,6 @@ export function ManagePanel({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6"
                       onClick={() => void api.sys.openPath(host.skillsRoot!)}
                     >
                       <RiFolderOpenLine size={ICON.micro} />
@@ -900,7 +885,7 @@ export function ManagePanel({
 
         {/* Clip extension */}
         <div className="mb-3">
-          <div className="mb-1 flex items-center gap-1 text-3xs font-medium text-text-secondary">
+          <div className="mb-1 flex items-center gap-1 text-xs font-medium text-text-secondary">
             <RiPuzzleLine size={ICON.micro} className="text-text-quaternary" />
             {t("settings:companions.clipTitle")}
           </div>
@@ -932,7 +917,6 @@ export function ManagePanel({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-6"
                 disabled={Boolean(busy)}
                 onClick={() =>
                   void runCompanion("clip", async () => {
@@ -954,7 +938,6 @@ export function ManagePanel({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6"
                   disabled={Boolean(busy)}
                   onClick={() =>
                     void runCompanion("clip-uninstall", async () => {
@@ -974,7 +957,6 @@ export function ManagePanel({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6"
                 onClick={() => void api.sys.openClipExtensionFolder()}
               >
                 <RiFolderOpenLine size={ICON.micro} />
@@ -983,7 +965,6 @@ export function ManagePanel({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6"
                 onClick={() =>
                   void api.sys.openUrl(
                     "https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world#load-unpacked",
@@ -1013,7 +994,7 @@ export function ManagePanel({
 
         {/* Obsidian plugin */}
         <div>
-          <div className="mb-1 flex items-center gap-1 text-3xs font-medium text-text-secondary">
+          <div className="mb-1 flex items-center gap-1 text-xs font-medium text-text-secondary">
             <RiBookOpenLine size={ICON.micro} className="text-text-quaternary" />
             {t("settings:companions.obsidianTitle")}
           </div>
@@ -1069,7 +1050,6 @@ export function ManagePanel({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-6"
                 disabled={Boolean(busy)}
                 onClick={() =>
                   void runCompanion("obsidian-install", async () => {
@@ -1112,7 +1092,6 @@ export function ManagePanel({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6"
                   disabled={Boolean(busy)}
                   onClick={() =>
                     void runCompanion("obsidian-uninstall", async () => {
@@ -1135,7 +1114,6 @@ export function ManagePanel({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6"
                     onClick={() =>
                       void api.sys.openPath(
                         obsidian.pluginPath || obsidian.vaultPluginsRoot!,
@@ -1175,7 +1153,6 @@ export function ManagePanel({
           <Button
             variant="outline"
             size="sm"
-            className="h-6"
             onClick={() => void runDoctor()}
             disabled={doctorLoading}
           >

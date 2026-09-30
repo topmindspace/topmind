@@ -211,8 +211,8 @@ note_role: bundle
 function statusTone(status: string): string {
   if (status === STATUS_DRAFT) return "bg-status-warning-bg text-warning";
   if (status === STATUS_FINAL) return "bg-status-success-bg text-success";
-  if (status === STATUS_PUBLISHED) return "bg-surface-muted text-text-secondary";
-  return "bg-surface-muted text-text-tertiary";
+  if (status === STATUS_PUBLISHED) return "bg-surface-wash-30 text-text-secondary";
+  return "bg-surface-wash-30 text-text-tertiary";
 }
 
 export function WechatApp() {
@@ -729,13 +729,8 @@ export function WechatApp() {
       {error || okMsg || exportNote ? (
         <div className="shrink-0 px-4 pt-2">
           <ConnectorToastBanner
-            result={
-              error
-                ? `✗ ${error}`
-                : okMsg
-                  ? `✓ ${okMsg}`
-                  : exportNote
-            }
+            tone={error ? "error" : okMsg ? "success" : "neutral"}
+            result={error || okMsg || exportNote}
           >
             {okMsg && exportNote ? <div className="opacity-80">{exportNote}</div> : null}
           </ConnectorToastBanner>
@@ -970,7 +965,7 @@ export function WechatApp() {
                               ? "bg-error-container text-on-error-container"
                               : h.severity === "mid"
                                 ? "bg-status-warning-bg text-warning"
-                                : "bg-surface-muted text-text-tertiary",
+                                : "bg-surface-wash-30 text-text-tertiary",
                           )}
                         >
                           {t(h.nameKey, { defaultValue: h.name })}
@@ -1075,7 +1070,7 @@ export function WechatApp() {
                   className={cn(
                     "rounded-[var(--radius-xs)] border px-2.5 py-1 text-3xs v4-focus-ring",
                     themeId === id
-                      ? "border-transparent bg-accent-container font-medium text-on-accent-container"
+                      ? "border-transparent bg-accent-bg-subtle font-medium text-accent-color"
                       : "border-border-subtle-dim text-text-secondary hover:bg-state-hover",
                   )}
                 >

@@ -203,12 +203,15 @@ describe("stream-entry-present", () => {
       "utf8",
     );
     assert.match(src, /parsePeriodNote\(content\)/);
-    assert.match(src, /groupDayFeedRows\(group\.entries\)/);
+    assert.match(src, /dayGroupRows\[gi\]/);
+    assert.match(src, /useMemo\(\s*\(\)\s*=>\s*dayGroups\.map\(\(g\)\s*=>\s*groupDayFeedRows\(g\.entries\)\)/);
     assert.match(src, /data-layout=\{feedLayout\}/);
     const loadFn = src.slice(src.indexOf("const loadPeriodContent"), src.indexOf("const loadPeriods"));
     assert.doesNotMatch(loadFn, /feedLayout/);
-    const feed = src.slice(src.indexOf("data-stream-feed"));
-    assert.match(feed, /groupDayFeedRows/);
+    // Feed body lives in StreamFeedBody (memo child) — same parse/group path.
+    const feedStart = src.indexOf("const StreamFeedBody");
+    const feed = src.slice(feedStart, src.indexOf("export function StreamDetailView"));
+    assert.match(feed, /dayGroupRows\[gi\]/);
     assert.doesNotMatch(feed, /parsePeriodNote/);
   });
 });

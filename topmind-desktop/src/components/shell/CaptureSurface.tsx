@@ -124,7 +124,7 @@ export function CaptureSurface() {
           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6">
             <RiErrorWarningLine size={ICON.lg} className="text-warning" />
             <div className="text-center text-xs font-medium text-text-primary">{t("captureSurface.needWorkspace")}</div>
-            <div className="max-w-sm text-center text-3xs leading-relaxed text-text-secondary">
+            <div className="max-w-sm text-center text-xs leading-relaxed text-text-secondary">
               {message}
             </div>
             <div className="flex gap-2">
@@ -153,7 +153,7 @@ export function CaptureSurface() {
           <Suspense
             fallback={
               <div className="flex h-64 items-center justify-center">
-                <RiLoader4Line size={ICON.md} className="animate-spin text-accent-color" />
+                <RiLoader4Line size={ICON.md} className="animate-spin text-text-tertiary" />
               </div>
             }
           >

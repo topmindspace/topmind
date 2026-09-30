@@ -19,6 +19,7 @@ import { resolveDataRoot } from "./lib/path-model.mjs";
 import { readText, ensureDir } from "./lib/fs-utils.mjs";
 import { splitMarkdownFrontmatter } from "./lib/frontmatter.mjs";
 import { t } from "./lib/electron-i18n.mjs";
+import { bearerHeader } from "./lib/header-safe.mjs";
 import {
   loadConnectorSettings,
   persistConnectorPatch,
@@ -76,12 +77,13 @@ function budgetMs(settings) {
  * Surfaces upgrade_info without aborting when data is present.
  */
 async function wereadApi(apiKey, apiName, params = {}) {
-  if (!apiKey) throw new Error(t("weread.apiKeyMissing"));
+  const auth = bearerHeader(apiKey);
+  if (!auth.Authorization) throw new Error(t("weread.apiKeyMissing"));
   const body = buildGatewayBody(apiName, params);
   const res = await fetch(WEREAD_GATEWAY_URL, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      ...auth,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),

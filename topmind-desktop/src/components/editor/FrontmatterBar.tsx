@@ -137,7 +137,7 @@ export function FrontmatterBar({
         <label
           className={cn(
             "v4-select-chip inline-flex h-8 max-w-[11rem] items-center gap-1 rounded-[var(--radius-xs)]",
-            "border border-border-subtle-dim bg-surface-muted px-2",
+            "border border-transparent bg-surface-wash-15 px-2",
             "transition-colors hover:bg-state-hover focus-within:v4-focus-ring",
             (readOnly || busy) && "opacity-50",
           )}

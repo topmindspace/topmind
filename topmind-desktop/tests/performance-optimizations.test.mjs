@@ -143,4 +143,52 @@ test("desktop performance optimizations & code splitting integrity", async (t) =
       "workspace-data-cache must track inFlightTopicsPromise to collapse concurrent IPC calls",
     );
   });
+
+  await t.test("ingest jobs share one poller (no per-surface intervals)", async () => {
+    const store = await fs.readFile(
+      path.join(__dirname, "../src/lib/ingest-jobs-store.ts"),
+      "utf8",
+    );
+    assert.match(store, /subscribeIngestJobs/);
+    assert.match(store, /ensurePoll/);
+    // One interval only; hidden windows must not spend IPC.
+    assert.match(store, /visibilityState === "hidden"/);
+    const panel = await fs.readFile(
+      path.join(__dirname, "../src/components/ingest/IngestQueuePanel.tsx"),
+      "utf8",
+    );
+    assert.match(panel, /useSyncExternalStore/);
+    assert.doesNotMatch(panel, /setInterval/);
+  });
+
+  await t.test("streaming elapsed lives in ElapsedSeconds leaf (no MessageRow 1s tick)", async () => {
+    const src = await fs.readFile(
+      path.join(__dirname, "../src/components/ai/ChatMessage.tsx"),
+      "utf8",
+    );
+    assert.match(src, /function ElapsedSeconds/);
+    assert.doesNotMatch(src, /const \[elapsedSec, setElapsedSec\]/);
+  });
+
+  await t.test("find-in-note debounces query and does not smooth-scroll while typing", async () => {
+    const view = await fs.readFile(
+      path.join(__dirname, "../src/plugins/topmind-workspace/views/FileEditorView.tsx"),
+      "utf8",
+    );
+    assert.match(view, /findSetSearch\(editor, q, \{ scroll: false \}\)/);
+    const find = await fs.readFile(
+      path.join(__dirname, "../src/lib/editor-find.ts"),
+      "utf8",
+    );
+    assert.match(find, /opts\?: \{ scroll\?: boolean \}/);
+  });
+
+  await t.test("selection-ai scroll path is rAF-throttled", async () => {
+    const src = await fs.readFile(
+      path.join(__dirname, "../src/components/editor/useSelectionAi.ts"),
+      "utf8",
+    );
+    assert.match(src, /const onScroll = \(\) => \{[\s\S]*?requestAnimationFrame/);
+    assert.match(src, /cancelAnimationFrame/);
+  });
 });

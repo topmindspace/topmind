@@ -171,7 +171,7 @@ function StartTab({
   return (
     <div className="space-y-6">
       {/* Hero — soft brand wash, not marketing chrome */}
-      <section className="relative overflow-hidden rounded-[var(--radius-xl)] border border-border-subtle bg-surface-muted px-5 py-6 sm:px-6 sm:py-7">
+      <section className="relative overflow-hidden rounded-[var(--radius-xl)] border border-border-subtle-dim bg-surface-wash-30 px-5 py-6 sm:px-6 sm:py-7">
         <div className="relative">
           <p className="text-3xs font-medium uppercase tracking-[0.12em] text-accent-color">
             {t("help.start.heroKicker")}
@@ -211,7 +211,7 @@ function StartTab({
               </span>
               <div className="rounded-[var(--radius-lg)] border border-border-subtle bg-surface px-3.5 py-2.5">
                 <div className="text-sm font-medium text-text-primary">{s.title}</div>
-                <p className="mt-1 text-3xs leading-relaxed text-text-secondary">{s.body}</p>
+                <p className="mt-1 text-xs leading-relaxed text-text-secondary">{s.body}</p>
               </div>
             </li>
           ))}
@@ -262,7 +262,7 @@ function FeaturesTab({
             className="rounded-[var(--radius-lg)] border border-border-subtle bg-surface p-3.5"
           >
             <h3 className="text-sm font-medium text-text-primary">{f.title}</h3>
-            <p className="mt-1 text-3xs leading-relaxed text-text-secondary">{f.body}</p>
+            <p className="mt-1 text-xs leading-relaxed text-text-secondary">{f.body}</p>
           </article>
         ))}
       </div>
@@ -299,7 +299,7 @@ function WorkflowTab({
             </span>
             <div className="min-w-0">
               <div className="text-sm font-medium text-text-primary">{s.title}</div>
-              <p className="mt-0.5 text-3xs leading-relaxed text-text-secondary">{s.body}</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-text-secondary">{s.body}</p>
             </div>
           </li>
         ))}
@@ -334,11 +334,11 @@ function PhilosophyTab() {
         {points.map((p) => (
           <div key={p.title} className="rounded-[var(--radius-lg)] border border-border-subtle bg-surface p-3.5">
             <h3 className="text-sm font-medium text-text-primary">{p.title}</h3>
-            <p className="mt-1 text-3xs leading-relaxed text-text-secondary">{p.body}</p>
+            <p className="mt-1 text-xs leading-relaxed text-text-secondary">{p.body}</p>
           </div>
         ))}
       </div>
-      <p className="rounded-[var(--radius-lg)] bg-surface-wash-45 px-3.5 py-3 text-3xs leading-relaxed text-text-tertiary">
+      <p className="rounded-[var(--radius-lg)] bg-surface-wash-45 px-3.5 py-3 text-xs leading-relaxed text-text-tertiary">
         {t("help.philosophy.closing")}
       </p>
     </div>
@@ -373,7 +373,7 @@ function FaqTab({
               </span>
               <span className="min-w-0 flex-1">{item.q}</span>
             </summary>
-            <p className="border-t border-border-subtle-dim px-3.5 pb-3 pl-8 pt-2.5 text-3xs leading-relaxed text-text-secondary">
+            <p className="border-t border-border-subtle-dim px-3.5 pb-3 pl-8 pt-2.5 text-xs leading-relaxed text-text-secondary">
               {item.a}
             </p>
           </details>
@@ -390,7 +390,7 @@ function PageIntro({ title, desc }: { title: string; desc: string }) {
   return (
     <header>
       <h3 className="text-base font-semibold tracking-tight text-text-primary">{title}</h3>
-      <p className="mt-1 text-3xs leading-relaxed text-text-secondary">{desc}</p>
+      <p className="mt-1 text-xs leading-relaxed text-text-secondary">{desc}</p>
     </header>
   );
 }

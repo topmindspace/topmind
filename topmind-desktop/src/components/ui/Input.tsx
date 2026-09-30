@@ -1,6 +1,7 @@
 /**
- * Input — token-aligned text field (MD3-informed filled outline).
- * Soft inset idle · elevated + accent ring on focus · error container when invalid.
+ * Input — quiet filled field (no outline box).
+ * Soft wash fill · hairline only on hover/focus · accent ring when active.
+ * Form fields must not read as heavy gray rectangles next to content cards.
  */
 import { forwardRef } from "react";
 import { cn } from "../../lib/kit";
@@ -14,14 +15,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       type={type}
       aria-invalid={ariaInvalid}
       className={cn(
-        "flex h-[var(--control-h-md,34px)] w-full rounded-[var(--radius-md)] border border-border-subtle-dim bg-input",
-        "px-3 py-1.5 text-sm leading-none text-text-primary placeholder:text-text-quaternary",
-        "shadow-[var(--shadow-input-inset)]",
-        "transition-[border-color,box-shadow,background-color] duration-[var(--duration-fast)] ease-[var(--ease-default)]",
-        "hover:border-border-subtle hover:bg-state-hover",
-        "focus-visible:border-accent-color focus-visible:bg-surface-elevated v4-focus-ring",
+        "flex h-9 w-full rounded-[var(--radius-md)] bg-surface-wash-15 px-3 text-sm",
+        "py-1.5 leading-none text-text-primary placeholder:text-text-quaternary",
+        "border-none outline-none v4-quiet-field",
+        "transition-[box-shadow,background-color] duration-[var(--duration-fast)] ease-[var(--ease-default)]",
+        "hover:bg-surface-wash-30",
+        "focus-visible:bg-surface-elevated",
         "aria-[invalid=true]:border-status-error aria-[invalid=true]:bg-status-error-bg",
-        "disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none",
+        "disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}
       {...props}

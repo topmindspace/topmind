@@ -48,11 +48,12 @@ export function formatWritebackToast(
   evidence?: WritebackEvidenceLike,
   opts?: { fail?: boolean },
 ): string {
-  if (opts?.fail) return `✗ ${verb}`;
+  // No ✓/✗ text prefixes — Toast chrome paints a Remix status icon by `kind`.
+  if (opts?.fail) return verb;
   const ev = evidenceView(evidence);
-  if (!ev) return `✓ ${verb}`;
+  if (!ev) return verb;
   const target = ev.targetPath || ev.path || ev.newPath;
-  const bits = [`✓ ${verb}`];
+  const bits = [verb];
   if (target) bits.push(shortPath(target));
   if (ev.backupPath) {
     bits.push(i18n.t("common:writeback.backup", { path: shortPath(ev.backupPath) }));
@@ -91,7 +92,7 @@ export function toastWriteback(verb: string, evidence?: WritebackEvidenceLike): 
 /** Emit toast for a failed operation. */
 export function toastWritebackError(verb: string, error: unknown): void {
   const msg = error instanceof Error ? error.message : String(error);
-  emitLocal("toast:show", { text: `✗ ${verb}: ${msg}`, kind: "error" });
+  emitLocal("toast:show", { text: `${verb}: ${msg}`, kind: "error" });
 }
 
 /** Format multi-file batch receipt for toast / banner title. */

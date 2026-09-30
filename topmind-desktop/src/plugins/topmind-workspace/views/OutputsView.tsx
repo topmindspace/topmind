@@ -287,14 +287,15 @@ export function OutputsView() {
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               placeholder={t("common:placeholder.filter")}
-              className="v4-input h-7 min-w-0 flex-1 rounded-[var(--radius-md)] border border-border-subtle bg-surface px-2 text-3xs"
+              className="v4-input h-7 min-w-0 flex-1 rounded-[var(--radius-md)] px-2 text-xs"
+              aria-label={t("common:placeholder.filter")}
             />
             <span className="shrink-0 text-3xs tabular-nums text-text-quaternary">
               {filtered.length}/{files.length}
             </span>
           </div>
           {filtered.length === 0 ? (
-            <p className="px-2 py-4 text-center text-3xs text-text-quaternary">{t("workspace:inbox.emptyNoMatchTitle")}</p>
+            <p className="px-2 py-4 text-center text-xs text-text-quaternary">{t("workspace:inbox.emptyNoMatchTitle")}</p>
           ) : (
             groups.map((g) => (
               <div key={`${g.key}:${g.date ?? ""}`} className="mb-1.5">
@@ -349,7 +350,7 @@ export function OutputsView() {
                                 "mr-1.5 inline-flex rounded px-1 py-px text-3xs font-medium",
                                 isPublished
                                   ? "bg-status-success-bg text-success"
-                                  : "bg-surface-muted text-text-quaternary",
+                                  : "bg-surface-wash-30 text-text-quaternary",
                               )}
                             >
                               {isPublished

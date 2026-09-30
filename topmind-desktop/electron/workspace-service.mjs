@@ -76,6 +76,9 @@ export const WorkspaceService = {
   listTodos: pathOps.listTodos,
   addTodos: pathOps.addTodos,
   toggleTodo: pathOps.toggleTodo,
+  updateTodo: pathOps.updateTodo,
+  setTodoDue: pathOps.setTodoDue,
+  deleteTodo: pathOps.deleteTodo,
   getStreamContext: pathOps.getStreamContext,
   listStreamPeriods: pathOps.listStreamPeriods,
   listStreamYears: pathOps.listStreamYears,
@@ -359,8 +362,28 @@ export const WorkspaceService = {
     // GitHub markdown/README always prefers raw/README path — HTML render is worse.
     if (!wantRender || isGithubMarkdownFileUrl(p?.url || "")) {
       const staticResult = await fetchOps.fetchUrl(p, ctx);
-      // Auto-upgrade once when body is empty SPA shell (opt-in path still available)
+      // Highest-quality single action: auto-upgrade empty SPA shells via render
+      // so the user never has to pick "enhance" after a hollow scrape.
       if (staticResult.likelySpa && (staticResult.wordCount || 0) < 40) {
+        try {
+          const rendered = await fetchRenderedHtml(cleanCaptureUrl(p?.url || ""), { timeoutMs: 20_000 });
+          const article = extractArticle(rendered.html, {
+            url: cleanCaptureUrl(rendered.finalUrl || p?.url || ""),
+            maxLen: Math.min(Math.max(Number(p?.maxLen) || 200_000, 5_000), 200_000),
+          });
+          if ((article.wordCount || 0) >= 40) {
+            const result = buildFetchResult(article, {
+              url: cleanCaptureUrl(rendered.finalUrl || p?.url || ""),
+              maxLen: Math.min(Math.max(Number(p?.maxLen) || 200_000, 5_000), 200_000),
+              rawBytes: Buffer.byteLength(rendered.html, "utf8"),
+              methodOverride: "render",
+            });
+            result.enhanced = true;
+            return result;
+          }
+        } catch {
+          /* keep static result + enhance hint */
+        }
         staticResult.canEnhance = true;
       }
       return staticResult;
@@ -368,7 +391,7 @@ export const WorkspaceService = {
 
     S(p?.url, "url", { maxLen: 4096 });
     const cleanedUrl = cleanCaptureUrl(p.url);
-    const cap = Math.min(Math.max(Number(p.maxLen) || 40_000, 5_000), 200_000);
+    const cap = Math.min(Math.max(Number(p.maxLen) || 200_000, 5_000), 200_000);
     try {
       const rendered = await fetchRenderedHtml(cleanedUrl, { timeoutMs: 20_000 });
       const article = extractArticle(rendered.html, {

@@ -23,10 +23,14 @@ test("Obsidian KNOWN_TOOLS covers core surface; memory-write gap is intentional"
   // Core discovery/read/write/lifecycle must be present.
   for (const n of [
     "search", "workspace_overview", "list_categories", "list_topics", "list_topic_files",
-    "get_topic", "list_inbox", "list_outputs", "list_todos", "list_files", "stat_path",
-    "glob_files", "workspace_health", "fetch_url", "list_skills", "load_skill",
+    "get_topic", "list_inbox", "list_outputs", "list_todos", "list_recent_memories",
+    "list_recent_stream", "list_pending_writes",
+    "list_files", "stat_path",
+    "glob_files", "workspace_health", "web_search", "fetch_url", "capture_url", "list_skills", "load_skill",
     "read_file", "save_file", "save_note", "edit_file", "capture", "capture_to_inbox",
-    "add_todo", "toggle_todo", "delete_path", "rename_path",
+    "add_todo", "toggle_todo", "update_todo", "set_todo_due", "delete_todo",
+    "append_stream_entry",
+    "delete_path", "rename_path",
     "create_topic", "move_to_topic", "publish_to_outputs",
   ]) {
     assert.ok(names.has(n), `Obsidian missing core tool ${n}`);
@@ -39,6 +43,6 @@ test("Obsidian KNOWN_TOOLS covers core surface; memory-write gap is intentional"
     assert.ok(!names.has(n), `Obsidian must NOT register ${n} (Suggest-only)`);
   }
   // Desktop catalog remains the superset source of truth.
-  assert.equal(AI_TOOL_NAMES_READ.length, 18);
-  assert.equal(AI_TOOL_NAMES_WRITE.length, 20);
+  assert.equal(AI_TOOL_NAMES_READ.length, 22);
+  assert.equal(AI_TOOL_NAMES_WRITE.length, 25);
 });

@@ -49,7 +49,7 @@ export default function App() {
       <Suspense
         fallback={
           <div className="flex h-screen items-center justify-center bg-background">
-            <RiLoader4Line size={ICON.md} className="animate-spin text-accent-color" />
+            <RiLoader4Line size={ICON.md} className="animate-spin text-text-tertiary" />
           </div>
         }
       >
@@ -136,7 +136,7 @@ function MainApp() {
             }}
           />
         </div>
-        <RiLoader4Line size={ICON.sm} className="animate-spin text-accent-color" />
+        <RiLoader4Line size={ICON.sm} className="animate-spin text-text-tertiary" />
         <div className="text-sm font-medium text-text-primary">{t("shell:shell.loadingWorkspace")} topmind…</div>
         <div className="text-3xs text-text-quaternary">{t("common:status.loading")}</div>
       </div>
@@ -172,7 +172,7 @@ function MainApp() {
       <Suspense
         fallback={
           <div className="flex h-screen items-center justify-center bg-background">
-            <RiLoader4Line size={ICON.md} className="animate-spin text-accent-color" />
+            <RiLoader4Line size={ICON.md} className="animate-spin text-text-tertiary" />
           </div>
         }
       >
@@ -195,7 +195,7 @@ function MainApp() {
     <Suspense
       fallback={
         <div className="flex h-screen items-center justify-center bg-background">
-          <RiLoader4Line size={ICON.md} className="animate-spin text-accent-color" />
+          <RiLoader4Line size={ICON.md} className="animate-spin text-text-tertiary" />
         </div>
       }
     >

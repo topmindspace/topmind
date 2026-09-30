@@ -197,8 +197,11 @@ it("Desktop README does not teach deleted ActionBar or Title-bar Note it", () =>
     // ActivityBar keeps a traffic-light reserve so icons never sit under native buttons.
     assert.match(activity, /data-activity-traffic-reserve/);
     assert.doesNotMatch(activity, /data-activity-logo/);
-    assert.match(css, /\.v4-titlebar-btn\.v4-sidebar-chrome-btn[\s\S]*flex-shrink:\s*0/);
-    assert.match(css, /\.v4-sidebar-chrome-btn \{[^}]*width:\s*var\(--density-chrome-control,\s*32px\)/);
+    // Chrome button sizing lives on .v4-icon-btn-chrome (live class). The old
+    // .v4-sidebar-chrome-btn modifier was zero-ref and pruned 2026-09-29.
+    assert.match(css, /\.v4-icon-btn-chrome \{[^}]*width:\s*var\(--density-chrome-control/);
+    assert.match(css, /\.v4-icon-btn-chrome[^}]*flex-shrink:\s*0/);
+    assert.doesNotMatch(css, /\.v4-sidebar-chrome-btn/);
     assert.match(sidebar, /v4-icon-btn-chrome/);
     assert.doesNotMatch(css, /min-width:\s*6\.25rem/);
     assert.doesNotMatch(css, /min-width:\s*5\.25rem/);
@@ -239,9 +242,9 @@ it("Desktop README does not teach deleted ActionBar or Title-bar Note it", () =>
     assert.equal(zhWs.streamDetail.composeSubmit, "记下");
     assert.match(enWs.streamDetail.composeSubmit, /Log it/i);
     assert.doesNotMatch(enWs.streamDetail.composeSubmit, /^Save$/i);
-    // URL CTA opens full capture under product name 记一下 / Note it
-    assert.equal(zhWs.streamDetail.composeUrlAction, "记一下");
-    assert.match(enWs.streamDetail.composeUrlAction, /Note it/i);
+    // URL CTA is the single shared 抓取 action (inline in stream, no modal)
+    assert.equal(zhWs.streamDetail.composeUrlAction, "抓取");
+    assert.match(enWs.streamDetail.composeUrlAction, /Fetch/i);
     assert.doesNotMatch(enWs.streamDetail.composeUrlAction, /Quick Capture/i);
     assert.doesNotMatch(zhWs.streamDetail.composeUrlAction, /快速捕获/);
     // Title-bar capture

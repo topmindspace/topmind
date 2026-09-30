@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   RiExternalLinkLine,
-  RiFlashlightFill,
+  RiPulseLine,
   RiLoader4Line,
   RiRefreshLine,
 } from "@remixicon/react";
@@ -164,7 +164,7 @@ function WereadPanel({ settings, update }: { settings: AppSettings; update: (p: 
             disabled={!w.enabled}
           />
         </KeyField>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5 px-4 pb-3">
           <Button
             variant="outline"
             size="sm"
@@ -172,7 +172,7 @@ function WereadPanel({ settings, update }: { settings: AppSettings; update: (p: 
             onClick={() => void handleTest()}
             disabled={testing || !w.apiKey || !w.enabled}
           >
-            {testing ? <RiLoader4Line size={ICON.xs} className="animate-spin" /> : <RiFlashlightFill size={ICON.xs} />}
+            {testing ? <RiLoader4Line size={ICON.xs} className="animate-spin" /> : <RiPulseLine size={ICON.xs} />}
             {t("settings.test")}
           </Button>
           <Button

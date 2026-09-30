@@ -146,7 +146,7 @@ export function TagsView({ onNavigate }: TagsViewProps) {
           <RiArrowLeftSLine size={ICON.xs} />
           <RiPriceTag3Line size={ICON.micro} className="text-accent-color" />
           <span className="truncate">{selectedTag}</span>
-          <span className="ml-auto rounded-[var(--radius-xs)] bg-surface-muted px-1.5 tabular-nums text-3xs text-text-quaternary">{files.length}</span>
+          <span className="ml-auto rounded-[var(--radius-xs)] bg-surface-wash-30 px-1.5 tabular-nums text-3xs text-text-quaternary">{files.length}</span>
         </button>
         {files.map((f, i) => (
           <button

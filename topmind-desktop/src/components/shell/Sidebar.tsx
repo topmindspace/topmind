@@ -352,7 +352,7 @@ function PeriodPill({ pins }: { pins: SidebarPins }) {
       <button
         type="button"
         onClick={() => select({ kind: "stream" })}
-        className="inline-flex min-w-0 flex-1 items-center gap-1 truncate rounded-[var(--radius-xs)] bg-surface-muted px-2 py-0.5 text-3xs text-text-secondary transition-colors hover:bg-state-hover"
+        className="inline-flex min-w-0 flex-1 items-center gap-1 truncate rounded-[var(--radius-xs)] bg-surface-wash-30 px-2 py-0.5 text-3xs text-text-secondary transition-colors hover:bg-state-hover"
         aria-label={pins.periodLabel || t("sidebar.streamPinTip")}
       >
         <RiCalendar2Line size={ICON.micro} className="shrink-0" />
@@ -390,8 +390,14 @@ function DataSourceSection({
   const childrenCacheRef = useRef(childrenCache);
   childrenCacheRef.current = childrenCache;
 
-  const selection = useViewStore((s) => s.selection);
-  const expandedNodeIds = useViewStore((s) => s.expandedNodeIds);
+  // Fine-grained store reads: selection identity (not the object) and expand
+  // count — full `selection`/`expandedNodeIds` refs change on every nav and
+  // voided memo(TreeViewNode) for the whole rail.
+  const selectionKey = useViewStore((s) => {
+    const sel = s.selection as { kind: string; path?: string; topicId?: string; categoryId?: string };
+    return `${sel.kind}:${sel.path || sel.topicId || sel.categoryId || ""}`;
+  });
+  const expandedCount = useViewStore((s) => s.expandedNodeIds.size);
   const expandNodes = useViewStore((s) => s.expandNodes);
   const setExpandedNodes = useViewStore((s) => s.setExpandedNodes);
 
@@ -404,13 +410,13 @@ function DataSourceSection({
         bootstrappedExpand.current = true;
         const ws = useViewStore.getState().workspaceRoot;
         const { hasStored } = loadExpandedState(ws);
-        if (!hasStored && expandedNodeIds.size === 0) {
+        if (!hasStored && expandedCount === 0) {
           const defaults = defaultExpandIds(t);
           if (defaults.length) setExpandedNodes(defaults);
         }
       }
     },
-    [expandedNodeIds.size, setExpandedNodes],
+    [expandedCount, setExpandedNodes],
   );
 
   const hasTreeRef = useRef(false);
@@ -674,9 +680,15 @@ function DataSourceSection({
     emitLocal("sidebar:file-filter-changed", f);
   }, [hardRefresh]);
 
+  // Stable refresh identities — inline arrows voided memo(TreeViewNode) every render.
+  const handleHardRefresh = useCallback(() => void hardRefresh(), [hardRefresh]);
+  const handleSoftRefresh = useCallback(() => void softRefresh(), [softRefresh]);
+
   // Reveal: expand ancestors + lazy-load topic files for the active selection.
   // Uses childrenCacheRef so the effect doesn't re-run on every cache update.
+  // selectionKey is a stable string — the effect reads the live object via getState.
   useEffect(() => {
+    const selection = useViewStore.getState().selection;
     const ids = expandIdsForSelection(selection);
     if (ids.length) expandNodes(ids);
 
@@ -695,7 +707,7 @@ function DataSourceSection({
       };
       void loadChildren(topicNode);
     }
-  }, [selection, expandNodes, loadChildren]);
+  }, [selectionKey, expandNodes, loadChildren]);
 
   const treeSortMode = useViewStore((s) => s.treeSortMode);
   const setTreeSortMode = useViewStore((s) => s.setTreeSortMode);
@@ -709,7 +721,7 @@ function DataSourceSection({
           onSortChange={setTreeSortMode}
           fileFilter={fileFilter}
           onFileFilterChange={handleFileFilterChange}
-          onRefresh={() => void hardRefresh()}
+          onRefresh={handleHardRefresh}
           refreshing={loading}
           showStructureTools={!error && tree.length > 0}
         />
@@ -734,7 +746,7 @@ function DataSourceSection({
           </div>
           <button
             onClick={() => { void hardRefresh(); }}
-            className="flex items-center gap-1 self-start rounded-[var(--radius-sm)] border border-border-subtle px-1.5 py-0.5 text-3xs text-text-secondary transition-colors hover:bg-state-hover hover:text-text-primary v4-focus-ring"
+            className="flex items-center gap-1 self-start rounded-[var(--radius-sm)] border border-border-subtle px-1.5 py-0.5 text-xs text-text-secondary transition-colors hover:bg-state-hover hover:text-text-primary v4-focus-ring"
           >
             <RiRefreshLine size={ICON.micro} aria-hidden /> {t("sidebar.retry")}
           </button>
@@ -744,7 +756,7 @@ function DataSourceSection({
       ) : (
         <TreeView
           nodes={tree}
-          onRefresh={() => void softRefresh()}
+          onRefresh={handleSoftRefresh}
           loadChildren={loadChildren}
           childrenCache={childrenCache}
           loadingNodes={loadingNodes}

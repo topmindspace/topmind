@@ -3,9 +3,29 @@
  *
  * On disk (truth):  ![alt](images/slug/img-….png)   relative to the note file
  * In editor (view): ![alt](topmind-asset://local/00-Inbox/images/slug/img-….png)
+ * Remote http(s) images render via topmind-asset://remote/… (CSP-safe + cache).
  */
 
 const ASSET_PREFIX = "topmind-asset://local/";
+const REMOTE_PREFIX = "topmind-asset://remote/";
+
+/** CSP-safe proxy URL for a remote image (main-process caches to media-cache). */
+export function remoteAssetUrl(href: string): string {
+  const h = String(href || "").trim();
+  if (!/^https?:\/\//iu.test(h)) return h;
+  return `${REMOTE_PREFIX}${encodeURIComponent(h)}`;
+}
+
+/** Decode topmind-asset://remote/<encoded> back to the remote URL. */
+export function decodeRemoteAssetUrl(src: string): string {
+  const m = String(src || "").match(/^topmind-asset:\/\/remote\/(.+)$/iu);
+  if (!m) return String(src || "");
+  try {
+    return decodeURIComponent(m[1] || "");
+  } catch {
+    return m[1] || "";
+  }
+}
 
 function noteDir(noteRelativePath: string): string {
   const p = String(noteRelativePath || "").replace(/\\/gu, "/");
@@ -52,6 +72,10 @@ function isRemoteOrAssetUrl(url: string): boolean {
   return !u || /^(https?:|data:|topmind-asset:|blob:)/iu.test(u) || u.startsWith("//");
 }
 
+function isHttpUrl(url: string): boolean {
+  return /^https?:\/\//iu.test(String(url || "").trim());
+}
+
 /** Rewrite src= on HTML <img> tags. Leaves the tag unchanged when rewrite returns null. */
 function rewriteHtmlImgSrc(
   html: string,
@@ -68,12 +92,15 @@ function rewriteHtmlImgSrc(
 /**
  * Disk markdown → editor markdown (relative images become topmind-asset URLs).
  * Covers `![alt](url)` and HTML `<img src>` (TipTap html:true may emit either).
+ * Remote http(s) images go through topmind-asset://remote/… for CSP-safe display.
  */
 export function mediaUrlsForEditor(markdown: string, noteRelativePath: string): string {
   let out = String(markdown || "").replace(
     /!\[([^\]]*)\]\(\s*<?([^)\s>]+)>?(?:\s+(?:"[^"]*"|'[^']*'))?\s*\)/giu,
     (full, alt, rawUrl) => {
       const url = String(rawUrl || "").trim();
+      if (/^(data:|topmind-asset:|blob:)/iu.test(url) || url.startsWith("//")) return full;
+      if (isHttpUrl(url)) return `![${alt}](${remoteAssetUrl(url)})`;
       if (isRemoteOrAssetUrl(url)) return full;
       const absRel = resolveNoteMediaPath(noteRelativePath, url);
       if (!absRel) return full;
@@ -81,6 +108,8 @@ export function mediaUrlsForEditor(markdown: string, noteRelativePath: string): 
     },
   );
   out = rewriteHtmlImgSrc(out, (url) => {
+    if (/^(data:|topmind-asset:|blob:)/iu.test(url) || url.startsWith("//")) return null;
+    if (isHttpUrl(url)) return remoteAssetUrl(url);
     if (isRemoteOrAssetUrl(url)) return null;
     const absRel = resolveNoteMediaPath(noteRelativePath, url);
     return absRel ? `${ASSET_PREFIX}${absRel}` : null;
@@ -91,10 +120,14 @@ export function mediaUrlsForEditor(markdown: string, noteRelativePath: string): 
 /**
  * Preview HTML (stream cards / memory feed) — rewrite relative `<img src>`
  * to `topmind-asset://` so images next to the note actually render.
+ * Remote http(s) images go through the remote proxy the same way.
  */
 export function rewritePreviewHtmlMedia(html: string, noteRelativePath: string): string {
-  if (!html || !noteRelativePath) return html;
+  if (!html) return html;
   return rewriteHtmlImgSrc(html, (url) => {
+    if (/^(data:|topmind-asset:|blob:)/iu.test(url) || url.startsWith("//")) return null;
+    if (isHttpUrl(url)) return remoteAssetUrl(url);
+    if (!noteRelativePath) return null;
     if (isRemoteOrAssetUrl(url)) return null;
     const absRel = resolveNoteMediaPath(noteRelativePath, url);
     return absRel ? `${ASSET_PREFIX}${absRel}` : null;

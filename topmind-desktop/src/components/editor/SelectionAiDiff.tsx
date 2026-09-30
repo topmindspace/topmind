@@ -139,7 +139,7 @@ export function SelectionAiDiff({
         ) : onPreviewEdit ? (
           /* Editable preview — rows grow with content so long rewrites stay reachable */
           <textarea
-            className="w-full resize-none border-none bg-transparent text-3xs leading-relaxed text-text-primary outline-none focus:ring-0"
+            className="w-full resize-none border-none bg-transparent text-xs leading-relaxed text-text-primary outline-none focus:ring-0"
             style={{ minHeight: INLINE_AI_PREVIEW_MIN_H }}
             rows={estimatePreviewRows(preview)}
             value={preview}
@@ -147,7 +147,7 @@ export function SelectionAiDiff({
             onChange={(e) => onPreviewEdit(e.target.value)}
           />
         ) : (
-          <div className="whitespace-pre-wrap text-3xs leading-relaxed text-text-primary">
+          <div className="whitespace-pre-wrap text-xs leading-relaxed text-text-primary">
             {preview}
           </div>
         )}

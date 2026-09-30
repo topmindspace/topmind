@@ -102,9 +102,10 @@ test("quick-capture-helpers exports pure title cleaners", () => {
   assert.match(src, /export const FETCH_FULL/);
 });
 
-test("Settings Field description uses UI floor text-3xs", () => {
+test("Settings Field description uses content floor text-xs", () => {
   const src = read("src/components/settings/fields.tsx");
-  assert.match(src, /mt-1 text-3xs leading-snug text-text-tertiary/);
+  // Content floor is 13px (text-xs) per AGENTS.md — 12px is label/badge only.
+  assert.match(src, /mt-0\.5 text-xs leading-relaxed text-text-tertiary/);
   assert.match(src, /v4-switch/);
   assert.match(src, /aria-label=\{label\}/);
 });

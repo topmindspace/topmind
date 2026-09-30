@@ -106,7 +106,7 @@ export function WereadStatsPanel({
               {stats.readStat.map((s) => (
                 <span
                   key={s.stat}
-                  className="rounded-[var(--radius-xs)] bg-surface-muted px-2 py-0.5 text-3xs text-text-secondary"
+                  className="rounded-[var(--radius-xs)] bg-surface-wash-30 px-2 py-0.5 text-3xs text-text-secondary"
                 >
                   {s.stat} {s.counts}
                 </span>

@@ -77,3 +77,20 @@ export function resolveMode(args) {
   if (args.writebackMode === "confirm") return "preview";
   return "auto";
 }
+
+/**
+ * Who is invoking this tool: "user" (CLI / human) or "ai" (MCP agent).
+ * executeTool threads it via topmind_ACTOR so kernel graded-confirm can tell
+ * a human command from an agent write. Fail-closed default is "user" only
+ * when the env is unset (CLI); explicit "ai" from MCP is honored.
+ * @returns {"user"|"ai"}
+ */
+export function resolveActor() {
+  const raw = String(process.env.topmind_ACTOR || "").trim().toLowerCase();
+  return raw === "ai" ? "ai" : "user";
+}
+
+/** True when the human invoked this run (safe to treat writes as accepted). */
+export function isUserActor() {
+  return resolveActor() === "user";
+}

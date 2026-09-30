@@ -191,11 +191,14 @@ export function WorkspaceSwitcher({
         sidebar
           ? "flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-state-hover v4-focus-ring"
           : "v4-titlebar-btn max-w-30 gap-1 px-1.5 font-mono text-3xs sm:max-w-40 xl:max-w-50",
-        open && (sidebar ? "bg-surface-muted" : "bg-surface-muted text-text-secondary"),
+        open && (sidebar ? "bg-surface-wash-30" : "bg-surface-wash-30 text-text-secondary"),
         !sidebar && !open && "pointer-events-none h-8 w-8 overflow-hidden p-0 opacity-0",
       )}
     >
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent-bg-subtle text-accent-color">
+      <span
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-text-secondary"
+        style={{ background: "color-mix(in srgb, currentColor 10%, transparent)" }}
+      >
         <RiFolder3Line size={ICON.xs} />
       </span>
       <span className={cn("min-w-0 flex-1 truncate", sidebar ? "text-xs font-semibold text-text-primary" : "font-mono")}>

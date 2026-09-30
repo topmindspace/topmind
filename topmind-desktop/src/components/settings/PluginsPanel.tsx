@@ -349,11 +349,11 @@ export function PluginsPanel({
                         {t("settings:plugins.builtIn")}
                       </span>
                     ) : isExternal ? (
-                      <span className="rounded-[var(--radius-xs)] bg-surface-muted px-1.5 py-0.5 text-3xs text-text-tertiary">
+                      <span className="rounded-[var(--radius-xs)] bg-surface-wash-30 px-1.5 py-0.5 text-3xs text-text-tertiary">
                         {t("settings:plugins.thirdParty")}
                       </span>
                     ) : (
-                      <span className="rounded-[var(--radius-xs)] bg-surface-muted px-1.5 py-0.5 text-3xs text-text-tertiary">
+                      <span className="rounded-[var(--radius-xs)] bg-surface-wash-30 px-1.5 py-0.5 text-3xs text-text-tertiary">
                         {t("settings:plugins.connector")}
                       </span>
                     )}
@@ -366,7 +366,7 @@ export function PluginsPanel({
                         <RiCheckboxCircleLine size={ICON.micro} /> {t("settings:plugins.on")}
                       </span>
                     ) : (
-                      <span className="rounded-[var(--radius-xs)] bg-surface-muted px-1.5 py-0.5 text-3xs text-text-quaternary">
+                      <span className="rounded-[var(--radius-xs)] bg-surface-wash-30 px-1.5 py-0.5 text-3xs text-text-quaternary">
                         {t("settings:plugins.off")}
                       </span>
                     )}
@@ -376,7 +376,7 @@ export function PluginsPanel({
                       </span>
                     ) : null}
                   </div>
-                  <div className="mt-0.5 text-3xs leading-relaxed text-text-tertiary">
+                  <div className="mt-0.5 text-xs leading-relaxed text-text-tertiary">
                     {p.manifest.descriptionKey ? t(p.manifest.descriptionKey) : p.manifest.description}
                     {slots > 0 ? t("settings:plugins.slotsCount", { count: slots }) : ""}
                   </div>
@@ -384,7 +384,7 @@ export function PluginsPanel({
                     <div className="mt-1 flex flex-wrap items-center gap-1">
                       <RiShieldLine size={ICON.micro} className="text-text-quaternary" />
                       {permissions.slice(0, 4).map((perm) => (
-                        <span key={perm} className="rounded bg-surface-muted px-1 py-px font-mono text-3xs text-text-quaternary">
+                        <span key={perm} className="rounded bg-surface-wash-30 px-1 py-px font-mono text-3xs text-text-quaternary">
                           {perm}
                         </span>
                       ))}
@@ -470,7 +470,6 @@ export function PluginsPanel({
             <Button
               variant="ghost"
               size="sm"
-              className="h-6"
               onClick={() => void refreshExternal()}
               disabled={Boolean(busy) || extLoading}
             >
@@ -479,13 +478,12 @@ export function PluginsPanel({
             <Button
               variant="outline"
               size="sm"
-              className="h-6"
               disabled={Boolean(busy) || !settings.workspaceRoot}
               onClick={() => void handleReload()}
             >
               {t("settings:plugins.reload")}
             </Button>
-            <Button variant="outline" size="sm" className="h-6" onClick={() => void api.sys.openPluginsDir()}>
+            <Button variant="outline" size="sm" onClick={() => void api.sys.openPluginsDir()}>
               <RiFolderOpenLine size={ICON.micro} /> {t("settings:plugins.openFolder")}
             </Button>
           </div>
@@ -495,7 +493,6 @@ export function PluginsPanel({
           <Button
             variant="outline"
             size="sm"
-            className="h-7"
             disabled={Boolean(busy)}
             onClick={() => void beginInstallFolder()}
           >
@@ -504,7 +501,6 @@ export function PluginsPanel({
           <Button
             variant="outline"
             size="sm"
-            className="h-7"
             disabled={Boolean(busy)}
             onClick={() => void beginInstallZip()}
           >
@@ -513,7 +509,6 @@ export function PluginsPanel({
           <Button
             variant="ghost"
             size="sm"
-            className="h-7"
             disabled={Boolean(busy)}
             onClick={() => void handleScaffold()}
           >

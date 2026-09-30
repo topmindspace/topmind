@@ -46,7 +46,7 @@ function IngestStatusBar({ ctx }: { ctx: PluginContext }) {
         onClick={() => ctx.navigate({ kind: "connector", id: "ingest" })}
         aria-label={t("hub.title") + ` · ${active}`}
       >
-        <RiLoader4Line size={ICON.micro} className="animate-spin text-accent-color" aria-hidden />
+        <RiLoader4Line size={ICON.micro} className="animate-spin text-text-tertiary" aria-hidden />
         <RiFileTransferLine size={ICON.micro} aria-hidden />
         {t("convert")} {active}
       </button>

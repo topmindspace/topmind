@@ -201,6 +201,43 @@ function SkillButtonsRow({
   );
 }
 
+/** Stream status label — isolates 1Hz stream-tick re-renders from the composer. */
+function StreamStatusHint({ streaming }: { streaming: boolean }) {
+  const { t } = useTranslation("editor");
+  const streamStatus = useAiStore((s) => s.streamStatus);
+  const streamToolCount = useAiStore((s) => s.streamToolCount);
+  const streamMaxSteps = useAiStore((s) => s.streamMaxSteps);
+  const streamToolName = useAiStore((s) => s.streamToolName);
+  if (!streaming) return null;
+  return (
+    <div className="px-0.5 text-3xs text-text-quaternary" role="status" aria-live="polite">
+      {streamStatusLabel(streamStatus || "thinking", streamToolName, streamToolCount, streamMaxSteps)}
+    </div>
+  );
+}
+
+/** Steer preview + queued follow-ups — also high-churn; keep out of the composer body. */
+function SteerFollowUpHints() {
+  const { t } = useTranslation("editor");
+  const lastSteerPreview = useAiStore((s) => s.lastSteerPreview);
+  const pendingFollowUpCount = useAiStore((s) => s.pendingFollowUpCount);
+  if (!lastSteerPreview && pendingFollowUpCount <= 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 px-0.5 text-3xs text-text-quaternary">
+      {lastSteerPreview ? (
+        <ChipLabel tone="accent" size="sm" className="max-w-full">
+          <span className="truncate">{t("ai.steerHint", { text: lastSteerPreview })}</span>
+        </ChipLabel>
+      ) : null}
+      {pendingFollowUpCount > 0 ? (
+        <ChipLabel tone="neutral" size="sm">
+          {t("ai.followUpQueued", { count: pendingFollowUpCount })}
+        </ChipLabel>
+      ) : null}
+    </div>
+  );
+}
+
 export function ChatInput() {
   const { t } = useTranslation("editor");
   const [text, setText] = useState("");
@@ -211,12 +248,6 @@ export function ChatInput() {
   const abandonPaused = useAiStore((s) => s.abandonPaused);
   const paused = useAiStore((s) => s.paused);
   const ready = useAiStore((s) => s.runtimeStatus?.ready ?? false);
-  const streamStatus = useAiStore((s) => s.streamStatus);
-  const streamToolCount = useAiStore((s) => s.streamToolCount);
-  const streamMaxSteps = useAiStore((s) => s.streamMaxSteps);
-  const streamToolName = useAiStore((s) => s.streamToolName);
-  const lastSteerPreview = useAiStore((s) => s.lastSteerPreview);
-  const pendingFollowUpCount = useAiStore((s) => s.pendingFollowUpCount);
   const model = useAiStore((s) => s.model);
   const setModel = useAiStore((s) => s.setModel);
   const providers = useAiStore((s) => s.modelCatalog);
@@ -348,6 +379,10 @@ export function ChatInput() {
   const [skillOptions, setSkillOptions] = useState<{ id: string; label: string }[]>([
     { id: "", label: t("ai.auto") },
   ]);
+  const skillSelectOptions = useMemo(
+    () => skillOptions.map((o) => ({ value: o.id, label: o.label })),
+    [skillOptions],
+  );
 
   useEffect(() => {
     void api.sys
@@ -371,7 +406,9 @@ export function ChatInput() {
           { id: "", label: t("ai.auto") },
           ...cat.map((s) => ({
             id: s.id,
-            label: s.entrypoint ? `${s.id.replace(/^topmind-?/, "")} ★` : s.id.replace(/^topmind-?/, "") || s.id,
+            label: s.entrypoint
+              ? `${s.id.replace(/^topmind-?/, "")} · ${t("ai.entrypointMark", { defaultValue: "主" })}`
+              : s.id.replace(/^topmind-?/, "") || s.id,
           })),
         ]);
       })
@@ -502,6 +539,7 @@ export function ChatInput() {
     // Finished edits stay; the goal ledger stays live for Resume.
     if (e.key === "Escape" && streaming) {
       e.preventDefault();
+      e.stopPropagation(); // don't also exit focus mode / close overlays
       void pauseStream();
       return;
     }
@@ -571,10 +609,7 @@ export function ChatInput() {
     );
   }
 
-  // Single stream-status vocabulary (stream-status.ts) — no parallel label forks.
-  const statusHint = streaming
-    ? streamStatusLabel(streamStatus || "thinking", streamToolName, streamToolCount, streamMaxSteps)
-    : null;
+  // Stream status / steer hints live in leaf components (stream-tick isolation).
 
   return (
     <div className="v4-composer">
@@ -592,7 +627,7 @@ export function ChatInput() {
               aria-label={t("ai.skillAria")}
               onChange={(v) => setActiveSkillId(v || null)}
               onOpenChange={setSkillMenuOpen}
-              options={skillOptions.map((o) => ({ value: o.id, label: o.label }))}
+              options={skillSelectOptions}
               placeholder={t("ai.skillPlaceholder")}
               minWidth={160}
               maxHeight={280}
@@ -730,20 +765,8 @@ export function ChatInput() {
         </div>
       ) : null}
 
-      {lastSteerPreview || pendingFollowUpCount > 0 ? (
-        <div className="flex flex-wrap items-center gap-1.5 px-0.5 text-3xs text-text-quaternary">
-          {lastSteerPreview ? (
-            <ChipLabel tone="accent" size="sm" className="max-w-full">
-              <span className="truncate">{t("ai.steerHint", { text: lastSteerPreview })}</span>
-            </ChipLabel>
-          ) : null}
-          {pendingFollowUpCount > 0 ? (
-            <ChipLabel tone="neutral" size="sm">
-              {t("ai.followUpQueued", { count: pendingFollowUpCount })}
-            </ChipLabel>
-          ) : null}
-        </div>
-      ) : null}
+      <StreamStatusHint streaming={streaming} />
+      <SteerFollowUpHints />
 
       <div className="v4-composer-field">
         <textarea
@@ -759,14 +782,14 @@ export function ChatInput() {
           onKeyDown={handleKeyDown}
           placeholder={
             streaming
-              ? t("ai.slashPlaceholderStreaming", { hint: statusHint || t("ai.processing") })
+              ? t("ai.slashPlaceholderStreaming", { hint: t("ai.processing") })
               : focusHint
                 ? `${focusHint}${t("ai.focusPlaceholderSuffix")}`
                 : t("ai.slashPlaceholder")
           }
           rows={1}
           className={cn(
-            "flex-1 resize-none bg-transparent px-3 py-2 text-sm leading-relaxed text-text-primary outline-none",
+            "flex-1 resize-none border-none bg-transparent px-3 py-2 text-sm leading-relaxed text-text-primary outline-none",
             "placeholder:text-text-quaternary",
             /* Grow with content up to 40vh so multi-paragraph prompts stay visible */
             "max-h-[40vh] overflow-y-auto",
@@ -834,7 +857,7 @@ export function ChatInput() {
               disabled={!canSend}
               softDisabled={!canSend}
               aria-label={canSend ? t("ai.enterSendLabel") : t("ai.enterSendDisabled")}
-              className="mb-1.5 mr-1.5"
+              className="mb-1.5 mr-1.5 rounded-[var(--radius-lg)]"
             >
               <RiArrowUpLine size={ICON.sm} />
             </Button>

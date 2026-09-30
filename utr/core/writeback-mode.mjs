@@ -11,6 +11,7 @@ export const WRITEBACK_MODES = Object.freeze(["auto", "confirm"]);
  * @param {boolean} [input.payloadHasMode] - whether payload owns the key
  * @param {unknown} [input.optionMode] - executeTool options.writebackMode
  * @param {unknown} [input.envMode] - process.env.topmind_WRITEBACK_MODE
+ * @param {unknown} [input.contractMode] - topmind.yaml writeback.mode (kernel truth)
  * @returns {{ ok: true, mode: "auto"|"confirm" } | { ok: false, mode: null, error: string, raw: string }}
  */
 export function resolveWritebackModeInput({
@@ -18,6 +19,7 @@ export function resolveWritebackModeInput({
   payloadHasMode = false,
   optionMode,
   envMode,
+  contractMode,
 } = {}) {
   const allowed = new Set(WRITEBACK_MODES);
   let raw = "";
@@ -31,12 +33,17 @@ export function resolveWritebackModeInput({
   } else {
     const opt = optionMode != null ? String(optionMode).trim() : "";
     const env = envMode != null ? String(envMode).trim() : "";
+    const contract = contractMode != null ? String(contractMode).trim() : "";
     if (opt) {
       raw = opt;
       source = "option";
     } else if (env) {
       raw = env;
       source = "env";
+    } else if (contract) {
+      // Kernel truth (topmind.yaml writeback.mode) beats the silent auto default.
+      raw = contract;
+      source = "contract";
     }
   }
 

@@ -14,6 +14,7 @@ import {
   createGoalState,
   decideAutoContinue,
   harvestPathReceipts,
+  harvestSourceUrls,
   isTaskLedgerText,
   mergeGoalState,
   parseGoalEvaluatorResult,
@@ -24,6 +25,8 @@ import {
   restoreSessionGoal,
   isContinuationTurn,
   prepareTurnGoal,
+  classifyTurn,
+  matchQueryIntents,
   DONE_MARK,
   INCOMPLETE_MARK,
   PLAN_CLOSE,
@@ -389,4 +392,108 @@ test("external goal evaluator parse + reconcile (industry /goal)", () => {
     evaluator: { verdict: "met", reason: "looks fine", openCriteria: [] },
   });
   assert.equal(rec2.finished, false);
+});
+
+test("classifyTurn: greetings are light — no goal ceremony", () => {
+  for (const s of ["hi", "你好", "Hello!", "谢谢", "在吗", "ok", "嗯", "晚安"]) {
+    assert.equal(classifyTurn(s), "light", `expected light for ${JSON.stringify(s)}`);
+  }
+});
+
+test("classifyTurn: workspace lookups are query, writes are task", () => {
+  assert.equal(classifyTurn("最近记忆"), "query");
+  assert.equal(classifyTurn("我最近记了什么"), "query");
+  assert.equal(classifyTurn("看看我的情况"), "query");
+  assert.equal(classifyTurn("待办有哪些"), "query");
+  assert.equal(classifyTurn("最近动态里有什么"), "query");
+  assert.equal(classifyTurn("帮我把这篇润色一下"), "task");
+  assert.equal(classifyTurn("记一下：明天开会"), "task");
+  assert.equal(classifyTurn("整理一下 00-Inbox 并归档旧文件"), "task");
+});
+
+test("matchQueryIntents maps memory/stream/todo questions to read tools", () => {
+  assert.deepEqual(matchQueryIntents("最近记忆"), { tools: ["list_recent_memories"], note: "memories" });
+  assert.deepEqual(matchQueryIntents("我最近记了什么"), { tools: ["list_recent_stream"], note: "stream" });
+  assert.deepEqual(matchQueryIntents("看看我的情况"), { tools: ["list_recent_memories"], note: "memories" });
+  assert.deepEqual(matchQueryIntents("待办清单还有什么"), { tools: ["list_todos"], note: "todos" });
+  assert.equal(matchQueryIntents("把这篇改一下"), null);
+});
+
+test("light turns finish on any reply and never auto-continue", () => {
+  const s = createGoalState("hi");
+  assert.equal(s.kind, "light");
+  const a = assessGoalCompletion({ state: s, lastBody: "你好呀！有什么我可以帮你的吗？", toolCallCount: 0 });
+  assert.equal(a.finished, true);
+  assert.equal(a.reason, "light-turn");
+  const d = decideAutoContinue({
+    assessment: a,
+    autoContinues: 0,
+    maxAutoContinues: 4,
+    hasTools: true,
+    turnKind: "light",
+  });
+  assert.equal(d.continue, false);
+  assert.equal(d.reason, "light-turn");
+});
+
+test("buildGoalProtocolPrompt teaches turn layers + query tool routing", () => {
+  const zh = buildGoalProtocolPrompt("zh");
+  assert.match(zh, /轻量回合/u);
+  assert.match(zh, /list_recent_memories/u);
+  assert.match(zh, /查询意图/u);
+  assert.match(zh, /禁止.*\[DONE\]/u);
+  const en = buildGoalProtocolPrompt("en");
+  assert.match(en, /Light turn/u);
+  assert.match(en, /list_recent_memories/u);
+});
+
+test("harvestSourceUrls collects http(s) citations and skips junk", () => {
+  const got = harvestSourceUrls(
+    "据 [示例](https://example.com/a) 与 https://example.com/b. 另见 https://duckduckgo.com/y.js?ad=1 和 10-动态/2026-W01.md",
+  );
+  assert.ok(got.includes("https://example.com/a"));
+  assert.ok(got.includes("https://example.com/b"));
+  assert.ok(!got.some((u) => u.includes("y.js")), "ad redirects must not become citations");
+});
+
+test("web_search parser extracts DDG results", async () => {
+  const { parseDdgHtml } = await import("../topmind-desktop/electron/lib/web-search.mjs");
+  const html = `
+    <div class="result results_links">
+      <a class="result__a" href="https://example.com/one">Example One</a>
+      <a class="result__snippet">Snippet one about the thing.</a>
+    </div>
+    <div class="result">
+      <a class="result__a" href="https://example.com/two">Example Two</a>
+      <div class="result__snippet">Snippet two.</div>
+    </div>`;
+  const out = parseDdgHtml(html);
+  assert.equal(out.length, 2);
+  assert.equal(out[0].url, "https://example.com/one");
+  assert.match(out[0].title, /Example One/u);
+  assert.match(out[0].snippet, /Snippet one/u);
+});
+
+test("domainScore ranks official/edu/gov above UGC and link farms", async () => {
+  const { domainScore, rankResults } = await import(
+    "../topmind-desktop/electron/lib/web-search.mjs"
+  );
+  assert.ok(domainScore("developer.apple.com") > domainScore("medium.com"));
+  assert.ok(domainScore("stanford.edu") > domainScore("reddit.com"));
+  assert.ok(domainScore("en.wikipedia.org") > domainScore("bit.ly"));
+  const ranked = rankResults(
+    [
+      { title: "a", url: "https://seo-spam.example/x", snippet: "short" },
+      { title: "b", url: "https://developer.apple.com/y", snippet: "official docs about the thing" },
+      { title: "c", url: "https://en.wikipedia.org/z", snippet: "reference entry with detail" },
+      { title: "d", url: "https://seo-spam.example/second", snippet: "another spam" },
+      { title: "e", url: "https://www.example.org/ok", snippet: "a normal page" },
+    ],
+    { limit: 4 },
+  );
+  assert.equal(ranked[0].host, "developer.apple.com");
+  assert.ok(ranked.every((r) => r.host !== "seo-spam.example" || ranked.indexOf(r) >= 2));
+  // perHost=2 default: spam domain cannot own the list
+  const spamCount = ranked.filter((r) => r.host.includes("seo-spam")).length;
+  assert.ok(spamCount <= 2);
 });

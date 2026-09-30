@@ -5,7 +5,7 @@
  */
 import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { RiDownload2Line, RiLink, RiLoader4Line, RiSparklingLine } from "@remixicon/react";
+import { RiLink, RiLoader4Line, RiSparklingLine } from "@remixicon/react";
 import { api } from "../../services/api";
 import { useViewStore } from "../../stores/view-store";
 import { useAiStore } from "../../stores/ai-store";
@@ -25,11 +25,10 @@ import {
   type CaptureAttachment,
   type CaptureMode,
   type FetchMeta,
-  FETCH_DEFAULT,
-  FETCH_STEP_KEYS,
+  FETCH_FULL,
+  buildFetchMarkdown,
   cleanCaptureTitle,
   deriveTitleFromContent,
-  methodLabelKey,
   pathToAttachment,
 } from "./quick-capture-helpers";
 import { polishComposerText } from "../../lib/ai-polish-text";
@@ -171,24 +170,15 @@ export function useCaptureForm({
 
   const applyFetchResult = (
     result: Awaited<ReturnType<typeof api.ws.fetchUrl>>,
-    maxLen: number,
+    _maxLen: number,
   ) => {
     if (result.url) setSource(result.url);
     const cleanedTitle = cleanCaptureTitle(result.title || "", result.siteName);
-    const metaLines = [
-      `> ${t("overlays:capture.metaSource")}: ${result.url}`,
-      `> ${t("overlays:capture.metaTitle")}: ${cleanedTitle || t("overlays:capture.metaNoTitle")}`,
-    ];
-    if (result.description) metaLines.push(`> ${t("overlays:capture.metaDescription")}: ${result.description}`);
-    if (result.author) metaLines.push(`> ${t("overlays:capture.metaAuthor")}: ${result.author}`);
-    if (result.siteName) metaLines.push(`> ${t("overlays:capture.metaSite")}: ${result.siteName}`);
-    if (result.method) metaLines.push(`> ${t("overlays:capture.metaMethod")}: ${t(methodLabelKey(result.method))}`);
-    if (result.truncated) metaLines.push(`> ${t("overlays:capture.metaTruncated")}: ${t("overlays:capture.metaTruncatedYes", { max: result.maxLen ?? maxLen })}`);
-    if (result.wordCount != null) metaLines.push(`> ${t("overlays:capture.metaWordCount")}: ${result.wordCount}`);
-    const header = `${metaLines.join("\n")}\n\n`;
-    const body = (result.text || "").trim() || t("overlays:capture.metaNoBody");
-    const bare = /^https?:\/\/\S+$/iu.test(content.trim());
-    setContent(bare ? `${header}${body}` : content.trim() ? `${content.trim()}\n\n${header}${body}` : `${header}${body}`);
+    // Shared build: cover image + compact source block (one 抓取 result).
+    const next = buildFetchMarkdown(result, t as never, contentRef.current, {
+      replaceBareUrl: true,
+    });
+    setContent(next);
     if (cleanedTitle && (!title.trim() || /^https?:\/\//iu.test(title.trim()))) {
       setTitle(cleanedTitle);
     }
@@ -202,11 +192,13 @@ export function useCaptureForm({
       warning: result.warning,
       canEnhance: result.canEnhance || result.likelySpa,
       enhanced: result.enhanced,
+      image: (result as { image?: string | null }).image ?? null,
     });
   };
 
   const handleFetchUrl = async (opts: { maxLen?: number; render?: boolean } = {}) => {
-    const maxLen = opts.maxLen ?? FETCH_DEFAULT;
+    // Highest-quality single action — full length unless caller overrides.
+    const maxLen = opts.maxLen ?? FETCH_FULL;
     const url = source.trim() || content.trim();
     if (!url || !/^https?:\/\//iu.test(url)) {
       setError(t("overlays:capture.errorInvalidUrl"));
@@ -359,9 +351,16 @@ export function useCaptureForm({
           throw ingestErr;
         }
         emitLocal("workspace:file-changed");
+        const isFetchArticle = sourceType === "external-capture" && Boolean(source.trim()) && noteDest === "inbox";
         const streamMsg =
           (res as { userMessage?: string }).userMessage ||
-          ((res as { appended?: boolean }).appended ? t("overlays:capture.toastStreamAppended") : t("overlays:capture.toastStreamDefault"));
+          (isFetchArticle
+            ? t("overlays:capture.toastInboxFetched")
+            : noteDest === "inbox"
+              ? t("overlays:capture.toastInboxSaved")
+              : ((res as { appended?: boolean }).appended
+                  ? t("overlays:capture.toastStreamAppended")
+                  : t("overlays:capture.toastStreamDefault")));
         toastWriteback(
           docsCount > 0 && !staging
             ? t("overlays:capture.toastStreamWithDocs", { streamMsg, count: docsCount })
@@ -602,7 +601,7 @@ export function CaptureForm({
   return (
     <div className={wrapperClassName}>
       {isMemory ? (
-        <p className="mb-2 text-3xs leading-relaxed text-text-tertiary">
+        <p className="mb-2 text-xs leading-relaxed text-text-tertiary">
           {t("overlays:capture.memoryHint", { topic: topicName })}
         </p>
       ) : null}
@@ -629,7 +628,7 @@ export function CaptureForm({
                 "rounded-[var(--radius-xs)] px-2.5 py-0.5 text-3xs font-medium transition-colors",
                 noteDest === d.id
                   ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
-                  : "bg-surface-muted text-text-tertiary hover:bg-state-hover hover:text-text-secondary",
+                  : "bg-surface-wash-15 text-text-tertiary hover:bg-state-hover hover:text-text-secondary",
               )}
             >
               {d.label}
@@ -716,7 +715,7 @@ export function CaptureForm({
               </button>
             ))}
           </div>
-          <div className="flex flex-1 items-center gap-1.5 rounded-[var(--radius-md)] border border-border-subtle-dim bg-input px-2.5 shadow-[var(--shadow-input-inset)] transition-[border-color] focus-within:border-accent-color">
+          <div className="flex flex-1 items-center gap-1.5 rounded-[var(--radius-md)] border border-transparent bg-surface-wash-15 px-2.5 transition-[border-color,background-color] hover:bg-surface-wash-30 focus-within:border-accent-color focus-within:bg-surface-elevated">
             <RiLink size={ICON.xs} className="shrink-0 text-text-quaternary" />
             <input
               value={source}
@@ -728,25 +727,6 @@ export function CaptureForm({
               placeholder={t("overlays:capture.sourcePlaceholder")}
               className="h-7 flex-1 bg-transparent text-3xs text-text-primary outline-none placeholder:text-text-quaternary"
             />
-            {isUrl ? (
-              <Tooltip content={t("overlays:capture.fetchTooltip")}>
-                <button
-                  type="button"
-                  onClick={() => void handleFetchUrl()}
-                  disabled={fetching}
-                  className="flex shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 py-0.5 text-3xs font-medium text-accent-color transition-colors hover:bg-accent-bg-subtle disabled:opacity-50 v4-focus-ring"
-                >
-                  {fetching ? (
-                    <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden />
-                  ) : (
-                    <RiDownload2Line size={ICON.micro} aria-hidden />
-                  )}
-                  {fetching
-                    ? t(FETCH_STEP_KEYS.find((s) => s.id === fetchStage)?.key ?? "overlays:capture.fetchFetching")
-                    : t("overlays:capture.fetchFetchLabel")}
-                </button>
-              </Tooltip>
-            ) : null}
           </div>
         </div>
       ) : null}
@@ -807,7 +787,7 @@ export function CaptureForm({
           data-capture-ai-busy
           aria-valuetext={t("overlays:capture.aiPolishing")}
         >
-          <div className="h-full w-1/3 v4-ai-progress-slide rounded-full bg-accent-color/50" />
+          <div className="h-full w-1/3 v4-ai-progress-slide rounded-full bg-accent-color" />
         </div>
       ) : null}
 

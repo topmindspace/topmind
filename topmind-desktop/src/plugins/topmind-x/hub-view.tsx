@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   RiArrowRightSLine,
+  RiCheckLine,
   RiLoader4Line,
   RiRefreshLine,
   RiSearchLine,
@@ -30,7 +31,10 @@ import { intlLocale } from "../../locales";
 import {
   ConnectorHubHeader,
   ConnectorStatusPill,
-  AppCheckbox, ConnectorToastBanner, ListRow,
+  AppCheckbox,
+  ConnectorCard,
+  ConnectorToastBanner,
+  ListRow,
 } from "../connector-ui";
 
 export function createXHubView(_ctx: PluginContext): ViewSlot {
@@ -135,7 +139,7 @@ function XHubView() {
       setSelected(new Set(list.map((_, i) => i)));
       if (list.length === 0) flash(t("hub.noTweetsFound", { label }));
     } catch (e) {
-      flash(`✗ ${e instanceof Error ? e.message : String(e)}`);
+      flash(e instanceof Error ? e.message : String(e));
     } finally {
       setFetching(false);
     }
@@ -171,7 +175,7 @@ function XHubView() {
       flash(t("hub.archiveToast", { mode: modeLabel, count: res.count ?? picked.length, path: res.path }));
       if (res.path) select({ kind: "file", path: res.path });
     } catch (e) {
-      flash(`✗ ${e instanceof Error ? e.message : String(e)}`);
+      flash(e instanceof Error ? e.message : String(e));
     } finally {
       setArchiving(false);
     }
@@ -191,7 +195,7 @@ function XHubView() {
       flash(res.tweetId ? t("hub.postedToast", { id: res.tweetId }) : t("hub.postedOkToast"));
       setPostText("");
     } catch (e) {
-      flash(`✗ ${e instanceof Error ? e.message : String(e)}`);
+      flash(e instanceof Error ? e.message : String(e));
     } finally {
       setPosting(false);
     }
@@ -248,6 +252,28 @@ function XHubView() {
         }
       />
 
+      <div
+        className="mb-4 grid gap-[var(--density-content-gap)] sm:grid-cols-2"
+        data-connector-capabilities
+      >
+        <ConnectorCard
+          icon={<RiSearchLine size={ICON.sm} />}
+          title={t("hub.canRead")}
+          status={<ConnectorStatusPill ok={canRead} okLabel={t("hub.canRead")} badLabel={t("hub.cannotRead")} />}
+        />
+        <ConnectorCard
+          icon={<RiSendPlane2Line size={ICON.sm} />}
+          title={t("hub.canPost")}
+          status={
+            <ConnectorStatusPill
+              ok={canPost}
+              okLabel={t("hub.canPost")}
+              badLabel={t("hub.cannotPost")}
+              badTone="muted"
+            />
+          }
+        />
+      </div>
       <ConnectorToastBanner result={toast} />
 
       <section className="mb-6">
@@ -353,7 +379,7 @@ function XHubView() {
                         : "border-border-subtle text-transparent",
                     )}
                   >
-                    ✓
+                    <RiCheckLine size={ICON.micro} aria-hidden />
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="text-3xs font-medium text-text-tertiary">

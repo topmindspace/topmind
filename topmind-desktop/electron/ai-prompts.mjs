@@ -45,6 +45,8 @@ function promptCopy(locale) {
       topic: (t) => `Topic: ${t}`,
       open: (p) => `Active open document: ${p} (default target for pronouns like "this note", "current file", "section 2", "the conclusion" unless explicitly specified. Read first via read_file if unread or truncated)`,
       focus: (h) => `Focus: ${h}`,
+      queryHint: (tools) =>
+        `This turn is a workspace lookup. Call ${tools.map((x) => `\`${x}\``).join(" / ")} FIRST and answer from the tool results — do not answer from general knowledge about AI memory or systems.`,
       contextSection: "## Workspace context (pre-loaded — no need to list_categories / read profile again)",
       categoriesOverview: "### Categories overview",
       mySituation: "### My profile",
@@ -67,13 +69,18 @@ function promptCopy(locale) {
         "### Skills",
         "- `list_skills` / `load_skill` / `load_skill_resource`: skill discovery and activation (routing entry)",
         "### Capture",
-        "- `capture_to_inbox`: quick note (default stream period file; forceInbox→inbox; forceAtom→single file)",
-        "- `fetch_url`: fetch page body → Markdown (render=true for SPA)",
+        "- `capture_to_inbox`: quick note (default stream period file; forceInbox→inbox; forceAtom→single file). For a follow-up under an existing entry use `append_stream_entry` (增补).",
+        "- `web_search`: web search (no key) → title/url/snippet shortlist. For current facts, docs, news. Then `fetch_url` the best hits and cite source URLs.",
+        "- `fetch_url`: fetch page body → Markdown (render=true for SPA). Returns title/url/canonical — keep as source receipts",
+        "- `capture_url`: one-shot fetch + save into workspace (source URL + title attached). Use to archive research pages.",
         "### Browse",
         "- `workspace_overview`: full picture in one call (categories + inbox + stream + outputs), fewer list calls",
         "- `list_categories` / `list_topics` / `list_topic_files` / `get_topic`: hierarchical browse (read topic.md first for topics)",
         "- `list_inbox` / `list_outputs`: inbox and delivery items",
         "- `list_todos`: read personal todo list (memory/todo.md); completed=true for full list",
+        "- `list_recent_memories`: recent memory entries (profile facts · periodic reflections · topic memories). Use for 'recent memories / what's in my profile' — do not guess memory/ paths.",
+        "- `list_recent_stream`: recent stream entries (period notes). Use for 'what did I log recently'. To comment under an entry use `append_stream_entry`.",
+        "- `list_pending_writes`: writes awaiting user confirm (confirm-mode delete/archive).",
         "- `list_files` / `glob_files` / `stat_path`: directory listing / glob find / path stat (all planes: content, memory/, .topmind/)",
         "### Read",
         "- `read_file`: paginated numbered read (offset+limit, default 400). Mid-file: around=phrase or heading=. Check truncated/note. encoding= force-decodes binary-ish text.",
@@ -86,7 +93,7 @@ function promptCopy(locale) {
         "- `create_dir` / `copy_file`: mkdir (write gate) and in-workspace copy (refuses existing dest unless overwrite=true)",
         "- `capture_to_inbox` / `move_to_topic` / `publish_to_outputs`: flow between surfaces",
         "- `append_topic_memory`: topic-home stable memory (only when the user is explicit)",
-        "- `add_todo` / `toggle_todo`: atomically add or toggle completion status for personal todos (syncs to stream)",
+        "- `add_todo` / `toggle_todo` / `update_todo` / `set_todo_due` / `delete_todo`: personal todos (syncs to stream). Prefer toggle-to-done over delete.",
         "### Memory (My profile — not append-only)",
         "- New stable fact: `append_core_memory` (deduped across live sections; never a second live duplicate)",
         "- Changed fact: `update_core_memory` (in place; do not append a second live line)",
@@ -129,6 +136,7 @@ function promptCopy(locale) {
         "## Quality",
         "- Ask less, do more; reasonable defaults are fine to act on",
         "- Do not invent unread files; do not restate full skill bodies",
+        "- **Never invent personal todos / memories / stream entries.** If the user asks about their tasks, memories, or recent notes and no query evidence is inlined above, call `list_todos` / `list_recent_memories` / `list_recent_stream` first. Answer from tool output only.",
         "- Before write/delete, state the goal in one sentence",
         "- Mid-turn instructions take priority; be concise in English",
         "- User-visible reply is the answer only — do not dump chain-of-thought, <think> blocks, or process narration as the body",
@@ -151,6 +159,8 @@ function promptCopy(locale) {
     topic: (t) => `专题: ${t}`,
     open: (p) => `当前打开的活跃文档: ${p}（若用户使用代词如“这篇笔记”、“当前文件”、“第二段”、“结论”或未指定路径，默认操作目标即为此文档；若未读取或已截断，修改前必须先用 read_file 查看）`,
     focus: (h) => `焦点: ${h}`,
+    queryHint: (tools) =>
+      `本轮是工作区查询。先调用 ${tools.map((x) => `\`${x}\``).join(" / ")}，用工具返回的真实条目回答——不要用训练知识里的「AI 记忆/系统原理」作答。`,
     contextSection: "## 工作区上下文（已预加载，无需再 list_categories / read profile）",
     categoriesOverview: "### 类别概览",
     mySituation: "### 我的情况",
@@ -173,13 +183,18 @@ function promptCopy(locale) {
       "### Skills",
       "- `list_skills` / `load_skill` / `load_skill_resource`：技能发现与激活（路由起点）",
       "### 收集",
-      "- `capture_to_inbox`：记一下（默认动态周期本；forceInbox→Inbox；forceAtom→单文件）",
-      "- `fetch_url`：抓网页正文→Markdown（render=true 增强 SPA）",
+      "- `capture_to_inbox`：记一下（默认动态周期本；forceInbox→Inbox；forceAtom→单文件）。对已有条目续写（增补）用 `append_stream_entry`。",
+      "- `web_search`：网络搜索（无需 Key）→ 标题/链接/摘要短列表。查最新事实、文档、新闻用它；命中后用 `fetch_url` 取全文并保留 URL 作来源。",
+      "- `fetch_url`：抓网页正文→Markdown（render=true 增强 SPA）。返回 title/url/canonical——保留为来源回执",
+      "- `capture_url`：一键抓取并入库（带 source URL + 标题）。研究沉淀用它。",
       "### 浏览",
       "- `workspace_overview`：一次获取全貌（类别+Inbox+动态+交付），减少多次 list 调用",
       "- `list_categories` / `list_topics` / `list_topic_files` / `get_topic`：层级浏览（专题先读 topic.md）",
       "- `list_inbox` / `list_outputs`：Inbox 与交付物",
       "- `list_todos`：读取个人待办清单（memory/todo.md）；completed=true 可查全部（含已完成）",
+      "- `list_recent_memories`：列出「我的情况」最近记忆（画像活跃事实 · 周期反思 · 专题记忆）。问「最近的记忆 / 我的情况里有什么」用它，不要猜 memory/ 路径。",
+      "- `list_recent_stream`：列出动态最近条目（周期本）。问「最近记了什么 / 动态里有什么」用它；对某条续写用 `append_stream_entry`（增补）。",
+      "- `list_pending_writes`：列出待确认写入（confirm 模式挂起的删除/归档）。",
       "- `list_files` / `glob_files` / `stat_path`：列目录 / glob 找文件 / 路径元信息（内容、memory/、.topmind/ 全平面可读）",
       "### 读取",
       "- `read_file`：带行号分页读（offset+limit，默认400行）。中段用 around=短语 或 heading=。先看 truncated/note；encoding= 可容错解码二进制友好文本",
@@ -192,7 +207,7 @@ function promptCopy(locale) {
       "- `create_dir` / `copy_file`：建目录（写闸）与工作区内复制（目标已存在时拒绝，除非 overwrite=true）",
       "- `capture_to_inbox` / `move_to_topic` / `publish_to_outputs`：流转",
       "- `append_topic_memory`：专题首页稳定记忆（仅用户明确时）",
-      "- `add_todo` / `toggle_todo`：原子化添加或切换个人待办（支持截止日期，完成自动打勾并同步到动态周期本）",
+      "- `add_todo` / `toggle_todo` / `update_todo` / `set_todo_due` / `delete_todo`：个人待办全生命周期（完成自动打勾并同步动态）。优先 toggle 完成，不轻易 delete。",
       "### 记忆（我的情况 — 不是只追加）",
       "- 新稳定事实：`append_core_memory`（跨活跃段落去重；禁止第二条活事实）",
       "- 已有事实含义变了：`update_core_memory`（原位更新；不要再 append 一行）",
@@ -235,6 +250,7 @@ function promptCopy(locale) {
       "## 质量",
       "- 少问多做；合理默认即可动手",
       "- 不臆测未读文件；不复述 skill 全文",
+      "- **禁止编造个人待办/记忆/动态条目。**用户问任务、记忆、最近记了什么时，若上方没有「工作区查询证据」，必须先调 `list_todos` / `list_recent_memories` / `list_recent_stream`，只根据工具返回回答。",
       "- 写/删前一句话说明目标",
       "- 中途指示优先遵从；中文简洁",
       "- 用户可见正文只写结论，不要把思考过程、<think>、推理围栏当回复正文",
@@ -278,6 +294,9 @@ export function buildSystemPrompt(opts = {}) {
     activeSkillId,
     focusPath,
     focusHint,
+    queryHint,
+    queryEvidence,
+    turnKind,
     workspaceOverview,
     memoryProfile,
     topicContext,
@@ -307,6 +326,12 @@ export function buildSystemPrompt(opts = {}) {
   }
   if (focusPath) parts.push(P.open(focusPath));
   if (focusHint && !focusPath) parts.push(P.focus(focusHint));
+  if (queryHint && Array.isArray(queryHint) && queryHint.length) {
+    parts.push(P.queryHint(queryHint));
+  }
+  if (queryEvidence && typeof queryEvidence === "string" && queryEvidence.trim()) {
+    parts.push("", queryEvidence);
+  }
 
   // Single policy string — Model B only (see writeback-mode-copy.mjs)
   parts.push(describeWritebackModeForPrompt(writebackMode, locale));
@@ -379,7 +404,23 @@ export function buildSystemPrompt(opts = {}) {
           if (/list_skills|load_skill/u.test(line)) return false;
           return true;
         });
-  parts.push(...toolsLines);
+  // Progressive exposure: query turns only need read tools; light turns skip
+  // the whole catalog (a greeting is not a tool call).
+  const filteredTools = turnKind === "light"
+    ? []
+    : turnKind === "query"
+      ? toolsLines.filter((line) => {
+          if (/^###\s*Skills\b/u.test(line)) return true;
+          if (/^###\s*Write\b|^###\s*写入/u.test(line)) return false;
+          if (/^###\s*Memory\b|^###\s*记忆/u.test(line)) return false;
+          // Drop write-tool bullets that slip under read headings.
+          if (/`(?:save_|edit_file|create_|capture_|append_|delete_|rename_|move_|publish_|retire_|update_core|restore_|compact_|reconcile_|add_todo|toggle_todo|set_todo)/u.test(line)) {
+            return false;
+          }
+          return true;
+        })
+      : toolsLines;
+  parts.push(...filteredTools);
   parts.push("", buildGoalProtocolPrompt(resolvePromptLocale(locale)));
   parts.push(outputLanguagePolicy(locale, outputLocale));
 

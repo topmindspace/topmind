@@ -78,7 +78,7 @@ export function LoopReport() {
           <div className="flex flex-col items-center gap-2 py-10 text-center">
             <RiCheckboxCircleLine size={ICON.lg} className="text-success" />
             <div className="text-sm font-medium text-text-secondary">{t("overlays:loop.allClear")}</div>
-            <p className="max-w-xs text-3xs leading-relaxed text-text-quaternary">
+            <p className="max-w-xs text-xs leading-relaxed text-text-quaternary">
               {t("overlays:loop.allClearHint")}
             </p>
           </div>

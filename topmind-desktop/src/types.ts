@@ -268,6 +268,10 @@ goal?: {
   status: string;
   blockReason?: string | null;
   autoContinues: number;
+  /** Turn layer — "light" hides goal ceremony (chip / footer). */
+  kind?: "light" | "query" | "task";
+  /** External source URLs (research citations). */
+  sourceUrls?: string[];
   /** Plan snapshot at first sight (or at pause) for Run Card plan-diff chips. */
   planBaseline?: string[];
   /** Honesty footer: real check evidence (tests/commands). Never invent. */
@@ -275,6 +279,17 @@ goal?: {
   /** Honesty footer: unverified premises. Never invent. */
   assumptions?: string[];
 } | null;
+/**
+ * Finite clarifying choices (Cue ChoiceCard register). Present only when the
+ * assistant offers a clearly-scoped option set — open follow-ups stay plain text.
+ */
+choices?: Array<{
+  id: string;
+  label: string;
+  description?: string;
+}>;
+/** Choices are multi-select (default single + confirm). */
+choicesMultiple?: boolean;
 }
 export interface AiRuntimeStatus {
   ready: boolean;

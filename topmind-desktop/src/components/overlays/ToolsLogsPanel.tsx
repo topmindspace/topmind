@@ -109,6 +109,9 @@ export function ToolsLogsPanel() {
   const [health, setHealth] = useState<Health | null>(null);
   const [ops, setOps] = useState<OpsEntry[]>([]);
   const [syslog, setSyslog] = useState<SysEntry[]>([]);
+  // Logs are append-ordered; reverse once per data change, not every render.
+  const opsNewestFirst = useMemo(() => [...ops].reverse(), [ops]);
+  const syslogNewestFirst = useMemo(() => [...syslog].reverse(), [syslog]);
   const [sysLevel, setSysLevel] = useState<string>("");
   const [care, setCare] = useState<CarePreview | null>(null);
   const [dupes, setDupes] = useState<DupGroup[]>([]);
@@ -313,11 +316,11 @@ export function ToolsLogsPanel() {
                 <span className="break-words">{error}</span>
                 <button
                   type="button"
-                  className="ml-2 font-medium underline v4-focus-ring"
+                  className="ml-2 inline-flex items-center text-text-secondary transition-colors hover:text-text-primary v4-focus-ring"
                   onClick={() => setError(null)}
                   aria-label={t("common:action.close")}
                 >
-                  ×
+                  <RiCloseLine size={ICON.xs} />
                 </button>
               </div>
             ) : null}
@@ -417,7 +420,7 @@ export function ToolsLogsPanel() {
                 <Empty text={t("toolsLogs.ops.empty")} />
               ) : (
                 <ul className="divide-y divide-border-subtle-dim rounded-md border border-border-subtle">
-                  {[...ops].reverse().map((e, i) => (
+                  {opsNewestFirst.map((e, i) => (
                     <li key={`${e.ts}-${i}`} className="flex items-start gap-2 px-2.5 py-2 text-3xs">
                       <span className={cn("mt-0.5 shrink-0", e.ok === false ? "text-error" : "text-success")}>
                         {e.ok === false ? <RiErrorWarningLine size={ICON.micro} /> : <RiCheckboxCircleLine size={ICON.micro} />}
@@ -480,7 +483,7 @@ export function ToolsLogsPanel() {
                 <Empty text={t("toolsLogs.sys.empty")} />
               ) : (
                 <ul className="space-y-1 font-mono text-3xs">
-                  {[...syslog].reverse().map((e, i) => (
+                  {syslogNewestFirst.map((e, i) => (
                     <li key={`${e.ts}-${i}`} className="flex gap-2 rounded px-1.5 py-0.5 hover:bg-state-hover">
                       <span className="shrink-0 text-text-quaternary">{String(e.ts || "").slice(11, 19)}</span>
                       <span

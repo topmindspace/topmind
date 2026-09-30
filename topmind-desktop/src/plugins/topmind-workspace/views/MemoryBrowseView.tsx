@@ -28,6 +28,8 @@ import {
 } from "../../../components/ui/view";
 import { TitleBarActions } from "../../../lib/chrome-portal";
 import { useTitleBarChrome } from "../../../lib/titlebar-chrome";
+import { ProactiveSuggestStrip } from "../../../components/workspace/ProactiveSuggestStrip";
+import { openSuggestSurface } from "../../../lib/suggest-surface";
 import { Button } from "../../../components/ui/Button";
 import { ICON } from "../../../lib/icons";
 import { cn } from "../../../lib/kit";
@@ -274,9 +276,11 @@ export function MemoryBrowseView() {
         </Tooltip>
       </TitleBarActions>
 
+      <ProactiveSuggestStrip onOpenAll={() => openSuggestSurface()} />
+
       <FeedColumn>
         <FeedChrome>
-          <div className="flex min-w-0 flex-wrap items-center gap-1" role="tablist" aria-label={t("workspace:memoryBrowse.layerFilter")}>
+          <div className="flex min-w-0 flex-wrap items-center gap-1" role="group" aria-label={t("workspace:memoryBrowse.layerFilter")}>
             <FilterChip
               active={layer === "all"}
               label={t("workspace:memoryBrowse.layerAll")}
@@ -404,11 +408,11 @@ export function MemoryBrowseView() {
                         <h2 className="truncate text-sm font-medium text-text-primary">{item.title}</h2>
                       )}
                       {item.heading && item.heading !== item.title ? (
-                        <span className="rounded-[var(--radius-xs)] bg-surface-muted px-1.5 py-px text-3xs text-text-tertiary">
+                        <span className="rounded-[var(--radius-xs)] bg-surface-wash-30 px-1.5 py-px text-3xs text-text-tertiary">
                           {item.heading}
                         </span>
                       ) : null}
-                      <span className="rounded-[var(--radius-xs)] bg-surface-muted px-1.5 py-px text-3xs text-text-quaternary">
+                      <span className="rounded-[var(--radius-xs)] bg-surface-wash-30 px-1.5 py-px text-3xs text-text-quaternary">
                         {kindText}
                       </span>
                       {item.history && item.kind === "profile" ? (
@@ -416,7 +420,7 @@ export function MemoryBrowseView() {
                           type="button"
                           data-memory-restore
                           disabled={restoringId === item.id}
-                          className="rounded-[var(--radius-xs)] bg-surface-muted px-1.5 py-px text-3xs text-text-secondary hover:text-text-primary v4-focus-ring"
+                          className="rounded-[var(--radius-xs)] bg-surface-wash-30 px-1.5 py-px text-3xs text-text-secondary hover:text-text-primary v4-focus-ring"
                           onClick={(e) => void handleRestore(item, e)}
                         >
                           {restoringId === item.id

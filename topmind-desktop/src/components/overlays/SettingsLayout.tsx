@@ -1,6 +1,6 @@
 import { useId, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { RiCheckLine, RiCloseLine, RiLoader4Line } from "@remixicon/react";
+import { RiCheckLine, RiCloseLine, RiLoader4Line, RiUserLine } from "@remixicon/react";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
 import { Button } from "../ui/Button";
 import { Tooltip } from "../ui/tooltip";
@@ -133,17 +133,30 @@ export function SettingsLayout({
     >
       <Tabs value={activeTab} onValueChange={onTabChange} className="flex w-full min-h-0">
         <TabsList
-          className="v4-sidebar-scroll v4-settings-nav m-2.5 mr-0 flex h-auto w-[clamp(9.5rem,20vw,12.5rem)] min-w-0 shrink-0 flex-col items-stretch gap-0.5 self-stretch overflow-y-auto rounded-[var(--radius-lg)] border border-border-subtle-dim bg-app-chrome p-1.5 shadow-none ring-0"
+          className="v4-sidebar-scroll v4-settings-nav m-2.5 mr-0 flex h-auto w-[clamp(11rem,22vw,14rem)] min-w-0 shrink-0 flex-col items-stretch gap-1 self-stretch overflow-y-auto rounded-[var(--radius-card)] bg-surface-wash-15 p-2 shadow-none ring-0"
           data-settings-nav
         >
-          <div className="mb-1.5 shrink-0 px-0.5">
+          <div className="mb-2 shrink-0 px-1.5 pt-1">
+            <div className="flex items-center gap-2.5 rounded-[var(--radius-lg)] px-1.5 py-2">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-bg-subtle text-accent-color">
+                <RiUserLine size={ICON.sm} aria-hidden />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-semibold tracking-tight text-text-primary">
+                  {t("settings:nav.workspaceLabel", { defaultValue: "工作区" })}
+                </div>
+                <div className="truncate text-3xs text-text-tertiary">
+                  {t("settings:nav.productTier", { defaultValue: "TopMind Desktop" })}
+                </div>
+              </div>
+            </div>
             <input
               type="search"
               value={navQuery}
               onChange={(e) => setNavQuery(e.target.value)}
               placeholder={t("settings:filterPlaceholder")}
               aria-label={t("settings:filterLabel")}
-              className="h-7 w-full rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface px-2 text-3xs text-text-primary placeholder:text-text-quaternary focus-visible:border-accent-color v4-focus-ring"
+              className="mt-1.5 h-8 w-full rounded-full border border-border-subtle-dim bg-surface px-3 text-xs text-text-primary placeholder:text-text-quaternary focus-visible:border-accent-color v4-focus-ring"
             />
           </div>
           {navItems.length === 0 ? (
@@ -162,9 +175,9 @@ export function SettingsLayout({
                 <TabsTrigger
                   key={item.tab.id}
                   value={item.tab.id}
-                  className="h-8 min-w-0 justify-start gap-1.5 overflow-hidden rounded-[var(--radius-md)] px-2 text-3xs text-text-secondary data-[state=active]:bg-accent-container data-[state=active]:font-semibold data-[state=active]:text-on-accent-container data-[state=active]:shadow-[var(--shadow-card)] data-[state=active]:ring-1 data-[state=active]:ring-border-subtle-dim"
+                  className="h-9 min-w-0 justify-start gap-2 rounded-[var(--radius-lg)] px-2.5 text-xs text-text-secondary data-[state=active]:bg-surface-elevated data-[state=active]:font-medium data-[state=active]:text-text-primary data-[state=active]:shadow-[var(--shadow-card)] data-[state=active]:ring-0"
                 >
-                  <item.tab.icon size={ICON.xs} className="shrink-0 opacity-70" aria-hidden />
+                  <item.tab.icon size={ICON.sm} className="shrink-0 opacity-80" aria-hidden />
                   <span className="min-w-0 flex-1 truncate text-left">{item.tab.label}</span>
                 </TabsTrigger>
               ),
@@ -174,17 +187,17 @@ export function SettingsLayout({
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-l border-border-subtle-dim bg-surface-elevated">
           <div
-            className="flex shrink-0 items-center justify-between gap-3 border-b border-border-subtle-dim bg-[var(--color-dialog-header)] px-5 py-3"
+            className="flex shrink-0 items-center justify-between gap-3 border-b border-border-subtle-dim bg-surface-elevated px-5 py-3.5"
             data-settings-header
           >
             <div className="min-w-0">
               <div className="flex items-center gap-1">
-                <h2 id={titleId} className="truncate text-sm font-semibold tracking-tight text-text-primary">
+                <h2 id={titleId} className="truncate text-base font-semibold tracking-tight text-text-primary">
                   {activeMeta?.label || t("settings:title")}
                 </h2>
                 {pageHelp ? <HelpTip content={pageHelp} /> : null}
               </div>
-              <p className="mt-0.5 truncate text-3xs leading-snug text-text-quaternary">{pageDesc}</p>
+              <p className="mt-0.5 truncate text-xs leading-snug text-text-tertiary">{pageDesc}</p>
             </div>
             <div className="flex shrink-0 items-center gap-1.5">
               {saving ? (

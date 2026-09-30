@@ -8,8 +8,8 @@
  *   text-xs  13px  — form controls + content floor
  *   text-sm  14px  — UI body, list primary
  *   text-base 15px — reading body
- *   text-lg  16px  — list page titles
- *   text-3xl 24px  — rare display moments
+ *   text-lg  16px  — panel titles
+ *   text-3xl 24px  — content hero titles (ViewHero)
  */
 import { createContext, useContext, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -29,6 +29,47 @@ const CollectionLayoutContext = createContext<FeedLayout>("list");
 
 export function useCollectionLayout(): FeedLayout {
   return useContext(CollectionLayoutContext);
+}
+
+/**
+ * ViewHero — Muse content-page register: large quiet title + optional lede.
+ *
+ * Identity and product actions still live in TitleBar; this is the content
+ * surface's own breathing header (no command bar, no second nav).
+ */
+export function ViewHero({
+  title,
+  subtitle,
+  meta,
+  actions,
+  className,
+}: {
+  title: ReactNode;
+  subtitle?: ReactNode;
+  meta?: ReactNode;
+  actions?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <header className={cn("mb-[var(--density-content-section)]", className)} data-view-hero>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-3xl font-semibold tracking-tight text-text-primary break-words">{title}</h1>
+          {subtitle ? (
+            <p className="mt-1.5 max-w-prose text-sm leading-relaxed text-text-tertiary">
+              {subtitle}
+            </p>
+          ) : null}
+          {meta ? (
+            <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-3xs text-text-quaternary">
+              {meta}
+            </div>
+          ) : null}
+        </div>
+        {actions ? <div className="flex shrink-0 items-center gap-1.5">{actions}</div> : null}
+      </div>
+    </header>
+  );
 }
 
 /** Centered content column with density rhythm. */
@@ -81,7 +122,7 @@ export function PageHeader({
               {icon}
             </span>
           ) : null}
-          {/* Page titles: one step above list body for hierarchy (DS 4.0 type role) */}
+          {/* Content-page titles use ViewHero (24px). PageHeader stays for panels. */}
           <h1 className="truncate text-xl font-semibold tracking-tight text-text-primary">{title}</h1>
         </div>
         {actions ? (
@@ -91,7 +132,7 @@ export function PageHeader({
         ) : null}
       </div>
       {subtitle ? (
-        <p className={cn("mt-1 max-w-prose text-3xs leading-relaxed text-text-tertiary", icon && "pl-9")}>
+        <p className={cn("mt-1 max-w-prose text-xs leading-relaxed text-text-tertiary", icon && "pl-9")}>
           {subtitle}
         </p>
       ) : null}
@@ -119,7 +160,7 @@ export function SectionHeader({
         {icon ? <span className="opacity-70">{icon}</span> : null}
         <span>{label}</span>
         {typeof count === "number" ? (
-          <span className="rounded-[var(--radius-xs)] bg-surface-muted px-1.5 py-px text-3xs tabular-nums text-text-quaternary">
+          <span className="rounded-[var(--radius-xs)] bg-surface-wash-30 px-1.5 py-px text-3xs tabular-nums text-text-quaternary">
             {count}
           </span>
         ) : null}
@@ -153,11 +194,11 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center border border-border-subtle-dim bg-surface/80 text-center",
-        "shadow-[var(--elevation-1,var(--shadow-card))]",
+        "flex flex-col items-center bg-surface text-center",
+        "shadow-[var(--shadow-card)]",
         compact
-          ? "rounded-[var(--radius-lg)] px-3 py-5"
-          : "rounded-[var(--radius-card,var(--radius-xl))] px-5 py-8",
+          ? "rounded-[var(--radius-card)] px-3 py-5"
+          : "rounded-[var(--radius-card)] px-6 py-10",
         className,
       )}
       role="status"
@@ -165,8 +206,8 @@ export function EmptyState({
       {icon ? (
         <div
           className={cn(
-            "v4-icon-chip mb-2 flex items-center justify-center rounded-full text-text-tertiary",
-            compact ? "h-8 w-8" : "mb-2.5 h-9 w-9",
+            "mb-3 flex items-center justify-center rounded-full bg-surface-wash-30 text-text-tertiary",
+            compact ? "h-9 w-9" : "h-12 w-12",
           )}
           aria-hidden
         >
@@ -176,7 +217,7 @@ export function EmptyState({
       <div
         className={cn(
           "font-medium tracking-tight text-text-primary",
-          compact ? "text-3xs" : "text-sm",
+          compact ? "text-xs" : "text-base",
         )}
       >
         {title}
@@ -185,14 +226,14 @@ export function EmptyState({
         <div
           className={cn(
             "mt-1.5 leading-relaxed text-text-tertiary",
-            compact ? "max-w-[14rem] text-3xs" : "max-w-xs text-xs",
+            compact ? "max-w-[14rem] text-xs" : "max-w-sm text-sm",
           )}
         >
           {hint}
         </div>
       ) : null}
       {action ? (
-        <div className={cn("flex flex-wrap justify-center gap-2", compact ? "mt-2.5" : "mt-3.5")}>
+        <div className={cn("flex flex-wrap justify-center gap-2", compact ? "mt-2.5" : "mt-4")}>
           {action}
         </div>
       ) : null}
@@ -233,7 +274,7 @@ export function FilterChip({
   );
 }
 
-/** Shared loading state. */
+/** Shared loading state — quiet spinner chip (Muse calm register). */
 export function LoadingState({ label, className }: { label?: string; className?: string }) {
   const { t } = useTranslation("common");
   const displayLabel = label ?? t("action.loading");
@@ -246,13 +287,15 @@ export function LoadingState({ label, className }: { label?: string; className?:
       role="status"
       aria-live="polite"
     >
-      <RiLoader4Line size={ICON.sm} className="animate-spin text-accent-color" />
+      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-wash-30">
+        <RiLoader4Line size={ICON.sm} className="animate-spin text-text-tertiary" />
+      </span>
       <span>{displayLabel}</span>
     </div>
   );
 }
 
-/** Shared error state with optional retry. */
+/** Shared error state with optional retry — soft card, not a red alert bar. */
 export function ErrorState({
   message,
   onRetry,
@@ -266,18 +309,20 @@ export function ErrorState({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-2.5 rounded-[var(--radius-lg)] border border-border-subtle-dim bg-status-error-bg px-4 py-3 text-sm text-error",
+        "flex flex-wrap items-center gap-2.5 rounded-[var(--radius-card)] bg-status-error-bg px-4 py-3 text-sm text-error shadow-[var(--shadow-card)]",
         className,
       )}
       role="alert"
     >
-      <RiErrorWarningLine size={ICON.sm} className="shrink-0" />
-      <span className="min-w-0 flex-1 text-3xs leading-relaxed">{t("action.loadFailed", { message })}</span>
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface/60">
+        <RiErrorWarningLine size={ICON.sm} className="shrink-0" />
+      </span>
+      <span className="min-w-0 flex-1 text-xs leading-relaxed">{t("action.loadFailed", { message })}</span>
       {onRetry ? (
         <button
           type="button"
           onClick={onRetry}
-          className="shrink-0 rounded-[var(--radius-md)] border border-border-subtle bg-surface px-2.5 py-1 text-3xs font-medium text-text-secondary transition-colors hover:bg-state-hover hover:text-text-primary"
+          className="shrink-0 rounded-[var(--radius-md)] border border-border-subtle bg-surface px-2.5 py-1 text-xs font-medium text-text-secondary transition-colors hover:bg-state-hover hover:text-text-primary"
         >
           {t("action.retry")}
         </button>
@@ -292,6 +337,36 @@ export function MetaText({ children, className }: { children: ReactNode; classNa
     <span className={cn("whitespace-nowrap font-mono text-3xs tabular-nums text-text-tertiary", className)}>
       {children}
     </span>
+  );
+}
+
+/**
+ * RowActions — hover/focus-reveal action cluster (Muse message-actions register).
+ *
+ * Parent row should carry `group/row`. Touch devices keep actions visible.
+ * Keep the cluster to icon buttons; never put a solid primary here.
+ */
+export function RowActions({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex shrink-0 items-center gap-0.5",
+        "pointer-events-none opacity-0 transition-opacity",
+        "group-hover/row:pointer-events-auto group-hover/row:opacity-100",
+        "group-focus-within/row:pointer-events-auto group-focus-within/row:opacity-100",
+        "focus-within:pointer-events-auto focus-within:opacity-100",
+        "[@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100",
+        className,
+      )}
+    >
+      {children}
+    </div>
   );
 }
 
@@ -360,7 +435,7 @@ export function FileRow({
               "v4-row-focus group/row flex items-start justify-between gap-2 text-sm",
               "transition-[background-color,box-shadow] duration-[var(--duration-fast)] ease-[var(--ease-default)]",
               onClick && "cursor-pointer v4-focus-ring",
-              active && "ring-1 ring-inset ring-accent-color/25",
+              active && "ring-1 ring-inset ring-accent-border-subtle",
               className,
             )
           : listRowClass(

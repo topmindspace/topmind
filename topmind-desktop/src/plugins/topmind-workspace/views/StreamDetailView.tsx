@@ -16,7 +16,6 @@ import {
   RiChatAiLine,
   RiFileTextLine,
   RiInboxArchiveLine,
-  RiLink,
   RiLoader4Line,
   RiSortDesc,
   RiRefreshLine,
@@ -29,6 +28,7 @@ import { emitLocal, onLocal } from "../../../plugins/host";
 import { useViewStore } from "../../../stores/view-store";
 import {
   ViewContainer,
+  ViewHero,
   EmptyState,
   LoadingState,
   ErrorState,
@@ -41,7 +41,8 @@ import { useTitleBarChrome } from "../../../lib/titlebar-chrome";
 import { Button } from "../../../components/ui/Button";
 import { ConfirmDialog } from "../../../components/ui/Dialog";
 import { LedgerQuickEntry, looksLikeLedgerText } from "../../../components/overlays/LedgerQuickEntry";
-import { classifyCaptureUrlKind, urlKindLabelKey } from "../../../components/overlays/quick-capture-helpers";
+import { LinkCaptureCard } from "../../../components/overlays/CapturePreview";
+import { buildFetchMarkdown } from "../../../components/overlays/quick-capture-helpers";
 import { getCachedSettings, setCachedSettings } from "../../../lib/settings-cache";
 import { Tooltip } from "../../../components/ui/tooltip";
 import { ICON } from "../../../lib/icons";
@@ -71,6 +72,7 @@ import {
   remapExpandedIndices,
 } from "../../../lib/stream-feed-stability";
 import { openSuggestSurface } from "../../../lib/suggest-surface";
+import { ProactiveSuggestStrip } from "../../../components/workspace/ProactiveSuggestStrip";
 import { ChromeOverflowActions, type ChromeAction } from "../../../lib/chrome-overflow";
 import { runOrganizeWeek } from "../../../lib/organize-week";
 import { polishComposerText } from "../../../lib/ai-polish-text";
@@ -194,11 +196,11 @@ const StreamFeedRowView = memo(function StreamFeedRowView({
             <div className="flex items-start gap-2">
               <RiFileTextLine size={ICON.xs} className="mt-0.5 shrink-0 text-accent-color" aria-hidden />
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-semibold tracking-tight text-text-primary">
+                <div className="truncate text-sm font-semibold tracking-tight text-text-primary" title={typeof title === "string" ? title : undefined}>
                   {title}
                 </div>
                 {summary ? (
-                  <div className="mt-0.5 line-clamp-2 text-3xs leading-relaxed text-text-tertiary">
+                  <div className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-text-tertiary">
                     {summary}
                   </div>
                 ) : null}
@@ -326,7 +328,7 @@ const StreamFeedRowView = memo(function StreamFeedRowView({
             <span
               className={cn(
                 "h-1 w-1 shrink-0 rounded-full",
-                isToday ? "bg-accent-color/70" : "bg-text-quaternary/40",
+                isToday ? "bg-accent-color" : "bg-status-neutral",
               )}
               aria-hidden
             />
@@ -590,7 +592,7 @@ function StreamPeriodChip({
         "inline-flex h-(--control-h-chip) max-w-36 items-center truncate rounded-[var(--radius-xs)] px-2 text-3xs font-medium leading-none transition-colors",
         isActive
           ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
-          : "bg-surface-muted text-text-tertiary hover:bg-state-hover hover:text-text-secondary",
+          : "bg-surface-wash-15 text-text-tertiary hover:bg-state-hover hover:text-text-secondary",
       )}
       title={p.reconciled ? name : `${name} · ${unreconciledLabel}`}
     >
@@ -633,6 +635,142 @@ const appendDrafts = new Map<string, string>();
 const appendDraftKey = (period: string | null | undefined, heading?: string | null) =>
   `${period ?? ""}#${heading ?? ""}`;
 
+/**
+ * Feed body — memoized so compose-box typing in the parent does not reconcile
+ * every day header / row (rows are memo; this blocks the parent JSX walk).
+ */
+const StreamFeedBody = memo(function StreamFeedBody({
+  dayGroups,
+  dayGroupRows,
+  collapsedDays,
+  isCurrentPeriod,
+  feedLayout,
+  expandedIdx,
+  appendIdx,
+  appendText,
+  appending,
+  activePath,
+  toggleDayCollapsed,
+  toggleExpand,
+  handleOpenPeriod,
+  handleToggleAppend,
+  handleUpdateAppendText,
+  handleAppendSubmit,
+  handleAppendCancel,
+  t,
+}: {
+  dayGroups: Array<{ dayKey: string; dayLabel: string }>;
+  dayGroupRows: StreamFeedRow[][];
+  collapsedDays: Set<string>;
+  isCurrentPeriod: boolean;
+  feedLayout: string;
+  expandedIdx: Set<number>;
+  appendIdx: number | null;
+  appendText: string;
+  appending: boolean;
+  activePath: string | null;
+  toggleDayCollapsed: (dayKey: string) => void;
+  toggleExpand: (index: number) => void;
+  handleOpenPeriod: (rel?: string) => void;
+  handleToggleAppend: (index: number, headingOrPreview?: string) => void;
+  handleUpdateAppendText: (text: string) => void;
+  handleAppendSubmit: (entry: StreamEntry) => void;
+  handleAppendCancel: () => void;
+  t: TFunction;
+}) {
+  return (
+    <div
+      className={cn("v4-feed", feedLayout === "card" ? "v4-feed-card" : "v4-feed-list")}
+      data-stream-feed
+      data-layout={feedLayout}
+    >
+      {dayGroups.map((group, gi) => {
+        const dayCollapsed = collapsedDays.has(group.dayKey);
+        const rows = dayGroupRows[gi] || [];
+        return (
+          <section
+            key={group.dayKey}
+            className={cn(
+              gi === 0 &&
+                isCurrentPeriod &&
+                "rounded-[var(--radius-card)] bg-accent-bg-faint px-2 py-1",
+            )}
+            data-stream-day-group
+            data-stream-day-today={isTodayGroupKey(group.dayKey) && isCurrentPeriod ? "true" : undefined}
+          >
+            <button
+              type="button"
+              onClick={() => toggleDayCollapsed(group.dayKey)}
+              className="flex w-full items-center gap-1.5 text-left hover:bg-state-hover v4-focus-ring"
+              aria-expanded={!dayCollapsed}
+              data-stream-day-toggle
+            >
+              <RiArrowDownSLine
+                size={ICON.nano}
+                className={cn(
+                  "shrink-0 text-text-quaternary transition-transform",
+                  dayCollapsed && "-rotate-90",
+                )}
+                aria-hidden
+              />
+              <h2 className="text-xs font-semibold tracking-tight text-text-secondary">
+                {group.dayLabel}
+              </h2>
+              <span className="tabular-nums text-3xs text-text-quaternary">
+                {rows.length}
+              </span>
+              {isTodayGroupKey(group.dayKey) && isCurrentPeriod ? (
+                <span className="rounded-[var(--radius-xs)] bg-accent-bg-subtle px-1.5 py-px text-3xs font-medium text-accent-color">
+                  {t("workspace:streamDetail.todayBadge")}
+                </span>
+              ) : null}
+              {dayCollapsed && rows[0]?.entry.preview ? (
+                <span className="hidden min-w-0 flex-1 truncate text-3xs text-text-quaternary sm:block">
+                  {rows[0].entry.preview}
+                </span>
+              ) : null}
+            </button>
+
+            {!dayCollapsed ? (
+              <div data-stream-day-body>
+                {rows.map((row) => (
+                  <StreamFeedRowView
+                    key={`${group.dayKey}-${row.entry.index}`}
+                    row={row}
+                    isToday={isTodayGroupKey(group.dayKey) && isCurrentPeriod}
+                    expanded={expandedIdx.has(row.entry.index)}
+                    appendOpen={appendIdx === row.entry.index}
+                    appendText={appendIdx === row.entry.index ? appendText : ""}
+                    appending={appending}
+                    activePath={activePath}
+                    onToggleExpand={toggleExpand}
+                    onOpenPeriod={handleOpenPeriod}
+                    onToggleAppend={handleToggleAppend}
+                    onAppendText={handleUpdateAppendText}
+                    onAppendSubmit={handleAppendSubmit}
+                    onAppendCancel={handleAppendCancel}
+                    t={t}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </section>
+        );
+      })}
+
+      {activePath ? (
+        <div className="flex justify-center pt-1">
+          <Button variant="outline" size="sm" onClick={() => handleOpenPeriod()}>
+            <RiFileTextLine size={ICON.xs} />
+            {t("shell:sidebar.stream.openFull")}
+            <RiArrowRightSLine size={ICON.nano} />
+          </Button>
+        </div>
+      ) : null}
+    </div>
+  );
+});
+
 export function StreamDetailView() {
   const { t } = useTranslation(["workspace", "shell", "common"]);
   const [entries, setEntries] = useState<StreamEntry[]>([]);
@@ -673,14 +811,10 @@ export function StreamDetailView() {
   const [polishing, setPolishing] = useState(false);
   const [polishBackup, setPolishBackup] = useState<string | null>(null);
   const polishSessionRef = useRef<string | null>(null);
-  /** Compose URL detection — when true, show hint to open Note it (记一下) for fetch. */
+  /** Compose URL detection — when true, show shared LinkCaptureCard (no dialog). */
   const composeIsUrl = useMemo(
     () => /^https?:\/\/\S+$/iu.test(composeText.trim()),
     [composeText],
-  );
-  const composeUrlKind = useMemo(
-    () => (composeIsUrl ? classifyCaptureUrlKind(composeText.trim()) : null),
-    [composeIsUrl, composeText],
   );
 
   // 记账意图检测 — 驱动记下区域上方的快速记账注入口
@@ -691,6 +825,10 @@ export function StreamDetailView() {
   /** Entry index currently showing in-card append composer */
   const [appendIdx, setAppendIdx] = useState<number | null>(null);
   const [appendText, setAppendText] = useState("");
+  // Ref mirror so handleAppendEntry identity stays stable (appendText as a dep
+  // voided memo(StreamFeedRowView) on every append keystroke).
+  const appendTextRef = useRef(appendText);
+  appendTextRef.current = appendText;
   const [appending, setAppending] = useState(false);
   const composeRef = useRef<HTMLTextAreaElement>(null);
   /** Last raw period body — soft refresh skips setEntries when unchanged (anti-jitter). */
@@ -744,12 +882,12 @@ export function StreamDetailView() {
     if (!todoEverLoaded) void useTodoStore.getState().refresh();
   }, [todoEverLoaded]);
 
-  // Auto-grow textarea height as user types
+  // Auto-grow textarea height as user types (default compact one-line).
   useEffect(() => {
     const el = composeRef.current;
     if (!el) return;
     el.style.height = "auto";
-    const nextH = Math.max(48, Math.min(el.scrollHeight, 280));
+    const nextH = Math.max(36, Math.min(el.scrollHeight, 280));
     el.style.height = `${nextH}px`;
   }, [composeText]);
 
@@ -1064,7 +1202,7 @@ export function StreamDetailView() {
   /** Comment-like append under a stream entry (same Markdown period note). */
   const handleAppendEntry = useCallback(
     async (entry: StreamEntry) => {
-      const text = appendText.trim();
+      const text = appendTextRef.current.trim();
       if (!text || !activePath || appending) return;
       setAppending(true);
       try {
@@ -1099,7 +1237,7 @@ export function StreamDetailView() {
         setAppending(false);
       }
     },
-    [appendText, activePath, appending, t, loadPeriodContent],
+    [activePath, appending, t, loadPeriodContent],
   );
 
   const handleToggleAppend = useCallback(
@@ -1138,15 +1276,21 @@ export function StreamDetailView() {
     [activePath],
   );
 
-  /** Inline compose — append to current period stream via workspace.ingestInbox. */
+  /**
+   * Inline compose (记动态) — append to current period stream.
+   * URL text is recorded as a link moment (no auto-fetch). Fetched articles
+   * belong in Inbox as standalone notes — see handleFetchToInbox.
+   */
   const handleInlineCompose = useCallback(async () => {
     const text = composeText.trim();
     if (!text || composing) return;
     setComposing(true);
     try {
+      const isBareUrl = /^https?:\/\/\S+$/iu.test(text);
       const res = await api.ws.ingest({
         content: text,
-        sourceType: "user-original",
+        sourceType: isBareUrl ? "external-capture" : "user-original",
+        source: isBareUrl ? text : undefined,
         dest: { mode: "stream" },
       });
       const resExtra = res as typeof res & { needsConfirm?: boolean; pending?: boolean; ok?: boolean };
@@ -1180,6 +1324,52 @@ export function StreamDetailView() {
       setComposing(false);
     }
   }, [composeText, composing, t, activePath, loadPeriodContent, loadPeriods, updateComposeText]);
+
+  /**
+   * 抓取 from the stream page — highest-quality fetch, then Inbox as a
+   * standalone article (not a stream moment). Same pipeline as 记一下.
+   */
+  const handleFetchToInbox = useCallback(async () => {
+    const text = composeText.trim();
+    if (!text || composing) return;
+    if (!/^https?:\/\/\S+$/iu.test(text)) {
+      toastWritebackError(t("workspace:streamDetail.composeFail"), t("overlays:capture.errorInvalidUrl"));
+      return;
+    }
+    setComposing(true);
+    try {
+      const result = await api.ws.fetchUrl(text, 200_000);
+      const body = buildFetchMarkdown(result, t as never, "", { replaceBareUrl: true });
+      const rawTitle = String((result as { title?: string }).title || "").trim();
+      const title = rawTitle ? rawTitle.slice(0, 120) : undefined;
+      const res = await api.ws.ingest({
+        content: body,
+        title,
+        sourceType: "external-capture",
+        source: result.url || text,
+        dest: { mode: "inbox" },
+      });
+      const resExtra = res as typeof res & { needsConfirm?: boolean; pending?: boolean; ok?: boolean };
+      if (resExtra.needsConfirm || resExtra.pending) {
+        emitLocal("pending-writes:changed", { source: "stream-fetch-inbox" });
+        emitLocal("toast:show", t("workspace:streamDetail.composeNeedsConfirm"));
+        return;
+      }
+      if (resExtra.ok === false) {
+        toastWritebackError(t("workspace:streamDetail.fetchToInboxFail"), res.userMessage || "failed");
+        return;
+      }
+      updateComposeText("");
+      setPolishBackup(null);
+      toastWriteback(t("workspace:streamDetail.fetchToInboxOk"), res);
+      emitLocal("workspace:file-changed", { relativePath: res.path || res.targetPath });
+      composeRef.current?.focus();
+    } catch (e) {
+      toastWritebackError(t("workspace:streamDetail.fetchToInboxFail"), e);
+    } finally {
+      setComposing(false);
+    }
+  }, [composeText, composing, t, updateComposeText]);
 
   const handleOpenPeriod = useCallback(
     (focusHeading?: string) => {
@@ -1325,6 +1515,11 @@ export function StreamDetailView() {
     () => groupEntriesByDay(entries, t("workspace:streamDetail.otherDay")),
     [entries, t],
   );
+  // Split rows per day once per group identity — not on every compose keystroke.
+  const dayGroupRows = useMemo(
+    () => dayGroups.map((g) => groupDayFeedRows(g.entries)),
+    [dayGroups],
+  );
 
   const dayKeysSig = dayGroups.map((g) => g.dayKey).join("|");
   const seenDayKeysRef = useRef<Set<string>>(new Set());
@@ -1437,42 +1632,41 @@ export function StreamDetailView() {
         <ChromeOverflowActions actions={headerActions} />
       </TitleBarActions>
 
-      {/* Stream workbench homepage — identity + quiet inventory counts.
+      {/* Stream workbench homepage — large quiet hero + inventory counts.
           Destinations live on ActivityBar (no second nav row under the title). */}
-      <div className="mb-3" data-stream-home-header>
-        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-          <h1 className="text-lg font-semibold tracking-tight text-text-primary">
-            {viewPeriodTitle || t("workspace:streamDetail.title", { defaultValue: "动态" })}
-          </h1>
-          <span className="text-3xs text-text-quaternary">
-            {activePath ? activePath.replace(/\.md$/u, "").split("/").pop() : ""}
-          </span>
-          {entries.length > 0 ? (
-            <span className="text-3xs text-text-quaternary">
-              · {t("workspace:streamDetail.entryCount", {
-                  count: entries.length,
-                  packing: t(`workspace:streamDetail.packing${(ctx?.packing || "weekly").replace(/^./u, (c) => c.toUpperCase())}` as never, {
-                    defaultValue: ctx?.packing || "weekly",
-                  }),
-                })}
+      <ViewHero
+        className="mb-[var(--density-content-gap)]"
+        title={viewPeriodTitle || t("workspace:streamDetail.title", { defaultValue: "动态" })}
+        meta={
+          <>
+            <span className="truncate">
+              {activePath ? activePath.replace(/\.md$/u, "").split("/").pop() : ""}
             </span>
-          ) : null}
-          {workbenchStats.inbox > 0 || workbenchStats.outputs > 0 ? (
-            <span className="text-3xs text-text-quaternary" data-stream-workbench-counts>
-              {workbenchStats.inbox > 0 ? (
-                <span title={t("workspace:streamDetail.quickInbox", { defaultValue: "Inbox" })}>
-                  · {t("workspace:streamDetail.quickInbox", { defaultValue: "Inbox" })} {workbenchStats.inbox}
-                </span>
-              ) : null}
-              {workbenchStats.outputs > 0 ? (
-                <span title={t("workspace:streamDetail.quickOutputs", { defaultValue: "交付" })}>
-                  {" "}· {t("workspace:streamDetail.quickOutputs", { defaultValue: "交付" })} {workbenchStats.outputs}
-                </span>
-              ) : null}
-            </span>
-          ) : null}
-        </div>
-      </div>
+            {entries.length > 0 ? (
+              <span>
+                · {t("workspace:streamDetail.entryCount", {
+                    count: entries.length,
+                    packing: t(`workspace:streamDetail.packing${(ctx?.packing || "weekly").replace(/^./u, (c) => c.toUpperCase())}` as never, {
+                      defaultValue: ctx?.packing || "weekly",
+                    }),
+                  })}
+              </span>
+            ) : null}
+            {workbenchStats.inbox > 0 ? (
+              <span title={t("workspace:streamDetail.quickInbox", { defaultValue: "Inbox" })} data-stream-inbox-count>
+                · {t("workspace:streamDetail.quickInbox", { defaultValue: "Inbox" })} {workbenchStats.inbox}
+              </span>
+            ) : null}
+            {workbenchStats.outputs > 0 ? (
+              <span title={t("workspace:streamDetail.quickOutputs", { defaultValue: "交付" })} data-stream-outputs-count>
+                · {t("workspace:streamDetail.quickOutputs", { defaultValue: "交付" })} {workbenchStats.outputs}
+              </span>
+            ) : null}
+          </>
+        }
+      />
+
+      <ProactiveSuggestStrip onOpenAll={() => openSuggestSurface()} />
 
       {periods.length > 1 ? (
         <div
@@ -1634,27 +1828,21 @@ export function StreamDetailView() {
           无 label/hint meta 行（降噪 2026-08）：placeholder 承担引导，计数在 TitleBar stats。 */}
       {composeIsUrl ? (
         <div
-          className="mb-2 flex items-center justify-between gap-2 rounded-lg border border-accent-border-subtle/40 bg-accent-bg-faint px-3 py-1.5 transition-all duration-200"
+          className="mb-2 rounded-lg border border-accent-border-subtle bg-accent-bg-faint px-3 py-1.5 transition-all duration-200"
           data-stream-compose-url-hint
         >
-          <div className="flex min-w-0 items-center gap-1.5">
-            <RiLink size={ICON.xs} className="shrink-0 text-accent-color" aria-hidden />
-            <span className="min-w-0 truncate text-3xs font-medium text-text-secondary">
-              {t("workspace:streamDetail.composeUrlHint")}
-              {composeUrlKind ? ` · ${t(urlKindLabelKey(composeUrlKind))}` : ""}
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              emitLocal("overlay:open", { kind: "quick-capture", prefill: { source: composeText.trim() } } as never);
-              updateComposeText("");
+          <LinkCaptureCard
+            url={composeText.trim()}
+            compact
+            actionLabel={t("workspace:streamDetail.composeUrlAction")}
+            onFetch={() => {
+              // 抓取 → Inbox 独立文章；记下仍是动态链接。
+              void handleFetchToInbox();
             }}
-            className="inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-xs)] bg-accent-bg-subtle px-2.5 py-0.5 text-3xs font-medium text-accent-color transition-colors hover:bg-accent-bg-faint v4-focus-ring"
-          >
-            <span>{t("workspace:streamDetail.composeUrlAction")}</span>
-            <RiArrowRightSLine size={ICON.nano} aria-hidden />
-          </button>
+          />
+          <div className="mt-1 text-3xs text-text-quaternary">
+            {t("workspace:streamDetail.composeUrlHint")}
+          </div>
         </div>
       ) : null}
       <div
@@ -1678,7 +1866,7 @@ export function StreamDetailView() {
         <textarea
           id="stream-inline-compose"
           ref={composeRef}
-          rows={2}
+          rows={1}
           value={composeText}
           disabled={composing}
           placeholder={t("workspace:streamDetail.composePlaceholder")}
@@ -1690,7 +1878,7 @@ export function StreamDetailView() {
             }
           }}
           className={cn(
-            "w-full resize-none min-h-[48px] max-h-72 bg-transparent",
+            "w-full resize-y min-h-9 max-h-72 bg-transparent",
             "text-md leading-[1.62] text-text-primary placeholder:text-text-quaternary",
             "outline-none border-0 focus:ring-0 transition-[height] duration-75",
           )}
@@ -1702,7 +1890,7 @@ export function StreamDetailView() {
             data-stream-polish-busy
             aria-valuetext={t("workspace:streamDetail.composeAiPolish")}
           >
-            <div className="h-full w-full v4-ai-progress-slide rounded-full bg-accent-color/30" />
+            <div className="h-full w-full v4-ai-progress-slide rounded-full bg-accent-color" />
           </div>
         ) : null}
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-border-subtle-dim/70 pt-2">
@@ -1811,93 +1999,26 @@ export function StreamDetailView() {
           }
         />
       ) : (
-        <div
-          className={cn("v4-feed", feedLayout === "card" ? "v4-feed-card" : "v4-feed-list")}
-          data-stream-feed
-          data-layout={feedLayout}
-        >
-          {dayGroups.map((group, gi) => {
-            const dayCollapsed = collapsedDays.has(group.dayKey);
-            const rows = groupDayFeedRows(group.entries);
-            return (
-              <section
-                key={group.dayKey}
-                className={cn(
-                  gi === 0 && isCurrentPeriod && "ring-1 ring-inset ring-accent-color/10 rounded-lg",
-                )}
-                data-stream-day-group
-                data-stream-day-today={isTodayGroupKey(group.dayKey) && isCurrentPeriod ? "true" : undefined}
-              >
-                <button
-                  type="button"
-                  onClick={() => toggleDayCollapsed(group.dayKey)}
-                  className="flex w-full items-center gap-1.5 text-left hover:bg-state-hover v4-focus-ring"
-                  aria-expanded={!dayCollapsed}
-                  data-stream-day-toggle
-                >
-                  <RiArrowDownSLine
-                    size={ICON.nano}
-                    className={cn(
-                      "shrink-0 text-text-quaternary transition-transform",
-                      dayCollapsed && "-rotate-90",
-                    )}
-                    aria-hidden
-                  />
-                  <h2 className="text-xs font-semibold tracking-tight text-text-secondary">
-                    {group.dayLabel}
-                  </h2>
-                  <span className="tabular-nums text-3xs text-text-quaternary">
-                    {rows.length}
-                  </span>
-                  {isTodayGroupKey(group.dayKey) && isCurrentPeriod ? (
-                    <span className="rounded-[var(--radius-xs)] bg-accent-bg-subtle px-1.5 py-px text-3xs font-medium text-accent-color">
-                      {t("workspace:streamDetail.todayBadge")}
-                    </span>
-                  ) : null}
-                  {dayCollapsed && rows[0]?.entry.preview ? (
-                    <span className="hidden min-w-0 flex-1 truncate text-3xs text-text-quaternary sm:block">
-                      {rows[0].entry.preview}
-                    </span>
-                  ) : null}
-                </button>
-
-                {!dayCollapsed ? (
-                  <div data-stream-day-body>
-                    {rows.map((row) => (
-                      <StreamFeedRowView
-                        key={`${group.dayKey}-${row.entry.index}`}
-                        row={row}
-                        isToday={isTodayGroupKey(group.dayKey) && isCurrentPeriod}
-                        expanded={expandedIdx.has(row.entry.index)}
-                        appendOpen={appendIdx === row.entry.index}
-                        appendText={appendIdx === row.entry.index ? appendText : ""}
-                        appending={appending}
-                        activePath={activePath}
-                        onToggleExpand={toggleExpand}
-                        onOpenPeriod={handleOpenPeriod}
-                        onToggleAppend={handleToggleAppend}
-                        onAppendText={handleUpdateAppendText}
-                        onAppendSubmit={handleAppendSubmit}
-                        onAppendCancel={handleAppendCancel}
-                        t={t}
-                      />
-                    ))}
-                  </div>
-                ) : null}
-              </section>
-            );
-          })}
-
-          {activePath ? (
-            <div className="flex justify-center pt-1">
-              <Button variant="outline" size="sm" onClick={() => handleOpenPeriod()}>
-                <RiFileTextLine size={ICON.xs} />
-                {t("shell:sidebar.stream.openFull")}
-                <RiArrowRightSLine size={ICON.nano} />
-              </Button>
-            </div>
-          ) : null}
-        </div>
+        <StreamFeedBody
+          dayGroups={dayGroups}
+          dayGroupRows={dayGroupRows}
+          collapsedDays={collapsedDays}
+          isCurrentPeriod={isCurrentPeriod}
+          feedLayout={feedLayout}
+          expandedIdx={expandedIdx}
+          appendIdx={appendIdx}
+          appendText={appendText}
+          appending={appending}
+          activePath={activePath}
+          toggleDayCollapsed={toggleDayCollapsed}
+          toggleExpand={toggleExpand}
+          handleOpenPeriod={handleOpenPeriod}
+          handleToggleAppend={handleToggleAppend}
+          handleUpdateAppendText={handleUpdateAppendText}
+          handleAppendSubmit={handleAppendSubmit}
+          handleAppendCancel={handleAppendCancel}
+          t={t}
+        />
       )}
       </FeedColumn>
 

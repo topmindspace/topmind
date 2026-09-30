@@ -25,18 +25,21 @@
 
 | 文档图 | 源（resources/img） | 典型用途 |
 |--------|---------------------|----------|
-| `desktop-stream.jpg` | `Stream-AI建议.png` | **中文主截图**（2026-09 ZCode 暖纸主题）：三栏工作台 · 动态时间轴 + 右栏 AI 工作区 |
-| `desktop-stream-en.jpg` | `Stream-AI建议-en.png` | **英文主截图**：同一界面，英文 chrome（与中文同主题，不再用深色旧图） |
+| `desktop-stream.jpg` | 2026-09-30 产品截图 | **中文主截图**：三栏工作台 · 动态时间轴 + 右栏 AI 建议 |
+| `desktop-stream-en.jpg` | 2026-09-30 产品截图 | **英文主截图**：三栏工作台 + AI 对话清单（check my todo） |
+| `desktop-suggest-en.jpg` | 2026-09-30 产品截图 | AI 建议分面 — Inbox needs placement（确认执行） |
+| `desktop-memory-todo-zh.jpg` | 2026-09-30 产品截图 | 我的情况（画像/周期/专题）+ 清单待办表 |
+| `desktop-settings-general-zh.jpg` | 2026-09-30 产品截图 | 设置 · 通用（主题/色彩种子/界面色调/语言） |
+| `desktop-settings-general-en.jpg` | 2026-09-30 产品截图 | Settings · General (Theme / Color seed / Language) |
+| `desktop-settings-ai-zh.jpg` | 2026-09-30 产品截图 | 设置 · AI（供应商/模型/API Key 双层加密/Agent 步数） |
 | `desktop-ai-todo.jpg` | `AI清单.png` | AI 工作区**清单**分面 —— 带 AI 来源标记的待办 |
 | `desktop-apps.jpg` | `AI应用.png` | AI 工作区**应用**分面 —— 知识加工 · 微信读书 · 记账 |
 | `desktop-editor.jpg` | `文章查看-编辑器.png` | Quiet Paper 专注 Markdown 编辑器 |
 | `desktop-ingest.jpg` | `知识加工.png` | 多源知识加工队列 Hub |
 | `desktop-quick-capture.jpg` | `quicknote.png` | ⌘N / ⌘⇧N 智能识别与极速捕获 |
-| `desktop-ai-agent.jpg` | `AI建议.png` | 2026-08 旧 AI 轨静帧（非 2026-09 AI 工作区右栏） |
 | `desktop-inbox.jpg` | `Stream.png` | 00-Inbox 缓冲与整理 |
 | `desktop-inline-ai.jpg` | `文章查看-编辑器.png` | 行内 AI 润色与结果清洗 |
 | `desktop-outputs.jpg` | `文章查看-编辑器.png` | 88-交付 / 交付成品沉淀 |
-| `desktop-settings-*.jpg` | 各设置页源图 | 设置中心各分页截图 |
 
 ### Obsidian 插件截图
 

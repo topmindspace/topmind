@@ -48,7 +48,8 @@
     "newTopic": "New Topic",
     "newNote": "New Note",
     "all": "All",
-    "new": "New"
+    "new": "New",
+    "dismiss": "Dismiss"
   },
   "placeholder": {
     "filter": "Filter notes…"
@@ -134,7 +135,7 @@
   "writeback": {
     "backup": "Backup {{path}}",
     "etcItems": " and {{count}} more",
-    "multiFileWriteSuccess": "✓ Multi-file written to {{count}} locations",
+    "multiFileWriteSuccess": "Multi-file written to {{count}} locations",
     "undo": "Undo",
     "restoreTip": "Restore from backup",
     "copyPath": "Copy path",
@@ -156,7 +157,17 @@
     "message": "An error occurred during rendering"
   },
   "clip": {
-    "bridgeSuccess": "✓ Browser clip · {{name}}",
-    "bridgeSuccessNoPath": "✓ Browser clip successful"
+    "bridgeSuccess": "Browser clip · {{name}}",
+    "bridgeSuccessNoPath": "Browser clip successful"
+  },
+  "choice": {
+    "hint": "No good option? Type your reply instead."
+  },
+  "presence": {
+    "working": "Working",
+    "needsYou": "Needs you",
+    "paused": "Paused",
+    "done": "Done",
+    "error": "Error"
   }
 }

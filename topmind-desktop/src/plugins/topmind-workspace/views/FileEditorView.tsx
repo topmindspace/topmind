@@ -207,7 +207,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
         bulletList: { keepMarks: true, keepAttributes: false },
         orderedList: { keepMarks: true, keepAttributes: false },
         codeBlock: { HTMLAttributes: { class: "v4-code-block" } },
-        heading: { levels: [1, 2, 3, 4] },
+        heading: { levels: [1, 2, 3, 4, 5, 6] },
         // Link is registered separately with openOnClick: false
         link: false,
         // Underline is included in StarterKit v3 — do not add ExtensionUnderline again
@@ -657,11 +657,17 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
     return () => window.removeEventListener("keydown", onKey);
   }, [editor, findOpen, openFind]);
 
-  // Push query into the plugin (debounce-free: match scan is linear & cheap)
+  // Push query into the plugin — debounced so typing does not scan + dispatch
+  // the whole doc per keystroke. Scroll is suppressed while typing (Enter/step
+  // re-scrolls to the active match).
   useEffect(() => {
     if (!findOpen || !editor) return;
-    const st = findSetSearch(editor, findQuery.trim());
-    setFindCount({ idx: st.matches.length ? 1 : 0, total: st.matches.length });
+    const q = findQuery.trim();
+    const t = window.setTimeout(() => {
+      const st = findSetSearch(editor, q, { scroll: false });
+      setFindCount({ idx: st.matches.length ? 1 : 0, total: st.matches.length });
+    }, 160);
+    return () => window.clearTimeout(t);
   }, [findOpen, editor, findQuery]);
 
   // Keep count live across doc edits while the bar is open
@@ -1087,7 +1093,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
             {!readOnly ? (
               <EditorModeSwitch viewMode={viewMode} onChange={switchViewMode} />
             ) : (
-              <span className="inline-flex items-center gap-1 rounded-[var(--radius-xs)] bg-surface-muted px-2 py-0.5 text-3xs text-text-tertiary">
+              <span className="inline-flex items-center gap-1 rounded-[var(--radius-xs)] bg-surface-wash-30 px-2 py-0.5 text-3xs text-text-tertiary">
                 <RiEyeLine size={ICON.micro} /> {t("workspace:formatBar.preview")}
               </span>
             )}
@@ -1276,8 +1282,8 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
       {!focusMode && showMeta && fileMeta ? (
         <div className="v4-editor-meta border-b border-border-subtle-dim px-3 py-2">
           <div className="mb-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-3xs text-text-quaternary">
-            <span className="font-medium text-text-secondary">{docTitle}</span>
-            <span className="font-mono" title={path}>
+            <span className="min-w-0 max-w-[40%] truncate font-medium text-text-secondary" title={docTitle}>{docTitle}</span>
+            <span className="min-w-0 max-w-[50%] truncate font-mono" title={path}>
               {path}
             </span>
             {fileSizeText ? <span>{fileSizeText}</span> : null}
@@ -1327,7 +1333,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
               }
             }}
             placeholder={t("workspace:editor.findPlaceholder")}
-            className="h-6 w-40 rounded-[var(--radius-sm)] border border-border-subtle bg-input px-2 text-3xs text-text-primary outline-none focus-visible:border-accent-color sm:w-52"
+            className="h-6 w-40 rounded-[var(--radius-sm)] border border-transparent bg-surface-wash-15 px-2 text-3xs text-text-primary outline-none hover:bg-surface-wash-30 focus-visible:border-accent-color focus-visible:bg-surface-elevated sm:w-52"
             aria-label={t("workspace:editor.findPlaceholder")}
           />
           <span className="min-w-12 shrink-0 text-center text-3xs tabular-nums text-text-tertiary">
@@ -1351,6 +1357,14 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
             (viewMode === "preview" || readOnly) && "v4-md-preview",
           )}
         >
+          {/* Reading chrome: every note opens like an article (title always visible). */}
+          {docTitle ? (
+            <div className="v4-editor-article-head px-4 pt-5 sm:px-6" data-editor-article-title>
+              <h1 className="m-0 text-[1.45em] font-semibold leading-snug tracking-tight text-text-primary">
+                {docTitle}
+              </h1>
+            </div>
+          ) : null}
           <div
             className={cn((viewMode === "preview" || readOnly) && "hidden")}
             aria-hidden={viewMode === "preview" || readOnly}

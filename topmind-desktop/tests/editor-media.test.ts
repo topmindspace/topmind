@@ -1,8 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  decodeRemoteAssetUrl,
   mediaUrlsForDisk,
   mediaUrlsForEditor,
+  remoteAssetUrl,
   resolveNoteMediaPath,
   rewritePreviewHtmlMedia,
 } from "../src/lib/editor-media.ts";
@@ -31,13 +33,34 @@ test("rewritePreviewHtmlMedia maps relative img src to topmind-asset", () => {
   const html = '<p>x</p><img src="images/slug/a.png" alt="a">';
   const out = rewritePreviewHtmlMedia(html, "00-收件箱/clip.md");
   assert.match(out, /topmind-asset:\/\/local\/00-收件箱\/images\/slug\/a\.png/);
-  const remote = '<img src="https://cdn.example/x.png" alt="r">';
-  assert.equal(rewritePreviewHtmlMedia(remote, "00-收件箱/a.md"), remote);
 });
 
-test("mediaUrlsForEditor leaves remote urls alone", () => {
-  const md = "![r](https://cdn.example/x.png)";
-  assert.equal(mediaUrlsForEditor(md, "00-收件箱/a.md"), md);
+test("rewritePreviewHtmlMedia proxies remote images via topmind-asset remote", () => {
+  const remote = '<img src="https://cdn.example/x.png" alt="r">';
+  const out = rewritePreviewHtmlMedia(remote, "00-收件箱/a.md");
+  assert.match(out, /topmind-asset:\/\/remote\//);
+  assert.doesNotMatch(out, /src="https:\/\/cdn\.example/);
+  assert.equal(
+    decodeRemoteAssetUrl(out.match(/src="([^"]+)"/)![1]),
+    "https://cdn.example/x.png",
+  );
+});
+
+test("mediaUrlsForEditor proxies remote urls for CSP-safe display", () => {
+  const md = "![r](https://pbs.twimg.com/media/a.jpg)";
+  const view = mediaUrlsForEditor(md, "00-收件箱/a.md");
+  assert.match(view, /topmind-asset:\/\/remote\//);
+  assert.doesNotMatch(view, /https:\/\/pbs\.twimg\.com\/media\/a\.jpg\)/);
+  // Disk form keeps the original remote URL (localize step downloads later).
+  // Round-trip only maps local assets — remote stays remote on disk.
+  assert.equal(view.includes("topmind-asset://remote/"), true);
+});
+
+test("remoteAssetUrl encodes and decodeRemoteAssetUrl restores", () => {
+  const url = "https://pbs.twimg.com/media/HTOFnUubgAALzw8.jpg";
+  const proxied = remoteAssetUrl(url);
+  assert.match(proxied, /^topmind-asset:\/\/remote\//);
+  assert.equal(decodeRemoteAssetUrl(proxied), url);
 });
 
 test("mediaUrlsForEditor / ForDisk round-trip HTML <img src>", () => {
@@ -47,8 +70,6 @@ test("mediaUrlsForEditor / ForDisk round-trip HTML <img src>", () => {
   assert.match(view, /topmind-asset:\/\/local\/00-收件箱\/images\/slug\/img-abc\.png/);
   const back = mediaUrlsForDisk(view, note);
   assert.equal(back, disk);
-  const remote = '<img src="https://cdn.example/x.png" alt="r">';
-  assert.equal(mediaUrlsForEditor(remote, note), remote);
 });
 
 test("mediaUrlsForDisk survives literal % in the asset path", () => {
@@ -58,4 +79,11 @@ test("mediaUrlsForDisk survives literal % in the asset path", () => {
   assert.equal(mediaUrlsForDisk(encoded, note), "![a](images/s/a.png)");
   const bare = "![a](topmind-asset://local/20-研究/100%-方案/images/s/a.png)";
   assert.equal(mediaUrlsForDisk(bare, note), "![a](images/s/a.png)");
+});
+
+test("mediaUrlsForDisk leaves remote proxy urls untouched (not local assets)", () => {
+  const note = "00-收件箱/a.md";
+  const view = "![r](topmind-asset://remote/https%3A%2F%2Fcdn.example%2Fx.png)";
+  const back = mediaUrlsForDisk(view, note);
+  assert.equal(back, view);
 });

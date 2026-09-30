@@ -55,6 +55,9 @@ export async function executeTool(options) {
     pathContext,
     reviewed = false,
     tracking,
+    // "user" (CLI) | "ai" (MCP/agent). Kernel uses this for graded confirm:
+    // lifecycle under writeback.mode=confirm needs confirm unless actor==="user".
+    actor = "user",
   } = options;
 
   const startedAt = new Date().toISOString();
@@ -65,6 +68,7 @@ export async function executeTool(options) {
   try {
     entry = getCommand(registry, kind, commandName);
   } catch (e) {
+    const err = t("error.unknownOperation", { kind, commandName });
     return {
       ok: false,
       kind,
@@ -72,9 +76,10 @@ export async function executeTool(options) {
       startedAt,
       finishedAt: new Date().toISOString(),
       stdout: "",
-      stderr: t("error.unknownOperation", { kind, commandName }),
+      stderr: err,
       wroteFiles: false,
       affectedFiles: [],
+      envelope: buildResultEnvelope({ ok: false, kind, command: canonicalCommand, errors: [err] }),
     };
   }
 
@@ -101,6 +106,13 @@ export async function executeTool(options) {
       wroteFiles: false,
       affectedFiles: [],
       validationErrors: [modeResolution.error],
+      envelope: buildResultEnvelope({
+        ok: false,
+        kind,
+        command: canonicalCommand,
+        errors: [modeResolution.error],
+        metadata: { validationErrors: [modeResolution.error] },
+      }),
     };
   }
   const writebackMode = modeResolution.mode;
@@ -122,6 +134,13 @@ export async function executeTool(options) {
       wroteFiles: false,
       affectedFiles: [],
       validationErrors,
+      envelope: buildResultEnvelope({
+        ok: false,
+        kind,
+        command: canonicalCommand,
+        errors: validationErrors,
+        metadata: { validationErrors },
+      }),
     };
   }
 
@@ -129,7 +148,12 @@ export async function executeTool(options) {
   //    content writes land immediately; only lifecycle (delete/archive/rename/
   //    permanent) under confirm returns planned+needsConfirm. auto applies.
   //    reviewed=true is the user accept for lifecycle (same as confirmed:true).
-  const isLifecycle = cmdDef.destructive === true || cmdDef.group === "danger";
+  //    exposure:"danger" (e.g. contract.reseed) counts as lifecycle even when
+  //    group/destructive are quiet — otherwise confirm mode writes immediately.
+  const isLifecycle =
+    cmdDef.destructive === true ||
+    cmdDef.group === "danger" ||
+    cmdDef.exposure === "danger";
   const userAccepted = reviewed === true || payload.confirmed === true || payload.reviewed === true;
   const contentWritesThrough = !isLifecycle;
   const lifecycleApplies = writebackMode === "auto" || userAccepted;
@@ -201,9 +225,12 @@ export async function executeTool(options) {
       cwd,
       maxBuffer: 1024 * 1024 * 6,
       timeout: 120_000,
+      // Thread actor so tools don't hardcode actor:"user" (which nullifies
+      // kernel needsConfirm on the agent path).
+      env: { ...process.env, topmind_ACTOR: actor === "ai" ? "ai" : "user" },
     };
     if (isElectronExecutable(executable)) {
-      opts.env = { ...process.env, ELECTRON_RUN_AS_NODE: "1" };
+      opts.env = { ...opts.env, ELECTRON_RUN_AS_NODE: "1" };
     }
     const { stdout, stderr } = await execFileAsync(executable, args, opts);
 
@@ -235,6 +262,11 @@ export async function executeTool(options) {
       command: canonicalCommand,
       data,
       receipt,
+      // lifecyclePending is a planned write awaiting user accept — surface it
+      // in the envelope so callers don't treat ok:true as "already applied".
+      metadata: lifecyclePending
+        ? { needsConfirm: true, pending: true, planned: data?.planned, applied: false }
+        : {},
     });
 
     return {
@@ -287,6 +319,13 @@ export async function executeTool(options) {
       errorCode: error.code || undefined,
       wroteFiles: affectedFiles.length > 0,
       affectedFiles,
+      envelope: buildResultEnvelope({
+        ok: false,
+        kind,
+        command: canonicalCommand,
+        errors: [error.stderr?.trim?.() || error.message],
+        metadata: restoredFiles.length > 0 ? { restoredFromBackup: restoredFiles } : {},
+      }),
       ...(restoredFiles.length > 0 ? { restoredFromBackup: restoredFiles } : {}),
     };
   }

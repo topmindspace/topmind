@@ -266,16 +266,21 @@ export function resolveWorkspacePath(workspace, relativePath) {
   const normalized = String(relativePath || "").replace(/\\/gu, "/");
   const head = normalized.split("/", 1)[0];
 
-  const containedIn = (root, target) => {
+  // Symlink-aware fence (Kernel isPathInsideWorkspace) — lexical startsWith
+  // is blind to a workspace symlink that redirects outside.
+  const fence = (root, target) => {
+    if (target === root) return true;
     const rel = path.relative(root, target);
-    return rel !== "" && !rel.startsWith("..") && !path.isAbsolute(rel);
+    if (!rel || path.isAbsolute(rel)) return false;
+    const posix = rel.replace(/\\/g, "/");
+    return posix !== ".." && !posix.startsWith("../");
   };
 
   let resolved;
   if (CATEGORY_PATTERN.test(head) || head === "99 归档" || head === "99-归档") {
     resolved = path.resolve(userWorkspaceRoot, normalized);
-    if (!containedIn(userWorkspaceRoot, resolved)) {
-      throw new Error("Traversal disallowed: path outside workspace root");
+    if (!fence(userWorkspaceRoot, resolved)) {
+      throw new Error(t("error.traversalDisallowed", { path: normalized }));
     }
     return resolved;
   }
@@ -283,9 +288,21 @@ export function resolveWorkspacePath(workspace, relativePath) {
     throw new Error(t("error.unsupportedWorkspaceRoot", { root: head }));
   }
 
+  // Workspace-plane files (contract / semantic / machine) live under the USER
+  // workspace root, not the engine checkout — backups and reseed snapshots
+  // must resolve them there or snapshot nothing.
+  const WORKSPACE_PLANE = new Set(["topmind.yaml", "memory", ".topmind"]);
+  if (WORKSPACE_PLANE.has(head)) {
+    resolved = path.resolve(userWorkspaceRoot, normalized);
+    if (!fence(userWorkspaceRoot, resolved)) {
+      throw new Error(t("error.traversalDisallowed", { path: normalized }));
+    }
+    return resolved;
+  }
+
   resolved = path.resolve(engineRoot, normalized);
-  if (!containedIn(engineRoot, resolved)) {
-    throw new Error("Traversal disallowed: path outside engine root");
+  if (!fence(engineRoot, resolved)) {
+    throw new Error(t("error.traversalDisallowed", { path: normalized }));
   }
   return resolved;
 }

@@ -1,6 +1,6 @@
 # topmind Desktop — 架构
 
-> **现状描述 + Target 标注**。源文件计数：`src/` 242 · `electron/` 120。  
+> **现状描述 + Target 标注**。源文件计数：`src/` 248 · `electron/` 131。  
 > **1 RPC · Stores（View / Ai / Action / Plugin / IngestStaging / Task / Todo）· 1 Shell · 5+2 Service · 7 插件槽**  
 > UI 真源：`DESIGN.md`。边界：`../PRODUCT-BOUNDARIES.md`。  
 > **实施锁**：[`../docs/ARCHITECTURE-RESET.md`](../docs/ARCHITECTURE-RESET.md)（写闸合闸 · 建议副驾 · 导航变薄）。
@@ -28,7 +28,7 @@
 | writeback-engine | **Done** — save/edit/updateFrontmatter/delete.md → `kernelDurableWrite/Delete`；AI `actor:"ai"` |
 | 建议条 | **Done** — `generateSuggestions` / `applySuggestion` + **AI 工作区建议 pane**（`SuggestPopover` 确认列表 · `ActionStore` + 状态栏计数）；high-impact 经 `suggestion-gate` 必须 `confirmed:true`；AI 配置后 `ai_summary` 真实 LLM |
 | 建议批量执行 | **Done** — `applySuggestions`（一次 IPC，主进程内串行 + `ctx.emit` 逐条进度）；终态失败自动等同 dismiss（`suggest-apply-label.ts` 的 12 个 reason 码），可重试失败留卡 |
-| 建议忽略持久化 | **Done** — `lib/suggest-dismissed.mjs`（`.topmind/suggest-dismissed.json`）；`suggest-engine` 返回前 `filterDismissedSuggestions`，否则每轮生成都会把同一张卡端回来 |
+| 建议忽略持久化 | **主页卡只藏卡 Done** — pane「忽略」写 `lib/suggest-dismissed.mjs`（`.topmind/suggest-dismissed.json`，30 天 TTL）；`ProactiveSuggestStrip` 查看/忽略仅本地 `hiddenIds` 藏卡，不动 ActionStore。`suggest-engine` 返回前 `filterDismissedSuggestions`；建议 id 内容寻址，禁止单例 id 吞并整类 |
 | 待确认写入 | **Done** — `pending-writes` + **`SuggestPopover`**（`ActionStore`：事件刷新 + 安全网轮询 + 全文审阅） |
 | AI 轨事件 | **Done** — `ai-rail-events`（`suggestions:refresh` / `pending-writes:changed`） |
 | 设置 UI 同步 | **Done** — `ui-settings-sync` 仅 own-key 应用，防 stale full-ui 盖掉壳宽度 |
@@ -115,7 +115,7 @@ contextBridge.exposeInMainWorld('topmind', {
 | `ai-prompts.mjs` | **skill-first 协议** + Skills Discovery 目录 + 真实 tool 名 |
 | `lib/skills-runtime.mjs` | engine `skills/` + `ai.extraSkillsRoots` / `topmind_SKILLS_EXTRA`（catalog / body / resource） |
 | `lib/skills-extra.mjs` | Desktop 管理目录 `skills-extra/` 安装 · 回执 · pack summary |
-| `ai-tools.mjs` | 38 named tools（`lib/ai-tool-names.mjs`：skills · browse · windowed read/search · fs list/glob/stat · todos · memory ADD/UPDATE/RETIRE/RESTORE/COMPACT-HISTORY · writeback writes）；Pi `read`/`write`/`edit`/`grep`/`list`/`glob`/`stat`/`mkdir`/`mv`/`cp`/`rm` 为围栏别名，无 bash |
+| `ai-tools.mjs` | 47 named tools（`lib/ai-tool-names.mjs`：skills · browse · windowed read/search · fs list/glob/stat · todos · recent memories · memory ADD/UPDATE/RETIRE/RESTORE/COMPACT-HISTORY · writeback writes）；Pi `read`/`write`/`edit`/`grep`/`list`/`glob`/`stat`/`mkdir`/`mv`/`cp`/`rm` 为围栏别名，无 bash |
 | `ai-stream.mjs` | **fallback** loop when Pi module fails to load：`streamText` + tool-call/result + **prepareStep steer** + **~16ms text/reasoning delta 合流** |
 | `lib/stream-delta-coalesce.mjs` | 纯合流缓冲：帧级节流 IPC；非 delta 事件先 flush |
 | `ai-service.mjs` `complete` | 行内 one-shot（无 tools）；`sanitizeInlineAiResult` 剥离思考标签/元话术后再返回 |
@@ -271,7 +271,7 @@ ADR：`docs/adr/2026-07-16-desktop-agent-harness-upgrade.md`。
 
 ## Shell 结构
 
-> UI 像素与 IA 真源：`DESIGN.md` §0.0 / §0（**Design System 4.0.5 · ZCode Neutral + MD3**；token 数值真源 `src/styles/tokens.css`——见 `../../docs/design/UIUX-MD3-TRANSFORMATION-2026-09.md`）。本节约架构职责 + **现状/目标**。
+> UI 像素与 IA 真源：`DESIGN.md` §0.0 / §0（**Design System 4.3 · Soft Workbench + MD3**；token 数值真源 `src/styles/tokens.css`——历史波次见 monorepo `docs/design/UIUX-*.md`）。本节约架构职责 + **现状/目标**。
 
 ### 目标 IA（Product target · **Done** Wave F–G + 2026-08-07 优化 · 工作区主页默认 · 动态显式）
 
@@ -454,8 +454,8 @@ AiPanel 模型下拉选择器的 `onChange` 不仅更新内存 store，还同步
 | auto | 读 + 写 + fetch_url + health | 每写一处返回 WritebackEvidence；≥2 路径时回合结束汇总 `batchEvidence` → toast + 回执条 |
 | confirm（删除/归档前问我） | 读 + 写工具仍注册 | **分级**：内容写直接落盘；仅删/归档 pending → AI 工作区建议 pane（`SuggestPopover`）接受/拒绝后执行 |
 
-读（`AI_TOOL_NAMES_READ` 18）：`list_skills` · `load_skill` · `load_skill_resource` · `workspace_overview` · `list_categories` · `list_topics` · `list_topic_files` · `get_topic` · `read_file`（`encoding=` 二进制友好）· `search` · `list_inbox` · `list_outputs` · `fetch_url`（`maxLen` / `render`）· `workspace_health` · `list_todos` · `list_files` · `glob_files` · `stat_path`  
-写（`AI_TOOL_NAMES_WRITE` 20）：`capture_to_inbox` · `save_note` · `save_file`（**文本类** .md/.txt/.json/.yaml/.csv/代码/配置；open 覆盖不备份；locked 覆盖才备份；二进制走 `saveBinary`；正文过 `sanitizeAiWriteBody`）· `edit_file`（唯一片段，同文本类白名单，**不写 Archive**；newText 同样消毒）· `create_topic` · `create_dir` · `copy_file` · `append_topic_memory` · `append_core_memory` · `retire_core_memory` · `update_core_memory` · `restore_core_memory` · `compact_core_memory_history` · `reconcile_week` · `move_to_topic` · `publish_to_outputs` · `delete_path`（仅 recoverable 进归档）· `rename_path`（重命名不备份）· `add_todo` · `toggle_todo`  
+读（`AI_TOOL_NAMES_READ` 22 + `AI_TOOL_NAMES_WRITE` 25）：`list_skills` · `load_skill` · `load_skill_resource` · `workspace_overview` · `list_categories` · `list_topics` · `list_topic_files` · `get_topic` · `read_file`（`encoding=` 二进制友好）· `search` · `list_inbox` · `list_outputs` · `web_search`（无需 Key）· `fetch_url`（`maxLen` / `render`）· `capture_url`（抓取入库）· `workspace_health` · `list_todos` · `list_recent_memories` · `list_recent_stream` · `list_pending_writes` · `list_files` · `glob_files` · `stat_path`  
+写（`AI_TOOL_NAMES_WRITE` 24）：`capture_to_inbox` · `save_note` · `save_file`（**文本类** .md/.txt/.json/.yaml/.csv/代码/配置；open 覆盖不备份；locked 覆盖才备份；二进制走 `saveBinary`；正文过 `sanitizeAiWriteBody`）· `edit_file`（唯一片段，同文本类白名单，**不写 Archive**；newText 同样消毒）· `create_topic` · `create_dir` · `copy_file` · `append_stream_entry`（增补）· `append_topic_memory` · `append_core_memory` · `retire_core_memory` · `update_core_memory` · `restore_core_memory` · `compact_core_memory_history` · `reconcile_week` · `move_to_topic` · `publish_to_outputs` · `delete_path`（仅 recoverable 进归档）· `rename_path`（重命名不备份）· `add_todo` · `toggle_todo` · `update_todo` · `set_todo_due` · `delete_todo`  
 Pi 围栏别名（不是第二套 FS）：`read`→`read_file` · `write`→`save_file` · `edit`→`edit_file` · `grep`→`search` · `list`/`ls`/`list_dir`→`list_files` · `glob`/`find`→`glob_files` · `stat`→`stat_path` · `mkdir`→`create_dir` · `mv`/`move`→`rename_path` · `cp`/`copy`→`copy_file` · `rm`/`delete`→`delete_path`。**drop**：`bash` / unscoped `shell` / `exec` / `run_in_workspace`。
 
 ### 编辑器 Markdown / 预览
@@ -478,7 +478,7 @@ Pi 围栏别名（不是第二套 FS）：`read`→`read_file` · `write`→`sav
 - 知识加工队列 UI：`IngestQueuePanel`（Hub + 浮窗共享主进程 jobs）  
 - 属性条：`Select variant="chip"` 单层描边  
 
-### 侧栏 / 工作区树（1.0.12+）
+### 侧栏 / 工作区树
 
 - `workspace.listWorkspaceDir` + `file-filter`（`ui.fileFilter`: default | markdown | all）  
 - 专题 / 88 / 99 / **memory**：**folder 懒加载**；揭示嵌套文件时展开祖先 folder  
@@ -489,7 +489,7 @@ Pi 围栏别名（不是第二套 FS）：`read`→`read_file` · `write`→`sav
 
 - Timeline / Tags / Kanban：`load({ silent: true })`  
 
-### 关窗 / AI 会话（1.0.12+）
+### 关窗 / AI 会话
 
 - `ui.closeBehavior`：`ask` | `hide` | `quit`  
 - AI 面板挂载：`loadSessions` 后 **新建空会话**（历史仍在列表）  
@@ -500,21 +500,26 @@ Pi 围栏别名（不是第二套 FS）：`read`→`read_file` · `write`→`sav
 L1  workspace.fetchUrl
       HTTP + @mozilla/readability + html-to-markdown
       (workspace-fetch-ops / fetch-article)
+L1-X  X status/article
+      lib/x-fetch.mjs — fxtwitter JSON → author/title/media/Draft.js→MD
 L1-GH  GitHub md / README
       lib/github-md.mjs（纯解析/图片改写）+ github-fetch.mjs（raw/README 网络）
       blob/raw → raw.githubusercontent；repo/tree → README API + raw 回退
 L2  fetchUrl({ render: true })
       fetch-render.mjs — offscreen BrowserWindow（ephemeral，不占 Dock）
+      SPA 空壳时 fetchUrl 自动升级，无需用户点选
 L3+ Browser Extension → POST /v1/clip → clip-bridge.mjs
       页内 Readability → content_html
       → normalizeClipPayload（复用 html-to-markdown）
       → ingestInbox + fetch_method / word_count frontmatter
 ```
 
-- 默认 L1；GitHub md/README 自动走 L1-GH；`render: true` 或用户点「增强渲染」走 L2  
+- **一次抓取 = 最高质量**：X→L1-X · GitHub→L1-GH · 网页→L1，SPA 自动 L2；默认 200k 全量  
+- **落点**：抓取 → Inbox 独立文章；记下（不抓取）→ 动态链接  
 - Ephemeral 窗：`markEphemeralBrowserWindow` — 不触发 Dock 双图标误杀  
 - Clip Bridge：仅 `127.0.0.1`、Bearer token、默认关闭；见 `lib/clip-bridge.mjs` · `lib/clip-payload.mjs`  
-- 返回 / 落盘：`method`（readability|heuristic|render|github-raw|github-readme|selection|manual）· `truncated` · `likelySpa` · `warning`  
+- 返回 / 落盘：`method`（readability|heuristic|render|github-raw|github-readme|x-status|selection|manual）· `truncated` · `likelySpa` · `warning` · `image`  
+- 远程图经 `topmind-asset://remote/` 代理显示并缓存 `.topmind/media-cache/`；保存时本地化 `images/`  
 - GitHub URL 语义单源：`lib/github-md.mjs`（Desktop electron/lib 与 Obsidian lib 为 vendored 字节一致拷贝）  
 - 分层约定：`skills/shared/long-url-capture.md` · ADR `../docs/adr/2026-07-13-browser-clip-extension.md`
 
@@ -664,7 +669,7 @@ X：官方 v2 `GET /2/tweets/search/recent` 与 `GET /2/users/{id}/tweets`（Bea
 ## UI 层
 
 - **Tailwind 4** 从 `src/styles/tokens.css` 的 `@theme` 块读取设计令牌
-- **语义别名**（`src/styles/tailwind-theme.css`）：`bg-primary`, `bg-chrome`, `bg-input`, `ring-ring`, `bg-popover` 等——只重导出组件**实际在用**的 shadcn 名；零引用别名（`bg-card` / `text-foreground` / `bg-muted` / `bg-destructive` …）已于 2026-09-14 清除，写它们不再解析。对比度与幽灵引用由 `tests/ui-token-compliance.test.mjs` 守护
+- **语义别名**（`src/styles/tailwind-theme.css`）：`bg-primary`, `bg-chrome`, `ring-ring`, `bg-popover` 等——只重导出组件**实际在用**的 shadcn 名；零引用别名（`bg-card` / `text-foreground` / `bg-muted` / `bg-destructive` / `bg-input` …）已清除，写它们不再解析。对比度与幽灵引用由 `tests/ui-token-compliance.test.mjs` 守护
 - **UI 基础组件**（`src/components/ui/`）：Button, Chip/ChipLabel, CountBadge, Dialog, DropdownMenu, context-menu, menu-select, select, Input, textarea, tabs, tooltip, Splitter, PanelToggleIcon, workspace-file-menu, ErrorBoundary, LazyBoundary, view（共享视图原语）。**没有** Card / Separator / Badge 组件
 - **图标**: `@remixicon/react`（RemixIcon）
 - **编辑器**: Tiptap 3（StarterKit + Underline + Typography + Placeholder + CharacterCount + Markdown）

@@ -271,7 +271,7 @@ export function OnboardingScreen({
               }}
             />
           </div>
-          <RiLoader4Line size={ICON.sm} className="animate-spin text-accent-color" aria-hidden />
+          <RiLoader4Line size={ICON.sm} className="animate-spin text-text-tertiary" aria-hidden />
           <div className="text-sm font-medium text-text-primary">{t("shell:onboarding.openingWorkspace")}</div>
           <div className="max-w-sm truncate text-center text-3xs text-text-quaternary font-mono">
             {busy === "opening" ? t("shell:onboarding.initFolder") : busy}
@@ -310,7 +310,7 @@ export function OnboardingScreen({
             <h1 className="v4-brand-gradient-text text-(--type-size-display) font-semibold tracking-tight">
               topmind
             </h1>
-            <p className="mt-2 text-3xs leading-relaxed text-text-tertiary">
+            <p className="mt-2 text-xs leading-relaxed text-text-tertiary">
               {t("common:app.tagline")}
             </p>
             {statusHint ? (
@@ -384,7 +384,7 @@ export function OnboardingScreen({
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-medium text-text-primary">{tmpl.name}</div>
-                      <div className="mt-0.5 text-3xs leading-relaxed text-text-quaternary">
+                      <div className="mt-0.5 text-xs leading-relaxed text-text-quaternary">
                         {tmpl.description}
                       </div>
                     </div>
@@ -473,7 +473,7 @@ export function OnboardingScreen({
                                     </span>
                                   ) : null}
                                   {health?.kind === "empty" ? (
-                                    <span className="inline-flex shrink-0 items-center gap-0.5 rounded-[var(--radius-xs)] bg-surface-muted px-1.5 py-px text-3xs text-text-quaternary">
+                                    <span className="inline-flex shrink-0 items-center gap-0.5 rounded-[var(--radius-xs)] bg-surface-wash-30 px-1.5 py-px text-3xs text-text-quaternary">
                                       {t("shell:onboarding.healthEmpty")}
                                     </span>
                                   ) : null}
@@ -494,7 +494,7 @@ export function OnboardingScreen({
                                 ) : null}
                               </div>
                               {active ? (
-                                <RiLoader4Line size={ICON.sm} className="shrink-0 animate-spin text-accent-color" aria-label={t("shell:shell.opening")} />
+                                <RiLoader4Line size={ICON.sm} className="shrink-0 animate-spin text-text-tertiary" aria-label={t("shell:shell.opening")} />
                               ) : (
                                 <>
                                   <Tooltip content={t("shell:onboarding.removeFromList")}>
@@ -554,11 +554,11 @@ export function OnboardingScreen({
             </>
           )}
 
-          <p className="mt-10 text-center text-3xs leading-relaxed text-text-quaternary">
+          <p className="mt-10 text-center text-xs leading-relaxed text-text-quaternary">
             {t("shell:onboarding.footerLine1")}
           </p>
           {/* Non-blocking companions CTA — install after workspace is ready (Settings → Companions). */}
-          <p className="mt-2 text-center text-3xs leading-relaxed text-text-quaternary">
+          <p className="mt-2 text-center text-xs leading-relaxed text-text-quaternary">
             {t("shell:onboarding.companionsHint")}
           </p>
         </div>

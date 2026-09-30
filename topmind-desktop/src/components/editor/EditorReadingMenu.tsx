@@ -56,7 +56,7 @@ function Chip({
         "v4-focus-ring",
         active
           ? "bg-accent-bg-subtle text-accent-color shadow-[inset_0_0_0_1px_var(--color-accent-border-subtle)]"
-          : "bg-surface-muted text-text-tertiary hover:bg-state-hover hover:text-text-secondary",
+          : "bg-surface-wash-15 text-text-tertiary hover:bg-state-hover hover:text-text-secondary",
       )}
     >
       {children}

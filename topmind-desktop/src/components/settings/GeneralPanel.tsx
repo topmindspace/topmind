@@ -15,6 +15,7 @@ import { useViewStore } from "../../stores/view-store";
 import { useActionStore } from "../../stores/action-store";
 import { applyLocale } from "../../locales";
 import { applyThemeSeed, applyThemeTone } from "../../lib/theme";
+import { cn } from "../../lib/kit";
 
 const WRITEBACK_HELP_KEY: Record<string, string> = {
   auto: "settings:general.writebackHelpAuto",
@@ -100,18 +101,81 @@ export function GeneralPanel({
   return (
     <div>
       <SettingsSection title={t("settings:general.appearance")} description={t("settings:general.appearanceDesc")}>
-        <div className="grid grid-cols-1 gap-x-3 gap-y-2 sm:grid-cols-2">
-          <Field label={t("settings:general.theme")} compact>
-            <Select
-              value={settings.theme}
-              onChange={(e) => update({ theme: e.target.value as AppSettings["theme"] })}
-              options={[
-                { value: "auto", label: t("settings:general.themeAuto") },
-                { value: "light", label: t("settings:general.themeLight") },
-                { value: "dark", label: t("settings:general.themeDark") },
-              ]}
-            />
-          </Field>
+        {/* Theme mode — segmented control (Muse 外观 register) */}
+        <Field label={t("settings:general.theme")} description={t("settings:general.themeDesc", { defaultValue: "浅色、深色，或与系统保持一致" })} compact>
+          <div
+            role="radiogroup"
+            aria-label={t("settings:general.theme")}
+            className="inline-flex items-center gap-0.5 rounded-full border border-border-subtle-dim bg-surface-wash-15 p-0.5"
+          >
+            {([
+              { value: "light", label: t("settings:general.themeLight") },
+              { value: "dark", label: t("settings:general.themeDark") },
+              { value: "auto", label: t("settings:general.themeAuto") },
+            ] as const).map((opt) => {
+              const active = settings.theme === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => update({ theme: opt.value as AppSettings["theme"] })}
+                  className={cn(
+                    "rounded-full px-2.5 py-1 text-xs font-medium transition-colors v4-focus-ring",
+                    active
+                      ? "bg-surface-elevated text-text-primary shadow-[var(--shadow-xs)]"
+                      : "text-text-tertiary hover:bg-state-hover hover:text-text-secondary",
+                  )}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </Field>
+        {/* Theme seed — visual swatches (Muse 色种子 register) */}
+        <Field
+          label={t("settings:general.themeSeed")}
+          description={t("settings:general.themeSeedDesc")}
+          compact
+        >
+          <div role="radiogroup" aria-label={t("settings:general.themeSeed")} className="flex flex-wrap items-center gap-2">
+            {([
+              { value: "sky", label: t("settings:general.themeSeedSky"), swatch: "bg-theme-swatch-sky" },
+              { value: "teal", label: t("settings:general.themeSeedTeal"), swatch: "bg-theme-swatch-teal" },
+              { value: "graphite", label: t("settings:general.themeSeedGraphite"), swatch: "bg-theme-swatch-graphite" },
+            ] as const).map((opt) => {
+              const active = (settings.themeSeed || "sky") === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  title={opt.label}
+                  onClick={() => {
+                    update({ themeSeed: opt.value });
+                    applyThemeSeed(opt.value);
+                  }}
+                  className={cn(
+                    "flex h-8 w-8 items-center justify-center rounded-full border-2 transition-all v4-focus-ring",
+                    active
+                      ? "border-accent-color shadow-[var(--shadow-xs)]"
+                      : "border-transparent hover:border-border-strong",
+                  )}
+                >
+                  <span
+                    className={cn("h-5 w-5 rounded-full", opt.swatch)}
+                    aria-hidden
+                  />
+                  <span className="sr-only">{opt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </Field>
+        <div className="flex flex-col">
           <Field
             label={t("settings:general.themeTone")}
             description={t("settings:general.themeToneDesc")}
@@ -129,25 +193,6 @@ export function GeneralPanel({
                 { value: "cool", label: t("settings:general.themeToneCool") },
                 { value: "neutral", label: t("settings:general.themeToneNeutral") },
                 { value: "slate", label: t("settings:general.themeToneSlate") },
-              ]}
-            />
-          </Field>
-          <Field
-            label={t("settings:general.themeSeed")}
-            description={t("settings:general.themeSeedDesc")}
-            compact
-          >
-            <Select
-              value={settings.themeSeed || "sky"}
-              onChange={(e) => {
-                const seed = (e.target.value || "sky") as NonNullable<AppSettings["themeSeed"]>;
-                update({ themeSeed: seed });
-                applyThemeSeed(seed);
-              }}
-              options={[
-                { value: "sky", label: t("settings:general.themeSeedSky") },
-                { value: "teal", label: t("settings:general.themeSeedTeal") },
-                { value: "graphite", label: t("settings:general.themeSeedGraphite") },
               ]}
             />
           </Field>
@@ -181,12 +226,13 @@ export function GeneralPanel({
             />
           </Field>
         </div>
-        <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-border-subtle-dim pt-2">
+        <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-border-subtle-dim px-4 pt-2">
           <SwitchField
             label={t("settings:general.openAiPanel")}
             description={t("settings:general.openAiPanelDesc")}
             checked={ui.aiPanelOpen !== false}
             onChange={(aiPanelOpen) => update({ ui: { aiPanelOpen } })}
+            flush
             className="mb-0 min-w-0 flex-1"
           />
           <Tooltip content={t("settings:general.resetLayoutTip", { sidebar: DEFAULT_UI.sidebarWidth, ai: DEFAULT_UI.aiPanelWidth })}>
@@ -194,14 +240,13 @@ export function GeneralPanel({
               type="button"
               variant="ghost"
               size="sm"
-              className="h-7 shrink-0 text-3xs"
               onClick={resetLayout}
             >
               <RiArrowGoBackLine size={ICON.micro} aria-hidden /> {t("settings:general.resetLayout")}
             </Button>
           </Tooltip>
         </div>
-        <p className="mt-1 text-3xs text-text-quaternary">
+        <p className="mt-1 px-4 pb-2 text-3xs text-text-quaternary">
           {t("settings:general.currentWidths", {
             sidebar: Math.round(ui.sidebarWidth),
             ai: Math.round(ui.aiPanelWidth),
@@ -257,13 +302,13 @@ export function GeneralPanel({
         description={t("settings:general.editorReadingDesc")}
         action={
           <Tooltip content={t("settings:general.resetEditor")}>
-            <Button type="button" variant="ghost" size="sm" className="h-6" onClick={resetEditor} aria-label={t("settings:general.resetEditor")}>
+            <Button type="button" variant="ghost" size="sm" onClick={resetEditor} aria-label={t("settings:general.resetEditor")}>
               <RiArrowGoBackLine size={ICON.micro} aria-hidden />
             </Button>
           </Tooltip>
         }
       >
-        <div className="grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-3">
+        <div className="flex flex-col">
           <Field label={t("settings:general.fontSize")} description={t("settings:general.fontSizeDesc")} compact>
             <Input
               type="number"
@@ -294,7 +339,7 @@ export function GeneralPanel({
               }}
             />
           </Field>
-          <Field label={t("settings:general.fontFamily")} compact className="col-span-2 sm:col-span-1">
+          <Field label={t("settings:general.fontFamily")} compact>
             <Select
               value={ed.fontFamily}
               onChange={(e) => update({ editor: { fontFamily: e.target.value } })}
@@ -306,7 +351,7 @@ export function GeneralPanel({
             />
           </Field>
         </div>
-        <div className="mt-2 grid grid-cols-1 gap-x-3 gap-y-1 sm:grid-cols-2">
+        <div className="flex flex-col">
           <Field
             label={t("settings:general.contentWidth")}
             description={t("settings:general.contentWidthDesc")}
@@ -344,7 +389,7 @@ export function GeneralPanel({
               ]}
             />
           </Field>
-          <Field label={t("settings:general.paper")} description={t("settings:general.paperDesc")} compact className="col-span-1 sm:col-span-2">
+          <Field label={t("settings:general.paper")} description={t("settings:general.paperDesc")} compact>
             <Select
               value={ed.paper || "default"}
               onChange={(e) => {
@@ -396,7 +441,7 @@ export function GeneralPanel({
               className="mb-0 w-full"
             />
           </div>
-          <Field label={t("settings:general.tabMode")} description={t("settings:general.tabModeDesc")} compact className="col-span-1 sm:col-span-2">
+          <Field label={t("settings:general.tabMode")} description={t("settings:general.tabModeDesc")} compact>
             <Select
               value={ed.tabMode === "single" ? "single" : "multi"}
               onChange={(e) => {
@@ -424,7 +469,7 @@ export function GeneralPanel({
             ]}
           />
         </Field>
-        <p className="mt-1.5 rounded-[var(--radius-md)] bg-surface-wash-45 px-2.5 py-1.5 text-3xs leading-relaxed text-text-tertiary">
+        <p className="mx-4 mt-1.5 rounded-[var(--radius-md)] bg-surface-wash-45 px-2.5 py-1.5 text-xs leading-relaxed text-text-tertiary">
           {t(WRITEBACK_HELP_KEY[wb] || WRITEBACK_HELP_KEY.auto)}
         </p>
         <SwitchField
@@ -532,13 +577,13 @@ export function GeneralPanel({
             {t("settings:general.openCaptureLayer")}
           </Button>
         </div>
-        <p className="text-3xs leading-relaxed text-text-quaternary">
+        <p className="text-xs leading-relaxed text-text-quaternary">
           {t("settings:general.floatNote")}
         </p>
       </SettingsSection>
 
       <SettingsSection title={t("settings:general.shortcuts")} description={t("settings:general.shortcutsDesc")} help={t("settings:general.shortcutsHelp")}>
-        <div className="grid grid-cols-1 gap-y-1 sm:grid-cols-2 sm:gap-x-4">
+        <div className="flex flex-col">
           {SHORTCUT_ROWS.map(([chord, labelKey]) => (
             <div
               key={chord}
@@ -560,7 +605,6 @@ export function GeneralPanel({
           <Button
             variant="tonal"
             size="sm"
-            className="h-7"
             onClick={() => useViewStore.getState().openOverlay("settings", { topicId: "plugins" })}
           >
             {t("settings:general.quickExtensions")}
@@ -568,7 +612,6 @@ export function GeneralPanel({
           <Button
             variant="ghost"
             size="sm"
-            className="h-7"
             onClick={() => useViewStore.getState().openOverlay("settings", { topicId: "about" })}
           >
             {t("settings:general.quickAbout")}

@@ -18,7 +18,7 @@
     "retry": "重试",
     "reset": "重置",
     "refresh": "刷新",
-    "loading": "加载中…",
+    "loading": "正在加载…",
     "saving": "保存中",
     "saved": "已保存",
     "autoSave": "自动保存",
@@ -48,7 +48,8 @@
     "newTopic": "新专题",
     "newNote": "新笔记",
     "all": "全部",
-    "new": "新建"
+    "new": "新建",
+    "dismiss": "忽略"
   },
   "placeholder": {
     "filter": "筛选笔记…"
@@ -134,7 +135,7 @@
   "writeback": {
     "backup": "备份 {{path}}",
     "etcItems": " 等{{count}}项",
-    "multiFileWriteSuccess": "✓ 多文件写入 {{count}} 处",
+    "multiFileWriteSuccess": "多文件写入 {{count}} 处",
     "undo": "撤销",
     "restoreTip": "从备份恢复",
     "copyPath": "复制路径",
@@ -156,7 +157,17 @@
     "message": "渲染过程中发生错误"
   },
   "clip": {
-    "bridgeSuccess": "✓ 浏览器剪藏 · {{name}}",
-    "bridgeSuccessNoPath": "✓ 浏览器剪藏成功"
+    "bridgeSuccess": "浏览器剪藏 · {{name}}",
+    "bridgeSuccessNoPath": "浏览器剪藏成功"
+  },
+  "choice": {
+    "hint": "没有想要的选项？直接输入你的回复即可。"
+  },
+  "presence": {
+    "working": "工作中",
+    "needsYou": "需要你",
+    "paused": "已暂停",
+    "done": "已完成",
+    "error": "出错了"
   }
 }

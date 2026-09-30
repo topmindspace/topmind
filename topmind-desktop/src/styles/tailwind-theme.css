@@ -22,8 +22,6 @@
     --primary-foreground: var(--color-ink-foreground);
     --secondary: var(--color-surface-muted);
     --secondary-foreground: var(--color-text-primary);
-    --input: var(--color-surface-inset);
-    --ring: var(--color-accent-color);
     --chrome: var(--color-app-chrome);
   }
 }
@@ -35,14 +33,9 @@
   /* Button hover/active use MD3 state layers, not base-fill swaps. */
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
   --color-chrome: var(--chrome);
 
   /* State / tonal live in tokens.css — not re-aliased here (avoid cycles). */
-
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 12px;
+  /* Radius lives ONLY in tokens.css (Muse-soft 4.3 scale). A second @theme
+     radius block here used to override tokens and silently shrink floats. */
 }

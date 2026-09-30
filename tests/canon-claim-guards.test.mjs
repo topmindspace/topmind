@@ -231,7 +231,7 @@ test("Desktop ARCHITECTURE slot line and source counts match the tree", () => {
   );
   const electronCount = countFiles(
     path.join(repoRoot, "topmind-desktop/electron"),
-    (name) => /\.(?:mjs|ts|js)$/u.test(name),
+    (name) => /\.(?:mjs|cjs|js)$/u.test(name),
   );
   assert.match(
     architecture,

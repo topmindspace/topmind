@@ -139,11 +139,22 @@ async function handleToolsCall(id, params) {
   }
 
   const payloadHasDryRun = Object.prototype.hasOwnProperty.call(args, "dryRun");
-  // auto | confirm only — reject batch / unknown (no silent compat map)
+  // auto | confirm only — reject batch / unknown (no silent compat map).
+  // Contract (topmind.yaml writeback.mode) is the kernel truth when the caller
+  // does not pin a mode — never silently default to auto under confirm.
+  let contractMode;
+  try {
+    const { loadContract } = await import("../../lib/kernel-api.mjs");
+    const c = loadContract(pathContext?.userWorkspaceRoot || pathContext?.engineRoot);
+    contractMode = c?.writeback?.mode;
+  } catch {
+    contractMode = undefined;
+  }
   const modeResolution = resolveWritebackModeInput({
     payloadHasMode: Object.prototype.hasOwnProperty.call(args, "writebackMode"),
     payloadMode: args.writebackMode,
     envMode: process.env.topmind_WRITEBACK_MODE,
+    contractMode,
   });
   if (!modeResolution.ok) {
     return {
@@ -200,6 +211,8 @@ async function handleToolsCall(id, params) {
     pathContext,
     reviewed: userAccepted,
     writebackMode,
+    // Agent path — kernel graded-confirm keys off actor !== "user".
+    actor: "ai",
   });
 
   return formatToolResult(result);

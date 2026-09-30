@@ -245,7 +245,7 @@ export function EditorViewChrome({
             onClick={onToggleFocus}
             className={cn(
               "v4-editor-tool-btn",
-              focusMode && "bg-accent-container text-on-accent-container",
+              focusMode && "bg-accent-bg-subtle text-accent-color",
             )}
             aria-label={focusMode ? t("workspace:formatBarOptions.focusModeOff") : t("workspace:formatBarOptions.focusModeOn")}
             aria-pressed={focusMode}

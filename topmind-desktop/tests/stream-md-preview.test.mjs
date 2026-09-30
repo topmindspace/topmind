@@ -279,6 +279,27 @@ test("prefersMarkdownPreview detects structure", () => {
   assert.equal(prefersMarkdownPreview("line1\nline2"), true);
 });
 
+test("streamMarkdownToPreviewHtml renders GFM tables and normalizes h5", () => {
+  const html = streamMarkdownToPreviewHtml(
+    [
+      "| 名 | 值 |",
+      "| --- | --- |",
+      "| a | 1 |",
+      "| b | **bold** |",
+      "",
+      "##### 小节",
+      "",
+      "body",
+    ].join("\n"),
+  );
+  assert.match(html, /<table>/);
+  assert.match(html, /<th>名<\/th>/);
+  assert.match(html, /<td>1<\/td>/);
+  assert.match(html, /<strong>bold<\/strong>/);
+  // prepareStreamMarkdown folds #####+ → ### for stream density
+  assert.match(html, /<h3>小节<\/h3>/);
+});
+
 test("StreamDetailView wires stream-md-preview (not pre-only body)", () => {
   const view = readFileSync(
     path.join(root, "src/plugins/topmind-workspace/views/StreamDetailView.tsx"),

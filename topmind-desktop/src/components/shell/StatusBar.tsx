@@ -209,7 +209,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
               role="status"
               aria-label={t("statusBar.workspaceOk")}
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-success/80" aria-hidden />
+              <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden />
               {health.workspaceRoot ? (
                 <span className="hidden truncate font-mono text-3xs text-text-tertiary sm:inline" data-status-workspace-path>
                   {health.workspaceRoot.replace(/\\/g, "/")}
@@ -263,7 +263,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
                 onClick={() => {
                   useViewStore.getState().openOverlay("settings", { topicId: "manage" });
                 }}
-                className="bg-status-success-bg text-success hover:bg-status-success-bg"
+                className="bg-status-success-bg text-success hover:bg-state-hover"
                 aria-label={label}
               >
                 <RiDownload2Line size={ICON.micro} aria-hidden />

@@ -9,7 +9,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 test("writeback-toast helper formats evidence paths", async () => {
   const mod = await import(pathToFileURL(path.join(root, "src/lib/writeback-toast.ts")).href);
   const { formatWritebackToast, formatBatchEvidenceLine } = mod;
-  assert.equal(formatWritebackToast("已保存"), "✓ 已保存");
+  assert.equal(formatWritebackToast("已保存"), "已保存");
   assert.equal(
     formatWritebackToast("已发布", {
       operation: "publish",
@@ -18,9 +18,9 @@ test("writeback-toast helper formats evidence paths", async () => {
       backupPath: "99-归档/backups/output-ow/x__note.md",
     }),
     // shortPath keeps last 2 segments for path visibility
-    "✓ 已发布 · 88-输出/2026-01-01-note.md · 备份 output-ow/x__note.md",
+    "已发布 · 88-输出/2026-01-01-note.md · 备份 output-ow/x__note.md",
   );
-  assert.equal(formatWritebackToast("失败", null, { fail: true }), "✗ 失败");
+  assert.equal(formatWritebackToast("失败", null, { fail: true }), "失败");
 
   const batchLine = formatBatchEvidenceLine({
     writeCount: 2,

@@ -212,3 +212,43 @@ test("localizeMarkdownImages resolves relative URL with baseUrl", async () => {
     await fs.rm(dir, { recursive: true, force: true });
   }
 });
+
+test("localizeMarkdownImages never rewrites already-localized images/ paths", async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "mh-clip-local-"));
+  const origFetch = globalThis.fetch;
+  /** @type {string[]} */
+  const fetched = [];
+  globalThis.fetch = async (url) => {
+    fetched.push(String(url));
+    return new Response(new Uint8Array([1]), {
+      status: 200,
+      headers: { "content-type": "image/png" },
+    });
+  };
+  try {
+    const md = "![a](images/slug/img-abc123.jpg)\n\n![b](https://cdn.example/b.png)";
+    const r = await localizeMarkdownImages(md, {
+      imagesDirAbs: dir,
+      relPrefix: "images/slug",
+      baseUrl: "https://x.com/user/status/1",
+      referer: "https://x.com/user/status/1",
+    });
+    assert.match(r.markdown, /!\[a\]\(images\/slug\/img-abc123\.jpg\)/);
+    assert.equal(fetched.length, 1);
+    assert.ok(fetched[0].includes("cdn.example"));
+    assert.equal(r.skipped, 1);
+    assert.equal(r.downloaded, 1);
+  } finally {
+    globalThis.fetch = origFetch;
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("resolveMediaUrl treats images/ workspace paths as local (no page resolve)", () => {
+  assert.equal(resolveMediaUrl("images/a/img-1.png", "https://x.com/s/1"), null);
+  assert.equal(resolveMediaUrl("./images/a/img-1.png", "https://x.com/s/1"), null);
+  assert.equal(
+    resolveMediaUrl("/assets/pic.png", "https://blog.example/p/1"),
+    "https://blog.example/assets/pic.png",
+  );
+});

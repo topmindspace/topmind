@@ -128,7 +128,7 @@
     "wordWrap": "自动换行",
     "wordWrapDesc": "关闭后长行横向滚动",
     "inlineAiAutoPopup": "选中文本自动弹出 AI",
-    "inlineAiAutoPopupDesc": "关闭后仅通过工具栏 ✨ 或右键菜单手动触发",
+    "inlineAiAutoPopupDesc": "关闭后仅通过工具栏 AI 或右键菜单手动触发",
     "tabMode": "标签页",
     "tabModeDesc": "Chrome 式多标签 · 或单文件",
     "tabModeMulti": "多标签（激活不改顺序）",
@@ -143,7 +143,7 @@
     "autoPrepareSuggestions": "自动准备 AI 建议",
     "autoPrepareSuggestionsDesc": "工作区就绪后扫描可整理项（Inbox / 陈旧专题 / 记忆候选）。已配置模型时可能调用 AI 做提炼；不静默落盘，确认后才执行。关则仅手动点刷新，省 Token。",
     "autoMaintainTodos": "自动 AI 整理待办",
-    "autoMaintainTodosDesc": "工作区就绪且 AI 可用时，从动态自动提取/更新个人清单（memory/todo.md）。默认关，避免后台耗 Token；也可在动态 ✨ 或清单面板手动触发。",
+    "autoMaintainTodosDesc": "工作区就绪且 AI 可用时，从动态自动提取/更新个人清单（memory/todo.md）。默认关，避免后台耗 Token；也可在动态 AI 或清单面板手动触发。",
     "clipBridge": "浏览器剪藏",
     "clipBridgeDescRunning": "运行中 · {{endpoint}}",
     "clipBridgeDescStopped": "本机 HTTP 桥，供浏览器扩展写入 Inbox",
@@ -210,7 +210,8 @@
     "themeSeedGraphite": "Graphite（石墨）",
     "quickExtensions": "扩展与集成",
     "quickExtensionsDesc": "连接器、剪藏桥、伴侣模块与更新",
-    "quickAbout": "关于与更新"
+    "quickAbout": "关于与更新",
+    "themeDesc": "浅色、深色，或与系统保持一致"
   },
   "skills": {
     "mode": "模式",
@@ -582,7 +583,10 @@
     "baseUrlInvalid": "地址无效：仅支持 https://，或本机 http://localhost",
     "baseUrlEmpty": "未设置接口地址",
     "secretLostWarning": "以下密钥仍留有密文但无法解密（升级 / 重签 / 本地密钥丢失）：{{keys}}。请重新填写。",
-    "apiKeyLabel": "API Key"
+    "apiKeyLabel": "API Key",
+    "providerMarkCurrent": "当前",
+    "providerMarkConfigured": "已配置",
+    "entrypointMark": "主"
   },
   "tools": {
     "jsonErrorObject": "输入须为 JSON 对象",
@@ -650,5 +654,12 @@
     "realtime": "实时",
     "loading": "加载统计中…"
   },
-  "groupsNavLabel": "设置分组"
+  "groupsNavLabel": "设置分组",
+  "action": {
+    "dismiss": "忽略"
+  },
+  "nav": {
+    "workspaceLabel": "工作区",
+    "productTier": "TopMind Desktop"
+  }
 }

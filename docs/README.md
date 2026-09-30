@@ -71,6 +71,10 @@
 | [`suite-review-2026-09-24.md`](./suite-review-2026-09-24.md) | 套件评审快照（2026-09-24） |
 | [`AI-AGENT-PLATFORM-REMEDIATION-2026-09-25.md`](./AI-AGENT-PLATFORM-REMEDIATION-2026-09-25.md) | 智能体平台整改波次记录（已收官） |
 | [`wechat-studio-DESIGN.md`](./wechat-studio-DESIGN.md) | 实验页已删；公众号能力在 skills `topmind-wechat` |
+| monorepo `docs/design/UIUX-MD3-TRANSFORMATION-2026-09.md` | **SUPERSEDED** append-log；真源 `topmind-desktop/DESIGN.md` |
+| monorepo `docs/design/UIUX-MUSE-CUE-BENCHMARK-2026-09.md` | **SUPERSEDED** append-log（含十七–十九次波次） |
+| monorepo `docs/research-ui-ux-md3-2026-09.md` | 外部调研输入（历史） |
+| `docs/design/2026-09-17-md3-informed-ui-system.md` | 仅留决定；像素已并入 DESIGN/tokens |
 
 ---
 

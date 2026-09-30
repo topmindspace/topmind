@@ -1,5 +1,13 @@
 import { useEffect, useState, useRef, useCallback, lazy } from "react";
-import { RiFileCopyLine, RiLightbulbLine, RiListCheck, RiShareBoxLine } from "@remixicon/react";
+import {
+  RiCheckboxCircleLine,
+  RiErrorWarningLine,
+  RiFileCopyLine,
+  RiInformationLine,
+  RiLightbulbLine,
+  RiListCheck,
+  RiShareBoxLine,
+} from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { TitleBar } from "./TitleBar";
 import { OsChromeStrip } from "./OsChromeStrip";
@@ -34,7 +42,7 @@ import { useShellSettingsSync } from "./useShellSettingsSync";
 import { useShellShortcuts } from "./useShellShortcuts";
 import { useAutoTodoMaintain } from "./useAutoTodoMaintain";
 import { openSuggestSurface } from "../../lib/suggest-surface";
-import { handleAppsMenuToggle } from "../../lib/ai-workspace";
+import { handleAppsMenuToggle, toggleAiWorkspacePane } from "../../lib/ai-workspace";
 import { APPS_MENU_TOGGLE_EVENT } from "../../lib/apps-menu";
 import { toggleWorkspaceSwitcher } from "../../lib/workspace-switcher";
 import { installNativeMenuBridge } from "../../lib/native-menu";
@@ -170,10 +178,10 @@ export function Shell({ settings }: ShellProps) {
           archiveRelativePath: backupPath,
           targetRelativePath: evidence.targetPath,
         });
-        showToast({ text: `↩ ${t("common:writeback.restoreTip")}`, kind: "success" });
+        showToast({ text: t("common:writeback.restoreTip"), kind: "success" });
         emitLocal("workspace:file-changed", { relativePath: evidence.targetPath });
       } catch {
-        showToast({ text: `✗ ${t("common:writeback.restoreTip")}`, kind: "error" });
+        showToast({ text: t("common:writeback.restoreTip"), kind: "error" });
       }
     },
     [showToast, t],
@@ -188,7 +196,7 @@ export function Shell({ settings }: ShellProps) {
         await api.ws.copyPath(path);
         showToast({ text: t("common:writeback.copyPathDone"), kind: "success" });
       } catch {
-        showToast({ text: `✗ ${t("common:writeback.copyPath")}`, kind: "error" });
+        showToast({ text: t("common:writeback.copyPath"), kind: "error" });
       }
     },
     [showToast, t],
@@ -240,12 +248,10 @@ export function Shell({ settings }: ShellProps) {
   // Unified 建议 entry (task-store / bus) → AI workspace 建议 pane
   useEffect(() => {
     return onLocal("suggest-surface:open", (payload) => {
-      void import("../../lib/suggest-surface").then(({ openSuggestSurface }) => {
-        const refresh = payload && typeof payload === "object" ? payload.refresh : undefined;
-        openSuggestSurface(
-          refresh === false ? { refresh: false } : refresh === true ? { refresh: true } : undefined,
-        );
-      });
+      const refresh = payload && typeof payload === "object" ? payload.refresh : undefined;
+      openSuggestSurface(
+        refresh === false ? { refresh: false } : refresh === true ? { refresh: true } : undefined,
+      );
     });
   }, []);
 
@@ -259,9 +265,7 @@ export function Shell({ settings }: ShellProps) {
         setTodoFocusOpen((v) => !v);
         return;
       }
-      void import("../../lib/ai-workspace").then(({ toggleAiWorkspacePane }) => {
-        toggleAiWorkspacePane("todo");
-      });
+      toggleAiWorkspacePane("todo");
     });
     const unOpen = onLocal("todo:open-popover", () => {
       if (useViewStore.getState().focusMode) {
@@ -464,8 +468,8 @@ export function Shell({ settings }: ShellProps) {
               onMouseEnter={() => pauseToast(toast.key)}
               onMouseLeave={() => resumeToast(toast.key, toast.dwell)}
               className={cn(
-                "v4-toast pointer-events-auto flex max-w-[min(420px,90vw)] items-center gap-2",
-                "rounded-[var(--radius-toast,var(--radius-menu))] border px-3.5 py-2 text-3xs font-medium",
+                "v4-toast pointer-events-auto flex max-w-[min(420px,90vw)] items-center gap-2.5",
+                "rounded-[var(--radius-toast,16px)] px-3.5 py-2.5 text-xs font-medium",
                 "shadow-[var(--elevation-2,var(--shadow-float))]",
                 toast.leaving ? "animate-toast-out" : "animate-toast-in",
                 toast.kind === "error"
@@ -475,6 +479,15 @@ export function Shell({ settings }: ShellProps) {
                     : "border-border-subtle-dim bg-inverse-surface text-inverse-on-surface",
               )}
             >
+              <span className="mt-0.5 shrink-0" aria-hidden>
+                {toast.kind === "error" ? (
+                  <RiErrorWarningLine size={ICON.micro} />
+                ) : toast.kind === "success" ? (
+                  <RiCheckboxCircleLine size={ICON.micro} />
+                ) : (
+                  <RiInformationLine size={ICON.micro} />
+                )}
+              </span>
               <span className="min-w-0 flex-1 truncate" title={toast.text}>
                 {toast.text}
               </span>

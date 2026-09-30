@@ -2,7 +2,7 @@
  * Inbox — temporary capture queue.
  * Topic picker uses portal dropdown (never clipped by EditorArea overflow).
  */
-import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef, memo } from "react";
 import { useTranslation } from "react-i18next";
 import { useDraggable } from "@dnd-kit/core";
 import {
@@ -44,6 +44,8 @@ import {
 } from "../../../components/ui/view";
 import { TitleBarActions } from "../../../lib/chrome-portal";
 import { useTitleBarChrome } from "../../../lib/titlebar-chrome";
+import { ProactiveSuggestStrip } from "../../../components/workspace/ProactiveSuggestStrip";
+import { openSuggestSurface } from "../../../lib/suggest-surface";
 import {
   DropdownMenu,
 } from "../../../components/ui/DropdownMenu";
@@ -156,14 +158,25 @@ export function InboxView() {
     }
   };
 
-  const toggleOne = (path: string) => {
+  const toggleOne = useCallback((path: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(path)) next.delete(path);
       else next.add(path);
       return next;
     });
-  };
+  }, []);
+
+  // Stable row identities — inline closures voided memo(InboxFileRow).
+  const selectFile = useCallback((path: string) => {
+    select({ kind: "file", path });
+  }, [select]);
+  const openFileMenu = useCallback(
+    (e: React.MouseEvent, file: { relativePath: string; name: string }) => {
+      fileMenu.open(e, { path: file.relativePath, label: file.name, kind: "inbox" });
+    },
+    [fileMenu],
+  );
 
   const { t } = useTranslation(["workspace", "common"]);
 
@@ -226,6 +239,7 @@ export function InboxView() {
           </button>
         </Tooltip>
       </TitleBarActions>
+      <ProactiveSuggestStrip onOpenAll={() => openSuggestSurface()} />
       {files.length > 0 ? (
         <div className="mb-2.5 flex flex-wrap items-center gap-1" role="tablist" aria-label={t("workspace:inbox.filterLabel")}>
           {visible.length > 0 ? (
@@ -293,15 +307,9 @@ export function InboxView() {
                 file={f}
                 active={selection.kind === "file" && selection.path === f.relativePath}
                 checked={selected.has(f.relativePath)}
-                onToggleCheck={() => toggleOne(f.relativePath)}
-                onSelect={() => select({ kind: "file", path: f.relativePath })}
-                onContextMenu={(e) =>
-                  fileMenu.open(e, {
-                    path: f.relativePath,
-                    label: f.name,
-                    kind: "inbox",
-                  })
-                }
+                onToggleCheck={toggleOne}
+                onSelect={selectFile}
+                onContextMenu={openFileMenu}
               />
             ))}
           </RowList>
@@ -394,7 +402,7 @@ function BatchToolbar({
 
   return (
     <div
-      className="sticky top-0 z-local mb-2.5 flex flex-wrap items-center gap-2 rounded-[var(--radius-lg)] border border-accent-border-subtle/80 bg-surface px-2.5 py-2 shadow-[inset_0_1px_0_0_var(--color-accent-border-subtle),var(--shadow-xs)]"
+      className="sticky top-0 z-local mb-2.5 flex flex-wrap items-center gap-2 rounded-[var(--radius-lg)] border border-accent-border-subtle bg-surface px-2.5 py-2 shadow-[inset_0_1px_0_0_var(--color-accent-border-subtle),var(--shadow-xs)]"
       role="toolbar"
       aria-label={t("workspace:inbox.selectedCount", { count })}
     >
@@ -486,7 +494,7 @@ function sourceBadge(file: InboxFileMeta, t: (key: string, options?: Record<stri
   }
   if (file.source_type === "user-original") {
     return (
-      <span className="inline-flex shrink-0 items-center gap-0.5 rounded-[var(--radius-xs)] bg-surface-muted px-1.5 py-0.5 text-3xs font-medium text-text-tertiary">
+      <span className="inline-flex shrink-0 items-center gap-0.5 rounded-[var(--radius-xs)] bg-surface-wash-30 px-1.5 py-0.5 text-3xs font-medium text-text-tertiary">
         <RiBallPenLine size={ICON.micro} aria-hidden />
         {t("workspace:inbox.badgeOriginal")}
       </span>
@@ -495,7 +503,7 @@ function sourceBadge(file: InboxFileMeta, t: (key: string, options?: Record<stri
   return null;
 }
 
-function InboxFileRow({
+const InboxFileRow = memo(function InboxFileRow({
   file,
   active,
   checked,
@@ -506,9 +514,9 @@ function InboxFileRow({
   file: InboxFileMeta;
   active: boolean;
   checked: boolean;
-  onToggleCheck: () => void;
-  onSelect: () => void;
-  onContextMenu?: (e: React.MouseEvent) => void;
+  onToggleCheck: (path: string) => void;
+  onSelect: (path: string) => void;
+  onContextMenu?: (e: React.MouseEvent, file: InboxFileMeta) => void;
 }) {
   const { t } = useTranslation(["workspace", "common"]);
   const layout = useCollectionLayout();
@@ -530,13 +538,13 @@ function InboxFileRow({
       ref={setNodeRef}
       data-collection-item
       {...attributes}
-      onContextMenu={onContextMenu}
+      onContextMenu={(e) => onContextMenu?.(e, file)}
       className={
         layout === "card"
           ? cn(
               "v4-dense-row flex min-h-[3.25rem] items-center gap-2",
               isDragging && "opacity-50",
-              (active || checked) && "ring-1 ring-inset ring-accent-color/25",
+              (active || checked) && "ring-1 ring-inset ring-accent-border-subtle",
             )
           : listRowClass(
               active || checked,
@@ -549,7 +557,7 @@ function InboxFileRow({
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            onToggleCheck();
+            onToggleCheck(file.relativePath);
           }}
           onPointerDown={(e) => e.stopPropagation()}
           className={cn(
@@ -578,7 +586,7 @@ function InboxFileRow({
 
       <button
         type="button"
-        onClick={onSelect}
+        onClick={() => onSelect(file.relativePath)}
         onPointerDown={(e) => e.stopPropagation()}
         className="flex min-w-0 flex-1 items-center gap-2.5 rounded-[var(--radius-sm)] text-left v4-focus-ring"
         title={showFileHint ? `${displayName}\n${file.name}` : displayName}
@@ -608,7 +616,7 @@ function InboxFileRow({
       </div>
     </li>
   );
-}
+});
 
 function MoveToTopicButton({ file }: { file: InboxFileMeta }) {
   const { t } = useTranslation(["workspace", "common"]);

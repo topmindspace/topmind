@@ -57,6 +57,9 @@ export function resolveMediaUrl(href, baseUrl) {
       return null;
     }
   }
+  // Already-localized workspace paths (images/…) must never be re-resolved
+  // against a remote page URL — that would invent a bogus CDN path.
+  if (isLocalMediaPath(h)) return null;
   // root- or path-relative — need base
   if (!baseUrl) return null;
   try {
@@ -64,6 +67,18 @@ export function resolveMediaUrl(href, baseUrl) {
   } catch {
     return null;
   }
+}
+
+/**
+ * True when the href is already a workspace-localized media path
+ * (`images/…` convention). Remote-relative page assets like `/a/x.png`
+ * must still resolve against the page base URL.
+ */
+export function isLocalMediaPath(href) {
+  const h = String(href || "").trim().replace(/^<|>$/gu, "");
+  if (!h || /^[a-z][a-z0-9+.-]*:/iu.test(h) || h.startsWith("//")) return false;
+  const cleaned = h.replace(/^\.\//u, "");
+  return cleaned.startsWith("images/") || /(^|\/)images\//u.test(cleaned);
 }
 
 /**
@@ -193,51 +208,91 @@ export async function localizeMarkdownImages(markdown, opts) {
  * @param {string} [referer]
  */
 async function downloadOne(url, dirAbs, referer = "") {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
-  try {
-    /** @type {Record<string, string>} */
-    const headers = {
-      "User-Agent":
-        "Mozilla/5.0 (compatible; topmind-Clip/1.2; +https://github.com/topmindspace/topmind)",
-      Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
-    };
-    if (referer && /^https?:\/\//iu.test(referer)) {
-      headers.Referer = referer;
+  const candidates = buildDownloadCandidates(url, referer);
+  let lastErr = null;
+  for (const { headers } of candidates) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+    try {
+      const res = await fetch(url, {
+        signal: ctrl.signal,
+        headers,
+        redirect: "follow",
+      });
+      if (!res.ok) {
+        lastErr = new Error(`http_${res.status}`);
+        continue;
+      }
+      const buf = Buffer.from(await res.arrayBuffer());
+      if (buf.length === 0 || buf.length > MAX_BYTES) {
+        lastErr = new Error("size");
+        continue;
+      }
+      // Reject obvious non-image HTML error pages
+      const ct = (res.headers.get("content-type") || "").toLowerCase();
+      if (ct.includes("text/html") || ct.includes("application/json")) {
+        lastErr = new Error("not_image");
+        continue;
+      }
+      const ext = extFromUrlOrType(url, ct);
+      const hash = createHash("sha1").update(buf).digest("hex").slice(0, 12);
+      const name = `img-${hash}${ext}`;
+      // Defense: ensure final write path stays within the expected images directory.
+      const finalPath = path.resolve(dirAbs, name);
+      const resolvedDir = path.resolve(dirAbs);
+      if (!finalPath.startsWith(resolvedDir + path.sep) && finalPath !== resolvedDir) {
+        throw new Error("path_escape");
+      }
+      await fs.mkdir(dirAbs, { recursive: true });
+      await fs.writeFile(finalPath, buf);
+      return name;
+    } catch (e) {
+      lastErr = e;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  throw lastErr || new Error("download_failed");
+}
+
+/**
+ * Ordered header strategies: page Referer first (hotlink protection), then
+ * image-origin Referer (X / CDNs), then bare browser-like request.
+ * @param {string} url
+ * @param {string} referer
+ */
+function buildDownloadCandidates(url, referer) {
+  const base = {
+    "User-Agent":
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+  };
+  /** @type {Array<{ headers: Record<string, string> }>} */
+  const out = [];
+  const push = (ref) => {
+    const headers = { ...base };
+    if (ref && /^https?:\/\//iu.test(ref)) {
+      headers.Referer = ref;
       try {
-        headers.Origin = new URL(referer).origin;
+        headers.Origin = new URL(ref).origin;
       } catch {
         /* ignore */
       }
     }
-    const res = await fetch(url, {
-      signal: ctrl.signal,
-      headers,
-      redirect: "follow",
-    });
-    if (!res.ok) throw new Error(`http_${res.status}`);
-    const buf = Buffer.from(await res.arrayBuffer());
-    if (buf.length === 0 || buf.length > MAX_BYTES) throw new Error("size");
-    // Reject obvious non-image HTML error pages
-    const ct = (res.headers.get("content-type") || "").toLowerCase();
-    if (ct.includes("text/html") || ct.includes("application/json")) {
-      throw new Error("not_image");
-    }
-    const ext = extFromUrlOrType(url, ct);
-    const hash = createHash("sha1").update(buf).digest("hex").slice(0, 12);
-    const name = `img-${hash}${ext}`;
-    // Defense: ensure final write path stays within the expected images directory.
-    const finalPath = path.resolve(dirAbs, name);
-    const resolvedDir = path.resolve(dirAbs);
-    if (!finalPath.startsWith(resolvedDir + path.sep) && finalPath !== resolvedDir) {
-      throw new Error("path_escape");
-    }
-    await fs.mkdir(dirAbs, { recursive: true });
-    await fs.writeFile(finalPath, buf);
-    return name;
-  } finally {
-    clearTimeout(timer);
+    out.push({ headers });
+  };
+  push(referer);
+  let imgOriginReferer = "";
+  try {
+    const u = new URL(url);
+    imgOriginReferer = u.origin + "/";
+  } catch {
+    /* ignore */
   }
+  if (imgOriginReferer && imgOriginReferer !== referer) push(imgOriginReferer);
+  push("");
+  return out;
 }
 
 function extFromUrlOrType(url, contentType) {

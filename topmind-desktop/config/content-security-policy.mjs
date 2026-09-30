@@ -22,7 +22,9 @@ export function getContentSecurityPolicy({
     "object-src 'none'",
     `script-src ${scriptSrc}`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: topmind-asset:",
+    // https: covers captured article/X images before localize rewrites them
+    // to topmind-asset://; blob: is for paste/preview object URLs.
+    "img-src 'self' data: blob: topmind-asset: https:",
     "font-src 'self' data:",
     `connect-src ${connectSrc}`,
   ].join("; ");

@@ -2,7 +2,7 @@
 
 > **理念**：精准、安静、对象优先、**长时阅读友好**、可审查、**可扩展的富工作台**。  
 > **产品北极星**：最低摩擦个人动态流；导航与概念**清晰简单**；AI **内生副驾**（建议默认 · 确认执行）。  
-> **美学**：**Design System 4.2 — ZCode Neutral + MD3** — 外观三轴（深浅 × 色调 warm/cool/neutral/slate × 种子）· 状态层 · surface container · 列表去框线 · chrome 深度。主 CTA 仍为单色 ink。  
+> **美学**：**Design System 4.3 — Soft Workbench + MD3**（2026-09-29 向 Muse/Cue 对齐）— 外观三轴（深浅 × 色调 × 种子）· 状态层 · surface container · **软圆角内容卡** · **内容页 ViewHero 大标题** · 列表去框线。主 CTA 仍为单色 ink；图标一律 Remix 线形（禁 emoji）。  
 > **栈**：Tailwind 4 · shadcn 风格 · Radix · RemixIcon · Design Tokens。  
 > **品牌色**：sky 轴 `#075985` → `#0ea5e9` + capture teal；强调 = sky-700 `#0369a1`（dark sky-400）。对比度见 §5.0.1。  
 > **文档**：[`../docs/design/2026-09-17-md3-informed-ui-system.md`](../docs/design/2026-09-17-md3-informed-ui-system.md)  
@@ -47,11 +47,11 @@ ActivityBar（最左 48px · 三分组）：
 | **AI 建议** | 工作区整理候选 · 确认后写入 | 有条目时**状态栏计数 chip** → AI 工作区 **建议** pane（`SuggestPopover` 确认列表；专注模式仍浮动） | 嵌进 Stream 卡片；仅藏在 AI 聊天轨里才可操作；空态永久占位条 |
 | **增补** | 对已有动态条目续写（评论感 · 同文件） | 动态卡片上的增补入口 + 续写徽章 | 平行评论 DB / 新真源 |
 
-**动态页主路径**：输入 →（可选润色）→ **记下**（EN: Log it）；对旧条 **增补**；链接/文档走 ActivityBar「记一下」（EN: Note it）。链接检测 CTA 亦统一用「记一下」。页头 **整理 · 刷新**（情境动作）。**个人清单 / AI 待办**不在页头——唯一入口是 ⌘⇧T → AI 工作区 清单 pane（pane 内 ✨ 维护）；专注模式才浮动。  
+**动态页主路径**：输入 →（可选润色）→ **记下**（EN: Log it）→ 进**动态**；对旧条 **增补**。链接粘贴后展示共享 `LinkCaptureCard`：**记下**只记动态链接，**抓取**进 **Inbox 独立文章**。文档/完整捕获走 ActivityBar「记一下」（EN: Note it）。页头 **整理 · 刷新**（情境动作）。**个人清单 / AI 待办**不在页头——唯一入口是 ⌘⇧T → AI 工作区 清单 pane（pane 内 ✨ 维护）；专注模式才浮动。  
 **统一建议入口（全局）**：有 `items` 时**状态栏计数 chip**（**count=0 自动隐藏**）；点击 → `openSuggestSurface()` → AI 工作区 **建议** pane。画布顶 `SuggestEntryStrip` 已删除，不得再挂。无始终可点的标题栏 💡（安静 chrome）。  
 **唯一确认面**：AI 工作区 **建议** pane 内的 `SuggestPopover`（接受 / 忽略 / 待确认写入）；专注模式仍浮动（AI 列被藏）。不在对话 pane 再挂第二套完整列表。  
 **会话稳定**：软刷新 / 15s 轮询不得因 kernel 空 regenerate 清空已展示建议（`sessionSuggestionCache` + `mergeSuggestRefreshItems`）；dismiss/apply 仍可移除。  
-**忽略要落盘**：dismiss 写入 `.topmind/suggest-dismissed.json`（`lib/suggest-dismissed.mjs`），生成侧 `suggest-engine` 返回前过滤。「忽略」不能只是一个会话内的视觉操作——否则下一次轮询会把同一条原样端回来。  
+**主页建议卡只藏卡（强制）**：`ProactiveSuggestStrip` 上的「查看」「忽略」**只隐藏本条主页卡片**（React 本地 `hiddenIds`）——不写 `suggest-dismissed`、不改 ActionStore、不影响建议 pane 里的接受/持久忽略。「查看」= 藏卡 + 开确认面；「忽略」= 仅藏卡。真正建议动作（接受 / 持久忽略 / 待确认写入）只发生在建议 pane。**建议 pane**「忽略」才落盘——`dismissItem` 写 `.topmind/suggest-dismissed.json`（`lib/suggest-dismissed.mjs`，30 天 TTL），生成侧 `suggest-engine` 返回前过滤。建议 id 内容寻址，禁止单例 id 吞并整类真建议。  
 **「全部接受」= 一个请求，不是一个循环**：渲染侧走单次 `applySuggestions(items)`，主进程串行写、逐条 `ctx.emit` 进度。早期版本是渲染侧 `for` 循环逐条 IPC，N 条建议要 N 次 settings 加载与 N 个往返，且中途失败只留半张卡的中间态。  
 **失败语义分两类**（`src/lib/suggest-apply-label.ts`）：**终态失败**——源文件已不在 / 目标已存在 / 落点越出工作区 / 读写失败等 12 个 reason 码，重试不会变好，故**自动等同「忽略」**（移卡 + 记 dismissed）并给一条说明；**可重试失败**——AI 忙 / 超时 / 引擎暂时不可用，保留卡片让用户再试。两类都要有 i18n 文案，禁止把 reason 码裸露给用户（`editor:applyFail.*`）。  
 **卡片正文**：`stream-md-preview` 轻预览（剥 `<!-- topmind:append -->`；首行子弹/时间进芯片不进正文）；**Feed 稳定**：软 reload 不全页 loading。  
@@ -107,6 +107,8 @@ ActivityBar（最左 48px · 三分组）：
 | **RiListCheck2** | 编辑器 Markdown 任务列表语法开关（格式条） | 用于产品「清单」pane（那是 RiListCheck） |
 
 > 图标体系（2026-09）：全应用 **RemixIcon**（`@remixicon/react`），尺寸标尺集中 `src/lib/icons.ts` `ICON = { nano:10, micro:12, xs:14, sm:17, md:20, lg:24, xl:30 }`。语义边界：**nano 仅限箭头/圆点/kbd；功能图标 micro 起步；header/sidebar/主导航用 sm**。面板开合（`PanelToggleIcon`）始终用 Line 字形，打开时用强调色，不用 Fill 实心。**一概念一图标**：同一产品概念在所有表面复用同一 glyph（对话 / 清单 / 交付 / 编辑 / 整理），不要在第二个组件另起近似图标。
+
+> **禁止 emoji / 装饰性 Unicode 字形（强制）**：产品 UI 的图标一律 Remix 线形。禁止把 emoji 当列表图标、状态标记、按钮字形或 toast 前缀（`✓` `✗` `★` `✕` `↩` 等一并视为装饰字形）。状态用 `StatusDot` / Toast `kind` 图标；关闭用 `RiCloseLine`；勾选用 `RiCheckLine`；列表标记用文字标签或图标 chip。注释里的 emoji 也避免，防止被抄进 UI。Muse 的 emoji 点睛**不学**。
 
 #### 跨表面图标映射（强制 · Desktop Remix ↔ Obsidian Lucide）
 
@@ -190,13 +192,13 @@ ActivityBar（最左 48px · 三分组）：
 
 ### 0.0.5 计数角标（CountBadge · 强制）
 
-数字角标（建议数 / 待办数 / AI 工作区 tab 数 / 运行中任务数 / 会话已载技能数）**只有一个实现**：`src/components/ui/CountBadge.tsx`。
+数字角标（建议数 · 运行中任务数 · AI 轨活跃任务 · 会话已载技能数）**只有一个实现**：`src/components/ui/CountBadge.tsx`。**不做**清单 tab 常驻数字点（恒非零 = 噪声）；交付库存计数同理不进 badge。
 
 > **为什么要单独立规**：此前三处调用点各自手写 `<span>`，圆角、偏移、填充三套互不相同。其中 AI 工作区那处填的是 `bg-skill-loop` —— 该 token 早已在设计系统重构中被删除，Tailwind v4 对未定义 token **一条规则都不生成**，角标于是成了「透明底 + 继承字色」：浅色 ~1.14:1、深色 ~1.09:1，**两种模式全隐形，且没有任何东西报错**。
 
 | 项 | 规定 |
 |----|------|
-| 形状 | `--radius-xs`(2px) 方圆角，**不是**胶囊——与 `Chip` / 计数语言一致，避免圆点抢读 |
+| 形状 | `--radius-xs`(4px) 方圆角，**不是**胶囊——与 `Chip` / 计数语言一致，避免圆点抢读 |
 | 字号 | `text-4xs`(12px) / `font-bold` / `leading-none`；**不得**用 `text-5xs`(10px) |
 | 填充 | `--color-badge` 轴（`bg-badge`），告警用 `bg-badge-alert`。**不用** `accent-color`：它在 inbox 模式翻成 teal，白字掉到 4.3:1 |
 | 前景 | `--color-badge-foreground` / `--color-badge-alert-foreground`；**禁止**硬编码 `text-white`（深色模式角标是浅底 + 深字） |
@@ -273,9 +275,9 @@ ActivityBar（最左 48px · 三分组）：
 
 **CTA**：每步/每区 **一个** `variant=default`；其余 ghost/outline/ai。**禁止**自写第二套 header/toast/空态。卡槽统一 `AppSlot` / `StatSlot`（docs/APP-SHELL-PARADIGM.md）。
 
-| **Surface 阶梯** | light：`sidebar/chrome` `#e2ded6/#f1efe8` → `background` `#f3f1eb` → `surface` `#f7f5f0` → **`elevated` `#fffcf7`**；dark：`sidebar` `#141311` → `chrome` `#171614` → `background` `#1c1a17` → `surface` `#221f1c` → **`elevated` `#2b2824`**。暖纸 / 抬起的石墨，长时阅读少眩光。Feed 卡 = `--elevation-1` + `surface`（非 elevated） |
+| **Surface 阶梯** | light：`sidebar/chrome` `#e9e7e2/#f2f1ee` → `background` `#f6f5f2` → `surface` `#faf9f6` → **`elevated` `#fffefb`**；dark：`sidebar` `#141311` → `chrome` `#171614` → `background` `#1c1a17` → `surface` `#232019` → **`elevated` `#2e2b26`**。Muse-soft 暖纸 / 抬起的石墨，长时阅读少眩光。Feed 卡 = `shadow-card` + `surface`（非 elevated） |
 | **低视觉负担** | 选中/hover 用浅 brand wash（`accent-bg-subtle` / `surface-selected`）；每区一个实心 CTA；边框优先 `border-subtle-dim`。**列表/卡片去框线**（4.2）：list = 间距 + hover wash（无日头分割线、无时间轴轨/点）；card = `shadow-xs` 软抬起（无 hairline ring）；嵌套追加仅缩进（无 accent 竖条）。**侧栏树隐藏 `.md` 后缀**；**PARA 编号弱化**；**今日卡片 accent ring**（`ring-1 ring-inset ring-accent-color/15`） |
-| **弹层与对比度** | `.v4-overlay-sheet` 用 `surface-container-highest`，Dialog 用 `dialog-bg`（muted mix，不是 `surface-elevated` 的别名），菜单用 `surface-container-high`；三者都加 `border-subtle`；**工作台 OverlayHost**（设置 / 捕获 / ⌘K / 搜索 / plugin-app）**门户到 `document.body`**、`z-modal`、`isolate`、`v4-no-drag`；Confirm/Prompt/Error 门户到 body、`z-dialog`(130)。打开时 `acquireOverlayLayer` 盖 `html[data-overlay-open]` 并 inert `#workbench-root`。**列表日头**（`data-stream-day-toggle` sticky）在该 attr 下必须 `position: static`——Electron 会把 sticky+z-index 合成到任何 `position:fixed` 对话框之上（卡片模式无 sticky，故正常）。`.v4-main-canvas` `isolation: isolate` 约束 sticky 合成层。**浮动弹窗**（`TodoPopover` / `SuggestPopover` / `TaskPanel`）采用 **毛玻璃质感**（`backdrop-blur-[var(--blur-glass)] backdrop-saturate-150` + `bg-surface-elevated/90` + `border-border-subtle` + `shadow-[var(--shadow-elevated-hairline)]`）；**交互一致**：点击外部 + 外部滚动 + Esc 关闭（内部列表滚动不关）；文本对比度达 WCAG AA 4.5:1+ (dark Primary `#e5e5e5` · Secondary `#c9c9c9` · Tertiary `#a1a1a1` · Quaternary `#8c8c8c`) |
+| **弹层与对比度** | `.v4-overlay-sheet` 用 `surface-container-highest`，Dialog 用 `dialog-bg`（muted mix，不是 `surface-elevated` 的别名），菜单用 `surface-container-high`；三者都加 `border-subtle`；**工作台 OverlayHost**（设置 / 捕获 / ⌘K / 搜索 / plugin-app）**门户到 `document.body`**、`z-modal`、`isolate`、`v4-no-drag`；Confirm/Prompt/Error 门户到 body、`z-dialog`(130)。打开时 `acquireOverlayLayer` 盖 `html[data-overlay-open]` 并 inert `#workbench-root`。**列表日头**（`data-stream-day-toggle` sticky）在该 attr 下必须 `position: static`——Electron 会把 sticky+z-index 合成到任何 `position:fixed` 对话框之上（卡片模式无 sticky，故正常）。`.v4-main-canvas` `isolation: isolate` 约束 sticky 合成层。**浮动弹窗**（`TodoPopover` / `SuggestPopover` / `TaskPanel`）采用 **毛玻璃质感**（`backdrop-blur-[var(--blur-glass)] backdrop-saturate-150` + `bg-surface-elevated/90` + `border-border-subtle` + `shadow-[var(--shadow-elevated-hairline)]`）；**交互一致**：点击外部 + 外部滚动 + Esc 关闭（内部列表滚动不关）；文本对比度以 `tokens.css` 为准（dark primary `#e8e4de` · quaternary `#9c948c`） |
 | **玻璃面边界** | 暗色 `.v4-menu-surface` 内置 glass+hairline（Dropdown/ContextMenu）；主壳 / 侧栏 / 编辑画布保持 solid |
 | **一条主路径** | **ActivityBar 三分组**目的地（home≡stream · Inbox · 交付 · 我的情况 · 记一下）；搜索/AI 可达；深度动作放 ⌘K / 二级；右侧工具 **图标 XOR「更多」**（禁止同动作双入口） |
 | **控件分层** | **一级**常显 · **二级**折叠 · **三级**「更多」/ Tooltip / `/slash`（见 §0.1） |
@@ -327,14 +329,12 @@ ActivityBar（最左 48px · 三分组）：
 | 小标头 | `text-md` | **15px** | 卡片次级小标头 |
 | 卡片标题 | `text-lg` | **16px** | 区块标头、PageHeader 子标头 |
 | 小节标题 | `text-xl` | **16px** | 区域小节标题 |
-| 章节大标题 | `text-2xl` | **18px** | 模块章节标题 |
-| 页面主标题 | `text-3xl` | **24px** | 页面 Head Title |
-| 巨幕 Display | `text-4xl` | **28px** | 展台 Header 气场标题 |
+| 页面主标题 | `text-3xl` | **24px** | 页面 Head Title / ViewHero |
 | 正文 prose | settings.editor | **默认 16 / 1.72** | 编辑/预览共用；UI 主文 `text-sm` 14 / **1.55**（`--type-leading-ui`） |
 
 **禁止**：内容文字低于 **13px**（内容下限 = `text-xs`；`text-3xs`/`text-4xs` 仅限标签/角标 12px）。`text-2xs`(11px) 仅限极 muted meta（**禁止**句子）；`text-5xs`(10px) 仅限 kbd glyph，不承载句子。9px 路径/状态已淘汰。3.0 起字号对齐 ZCode 整数阶（13/14/16）。
 
-**4.0 长读**：暖纸画布 `#f3f1eb`（chrome `#f1efe8`）去眩光；`text-prose` 略软于 UI primary；四档灰色在最苛刻表面上仍 ≥4.5:1；侧栏树行高 **32px**；树节点 `data-tree-kind` 三档层次（category/group → topic → file）；列表选中用 `surface-selected`（标签用 primary ink，不用 accent 字，无侧边或底部衬条）。
+**4.3 长读**：Muse-soft 暖纸画布 `#f6f5f2`（chrome `#f2f1ee`）去眩光；`text-prose` 略软于 UI primary；四档灰色在最苛刻表面上仍 ≥4.5:1；侧栏树行高 **34px**；树节点 `data-tree-kind` 三档层次（category/group → topic → file）；列表选中用 `surface-selected`（标签用 primary ink，不用 accent 字，无侧边或底部衬条）。
 
 **状态层（4.0.5 · MD3）**：交互控件 hover/pressed 用 **`::after` 半透明覆盖层**（`--color-state-*`；实心 CTA 用 `--color-state-on-primary-*`），**不换底色**。Ghost/图标钮 hover 填 `hover:bg-state-hover`（禁止 `hover:bg-surface-muted` 换色）。`hover:text-*` 仅限**语义色**（error/warning/success/状态）或对比度抬升一档（quaternary→tertiary/secondary）；禁止 hover 把正文染成 accent。**软禁用** `Button/MenuSelect softDisabled`：看起来不可用但仍可聚焦。Toast = elevation-2 + `--radius-toast` + success/error **container** 语义。深度走 product surface tokens（`--color-surface-elevated` / `--color-surface-container-high` 菜单 / `--color-surface-container-highest` sheet / `--color-dialog-bg` 对话框 / `--color-surface` / `--color-background` / `--color-surface-muted` / `--color-surface-inset`）。菜单、sheet、对话框不得收成同一个 elevated 别名；软容器填充用 `bg-surface-wash-15/30/45/65`（**禁止** `bg-surface-muted/NN`）。无 `--md-sys-*` 死别名。
 
@@ -406,14 +406,14 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 - 路径可见；编辑器「更多」收纳发布 / 记忆 / AI  
 - 命令面板按选区排序技能；无障碍 listbox  
 - 侧栏 ViewSwitcher；空状态永远有 CTA（含动态流「记一下」）  
-- AI 离线可点进设置（RuntimeBadge · 状态栏 · composer）；Settings 分模块（环境 / 智能体 / 扩展 / 管理与更新）  
+- AI 离线可点进设置（RuntimeBadge · 状态栏 · composer）；Settings 分模块（环境 / 智能体 / 扩展与集成 / 组织与维护）  
 - 列表副文 / 设置描述 / 看板元数据 / 连接器 Hub 状态行 ≥ `text-3xs`（12px）；`text-5xs` 仅 kbd glyph  
 - 连接器中心页标题用 `text-lg`（与 PageHeader 列表页一致）；Apps 菜单条目与 `v4-menu-item` 同密度（图标 chip + 名称 + 一句描述）  
 - 共享 primitives：`plugins/connector-ui.tsx`（Hub header / status pill / toast banner）  
   - **Weread / X / Ingest hub 必须**使用 `ConnectorHubHeader`（+ StatusPill / ToastBanner 按需）  
   - `badTone="muted"`：可选能力关闭（如 X 不可发帖）用中性 pill，勿用 warning 恐吓  
 - ingest：目标 FilterChip 语言；状态栏活动计数可点开队列  
-- Settings 全面板（General / Workspace / AI / Skills / Tools / Plugins / Manage）主文案统一 ≥ `text-3xs`；左侧导航按 **环境 / 智能体 / 扩展 / 管理与更新** 分组 + **筛选搜索**  
+- Settings 全面板（General / Workspace / AI / Skills / Tools / Plugins / Manage）主文案统一 ≥ `text-3xs`；左侧导航按 **环境 / 智能体 / 扩展与集成 / 组织与维护** 分组 + **筛选搜索**  
 - 拖拽浮层 / 看板 overlay：`bg-surface` + `shadow-float`  
 
 
@@ -527,7 +527,7 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 - **DataSource 区段**：每个注册的 DataSource 渲染为可折叠区段，带 Database 眉头图标 + 半粗体大写标签。
 - **加载状态**：共享 save-dot 旋转动画；错误/空状态使用规范侧栏提示样式。
 - **TreeView**：递归渲染，按深度缩进。首次渲染时自动展开 group/category 节点。
-- **节点图标**（RemixIcon）：InboxUnarchive（00-Inbox 区段）、Stack（88-交付）、InboxArchive（99-归档）、Brain（memory 记忆区段）、Folder/FolderOpen（类别/专题）、FileText（文件）。
+- **节点图标**（RemixIcon）：InboxUnarchive（00-Inbox 区段）、Stack（88-交付）、InboxArchive（99-归档）、**RiUserLine**（memory 记忆区段）、Folder/FolderOpen（类别/专题）、FileText（文件）。
 - **行交互**：`rounded-md hover:bg-state-hover`（空闲）、`bg-accent-bg-subtle text-accent-color`（活跃）。箭头随展开状态旋转。
 - **稳定尾部插槽（Trailing Slot）**：操作按钮、文件计数、加载/拖放指示器均在 `ml-auto flex h-6` 容器中常驻定位，**无 layout shift**（不再 `hidden → inline-flex` 跳动）。操作按钮 `h-6 w-6`（24px 触控目标）+ `opacity-0 pointer-events-none` 空闲 → `group-hover:opacity-100 / isActive: opacity-100 / [@media(hover:none)]:opacity-100` 渐变可见。专题文件计数 `text-3xs tabular-nums` 在 hover/active 时 `opacity-0` 让位给操作按钮。
 - **拖放目标**：`.v4-drop-target` **idle 无描边/无底色**；仅 `.v4-drop-target-active`（isOver）显示 wash；DragOverlay elevated hairline。**冲突处理**：专题下同名 → 自动副本名。
@@ -704,12 +704,13 @@ topmind 设计系统原生支持多语言排版（Simplified Chinese / English�
 - 成功后关闭 → 回到 **动态**（或 Inbox）；路径证据走 writeback toast（不强制进 file 编辑器）  
 - **来源类型**（高级）：手写 / 摘录；URL 自动切摘录并露出抓取  
 - **剪贴板 / 附件 / 文档**：智能粘贴；文档走 ingest 队列（与 Hub 同管道）。默认 **anydoc**（设置可改 markitdown / pandoc / 仅内置）；缺失或失败回退。anydoc 装在用户数据 sidecar 或 PATH，**升级不必重打包 Desktop**；asar 内应用代码仍需新版。设置页：检测 / 重新检测 / 安装到应用。  
-- **URL 抓取**：主进程 `workspace.fetchUrl`  
-  1. **L1 静态**：HTTP → Readability → `html-to-markdown`  
-  2. **L1-GH**：GitHub md/blob/raw 直取 raw + 相对图改写；仓库根/tree 解析 README（`lib/github-md.mjs`）  
-  3. **L2 增强渲染**（可选）：隐藏 BrowserWindow  
-  4. 默认 **40k** / 完整 **200k**；截断 →「完整抓取」；SPA →「增强渲染」  
-  5. **URL 类型提示**：粘贴后显示「GitHub 仓库 · 将抓取 README / GitHub 原文 / X / 网页」  
+- **URL 抓取**：主进程 `workspace.fetchUrl` — **一次「抓取」= 最高质量**（用户不选策略）  
+  1. **X 状态**：fxtwitter 结构化（作者/标题/配图/长文 Draft.js→MD）  
+  2. **L1-GH**：GitHub md/blob/raw 直取 raw + 相对图改写；仓库根/tree 解析 README  
+  3. **L1 静态**：HTTP → Readability → `html-to-markdown`；SPA 空壳**自动**增强渲染  
+  4. 默认 **200k** 全量；封面/配图写入正文并在保存时本地化 `images/`  
+  5. **落点（强制）**：点抓取 → **Inbox 独立文章**（记一下/动态页/webclip 一致）；记下（不抓取）→ 动态链接  
+  6. **URL 类型提示**：`LinkCaptureCard` 显示类型 +「抓取后进 Inbox 独立文章」  
   约定：`skills/shared/long-url-capture.md`  
 - **Inbox 筛选**：全部 / 网页摘录 / 手写 / 其他  
 - **浏览器剪藏**：设置 → Clip Bridge；扩展 `browser-extension/` · `docs/capture-clip-matrix.md`  
@@ -765,7 +766,7 @@ IA 分组（左侧 nav）：
 
 > **说明**：密钥双层持久化——safeStorage（系统钥匙串）+ 本地 AES（`state/.secret-key`）。brew 升级/重签导致 safeStorage 解密失败时自动走本地 AES。若两层密文都损坏，需重新填写。
 
-## 5. 设计令牌（Design System 4.2 · ZCode Neutral + MD3）
+## 5. 设计令牌（Design System 4.3 · Soft Workbench + MD3）
 
 定义在 `src/styles/tokens.css` 的 `@theme` 块。浅色 + 深色（`.dark` 类）。语义别名见 `tailwind-theme.css`。
 
@@ -786,7 +787,7 @@ IA 分组（左侧 nav）：
 
 **品牌渐变停不是文字色**。`brand-mid` / `brand-aqua` 为渐变与浅底淡彩而选，白底对比度只有 2.77 / 2.83:1；需要「强调色文字」时一律用 `accent-color` / `text-accent` 一档。
 
-**中性色**：暖纸（light）与抬起的暖石墨（dark），避免纯黑纯白的长时眩光。light 画布 `#f3f1eb`，chrome `#f1efe8`，elevated `#fffcf7`；dark 画布 `#1c1a17` / elevated `#2b2824` / sidebar `#141311`；dark prose `#d9d4cc`。四档文字在最苛刻表面上仍 ≥4.5:1（light quaternary `#635f59`，dark quaternary `#988f86`）。编辑器纸张色 token：`--color-paper-soft|cream|sepia`（双主题自动切换）。
+**中性色**：Muse-soft 暖纸（light）与抬起的暖石墨（dark），避免纯黑纯白的长时眩光。light 画布 `#f6f5f2`，chrome `#f2f1ee`，elevated `#fffefb`；dark 画布 `#1c1a17` / elevated `#2e2b26` / sidebar `#141311`；dark prose `#d9d4cc`。四档文字在最苛刻表面上仍 ≥4.5:1（light quaternary `#635f59`，dark quaternary `#9c948c`）。编辑器纸张色 token：`--color-paper-soft|cream|sepia`（双主题自动切换）。
 
 **Dark**：accent = sky-400（`#38bdf8`）；`text-on-accent` 用深墨；**禁止**回退 lavender indigo。
 
@@ -803,28 +804,28 @@ IA 分组（左侧 nav）：
 3. 状态色几乎总是坐在**自己的 `-bg` 淡底**上，故基线按「字 @ 自身 9–12% 淡底 @ 最苛刻表面」核算，不能只算白底。
 4. 一个设计意图 = 一个 token。**禁止**用透明度表达严重度梯度（用 `text-text-tertiary → text-warning → text-error`）。
 
-**基线表（light · 画布 `#f3f1eb` · chrome `#f1efe8` · 4.0.5）**
+**基线表（light · 画布 `#f6f5f2` · chrome `#f2f1ee` · 4.3）**
 
-| 角色 | 停止位 | 白底 / elevated `#fffcf7` | 画布 `#f3f1eb` | chrome `#f1efe8` | 自身淡底 @chrome |
+| 角色 | 停止位 | 白底 / elevated `#fffefb` | 画布 `#f6f5f2` | chrome `#f2f1ee` | 自身淡底 @chrome |
 |------|--------|----------------|----------------|------------------|------------------|
-| accent | `#0369a1` | 5.93 | ~5.5 | ~5.2 | ≥4.5 |
-| accent · inbox | `#115e59` | 7.58 | ~7.0 | ~6.6 | ≥4.5 |
-| success | `#166534` | 7.13 | ~6.6 | ~6.2 | ≥4.5 |
-| warning | `#92400e` | 7.09 | ~6.5 | ~6.2 | ≥4.5 |
-| error | `#b91c1c` | 6.47 | ~6.0 | ~5.6 | ≥4.5 |
+| accent | `#0369a1` | 5.93 | ~5.5 | ~5.3 | ≥4.5 |
+| accent · inbox | `#115e59` | 7.58 | ~7.0 | ~6.8 | ≥4.5 |
+| success | `#166534` | 7.13 | ~6.6 | ~6.4 | ≥4.5 |
+| warning | `#92400e` | 7.09 | ~6.5 | ~6.3 | ≥4.5 |
+| error | `#b91c1c` | 6.47 | ~6.0 | ~5.8 | ≥4.5 |
 | badge 填充 | `#0369a1` + 白字 | 5.93 | — | — | — |
 | badge-alert 填充 | `#b45309` + 白字 | 5.02 | — | — | — |
 
-> 精确数值由 `tests/ui-token-compliance.test.mjs` 以当前 `tokens.css` 实时计算并断言 ≥4.5:1；改 stop 必须跑该测试。
+> 精确数值由 `tests/ui-token-compliance.test.mjs` 以当前 `tokens.css` 实时计算并断言 ≥4.5:1；改 stop 必须跑该测试。表中 chrome 列为约数，**真源是 tokens.css**。
 
-**基线表（dark · chrome `#171614` · canvas `#1c1a17` · elevated `#2b2824`）**
+**基线表（dark · chrome `#171614` · canvas `#1c1a17` · elevated `#2e2b26`）**
 
 | 角色 | 停止位 | 备注 |
 |------|--------|------|
 | accent | `#38bdf8` | AA+ on graphite |
 | success | `#4ade80` | 文本/状态点 |
 | warning | `#fbbf24` | 文本/状态点 |
-| error | `#f87171` | 文本/状态点（较旧 `#ff7b72` 更柔） |
+| error | `#fa8080` | 文本/状态点（AA on elevated + own wash） |
 | prose | `#d9d4cc` | 长读正文（低于 primary 一档，减眩光） |
 | primary | `#e8e4de` | UI 主文 |
 
@@ -837,7 +838,7 @@ chrome（中性框架）→ background（净白画布）→ surface（工作面�
 → dialog-bg（对话框；muted mix，不是 elevated 的别名）→ surface-inset（凹陷输入）
 ```
 
-**强制**：light 下 `surface` 与 `surface-elevated` 不得同色塌陷；菜单、sheet、对话框各自一步，不得互为同一个 elevated 别名。浮动层用对应表面 + `shadow-overlay` / `shadow-float`。Accent / 正文 ink **只引用 token 名**，组件禁止硬编码旧 hex；输入框凹陷统一用 `--shadow-input-inset`。Inbox 模式切换为 teal 系 accent。
+**强制**：light 下 `surface` 与 `surface-elevated` 不得同色塌陷；菜单、sheet、对话框各自一步，不得互为同一个 elevated 别名。浮动层用对应表面 + `shadow-overlay` / `shadow-float`。Accent / 正文 ink **只引用 token 名**，组件禁止硬编码旧 hex；输入框**不用** inset 阴影（软 wash 填充 + focus ring，2026-09-29 去框）。Inbox 模式切换为 teal 系 accent。
 
 ### 5.2 语义别名（`tailwind-theme.css`）
 
@@ -855,15 +856,14 @@ chrome（中性框架）→ background（净白画布）→ surface（工作面�
 | `text-error` / `text-success` / `text-warning` | status-error / success / warning |
 | `bg-status-{success,warning,error}-bg` | 对应状态淡底（配 `text-{...}` 使用；见 §5.0.1 规则 3） |
 | `border-border-subtle` / `border-border-subtle-dim` | 常规 / 极细边框 |
-| `bg-input` | surface-inset（表单输入） |
+| `bg-surface-wash-15` | 软表单填充（`bg-input` 已删 · 禁止复活） |
 | `bg-chrome` | app-chrome（侧栏、标题栏、状态栏） |
-| `ring-ring` | accent（focus 环） |
 
-**2026-09-14 删除的零引用别名**（写 `bg-card` / `text-muted-foreground` 之类已不再解析）：`--color-card`、`card-foreground`、`popover-foreground`、`muted`、`muted-foreground`、`foreground`、`destructive`、`destructive-foreground`、`border-semantic`。需要哪个就在**同一次改动里**把别名和真实用法一起加回来。
+**2026-09-14 删除的零引用别名**（写 `bg-card` / `text-muted-foreground` 之类已不再解析）：`--color-card`、`card-foreground`、`popover-foreground`、`muted`、`muted-foreground`、`foreground`、`destructive`、`destructive-foreground`、`border-semantic`。**2026-09-30**：`--color-ring` / `ring-ring`（表单去重环后零引用）。需要哪个就在**同一次改动里**把别名和真实用法一起加回来。
 
 ### 5.3 圆角
 
-ZCode 阶 + 浮动层：`--radius-xs: 2px` · `--radius-sm: 4px` · `--radius-md: 6px` · `--radius-lg: 8px` · `--radius-xl: 12px` · `--radius-2xl: 16px` · **`--radius-menu: 12px` · `--radius-dialog: 16px` · `--radius-card: 12px`**（4.0）
+Soft Workbench 4.3 阶（`tokens.css` 唯一真源；`tailwind-theme.css` 不得再声明 radius）：`--radius-xs: 4px` · `--radius-sm: 8px` · `--radius-md: 10px` · `--radius-lg: 12px` · `--radius-xl: 16px` · `--radius-2xl: 20px` · **`--radius-menu: 16px` · `--radius-dialog: 20px` · `--radius-card: 16px` · `--radius-toast: 16px`**（4.3）。浮动面用 `radius-card` / `rounded-xl`(=16)；控件域 4–12。
 
 ### 5.4 字体与密度
 
@@ -874,7 +874,7 @@ ZCode 阶 + 浮动层：`--radius-xs: 2px` · `--radius-sm: 4px` · `--radius-md
 | `--density-chrome-y` | 44px | 三列顶栏（2026-09-07: 40→44，与 32px 控件对齐）。**密度三档**由 `v4.css` 窗口媒体覆盖驱动：full 44 · condensed 36（`≤1100px`）· immersive 32（`≤720px` / focus-mode）；只保留这一枚 live token |
 | `--density-chrome-control` | 32px | 顶栏按钮命中高度 |
 | `--density-status-y` | 26px | 状态栏 |
-| `--density-tree-row` | 32px | 侧栏树行（4.0：扫描舒适度） |
+| `--density-tree-row` | 34px | 侧栏树行（4.3 Muse-soft：扫描舒适度） |
 | `--density-editor-toolbar-y` | 32px | 编辑器格式条（工具按钮 26px，小于窗口顶栏） |
 | `--content-max-width-prose` | 52rem | 正文列宽（阅读列默认） |
 | `--feed-column-max` | 56rem | 信息流/我的情况/Inbox/专题/交付 阅读列——**流体**：填充主画布实际可用宽度（侧栏/AI 面板/分栏感知），数值仅为可读性上限（≈896px，兼顾 CJK/Latin 行长与宽松 UI）。**注意与 `--content-max-width-dashboard` 区分**：后者 72rem，是列表类视图容器上限 |
@@ -898,12 +898,44 @@ ZCode 阶 + 浮动层：`--radius-xs: 2px` · `--radius-sm: 4px` · `--radius-md
 ## 6. UI 规范
 
 - **禁止装饰性内联样式**；允许 settings/runtime 度量（如编辑器 `fontSize`）
-- **UI 基础组件**（`src/components/ui/`，**以目录为准**）：`Button` · `Chip`/`ChipLabel` · `CountBadge` · `Dialog` · `DropdownMenu` · `context-menu` · `menu-select` · `select`（menu-select 的 shim）· `Input` · `textarea` · `tabs` · `tooltip` · `Splitter` · `PanelToggleIcon` · `workspace-file-menu` · `ErrorBoundary` · `LazyBoundary` · `view`（共享视图原语）。**没有** `Card` / `Separator` / `Badge` 组件——卡面与分隔用 token + 工具类，计数角标用 `CountBadge`，紧凑标签/过滤 chip 用 `Chip`
+- **UI 基础组件**（`src/components/ui/`，**以目录为准**）：`Button` · `Chip`/`ChipLabel` · `CountBadge` · `Dialog` · `DropdownMenu` · `context-menu` · `menu-select` · `select`（menu-select 的 shim）· `Input` · `textarea` · `tabs` · `tooltip` · `Splitter` · `PanelToggleIcon` · `workspace-file-menu` · `ErrorBoundary` · `LazyBoundary` · `view`（共享视图原语）· `StatusDot` · `ChoiceCard` · `SuggestionCard` · `RowActions` · `AgentPresence`（Muse/Cue 对标吸收的主动感与选择卡，见 monorepo `docs/design/UIUX-MUSE-CUE-BENCHMARK-2026-09.md`）。**没有** `Card` / `Separator` / `Badge` 组件——卡面与分隔用 token + 工具类，计数角标用 `CountBadge`，紧凑标签/过滤 chip 用 `Chip`
 - **共享视图原语**（`view.tsx`）：ViewContainer, PageHeader, SectionHeader, EmptyState, LoadingState, ErrorState, MetaText, FileRow, RowList — **空状态必须用 EmptyState**
-- **设置卡片**：`SettingsSection` / `Field` / `SwitchField`（`settings/fields.tsx`）
+- **设置卡片**：`SettingsSection` / `Field` / `SwitchField` / `KeyField`（`settings/fields.tsx`）。卡片内非 Field 裸内容必须 `px-4` 与 Field 左右缘拉通（禁止贴边裁切）；Field 控件列走统一右轨（`sm:max-w-[24rem]`），Input 拉满该列。栅格里的 Field/SwitchField 用 `flush` 去掉自带 gutter，由父级 `px-4` 统一供边距。
 - **图标**: 仅 `@remixicon/react`（RemixIcon）+ `ICON.*`（nano 10 → xl 30）；填充字形读感偏大已按光学权重调校；面板开合见 `PanelToggleIcon`（始终 Line，打开时强调色，不用 Fill）。**home ≡ stream = `RiHome4Line`**（唯一主页/动态图标；`RiNewspaperLine` 仅作 Obsidian 对译，Desktop 轨上不双图标）；工作区文件夹（切换工作区）仍是 `RiFolder3Line`
 - **页面表面（MD3）**：画布是 `--color-background`，卡片是 `--color-surface-elevated`（`.v4-dash-card` / `AppSlot`）。Stream 工作台首页和连接器 hub 顶部可以有一层不超过 6% 的强调色晕，不铺实色、不染侧栏或顶栏 chrome。主页列宽随中栏变宽，上限 `72rem`。内置小应用（记账 / 公众号）的 `.v4-plugin-app-panel` 用同一纸色，卡片浮在上面。一页一个实心主按钮，其余用 tonal 或 outline；图标保持线形
-- **排版令牌**：text-5xs(10 kbd) → text-2xs(11 meta) → text-4xs(12 label) → text-3xs(12 label) → text-xs(13 控件/内容下限) → text-sm(14 UI 主文) → text-base(15 正文) → text-md(15) → text-lg(16) → text-xl(16) → text-2xl(18) → text-3xl(24) → text-4xl(28)
+- **排版令牌**：text-5xs(10 kbd) → text-2xs(11 meta) → text-4xs(12 label) → text-3xs(12 label) → text-xs(13 控件/内容下限) → text-sm(14 UI 主文) → text-base(15 正文) → text-md(15) → text-lg(16) → text-xl(16) → text-3xl(24)。`text-2xl`/`text-4xl` 已删（零引用）。
+
+- **主动感组件（2026-09 Muse/Cue 对标）**：
+  - `StatusDot`：8px 语义状态点（success/info/warning/error/neutral/accent/running）；设置与任务列表共用。兼容旧 `ok` 布尔。
+  - `ChoiceCardGroup`：AI 澄清选项卡（A/B/C/D 单选/多选 + 继续）。仅在**有限清晰选项**时用；开放问题仍纯文本。`AiMessage.choices` 驱动。
+  - `SuggestionCard`：点子/建议卡（**Remix 线形图标** + 标题 + 两行描述 + 一主操作）。用于主动建议面，不进树/编辑器。**禁止 emoji**。
+  - `RowActions`（住在 `view.tsx`，不再单独成文件）：hover/focus 浮出动作簇（触屏常显）。父行 `group/row`。
+  - `AgentPresence`：浮动运行胶囊（工作中 / 需要你 / 已暂停）。不替代 StatusBar 多任务诚实。
+  - `ConnectorCard`（`plugins/connector-ui.tsx`）：能力卡（线形图标 + 名称 + 状态）。Cue 资产面板的 TopMind 形态；**禁止 emoji / 品牌 logo 拼贴**。
+  - `ViewHero`（`view.tsx`）：内容页大标题（`text-3xl` 24px）+ lede/meta。**不是**命令条；集合身份仍在 TitleBar。
+  - 内容留白 token：`--density-content-gap`（14px）· `--density-content-section`（24px）— 内容面呼吸。
+  - **软圆角（4.3）**：`radius-card=16` · `radius-dialog=20` · `radius-toast=16` · 消息气泡 18px · composer `radius-xl`。工具 chip 仍可更紧。
+  - **表单去框（2026-09-29 · 30 收紧）**：`Input` / `textarea` / `MenuSelect(field|chip|composer)` / `v4-input` / composer 用 **软 wash 填充**（`bg-surface-wash-15`，hover `wash-30`）+ **无描边**（`border: none`；UA 默认 inset 边框在 `tokens.css` 全局剥掉）；focus 只出 **2px accent 软晕**（`shadow-[0_0_0_2px accent/28%]`），**不再**叠 2px outline + 4px halo（那是通用按钮的 `v4-focus-ring` 配方，表单用 `.v4-quiet-field` 显式关掉）。**禁止**灰底 + 重边框 + inset shadow 叠成「灰色矩形」；**禁止**给 wash 填充字段画 1px hairline 轮廓（矩形盒子贴在 chrome 上突兀）。下拉/菜单项静止透明（列表去框线）：选中 = 字重 + check，**禁止** `bg-accent-container` 实底块；hover/press 走状态层。菜单面板走 **container-high 阶**（近白），sheet=highest，dialog=dialog-bg——四级不得塌成同一 elevated。分段/导航选中用 `bg-accent-bg-subtle text-accent-color`（软 wash），不用 `accent-container` 实底。小 chip/标签/进度轨/`.v4-icon-chip` 用 `bg-surface-wash-30`，**禁止**组件里再写 `bg-surface-muted` 实底灰块。MenuSelect chip 圆角 = `radius-sm`(8px)，不用 `radius-xs`（4px 太方）。
+  - **侧栏 / 导轨（2026-09-29）**：`v4-sidebar-rail` / `v4-activity-bar` / `v4-ai-panel` 垂直 depth wash **禁止**混纯 `#fff`/`#000`（暖包会脏、冷包会爆）——用 `surface-elevated` / `text-primary` 低比例 mix。AI 列与侧栏同轨色（`--color-sidebar`）。
+  - **强调色纪律（2026-09-29）**：accent 只用于 **链接 · 焦点 · 选中 · AI 能力 · 确认勾**。通用加载 spinner / 装饰性 chrome 图标用 `text-tertiary`，禁止 `text-accent-color` 撒点。Button tonal / 分段选中 = `accent-bg-subtle` 软 wash。
+  - `ProactiveSuggestStrip`（`components/workspace/`）：SuggestionCard 主动建议（Muse 点子）。「查看」「忽略」= **只藏本条主页卡**（本地 state）。挂 **动态 / Inbox / 我的情况** 三表面；完整确认面与持久忽略仍在建议 pane。
+  - 侧栏树：`--density-tree-row=34` · 软 hover wash（`surface-hover`）· 圆角 `radius-lg`。
+  - 设置左导航：图标+13px 文案行（h-9），选中 `surface-elevated` 软抬起，非 accent 实底。
+  - 建议 pane 卡片：与 `SuggestionCard` 同语言（radius-card + shadow-card + 图标 chip）；禁止 `ring-warning/NN`、`ring-accent-color/NN`。
+  - 动态卡片 feed：entry 卡 `radius-card` + `shadow-card`，间距 `density-content-gap`；今日组用 `accent-bg-faint` 软晕，不用 alpha ring。
+  - AI 工作区：工具卡 `radius-card` + 图标 chip；chrome 去 accent 渐变线；分段控件全胶囊。
+  - 空态/加载态：Loading 安静 spinner chip；Error 软卡片（无红条边框）；文案语气偏「下一步可做什么」。
+  - Toast：`radius-toast` 软卡 + kind 图标 + 13px 文案。
+  - 命令面板/全局搜索：`radius-dialog` sheet；行选中 `surface-selected` + **完整** inset ring（禁侧/底 accent 条，完整 ring 仍保留）；空态描述 13px floor。
+  - 对话框面用 `surface-container-highest`，与 sheet 分层。
+  - **建议忽略合同（防误操作 · 主页卡只藏卡）**：忽略是**常显文字按钮**（禁止 hover-only X）。**主页/动态/Inbox/我的情况**上的 `ProactiveSuggestStrip`：「查看」「忽略」**只隐藏本条主页卡片**（组件内 `hiddenIds`），**不得**改 ActionStore / 写 suggest-dismissed / 动建议 pane 里的真建议——真建议动作只在确认面。**建议 pane**「忽略」= **持久 no**（`dismissItem` → `.topmind/suggest-dismissed.json`，30 天 TTL）。`pending_write` **禁止**一键忽略/拒绝，必须进确认面。侧栏删除走 `ConfirmDialog`。建议 id **内容寻址**（`inbox-organize-{rel}` / `promote-app-{hash}` / `promote-open-hint`…）：点掉低价值 tip 不得连带抹掉同源真建议；禁止再用 `promote-stream-hint` 这类单例 id 吞并整类卡片。
+  - **设置行（Cue 2026-09-30）**：`Field`/`SwitchField` = 左文案（15px 标题 + 13px 描述）+ 右控件；`SettingsSection` = 卡外分区标题 + 卡内发丝分隔行。单列行栈，不用两列挤控件。
+  - **动态 list**：条目去框线（transparent + no shadow），hover 仅软 wash；间距更开（Muse 开放信息流）。
+  - **设置控件（Cue）**：`control-h 32/36/42`；下拉 `min-w-9.5rem` + 15px 文案；Field 窄屏自动换行（控件可到全宽），禁止溢出。
+  - **图标系统结论**：Desktop 维持 **RemixIcon 线形**（语义合同 §0.0.2 已锁；Fill 仅状态切换如 Pushpin）。不迁 Lucide——Obsidian 宿主已用 Lucide 并有对译表；双库混用会破坏「一概念一图标」。新图标只加 Line 字形。
+  - **按钮尺寸纪律**：`size=sm/default/lg/icon` 是唯一高度源；禁止 `className="h-5/6/7"` 压扁按钮。outline/secondary hover 走状态层，不换边框色。
+  - **设置表单标签**：行标签 ≥13px（`text-xs`）；`text-3xs` 仅 meta/badge。
+- **主题选择器**：设置·通用用「浅/深/跟随」分段控件 + 色种子圆点（`bg-theme-swatch-*` token）；色调仍走 Select。ink CTA 不随种子变。
 - **v4 壳层工具类**（`src/styles/v4.css`；下表为**当前实际定义**的类，文档提到但代码不存在的已删除）：
   - Chrome：`v4-column-chrome` · `v4-shell-chrome` · `v4-sidebar-rail` · `v4-ai-panel` · `v4-ai-chrome`
   - 导航：`v4-segmented` / `v4-segmented-item`
@@ -912,18 +944,15 @@ ZCode 阶 + 浮动层：`--radius-xs: 2px` · `--radius-sm: 4px` · `--radius-md
   - 编辑器 / 列表：`v4-tiptap` · `v4-editor-recents` · `v4-feed-column` · `v4-drop-target` · `v4-list-virtual` · `v4-panel-contain` · `v4-kbd` · `v4-sidebar-scroll` · `v4-focus-ring`
 - **z-index 语义体系**（禁止硬编码 `z-[N]`，禁止使用 Tailwind 原生 `z-10`/`z-20`/`z-50` 等数字类）：
   - `z-local`(1) — 局部层叠
-  - `z-shell-rail`(10) — Shell 固定栏
-  - `z-header`(20) — 标题栏
   - `z-popover`(30) — 浮层/下拉
   - `z-floating`(50) — 浮动元素
-  - `z-overlay`(70) — 覆盖层背景 token（保留；工作台 OverlayHost 用 `z-modal`）
   - `z-modal`(80) — OverlayHost / IngestStaging（**portal 到 `document.body`**；必须低于 `z-menu`，设置内下拉才能露出来）
-  - `z-notification`(90) — 通知
   - `z-toast`(100) — Toast 消息；画布 tooltip 在 overlay 打开时隐藏（设置内 HelpTip 门户进 sheet）
   - `z-menu`(110) — 菜单/listbox（高于 tooltip；设置内下拉也走这一层）
   - `z-popover-overlay`(120) — 待办/建议弹层（高于打开的菜单；overlay 打开时关闭）
   - `z-dialog`(130) — Confirm / Prompt / Error 全屏 scrim（高于浮动弹层；列表 sticky 仍靠 `data-overlay-open` flatten）
-- **焦点环**: `focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1`；composer 用 `shadow-focus`
+  - 已删零引用：`z-shell-rail` / `z-header` / `z-overlay` / `z-notification`
+- **焦点环**: 通用控件 `v4-focus-ring`（2px outline + 4px soft halo）；**表单字段**（`.v4-quiet-field` / composer）改走 2px accent 软晕，无 outline。composer `:focus-within` = wash 升 elevated + `0 0 0 2px accent/28%`
 - **滚动条**: 细、半透明（`v4-sidebar-scroll` 类）
 
 ## 7. 键盘快捷键

@@ -94,3 +94,37 @@ test("payload takes precedence over option and env", () => {
   assert.equal(r.ok, true);
   assert.equal(r.mode, "auto");
 });
+
+test("contract writeback.mode is consulted when caller pins nothing", () => {
+  const r = resolveWritebackModeInput({ contractMode: "confirm" });
+  assert.equal(r.ok, true);
+  assert.equal(r.mode, "confirm");
+});
+
+test("caller payload still wins over contract", () => {
+  const r = resolveWritebackModeInput({
+    payloadHasMode: true,
+    payloadMode: "auto",
+    contractMode: "confirm",
+  });
+  assert.equal(r.ok, true);
+  assert.equal(r.mode, "auto");
+});
+
+test("resolveActor defaults to user and honors topmind_ACTOR=ai", async () => {
+  const { resolveActor, isUserActor } = await import("../../core/cli-args.mjs");
+  const prev = process.env.topmind_ACTOR;
+  try {
+    delete process.env.topmind_ACTOR;
+    assert.equal(resolveActor(), "user");
+    assert.equal(isUserActor(), true);
+    process.env.topmind_ACTOR = "ai";
+    assert.equal(resolveActor(), "ai");
+    assert.equal(isUserActor(), false);
+    process.env.topmind_ACTOR = "bogus";
+    assert.equal(resolveActor(), "user"); // fail-closed
+  } finally {
+    if (prev === undefined) delete process.env.topmind_ACTOR;
+    else process.env.topmind_ACTOR = prev;
+  }
+});

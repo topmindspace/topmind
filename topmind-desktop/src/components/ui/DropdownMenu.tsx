@@ -327,10 +327,12 @@ export function DropdownItem({
       className={cn(
         "v4-menu-item flex w-full items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 py-[7px] text-left text-xs font-medium outline-none",
         "disabled:opacity-40 data-[soft-disabled=true]:opacity-45 data-[soft-disabled=true]:cursor-default",
+        // Resting items stay transparent — selection is a check + text weight,
+        // not a solid gray/accent box (list 去框线).
         destructive
           ? "text-error hover:bg-status-error-bg focus-visible:bg-status-error-bg focus:bg-status-error-bg"
           : active
-            ? "bg-accent-container text-on-accent-container"
+            ? "text-text-primary font-semibold"
             : "text-text-secondary hover:text-text-primary",
         className,
       )}

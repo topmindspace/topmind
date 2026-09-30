@@ -359,24 +359,24 @@ export function useSelectionAi({
     } catch {
       /* ignore */
     }
-    // Soft scroll: update coords instead of instant vanish
+    // Soft scroll: update coords instead of instant vanish.
+    // rAF-throttled: syncSelection may serialize the doc — never once per wheel tick.
     let scrollHideTimer: number | null = null;
+    let scrollRaf = 0;
     const onScroll = () => {
-      const ph = phaseRef.current;
-      if (ph === "running" || ph === "preview" || pinnedRef.current) {
+      if (scrollRaf) return;
+      scrollRaf = requestAnimationFrame(() => {
+        scrollRaf = 0;
         syncSelection();
-        return;
-      }
-      // Keep bar while updating position; only dismiss if selection is gone
-      syncSelection();
-      if (scrollHideTimer != null) window.clearTimeout(scrollHideTimer);
-      scrollHideTimer = window.setTimeout(() => {
-        if (phaseRef.current === "running" || phaseRef.current === "preview" || pinnedRef.current) {
-          return;
-        }
-        // If selection still exists, coords were updated; no hard hide.
-        // Only clear when selection is empty (syncSelection already nulls).
-      }, 80);
+        if (scrollHideTimer != null) window.clearTimeout(scrollHideTimer);
+        scrollHideTimer = window.setTimeout(() => {
+          if (phaseRef.current === "running" || phaseRef.current === "preview" || pinnedRef.current) {
+            return;
+          }
+          // If selection still exists, coords were updated; no hard hide.
+          // Only clear when selection is empty (syncSelection already nulls).
+        }, 80);
+      });
     };
     for (const t of scrollRoots) {
       t.addEventListener("scroll", onScroll, { passive: true });
@@ -445,6 +445,7 @@ export function useSelectionAi({
       window.removeEventListener("topmind:selection-ai", onForce);
       window.removeEventListener("topmind:editor-ai-menu", onMenu);
       if (scrollHideTimer != null) window.clearTimeout(scrollHideTimer);
+      if (scrollRaf) cancelAnimationFrame(scrollRaf);
       if (selectionDebounceRef.current) {
         clearTimeout(selectionDebounceRef.current);
         selectionDebounceRef.current = null;

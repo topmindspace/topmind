@@ -18,6 +18,7 @@ import { createBatchCollector } from "./lib/batch-evidence.mjs";
 import { normalizeWriteResult } from "./lib/ai-tool-evidence.mjs";
 import { resolveDataRoot } from "./lib/path-model.mjs";
 import { AI_TOOL_NAMES_READ, AI_TOOL_NAMES_WRITE } from "./lib/ai-tool-names.mjs";
+import { digestToolResult } from "./lib/tool-result-digest.mjs";
 import { resolvePromptLocale } from "./ai-prompts.mjs";
 import { allowsJsonWriteBody } from "./lib/pi-fenced-fs.mjs";
 import { loadKernelApi } from "./lib/kernel-api.mjs";
@@ -31,6 +32,11 @@ function strProp(description) {
 }
 
 function summarizeForModel(value, max = 6000) {
+  try {
+    return digestToolResult(value, { maxChars: max });
+  } catch {
+    /* fall through to simple clamp */
+  }
   try {
     const s = typeof value === "string" ? value : JSON.stringify(value, null, 0);
     if (s.length <= max) return value;
@@ -184,8 +190,11 @@ export async function buildDesktopAiTools(ctx) {
             (toolName === "append_topic_memory" && args.topicId
               ? `${String(args.topicId).replace(/\\/g, "/")}/topic.md`
               : null) ||
-            (toolName === "add_todo" || toolName === "toggle_todo"
+            (toolName === "add_todo" || toolName === "toggle_todo" || toolName === "update_todo" || toolName === "set_todo_due" || toolName === "delete_todo"
               ? raw?.targetPath || "memory/todo.md"
+              : null) ||
+            (toolName === "append_stream_entry"
+              ? raw?.targetPath || args.relativePath
               : null);
           try {
             ctx.emit?.("workspace:file-changed", {
@@ -270,7 +279,15 @@ export async function buildDesktopAiTools(ctx) {
         const message = err?.message || String(err);
         logError("ai-tools", `write tool ${toolName} failed`, { error: message });
         let hint = undefined;
-        if (toolName === "edit_file") {
+        try {
+          const { buildRetryHint } = await import("./lib/tool-retry-hints.mjs");
+          hint = buildRetryHint(toolName, message, {
+            relativePath: args?.relativePath,
+            args,
+            locale: promptLocale,
+          });
+        } catch { /* hint is best-effort */ }
+        if (!hint && toolName === "edit_file") {
           const isNoMatch = message.includes("未能找到") || message.includes("no-match") || message.includes("not found");
           const isAmbiguous = message.includes("多处") || message.includes("ambiguous");
           const isHashStale = message.includes("expectedHash") || message.includes("hashMismatch") || message.includes("已被修改");
@@ -287,10 +304,7 @@ export async function buildDesktopAiTools(ctx) {
               ? `Edit failed: oldText matched multiple times in the file. Add 1-2 surrounding lines to oldText to make it unique, or specify startLine/endLine or heading, or set replaceAll: true if you want to replace all occurrences.`
               : `编辑失败：oldText 在文件中命中多处。建议在 oldText 中多包含前后 1~2 行上下文以保证唯一性，或传入 startLine/endLine 或 heading 限定范围，若确实需要全部替换可设置 replaceAll: true。`;
           }
-        } else if (toolName === "save_file" || toolName === "save_note") {
-          // locked is editable under graded model (task-scoped snapshot).
-          // Do NOT tell the agent to unlock or switch modes — that was the
-          // retired "locked + AI auto = deny" policy.
+        } else if (!hint && (toolName === "save_file" || toolName === "save_note")) {
           if (message.includes("workspace") || message.includes("outside")) {
             hint = promptLocale === "en"
               ? "Write failed: path is outside the workspace fence. Use a workspace-relative path."
@@ -731,10 +745,40 @@ export async function buildDesktopAiTools(ctx) {
       },
     });
 
+    tools.web_search = tool({
+      description: d(
+        "网络搜索（无需 API Key）。返回标题/链接/摘要短列表；用它找最新事实、文档、竞品、新闻。命中后用 fetch_url 打开高相关链接取全文。引用来源时保留 URL。",
+        "Web search (no API key). Returns a shortlist of title/url/snippet. Use it for current facts, docs, news, competitors. Then fetch_url the most relevant links for full text. Keep source URLs when citing.",
+      ),
+      inputSchema: jsonSchema({
+        type: "object",
+        properties: {
+          query: strProp(d("搜索关键词（可中文/英文）", "Search keywords (Chinese or English)")),
+          limit: {
+            type: "number",
+            description: d("返回条数（默认 6，最多 8）", "Number of results (default 6, max 8)"),
+          },
+        },
+        required: ["query"],
+      }),
+      async execute({ query, limit }) {
+        try {
+          const { webSearch } = await import("./lib/web-search.mjs");
+          return summarizeForModel(await webSearch({ query, limit }), 6000);
+        } catch (err) {
+          return {
+            ok: false,
+            error: err?.message || String(err),
+            hint: "搜索失败。检查网络后重试；也可用 fetch_url 直接抓取已知页面。",
+          };
+        }
+      },
+    });
+
     tools.fetch_url = tool({
       description: d(
-        "抓取网页正文并转为 Markdown。默认静态 HTTP+Readability；GitHub md/README 走 raw 直取；render=true 时用隐藏 Chromium 渲染 SPA。返回 truncated/likelySpa/canEnhance/warning。",
-        "Fetch a web page and convert to Markdown. Default static HTTP+Readability; GitHub md/README uses raw fetch; render=true uses hidden Chromium for SPA shells. Returns truncated/likelySpa/canEnhance/warning.",
+        "抓取网页正文并转为 Markdown。一次调用=最高质量：X 状态走 fxtwitter 结构化；GitHub md/README 走 raw 直取；网页 Readability，SPA 空壳自动 render。返回 truncated/likelySpa/canEnhance/warning/image。",
+        "Fetch a web page and convert to Markdown. One call = best quality: X status via fxtwitter structured API; GitHub md/README via raw; web via Readability with auto-render for SPA shells. Returns truncated/likelySpa/canEnhance/warning/image.",
       ),
       inputSchema: jsonSchema({
         type: "object",
@@ -742,7 +786,7 @@ export async function buildDesktopAiTools(ctx) {
           url: strProp("http(s) URL"),
           maxLen: {
             type: "number",
-            description: d("正文提取上限字符（默认 40000，长文可到 200000）", "Max body chars (default 40000; long docs up to 200000)"),
+            description: d("正文提取上限字符（默认 200000 全量）", "Max body chars (default 200000 full)"),
           },
           render: {
             type: "boolean",
@@ -767,6 +811,72 @@ export async function buildDesktopAiTools(ctx) {
           };
         }
       },
+    });
+
+    tools.capture_url = tool({
+      description: d(
+        "一键入库：抓取网页并保存到工作区（默认动态周期本；forceInbox→Inbox）。自动带 source URL 与标题，适合把搜索/研究到的页面沉淀为笔记。",
+        "One-shot ingest: fetch a page and save it into the workspace (default stream period note; forceInbox→Inbox). Carries source URL + title — ideal for archiving pages found during research.",
+      ),
+      inputSchema: jsonSchema({
+        type: "object",
+        properties: {
+          url: strProp(d("http(s) URL", "http(s) URL")),
+          title: strProp(d("可选覆盖标题", "Optional title override")),
+          note: strProp(d("可选补充笔记（附加在正文前）", "Optional note prepended to the body")),
+          forceInbox: {
+            type: "boolean",
+            description: d("true → Inbox；默认动态周期本", "true → Inbox; default stream period note"),
+          },
+          forceAtom: {
+            type: "boolean",
+            description: d("true → 单开文件，不追加周期本", "true → standalone file, not period note"),
+          },
+          render: {
+            type: "boolean",
+            description: d("SPA 空壳页启用增强渲染", "Enable enhanced rendering for SPA shells"),
+          },
+        },
+        required: ["url"],
+      }),
+      execute: wrapWrite("capture_url", async ({ url, title, note, forceInbox, forceAtom, render, actor, confirmed }) => {
+        try {
+          const fetched = await WorkspaceService.fetchUrl({ url, render: Boolean(render) }, ctx);
+          const body = fetched?.text || fetched?.markdown || "";
+          if (!body || body.trim().length < 20) {
+            return {
+              ok: false,
+              url,
+              error: "page body empty or too short",
+              hint: "抓取到的正文过短，可能被反爬或 SPA 空壳。可先 fetch_url 加 render:true 确认内容，或换来源。",
+            };
+          }
+          const useTitle = String(title || fetched.title || "").trim();
+          const prefix = note ? `${String(note).trim()}\n\n` : "";
+          const header = `> 来源：${fetched.canonical || url}\n${useTitle ? `> 标题：${useTitle}\n` : ""}\n`;
+          return await WorkspaceService.ingestInbox(
+            {
+              content: `${header}\n${prefix}${body}`.trim(),
+              title: useTitle || undefined,
+              source: fetched.canonical || url,
+              sourceType: "web-capture",
+              dest: forceInbox
+                ? { mode: "inbox" }
+                : { mode: "stream", forceAtom: Boolean(forceAtom) },
+              actor: actor || "ai",
+              confirmed,
+            },
+            ctx,
+          );
+        } catch (err) {
+          return {
+            ok: false,
+            url,
+            error: err?.message || String(err),
+            hint: "抓取入库失败。确认 URL 有效且可访问；SPA 页面可设 render:true。",
+          };
+        }
+      }),
     });
 
     tools.workspace_health = tool({
@@ -810,6 +920,237 @@ export async function buildDesktopAiTools(ctx) {
           );
         } catch (err) {
           return { ok: false, error: err?.message || String(err), hint: "读取个人待办失败。" };
+        }
+      }),
+    });
+
+    tools.list_recent_memories = tool({
+      description: d(
+        "列出「我的情况」最近记忆条目（memory/profile 活跃事实 · periodic 周期反思 · topics 专题记忆）。回答「最近的记忆 / 最近记了什么 / 我的情况里有什么」用这个，不要自己猜路径读 memory/。",
+        "List recent memory entries (active profile facts · periodic reflections · topic memories). Use for 'recent memories / what did I note / what's in my profile' — do not guess memory/ paths.",
+      ),
+      inputSchema: jsonSchema({
+        type: "object",
+        properties: {
+          layer: {
+            type: "string",
+            description: d(
+              "过滤层：all（默认）| profile | periodic | topic",
+              "Layer filter: all (default) | profile | periodic | topic",
+            ),
+          },
+          limit: {
+            type: "number",
+            description: d("最多返回条数（默认 12，上限 40）", "Max items (default 12, cap 40)"),
+          },
+        },
+      }),
+      execute: wrapRead(async function list_recent_memories({ layer, limit } = {}) {
+        try {
+          const max = Math.min(Math.max(Number(limit) || 12, 1), 40);
+          const wanted = ["profile", "periodic", "topic"].includes(String(layer)) ? String(layer) : "all";
+          const ctxInfo = await WorkspaceService.getStreamContext({}, ctx).catch(() => null);
+          const memDir = ctxInfo?.memory?.dir || "memory";
+          const profileRel =
+            ctxInfo?.memory?.profileRelPath || `${memDir}/profile.md`;
+
+          /** Collect .md files under a memory subdir (skip todo.md — own tool). */
+          const collectMd = async (relDir, depth = 0) => {
+            if (depth > 3) return [];
+            const listing = await WorkspaceService.listFiles({ relativePath: relDir }, ctx).catch(() => null);
+            if (!listing?.ok) return [];
+            const out = [];
+            for (const e of listing.entries || []) {
+              const childRel = e.relativePath;
+              if (e.type === "dir") {
+                out.push(...(await collectMd(childRel, depth + 1)));
+                continue;
+              }
+              const name = String(e.name || "").toLowerCase();
+              if (!name.endsWith(".md") || name === "todo.md") continue;
+              try {
+                const markdown = await WorkspaceService.readPath({ relativePath: childRel }, ctx);
+                out.push({ path: childRel, markdown: String(markdown || ""), mtime: e.mtime || "" });
+              } catch {
+                /* skip unreadable */
+              }
+            }
+            return out;
+          };
+
+          let profile = null;
+          try {
+            const raw = await WorkspaceService.readPath({ relativePath: profileRel }, ctx);
+            if (raw) profile = { path: profileRel, markdown: String(raw) };
+          } catch {
+            profile = null;
+          }
+          const [periodic, topics] = await Promise.all([
+            collectMd(`${memDir}/periodic`),
+            collectMd(`${memDir}/topics`),
+          ]);
+
+          const assemble = kernelApi.assembleMemoryFeed;
+          let items = typeof assemble === "function"
+            ? assemble({ profile, periodic, topics })
+            : [];
+          if (wanted !== "all") {
+            items = items.filter((it) => it.kind === wanted);
+          }
+          // Newest first: periodic/topic paths carry dates; fall back to input order.
+          const mtimeByPath = new Map();
+          for (const f of [...periodic, ...(profile ? [profile] : []), ...topics]) {
+            if (f?.path) mtimeByPath.set(f.path, f.mtime || "");
+          }
+          items = items
+            .map((it) => ({ ...it, _mtime: mtimeByPath.get(it.path) || "" }))
+            .sort((a, b) => String(b._mtime).localeCompare(String(a._mtime)))
+            .slice(0, max)
+            .map(({ _mtime, body, ...rest }) => ({
+              ...rest,
+              // Keep body short — the preview is what the model needs for Q&A.
+              preview: String(rest.preview || body || "").slice(0, 240),
+            }));
+          return {
+            ok: true,
+            layer: wanted,
+            count: items.length,
+            items,
+            hint: promptLocale === "en"
+              ? "Read-only. To change a profile fact use update/append/retire_core_memory."
+              : "只读。要改画像事实请用 update/append/retire_core_memory。",
+          };
+        } catch (err) {
+          return {
+            ok: false,
+            error: err?.message || String(err),
+            hint: promptLocale === "en"
+              ? "Failed to list memories. Check the workspace is open."
+              : "读取记忆失败，请确认工作区已打开。",
+          };
+        }
+      }),
+    });
+
+    tools.list_recent_stream = tool({
+      description: d(
+        "列出动态最近条目（周期本 stream）。「最近记了什么 / 今天记下了啥 / 动态里有什么」用这个；「最近的记忆 / 我的情况」用 list_recent_memories。",
+        "List recent stream entries (period notes). Use for 'what did I log recently / stream contents'; use list_recent_memories for profile/memory questions.",
+      ),
+      inputSchema: jsonSchema({
+        type: "object",
+        properties: {
+          limit: {
+            type: "number",
+            description: d("最多返回条目数（默认 12，上限 40）", "Max entries (default 12, cap 40)"),
+          },
+          periods: {
+            type: "number",
+            description: d("扫描最近几个周期本（默认 2，上限 4）", "How many recent period notes to scan (default 2, cap 4)"),
+          },
+        },
+      }),
+      execute: wrapRead(async function list_recent_stream({ limit, periods } = {}) {
+        try {
+          const max = Math.min(Math.max(Number(limit) || 12, 1), 40);
+          const periodCount = Math.min(Math.max(Number(periods) || 2, 1), 4);
+          // Prefer kernel period listing; fall back to stream context.
+          let periodPaths = [];
+          try {
+            const wm = await import("./lib/workspace-model-api.mjs");
+            const found = await wm.listStreamPeriods(ctx.workspaceRoot, { limit: periodCount });
+            periodPaths = (found || []).map((p) => p.relPath).filter(Boolean);
+          } catch {
+            periodPaths = [];
+          }
+          if (!periodPaths.length) {
+            const sc = await WorkspaceService.getStreamContext({}, ctx).catch(() => null);
+            if (sc?.periodRelPath) periodPaths = [sc.periodRelPath];
+          }
+          const entries = [];
+          for (const rel of periodPaths.slice(0, periodCount)) {
+            let md = "";
+            try {
+              md = String(await WorkspaceService.readPath({ relativePath: rel }, ctx) || "");
+            } catch {
+              continue;
+            }
+            // Section scan aligned with product chrome: date/day headings vs named
+            // article headings; `#### 续` / <!-- topmind:append --> count as
+            // continuations of the previous entry, never a new one.
+            const isAppendChrome = (s) =>
+              /^<!--\s*topmind:append\b/iu.test(s.trim()) ||
+              /^#{2,4}\s*续(?=\s|[·•.]|$)/u.test(s.trim());
+            const isDateHeading = (s) =>
+              /(?:\d{4}[-–/年]\s*\d{1,2}|周[一二三四五六日天]|星期[一二三四五六日天]|今天|昨天|上午|下午|晚上)/u.test(s);
+            const lines = md.split("\n");
+            let section = "";
+            let sectionKind = "day";
+            let buf = [];
+            let appends = 0;
+            const flush = () => {
+              const text = buf
+                .filter((l) => !isAppendChrome(l))
+                .join("\n")
+                .trim();
+              if (text && entries.length < max * 2) {
+                entries.push({
+                  period: rel,
+                  section,
+                  kind: sectionKind,
+                  appends,
+                  preview: text.slice(0, 220),
+                });
+              }
+              buf = [];
+              appends = 0;
+            };
+            for (const line of lines) {
+              if (/^#{2,3}\s+\S/u.test(line)) {
+                flush();
+                section = line.replace(/^#+\s*/, "").trim();
+                sectionKind = isDateHeading(section) ? "day" : "article";
+                continue;
+              }
+              if (isAppendChrome(line)) {
+                appends += 1;
+                continue;
+              }
+              if (line.trim()) buf.push(line);
+            }
+            flush();
+          }
+          // Newest first is already the period-file order (latest period first).
+          return {
+            ok: true,
+            periods: periodPaths.slice(0, periodCount),
+            count: Math.min(entries.length, max),
+            entries: entries.slice(0, max),
+            hint: promptLocale === "en"
+              ? "Stream entries (period notes). kind=day is a date section, kind=article a named ## block; appends = follow-up count. To add a comment use append_stream_entry."
+              : "动态条目（周期本）。kind=day 为日期段，kind=article 为命名 ## 块；appends=续写数。要对某条续写用 append_stream_entry。",
+          };
+        } catch (err) {
+          return {
+            ok: false,
+            error: err?.message || String(err),
+            hint: promptLocale === "en" ? "Failed to list stream entries." : "读取动态失败。",
+          };
+        }
+      }),
+    });
+
+    tools.list_pending_writes = tool({
+      description: d(
+        "列出待确认写入（confirm 模式下删除/归档等挂起项）。用户问「还有什么要确认 / pending」时用。",
+        "List pending writes awaiting user confirm (confirm-mode delete/archive). Use when the user asks what still needs confirmation.",
+      ),
+      inputSchema: jsonSchema({ type: "object", properties: {} }),
+      execute: wrapRead(async function list_pending_writes() {
+        try {
+          return summarizeForModel(await WorkspaceService.listPendingWrites({}, ctx), 8000);
+        } catch (err) {
+          return { ok: false, error: err?.message || String(err) };
         }
       }),
     });
@@ -1284,6 +1625,99 @@ export async function buildDesktopAiTools(ctx) {
         execute: wrapWrite("toggle_todo", ({ idOrText, completed, actor, confirmed }) =>
           WorkspaceService.toggleTodo(
             { idOrText, completed, actor: actor || "ai", confirmed },
+            ctx,
+          )),
+      });
+
+      tools.update_todo = tool({
+        description: d(
+          "修改待办文本（改写任务描述）。idOrText 定位原条目，newText 是完整新文本。",
+          "Rewrite a todo's text. idOrText locates the item; newText is the full replacement.",
+        ),
+        inputSchema: jsonSchema({
+          type: "object",
+          properties: {
+            idOrText: strProp(d("待办文本片段或待办 ID", "Todo text fragment or id")),
+            newText: strProp(d("完整新文本", "Full replacement text")),
+            dueDate: strProp(d("可选：同时设置/清除截止（YYYY-MM-DD 或空）", "Optional due date YYYY-MM-DD or empty to clear")),
+          },
+          required: ["idOrText", "newText"],
+        }),
+        execute: wrapWrite("update_todo", ({ idOrText, newText, dueDate, actor, confirmed }) =>
+          WorkspaceService.updateTodo(
+            { idOrText, text: newText, dueDate: dueDate ?? undefined, actor: actor || "ai", confirmed },
+            ctx,
+          )),
+      });
+
+      tools.set_todo_due = tool({
+        description: d(
+          "设置或清除待办截止日期。dueDate 传 YYYY-MM-DD；传空字符串清除。",
+          "Set or clear a todo due date. Pass YYYY-MM-DD, or empty string to clear.",
+        ),
+        inputSchema: jsonSchema({
+          type: "object",
+          properties: {
+            idOrText: strProp(d("待办文本片段或待办 ID", "Todo text fragment or id")),
+            dueDate: strProp(d("YYYY-MM-DD，或空字符串清除", "YYYY-MM-DD, or empty string to clear")),
+          },
+          required: ["idOrText", "dueDate"],
+        }),
+        execute: wrapWrite("set_todo_due", ({ idOrText, dueDate, actor, confirmed }) =>
+          WorkspaceService.setTodoDue(
+            { idOrText, dueDate: dueDate || null, actor: actor || "ai", confirmed },
+            ctx,
+          )),
+      });
+
+      tools.delete_todo = tool({
+        description: d(
+          "删除一条待办（用户明确说不要了才用）。优先 toggle 完成而不是删除。",
+          "Delete a todo (only when the user explicitly says drop it). Prefer toggle-to-done over delete.",
+        ),
+        inputSchema: jsonSchema({
+          type: "object",
+          properties: {
+            idOrText: strProp(d("待办文本片段或待办 ID", "Todo text fragment or id")),
+          },
+          required: ["idOrText"],
+        }),
+        execute: wrapWrite("delete_todo", ({ idOrText, actor, confirmed }) =>
+          WorkspaceService.deleteTodo(
+            { idOrText, actor: actor || "ai", confirmed },
+            ctx,
+          )),
+      });
+
+      tools.append_stream_entry = tool({
+        description: d(
+          "增补：对动态已有条目续写（同文件评论感）。relativePath 是周期本，heading 是条目标题，content 是续写正文。不要用来新开条目——那用 capture_to_inbox。",
+          "Append a comment-like continuation under an existing stream entry (same period note). relativePath = period note, heading = entry title, content = the follow-up. For a new entry use capture_to_inbox.",
+        ),
+        inputSchema: jsonSchema({
+          type: "object",
+          properties: {
+            relativePath: strProp(d("周期本相对路径（如 10-动态/2026/2026-W40.md）", "Period note relative path")),
+            heading: strProp(d("目标条目标题（该条的 ## 标题）", "Target entry heading (its ## title)")),
+            content: strProp(d("续写正文 Markdown", "Follow-up markdown body")),
+            startLine: { type: "number", description: d("可选：条目起始行（精准锚定）", "Optional entry start line") },
+            endLine: { type: "number", description: d("可选：条目结束行", "Optional entry end line") },
+            anchorText: strProp(d("可选：条目锚文本（无行号时定位）", "Optional anchor text when no line numbers")),
+          },
+          required: ["relativePath", "content"],
+        }),
+        execute: wrapWrite("append_stream_entry", ({ relativePath, heading, content, startLine, endLine, anchorText, actor, confirmed }) =>
+          WorkspaceService.appendStreamEntry(
+            {
+              relativePath,
+              heading,
+              content,
+              startLine,
+              endLine,
+              anchorText,
+              actor: actor || "ai",
+              confirmed,
+            },
             ctx,
           )),
       });

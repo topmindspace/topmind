@@ -113,6 +113,9 @@ interface AiState {
     status: string;
     blockReason?: string | null;
     autoContinues: number;
+    /** Turn layer — "light" hides goal ceremony. */
+    kind?: "light" | "query" | "task";
+    sourceUrls?: string[];
     /** Plan snapshot at first sight (or at pause) for Run Card plan-diff chips. */
     planBaseline?: string[];
     /** Honesty footer: real check evidence. Never invent. */
@@ -472,6 +475,8 @@ async function performInvocation(
           status?: string;
           blockReason?: string | null;
           autoContinues?: number;
+          kind?: "light" | "query" | "task";
+          sourceUrls?: string[];
         };
       }).goal;
       if (goal) {
@@ -496,6 +501,8 @@ async function performInvocation(
               status: goal.status || "idle",
               blockReason: goal.blockReason || null,
               autoContinues: goal.autoContinues ?? 0,
+              kind: goal.kind,
+              sourceUrls: goal.sourceUrls || [],
               planBaseline,
               checksRun: prev?.checksRun,
               assumptions: prev?.assumptions,

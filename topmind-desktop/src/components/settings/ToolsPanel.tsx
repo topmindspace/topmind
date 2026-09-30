@@ -172,7 +172,6 @@ export function ToolsPanel({ settings }: { settings: AppSettings }) {
           <Button
             variant="ghost"
             size="sm"
-            className="h-6"
             onClick={() => void refresh()}
             disabled={loading}
             aria-label={t("settings:tools.refreshLabel")}
@@ -213,7 +212,7 @@ export function ToolsPanel({ settings }: { settings: AppSettings }) {
       <SettingsSection title={t("settings:tools.titleExecute")} description={t("settings:tools.descExecute")}>
         <div className="grid gap-2 sm:grid-cols-2">
           <label className="flex flex-col gap-1">
-            <span className="text-3xs font-medium text-text-secondary">{t("settings:tools.kindLabel")}</span>
+            <span className="text-xs font-medium text-text-secondary">{t("settings:tools.kindLabel")}</span>
             <Select
               value={kind}
               onChange={(e) => setKind(e.target.value)}
@@ -222,7 +221,7 @@ export function ToolsPanel({ settings }: { settings: AppSettings }) {
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-3xs font-medium text-text-secondary">{t("settings:tools.commandLabel")}</span>
+            <span className="text-xs font-medium text-text-secondary">{t("settings:tools.commandLabel")}</span>
             <Select
               value={command}
               onChange={(e) => setCommand(e.target.value)}
@@ -235,14 +234,14 @@ export function ToolsPanel({ settings }: { settings: AppSettings }) {
           </label>
         </div>
         {commands.find((c) => c.name === command)?.description ? (
-          <p className="mt-1.5 text-3xs leading-relaxed text-text-quaternary">
+          <p className="mt-1.5 text-xs leading-relaxed text-text-quaternary">
             {commands.find((c) => c.name === command)?.description}
           </p>
         ) : null}
         <label className="mt-2 flex flex-col gap-1">
-          <span className="text-3xs font-medium text-text-secondary">{t("settings:tools.inputJsonLabel")}</span>
+          <span className="text-xs font-medium text-text-secondary">{t("settings:tools.inputJsonLabel")}</span>
           <textarea
-            className="min-h-[88px] w-full resize-y rounded-[var(--radius-md)] border border-border-subtle bg-input px-2 py-1.5 font-mono text-3xs leading-relaxed text-text-primary focus-visible:border-accent-color v4-focus-ring"
+            className="min-h-[88px] w-full resize-y rounded-[var(--radius-md)] border border-transparent bg-surface-wash-15 px-2 py-1.5 font-mono text-3xs leading-relaxed text-text-primary hover:bg-surface-wash-30 focus-visible:border-accent-color focus-visible:bg-surface-elevated v4-focus-ring"
             value={inputJson}
             onChange={(e) => setInputJson(e.target.value)}
             spellCheck={false}
@@ -250,11 +249,11 @@ export function ToolsPanel({ settings }: { settings: AppSettings }) {
           />
         </label>
         <div className="mt-2 flex flex-wrap gap-1.5">
-          <Button variant="outline" size="sm" className="h-7" onClick={() => void runPreview()} softDisabled={!!busy || !kind || !command}>
+          <Button variant="outline" size="sm" onClick={() => void runPreview()} softDisabled={!!busy || !kind || !command}>
             {busy === "preview" ? <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden /> : <RiEyeLine size={ICON.micro} aria-hidden />}
             {t("settings:tools.previewBtn")}
           </Button>
-          <Button variant="default" size="sm" className="h-7" onClick={() => void runTool()} softDisabled={!!busy || !kind || !command}>
+          <Button variant="default" size="sm" onClick={() => void runTool()} softDisabled={!!busy || !kind || !command}>
             {busy === "run" ? <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden /> : <RiPlayLine size={ICON.micro} aria-hidden />}
             {t("settings:tools.runBtn")}
           </Button>

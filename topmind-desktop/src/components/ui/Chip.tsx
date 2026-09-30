@@ -36,8 +36,8 @@ const chipVariants = cva(
   {
     variants: {
       tone: {
-        neutral: "bg-surface-muted text-text-secondary",
-        accent: "bg-accent-container text-on-accent-container",
+        neutral: "bg-surface-wash-30 text-text-secondary",
+        accent: "bg-accent-bg-subtle text-accent-color",
         warn: "bg-status-warning-bg text-warning",
         error: "bg-status-error-bg text-error",
         success: "bg-status-success-bg text-success",
@@ -58,7 +58,7 @@ const chipVariants = cva(
       {
         active: true,
         tone: "neutral",
-        className: "bg-accent-container text-on-accent-container",
+        className: "bg-accent-bg-subtle text-accent-color",
       },
       {
         active: true,

@@ -32,6 +32,7 @@ import { openLaunchablePlugin, pluginReadiness } from "../../lib/apps-menu";
 import { getCachedSettings } from "../../lib/settings-cache";
 import { cn } from "../../lib/kit";
 import { ICON } from "../../lib/icons";
+import { isMacOS } from "../../lib/platform";
 import { Tooltip } from "../ui/tooltip";
 import { DropdownMenu, DropdownItem } from "../ui/DropdownMenu";
 import { ThemeMenuButton } from "./ThemeMenuButton";
@@ -55,7 +56,7 @@ function ActivityButton({ item }: { item: ActivityItem }) {
         className={cn(
           "v4-no-drag relative flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] transition-colors v4-focus-ring",
           item.active
-            ? "bg-accent-container text-on-accent-container"
+            ? "bg-accent-bg-subtle text-accent-color"
             : item.capture
               ? "text-accent-color hover:bg-state-hover"
               : "text-text-tertiary hover:bg-state-hover hover:text-text-primary",
@@ -96,7 +97,7 @@ function AppsMenuButton() {
           type="button"
           className={cn(
             "v4-no-drag flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] transition-colors v4-focus-ring",
-            open ? "bg-accent-container text-on-accent-container" : "text-text-tertiary hover:bg-state-hover hover:text-text-primary",
+            open ? "bg-accent-bg-subtle text-accent-color" : "text-text-tertiary hover:bg-state-hover hover:text-text-primary",
           )}
           aria-label={t("activityBar.apps")}
           aria-haspopup="menu"
@@ -220,12 +221,15 @@ export function ActivityBar({ onCapture }: { onCapture?: () => void }) {
     >
       {/* Traffic-light reserve — same 36px band the retired logo occupied.
           Keeps the icon stack clear of native macOS window buttons. Not a
-          brand slot; stays put so icons never jump under the traffic lights. */}
-      <div
-        className="mb-1 h-8 w-full shrink-0"
-        data-activity-traffic-reserve
-        aria-hidden
-      />
+          brand slot; stays put so icons never jump under the traffic lights.
+          macOS only — Win/Linux have no traffic lights in this band. */}
+      {isMacOS ? (
+        <div
+          className="mb-1 h-8 w-full shrink-0"
+          data-activity-traffic-reserve
+          aria-hidden
+        />
+      ) : null}
 
       {/* Group 1 — workspace views */}
       <div className="flex flex-col items-center gap-1" data-activity-group="views">

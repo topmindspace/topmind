@@ -19,10 +19,8 @@ import {
   RiCloseLine,
   RiDraggable,
   RiFileCopyLine,
-  RiFlashlightFill,
-  RiFlashlightLine,
-  RiLoader4Line,
   RiSparklingLine,
+  RiLoader4Line,
 } from "@remixicon/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useViewStore } from "../../stores/view-store";
@@ -167,7 +165,7 @@ export function SelectionAiBar({
       <div
         className={cn(
           "v4-card-elevated flex w-full flex-col gap-1.5 px-2 py-2",
-          busy && "ring-1 ring-accent-color/30 shadow-[0_0_0_1px_var(--color-accent-border-subtle)]",
+          busy && "ring-1 ring-accent-border-subtle shadow-[0_0_0_1px_var(--color-accent-border-subtle)]",
         )}
       >
         {/* Progress stripe while AI is working */}
@@ -236,7 +234,11 @@ export function SelectionAiBar({
               aria-pressed={inlineAiAutoPopup}
               aria-label={inlineAiAutoPopup ? t("selectionAi.autoPopupOnTip") : t("selectionAi.autoPopupOffTip")}
             >
-              {inlineAiAutoPopup ? <RiFlashlightFill size={ICON.xs} /> : <RiFlashlightLine size={ICON.xs} />}
+              {inlineAiAutoPopup ? (
+                <RiSparklingLine size={ICON.xs} className="text-accent-color" />
+              ) : (
+                <RiSparklingLine size={ICON.xs} />
+              )}
             </button>
           </Tooltip>
           {busy ? (
@@ -312,7 +314,7 @@ export function SelectionAiBar({
                   <button
                     key={`${h}-${i}`}
                     type="button"
-                    className="max-w-[12rem] truncate rounded-[var(--radius-sm)] bg-surface-muted px-1.5 py-0.5 text-4xs text-text-tertiary hover:bg-accent-bg-faint hover:text-accent-color"
+                    className="max-w-[12rem] truncate rounded-[var(--radius-sm)] bg-surface-wash-30 px-1.5 py-0.5 text-4xs text-text-tertiary hover:bg-accent-bg-faint hover:text-accent-color"
                     title={h}
                     onClick={() => setCustomInstr(h)}
                   >
@@ -337,7 +339,7 @@ export function SelectionAiBar({
               </span>
             </div>
             <div className="h-0.5 w-full overflow-hidden rounded-full bg-accent-bg-subtle">
-              <div className="h-full w-1/3 v4-ai-progress-slide rounded-full bg-accent-color/50" />
+              <div className="h-full w-1/3 v4-ai-progress-slide rounded-full bg-accent-color" />
             </div>
           </div>
         ) : null}

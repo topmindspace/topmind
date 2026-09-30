@@ -169,7 +169,7 @@ function XPanel({ settings, update }: { settings: AppSettings; update: (p: Parti
             disabled={!x.enabled}
           />
         </KeyField>
-        <div className="mb-2 flex flex-wrap items-center gap-2 text-3xs text-text-tertiary">
+        <div className="mb-2 flex flex-wrap items-center gap-2 px-4 text-3xs text-text-tertiary">
           <span className="inline-flex items-center gap-1">
             {probe.loading ? (
               <RiLoader4Line size={ICON.xs} className="animate-spin" />
@@ -203,10 +203,10 @@ function XPanel({ settings, update }: { settings: AppSettings; update: (p: Parti
           </Button>
         </div>
         {testMsg ? (
-          <div className="mb-2 text-3xs text-text-tertiary">{testMsg}</div>
+          <div className="mb-2 px-4 text-3xs text-text-tertiary">{testMsg}</div>
         ) : null}
         {!probe.loading && !probe.hasCli && x.enabled ? (
-          <div className="space-y-1.5 rounded-[var(--radius-md)] border border-border-subtle bg-surface-wash-30 p-2.5">
+          <div className="mx-4 mb-3 space-y-1.5 rounded-[var(--radius-md)] border border-border-subtle bg-surface-wash-30 p-2.5">
             <div className="flex items-center gap-1 text-3xs font-medium text-text-secondary">
               {t("settings.installXurl")}
               <HelpTip content={t("settings.installXurlHelp")} />

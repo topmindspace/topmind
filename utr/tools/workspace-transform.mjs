@@ -9,7 +9,7 @@ import {
   buildCliContext,
   validateRequiredRoots,
 } from "../core/workspace-context.mjs";
-import { parseArgs, resolveMode } from "../core/cli-args.mjs";
+import { parseArgs, resolveMode, resolveActor, isUserActor } from "../core/cli-args.mjs";
 import { ensureDir, isDirectory, walkMarkdown } from "../core/topic-files.mjs";
 import { parseFrontmatter, stringifyFrontmatter } from "../core/frontmatter.mjs";
 import { emitResult } from "../core/result-envelope.mjs";
@@ -25,8 +25,8 @@ async function writeMarkdownDurable(fullPath, content, ctxObj) {
     workspaceRoot: ctxObj.userWorkspaceRoot,
     contract,
     operation: "update",
-    actor: "user",
-    confirmed: true,
+    actor: resolveActor(),
+    confirmed: isUserActor(),
     // High-impact (locked overwrite) still backups + receipts via the single gate.
     // Do not force-skip receipts — that breaks the "backup always has a receipt" rule.
   });
@@ -45,8 +45,8 @@ async function writeJsonDurable(fullPath, obj, ctxObj) {
     workspaceRoot: ctxObj.userWorkspaceRoot,
     contract,
     operation: "create",
-    actor: "user",
-    confirmed: true,
+    actor: resolveActor(),
+    confirmed: isUserActor(),
   });
 }
 

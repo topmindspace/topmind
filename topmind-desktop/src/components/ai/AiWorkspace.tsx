@@ -35,7 +35,6 @@ export function AiWorkspace() {
   const setTab = useViewStore((s) => s.setAiWorkspaceTab);
   const suggestCount = useActionStore((s) => s.items.length);
   const suggestHasHigh = useActionStore((s) => s.items.some((i) => i.priority === "high"));
-  const todoActive = useTodoStore((s) => s.items.filter((i) => !i.done).length);
 
   useEffect(() => {
     if (tab === "todo" && !useTodoStore.getState().everLoaded) {
@@ -57,9 +56,7 @@ export function AiWorkspace() {
           const badge =
             item.id === "suggest" && suggestCount > 0
               ? suggestCount
-              : item.id === "todo" && todoActive > 0
-                ? todoActive
-                : 0;
+              : 0;
           const Icon = item.icon;
           return (
             <button

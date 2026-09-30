@@ -23,6 +23,7 @@ import { resolveDataRoot, inboxRoot } from "./lib/path-model.mjs";
 import { ensureDir, readText, listDir } from "./lib/fs-utils.mjs";
 import { splitMarkdownFrontmatter } from "./lib/frontmatter.mjs";
 import { t } from "./lib/electron-i18n.mjs";
+import { bearerHeader } from "./lib/header-safe.mjs";
 import {
   extractTweets,
   isOverTweetLimit,
@@ -99,10 +100,14 @@ async function xApiV2(bearerToken, endpoint, options = {}) {
   const url = endpoint.startsWith("http")
     ? endpoint
     : `${X_API_ORIGIN}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+  const auth = bearerHeader(bearerToken);
+  if (!auth.Authorization) {
+    throw new Error("X bearer token missing or illegal (re-enter in Settings → X)");
+  }
   const res = await fetch(url, {
     method: options.method || "GET",
     headers: {
-      Authorization: `Bearer ${bearerToken}`,
+      ...auth,
       "Content-Type": "application/json",
       ...(options.headers || {}),
     },

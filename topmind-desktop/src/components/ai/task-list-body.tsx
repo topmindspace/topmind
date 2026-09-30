@@ -16,6 +16,8 @@ import {
 import { cn } from "../../lib/kit";
 import { ICON } from "../../lib/icons";
 import { Button } from "../ui/Button";
+import { StatusDot } from "../ui/StatusDot";
+import { SuggestionCard } from "../ui/SuggestionCard";
 import { useTaskStore, type Task } from "../../stores/task-store";
 
 const STATUS_ICON: Record<Task["status"], ReactNode> = {
@@ -25,6 +27,21 @@ const STATUS_ICON: Record<Task["status"], ReactNode> = {
   failed: <RiCloseCircleLine size={ICON.micro} className="text-error" />,
   cancelled: <RiCloseCircleLine size={ICON.micro} className="text-text-quaternary" />,
 };
+
+const STATUS_TONE: Record<Task["status"], "neutral" | "running" | "success" | "error"> = {
+  queued: "neutral",
+  running: "running",
+  completed: "success",
+  failed: "error",
+  cancelled: "neutral",
+};
+
+/** Engine jobs offered on the empty task list — one source, no duplicate CTA strings. */
+const EMPTY_ENGINE_JOBS = [
+  { job: "reconcile", icon: "sort" as const, labelKey: "taskPanel.taskTypeReconcile", actionKey: "taskPanel.triggerReconcile", descKey: "taskPanel.emptyHint" },
+  { job: "ai_digest", icon: "spark" as const, labelKey: "taskPanel.taskTypeAi_digest", actionKey: "taskPanel.triggerAiDigest" },
+  { job: "memory_organize", icon: "spark" as const, labelKey: "taskPanel.taskTypeMemory_organize", actionKey: "taskPanel.triggerMemoryOrganize" },
+] as const;
 
 export function TaskListBody({ compact = false }: { compact?: boolean }) {
   const { t } = useTranslation("shell");
@@ -40,39 +57,43 @@ export function TaskListBody({ compact = false }: { compact?: boolean }) {
 
   if (tasks.length === 0) {
     return (
-      <div className={cn("flex flex-col items-center justify-center gap-2 text-center", compact ? "py-2" : "py-6")}>
+      <div className={cn("flex flex-col items-stretch justify-center gap-2", compact ? "py-2" : "py-4")}>
         {!compact ? (
-          <div className="flex max-w-[16rem] flex-col gap-1">
-            <span className="text-3xs text-text-tertiary">{t("taskPanel.empty")}</span>
-            <span className="text-xs text-text-quaternary leading-snug">{t("taskPanel.emptyHint")}</span>
+          <div className="mb-1 text-center">
+            <div className="text-xs font-medium text-text-tertiary">{t("taskPanel.empty")}</div>
+            <div className="mt-0.5 text-xs leading-snug text-text-quaternary">{t("taskPanel.emptyHint")}</div>
           </div>
         ) : null}
-        <div className="flex items-center gap-1.5">
-          <Button
-            variant="ai"
-            size="sm"
-            onClick={() => void createTask("reconcile")}
-          >
-            <RiSortDesc size={ICON.micro} />
-            {t("taskPanel.taskTypeReconcile")}
-          </Button>
-          <Button
-            variant="ai"
-            size="sm"
-            onClick={() => void createTask("ai_digest")}
-          >
-            <RiSparklingLine size={ICON.micro} />
-            {t("taskPanel.triggerAiDigest")}
-          </Button>
-          <Button
-            variant="ai"
-            size="sm"
-            onClick={() => void createTask("memory_organize")}
-          >
-            <RiSparklingLine size={ICON.micro} />
-            {t("taskPanel.triggerMemoryOrganize")}
-          </Button>
-        </div>
+        {compact ? (
+          <div className="flex items-center justify-center gap-1.5">
+            {EMPTY_ENGINE_JOBS.filter((j) => j.job !== "memory_organize").map((j) => (
+              <Button key={j.job} variant="ai" size="sm" onClick={() => void createTask(j.job)}>
+                {j.icon === "sort" ? <RiSortDesc size={ICON.micro} /> : <RiSparklingLine size={ICON.micro} />}
+                {t(j.actionKey)}
+              </Button>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {EMPTY_ENGINE_JOBS.map((j) => (
+              <SuggestionCard
+                key={j.job}
+                icon={
+                  j.icon === "sort"
+                    ? <RiSortDesc size={ICON.sm} className="text-accent-color" />
+                    : <RiSparklingLine size={ICON.sm} className={j.job === "memory_organize" ? "text-warning" : "text-accent-color"} />
+                }
+                title={t(j.labelKey)}
+                description={"descKey" in j && j.descKey ? t(j.descKey) : undefined}
+                action={
+                  <Button size="sm" variant="ghost" onClick={() => void createTask(j.job)}>
+                    {t(j.actionKey)}
+                  </Button>
+                }
+              />
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -143,7 +164,10 @@ function TaskCard({
       <div className="flex items-start gap-2">
         <span className="mt-0.5 shrink-0">{STATUS_ICON[task.status]}</span>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-xs font-medium text-text-primary">{task.title}</div>
+          <div className="flex items-center gap-1.5">
+            <StatusDot tone={STATUS_TONE[task.status]} />
+            <div className="truncate text-xs font-medium text-text-primary">{task.title}</div>
+          </div>
           <div className="mt-0.5 text-3xs text-text-quaternary">
             {task.status === "queued" && t("taskPanel.status.queued")}
             {task.status === "running" && (task.currentStep || t("taskPanel.status.running"))}
@@ -177,11 +201,11 @@ function TaskCard({
       </div>
 
       {(task.status === "running" || task.status === "queued") ? (
-        <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-surface-muted">
+        <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-surface-wash-30">
           <div
             className={cn(
               "h-full rounded-full transition-[width] duration-normal",
-              task.status === "queued" ? "bg-text-quaternary" : "bg-accent-color",
+              task.status === "queued" ? "bg-status-neutral" : "bg-accent-color",
             )}
             style={{ width: `${task.progress}%` }}
           />
@@ -203,7 +227,7 @@ function TaskCard({
           {task.logs.length > 0 ? (
             <div>
               <div className="mb-1 text-xs font-medium text-text-quaternary">{t("taskPanel.logs")}</div>
-              <div className="v4-focus-ring v4-sidebar-scroll max-h-28 overflow-y-auto rounded-[var(--radius-sm)] bg-surface-muted p-1.5">
+              <div className="v4-focus-ring v4-sidebar-scroll max-h-28 overflow-y-auto rounded-[var(--radius-sm)] bg-surface-wash-30 p-1.5">
                 {task.logs.map((log, idx) => (
                   <div key={idx} className="text-xs leading-relaxed text-text-secondary">
                     {log}
@@ -215,14 +239,14 @@ function TaskCard({
           {task.status === "completed" && Boolean(task.result) ? (
             <div>
               <div className="mb-1 text-xs font-medium text-text-quaternary">{t("taskPanel.result")}</div>
-              <div className="v4-focus-ring rounded-[var(--radius-sm)] bg-surface-muted p-1.5 text-xs text-text-secondary">
+              <div className="v4-focus-ring rounded-[var(--radius-sm)] bg-surface-wash-30 p-1.5 text-xs text-text-secondary">
                 <TaskResultView result={task.result} />
               </div>
             </div>
           ) : null}
           {task.status === "failed" && task.error ? (
             <div>
-              <div className="mb-1 text-3xs font-medium text-error">{t("taskPanel.error")}</div>
+              <div className="mb-1 text-xs font-medium text-error">{t("taskPanel.error")}</div>
               <div className="v4-focus-ring rounded-[var(--radius-sm)] bg-status-error-bg p-1.5 text-xs text-error">
                 {task.error}
               </div>

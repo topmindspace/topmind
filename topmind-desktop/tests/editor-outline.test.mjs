@@ -52,7 +52,7 @@ describe("EditorOutlinePanel & StreamDetailView UX enhancements", () => {
     );
     // Auto grow
     assert.match(stream, /el\.style\.height = "auto"/);
-    assert.match(stream, /resize-none min-h-\[48px\]/);
+    assert.match(stream, /resize-y min-h-9/);
     // Append textarea shortcuts (Cmd/Ctrl+Enter submit and Escape cancel)
     assert.match(stream, /onAppendSubmit/);
     assert.match(stream, /onAppendCancel/);

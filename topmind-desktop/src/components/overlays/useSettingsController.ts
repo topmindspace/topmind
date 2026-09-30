@@ -61,7 +61,12 @@ export function useSettingsController() {
 
   const applyPersistResponse = (ns: AppSettings, apiBatch: Record<string, unknown>) => {
     setCachedSettings(ns);
-    setSettings(ns);
+    // Do not repaint the full snapshot over edits made while the save was in
+    // flight — the next flush will persist those and repaint then.
+    const hasNewerEdits = pendingPatch.current && Object.keys(pendingPatch.current).length > 0;
+    if (!hasNewerEdits) {
+      setSettings(ns);
+    }
     if (ns.editor) {
       applyEditorSettingsToView(ns.editor, setEditorSettings);
       const tm = (ns.editor as { tabMode?: string }).tabMode;

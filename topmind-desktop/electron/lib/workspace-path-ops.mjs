@@ -1,13 +1,13 @@
 /**
  * Path / topic mutation ops — no Electron dependency (testable on Node).
  */
-import { promises as fs } from "node:fs";
+import { promises as fs, constants as fsConstants } from "node:fs";
 import { createHash } from "node:crypto";
 import path from "node:path";
 import {
   resolveDataRoot, outputsRoot, archiveRoot, parseTopicId, buildTopicId, CATEGORY_PATTERN,
 } from "./path-model.mjs";
-import { exists, readText, writeText, listDir, statSafe, readTextPreview } from "./fs-utils.mjs";
+import { exists, readText, listDir, statSafe, readTextPreview } from "./fs-utils.mjs";
 import {
   injectFrontmatter, splitMarkdownFrontmatter, stringifyYamlFrontmatter,
 } from "./frontmatter.mjs";
@@ -104,26 +104,44 @@ export const pathOps = {
     const dir = relativePath.split("/").slice(0, -1).join("/");
     const ext = path.extname(relativePath);
     const base = path.basename(relativePath, ext);
-    let attempt = 0;
-    let newName = `${base}_copy${ext}`;
-    let nextRel = dir ? `${dir}/${newName}` : newName;
-    while (await exists(await sp(ctx.workspaceRoot, nextRel))) {
-      attempt++;
-      newName = `${base}_copy${attempt}${ext}`;
-      nextRel = dir ? `${dir}/${newName}` : newName;
-    }
-    const nextFp = await sp(ctx.workspaceRoot, nextRel);
     const content = await fs.readFile(oldFp, "utf8").catch(() => null);
+    // Exclusive create (wx) + EEXIST retry — an exists() probe then write is
+    // TOCTOU: two rapid duplicates pick the same *_copy name and clobber.
+    let attempt = 0;
+    let nextRel;
+    let nextFp;
+    for (;;) {
+      const newName = attempt === 0 ? `${base}_copy${ext}` : `${base}_copy${attempt}${ext}`;
+      nextRel = dir ? `${dir}/${newName}` : newName;
+      nextFp = await sp(ctx.workspaceRoot, nextRel);
+      if (content !== null && relativePath.endsWith(".md")) {
+        // kernelDurableWrite owns md create; its own fence rejects collisions.
+        if (!(await exists(nextFp))) break;
+        attempt++;
+        continue;
+      }
+      try {
+        if (content !== null) {
+          await fs.writeFile(nextFp, content, { flag: "wx" });
+        } else {
+          await fs.copyFile(oldFp, nextFp, fsConstants.COPYFILE_EXCL);
+        }
+        break;
+      } catch (e) {
+        if (e && (e.code === "EEXIST" || e.code === "EPERM")) {
+          attempt++;
+          if (attempt > 200) throw e;
+          continue;
+        }
+        throw e;
+      }
+    }
     if (content !== null && relativePath.endsWith(".md")) {
       await kernelDurableWrite(
         { relativePath: nextRel, content },
         ctx,
         { actor: "user", confirmed: true, operation: "create" },
       );
-    } else if (content !== null) {
-      await writeText(nextFp, content);
-    } else {
-      await fs.copyFile(oldFp, nextFp);
     }
     bumpWorkspaceIndex(nextRel);
     return {
@@ -1646,6 +1664,107 @@ export const pathOps = {
       targetPath: todoRel,
       toggledItem: targetItem,
       nowCompleted: !targetItem.done,
+    };
+  },
+
+  /** Resolve idOrText → todo item (shared by update/delete/setDue). */
+  async updateTodo({ idOrText, text, dueDate, actor, confirmed }, ctx) {
+    if (!idOrText || !text) throw new Error("updateTodo: idOrText and text required");
+    const { loadKernelApi } = await import("./kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const root = resolveDataRoot(ctx.workspaceRoot);
+    const contract = kernel.loadContract(root);
+    const todoRel = kernel.resolveTodoRelPath(root);
+    const todoList = kernel.readTodoList(root);
+    const items = Array.isArray(todoList?.items) ? todoList.items : [];
+    const item = items.find(
+      (i) => i.id === idOrText || i.text === idOrText || i.text.includes(idOrText),
+    );
+    if (!item) {
+      return {
+        ok: false,
+        operation: "update-todo",
+        targetPath: todoRel,
+        error: `未找到匹配的待办任务: "${idOrText}"。请先使用 list_todos 查看当前待办列表。`,
+      };
+    }
+    const r = kernel.updateTodoItem(root, item.id, text, contract, {
+      dueDate: dueDate === undefined ? undefined : dueDate || null,
+      actor: actor || "ai",
+      confirmed,
+    });
+    if (r?.ok) bumpWorkspaceIndex(todoRel);
+    return {
+      ok: Boolean(r?.ok),
+      operation: "update-todo",
+      targetPath: todoRel,
+      updatedItem: r?.item || { ...item, text },
+    };
+  },
+
+  async setTodoDue({ idOrText, dueDate, actor, confirmed }, ctx) {
+    if (!idOrText) throw new Error("setTodoDue: idOrText required");
+    const { loadKernelApi } = await import("./kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const root = resolveDataRoot(ctx.workspaceRoot);
+    const contract = kernel.loadContract(root);
+    const todoRel = kernel.resolveTodoRelPath(root);
+    const todoList = kernel.readTodoList(root);
+    const items = Array.isArray(todoList?.items) ? todoList.items : [];
+    const item = items.find(
+      (i) => i.id === idOrText || i.text === idOrText || i.text.includes(idOrText),
+    );
+    if (!item) {
+      return {
+        ok: false,
+        operation: "set-todo-due",
+        targetPath: todoRel,
+        error: `未找到匹配的待办任务: "${idOrText}"。请先使用 list_todos 查看当前待办列表。`,
+      };
+    }
+    const r = kernel.setTodoDueDate(root, item.id, dueDate || null, contract, {
+      actor: actor || "ai",
+      confirmed,
+    });
+    if (r?.ok) bumpWorkspaceIndex(todoRel);
+    return {
+      ok: Boolean(r?.ok),
+      operation: "set-todo-due",
+      targetPath: todoRel,
+      updatedItem: r?.item || { ...item, dueDate: dueDate || null },
+    };
+  },
+
+  async deleteTodo({ idOrText, actor, confirmed }, ctx) {
+    if (!idOrText) throw new Error("deleteTodo: idOrText required");
+    const { loadKernelApi } = await import("./kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const root = resolveDataRoot(ctx.workspaceRoot);
+    const contract = kernel.loadContract(root);
+    const todoRel = kernel.resolveTodoRelPath(root);
+    const todoList = kernel.readTodoList(root);
+    const items = Array.isArray(todoList?.items) ? todoList.items : [];
+    const item = items.find(
+      (i) => i.id === idOrText || i.text === idOrText || i.text.includes(idOrText),
+    );
+    if (!item) {
+      return {
+        ok: false,
+        operation: "delete-todo",
+        targetPath: todoRel,
+        error: `未找到匹配的待办任务: "${idOrText}"。请先使用 list_todos 查看当前待办列表。`,
+      };
+    }
+    const r = kernel.deleteTodoItem(root, item.id, contract, {
+      actor: actor || "ai",
+      confirmed,
+    });
+    if (r?.ok) bumpWorkspaceIndex(todoRel);
+    return {
+      ok: Boolean(r?.ok),
+      operation: "delete-todo",
+      targetPath: todoRel,
+      deletedItem: item,
     };
   },
 

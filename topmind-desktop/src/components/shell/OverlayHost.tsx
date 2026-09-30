@@ -173,6 +173,9 @@ export function OverlayHost() {
       const hit = matchWorkbenchShortcut(e);
       if (!hit) return;
       if (e.isComposing || e.keyCode === 229) return;
+      // A consumer that only preventDefault'd (no stopPropagation) still owns
+      // the key — do not also close overlays / exit focus mode.
+      if (e.defaultPrevented) return;
 
       // Tab close shortcuts: skip when typing in native fields (keep browser-like when editing text)
       if (

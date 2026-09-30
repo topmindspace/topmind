@@ -161,8 +161,10 @@ test("skills-disabled prompt strips skill tools the model cannot call", () => {
 test("name list source stays the single advertised Desktop catalog", () => {
   assert.match(namesSrc, /export const AI_TOOL_NAMES_READ/);
   assert.match(namesSrc, /export const AI_TOOL_NAMES_WRITE/);
-  assert.equal(AI_TOOL_NAMES_READ.length, 18);
-  assert.equal(AI_TOOL_NAMES_WRITE.length, 20);
+  assert.equal(AI_TOOL_NAMES_READ.length, 22);
+  assert.equal(AI_TOOL_NAMES_WRITE.length, 25);
+  assert.ok(AI_TOOL_NAMES_READ.includes("web_search"));
+  assert.ok(AI_TOOL_NAMES_WRITE.includes("capture_url"));
   assert.ok(AI_TOOL_NAMES_READ.includes("list_todos"));
   assert.ok(AI_TOOL_NAMES_READ.includes("list_files"));
   assert.ok(AI_TOOL_NAMES_READ.includes("glob_files"));
@@ -177,14 +179,20 @@ test("name list source stays the single advertised Desktop catalog", () => {
   assert.ok(AI_TOOL_NAMES_WRITE.includes("copy_file"));
 });
 
-test("living docs state the 18+20=38 totals (no stale 36)", () => {
+test("living docs state the 21+24=45 totals (no stale 36/38/39)", () => {
   const toolsMd = readFileSync(path.resolve(root, "../TOOLS.md"), "utf8");
   const arch = readFileSync(path.join(root, "ARCHITECTURE.md"), "utf8");
-  assert.match(toolsMd, /18 read \+ 20 write = 38/);
+  assert.match(toolsMd, /22 read \+ 25 write = 47/);
+  assert.doesNotMatch(toolsMd, /22 read \+ 24 write = 46/);
+  assert.doesNotMatch(toolsMd, /19 read \+ 20 write = 39/);
+  assert.doesNotMatch(toolsMd, /18 read \+ 20 write = 38/);
   assert.doesNotMatch(toolsMd, /18 read \+ 18 write = 36/);
-  assert.match(arch, /38 named tools/);
+  assert.match(arch, /47 named tools/);
   assert.match(arch, /RESTORE\/COMPACT-HISTORY/);
+  assert.doesNotMatch(arch, /46 named tools/);
   assert.doesNotMatch(arch, /36 named tools/);
+  assert.doesNotMatch(arch, /39 named tools/);
+  assert.doesNotMatch(arch, /38 named tools/);
 });
 
 test("living TOOLS.md inventory matches shipped names; dropped bash is absent", () => {
@@ -194,7 +202,7 @@ test("living TOOLS.md inventory matches shipped names; dropped bash is absent", 
   assert.match(toolsMd, /Skills pack — all \*\*keep\*\*/);
   assert.match(toolsMd, /UTR commands — all \*\*keep\*\*/);
   assert.match(toolsMd, /drop — never registered/);
-  assert.match(toolsMd, /8 域 \/ 35 命令/);
+  assert.match(toolsMd, /8 域 \/ 38 命令/);
   const all = [...AI_TOOL_NAMES_READ, ...AI_TOOL_NAMES_WRITE];
   for (const name of all) {
     assert.match(toolsMd, new RegExp(`\`${name}\``, "u"), `TOOLS.md missing ${name}`);

@@ -52,14 +52,14 @@ const buttonVariants = cva(
           ON_PRIMARY_LAYER,
         ),
         secondary:
-          "border border-border-subtle-dim bg-secondary text-secondary-foreground hover:border-border-subtle",
-        /* MD3 tonal — secondary emphasis without a second solid CTA */
+          "border border-border-subtle-dim bg-secondary text-secondary-foreground",
+        /* Soft tonal — secondary emphasis without a solid filled block */
         tonal: cn(
-          "border border-transparent bg-accent-container text-on-accent-container font-medium",
-          "hover:after:bg-state-dragged active:after:bg-state-pressed",
+          "border border-transparent bg-accent-bg-subtle text-accent-color font-medium",
+          "hover:after:bg-state-hover active:after:bg-state-pressed",
         ),
         outline:
-          "border border-border-subtle bg-transparent text-text-primary hover:border-border-subtle",
+          "border border-border-subtle bg-transparent text-text-primary",
         ghost: "text-text-secondary hover:text-text-primary",
         /* MD3 error-container tonal — destructive without neon fill */
         destructive: cn(
@@ -72,10 +72,10 @@ const buttonVariants = cva(
         ),
       },
       size: {
-        sm: "h-[var(--control-h-sm,30px)] min-w-[var(--control-h-sm,30px)] px-2.5 text-3xs gap-1",
-        default: "h-[var(--control-h-md,34px)] px-3.5",
-        lg: "h-[var(--control-h-lg,40px)] px-4 text-sm",
-        icon: "h-[var(--control-h-sm,30px)] w-[var(--control-h-sm,30px)] shrink-0 p-0",
+        sm: "h-8 min-w-8 px-3 text-xs gap-1",
+        default: "h-9 px-4 text-sm",
+        lg: "h-10 px-5 text-sm",
+        icon: "h-8 w-8 shrink-0 p-0",
       },
     },
     defaultVariants: { variant: "default", size: "default" },

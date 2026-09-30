@@ -93,8 +93,8 @@
     "paperSepiaHint": "Warm brown · Night reading"
   },
   "frontmatterBar": {
-    "toastUpdated": "✓ Properties updated",
-    "toastError": "✗ {{error}}",
+    "toastUpdated": "Properties updated",
+    "toastError": "{{error}}",
     "pathTooltip": "{{path}}\nRight-click for file menu",
     "properties": "Properties",
     "locked": "Locked",
@@ -272,8 +272,8 @@
     "mountTooltip": "Pin to conversation context",
     "mountLabel": "Pin",
     "mountedLabel": "Pinned",
-    "notReadyTitle": "Configure AI to start conversation",
-    "notReadyHint": "Enter API Key to use Agent & Skills",
+    "notReadyTitle": "Set up AI to get started",
+    "notReadyHint": "Add an API key to use Agent and Skills",
     "openSettingsTooltip": "Open AI settings · Enter any API Key or Ollama",
     "openSettingsLabel": "Go to settings",
     "writebackAutoLabel": "Auto-save",
@@ -295,7 +295,7 @@
     "kindChipSuggest": "Suggestion",
     "kindChipOrganize": "Organize",
     "kindChipInboxOrganize": "Inbox organize",
-    "suggestEmpty": "No suggestions",
+    "suggestEmpty": "No suggestions right now",
     "suggestLoadFailed": "Suggestions unavailable",
     "suggestPaused": "Smart suggestions paused",
     "suggestRefresh": "Refresh suggestions",
@@ -414,6 +414,7 @@
     "usageTotal": "Total: {{count}}",
     "detailAria": "Details",
     "noTextReply": "(No text reply)",
+    "noTextReplyIncomplete": "(No text reply this run — task incomplete; use Regenerate to continue)",
     "goalPlan": "Plan {{done}}/{{total}}",
     "goalPlanChanged": "Plan changed (+{{added}} / −{{removed}})",
     "goalOpenCriteria": "{{count}} open",
@@ -426,10 +427,15 @@
     "stoppedStalled": "Stopped (stalled)",
     "goalReceipts": "{{count}} receipts",
     "resultChanges": "Changes",
+    "resultSources": "Sources",
     "resultVerified": "Verified",
     "resultAssumed": "Assumed",
     "resultCouldNot": "Could not do",
     "resultNone": "none",
+    "resultIncompleteNoReason": "Task did not finish within budget (use Regenerate to continue)",
+    "stopReasonBudget": "Auto-continue budget exhausted — task incomplete",
+    "stopReasonEmptyTurn": "Model produced no content or tool calls this turn",
+    "stopReasonMissingReceipts": "Claimed done but no path receipts",
     "resultFooterTitle": "Result notes",
     "runtimeOfflineLabel": "Offline",
     "runtimeOfflineTooltip": "Click to configure API Key · Settings → AI",
@@ -442,6 +448,7 @@
     "removeContextTooltip": "Remove from AI context",
     "jumpToLatest": "Jump to latest",
     "copyReply": "Copy reply",
-    "copied": "Copied"
+    "copied": "Copied",
+    "entrypointMark": "Primary"
   }
 }

@@ -94,6 +94,7 @@ const STRINGS = {
     "error.unresolvableDataWorkspacePath": "No resolvable data workspace path provided",
     "error.dataWorkspaceNotFound": "Could not locate topmind data workspace",
     "error.unsupportedWorkspaceRoot": "Unsupported workspace root: {{root}}/",
+    "error.traversalDisallowed": "Traversal disallowed: path outside workspace root ({{path}})",
     "error.missingRequiredFlag": "Missing required parameter: --{{flag}}",
     // ── Path resolver ────────────────────────────────────────────────
     "error.commandNotFoundInContract": "Command {{command}} not found in contract {{kind}}",
@@ -251,6 +252,7 @@ const STRINGS = {
     "error.unresolvableDataWorkspacePath": "未提供可解析的数据工作区路径",
     "error.dataWorkspaceNotFound": "未能定位 topmind 数据工作区",
     "error.unsupportedWorkspaceRoot": "不支持的工作区根：{{root}}/",
+    "error.traversalDisallowed": "路径越界：不允许逃出工作区（{{path}}）",
     "error.missingRequiredFlag": "缺少必需参数: --{{flag}}",
     // ── Path resolver ────────────────────────────────────────────────
     "error.commandNotFoundInContract": "契约 {{kind}} 中未找到命令: {{command}}",

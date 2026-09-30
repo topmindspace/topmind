@@ -217,11 +217,17 @@ export function TodoPopover({ open, onOpenChange, children }: TodoPopoverProps) 
       setPos({ x: nx, y: ny });
     };
     const onUp = () => { setDragging(false); dragStart.current = null; };
+    const onPointerCancel = () => onUp();
+    const onBlur = () => onUp();
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mouseup", onUp);
+    window.addEventListener("pointercancel", onPointerCancel);
+    window.addEventListener("blur", onBlur);
     return () => {
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
+      window.removeEventListener("pointercancel", onPointerCancel);
+      window.removeEventListener("blur", onBlur);
     };
   }, [dragging]);
 
@@ -238,7 +244,7 @@ export function TodoPopover({ open, onOpenChange, children }: TodoPopoverProps) 
       className={cn(
         // overflow-hidden + flex-col maxHeight: body can scroll inside (not page)
         "v4-no-drag v4-popover-enter fixed z-[var(--z-popover-overlay)] flex flex-col overflow-hidden rounded-xl border border-border-subtle bg-surface-elevated/95 shadow-[var(--shadow-elevated-hairline)] backdrop-blur-[var(--blur-glass)] backdrop-saturate-150",
-        pinned && "shadow-[var(--shadow-float)] ring-1 ring-accent-color/20",
+        pinned && "shadow-[var(--shadow-float)] ring-1 ring-accent-border-subtle",
       )}
       style={{
         left: pos.x,
@@ -260,7 +266,7 @@ export function TodoPopover({ open, onOpenChange, children }: TodoPopoverProps) 
           {t("todo.title")}
         </span>
         {activeCount > 0 ? (
-          <span className="rounded-[var(--radius-xs)] bg-surface-muted px-1.5 text-3xs tabular-nums text-text-quaternary">
+          <span className="rounded-[var(--radius-xs)] bg-surface-wash-30 px-1.5 text-3xs tabular-nums text-text-quaternary">
             {activeCount}
           </span>
         ) : null}

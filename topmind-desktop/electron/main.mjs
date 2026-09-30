@@ -38,7 +38,7 @@ import { WereadService } from "./weread-service.mjs";
 import { XService } from "./x-service.mjs";
 import { IngestService } from "./ingest-service.mjs";
 import { WechatService } from "./wechat-service.mjs";
-import { logInfo, logWarn, logError, attachFileLogger, getLogFilePath } from "./lib/writeback.mjs";
+import { logInfo, logWarn, logError, attachFileLogger, getLogFilePath, summarizeError } from "./lib/writeback.mjs";
 import { attachOpsJournal } from "./lib/ops-journal.mjs";
 import { loadAppSettings, saveAppSettings, updateAppSettings } from "./settings.mjs";
 import { closeWorkspaceWatcher, startWorkspaceWatcher, markIgnoredFileChanges } from "./watchers.mjs";
@@ -138,15 +138,17 @@ function showBootError(title, detail) {
 }
 
 // Surface crashes that would otherwise be silent on Windows GUI builds.
+// Log a compact summary only — dumping the raw error object (request bodies,
+// response HTML, symbols) produces huge mojibake-prone terminal output.
 process.on("uncaughtException", (err) => {
-  showBootError(
-    "topmind crashed (uncaughtException)",
-    err instanceof Error ? `${err.message}\n${err.stack || ""}` : String(err),
-  );
+  const summary = summarizeError(err);
+  logError("main", "uncaughtException", { error: summary });
+  showBootError("topmind crashed (uncaughtException)", summary);
 });
 process.on("unhandledRejection", (reason) => {
-  const msg = reason instanceof Error ? `${reason.message}\n${reason.stack || ""}` : String(reason);
-  showBootError("topmind crashed (unhandledRejection)", msg);
+  const summary = summarizeError(reason);
+  logError("main", "unhandledRejection", { error: summary });
+  showBootError("topmind crashed (unhandledRejection)", summary);
 });
 
 const settingsAdapter = {

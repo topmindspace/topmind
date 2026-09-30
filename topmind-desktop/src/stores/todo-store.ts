@@ -137,18 +137,14 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
     try {
       const result = await api.todo.list();
       const items = result?.items || [];
-      // Defensive: if IPC returned null/empty but we had items, keep them.
-      // The todo file is the truth — but a transient IPC timing issue
-      // (e.g. right after maintain wrote) should not wipe the UI.
-      if (items.length === 0 && prevItems.length > 0 && get().everLoaded) {
-        set({ loading: false, everLoaded: true, items: prevItems });
-      } else {
-        set({
-          items,
-          loading: false,
-          everLoaded: true,
-        });
-      }
+      // The todo file is the truth: a successful empty response means the
+      // user (or AI maintain) emptied memory/todo.md — accept it. Only a
+      // thrown IPC error falls back to the previous snapshot.
+      set({
+        items,
+        loading: false,
+        everLoaded: true,
+      });
     } catch {
       // Graceful degradation: keep existing items on transient errors
       set({ loading: false, everLoaded: true, items: prevItems });
@@ -161,13 +157,24 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
     try {
       const result = await api.todo.add(trimmed);
       if (result.ok && result.items) {
-        set({ items: result.items });
+        set({ items: result.items, maintainMessage: null, maintaining: "idle" });
         emitSelfFileChanged();
       } else if (result.reason === "duplicate") {
         set({ maintainMessage: i18n.t("shell:todo.duplicateItem"), maintaining: "error", maintainReason: null });
+      } else {
+        set({
+          maintainMessage: i18n.t("shell:todo.writeFail", { defaultValue: "保存失败" }),
+          maintaining: "error",
+          maintainReason: null,
+        });
       }
       return result.ok;
-    } catch {
+    } catch (e) {
+      set({
+        maintainMessage: e instanceof Error ? e.message : String(e),
+        maintaining: "error",
+        maintainReason: null,
+      });
       return false;
     }
   },
@@ -182,8 +189,13 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
       const result = await api.todo.toggle(id);
       if (result.items) set({ items: result.items });
       emitSelfFileChanged();
-    } catch {
-      set({ items: prev });
+    } catch (e) {
+      set({
+        items: prev,
+        maintainMessage: e instanceof Error ? e.message : String(e),
+        maintaining: "error",
+        maintainReason: null,
+      });
     }
   },
 
@@ -194,8 +206,12 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
       const result = await api.todo.update(id, trimmed, opts);
       if (result.items) set({ items: result.items });
       emitSelfFileChanged();
-    } catch {
-      /* ignore */
+    } catch (e) {
+      set({
+        maintainMessage: e instanceof Error ? e.message : String(e),
+        maintaining: "error",
+        maintainReason: null,
+      });
     }
   },
 
@@ -204,8 +220,12 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
       const result = await api.todo.setDueDate(id, dueDate);
       if (result.items) set({ items: result.items });
       emitSelfFileChanged();
-    } catch {
-      /* ignore */
+    } catch (e) {
+      set({
+        maintainMessage: e instanceof Error ? e.message : String(e),
+        maintaining: "error",
+        maintainReason: null,
+      });
     }
   },
 
@@ -216,8 +236,13 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
       const result = await api.todo.delete(id);
       if (result.items) set({ items: result.items });
       emitSelfFileChanged();
-    } catch {
-      set({ items: prev });
+    } catch (e) {
+      set({
+        items: prev,
+        maintainMessage: e instanceof Error ? e.message : String(e),
+        maintaining: "error",
+        maintainReason: null,
+      });
     }
   },
 
@@ -226,8 +251,12 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
       const result = await api.todo.clearCompleted();
       if (result.items) set({ items: result.items });
       emitSelfFileChanged();
-    } catch {
-      /* ignore */
+    } catch (e) {
+      set({
+        maintainMessage: e instanceof Error ? e.message : String(e),
+        maintaining: "error",
+        maintainReason: null,
+      });
     }
   },
 

@@ -255,7 +255,7 @@ export function TimelineView({ onNavigate }: TimelineViewProps) {
           <div className="sticky top-0 z-local flex items-center gap-1.5 bg-chrome px-3 py-1.5 text-3xs font-medium tracking-wide text-text-quaternary">
             <RiCalendarLine size={ICON.micro} className="text-text-quaternary" />
             <span>{group.label}</span>
-            <span className="rounded-[var(--radius-xs)] bg-surface-muted px-1.5 tabular-nums text-text-quaternary">
+            <span className="rounded-[var(--radius-xs)] bg-surface-wash-30 px-1.5 tabular-nums text-text-quaternary">
               {group.entries.length}
             </span>
           </div>

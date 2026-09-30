@@ -20,12 +20,27 @@
 导航 → 动态流时间轴 → AI 工作区（**对话 · 建议 · 清单 · 应用**）。主线是本周动态；AI 负责提议，落盘前一律等你确认。界面提供 **简体中文 / English** 双语 chrome（跟系统语言；工作区内容语言不受影响）。
 
 <p align="center">
-  <img src="./docs/images/desktop-stream.jpg" alt="Topmind Desktop 三栏工作台：动态流时间轴与右栏 AI 工作区（简体中文）" width="820" />
+  <img src="./docs/images/desktop-stream.jpg" alt="Topmind Desktop 三栏工作台：动态流时间轴 + AI 建议（简体中文）" width="820" />
 </p>
 
 <p align="center">
-  <img src="./docs/images/desktop-stream-en.jpg" alt="topmind Desktop three-column workbench (English chrome)" width="820" />
+  <img src="./docs/images/desktop-stream-en.jpg" alt="topmind Desktop three-column workbench with AI chat todo panel (English)" width="820" />
 </p>
+
+AI 工作区四页签：**对话**（多步工具智能体）· **建议**（确认后落盘）· **清单**（`memory/todo.md`）· **应用**（连接器）。
+
+| AI 建议（主动整理） | 我的情况 · 清单 |
+|---|---|
+| <img src="./docs/images/desktop-suggest-en.jpg" alt="AI Suggest — inbox placement suggestion" width="400" /> | <img src="./docs/images/desktop-memory-todo-zh.jpg" alt="我的情况记忆与清单" width="400" /> |
+
+### 设置（双语 · 双层密钥）
+
+| 通用设置 | AI 供应商 |
+|---|---|
+| <img src="./docs/images/desktop-settings-general-en.jpg" alt="Settings — general appearance and layout" width="400" /> | <img src="./docs/images/desktop-settings-ai-zh.jpg" alt="AI provider and model settings" width="400" /> |
+
+- 密钥 **safeStorage + 本机 AES** 双层，升级/重签名后保留
+- 14 家供应商实时模型列表（models.dev + 官方接口）
 
 ### 全流程动态演示
 
@@ -191,6 +206,8 @@ topmind 将工作区组织为清晰的三个平面，逻辑自洽且可预测：
 | 关键词搜索诚实截断 · **无** embedding 全库语义检索 | **Done** | 保持轻量与透明，防全库泛滥 |
 | AI 操作：todo 维护 · 记忆整理 · 专题建议 | **Done** | 活动窗口驱动，confirm 路径安全控制 |
 | 目标协议 Agent（规划 / 验收 / 续跑） | **Done** | GoalState 会话持久 · Run Card 计划变更 · Pause ≠ Abandon · 外部 evaluator |
+| **全功能工具智能体** | **Done** | 渐进工具暴露（light/query/task）· 会话自适应预算 · 查询强制取证 · 失败熔断 · 结果摘要压缩 |
+| **外部检索与来源回执** | **Done** | `web_search`（无需 Key，域名打分）· `fetch_url` · `capture_url` 一键入库 · 研究多跳与引用 |
 | 界面与 AI 双语（zh-CN / en-US） | **Done** | UI 跟系统语言；文档 AI 跟原文 → 工作区 locale；产品 AI 跟宿主 UI 语言 |
 | 可选记账（`memory/ledgers/`） | **Done** | ledger-engine 卫星；Skills `topmind-ledger`；Desktop 启用后小应用 — 不是第六个用户概念 |
 | 多路 AI 串行与独立会话 | **Done** | 后台 Prep 串行，Agent streaming 时让路 |

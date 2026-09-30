@@ -282,8 +282,10 @@ export function matchWorkbenchShortcut(e: KeyboardEvent): ShortcutDef | null {
   const mod = e.metaKey || e.ctrlKey;
   const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
 
-  // Escape is special (no mod required) — closes overlay; if none, exits focus mode
-  if (!mod && e.key === "Escape") {
+  // Escape is special (no mod required) — closes overlay; if none, exits focus
+  // mode. Shift/Alt+Esc is not our chord (OS/browser may own it); a consumer
+  // that already preventDefault'd keeps the event (e.g. ChatInput pause).
+  if (!mod && e.key === "Escape" && !e.shiftKey && !e.altKey && !e.defaultPrevented) {
     return {
       id: "escape",
       labelKey: "common:shortcut.escape",

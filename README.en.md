@@ -20,12 +20,27 @@
 Navigation → stream timeline → AI workspace (**Chat · Suggest · List · Apps**). The weekly stream is the main narrative; AI proposes and waits for your confirmation before anything settles. Chrome ships in **Simplified Chinese and English** (follows the OS language; your notes stay in their own language).
 
 <p align="center">
-  <img src="./docs/images/desktop-stream-en.jpg" alt="topmind Desktop three-column workbench: stream timeline with the AI workspace (English chrome)" width="820" />
+  <img src="./docs/images/desktop-stream-en.jpg" alt="topmind Desktop three-column workbench with AI chat todo panel (English)" width="820" />
 </p>
 
 <p align="center">
-  <img src="./docs/images/desktop-stream.jpg" alt="Topmind Desktop 三栏工作台（简体中文）" width="820" />
+  <img src="./docs/images/desktop-stream.jpg" alt="Topmind Desktop 三栏工作台 + AI 建议（简体中文）" width="820" />
 </p>
+
+AI workspace tabs: **Chat** (multi-step tool agent) · **Suggest** (confirm to settle) · **List** (`memory/todo.md`) · **Apps** (connectors).
+
+| AI Suggest (inbox placement) | My profile · List |
+|---|---|
+| <img src="./docs/images/desktop-suggest-en.jpg" alt="AI Suggest — inbox placement suggestion" width="400" /> | <img src="./docs/images/desktop-memory-todo-zh.jpg" alt="Profile memory and todos" width="400" /> |
+
+### Settings (bilingual · dual-layer keys)
+
+| General | AI provider |
+|---|---|
+| <img src="./docs/images/desktop-settings-general-en.jpg" alt="Settings — general appearance and layout" width="400" /> | <img src="./docs/images/desktop-settings-ai-zh.jpg" alt="AI provider and model settings" width="400" /> |
+
+- API keys use **safeStorage + local AES** dual-layer encryption (survive upgrade / re-sign)
+- Live model catalogs from 14 providers (models.dev + official endpoints)
 
 ### Full product demo
 
@@ -190,6 +205,8 @@ Directory names follow the live contract (`en-US` stream template uses the Engli
 | Keyword search with honest truncation · **no** full-library embeddings | **Done** | Lightweight and transparent |
 | AI operations: todo maintain · memory organize · topic classify | **Done** | Activity-window driven; confirm path is safe |
 | Goal-protocol agent (plan / verify / continue) | **Done** | Session-persistent GoalState · Run Card plan diffs · Pause ≠ Abandon · external evaluator |
+| **Full tool agent** | **Done** | Progressive tool exposure (light/query/task) · adaptive session budget · forced query grounding · failure circuit breaker · result digest |
+| **External retrieval & source receipts** | **Done** | `web_search` (no key, domain-scored) · `fetch_url` · `capture_url` one-shot ingest · multi-hop research with citations |
 | Bilingual UI + AI output (zh-CN / en-US) | **Done** | UI follows the OS language; document AI follows request → source → workspace locale; product AI follows host UI language |
 | Optional bookkeeping (`memory/ledgers/`) | **Done** | ledger-engine satellite; Skills `topmind-ledger`; Desktop enable-gated mini-app — not a 6th user concept |
 | Multi-lane AI (serial prep + independent agent) | **Done** | Background prep is serial; agent streaming yields |

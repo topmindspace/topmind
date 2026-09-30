@@ -373,7 +373,18 @@ export function officialListUrl(providerId, opts = {}) {
 export function officialListHeaders(providerId, apiKey = "") {
   if (officialListKind(providerId) === "google") return {};
   const key = apiKey || (providerId === "ollama" ? "ollama" : "");
-  return key ? { Authorization: `Bearer ${key}` } : {};
+  // ByteString (Latin-1) + no controls + size cap — same rules as
+  // electron/lib/header-safe.mjs (kept inline so this module stays dependency-free
+  // across Desktop / engine / Obsidian copies).
+  const raw = String(key);
+  if (!raw.trim() || raw.length > 2048) return {};
+  let safe = "";
+  for (const ch of raw) {
+    const c = ch.charCodeAt(0);
+    if (c === 9 || (c >= 32 && c <= 126) || (c >= 160 && c <= 255)) safe += ch;
+  }
+  safe = safe.trim();
+  return safe ? { Authorization: `Bearer ${safe}` } : {};
 }
 
 /**

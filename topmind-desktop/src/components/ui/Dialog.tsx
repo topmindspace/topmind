@@ -180,12 +180,13 @@ export function ConfirmDialog({
       ) : null}
       {children ? <div className="mb-4">{children}</div> : description ? null : <div className="mb-4" />}
       <div className="flex justify-end gap-2" data-dialog-footer>
-        <Button variant="outline" size="sm" onClick={onCancel} data-dialog-cancel="">
+        <Button variant="outline" size="sm" className="h-9 px-4 text-sm" onClick={onCancel} data-dialog-cancel="">
           {finalCancelText}
         </Button>
         <Button
           variant={destructive ? "destructive" : "default"}
           size="sm"
+          className="h-9 px-4 text-sm"
           onClick={onConfirm}
           data-dialog-focus={!destructive ? "" : undefined}
         >
@@ -249,7 +250,7 @@ export function PromptDialog({
       panelClassName={maxWidth ?? "max-w-xl"}
       placement="upper"
     >
-      <h2 id={titleId} className="mb-1 text-sm font-semibold tracking-tight text-text-primary">
+      <h2 id={titleId} className="mb-1 text-base font-semibold tracking-tight text-text-primary">
         {title}
       </h2>
       {description ? (
@@ -306,7 +307,7 @@ export function ErrorDialog({
   if (!open) return null;
   return (
     <DialogBackdrop onClose={onClose} labelledBy={titleId} describedBy={descId}>
-      <h2 id={titleId} className="mb-2 text-sm font-semibold text-error">
+      <h2 id={titleId} className="mb-2 text-base font-semibold text-error">
         {title}
       </h2>
       <p id={descId} className={cn("mb-4 text-xs leading-relaxed text-text-tertiary")}>

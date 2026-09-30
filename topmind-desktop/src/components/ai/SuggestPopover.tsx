@@ -25,8 +25,7 @@ import {
   RiCloseLine,
   RiFileCheckLine,
   RiFileTextLine,
-  RiFlashlightFill,
-  RiFlashlightLine,
+  RiSparklingLine,
   RiFolderHistoryLine,
   RiFullscreenLine,
   RiInboxArchiveLine,
@@ -34,7 +33,6 @@ import {
   RiLightbulbLine,
   RiLoader4Line,
   RiRefreshLine,
-  RiSparklingLine,
 } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/kit";
@@ -397,28 +395,34 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
       <li
         key={item.id}
         className={cn(
-          "rounded-md p-2.5 flex flex-col gap-0.5 transition-colors",
+          "rounded-[var(--radius-card)] p-3 flex flex-col gap-1.5 shadow-[var(--shadow-card)] transition-colors",
           isRemoving && "v4-item-removing",
-          isBusy && "ring-1 ring-inset ring-accent-color/30 bg-accent-bg-faint",
+          isBusy && "ring-1 ring-inset ring-accent-border-subtle bg-accent-bg-faint",
           isPendingWrite || isHigh
-            ? "bg-status-warning-bg ring-1 ring-inset ring-warning/15"
-            : "bg-surface-muted hover:bg-state-hover",
+            ? "bg-status-warning-bg"
+            : "bg-surface hover:bg-state-hover",
         )}
       >
-        <div className="flex items-start gap-1.5">
+        <div className="flex items-start gap-2">
           {isPendingWrite ? (
-            <RiFileCheckLine size={ICON.micro} className="mt-0.5 shrink-0 text-warning" />
+            <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-surface-wash-30">
+              <RiFileCheckLine size={ICON.sm} className="text-warning" />
+            </span>
           ) : (
-            <SuggestionIcon kind={item.suggestionKind} isHigh={isHigh} />
+            <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-surface-wash-30">
+              <SuggestionIcon kind={item.suggestionKind} isHigh={isHigh} />
+            </span>
           )}
-          <div className="min-w-0 flex-1 text-xs font-medium text-text-primary leading-tight">
-            {item.title}
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-medium text-text-primary leading-snug break-words" title={item.title}>
+              {item.title}
+            </div>
           </div>
           {chip ? (
             <Tooltip content={t(`ai.${chip}`)}>
               <span
                 className={cn(
-                  "shrink-0 rounded-[var(--radius-xs)] px-1.5 py-px text-3xs font-medium cursor-default",
+                  "shrink-0 rounded-[var(--radius-xs)] px-2 py-0.5 text-3xs font-medium cursor-default",
                   isHigh ? "bg-status-warning-bg text-warning" : "bg-accent-bg-subtle text-accent-color",
                 )}
               >
@@ -433,24 +437,24 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
           disabled={!item.summary || item.summary.length < 80}
           side="bottom"
         >
-          <div className="line-clamp-2 pl-4.5 text-xs text-text-tertiary leading-snug">
+          <div className="line-clamp-2 pl-9 text-xs text-text-tertiary leading-relaxed">
             {item.summary}
           </div>
         </Tooltip>
         {fPath ? (
           <Tooltip content={item.targetPath} side="bottom">
-            <div className="truncate pl-4.5 text-3xs text-text-quaternary">
+            <div className="truncate pl-9 text-3xs text-text-quaternary">
               {fPath}
             </div>
           </Tooltip>
         ) : null}
-        <div className="flex gap-2 pl-4.5 pt-1">
+        <div className="flex flex-wrap gap-1.5 pl-9 pt-1.5">
           {isPendingWrite ? (
             <>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-5 gap-1 px-2 text-3xs text-accent-color"
+                className="h-6 gap-1 px-2 text-xs text-accent-color"
                 onClick={() => setReviewId(item.id)}
                 disabled={isBusy}
               >
@@ -460,7 +464,7 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
               <Button
                 variant="tonal"
                 size="sm"
-                className="h-5 gap-1 px-2 text-3xs"
+                className="h-6 gap-1 px-2 text-xs"
                 onClick={() => void acceptWithFeedback(item.id)}
                 disabled={isBusy}
               >
@@ -470,7 +474,7 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-5 px-2 text-3xs text-text-tertiary hover:text-error"
+                className="h-6 px-2 text-xs text-text-tertiary hover:text-error"
                 onClick={() => handleRejectItem(item.id)}
                 disabled={isBusy}
               >
@@ -482,7 +486,7 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
               <Button
                 variant="tonal"
                 size="sm"
-                className="h-5 gap-1 px-2 text-3xs"
+                className="h-6 gap-1 px-2 text-xs"
                 onClick={() => void acceptWithFeedback(item.id)}
                 disabled={busyId !== null || bulkBusy}
               >
@@ -495,7 +499,7 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-5 px-2 text-3xs"
+                  className="h-6 px-2 text-xs"
                   onClick={() => openItem(item.id)}
                   disabled={busyId !== null || bulkBusy}
                 >
@@ -505,7 +509,7 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-5 px-2 text-3xs"
+                className="h-6 px-2 text-xs"
                 onClick={() => handleDismissItem(item.id)}
                 disabled={busyId !== null || bulkBusy}
               >
@@ -615,7 +619,11 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
             onClick={() => void toggleAutoPrepare()}
             aria-pressed={autoPrepare}
           >
-            {autoPrepare ? <RiFlashlightFill size={ICON.micro} /> : <RiFlashlightLine size={ICON.micro} />}
+            {autoPrepare ? (
+              <RiSparklingLine size={ICON.micro} className="text-accent-color" />
+            ) : (
+              <RiSparklingLine size={ICON.micro} />
+            )}
           </button>
         </Tooltip>
         <button
@@ -672,7 +680,7 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
               })}
             </span>
           </p>
-          <div className="mt-1 h-0.5 overflow-hidden rounded-full bg-accent-color/15">
+          <div className="mt-1 h-0.5 overflow-hidden rounded-full bg-surface-wash-30">
             <div
               className="h-full bg-accent-color transition-[width] duration-200"
               style={{ width: `${Math.max(6, (applying.current / Math.max(1, applying.total)) * 100)}%` }}
@@ -680,14 +688,14 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
           </div>
         </div>
       ) : bulkResult ? (
-        <p className="shrink-0 px-3 py-1 text-3xs text-accent-color bg-accent-bg-faint">{bulkResult}</p>
+        <p className="shrink-0 px-3 py-1.5 text-xs text-accent-color bg-accent-bg-faint">{bulkResult}</p>
       ) : message ? (
-        <p className="shrink-0 px-3 py-1 text-3xs text-text-tertiary">{message}</p>
+        <p className="shrink-0 px-3 py-1.5 text-xs text-text-tertiary">{message}</p>
       ) : null}
 
       {/* Body: suggestion list */}
       <div
-        className="v4-sidebar-scroll min-h-0 flex-1 overflow-auto p-2"
+        className="v4-sidebar-scroll min-h-0 flex-1 overflow-auto p-2.5"
         data-scroll-stable-panel=""
         data-suggest-scroll-body=""
       >
@@ -696,19 +704,19 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
             {loading ? (
               <>
                 <RiLoader4Line size={ICON.sm} className="animate-spin text-accent-color" />
-                <p className="text-3xs text-text-quaternary">{t("ai.suggestLoading")}</p>
+                <p className="text-xs text-text-quaternary">{t("ai.suggestLoading")}</p>
               </>
             ) : (
               <>
                 <RiSparklingLine size={ICON.sm} className="text-text-quaternary" />
-                <p className="text-3xs text-text-quaternary">{t("ai.suggestEmpty")}</p>
+                <p className="text-xs text-text-quaternary">{t("ai.suggestEmpty")}</p>
                 {!autoPrepare ? (
                   <button
                     type="button"
-                    className="mt-1 inline-flex items-center gap-1 rounded-sm bg-accent-bg-subtle px-2 py-1 text-3xs font-medium text-accent-color hover:bg-accent-bg-faint transition-colors"
+                    className="mt-1 inline-flex items-center gap-1 rounded-sm bg-accent-bg-subtle px-2 py-1 text-xs font-medium text-accent-color hover:bg-state-hover transition-colors"
                     onClick={() => void toggleAutoPrepare()}
                   >
-                    <RiFlashlightFill size={ICON.micro} />
+                    <RiSparklingLine size={ICON.micro} />
                     {t("ai.suggestToggleOn")}
                   </button>
                 ) : null}
@@ -719,7 +727,7 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
           <div className="flex flex-col gap-2">
             {/* High priority / pending writes group */}
             {completedGhosts.length > 0 ? (
-              <ul className="flex flex-col gap-1" data-suggest-complete-ghosts>
+              <ul className="flex flex-col gap-2" data-suggest-complete-ghosts>
                 {completedGhosts.map((g) => (
                   <li
                     key={g.id}
@@ -733,7 +741,7 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
               </ul>
             ) : null}
             {grouped.high.length > 0 ? (
-              <ul className="flex flex-col gap-1.5">
+              <ul className="flex flex-col gap-[var(--density-content-gap)]">
                 {grouped.high.map(renderItem)}
               </ul>
             ) : null}
@@ -746,7 +754,7 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
               </div>
             ) : null}
             {grouped.normal.length > 0 ? (
-              <ul className="flex flex-col gap-1.5">
+              <ul className="flex flex-col gap-[var(--density-content-gap)]">
                 {grouped.normal.map(renderItem)}
               </ul>
             ) : null}

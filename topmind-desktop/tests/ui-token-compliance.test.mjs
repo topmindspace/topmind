@@ -161,7 +161,7 @@ test("UI Token & Modernization Compliance", async (t) => {
     assert.doesNotMatch(countBadge, /text-5xs/);
     assert.match(countBadge, /bg-badge\b/);
     assert.match(countBadge, /bg-badge-alert\b/);
-    // Spec §0.0.5: radius-xs (2px) rounded rect — NOT a capsule. Capsules
+    // Spec §0.0.5: radius-xs (4px, DS 4.3) rounded rect — NOT a capsule. Capsules
     // compete with content for attention on every count signal.
     assert.match(countBadge, /rounded-\[var\(--radius-xs\)\]/);
     assert.doesNotMatch(countBadge, /rounded-full/);
@@ -465,6 +465,60 @@ test("UI Token & Modernization Compliance", async (t) => {
     assert.deepEqual(dead, [], `tokens defined but never referenced:\n${dead.join("\n")}`);
   });
 
+  await t.test("non-color scale tokens stay referenced (radius/shadow/z/blur/control-h)", () => {
+    // Same ghost-token problem outside the color axis. Dead --radius-*/--z-*
+    // entries are what authors grep for and re-wire after the design system
+    // moves. 2026-09-29 pruned 12 such tokens. (--text-* / --type-* feed
+    // Tailwind @theme utilities implicitly — not scanned here.)
+    const styleDir = path.join(desktopRoot, "src", "styles");
+    const css = fs
+      .readdirSync(styleDir)
+      .filter((f) => f.endsWith(".css"))
+      .map((f) => fs.readFileSync(path.join(styleDir, f), "utf-8"))
+      .join("\n");
+    const srcDir = path.join(desktopRoot, "src");
+    let source = "";
+    (function walk(dir) {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const p = path.join(dir, e.name);
+        if (e.isDirectory()) walk(p);
+        else if (/\.tsx?$/.test(e.name)) {
+          source += fs.readFileSync(p, "utf-8");
+        }
+      }
+    })(srcDir);
+    const haystack = `${css}\n${source}`;
+    const dead = [];
+    for (const m of css.matchAll(/(--(?:radius|shadow|elevation|z|blur|control-h)[a-z0-9-]*)\s*:/g)) {
+      const token = m[1];
+      if (dead.includes(token)) continue;
+      const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      // Count var() + bare utility (`rounded-[var(--radius-xs)]`, `z-[var(--z-modal)]`)
+      const body = token.replace(/^--/, "");
+      const varUsed = new RegExp(`var\\(\\s*${escaped}\\b`).test(haystack);
+      // Also accept Tailwind utility names (`backdrop-blur-md` consumes --blur-md).
+      const nameUsed = new RegExp(`(?:^|[\\s"'\`:\\[-])${body.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![a-z0-9-])`, "m").test(
+        haystack.replace(new RegExp(`${escaped}\\s*:`, "g"), " "),
+      );
+      if (!varUsed && !nameUsed) dead.push(token);
+    }
+    assert.deepEqual(
+      dead,
+      [],
+      `scale tokens defined but never referenced:\n${dead.join("\n")}`,
+    );
+    // Families that must never regress to the old dead set.
+    for (const banned of [
+      "--shadow-xl", "--elevation-0", "--elevation-1", "--control-h-md", "--control-h-lg",
+      "--z-shell-rail", "--z-header", "--z-notification", "--z-overlay", "--blur-lg",
+    ]) {
+      assert.ok(
+        !new RegExp(`${banned.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*:`).test(css),
+        `${banned} must stay deleted (zero-ref pruned 2026-09-29)`,
+      );
+    }
+  });
+
   await t.test("semantic color utilities carry no alpha modifier", () => {
     // `text-accent-color/70` looks harmless but silently re-opens the contrast gap
     // the token stops were tuned to close: sky-700 at 70% is 3.27:1, at 60% is
@@ -479,10 +533,19 @@ test("UI Token & Modernization Compliance", async (t) => {
     // re-opens the same gap the muted ladder was tuned to close. Mute by token
     // step (quaternary → 3xs size), never by alpha on a text stop.
     const TEXT_NEUTRAL = ["text-quaternary", "text-tertiary", "text-secondary", "text-primary"];
+    // Fills and borders share the rule: `bg-text-quaternary/40` and
+    // `border-accent-color/40` are the same ad-hoc dilution class as
+    // `text-accent-color/70`. Named stops only (`accent-bg-subtle`,
+    // `accent-border-subtle`, `surface-wash-*`). Decorative solid progress
+    // slides use the full stop (`bg-accent-color`), not an alpha.
+    const fillRe = new RegExp(
+      `(?:bg|border|ring|outline|fill|stroke)-(?:${NAMES.join("|")}|${TEXT_NEUTRAL.map((t) => t.replace(/^text-/, "")).join("|")})/\\d+`,
+      "g",
+    );
     const textRe = new RegExp(`text-(?:${NAMES.join("|")}|${TEXT_NEUTRAL.join("|")})/\\d+`, "g");
     // Wash tokens are already a low-alpha stop — `bg-accent-bg-subtle/55` is a
     // second dilution of a wash, same class of bug as `bg-status-error-bg/50`.
-    const washRe = /bg-accent-bg-(?:subtle|faint)\/\d+/g;
+    const washRe = /(?:bg|border|ring|text)-accent-bg-(?:subtle|faint)\/\d+|(?:bg|border)-accent-border-subtle\/\d+|(?:bg|border|text)-surface-wash-\d+\/\d+/g;
 
     const srcDir = path.join(desktopRoot, "src");
     const offenders = [];
@@ -496,6 +559,7 @@ test("UI Token & Modernization Compliance", async (t) => {
             .replace(/\/\*[\s\S]*?\*\//g, " ")
             .replace(/^\s*\/\/.*$/gm, " ");
           for (const m of raw.matchAll(textRe)) offenders.push(`${path.relative(srcDir, p)} → ${m[0]}`);
+          for (const m of raw.matchAll(fillRe)) offenders.push(`${path.relative(srcDir, p)} → ${m[0]}`);
           for (const m of raw.matchAll(washRe)) offenders.push(`${path.relative(srcDir, p)} → ${m[0]}`);
         }
       }

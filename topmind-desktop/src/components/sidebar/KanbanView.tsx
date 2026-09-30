@@ -188,7 +188,7 @@ export function KanbanView({ onNavigate }: KanbanViewProps) {
       <div className="v4-content-scroll flex h-full flex-col gap-2.5 overflow-auto p-2.5">
         <div className="flex items-center justify-between">
           <Tooltip content={t("sidebar.kanban.hintTooltip")}>
-            <div className="cursor-help px-1 text-3xs leading-relaxed text-text-quaternary">
+            <div className="cursor-help px-1 text-xs leading-relaxed text-text-quaternary">
               {t("sidebar.kanban.hint")}
             </div>
           </Tooltip>
@@ -267,14 +267,14 @@ function KanbanColumn({
       <div className="mb-1.5 flex items-center gap-1.5 px-1 text-3xs font-medium tracking-wide text-text-quaternary">
         <RiFileTextLine size={ICON.micro} aria-hidden />
         <span>{label}</span>
-        <span className="rounded-[var(--radius-xs)] bg-surface-muted px-1.5 tabular-nums text-text-quaternary">{notes.length}</span>
+        <span className="rounded-[var(--radius-xs)] bg-surface-wash-30 px-1.5 tabular-nums text-text-quaternary">{notes.length}</span>
       </div>
       <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
         {notes.length === 0 ? (
           <li
             className={cn(
               "rounded-[var(--radius-md)] border border-dashed border-border-subtle-dim bg-surface/40 px-2 py-3 text-center text-3xs text-text-quaternary transition-colors",
-              isOver && "border-accent-color/40 bg-accent-bg-subtle text-accent-color",
+              isOver && "border-accent-border-subtle bg-accent-bg-subtle text-accent-color",
             )}
           >
             {isOver ? t("shell:sidebar.kanban.dropOver") : t("shell:sidebar.kanban.dropEmpty")}
@@ -342,13 +342,13 @@ function KanbanCard({
         <div className="truncate font-normal text-text-primary">
           {note.title || note.name}
         </div>
-        <div className="mt-0.5 line-clamp-2 text-3xs leading-relaxed text-text-quaternary">
+        <div className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-text-quaternary">
           {[note.category, note.topic].filter(Boolean).join(" / ") || note.path}
           {note.priority ? ` · ${note.priority}` : ""}
           {note.due ? ` · due ${String(note.due).slice(0, 10)}` : ""}
         </div>
       </button>
-      {saving ? <RiLoader4Line size={ICON.micro} className="mt-0.5 shrink-0 animate-spin text-accent-color" /> : null}
+      {saving ? <RiLoader4Line size={ICON.micro} className="mt-0.5 shrink-0 animate-spin text-text-tertiary" /> : null}
     </li>
   );
 }

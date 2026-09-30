@@ -5,6 +5,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { exists } from "./lib/fs-utils.mjs";
+import { isHeaderSafeSecret } from "./lib/header-safe.mjs";
 import { logWarn } from "./lib/writeback.mjs";
 import {
   AI_SOURCE_PREFERENCES,
@@ -34,6 +35,49 @@ function settingsBackupPath(settingsFilePath) {
 
 /** Keep at most N parked corrupt primaries next to app-settings.json. */
 const SETTINGS_CORRUPT_PARK_KEEP = 3;
+
+/**
+ * Recover AI keys from the workspace `.topmind/ai-keys-backup.json` when the
+ * secureStorage layer failed to decrypt (re-sign / keychain loss). The backup
+ * holds plaintext keys written by exportKeysForObsidian / manual backup.
+ * Only fills keys that are currently empty — never overwrites a live key.
+ */
+async function restoreAiKeysFromBackup(settings, defaultWorkspaceRoot) {
+  try {
+    const ws = defaultWorkspaceRoot || settings?.workspaceRoot;
+    if (!ws) return;
+    const fp = path.join(String(ws), ".topmind", "ai-keys-backup.json");
+    if (!(await exists(fp))) return;
+    const raw = await fs.readFile(fp, "utf8");
+    const bag = JSON.parse(raw);
+    const src = bag?.ai?.manual;
+    if (!src || typeof src !== "object") return;
+    if (!settings.ai) settings.ai = {};
+    if (!settings.ai.manual) settings.ai.manual = {};
+    let filled = 0;
+    for (const [k, v] of Object.entries(src)) {
+      if (typeof v !== "string" || !v.trim()) continue;
+      if (settings.ai.manual[k]) continue; // live key wins
+      if (!isHeaderSafeSecret(v)) continue;
+      settings.ai.manual[k] = v.trim();
+      filled += 1;
+    }
+    if (!settings.ai.sourcePreference && typeof bag.ai?.sourcePreference === "string") {
+      settings.ai.sourcePreference = bag.ai.sourcePreference;
+    }
+    if (!settings.ai.defaultModel && typeof bag.ai?.defaultModel === "string") {
+      settings.ai.defaultModel = bag.ai.defaultModel;
+    }
+    if (filled > 0) {
+      logWarn("settings", "restored AI keys from workspace backup (safeStorage decrypt failed)", {
+        path: fp,
+        filled,
+      });
+    }
+  } catch {
+    /* backup missing/unreadable — user must re-paste */
+  }
+}
 
 async function pruneCorruptSettingsParks(settingsFilePath) {
   try {
@@ -125,13 +169,20 @@ export async function loadAppSettings(settingsFilePath, defaultWorkspaceRoot, op
   };
 
   const primary = await tryPath(settingsFilePath, "app-settings.json");
-  if (primary) return primary;
+  if (primary) {
+    // After re-sign / keychain loss, safeStorage blobs decrypt to garbage and
+    // are rejected by isHeaderSafeSecret — the key looks "unset". Recover from
+    // the workspace `.topmind/ai-keys-backup.json` so the user does not re-paste.
+    await restoreAiKeysFromBackup(primary, defaultWorkspaceRoot);
+    return primary;
+  }
 
   const backup = await tryPath(bakPath, "app-settings.json.bak");
   if (backup) {
     logWarn("settings", "recovered settings from .bak after primary missing/empty/corrupt", {
       path: settingsFilePath,
     });
+    await restoreAiKeysFromBackup(backup, defaultWorkspaceRoot);
     try {
       await saveAppSettings(settingsFilePath, backup, options);
     } catch (err) {

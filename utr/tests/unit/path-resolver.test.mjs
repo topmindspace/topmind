@@ -74,8 +74,8 @@ test("resolveWorkspacePath routes v3.4 paths only to user data", () => {
   // Category + topic path → user data
   eq(resolveWorkspacePath(pathContext, "20 研究/2026-示例专题/topic.md"), "/tmp/topmind-workspace/20 研究/2026-示例专题/topic.md");
   eq(resolveWorkspacePath(pathContext, "00 Inbox/capture.md"), "/tmp/topmind-workspace/00 Inbox/capture.md");
-  // path traversal blocked
-  assert.throws(() => resolveWorkspacePath(pathContext, "../../etc/passwd"), /Traversal/);
+  // path traversal blocked (i18n message may be zh or en)
+  assert.throws(() => resolveWorkspacePath(pathContext, "../../etc/passwd"), /Traversal|越界/u);
   eq(resolveWorkspacePath(pathContext, "99 Archive/backups/20 研究/2026-示例专题/topic.md"), "/tmp/topmind-workspace/99 Archive/backups/20 研究/2026-示例专题/topic.md");
   // v3.4 88 Outputs flat
   eq(resolveWorkspacePath(pathContext, "88 Outputs/2026-06-14-report.md"), "/tmp/topmind-workspace/88 Outputs/2026-06-14-report.md");

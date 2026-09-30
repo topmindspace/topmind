@@ -254,10 +254,19 @@ async function runClip(tab, opts = {}) {
       ? opts.dest
       : { mode: "inbox" };
 
+  // Bridge body cap is 2MB (CLIP_BRIDGE_MAX_BODY). content + content_html each
+  // capped at 1.8M in extract.js — together they overshoot and get 413.
+  // Desktop prefers content_html; keep only a short plain preview alongside it.
+  const html = isPlainMode ? undefined : extracted.content_html;
+  const plain =
+    html && extracted.content
+      ? String(extracted.content).slice(0, 120_000)
+      : extracted.content;
+
   const payload = {
     title: extracted.title,
-    content: extracted.content,
-    content_html: isPlainMode ? undefined : extracted.content_html,
+    content: plain,
+    content_html: html,
     source: extracted.url,
     source_type: "external-capture",
     selection: extracted.selection,

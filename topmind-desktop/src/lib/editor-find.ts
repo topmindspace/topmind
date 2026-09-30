@@ -90,13 +90,19 @@ export function createFindExtension() {
   });
 }
 
-/** Set the search term; decorations + count update immediately. */
-export function findSetSearch(editor: Editor | null, search: string): FindState {
+/** Set the search term; decorations + count update immediately.
+ *  `scroll` is false while typing the query (smooth-scroll per character is jarring);
+ *  findStep / Enter re-scroll to the active match. */
+export function findSetSearch(
+  editor: Editor | null,
+  search: string,
+  opts?: { scroll?: boolean },
+): FindState {
   if (!editor || editor.isDestroyed) return { search: "", activeIdx: 0, matches: [] };
   const matches = computeMatches(editor.state.doc, search);
   const state: FindState = { search, activeIdx: 0, matches };
   editor.view.dispatch(editor.state.tr.setMeta(findPluginKey, state));
-  if (matches.length > 0) scrollToMatch(editor, matches[0]);
+  if (matches.length > 0 && opts?.scroll !== false) scrollToMatch(editor, matches[0]);
   return state;
 }
 

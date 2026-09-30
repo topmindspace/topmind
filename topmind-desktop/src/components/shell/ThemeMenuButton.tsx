@@ -42,7 +42,8 @@ const MODE_ORDER: Theme[] = ["auto", "light", "dark"];
 
 /** Mini surface swatches — pure CSS, no token pollution (preview only). */
 const TONE_SWATCH: Record<ThemeTone, { light: string; dark: string; ink: string }> = {
-  warm: { light: "#f3f1eb", dark: "#1c1a17", ink: "#242220" },
+  // Preview swatches only — live stops live in tokens.css (keep in sync with DS 4.3).
+  warm: { light: "#f6f5f2", dark: "#1c1a17", ink: "#242220" },
   cool: { light: "#f2f5f8", dark: "#1a2028", ink: "#1c2430" },
   neutral: { light: "#f4f4f4", dark: "#1a1a1a", ink: "#1f1f1f" },
   slate: { light: "#eaeef3", dark: "#161c24", ink: "#15202b" },
@@ -89,7 +90,7 @@ function Chip({
         "v4-menu-item flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-md)] px-2 py-1.5 text-3xs font-medium outline-none",
         "transition-colors v4-focus-ring",
         active
-          ? "bg-accent-container text-on-accent-container"
+          ? "bg-accent-bg-subtle text-accent-color"
           : "text-text-secondary hover:bg-state-hover hover:text-text-primary",
       )}
     >
@@ -130,7 +131,7 @@ export function ThemeMenuButton() {
             className={cn(
               "v4-no-drag flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] transition-colors v4-focus-ring",
               open
-                ? "bg-accent-container text-on-accent-container"
+                ? "bg-accent-bg-subtle text-accent-color"
                 : "text-text-tertiary hover:bg-state-hover hover:text-text-primary",
             )}
             aria-label={t("activityBar.theme")}

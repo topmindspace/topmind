@@ -326,7 +326,7 @@ export function LedgerApp() {
               className={cn(
                 "inline-flex h-7 items-center gap-1 rounded-[var(--radius-xs)] px-2.5 text-3xs font-medium transition-colors v4-focus-ring",
                 mode === m.id
-                  ? "bg-accent-container text-on-accent-container"
+                  ? "bg-accent-bg-subtle text-accent-color"
                   : "text-text-tertiary hover:bg-state-hover hover:text-text-secondary",
               )}
             >
@@ -624,7 +624,7 @@ function BookChips({
           className={cn(
             "rounded-[var(--radius-xs)] border px-2.5 py-1 text-3xs transition-colors v4-focus-ring",
             b.roleId === currentId
-              ? "border-transparent bg-accent-container font-medium text-on-accent-container"
+              ? "border-transparent bg-accent-bg-subtle font-medium text-accent-color"
               : "border-border-subtle-dim text-text-secondary hover:bg-state-hover",
           )}
         >

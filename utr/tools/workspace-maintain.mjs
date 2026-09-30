@@ -27,6 +27,7 @@ import {
   resolveWorkspaceModel,
   findCategoryByRole,
   findStreamCategory,
+  isPathInsideWorkspace,
 } from "../../lib/kernel-api.mjs";
 import {
   categoryRoot,
@@ -36,12 +37,13 @@ import {
   buildCliContext,
   validateRequiredRoots,
 } from "../core/workspace-context.mjs";
-import { parseArgs, resolveMode } from "../core/cli-args.mjs";
+import { parseArgs, resolveMode, resolveActor, isUserActor } from "../core/cli-args.mjs";
 import { ensureDir, isDirectory } from "../core/topic-files.mjs";
 import { auditWorkspace } from "../core/workspace-audit.mjs";
 import { emitResult } from "../core/result-envelope.mjs";
 import { t } from "../core/i18n-strings.mjs";
 import {
+  ARCHIVE_ROOT_NAMES,
   classifyRestoreTarget,
   stripBackupStampName,
   resolveArchivedTopicRestoreLabels,
@@ -113,8 +115,8 @@ async function archiveTopic({ category, topic, reason, mode }, ctxObj) {
     targetPath: topicDir,
     workspaceRoot: ctxObj.userWorkspaceRoot,
     contract,
-    actor: "user",
-    confirmed: true,
+    actor: resolveActor(),
+    confirmed: isUserActor(),
     reason,
     command: "archive-topic",
     role: "deep-work",
@@ -181,7 +183,7 @@ function nonOverwriteDest(destAbs, stamp) {
 
 function parseArchiveRelRoot(relNorm) {
   const norm = String(relNorm || "").replace(/\\/gu, "/");
-  for (const root of ["99-归档", "99 归档", "99-Archive", "99 Archive", "99-Archive", "archive"]) {
+  for (const root of ARCHIVE_ROOT_NAMES) {
     if (norm === root) return root;
     if (norm.startsWith(`${root}/`)) return root;
   }
@@ -192,6 +194,12 @@ async function restoreSafetyReceipt({ receiptPath, reason, mode }, ctxObj) {
   if (!receiptPath) throw new Error(t("error.receiptPathRequired"));
   const relNorm = String(receiptPath).replace(/\\/gu, "/");
   const absSource = path.join(ctxObj.userWorkspaceRoot, relNorm);
+  // Workspace fence both ways: a `../` receiptPath must not read outside the
+  // workspace, and destRel must not write outside it (classifyRestoreTarget
+  // can fall through to kind:"raw" with the caller-controlled norm).
+  if (!isPathInsideWorkspace(ctxObj.userWorkspaceRoot, absSource)) {
+    throw new Error(t("error.safetyPathFailed", { path: receiptPath }));
+  }
   if (!existsSync(absSource)) throw new Error(t("error.receiptPathNotFound", { path: receiptPath }));
 
   const stat = await fs.stat(absSource);
@@ -248,6 +256,9 @@ async function restoreSafetyReceipt({ receiptPath, reason, mode }, ctxObj) {
     }
   } else {
     const destAbsIdeal = path.join(ctxObj.userWorkspaceRoot, classified.destRel);
+    if (!isPathInsideWorkspace(ctxObj.userWorkspaceRoot, destAbsIdeal)) {
+      throw new Error(t("error.safetyPathFailed", { path: classified.destRel }));
+    }
     const destAbs = mode === "auto" ? nonOverwriteDest(destAbsIdeal, stamp) : destAbsIdeal;
     restorePlan.push({
       from: relNorm,

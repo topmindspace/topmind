@@ -4,6 +4,7 @@
  */
 import path from "node:path";
 import { normalizeExtraSkillsRoots } from "./skills-extra.mjs";
+import { headerSafe, isHeaderSafeSecret } from "./header-safe.mjs";
 import {
   MAX_RECENT_WORKSPACES,
   dedupeRecentWorkspaceEntries,
@@ -80,7 +81,15 @@ function mergeManualSecrets(baseManual, patchManual, clearSink = null) {
       next[key] = "";
       if (clearSink) markClearSecret(clearSink, key);
     } else {
-      next[key] = resolveSecret(incoming, base[key]);
+      // API keys travel in HTTP headers — a pasted blob with CJK/controls
+      // crashes the AI SDK; an oversized blob trips the CDN's header limit.
+      // Reject both at the settings boundary instead of storing them.
+      const resolved = resolveSecret(incoming, base[key]);
+      if (typeof resolved === "string") {
+        next[key] = isHeaderSafeSecret(resolved) ? headerSafe(resolved) : "";
+      } else {
+        next[key] = resolved;
+      }
     }
   }
   if (patchManual.customBaseUrl !== undefined) {
@@ -859,13 +868,16 @@ function createSecureStorageEnvelope() {
 
 /**
  * Try safeStorage first, then local AES (brew reinstall / ad-hoc re-sign).
+ * A decrypt that "succeeds" but yields non-header-safe bytes (U+FFFD from
+ * invalid UTF-8, binary) is a FAILED decrypt — safeStorage after a re-sign
+ * can produce this. Never return garbage as if it were the key.
  * @returns {string} plaintext or ""
  */
 function decryptSecretEither(secretAdapter, ssBlob, localBlob) {
   if (typeof ssBlob === "string" && ssBlob) {
     try {
       const v = secretAdapter?.decryptString?.(ssBlob);
-      if (typeof v === "string" && v) return v;
+      if (typeof v === "string" && v && isHeaderSafeSecret(v)) return v;
     } catch {
       /* fall through to local */
     }
@@ -873,7 +885,7 @@ function decryptSecretEither(secretAdapter, ssBlob, localBlob) {
   if (localSecretAvailable(secretAdapter) && typeof localBlob === "string" && localBlob) {
     try {
       const v = secretAdapter.decryptLocal(localBlob);
-      if (typeof v === "string" && v) return v;
+      if (typeof v === "string" && v && isHeaderSafeSecret(v)) return v;
     } catch {
       /* unreadable */
     }
@@ -902,9 +914,16 @@ function hydrateManualSecrets(settings, persisted, secretAdapter) {
   };
   /** Track keys that still have ciphertext but no longer decrypt (upgrade /
    * re-sign / lost .secret-key). Surface as "needs re-entry", never as "unset". */
-  const health = { lost: [], layers: {} };
+  const health = { lost: [], layers: {}, invalid: [] };
   const noteDecrypt = (id, hadBlob, value, usedLayer) => {
     if (value) {
+      // A "key" that cannot travel in an HTTP header is a corrupted paste
+      // (binary blob / mojibake). Flag it so Settings can say "re-paste".
+      if (!isHeaderSafeSecret(value)) {
+        health.invalid.push(id);
+        health.layers[id] = "invalid";
+        return;
+      }
       health.layers[id] = usedLayer;
     } else if (hadBlob) {
       health.lost.push(id);
@@ -939,7 +958,10 @@ function hydrateManualSecrets(settings, persisted, secretAdapter) {
           }
         } catch { /* unreadable */ }
       }
-      next.ai.manual[key] = value;
+      // Store only header-legal secrets. Garbage decrypts (U+FFFD / binary /
+      // oversized) stay empty so they never reach HTTP headers or settings UI.
+      next.ai.manual[key] =
+        typeof value === "string" && isHeaderSafeSecret(value) ? headerSafe(value) : "";
       noteDecrypt(key, hadBlob, value, usedLayer);
       reLocal(next.ai.manual[key], secure.manualLocal, key);
     }

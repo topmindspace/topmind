@@ -178,7 +178,7 @@ export function AppMenuBar() {
                 className={cn(
                   "rounded-[var(--radius-sm)] px-2 py-1 text-xs leading-none text-text-secondary transition-colors",
                   "hover:bg-state-hover hover:text-text-primary v4-focus-ring",
-                  open && "bg-surface-muted text-text-primary",
+                  open && "bg-surface-wash-30 text-text-primary",
                 )}
                 onClick={(event) => popMenuSection(item.id, popupAnchor(event.currentTarget))}
                 // Hover-to-switch is what makes this read as a menu bar rather than a

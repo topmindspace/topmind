@@ -251,3 +251,86 @@ test("AI UI surfaces tool timeline, skill slash, and mid-turn steer", () => {
   assert.match(store, /sendOrSteer/);
   assert.match(store, /lastSteerPreview|pendingFollowUpCount/);
 });
+
+test("empty turn is terminal — no silent continue budget burn", async () => {
+  const { assessGoalCompletion, decideAutoContinue } = await import(
+    "../electron/lib/agent-goal-protocol.mjs"
+  );
+  const state = { status: "working", plan: [], criteria: [], doneCriteria: [], pathReceipts: [] };
+  const assessment = assessGoalCompletion({
+    state,
+    lastBody: "",
+    toolCallCount: 0,
+  });
+  assert.equal(assessment.reason, "empty-turn");
+  assert.equal(assessment.finished, false);
+  const decision = decideAutoContinue({
+    assessment,
+    autoContinues: 0,
+    maxAutoContinues: 4,
+    hasTools: true,
+  });
+  assert.equal(decision.continue, false);
+  assert.equal(decision.reason, "empty-turn");
+});
+
+test("result footer explains incomplete without open criteria", () => {
+  const chat = readFileSync(path.join(root, "src/components/ai/ChatMessage.tsx"), "utf8");
+  assert.match(chat, /resultIncompleteNoReason/);
+  assert.match(chat, /noTextReplyIncomplete/);
+  const zh = readFileSync(path.join(root, "src/locales/zh-CN/editor.json"), "utf8");
+  const en = readFileSync(path.join(root, "src/locales/en-US/editor.json"), "utf8");
+  assert.match(zh, /resultIncompleteNoReason/);
+  assert.match(en, /resultIncompleteNoReason/);
+  assert.match(zh, /noTextReplyIncomplete/);
+  assert.match(en, /noTextReplyIncomplete/);
+});
+
+test("isAiWriteTool covers every shipped write tool", async () => {
+  const { isAiWriteTool } = await import("../src/components/ai/ChatMessage.tsx").catch(() => ({}));
+  // TSX is not loadable in node:test — assert the regex source instead.
+  const chat = readFileSync(path.join(root, "src/components/ai/ChatMessage.tsx"), "utf8");
+  const m = chat.match(/return \/\^\(\?:([^)]+)\)\/u\.test\(/);
+  assert.ok(m, "isAiWriteTool regex not found");
+  const prefixes = m[1].split("|");
+  for (const name of AI_TOOL_NAMES_WRITE) {
+    const hit = prefixes.some((p) => (p.endsWith("_") ? name.startsWith(p) : name === p || name.startsWith(p)));
+    assert.ok(hit, `isAiWriteTool misses write tool ${name} (pattern ${m[1]})`);
+  }
+});
+
+test("headerSafe strips non-Latin-1 and control chars so Headers never crash", async () => {
+  const { headerSafe, keyHadNonLatin1, isHeaderSafeSecret, bearerHeader } = await import(
+    "../electron/lib/header-safe.mjs"
+  );
+  assert.equal(headerSafe("sk-abc123"), "sk-abc123");
+  assert.equal(keyHadNonLatin1("sk-abc123"), false);
+  assert.equal(isHeaderSafeSecret("sk-abc123"), true);
+  // CJK / emoji in a pasted key must not reach new Headers()
+  const dirty = "sk-测试ABC";
+  const clean = headerSafe(dirty);
+  assert.equal(keyHadNonLatin1(dirty), true);
+  assert.ok(/^[\x00-\x7F]*$/.test(clean), `headerSafe must return ASCII, got ${JSON.stringify(clean)}`);
+  assert.equal(clean, "sk-ABC");
+  // Control chars (CR/LF/NUL) also illegal in header values — strip them
+  const binaryish = "sk-abc\r\n\x00def";
+  assert.equal(headerSafe(binaryish), "sk-abcdef");
+  assert.equal(isHeaderSafeSecret(binaryish), false);
+  // Binary blob (the real-world "pasted a PNG / encrypted blob" case)
+  const blob = "\u0000\u0001\u0089PNG\r\n\u001a\n";
+  assert.equal(headerSafe(blob), "PNG");
+  // ByteString range (Latin-1 supplement) is allowed
+  assert.equal(headerSafe("café"), "café");
+  // bearerHeader also collapses whitespace
+  assert.deepEqual(bearerHeader("sk abc"), { Authorization: "Bearer skabc" });
+});
+
+test("decrypt garbage is rejected, not used as an API key", async () => {
+  const { isHeaderSafeSecret, headerSafe } = await import("../electron/lib/header-safe.mjs");
+  // safeStorage after re-sign can hand back invalid-UTF-8 → U+FFFD chars
+  const garbage = "sk-\uFFFD\uFFFD\uFFFDabc";
+  assert.equal(isHeaderSafeSecret(garbage), false);
+  assert.ok(headerSafe(garbage).length < garbage.length, "headerSafe must strip U+FFFD");
+  // A real MiniMax JWT-style key passes
+  assert.equal(isHeaderSafeSecret("sk-cp-abcdefghij0123456789"), true);
+});

@@ -117,20 +117,25 @@ export function TodoListBody({ showPaneChrome = true }: { showPaneChrome?: boole
   }).length;
 
   const handleAdd = useCallback(async () => {
+    if (adding) return; // Enter can fire twice before the first add settles
     const text = newItemText.trim();
     if (!text) return;
     setAdding(true);
+    // Optimistic clear — restore on failure so the user can retry.
+    setNewItemText("");
     const ok = await add(text);
     if (ok) {
-      setNewItemText("");
       inputRef.current?.focus();
+    } else {
+      setNewItemText(text);
     }
     setAdding(false);
-  }, [newItemText, add]);
+  }, [newItemText, add, adding]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault();
+      e.stopPropagation();
       void handleAdd();
     } else if (e.key === "Escape") {
       setNewItemText("");
@@ -253,7 +258,7 @@ export function TodoListBody({ showPaneChrome = true }: { showPaneChrome?: boole
 
         {/* Health hint */}
         {(staleCount > 0 || overdueCount > 0) && showHealthHint ? (
-          <div className="mb-1.5 rounded-md border border-border-subtle-dim bg-status-warning-bg px-2 py-1 text-3xs text-warning">
+          <div className="mb-1.5 rounded-md border border-border-subtle-dim bg-status-warning-bg px-2 py-1 text-xs text-warning">
             <div className="flex items-center gap-1">
               <RiAlertLine size={ICON.micro} className="shrink-0" />
               <span className="flex-1">
@@ -327,7 +332,7 @@ export function TodoListBody({ showPaneChrome = true }: { showPaneChrome?: boole
           </div>
         ) : activeItems.length === 0 && completedItems.length === 0 ? (
           <div className="flex flex-col items-center gap-1.5 py-6 text-center">
-            <span className="text-3xs text-text-tertiary">{t("todo.empty")}</span>
+            <span className="text-xs text-text-tertiary">{t("todo.empty")}</span>
             <span className="px-3 text-xs leading-relaxed text-text-quaternary">
               {t("todo.emptyHint")}
             </span>
@@ -438,7 +443,7 @@ function formatDueDate(dueDate: string, t: (key: string, opts?: Record<string, u
     overdue,
     cls: overdue
       ? "bg-status-error-bg text-error"
-      : "bg-surface-muted text-text-quaternary",
+      : "bg-surface-wash-30 text-text-quaternary",
   };
 }
 
@@ -522,7 +527,7 @@ function TodoItemRow({
           "mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[3px] border transition-all duration-150 active:scale-90",
           item.done
             ? "border-accent-color bg-accent-color text-text-on-accent shadow-xs"
-            : "border-border-subtle hover:border-accent-color/50 hover:bg-accent-bg-faint",
+            : "border-border-subtle hover:border-accent-border-subtle hover:bg-accent-bg-faint",
         )}
         aria-label={item.done ? t("todo.uncheck") : t("todo.check")}
       >

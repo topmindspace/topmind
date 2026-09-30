@@ -164,9 +164,6 @@
   "err_failed": {
     "message": "Failed: $1"
   },
-  "clip_via": {
-    "message": "$1"
-  },
   "clip_success_path": {
     "message": "✓ $1 · $2 $3"
   },
@@ -463,5 +460,8 @@
   },
   "hl_clear_done": {
     "message": "Cleared $1 highlights"
+  },
+  "mode_label_highlights": {
+    "message": "Highlights"
   }
 }
