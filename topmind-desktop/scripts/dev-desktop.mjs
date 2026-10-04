@@ -13,6 +13,7 @@ import {
   planDevSessionStart,
   planSignalTeardown,
   registerDesktopOwned,
+  selectWorkspaceTreePids,
 } from "../electron/lib/runtime-bounds.mjs";
 
 const cwd = process.cwd();
@@ -22,16 +23,17 @@ const electronScript = path.resolve(cwd, "scripts", "dev-electron.mjs");
 // Pre-flight: replace a dead same-workspace Electron/Node tree.
 // The pid list comes from planDevSessionStart — never pkill, and never
 // taskkill every electron.exe on the machine.
-function killWorkspacePid(pid) {
+function killWorkspacePid(pid, signal = "SIGTERM") {
   if (!Number.isInteger(pid) || pid <= 0 || pid === process.pid) return;
+  const sig = signal === "SIGKILL" ? "SIGKILL" : "SIGTERM";
   if (process.platform === "win32") {
     spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], { stdio: "ignore", windowsHide: true });
     return;
   }
   try {
-    process.kill(-pid, "SIGTERM");
+    process.kill(-pid, sig);
   } catch {
-    try { process.kill(pid, "SIGTERM"); } catch { /* already gone */ }
+    try { process.kill(pid, sig); } catch { /* already gone */ }
   }
 }
 
@@ -114,9 +116,24 @@ function stopChildren(signal = "SIGTERM") {
   }
   applyDevTeardown(getDesktopOwnedRuntime(), { signal, workspaceKey });
   const timer = setTimeout(() => {
+    // dev-renderer spawns vite detached. child.kill(SIGKILL) skips that
+    // process's forwardSignal, so the vite/esbuild group stays up. Read the
+    // table first and signal the same pids the stale-session sweep selects.
+    let processes = [];
+    try {
+      processes = readProcessCommandTable();
+    } catch {
+      processes = [];
+    }
+    const tree = selectWorkspaceTreePids(processes, {
+      cwd: workspaceKey,
+      selfPid: process.pid,
+      parentPid: process.ppid,
+    });
+    for (const pid of tree) killWorkspacePid(pid, plan.escalate);
     for (const child of children) {
-      if (child.exitCode == null && child.signalCode == null) {
-        try { child.kill(plan.escalate); } catch { /* already gone */ }
+      if (child.exitCode == null && child.signalCode == null && child.pid) {
+        killWorkspacePid(child.pid, plan.escalate);
       }
     }
   }, plan.escalateAfterMs);

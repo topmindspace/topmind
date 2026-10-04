@@ -236,8 +236,12 @@ test("a second same-workspace dev session replaces the previous tree and leaves 
     { pid: 101, command: `node ${cwd}/scripts/dev-electron.mjs`, cwd },
     { pid: 102, command: `/Electron.app/Contents/MacOS/Electron ${cwd}`, cwd },
     { pid: 103, command: `node ${cwd}/scripts/dev-renderer.mjs`, cwd },
+    { pid: 12, command: `node ${cwd}/node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5174 --strictPort`, cwd: "" },
+    { pid: 13, command: `${cwd}/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.25.0`, cwd: "" },
     { pid: 201, command: `/Electron.app/Contents/MacOS/Electron ${other}`, cwd: other },
     { pid: 202, command: "Electron Helper (GPU)", cwd: other },
+    { pid: 19, command: `node ${other}/node_modules/vite/bin/vite.js`, cwd: "" },
+    { pid: 20, command: `${other}/node_modules/esbuild/bin/esbuild --service=0.25.0`, cwd: "" },
     { pid: 7, command: `node ${cwd}/scripts/dev-desktop.mjs`, cwd },
   ];
 
@@ -259,15 +263,34 @@ test("a second same-workspace dev session replaces the previous tree and leaves 
   });
   assert.equal(replace.action, "replace");
   assert.equal(replace.start, true);
-  assert.deepEqual([...replace.killPids].sort((a, b) => a - b), [7, 101, 102, 103]);
+  assert.deepEqual([...replace.killPids].sort((a, b) => a - b), [7, 12, 13, 101, 102, 103]);
   assert.ok(!replace.killPids.includes(201));
   assert.ok(!replace.killPids.includes(202));
+  assert.ok(!replace.killPids.includes(19));
+  assert.ok(!replace.killPids.includes(20));
+
+  // ps stores command lines only. cwd is empty. Vite and esbuild still belong
+  // to this workspace when their binary path is under its node_modules.
+  const spot = selectWorkspaceTreePids([
+    { pid: 11, command: `node ${cwd}/scripts/dev-electron.mjs`, cwd: "" },
+    { pid: 12, command: `node ${cwd}/node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5174 --strictPort`, cwd: "" },
+    { pid: 13, command: `${cwd}/node_modules/vite/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.25.5`, cwd: "" },
+    { pid: 14, command: `/Electron.app/Contents/MacOS/Electron ${cwd}`, cwd: "" },
+    { pid: 15, command: `node ${cwd}/scripts/dev-renderer.mjs`, cwd: "" },
+    { pid: 16, command: `node /other/app/node_modules/vite/bin/vite.js`, cwd: "" },
+    { pid: 17, command: `/other/app/node_modules/@esbuild/darwin-arm64/bin/esbuild --service=0.25.5`, cwd: "" },
+    { pid: 18, command: "Electron Helper (GPU)", cwd: "" },
+  ], { cwd, selfPid: 999 });
+  assert.deepEqual([...spot].sort((a, b) => a - b), [11, 12, 13, 14, 15]);
 
   const windows = selectWorkspaceTreePids([
     { pid: 10, command: "C:\\Program Files\\electron\\electron.exe C:\\ws\\topmind-desktop", cwd: "C:\\ws\\topmind-desktop" },
     { pid: 11, command: "C:\\Program Files\\electron\\electron.exe C:\\other\\notes", cwd: "C:\\other\\notes" },
+    { pid: 12, command: "node C:\\ws\\topmind-desktop\\node_modules\\vite\\bin\\vite.js", cwd: "" },
+    { pid: 13, command: "C:\\ws\\topmind-desktop\\node_modules\\@esbuild\\win32-x64\\esbuild.exe --service=0.25.0", cwd: "" },
+    { pid: 14, command: "node C:\\other\\notes\\node_modules\\vite\\bin\\vite.js", cwd: "" },
   ], { cwd: "C:\\ws\\topmind-desktop" });
-  assert.deepEqual(windows, [10]);
+  assert.deepEqual([...windows].sort((a, b) => a - b), [10, 12, 13]);
 
   const runtime = createOwnedRuntime();
   for (const pid of replace.killPids) {
@@ -283,11 +306,23 @@ test("a second same-workspace dev session replaces the previous tree and leaves 
   assert.equal(left.length, 1);
   assert.equal(left[0].pid, 201);
 
-  const parsed = parsePsCommandTable("  101 node /ws/topmind-desktop/scripts/dev-electron.mjs\n  201 /Electron /other/app\n");
-  assert.equal(parsed[0].pid, 101);
-  assert.match(parsed[0].command, /dev-electron/);
+  const parsed = parsePsCommandTable(
+    [
+      "  11 node /ws/topmind-desktop/scripts/dev-electron.mjs",
+      "  12 node /ws/topmind-desktop/node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5174 --strictPort",
+      "  13 /ws/topmind-desktop/node_modules/esbuild/bin/esbuild --service=0.25.0",
+      "  14 /Electron.app/Contents/MacOS/Electron /ws/topmind-desktop",
+      "  15 node /ws/topmind-desktop/scripts/dev-renderer.mjs",
+      "  16 node /other/app/node_modules/vite/bin/vite.js",
+      "  201 /Electron /other/app",
+    ].join("\n"),
+  );
+  assert.equal(parsed[0].pid, 11);
+  assert.equal(parsed[1].cwd, "");
+  assert.match(parsed[1].command, /node_modules\/vite\/bin\/vite\.js/);
+  assert.match(parsed[2].command, /node_modules\/esbuild\/bin\/esbuild/);
   const fromPs = selectWorkspaceTreePids(parsed, { cwd });
-  assert.deepEqual(fromPs, [101]);
+  assert.deepEqual([...fromPs].sort((a, b) => a - b), [11, 12, 13, 14, 15]);
 });
 
 test("hot-path subscribe and unsubscribe return listener and timer counts to baseline", () => {

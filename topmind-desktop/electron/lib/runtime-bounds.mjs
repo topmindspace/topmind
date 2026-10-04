@@ -473,6 +473,29 @@ export function normalizeWorkspaceKey(value) {
 const OWNED_COMMAND = /electron|dev-electron|dev-renderer|dev-desktop/iu;
 
 /**
+ * Vite and esbuild show up in `ps` as
+ * `node <workspace>/node_modules/vite/bin/vite.js` and
+ * `<workspace>/node_modules/.../esbuild` with an empty cwd (the process table
+ * reader does not record cwd). Match those binaries only when the path is
+ * under this workspace's node_modules.
+ * @param {string} cmdNorm
+ * @param {string} needle
+ */
+function isWorkspaceBundlerCommand(cmdNorm, needle) {
+  if (!needle) return false;
+  const marker = `${needle}/node_modules/`;
+  let from = 0;
+  while (from < cmdNorm.length) {
+    const idx = cmdNorm.indexOf(marker, from);
+    if (idx < 0) return false;
+    const rest = cmdNorm.slice(idx + marker.length);
+    if (/^(?:@esbuild\/|esbuild\/|vite\/)/u.test(rest)) return true;
+    from = idx + marker.length;
+  }
+  return false;
+}
+
+/**
  * Pids that belong to this workspace's Node/Electron tree.
  * Unrelated Electron processes (different cwd / command line) are excluded.
  * @param {Array<{ pid?: number, command?: string, cwd?: string, workspaceKey?: string, owned?: boolean }>} processes
@@ -494,7 +517,10 @@ export function selectWorkspaceTreePids(processes, { cwd, selfPid, parentPid } =
       || (pcwd && pcwd.startsWith(`${needle}/`))
       || cmdNorm.includes(needle);
     if (!inWorkspace) continue;
-    if (proc?.owned !== true && !OWNED_COMMAND.test(cmd)) continue;
+    const ownedCmd = proc?.owned === true
+      || OWNED_COMMAND.test(cmd)
+      || isWorkspaceBundlerCommand(cmdNorm, needle);
+    if (!ownedCmd) continue;
     out.push(pid);
   }
   return [...new Set(out)];
