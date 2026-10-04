@@ -78,7 +78,7 @@ test("GOAL_SUMMARY_FOCUS keeps receipts and open criteria", () => {
   assert.match(GOAL_SUMMARY_FOCUS, /criteria/i);
 });
 
-test("compactPiMessagesLlm returns null when under window or no model", async () => {
+test("compactPiMessagesLlm returns null — Pi 1.0 removed native compact", async () => {
   const { compactPiMessagesLlm } = await import("../topmind-desktop/electron/ai-pi-runtime.mjs");
   const short = [
     { role: "user", content: [{ type: "text", text: "hi" }], timestamp: 1 },
@@ -86,38 +86,44 @@ test("compactPiMessagesLlm returns null when under window or no model", async ()
   ];
   assert.equal(await compactPiMessagesLlm(short, { contextWindow: 128000 }), null);
   assert.equal(await compactPiMessagesLlm(short, { model: {}, contextWindow: 128000 }), null);
+  const long = [];
+  for (let i = 0; i < 20; i++) {
+    long.push({
+      role: i % 2 === 0 ? "user" : "assistant",
+      content: [{ type: "text", text: "字".repeat(2000) }],
+      timestamp: i,
+    });
+  }
+  assert.equal(await compactPiMessagesLlm(long, {
+    model: { id: "fake" },
+    contextWindow: 4000,
+    generateText: async () => ({ text: "SUMMARY" }),
+  }), null);
 });
 
-test("compactPiMessagesLlm keeps goal ledger and fileOps when summarize succeeds", async () => {
-  const { compactPiMessagesLlm, createSummaryModels } = await import("../topmind-desktop/electron/ai-pi-runtime.mjs");
-  // Build a long transcript so shouldCompact fires.
-  const list = [];
-  for (let i = 0; i < 40; i++) {
-    list.push({ role: "user", content: [{ type: "text", text: `问${i} ${"字".repeat(200)}` }], timestamp: i * 2 });
-    list.push({ role: "assistant", content: [{ type: "text", text: `答${i} ${"字".repeat(200)}` }], timestamp: i * 2 + 1 });
+test("over-window transcript folds deterministically and keeps the task ledger", async () => {
+  const { maybeCompactPiMessages } = await import("../topmind-desktop/electron/ai-pi-runtime.mjs");
+  const ledger = buildTaskLedger(createGoalState("目标甲"), "zh-CN");
+  const list = [
+    { role: "system", content: "Be brief", timestamp: 0 },
+    { role: "user", content: [{ type: "text", text: ledger }], timestamp: 1 },
+  ];
+  for (let i = 0; i < 20; i++) {
+    list.push({
+      role: i % 2 === 0 ? "assistant" : "user",
+      content: [{ type: "text", text: `轮${i} ${"字".repeat(2000)}` }],
+      timestamp: i + 2,
+    });
   }
-  list.push({ role: "user", content: [{ type: "text", text: buildTaskLedger(createGoalState("目标甲"), "zh-CN") }], timestamp: 999 });
-  const fakeModel = { id: "fake", maxTokens: 8192 };
-  // Inject a Models adapter via createSummaryModels by monkey-patching generate through opts —
-  // compactPiMessagesLlm builds its own adapter from opts.model only. Call createSummaryModels
-  // path indirectly: stub compact by using a model whose provider we don't call if prepare fails.
-  // Instead verify prepare+compact path with generateText injected via global mock is hard —
-  // assert the null fallback is safe when compact throws (no network).
-  const out = await compactPiMessagesLlm(list, {
-    model: fakeModel,
-    contextWindow: 4000,
-    modelId: "fake",
-    goalLedgerText: buildTaskLedger(createGoalState("目标甲"), "zh-CN"),
-    generateText: async () => ({ text: "SUMMARY", usage: { promptTokens: 1, completionTokens: 1 } }),
+  const folded = maybeCompactPiMessages(list, { contextWindow: 4000, modelId: "fake" });
+  assert.equal(folded.compacted, true);
+  assert.equal(folded.messages[0].role, "system");
+  const texts = folded.messages.map((m) => {
+    if (typeof m.content === "string") return m.content;
+    return (m.content || []).map((b) => b.text || "").join("");
   });
-  // Either llm summary succeeded or fell back to null → caller uses char fold.
-  if (out) {
-    assert.equal(out.compacted, true);
-    assert.ok(out.llmSummary);
-    assert.ok(out.fileOps);
-  } else {
-    assert.equal(out, null);
-  }
+  assert.ok(texts.some((t) => t.includes("TASK-LEDGER")));
+  assert.ok(folded.messages.length < list.length);
 });
 
 test("rememberDistillHint / consumeDistillHint is single-use", async () => {

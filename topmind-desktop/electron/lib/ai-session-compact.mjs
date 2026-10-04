@@ -1,13 +1,13 @@
 /**
  * Smart session compaction for AI model context.
  *
- * Compaction hierarchy (single semantics, two layers — not two products):
- * 1. **Pi-native LLM summary** (`ai-pi-runtime.compactPiMessagesLlm` →
- *    `prepareCompaction`/`compact`) — primary inside the Agent loop near the
- *    model window. Keeps goal/plan/receipts via customInstructions.
- * 2. **This module** — deterministic char/token fold: pre-invoke budgeting,
- *    overflow hard-retry, AI-SDK fallback path, and Obsidian chat history.
- *    Never invents user content; drops only middle turns + truncates bodies.
+ * Compaction (Pi 1.0 removed `prepareCompaction` / `compact` from pi-agent-core):
+ * **This module** is the fold — inside the Agent loop when the transcript
+ * crosses the context reserve, and also for pre-invoke budgeting, overflow
+ * hard-retry, the AI-SDK fallback path, and Obsidian chat history.
+ * Never invents user content; drops only middle turns + truncates bodies.
+ * `compactPiMessagesLlm` stays a null seam so the loop does not grow a second
+ * summarizer.
  *
  * Token estimate here is CJK-aware (Pi `estimateTokens` is Latin-biased);
  * both feed the same budget formula (`resolveCompactBudget`).

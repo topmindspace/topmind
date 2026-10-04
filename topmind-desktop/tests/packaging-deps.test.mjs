@@ -33,6 +33,8 @@ test("Pi agent-core and pi-ai are a paired pin, independent of Electron/React/Vi
   const piAi = pkg.dependencies["@earendil-works/pi-ai"];
   assert.equal(typeof core, "string");
   assert.equal(core, piAi, "pi-agent-core and pi-ai must share a version spec");
+  assert.equal(pkg.dependencies["@earendil-works/pi-coding-agent"], undefined);
+  assert.equal(pkg.devDependencies?.["@earendil-works/pi-coding-agent"], undefined);
   const policy = readFileSync(path.join(root, "scripts/check-dependency-policy.mjs"), "utf8");
   assert.match(policy, /piPinPackages|paired Pi pin/);
   assert.match(policy, /@earendil-works\/pi-agent-core/);

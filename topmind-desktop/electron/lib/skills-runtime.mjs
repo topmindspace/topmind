@@ -15,7 +15,6 @@
  */
 import { promises as fs, readFileSync, existsSync, readdirSync } from "node:fs";
 import path from "node:path";
-import { formatSkillsForSystemPrompt } from "@earendil-works/pi-agent-core";
 import { getEngineRoot } from "./workspace-home.mjs";
 import { defaultEngineCandidate } from "./engine-root.mjs";
 import { getSkillsExtraRoot } from "./skills-extra.mjs";
@@ -444,10 +443,46 @@ const ACTION_LABEL = {
   connector: "连接器",
 };
 
+function escapeSkillXml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
 /**
- * Discovery catalog for the system prompt — Pi `formatSkillsForSystemPrompt`
- * (agentskills.io `<available_skills>` with absolute `location`) plus a compact
- * topmind routing line (slash → id). Full SKILL.md still via load_skill.
+ * agentskills.io discovery block (name, description, absolute location).
+ * Pi 1.0 removed `formatSkillsForSystemPrompt` from `pi-agent-core`. Desktop
+ * keeps the same catalog shape here. Activation is still `load_skill`.
+ * @param {Array<{ name?: string, description?: string, filePath?: string, disableModelInvocation?: boolean }>} skills
+ */
+export function formatSkillsForSystemPrompt(skills) {
+  const visible = (Array.isArray(skills) ? skills : []).filter((skill) => skill && !skill.disableModelInvocation);
+  if (!visible.length) return "";
+  const lines = [
+    "The following skills provide specialized instructions for specific tasks.",
+    "Read the full skill file when the task matches its description.",
+    "When a skill file references a relative path, resolve it against the skill directory (parent of SKILL.md / dirname of the path) and use that absolute path in tool commands.",
+    "",
+    "<available_skills>",
+  ];
+  for (const skill of visible) {
+    lines.push("  <skill>");
+    lines.push(`    <name>${escapeSkillXml(skill.name)}</name>`);
+    lines.push(`    <description>${escapeSkillXml(skill.description)}</description>`);
+    lines.push(`    <location>${escapeSkillXml(skill.filePath)}</location>`);
+    lines.push("  </skill>");
+  }
+  lines.push("</available_skills>");
+  return lines.join("\n");
+}
+
+/**
+ * Discovery catalog for the system prompt — `<available_skills>` with absolute
+ * `location` plus a compact topmind routing line (slash → id). Full SKILL.md
+ * still via load_skill.
  */
 export function formatCatalogForPrompt(catalog) {
   if (!catalog?.length) {

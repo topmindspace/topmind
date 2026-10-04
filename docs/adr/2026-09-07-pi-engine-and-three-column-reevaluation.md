@@ -11,6 +11,8 @@ Current-Pi research capture (npm + `gh api`; `pi.dev` HTTP blocked in the eval e
 
 > **Vocabulary superseded (2026-09-14):** the PrimaryNav  <!-- SUPERSEDED 2026-09-15: PrimaryNav moved to sidebar primary header; TitleBar keeps compact icons only when sidebar is collapsed. --> words recorded below (`动态 · 收件箱 · 写出来`) are now `动态 · Inbox · 交付`. Chrome layout, column model and the Pi verdict are unaffected — see [`2026-09-14-product-vocabulary-rename.md`](./2026-09-14-product-vocabulary-rename.md).
 
+> **Current pin (2026-10-04):** `@earendil-works/pi-agent-core` and `pi-ai` are the paired pin **1.0.2**. Pi 1.0 removed harness compaction and `formatSkillsForSystemPrompt` from `pi-agent-core`. The loop is still in-process `Agent` plus host-injected tools; over-window transcripts fold with `compactMessagesForModel`; the skills catalog (name, description, location) is emitted by Desktop; bash stays off. The 0.85.1 record below is the decision as of that date.
+
 ---
 
 ## Independently readable decisions

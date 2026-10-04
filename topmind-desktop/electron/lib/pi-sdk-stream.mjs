@@ -3,7 +3,11 @@
  * Tool *execution* stays in pi-agent-core; this adapter only lets the LLM emit calls.
  */
 import { jsonSchema, stepCountIs, streamText, tool } from "ai";
-import { AssistantMessageEventStream } from "@earendil-works/pi-ai";
+import {
+  AssistantMessageEventStream,
+  getCurrentSystemPrompt,
+  getCurrentTools,
+} from "@earendil-works/pi-ai";
 
 function emptyUsage() {
   return {
@@ -73,19 +77,50 @@ export function piContextToSdkMessages(messages) {
   return out;
 }
 
+function asJsonSchema(parameters) {
+  if (!parameters || typeof parameters !== "object") {
+    return { type: "object", properties: {} };
+  }
+  try {
+    const plain = JSON.parse(JSON.stringify(parameters));
+    if (plain && typeof plain === "object" && (plain.type || plain.properties)) return plain;
+  } catch {
+    /* TypeBox symbols or cycles — fall through to an empty object schema. */
+  }
+  return { type: "object", properties: {} };
+}
+
 function piToolsToSdkSchemas(piTools) {
   const out = {};
   for (const t of Array.isArray(piTools) ? piTools : []) {
     if (!t?.name) continue;
-    const schema = t.parameters && typeof t.parameters === "object"
-      ? t.parameters
-      : { type: "object", properties: {} };
     out[t.name] = tool({
       description: t.description || t.name,
-      inputSchema: jsonSchema(schema),
+      inputSchema: jsonSchema(asJsonSchema(t.parameters)),
     });
   }
   return Object.keys(out).length ? out : undefined;
+}
+
+/**
+ * Pi 1.0 `StreamFn` receives a transcript: the system prompt and tool
+ * declarations live on system messages, not on `context.systemPrompt` /
+ * `context.tools`. Older callers may still pass those fields.
+ * @param {object} context
+ */
+export function readPiTranscript(context) {
+  const messages = Array.isArray(context?.messages) ? context.messages : [];
+  const fromTranscript = getCurrentSystemPrompt(messages);
+  const system = fromTranscript || (typeof context?.systemPrompt === "string" ? context.systemPrompt : "");
+  const declared = getCurrentTools(messages);
+  const tools = declared.length
+    ? declared
+    : (Array.isArray(context?.tools) ? context.tools : []);
+  return {
+    system,
+    tools,
+    messages: messages.filter((m) => m?.role !== "system"),
+  };
 }
 
 /**
@@ -135,11 +170,12 @@ export function createAiSdkStreamFn(aiSdkModel, meta = {}) {
       let partial = makeAssistant({ text: "", thinking: "", toolCalls: [], modelId, stopReason: "pending" });
       try {
         stream.push({ type: "start", partial });
-        const sdkMessages = piContextToSdkMessages(context?.messages);
-        const sdkTools = piToolsToSdkSchemas(context?.tools);
+        const request = readPiTranscript(context);
+        const sdkMessages = piContextToSdkMessages(request.messages);
+        const sdkTools = piToolsToSdkSchemas(request.tools);
         const result = runStreamText({
           model: aiSdkModel,
-          system: context?.systemPrompt || undefined,
+          system: request.system || undefined,
           messages: sdkMessages,
           tools: sdkTools,
           abortSignal: signal,

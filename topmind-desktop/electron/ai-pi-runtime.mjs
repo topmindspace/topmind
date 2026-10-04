@@ -6,19 +6,16 @@
  * LLM bytes still come from the existing AI SDK model (providers unchanged).
  * Tool execution is the Pi Agent loop; FS aliases are fenced (no bash).
  *
- * Also owns Pi-native compaction + goal follow-up helpers (merged from
+ * Also owns compaction + goal follow-up helpers (merged from
  * pi-native-compact.mjs to keep the electron footprint bounded — prefer merge
  * over raising the soft ceiling).
+ *
+ * Pi 1.0 removed harness compaction (`shouldCompact`, `prepareCompaction`,
+ * `compact`) from `pi-agent-core`. Over-window transcripts fold with
+ * `compactMessagesForModel`. There is no second LLM summarizer.
  */
-import {
-  Agent,
-  DEFAULT_COMPACTION_SETTINGS,
-  shouldCompact,
-  estimateContextTokens,
-  prepareCompaction,
-  compact,
-} from "@earendil-works/pi-agent-core";
-import { logError, logInfo, logWarn } from "./lib/writeback.mjs";
+import { Agent } from "@earendil-works/pi-agent-core";
+import { logError, logInfo } from "./lib/writeback.mjs";
 import { summarizeToolOutput } from "./lib/ai-tool-evidence.mjs";
 import { t as ei18n } from "./lib/electron-i18n.mjs";
 import { createDeltaCoalescer } from "./lib/stream-delta-coalesce.mjs";
@@ -26,7 +23,7 @@ import { AGENT_STEPS_DEFAULT, clampMaxAgentSteps } from "./lib/settings-core.mjs
 import { reasoningProviderOptions } from "./ai-provider-adapter.mjs";
 import { convertDesktopToolsToPi, beforePiToolCall } from "./lib/pi-agent-tools.mjs";
 import { createAiSdkStreamFn, sdkMessagesToPi } from "./lib/pi-sdk-stream.mjs";
-import { compactMessagesForModel, estimateTokens } from "./lib/ai-session-compact.mjs";
+import { compactMessagesForModel, estimateTokens, resolveCompactBudget } from "./lib/ai-session-compact.mjs";
 import {
   applyGoalUpdate,
   assessGoalCompletion,
@@ -39,10 +36,17 @@ import {
   seedGoalFromMessages,
 } from "./lib/agent-goal-protocol.mjs";
 
-// ── Pi-native compaction + goal hooks (root exports only; no deep imports) ──
+// ── Compaction + goal hooks (Pi 1.0 root exports are Agent/loop/types only) ──
 
-function summaryContext(signal) {
-  return { abortSignal: signal };
+/**
+ * Last published Pi harness reserve (`DEFAULT_COMPACTION_SETTINGS.reserveTokens`
+ * at 0.87). Pi 1.0 removed the export. Same threshold, owned here.
+ */
+const COMPACT_RESERVE_TOKENS = 16384;
+
+function contextOverReserve(tokens, contextWindow) {
+  const window = Number(contextWindow) > 0 ? Number(contextWindow) : 128000;
+  return Number(tokens) > window - COMPACT_RESERVE_TOKENS;
 }
 
 function flattenPiMsg(m) {
@@ -107,116 +111,13 @@ export const GOAL_SUMMARY_FOCUS = [
   "Drop tool chatter and reasoning. Never invent paths or mark open criteria done.",
 ].join(" ");
 
-function stubModelForSummary(modelId, contextWindow) {
-  return {
-    id: modelId || "desktop-summary",
-    name: modelId || "desktop-summary",
-    api: "openai-completions",
-    provider: "openai",
-    baseUrl: "",
-    reasoning: false,
-    input: ["text"],
-    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: Number(contextWindow) > 0 ? Number(contextWindow) : 128000,
-    maxTokens: 8192,
-  };
-}
-
 /**
- * LLM-backed compact of a Pi AgentMessage[]. Returns null when unavailable
- * so the caller can fall back to deterministic fold.
+ * Pi-native LLM summary seam. Pi 1.0 removed `prepareCompaction` / `compact`
+ * from `pi-agent-core`. Returns null so the caller uses the deterministic fold.
+ * Does not call the model — that would be a second summarizer stack.
  */
-export async function compactPiMessagesLlm(messages, opts = {}) {
-  const list = Array.isArray(messages) ? messages : [];
-  if (!opts.model) return null;
-  const window = Number(opts.contextWindow) > 0 ? Number(opts.contextWindow) : 128000;
-  const piMsgs = sdkMessagesToPi(list, opts.modelId || "desktop");
-  const estimate = estimateContextTokens(piMsgs);
-  const tokens = Number(estimate?.tokens) || 0;
-  if (!shouldCompact(tokens, window, DEFAULT_COMPACTION_SETTINGS)) return null;
-
-  const ledgerMsgs = list.filter((m) => {
-    const t = flattenPiMsg(m);
-    return m?.role === "user" && isTaskLedgerText(t);
-  }).slice(-1);
-
-  try {
-    const now = Date.now();
-    const entries = list.map((m, i) => ({
-      type: "message",
-      id: `m${i}`,
-      parentId: i === 0 ? null : `m${i - 1}`,
-      seq: i,
-      timestamp: now + i,
-      message: m,
-    }));
-    const prepared = prepareCompaction(entries, DEFAULT_COMPACTION_SETTINGS);
-    if (!prepared?.ok || !prepared.value) return null;
-    const models = createSummaryModels(opts.model, {
-      generateText: opts.generateText,
-    });
-    const compactResult = await compact(
-      prepared.value,
-      models,
-      stubModelForSummary(opts.modelId, window),
-      GOAL_SUMMARY_FOCUS,
-      "off",
-      undefined,
-      undefined,
-      summaryContext(opts.signal),
-    );
-    if (!compactResult?.ok || !compactResult.value?.summary) return null;
-    const summary = compactResult.value.summary;
-    const tail = compactResult.value.retainedTail || [];
-    const details = compactResult.value.details || {};
-    const folded = sdkMessagesToPi(
-      [
-        {
-          role: "user",
-          content: opts.goalLedgerText
-            ? `${opts.goalLedgerText}\n\n---\n\n${summary}`
-            : summary,
-        },
-        {
-          role: "assistant",
-          content:
-            "Acknowledged the compacted history summary; continuing from recent turns and tool results.",
-        },
-      ],
-      opts.modelId || "desktop",
-    );
-    const recent = sdkMessagesToPi(tail, opts.modelId || "desktop");
-    const ledger = ledgerMsgs.map((m) => ({
-      role: "user",
-      content: [{ type: "text", text: flattenPiMsg(m) }],
-      timestamp: Date.now(),
-    }));
-    logInfo("ai-pi", "llm summary compact", {
-      tokensBefore: compactResult.value.tokensBefore || tokens,
-      tail: tail.length,
-      readFiles: details.readFiles?.length || 0,
-      modifiedFiles: details.modifiedFiles?.length || 0,
-    });
-    return {
-      messages: [...ledger, ...folded, ...recent],
-      compacted: true,
-      note: "pi-llm-summary",
-      estimatedTokens:
-        estimateContextTokens(
-          sdkMessagesToPi([...ledger, ...folded, ...recent], opts.modelId || "desktop"),
-        )?.tokens || tokens,
-      llmSummary: true,
-      fileOps: {
-        readFiles: Array.isArray(details.readFiles) ? details.readFiles : [],
-        modifiedFiles: Array.isArray(details.modifiedFiles) ? details.modifiedFiles : [],
-      },
-    };
-  } catch (err) {
-    logWarn("ai-pi", "llm summary failed — caller falls back to char fold", {
-      error: err?.message || String(err),
-    });
-    return null;
-  }
+export async function compactPiMessagesLlm(_messages, _opts = {}) {
+  return null;
 }
 
 /**
@@ -309,31 +210,34 @@ function flattenPiText(message) {
 }
 
 /**
- * Fold a Pi Agent transcript when Pi's shouldCompact fires, using Desktop's
- * compactMessagesForModel (no second LLM call).
- * Recent toolCall/toolResult turns are kept as structured pairs so path
- * receipts and read windows survive compaction.
+ * Fold a Pi Agent transcript when it exceeds the context reserve, using
+ * Desktop's compactMessagesForModel (no second LLM call).
+ * Pi 1.0 carries the system prompt and tool declarations inside the transcript.
+ * Those system messages are kept verbatim. Recent toolCall/toolResult turns
+ * stay as structured pairs so path receipts and read windows survive.
  * @param {object[]} messages
  * @param {{ contextWindow?: number, modelId?: string, keepRecentTools?: number, locale?: string }} [opts]
  */
 export function maybeCompactPiMessages(messages, opts = {}) {
   const list = Array.isArray(messages) ? messages : [];
-  const last = list[list.length - 1];
+  const systemMsgs = list.filter((m) => m?.role === "system");
+  const conversational = list.filter((m) => m?.role !== "system");
+  const last = conversational[conversational.length - 1];
   if (last?.role === "toolResult") {
     return { messages: list, compacted: false, note: null };
   }
   // Sticky task ledger must never be folded away — goal/plan/receipts survive.
-  const ledger = list.filter((m) => {
+  const ledger = conversational.filter((m) => {
     const text = flattenPiText(m) || "";
     return m?.role === "user" && isTaskLedgerText(text);
   }).slice(-1);
   // Keep the most recent tool conversation intact (pairs + surrounding turns).
   const keepRecentTools = Math.max(0, Number(opts.keepRecentTools ?? 6));
-  let cut = list.length;
+  let cut = conversational.length;
   if (keepRecentTools > 0) {
     let seen = 0;
-    for (let i = list.length - 1; i >= 0; i--) {
-      const role = list[i]?.role;
+    for (let i = conversational.length - 1; i >= 0; i--) {
+      const role = conversational[i]?.role;
       if (role === "toolCall" || role === "toolResult") {
         seen += 1;
         if (seen > keepRecentTools) {
@@ -344,11 +248,11 @@ export function maybeCompactPiMessages(messages, opts = {}) {
     }
   }
   // Never cut in the middle of an open toolCall→toolResult pair.
-  while (cut > 0 && list[cut - 1]?.role === "toolCall" && list[cut]?.role === "toolResult") {
+  while (cut > 0 && conversational[cut - 1]?.role === "toolCall" && conversational[cut]?.role === "toolResult") {
     cut -= 1;
   }
-  const older = list.slice(0, cut);
-  const recentStructured = list.slice(cut);
+  const older = conversational.slice(0, cut);
+  const recentStructured = conversational.slice(cut);
 
   const flat = older
     .filter((m) => m && (m.role === "user" || m.role === "assistant"))
@@ -362,22 +266,24 @@ export function maybeCompactPiMessages(messages, opts = {}) {
       return n + estimateTokens(text);
     }, 0);
   const window = Number(opts.contextWindow) > 0 ? Number(opts.contextWindow) : 128000;
-  const overWindow = shouldCompact(tokens, window, DEFAULT_COMPACTION_SETTINGS);
-  const foldResult = compactMessagesForModel(flat, { locale: opts.locale });
+  const overWindow = contextOverReserve(tokens, window);
+  const budget = resolveCompactBudget(window);
+  const foldResult = compactMessagesForModel(flat, { locale: opts.locale, ...budget });
   if (!overWindow && !foldResult.compacted) {
     return { messages: list, compacted: false, note: null, estimatedTokens: tokens };
   }
   const folded = sdkMessagesToPi(foldResult.messages, opts.modelId || "desktop");
   // Re-inject sticky ledger first so goal/plan/receipts cannot vanish mid-task.
+  // System messages stay in front: Pi 1.0 stores the prompt and tool set there.
   const ledgerMsgs = ledger.map((m) => ({
     role: "user",
     content: [{ type: "text", text: flattenPiText(m) }],
     timestamp: Date.now(),
   }));
   return {
-    messages: [...ledgerMsgs, ...folded, ...recentStructured],
+    messages: [...systemMsgs, ...ledgerMsgs, ...folded, ...recentStructured],
     compacted: true,
-    note: foldResult.note || (overWindow ? "pi-shouldCompact" : null),
+    note: foldResult.note || (overWindow ? "context-reserve" : null),
     estimatedTokens: foldResult.estimatedTokens,
   };
 }
@@ -490,8 +396,8 @@ export async function runPiAgent(opts, registry) {
     transformContext: async (msgs) => {
       bumpIdle();
       const window = Number(contextWindow) > 0 ? Number(contextWindow) : 128000;
-      // Prefer Pi-native LLM summary (structured, keeps file ops + goal focus);
-      // fall back to deterministic char fold when summarize is unavailable.
+      // Pi 1.0 has no native compact API. compactPiMessagesLlm returns null;
+      // the deterministic fold is the compaction path.
       const llmFolded = await compactPiMessagesLlm(msgs, {
         model,
         contextWindow: window,

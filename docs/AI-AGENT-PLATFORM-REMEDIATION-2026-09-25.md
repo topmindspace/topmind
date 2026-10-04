@@ -2,6 +2,7 @@
 
 > **状态**：**NON-LIVING · 波次已收官**（见文末 Done 表）  
 > **角色**：历史实施记录；现行行为契约见 `AGENTS.md` / `docs/adr/2026-09-25-goal-oriented-agent-loop.md` / `docs/ARCHITECTURE-RESET.md`  
+> **Pin 注记（2026-10-04）**：下文里的 Pi 0.87.1 是该日快照。现行成对 pin 是 **1.0.2**；`prepareCompaction` / `formatSkillsForSystemPrompt` 已不在 `pi-agent-core` 导出里，结果改由 Desktop 确定性折叠和本地技能目录保持。  
 > **范围**：topmind Desktop AI · Kernel agent 协议 · Obsidian 插件 · Skills 一致性 · UI/UX  
 > **北极星不变**：最低摩擦个人动态流；用户概念 ≤5；Kernel writeback 唯一写闸；不重复造轮子。
 

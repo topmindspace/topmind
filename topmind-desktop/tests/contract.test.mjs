@@ -242,8 +242,10 @@ test("v4 source footprint stays bounded (src + electron)", () => {
   // session-health circuit breaker, tool-result-digest clamp,
   // tool-retry-hints recovery copy. Each is a documented single-purpose
   // module (TOOLS.md); none is feature sprawl. Ceiling moves by 8, total to 382.
+  // 2026-10-04: runtime-bounds.mjs (+1 electron → 132) landed with the
+  // working-set cap. Ceiling moves by 1 so the count matches the tree.
   assert.ok(srcCount < 249, `src file count ${srcCount} exceeds soft ceiling`);
-  assert.ok(electronCount < 132, `electron file count ${electronCount} exceeds soft ceiling`);
+  assert.ok(electronCount < 133, `electron file count ${electronCount} exceeds soft ceiling`);
   assert.ok(srcCount + electronCount < 383, `total ${srcCount + electronCount} exceeds soft ceiling`);
 });
 

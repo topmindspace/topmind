@@ -127,7 +127,7 @@ Vault UI / 插件壳 / esbuild            → topmind-obsidian
 
 | 组件 | 用途 | 升级策略 |
 |------|------|----------|
-| `@earendil-works/pi-agent-core` / `pi-ai` | Agent 循环 | **成对 pin**（dependency-policy）；当前 0.87.1 |
+| `@earendil-works/pi-agent-core` / `pi-ai` | Agent 循环 | **成对 pin**（dependency-policy）；当前 **1.0.2**。Pi 1.0 从 `pi-agent-core` 移除 harness 压缩与 `formatSkillsForSystemPrompt`；Desktop 环内压缩走 `maybeCompactPiMessages`，技能目录由 Desktop 自己发 name/description/location。不依赖 `pi-coding-agent` |
 | `@firecrawl/anydoc` | 文档转 MD sidecar | userData 热升级，`ANYDOC_NPM_SPEC` 无版本钉死（安装时取 latest） |
 | TipTap `@tiptap/*` | 富文本编辑器 | **整套同版本**（3.31.3）；`tiptap-markdown` 0.9.0 |
 | `ai` + `@ai-sdk/*` | LLM Provider | 同步升 minor/patch |

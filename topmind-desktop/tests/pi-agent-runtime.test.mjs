@@ -270,6 +270,87 @@ describe("pi-agent-runtime", () => {
     assert.ok(folded.messages.length < long.length);
   });
 
+  it("runPiAgent hands the stream a Pi 1.0 transcript (prompt on a system message)", async () => {
+    let seen;
+    const inner = textStreamFn("hello-from-pi");
+    const result = await runPiAgent({
+      model: {},
+      modelId: "stub",
+      system: "Be a careful editor",
+      messages: [{ role: "user", content: "hi" }],
+      tools: {
+        read_file: {
+          description: "read md",
+          inputSchema: { type: "object", properties: { relativePath: { type: "string" } } },
+          execute: async () => ({ ok: true }),
+        },
+      },
+      emit: () => {},
+      sessionId: "s-transcript",
+      streamFn: async (model, context, options) => {
+        seen = context;
+        return inner(model, context, options);
+      },
+    }, createStreamRegistry());
+    assert.equal(result.error, null);
+    assert.equal(result.runtime, "pi-agent-core");
+    assert.match(result.text, /hello-from-pi/);
+    assert.equal(seen.systemPrompt, undefined);
+    assert.equal(seen.tools, undefined);
+    const system = (seen.messages || []).find((m) => m.role === "system");
+    assert.ok(system, "leading system message carries the prompt");
+    assert.match(String(system.content), /Be a careful editor/);
+    const names = (system.toolsAdded || []).map((t) => t.name);
+    assert.ok(names.includes("read_file"));
+    assert.equal(names.includes("bash"), false);
+    assert.equal(names.includes("shell"), false);
+    assert.equal(names.includes("exec"), false);
+  });
+
+  it("read and write aliases deny sibling-prefix and absolute-outside paths", async () => {
+    const ws = "/tmp/topmind-pi-ws";
+    const tools = convertDesktopToolsToPi({
+      read_file: {
+        description: "read",
+        inputSchema: { type: "object", properties: {} },
+        execute: async () => ({ ok: true }),
+      },
+      save_file: {
+        description: "save",
+        inputSchema: { type: "object", properties: {} },
+        execute: async () => ({ ok: true }),
+      },
+    }, { workspaceRoot: ws });
+    const read = tools.find((t) => t.name === "read");
+    const write = tools.find((t) => t.name === "write");
+    const names = tools.map((t) => t.name);
+    assert.equal(names.includes("bash"), false);
+    assert.equal(names.includes("shell"), false);
+    assert.equal(names.includes("exec"), false);
+    await assert.rejects(() => read.execute("r1", { path: `${ws}-evil/leak.md` }), /outside workspace/);
+    await assert.rejects(() => read.execute("r2", { path: "/etc/passwd" }), /outside workspace/);
+    await assert.rejects(() => write.execute("w1", { path: `${ws}-evil/leak.md`, content: "x" }), /outside workspace/);
+    await assert.rejects(() => write.execute("w2", { path: "/etc/passwd", content: "x" }), /outside workspace/);
+  });
+
+  it("maybeCompactPiMessages folds an over-window transcript and keeps the system prompt", () => {
+    const messages = [
+      { role: "system", content: "Be brief", toolsAdded: [{ name: "read_file" }], timestamp: 0 },
+    ];
+    for (let i = 0; i < 20; i++) {
+      messages.push({
+        role: i % 2 === 0 ? "user" : "assistant",
+        content: [{ type: "text", text: "字".repeat(2000) }],
+        timestamp: i + 1,
+      });
+    }
+    const folded = maybeCompactPiMessages(messages, { contextWindow: 4000 });
+    assert.equal(folded.compacted, true);
+    assert.equal(folded.messages[0].role, "system");
+    assert.equal(folded.messages[0].content, "Be brief");
+    assert.ok(folded.messages.length < messages.length);
+  });
+
   it("maybeCompactPiMessages does not fold a tool-result tail", () => {
     const msgs = [
       { role: "user", content: [{ type: "text", text: "edit" }], timestamp: 1 },

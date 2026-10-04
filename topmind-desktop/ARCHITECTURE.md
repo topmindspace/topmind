@@ -1,6 +1,6 @@
 # topmind Desktop — 架构
 
-> **现状描述 + Target 标注**。源文件计数：`src/` 248 · `electron/` 131。  
+> **现状描述 + Target 标注**。源文件计数：`src/` 248 · `electron/` 132。  
 > **1 RPC · Stores（View / Ai / Action / Plugin / IngestStaging / Task / Todo）· 1 Shell · 5+2 Service · 7 插件槽**  
 > UI 真源：`DESIGN.md`。边界：`../PRODUCT-BOUNDARIES.md`。  
 > **实施锁**：[`../docs/ARCHITECTURE-RESET.md`](../docs/ARCHITECTURE-RESET.md)（写闸合闸 · 建议副驾 · 导航变薄）。
@@ -447,7 +447,7 @@ AiPanel 模型下拉选择器的 `onChange` 不仅更新内存 store，还同步
 
 ### AI 工具暴露策略（全能力 Agent，无 UTR）
 
-`buildDesktopAiTools`（`electron/ai-tools.mjs`）→ **WorkspaceService**。系统提示只列出实际加载的 snake_case 工具名。多步 tool loop：`maxAgentSteps` 默认 **32**（`AGENT_STEPS_DEFAULT` / `DEFAULT_MAX_AGENT_STEPS`，可配 3–80）；Pi 循环用 **`finishTurn`** 做步数闸（`shouldStopAfterTurn` 在 pi-agent-core 0.87 已移除，必须走 `finishTurn` → `{action:"end"}`）。**目标协议**（`electron/lib/agent-goal-protocol.mjs`，与 `../lib/` 及 Obsidian 快照字节一致；禁 `../../lib` 静态导入）：多步任务先出 `[PLAN]`/`done-when`，收尾前验收；`assessGoalCompletion` 驱动 **goal-aware auto-continue**（未完成验收项最多 4 次，状态 `continuing`），续跑提示带任务台账与路径回执；上下文溢出时压缩预算递减 + 任务台账前插，**最多重试 3 次** 而不是直接报错。`edit_file` 的 `expectedHash` 为 **soft 乐观并发**（`contentHash` 来自 `read_file`/`edit_file`）：hash 过期但 unique-span 仍可匹配则放行（note 标注）；仅 matcher 也失败才报 hash-mismatch。**AI 写成功后主动 `ctx.emit("workspace:file-changed", { source: "ai:<tool>" })`**（写操作会 `markIgnoredFileChanges` 压掉 watcher 回声，必须由工具通知 UI）。内容创建/更新/编辑恒 `confirmed:true`（分级 confirm 直接落盘）；仅 `delete_path`/`rename_path` 在 confirm 模式保持 pending。**模型窗口**：`resolveModel` 从 `ai.modelCache` 注入 `contextWindow`，驱动动态 compact 预算。**思考强度**：agent 模式默认 high（OpenAI `reasoningEffort` / Anthropic `thinking.budgetTokens` / Gemini `thinkingBudget`）。Pi runtime 异常自动降级 AI SDK `streamText`。Skills 以 playbook + `/slash` 接入，不是第二进程。
+`buildDesktopAiTools`（`electron/ai-tools.mjs`）→ **WorkspaceService**。系统提示只列出实际加载的 snake_case 工具名。多步 tool loop：`maxAgentSteps` 默认 **32**（`AGENT_STEPS_DEFAULT` / `DEFAULT_MAX_AGENT_STEPS`，可配 3–80）；Pi 循环用 **`finishTurn`** 做步数闸（`shouldStopAfterTurn` 在 pi-agent-core 0.87 已移除，必须走 `finishTurn` → `{action:"end"}`）。Pi **1.0.2** 再移除 harness 压缩与 `formatSkillsForSystemPrompt`：超窗走 `maybeCompactPiMessages` + `resolveCompactBudget`（`compactPiMessagesLlm` 返回 null，不另起 LLM 摘要）；技能目录由 Desktop 注入 name/description/location，激活仍是 `load_skill`。流函数收到的是 transcript（系统提示和工具声明在 system message 上）。**目标协议**（`electron/lib/agent-goal-protocol.mjs`，与 `../lib/` 及 Obsidian 快照字节一致；禁 `../../lib` 静态导入）：多步任务先出 `[PLAN]`/`done-when`，收尾前验收；`assessGoalCompletion` 驱动 **goal-aware auto-continue**（未完成验收项最多 4 次，状态 `continuing`），续跑提示带任务台账与路径回执；上下文溢出时压缩预算递减 + 任务台账前插，**最多重试 3 次** 而不是直接报错。`edit_file` 的 `expectedHash` 为 **soft 乐观并发**（`contentHash` 来自 `read_file`/`edit_file`）：hash 过期但 unique-span 仍可匹配则放行（note 标注）；仅 matcher 也失败才报 hash-mismatch。**AI 写成功后主动 `ctx.emit("workspace:file-changed", { source: "ai:<tool>" })`**（写操作会 `markIgnoredFileChanges` 压掉 watcher 回声，必须由工具通知 UI）。内容创建/更新/编辑恒 `confirmed:true`（分级 confirm 直接落盘）；仅 `delete_path`/`rename_path` 在 confirm 模式保持 pending。**模型窗口**：`resolveModel` 从 `ai.modelCache` 注入 `contextWindow`，驱动动态 compact 预算。**思考强度**：agent 模式默认 high（OpenAI `reasoningEffort` / Anthropic `thinking.budgetTokens` / Gemini `thinkingBudget`）。Pi runtime 异常自动降级 AI SDK `streamText`。Skills 以 playbook + `/slash` 接入，不是第二进程。
 
 | 写回模式 | 暴露的工具 | 说明 |
 |----------|-----------|------|
