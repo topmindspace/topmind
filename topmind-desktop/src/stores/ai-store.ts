@@ -22,6 +22,12 @@ import {
 } from "../lib/ai-rail-events";
 import { emitLocal } from "../plugins/host";
 import { ingestAssistantTextDelta, mergeReasoning, splitAssistantVisible } from "../lib/ai-chat-split";
+import {
+  boundToolCalls,
+  createHotPathScope,
+  mountAiDeltas,
+  retainTranscript,
+} from "../../electron/lib/runtime-bounds.mjs";
 
 /** Live re-fetch only if cache older than this (discoverModels is always free). */
 const MODEL_CATALOG_LIVE_TTL_MS = 5 * 60 * 1000;
@@ -180,6 +186,20 @@ function genSessionId(): string {
  * refactor to a Map<sessionId, unsub>.
  */
 let streamUnsub: (() => void) | null = null;
+let streamScope: ReturnType<typeof createHotPathScope> | null = null;
+
+function stopAiDeltaScope() {
+  if (streamScope) {
+    streamScope.dispose();
+    streamScope = null;
+    streamUnsub = null;
+    return;
+  }
+  if (streamUnsub) {
+    streamUnsub();
+    streamUnsub = null;
+  }
+}
 /**
  * Monotonic generation counter for the active stream. Each performInvocation
  * increments it; cancelStream bumps it so a cancelled invoke's `finally`
@@ -312,8 +332,9 @@ async function performInvocation(
 
   const deltaBatcher = new StreamDeltaBatcher(set);
 
-  if (streamUnsub) streamUnsub();
-  streamUnsub = subscribe("ai:stream", (payload) => {
+  stopAiDeltaScope();
+  streamScope = createHotPathScope();
+  streamUnsub = mountAiDeltas(streamScope, () => subscribe("ai:stream", (payload) => {
     // Stale generation (cancel/supersede) must never write into the next turn.
     if (gen !== streamGeneration) return;
     const p = payload as {
@@ -378,20 +399,21 @@ async function performInvocation(
       const count = p.count ?? null;
       const maxSteps = p.maxSteps ?? null;
       set((s) => {
-        const nextCalls = [...s.streamToolCalls];
+        const nextCalls = boundToolCalls([...s.streamToolCalls]);
         const existing = nextCalls.findIndex((t) => t.id === id);
         const entry: AiToolCall = { id, name, status: "running" };
         if (existing >= 0) nextCalls[existing] = entry;
         else nextCalls.push(entry);
+        const boundedCalls = boundToolCalls(nextCalls);
         return {
-          streamToolCalls: nextCalls,
+          streamToolCalls: boundedCalls,
           streamToolName: name,
           streamStatus: "calling-tool",
           streamToolCount: count,
           streamMaxSteps: maxSteps,
           messages: patchLastAssistant(s.messages, (last) => ({
             ...last,
-            toolCalls: nextCalls,
+            toolCalls: boundedCalls,
           })),
         };
       });
@@ -423,11 +445,12 @@ async function performInvocation(
             output,
           });
         }
+        const boundedCalls = boundToolCalls(nextCalls);
         return {
-          streamToolCalls: nextCalls,
+          streamToolCalls: boundedCalls,
           messages: patchLastAssistant(s.messages, (last) => ({
             ...last,
-            toolCalls: nextCalls,
+            toolCalls: boundedCalls,
           })),
         };
       });
@@ -520,7 +543,7 @@ async function performInvocation(
         lastSteerPreview: preview.slice(0, 120) || i18n.t("ai:store.steerInjected"),
       });
     }
-  });
+  }));
 
   try {
     const mountedFiles = get().mountedFiles.map((f) => f.path);
@@ -623,7 +646,9 @@ async function performInvocation(
     // A session switch mid-stream replaces `messages` — saving then would write
     // the new session's array under the old session id (silent corruption).
     if (gen === streamGeneration && get().activeSessionId === sessionId) {
-      await api.ai.saveMsgs({ sessionId, messages: get().messages });
+      const bounded = retainTranscript(get().messages);
+      if (bounded !== get().messages) set({ messages: bounded });
+      await api.ai.saveMsgs({ sessionId, messages: bounded });
     }
 
     // G11 memory distill closed loop: after a run that touched files, offer
@@ -700,10 +725,7 @@ async function performInvocation(
         streamMaxSteps: null,
         lastSteerPreview: null,
       });
-      if (streamUnsub) {
-        streamUnsub();
-        streamUnsub = null;
-      }
+      stopAiDeltaScope();
     }
   }
 }
@@ -790,7 +812,7 @@ export const useAiStore = create<AiState>((set, get) => ({
 
   async loadMessages(sessionId) {
     try {
-      const msgs = await api.ai.loadMsgs(sessionId);
+      const msgs = retainTranscript(await api.ai.loadMsgs(sessionId));
       set({ messages: msgs, messagesError: null });
     } catch (e) {
       // Distinguish ENOENT (true empty — new session) from parse/IO errors
@@ -914,10 +936,7 @@ export const useAiStore = create<AiState>((set, get) => ({
         streamGoal: null,
         streamAutoContinues: 0,
       });
-      if (streamUnsub) {
-        streamUnsub();
-        streamUnsub = null;
-      }
+      stopAiDeltaScope();
     }
   },
 
@@ -961,10 +980,7 @@ export const useAiStore = create<AiState>((set, get) => ({
         // Keep streamGoal so Resume can rebuild the continue prompt.
         streamAutoContinues: 0,
       });
-      if (streamUnsub) {
-        streamUnsub();
-        streamUnsub = null;
-      }
+      stopAiDeltaScope();
     }
   },
 
@@ -1146,3 +1162,23 @@ export const useAiStore = create<AiState>((set, get) => ({
     }
   },
 }));
+
+/** Drop the open-workspace transcript when the workspace changes or closes. */
+export function releaseAiWorkingSet() {
+  stopAiDeltaScope();
+  useAiStore.setState({
+    messages: [],
+    sessions: [],
+    activeSessionId: null,
+    streaming: false,
+    streamDelta: "",
+    streamStatus: null,
+    streamToolName: null,
+    streamToolCalls: [],
+    streamToolCount: null,
+    streamMaxSteps: null,
+    streamGoal: null,
+    paused: false,
+    pendingFollowUpCount: 0,
+  });
+}

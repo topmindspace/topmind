@@ -1,9 +1,16 @@
 import path from "node:path";
 import chokidar from "chokidar";
 import { toWorkspaceRelativePath, workspaceWatchRoots } from "./lib/path-model.mjs";
+import {
+  capExpiryMap,
+  forgetDesktopOwned,
+  registerDesktopOwned,
+  WORKING_SET_CAPS,
+} from "./lib/runtime-bounds.mjs";
 
 let watcher = null;
 const ignoredChanges = new Map();
+const WATCHER_OWNED_ID = "workspace-watcher";
 
 function normalizePath(filePath) {
   return path.resolve(filePath);
@@ -16,6 +23,7 @@ function pruneIgnoredChanges() {
       ignoredChanges.delete(filePath);
     }
   }
+  capExpiryMap(ignoredChanges, WORKING_SET_CAPS.ignoredChanges);
 }
 
 function shouldIgnore(filePath) {
@@ -35,6 +43,7 @@ export async function closeWorkspaceWatcher() {
     await watcher.close();
     watcher = null;
   }
+  forgetDesktopOwned(WATCHER_OWNED_ID);
 }
 
 export async function startWorkspaceWatcher(rootPath, onChange, options = {}) {
@@ -79,6 +88,12 @@ export async function startWorkspaceWatcher(rootPath, onChange, options = {}) {
 
   await new Promise((resolve) => {
     watcher.once("ready", resolve);
+  });
+
+  registerDesktopOwned({
+    kind: "watcher",
+    id: WATCHER_OWNED_ID,
+    token: typeof rootPath === "string" ? rootPath : "workspace",
   });
 
   return watcher;

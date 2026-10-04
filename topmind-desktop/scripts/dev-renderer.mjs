@@ -11,6 +11,7 @@ import {
   findAvailablePort,
   writeDevServerState,
 } from "./dev-runtime.mjs";
+import { planSignalTeardown } from "../electron/lib/runtime-bounds.mjs";
 
 const cwd = process.cwd();
 const host = resolveDevServerHost();
@@ -45,29 +46,23 @@ const child = spawn(
     cwd,
     env,
     stdio: "inherit",
+    // Own process group on Unix so SIGHUP/SIGTERM can reap vite workers
+    // (esbuild) together. Without it, workers keep the dev port after the
+    // parent is gone and the next session looks like a stale renderer.
+    detached: process.platform !== "win32",
   },
 );
 
 let exitCode = 0;
 let shuttingDown = false;
 
-function forwardSignal(signal) {
-  if (shuttingDown) {
-    return;
-  }
-  shuttingDown = true;
-  // Process-group kill: vite may spawn workers (esbuild service, etc.).
-  // Without -pid, vite workers outlive their parent and hold the dev port,
-  // forcing the next session onto a different port — visible as "stale dev
-  // state" mismatches.
-  // Negative PID is a Unix-only API; on Windows it throws (caught here,
-  // falls through to the single-process kill).
-  if (process.platform !== "win32") {
+function deliver(signal) {
+  if (process.platform !== "win32" && child.pid) {
     try {
       process.kill(-child.pid, signal);
       return;
     } catch {
-      /* fall through to single-process kill */
+      /* not a group leader yet — fall through */
     }
   }
   try {
@@ -77,13 +72,26 @@ function forwardSignal(signal) {
   }
 }
 
+function forwardSignal(signal) {
+  if (shuttingDown) {
+    return;
+  }
+  shuttingDown = true;
+  const plan = planSignalTeardown(signal);
+  deliver(plan.forward);
+  const timer = setTimeout(() => {
+    if (child.exitCode == null && child.signalCode == null) deliver(plan.escalate);
+  }, plan.escalateAfterMs);
+  timer.unref?.();
+}
+
 process.on("SIGINT", () => forwardSignal("SIGINT"));
 process.on("SIGTERM", () => forwardSignal("SIGTERM"));
-// SIGHUP on terminal close (macOS/Linux): must propagate to vite children or
-// the port stays bound and the next npm run dev reuses a stale renderer URL.
+// SIGHUP on terminal close (macOS/Linux): catchable SIGTERM first so vite can
+// drop the port, then SIGKILL. A leading SIGKILL skips that cleanup.
 // Windows has no SIGHUP — listener is a no-op there.
 if (process.platform !== "win32") {
-  process.on("SIGHUP", () => forwardSignal("SIGKILL"));
+  process.on("SIGHUP", () => forwardSignal("SIGHUP"));
 }
 
 child.on("exit", (code, signal) => {

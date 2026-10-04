@@ -14,6 +14,7 @@ import { resolveDataRoot, CATEGORY_PATTERN } from "./path-model.mjs";
 import { listDir, statSafe, readTextPreview } from "./fs-utils.mjs";
 import { splitMarkdownFrontmatter } from "./frontmatter.mjs";
 import { resolveCategoryRoles } from "./workspace-helpers.mjs";
+import { retainKeyedProjection, WORKING_SET_CAPS } from "./runtime-bounds.mjs";
 
 /**
  * @typedef {{ notes: object[], builtAt: number, root: string, complete: boolean, scannedTotal: number }} NotesIndexCache
@@ -27,13 +28,29 @@ function rootKey(workspaceRoot) {
   return resolveDataRoot(workspaceRoot);
 }
 
-export function invalidateNotesIndex(relativePath) {
-  if (!relativePath) {
-    caches.clear();
-    return;
-  }
-  // Full invalidate is simplest & correct; path-scoped patch can come later.
+/** Drop every in-memory notes projection (workspace close / quit / invalidate). */
+export function releaseNotesIndex() {
   caches.clear();
+}
+
+/**
+ * Store one workspace projection and evict older roots past the cap.
+ * @param {string} root
+ * @param {{ notes: object[], builtAt: number, root: string, complete: boolean, scannedTotal: number }} entry
+ */
+export function storeNotesIndex(root, entry) {
+  retainKeyedProjection(caches, root, entry, {
+    maxKeys: WORKING_SET_CAPS.notesIndexRoots,
+    notesCap: WORKING_SET_CAPS.notesPerRoot,
+    activeKey: root,
+  });
+  return caches.get(root);
+}
+
+export function invalidateNotesIndex(relativePath) {
+  // Full invalidate is simplest & correct; path-scoped patch can come later.
+  void relativePath;
+  releaseNotesIndex();
 }
 
 /**
@@ -181,7 +198,7 @@ export async function getNotesIndex(workspaceRoot, opts = {}) {
       scannedTotal = notes.length;
     }
   }
-  caches.set(root, { notes, builtAt, root, complete, scannedTotal });
+  storeNotesIndex(root, { notes, builtAt, root, complete, scannedTotal });
   const returned = notes.slice(0, limit);
   return {
     notes: returned,

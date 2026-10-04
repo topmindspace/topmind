@@ -8,6 +8,11 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { existsSync } from "node:fs";
 import { markUtilityBrowserWindow } from "./utility-windows.mjs";
+import {
+  attachOwnedDestroyer,
+  forgetDesktopOwned,
+  registerDesktopOwned,
+} from "./runtime-bounds.mjs";
 import { logInfo, logWarn, logError } from "./writeback.mjs";
 import { t } from "./electron-i18n.mjs";
 import { loadAppIconImage, applyWindowIcon } from "./app-icon.mjs";
@@ -18,6 +23,7 @@ const require = createRequire(import.meta.url);
 const { BrowserWindow } = require("electron");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const UTILITY_CAPTURE_ID = "utility-quick-capture";
 
 /** @type {import('electron').BrowserWindow | null} */
 let captureWin = null;
@@ -182,9 +188,12 @@ export function openQuickCaptureWindow(opts) {
 
   win.on("closed", () => {
     if (captureWin === win) captureWin = null;
+    forgetDesktopOwned(UTILITY_CAPTURE_ID);
   });
 
   captureWin = win;
+  registerDesktopOwned({ kind: "utility-window", id: UTILITY_CAPTURE_ID, token: "quick-capture" });
+  attachOwnedDestroyer(UTILITY_CAPTURE_ID, () => closeQuickCaptureWindow());
   logInfo("capture-float", "opened", {
     alwaysOnTop,
     appRoot: opts.appRoot,
@@ -194,10 +203,12 @@ export function openQuickCaptureWindow(opts) {
 }
 
 export function closeQuickCaptureWindow() {
-  if (captureWin && !captureWin.isDestroyed()) {
-    captureWin.close();
-  }
+  const win = captureWin;
   captureWin = null;
+  forgetDesktopOwned(UTILITY_CAPTURE_ID);
+  if (win && !win.isDestroyed()) {
+    win.close();
+  }
 }
 
 export function focusQuickCaptureWindow() {

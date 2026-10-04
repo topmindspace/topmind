@@ -24,6 +24,13 @@ import {
   RiUser3Line,
 } from "@remixicon/react";
 import { api } from "../../../services/api";
+import {
+  createHotPathScope,
+  mountStreamFeed,
+  rememberMapEntry,
+  retainStreamRows,
+  WORKING_SET_CAPS,
+} from "../../../../electron/lib/runtime-bounds.mjs";
 import { emitLocal, onLocal } from "../../../plugins/host";
 import { useViewStore } from "../../../stores/view-store";
 import {
@@ -871,8 +878,11 @@ export function StreamDetailView() {
     (v: string) => {
       setComposeText(v);
       if (!activePath) return;
-      if (v.trim()) composeDrafts.set(activePath, v);
-      else composeDrafts.delete(activePath);
+      if (v.trim()) {
+        const next = rememberMapEntry(composeDrafts, activePath, v, WORKING_SET_CAPS.streamDrafts);
+        composeDrafts.clear();
+        for (const [key, text] of next) composeDrafts.set(key, text);
+      } else composeDrafts.delete(activePath);
     },
     [activePath],
   );
@@ -904,8 +914,12 @@ export function StreamDetailView() {
         setShowBackToTop(scrollY > 400);
       });
     };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    const scope = createHotPathScope();
+    mountStreamFeed(scope, () => {
+      window.addEventListener("scroll", handleScroll, { passive: true });
+      return () => window.removeEventListener("scroll", handleScroll);
+    });
+    return () => scope.dispose();
   }, []);
 
   const loadPeriodContent = useCallback(async (relPath: string | null, opts?: { silent?: boolean }) => {
@@ -933,7 +947,7 @@ export function StreamDetailView() {
       }
       lastBodyRef.current = content;
       lastEntryKeysRef.current = nextKeys;
-      setEntries(nextEntries);
+      setEntries(retainStreamRows(nextEntries));
       setError(null);
     } catch (e) {
       if (!silent) setError(e instanceof Error ? e.message : String(e));

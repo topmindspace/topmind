@@ -611,12 +611,20 @@ export const useViewStore = create<ViewState>((set, get) => ({
   setTheme: (theme) => set({ theme }),
 
   workspaceRoot: "",
-  setWorkspaceRoot: (workspaceRoot) =>
-    set(() => {
-      const { ids: nextExpanded } = loadExpandedState(workspaceRoot);
-      const fileTabs = loadFileTabs(workspaceRoot);
-      return { workspaceRoot, expandedNodeIds: nextExpanded, fileTabs };
-    }),
+  setWorkspaceRoot: (workspaceRoot) => {
+    const prev = get().workspaceRoot;
+    const { ids: nextExpanded } = loadExpandedState(workspaceRoot);
+    const fileTabs = loadFileTabs(workspaceRoot);
+    set({ workspaceRoot, expandedNodeIds: nextExpanded, fileTabs });
+    if (prev && prev !== workspaceRoot) {
+      queueMicrotask(() => {
+        void import("./ai-store").then((m) => m.releaseAiWorkingSet());
+        void import("./task-store").then((m) => m.releaseTaskWorkingSet());
+        void import("../lib/workspace-data-cache").then((m) => m.invalidateWorkspaceDataCache());
+        void import("../../electron/lib/runtime-bounds.mjs").then((m) => m.releaseDesktopWorkingSets("workspace-switch"));
+      });
+    }
+  },
 
   workspaceSwitcherOpen: false,
   setWorkspaceSwitcherOpen: (workspaceSwitcherOpen) => set({ workspaceSwitcherOpen }),

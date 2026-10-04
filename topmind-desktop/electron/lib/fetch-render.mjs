@@ -6,6 +6,11 @@ import { createRequire } from "node:module";
 import { markEphemeralBrowserWindow } from "./ephemeral-windows.mjs";
 import { enqueueRender } from "./fetch-render-queue.mjs";
 import { t } from "./electron-i18n.mjs";
+import {
+  attachOwnedDestroyer,
+  claimDesktopHiddenRender,
+  finishDesktopHiddenRender,
+} from "./runtime-bounds.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -24,7 +29,24 @@ async function fetchRenderedHtmlUnlocked(url, opts = {}) {
   const timeoutMs = Math.min(Math.max(Number(opts.timeoutMs) || 18_000, 5_000), 45_000);
   const { BrowserWindow } = require("electron");
 
-  const win = new BrowserWindow({
+  // Claim before creating the window so a leaked token cannot open a second one.
+  const claim = claimDesktopHiddenRender(`render-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+  if (!claim.ok) {
+    throw new Error(t("fetch.renderFail", { desc: "busy" }));
+  }
+
+  let win;
+  const destroy = () => {
+    try {
+      if (win && !win.isDestroyed()) win.destroy();
+    } catch {
+      /* ignore */
+    }
+  };
+  attachOwnedDestroyer(claim.id, destroy);
+
+  try {
+  win = new BrowserWindow({
     show: false,
     width: 1280,
     height: 900,
@@ -41,15 +63,6 @@ async function fetchRenderedHtmlUnlocked(url, opts = {}) {
   });
   markEphemeralBrowserWindow(win);
 
-  const destroy = () => {
-    try {
-      if (!win.isDestroyed()) win.destroy();
-    } catch {
-      /* ignore */
-    }
-  };
-
-  try {
     const loadPromise = new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         reject(new Error(t("fetch.renderTimeout", { sec: Math.round(timeoutMs / 1000) })));
@@ -104,6 +117,7 @@ async function fetchRenderedHtmlUnlocked(url, opts = {}) {
     }
     return { html: String(html), finalUrl, method: "render" };
   } finally {
+    finishDesktopHiddenRender(claim.id);
     destroy();
   }
 }

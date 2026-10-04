@@ -8,6 +8,7 @@ import { emitLocal } from "../plugins/host";
 import { SUGGESTIONS_REFRESH_EVENT } from "../lib/ai-rail-events";
 import { engineJobSuggestionFollowUp } from "../lib/engine-job-follow-up";
 import { useActionStore } from "./action-store";
+import { retainTasks } from "../../electron/lib/runtime-bounds.mjs";
 
 /**
  * Supported engine tasks.
@@ -77,6 +78,10 @@ function genId(): string {
   return `task-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function boundTaskList(tasks: Task[]): Task[] {
+  return retainTasks(tasks);
+}
+
 export const useTaskStore = create<TaskStore>((set, get) => ({
   tasks: [],
   maxConcurrent: 3,
@@ -97,11 +102,11 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     if (runningCount >= get().maxConcurrent) {
       // Queue the task — will be started when a running task finishes
       task.status = "queued";
-      set((state) => ({ tasks: [...state.tasks, task] }));
+      set((state) => ({ tasks: boundTaskList([...state.tasks, task]) }));
       return taskId;
     }
 
-    set((state) => ({ tasks: [...state.tasks, task] }));
+    set((state) => ({ tasks: boundTaskList([...state.tasks, task]) }));
     void get()._executeTask(taskId);
     return taskId;
   },
@@ -135,13 +140,13 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
   clearCompleted: () => {
     set((state) => ({
-      tasks: keepActiveTasks(state.tasks),
+      tasks: boundTaskList(keepActiveTasks(state.tasks)),
     }));
   },
 
   _updateTask: (taskId, updates) => {
     set((state) => ({
-      tasks: state.tasks.map((t) => (t.id === taskId ? { ...t, ...updates } : t)),
+      tasks: boundTaskList(state.tasks.map((t) => (t.id === taskId ? { ...t, ...updates } : t))),
     }));
     // When a task transitions out of running, drain the queue
     if (updates.status && updates.status !== "running" && updates.status !== "queued") {
@@ -151,9 +156,9 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
   _appendLog: (taskId, log) => {
     set((state) => ({
-      tasks: state.tasks.map((t) =>
+      tasks: boundTaskList(state.tasks.map((t) =>
         t.id === taskId ? { ...t, logs: [...t.logs, `[${new Date().toLocaleTimeString()}] ${log}`] } : t,
-      ),
+      )),
     }));
   },
 
@@ -355,3 +360,8 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     }
   },
 }));
+
+/** Drop finished and queued task buffers when the workspace changes. */
+export function releaseTaskWorkingSet() {
+  useTaskStore.setState({ tasks: [] });
+}

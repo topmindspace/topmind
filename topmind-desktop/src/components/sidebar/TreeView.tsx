@@ -21,6 +21,7 @@ import { Tooltip } from "../ui/tooltip";
 import { cn } from "../../lib/kit";
 import { ICON } from "../../lib/icons";
 import { sortTreeSiblings, type TreeSortMode } from "../../lib/tree-sort";
+import { createHotPathScope, mountSidebarTree } from "../../../electron/lib/runtime-bounds.mjs";
 import { formatRelativeTime } from "../../lib/datetime";
 
 /** Strip .md extension from file labels for cleaner tree display. */
@@ -293,11 +294,16 @@ const TreeViewNode = memo(function TreeViewNode({
   // Keep active node in view when selection changes (e.g. from search / recent strip)
   useEffect(() => {
     if (!isActive) return;
-    const el = rowRef.current;
-    if (!el) return;
-    requestAnimationFrame(() => {
-      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    const scope = createHotPathScope();
+    mountSidebarTree(scope, () => {
+      const el = rowRef.current;
+      if (!el || typeof requestAnimationFrame !== "function") return () => {};
+      const frame = requestAnimationFrame(() => {
+        el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      });
+      return () => cancelAnimationFrame(frame);
     });
+    return () => scope.dispose();
   }, [isActive, node.id]);
 
   // Auto-reload stale cache: when a lazy topic/folder is expanded but the cache

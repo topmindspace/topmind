@@ -21,6 +21,7 @@ import { emitLocal, onLocal } from "../../plugins/host";
 import type { TreeNode } from "../../plugins/types";
 import { ICON } from "../../lib/icons";
 import { patchCachedSettings } from "../../lib/settings-cache";
+import { rememberMapEntry, WORKING_SET_CAPS } from "../../../electron/lib/runtime-bounds.mjs";
 import {
   defaultExpandIds,
   expandIdsForSelection,
@@ -383,6 +384,10 @@ function DataSourceSection({
   // Lazy-loading state for topic children
   const [childrenCache, setChildrenCache] = useState<Map<string, TreeNode[]>>(new Map());
   const [loadingNodes, setLoadingNodes] = useState<Set<string>>(new Set());
+  const workspaceRoot = useViewStore((s) => s.workspaceRoot);
+  useEffect(() => {
+    setChildrenCache(new Map());
+  }, [workspaceRoot]);
   const bootstrappedExpand = useRef(false);
 
   // Ref mirror of childrenCache so loadChildren / effects don't depend on the
@@ -654,7 +659,7 @@ function DataSourceSection({
               : undefined;
       const readOnly = node.meta?.readOnly === true || node.id.startsWith("folder/99") || node.id.startsWith("folder/archive");
       const kids = buildChildrenFromEntries(entries, topicId, readOnly);
-      setChildrenCache((prev) => new Map(prev).set(node.id, kids));
+      setChildrenCache((prev) => rememberMapEntry(prev, node.id, kids, WORKING_SET_CAPS.treeChildCache));
     } catch {
       // Silent fail — user can retry by collapsing/expanding
     } finally {

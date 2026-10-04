@@ -6,34 +6,50 @@ import {
   readDevServerState,
   waitForDevServerState,
 } from "./dev-runtime.mjs";
+import { readProcessCommandTable } from "./dev-process-table.mjs";
+import {
+  applyDevTeardown,
+  getDesktopOwnedRuntime,
+  planDevSessionStart,
+  planSignalTeardown,
+  registerDesktopOwned,
+} from "../electron/lib/runtime-bounds.mjs";
 
 const cwd = process.cwd();
 const rendererScript = path.resolve(cwd, "scripts", "dev-renderer.mjs");
 const electronScript = path.resolve(cwd, "scripts", "dev-electron.mjs");
 
-// Pre-flight: kill any orphaned Electron processes pointing at THIS workspace
-// directory. Historical sessions could leak as orphans because dev-electron.mjs
-// only killed its direct child (not the process group) and didn't handle SIGHUP
-// (terminal close on macOS). An orphaned Electron from a previous session shows
-// up as a "second window" the next time you chat with the AI — the long-standing
-// "AI 对话触发多窗口" symptom. Lock acquisition keeps this safe: by the time we
-// run, no other dev-desktop owns this workspace, so any lingering Electron here
-// is by definition a leak.
-function killOrphanedElectron() {
-  try {
-    // Cross-platform orphan kill:
-    //   macOS/Linux: pkill -f "electron.*{cwd}"
-    //   Windows:     taskkill /F /FI "IMAGENAME eq electron.exe" /T
-    // The taskkill /T flag kills the entire process tree. Both commands exit
-    // non-zero when no matches are found — harmless.
-    if (process.platform === "win32") {
-      spawnSync("taskkill", ["/F", "/FI", "IMAGENAME eq electron.exe", "/T"], { stdio: "ignore", shell: true });
-    } else {
-      spawnSync("pkill", ["-f", `electron.*${cwd}`], { stdio: "ignore" });
-    }
-  } catch {
-    // pkill/taskkill not present or no matches — both harmless.
+// Pre-flight: replace a dead same-workspace Electron/Node tree.
+// The pid list comes from planDevSessionStart — never pkill, and never
+// taskkill every electron.exe on the machine.
+function killWorkspacePid(pid) {
+  if (!Number.isInteger(pid) || pid <= 0 || pid === process.pid) return;
+  if (process.platform === "win32") {
+    spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], { stdio: "ignore", windowsHide: true });
+    return;
   }
+  try {
+    process.kill(-pid, "SIGTERM");
+  } catch {
+    try { process.kill(pid, "SIGTERM"); } catch { /* already gone */ }
+  }
+}
+
+function replaceStaleWorkspaceTree() {
+  let processes = [];
+  try {
+    processes = readProcessCommandTable();
+  } catch {
+    processes = [];
+  }
+  const plan = planDevSessionStart({
+    cwd,
+    lockOwner: null,
+    processes,
+    selfPid: process.pid,
+    parentPid: process.ppid,
+  });
+  for (const pid of plan.killPids) killWorkspacePid(pid);
 }
 const devSessionLock = await acquireDevSessionLock(cwd);
 let renderer = null;
@@ -60,7 +76,7 @@ await clearDevServerState(cwd);
 // Defensive: clear any orphaned Electron from a prior crashed session before
 // spawning a fresh one. Without this, a leaked grandchild from a previous
 // run persists on-screen next to the new window.
-void killOrphanedElectron();
+replaceStaleWorkspaceTree();
 
 renderer = spawn(process.execPath, [rendererScript], {
   cwd,
@@ -75,6 +91,16 @@ const electron = spawn(process.execPath, [electronScript], {
 });
 
 const children = [renderer, electron].filter(Boolean);
+const workspaceKey = path.resolve(cwd);
+for (const child of children) {
+  if (!child?.pid) continue;
+  registerDesktopOwned({
+    kind: child === electron ? "dev-electron" : "dev-renderer",
+    pid: child.pid,
+    workspaceKey,
+    cwd: workspaceKey,
+  });
+}
 let shuttingDown = false;
 
 function stopChildren(signal = "SIGTERM") {
@@ -82,23 +108,28 @@ function stopChildren(signal = "SIGTERM") {
     return;
   }
   shuttingDown = true;
-  children.forEach((child) => {
-    if (!child.killed) {
-      child.kill(signal);
+  const plan = planSignalTeardown(signal);
+  for (const child of children) {
+    try { child.kill(plan.forward); } catch { /* already gone */ }
+  }
+  applyDevTeardown(getDesktopOwnedRuntime(), { signal, workspaceKey });
+  const timer = setTimeout(() => {
+    for (const child of children) {
+      if (child.exitCode == null && child.signalCode == null) {
+        try { child.kill(plan.escalate); } catch { /* already gone */ }
+      }
     }
-  });
+  }, plan.escalateAfterMs);
+  timer.unref?.();
 }
 
 process.on("SIGINT", () => stopChildren("SIGINT"));
 process.on("SIGTERM", () => stopChildren("SIGTERM"));
 // SIGHUP fires when the controlling terminal closes on macOS/Linux.
-// Windows has no SIGHUP — the listener is a no-op there ( harmless registration).
-// Without this, dev-desktop dies silently on macOS and its children
-// (dev-renderer + dev-electron and their grandchildren) become permanent orphans.
-// The SIGHUP → SIGKILL chain guarantees cleanup more aggressive than the default SIGTERM forwarding,
-// which is appropriate because terminal-close is an unrecoverable teardown.
+// Forward a catchable SIGTERM first so dev-electron can reap its detached
+// process group, then escalate. SIGKILL first would orphan that group.
 if (process.platform !== "win32") {
-  process.on("SIGHUP", () => stopChildren("SIGKILL"));
+  process.on("SIGHUP", () => stopChildren("SIGHUP"));
 }
 
 let firstExit = 0;

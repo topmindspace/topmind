@@ -280,7 +280,7 @@ export async function runPandocToMarkdown(absPath, opts = {}) {
   const r = await tryExec(
     cmd,
     [...argsPrefix, absPath, "-t", "gfm", "--wrap=none"],
-    { timeoutMs },
+    { timeoutMs, ownedKind: "ingest-child" },
   );
   if (!r.ok) throw new Error(formatToolFail("pandoc", r.error || r.stderr || "pandoc failed"));
   const md = r.stdout || "";
@@ -307,7 +307,7 @@ export async function runMarkitdownToMarkdown(absPath, opts = {}) {
   if (ext && !argsPrefix.includes("-x") && !argsPrefix.includes("--extension")) {
     args.splice(argsPrefix.length, 0, "-x", ext);
   }
-  const r = await tryExec(cmd, args, { timeoutMs });
+  const r = await tryExec(cmd, args, { timeoutMs, ownedKind: "ingest-child" });
   if (!r.ok) {
     const detail = r.error || r.stderr || r.stdout || "markitdown failed";
     throw new Error(formatToolFail("markitdown", detail));

@@ -89,11 +89,12 @@ export function AiPanel({ hideComposer = false }: { hideComposer?: boolean } = {
     return () => cancelAnimationFrame(id);
   }, [messages, streaming, streamStatus]);
 
+  const workspaceRoot = useViewStore((s) => s.workspaceRoot);
   useEffect(() => {
     void refreshRuntimeStatus();
     void loadSessions();
     void loadModelCatalog({ forceLive: false, silent: true });
-  }, [refreshRuntimeStatus, loadSessions, loadModelCatalog]);
+  }, [refreshRuntimeStatus, loadSessions, loadModelCatalog, workspaceRoot]);
 
   useEffect(() => {
     return onLocal("ai:settings-changed", () => {

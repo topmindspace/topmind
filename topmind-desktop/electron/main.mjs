@@ -42,7 +42,12 @@ import { logInfo, logWarn, logError, attachFileLogger, getLogFilePath, summarize
 import { attachOpsJournal } from "./lib/ops-journal.mjs";
 import { loadAppSettings, saveAppSettings, updateAppSettings } from "./settings.mjs";
 import { closeWorkspaceWatcher, startWorkspaceWatcher, markIgnoredFileChanges } from "./watchers.mjs";
-import { invalidateNotesIndex } from "./lib/notes-index.mjs";
+import { invalidateNotesIndex, releaseNotesIndex } from "./lib/notes-index.mjs";
+import {
+  releaseDesktopOwned,
+  releaseDesktopWorkingSets,
+  reapDesktopOwned,
+} from "./lib/runtime-bounds.mjs";
 import {
   normalizeStoredWorkspaceHistory,
   listLaunchCandidates,
@@ -109,6 +114,13 @@ let defaultEngine = null, currentCtx = null, mainWindow = null, appSettings = nu
 let windowCreating = false; // Guard against concurrent createWindow calls (activate + whenReady race)
 /** True when app is intentionally quitting (menu Quit / before-quit). */
 let isQuitting = false;
+
+/** Drop in-memory projections and reap owned helpers for this process. */
+function releaseWorkspaceWorkingSets(reason) {
+  releaseNotesIndex();
+  releaseDesktopWorkingSets(reason);
+  reapDesktopOwned(releaseDesktopOwned({ reason }));
+}
 let aiStreamingActive = false; // Track AI streaming state for dock badge management
 let bootErrorShown = false;
 
@@ -306,6 +318,7 @@ function getContext() {
     /** Return to landing: stop watcher, clear live ctx, keep recents. */
     closeWorkspace: async () => {
       await closeWorkspaceWatcher();
+      releaseWorkspaceWorkingSets("workspace-close");
       currentCtx = null;
       // Keep recents; clear active root so boot does not re-open automatically
       // as "persisted non-default" if user only wanted landing.
@@ -587,6 +600,7 @@ async function activateWorkspace(candidate, opts = {}) {
       errors: launchStatus.contractErrors,
     });
   }
+  releaseWorkspaceWorkingSets("workspace-switch");
   if (mainWindow && !mainWindow.isDestroyed()) {
     await closeWorkspaceWatcher();
     await startWorkspaceWatcher(context, (p) => {
@@ -1461,6 +1475,7 @@ if (!hasLock) { app.quit(); } else {
     void closeWorkspaceWatcher();
     void stopClipBridge();
     globalShortcut.unregisterAll();
+    releaseWorkspaceWorkingSets("quit");
   });
 
   // Global BrowserWindow creation monitor — auto-destroy non-main windows.

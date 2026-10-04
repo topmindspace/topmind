@@ -12,6 +12,7 @@ import { t as ei18n } from "./lib/electron-i18n.mjs";
 import { assertPathWithin } from "./lib/path-safety.mjs";
 import { loadAppSettings } from "./settings.mjs";
 import { compactMessagesForModel, resolveCompactBudget } from "./lib/ai-session-compact.mjs";
+import { getDesktopWorkingSet, rememberDesktopTranscript } from "./lib/runtime-bounds.mjs";
 import { sanitizeInlineAiResult } from "./lib/inline-ai-result.mjs";
 import { rememberDistillHint } from "./lib/ai-tool-evidence.mjs";
 import {
@@ -414,16 +415,23 @@ export const AiService = {
   async loadMessages({ sessionId }, c) {
     const id = safeSessionId(sessionId);
     await ensureDir(msgDir(c));
-    return readJson(path.join(msgDir(c), id + ".json"), []);
+    const raw = await readJson(path.join(msgDir(c), id + ".json"), []);
+    const bounded = rememberDesktopTranscript(id, raw);
+    if (bounded !== raw) {
+      await writeText(path.join(msgDir(c), id + ".json"), JSON.stringify(bounded));
+    }
+    return bounded;
   },
   async saveMessages({ sessionId, messages }, c) {
     const id = safeSessionId(sessionId);
     await ensureDir(msgDir(c));
-    await writeText(path.join(msgDir(c), id + ".json"), JSON.stringify(messages, null, 2));
+    const bounded = rememberDesktopTranscript(id, messages);
+    await writeText(path.join(msgDir(c), id + ".json"), JSON.stringify(bounded));
     return { ok: true };
   },
   async clearSession({ sessionId }, c) {
     const id = safeSessionId(sessionId);
+    getDesktopWorkingSet().transcripts.delete(id);
     await fs.unlink(path.join(msgDir(c), id + ".json")).catch(() => {});
     await fs.unlink(path.join(msgDir(c), id + ".goal.json")).catch(() => {});
     const s = await lst(c);
@@ -435,6 +443,7 @@ export const AiService = {
     const d = msgDir(c);
     const es = await fs.readdir(d).catch(() => []);
     await Promise.all(es.map((e) => fs.unlink(path.join(d, e)).catch(() => {})));
+    getDesktopWorkingSet().transcripts.clear();
     await sst(c, { sessions: {}, history: [] });
     return { ok: true };
   },

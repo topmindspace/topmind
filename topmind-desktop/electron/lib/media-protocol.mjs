@@ -14,6 +14,7 @@ import { resolveUnderRoot } from "./platform.mjs";
 import { assertPathWithin } from "./path-safety.mjs";
 import { resolveDataRoot } from "./path-model.mjs";
 import { logWarn } from "./writeback.mjs";
+import { rememberDesktopFetchMedia } from "./runtime-bounds.mjs";
 
 export const MEDIA_SCHEME = "topmind-asset";
 const REMOTE_CACHE_DIR = ".topmind/media-cache";
@@ -158,6 +159,7 @@ async function serveRemoteImage(u, getCtx, net) {
   if (buf.length === 0 || buf.length > REMOTE_MAX_BYTES) {
     return new Response("bad size", { status: 502 });
   }
+  rememberDesktopFetchMedia({ id: cachePath || remoteUrl.href, bytes: buf.length });
 
   if (cachePath) {
     try {

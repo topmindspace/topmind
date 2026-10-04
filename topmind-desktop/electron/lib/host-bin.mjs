@@ -9,10 +9,36 @@ import { execFile } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { promisify } from "node:util";
 import { isDarwin, isWin32 } from "./platform.mjs";
+import { forgetDesktopOwned, registerDesktopOwned } from "./runtime-bounds.mjs";
 
-const execFileAsync = promisify(execFile);
+function execFileTracked(cmd, args, options, ownedKind) {
+  return new Promise((resolve, reject) => {
+    let child;
+    try {
+      child = execFile(cmd, args, options, (err, stdout, stderr) => {
+        if (child?.pid) forgetDesktopOwned(child.pid);
+        if (err) {
+          err.stdout = stdout;
+          err.stderr = stderr;
+          reject(err);
+          return;
+        }
+        resolve({ stdout, stderr });
+      });
+    } catch (err) {
+      reject(err);
+      return;
+    }
+    if (child?.pid) {
+      registerDesktopOwned({
+        kind: ownedKind || "host-child",
+        pid: child.pid,
+        token: String(cmd || ""),
+      });
+    }
+  });
+}
 
 /** @type {string | null} */
 let augmentedPathCache = null;
@@ -160,21 +186,21 @@ export async function tryExec(cmd, args, opts = {}) {
     if (needsWinCmdShim) {
       const comspec = process.env.ComSpec || "cmd.exe";
       const line = [quoteWinCmdArg(cmd), ...(args || []).map(quoteWinCmdArg)].join(" ");
-      ({ stdout, stderr } = await execFileAsync(comspec, ["/d", "/s", "/c", line], {
+      ({ stdout, stderr } = await execFileTracked(comspec, ["/d", "/s", "/c", line], {
         timeout: timeoutMs,
         maxBuffer: 16 * 1024 * 1024,
         windowsHide: true,
         env,
         shell: false,
-      }));
+      }, opts.ownedKind || "host-child"));
     } else {
-      ({ stdout, stderr } = await execFileAsync(cmd, args, {
+      ({ stdout, stderr } = await execFileTracked(cmd, args, {
         timeout: timeoutMs,
         maxBuffer: 16 * 1024 * 1024,
         windowsHide: true,
         env,
         shell: false,
-      }));
+      }, opts.ownedKind || "host-child"));
     }
     return {
       ok: true,

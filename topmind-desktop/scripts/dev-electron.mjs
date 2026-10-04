@@ -2,6 +2,7 @@ import { spawn, spawnSync } from "node:child_process";
 import path from "node:path";
 import { createDevServerEnv, waitForDevServer, waitForDevServerState } from "./dev-runtime.mjs";
 import { electronLaunchArgs } from "../electron/lib/platform.mjs";
+import { planSignalTeardown } from "../electron/lib/runtime-bounds.mjs";
 
 const cwd = process.cwd();
 const electronCli = path.join(cwd, "node_modules", "electron", "cli.js");
@@ -70,13 +71,7 @@ const child = spawn(process.execPath, [electronCli, ...electronArgs], {
 let exitCode = 0;
 let shuttingDown = false;
 
-function forwardSignal(signal) {
-  if (shuttingDown) {
-    return;
-  }
-  shuttingDown = true;
-  // Kill the child's whole process group on Unix (detached spawn above).
-  // Falls back to direct kill if the group isn't query-able (race / win32).
+function deliver(signal) {
   try {
     if (process.platform !== "win32" && child.pid) {
       process.kill(-child.pid, signal);
@@ -92,6 +87,19 @@ function forwardSignal(signal) {
   }
 }
 
+function forwardSignal(signal) {
+  if (shuttingDown) {
+    return;
+  }
+  shuttingDown = true;
+  // Catchable signal first so this process can reap the detached Electron
+  // group. A leading SIGKILL never runs this handler.
+  const plan = planSignalTeardown(signal);
+  deliver(plan.forward);
+  const timer = setTimeout(() => deliver(plan.escalate), plan.escalateAfterMs);
+  timer.unref?.();
+}
+
 process.on("SIGINT", () => forwardSignal("SIGINT"));
 process.on("SIGTERM", () => forwardSignal("SIGTERM"));
 // SIGHUP fires when the controlling terminal closes on macOS/Linux — without this
@@ -100,7 +108,7 @@ process.on("SIGTERM", () => forwardSignal("SIGTERM"));
 // old one — the visible symptom of the long-standing "AI 对话触发多窗口" bug.
 // Windows has no SIGHUP — listener is a no-op there.
 if (process.platform !== "win32") {
-  process.on("SIGHUP", () => forwardSignal("SIGKILL"));
+  process.on("SIGHUP", () => forwardSignal("SIGHUP"));
 }
 
 child.on("exit", (code, signal) => {

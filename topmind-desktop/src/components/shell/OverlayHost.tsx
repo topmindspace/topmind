@@ -22,6 +22,7 @@ import { getFocusable } from "../ui/Dialog";
 import { LazyBoundary } from "../ui/LazyBoundary";
 import type { OverlayKind, Selection } from "../../types";
 import { cn } from "../../lib/kit";
+import { createHotPathScope, mountOverlay } from "../../../electron/lib/runtime-bounds.mjs";
 
 const QuickCapture = lazy(() =>
   import("../overlays/QuickCapture").then((m) => ({ default: m.QuickCapture })),
@@ -164,8 +165,12 @@ export function OverlayHost() {
         first.focus();
       }
     };
-    window.addEventListener("keydown", onTrap);
-    return () => window.removeEventListener("keydown", onTrap);
+    const scope = createHotPathScope();
+    mountOverlay(scope, () => {
+      window.addEventListener("keydown", onTrap);
+      return () => window.removeEventListener("keydown", onTrap);
+    });
+    return () => scope.dispose();
   }, [overlay, portalEl]);
 
   useEffect(() => {
