@@ -189,3 +189,6 @@ topmind-desktop/dist/
 topmind-desktop/dist-electron/
 topmind-desktop/release/
 topmind-desktop/resources/
+
+# Release / pack outputs (npm pack)
+*.tgz
