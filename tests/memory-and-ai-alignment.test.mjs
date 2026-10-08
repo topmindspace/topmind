@@ -63,11 +63,10 @@ describe("memory consolidation is fusion, not blind append", () => {
   });
 });
 
-describe("Obsidian AI engine aligns with Desktop", (t) => {
-  if (!obsidian) {
-    t.skip(SKIP_OBSIDIAN || "topmind-obsidian checkout not found");
-    return;
-  }
+// describe 的回调拿到的是 SuiteContext，没有 t.skip()；缺 topmind-obsidian 时用 skip 选项整组跳过（回调不执行）。
+const OBSIDIAN_SKIP = obsidian ? false : (SKIP_OBSIDIAN || "topmind-obsidian checkout not found");
+
+describe("Obsidian AI engine aligns with Desktop", { skip: OBSIDIAN_SKIP }, () => {
   const adapter = fs.readFileSync(path.join(desktop, "electron", "ai-provider-adapter.mjs"), "utf8");
   const provider = fs.readFileSync(path.join(obsidian, "src", "bridge", "ai-provider.ts"), "utf8");
   const ops = fs.readFileSync(path.join(obsidian, "src", "services", "kernel-workspace-ops.ts"), "utf8");

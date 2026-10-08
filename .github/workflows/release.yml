@@ -412,10 +412,8 @@ jobs:
     if: >
       needs.plan.outputs.create_release == 'true' &&
       (
-        needs.plan.outputs.reuse_skills == 'true' ||
         needs.plan.outputs.reuse_extension == 'true' ||
-        needs.plan.outputs.reuse_desktop == 'true' ||
-        needs.plan.outputs.reuse_obsidian == 'true'
+        needs.plan.outputs.reuse_desktop == 'true'
       )
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -443,11 +441,10 @@ jobs:
             [[ -z "${name}" ]] && continue
             SURFACE=$(node --input-type=module -e "import { classifyReleaseAsset } from './scripts/plan-release-surfaces.mjs'; process.stdout.write(classifyReleaseAsset(process.argv[1]) || '')" "${name}")
             WANT=false
+            # 只复用 plan 给出的面（RELEASE_SURFACES：desktop、extension）；skills / obsidian 不再随引擎发版。
             case "${SURFACE}" in
-              skills) [[ "${{ needs.plan.outputs.reuse_skills }}" == "true" ]] && WANT=true ;;
               extension) [[ "${{ needs.plan.outputs.reuse_extension }}" == "true" ]] && WANT=true ;;
               desktop) [[ "${{ needs.plan.outputs.reuse_desktop }}" == "true" ]] && WANT=true ;;
-              obsidian) [[ "${{ needs.plan.outputs.reuse_obsidian }}" == "true" ]] && WANT=true ;;
             esac
             if [[ "${WANT}" == "true" ]]; then
               echo "  reuse ${name} (${SURFACE})"
