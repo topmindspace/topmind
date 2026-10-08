@@ -85,7 +85,7 @@ jobs:
   # ── Purge stale CI artifacts before building (prevents storage quota overflow) ─
   cleanup-artifacts:
     name: cleanup old artifacts
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 3
     permissions:
       actions: write
@@ -123,7 +123,7 @@ jobs:
   plan:
     name: plan surfaces
     needs: cleanup-artifacts
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
       extension: ${{ steps.plan.outputs.extension }}
@@ -134,7 +134,7 @@ jobs:
       tag: ${{ steps.plan.outputs.tag }}
       create_release: ${{ steps.plan.outputs.create_release }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - id: plan
         shell: bash
@@ -262,7 +262,7 @@ jobs:
     name: create release
     needs: plan
     if: needs.plan.outputs.create_release == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
       tag: ${{ steps.meta.outputs.tag }}
@@ -271,7 +271,7 @@ jobs:
       prerelease: ${{ steps.meta.outputs.prerelease }}
       make_latest: ${{ steps.meta.outputs.make_latest }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -381,10 +381,10 @@ jobs:
     name: wait for release
     needs: [plan, create-release]
     if: needs.plan.outputs.create_release == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Poll until release is visible
         env:
@@ -417,10 +417,10 @@ jobs:
         needs.plan.outputs.reuse_desktop == 'true' ||
         needs.plan.outputs.reuse_obsidian == 'true'
       )
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Copy unchanged assets from previous Latest
         env:
@@ -483,12 +483,12 @@ jobs:
       !cancelled() &&
       needs.plan.outputs.extension == 'true' &&
       (needs.wait-for-release.result == 'success' || needs.wait-for-release.result == 'skipped')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: npm
@@ -534,7 +534,7 @@ jobs:
             pack: pack:mac:ci
             artifact: desktop-macos
             label: "macOS (host arch)"
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             pack: pack:linux:ci
             artifact: desktop-linux-x64
             label: "Linux x64"
@@ -549,7 +549,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       # Sister surfaces (skills / obsidian) live in separate repos after the
       # split. Checkout them under .sister/ and point TOPMIND_*_SRC so
@@ -558,7 +558,7 @@ jobs:
       # skills/obsidian source and Settings → Install reports
       # "skills source not found: (none)".
       - name: Checkout topmind-skills (sister)
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           repository: topmindspace/topmind-skills
           ref: main
@@ -566,14 +566,14 @@ jobs:
         continue-on-error: true
 
       - name: Checkout topmind-obsidian (sister)
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           repository: topmindspace/topmind-obsidian
           ref: main
           path: .sister/topmind-obsidian
         continue-on-error: true
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: npm
@@ -693,12 +693,12 @@ jobs:
     name: prune old releases (keep 2)
     needs: [plan, finalize-release]
     if: always() && !cancelled() && needs.plan.outputs.tag != ''
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Prune to latest 2 releases
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -720,12 +720,12 @@ jobs:
         needs.pack-desktop.result == 'success' ||
         needs.reuse-previous.result == 'success'
       )
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -909,10 +909,10 @@ jobs:
       !cancelled() &&
       needs.plan.outputs.desktop == 'true' &&
       needs.finalize-release.result == 'success'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Update topmind Cask recipe in homebrew-tap
         env:
