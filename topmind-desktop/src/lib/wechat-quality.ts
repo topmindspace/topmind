@@ -1,7 +1,7 @@
 /**
  * 公众号质检子集 — AI 味词表 + 段长 / lint 规则。
  *
- * 规则与 `skills/topmind-wechat/scripts/{scan_ai_flavor,lint-wechat}.py` 同源：
+ * 规则与 `skills/topmind-wechat-post/scripts/{scan_ai_flavor,lint-wechat}.py`（topmind-writing-skills；旧名 topmind-wechat）同源：
  * 完整语义以 Python 真源为准，这里只保留 Desktop 预览 / 质检面板所需子集。
  * 改词表时请对照 skill 脚本，避免两套规则漂移。
  */

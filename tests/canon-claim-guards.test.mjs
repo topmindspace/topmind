@@ -142,7 +142,7 @@ function countFiles(dir, accept) {
 
 function frontmatterActionCategory(markdown) {
   const fm = String(markdown).split("---")[1] || "";
-  return fm.match(/^action_category:\s*(\S+)/m)?.[1] || "";
+  return fm.match(/^\s*action_category:\s*["']?([\w-]+)/m)?.[1] || ""; // top-level (legacy) or under metadata:
 }
 
 test("SKILL-ARCHITECTURE action rows match shipped SKILL.md categories", (t) => {

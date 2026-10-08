@@ -70,7 +70,7 @@
 | [`UIUX-AUDIT-2026-09-01.md`](./UIUX-AUDIT-2026-09-01.md) | 历史锚点；现行 IA 见 `topmind-desktop/DESIGN.md` |
 | [`suite-review-2026-09-24.md`](./suite-review-2026-09-24.md) | 套件评审快照（2026-09-24） |
 | [`AI-AGENT-PLATFORM-REMEDIATION-2026-09-25.md`](./AI-AGENT-PLATFORM-REMEDIATION-2026-09-25.md) | 智能体平台整改波次记录（已收官） |
-| [`wechat-studio-DESIGN.md`](./wechat-studio-DESIGN.md) | 实验页已删；公众号能力在 skills `topmind-wechat` |
+| [`wechat-studio-DESIGN.md`](./wechat-studio-DESIGN.md) | 实验页已删；公众号能力在写作包 topmind-writing-skills 的 `topmind-wechat-post`（旧名 `topmind-wechat`） |
 | monorepo `docs/design/UIUX-MD3-TRANSFORMATION-2026-09.md` | **SUPERSEDED** append-log；真源 `topmind-desktop/DESIGN.md` |
 | monorepo `docs/design/UIUX-MUSE-CUE-BENCHMARK-2026-09.md` | **SUPERSEDED** append-log（含十七–十九次波次） |
 | monorepo `docs/research-ui-ux-md3-2026-09.md` | 外部调研输入（历史） |

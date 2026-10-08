@@ -1,8 +1,10 @@
 /**
  * WechatService — skill-script export bypass for 公众号创作.
  *
- * When skills/topmind-wechat/scripts/md2wechat.py + Python are available,
- * export uses the skill truth source. Renderer TS path remains the fallback
+ * When the 公众号 skill's scripts/md2wechat.py + Python are available, export
+ * uses the skill truth source. The skill lives in topmind-writing-skills as
+ * skills/topmind-wechat-post (preferred); skills/topmind-wechat is the legacy
+ * name shipped by topmind-skills ≤ 4.15.1 and is kept as a fallback. Renderer TS path remains the fallback
  * (and the only path when scripts/Python are missing).
  *
  * Writes stay under the workspace package dir via absolute paths derived from
@@ -13,6 +15,8 @@ import { existsSync } from "node:fs";
 import { tryExec, pythonRunners } from "./lib/host-bin.mjs";
 import { defaultEngineCandidate, desktopAppRoot } from "./lib/engine-root.mjs";
 import { sp } from "./lib/workspace-helpers.mjs";
+import { getSkillsExtraRoot } from "./lib/skills-extra.mjs";
+import { resolveExtraSkillsRoots } from "./lib/skills-runtime.mjs";
 
 const THEME_FILES = new Set([
   "minimal-ink",
@@ -20,29 +24,52 @@ const THEME_FILES = new Set([
   "newsprint",
   "graphite",
   "amber-review",
+  "md3-business-blue",
 ]);
+
+/** Preferred skill dir first; legacy topmind-wechat stays as fallback. */
+const WECHAT_SKILL_DIRS = ["topmind-wechat-post", "topmind-wechat"];
 
 function skillPackageRoots() {
   const desktop = desktopAppRoot();
-  return [
+  /** @type {string[]} */
+  const parents = [
     // packaged / staged engine
-    path.join(defaultEngineCandidate(), "skills", "topmind-wechat"),
-    path.join(desktop, "resources", "topmind-engine", "skills", "topmind-wechat"),
-    // three-repo split siblings
-    path.join(desktop, "..", "..", "topmind-skills", "topmind-wechat"),
-    path.join(desktop, "..", "topmind-skills", "topmind-wechat"),
-    // legacy monorepo
-    path.join(desktop, "..", "skills", "topmind-wechat"),
+    path.join(defaultEngineCandidate(), "skills"),
+    path.join(desktop, "resources", "topmind-engine", "skills"),
+    // user extra skills roots (Settings ai.extraSkillsRoots + topmind_SKILLS_EXTRA)
+    ...(() => {
+      try {
+        return resolveExtraSkillsRoots();
+      } catch {
+        return [];
+      }
+    })(),
     // managed skills-extra cache
     (() => {
       try {
-        const { getSkillsExtraRoot } = require("./lib/skills-extra.mjs");
-        return path.join(getSkillsExtraRoot(), "topmind-wechat");
+        return getSkillsExtraRoot();
       } catch {
         return null;
       }
     })(),
+    // multi-repo split siblings (topmind-writing-skills owns topmind-wechat-post)
+    path.join(desktop, "..", "..", "topmind-writing-skills"),
+    path.join(desktop, "..", "topmind-writing-skills"),
+    path.join(desktop, "..", "..", "topmind-skills"),
+    path.join(desktop, "..", "topmind-skills"),
+    // legacy monorepo
+    path.join(desktop, "..", "skills"),
   ].filter(Boolean);
+  /** @type {string[]} */
+  const out = [];
+  for (const dir of WECHAT_SKILL_DIRS) {
+    for (const parent of parents) {
+      const candidate = path.join(parent, dir);
+      if (!out.includes(candidate)) out.push(candidate);
+    }
+  }
+  return out;
 }
 
 function skillScriptsDir() {

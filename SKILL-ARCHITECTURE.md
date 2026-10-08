@@ -276,13 +276,13 @@ skills/topmind/
 | `topmind-weread` | connector | 微信读书划线/笔记/统计同步 | "同步微信读书"、"划线同步" |
 | `topmind-x` | connector | X (Twitter) 发布/搜索/时间线 | "发推"、"搜索推文" |
 | `topmind-ledger` | memory | 通用记账到 `memory/ledgers/`（默认个人本，可选） | "记账"、"记一笔"、"花了"、"存入" |
-| `topmind-wechat` | write | 公众号交付包 / 审校 / 排版（`topmind-write` 的可选子技能） | "公众号"、"微信排版"、"发公众号" |
+| `topmind-wechat` | write | **已移出**：topmind-skills ≤ 4.15.1 自带的公众号子技能；4.15.2 起改用写作包的 `topmind-wechat-post`（外部可选） | — |
 
 子 skill 是实现模块，**不是独立前台产品**。用户不需要知道或选择它们。
 
 > **Connector 类型**：`topmind-weread` 和 `topmind-x` 是可选的 source connector skill，落点遵循 contract `ingest.connectors.*`。  
 > **记账**：`topmind-ledger` 是可选 skill（非连接器）；账本在记忆平面，与 `todo.md` 同族，不是第六个用户概念。  
-> **公众号**：`topmind-wechat` 是可选 write 子技能，不是第六个用户概念，也不是记账。
+> **公众号**：自 topmind-skills 4.15.2 起，公众号交付包 / 审校 / 排版由写作包 topmind-writing-skills 的 `topmind-wechat-post` 承担（外部 write 技能，不随核心包分发）；`topmind-write` 遇到公众号意图时路由过去。它不是第六个用户概念，也不是记账。
 
 ### 3.4 移植性（Portability）
 

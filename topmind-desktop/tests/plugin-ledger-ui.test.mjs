@@ -123,7 +123,7 @@ test("记账 mini-app source has one-stop entry + 看板 / 流水 / 分类", () 
     path.resolve(root, "../skills/topmind-ledger/SKILL.md"),
   ].filter(Boolean).find((p) => existsSync(p)) || path.resolve(root, "../skills/topmind-ledger/SKILL.md");
   const skill = readFileSync(skillPath, "utf8");
-  assert.match(skill, /entrypoint:\s*false/);
+  assert.match(skill, /entrypoint:\s*["']?false/);
   assert.match(skill, /如何打开/);
   assert.match(skill, /账本路径/);
   assert.match(skill, /memory\.dir.*ledgers|ledgers\//);

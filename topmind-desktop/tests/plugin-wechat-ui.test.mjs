@@ -229,6 +229,11 @@ test("quality issues expose i18n keys and skill-script export RPC exists", async
   assert.match(wechatSvc, /exportViaScript/);
   assert.match(wechatSvc, /md2wechat\.py/);
   assert.match(wechatSvc, /probeScripts/);
+  // 公众号 skill moved to topmind-writing-skills as topmind-wechat-post; legacy name stays as fallback
+  assert.match(wechatSvc, /"topmind-wechat-post",\s*"topmind-wechat"/);
+  assert.match(wechatSvc, /topmind-writing-skills/);
+  assert.match(wechatSvc, /resolveExtraSkillsRoots/);
+  assert.doesNotMatch(wechatSvc, /require\("\.\/lib\/skills-extra\.mjs"\)/, "ESM module must not call bare require()");
   const apiSrc = read("src/services/api.ts");
   assert.match(apiSrc, /exportViaScript/);
 

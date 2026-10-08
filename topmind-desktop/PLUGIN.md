@@ -36,7 +36,7 @@ Command palette: 「打开应用菜单」（`titlebar:apps-toggle` 事件与按�
 
 **topmind-ledger（记账）**：optional first-party mini-app with a one-stop surface (账本 + 常驻 AI/表单记账 · 看板 · 流水 · 分类).
 
-**topmind-wechat（公众号创作）**：optional first-party mini-app (plugin id `topmind-wechat`). Package workflow: 选题包 → 改稿 `公众号稿.md` → 质检三关（AI 味 + lint + 事实勾选）→ 微信排版预览 → 导出/复制 HTML. Writes only via `api.ws.save` / `savePath`. Package root defaults to `40-创作/YYYY-公众号/`（`settings.wechat.packageRoot` 可覆盖）. Quality/format rules are a TS subset of `skills/topmind-wechat` (`lint-wechat.py` / `scan_ai_flavor.py` / `md2wechat.py`).
+**topmind-wechat（公众号创作）**：optional first-party mini-app (plugin id `topmind-wechat`). Package workflow: 选题包 → 改稿 `公众号稿.md` → 质检三关（AI 味 + lint + 事实勾选）→ 微信排版预览 → 导出/复制 HTML. Writes only via `api.ws.save` / `savePath`. Package root defaults to `40-创作/YYYY-公众号/`（`settings.wechat.packageRoot` 可覆盖）. Quality/format rules are a TS subset of the `topmind-wechat-post` skill in topmind-writing-skills (legacy name `topmind-wechat`; `lint-wechat.py` / `scan_ai_flavor.py` / `md2wechat.py`); WechatService looks for `topmind-wechat-post` first (engine skills, extra skills roots, skills-extra cache, sibling checkouts) and falls back to `topmind-wechat`.
 
 **如何打开**（`settings.wechat.enabled`）：AI 工作区应用 pane · StatusBar 「公众号」chip · command palette 「公众号创作」(`topmind-wechat.open`) · Settings → Plugins → Open WeChat Studio. Toggle the plugin off and those chrome entries are omitted. **Not** a PrimaryNav item.
 

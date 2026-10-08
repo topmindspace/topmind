@@ -161,7 +161,7 @@ Names are the shipped list in `topmind-desktop/electron/lib/ai-tool-names.mjs` (
 
 ### Skills pack — all **keep**
 
-Daily entry `topmind`. Core: `topmind-capture` · `topmind-organize` · `topmind-write` · `topmind-memory` · `topmind-maintain` · `topmind-loop`. Optional connectors: `topmind-weread` · `topmind-x`. Optional satellite: `topmind-ledger` (not a PrimaryNav peer). Optional write sub-skill: `topmind-wechat`. Manifest: [topmind-skills/topmind-pack.json](https://github.com/topmindspace/topmind-skills/blob/main/topmind-pack.json).
+Daily entry `topmind`. Core: `topmind-capture` · `topmind-organize` · `topmind-write` · `topmind-memory` · `topmind-maintain` · `topmind-loop`. Optional connectors: `topmind-weread` · `topmind-x`. Optional satellite: `topmind-ledger` (not a PrimaryNav peer). WeChat (公众号) lives in the writing pack as `topmind-wechat-post` (topmind-writing-skills; external, loaded via extra skills roots) since skills 4.15.2. Manifest: [topmind-skills/topmind-pack.json](https://github.com/topmindspace/topmind-skills/blob/main/topmind-pack.json).
 
 ### UTR commands — all **keep** (optional surface)
 

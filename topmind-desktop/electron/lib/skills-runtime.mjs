@@ -138,8 +138,26 @@ function resetCacheIfRootChanged(skillsRoot) {
   }
 }
 
+function stripYamlQuotes(val) {
+  const v = String(val ?? "").trim();
+  if ((v.startsWith('"') && v.endsWith('"') && v.length >= 2) || (v.startsWith("'") && v.endsWith("'") && v.length >= 2)) {
+    return v.slice(1, -1);
+  }
+  return v;
+}
+
+function scalarValue(raw) {
+  const val = stripYamlQuotes(raw);
+  // Only bare true/false are booleans; quoted "true" stays a string (metadata is string→string).
+  const bare = String(raw ?? "").trim();
+  if (bare === "true") return true;
+  if (bare === "false") return false;
+  return val;
+}
+
 /**
- * Parse YAML-ish frontmatter (enough for SKILL.md: name, description fold, flags).
+ * Parse YAML-ish frontmatter (enough for SKILL.md: name, description fold, flags,
+ * block lists, and one level of nested maps such as Agent Skills `metadata:`).
  * @param {string} raw
  */
 export function parseSkillMarkdown(raw) {
@@ -155,14 +173,14 @@ export function parseSkillMarkdown(raw) {
   let i = 0;
   while (i < lines.length) {
     const line = lines[i];
-    const kv = line.match(/^([A-Za-z0-9_]+):\s*(.*)$/u);
+    const kv = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/u);
     if (!kv) {
       i += 1;
       continue;
     }
     const key = kv[1];
     let val = kv[2];
-    if (val === ">-" || val === "|" || val === ">") {
+    if (val === ">-" || val === "|" || val === ">" || val === "|-") {
       const parts = [];
       i += 1;
       while (i < lines.length && (/^[ \t]/.test(lines[i]) || lines[i] === "")) {
@@ -173,18 +191,37 @@ export function parseSkillMarkdown(raw) {
       continue;
     }
     if (val === "" || val === null) {
-      // list or empty
+      // block list, nested map (one level, e.g. `metadata:`), or empty
       const list = [];
+      const map = {};
+      let mapKeys = 0;
       i += 1;
-      while (i < lines.length && /^\s+-\s+/.test(lines[i])) {
-        list.push(lines[i].replace(/^\s+-\s+/, "").trim());
-        i += 1;
+      while (i < lines.length && (/^[ \t]+\S/.test(lines[i]) || lines[i] === "")) {
+        const cur = lines[i];
+        if (cur === "") {
+          i += 1;
+          continue;
+        }
+        const item = cur.match(/^\s+-\s+(.*)$/u);
+        if (item && mapKeys === 0) {
+          list.push(stripYamlQuotes(item[1]));
+          i += 1;
+          continue;
+        }
+        const sub = cur.match(/^\s+([A-Za-z0-9_.-]+):\s*(.*)$/u);
+        if (sub && list.length === 0) {
+          map[sub[1]] = scalarValue(sub[2]);
+          mapKeys += 1;
+          i += 1;
+          continue;
+        }
+        i += 1; // deeper / unsupported shapes are skipped, never fatal
       }
       if (list.length) frontmatter[key] = list;
+      else if (mapKeys) frontmatter[key] = map;
       else frontmatter[key] = val;
       continue;
     }
-    // strip quotes
     if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
       val = val.slice(1, -1);
     }
@@ -198,6 +235,51 @@ export function parseSkillMarkdown(raw) {
     body,
     description: String(frontmatter.description || "").trim(),
     name: String(frontmatter.name || "").trim(),
+  };
+}
+
+function toStringList(value) {
+  if (Array.isArray(value)) return value.map((v) => String(v).trim()).filter(Boolean);
+  if (typeof value !== "string") return [];
+  let s = value.trim();
+  if (!s) return [];
+  if (s.startsWith("[") && s.endsWith("]")) s = s.slice(1, -1);
+  return s
+    .split(/[,，、]/u)
+    .map((part) => stripYamlQuotes(part))
+    .filter(Boolean);
+}
+
+function toBool(value) {
+  if (value === true) return true;
+  if (typeof value === "string") return value.trim().toLowerCase() === "true";
+  return false;
+}
+
+/**
+ * Normalize topmind custom skill fields. Reads the legacy top-level keys first
+ * (old SKILL.md files) and falls back to Agent Skills `metadata.*` (spec-valid
+ * files), so both layouts parse to the same shape.
+ * @param {Record<string, unknown>} frontmatter
+ */
+export function resolveSkillMeta(frontmatter) {
+  const fm = frontmatter && typeof frontmatter === "object" ? frontmatter : {};
+  const meta = fm.metadata && typeof fm.metadata === "object" && !Array.isArray(fm.metadata) ? fm.metadata : {};
+  const pick = (key) => (fm[key] !== undefined && fm[key] !== "" ? fm[key] : meta[key]);
+  const str = (key) => {
+    const v = pick(key);
+    return v === undefined || v === null ? "" : String(v).trim();
+  };
+  return {
+    version: str("version"),
+    actionCategory: str("action_category"),
+    entrypoint: toBool(pick("entrypoint")),
+    triggers: toStringList(pick("triggers")),
+    tags: toStringList(pick("tags")),
+    degradation: str("degradation"),
+    author: str("author"),
+    homepage: str("homepage"),
+    updated: str("updated"),
   };
 }
 
@@ -236,15 +318,17 @@ export function listSkillCatalog(opts = {}) {
       try {
         const raw = readFileSync(skillPath, "utf8");
         const parsed = parseSkillMarkdown(raw);
+        const meta = resolveSkillMeta(parsed.frontmatter);
         const name = parsed.name || id;
         byId.set(name || id, {
           id: name || id,
           directory: id,
           name: name || id,
           description: parsed.description || "",
-          actionCategory: parsed.frontmatter.action_category || "action",
-          entrypoint: parsed.frontmatter.entrypoint === true,
-          triggers: Array.isArray(parsed.frontmatter.triggers) ? parsed.frontmatter.triggers : [],
+          actionCategory: meta.actionCategory || "action",
+          entrypoint: meta.entrypoint,
+          triggers: meta.triggers,
+          version: meta.version,
           path: skillPath,
           source,
           skillsRoot: rootDir,
@@ -333,12 +417,14 @@ export function loadSkillBody(skillId, opts = {}) {
   if (!raw) throw new Error(`Skill not found: ${id}`);
 
   const parsed = parseSkillMarkdown(raw);
+  const meta = resolveSkillMeta(parsed.frontmatter);
   const result = {
     id: parsed.name || id,
     path: usedPath,
     description: parsed.description,
-    actionCategory: parsed.frontmatter.action_category,
-    entrypoint: parsed.frontmatter.entrypoint === true,
+    actionCategory: meta.actionCategory || undefined,
+    entrypoint: meta.entrypoint,
+    version: meta.version || undefined,
     body: parsed.body,
     raw,
     frontmatter: parsed.frontmatter,

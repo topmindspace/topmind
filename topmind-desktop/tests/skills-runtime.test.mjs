@@ -4,10 +4,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
+import os from "node:os";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import {
   parseSkillMarkdown,
+  resolveSkillMeta,
   listSkillCatalog,
   loadSkillBody,
   loadSkillResource,
@@ -38,6 +41,93 @@ Hello
   assert.match(p.description, /Capture links/);
   assert.match(p.description, /Do NOT/);
   assert.match(p.body, /# Body/);
+});
+
+const LEGACY_SKILL = `---
+name: topmind-wechat-post
+version: 0.3.0
+description: "公众号. Use when 公众号排版. Do NOT use for 小红书."
+action_category: write
+entrypoint: false
+triggers:
+  - 公众号
+  - "微信排版"
+tags: [wechat, write]
+degradation: ../shared/capability-degradation.md
+---
+
+# Legacy body
+`;
+
+const SPEC_SKILL = `---
+name: topmind-wechat-post
+description: "公众号. Use when 公众号排版. Do NOT use for 小红书."
+license: MIT
+compatibility: topmind workspace
+metadata:
+  version: "0.3.1"
+  action_category: "write"
+  entrypoint: "false"
+  triggers: "公众号, 微信排版"
+  tags: "wechat, write"
+  degradation: "../shared/capability-degradation.md"
+  author: "TopMindSpace"
+---
+
+# Spec body
+`;
+
+test("parseSkillMarkdown reads one-level nested metadata map", () => {
+  const p = parseSkillMarkdown(SPEC_SKILL);
+  assert.equal(p.name, "topmind-wechat-post");
+  assert.equal(p.frontmatter.license, "MIT");
+  assert.equal(typeof p.frontmatter.metadata, "object");
+  assert.equal(p.frontmatter.metadata.version, "0.3.1");
+  assert.equal(p.frontmatter.metadata.entrypoint, "false");
+  assert.match(p.body, /# Spec body/);
+});
+
+test("resolveSkillMeta: legacy top-level and spec metadata parse to the same shape", () => {
+  const legacy = resolveSkillMeta(parseSkillMarkdown(LEGACY_SKILL).frontmatter);
+  const spec = resolveSkillMeta(parseSkillMarkdown(SPEC_SKILL).frontmatter);
+  for (const meta of [legacy, spec]) {
+    assert.equal(meta.actionCategory, "write");
+    assert.equal(meta.entrypoint, false);
+    assert.deepEqual(meta.triggers, ["公众号", "微信排版"]);
+    assert.deepEqual(meta.tags, ["wechat", "write"]);
+    assert.equal(meta.degradation, "../shared/capability-degradation.md");
+  }
+  assert.equal(legacy.version, "0.3.0");
+  assert.equal(spec.version, "0.3.1");
+});
+
+test("resolveSkillMeta: top-level wins over metadata; entrypoint true from bool or string", () => {
+  const both = resolveSkillMeta({ action_category: "router", metadata: { action_category: "write", entrypoint: "true" } });
+  assert.equal(both.actionCategory, "router");
+  assert.equal(both.entrypoint, true);
+  assert.equal(resolveSkillMeta({ entrypoint: true }).entrypoint, true);
+  assert.equal(resolveSkillMeta({ metadata: { entrypoint: "false" } }).entrypoint, false);
+  assert.deepEqual(resolveSkillMeta({ metadata: { triggers: "记账，记一笔、花了" } }).triggers, ["记账", "记一笔", "花了"]);
+  assert.deepEqual(resolveSkillMeta({}).triggers, []);
+  assert.equal(resolveSkillMeta(null).actionCategory, "");
+});
+
+test("listSkillCatalog / loadSkillBody read metadata-only skills from extra roots", () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), "skills-meta-"));
+  try {
+    mkdirSync(path.join(dir, "topmind-wechat-post"), { recursive: true });
+    writeFileSync(path.join(dir, "topmind-wechat-post", "SKILL.md"), SPEC_SKILL, "utf8");
+    const catalog = listSkillCatalog({ engineRoot, extraRoots: [dir] });
+    const hit = catalog.find((s) => s.id === "topmind-wechat-post");
+    assert.ok(hit, "metadata-only external skill discovered");
+    assert.equal(hit.source, "external");
+    assert.equal(hit.actionCategory, "write");
+    assert.equal(hit.entrypoint, false);
+    assert.deepEqual(hit.triggers, ["公众号", "微信排版"]);
+    assert.equal(hit.version, "0.3.1");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test("listSkillCatalog discovers monorepo skills pack", () => {

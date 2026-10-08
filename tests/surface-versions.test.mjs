@@ -123,7 +123,7 @@ test("skill SKILL.md frontmatter versions follow pack truth source", (t) => {
     const skillMd = path.join(skillsRoot, d.name, "SKILL.md");
     if (!fs.existsSync(skillMd)) continue;
     const text = fs.readFileSync(skillMd, "utf8");
-    const m = text.match(/^version:\s*(.+)$/mu);
+    const m = text.match(/^\s*version:\s*["']?([^"'\n]+?)["']?\s*$/mu); // top-level (legacy) or metadata.version
     assert.ok(m, `${d.name}/SKILL.md missing version frontmatter`);
     assert.equal(
       m[1].trim(),

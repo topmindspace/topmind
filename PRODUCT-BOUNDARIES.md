@@ -114,10 +114,10 @@ topmind 是 Agent 时代的本地优先工作台，按需组合四条独立能�
 ```text
 topmind (router)
   ├── capture / organize / write / memory / maintain / loop
-  └── optional: topmind-weread / topmind-x / topmind-ledger / topmind-wechat
+  └── optional: topmind-weread / topmind-x / topmind-ledger
 ```
 
-可选技能不是新的用户概念：`topmind-ledger` 是记账卫星，`topmind-wechat` 是 write 子技能。
+可选技能不是新的用户概念：`topmind-ledger` 是记账卫星。公众号能力自 topmind-skills 4.15.2 起只在写作包 topmind-writing-skills 的 `topmind-wechat-post`（外部 write 技能，经 extra skills roots 加载），不再随核心包分发。
 
 - 纯 Markdown + `topmind-pack.json`
 - 执行面：Host 文件工具 → 可选 UTR → 对话建议
