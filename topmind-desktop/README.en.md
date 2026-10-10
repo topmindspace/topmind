@@ -55,17 +55,7 @@ Default three columns: **nav → stream → AI workspace**. The main narrative i
   <img src="../docs/images/desktop-apps.jpg" alt="topmind Desktop · AI workspace Apps pane: ingest · WeRead · bookkeeping" width="430" />
 </p>
 
-### 3. Full product demo
-
-<p align="center">
-  <img src="../docs/images/topmind-demo.gif" alt="topmind Desktop product demo" width="820" />
-</p>
-
-<p align="center">
-  <sub>If the GIF does not play, download the <a href="../docs/images/topmind-demo.mp4">HD MP4 demo</a>.</sub>
-</p>
-
-### 4. Interaction map
+### 3. Interaction map
 
 > Chords below are written in macOS glyph form (`⌘`). Inside the app on Windows / Linux they **render** as `Ctrl` chords (`Ctrl+Shift+N`) — a shortcut is declared once and labelled per platform.
 

@@ -38,16 +38,6 @@ AI workspace tabs: **Chat** (multi-step tool agent) · **Suggest** (confirm to s
 - API keys use **safeStorage + local AES** dual-layer encryption (survive upgrade / re-sign)
 - Live model catalogs from 14 providers (models.dev + official endpoints)
 
-### Full product demo
-
-<p align="center">
-  <img src="./docs/images/topmind-demo.gif" alt="topmind interactive product demo" width="820" />
-</p>
-
-<p align="center">
-  <sub>If the GIF does not play in your environment, download the <a href="./docs/images/topmind-demo.mp4">HD MP4 demo</a>.</sub>
-</p>
-
 ---
 
 ## Why topmind?
