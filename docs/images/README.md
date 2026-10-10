@@ -3,11 +3,13 @@
 [简体中文](README.md) · [English](README.en.md)
 
 本目录存放项目文档引用的**已智能压缩** UI 界面图与**全流程动态演示**资源。  
-高清源图在 `topmind-desktop/resources/img/`——该目录**已被 gitignore**（只存在于开发机），请把它当作本机源图库，而不是仓库路径。
+高清源图放在本地的 `topmind-desktop/resources/img/`，该目录已被 gitignore，不在仓库里。
+
+> **截图隐私约定**：入库截图只用演示工作区。本机路径、人名、城市、笔名和第三方文档名一律不入图；已入库的截图里这类文字做了马赛克处理。重新截图请在干净的演示工作区里进行，不要对截图做内容改写。
 
 > **静帧为 2026-09 三栏 chrome · Design System 4.0.5（ZCode Neutral + MD3 暖纸色）**：ActivityBar 记一下；主锚 动态 / Inbox / 交付 / 我的情况；搜索 = ⌘K / ⌘P；右栏是 AI 工作区（对话 / 建议 / 清单 / 应用）。像素 / IA 真源见 `topmind-desktop/DESIGN.md`。若某行仍沿用 2026-08 旧 chrome（TitleBar：记一下 / 💡 / 搜索 / Apps）或冷灰/深色旧主题，该行会明确标注——不要当成现行界面。
 >
-> 媒体策略：主截图是同一界面的中英双份压缩导出（`desktop-stream.jpg` / `desktop-stream-en.jpg`；源图为开发机 `resources/img/Stream-AI建议.png` 与 `Stream-AI建议-en.png`）；全流程动态演示以高保真满彩 GIF 为主显示格式（GitHub 原生支持 `<img>` 内联动画），MP4 高清视频作为备用下载源。
+> 媒体策略：主截图是同一界面的中英双份压缩导出（主图为 `desktop-stream-en.jpg`，英文界面）；全流程动态演示以高保真满彩 GIF 为主显示格式（GitHub 原生支持 `<img>` 内联动画），MP4 高清视频作为备用下载源。
 
 ---
 
@@ -25,13 +27,11 @@
 
 | 文档图 | 源（resources/img） | 典型用途 |
 |--------|---------------------|----------|
-| `desktop-stream.jpg` | 2026-09-30 产品截图 | **中文主截图**：三栏工作台 · 动态时间轴 + 右栏 AI 建议 |
 | `desktop-stream-en.jpg` | 2026-09-30 产品截图 | **英文主截图**：三栏工作台 + AI 对话清单（check my todo） |
 | `desktop-suggest-en.jpg` | 2026-09-30 产品截图 | AI 建议分面 — Inbox needs placement（确认执行） |
 | `desktop-memory-todo-zh.jpg` | 2026-09-30 产品截图 | 我的情况（画像/周期/专题）+ 清单待办表 |
 | `desktop-settings-general-zh.jpg` | 2026-09-30 产品截图 | 设置 · 通用（主题/色彩种子/界面色调/语言） |
 | `desktop-settings-general-en.jpg` | 2026-09-30 产品截图 | Settings · General (Theme / Color seed / Language) |
-| `desktop-settings-ai-zh.jpg` | 2026-09-30 产品截图 | 设置 · AI（供应商/模型/API Key 双层加密/Agent 步数） |
 | `desktop-ai-todo.jpg` | `AI清单.png` | AI 工作区**清单**分面 —— 带 AI 来源标记的待办 |
 | `desktop-apps.jpg` | `AI应用.png` | AI 工作区**应用**分面 —— 知识加工 · 微信读书 · 记账 |
 | `desktop-editor.jpg` | `文章查看-编辑器.png` | Quiet Paper 专注 Markdown 编辑器 |
@@ -47,7 +47,6 @@
 |--------|------|
 | `obsidian-stream-zh.png` | topmind Stream 插件 · 动态时间轴（中文 UI） |
 | `obsidian-stream-en.png` | topmind Stream 插件 · 动态时间轴（英文 UI） |
-| `obsidian-profile-zh.png` | 插件「我的情况」记忆浏览（中文 UI） |
 | `obsidian-suggestions-zh.png` | 插件侧栏 AI 建议（中文 UI） |
 | `obsidian-todos-zh.png` | 插件侧栏清单（中文 UI） |
 
@@ -57,7 +56,7 @@
 
 | 文档 | 用法 |
 |------|------|
-| [`../../README.md`](../../README.md) · [`README.zh-CN.md`](../../README.zh-CN.md) | 中文总览：`desktop-stream.jpg` 为主图，并列英文 chrome（双语演示）+ GIF + MP4 备用 |
+| [`../../README.md`](../../README.md) · [`README.zh-CN.md`](../../README.zh-CN.md) | 中文总览：`desktop-stream-en.jpg` 为主图 + GIF + MP4 备用 |
 | [`../../README.en.md`](../../README.en.md) | 英文总览：`desktop-stream-en.jpg` 为主图，并列中文 chrome + GIF + MP4 备用 |
 | [`../../topmind-desktop/README.md`](../../topmind-desktop/README.md) · [`README.zh-CN.md`](../../topmind-desktop/README.zh-CN.md) | 富工作台：中文核心截图 + 清单/应用分面 + GIF + 功能心智表 |
 | [`../../topmind-desktop/README.en.md`](../../topmind-desktop/README.en.md) | 富工作台：英文核心截图 + 同上 |
@@ -67,7 +66,7 @@
 ```bash
 # 导出静帧：最长边缩到 1440px，再转 JPEG q85
 sips -Z 1440 -s format jpeg -s formatOptions 85 \
-  "topmind-desktop/resources/img/Stream-AI建议.png" --out docs/images/desktop-stream.jpg
+  "topmind-desktop/resources/img/Stream-AI建议-en.png" --out docs/images/desktop-stream-en.jpg
 
 # 右栏 AI 工作区窄裁图本身是 1x，无需重采样
 sips -s format jpeg -s formatOptions 88 \

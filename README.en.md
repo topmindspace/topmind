@@ -23,10 +23,6 @@ Navigation → stream timeline → AI workspace (**Chat · Suggest · List · Ap
   <img src="./docs/images/desktop-stream-en.jpg" alt="topmind Desktop three-column workbench with AI chat todo panel (English)" width="820" />
 </p>
 
-<p align="center">
-  <img src="./docs/images/desktop-stream.jpg" alt="Topmind Desktop 三栏工作台 + AI 建议（简体中文）" width="820" />
-</p>
-
 AI workspace tabs: **Chat** (multi-step tool agent) · **Suggest** (confirm to settle) · **List** (`memory/todo.md`) · **Apps** (connectors).
 
 | AI Suggest (inbox placement) | My profile · List |
@@ -35,9 +31,9 @@ AI workspace tabs: **Chat** (multi-step tool agent) · **Suggest** (confirm to s
 
 ### Settings (bilingual · dual-layer keys)
 
-| General | AI provider |
+| General (English) | General (Simplified Chinese) |
 |---|---|
-| <img src="./docs/images/desktop-settings-general-en.jpg" alt="Settings — general appearance and layout" width="400" /> | <img src="./docs/images/desktop-settings-ai-zh.jpg" alt="AI provider and model settings" width="400" /> |
+| <img src="./docs/images/desktop-settings-general-en.jpg" alt="Settings — general appearance and layout" width="400" /> | <img src="./docs/images/desktop-settings-general-zh.jpg" alt="Settings: general (appearance and layout)" width="400" /> |
 
 - API keys use **safeStorage + local AES** dual-layer encryption (survive upgrade / re-sign)
 - Live model catalogs from 14 providers (models.dev + official endpoints)
@@ -106,7 +102,7 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Opti
 |---|---|
 | ![AI Suggestions](docs/images/obsidian-suggestions-zh.png) | ![Todos](docs/images/obsidian-todos-zh.png) |
 
-- **Option A — Community Plugin Store** *(submission in review)*: after listing, search `Topmind Stream` under **Settings → Community plugins → Browse**.
+- **Option A — Community Plugin Store** *(listed)*: search `Topmind Stream` under **Settings → Community plugins → Browse**.
 - **Option B — BRAT**: add the GitHub repo `topmindspace/topmind-obsidian` in BRAT.
 - **Option C — Manual zip**: download `topmind-obsidian-<ver>.zip` from [Releases](https://github.com/topmindspace/topmind-obsidian/releases) and extract to `<Vault>/.obsidian/plugins/topmind-stream/`.
 - After enabling, open the command palette (`⌘P` / `Ctrl+P`) and run **Topmind: Open Stream**.

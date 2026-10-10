@@ -20,10 +20,6 @@
 导航 → 动态流时间轴 → AI 工作区（**对话 · 建议 · 清单 · 应用**）。主线是本周动态；AI 负责提议，落盘前一律等你确认。界面提供 **简体中文 / English** 双语 chrome（跟系统语言；工作区内容语言不受影响）。
 
 <p align="center">
-  <img src="./docs/images/desktop-stream.jpg" alt="Topmind Desktop 三栏工作台：动态流时间轴 + AI 建议（简体中文）" width="820" />
-</p>
-
-<p align="center">
   <img src="./docs/images/desktop-stream-en.jpg" alt="topmind Desktop three-column workbench with AI chat todo panel (English)" width="820" />
 </p>
 
@@ -35,9 +31,9 @@ AI 工作区四页签：**对话**（多步工具智能体）· **建议**（确
 
 ### 设置（双语 · 双层密钥）
 
-| 通用设置 | AI 供应商 |
+| 通用设置（English） | 通用设置（简体中文） |
 |---|---|
-| <img src="./docs/images/desktop-settings-general-en.jpg" alt="Settings — general appearance and layout" width="400" /> | <img src="./docs/images/desktop-settings-ai-zh.jpg" alt="AI provider and model settings" width="400" /> |
+| <img src="./docs/images/desktop-settings-general-en.jpg" alt="Settings — general appearance and layout" width="400" /> | <img src="./docs/images/desktop-settings-general-zh.jpg" alt="设置：通用（外观与布局）" width="400" /> |
 
 - 密钥 **safeStorage + 本机 AES** 双层，升级/重签名后保留
 - 14 家供应商实时模型列表（models.dev + 官方接口）
@@ -104,7 +100,7 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Opti
 | ![AI 建议](docs/images/obsidian-suggestions-zh.png) | ![清单](docs/images/obsidian-todos-zh.png) |
 
 - **方式 A：Obsidian 官方社区插件市场**：
-  *（官方社区插件审核发布中）* 上架后可在 Obsidian **设置 ➔ 社区插件 ➔ 浏览** 搜索 `topmind stream` 一键安装。
+  已上架官方社区插件市场：在 Obsidian **设置 ➔ 社区插件 ➔ 浏览** 搜索 `topmind stream` 一键安装。
 - **方式 B：BRAT 插件一键安装**：
   在 Obsidian BRAT 插件中添加 GitHub 仓库 `topmindspace/topmind-obsidian`。
 - **方式 C：手动解压安装**：
