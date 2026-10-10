@@ -2,26 +2,18 @@
 
 [简体中文](README.md) · [English](README.en.md)
 
-本目录存放项目文档引用的**已智能压缩** UI 界面图与**全流程动态演示**资源。  
+本目录存放项目文档引用的**已智能压缩** UI 界面图资源。  
 高清源图放在本地的 `topmind-desktop/resources/img/`，该目录已被 gitignore，不在仓库里。
 
 > **截图隐私约定**：入库截图只用演示工作区。本机路径、人名、城市、笔名和第三方文档名一律不入图；已入库的截图里这类文字做了马赛克处理。重新截图请在干净的演示工作区里进行，不要对截图做内容改写。
 
 > **静帧为 2026-09 三栏 chrome · Design System 4.0.5（ZCode Neutral + MD3 暖纸色）**：ActivityBar 记一下；主锚 动态 / Inbox / 交付 / 我的情况；搜索 = ⌘K / ⌘P；右栏是 AI 工作区（对话 / 建议 / 清单 / 应用）。像素 / IA 真源见 `topmind-desktop/DESIGN.md`。若某行仍沿用 2026-08 旧 chrome（TitleBar：记一下 / 💡 / 搜索 / Apps）或冷灰/深色旧主题，该行会明确标注——不要当成现行界面。
 >
-> 媒体策略：主截图是同一界面的中英双份压缩导出（主图为 `desktop-stream-en.jpg`，英文界面）；全流程动态演示以高保真满彩 GIF 为主显示格式（GitHub 原生支持 `<img>` 内联动画），MP4 高清视频作为备用下载源。
+> 媒体策略：主截图是同一界面的中英双份压缩导出（主图为 `desktop-stream-en.jpg`，英文界面）。
 
 ---
 
 ## 媒体资源列表
-
-### 动态演示资源
-
-| 资源文件 | 格式 | 说明 |
-|----------|------|------|
-| `topmind-demo.gif` | Animated GIF (800px / 12fps / two-pass palette) | **主显示格式**（GitHub `<img>` 原生内联动画，13 个独立场景平滑淡入淡出过场） |
-| `topmind-demo.mp4` | MP4 (H.264 / 1080p / 30fps) | HD 高清备用下载源（GIF 无法播放时用本地播放器打开） |
-| `topmind-demo.webm` | WebM (VP9) | 脚本生成的兼容备份格式（当前 README 未直接引用） |
 
 ### 核心图片文件
 
@@ -71,20 +63,6 @@ sips -Z 1440 -s format jpeg -s formatOptions 85 \
 # 右栏 AI 工作区窄裁图本身是 1x，无需重采样
 sips -s format jpeg -s formatOptions 88 \
   "topmind-desktop/resources/img/AI清单.png" --out docs/images/desktop-ai-todo.jpg
-
-# 合成动态演示资源 topmind-demo.mp4 / webm / gif
-# 使用两遍调色板优化（stats_mode=diff）确保 GIF 忠实还原视频色彩
-node scripts/create-demo-video.mjs
 ```
 
 导出到 `docs/images/` 不会改动源 PNG —— 一律用 `--out` 落盘。
-
-### GIF 生成技术说明
-
-GIF 采用 **two-pass palette** 方式生成，确保忠实还原视频内容：
-
-1. **第一遍**：从完整视频生成最优调色板（`palettegen=stats_mode=diff:max_colors=256`）
-2. **第二遍**：将调色板应用到视频帧（`paletteuse=dither=sierra2_4a:diff_mode=rectangle`）
-3. **参数**：800px 宽度 / 12fps / lanczos 缩放算法
-
-这种方式确保 GIF 的色彩与 MP4 视频保持一致，避免单遍生成时的色彩偏差。

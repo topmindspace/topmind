@@ -55,17 +55,7 @@
   <img src="../docs/images/desktop-apps.jpg" alt="Topmind Desktop · AI 工作区应用分面：知识加工 · 微信读书 · 记账" width="430" />
 </p>
 
-### 3. 全流程动态演示
-
-<p align="center">
-  <img src="../docs/images/topmind-demo.gif" alt="Topmind Desktop 完整功能演示动画" width="820" />
-</p>
-
-<p align="center">
-  <sub>如果环境无法自动播放，可直接下载或播放 <a href="../docs/images/topmind-demo.mp4">HD MP4 高清演示视频</a>。</sub>
-</p>
-
-### 4. 核心功能与交互心智
+### 3. 核心功能与交互心智
 
 > 下表的快捷键写作 macOS 字形（`⌘`）。Windows / Linux 上应用内**显示**的是 `Ctrl` 系列（如 `Ctrl+Shift+N`）——快捷键只声明一次，按平台渲染。
 

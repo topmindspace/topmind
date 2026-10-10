@@ -2,7 +2,7 @@
 
 [简体中文](README.md) · [English](README.en.md)
 
-Compressed UI screenshots and the full-flow product demo live here.  
+Compressed UI screenshots live here.  
 High-resolution sources are kept locally under `topmind-desktop/resources/img/`; that directory is gitignored and not part of the repository.
 
 > **Screenshot privacy rule**: committed screenshots use a demo workspace only. Local paths, personal names, cities, pen names and third-party document names must not appear; where they did, the text is mosaic-redacted. Re-shoot in a clean demo workspace and do not edit screenshot content.
@@ -11,19 +11,11 @@ High-resolution sources are kept locally under `topmind-desktop/resources/img/`;
 >
 > 2026-09-27 refresh: `desktop-stream-en.jpg` was re-shot from the live app in the warm-paper theme. `desktop-ai-agent.jpg` remains a 2026-08 still of the old AI rail.
 >
-> Media policy: the primary still is the compressed export of `Stream-AI建议-en.png` (English chrome). The full-flow demo uses a high-fidelity color GIF as the inline format (GitHub plays `<img>` animation natively). The MP4 is the HD download fallback.
+> Media policy: the primary still is the compressed export of `Stream-AI建议-en.png` (English chrome).
 
 ---
 
 ## Media list
-
-### Product demo
-
-| File | Format | Notes |
-|------|--------|-------|
-| `topmind-demo.gif` | Animated GIF (800px / 12fps / two-pass palette) | **Primary display** (GitHub `<img>` inline animation; 13 scenes with fades) |
-| `topmind-demo.mp4` | MP4 (H.264 / 1080p / 30fps) | HD download fallback |
-| `topmind-demo.webm` | WebM (VP9) | Script-generated compatibility copy (not referenced by READMEs) |
 
 ### Core stills
 
@@ -71,20 +63,6 @@ sips -Z 1440 -s format jpeg -s formatOptions 85 \
 # Narrow AI-workspace pane crops are already 1x — export without resampling
 sips -s format jpeg -s formatOptions 88 \
   "topmind-desktop/resources/img/AI清单.png" --out docs/images/desktop-ai-todo.jpg
-
-# Compose topmind-demo.mp4 / webm / gif
-# Two-pass palette (stats_mode=diff) keeps GIF color close to the video
-node scripts/create-demo-video.mjs
 ```
 
 Exporting into `docs/images/` never modifies the source PNGs — always pass `--out`.
-
-### GIF generation
-
-GIF uses a **two-pass palette** so color stays faithful to the video:
-
-1. **Pass 1**: build the palette from the full video (`palettegen=stats_mode=diff:max_colors=256`)
-2. **Pass 2**: apply the palette (`paletteuse=dither=sierra2_4a:diff_mode=rectangle`)
-3. **Params**: 800px wide / 12fps / lanczos
-
-This avoids the color drift of a single-pass GIF.

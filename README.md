@@ -38,16 +38,6 @@ AI 工作区四页签：**对话**（多步工具智能体）· **建议**（确
 - 密钥 **safeStorage + 本机 AES** 双层，升级/重签名后保留
 - 14 家供应商实时模型列表（models.dev + 官方接口）
 
-### 全流程动态演示
-
-<p align="center">
-  <img src="./docs/images/topmind-demo.gif" alt="Topmind 完整功能演示动画" width="820" />
-</p>
-
-<p align="center">
-  <sub>如果环境无法自动播放，可下载或用本地播放器打开 <a href="./docs/images/topmind-demo.mp4">HD MP4 高清演示视频</a>。</sub>
-</p>
-
 ---
 
 ## 为什么选择 topmind？
