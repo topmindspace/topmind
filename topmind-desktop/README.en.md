@@ -81,7 +81,7 @@ Default three columns: **nav → stream → AI workspace**. The main narrative i
 | **Ingest hub** | Default anydoc → Markdown (Word / PPT / Excel / ODF / RTF / EPUB / PDF / CSV); optional markitdown / pandoc; mail uses the built-in path |
 
 - **Reading Aa**: size / leading / family / measure / margins / paper (edit and preview share the same chrome; preview is a static HTML snapshot, not live TipTap)  
-- **Files**: `.md` opens in the Markdown editor (primary canvas and split pane); other files use `FilePreviewView` (sandboxed HTML, text, or open-external)  
+- **Files**: `.md` opens in the Markdown editor (primary canvas and split pane; Obsidian image embeds and note-relative images render in edit and preview). png / jpeg / gif / webp open inside `FilePreviewView`; svg and other text stay text; HTML is sandboxed; other binaries open externally  
 - **Inline AI / stream polish**: `ai.complete` (`action: "polish"` and siblings) · sanitize before display  
 - **Agent**: `load_skill` · save settings auto/confirm · AI workspace 建议 pane (suggestions + pending writes)  
 - **Todos**: `memory/todo.md` · write gate · AI maintain (extract / detect done / force)  

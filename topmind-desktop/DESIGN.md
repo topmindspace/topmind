@@ -566,7 +566,8 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
   - 切换路径 / 关窗前会 flush 脏缓冲；body 写入串行化，避免与 frontmatter 竞态。  
   - 外部/AI 写盘时：干净则自动重载，脏则 toast 冲突提示。  
   - 表格：StarterKit 基础 HTML 表（无完整 GFM 表格扩展）；复杂表用源码编辑。
-- **FilePreviewView**（非 `.md`）：HTML 沙箱 iframe + 诚实截断；其它文本等宽；二进制不能预览 + 打开外部。路径切换立即清空正文并回到 HTML 预览档；窄宽 toolbar 与编辑器同 `data-compact` 纪律（动作 icon + tooltip，不堆长标签）。
+  - **工作区图片**：Obsidian `![[file.png]]` / `![[attachments/a.png|300]]` 与笔记相对 `![alt](images/…)` 在编辑和 Markdown 预览里都显示为图。磁盘不改写 wikilink。图片不超过内容宽；数字宽度生效，说明文字不当成宽度。找不到文件时仍显示文件名或说明。
+- **FilePreviewView**（非 `.md`）：HTML 沙箱 iframe + 诚实截断；其它文本等宽；png / jpeg / gif / webp 在应用内按内容宽显示；svg 仍当文本；其余二进制不能预览 + 打开外部。路径切换立即清空正文并回到 HTML 预览档；窄宽 toolbar 与编辑器同 `data-compact` 纪律（动作 icon + tooltip，不堆长标签）。
 - **InboxView/OutputsView/ArchiveView**：列表视图，使用共享 `FileRow` 组件。
 
 ### 0.2.2 行内 AI · 对抗性场景（验收）

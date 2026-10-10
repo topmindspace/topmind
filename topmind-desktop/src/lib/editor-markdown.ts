@@ -10,6 +10,7 @@
  */
 import type { Editor } from "@tiptap/react";
 import { mediaUrlsForDisk, mediaUrlsForEditor } from "./editor-media";
+import { peekWorkspaceImagePaths } from "./workspace-image-paths";
 
 type MarkdownStorage = {
   markdown?: {
@@ -72,15 +73,41 @@ export function selectionInsideList(
 export function setEditorMarkdown(
   editor: Editor | null | undefined,
   md: string,
-  opts?: { noteRelativePath?: string },
+  opts?: { noteRelativePath?: string; knownPaths?: readonly string[] | null },
 ): void {
   if (!editor) return;
   let body = typeof md === "string" ? md : "";
   if (opts?.noteRelativePath) {
-    body = mediaUrlsForEditor(body, opts.noteRelativePath);
+    const known = opts.knownPaths !== undefined ? opts.knownPaths : peekWorkspaceImagePaths();
+    body = mediaUrlsForEditor(body, opts.noteRelativePath, known ?? undefined);
   }
   // Markdown extension intercepts setContent and runs parser.parse(string)
   editor.commands.setContent(body, { emitUpdate: false });
+}
+
+/**
+ * True when the document has text or an image atom.
+ * An image-only note has empty textContent and must not be replaced by escaped source.
+ */
+export function editorDocumentHasContent(doc: {
+  textContent?: string | null;
+  descendants?: (fn: (node: { type?: { name?: string } }) => boolean | void) => void;
+} | null | undefined): boolean {
+  if (!doc) return false;
+  if (String(doc.textContent || "").trim()) return true;
+  let hasImage = false;
+  try {
+    doc.descendants?.((node) => {
+      if (node?.type?.name === "image") {
+        hasImage = true;
+        return false;
+      }
+      return undefined;
+    });
+  } catch {
+    return false;
+  }
+  return hasImage;
 }
 
 /** Serialize editor body to Markdown (falls back to plain text). */

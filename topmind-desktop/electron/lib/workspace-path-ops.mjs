@@ -19,6 +19,7 @@ import {
   S, T, sp, now, lf,
 } from "./workspace-helpers.mjs";
 import { invalidateNotesIndex } from "./notes-index.mjs";
+import { invalidateWorkspaceImageFileList } from "./workspace-note-media.mjs";
 import { kernelDurableWrite, kernelDurableDelete, kernelDurableArchive, loadKernelApi } from "./kernel-api.mjs";
 import { t as i18n } from "./electron-i18n.mjs";
 
@@ -594,6 +595,7 @@ export const pathOps = {
       ctx.markIgnoredFileChanges([fp], 1500);
     }
     await fs.writeFile(fp, buf);
+    invalidateWorkspaceImageFileList();
     bumpWorkspaceIndex(rel);
     const t = now();
     return buildWritebackEvidence({

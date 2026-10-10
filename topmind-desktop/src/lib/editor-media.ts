@@ -4,7 +4,18 @@
  * On disk (truth):  ![alt](images/slug/img-….png)   relative to the note file
  * In editor (view): ![alt](topmind-asset://local/00-Inbox/images/slug/img-….png)
  * Remote http(s) images render via topmind-asset://remote/… (CSP-safe + cache).
+ *
+ * Obsidian image embeds `![[file.png]]` / `![[attachments/file.png|300]]` become
+ * the same asset URLs. The original wikilink is kept in the image title (`tmw:`)
+ * so save writes the wikilink back. Resolution uses a caller-supplied path list
+ * and does not walk the disk.
  */
+import {
+  embedDisplayFromTitle,
+  restoreWorkspaceImageMarkdown,
+  rewriteWorkspaceImageMarkdown,
+  wikilinkFromTitle,
+} from "../../electron/lib/embed-images.mjs";
 
 const ASSET_PREFIX = "topmind-asset://local/";
 const REMOTE_PREFIX = "topmind-asset://remote/";
@@ -90,31 +101,35 @@ function rewriteHtmlImgSrc(
 }
 
 /**
- * Disk markdown → editor markdown (relative images become topmind-asset URLs).
- * Covers `![alt](url)` and HTML `<img src>` (TipTap html:true may emit either).
- * Remote http(s) images go through topmind-asset://remote/… for CSP-safe display.
+ * DOM attrs for an editor image. Numeric wikilink sizes apply as width but
+ * stay inside the content column (`max-width: 100%`). The `tmw:` title is
+ * not shown as a tooltip — it only round-trips the original embed.
  */
-export function mediaUrlsForEditor(markdown: string, noteRelativePath: string): string {
-  let out = String(markdown || "").replace(
-    /!\[([^\]]*)\]\(\s*<?([^)\s>]+)>?(?:\s+(?:"[^"]*"|'[^']*'))?\s*\)/giu,
-    (full, alt, rawUrl) => {
-      const url = String(rawUrl || "").trim();
-      if (/^(data:|topmind-asset:|blob:)/iu.test(url) || url.startsWith("//")) return full;
-      if (isHttpUrl(url)) return `![${alt}](${remoteAssetUrl(url)})`;
-      if (isRemoteOrAssetUrl(url)) return full;
-      const absRel = resolveNoteMediaPath(noteRelativePath, url);
-      if (!absRel) return full;
-      return `![${alt}](${ASSET_PREFIX}${absRel})`;
-    },
-  );
-  out = rewriteHtmlImgSrc(out, (url) => {
-    if (/^(data:|topmind-asset:|blob:)/iu.test(url) || url.startsWith("//")) return null;
-    if (isHttpUrl(url)) return remoteAssetUrl(url);
-    if (isRemoteOrAssetUrl(url)) return null;
-    const absRel = resolveNoteMediaPath(noteRelativePath, url);
-    return absRel ? `${ASSET_PREFIX}${absRel}` : null;
-  });
-  return out;
+export function wikiImageDomAttrs(title: unknown): { width?: string; style: string } {
+  const style = "max-width:100%;height:auto";
+  const display = embedDisplayFromTitle(String(title || ""));
+  if (!display?.width) return { style };
+  return {
+    width: String(display.width),
+    style: `width:${display.width}px;max-width:100%;height:auto`,
+  };
+}
+
+/**
+ * Disk markdown → editor markdown (relative images become topmind-asset URLs).
+ * Covers `![alt](url)`, Obsidian `![[image]]`, and HTML `<img src>`.
+ * Remote http(s) images go through topmind-asset://remote/… for CSP-safe display.
+ *
+ * `knownPaths` is an already-built workspace-relative list. Pathless embeds
+ * resolve from it in one pass. Omit it to keep note-relative markdown images
+ * and pathed embeds only (no basename lookup).
+ */
+export function mediaUrlsForEditor(
+  markdown: string,
+  noteRelativePath: string,
+  knownPaths?: readonly string[] | null,
+): string {
+  return rewriteWorkspaceImageMarkdown(markdown, noteRelativePath, knownPaths);
 }
 
 /**
@@ -134,31 +149,43 @@ export function rewritePreviewHtmlMedia(html: string, noteRelativePath: string):
   });
 }
 
+function decodeAssetPath(absRelRaw: string): string {
+  // Segment decode so a literal `%` in `100%-方案` does not throw away the
+  // rest of a path that also contains a real `%20`.
+  const decoded = String(absRelRaw || "")
+    .split("/")
+    .map((seg) => {
+      try {
+        return decodeURIComponent(seg);
+      } catch {
+        return seg;
+      }
+    })
+    .join("/");
+  return normalizePosix(decoded);
+}
+
 /**
  * Editor markdown → disk markdown (topmind-asset → relative to note).
+ * Wikilink-origin images (`tmw:` title) are written back as `![[…]]`.
  */
 export function mediaUrlsForDisk(markdown: string, noteRelativePath: string): string {
   const dir = noteDir(noteRelativePath);
   const toRelative = (absRelRaw: string): string => {
-    // The editor URL is percent-encoded by the renderer, so decode it back —
-    // but a literal `%` (note path like `100%-方案/`) must not throw here.
-    let decoded = String(absRelRaw || "");
-    try {
-      decoded = decodeURIComponent(decoded);
-    } catch {
-      /* keep the raw form — malformed percent escape */
-    }
-    const absRel = normalizePosix(decoded);
+    const absRel = decodeAssetPath(absRelRaw);
     if (dir && absRel.startsWith(`${dir}/`)) return absRel.slice(dir.length + 1);
     return absRel;
   };
-  let out = String(markdown || "").replace(
-    /!\[([^\]]*)\]\(\s*topmind-asset:\/\/local\/([^)\s]+)\s*\)/giu,
-    (_full, alt, absRelRaw) => `![${alt}](${toRelative(absRelRaw)})`,
-  );
-  out = rewriteHtmlImgSrc(out, (url) => {
-    const m = url.match(/^topmind-asset:\/\/local\/(.+)$/iu);
-    return m ? toRelative(m[1] || "") : null;
+  let out = restoreWorkspaceImageMarkdown(markdown, noteRelativePath);
+  out = out.replace(/<img\b[^>]*>/giu, (tag) => {
+    const title = /\btitle\s*=\s*(["'])([^"']*)\1/iu.exec(tag)?.[2] || "";
+    const wiki = wikilinkFromTitle(title);
+    if (wiki) return wiki;
+    return tag.replace(/\bsrc\s*=\s*(["'])([^"']*)\1/iu, (full, q, url) => {
+      const m = String(url || "").trim().match(/^topmind-asset:\/\/local\/(.+)$/iu);
+      if (!m) return full;
+      return `src=${q}${toRelative(m[1] || "")}${q}`;
+    });
   });
   return out;
 }

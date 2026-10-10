@@ -9,32 +9,76 @@
  */
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { exists, statSafe } from "./fs-utils.mjs";
+import { exists, listDir, statSafe } from "./fs-utils.mjs";
+import { resolveDataRoot } from "./path-model.mjs";
 import { sp, trashAbsolute, trashRelative } from "./workspace-helpers.mjs";
+import {
+  buildImageIndex,
+  collectImageEmbeds,
+  collectLocalMarkdownImageTargets,
+  normalizePosixPath,
+  resolveEmbedTarget,
+  safeDecodePath,
+} from "./embed-images.mjs";
 
-const MD_IMG_RE = /!\[([^\]]*)\]\(\s*<?([^)\s>]+)>?(?:\s+(?:"[^"]*"|'[^']*'))?\s*\)/giu;
+const IMAGE_FILE_RE = /\.(png|jpe?g|gif|webp)$/iu;
+const SKIP_WALK_DIR = new Set(["node_modules"]);
+
+/**
+ * Workspace-relative raster image paths. Not used by the markdown rewrite.
+ * `fresh` skips the short TTL so a move sees files just written.
+ * @param {string} root absolute workspace root
+ * @param {{ fresh?: boolean, ttlMs?: number, max?: number }} [opts]
+ * @returns {Promise<string[]>}
+ */
+const imageListCache = new Map();
+
+/** Drop the short TTL so the next list walks. Not tied to every text save. */
+export function invalidateWorkspaceImageFileList() {
+  imageListCache.clear();
+}
+
+export async function listWorkspaceImageFiles(root, opts = {}) {
+  const absRoot = path.resolve(String(root || ""));
+  const fresh = opts.fresh === true;
+  const ttl = Number.isFinite(opts.ttlMs) ? opts.ttlMs : 15_000;
+  const max = Math.max(1, Math.min(20_000, Number(opts.max) || 8000));
+  const hit = imageListCache.get(absRoot);
+  if (!fresh && hit && Date.now() - hit.at < ttl) return hit.paths;
+  /** @type {string[]} */
+  const paths = [];
+  const walk = async (dir) => {
+    if (paths.length >= max) return;
+    const names = await listDir(dir);
+    for (const name of names) {
+      if (paths.length >= max) return;
+      if (!name || name.startsWith(".") || SKIP_WALK_DIR.has(name)) continue;
+      const abs = path.join(dir, name);
+      const st = await statSafe(abs);
+      if (!st) continue;
+      if (st.isDirectory()) {
+        await walk(abs);
+        continue;
+      }
+      if (st.isFile() && IMAGE_FILE_RE.test(name)) {
+        paths.push(path.relative(absRoot, abs).replace(/\\/gu, "/"));
+      }
+    }
+  };
+  await walk(absRoot);
+  imageListCache.set(absRoot, { at: Date.now(), paths });
+  return paths;
+}
 
 /**
  * Local relative media refs in markdown (not http/data/asset protocol).
+ * Includes spaced `<Pasted image x.png>` and percent-encoded targets.
+ * Skips fenced code. Image wikilinks are planned separately.
  * @param {string} markdown
  * @returns {string[]}
  */
 export function findLocalMediaRefs(markdown) {
-  const refs = [];
-  const seen = new Set();
-  let m;
-  const re = new RegExp(MD_IMG_RE.source, MD_IMG_RE.flags);
-  while ((m = re.exec(String(markdown || ""))) !== null) {
-    let url = String(m[2] || "").trim().replace(/^<|>$/gu, "");
-    if (!url) continue;
-    if (/^(https?:|data:|blob:|topmind-asset:|file:)/iu.test(url)) continue;
-    if (url.startsWith("//")) continue;
-    url = url.replace(/^\.\//u, "");
-    if (seen.has(url)) continue;
-    seen.add(url);
-    refs.push(url);
-  }
-  return refs;
+  return collectLocalMarkdownImageTargets(markdown);
 }
 
 /**
@@ -47,6 +91,7 @@ export function findLocalMediaRefs(markdown) {
  *   stem: string,
  *   mediaDirs: string[],
  *   mediaFiles: string[],
+ *   referencedImages: string[],
  * }>}
  */
 export async function planNoteMedia(noteRelativePath, markdown, ctx) {
@@ -56,26 +101,58 @@ export async function planNoteMedia(noteRelativePath, markdown, ctx) {
     : "";
   const stem = path.basename(noteRel, path.extname(noteRel));
   const refs = findLocalMediaRefs(markdown);
+  const embeds = collectImageEmbeds(markdown);
   /** @type {Set<string>} relative to noteDir */
   const mediaDirs = new Set();
   /** @type {Set<string>} relative to noteDir (loose files not in a slug dir) */
   const mediaFiles = new Set();
+  /** @type {Set<string>} workspace-relative image paths that belong to this note */
+  const referencedImages = new Set();
 
-  for (const ref of refs) {
-    const cleaned = ref.replace(/^\.\//u, "");
-    // images/{slug}/file.ext → move whole images/{slug}
+  const addRef = (ref) => {
+    const cleaned = String(ref || "").replace(/^\.\//u, "").trim();
+    if (!cleaned || cleaned.split("/").includes("..")) return;
     const dirMatch = cleaned.match(/^(images\/[^/]+)\//u);
     if (dirMatch) {
       mediaDirs.add(dirMatch[1]);
-      continue;
-    }
-    // images/file.ext (flat)
-    if (cleaned.startsWith("images/")) {
+    } else {
       mediaFiles.add(cleaned);
-      continue;
     }
-    // other relative assets next to note
-    mediaFiles.add(cleaned);
+    const ws = noteDir ? `${noteDir}/${cleaned}` : cleaned;
+    referencedImages.add(normalizePosixPath(ws));
+  };
+
+  for (const ref of refs) addRef(ref);
+
+  let index = buildImageIndex(undefined);
+  if (embeds.some((e) => !e.target.includes("/"))) {
+    const root = resolveDataRoot(ctx.workspaceRoot);
+    const listed = await listWorkspaceImageFiles(root, { fresh: true });
+    index = buildImageIndex(listed);
+  }
+  for (const emb of embeds) {
+    const pathed = emb.target.includes("/");
+    let ws = pathed
+      ? resolveEmbedTarget(emb.target, buildImageIndex(undefined))
+      : resolveEmbedTarget(emb.target, index);
+    if (!ws && !pathed) {
+      const guess = normalizePosixPath(
+        noteDir ? `${noteDir}/${safeDecodePath(emb.target)}` : safeDecodePath(emb.target),
+      );
+      if (guess && !guess.split("/").includes("..")) {
+        const guessAbs = await sp(ctx.workspaceRoot, guess);
+        const gst = await statSafe(guessAbs);
+        if (gst?.isFile()) ws = guess;
+      }
+    }
+    if (!ws) continue;
+    const norm = normalizePosixPath(ws);
+    referencedImages.add(norm);
+    if (noteDir && norm.startsWith(`${noteDir}/`)) {
+      addRef(norm.slice(noteDir.length + 1));
+    } else if (!noteDir && !norm.includes("/")) {
+      addRef(norm);
+    }
   }
 
   // Convention folder even if not every file is referenced
@@ -92,6 +169,7 @@ export async function planNoteMedia(noteRelativePath, markdown, ctx) {
     stem,
     mediaDirs: [...mediaDirs],
     mediaFiles: [...mediaFiles],
+    referencedImages: [...referencedImages],
   };
 }
 
@@ -179,6 +257,7 @@ export async function transferNoteMedia(p, ctx) {
     if (ok) movedFiles.push(toRel);
   }
 
+  invalidateWorkspaceImageFileList();
   return {
     movedDirs,
     movedFiles,
@@ -288,6 +367,7 @@ export async function trashNoteMedia(p, ctx) {
     }
   }
 
+  invalidateWorkspaceImageFileList();
   return { trashed, count: trashed.length };
 }
 
@@ -337,6 +417,7 @@ export async function renameNoteMediaSlug(p, ctx) {
   }
 
   const nextMd = rewriteMediaSlug(markdown, oldStem, newStem);
+  if (renamedDir) invalidateWorkspaceImageFileList();
   return {
     markdown: nextMd,
     renamedDir,

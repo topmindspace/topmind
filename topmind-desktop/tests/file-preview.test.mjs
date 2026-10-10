@@ -11,6 +11,8 @@ import {
   isHtmlPreviewExt,
   isMarkdownNotePath,
   isEditableNotePath,
+  filePreviewKind,
+  imagePreviewAssetUrl,
   isPreviewableText,
   previewTruncationLimit,
   truncatePreviewContent,
@@ -38,6 +40,31 @@ test("extOf / html / text routing", () => {
   assert.equal(isEditableNotePath("notes/a.txt"), true);
   assert.equal(isEditableNotePath("notes/a.json"), true);
   assert.equal(isEditableNotePath("bin/photo.png"), false);
+  assert.equal(filePreviewKind("bin/photo.png"), "image");
+  assert.equal(filePreviewKind("shot.JPEG"), "image");
+  assert.equal(filePreviewKind("shot.jpg"), "image");
+  assert.equal(filePreviewKind("anim.gif"), "image");
+  assert.equal(filePreviewKind("still.webp"), "image");
+  assert.equal(filePreviewKind("icon.SVG"), "text");
+  assert.equal(filePreviewKind("doc.pdf"), "binary");
+  assert.equal(
+    imagePreviewAssetUrl("00-收件箱/Pasted image.png"),
+    "topmind-asset://local/00-收件箱/Pasted%20image.png",
+  );
+  assert.equal(
+    imagePreviewAssetUrl("bin/photo.png"),
+    "topmind-asset://local/bin/photo.png",
+  );
+  assert.equal(imagePreviewAssetUrl("Q&A.png"), "topmind-asset://local/Q%26A.png");
+  assert.equal(
+    imagePreviewAssetUrl("20-研究/100%-方案/images/s/a.png"),
+    "topmind-asset://local/20-研究/100%25-方案/images/s/a.png",
+  );
+  assert.equal(imagePreviewAssetUrl("../secret.png"), null);
+  assert.equal(imagePreviewAssetUrl("/abs/a.png"), null);
+  assert.equal(imagePreviewAssetUrl("file:///tmp/a.png"), null);
+  assert.equal(imagePreviewAssetUrl("javascript:alert(1).png"), null);
+  assert.equal(imagePreviewAssetUrl("icon.svg"), null);
   assert.equal(previewTruncationLimit(true), HTML_PREVIEW_MAX_BYTES);
   assert.equal(previewTruncationLimit(false), TEXT_PREVIEW_MAX_CHARS);
 });
@@ -77,7 +104,15 @@ test("FilePreviewView wires sandbox iframe, truncation, cannot-preview + open-ex
   assert.match(view, /truncatePreviewContent/);
   assert.match(view, /previewTruncationLimit/);
   assert.match(view, /sandbox=""/);
+  assert.match(view, /filePreviewKind/);
+  assert.match(view, /imagePreviewAssetUrl/);
+  assert.match(view, /v4-file-image-preview/);
+  assert.match(view, /loading="lazy"/);
   assert.match(view, /cannotPreviewTitle/);
+  const css = readFileSync(path.join(root, "src/styles/v4.css"), "utf8");
+  assert.match(css, /\.v4-file-image-preview[\s\S]{0,240}max-width:\s*100%/);
+  assert.match(css, /\.v4-tiptap img[\s\S]{0,180}max-width:\s*100%/);
+  assert.match(css, /\.v4-stream-md img[\s\S]{0,180}max-width:\s*100%/);
   assert.match(view, /truncated/);
   assert.match(view, /api\.ws\.open\(path\)/);
   assert.match(view, /if \(path !== sessionPath\)/);

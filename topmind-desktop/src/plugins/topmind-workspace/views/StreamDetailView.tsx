@@ -61,6 +61,7 @@ import {
   groupEntriesByDay,
   type StreamEntry,
 } from "../../../lib/stream-period-parse";
+import { useWorkspaceImagePaths } from "../../../lib/use-workspace-image-paths";
 import {
   streamMarkdownToPreviewHtml,
   splitStreamPreviewParts,
@@ -491,6 +492,7 @@ function StreamMdBody({
   notePath?: string | null;
   className?: string;
 }) {
+  const imagePaths = useWorkspaceImagePaths();
   const parts = useMemo(() => splitStreamPreviewParts(markdown), [markdown]);
   const mainSource = useMemo(() => {
     if (!parts.main) return "";
@@ -500,17 +502,17 @@ function StreamMdBody({
   }, [parts.main]);
 
   const mainHtml = useMemo(
-    () => (mainSource ? streamMarkdownToPreviewHtml(mainSource, notePath || undefined) : ""),
-    [mainSource, notePath],
+    () => (mainSource ? streamMarkdownToPreviewHtml(mainSource, notePath || undefined, imagePaths) : ""),
+    [mainSource, notePath, imagePaths],
   );
   const appendHtmls = useMemo(
     () =>
       parts.appends.map((a) => ({
         title: a.title,
-        bodyHtml: a.body ? streamMarkdownToPreviewHtml(a.body, notePath || undefined) : "",
-        fullHtml: streamMarkdownToPreviewHtml(a.markdown, notePath || undefined),
+        bodyHtml: a.body ? streamMarkdownToPreviewHtml(a.body, notePath || undefined, imagePaths) : "",
+        fullHtml: streamMarkdownToPreviewHtml(a.markdown, notePath || undefined, imagePaths),
       })),
-    [parts.appends, notePath],
+    [parts.appends, notePath, imagePaths],
   );
 
   if (!mainHtml && appendHtmls.length === 0) return null;

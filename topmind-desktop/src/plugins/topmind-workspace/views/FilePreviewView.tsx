@@ -21,9 +21,8 @@ import { Tooltip } from "../../../components/ui/tooltip";
 import { ICON } from "../../../lib/icons";
 import { cn } from "../../../lib/kit";
 import {
-  extOf,
-  isHtmlPreviewExt,
-  isPreviewableText,
+  filePreviewKind,
+  imagePreviewAssetUrl,
   previewTruncationLimit,
   truncatePreviewContent,
 } from "../../../lib/file-preview";
@@ -39,9 +38,11 @@ interface Props {
 
 export function FilePreviewView({ path }: Props) {
   const { t } = useTranslation(["workspace", "common"]);
-  const ext = extOf(path);
-  const isHtml = isHtmlPreviewExt(ext);
-  const isText = isPreviewableText(ext);
+  const kind = filePreviewKind(path);
+  const isHtml = kind === "html";
+  const isImage = kind === "image";
+  const isText = kind === "text";
+  const imageSrc = isImage ? imagePreviewAssetUrl(path) : null;
   const baseName = path.split("/").pop() ?? path;
   useTitleBarChrome(`preview:${path}`, { title: displayPathSegment(baseName) });
   const [sessionPath, setSessionPath] = useState(path);
@@ -217,7 +218,17 @@ export function FilePreviewView({ path }: Props) {
       </div>
 
       <div className="flex-1 overflow-hidden bg-surface">
-        {isText ? (
+        {isImage && imageSrc ? (
+          <div className="v4-file-image-stage" data-file-image-preview>
+            <img
+              className="v4-file-image-preview"
+              alt={baseName}
+              loading="lazy"
+              src={imageSrc}
+              draggable={false}
+            />
+          </div>
+        ) : isText ? (
           loading ? (
             <div className="flex items-center gap-2 p-6 text-sm text-text-tertiary">
               <RiLoader4Line size={ICON.sm} className="animate-spin" /> {t("common:action.loading")}

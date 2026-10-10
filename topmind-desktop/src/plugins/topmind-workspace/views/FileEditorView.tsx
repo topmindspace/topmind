@@ -15,6 +15,7 @@ import Typography from "@tiptap/extension-typography";
 import CharacterCount from "@tiptap/extension-character-count";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
+import { mergeAttributes } from "@tiptap/core";
 import { Markdown } from "tiptap-markdown";
 import {
   RiArrowDownSLine,
@@ -62,6 +63,7 @@ import { toastWriteback, toastWritebackError } from "../../../lib/writeback-toas
 import { displayNoteTitle, getStatusColumns, resolveStatusColumn } from "../../../lib/note-meta";
 import { joinMarkdownFile, splitMarkdownFile } from "../../../lib/md-frontmatter";
 import {
+  editorDocumentHasContent,
   EMPTY_PREVIEW_HTML,
   getEditorHtml,
   getEditorMarkdown,
@@ -69,6 +71,8 @@ import {
   normalizeContentWidth,
   setEditorMarkdown,
 } from "../../../lib/editor-markdown";
+import { wikiImageDomAttrs } from "../../../lib/editor-media";
+import { ensureWorkspaceImagePaths, invalidateWorkspaceImagePaths } from "../../../lib/workspace-image-paths";
 import { focusEditorHeading } from "../../../lib/editor-focus-heading";
 import { cn } from "../../../lib/kit";
 import { ICON } from "../../../lib/icons";
@@ -222,7 +226,19 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
         linkOnPaste: true,
         HTMLAttributes: { class: "v4-md-link", rel: "noopener noreferrer" },
       }),
-      Image.configure({
+      Image.extend({
+        renderHTML({ HTMLAttributes }) {
+          const title = typeof HTMLAttributes.title === "string" ? HTMLAttributes.title : "";
+          const attrs: Record<string, unknown> = { ...HTMLAttributes };
+          if (title.startsWith("tmw:")) delete attrs.title;
+          return [
+            "img",
+            mergeAttributes(this.options.HTMLAttributes, attrs, wikiImageDomAttrs(title), {
+              loading: "lazy",
+            }),
+          ];
+        },
+      }).configure({
         inline: false,
         allowBase64: true,
         HTMLAttributes: { class: "v4-md-img" },
@@ -556,18 +572,19 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
 
     (async () => {
       try {
-        const [content, meta] = await Promise.all([
+        const [content, meta, knownPaths] = await Promise.all([
           api.ws.read(path),
           api.ws.fileMeta(path).catch(() => null),
+          ensureWorkspaceImagePaths(useViewStore.getState().workspaceRoot),
         ]);
         if (cancelled) return;
         lastSaved.current = content;
         setRawContent(content);
         setFileMeta(meta);
         const { body } = splitMarkdownFile(content);
-        setEditorMarkdown(editor, body || "", { noteRelativePath: path });
+        setEditorMarkdown(editor, body || "", { noteRelativePath: path, knownPaths });
         lastSerializedBodyRef.current = body || "";
-        if (body.trim() && !(editor.state.doc.textContent || "").trim()) {
+        if (body.trim() && !editorDocumentHasContent(editor.state.doc)) {
           const escaped = body
             .replace(/&/gu, "&amp;")
             .replace(/</gu, "&lt;")
@@ -717,6 +734,9 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
   useEffect(() => {
     if (!editor || readOnly) return;
     return onLocal("workspace:file-changed", (payload: unknown) => {
+      // Before this handler peeks the path list. A note move emits this event
+      // after the file is already at the new path; the 15s list must not win.
+      invalidateWorkspaceImagePaths();
       const rel =
         payload && typeof payload === "object" && "relativePath" in payload
           ? String((payload as { relativePath?: string }).relativePath || "")
@@ -750,7 +770,10 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
               lastSaved.current = disk;
               setRawContent(disk);
               setFileMeta(await api.ws.fileMeta(path).catch(() => null));
-              setEditorMarkdown(editor, diskBody || "", { noteRelativePath: path });
+              const knownPaths = await ensureWorkspaceImagePaths(
+                useViewStore.getState().workspaceRoot,
+              );
+              setEditorMarkdown(editor, diskBody || "", { noteRelativePath: path, knownPaths });
               lastSerializedBodyRef.current = diskBody || "";
               setSaveState("clean");
               bumpPreview();
@@ -770,9 +793,10 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
       }
       void (async () => {
         try {
-          const [content, meta] = await Promise.all([
+          const [content, meta, knownPaths] = await Promise.all([
             api.ws.read(path),
             api.ws.fileMeta(path).catch(() => null),
+            ensureWorkspaceImagePaths(useViewStore.getState().workspaceRoot),
           ]);
           if (pathRef.current !== path) return;
           if (content === lastSaved.current) return;
@@ -780,9 +804,9 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
           setRawContent(content);
           setFileMeta(meta);
           const { body } = splitMarkdownFile(content);
-          setEditorMarkdown(editor, body || "", { noteRelativePath: path });
+          setEditorMarkdown(editor, body || "", { noteRelativePath: path, knownPaths });
           lastSerializedBodyRef.current = body || "";
-          if (body.trim() && !(editor.state.doc.textContent || "").trim()) {
+          if (body.trim() && !editorDocumentHasContent(editor.state.doc)) {
             const escaped = body
               .replace(/&/gu, "&amp;")
               .replace(/</gu, "&lt;")

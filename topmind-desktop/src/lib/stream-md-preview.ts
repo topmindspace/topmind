@@ -3,7 +3,8 @@
  * Reuses export-markdown fragment converter (single MD→HTML path; no second engine).
  */
 import { markdownToHtmlFragment } from "./export-markdown";
-import { rewritePreviewHtmlMedia } from "./editor-media";
+import { mediaUrlsForEditor, rewritePreviewHtmlMedia } from "./editor-media";
+import { peekWorkspaceImagePaths } from "./workspace-image-paths";
 import {
   normalizeStreamEscapes,
   splitMainAndAppendChunks,
@@ -93,12 +94,18 @@ function normalizeLinesOutsideCodeBlocks(s: string): string {
  * Convert a stream entry body (or rest) to a safe HTML fragment for card preview.
  * Escapes raw HTML in the source via markdownToHtmlFragment.
  */
-export function streamMarkdownToPreviewHtml(md: string, noteRelativePath?: string): string {
+export function streamMarkdownToPreviewHtml(
+  md: string,
+  noteRelativePath?: string,
+  knownPaths?: readonly string[],
+): string {
   try {
     const cleaned = prepareStreamMarkdown(md);
     if (!cleaned) return "";
-    const html = markdownToHtmlFragment(cleaned);
-    return noteRelativePath ? rewritePreviewHtmlMedia(html, noteRelativePath) : html;
+    const paths = knownPaths ?? peekWorkspaceImagePaths();
+    const withMedia = mediaUrlsForEditor(cleaned, noteRelativePath || "", paths);
+    const html = markdownToHtmlFragment(withMedia);
+    return rewritePreviewHtmlMedia(html, noteRelativePath || "");
   } catch {
     // Degraded: never crash Stream cards on bad MD
     const fallback = String(md || "")

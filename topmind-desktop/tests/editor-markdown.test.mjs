@@ -29,6 +29,22 @@ test("normalizeContentWidth accepts known modes and defaults to reading", async 
     .replace(/\/\/.*$/gmu, "");
   assert.doesNotMatch(fnBody, /parser\.parse\s*\(/);
   assert.match(fnBody, /setContent\(body/);
+  assert.equal(mod.editorDocumentHasContent(null), false);
+  assert.equal(mod.editorDocumentHasContent({ textContent: "  " }), false);
+  assert.equal(mod.editorDocumentHasContent({ textContent: "hello" }), true);
+  let seen = 0;
+  assert.equal(
+    mod.editorDocumentHasContent({
+      textContent: "",
+      descendants(fn) {
+        seen += 1;
+        fn({ type: { name: "paragraph" } });
+        fn({ type: { name: "image" } });
+      },
+    }),
+    true,
+  );
+  assert.equal(seen, 1);
 });
 
 test("getEditorHtml is empty without an editor", async () => {

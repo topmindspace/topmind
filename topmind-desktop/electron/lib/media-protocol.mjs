@@ -13,6 +13,7 @@ import { existsSync, promises as fs } from "node:fs";
 import { resolveUnderRoot } from "./platform.mjs";
 import { assertPathWithin } from "./path-safety.mjs";
 import { resolveDataRoot } from "./path-model.mjs";
+import { safeDecodePath } from "./embed-images.mjs";
 import { logWarn } from "./writeback.mjs";
 import { rememberDesktopFetchMedia } from "./runtime-bounds.mjs";
 
@@ -63,7 +64,10 @@ export function registerMediaProtocolHandler(electron, getCtx) {
         }
         // topmind-asset://local/00-Inbox/images/foo/x.png
         // host = local, pathname = /00-Inbox/images/...
-        let rel = decodeURIComponent((u.pathname || "").replace(/^\/+/u, ""));
+        // pathname may already contain a literal `%` (URL parser decoded `%25`,
+        // or the request kept a bare `%`). Whole-string decodeURIComponent throws
+        // and this handler would 500. Per-segment decode keeps that segment.
+        let rel = safeDecodePath((u.pathname || "").replace(/^\/+/u, ""));
         if (u.hostname && u.hostname !== "local" && u.hostname !== "") {
           // some URL parsers put first segment in hostname
           rel = path.posix.join(u.hostname, rel);
@@ -107,7 +111,7 @@ export function registerMediaProtocolHandler(electron, getCtx) {
  * @param {{ fetch: Function }} net
  */
 async function serveRemoteImage(u, getCtx, net) {
-  const raw = decodeURIComponent((u.pathname || "").replace(/^\/+/u, ""));
+  const raw = safeDecodePath((u.pathname || "").replace(/^\/+/u, ""));
   if (!raw || !/^https?:\/\//iu.test(raw)) {
     return new Response("bad remote url", { status: 400 });
   }

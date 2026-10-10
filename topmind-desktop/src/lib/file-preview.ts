@@ -6,6 +6,7 @@
  * here is the renderer routing set (no dot, lowercase) and must stay a
  * superset of `TEXT_NOTE_EXT_SET` — locked by tests/ai-write-lenient.
  */
+import { encodeAssetPath } from "../../electron/lib/embed-images.mjs";
 
 export const PREVIEW_TEXT_EXTS = new Set([
   "md", "txt", "text", "markdown", "mdx", "json", "jsonl", "jsonc", "yaml", "yml", "csv", "tsv",
@@ -47,6 +48,36 @@ export function isHtmlPreviewExt(ext: string): boolean {
 
 export function isPreviewableText(ext: string): boolean {
   return ext === "" || PREVIEW_TEXT_EXTS.has(ext);
+}
+
+/** Raster images the in-app viewer shows. svg stays text (source preview). */
+const PREVIEW_IMAGE_EXTS = new Set(["png", "jpg", "jpeg", "gif", "webp"]);
+
+export function isPreviewImageExt(ext: string): boolean {
+  return PREVIEW_IMAGE_EXTS.has(String(ext || "").toLowerCase());
+}
+
+export type FilePreviewKind = "html" | "text" | "image" | "binary";
+
+export function filePreviewKind(p: string): FilePreviewKind {
+  const ext = extOf(p);
+  if (isHtmlPreviewExt(ext)) return "html";
+  if (isPreviewImageExt(ext)) return "image";
+  if (isPreviewableText(ext)) return "text";
+  return "binary";
+}
+
+/**
+ * In-app image URL confined to a workspace-relative path.
+ * Rejects schemes, absolute paths, and `..`. Spaces are percent-encoded.
+ */
+export function imagePreviewAssetUrl(relativePath: string): string | null {
+  const raw = String(relativePath || "").trim().replace(/\\/gu, "/");
+  if (!raw || raw.startsWith("/") || /^[a-z][a-z0-9+.-]*:/iu.test(raw)) return null;
+  if (raw.split("/").some((seg) => seg === "..")) return null;
+  const norm = raw.split("/").filter((seg) => seg && seg !== ".").join("/");
+  if (!norm || !isPreviewImageExt(extOf(norm))) return null;
+  return `topmind-asset://local/${encodeAssetPath(norm)}`;
 }
 
 export function previewTruncationLimit(isHtml: boolean): number {

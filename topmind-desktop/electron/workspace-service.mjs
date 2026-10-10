@@ -42,6 +42,7 @@ export const WorkspaceService = {
   search: scanOps.search,
   grepWorkspace: scanOps.grepWorkspace,
   listFiles: scanOps.listFiles,
+  listImagePaths: scanOps.listImagePaths,
   globFiles: scanOps.globFiles,
   statPath: scanOps.statPath,
   workspaceHealth: scanOps.workspaceHealth,

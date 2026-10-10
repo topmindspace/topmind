@@ -25,6 +25,7 @@ import {
   useInlineAiStore,
 } from "../lib/inline-ai-busy";
 import { PLUGIN_APP_KIND } from "../lib/plugin-launcher";
+import { invalidateWorkspaceImagePaths } from "../lib/workspace-image-paths";
 
 export type SidebarViewMode = "category" | "timeline" | "tags" | "kanban" | "stream";
 /** Right-column AI workspace panes — peer to the center content canvas. */
@@ -613,6 +614,7 @@ export const useViewStore = create<ViewState>((set, get) => ({
   workspaceRoot: "",
   setWorkspaceRoot: (workspaceRoot) => {
     const prev = get().workspaceRoot;
+    if (prev !== workspaceRoot) invalidateWorkspaceImagePaths();
     const { ids: nextExpanded } = loadExpandedState(workspaceRoot);
     const fileTabs = loadFileTabs(workspaceRoot);
     set({ workspaceRoot, expandedNodeIds: nextExpanded, fileTabs });

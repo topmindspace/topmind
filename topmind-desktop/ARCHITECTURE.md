@@ -1,6 +1,6 @@
 # topmind Desktop — 架构
 
-> **现状描述 + Target 标注**。源文件计数：`src/` 248 · `electron/` 132。  
+> **现状描述 + Target 标注**。源文件计数：`src/` 250 · `electron/` 133。  
 > **1 RPC · Stores（View / Ai / Action / Plugin / IngestStaging / Task / Todo）· 1 Shell · 5+2 Service · 7 插件槽**  
 > UI 真源：`DESIGN.md`。边界：`../PRODUCT-BOUNDARIES.md`。  
 > **实施锁**：[`../docs/ARCHITECTURE-RESET.md`](../docs/ARCHITECTURE-RESET.md)（写闸合闸 · 建议副驾 · 导航变薄）。
@@ -465,7 +465,8 @@ Pi 围栏别名（不是第二套 FS）：`read`→`read_file` · `write`→`sav
 - **禁止**在 ProseMirror 上使用 `whiteSpace: pre-wrap` / 全文 `nowrap`  
 - 预览模式：进入预览时快照 `getHTML()` → 静态 `.v4-tiptap` 表面（不是 live `setEditable`）；路径切换经 `nextPreviewHtml` 重置  
 - 主画布与分屏共用 `isMarkdownNotePath`（`lib/file-preview`）：`.md` → `FileEditorView`，其它 → `FilePreviewView`  
-- `FilePreviewView`：HTML 沙箱 iframe + 截断；其它文本；二进制不能预览 + 打开外部；换路径立即清空正文  
+- **工作区图片**：`electron/lib/embed-images.mjs` 把 Obsidian `![[…]]`（png/jpg/jpeg/gif/webp）和笔记相对 `![alt](…)` 收成 `topmind-asset://local/<工作区相对路径>`。路径列表来自 `workspace.listImagePaths`（短 TTL；笔记移动、媒体删除、二进制保存后失效），字符串改写本身不扫盘。无路径的 embed 按文件名解析（最短路径，平局取字典序）。围栏代码与行内代码保持原文。磁盘仍是 wikilink 或相对路径（标题 `tmw:` 往返，不把用户笔记改写成标准图片语法）。`%`、`&`、空格等会拆开 URL 的字符按段编码，其余 Unicode 保持可读；协议按路径段解码，字面 `%` 不返回 500。`|300` / `|300x200` 只施加宽度且不超过内容宽；非数字后缀是说明。找不到的目标不输出空 `src`。预览图 `loading="lazy"`。笔记旁的图片和 `images/{slug}/` 随笔记移动；库根 `attachments/` 只登记不搬。动态卡与记忆浏览走同一条 Markdown→HTML 预览。  
+- `FilePreviewView`：HTML 沙箱 iframe + 截断；其它文本；png/jpeg/gif/webp 经 `topmind-asset://local/` 在内容宽内懒加载；svg 仍是文本；其余二进制不能预览 + 打开外部；换路径立即清空正文  
 - `editor.contentWidth`：`compact | reading | wide | full`（默认 `reading` ≈ 52rem）  
 - `editor.pagePadding` / `editor.paper`：阅读边距与画布纸张色（编辑/预览共用；工具栏 Aa + 设置）  
 - 行内 AI：`ai.complete` + `ai.cancelComplete`（`requestId` · `AbortSignal`）；选区浮条 / 工具栏 ✨；无 tools 会话  

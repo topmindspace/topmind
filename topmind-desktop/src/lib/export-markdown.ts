@@ -2,6 +2,7 @@
  * Light Markdown → HTML export for 交付 delivery shelf.
  * Intentionally minimal (no second MD engine): headings, lists, code, links, paragraphs.
  */
+import { embedDisplayFromTitle, filenameFromAssetUrl } from "../../electron/lib/embed-images.mjs";
 
 function escapeHtml(s: string): string {
   return s
@@ -453,6 +454,8 @@ export function sanitizePreviewUrl(raw: string): string | null {
     // Re-escape for attribute embedding (quotes already rejected)
     return u;
   }
+  // Editor / preview asset proxy. Spaces are encoded before this check.
+  if (/^topmind-asset:\/\/(?:local|remote)\//iu.test(u)) return u;
   // In-page fragment
   if (u.startsWith("#")) return u;
   // Relative / workspace paths — no scheme colon
@@ -460,13 +463,30 @@ export function sanitizePreviewUrl(raw: string): string | null {
   return null;
 }
 
+function escAttr(s: string): string {
+  return String(s || "")
+    .replace(/&/gu, "&amp;")
+    .replace(/</gu, "&lt;")
+    .replace(/>/gu, "&gt;")
+    .replace(/"/gu, "&quot;");
+}
+
 function inlineFormat(text: string): string {
   let s = escapeHtml(text);
-  // images ![alt](url) — only safe schemes
-  s = s.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/gu, (_m, alt, url) => {
+  // images ![alt](url) and ![alt](url "tmw:…") — quotes are already &quot;
+  // only safe schemes; numeric wikilink size is a width that cannot exceed the column
+  s = s.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;([\s\S]*?)&quot;)?\)/gu, (_m, alt, url, title) => {
     const safe = sanitizePreviewUrl(url);
-    if (!safe) return escapeHtml(String(alt || ""));
-    return `<img src="${safe}" alt="${alt}" loading="lazy" />`;
+    if (!safe) return alt || "";
+    const display = title ? embedDisplayFromTitle(title) : null;
+    const rawAlt = display?.alt || alt || filenameFromAssetUrl(safe);
+    const altAttr = display?.alt || !alt ? escAttr(rawAlt) : alt;
+    const width = display?.width || 0;
+    const style = width
+      ? `width:${width}px;max-width:100%;height:auto`
+      : "max-width:100%;height:auto";
+    const widthAttr = width ? ` width="${width}"` : "";
+    return `<img src="${safe}" alt="${altAttr}"${widthAttr} style="${style}" loading="lazy" />`;
   });
   // links [text](url) — only safe schemes; unsafe → plain text
   s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/gu, (_m, label, url) => {

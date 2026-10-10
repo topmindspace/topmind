@@ -37,6 +37,7 @@ import { assembleMemoryFeed, filterMemoryFeedByLayer, type MemoryFeedItem, type 
 import { stripListChromeForDisplay } from "../../../lib/stream-md-preview";
 import { runMemoryOrganizeConfirm, revealMemoryFolderInTree } from "../../../lib/memory-organize";
 import { streamMarkdownToPreviewHtml } from "../../../lib/stream-md-preview";
+import { useWorkspaceImagePaths } from "../../../lib/use-workspace-image-paths";
 import { Tooltip } from "../../../components/ui/tooltip";
 import type { DirEntry } from "../../../types";
 
@@ -94,6 +95,7 @@ export function MemoryBrowseView() {
   const feedLayout = useViewStore((s) => s.feedLayout);
   const setFeedLayout = useViewStore((s) => s.setFeedLayout);
   const loadGen = useRef(0);
+  const imagePaths = useWorkspaceImagePaths();
 
   const load = useCallback(async (opts?: { silent?: boolean }) => {
     const gen = ++loadGen.current;
@@ -376,7 +378,7 @@ export function MemoryBrowseView() {
               .replace(/^#{1,6}\s+/u, "")
               .trim();
             const titleDupesBody = Boolean(item.title) && firstPlain === item.title;
-            const html = streamMarkdownToPreviewHtml(displayMd, item.path);
+            const html = streamMarkdownToPreviewHtml(displayMd, item.path, imagePaths);
             const kindText = item.history
               ? t("workspace:memoryBrowse.kindHistory")
               : kindLabel[item.kind];

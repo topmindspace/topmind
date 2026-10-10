@@ -170,6 +170,8 @@ export const api = {
         entries?: import("../types").DirEntry[];
         filter?: string;
       }>("workspace.listTopicFiles", { topicId, ...opts }),
+    listImagePaths: () =>
+      invoke<{ paths: string[]; cached?: boolean; truncated?: boolean }>("workspace.listImagePaths"),
     listDir: (relativePath: string, filter?: string) =>
       invoke<{
         relativePath: string;

@@ -244,9 +244,14 @@ test("v4 source footprint stays bounded (src + electron)", () => {
   // module (TOOLS.md); none is feature sprawl. Ceiling moves by 8, total to 382.
   // 2026-10-04: runtime-bounds.mjs (+1 electron → 132) landed with the
   // working-set cap. Ceiling moves by 1 so the count matches the tree.
-  assert.ok(srcCount < 249, `src file count ${srcCount} exceeds soft ceiling`);
-  assert.ok(electronCount < 133, `electron file count ${electronCount} exceeds soft ceiling`);
-  assert.ok(srcCount + electronCount < 383, `total ${srcCount + electronCount} exceeds soft ceiling`);
+  // 2026-10-10 image embeds (+2 src / +1 electron → 250 / 133):
+  // embed-images.mjs is the shared rewrite (editor, preview, note-move);
+  // workspace-image-paths.ts is the path-list cache (no view-store, so
+  // stream preview tests stay pure); use-workspace-image-paths.ts is the
+  // hook. Ceiling moves by that much — not by a dozen.
+  assert.ok(srcCount < 251, `src file count ${srcCount} exceeds soft ceiling`);
+  assert.ok(electronCount < 134, `electron file count ${electronCount} exceeds soft ceiling`);
+  assert.ok(srcCount + electronCount < 385, `total ${srcCount + electronCount} exceeds soft ceiling`);
 });
 
 test("desktop validate restages engine before pack:verify (obsidian/clip stamp drift)", () => {

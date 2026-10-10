@@ -191,33 +191,34 @@ skills/
 ```yaml
 ---
 name: topmind-capture              # 必填。kebab-case，= 目录名（Agent Skills）
-version: <pack.version>            # 必填。= topmind-pack.json（topmind-skills 仓，非独立 semver）
 description: >-                    # 必填。≤1024 字符；含 Use when + Do not use
   Capture … Use when … Do NOT use …
-action_category: capture           # 必填。capture|organize|write|memory|maintain|loop|router|connector
-                                   # ⚠️ 不是用户笔记的 category（大类目录名）
-triggers: [记一下, capture]         # 必填。中英触发词
-tags: [capture, inbox]
-entrypoint: false                  # 仅 topmind router 为 true
-compatibility: topmind workspace…  # 可选。对齐 Agent Skills compatibility
-author: TopMindSpace
 license: MIT
-homepage: https://github.com/topmindspace/topmind
-updated: 2026-07-23
-degradation: ../shared/capability-degradation.md
-# v4 新增字段示例（根据需要可选）
-protection: open                   # open | locked
-promoted_from: <path>              # Stream→Memory 提升源
-promoted_to: <path>                # 被提升至何处
-memory_layer: periodic             # global | periodic | topic
-review_after: 2026-12-31           # 生命周期扫描依据
-derived_from: <path>               # 衍生层追溯真源
+compatibility: topmind workspace…  # 可选。对齐 Agent Skills compatibility
+metadata:                          # 自定义字段放这里（Agent Skills）；Desktop 先读顶层旧字段，缺省再读这里
+  version: <pack.version>          # 必填。= topmind-pack.json（topmind-skills 仓，非独立 semver）
+  action_category: capture         # 必填。capture|organize|write|memory|maintain|loop|router|connector
+                                   # ⚠️ 不是用户笔记的 category（大类目录名）
+  triggers: "记一下, capture"      # 必填。中英触发词
+  tags: "capture, inbox"
+  entrypoint: "false"              # 仅 topmind router 为 "true"
+  author: TopMindSpace
+  homepage: https://github.com/topmindspace/topmind-skills
+  updated: 2026-07-23
+  degradation: ../shared/capability-degradation.md
+  # 按需可选
+  protection: open                 # open | locked
+  promoted_from: <path>            # Stream→Memory 提升源
+  promoted_to: <path>              # 被提升至何处
+  memory_layer: periodic           # global | periodic | topic
+  review_after: 2026-12-31         # 生命周期扫描依据
+  derived_from: <path>             # 衍生层追溯真源
 ---
 ```
 
 **正文结构**（推荐）：When NOT → Inputs/Workflow → Defaults/gotchas → Receipt → Tool boundary → 条件引用 shared/references。
 
-Pack 元数据由 `topmind-pack.json` 唯一表达；SKILL frontmatter 镜像 `author`/`license`/`homepage`/`updated`。
+Pack 元数据由 `topmind-pack.json` 唯一表达。SKILL frontmatter 的 `license` 在顶层；`author`、`homepage`、`updated` 写在 `metadata` 下。Desktop 先读顶层旧字段，缺省再读 `metadata`。
 
 ### 3.1.1 Locale Overlay（国际化）
 
@@ -480,7 +481,7 @@ Source Connector → Object Adapter → Action Registry → Tool Contract → Su
 - 降级表唯一：`skills/shared/capability-degradation.md`
 - Progressive disclosure：`shared/` + skill `references/`；SKILL.md ≤500 行
 - 一份 `topmind-pack.json` only；禁止每 skill 再拆 pack JSON / 独立 semver
-- Frontmatter：name · version · description（Use when + Do not use）· action_category · triggers（+ compatibility / 推荐元数据）
+- Frontmatter：name · description（Use when + Do not use）· `metadata.version` · `metadata.action_category` · `metadata.triggers`（+ compatibility / 推荐元数据）
 - Agent 规范：`AGENTS.md`（`CLAUDE.md` 为薄壳）
 
 同步：`PROJECT-MODEL.md` · `TOOLS.md` · `DESIGN.md` · `PRODUCT-BOUNDARIES.md`。

@@ -16,6 +16,7 @@ import {
   listWorkspaceDir,
 } from "./workspace-list-ops.mjs";
 import { normalizeFileFilterMode } from "./file-filter.mjs";
+import { listWorkspaceImageFiles } from "./workspace-note-media.mjs";
 
 /** Light frontmatter title peek for list UIs (not a content store). */
 async function peekMdTitle(absPath) {
@@ -540,11 +541,20 @@ export const scanOps = {
   },
 
   /**
+   * Workspace-relative raster image paths for embed resolution.
+   * The markdown rewrite reads this list; it does not walk the disk.
+   */
+  async listImagePaths(_p, ctx) {
+    const root = resolveDataRoot(ctx.workspaceRoot);
+    const paths = await listWorkspaceImageFiles(root);
+    return { paths, truncated: paths.length >= 8000 };
+  },
+
+  /**
    * Agent-facing directory listing (all planes: content, memory/, .topmind/).
    * Returns name / type / size / mtime — not the UI tree filter.
    * @param {{ relativePath?: string, includeSystem?: boolean }} p
    */
-
   async listFiles(p, ctx) {
     const root = resolveDataRoot(ctx.workspaceRoot);
     const rel = String(p?.relativePath || "").replace(/\\/gu, "/").replace(/^\/+|\/+$/gu, "");
