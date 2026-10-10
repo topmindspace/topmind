@@ -43,7 +43,7 @@
 默认三栏：**导航 -> 动态 -> AI 工作区**。主叙事是动态时间轴；右栏 AI 工作区收纳 **对话 · 建议 · 清单 · 应用**。
 
 <p align="center">
-  <img src="../docs/images/desktop-stream.jpg" alt="Topmind Desktop 三栏工作台 · 动态时间轴与 AI 工作区" width="820" />
+  <img src="../docs/images/desktop-stream-en.jpg" alt="Topmind Desktop 三栏工作台 · 动态时间轴与 AI 工作区（英文界面）" width="820" />
 </p>
 
 ### 2. AI 工作区分面
