@@ -1,0 +1,1074 @@
+@import "tailwindcss";
+
+/**
+ * topmind Design Tokens — Design System 4.2 "ZCode Neutral + MD3"
+ *
+ * Brand: sky axis + capture teal. Solid CTA = monochrome ink.
+ * Three axes: mode (.dark) · tone (data-theme-tone) · seed (data-theme-seed).
+ *
+ * Surface ladder (never collapse elevated into surface):
+ *   app-chrome → background → surface → surface-elevated
+ *
+ * Type policy (long-read workbench, CJK+Latin):
+ *   UI ≥12px · base UI 14/1.5 · prose/editor 16/1.72 · tracking near-neutral for CJK
+ */
+@theme {
+  /* ── Brand stops (sky axis; prefer semantic accent-* in UI) ── */
+  --color-brand-deep: #075985;
+  --color-brand-mid: #0ea5e9;
+  --color-brand-aqua: #2fa89a;
+  /* Soft brand wash for landing / empty states only — never full chrome fills */
+
+  /* ── Monochrome ink primary (solid CTA; ZCode primary language) ── */
+  --color-ink: #1a1a1a;
+  --color-ink-hover: #383838;
+  --color-ink-foreground: #ffffff;
+
+  /* ── Colors (light) ──
+     4.3 Muse-softened warm pack: lighter canvas, less yellow cast, elevated
+     near-white. Still warm enough for long-read paper comfort (not Cue cold white).
+     Ladder: chrome → soft canvas → near-white surface → pure-white elevated. */
+  --color-app-chrome: #f2f1ee;
+  --color-background: #f6f5f2;
+  --color-surface: #faf9f6;
+  --color-surface-elevated: #fffefb;
+  /* MD3 container steps. Each floating role is its own mix — none is an alias of elevated.
+     2026-09-29: high/highest stay near-white (text-primary mix ≤8%) — a 16% ink mix
+     reads as a gray rectangle against the warm/cool paper ladder. */
+  --color-surface-container: var(--color-surface);
+  /* Monotonic elevation (same direction in both modes): high = menus sits on
+     elevated; highest = sheets one step *above* elevated. Never mix
+     text-primary/background into the ladder — that inverted dark. */
+  --color-surface-container-high: var(--color-surface-elevated);
+  --color-surface-container-highest: color-mix(in srgb, var(--color-surface-elevated) 82%, #ffffff 18%);
+  --color-inverse-surface: var(--color-ink);
+  --color-inverse-on-surface: var(--color-ink-foreground);
+  --color-surface-muted: #efeeea;
+  --color-surface-inset: #e6e4de;
+  /* Soft container fills — named stops instead of bg-surface-muted/NN
+     (alpha modifiers on semantic utilities are banned). */
+  --color-surface-wash-15: color-mix(in srgb, var(--color-surface-muted) 18%, transparent);
+  --color-surface-wash-30: color-mix(in srgb, var(--color-surface-muted) 32%, transparent);
+  --color-surface-wash-45: color-mix(in srgb, var(--color-surface-muted) 48%, transparent);
+  --color-surface-wash-65: color-mix(in srgb, var(--color-surface-muted) 68%, transparent);
+  --color-sidebar: #e9e7e2;
+  --color-text-primary: #242220;
+  --color-text-secondary: #4a4743;
+  --color-text-tertiary: #5c5853;
+  --color-text-quaternary: #635f59;
+  /* Prose body — one step softer than UI primary for long reading */
+  --color-text-prose: #2e2c28;
+  /* Hairlines: pure-black alpha */
+  --color-border-subtle: rgba(23, 23, 23, 0.10);
+  --color-border-subtle-dim: rgba(23, 23, 23, 0.06);
+  --color-border-strong: rgba(23, 23, 23, 0.18);
+
+  /* Sky accent — focus / links / selection / accent washes (ZCode brand axis).
+     Light stop is sky-700 so links stay AA on every plane (worst: 4.66 over
+     accent-bg-subtle on chrome). Asserted in tests/ui-token-compliance.test.mjs. */
+  --color-accent-color: #0369a1;
+  --color-accent-hover: #075985;
+  --color-accent-muted: rgba(3, 105, 161, 0.10);
+  --color-focus-ring: rgba(3, 105, 161, 0.85);
+  --color-focus-soft: rgba(3, 105, 161, 0.14);
+  /* Inbox / capture identity: teal-800 for AA as text on light paper
+     (worst plane: 5.82 over its own wash on chrome). */
+  --color-accent-inbox: #115e59;
+  /* ── Status palette (light) ──
+     Used as TEXT (~160x) on their own `-bg` wash. Stops are text-safe on the
+     worst plane (chrome): success 5.49 · warning 5.44 · error 4.90; white-on-solid
+     reverse also clears AA. Asserted in tests/ui-token-compliance.test.mjs. */
+  --color-status-success: #166534;
+  --color-success: var(--color-status-success);
+  --color-status-success-bg: rgba(22, 101, 52, 0.09);
+  --color-status-warning: #92400e;
+  --color-warning: var(--color-status-warning);
+  --color-status-warning-bg: rgba(146, 64, 14, 0.09);
+  --color-status-error: #b91c1c;
+  --color-error: var(--color-status-error);
+  --color-status-error-bg: rgba(185, 28, 28, 0.09);
+  /* Info — sky family, secondary signal. Text stop == sky-700 so the info tint is
+     legible as text; the wash keeps a sky tint (5.6:1 for text over it in the
+     AiProviderPanel reasoning chip). sky-500 as a *text* stop is 2.77:1 — unusable. */
+  --color-status-info: #0369a1;
+  --color-status-info-bg: rgba(3, 105, 161, 0.09);
+  /* Neutral status — fill-only axis (StatusDot idle). Not a text stop: text
+     mutes live on the text-tertiary/quaternary ladder. */
+  --color-status-neutral: #7a756e;
+  --color-status-neutral-bg: rgba(122, 117, 110, 0.12);
+  --color-inset-glow-subtle: rgba(255, 255, 255, 0.06);
+  --color-accent-border-subtle: rgba(3, 105, 161, 0.25);
+  --color-accent-bg-subtle: rgba(3, 105, 161, 0.08);
+  --color-accent-bg-faint: rgba(3, 105, 161, 0.05);
+  --color-scrim: rgba(0, 0, 0, 0.36);
+  /* Mini-app overlay (ledger etc.) — canvas stays visible; only a soft dim */
+  --color-scrim-mini: rgba(0, 0, 0, 0.14);
+  --color-kbd-bg: rgba(0, 0, 0, 0.05);
+
+  /* ── Badge (numeric count signal) ──
+     Own axis (not accent-color): accent flips hue in inbox mode, which would
+     drop white-on-fill below AA for 11px bold. Kept ≥ 4.5:1 both modes
+     (asserted in tests/ui-token-compliance.test.mjs). Do not merge with accent. */
+  --color-badge: #0369a1;
+  --color-badge-foreground: #ffffff;
+  --color-badge-alert: #b45309;
+  --color-badge-alert-foreground: #ffffff;
+
+  /* Theme-seed picker swatches (settings appearance only — preview fills). */
+  --color-theme-swatch-sky: #0369a1;
+  --color-theme-swatch-teal: #0f766e;
+  --color-theme-swatch-graphite: #3f3f46;
+
+  /* State layers — composited on interactive controls (not text colors).
+     MD3: hover 8% · focus 12–16% · pressed 10% · drag 16% · disabled = no layer */
+  --color-state-hover: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+  --color-state-focus: color-mix(in srgb, var(--color-accent-color) 14%, transparent);
+  --color-state-pressed: color-mix(in srgb, var(--color-text-primary) 10%, transparent);
+  --color-state-dragged: color-mix(in srgb, var(--color-accent-color) 16%, transparent);
+  --color-state-on-primary-hover: color-mix(in srgb, var(--color-ink-foreground) 12%, transparent);
+  --color-state-on-primary-pressed: color-mix(in srgb, var(--color-ink-foreground) 18%, transparent);
+
+  /* Tonal containers — secondary emphasis (not a second solid CTA) */
+  --color-accent-container: color-mix(in srgb, var(--color-accent-color) 12%, var(--color-surface));
+  --color-on-accent-container: var(--color-accent-color);
+  --color-error-container: color-mix(in srgb, var(--color-status-error) 12%, var(--color-surface));
+  --color-on-error-container: var(--color-status-error);
+  --color-success-container: color-mix(in srgb, var(--color-status-success) 12%, var(--color-surface));
+  --color-on-success-container: var(--color-status-success);
+
+  /* Editor paper tones (canvas only — never global chrome) */
+  --color-paper-soft: #f1ece3;
+  --color-paper-cream: #f8f3ea;
+  --color-paper-sepia: #f3eadc;
+
+  /* Surface interaction states */
+  --color-surface-hover: rgba(23, 23, 23, 0.045);
+  --color-surface-elevated-hover: #f7f5f1;
+  /* Neutral selected wash. Selection is this fill plus primary ink — no side or bottom accent bar. */
+  --color-surface-selected: rgba(23, 23, 23, 0.06);
+  --color-text-on-accent: #ffffff;
+  /* Dialog plane — a muted mix, not an alias of surface-elevated. */
+  --color-dialog-bg: color-mix(in srgb, var(--color-surface-elevated) 88%, var(--color-surface-muted) 12%);
+  /* Settings section header wash — consumed as an arbitrary value
+     (`bg-[var(--color-dialog-header)]` in SettingsLayout), so the utility-class
+     audit does not see it. Kept because it is genuinely in use. */
+  --color-dialog-header: color-mix(in srgb, var(--color-surface-muted) 28%, var(--color-surface-elevated));
+
+  /* ── Spacing ── Tailwind 4px grid; no custom --space-* scale. */
+
+  /* ── Radius — softer content language (Muse/Cue register 2026-09-29).
+     Content cards / floating surfaces go generous; tiny tool chips stay tight
+     only where hit-target density matters (kbd, count badge). */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-full: 9999px;
+  /* Floating chrome (dialogs / menus) — soft presence */
+  --radius-menu: 16px;
+  --radius-dialog: 20px;
+  --radius-card: 16px;
+  --radius-toast: 16px;
+
+  /* ── Elevation (neutral black tints; hairline on floating overlays) ── */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.09);
+  /* Feed / list cards — subtle lift + hairline for refined floating feel */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.045), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  /* Monochrome primary button: quiet lift (no brand glow — ink speaks for itself) */
+  --shadow-button: 0 1px 2px rgba(0, 0, 0, 0.10);
+  --shadow-button-hover: 0 3px 10px rgba(0, 0, 0, 0.14);
+  --shadow-divider-bottom: 0 1px 0 0 var(--color-border-subtle-dim);
+  --shadow-overlay: 0 24px 64px rgba(0, 0, 0, 0.14), 0 8px 20px rgba(0, 0, 0, 0.06), 0 0 0 1px var(--color-border-subtle);
+  --shadow-float: 0 10px 28px rgba(0, 0, 0, 0.09), 0 0 0 1px var(--color-border-subtle);
+  /* Elevated panels: depth + optional top hairline (light: soft; dark: inset glow) */
+  --shadow-elevated-hairline: var(--shadow-float);
+  --shadow-overlay-hairline: var(--shadow-overlay);
+
+  /* Elevation levels — after concrete shadows so aliases resolve cleanly */
+  --elevation-2: var(--shadow-float);
+  --elevation-3: var(--shadow-overlay);
+
+  /* ── Transition shorthands ── */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  /* MD3-informed emphasized easing — modal enter / terminal feedback only */
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --transition-interactive: color var(--duration-fast) var(--ease-default),
+    background-color var(--duration-fast) var(--ease-default),
+    border-color var(--duration-fast) var(--ease-default),
+    box-shadow var(--duration-fast) var(--ease-default),
+    transform var(--duration-fast) var(--ease-spring),
+    opacity var(--duration-fast) var(--ease-default);
+
+  /* ── Typography ──
+     Workbench system stacks — no webfont CDN. Latin first for UI chrome;
+     editor long-read prefers CJK faces. Display stays sans (not editorial). */
+  --font-family-ui: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", sans-serif;
+  --font-family-display: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --font-family-editor-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans SC", "Noto Sans CJK SC", "Segoe UI", "Helvetica Neue", ui-sans-serif, system-ui, sans-serif;
+  --font-family-editor-serif: "Source Han Serif SC", "Noto Serif SC", "Songti SC", "STSong", Georgia, "Times New Roman", serif;
+  --font-family-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Cascadia Mono", "Microsoft YaHei UI", "PingFang SC", monospace;
+  --font-sans: var(--font-family-ui);
+  --font-mono: var(--font-family-mono);
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
+  /* Tracking — near-neutral for CJK+Latin mixed UI (Linear/Obsidian register) */
+  --letter-spacing-tighter: -0.02em;
+  --letter-spacing-tight: -0.012em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.02em;
+
+  --type-size-display: 28px;
+  --type-size-body: 14px;
+
+  /* Layout density */
+  --density-page-x: 32px;
+  --density-page-y: 28px;
+  /* Content surfaces (stream / suggestions / goals) — Muse-breathing register.
+     Tool chrome keeps the tighter 4px grid; do not apply to editor toolbars. */
+  --density-content-gap: 14px;
+  --density-content-section: 24px;
+  --density-chrome-y: 44px;
+  /* Density tiers are window-driven media overrides in v4.css
+     (full 44 · condensed 36 · immersive 32). Keep one live token. */
+  --density-chrome-control: 32px;
+  --density-status-y: 26px;
+  --density-tree-row: 34px;
+  --density-editor-toolbar-y: 32px;
+
+  --control-h-chip: 22px;
+  --control-h-sm: 32px;
+  --type-weight-regular: var(--font-weight-normal);
+  --type-weight-medium: var(--font-weight-medium);
+  --type-weight-strong: var(--font-weight-semibold);
+
+  /* Leading — UI a touch looser for long sessions; prose stays 16/1.72 */
+  --type-leading-compact: 1.4;
+  --type-leading-ui: 1.55;
+  --type-leading-body: 1.72;
+  --type-leading-heading-tight: 1.22;
+  --type-leading-heading: 1.3;
+  --type-tracking-ui: var(--letter-spacing-normal);
+
+  --tracking-tighter: var(--letter-spacing-tighter);
+  --tracking-tight: var(--letter-spacing-tight);
+  --tracking-normal: var(--letter-spacing-normal);
+  --tracking-wide: var(--letter-spacing-wide);
+
+  /* Type scale — re-opened 2026-09-26 (was 9 names → 4 sizes).
+     5xs = kbd glyphs only · 4xs = 12px labels · 2xs = 11px muted meta
+     xs = 13px controls · sm = 14px UI primary · base = 15px reading body.
+     Content floor: goal criteria / tool summaries / suggestion body ≥13px
+     (text-xs). Do not paint sentences at the label floor. */
+  --text-5xs: 10px;
+  --text-5xs--line-height: var(--type-leading-compact);
+  --text-4xs: 12px;
+  --text-4xs--line-height: var(--type-leading-compact);
+  --text-3xs: 12px;
+  --text-3xs--line-height: var(--type-leading-compact);
+  --text-2xs: 11px;
+  --text-2xs--line-height: var(--type-leading-compact);
+  --text-xs: 13px;
+  --text-xs--line-height: var(--type-leading-ui);
+  --text-sm: 14px;
+  --text-sm--line-height: var(--type-leading-ui);
+  --text-base: 15px;
+  --text-base--line-height: var(--type-leading-ui);
+  --text-md: 15px;
+  --text-md--line-height: var(--type-leading-ui);
+  --text-lg: 16px;
+  --text-lg--line-height: var(--type-leading-compact);
+  --text-xl: 16px;
+  --text-xl--line-height: var(--type-leading-heading);
+  --text-3xl: 24px;
+  --text-3xl--line-height: var(--type-leading-heading);
+
+
+  /* ── Layout ── */
+  --content-max-width: 1120px;
+  /* List views (Inbox / Category / Topic / Outputs / hubs): fluid column —
+     fills actual available canvas width, value is only the readability cap. */
+  --content-max-width-dashboard: 72rem;
+  /* Comfortable reading column (~65–75 CJK chars / ~70 Latin) */
+  /* Editor reading column — default wider than classic 42rem for better space use */
+  --content-max-width-prose: 52rem;
+  --content-max-width-prose-compact: 40rem;
+  --content-max-width-prose-reading: 52rem;
+  --content-max-width-prose-wide: 72rem;
+  /* Stream / 我的情况: page chrome + compose + cards share one reading column.
+     Fluid: max-width resolves against .v4-main-canvas, so the column fills the
+     actual available width (sidebar / AI panel / split aware); 56rem (~896px)
+     balances spacious UI layout with ergonomic CJK/Latin reading line-length. */
+  --feed-column-max: 56rem;
+  --z-local: 1;
+  --z-popover: 30;
+  --z-floating: 50;
+  --z-modal: 80;
+  --z-toast: 100;
+  /* Open menus/listboxes must paint above tooltips (see DESIGN § dropdown) */
+  --z-menu: 110;
+  /* Popovers that must paint above open menus (e.g. todo popover over dropdowns) */
+  --z-popover-overlay: 120;
+  /* Full-viewport Confirm/Prompt/Error — above floating popovers; OverlayHost
+     stays at z-modal so settings-owned menus (z-menu) still paint on top. */
+  --z-dialog: 130;
+
+  /* ── Animation — snappy workbench (avoid long enter delays) ── */
+  --duration-instant: 60ms;
+  --duration-quick: 100ms;
+  --duration-fast: 140ms;
+  --duration-normal: 200ms;
+  --duration-enter: 160ms;
+  --duration-exit: 120ms;
+  --ease-default: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+
+  /* ── Status-bar chip truncation (see StatusBar.tsx) ──
+     Center selection hint: 42vw base, 36vw from sm up (media override in base layer).
+     Inline-AI busy / AI pill labels use fixed caps so the right rail never wraps. */
+  --status-chip-max: 42vw;
+  --status-chip-max-inline: 7.5rem;
+  --status-chip-max-ai: 9rem;
+
+  /* ── Blur — small surfaces only; never full-viewport scrim ── */
+  --blur-sm: 6px;
+  --blur-md: 12px;
+  --blur-glass: 14px;
+}
+
+/* Unified focus ring */
+@theme {
+  --shadow-focus-inset: inset 0 0 0 1px var(--color-accent-color), inset 0 0 0 4px var(--color-focus-soft);
+}
+
+/* MD3 surface-container roles live as product tokens (--color-surface-elevated,
+   --color-surface, --color-background, --color-surface-muted, --color-surface-inset)
+   and are consumed directly by menu/sheet/dialog/card/toast. No --md-sys-*
+   documentation aliases — zero-ref tokens are banned (ui-token-compliance). */
+
+@layer base, layout, components;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  body[data-mode='inbox'] {
+    --color-accent-color: var(--color-accent-inbox);
+    --color-accent-muted: rgba(17, 94, 89, 0.11);
+    --color-accent-hover: #134e4a;
+    --color-accent-border-subtle: rgba(17, 94, 89, 0.20);
+    --color-accent-bg-subtle: rgba(17, 94, 89, 0.09);
+    --color-focus-ring: rgba(17, 94, 89, 0.88);
+    --color-focus-soft: rgba(17, 94, 89, 0.14);
+  }
+
+  .dark {
+    color-scheme: dark;
+    /* Graphite ladder — rails deepest → canvas → paper → elevated modal plane
+       4.3: elevated one step lighter so floating cards read (Muse presence). */
+    --color-app-chrome: #171614;
+    --color-background: #1c1a17;
+    --color-surface: #232019;
+    --color-surface-elevated: #2e2b26;
+    --color-surface-muted: #272420;
+    --color-surface-inset: #12110f;
+    /* Same container steps as light, resolved against the graphite ladder. */
+    --color-surface-container: var(--color-surface);
+    --color-surface-container-high: var(--color-surface-elevated);
+    /* Dark: climb toward elevated-hover (lighter graphite), not toward canvas. */
+    --color-surface-container-highest: color-mix(in srgb, var(--color-surface-elevated) 78%, var(--color-surface-elevated-hover) 22%);
+    --color-inverse-surface: var(--color-ink);
+    --color-inverse-on-surface: var(--color-ink-foreground);
+    --color-sidebar: #141311;
+    /* Long-read dark ink: primary bright enough for AA, prose one step softer.
+       Quaternary stays above the tertiary step and still clears AA on elevated. */
+    --color-text-primary: #e8e4de;
+    --color-text-secondary: #c8c2b8;
+    --color-text-tertiary: #aca59b;
+    --color-text-quaternary: #9c948c;
+    --color-text-prose: #d9d4cc;
+    --color-border-subtle: rgba(255, 255, 255, 0.10);
+    --color-border-subtle-dim: rgba(255, 255, 255, 0.06);
+    --color-border-strong: rgba(255, 255, 255, 0.18);
+    --color-dialog-bg: color-mix(in srgb, var(--color-surface-elevated) 88%, var(--color-surface-muted) 12%);
+    --color-dialog-header: color-mix(in srgb, var(--color-surface-muted) 35%, var(--color-surface-elevated));
+    /* Ink CTA = near-white on graphite */
+    --color-ink: #f0f0f0;
+    --color-ink-hover: #dcdcdc;
+    --color-ink-foreground: #0a0a0a;
+    --color-accent-inbox: #4fc2b0;
+    --color-accent-color: #38bdf8;
+    --color-accent-hover: #7dd3fc;
+    --color-accent-muted: rgba(56, 189, 248, 0.16);
+    --color-accent-border-subtle: rgba(56, 189, 248, 0.30);
+    --color-accent-bg-subtle: rgba(56, 189, 248, 0.13);
+    --color-accent-bg-faint: rgba(56, 189, 248, 0.07);
+    --color-focus-ring: rgba(56, 189, 248, 0.90);
+    --color-focus-soft: rgba(56, 189, 248, 0.16);
+    /* Status on graphite — AA on elevated plane + own wash */
+    --color-status-success: #4ade80;
+    --color-status-success-bg: rgba(74, 222, 128, 0.12);
+    --color-status-warning: #fbbf24;
+    --color-warning: var(--color-status-warning);
+    --color-status-warning-bg: rgba(251, 191, 36, 0.12);
+    /* #fa8080 (not #f87171): AA on elevated plane + own wash (4.81:1) */
+    --color-status-error: #fa8080;
+    --color-status-error-bg: rgba(248, 113, 113, 0.12);
+    --color-status-info: #7dd3fc;
+    --color-status-info-bg: rgba(125, 211, 252, 0.12);
+    --color-status-neutral: #a8a29e;
+    --color-status-neutral-bg: rgba(168, 162, 158, 0.16);
+    --color-scrim: rgba(0, 0, 0, 0.56);
+    --color-scrim-mini: rgba(0, 0, 0, 0.28);
+    --color-kbd-bg: rgba(255, 255, 255, 0.08);
+    --color-badge: #38bdf8;
+    --color-badge-foreground: #082f49;
+    --color-badge-alert: #fbbf24;
+    --color-badge-alert-foreground: #451a03;
+
+    --color-surface-hover: rgba(255, 255, 255, 0.055);
+    --color-surface-elevated-hover: #342f2a;
+    --color-surface-selected: rgba(255, 255, 255, 0.09);
+    --color-text-on-accent: #0a0a0a;
+
+    /* Dark state layers */
+    --color-state-hover: color-mix(in srgb, var(--color-text-primary) 7%, transparent);
+    --color-state-focus: color-mix(in srgb, var(--color-accent-color) 16%, transparent);
+    --color-state-pressed: color-mix(in srgb, var(--color-text-primary) 9%, transparent);
+    --color-state-dragged: color-mix(in srgb, var(--color-accent-color) 20%, transparent);
+    --color-state-on-primary-hover: color-mix(in srgb, var(--color-ink-foreground) 10%, transparent);
+    --color-state-on-primary-pressed: color-mix(in srgb, var(--color-ink-foreground) 16%, transparent);
+    --color-accent-container: color-mix(in srgb, var(--color-accent-color) 14%, var(--color-surface));
+    --color-on-accent-container: var(--color-accent-color);
+    --color-error-container: color-mix(in srgb, var(--color-status-error) 16%, var(--color-surface));
+    --color-on-error-container: var(--color-status-error);
+    --color-success-container: color-mix(in srgb, var(--color-status-success) 16%, var(--color-surface));
+    --color-on-success-container: var(--color-status-success);
+
+    /* Dark paper tones — warm graphite, not neon */
+    --color-paper-soft: color-mix(in srgb, var(--color-surface) 88%, #3a3428);
+    --color-paper-cream: color-mix(in srgb, var(--color-surface) 90%, #2f281c);
+    --color-paper-sepia: color-mix(in srgb, var(--color-surface) 84%, #4a3824);
+
+
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.30);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.34);
+    --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.38);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.44);
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(255, 255, 255, 0.06), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+    --shadow-button: 0 1px 2px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.10);
+    --shadow-button-hover: 0 4px 14px rgba(0, 0, 0, 0.40);
+    --shadow-overlay: 0 28px 72px rgba(0, 0, 0, 0.54), 0 10px 24px rgba(0, 0, 0, 0.32), 0 0 0 1px var(--color-border-subtle);
+    --shadow-float: 0 12px 32px rgba(0, 0, 0, 0.42), 0 0 0 1px var(--color-border-subtle);
+    /* Raycast/Linear-style dark polish: outer hairline + 1px top inset glow */
+    --shadow-elevated-hairline:
+      var(--shadow-float),
+      0 0 0 1px color-mix(in srgb, #fff 6%, transparent),
+      inset 0 1px 0 0 var(--color-inset-glow-subtle);
+    --shadow-overlay-hairline:
+      var(--shadow-overlay),
+      0 0 0 1px color-mix(in srgb, #fff 7%, transparent),
+      inset 0 1px 0 0 var(--color-inset-glow-subtle);
+    --color-inset-glow-subtle: rgba(255, 255, 255, 0.07);
+    --shadow-divider-bottom: 0 1px 0 0 var(--color-border-subtle);
+  }
+
+  .dark body[data-mode='inbox'] {
+    --color-accent-color: var(--color-accent-inbox);
+    --color-accent-muted: rgba(79, 194, 176, 0.15);
+    --color-accent-hover: #6fd4c2;
+    --color-accent-border-subtle: rgba(79, 194, 176, 0.26);
+    --color-accent-bg-subtle: rgba(79, 194, 176, 0.11);
+    --color-focus-ring: rgba(79, 194, 176, 0.88);
+    --color-focus-soft: rgba(79, 194, 176, 0.14);
+    --color-text-on-accent: #12100c;
+  }
+}
+
+/* ── Surface tone packs (DS 4.1) ──
+   Orthogonal to mode (.dark) and accent seeds. Own the *neutral* axis only:
+   surface ladder · text steps · paper tones. Ink CTA, status, accent, badge
+   stay on their own axes so a tone swap never flips brand identity.
+   warm = default (no attribute — same pattern as the sky seed).
+   Derived color-mix stops (dialog-*, container-*, washes) re-resolve from
+   these bases automatically — do not restate them here.
+   Contrast floor 4.5:1 for text steps on the worst plane of each pack
+   (light: sidebar/chrome · dark: surface-elevated). Asserted in
+   tests/ui-token-compliance.test.mjs. */
+html[data-theme-tone="cool"] {
+  /* Cool blue-gray paper — less yellow than warm, still not pure white */
+  --color-app-chrome: #eef1f5;
+  --color-background: #f2f5f8;
+  --color-surface: #f7f9fb;
+  --color-surface-elevated: #fbfcfe;
+  --color-surface-muted: #e9eef3;
+  --color-surface-inset: #dce3ea;
+  --color-sidebar: #e5eaef;
+  --color-surface-elevated-hover: #e8eef5;
+  --color-text-primary: #1c2430;
+  --color-text-secondary: #445060;
+  --color-text-tertiary: #4f5c6c;
+  --color-text-quaternary: #5a6778;
+  --color-text-prose: #28303c;
+  --color-paper-soft: #e8eef4;
+  --color-paper-cream: #f0f4f8;
+  --color-paper-sepia: #e6ebe8;
+}
+
+html.dark[data-theme-tone="cool"] {
+  /* Cool graphite — slightly blue cast, same ladder order as warm dark */
+  --color-app-chrome: #151a21;
+  --color-background: #1a2028;
+  --color-surface: #1f2630;
+  --color-surface-elevated: #28303c;
+  --color-surface-muted: #232a34;
+  --color-surface-inset: #10151b;
+  --color-sidebar: #12151a;
+  --color-surface-elevated-hover: #2f3846;
+  --color-text-primary: #e6ebf2;
+  --color-text-secondary: #c2cad6;
+  --color-text-tertiary: #a0aab8;
+  --color-text-quaternary: #929cab;
+  --color-text-prose: #d5dbe4;
+  --color-paper-soft: #1e242c;
+  --color-paper-cream: #222a34;
+  --color-paper-sepia: #2a2820;
+}
+
+html[data-theme-tone="neutral"] {
+  /* True neutral gray — no chroma cast; default for accessibility-minded setups */
+  --color-app-chrome: #f0f0f0;
+  --color-background: #f4f4f4;
+  --color-surface: #f8f8f8;
+  --color-surface-elevated: #ffffff;
+  --color-surface-muted: #ececec;
+  --color-surface-inset: #e0e0e0;
+  --color-sidebar: #e6e6e6;
+  --color-surface-elevated-hover: #f0f0f0;
+  --color-text-primary: #1f1f1f;
+  --color-text-secondary: #454545;
+  --color-text-tertiary: #555555;
+  --color-text-quaternary: #5e5e5e;
+  --color-text-prose: #2a2a2a;
+  --color-paper-soft: #efefef;
+  --color-paper-cream: #f5f5f5;
+  --color-paper-sepia: #ebe8e2;
+}
+
+html.dark[data-theme-tone="neutral"] {
+  --color-app-chrome: #161616;
+  --color-background: #1a1a1a;
+  --color-surface: #202020;
+  --color-surface-elevated: #282828;
+  --color-surface-muted: #242424;
+  --color-surface-inset: #121212;
+  --color-sidebar: #141414;
+  --color-surface-elevated-hover: #303030;
+  --color-text-primary: #e8e8e8;
+  --color-text-secondary: #c4c4c4;
+  --color-text-tertiary: #a4a4a4;
+  --color-text-quaternary: #969696;
+  --color-text-prose: #d6d6d6;
+  --color-paper-soft: #222222;
+  --color-paper-cream: #262626;
+  --color-paper-sepia: #2a2620;
+}
+
+html[data-theme-tone="slate"] {
+  /* Pro-tool slate — deeper cool gray than cool, less chroma than blue paper */
+  --color-app-chrome: #e4e9ef;
+  --color-background: #eaeef3;
+  --color-surface: #f0f3f7;
+  --color-surface-elevated: #f7f9fb;
+  --color-surface-muted: #dce2e9;
+  --color-surface-inset: #c9d2dc;
+  --color-sidebar: #dde3ea;
+  --color-surface-elevated-hover: #e8edf3;
+  --color-text-primary: #15202b;
+  --color-text-secondary: #3d4a58;
+  --color-text-tertiary: #4c5a6a;
+  --color-text-quaternary: #556373;
+  --color-text-prose: #1e2a36;
+  --color-paper-soft: #e2e8ef;
+  --color-paper-cream: #ebeff4;
+  --color-paper-sepia: #e4e6e2;
+}
+
+html.dark[data-theme-tone="slate"] {
+  --color-app-chrome: #12171e;
+  --color-background: #161c24;
+  --color-surface: #1b222c;
+  --color-surface-elevated: #242c38;
+  --color-surface-muted: #1f2732;
+  --color-surface-inset: #0c1016;
+  --color-sidebar: #0e1218;
+  --color-surface-elevated-hover: #2b3542;
+  --color-text-primary: #e4eaf2;
+  --color-text-secondary: #b8c2d0;
+  --color-text-tertiary: #96a2b2;
+  --color-text-quaternary: #8894a4;
+  --color-text-prose: #d2dae4;
+  --color-paper-soft: #1a212a;
+  --color-paper-cream: #1e2630;
+  --color-paper-sepia: #242820;
+}
+
+/* ── Pre-generated theme seeds (DS 4.0.3) ──
+   Accent axis only — ink CTA, surfaces, density, IA unchanged.
+   sky = default (no attribute). Stops keep AA on the 4.0 surface ladder.
+   Inbox capture mode still wins via body[data-mode=inbox] overrides. */
+html[data-theme-seed="teal"] {
+  --color-accent-color: #0f766e;
+  --color-accent-hover: #115e59;
+  --color-accent-muted: rgba(15, 118, 110, 0.10);
+  --color-accent-container: color-mix(in srgb, #0f766e 12%, var(--color-surface));
+  --color-on-accent-container: #0f766e;
+  --color-focus-ring: rgba(15, 118, 110, 0.85);
+  --color-focus-soft: rgba(15, 118, 110, 0.14);
+  --color-accent-bg-subtle: rgba(15, 118, 110, 0.08);
+  --color-accent-bg-faint: rgba(15, 118, 110, 0.05);
+  --color-accent-border-subtle: rgba(15, 118, 110, 0.25);
+  --color-badge: #0f766e;
+  --color-status-info: #0f766e;
+  --color-status-info-bg: rgba(15, 118, 110, 0.09);
+  --color-brand-deep: #115e59;
+  --color-brand-mid: #14b8a6;
+  --color-brand-aqua: #2fa89a;
+}
+html.dark[data-theme-seed="teal"] {
+  --color-accent-color: #5eead4;
+  --color-accent-hover: #99f6e4;
+  --color-accent-muted: rgba(94, 234, 212, 0.16);
+  --color-accent-container: color-mix(in srgb, #5eead4 14%, var(--color-surface));
+  --color-on-accent-container: #5eead4;
+  --color-focus-ring: rgba(94, 234, 212, 0.90);
+  --color-focus-soft: rgba(94, 234, 212, 0.16);
+  --color-accent-bg-subtle: rgba(94, 234, 212, 0.13);
+  --color-accent-bg-faint: rgba(94, 234, 212, 0.07);
+  --color-accent-border-subtle: rgba(94, 234, 212, 0.30);
+  --color-badge: #5eead4;
+  --color-badge-foreground: #042f2a;
+  --color-status-info: #99f6e4;
+  --color-status-info-bg: rgba(153, 246, 228, 0.12);
+  --color-text-on-accent: #042f2a;
+}
+html[data-theme-seed="graphite"] {
+  --color-accent-color: #3f3f46;
+  --color-accent-hover: #27272a;
+  --color-accent-muted: rgba(63, 63, 70, 0.10);
+  --color-accent-container: color-mix(in srgb, #3f3f46 10%, var(--color-surface));
+  --color-on-accent-container: #3f3f46;
+  --color-focus-ring: rgba(63, 63, 70, 0.80);
+  --color-focus-soft: rgba(63, 63, 70, 0.12);
+  --color-accent-bg-subtle: rgba(63, 63, 70, 0.08);
+  --color-accent-bg-faint: rgba(63, 63, 70, 0.05);
+  --color-accent-border-subtle: rgba(63, 63, 70, 0.22);
+  --color-badge: #3f3f46;
+  --color-status-info: #3f3f46;
+  --color-status-info-bg: rgba(63, 63, 70, 0.08);
+  --color-brand-deep: #18181b;
+  --color-brand-mid: #71717a;
+  --color-brand-aqua: #a1a1aa;
+}
+html.dark[data-theme-seed="graphite"] {
+  --color-accent-color: #d4d4d8;
+  --color-accent-hover: #f4f4f5;
+  --color-accent-muted: rgba(212, 212, 216, 0.16);
+  --color-accent-container: color-mix(in srgb, #d4d4d8 14%, var(--color-surface));
+  --color-on-accent-container: #d4d4d8;
+  --color-focus-ring: rgba(212, 212, 216, 0.85);
+  --color-focus-soft: rgba(212, 212, 216, 0.16);
+  --color-accent-bg-subtle: rgba(212, 212, 216, 0.12);
+  --color-accent-bg-faint: rgba(212, 212, 216, 0.06);
+  --color-accent-border-subtle: rgba(212, 212, 216, 0.28);
+  --color-badge: #d4d4d8;
+  --color-badge-foreground: #18181b;
+  --color-status-info: #d4d4d8;
+  --color-status-info-bg: rgba(212, 212, 216, 0.12);
+  --color-text-on-accent: #18181b;
+}
+
+/* High-contrast sits AFTER tone/seed: same specificity as
+   `html.dark[data-theme-tone=…]` / `[data-theme-seed=…]`, so source order
+   decides. `html.dark.high-contrast` must win whenever the user asks for it. */
+html.dark.high-contrast {
+  --color-background: #000000;
+  --color-surface: #000000;
+  --color-surface-elevated: #111111;
+  --color-surface-muted: #222222;
+  --color-surface-inset: #1a1a1a;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #e0e0e0;
+  --color-text-tertiary: #cccccc;
+  --color-text-quaternary: #aaaaaa;
+  /* High-contrast borders stay strong but not pure white wireframe. */
+  --color-border-subtle: rgba(255, 255, 255, 0.55);
+  --color-border-subtle-dim: rgba(255, 255, 255, 0.35);
+  --color-border-strong: rgba(255, 255, 255, 0.85);
+  --color-accent-color: #7dd3fc;
+  --color-accent-muted: rgba(125, 211, 252, 0.22);
+  --color-sidebar: #0a0a0a;
+}
+
+/* ── Base resets ── */
+@layer base {
+
+html {
+  scroll-behavior: auto;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-ui);
+  font-size: var(--type-size-body);
+  font-weight: var(--type-weight-regular);
+  line-height: var(--type-leading-ui);
+  letter-spacing: var(--type-tracking-ui);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+}
+
+code,
+pre,
+kbd,
+samp,
+.font-mono {
+  font-family: var(--font-family-mono);
+}
+
+a {
+  color: var(--color-accent-color);
+  text-decoration: underline;
+  text-underline-offset: 2.5px;
+  text-decoration-thickness: 1px;
+  transition: color var(--duration-fast) var(--ease-default);
+}
+
+a:hover {
+  color: var(--color-accent-hover);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-accent-color) 22%, transparent);
+  color: var(--color-text-primary);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  touch-action: manipulation;
+}
+
+/* Kill UA default inset borders on *text-like* controls — form fields own
+   their shape via wash + radius. Checkbox / radio / range / file / color /
+   date-time must keep their UA chrome (appearance:none would blank the
+   checkbox glyph or the calendar picker). */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="date"]):not([type="time"]):not([type="datetime-local"]):not([type="month"]):not([type="week"]),
+textarea,
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  background: transparent;
+}
+/* Date/time: still drop the inset box, but keep the picker chrome. */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+input[type="month"],
+input[type="week"] {
+  border: none;
+  background: transparent;
+}
+
+button {
+  cursor: pointer;
+  transition: var(--transition-interactive);
+}
+
+button:active:not(:disabled),
+.interactive-scale:active:not(:disabled) {
+  /* 2026-08-07: subtle press feedback (0.985 → 0.992 for refined feel) */
+  transform: scale(0.992);
+}
+
+/* Focus recipes:
+   - Buttons keep the heavier ring (v4-focus-ring / the rule below).
+   - Text-like fields already sit in a wash fill — a 2px outline + 4px halo
+     around them reads as a hard "square box". Give them a 2px accent halo
+     only. Checkbox/radio/file keep UA chrome and a simple ring. */
+button:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--color-focus-soft);
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+.v4-quiet-field:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent-color) 28%, transparent);
+}
+
+input[type="checkbox"]:focus-visible,
+input[type="radio"]:focus-visible,
+input[type="range"]:focus-visible,
+input[type="file"]:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Composer field: the shell owns focus chrome; inner textarea stays flat. */
+.v4-composer-field:focus-within {
+  outline: none;
+}
+.v4-composer-field textarea {
+  border: none;
+  outline: none;
+  background: transparent;
+  resize: none;
+}
+.v4-composer-field textarea:focus-visible {
+  box-shadow: none;
+}
+
+/* Base scrollbar — slightly roomy for general surfaces (lists, dialogs) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-text-tertiary) 40%, transparent) transparent;
+}
+
+::-webkit-scrollbar,
+.custom-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track,
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb,
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-text-tertiary) 36%, transparent);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background-color var(--duration-fast) var(--ease-default);
+}
+
+::-webkit-scrollbar-thumb:hover,
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--color-text-tertiary) 58%, transparent);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+::-webkit-scrollbar-thumb:active,
+.custom-scrollbar::-webkit-scrollbar-thumb:active {
+  background: color-mix(in srgb, var(--color-text-tertiary) 72%, transparent);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+}
+
+/* Center selection hint cap tightens on sm+ viewports (single media override for
+   --status-chip-max; components just reference the token). */
+@media (min-width: 640px) {
+  :root,
+  .dark {
+    --status-chip-max: 36vw;
+  }
+}
+
+/* Unified focus ring + MD3-informed state helpers.
+   ONE recipe (no ring/35 alpha): token outline + soft halo. Pair with
+   outline-none only when the element would double-outline. */
+@layer components {
+  .v4-focus-ring {
+    @apply focus-visible:outline-none;
+  }
+  .v4-focus-ring:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px var(--color-focus-soft);
+  }
+  /* Snackbar surface — elevated paper; dark uses light glass */
+  .v4-toast {
+    backdrop-filter: blur(var(--blur-sm, 6px));
+    -webkit-backdrop-filter: blur(var(--blur-sm, 6px));
+  }
+  html.dark .v4-toast {
+    backdrop-filter: blur(var(--blur-glass, 14px)) saturate(140%);
+    -webkit-backdrop-filter: blur(var(--blur-glass, 14px)) saturate(140%);
+  }
+}
+
+
+/* Motion: opacity-first, micro translate — cheaper than large transforms */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fade-in-scale {
+  from { opacity: 0; transform: scale(0.985); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, 4px) scale(0.98); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+.animate-fade-in {
+  animation: fade-in var(--duration-enter) var(--ease-out);
+}
+
+.animate-fade-in-scale {
+  animation: fade-in-scale var(--duration-enter) var(--ease-out);
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up var(--duration-enter) var(--ease-out);
+}
+
+.animate-toast-in {
+  animation: toast-in var(--duration-enter) var(--ease-spring);
+}
+
+.animate-toast-out {
+  animation: toast-out var(--duration-exit, 120ms) ease-in forwards;
+}
+
+@keyframes toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-surface-muted) 70%, transparent) 25%,
+    color-mix(in srgb, var(--color-surface-elevated) 95%, var(--color-accent-muted)) 50%,
+    color-mix(in srgb, var(--color-surface-muted) 70%, transparent) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+.animate-spin {
+  animation: spin 0.65s linear infinite;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 1.8s ease-in-out infinite;
+}
+
+/* Stagger — short cascade; only first few items delay (lists stay scrollable) */
+.stagger-children > * {
+  animation: fade-in var(--duration-fast) var(--ease-out) both;
+}
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 20ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 40ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 55ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 70ms; }
+.stagger-children > *:nth-child(n+6) { animation-delay: 80ms; }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  button:active:not(:disabled),
+  .interactive-scale:active:not(:disabled) {
+    transform: none;
+  }
+  .stagger-children > * {
+    animation: none !important;
+  }
+  /* Essential busy: Windows often maps OS "动画效果" to reduced-motion.
+     Keep in-flight indicators looping so work is visible (not a 0.01ms one-shot). */
+  .animate-spin,
+  .v4-ai-progress-slide,
+  .v4-ai-progress-dot,
+  .v4-ai-busy-icon,
+  .v4-ai-busy-text,
+  .animate-shimmer,
+  .animate-pulse-soft {
+    animation-iteration-count: infinite !important;
+  }
+  .animate-spin {
+    animation-duration: 0.65s !important;
+  }
+  .v4-ai-progress-slide {
+    animation-duration: 1.4s !important;
+  }
+  .v4-ai-progress-dot {
+    animation-duration: 1.2s !important;
+  }
+  .v4-ai-busy-icon {
+    animation-duration: 1.4s !important;
+  }
+  .v4-ai-busy-text {
+    animation-duration: 1.6s !important;
+  }
+  .animate-shimmer {
+    animation-duration: 1.6s !important;
+  }
+  .animate-pulse-soft {
+    animation-duration: 1.8s !important;
+  }
+}

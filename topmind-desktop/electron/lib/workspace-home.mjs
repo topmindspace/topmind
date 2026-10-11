@@ -1,0 +1,428 @@
+import { promises as fs, readFileSync, existsSync } from "node:fs";
+import path from "node:path";
+import crypto from "node:crypto";
+import os from "node:os";
+import yaml from "js-yaml";
+import { exists } from "./fs-utils.mjs";
+import { defaultEngineCandidate } from "./engine-root.mjs";
+
+/** Mutable engine root — set by main after resolvetopmindRoot (dev monorepo or packaged). */
+let ENGINE_ROOT = defaultEngineCandidate();
+
+export function setEngineRoot(root) {
+  if (root) ENGINE_ROOT = path.resolve(root);
+  return ENGINE_ROOT;
+}
+
+export function getEngineRoot() {
+  return ENGINE_ROOT;
+}
+
+/** Load template JSON from engine templates/. Returns null when missing (caller uses defaults). */
+export function loadTemplateJson(templateId, engineRoot = ENGINE_ROOT) {
+  const root = engineRoot || ENGINE_ROOT;
+  const templatePath = path.join(root, "templates", `${templateId}.json`);
+  try {
+    const raw = readFileSync(templatePath, "utf-8");
+    return JSON.parse(raw);
+  } catch {
+    if (templateId === "stream" || templateId === "balanced") return null;
+    return loadTemplateJson("stream", root);
+  }
+}
+
+const STATE_DIR = "state";
+const WORKSPACES_DIR = "workspaces";
+
+function sanitizeName(workspaceRoot) {
+  const baseName = path.basename(path.resolve(workspaceRoot));
+  return baseName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "workspace";
+}
+
+function workspaceStateSlug(workspaceRoot) {
+  const resolved = path.resolve(workspaceRoot);
+  const safeName = sanitizeName(resolved);
+  const hash = crypto.createHash("sha1").update(resolved).digest("hex").slice(0, 8);
+  return `${safeName}-${hash}`;
+}
+
+/**
+ * State channel — separates prod / dev / test settings+keys so local Electron
+ * runs can never clobber a packaged install's app-settings.json / .secret-key.
+ *
+ * Priority:
+ *   1. TOPMIND_CHANNEL (dev | test | prod)
+ *   2. isPackaged (true → prod, false → dev)
+ *   3. prod (historical default for pure helpers / unit tests)
+ */
+export function resolveStateChannel(options = {}) {
+  const env = options.env ?? process.env;
+  const explicit = String(env?.TOPMIND_CHANNEL ?? env?.topmind_CHANNEL ?? "").trim().toLowerCase();
+  if (explicit === "dev") return "dev";
+  if (explicit === "test") return "test";
+  if (explicit === "prod" || explicit === "production") return "prod";
+  if (options.isPackaged === true) return "prod";
+  if (options.isPackaged === false) return "dev";
+  return "prod";
+}
+
+/**
+ * Desktop runtime state home (settings / logs / per-workspace AI state).
+ * Default: ~/topmind/topmind-desktop  (channel=prod — packaged install)
+ * Dev/test channels auto-suffix: ~/topmind/topmind-desktop-dev | …-test
+ * Override: topmind_DESKTOP_HOME (or legacy topmind_WORKSPACE_HOME) — absolute
+ * path wins verbatim (no suffix) so advanced users can point at a shared home
+ * on purpose.
+ * Not the monorepo root — never put user notes here.
+ */
+export function resolveDesktopStateHome(options = {}) {
+  const env = options.env ?? process.env;
+  for (const key of ["topmind_DESKTOP_HOME", "topmind_WORKSPACE_HOME"]) {
+    const envPath = env?.[key]?.trim();
+    if (envPath) return path.resolve(envPath);
+  }
+  const channel = resolveStateChannel(options);
+  const homeDir = options.homeDir || os.homedir();
+  const base = path.join(homeDir, "topmind", "topmind-desktop");
+  if (channel === "prod") return base;
+  return `${base}-${channel}`;
+}
+
+/**
+ * One-way seed: when a non-prod channel home is brand new and the prod home
+ * still has settings (+ .secret-key), COPY them into the isolated home so
+ * developers keep their keys without touching the packaged install.
+ * Never moves or writes the prod files.
+ */
+export async function seedIsolatedStateHomeFromProd(desktopStateHome, options = {}) {
+  const env = options.env ?? process.env;
+  const channel = resolveStateChannel(options);
+  if (channel === "prod") return { seeded: false, reason: "prod-channel" };
+  // Explicit override = user chose the path; do not second-guess.
+  if (env?.topmind_DESKTOP_HOME?.trim() || env?.topmind_WORKSPACE_HOME?.trim()) {
+    return { seeded: false, reason: "explicit-home" };
+  }
+  const homeDir = options.homeDir || os.homedir();
+  const prodHome = path.join(homeDir, "topmind", "topmind-desktop");
+  const destSettings = path.join(path.resolve(desktopStateHome), "state", "app-settings.json");
+  const srcSettings = path.join(prodHome, "state", "app-settings.json");
+  if (await exists(destSettings)) return { seeded: false, reason: "dest-exists" };
+  if (!(await exists(srcSettings))) return { seeded: false, reason: "no-prod-settings" };
+
+  const destDir = path.dirname(destSettings);
+  await fs.mkdir(destDir, { recursive: true });
+  try {
+    await fs.copyFile(srcSettings, destSettings);
+  } catch (err) {
+    return { seeded: false, reason: "copy-settings-failed", error: String(err?.message || err) };
+  }
+  // Companion local-AES key material — without it, safeStorage blobs may still
+  // decrypt but local fallback layer is lost after re-sign.
+  for (const name of [".secret-key", ".secret-key.bak"]) {
+    const src = path.join(prodHome, "state", name);
+    const dest = path.join(destDir, name);
+    if (await exists(src) && !(await exists(dest))) {
+      try {
+        await fs.copyFile(src, dest);
+        try { await fs.chmod(dest, 0o600); } catch { /* Windows */ }
+      } catch { /* best-effort */ }
+    }
+  }
+  return { seeded: true, from: prodHome, to: path.resolve(desktopStateHome) };
+}
+
+/**
+ * Default *path* for a brand-new install's content workspace (not auto-created until open).
+ * Default: ~/topmind/topmind-workspace
+ * Override: topmind_USER_WORKSPACE
+ * Distinct from the engine monorepo checkout and from Desktop runtime state.
+ */
+export function resolveUserWorkspaceRoot(options = {}) {
+  const env = options.env ?? process.env;
+  const envPath = env?.topmind_USER_WORKSPACE?.trim();
+  if (envPath) return path.resolve(envPath);
+  const homeDir = options.homeDir || os.homedir();
+  return path.join(homeDir, "topmind", "topmind-workspace");
+}
+
+export function resolveWorkspaceStatePaths(desktopStateHome, userWorkspaceRoot) {
+  const resolvedDesktopStateHome = path.resolve(desktopStateHome);
+  const resolvedUserWorkspace = path.resolve(userWorkspaceRoot);
+  const stateRootDirPath = path.join(resolvedDesktopStateHome, STATE_DIR);
+  const slug = workspaceStateSlug(resolvedUserWorkspace);
+  const workspaceStateDirPath = path.join(stateRootDirPath, WORKSPACES_DIR, slug);
+
+  return {
+    desktopStateHome: resolvedDesktopStateHome,
+    userWorkspaceRoot: resolvedUserWorkspace,
+    stateRootDirPath,
+    settingsFilePath: path.join(stateRootDirPath, "app-settings.json"),
+    workspaceStateDirPath,
+    aiWorkspaceStateFilePath: path.join(workspaceStateDirPath, "ai-workspace.json"),
+    aiSessionMessagesDirPath: path.join(workspaceStateDirPath, "session-messages"),
+  };
+}
+
+/**
+ * Load workspace behavior contract via Kernel (async open paths).
+ * Returns clean v4 nested contract (no flat alias injection).
+ * App-local prefs stay in app-settings.json — never forked here.
+ */
+export async function loadWorkspaceConfig(workspaceRoot) {
+  const root = path.resolve(workspaceRoot);
+  try {
+    const { kernelLoadContract } = await import("./kernel-api.mjs");
+    const contract = await kernelLoadContract(root);
+    return contract && typeof contract === "object" ? contract : {};
+  } catch {
+    // Fallback when engine root unavailable (tests / broken install)
+    return loadWorkspaceConfigLocal(root);
+  }
+}
+
+/**
+ * Local yaml-only read. Used by sync path-model and as engine-unavailable
+ * fallback. Does not read `.topmind-config.json` (ensureContract migrates once).
+ */
+function loadWorkspaceConfigLocal(workspaceRoot) {
+  const root = path.resolve(workspaceRoot);
+  const yamlPath = path.join(root, "topmind.yaml");
+  if (existsSync(yamlPath)) {
+    try {
+      const raw = readFileSync(yamlPath, "utf8");
+      const parsed = yaml.load(raw);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
+    } catch {
+      /* unreadable yaml — empty contract */
+    }
+  }
+  return {};
+}
+
+/** Synchronous workspace config loader — for use in sync path-model functions. */
+export function loadWorkspaceConfigSync(workspaceRoot) {
+  return loadWorkspaceConfigLocal(workspaceRoot);
+}
+
+/**
+ * FS-only separator alignment for category dirs. Contract write goes through Kernel
+ * ensureContract (via ensureRequiredStructure) — no second YAML seed blob.
+ */
+export async function autoRepairWorkspace(workspaceRoot) {
+  const resolved = path.resolve(workspaceRoot);
+  const config = await loadWorkspaceConfig(resolved);
+
+  // A corrupt/unreadable contract means the separator is unknowable — renaming
+  // dirs on FS-only inference could scramble them on a guess. Skip the repair;
+  // the unrepairable path surfaces a reseed recovery action, after which this
+  // runs again with a healthy contract.
+  try {
+    const { loadKernelApi } = await import("./kernel-api.mjs");
+    const kernel = await loadKernelApi();
+    const inspection = kernel.inspectContract(resolved);
+    if (inspection.state === "corrupt" || inspection.state === "unreadable") {
+      return;
+    }
+  } catch {
+    // Kernel unavailable — keep legacy FS-only behavior
+  }
+
+  const entries = await fs.readdir(resolved, { withFileTypes: true }).catch(() => []);
+  const discovered = entries
+    .filter((e) => e.isDirectory() && /^\d{2}[ -].+/.test(e.name))
+    .map((e) => e.name);
+
+  let targetSeparator = config.workspace?.category_separator;
+  let shouldWriteSeparator = false;
+
+  if (!targetSeparator) {
+    const hasHyphen = discovered.some((name) => name.charAt(2) === "-");
+    const hasSpace = discovered.some((name) => name.charAt(2) === " ");
+    if (hasHyphen || !hasSpace) {
+      targetSeparator = "-";
+    } else {
+      targetSeparator = " ";
+    }
+    shouldWriteSeparator = true;
+  }
+
+  let renamedAny = false;
+  for (const name of discovered) {
+    const currentSep = name.charAt(2);
+    if (currentSep !== targetSeparator) {
+      const num = name.slice(0, 2);
+      const rest = name.slice(3);
+      const nextName = `${num}${targetSeparator}${rest}`;
+      const src = path.join(resolved, name);
+      const dest = path.join(resolved, nextName);
+      if (src !== dest && !(await exists(dest))) {
+        await fs.rename(src, dest).catch(() => {});
+        renamedAny = true;
+      }
+    }
+  }
+
+  if (targetSeparator === "-") {
+    const oldDirs = [
+      ["00 Inbox", "00-Inbox"], ["88 Outputs", "88-Outputs"], ["88 Delivery", "88-Delivery"], ["99 Archive", "99-Archive"],
+      ["00 收件箱", "00-收件箱"], ["88 输出", "88-输出"], ["88 交付", "88-交付"], ["99 归档", "99-归档"],
+    ];
+    for (const [oldName, newName] of oldDirs) {
+      const src = path.join(resolved, oldName);
+      const dest = path.join(resolved, newName);
+      if ((await exists(src)) && !(await exists(dest))) {
+        await fs.rename(src, dest).catch(() => {});
+        renamedAny = true;
+      }
+    }
+  } else {
+    const oldDirs = [
+      ["00-Inbox", "00 Inbox"], ["88-Outputs", "88 Outputs"], ["88-Delivery", "88 Delivery"], ["99-Archive", "99 Archive"],
+      ["00-收件箱", "00 收件箱"], ["88-输出", "88 输出"], ["88-交付", "88 交付"], ["99-归档", "99 归档"],
+    ];
+    for (const [oldName, newName] of oldDirs) {
+      const src = path.join(resolved, oldName);
+      const dest = path.join(resolved, newName);
+      if ((await exists(src)) && !(await exists(dest))) {
+        await fs.rename(src, dest).catch(() => {});
+        renamedAny = true;
+      }
+    }
+  }
+
+  // Persist separator via Kernel writeContract (not a surface-private dump)
+  if (shouldWriteSeparator || renamedAny) {
+    try {
+      const { loadKernelApi } = await import("./kernel-api.mjs");
+      const kernel = await loadKernelApi();
+      const ensured = kernel.ensureContract(resolved, {
+        categorySeparator: targetSeparator,
+        templateId: config.workspace?.template,
+        locale: config.workspace?.locale,
+      });
+      // If already ok, still force separator into contract when inferred
+      if (ensured.onDiskValid && ensured.contract && shouldWriteSeparator) {
+        const next = {
+          ...ensured.contract,
+          workspace: {
+            ...(ensured.contract.workspace || {}),
+            category_separator: targetSeparator,
+          },
+        };
+        kernel.writeContract(resolved, next);
+      }
+    } catch {
+      // Engine unavailable — leave dirs renamed; next open will ensure contract
+    }
+  }
+}
+
+/**
+ * Ensure workspace has required role dirs (buffer/delivery/system) and v4 contract.
+ * Does NOT recreate optional template categories the user deleted.
+ * On first init (empty workspace), seeds full template categories once.
+ * Contract lifecycle is Kernel-only (ensureContract via ensureRequiredStructure).
+ */
+export async function ensureWorkspaceStructure(workspaceRoot, templateId = "stream") {
+  const resolved = path.resolve(workspaceRoot);
+  await fs.mkdir(resolved, { recursive: true });
+  await autoRepairWorkspace(resolved).catch(() => {});
+
+  const config = await loadWorkspaceConfig(resolved);
+  const entries = await fs.readdir(resolved, { withFileTypes: true }).catch(() => []);
+  const discovered = entries
+    .filter((e) => e.isDirectory() && /^\d{2}[ -].+/.test(e.name))
+    .map((e) => e.name);
+
+  const effectiveTemplateId = config.workspace?.template || templateId;
+  const isFirstInit = discovered.length === 0;
+
+  if (isFirstInit) {
+    // Brand-new workspace: seed full template category dirs once (UX layout only)
+    let targetSeparator = config.workspace?.category_separator;
+    if (!targetSeparator) targetSeparator = "-";
+    const template = loadTemplateJson(effectiveTemplateId);
+    let dirs;
+    if (template && template.categories) {
+      const sep = targetSeparator;
+      dirs = Object.entries(template.categories).map(
+        ([slot, def]) => `${slot}${sep}${def.name}`,
+      );
+    } else {
+      const suffix = targetSeparator;
+      dirs = [
+        `00${suffix}Inbox`, `10${suffix}动态`, `20${suffix}专题`,
+        `88${suffix}交付`, `99${suffix}归档`,
+      ];
+    }
+    await Promise.all(dirs.map((dir) => fs.mkdir(path.join(resolved, dir), { recursive: true })));
+  }
+
+  // Unified Kernel path: ensureContract + required roles (no surface seed YAML).
+  // Always return contract health — callers must not invent "healthy" when unrepairable.
+  let contractStatus = "unknown";
+  let contractOnDiskValid = false;
+  let contractErrors = [];
+  let contractActions = [];
+  let recovery = null;
+
+  try {
+    const { ensureRequiredStructure } = await import("./workspace-model-api.mjs");
+    const result = await ensureRequiredStructure(resolved, {
+      engineRoot: ENGINE_ROOT,
+      templateId: effectiveTemplateId,
+    });
+    contractStatus = result.contractStatus || "ok";
+    contractOnDiskValid = result.contractOnDiskValid !== false;
+    contractErrors = Array.isArray(result.contractErrors) ? result.contractErrors : [];
+    contractActions = Array.isArray(result.contractActions) ? result.contractActions : [];
+    if (!contractOnDiskValid) {
+      recovery = "system.reseedWorkspaceContract";
+    }
+  } catch {
+    // Last resort when engine lib missing: required role dirs only + Kernel ensure if possible
+    const sep = config.workspace?.category_separator || "-";
+    const sepChar = sep === " " ? " " : "-";
+    for (const dir of [`00${sepChar}Inbox`, `88${sepChar}交付`, `99${sepChar}归档`]) {
+      await fs.mkdir(path.join(resolved, dir), { recursive: true });
+    }
+    try {
+      const { loadKernelApi } = await import("./kernel-api.mjs");
+      const kernel = await loadKernelApi();
+      const ensured = kernel.ensureContract(resolved, {
+        templateId: effectiveTemplateId,
+        categorySeparator: sepChar,
+      });
+      contractStatus = ensured.status;
+      contractOnDiskValid = ensured.onDiskValid === true;
+      contractErrors = Array.isArray(ensured.errors) ? ensured.errors : [];
+      contractActions = Array.isArray(ensured.actions) ? ensured.actions : [];
+      if (!contractOnDiskValid) recovery = "system.reseedWorkspaceContract";
+    } catch (err) {
+      contractStatus = "unknown";
+      contractOnDiskValid = false;
+      contractErrors = [err instanceof Error ? err.message : String(err)];
+      recovery = "system.reseedWorkspaceContract";
+    }
+  }
+
+  return {
+    root: resolved,
+    contractStatus,
+    contractOnDiskValid,
+    contractErrors,
+    contractActions,
+    recovery,
+  };
+}
+
+export async function isUserWorkspaceInitialized(workspaceRoot) {
+  const resolved = path.resolve(workspaceRoot);
+  // Any buffer-like 00* category, or any {NN-Name}/ shape counts as initialized
+  try {
+    const entries = await fs.readdir(resolved, { withFileTypes: true });
+    if (entries.some((e) => e.isDirectory() && /^\d{2}[ -].+/.test(e.name))) return true;
+  } catch { /* fall through */ }
+  return (await exists(path.join(resolved, "00-收件箱"))) || (await exists(path.join(resolved, "00 收件箱")))
+  || (await exists(path.join(resolved, "00-Inbox"))) || (await exists(path.join(resolved, "00 Inbox")));
+}

@@ -1,0 +1,236 @@
+/**
+ * URL fetch ops — pure network path (no Electron).
+ * Enhanced SPA render is layered in WorkspaceService via fetch-render.mjs.
+ */
+import { extractArticle, cleanCaptureUrl } from "./fetch-article.mjs";
+import { isGithubMarkdownFileUrl } from "./github-md.mjs";
+import { fetchGithubMarkdown, GithubMdError } from "./github-fetch.mjs";
+import { parseXStatusOrArticle, fetchXStatus, XFetchError } from "./x-fetch.mjs";
+import { S } from "./workspace-helpers.mjs";
+import { t } from "./electron-i18n.mjs";
+
+/**
+ * Decode a Buffer to string using the given charset label.
+ *
+ * Prefers TextDecoder (supports gbk, gb2312, gb18030, big5, euc-kr,
+ * shift_jis, etc.), falls back to Buffer.toString, then to utf-8.
+ * Never throws — invalid / unsupported encodings degrade to utf-8.
+ */
+export function decodeBuffer(buf, charset) {
+  const enc = String(charset || "utf-8").toLowerCase().trim();
+  if (!enc || enc === "utf-8" || enc === "utf8") return buf.toString("utf-8");
+  try {
+    return new TextDecoder(enc).decode(buf);
+  } catch {
+    try {
+      return buf.toString(enc);
+    } catch {
+      return buf.toString("utf-8");
+    }
+  }
+}
+
+/**
+ * Build result object from extractArticle + meta.
+ * @param {object} article
+ * @param {{ url: string, maxLen: number, rawBytes?: number, methodOverride?: string }} meta
+ */
+export function buildFetchResult(article, meta) {
+  const cap = meta.maxLen;
+  let warning;
+  const method = meta.methodOverride || article.method;
+  if (article.likelySpa && article.wordCount < 40 && method !== "render") {
+    warning = t("fetch.spaHint");
+  } else if (article.truncated) {
+    warning = t("fetch.truncated", { cap });
+  } else if (article.wordCount < 40) {
+    warning = t("fetch.noContent");
+  }
+
+  // Ensure cover image is present in the body so capture + image localization
+  // can download it (metadata-only `image` was previously dropped on save).
+  let text = article.text || "";
+  const cover = article.image;
+  if (cover && !text.includes(cover) && !/!\[[^\]]*\]\(/u.test(text.slice(0, 400))) {
+    text = `![cover](${cover})\n\n${text}`.trim();
+  }
+
+  return {
+    title: article.title || "",
+    text,
+    url: meta.url,
+    description: article.description,
+    author: article.author,
+    siteName: article.siteName,
+    image: article.image,
+    method,
+    wordCount: article.wordCount,
+    canonical: article.canonical,
+    truncated: Boolean(article.truncated),
+    extractedChars: article.extractedChars ?? (article.text || "").length,
+    maxLen: cap,
+    likelySpa: Boolean(article.likelySpa),
+    rawBytes: meta.rawBytes ?? 0,
+    warning,
+  };
+}
+
+/**
+ * GitHub markdown / README path — raw fetch + image rewrite.
+ * @param {{ url: string, maxLen: number }} p
+ */
+async function fetchGithubCapture({ url, maxLen }) {
+  try {
+    const gh = await fetchGithubMarkdown(url);
+    let text = gh.markdown;
+    let truncated = false;
+    if (text.length > maxLen) {
+      text = `${text.slice(0, maxLen)}\n\n...(内容已截断)`;
+      truncated = true;
+    }
+    const wordCount = countWords(text);
+    const ghAuthor = (() => {
+      try {
+        const u = new URL(gh.url || url);
+        const parts = u.pathname.replace(/^\/+/, "").split("/");
+        return parts[0] || undefined;
+      } catch {
+        return undefined;
+      }
+    })();
+    return {
+      title: gh.title || "",
+      text,
+      url: gh.url,
+      description: undefined,
+      author: ghAuthor,
+      siteName: "GitHub",
+      image: undefined,
+      method: gh.fetchMethod || "github-raw",
+      wordCount,
+      canonical: gh.url,
+      truncated,
+      extractedChars: text.replace(/\n\n\.\.\.\(内容已截断\)\s*$/u, "").length,
+      maxLen,
+      likelySpa: false,
+      rawBytes: 0,
+      warning: truncated ? t("fetch.truncated", { cap: maxLen }) : undefined,
+    };
+  } catch (e) {
+    if (e instanceof GithubMdError) {
+      const err = new Error(e.message);
+      err.code = e.code || "github_error";
+      throw err;
+    }
+    throw e;
+  }
+}
+
+function countWords(text) {
+  const s = String(text || "").trim();
+  if (!s) return 0;
+  // CJK chars count as words; Latin split on whitespace (parity with fetch-article.mjs)
+  const cjk = (s.match(/[\u4e00-\u9fff\u3400-\u4dbf]/gu) || []).length;
+  const latin = s
+    .replace(/[\u4e00-\u9fff\u3400-\u4dbf]/gu, " ")
+    .split(/\s+/u)
+    .filter(Boolean).length;
+  return cjk + latin;
+}
+
+export const fetchOps = {
+  /**
+   * Static HTTP fetch → Readability extract → clean Markdown.
+   * GitHub markdown/README URLs use the dedicated raw path first.
+   * @param {{ url: string, maxLen?: number }} p
+   */
+  async fetchUrl({ url, maxLen }, _ctx) {
+    S(url, "url", { maxLen: 4096 });
+    if (!/^https?:\/\//iu.test(url)) {
+      const err = new Error(t("fetch.urlScheme"));
+      err.code = "invalid_url";
+      throw err;
+    }
+    const cleanedUrl = cleanCaptureUrl(url);
+    const cap = Math.min(Math.max(Number(maxLen) || 200_000, 5_000), 200_000);
+
+    // GitHub markdown file / repo README → raw path (no HTML scrape).
+    if (isGithubMarkdownFileUrl(cleanedUrl) || isGithubMarkdownFileUrl(url)) {
+      return fetchGithubCapture({ url: cleanedUrl || url, maxLen: cap });
+    }
+
+    // X status → structured fxtwitter path (HTML scrape on x.com is an SPA shell).
+    const xParsed = parseXStatusOrArticle(cleanedUrl) || parseXStatusOrArticle(url);
+    if (xParsed?.statusId && xParsed.screenName) {
+      try {
+        return await fetchXStatus(xParsed.canonical, { maxLen: cap });
+      } catch (e) {
+        if (e instanceof XFetchError && e.code === "x_article_fallback") {
+          // fall through to generic HTML
+        } else if (e instanceof XFetchError) {
+          const err = new Error(e.message);
+          err.code = e.code || "x_error";
+          throw err;
+        } else {
+          throw e;
+        }
+      }
+    }
+
+    let res;
+    try {
+      res = await fetch(cleanedUrl, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (compatible; topmind/4.12; +https://github.com/topmindspace/topmind) AppleWebKit/537.36 (KHTML, like Gecko)",
+          Accept: "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8",
+          "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+        },
+        signal: AbortSignal.timeout(20_000),
+        redirect: "follow",
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const err = new Error(
+        /abort|timeout/iu.test(msg) ? t("fetch.timeout", { msg }) : t("fetch.networkError", { msg }),
+      );
+      err.code = /abort|timeout/iu.test(msg) ? "timeout" : "network";
+      throw err;
+    }
+    if (!res.ok) {
+      const err = new Error(`HTTP ${res.status}: ${res.statusText}`);
+      err.code = "http_error";
+      throw err;
+    }
+    const ctHeader = res.headers.get("content-type") || "";
+    if (ctHeader && !/html|xml|text\/plain/iu.test(ctHeader) && !/text\//iu.test(ctHeader)) {
+      const err = new Error(t("fetch.unsupportedContentType", { ct: ctHeader.split(";")[0] }));
+      err.code = "unsupported_type";
+      throw err;
+    }
+
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.length > 5_000_000) {
+      const err = new Error(t("fetch.tooLarge"));
+      err.code = "too_large";
+      throw err;
+    }
+
+    let charset = "utf-8";
+    const ctMatch = ctHeader.match(/charset=([\w-]+)/iu);
+    if (ctMatch) charset = ctMatch[1].toLowerCase();
+
+    let html = decodeBuffer(buf, charset);
+    if (!ctMatch) {
+      const metaMatch = html.match(/<meta[^>]+charset=["']?([\w-]+)/iu);
+      if (metaMatch) {
+        charset = metaMatch[1].toLowerCase();
+        html = decodeBuffer(buf, charset);
+      }
+    }
+
+    const finalUrl = cleanCaptureUrl(res.url || cleanedUrl);
+    const article = extractArticle(html, { url: finalUrl, maxLen: cap });
+    return buildFetchResult(article, { url: finalUrl, maxLen: cap, rawBytes: buf.length });
+  },
+};

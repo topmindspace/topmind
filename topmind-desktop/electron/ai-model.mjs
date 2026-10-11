@@ -1,0 +1,183 @@
+/**
+ * v4 AI Model Resolution — multi-provider via Vercel AI SDK v7.
+ */
+import { createOpenAI } from "@ai-sdk/openai";
+import { createAnthropic } from "@ai-sdk/anthropic";
+import { t as ei18n } from "./lib/electron-i18n.mjs";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { resolveEffectiveBaseUrl } from "./lib/model-catalog.mjs";
+import { headerSafe, keyHadNonLatin1, isUsableSecret, MAX_SECRET_BYTES } from "./lib/header-safe.mjs";
+
+export { headerSafe, keyHadNonLatin1 };
+
+/**
+ * Sanitize a raw API key for HTTP headers. Returns "" when the value cannot
+ * legally travel (non-Latin-1, controls, or oversized) so the provider is
+ * treated as unconfigured instead of sending a crashing / CDNs-rejected header.
+ * @param {unknown} raw
+ * @returns {string}
+ */
+function safeKey(raw) {
+  if (!isUsableSecret(raw)) return "";
+  return headerSafe(raw);
+}
+
+/**
+ * Look up a model's context window from the live/catalog cache.
+ * @param {object} settings
+ * @param {string} provider
+ * @param {string} modelId
+ * @returns {number} 0 when unknown
+ */
+export function lookupContextLimit(settings, provider, modelId) {
+  const catalog = settings?.ai?.modelCache?.catalog;
+  if (!Array.isArray(catalog) || !provider || !modelId) return 0;
+  const entry = catalog.find((c) => c && c.id === provider);
+  if (!entry || !Array.isArray(entry.models)) return 0;
+  const hit = entry.models.find((m) => m && m.id === modelId);
+  return Number(hit?.contextLimit) > 0 ? Number(hit.contextLimit) : 0;
+}
+
+export function resolveModel(s, req) {
+  const m = s?.ai?.manual || {};
+  const pref = s?.ai?.sourcePreference || "";
+  const defaultModel = s?.ai?.defaultModel || null;
+  const base = (id) => resolveEffectiveBaseUrl(m, id);
+  // A pasted key with CJK/emoji would crash `new Headers()` in the AI SDK
+  // (ByteString); an oversized garbage decrypt would trip the CDN's
+  // `Request Header Or Cookie Too Large`. safeKey() rejects both — the
+  // provider stays unconfigured instead of sending a fatal header.
+  for (const [k, raw] of Object.entries(m)) {
+    if (typeof raw === "string" && /Key$/i.test(k) && raw.trim() && keyHadNonLatin1(raw)) {
+      const tooLong = raw.length > MAX_SECRET_BYTES;
+      console.warn(
+        `[ai-model] ${k} ${tooLong ? `is oversized (${raw.length} > ${MAX_SECRET_BYTES})` : "contains non-Latin-1 characters"} — rejected before HTTP headers. Re-paste the API key as plain ASCII.`,
+      );
+    }
+  }
+  const providers = [
+    { source: "openai", k: safeKey(m.openAiKey), mk: () => createOpenAI({ apiKey: safeKey(m.openAiKey), baseURL: base("openai") || undefined }), d: "gpt-4o-mini" },
+    { source: "anthropic", k: safeKey(m.anthropicKey), mk: () => createAnthropic({ apiKey: safeKey(m.anthropicKey), baseURL: base("anthropic") || undefined }), d: "claude-sonnet-5" },
+    { source: "google", k: safeKey(m.googleKey), mk: () => createGoogleGenerativeAI({ apiKey: safeKey(m.googleKey), baseURL: base("google") || undefined }), d: "gemini-3.6-flash" },
+    { source: "xai", k: safeKey(m.xaiKey), mk: () => createOpenAICompatible({ name: "xai", apiKey: safeKey(m.xaiKey), baseURL: base("xai") }), d: "grok-3-mini" },
+    { source: "groq", k: safeKey(m.groqKey), mk: () => createOpenAICompatible({ name: "groq", apiKey: safeKey(m.groqKey), baseURL: base("groq") }), d: "llama-3.3-70b-versatile" },
+    { source: "mistral", k: safeKey(m.mistralKey), mk: () => createOpenAICompatible({ name: "mistral", apiKey: safeKey(m.mistralKey), baseURL: base("mistral") }), d: "mistral-small-latest" },
+    { source: "openrouter", k: safeKey(m.openrouterKey), mk: () => createOpenAICompatible({ name: "openrouter", apiKey: safeKey(m.openrouterKey), baseURL: base("openrouter") }), d: "openai/gpt-4o-mini" },
+    { source: "deepseek", k: safeKey(m.deepseekKey), mk: () => createOpenAICompatible({ name: "deepseek", apiKey: safeKey(m.deepseekKey), baseURL: base("deepseek") }), d: "deepseek-chat" },
+    { source: "moonshot", k: safeKey(m.moonshotKey), mk: () => createOpenAICompatible({ name: "moonshot", apiKey: safeKey(m.moonshotKey), baseURL: base("moonshot") }), d: "kimi-k2.5" },
+    { source: "zhipu", k: safeKey(m.zhipuKey), mk: () => createOpenAICompatible({ name: "zhipu", apiKey: safeKey(m.zhipuKey), baseURL: base("zhipu") }), d: "glm-4.7-flash" },
+    { source: "minimax", k: safeKey(m.minimaxKey), mk: () => createOpenAICompatible({ name: "minimax", apiKey: safeKey(m.minimaxKey), baseURL: base("minimax") }), d: "MiniMax-M2.5" },
+    { source: "qwen", k: safeKey(m.qwenKey), mk: () => createOpenAICompatible({ name: "qwen", apiKey: safeKey(m.qwenKey), baseURL: base("qwen") }), d: "qwen-plus" },
+    { source: "doubao", k: safeKey(m.doubaoKey), mk: () => createOpenAICompatible({ name: "doubao", apiKey: safeKey(m.doubaoKey), baseURL: base("doubao") }), d: "doubao-1-5-pro-32k" },
+    { source: "siliconflow", k: safeKey(m.siliconflowKey), mk: () => createOpenAICompatible({ name: "siliconflow", apiKey: safeKey(m.siliconflowKey), baseURL: base("siliconflow") }), d: "deepseek-ai/DeepSeek-V3" },
+    { source: "baidu", k: safeKey(m.baiduKey), mk: () => createOpenAICompatible({ name: "baidu", apiKey: safeKey(m.baiduKey), baseURL: base("baidu") }), d: "ernie-4.5-turbo-128k" },
+    { source: "hunyuan", k: safeKey(m.hunyuanKey), mk: () => createOpenAICompatible({ name: "hunyuan", apiKey: safeKey(m.hunyuanKey), baseURL: base("hunyuan") }), d: "hunyuan-turbos-latest" },
+  ];
+  // Ollama — local endpoint. Only consider ready when user configured ollamaBaseUrl or preferred ollama.
+  const ollamaConfigured = Boolean(m.ollamaBaseUrl || pref === "ollama");
+  providers.push({
+    source: "ollama",
+    k: ollamaConfigured ? 1 : 0,
+    mk: () => createOpenAICompatible({ name: "ollama", apiKey: safeKey("ollama"), baseURL: base("ollama") }),
+    d: "qwen2.5:7b",
+  });
+  if (m.customBaseUrl && safeKey(m.customKey))
+    providers.push({ source: "custom", k: safeKey(m.customKey), mk: () => createOpenAICompatible({ name: "custom", apiKey: safeKey(m.customKey), baseURL: base("custom") }), d: "default" });
+
+  // Parse "provider/modelId" format from per-call override (AiPanel selector).
+  // This ensures the model is always routed to the correct provider's SDK,
+  // even when the user's preferred provider differs from the selected model's
+  // provider. Legacy bare model IDs (no slash) fall through to the old path.
+  let reqProvider = null;
+  let reqModelId = null;
+  if (req) {
+    const slashIdx = req.indexOf("/");
+    if (slashIdx > 0) {
+      reqProvider = req.slice(0, slashIdx);
+      reqModelId = req.slice(slashIdx + 1);
+    } else {
+      reqModelId = req;
+    }
+  }
+
+  // When a specific provider is requested via "provider/modelId", use it
+  // directly — the model belongs to that provider, not the preferred one.
+  if (reqProvider) {
+    const p = providers.find((pp) => pp.source === reqProvider && pp.k);
+    if (p) {
+      try {
+        const contextWindow = lookupContextLimit(s, reqProvider, reqModelId);
+        return { model: p.mk()(reqModelId), modelId: reqModelId, provider: reqProvider, contextWindow: contextWindow || undefined };
+      } catch {}
+    }
+  }
+
+  // Honor the user's preferred provider (only when it has a key) by trying it
+  // first; the rest follow in default order. Falls back to default order when
+  // no preference is set — fully backward compatible.
+  const ordered = pref
+    ? [...providers.filter((p) => p.source === pref && p.k), ...providers.filter((p) => p.source !== pref)]
+    : providers;
+
+  for (const p of ordered) {
+    if (!p.k) continue;
+    try {
+      const provider = p.mk();
+      // Explicit per-call model wins when it belongs to this provider or is bare.
+      // If reqProvider belonged to a different unavailable provider, use this provider's default.
+      let modelId;
+      if (reqModelId && (!reqProvider || reqProvider === p.source)) {
+        modelId = reqModelId;
+      } else if (defaultModel && pref && p.source === pref) {
+        modelId = defaultModel;
+      } else {
+        modelId = p.d;
+      }
+      const contextWindow = lookupContextLimit(s, p.source, modelId);
+      return { model: provider(modelId), modelId, provider: p.source, contextWindow: contextWindow || undefined };
+    } catch {}
+  }
+  return null;
+}
+
+/** Last successful agent loop id (`pi-agent-core` | `ai-sdk`). */
+let lastAgentLoop = "pi-agent-core";
+
+export function noteAgentLoop(loop) {
+  if (loop === "pi-agent-core" || loop === "ai-sdk") lastAgentLoop = loop;
+}
+
+export function getRuntimeStatus(s) {
+  const m = s?.ai?.manual || {};
+  const ps = [];
+  const push = (source, label) => ps.push({ source, label });
+  if (m.openAiKey) push("openai", "OpenAI");
+  if (m.anthropicKey) push("anthropic", "Anthropic");
+  if (m.googleKey) push("google", "Google");
+  if (m.xaiKey) push("xai", "xAI/Grok");
+  if (m.groqKey) push("groq", "Groq");
+  if (m.mistralKey) push("mistral", "Mistral");
+  if (m.openrouterKey) push("openrouter", "OpenRouter");
+  if (m.deepseekKey) push("deepseek", "DeepSeek");
+  if (m.moonshotKey) push("moonshot", "Moonshot/Kimi");
+  if (m.zhipuKey) push("zhipu", "Zhipu/GLM");
+  if (m.minimaxKey) push("minimax", "MiniMax");
+  if (m.qwenKey) push("qwen", "Qwen/DashScope");
+  if (m.doubaoKey) push("doubao", "Doubao/Volcengine");
+  if (m.siliconflowKey) push("siliconflow", "SiliconFlow");
+  if (m.baiduKey) push("baidu", "Baidu/ERNIE");
+  if (m.hunyuanKey) push("hunyuan", "Hunyuan");
+  // Ollama — shown as available when the user has set the endpoint URL
+  if (m.ollamaBaseUrl) push("ollama", "Ollama");
+  if (m.customBaseUrl && m.customKey) push("custom", "Custom");
+  const secretLost = Array.isArray(s?._secretHealth?.lost) ? s._secretHealth.lost : [];
+  return {
+    ready: ps.length > 0,
+    message: ps.length > 0 ? "" : ei18n("ai.noProvider"),
+    providers: ps,
+    loop: lastAgentLoop,
+    /** Keys that still have ciphertext but no longer decrypt (re-sign / lost key file). */
+    secretLost,
+  };
+}

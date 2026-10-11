@@ -1,0 +1,239 @@
+import { useEffect, useState, useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next";
+import { RiAddLine, RiFileTextLine, RiFolderLine, RiFolderOpenLine } from "@remixicon/react";
+import { api } from "../../../services/api";
+import { useViewStore } from "../../../stores/view-store";
+import { onLocal, emitLocal } from "../../../plugins/host";
+import { Button } from "../../../components/ui/Button";
+import {
+  ViewContainer,
+  SectionHeader,
+  EmptyState,
+  MetaText,
+  RowList,
+  FileRow,
+  LoadingState,
+  ErrorState,
+  FeedLayoutToggle,
+  CollectionFeed,
+  FeedColumn,
+  FeedChrome,
+} from "../../../components/ui/view";
+import { TitleBarActions } from "../../../lib/chrome-portal";
+import { useTitleBarChrome } from "../../../lib/titlebar-chrome";
+import { PromptDialog, ErrorDialog } from "../../../components/ui/Dialog";
+import {
+  useFileContextMenu,
+  WorkspaceFileContextMenu,
+} from "../../../components/ui/workspace-file-menu";
+import { Tooltip } from "../../../components/ui/tooltip";
+import { displayNoteTitle } from "../../../lib/note-meta";
+import { ICON } from "../../../lib/icons";
+import type { Topic, LooseNote } from "../../../types";
+
+interface Props {
+  category: string;
+}
+
+export function CategoryView({ category }: Props) {
+  const { t } = useTranslation(["workspace", "common"]);
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [looseNotes, setLooseNotes] = useState<LooseNote[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [dialog, setDialog] = useState<null | "topic" | "note">(null);
+  const [errorDialog, setErrorDialog] = useState<string | null>(null);
+  const select = useViewStore((s) => s.select);
+  const feedLayout = useViewStore((s) => s.feedLayout);
+  const setFeedLayout = useViewStore((s) => s.setFeedLayout);
+  const fileMenu = useFileContextMenu();
+
+  const loadGen = useRef(0);
+  const refresh = useCallback(async (opts?: { silent?: boolean }) => {
+    const gen = ++loadGen.current;
+    const silent = Boolean(opts?.silent);
+    if (!silent) setLoading(true);
+    try {
+      const { topics, looseNotes } = await api.ws.topics(category);
+      if (gen !== loadGen.current) return;
+      setTopics(topics || []);
+      setLooseNotes(looseNotes || []);
+      setError(null);
+    } catch (e) {
+      if (gen !== loadGen.current) return;
+      if (!silent) setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      if (gen === loadGen.current) setLoading(false);
+    }
+  }, [category]);
+
+  useEffect(() => {
+    void refresh();
+    const unsub = onLocal("workspace:file-changed", () => void refresh({ silent: true }));
+    return () => { unsub(); };
+  }, [refresh]);
+
+  const confirmNewTopic = async (name: string) => {
+    setDialog(null);
+    if (!name.trim()) return;
+    try {
+      const result = await api.ws.createTopic(category, name.trim());
+      emitLocal("workspace:file-changed");
+      select({ kind: "topic", topicId: result.topicId });
+    } catch (e) {
+      setErrorDialog(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const confirmNewNote = async (name: string) => {
+    setDialog(null);
+    const filename = name.trim();
+    if (!filename) return;
+    const relativePath = `${category}/${filename.endsWith(".md") ? filename : `${filename}.md`}`;
+    try {
+      await api.ws.save({ relativePath, content: `# ${filename.replace(/\.md$/, "")}\n\n` });
+      emitLocal("workspace:file-changed");
+      select({ kind: "file", path: relativePath });
+    } catch (e) {
+      setErrorDialog(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const empty = topics.length === 0 && looseNotes.length === 0;
+
+  useTitleBarChrome("category", {
+    title: category,
+    stats: empty
+      ? t("workspace:categoryView.noTopicsHint")
+      : `${t("workspace:categoryView.topicCount", { count: topics.length })} · ${t("workspace:categoryView.fileCount", { count: looseNotes.length })}`,
+  });
+
+  if (loading) return <LoadingState label={t("common:action.loading")} />;
+  if (error) return <ErrorState message={error} onRetry={() => void refresh()} />;
+
+  return (
+    <ViewContainer>
+      <TitleBarActions>
+        <Tooltip content={t("workspace:shared.newTopic")}>
+          <button
+            type="button"
+            className="v4-titlebar-btn gap-1 px-2 text-xs"
+            onClick={() => setDialog("topic")}
+            aria-label={t("workspace:shared.newTopic")}
+          >
+            <RiAddLine size={ICON.sm} />
+            <span className="hidden sm:inline">{t("workspace:shared.newTopic")}</span>
+          </button>
+        </Tooltip>
+        <Tooltip content={t("workspace:shared.newNote")}>
+          <button
+            type="button"
+            className="v4-titlebar-btn gap-1 px-2 text-xs"
+            onClick={() => setDialog("note")}
+            aria-label={t("workspace:shared.newNote")}
+          >
+            <RiAddLine size={ICON.sm} />
+            <span className="hidden sm:inline">{t("workspace:shared.newNote")}</span>
+          </button>
+        </Tooltip>
+      </TitleBarActions>
+
+      {empty ? (
+        <EmptyState
+          icon={<RiFolderLine size={ICON.md} />}
+          title={t("workspace:categoryView.noTopicsTitle")}
+          hint={t("workspace:categoryView.noTopicsHint")}
+          action={
+            <>
+              <Button variant="outline" size="sm" onClick={() => setDialog("note")}>
+                <RiAddLine size={ICON.sm} /> {t("workspace:shared.newNote")}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setDialog("topic")}>
+                <RiAddLine size={ICON.sm} /> {t("workspace:shared.newTopic")}
+              </Button>
+            </>
+          }
+        />
+      ) : null}
+
+      <FeedColumn collection>
+        <FeedChrome>
+          <FeedLayoutToggle value={feedLayout} onChange={setFeedLayout} />
+        </FeedChrome>
+      {topics.length > 0 ? (
+        <section className="mb-5">
+          <SectionHeader icon={<RiFolderOpenLine size={ICON.sm} />} label={t("workspace:topic.title")} count={topics.length} />
+          <CollectionFeed layout={feedLayout} className={feedLayout === "list" ? "v4-dash-card p-1.5" : undefined}>
+            <RowList>
+              {topics.map((item) => (
+                <FileRow
+                  key={item.id}
+                  icon={<RiFolderOpenLine size={ICON.xs} className="opacity-80" />}
+                  label={item.name}
+                  onClick={() => select({ kind: "topic", topicId: item.id })}
+                  onContextMenu={(e) =>
+                    fileMenu.open(e, { path: item.id, label: item.name, kind: "topic" })
+                  }
+                  meta={<MetaText>{t("workspace:topic.fileCount", { count: item.fileCount })}</MetaText>}
+                />
+              ))}
+            </RowList>
+          </CollectionFeed>
+        </section>
+      ) : null}
+
+      {looseNotes.length > 0 ? (
+        <section>
+          <SectionHeader icon={<RiFileTextLine size={ICON.xs} />} label={t("workspace:categoryView.recentNotes")} count={looseNotes.length} />
+          <CollectionFeed layout={feedLayout} className={feedLayout === "list" ? "v4-dash-card p-1.5" : undefined}>
+            <RowList>
+              {looseNotes.map((n) => (
+                <FileRow
+                  key={n.relativePath}
+                  icon={<RiFileTextLine size={ICON.xs} className="opacity-80" />}
+                  label={displayNoteTitle(n.name)}
+                  onClick={() => select({ kind: "file", path: n.relativePath })}
+                  onContextMenu={(e) =>
+                    fileMenu.open(e, {
+                      path: n.relativePath,
+                      label: n.name,
+                      kind: "note",
+                    })
+                  }
+                />
+              ))}
+            </RowList>
+          </CollectionFeed>
+        </section>
+      ) : null}
+      </FeedColumn>
+
+      <WorkspaceFileContextMenu
+        menu={fileMenu.menu}
+        onClose={fileMenu.close}
+        onMutated={() => void refresh()}
+      />
+
+      <PromptDialog
+        open={dialog === "topic"}
+        title={t("workspace:topic.createTitle")}
+        defaultValue={`${new Date().getFullYear()}-${t("common:action.newTopic")}`}
+        onConfirm={(v) => void confirmNewTopic(v)}
+        onCancel={() => setDialog(null)}
+      />
+      <PromptDialog
+        open={dialog === "note"}
+        title={t("workspace:shared.newNote")}
+        defaultValue={`${t("common:action.newNote")}.md`}
+        onConfirm={(v) => void confirmNewNote(v)}
+        onCancel={() => setDialog(null)}
+      />
+      <ErrorDialog
+        open={!!errorDialog}
+        title={t("common:status.error")}
+        message={errorDialog ?? ""}
+        onClose={() => setErrorDialog(null)}
+      />
+    </ViewContainer>
+  );
+}

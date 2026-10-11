@@ -1,0 +1,218 @@
+/**
+ * Pure helpers for QuickCapture (no React).
+ * Keep URL title cleaning + attachment path utils testable and out of the UI file.
+ */
+
+export type CaptureAttachment = {
+  id: string;
+  absolutePath: string;
+  name: string;
+  size?: number;
+};
+
+export type CaptureMode = "auto" | "note" | "docs";
+
+export type FetchMeta = {
+  method?: string;
+  wordCount?: number;
+  truncated?: boolean;
+  maxLen?: number;
+  likelySpa?: boolean;
+  warning?: string;
+  canEnhance?: boolean;
+  enhanced?: boolean;
+  /** Cover / first image URL from the fetch result (remote until localized). */
+  image?: string | null;
+};
+
+/** Highest-quality single fetch — full article length. */
+export const FETCH_FULL = 200_000;
+
+/** Staged URL-fetch progress labels (reads → extract → markdown). */
+export const FETCH_STEP_KEYS = [
+  { id: 1, key: "overlays:capture.fetchStep1" as const },
+  { id: 2, key: "overlays:capture.fetchStep2" as const },
+  { id: 3, key: "overlays:capture.fetchStep3" as const },
+];
+
+/** Split a topicId ("10 分类/2024-主题") into its category + topic parts. */
+export function splitTopicId(topicId: string): { category: string; topic: string } {
+  const slash = topicId.indexOf("/");
+  if (slash < 0) return { category: "", topic: topicId };
+  return { category: topicId.slice(0, slash), topic: topicId.slice(slash + 1) };
+}
+
+/** Returns an i18n key for the fetch method label. Caller translates via t(). */
+export function methodLabelKey(method?: string): string {
+  if (method === "readability") return "overlays:capture.methodReadability";
+  if (method === "render") return "overlays:capture.methodRender";
+  if (method === "github-raw") return "overlays:capture.methodGithubRaw";
+  if (method === "github-readme") return "overlays:capture.methodGithubReadme";
+  if (method === "x-status" || method === "x-article") return "overlays:capture.methodXStatus";
+  return "overlays:capture.methodHeuristic";
+}
+
+/** Capture URL kinds used for paste / source hints. */
+export type CaptureUrlKind =
+  | "github-file"
+  | "github-readme"
+  | "github-other"
+  | "x-status"
+  | "x-article"
+  | "web";
+
+/** Classify a URL for UI routing hints (pure; mirrors lib/github-md.mjs classifyCaptureUrl). */
+export function classifyCaptureUrlKind(raw: string): CaptureUrlKind | null {
+  const s = String(raw || "").trim();
+  if (!s) return null;
+  let u: URL;
+  try {
+    u = new URL(s);
+  } catch {
+    return null;
+  }
+  if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+  const host = u.hostname.toLowerCase();
+  const bare = host.replace(/^www\./, "");
+  if (host === "raw.githubusercontent.com" || bare === "github.com") {
+    const parts = u.pathname.replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
+    if (host === "raw.githubusercontent.com") {
+      const path = parts.slice(3).join("/");
+      return /\.(md|mdx|txt|markdown)$/i.test(path) ? "github-file" : "github-other";
+    }
+    if (parts.length >= 5 && (parts[2] === "blob" || parts[2] === "raw")) {
+      const path = parts.slice(4).join("/");
+      return /\.(md|mdx|txt|markdown)$/i.test(path) ? "github-file" : "github-other";
+    }
+    if (parts.length === 2) return "github-readme";
+    if (parts[2] === "tree" && parts.length >= 4) return "github-readme";
+    return "github-other";
+  }
+  if (bare === "x.com" || bare === "twitter.com" || bare === "mobile.twitter.com") {
+    const parts = u.pathname.replace(/^\/+|\/+$/g, "").split("/");
+    if (parts[0] === "i" && parts[1] === "article" && parts[2]) return "x-article";
+    if (parts.includes("status")) return "x-status";
+  }
+  return "web";
+}
+
+/** i18n key for a capture URL kind hint. */
+export function urlKindLabelKey(kind: CaptureUrlKind): string {
+  switch (kind) {
+    case "github-file":
+      return "overlays:capture.urlKindGithubFile";
+    case "github-readme":
+      return "overlays:capture.urlKindGithubReadme";
+    case "github-other":
+      return "overlays:capture.urlKindGithubOther";
+    case "x-status":
+      return "overlays:capture.urlKindXStatus";
+    case "x-article":
+      return "overlays:capture.urlKindXArticle";
+    default:
+      return "overlays:capture.urlKindWeb";
+  }
+}
+
+export function cleanCaptureTitle(raw: string, siteName?: string): string {
+  let t = String(raw || "")
+    .replace(/\s+/gu, " ")
+    .trim();
+  if (!t) return "";
+  const sn = siteName?.trim() || "";
+  const sepRe = /\s*[|»›·•]\s*|\s+[-–—]\s+/u;
+  if (sepRe.test(t)) {
+    const parts = t.split(sepRe).map((p) => p.trim()).filter(Boolean);
+    if (parts.length >= 2) {
+      const left = parts[0];
+      const right = parts[parts.length - 1];
+      const rightIsSite =
+        (sn &&
+          (right.toLowerCase().includes(sn.toLowerCase().slice(0, 12)) ||
+            sn.toLowerCase().includes(right.toLowerCase().slice(0, 12)))) ||
+        (right.length <= 36 && left.length >= 8 && left.length >= right.length);
+      if (rightIsSite && left.length >= 4) t = left;
+      else if (parts.length === 2 && left.length >= 12 && right.length <= 28) t = left;
+    }
+  }
+  t = t.replace(/^(Home|首页|主页)\s*[>|/›»-]+\s*/iu, "").trim();
+  if (t.length > 120) t = `${t.slice(0, 119).trim()}…`;
+  return t;
+}
+
+export function deriveTitleFromContent(content: string): string | undefined {
+  for (const raw of content.split("\n")) {
+    const line = raw.trim();
+    if (!line) continue;
+    if (line.startsWith(">")) continue;
+    if (/^https?:\/\/\S+$/iu.test(line)) continue;
+    if (/^---+$/u.test(line)) continue;
+    const t = cleanCaptureTitle(line.replace(/^#+\s+/u, ""));
+    if (t.length >= 2) return t.slice(0, 120);
+  }
+  return undefined;
+}
+
+/** Minimal fetch-result shape used by surfaces that only need markdown assembly. */
+export type FetchMarkdownResult = {
+  url?: string;
+  text?: string;
+  author?: string | null;
+  siteName?: string | null;
+  image?: string | null;
+  title?: string;
+  method?: string;
+  wordCount?: number;
+  truncated?: boolean;
+  maxLen?: number;
+  likelySpa?: boolean;
+  warning?: string | null;
+  canEnhance?: boolean;
+  enhanced?: boolean;
+};
+
+/**
+ * Build the compact source header + body markdown from a fetch result.
+ * Cover image is included in the body so later localization can download it.
+ */
+export function buildFetchMarkdown(
+  result: FetchMarkdownResult,
+  t: (key: string, opts?: Record<string, unknown>) => string,
+  existing = "",
+  opts: { replaceBareUrl?: boolean } = {},
+): string {
+  const metaLines = [`> ${t("overlays:capture.metaSource")}: ${result.url}`];
+  if (result.author) metaLines.push(`> ${t("overlays:capture.metaAuthor")}: ${result.author}`);
+  if (result.siteName) metaLines.push(`> ${t("overlays:capture.metaSite")}: ${result.siteName}`);
+  const header = `${metaLines.join("\n")}\n\n`;
+  let body = (result.text || "").trim() || t("overlays:capture.metaNoBody");
+  const cover = typeof result.image === "string" ? result.image : "";
+  if (cover && !body.includes(cover) && !/!\[[^\]]*\]\(/u.test(body.slice(0, 400))) {
+    body = `![cover](${cover})\n\n${body}`.trim();
+  }
+  const bare = /^https?:\/\/\S+$/iu.test(existing.trim());
+  const replaceBare = opts.replaceBareUrl !== false;
+  if (bare && replaceBare) return `${header}${body}`;
+  if (existing.trim()) return `${existing.trim()}\n\n${header}${body}`;
+  return `${header}${body}`;
+}
+
+export function isCaptureSurface(): boolean {
+  try {
+    if (new URLSearchParams(window.location.search).get("surface") === "capture") return true;
+    const hash = String(window.location.hash || "").replace(/^#/u, "");
+    return hash === "surface=capture" || hash.includes("surface=capture");
+  } catch {
+    return false;
+  }
+}
+
+export function attachId(): string {
+  return `a-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+export function pathToAttachment(absolutePath: string): CaptureAttachment {
+  const name = absolutePath.split(/[/\\]/u).pop() || absolutePath;
+  return { id: attachId(), absolutePath, name };
+}
+

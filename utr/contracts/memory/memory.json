@@ -1,0 +1,764 @@
+{
+  "schema_version": 1,
+  "kind": "memory",
+  "skill": "memory",
+  "label": "记忆工具",
+  "description": "分层记忆管理：提升、反思、追加、归档、原位更新、历史压缩、恢复。",
+  "execution": {
+    "runtime": "node",
+    "cwd_mode": "engine_root",
+    "script": "utr/tools/memory.mjs",
+    "args_template": [
+      "--categories-root",
+      "{categories_root}",
+      "--inbox-root",
+      "{inbox_root}",
+      "--archive-root",
+      "{archive_root}",
+      "--format",
+      "json",
+      "{command}"
+    ]
+  },
+  "commands": {
+    "promote": {
+      "label": "提升记忆",
+      "description": "将 Stream 条目提升为 memory/topics/{topic-slug}.md（标记 promoted_from/to）。源文件仅读取标记，不修改原文内容。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "medium",
+      "review_policy": "preview_or_auto",
+      "requires_topic": false,
+      "idempotent": false,
+      "supports_dry_run": true,
+      "destructive": false,
+      "inputs": {
+        "sourcePath": {
+          "type": "path",
+          "label": "源路径",
+          "required": true
+        },
+        "targetSlug": {
+          "type": "text",
+          "label": "目标主题",
+          "required": true
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动提升并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
+        },
+        "dryRun": {
+          "type": "toggle",
+          "label": "仅预览",
+          "default": true
+        }
+      },
+      "args_extra": [
+        "--source-path",
+        "{sourcePath}",
+        "--target-slug",
+        "{targetSlug}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [
+        "{sourcePath}"
+      ],
+      "writes": [
+        "memory/topics/{targetSlug}.md"
+      ]
+    },
+    "digest": {
+      "label": "生成反思",
+      "description": "写入周期反思骨架到 memory/periodic/{year}/{period}.md。UTR 为确定性 adapter（无 AI 模型），仅写入诚实骨架标记；真实 AI 周期反思请用 Desktop 建议管线确认后写入。可重建（覆盖同周期文件）。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "low",
+      "review_policy": "auto",
+      "requires_topic": false,
+      "idempotent": false,
+      "supports_dry_run": false,
+      "destructive": false,
+      "inputs": {
+        "period": {
+          "type": "text",
+          "label": "周期",
+          "required": true,
+          "hint": "如 2026-W30"
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
+        }
+      },
+      "args_extra": [
+        "--period",
+        "{period}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [],
+      "writes": [
+        "memory/periodic/{year}/{period}.md"
+      ]
+    },
+    "append-profile": {
+      "label": "追加我的情况",
+      "description": "追加「我的情况」到 memory/profile.md。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "low",
+      "review_policy": "auto",
+      "requires_topic": false,
+      "idempotent": false,
+      "supports_dry_run": false,
+      "destructive": false,
+      "inputs": {
+        "section": {
+          "type": "text",
+          "label": "段落",
+          "required": true,
+          "hint": "如 偏好 / 当前目标 / 关键的人与协作 / 进行中的事"
+        },
+        "content": {
+          "type": "text",
+          "label": "内容",
+          "required": true
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
+        }
+      },
+      "args_extra": [
+        "--section",
+        "{section}",
+        "--content",
+        "{content}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [
+        "memory/profile.md"
+      ],
+      "writes": [
+        "memory/profile.md"
+      ]
+    },
+    "append-topic": {
+      "label": "追加专题记忆",
+      "description": "追加专题稳定结论到 memory/topics/{topic-slug}.md。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "low",
+      "review_policy": "auto",
+      "requires_topic": false,
+      "idempotent": false,
+      "supports_dry_run": false,
+      "destructive": false,
+      "inputs": {
+        "slug": {
+          "type": "text",
+          "label": "主题",
+          "required": true
+        },
+        "content": {
+          "type": "text",
+          "label": "内容",
+          "required": true
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
+        }
+      },
+      "args_extra": [
+        "--slug",
+        "{slug}",
+        "--content",
+        "{content}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [
+        "memory/topics/{slug}.md"
+      ],
+      "writes": [
+        "memory/topics/{slug}.md"
+      ]
+    },
+    "retire-profile": {
+      "label": "归档我的情况",
+      "description": "把匹配的「我的情况」活跃事实移入 ## 历史记录（带归档日期，不删除原文）。匹配不到或已在历史则良性 skip。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "medium",
+      "review_policy": "preview_or_auto",
+      "requires_topic": false,
+      "idempotent": true,
+      "supports_dry_run": true,
+      "destructive": false,
+      "inputs": {
+        "match": {
+          "type": "text",
+          "label": "匹配原文",
+          "required": true,
+          "hint": "画像中该事实的原文或近似原文"
+        },
+        "section": {
+          "type": "text",
+          "label": "限定段落",
+          "required": false,
+          "hint": "可选：只在该活跃段落内匹配"
+        },
+        "reason": {
+          "type": "text",
+          "label": "归档原因",
+          "required": false
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
+        }
+      },
+      "args_extra": [
+        "--match",
+        "{match}",
+        "--section",
+        "{section}",
+        "--reason",
+        "{reason}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [
+        "memory/profile.md"
+      ],
+      "writes": [
+        "memory/profile.md"
+      ]
+    },
+    "update-profile": {
+      "label": "更新我的情况",
+      "description": "原位更新匹配的活跃事实为最新表述（旧表述进历史 sup 标记）。禁止在历史段原位改写。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "medium",
+      "review_policy": "preview_or_auto",
+      "requires_topic": false,
+      "idempotent": false,
+      "supports_dry_run": true,
+      "destructive": false,
+      "inputs": {
+        "match": {
+          "type": "text",
+          "label": "匹配原文",
+          "required": true
+        },
+        "content": {
+          "type": "text",
+          "label": "新内容",
+          "required": true
+        },
+        "section": {
+          "type": "text",
+          "label": "限定段落",
+          "required": false
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
+        }
+      },
+      "args_extra": [
+        "--match",
+        "{match}",
+        "--content",
+        "{content}",
+        "--section",
+        "{section}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [
+        "memory/profile.md"
+      ],
+      "writes": [
+        "memory/profile.md"
+      ]
+    },
+    "compact-history": {
+      "label": "压缩历史记录",
+      "description": "合并「历史记录」近重复归档行，保留最新一条。不碰活跃事实。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "low",
+      "review_policy": "auto",
+      "requires_topic": false,
+      "idempotent": true,
+      "supports_dry_run": true,
+      "destructive": false,
+      "inputs": {
+        "threshold": {
+          "type": "text",
+          "label": "相似度阈值",
+          "required": false,
+          "hint": "默认 0.72"
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
+        }
+      },
+      "args_extra": [
+        "--threshold",
+        "{threshold}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [
+        "memory/profile.md"
+      ],
+      "writes": [
+        "memory/profile.md"
+      ]
+    },
+    "restore-profile": {
+      "label": "恢复我的情况",
+      "description": "把历史记录中的事实恢复到活跃段落（retire 的逆操作）。目标段落已有等价活事实则 skip。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "medium",
+      "review_policy": "preview_or_auto",
+      "requires_topic": false,
+      "idempotent": true,
+      "supports_dry_run": true,
+      "destructive": false,
+      "inputs": {
+        "match": {
+          "type": "text",
+          "label": "匹配原文",
+          "required": true,
+          "hint": "历史记录中该事实的原文（可含归档日期前缀）"
+        },
+        "section": {
+          "type": "text",
+          "label": "目标段落",
+          "required": false,
+          "hint": "默认：进行中的事 / In progress"
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
+        }
+      },
+      "args_extra": [
+        "--match",
+        "{match}",
+        "--section",
+        "{section}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [
+        "memory/profile.md"
+      ],
+      "writes": [
+        "memory/profile.md"
+      ]
+    },
+    "list-todos": {
+      "label": "列出待办",
+      "description": "读取个人待办清单（memory/todo.md 语义平面卫星）。默认只返回未完成项；completed=true 时含已完成。",
+      "group": "assistive",
+      "exposure": "primary",
+      "risk_level": "low",
+      "review_policy": "auto",
+      "requires_topic": false,
+      "idempotent": true,
+      "supports_dry_run": false,
+      "destructive": false,
+      "inputs": {
+        "completed": {
+          "type": "toggle",
+          "label": "含已完成",
+          "default": false,
+          "hint": "true 时返回全部（含已完成）；默认只返回未完成项"
+        },
+        "limit": {
+          "type": "text",
+          "label": "最多返回条数",
+          "required": false,
+          "hint": "默认 50"
+        }
+      },
+      "args_extra": [
+        "--completed",
+        "{completed}",
+        "--limit",
+        "{limit}"
+      ],
+      "reads": [
+        "memory/todo.md"
+      ],
+      "writes": []
+    },
+    "add-todo": {
+      "label": "添加待办",
+      "description": "向 memory/todo.md 原子追加一条或多条待办。支持文本内嵌截止日期（如「完成报告 📅 2026-09-10」）或 dueDate。自动去重；用户删过的条目不回灌。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "medium",
+      "review_policy": "preview_or_auto",
+      "requires_topic": false,
+      "idempotent": false,
+      "supports_dry_run": true,
+      "destructive": false,
+      "inputs": {
+        "text": {
+          "type": "text",
+          "label": "待办文本",
+          "required": false,
+          "hint": "单条；与 items 二选一"
+        },
+        "items": {
+          "type": "text",
+          "label": "批量待办 JSON 数组",
+          "required": false,
+          "hint": "如 [\"交报告\",\"订机票\"]；与 text 二选一"
+        },
+        "dueDate": {
+          "type": "text",
+          "label": "截止日期",
+          "required": false,
+          "hint": "YYYY-MM-DD；也可写在文本里"
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
+        }
+      },
+      "args_extra": [
+        "--text",
+        "{text}",
+        "--items",
+        "{items}",
+        "--due-date",
+        "{dueDate}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [
+        "memory/todo.md"
+      ],
+      "writes": [
+        "memory/todo.md"
+      ]
+    },
+    "toggle-todo": {
+      "label": "切换待办完成",
+      "description": "在未完成/已完成之间切换待办。idOrText 可为待办 ID 或文本片段。标记完成会记完成时间并同步到当前动态周期本。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "medium",
+      "review_policy": "preview_or_auto",
+      "requires_topic": false,
+      "idempotent": false,
+      "supports_dry_run": true,
+      "destructive": false,
+      "inputs": {
+        "idOrText": {
+          "type": "text",
+          "label": "待办 ID 或文本片段",
+          "required": true
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
+        }
+      },
+      "args_extra": [
+        "--id-or-text",
+        "{idOrText}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [
+        "memory/todo.md"
+      ],
+      "writes": [
+        "memory/todo.md"
+      ]
+    },
+    "update-todo": {
+      "label": "改写待办文本",
+      "description": "修改一条待办的完整文本。idOrText 定位原条目，newText 是完整新文本；可同时设置截止日期。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "medium",
+      "review_policy": "preview_or_auto",
+      "requires_topic": false,
+      "idempotent": false,
+      "supports_dry_run": true,
+      "destructive": false,
+      "inputs": {
+        "idOrText": {
+          "type": "text",
+          "label": "待办 ID 或文本片段",
+          "required": true
+        },
+        "newText": {
+          "type": "text",
+          "label": "完整新文本",
+          "required": true
+        },
+        "dueDate": {
+          "type": "text",
+          "label": "截止日期",
+          "required": false,
+          "hint": "YYYY-MM-DD；空=不变"
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
+        }
+      },
+      "args_extra": [
+        "--id-or-text",
+        "{idOrText}",
+        "--new-text",
+        "{newText}",
+        "--due-date",
+        "{dueDate}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [
+        "memory/todo.md"
+      ],
+      "writes": [
+        "memory/todo.md"
+      ]
+    },
+    "set-todo-due": {
+      "label": "设置待办截止",
+      "description": "设置或清除一条待办的截止日期。dueDate 传 YYYY-MM-DD；传空清除。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "low",
+      "review_policy": "preview_or_auto",
+      "requires_topic": false,
+      "idempotent": true,
+      "supports_dry_run": true,
+      "destructive": false,
+      "inputs": {
+        "idOrText": {
+          "type": "text",
+          "label": "待办 ID 或文本片段",
+          "required": true
+        },
+        "dueDate": {
+          "type": "text",
+          "label": "截止日期（空=清除）",
+          "required": true
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
+        }
+      },
+      "args_extra": [
+        "--id-or-text",
+        "{idOrText}",
+        "--due-date",
+        "{dueDate}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [
+        "memory/todo.md"
+      ],
+      "writes": [
+        "memory/todo.md"
+      ]
+    },
+    "delete-todo": {
+      "label": "删除待办",
+      "description": "删除一条待办（用户明确说不要了才用）。优先切换为完成而不是删除。删除记入 dismissed，不回灌。",
+      "group": "workflow",
+      "exposure": "primary",
+      "risk_level": "medium",
+      "review_policy": "preview_or_auto",
+      "requires_topic": false,
+      "idempotent": false,
+      "supports_dry_run": true,
+      "destructive": true,
+      "inputs": {
+        "idOrText": {
+          "type": "text",
+          "label": "待办 ID 或文本片段",
+          "required": true
+        },
+        "writebackMode": {
+          "type": "select",
+          "label": "保存设置",
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": "自动保存并返回回执"
+            },
+            {
+              "value": "confirm",
+              "label": "需要审阅"
+            }
+          ]
+        }
+      },
+      "args_extra": [
+        "--id-or-text",
+        "{idOrText}",
+        "--mode",
+        "{mode}"
+      ],
+      "reads": [
+        "memory/todo.md"
+      ],
+      "writes": [
+        "memory/todo.md"
+      ]
+    }
+  }
+}

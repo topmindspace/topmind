@@ -1,0 +1,645 @@
+/**
+ * Desktop Skills Runtime — progressive disclosure for bundled topmind pack.
+ *
+ * Layout (engine root, same as pack:prepare):
+ *   {engine}/skills/topmind-pack.json
+ *   {engine}/skills/{id}/SKILL.md
+ *   {engine}/skills/shared/*.md
+ *
+ * Levels (Agent Skills open standard):
+ *   1 Discovery — name + description only (catalog)
+ *   2 Activation — full SKILL.md body
+ *   3 Resources — shared/ + references/ on demand
+ *
+ * No monorepo ../../skills static import (packaged asar-safe via engine root).
+ */
+import { promises as fs, readFileSync, existsSync, readdirSync } from "node:fs";
+import path from "node:path";
+import { getEngineRoot } from "./workspace-home.mjs";
+import { defaultEngineCandidate } from "./engine-root.mjs";
+import { getSkillsExtraRoot } from "./skills-extra.mjs";
+
+const CORE_ACTION_IDS = [
+  "topmind",
+  "topmind-capture",
+  "topmind-organize",
+  "topmind-write",
+  "topmind-memory",
+  "topmind-maintain",
+  "topmind-loop",
+];
+const CONNECTOR_IDS = ["topmind-weread", "topmind-x"];
+
+/** @type {{ root: string|null, pack: object|null, catalog: object[]|null, bodies: Map<string,string> }} */
+const cache = {
+  root: null,
+  pack: null,
+  catalog: null,
+  bodies: new Map(),
+};
+
+export function resolveSkillsRoot(engineRoot) {
+  const root = path.resolve(engineRoot || getEngineRoot() || defaultEngineCandidate());
+  const candidates = [
+    path.join(root, "skills"),
+    // portable engine may nest under topmind-engine already as root
+    path.join(root, "resources", "topmind-engine", "skills"),
+    // three-repo split: topmind-skills sibling (pack-at-root or skills/)
+    path.join(root, "..", "topmind-skills"),
+    path.join(root, "topmind-skills"),
+    path.join(root, "..", "topmind-skills", "skills"),
+    // env override for CI / custom layouts
+    process.env.TOPMIND_SKILLS_SRC,
+    process.env.topmind_SKILLS_SRC,
+  ].filter(Boolean);
+  for (const c of candidates) {
+    if (existsSync(path.join(c, "topmind-pack.json")) || existsSync(path.join(c, "topmind", "SKILL.md"))) {
+      return c;
+    }
+  }
+  return path.join(root, "skills");
+}
+
+/**
+ * Extra roots from settings (synced by system-service / AI path).
+ * Env topmind_SKILLS_EXTRA is always merged in resolveExtraSkillsRoots.
+ * @type {string[]}
+ */
+let configuredExtraRoots = [];
+
+/**
+ * Sync settings.ai.extraSkillsRoots into runtime (invalidates catalog cache).
+ * @param {unknown} roots
+ */
+export function setConfiguredExtraSkillsRoots(roots) {
+  const next = [];
+  if (Array.isArray(roots)) {
+    for (const r of roots) {
+      if (typeof r !== "string" || !r.trim()) continue;
+      const abs = path.resolve(r.trim());
+      if (!next.includes(abs) && existsSync(abs)) next.push(abs);
+    }
+  }
+  const same =
+    next.length === configuredExtraRoots.length &&
+    next.every((p, i) => p === configuredExtraRoots[i]);
+  if (same) return configuredExtraRoots.slice();
+  configuredExtraRoots = next;
+  invalidateSkillsCache();
+  return configuredExtraRoots.slice();
+}
+
+/**
+ * Optional extra skills roots (user extensions).
+ * Order: opts.extraRoots → settings (configured) → env topmind_SKILLS_EXTRA
+ * Env: topmind_SKILLS_EXTRA=/path/a:/path/b (or ; on Windows)
+ * @param {{ extraRoots?: string[] }} [opts]
+ * @returns {string[]}
+ */
+export function resolveExtraSkillsRoots(opts = {}) {
+  const sep = process.platform === "win32" ? ";" : ":";
+  /** @type {string[]} */
+  const out = [];
+  const push = (p) => {
+    if (!p || typeof p !== "string") return;
+    const abs = path.resolve(p.trim());
+    if (!out.includes(abs) && existsSync(abs)) out.push(abs);
+  };
+  if (Array.isArray(opts.extraRoots)) {
+    for (const r of opts.extraRoots) push(r);
+  }
+  for (const r of configuredExtraRoots) push(r);
+  const env = process.env.topmind_SKILLS_EXTRA?.trim();
+  if (env) {
+    for (const part of env.split(sep)) push(part);
+  }
+  return out;
+}
+
+function listSkillDirsFromRoot(skillsRoot) {
+  if (!existsSync(skillsRoot)) return [];
+  try {
+    return readdirSync(skillsRoot, { withFileTypes: true })
+      .filter((e) => e.isDirectory() && !e.name.startsWith(".") && e.name !== "shared" && e.name !== "tests" && e.name !== "evals" && e.name !== "install-targets")
+      .map((e) => e.name)
+      .filter((id) => existsSync(path.join(skillsRoot, id, "SKILL.md")))
+      .sort();
+  } catch {
+    return [];
+  }
+}
+
+function resetCacheIfRootChanged(skillsRoot) {
+  if (cache.root !== skillsRoot) {
+    cache.root = skillsRoot;
+    cache.pack = null;
+    cache.catalog = null;
+    cache.bodies = new Map();
+  }
+}
+
+function stripYamlQuotes(val) {
+  const v = String(val ?? "").trim();
+  if ((v.startsWith('"') && v.endsWith('"') && v.length >= 2) || (v.startsWith("'") && v.endsWith("'") && v.length >= 2)) {
+    return v.slice(1, -1);
+  }
+  return v;
+}
+
+function scalarValue(raw) {
+  const val = stripYamlQuotes(raw);
+  // Only bare true/false are booleans; quoted "true" stays a string (metadata is string→string).
+  const bare = String(raw ?? "").trim();
+  if (bare === "true") return true;
+  if (bare === "false") return false;
+  return val;
+}
+
+/**
+ * Parse YAML-ish frontmatter (enough for SKILL.md: name, description fold, flags,
+ * block lists, and one level of nested maps such as Agent Skills `metadata:`).
+ * @param {string} raw
+ */
+export function parseSkillMarkdown(raw) {
+  const text = String(raw || "").replace(/\r\n/gu, "\n");
+  const m = text.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/u);
+  if (!m) {
+    return { frontmatter: {}, body: text, description: "", name: "" };
+  }
+  const fmRaw = m[1];
+  const body = m[2] || "";
+  const frontmatter = {};
+  const lines = fmRaw.split("\n");
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const kv = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/u);
+    if (!kv) {
+      i += 1;
+      continue;
+    }
+    const key = kv[1];
+    let val = kv[2];
+    if (val === ">-" || val === "|" || val === ">" || val === "|-") {
+      const parts = [];
+      i += 1;
+      while (i < lines.length && (/^[ \t]/.test(lines[i]) || lines[i] === "")) {
+        if (lines[i].trim()) parts.push(lines[i].trim());
+        i += 1;
+      }
+      frontmatter[key] = parts.join(" ");
+      continue;
+    }
+    if (val === "" || val === null) {
+      // block list, nested map (one level, e.g. `metadata:`), or empty
+      const list = [];
+      const map = {};
+      let mapKeys = 0;
+      i += 1;
+      while (i < lines.length && (/^[ \t]+\S/.test(lines[i]) || lines[i] === "")) {
+        const cur = lines[i];
+        if (cur === "") {
+          i += 1;
+          continue;
+        }
+        const item = cur.match(/^\s+-\s+(.*)$/u);
+        if (item && mapKeys === 0) {
+          list.push(stripYamlQuotes(item[1]));
+          i += 1;
+          continue;
+        }
+        const sub = cur.match(/^\s+([A-Za-z0-9_.-]+):\s*(.*)$/u);
+        if (sub && list.length === 0) {
+          map[sub[1]] = scalarValue(sub[2]);
+          mapKeys += 1;
+          i += 1;
+          continue;
+        }
+        i += 1; // deeper / unsupported shapes are skipped, never fatal
+      }
+      if (list.length) frontmatter[key] = list;
+      else if (mapKeys) frontmatter[key] = map;
+      else frontmatter[key] = val;
+      continue;
+    }
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      val = val.slice(1, -1);
+    }
+    if (val === "true") frontmatter[key] = true;
+    else if (val === "false") frontmatter[key] = false;
+    else frontmatter[key] = val;
+    i += 1;
+  }
+  return {
+    frontmatter,
+    body,
+    description: String(frontmatter.description || "").trim(),
+    name: String(frontmatter.name || "").trim(),
+  };
+}
+
+function toStringList(value) {
+  if (Array.isArray(value)) return value.map((v) => String(v).trim()).filter(Boolean);
+  if (typeof value !== "string") return [];
+  let s = value.trim();
+  if (!s) return [];
+  if (s.startsWith("[") && s.endsWith("]")) s = s.slice(1, -1);
+  return s
+    .split(/[,，、]/u)
+    .map((part) => stripYamlQuotes(part))
+    .filter(Boolean);
+}
+
+function toBool(value) {
+  if (value === true) return true;
+  if (typeof value === "string") return value.trim().toLowerCase() === "true";
+  return false;
+}
+
+/**
+ * Normalize topmind custom skill fields. Reads the legacy top-level keys first
+ * (old SKILL.md files) and falls back to Agent Skills `metadata.*` (spec-valid
+ * files), so both layouts parse to the same shape.
+ * @param {Record<string, unknown>} frontmatter
+ */
+export function resolveSkillMeta(frontmatter) {
+  const fm = frontmatter && typeof frontmatter === "object" ? frontmatter : {};
+  const meta = fm.metadata && typeof fm.metadata === "object" && !Array.isArray(fm.metadata) ? fm.metadata : {};
+  const pick = (key) => (fm[key] !== undefined && fm[key] !== "" ? fm[key] : meta[key]);
+  const str = (key) => {
+    const v = pick(key);
+    return v === undefined || v === null ? "" : String(v).trim();
+  };
+  return {
+    version: str("version"),
+    actionCategory: str("action_category"),
+    entrypoint: toBool(pick("entrypoint")),
+    triggers: toStringList(pick("triggers")),
+    tags: toStringList(pick("tags")),
+    degradation: str("degradation"),
+    author: str("author"),
+    homepage: str("homepage"),
+    updated: str("updated"),
+  };
+}
+
+function loadPackSync(skillsRoot) {
+  const packPath = path.join(skillsRoot, "topmind-pack.json");
+  if (!existsSync(packPath)) return null;
+  try {
+    return JSON.parse(readFileSync(packPath, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Build discovery catalog (level 1). Merges bundled engine skills + optional extras.
+ * @param {{ engineRoot?: string, enabledIds?: string[]|null }} [opts]
+ */
+export function listSkillCatalog(opts = {}) {
+  const skillsRoot = resolveSkillsRoot(opts.engineRoot);
+  const extras = resolveExtraSkillsRoots({ extraRoots: opts.extraRoots });
+  const extraKey = extras.join("|");
+  const cacheKey = `${skillsRoot}::${extraKey}`;
+  resetCacheIfRootChanged(cacheKey);
+  if (cache.catalog && cache.root === cacheKey) {
+    return filterEnabled(cache.catalog, opts.enabledIds);
+  }
+
+  const pack = loadPackSync(skillsRoot);
+  cache.pack = pack;
+  /** @type {Map<string, object>} */
+  const byId = new Map();
+
+  const ingest = (rootDir, source) => {
+    for (const id of listSkillDirsFromRoot(rootDir)) {
+      const skillPath = path.join(rootDir, id, "SKILL.md");
+      try {
+        const raw = readFileSync(skillPath, "utf8");
+        const parsed = parseSkillMarkdown(raw);
+        const meta = resolveSkillMeta(parsed.frontmatter);
+        const name = parsed.name || id;
+        byId.set(name || id, {
+          id: name || id,
+          directory: id,
+          name: name || id,
+          description: parsed.description || "",
+          actionCategory: meta.actionCategory || "action",
+          entrypoint: meta.entrypoint,
+          triggers: meta.triggers,
+          version: meta.version,
+          path: skillPath,
+          source,
+          skillsRoot: rootDir,
+        });
+      } catch {
+        /* skip */
+      }
+    }
+  };
+
+  ingest(skillsRoot, "bundled");
+  for (const extra of extras) {
+    ingest(extra, "external");
+  }
+
+  const catalog = Array.from(byId.values());
+
+  // Prefer pack order when available
+  if (pack?.entry_files && Array.isArray(pack.entry_files)) {
+    const order = pack.entry_files.map((f) => String(f).split("/")[0]);
+    catalog.sort((a, b) => {
+      const ia = order.indexOf(a.directory);
+      const ib = order.indexOf(b.directory);
+      if (ia === -1 && ib === -1) return a.id.localeCompare(b.id);
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    });
+  }
+
+  cache.catalog = catalog;
+  return filterEnabled(catalog, opts.enabledIds);
+}
+
+function filterEnabled(catalog, enabledIds) {
+  if (!enabledIds || !Array.isArray(enabledIds) || enabledIds.length === 0) {
+    return catalog.slice();
+  }
+  const set = new Set(enabledIds);
+  return catalog.filter((s) => set.has(s.id) || set.has(s.directory));
+}
+
+/**
+ * Load full skill body (level 2 activation).
+ * @param {string} skillId
+ * @param {{ engineRoot?: string, maxChars?: number }} [opts]
+ */
+export function loadSkillBody(skillId, opts = {}) {
+  const skillsRoot = resolveSkillsRoot(opts.engineRoot);
+  const id = String(skillId || "").trim().replace(/^\/+/, "");
+  if (!id) throw new Error("skillId required");
+  // Reject path traversal — same discipline as loadSkillResource
+  if (id.includes("..") || id.includes("/") || id.includes("\\")) {
+    throw new Error(`Invalid skillId: ${id}`);
+  }
+
+  // Key by root so multi-vault / engineRoot switches never serve a stale body.
+  const cacheKey = `${skillsRoot}::${id}`;
+  if (cache.bodies.has(cacheKey)) {
+    const cached = cache.bodies.get(cacheKey);
+    return clipBody(
+      typeof cached === "string"
+        ? { id, raw: cached, body: cached, description: "", frontmatter: {} }
+        : cached,
+      opts.maxChars,
+    );
+  }
+
+  const catalog = listSkillCatalog({ engineRoot: opts.engineRoot, enabledIds: null });
+  const hit = catalog.find((s) => s.id === id || s.directory === id || s.name === id);
+  const candidates = [];
+  if (hit?.path && existsSync(hit.path)) candidates.push(hit.path);
+  if (hit?.skillsRoot) candidates.push(path.join(hit.skillsRoot, hit.directory, "SKILL.md"));
+  candidates.push(path.join(skillsRoot, id, "SKILL.md"));
+  if (hit) candidates.push(path.join(skillsRoot, hit.directory, "SKILL.md"));
+
+  let raw = null;
+  let usedPath = null;
+  for (const p of candidates) {
+    if (p && existsSync(p)) {
+      raw = readFileSync(p, "utf8");
+      usedPath = p;
+      break;
+    }
+  }
+  if (!raw) throw new Error(`Skill not found: ${id}`);
+
+  const parsed = parseSkillMarkdown(raw);
+  const meta = resolveSkillMeta(parsed.frontmatter);
+  const result = {
+    id: parsed.name || id,
+    path: usedPath,
+    description: parsed.description,
+    actionCategory: meta.actionCategory || undefined,
+    entrypoint: meta.entrypoint,
+    version: meta.version || undefined,
+    body: parsed.body,
+    raw,
+    frontmatter: parsed.frontmatter,
+  };
+  cache.bodies.set(cacheKey, result);
+  return clipBody(result, opts.maxChars);
+}
+
+function clipBody(result, maxChars) {
+  const max = Math.min(Math.max(Number(maxChars) || 14000, 2000), 40000);
+  if (typeof result === "string") {
+    if (result.length <= max) return { raw: result, body: result, truncated: false };
+    return { raw: result.slice(0, max), body: result.slice(0, max), truncated: true };
+  }
+  const out = { ...result };
+  if (out.raw && out.raw.length > max) {
+    out.raw = `${out.raw.slice(0, max)}\n\n…(truncated ${out.raw.length - max} chars; use load_skill_resource for shared refs)`;
+    out.body = out.raw;
+    out.truncated = true;
+  } else {
+    out.truncated = false;
+  }
+  return out;
+}
+
+/**
+ * Load shared or skill reference resource (level 3).
+ * @param {string} rel — e.g. shared/project-model-brief.md or topmind/references/foo.md
+ */
+export function loadSkillResource(rel, opts = {}) {
+  const skillsRoot = resolveSkillsRoot(opts.engineRoot);
+  const cleaned = String(rel || "")
+    .replace(/\\/gu, "/")
+    .replace(/^\/+/, "");
+  if (!cleaned || cleaned.includes("..")) throw new Error("Invalid resource path");
+  const roots = [skillsRoot, ...resolveExtraSkillsRoots({ extraRoots: opts.extraRoots })];
+  let abs = null;
+  for (const root of roots) {
+    const candidate = path.resolve(root, cleaned);
+    // Path-containment check (not raw startsWith) so sibling dirs like
+    // `skills-evil/` cannot pass a `skills/` root prefix.
+    const relToRoot = path.relative(root, candidate);
+    if (!relToRoot || relToRoot.startsWith("..") || path.isAbsolute(relToRoot)) continue;
+    if (existsSync(candidate)) {
+      abs = candidate;
+      break;
+    }
+  }
+  if (!abs) throw new Error(`Resource not found: ${cleaned}`);
+  const raw = readFileSync(abs, "utf8");
+  const max = Math.min(Math.max(Number(opts.maxChars) || 12000, 1000), 40000);
+  return {
+    path: cleaned,
+    content: raw.length > max ? `${raw.slice(0, max)}\n\n…(truncated)` : raw,
+    truncated: raw.length > max,
+  };
+}
+
+/**
+ * Pack status for Settings / About.
+ */
+export function getSkillsStatus(opts = {}) {
+  const skillsRoot = resolveSkillsRoot(opts.engineRoot);
+  const pack = loadPackSync(skillsRoot);
+  const catalog = listSkillCatalog({
+    engineRoot: opts.engineRoot,
+    enabledIds: null,
+    extraRoots: opts.extraRoots,
+  });
+  const hasShared = existsSync(path.join(skillsRoot, "shared", "project-model-brief.md"))
+    || existsSync(path.join(skillsRoot, "shared", "capability-degradation.md"));
+  const extraRoots = resolveExtraSkillsRoots({ extraRoots: opts.extraRoots });
+  return {
+    skillsRoot,
+    extraRoots,
+    managedExtraRoot: getSkillsExtraRoot(),
+    packVersion: pack?.version || null,
+    packName: pack?.name || "topmind",
+    dailyEntry: pack?.daily_entry || "topmind",
+    skillCount: catalog.length,
+    hasShared,
+    catalog: catalog.map((s) => ({
+      id: s.id,
+      description: s.description.slice(0, 200),
+      actionCategory: s.actionCategory,
+      entrypoint: s.entrypoint,
+      source: s.source || "bundled",
+    })),
+    coreIds: CORE_ACTION_IDS,
+    connectorIds: CONNECTOR_IDS,
+  };
+}
+
+const ACTION_LABEL = {
+  router: "路由",
+  capture: "收进来",
+  organize: "整理",
+  write: "写作",
+  memory: "记忆",
+  maintain: "体检",
+  loop: "巡检",
+  connector: "连接器",
+};
+
+function escapeSkillXml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+/**
+ * agentskills.io discovery block (name, description, absolute location).
+ * Pi 1.0 removed `formatSkillsForSystemPrompt` from `pi-agent-core`. Desktop
+ * keeps the same catalog shape here. Activation is still `load_skill`.
+ * @param {Array<{ name?: string, description?: string, filePath?: string, disableModelInvocation?: boolean }>} skills
+ */
+export function formatSkillsForSystemPrompt(skills) {
+  const visible = (Array.isArray(skills) ? skills : []).filter((skill) => skill && !skill.disableModelInvocation);
+  if (!visible.length) return "";
+  const lines = [
+    "The following skills provide specialized instructions for specific tasks.",
+    "Read the full skill file when the task matches its description.",
+    "When a skill file references a relative path, resolve it against the skill directory (parent of SKILL.md / dirname of the path) and use that absolute path in tool commands.",
+    "",
+    "<available_skills>",
+  ];
+  for (const skill of visible) {
+    lines.push("  <skill>");
+    lines.push(`    <name>${escapeSkillXml(skill.name)}</name>`);
+    lines.push(`    <description>${escapeSkillXml(skill.description)}</description>`);
+    lines.push(`    <location>${escapeSkillXml(skill.filePath)}</location>`);
+    lines.push("  </skill>");
+  }
+  lines.push("</available_skills>");
+  return lines.join("\n");
+}
+
+/**
+ * Discovery catalog for the system prompt — `<available_skills>` with absolute
+ * `location` plus a compact topmind routing line (slash → id). Full SKILL.md
+ * still via load_skill.
+ */
+export function formatCatalogForPrompt(catalog) {
+  if (!catalog?.length) {
+    return "（未发现 skills — 仅用工作区工具）";
+  }
+  // Pi-native discovery block (name / description / location). Resolve relative
+  // skill refs against the skill directory, not the workspace root.
+  /** @type {string[]} */
+  const parts = [];
+  try {
+    const piSkills = catalog.map((s) => ({
+      name: String(s.id || s.name),
+      description: String(s.description || "").slice(0, 400),
+      filePath: String(s.path || ""),
+    }));
+    const xml = formatSkillsForSystemPrompt(piSkills);
+    if (xml) parts.push(xml);
+  } catch {
+    /* fall through to compact list */
+  }
+  // Compact routing (action labels + slash) — model still activates via load_skill.
+  const compact = catalog
+    .map((s) => {
+      const label = ACTION_LABEL[s.actionCategory] || s.actionCategory || "";
+      const entry = s.entrypoint ? " · 入口" : "";
+      const raw = String(s.description || "").replace(/\s+/gu, " ").trim();
+      const when = raw.match(/Use when[^.]*\./iu)?.[0]
+        || raw.match(/当用户[^。]*。/u)?.[0]
+        || raw;
+      const desc = when.slice(0, 160);
+      return `- \`${s.id}\`${label ? ` [${label}]` : ""}${entry} — ${desc}`;
+    })
+    .join("\n");
+  if (!parts.length) return compact;
+  return `${parts.join("\n")}\n\n${compact}`;
+}
+
+/**
+ * Map catalog entries to Pi `Skill[]` (name / description / content / filePath).
+ * Used by tests and any host that wants `formatSkillInvocation`.
+ * @param {Array<{ id?: string, name?: string, description?: string, path?: string }>} catalog
+ * @returns {Array<{ name: string, description: string, content: string, filePath: string }>}
+ */
+export function toPiSkills(catalog) {
+  return (catalog || []).map((s) => ({
+    name: String(s.id || s.name || "skill"),
+    description: String(s.description || ""),
+    content: "",
+    filePath: String(s.path || ""),
+  }));
+}
+
+/**
+ * Map slash command → skill id
+ */
+export const SLASH_TO_SKILL = Object.freeze({
+  "/capture": "topmind-capture",
+  "/organize": "topmind-organize",
+  "/write": "topmind-write",
+  "/memory": "topmind-memory",
+  "/maintain": "topmind-maintain",
+  "/loop": "topmind-loop",
+  "/weread": "topmind-weread",
+  "/x": "topmind-x",
+  "/topmind": "topmind",
+  "/router": "topmind",
+});
+
+export function invalidateSkillsCache() {
+  cache.root = null;
+  cache.pack = null;
+  cache.catalog = null;
+  cache.bodies = new Map();
+}
