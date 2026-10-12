@@ -120,7 +120,7 @@ brew install topmindspace/tap/topmind
 Homebrew clears macOS `quarantine` so unsigned builds do not show as “damaged”.
 
 #### Option 2: Manual installer
-1. Download the installer whose **file name** carries the version from [Releases](https://github.com/topmindspace/topmind/releases). A product or skills `v*` tag is not itself the Desktop version. Windows x64 is `topmind-<ver>-win-x64.exe`; Windows ARM is `topmind-<ver>-win-arm64.exe`. `desktop-v*` is only a hotfix tag.
+1. Download the installer whose **file name** carries the version from [Releases](https://github.com/topmindspace/topmind/releases). A product or skills `v*` tag is not itself the Desktop version. Windows x64 is `topmind-<ver>-win-x64.exe`; Windows ARM is `topmind-<ver>-win-arm64.exe`. Do not mix those two. macOS and Linux use `topmind-<ver>-<os>-<arch>` the same way. `desktop-v*` is only a hotfix tag; the version still comes from the installer file name.
    For macOS Homebrew: `brew install topmindspace/tap/topmind` (auto-clears quarantine).  
    If `brew upgrade --cask topmind --greedy` fails with `App source '/Applications/topmind.app' is not there` (previous app moved/deleted):
    ```bash
@@ -140,8 +140,8 @@ Homebrew clears macOS `quarantine` so unsigned builds do not show as “damaged�
 | **Clip extension** | Unpacks to a hosted folder + guides “Load unpacked” — **cannot** silently write Chrome; uninstall cleans the hosted folder |
 | **Obsidian plugin** | Community store (in review) / BRAT / direct install into `plugins/topmind-stream/` |
 | **Standalone paths** | topmind-skills installer / community `npx skills` / pack zip remain valid and do not conflict with Desktop |
-| **Where the package comes from** | Skills resolve from `topmindspace/topmind-skills` (`topmind-skills-<ver>.zip`, or the published `.tar.gz` when the zip is absent). Obsidian resolves from `topmindspace/topmind-obsidian`: a zip when one is published, otherwise the community files `main.js`, `manifest.json`, and `styles.css`. Clip and Desktop resolve from `topmindspace/topmind` |
-| **A failed download is not an upgrade** | A 404, a hash mismatch, or a failed unpack/copy does not report success and does not claim the latest was installed. A bundled copy is labeled as a fallback. If Obsidian or a skills host has the files open, Desktop asks you to close that app and retry; it does not kill that process and does not remove the existing install |
+| **Where the package comes from** | Skills resolve from `topmindspace/topmind-skills` (`topmind-skills-<ver>.zip`, or the published `.tar.gz` when the zip is absent). Obsidian resolves from `topmindspace/topmind-obsidian`: a zip when one is published, otherwise the community files `main.js`, `manifest.json`, and `styles.css` — it does not invent a zip that would 404. Clip and Desktop resolve from `topmindspace/topmind` |
+| **A failed download is not an upgrade** | A 404, a hash mismatch, or a failed unpack/copy does not report success and does not claim the latest was installed. A bundled copy is labeled as a fallback, not as the latest install. If Obsidian or a skills host has the files open, Desktop asks you to close that app and retry; it does not kill that process and does not remove the existing install |
 | **Desktop installer** | If topmind is already running, Desktop asks first. Confirm quits only this topmind process and then opens the installer. Cancel leaves the app running and does not report an update. Obsidian, agent hosts, and other `electron.exe` processes stay up |
 
 Onboarding after the first workspace open can offer optional modules; it does not block the main path.
@@ -151,13 +151,13 @@ Onboarding after the first workspace open can offer optional modules; it does no
 |--------|------------|
 | Homebrew | `brew upgrade --cask topmind --greedy` |
 | In-app check | About & updates / Extensions & integrations → **Check for updates** (Desktop / Skills / Clip / Obsidian; reads public `latest.json`, no GitHub token) |
-| Inline upgrade | About & updates / Extensions & integrations → download for Skills / Clip / Obsidian. Success means the on-disk receipt or `manifest.json` version equals the resolved package |
+| Inline upgrade | About & updates / Extensions & integrations → download for Skills / Clip / Obsidian. Success is only when the resolved package is actually written into the receipt or `manifest.json` |
 | Already running | Desktop asks before its own installer. Confirm quits only this topmind; cancel leaves it running |
 | Module upgrade | Settings → About & updates / Extensions & integrations → upgrade per host / plugin |
 | Manual installer | Install the newer package over the old one; workspace folder and `app-settings.json` are kept |
 | From source | `git pull` → `npm run desktop:dev`; version truth is this directory’s `package.json` |
 
-Workspace Markdown / `topmind.yaml` / `memory/` are **not** overwritten by a Desktop upgrade. Surfaces version independently. An inline upgrade replaces files only after download, hash check, and unpack all succeed; a failure leaves the previous tree in place. See [`../docs/PACKAGING.md`](../docs/PACKAGING.md).
+Workspace Markdown / `topmind.yaml` / `memory/` are **not** overwritten by a Desktop upgrade. Skills, UTR, the clip extension, and the Obsidian plugin can ship inside the Desktop engine (`resources/topmind-engine/`). Surfaces version independently. An inline upgrade replaces files only after download, hash check, and unpack all succeed; a failure leaves the previous tree in place. See [`../docs/PACKAGING.md`](../docs/PACKAGING.md).
 
 ---
 
