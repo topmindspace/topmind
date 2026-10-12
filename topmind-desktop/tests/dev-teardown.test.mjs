@@ -35,7 +35,7 @@ test("a workspace pid that ignores the catchable signal is SIGKILLed before the 
     processes: [
       workspaceProc(101),
       { pid: 201, command: `/Electron.app/Contents/MacOS/Electron ${other}`, cwd: other },
-      { pid: 301, command: "grok", cwd: "/Users/pand/.grok" },
+      { pid: 301, command: "grok", cwd: "/Users/me/.grok" },
       { pid: 302, command: "node /opt/muse/vm.js", cwd: "/opt/muse" },
     ],
     cwd,
@@ -95,7 +95,7 @@ test("an unrelated pid is never signaled", async () => {
       { pid: 202, command: "Electron Helper (GPU)", cwd: other },
       { pid: 19, command: `node ${other}/node_modules/vite/bin/vite.js`, cwd: "" },
       { pid: 20, command: `${other}/node_modules/esbuild/bin/esbuild --service=0.25.0`, cwd: "" },
-      { pid: 301, command: "grok", cwd: "/Users/pand/.grok" },
+      { pid: 301, command: "grok", cwd: "/Users/me/.grok" },
       { pid: 302, command: "node /opt/muse/vm.js", cwd: "/opt/muse" },
     ],
     cwd,
@@ -184,7 +184,7 @@ test("a direct dev child missing from the process table is still escalated", asy
     pid: 55,
     cwd,
     script: `${cwd}/scripts/dev-renderer.mjs`,
-    execPath: "/Users/pand/.nvm/versions/node/v22.12.0/bin/node",
+    execPath: "/Users/me/.nvm/versions/node/v22.12.0/bin/node",
   });
   const result = await escalateWorkspaceTree({
     signal: "SIGTERM",
