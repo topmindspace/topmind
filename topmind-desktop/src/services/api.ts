@@ -87,6 +87,9 @@ export type CompanionSkillsResult = {
   version?: string | null;
   installed?: string[];
   skillIds?: string[];
+  source?: "downloaded" | "bundled" | "bundled-fallback";
+  fallback?: boolean;
+  claimedLatest?: boolean;
 };
 
 export type ExternalPluginInfo = {
@@ -807,23 +810,38 @@ export const api = {
       surface: "skills" | "obsidian" | "extension",
       version: string,
       tag: string,
-      opts?: { hostId?: string; vaultPath?: string },
+      opts?: { hostId?: string; vaultPath?: string; assets?: SurfaceUpdateInfo["assets"] },
     ) =>
       invoke<{
-        ok: true;
-        surface: string;
-        version: string;
+        ok: boolean;
+        surface?: string;
+        version?: string;
         dest?: string;
         path?: string;
         pluginId?: string;
         installed?: unknown[];
+        source?: "downloaded" | "bundled" | "bundled-fallback" | null;
+        fallback?: boolean;
+        claimedLatest?: boolean;
+        reason?: string;
+        promptClose?: boolean;
+        error?: string;
       }>("system.downloadAndInstallCompanion", {
         surface,
         version,
         tag,
         hostId: opts?.hostId,
         vaultPath: opts?.vaultPath,
+        assets: opts?.assets,
       }),
+    prepareDesktopUpdate: (opts?: { confirmed?: boolean; url?: string }) =>
+      invoke<{
+        ok: boolean;
+        action: "prompt" | "handoff" | "cancel";
+        quitTarget: "self" | null;
+        reportUpdate: false;
+        killOthers: false;
+      }>("system.prepareDesktopUpdate", opts || {}),
     exportKeysForObsidian: () =>
       invoke<{ ok: true; path: string; keyCount: number }>("system.exportKeysForObsidian"),
     listExternalPlugins: () =>

@@ -7,7 +7,8 @@ topmind has **four core surfaces** (Skills · Desktop · UTR · Obsidian) plus *
 ```text
 Skills pack        →  dist/topmind-skills-<ver>.{tar.gz,zip,manifest,SHA256SUMS}
 Browser extension  →  dist/topmind-clip-extension-<ver>.{zip,SHA256SUMS}
-Obsidian plugin    →  dist/topmind-obsidian-<ver>.{zip,SHA256SUMS}
+Obsidian plugin    →  topmind-obsidian-<ver>.zip when that asset is published,
+                      otherwise main.js + manifest.json + styles.css
                       (released from topmind-obsidian repo)
 Desktop app        →  topmind-desktop/release/topmind-<ver>-<os>-<arch>.<ext>
 UTR                →  bundled in Desktop engine; CLI via repo (no separate installer)
@@ -15,17 +16,18 @@ UTR                →  bundled in Desktop engine; CLI via repo (no separate ins
 
 ## Which file should I download?
 
-| I want… | Download | Tag to build |
+| I want… | Download | Version comes from |
 |---------|----------|--------------|
 | AI skills for Claude / Codex / OpenCode | `topmind-skills-<ver>.zip` or `.tar.gz` | `v*` (or hotfix `skills-v*`) |
 | Browser clip extension (MV3) | `topmind-clip-extension-<ver>.zip` | `v*` (or hotfix `extension-v*`) |
-| Obsidian Stream plugin | `topmind-obsidian-<ver>.zip` | `v*` (or hotfix `obsidian-v*`) |
-| Desktop app (macOS) | `topmind-<ver>-mac-arm64.dmg` (or via `brew install topmindspace/tap/topmind`) | `v*` (or hotfix `desktop-v*`) |
-| Desktop app (Linux x64) | `topmind-<ver>-linux-x64.AppImage` or `.deb` | `v*` |
-| Desktop app (Linux ARM) | `topmind-<ver>-linux-arm64.AppImage` or `.deb` | `v*` |
-| Desktop app (Windows) | `topmind-<ver>-win-x64.exe` | `v*` |
+| Obsidian Stream plugin | `topmind-obsidian-<ver>.zip` when that asset exists; otherwise the community files `main.js`, `manifest.json`, `styles.css` on `topmindspace/topmind-obsidian`. Tag is `obsidian-v*` or the bare manifest version (`4.18.2`). A product or skills `v*` tag is not the Obsidian version | repo `topmindspace/topmind-obsidian` |
+| Desktop app (macOS) | `topmind-<ver>-mac-<arch>.dmg` (or `brew install topmindspace/tap/topmind`) | installer file name, not the tag string. `desktop-v*` is only a hotfix tag |
+| Desktop app (Linux x64) | `topmind-<ver>-linux-x64.AppImage` or `.deb` | installer file name |
+| Desktop app (Linux ARM) | `topmind-<ver>-linux-arm64.AppImage` or `.deb` | installer file name |
+| Desktop app (Windows x64) | `topmind-<ver>-win-x64.exe` | `win32` + `x64`. Do not pick `win-arm64` |
+| Desktop app (Windows ARM) | `topmind-<ver>-win-arm64.exe` | `win32` + `arm64` |
 
-**Do not** treat `topmind-skills-*` as the Desktop installer. Skills are Markdown skill packs for agent hosts; Desktop is a native Electron app. **Do not** confuse `topmind-obsidian-*` with Desktop — it is a Vault plugin zip only.
+Skills packages come from `topmindspace/topmind-skills` (`topmind-skills-<ver>.zip`, or the published `.tar.gz` when the zip is absent). Clip and Desktop come from `topmindspace/topmind`. **Do not** treat `topmind-skills-*` as the Desktop installer. **Do not** treat a product `v*` tag, by itself, as the Desktop or Obsidian version. A missing asset is "not found", not "up to date".
 
 ### Install modules from Desktop (no separate download required when bundled)
 
@@ -105,17 +107,23 @@ Draft sources under `topmind-desktop/public/icon-new*.png` are **gitignored** �
 
 ### Desktop in-app update check (API-merged)
 
-About → **检查** uses a two-source merge strategy for accurate per-surface version detection:
+About → **检查** merges public stamps and the GitHub API, one pass per surface:
 
 ```text
-1. Public latest.json  →  https://github.com/{repo}/releases/latest/download/latest.json
-   Fast, CDN-backed, no rate limit. Gives baseline from last full v* release.
-   Does NOT see surface-specific releases (obsidian-v*, skills-v*).
+1. Public latest.json for topmind, topmind-skills, and topmind-obsidian
+   →  https://github.com/{repo}/releases/latest/download/latest.json
+   Fast, CDN-backed, no rate limit. Each repo is read on its own.
+   A product latest.json does not list sister surface-specific releases.
 
-2. GitHub REST API  →  GET /repos/{repo}/releases?per_page=30
-   Always tried (unauthenticated for public repos, 60 req/hour).
-   Complete picture: sees ALL releases including surface-specific tags.
-   Non-blocking: if API fails (rate limit, network), keeps latest.json result.
+2. GitHub REST API
+   Product repo: GET /repos/topmindspace/topmind/releases?per_page=100
+   Sister repos: GET /repos/topmindspace/topmind-skills/releases?per_page=20
+                 GET /repos/topmindspace/topmind-obsidian/releases?per_page=20
+   Each release keeps its repo. A product or skills v* tag is not the Obsidian
+   or Desktop version. An Obsidian bare tag is not the skills version.
+   Non-blocking: if the product API fails, keep every latest.json result.
+   If only a sister API call throws or returns nothing, keep that sister's
+   latest.json assets. A desktop-only product release must not erase them.
 
 3. Public tag redirect  →  /releases/latest
    Last resort when both above fail.
@@ -132,7 +140,7 @@ CI (`release.yml`) writes `latest.json` into every release (full `v*` and surfac
 | Concern | Behavior |
 |---------|----------|
 | Network | Electron `net.fetch` when available (**system proxy**). Timeout + retry. Env: `topmind_UPDATE_TIMEOUT_MS`, `topmind_UPDATE_LATEST_URL`, `topmind_UPDATE_SKIP_API=1` |
-| Desktop version | Running `app.getVersion()` vs installer names `topmind-X.Y.Z-*` across ALL releases |
+| Desktop version | Running `app.getVersion()` vs installer asset names `topmind-<ver>-win-x64.exe` (and the matching mac/linux name). A product or skills `v*` tag is not selected as the Desktop version |
 | Skills version | **Installed** (from agent host receipt) > **bundled** (`versions.json`) vs remote |
 | Extension | **Installed** (managed dir manifest) > **bundled** (`versions.json`) vs remote |
 | Obsidian | **Installed** (vault plugin manifest) > **bundled** (`versions.json`) vs remote |
@@ -164,20 +172,22 @@ Manual fallback: [GitHub Releases](https://github.com/topmindspace/topmind/relea
 
 When a companion (Skills / Obsidian plugin / Clip extension) has a newer version on GitHub Releases than the bundled version, Desktop can download and install it inline — no full Desktop update needed.
 
-**Settings → Manage & Updates → Check for updates** detects available companion updates. When an update is available for Skills, Obsidian, or Clip, a download button appears next to the version row. Clicking it:
+**Settings → Manage & Updates → Check for updates** detects available companion updates. When an update is available and the release actually published an asset, a download button appears. Clicking it:
 
-1. Downloads the companion package (e.g. `topmind-obsidian-<ver>.zip`) from GitHub Releases
-2. Verifies SHA256 checksum when `SHA256SUMS` is available
-3. Installs the package locally (replaces the bundled version)
-4. Cleans up temp files automatically
+1. Downloads the resolved asset URLs (skills zip or tar.gz; Obsidian zip or the three community files; clip zip)
+2. Verifies SHA256 when `SHA256SUMS` is published. A mismatch fails the install
+3. Stages the new tree beside the live one and swaps only after the copy finishes
+4. Deletes the temp download directory on both success and failure
 
-| Surface | Asset pattern | Install destination |
-|---------|---------------|---------------------|
-| Skills | `topmind-skills-{ver}.zip` | Managed skills-extra root + agent host (if specified) |
-| Obsidian | `topmind-obsidian-{ver}.zip` | Vault `.obsidian/plugins/topmind-stream/` |
-| Extension | `topmind-clip-extension-{ver}.zip` | Managed clip extension dir (guided load-unpacked) |
+| Surface | Asset | Install destination |
+|---------|-------|---------------------|
+| Skills | `topmind-skills-<ver>.zip`, or `.tar.gz` if that is what the skills repo published | Managed skills-extra root + agent host (if specified). Success is the receipt version |
+| Obsidian | `topmind-obsidian-<ver>.zip`, or `main.js` + `manifest.json` + `styles.css` | Vault `.obsidian/plugins/<id>/`. Success is `manifest.json` version |
+| Extension | `topmind-clip-extension-<ver>.zip` | Managed clip extension dir (guided load-unpacked) |
 
-**Security**: Downloads only from `github.com/{repo}/releases/download/{tag}/`. SHA256SUMS verified when available. No auto-execution of downloaded content. Temp files cleaned up on success or failure.
+A 404, hash mismatch, or unpack/copy failure returns failure. It does not report that the latest package was installed. On Windows, a zip uses PowerShell `Expand-Archive` when `unzip` is not on `PATH`. A `.tar.gz` uses `tar` (`tar.exe`); `Expand-Archive` does not read tar.gz. If the target files are locked, Desktop asks you to close that app and retry; the previous install stays. Temp files are removed on both success and failure.
+
+**Security**: Downloads only from `github.com/{repo}/releases/download/{tag}/` using URLs on the release asset list. No auto-execution of downloaded content.
 
 **Property name contract** (regression-fixed 2026-08-10):
 
@@ -191,28 +201,25 @@ The `downloadAndInstallCompanion` IPC handler in `system-service.mjs` passes the
 
 **Regression**: Previously `sourcePath` was passed instead of `zipPath`/`bundledZipPath`, causing the downloaded zip to be silently ignored — the install function fell back to the bundled/monorepo version, defeating the inline upgrade. Both the correct property name and aliases are now accepted for robustness.
 
-**Desktop itself** cannot be upgraded inline — it requires a full installer download (DMG/EXE/AppImage) or `brew upgrade --cask topmind --greedy`. When Desktop is updated, it always bundles the latest companions from the same monorepo commit.
+**Desktop itself** is not upgraded inline. It uses the platform installer (`topmind-<ver>-win-x64.exe` on Windows x64, and the matching mac/linux asset) or `brew upgrade --cask topmind --greedy`. If topmind is already running, the app asks first. Confirm quits only this topmind process and then hands off to the installer. Cancel leaves the app running and does not report an update. The Windows NSIS script (`build/installer.nsh`) asks the same question and closes only `topmind.exe`.
 
-### Pre-install version guard (auto-download latest)
+### Pre-install version guard
 
-When a user clicks **Install** or **Upgrade** for any companion (Skills / Obsidian / Clip extension) in **Settings → Manage & Updates**, Desktop does not blindly install from the stale bundled version. Instead, each install handler runs a **pre-install version guard**:
+When a user clicks **Install** or **Upgrade** for Skills, Obsidian, or Clip in **Settings → Manage & Updates**:
 
-1. Reads the **bundled version** (from `versions.json` / engine manifest — instant, no network)
-2. Calls `checkAllSurfaces()` to fetch the **latest version** on GitHub (latest.json + API, same as "Check for updates")
-3. If `latest > bundled`, **downloads the latest companion package** from GitHub Releases and installs it
-4. If `latest <= bundled` or the network check fails (non-blocking), **installs from the bundled version** instead
+1. Read the bundled version from `versions.json` / the engine manifest
+2. Call `checkAllSurfaces()` for the sister repo that owns that surface
+3. If the resolved release is newer **and** it published an asset, download that asset and install it. The on-disk receipt or `manifest.json` must equal the resolved version
+4. If the download 404s, the hash does not match, or unpack/copy fails, the call does not report success. A bundled copy may still be installed, and the result is `source: "bundled-fallback"` — that is not a successful upgrade to latest
+5. If no newer asset exists, install the bundled copy and label it `source: "bundled"`
 
-This means that even if the Desktop bundle ships an older Skills stamp but a newer Skills package is published on GitHub, clicking "Install" in Desktop installs the published stamp — not the stale bundled copy.
+| Surface | Handler | Package | If latest download fails |
+|---------|---------|---------|--------------------------|
+| Skills | `installCompanionSkills` / `upgradeCompanionSkills` | skills-repo zip or tar.gz | labeled bundled fallback, previous tree kept when the new write does not finish |
+| Obsidian | `installObsidianPlugin` | obsidian-repo zip or the three community files | labeled bundled fallback, or a close-app prompt when the vault files are locked |
+| Extension | `prepareClipExtension` | clip zip on `topmindspace/topmind` | labeled bundled fallback |
 
-| Surface | Handler | Download asset | Fallback |
-|---------|---------|----------------|----------|
-| Skills | `installCompanionSkills` / `upgradeCompanionSkills` | `topmind-skills-{ver}.zip` → `installSkillsPackLocal` → `installSkillsToHost` | Bundled engine skills/ |
-| Obsidian | `installObsidianPlugin` | `topmind-obsidian-{ver}.zip` (topmind-obsidian Releases) | Optional sibling / engine cache |
-| Extension | `prepareClipExtension` | `topmind-clip-extension-{ver}.zip` → `prepareClipExtensionInstall({ bundledZipPath })` | Bundled engine browser-extension/ |
-
-**Non-blocking fallback**: If the GitHub check fails (network error, rate limit), the install proceeds from the bundled source. A log message is written. The user is not blocked.
-
-**Return metadata**: Install handlers now return `{ source: "downloaded" | "bundled", downloadedVersion?: string }` so the UI can display whether the install used a freshly-downloaded package or the bundled version.
+Boot auto-check is one non-blocking pass. It does not download installer or companion bytes.
 
 **Clip extension uninstall**: `uninstallClipExtension` cleans the managed extension directory (removes all contents, keeps the directory for re-prepare). Available as a **Uninstall** button in Settings → Manage & Updates when the extension is prepared.
 
@@ -241,11 +248,11 @@ Tag releases independently when needed（版本数字取真源，`npm run versio
 **独立版本策略**：各表面有独立版本号，大版本对齐，小版本独立。仅 re-package 版本号实际变化的表面。UTR 跟随 Desktop（同一安装包）；Obsidian Plugin 独立 tag。
 
 ```text
-v{desktop}            # full portable + desktop — topmind-desktop/package.json
-# skills: tag v* in topmind-skills repo
+v{desktop}            # product ship — topmind repo. Desktop version is the installer file name
+# skills: tag v* (or skills-v*) in topmind-skills. Not an Obsidian or Desktop version
 extension-v{extension}# clip extension only — browser-extension/manifest.json
-desktop-v{desktop}    # desktop matrix only (icon / UI without bumping Skills)
-# obsidian: tag v* in topmind-obsidian repo (must equal manifest.version)
+desktop-v{desktop}    # desktop hotfix tag only; version still comes from the installer file name
+# obsidian: obsidian-v* or bare manifest version (4.18.2, no v) in topmind-obsidian
 ```
 
 ## GitHub Actions

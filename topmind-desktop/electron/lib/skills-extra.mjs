@@ -12,6 +12,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { replacePathAtomic, unpackArchive } from "./install-swap.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -111,17 +112,6 @@ async function copyDirFiltered(src, dest) {
  * @param {string} dir absolute path of skill or shared dir
  * @param {string} skillsExtraRoot managed root
  */
-async function parkSkillsDir(dir, skillsExtraRoot) {
-  if (!(await pathExists(dir))) return null;
-  const trash = path.join(skillsExtraRoot, ".trash");
-  await fs.mkdir(trash, { recursive: true });
-  const base = path.basename(dir);
-  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const dest = path.join(trash, `${base}-${stamp}`);
-  await fs.rename(dir, dest);
-  return dest;
-}
-
 /**
  * Install a local skills pack into dest (default managed skills-extra).
  * Accepts a pack directory **or** a `topmind-skills-*.zip` release asset
@@ -134,14 +124,14 @@ async function parkSkillsDir(dir, skillsExtraRoot) {
 export async function installSkillsPackLocal(source, opts = {}) {
   let sourceDir = source;
   let tempUnpack = null;
-  const zipLike = /\.zip$/i.test(String(source || "")) && (await pathExists(source));
-  if (zipLike) {
+  const archiveLike = /\.(zip|tar\.gz|tgz)$/i.test(String(source || "")) && (await pathExists(source));
+  if (archiveLike) {
     const os = require("node:os");
     tempUnpack = await fs.mkdtemp(path.join(os.tmpdir(), "topmind-skills-zip-"));
-    const unpacked = await extractZipToDir(source, tempUnpack);
+    const unpacked = await extractZipToDir(source, tempUnpack, opts);
     if (!unpacked) {
       await fs.rm(tempUnpack, { recursive: true, force: true }).catch(() => {});
-      return { ok: false, error: `failed to extract skills zip: ${source}` };
+      return { ok: false, error: `failed to extract skills archive: ${source}`, claimedLatest: false };
     }
     sourceDir = await resolveSkillsPackRoot(unpacked) || unpacked;
   }
@@ -170,20 +160,31 @@ export async function installSkillsPackLocal(source, opts = {}) {
         const isShared = ent.name === "shared";
         if (isSkill) {
           if (filter && !filter.has(ent.name)) continue;
-          if (await pathExists(to)) {
-            await parkSkillsDir(to, dest);
-          }
-          await copyDirFiltered(from, to);
+          const swapped = await replacePathAtomic(from, to, {
+            trashDir: path.join(dest, ".trash"),
+            probeLock: opts.probeLock,
+            renameImpl: opts.renameImpl,
+            copyImpl: opts.copyImpl || ((src, target) => copyDirFiltered(src, target)),
+          });
+          if (!swapped.ok) return { ...swapped, claimedLatest: false };
           installed.push(ent.name);
         } else if (isShared) {
-          if (await pathExists(to)) {
-            await parkSkillsDir(to, dest);
-          }
-          await copyDirFiltered(from, to);
+          const swapped = await replacePathAtomic(from, to, {
+            trashDir: path.join(dest, ".trash"),
+            probeLock: opts.probeLock,
+            renameImpl: opts.renameImpl,
+            copyImpl: opts.copyImpl || ((src, target) => copyDirFiltered(src, target)),
+          });
+          if (!swapped.ok) return { ...swapped, claimedLatest: false };
           installed.push("shared");
         }
       } else if (ent.isFile() && (ent.name === "topmind-pack.json" || ent.name === "INSTALL.md")) {
-        await fs.copyFile(from, to);
+        const swapped = await replacePathAtomic(from, to, {
+          probeLock: opts.probeLock,
+          renameImpl: opts.renameImpl,
+          copyImpl: opts.copyImpl || (async (src, target) => { await fs.copyFile(src, target); }),
+        });
+        if (!swapped.ok) return { ...swapped, claimedLatest: false };
         installed.push(ent.name);
       }
     }
@@ -226,7 +227,7 @@ export async function installSkillsPackLocal(source, opts = {}) {
       installed,
       version: packVersion,
       name: packName,
-      fromZip: Boolean(zipLike),
+      fromZip: Boolean(archiveLike),
     };
   } finally {
     if (tempUnpack) await fs.rm(tempUnpack, { recursive: true, force: true }).catch(() => {});
@@ -234,37 +235,19 @@ export async function installSkillsPackLocal(source, opts = {}) {
 }
 
 /**
- * Extract a zip into destDir using system tools (unzip / tar / PowerShell).
+ * Extract a zip or tar.gz. Windows uses PowerShell when unzip is not on PATH.
  * @param {string} zipPath
  * @param {string} destDir
+ * @param {{ platform?: string, unzipOnPath?: boolean, spawnImpl?: (cmd: string, args: string[]) => boolean|Promise<boolean> }} [opts]
  * @returns {Promise<string|null>} destDir on success
  */
-async function extractZipToDir(zipPath, destDir) {
-  const { spawnSync } = require("node:child_process");
-  await fs.mkdir(destDir, { recursive: true });
-  const abs = path.resolve(zipPath);
-  const tryCmd = (cmd, args) => {
-    try {
-      const r = spawnSync(cmd, args, { encoding: "utf8" });
-      return r.status === 0;
-    } catch {
-      return false;
-    }
-  };
-  if (tryCmd("unzip", ["-q", abs, "-d", destDir])) return destDir;
-  if (tryCmd("tar", ["xf", abs, "-C", destDir])) return destDir;
-  if (process.platform === "win32") {
-    if (
-      tryCmd("powershell.exe", [
-        "-NoProfile",
-        "-Command",
-        `Expand-Archive -LiteralPath '${abs.replace(/'/g, "''")}' -DestinationPath '${destDir.replace(/'/g, "''")}' -Force`,
-      ])
-    ) {
-      return destDir;
-    }
-  }
-  return null;
+async function extractZipToDir(zipPath, destDir, opts = {}) {
+  const result = await unpackArchive(zipPath, destDir, {
+    platform: opts.platform,
+    unzipOnPath: opts.unzipOnPath,
+    spawnImpl: opts.spawnImpl,
+  });
+  return result.ok ? destDir : null;
 }
 
 /**

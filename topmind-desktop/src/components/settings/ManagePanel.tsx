@@ -57,7 +57,12 @@ function formatSurfaceStatus(
   t: TFunction,
 ): { text: string; tone: "ok" | "warn" | "muted" | "success"; detail?: string } {
   if (!s) return { text: t("settings:about.notChecked"), tone: "muted" };
-  if (s.reason === "error") return { text: s.error || t("settings:about.failed"), tone: "warn" };
+  if (s.reason === "asset-not-found" || s.reason === "not-found") {
+    return { text: t("settings:about.assetNotFound"), tone: "warn" };
+  }
+  if (s.reason === "error" || s.reason === "network" || s.ok === false) {
+    return { text: s.error || t("settings:about.networkError"), tone: "warn" };
+  }
   if (s.reason === "not-bundled") {
     if (s.surface === "obsidian") {
       return {
@@ -100,17 +105,20 @@ function SurfaceUpdateRow({
   info,
   t,
   onInlineInstall,
+  onOpenAsset,
   inlineInstalling,
 }: {
   surface: "desktop" | "skills" | "extension" | "obsidian";
   info: SurfaceUpdateInfo | undefined;
   t: TFunction;
-  onInlineInstall?: (surface: "skills" | "extension" | "obsidian", version: string, tag: string) => void;
+  onInlineInstall?: (surface: "skills" | "extension" | "obsidian", info: SurfaceUpdateInfo) => void;
+  onOpenAsset: (surface: "desktop" | "skills" | "extension" | "obsidian", info: SurfaceUpdateInfo) => void;
   inlineInstalling?: string | null;
 }) {
   const status = formatSurfaceStatus(info, t);
-  const canInlineInstall = surface !== "desktop" && info?.updateAvailable && info.latestVersion && info.tagName;
+  const canInlineInstall = surface !== "desktop" && info?.updateAvailable && info.latestVersion && info.tagName && (info.assets?.length || 0) > 0;
   const isInstalling = inlineInstalling === surface;
+  const installBusy = Boolean(inlineInstalling);
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[var(--radius-md)] border border-border-subtle bg-surface px-2 py-1.5">
       <span className="w-14 shrink-0 truncate text-xs font-medium text-text-secondary" title={surfaceLabel(surface, t)}>
@@ -125,8 +133,8 @@ function SurfaceUpdateRow({
           status.tone === "muted" && "text-text-quaternary",
         )}
       >
-        {status.text}
-        {status.detail ? (
+        {isInstalling ? t("settings:about.installing") : status.text}
+        {status.detail && !isInstalling ? (
           <span className="ml-1 text-text-quaternary">· {status.detail}</span>
         ) : null}
       </span>
@@ -135,8 +143,8 @@ function SurfaceUpdateRow({
           <Button
             variant="ghost"
             size="sm"
-            disabled={isInstalling}
-            onClick={() => onInlineInstall(surface as "skills" | "extension" | "obsidian", info.latestVersion!, info.tagName!)}
+            disabled={installBusy}
+            onClick={() => onInlineInstall(surface as "skills" | "extension" | "obsidian", info)}
           >
             {isInstalling ? (
               <RiLoader4Line size={ICON.micro} className="animate-spin" />
@@ -150,7 +158,10 @@ function SurfaceUpdateRow({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => void api.sys.openUpdateDownload(info.assets[0].url, surface)}
+          disabled={installBusy}
+          onClick={() => {
+            if (info) void onOpenAsset(surface, info);
+          }}
         >
           <RiExternalLinkLine size={ICON.micro} />
         </Button>
@@ -324,11 +335,19 @@ export function ManagePanel({
     }
   };
 
-  const handleInlineInstall = async (surface: "skills" | "extension" | "obsidian", version: string, tag: string) => {
+  const handleInlineInstall = async (
+    surface: "skills" | "extension" | "obsidian",
+    info: SurfaceUpdateInfo,
+  ) => {
+    if (inlineInstalling) return;
+    const version = info.latestVersion || "";
+    const tag = info.tagName || "";
     setInlineInstalling(surface);
     setCompError(null);
     try {
-      const opts: { hostId?: string; vaultPath?: string } = {};
+      const opts: { hostId?: string; vaultPath?: string; assets?: SurfaceUpdateInfo["assets"] } = {
+        assets: info.assets,
+      };
       if (surface === "skills") {
         const host = agents.find((a) => a.skillsRoot);
         if (host) opts.hostId = host.id;
@@ -343,11 +362,23 @@ export function ManagePanel({
             .replace(/[\\/]\.obsidian[\\/]??$/i, "");
         }
       }
-      await api.sys.downloadAndInstallCompanion(surface, version, tag, opts);
-      flashOk(t("settings:about.inlineInstallOk", { surface: surfaceLabel(surface, t), version }));
-      // Reload companion status after install to reflect new installed version
+      const result = await api.sys.downloadAndInstallCompanion(surface, version, tag, opts);
+      if (!result?.ok) {
+        if (result?.reason === "close-app-and-retry" || result?.promptClose) {
+          setCompError(t("settings:about.closeAppRetry"));
+        } else if (result?.source === "bundled-fallback" || result?.fallback) {
+          flashOk(t("settings:about.bundledFallback", { version: result.version || version }));
+        } else {
+          setCompError(`${surfaceLabel(surface, t)}: ${result?.error || t("settings:about.installFailed")}`);
+        }
+        return;
+      }
+      if (result.source === "bundled-fallback" || result.fallback) {
+        flashOk(t("settings:about.bundledFallback", { version: result.version || version }));
+      } else {
+        flashOk(t("settings:about.inlineInstallOk", { surface: surfaceLabel(surface, t), version: result.version || version }));
+      }
       await reloadCompanions();
-      // Re-check updates to clear the badge (installed == latest now)
       await checkUpdates();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -355,6 +386,23 @@ export function ManagePanel({
     } finally {
       setInlineInstalling(null);
     }
+  };
+
+  const openSurfaceAsset = async (
+    surface: "desktop" | "skills" | "extension" | "obsidian",
+    info: SurfaceUpdateInfo,
+  ) => {
+    const url = info.assets?.[0]?.url || info.releaseUrl || undefined;
+    if (surface === "desktop") {
+      const prep = await api.sys.prepareDesktopUpdate({ confirmed: false });
+      if (prep.action === "prompt" || prep.action === "cancel") {
+        const ok = window.confirm(t("settings:about.quitTopmindConfirm"));
+        if (!ok) return;
+        await api.sys.prepareDesktopUpdate({ confirmed: true, url });
+        return;
+      }
+    }
+    if (url) await api.sys.openUpdateDownload(url, surface);
   };
 
   const runDoctor = async () => {
@@ -397,6 +445,7 @@ export function ManagePanel({
     let ok = 0;
     let failed = 0;
     let lastVersion = "?";
+    let usedFallback = false;
     const errors: string[] = [];
     for (const host of agents) {
       if (!host.skillsRoot) continue;
@@ -404,6 +453,7 @@ export function ManagePanel({
         const r = await api.sys.installCompanionSkills(host.id);
         ok++;
         lastVersion = r.version || lastVersion;
+        if (r.source === "bundled-fallback" || r.fallback) usedFallback = true;
       } catch (e) {
         failed++;
         errors.push(`${host.name}: ${e instanceof Error ? e.message : String(e)}`);
@@ -411,7 +461,9 @@ export function ManagePanel({
     }
     await reloadCompanions();
     setBusy(null);
-    if (failed === 0) {
+    if (failed === 0 && usedFallback) {
+      flashOk(t("settings:about.bundledFallback", { version: lastVersion }));
+    } else if (failed === 0) {
       flashOk(t("settings:companions.okInstalledAll", { count: ok, version: lastVersion }));
     } else {
       setCompError(errors.join("; "));
@@ -591,10 +643,10 @@ export function ManagePanel({
             </div>
           ) : (
             <div className="space-y-1">
-              <SurfaceUpdateRow surface="desktop" info={updateInfo.desktop ?? updateInfo} t={t} />
-              <SurfaceUpdateRow surface="skills" info={updateInfo.skills} t={t} onInlineInstall={handleInlineInstall} inlineInstalling={inlineInstalling} />
-              <SurfaceUpdateRow surface="extension" info={updateInfo.extension} t={t} onInlineInstall={handleInlineInstall} inlineInstalling={inlineInstalling} />
-              <SurfaceUpdateRow surface="obsidian" info={updateInfo.obsidian} t={t} onInlineInstall={handleInlineInstall} inlineInstalling={inlineInstalling} />
+              <SurfaceUpdateRow surface="desktop" info={updateInfo.desktop ?? updateInfo} t={t} onOpenAsset={openSurfaceAsset} inlineInstalling={inlineInstalling} />
+              <SurfaceUpdateRow surface="skills" info={updateInfo.skills} t={t} onInlineInstall={handleInlineInstall} onOpenAsset={openSurfaceAsset} inlineInstalling={inlineInstalling} />
+              <SurfaceUpdateRow surface="extension" info={updateInfo.extension} t={t} onInlineInstall={handleInlineInstall} onOpenAsset={openSurfaceAsset} inlineInstalling={inlineInstalling} />
+              <SurfaceUpdateRow surface="obsidian" info={updateInfo.obsidian} t={t} onInlineInstall={handleInlineInstall} onOpenAsset={openSurfaceAsset} inlineInstalling={inlineInstalling} />
             </div>
           )
         ) : (

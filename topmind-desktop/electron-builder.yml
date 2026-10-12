@@ -133,6 +133,8 @@ win:
 
 nsis:
   oneClick: false
+  # Prompt, then close only topmind.exe. See build/installer.nsh.
+  include: build/installer.nsh
   allowToChangeInstallationDirectory: true
   allowElevation: true
   createDesktopShortcut: true

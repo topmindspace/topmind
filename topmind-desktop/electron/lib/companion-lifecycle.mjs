@@ -8,7 +8,6 @@ import { promises as fs } from "node:fs";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import {
@@ -20,6 +19,7 @@ import {
   resolveWorkbuddy,
   OBSIDIAN_PLUGIN_IDS,
 } from "./companion-detect.mjs";
+import { replacePathAtomic, unpackArchive } from "./install-swap.mjs";
 
 const require = createRequire(import.meta.url);
 const DESKTOP_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -198,20 +198,24 @@ async function copyDirRecursive(src, dest) {
  * @param {string[]} entries
  * @param {{ force?: boolean }} [opts]
  */
-async function installCopy(skillsRoot, dest, entries) {
+async function installCopy(skillsRoot, dest, entries, opts = {}) {
   await fs.mkdir(dest, { recursive: true });
   for (const name of entries) {
     const src = path.join(skillsRoot, name);
     const dst = path.join(dest, name);
     if (!(await pathExists(src))) continue;
-    const st = await fs.lstat(src);
-    if (await pathExists(dst)) await fs.rm(dst, { recursive: true, force: true });
-    if (st.isDirectory()) {
-      await copyDirRecursive(src, dst);
-    } else {
-      await fs.copyFile(src, dst);
-    }
+    const swapped = await replacePathAtomic(src, dst, {
+      probeLock: opts.probeLock,
+      renameImpl: opts.renameImpl,
+      copyImpl: opts.copyImpl || (async (from, to) => {
+        const st = await fs.lstat(from);
+        if (st.isDirectory()) await copyDirRecursive(from, to);
+        else await fs.copyFile(from, to);
+      }),
+    });
+    if (!swapped.ok) return swapped;
   }
+  return { ok: true };
 }
 
 /**
@@ -337,7 +341,8 @@ export async function installSkillsToHost(opts) {
     const r = await installSymlink(sourceRoot, dest, plan.entries, { force: opts.force === true });
     if (r && r.ok === false) return r;
   } else {
-    await installCopy(sourceRoot, dest, plan.entries);
+    const copied = await installCopy(sourceRoot, dest, plan.entries, opts);
+    if (copied && copied.ok === false) return { ...copied, claimedLatest: false };
   }
 
   const { receipt, receiptPath } = await writeSkillsInstallReceipt(dest, {
@@ -541,32 +546,12 @@ export function resolveClipExtensionSource(opts = {}) {
  * @param {string} zipPath
  * @param {string} unpackDir
  */
-async function extractZip(zipPath, unpackDir) {
-  await fs.mkdir(unpackDir, { recursive: true });
-  const abs = path.resolve(zipPath);
-  let extracted = false;
-  const unzip = spawnSync("unzip", ["-q", abs, "-d", unpackDir], { encoding: "utf8" });
-  if (unzip.status === 0) extracted = true;
-  if (!extracted) {
-    const tar = spawnSync("tar", ["-xf", abs, "-C", unpackDir], { encoding: "utf8" });
-    if (tar.status === 0) extracted = true;
-  }
-  if (!extracted && process.platform === "win32") {
-    const ps = spawnSync(
-      "powershell",
-      [
-        "-NoProfile",
-        "-Command",
-        `Expand-Archive -LiteralPath '${abs.replace(/'/g, "''")}' -DestinationPath '${unpackDir.replace(/'/g, "''")}' -Force`,
-      ],
-      { encoding: "utf8" },
-    );
-    if (ps.status === 0) extracted = true;
-  }
-  if (!extracted) {
-    return { ok: false, error: "failed to extract zip (need unzip, tar, or PowerShell Expand-Archive)" };
-  }
-  return { ok: true };
+async function extractZip(zipPath, unpackDir, opts = {}) {
+  return unpackArchive(zipPath, unpackDir, {
+    platform: opts.platform,
+    unzipOnPath: opts.unzipOnPath,
+    spawnImpl: opts.spawnImpl,
+  });
 }
 
 /**
@@ -646,7 +631,7 @@ export async function prepareClipExtensionInstall(opts = {}) {
   if (source.kind === "zip") {
     const work = path.join(managedDir, "_unpack");
     await fs.mkdir(work, { recursive: true });
-    const ex = await extractZip(source.path, work);
+    const ex = await extractZip(source.path, work, opts);
     if (!ex.ok) return { ...ex, guidedInstall: true };
     const found = await findExtensionRoot(work);
     if (!found) {
@@ -876,7 +861,7 @@ export async function installObsidianPlugin(opts = {}) {
   if (source.kind === "zip") {
     work = await fs.mkdtemp(path.join(os.tmpdir(), "topmind-obsidian-"));
     const unpack = path.join(work, "unpack");
-    const ex = await extractZip(source.path, unpack);
+    const ex = await extractZip(source.path, unpack, opts);
     if (!ex.ok) {
       await fs.rm(work, { recursive: true, force: true }).catch(() => {});
       return ex;
@@ -912,10 +897,12 @@ export async function installObsidianPlugin(opts = {}) {
 
     await fs.mkdir(pluginsRoot, { recursive: true });
     const dest = path.join(pluginsRoot, pluginId);
-    if (await pathExists(dest)) {
-      await fs.rm(dest, { recursive: true, force: true });
-    }
-    await copyDirRecursive(pkgDir, dest);
+    const swapped = await replacePathAtomic(pkgDir, dest, {
+      probeLock: opts.probeLock,
+      renameImpl: opts.renameImpl,
+      copyImpl: opts.copyImpl || (async (from, to) => copyDirRecursive(from, to)),
+    });
+    if (!swapped.ok) return { ...swapped, claimedLatest: false };
 
     // Ensure community-plugins enabled list includes id when community-plugins.json exists
     const communityPath = path.join(path.dirname(pluginsRoot), "community-plugins.json");

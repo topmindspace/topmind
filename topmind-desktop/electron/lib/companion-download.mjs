@@ -189,87 +189,147 @@ export async function verifySha256(zipPath, sumsPath) {
   }
 }
 
+function listedAssets(opts) {
+  return (Array.isArray(opts.assets) ? opts.assets : [])
+    .filter((a) => a && a.name && (a.url || a.browser_download_url))
+    .map((a) => ({
+      name: String(a.name),
+      url: String(a.url || a.browser_download_url),
+    }));
+}
+
+function isCommunitySet(files) {
+  const names = new Set(files.map((a) => a.name));
+  return OBSIDIAN_COMMUNITY_FILES.every((name) => names.has(name));
+}
+
+async function failDownload(tempDir, error) {
+  await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+  return { ok: false, error, claimedLatest: false };
+}
+
 /**
  * Download a companion package from GitHub Releases.
+ *
+ * When `assets` is provided (the update check's real file list), only those
+ * URLs are fetched. A missing Obsidian zip is not invented. A 404 or hash
+ * mismatch returns ok: false and deletes the temp dir.
  *
  * @param {object} opts
  * @param {string} opts.surface - "skills" | "obsidian" | "extension"
  * @param {string} opts.version - target version (e.g. "2.9.1")
  * @param {string} opts.tag - release tag (e.g. "skills-v2.9.1" or "v2.9.0")
- * @param {string} [opts.repo] - GitHub repo (default: topmindspace/topmind)
+ * @param {string} [opts.repo] - GitHub repo (default: per-surface sister repo)
+ * @param {Array<{ name?: string, url?: string, browser_download_url?: string }>} [opts.assets]
  * @param {typeof fetch} [opts.fetchImpl] - inject for testing
  * @param {string} [opts.tempDir] - temp directory for downloads
- * @returns {Promise<{ ok: boolean, zipPath?: string, error?: string }>}
+ * @returns {Promise<{ ok: boolean, zipPath?: string|null, packageDir?: string, tempDir?: string, error?: string, claimedLatest?: boolean }>}
  */
 export async function downloadCompanionAsset(opts) {
   const { surface, version, tag } = opts;
   if (!surface || !version || !tag) {
-    return { ok: false, error: "surface, version, and tag are required" };
+    return { ok: false, error: "surface, version, and tag are required", claimedLatest: false };
   }
 
   const repo = opts.repo || SURFACE_REPOS[surface] || DEFAULT_REPO;
   const pattern = ASSET_PATTERNS[surface];
   if (!pattern) {
-    return { ok: false, error: `unknown surface: ${surface}` };
+    return { ok: false, error: `unknown surface: ${surface}`, claimedLatest: false };
   }
 
-  const assetName = pattern(version);
-  const sumsName = SUMS_PATTERNS[surface]?.(version);
-  const baseUrl = `https://github.com/${repo}/releases/download/${tag}`;
-  const assetUrl = `${baseUrl}/${assetName}`;
-  const sumsUrl = sumsName ? `${baseUrl}/${sumsName}` : null;
-
-  // Create temp dir
   const tempDir = opts.tempDir || path.join(os.tmpdir(), `topmind-companion-${surface}-${Date.now()}`);
   await fs.mkdir(tempDir, { recursive: true });
 
-  const zipPath = path.join(tempDir, assetName);
-  const sumsPath = sumsName ? path.join(tempDir, sumsName) : null;
+  const listed = listedAssets(opts);
+  const baseUrl = `https://github.com/${repo}/releases/download/${tag}`;
 
   try {
-    // Download asset (zip). Obsidian community releases often have no zip —
-    // fall back to the three-file community layout into packageDir.
-    const dlResult = await downloadFile(assetUrl, zipPath, { fetchImpl: opts.fetchImpl });
+    if (surface === "obsidian" && listed.length && isCommunitySet(listed) && !listed.some((a) => /\.zip$/i.test(a.name))) {
+      const pkgDir = path.join(tempDir, "package");
+      await fs.mkdir(pkgDir, { recursive: true });
+      for (const name of OBSIDIAN_COMMUNITY_FILES) {
+        const file = listed.find((a) => a.name === name);
+        const result = await downloadFile(file.url, path.join(pkgDir, name), { fetchImpl: opts.fetchImpl });
+        if (!result.ok) {
+          return failDownload(tempDir, `download failed: ${result.error}`);
+        }
+      }
+      return { ok: true, zipPath: null, packageDir: pkgDir, tempDir, claimedLatest: false };
+    }
+
+    /** @type {{ name: string, url: string }|null} */
+    let archive = null;
+    if (listed.length) {
+      archive =
+        listed.find((a) => a.name.endsWith(".zip")) ||
+        listed.find((a) => /\.(tar\.gz|tgz)$/i.test(a.name)) ||
+        null;
+      if (!archive) {
+        return failDownload(tempDir, "download failed: release has no installable asset");
+      }
+    } else {
+      const assetName = pattern(version);
+      archive = { name: assetName, url: `${baseUrl}/${assetName}` };
+    }
+
+    const archivePath = path.join(tempDir, archive.name);
+    const dlResult = await downloadFile(archive.url, archivePath, { fetchImpl: opts.fetchImpl });
     if (!dlResult.ok) {
-      if (surface === "obsidian") {
+      // Legacy callers that did not pass the asset list: Obsidian community
+      // releases have no zip. Try the three real files, still without inventing
+      // a successful zip download.
+      if (surface === "obsidian" && listed.length === 0) {
         const pkgDir = path.join(tempDir, "package");
         await fs.mkdir(pkgDir, { recursive: true });
         let got = 0;
         for (const name of OBSIDIAN_COMMUNITY_FILES) {
-          const r = await downloadFile(`${baseUrl}/${name}`, path.join(pkgDir, name), {
+          const result = await downloadFile(`${baseUrl}/${name}`, path.join(pkgDir, name), {
             fetchImpl: opts.fetchImpl,
           });
-          if (r.ok) got += 1;
+          if (result.ok) got += 1;
         }
-        if (got >= 2 && existsSync(path.join(pkgDir, "manifest.json")) && existsSync(path.join(pkgDir, "main.js"))) {
-          return { ok: true, zipPath: null, packageDir: pkgDir, tempDir };
+        if (got === OBSIDIAN_COMMUNITY_FILES.length && existsSync(path.join(pkgDir, "manifest.json")) && existsSync(path.join(pkgDir, "main.js"))) {
+          return { ok: true, zipPath: null, packageDir: pkgDir, tempDir, claimedLatest: false };
         }
-        await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
-        return {
-          ok: false,
-          error: `download failed: ${dlResult.error}; community file set also incomplete (${got}/${OBSIDIAN_COMMUNITY_FILES.length})`,
-        };
       }
-      return { ok: false, error: `download failed: ${dlResult.error}` };
+      return failDownload(tempDir, `download failed: ${dlResult.error}`);
     }
 
-    // Download SHA256SUMS (optional, for verification)
-    if (sumsUrl && sumsPath) {
+    const sumsName = SUMS_PATTERNS[surface]?.(version);
+    const sumsFromList = listed.find((a) => /sha256/i.test(a.name));
+    const sumsUrl = sumsFromList?.url || (sumsName ? `${baseUrl}/${sumsName}` : null);
+    if (sumsUrl) {
+      const sumsPath = path.join(tempDir, sumsName || path.basename(sumsUrl));
       const sumsResult = await downloadFile(sumsUrl, sumsPath, { fetchImpl: opts.fetchImpl });
       if (sumsResult.ok) {
-        const verifyResult = await verifySha256(zipPath, sumsPath);
+        const verifyResult = await verifySha256(archivePath, sumsPath);
         if (!verifyResult.ok) {
-          await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
-          return { ok: false, error: `verification failed: ${verifyResult.error}` };
+          return failDownload(tempDir, `verification failed: ${verifyResult.error}`);
         }
       }
-      // If sums download fails, proceed without verification (user-facing warning)
     }
 
-    return { ok: true, zipPath, tempDir };
+    return { ok: true, zipPath: archivePath, tempDir, claimedLatest: false };
   } catch (err) {
-    await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
-    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    return failDownload(tempDir, err instanceof Error ? err.message : String(err));
+  }
+}
+
+/**
+ * Download, hand the files to `consumer`, and always delete the temp dir.
+ * A failed download does not call the consumer and does not report success.
+ *
+ * @param {object} opts downloadCompanionAsset options
+ * @param {(dl: { ok: true, zipPath?: string|null, packageDir?: string, tempDir?: string }) => Promise<any>} consumer
+ */
+export async function withCompanionDownload(opts, consumer) {
+  const dl = await downloadCompanionAsset(opts);
+  if (!dl.ok) return dl;
+  try {
+    const result = await consumer(dl);
+    return result;
+  } finally {
+    if (dl.tempDir) await cleanupDownloadTemp(dl.tempDir);
   }
 }
 

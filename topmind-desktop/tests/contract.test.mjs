@@ -249,8 +249,10 @@ test("v4 source footprint stays bounded (src + electron)", () => {
   // workspace-image-paths.ts is the path-list cache (no view-store, so
   // stream preview tests stay pure); use-workspace-image-paths.ts is the
   // hook. Ceiling moves by that much — not by a dozen.
+  // 2026-10-12: install-swap.mjs (+1 electron → 134) stages a companion or
+  // installer beside the live tree and swaps only after the copy finishes.
   assert.ok(srcCount < 251, `src file count ${srcCount} exceeds soft ceiling`);
-  assert.ok(electronCount < 134, `electron file count ${electronCount} exceeds soft ceiling`);
+  assert.ok(electronCount < 135, `electron file count ${electronCount} exceeds soft ceiling`);
   assert.ok(srcCount + electronCount < 385, `total ${srcCount + electronCount} exceeds soft ceiling`);
 });
 

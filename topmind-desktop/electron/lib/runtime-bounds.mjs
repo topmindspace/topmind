@@ -562,6 +562,100 @@ export function planSignalTeardown(signal) {
   return { forward: "SIGTERM", escalate: "SIGKILL", escalateAfterMs: 1500 };
 }
 
+/**
+ * Process-table row for a dev child this supervisor spawned.
+ * The command stays inside this workspace so `selectWorkspaceTreePids` keeps it
+ * and still rejects every other cwd.
+ */
+export function ownedDevChildRecord({ pid, cwd, script, execPath = "node" } = {}) {
+  return {
+    pid,
+    command: `${execPath} ${script}`,
+    cwd: cwd || "",
+    owned: true,
+  };
+}
+
+function defaultEscalationWait(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, Math.max(0, Number(ms) || 0));
+  });
+}
+
+/**
+ * Catchable signal, then SIGKILL only for workspace pids still alive after the grace.
+ * Resolves after every survivor SIGKILL has been requested.
+ * Callers inject `kill`, `isAlive`, and `wait`. Nothing here shells out.
+ * Await this before `process.exit`. An unref'd timer does not survive exit, and a
+ * child stuck in a synchronous turn never runs its own signal handler.
+ */
+export async function escalateWorkspaceTree({
+  signal,
+  processes,
+  cwd,
+  selfPid,
+  parentPid,
+  kill,
+  isAlive,
+  wait,
+  graceMs,
+} = {}) {
+  if (typeof kill !== "function") {
+    throw new TypeError("escalateWorkspaceTree requires a kill function");
+  }
+  const plan = planSignalTeardown(signal);
+  const grace = Math.max(
+    0,
+    Number.isFinite(Number(graceMs)) ? Number(graceMs) : plan.escalateAfterMs,
+  );
+  const sleep = typeof wait === "function" ? wait : defaultEscalationWait;
+  const alive = typeof isAlive === "function" ? isAlive : () => true;
+  const targets = selectWorkspaceTreePids(processes || [], { cwd, selfPid, parentPid });
+  const signals = [];
+
+  const stillAlive = (pid) => {
+    try {
+      return alive(pid) !== false;
+    } catch {
+      return true;
+    }
+  };
+
+  const attempt = (pid, sig) => {
+    try {
+      kill(pid, sig);
+    } catch {
+      return false;
+    }
+    signals.push({ pid, signal: sig });
+    return true;
+  };
+
+  const forwarded = [];
+  for (const pid of targets) {
+    if (!stillAlive(pid)) continue;
+    if (attempt(pid, plan.forward)) forwarded.push(pid);
+  }
+
+  if (forwarded.length > 0) {
+    await sleep(grace);
+  }
+
+  const survivors = [];
+  for (const pid of forwarded) {
+    if (!stillAlive(pid)) continue;
+    if (attempt(pid, plan.escalate)) survivors.push(pid);
+  }
+
+  return {
+    forward: plan.forward,
+    escalate: plan.escalate,
+    forwarded,
+    survivors,
+    signals,
+  };
+}
+
 export function applyDevTeardown(runtime, { signal, workspaceKey } = {}) {
   const plan = planSignalTeardown(signal);
   const released = releaseOwned(runtime, { workspaceKey });

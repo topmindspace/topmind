@@ -127,8 +127,7 @@ brew reinstall --cask topmind
 ```
 
 #### 方式二：手动下载安装包
-1. 从 [Releases](https://github.com/topmindspace/topmind/releases) 下载对应系统安装包：`topmind-<ver>-<os>-<arch>.{dmg,exe,AppImage,deb}`  
-   （日常产品 tag `v*` 构建 Desktop 矩阵；`desktop-v*` 仅热修逃生口）
+1. 从 [Releases](https://github.com/topmindspace/topmind/releases) 下载**安装包文件名里的版本**，不是把任意 `v*` tag 当成 Desktop 版本。Windows x64 是 `topmind-<ver>-win-x64.exe`，Windows ARM 是 `topmind-<ver>-win-arm64.exe`，两者不要混用。macOS / Linux 同样按 `topmind-<ver>-<os>-<arch>` 选。`desktop-v*` 只是热修 tag，版本仍以安装包文件名为准。
 2. 安装并打开；首次选择或创建本地工作区文件夹（内容真源）  
    *（macOS 若手动安装提示损坏打不开，可在终端运行：`sudo xattr -rd com.apple.quarantine /Applications/topmind.app`）*
 3. 可选：设置 -> AI 配置 Provider；设置 -> 通用 -> 浏览器剪藏 启用 Clip Bridge
@@ -140,7 +139,9 @@ brew reinstall --cask topmind
 | **剪藏扩展** | 解压到本机托管目录 + 引导“加载已解压的扩展”——**不能**静默写入 Chrome；支持卸载（清理托管目录） |
 | **Obsidian 插件** | 支持官方社区插件库安装（发布审核中） / BRAT 插件 / 直装 `plugins/topmind-stream/` |
 | **独立路径** | topmind-skills 安装器 / 社区 `npx skills` / pack zip 仍然有效，与 Desktop 不互斥 |
-| **安装前版本校验** | 每次安装/升级 companion 模块前自动校验 GitHub 最新版；若捆绑版本非最新，自动下载最新版安装（网络失败则回退捆绑版） |
+| **安装包从哪来** | Skills 用 `topmindspace/topmind-skills` 上真实的 `topmind-skills-<ver>.zip`（没有 zip 时用已发布的 `.tar.gz`）。Obsidian 用 `topmindspace/topmind-obsidian`：有 zip 用 zip，社区版只有 `main.js` + `manifest.json` + `styles.css` 时就装这三个文件，不编造会 404 的 zip。Clip / Desktop 用 `topmindspace/topmind` |
+| **失败不是成功** | 下载 404、校验和不符、或解压/复制失败时，不会报成已升级到最新。随包回退会标明是回退，不是最新安装。文件被占用时提示关闭 Obsidian 或 Agent 后重试，不结束那些进程，也不删掉现有安装 |
+| **Desktop 安装包** | 本机已打开 topmind 时先询问。确认后只退出这个 topmind 再交给安装包；取消则继续运行，也不报成已更新。不会结束 Obsidian、Agent 或所有 `electron.exe` |
 
 首次打开工作区后 onboarding 会提示可选安装模块（不阻塞主路径）。
 
@@ -149,12 +150,13 @@ brew reinstall --cask topmind
 |------|------|
 | Homebrew | 终端运行 `brew upgrade --cask topmind --greedy` 检查并自动升级至最新版本 |
 | 应用内检查 | 关于与更新 -> **检查更新**（Desktop / Skills / Clip / Obsidian 多表面；读公开 `latest.json`，无需 GitHub token） |
-| 内联升级 | 扩展与集成 / 关于与更新 -> 对 Skills / Clip / Obsidian 点下载按钮，直接从 GitHub Releases 下载并安装最新包（无需升级 Desktop 本身） |
+| 内联升级 | 扩展与集成 / 关于与更新 -> 对 Skills / Clip / Obsidian 点下载。只有解析到的包真正写进收据或 `manifest.json` 才算成功 |
+| 已在运行 | 安装 Desktop 更新前先询问。确认只退出当前 topmind；取消保持运行 |
 | 模块升级 | 设置 -> 扩展与集成 -> 对各宿主 / 插件点升级 |
 | 手动安装包 | 下载新版 installer，覆盖安装；工作区文件夹与 `app-settings.json` 保留 |
 | 源码开发 | `git pull` -> `npm run desktop:dev`；版本真源本目录 `package.json` |
 
-工作区 Markdown / `topmind.yaml` / `memory/` **不**随 Desktop 升级被覆盖。Skills · UTR · 剪藏扩展 · Obsidian 插件均随 Desktop engine 打包（`resources/topmind-engine/`），设置内可从本地源直接安装。UTR 版本跟随 Desktop。各表面独立版本号，内联升级直接从 GitHub Releases 下载最新包安装（无需升级 Desktop 本身）。详见 [`../docs/PACKAGING.md`](../docs/PACKAGING.md)。
+工作区 Markdown / `topmind.yaml` / `memory/` **不**随 Desktop 升级被覆盖。Skills · UTR · 剪藏扩展 · Obsidian 插件可以随 Desktop engine 打包（`resources/topmind-engine/`）。各表面版本独立，内联升级只在下载、校验和解压都成功时替换；失败会留下原来的文件。详见 [`../docs/PACKAGING.md`](../docs/PACKAGING.md)。
 
 ---
 

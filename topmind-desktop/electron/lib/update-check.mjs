@@ -215,6 +215,66 @@ export function obsidianVersionFromAssets(assets) {
   return best;
 }
 
+/** Community-plugin release files. These URLs are the package — do not invent a zip. */
+export const OBSIDIAN_COMMUNITY_FILES = ["main.js", "manifest.json", "styles.css"];
+
+/**
+ * @param {Array<{ name?: string }>|undefined|null} assets
+ */
+export function releaseHasObsidianCommunityFiles(assets) {
+  const names = new Set((assets || []).map((a) => String(a?.name || "")));
+  return OBSIDIAN_COMMUNITY_FILES.every((name) => names.has(name));
+}
+
+function repoIs(release, repo) {
+  const stamped = String(release?.repo || "");
+  return stamped === repo || (stamped.length > 0 && stamped.endsWith(`/${repo.split("/")[1]}`));
+}
+
+/**
+ * Skills version from a release that actually publishes a skills pack,
+ * or from a skills-repo / skills-v* tag. A product v* tag and an Obsidian
+ * bare tag (4.18.2) are not skills versions.
+ * @param {object} release
+ * @returns {string|null}
+ */
+export function skillsVersionFromRelease(release) {
+  const fromAssets = skillsVersionFromAssets(release?.assets);
+  if (fromAssets) return fromAssets;
+  const tag = String(release?.tag_name || "").trim();
+  const skillsTag = /^skills-v(.+)$/i.exec(tag);
+  if (skillsTag) return skillsTag[1];
+  // Obsidian community tags have no v prefix.
+  if (!/^v\d/i.test(tag)) return null;
+  if (!repoIs(release, SURFACE_REPOS.skills)) return null;
+  // A product installer republished under the skills repo is still not a skills tag.
+  if (desktopVersionFromAssets(release?.assets)) return null;
+  return skillsVersionFromTag(tag);
+}
+
+/**
+ * Obsidian version from a real obsidian asset, an obsidian-v* tag, or a bare
+ * community tag on the obsidian repo. Product and skills v* tags are not
+ * Obsidian versions.
+ * @param {object} release
+ * @returns {string|null}
+ */
+export function obsidianVersionFromRelease(release) {
+  const fromAssets = obsidianVersionFromAssets(release?.assets);
+  if (fromAssets) return fromAssets;
+  const tag = String(release?.tag_name || "").trim();
+  const explicit = /^obsidian-v(.+)$/i.exec(tag);
+  if (explicit) return explicit[1];
+  // Product v* and skills v* are never the Obsidian version.
+  if (/^v\d/i.test(tag) || /^skills-v/i.test(tag)) return null;
+  const bare = /^(\d+\.\d+\.\d+[\w.-]*)$/.exec(tag);
+  if (!bare) return null;
+  const onObsidianRepo = repoIs(release, SURFACE_REPOS.obsidian);
+  const community = releaseHasObsidianCommunityFiles(release?.assets);
+  if (onObsidianRepo || (!release?.repo && community)) return bare[1];
+  return null;
+}
+
 /**
  * Desktop version carried by a release (asset-first; desktop-v tag fallback).
  * @param {object} release
@@ -247,7 +307,13 @@ export function assetMatcher(platform, arch = process.arch) {
       return (n.endsWith(".dmg") || (n.endsWith(".zip") && n.includes("mac"))) && (archOk || n.includes("mac"));
     }
     if (p === "win32") {
-      return n.endsWith(".exe") && (n.includes("win") || n.includes("x64") || n.includes("setup"));
+      if (!n.endsWith(".exe")) return false;
+      const arm = n.includes("arm64") || n.includes("aarch64");
+      const x64 = n.includes("x64") || n.includes("x86_64") || n.includes("amd64") || n.includes("win64");
+      // win32+x64 must not select win-arm64; win32+arm64 must not select the x64 exe.
+      if (a === "arm64") return arm && (n.includes("win") || n.includes("setup"));
+      if (arm) return false;
+      return n.includes("win") || x64 || n.includes("setup");
     }
     const archOk =
       a === "arm64"
@@ -283,25 +349,51 @@ export function pickAssets(release, platform, arch) {
  * @param {object} release
  * @param {"skills"|"extension"|"obsidian"} surface
  */
-export function pickPackAssets(release, surface) {
-  const assets = Array.isArray(release?.assets) ? release.assets : [];
-  const re =
-    surface === "skills"
-      ? /^topmind-skills-\d/i
-      : surface === "obsidian"
-        ? /^topmind-obsidian-\d/i
-        : /^topmind-clip-extension-\d/i;
-  const mapped = assets
-    .filter((a) => re.test(String(a.name || "")) && !/sha256|manifest/i.test(String(a.name || "")))
+function mapNamedAssets(assets, re) {
+  return assets
+    .filter((a) => re.test(String(a.name || "")) && !/sha256|manifest\.json$/i.test(String(a.name || "")))
+    .filter((a) => !/sha256/i.test(String(a.name || "")))
     .map((a) => ({
       name: a.name,
       size: a.size,
-      url: a.browser_download_url,
+      url: a.browser_download_url || a.url || null,
       contentType: a.content_type,
     }));
+}
+
+export function pickPackAssets(release, surface) {
+  const assets = Array.isArray(release?.assets) ? release.assets : [];
+  if (surface === "obsidian") {
+    const packed = mapNamedAssets(assets, /^topmind-obsidian-\d/i).filter(
+      (a) => /\.(zip|tar\.gz|tgz)$/i.test(String(a.name || "")),
+    );
+    packed.sort((a, b) => {
+      const az = String(a.name).endsWith(".zip") ? 0 : 1;
+      const bz = String(b.name).endsWith(".zip") ? 0 : 1;
+      return az - bz;
+    });
+    if (packed.length) return packed;
+    // Community catalog publishes main.js + manifest.json + styles.css and no zip.
+    if (releaseHasObsidianCommunityFiles(assets)) {
+      return OBSIDIAN_COMMUNITY_FILES.map((name) => {
+        const a = assets.find((item) => item?.name === name);
+        return {
+          name,
+          size: a?.size,
+          url: a?.browser_download_url || a?.url || null,
+          contentType: a?.content_type,
+        };
+      });
+    }
+    return [];
+  }
+  const re = surface === "skills" ? /^topmind-skills-\d/i : /^topmind-clip-extension-\d/i;
+  const mapped = mapNamedAssets(assets, re).filter((a) =>
+    /\.(zip|tar\.gz|tgz)$/i.test(String(a.name || "")),
+  );
   mapped.sort((a, b) => {
-    const az = a.name.endsWith(".zip") ? 0 : 1;
-    const bz = b.name.endsWith(".zip") ? 0 : 1;
+    const az = String(a.name).endsWith(".zip") ? 0 : 1;
+    const bz = String(b.name).endsWith(".zip") ? 0 : 1;
     return az - bz;
   });
   return mapped;
@@ -724,71 +816,41 @@ export async function fetchLatestTagPublic(opts = {}) {
   }
 }
 
-function syntheticReleaseFromLatest(latest, repo) {
-  const tag = latest.productTag || latest.tag || null;
+function syntheticReleaseFromLatest(latest, repoName) {
+  // Sister latest.json often has no productTag. Use that repo's own version
+  // so an Obsidian bare tag is not left empty and later glued onto the product release.
+  const ownVersion = repoName.endsWith("/topmind-obsidian")
+    ? latest.obsidian || latest.version
+    : repoName.endsWith("/topmind-skills")
+      ? latest.skills || latest.version
+      : latest.version;
+  const tag = latest.productTag || latest.tag || ownVersion || null;
+  // Only assets the release actually lists. Do not invent a zip/exe URL that 404s.
   const assets = Array.isArray(latest.assets)
-    ? latest.assets.map((a) => ({
-        name: a.name,
-        size: a.size || 0,
-        browser_download_url: a.browser_download_url || a.url || null,
-        content_type: a.content_type,
-      }))
+    ? latest.assets
+        .filter((a) => a && a.name)
+        .map((a) => ({
+          name: a.name,
+          size: a.size || 0,
+          browser_download_url: a.browser_download_url || a.url || null,
+          content_type: a.content_type,
+        }))
     : [];
-  // If no asset list, synthesize common names from versions so pickers still work
-  // with GitHub public download URLs.
-  if (assets.length === 0) {
-    const desk = latest.desktop;
-    const skills = latest.skills;
-    const ext = latest.extension;
-    const base = `https://github.com/${repo}/releases/download/${tag || "latest"}`;
-    if (desk) {
-      for (const name of [
-        `topmind-${desk}-mac-arm64.dmg`,
-        `topmind-${desk}-mac-arm64.zip`,
-        `topmind-${desk}-win-x64.exe`,
-        `topmind-${desk}-linux-x64.AppImage`,
-        `topmind-${desk}-linux-x86_64.AppImage`,
-        `topmind-${desk}-linux-arm64.AppImage`,
-        `topmind-${desk}-linux-amd64.deb`,
-        `topmind-${desk}-linux-arm64.deb`,
-      ]) {
-        assets.push({ name, size: 0, browser_download_url: `${base}/${name}` });
-      }
-    }
-    if (skills) {
-      const skillsBase = `https://github.com/${SURFACE_REPOS.skills}/releases/download/${tag || "latest"}`;
-      assets.push({
-        name: `topmind-skills-${skills}.zip`,
-        size: 0,
-        browser_download_url: `${skillsBase}/topmind-skills-${skills}.zip`,
-      });
-    }
-    if (ext) {
-      assets.push({
-        name: `topmind-clip-extension-${ext}.zip`,
-        size: 0,
-        browser_download_url: `${base}/topmind-clip-extension-${ext}.zip`,
-      });
-    }
-    const obs = latest.obsidian;
-    if (obs) {
-      const obsBase = `https://github.com/${SURFACE_REPOS.obsidian}/releases/download/${tag || "latest"}`;
-      assets.push({
-        name: `topmind-obsidian-${obs}.zip`,
-        size: 0,
-        browser_download_url: `${obsBase}/topmind-obsidian-${obs}.zip`,
-      });
-    }
-  }
   return {
     tag_name: tag,
-    html_url: latest.releaseUrl || `https://github.com/${repo}/releases/tag/${tag || ""}`,
+    repo: repoName,
+    html_url: latest.releaseUrl || `https://github.com/${repoName}/releases/tag/${tag || ""}`,
     published_at: latest.publishedAt || null,
     body: latest.notes || null,
     assets,
     draft: false,
     prerelease: false,
   };
+}
+
+function stampRepo(list, repoName) {
+  if (!Array.isArray(list)) return [];
+  return list.map((rel) => ({ ...rel, repo: rel?.repo || repoName }));
 }
 
 /**
@@ -834,6 +896,8 @@ export async function checkAllSurfaces(opts = {}) {
 
   /** @type {any[]} */
   let releases = [];
+  /** latest.json synthetics, keyed by repo, so a failed sister API can keep them. */
+  const latestReleasesByRepo = new Map();
   let source = "none";
 
   /** @type {LatestJson|null} */
@@ -869,7 +933,11 @@ export async function checkAllSurfaces(opts = {}) {
         stamp.productTag ||
         stamp.assets
       ) {
-        releases.push(syntheticReleaseFromLatest(stamp, r));
+        const synthetic = syntheticReleaseFromLatest(stamp, r);
+        releases.push(synthetic);
+        const bucket = latestReleasesByRepo.get(r) || [];
+        bucket.push(synthetic);
+        latestReleasesByRepo.set(r, bucket);
       }
     }
     if (releases.length > 0) source = "public-latest-json";
@@ -906,8 +974,16 @@ export async function checkAllSurfaces(opts = {}) {
         retries: opts.retries ?? 1, // fewer retries for non-blocking API call
       });
       const data = await res.json();
-      const merged = Array.isArray(data) ? [...data] : [];
-      // Also pull sister-repo releases (skills / obsidian version truth lives there)
+      const merged = [];
+      let apiAdded = false;
+      if (Array.isArray(data) && data.length > 0) {
+        merged.push(...stampRepo(data, repo));
+        apiAdded = true;
+      }
+      // Also pull sister-repo releases (skills / obsidian version truth lives there).
+      // Repo identity travels with each release so a product v* tag cannot win Obsidian.
+      // A thrown or empty sister call must not drop that sister's latest.json assets.
+      const failedSisters = [];
       for (const sister of [SURFACE_REPOS.skills, SURFACE_REPOS.obsidian]) {
         if (sister === repo) continue;
         try {
@@ -918,13 +994,20 @@ export async function checkAllSurfaces(opts = {}) {
             retries: 0,
           });
           const sData = await sRes.json();
-          if (Array.isArray(sData)) merged.push(...sData);
+          if (Array.isArray(sData) && sData.length > 0) {
+            merged.push(...stampRepo(sData, sister));
+            apiAdded = true;
+          } else {
+            failedSisters.push(sister);
+          }
         } catch {
-          /* non-blocking */
+          failedSisters.push(sister);
         }
       }
-      if (merged.length > 0) {
-        // API gives complete picture — replace latest.json releases
+      if (apiAdded) {
+        for (const sister of failedSisters) {
+          merged.push(...(latestReleasesByRepo.get(sister) || []));
+        }
         releases = merged;
         source = source === "public-latest-json" ? "api+latest-json" : "github-api";
       }
@@ -942,15 +1025,17 @@ export async function checkAllSurfaces(opts = {}) {
   if (releases.length === 0) {
     const tag = await fetchLatestTagPublic({ repo, fetchImpl, timeoutMs: opts.timeoutMs });
     if (tag) {
+      // Tag redirect has no asset list. Do not treat a product v* tag as a Desktop
+      // version and do not invent installer URLs.
       releases = [
-        syntheticReleaseFromLatest(
-          {
-            productTag: tag,
-            desktop: versionFromTag(tag) || String(tag).replace(/^v/i, ""),
-            releaseUrl: `https://github.com/${repo}/releases/tag/${tag}`,
-          },
+        {
+          tag_name: tag,
           repo,
-        ),
+          html_url: `https://github.com/${repo}/releases/tag/${tag}`,
+          assets: [],
+          draft: false,
+          prerelease: false,
+        },
       ];
       source = "public-latest-tag";
     }
@@ -965,54 +1050,49 @@ export async function checkAllSurfaces(opts = {}) {
   }
 
   let desktopPickFinal = pickLatestReleaseFor(releases, desktopVersionFromRelease);
-  let skillsPickResolved = pickLatestReleaseFor(releases, (r) => {
-    const fromAssets = skillsVersionFromAssets(r.assets);
-    if (fromAssets) return fromAssets;
-    return skillsVersionFromTag(r.tag_name);
-  });
+  let skillsPickResolved = pickLatestReleaseFor(releases, skillsVersionFromRelease);
   let extensionPickFinal = pickLatestReleaseFor(releases, (r) => {
     const fromAssets = extensionVersionFromAssets(r.assets);
     if (fromAssets) return fromAssets;
     return extensionVersionFromTag(r.tag_name);
   });
-  let obsidianPickFinal = pickLatestReleaseFor(releases, (r) => {
-    const fromAssets = obsidianVersionFromAssets(r.assets);
-    if (fromAssets) return fromAssets;
-    return obsidianVersionFromTag(r.tag_name);
-  });
+  let obsidianPickFinal = pickLatestReleaseFor(releases, obsidianVersionFromRelease);
 
   // Prefer explicit version stamps from public latest.json ONLY when API
-  // data is not available. When the API gives the complete picture (all
-  // releases including surface-specific tags), pickLatestReleaseFor already
-  // found the correct highest version — overriding with latestStamp (which
-  // only reflects the last full v* release) would clobber newer
-  // surface-specific versions (e.g. obsidian-v2.3.0 vs latest.json obsidian 2.2.0).
-  if (latestStamp && source === "public-latest-json" && releases[0]) {
-    const rel = releases[0];
-    if (latestStamp.desktop) {
-      desktopPickFinal = {
-        release: rel,
-        version: String(latestStamp.desktop).replace(/^v/i, ""),
-      };
-    }
-    if (latestStamp.skills) {
-      skillsPickResolved = {
-        release: rel,
-        version: String(latestStamp.skills).replace(/^v/i, ""),
-      };
-    }
-    if (latestStamp.extension) {
-      extensionPickFinal = {
-        release: rel,
-        version: String(latestStamp.extension).replace(/^v/i, ""),
-      };
-    }
-    if (latestStamp.obsidian) {
-      obsidianPickFinal = {
-        release: rel,
-        version: String(latestStamp.obsidian).replace(/^v/i, ""),
-      };
-    }
+  // data is not available. Bind each stamp to the release that actually
+  // published that surface's files. releases[0] is the product stamp; using
+  // it for skills/obsidian drops the sister zip and community files and
+  // reports asset-not-found.
+  if (latestStamp && source === "public-latest-json") {
+    const stampVersion = (value) => {
+      const v = String(value || "").replace(/^v/i, "").trim();
+      return v || null;
+    };
+    const assetsFor = (rel, surface) =>
+      surface === "desktop" ? pickAssets(rel, platform, arch) : pickPackAssets(rel, surface);
+    const releaseForStamp = (surface) => {
+      const want = SURFACE_REPOS[surface] || repo;
+      const owned = releases.find((r) => repoIs(r, want) && assetsFor(r, surface).length > 0);
+      if (owned) return owned;
+      return releases.find((r) => assetsFor(r, surface).length > 0) || null;
+    };
+    const versionOn = (rel, surface) => {
+      if (surface === "desktop") return desktopVersionFromRelease(rel);
+      if (surface === "skills") return skillsVersionFromRelease(rel);
+      if (surface === "obsidian") return obsidianVersionFromRelease(rel);
+      return extensionVersionFromAssets(rel?.assets) || extensionVersionFromTag(rel?.tag_name);
+    };
+    const applyStamp = (surface, version, currentPick) => {
+      const ver = stampVersion(version);
+      if (!ver) return currentPick;
+      const rel = releaseForStamp(surface);
+      if (!rel) return currentPick;
+      return { release: rel, version: versionOn(rel, surface) || ver };
+    };
+    desktopPickFinal = applyStamp("desktop", latestStamp.desktop, desktopPickFinal);
+    skillsPickResolved = applyStamp("skills", latestStamp.skills, skillsPickResolved);
+    extensionPickFinal = applyStamp("extension", latestStamp.extension, extensionPickFinal);
+    obsidianPickFinal = applyStamp("obsidian", latestStamp.obsidian, obsidianPickFinal);
   }
 
   /** @param {"desktop"|"skills"|"extension"|"obsidian"} surface */
@@ -1060,22 +1140,25 @@ export async function checkAllSurfaces(opts = {}) {
       surface === "desktop"
         ? pickAssets(release, platform, arch)
         : pickPackAssets(release, surface);
-    // Public synthetic assets may 404 for wrong arch names — filter those without url only for display
     assets = assets.filter((a) => a.url || a.name);
+    // A version with no published asset for this surface/arch is "not found",
+    // never "up to date".
+    const assetMissing = assets.length === 0;
+    const surfaceRepo = release.repo || SURFACE_REPOS[surface] || repo;
     return {
       ok: true,
       surface,
-      updateAvailable: cmp > 0,
+      updateAvailable: assetMissing ? false : cmp > 0,
       currentVersion: current,
       latestVersion: latest,
       tagName: release.tag_name,
-      releaseUrl: release.html_url || releasesUrl,
+      releaseUrl: release.html_url || `https://github.com/${surfaceRepo}/releases`,
       notes: typeof release.body === "string" ? release.body.slice(0, 4000) : null,
       publishedAt: release.published_at || release.created_at || null,
       assets,
-      repo,
+      repo: surfaceRepo,
       checkedAt,
-      reason: reasonFor(current || "0.0.0", latest),
+      reason: assetMissing ? "asset-not-found" : reasonFor(current || "0.0.0", latest),
       bundledVersion,
     };
   }

@@ -69,8 +69,9 @@ import {
 } from "./lib/companion-lifecycle.mjs";
 import {
   downloadCompanionAsset,
-  cleanupDownloadTemp,
+  withCompanionDownload,
 } from "./lib/companion-download.mjs";
+import { decideDesktopInstallerHandoff } from "./lib/install-swap.mjs";
 import { t as ei18n } from "./lib/electron-i18n.mjs";
 import {
   parseModelsDevCatalog,
@@ -129,6 +130,21 @@ async function resolveAllowedOpenPath(targetPath, ctx) {
     }
   }
   throw new Error(`Path not in allowed roots: ${resolved}`);
+}
+
+/** Bundled copy used because the latest download did not apply. Never claim it is the latest. */
+function bundledInstallResult(latest, result) {
+  if (!result?.ok) return { ...result, claimedLatest: false };
+  if (latest?.needsDownload) {
+    return { ...result, source: "bundled-fallback", fallback: true, claimedLatest: false };
+  }
+  return { ...result, source: "bundled", fallback: false, claimedLatest: false };
+}
+
+function versionsMatch(installed, resolved) {
+  const a = String(installed || "").replace(/^v/i, "").trim();
+  const b = String(resolved || "").replace(/^v/i, "").trim();
+  return Boolean(a) && a === b;
 }
 
 export const SystemService = {
@@ -1099,14 +1115,26 @@ export const SystemService = {
         engineRoot: engineRootResolved,
       });
       const surfaceInfo = updateResult?.[surface];
+      if (surfaceInfo?.reason === "asset-not-found" || (surfaceInfo?.latestVersion && (!surfaceInfo.assets || surfaceInfo.assets.length === 0))) {
+        return {
+          needsDownload: false,
+          assetNotFound: true,
+          latestVersion: surfaceInfo.latestVersion || null,
+          tag: surfaceInfo.tagName || null,
+          bundledVersion,
+          assets: [],
+        };
+      }
       if (surfaceInfo?.latestVersion && surfaceInfo?.tagName) {
         const cmp = compareSemver(surfaceInfo.latestVersion, bundledVersion || "0.0.0");
-        if (bundledMissing || cmp > 0) {
+        const assets = Array.isArray(surfaceInfo.assets) ? surfaceInfo.assets : [];
+        if ((bundledMissing || cmp > 0) && assets.length > 0) {
           return {
             needsDownload: true,
             latestVersion: surfaceInfo.latestVersion,
             tag: surfaceInfo.tagName,
             bundledVersion,
+            assets,
           };
         }
       }
@@ -1217,20 +1245,17 @@ export const SystemService = {
         bundled: latest.bundledVersion, latest: latest.latestVersion,
       });
       try {
-        const dlResult = await downloadCompanionAsset({
-          surface: "skills",
-          version: latest.latestVersion,
-          tag: latest.tag,
-        });
-        if (dlResult.ok) {
-          try {
+        const applied = await withCompanionDownload(
+          {
+            surface: "skills",
+            version: latest.latestVersion,
+            tag: latest.tag,
+            assets: latest.assets,
+          },
+          async (dlResult) => {
             const { installSkillsPackLocal } = await import("./lib/skills-extra.mjs");
-            // zipPath is auto-extracted by installSkillsPackLocal
-            const localResult = await installSkillsPackLocal(dlResult.zipPath);
-            if (!localResult?.ok) {
-              throw new Error(localResult?.error || "skills pack install from zip failed");
-            }
-            // Also install to the agent host from the downloaded pack
+            const localResult = await installSkillsPackLocal(dlResult.zipPath || dlResult.packageDir);
+            if (!localResult?.ok) return { ...localResult, ok: false, claimedLatest: false };
             const hostResult = await installSkillsToHost({
               hostId,
               mode: mode === "symlink" ? "symlink" : "copy",
@@ -1238,15 +1263,34 @@ export const SystemService = {
               sourceRoot: localResult.dest,
               engineRoot,
             });
-            if (!hostResult.ok) throw new Error(hostResult.error || "skills install failed");
-            logInfo("system", "companion skills installed (from latest download)", {
-              hostId, dest: hostResult.dest, version: latest.latestVersion,
+            if (!hostResult.ok) return { ...hostResult, claimedLatest: false };
+            if (!versionsMatch(hostResult.version || localResult.version, latest.latestVersion)) {
+              return {
+                ok: false,
+                claimedLatest: false,
+                error: "installed skills receipt does not match the resolved version",
+                version: hostResult.version || localResult.version || null,
+              };
+            }
+            return {
+              ...hostResult,
               source: "downloaded",
-            });
-            return { ...hostResult, source: "downloaded", downloadedVersion: latest.latestVersion };
-          } finally {
-            await cleanupDownloadTemp(dlResult.tempDir);
-          }
+              downloadedVersion: latest.latestVersion,
+              claimedLatest: true,
+            };
+          },
+        );
+        if (applied?.promptClose || applied?.reason === "close-app-and-retry") {
+          return { ...applied, ok: false, claimedLatest: false };
+        }
+        if (applied?.ok && applied.source === "downloaded") {
+          logInfo("system", "companion skills installed (from latest download)", {
+            hostId, dest: applied.dest, version: latest.latestVersion, source: "downloaded",
+          });
+          return applied;
+        }
+        if (applied && applied.ok === false && !latest) {
+          return applied;
         }
       } catch (err) {
         logError("system", "skills download+install failed, falling back to bundled", { error: err.message });
@@ -1268,14 +1312,14 @@ export const SystemService = {
         : "";
       throw new Error((result.error || "skills install failed") + hint);
     }
-    const fallbackSource = latest.needsDownload ? "bundled-fallback" : "bundled";
+    const labeled = bundledInstallResult(latest, result);
     logInfo("system", "companion skills installed", {
       hostId,
-      dest: result.dest,
-      version: result.version,
-      source: fallbackSource,
+      dest: labeled.dest,
+      version: labeled.version,
+      source: labeled.source,
     });
-    return { ...result, source: fallbackSource };
+    return labeled;
   },
 
   async uninstallCompanionSkills({ hostId, dest } = {}, _ctx) {
@@ -1297,19 +1341,17 @@ export const SystemService = {
         bundled: latest.bundledVersion, latest: latest.latestVersion,
       });
       try {
-        const dlResult = await downloadCompanionAsset({
-          surface: "skills",
-          version: latest.latestVersion,
-          tag: latest.tag,
-        });
-        if (dlResult.ok) {
-          try {
+        const applied = await withCompanionDownload(
+          {
+            surface: "skills",
+            version: latest.latestVersion,
+            tag: latest.tag,
+            assets: latest.assets,
+          },
+          async (dlResult) => {
             const { installSkillsPackLocal } = await import("./lib/skills-extra.mjs");
-            // zipPath is auto-extracted by installSkillsPackLocal
-            const localResult = await installSkillsPackLocal(dlResult.zipPath);
-            if (!localResult?.ok) {
-              throw new Error(localResult?.error || "skills pack install from zip failed");
-            }
+            const localResult = await installSkillsPackLocal(dlResult.zipPath || dlResult.packageDir);
+            if (!localResult?.ok) return { ...localResult, ok: false, claimedLatest: false };
             const hostResult = await upgradeSkillsOnHost({
               hostId,
               mode,
@@ -1317,15 +1359,21 @@ export const SystemService = {
               sourceRoot: localResult.dest,
               engineRoot,
             });
-            if (!hostResult.ok) throw new Error(hostResult.error || "skills upgrade failed");
-            logInfo("system", "companion skills upgraded (from latest download)", {
-              hostId, dest: hostResult.dest, version: latest.latestVersion,
-              source: "downloaded",
-            });
-            return { ...hostResult, source: "downloaded", downloadedVersion: latest.latestVersion };
-          } finally {
-            await cleanupDownloadTemp(dlResult.tempDir);
-          }
+            if (!hostResult.ok) return { ...hostResult, claimedLatest: false };
+            if (!versionsMatch(hostResult.version || localResult.version, latest.latestVersion)) {
+              return { ok: false, claimedLatest: false, error: "installed skills receipt does not match the resolved version" };
+            }
+            return { ...hostResult, source: "downloaded", downloadedVersion: latest.latestVersion, claimedLatest: true };
+          },
+        );
+        if (applied?.promptClose || applied?.reason === "close-app-and-retry") {
+          return { ...applied, ok: false, claimedLatest: false };
+        }
+        if (applied?.ok && applied.source === "downloaded") {
+          logInfo("system", "companion skills upgraded (from latest download)", {
+            hostId, dest: applied.dest, version: latest.latestVersion, source: "downloaded",
+          });
+          return applied;
         }
       } catch (err) {
         logError("system", "skills download+upgrade failed, falling back to bundled", { error: err.message });
@@ -1347,13 +1395,14 @@ export const SystemService = {
         : "";
       throw new Error((result.error || "skills upgrade failed") + hint);
     }
+    const labeled = bundledInstallResult(latest, result);
     logInfo("system", "companion skills upgraded", {
       hostId,
-      dest: result.dest,
-      version: result.version,
-      source: "bundled",
+      dest: labeled.dest,
+      version: labeled.version,
+      source: labeled.source,
     });
-    return { ...result, source: "bundled" };
+    return labeled;
   },
 
   /**
@@ -1372,26 +1421,34 @@ export const SystemService = {
         bundled: latest.bundledVersion, latest: latest.latestVersion,
       });
       try {
-        const dlResult = await downloadCompanionAsset({
-          surface: "extension",
-          version: latest.latestVersion,
-          tag: latest.tag,
-        });
-        if (dlResult.ok) {
-          try {
+        const applied = await withCompanionDownload(
+          {
+            surface: "extension",
+            version: latest.latestVersion,
+            tag: latest.tag,
+            assets: latest.assets,
+          },
+          async (dlResult) => {
             const result = await prepareClipExtensionInstall({
               engineRoot,
               desktopStateHome: desktopStateHome || undefined,
               bundledZipPath: dlResult.zipPath,
             });
-            if (!result.ok) throw new Error(result.error || "prepare clip extension failed");
-            logInfo("system", "clip extension prepared (from latest download)", {
-              path: result.path, version: result.version, source: "downloaded",
-            });
-            return { ...result, source: "downloaded", downloadedVersion: latest.latestVersion };
-          } finally {
-            await cleanupDownloadTemp(dlResult.tempDir);
-          }
+            if (!result.ok) return { ...result, claimedLatest: false };
+            if (!versionsMatch(result.version, latest.latestVersion)) {
+              return { ok: false, claimedLatest: false, error: "installed extension manifest does not match the resolved version" };
+            }
+            return { ...result, source: "downloaded", downloadedVersion: latest.latestVersion, claimedLatest: true };
+          },
+        );
+        if (applied?.promptClose || applied?.reason === "close-app-and-retry") {
+          return { ...applied, ok: false, claimedLatest: false };
+        }
+        if (applied?.ok && applied.source === "downloaded") {
+          logInfo("system", "clip extension prepared (from latest download)", {
+            path: applied.path, version: applied.version, source: "downloaded",
+          });
+          return applied;
         }
       } catch (err) {
         logError("system", "extension download+prepare failed, falling back to bundled", { error: err.message });
@@ -1404,10 +1461,11 @@ export const SystemService = {
       desktopStateHome: desktopStateHome || undefined,
     });
     if (!result.ok) throw new Error(result.error || "prepare clip extension failed");
+    const labeled = bundledInstallResult(latest, result);
     logInfo("system", "clip extension prepared", {
-      path: result.path, version: result.version, source: "bundled",
+      path: labeled.path, version: labeled.version, source: labeled.source,
     });
-    return { ...result, source: "bundled" };
+    return labeled;
   },
 
   /**
@@ -1458,39 +1516,40 @@ export const SystemService = {
         bundled: latest.bundledVersion, latest: latest.latestVersion,
       });
       try {
-        const dlResult = await downloadCompanionAsset({
-          surface: "obsidian",
-          version: latest.latestVersion,
-          tag: latest.tag,
-        });
-        if (!dlResult.ok) {
-          logError("system", "obsidian download failed, falling back to bundled", {
-            error: dlResult.error,
-            bundled: latest.bundledVersion,
-          });
-        } else {
-          try {
+        const applied = await withCompanionDownload(
+          {
+            surface: "obsidian",
+            version: latest.latestVersion,
+            tag: latest.tag,
+            assets: latest.assets,
+          },
+          async (dlResult) => {
             const result = await installObsidianPlugin({
               vaultRoot,
-              zipPath: dlResult.zipPath,
+              zipPath: dlResult.zipPath || undefined,
               sourceDir: dlResult.packageDir || undefined,
               engineRoot,
             });
-            if (!result.ok) {
-              logError("system", "obsidian install from download failed, falling back to bundled", {
-                error: result.error,
-              });
-            } else {
-              logInfo("system", "obsidian plugin installed (from latest download)", {
-                version: result.version, pluginId: result.pluginId, path: result.path,
-                source: "downloaded",
-              });
-              return { ...result, source: "downloaded", downloadedVersion: latest.latestVersion };
+            if (!result.ok) return { ...result, claimedLatest: false };
+            if (!versionsMatch(result.version, latest.latestVersion)) {
+              return { ok: false, claimedLatest: false, error: "installed plugin manifest does not match the resolved version" };
             }
-          } finally {
-            await cleanupDownloadTemp(dlResult.tempDir);
-          }
+            return { ...result, source: "downloaded", downloadedVersion: latest.latestVersion, claimedLatest: true };
+          },
+        );
+        if (applied?.promptClose || applied?.reason === "close-app-and-retry") {
+          return { ...applied, ok: false, claimedLatest: false };
         }
+        if (applied?.ok && applied.source === "downloaded") {
+          logInfo("system", "obsidian plugin installed (from latest download)", {
+            version: applied.version, pluginId: applied.pluginId, path: applied.path, source: "downloaded",
+          });
+          return applied;
+        }
+        logError("system", "obsidian download failed, falling back to bundled", {
+          error: applied?.error,
+          bundled: latest.bundledVersion,
+        });
       } catch (err) {
         logError("system", "obsidian download+install failed, falling back to bundled", {
           error: err instanceof Error ? err.message : String(err),
@@ -1516,12 +1575,13 @@ export const SystemService = {
         : "";
       throw new Error((result.error || "obsidian plugin install failed") + hint);
     }
+    const labeled = bundledInstallResult(latest, result);
     logInfo("system", "obsidian plugin installed", {
-      path: result.path,
-      version: result.version,
-      source: "bundled",
+      path: labeled.path,
+      version: labeled.version,
+      source: labeled.source,
     });
-    return { ...result, source: "bundled" };
+    return labeled;
   },
 
   async uninstallObsidianPlugin({ vaultPath } = {}, ctx) {
@@ -1636,116 +1696,156 @@ export const SystemService = {
    *
    * @param {{ surface: 'skills'|'obsidian'|'extension', version: string, tag: string, hostId?: string, vaultPath?: string }} p
    */
-  async downloadAndInstallCompanion({ surface, version, tag, hostId, vaultPath } = {}, ctx) {
+  async downloadAndInstallCompanion({ surface, version, tag, hostId, vaultPath, assets } = {}, ctx) {
     if (!surface || !version || !tag) {
-      throw new Error("surface, version, and tag are required");
+      return { ok: false, claimedLatest: false, error: "surface, version, and tag are required" };
     }
 
     logInfo("system", "download+install companion", { surface, version, tag, hostId, vaultPath });
 
-    // Step 1: Download
-    const dlResult = await downloadCompanionAsset({ surface, version, tag });
-    if (!dlResult.ok) {
-      throw new Error(dlResult.error || `download failed for ${surface}`);
-    }
-
-    try {
-      // Step 2: Install based on surface type
-      const zipPath = dlResult.zipPath;
-
-      if (surface === "skills") {
-        // Install skills pack from downloaded zip (auto-extracted)
-        const { installSkillsPackLocal } = await import("./lib/skills-extra.mjs");
-        const result = await installSkillsPackLocal(zipPath);
-        if (!result.ok) {
-          throw new Error(result.error || "skills install from zip failed");
-        }
-
-        // Also install to agent host if hostId specified
-        if (hostId) {
-          try {
-            await installSkillsToHost({
+    const applied = await withCompanionDownload(
+      { surface, version, tag, assets },
+      async (dlResult) => {
+        if (surface === "skills") {
+          const { installSkillsPackLocal } = await import("./lib/skills-extra.mjs");
+          const result = await installSkillsPackLocal(dlResult.zipPath || dlResult.packageDir);
+          if (!result.ok) return { ...result, ok: false, claimedLatest: false };
+          if (hostId) {
+            const hostResult = await installSkillsToHost({
               hostId,
               mode: "copy",
               sourceRoot: result.dest,
               engineRoot: ctx?.workspaceRoot?.engineRoot || getEngineRoot(),
             });
-          } catch (err) {
-            logError("system", "skills host install after download", { hostId, error: err.message });
+            if (!hostResult.ok) return { ...hostResult, claimedLatest: false };
+            if (!versionsMatch(hostResult.version || result.version, version)) {
+              return { ok: false, claimedLatest: false, error: "installed skills receipt does not match the resolved version" };
+            }
+            return {
+              ok: true,
+              surface: "skills",
+              version: hostResult.version || result.version,
+              dest: hostResult.dest || result.dest,
+              installed: result.installed,
+              source: "downloaded",
+              claimedLatest: true,
+            };
           }
+          if (!versionsMatch(result.version, version)) {
+            return { ok: false, claimedLatest: false, error: "installed skills receipt does not match the resolved version" };
+          }
+          return {
+            ok: true,
+            surface: "skills",
+            version: result.version,
+            dest: result.dest,
+            installed: result.installed,
+            source: "downloaded",
+            claimedLatest: true,
+          };
         }
 
-        return {
-          ok: true,
-          surface: "skills",
-          version,
-          dest: result.dest,
-          installed: result.installed,
-        };
-      }
-
-      if (surface === "obsidian") {
-        // Install Obsidian plugin from downloaded zip OR community file set.
-        // CRITICAL: pass zipPath / sourceDir (not sourcePath) — installObsidianPlugin
-        // resolves the source via resolveObsidianPluginSource which checks
-        // opts.zipPath then opts.sourceDir. A wrong property name silently
-        // falls back to the bundled/monorepo version, defeating the inline upgrade.
-        const vaultRoot =
-          (vaultPath && String(vaultPath).trim()) ||
-          ctx?.workspaceRoot?.userWorkspaceRoot ||
-          null;
-        const result = await installObsidianPlugin({
-          vaultRoot,
-          zipPath: dlResult.zipPath || undefined,
-          sourceDir: dlResult.packageDir || undefined,
-        });
-        if (!result.ok) {
-          throw new Error(result.error || "obsidian plugin install from zip failed");
+        if (surface === "obsidian") {
+          const vaultRoot =
+            (vaultPath && String(vaultPath).trim()) ||
+            ctx?.workspaceRoot?.userWorkspaceRoot ||
+            null;
+          const result = await installObsidianPlugin({
+            vaultRoot,
+            zipPath: dlResult.zipPath || undefined,
+            sourceDir: dlResult.packageDir || undefined,
+          });
+          if (!result.ok) return { ...result, claimedLatest: false };
+          if (!versionsMatch(result.version, version)) {
+            return { ok: false, claimedLatest: false, error: "installed plugin manifest does not match the resolved version" };
+          }
+          return {
+            ok: true,
+            surface: "obsidian",
+            version: result.version,
+            path: result.path,
+            pluginId: result.pluginId,
+            source: "downloaded",
+            claimedLatest: true,
+          };
         }
-        logInfo("system", "obsidian plugin installed from download", {
-          version, pluginId: result.pluginId, path: result.path,
-        });
-        return {
-          ok: true,
-          surface: "obsidian",
-          version,
-          path: result.path,
-          pluginId: result.pluginId,
-        };
-      }
 
-      if (surface === "extension") {
-        // Clip extension: extract to managed dir
-        // CRITICAL: pass bundledZipPath (not sourcePath) — prepareClipExtensionInstall
-        // checks opts.bundledZipPath for the zip source. A wrong property name
-        // silently falls back to the bundled/monorepo version.
-        const desktopStateHome = ctx?.workspaceStatePaths?.desktopStateHome || null;
-        const result = await prepareClipExtensionInstall({
-          engineRoot: ctx?.workspaceRoot?.engineRoot || getEngineRoot(),
-          desktopStateHome: desktopStateHome || undefined,
-          bundledZipPath: zipPath,
-        });
-        if (!result.ok) {
-          throw new Error(result.error || "clip extension install from zip failed");
+        if (surface === "extension") {
+          const desktopStateHome = ctx?.workspaceStatePaths?.desktopStateHome || null;
+          const result = await prepareClipExtensionInstall({
+            engineRoot: ctx?.workspaceRoot?.engineRoot || getEngineRoot(),
+            desktopStateHome: desktopStateHome || undefined,
+            bundledZipPath: dlResult.zipPath,
+          });
+          if (!result.ok) return { ...result, claimedLatest: false };
+          if (!versionsMatch(result.version, version)) {
+            return { ok: false, claimedLatest: false, error: "installed extension manifest does not match the resolved version" };
+          }
+          return {
+            ok: true,
+            surface: "extension",
+            version: result.version,
+            path: result.path,
+            source: "downloaded",
+            claimedLatest: true,
+          };
         }
-        logInfo("system", "clip extension installed from download", {
-          version, path: result.path,
-        });
-        return {
-          ok: true,
-          surface: "extension",
-          version,
-          path: result.path,
-        };
-      }
 
-      throw new Error(`unknown surface: ${surface}`);
-    } finally {
-      // Always clean up temp files
-      if (dlResult.tempDir) {
-        await cleanupDownloadTemp(dlResult.tempDir);
-      }
+        return { ok: false, claimedLatest: false, error: `unknown surface: ${surface}` };
+      },
+    );
+
+    if (!applied?.ok) {
+      return {
+        ok: false,
+        claimedLatest: false,
+        reason: applied?.reason || "error",
+        promptClose: Boolean(applied?.promptClose),
+        kill: false,
+        error: applied?.error || `download failed for ${surface}`,
+        source: applied?.source || null,
+      };
     }
+    return applied;
+  },
+
+  /**
+   * Desktop installer handoff. Prompt first while this topmind is running.
+   * Confirm quits only this process after opening the installer URL.
+   * Cancel leaves the process running and does not report an update.
+   */
+  async prepareDesktopUpdate({ confirmed, url } = {}, ctx) {
+    const decision = decideDesktopInstallerHandoff({
+      running: true,
+      confirmed: confirmed === true,
+    });
+    if (decision.action !== "handoff") {
+      return {
+        ok: true,
+        action: decision.action,
+        quitTarget: null,
+        reportUpdate: false,
+        killOthers: false,
+      };
+    }
+    const target = typeof url === "string" ? url.trim() : "";
+    if (target) {
+      await SystemService.openExternal({ url: target }, ctx);
+    }
+    setTimeout(() => {
+      try {
+        app.quit();
+      } catch {
+        /* this process only */
+      }
+    }, 400);
+    return {
+      ok: true,
+      action: "handoff",
+      quitTarget: "self",
+      reportUpdate: false,
+      killOthers: false,
+    };
   },
 
   async getWorkspaceConfig(_p, ctx) {

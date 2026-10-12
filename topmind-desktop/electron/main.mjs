@@ -1260,8 +1260,9 @@ async function runUpdateCheck(opts = {}) {
     const { checkAllSurfaces, readRunningAppVersion } = await import("./lib/update-check.mjs");
     const result = await checkAllSurfaces({
       currentVersion: readRunningAppVersion(),
-      retries: 1,
-      timeoutMs: 10_000,
+      // One pass. Background boot must not tight-retry or download installer bytes.
+      retries: manual ? 1 : 0,
+      timeoutMs: manual ? 12_000 : 10_000,
     });
     const surfaces = [];
     if (result.desktop?.updateAvailable) surfaces.push("desktop");

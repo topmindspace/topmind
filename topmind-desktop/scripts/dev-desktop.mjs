@@ -9,25 +9,28 @@ import {
 import { readProcessCommandTable } from "./dev-process-table.mjs";
 import {
   applyDevTeardown,
+  escalateWorkspaceTree,
   getDesktopOwnedRuntime,
+  ownedDevChildRecord,
   planDevSessionStart,
-  planSignalTeardown,
   registerDesktopOwned,
-  selectWorkspaceTreePids,
 } from "../electron/lib/runtime-bounds.mjs";
 
 const cwd = process.cwd();
 const rendererScript = path.resolve(cwd, "scripts", "dev-renderer.mjs");
 const electronScript = path.resolve(cwd, "scripts", "dev-electron.mjs");
 
-// Pre-flight: replace a dead same-workspace Electron/Node tree.
-// The pid list comes from planDevSessionStart — never pkill, and never
-// taskkill every electron.exe on the machine.
-function killWorkspacePid(pid, signal = "SIGTERM") {
+// OS delivery for one workspace pid. Unix signals the process group, then the
+// pid. Windows uses taskkill /T, and /F only for SIGKILL. Never pkill.
+function deliverOsSignal(pid, signal) {
   if (!Number.isInteger(pid) || pid <= 0 || pid === process.pid) return;
-  const sig = signal === "SIGKILL" ? "SIGKILL" : "SIGTERM";
+  const sig = signal === "SIGKILL" || signal === "SIGINT" || signal === "SIGTERM"
+    ? signal
+    : "SIGTERM";
   if (process.platform === "win32") {
-    spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], { stdio: "ignore", windowsHide: true });
+    const args = ["/PID", String(pid), "/T"];
+    if (sig === "SIGKILL") args.push("/F");
+    spawnSync("taskkill", args, { stdio: "ignore", windowsHide: true });
     return;
   }
   try {
@@ -37,13 +40,29 @@ function killWorkspacePid(pid, signal = "SIGTERM") {
   }
 }
 
-function replaceStaleWorkspaceTree() {
-  let processes = [];
+function pidIsAlive(pid) {
+  const child = children.find((item) => item?.pid === pid);
+  if (child && (child.exitCode != null || child.signalCode != null)) return false;
   try {
-    processes = readProcessCommandTable();
-  } catch {
-    processes = [];
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return error?.code === "EPERM";
   }
+}
+
+function readWorkspaceProcesses() {
+  try {
+    return readProcessCommandTable();
+  } catch {
+    return [];
+  }
+}
+
+// Dead same-workspace lock: catchable signal, then SIGKILL for whatever is
+// still alive. The pid list is planDevSessionStart — this workspace only.
+async function replaceStaleWorkspaceTree() {
+  const processes = readWorkspaceProcesses();
   const plan = planDevSessionStart({
     cwd,
     lockOwner: null,
@@ -51,8 +70,18 @@ function replaceStaleWorkspaceTree() {
     selfPid: process.pid,
     parentPid: process.ppid,
   });
-  for (const pid of plan.killPids) killWorkspacePid(pid);
+  if (plan.action !== "replace" || plan.killPids.length === 0) return;
+  await escalateWorkspaceTree({
+    signal: "SIGTERM",
+    processes,
+    cwd,
+    selfPid: process.pid,
+    parentPid: process.ppid,
+    kill: deliverOsSignal,
+    isAlive: pidIsAlive,
+  });
 }
+let children = [];
 const devSessionLock = await acquireDevSessionLock(cwd);
 let renderer = null;
 
@@ -78,7 +107,7 @@ await clearDevServerState(cwd);
 // Defensive: clear any orphaned Electron from a prior crashed session before
 // spawning a fresh one. Without this, a leaked grandchild from a previous
 // run persists on-screen next to the new window.
-replaceStaleWorkspaceTree();
+await replaceStaleWorkspaceTree();
 
 renderer = spawn(process.execPath, [rendererScript], {
   cwd,
@@ -92,7 +121,7 @@ const electron = spawn(process.execPath, [electronScript], {
   stdio: "inherit",
 });
 
-const children = [renderer, electron].filter(Boolean);
+children = [renderer, electron].filter(Boolean);
 const workspaceKey = path.resolve(cwd);
 for (const child of children) {
   if (!child?.pid) continue;
@@ -103,41 +132,46 @@ for (const child of children) {
     cwd: workspaceKey,
   });
 }
-let shuttingDown = false;
+let teardownPromise = null;
 
-function stopChildren(signal = "SIGTERM") {
-  if (shuttingDown) {
-    return;
-  }
-  shuttingDown = true;
-  const plan = planSignalTeardown(signal);
+function ownedChildRecords() {
+  const records = [];
   for (const child of children) {
-    try { child.kill(plan.forward); } catch { /* already gone */ }
+    if (!child?.pid) continue;
+    const script = child === electron ? electronScript : rendererScript;
+    records.push(ownedDevChildRecord({
+      pid: child.pid,
+      cwd: workspaceKey,
+      script,
+      execPath: process.execPath,
+    }));
   }
-  applyDevTeardown(getDesktopOwnedRuntime(), { signal, workspaceKey });
-  const timer = setTimeout(() => {
-    // dev-renderer spawns vite detached. child.kill(SIGKILL) skips that
-    // process's forwardSignal, so the vite/esbuild group stays up. Read the
-    // table first and signal the same pids the stale-session sweep selects.
-    let processes = [];
+  return records;
+}
+
+// Catchable signal first, then SIGKILL for workspace pids that ignore it.
+// The promise stays referenced until SIGKILL is requested. process.exit in
+// the caller runs only after this resolves, so a stuck child cannot outlive us.
+function stopChildren(signal = "SIGTERM") {
+  if (teardownPromise) return teardownPromise;
+  teardownPromise = (async () => {
+    const processes = [...readWorkspaceProcesses(), ...ownedChildRecords()];
     try {
-      processes = readProcessCommandTable();
+      applyDevTeardown(getDesktopOwnedRuntime(), { signal, workspaceKey });
     } catch {
-      processes = [];
+      /* registry bookkeeping only */
     }
-    const tree = selectWorkspaceTreePids(processes, {
+    return escalateWorkspaceTree({
+      signal,
+      processes,
       cwd: workspaceKey,
       selfPid: process.pid,
       parentPid: process.ppid,
+      kill: deliverOsSignal,
+      isAlive: pidIsAlive,
     });
-    for (const pid of tree) killWorkspacePid(pid, plan.escalate);
-    for (const child of children) {
-      if (child.exitCode == null && child.signalCode == null && child.pid) {
-        killWorkspacePid(child.pid, plan.escalate);
-      }
-    }
-  }, plan.escalateAfterMs);
-  timer.unref?.();
+  })();
+  return teardownPromise;
 }
 
 process.on("SIGINT", () => stopChildren("SIGINT"));
@@ -164,9 +198,12 @@ try {
     ),
   );
 } finally {
-  stopChildren();
-  await clearDevServerState(cwd);
-  await devSessionLock.release();
+  try {
+    await stopChildren();
+  } finally {
+    await clearDevServerState(cwd);
+    await devSessionLock.release();
+  }
 }
 
 process.exit(Number(firstExit) || 0);
