@@ -7,6 +7,59 @@ import tailwindcss from "@tailwindcss/vite";
 import { getContentSecurityPolicy } from "./config/content-security-policy.mjs";
 import { getDevServerUrl, resolveDevServerHost } from "./config/dev-server.mjs";
 
+/** Record which src modules the capture/main entry pulls statically vs lazily. */
+function entryGraphPlugin() {
+  return {
+    name: "topmind-entry-graph",
+    generateBundle(this: {
+      getModuleIds: () => Iterable<string>;
+      getModuleInfo: (id: string) => {
+        importedIds: string[];
+        dynamicallyImportedIds: string[];
+      } | null;
+      emitFile: (asset: { type: "asset"; fileName: string; source: string }) => void;
+    }) {
+      const staticIds = new Set<string>();
+      const dynamicIds = new Set<string>();
+      const seen = new Set<string>();
+      const walk = (id: string, asDynamic: boolean) => {
+        if (!id || seen.has(id) || id.includes("node_modules")) return;
+        seen.add(id);
+        const info = this.getModuleInfo(id);
+        if (!info) return;
+        if (asDynamic) dynamicIds.add(id);
+        else staticIds.add(id);
+        for (const dep of info.importedIds ?? []) walk(dep, asDynamic);
+        for (const dep of info.dynamicallyImportedIds ?? []) {
+          if (!dep.includes("node_modules")) dynamicIds.add(dep);
+          walk(dep, true);
+        }
+      };
+      let entry = "";
+      for (const id of this.getModuleIds()) {
+        const clean = id.split("?")[0] ?? id;
+        if (clean.endsWith("/src/main.tsx") || clean.endsWith("\\src\\main.tsx")) entry = id;
+      }
+      if (entry) walk(entry, false);
+      const rel = (id: string) =>
+        path.relative(__dirname, id.split("?")[0] ?? id).split(path.sep).join("/");
+      const keep = (id: string) => {
+        const name = rel(id);
+        return name.startsWith("src/") && !name.includes("node_modules");
+      };
+      this.emitFile({
+        type: "asset",
+        fileName: "entry-graph.json",
+        source: JSON.stringify({
+          entry: entry ? rel(entry) : "",
+          static: [...staticIds].filter(keep).map(rel),
+          dynamic: [...dynamicIds].filter(keep).map(rel),
+        }),
+      });
+    },
+  };
+}
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const packageJson = JSON.parse(readFileSync(path.join(__dirname, "package.json"), "utf8")) as {
   version: string;
@@ -24,6 +77,7 @@ export default defineConfig(() => ({
   plugins: [
     tailwindcss(),
     react(),
+    entryGraphPlugin(),
     {
       name: "topmind-csp",
       transformIndexHtml(html, context) {

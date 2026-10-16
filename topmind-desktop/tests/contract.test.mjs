@@ -251,9 +251,12 @@ test("v4 source footprint stays bounded (src + electron)", () => {
   // hook. Ceiling moves by that much — not by a dozen.
   // 2026-10-12: install-swap.mjs (+1 electron → 134) stages a companion or
   // installer beside the live tree and swaps only after the copy finishes.
-  assert.ok(srcCount < 251, `src file count ${srcCount} exceeds soft ceiling`);
+  // 2026-10-16: hot-path.ts (+1 src → 251) — frame batch, hidden poll,
+  // debounce, and rAF gate. One module so the renderer calls them and
+  // tests can too, without Electron. Ceiling moves by 1.
+  assert.ok(srcCount < 252, `src file count ${srcCount} exceeds soft ceiling`);
   assert.ok(electronCount < 135, `electron file count ${electronCount} exceeds soft ceiling`);
-  assert.ok(srcCount + electronCount < 385, `total ${srcCount + electronCount} exceeds soft ceiling`);
+  assert.ok(srcCount + electronCount < 386, `total ${srcCount + electronCount} exceeds soft ceiling`);
 });
 
 test("desktop validate restages engine before pack:verify (obsidian/clip stamp drift)", () => {

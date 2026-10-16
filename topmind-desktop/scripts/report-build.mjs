@@ -87,6 +87,34 @@ async function main() {
     process.stderr.write("[report-build] dist/assets missing\n");
     process.exit(1);
   }
+
+  const graphPath = path.join(distRoot, "entry-graph.json");
+  let graph;
+  try {
+    graph = JSON.parse(await fs.readFile(graphPath, "utf8"));
+  } catch (err) {
+    process.stderr.write(`[report-build] dist/entry-graph.json missing or unreadable: ${err.message}\n`);
+    process.exit(1);
+  }
+  const lazyShell = [
+    "src/components/shell/Shell.tsx",
+    "src/components/shell/CaptureSurface.tsx",
+    "src/components/overlays/QuickCapture.tsx",
+  ];
+  const staticMods = new Set(graph.static || []);
+  const dynamicMods = new Set(graph.dynamic || []);
+  for (const mod of lazyShell) {
+    if (staticMods.has(mod)) {
+      process.stderr.write(`[report-build] ${mod} is in the static entry graph — capture boot would pull the shell\n`);
+      process.exit(1);
+    }
+    if (!dynamicMods.has(mod)) {
+      process.stderr.write(`[report-build] ${mod} missing from the dynamic entry graph\n`);
+      process.exit(1);
+    }
+  }
+  lines.push("  entry graph: shell, capture, and quick-capture are dynamic");
+  process.stdout.write(`${lines[lines.length - 1]}\n`);
 }
 
 main().catch((err) => {

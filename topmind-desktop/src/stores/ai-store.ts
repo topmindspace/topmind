@@ -22,6 +22,7 @@ import {
 } from "../lib/ai-rail-events";
 import { emitLocal } from "../plugins/host";
 import { ingestAssistantTextDelta, mergeReasoning, splitAssistantVisible } from "../lib/ai-chat-split";
+import { createNotifyBatcher } from "../lib/hot-path";
 import {
   boundToolCalls,
   createHotPathScope,
@@ -229,85 +230,57 @@ function patchLastAssistant(
  * and re-parsing markdown regexes repeatedly during token generation.
  */
 class StreamDeltaBatcher {
-  private pendingText = "";
-  private pendingReasoning = "";
-  private rafId: number | null = null;
-  private set: StoreApi<AiState>["setState"];
+  private batcher: ReturnType<typeof createNotifyBatcher>;
 
   constructor(set: StoreApi<AiState>["setState"]) {
-    this.set = set;
+    this.batcher = createNotifyBatcher({
+      publish: ({ text: textDelta, reasoning: reasoningDelta }) => {
+        set((s) => ({
+          messages: patchLastAssistant(s.messages, (last) => {
+            let contentRaw = last.contentRaw ?? last.content;
+            let content = last.content;
+            let reasoning = last.reasoning || "";
+            let reasoningProvider = last.reasoningProvider || "";
+
+            if (textDelta) {
+              const next = ingestAssistantTextDelta(
+                { raw: contentRaw, body: content, reasoning },
+                textDelta,
+              );
+              contentRaw = next.raw;
+              content = next.body;
+              reasoning = mergeReasoning(reasoningProvider, next.reasoning);
+            }
+
+            if (reasoningDelta) {
+              reasoningProvider += reasoningDelta;
+              reasoning = mergeReasoning(reasoningProvider, splitAssistantVisible(contentRaw).reasoning);
+            }
+
+            return {
+              ...last,
+              contentRaw,
+              content,
+              reasoning,
+              reasoningProvider,
+            };
+          }),
+          streamDelta: textDelta ? s.streamDelta + textDelta : s.streamDelta,
+        }));
+      },
+    });
   }
 
   append(textDelta: string, reasoningDelta: string) {
-    if (textDelta) this.pendingText += textDelta;
-    if (reasoningDelta) this.pendingReasoning += reasoningDelta;
-    this.scheduleFlush();
-  }
-
-  private scheduleFlush() {
-    if (this.rafId !== null) return;
-    if (typeof requestAnimationFrame === "function") {
-      this.rafId = requestAnimationFrame(() => {
-        this.rafId = null;
-        this.flush();
-      });
-    } else {
-      this.flush();
-    }
+    this.batcher.append(textDelta, reasoningDelta);
   }
 
   flush() {
-    if (this.rafId !== null) {
-      if (typeof cancelAnimationFrame === "function") cancelAnimationFrame(this.rafId);
-      this.rafId = null;
-    }
-    const textDelta = this.pendingText;
-    const reasoningDelta = this.pendingReasoning;
-    if (!textDelta && !reasoningDelta) return;
-    this.pendingText = "";
-    this.pendingReasoning = "";
-
-    this.set((s) => ({
-      messages: patchLastAssistant(s.messages, (last) => {
-        let contentRaw = last.contentRaw ?? last.content;
-        let content = last.content;
-        let reasoning = last.reasoning || "";
-        let reasoningProvider = last.reasoningProvider || "";
-
-        if (textDelta) {
-          const next = ingestAssistantTextDelta(
-            { raw: contentRaw, body: content, reasoning },
-            textDelta,
-          );
-          contentRaw = next.raw;
-          content = next.body;
-          reasoning = mergeReasoning(reasoningProvider, next.reasoning);
-        }
-
-        if (reasoningDelta) {
-          reasoningProvider += reasoningDelta;
-          reasoning = mergeReasoning(reasoningProvider, splitAssistantVisible(contentRaw).reasoning);
-        }
-
-        return {
-          ...last,
-          contentRaw,
-          content,
-          reasoning,
-          reasoningProvider,
-        };
-      }),
-      streamDelta: textDelta ? s.streamDelta + textDelta : s.streamDelta,
-    }));
+    this.batcher.flush();
   }
 
   clear() {
-    if (this.rafId !== null) {
-      if (typeof cancelAnimationFrame === "function") cancelAnimationFrame(this.rafId);
-      this.rafId = null;
-    }
-    this.pendingText = "";
-    this.pendingReasoning = "";
+    this.batcher.clear();
   }
 }
 

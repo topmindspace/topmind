@@ -7,6 +7,7 @@
  * while any surface is mounted and jobs are active.
  */
 import { api } from "../services/api";
+import { createHiddenAwareInterval } from "./hot-path";
 import type { IngestJob } from "../types";
 
 type Listener = () => void;
@@ -16,9 +17,20 @@ let loading = true;
 let error: string | null = null;
 let refreshSeq = 0;
 const listeners = new Set<Listener>();
-let pollTimer: ReturnType<typeof setInterval> | null = null;
 let eventUnsubs: Array<() => void> = [];
 let mounted = 0;
+
+function isHidden() {
+  return typeof document !== "undefined" && document.visibilityState === "hidden";
+}
+
+const ingestPoller = createHiddenAwareInterval({
+  intervalMs: 1500,
+  isHidden,
+  onTick: () => {
+    void refreshIngestJobs();
+  },
+});
 /** Stable snapshot object for useSyncExternalStore (replaced on emit). */
 let snapshot: { jobs: IngestJob[]; loading: boolean; error: string | null } = {
   jobs,
@@ -35,20 +47,9 @@ function hasActive(list: IngestJob[]) {
   return list.some((j) => j.status === "queued" || j.status === "running");
 }
 
-function stopPoll() {
-  if (pollTimer != null) {
-    clearInterval(pollTimer);
-    pollTimer = null;
-  }
-}
-
 function ensurePoll() {
-  if (pollTimer != null) return;
-  if (!hasActive(jobs)) return;
-  pollTimer = setInterval(() => {
-    if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
-    void refreshIngestJobs();
-  }, 1500);
+  if (mounted > 0 && hasActive(jobs) && !isHidden()) ingestPoller.start();
+  else ingestPoller.stop();
 }
 
 export async function refreshIngestJobs(): Promise<void> {
@@ -67,12 +68,15 @@ export async function refreshIngestJobs(): Promise<void> {
       emit();
     }
   }
-  if (hasActive(jobs)) ensurePoll();
-  else stopPoll();
+  ensurePoll();
 }
 
 function onVisibleRefresh() {
-  if (document.visibilityState === "visible") void refreshIngestJobs();
+  if (document.visibilityState === "hidden") {
+    ingestPoller.stop();
+    return;
+  }
+  void refreshIngestJobs();
 }
 
 function attachEvents() {
@@ -105,7 +109,7 @@ export function subscribeIngestJobs(listener: Listener): () => void {
     listeners.delete(listener);
     mounted = Math.max(0, mounted - 1);
     if (mounted === 0) {
-      stopPoll();
+      ingestPoller.stop();
       detachEvents();
     }
   };

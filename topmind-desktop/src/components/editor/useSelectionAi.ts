@@ -29,6 +29,7 @@ import {
   INLINE_AI_PREVIEW_DEFAULT_MAX_H,
   shouldAutoOpenInlineAi,
 } from "../../lib/inline-ai-panel";
+import { createRafGate } from "../../lib/hot-path";
 
 /** Max custom instruction history entries kept in-memory. */
 const INSTR_HISTORY_MAX = 8;
@@ -362,11 +363,9 @@ export function useSelectionAi({
     // Soft scroll: update coords instead of instant vanish.
     // rAF-throttled: syncSelection may serialize the doc — never once per wheel tick.
     let scrollHideTimer: number | null = null;
-    let scrollRaf = 0;
+    const scrollGate = createRafGate();
     const onScroll = () => {
-      if (scrollRaf) return;
-      scrollRaf = requestAnimationFrame(() => {
-        scrollRaf = 0;
+      scrollGate.run(() => {
         syncSelection();
         if (scrollHideTimer != null) window.clearTimeout(scrollHideTimer);
         scrollHideTimer = window.setTimeout(() => {
@@ -445,7 +444,7 @@ export function useSelectionAi({
       window.removeEventListener("topmind:selection-ai", onForce);
       window.removeEventListener("topmind:editor-ai-menu", onMenu);
       if (scrollHideTimer != null) window.clearTimeout(scrollHideTimer);
-      if (scrollRaf) cancelAnimationFrame(scrollRaf);
+      scrollGate.cancel();
       if (selectionDebounceRef.current) {
         clearTimeout(selectionDebounceRef.current);
         selectionDebounceRef.current = null;

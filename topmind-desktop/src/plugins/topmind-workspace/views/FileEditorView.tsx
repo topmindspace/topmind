@@ -9,6 +9,7 @@ import {
   findSetSearch,
   findStep,
 } from "../../../lib/editor-find";
+import { createDebouncedTask } from "../../../lib/hot-path";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Typography from "@tiptap/extension-typography";
@@ -680,11 +681,12 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
   useEffect(() => {
     if (!findOpen || !editor) return;
     const q = findQuery.trim();
-    const t = window.setTimeout(() => {
+    const debounced = createDebouncedTask(160);
+    debounced.schedule(() => {
       const st = findSetSearch(editor, q, { scroll: false });
       setFindCount({ idx: st.matches.length ? 1 : 0, total: st.matches.length });
-    }, 160);
-    return () => window.clearTimeout(t);
+    });
+    return () => debounced.cancel();
   }, [findOpen, editor, findQuery]);
 
   // Keep count live across doc edits while the bar is open

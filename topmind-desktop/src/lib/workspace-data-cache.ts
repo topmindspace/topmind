@@ -28,91 +28,143 @@ type TopicsHit = { at: number; includeSystem: boolean; groups: TopicGroup[] };
 let notesCache: NotesHit | null = null;
 let topicsCache: TopicsHit | null = null;
 let listening = false;
+let notesEpoch = 0;
+let topicsEpoch = 0;
 
 function ensureInvalidationListener() {
   if (listening || typeof window === "undefined") return;
   listening = true;
   onLocal("workspace:file-changed", () => {
-    notesCache = null;
-    topicsCache = null;
+    invalidateWorkspaceDataCache();
   });
 }
 
-let inFlightNotesPromise: Promise<{
+type NotesPayload = {
   notes: NoteMeta[];
   total: number;
   returned?: number;
   scannedTotal?: number;
   truncated?: boolean;
   complete?: boolean;
-}> | null = null;
+};
 
-let inFlightTopicsPromise: Promise<TopicGroup[]> | null = null;
+type NotesReader = (limit: number) => Promise<{
+  notes?: NoteMeta[];
+  total?: number;
+  returned?: number;
+  scannedTotal?: number;
+  truncated?: boolean;
+  complete?: boolean;
+}>;
+
+let readAllNotes: NotesReader = (limit) => api.ws.allNotes(limit);
+let readCategories = () => api.ws.categories();
+let readTopics = (name: string) => api.ws.topics(name);
+
+/** Identical in-flight note reads share one call. A larger limit covers a smaller one. */
+const inFlightNotes = new Map<number, Promise<NotesHit>>();
+/** Identical topic reads (same includeSystem) share one call. */
+const inFlightTopics = new Map<boolean, Promise<TopicGroup[]>>();
 
 export function invalidateWorkspaceDataCache() {
+  notesEpoch += 1;
+  topicsEpoch += 1;
   notesCache = null;
   topicsCache = null;
 }
 
-/** Cached workspace.listAllNotes — reuses warm index and collapses concurrent calls. */
-export async function getCachedAllNotes(
-  limit = 500,
-): Promise<{
-  notes: NoteMeta[];
-  total: number;
-  returned?: number;
-  scannedTotal?: number;
-  truncated?: boolean;
-  complete?: boolean;
-}> {
+/**
+ * Tests replace the IPC readers. Production uses `api.ws`.
+ * Pass null to restore the real readers.
+ */
+export function bindWorkspaceReadersForTests(
+  readers: {
+    allNotes?: NotesReader;
+    categories?: typeof readCategories;
+    topics?: typeof readTopics;
+  } | null,
+) {
+  readAllNotes = readers?.allNotes ?? ((limit) => api.ws.allNotes(limit));
+  readCategories = readers?.categories ?? (() => api.ws.categories());
+  readTopics = readers?.topics ?? ((name) => api.ws.topics(name));
+  invalidateWorkspaceDataCache();
+  inFlightNotes.clear();
+  inFlightTopics.clear();
+}
+
+function payloadFromHit(hit: NotesHit, limit: number): NotesPayload {
+  const notes = hit.notes.slice(0, limit);
+  return {
+    notes,
+    total: hit.total,
+    returned: notes.length,
+    scannedTotal: hit.scannedTotal ?? hit.total,
+    truncated: hit.truncated,
+    complete: hit.complete,
+  };
+}
+
+function hitFromResult(
+  result: Awaited<ReturnType<NotesReader>>,
+  limit: number,
+): NotesHit {
+  const notes = result.notes || [];
+  const total = result.total ?? notes.length;
+  return {
+    at: Date.now(),
+    limit,
+    notes,
+    total,
+    returned: result.returned ?? notes.length,
+    scannedTotal: result.scannedTotal ?? total,
+    truncated: Boolean(result.truncated),
+    complete: result.complete !== false && !result.truncated,
+  };
+}
+
+function coveringNotesFlight(limit: number): Promise<NotesHit> | null {
+  let bestLimit = Infinity;
+  let best: Promise<NotesHit> | null = null;
+  for (const [inflightLimit, flight] of inFlightNotes) {
+    if (inflightLimit >= limit && inflightLimit < bestLimit) {
+      bestLimit = inflightLimit;
+      best = flight;
+    }
+  }
+  return best;
+}
+
+/** Cached workspace.listAllNotes — reuses warm index and collapses identical concurrent calls. */
+export async function getCachedAllNotes(limit = 500): Promise<NotesPayload> {
   ensureInvalidationListener();
   const now = Date.now();
   if (notesCache && notesCache.limit >= limit && now - notesCache.at < NOTES_TTL_MS) {
-    const notes = notesCache.notes.slice(0, limit);
-    return {
-      notes,
-      total: notesCache.total,
-      returned: notes.length,
-      scannedTotal: notesCache.scannedTotal ?? notesCache.total,
-      truncated: notesCache.truncated,
-      complete: notesCache.complete,
-    };
+    return payloadFromHit(notesCache, limit);
   }
 
-  // Deduplicate concurrent in-flight requests (e.g. multiple tabs/badges mounting simultaneously)
-  if (inFlightNotesPromise) return inFlightNotesPromise;
+  const exact = inFlightNotes.get(limit);
+  if (exact) return exact.then((hit) => payloadFromHit(hit, limit));
+  const covered = coveringNotesFlight(limit);
+  if (covered) return covered.then((hit) => payloadFromHit(hit, limit));
 
-  inFlightNotesPromise = (async () => {
+  const epoch = notesEpoch;
+  let flight!: Promise<NotesHit>;
+  flight = (async () => {
     try {
-      const result = await api.ws.allNotes(limit);
-      const total = result.total ?? (result.notes || []).length;
-      notesCache = {
-        at: Date.now(), // after fetch so TTL starts when data is ready
-        limit,
-        notes: result.notes || [],
-        total,
-        returned: result.returned ?? (result.notes || []).length,
-        scannedTotal: result.scannedTotal ?? total,
-        truncated: Boolean(result.truncated),
-        complete: result.complete !== false && !result.truncated,
-      };
-      return {
-        notes: notesCache.notes,
-        total: notesCache.total,
-        returned: notesCache.returned,
-        scannedTotal: notesCache.scannedTotal,
-        truncated: notesCache.truncated,
-        complete: notesCache.complete,
-      };
+      const hit = hitFromResult(await readAllNotes(limit), limit);
+      if (epoch === notesEpoch && (!notesCache || notesCache.limit <= limit)) {
+        notesCache = hit;
+      }
+      return hit;
     } finally {
-      inFlightNotesPromise = null;
+      if (inFlightNotes.get(limit) === flight) inFlightNotes.delete(limit);
     }
   })();
-
-  return inFlightNotesPromise;
+  inFlightNotes.set(limit, flight);
+  return flight.then((hit) => payloadFromHit(hit, limit));
 }
 
-/** Cached category→topics for Inbox picker (N+1 collapse across open/close & in-flight dedupe). */
+/** Cached category→topics. Identical includeSystem reads share one in-flight call. */
 export async function getCachedTopicGroups(includeSystem = false): Promise<TopicGroup[]> {
   ensureInvalidationListener();
   const now = Date.now();
@@ -124,11 +176,14 @@ export async function getCachedTopicGroups(includeSystem = false): Promise<Topic
     return topicsCache.groups;
   }
 
-  if (inFlightTopicsPromise) return inFlightTopicsPromise;
+  const existing = inFlightTopics.get(includeSystem);
+  if (existing) return existing;
 
-  inFlightTopicsPromise = (async () => {
+  const epoch = topicsEpoch;
+  let flight!: Promise<TopicGroup[]>;
+  flight = (async () => {
     try {
-      const { categories } = await api.ws.categories();
+      const { categories } = await readCategories();
       // Prefer role when present (workspace-model); fall back to NN prefix for older payloads
       const list = includeSystem
         ? categories
@@ -140,19 +195,21 @@ export async function getCachedTopicGroups(includeSystem = false): Promise<Topic
           });
       const results = await Promise.all(
         list.map(async (c) => {
-          const { topics: ts } = await api.ws.topics(c.name);
+          const { topics: ts } = await readTopics(c.name);
           return { category: c.name, topics: ts };
         }),
       );
       const groups = results.filter((g) => g.topics.length > 0);
-      topicsCache = { at: Date.now(), includeSystem, groups };
+      if (epoch === topicsEpoch) {
+        topicsCache = { at: Date.now(), includeSystem, groups };
+      }
       return groups;
     } finally {
-      inFlightTopicsPromise = null;
+      if (inFlightTopics.get(includeSystem) === flight) inFlightTopics.delete(includeSystem);
     }
   })();
-
-  return inFlightTopicsPromise;
+  inFlightTopics.set(includeSystem, flight);
+  return flight;
 }
 
 /**
