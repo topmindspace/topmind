@@ -56,6 +56,7 @@ import {
   probeWorkspacePath,
   classifyWorkspaceRoot,
   resolveDefaultUserWorkspaceRootForSettings,
+  finalizeBootLaunchStatus,
 } from "./workspace-history.mjs";
 import { isEphemeralBrowserWindow } from "./lib/ephemeral-windows.mjs";
 import { isUtilityBrowserWindow } from "./lib/utility-windows.mjs";
@@ -663,6 +664,8 @@ async function initApp() {
     packaged: app.isPackaged,
     resourcesPath: process.resourcesPath || null,
   });
+  /** @type {{ requestedPath: string, errorMessage: string } | null} */
+  let engineFailure = null;
   try {
     defaultEngine = await resolvetopmindRoot(engineCandidate);
   } catch (e) {
@@ -674,12 +677,8 @@ async function initApp() {
     });
     // Last resort: still set candidate so UI can show diagnostics; templates may fail.
     defaultEngine = engineCandidate;
-    launchStatus = {
-      ok: false,
-      reason: "invalid-engine",
-      requestedPath: engineCandidate,
-      errorMessage: msg,
-    };
+    engineFailure = { requestedPath: engineCandidate, errorMessage: msg };
+    launchStatus = finalizeBootLaunchStatus({ engineFailure, candidates: [], lastError: null });
   }
   setEngineRoot(defaultEngine);
   // Default *path hints* only (not auto-opened / not mkdir'd here):
@@ -715,21 +714,51 @@ async function initApp() {
 
   if (!candidates.length) {
     currentCtx = null;
-    launchStatus = {
-      ok: false,
-      reason: "no-workspace",
-      requestedPath: null,
-      errorMessage: null,
-    };
-    logInfo("main", "no launch candidate → landing");
+    launchStatus = finalizeBootLaunchStatus({
+      engineFailure,
+      candidates,
+      lastError: null,
+    });
+    logInfo("main", "no launch candidate → landing", { reason: launchStatus.reason });
     return;
   }
 
   let lastError = null;
   for (const candidate of candidates) {
     try {
-      // Recents / restore: do not create missing folders
-      await activateWorkspace(candidate, { createIfMissing: false });
+      // Recents / restore: do not create missing folders.
+      // A missing engine makes ensure return contractOnDiskValid:false without
+      // throwing. That non-ok result must not replace an engine failure.
+      const activated = await activateWorkspace(candidate, { createIfMissing: false });
+      const activateStatus = activated?.launchStatus ?? null;
+      const contractOnDiskValid = activateStatus?.contractOnDiskValid === false
+        || activated?.ensureResult?.contractOnDiskValid === false
+        ? false
+        : activateStatus?.contractOnDiskValid;
+      // Missing engine sets contractOnDiskValid false and returns. That is not
+      // a successful open, and it must not replace an earlier engine failure.
+      if (activateStatus?.ok !== true || contractOnDiskValid === false) {
+        launchStatus = finalizeBootLaunchStatus({
+          engineFailure,
+          candidates,
+          lastError: null,
+          activateStatus: {
+            ok: false,
+            reason: activateStatus?.reason ?? null,
+            requestedPath: activateStatus?.requestedPath ?? candidate,
+            errorMessage: activateStatus?.errorMessage ?? null,
+            contractOnDiskValid,
+            contractStatus: activateStatus?.contractStatus ?? activated?.ensureResult?.contractStatus,
+            contractErrors: activateStatus?.contractErrors ?? activated?.ensureResult?.contractErrors,
+            recovery: activateStatus?.recovery ?? activated?.ensureResult?.recovery ?? null,
+          },
+        });
+        logInfo("main", "activate returned non-ok → landing", {
+          path: candidate,
+          reason: launchStatus.reason,
+        });
+        return;
+      }
       logInfo("main", "workspace activated", { path: candidate });
       return;
     } catch (e) {
@@ -747,12 +776,11 @@ async function initApp() {
   }
 
   currentCtx = null;
-  launchStatus = {
-    ok: false,
-    reason: lastError ? "invalid-workspace" : "no-workspace",
-    requestedPath: candidates[0] || null,
-    errorMessage: lastError instanceof Error ? lastError.message : lastError ? String(lastError) : null,
-  };
+  launchStatus = finalizeBootLaunchStatus({
+    engineFailure,
+    candidates,
+    lastError,
+  });
   logInfo("main", "all candidates failed → landing", {
     tried: candidates.length,
     error: launchStatus.errorMessage,

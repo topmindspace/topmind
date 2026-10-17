@@ -40,7 +40,7 @@ Screenshots are compressed for docs (full-resolution sources live in `resources/
 
 ### 1. Core workbench (stream timeline + AI workspace)
 
-Default three columns: **nav → stream → AI workspace**. The main narrative is the stream timeline; the AI workspace holds **Chat · Suggest · List · Apps**.
+Default three columns: **nav → Stream workbench home → AI workspace**. Home is identity, quiet Inbox/Delivery inventory counts (not a second row of destinations), the hero Log it composer, and the period feed. An empty workspace keeps that structure and says it is empty. The status bar is status only (full path · AI · busy), not Stream / Inbox / Delivery. The right column holds **Chat · Suggest · List · Apps**.
 
 <p align="center">
   <img src="../docs/images/desktop-stream-en.jpg" alt="topmind Desktop · three-column workbench with the AI workspace" width="820" />
@@ -128,7 +128,7 @@ Homebrew clears macOS `quarantine` so unsigned builds do not show as “damaged�
    # or
    brew reinstall --cask topmind
    ```
-2. Install and open; pick or create a local workspace folder (content truth).  
+2. Install and open. With no workspace, a full-screen picker explains why (none selected, closed, could not open, the engine could not start, or an unrepairable contract). Recents show the full path and whether they are usable, and can be opened or removed from the list. Creating a workspace happens only after you pick a folder and confirm a template. The app never auto-creates a workspace to fill the window. The folder is the content source.  
    If macOS reports a damaged app after a manual install:  
    `sudo xattr -rd com.apple.quarantine /Applications/topmind.app`
 3. Optional: Settings → AI to configure a provider; Settings → General → Browser clip to enable Clip Bridge.

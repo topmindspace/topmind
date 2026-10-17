@@ -34,9 +34,10 @@ test("记一下 lives on the ActivityBar as accent text, not a solid TitleBar CT
   assert.doesNotMatch(titleBar, /v4-titlebar-btn-capture/u);
   assert.doesNotMatch(stream, /v4-titlebar-btn-capture/u);
   assert.doesNotMatch(titleBar, /titleBar\.capture/u);
-  // accent-inbox remains the capture accent stop (inbox mode maps accent-color → it).
+  // Capture accent is the inbox stop. Inbox mode remaps accent-color onto it,
+  // and ActivityBar capture uses that remapped text color — not a page wash.
   assert.match(tokens, /--color-accent-inbox/u);
-  assert.match(v4, /accent-inbox/u);
+  assert.match(tokens, /--color-accent-color:\s*var\(--color-accent-inbox\)/u);
 });
 
 test("icon-button system: chrome/tool/micro share one hover language", () => {

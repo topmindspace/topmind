@@ -76,12 +76,8 @@ html[data-fullscreen="true"] .v4-column-chrome.v4-mac-titlebar-pad {
 }
 
 .v4-hub-page {
-  background:
-    radial-gradient(
-      640px 240px at 0% 0%,
-      color-mix(in srgb, var(--color-accent-color) 5%, transparent),
-      transparent 72%
-    );
+  /* Paper canvas. Brand wash lives only on the no-workspace gate (.v4-landing). */
+  background: var(--color-background);
 }
 html[data-fullscreen="true"][data-wc-inset] [data-os-chrome] {
   padding-right: 8px;
@@ -900,9 +896,6 @@ html.dark .v4-tiptap pre {
 /* Landing sole primary: one solid CTA; chips/recent never solid default */
 .v4-landing [data-landing-primary-cta] {
   box-shadow: var(--shadow-button);
-}
-.v4-landing [data-landing-workflow] {
-  opacity: 0.92;
 }
 
 /* ── Dashboard surfaces — elevated cards on paper canvas ── */
@@ -1960,12 +1953,9 @@ html.dark .v4-overlay-sheet {
   background: color-mix(in srgb, var(--color-app-chrome) 70%, var(--color-surface-muted));
 }
 
-/* ── Boot splash — soft brand horizon wash (mid/aqua, never loud) ── */
+/* ── Boot splash — solid paper. Brand wash is the no-workspace gate only. ── */
 .v4-boot {
-  background:
-    radial-gradient(720px 380px at 48% 26%, color-mix(in srgb, var(--color-brand-mid) 9%, transparent), transparent 58%),
-    radial-gradient(520px 280px at 72% 70%, color-mix(in srgb, var(--color-brand-aqua) 5%, transparent), transparent 55%),
-    var(--color-background);
+  background: var(--color-background);
 }
 
 /* Brand gradient utility — landing / logo-adjacent only; not for chrome fills */
@@ -2540,10 +2530,7 @@ html[data-menu-open] .v4-main-canvas .sticky {
   outline-offset: -2px;
 }
 
-/* ── Stream home (2026-09-26) — airy compose + quiet identity strip ── */
-[data-stream-home-header] h1 {
-  letter-spacing: -0.015em;
-}
+/* ── Stream home — airy compose on the paper canvas ── */
 .v4-stream-composer {
   /* Hero compose: taller, softer, more inviting than a list row */
   padding: 14px 16px 12px;
@@ -2567,43 +2554,7 @@ html[data-menu-open] .v4-main-canvas .sticky {
   margin-bottom: 12px;
 }
 
-/* ── Stream workbench homepage — web-like hero + comfortable wash ──
-   Soft sky→paper gradient behind identity + quick access + compose.
-   Content below (feed) stays on the plain canvas for long-read calm. */
-[data-stream-home-header] {
-  position: relative;
-  padding: 20px 20px 8px;
-  margin: -4px -4px 12px;
-  border-radius: var(--radius-2xl);
-  background:
-    radial-gradient(120% 90% at 12% 0%, color-mix(in srgb, var(--color-accent-color) 7%, transparent), transparent 55%),
-    radial-gradient(80% 70% at 92% 8%, color-mix(in srgb, var(--color-accent-inbox) 5%, transparent), transparent 50%),
-    linear-gradient(180deg, var(--color-surface-elevated) 0%, var(--color-background) 100%);
-  overflow: hidden;
-}
-[data-stream-home-header]::before {
-  /* subtle paper grain / highlight arc — web hero feel */
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(140% 60% at 50% -10%, color-mix(in srgb, var(--color-surface-elevated) 80%, transparent), transparent 70%);
-  pointer-events: none;
-}
-[data-stream-home-header] > * {
-  position: relative;
-}
-[data-stream-home-header] h1 {
-  letter-spacing: -0.02em;
-  font-size: 22px;
-  line-height: 1.25;
-}
-/* Quiet inventory counts beside the stream title (destinations stay on ActivityBar) */
-[data-stream-workbench-counts] {
-  white-space: nowrap;
-}
-/* Hero composer — floats on the wash */
-[data-stream-home-header] ~ .v4-stream-composer,
+/* Hero composer sits on the paper canvas. */
 .v4-feed-column > .v4-stream-composer {
   border-radius: var(--radius-xl);
 }

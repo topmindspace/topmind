@@ -6,11 +6,42 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { onboardingReasonId } from "../src/components/shell/OnboardingScreen.tsx";
+import { finalizeBootLaunchStatus } from "../electron/workspace-history.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 function read(rel) {
   return fs.readFileSync(path.join(root, rel), "utf8");
+}
+
+/** Argument object of each `needle { ... }` call, including nested braces. */
+function callArgObjects(source, needle) {
+  const bodies = [];
+  let from = 0;
+  while (from < source.length) {
+    const start = source.indexOf(needle, from);
+    if (start < 0) break;
+    const open = source.indexOf("{", start + needle.length);
+    if (open < 0) break;
+    let depth = 0;
+    let end = -1;
+    for (let i = open; i < source.length; i++) {
+      const ch = source[i];
+      if (ch === "{") depth += 1;
+      else if (ch === "}") {
+        depth -= 1;
+        if (depth === 0) {
+          end = i;
+          break;
+        }
+      }
+    }
+    if (end < 0) break;
+    bodies.push(source.slice(open, end + 1));
+    from = end + 1;
+  }
+  return bodies;
 }
 
 describe("Desktop primary IA target", () => {
@@ -479,10 +510,193 @@ it("Desktop README does not teach deleted ActionBar or Title-bar Note it", () =>
     const en = JSON.parse(read("src/locales/en-US/shell.json"));
     const keys = ["templateTitle", "templateConfirm", "templateStreamName", "templateStreamDesc",
       "templateBalancedName", "templateBalancedDesc", "templateResearchName", "templateResearchDesc",
-      "templatePeriodicName", "templatePeriodicDesc"];
+      "templatePeriodicName", "templatePeriodicDesc",
+      "statusClosed", "statusInvalid", "statusInvalidEngine", "statusNoWorkspace", "statusContractUnrepairable",
+      "selectFolder", "removeFromList"];
     for (const k of keys) {
       assert.equal(typeof zh.onboarding[k], "string", `zh onboarding.${k} missing`);
       assert.equal(typeof en.onboarding[k], "string", `en onboarding.${k} missing`);
+      assert.notEqual(zh.onboarding[k], en.onboarding[k], `onboarding.${k} should differ by locale`);
     }
+  });
+
+  it("picker states every launch reason and never offers a silent default workspace", () => {
+    assert.equal(onboardingReasonId("closed"), "closed");
+    assert.equal(onboardingReasonId("invalid-workspace"), "invalid");
+    assert.equal(onboardingReasonId("invalid-engine"), "engine");
+    assert.equal(onboardingReasonId("contract-unrepairable"), "contract");
+    assert.equal(onboardingReasonId("no-workspace"), "none");
+    assert.equal(onboardingReasonId(null), "none");
+    assert.equal(onboardingReasonId("something-else"), "none");
+
+    const src = read("src/components/shell/OnboardingScreen.tsx");
+    const app = read("src/App.tsx");
+    assert.match(src, /onboardingReasonId\(launchReason\)/);
+    assert.match(src, /data-landing-primary-cta/);
+    assert.match(src, /data-landing-recent/);
+    assert.match(src, /handleRemoveRecent/);
+    assert.match(src, /suitable === false/);
+    assert.match(src, /v4-no-drag/);
+    assert.doesNotMatch(src, /使用默认工作区|createDefaultWorkspace|defaultWorkspace/);
+    assert.doesNotMatch(src, /#6366f1|#8b5cf6|indigo|purple/i);
+    // Remove is a sibling button, not nested inside the open control.
+    assert.doesNotMatch(src, /role="button"/);
+    assert.match(app, /state: "loading"/);
+    assert.match(app, /state: "error"/);
+    assert.match(app, /state: "onboarding"/);
+    assert.match(app, /lazy\(\(\) =>\s*import\(["']\.\/components\/shell\/OnboardingScreen["']\)/);
+    assert.match(app, /lazy\(\(\) =>\s*import\(["']\.\/components\/shell\/CaptureSurface["']\)/);
+    assert.match(app, /Never auto-create a workspace/);
+    assert.match(app, /common:action\.retry/);
+  });
+
+  it("engine failure survives an empty or failed activate", () => {
+    const engineError = "resources/topmind-engine missing";
+    const enginePath = "/Applications/Topmind.app/Contents/Resources/topmind-engine";
+    const engineFailure = { requestedPath: enginePath, errorMessage: engineError };
+    const workspaceError = new Error("workspace folder missing");
+
+    const noCandidates = finalizeBootLaunchStatus({
+      engineFailure,
+      candidates: [],
+      lastError: null,
+    });
+    assert.equal(noCandidates.ok, false);
+    assert.equal(noCandidates.reason, "invalid-engine");
+    assert.equal(noCandidates.requestedPath, enginePath);
+    assert.equal(noCandidates.errorMessage, engineError);
+
+    const failedOpen = finalizeBootLaunchStatus({
+      engineFailure,
+      candidates: ["/Users/me/notes"],
+      lastError: workspaceError,
+    });
+    assert.equal(failedOpen.reason, "invalid-engine");
+    assert.equal(failedOpen.errorMessage, engineError);
+    assert.notEqual(failedOpen.reason, "invalid-workspace");
+    assert.notEqual(failedOpen.reason, "no-workspace");
+
+    const empty = finalizeBootLaunchStatus({
+      engineFailure: null,
+      candidates: [],
+      lastError: null,
+    });
+    assert.deepEqual(empty, {
+      ok: false,
+      reason: "no-workspace",
+      requestedPath: null,
+      errorMessage: null,
+    });
+
+    const broken = finalizeBootLaunchStatus({
+      engineFailure: null,
+      candidates: ["/Users/me/broken", "/Users/me/other"],
+      lastError: workspaceError,
+    });
+    assert.equal(broken.ok, false);
+    assert.equal(broken.reason, "invalid-workspace");
+    assert.equal(broken.requestedPath, "/Users/me/broken");
+    assert.equal(broken.errorMessage, workspaceError.message);
+
+    const stringError = finalizeBootLaunchStatus({
+      engineFailure: null,
+      candidates: ["/Users/me/plain"],
+      lastError: "unreadable",
+    });
+    assert.equal(stringError.reason, "invalid-workspace");
+    assert.equal(stringError.errorMessage, "unreadable");
+
+    const contractFail = {
+      ok: false,
+      reason: "contract-unrepairable",
+      requestedPath: "/Users/me/notes",
+      errorMessage: "topmind.yaml is unrepairable",
+      contractOnDiskValid: false,
+      contractStatus: "unrepairable",
+      contractErrors: ["topmind.yaml is unrepairable"],
+      recovery: "system.reseedWorkspaceContract",
+    };
+    const masked = finalizeBootLaunchStatus({
+      engineFailure,
+      candidates: ["/Users/me/notes"],
+      lastError: null,
+      activateStatus: contractFail,
+    });
+    assert.equal(masked.ok, false);
+    assert.equal(masked.reason, "invalid-engine");
+    assert.equal(masked.requestedPath, enginePath);
+    assert.equal(masked.errorMessage, engineError);
+    assert.notEqual(masked.reason, "contract-unrepairable");
+
+    const contractOnly = finalizeBootLaunchStatus({
+      engineFailure: null,
+      candidates: ["/Users/me/notes"],
+      lastError: null,
+      activateStatus: contractFail,
+    });
+    assert.equal(contractOnly.ok, false);
+    assert.equal(contractOnly.reason, "contract-unrepairable");
+    assert.equal(contractOnly.requestedPath, "/Users/me/notes");
+    assert.equal(contractOnly.errorMessage, contractFail.errorMessage);
+    assert.equal(contractOnly.contractOnDiskValid, false);
+    assert.equal(contractOnly.recovery, "system.reseedWorkspaceContract");
+
+    const contractFlagOnly = finalizeBootLaunchStatus({
+      engineFailure: null,
+      candidates: ["/Users/me/notes"],
+      lastError: null,
+      activateStatus: {
+        ok: false,
+        requestedPath: "/Users/me/notes",
+        errorMessage: "engine lib missing",
+        contractOnDiskValid: false,
+      },
+    });
+    assert.equal(contractFlagOnly.reason, "contract-unrepairable");
+    assert.equal(contractFlagOnly.contractOnDiskValid, false);
+    assert.equal(contractFlagOnly.errorMessage, "engine lib missing");
+
+    const maskedFlag = finalizeBootLaunchStatus({
+      engineFailure,
+      candidates: ["/Users/me/notes"],
+      lastError: null,
+      activateStatus: contractFlagOnly,
+    });
+    assert.equal(maskedFlag.reason, "invalid-engine");
+    assert.equal(maskedFlag.errorMessage, engineError);
+    assert.notEqual(maskedFlag.reason, "contract-unrepairable");
+
+    const main = read("electron/main.mjs");
+    const initStart = main.indexOf("async function initApp()");
+    const initEnd = main.indexOf("async function resolveLaunchRoot");
+    assert.ok(initStart >= 0 && initEnd > initStart);
+    const init = main.slice(initStart, initEnd);
+    // Nested activateStatus objects must count. A non-greedy `}` stops inside them.
+    const landingCalls = callArgObjects(init, "launchStatus = finalizeBootLaunchStatus(");
+    assert.equal(landingCalls.length, 4);
+    for (const call of landingCalls) {
+      assert.match(call, /engineFailure/);
+    }
+    assert.match(init, /const activateStatus = activated\?\.launchStatus/);
+    assert.match(init, /activateStatus\?\.ok !== true \|\| contractOnDiskValid === false/);
+    const loopAt = init.indexOf("for (const candidate of candidates)");
+    const loop = loopAt >= 0 ? init.slice(loopAt) : "";
+    const guardAt = loop.indexOf("activateStatus?.ok !== true");
+    const finalizeAt = loop.indexOf("launchStatus = finalizeBootLaunchStatus");
+    const successLog = loop.indexOf('logInfo("main", "workspace activated"');
+    assert.ok(guardAt >= 0 && finalizeAt > guardAt && successLog > finalizeAt);
+    // Slice runs through the post-loop landing call, so both are present.
+    // The first is the non-ok activate, and it sits before the success log.
+    const loopCalls = callArgObjects(loop, "launchStatus = finalizeBootLaunchStatus(");
+    assert.equal(loopCalls.length, 2);
+    assert.match(loopCalls[0], /engineFailure/);
+    assert.match(loopCalls[0], /activateStatus/);
+    assert.match(loopCalls[0], /ok:\s*false/);
+    assert.match(loopCalls[0], /contractOnDiskValid/);
+    assert.ok(loop.indexOf(loopCalls[0]) < successLog);
+    assert.match(loopCalls[1], /engineFailure/);
+    assert.match(loopCalls[1], /lastError/);
+    assert.doesNotMatch(init, /reason:\s*"no-workspace"/);
+    assert.doesNotMatch(init, /reason:\s*"invalid-workspace"/);
   });
 });

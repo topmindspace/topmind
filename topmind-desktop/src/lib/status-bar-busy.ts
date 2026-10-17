@@ -147,8 +147,9 @@ export function deriveStatusBarBusy(input: StatusBarBusyInput): StatusBarBusyVie
     !showApplyChip &&
     !streaming; // inline short; agent pill covers while streaming
 
-  // Pill busy: agent stream or engine tasks — not solo named prep (own chips)
-  const aiPillBusy = streaming || showTaskChip;
+  // Pill “working” is the agent stream only. An exclusive named job
+  // (apply / tasks / todo / suggest / inline) keeps the pill at ready.
+  const aiPillBusy = streaming;
 
   // Needs-you is a wait state, not work: show its own chip and keep the pill
   // from saying "working" when the only agent activity is a blocked goal.

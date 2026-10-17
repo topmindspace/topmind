@@ -38,9 +38,28 @@ interface Props {
   launchError?: string | null;
 }
 
+/** Display paths with forward slashes so Windows roots truncate like POSIX ones. */
+function displayPath(p: string) {
+  return p.replace(/\\/g, "/");
+}
+
 function shortName(p: string) {
-  const parts = p.split("/").filter(Boolean);
+  const parts = displayPath(p).split("/").filter(Boolean);
   return parts.length ? parts[parts.length - 1] : p;
+}
+
+/** Why the picker is on screen. Unknown reasons still get a sentence. */
+export function onboardingReasonId(reason: string | null | undefined):
+  | "closed"
+  | "invalid"
+  | "engine"
+  | "contract"
+  | "none" {
+  if (reason === "closed") return "closed";
+  if (reason === "invalid-workspace") return "invalid";
+  if (reason === "invalid-engine") return "engine";
+  if (reason === "contract-unrepairable") return "contract";
+  return "none";
 }
 
 function formatOpened(iso: string | undefined, locale: string) {
@@ -137,13 +156,18 @@ export function OnboardingScreen({
   }, [t]);
 
   const statusHint = useMemo(() => {
-    if (launchReason === "closed") return t("shell:onboarding.statusClosed");
-    if (launchReason === "invalid-workspace") return t("shell:onboarding.statusInvalid");
-    if (launchReason === "no-workspace") return t("shell:onboarding.statusNoWorkspace");
-    if (launchReason === "contract-unrepairable") {
-      return t("shell:onboarding.statusContractUnrepairable");
+    switch (onboardingReasonId(launchReason)) {
+      case "closed":
+        return t("shell:onboarding.statusClosed");
+      case "invalid":
+        return t("shell:onboarding.statusInvalid");
+      case "engine":
+        return t("shell:onboarding.statusInvalidEngine");
+      case "contract":
+        return t("shell:onboarding.statusContractUnrepairable");
+      default:
+        return t("shell:onboarding.statusNoWorkspace");
     }
-    return null;
   }, [launchReason, t]);
 
   const handleReseedContract = async () => {
@@ -215,14 +239,19 @@ export function OnboardingScreen({
         return;
       }
       // Check if this is an existing workspace (has topmind dirs or contract)
-      const health = await api.sys.classifyWorkspace(path).catch(() => ({ kind: "empty", suitable: true }));
+      const health = await api.sys.classifyWorkspace(path).catch(() => ({ kind: "empty", suitable: true as boolean, message: "" }));
+      if (health.suitable === false) {
+        setError(health.message || t("shell:onboarding.statusInvalid"));
+        setBusy(null);
+        return;
+      }
       if (health.kind === "healthy") {
-        // Existing workspace — open directly
+        // Existing workspace — open directly. Creating waits for template confirm.
         setBusy("opening");
         await api.sys.openOrCreateWorkspace(path);
         onWorkspaceSwitched();
       } else {
-        // New/empty folder — show template selection
+        // New/empty folder — show template selection before any create
         setPickedPath(path);
         setBusy(null);
       }
@@ -272,9 +301,15 @@ export function OnboardingScreen({
             />
           </div>
           <RiLoader4Line size={ICON.sm} className="animate-spin text-text-tertiary" aria-hidden />
-          <div className="text-sm font-medium text-text-primary">{t("shell:onboarding.openingWorkspace")}</div>
+          <div className="text-sm font-medium text-text-primary">
+            {busy === "reseed" ? t("shell:onboarding.reseedContract") : t("shell:onboarding.openingWorkspace")}
+          </div>
           <div className="max-w-sm truncate text-center text-3xs text-text-quaternary font-mono">
-            {busy === "opening" ? t("shell:onboarding.initFolder") : busy}
+            {busy === "opening"
+              ? t("shell:onboarding.initFolder")
+              : busy === "reseed"
+                ? t("shell:onboarding.reseedContractHint")
+                : displayPath(busy)}
           </div>
         </div>
       </TooltipProvider>
@@ -319,7 +354,7 @@ export function OnboardingScreen({
             {launchReason === "contract-unrepairable" ? (
               <div className="mt-3 flex flex-col items-center gap-2">
                 <Button
-                  variant="default"
+                  variant="outline"
                   size="sm"
                   className="h-8 text-3xs"
                   disabled={!!busy}
@@ -348,7 +383,7 @@ export function OnboardingScreen({
                   {t("shell:onboarding.templateTitle")}
                 </div>
                 <div className="truncate font-mono text-3xs text-text-quaternary">
-                  {pickedPath}
+                  {displayPath(pickedPath)}
                 </div>
               </div>
               {error ? (
@@ -440,23 +475,29 @@ export function OnboardingScreen({
                       const active = busy === w.rootPath;
                       const health = healthByPath[w.rootPath];
                       const broken = health && health.suitable === false;
+                      const shownPath = displayPath(w.rootPath);
                       return (
-                        <li key={w.rootPath}>
-                          <Tooltip content={health?.message || w.rootPath} side="right">
+                        <li
+                          key={w.rootPath}
+                          data-landing-recent
+                          className={cn(
+                            "group flex w-full items-center gap-1 rounded-xl border border-border-subtle-dim bg-surface-elevated py-1.5 pr-2 pl-1.5 text-left shadow-(--shadow-card)",
+                            "transition-[border-color,box-shadow,transform,background-color] duration-(--duration-normal) [transition-timing-function:var(--ease-spring)]",
+                            "hover:border-accent-border-subtle hover:shadow-(--shadow-md) hover:-translate-y-0.5 hover:bg-surface-elevated-hover",
+                            active && "border-accent-border-subtle bg-accent-bg-subtle",
+                            broken && "border-border-subtle-dim bg-status-error-bg",
+                          )}
+                        >
+                          <Tooltip content={health?.message || shownPath} side="right">
                             <button
                               type="button"
                               disabled={!!busy || broken}
                               onClick={() => void handleSwitch(w.rootPath)}
                               className={cn(
-                                "group flex w-full items-center gap-3 rounded-xl border border-border-subtle-dim bg-surface-elevated px-3.5 py-3.5 text-left shadow-(--shadow-card)",
-                                "transition-[border-color,box-shadow,transform,background-color] duration-(--duration-normal) [transition-timing-function:var(--ease-spring)]",
-                                "hover:border-accent-border-subtle hover:shadow-(--shadow-md) hover:-translate-y-0.5 hover:bg-surface-elevated-hover",
+                                "flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-2 text-left",
                                 "v4-focus-ring",
-                                "disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:border-border-subtle-dim",
-                                active && "border-accent-border-subtle bg-accent-bg-subtle",
-                                broken && "border-border-subtle-dim bg-status-error-bg",
+                                "disabled:opacity-60",
                               )}
-                              data-landing-recent
                             >
                               <span className="v4-icon-chip v4-icon-chip-accent flex h-9 w-9 shrink-0">
                                 <RiFolderOpenLine size={ICON.sm} />
@@ -485,10 +526,10 @@ export function OnboardingScreen({
                                   ) : null}
                                 </div>
                                 <div className="mt-0.5 truncate font-mono text-3xs text-text-quaternary">
-                                  {w.rootPath}
+                                  {shownPath}
                                 </div>
                                 {w.lastOpenedAt ? (
-                                  <div className="mt-0.5 text-3xs text-text-quaternary">
+                                  <div className="mt-0.5 truncate text-3xs text-text-quaternary">
                                     {t("common:time.lastOpened", { time: formatOpened(w.lastOpenedAt, i18n.language) })}
                                   </div>
                                 ) : null}
@@ -496,31 +537,26 @@ export function OnboardingScreen({
                               {active ? (
                                 <RiLoader4Line size={ICON.sm} className="shrink-0 animate-spin text-text-tertiary" aria-label={t("shell:shell.opening")} />
                               ) : (
-                                <>
-                                  <Tooltip content={t("shell:onboarding.removeFromList")}>
-                                    <span
-                                      role="button"
-                                      tabIndex={0}
-                                      aria-label={t("shell:onboarding.removeLabel", { name: shortName(w.rootPath) })}
-                                      className="rounded p-1 text-text-quaternary opacity-0 pointer-events-none transition-opacity hover:bg-state-hover hover:text-error group-hover:opacity-100 group-hover:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto v4-focus-ring"
-                                      onClick={(ev) => void handleRemoveRecent(w.rootPath, ev)}
-                                      onKeyDown={(ev) => {
-                                        if (ev.key === "Enter" || ev.key === " ") {
-                                          void handleRemoveRecent(w.rootPath, ev as unknown as React.MouseEvent);
-                                        }
-                                      }}
-                                    >
-                                      <RiCloseLine size={ICON.xs} />
-                                    </span>
-                                  </Tooltip>
-                                  <RiArrowRightLine
-                                    size={ICON.sm}
-                                    className="shrink-0 text-text-quaternary transition-transform group-hover:translate-x-0.5 group-hover:text-accent-color"
-                                  />
-                                </>
+                                <RiArrowRightLine
+                                  size={ICON.sm}
+                                  className="shrink-0 text-text-quaternary transition-transform group-hover:translate-x-0.5 group-hover:text-accent-color"
+                                />
                               )}
                             </button>
                           </Tooltip>
+                          {active ? null : (
+                            <Tooltip content={t("shell:onboarding.removeFromList")}>
+                              <button
+                                type="button"
+                                aria-label={t("shell:onboarding.removeLabel", { name: shortName(w.rootPath) })}
+                                disabled={!!busy}
+                                className="v4-no-drag shrink-0 rounded p-1 text-text-quaternary opacity-0 pointer-events-none transition-opacity hover:bg-state-hover hover:text-error group-hover:opacity-100 group-hover:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto v4-focus-ring disabled:pointer-events-none"
+                                onClick={(ev) => void handleRemoveRecent(w.rootPath, ev)}
+                              >
+                                <RiCloseLine size={ICON.xs} />
+                              </button>
+                            </Tooltip>
+                          )}
                         </li>
                       );
                     })}

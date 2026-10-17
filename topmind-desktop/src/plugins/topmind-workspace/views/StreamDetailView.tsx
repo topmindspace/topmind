@@ -1668,16 +1668,14 @@ export function StreamDetailView() {
                   })}
               </span>
             ) : null}
-            {workbenchStats.inbox > 0 ? (
-              <span title={t("workspace:streamDetail.quickInbox", { defaultValue: "Inbox" })} data-stream-inbox-count>
-                · {t("workspace:streamDetail.quickInbox", { defaultValue: "Inbox" })} {workbenchStats.inbox}
+            <span data-stream-inventory className="inline-flex min-w-0 items-center gap-x-2">
+              <span title={t("workspace:streamDetail.quickInbox")} data-stream-inbox-count>
+                · {t("workspace:streamDetail.quickInbox")} {workbenchStats.inbox}
               </span>
-            ) : null}
-            {workbenchStats.outputs > 0 ? (
-              <span title={t("workspace:streamDetail.quickOutputs", { defaultValue: "交付" })} data-stream-outputs-count>
-                · {t("workspace:streamDetail.quickOutputs", { defaultValue: "交付" })} {workbenchStats.outputs}
+              <span title={t("workspace:streamDetail.quickOutputs")} data-stream-outputs-count>
+                · {t("workspace:streamDetail.quickOutputs")} {workbenchStats.outputs}
               </span>
-            ) : null}
+            </span>
           </>
         }
       />
@@ -2002,11 +2000,13 @@ export function StreamDetailView() {
 
       {entries.length === 0 ? (
         <EmptyState
+          streamEmpty
           icon={<RiCalendar2Line size={ICON.md} />}
           title={t("shell:sidebar.stream.emptyTitle")}
           hint={t("workspace:streamDetail.emptyComposerHint")}
           action={
             <Button
+              variant="outline"
               size="sm"
               onClick={() => composeRef.current?.focus()}
             >

@@ -4,13 +4,19 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { normalizeSelection } from "../src/types.ts";
+import { normalizeSelection, selectionAfterFileTabsClose } from "../src/types.ts";
 
 test("normalizeSelection maps missing / unknown kinds to the in-workspace home", () => {
   assert.deepEqual(normalizeSelection(null), { kind: "home" });
   assert.deepEqual(normalizeSelection(undefined), { kind: "home" });
   assert.deepEqual(normalizeSelection({ kind: "home" }), { kind: "home" });
   assert.deepEqual(normalizeSelection({ kind: "dashboard" }), { kind: "home" });
+});
+
+test("closing the last file tab returns to the in-workspace home", () => {
+  assert.deepEqual(selectionAfterFileTabsClose([]), { kind: "home" });
+  assert.deepEqual(selectionAfterFileTabsClose(["", "  "]), { kind: "home" });
+  assert.equal(selectionAfterFileTabsClose(["10-动态/week.md"]).kind, "file");
 });
 
 test("normalizeSelection keeps known kinds, including explicit stream", () => {

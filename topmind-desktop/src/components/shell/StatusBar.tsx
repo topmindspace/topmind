@@ -69,7 +69,7 @@ function StatusChip({ className, ...props }: React.ComponentProps<"button">) {
     <button
       type="button"
       className={cn(
-        "flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 transition-colors v4-focus-ring",
+        "flex min-w-0 shrink items-center gap-1 rounded-sm px-1.5 py-0.5 transition-colors v4-focus-ring [&_svg]:shrink-0",
         className,
       )}
       {...props}
@@ -79,7 +79,10 @@ function StatusChip({ className, ...props }: React.ComponentProps<"button">) {
 
 /** Same frame as StatusChip for non-interactive (status-only) spans. */
 const statusChipSpanClass =
-  "flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5";
+  "flex min-w-0 shrink items-center gap-1 rounded-sm px-1.5 py-0.5 [&_svg]:shrink-0";
+
+/** Chip text truncates instead of overflowing the 26px bar. */
+const statusChipLabelClass = "min-w-0 max-w-[var(--status-chip-max-label,7.5rem)] truncate";
 
 export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBarProps) {
   const { t } = useTranslation(["shell", "common"]);
@@ -205,13 +208,13 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
             }
           >
             <span
-              className="flex shrink-0 items-center gap-1 px-0.5"
+              className="flex min-w-0 items-center gap-1 px-0.5"
               role="status"
               aria-label={t("statusBar.workspaceOk")}
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden />
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-success" aria-hidden />
               {health.workspaceRoot ? (
-                <span className="hidden truncate font-mono text-3xs text-text-tertiary sm:inline" data-status-workspace-path>
+                <span className="min-w-0 truncate font-mono text-3xs text-text-tertiary" data-status-workspace-path>
                   {health.workspaceRoot.replace(/\\/g, "/")}
                 </span>
               ) : null}
@@ -233,9 +236,8 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
         {/* Workspace path is the left health chip (`data-status-workspace-path`). */}
       </div>
 
-      {/* Center: file chip only. Primary destinations live in the sidebar
-          (compact TitleBar icons when the sidebar is collapsed) — the status
-          bar is status, not navigation. */}
+      {/* Center: file chip only. Destinations live on the ActivityBar.
+          The status bar is status, not navigation. */}
       <div className="flex min-w-0 max-w-[var(--status-chip-max,52vw)] items-center justify-center gap-1.5 px-1">
         <SelectionHint selection={selection} />
       </div>
@@ -267,7 +269,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
                 aria-label={label}
               >
                 <RiDownload2Line size={ICON.micro} aria-hidden />
-                <span className="hidden tabular-nums sm:inline">
+                <span className={cn(statusChipLabelClass, "tabular-nums")}>
                   {multi ? t("statusBar.updatesBadgeCount", { count: updateInfo.surfaces.length }) : `v${latestVersion}`}
                 </span>
               </StatusChip>
@@ -280,7 +282,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
             Replaces the transient busy-only chip (open-only affordance, no close path). */}
         <Tooltip
           content={
-            activeTasks.length > 0
+            busy.showTaskChip
               ? t("statusBar.taskRunningTip")
               : t("statusBar.taskPanelTip")
           }
@@ -292,7 +294,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
             aria-pressed={taskPanelOpen}
             aria-label={t("statusBar.taskPanelAria")}
             className={cn(
-              activeTasks.length > 0
+              busy.showTaskChip
                 ? "bg-accent-bg-faint text-accent-color hover:bg-accent-bg-subtle"
                 : taskPanelOpen
                   ? "text-success hover:bg-status-success-bg"
@@ -301,17 +303,17 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
           >
             {/* Loader2 while running (engine tasks); Activity otherwise — never
                 ListTodo (reserved for the personal todo list, DESIGN §0.0.2) */}
-            {activeTasks.length > 0 ? (
+            {busy.showTaskChip ? (
               <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden />
             ) : (
               <RiPulseLine size={ICON.micro} aria-hidden />
             )}
-            {activeTasks.length > 0 ? (
-              <span className="v4-ai-busy-text hidden tabular-nums sm:inline">
+            {busy.showTaskChip ? (
+              <span className={cn(statusChipLabelClass, "v4-ai-busy-text tabular-nums")}>
                 {t("statusBar.taskRunning", { count: activeTasks.length })}
               </span>
             ) : null}
-            {activeTasks.length > 0 ? <span className="v4-ai-progress-dot" aria-hidden /> : null}
+            {busy.showTaskChip ? <span className="v4-ai-progress-dot shrink-0" aria-hidden /> : null}
           </StatusChip>
         </Tooltip>
         {busy.showNeedsYouChip ? (
@@ -327,7 +329,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
               aria-label={t("statusBar.needsYou")}
             >
               <RiErrorWarningLine size={ICON.micro} aria-hidden />
-              <span className="v4-ai-busy-text hidden sm:inline">
+              <span className={cn(statusChipLabelClass, "v4-ai-busy-text")}>
                 {t("statusBar.needsYou")}
               </span>
             </StatusChip>
@@ -351,7 +353,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
               })}
             >
               <RiCheckDoubleLine size={ICON.micro} className="v4-ai-busy-icon" aria-hidden />
-              <span className="v4-ai-busy-text hidden tabular-nums sm:inline">
+              <span className={cn(statusChipLabelClass, "v4-ai-busy-text tabular-nums")}>
                 {t("statusBar.suggestApplying", {
                   current: suggestApplying.current,
                   total: suggestApplying.total,
@@ -373,7 +375,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
             >
               {/* ListTodo — personal list only (DESIGN §0.0.2) */}
               <RiListCheck size={ICON.micro} className="v4-ai-busy-icon" aria-hidden />
-              <span className="v4-ai-busy-text hidden sm:inline">{t("statusBar.todoMaintaining")}</span>
+              <span className={cn(statusChipLabelClass, "v4-ai-busy-text")}>{t("statusBar.todoMaintaining")}</span>
               <span className="v4-ai-progress-dot" aria-hidden />
             </StatusChip>
           </Tooltip>
@@ -395,7 +397,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
               aria-pressed={suggestPanelOpen}
             >
               <RiLightbulbLine size={ICON.micro} className="v4-ai-busy-icon" aria-hidden />
-              <span className="v4-ai-busy-text hidden sm:inline">{t("statusBar.suggestLoading")}</span>
+              <span className={cn(statusChipLabelClass, "v4-ai-busy-text")}>{t("statusBar.suggestLoading")}</span>
               <span className="v4-ai-progress-dot" aria-hidden />
             </StatusChip>
           </Tooltip>
@@ -422,7 +424,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
               aria-label={t("statusBar.suggestCount", { count: busy.suggestCount })}
             >
               <RiLightbulbLine size={ICON.micro} className={busy.suggestHasHigh ? "text-warning" : "text-accent-color"} aria-hidden />
-              <span className="hidden tabular-nums sm:inline">
+              <span className={cn(statusChipLabelClass, "tabular-nums")}>
                 {t("statusBar.suggestCount", { count: busy.suggestCount })}
               </span>
             </StatusChip>
@@ -437,7 +439,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
               className={cn(statusChipSpanClass, "bg-accent-bg-faint text-accent-color")}
             >
               <RiLoader4Line size={ICON.micro} className="animate-spin" aria-hidden />
-              <span className="v4-ai-busy-text hidden max-w-[var(--status-chip-max-inline,7.5rem)] truncate sm:inline">{inlineLabel}</span>
+              <span className={cn(statusChipLabelClass, "v4-ai-busy-text")}>{inlineLabel}</span>
               <span className="v4-ai-progress-dot" aria-hidden />
             </span>
           </Tooltip>
@@ -478,7 +480,7 @@ export function StatusBar({ health, taskPanelOpen, onToggleTaskPanel }: StatusBa
             ) : (
               <RiChatAiLine size={ICON.micro} aria-hidden />
             )}
-            <span className={cn("hidden max-w-[var(--status-chip-max-ai,9rem)] truncate md:inline", busy.aiPillBusy && "v4-ai-busy-text")}>{aiLabel}</span>
+            <span className={cn(statusChipLabelClass, "max-w-[var(--status-chip-max-ai,9rem)]", busy.aiPillBusy && "v4-ai-busy-text")}>{aiLabel}</span>
             {busy.aiPillBusy ? <span className="v4-ai-progress-dot" aria-hidden /> : null}
           </StatusChip>
         </Tooltip>

@@ -11,6 +11,7 @@
     "removeLabel": "从列表移除 {{name}}",
     "statusClosed": "已关闭工作区 · 选择一个继续",
     "statusInvalid": "上次工作区无法打开 · 请选择其他路径",
+    "statusInvalidEngine": "应用引擎无法启动 · 检查安装后重试，或先选择工作区",
     "statusNoWorkspace": "选择或新建本地文件夹作为工作区",
     "footerLine1": "工作区 = 你自己的本地文件夹（动态 · 专题 · 交付 · 归档）",
     "companionsHint": "打开后可在 设置 → 集成 安装 Agent Skills / 剪藏扩展 / Obsidian 插件（可选，不阻塞）",

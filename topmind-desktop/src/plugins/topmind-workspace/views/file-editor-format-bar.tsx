@@ -199,13 +199,13 @@ export function EditorFormatBar({
           </ToolbarButton>
         </div>
       ) : (
-        <span className="truncate text-3xs text-text-quaternary">{t("workspace:formatBar.collapsed")}</span>
+        <span className="truncate text-3xs text-text-quaternary" data-compact-hidden>{t("workspace:formatBar.collapsed")}</span>
       )}
     </div>
   );
 }
 
-/** Outline / appearance / focus — lives on the properties row, not the format mop. */
+/** Outline / appearance / focus — icon buttons on the format toolbar, with tooltips. */
 export function EditorViewChrome({
   showOutline,
   onToggleOutline,

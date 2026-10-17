@@ -14,6 +14,7 @@ import {
   normalizeStoredWorkspaceHistory,
   isForbiddenWorkspaceRoot,
   classifyWorkspaceRoot,
+  finalizeBootLaunchStatus,
 } from "../electron/workspace-history.mjs";
 
 // Synthetic fixtures (not real home paths) — avoid secrets-scan absolute-user-home
@@ -239,7 +240,11 @@ test("main initApp does not force-open default workspace", async () => {
   assert.match(main, /listLaunchCandidates/);
   assert.match(main, /pruneMissing/);
   assert.match(main, /createIfMissing:\s*false/);
-  assert.match(main, /no-workspace/);
+  assert.match(main, /finalizeBootLaunchStatus/);
+  assert.equal(
+    finalizeBootLaunchStatus({ engineFailure: null, candidates: [], lastError: null }).reason,
+    "no-workspace",
+  );
 });
 
 

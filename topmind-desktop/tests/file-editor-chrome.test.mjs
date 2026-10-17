@@ -123,6 +123,28 @@ test("EditorFormatBar ships format toggles; more ⋯ is exclusive", () => {
   assert.match(view, /data-compact=\{toolbarCompact/);
   assert.match(view, /data-compact-hidden/);
   assert.doesNotMatch(fmt, /sm:inline.*formatBar\.edit|formatBar\.edit.*sm:inline/s);
+  // Narrow width hides the collapsed-format sentence; the chevron keeps its tooltip.
+  assert.match(fmt, /data-compact-hidden/);
+  assert.match(fmt, /formatBar\.collapsed/);
+});
+
+test("dirty disk conflict is keep / take / merge, and Enter does not take disk", () => {
+  const view = readFileSync(
+    path.join(root, "src/plugins/topmind-workspace/views/FileEditorView.tsx"),
+    "utf8",
+  );
+  const dialog = readFileSync(path.join(root, "src/components/ui/Dialog.tsx"), "utf8");
+  assert.match(view, /diskConflictKeepLocal/);
+  assert.match(view, /diskConflictTakeDisk/);
+  assert.match(view, /diskConflictMerge/);
+  assert.match(view, /applyDiskConflict\("keep-local"\)/);
+  assert.match(view, /applyDiskConflict\("take-disk"\)/);
+  assert.match(view, /applyDiskConflict\("merge"\)/);
+  const takeAt = view.indexOf("diskConflictTakeDisk");
+  assert.ok(takeAt > 0);
+  const conflict = view.slice(takeAt, takeAt + 700);
+  assert.match(conflict, /destructive/);
+  assert.match(dialog, /destructive \? "\[data-dialog-cancel\]"/);
 });
 
 test("tab strip is conditional; title bar carries tab ops when strip is hidden", () => {

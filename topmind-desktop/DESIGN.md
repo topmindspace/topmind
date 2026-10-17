@@ -295,7 +295,7 @@ ActivityBar（最左 48px · 三分组）：
 | **动效克制** | `duration-fast` 140ms · `duration-enter` 160ms；列表 stagger ≤8；`prefers-reduced-motion` 全关 |
 | **性能** | `content-visibility` 列表、panel `contain`、AI 面板 lazy、流式滚动尊重用户上滑 |
 | **响应式 chrome** | 操作按钮按宽度 **铺开 ↔ ⋯ 溢出**（`ChromeOverflowActions`）；TitleBar 右轨 ResizeObserver 互斥；主锚文案按窗口宽度（≥960）显示，窄屏 **tooltip + aria-label 必在**；编辑器右侧发布/AI/专注同轨溢出；禁止同动作双入口 |
-| **StatusBar 可交互** | 工作区正常：绿点 + **完整工作区路径**（`data-status-workspace-path`，tooltip 含 engine 路径）；异常才出错误文字。**不含 PrimaryNav**（主锚在 **ActivityBar**，常驻）。**AI 就绪 pill（唯一主控件）**：离线->设置 · 就绪->toggle AI 面板；流式时 pill 显示会话态；**命名 busy 单路径**（`deriveStatusBarBusy`：apply > tasks > todo > suggest > **inline** 最多一颗命名 chip；todo/suggest/inline/apply 独占时 AI pill 不显示「工作中」）；**需要你**双态（`showNeedsYouChip`：goal blocked 且非 streaming，与「工作中」互斥）；**进度动效**：每个 busy chip 附带 `v4-ai-progress-dot` 脉动指示器；tooltip 含预期时长。**文件 chip 仅 file 选择时显示**（点击 reveal）。**建议计数在状态栏**（count>0 时 `showSuggestCountChip`；生成中走 busy chip；确认写入走 apply chip） |
+| **StatusBar 可交互** | 工作区正常：绿点 + **完整工作区路径**（`data-status-workspace-path`，截断不溢出，tooltip 含 engine 路径）；异常才出错误文字。**不含 PrimaryNav**（主锚在 **ActivityBar**，常驻）。**AI 就绪 pill（唯一主控件）**：离线->设置 · 就绪->toggle AI 面板；流式时 pill 显示会话态；**命名 busy 单路径**（`deriveStatusBarBusy`：apply > tasks > todo > suggest > **inline** 最多一颗命名 chip；apply / tasks / todo / suggest / inline 任一独占时 AI pill 不显示「工作中」，pill 的「工作中」只表示 Agent 流）；**需要你**双态（`showNeedsYouChip`：goal blocked 且非 streaming，与「工作中」互斥）；**进度动效**：每个 busy chip 附带 `v4-ai-progress-dot` 脉动指示器；tooltip 含预期时长。**文件 chip 仅 file 选择时显示**（点击 reveal）。**建议计数在状态栏**（count>0 时 `showSuggestCountChip`；生成中走 busy chip；确认写入走 apply chip）。Chip 文案截断，不溢出。 |
 | **TitleBar 右轨分层** | **L1** 视图注入动作（`data-titlebar-actions-slot`）+ AI 轨开关（`.v4-titlebar-btn-ai`）。记一下在 ActivityBar（不在 TitleBar）。建议 / 清单 / 应用在 AI 工作区 pane；主题 / 设置在 ActivityBar 底组 / WorkspaceSwitcher。`data-chrome-tier`；**badge 纪律：仅在需要行动时出现**——Inbox（分诊队列）+ 建议计数（状态栏 count>0）保留；交付计数（库存非行动）与清单常驻数字点（恒非零）已移除 |
 | **建议入口降噪** | 建议计数**恰好一处可见入口**：状态栏计数 chip（count>0 才出现）+ AI 工作区建议 tab；专注模式浮动 `SuggestPopover`；画布顶 strip 已删。禁止 strip + 轨 chip + 状态栏 三处等权 |
 | **编辑器默认 chrome** | 格式工具条 **默认展开**（`showFormat=true`，可收起）；**属性行默认收起**；**Tab 条仅 ≥2 文件时出现**；编辑/预览纯图标；Save clean 勾点；常驻 ≤2 条 full-width 分割 |
@@ -442,7 +442,7 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 │导航│ 次级：模式 │  内容画布（默认 Stream 工作台首页 · 编辑器） │  Composer     │
 │捕获│          │                                     │               │
 ├────┴──────────┴───────────────────────────────────┴───────────────┤
-│ 状态栏 · 路径 · 动态 / Inbox / 交付 · 引擎 · AI · busy             │
+│ 状态栏 · 完整路径 · AI · busy（状态，不是导航）                    │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -540,7 +540,7 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 - **内置视图**：StreamDetailView（Stream 工作台首页 = 默认画布，含动态流）、CategoryView、TopicOverviewView、FileEditorView、InboxView、OutputsView、ArchiveView、MemoryBrowseView。
 - **连接器中心**：`Selection.kind=connector` + `id=weread|x` → 阅读/X 轻中心页（状态 · 同步 · 选书/预览 · 统计缓存）；侧栏仅一行摘要，设置只做凭据与偏好。
 - **兜底**：无 ViewSlot 匹配时回到 Stream 工作台首页（`{ kind: "home" }` · 安静的「回到工作区」）。
-- **动态主表面（Done）**：`home` ≡ `stream` 同渲 **Stream 工作台首页 = 默认画布**（`StreamDetailView` · 本周/当前周期本 + 身份条 + hero compose + 动态流）。旧仪表盘（`WorkspaceHomeView`）已删；`home` kind **仍存在**（`defaultCanvasSelection`）。**建议**在状态栏计数 → AI 工作区建议 pane；主 CTA「记一下」在 ActivityBar，首页上的记一下打开同一捕获。
+- **动态主表面（Done）**：`home` ≡ `stream` 同渲 **Stream 工作台首页 = 默认画布**（`StreamDetailView` · 身份条 + Inbox/交付库存计数 + hero compose + 动态流）。空工作区仍是这块结构并写明为空。旧仪表盘（`WorkspaceHomeView`）已删；`home` kind **仍存在**（`defaultCanvasSelection`）。**建议**在状态栏计数 → AI 工作区建议 pane；主 CTA「记一下」在 ActivityBar。首页实心按钮只有「记下」。
 - **CategoryView**：类别头部 + 专题列表 + 散记列表，支持新建专题/笔记快捷操作。
 - **TopicOverviewView**：专题头部 + 笔记列表（含修改时间/大小）。
 - **文件标签条**（`EditorRecentBar`）：**条件式**——`fileTabs.length ≤ 1` **不渲染**（TitleBar 面包屑即身份；页签动作走标题右键 / ⌘W）；`≥2` 显示 slim 条（pin/close/中键关/拖拽重排/右键菜单）；溢出时左右 **edge fade**；激活 tab 滚入视野；右键 **在右侧打开对照**（分屏）。  
@@ -903,7 +903,7 @@ Soft Workbench 4.3 阶（`tokens.css` 唯一真源；`tailwind-theme.css` 不得
 - **共享视图原语**（`view.tsx`）：ViewContainer, PageHeader, SectionHeader, EmptyState, LoadingState, ErrorState, MetaText, FileRow, RowList — **空状态必须用 EmptyState**
 - **设置卡片**：`SettingsSection` / `Field` / `SwitchField` / `KeyField`（`settings/fields.tsx`）。卡片内非 Field 裸内容必须 `px-4` 与 Field 左右缘拉通（禁止贴边裁切）；Field 控件列走统一右轨（`sm:max-w-[24rem]`），Input 拉满该列。栅格里的 Field/SwitchField 用 `flush` 去掉自带 gutter，由父级 `px-4` 统一供边距。
 - **图标**: 仅 `@remixicon/react`（RemixIcon）+ `ICON.*`（nano 10 → xl 30）；填充字形读感偏大已按光学权重调校；面板开合见 `PanelToggleIcon`（始终 Line，打开时强调色，不用 Fill）。**home ≡ stream = `RiHome4Line`**（唯一主页/动态图标；`RiNewspaperLine` 仅作 Obsidian 对译，Desktop 轨上不双图标）；工作区文件夹（切换工作区）仍是 `RiFolder3Line`
-- **页面表面（MD3）**：画布是 `--color-background`，卡片是 `--color-surface-elevated`（`.v4-dash-card` / `AppSlot`）。Stream 工作台首页和连接器 hub 顶部可以有一层不超过 6% 的强调色晕，不铺实色、不染侧栏或顶栏 chrome。主页列宽随中栏变宽，上限 `72rem`。内置小应用（记账 / 公众号）的 `.v4-plugin-app-panel` 用同一纸色，卡片浮在上面。一页一个实心主按钮，其余用 tonal 或 outline；图标保持线形
+- **页面表面（MD3）**：画布是 `--color-background`，卡片是 `--color-surface-elevated`（`.v4-dash-card` / `AppSlot`）。品牌弱光晕只在无工作区的选择器（`.v4-landing`），不铺到 Stream 首页、连接器 hub、加载或错误页，也不染侧栏或顶栏 chrome。主页列宽随中栏变宽，上限 `72rem`。内置小应用（记账 / 公众号）的 `.v4-plugin-app-panel` 用同一纸色，卡片浮在上面。一页一个实心主按钮，其余用 tonal 或 outline；图标保持线形
 - **排版令牌**：text-5xs(10 kbd) → text-2xs(11 meta) → text-4xs(12 label) → text-3xs(12 label) → text-xs(13 控件/内容下限) → text-sm(14 UI 主文) → text-base(15 正文) → text-md(15) → text-lg(16) → text-xl(16) → text-3xl(24)。`text-2xl`/`text-4xl` 已删（零引用）。
 
 - **主动感组件（2026-09 Muse/Cue 对标）**：
@@ -1002,11 +1002,12 @@ Soft Workbench 4.3 阶（`tokens.css` 唯一真源；`tailwind-theme.css` 不得
 
 ## 8. 启动与引导
 
-- **加载中**: `Loader2` 旋转动画居中
-- **引导**（无有效工作区）: `OnboardingScreen` 工作区选择器
-- **就绪**: `Shell` 渲染
+没有选中工作区时，开机是三个互斥的全屏状态，不会落到空壳：
 
-引导界面包含：Logo + 最近工作区卡片列表 + "选择/新建工作区"按钮 + "使用默认工作区"选项。
+- **加载中**: `v4-boot` 居中品牌标记 + 旋转指示
+- **失败**: 错误说明 + 重试。重试按钮是 `v4-no-drag`，窗口拖拽区不吞点击
+- **工作区选择器** (`OnboardingScreen`): 说明为何出现（未选择 `no-workspace`、已关闭 `closed`、工作区无效 `invalid-workspace`、引擎无效 `invalid-engine`、契约无法自动修复 `contract-unrepairable`）。最近列表给出**完整路径**和可用性（可用 / 空目录 / 不可用），可打开，也可从列表移除（不删磁盘文件）。新建只在显式选择文件夹并确认模板之后发生。**不会**自动创建默认工作区来填满窗口。全页一个实心主按钮（选择文件夹；契约修复是 outline）。品牌弱光晕只出现在这个门上。中英都有文案；长路径截断
+- **就绪**: `Shell`，画布是 Stream 工作台首页（`home` ≡ `stream`）
 
 ---
 

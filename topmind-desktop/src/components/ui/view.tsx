@@ -182,6 +182,7 @@ export function EmptyState({
   action,
   className,
   compact,
+  streamEmpty = false,
 }: {
   icon?: ReactNode;
   title: ReactNode;
@@ -190,11 +191,14 @@ export function EmptyState({
   action?: ReactNode;
   className?: string;
   compact?: boolean;
+  /** Stream home empty card — same structure, says the feed is empty. */
+  streamEmpty?: boolean;
 }) {
   return (
     <div
+      data-stream-empty={streamEmpty ? "" : undefined}
       className={cn(
-        "flex flex-col items-center bg-surface text-center",
+        "flex flex-col items-center bg-surface-elevated text-center",
         "shadow-[var(--shadow-card)]",
         compact
           ? "rounded-[var(--radius-card)] px-3 py-5"

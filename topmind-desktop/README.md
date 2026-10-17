@@ -40,7 +40,7 @@
 
 ### 1. 核心工作台表面（动态时间轴与 AI 工作区）
 
-默认三栏：**导航 -> 动态 -> AI 工作区**。主叙事是动态时间轴；右栏 AI 工作区收纳 **对话 · 建议 · 清单 · 应用**。
+默认三栏：**导航 -> Stream 工作台首页 -> AI 工作区**。首页是身份、Inbox/交付的安静库存计数（不是第二排目的地）、hero 记下，以及周期动态。空工作区仍是这块结构，并写明为空。状态栏只报状态（完整路径 · AI · busy），不放动态 / Inbox / 交付。右栏收纳 **对话 · 建议 · 清单 · 应用**。
 
 <p align="center">
   <img src="../docs/images/desktop-stream-en.jpg" alt="Topmind Desktop 三栏工作台 · 动态时间轴与 AI 工作区（英文界面）" width="820" />
@@ -128,7 +128,7 @@ brew reinstall --cask topmind
 
 #### 方式二：手动下载安装包
 1. 从 [Releases](https://github.com/topmindspace/topmind/releases) 下载**安装包文件名里的版本**，不是把任意 `v*` tag 当成 Desktop 版本。Windows x64 是 `topmind-<ver>-win-x64.exe`，Windows ARM 是 `topmind-<ver>-win-arm64.exe`，两者不要混用。macOS / Linux 同样按 `topmind-<ver>-<os>-<arch>` 选。`desktop-v*` 只是热修 tag，版本仍以安装包文件名为准。
-2. 安装并打开；首次选择或创建本地工作区文件夹（内容真源）  
+2. 安装并打开。没有工作区时进入全屏选择器，并说明原因（未选择、已关闭、无法打开、引擎无法启动，或契约无法修复）。最近工作区列出完整路径和是否可用，可以打开或从列表移除。新建必须先选定文件夹，再确认模板；应用不会自动创建工作区来填满窗口。文件夹即内容真源。  
    *（macOS 若手动安装提示损坏打不开，可在终端运行：`sudo xattr -rd com.apple.quarantine /Applications/topmind.app`）*
 3. 可选：设置 -> AI 配置 Provider；设置 -> 通用 -> 浏览器剪藏 启用 Clip Bridge
 

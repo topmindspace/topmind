@@ -11,6 +11,7 @@
     "removeLabel": "Remove {{name}} from list",
     "statusClosed": "Workspace closed · Pick one to continue",
     "statusInvalid": "Last workspace couldn't open · Please choose another path",
+    "statusInvalidEngine": "The app engine could not start · Check the install, then pick a workspace",
     "statusNoWorkspace": "Select or create a local folder as workspace",
     "footerLine1": "Workspace = your local folder (stream · topics · ship · archive)",
     "companionsHint": "After opening: Settings → Companions to install Agent Skills / Clip / Obsidian (optional, non-blocking)",

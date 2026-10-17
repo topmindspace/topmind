@@ -241,6 +241,58 @@ test("Light tokens: surface != elevated; hairline and shadows defined", () => {
 
 // ── Stream vocabulary & compose ────────────────────────────────────────
 
+test("Stream home is identity, quiet inventory, one solid compose, and a memoized feed", () => {
+  const stream = read("src/plugins/topmind-workspace/views/StreamDetailView.tsx");
+  assert.match(stream, /data-view-hero|ViewHero/);
+  assert.match(stream, /data-stream-inventory/);
+  assert.match(stream, /data-stream-inbox-count/);
+  assert.match(stream, /data-stream-outputs-count/);
+  assert.doesNotMatch(stream, /data-stream-inbox-count[\s\S]{0,180}onClick/);
+  assert.doesNotMatch(stream, /data-stream-outputs-count[\s\S]{0,120}onClick/);
+  assert.match(stream, /data-stream-inline-composer/);
+  assert.match(stream, /data-stream-compose-submit/);
+  assert.match(stream, /streamEmpty/);
+  assert.match(stream, /variant="outline"/);
+  assert.match(stream, /const StreamFeedRowView = memo\(/);
+  const loader = stream.slice(stream.indexOf("const loadPeriodContent"), stream.indexOf("const loadPeriods"));
+  assert.doesNotMatch(loader, /setLoading\(/);
+  assert.match(stream, /silent:\s*true/);
+  assert.doesNotMatch(stream, /WorkspaceHomeView|HomeView/);
+});
+
+test("docs and surfaces keep brand wash on the no-workspace gate only", () => {
+  const design = read("DESIGN.md");
+  const arch = read("ARCHITECTURE.md");
+  const zh = read("README.md");
+  const en = read("README.en.md");
+  const zhCn = read("README.zh-CN.md");
+  assert.equal(zh, zhCn);
+  assert.match(design, /invalid-engine/);
+  assert.match(design, /contract-unrepairable/);
+  assert.match(design, /品牌弱光晕只在无工作区/);
+  assert.doesNotMatch(design, /不超过 6%/);
+  assert.match(arch, /无「使用默认工作区」/);
+  assert.match(arch, /只表示 Agent 流/);
+  assert.doesNotMatch(arch, /TaskStore 走 AI pill/);
+  assert.match(zh, /引擎无法启动/);
+  assert.match(zh, /不会自动创建工作区/);
+  assert.match(en, /engine could not start/);
+  assert.match(en, /never auto-creates a workspace/);
+  for (const doc of [design, arch, zh, en]) {
+    assert.doesNotMatch(doc, /状态栏 · 路径 · 动态/);
+  }
+  const css = read("src/styles/v4.css");
+  assert.match(css, /\.v4-landing \{[\s\S]*?radial-gradient/);
+  const bootAt = css.indexOf(".v4-boot {");
+  const boot = css.slice(bootAt, css.indexOf(".v4-brand-gradient"));
+  assert.ok(bootAt >= 0 && boot.length > 0);
+  assert.doesNotMatch(boot, /radial-gradient|brand-mid/);
+  const hubAt = css.indexOf(".v4-hub-page {");
+  const hub = css.slice(hubAt, css.indexOf("}", hubAt) + 1);
+  assert.doesNotMatch(hub, /radial-gradient/);
+  assert.doesNotMatch(css, /data-stream-home-header/);
+});
+
 test("Stream compose uses composeSubmit; placeholder avoids L1 vocabulary", () => {
   const stream = read("src/plugins/topmind-workspace/views/StreamDetailView.tsx");
   assert.match(stream, /data-stream-compose-submit/);

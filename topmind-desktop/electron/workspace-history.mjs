@@ -3,6 +3,8 @@
  *
  * Contract:
  *  - Landing when there is no openable candidate (never invent a workspace).
+ *  - An engine failure stays `invalid-engine` even when candidates are empty
+ *    or a later activate also fails. It is not reported as `no-workspace`.
  *  - Recents are capped, **canonically deduped**, sorted by lastOpenedAt.
  *  - Forbidden roots (Desktop runtime / engine app package) never stay in recents.
  *  - Paths that are missing / not a directory are pruned from recents.
@@ -367,4 +369,80 @@ export function listLaunchCandidates({
 export function pickLaunchWorkspaceCandidate(opts = {}) {
   const list = listLaunchCandidates(opts);
   return list[0] || null;
+}
+
+/**
+ * Landing status when boot did not activate a workspace.
+ *
+ * An engine failure stays `invalid-engine` and keeps that error. That includes
+ * a later activate that returns without throwing (missing engine looks like
+ * an unrepairable contract). A healthy engine keeps that contract result.
+ * A healthy engine with no candidates is `no-workspace`. A healthy engine
+ * whose candidates threw is `invalid-workspace`.
+ *
+ * @param {{
+ *   engineFailure?: { requestedPath?: string|null, errorMessage?: string|null } | null,
+ *   candidates?: readonly string[],
+ *   lastError?: unknown,
+ *   activateStatus?: {
+ *     ok?: boolean,
+ *     reason?: string|null,
+ *     requestedPath?: string|null,
+ *     errorMessage?: string|null,
+ *     contractOnDiskValid?: boolean,
+ *     contractStatus?: string,
+ *     contractErrors?: string[],
+ *     recovery?: string|null,
+ *   } | null,
+ * }} [input]
+ */
+export function finalizeBootLaunchStatus({
+  engineFailure = null,
+  candidates = [],
+  lastError = null,
+  activateStatus = null,
+} = {}) {
+  if (engineFailure) {
+    return {
+      ok: false,
+      reason: "invalid-engine",
+      requestedPath: engineFailure.requestedPath ?? null,
+      errorMessage: engineFailure.errorMessage ?? null,
+    };
+  }
+
+  if (activateStatus && activateStatus.ok === false) {
+    const contractBad = activateStatus.contractOnDiskValid === false;
+    return {
+      ok: false,
+      reason: contractBad
+        ? "contract-unrepairable"
+        : (activateStatus.reason || "invalid-workspace"),
+      requestedPath: activateStatus.requestedPath ?? null,
+      errorMessage: activateStatus.errorMessage ?? null,
+      contractOnDiskValid: contractBad ? false : activateStatus.contractOnDiskValid,
+      contractStatus: activateStatus.contractStatus,
+      contractErrors: Array.isArray(activateStatus.contractErrors) ? activateStatus.contractErrors : [],
+      recovery: activateStatus.recovery ?? (contractBad ? "system.reseedWorkspaceContract" : null),
+    };
+  }
+
+  const list = Array.isArray(candidates) ? candidates : [];
+  if (list.length === 0) {
+    return {
+      ok: false,
+      reason: "no-workspace",
+      requestedPath: null,
+      errorMessage: null,
+    };
+  }
+
+  const errorMessage =
+    lastError instanceof Error ? lastError.message : lastError ? String(lastError) : null;
+  return {
+    ok: false,
+    reason: lastError ? "invalid-workspace" : "no-workspace",
+    requestedPath: list[0] || null,
+    errorMessage,
+  };
 }

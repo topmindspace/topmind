@@ -1119,9 +1119,12 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
             {!readOnly ? (
               <EditorModeSwitch viewMode={viewMode} onChange={switchViewMode} />
             ) : (
-              <span className="inline-flex items-center gap-1 rounded-[var(--radius-xs)] bg-surface-wash-30 px-2 py-0.5 text-3xs text-text-tertiary">
-                <RiEyeLine size={ICON.micro} /> {t("workspace:formatBar.preview")}
-              </span>
+              <Tooltip content={t("workspace:formatBar.preview")}>
+                <span className="inline-flex items-center gap-1 rounded-[var(--radius-xs)] bg-surface-wash-30 px-2 py-0.5 text-3xs text-text-tertiary">
+                  <RiEyeLine size={ICON.micro} />
+                  <span data-compact-hidden>{t("workspace:formatBar.preview")}</span>
+                </span>
+              </Tooltip>
             )}
 
             {!readOnly && viewMode === "edit" ? (

@@ -42,7 +42,7 @@
 | 关键词搜索诚实 | **Done** — notes-index + grep `truncated`/`scannedTotal`；GlobalSearch 截断提示（无 embedding） |
 | 建议可关 | **Done** — `ai.autoPrepareSuggestions`（默认开） |
 | 待办自动整理可关 | **Done** — `ai.autoMaintainTodos`（默认关 · 省 Token） |
-| 状态栏 AI 忙碌 | **Done** — `deriveStatusBarBusy`：todo/suggest 专用 chip，不与「AI 工作中」双标；Task=`RiLoader4Line`、Todo=`RiListCheck`（可点开清单）、Suggest 可点开确认面；streaming · TaskStore 走 AI pill |
+| 状态栏 AI 忙碌 | **Done** — `deriveStatusBarBusy`：apply / tasks / todo / suggest / inline 独占时各有命名 chip，不与「AI 工作中」双标；AI pill 的「工作中」只表示 Agent 流。Task=`RiLoader4Line`、Todo=`RiListCheck`（可点开清单）、Suggest 可点开确认面 |
 | memory / lifecycle / contract / derived | 经 kernel-api；derived item-history **Done** 最小；AI provider 纯 **per-call 注入**——`createKernelAiProvider(settings)` 工厂按调用生成（`generateSuggestions` / `applySuggestion` / `runOperation` 等入口逐次传入），无全局单例；topic summary / period digest 用真实 LLM |
 | ingest 转换/队列 | Desktop `electron/lib/ingest/*` 本地转换与任务队列（**非路由**；默认 anydoc sidecar，可选 markitdown/pandoc，内置 JS 兜底） |
 
@@ -180,11 +180,11 @@ contextBridge.exposeInMainWorld('topmind', {
 ```
 App.tsx
 ├── loading → BootScreen（加载动画）
-├── onboarding → OnboardingScreen（工作区选择）
-│   ├── 最近工作区（可点击卡片）
-│   ├── "选择文件夹 / 新建工作区"（原生选择器 + 初始化）
-│   └── "使用默认工作区"（如已配置）
-└── ready → Shell
+├── onboarding → OnboardingScreen（工作区选择器，全屏，不是空壳）
+│   ├── 说明原因：未选择 / 已关闭 / 工作区无效 / 引擎无效 / 契约无法修复
+│   ├── 最近工作区（完整路径 · 可用性 · 打开 / 从列表移除）
+│   └── "选择文件夹 / 新建工作区"（空目录先确认模板；不自动创建，无「使用默认工作区」）
+└── ready → Shell（Stream 工作台首页）
 
 工作区切换 / 启动恢复 / 生命周期:
   TitleBar WorkspaceSwitcher (⌘⇧W) / Settings → api.sys.switchWorkspace(path)
@@ -286,7 +286,7 @@ Shell（三列贯通 · 无横跨产品 header）
 │   ├── TitleBar（中栏顶栏 / data-canvas-chrome）
 │   │   ├── 左: 侧栏开关 + 前进/后退 + 面包屑导航 + 当前页标题
 │   │   └── 右: 动态注入按钮 slot + AI 列开关
-│   └── EditorArea — 默认工作区主页，或显式动态 / 其它 ViewSlot
+│   └── EditorArea — Stream 工作台首页（home≡stream）/ 其它 ViewSlot
 ├── AiWorkspace — 右列对等：对话 / 建议 / 清单 / 应用；Composer 钉列底
 ├── SuggestPopover — **建议确认列表**（嵌入建议 pane；专注模式浮动；openSuggestSurface）
 ├── StatusBar — 绿点 + 完整工作区路径；AI pill + 命名 busy chip（无 PrimaryNav）
@@ -298,7 +298,7 @@ Shell（三列贯通 · 无横跨产品 header）
 ### 现状（已收敛 · Phase B Done）
 
 PrimaryNav 文案为 **动态 · Inbox · 交付**（搜索非 PrimaryNav：⌘K 命令面板 · ⌘P 笔记全文）。打开工作区后的默认 selection 是 `{ kind: "home" }`（工作区主页）。显式动态仍是 `{ kind: "stream" }`。目的地组件已收敛到 **ActivityBar**（无 TitleBar 紧凑回退）。  
-**2026-09 v4**：三列顶栏共用 `.v4-column-chrome`（44px）。主目的地轨是 **ActivityBar**（最左 48px 三分组：顶部红绿灯安全区 `data-activity-traffic-reserve`（无 logo）+ home≡stream `RiHome4Line` + Inbox · 交付 · 我的情况 · 记一下；中 应用菜单；底 专注 · 主题 · 设置）。Sidebar 主 header 只有**工作区名+菜单 → 搜索 ⌘K**（`data-sidebar-ws-name` / `data-sidebar-search`）——目的地 / 捕获 / 主题 / 设置不在侧栏头。macOS 这一行在红绿灯留白内右对齐（`.v4-mac-titlebar-pad` 取代 8px 左内边距，全屏收起）；Windows/Linux 左对齐。次级 header 的 ViewSwitcher 靠左，树工具靠右，与目录树同一左缘。编辑器大纲 / 外观 / 专注住在 FrontmatterBar。StatusBar 左端显示工作区完整路径。中栏顶栏**无**「回到工作区」图标（ActivityBar home 唯一）。左右栏开关始终是线形图标。
+**2026-09 v4**：三列顶栏共用 `.v4-column-chrome`（44px）。主目的地轨是 **ActivityBar**（最左 48px 三分组：顶部红绿灯安全区 `data-activity-traffic-reserve`（无 logo）+ home≡stream `RiHome4Line` + Inbox · 交付 · 我的情况 · 记一下；中 应用菜单；底 专注 · 主题 · 设置）。Sidebar 主 header 只有**工作区名+菜单 → 搜索 ⌘K**（`data-sidebar-ws-name` / `data-sidebar-search`）——目的地 / 捕获 / 主题 / 设置不在侧栏头。macOS 这一行在红绿灯留白内右对齐（`.v4-mac-titlebar-pad` 取代 8px 左内边距，全屏收起）；Windows/Linux 左对齐。次级 header 的 ViewSwitcher 靠左，树工具靠右，与目录树同一左缘。编辑器大纲 / 外观 / 专注住在编辑器工具栏（`EditorViewChrome`），属性默认收起。StatusBar 左端显示工作区完整路径（截断，不是导航）。中栏顶栏**无**「回到工作区」图标（ActivityBar home 唯一）。左右栏开关始终是线形图标。
 旧「工作台」主锚点已退役。**已删仪表盘**（问候 CTA、钉住卡、下一步/进行中/截止、最近专题材料条、连接器条）不得回来。`kind: "home"` 现在是工作区主页，不是那个仪表盘。`normalizeSelection` 把空值和未知 kind 收到主页；显式 `stream` 保持动态。归档不在主锚。
 
 ```
@@ -326,14 +326,14 @@ Shell（data-through-columns）
 
 ### StreamDetailView（主编辑区动态流 · 已实现）
 
-`selection: { kind: "stream" }` → 本组件（工作区主页是另一条 selection，不进这里）：
+`selection: { kind: "home" }` 与 `{ kind: "stream" }` 都进本组件（home≡stream）。未知 selection、关掉最后一个文件标签也落在这里：
 
 - **数据源**：`api.ws.getStreamContext()` → `api.ws.read(periodRelPath)` + `api.ws.listStreamPeriods()`
 - **条目展示**：当前周期本条目按时间倒序卡片；可展开/折叠
 - **操作入口**：整理（`reconcileStreamPeriod`）· 捕获（⌘N）· 打开周期文件编辑 · 周期切换
 - **自动刷新**：订阅 `workspace:file-changed`，450ms 防抖静默重载
 - **AI 整合**：reconcile 失败时可 fallback AI 整理 prompt；有候选条目时提示（非静默高影响写）
-- **快捷键**：⌘⇧S / ⌘⇧T 均导航到 `{ kind: "stream" }`
+- **快捷键**：⌘⇧S 打开动态（同一首页）；⌘⇧T 打开 AI 工作区清单 pane
 - **入口**：ActivityBar「动态」· 侧栏 pin · 命令面板 · 快捷键
 
 ### 连接器 Hub UI（共享原语）

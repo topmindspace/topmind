@@ -72,7 +72,7 @@ test("streaming + suggest: AI pill busy; suggest chip still visible (honest mult
   assert.deepEqual(v.activeKinds, ["agent", "suggest"]);
 });
 
-test("tasks + todo: single-path — task chip wins; AI pill busy for tasks", () => {
+test("tasks + todo: single-path — task chip wins; AI pill stays ready", () => {
   const v = deriveStatusBarBusy({
     ready: true,
     streaming: false,
@@ -82,8 +82,38 @@ test("tasks + todo: single-path — task chip wins; AI pill busy for tasks", () 
   });
   assert.equal(v.showTaskChip, true);
   assert.equal(v.showTodoChip, false, "todo chip demoted when tasks present");
-  assert.equal(v.aiPillBusy, true);
-  assert.equal(v.aiLabelMode, "working");
+  assert.equal(v.aiPillBusy, false, "exclusive task must not also mark the AI pill working");
+  assert.equal(v.aiLabelMode, "ready");
+});
+
+test("task-only: named task chip, suggestion count hidden, pill not working", () => {
+  const v = deriveStatusBarBusy({
+    ready: true,
+    streaming: false,
+    activeTaskCount: 1,
+    todoMaintaining: false,
+    suggestLoading: false,
+    suggestCount: 3,
+  });
+  assert.equal(v.showTaskChip, true);
+  assert.equal(v.showSuggestCountChip, false);
+  assert.equal(v.aiPillBusy, false);
+});
+
+test("apply wins over a running task: one named chip, pill not working", () => {
+  const v = deriveStatusBarBusy({
+    ready: true,
+    streaming: false,
+    activeTaskCount: 2,
+    todoMaintaining: false,
+    suggestLoading: false,
+    suggestApplying: true,
+    suggestCount: 2,
+  });
+  assert.equal(v.showApplyChip, true);
+  assert.equal(v.showTaskChip, false);
+  assert.equal(v.showSuggestCountChip, false);
+  assert.equal(v.aiPillBusy, false);
 });
 
 test("todo + suggest: single-path — todo chip wins over suggest", () => {
@@ -128,6 +158,7 @@ test("idle ready: no chips, not busy", () => {
   });
   assert.equal(v.aiPillBusy, false);
   assert.equal(v.hasNamedBusyChip, false);
+  assert.equal(v.showSuggestCountChip, false);
   assert.equal(v.aiLabelMode, "ready");
 });
 
@@ -181,6 +212,18 @@ test("StatusBar icon semantics + click targets (DESIGN ListTodo = personal list)
   assert.match(src, /aria-pressed=\{taskPanelOpen\}/);
   assert.match(src, /onToggleTaskPanel/);
   assert.match(src, /toggleSuggestSurface|openSuggestSurface/);
+  // Running chrome follows the single named-chip priority, not raw task count.
+  assert.match(src, /busy\.showTaskChip \?/);
+  assert.match(src, /data-status-workspace-path/);
+  const pathIdx = src.indexOf("data-status-workspace-path");
+  const pathSlice = src.slice(Math.max(0, pathIdx - 220), pathIdx + 160);
+  assert.match(pathSlice, /truncate/);
+  assert.match(pathSlice, /health\.workspaceRoot/);
+  assert.doesNotMatch(pathSlice, /hidden sm:inline/);
+  assert.doesNotMatch(src, /case ["']home["']|case ["']stream["']|case ["']inbox["']/);
+  assert.match(src, /selection\.kind !== ["']file["']/);
+  const shell = read("src/components/shell/Shell.tsx");
+  assert.match(shell, /focusMode \? null : \(\s*<StatusBar/);
 });
 
 test("agent + task: multiActive, task chip, not todo chip", () => {
