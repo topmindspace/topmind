@@ -789,7 +789,7 @@ templates/
 
 ## 工具层（从 v3 移植，已清理）
 
-- `electron/lib/writeback.mjs` — 备份链 + 结构化日志（打包后额外写入 `logs/main.log`；大小上限轮转：默认单文件 2 MB × 保留 3 份归档，`topmind_LOG_MAX_BYTES` / `topmind_LOG_KEEP` 可调，超限轮转 `main.log.1…3`）；`receiptPath` 仅真实 YAML 非空
+- `electron/lib/writeback.mjs` — 备份链 + 结构化日志（打包后额外写入 `logs/main.log`；大小上限轮转：默认单文件 2 MB × 保留 3 份归档，`topmind_LOG_MAX_BYTES` / `topmind_LOG_KEEP` 可调，超限轮转 `main.log.1…3`）；`receiptPath` 仅真实 YAML 非空。工作区监听不跟随库外符号链接、不进入应用包；`EMFILE` 只记日志并关掉 watcher。单实例锁之后裁剪可重建的 Chromium 缓存，并清掉超过 2 分钟的 `app-settings.json.tmp.*`。
 - `electron/lib/ops-journal.mjs` — 操作日志环形 JSONL（`logs/ops.jsonl`，默认 1 MB × keep 2，`topmind_OPS_*`）；**不是**第二套 receipts
 - `electron/lib/log-tail.mjs` — main/ops 日志 Tail / 清空（Tools & Logs 面板）
 - `electron/lib/workspace-stats.mjs` — 容量/类型/角色目录统计

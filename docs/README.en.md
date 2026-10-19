@@ -104,6 +104,7 @@ Archive: [`./adr/`](./adr/). Index is **one line per decision** — read the ADR
 | [2026-09-17](./adr/2026-09-17c-adversarial-pass-fences-and-honesty.md) | Symlink fail-closed · memory single truth |
 | [2026-09-17](./adr/2026-09-17e-global-memory-quality.md) | Global memory quality (dupe/restore/inject) · 2026-09-25 fusion floors |
 | [2026-09-25](./adr/2026-09-25-goal-oriented-agent-loop.md) | Goal-oriented agent loop (plan/verify/continue/compact) |
+| [2026-10-19](./adr/2026-10-19-vault-watch-fence.md) | Vault fence: no out-of-vault symlink follow, no package recursion; watcher EMFILE is not a crash dialog; cache and settings temps are capped |
 
 Design proposals (non-ADR): [`./design/`](./design/).
 ---

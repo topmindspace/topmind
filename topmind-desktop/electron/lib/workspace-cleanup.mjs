@@ -8,6 +8,7 @@ import { archiveRoot, absWorkspaceRoot } from "./path-model.mjs";
 import { exists, listDir, statSafe } from "./fs-utils.mjs";
 import { CATEGORY_PATTERN } from "./path-model.mjs";
 import { kernelDurableDelete } from "./kernel-api.mjs";
+import { isHeavyDirName } from "./file-filter.mjs";
 
 const ALLOWED_ROOT_NAMES = new Set(["memory"]);
 const JUNK_RE = /^\.DS_Store$/u;
@@ -18,6 +19,7 @@ async function walkFiles(abs, rel, out, max = 50_000) {
   try { dirents = await fs.readdir(abs, { withFileTypes: true }); } catch { return; }
   for (const d of dirents) {
     if (d.name === ".topmind" || d.name === ".git" || d.name === ".obsidian") continue;
+    if (d.isSymbolicLink() || isHeavyDirName(d.name)) continue;
     const childAbs = path.join(abs, d.name);
     const childRel = rel ? `${rel}/${d.name}` : d.name;
     if (d.isDirectory()) {
@@ -67,6 +69,10 @@ export async function scanCleanupCandidates(workspaceRoot) {
     let hasVisible = false;
     for (const d of dirents) {
       if (d.name === ".topmind" || d.name === ".git" || d.name === ".obsidian") {
+        hasVisible = true;
+        continue;
+      }
+      if (d.isSymbolicLink() || isHeavyDirName(d.name)) {
         hasVisible = true;
         continue;
       }

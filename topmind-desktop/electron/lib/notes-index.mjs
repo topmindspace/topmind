@@ -10,11 +10,17 @@
  * When complete, `scannedTotal === total`.
  */
 import path from "node:path";
+import { readdir } from "node:fs/promises";
 import { resolveDataRoot, CATEGORY_PATTERN } from "./path-model.mjs";
-import { listDir, statSafe, readTextPreview } from "./fs-utils.mjs";
+import { statSafe, readTextPreview } from "./fs-utils.mjs";
 import { splitMarkdownFrontmatter } from "./frontmatter.mjs";
 import { resolveCategoryRoles } from "./workspace-helpers.mjs";
 import { retainKeyedProjection, WORKING_SET_CAPS } from "./runtime-bounds.mjs";
+import {
+  loadVaultIgnoreSync,
+  pathMatchesUserIgnore,
+  shouldSkipVaultDirName,
+} from "./file-filter.mjs";
 
 /**
  * @typedef {{ notes: object[], builtAt: number, root: string, complete: boolean, scannedTotal: number }} NotesIndexCache
@@ -59,36 +65,42 @@ export function invalidateNotesIndex(relativePath) {
  * @param {string} root
  * @param {Map<string, object>} roleMap
  */
-async function countEligibleMarkdown(root, roleMap) {
+async function countEligibleMarkdown(root, roleMap, ignore) {
   let count = 0;
-  const walkDir = async (dir) => {
+  const walkDir = async (dir, relBase) => {
     let entries;
     try {
-      entries = await listDir(dir);
+      entries = await readdir(dir, { withFileTypes: true });
     } catch {
       return;
     }
     for (const e of entries) {
-      if (e.startsWith(".")) continue;
-      const abs = path.join(dir, e);
-      const s = await statSafe(abs);
-      if (!s) continue;
-      if (s.isDirectory()) {
-        await walkDir(abs);
-      } else if (s.isFile() && /\.md$/iu.test(e)) {
+      if (e.isSymbolicLink() || shouldSkipVaultDirName(e.name)) continue;
+      const rel = relBase ? `${relBase}/${e.name}` : e.name;
+      if (pathMatchesUserIgnore(rel, ignore)) continue;
+      const abs = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        await walkDir(abs, rel);
+      } else if (e.isFile() && /\.md$/iu.test(e.name)) {
         count += 1;
       }
     }
   };
 
-  const entries = await listDir(root).catch(() => []);
+  let entries;
+  try {
+    entries = await readdir(root, { withFileTypes: true });
+  } catch {
+    return 0;
+  }
   for (const e of entries) {
-    if (!CATEGORY_PATTERN.test(e)) continue;
-    const def = roleMap.get(e) || {};
+    if (!e.isDirectory() || e.isSymbolicLink()) continue;
+    if (!CATEGORY_PATTERN.test(e.name)) continue;
+    const def = roleMap.get(e.name) || {};
     const role = def.role || "unknown";
     if (role === "system") continue;
     if (def.hidden) continue;
-    await walkDir(path.join(root, e));
+    await walkDir(path.join(root, e.name), e.name);
   }
   return count;
 }
@@ -133,20 +145,23 @@ export async function getNotesIndex(workspaceRoot, opts = {}) {
   }
 
   const roleMap = await resolveCategoryRoles(workspaceRoot);
+  const ignore = loadVaultIgnoreSync(root);
   const notes = [];
 
-  const walkDir = async (dir, { category = null, topic = null } = {}) => {
+  const walkDir = async (dir, relBase, { category = null, topic = null } = {}) => {
     let entries;
-    try { entries = await listDir(dir); } catch { return; }
+    try { entries = await readdir(dir, { withFileTypes: true }); } catch { return; }
     for (const e of entries) {
-      if (e.startsWith(".")) continue;
-      const abs = path.join(dir, e);
-      const s = await statSafe(abs);
-      if (!s) continue;
-      if (s.isDirectory()) {
-        await walkDir(abs, { category, topic: topic || e });
-      } else if (s.isFile() && /\.md$/iu.test(e)) {
-        const rel = path.relative(root, abs).replace(/\\/gu, "/");
+      if (notes.length >= limit) return;
+      if (e.isSymbolicLink() || shouldSkipVaultDirName(e.name)) continue;
+      const rel = relBase ? `${relBase}/${e.name}` : e.name;
+      if (pathMatchesUserIgnore(rel, ignore)) continue;
+      const abs = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        await walkDir(abs, rel, { category, topic: topic || e.name });
+      } else if (e.isFile() && /\.md$/iu.test(e.name)) {
+        const s = await statSafe(abs);
+        if (!s || !s.isFile()) continue;
         let fm = {};
         try {
           const preview = await readTextPreview(abs, 4096);
@@ -154,7 +169,7 @@ export async function getNotesIndex(workspaceRoot, opts = {}) {
         } catch { /* no frontmatter */ }
         notes.push({
           path: rel,
-          name: e,
+          name: e.name,
           category,
           topic,
           mtime: s.mtime.toISOString(),
@@ -166,20 +181,25 @@ export async function getNotesIndex(workspaceRoot, opts = {}) {
           due: fm.due || fm.deadline || null,
           source_type: fm.source_type || null,
         });
-        if (notes.length >= limit) return;
       }
     }
   };
 
-  const entries = await listDir(root).catch(() => []);
+  let entries = [];
+  try {
+    entries = await readdir(root, { withFileTypes: true });
+  } catch {
+    entries = [];
+  }
   for (const e of entries) {
-    if (!CATEGORY_PATTERN.test(e)) continue;
-    const def = roleMap.get(e) || {};
+    if (!e.isDirectory() || e.isSymbolicLink()) continue;
+    if (!CATEGORY_PATTERN.test(e.name)) continue;
+    const def = roleMap.get(e.name) || {};
     const role = def.role || "unknown";
     if (role === "system") continue;
     // Honor categoryOverrides.hidden — keep out of timeline/tags/kanban projections
     if (def.hidden) continue;
-    await walkDir(path.join(root, e), { category: e, topic: null });
+    await walkDir(path.join(root, e.name), e.name, { category: e.name, topic: null });
     if (notes.length >= limit) break;
   }
 
@@ -192,7 +212,7 @@ export async function getNotesIndex(workspaceRoot, opts = {}) {
   if (!complete) {
     // Lightweight full census (no frontmatter) so UI can show "显示 N / 共 M"
     try {
-      scannedTotal = await countEligibleMarkdown(root, roleMap);
+      scannedTotal = await countEligibleMarkdown(root, roleMap, ignore);
       if (scannedTotal < notes.length) scannedTotal = notes.length;
     } catch {
       scannedTotal = notes.length;

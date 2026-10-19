@@ -2,6 +2,7 @@
  * List / search / health scan ops — no Electron dependency.
  */
 import path from "node:path";
+import { lstat, readdir } from "node:fs/promises";
 import {
   resolveDataRoot, inboxRoot, archiveRoot, outputsRoot, categoryRoot,
   parseTopicId, buildTopicId, CATEGORY_PATTERN,
@@ -15,7 +16,8 @@ import {
   listOutputsEnhanced,
   listWorkspaceDir,
 } from "./workspace-list-ops.mjs";
-import { normalizeFileFilterMode } from "./file-filter.mjs";
+import { isHeavyDirName, loadVaultIgnoreSync, normalizeFileFilterMode, pathMatchesUserIgnore } from "./file-filter.mjs";
+import { isEscapingSymlinkSync, resolvesOutsideVaultSync } from "./path-safety.mjs";
 import { listWorkspaceImageFiles } from "./workspace-note-media.mjs";
 
 /** Light frontmatter title peek for list UIs (not a content store). */
@@ -104,10 +106,18 @@ export const scanOps = {
     const cRoot = categoryRoot(ctx.workspaceRoot, category);
     const entries = await listDir(cRoot);
     const topics = [], looseNotes = [];
+    const dataRoot = resolveDataRoot(ctx.workspaceRoot);
     for (const e of entries) {
+      if (e.startsWith(".") || isHeavyDirName(e)) continue;
       const abs = path.join(cRoot, e);
-      const s = await statSafe(abs);
-      if (s?.isDirectory()) {
+      let s;
+      try { s = await lstat(abs); } catch { continue; }
+      if (s.isSymbolicLink()) {
+        if (isEscapingSymlinkSync(dataRoot, abs)) continue;
+        s = await statSafe(abs);
+        if (!s) continue;
+      }
+      if (s.isDirectory()) {
         const subEntries = await listDir(abs);
         let fileCount = 0;
         for (const sub of subEntries) {
@@ -250,28 +260,31 @@ export const scanOps = {
     const results = [];
     let filesScanned = 0;
     let truncated = false;
+    const ignore = loadVaultIgnoreSync(root);
 
     const walk = async (dir) => {
       if (results.length >= maxHits) {
         truncated = true;
         return;
       }
-      let entries;
-      try { entries = await listDir(dir); } catch { return; }
-      for (const e of entries) {
+      let dirents;
+      try { dirents = await readdir(dir, { withFileTypes: true }); } catch { return; }
+      for (const dirent of dirents) {
         if (results.length >= maxHits) {
           truncated = true;
           return;
         }
-        if (e.startsWith(".")) continue;
+        const e = dirent.name;
+        if (e.startsWith(".") || dirent.isSymbolicLink() || isHeavyDirName(e)) continue;
         const f = path.join(dir, e);
-        const s = await statSafe(f);
-        if (s?.isDirectory()) {
+        const relEarly = path.relative(root, f).replace(/\\/gu, "/");
+        if (pathMatchesUserIgnore(relEarly, ignore)) continue;
+        if (dirent.isDirectory()) {
           if (!includeArchive && e === archName && dir === root) continue;
           // Skip common noise dirs
           if (e === "node_modules" || e === ".git" || e === ".obsidian") continue;
           await walk(f);
-        } else if (/\.(md|markdown|mdx|txt)$/iu.test(e)) {
+        } else if (dirent.isFile() && /\.(md|markdown|mdx|txt)$/iu.test(e)) {
           const rel = path.relative(root, f).replace(/\\/gu, "/");
           if (scopeRel && !(rel === scopeRel || rel.startsWith(`${scopeRel}/`))) continue;
 
@@ -348,9 +361,16 @@ export const scanOps = {
       ? path.join(root, ...scopeRel.split("/"))
       : root;
     if (scopeRel) {
-      const st = await statSafe(startDir);
-      if (!st) {
+      if (scopeRel.split("/").some((part) => isHeavyDirName(part))) {
+        return { results: [], count: 0, filesScanned: 0, note: "scope 在应用包或依赖目录内，已跳过" };
+      }
+      let listed;
+      try { listed = await lstat(startDir); } catch { listed = null; }
+      if (!listed) {
         return { results: [], count: 0, filesScanned: 0, note: `scope 不存在: ${scopeRel}` };
+      }
+      if ((listed.isSymbolicLink() && isEscapingSymlinkSync(root, startDir)) || resolvesOutsideVaultSync(root, startDir)) {
+        return { results: [], count: 0, filesScanned: 0, note: "scope 在库外，已跳过" };
       }
     }
     await walk(startDir).catch(() => {});
@@ -562,23 +582,44 @@ export const scanOps = {
     if (!(await exists(abs))) {
       return { ok: false, relativePath: rel, error: "not-found", entries: [] };
     }
-    const st = await statSafe(abs);
-    if (!st?.isDirectory()) {
+    let listed;
+    try {
+      listed = await lstat(abs);
+    } catch {
+      return { ok: false, relativePath: rel, error: "not-found", entries: [] };
+    }
+    if (listed.isSymbolicLink()) {
+      if (isEscapingSymlinkSync(root, abs) || resolvesOutsideVaultSync(root, abs)) {
+        return { ok: false, relativePath: rel, error: "outside-vault", entries: [] };
+      }
+    } else if (resolvesOutsideVaultSync(root, abs)) {
+      return { ok: false, relativePath: rel, error: "outside-vault", entries: [] };
+    } else if (!listed.isDirectory()) {
       return { ok: false, relativePath: rel, error: "not-a-directory", entries: [] };
     }
     const includeSystem = p?.includeSystem === true;
-    const names = await listDir(abs).catch(() => []);
+    const ignore = loadVaultIgnoreSync(root);
+    let dirents;
+    try {
+      dirents = await readdir(abs, { withFileTypes: true });
+    } catch {
+      dirents = [];
+    }
     /** @type {Array<object>} */
     const entries = [];
-    for (const name of names) {
+    for (const dirent of dirents) {
+      const name = dirent.name;
       if (!includeSystem && (name === ".git" || name === "node_modules" || name === ".obsidian" || name === ".DS_Store")) {
         continue;
       }
       if (!includeSystem && name.startsWith(".") && name !== ".topmind") continue;
       const childAbs = path.join(abs, name);
+      const childRel = rel ? `${rel}/${name}` : name;
+      if (pathMatchesUserIgnore(childRel, ignore)) continue;
+      if (dirent.isSymbolicLink() && isEscapingSymlinkSync(root, childAbs)) continue;
+      if (isHeavyDirName(name) && (dirent.isDirectory() || dirent.isSymbolicLink())) continue;
       const cs = await statSafe(childAbs);
       if (!cs) continue;
-      const childRel = rel ? `${rel}/${name}` : name;
       const hint = binaryHint(name);
       entries.push({
         name,
@@ -610,31 +651,49 @@ export const scanOps = {
     const includeArchive = p?.includeArchive === true;
     const re = globToRegExp(pattern);
     const start = scope ? path.join(root, scope) : root;
+    if (scope.split("/").some((part) => isHeavyDirName(part))) {
+      return { ok: true, pattern, scope, matches: [], count: 0, truncated: false };
+    }
     if (!(await exists(start))) {
       return { ok: false, error: "scope-not-found", scope, matches: [] };
+    }
+    let startListed;
+    try { startListed = await lstat(start); } catch { startListed = null; }
+    if (startListed && ((startListed.isSymbolicLink() && isEscapingSymlinkSync(root, start)) || resolvesOutsideVaultSync(root, start))) {
+      return { ok: false, error: "outside-vault", scope, matches: [] };
     }
     /** @type {Array<object>} */
     const matches = [];
     const skipDir = new Set([".git", "node_modules", ".obsidian", ".trash"]);
+    const ignore = loadVaultIgnoreSync(root);
     /** @param {string} dir */
     const walk = async (dir) => {
       if (matches.length >= maxResults) return;
-      const names = await listDir(dir).catch(() => []);
-      for (const name of names) {
+      let dirents;
+      try {
+        dirents = await readdir(dir, { withFileTypes: true });
+      } catch {
+        return;
+      }
+      for (const dirent of dirents) {
         if (matches.length >= maxResults) break;
+        const name = dirent.name;
         const abs = path.join(dir, name);
-        const st = await statSafe(abs);
-        if (!st) continue;
         const rel = path.relative(root, abs).replace(/\\/gu, "/");
-        if (st.isDirectory()) {
+        if (pathMatchesUserIgnore(rel, ignore)) continue;
+        // Do not stat-follow a link out of the vault or into an .app bundle.
+        if (dirent.isSymbolicLink() || isHeavyDirName(name)) continue;
+        if (dirent.isDirectory()) {
           if (skipDir.has(name)) continue;
           if (!includeArchive && /(^|\/)99[ -]/u.test(rel)) continue;
           if (name === ".topmind") continue; // system plane — list explicitly via list_files
           await walk(abs);
           continue;
         }
-        if (!st.isFile()) continue;
+        if (!dirent.isFile()) continue;
         if (!includeArchive && /(^|\/)99[ -]/u.test(rel)) continue;
+        const st = await statSafe(abs);
+        if (!st?.isFile()) continue;
         const scopedRel = scope ? rel.slice(scope.length + 1) || name : rel;
         if (re.test(rel) || re.test(scopedRel) || re.test(name)) {
           matches.push({
@@ -667,6 +726,12 @@ export const scanOps = {
     const rel = String(p?.relativePath || "").replace(/\\/gu, "/").replace(/^\/+|\/+$/gu, "");
     if (!rel) return { ok: false, error: "path-required" };
     const abs = path.join(root, rel);
+    let listed;
+    try { listed = await lstat(abs); } catch { listed = null; }
+    if (!listed) return { ok: false, relativePath: rel, error: "not-found" };
+    if ((listed.isSymbolicLink() && isEscapingSymlinkSync(root, abs)) || resolvesOutsideVaultSync(root, abs)) {
+      return { ok: false, relativePath: rel, error: "outside-vault" };
+    }
     const st = await statSafe(abs);
     if (!st) return { ok: false, relativePath: rel, error: "not-found" };
     const hint = st.isFile() ? binaryHint(path.basename(rel)) : {};

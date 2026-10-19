@@ -20,6 +20,46 @@ import { rememberDesktopFetchMedia } from "./runtime-bounds.mjs";
 export const MEDIA_SCHEME = "topmind-asset";
 const REMOTE_CACHE_DIR = ".topmind/media-cache";
 const REMOTE_MAX_BYTES = 15 * 1024 * 1024;
+/** Whole-directory ceiling. Oldest files are dropped after a new write. */
+const REMOTE_CACHE_MAX_BYTES = 80 * 1024 * 1024;
+const REMOTE_CACHE_MAX_FILES = 400;
+
+async function pruneRemoteCache(cacheDir) {
+  let entries;
+  try {
+    entries = await fs.readdir(cacheDir);
+  } catch {
+    return;
+  }
+  /** @type {Array<{ abs: string, bytes: number, mtimeMs: number }>} */
+  const files = [];
+  let total = 0;
+  for (const name of entries) {
+    if (name.startsWith(".")) continue;
+    const abs = path.join(cacheDir, name);
+    try {
+      const st = await fs.stat(abs);
+      if (!st.isFile()) continue;
+      files.push({ abs, bytes: st.size, mtimeMs: st.mtimeMs });
+      total += st.size;
+    } catch {
+      /* raced */
+    }
+  }
+  if (files.length <= REMOTE_CACHE_MAX_FILES && total <= REMOTE_CACHE_MAX_BYTES) return;
+  files.sort((a, b) => a.mtimeMs - b.mtimeMs);
+  let remaining = files.length;
+  for (const file of files) {
+    if (remaining <= REMOTE_CACHE_MAX_FILES && total <= REMOTE_CACHE_MAX_BYTES) break;
+    try {
+      await fs.unlink(file.abs);
+      total -= file.bytes;
+      remaining -= 1;
+    } catch {
+      /* ignore */
+    }
+  }
+}
 
 /**
  * Call before app.ready.
@@ -169,6 +209,7 @@ async function serveRemoteImage(u, getCtx, net) {
     try {
       await fs.mkdir(cacheDir, { recursive: true });
       await fs.writeFile(cachePath, buf);
+      await pruneRemoteCache(cacheDir);
     } catch {
       /* cache is best-effort */
     }

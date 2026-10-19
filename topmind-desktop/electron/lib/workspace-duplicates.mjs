@@ -8,6 +8,7 @@ import path from "node:path";
 import { createHash } from "node:crypto";
 import { createReadStream, promises as fs } from "node:fs";
 import { absWorkspaceRoot } from "./path-model.mjs";
+import { isHeavyDirName } from "./file-filter.mjs";
 
 const SKIP_DIR_NAMES = new Set([".git", ".obsidian", ".topmind", "node_modules"]);
 const SKIP_FILE_RE = /\.tmp-|\.shadow-draft\.tmp$|^\.DS_Store$/u;
@@ -103,7 +104,7 @@ export async function findDuplicateFiles(workspaceRoot, opts = {}) {
     let dirents;
     try { dirents = await fs.readdir(abs, { withFileTypes: true }); } catch { return; }
     for (const d of dirents) {
-      if (SKIP_DIR_NAMES.has(d.name)) continue;
+      if (SKIP_DIR_NAMES.has(d.name) || isHeavyDirName(d.name) || d.isSymbolicLink()) continue;
       if (d.name.startsWith(".")) continue;
       const childAbs = path.join(abs, d.name);
       const childRel = rel ? `${rel}/${d.name}` : d.name;

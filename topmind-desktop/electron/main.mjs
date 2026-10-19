@@ -40,8 +40,9 @@ import { IngestService } from "./ingest-service.mjs";
 import { WechatService } from "./wechat-service.mjs";
 import { logInfo, logWarn, logError, attachFileLogger, getLogFilePath, summarizeError } from "./lib/writeback.mjs";
 import { attachOpsJournal } from "./lib/ops-journal.mjs";
+import { pruneRegenerableCaches } from "./lib/fs-utils.mjs";
 import { loadAppSettings, saveAppSettings, updateAppSettings } from "./settings.mjs";
-import { closeWorkspaceWatcher, startWorkspaceWatcher, markIgnoredFileChanges } from "./watchers.mjs";
+import { closeWorkspaceWatcher, startWorkspaceWatcher, markIgnoredFileChanges, isRecoverableWatcherError } from "./watchers.mjs";
 import { invalidateNotesIndex, releaseNotesIndex } from "./lib/notes-index.mjs";
 import {
   releaseDesktopOwned,
@@ -126,25 +127,22 @@ let aiStreamingActive = false; // Track AI streaming state for dock badge manage
 let bootErrorShown = false;
 
 function showBootError(title, detail) {
+  if (bootErrorShown) return;
+  bootErrorShown = true;
   const message = String(detail || "Unknown error");
   logError("main", title, { error: message, logFile: getLogFilePath() });
-  // dialog needs app ready on some platforms; swallow if too early.
-  try {
-    if (app.isReady()) {
-      dialog.showErrorBox(
-        title,
-        `${message}\n\nLog: ${getLogFilePath() || "(no log file)"}\nPlatform: ${platformTag()}\nPackaged: ${app.isPackaged}`,
-      );
-    } else {
-      app.whenReady().then(() => {
-        if (bootErrorShown) return;
-        bootErrorShown = true;
-        dialog.showErrorBox(
-          title,
-          `${message}\n\nLog: ${getLogFilePath() || "(no log file)"}\nPlatform: ${platformTag()}`,
-        );
-      }).catch(() => {});
+  const body = `${message}\n\nLog: ${getLogFilePath() || "(no log file)"}\nPlatform: ${platformTag()}\nPackaged: ${app.isPackaged}`;
+  const show = () => {
+    try {
+      dialog.showErrorBox(title, body);
+    } catch {
+      /* dialog unavailable */
     }
+  };
+  // One dialog per process. A watcher EMFILE storm used to stack a box per framework.
+  try {
+    if (app.isReady()) show();
+    else app.whenReady().then(show).catch(() => {});
   } catch {
     /* ignore */
   }
@@ -160,6 +158,10 @@ process.on("uncaughtException", (err) => {
 });
 process.on("unhandledRejection", (reason) => {
   const summary = summarizeError(reason);
+  if (isRecoverableWatcherError(reason)) {
+    logError("main", "watcher degraded (unhandledRejection)", { error: summary });
+    return;
+  }
   logError("main", "unhandledRejection", { error: summary });
   showBootError("topmind crashed (unhandledRejection)", summary);
 });
@@ -1390,6 +1392,16 @@ if (isLinux() && typeof app.setDesktopName === "function") {
 
 const hasLock = app.requestSingleInstanceLock();
 if (!hasLock) { app.quit(); } else {
+  try {
+    const pruned = pruneRegenerableCaches(desktopStateHome);
+    if (pruned.length) {
+      logInfo("main", "pruned regenerable chromium caches", { pruned });
+    }
+  } catch (e) {
+    logWarn("main", "cache prune failed", {
+      error: e instanceof Error ? e.message : String(e),
+    });
+  }
   app.on("second-instance", () => {
     showMainWindow();
   });

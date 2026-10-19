@@ -3,14 +3,19 @@
  * Used by topic tree lazy-load, Outputs, Archive.
  */
 import path from "node:path";
+import { lstat } from "node:fs/promises";
 import { exists, listDir, statSafe, readTextPreview } from "./fs-utils.mjs";
 import { splitMarkdownFrontmatter } from "./frontmatter.mjs";
 import { S, sp } from "./workspace-helpers.mjs";
+import { absWorkspaceRoot } from "./path-model.mjs";
+import { isEscapingSymlinkSync } from "./path-safety.mjs";
 import {
   shouldShowFile,
   shouldSkipDirName,
   normalizeFileFilterMode,
   fileExtension,
+  loadVaultIgnoreSync,
+  pathMatchesUserIgnore,
 } from "./file-filter.mjs";
 
 async function peekMdTitle(absPath) {
@@ -63,6 +68,8 @@ export async function listWorkspaceDir({ relativePath, filter }, ctx) {
   const mode = normalizeFileFilterMode(filter || ctx?.fileFilterMode || "default");
   const abs = await sp(ctx.workspaceRoot, relativePath);
   if (!(await exists(abs))) return { relativePath, filter: mode, entries: [] };
+  const root = absWorkspaceRoot(ctx.workspaceRoot);
+  const ignore = loadVaultIgnoreSync(root);
 
   const names = await listDir(abs).catch(() => []);
   /** @type {Array<object>} */
@@ -70,21 +77,44 @@ export async function listWorkspaceDir({ relativePath, filter }, ctx) {
   for (const name of names) {
     if (shouldSkipDirName(name)) continue;
     const childAbs = path.join(abs, name);
-    const st = await statSafe(childAbs);
-    if (!st) continue;
     const childRel = relativePath ? `${relativePath.replace(/\\/gu, "/")}/${name}` : name;
+    if (pathMatchesUserIgnore(childRel, ignore)) continue;
+    let lst;
+    try {
+      lst = await lstat(childAbs);
+    } catch {
+      continue;
+    }
+    if (lst.isSymbolicLink() && isEscapingSymlinkSync(root, childAbs)) continue;
+    const st = lst.isSymbolicLink() ? await statSafe(childAbs) : lst;
+    if (!st) continue;
     if (st.isDirectory()) {
-      // Count visible children (shallow) for badge
+      // Count visible children (shallow) for badge. lstat so a symlink out of
+      // the vault is not reported as a directory of /Applications.
       let childCount = 0;
       try {
         const sub = await listDir(childAbs);
         for (const s of sub) {
           if (shouldSkipDirName(s)) continue;
           const sAbs = path.join(childAbs, s);
-          const ss = await statSafe(sAbs);
-          if (!ss) continue;
-          if (ss.isDirectory()) childCount += 1;
-          else if (ss.isFile() && shouldShowFile(s, mode)) childCount += 1;
+          const sRel = `${childRel}/${s}`;
+          if (pathMatchesUserIgnore(sRel, ignore)) continue;
+          let subLst;
+          try {
+            subLst = await lstat(sAbs);
+          } catch {
+            continue;
+          }
+          if (subLst.isSymbolicLink()) {
+            if (isEscapingSymlinkSync(root, sAbs)) continue;
+            const followed = await statSafe(sAbs);
+            if (!followed) continue;
+            if (followed.isDirectory()) childCount += 1;
+            else if (followed.isFile() && shouldShowFile(s, mode)) childCount += 1;
+            continue;
+          }
+          if (subLst.isDirectory()) childCount += 1;
+          else if (subLst.isFile() && shouldShowFile(s, mode)) childCount += 1;
         }
       } catch {
         /* */
@@ -204,8 +234,9 @@ export async function listOutputsEnhanced({ subPath = "", filter, recursiveFlat 
       if (files.length >= limit) return;
       if (shouldSkipDirName(name)) continue;
       const childAbs = path.join(abs, name);
-      const st = await statSafe(childAbs);
-      if (!st) continue;
+      let st;
+      try { st = await lstat(childAbs); } catch { continue; }
+      if (st.isSymbolicLink()) continue;
       const childRel = prefix ? `${prefix}/${name}` : `${outputsName}/${name}`;
       if (st.isDirectory()) {
         await walk(childAbs, childRel);
@@ -273,8 +304,9 @@ export async function listArchiveEnhanced({ subPath = "", filter, recursiveFlat 
       if (items.length >= limit) return;
       if (shouldSkipDirName(name)) continue;
       const childAbs = path.join(abs, name);
-      const st = await statSafe(childAbs);
-      if (!st) continue;
+      let st;
+      try { st = await lstat(childAbs); } catch { continue; }
+      if (st.isSymbolicLink()) continue;
       const childRel = prefix ? `${prefix}/${name}` : `${archiveName}/${name}`;
       if (st.isDirectory()) {
         await walk(childAbs, childRel);

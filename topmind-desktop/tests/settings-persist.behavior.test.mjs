@@ -5,7 +5,7 @@
 import { test, beforeEach, after } from "node:test";
 import assert from "node:assert/strict";
 import {
-  mkdtempSync, rmSync, writeFileSync, readFileSync, existsSync, mkdirSync,
+  mkdtempSync, rmSync, writeFileSync, readFileSync, existsSync, mkdirSync, utimesSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -261,4 +261,30 @@ test("encrypted secureStorage preserves ciphertext when memory secrets empty", a
   assert.equal(reloaded.ai.manual.openAiKey, "sk-encrypted-keep", "ciphertext must be preserved");
   assert.equal(reloaded.weread.apiKey, "wrk-enc");
   assert.equal(reloaded.ui.sidebarWidth, 333);
+});
+
+test("cleanupStaleSettingsTemps drops empty and old temps and keeps a fresh one", async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "topmind-settings-tmp-"));
+  try {
+    const file = path.join(dir, "app-settings.json");
+    writeFileSync(file, "{}\n");
+    const mod = await import(`${pathToFileURL(settingsPath).href}?t=${Date.now()}-temps`);
+    const cleanup = mod.__settingsTest.cleanupStaleSettingsTemps;
+    const maxAge = mod.__settingsTest.SETTINGS_TEMP_MAX_AGE_MS;
+    const empty = path.join(dir, "app-settings.json.tmp.empty");
+    const old = path.join(dir, "app-settings.json.tmp.old");
+    const fresh = path.join(dir, "app-settings.json.tmp.fresh");
+    writeFileSync(empty, "");
+    writeFileSync(old, "stale-copy");
+    const aged = new Date(Date.now() - maxAge - 1000);
+    utimesSync(old, aged, aged);
+    writeFileSync(fresh, "in-flight");
+    await cleanup(file);
+    assert.equal(existsSync(empty), false);
+    assert.equal(existsSync(old), false);
+    assert.equal(existsSync(fresh), true);
+    assert.equal(existsSync(file), true);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

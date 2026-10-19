@@ -54,6 +54,62 @@ function isPathInside(basePath, targetPath) {
 }
 
 /**
+ * True when absPath is a symlink whose real target sits outside workspaceRoot.
+ * Dangling links count as escaping. Mirrors lib/vault-walk.mjs.
+ * @param {string} workspaceRoot
+ * @param {string} absPath
+ * @returns {boolean}
+ */
+export function isEscapingSymlinkSync(workspaceRoot, absPath) {
+  let st;
+  try {
+    st = lstatSync(absPath);
+  } catch {
+    return false;
+  }
+  if (!st.isSymbolicLink()) return false;
+  let realTarget;
+  try {
+    realTarget = realpathSync(absPath);
+  } catch {
+    return true;
+  }
+  let realRoot;
+  try {
+    realRoot = realpathSync(workspaceRoot);
+  } catch {
+    realRoot = path.resolve(workspaceRoot);
+  }
+  return !isPathInside(realRoot, realTarget) && path.resolve(realTarget) !== path.resolve(realRoot);
+}
+
+/**
+ * True when an existing path resolves outside the workspace, including a path
+ * reached through an intermediate symlink. Missing paths return false.
+ * Mirrors lib/vault-walk.mjs.
+ * @param {string} workspaceRoot
+ * @param {string} absPath
+ * @returns {boolean}
+ */
+export function resolvesOutsideVaultSync(workspaceRoot, absPath) {
+  if (!workspaceRoot || !absPath) return false;
+  let realTarget;
+  try {
+    realTarget = realpathSync(absPath);
+  } catch {
+    return false;
+  }
+  let realRoot;
+  try {
+    realRoot = realpathSync(workspaceRoot);
+  } catch {
+    realRoot = path.resolve(workspaceRoot);
+  }
+  if (path.resolve(realTarget) === path.resolve(realRoot)) return false;
+  return !isPathInside(realRoot, realTarget);
+}
+
+/**
  * Assert that targetPath lives inside basePath (or any of basePath if array).
  * Handles live and dangling symlinks via realpathBestEffort (Kernel-aligned).
  */

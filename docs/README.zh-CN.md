@@ -117,6 +117,7 @@
 | [2026-09-17](./adr/2026-09-17c-adversarial-pass-fences-and-honesty.md) | symlink fail-closed · Memory 单真源 |
 | [2026-09-17](./adr/2026-09-17e-global-memory-quality.md) | 全局记忆质量（去重/恢复/注入）· 2026-09-25 融合门 |
 | [2026-09-25](./adr/2026-09-25-goal-oriented-agent-loop.md) | 目标导向智能体循环（规划/验收/续跑/压缩） |
+| [2026-10-19](./adr/2026-10-19-vault-watch-fence.md) | 库边界：不跟随库外链接、不递归应用包；监听 EMFILE 不弹崩溃框；缓存与设置临时文件有上限 |
 
 设计提案（非 ADR）：[`./design/`](./design/)。
 ---

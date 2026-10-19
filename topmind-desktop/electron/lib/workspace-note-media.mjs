@@ -10,6 +10,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { exists, listDir, statSafe } from "./fs-utils.mjs";
+import { isHeavyDirName, loadVaultIgnoreSync, pathMatchesUserIgnore } from "./file-filter.mjs";
 import { resolveDataRoot } from "./path-model.mjs";
 import { sp, trashAbsolute, trashRelative } from "./workspace-helpers.mjs";
 import {
@@ -47,22 +48,28 @@ export async function listWorkspaceImageFiles(root, opts = {}) {
   if (!fresh && hit && Date.now() - hit.at < ttl) return hit.paths;
   /** @type {string[]} */
   const paths = [];
+  const ignore = loadVaultIgnoreSync(absRoot);
   const walk = async (dir) => {
     if (paths.length >= max) return;
-    const names = await listDir(dir);
-    for (const name of names) {
+    let dirents;
+    try {
+      dirents = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const dirent of dirents) {
       if (paths.length >= max) return;
-      if (!name || name.startsWith(".") || SKIP_WALK_DIR.has(name)) continue;
+      const name = dirent.name;
+      if (!name || name.startsWith(".") || SKIP_WALK_DIR.has(name) || isHeavyDirName(name)) continue;
+      if (dirent.isSymbolicLink()) continue;
       const abs = path.join(dir, name);
-      const st = await statSafe(abs);
-      if (!st) continue;
-      if (st.isDirectory()) {
+      const rel = path.relative(absRoot, abs).replace(/\\/gu, "/");
+      if (pathMatchesUserIgnore(rel, ignore)) continue;
+      if (dirent.isDirectory()) {
         await walk(abs);
         continue;
       }
-      if (st.isFile() && IMAGE_FILE_RE.test(name)) {
-        paths.push(path.relative(absRoot, abs).replace(/\\/gu, "/"));
-      }
+      if (dirent.isFile() && IMAGE_FILE_RE.test(name)) paths.push(rel);
     }
   };
   await walk(absRoot);

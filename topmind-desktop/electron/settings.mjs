@@ -106,18 +106,28 @@ async function ensureParentDir(filePath) {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
 }
 
-/** Remove abandoned 0-byte atomic-write temp files. */
+/** Abandoned atomic-write temps older than this are not an in-flight save. */
+const SETTINGS_TEMP_MAX_AGE_MS = 2 * 60 * 1000;
+
+/**
+ * Remove abandoned `app-settings.json.tmp.*` files.
+ * A crash between write and rename (EMFILE did this) left multi-megabyte copies.
+ * Empty temps go immediately. Non-empty temps wait out the age window so a
+ * concurrent save in this process is not unlinked mid-write.
+ */
 async function cleanupStaleSettingsTemps(settingsFilePath) {
   try {
     const dir = path.dirname(settingsFilePath);
     const base = path.basename(settingsFilePath);
+    const now = Date.now();
     const entries = await fs.readdir(dir);
     for (const name of entries) {
       if (!name.startsWith(`${base}.tmp.`)) continue;
       const full = path.join(dir, name);
       try {
         const st = await fs.stat(full);
-        if (st.size === 0) await fs.unlink(full);
+        const stale = st.size === 0 || now - st.mtimeMs >= SETTINGS_TEMP_MAX_AGE_MS;
+        if (stale) await fs.unlink(full);
       } catch {
         /* ignore */
       }
@@ -141,6 +151,7 @@ async function readPreviousSecureStorage(settingsFilePath) {
 }
 
 export async function loadAppSettings(settingsFilePath, defaultWorkspaceRoot, options = {}) {
+  await cleanupStaleSettingsTemps(settingsFilePath);
   const defaults = createDefaultAppSettings(defaultWorkspaceRoot);
   const resolvedOptions = resolvePersistenceOptions(options);
   const bakPath = settingsBackupPath(settingsFilePath);
@@ -272,6 +283,8 @@ async function readSettingsForMerge(settingsFilePath, defaultWorkspaceRoot, opti
 }
 
 __settingsTest.readSettingsForMerge = readSettingsForMerge;
+__settingsTest.cleanupStaleSettingsTemps = cleanupStaleSettingsTemps;
+__settingsTest.SETTINGS_TEMP_MAX_AGE_MS = SETTINGS_TEMP_MAX_AGE_MS;
 
 /**
  * Unlocked atomic write (must only run inside enqueueSettingsWrite).
@@ -315,7 +328,12 @@ async function saveAppSettingsUnlocked(settingsFilePath, settings, options = {})
     }
   } catch { /* bak is best-effort */ }
 
-  await fs.rename(tmpPath, settingsFilePath);
+  try {
+    await fs.rename(tmpPath, settingsFilePath);
+  } catch (err) {
+    await fs.unlink(tmpPath).catch(() => {});
+    throw err;
+  }
   void cleanupStaleSettingsTemps(settingsFilePath);
   return settings;
 }

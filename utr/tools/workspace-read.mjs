@@ -26,6 +26,7 @@ import {
   workspaceRelative,
 } from "../core/topic-files.mjs";
 import { parseFrontmatter } from "../core/frontmatter.mjs";
+import { isHeavyDirName, loadVaultIgnoreSync, pathMatchesUserIgnore } from "../../lib/vault-walk.mjs";
 import { emitResult } from "../core/result-envelope.mjs";
 import { parseArgs } from "../core/cli-args.mjs";
 import { t } from "../core/i18n-strings.mjs";
@@ -242,12 +243,18 @@ async function listTopicFiles(category, topic, scope, ctx) {
 
 async function listInbox(inboxRootPath, limit, workspaceRoot) {
   const files = [];
+  const ignore = workspaceRoot ? loadVaultIgnoreSync(workspaceRoot) : [];
   if (await isDirectory(inboxRootPath)) {
     async function walk(current) {
       const entries = await fs.readdir(current, { withFileTypes: true });
       for (const entry of entries) {
         if (entry.name.startsWith(".")) continue;
+        if (entry.isSymbolicLink() || isHeavyDirName(entry.name)) continue;
         const entryPath = path.join(current, entry.name);
+        if (workspaceRoot) {
+          const rel = path.relative(workspaceRoot, entryPath).split(path.sep).join("/");
+          if (pathMatchesUserIgnore(rel, ignore)) continue;
+        }
         if (entry.isDirectory()) {
           await walk(entryPath);
         } else if (entry.isFile()) {
@@ -272,13 +279,18 @@ async function listRecentCaptures(ctx, inboxRootPath, limit) {
   const candidates = [];
   const categoriesRoot = userWorkspaceCategoriesRoot(ctx);
 
+  const ignore = loadVaultIgnoreSync(categoriesRoot);
+
   async function collectMarkdownFiles(root, { category = null, topic = null } = {}) {
     if (!await isDirectory(root)) return;
     async function walk(current) {
       const entries = await fs.readdir(current, { withFileTypes: true });
       for (const entry of entries) {
         if (entry.name.startsWith(".")) continue;
+        if (entry.isSymbolicLink() || isHeavyDirName(entry.name)) continue;
         const entryPath = path.join(current, entry.name);
+        const rel = path.relative(categoriesRoot, entryPath).split(path.sep).join("/");
+        if (pathMatchesUserIgnore(rel, ignore)) continue;
         if (entry.isDirectory()) {
           await walk(entryPath);
         } else if (entry.isFile() && path.extname(entry.name).toLowerCase() === ".md") {
@@ -300,7 +312,7 @@ async function listRecentCaptures(ctx, inboxRootPath, limit) {
     for (const entry of entries) {
       if (entry.isFile() && entry.name.endsWith(".md")) {
         candidates.push({ path: path.join(categoryDir, entry.name), category, topic: null });
-      } else if (entry.isDirectory() && !entry.name.startsWith(".")) {
+      } else if (entry.isDirectory() && !entry.name.startsWith(".") && !entry.isSymbolicLink() && !isHeavyDirName(entry.name)) {
         // v3.4: notes live at topic root — collect the whole topic dir
         await collectMarkdownFiles(path.join(categoryDir, entry.name), { category, topic: entry.name });
       }
@@ -370,13 +382,18 @@ async function collectSafetyReceiptCandidates(ctx, archiveRootPath) {
   const candidates = [];
   const workspaceRoot = userWorkspaceCategoriesRoot(ctx);
 
+  const ignore = loadVaultIgnoreSync(workspaceRoot);
+
   async function collectFileTree(root) {
     if (!await isDirectory(root)) return;
     async function walk(current) {
       const entries = await fs.readdir(current, { withFileTypes: true });
       for (const entry of entries) {
         if (entry.name.startsWith(".")) continue;
+        if (entry.isSymbolicLink() || isHeavyDirName(entry.name)) continue;
         const entryPath = path.join(current, entry.name);
+        const rel = path.relative(workspaceRoot, entryPath).split(path.sep).join("/");
+        if (pathMatchesUserIgnore(rel, ignore)) continue;
         if (entry.isDirectory()) {
           await walk(entryPath);
           continue;

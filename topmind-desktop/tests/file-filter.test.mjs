@@ -4,6 +4,7 @@ import {
   shouldShowFile,
   normalizeFileFilterMode,
   fileExtension,
+  shouldSkipDirName,
 } from "../electron/lib/file-filter.mjs";
 
 test("fileExtension extracts lower-case ext", () => {
@@ -31,6 +32,14 @@ test("shouldShowFile markdown is strict", () => {
   assert.equal(shouldShowFile("a.md", "markdown"), true);
   assert.equal(shouldShowFile("a.html", "markdown"), false);
   assert.equal(shouldShowFile("a.docx", "markdown"), false);
+});
+
+test("shouldSkipDirName hides packages and keeps images", () => {
+  assert.equal(shouldSkipDirName("Blender.app"), true);
+  assert.equal(shouldSkipDirName("EquationKit.framework"), true);
+  assert.equal(shouldSkipDirName("node_modules"), true);
+  assert.equal(shouldSkipDirName("images"), false);
+  assert.equal(shouldSkipDirName("notes"), false);
 });
 
 test("shouldShowFile all allows any", () => {

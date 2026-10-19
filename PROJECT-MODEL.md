@@ -206,6 +206,15 @@ AI 分发遇到歧义时按"内容性质"判定；无法判定时 → `00-Inbox/
 > 规约 1 / 2 / 6 对所有类别生效。Skills / UTR / Desktop 读 `topmind.yaml` → `templates/*.json` 决定路由与清理提示。  
 > 语义平面与系统平面固定件（`memory/` · `topmind.yaml` · `.topmind/`）**不改名、不删除、不进自发现**——这是平面规则，不占 6 条规约。
 
+### 库边界
+
+工作区就是 Obsidian 库。监听和全量遍历遵守同一条边界：
+
+- 不跟随指向库外的符号链接。写路径的 `isPathInsideWorkspace` 是同一条围栏。
+- 不递归 `.app` / `.framework` 等包，以及 `node_modules`、`dist`、`__pycache__`、`__MACOSX`、`venv`。
+- `.obsidian/app.json` 的 `userIgnoreFilters`（JavaScript 正则，匹配库内相对路径）在监听和全量遍历里同样生效。不另建一份忽略名单。
+- 笔记树可以不展开这些包。Obsidian 文件列表仍可能显示它们，除非用户自己加上排除规则。`images/` 仍是普通目录。
+
 ---
 
 ## 4. 渐进式专题解析模型 (Progressive Topic Model)

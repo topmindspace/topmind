@@ -12,6 +12,7 @@ import {
   getWorkspaceModel,
 } from "./workspace-context.mjs";
 import { inspectContract } from "../../lib/kernel-api.mjs";
+import { isHeavyDirName } from "../../lib/vault-walk.mjs";
 
 const V2_DEFAULT_ANCHOR_FILES = new Set(["outline.md", "setting.md", "style.md"]);
 const FORBIDDEN_FILE_SUFFIXES = new Set([".tmp", ".clean"]);
@@ -55,6 +56,7 @@ async function walk(root, visit) {
   for (const entry of entries) {
     const entryPath = path.join(root, entry.name);
     await visit(entryPath, entry);
+    if (entry.isSymbolicLink() || isHeavyDirName(entry.name)) continue;
     if (entry.isDirectory()) {
       await walk(entryPath, visit);
     }

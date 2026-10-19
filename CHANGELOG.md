@@ -4,6 +4,19 @@ topmind 仓库的版本记录。GitHub 只保留最近 2 个 Release，本文件
 
 版本真源：Desktop 是 `topmind-desktop/package.json`，UTR 跟随 `utr/VERSION`。
 
+## 4.16.4 — 2026-10-19
+
+### 修复
+
+- 打开工作区不再因为库内符号链接走进 `/Applications` 或 `.app` 而耗尽文件描述符。监听不跟随库外链接，也不进入应用包和依赖目录。`EMFILE` 记入日志并停掉监听，不再对每个 framework 弹「topmind crashed」。
+- 索引、搜索、图片列表、清理和 UTR 遍历使用同一条库边界，并认 Obsidian `.obsidian/app.json` 的 `userIgnoreFilters`。显式打开的路径如果解析到库外（中间经过越界链接，或落在应用包里），搜索和列出到此停止。
+
+### 优化
+
+- 启动时裁剪可重建的 Chromium 缓存（Cache 128 MB、Code Cache 64 MB，GPU 缓存各 32 MB）。不删除状态、日志和 Cookies。
+- 设置原子写留下的 `app-settings.json.tmp.*`：空文件立刻删除，超过 2 分钟的非空临时文件也删除。
+- 工作区 `.topmind/media-cache` 超过 80 MB 或 400 个文件时，按最旧优先删除。支持日志仍是 2 MB × 3 轮转。
+
 ## 4.16.3 — 2026-10-17
 
 ### 优化

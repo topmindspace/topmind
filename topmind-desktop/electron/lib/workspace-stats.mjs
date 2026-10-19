@@ -6,6 +6,7 @@ import path from "node:path";
 import { promises as fs } from "node:fs";
 import { CATEGORY_PATTERN, absWorkspaceRoot } from "./path-model.mjs";
 import { resolveCategoryRoles } from "./workspace-helpers.mjs";
+import { isHeavyDirName } from "./file-filter.mjs";
 
 const SKIP_DIR_NAMES = new Set([
   ".git", ".obsidian", ".topmind", "node_modules",
@@ -60,7 +61,7 @@ export async function collectWorkspaceStats(workspaceRoot, opts = {}) {
     } catch { return; }
     for (const d of dirents) {
       if (d.name.startsWith(".") && d.name !== ".topmind") continue;
-      if (SKIP_DIR_NAMES.has(d.name)) continue;
+      if (SKIP_DIR_NAMES.has(d.name) || isHeavyDirName(d.name) || d.isSymbolicLink()) continue;
       const childAbs = path.join(abs, d.name);
       const childRel = rel ? `${rel}/${d.name}` : d.name;
       if (d.isDirectory()) {

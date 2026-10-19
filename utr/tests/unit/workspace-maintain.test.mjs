@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import os from "node:os";
 import path from "node:path";
-import { promises as fs } from "node:fs";
+import { promises as fs, symlinkSync } from "node:fs";
 
 import { executeTool } from "../../core/tool-executor.mjs";
 import { loadContractRegistry } from "../../core/contract-registry.mjs";
@@ -150,5 +150,49 @@ test("workspace-maintain archive-topic moves directory atomically and generates 
     assert.ok(filesInArchive.includes("archive-receipt.json"));
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("cleanup-empty-dirs treats packages and escaping links as present content", async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "topmind-maintain-fence-"));
+  const outside = await fs.mkdtemp(path.join(os.tmpdir(), "topmind-maintain-out-"));
+  try {
+    const inboxRoot = path.join(tempDir, "00-收件箱");
+    const archiveDir = path.join(tempDir, "99-归档");
+    const deepWorkDir = path.join(tempDir, "20-研究");
+    await fs.mkdir(inboxRoot, { recursive: true });
+    await fs.mkdir(archiveDir, { recursive: true });
+    const topic = path.join(deepWorkDir, "2026-包");
+    const inside = path.join(topic, "Fake.app", "Contents", "empty-inside");
+    await fs.mkdir(inside, { recursive: true });
+    try {
+      symlinkSync(outside, path.join(topic, "escape"));
+    } catch {
+      /* package assertion still runs */
+    }
+    const registry = await loadContractRegistry();
+    const preview = await executeTool({
+      registry,
+      kind: "workspace-maintain",
+      command: "cleanup-empty-dirs",
+      payload: { dryRun: true },
+      pathContext: {
+        userWorkspaceRoot: tempDir,
+        categoriesRoot: tempDir,
+        inboxRootPath: inboxRoot,
+        archiveRootPath: archiveDir,
+        engineRoot: process.cwd(),
+      },
+      writebackMode: "auto",
+      reviewed: true,
+    });
+    assert.equal(preview.ok, true);
+    const reported = preview.data.emptyDirs;
+    assert.equal(reported.some((dir) => dir.includes("Fake.app")), false);
+    assert.equal(reported.some((dir) => dir.includes("escape")), false);
+    assert.equal(reported.includes("20-研究/2026-包"), false);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+    await fs.rm(outside, { recursive: true, force: true });
   }
 });

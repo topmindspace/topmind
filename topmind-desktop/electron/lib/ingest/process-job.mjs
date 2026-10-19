@@ -7,6 +7,7 @@ import { detectIngestKind, isConvertibleKind } from "./detect.mjs";
 import { convertToMarkdown } from "./convert/registry.mjs";
 import { commitMarkdownNote, commitOriginalFallback } from "./commit.mjs";
 import { DEFAULT_PREFERRED_CONVERTER, normalizePreferredConverter } from "./convert-policy.mjs";
+import { isHeavyDirName } from "../file-filter.mjs";
 
 /** Soft default for auto-convert; PPT with images often exceeds 25MB. */
 export const INGEST_MAX_FILE_BYTES_DEFAULT = 80_000_000;
@@ -241,7 +242,7 @@ export async function walkFiles(dirPath, maxFiles = 200) {
     for (const ent of entries) {
       if (out.length >= maxFiles) return;
       const name = ent.name;
-      if (name.startsWith(".") || name === "node_modules" || name === "__MACOSX") continue;
+      if (name.startsWith(".") || isHeavyDirName(name) || ent.isSymbolicLink()) continue;
       const full = path.join(dir, name);
       if (ent.isDirectory()) await walk(full);
       else if (ent.isFile()) out.push(full);

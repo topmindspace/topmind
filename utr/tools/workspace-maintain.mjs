@@ -39,6 +39,11 @@ import {
 } from "../core/workspace-context.mjs";
 import { parseArgs, resolveMode, resolveActor, isUserActor } from "../core/cli-args.mjs";
 import { ensureDir, isDirectory } from "../core/topic-files.mjs";
+import {
+  loadVaultIgnoreSync,
+  pathMatchesUserIgnore,
+  shouldDescendDirent,
+} from "../../lib/vault-walk.mjs";
 import { auditWorkspace } from "../core/workspace-audit.mjs";
 import { emitResult } from "../core/result-envelope.mjs";
 import { t } from "../core/i18n-strings.mjs";
@@ -360,6 +365,7 @@ async function archiveStreamYear({ year, mode }, ctxObj) {
 
 async function cleanupEmptyDirs({ mode }, ctxObj) {
   const emptyDirs = [];
+  const ignore = loadVaultIgnoreSync(ctxObj.userWorkspaceRoot);
 
   const categories = discoverCategories(
     ctxObj.categoriesRoot || ctxObj.userWorkspaceRoot,
@@ -398,7 +404,14 @@ async function cleanupEmptyDirs({ mode }, ctxObj) {
 
     for (const entry of visible) {
       const childPath = path.join(currentDir, entry.name);
-      if (entry.isDirectory()) {
+      const rel = path.relative(ctxObj.userWorkspaceRoot, childPath).split(path.sep).join("/");
+      // A package, an out-of-vault link, or an Obsidian-excluded dir is present
+      // content. Auto mode must not rm inside Blender.app or /Applications.
+      if (entry.isDirectory() || entry.isSymbolicLink()) {
+        if (entry.isSymbolicLink() || !shouldDescendDirent(entry) || pathMatchesUserIgnore(rel, ignore)) {
+          allChildrenEmpty = false;
+          continue;
+        }
         const childEmpty = await scanDir(childPath);
         if (!childEmpty) {
           allChildrenEmpty = false;

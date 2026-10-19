@@ -3,6 +3,12 @@ import path from "node:path";
 
 import { parseFrontmatter } from "./frontmatter.mjs";
 import { isValidCategoryName } from "./workspace-context.mjs";
+import {
+  isEscapingSymlinkSync,
+  isHeavyDirName,
+  loadVaultIgnoreSync,
+  pathMatchesUserIgnore,
+} from "../../lib/vault-walk.mjs";
 
 /**
  * v3.5.4 topic structure — sections/articles/entities typed object directories
@@ -67,15 +73,23 @@ export async function fileInfo(targetPath, workspaceRoot, kind) {
 async function listMarkdownFiles(root, {
   includeMemos = true,
   includeTemplates = true,
+  workspaceRoot = "",
 } = {}) {
   const files = [];
+  if (workspaceRoot && isEscapingSymlinkSync(workspaceRoot, root)) return files;
   if (!await isDirectory(root)) return files;
+  const ignore = workspaceRoot ? loadVaultIgnoreSync(workspaceRoot) : [];
 
   async function walk(current) {
     const entries = await fs.readdir(current, { withFileTypes: true });
     for (const entry of entries) {
       if (entry.name.startsWith(".")) continue;
+      if (entry.isSymbolicLink() || isHeavyDirName(entry.name)) continue;
       const entryPath = path.join(current, entry.name);
+      if (workspaceRoot) {
+        const rel = path.relative(workspaceRoot, entryPath).split(path.sep).join("/");
+        if (pathMatchesUserIgnore(rel, ignore)) continue;
+      }
       if (entry.isDirectory()) {
         await walk(entryPath);
         continue;
@@ -93,7 +107,7 @@ async function listMarkdownFiles(root, {
 }
 
 export async function walkMarkdown(root, workspaceRoot, kind, options = {}) {
-  const files = await listMarkdownFiles(root, options);
+  const files = await listMarkdownFiles(root, { ...options, workspaceRoot });
   return Promise.all(files.map((file) => fileInfo(file, workspaceRoot, kind)));
 }
 
