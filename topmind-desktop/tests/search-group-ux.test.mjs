@@ -6,18 +6,16 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "path";
 import { fileURLToPath } from "node:url";
+import { groupSearchResults } from "../src/lib/workspace-search.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 describe("GlobalSearch group UX", () => {
   it("defines path buckets and i18n group keys", () => {
-    const src = fs.readFileSync(
-      path.join(root, "src/components/overlays/GlobalSearch.tsx"),
-      "utf8",
-    );
-    assert.match(src, /function searchBucket/);
-    assert.match(src, /groupedResults/);
-    assert.match(src, /overlays:search\.group\./);
+    assert.deepEqual(groupSearchResults([
+      { relativePath: "88-outputs/result.md" },
+      { relativePath: "memory/profile.md" },
+    ], "all").map((g) => g.bucket), ["memory", "outputs"]);
     const zh = JSON.parse(
       fs.readFileSync(path.join(root, "src/locales/zh-CN/overlays.json"), "utf8"),
     );

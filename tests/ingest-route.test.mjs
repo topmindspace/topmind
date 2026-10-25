@@ -9,7 +9,7 @@ import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { resolveIngestRoute } from "../lib/ingest-pipeline.mjs";
 import { buildDefaultContract } from "../lib/contract-engine.mjs";
-import { stashPendingWrite, listPendingWrites, takePendingWrite, rejectPendingWrite } from "../topmind-desktop/electron/lib/pending-writes.mjs";
+import { stashPendingWrite, listPendingWrites, takePendingWrite, rejectPendingWrite } from "../lib/pending-writes.mjs";
 import { executeWrite, executeDelete } from "../lib/writeback-engine.mjs";
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "topmind-ingest-"));

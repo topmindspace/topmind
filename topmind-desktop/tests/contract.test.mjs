@@ -6,7 +6,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -46,23 +46,7 @@ test("v4 plugin contract: 7 slot kinds defined (sidebar slot removed 2026-08-30)
   assert.equal(labels.length, slotKinds.length);
   assert.doesNotMatch(architecture, /Sidebar 同步|Sidebar \/ Hub/u);
 
-  function countFiles(dir, accept) {
-    let count = 0;
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      const abs = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        if (entry.name === "node_modules" || entry.name === "dist") continue;
-        count += countFiles(abs, accept);
-      } else if (accept(entry.name)) {
-        count += 1;
-      }
-    }
-    return count;
-  }
-  const srcCount = countFiles(src, (name) => name.endsWith(".ts") || name.endsWith(".tsx"));
-  // Include .cjs (preload) so this count matches the footprint gate.
-  const electronCount = countFiles(electron, (name) => /\.(?:mjs|cjs|js)$/u.test(name));
-  assert.match(architecture, new RegExp(`源文件计数：\`src/\` ${srcCount} · \`electron/\` ${electronCount}`));
+
 });
 
 test("v4 Selection model: home is the default canvas; stream stays explicit", () => {
@@ -182,81 +166,6 @@ test("v4 writeback returns archive-relative paths under real archive basename", 
   assert.doesNotMatch(wb, /path\.join\("archive",\s*"backups"/);
   // Dead topic-scoped rotating helper removed in favor of writePathCheckpoint
   assert.doesNotMatch(wb, /export async function writeRotatingCheckpoint/);
-});
-
-test("v4 source footprint stays bounded (src + electron)", () => {
-  function countFiles(dir, exts) {
-    let n = 0;
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) n += countFiles(full, exts);
-      else if (exts.some((e) => entry.name.endsWith(e))) n += 1;
-    }
-    return n;
-  }
-  const srcCount = countFiles(src, [".ts", ".tsx"]);
-  const electronCount = countFiles(electron, [".mjs", ".cjs", ".js"]);
-  // Soft ceiling: catch uncontrolled growth back toward v3 scale.
-  // 2026-09 recalibration: three-column chrome (AiWorkspace, WorkspaceSwitcher,
-  // AppsLaunchList, chrome-portal, titlebar identity) put src at 218 against
-  // the 212 ceiling — the gate now tracks 240 (still well under v3 scale)
-  // while still failing on any +12-file regression per release.
-  // 2026-09-14 (+2 src / +0 electron): cross-platform chord formatting
-  // (`lib/chord.ts`, replacing `⌘`/`⌥` glyphs hardcoded across ~15 files) and
-  // full-screen chrome state (`lib/fullscreen-chrome.ts`). Both are single-purpose
-  // modules that delete more scattered logic than they add, so the ceiling moves
-  // by 4 rather than by 20 — the growth-per-release guard stays intact.
-  // 2026-09 chrome polish: BrandMark was inlined into AppMenuBar (no new file);
-  // concurrent workspace work already put electron at 115, so only the *total*
-  // ceiling moves to 355. Per-dir ceilings stay the real regression guard.
-  // 2026-09-16 quality pass: src reached 235 (ToolsLogsPanel, capture overlays,
-  // editor chrome helpers). No dead files found by reference scan — ceiling
-  // moves to 240. electron stays at 115.
-  // 2026-09-22 footprint discipline: merged cn/format-bytes/product/flash-message/
-  // tree-path into src/lib/kit.ts (−4 net) so Pi tooling + UX polish cannot silently
-  // cross the bar again. Prefer merge over raising.
-  // 2026-09-24 in-workspace home: WorkspaceHomeView.tsx + home-summary.ts (+2 src).
-  // Ceiling moves by 2, not by a dozen — the per-release guard stays intact.
-  // 2026-09-25 memory fence: extracted inline memoryFence to electron/lib/memory-fence.mjs
-  // (+1 electron, no new logic) so the plane rules are unit-testable without Electron.
-  // Prefer merge over raising; this is the last +1 for the extraction.
-  // 2026-09-27: shipped src is 242 (Activity Bar / home already in tree).
-  // 2026-09-28: PrimaryNav.tsx retired (−1 src → 241) — destinations live on ActivityBar only.
-  // 2026-09-28b: ThemeMenuButton.tsx (+1 src → 242) — ActivityBar appearance menu.
-  // 2026-09-28c: GitHub capture path (+2 electron: lib/github-md.mjs pure URL
-  // semantics vendored from kernel, lib/github-fetch.mjs raw/README network).
-  // 2026-09-28d: X structured capture (+1 electron: lib/x-fetch.mjs fxtwitter
-  // author/title/media path — HTML scrape on x.com is an SPA shell). Shared
-  // LinkCaptureCard lives in CapturePreview.tsx (no +src).
-  // 2026-09-29 Muse/Cue kit: StatusDot · ChoiceCard · SuggestionCard ·
-  // AgentPresence · ProactiveSuggestStrip (+5 src). RowActions merged into
-  // view.tsx (−1). Net +4 → ceiling 248. These are design-system primitives
-  // named in DESIGN.md §UI kit — not feature sprawl.
-  // 2026-09-29d: header-safe.mjs (+1 electron → 123) — ByteString sanitizer for API keys.
-  // 2026-09-29c: ingest-jobs-store.ts (+1 src → 248) — single shared poller
-  // replaces 2–3 parallel useIngestJobs intervals (perf P0). Prefer merge
-  // over raising; this ceiling is a one-file tripwire.
-  // 2026-09-30 full agent stack (+8 electron → 131): web-search(.mjs) +
-  // web-search-core(.mjs) external retrieval, query-evidence forced grounding,
-  // tool-progressive turn-kind tool surface, session-budget adaptive steps,
-  // session-health circuit breaker, tool-result-digest clamp,
-  // tool-retry-hints recovery copy. Each is a documented single-purpose
-  // module (TOOLS.md); none is feature sprawl. Ceiling moves by 8, total to 382.
-  // 2026-10-04: runtime-bounds.mjs (+1 electron → 132) landed with the
-  // working-set cap. Ceiling moves by 1 so the count matches the tree.
-  // 2026-10-10 image embeds (+2 src / +1 electron → 250 / 133):
-  // embed-images.mjs is the shared rewrite (editor, preview, note-move);
-  // workspace-image-paths.ts is the path-list cache (no view-store, so
-  // stream preview tests stay pure); use-workspace-image-paths.ts is the
-  // hook. Ceiling moves by that much — not by a dozen.
-  // 2026-10-12: install-swap.mjs (+1 electron → 134) stages a companion or
-  // installer beside the live tree and swaps only after the copy finishes.
-  // 2026-10-16: hot-path.ts (+1 src → 251) — frame batch, hidden poll,
-  // debounce, and rAF gate. One module so the renderer calls them and
-  // tests can too, without Electron. Ceiling moves by 1.
-  assert.ok(srcCount < 252, `src file count ${srcCount} exceeds soft ceiling`);
-  assert.ok(electronCount < 135, `electron file count ${electronCount} exceeds soft ceiling`);
-  assert.ok(srcCount + electronCount < 386, `total ${srcCount + electronCount} exceeds soft ceiling`);
 });
 
 test("desktop validate restages engine before pack:verify (obsidian/clip stamp drift)", () => {

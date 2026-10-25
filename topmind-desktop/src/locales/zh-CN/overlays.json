@@ -159,7 +159,10 @@
     "footerRecent": "{{count}} 最近",
     "truncatedHint": "结果已截断至 {{count}} 条 · 非全库普查 · 可换更具体关键词缩小范围",
     "filterAll": "全部",
-    "clearRecent": "清除"
+    "clearRecent": "清除",
+    "errorTitle": "搜索未完成",
+    "errorHint": "暂时无法读取搜索结果，请重试。",
+    "retry": "重新搜索"
   },
   "command": {
     "ariaLabel": "命令面板",

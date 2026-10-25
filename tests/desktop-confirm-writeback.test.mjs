@@ -76,13 +76,13 @@ describe("Workspace writeback.mode drives Kernel gate (not app-settings)", () =>
     kernelApi.resetKernelApiCache();
     const rel = "10-动态/accept-me.md";
     const content = "---\ntitle: accept\n---\n\naccepted body\n";
-    const stashed = pending.stashPendingWrite({
+    const stashed = await pending.stashPendingWrite({
       relativePath: rel,
       content,
       toolName: "save_file",
       workspaceRoot: ws,
     });
-    const taken = pending.takePendingWrite(ws, stashed.id);
+    const taken = await pending.takePendingWrite(ws, stashed.id);
     assert.ok(taken);
     const ev = await pathOps.savePath(
       {

@@ -242,6 +242,8 @@ export function ChatInput() {
   const { t } = useTranslation("editor");
   const [text, setText] = useState("");
   const streaming = useAiStore((s) => s.streaming);
+  const messagesLoading = useAiStore((s) => s.messagesLoading);
+  const messagesError = useAiStore((s) => s.messagesError);
   const sendOrSteer = useAiStore((s) => s.sendOrSteer);
   const pauseStream = useAiStore((s) => s.pauseStream);
   const resumeStream = useAiStore((s) => s.resumeStream);
@@ -496,7 +498,7 @@ export function ChatInput() {
 
   const handleSubmit = useCallback((mode: "steer" | "followUp" = "steer") => {
     const trimmed = text.trim();
-    if (!trimmed || !ready) return;
+    if (!trimmed || !ready || messagesLoading || messagesError) return;
     // Fold attached tokens into the prompt context (skill + file chips).
     const tokenNotes = fieldTokens
       .map((tok) =>
@@ -515,7 +517,7 @@ export function ChatInput() {
       setSlashHints([]);
       setAtHints([]);
       setFieldTokens([]);
-      void resumeStream(payload);
+      void resumeStream(payload).catch(() => {});
       return;
     }
     // While streaming: Enter = steer (mid-turn); Alt+Enter = follow-up (after turn).
@@ -532,7 +534,7 @@ export function ChatInput() {
     setAtHints([]);
     setFieldTokens([]);
     void sendOrSteer(payload, "steer");
-  }, [text, streaming, paused, ready, sendOrSteer, resumeStream, fieldTokens]);
+  }, [text, streaming, paused, ready, messagesLoading, messagesError, sendOrSteer, resumeStream, fieldTokens]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Esc while streaming → PAUSE (pattern 12: interrupt, not abandon).
@@ -540,7 +542,7 @@ export function ChatInput() {
     if (e.key === "Escape" && streaming) {
       e.preventDefault();
       e.stopPropagation(); // don't also exit focus mode / close overlays
-      void pauseStream();
+      void pauseStream().catch(() => {});
       return;
     }
     if (e.key === "Enter" && !e.shiftKey) {
@@ -561,7 +563,7 @@ export function ChatInput() {
   };
 
 
-  const canSend = text.trim().length > 0 && ready;
+  const canSend = text.trim().length > 0 && ready && !messagesLoading && !messagesError;
 
   // 焦点信息 — 从 selection 提取当前上下文用于 placeholder。
   // 名字截断到 12 字符：placeholder 单行显示，过长会被 rows=1 裁切。
@@ -815,7 +817,7 @@ export function ChatInput() {
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => void pauseStream()}
+                onClick={() => void pauseStream().catch(() => {})}
                 aria-label={t("ai.pauseGeneration")}
               >
                 <RiCheckboxBlankLine size={ICON.xs} className="fill-current" />
@@ -830,7 +832,7 @@ export function ChatInput() {
                 size="icon"
                 onClick={() => {
                   const redirect = text.trim();
-                  void resumeStream(redirect || undefined);
+                  void resumeStream(redirect || undefined).catch(() => {});
                 }}
                 aria-label={t("ai.resumeGeneration")}
               >
@@ -841,7 +843,7 @@ export function ChatInput() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => void abandonPaused()}
+                onClick={() => void abandonPaused().catch(() => {})}
                 aria-label={t("ai.abandonPaused")}
               >
                 <RiCloseLine size={ICON.sm} />

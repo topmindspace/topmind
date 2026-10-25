@@ -1,8 +1,10 @@
+import { AGENT_STEPS_MIN, AGENT_STEPS_MAX, AGENT_STEPS_DEFAULT, clampMaxAgentSteps } from "./writeback-mode-copy.mjs";
 /**
  * Settings pure core — defaults, normalize, merge, secret policy.
  * No filesystem I/O. Used by settings.mjs (persistence) and unit tests.
  */
 import path from "node:path";
+import { PANEL_WIDTHS, normalizePanelWidth } from "./workbench-layout.mjs";
 import { normalizeExtraSkillsRoots } from "./skills-extra.mjs";
 import { headerSafe, isHeaderSafeSecret } from "./header-safe.mjs";
 import {
@@ -122,9 +124,6 @@ const FEED_LAYOUTS = new Set(["list", "card"]);
 const UI_LOCALES = new Set(["auto", "zh-CN", "en-US"]);
 // MAX_RECENT_WORKSPACES imported from workspace-path-id.mjs
 /** Agent multi-step loop bounds (inclusive). */
-const AGENT_STEPS_MIN = 3;
-const AGENT_STEPS_MAX = 80;
-const AGENT_STEPS_DEFAULT = 32;
 
 function clone(value) {
   return structuredClone(value);
@@ -492,11 +491,7 @@ function clampAutoSaveMs(value) {
   return Math.max(500, Math.min(5000, Math.round(n / 100) * 100));
 }
 
-function clampMaxAgentSteps(value) {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return AGENT_STEPS_DEFAULT;
-  return Math.max(AGENT_STEPS_MIN, Math.min(AGENT_STEPS_MAX, Math.round(n)));
-}
+
 
 function normalizeEditorSettings(value, fallback = defaultEditorSettings()) {
   if (!isObject(value)) return clone(fallback);
@@ -1127,10 +1122,10 @@ const CLOSE_BEHAVIORS = new Set(["ask", "quit", "hide"]);
 
 function defaultUiSettings() {
   return {
-    sidebarWidth: 240,
+    sidebarWidth: PANEL_WIDTHS.sidebar.default,
     sidebarCollapsed: false,
     aiPanelOpen: true,
-    aiPanelWidth: 420,
+    aiPanelWidth: PANEL_WIDTHS.ai.default,
     /** Default sidebar view mode (stream / category tree / timeline / tags / kanban). */
     sidebarView: "stream",
     /** Stream + collection canvas: list (dense feed) or card (single-column). */
@@ -1166,12 +1161,10 @@ function normalizeUiSettings(value, fallback = defaultUiSettings()) {
   const locale =
     typeof localeRaw === "string" && UI_LOCALES.has(localeRaw) ? localeRaw : "auto";
   return {
-    sidebarWidth: typeof value.sidebarWidth === "number" && value.sidebarWidth >= 180 && value.sidebarWidth <= 480
-      ? value.sidebarWidth : fallback.sidebarWidth,
+    sidebarWidth: normalizePanelWidth(value.sidebarWidth, "sidebar", fallback.sidebarWidth),
     sidebarCollapsed: value.sidebarCollapsed === true,
     aiPanelOpen: value.aiPanelOpen !== false,
-    aiPanelWidth: typeof value.aiPanelWidth === "number" && value.aiPanelWidth >= 280 && value.aiPanelWidth <= 800
-      ? value.aiPanelWidth : fallback.aiPanelWidth,
+    aiPanelWidth: normalizePanelWidth(value.aiPanelWidth, "ai", fallback.aiPanelWidth),
     sidebarView:
       typeof value.sidebarView === "string" && SIDEBAR_VIEWS.has(value.sidebarView)
         ? value.sidebarView

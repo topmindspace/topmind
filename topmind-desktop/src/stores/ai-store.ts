@@ -71,6 +71,9 @@ interface AiState {
 
   messages: AiMessage[];
   messagesError: string | null;
+  messagesLoading: boolean;
+  messagesSaveError: string | null;
+  retrySaveMessages: () => Promise<void>;
   loadMessages: (sessionId: string) => Promise<void>;
   sendMessage: (text: string) => Promise<void>;
   /**
@@ -188,8 +191,11 @@ function genSessionId(): string {
  */
 let streamUnsub: (() => void) | null = null;
 let streamScope: ReturnType<typeof createHotPathScope> | null = null;
+let activeDeltaBatcher: StreamDeltaBatcher | null = null;
 
 function stopAiDeltaScope() {
+  activeDeltaBatcher?.clear();
+  activeDeltaBatcher = null;
   if (streamScope) {
     streamScope.dispose();
     streamScope = null;
@@ -209,8 +215,20 @@ function stopAiDeltaScope() {
  * old session id.
  */
 let streamGeneration = 0;
+let sessionSelectionGeneration = 0;
+let messageLoadGeneration = 0;
+let workspaceGeneration = 0;
+let modelCatalogGeneration = 0;
+let modelCatalogRequest: {
+  generation: number;
+  forceLive: boolean;
+  forceModelsDev: boolean;
+  promise: Promise<ProviderInfo[]>;
+} | null = null;
 /** Set on cancel — aborts the queued follow-up chain (sendMessage bumps gen). */
 let followUpChainAborted = false;
+/** Fallback while the backend is still preparing its stream registry. */
+let localFollowUps: string[] = [];
 
 function patchLastAssistant(
   messages: AiMessage[],
@@ -232,9 +250,10 @@ function patchLastAssistant(
 class StreamDeltaBatcher {
   private batcher: ReturnType<typeof createNotifyBatcher>;
 
-  constructor(set: StoreApi<AiState>["setState"]) {
+  constructor(set: StoreApi<AiState>["setState"], isCurrent: () => boolean) {
     this.batcher = createNotifyBatcher({
       publish: ({ text: textDelta, reasoning: reasoningDelta }) => {
+        if (!isCurrent()) return;
         set((s) => ({
           messages: patchLastAssistant(s.messages, (last) => {
             let contentRaw = last.contentRaw ?? last.content;
@@ -284,6 +303,66 @@ class StreamDeltaBatcher {
   }
 }
 
+async function persistMessages(
+  get: StoreApi<AiState>["getState"], set: StoreApi<AiState>["setState"],
+  sessionId: string, messages: AiMessage[], workspaceGen = workspaceGeneration,
+) {
+  if (workspaceGen !== workspaceGeneration) return;
+  try {
+    await api.ai.saveMsgs({ sessionId, messages: retainTranscript(messages) });
+    if (workspaceGen === workspaceGeneration && get().activeSessionId === sessionId) set({ messagesSaveError: null });
+  } catch (error) {
+    if (workspaceGen === workspaceGeneration && get().activeSessionId === sessionId) {
+      set({ messagesSaveError: i18n.t("ai:store.historySaveFailed") });
+    }
+    throw error;
+  }
+}
+
+async function settleBeforeSessionChange(get: StoreApi<AiState>["getState"]) {
+  if (get().streaming) await get().cancelStream();
+  else if (get().messagesSaveError) await get().retrySaveMessages();
+}
+
+/** One interruption path owns flush, cancellation, snapshot and cleanup. */
+async function interruptInvocation(
+  get: StoreApi<AiState>["getState"], set: StoreApi<AiState>["setState"], paused: boolean,
+) {
+  if (paused && (!get().streaming || get().paused)) return;
+  activeDeltaBatcher?.flush();
+  const gen = ++streamGeneration;
+  const workspaceGen = workspaceGeneration;
+  stopAiDeltaScope();
+  followUpChainAborted = true;
+  localFollowUps = [];
+  const sid = get().activeSessionId;
+  const goal = get().streamGoal;
+  set((state) => ({
+    paused,
+    messages: patchLastAssistant(state.messages, (last) => ({
+      ...last, cancelled: !paused, stopReason: paused ? "paused" : "cancelled",
+      goal: goal ? { ...goal, status: goal.status === "done" ? "done" : "incomplete" } : last.goal || null,
+    })),
+  }));
+  const snapshot = get().messages;
+  try {
+    if (sid) await api.ai.cancel(sid);
+  } catch (error) {
+    emitLocal("toast:show", { kind: "error", text: i18n.t("ai:store.cancelFailed") });
+    throw error;
+  } finally {
+    try {
+      if (sid && gen === streamGeneration) await persistMessages(get, set, sid, snapshot, workspaceGen);
+    } finally {
+      if (gen === streamGeneration) set({
+        paused, streaming: false, streamDelta: "", streamStatus: null, streamToolName: null,
+        streamToolCalls: [], streamToolCount: null, streamMaxSteps: null, lastSteerPreview: null,
+        pendingFollowUpCount: 0, streamGoal: paused ? goal : null, streamAutoContinues: 0,
+      });
+    }
+  }
+}
+
 async function performInvocation(
   get: StoreApi<AiState>["getState"],
   set: StoreApi<AiState>["setState"],
@@ -291,6 +370,8 @@ async function performInvocation(
   apiMessages: AiMessage[],
 ): Promise<void> {
   const gen = ++streamGeneration;
+  const workspaceGen = workspaceGeneration;
+  stopAiDeltaScope();
   set({
     streaming: true,
     streamDelta: "",
@@ -303,9 +384,9 @@ async function performInvocation(
     streamMaxSteps: null,
   });
 
-  const deltaBatcher = new StreamDeltaBatcher(set);
+  const deltaBatcher = new StreamDeltaBatcher(set, () => gen === streamGeneration);
+  activeDeltaBatcher = deltaBatcher;
 
-  stopAiDeltaScope();
   streamScope = createHotPathScope();
   streamUnsub = mountAiDeltas(streamScope, () => subscribe("ai:stream", (payload) => {
     // Stale generation (cancel/supersede) must never write into the next turn.
@@ -519,6 +600,8 @@ async function performInvocation(
   }));
 
   try {
+    await persistMessages(get, set, sessionId, apiMessages, workspaceGen);
+    if (gen !== streamGeneration || get().activeSessionId !== sessionId) return;
     const mountedFiles = get().mountedFiles.map((f) => f.path);
     // Silent ambient focus: current open file is included this turn (no extra UI).
     const sel = useViewStore.getState().selection;
@@ -551,6 +634,9 @@ async function performInvocation(
     });
     // Stamp result onto the assistant row only when this invoke is still live.
     if (gen === streamGeneration) {
+      // Drain before replacing the row or saving it. A late rAF would otherwise
+      // append the same tail twice, or persist an empty/partial final message.
+      deltaBatcher.flush();
       set((s) => {
         const updated = patchLastAssistant(s.messages, (last) => {
           const partial = last.content;
@@ -621,7 +707,8 @@ async function performInvocation(
     if (gen === streamGeneration && get().activeSessionId === sessionId) {
       const bounded = retainTranscript(get().messages);
       if (bounded !== get().messages) set({ messages: bounded });
-      await api.ai.saveMsgs({ sessionId, messages: bounded });
+      // Saving failure must not replace a successful answer with an I/O error.
+      await persistMessages(get, set, sessionId, bounded, workspaceGen).catch(() => {});
     }
 
     // G11 memory distill closed loop: after a run that touched files, offer
@@ -648,7 +735,10 @@ async function performInvocation(
     // Compare against the *chain* generation, not this invoke's gen — each
     // sendMessage bumps streamGeneration, so the original gen would abort on
     // iteration 2 and drop follow-ups 2..n.
-    const followUps = Array.isArray(result.followUps) ? result.followUps.filter(Boolean) : [];
+    const followUps = [
+      ...(Array.isArray(result.followUps) ? result.followUps.filter(Boolean) : []),
+      ...(gen === streamGeneration ? localFollowUps.splice(0) : []),
+    ];
     if (followUps.length > 0 && result.ok !== false && gen === streamGeneration) {
       set({ pendingFollowUpCount: followUps.length });
       followUpChainAborted = false;
@@ -706,11 +796,12 @@ async function performInvocation(
 export const useAiStore = create<AiState>((set, get) => ({
   runtimeStatus: null,
   async refreshRuntimeStatus() {
+    const gen = workspaceGeneration;
     try {
       const status = await api.ai.status();
-      set({ runtimeStatus: status });
+      if (gen === workspaceGeneration) set({ runtimeStatus: status });
     } catch {
-      set({ runtimeStatus: { ready: false, message: i18n.t("ai:store.runtimeUnavailable") } });
+      if (gen === workspaceGeneration) set({ runtimeStatus: { ready: false, message: i18n.t("ai:store.runtimeUnavailable") } });
     }
   },
 
@@ -718,6 +809,12 @@ export const useAiStore = create<AiState>((set, get) => ({
   activeSessionId: null,
   messages: [],
   messagesError: null,
+  messagesLoading: false,
+  messagesSaveError: null,
+  async retrySaveMessages() {
+    const id = get().activeSessionId;
+    if (id) await persistMessages(get, set, id, get().messages);
+  },
   streaming: false,
   paused: false,
   streamDelta: "",
@@ -738,8 +835,10 @@ export const useAiStore = create<AiState>((set, get) => ({
   sessionLoadedSkills: [],
 
   async loadSessions() {
+    const gen = workspaceGeneration;
     try {
       const sessions = await api.ai.sessions();
+      if (gen !== workspaceGeneration) return;
       // Filter out empty placeholder sessions (default title) from the UI list.
       // Do NOT auto-delete: title matching is locale-dependent and a user-titled
       // chat equal to the default string would be silently wiped.
@@ -749,57 +848,98 @@ export const useAiStore = create<AiState>((set, get) => ({
       // Don't auto-create a session — the UI shows empty conversation
       // and creates one lazily when the user sends the first message.
     } catch {
-      set({ sessions: [] });
+      if (gen === workspaceGeneration) set({ sessions: [] });
     }
   },
   async createSession() {
+    const selectionGen = ++sessionSelectionGeneration;
+    if (get().streaming || get().messagesSaveError) await settleBeforeSessionChange(get);
+    if (selectionGen !== sessionSelectionGeneration) return get().activeSessionId || "";
+    streamGeneration += 1;
+    messageLoadGeneration += 1;
+    localFollowUps = [];
     const id = genSessionId();
     const session: AiSession = { id, title: i18n.t("ai:store.newSession"), updatedAt: new Date().toISOString() };
     set((s) => ({
       sessions: [session, ...s.sessions],
       activeSessionId: id,
       messages: [],
+      messagesError: null,
+      messagesLoading: false,
+      messagesSaveError: null,
+      paused: false,
+      streamGoal: null,
+      sessionLoadedSkills: [],
+      pendingFollowUpCount: 0,
     }));
     // Don't persist to backend — only persist when the first message is sent.
     // This prevents empty sessions from cluttering history.
     return id;
   },
   async selectSession(id) {
+    const selectionGen = ++sessionSelectionGeneration;
     // Cancel any in-flight stream before switching — otherwise the old
     // invocation's saveMsgs would write this session's empty array under
     // the old session id.
-    if (get().streaming) {
-      await get().cancelStream();
-    }
-    set({ activeSessionId: id, messages: [] });
+    if (get().streaming || get().messagesSaveError) await settleBeforeSessionChange(get);
+    if (selectionGen !== sessionSelectionGeneration) return;
+    streamGeneration += 1;
+    localFollowUps = [];
+    set({ activeSessionId: id, messages: [], messagesError: null, messagesSaveError: null, paused: false, streamGoal: null, sessionLoadedSkills: [], pendingFollowUpCount: 0 });
     await get().loadMessages(id);
   },
   async clearSession(id) {
-    await api.ai.clear(id);
+    const active = get().activeSessionId === id;
+    // Clearing explicitly discards this conversation; a failed snapshot save
+    // must not prevent the user's confirmed deletion.
+    if (active && get().streaming) await get().cancelStream().catch(() => {});
+    const gen = streamGeneration;
+    if (active) messageLoadGeneration += 1;
+    try { await api.ai.clear(id); }
+    catch (error) {
+      emitLocal("toast:show", { kind: "error", text: i18n.t("ai:store.clearFailed") });
+      throw error;
+    }
     set((s) => ({
       sessions: s.sessions.filter((x) => x.id !== id),
-      activeSessionId: s.activeSessionId === id ? null : s.activeSessionId,
-      messages: s.activeSessionId === id ? [] : s.messages,
+      ...(s.activeSessionId === id && gen === streamGeneration ? {
+        activeSessionId: null, messages: [], messagesError: null, messagesLoading: false, messagesSaveError: null,
+        paused: false, streamGoal: null, sessionLoadedSkills: [], pendingFollowUpCount: 0,
+      } : {}),
     }));
   },
 
   async loadMessages(sessionId) {
+    if (get().activeSessionId !== sessionId || get().streaming) return;
+    const loadGen = ++messageLoadGeneration;
+    const streamGen = streamGeneration;
+    const isCurrent = () => loadGen === messageLoadGeneration &&
+      streamGen === streamGeneration && get().activeSessionId === sessionId;
+    set({ messagesLoading: true, messagesError: null });
     try {
       const msgs = retainTranscript(await api.ai.loadMsgs(sessionId));
-      set({ messages: msgs, messagesError: null });
+      if (!isCurrent()) return;
+      const tail = msgs[msgs.length - 1];
+      const paused = tail?.role === "assistant" && tail.stopReason === "paused" && !tail.cancelled;
+      set({ messages: msgs, messagesError: null, messagesSaveError: null, paused: Boolean(paused), streamGoal: paused ? tail.goal || null : null });
     } catch (e) {
-      // Distinguish ENOENT (true empty — new session) from parse/IO errors
+      if (!isCurrent()) return;
+      // Missing files are handled by the service as a successful empty list.
+      // All rejected reads must stay visible, including RPC "not found" errors.
       const msg = e instanceof Error ? e.message : String(e);
-      const isMissing = /ENOENT|not found|no such file/i.test(msg);
       set({
         messages: [],
-        messagesError: isMissing ? null : msg,
+        messagesError: msg,
       });
+    } finally {
+      if (isCurrent()) set({ messagesLoading: false });
     }
   },
   async sendMessage(text) {
+    if (get().messagesLoading || get().messagesError) return;
     let sessionId = get().activeSessionId;
     if (!sessionId) sessionId = await get().createSession();
+    if (!sessionId || get().activeSessionId !== sessionId) return;
 
     // Auto-title first user turn
     const existing = get().messages;
@@ -833,22 +973,36 @@ export const useAiStore = create<AiState>((set, get) => ({
       await get().sendMessage(trimmed);
       return;
     }
+    const selectionGen = sessionSelectionGeneration;
+    const gen = streamGeneration;
+    const queueLocally = () => {
+      localFollowUps.push(trimmed);
+      set((s) => ({ pendingFollowUpCount: s.pendingFollowUpCount + 1 }));
+    };
+    if (mode === "followUp" && localFollowUps.length) {
+      queueLocally();
+      return;
+    }
     if (mode === "followUp") {
-      const r = await api.ai.followUp(sessionId, trimmed);
+      const r = await api.ai.followUp(sessionId, trimmed).catch(() => ({ ok: false }));
+      if (selectionGen !== sessionSelectionGeneration || get().activeSessionId !== sessionId) return;
+      if (gen !== streamGeneration && followUpChainAborted) return;
       if (r.ok) {
-        set((s) => ({ pendingFollowUpCount: s.pendingFollowUpCount + 1 }));
+        if (gen === streamGeneration) set((s) => ({ pendingFollowUpCount: s.pendingFollowUpCount + 1 }));
       } else if (!get().streaming) {
         // Safe to start a new invoke only when nothing is streaming.
         await get().sendMessage(trimmed);
       } else {
         // Stream still live — queue locally instead of racing two invokes.
-        set((s) => ({ pendingFollowUpCount: s.pendingFollowUpCount + 1 }));
+        queueLocally();
       }
       return;
     }
-    const r = await api.ai.steer(sessionId, trimmed);
+    const r = await api.ai.steer(sessionId, trimmed).catch(() => ({ ok: false }));
+    if (selectionGen !== sessionSelectionGeneration || get().activeSessionId !== sessionId) return;
+    if (gen !== streamGeneration && followUpChainAborted) return;
     if (r.ok) {
-      set({
+      if (gen === streamGeneration) set({
         lastSteerPreview: trimmed.slice(0, 120),
         streamStatus: "steering",
       });
@@ -856,7 +1010,7 @@ export const useAiStore = create<AiState>((set, get) => ({
       await get().sendMessage(trimmed);
     } else {
       // Do not double-invoke while the current stream owns the last assistant row.
-      set((s) => ({ pendingFollowUpCount: s.pendingFollowUpCount + 1 }));
+      queueLocally();
     }
   },
   async regenerate() {
@@ -873,89 +1027,8 @@ export const useAiStore = create<AiState>((set, get) => ({
     set({ messages: [...base, assistantPlaceholder] });
     await performInvocation(get, set, sessionId, base);
   },
-  async cancelStream() {
-    // Bump generation so the cancelled invocation's finally/saveMsgs/follow-ups
-    // are all inert — they check gen === streamGeneration before touching state.
-    streamGeneration += 1;
-    followUpChainAborted = true;
-    const sid = get().activeSessionId;
-    // Keep the incomplete goal + an honest cancelled marker on the last assistant.
-    set((s) => {
-      return {
-        messages: patchLastAssistant(s.messages, (last) => ({
-          ...last,
-          cancelled: true,
-          goal: s.streamGoal
-            ? (last.goal || { ...s.streamGoal!, status: s.streamGoal!.status === "done" ? "done" : "incomplete" })
-            : last.goal || null,
-        })),
-      };
-    });
-    try {
-      if (sid) await api.ai.cancel(sid);
-    } finally {
-      // Always clear UI even if the IPC cancel rejects — otherwise a failed
-      // cancel leaves a permanent spinner (old invoke's finally is gen-skipped).
-      set({
-        streaming: false,
-        streamDelta: "",
-        streamStatus: null,
-        streamToolName: null,
-        streamToolCalls: [],
-        streamToolCount: null,
-        streamMaxSteps: null,
-        lastSteerPreview: null,
-        pendingFollowUpCount: 0,
-        streamGoal: null,
-        streamAutoContinues: 0,
-      });
-      stopAiDeltaScope();
-    }
-  },
-
-  async pauseStream() {
-    // Pause ≠ cancel: abort the model call, keep the goal ledger and finished
-    // edits. stopReason="paused" so ChatMessage can offer Resume instead of
-    // painting an abandoned run. Bump generation so the old invoke's finally
-    // is inert (same as cancelStream).
-    if (!get().streaming || get().paused) return;
-    streamGeneration += 1;
-    followUpChainAborted = true;
-    const sid = get().activeSessionId;
-    const goalSnapshot = get().streamGoal;
-    set((s) => ({
-      paused: true,
-      messages: patchLastAssistant(s.messages, (last) => ({
-        ...last,
-        cancelled: false,
-        stopReason: "paused",
-        goal: goalSnapshot
-          ? {
-              ...goalSnapshot,
-              status: goalSnapshot.status === "done" ? "done" : "incomplete",
-            }
-          : last.goal || null,
-      })),
-    }));
-    try {
-      if (sid) await api.ai.cancel(sid);
-    } finally {
-      set({
-        streaming: false,
-        streamDelta: "",
-        streamStatus: null,
-        streamToolName: null,
-        streamToolCalls: [],
-        streamToolCount: null,
-        streamMaxSteps: null,
-        lastSteerPreview: null,
-        pendingFollowUpCount: 0,
-        // Keep streamGoal so Resume can rebuild the continue prompt.
-        streamAutoContinues: 0,
-      });
-      stopAiDeltaScope();
-    }
-  },
+  async cancelStream() { await interruptInvocation(get, set, false); },
+  async pauseStream() { await interruptInvocation(get, set, true); },
 
   async resumeStream(redirect) {
     // Only resume a paused, idle turn — never race a live stream.
@@ -1025,7 +1098,8 @@ export const useAiStore = create<AiState>((set, get) => ({
   modelsDevCatalogFetchedAt: null,
 
   invalidateModelCatalog() {
-    set({ modelCatalogFetchedAt: null });
+    modelCatalogGeneration += 1;
+    set({ modelCatalogFetchedAt: null, modelCatalogLoading: false });
   },
 
   async loadModelCatalog(opts) {
@@ -1047,100 +1121,138 @@ export const useAiStore = create<AiState>((set, get) => ({
       return state.modelCatalog;
     }
 
-    if (!silent) set({ modelCatalogLoading: true, modelCatalogError: null });
-    else if (forceLive || forceModelsDev) set({ modelCatalogError: null });
-
-    try {
-      // First paint: official disk + curated, no models.dev download.
-      if (get().modelCatalog.length === 0) {
-        try {
-          const instant = (await api.sys.discoverModels({ skipCommunity: true })) as ProviderInfo[];
-          if (instant.length > 0) {
-            set({
-              modelCatalog: instant,
-              modelCatalogFetchedAt: get().modelCatalogFetchedAt,
-            });
-          }
-        } catch {
-          /* empty catalog when unconfigured is fine */
-        }
+    const generation = modelCatalogGeneration;
+    const pending = modelCatalogRequest;
+    if (pending?.generation === generation) {
+      if ((!forceLive || pending.forceLive) && (!forceModelsDev || pending.forceModelsDev)) {
+        if (!silent) set({ modelCatalogLoading: true });
+        return pending.promise;
       }
+      // A stronger manual refresh must still run, after the current pass.
+      await pending.promise;
+      return get().loadModelCatalog(opts);
+    }
+    const publish = (patch: Partial<AiState>) => {
+      if (generation === modelCatalogGeneration) set(patch);
+    };
+    const promise = Promise.resolve().then(async () => {
+      if (!silent) publish({ modelCatalogLoading: true, modelCatalogError: null });
+      else if (forceLive || forceModelsDev) publish({ modelCatalogError: null });
 
-      // Community catalog (24h TTL). Force refresh bypasses TTL.
-      if (
-        forceModelsDev ||
-        (!state.modelsDevCatalogFetchedAt ||
-          Date.now() - new Date(state.modelsDevCatalogFetchedAt).getTime() > MODELS_DEV_CACHE_TTL_MS)
-      ) {
-        try {
-          const mdCatalog = await api.sys.fetchModelsDevCatalog({ forceLive: forceModelsDev });
-          if (Array.isArray(mdCatalog) && mdCatalog.length > 0) {
-            set({
-              modelsDevCatalog: mdCatalog,
-              modelsDevCatalogFetchedAt: new Date().toISOString(),
-            });
+      try {
+        // First paint: official disk + curated, no models.dev download.
+        if (get().modelCatalog.length === 0) {
+          try {
+            const instant = (await api.sys.discoverModels({ skipCommunity: true })) as ProviderInfo[];
+            if (instant.length > 0) {
+              publish({
+                modelCatalog: instant,
+                modelCatalogFetchedAt: get().modelCatalogFetchedAt,
+              });
+            }
+          } catch {
+            /* empty catalog when unconfigured is fine */
           }
-        } catch (e) {
-          console.error("models.dev fetch failed:", e);
         }
-      }
+        if (generation !== modelCatalogGeneration) return get().modelCatalog;
 
-      const shouldLive =
-        forceLive ||
-        !get().modelCatalogFetchedAt ||
-        ageMs >= MODEL_CATALOG_LIVE_TTL_MS;
+        // Community catalog (24h TTL). Force refresh bypasses TTL.
+        if (
+          forceModelsDev ||
+          (!state.modelsDevCatalogFetchedAt ||
+            Date.now() - new Date(state.modelsDevCatalogFetchedAt).getTime() > MODELS_DEV_CACHE_TTL_MS)
+        ) {
+          try {
+            const mdCatalog = await api.sys.fetchModelsDevCatalog({ forceLive: forceModelsDev });
+            if (Array.isArray(mdCatalog) && mdCatalog.length > 0) {
+              publish({
+                modelsDevCatalog: mdCatalog,
+                modelsDevCatalogFetchedAt: new Date().toISOString(),
+              });
+            }
+          } catch (e) {
+            console.error("models.dev fetch failed:", e);
+          }
+        }
 
-      if (shouldLive) {
+        if (generation !== modelCatalogGeneration) return get().modelCatalog;
+        const shouldLive =
+          forceLive ||
+          !get().modelCatalogFetchedAt ||
+          ageMs >= MODEL_CATALOG_LIVE_TTL_MS;
+
+        if (shouldLive) {
+          try {
+            await api.sys.fetchLiveModels();
+          } catch (e) {
+            if (forceLive || !silent) {
+              publish({
+                modelCatalogError: e instanceof Error ? e.message : String(e),
+              });
+            }
+          }
+        }
+
+        if (generation !== modelCatalogGeneration) return get().modelCatalog;
+        // Always re-merge after official / community work so the picker is not
+        // official-only (browse + Anthropic stay visible).
         try {
-          await api.sys.fetchLiveModels();
+          const merged = (await api.sys.discoverModels({
+            forceCommunity: forceModelsDev,
+          })) as ProviderInfo[];
+          const now = new Date().toISOString();
+          if (merged.length > 0) {
+            publish({
+              modelCatalog: merged,
+              modelCatalogFetchedAt: shouldLive || forceModelsDev ? now : get().modelCatalogFetchedAt || now,
+              modelCatalogError: shouldLive ? get().modelCatalogError : null,
+            });
+          } else if (forceLive || forceModelsDev) {
+            // Failed refresh must not stamp fallback-as-live; keep prior list.
+            if (!get().modelCatalogFetchedAt && get().modelCatalog.length > 0) {
+              publish({ modelCatalogFetchedAt: now });
+            }
+          }
         } catch (e) {
           if (forceLive || !silent) {
-            set({
+            publish({
               modelCatalogError: e instanceof Error ? e.message : String(e),
             });
           }
         }
-      }
 
-      // Always re-merge after official / community work so the picker is not
-      // official-only (browse + Anthropic stay visible).
-      try {
-        const merged = (await api.sys.discoverModels({
-          forceCommunity: forceModelsDev,
-        })) as ProviderInfo[];
-        const now = new Date().toISOString();
-        if (merged.length > 0) {
-          set({
-            modelCatalog: merged,
-            modelCatalogFetchedAt: shouldLive || forceModelsDev ? now : get().modelCatalogFetchedAt || now,
-            modelCatalogError: shouldLive ? get().modelCatalogError : null,
-          });
-        } else if (forceLive || forceModelsDev) {
-          // Failed refresh must not stamp fallback-as-live; keep prior list.
-          if (!get().modelCatalogFetchedAt && get().modelCatalog.length > 0) {
-            set({ modelCatalogFetchedAt: now });
-          }
-        }
-      } catch (e) {
-        if (forceLive || !silent) {
-          set({
-            modelCatalogError: e instanceof Error ? e.message : String(e),
-          });
-        }
+        return get().modelCatalog;
+      } finally {
+        publish({ modelCatalogLoading: false });
       }
-
-      return get().modelCatalog;
+    });
+    const request = { generation, forceLive, forceModelsDev, promise };
+    modelCatalogRequest = request;
+    try {
+      return await promise;
     } finally {
-      set({ modelCatalogLoading: false });
+      if (modelCatalogRequest === request) modelCatalogRequest = null;
     }
   },
 }));
 
 /** Drop the open-workspace transcript when the workspace changes or closes. */
 export function releaseAiWorkingSet() {
+  const state = useAiStore.getState();
+  if (state.streaming && state.activeSessionId) void api.ai.cancel(state.activeSessionId).catch(() => {});
+  workspaceGeneration += 1;
+  streamGeneration += 1;
+  sessionSelectionGeneration += 1;
+  messageLoadGeneration += 1;
+  modelCatalogGeneration += 1;
+  followUpChainAborted = true;
+  localFollowUps = [];
   stopAiDeltaScope();
   useAiStore.setState({
     messages: [],
+    messagesLoading: false,
+    messagesError: null,
+    messagesSaveError: null,
     sessions: [],
     activeSessionId: null,
     streaming: false,
@@ -1153,5 +1265,9 @@ export function releaseAiWorkingSet() {
     streamGoal: null,
     paused: false,
     pendingFollowUpCount: 0,
+    mountedFiles: [],
+    sessionLoadedSkills: [],
+    modelCatalogLoading: false,
+    modelCatalogFetchedAt: null,
   });
 }

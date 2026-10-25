@@ -4,7 +4,7 @@ import {
   isFencedMemoryPath,
   memoryFence,
   MEMORY_WRITE_TOOLS,
-} from "../electron/lib/memory-fence.mjs";
+} from "../../lib/agent-tool-policy.mjs";
 
 describe("memory-plane fence", () => {
   test("isFencedMemoryPath: memory/ is fenced, ledgers/ is not", () => {
@@ -60,11 +60,11 @@ describe("memory-plane fence", () => {
     assert.equal(memoryFence("save_file", {}), null);
   });
 
-  test("block note names the memory tools and the ledgers carve-out", () => {
+  test("blocked results expose a structured error and corrective guidance", () => {
     const res = memoryFence("save_file", { relativePath: "memory/profile/x.md" });
     assert.equal(res.ok, false);
     assert.equal(res.tool, "save_file");
-    assert.match(res.note, /append_core_memory/);
-    assert.match(res.note, /ledgers/);
+    assert.equal(res.error, "write-blocked:memory-plane");
+    assert.ok(res.note.length > 0);
   });
 });

@@ -29,7 +29,8 @@ export function createNotifyBatcher(opts: {
     if (frame == null) return;
     const id = frame;
     frame = null;
-    opts.cancelFrame?.(id);
+    if (opts.cancelFrame) opts.cancelFrame(id);
+    else if (typeof cancelAnimationFrame === "function") cancelAnimationFrame(id);
   }
 
   function schedule() {

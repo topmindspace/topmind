@@ -8,7 +8,6 @@ import {
   WORKING_SET_CAPS,
   applyDevTeardown,
   boundToolCalls,
-  capExpiryMap,
   claimHiddenRender,
   createHotPathScope,
   createOwnedRuntime,
@@ -129,12 +128,7 @@ test("notes, transcripts, stream rows, tasks, and fetch buffers stay inside thei
     assert.ok(growing.size <= WORKING_SET_CAPS.streamDrafts);
   }
 
-  const expiry = new Map();
-  for (let i = 0; i < WORKING_SET_CAPS.ignoredChanges + 50; i += 1) {
-    expiry.set(`f${i}`, i);
-  }
-  capExpiryMap(expiry, WORKING_SET_CAPS.ignoredChanges);
-  assert.equal(expiry.size, WORKING_SET_CAPS.ignoredChanges);
+
 });
 
 test("workspace close and quit empty working sets", () => {

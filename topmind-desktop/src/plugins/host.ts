@@ -109,7 +109,9 @@ const rpc: PluginRpc = {
 };
 
 /** Track active plugins and their deactivation handlers. */
-const activePlugins = new Map<string, { plugin: Plugin; unsubs: Array<() => void>; source: "builtin" | "external" }>();
+const activePlugins = new Map<string, { plugin: Plugin; dispose: () => void; source: "builtin" | "external" }>();
+
+const pendingActivations = new Map<string, Promise<void>>();
 
 /**
  * Cache of successfully imported external plugins (id → module).
@@ -243,56 +245,77 @@ export async function activatePlugin(
 ): Promise<void> {
   const id = plugin.manifest.id;
 
-  // Skip if already active
   if (activePlugins.has(id)) return;
+  const pending = pendingActivations.get(id);
+  if (pending) return pending;
 
-  const unsubs: Array<() => void> = [];
-  // External: enforce permissions; first-party: unrestricted
-  const resolvedGate: ContextGate =
-    gate ??
-    (source === "external"
+  const activation = (async () => {
+    const unsubs = new Set<() => void>();
+    let disposed = false;
+    const track = (release: () => void) => {
+      let released = false;
+      const once = () => {
+        if (released) return;
+        released = true;
+        unsubs.delete(once);
+        release();
+      };
+      if (disposed) once();
+      else unsubs.add(once);
+      return once;
+    };
+    const dispose = () => {
+      disposed = true;
+      for (const unsub of unsubs) {
+        try { unsub(); } catch { /* one faulty cleanup must not retain others */ }
+      }
+      useRegistry.getState().unregisterPlugin(id);
+    };
+    const resolvedGate: ContextGate = gate ?? (source === "external"
       ? {
           permissions: normalizePermissions(
-            (plugin as Plugin & { permissions?: string[] }).permissions ??
-              externalCache.get(id)?.permissions,
+            (plugin as Plugin & { permissions?: string[] }).permissions ?? externalCache.get(id)?.permissions,
           ),
           declaredSlots: externalCache.get(id)?.declaredSlots ?? null,
         }
       : { permissions: null });
+    const ctx = buildContext(id, workspaceRoot, resolvedGate);
+    const register = ctx.register;
+    ctx.register = (slot: Slot) => track(register(slot));
+    const subscribeRpc = ctx.rpc.subscribe;
+    ctx.rpc.subscribe = (event, handler) => track(subscribeRpc(event, handler));
+    ctx.events = {
+      on: (event, handler) => track(eventBus.on(event, handler)),
+      emit: eventBus.emit,
+    };
 
-  const ctx = buildContext(id, workspaceRoot, resolvedGate);
-
-  // Wrap register to track unsubscribers
-  const originalRegister = ctx.register;
-  ctx.register = (slot: Slot) => {
-    const unsub = originalRegister(slot);
-    unsubs.push(unsub);
-    return unsub;
-  };
-
-  try {
-    await plugin.activate(ctx);
-    activePlugins.set(id, { plugin, unsubs, source });
-    usePluginStore.getState().upsertPlugin({
-      id,
-      manifest: plugin.manifest,
-      status: "active",
-    });
-  } catch (err) {
-  // eslint-disable-next-line no-console -- intentional error log for plugin activation failures
-  console.error(`[plugins] ${id} activation failed:`, err);
-    usePluginStore.getState().upsertPlugin({
-      id,
-      manifest: plugin.manifest,
-      status: "error",
-      error: err instanceof Error ? err.message : String(err),
-    });
-  }
+    try {
+      await plugin.activate(ctx);
+      activePlugins.set(id, { plugin, dispose, source });
+      usePluginStore.getState().upsertPlugin({ id, manifest: plugin.manifest, status: "active" });
+    } catch (err) {
+      // Stop host callbacks before invoking plugin-owned best-effort cleanup.
+      dispose();
+      try { await plugin.deactivate?.(); } catch { /* preserve activation error */ }
+      // Cleanup may have attempted another registration through a retained ctx.
+      useRegistry.getState().unregisterPlugin(id);
+      // eslint-disable-next-line no-console -- intentional activation failure diagnostic
+      console.error(`[plugins] ${id} activation failed:`, err);
+      usePluginStore.getState().upsertPlugin({
+        id, manifest: plugin.manifest, status: "error",
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  })();
+  pendingActivations.set(id, activation);
+  try { await activation; } finally { pendingActivations.delete(id); }
 }
 
 /** Deactivate a single plugin. Unregisters all its slots.
  *  Builtin plugins cannot be deactivated — this is a no-op for them. */
 export async function deactivatePlugin(pluginId: string): Promise<void> {
+  // A disable arriving during async activation must not leave a ghost plugin.
+  await pendingActivations.get(pluginId);
   // Block deactivation of builtin plugins
   const entry = activePlugins.get(pluginId);
   if (!entry) {
@@ -305,23 +328,12 @@ export async function deactivatePlugin(pluginId: string): Promise<void> {
   }
   if (entry.plugin.manifest.builtin) return;
 
+  entry.dispose();
   try {
     await entry.plugin.deactivate?.();
   } catch {
     // Best-effort deactivation
   }
-
-  // Unregister all slots via tracked unsubscribers
-  for (const unsub of entry.unsubs) {
-    try {
-      unsub();
-    } catch {
-      /* best-effort */
-    }
-  }
-
-  // Also clean up via registry's plugin map as a safety net
-  useRegistry.getState().unregisterPlugin(pluginId);
 
   activePlugins.delete(pluginId);
   usePluginStore.getState().updateStatus(pluginId, "disabled");

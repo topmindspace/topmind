@@ -17,7 +17,6 @@ export interface WorkingSetCaps {
   fetchMediaBytes: number;
   treeChildCache: number;
   hiddenRenderConcurrency: number;
-  ignoredChanges: number;
 }
 
 export const WORKING_SET_CAPS: WorkingSetCaps;

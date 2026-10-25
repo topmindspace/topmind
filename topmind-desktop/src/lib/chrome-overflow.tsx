@@ -28,6 +28,7 @@ export type ChromeAction = {
   icon?: ReactNode;
   onClick: () => void;
   disabled?: boolean;
+  pressed?: boolean;
   /** Lower = stays visible longer (default 50) */
   priority?: number;
   /** Prefer icon-only in tight chrome (still full label in ⋯) */
@@ -132,7 +133,7 @@ export function ChromeOverflowActions({
     <div
       ref={railRef}
       className={cn("v4-focus-ring", 
-        "flex min-w-0 items-center gap-1.5",
+        "flex w-full min-w-0 items-center gap-1.5",
         align === "end" ? "justify-end" : "justify-start",
         className,
       )}
@@ -147,9 +148,12 @@ export function ChromeOverflowActions({
               disabled={a.disabled}
               onClick={a.onClick}
               aria-label={a.label}
+              aria-pressed={a.pressed}
               className={cn("v4-focus-ring", 
                 "v4-titlebar-btn gap-1 text-xs font-medium",
+                !showLabel && "v4-titlebar-btn-icon",
                 "disabled:opacity-45",
+                a.pressed && "text-accent-color",
                 a.primary
                   ? "v4-titlebar-btn-primary"
                   : a.aiAction
@@ -179,7 +183,7 @@ export function ChromeOverflowActions({
                 menuOpen && "bg-surface-hover text-text-primary",
               )}
                 aria-label={t("action.more", { defaultValue: "More" })}
-                aria-haspopup="menu"
+                aria-haspopup="listbox"
                 aria-expanded={menuOpen}
                 onClick={() => setMenuOpen((v) => !v)}
               >

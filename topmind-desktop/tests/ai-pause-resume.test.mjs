@@ -45,21 +45,25 @@ function reset() {
     streamAutoContinues: 0,
     messages: [],
     messagesError: null,
+    messagesSaveError: null,
   });
 }
 
-/** Stub IPC cancel for the duration of `fn` (pause/abandon both abort). */
+/** Stub IPC boundaries; pause/abandon abort and durably save their snapshot. */
 async function withCancelStub(fn) {
   const origCancel = api.ai.cancel;
+  const origSave = api.ai.saveMsgs;
   let cancelled = false;
   api.ai.cancel = async () => {
     cancelled = true;
     return { ok: true };
   };
+  api.ai.saveMsgs = async () => ({ ok: true });
   try {
     await fn();
   } finally {
     api.ai.cancel = origCancel;
+    api.ai.saveMsgs = origSave;
   }
   return cancelled;
 }

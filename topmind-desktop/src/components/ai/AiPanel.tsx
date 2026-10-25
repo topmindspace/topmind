@@ -34,6 +34,12 @@ import { useTaskStore } from "../../stores/task-store";
 export function AiPanel({ hideComposer = false }: { hideComposer?: boolean } = {}) {
   const { t } = useTranslation("editor");
   const messages = useAiStore((s) => s.messages);
+  const messagesLoading = useAiStore((s) => s.messagesLoading);
+  const messagesError = useAiStore((s) => s.messagesError);
+  const messagesSaveError = useAiStore((s) => s.messagesSaveError);
+  const retrySaveMessages = useAiStore((s) => s.retrySaveMessages);
+  const activeSessionId = useAiStore((s) => s.activeSessionId);
+  const loadMessages = useAiStore((s) => s.loadMessages);
   const streaming = useAiStore((s) => s.streaming);
   const streamStatus = useAiStore((s) => s.streamStatus);
   const streamToolName = useAiStore((s) => s.streamToolName);
@@ -54,6 +60,11 @@ export function AiPanel({ hideComposer = false }: { hideComposer?: boolean } = {
   const autoScrollRef = useRef(true);
   const [detachedFromBottom, setDetachedFromBottom] = useState(false);
   const scrollRafRef = useRef(0);
+
+  useEffect(() => {
+    autoScrollRef.current = true;
+    setDetachedFromBottom(false);
+  }, [activeSessionId]);
 
   const handleScroll = () => {
     if (scrollRafRef.current) return;
@@ -110,15 +121,36 @@ export function AiPanel({ hideComposer = false }: { hideComposer?: boolean } = {
   return (
     <div className="v4-panel-contain v4-ai-panel flex h-full flex-col">
       <PanelChrome />
+      {messagesSaveError ? (
+        <div className="flex items-center gap-2 bg-status-warning-bg px-3 py-2 text-xs text-warning" role="alert">
+          <span className="min-w-0 flex-1">{messagesSaveError}</span>
+          <button type="button" className="v4-chip v4-focus-ring shrink-0" onClick={() => void retrySaveMessages().catch(() => {})}>
+            {t("ai.historyRetrySave")}
+          </button>
+        </div>
+      ) : null}
       {mountedFiles.length > 0 ? <ContextPills /> : null}
 
       <div className="relative min-h-0 flex-1">
       <div
         ref={scrollRef}
         onScroll={handleScroll}
+        aria-busy={messagesLoading}
         className="v4-content-scroll h-full overflow-auto overscroll-contain px-2.5 py-2.5"
       >
-        {messages.length === 0 ? (
+        {messagesLoading ? (
+          <div className="flex items-center justify-center gap-2 py-8 text-xs text-text-secondary" role="status">
+            <RiLoader4Line size={ICON.xs} className="animate-spin" aria-hidden />
+            {t("ai.historyLoading")}
+          </div>
+        ) : messagesError ? (
+          <div className="flex flex-col items-center gap-2 px-3 py-8 text-center">
+            <div className="text-sm text-text-primary" role="alert">{t("ai.historyLoadFailed")}</div>
+            <button type="button" className="v4-chip v4-focus-ring" onClick={() => { if (activeSessionId) void loadMessages(activeSessionId); }}>
+              {t("ai.historyRetry")}
+            </button>
+          </div>
+        ) : messages.length === 0 ? (
           <EmptyConversation selection={selection} />
         ) : (
           <div className="flex flex-col gap-2.5">
@@ -397,7 +429,7 @@ function PanelChrome() {
                 active={s.id === activeSessionId}
                 icon={<RiChatAiLine size={ICON.micro} className="opacity-70" />}
                 onSelect={() => {
-                  void selectSession(s.id);
+                  void selectSession(s.id).catch(() => {});
                   setShowSessionList(false);
                   setSessionSearch("");
                 }}
@@ -435,7 +467,7 @@ function PanelChrome() {
         <Tooltip content={t("ai.newSessionTooltip")}>
           <button
             type="button"
-            onClick={() => void handleNewSession()}
+            onClick={() => void handleNewSession().catch(() => {})}
             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-tertiary transition-colors hover:bg-state-hover hover:text-text-primary"
             aria-label={t("ai.newSessionLabel")}
           >
@@ -447,7 +479,7 @@ function PanelChrome() {
           <Tooltip content={confirmingClear ? t("ai.clearConfirmTooltip") : t("ai.clearConversationTooltip")}>
             <button
               type="button"
-              onClick={() => void handleClear()}
+              onClick={() => void handleClear().catch(() => {})}
               className={cn(
                 "flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-md)] transition-colors",
                 confirmingClear
@@ -470,6 +502,8 @@ function EmptyConversation({ selection }: { selection: Selection }) {
   const sendMessage = useAiStore((s) => s.sendMessage);
   const streaming = useAiStore((s) => s.streaming);
   const ready = useAiStore((s) => s.runtimeStatus?.ready ?? false);
+  // ChatInput owns the configuration affordance across all workspace tabs.
+  if (!ready) return null;
   // Two contextual prompts max — enough to suggest actions without overwhelming
   const prompts = quickPromptsFor(selection, t);
   const hint = emptyHintFor(selection, t);
@@ -477,36 +511,25 @@ function EmptyConversation({ selection }: { selection: Selection }) {
   return (
     <div className="flex flex-col items-stretch px-1 pt-4 text-center" data-ai-empty>
       <div className="mx-auto mb-2 text-3xs font-medium tracking-tight text-text-secondary">
-        {ready ? t("ai.emptyReadyHint") : t("ai.emptyNotReadyHint")}
+        {t("ai.emptyReadyHint")}
       </div>
       <div className="mx-auto mb-3 max-w-[220px] text-xs leading-relaxed text-text-quaternary">
-        {ready ? hint : t("ai.emptyReadyBody")}
+        {hint}
       </div>
-      {ready ? (
-        <div className="flex w-full flex-col gap-1" data-ai-empty-prompts>
-          {prompts.map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => void sendMessage(p)}
-              disabled={streaming}
-              className="group flex w-full items-center gap-2 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface/80 px-2.5 py-1.5 text-left text-3xs text-text-secondary transition-colors hover:border-accent-border-subtle hover:bg-state-hover hover:text-text-primary disabled:opacity-50"
-            >
-              <RiSparklingLine size={ICON.xs} className="shrink-0 text-accent-color" />
-              <span className="min-w-0 flex-1 truncate">{p}</span>
-            </button>
-          ))}
-        </div>
-      ) : (
-        <Button
-          variant="default"
-          size="sm"
-          className="mx-auto"
-          onClick={() => useViewStore.getState().openOverlay("settings", { topicId: "ai" })}
-        >
-          {t("ai.goConfigureLabel")}
-        </Button>
-      )}
+      <div className="flex w-full flex-col gap-1" data-ai-empty-prompts>
+        {prompts.map((p) => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => void sendMessage(p)}
+            disabled={streaming}
+            className="group flex w-full items-center gap-2 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface/80 px-2.5 py-1.5 text-left text-3xs text-text-secondary transition-colors hover:border-accent-border-subtle hover:bg-state-hover hover:text-text-primary disabled:opacity-50"
+          >
+            <RiSparklingLine size={ICON.xs} className="shrink-0 text-accent-color" />
+            <span className="min-w-0 flex-1 truncate">{p}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

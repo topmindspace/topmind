@@ -108,7 +108,8 @@
     "languageMenuSection": "Language",
     "preferencesSection": "Preferences",
     "appsTip": "Apps · open in the AI workspace",
-    "appsAriaLabel": "Open apps"
+    "appsAriaLabel": "Open apps",
+    "history": "Browsing history"
   },
   "aiWorkspace": {
     "aria": "AI workspace",
@@ -431,8 +432,7 @@
       "reloadTooltip": "Reload period notebook",
       "defaultTitle": "This week's stream",
       "emptyTitle": "No entries yet",
-      "emptyHint": "Log it on the stream page · or sidebar Note it",
-      "capture": "Note it",
+      "emptyHint": "Your first stream entry will appear here.",
       "openFull": "Open full notebook",
       "taskBoardTip": "Task board · by status · ⌘⇧B",
       "openFullView": "Expand in main area",

@@ -4,10 +4,8 @@ import { useTranslation } from "react-i18next";
 import {
   RiArrowRightSLine,
   RiCalendar2Line,
-  RiDashboardLine,
   RiErrorWarningLine,
   RiFileTextLine,
-  RiPencilLine,
   RiFullscreenLine,
   RiLoader4Line,
   RiRefreshLine,
@@ -16,7 +14,6 @@ import {
 import { api } from "../../services/api";
 import { emitLocal, onLocal } from "../../plugins/host";
 import { useViewStore } from "../../stores/view-store";
-import { EmptyState } from "../ui/view";
 import { Tooltip } from "../ui/tooltip";
 import { ICON } from "../../lib/icons";
 import { useTodoStore } from "../../stores/todo-store";
@@ -144,10 +141,6 @@ export function StreamView({ onNavigate }: StreamViewProps) {
     select({ kind: "stream" });
   }, [select]);
 
-  const handleCapture = useCallback(() => {
-    emitLocal("overlay:open", { kind: "quick-capture" });
-  }, []);
-
   const handleMaintainTodos = useCallback(() => {
     // Open todo panel so maintain results + progressive force-retry are visible.
     // First click respects skip hash; if last result was already-processed, re-click forces.
@@ -197,23 +190,12 @@ export function StreamView({ onNavigate }: StreamViewProps) {
 
   if (entries.length === 0) {
     return (
-      <div className="px-2 py-3">
-        <EmptyState
-          compact
-          icon={<RiCalendar2Line size={ICON.sm} />}
-          title={t("sidebar.stream.emptyTitle")}
-          hint={t("sidebar.stream.emptyHint")}
-          action={
-            <button
-              type="button"
-              onClick={handleCapture}
-              className="inline-flex items-center gap-1 rounded-md border border-border-subtle px-2 py-1 text-3xs font-medium text-text-secondary hover:bg-state-hover v4-focus-ring"
-            >
-              <RiPencilLine size={ICON.micro} aria-hidden />
-              {t("sidebar.stream.capture")}
-            </button>
-          }
-        />
+      <div className="flex items-start gap-2 px-3 py-4" data-stream-rail-empty>
+        <RiCalendar2Line size={ICON.xs} className="mt-0.5 shrink-0 text-text-tertiary" aria-hidden />
+        <div className="min-w-0 text-xs leading-relaxed">
+          <div className="text-text-secondary">{t("sidebar.stream.emptyTitle")}</div>
+          <p className="mt-1 text-text-tertiary">{t("sidebar.stream.emptyHint")}</p>
+        </div>
       </div>
     );
   }

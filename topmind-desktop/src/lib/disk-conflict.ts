@@ -1,6 +1,6 @@
 /**
  * External-disk conflict resolution for dirty editors (FileEditorView C3).
- * Three user choices: keep local · take disk · merge (local + disk-only block).
+ * Three user choices: keep local · take disk · keep both complete bodies.
  *
  * Pure — no React / IPC. Desktop editor and tests share this contract.
  */
@@ -29,7 +29,7 @@ export interface DiskConflictResult {
 
 /**
  * Apply a user choice to a dirty/disk conflict.
- * Merge keeps the local body and appends a marked block with disk-only lines
+ * Merge keeps the local body and appends the complete disk body under a marker
  * (never silently drops either side).
  */
 export function resolveDiskConflict(
@@ -56,21 +56,15 @@ export function resolveDiskConflict(
   if (choice === "take-disk") {
     return { auto: false, body: disk, dirty: false };
   }
-  // merge: keep local, append disk-only unique lines under a marked heading.
-  const localLines = new Set(local.split("\n").map((s) => s.trim()).filter(Boolean));
-  const diskOnly = disk
-    .split("\n")
-    .filter((line) => line.trim() && !localLines.has(line.trim()));
-  if (diskOnly.length === 0) {
-    return { auto: false, body: local, dirty: true };
-  }
+  // Keep both complete bodies. Line-level deduplication corrupts fences, lists,
+  // tables and repeated paragraphs; this is an explicit review, not a smart merge.
   const block = [
     "",
     "",
     "<!-- topmind:merged-from-disk -->",
     "## 外部更新（磁盘）/ External update (disk)",
     "",
-    ...diskOnly,
+    disk,
     "",
   ].join("\n");
   return { auto: false, body: `${local.replace(/\n+$/u, "")}${block}`, dirty: true };

@@ -13,14 +13,15 @@ import { handleAppsMenuToggle, openAiWorkspace } from "../src/lib/ai-workspace.t
 import { toggleWorkspaceSwitcher } from "../src/lib/workspace-switcher.ts";
 import { createWorkspaceActions } from "../src/plugins/topmind-workspace/actions.ts";
 import { destinationSwitchKind, primaryViewSwitchKind } from "../src/lib/titlebar-identity.ts";
+import { resolveWorkbenchLayout } from "../electron/lib/workbench-layout.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = (rel) => readFileSync(path.join(root, rel), "utf8");
 
 function appsPaneShown() {
   const s = useViewStore.getState();
-  // Same gate Shell uses: showAiPanel = !focusMode && aiPanelOpen
-  return !s.focusMode && s.aiPanelOpen && s.aiWorkspaceTab === "apps";
+  const layout = resolveWorkbenchLayout({ viewportWidth: 1180, sidebarWidth: s.sidebarWidth, aiPanelWidth: s.aiPanelWidth, sidebarVisible: !s.sidebarCollapsed, aiVisible: s.aiPanelOpen, focusMode: s.focusMode });
+  return layout.showAiPanel && s.aiWorkspaceTab === "apps";
 }
 
 test("应用 command opens the apps pane when the AI column is closed", () => {
@@ -43,7 +44,7 @@ test("应用 command opens the apps pane when the AI column is closed", () => {
   const shell = read("src/components/shell/Shell.tsx");
   assert.match(shell, /handleAppsMenuToggle/);
   assert.match(shell, /APPS_MENU_TOGGLE_EVENT/);
-  assert.match(shell, /showAiPanel = !focusMode && aiPanelOpen/);
+  assert.match(shell, /resolveWorkbenchLayout\(/);
   const ai = read("src/components/ai/AiWorkspace.tsx");
   assert.doesNotMatch(ai, /APPS_MENU_TOGGLE_EVENT/);
   assert.doesNotMatch(ai, /titlebar:apps-toggle/);

@@ -10,40 +10,15 @@ import {
 import { isEscapingSymlinkSync } from "./lib/path-safety.mjs";
 import { logError } from "./lib/writeback.mjs";
 import {
-  capExpiryMap,
   forgetDesktopOwned,
   registerDesktopOwned,
-  WORKING_SET_CAPS,
 } from "./lib/runtime-bounds.mjs";
 
 let watcher = null;
-const ignoredChanges = new Map();
 const WATCHER_OWNED_ID = "workspace-watcher";
 
 function normalizePath(filePath) {
   return path.resolve(filePath);
-}
-
-function pruneIgnoredChanges() {
-  const now = Date.now();
-  for (const [filePath, expiresAt] of ignoredChanges.entries()) {
-    if (expiresAt <= now) {
-      ignoredChanges.delete(filePath);
-    }
-  }
-  capExpiryMap(ignoredChanges, WORKING_SET_CAPS.ignoredChanges);
-}
-
-function shouldIgnore(filePath) {
-  pruneIgnoredChanges();
-  return ignoredChanges.has(normalizePath(filePath));
-}
-
-export function markIgnoredFileChanges(filePaths, durationMs = 2000) {
-  const expiresAt = Date.now() + durationMs;
-  for (const filePath of filePaths) {
-    ignoredChanges.set(normalizePath(filePath), expiresAt);
-  }
 }
 
 /**
@@ -188,10 +163,6 @@ export async function startWorkspaceWatcher(rootPath, onChange, options = {}) {
   // Listen to directory events too (create/delete folders from external tools).
   for (const eventName of ["add", "change", "unlink", "addDir", "unlinkDir"]) {
     watcher.on(eventName, (absolutePath) => {
-      if (shouldIgnore(absolutePath)) {
-        return;
-      }
-
       const absolute = normalizePath(absolutePath);
       let relativePath = toWorkspaceRelativePath(rootPath, absolute);
       if (!isInsideRelative(relativePath.split("/").join(path.sep)) && relativePath !== "") {

@@ -73,7 +73,7 @@ export async function buildQueryEvidence(p) {
 
   const kind = classifyTurn(userText);
   // Light turns never get evidence (a greeting needs none).
-  if (kind === "light") return null;
+  if (kind !== "query") return null;
 
   const hit = matchQueryIntents(userText);
   // Only known lookup intents — free-form task text stays the agent's job.
@@ -84,6 +84,9 @@ export async function buildQueryEvidence(p) {
   /** @type {string[]} */
   const parts = [];
   for (const name of hit.tools) {
+    // Only prefetch parameter-free workspace lookups. Search needs a real
+    // query and remains model-directed; never call web_search with {}.
+    if (!Object.hasOwn(TOOL_LABELS, name)) continue;
     const payload = await runTool(tools, name, {});
     if (!payload) continue;
     const label = TOOL_LABELS[name] || { zh: name, en: name };
@@ -112,6 +115,6 @@ export async function buildQueryEvidence(p) {
  * @param {string} userText
  */
 export function wantsQueryEvidence(userText) {
-  if (classifyTurn(userText) === "light") return false;
-  return Boolean(matchQueryIntents(userText));
+  if (classifyTurn(userText) !== "query") return false;
+  return Boolean(matchQueryIntents(userText)?.tools.some((name) => Object.hasOwn(TOOL_LABELS, name)));
 }

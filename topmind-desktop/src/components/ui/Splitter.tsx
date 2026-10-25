@@ -23,6 +23,7 @@ interface SplitterProps {
 export function Splitter({ side, value, onChange, min = 180, max = 600, onDragStateChange }: SplitterProps) {
   const { t } = useTranslation("shell");
   const draggingRef = useRef(false);
+  const dragStart = useRef({ x: 0, value });
   const [dragging, setDragging] = useState(false);
   const [hovering, setHovering] = useState(false);
   const onChangeRef = useRef(onChange);
@@ -71,6 +72,7 @@ export function Splitter({ side, value, onChange, min = 180, max = 600, onDragSt
       // Only primary button starts a resize — right/middle click stays inert.
       if (e.button !== 0) return;
       e.preventDefault();
+      dragStart.current = { x: e.clientX, value };
       try {
         (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
       } catch {
@@ -86,18 +88,13 @@ export function Splitter({ side, value, onChange, min = 180, max = 600, onDragSt
         /* ignore */
       }
     },
-    [],
+    [value],
   );
 
   const onPointerMove = useCallback(
     (e: React.PointerEvent) => {
       if (!draggingRef.current) return;
-      const parentRect = (e.currentTarget as HTMLElement).parentElement?.getBoundingClientRect();
-      if (!parentRect) return;
-      // Left panel: width = distance from parent's left edge to the pointer.
-      // Right panel: width = distance from the pointer to the parent's right edge.
-      const next =
-        side === "left" ? e.clientX - parentRect.left : parentRect.right - e.clientX;
+      const next = dragStart.current.value + (e.clientX - dragStart.current.x) * (side === "left" ? 1 : -1);
       onChangeRef.current(clamp(next));
     },
     [side, clamp],
@@ -123,6 +120,7 @@ export function Splitter({ side, value, onChange, min = 180, max = 600, onDragSt
     (e: React.KeyboardEvent) => {
       if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
       e.preventDefault();
+      e.stopPropagation();
       const step = e.shiftKey ? 48 : 16;
       const dir = (e.key === "ArrowLeft" ? -1 : 1) * (side === "left" ? 1 : -1);
       onChangeRef.current(clamp(value + dir * step));

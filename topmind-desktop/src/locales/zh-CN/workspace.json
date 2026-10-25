@@ -386,7 +386,9 @@
     "collapseFormat": "收起格式工具",
     "insertDateTime": "插入日期时间",
     "collapsed": "展开格式栏",
-    "toolbarAria": "格式工具"
+    "toolbarAria": "格式工具",
+    "source": "Markdown 源码",
+    "modes": "文档模式"
   },
   "sort": {
     "mtimeDesc": "时间 · 新→旧",
@@ -432,7 +434,8 @@
     "taskList": "任务列表",
     "showProperties": "显示属性",
     "hideProperties": "隐藏属性",
-    "showPropertiesWithSummary": "属性 · {{summary}}"
+    "showPropertiesWithSummary": "属性 · {{summary}}",
+    "askNoteAiTip": "与 AI 讨论这篇笔记"
   },
   "editor": {
     "placeholder": "开始写…",
@@ -458,14 +461,12 @@
     "formatLink": "链接",
     "formatBulletList": "无序列表",
     "formatOrderedList": "有序列表",
-    "diskFileUpdatedUnsaved": "磁盘上的文件已更新 · 当前有未保存编辑，未自动覆盖",
-    "diskFileUpdatedUnsavedAi": "AI 已更新磁盘文件 · 当前有未保存编辑，未自动覆盖（可保存覆盖或重新加载）",
     "diskConflictTitle": "磁盘文件与本地编辑冲突",
     "diskConflictDesc": "磁盘上的内容已变化，当前有未保存编辑。请选择处理方式。",
     "diskConflictDescAi": "AI 已写入磁盘，当前有未保存编辑。请选择处理方式。",
     "diskConflictKeepLocal": "保留本地",
     "diskConflictTakeDisk": "用磁盘覆盖",
-    "diskConflictMerge": "合并（本地 + 磁盘新增）",
+    "diskConflictMerge": "保留两份（本地 + 磁盘）",
     "unmountedFromAi": "已从 AI 上下文移除",
     "mountedToAi": "已挂载到 AI · 面板已打开",
     "movedToTopic": "已移入专题{{media}}",
@@ -480,7 +481,17 @@
     "findPlaceholder": "查找…",
     "findNoMatch": "无匹配",
     "findPrev": "上一个",
-    "findNext": "下一个"
+    "findNext": "下一个",
+    "sourceRequired": "此笔记含可视编辑尚不能完整保留的语法，已使用源码编辑；预览可能不完整。属性仍在上方管理。",
+    "saveFailedKeepDraft": "保存失败，最新编辑仍保留在当前窗口。",
+    "retrySave": "重试保存",
+    "resolveConflictFirst": "请先处理外部文件更新，再保存。",
+    "documentChanged": "文档已切换，未保存原文档的属性修改。",
+    "serializeFailed": "暂时无法生成可保存的 Markdown，当前编辑仍已保留。",
+    "saveReasonPermission": "请检查文件和所在文件夹的写入权限。",
+    "saveReasonSpace": "请释放磁盘空间后重试。",
+    "saveReasonMissing": "文件或文件夹可能已移动，请检查其位置。",
+    "saveReasonUnavailable": "请在文件恢复可用后重试。"
   },
   "skills": {
     "capture": "记一下 — 完整捕获",

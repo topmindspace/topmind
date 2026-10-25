@@ -9,7 +9,7 @@
  */
 import { test, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -179,4 +179,60 @@ test("loadAiContext loads topic context when topicId is valid", async () => {
   const result = await aiContextLoader.loadAiContext(ctx, "20-研究/2026-上下文");
   assert.ok(result.topicContext.length > 0);
   assert.ok(result.topicContext.includes("上下文测试"));
+});
+
+function linkOrSkip(t, target, link, type) {
+  try { symlinkSync(target, link, type); return true; }
+  catch (error) {
+    if (error.code === "EPERM" || error.code === "EACCES") { t.skip("symlinks unavailable"); return false; }
+    throw error;
+  }
+}
+
+test("topic prompt context rejects traversal and malformed topic IDs", async () => {
+  mkdirSync(workspace.userWorkspaceRoot, { recursive: true });
+  const privateDir = path.join(tmpRoot, "private");
+  mkdirSync(privateDir);
+  writeFileSync(path.join(privateDir, "topic.md"), "outside-context-canary must never reach the model");
+  for (const id of ["../private", "../private/ignored", "cat/topic/extra", "cat/..", "/private", "C:\\private\\topic"]) {
+    assert.equal(await aiContextLoader.loadTopicContext(ctx, id), "", id);
+  }
+});
+
+test("topic prompt context rejects a directory symlink outside the workspace", async (t) => {
+  const cat = path.join(workspace.userWorkspaceRoot, "custom");
+  mkdirSync(cat, { recursive: true });
+  const privateDir = path.join(tmpRoot, "private");
+  mkdirSync(privateDir);
+  writeFileSync(path.join(privateDir, "topic.md"), "outside-context-canary must never reach the model");
+  if (!linkOrSkip(t, privateDir, path.join(cat, "linked"), "dir")) return;
+  assert.equal(await aiContextLoader.loadTopicContext(ctx, "custom/linked"), "");
+});
+
+test("topic prompt context rejects a file symlink outside the workspace", async (t) => {
+  const topic = path.join(workspace.userWorkspaceRoot, "custom", "topic");
+  mkdirSync(topic, { recursive: true });
+  const privateFile = path.join(tmpRoot, "private.md");
+  writeFileSync(privateFile, "outside-context-canary must never reach the model");
+  if (!linkOrSkip(t, privateFile, path.join(topic, "topic.md"), "file")) return;
+  assert.equal(await aiContextLoader.loadTopicContext(ctx, "custom/topic"), "");
+});
+
+test("topic prompt context allows symlinks to files inside the workspace", async (t) => {
+  const topic = path.join(workspace.userWorkspaceRoot, "custom", "topic");
+  mkdirSync(topic, { recursive: true });
+  const actual = path.join(workspace.userWorkspaceRoot, "source.md");
+  writeFileSync(actual, "# Shared topic\n\nValid context inside this workspace.");
+  if (!linkOrSkip(t, actual, path.join(topic, "topic.md"), "file")) return;
+  assert.match(await aiContextLoader.loadTopicContext(ctx, "custom/topic"), /Valid context/);
+});
+
+test("profile prompt context rejects a symlink outside the workspace", async (t) => {
+  const memoryDir = path.join(workspace.userWorkspaceRoot, "memory");
+  mkdirSync(memoryDir, { recursive: true });
+  writeFileSync(path.join(workspace.userWorkspaceRoot, "topmind.yaml"), "schema_version: 4\n");
+  const privateFile = path.join(tmpRoot, "private.md");
+  writeFileSync(privateFile, "# My profile\n\n## Preferences\n\n- outside-profile-canary that must never reach the model.\n");
+  if (!linkOrSkip(t, privateFile, path.join(memoryDir, "profile.md"), "file")) return;
+  assert.equal(await aiContextLoader.loadMemoryProfile(ctx), "");
 });

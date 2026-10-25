@@ -110,20 +110,34 @@ export function editorDocumentHasContent(doc: {
   return hasImage;
 }
 
-/** Serialize editor body to Markdown (falls back to plain text). */
+function serializationError(): Error {
+  const error = new Error("Markdown serialization failed.");
+  error.name = "MarkdownSerializationError";
+  return error;
+}
+
+/** Persistence requires Markdown; display callers may opt into plain-text fallback. */
 export function getEditorMarkdown(
   editor: Editor | null | undefined,
-  opts?: { noteRelativePath?: string },
+  opts?: { noteRelativePath?: string; requireMarkdown?: boolean },
 ): string {
-  if (!editor || editor.isDestroyed) return "";
+  if (!editor || editor.isDestroyed) {
+    if (opts?.requireMarkdown) throw serializationError();
+    return "";
+  }
   const storage = editor.storage as MarkdownStorage;
   let md = "";
   try {
-    if (storage.markdown?.getMarkdown) md = storage.markdown.getMarkdown() || "";
+    if (opts?.requireMarkdown && typeof storage.markdown?.getMarkdown !== "function") throw serializationError();
+    if (storage.markdown?.getMarkdown) {
+      const serialized = storage.markdown.getMarkdown();
+      if (opts?.requireMarkdown && typeof serialized !== "string") throw serializationError();
+      md = serialized || "";
+    }
   } catch {
-    /* */
+    if (opts?.requireMarkdown) throw serializationError();
   }
-  if (!md) {
+  if (!md && !opts?.requireMarkdown) {
     try {
       md = editor.getText() || "";
     } catch {

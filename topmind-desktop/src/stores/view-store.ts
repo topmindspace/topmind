@@ -3,6 +3,7 @@
  * UI state (widths, collapsed) is persisted to settings by Shell on change.
  */
 import { create } from "zustand";
+import { PANEL_WIDTHS, normalizePanelWidth, resolveWorkbenchLayout } from "../../electron/lib/workbench-layout.mjs";
 import {
   type Selection,
   type OverlayKind,
@@ -495,7 +496,19 @@ export const useViewStore = create<ViewState>((set, get) => ({
     }),
 
   sidebarCollapsed: false,
-  toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
+  toggleSidebar: () => set((s) => {
+    if (s.focusMode) return { focusMode: false, sidebarCollapsed: false };
+    const layout = resolveWorkbenchLayout({
+      viewportWidth: typeof window === "undefined" ? 1440 : window.innerWidth,
+      sidebarWidth: s.sidebarWidth,
+      aiPanelWidth: s.aiPanelWidth,
+      sidebarVisible: true,
+      aiVisible: s.aiPanelOpen,
+    });
+    // Opening navigation in a constrained viewport must make it visible.
+    if (!layout.showSidebar) return { sidebarCollapsed: false, aiPanelOpen: false };
+    return { sidebarCollapsed: !s.sidebarCollapsed };
+  }),
   setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
 
   expandedNodeIds: new Set<string>(),
@@ -529,8 +542,8 @@ export const useViewStore = create<ViewState>((set, get) => ({
       return { expandedNodeIds: next };
     }),
 
-  sidebarWidth: 240,
-  setSidebarWidth: (sidebarWidth) => set({ sidebarWidth }),
+  sidebarWidth: PANEL_WIDTHS.sidebar.default,
+  setSidebarWidth: (sidebarWidth) => set((s) => ({ sidebarWidth: normalizePanelWidth(sidebarWidth, "sidebar", s.sidebarWidth) })),
   sidebarView: "category",
   setSidebarView: (sidebarView) => set({ sidebarView }),
   feedLayout: DEFAULT_FEED_LAYOUT,
@@ -538,11 +551,11 @@ export const useViewStore = create<ViewState>((set, get) => ({
     set({ feedLayout: isFeedLayout(feedLayout) ? feedLayout : DEFAULT_FEED_LAYOUT }),
 
   aiPanelOpen: true,
-  toggleAiPanel: () => set((s) => ({ aiPanelOpen: !s.aiPanelOpen })),
+  toggleAiPanel: () => set((s) => s.focusMode ? { focusMode: false, aiPanelOpen: true } : { aiPanelOpen: !s.aiPanelOpen }),
   setAiPanelOpen: (aiPanelOpen) => set({ aiPanelOpen }),
 
-  aiPanelWidth: 480,
-  setAiPanelWidth: (aiPanelWidth) => set({ aiPanelWidth }),
+  aiPanelWidth: PANEL_WIDTHS.ai.default,
+  setAiPanelWidth: (aiPanelWidth) => set((s) => ({ aiPanelWidth: normalizePanelWidth(aiPanelWidth, "ai", s.aiPanelWidth) })),
 
   aiWorkspaceTab: "chat",
   setAiWorkspaceTab: (aiWorkspaceTab) => set({ aiWorkspaceTab }),
@@ -552,9 +565,9 @@ export const useViewStore = create<ViewState>((set, get) => ({
       return {
         aiPanelOpen: true,
         aiWorkspaceTab,
-        // 应用 has no focus-mode float (unlike 建议 / 清单). Leave zen so
-        // Shell `showAiPanel = !focusMode && aiPanelOpen` can mount the column.
-        ...(aiWorkspaceTab === "apps" ? { focusMode: false } : {}),
+        // Chat and apps have no focus-mode float. Explicit navigation must
+        // leave focus mode so their destination is actually visible.
+        ...(aiWorkspaceTab === "apps" || aiWorkspaceTab === "chat" ? { focusMode: false } : {}),
       };
     }),
 

@@ -13,7 +13,7 @@
  *
  * No monorepo ../../skills static import (packaged asar-safe via engine root).
  */
-import { promises as fs, readFileSync, existsSync, readdirSync } from "node:fs";
+import { promises as fs, readFileSync, existsSync, readdirSync, realpathSync, statSync } from "node:fs";
 import path from "node:path";
 import { getEngineRoot } from "./workspace-home.mjs";
 import { defaultEngineCandidate } from "./engine-root.mjs";
@@ -30,12 +30,11 @@ const CORE_ACTION_IDS = [
 ];
 const CONNECTOR_IDS = ["topmind-weread", "topmind-x"];
 
-/** @type {{ root: string|null, pack: object|null, catalog: object[]|null, bodies: Map<string,string> }} */
+/** @type {{ root: string|null, pack: object|null, catalog: object[]|null }} */
 const cache = {
   root: null,
   pack: null,
   catalog: null,
-  bodies: new Map(),
 };
 
 export function resolveSkillsRoot(engineRoot) {
@@ -134,7 +133,6 @@ function resetCacheIfRootChanged(skillsRoot) {
     cache.root = skillsRoot;
     cache.pack = null;
     cache.catalog = null;
-    cache.bodies = new Map();
   }
 }
 
@@ -316,7 +314,7 @@ export function listSkillCatalog(opts = {}) {
     for (const id of listSkillDirsFromRoot(rootDir)) {
       const skillPath = path.join(rootDir, id, "SKILL.md");
       try {
-        const raw = readFileSync(skillPath, "utf8");
+        const raw = readFileSync(containedResource(rootDir, skillPath), "utf8");
         const parsed = parseSkillMarkdown(raw);
         const meta = resolveSkillMeta(parsed.frontmatter);
         const name = parsed.name || id;
@@ -374,10 +372,9 @@ function filterEnabled(catalog, enabledIds) {
 /**
  * Load full skill body (level 2 activation).
  * @param {string} skillId
- * @param {{ engineRoot?: string, maxChars?: number }} [opts]
+ * @param {{ engineRoot?: string, maxChars?: number, extraRoots?: string[] }} [opts]
  */
 export function loadSkillBody(skillId, opts = {}) {
-  const skillsRoot = resolveSkillsRoot(opts.engineRoot);
   const id = String(skillId || "").trim().replace(/^\/+/, "");
   if (!id) throw new Error("skillId required");
   // Reject path traversal — same discipline as loadSkillResource
@@ -385,36 +382,13 @@ export function loadSkillBody(skillId, opts = {}) {
     throw new Error(`Invalid skillId: ${id}`);
   }
 
-  // Key by root so multi-vault / engineRoot switches never serve a stale body.
-  const cacheKey = `${skillsRoot}::${id}`;
-  if (cache.bodies.has(cacheKey)) {
-    const cached = cache.bodies.get(cacheKey);
-    return clipBody(
-      typeof cached === "string"
-        ? { id, raw: cached, body: cached, description: "", frontmatter: {} }
-        : cached,
-      opts.maxChars,
-    );
-  }
-
-  const catalog = listSkillCatalog({ engineRoot: opts.engineRoot, enabledIds: null });
+  // Resolve with the same roots and precedence as discovery. Read activation
+  // from disk rather than caching a body across installs or extension changes.
+  const catalog = listSkillCatalog({ engineRoot: opts.engineRoot, extraRoots: opts.extraRoots });
   const hit = catalog.find((s) => s.id === id || s.directory === id || s.name === id);
-  const candidates = [];
-  if (hit?.path && existsSync(hit.path)) candidates.push(hit.path);
-  if (hit?.skillsRoot) candidates.push(path.join(hit.skillsRoot, hit.directory, "SKILL.md"));
-  candidates.push(path.join(skillsRoot, id, "SKILL.md"));
-  if (hit) candidates.push(path.join(skillsRoot, hit.directory, "SKILL.md"));
-
-  let raw = null;
-  let usedPath = null;
-  for (const p of candidates) {
-    if (p && existsSync(p)) {
-      raw = readFileSync(p, "utf8");
-      usedPath = p;
-      break;
-    }
-  }
-  if (!raw) throw new Error(`Skill not found: ${id}`);
+  if (!hit) throw new Error(`Skill not found: ${id}`);
+  const usedPath = containedResource(hit.skillsRoot, hit.path);
+  const raw = readFileSync(usedPath, "utf8");
 
   const parsed = parseSkillMarkdown(raw);
   const meta = resolveSkillMeta(parsed.frontmatter);
@@ -429,7 +403,6 @@ export function loadSkillBody(skillId, opts = {}) {
     raw,
     frontmatter: parsed.frontmatter,
   };
-  cache.bodies.set(cacheKey, result);
   return clipBody(result, opts.maxChars);
 }
 
@@ -454,22 +427,50 @@ function clipBody(result, maxChars) {
  * Load shared or skill reference resource (level 3).
  * @param {string} rel — e.g. shared/project-model-brief.md or topmind/references/foo.md
  */
+function isWithinRoot(root, candidate) {
+  const relative = path.relative(root, candidate);
+  return relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative);
+}
+
+function containedResource(root, candidate) {
+  if (!isWithinRoot(path.resolve(root), path.resolve(candidate))) {
+    throw new Error("Invalid resource path: outside skills root");
+  }
+  // Lexical containment alone permits a symlink to expose arbitrary host files.
+  if (!isWithinRoot(realpathSync(root), realpathSync(candidate))) {
+    throw new Error("Invalid resource path: symlink outside skills root");
+  }
+  if (!statSync(candidate).isFile()) throw new Error("Resource is not a file");
+  return candidate;
+}
+
 export function loadSkillResource(rel, opts = {}) {
   const skillsRoot = resolveSkillsRoot(opts.engineRoot);
-  const cleaned = String(rel || "")
-    .replace(/\\/gu, "/")
-    .replace(/^\/+/, "");
-  if (!cleaned || cleaned.includes("..")) throw new Error("Invalid resource path");
-  const roots = [skillsRoot, ...resolveExtraSkillsRoots({ extraRoots: opts.extraRoots })];
+  const cleaned = String(rel || "").replace(/\\/gu, "/");
+  if (!cleaned || path.isAbsolute(cleaned) || /^[A-Za-z]:/u.test(cleaned)) {
+    throw new Error("Invalid resource path");
+  }
+  let roots;
+  let skillDirectory = null;
+  if (opts.skillId) {
+    const catalog = listSkillCatalog({ engineRoot: opts.engineRoot, extraRoots: opts.extraRoots });
+    const hit = catalog.find((s) => s.id === opts.skillId || s.directory === opts.skillId);
+    if (!hit) throw new Error(`Skill not found: ${opts.skillId}`);
+    roots = [hit.skillsRoot];
+    skillDirectory = hit.directory;
+  } else {
+    if (cleaned.split("/").includes("..")) throw new Error("Invalid resource path");
+    // Later extension roots override earlier roots, just as in discovery.
+    roots = [skillsRoot, ...resolveExtraSkillsRoots({ extraRoots: opts.extraRoots })].reverse();
+  }
   let abs = null;
   for (const root of roots) {
-    const candidate = path.resolve(root, cleaned);
-    // Path-containment check (not raw startsWith) so sibling dirs like
-    // `skills-evil/` cannot pass a `skills/` root prefix.
-    const relToRoot = path.relative(root, candidate);
-    if (!relToRoot || relToRoot.startsWith("..") || path.isAbsolute(relToRoot)) continue;
+    const packRelative = cleaned.startsWith("shared/") || (skillDirectory && cleaned.startsWith(`${skillDirectory}/`));
+    const base = skillDirectory && !packRelative ? path.join(root, skillDirectory) : root;
+    const candidate = path.resolve(base, cleaned);
+    if (!isWithinRoot(path.resolve(root), candidate)) throw new Error("Invalid resource path");
     if (existsSync(candidate)) {
-      abs = candidate;
+      abs = containedResource(root, candidate);
       break;
     }
   }
@@ -518,17 +519,6 @@ export function getSkillsStatus(opts = {}) {
   };
 }
 
-const ACTION_LABEL = {
-  router: "路由",
-  capture: "收进来",
-  organize: "整理",
-  write: "写作",
-  memory: "记忆",
-  maintain: "体检",
-  loop: "巡检",
-  connector: "连接器",
-};
-
 function escapeSkillXml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -567,43 +557,18 @@ export function formatSkillsForSystemPrompt(skills) {
 
 /**
  * Discovery catalog for the system prompt — `<available_skills>` with absolute
- * `location` plus a compact topmind routing line (slash → id). Full SKILL.md
+ * `location` without a duplicate routing table. Full SKILL.md
  * still via load_skill.
  */
 export function formatCatalogForPrompt(catalog) {
   if (!catalog?.length) {
     return "（未发现 skills — 仅用工作区工具）";
   }
-  // Pi-native discovery block (name / description / location). Resolve relative
-  // skill refs against the skill directory, not the workspace root.
-  /** @type {string[]} */
-  const parts = [];
-  try {
-    const piSkills = catalog.map((s) => ({
-      name: String(s.id || s.name),
-      description: String(s.description || "").slice(0, 400),
-      filePath: String(s.path || ""),
-    }));
-    const xml = formatSkillsForSystemPrompt(piSkills);
-    if (xml) parts.push(xml);
-  } catch {
-    /* fall through to compact list */
-  }
-  // Compact routing (action labels + slash) — model still activates via load_skill.
-  const compact = catalog
-    .map((s) => {
-      const label = ACTION_LABEL[s.actionCategory] || s.actionCategory || "";
-      const entry = s.entrypoint ? " · 入口" : "";
-      const raw = String(s.description || "").replace(/\s+/gu, " ").trim();
-      const when = raw.match(/Use when[^.]*\./iu)?.[0]
-        || raw.match(/当用户[^。]*。/u)?.[0]
-        || raw;
-      const desc = when.slice(0, 160);
-      return `- \`${s.id}\`${label ? ` [${label}]` : ""}${entry} — ${desc}`;
-    })
-    .join("\n");
-  if (!parts.length) return compact;
-  return `${parts.join("\n")}\n\n${compact}`;
+  return formatSkillsForSystemPrompt(catalog.map((s) => ({
+    name: String(s.id || s.name),
+    description: String(s.description || ""),
+    filePath: String(s.path || ""),
+  })));
 }
 
 /**
@@ -641,5 +606,4 @@ export function invalidateSkillsCache() {
   cache.root = null;
   cache.pack = null;
   cache.catalog = null;
-  cache.bodies = new Map();
 }

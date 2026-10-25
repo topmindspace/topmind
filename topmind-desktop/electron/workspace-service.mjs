@@ -300,27 +300,19 @@ export const WorkspaceService = {
 
   async listPendingWrites(_p, ctx) {
     const { listPendingWrites } = await import("./lib/pending-writes.mjs");
-    return { ok: true, pending: listPendingWrites(ctx?.workspaceRoot) };
+    return { ok: true, pending: await listPendingWrites(ctx?.workspaceRoot) };
   },
 
   async confirmPendingWrite({ id }, ctx) {
-    const { takePendingWrite } = await import("./lib/pending-writes.mjs");
-    const entry = takePendingWrite(ctx?.workspaceRoot, id);
-    if (!entry) throw new Error("pending write not found or already handled");
-    return pathOps.savePath(
-      {
-        relativePath: entry.relativePath,
-        content: entry.content,
-        actor: "ai",
-        confirmed: true,
-      },
-      ctx,
-    );
+    const { acceptPendingWrite } = await import("./lib/pending-writes.mjs");
+    const result = await acceptPendingWrite(ctx?.workspaceRoot, id);
+    if (result.ok) ctx?.emit?.("workspace:file-changed", { relativePath: result.relativePath, source: "pending-write" });
+    return result;
   },
 
   async rejectPendingWrite({ id }, ctx) {
     const { rejectPendingWrite } = await import("./lib/pending-writes.mjs");
-    return { ok: rejectPendingWrite(ctx?.workspaceRoot, id) };
+    return { ok: await rejectPendingWrite(ctx?.workspaceRoot, id) };
   },
 
   // ── Inbox ────────────────────────────────────────────────────────────────

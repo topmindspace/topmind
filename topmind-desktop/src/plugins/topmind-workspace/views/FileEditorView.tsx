@@ -10,6 +10,7 @@ import {
   findStep,
 } from "../../../lib/editor-find";
 import { createDebouncedTask } from "../../../lib/hot-path";
+import { assembleSourceDocument, createEditorSaveQueue, editorSaveFailureReason, findSourceRanges, markdownNeedsSource, sourceBodyFromInput } from "../../../lib/editor-document";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Typography from "@tiptap/extension-typography";
@@ -29,7 +30,7 @@ import {
   RiPriceTag3Line,
   RiSearchLine,
 } from "@remixicon/react";
-import { EditorOutlinePanel } from "../../../components/editor/EditorOutlinePanel";
+import { EditorOutlinePanel, extractHeadings } from "../../../components/editor/EditorOutlinePanel";
 import { api } from "../../../services/api";
 import { useAiStore } from "../../../stores/ai-store";
 import { useViewStore } from "../../../stores/view-store";
@@ -102,7 +103,7 @@ interface Props {
   focusHeading?: string;
 }
 
-type ViewMode = "edit" | "preview";
+type ViewMode = "edit" | "source" | "preview";
 
 interface FileMeta {
   frontmatter: Record<string, unknown>;
@@ -115,12 +116,18 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
   const { t } = useTranslation(["workspace", "common"]);
   const [saveState, setSaveStateRaw] = useState<SaveState>("clean");
   const setSaveState = (s: SaveState | ((prev: SaveState) => SaveState)) => {
-    setSaveStateRaw((prev) => {
-      const next = typeof s === "function" ? s(prev) : s;
-      saveStateRef.current = next;
-      return next;
-    });
+    const next = typeof s === "function" ? s(saveStateRef.current) : s;
+    saveStateRef.current = next;
+    setSaveStateRaw(next);
   };
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [documentLoading, setDocumentLoading] = useState(true);
+  const documentLoadingRef = useRef(true);
+  const [sourceBody, setSourceBody] = useState("");
+  const sourceBodyRef = useRef("");
+  const sourceActiveRef = useRef(false);
+  const sourceInputRef = useRef<HTMLTextAreaElement>(null);
+  const editorRootRef = useRef<HTMLDivElement>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   /** Bumped by the error retry button — re-runs the load effect. */
   const [reloadTick, setReloadTick] = useState(0);
@@ -154,6 +161,9 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
   const [moveOpen, setMoveOpen] = useState(false);
   const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
   /** Pending external/disk body while dirty — resolved via keep-local / take-disk / merge. */
+  const diskChangeTask = useRef<Promise<void> | null>(null);
+  const diskChangePhase = useRef<"checking" | "conflict" | null>(null);
+  const discardedSaveDocuments = useRef(new Set<number>());
   const [diskConflict, setDiskConflict] = useState<{ disk: string; diskFull: string; source: string } | null>(null);
   const [moving, setMoving] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -161,6 +171,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
   const [fileMeta, setFileMeta] = useState<FileMeta | null>(null);
   /** Full file on disk (frontmatter + body) — source of truth for FM block. */
   const [rawContent, setRawContent] = useState("");
+  const sourceNeedsProtection = useMemo(() => markdownNeedsSource(sourceBody), [sourceBody]);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const editorSettings = useViewStore((s) => s.editorSettings);
   const setAiPanelOpen = useViewStore((s) => s.setAiPanelOpen);
@@ -175,13 +186,43 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
   const saveChain = useRef<Promise<void>>(Promise.resolve());
   const saveStateRef = useRef<SaveState>("clean");
   const pathRef = useRef(path);
+  const documentVersion = useRef({ path, documentId: 0, revision: 0 });
+  const persistedRevision = useRef(0);
+  if (pathRef.current !== path) documentVersion.current = { path, documentId: documentVersion.current.documentId + 1, revision: 0 };
   pathRef.current = path;
-  /** Last serialized markdown body — used to detect no-op onUpdate (formatting toggles etc.) */
-  const lastSerializedBodyRef = useRef<string>("");
+  const doSaveRef = useRef<() => Promise<void>>(async () => {});
+  const saveErrorText = (error: unknown) => ({
+    permission: t("workspace:editor.saveReasonPermission"),
+    space: t("workspace:editor.saveReasonSpace"),
+    missing: t("workspace:editor.saveReasonMissing"),
+    unavailable: t("workspace:editor.saveReasonUnavailable"),
+  })[editorSaveFailureReason(error)];
+  const saveQueue = useRef<ReturnType<typeof createEditorSaveQueue> | null>(null);
+  if (!saveQueue.current) saveQueue.current = createEditorSaveQueue({
+    current: () => documentVersion.current,
+    write: async (snapshot) => {
+      if (discardedSaveDocuments.current.has(snapshot.documentId)) return;
+      if (snapshot.path === pathRef.current) {
+        if (diskChangePhase.current === "checking") await diskChangeTask.current;
+        if (diskChangePhase.current) throw new Error(t("workspace:editor.resolveConflictFirst"));
+      }
+      await api.ws.save({ relativePath: snapshot.path, content: snapshot.content });
+      emitLocal("workspace:file-changed", { relativePath: snapshot.path, event: "change", source: "editor" });
+    },
+    onState: setSaveState,
+    onSaved: (snapshot) => {
+      lastSaved.current = snapshot.content;
+      persistedRevision.current = snapshot.revision;
+      setRawContent(snapshot.content);
+      setSaveError(null);
+      void api.ws.fileMeta(snapshot.path).then((meta) => {
+        if (documentVersion.current.documentId === snapshot.documentId && pathRef.current === snapshot.path) setFileMeta(meta);
+      }).catch(() => {});
+    },
+    onError: (error) => setSaveError(saveErrorText(error)),
+  });
   const autoSaveMsRef = useRef(1500);
   autoSaveMsRef.current = Math.max(500, Math.min(5000, editorSettings.autoSaveMs ?? 1500));
-  /** Skip one disk-change reload after our own save */
-  const ignoreDiskReloadUntil = useRef(0);
   /** Paste/drop images → workspace images/ + relative markdown (set after editor ready). */
   const insertLocalImagesRef = useRef<(files: File[]) => Promise<void>>(async () => {});
   const mountFile = useAiStore((s) => s.mountFile);
@@ -286,58 +327,47 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
         return true;
       },
     },
-    onUpdate: () => {
-      if (readOnly) return;
-      // Mark dirty without redundant React state thrash if already dirty
-      if (saveStateRef.current !== "dirty") {
-        saveStateRef.current = "dirty";
-        setSaveState("dirty");
-      }
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-      // doSave is stable via ref path; schedule by path at fire time.
-      // Markdown serialization is lazily performed at save time — NOT on every keystroke!
-      saveTimer.current = setTimeout(() => {
-        void saveChain.current.then(() => {
-          const ed = editor;
-          if (!ed || pathRef.current !== path) return;
-          try {
-            const body = getEditorMarkdown(ed, { noteRelativePath: pathRef.current });
-            if (body === lastSerializedBodyRef.current) {
-              saveStateRef.current = "clean";
-              setSaveState("clean");
-              return;
-            }
-            lastSerializedBodyRef.current = body;
-            const { frontmatterBlock } = splitMarkdownFile(lastSaved.current);
-            const full = joinMarkdownFile(frontmatterBlock, body);
-            return doSave({ relativePath: pathRef.current, fullContent: full });
-          } catch {
-            /* serialization failed */
-          }
-        });
-      }, autoSaveMsRef.current);
-
-      // Debounce word count update (400ms) so fast typing doesn't re-render the 1400-line component
-      if (wordCountTimer.current) clearTimeout(wordCountTimer.current);
-      wordCountTimer.current = setTimeout(() => {
-        if (editor && !editor.isDestroyed) {
-          setWordCount(editor.storage.characterCount.words());
-        }
-      }, 400);
-    },
+    onUpdate: () => markDocumentChanged(),
   });
 
-  const getBodyMarkdown = (): string => {
-    if (!editor) {
-      const { body } = splitMarkdownFile(rawContent);
-      return body;
-    }
-    return getEditorMarkdown(editor, { noteRelativePath: pathRef.current });
+  function markDocumentChanged() {
+    if (readOnly || documentLoadingRef.current) return;
+    documentVersion.current.revision++;
+    setSaveState("dirty");
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => { void doSaveRef.current().catch(() => {}); }, autoSaveMsRef.current);
+    if (wordCountTimer.current) clearTimeout(wordCountTimer.current);
+    wordCountTimer.current = setTimeout(() => {
+      if (sourceActiveRef.current) setWordCount(sourceBodyRef.current.trim().split(/\s+/u).filter(Boolean).length);
+      else if (editor && !editor.isDestroyed) setWordCount(editor.storage.characterCount.words());
+    }, 400);
+  }
+
+  const getBodyMarkdown = (noteRelativePath = pathRef.current): string => {
+    if (sourceActiveRef.current) return sourceBodyRef.current;
+    if (!editor) return splitMarkdownFile(rawContent).body;
+    return getEditorMarkdown(editor, { noteRelativePath, requireMarkdown: true });
   };
 
   const buildFullFile = (body: string): string => {
-    const { frontmatterBlock } = splitMarkdownFile(lastSaved.current || rawContent);
-    return joinMarkdownFile(frontmatterBlock, body);
+    const original = lastSaved.current || rawContent;
+    if (sourceActiveRef.current) return assembleSourceDocument(original, body);
+    return joinMarkdownFile(splitMarkdownFile(original).frontmatterBlock, body);
+  };
+
+  const acceptBody = (body: string, knownPaths?: readonly string[] | null) => {
+    diskChangePhase.current = null;
+    const newDocument = loadedPathRef.current !== path;
+    const source = markdownNeedsSource(body) || (!newDocument && sourceActiveRef.current);
+    sourceBodyRef.current = body;
+    sourceActiveRef.current = source;
+    setSourceBody(body.replace(/\r\n/gu, "\n"));
+    if (source) setViewMode("source");
+    else if (newDocument) setViewMode(readOnly ? "preview" : "edit");
+    documentVersion.current.documentId++;
+    documentVersion.current.revision = 0;
+    persistedRevision.current = 0;
+    setEditorMarkdown(editor, body, { noteRelativePath: path, knownPaths });
   };
 
   // Apply editor settings reactively when they change (guard: view may not be mounted yet)
@@ -368,9 +398,9 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
   // Edit mode only — preview uses a static HTML surface for reliable formatting
   useEffect(() => {
     if (!editor) return;
-    const canEdit = !readOnly && viewMode === "edit";
-    editor.setEditable(canEdit);
-  }, [editor, viewMode, readOnly]);
+    const canEdit = !readOnly && !documentLoading && loadedPathRef.current === path && viewMode === "edit";
+    editor.setEditable(canEdit, false);
+  }, [editor, viewMode, readOnly, documentLoading, path]);
 
   // Snapshot HTML when entering preview (or after load while previewing/read-only).
   // EditorContent stays mounted (hidden) so TipTap immediatelyRender:false still has a view.
@@ -381,33 +411,35 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
   const loadedPathRef = useRef<string | null>(null);
   const bumpPreview = () => setPreviewEpoch((n) => n + 1);
 
-  const applyDiskConflict = useCallback(
-    (choice: "keep-local" | "take-disk" | "merge") => {
-      const pending = diskConflict;
-      setDiskConflict(null);
-      if (!pending || !editor || editor.isDestroyed) return;
-      const base = splitMarkdownFile(lastSaved.current).body || "";
-      const localBody = getEditorMarkdown(editor, { noteRelativePath: path }) || "";
-      const resolved = resolveDiskConflict(
-        { base, local: localBody, disk: pending.disk },
-        choice,
-      );
-      if (choice === "keep-local") return;
-      setEditorMarkdown(editor, resolved.body || "", { noteRelativePath: path });
-      lastSerializedBodyRef.current = resolved.body || "";
-      if (choice === "take-disk") {
-        lastSaved.current = pending.diskFull || resolved.body || "";
-        setRawContent(lastSaved.current);
-        setSaveState("clean");
-        void api.ws.fileMeta(path).then(setFileMeta).catch(() => null);
-      } else {
-        setSaveState("dirty");
+  const applyDiskConflict = (choice: "keep-local" | "take-disk" | "merge") => {
+    const pending = diskConflict;
+    if (!pending || !editor || editor.isDestroyed) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    const base = splitMarkdownFile(lastSaved.current).body;
+    const local = getBodyMarkdown(path);
+    const resolved = resolveDiskConflict({ base, local, disk: pending.disk }, choice);
+    const discarded = documentVersion.current.documentId;
+    discardedSaveDocuments.current.add(discarded);
+    documentVersion.current.documentId++;
+    void saveQueue.current!.settled().then(() => discardedSaveDocuments.current.delete(discarded));
+    diskChangePhase.current = null;
+    setDiskConflict(null);
+    setSaveError(null);
+    lastSaved.current = pending.diskFull;
+    setRawContent(pending.diskFull);
+    if (choice === "take-disk") {
+      acceptBody(resolved.body);
+      setSaveState("clean");
+    } else {
+      if (choice === "merge") {
+        acceptBody(resolved.body);
+        documentVersion.current.revision++;
       }
-      setWordCount(editor.storage.characterCount.words());
-      bumpPreview();
-    },
-    [diskConflict, editor, path],
-  );
+      setSaveState("dirty");
+      void doSaveRef.current().catch(() => {});
+    }
+    bumpPreview();
+  };
   useEffect(() => {
     loadedPathRef.current = null;
     setPreviewHtml((prev) => nextPreviewHtml(prev, EMPTY_PREVIEW_HTML, { pathChanged: true }));
@@ -427,66 +459,32 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
     return () => cancelAnimationFrame(id);
   }, [editor, viewMode, readOnly, previewEpoch]);
 
-  /**
-   * Persist body for a path. Serialized via saveChain.
-   * When switching files, call with the previous path + forced body/FM so we never drop dirty buffers.
-   */
-  const doSave = useCallback(
-    async (opts?: { relativePath?: string; fullContent?: string; force?: boolean }) => {
-      if (readOnly && !opts?.force) return;
-      const targetPath = opts?.relativePath ?? pathRef.current;
-      const run = async () => {
-        let content = opts?.fullContent;
-        if (content == null) {
-          if (!editor) return;
-          const body = getBodyMarkdown();
-          content = buildFullFile(body);
-        }
-        if (content === lastSaved.current && targetPath === pathRef.current) {
-          setSaveState("clean");
-          return;
-        }
-        // Only flip UI saving state when still on this path
-        if (targetPath === pathRef.current) setSaveState("saving");
-        try {
-          await api.ws.save({ relativePath: targetPath, content });
-          ignoreDiskReloadUntil.current = Date.now() + 800;
-          if (targetPath === pathRef.current) {
-            lastSaved.current = content;
-            setRawContent(content);
-            setSaveState("saved");
-            const meta = await api.ws.fileMeta(targetPath).catch(() => null);
-            if (meta) setFileMeta(meta);
-            setTimeout(() => {
-              if (pathRef.current === targetPath && saveStateRef.current === "saved") {
-                setSaveState("clean");
-              }
-            }, 1200);
-          }
-          emitLocal("workspace:file-changed", {
-            relativePath: targetPath,
-            event: "change",
-            source: "editor",
-          });
-        } catch (e) {
-          if (targetPath === pathRef.current) {
-            setSaveState("error");
-            setLoadError(e instanceof Error ? e.message : String(e));
-          }
-          throw e;
-        }
-      };
-      const queued = saveChain.current.then(run, run);
-      saveChain.current = queued.then(
-        () => undefined,
-        () => undefined,
-      );
-      return queued;
-    },
-    // getBodyMarkdown/buildFullFile close over editor/rawContent — rebind when path/editor change
+  /** Capture the current document before queueing; later edits keep their dirty state. */
+  const doSave = useCallback(async (opts?: { relativePath?: string; fullContent?: string; force?: boolean }) => {
+    if ((readOnly && !opts?.force) || documentLoadingRef.current) return;
+    const targetPath = opts?.relativePath ?? pathRef.current;
+    const hasSnapshot = opts?.fullContent != null;
+    if (!hasSnapshot && loadedPathRef.current !== targetPath) return;
+    const requestedDocument = documentVersion.current.documentId;
+    if (diskChangePhase.current === "checking") await diskChangeTask.current;
+    if (!hasSnapshot && (pathRef.current !== targetPath || documentVersion.current.documentId !== requestedDocument)) return;
+    if (diskChangePhase.current) throw new Error(t("workspace:editor.resolveConflictFirst"));
+    if (!hasSnapshot && persistedRevision.current === documentVersion.current.revision) return;
+    let content: string;
+    try { content = opts?.fullContent ?? buildFullFile(getBodyMarkdown(targetPath)); }
+    catch (error) {
+      setSaveError(t("workspace:editor.serializeFailed"));
+      setSaveState("error");
+      throw error;
+    }
+    if (content === lastSaved.current && targetPath === pathRef.current) { setSaveState("clean"); return; }
+    const pending = saveQueue.current!.save({ ...documentVersion.current, path: targetPath, content });
+    saveChain.current = saveQueue.current!.settled();
+    return pending;
+    // Mutable document refs are read at capture time, never when a queued write starts.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [editor, readOnly, path],
-  );
+  }, [editor, readOnly, path]);
+  doSaveRef.current = doSave;
 
   // Paste/drop images → {noteDir}/images/{noteStem}/img-*.{ext} + relative markdown
   useEffect(() => {
@@ -560,7 +558,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
       if (inserted > 0) {
         // Persist body after inserts
         setSaveState("dirty");
-        void doSave();
+        void doSave().catch(() => {});
       }
     };
   }, [editor, readOnly, path, doSave]);
@@ -570,9 +568,16 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
     if (!editor) return;
     let cancelled = false;
     setLoadError(null);
+    setSaveError(null);
+    diskChangePhase.current = null;
+    setDiskConflict(null);
+    documentLoadingRef.current = true;
+    setDocumentLoading(true);
 
     (async () => {
       try {
+        await saveQueue.current!.settled();
+        if (cancelled) return;
         const [content, meta, knownPaths] = await Promise.all([
           api.ws.read(path),
           api.ws.fileMeta(path).catch(() => null),
@@ -583,9 +588,8 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
         setRawContent(content);
         setFileMeta(meta);
         const { body } = splitMarkdownFile(content);
-        setEditorMarkdown(editor, body || "", { noteRelativePath: path, knownPaths });
-        lastSerializedBodyRef.current = body || "";
-        if (body.trim() && !editorDocumentHasContent(editor.state.doc)) {
+        acceptBody(body || "", knownPaths);
+        if (!sourceActiveRef.current && body.trim() && !editorDocumentHasContent(editor.state.doc)) {
           const escaped = body
             .replace(/&/gu, "&amp;")
             .replace(/</gu, "&lt;")
@@ -594,14 +598,15 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
             `<p>${escaped.replace(/\n/gu, "<br>")}</p>`,
             { emitUpdate: false },
           );
-          lastSerializedBodyRef.current = getEditorMarkdown(editor, { noteRelativePath: path }) || body;
         }
         loadedPathRef.current = path;
+        documentLoadingRef.current = false;
+        setDocumentLoading(false);
         setSaveState("clean");
         setWordCount(editor.storage.characterCount.words());
         bumpPreview();
       } catch (e) {
-        if (!cancelled) setLoadError(e instanceof Error ? e.message : String(e));
+        if (!cancelled) { documentLoadingRef.current = false; setDocumentLoading(false); setLoadError(e instanceof Error ? e.message : String(e)); }
       }
     })();
 
@@ -618,14 +623,14 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
       // Flush dirty buffer for the path we're leaving (C1)
       if (readOnly) return;
       const leaving = path;
+      if (loadedPathRef.current !== leaving) return;
       const dirty = saveStateRef.current === "dirty" || saveStateRef.current === "error" || saveStateRef.current === "saving";
       if (!dirty || !editor) return;
       try {
-        const body = getEditorMarkdown(editor, { noteRelativePath: path });
-        const { frontmatterBlock } = splitMarkdownFile(lastSaved.current);
-        const full = joinMarkdownFile(frontmatterBlock, body);
+        const body = getBodyMarkdown(path);
+        const full = buildFullFile(body);
         if (full !== lastSaved.current) {
-          void doSave({ relativePath: leaving, fullContent: full, force: true });
+          void doSave({ relativePath: leaving, fullContent: full, force: true }).catch(() => {});
         }
       } catch {
         /* best-effort flush */
@@ -643,24 +648,55 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
   const [findQuery, setFindQuery] = useState("");
   const [findCount, setFindCount] = useState({ idx: 0, total: 0 });
   const findInputRef = useRef<HTMLInputElement>(null);
+  const sourceFind = useRef({ matches: [] as Array<{ from: number; to: number }>, active: 0 });
+  const selectSourceRange = (from: number, to = from) => {
+    const input = sourceInputRef.current;
+    if (!input) return;
+    input.focus();
+    input.setSelectionRange(from, to);
+    const line = sourceBodyRef.current.slice(0, from).split("\n").length - 1;
+    input.scrollTop = Math.max(0, line * (parseFloat(getComputedStyle(input).lineHeight) || 24) - input.clientHeight / 2);
+  };
+  function stepFind(direction: -1 | 1) {
+    if (viewMode !== "source") { findStep(editor, direction); return; }
+    const state = sourceFind.current;
+    if (!state.matches.length) return;
+    state.active = (state.active + direction + state.matches.length) % state.matches.length;
+    const match = state.matches[state.active];
+    selectSourceRange(match.from, match.to);
+    setFindCount({ idx: state.active + 1, total: state.matches.length });
+  }
 
   const openFind = useCallback(() => {
     setFindOpen(true);
-    const selected = editor?.state.selection.toString().trim();
+    const input = sourceInputRef.current;
+    const range = editor?.state.selection;
+    const selected = (viewMode === "source" && input
+      ? input.value.slice(input.selectionStart, input.selectionEnd)
+      : range ? editor?.state.doc.textBetween(range.from, range.to, "\n") : "")?.trim();
     if (selected && selected.length <= 64 && (selected.includes(" ") || /^[\w\u4e00-\u9fa5-]+$/u.test(selected))) {
       setFindQuery(selected);
     }
     requestAnimationFrame(() => findInputRef.current?.select());
-  }, [editor]);
+  }, [editor, viewMode]);
 
   const closeFind = useCallback(() => {
     setFindOpen(false);
     findClear(editor);
   }, [editor]);
 
+  function ownsKeyboardEvent(event: KeyboardEvent) {
+    if (useViewStore.getState().overlay !== "none") return false;
+    const owner = event.target instanceof HTMLElement ? event.target.closest(".v4-editor-shell") : null;
+    if (owner) return owner === editorRootRef.current;
+    const selection = useViewStore.getState().selection;
+    return selection.kind === "file" && selection.path === path;
+  }
+
   // ⌘F opens find (works in read mode too); ⌘F/F3/⌘G cycle while open
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (!ownsKeyboardEvent(e)) return;
       const mod = e.metaKey || e.ctrlKey;
       if (mod && e.key.toLowerCase() === "f" && !e.shiftKey && !e.altKey) {
         if (useViewStore.getState().overlay !== "none") return;
@@ -668,12 +704,12 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
         openFind();
       } else if (findOpen && e.key === "F3") {
         e.preventDefault();
-        findStep(editor, e.shiftKey ? -1 : 1);
+        stepFind(e.shiftKey ? -1 : 1);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [editor, findOpen, openFind]);
+  }, [editor, findOpen, openFind, viewMode]);
 
   // Push query into the plugin — debounced so typing does not scan + dispatch
   // the whole doc per keystroke. Scroll is suppressed while typing (Enter/step
@@ -683,15 +719,21 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
     const q = findQuery.trim();
     const debounced = createDebouncedTask(160);
     debounced.schedule(() => {
+      if (viewMode === "source") {
+        const matches = findSourceRanges(sourceBody, q);
+        sourceFind.current = { matches, active: 0 };
+        setFindCount({ idx: matches.length ? 1 : 0, total: matches.length });
+        return;
+      }
       const st = findSetSearch(editor, q, { scroll: false });
       setFindCount({ idx: st.matches.length ? 1 : 0, total: st.matches.length });
     });
     return () => debounced.cancel();
-  }, [findOpen, editor, findQuery]);
+  }, [findOpen, editor, findQuery, viewMode, sourceBody]);
 
   // Keep count live across doc edits while the bar is open
   useEffect(() => {
-    if (!editor || !findOpen) return;
+    if (!editor || !findOpen || viewMode === "source") return;
     const update = () => {
       const st = findGetState(editor);
       setFindCount({ idx: st.matches.length ? st.activeIdx + 1 : 0, total: st.matches.length });
@@ -700,7 +742,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
     return () => {
       editor.off("transaction", update);
     };
-  }, [editor, findOpen]);
+  }, [editor, findOpen, viewMode]);
 
   // Stream browser: jump to ## heading after open / same-file reselect (single path, no double toast)
   useEffect(() => {
@@ -716,8 +758,10 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
         window.setTimeout(tick, 40);
         return;
       }
-      if (!readOnly) setViewMode("edit");
-      const ok = focusEditorHeading(editor, want);
+      if (!readOnly && !sourceActiveRef.current) setViewMode("edit");
+      const heading = sourceActiveRef.current ? extractHeadings(null, sourceBodyRef.current.replace(/\r\n/gu, "\n")).find((item) => item.text === want) : null;
+      const ok = sourceActiveRef.current ? Boolean(heading) : focusEditorHeading(editor, want);
+      if (heading) selectSourceRange(heading.sourceOffset ?? 0);
       if (!ok) {
         emitLocal(
           "toast:show",
@@ -732,112 +776,91 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
     };
   }, [editor, focusHeading, path, readOnly, t]);
 
-  // External / AI writes to the open file (C3)
+  // Disk/AI updates never replace a dirty editor or race an unresolved choice.
   useEffect(() => {
     if (!editor || readOnly) return;
-    return onLocal("workspace:file-changed", (payload: unknown) => {
-      // Before this handler peeks the path list. A note move emits this event
-      // after the file is already at the new path; the 15s list must not win.
-      invalidateWorkspaceImagePaths();
-      const rel =
-        payload && typeof payload === "object" && "relativePath" in payload
-          ? String((payload as { relativePath?: string }).relativePath || "")
-          : "";
-      if (rel && rel !== path) return;
-      if (Date.now() < ignoreDiskReloadUntil.current) return;
-      const st = saveStateRef.current;
-      // Our own inline-AI apply already mutated this editor — skip reload/conflict.
-      const selfSource =
-        payload && typeof payload === "object" && "source" in payload
-          ? String((payload as { source?: string }).source || "")
-          : "";
-      if (selfSource === "inline-ai") return;
-      if (st === "dirty" || st === "saving" || st === "error") {
-        const source = selfSource;
-        void (async () => {
+    let request = 0;
+    let disposed = false;
+    return (() => {
+      const unsubscribe = onLocal("workspace:file-changed", (payload: unknown) => {
+        const change = payload && typeof payload === "object" ? payload as { relativePath?: string; source?: string } : {};
+        invalidateWorkspaceImagePaths();
+        if (change.relativePath && change.relativePath !== path) return;
+        if (change.source === "inline-ai" || change.source === "editor") return;
+        const seq = ++request;
+        const documentId = documentVersion.current.documentId;
+        const current = () => !disposed && seq === request && pathRef.current === path && documentVersion.current.documentId === documentId;
+        if (saveTimer.current) clearTimeout(saveTimer.current);
+        diskChangePhase.current = "checking";
+        const activeWrite = saveQueue.current!.activeWrite();
+        const task = (async () => {
           try {
+            await activeWrite?.catch(() => {});
+            if (!current()) return;
             const disk = await api.ws.read(path);
-            if (pathRef.current !== path) return;
-            const localBody = getEditorMarkdown(editor, { noteRelativePath: path }) || "";
-            const base = splitMarkdownFile(lastSaved.current).body || "";
-            const diskBody = splitMarkdownFile(disk).body || "";
-            const auto = resolveDiskConflict(
-              { base, local: localBody, disk: diskBody },
-              "keep-local",
-            );
-            if (auto.auto && auto.autoKind === "disk-eq-base") return;
-            if (auto.auto && auto.autoKind === "identical") return;
-            if (auto.auto && auto.autoKind === "local-eq-base") {
-              // No real local edits — safe to take disk silently.
-              lastSaved.current = disk;
-              setRawContent(disk);
-              setFileMeta(await api.ws.fileMeta(path).catch(() => null));
-              const knownPaths = await ensureWorkspaceImagePaths(
-                useViewStore.getState().workspaceRoot,
-              );
-              setEditorMarkdown(editor, diskBody || "", { noteRelativePath: path, knownPaths });
-              lastSerializedBodyRef.current = diskBody || "";
-              setSaveState("clean");
-              bumpPreview();
+            if (!current()) return;
+            if (disk === lastSaved.current) {
+              diskChangePhase.current = null;
+              if (saveStateRef.current === "dirty") saveTimer.current = setTimeout(() => { void doSaveRef.current().catch(() => {}); }, autoSaveMsRef.current);
               return;
             }
-            setDiskConflict({ disk: diskBody || "", diskFull: disk, source });
-          } catch {
-            emitLocal(
-              "toast:show",
-              source.startsWith("ai:")
-                ? t("workspace:editor.diskFileUpdatedUnsavedAi")
-                : t("workspace:editor.diskFileUpdatedUnsaved"),
-            );
+            const [meta, knownPaths] = await Promise.all([api.ws.fileMeta(path).catch(() => null), ensureWorkspaceImagePaths(useViewStore.getState().workspaceRoot)]);
+            if (!current()) return;
+            const base = splitMarkdownFile(lastSaved.current).body;
+            const local = documentVersion.current.revision === persistedRevision.current ? base : getBodyMarkdown(path);
+            const body = splitMarkdownFile(disk).body;
+            const resolved = resolveDiskConflict({ base, local, disk: body }, "keep-local");
+            if (!resolved.auto) {
+              diskChangePhase.current = "conflict";
+              setDiskConflict({ disk: body, diskFull: disk, source: change.source || "" });
+              return;
+            }
+            diskChangePhase.current = null;
+            lastSaved.current = disk;
+            setRawContent(disk);
+            setFileMeta(meta);
+            if (resolved.autoKind === "disk-eq-base") {
+              // External property edits must survive the next local body save.
+              saveTimer.current = setTimeout(() => { void doSaveRef.current().catch(() => {}); }, autoSaveMsRef.current);
+              return;
+            }
+            acceptBody(body, knownPaths);
+            setSaveError(null);
+            setSaveState("clean");
+            bumpPreview();
+          } catch (error) {
+            if (!current()) return;
+            diskChangePhase.current = null;
+            setSaveError(saveErrorText(error));
+            setSaveState("error");
           }
         })();
-        return;
-      }
-      void (async () => {
-        try {
-          const [content, meta, knownPaths] = await Promise.all([
-            api.ws.read(path),
-            api.ws.fileMeta(path).catch(() => null),
-            ensureWorkspaceImagePaths(useViewStore.getState().workspaceRoot),
-          ]);
-          if (pathRef.current !== path) return;
-          if (content === lastSaved.current) return;
-          lastSaved.current = content;
-          setRawContent(content);
-          setFileMeta(meta);
-          const { body } = splitMarkdownFile(content);
-          setEditorMarkdown(editor, body || "", { noteRelativePath: path, knownPaths });
-          lastSerializedBodyRef.current = body || "";
-          if (body.trim() && !editorDocumentHasContent(editor.state.doc)) {
-            const escaped = body
-              .replace(/&/gu, "&amp;")
-              .replace(/</gu, "&lt;")
-              .replace(/>/gu, "&gt;");
-            editor.commands.setContent(
-              `<p>${escaped.replace(/\n/gu, "<br>")}</p>`,
-              { emitUpdate: false },
-            );
-            lastSerializedBodyRef.current = getEditorMarkdown(editor, { noteRelativePath: path }) || body;
-          }
-          loadedPathRef.current = path;
-          setSaveState("clean");
-          setWordCount(editor.storage.characterCount.words());
-          bumpPreview();
-        } catch {
-          /* ignore reload races */
-        }
-      })();
-    });
+        diskChangeTask.current = task;
+        void task.finally(() => { if (diskChangeTask.current === task) diskChangeTask.current = null; });
+      });
+      return () => { disposed = true; unsubscribe(); };
+    })();
+    // Document buffers are read from refs after I/O resolves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, path, readOnly]);
 
   const switchViewMode = (mode: ViewMode) => {
+    if (!editor || documentLoadingRef.current) return;
+    if (mode === "source" && !sourceActiveRef.current) {
+      const body = documentVersion.current.revision === persistedRevision.current ? splitMarkdownFile(lastSaved.current).body : getBodyMarkdown();
+      sourceBodyRef.current = body;
+      setSourceBody(body.replace(/\r\n/gu, "\n"));
+      sourceActiveRef.current = true;
+    }
+    if (mode === "edit" && readOnly) return;
+    if (mode === "edit" && sourceActiveRef.current) {
+      if (markdownNeedsSource(sourceBodyRef.current)) return;
+      setEditorMarkdown(editor, sourceBodyRef.current, { noteRelativePath: path });
+      sourceActiveRef.current = false;
+    }
     if (mode === "preview") {
-      const ready = loadedPathRef.current === pathRef.current;
-      setPreviewHtml((prev) =>
-        nextPreviewHtml(prev, ready ? getEditorHtml(editor) : EMPTY_PREVIEW_HTML, {
-          pathChanged: !ready,
-        }),
-      );
+      if (sourceActiveRef.current) setEditorMarkdown(editor, sourceBodyRef.current, { noteRelativePath: path });
+      setPreviewHtml((prev) => nextPreviewHtml(prev, getEditorHtml(editor)));
     }
     setViewMode(mode);
   };
@@ -872,13 +895,14 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
   useEffect(() => {
     if (!editor || readOnly) return;
     const handler = (e: KeyboardEvent) => {
+      if (!ownsKeyboardEvent(e)) return;
       if ((e.metaKey || e.ctrlKey) && e.key === "s") {
         e.preventDefault();
         if (saveTimer.current) clearTimeout(saveTimer.current);
-        void doSave();
+        void doSave().catch(() => {});
       }
       // ⌘. insert date-time at cursor
-      if ((e.metaKey || e.ctrlKey) && e.key === ".") {
+      if (viewMode === "edit" && (e.metaKey || e.ctrlKey) && e.key === ".") {
         e.preventDefault();
         handleInsertDateTime();
       }
@@ -890,22 +914,22 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [editor, path, readOnly, doSave, handleInsertDateTime]);
+  }, [editor, path, readOnly, doSave, handleInsertDateTime, viewMode]);
 
   // Flush dirty buffer on window hide/close
   useEffect(() => {
     if (readOnly) return;
     const flush = () => {
+      if (loadedPathRef.current !== path) return;
       if (saveTimer.current) clearTimeout(saveTimer.current);
       const st = saveStateRef.current;
       if (st !== "dirty" && st !== "error") return;
       try {
         if (!editor) return;
-        const body = getEditorMarkdown(editor, { noteRelativePath: path });
-        const { frontmatterBlock } = splitMarkdownFile(lastSaved.current);
-        const full = joinMarkdownFile(frontmatterBlock, body);
+        const body = getBodyMarkdown(path);
+        const full = buildFullFile(body);
         if (full !== lastSaved.current) {
-          void doSave({ fullContent: full, force: true });
+          void doSave({ fullContent: full, force: true }).catch(() => {});
         }
       } catch {
         /* ignore */
@@ -919,15 +943,29 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
     };
   }, [editor, readOnly, doSave]);
 
-  const handleToggleMount = () => {
-    if (mounted) {
-      unmountFile(path);
-      emitLocal("toast:show", t("workspace:editor.unmountedFromAi"));
-    } else {
+  const handleToggleMount = async () => {
+    try {
+      if (mounted) {
+        unmountFile(path);
+        emitLocal("toast:show", t("workspace:editor.unmountedFromAi"));
+      } else {
+        await doSave();
+        if (pathRef.current !== path) return;
+        mountFile({ path, name: baseName });
+        setAiPanelOpen(true);
+        emitLocal("toast:show", t("workspace:editor.mountedToAi"));
+      }
+    } catch (error) { toastWritebackError(t("workspace:editor.saveFailedKeepDraft"), error); }
+  };
+
+  const handleAskNoteAi = async () => {
+    try {
+      await doSave();
+      if (pathRef.current !== path) return;
       mountFile({ path, name: baseName });
-      setAiPanelOpen(true);
-      emitLocal("toast:show", t("workspace:editor.mountedToAi"));
-    }
+      useViewStore.getState().openAiWorkspace("chat");
+      requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>(".v4-composer-field textarea")?.focus());
+    } catch (error) { toastWritebackError(t("workspace:editor.saveFailedKeepDraft"), error); }
   };
 
   const handlePublish = () => {
@@ -1023,28 +1061,6 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
     emitLocal("x:open-prompt", { mode: "post", text });
   };
 
-  if (loadError && saveState !== "dirty" && saveState !== "saving") {
-    return (
-      <div className="flex h-full items-center justify-center p-6">
-        <div className="flex flex-col items-center gap-3 rounded-lg border border-border-subtle-dim bg-status-error-bg px-5 py-4 text-sm text-error">
-          <span>
-            {t("common:status.error")}: {loadError}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setLoadError(null);
-              setReloadTick((v) => v + 1);
-            }}
-          >
-            <RiArrowGoBackLine size={ICON.xs} /> {t("common:action.retry")}
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   // Parse frontmatter for display
   const fmEntries = useMemo(() => {
     if (!fileMeta?.frontmatter) return [];
@@ -1091,7 +1107,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
       onOpenSettings={() => openOverlay("settings", { topicId: "general" })}
       focusMode={focusMode}
       onToggleFocus={toggleFocusMode}
-      showFocus={!focusMode}
+      showFocus={!focusMode && !toolbarCompact}
     />
   );
 
@@ -1105,8 +1121,32 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
     ),
   } as const;
 
+  if (loadError && saveState !== "dirty" && saveState !== "saving") {
+    return (
+      <div className="flex h-full items-center justify-center p-6">
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-border-subtle-dim bg-status-error-bg px-5 py-4 text-sm text-error">
+          <span>
+            {t("common:status.error")}: {loadError}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setLoadError(null);
+              setReloadTick((v) => v + 1);
+            }}
+          >
+            <RiArrowGoBackLine size={ICON.xs} /> {t("common:action.retry")}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
+      ref={editorRootRef}
+      data-editor-mode={viewMode}
       className="v4-editor-shell flex h-full min-h-0 flex-col"
       data-content-width={contentWidth}
       data-page-padding={pagePadding}
@@ -1116,8 +1156,8 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
       <div className="v4-editor-toolbar shrink-0 border-b border-border-subtle-dim bg-surface/80 backdrop-blur-[2px]">
         <div ref={toolbarRef} className="flex h-(--density-editor-toolbar-y,32px) items-center justify-between gap-1 px-2 sm:px-2.5" data-compact={toolbarCompact ? "true" : undefined}>
           <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
-            {!readOnly ? (
-              <EditorModeSwitch viewMode={viewMode} onChange={switchViewMode} />
+            {!readOnly || sourceActiveRef.current ? (
+              <EditorModeSwitch viewMode={viewMode} onChange={switchViewMode} visualDisabled={readOnly || (sourceActiveRef.current && sourceNeedsProtection)} />
             ) : (
               <Tooltip content={t("workspace:formatBar.preview")}>
                 <span className="inline-flex items-center gap-1 rounded-[var(--radius-xs)] bg-surface-wash-30 px-2 py-0.5 text-3xs text-text-tertiary">
@@ -1158,7 +1198,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
 
           <div className="flex min-w-0 shrink items-center justify-end gap-0.5">
             {viewChrome}
-            {canShowProperties ? (
+            {canShowProperties && !toolbarCompact ? (
               <>
                 <ToolbarSep />
                 <Tooltip
@@ -1216,6 +1256,15 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
         </div>
       </div>
 
+      {saveError ? (
+        <div className="flex flex-wrap items-center gap-2 bg-status-error-bg px-3 py-2 text-xs text-error" role="alert" data-editor-save-error>
+          <span className="min-w-0 flex-1">{t("workspace:editor.saveFailedKeepDraft")} {saveError}</span>
+          <Button variant="outline" size="sm" onClick={() => void doSave().catch(() => {})}>{t("workspace:editor.retrySave")}</Button>
+        </div>
+      ) : null}
+      {sourceActiveRef.current && sourceNeedsProtection ? (
+        <div className="bg-surface-wash-30 px-3 py-2 text-xs text-text-secondary" role="status" data-editor-source-notice>{t("workspace:editor.sourceRequired")}</div>
+      ) : null}
       <TitleBarActions>
         <FileEditorTitleBarActions
           canPublish={canPublish}
@@ -1228,7 +1277,8 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
           onPostToX={handlePostToX}
           mounted={mounted}
           onToggleMount={handleToggleMount}
-          onRequestAiBar={requestSelectionAiBar}
+          inlineAi={viewMode === "edit"}
+          onRequestAiBar={viewMode === "edit" ? requestSelectionAiBar : () => void handleAskNoteAi()}
           moveControl={
             !readOnly && canPublish && path.endsWith(".md") && !path.match(/^88[- ]/u) ? (
               <DropdownMenu
@@ -1244,7 +1294,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
                       type="button"
                       disabled={moving}
                       onClick={() => setMoveOpen((v) => !v)}
-                      className="v4-titlebar-btn"
+                      className="v4-titlebar-btn v4-titlebar-btn-icon"
                       aria-label={t("workspace:menu.moveToTopic")}
                       aria-expanded={moveOpen}
                     >
@@ -1275,29 +1325,33 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
           relativePath={path}
           frontmatter={fileMeta?.frontmatter}
           flushBody={async () => {
+            if (pathRef.current !== path) throw new Error(t("workspace:editor.documentChanged"));
             // Always drain queue + flush dirty/saving body before FM write (C2)
             if (saveTimer.current) {
               clearTimeout(saveTimer.current);
               saveTimer.current = null;
             }
             await saveChain.current.catch(() => {});
+            if (pathRef.current !== path) throw new Error(t("workspace:editor.documentChanged"));
             const st = saveStateRef.current;
             if (st === "dirty" || st === "error" || st === "saving") {
               await doSave();
             }
           }}
           onUpdated={async (next) => {
+            if (pathRef.current !== path) return;
             setFileMeta((m) => (m ? { ...m, frontmatter: next } : m));
             // Reload FM block after server write so next body save won't wipe new YAML
             try {
               await saveChain.current.catch(() => {});
               const content = await api.ws.read(path);
+              if (pathRef.current !== path) return;
               lastSaved.current = content;
               setRawContent(content);
               const { body } = splitMarkdownFile(content);
               // Keep unsaved body edits; only sync editor when clean
               if (editor && (saveStateRef.current === "clean" || saveStateRef.current === "saved")) {
-                setEditorMarkdown(editor, body || "", { noteRelativePath: path });
+                acceptBody(body || "");
                 bumpPreview();
               }
             } catch {
@@ -1337,7 +1391,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
         </div>
       ) : null}
 
-      {/* Edit: TipTap surface · Preview: static HTML (same .v4-tiptap styles).
+      {/* Edit: TipTap · Source: original Markdown body · Preview: static HTML.
           EditorContent stays mounted (hidden) so immediatelyRender:false still has a view. */}
       {findOpen ? (
         <div
@@ -1353,12 +1407,13 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === "F3") {
                 e.preventDefault();
-                findStep(editor, e.shiftKey ? -1 : 1);
+                stepFind(e.shiftKey ? -1 : 1);
               } else if (e.key === "Escape") {
                 e.preventDefault();
                 e.stopPropagation();
                 closeFind();
-                editor?.commands.focus();
+                if (viewMode === "source") sourceInputRef.current?.focus();
+                else editor?.commands.focus();
               }
             }}
             placeholder={t("workspace:editor.findPlaceholder")}
@@ -1368,10 +1423,10 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
           <span className="min-w-12 shrink-0 text-center text-3xs tabular-nums text-text-tertiary">
             {findCount.total > 0 ? `${findCount.idx}/${findCount.total}` : findQuery.trim() ? t("workspace:editor.findNoMatch") : "0/0"}
           </span>
-          <Button variant="ghost" size="sm" className="h-6 px-1.5" onClick={() => findStep(editor, -1)} aria-label={t("workspace:editor.findPrev")}>
+          <Button variant="ghost" size="sm" className="h-6 px-1.5" onClick={() => stepFind(-1)} aria-label={t("workspace:editor.findPrev")}>
             <RiArrowUpSLine size={ICON.xs} />
           </Button>
-          <Button variant="ghost" size="sm" className="h-6 px-1.5" onClick={() => findStep(editor, 1)} aria-label={t("workspace:editor.findNext")}>
+          <Button variant="ghost" size="sm" className="h-6 px-1.5" onClick={() => stepFind(1)} aria-label={t("workspace:editor.findNext")}>
             <RiArrowDownSLine size={ICON.xs} />
           </Button>
           <Button variant="ghost" size="sm" className="h-6 px-1.5" onClick={closeFind} aria-label={t("common:action.close")}>
@@ -1383,11 +1438,12 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
         <div
           className={cn(
             "v4-editor-scroll v4-editor-canvas min-h-0 flex-1 overflow-auto",
+            viewMode === "source" && "flex flex-col overflow-hidden",
             (viewMode === "preview" || readOnly) && "v4-md-preview",
           )}
         >
           {/* Reading chrome: every note opens like an article (title always visible). */}
-          {docTitle ? (
+          {docTitle && viewMode !== "source" ? (
             <div className="v4-editor-article-head px-4 pt-5 sm:px-6" data-editor-article-title>
               <h1 className="m-0 text-[1.45em] font-semibold leading-snug tracking-tight text-text-primary">
                 {docTitle}
@@ -1395,8 +1451,8 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
             </div>
           ) : null}
           <div
-            className={cn((viewMode === "preview" || readOnly) && "hidden")}
-            aria-hidden={viewMode === "preview" || readOnly}
+            className={cn((viewMode !== "edit" || readOnly || documentLoading) && "hidden")}
+            aria-hidden={viewMode !== "edit" || readOnly || documentLoading}
           >
             <div
               className="contents"
@@ -1412,7 +1468,16 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
               ) : null}
             </div>
           </div>
-          {viewMode === "preview" || readOnly ? (
+          {viewMode === "source" ? (
+            <textarea ref={sourceInputRef} value={sourceBody} readOnly={readOnly} disabled={documentLoading}
+              aria-label={t("workspace:formatBar.source")} spellCheck={false}
+              className="min-h-0 w-full flex-1 resize-none border-0 bg-transparent px-4 py-4 font-mono text-sm text-text-primary outline-none sm:px-6"
+              style={{ fontSize: `${editorSettings.fontSize}px`, lineHeight: String(editorSettings.lineHeight), boxShadow: "none", tabSize: 2, overflowWrap: editorSettings.wordWrap === false ? "normal" : "anywhere", whiteSpace: editorSettings.wordWrap === false ? "pre" : "pre-wrap" }}
+              onChange={(event) => { sourceBodyRef.current = sourceBodyFromInput(event.target.value, lastSaved.current); setSourceBody(event.target.value); markDocumentChanged(); }}
+              onKeyDown={(event) => { if (findOpen && event.key === "Escape") { event.preventDefault(); event.stopPropagation(); closeFind(); } }}
+            />
+          ) : null}
+          {viewMode === "preview" ? (
             <div
               className="v4-editor-body v4-tiptap allow-native-context"
               style={proseStyle}
@@ -1434,7 +1499,8 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
         </div>
         <EditorOutlinePanel
           editor={editor}
-          rawMarkdown={rawContent}
+          rawMarkdown={viewMode === "source" ? sourceBody : rawContent}
+          onSourceSelect={(offset) => selectSourceRange(offset)}
           viewMode={viewMode}
           open={showOutline}
           onClose={() => setShowOutline(false)}

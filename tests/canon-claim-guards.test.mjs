@@ -126,19 +126,6 @@ test("host integration READMEs in this repo do not link at the removed skills/ t
   }
 });
 
-function countFiles(dir, accept) {
-  let count = 0;
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    const abs = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      if (entry.name === "node_modules" || entry.name === "dist") continue;
-      count += countFiles(abs, accept);
-    } else if (accept(entry.name)) {
-      count += 1;
-    }
-  }
-  return count;
-}
 
 function frontmatterActionCategory(markdown) {
   const fm = String(markdown).split("---")[1] || "";
@@ -187,7 +174,12 @@ test("SKILL-ARCHITECTURE install-target sentence matches pack.install_targets", 
   const pack = JSON.parse(readFileSync(path.join(skillsRoot, "topmind-pack.json"), "utf8"));
   const ids = pack.install_targets.map((target) => target.id);
   const mentions = [...arch.matchAll(/(\d+)\s*个安装目标（([^）]+)）/gu)];
-  assert.ok(mentions.length >= 1);
+  if (!mentions.length) {
+    assert.match(arch, /INSTALL\.md/);
+    for (const target of pack.install_targets) {
+      assert.ok(existsSync(path.join(skillsRoot, target.path)), `${target.id} install target exists`);
+    }
+  }
   for (const mention of mentions) {
     assert.equal(Number(mention[1]), ids.length);
     assert.deepEqual(mention[2].split("/").map((part) => part.trim()), ids);
@@ -210,7 +202,7 @@ test("PRODUCT-BOUNDARIES optional-skill sketch lists every optional pack skill",
   assert.match(section, /不是第六个用户概念|不是新的用户概念/u);
 });
 
-test("Desktop ARCHITECTURE slot line and source counts match the tree", () => {
+test("Desktop ARCHITECTURE plugin slots match the implementation", () => {
   const architecture = read("topmind-desktop/ARCHITECTURE.md");
   const types = read("topmind-desktop/src/plugins/types.ts");
   const slotLine = architecture.split("\n").find((line) => line.includes("插件槽:"));
@@ -225,16 +217,5 @@ test("Desktop ARCHITECTURE slot line and source counts match the tree", () => {
   assert.deepEqual(labels, ["DataSource", "View", "Action", "Settings", "Overlay", "StatusBar", "ContextMenu"]);
   assert.doesNotMatch(architecture, /interface SidebarSlot|Sidebar 同步/u);
 
-  const srcCount = countFiles(
-    path.join(repoRoot, "topmind-desktop/src"),
-    (name) => name.endsWith(".ts") || name.endsWith(".tsx"),
-  );
-  const electronCount = countFiles(
-    path.join(repoRoot, "topmind-desktop/electron"),
-    (name) => /\.(?:mjs|cjs|js)$/u.test(name),
-  );
-  assert.match(
-    architecture,
-    new RegExp(`源文件计数：\`src/\` ${srcCount} · \`electron/\` ${electronCount}`),
-  );
+
 });

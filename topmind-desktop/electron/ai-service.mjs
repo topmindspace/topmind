@@ -1,8 +1,7 @@
 /** v4 AiService — sessions + invoke + one-shot complete (inline edit). */
-import { promises as fs } from "node:fs";
 import path from "node:path";
 import { generateText } from "ai";
-import { readJson, writeText, ensureDir, readText } from "./lib/fs-utils.mjs";
+import { readText } from "./lib/fs-utils.mjs";
 import { logInfo, logError, logWarn } from "./lib/writeback.mjs";
 import { buildSystemPrompt, assembleContext, resolvePromptLocale } from "./ai-prompts.mjs";
 import { createStreamRegistry, runStream } from "./ai-stream.mjs";
@@ -12,7 +11,8 @@ import { t as ei18n } from "./lib/electron-i18n.mjs";
 import { assertPathWithin } from "./lib/path-safety.mjs";
 import { loadAppSettings } from "./settings.mjs";
 import { compactMessagesForModel, resolveCompactBudget } from "./lib/ai-session-compact.mjs";
-import { getDesktopWorkingSet, rememberDesktopTranscript } from "./lib/runtime-bounds.mjs";
+import { AiSessionStore, safeSessionId } from "./lib/ai-session-store.mjs";
+import { prepareTurnResources } from "./lib/tool-progressive.mjs";
 import { sanitizeInlineAiResult } from "./lib/inline-ai-result.mjs";
 import { rememberDistillHint } from "./lib/ai-tool-evidence.mjs";
 import {
@@ -167,62 +167,6 @@ async function resolveMountedFiles(workspaceContext, refs) {
     }
   }
   return out;
-}
-
-async function lst(c) {
-  return readJson(c.workspaceStatePaths.aiWorkspaceStateFilePath, { sessions: {}, history: [] });
-}
-async function sst(c, s) {
-  await writeText(c.workspaceStatePaths.aiWorkspaceStateFilePath,
-    JSON.stringify({ ...s, updatedAt: new Date().toISOString() }, null, 2));
-}
-function msgDir(c) { return c.workspaceStatePaths.aiSessionMessagesDirPath; }
-
-/**
- * Validate sessionId shape — reject path separators and `..` so a compromised
- * renderer cannot escape aiSessionMessagesDirPath via crafted ids.
- * @param {string} sessionId
- * @returns {string} sanitized id
- */
-function safeSessionId(sessionId) {
-  const id = String(sessionId || "").trim();
-  if (!id || !/^[A-Za-z0-9_-]+$/.test(id) || id.includes("..")) {
-    throw new Error(`Invalid sessionId: ${id}`);
-  }
-  return id;
-}
-
-/** Session-level GoalState persistence (G2) — next to messages JSON. */
-function sessionGoalPath(sessionId, c) {
-  const id = safeSessionId(sessionId);
-  return path.join(msgDir(c), id + ".goal.json");
-}
-
-async function loadSessionGoal(sessionId, c) {
-  try {
-    return await readJson(sessionGoalPath(sessionId, c), null);
-  } catch {
-    return null;
-  }
-}
-
-async function saveSessionGoal(sessionId, goalState, c) {
-  try {
-    await ensureDir(msgDir(c));
-    await writeText(
-      sessionGoalPath(sessionId, c),
-      JSON.stringify({
-        goal: goalState?.goal || "",
-        plan: goalState?.plan || [],
-        criteria: goalState?.criteria || [],
-        doneCriteria: goalState?.doneCriteria || [],
-        pathReceipts: (goalState?.pathReceipts || []).slice(-24),
-        status: goalState?.status || "idle",
-        blockReason: goalState?.blockReason || null,
-        updatedAt: new Date().toISOString(),
-      }, null, 2),
-    );
-  } catch { /* goal persistence must not break invoke */ }
 }
 
 export const AiService = {
@@ -407,45 +351,17 @@ export const AiService = {
     logInfo("ai", "complete cancel requested", { requestId: rid });
     return { ok: true };
   },
-  async getState(_p, c) { return lst(c); },
-  async listSessions(_p, c) {
-    const s = await lst(c);
-    return Object.entries(s.sessions || {}).map(([id, v]) => ({ id, ...v }));
-  },
-  async loadMessages({ sessionId }, c) {
-    const id = safeSessionId(sessionId);
-    await ensureDir(msgDir(c));
-    const raw = await readJson(path.join(msgDir(c), id + ".json"), []);
-    const bounded = rememberDesktopTranscript(id, raw);
-    if (bounded !== raw) {
-      await writeText(path.join(msgDir(c), id + ".json"), JSON.stringify(bounded));
-    }
-    return bounded;
-  },
-  async saveMessages({ sessionId, messages }, c) {
-    const id = safeSessionId(sessionId);
-    await ensureDir(msgDir(c));
-    const bounded = rememberDesktopTranscript(id, messages);
-    await writeText(path.join(msgDir(c), id + ".json"), JSON.stringify(bounded));
-    return { ok: true };
-  },
+  async getState(_p, c) { return AiSessionStore.getState(c); },
+  async listSessions(_p, c) { return AiSessionStore.listSessions(c); },
+  async loadMessages({ sessionId }, c) { return AiSessionStore.loadMessages(sessionId, c); },
+  async saveMessages({ sessionId, messages }, c) { return AiSessionStore.saveMessages(sessionId, messages, c); },
   async clearSession({ sessionId }, c) {
-    const id = safeSessionId(sessionId);
-    getDesktopWorkingSet().transcripts.delete(id);
-    await fs.unlink(path.join(msgDir(c), id + ".json")).catch(() => {});
-    await fs.unlink(path.join(msgDir(c), id + ".goal.json")).catch(() => {});
-    const s = await lst(c);
-    delete (s.sessions || {})[id];
-    await sst(c, s);
-    return { ok: true };
+    sr.cancel(sessionId);
+    return AiSessionStore.clearSession(sessionId, c);
   },
   async clearAllSessions(_p, c) {
-    const d = msgDir(c);
-    const es = await fs.readdir(d).catch(() => []);
-    await Promise.all(es.map((e) => fs.unlink(path.join(d, e)).catch(() => {})));
-    getDesktopWorkingSet().transcripts.clear();
-    await sst(c, { sessions: {}, history: [] });
-    return { ok: true };
+    sr.cancelAll();
+    return AiSessionStore.clearAllSessions(c);
   },
   async cancelStream({ sessionId }) { return { ok: sr.cancel(sessionId) }; },
   /**
@@ -467,715 +383,724 @@ export const AiService = {
     return { ok, mode: "followUp" };
   },
   async updateSession({ sessionId, patch }, c) {
-    const s = await lst(c);
-    if (!s.sessions) s.sessions = {};
-    s.sessions[sessionId] = { ...s.sessions[sessionId], ...patch };
-    await sst(c, s);
-    return s.sessions[sessionId];
+    return AiSessionStore.updateSession(sessionId, patch, c);
   },
-  async invoke({
-    messages, topicId, mountedFiles, model, sessionId, useTools, writebackMode, activeSkillId,
-    focusPath, focusHint,
-  }, c, emitFromArg) {
-    // Prefer ctx.emit (unified RPC bridge path); fall back to 3rd arg for direct calls.
-    const emit = (chunk) => {
-      const e = c?.emit ?? emitFromArg;
-      if (e) e("ai:stream", { ...chunk, sessionId });
-    };
-    const settings = await loadSettingsWithSecrets(c);
-    const res = resolveModel(settings, model);
-    if (!res) throw new Error("No AI provider configured. Add API keys in Settings.");
-
-    // Ambient file: if UI passed focusPath and it is not already mounted, include for this turn only.
-    const mountList = Array.isArray(mountedFiles) ? [...mountedFiles] : [];
-    const ambient = typeof focusPath === "string" ? focusPath.trim() : "";
-    if (ambient && !mountList.some((m) => m === ambient || m?.path === ambient)) {
-      mountList.push(ambient);
-    }
-    const resolvedFiles = await resolveMountedFiles(c.workspaceRoot, mountList);
-    // Prefer the ambient focus path so multi-mount never mid-slices the primary doc.
-    const ctxFiles = assembleContext({
-      files: resolvedFiles,
-      preferPaths: ambient ? [ambient] : [],
-    }).files;
-    // AI SDK v7: system prompt via `system` param; messages = user/assistant only.
-    const cleanMsgs = messages.filter((m) => m.role !== "system");
-    // Dynamic budget: scale by the model's real context window when known.
-    const modelContextWindow =
-      Number(res.contextWindow || res.model?.contextLimit || res.model?.contextWindow || 0) || undefined;
-    const dynamicBudget = resolveCompactBudget(modelContextWindow);
-    // Smart compaction: long sessions keep recent turns + middle summary (not a hard cut).
-    // Explicit settings override the dynamic budget; otherwise scale with the model window.
-    const compact = compactMessagesForModel(cleanMsgs, {
-      maxMessages: settings?.ai?.maxContextMessages ?? dynamicBudget.maxMessages,
-      keepRecent: settings?.ai?.keepRecentMessages ?? dynamicBudget.keepRecent,
-      maxChars: settings?.ai?.maxContextChars ?? dynamicBudget.maxChars,
-      maxPerMessage: settings?.ai?.maxContextChars ? undefined : dynamicBudget.maxPerMessage,
-      locale: settings?.ui?.locale === "en-US" ? "en-US" : "zh-CN",
-    });
-    if (compact.compacted) {
-      emit?.({
-        type: "status",
-        status: "compacting",
-        sessionId,
-      });
-      logInfo("ai", "session compacted", {
-        sessionId,
-        dropped: compact.dropped,
-        note: compact.note,
-        before: cleanMsgs.length,
-        after: compact.messages.length,
-      });
-    }
-
-    // Per-call override only when the invoke payload explicitly set auto|confirm.
-    // Renderer must not send view-store defaults — yaml is the write policy.
-    const { resolveWorkspaceWritebackMode, workspaceRootOf } = await import("./lib/kernel-api.mjs");
-    const effectiveMode =
-      writebackMode === "confirm" || writebackMode === "auto" ? writebackMode : undefined;
-    const contractMode = await resolveWorkspaceWritebackMode(c, {
-      writebackMode: effectiveMode,
-    });
-    const toolCtx = {
-      ...c,
-      explicitWritebackMode: effectiveMode,
-      appSettings: { ...settings, writebackMode: contractMode },
-      // Once-per-task locked snapshot key for writeback-engine.
-      aiTaskId: sessionId,
-      sessionId,
-    };
-
-    // Agent mode default ON: tools unless caller explicitly sets useTools:false.
-    // buildAiTools always registers write tools; confirm mode → pending + 待确认写入.
-    // Failures degrade to plain streaming. Tools never spawn child Electron processes.
-    const enableTools = useTools !== false;
-    let tools = null;
-    let toolNames = [];
-    if (enableTools) {
-      try {
-        const { ToolService } = await import("./tool-service.mjs");
-        tools = await ToolService.buildAiTools({}, toolCtx);
-        if (!tools || Object.keys(tools).length === 0) {
-          tools = null;
-        } else {
-          toolNames = Object.keys(tools);
-        }
-      } catch (err) {
-        logError("ai", "buildAiTools failed, degrading to no-tools", { sessionId, error: err.message });
-        tools = null;
-      }
-    }
-
-    // Pre-load workspace context in parallel (reduces agent tool calls for discovery)
-    let aiContext = { overview: "", profile: "", topicContext: "" };
-    if (enableTools) {
-      try {
-        const { loadAiContext } = await import("./lib/ai-context-loader.mjs");
-        aiContext = await loadAiContext(c, topicId);
-      } catch (err) {
-        logError("ai", "loadAiContext failed (non-fatal)", { sessionId, error: err.message });
-      }
-    }
-
-    // System prompt: skill-first protocol + discovery catalog + actual tool names + pre-loaded context.
-    const skillsEnabled = settings?.ai?.skillsEnabled !== false;
-    const lastUser = [...compact.messages].reverse().find((m) => m.role === "user");
-    const lastUserText = typeof lastUser?.content === "string"
-      ? lastUser.content
-      : Array.isArray(lastUser?.content)
-        ? lastUser.content.map((p) => (typeof p === "string" ? p : p?.text || "")).join("\n")
-        : "";
-
-    // Progressive tool exposure + session-health instrumentation: each tool
-    // outcome feeds a failure-rate circuit breaker so a thrashing loop stops
-    // spending continues and closes honestly.
-    let turnKind = "task";
-    let sessionHealth = { recent: [], totalCalls: 0, totalFailures: 0, tripped: false, tripReason: null, lastFailedTool: null };
-    if (enableTools && tools) {
-      try {
-        const { filterToolsForTurn, resolveTurnKind } = await import("./lib/tool-progressive.mjs");
-        const { recordToolOutcome, createSessionHealth } = await import("./lib/session-health.mjs");
-        sessionHealth = createSessionHealth();
-        turnKind = resolveTurnKind(lastUserText);
-        const filtered = filterToolsForTurn(tools, turnKind);
-        /** @type {Record<string, unknown>} */
-        const instrumented = {};
-        for (const [name, t] of Object.entries(filtered)) {
-          const sdk = /** @type {{ execute?: Function }} */ (t);
-          if (typeof sdk.execute !== "function") {
-            instrumented[name] = t;
-            continue;
-          }
-          const orig = sdk.execute.bind(sdk);
-          instrumented[name] = {
-            ...sdk,
-            execute: async (...a) => {
-              try {
-                const r = await orig(...a);
-                const ok = !(r && typeof r === "object" && (r.ok === false || r.error));
-                sessionHealth = recordToolOutcome(sessionHealth, { name, ok });
-                return r;
-              } catch (err) {
-                sessionHealth = recordToolOutcome(sessionHealth, { name, ok: false });
-                throw err;
-              }
-            },
-          };
-        }
-        tools = instrumented;
-        toolNames = Object.keys(tools);
-        if (turnKind !== "task") {
-          logInfo("ai", "progressive tools", { sessionId, turnKind, toolCount: toolNames.length });
-        }
-      } catch (err) {
-        logWarn("ai", "progressive tool filter failed (keeping full set)", {
-          sessionId,
-          error: err?.message || String(err),
-        });
-      }
-    }
-    const [locale, outputLocale] = await Promise.all([
-      resolveChromeLocale(settings, c),
-      resolveDurableOutputLocale({
-        userText: lastUserText,
-        focusPath: ambient,
-        mountedFiles: ctxFiles,
-        c,
-      }),
-    ]);
-    // Host-side forced grounding: for todos/memory/stream lookups, run the
-    // read tools NOW and inject results so the model cannot answer from priors.
-    let queryEvidenceBlock = null;
+  async invoke(params, c, emitFromArg) {
+    const scope = sr.reserve(safeSessionId(params.sessionId));
     try {
-      const { buildQueryEvidence } = await import("./lib/query-evidence.mjs");
-      queryEvidenceBlock = await buildQueryEvidence({
-        userText: lastUserText,
-        tools,
-        locale,
-      });
-      if (queryEvidenceBlock) {
-        logInfo("ai", "query evidence injected", {
-          sessionId,
-          tools: matchQueryIntents(lastUserText)?.tools || [],
-          chars: queryEvidenceBlock.length,
-        });
-      }
-    } catch (err) {
-      logWarn("ai", "query evidence failed (non-fatal)", {
-        sessionId,
-        error: err?.message || String(err),
-      });
+      return await executeAgentTurn(params, c, emitFromArg, scope);
+    } catch (error) {
+      if (scope.cancelled) return { ok: true, text: "", cancelled: true, stopReason: "cancelled" };
+      throw error;
+    } finally {
+      scope.release();
     }
-    const sysPrompt = buildSystemPrompt({
-      workspaceContext: c.workspaceRoot,
-      topicId,
-      mountedFiles: ctxFiles,
-      writebackMode: contractMode,
-      toolNames,
-      skillsEnabled,
-      enabledSkillIds: settings?.ai?.enabledSkillIds || null,
-      extraSkillsRoots: settings?.ai?.extraSkillsRoots || [],
-      engineRoot: c.workspaceRoot?.engineRoot || c.engineRoot,
-      activeSkillId: activeSkillId || null,
-      focusPath: ambient || null,
-      focusHint: typeof focusHint === "string" ? focusHint : null,
-      queryHint: matchQueryIntents(lastUserText)?.tools || null,
-      queryEvidence: queryEvidenceBlock,
-      turnKind,
-      workspaceOverview: aiContext.overview,
-      memoryProfile: aiContext.profile,
-      topicContext: aiContext.topicContext,
-      locale,
-      outputLocale,
-    });
-
-    // Adaptive session budget: steps / continues / compact tightness follow
-    // turn kind + workload (light → 0 steps, query → few, task → scaled).
-    let sessionBudget = {
-      maxAgentSteps: settings?.ai?.maxAgentSteps || 12,
-      maxAutoContinues: 2,
-      contextTighten: 1,
-      turnKind: "task",
-      reason: "default",
-    };
-    try {
-      const { resolveSessionBudget } = await import("./lib/session-budget.mjs");
-      sessionBudget = resolveSessionBudget({
-        userText: lastUserText,
-        // goalState is prepared later; text workload is the primary signal here.
-        settings: settings?.ai,
-        contextWindow: modelContextWindow,
-      });
-      logInfo("ai", "session budget", {
-        sessionId,
-        steps: sessionBudget.maxAgentSteps,
-        continues: sessionBudget.maxAutoContinues,
-        tighten: sessionBudget.contextTighten,
-        turnKind: sessionBudget.turnKind,
-        reason: sessionBudget.reason,
-      });
-    } catch (err) {
-      logWarn("ai", "session budget resolve failed (using defaults)", {
-        sessionId,
-        error: err?.message || String(err),
-      });
-    }
-    const maxAgentSteps = sessionBudget.maxAgentSteps;
-    logInfo("ai", "invoke started", {
-      sessionId,
-      model: res.modelId,
-      tools: toolNames.length,
-      writebackMode: effectiveMode,
-      agent: Boolean(tools),
-      maxAgentSteps: maxAgentSteps ?? undefined,
-      compacted: compact.compacted,
-    });
-    const streamArgs = {
-      model: res.model,
-      modelId: res.modelId,
-      system: sysPrompt,
-      messages: compact.messages,
-      tools,
-      emit,
-      sessionId,
-      maxAgentSteps,
-      workspaceRoot: workspaceRootOf(c.workspaceRoot),
-      // Real model window when known — Pi stub otherwise defaults to 128k.
-      contextWindow: modelContextWindow,
-    };
-    let piRuntime = null;
-    try {
-      piRuntime = await import("./ai-pi-runtime.mjs");
-    } catch (err) {
-      logError("ai", "pi-agent-core module load failed, falling back to AI SDK streamText", {
-        sessionId,
-        error: err?.message || String(err),
-      });
-    }
-
-    // Auto-continue: when the step budget is exhausted mid-task (or the goal
-    // still has open acceptance criteria), re-enter the loop with a goal-aware
-    // continue prompt instead of dying. Bounded so a runaway agent cannot spin
-    // forever; incomplete goals get a slightly higher budget.
-    const BASE_MAX_AUTO_CONTINUES = sessionBudget.maxAutoContinues;
-    let autoContinues = 0;
-    let workingMessages = compact.messages;
-    // Dual injection: evidence lives in the system prompt AND the last user
-    // turn. Some mid-size models weight the user tail far more than a system
-    // appendix — without this they answer from priors and never open tools.
-    if (queryEvidenceBlock && Array.isArray(workingMessages) && workingMessages.length > 0) {
-      const idx = [...workingMessages].map((m, i) => ({ m, i })).reverse()
-        .find(({ m }) => m?.role === "user")?.i;
-      if (idx != null) {
-        const m = workingMessages[idx];
-        const prev = typeof m.content === "string" ? m.content : "";
-        const note = `\n\n---\n[系统附注 · 工作区查询证据 · 回答时必须引用]\n${queryEvidenceBlock}`;
-        workingMessages = workingMessages.map((msg, i) =>
-          i === idx ? { ...msg, content: `${prev}${note}` } : msg,
-        );
-        logInfo("ai", "query evidence appended to user turn", {
-          sessionId,
-          chars: note.length,
-        });
-      }
-    }
-    let result = null;
-    let combinedText = "";
-    let combinedReasoning = "";
-    let lastFollowUps = [];
-    let lastSteerApplyCount = 0;
-    let lastRuntime = "ai-sdk";
-    let lastUsage = null;
-    const savedGoal = await loadSessionGoal(sessionId, c).catch(() => null);
-    // Restore, fold history, and merge Pi's "继续" seed as one prelude.
-    let goalState = prepareTurnGoal({ saved: savedGoal, messages: compact.messages });
-    let contextRetries = 0;
-    /** File ops harvested from Pi compaction + tool path receipts (memory distill). */
-    const fileOps = { readFiles: [], modifiedFiles: [] };
-
-    for (;;) {
-      const runArgs = { ...streamArgs, messages: workingMessages };
-      try {
-        result = piRuntime?.isPiRuntimeAvailable?.()
-          ? await piRuntime.runPiAgent(runArgs, sr)
-          : await runStream(runArgs, sr);
-      } catch (piErr) {
-        // Pi runtime crashed mid-loop — degrade to AI SDK streamText once.
-        logError("ai", "pi-agent-core threw, falling back to ai-sdk", {
-          sessionId,
-          error: piErr instanceof Error ? piErr.message : String(piErr),
-        });
-        try {
-          result = await runStream(runArgs, sr);
-          lastRuntime = "ai-sdk";
-        } catch (sdkErr) {
-          result = {
-            text: "",
-            error: sdkErr instanceof Error ? sdkErr : new Error(String(sdkErr)),
-            runtime: lastRuntime,
-          };
-        }
-      }
-      lastRuntime = result.runtime || lastRuntime;
-      lastUsage = result.usage || lastUsage;
-      lastSteerApplyCount += result.steerApplyCount || 0;
-      if (Array.isArray(result.followUps) && result.followUps.length) {
-        lastFollowUps = result.followUps;
-      }
-      // Detect overflow BEFORE appending partial text (P2: avoid duplicated fragments).
-      const errText0 = result.error ? String(result.error.message || result.error) : "";
-      const willOverflowRetry =
-        Boolean(result.error) &&
-        /context.?length|maximum context|too many tokens|context.?window/iu.test(errText0) &&
-        contextRetries < 3;
-      if (result.text && !willOverflowRetry) {
-        combinedText = combinedText
-          ? `${combinedText}\n\n${result.text}`
-          : result.text;
-      }
-      if (result.reasoning && !willOverflowRetry) {
-        combinedReasoning = combinedReasoning
-          ? `${combinedReasoning}\n\n${result.reasoning}`
-          : result.reasoning;
-      }
-      // Fold run output into the shared goal ledger (plan / criteria / receipts).
-      // MERGE — never clobber the outer plan/criteria with an empty per-run rebuild
-      // (Pi runPiAgent starts a fresh GoalState; after auto-continue #1 the model
-      // often does not re-emit [PLAN], so replace() would drop open criteria).
-      const prevOpen = goalState.doneCriteria?.length || 0;
-      const prevPlan = goalState.plan?.length || 0;
-      if (result.goalState) {
-        goalState = mergeRunGoal(goalState, result.goalState);
-      } else if (result.text) {
-        goalState = applyGoalUpdate(goalState, { text: result.text });
-      }
-      if (result.text) harvestPathReceipts(result.text, goalState.pathReceipts);
-      // Bare [DONE] after tools, with no path receipt, is not success on either runtime.
-      goalState = rejectBareDone(goalState, {
-        toolCallCount: Number(result.toolCallCount) || 0,
-        lastBody: String(result.text || ""),
-      });
-      if (result.fileOps) {
-        for (const p of result.fileOps.readFiles || []) {
-          if (p && !fileOps.readFiles.includes(p)) fileOps.readFiles.push(p);
-        }
-        for (const p of result.fileOps.modifiedFiles || []) {
-          if (p && !fileOps.modifiedFiles.includes(p)) fileOps.modifiedFiles.push(p);
-        }
-      }
-      // Path receipts are also distill candidates (written/updated this run).
-      for (const p of goalState.pathReceipts || []) {
-        if (p && !fileOps.modifiedFiles.includes(p) && /\.(?:md|txt|json|ya?ml|csv)$/iu.test(p)) {
-          fileOps.modifiedFiles.push(p);
-        }
-      }
-      // Live goal chip: emit when plan/criteria first appear or status flips.
-      if (
-        (goalState.plan?.length || 0) !== prevPlan ||
-        (goalState.doneCriteria?.length || 0) !== prevOpen ||
-        goalState.status === "done" ||
-        goalState.status === "incomplete" ||
-        goalState.status === "blocked"
-      ) {
-        emit?.({
-          type: "goal-status",
-          sessionId,
-          goal: {
-            goal: goalState.goal || "",
-            plan: goalState.plan || [],
-            criteria: goalState.criteria || [],
-            openCriteria: goalState.doneCriteria || [],
-            pathReceipts: (goalState.pathReceipts || []).slice(-12),
-            status: goalState.status || "idle",
-            blockReason: goalState.blockReason || null,
-            autoContinues,
-          },
-        });
-      }
-
-      // Context overflow: compact harder and retry (G8: up to 3, not tools-gated).
-      const errText = result.error ? String(result.error.message || result.error) : "";
-      const isContextOverflow = /context.?length|maximum context|too many tokens|context.?window/iu.test(errText);
-      if (result.error && isContextOverflow && contextRetries < 3) {
-        contextRetries += 1;
-        logWarn("ai", "context overflow — compacting and retrying", { sessionId, contextRetries });
-        emit?.({ type: "status", status: "compacting", sessionId });
-        const hard = compactMessagesForModel(workingMessages, {
-          maxMessages: Math.max(8, Math.floor(dynamicBudget.maxMessages / (1 + contextRetries))),
-          keepRecent: Math.max(4, Math.floor(dynamicBudget.keepRecent / (1 + contextRetries))),
-          maxChars: Math.max(8000, Math.floor(dynamicBudget.maxChars / (1 + contextRetries))),
-          locale: settings?.ui?.locale === "en-US" ? "en-US" : "zh-CN",
-        });
-        workingMessages = [
-          { role: "user", content: buildTaskLedger(goalState, locale === "en" ? "en-US" : "zh-CN") },
-          ...hard.messages,
-        ];
-        result.error = null;
-        continue;
-      }
-
-      if (result.error || result.cancelled) break;
-      const heuristic = assessGoalCompletion({
-        state: goalState,
-        lastBody: String(result.text || ""),
-        stepLimitHit: Boolean(result.stepLimitHit),
-        toolCallCount: result.toolCallCount || 0,
-      });
-      // External goal evaluator (industry /goal): a separate judge when the
-      // worker claims done or criteria are open — never worker self-grading.
-      let evaluator = null;
-      const wantsJudge =
-        goalState.kind !== "light" &&
-        (goalState.doneCriteria?.length > 0 ||
-          heuristic.reason === "done-mark" ||
-          heuristic.confidence === "medium");
-      if (wantsJudge && res.modelId && !heuristic.reason?.includes("incomplete-mark")) {
-        try {
-          const judge = await generateText({
-            model: res.model,
-            system: "You are a strict goal-completion judge. JSON only.",
-            prompt: buildGoalEvaluatorPrompt({
-              state: goalState,
-              lastBody: String(result.text || ""),
-              toolSummaries: (result.toolCallCount
-                ? [`toolCallCount=${result.toolCallCount}`]
-                : []).concat((goalState.pathReceipts || []).slice(-6)),
-            }),
-            maxOutputTokens: 200,
-            temperature: 0,
-          });
-          evaluator = parseGoalEvaluatorResult(judge?.text || "");
-          if (evaluator) {
-            logInfo("ai", "goal evaluator", {
-              sessionId,
-              verdict: evaluator.verdict,
-              reason: evaluator.reason,
-            });
-          }
-        } catch (evalErr) {
-          logWarn("ai", "goal evaluator unavailable — heuristic only", {
-            sessionId,
-            error: evalErr instanceof Error ? evalErr.message : String(evalErr),
-          });
-        }
-      }
-      const assessment = reconcileGoalVerdicts({ heuristic, evaluator });
-      // Evaluator `met` is a completed verdict — clear open criteria so the
-      // persisted session goal does not look perpetually incomplete.
-      if (evaluator?.verdict === "met" && assessment.finished) {
-        goalState = {
-          ...goalState,
-          status: "done",
-          doneCriteria: [],
-          blockReason: null,
-        };
-      }
-      const maxContinues = resolveMaxAutoContinues({
-        assessment,
-        baseMax: BASE_MAX_AUTO_CONTINUES,
-      });
-      const decision = decideAutoContinue({
-        assessment,
-        autoContinues,
-        maxAutoContinues: maxContinues,
-        hasTools: Boolean(tools),
-        error: Boolean(result.error),
-        cancelled: Boolean(result.cancelled),
-        turnKind: goalState.kind || classifyTurn(goalState.goal || ""),
-      });
-      // Failure-rate circuit breaker: a thrashing loop must stop, not spin.
-      if (sessionHealth?.tripped) {
-        logWarn("ai", "session health circuit open — stopping auto-continue", {
-          sessionId,
-          reason: sessionHealth.tripReason,
-          calls: sessionHealth.totalCalls,
-          failures: sessionHealth.totalFailures,
-        });
-        if (goalState.status !== "done") {
-          goalState = {
-            ...goalState,
-            status: goalState.status === "blocked" ? "blocked" : "incomplete",
-            blockReason: goalState.blockReason || "tool-thrash",
-          };
-        }
-        break;
-      }
-      // High-confidence done always stops — even at the step cap (G5):
-      // never spend continue budget re-closing a finished task.
-      // Accept both worker `[DONE]` and evaluator `met` verdicts.
-      if (
-        assessment.finished &&
-        assessment.confidence === "high" &&
-        (assessment.reason === "done-mark" || String(assessment.reason || "").startsWith("met"))
-      ) {
-        break;
-      }
-      // Hard stops win even at stepLimitHit (G7): blocked / incomplete / impossible / no-tools / empty-turn.
-      const hardStop =
-        decision.reason === "blocked" ||
-        decision.reason === "incomplete-mark" ||
-        decision.reason === "empty-turn" ||
-        String(decision.reason || "").startsWith("impossible") ||
-        decision.reason === "no-tools" ||
-        decision.reason === "error-or-cancelled";
-      if (hardStop) {
-        if (goalState.status !== "done" && decision.reason !== "blocked") {
-          // Keep blocked as-is; otherwise honest terminal for the stop reason.
-          if (
-            decision.reason === "incomplete-mark" ||
-            decision.reason === "empty-turn" ||
-            String(decision.reason || "").startsWith("impossible")
-          ) {
-            goalState = {
-              ...goalState,
-              status: "incomplete",
-              blockReason: goalState.blockReason || decision.reason,
-            };
-          }
-        }
-        break;
-      }
-      // Budget exhaustion is terminal BEFORE any continue (G6): decideAutoContinue
-      // already returns continue:false at budget — terminalize then break.
-      if (autoContinues >= maxContinues || (!decision.continue && decision.reason === "continue-budget")) {
-        logInfo("ai", "auto-continue budget exhausted", { sessionId, autoContinues, maxContinues });
-        if (goalState.status !== "done") {
-          goalState = {
-            ...goalState,
-            status: goalState.status === "blocked" ? "blocked" : "incomplete",
-            blockReason: goalState.blockReason || "budget_exhausted",
-          };
-        }
-        break;
-      }
-      // Step limit offers a continue (fresh budget) unless a hard stop/done; otherwise goal-aware.
-      if (!result.stepLimitHit && !decision.continue) break;
-
-      autoContinues += 1;
-      emit?.({ type: "status", status: "continuing", sessionId, autoContinues });
-      logInfo("ai", "auto-continue after step limit / open goal", {
-        sessionId,
-        autoContinues,
-        reason: assessment.reason,
-      });
-      const continueBody = buildContinuePrompt(
-        settings?.ui?.locale === "en-US" ? "en-US" : "zh-CN",
-        goalState,
-      );
-      const lastBody = String(result.text || "").trim();
-      workingMessages = [
-        ...workingMessages,
-        ...(lastBody ? [{ role: "assistant", content: lastBody }] : []),
-        { role: "user", content: continueBody },
-      ];
-      // Re-compact if the transcript grew past the dynamic budget.
-      if (workingMessages.length > dynamicBudget.maxMessages) {
-        const recompacted = compactMessagesForModel(workingMessages, {
-          maxMessages: dynamicBudget.maxMessages,
-          keepRecent: dynamicBudget.keepRecent,
-          maxChars: dynamicBudget.maxChars,
-          locale: settings?.ui?.locale === "en-US" ? "en-US" : "zh-CN",
-        });
-        workingMessages = [
-          { role: "user", content: buildTaskLedger(goalState, locale === "en" ? "en-US" : "zh-CN") },
-          ...recompacted.messages,
-        ];
-      }
-    }
-
-    if (result?.error) logError("ai", "invoke failed", { sessionId, error: result.error.message });
-    // Map provider failures to actionable copy (rate limit / auth / network).
-    let friendlyError = result?.error ? (result.error.message || String(result.error)) : "";
-    if (result?.error) {
-      const raw = friendlyError.toLowerCase();
-      const zh = locale === "zh";
-      if (/401|unauthorized|invalid.?api.?key|authentication/i.test(raw)) {
-        friendlyError = zh
-          ? "API Key 无效或未配置。请到「设置 → AI」检查密钥。"
-          : "Invalid or missing API key. Check Settings → AI.";
-      } else if (/429|rate.?limit|too many requests|quota/i.test(raw)) {
-        friendlyError = zh
-          ? "触发限流/配额。稍后重试，或换一个模型/供应商。"
-          : "Rate limited or quota exceeded. Retry later or switch model/provider.";
-      } else if (/timeout|etimedout|econnreset|network|fetch failed/i.test(raw)) {
-        friendlyError = zh
-          ? "网络超时或连接失败。检查网络后重试；长任务可稍后再发。"
-          : "Network timeout or connection failed. Check connectivity and retry.";
-      } else if (/context.?length|maximum context|too many tokens/i.test(raw)) {
-        friendlyError = zh
-          ? "上下文超长。请新开会话，或缩短挂载文件/历史。"
-          : "Context too long. Start a new session or reduce mounted files/history.";
-      } else if (/bytestring|character at index/i.test(raw)) {
-        friendlyError = zh
-          ? "API Key 含非英文字符（HTTP 头只能是 ASCII）。请到「设置 → AI」重新粘贴纯英文密钥。"
-          : "API key contains non-ASCII characters (HTTP headers must be ASCII). Re-paste a plain-ASCII key in Settings → AI.";
-      } else if (/header or cookie too large|request header|413|431/i.test(raw)) {
-        friendlyError = zh
-          ? "请求头过大，通常因 API Key 异常超长或已损坏。请到「设置 → AI」删除当前 Key 后重新粘贴官方纯英文密钥。"
-          : "Request headers too large — the API key is likely corrupt or oversized. Re-paste a plain-ASCII key in Settings → AI.";
-      } else if (/400 bad request|bad request/i.test(raw)) {
-        friendlyError = zh
-          ? "模型服务拒绝了请求（400）。请检查 API Key 是否正确、模型名是否有效，或稍后重试。"
-          : "Provider rejected the request (400). Check the API key and model id, then retry.";
-      }
-    }
-    noteAgentLoop(lastRuntime);
-    const batchEvidence = toolCtx._batchCollector?.summary?.() || null;
-    if (batchEvidence) {
-      emit?.({ type: "batch-evidence", batchEvidence, sessionId });
-      logInfo("ai", "multi-file writeback summary", {
-        sessionId,
-        writeCount: batchEvidence.writeCount,
-      });
-    }
-    if (lastFollowUps.length) {
-      emit?.({ type: "follow-up-ready", count: lastFollowUps.length, sessionId });
-    }
-    // Goal-layer summary for the renderer (plan / open criteria / incomplete).
-    const goalSummary = {
-      goal: goalState.goal || "",
-      plan: goalState.plan || [],
-      criteria: goalState.criteria || [],
-      openCriteria: goalState.doneCriteria || [],
-      pathReceipts: (goalState.pathReceipts || []).slice(-12),
-      sourceUrls: (goalState.sourceUrls || []).slice(-8),
-      status: goalState.status || "idle",
-      blockReason: goalState.blockReason || null,
-      autoContinues,
-      kind: goalState.kind || classifyTurn(goalState.goal || ""),
-    };
-    emit?.({ type: "goal-status", goal: goalSummary, sessionId });
-    rememberDistillHint(fileOps);
-    // Persist session-level GoalState so criteria survive user turns / restart.
-    await saveSessionGoal(sessionId, goalState, c).catch(() => {});
-    // Stop-reason honesty (G4): cancel ≠ timeout ≠ stall ≠ incomplete.
-    const cancelled = Boolean(result?.cancelled);
-    const stopReason = result?.stopReason
-      || (cancelled ? "cancelled" : result?.error ? "error" : null);
-    return {
-      ok: !result?.error,
-      cancelled,
-      stopReason,
-      stepLimitHit: Boolean(result?.stepLimitHit),
-      text: combinedText || result?.text || "",
-      reasoning: combinedReasoning || result?.reasoning || "",
-      error: friendlyError,
-      usage: lastUsage,
-      model: { modelId: res.modelId, contextWindow: modelContextWindow },
-      batchEvidence,
-      followUps: lastFollowUps,
-      steerApplyCount: lastSteerApplyCount,
-      autoContinues,
-      goal: goalSummary,
-      taskLedger: buildTaskLedger(goalState, locale === "en" ? "en-US" : "zh-CN"),
-      /** Post-run memory distill candidates (Pi CompactionDetails + path receipts). */
-      memoryDistillHint: {
-        readFiles: fileOps.readFiles.slice(0, 24),
-        modifiedFiles: fileOps.modifiedFiles.slice(0, 24),
-      },
-      compactNote: compact.compacted ? compact.note : null,
-      estimatedTokens: compact.estimatedTokens,
-      runtime: lastRuntime,
-    };
   },
 };
+
+async function executeAgentTurn({
+    messages, topicId, mountedFiles, model, sessionId, useTools, writebackMode, activeSkillId,
+    focusPath, focusHint,
+  }, c, emitFromArg, invocation) {
+  // Prefer ctx.emit (unified RPC bridge path); fall back to 3rd arg for direct calls.
+  const emit = (chunk) => {
+    if (invocation.cancelled) return;
+    const e = c?.emit ?? emitFromArg;
+    if (e) e("ai:stream", { ...chunk, sessionId });
+  };
+  const settings = await loadSettingsWithSecrets(c);
+  invocation.checkpoint();
+  const res = resolveModel(settings, model);
+  if (!res) throw new Error("No AI provider configured. Add API keys in Settings.");
+
+  const cleanMsgs = messages.filter((m) => m.role !== "system");
+  const lastUser = [...cleanMsgs].reverse().find((m) => m.role === "user");
+  const lastUserText = typeof lastUser?.content === "string"
+    ? lastUser.content
+    : Array.isArray(lastUser?.content)
+      ? lastUser.content.map((p) => (typeof p === "string" ? p : p?.text || "")).join("\n")
+      : "";
+
+  // Ambient file: if UI passed focusPath and it is not already mounted, include for this turn only.
+  const mountList = Array.isArray(mountedFiles) ? [...mountedFiles] : [];
+  const ambient = typeof focusPath === "string" ? focusPath.trim() : "";
+  if (ambient && !mountList.some((m) => m === ambient || m?.path === ambient)) {
+    mountList.push(ambient);
+  }
+  // AI SDK v7: system prompt via `system` param; messages = user/assistant only.
+  // Dynamic budget: scale by the model's real context window when known.
+  const modelContextWindow =
+    Number(res.contextWindow || res.model?.contextLimit || res.model?.contextWindow || 0) || undefined;
+  const dynamicBudget = resolveCompactBudget(modelContextWindow);
+  // Smart compaction: long sessions keep recent turns + middle summary (not a hard cut).
+  // Explicit settings override the dynamic budget; otherwise scale with the model window.
+  const compact = compactMessagesForModel(cleanMsgs, {
+    maxMessages: settings?.ai?.maxContextMessages ?? dynamicBudget.maxMessages,
+    keepRecent: settings?.ai?.keepRecentMessages ?? dynamicBudget.keepRecent,
+    maxChars: settings?.ai?.maxContextChars ?? dynamicBudget.maxChars,
+    maxPerMessage: settings?.ai?.maxContextChars ? undefined : dynamicBudget.maxPerMessage,
+    locale: settings?.ui?.locale === "en-US" ? "en-US" : "zh-CN",
+  });
+  if (compact.compacted) {
+    emit?.({
+      type: "status",
+      status: "compacting",
+      sessionId,
+    });
+    logInfo("ai", "session compacted", {
+      sessionId,
+      dropped: compact.dropped,
+      note: compact.note,
+      before: cleanMsgs.length,
+      after: compact.messages.length,
+    });
+  }
+
+  // Per-call override only when the invoke payload explicitly set auto|confirm.
+  // Renderer must not send view-store defaults — yaml is the write policy.
+  const { resolveWorkspaceWritebackMode, workspaceRootOf } = await import("./lib/kernel-api.mjs");
+  const effectiveMode =
+    writebackMode === "confirm" || writebackMode === "auto" ? writebackMode : undefined;
+  const contractMode = await resolveWorkspaceWritebackMode(c, {
+    writebackMode: effectiveMode,
+  });
+  const toolCtx = {
+    ...c,
+    explicitWritebackMode: effectiveMode,
+    appSettings: { ...settings, writebackMode: contractMode },
+    // Once-per-task locked snapshot key for writeback-engine.
+    aiTaskId: sessionId,
+    sessionId,
+  };
+
+  // Agent mode default ON: tools unless caller explicitly sets useTools:false.
+  // buildAiTools always registers write tools; confirm mode → pending + 待确认写入.
+  // Failures degrade to plain streaming. Tools never spawn child Electron processes.
+  const enableTools = useTools !== false;
+  const { turnKind, files: ctxFiles, tools: preparedTools, context: aiContext } = await prepareTurnResources({
+    userText: lastUserText,
+    enableTools,
+    loadFiles: async () => {
+      const files = await resolveMountedFiles(c.workspaceRoot, mountList);
+      return assembleContext({ files, preferPaths: ambient ? [ambient] : [] }).files;
+    },
+    buildTools: async () => {
+      try {
+        const { ToolService } = await import("./tool-service.mjs");
+        const built = await ToolService.buildAiTools({}, toolCtx);
+        return built && Object.keys(built).length ? built : null;
+      } catch (err) {
+        logError("ai", "buildAiTools failed, degrading to no-tools", { sessionId, error: err.message });
+        return null;
+      }
+    },
+    loadContext: async () => {
+      try {
+        const { loadAiContext } = await import("./lib/ai-context-loader.mjs");
+        return await loadAiContext(c, topicId);
+      } catch (err) {
+        logError("ai", "loadAiContext failed (non-fatal)", { sessionId, error: err.message });
+        return { overview: "", profile: "", topicContext: "" };
+      }
+    },
+  });
+  let tools = preparedTools;
+  let toolNames = tools ? Object.keys(tools) : [];
+
+  // System prompt: skill-first protocol + discovery catalog + actual tool names + pre-loaded context.
+  const skillsEnabled = settings?.ai?.skillsEnabled !== false;
+
+  // Progressive tool exposure + session-health instrumentation: each tool
+  // outcome feeds a failure-rate circuit breaker so a thrashing loop stops
+  // spending continues and closes honestly.
+  let sessionHealth = { recent: [], totalCalls: 0, totalFailures: 0, tripped: false, tripReason: null, lastFailedTool: null };
+  if (enableTools && tools) {
+    try {
+      const { filterToolsForTurn } = await import("./lib/tool-progressive.mjs");
+      const { recordToolOutcome, createSessionHealth } = await import("./lib/session-health.mjs");
+      sessionHealth = createSessionHealth();
+      const filtered = filterToolsForTurn(tools, turnKind);
+      /** @type {Record<string, unknown>} */
+      const instrumented = {};
+      for (const [name, t] of Object.entries(filtered)) {
+        const sdk = /** @type {{ execute?: Function }} */ (t);
+        if (typeof sdk.execute !== "function") {
+          instrumented[name] = t;
+          continue;
+        }
+        const orig = sdk.execute.bind(sdk);
+        instrumented[name] = {
+          ...sdk,
+          execute: async (...a) => {
+            try {
+              const r = await orig(...a);
+              const ok = !(r && typeof r === "object" && (r.ok === false || r.error));
+              sessionHealth = recordToolOutcome(sessionHealth, { name, ok });
+              return r;
+            } catch (err) {
+              sessionHealth = recordToolOutcome(sessionHealth, { name, ok: false });
+              throw err;
+            }
+          },
+        };
+      }
+      tools = instrumented;
+      toolNames = Object.keys(tools);
+      if (turnKind !== "task") {
+        logInfo("ai", "progressive tools", { sessionId, turnKind, toolCount: toolNames.length });
+      }
+    } catch (err) {
+      logWarn("ai", "progressive tool filter failed (keeping full set)", {
+        sessionId,
+        error: err?.message || String(err),
+      });
+    }
+  }
+  const [locale, outputLocale] = await Promise.all([
+    resolveChromeLocale(settings, c),
+    resolveDurableOutputLocale({
+      userText: lastUserText,
+      focusPath: turnKind === "light" ? null : ambient,
+      mountedFiles: ctxFiles,
+      c,
+    }),
+  ]);
+  // Host-side forced grounding: for todos/memory/stream lookups, run the
+  // read tools NOW and inject results so the model cannot answer from priors.
+  let queryEvidenceBlock = null;
+  try {
+    const { buildQueryEvidence } = await import("./lib/query-evidence.mjs");
+    queryEvidenceBlock = await buildQueryEvidence({
+      userText: lastUserText,
+      tools,
+      locale,
+    });
+    if (queryEvidenceBlock) {
+      logInfo("ai", "query evidence injected", {
+        sessionId,
+        tools: matchQueryIntents(lastUserText)?.tools || [],
+        chars: queryEvidenceBlock.length,
+      });
+    }
+  } catch (err) {
+    logWarn("ai", "query evidence failed (non-fatal)", {
+      sessionId,
+      error: err?.message || String(err),
+    });
+  }
+  const sysPrompt = buildSystemPrompt({
+    workspaceContext: c.workspaceRoot,
+    topicId,
+    mountedFiles: ctxFiles,
+    writebackMode: contractMode,
+    toolNames,
+    skillsEnabled,
+    enabledSkillIds: settings?.ai?.enabledSkillIds || null,
+    extraSkillsRoots: settings?.ai?.extraSkillsRoots || [],
+    engineRoot: c.workspaceRoot?.engineRoot || c.engineRoot,
+    activeSkillId: activeSkillId || null,
+    focusPath: ambient || null,
+    focusHint: typeof focusHint === "string" ? focusHint : null,
+    queryHint: matchQueryIntents(lastUserText)?.tools || null,
+    queryEvidence: queryEvidenceBlock,
+    turnKind,
+    workspaceOverview: aiContext.overview,
+    memoryProfile: aiContext.profile,
+    topicContext: aiContext.topicContext,
+    locale,
+    outputLocale,
+  });
+
+  // Adaptive session budget: steps / continues / compact tightness follow
+  // turn kind + workload (light → 0 steps, query → few, task → scaled).
+  let sessionBudget = {
+    maxAgentSteps: settings?.ai?.maxAgentSteps || 12,
+    maxAutoContinues: 2,
+    contextTighten: 1,
+    turnKind: "task",
+    reason: "default",
+  };
+  try {
+    const { resolveSessionBudget } = await import("./lib/session-budget.mjs");
+    sessionBudget = resolveSessionBudget({
+      userText: lastUserText,
+      // goalState is prepared later; text workload is the primary signal here.
+      settings: settings?.ai,
+      contextWindow: modelContextWindow,
+    });
+    logInfo("ai", "session budget", {
+      sessionId,
+      steps: sessionBudget.maxAgentSteps,
+      continues: sessionBudget.maxAutoContinues,
+      tighten: sessionBudget.contextTighten,
+      turnKind: sessionBudget.turnKind,
+      reason: sessionBudget.reason,
+    });
+  } catch (err) {
+    logWarn("ai", "session budget resolve failed (using defaults)", {
+      sessionId,
+      error: err?.message || String(err),
+    });
+  }
+  const maxAgentSteps = sessionBudget.maxAgentSteps;
+  logInfo("ai", "invoke started", {
+    sessionId,
+    model: res.modelId,
+    tools: toolNames.length,
+    writebackMode: effectiveMode,
+    agent: Boolean(tools),
+    maxAgentSteps: maxAgentSteps ?? undefined,
+    compacted: compact.compacted,
+  });
+  const streamArgs = {
+    model: res.model,
+    modelId: res.modelId,
+    system: sysPrompt,
+    messages: compact.messages,
+    tools,
+    emit,
+    sessionId,
+    maxAgentSteps,
+    workspaceRoot: workspaceRootOf(c.workspaceRoot),
+    // Real model window when known — Pi stub otherwise defaults to 128k.
+    contextWindow: modelContextWindow,
+  };
+  let piRuntime = null;
+  try {
+    piRuntime = await import("./ai-pi-runtime.mjs");
+  } catch (err) {
+    logError("ai", "pi-agent-core module load failed, falling back to AI SDK streamText", {
+      sessionId,
+      error: err?.message || String(err),
+    });
+  }
+
+  // Auto-continue: when the step budget is exhausted mid-task (or the goal
+  // still has open acceptance criteria), re-enter the loop with a goal-aware
+  // continue prompt instead of dying. Bounded so a runaway agent cannot spin
+  // forever; incomplete goals get a slightly higher budget.
+  const BASE_MAX_AUTO_CONTINUES = sessionBudget.maxAutoContinues;
+  let autoContinues = 0;
+  let workingMessages = compact.messages;
+  // Dual injection: evidence lives in the system prompt AND the last user
+  // turn. Some mid-size models weight the user tail far more than a system
+  // appendix — without this they answer from priors and never open tools.
+  if (queryEvidenceBlock && Array.isArray(workingMessages) && workingMessages.length > 0) {
+    const idx = [...workingMessages].map((m, i) => ({ m, i })).reverse()
+      .find(({ m }) => m?.role === "user")?.i;
+    if (idx != null) {
+      const m = workingMessages[idx];
+      const prev = typeof m.content === "string" ? m.content : "";
+      const note = `\n\n---\n[系统附注 · 工作区查询证据 · 回答时必须引用]\n${queryEvidenceBlock}`;
+      workingMessages = workingMessages.map((msg, i) =>
+        i === idx ? { ...msg, content: `${prev}${note}` } : msg,
+      );
+      logInfo("ai", "query evidence appended to user turn", {
+        sessionId,
+        chars: note.length,
+      });
+    }
+  }
+  let result = null;
+  let combinedText = "";
+  let combinedReasoning = "";
+  let lastFollowUps = [];
+  let lastSteerApplyCount = 0;
+  let lastRuntime = "ai-sdk";
+  let lastUsage = null;
+  const savedGoal = await AiSessionStore.loadGoal(sessionId, c).catch(() => null);
+  // Restore, fold history, and merge Pi's "继续" seed as one prelude.
+  let goalState = prepareTurnGoal({ saved: savedGoal, messages: compact.messages });
+  let contextRetries = 0;
+  /** File ops harvested from Pi compaction + tool path receipts (memory distill). */
+  const fileOps = { readFiles: [], modifiedFiles: [] };
+
+  for (;;) {
+    invocation.checkpoint();
+    const runArgs = { ...streamArgs, messages: workingMessages };
+    try {
+      result = piRuntime?.isPiRuntimeAvailable?.()
+        ? await piRuntime.runPiAgent(runArgs, invocation.registry)
+        : await runStream(runArgs, invocation.registry);
+    } catch (piErr) {
+      invocation.checkpoint();
+      // Pi runtime crashed mid-loop — degrade to AI SDK streamText once.
+      logError("ai", "pi-agent-core threw, falling back to ai-sdk", {
+        sessionId,
+        error: piErr instanceof Error ? piErr.message : String(piErr),
+      });
+      try {
+        result = await runStream(runArgs, invocation.registry);
+        lastRuntime = "ai-sdk";
+      } catch (sdkErr) {
+        result = {
+          text: "",
+          error: sdkErr instanceof Error ? sdkErr : new Error(String(sdkErr)),
+          runtime: lastRuntime,
+        };
+      }
+    }
+    lastRuntime = result.runtime || lastRuntime;
+    lastUsage = result.usage || lastUsage;
+    lastSteerApplyCount += result.steerApplyCount || 0;
+    if (Array.isArray(result.followUps) && result.followUps.length) {
+      lastFollowUps = result.followUps;
+    }
+    // Detect overflow BEFORE appending partial text (P2: avoid duplicated fragments).
+    const errText0 = result.error ? String(result.error.message || result.error) : "";
+    const willOverflowRetry =
+      Boolean(result.error) &&
+      /context.?length|maximum context|too many tokens|context.?window/iu.test(errText0) &&
+      contextRetries < 3;
+    if (result.text && !willOverflowRetry) {
+      combinedText = combinedText
+        ? `${combinedText}\n\n${result.text}`
+        : result.text;
+    }
+    if (result.reasoning && !willOverflowRetry) {
+      combinedReasoning = combinedReasoning
+        ? `${combinedReasoning}\n\n${result.reasoning}`
+        : result.reasoning;
+    }
+    // Fold run output into the shared goal ledger (plan / criteria / receipts).
+    // MERGE — never clobber the outer plan/criteria with an empty per-run rebuild
+    // (Pi runPiAgent starts a fresh GoalState; after auto-continue #1 the model
+    // often does not re-emit [PLAN], so replace() would drop open criteria).
+    const prevOpen = goalState.doneCriteria?.length || 0;
+    const prevPlan = goalState.plan?.length || 0;
+    if (result.goalState) {
+      goalState = mergeRunGoal(goalState, result.goalState);
+    } else if (result.text) {
+      goalState = applyGoalUpdate(goalState, { text: result.text });
+    }
+    if (result.text) harvestPathReceipts(result.text, goalState.pathReceipts);
+    // Bare [DONE] after tools, with no path receipt, is not success on either runtime.
+    goalState = rejectBareDone(goalState, {
+      toolCallCount: Number(result.toolCallCount) || 0,
+      lastBody: String(result.text || ""),
+    });
+    if (result.fileOps) {
+      for (const p of result.fileOps.readFiles || []) {
+        if (p && !fileOps.readFiles.includes(p)) fileOps.readFiles.push(p);
+      }
+      for (const p of result.fileOps.modifiedFiles || []) {
+        if (p && !fileOps.modifiedFiles.includes(p)) fileOps.modifiedFiles.push(p);
+      }
+    }
+    // Path receipts are also distill candidates (written/updated this run).
+    for (const p of goalState.pathReceipts || []) {
+      if (p && !fileOps.modifiedFiles.includes(p) && /\.(?:md|txt|json|ya?ml|csv)$/iu.test(p)) {
+        fileOps.modifiedFiles.push(p);
+      }
+    }
+    // Live goal chip: emit when plan/criteria first appear or status flips.
+    if (
+      (goalState.plan?.length || 0) !== prevPlan ||
+      (goalState.doneCriteria?.length || 0) !== prevOpen ||
+      goalState.status === "done" ||
+      goalState.status === "incomplete" ||
+      goalState.status === "blocked"
+    ) {
+      emit?.({
+        type: "goal-status",
+        sessionId,
+        goal: {
+          goal: goalState.goal || "",
+          plan: goalState.plan || [],
+          criteria: goalState.criteria || [],
+          openCriteria: goalState.doneCriteria || [],
+          pathReceipts: (goalState.pathReceipts || []).slice(-12),
+          status: goalState.status || "idle",
+          blockReason: goalState.blockReason || null,
+          autoContinues,
+        },
+      });
+    }
+
+    // Context overflow: compact harder and retry (G8: up to 3, not tools-gated).
+    const errText = result.error ? String(result.error.message || result.error) : "";
+    const isContextOverflow = /context.?length|maximum context|too many tokens|context.?window/iu.test(errText);
+    if (result.error && isContextOverflow && contextRetries < 3) {
+      contextRetries += 1;
+      logWarn("ai", "context overflow — compacting and retrying", { sessionId, contextRetries });
+      emit?.({ type: "status", status: "compacting", sessionId });
+      const hard = compactMessagesForModel(workingMessages, {
+        maxMessages: Math.max(8, Math.floor(dynamicBudget.maxMessages / (1 + contextRetries))),
+        keepRecent: Math.max(4, Math.floor(dynamicBudget.keepRecent / (1 + contextRetries))),
+        maxChars: Math.max(8000, Math.floor(dynamicBudget.maxChars / (1 + contextRetries))),
+        locale: settings?.ui?.locale === "en-US" ? "en-US" : "zh-CN",
+      });
+      workingMessages = [
+        { role: "user", content: buildTaskLedger(goalState, locale === "en" ? "en-US" : "zh-CN") },
+        ...hard.messages,
+      ];
+      result.error = null;
+      continue;
+    }
+
+    if (result.error || result.cancelled) break;
+    const heuristic = assessGoalCompletion({
+      state: goalState,
+      lastBody: String(result.text || ""),
+      stepLimitHit: Boolean(result.stepLimitHit),
+      toolCallCount: result.toolCallCount || 0,
+    });
+    // External goal evaluator (industry /goal): a separate judge when the
+    // worker claims done or criteria are open — never worker self-grading.
+    let evaluator = null;
+    const wantsJudge =
+      goalState.kind !== "light" &&
+      (goalState.doneCriteria?.length > 0 ||
+        heuristic.reason === "done-mark" ||
+        heuristic.confidence === "medium");
+    if (wantsJudge && res.modelId && !heuristic.reason?.includes("incomplete-mark")) {
+      try {
+        const judge = await generateText({
+          abortSignal: invocation.controller.signal,
+          model: res.model,
+          system: "You are a strict goal-completion judge. JSON only.",
+          prompt: buildGoalEvaluatorPrompt({
+            state: goalState,
+            lastBody: String(result.text || ""),
+            toolSummaries: (result.toolCallCount
+              ? [`toolCallCount=${result.toolCallCount}`]
+              : []).concat((goalState.pathReceipts || []).slice(-6)),
+          }),
+          maxOutputTokens: 200,
+          temperature: 0,
+        });
+        evaluator = parseGoalEvaluatorResult(judge?.text || "");
+        if (evaluator) {
+          logInfo("ai", "goal evaluator", {
+            sessionId,
+            verdict: evaluator.verdict,
+            reason: evaluator.reason,
+          });
+        }
+      } catch (evalErr) {
+        logWarn("ai", "goal evaluator unavailable — heuristic only", {
+          sessionId,
+          error: evalErr instanceof Error ? evalErr.message : String(evalErr),
+        });
+      }
+    }
+    const assessment = reconcileGoalVerdicts({ heuristic, evaluator });
+    // Evaluator `met` is a completed verdict — clear open criteria so the
+    // persisted session goal does not look perpetually incomplete.
+    if (evaluator?.verdict === "met" && assessment.finished) {
+      goalState = {
+        ...goalState,
+        status: "done",
+        doneCriteria: [],
+        blockReason: null,
+      };
+    }
+    const maxContinues = resolveMaxAutoContinues({
+      assessment,
+      baseMax: BASE_MAX_AUTO_CONTINUES,
+    });
+    const decision = decideAutoContinue({
+      assessment,
+      autoContinues,
+      maxAutoContinues: maxContinues,
+      hasTools: Boolean(tools),
+      error: Boolean(result.error),
+      cancelled: Boolean(result.cancelled),
+      turnKind: goalState.kind || classifyTurn(goalState.goal || ""),
+    });
+    // Failure-rate circuit breaker: a thrashing loop must stop, not spin.
+    if (sessionHealth?.tripped) {
+      logWarn("ai", "session health circuit open — stopping auto-continue", {
+        sessionId,
+        reason: sessionHealth.tripReason,
+        calls: sessionHealth.totalCalls,
+        failures: sessionHealth.totalFailures,
+      });
+      if (goalState.status !== "done") {
+        goalState = {
+          ...goalState,
+          status: goalState.status === "blocked" ? "blocked" : "incomplete",
+          blockReason: goalState.blockReason || "tool-thrash",
+        };
+      }
+      break;
+    }
+    // High-confidence done always stops — even at the step cap (G5):
+    // never spend continue budget re-closing a finished task.
+    // Accept both worker `[DONE]` and evaluator `met` verdicts.
+    if (
+      assessment.finished &&
+      assessment.confidence === "high" &&
+      (assessment.reason === "done-mark" || String(assessment.reason || "").startsWith("met"))
+    ) {
+      break;
+    }
+    // Hard stops win even at stepLimitHit (G7): blocked / incomplete / impossible / no-tools / empty-turn.
+    const hardStop =
+      decision.reason === "blocked" ||
+      decision.reason === "incomplete-mark" ||
+      decision.reason === "empty-turn" ||
+      String(decision.reason || "").startsWith("impossible") ||
+      decision.reason === "no-tools" ||
+      decision.reason === "error-or-cancelled";
+    if (hardStop) {
+      if (goalState.status !== "done" && decision.reason !== "blocked") {
+        // Keep blocked as-is; otherwise honest terminal for the stop reason.
+        if (
+          decision.reason === "incomplete-mark" ||
+          decision.reason === "empty-turn" ||
+          String(decision.reason || "").startsWith("impossible")
+        ) {
+          goalState = {
+            ...goalState,
+            status: "incomplete",
+            blockReason: goalState.blockReason || decision.reason,
+          };
+        }
+      }
+      break;
+    }
+    // Budget exhaustion is terminal BEFORE any continue (G6): decideAutoContinue
+    // already returns continue:false at budget — terminalize then break.
+    if (autoContinues >= maxContinues || (!decision.continue && decision.reason === "continue-budget")) {
+      logInfo("ai", "auto-continue budget exhausted", { sessionId, autoContinues, maxContinues });
+      if (goalState.status !== "done") {
+        goalState = {
+          ...goalState,
+          status: goalState.status === "blocked" ? "blocked" : "incomplete",
+          blockReason: goalState.blockReason || "budget_exhausted",
+        };
+      }
+      break;
+    }
+    // Step limit offers a continue (fresh budget) unless a hard stop/done; otherwise goal-aware.
+    if (!result.stepLimitHit && !decision.continue) break;
+
+    autoContinues += 1;
+    emit?.({ type: "status", status: "continuing", sessionId, autoContinues });
+    logInfo("ai", "auto-continue after step limit / open goal", {
+      sessionId,
+      autoContinues,
+      reason: assessment.reason,
+    });
+    const continueBody = buildContinuePrompt(
+      settings?.ui?.locale === "en-US" ? "en-US" : "zh-CN",
+      goalState,
+    );
+    const lastBody = String(result.text || "").trim();
+    workingMessages = [
+      ...workingMessages,
+      ...(lastBody ? [{ role: "assistant", content: lastBody }] : []),
+      { role: "user", content: continueBody },
+    ];
+    // Re-compact if the transcript grew past the dynamic budget.
+    if (workingMessages.length > dynamicBudget.maxMessages) {
+      const recompacted = compactMessagesForModel(workingMessages, {
+        maxMessages: dynamicBudget.maxMessages,
+        keepRecent: dynamicBudget.keepRecent,
+        maxChars: dynamicBudget.maxChars,
+        locale: settings?.ui?.locale === "en-US" ? "en-US" : "zh-CN",
+      });
+      workingMessages = [
+        { role: "user", content: buildTaskLedger(goalState, locale === "en" ? "en-US" : "zh-CN") },
+        ...recompacted.messages,
+      ];
+    }
+  }
+
+  if (result?.error) logError("ai", "invoke failed", { sessionId, error: result.error.message });
+  // Map provider failures to actionable copy (rate limit / auth / network).
+  let friendlyError = result?.error ? (result.error.message || String(result.error)) : "";
+  if (result?.error) {
+    const raw = friendlyError.toLowerCase();
+    const zh = locale === "zh";
+    if (/401|unauthorized|invalid.?api.?key|authentication/i.test(raw)) {
+      friendlyError = zh
+        ? "API Key 无效或未配置。请到「设置 → AI」检查密钥。"
+        : "Invalid or missing API key. Check Settings → AI.";
+    } else if (/429|rate.?limit|too many requests|quota/i.test(raw)) {
+      friendlyError = zh
+        ? "触发限流/配额。稍后重试，或换一个模型/供应商。"
+        : "Rate limited or quota exceeded. Retry later or switch model/provider.";
+    } else if (/timeout|etimedout|econnreset|network|fetch failed/i.test(raw)) {
+      friendlyError = zh
+        ? "网络超时或连接失败。检查网络后重试；长任务可稍后再发。"
+        : "Network timeout or connection failed. Check connectivity and retry.";
+    } else if (/context.?length|maximum context|too many tokens/i.test(raw)) {
+      friendlyError = zh
+        ? "上下文超长。请新开会话，或缩短挂载文件/历史。"
+        : "Context too long. Start a new session or reduce mounted files/history.";
+    } else if (/bytestring|character at index/i.test(raw)) {
+      friendlyError = zh
+        ? "API Key 含非英文字符（HTTP 头只能是 ASCII）。请到「设置 → AI」重新粘贴纯英文密钥。"
+        : "API key contains non-ASCII characters (HTTP headers must be ASCII). Re-paste a plain-ASCII key in Settings → AI.";
+    } else if (/header or cookie too large|request header|413|431/i.test(raw)) {
+      friendlyError = zh
+        ? "请求头过大，通常因 API Key 异常超长或已损坏。请到「设置 → AI」删除当前 Key 后重新粘贴官方纯英文密钥。"
+        : "Request headers too large — the API key is likely corrupt or oversized. Re-paste a plain-ASCII key in Settings → AI.";
+    } else if (/400 bad request|bad request/i.test(raw)) {
+      friendlyError = zh
+        ? "模型服务拒绝了请求（400）。请检查 API Key 是否正确、模型名是否有效，或稍后重试。"
+        : "Provider rejected the request (400). Check the API key and model id, then retry.";
+    }
+  }
+  noteAgentLoop(lastRuntime);
+  const batchEvidence = toolCtx._batchCollector?.summary?.() || null;
+  if (batchEvidence) {
+    emit?.({ type: "batch-evidence", batchEvidence, sessionId });
+    logInfo("ai", "multi-file writeback summary", {
+      sessionId,
+      writeCount: batchEvidence.writeCount,
+    });
+  }
+  if (lastFollowUps.length) {
+    emit?.({ type: "follow-up-ready", count: lastFollowUps.length, sessionId });
+  }
+  // Goal-layer summary for the renderer (plan / open criteria / incomplete).
+  const goalSummary = {
+    goal: goalState.goal || "",
+    plan: goalState.plan || [],
+    criteria: goalState.criteria || [],
+    openCriteria: goalState.doneCriteria || [],
+    pathReceipts: (goalState.pathReceipts || []).slice(-12),
+    sourceUrls: (goalState.sourceUrls || []).slice(-8),
+    status: goalState.status || "idle",
+    blockReason: goalState.blockReason || null,
+    autoContinues,
+    kind: goalState.kind || classifyTurn(goalState.goal || ""),
+  };
+  emit?.({ type: "goal-status", goal: goalSummary, sessionId });
+  rememberDistillHint(fileOps);
+  // Persist session-level GoalState so criteria survive user turns / restart.
+  invocation.checkpoint();
+  await AiSessionStore.saveGoal(sessionId, goalState, c);
+  // Stop-reason honesty (G4): cancel ≠ timeout ≠ stall ≠ incomplete.
+  const cancelled = Boolean(result?.cancelled);
+  const stopReason = result?.stopReason
+    || (cancelled ? "cancelled" : result?.error ? "error" : null);
+  return {
+    ok: !result?.error,
+    cancelled,
+    stopReason,
+    stepLimitHit: Boolean(result?.stepLimitHit),
+    text: combinedText || result?.text || "",
+    reasoning: combinedReasoning || result?.reasoning || "",
+    error: friendlyError,
+    usage: lastUsage,
+    model: { modelId: res.modelId, contextWindow: modelContextWindow },
+    batchEvidence,
+    followUps: lastFollowUps,
+    steerApplyCount: lastSteerApplyCount,
+    autoContinues,
+    goal: goalSummary,
+    taskLedger: buildTaskLedger(goalState, locale === "en" ? "en-US" : "zh-CN"),
+    /** Post-run memory distill candidates (Pi CompactionDetails + path receipts). */
+    memoryDistillHint: {
+      readFiles: fileOps.readFiles.slice(0, 24),
+      modifiedFiles: fileOps.modifiedFiles.slice(0, 24),
+    },
+    compactNote: compact.compacted ? compact.note : null,
+    estimatedTokens: compact.estimatedTokens,
+    runtime: lastRuntime,
+  };
+}

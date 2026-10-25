@@ -72,4 +72,14 @@ describe("disk-conflict", () => {
       "auto",
     );
   });
+
+  test("keep both preserves complete Markdown structures and repeated lines", () => {
+    const local = "# Note\n\n```js\nshared();\nlocal();\n```\n";
+    const disk = "# Note\n\n```js\nshared();\nexternal();\n```\n\n| A | B |\n| - | - |\n| A | A |\n";
+    const result = resolveDiskConflict({ base: "base", local, disk }, "merge");
+    assert.ok(result.body.startsWith(local.trimEnd()));
+    assert.ok(result.body.endsWith(disk + "\n"));
+    assert.equal((result.body.match(/```js/gu) || []).length, 2);
+    assert.equal((result.body.match(/shared\(\);/gu) || []).length, 2);
+  });
 });

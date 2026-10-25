@@ -23,6 +23,33 @@ import {
   isRecoverableWatcherError,
   startWorkspaceWatcher,
 } from "../electron/watchers.mjs";
+import * as watcherModule from "../electron/watchers.mjs";
+import { pathOps } from "../electron/lib/workspace-path-ops.mjs";
+
+test("an external edit immediately after a Desktop save reaches the file watcher", async () => {
+  const root = realpathSync(mkdtempSync(path.join(tmpdir(), "desk-watch-after-save-")));
+  const events = [];
+  try {
+    const note = path.join(root, "review", "note.md");
+    mkdirSync(path.dirname(note), { recursive: true });
+    writeFileSync(note, "Initial\n");
+    const workspaceRoot = createWorkspaceContext({ engineRoot: path.resolve(import.meta.dirname, "../.."), userWorkspaceRoot: root });
+    await startWorkspaceWatcher(workspaceRoot, (event) => events.push(event), { usePolling: true, interval: 25 });
+    // Older hosts supplied the path mute here; running against them reproduces
+    // the regression. New hosts deliver writes and compare actual content.
+    await pathOps.savePath({ relativePath: "review/note.md", content: "Desktop saved\n" }, {
+      workspaceRoot, markIgnoredFileChanges: watcherModule.markIgnoredFileChanges,
+    });
+    writeFileSync(note, "External changed immediately\n");
+    for (let attempt = 0; attempt < 20 && !events.some((event) => event.relativePath === "review/note.md"); attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    assert.ok(events.some((event) => event.relativePath === "review/note.md"), "external edits must not be muted after a save");
+  } finally {
+    await closeWorkspaceWatcher();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
 test("desktop vault names stay locked to the kernel fence", () => {
   assert.deepEqual([...OPAQUE_PACKAGE_EXTENSIONS], [...kernel.OPAQUE_PACKAGE_EXTENSIONS]);

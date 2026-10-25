@@ -126,7 +126,8 @@ test("workbench is three through-going columns; product chrome is not a spanning
   assert.match(title, /data-column-chrome="center"/);
   assert.match(title, /v4-column-chrome/);
   assert.match(read("src/components/shell/Sidebar.tsx"), /v4-column-chrome/);
-  assert.match(read("src/components/ai/AiWorkspace.tsx"), /v4-column-chrome/);
+  assert.match(read("src/components/ai/AiWorkspace.tsx"), /TabsList[\s\S]*variant="chrome"/);
+  assert.match(read("src/components/ui/tabs.tsx"), /v4-column-chrome/);
   // TitleBar has AI toggle; destinations stay on ActivityBar (no TitleBar nav row).
   assert.match(title, /v4-titlebar-btn-ai/);
   assert.doesNotMatch(title, /PrimaryNav/);
@@ -171,7 +172,7 @@ test("send from a non-chat pane reveals the 对话 thread (composer stays pinned
   const paneIdx = ws.indexOf("data-ai-workspace-pane");
   assert.ok(composerIdx > paneIdx, "composer stays column-pinned below panes");
   const chat = read("src/components/ai/AiWorkspace.tsx");
-  assert.match(chat, /tab === "chat" \? <AiPanel hideComposer \/>/);
+  assert.match(chat, /<TabsContent[^>]*value="chat"[^>]*>[\s\S]*?<AiPanel hideComposer/);
 });
 
 test("TitleBar suggests/todo/apps are in AI workspace tabs; switcher is not in TitleBar", () => {

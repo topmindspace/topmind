@@ -33,7 +33,6 @@ export const WORKING_SET_CAPS = Object.freeze({
   fetchMediaBytes: 8 * 1024 * 1024,
   treeChildCache: 80,
   hiddenRenderConcurrency: 1,
-  ignoredChanges: 2000,
 });
 
 /** @param {unknown[]} items @param {number} max */
@@ -92,17 +91,6 @@ export function rememberMapEntry(map, key, value, maxKeys) {
     next.delete(oldest);
   }
   return next;
-}
-
-/** Drop earliest-expiring keys once an expiry map exceeds `max`. */
-export function capExpiryMap(map, max) {
-  const n = Math.max(1, Number(max) || WORKING_SET_CAPS.ignoredChanges);
-  if (!map || map.size <= n) return map;
-  const ranked = [...map.entries()].sort((a, b) => Number(a[1]) - Number(b[1]));
-  while (map.size > n && ranked.length) {
-    map.delete(ranked.shift()[0]);
-  }
-  return map;
 }
 
 function messageChars(message) {

@@ -54,6 +54,8 @@ import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { ICON } from "../../lib/icons";
 import type { ToastPayload } from "../../lib/local-events";
 import { evidencePrimaryPath } from "../../lib/writeback-toast";
+import { createRafGate } from "../../lib/hot-path";
+import { PANEL_WIDTHS, resolveWorkbenchLayout } from "../../../electron/lib/workbench-layout.mjs";
 
 /** @dnd-kit is code-split — loaded with the shell chrome after React mounts. */
 const DndShell = lazy(() => import("./DndShell").then((m) => ({ default: m.DndShell })));
@@ -72,6 +74,13 @@ export function Shell({ settings }: ShellProps) {
   const aiPanelWidth = useViewStore((s) => s.aiPanelWidth);
   const setAiPanelWidth = useViewStore((s) => s.setAiPanelWidth);
   const focusMode = useViewStore((s) => s.focusMode);
+  const [viewportWidth, setViewportWidth] = useState(() => typeof window === "undefined" ? 1440 : window.innerWidth);
+  useEffect(() => {
+    const gate = createRafGate();
+    const resize = () => gate.run(() => setViewportWidth(window.innerWidth));
+    window.addEventListener("resize", resize);
+    return () => { window.removeEventListener("resize", resize); gate.cancel(); };
+  }, []);
 
   // Density tier: focus mode collapses chrome to the immersive 32px line.
   useEffect(() => {
@@ -340,8 +349,8 @@ export function Shell({ settings }: ShellProps) {
     if (overlay !== "none") setTaskPanelOpen(false);
   }, [overlay]);
 
-  const showSidebar = !focusMode && !sidebarCollapsed;
-  const showAiPanel = !focusMode && aiPanelOpen;
+  const layout = resolveWorkbenchLayout({ viewportWidth, sidebarWidth, aiPanelWidth, sidebarVisible: !sidebarCollapsed, aiVisible: aiPanelOpen, focusMode });
+  const { showSidebar, showAiPanel } = layout;
   const gridRows = focusMode
     ? "grid-rows-[minmax(0,1fr)]"
     : "grid-rows-[minmax(0,1fr)_var(--density-status-y,26px)]";
@@ -373,17 +382,17 @@ export function Shell({ settings }: ShellProps) {
         ) : null}
         {showSidebar ? (
           <>
-            <div style={{ width: sidebarWidth }} className="v4-side-panel">
+            <div style={{ width: layout.sidebarWidth }} className="v4-side-panel" data-sidebar-column>
               <Sidebar />
             </div>
-            <Splitter side="left" value={sidebarWidth} onChange={setSidebarWidth} min={180} max={480} />
+            <Splitter side="left" value={layout.sidebarWidth} onChange={setSidebarWidth} min={PANEL_WIDTHS.sidebar.min} max={layout.sidebarMax} />
           </>
         ) : null}
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col" data-center-column>
           <TitleBar
             workspaceRoot={settings.workspaceRoot}
-            sidebarCollapsed={sidebarCollapsed}
+            sidebarCollapsed={!showSidebar}
             onToggleSidebar={toggleSidebar}
             macPad={!showSidebar}
           />
@@ -392,8 +401,8 @@ export function Shell({ settings }: ShellProps) {
 
         {showAiPanel ? (
           <>
-            <Splitter side="right" value={aiPanelWidth} onChange={setAiPanelWidth} min={320} max={800} />
-            <div style={{ width: aiPanelWidth }} className="v4-side-panel" data-ai-workspace-column>
+            <Splitter side="right" value={layout.aiPanelWidth} onChange={setAiPanelWidth} min={PANEL_WIDTHS.ai.min} max={layout.aiMax} />
+            <div style={{ width: layout.aiPanelWidth }} className="v4-side-panel" data-ai-workspace-column>
               <AiWorkspace />
             </div>
           </>

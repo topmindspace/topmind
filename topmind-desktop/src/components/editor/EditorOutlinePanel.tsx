@@ -14,18 +14,21 @@ import type { Editor } from "@tiptap/react";
 import { ICON } from "../../lib/icons";
 import { cn } from "../../lib/kit";
 import { focusEditorHeading } from "../../lib/editor-focus-heading";
+import { markdownProseLines } from "../../lib/editor-document";
 
 export interface OutlineItem {
   id: string;
   level: number;
   text: string;
   pos?: number;
+  sourceOffset?: number;
 }
 
 interface EditorOutlinePanelProps {
   editor: Editor | null | undefined;
   rawMarkdown?: string;
-  viewMode: "edit" | "preview";
+  viewMode: "edit" | "source" | "preview";
+  onSourceSelect?: (offset: number) => void;
   open: boolean;
   onClose: () => void;
   className?: string;
@@ -37,7 +40,8 @@ export function cleanHeadingText(raw: string): string {
   return raw
     .replace(/<!--.*?-->/gu, "")
     .replace(/\[([^\]]+)\]\([^)]+\)/gu, "$1") // [text](url) -> text
-    .replace(/[*_]{1,3}([^*_]+)[*_]{1,3}/gu, "$1") // **bold** or *italic* -> text
+    .replace(/(\*{1,3})([^*]+)\1/gu, "$2")
+    .replace(/(^|[^\p{L}\p{N}])(_{1,3})([^_]+)\2(?=$|[^\p{L}\p{N}])/gu, "$1$3")
     .replace(/`([^`]+)`/gu, "$1") // `code` -> code
     .replace(/~~([^~]+)~~/gu, "$1") // ~~strikethrough~~ -> text
     .trim();
@@ -68,18 +72,9 @@ export function extractHeadings(editor: Editor | null | undefined, rawMarkdown?:
 
   // Fallback: parse markdown raw headings (# Heading) while skipping code blocks
   if (rawMarkdown) {
-    const lines = rawMarkdown.split("\n");
     let index = 0;
-    let inCodeBlock = false;
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed.startsWith("```") || trimmed.startsWith("~~~")) {
-        inCodeBlock = !inCodeBlock;
-        continue;
-      }
-      if (inCodeBlock) continue;
-
-      const match = line.match(/^(#{1,6})\s+(.+)$/u);
+    for (const { text: line, offset: sourceOffset } of markdownProseLines(rawMarkdown)) {
+      const match = line.match(/^ {0,3}(#{1,6})[\t ]+(.+?)(?:[\t ]+#+)?[\t ]*$/u);
       if (match) {
         const level = match[1].length;
         const text = cleanHeadingText(match[2]);
@@ -88,6 +83,7 @@ export function extractHeadings(editor: Editor | null | undefined, rawMarkdown?:
             id: `heading-md-${index++}`,
             level,
             text,
+            sourceOffset,
           });
         }
       }
@@ -101,6 +97,7 @@ export function EditorOutlinePanel({
   editor,
   rawMarkdown,
   viewMode,
+  onSourceSelect,
   open,
   onClose,
   className,
@@ -113,7 +110,7 @@ export function EditorOutlinePanel({
   // Real-time synchronization: subscribe to TipTap document updates so outline updates as user types.
   // Dormant when outline drawer is closed — zero CPU consumption during regular editing.
   useEffect(() => {
-    if (!open || !editor || editor.isDestroyed) return;
+    if (!open || viewMode === "source" || !editor || editor.isDestroyed) return;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const handleUpdate = () => {
       if (timer) clearTimeout(timer);
@@ -128,16 +125,16 @@ export function EditorOutlinePanel({
       if (timer) clearTimeout(timer);
       editor.off("update", handleUpdate);
     };
-  }, [editor, open]);
+  }, [editor, open, viewMode]);
 
   const headings = useMemo(() => {
     if (!open) return [];
-    return extractHeadings(editor, rawMarkdown);
+    return extractHeadings(viewMode === "source" ? null : editor, rawMarkdown);
   }, [editor, rawMarkdown, viewMode, editorVersion, open]);
 
   // Scrollspy: Sync active heading with the visible editor viewport
   useEffect(() => {
-    if (!open || headings.length === 0) return;
+    if (!open || viewMode === "source" || headings.length === 0) return;
     const scrollContainer = document.querySelector(".v4-editor-scroll");
     if (!scrollContainer) return;
 
@@ -180,7 +177,7 @@ export function EditorOutlinePanel({
     scrollContainer.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
     return () => scrollContainer.removeEventListener("scroll", handleScroll);
-  }, [open, headings]);
+  }, [open, headings, viewMode]);
 
   // Escape key closes outline
   useEffect(() => {
@@ -197,6 +194,7 @@ export function EditorOutlinePanel({
   const handleJump = useCallback(
     (item: OutlineItem) => {
       setActiveId(item.id);
+      if (viewMode === "source") { onSourceSelect?.(item.sourceOffset ?? 0); return; }
       if (viewMode === "preview") {
         // Preview is a static HTML snapshot, not the hidden TipTap instance.
         const previewEl =
@@ -218,7 +216,7 @@ export function EditorOutlinePanel({
         focusEditorHeading(editor, item.text);
       }
     },
-    [editor, viewMode],
+    [editor, viewMode, onSourceSelect],
   );
 
   if (!open) return null;

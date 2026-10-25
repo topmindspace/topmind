@@ -40,6 +40,9 @@
   },
   "store": {
     "newSession": "New conversation",
+    "historySaveFailed": "Conversation could not be saved. The latest content remains in this window.",
+    "cancelFailed": "Could not confirm that AI stopped. Check the connection and retry.",
+    "clearFailed": "Conversation could not be cleared. Please retry.",
     "steerInjected": "Steering injected",
     "focusHintTopic": "Topic {{topicId}}",
     "focusHintFile": "File {{name}}",

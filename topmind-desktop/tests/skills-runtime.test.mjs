@@ -177,19 +177,19 @@ test("system prompt skill-first includes catalog and load_skill protocol", () =>
 test("formatCatalogForPrompt is compact discovery text", () => {
   const catalog = listSkillCatalog({ engineRoot });
   const text = formatCatalogForPrompt(catalog.slice(0, 3));
-  assert.match(text, /`topmind/);
+  assert.match(text, /<name>topmind/);
   assert.match(text, /Use when|收进来|路由/i);
   assert.ok(text.length < 5000);
 });
 
-test("formatCatalogForPrompt emits Pi available_skills XML + compact routing", async () => {
+test("formatCatalogForPrompt emits a single available_skills catalog", async () => {
   const { formatCatalogForPrompt, listSkillCatalog } = await import("../electron/lib/skills-runtime.mjs");
   const catalog = listSkillCatalog({ engineRoot }).slice(0, 3);
   const text = formatCatalogForPrompt(catalog);
   assert.match(text, /<available_skills>/);
   assert.match(text, /<name>/);
   assert.match(text, /<location>/);
-  assert.match(text, /`topmind/);
+  assert.match(text, /<name>topmind/);
 });
 
 test("toPiSkills maps catalog to Pi Skill shape", async () => {

@@ -52,44 +52,27 @@ import { ICON } from "../../../lib/icons";
 import { cn } from "../../../lib/kit";
 import { formatChord } from "../../../lib/chord";
 import { ToolbarButton, ToolbarSep, SaveBadge, type SaveState } from "./file-editor-chrome";
+import { ChromeOverflowActions, type ChromeAction } from "../../../lib/chrome-overflow";
 import { EditorReadingMenu } from "../../../components/editor/EditorReadingMenu";
 
-export function EditorModeSwitch({
-  viewMode,
-  onChange,
-}: {
-  viewMode: "edit" | "preview";
-  onChange: (m: "edit" | "preview") => void;
+export function EditorModeSwitch({ viewMode, onChange, visualDisabled = false }: {
+  viewMode: "edit" | "source" | "preview";
+  onChange: (mode: "edit" | "source" | "preview") => void;
+  visualDisabled?: boolean;
 }) {
-  const { t } = useTranslation(["workspace", "common"]);
+  const { t } = useTranslation("workspace");
   return (
-    <div className="v4-segmented shrink-0 !gap-0.5 !p-0.5" role="tablist" aria-label={t("workspace:formatBar.edit")}>
-      <Tooltip content={t("workspace:formatBar.edit")}>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={viewMode === "edit"}
-          data-active={viewMode === "edit"}
-          aria-label={t("workspace:formatBar.edit")}
-          onClick={() => onChange("edit")}
-          className="v4-segmented-item !flex-none gap-0 !px-1.5 !py-0"
-        >
-          <RiEditLine size={ICON.xs} />
-        </button>
-      </Tooltip>
-      <Tooltip content={t("workspace:formatBar.preview")}>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={viewMode === "preview"}
-          data-active={viewMode === "preview"}
-          aria-label={t("workspace:formatBar.preview")}
-          onClick={() => onChange("preview")}
-          className="v4-segmented-item !flex-none gap-0 !px-1.5 !py-0"
-        >
-          <RiEyeLine size={ICON.xs} />
-        </button>
-      </Tooltip>
+    <div className="v4-segmented shrink-0 !gap-0.5 !p-0.5" role="group" aria-label={t("formatBar.modes")}>
+      {(["edit", "source", "preview"] as const).map((mode) => {
+        const Icon = mode === "edit" ? RiEditLine : mode === "source" ? RiCodeLine : RiEyeLine;
+        return <Tooltip key={mode} content={mode === "edit" && visualDisabled ? t("editor.sourceRequired") : t(`formatBar.${mode}`)}>
+          <button type="button" aria-pressed={viewMode === mode} data-active={viewMode === mode}
+            aria-label={t(`formatBar.${mode}`)} disabled={mode === "edit" && visualDisabled}
+            onClick={() => onChange(mode)} className="v4-segmented-item !flex-none gap-0 !px-1.5 !py-0 disabled:opacity-40">
+            <Icon size={ICON.xs} aria-hidden />
+          </button>
+        </Tooltip>;
+      })}
     </div>
   );
 }
@@ -271,6 +254,7 @@ export function FileEditorTitleBarActions({
   mounted,
   onToggleMount,
   onRequestAiBar,
+  inlineAi = true,
   moveControl,
 }: {
   canPublish: boolean;
@@ -284,55 +268,21 @@ export function FileEditorTitleBarActions({
   mounted: boolean;
   onToggleMount: () => void;
   onRequestAiBar: () => void;
+  inlineAi?: boolean;
   moveControl?: ReactNode;
 }) {
   const { t } = useTranslation(["workspace", "common"]);
+  const actions: ChromeAction[] = [
+    { id: "ask-ai", label: t(inlineAi ? "workspace:formatBarOptions.aiEditTip" : "workspace:formatBarOptions.askNoteAiTip"), icon: <RiSparklingLine size={ICON.sm} />, onClick: onRequestAiBar, hidden: readOnly, priority: 10, aiAction: true },
+    { id: "publish", label: t("workspace:formatBarOptions.publishToOutputsTip"), icon: busyAction === "publish" ? <RiLoader4Line size={ICON.sm} className="animate-spin" /> : <RiUpload2Line size={ICON.sm} />, onClick: onPublish, hidden: !canPublish, disabled: Boolean(busyAction), priority: 20 },
+    { id: "mount", label: t(mounted ? "workspace:previewView.unmountTooltip" : "workspace:previewView.mountTooltip"), icon: <RiAttachmentLine size={ICON.sm} />, onClick: onToggleMount, pressed: mounted, priority: 30 },
+    { id: "memory", label: t("workspace:formatBarOptions.appendToMemory"), icon: <RiUserLine size={ICON.sm} />, onClick: onMemory, hidden: !resolvedTopicId, priority: 40 },
+    { id: "post-x", label: t("workspace:formatBarOptions.postToX"), icon: <RiTwitterXLine size={ICON.sm} />, onClick: onPostToX, hidden: readOnly || !xPublishEnabled, priority: 50 },
+  ].map((action) => ({ ...action, iconOnlyWhenCompact: true }));
   return (
-    <div className="flex items-center gap-0.5" data-file-titlebar-actions>
+    <div className="flex w-full min-w-0 flex-1 items-center gap-0.5" data-file-titlebar-actions>
+      <ChromeOverflowActions actions={actions} className="flex-1" />
       {moveControl}
-      {canPublish ? (
-        <Tooltip content={t("workspace:formatBarOptions.publishToOutputsTip")}>
-          <button type="button" className="v4-titlebar-btn" onClick={onPublish} aria-label={t("workspace:formatBarOptions.publishToOutputsTip")}>
-            {busyAction === "publish" ? (
-              <RiLoader4Line size={ICON.sm} className="animate-spin" />
-            ) : (
-              <RiUpload2Line size={ICON.sm} />
-            )}
-          </button>
-        </Tooltip>
-      ) : null}
-      {!readOnly ? (
-        <Tooltip content={t("workspace:formatBarOptions.aiEditTip")}>
-          <button type="button" className="v4-titlebar-btn" onClick={onRequestAiBar} aria-label={t("workspace:formatBarOptions.aiEditTip")}>
-            <RiSparklingLine size={ICON.sm} className="text-accent-color" />
-          </button>
-        </Tooltip>
-      ) : null}
-      {resolvedTopicId ? (
-        <Tooltip content={t("workspace:formatBarOptions.appendToMemory")}>
-          <button type="button" className="v4-titlebar-btn" onClick={onMemory} aria-label={t("workspace:formatBarOptions.appendToMemory")}>
-            <RiUserLine size={ICON.sm} />
-          </button>
-        </Tooltip>
-      ) : null}
-      <Tooltip content={mounted ? t("workspace:previewView.unmountTooltip") : t("workspace:previewView.mountTooltip")}>
-        <button
-          type="button"
-          className={cn("v4-titlebar-btn", mounted && "text-accent-color")}
-          onClick={onToggleMount}
-          aria-pressed={mounted}
-          aria-label={mounted ? t("workspace:previewView.unmountTooltip") : t("workspace:previewView.mountTooltip")}
-        >
-          <RiAttachmentLine size={ICON.sm} />
-        </button>
-      </Tooltip>
-      {!readOnly && xPublishEnabled ? (
-        <Tooltip content={t("workspace:formatBarOptions.postToX")}>
-          <button type="button" className="v4-titlebar-btn" onClick={onPostToX} aria-label={t("workspace:formatBarOptions.postToX")}>
-            <RiTwitterXLine size={ICON.sm} />
-          </button>
-        </Tooltip>
-      ) : null}
     </div>
   );
 }

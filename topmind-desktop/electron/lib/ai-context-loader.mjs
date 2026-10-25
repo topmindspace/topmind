@@ -15,6 +15,7 @@ import { readText } from "./fs-utils.mjs";
 import { logInfo } from "./writeback.mjs";
 import { t } from "./electron-i18n.mjs";
 import { loadKernelApi } from "./kernel-api.mjs";
+import { assertPathWithin } from "./path-safety.mjs";
 
 const PROFILE_MAX_CHARS = 2000;
 const TOPIC_MD_MAX_CHARS = 3000;
@@ -110,6 +111,9 @@ export async function loadWorkspaceOverview(ctx) {
 export async function loadMemoryProfile(ctx) {
   try {
     const root = resolveDataRoot(ctx.workspaceRoot);
+    const { resolveMemoryPaths } = await import("./workspace-model-api.mjs");
+    const memPaths = await resolveMemoryPaths(root);
+    const profilePath = await assertPathWithin(root, path.join(root, memPaths?.dir || "memory", memPaths?.profileFile || "profile.md"));
     let collapsed = "";
     let fromKernel = false;
     try {
@@ -132,11 +136,7 @@ export async function loadMemoryProfile(ctx) {
       collapsed = "";
     }
     if (!collapsed) {
-      const { resolveMemoryPaths } = await import("./workspace-model-api.mjs");
-      const memPaths = await resolveMemoryPaths(root);
-      const profileFile = memPaths?.profileFile || "profile.md";
-      const memDir = memPaths?.dir || "memory";
-      collapsed = await readText(path.join(root, memDir, profileFile));
+      collapsed = await readText(profilePath);
     }
     if (!collapsed || collapsed.trim().length < 20) return "";
     if (!fromKernel) {
@@ -165,13 +165,14 @@ export async function loadMemoryProfile(ctx) {
  * @returns {Promise<string>}
  */
 export async function loadTopicContext(ctx, topicId) {
-  if (!topicId || typeof topicId !== "string" || !topicId.includes("/")) return "";
+  if (!topicId || typeof topicId !== "string") return "";
+  const parts = topicId.replace(/\\/gu, "/").split("/");
+  if (parts.length !== 2 || parts.some((part) => !part || part === "." || part === "..")) return "";
   try {
     const root = resolveDataRoot(ctx.workspaceRoot);
-    const [cat, topic] = topicId.split("/");
-    if (!cat || !topic) return "";
+    const [cat, topic] = parts;
     const topicMdPath = path.join(root, cat, topic, "topic.md");
-    const content = await readText(topicMdPath);
+    const content = await readText(await assertPathWithin(root, topicMdPath));
     if (!content || content.trim().length < 20) return "";
     const body = stripFrontmatterForPrompt(content);
     if (!body) return "";

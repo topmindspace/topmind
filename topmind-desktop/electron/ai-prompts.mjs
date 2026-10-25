@@ -56,7 +56,7 @@ function promptCopy(locale) {
       protocolSection: "## Protocol (skill-first)",
       skillPreloaded: (id) => `This turn's skill is pre-loaded: ${id}. Follow its flow and use tools directly.`,
       protocolSteps:
-        "1. Pick a skill → `load_skill`\n2. Complete the task with tools per the skill\n3. Reply: conclusion + paths",
+        "Use a matching skill for specialized work via `load_skill`; a simple grounded lookup needs no skill activation. Complete every requested stage, then reply with the result and actual paths.",
       fuzzyIntent: 'Ambiguous intent → `load_skill("topmind")`.',
       overviewInlined: "Workspace overview is already inlined above; no need to list_categories again.",
       useListCategories: "Use `list_categories` for categories.",
@@ -170,7 +170,7 @@ function promptCopy(locale) {
     protocolSection: "## 协议（skill-first）",
     skillPreloaded: (id) => `本轮 skill 已预载：${id}。直接按其流程用工具。`,
     protocolSteps:
-      "1. 选 skill → `load_skill`\n2. 按 skill 用工具完成\n3. 回复：结论 + 路径",
+      "专门工作按匹配技能 `load_skill`；简单且已有证据的查询不必激活技能。连续完成用户要求的各阶段，回复结果与实际路径。",
     fuzzyIntent: '模糊意图 → `load_skill("topmind")`。',
     overviewInlined: "工作区概览已内联上方，无需再 list_categories。",
     useListCategories: "类别用 `list_categories`。",
@@ -308,6 +308,15 @@ export function buildSystemPrompt(opts = {}) {
   const outputLocale = outputLocaleOpt ? resolvePromptLocale(outputLocaleOpt) : locale;
   const P = promptCopy(locale);
 
+  if (turnKind === "light") {
+    return [
+      locale === "en"
+        ? "You are the topmind workspace assistant. Reply naturally and briefly to this conversational turn. No tools or workspace content are provided; do not claim to have read or changed files."
+        : "你是 topmind 工作区助手。本轮是日常对话，简短自然回复。本轮没有提供工具或工作区内容，不声称已读取或修改文件。",
+      outputLanguagePolicy(locale, outputLocale),
+    ].join("\n\n");
+  }
+
   if (Array.isArray(extraSkillsRoots)) {
     setConfiguredExtraSkillsRoots(extraSkillsRoots);
   }
@@ -387,7 +396,7 @@ export function buildSystemPrompt(opts = {}) {
     if (activeSkillId) {
       parts.push("", P.activeSkill(activeSkillId));
       try {
-        const pinned = loadSkillBody(activeSkillId, { engineRoot, maxChars: 5500 });
+        const pinned = loadSkillBody(activeSkillId, { engineRoot, extraRoots: extraSkillsRoots, maxChars: 14000 });
         parts.push((pinned.raw || pinned.body || "").slice(0, 5500));
       } catch {
         parts.push(P.preloadFailed);

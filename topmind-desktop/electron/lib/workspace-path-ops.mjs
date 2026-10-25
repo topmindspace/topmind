@@ -199,9 +199,6 @@ export const pathOps = {
         wroteFiles: false,
       });
     }
-    if (typeof ctx.markIgnoredFileChanges === "function") {
-      ctx.markIgnoredFileChanges([fp], 1500);
-    }
     const writeActor = actor || ctx.writeActor || "user";
     const ev = await kernelDurableWrite(
       { relativePath, content: next },
@@ -401,9 +398,6 @@ export const pathOps = {
       };
     }
 
-    if (typeof ctx.markIgnoredFileChanges === "function") {
-      ctx.markIgnoredFileChanges([fp], 1500);
-    }
     // Surgical edit still hits protection gate; backup/receipt only if high-impact (locked) per writeback-engine.
     const writeActor = actor || ctx.writeActor || "user";
     const ev = await kernelDurableWrite(
@@ -480,9 +474,6 @@ export const pathOps = {
     S(content, "content", { allowEmpty: true, maxLen: 5_000_000 });
     const fp = await sp(ctx.workspaceRoot, relativePath);
     const old = await fs.readFile(fp, "utf8").catch(() => null);
-    if (typeof ctx.markIgnoredFileChanges === "function") {
-      ctx.markIgnoredFileChanges([fp], 1500);
-    }
     const writeActor = actor || ctx.writeActor || "user";
     const isUserSave = writeActor === "user";
     const ev = await kernelDurableWrite(
@@ -591,9 +582,6 @@ export const pathOps = {
     // atomic tmp+rename, frontmatter, receipt). Protection is handled above via
     // evaluateWritePermission + writePathCheckpoint backup for locked overwrites.
     await fs.mkdir(path.dirname(fp), { recursive: true });
-    if (typeof ctx.markIgnoredFileChanges === "function") {
-      ctx.markIgnoredFileChanges([fp], 1500);
-    }
     await fs.writeFile(fp, buf);
     invalidateWorkspaceImageFileList();
     bumpWorkspaceIndex(rel);
@@ -1038,9 +1026,6 @@ export const pathOps = {
     if (isTextNotePath(srcRel)) {
       const content = await fs.readFile(srcFp, "utf8");
       await fs.mkdir(path.dirname(destFp), { recursive: true });
-      if (typeof ctx.markIgnoredFileChanges === "function") {
-        ctx.markIgnoredFileChanges([destFp], 1500);
-      }
       const ev = await kernelDurableWrite(
         { relativePath: destRel, content },
         ctx,
@@ -1067,9 +1052,6 @@ export const pathOps = {
     }
     // Binary / non-text: copy bytes after gate.
     await fs.mkdir(path.dirname(destFp), { recursive: true });
-    if (typeof ctx.markIgnoredFileChanges === "function") {
-      ctx.markIgnoredFileChanges([destFp], 1500);
-    }
     await fs.copyFile(srcFp, destFp);
     bumpWorkspaceIndex(destRel);
     return {

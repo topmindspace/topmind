@@ -5,7 +5,7 @@
 import { test, beforeEach, after } from "node:test";
 import assert from "node:assert/strict";
 import {
-  mkdtempSync, rmSync, writeFileSync, readFileSync, existsSync, mkdirSync, utimesSync,
+  mkdtempSync, rmSync, writeFileSync, readFileSync, existsSync, mkdirSync, utimesSync, promises as fs,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -38,6 +38,29 @@ beforeEach(async () => {
 
 after(() => {
   if (tmpRoot) rmSync(tmpRoot, { recursive: true, force: true });
+});
+
+test("cleanup cannot unlink an active settings temp before its first bytes are written", async () => {
+  const mod = await import(`${pathToFileURL(settingsPath).href}?cleanup-race=${Date.now()}`);
+  const writeFile = fs.writeFile;
+  let injected = false;
+  fs.writeFile = async (file, body, options) => {
+    if (!injected && String(file).startsWith(`${settingsFile}.tmp.`)) {
+      injected = true;
+      const handle = await fs.open(file, "w");
+      try {
+        await mod.__settingsTest.cleanupStaleSettingsTemps(settingsFile);
+        await handle.writeFile(body, options);
+      } finally { await handle.close(); }
+      return;
+    }
+    return writeFile(file, body, options);
+  };
+  try {
+    await mod.updateAppSettings(settingsFile, mod.createDefaultAppSettings("/tmp/cleanup-race"), { theme: "dark" });
+    assert.equal(injected, true);
+    assert.equal(JSON.parse(readFileSync(settingsFile, "utf8")).theme, "dark");
+  } finally { fs.writeFile = writeFile; }
 });
 
 test("save then load round-trips writebackMode, theme, editor, ai + skills flags", async () => {

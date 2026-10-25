@@ -40,6 +40,9 @@
   },
   "store": {
     "newSession": "新对话",
+    "historySaveFailed": "对话保存失败，最新内容仍保留在当前窗口。",
+    "cancelFailed": "未能确认 AI 已中断，请检查连接后重试。",
+    "clearFailed": "无法清空对话，请重试。",
     "steerInjected": "已注入中途指示",
     "focusHintTopic": "专题 {{topicId}}",
     "focusHintFile": "文件 {{name}}",

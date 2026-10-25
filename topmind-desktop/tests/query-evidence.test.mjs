@@ -49,3 +49,17 @@ test("buildQueryEvidence includes memories when asked", async () => {
   assert.match(block, /list_recent_memories/u);
   assert.match(block, /喜欢简洁界面/u);
 });
+
+
+test("tasks and web searches are not prefetched without parameters", async () => {
+  let calls = 0;
+  const tools = {
+    list_recent_memories: { execute: async () => { calls++; return {}; } },
+    web_search: { execute: async () => { calls++; return {}; } },
+  };
+  assert.equal(await buildQueryEvidence({ userText: "Update my profile", tools }), null);
+  assert.equal(await buildQueryEvidence({ userText: "Search official documentation", tools }), null);
+  assert.equal(wantsQueryEvidence("Update my profile"), false);
+  assert.equal(wantsQueryEvidence("Search official documentation"), false);
+  assert.equal(calls, 0);
+});

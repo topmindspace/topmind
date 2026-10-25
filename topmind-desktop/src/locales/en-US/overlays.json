@@ -159,7 +159,10 @@
     "footerRecent": "{{count}} recent",
     "truncatedHint": "Results capped at {{count}} · not a full-library census · narrow with more specific keywords",
     "filterAll": "All",
-    "clearRecent": "Clear"
+    "clearRecent": "Clear",
+    "errorTitle": "Search could not complete",
+    "errorHint": "Results are temporarily unavailable. Please try again.",
+    "retry": "Retry search"
   },
   "command": {
     "ariaLabel": "Command palette",

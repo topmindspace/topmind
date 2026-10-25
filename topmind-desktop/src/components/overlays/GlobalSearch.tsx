@@ -15,30 +15,7 @@ import { ICON } from "../../lib/icons";
 import { formatChord } from "../../lib/chord";
 import { FilterChip } from "../ui/view";
 import type { SearchResult } from "../../types";
-
-type SearchBucket = "stream" | "memory" | "inbox" | "outputs" | "archive" | "topic" | "other";
-
-/** Light path-based grouping for honest keyword search (no embedding). */
-function searchBucket(relativePath: string): SearchBucket {
-  const p = relativePath.replace(/\\/g, "/");
-  if (p.startsWith("memory/") || p.includes("/memory/")) return "memory";
-  if (/(^|\/)(00-|收件箱|inbox)/iu.test(p)) return "inbox";
-  if (/(^|\/)(88-|输出|outputs)/iu.test(p)) return "outputs";
-  if (/(^|\/)(99-|归档|archive)/iu.test(p)) return "archive";
-  if (/(动态|stream|period|weekly|daily|monthly)/iu.test(p)) return "stream";
-  if (p.split("/").filter(Boolean).length >= 2) return "topic";
-  return "other";
-}
-
-const BUCKET_ORDER: SearchBucket[] = [
-  "stream",
-  "memory",
-  "inbox",
-  "topic",
-  "outputs",
-  "archive",
-  "other",
-];
+import { EMPTY_SEARCH, SEARCH_BUCKET_ORDER, groupSearchResults, searchBucket, startWorkspaceSearch, type SearchBucket } from "../../lib/workspace-search";
 
 const RECENT_KEY = "topmind:search-recent";
 const MAX_RECENT = 8;
@@ -81,26 +58,18 @@ function pushRecent(q: string) {
 export function GlobalSearch() {
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [truncated, setTruncated] = useState(false);
-  const [searchNote, setSearchNote] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [{ results, truncated, note: searchNote, loading, error: searchError }, setSearch] = useState(EMPTY_SEARCH);
+  const [retry, setRetry] = useState(0);
   const [activeIdx, setActiveIdx] = useState(0);
   const [recent, setRecent] = useState<string[]>(() => loadRecent());
   const [bucketFilter, setBucketFilter] = useState<SearchBucket | "all">("all");
   const closeOverlay = useViewStore((s) => s.closeOverlay);
   const select = useViewStore((s) => s.select);
+  const workspaceRoot = useViewStore((s) => s.workspaceRoot);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
-  const seqRef = useRef(0);
-
-  const filteredResults = useMemo(
-    () =>
-      bucketFilter === "all"
-        ? results
-        : results.filter((r) => searchBucket(r.relativePath) === bucketFilter),
-    [results, bucketFilter],
-  );
+  const groupedResults = useMemo(() => groupSearchResults(results, bucketFilter), [results, bucketFilter]);
+  const filteredResults = useMemo(() => groupedResults.flatMap((g) => g.items.map(({ r }) => r)), [groupedResults]);
 
   const bucketCounts = useMemo(() => {
     const counts = new Map<SearchBucket, number>();
@@ -111,62 +80,19 @@ export function GlobalSearch() {
     return counts;
   }, [results]);
 
-  const groupedResults = useMemo(() => {
-    const buckets = new Map<SearchBucket, Array<{ r: SearchResult; flatIdx: number }>>();
-    filteredResults.forEach((r, flatIdx) => {
-      const b = searchBucket(r.relativePath);
-      if (!buckets.has(b)) buckets.set(b, []);
-      buckets.get(b)!.push({ r, flatIdx });
-    });
-    return BUCKET_ORDER.filter((b) => buckets.has(b)).map((b) => ({
-      bucket: b,
-      items: buckets.get(b)!,
-    }));
-  }, [filteredResults]);
-
-  // Debounced search with race protection
-  useEffect(() => {
-    const q = query.trim();
-    if (!q) {
-      setResults([]);
-      setTruncated(false);
-      setSearchNote(null);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    const seq = ++seqRef.current;
-    const timer = setTimeout(async () => {
-      try {
-        const res = await api.ws.search(q);
-        if (seq !== seqRef.current) return;
-        setResults(res.results || []);
-        // Honesty: never present capped hit list as full-library census
-        setTruncated(Boolean(res.truncated));
-        setSearchNote(typeof res.note === "string" ? res.note : null);
-      } catch {
-        if (seq !== seqRef.current) return;
-        setResults([]);
-        setTruncated(false);
-        setSearchNote(null);
-      } finally {
-        if (seq === seqRef.current) setLoading(false);
-      }
-    }, 180);
-    return () => clearTimeout(timer);
-  }, [query]);
+  useEffect(() => startWorkspaceSearch(query, api.ws.search, setSearch), [query, retry, workspaceRoot]);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
   useEffect(() => {
     setActiveIdx(0);
-  }, [query, filteredResults.length]);
+  }, [query, bucketFilter, results]);
 
   useEffect(() => {
     const el = listRef.current?.querySelector(`[data-search-idx="${activeIdx}"]`);
     if (el instanceof HTMLElement) el.scrollIntoView({ block: "nearest" });
-  }, [activeIdx]);
+  }, [activeIdx, filteredResults]);
 
   const handleOpen = (r: SearchResult) => {
     pushRecent(query);
@@ -183,20 +109,20 @@ export function GlobalSearch() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.nativeEvent.isComposing || e.keyCode === 229) {
+      e.stopPropagation();
+      return;
+    }
+    if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter") e.stopPropagation();
     const empty = !query.trim();
-    const count = empty ? recent.length : results.length;
+    if (!empty && (loading || searchError)) return;
+    const count = empty ? recent.length : filteredResults.length;
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setActiveIdx((i) => Math.min(i + 1, Math.max(count - 1, 0)));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActiveIdx((i) => Math.max(i - 1, 0));
-    } else if (e.key === "Home") {
-      e.preventDefault();
-      setActiveIdx(0);
-    } else if (e.key === "End") {
-      e.preventDefault();
-      setActiveIdx(Math.max(count - 1, 0));
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (empty) {
@@ -212,7 +138,7 @@ export function GlobalSearch() {
   const empty = !query.trim();
   const optionCount = empty ? recent.length : filteredResults.length;
   const activeOptionId =
-    optionCount > 0 && activeIdx >= 0 && activeIdx < optionCount
+    !loading && !searchError && optionCount > 0 && activeIdx >= 0 && activeIdx < optionCount
       ? `global-search-opt-${activeIdx}`
       : undefined;
 
@@ -247,14 +173,29 @@ export function GlobalSearch() {
           ESC
         </kbd>
       </div>
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {empty ? "" : loading ? t("overlays:search.footerSearching") : searchError
+          ? t("overlays:search.errorTitle")
+          : t(truncated ? "overlays:search.footerCountTruncated" : "overlays:search.footerCount", { count: filteredResults.length })}
+      </div>
+      {searchError ? (
+        <div className="flex flex-col items-center gap-2 px-3 py-8 text-center">
+          <div className="text-sm font-medium text-text-primary">{t("overlays:search.errorTitle")}</div>
+          <div className="text-xs text-text-secondary">{t("overlays:search.errorHint")}</div>
+          <button type="button" className="v4-chip v4-focus-ring" onClick={() => setRetry((n) => n + 1)}>
+            {t("overlays:search.retry")}
+          </button>
+        </div>
+      ) : null}
       <ul
         id="global-search-list"
         ref={listRef}
         className="v4-sidebar-scroll m-0 max-h-[min(400px,52vh)] list-none overflow-auto p-1.5"
         role="listbox"
+        aria-busy={loading}
         aria-label={empty ? t("overlays:search.listAriaRecent") : t("overlays:search.listAriaResults")}
       >
-        {query.trim() && !loading && results.length === 0 ? (
+        {query.trim() && !loading && !searchError && results.length === 0 ? (
           <li className="flex flex-col items-center gap-2.5 px-3 py-10 text-center" role="presentation">
             <div className="v4-icon-chip flex h-10 w-10 rounded-full text-text-quaternary" aria-hidden>
               <RiSearchLine size={ICON.sm} />
@@ -290,7 +231,7 @@ export function GlobalSearch() {
                   data-active={i === activeIdx}
                   role="option"
                   aria-selected={i === activeIdx}
-                  onMouseEnter={() => setActiveIdx(i)}
+                  onMouseMove={() => setActiveIdx(i)}
                   onClick={() => setQuery(r)}
                   className={cn(
                     "v4-palette-row text-sm",
@@ -331,7 +272,7 @@ export function GlobalSearch() {
               count={results.length}
               onClick={() => setBucketFilter("all")}
             />
-            {BUCKET_ORDER.filter((b) => bucketCounts.has(b)).map((b) => (
+            {SEARCH_BUCKET_ORDER.filter((b) => bucketCounts.has(b)).map((b) => (
               <FilterChip
                 key={b}
                 active={bucketFilter === b}
@@ -348,7 +289,7 @@ export function GlobalSearch() {
               {t(`overlays:search.group.${group.bucket}`)}
               <span className="tabular-nums opacity-70">{group.items.length}</span>
             </div>
-            <ul className="m-0 list-none p-0">
+            <ul className="m-0 list-none p-0" role="group" aria-label={t(`overlays:search.group.${group.bucket}`)}>
               {group.items.map(({ r, flatIdx: i }) => (
                 <li
                   key={r.relativePath}
@@ -357,7 +298,7 @@ export function GlobalSearch() {
                   data-active={i === activeIdx}
                   role="option"
                   aria-selected={i === activeIdx}
-                  onMouseEnter={() => setActiveIdx(i)}
+                  onMouseMove={() => setActiveIdx(i)}
                   onClick={() => handleOpen(r)}
                   className={cn("v4-palette-row items-start py-2.5", i !== activeIdx && "text-text-primary")}
                 >
@@ -371,13 +312,13 @@ export function GlobalSearch() {
                   <div className="min-w-0 flex-1">
                     <div
                       className={cn(
-                        "truncate font-mono text-3xs",
+                      "truncate text-xs font-medium",
                         i === activeIdx ? "text-accent-color" : "text-text-secondary",
                       )}
                     >
                       <HighlightPath path={r.relativePath} query={query.trim()} />
                     </div>
-                    <div className="mt-0.5 truncate text-3xs text-text-tertiary">
+                    <div className="mt-0.5 truncate text-xs text-text-tertiary">
                       <HighlightText text={r.preview} query={query.trim()} />
                     </div>
                   </div>
@@ -413,7 +354,7 @@ export function GlobalSearch() {
         {loading ? <span className="text-text-tertiary">{t("overlays:search.footerSearching")}</span> : null}
         <span className="ml-auto tabular-nums">
           {query.trim()
-            ? truncated
+            ? loading || searchError ? "" : truncated
               ? t("overlays:search.footerCountTruncated", { count: filteredResults.length })
               : t("overlays:search.footerCount", { count: filteredResults.length })
             : recent.length

@@ -17,59 +17,8 @@
 import { classifyTurn } from "./agent-goal-protocol.mjs";
 import { AI_TOOL_NAMES_READ, AI_TOOL_NAMES_WRITE } from "./ai-tool-names.mjs";
 
-/** Always available (routing / meta), even on light turns. */
-const ALWAYS = new Set(["list_skills", "load_skill"]);
-
-/** Read-side discovery tools useful for query turns. */
-const QUERY_READ = new Set([
-  "workspace_overview",
-  "list_categories",
-  "list_topics",
-  "list_topic_files",
-  "get_topic",
-  "read_file",
-  "search",
-  "list_inbox",
-  "list_outputs",
-  "list_todos",
-  "list_recent_memories",
-  "list_recent_stream",
-  "list_files",
-  "glob_files",
-  "stat_path",
-  "web_search",
-  "fetch_url",
-  "workspace_health",
-  "list_pending_writes",
-  "load_skill_resource",
-]);
-
-/**
- * Filter a tool map down to the surface appropriate for this turn kind.
- * @param {Record<string, unknown>} tools
- * @param {"light"|"query"|"task"} kind
- * @returns {Record<string, unknown>}
- */
-export function filterToolsForTurn(tools, kind) {
-  if (!tools || typeof tools !== "object") return {};
-  if (kind === "task") return { ...tools };
-  /** @type {Record<string, unknown>} */
-  const out = {};
-  if (kind === "light") {
-    for (const [name, t] of Object.entries(tools)) {
-      if (ALWAYS.has(name)) out[name] = t;
-    }
-    // Light turns still get zero domain tools — reply is conversational.
-    return {};
-  }
-  // query: read tools only (no writes — prevents accidental mutation)
-  for (const [name, t] of Object.entries(tools)) {
-    if (ALWAYS.has(name) || QUERY_READ.has(name) || AI_TOOL_NAMES_READ.includes(name)) {
-      out[name] = t;
-    }
-  }
-  return out;
-}
+/** Advertised and callable subsets come from the canonical Kernel contract. */
+export { filterAgentToolsForTurn as filterToolsForTurn } from "./ai-tool-names.mjs";
 
 /**
  * Names advertised in the system prompt for this turn (drives the Tools
@@ -90,4 +39,17 @@ export function advertisedToolNames(kind) {
  */
 export function resolveTurnKind(userText) {
   return classifyTurn(userText || "");
+}
+
+/** Prepare only the resources this turn can use; independent reads overlap. */
+export async function prepareTurnResources({ userText, enableTools, loadFiles, buildTools, loadContext }) {
+  const turnKind = resolveTurnKind(userText);
+  const emptyContext = { overview: "", profile: "", topicContext: "" };
+  if (turnKind === "light") return { turnKind, files: [], tools: null, context: emptyContext };
+  const [files, tools, context] = await Promise.all([
+    loadFiles(),
+    enableTools ? buildTools() : null,
+    enableTools ? loadContext() : emptyContext,
+  ]);
+  return { turnKind, files, tools, context };
 }

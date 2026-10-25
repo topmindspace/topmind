@@ -1114,6 +1114,13 @@ html[data-focus-mode="true"] {
   background: var(--color-state-hover, var(--color-surface-hover));
   color: var(--color-text-secondary);
 }
+/* Icon-only controls follow the density box; label padding must not force
+   26px controls to 33px at high zoom and overrun their measured rail. */
+.v4-titlebar-btn.v4-titlebar-btn-icon {
+  width: var(--density-chrome-control, 32px);
+  padding-left: 0;
+  padding-right: 0;
+}
 .v4-titlebar-btn:active:not(:disabled) {
   background: var(--color-state-pressed, var(--color-surface-hover));
 }

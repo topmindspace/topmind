@@ -42,7 +42,7 @@ import { logInfo, logWarn, logError, attachFileLogger, getLogFilePath, summarize
 import { attachOpsJournal } from "./lib/ops-journal.mjs";
 import { pruneRegenerableCaches } from "./lib/fs-utils.mjs";
 import { loadAppSettings, saveAppSettings, updateAppSettings } from "./settings.mjs";
-import { closeWorkspaceWatcher, startWorkspaceWatcher, markIgnoredFileChanges, isRecoverableWatcherError } from "./watchers.mjs";
+import { closeWorkspaceWatcher, startWorkspaceWatcher, isRecoverableWatcherError } from "./watchers.mjs";
 import { invalidateNotesIndex, releaseNotesIndex } from "./lib/notes-index.mjs";
 import {
   releaseDesktopOwned,
@@ -249,8 +249,6 @@ function getContext() {
     stateChannel,
     appSettings,
     secretAdapter: settingsAdapter,
-    /** Soft-suppress chokidar echo after intentional path writes */
-    markIgnoredFileChanges,
     launchDefaults: launchStatus ? { launchStatus } : undefined,
     /** Open workspace (opts.createIfMissing for new/empty folders). */
     activateWorkspace: (candidate, opts) => activateWorkspace(candidate, opts),

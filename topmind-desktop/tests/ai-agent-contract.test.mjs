@@ -43,6 +43,20 @@ test("system prompt does not include context section when not provided", () => {
   assert.match(prompt, /类别用 `list_categories`/);
 });
 
+test("light system prompt omits skills, goal ceremony and unused workspace data", () => {
+  for (const locale of ["zh", "en"]) {
+    const prompt = buildSystemPrompt({ locale, outputLocale: locale, turnKind: "light", activeSkillId: "topmind-write",
+      workspaceContext: "/PRIVATE_WORKSPACE_CANARY",
+      memoryProfile: "PROFILE_CANARY", workspaceOverview: "OVERVIEW_CANARY", topicContext: "TOPIC_CANARY",
+      mountedFiles: [{ name: "source.md", content: "MOUNTED_CANARY" }],
+    });
+    assert.ok(prompt.length < 700, `${locale}: conversational prompt must remain compact`);
+    assert.doesNotMatch(prompt, /CANARY|load_skill|read_file|\[PLAN\]|\[DONE\]/u);
+    assert.match(prompt, /topmind/);
+    assert.match(prompt, locale === "en" ? /English/ : /中文/);
+  }
+});
+
 test("system prompt lists actual snake_case tools, not UTR hyphen names", () => {
   const names = [...READ_TOOLS, ...WRITE_TOOLS];
   const prompt = buildSystemPrompt({

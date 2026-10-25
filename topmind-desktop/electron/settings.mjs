@@ -3,6 +3,7 @@
  * Pure defaults/normalize/secret policy live in lib/settings-core.mjs.
  */
 import { promises as fs } from "node:fs";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { exists } from "./lib/fs-utils.mjs";
 import { isHeaderSafeSecret } from "./lib/header-safe.mjs";
@@ -108,12 +109,13 @@ async function ensureParentDir(filePath) {
 
 /** Abandoned atomic-write temps older than this are not an in-flight save. */
 const SETTINGS_TEMP_MAX_AGE_MS = 2 * 60 * 1000;
+const activeSettingsTemps = new Set();
 
 /**
  * Remove abandoned `app-settings.json.tmp.*` files.
  * A crash between write and rename (EMFILE did this) left multi-megabyte copies.
- * Empty temps go immediately. Non-empty temps wait out the age window so a
- * concurrent save in this process is not unlinked mid-write.
+ * Active saves are always protected, including the empty-file creation window.
+ * Abandoned empty temps go immediately; non-empty temps wait out the age window.
  */
 async function cleanupStaleSettingsTemps(settingsFilePath) {
   try {
@@ -124,6 +126,7 @@ async function cleanupStaleSettingsTemps(settingsFilePath) {
     for (const name of entries) {
       if (!name.startsWith(`${base}.tmp.`)) continue;
       const full = path.join(dir, name);
+      if (activeSettingsTemps.has(path.resolve(full))) continue;
       try {
         const st = await fs.stat(full);
         const stale = st.size === 0 || now - st.mtimeMs >= SETTINGS_TEMP_MAX_AGE_MS;
@@ -311,28 +314,29 @@ async function saveAppSettingsUnlocked(settingsFilePath, settings, options = {})
     throw new Error(`refuse to write suspiciously small settings payload (${body.length} bytes)`);
   }
 
-  const tmpPath = `${settingsFilePath}.tmp.${process.pid}.${Date.now()}`;
+  const tmpPath = `${settingsFilePath}.tmp.${process.pid}.${randomUUID()}`;
   const bakPath = settingsBackupPath(settingsFilePath);
-  await fs.writeFile(tmpPath, body, "utf-8");
+  activeSettingsTemps.add(path.resolve(tmpPath));
   try {
-    const fh = await fs.open(tmpPath, "r+");
-    try { await fh.sync(); } finally { await fh.close(); }
-  } catch { /* sync optional */ }
+    await fs.writeFile(tmpPath, body, "utf-8");
+    try {
+      const fh = await fs.open(tmpPath, "r+");
+      try { await fh.sync(); } finally { await fh.close(); }
+    } catch { /* sync optional */ }
 
-  try {
-    if (await exists(settingsFilePath)) {
-      const prev = await fs.readFile(settingsFilePath, "utf-8");
-      if (prev.trim().length >= 20) {
-        await fs.writeFile(bakPath, prev, "utf-8");
+    try {
+      if (await exists(settingsFilePath)) {
+        const prev = await fs.readFile(settingsFilePath, "utf-8");
+        if (prev.trim().length >= 20) {
+          await fs.writeFile(bakPath, prev, "utf-8");
+        }
       }
-    }
-  } catch { /* bak is best-effort */ }
+    } catch { /* bak is best-effort */ }
 
-  try {
     await fs.rename(tmpPath, settingsFilePath);
-  } catch (err) {
+  } finally {
+    activeSettingsTemps.delete(path.resolve(tmpPath));
     await fs.unlink(tmpPath).catch(() => {});
-    throw err;
   }
   void cleanupStaleSettingsTemps(settingsFilePath);
   return settings;

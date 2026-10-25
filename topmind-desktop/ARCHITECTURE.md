@@ -1,6 +1,6 @@
 # topmind Desktop — 架构
 
-> **现状描述 + Target 标注**。源文件计数：`src/` 251 · `electron/` 134。  
+> **现状描述 + Target 标注**。源码职责见下文与模块目录；不维护手工文件计数。
 > **1 RPC · Stores（View / Ai / Action / Plugin / IngestStaging / Task / Todo）· 1 Shell · 5+2 Service · 7 插件槽**  
 > UI 真源：`DESIGN.md`。边界：`../PRODUCT-BOUNDARIES.md`。  
 > **实施锁**：[`../docs/ARCHITECTURE-RESET.md`](../docs/ARCHITECTURE-RESET.md)（写闸合闸 · 建议副驾 · 导航变薄）。
@@ -115,7 +115,7 @@ contextBridge.exposeInMainWorld('topmind', {
 | `ai-prompts.mjs` | **skill-first 协议** + Skills Discovery 目录 + 真实 tool 名 |
 | `lib/skills-runtime.mjs` | engine `skills/` + `ai.extraSkillsRoots` / `topmind_SKILLS_EXTRA`（catalog / body / resource） |
 | `lib/skills-extra.mjs` | Desktop 管理目录 `skills-extra/` 安装 · 回执 · pack summary |
-| `ai-tools.mjs` | 47 named tools（`lib/ai-tool-names.mjs`：skills · browse · windowed read/search · fs list/glob/stat · todos · recent memories · memory ADD/UPDATE/RETIRE/RESTORE/COMPACT-HISTORY · writeback writes）；Pi `read`/`write`/`edit`/`grep`/`list`/`glob`/`stat`/`mkdir`/`mv`/`cp`/`rm` 为围栏别名，无 bash |
+| `ai-tools.mjs` | 47 named tools（Kernel `../lib/agent-tool-catalog.mjs` 真源，`lib/ai-tool-names.mjs` 生成快照：skills · browse · windowed read/search · fs list/glob/stat · todos · recent memories · memory ADD/UPDATE/RETIRE/RESTORE/COMPACT-HISTORY · writeback writes）；Pi `read`/`write`/`edit`/`grep`/`list`/`glob`/`stat`/`mkdir`/`mv`/`cp`/`rm` 为围栏别名，无 bash |
 | `ai-stream.mjs` | **fallback** loop when Pi module fails to load：`streamText` + tool-call/result + **prepareStep steer** + **~16ms text/reasoning delta 合流** |
 | `lib/stream-delta-coalesce.mjs` | 纯合流缓冲：帧级节流 IPC；非 delta 事件先 flush |
 | `ai-service.mjs` `complete` | 行内 one-shot（无 tools）；`sanitizeInlineAiResult` 剥离思考标签/元话术后再返回 |
@@ -242,7 +242,13 @@ AI 流式传输期间，主进程在 `emit` 函数中拦截 `ai:stream` 状态�
 
 `persist` 函数还从磁盘重新加载最新设置作为防御性双保险，确保不会因为内存状态过期而丢失数据。
 
+设置原子写入的临时文件使用唯一标识，并在创建前登记为活动文件；异步过期清理跳过活动文件，避免把尚未写入首批字节的临时文件当成垃圾删除。完成或失败后解除登记并清理残留。
+
 ## AI 流式传输架构
+
+会话存储统一由 `electron/lib/ai-session-store.mjs` 持有：会话列表、消息和目标检查点沿用原路径，同一工作区内串行读写，避免并发更新丢失或清空被旧写入复活。JSON 先写同目录临时文件、同步并关闭，再原子替换；失败保留上一份完整文件并清理临时文件，后续队列继续处理。发起模型前保存用户消息；暂停/取消先刷新文字再保存中断快照。保存失败保留界面内容并提供重试，成功回答不会被 I/O 错误替换。
+
+`AiService.invoke` 入口先在 stream registry 预留 invocation scope，准备阶段即可取消；过期 scope 不能注册覆盖新流或取走新流的队列。`executeAgentTurn` 负责本轮准备与执行；检查点、实际流和完成评审共用取消生命周期。重新加载消息时，从最后一条助手的暂停标记与目标恢复继续入口。
 
 ```
 AiService.invoke
@@ -270,6 +276,10 @@ AiService.invoke
 ADR：`docs/adr/2026-07-16-desktop-agent-harness-upgrade.md`。
 
 ## Shell 结构
+
+分栏尺寸契约统一在 `electron/lib/workbench-layout.mjs`，设置归一化、实时设置同步、view-store 与 Shell 共用。Shell 按当前 CSS 视口计算展示宽度，自动缩窄不回写用户偏好；一般桌面尺寸保护至少 400px 主画布。空间不足时暂时收起侧栏，显式打开导航会关闭 AI 列以让出空间。分隔条按拖动增量计算，不依赖父容器边缘坐标，也不在每次移动中测量布局。
+
+AI 工作区页签使用现有 Radix Tabs 的 chrome 变体，焦点、方向键、Home/End、`aria-controls` 与 `tabpanel` 关联由同一套控件维护；Composer 保持挂载，切页签保留输入。标签显示依据 AI 列自身的容器宽度，窄列使用带 Tooltip 和独立可访问名称的图标，缩放后仍可辨认与键盘访问。
 
 > UI 像素与 IA 真源：`DESIGN.md` §0.0 / §0（**Design System 4.3 · Soft Workbench + MD3**；token 数值真源 `src/styles/tokens.css`——历史波次见 monorepo `docs/design/UIUX-*.md`）。本节约架构职责 + **现状/目标**。
 
@@ -447,7 +457,7 @@ AiPanel 模型下拉选择器的 `onChange` 不仅更新内存 store，还同步
 
 ### AI 工具暴露策略（全能力 Agent，无 UTR）
 
-`buildDesktopAiTools`（`electron/ai-tools.mjs`）→ **WorkspaceService**。系统提示只列出实际加载的 snake_case 工具名。多步 tool loop：`maxAgentSteps` 默认 **32**（`AGENT_STEPS_DEFAULT` / `DEFAULT_MAX_AGENT_STEPS`，可配 3–80）；Pi 循环用 **`finishTurn`** 做步数闸（`shouldStopAfterTurn` 在 pi-agent-core 0.87 已移除，必须走 `finishTurn` → `{action:"end"}`）。Pi **1.0.2** 再移除 harness 压缩与 `formatSkillsForSystemPrompt`：超窗走 `maybeCompactPiMessages` + `resolveCompactBudget`（`compactPiMessagesLlm` 返回 null，不另起 LLM 摘要）；技能目录由 Desktop 注入 name/description/location，激活仍是 `load_skill`。流函数收到的是 transcript（系统提示和工具声明在 system message 上）。**目标协议**（`electron/lib/agent-goal-protocol.mjs`，与 `../lib/` 及 Obsidian 快照字节一致；禁 `../../lib` 静态导入）：多步任务先出 `[PLAN]`/`done-when`，收尾前验收；`assessGoalCompletion` 驱动 **goal-aware auto-continue**（未完成验收项最多 4 次，状态 `continuing`），续跑提示带任务台账与路径回执；上下文溢出时压缩预算递减 + 任务台账前插，**最多重试 3 次** 而不是直接报错。`edit_file` 的 `expectedHash` 为 **soft 乐观并发**（`contentHash` 来自 `read_file`/`edit_file`）：hash 过期但 unique-span 仍可匹配则放行（note 标注）；仅 matcher 也失败才报 hash-mismatch。**AI 写成功后主动 `ctx.emit("workspace:file-changed", { source: "ai:<tool>" })`**（写操作会 `markIgnoredFileChanges` 压掉 watcher 回声，必须由工具通知 UI）。内容创建/更新/编辑恒 `confirmed:true`（分级 confirm 直接落盘）；仅 `delete_path`/`rename_path` 在 confirm 模式保持 pending。**模型窗口**：`resolveModel` 从 `ai.modelCache` 注入 `contextWindow`，驱动动态 compact 预算。**思考强度**：agent 模式默认 high（OpenAI `reasoningEffort` / Anthropic `thinking.budgetTokens` / Gemini `thinkingBudget`）。Pi runtime 异常自动降级 AI SDK `streamText`。Skills 以 playbook + `/slash` 接入，不是第二进程。
+`buildDesktopAiTools`（`electron/ai-tools.mjs`）→ **WorkspaceService**。系统提示只列出实际加载的 snake_case 工具名。多步 tool loop：`maxAgentSteps` 默认 **32**（`AGENT_STEPS_DEFAULT` / `DEFAULT_MAX_AGENT_STEPS`，可配 3–80）；Pi 循环用 **`finishTurn`** 做步数闸（`shouldStopAfterTurn` 在 pi-agent-core 0.87 已移除，必须走 `finishTurn` → `{action:"end"}`）。Pi **1.0.2** 再移除 harness 压缩与 `formatSkillsForSystemPrompt`：超窗走 `maybeCompactPiMessages` + `resolveCompactBudget`（`compactPiMessagesLlm` 返回 null，不另起 LLM 摘要）；技能目录由 Desktop 注入 name/description/location，激活仍是 `load_skill`。流函数收到的是 transcript（系统提示和工具声明在 system message 上）。**目标协议**（`electron/lib/agent-goal-protocol.mjs`，与 `../lib/` 及 Obsidian 快照字节一致；禁 `../../lib` 静态导入）：多步任务先出 `[PLAN]`/`done-when`，收尾前验收；`assessGoalCompletion` 驱动 **goal-aware auto-continue**（未完成验收项最多 4 次，状态 `continuing`），续跑提示带任务台账与路径回执；上下文溢出时压缩预算递减 + 任务台账前插，**最多重试 3 次** 而不是直接报错。`edit_file` 的 `expectedHash` 为 **soft 乐观并发**（`contentHash` 来自 `read_file`/`edit_file`）：hash 过期但 unique-span 仍可匹配则放行（note 标注）；仅 matcher 也失败才报 hash-mismatch。**AI 写成功后主动 `ctx.emit("workspace:file-changed", { source: "ai:<tool>" })`**（保留工具来源归因；watcher 不再按时间窗吞掉相邻外部修改，编辑器按内容比较识别回声）。内容创建/更新/编辑恒 `confirmed:true`（分级 confirm 直接落盘）；仅 `delete_path`/`rename_path` 在 confirm 模式保持 pending。**模型窗口**：`resolveModel` 从 `ai.modelCache` 注入 `contextWindow`，驱动动态 compact 预算。**思考强度**：agent 模式默认 high（OpenAI `reasoningEffort` / Anthropic `thinking.budgetTokens` / Gemini `thinkingBudget`）。Pi runtime 异常自动降级 AI SDK `streamText`。Skills 以 playbook + `/slash` 接入，不是第二进程。
 
 | 写回模式 | 暴露的工具 | 说明 |
 |----------|-----------|------|
@@ -459,6 +469,16 @@ AiPanel 模型下拉选择器的 `onChange` 不仅更新内存 store，还同步
 Pi 围栏别名（不是第二套 FS）：`read`→`read_file` · `write`→`save_file` · `edit`→`edit_file` · `grep`→`search` · `list`/`ls`/`list_dir`→`list_files` · `glob`/`find`→`glob_files` · `stat`→`stat_path` · `mkdir`→`create_dir` · `mv`/`move`→`rename_path` · `cp`/`copy`→`copy_file` · `rm`/`delete`→`delete_path`。**drop**：`bash` / unscoped `shell` / `exec` / `run_in_workspace`。
 
 ### 编辑器 Markdown / 预览
+
+`src/lib/editor-document.ts` 集中保存快照/串行写入、文档代次与编辑版本校验，以及源码兼容判断、围栏扫描和查找。`FileEditorView` 持有当前正文缓冲和已确认磁盘基线；源码模式的正文是保存输入，隐藏的 TipTap 文档只用于近似预览，不能反向覆盖源码。正文与 YAML 独立组合，源码保留 BOM、前缀和统一 CRLF；无修改的保存不进入序列化。
+
+写队列只确认捕获的编辑版本；后续编辑仍为 dirty。保存失败仅更新错误状态，保留输入和重试；`getEditorMarkdown({ requireMarkdown: true })` 禁止持久化时纯文本降级。切文件加载先等离开文件的写队列；迟到结果不能回填另一个文档。属性回调检查路径后才更新当前 UI。
+
+外部变化经 `watchers.mjs → workspace:file-changed → host event bus` 到编辑器；已删除路径时间静默和调用方，避免吞掉 Obsidian 等外部编辑。内容检查先等当前进行中的写入，不等待未来排队写入，避免循环等待；检查/冲突期间拦住新的保存。来源与文档代次用于处理重叠通知；确认保留磁盘后，过期排队快照不能把它改回。
+
+顶栏文件动作复用 `ChromeOverflowActions`，ResizeObserver 测量占用的分配宽度，避免溢出后容器随内容缩小、扩大时无法恢复。画布容器断点收起祖先面包屑与历史按钮；历史动作保留在具名菜单，纯图标按钮尺寸与 density 一致。
+
+模式控件是具名原生按钮组；源码查找和大纲使用文本偏移，可视模式使用 ProseMirror 位置。源码/预览的 AI 入口保存最新文件后打开 chat 并挂载上下文；不会向未挂载的选区浮条发送无效命令，也不自动调用付费模型。
 
 - TipTap + `tiptap-markdown` + Link / Image；`setEditorMarkdown` **只传 Markdown 字符串**  
   （扩展已 override `setContent` 做 parse；禁止传入已 parse 的 doc，避免双重 parse）  
@@ -826,3 +846,16 @@ pack:verify → asar 入口 / zod / engine / monorepo-import 禁令
 ---
 
 版本真源：`package.json`。
+
+
+## 2026-10-24 运行层简化
+
+技能发现只注入一份 name/description/location 目录。激活正文从本次发现选中的来源读取；资源工具推荐携带 skillId，以该技能目录解析 references 与 shared，不静默换用另一包。资源围栏同时检查真实路径。纯查询不强制激活技能，也不要求写文件回执；用户明确授权的多阶段任务持续完成，额外动作只提案。
+
+插件主机统一回收槽位、events.on 与 rpc.subscribe。手动退订幂等；激活失败回滚部分注册；并发激活合并，异步激活期间停用等待其完成后清理。此处仍是同 renderer 的可信安装模型，不提供隔离沙箱。
+
+### Kernel 共享 Agent 契约
+
+工具 schema / 双语说明 / 读写分类以主仓 `lib/agent-tool-catalog.mjs` 为真源，预算与写回文案以 `lib/agent-policy.mjs` 为真源；`npm run sync:agent-contract` 更新 Desktop 的纯模块快照，根 `check:agent-contract` 防漂移。`ai-tools.mjs` 只绑定 AI SDK schema 与 Desktop 执行器；Obsidian 按宿主能力消费同一契约。
+
+通用文件工具的语义记忆围栏改用 Kernel `agent-tool-policy.mjs`，旧 Desktop `memory-fence.mjs` 已移除。待确认操作由 Kernel `pending-writes.mjs` 执行，Desktop 模块只解析 WorkspaceContext 并异步调用。确认删除执行真实删除；冲突/失败保留队列，成功后移除。状态 I/O 通过 `workspace-state.mjs` 原子替换，工作区每次显式传入，不使用全局队列缓存。该共享不替代宿主自己的会话存储、网络传输和 UI 生命周期。

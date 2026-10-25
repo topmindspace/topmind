@@ -9,6 +9,7 @@
  * settings-driven writes are not immediately overwritten by layout debounce.
  */
 import { type AppSettings, type FeedLayout, type SidebarViewMode, isFeedLayout } from "../types";
+import { normalizePanelWidth } from "../../electron/lib/workbench-layout.mjs";
 
 export type LiveUiSnapshot = {
   sidebarWidth?: number;
@@ -52,8 +53,8 @@ export function extractLiveUiFromSettingsPatch(
   const out: LiveUiSnapshot = {};
 
   if (hasOwn(patchUi, "sidebarWidth")) {
-    const w = patchUi.sidebarWidth;
-    if (typeof w === "number" && w >= 180 && w <= 480) out.sidebarWidth = w;
+    const w = normalizePanelWidth(patchUi.sidebarWidth, "sidebar", Number.NaN);
+    if (Number.isFinite(w)) out.sidebarWidth = w;
   }
   if (hasOwn(patchUi, "sidebarCollapsed") && typeof patchUi.sidebarCollapsed === "boolean") {
     out.sidebarCollapsed = patchUi.sidebarCollapsed;
@@ -65,8 +66,8 @@ export function extractLiveUiFromSettingsPatch(
     out.aiPanelOpen = patchUi.aiPanelOpen;
   }
   if (hasOwn(patchUi, "aiPanelWidth")) {
-    const w = patchUi.aiPanelWidth;
-    if (typeof w === "number" && w >= 280 && w <= 800) out.aiPanelWidth = w;
+    const w = normalizePanelWidth(patchUi.aiPanelWidth, "ai", Number.NaN);
+    if (Number.isFinite(w)) out.aiPanelWidth = w;
   }
   if (hasOwn(patchUi, "feedLayout") && isFeedLayout(patchUi.feedLayout)) {
     out.feedLayout = patchUi.feedLayout;

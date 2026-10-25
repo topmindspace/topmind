@@ -44,9 +44,9 @@ test("Destinations are ActivityBar-only; sidebar header is workspace name + sear
   assert.match(sidebar, /data-sidebar-search/);
 });
 
-test("TitleBar first crumb is longer and more readable than later crumbs", () => {
+test("TitleBar first crumb has a longer cap but can shrink beside the current title", () => {
   const src = read("src/components/shell/TitleBar.tsx");
-  assert.match(src, /i === 0 \? "max-w-36 shrink-0" : "max-w-28"/);
+  assert.match(src, /i === 0 \? "max-w-36" : "max-w-28"/);
   assert.match(src, /text-xs font-semibold tracking-tight text-text-primary/);
   assert.doesNotMatch(src, /max-w-24 truncate text-3xs text-text-quaternary/);
 });
@@ -59,7 +59,8 @@ test("three column headers share v4-column-chrome", () => {
   assert.match(css, /\.v4-column-chrome\s*\{/);
   assert.match(sidebar, /v4-column-chrome/);
   assert.match(title, /v4-column-chrome/);
-  assert.match(ai, /v4-column-chrome/);
+  assert.match(ai, /<TabsList[\s\S]{0,100}variant="chrome"/);
+  assert.match(read("src/components/ui/tabs.tsx"), /v4-column-chrome/);
 });
 
 test("stream injects organize + refresh into TitleBar", () => {

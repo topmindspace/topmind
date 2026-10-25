@@ -74,7 +74,7 @@ describe("AI write gate leniency + file-changed notify", () => {
       ),
       "utf8",
     );
-    assert.match(src, /diskFileUpdatedUnsavedAi/);
+    assert.match(src, /diskConflictDescAi/);
     assert.match(src, /source\.startsWith\("ai:"\)/);
     // take-disk must adopt full disk content (frontmatter + body), not rebuild from stale FM.
     assert.match(src, /diskFull/);

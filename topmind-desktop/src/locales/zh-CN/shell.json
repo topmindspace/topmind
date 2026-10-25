@@ -108,7 +108,8 @@
     "languageMenuSection": "语言",
     "preferencesSection": "偏好设置",
     "appsTip": "应用 · 在 AI 工作区打开",
-    "appsAriaLabel": "打开应用"
+    "appsAriaLabel": "打开应用",
+    "history": "浏览历史"
   },
   "aiWorkspace": {
     "aria": "AI 工作区",
@@ -431,8 +432,7 @@
       "reloadTooltip": "重新加载周期本",
       "defaultTitle": "本周动态",
       "emptyTitle": "暂无动态",
-      "emptyHint": "在动态主区「记下」· 或侧栏「记一下」",
-      "capture": "记一下",
+      "emptyHint": "写下第一条动态后，会显示在这里。",
       "openFull": "打开完整周期本",
       "taskBoardTip": "任务看板 · 按状态分组 · ⌘⇧B",
       "openFullView": "在主区域展开",

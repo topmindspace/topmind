@@ -128,7 +128,8 @@ it("Desktop README does not teach deleted ActionBar or Title-bar Note it", () =>
     const titleIdx = shell.indexOf("<TitleBar");
     const centerIdx = shell.indexOf("data-center-column");
     assert.ok(centerIdx >= 0 && titleIdx > centerIdx, "TitleBar chrome stays in the center column");
-    assert.match(shell, /showSidebar = !focusMode && !sidebarCollapsed/);
+    assert.match(shell, /resolveWorkbenchLayout\(/);
+    assert.match(shell, /sidebarVisible: !sidebarCollapsed/);
   });
 
   it("ViewSwitcher is a single dropdown; tags/kanban stay in the same menu", () => {

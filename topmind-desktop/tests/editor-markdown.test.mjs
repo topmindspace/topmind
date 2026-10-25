@@ -9,6 +9,16 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
+test("persistence serialization errors cannot fall back to destructive plain text", async () => {
+  const { getEditorMarkdown } = await import("../src/lib/editor-markdown.ts");
+  let plainReads = 0;
+  const editor = { isDestroyed: false, storage: { markdown: { getMarkdown: () => { throw new Error("fixture failure"); } } }, getText: () => { plainReads++; return "flattened"; } };
+  assert.throws(() => getEditorMarkdown(editor, { requireMarkdown: true }), { name: "MarkdownSerializationError" });
+  assert.equal(plainReads, 0);
+  assert.throws(() => getEditorMarkdown({ isDestroyed: true }, { requireMarkdown: true }), { name: "MarkdownSerializationError" });
+  assert.equal(getEditorMarkdown({ isDestroyed: false, storage: { markdown: { getMarkdown: () => "" } } }, { requireMarkdown: true }), "", "an intentionally cleared document remains saveable");
+});
+
 test("normalizeContentWidth accepts known modes and defaults to reading", async () => {
   // Import compiled TS via tsx (test runner)
   const mod = await import(pathToFileURL(path.join(root, "src/lib/editor-markdown.ts")).href);
@@ -108,7 +118,7 @@ test("FileEditorView preview is static HTML with shared reading prefs (not live 
   assert.match(view, /fontSize: `\$\{editorSettings\.fontSize\}px`/);
   // Visible preview is static HTML; TipTap stays mounted (hidden) so the view exists
   assert.match(view, /<EditorContent/);
-  assert.match(view, /className=\{cn\(\(viewMode === "preview" \|\| readOnly\) && "hidden"\)\}/);
+  assert.match(view, /className=\{cn\(\(viewMode !== "edit" \|\| readOnly \|\| documentLoading\) && "hidden"\)\}/);
   assert.match(view, /bumpPreview\(\)/);
   assert.match(view, /nextPreviewHtml/);
   assert.match(view, /pathChanged:\s*true/);

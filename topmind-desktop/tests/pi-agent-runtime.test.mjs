@@ -16,6 +16,36 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
+it("preparation reservations reject late registrations after cancellation", () => {
+  const registry = createStreamRegistry();
+  const scope = registry.reserve("preparing");
+  assert.equal(registry.cancel("preparing"), true);
+  assert.throws(() => scope.checkpoint(), { name: "AbortError" });
+  const controller = new AbortController();
+  scope.registry.register("preparing", controller);
+  assert.equal(controller.signal.aborted, true);
+  assert.equal(registry.hasActive("preparing"), false);
+  scope.release();
+  assert.equal(registry.cancel("preparing"), false);
+});
+
+it("a superseded invocation cannot register over or drain a newer stream", () => {
+  const registry = createStreamRegistry();
+  const old = registry.reserve("same");
+  const fresh = registry.reserve("same");
+  const active = new AbortController();
+  fresh.registry.register("same", active);
+  registry.followUp("same", "keep this");
+  old.registry.register("same", new AbortController());
+  old.release();
+  assert.equal(active.signal.aborted, false);
+  assert.deepEqual(old.registry.drainFollowUps("same"), []);
+  assert.deepEqual(fresh.registry.drainFollowUps("same"), ["keep this"]);
+  registry.unregister("same", active);
+  fresh.release();
+  assert.equal(registry.cancel("same"), false);
+});
+
 function emptyUsage() {
   return {
     input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0,

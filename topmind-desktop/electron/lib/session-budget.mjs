@@ -39,9 +39,9 @@ function estimateWorkload(userText, goal) {
   if (/[，,；;。.].{0,40}[，,；;。.]/u.test(s)) w += 1;
   if (/\d+[.)、]\s*\S/u.test(s) || /\n\s*[-*]\s+/u.test(s)) w += 1;
   // Write / multi-file verbs
-  if (/(?:整理|归档|批量|全部|每个|所有|迁移|重构|研究|调研|综述|对比)/u.test(s)) w += 2;
+  if (/(?:整理|归档|批量|全部|每个|所有|迁移|重构|研究|调研|综述|对比|\b(?:organize|organise|archive|batch|all|every|migrate|refactor|research|survey|compare)\b)/iu.test(s)) w += 2;
   // Explicit multi-part deliverables
-  if (/(?:并|以及|还有|然后|接着|最后)/u.test(s)) w += 1;
+  if (/(?:并|以及|还有|然后|接着|最后|\b(?:and|then|next|finally)\b)/iu.test(s)) w += 1;
   // Goal plan / criteria add real surface area
   w += Math.min(3, (goal?.plan?.length || 0) + (goal?.criteria?.length || 0));
   return w;

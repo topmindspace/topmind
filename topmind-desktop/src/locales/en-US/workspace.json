@@ -386,7 +386,9 @@
     "collapseFormat": "Collapse format tools",
     "insertDateTime": "Insert date & time",
     "collapsed": "Expand format bar",
-    "toolbarAria": "Format tools"
+    "toolbarAria": "Format tools",
+    "source": "Markdown source",
+    "modes": "Document mode"
   },
   "sort": {
     "mtimeDesc": "Modified · New→Old",
@@ -432,7 +434,8 @@
     "taskList": "Task list",
     "showProperties": "Show properties",
     "hideProperties": "Hide properties",
-    "showPropertiesWithSummary": "Properties · {{summary}}"
+    "showPropertiesWithSummary": "Properties · {{summary}}",
+    "askNoteAiTip": "Ask AI about this note"
   },
   "editor": {
     "placeholder": "Start writing…",
@@ -458,14 +461,12 @@
     "formatLink": "Link",
     "formatBulletList": "Bullet list",
     "formatOrderedList": "Ordered list",
-    "diskFileUpdatedUnsaved": "File on disk was updated · Unsaved local edits preserved without overwrite",
-    "diskFileUpdatedUnsavedAi": "AI updated the file on disk · Unsaved local edits preserved (save to overwrite or reload)",
     "diskConflictTitle": "Disk file conflicts with local edits",
     "diskConflictDesc": "The file on disk changed while you have unsaved edits. Choose how to resolve.",
     "diskConflictDescAi": "AI wrote to disk while you have unsaved edits. Choose how to resolve.",
     "diskConflictKeepLocal": "Keep local",
     "diskConflictTakeDisk": "Use disk",
-    "diskConflictMerge": "Merge (local + disk-only)",
+    "diskConflictMerge": "Keep both (local + disk)",
     "unmountedFromAi": "Removed from AI context",
     "mountedToAi": "Mounted to AI · Panel opened",
     "movedToTopic": "Moved to topic{{media}}",
@@ -480,7 +481,17 @@
     "findPlaceholder": "Find…",
     "findNoMatch": "No match",
     "findPrev": "Previous",
-    "findNext": "Next"
+    "findNext": "Next",
+    "sourceRequired": "This note uses syntax that visual editing cannot fully preserve. Use Markdown source to keep it intact; preview may be incomplete. Properties are managed above.",
+    "saveFailedKeepDraft": "Could not save. Your latest edits remain in this window.",
+    "retrySave": "Retry save",
+    "resolveConflictFirst": "Resolve the external file update before saving.",
+    "documentChanged": "The document changed before its properties could be saved.",
+    "serializeFailed": "The Markdown could not be prepared for saving. Your edits are still here.",
+    "saveReasonPermission": "Check the file and folder write permissions.",
+    "saveReasonSpace": "Free up disk space, then retry.",
+    "saveReasonMissing": "The file or folder may have moved. Check its location.",
+    "saveReasonUnavailable": "Retry when the file is available."
   },
   "skills": {
     "capture": "Note it — full capture",

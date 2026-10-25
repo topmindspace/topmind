@@ -41,7 +41,9 @@ function clampAgentSteps(value) {
  * Per-session stream handle: abort + mid-turn steer / post-turn follow-up queues.
  * @returns {{
  *   cancel: (sid: string) => boolean,
- *   register: (sid: string, controller: AbortController) => void,
+ *   cancelAll: () => void,
+ *   reserve: (sid: string) => { cancelled: boolean, controller: AbortController, checkpoint: () => void, release: () => void, registry: object },
+ *   register: (sid: string, controller: AbortController, extras?: object) => void,
  *   unregister: (sid: string, controller: AbortController) => void,
  *   steer: (sid: string, text: string) => boolean,
  *   followUp: (sid: string, text: string) => boolean,
@@ -53,8 +55,11 @@ function clampAgentSteps(value) {
 export function createStreamRegistry() {
   /** @type {Map<string, { controller: AbortController, steers: string[], followUps: string[] }>} */
   const streams = new Map();
-  return {
+  const invocations = new Map();
+  const registry = {
     cancel(sid) {
+      const scope = invocations.get(sid);
+      if (scope) { scope.cancelled = true; scope.controller.abort(); }
       const e = streams.get(sid);
       if (e) {
         try { e.agent?.abort?.(); } catch { /* ignore */ }
@@ -62,7 +67,39 @@ export function createStreamRegistry() {
         streams.delete(sid);
         return true;
       }
-      return false;
+      return Boolean(scope);
+    },
+    reserve(sid) {
+      registry.cancel(sid);
+      const scope = {
+        cancelled: false,
+        controller: new AbortController(),
+        checkpoint() {
+          if (scope.cancelled) {
+            const error = new Error(ei18n("ai.cancelled"));
+            error.name = "AbortError";
+            throw error;
+          }
+        },
+        release() {
+          if (invocations.get(sid) === scope) invocations.delete(sid);
+        },
+        registry: null,
+      };
+      scope.registry = {
+        ...registry,
+        register(id, controller, extras) {
+          if (scope.cancelled) { controller.abort(); return; }
+          registry.register(id, controller, extras);
+        },
+        drainSteers(id) { return scope.cancelled ? [] : registry.drainSteers(id); },
+        drainFollowUps(id) { return scope.cancelled ? [] : registry.drainFollowUps(id); },
+      };
+      invocations.set(sid, scope);
+      return scope;
+    },
+    cancelAll() {
+      for (const sid of new Set([...streams.keys(), ...invocations.keys()])) registry.cancel(sid);
     },
     register(sid, controller, extras = {}) {
       const prev = streams.get(sid);
@@ -117,6 +154,7 @@ export function createStreamRegistry() {
       return streams.has(sid);
     },
   };
+  return registry;
 }
 
 /**

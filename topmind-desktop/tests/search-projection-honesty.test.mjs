@@ -11,6 +11,7 @@ import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { getNotesIndex, invalidateNotesIndex } from "../electron/lib/notes-index.mjs";
 import { scanOps } from "../electron/lib/workspace-scan-ops.mjs";
+import { startWorkspaceSearch } from "../src/lib/workspace-search.ts";
 
 const engineRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
@@ -104,14 +105,20 @@ describe("search / notes projection honesty", () => {
     assert.ok("count" in res);
   });
 
-  it("GlobalSearch UI consumes truncated from API response shape", async () => {
-    // Structural contract: GlobalSearch must read res.truncated (not ignore honesty flags)
-    const src = await fs.readFile(
-      path.join(path.dirname(fileURLToPath(import.meta.url)), "../src/components/overlays/GlobalSearch.tsx"),
-      "utf8",
-    );
-    assert.match(src, /setTruncated\(Boolean\(res\.truncated\)\)/);
-    assert.match(src, /footerCountTruncated|truncatedHint/);
-    assert.doesNotMatch(src, /const \{ results: next \} = await api\.ws\.search/);
+  it("renderer search flow preserves truncation from the real workspace API", async (t) => {
+    t.mock.timers.enable({ apis: ["setTimeout"] });
+    let stop;
+    const settled = new Promise((resolve) => {
+      stop = startWorkspaceSearch("shared-keyword", (query) => scanOps.search({ query, maxResults: 5 }, wsCtx()), (state) => {
+        if (!state.loading) resolve(state);
+      });
+    });
+    t.mock.timers.tick(180);
+    const state = await settled;
+    stop();
+    assert.equal(state.error, false);
+    assert.equal(state.truncated, true);
+    assert.equal(state.results.length, 5);
+    assert.ok(state.note);
   });
 });

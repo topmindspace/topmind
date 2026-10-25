@@ -20,6 +20,7 @@ import {
   RiArrowRightSLine,
   RiCloseCircleLine,
   RiCloseLine,
+  RiHistoryLine,
   RiLayoutColumnLine,
   RiPushpinLine,
 } from "@remixicon/react";
@@ -35,6 +36,7 @@ import {
 } from "../../lib/titlebar-identity";
 
 import { Tooltip } from "../ui/tooltip";
+import { DropdownItem, DropdownMenu } from "../ui/DropdownMenu";
 import { PanelToggleIcon } from "../ui/PanelToggleIcon";
 import { ICON } from "../../lib/icons";
 import { isMacOS } from "../../lib/platform";
@@ -86,6 +88,45 @@ export function useTitleBarIdentityLabels(): TitleBarIdentityLabels {
   );
 }
 
+/** History remains reachable when the canvas cannot fit two separate buttons. */
+export function TitleBarHistory({ back, forward, canGoBack, canGoForward }: {
+  back: () => void;
+  forward: () => void;
+  canGoBack: boolean;
+  canGoForward: boolean;
+}) {
+  const { t } = useTranslation("shell");
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <span className="hidden items-center gap-0.5 @min-[360px]/canvas-chrome:flex">
+        <Tooltip content={t("titleBar.back")}>
+          <button type="button" className="v4-titlebar-btn v4-titlebar-btn-icon" onClick={back} disabled={!canGoBack} aria-label={t("titleBar.backAriaLabel")}>
+            <RiArrowLeftSLine size={ICON.sm} />
+          </button>
+        </Tooltip>
+        <Tooltip content={t("titleBar.forward")}>
+          <button type="button" className="v4-titlebar-btn v4-titlebar-btn-icon" onClick={forward} disabled={!canGoForward} aria-label={t("titleBar.forwardAriaLabel")}>
+            <RiArrowRightSLine size={ICON.sm} />
+          </button>
+        </Tooltip>
+      </span>
+      <span className="flex @min-[360px]/canvas-chrome:hidden">
+        <DropdownMenu open={open} onOpenChange={setOpen} align="start" matchTriggerWidth={false} minWidth={140} trigger={
+          <Tooltip content={t("titleBar.history")}>
+            <button type="button" className="v4-titlebar-btn v4-titlebar-btn-icon" aria-label={t("titleBar.history")} aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+              <RiHistoryLine size={ICON.sm} />
+            </button>
+          </Tooltip>
+        }>
+          <DropdownItem disabled={!canGoBack} icon={<RiArrowLeftSLine size={ICON.sm} />} onSelect={() => { setOpen(false); back(); }}>{t("titleBar.backAriaLabel")}</DropdownItem>
+          <DropdownItem disabled={!canGoForward} icon={<RiArrowRightSLine size={ICON.sm} />} onSelect={() => { setOpen(false); forward(); }}>{t("titleBar.forwardAriaLabel")}</DropdownItem>
+        </DropdownMenu>
+      </span>
+    </>
+  );
+}
+
 export function TitleBar({ workspaceRoot: _workspaceRoot, sidebarCollapsed, onToggleSidebar, macPad = false }: TitleBarProps) {
   void _workspaceRoot;
   const trafficMac = Boolean(macPad && isMacOS);
@@ -134,7 +175,7 @@ export function TitleBar({ workspaceRoot: _workspaceRoot, sidebarCollapsed, onTo
       data-canvas-chrome
       data-column-chrome="center"
       className={cn(
-        "v4-column-chrome v4-drag relative justify-between gap-2 text-text-secondary select-none",
+        "@container/canvas-chrome v4-column-chrome v4-drag relative justify-between gap-2 text-text-secondary select-none",
       )}
     >
       {focusMode ? (
@@ -153,7 +194,7 @@ export function TitleBar({ workspaceRoot: _workspaceRoot, sidebarCollapsed, onTo
           >
             <button
               type="button"
-              className="v4-titlebar-btn v4-titlebar-panel-toggle"
+              className="v4-titlebar-btn v4-titlebar-btn-icon v4-titlebar-panel-toggle"
               onClick={onToggleSidebar}
               aria-pressed={!sidebarCollapsed}
               data-active={!sidebarCollapsed}
@@ -162,17 +203,7 @@ export function TitleBar({ workspaceRoot: _workspaceRoot, sidebarCollapsed, onTo
               <PanelToggleIcon side="left" open={!sidebarCollapsed} size={ICON.sm} />
             </button>
           </Tooltip>
-          {/* History nav */}
-          <Tooltip content={t("titleBar.back")}>
-            <button type="button" className="v4-titlebar-btn" onClick={back} disabled={!canGoBack} aria-label={t("titleBar.backAriaLabel")}>
-              <RiArrowLeftSLine size={ICON.sm} />
-            </button>
-          </Tooltip>
-          <Tooltip content={t("titleBar.forward")}>
-            <button type="button" className="v4-titlebar-btn" onClick={forward} disabled={!canGoForward} aria-label={t("titleBar.forwardAriaLabel")}>
-              <RiArrowRightSLine size={ICON.sm} />
-            </button>
-          </Tooltip>
+          <TitleBarHistory back={back} forward={forward} canGoBack={canGoBack} canGoForward={canGoForward} />
         </div>
 
         {/* Breadcrumb + title + stats — first crumb keeps a longer readable cap.
@@ -187,7 +218,7 @@ export function TitleBar({ workspaceRoot: _workspaceRoot, sidebarCollapsed, onTo
             {crumbs.length > 0 ? (
               <>
                 {crumbs.map((c, i) => (
-                  <span key={`${c.label}-${i}`} className="flex min-w-0 items-center gap-1">
+                  <span key={`${c.label}-${i}`} className="hidden min-w-0 items-center gap-1 @min-[400px]/canvas-chrome:flex">
                     {c.target ? (
                       <button
                         type="button"
@@ -197,7 +228,7 @@ export function TitleBar({ workspaceRoot: _workspaceRoot, sidebarCollapsed, onTo
                         title={c.label}
                         className={cn(
                           "truncate text-xs text-text-tertiary transition-colors hover:text-text-primary",
-                          i === 0 ? "max-w-36 shrink-0" : "max-w-28",
+                          i === 0 ? "max-w-36" : "max-w-28",
                         )}
                       >
                         {c.label}
@@ -208,7 +239,7 @@ export function TitleBar({ workspaceRoot: _workspaceRoot, sidebarCollapsed, onTo
                         data-breadcrumb-index={i}
                         className={cn(
                           "truncate text-xs text-text-tertiary",
-                          i === 0 ? "max-w-36 shrink-0" : "max-w-28",
+                          i === 0 ? "max-w-36" : "max-w-28",
                         )}
                       >
                         {c.label}
@@ -235,12 +266,12 @@ export function TitleBar({ workspaceRoot: _workspaceRoot, sidebarCollapsed, onTo
       {/* Slot stays mounted in focus mode (hidden) so portals are not left on a detached node. */}
       <div
         className={cn(
-          "flex min-w-0 max-w-[min(52%,28rem)] items-center justify-end gap-1.5",
+          "flex w-[min(52%,28rem)] min-w-0 items-center justify-end gap-1.5 @max-[360px]/canvas-chrome:w-[42%] has-[[data-titlebar-actions-slot]:empty]:w-auto",
           focusMode && "hidden",
         )}
       >
         <div
-          className="v4-no-drag flex min-w-0 items-center justify-end gap-1"
+          className="v4-no-drag flex min-w-0 flex-1 items-center justify-end gap-1"
           data-titlebar-actions-slot
           ref={() => {
             notifyChromeSlots();
@@ -252,7 +283,7 @@ export function TitleBar({ workspaceRoot: _workspaceRoot, sidebarCollapsed, onTo
           >
             <button
               type="button"
-              className="v4-titlebar-btn v4-titlebar-btn-ai v4-titlebar-panel-toggle"
+              className="v4-titlebar-btn v4-titlebar-btn-icon v4-titlebar-btn-ai v4-titlebar-panel-toggle"
               data-chrome-tier="l1"
               onClick={() => useViewStore.getState().toggleAiPanel()}
               aria-pressed={aiPanelOpen}

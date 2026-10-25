@@ -172,7 +172,7 @@ ActivityBar（最左 48px · 三分组）：
 - **ActivityBar（最左 48px · 三分组）**：**顶** 红绿灯安全区（`data-activity-traffic-reserve`，无 logo）+ 动态(home≡stream `RiHome4Line`) · Inbox · 交付 · 我的情况 · 记一下；**中** 应用菜单；**底** 专注 · 主题 · 设置。这是主目的地轨（`ActivityBar.tsx`）。
 - **左 Sidebar 主 header**（顺序固定）：**工作区名+菜单 → 搜索 ⌘K**。macOS 这一行在红绿灯留白之内**右对齐**（`.v4-mac-titlebar-pad` 取代列的 8px 左内边距，全屏收起）；Windows/Linux **左对齐**，不留红绿灯空位。目的地/捕获/主题/设置不在侧栏头（在 ActivityBar）。
 - **左 Sidebar 次级 header**：各平台都从目录树左缘起（`pl-1.5`，不垫 72px）。ViewSwitcher（当前模式文案，如「目录」）**靠左**；树的排序 / 展开折叠 / 筛选 / 刷新 **靠右**。非目录模式隐藏树工具。
-- **中间 TitleBar**：三列顶栏共用 `.v4-column-chrome`（`--density-chrome-y` 44px · 控件 32px）对齐。左侧 = Toggle + 后退/前进 + 可点击祖先面包屑（第一层 `max-w-36`，后续更短）+ 当前页标题 + 该页统计；右侧 = 视图注入动作 slot（`data-titlebar-actions-slot`）+ AI 面板 toggle。集合页（动态 / Inbox / 交付 / 类别 / 专题 / 我的情况 / 归档）的身份与新建/整理/刷新等动作住在 TitleBar，画布不再重复 PageHeader 标题条。文件页把注入 AI / 发布 / 移动 / 记忆等原编辑器拖把右侧快捷键注入 TitleBar；拖把只留格式 + 编辑/预览图标 + 大纲/阅读/专注 + 属性开关 + 保存/⋯。**大纲 / 阅读外观 / 专注模式住在编辑器工具栏右侧**（`EditorViewChrome`），不再挂在属性行——属性默认收起时它们仍常驻。文件标题**右键**承载页签操作（关闭 / 固定 / 对照 / 文件操作），单页签（无 Tab 条）时这是主路径。**目的地不进 TitleBar**（ActivityBar 常驻；`PrimaryNav variant="compact"` 已退役 2026-09-28）。
+- **中间 TitleBar**：三列顶栏共用 `.v4-column-chrome`（`--density-chrome-y` 44px · 控件 32px）对齐。左侧 = Toggle + 后退/前进 + 可点击祖先面包屑（第一层 `max-w-36`，后续更短）+ 当前页标题 + 该页统计；右侧 = 视图注入动作 slot（`data-titlebar-actions-slot`）+ AI 面板 toggle。集合页（动态 / Inbox / 交付 / 类别 / 专题 / 我的情况 / 归档）的身份与新建/整理/刷新等动作住在 TitleBar，画布不再重复 PageHeader 标题条。文件页把注入 AI / 发布 / 移动 / 记忆等原编辑器拖把右侧快捷键注入 TitleBar；拖把只留格式 + 编辑/源码/预览图标 + 大纲/阅读/专注 + 保存/⋯；窄栏的属性入口在 ⋯ 内。**大纲 / 阅读外观 / 专注模式住在编辑器工具栏右侧**（`EditorViewChrome`），不再挂在属性行——属性默认收起时它们仍常驻。文件标题**右键**承载页签操作（关闭 / 固定 / 对照 / 文件操作），单页签（无 Tab 条）时这是主路径。**目的地不进 TitleBar**（ActivityBar 常驻；`PrimaryNav variant="compact"` 已退役 2026-09-28）。
 - **StatusBar**：左端绿点 + **完整工作区路径**（`data-status-workspace-path`，不是 basename）；tooltip 含 engine 路径。**不含 PrimaryNav**（状态栏是状态，不是导航；主锚在 **ActivityBar**）。
 
 | 能力 | 唯一主家 | 侧栏收起后如何到达 |
@@ -294,7 +294,7 @@ ActivityBar（最左 48px · 三分组）：
 | **长时阅读** | 内容下限 **13px**（`text-xs`）；标签/角标 12px（`text-3xs`/`text-4xs`）；正文默认 16px / **1.72**；UI 主文 `text-sm` 14 / **1.55**（`--type-leading-ui`）；列宽 `--content-max-width-prose`；专注模式 ⌘⌥F；dark prose `#d9d4cc` |
 | **动效克制** | `duration-fast` 140ms · `duration-enter` 160ms；列表 stagger ≤8；`prefers-reduced-motion` 全关 |
 | **性能** | `content-visibility` 列表、panel `contain`、AI 面板 lazy、流式滚动尊重用户上滑 |
-| **响应式 chrome** | 操作按钮按宽度 **铺开 ↔ ⋯ 溢出**（`ChromeOverflowActions`）；TitleBar 右轨 ResizeObserver 互斥；主锚文案按窗口宽度（≥960）显示，窄屏 **tooltip + aria-label 必在**；编辑器右侧发布/AI/专注同轨溢出；禁止同动作双入口 |
+| **响应式 chrome** | 操作按钮按宽度 **铺开 ↔ ⋯ 溢出**（`ChromeOverflowActions`）；右轨按分配宽度测量，扩大后恢复操作；文件 AI/发布/挂载/记忆共用此轨，移动与 AI 列开关独立；画布宽 <360px 时历史导航进具名菜单，<400px 时祖先面包屑收起，保留当前标题；纯图标按钮遵循 density 尺寸，**tooltip + aria-label 必在**；同一动作不同时出现在轨道和菜单 |
 | **StatusBar 可交互** | 工作区正常：绿点 + **完整工作区路径**（`data-status-workspace-path`，截断不溢出，tooltip 含 engine 路径）；异常才出错误文字。**不含 PrimaryNav**（主锚在 **ActivityBar**，常驻）。**AI 就绪 pill（唯一主控件）**：离线->设置 · 就绪->toggle AI 面板；流式时 pill 显示会话态；**命名 busy 单路径**（`deriveStatusBarBusy`：apply > tasks > todo > suggest > **inline** 最多一颗命名 chip；apply / tasks / todo / suggest / inline 任一独占时 AI pill 不显示「工作中」，pill 的「工作中」只表示 Agent 流）；**需要你**双态（`showNeedsYouChip`：goal blocked 且非 streaming，与「工作中」互斥）；**进度动效**：每个 busy chip 附带 `v4-ai-progress-dot` 脉动指示器；tooltip 含预期时长。**文件 chip 仅 file 选择时显示**（点击 reveal）。**建议计数在状态栏**（count>0 时 `showSuggestCountChip`；生成中走 busy chip；确认写入走 apply chip）。Chip 文案截断，不溢出。 |
 | **TitleBar 右轨分层** | **L1** 视图注入动作（`data-titlebar-actions-slot`）+ AI 轨开关（`.v4-titlebar-btn-ai`）。记一下在 ActivityBar（不在 TitleBar）。建议 / 清单 / 应用在 AI 工作区 pane；主题 / 设置在 ActivityBar 底组 / WorkspaceSwitcher。`data-chrome-tier`；**badge 纪律：仅在需要行动时出现**——Inbox（分诊队列）+ 建议计数（状态栏 count>0）保留；交付计数（库存非行动）与清单常驻数字点（恒非零）已移除 |
 | **建议入口降噪** | 建议计数**恰好一处可见入口**：状态栏计数 chip（count>0 才出现）+ AI 工作区建议 tab；专注模式浮动 `SuggestPopover`；画布顶 strip 已删。禁止 strip + 轨 chip + 状态栏 三处等权 |
@@ -432,6 +432,10 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 
 ### 三栏响应式 Shell
 
+侧栏与 AI 列的宽度是用户偏好，实际展示按视口预算收敛。尺寸真源为 `electron/lib/workbench-layout.mjs`：侧栏 180–480px，AI 列 280–800px；支持的正常桌面视口（至少 1180px）为主画布保留至少 400px。自动适配不改写偏好，放大窗口后可恢复。高缩放空间不足时先让出侧栏；侧栏按钮与快捷键共用 store 动作，显式打开导航会关闭 AI 列以让出空间。专注模式中的显式导航或打开对话应退出专注，不能只修改隐藏列的状态。
+
+主画布内的操作组也必须适配列宽。动态输入卡片的润色/记下/恢复原文允许换行，保留主操作与键盘入口；不能依赖整窗的宽屏断点假设卡片始终够宽。
+
 **产品目标 IA（唯一 present-tense 目标 · Reset B · §0.0）** — 新功能与改版只朝此收敛：
 
 ```
@@ -512,17 +516,19 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 - 侧栏收起后目的地仍可达：**ActivityBar 常驻**（状态栏不承载导航）
 
 **右侧**:
-- 视图注入动作 + AI 列开关  
+- 视图注入动作 + AI 列开关；右轨有明确空间预算，文件次要动作进入 ⋯；按画布容器宽度适配分屏与缩放，不仅看窗口宽度。
 - 记一下在左栏；建议 / 清单 / 应用在右列 AI 工作区 pane；设置 / 主题在 WorkspaceSwitcher  
 - badge 仅在需要行动时出现（Inbox · 建议计数）
 
 ### 2.2 侧栏树
 
+动态侧栏为空时只显示紧凑提示，不再复制主画布的大空态卡与捕获按钮；首次输入与主要恢复动作保留在主画布，完整捕获仍从 ActivityBar 进入。
+
 - **ViewSwitcher**：侧栏次级 header **靠左的单一下拉**（触发器显示当前模式文案，如「目录 ▾」；默认 **目录/category**；菜单含 目录 / 流式 / 时间 / 标签 / 看板 + 一句 hint）。这一行在红绿灯下方，与目录树左缘对齐
   - 这是**侧栏视图**，不是主画布模式；主画布信息流的列表/卡片开关仍在流上方（`data-feed-chrome`）
   - 与 ViewSwitcher **不在同一行**（2026-09）：目的地迁 ActivityBar；次级 header 只留 ViewSwitcher + 树工具
 - **目的地主锚**：**ActivityBar** 三分组（home≡stream / Inbox / 交付 / 我的情况 / 记一下）；ActivityBar 常驻（无 TitleBar 回退）
-- **自动刷新**：侧栏订阅 `workspace:file-changed`。目录树用 `classifyTreeFileChange`：inbox / 交付 / 归档 / 类别根 / add·unlink / ingest 完成 = listing 重建（空 inbox 有文件则展开）；专题内部保存 = 定向刷新、不整树闪。Inbox 主列表静默重载（无全页空态闪）。手动刷新在树工具条（展开/折叠/排序旁），不是标题栏第二按钮。StreamView 450ms 防抖。
+- **自动刷新**：侧栏订阅 `workspace:file-changed`。目录树用 `classifyTreeFileChange`：inbox / 交付 / 归档 / 类别根 / add·unlink / ingest 完成 = listing 重建（空 inbox 有文件则展开）；专题内部保存 = 定向刷新、不整树闪。Inbox 主列表静默重载（无全页空态闪）。手动刷新在树工具条（展开/折叠/排序旁），不是标题栏第二按钮。StreamView 300ms 防抖。
 - **渐进展开**：每个展开节点默认只渲染 **8** 个子项，其余收成「还有 N 项…」；再点再翻 8 个。避免长目录一展开就刷屏。
 - **DataSource 区段**：每个注册的 DataSource 渲染为可折叠区段，带 Database 眉头图标 + 半粗体大写标签。
 - **加载状态**：共享 save-dot 旋转动画；错误/空状态使用规范侧栏提示样式。
@@ -546,8 +552,15 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
 - **文件标签条**（`EditorRecentBar`）：**条件式**——`fileTabs.length ≤ 1` **不渲染**（TitleBar 面包屑即身份；页签动作走标题右键 / ⌘W）；`≥2` 显示 slim 条（pin/close/中键关/拖拽重排/右键菜单）；溢出时左右 **edge fade**；激活 tab 滚入视野；右键 **在右侧打开对照**（分屏）。  
 - **编辑区对照分屏**（session-only）：`splitSecondaryPath` 在主 selection 旁开第二文件（可编辑）；拖拽中缝调比例；关闭/对调；关 tab 时自动清分屏。**不是**双 history / 双 selection 状态机。主槽与分屏次槽共用 `isMarkdownNotePath`：`.md` → `FileEditorView`，其它 → `FilePreviewView`（禁止第二套 `fileExt`）。  
 
-- **FileEditorView**：Tiptap + ⌘S；chrome 拆 `file-editor-chrome`（SaveBadge）· `file-editor-format-bar`（模式图标/格式默认展开/更多）· **`EditorReadingMenu`（阅读 Aa）**。**编辑/预览 = 纯图标 segmented**（tooltip 承载语义）；**SaveBadge clean 仅勾点**（dirty/saving/error 才展开文案）。格式轨：粗体/斜体/下划线/删除线/代码/H1–H4/列表/引用/链接/日期时间；与选区 AI 浮条独立。工具栏右侧常驻：`EditorViewChrome`（大纲 · Aa · 专注）+ **属性开关**（`RiPriceTag3Line`；折叠且有 status/priority/due 时显示摘要文案）+ **唯一 ⋯**（显示/隐藏属性 · 文件信息 · 字数）。**FrontmatterBar 属性行默认收起**（`propertiesOpen=false`）；展开才占一行 chips。发布与 AI 等注入 TitleBar，不在轨上双入口。窄宽 `data-compact` 隐藏 `[data-compact-hidden]` 标签。**编辑**用 TipTap；**预览 / 只读**用 `getEditorHtml()` 快照到静态 HTML（`.v4-tiptap`），不是同一实例 `setEditable` 切换。专注模式 ⌘⌥F；`readOnly` 归档只读。典型单文件 chrome：TitleBar 44 + 工具栏 32 ≈ **76px**（无 Tab 条、属性收起）。  
-- **外部 / AI 变更感知**（C3）：订阅 `workspace:file-changed`。clean → 自动 reload；dirty → **三选一冲突框**（`lib/disk-conflict`）：保留本地 / 用磁盘覆盖 / 合并（本地 + `<!-- topmind:merged-from-disk -->` 磁盘独有行）。**用磁盘覆盖 = destructive**（Enter 落在「保留本地」）。本地==base 静默吃磁盘；磁盘==base 保留本地；`source: ai:*` 文案区分。inline AI 应用后 emit `source: "inline-ai"`（本编辑器与其他内容面板忽略，避免抹掉未保存应用）。  
+- **FileEditorView**：Tiptap + ⌘S；chrome 拆 `file-editor-chrome`（SaveBadge）· `file-editor-format-bar`（模式图标/格式默认展开/更多）· **`EditorReadingMenu`（阅读 Aa）**。**编辑 / Markdown 源码 / 预览 = 原生按钮组**（图标 + Tooltip + aria-pressed）；**SaveBadge clean 仅勾点**（dirty/saving/error 才展开文案）。格式轨：粗体/斜体/下划线/删除线/代码/H1–H4/列表/引用/链接/日期时间；与选区 AI 浮条独立。工具栏右侧为 `EditorViewChrome`（大纲 · Aa · 专注）+ **属性开关**（`RiPriceTag3Line`；折叠且有 status/priority/due 时显示摘要文案）+ **唯一 ⋯**（显示/隐藏属性 · 文件信息 · 字数）；窄栏保留大纲与 Aa，属性开关进入 ⋯，专注可经快捷键切换。**FrontmatterBar 属性行默认收起**（`propertiesOpen=false`）；展开才占一行 chips。发布与 AI 等注入 TitleBar，不在轨上双入口。窄宽 `data-compact` 隐藏 `[data-compact-hidden]` 标签。**编辑**用 TipTap；**预览**用 `getEditorHtml()` 快照到静态 HTML（`.v4-tiptap`），不是同一实例 `setEditable` 切换。专注模式 ⌘⌥F；`readOnly` 归档只读。典型单文件 chrome：TitleBar 44 + 工具栏 32 ≈ **76px**（无 Tab 条、属性收起）。
+
+  **源码与兼容**：普通 Markdown 保持可视编辑。识别到当前可视 schema 不能完整往返的表格、双链/非图片嵌入、块定位标识、脚注、callout、注释、高亮、公式、引用式链接或特殊任务状态时，默认源码编辑并禁用有损的可视编辑入口；仍可查看预览，但明确提示预览可能不完整。源码编辑正文，YAML 属性独立管理；支持查找、大纲定位、字号/行高与软换行，源文件使用统一 CRLF 时保留其行尾。源码区占满剩余空间，只保留一个文本滚动面，不重复显示文章标题。原本受支持的图片嵌入复用现有图片解析器，不另设格式白名单。
+
+  **保存反馈**：每次保存捕获文档与编辑版本；旧保存成功不能清掉新修改的未保存状态。失败保留当前输入，展示原因与「重试保存」，重试不重新加载磁盘。持久化序列化失败不得降成纯文本写回；无改动保存不重新序列化原文件。错误提示使用权限/空间/文件位置等可行动原因，不展示原始 RPC 栈。窄栏的属性开关进入唯一更多菜单，专注快捷键仍可用。
+
+  **外部修改与 AI**：文件监听不使用固定时间窗吞掉保存后的变化。编辑器按实际内容识别回声；外部内容与本地草稿冲突时暂停自动保存，等待保留本地、使用磁盘或保留两份。保留两份保留两段完整正文，不逐行去重破坏结构。源码/预览的 AI 按钮先保存并挂载最新文件，再打开对话；可视模式保留选区 AI。挂载失败不悄悄用旧磁盘内容替代当前编辑。
+
+- **外部 / AI 变更感知**（C3）：订阅 `workspace:file-changed`。clean → 自动 reload；dirty → **三选一冲突框**（`lib/disk-conflict`）：保留本地 / 用磁盘覆盖 / 保留两份（完整本地正文 + `<!-- topmind:merged-from-disk -->` + 完整磁盘正文，不按行去重）。**用磁盘覆盖 = destructive**（Enter 落在「保留本地」）。本地==base 静默吃磁盘；磁盘==base 保留本地；`source: ai:*` 文案区分。inline AI 应用后 emit `source: "inline-ai"`（本编辑器与其他内容面板忽略，避免抹掉未保存应用）。
   - **行内 AI**（Notion 式 · `SelectionAiBar` + `ai.complete` / `ai.cancelComplete`）：  
     - **出现**：非空选区 → 浮条；工具栏 ✨ / 右键「AI 改写」→ 主动面板（**同一动作集**）；**无**空行常驻 chip  
     - **动作**：润色 / 简洁 / 扩写 / 列表 / **格式** / 纠错 / 总结 / 续写 / 自定义指令  
@@ -564,8 +577,8 @@ Electron `setIcon(PNG)` **不**套系统 squircle；满出血方图 → 硬直�
     - **快捷键**：**⌘↵ 接受** · **Esc 丢弃/取消**（按钮旁 `kbd` 明示）  
     - 关闭：× / Esc / 丢弃；只读笔记不可改写  
   - 切换路径 / 关窗前会 flush 脏缓冲；body 写入串行化，避免与 frontmatter 竞态。  
-  - 外部/AI 写盘时：干净则自动重载，脏则 toast 冲突提示。  
-  - 表格：StarterKit 基础 HTML 表（无完整 GFM 表格扩展）；复杂表用源码编辑。
+  - 外部/AI 写盘检查与冲突期间暂停自动保存，避免对话框尚未处理就覆盖磁盘；保存回声按内容比较，不再按路径时间窗静默。
+  - 表格：尚未接入完整 GFM 表格 schema；检测到表格后使用源码编辑保护原文，预览不承诺完整渲染。
   - **工作区图片**：Obsidian `![[file.png]]` / `![[attachments/a.png|300]]` 与笔记相对 `![alt](images/…)` 在编辑和 Markdown 预览里都显示为图。磁盘不改写 wikilink。图片不超过内容宽；数字宽度生效，说明文字不当成宽度。找不到文件时仍显示文件名或说明。
 - **FilePreviewView**（非 `.md`）：HTML 沙箱 iframe + 诚实截断；其它文本等宽；png / jpeg / gif / webp 在应用内按内容宽显示；svg 仍当文本；其余二进制不能预览 + 打开外部。路径切换立即清空正文并回到 HTML 预览档；窄宽 toolbar 与编辑器同 `data-compact` 纪律（动作 icon + tooltip，不堆长标签）。
 - **InboxView/OutputsView/ArchiveView**：列表视图，使用共享 `FileRow` 组件。
@@ -605,6 +618,8 @@ topmind 设计系统原生支持多语言排版（Simplified Chinese / English�
 
 ### 3.0 结构（自上而下 · 3 层极简）
 
+右列页签复用 Radix Tabs，只有活动页签进入常规 Tab 序；左右方向键与 Home/End 移动并激活页签。触发器与面板通过 `aria-controls` / `aria-labelledby` 对应，面板可见焦点明确；切换页签不重建底部 Composer。
+
 | 区 | 样式 / 行为 |
 |----|-------------|
 | **Header** | `.v4-ai-chrome`：会话名下拉 + RuntimeBadge + TaskBadge + 新建 / 清空 |
@@ -634,6 +649,8 @@ topmind 设计系统原生支持多语言排版（Simplified Chinese / English�
 - **ResultFooter**（`ChatMessage.tsx` · 终态页脚）：`变更` 足迹 + `Verified / Assumed / Could not` 三行。回执按**风险排序**（删除 → 外部/导出 → 本地编辑），**不**把路径回执标成 Verified；Verified 只认 `checksRun`，Assumed 只认 `assumptions`，空区读「none」——沉默不等于成功。仅 `done|incomplete|blocked` 终态渲染。
 
 ### 3.2 Agent 能力面
+
+已判定为轻量闲聊的回合使用简短、带明确语言策略的系统提示，不加载工具、挂载文件、画像或技能目录。查询与任务保留工作区证据、技能与既有工具范围；相互独立的文件、工具和上下文准备并行执行。
 
 | 层 | 实现 |
 |----|------|
@@ -665,6 +682,10 @@ topmind 设计系统原生支持多语言排版（Simplified Chinese / English�
 ### 3.4 流式传输
 
 `ai:stream` 事件流：后端 `AiService.invoke` → `ctx.emit("ai:stream", chunk)` → preload → `subscribe("ai:stream")` → ai-store 消息追加。流式光标（▋ 闪烁）在 `streaming === true` 时显示在最后一条助手消息上。用户上滑阅读时不强制贴底滚动。
+
+终态结果写入与持久化前，先刷新最后一批增量；暂停保留已收到文字。新建、切换或清空当前会话先终止旧流，释放监听与动画帧，迟到的请求不得覆盖新会话。历史加载中保留输入草稿并暂停发送；读取失败提供重试，不当成空对话。后端尚未接收的中途补充必须真实排队，不能只显示计数。
+
+用户请求在调用模型前保存。暂停/取消保存最新快照，重新打开暂停会话可继续；最新内容保存失败时显示错误与「重试保存」，保留回答并阻止静默离开未保存会话。明确清空对话可丢弃该记录。准备阶段也必须响应取消，不允许前端显示暂停后后台才启动模型。
 
 ### 3.5 整理任务（AI 轨 TaskBadge + 可选浮动 TaskPanel）
 
@@ -729,8 +750,10 @@ topmind 设计系统原生支持多语言排版（Simplified Chinese / English�
 ### 4.3 全局搜索（⌘P）
 
 - 全文搜索所有工作区 Markdown 文件
-- 250ms 防抖，结果显示相对路径 + 内容预览
-- 方向键导航，Enter 在编辑器中打开文件
+- 180ms 防抖，结果显示相对路径 + 内容预览，正文不低于 13px
+- 分组显示顺序、方向键导航顺序与 Enter 打开的文件一致；筛选后只在可见结果内移动；输入法组词与 Home / End 文本编辑保持原生行为
+- 关键词清空、工作区切换或关闭搜索时使旧请求失效；加载时不允许打开旧结果
+- 搜索失败明确提示并可重试；加载与结果数量通过状态区域播报，截断结果保持提示
 
 ### 4.4 设置（⌘,）
 

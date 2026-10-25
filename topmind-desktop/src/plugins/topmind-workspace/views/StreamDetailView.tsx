@@ -1918,7 +1918,7 @@ export function StreamDetailView() {
               {t("workspace:streamDetail.composeFullCapture")}
             </button>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="ml-auto flex min-w-0 max-w-full flex-wrap items-center justify-end gap-1.5">
             {polishBackup && polishBackup !== composeText ? (
               <Tooltip content={t("workspace:streamDetail.composeRevertOriginal")}>
                 <Button

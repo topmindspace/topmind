@@ -89,8 +89,9 @@ test("EditorFormatBar ships format toggles; more ⋯ is exclusive", () => {
   assert.match(fmt, /showPropertiesToggle/);
   assert.match(view, /EditorFormatBar/);
   assert.doesNotMatch(view, /showFormat.*selectionAi|selectionAi.*showFormat/u);
-  // Single ⋯ menu — rail publish/AI-edit are not also DropdownItems
-  assert.doesNotMatch(fmt, /ChromeOverflowActions/);
+  // Formatting retains its own menu; file actions use the shared titlebar rail.
+  const formatTools = fmt.slice(fmt.indexOf("export function EditorFormatBar"), fmt.indexOf("export function EditorViewChrome"));
+  assert.doesNotMatch(formatTools, /ChromeOverflowActions/);
   assert.match(fmt, /formatBarOptions\.fileInfo/);
   assert.match(fmt, /formatBarOptions\.moreActions/);
   assert.match(fmt, /export function FileEditorTitleBarActions/);

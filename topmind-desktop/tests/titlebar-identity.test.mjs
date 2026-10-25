@@ -30,7 +30,6 @@ test("TitleBar.tsx imports and uses resolveTitleBarIdentity", () => {
   assert.doesNotMatch(src, /data-view-switcher/);
   assert.match(src, /data-breadcrumb-title/);
   assert.match(src, /data-titlebar-actions-slot/);
-  assert.match(src, /max-w-36 shrink-0/);
 });
 
 test("empty / root selection does not invent crumbs", () => {

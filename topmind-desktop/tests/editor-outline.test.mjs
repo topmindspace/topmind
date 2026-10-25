@@ -9,6 +9,16 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
+it("source outline skips nested fences and preserves exact heading offsets", async () => {
+  const { extractHeadings, cleanHeadingText } = await import("../src/components/editor/EditorOutlinePanel.tsx");
+  const body = "# First\n\n````md\n# Code\n```\n## Still code\n````\n\n## Target ###\n";
+  const headings = extractHeadings(null, body);
+  assert.deepEqual(headings.map((item) => item.text), ["First", "Target"]);
+  assert.equal(headings[1].sourceOffset, body.indexOf("## Target"));
+  assert.equal(cleanHeadingText("PLAIN_EDITOR_FIXTURE"), "PLAIN_EDITOR_FIXTURE");
+  assert.equal(cleanHeadingText("_强调_ / **Bold**"), "强调 / Bold");
+});
+
 describe("EditorOutlinePanel & StreamDetailView UX enhancements", () => {
   it("EditorOutlinePanel source contains code block defense and scrollspy", () => {
     const src = fs.readFileSync(
@@ -20,8 +30,7 @@ describe("EditorOutlinePanel & StreamDetailView UX enhancements", () => {
     assert.match(src, /export function extractHeadings/);
     assert.match(src, /export function cleanHeadingText/);
     // Code block defense
-    assert.match(src, /inCodeBlock/);
-    assert.match(src, /trimmed\.startsWith\("```"\)/);
+    assert.match(src, /markdownProseLines/);
     // Scrollspy
     assert.match(src, /scrollContainer/);
     assert.match(src, /requestAnimationFrame/);
