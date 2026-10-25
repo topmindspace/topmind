@@ -120,9 +120,6 @@ const QUERY_INTENT_RULES = [
   },
 ];
 
-/** Question-shaped text is never a greeting, however short. */
-const QUESTION_RE = /[?？]|什么|哪些|哪个|谁|几[个次]|如何|怎样|怎么样|吗|呢|么|多少|为什么|咋|啥/u;
-
 /**
  * Classify a user turn so the host can gate goal ceremony / auto-continue /
  * result footer. Conservative: unknown verbs fall through to "task" only when
@@ -134,24 +131,25 @@ export function classifyTurn(text) {
   const s = String(text || "").replace(/\s+/gu, " ").trim();
   if (!s) return "light";
   if (LIGHT_TURN_RE.test(s)) return "light";
-  // Very short non-question filler ("嗯" / "ok" / "哈哈") is light. A short
-  // question ("待办有哪些") is not — fall through to query/task routing.
-  if (s.length <= 6 && !QUESTION_RE.test(s) && !/[记写做改删建整理归档搜索查找分析帮我]/u.test(s)) {
-    return "light";
-  }
+  // Only recognized greetings are light. Short commands such as "write" or
+  // "改标题" must retain tools; message length is not an authorization signal.
   // Workspace lookup (read-only) — includes "最近记忆 / 有什么 / 看一下 …"
   const lookupOnly =
     /^(?:请)?(?:帮(?:我)?(?:看看|查查|查一下|看一下|找找|找一下|搜一下|搜搜)|看看|查查|查一下|看一下|找找|找一下|搜一下)?\s*(?:最近|近期|今天|本周|现在|目前|我|我的|工作区)?\s*(?:有(?:什么|哪些|啥)?|是(?:什么|哪些)|哪些|什么|谁|多少|几个|怎么样|如何|怎样)/u.test(
       s,
     );
-  const hasWriteVerb =
-    /(?:记一下|记下|写|改|编辑|润色|整理|归档|删除|新建|创建|建个|建立|发布|移动|重命名|补|更新|修复|完成|做一?个|做一?篇|生成|导出|抓取|抓|下载|研究|调研|综述|对比分析)/u.test(
+  const englishAction = /(?:^(?:(?:please|can you|could you|would you|help me|i want you to|i need you to)\s+)*|\b(?:and|then|next)\s+)(?:write|draft|rewrite|edit|replace|insert|add|set|mark|toggle|continue|resume|polish|revise|organize|organise|archive|delete|remove|create|make|build|publish|move|rename|append|update|fix|complete|generate|export|capture|save|download|research|remember)\b/iu.test(s);
+  const hasWriteVerb = englishAction ||
+    /(?:记一下|记下|保存|存入|存到|存为|另存|写|改|替换|插入|添加|设置|标记|勾选|继续|恢复|编辑|润色|整理|归档|删除|新建|创建|建个|建立|发布|移动|重命名|补|更新|修复|完成|做一?个|做一?篇|生成|导出|抓取|抓|下载|研究|调研|综述|对比分析)/u.test(
       s,
     );
   if (!hasWriteVerb && (lookupOnly || QUERY_INTENT_RULES.some((r) => r.re.test(s)))) {
     return "query";
   }
   if (hasWriteVerb) return "task";
+  // Reading transformations stay queries even when the prompt is long. Saving,
+  // editing or creating a deliverable above still takes precedence.
+  if (/(?:总结|概括|解释|说明|解读|翻译|\b(?:summari[sz]e|explain|describe|translate)\b)/iu.test(s)) return "query";
   // Default: medium+ length instructions are tasks; short questions are queries.
   return s.length > 40 || /[，,。；;：:].{10,}/u.test(s) ? "task" : "query";
 }
@@ -630,9 +628,16 @@ export function assessGoalCompletion({ state, lastBody, stepLimitHit, toolCallCo
   if (!meta && upper.includes(INCOMPLETE_MARK)) {
     return { finished: false, reason: "incomplete-mark", confidence: "high" };
   }
+  const toolsRan = Number(toolCallCount) > 0;
+  // A grounded read-only answer does not create a file. Requiring write paths
+  // here made both hosts reject valid todo/category lookups and continue them.
+  if (state?.kind === "query" && body && !meta && !grewPlan && !stepLimitHit && toolsRan &&
+      state.status !== "incomplete" && state.status !== "blocked" &&
+      !(state.doneCriteria?.length > 0)) {
+    return { finished: true, reason: "query-answer", confidence: "high" };
+  }
   // Verification-before-done: tools ran (or a prior fold already rejected the
   // claim) and `[DONE]` has no path receipt. A bare marker is not success.
-  const toolsRan = Number(toolCallCount) > 0;
   const bareDone =
     !meta &&
     upper.includes(DONE_MARK) &&

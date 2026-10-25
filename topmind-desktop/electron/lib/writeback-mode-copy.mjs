@@ -1,10 +1,10 @@
 /**
- * Single copy source for writeback (保存设置) semantics — graded confirm only.
+ * Canonical Kernel policy for writeback and agent budgets — graded confirm only.
  *
  * auto: write tools execute immediately (protection still applies)
  * confirm（删除/归档前问我）: content create/update/edit land immediately;
  *   only delete/archive return pending + full previewContent;
- *   Desktop stashes → AiPanel「待确认写入」accept/reject
+ *   Hosts persist pending actions through the shared review queue
  *
  * NEVER use Model A phrases: 只读 / 可粘贴草稿 / no write tools / 不注册写工具
  */
@@ -32,8 +32,7 @@ function resolveCopyLocale(locale) {
 /**
  * One-line policy for system prompt / agent instructions (bilingual).
  * confirm is **graded**: content edits land immediately; only delete/archive pending.
- * Honest about the delete path: delete is blocked with pending evidence (user
- * must confirm); archive/content pending can be stashed for accept/reject.
+ * Pending write/delete/archive actions execute only after explicit user review.
  * @param {string} [mode]
  * @param {string} [locale] — "zh"|"en"|"zh-CN"|"en-US" (default zh)
  * @returns {string}
@@ -78,3 +77,13 @@ export function describeWritebackModeForPrompt(mode, locale) {
 /** Forbidden Model-A phrases (for tests / docs:guard). Works for both locales. */
 export const MODEL_A_FORBIDDEN_RE =
   /只读\s*[—\-–].*只分析|可粘贴草稿|no write tools|不注册写工具/iu;
+
+
+export const AGENT_STEPS_MIN = 3;
+export const AGENT_STEPS_MAX = 80;
+export const AGENT_STEPS_DEFAULT = 32;
+export const MAX_AUTO_CONTINUES = 2;
+export function clampMaxAgentSteps(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.max(AGENT_STEPS_MIN, Math.min(AGENT_STEPS_MAX, Math.round(n))) : AGENT_STEPS_DEFAULT;
+}

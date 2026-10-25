@@ -7,6 +7,8 @@
   },
   "scripts": {
     "docs:guard": "node scripts/check-redesign-contract.mjs",
+    "sync:agent-contract": "node scripts/sync-agent-contract.mjs",
+    "check:agent-contract": "node scripts/sync-agent-contract.mjs --check",
     "sync:category-pattern": "node scripts/sync-category-pattern.mjs",
     "check:category-pattern": "node scripts/sync-category-pattern.mjs --check",
     "secrets:scan": "node scripts/check-secrets.mjs",
@@ -36,7 +38,7 @@
     "desktop:pack:linux:ci": "cd topmind-desktop && npm run pack:linux:ci",
     "desktop:pack:win:ci": "cd topmind-desktop && npm run pack:win:ci",
     "test": "npm run root:test && npm run utr:test && npm run desktop:test",
-    "validate": "npm run secrets:scan && npm run docs:guard && npm run check:category-pattern && npm run root:test && npm run utr:test && npm run utr:doctor:engine && npm run desktop:validate",
+    "validate": "npm run secrets:scan && npm run docs:guard && npm run check:agent-contract && npm run check:category-pattern && npm run root:test && npm run utr:test && npm run utr:doctor:engine && npm run desktop:validate",
     "pack": "npm run pack:all",
     "pack:extension": "npm run extension:pack",
     "pack:all": "npm run extension:pack"

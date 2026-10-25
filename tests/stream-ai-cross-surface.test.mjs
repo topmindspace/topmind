@@ -24,7 +24,7 @@ function read(rel) {
 test("router skill uses activity window + topic≠memory for organize path", (t) => {
   if (SKIP_SKILLS) { t.skip(SKIP_SKILLS); return; }
   const skill = read(absJoin(skillsRoot, "topmind/SKILL.md"));
-  assert.match(skill, /活动窗口/u);
+  assert.ok(skill.includes("活动窗口") || (skill.includes("topmind-organize") && read(absJoin(skillsRoot, "topmind-organize/SKILL.md")).includes("活动窗口")));
   assert.match(skill, /memory\/profile\.md/u);
   assert.match(skill, /memory\/periodic/u);
   assert.match(skill, /内容大类|\{大类\}/u);
@@ -62,8 +62,8 @@ test("Skills pack stays Pi-independent and does not advertise bash", (t) => {
   if (SKIP_SKILLS) { t.skip(SKIP_SKILLS); return; }
   const router = read(absJoin(skillsRoot, "topmind/SKILL.md"));
   const write = read(absJoin(skillsRoot, "topmind-write/SKILL.md"));
-  assert.match(router, /不依赖.*[Pp]i|Pi-independent|不依赖.*pi-agent/u);
-  assert.match(router, /不要编造 bash/u);
+  assert.match(router, /宿主文件工具|不依赖.*[Pp]i|Pi-independent|不依赖.*pi-agent/u);
+  assert.match(router, /不编造 shell|不要编造 bash/u);
   assert.match(write, /edit_file|唯一片段/u);
   assert.doesNotMatch(router, /pi-coding-agent|createAgentSession|~\/\.pi/u);
   assert.doesNotMatch(write, /pi-coding-agent|pi-agent-core/u);
@@ -85,23 +85,23 @@ test("stream listing computes needs-tidy from reconcile, not stamp absence", () 
   assert.doesNotMatch(src, /reconciled = \/\^reconciled_at/u);
 });
 
-test("Obsidian chat guide names unique-span edit_file and no bash", (t) => {
+test("Obsidian chat guide names unique-span edit_file and no shell", async (t) => {
   if (SKIP_OBSIDIAN) { t.skip(SKIP_OBSIDIAN); return; }
-  const ops = read(absJoin(obsidianRoot, "src/services/kernel-workspace-ops.ts"));
-  assert.match(ops, /edit_file is unique-span|唯一片段/u);
-  assert.match(ops, /No bash or shell|没有 bash/u);
+  const { buildObsidianChatToolGuide } = await import(pathToFileURL(absJoin(obsidianRoot, "src/services/chat-agent.ts")).href);
+  const guide = buildObsidianChatToolGuide("en-US", "confirm", "task");
+  assert.match(guide, /unique-span/u);
+  assert.match(guide, /No shell tool/u);
 });
 
 test("Obsidian chat injects active profile, not a raw history dump", (t) => {
   if (SKIP_OBSIDIAN) { t.skip(SKIP_OBSIDIAN); return; }
   const svc = read(absJoin(obsidianRoot, "src/services/kernel-service.ts"));
-  const ops = read(absJoin(obsidianRoot, "src/services/kernel-workspace-ops.ts"));
+  const ops = read(absJoin(obsidianRoot, "src/services/chat-agent.ts"));
   assert.match(ops, /loadChatProfileContext/);
   assert.match(ops, /readProfileActiveBody/);
   assert.match(svc, /loadChatProfileContext/);
   assert.doesNotMatch(svc, /profile\.slice\(0,\s*3000\)/);
-  assert.match(ops, /retire_core_memory/);
-  assert.match(ops, /update_core_memory/);
+
 });
 
 test("ActionStore product language: 建议 not 个人清单混称", () => {

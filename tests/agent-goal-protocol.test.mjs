@@ -497,3 +497,26 @@ test("domainScore ranks official/edu/gov above UGC and link farms", async () => 
   const spamCount = ranked.filter((r) => r.host.includes("seo-spam")).length;
   assert.ok(spamCount <= 2);
 });
+
+
+test("English and short commands retain task tools while lookups remain queries", () => {
+  for (const prompt of ["write", "save", "Please write a draft", "Can you update my profile?", "Organize my notes and write a report", "What are my todos, then update them", "总结当前笔记并保存到 Inbox", "Summarize the note, then save a new file"]) {
+    assert.equal(classifyTurn(prompt), "task", prompt);
+  }
+  for (const prompt of ["What did I write today?", "What are my todos?", "What do you remember about me?", "最近记忆", "验证当前对象：总结当前笔记，并给出实际文件路径", "Summarize the current note in detail and explain the conclusions in your reply"]) {
+    assert.equal(classifyTurn(prompt), "query", prompt);
+  }
+});
+
+test("a grounded read-only answer finishes without fabricating a write path", () => {
+  const state = createGoalState("What are my todos?");
+  for (const body of ["No active todos.", "No active todos. [DONE]"]) {
+    const result = assessGoalCompletion({ state, lastBody: body, toolCallCount: 1 });
+    assert.equal(result.finished, true);
+    assert.equal(result.reason, "query-answer");
+  }
+  const blocked = { ...state, status: "blocked", blockReason: "needs-user" };
+  assert.equal(assessGoalCompletion({ state: blocked, lastBody: "Waiting.", toolCallCount: 1 }).finished, false);
+  const planned = applyGoalUpdate(state, { text: "[PLAN]\nsteps: 1) Write note\ndone-when:\n- Note exists\n[/PLAN]" });
+  assert.equal(assessGoalCompletion({ state: planned, lastBody: "Done [DONE]", toolCallCount: 1 }).reason, "missing-path-receipts");
+});

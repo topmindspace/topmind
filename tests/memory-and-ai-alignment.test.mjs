@@ -69,7 +69,7 @@ const OBSIDIAN_SKIP = obsidian ? false : (SKIP_OBSIDIAN || "topmind-obsidian che
 describe("Obsidian AI engine aligns with Desktop", { skip: OBSIDIAN_SKIP }, () => {
   const adapter = fs.readFileSync(path.join(desktop, "electron", "ai-provider-adapter.mjs"), "utf8");
   const provider = fs.readFileSync(path.join(obsidian, "src", "bridge", "ai-provider.ts"), "utf8");
-  const ops = fs.readFileSync(path.join(obsidian, "src", "services", "kernel-workspace-ops.ts"), "utf8");
+  const ops = fs.readFileSync(path.join(obsidian, "src", "services", "chat-agent.ts"), "utf8");
 
   test("OP_LIMITS token budgets match Desktop", () => {
     // Desktop truth
@@ -103,13 +103,13 @@ describe("Obsidian AI engine aligns with Desktop", { skip: OBSIDIAN_SKIP }, () =
 
   test("cancel keeps partial answer; memory plane is fenced", () => {
     assert.match(ops, /partial && !parseToolCall\(lastRaw\)/);
-    assert.match(ops, /write-blocked:memory-plane/);
+    assert.match(ops, /memoryFence\(tool, call/);
     const tools = fs.readFileSync(path.join(desktop, "electron", "ai-tools.mjs"), "utf8");
     assert.match(tools, /memoryFence|memory-fence/);
-    const fence = fs.readFileSync(path.join(desktop, "electron", "lib", "memory-fence.mjs"), "utf8");
+    const fence = fs.readFileSync(path.join(repo, "lib", "agent-tool-policy.mjs"), "utf8");
     assert.match(fence, /MEMORY_WRITE_TOOLS/);
     assert.match(fence, /write-blocked:memory-plane/);
-    assert.match(fence, /memory\/ledgers/);
+
   });
 
   test("temperature tables agree on the low-temp ops", () => {
@@ -126,10 +126,9 @@ describe("living docs state the fusion + AI alignment contract", () => {
     assert.doesNotMatch(pm, /追加\*\*（ADD）：`appendProfileEntry` —— 去重 \+ 消毒后写入活跃段落（既有）/u);
   });
 
-  test("AGENTS Memory row mentions fusion and compact", () => {
+  test("AGENTS routes memory behavior to the canonical model", () => {
     const agents = fs.readFileSync(path.join(parentDocs, "AGENTS.md"), "utf8");
-    assert.match(agents, /append 融合/);
-    assert.match(agents, /compact-history/);
+    assert.match(agents, /PROJECT-MODEL\.md/);
   });
 
   test("Obsidian ARCHITECTURE documents Desktop AI alignment", (t) => {

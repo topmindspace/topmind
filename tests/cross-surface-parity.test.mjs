@@ -1,6 +1,6 @@
 /**
  * Cross-surface behavior parity:
- * - memory-fence rules (ledgers exemption + path keys) Desktop vs Obsidian
+ * - shared semantic-memory policy (ledgers exemption + path keys)
  * - compact budget formula resolveCompactBudget vs resolveChatCompactBudget
  * - UTR command counts (38 / MCP 29) registry vs TOOLS.md vs topmind-pack.json
  */
@@ -23,16 +23,20 @@ function read(rel) {
 // ── memory-fence: Desktop module vs Obsidian inline fence ─────────────────────
 
 const fenceMod = await import(
-  pathToFileURL(path.join(root, "topmind-desktop", "electron", "lib", "memory-fence.mjs")).href
+  pathToFileURL(path.join(root, "lib", "agent-tool-policy.mjs")).href
 );
 
-test("Desktop memory-fence exempts ledgers and checks every path key", () => {
+test("Kernel memory-fence exempts ledgers and checks every path key", () => {
   const { isFencedMemoryPath, memoryFence, MEMORY_PATH_KEYS, MEMORY_WRITE_TOOLS } = fenceMod;
   assert.deepEqual([...MEMORY_PATH_KEYS].sort(), [
     "destRelativePath",
     "inboxRelativePath",
     "relativePath",
-  ]);
+    "newPath",
+    "targetTopicId",
+    "category",
+    "topicId",
+  ].sort());
   // ledgers/ is a sanctioned generic-write plane.
   assert.equal(isFencedMemoryPath("memory/ledgers/Personal.md"), false);
   assert.equal(isFencedMemoryPath("memory/ledgers/"), false);
@@ -63,24 +67,11 @@ test("Desktop memory-fence exempts ledgers and checks every path key", () => {
   assert.ok(MEMORY_WRITE_TOOLS.has("toggle_todo"));
 });
 
-test("Obsidian fence matches Desktop rules (ledgers exemption + path keys)", (t) => {
-  if (SKIP_OBSIDIAN) {
-    t.skip(SKIP_OBSIDIAN);
-    return;
-  }
-  const obs = resolveObsidianRoot();
-  const src = read(path.join(obs, "src", "services", "kernel-workspace-ops.ts"));
-  // Same path-shaped args as Desktop MEMORY_PATH_KEYS.
-  for (const key of ["relativePath", "destRelativePath", "inboxRelativePath"]) {
-    assert.match(src, new RegExp(`call\\.${key}`), `Obsidian fence must check ${key}`);
-  }
-  // ledgers/ exemption (same rule as Desktop isFencedMemoryPath).
-  assert.match(src, /memory\/ledgers/, "Obsidian must name memory/ledgers/");
-  assert.match(src, /ledgers\(/u, "Obsidian must regex-test memory/ledgers for the exemption");
-  // memory plane gate + same error code.
-  assert.match(src, /write-blocked:memory-plane/);
-  // Must not raw-rewrite the memory plane with generic file tools.
-  assert.match(src, /isFencedMemoryPath/);
+test("Obsidian uses the Kernel policy and Desktop retains its memory guard", (t) => {
+  if (SKIP_OBSIDIAN) { t.skip(SKIP_OBSIDIAN); return; }
+  const src = read(path.join(resolveObsidianRoot(), "src/services/chat-agent.ts"));
+  assert.match(src, /memoryFence\(tool, call, \{ workspaceRoot \}\)/);
+  assert.match(read("topmind-desktop/electron/ai-tools.mjs"), /(?:kernelApi\.)?memoryFence\(/);
 });
 
 // ── compact budget formula ────────────────────────────────────────────────────

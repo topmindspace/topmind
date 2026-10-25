@@ -225,7 +225,7 @@ for (const [label, source] of [
   [files.skillsReadme, readIfPresent(files.skillsReadme)],
   [files.topmindSkill, readIfPresent(files.topmindSkill)],
 ].filter(([, s]) => s != null)) {
-  expectMatch(label, source, /(6 条核心规约|6 条规约|六大核心规约)/u, "6 条核心规约 declaration (reference to PROJECT-MODEL.md §2)");
+  expectMatch(label, source, /6 条(?:核心)?规约|六大核心规约|shared\/project-model-brief\.md/u, "workspace conventions or maintained model brief link");
 }
 
 // Architecture reset lock (2026-07-25) — must stay the single implementation plan
@@ -302,15 +302,12 @@ for (const relativePath of [
     relativePath,
     read(relativePath),
     modelAConfirm,
-    "Model A confirm prompt (read-only paste draft) — use 保存前问我 + 待确认写入",
+    "Model A confirm prompt (read-only paste draft) — use graded delete/archive confirmation",
   );
 }
-expectMatch(
-  "topmind-desktop/electron/lib/writeback-mode-copy.mjs",
-  read("topmind-desktop/electron/lib/writeback-mode-copy.mjs"),
-  /待确认写入|保存前问我/u,
-  "single writeback policy copy source",
-);
+if (read("topmind-desktop/electron/lib/writeback-mode-copy.mjs") !== read("lib/agent-policy.mjs")) {
+  fail("Desktop writeback policy must match lib/agent-policy.mjs; run node scripts/sync-agent-contract.mjs");
+}
 
 // ---------------------------------------------------------------------------
 // Phase A/B Done-key underclaim blocklist (ARCHITECTURE-RESET §2.2)

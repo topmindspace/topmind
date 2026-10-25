@@ -52,7 +52,7 @@ const REQUIRED_SCRIPTS = {
   "desktop:pack:win:ci": "cd topmind-desktop && npm run pack:win:ci",
   test: "npm run root:test && npm run utr:test && npm run desktop:test",
   validate:
-    "npm run secrets:scan && npm run docs:guard && npm run check:category-pattern && npm run root:test && npm run utr:test && npm run utr:doctor:engine && npm run desktop:validate",
+    "npm run secrets:scan && npm run docs:guard && npm run check:agent-contract && npm run check:category-pattern && npm run root:test && npm run utr:test && npm run utr:doctor:engine && npm run desktop:validate",
   pack: "npm run pack:all",
   "pack:extension": "npm run extension:pack",
 };
@@ -127,7 +127,10 @@ test("version truth sources exist; docs only point at them (no multi-copy versio
     "docs/README.md",
   ];
   for (const rel of pathSurfaces) {
-    const text = readText(rel);
+    const entry = readText(rel);
+    const text = rel === "AGENTS.md" && entry.includes("docs/REPO-MAINTENANCE.md")
+      ? entry + readText("docs/REPO-MAINTENANCE.md")
+      : entry;
     for (const t of VERSION_TRUTH) {
       assert.ok(
         text.includes(t.source) || text.includes(t.source.replace(/^\//u, "")),
@@ -181,7 +184,7 @@ test("entry docs describe root scripts and do not keep known stale commands", ()
   }
 
   assert.match(tools, /Roots|Commands/);
-  assert.match(agEnts, /Root scripts from repo root/);
+  assert.match(agEnts, /验证命令|Root scripts from repo root/);
   assert.match(utrReadme, /8 域|8 域 38 命令|38 registry|38 命令/);
   assert.match(rootReadmeEn, /Inspect the current action surface|8 domains \/ 38 commands/);
   assert.match(rootReadmeZh, /查看当前 UTR 动作域和命令/);

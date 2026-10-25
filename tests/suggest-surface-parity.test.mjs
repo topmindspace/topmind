@@ -58,7 +58,10 @@ describeObs("Obsidian suggest force + op-card session", () => {
     assert.match(src, /mergeSoftSuggestionSession/);
     assert.match(src, /opSuggestionSession/);
     assert.match(src, /surfaceUiLocale/);
-    assert.match(src, /settings\.localeOverride \|\| ""/);
+    assert.match(src, /localeOverride:\s*this\.surfaceUiLocale\(\)/);
+    assert.match(src, /const override = this\.settings\.localeOverride/);
+    assert.match(src, /override && override !== "auto"/);
+    assert.match(src, /return getLocale\(\) \|\| null/);
   });
 
   it("manual refresh command and buttons pass force:true; idle does not", () => {
@@ -69,13 +72,13 @@ describeObs("Obsidian suggest force + op-card session", () => {
     // Refresh button re-enters the guarded tab path with force; the tab's own
     // paint is soft (force only when requested) so fingerprint skip + session
     // merge still apply.
-    assert.match(sidebar, /renderSuggestionsTab\(container,\s*\{\s*force:\s*true\s*\}\)/);
+    assert.match(sidebar, /renderSuggestionsTab\(this\.contentContainer,\s*\{\s*force:\s*true\s*\}\)/);
     assert.match(sidebar, /const force = opts\.force === true;/);
     assert.match(sidebar, /generateSuggestions\(\{\s*force\s*\}\)/);
     // Cached cards paint immediately; the background pass refreshes them in place
     assert.match(sidebar, /peekSuggestions\(\)/);
     assert.match(sidebar, /softRefreshSuggestions\(/);
-    // Re-entrancy guard: never two concurrent kernel suggestion passes
+    // Shared in-flight request: returning tabs join the same Kernel pass.
     assert.match(sidebar, /suggestionsInFlight/);
 
     const workbench = read(absJoin(obsidianRoot, "src/views/stream-workbench-view.ts"));
@@ -96,13 +99,13 @@ describeObs("Obsidian suggest force + op-card session", () => {
     const src = read(absJoin(obsidianRoot, "src/services/kernel-service.ts"));
     assert.match(src, /runWorkspaceChatTurn/);
     assert.doesNotMatch(src, /writebackMode:\s*this\.settings\.writebackMode/);
-    const ops = read(absJoin(obsidianRoot, "src/services/kernel-workspace-ops.ts"));
+    const ops = read(absJoin(obsidianRoot, "src/services/chat-agent.ts"));
     assert.match(ops, /resolveContractWritebackMode\(kernel, workspaceRoot\)/);
   });
 
   it("chat profile context uses Kernel active-body collapse, not raw profile.md", () => {
     const src = read(absJoin(obsidianRoot, "src/services/kernel-service.ts"));
-    const ops = read(absJoin(obsidianRoot, "src/services/kernel-workspace-ops.ts"));
+    const ops = read(absJoin(obsidianRoot, "src/services/chat-agent.ts"));
     assert.match(src, /loadChatProfileContext/);
     assert.match(ops, /export function loadChatProfileContext/);
     assert.match(ops, /readProfileActiveBody/);

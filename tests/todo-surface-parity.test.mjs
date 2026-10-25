@@ -90,7 +90,7 @@ describeObs("Obsidian todo force + Kernel-only path", () => {
     // The lane's executor forwards a normalized force flag to the Kernel op:
     // explicit user commands re-analyze; quiet boot/background respects processedHashes.
     assert.match(main, /const force = normalized\.force \?\? !quiet;/);
-    assert.match(main, /runOperation\(operation,\s*\{\s*force\s*\}\)/);
+    assert.match(main, /runOperation\(operation,\s*\{\s*force,\s*shouldAbort\s*\}\)/);
     // Boot auto-maintain is dispatched quiet, so it must not force
     assert.match(main, /enqueueAiOperation\("todo_maintain",[^;]*"sidebar",\s*true\)/u);
     assert.doesNotMatch(main, /runOperation\(\s*["']todo_maintain["']\s*,?\s*\)/);
@@ -100,7 +100,7 @@ describeObs("Obsidian todo force + Kernel-only path", () => {
     const src = read(absJoin(obsidianRoot, "src/services/kernel-service.ts"));
     assert.match(src, /async runOperation\(id:\s*string,\s*opts:\s*\{\s*force\?:\s*boolean/);
     // options spread + host UI localeOverride forwarding (surface parity with Desktop)
-    assert.match(src, /ctx\.runOperation\(\{\s*id,\s*options:\s*\{\s*\.\.\.opts,\s*localeOverride/);
+    assert.match(src, /ctx\.runOperation\(\{\s*id,\s*aiProvider,\s*options:\s*\{\s*force:\s*opts\.force,\s*localeOverride/);
     assert.doesNotMatch(src, /findRecentPeriodNotes|buildTodoExtractionPrompt/);
   });
 
