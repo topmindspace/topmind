@@ -798,25 +798,27 @@ jobs:
           echo "count=${ASSET_COUNT}" >> "$GITHUB_OUTPUT"
 
           # Generate release body
-          skills_list=$(echo "${ASSETS_JSON}" | jq -r '.[] | select(.name | startswith("topmind-skills-")) | "- `\(.name)` (\(.size / 1048576 | floor)MB)"' | sort)
           ext_list=$(echo "${ASSETS_JSON}" | jq -r '.[] | select(.name | startswith("topmind-clip-extension-")) | "- `\(.name)` (\(.size / 1048576 | floor)MB)"' | sort)
-          obsidian_list=$(echo "${ASSETS_JSON}" | jq -r '.[] | select(.name | startswith("topmind-obsidian-")) | "- `\(.name)` (\(.size / 1048576 | floor)MB)"' | sort)
           desktop_list=$(echo "${ASSETS_JSON}" | jq -r '.[] | select(.name | startswith("topmind-") and (startswith("topmind-skills-") or startswith("topmind-clip-extension-") or startswith("topmind-obsidian-")) | not) | "- `\(.name)` (\(.size / 1048576 | floor)MB)"' | sort)
+          WRITING_VER=$(node -p "require('./topmind-desktop/electron/data/writing-pack.json').version")
 
           {
+            echo "### Changes"
+            echo ""
+            node -e 'const fs=require("node:fs"); const text=fs.readFileSync("CHANGELOG.md","utf8"); const section=text.split(/^## /m).find(s=>s.startsWith(process.argv[1]+" —")); if(section) console.log(section.slice(section.indexOf("\n")+1).trim()); else console.log("See CHANGELOG.md for version history.");' "${DESKTOP_VER}"
+            echo ""
             echo "### What to download"
             echo ""
             echo "Automated release from workflow run [\`${{ github.run_id }}\`](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
             echo ""
-            echo "One product snapshot. Surface versions stay independent (see table). Unchanged surfaces reuse the previous Latest assets."
+            echo "Desktop and Clip ship here. Core skills, writing skills, and Obsidian ship from their own repositories and keep independent versions."
             echo ""
             echo "| Surface | Version |"
             echo "|---------|---------|"
             echo "| Desktop | \`${DESKTOP_VER}\` |"
             echo "| UTR | \`${DESKTOP_VER}\` (follows Desktop) |"
-            echo "| Skills | \`${SKILLS_VER}\` |"
             echo "| Clip Extension | \`${EXT_VER}\` |"
-            echo "| Obsidian Plugin | \`${OBS_VER}\` |"
+            echo "| Bundled writing snapshot | \`${WRITING_VER}\` |"
             echo ""
             echo "| Trigger | Tag | Draft | Prerelease |"
             echo "|---------|-----|-------|------------|"
@@ -824,20 +826,14 @@ jobs:
             echo ""
             echo "| Surface | Who needs it | Files |"
             echo "|---------|--------------|-------|"
-            echo "| **Skills** | Agent hosts (Claude / Codex / OpenCode) | \`topmind-skills-*.{zip,tar.gz}\` |"
+            echo "| **Core skills** | Agent hosts; independently versioned | [topmind-skills Releases](https://github.com/topmindspace/topmind-skills/releases/latest) |"
+            echo "| **Writing skills** | Built into Desktop / Obsidian; external Agent install available | [topmind-writing-skills Releases](https://github.com/topmindspace/topmind-writing-skills/releases/latest) |"
             echo "| **Clip Extension** | Browser clip → Desktop | \`topmind-clip-extension-*.zip\` |"
-            echo "| **Obsidian Plugin** | Vault embed (stream workbench) | \`topmind-obsidian-*.zip\` |"
+            echo "| **Obsidian Plugin** | Vault workbench + writing; install main.js / manifest.json / styles.css | [topmind-obsidian Releases](https://github.com/topmindspace/topmind-obsidian/releases/latest) |"
             echo "| **Desktop** | Native app installers | \`topmind-<ver>-<os>-<arch>.{dmg,exe,AppImage,deb}\` |"
             echo ""
-
-            if [[ -n "${skills_list}" ]]; then
-              echo "#### Skills pack"
-              echo ""
-              echo "| File | Size |"
-              echo "|------|------|"
-              echo "${skills_list}" | sed 's/- \(.*\) (\([0-9]*\)MB)/| `\1` | \2MB |/'
-              echo ""
-            fi
+            echo "Writing resource updates do not execute downloaded renderer code; renderer upgrades ship with each host. macOS automatic installation requires a signed build; unsigned builds keep manual upgrades."
+            echo ""
 
             if [[ -n "${ext_list}" ]]; then
               echo "#### Browser extension"
@@ -845,17 +841,6 @@ jobs:
               echo "| File | Size |"
               echo "|------|------|"
               echo "${ext_list}" | sed 's/- \(.*\) (\([0-9]*\)MB)/| `\1` | \2MB |/'
-              echo ""
-            fi
-
-            if [[ -n "${obsidian_list}" ]]; then
-              echo "#### Obsidian plugin"
-              echo ""
-              echo "| File | Size |"
-              echo "|------|------|"
-              echo "${obsidian_list}" | sed 's/- \(.*\) (\([0-9]*\)MB)/| `\1` | \2MB |/'
-              echo ""
-              echo "Install: unzip into \`<vault>/.obsidian/plugins/topmind-stream/\` then enable in Obsidian settings."
               echo ""
             fi
 
