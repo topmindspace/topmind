@@ -39,13 +39,39 @@ import { Tooltip } from "../ui/tooltip";
 import { cn } from "../../lib/kit";
 import { scheduleFlash } from "../../lib/kit";
 import type { TFunction } from "i18next";
+import { useAiStore } from "../../stores/ai-store";
 
 type UpdateCheckResult = Awaited<ReturnType<typeof api.sys.checkForUpdates>>;
+
+function DesktopUpdaterControls() {
+  const { t } = useTranslation("settings");
+  const streaming = useAiStore(s => s.streaming);
+  const [state, setState] = useState<Awaited<ReturnType<typeof api.sys.desktopUpdate>> | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    const read = () => { void api.sys.desktopUpdate().then(value => { if (alive) setState(value); }).catch(() => {}); };
+    read(); const timer = window.setInterval(read, 2000);
+    return () => { alive = false; window.clearInterval(timer); };
+  }, []);
+  if (!state?.supported) return null;
+  const run = async (action: "download" | "install") => {
+    setBusy(true);
+    try { setState(await api.sys.desktopUpdate(action)); }
+    finally { setBusy(false); }
+  };
+  return <div className="flex flex-wrap items-center gap-2 py-2 text-xs text-text-secondary">
+    <Button size="sm" variant="secondary" disabled={busy || streaming || state.phase === "downloading"} onClick={() => void run(state.phase === "ready" ? "install" : "download")}>{t(state.phase === "ready" ? "about.restartInstall" : "about.downloadApp")}</Button>
+    <span role="status">{t(`about.updaterPhases.${state.phase}`)}{state.phase === "downloading" ? ` ${state.progress}%` : ""}</span>
+    {state.error ? <span role="alert" className="text-warning">{t("about.manualFallback")}</span> : null}
+  </div>;
+}
 
 // ── Update surface helpers ───────────────────────────────────────────────────
 
 function surfaceLabel(surface: string, t: TFunction): string {
   if (surface === "desktop") return t("settings:about.surfaceDesktop");
+  if (surface === "writing") return t("settings:about.surfaceWriting");
   if (surface === "skills") return t("settings:about.surfaceSkills");
   if (surface === "extension") return t("settings:about.surfaceExtension");
   if (surface === "obsidian") return t("settings:about.surfaceObsidian");
@@ -108,11 +134,11 @@ function SurfaceUpdateRow({
   onOpenAsset,
   inlineInstalling,
 }: {
-  surface: "desktop" | "skills" | "extension" | "obsidian";
+  surface: "desktop" | "skills" | "writing" | "extension" | "obsidian";
   info: SurfaceUpdateInfo | undefined;
   t: TFunction;
-  onInlineInstall?: (surface: "skills" | "extension" | "obsidian", info: SurfaceUpdateInfo) => void;
-  onOpenAsset: (surface: "desktop" | "skills" | "extension" | "obsidian", info: SurfaceUpdateInfo) => void;
+  onInlineInstall?: (surface: "skills" | "writing" | "extension" | "obsidian", info: SurfaceUpdateInfo) => void;
+  onOpenAsset: (surface: "desktop" | "skills" | "writing" | "extension" | "obsidian", info: SurfaceUpdateInfo) => void;
   inlineInstalling?: string | null;
 }) {
   const status = formatSurfaceStatus(info, t);
@@ -144,7 +170,7 @@ function SurfaceUpdateRow({
             variant="ghost"
             size="sm"
             disabled={installBusy}
-            onClick={() => onInlineInstall(surface as "skills" | "extension" | "obsidian", info)}
+            onClick={() => onInlineInstall(surface as "skills" | "writing" | "extension" | "obsidian", info)}
           >
             {isInstalling ? (
               <RiLoader4Line size={ICON.micro} className="animate-spin" />
@@ -336,7 +362,7 @@ export function ManagePanel({
   };
 
   const handleInlineInstall = async (
-    surface: "skills" | "extension" | "obsidian",
+    surface: "skills" | "writing" | "extension" | "obsidian",
     info: SurfaceUpdateInfo,
   ) => {
     if (inlineInstalling) return;
@@ -389,19 +415,10 @@ export function ManagePanel({
   };
 
   const openSurfaceAsset = async (
-    surface: "desktop" | "skills" | "extension" | "obsidian",
+    surface: "desktop" | "skills" | "writing" | "extension" | "obsidian",
     info: SurfaceUpdateInfo,
   ) => {
     const url = info.assets?.[0]?.url || info.releaseUrl || undefined;
-    if (surface === "desktop") {
-      const prep = await api.sys.prepareDesktopUpdate({ confirmed: false });
-      if (prep.action === "prompt" || prep.action === "cancel") {
-        const ok = window.confirm(t("settings:about.quitTopmindConfirm"));
-        if (!ok) return;
-        await api.sys.prepareDesktopUpdate({ confirmed: true, url });
-        return;
-      }
-    }
     if (url) await api.sys.openUpdateDownload(url, surface);
   };
 
@@ -645,6 +662,8 @@ export function ManagePanel({
             <div className="space-y-1">
               <SurfaceUpdateRow surface="desktop" info={updateInfo.desktop ?? updateInfo} t={t} onOpenAsset={openSurfaceAsset} inlineInstalling={inlineInstalling} />
               <SurfaceUpdateRow surface="skills" info={updateInfo.skills} t={t} onInlineInstall={handleInlineInstall} onOpenAsset={openSurfaceAsset} inlineInstalling={inlineInstalling} />
+              <SurfaceUpdateRow surface="writing" info={updateInfo.writing} t={t} onInlineInstall={handleInlineInstall} onOpenAsset={openSurfaceAsset} inlineInstalling={inlineInstalling} />
+              {updateInfo.writing?.currentVersion !== updateInfo.writing?.bundledVersion ? <Button variant="ghost" size="sm" disabled={Boolean(inlineInstalling)} onClick={() => { void api.sys.restoreBundledWriting().then(() => checkUpdates()).catch(error => setCompError(String(error))); }}>{t("settings:about.restoreWriting")}</Button> : null}
               <SurfaceUpdateRow surface="extension" info={updateInfo.extension} t={t} onInlineInstall={handleInlineInstall} onOpenAsset={openSurfaceAsset} inlineInstalling={inlineInstalling} />
               <SurfaceUpdateRow surface="obsidian" info={updateInfo.obsidian} t={t} onInlineInstall={handleInlineInstall} onOpenAsset={openSurfaceAsset} inlineInstalling={inlineInstalling} />
             </div>
@@ -653,6 +672,7 @@ export function ManagePanel({
           <div className="text-3xs text-text-quaternary">{t("settings:about.clickToCheck")}</div>
         )}
       </SettingsSection>
+      <DesktopUpdaterControls />
       </>) : null}
 
       {/* ── Environment & install commands (diagnostics) ──────────────── */}

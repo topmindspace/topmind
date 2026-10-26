@@ -661,6 +661,7 @@ jobs:
             -o -name 'topmind-*.AppImage' -o -name 'topmind-*.deb' \
             -o -name 'topmind-*.tar.gz' -o -name 'topmind-*.exe' \
             -o -name 'topmind-SHA256SUMS-*.txt' \
+            -o -name 'latest*.yml' -o -name '*.blockmap' \
           \) 2>/dev/null)
 
           if [[ ${#files[@]} -eq 0 ]]; then

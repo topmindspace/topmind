@@ -36,9 +36,9 @@ Command palette: 「打开应用菜单」（`titlebar:apps-toggle` 事件与按�
 
 **topmind-ledger（记账）**：optional first-party mini-app with a one-stop surface (账本 + 常驻 AI/表单记账 · 看板 · 流水 · 分类).
 
-**topmind-wechat（公众号创作）**：optional first-party mini-app (plugin id `topmind-wechat`). Package workflow: 选题包 → 改稿 `公众号稿.md` → 质检三关（AI 味 + lint + 事实勾选）→ 微信排版预览 → 导出/复制 HTML. Writes only via `api.ws.save` / `savePath`. Package root defaults to `40-创作/YYYY-公众号/`（`settings.wechat.packageRoot` 可覆盖）. Quality/format rules are a TS subset of the `topmind-wechat-post` skill in topmind-writing-skills (legacy name `topmind-wechat`; `lint-wechat.py` / `scan_ai_flavor.py` / `md2wechat.py`); WechatService looks for `topmind-wechat-post` first (engine skills, extra skills roots, skills-extra cache, sibling checkouts) and falls back to `topmind-wechat`.
+**topmind-wechat（写作与交付）**：保留插件与命令身份，默认提供当前文档写作动作、公众号/X/文本排版、主题、预览、复制与导出；原稿使用主编辑器。写作规则和排版核心由独立写作仓维护，已移除评分模块和 Python 探测旁路。旧文章、主题与禁用状态保留。
 
-**如何打开**（`settings.wechat.enabled`）：AI 工作区应用 pane · StatusBar 「公众号」chip · command palette 「公众号创作」(`topmind-wechat.open`) · Settings → Plugins → Open WeChat Studio. Toggle the plugin off and those chrome entries are omitted. **Not** a PrimaryNav item.
+**如何打开**（`settings.wechat.enabled`）：AI 工作区应用、状态栏“写作”、命令面板“写作与交付”（`topmind-wechat.open`），禁用后入口隐藏。它不是新增主导航。
 
 **如何打开**（`settings.ledger.enabled`）：AI 工作区应用 pane · StatusBar 「记账」chip · command palette 「记账」/ Bookkeeping (`topmind-ledger.open`) · Settings → Plugins → Open bookkeeping. Toggle the plugin off and those chrome entries are omitted. **Not** a PrimaryNav item (PrimaryNav stays 动态 / Inbox / 交付).
 

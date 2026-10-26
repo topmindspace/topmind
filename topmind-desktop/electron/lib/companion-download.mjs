@@ -15,7 +15,7 @@
  *
  * Security:
  *   - Downloads only from github.com/{repo}/releases/download/{tag}/
- *   - SHA256SUMS verified when available (uses Node.js crypto, cross-platform)
+ *   - GitHub asset digest or SHA256SUMS is required (uses Node.js crypto, cross-platform)
  *   - Temp files cleaned up on success or failure
  *   - No auto-execution of downloaded content
  */
@@ -31,6 +31,7 @@ export const SURFACE_REPOS = {
   obsidian: "topmindspace/topmind-obsidian",
   extension: "topmindspace/topmind",
   desktop: "topmindspace/topmind",
+  writing: "topmindspace/topmind-writing-skills",
 };
 const DOWNLOAD_TIMEOUT_MS = 120_000; // 2 minutes for large files
 
@@ -42,6 +43,7 @@ const DOWNLOAD_TIMEOUT_MS = 120_000; // 2 minutes for large files
  * @type {Record<string, (ver: string) => string>}
  */
 const ASSET_PATTERNS = {
+  writing: (ver) => `topmind-writing-skills-${ver}.zip`,
   skills: (ver) => `topmind-skills-${ver}.zip`,
   obsidian: (ver) => `topmind-obsidian-${ver}.zip`,
   extension: (ver) => `topmind-clip-extension-${ver}.zip`,
@@ -55,6 +57,7 @@ const OBSIDIAN_COMMUNITY_FILES = ["main.js", "manifest.json", "styles.css"];
  * @type {Record<string, (ver: string) => string>}
  */
 const SUMS_PATTERNS = {
+  writing: (ver) => `topmind-writing-skills-${ver}.SHA256SUMS`,
   skills: (ver) => `topmind-skills-${ver}.SHA256SUMS`,
   obsidian: (ver) => `topmind-obsidian-${ver}.SHA256SUMS`,
   extension: (ver) => `topmind-clip-extension-${ver}.SHA256SUMS`,
@@ -153,8 +156,8 @@ async function computeSha256(filePath) {
  */
 export async function verifySha256(zipPath, sumsPath) {
   if (!existsSync(sumsPath)) {
-    // No sums file — skip verification (log warning)
-    return { ok: true, error: "no-sums-file" };
+    // Never treat missing integrity metadata as verified.
+    return { ok: false, error: "no-sums-file" };
   }
 
   try {
@@ -166,14 +169,15 @@ export async function verifySha256(zipPath, sumsPath) {
     let expectedHash = null;
     for (const line of lines) {
       const parts = line.trim().split(/\s+/);
-      if (parts.length >= 2 && parts[1].includes(fileName)) {
+        if (parts.length >= 2 && parts[1].replace(/^\*/u, "") === fileName) {
+          if (!/^[a-f0-9]{64}$/iu.test(parts[0])) return { ok: false, error: "invalid checksum" };
         expectedHash = parts[0];
         break;
       }
     }
 
     if (!expectedHash) {
-      return { ok: true, error: "file-not-in-sums" };
+      return { ok: false, error: "file-not-in-sums" };
     }
 
     // Compute actual hash using Node.js crypto (cross-platform, no external deps)
@@ -195,6 +199,7 @@ function listedAssets(opts) {
     .map((a) => ({
       name: String(a.name),
       url: String(a.url || a.browser_download_url),
+      digest: a.digest || null,
     }));
 }
 
@@ -230,6 +235,7 @@ export async function downloadCompanionAsset(opts) {
   if (!surface || !version || !tag) {
     return { ok: false, error: "surface, version, and tag are required", claimedLatest: false };
   }
+  if (!/^\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?$/u.test(version) || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(tag)) return { ok: false, error: "invalid release version or tag", claimedLatest: false };
 
   const repo = opts.repo || SURFACE_REPOS[surface] || DEFAULT_REPO;
   const pattern = ASSET_PATTERNS[surface];
@@ -242,8 +248,15 @@ export async function downloadCompanionAsset(opts) {
 
   const listed = listedAssets(opts);
   const baseUrl = `https://github.com/${repo}/releases/download/${tag}`;
+  const verifyDigest = async (file, digest) => {
+    if (!/^sha256:[a-f0-9]{64}$/iu.test(String(digest || ""))) return false;
+    return (await computeSha256(file)).toLowerCase() === digest.slice(7).toLowerCase();
+  };
 
   try {
+    for (const asset of listed) {
+      if (path.basename(asset.name) !== asset.name || asset.name.includes("\\") || !asset.url.startsWith(`${baseUrl}/`)) return failDownload(tempDir, "asset is outside the selected release");
+    }
     if (surface === "obsidian" && listed.length && isCommunitySet(listed) && !listed.some((a) => /\.zip$/i.test(a.name))) {
       const pkgDir = path.join(tempDir, "package");
       await fs.mkdir(pkgDir, { recursive: true });
@@ -253,6 +266,7 @@ export async function downloadCompanionAsset(opts) {
         if (!result.ok) {
           return failDownload(tempDir, `download failed: ${result.error}`);
         }
+        if (!await verifyDigest(path.join(pkgDir, name), file.digest)) return failDownload(tempDir, `missing or invalid asset digest: ${name}`);
       }
       return { ok: true, zipPath: null, packageDir: pkgDir, tempDir, claimedLatest: false };
     }
@@ -275,32 +289,20 @@ export async function downloadCompanionAsset(opts) {
     const archivePath = path.join(tempDir, archive.name);
     const dlResult = await downloadFile(archive.url, archivePath, { fetchImpl: opts.fetchImpl });
     if (!dlResult.ok) {
-      // Legacy callers that did not pass the asset list: Obsidian community
-      // releases have no zip. Try the three real files, still without inventing
-      // a successful zip download.
-      if (surface === "obsidian" && listed.length === 0) {
-        const pkgDir = path.join(tempDir, "package");
-        await fs.mkdir(pkgDir, { recursive: true });
-        let got = 0;
-        for (const name of OBSIDIAN_COMMUNITY_FILES) {
-          const result = await downloadFile(`${baseUrl}/${name}`, path.join(pkgDir, name), {
-            fetchImpl: opts.fetchImpl,
-          });
-          if (result.ok) got += 1;
-        }
-        if (got === OBSIDIAN_COMMUNITY_FILES.length && existsSync(path.join(pkgDir, "manifest.json")) && existsSync(path.join(pkgDir, "main.js"))) {
-          return { ok: true, zipPath: null, packageDir: pkgDir, tempDir, claimedLatest: false };
-        }
-      }
       return failDownload(tempDir, `download failed: ${dlResult.error}`);
     }
 
+    if (archive.digest) {
+      if (!await verifyDigest(archivePath, archive.digest)) return failDownload(tempDir, "asset digest verification failed");
+      return { ok: true, zipPath: archivePath, tempDir, claimedLatest: false };
+    }
     const sumsName = SUMS_PATTERNS[surface]?.(version);
     const sumsFromList = listed.find((a) => /sha256/i.test(a.name));
     const sumsUrl = sumsFromList?.url || (sumsName ? `${baseUrl}/${sumsName}` : null);
     if (sumsUrl) {
       const sumsPath = path.join(tempDir, sumsName || path.basename(sumsUrl));
       const sumsResult = await downloadFile(sumsUrl, sumsPath, { fetchImpl: opts.fetchImpl });
+      if (!sumsResult.ok) return failDownload(tempDir, "component checksum is required");
       if (sumsResult.ok) {
         const verifyResult = await verifySha256(archivePath, sumsPath);
         if (!verifyResult.ok) {

@@ -34,7 +34,7 @@
     "topmind-weread.settings": "API Key, sync category & budget · Key is encrypted",
     "topmind-x.settings": "Bearer read-only + local xurl posting",
     "topmind-ledger.settings": "Per-role books on the memory plane under ledgers/",
-    "topmind-wechat.settings": "WeChat packages · draft · quality · layout export",
+    "topmind-wechat.settings": "Current document · Writing · Typography and delivery",
     "integrations": "Merged into Extensions & integrations",
     "diagnostics": "Merged into About & updates"
   },
@@ -485,7 +485,22 @@
     "doctorPassed": "Passed",
     "doctorErrors": "{{count}} errors",
     "doctorError": "Diagnostics failed: {{error}}",
-    "footerHelp": "Local-first · Graphite · Tiptap · AI SDK · 1 RPC · 3 Store"
+    "footerHelp": "Local-first · Graphite · Tiptap · AI SDK · 1 RPC · 3 Store",
+    "surfaceWriting": "Writing skills",
+    "downloadApp": "Download app update",
+    "restartInstall": "Restart and install",
+    "manualFallback": "Automatic update failed. Use the download link for manual installation.",
+    "updaterPhases": {
+      "idle": "Not checked",
+      "checking": "Checking",
+      "available": "Update available",
+      "current": "Up to date",
+      "downloading": "Downloading",
+      "ready": "Ready to restart",
+      "restarting": "Restarting",
+      "error": "Update failed"
+    },
+    "restoreWriting": "Restore bundled writing version"
   },
   "plugins": {
     "titleLoaded": "Loaded Plugins",

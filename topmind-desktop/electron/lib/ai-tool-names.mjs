@@ -6,6 +6,11 @@ export function buildAgentToolCatalog({ locale = "zh-CN", host } = {}) {
   const d = (zh, en) => String(locale).startsWith("en") ? en : zh;
   const strProp = (description) => ({ type: "string", description });
   const definitions = {
+    render_article: {
+      effect: "read", hosts: ["desktop", "obsidian"],
+      description: d("从工作区 Markdown 源稿生成公众号、X 长文或文本排版，返回 HTML、文本、图片状态和诊断；不修改原稿、不发布。需要落盘时另用文件写入工具。", "Render a workspace Markdown source for WeChat, X Article or text. Returns HTML, text, image status and diagnostics. Does not change or publish the source. Use a file write tool to persist a delivery."),
+      inputSchema: { type: "object", properties: { sourcePath: strProp(d("源稿相对路径", "Workspace-relative Markdown source")), platform: { type: "string", enum: ["wechat", "x", "text"] }, theme: { type: "string", enum: ["minimal-ink", "tech-blue", "newsprint", "graphite"] } }, required: ["sourcePath"] },
+    },
     list_skills: {
       effect: "read",
       hosts: ["desktop","obsidian"],

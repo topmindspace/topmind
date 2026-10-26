@@ -4,6 +4,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 
 import { SURFACE_REPOS as DL_REPOS, downloadCompanionAsset } from "../electron/lib/companion-download.mjs";
 import {
@@ -65,6 +66,7 @@ test("downloadCompanionAsset builds URLs against the surface repo", async () => 
     };
   };
   const result = await downloadCompanionAsset({
+    assets: [{ name: 'topmind-skills-4.9.0.zip', url: 'https://github.com/topmindspace/topmind-skills/releases/download/v4.9.0/topmind-skills-4.9.0.zip', digest: `sha256:${createHash('sha256').update(Buffer.from([0x50, 0x4b, 0x05, 0x06, ...new Array(18).fill(0)])).digest('hex')}` }],
     surface: "skills",
     version: "4.9.0",
     tag: "v4.9.0",

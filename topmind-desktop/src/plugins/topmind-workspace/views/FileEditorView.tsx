@@ -1147,6 +1147,8 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
     <div
       ref={editorRootRef}
       data-editor-mode={viewMode}
+      data-source-path={path}
+      data-save-state={saveState}
       className="v4-editor-shell flex h-full min-h-0 flex-col"
       data-content-width={contentWidth}
       data-page-padding={pagePadding}

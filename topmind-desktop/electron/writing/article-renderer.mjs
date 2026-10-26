@@ -1,0 +1,130 @@
+/** Portable host renderer. Canonical source: topmind-writing-skills. No IO or executable HTML. */
+export const WRITING_THEMES = Object.freeze({
+  'minimal-ink': { ink: '#252525', accent: '#955247', paper: '#ffffff', muted: '#666666' },
+  'tech-blue': { ink: '#172033', accent: '#0369a1', paper: '#ffffff', muted: '#536174' },
+  newsprint: { ink: '#24211c', accent: '#80502a', paper: '#fffdf8', muted: '#655f55' },
+  graphite: { ink: '#222222', accent: '#444444', paper: '#ffffff', muted: '#666666' },
+});
+export const WRITING_ACTIONS = Object.freeze([
+  { id: 'topmind-revise', zh: '改稿', en: 'Revise', prompt: '按 topmind-revise 审校当前内容，保留事实、数字、归因和作者原意。' },
+  { id: 'topmind-format', zh: '只排版', en: 'Format', prompt: '按 topmind-format 只调整当前内容的排版，不改写文字。' },
+  { id: 'topmind-briefs', zh: '短文', en: 'Brief', prompt: '按 topmind-briefs，基于当前材料写一篇信息清楚的短文。' },
+  { id: 'topmind-viral-posts', zh: '互动短帖', en: 'Social post', prompt: '按 topmind-viral-posts，基于当前材料写一条互动短帖。' },
+  { id: 'topmind-wechat-post', zh: '公众号', en: 'WeChat', prompt: '按 topmind-wechat-post，基于当前材料完成公众号稿，只出稿不代发。' },
+  { id: 'topmind-x-article', zh: 'X 长文', en: 'X Article', prompt: '按 topmind-x-article，基于当前材料完成 X 长文，只出稿不代发。' },
+  { id: 'topmind-cover', zh: '封面', en: 'Cover', prompt: '按 topmind-cover，为当前文章制作封面；先核对实际生图能力，缺少工具时说明。' },
+  { id: 'topmind-poster', zh: '长图', en: 'Poster', prompt: '按 topmind-poster，为当前内容制作信息长图；先核对实际渲染能力，缺少工具时保留 HTML 并说明。' },
+].map(action => ({ ...action, promptEn: `Use ${action.id} for the current document. Preserve source language, facts and author intent. Use only available tools; explain missing image or rendering capabilities. Draft and deliver only; do not publish.` })));
+const esc = value => String(value).replace(/[&<>"']/gu, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+export function stripFrontmatter(value) {
+  return String(value || '').replace(/^\uFEFF/u, '').replace(/\r\n?/gu, '\n').replace(/^---\n[\s\S]*?\n---(?:\n|$)/u, '');
+}
+export function resolveArticleImage(sourcePath, reference) {
+  if (!sourcePath || /[\\:]|^\//u.test(sourcePath) || /[\\:]|^\//u.test(reference)) throw new Error('Invalid workspace image path');
+  const parts = sourcePath.split('/').slice(0, -1);
+  for (const segment of reference.split('/')) {
+    if (!segment || segment === '.') continue;
+    if (segment === '..') { if (!parts.length) throw new Error('Image escapes workspace'); parts.pop(); }
+    else parts.push(segment);
+  }
+  return parts.join('/');
+}
+export async function prepareArticle(input, readImage) {
+  const images = Object.create(null);
+  for (const match of String(input.markdown).matchAll(/!\[[^\]]*\]\(([^\s)]+)(?:\s+"[^"]*")?\)/gu)) {
+    const source = match[1];
+    if (/^(https?:|data:)/iu.test(source) || Object.hasOwn(images, source)) continue;
+    try { images[source] = await readImage(resolveArticleImage(input.sourcePath, source)); }
+    catch { images[source] = ''; }
+  }
+  return renderArticle({ ...input, images });
+}
+function safeUrl(value, image = false) {
+  const url = String(value || '').trim();
+  if (/[\u0000-\u0020\u007f<>"']/u.test(url)) return null;
+  if (/^https?:\/\//iu.test(url)) return url;
+  if (!image && /^(mailto:|#)/iu.test(url)) return url;
+  if (image && /^data:image\/(png|jpe?g|gif|webp);base64,[a-z0-9+/=]+$/iu.test(url)) return url;
+  return null;
+}
+/** Render Markdown without interpreting raw HTML. Local image bytes must be supplied by the host. */
+export function renderArticle({ markdown = '', platform = 'wechat', theme = 'minimal-ink', title = '', images = {} } = {}) {
+  if (!['wechat', 'x', 'text'].includes(platform)) throw new Error('Unsupported delivery format');
+  if (!Object.hasOwn(WRITING_THEMES, theme)) throw new Error('Unknown writing theme');
+  const palette = WRITING_THEMES[theme];
+  const source = stripFrontmatter(markdown);
+  const diagnostics = [];
+  const imageList = [];
+  const footnotes = [];
+  const inline = raw => {
+    const stash = [];
+    const token = html => { stash.push(html); return `\u0001${stash.length - 1}\u0002`; };
+    // Remove control characters so a source cannot impersonate a stash token.
+    let value = String(raw).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/gu, '');
+    value = value.replace(/`([^`]+)`/gu, (_, code) => token(`<code style="font-family:monospace;background:#f1f1f1;padding:2px 4px;">${esc(code)}</code>`));
+    value = value.replace(/!\[([^\]]*)\]\(([^\s)]+)(?:\s+"[^"]*")?\)/gu, (_, alt, src) => {
+      const supplied = Object.hasOwn(images, src) ? images[src] : src;
+      const url = safeUrl(supplied, true);
+      const status = !url ? 'missing' : /^data:/iu.test(url) ? 'embedded' : 'remote';
+      imageList.push({ source: src, alt, status });
+      if (!url) { diagnostics.push({ code: 'image-unavailable', source: src }); return token(`<span style="color:${palette.muted};">[${esc(alt || src)}]</span>`); }
+      return token(`<img src="${esc(url)}" alt="${esc(alt)}" style="max-width:100%;height:auto;display:block;margin:18px auto;" />`);
+    });
+    value = value.replace(/\[([^\]]+)\]\(([^\s)]+)(?:\s+"[^"]*")?\)/gu, (_, label, rawUrl) => {
+      const url = safeUrl(rawUrl);
+      if (!url) { diagnostics.push({ code: 'unsafe-link' }); return token(esc(label)); }
+      if (platform === 'wechat' && /^https?:/iu.test(url)) {
+        footnotes.push(url);
+        return token(`${esc(label)}<sup>[${footnotes.length}]</sup>`);
+      }
+      return token(`<a href="${esc(url)}" style="color:${palette.accent};">${esc(label)}</a>`);
+    });
+    value = esc(value).replace(/\*\*([^*]+)\*\*/gu, '<strong>$1</strong>').replace(/__([^_]+)__/gu, '<strong>$1</strong>').replace(/(?<!\*)\*([^*]+)\*(?!\*)/gu, '<em>$1</em>').replace(/~~([^~]+)~~/gu, '<s>$1</s>');
+    return value.replace(/\u0001(\d+)\u0002/gu, (_, n) => stash[Number(n)] || '');
+  };
+  const lines = source.split('\n');
+  const out = [];
+  let paragraph = [];
+  const flush = () => { if (paragraph.length) out.push(`<p style="margin:0 0 18px;line-height:1.85;">${inline(paragraph.join('\n')).replace(/\n/gu, '<br />')}</p>`); paragraph = []; };
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (/^\s*```/u.test(line)) {
+      flush(); const language = line.trim().slice(3); const code = [];
+      while (++i < lines.length && !/^\s*```/u.test(lines[i])) code.push(lines[i]);
+      if (i === lines.length) diagnostics.push({ code: 'unclosed-code-fence' });
+      out.push(`<section style="font-family:monospace;white-space:pre-wrap;overflow-wrap:anywhere;background:#f4f4f4;padding:14px;margin:18px 0;">${esc(code.join('\n'))}</section>`);
+      if (language === 'mermaid') diagnostics.push({ code: 'diagram-source-only' });
+    } else if (/^#{1,6}\s/u.test(line)) {
+      flush(); const [, marks, text] = line.match(/^(#{1,6})\s+(.*)$/u);
+      out.push(`<h${Math.max(2, marks.length)} style="font-size:${marks.length < 3 ? 22 : 18}px;line-height:1.5;margin:28px 0 14px;color:${palette.accent};">${inline(text)}</h${Math.max(2, marks.length)}>`);
+    } else if (/^\s*([-*_])(?:\s*\1){2,}\s*$/u.test(line)) {
+      flush(); out.push('<hr style="border:0;border-top:1px solid #dddddd;margin:26px 0;" />');
+    } else if (/^\s*>/u.test(line)) {
+      flush(); const quote = [line.replace(/^\s*>\s?/u, '')];
+      while (i + 1 < lines.length && /^\s*>/u.test(lines[i + 1])) quote.push(lines[++i].replace(/^\s*>\s?/u, ''));
+      out.push(`<blockquote style="margin:18px 0;padding:10px 16px;border-left:3px solid ${palette.accent};color:${palette.muted};">${inline(quote.join('\n')).replace(/\n/gu, '<br />')}</blockquote>`);
+    } else if (/^\s*(?:[-+*]|\d+[.)])\s+/u.test(line)) {
+      flush(); const ordered = /^\s*\d/u.test(line); const tag = ordered ? 'ol' : 'ul'; const items = [line];
+      const re = ordered ? /^\s*\d+[.)]\s+/u : /^\s*[-+*]\s+/u;
+      while (i + 1 < lines.length && re.test(lines[i + 1])) items.push(lines[++i]);
+      out.push(`<${tag} style="padding-left:24px;margin:16px 0;">${items.map(item => `<li style="margin:8px 0;line-height:1.8;">${inline(item.replace(re, ''))}</li>`).join('')}</${tag}>`);
+    } else if (line.includes('|') && i + 1 < lines.length && /^\s*\|?\s*:?-{3,}/u.test(lines[i + 1])) {
+      flush(); const cells = row => row.trim().replace(/^\||\|$/gu, '').split('|').map(c => c.trim());
+      const head = cells(line); i++; const rows = [];
+      while (i + 1 < lines.length && lines[i + 1].trim() && lines[i + 1].includes('|')) rows.push(cells(lines[++i]));
+      const row = (values, tag) => `<tr>${values.map(cell => `<${tag} style="border:1px solid #dddddd;padding:8px;text-align:left;">${inline(cell)}</${tag}>`).join('')}</tr>`;
+      out.push(`<table style="border-collapse:collapse;width:100%;font-size:14px;margin:20px 0;"><thead>${row(head, 'th')}</thead><tbody>${rows.map(r => row(r, 'td')).join('')}</tbody></table>`);
+      if (platform === 'x') diagnostics.push({ code: 'table-paste-check' });
+    } else if (/^:::/u.test(line)) {
+      flush(); diagnostics.push({ code: 'container-as-text' }); paragraph.push(line);
+    } else if (!line.trim()) flush();
+    else paragraph.push(line);
+  }
+  flush();
+  if (footnotes.length) out.push(`<section style="font-size:13px;color:${palette.muted};margin-top:28px;">${footnotes.map((url, i) => `<p>[${i + 1}] ${esc(url)}</p>`).join('')}</section>`);
+  const text = source.trim();
+  const body = `<section style="color:${palette.ink};background:${palette.paper};font-family:-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;font-size:16px;line-height:1.85;overflow-wrap:anywhere;">${out.join('\n')}</section>`;
+  const html = `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https:; style-src 'unsafe-inline';"><title>${esc(title || '文章预览')}</title></head><body style="max-width:720px;margin:0 auto;padding:24px;">${body}</body></html>`;
+  const checklist = ['# 图片交付清单', '', '按正文出现顺序核对；内嵌不代表目标平台已托管或发布。', '', ...imageList.map((item, i) => `${i + 1}. ${item.status} · ${item.source.replace(/[\r\n]/gu, ' ')}`)].join('\n');
+  return { platform, theme, html, body, text, images: imageList, diagnostics, checklist };
+}

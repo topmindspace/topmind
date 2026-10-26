@@ -12,6 +12,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { createHash } from "node:crypto";
 import { replacePathAtomic, unpackArchive } from "./install-swap.mjs";
 
 const require = createRequire(import.meta.url);
@@ -140,6 +141,12 @@ export async function installSkillsPackLocal(source, opts = {}) {
     if (!(await isSkillsPackRoot(packRoot))) {
       return { ok: false, error: `not a skills pack: ${packRoot}` };
     }
+    let manifest = null;
+    try { manifest = JSON.parse(await fs.readFile(path.join(packRoot, "topmind-pack.json"), "utf8")); } catch { /* legacy bare skill */ }
+    if (opts.expectedVersion && manifest?.version !== opts.expectedVersion) return { ok: false, error: "pack version does not match requested release", claimedLatest: false };
+    if (!opts.dest && manifest?.name && /^[a-z0-9][a-z0-9-]*$/u.test(manifest.name)) {
+      return await installManagedPack(packRoot, manifest, opts);
+    }
     const dest = path.resolve(opts.dest || (await ensureSkillsExtraRoot()));
     await fs.mkdir(dest, { recursive: true });
 
@@ -234,6 +241,88 @@ export async function installSkillsPackLocal(source, opts = {}) {
   }
 }
 
+/** Immutable version directories + an atomic activation record keep in-flight resources stable. */
+async function installManagedPack(source, manifest, opts) {
+  if (manifest.runtime?.api > 1) return { ok: false, error: "pack requires a newer Desktop runtime", claimedLatest: false };
+  if (!/^\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?$/u.test(manifest.version || "")) return { ok: false, error: "invalid pack version" };
+  const parent = path.join(opts.managedRoot || await ensureSkillsExtraRoot(), "packs");
+  await fs.mkdir(parent, { recursive: true });
+  const slot = path.join(parent, manifest.name);
+  const lockPath = `${slot}.lock`;
+  let lock, stage;
+  try {
+    try { lock = await fs.open(lockPath, "wx"); }
+    catch (error) {
+      if (error.code !== "EEXIST") throw error;
+      const oldLock = JSON.parse(await fs.readFile(lockPath, "utf8"));
+      if (!Number.isInteger(oldLock.pid) || oldLock.pid <= 0) throw new Error("pack install already in progress");
+      try { process.kill(oldLock.pid, 0); throw new Error("pack install already in progress"); }
+      catch (probe) { if (probe.code !== "ESRCH") throw probe; }
+      await fs.rm(lockPath); lock = await fs.open(lockPath, "wx");
+    }
+    await lock.writeFile(JSON.stringify({ pid: process.pid }));
+    stage = await fs.mkdtemp(path.join(parent, ".prepare-"));
+    const digest = data => createHash("sha256").update(data).digest("hex");
+    const verify = async (root, entries) => {
+      const realRoot = await fs.realpath(root);
+      for (const [relative, expected] of Object.entries(entries || {})) {
+        if (!relative || path.isAbsolute(relative) || /\\|(^|\/)\.\.($|\/)/u.test(relative)) throw new Error("invalid pack resource path");
+        const absolute = await fs.realpath(path.join(root, relative));
+        if (!absolute.startsWith(`${realRoot}${path.sep}`)) throw new Error("pack resource escapes root");
+        if (digest(await fs.readFile(absolute)) !== expected) throw new Error(`modified pack resource: ${relative}`);
+      }
+    };
+    if (manifest.files) await verify(source, manifest.files);
+    let active = null;
+    try { active = JSON.parse(await fs.readFile(path.join(slot, "active.json"), "utf8")); } catch { /* first install */ }
+    if (active?.current) {
+      const oldRoot = resolveManagedVersion(slot, active.current);
+      const old = JSON.parse(await fs.readFile(path.join(oldRoot, "topmind-pack.json"), "utf8"));
+      await verify(oldRoot, old.files);
+    }
+    if (manifest.files) {
+      for (const relative of [...Object.keys(manifest.files), "topmind-pack.json"]) {
+        const target = path.join(stage, relative); await fs.mkdir(path.dirname(target), { recursive: true }); await fs.copyFile(path.join(source, relative), target);
+      }
+    } else await copyDirFiltered(source, stage);
+    const entries = await fs.readdir(stage);
+    if (!entries.some(id => manifest.entry_files?.includes(`${id}/SKILL.md`))) throw new Error("pack has no declared skills");
+    const relative = `versions/${manifest.version}-${digest(JSON.stringify(manifest)).slice(0, 16)}`;
+    const dest = resolveManagedVersion(slot, relative);
+    await fs.mkdir(path.dirname(dest), { recursive: true });
+    await fs.writeFile(path.join(stage, RECEIPT_NAME), JSON.stringify({ installedAt: new Date().toISOString(), dest, entries, version: manifest.version, name: manifest.name }) + "\n");
+    if (opts.copyImpl) { const probe = `${stage}-probe`; try { await opts.copyImpl(stage, probe); } finally { await fs.rm(probe, { recursive: true, force: true }); } }
+    if (await pathExists(dest)) await verify(dest, manifest.files);
+    else await fs.rename(stage, dest);
+    const record = { current: relative, previous: active?.current && active.current !== relative ? active.current : active?.previous || null, version: manifest.version };
+    const temp = path.join(slot, `.active-${process.pid}.json`);
+    await fs.writeFile(temp, JSON.stringify(record) + "\n");
+    await fs.rename(temp, path.join(slot, "active.json"));
+    return { ok: true, dest, installed: entries, version: manifest.version, name: manifest.name };
+  } catch (error) { return { ok: false, error: error instanceof Error ? error.message : String(error), claimedLatest: false }; }
+  finally { if (stage) await fs.rm(stage, { recursive: true, force: true }); if (lock) { await lock.close(); await fs.rm(lockPath, { force: true }); } }
+}
+
+function resolveManagedVersion(slot, relative) {
+  if (!/^versions\/[A-Za-z0-9.-]+$/u.test(relative || "")) throw new Error("invalid active pack path");
+  return path.join(slot, relative);
+}
+
+export async function restoreBundledWriting(opts = {}) {
+  const slot = path.join(opts.managedRoot || getSkillsExtraRoot(), "packs", "topmind-writing-skills");
+  await fs.mkdir(slot, { recursive: true });
+  let lock;
+  try {
+    lock = await fs.open(`${slot}.lock`, "wx");
+    await lock.writeFile(JSON.stringify({ pid: process.pid }));
+    const temp = path.join(slot, `.active-${process.pid}.json`);
+    await fs.writeFile(temp, JSON.stringify({ current: null, previous: null }) + "\n");
+    await fs.rename(temp, path.join(slot, "active.json"));
+    return { ok: true };
+  } catch { return { ok: false, error: "pack install in progress or activation is not writable" }; }
+  finally { if (lock) { await lock.close(); await fs.rm(`${slot}.lock`, { force: true }); } }
+}
+
 /**
  * Extract a zip or tar.gz. Windows uses PowerShell when unzip is not on PATH.
  * @param {string} zipPath
@@ -255,7 +344,14 @@ async function extractZipToDir(zipPath, destDir, opts = {}) {
  * @param {string} [dest]
  */
 export async function readSkillsExtraReceipt(dest) {
-  const root = path.resolve(dest || getSkillsExtraRoot());
+  let root = path.resolve(dest || getSkillsExtraRoot());
+  try {
+  if (await pathExists(path.join(root, "active.json"))) {
+    const active = JSON.parse(await fs.readFile(path.join(root, "active.json"), "utf8"));
+    if (!active.current) return null;
+    root = resolveManagedVersion(root, active.current);
+  }
+  } catch { return null; }
   const file = path.join(root, RECEIPT_NAME);
   try {
     const raw = await fs.readFile(file, "utf8");

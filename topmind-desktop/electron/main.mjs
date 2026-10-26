@@ -37,7 +37,6 @@ import { ToolService } from "./tool-service.mjs";
 import { WereadService } from "./weread-service.mjs";
 import { XService } from "./x-service.mjs";
 import { IngestService } from "./ingest-service.mjs";
-import { WechatService } from "./wechat-service.mjs";
 import { logInfo, logWarn, logError, attachFileLogger, getLogFilePath, summarizeError } from "./lib/writeback.mjs";
 import { attachOpsJournal } from "./lib/ops-journal.mjs";
 import { pruneRegenerableCaches } from "./lib/fs-utils.mjs";
@@ -233,7 +232,6 @@ const services = {
   weread: WereadService,
   x: XService,
   ingest: IngestService,
-  wechat: WechatService,
 };
 
 // Shared context for all RPC handlers. `emit` is bound to the main window so

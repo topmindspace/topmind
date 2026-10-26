@@ -50,6 +50,7 @@
 | [`DESIGN.md`](../DESIGN.md) | **产品交互设计规范** | 约束用户概念 <= 5，定义"记一下/动态/专题/我的情况/交付" |
 | [`SECURITY.md`](../SECURITY.md) | **安全与密钥边界** | 约定 API Key 本地明文存储规范、无遥测声明、网络范围 |
 | [`AGENTS.md`](../AGENTS.md) | **Agent 行为纪律真源** | 定义质量门顺序、死代码检测、多表面版本发布策略 |
+| [`写作整合与安装升级设计`](./WRITING-INTEGRATION-AND-UPDATES-2026-10-26.md) | **实施架构与验证记录** | 写作包默认随包、两端交付、公众号迁移、组件与本体升级、分阶段验收 |
 
 ---
 
@@ -70,7 +71,6 @@
 | [`UIUX-AUDIT-2026-09-01.md`](./UIUX-AUDIT-2026-09-01.md) | 历史锚点；现行 IA 见 `topmind-desktop/DESIGN.md` |
 | [`suite-review-2026-09-24.md`](./suite-review-2026-09-24.md) | 套件评审快照（2026-09-24） |
 | [`AI-AGENT-PLATFORM-REMEDIATION-2026-09-25.md`](./AI-AGENT-PLATFORM-REMEDIATION-2026-09-25.md) | 智能体平台整改波次记录（已收官） |
-| [`wechat-studio-DESIGN.md`](./wechat-studio-DESIGN.md) | 实验页已删；公众号能力在写作包 topmind-writing-skills 的 `topmind-wechat-post`（旧名 `topmind-wechat`） |
 | monorepo `docs/design/UIUX-MD3-TRANSFORMATION-2026-09.md` | **SUPERSEDED** append-log；真源 `topmind-desktop/DESIGN.md` |
 | monorepo `docs/design/UIUX-MUSE-CUE-BENCHMARK-2026-09.md` | **SUPERSEDED** append-log（含十七–十九次波次） |
 | monorepo `docs/research-ui-ux-md3-2026-09.md` | 外部调研输入（历史） |

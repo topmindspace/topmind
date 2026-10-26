@@ -161,7 +161,7 @@ test("skills-disabled prompt strips skill tools the model cannot call", () => {
 test("name list source stays the single advertised Desktop catalog", () => {
   assert.match(namesSrc, /export const AI_TOOL_NAMES_READ/);
   assert.match(namesSrc, /export const AI_TOOL_NAMES_WRITE/);
-  assert.equal(AI_TOOL_NAMES_READ.length, 22);
+  assert.equal(AI_TOOL_NAMES_READ.length, 23);
   assert.equal(AI_TOOL_NAMES_WRITE.length, 25);
   assert.ok(AI_TOOL_NAMES_READ.includes("web_search"));
   assert.ok(AI_TOOL_NAMES_WRITE.includes("capture_url"));
@@ -179,15 +179,15 @@ test("name list source stays the single advertised Desktop catalog", () => {
   assert.ok(AI_TOOL_NAMES_WRITE.includes("copy_file"));
 });
 
-test("living docs state the 21+24=45 totals (no stale 36/38/39)", () => {
+test("living docs state the 23+25=48 totals (no stale 36/38/39)", () => {
   const toolsMd = readFileSync(path.resolve(root, "../TOOLS.md"), "utf8");
   const arch = readFileSync(path.join(root, "ARCHITECTURE.md"), "utf8");
-  assert.match(toolsMd, /22 read \+ 25 write = 47/);
+  assert.match(toolsMd, /23 read \+ 25 write = 48/);
   assert.doesNotMatch(toolsMd, /22 read \+ 24 write = 46/);
   assert.doesNotMatch(toolsMd, /19 read \+ 20 write = 39/);
   assert.doesNotMatch(toolsMd, /18 read \+ 20 write = 38/);
   assert.doesNotMatch(toolsMd, /18 read \+ 18 write = 36/);
-  assert.match(arch, /47 named tools/);
+  assert.match(arch, /48 named tools/);
   assert.match(arch, /RESTORE\/COMPACT-HISTORY/);
   assert.doesNotMatch(arch, /46 named tools/);
   assert.doesNotMatch(arch, /36 named tools/);

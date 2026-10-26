@@ -11,10 +11,10 @@ import { createWechatStatusBarSlot } from "./status-bar-slot";
 
 export const manifest = {
   id: "topmind-wechat",
-  name: "公众号创作",
+  name: "写作与交付",
   nameKey: "wechat:name",
-  version: "1.0.0",
-  description: "公众号选题包 → 改稿 → 质检 → 排版 → 导出",
+  version: "1.1.0",
+  description: "当前文档 → 写作动作 → 平台排版 → 复制与导出",
   descriptionKey: "wechat:manifestDescription",
   icon: "file-text",
   settingsKey: "wechat",

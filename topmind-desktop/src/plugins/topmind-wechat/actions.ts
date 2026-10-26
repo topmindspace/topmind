@@ -6,7 +6,7 @@ export function createWechatActions(_ctx: PluginContext): ActionSlot[] {
     {
       kind: "action",
       id: WECHAT_CHROME_IDS.action,
-      label: "WeChat Studio",
+      label: "Writing & delivery",
       labelKey: "wechat:name",
       icon: "file-text",
       group: "navigate",

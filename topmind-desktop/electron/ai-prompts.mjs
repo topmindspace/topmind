@@ -66,6 +66,7 @@ function promptCopy(locale) {
       toolsSection: [
         "",
         "## Tools (by workflow stage)",
+        "- `render_article`: deterministic local WeChat/X/text typography from a workspace Markdown source; returns HTML, text, image checklist and diagnostics without changing or publishing the source.",
         "### Skills",
         "- `list_skills` / `load_skill` / `load_skill_resource`: skill discovery and activation (routing entry)",
         "### Capture",
@@ -180,6 +181,7 @@ function promptCopy(locale) {
     toolsSection: [
       "",
       "## 工具（按工作流阶段）",
+      "- `render_article`：从工作区 Markdown 源稿生成公众号/X/文本排版，返回 HTML、文本、图片清单和诊断，不修改源稿、不发布。",
       "### Skills",
       "- `list_skills` / `load_skill` / `load_skill_resource`：技能发现与激活（路由起点）",
       "### 收集",

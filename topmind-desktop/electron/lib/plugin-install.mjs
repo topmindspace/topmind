@@ -251,6 +251,11 @@ export async function previewPluginFromFolder(sourceDir, opts = {}) {
 
 async function extractZipToTemp(zipPath) {
   const abs = path.resolve(zipPath);
+  if (await pathExists(abs)) {
+    const { validateArchive } = await import("./archive-guard.mjs");
+    const inspected = await validateArchive(abs);
+    if (!inspected.ok) return inspected;
+  }
   if (!(await pathExists(abs))) {
     return { ok: false, error: `zip not found: ${abs}` };
   }

@@ -3,8 +3,11 @@
  * Settings routed through settings.mjs (safeStorage-encrypted + workspace history).
  */
 import { createRequire } from "node:module";
+import { spawnSync } from "node:child_process";
 const require = createRequire(import.meta.url);
 const { shell, dialog, app } = require("electron");
+import { createDesktopUpdater } from "./lib/desktop-updater.mjs";
+let nativeDesktopUpdater = null;
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import os from "node:os";
@@ -423,20 +426,10 @@ export const SystemService = {
           engineRoot,
           desktopStateHome: desktopStateHome || undefined,
         });
-        // Skills: pick the highest installed version across all agent hosts
-        const agentHosts = companionStatus?.agents || [];
-        const installedVersions = agentHosts
-          .filter((a) => a.installed && a.installedVersion)
-          .map((a) => String(a.installedVersion).replace(/^v/i, ""))
-          .sort((a, b) => {
-            // descending — highest first
-            const [aMajor, aMinor, aPatch] = a.split(".").map(Number);
-            const [bMajor, bMinor, bPatch] = b.split(".").map(Number);
-            if (bMajor !== aMajor) return bMajor - aMajor;
-            if (bMinor !== aMinor) return bMinor - aMinor;
-            return bPatch - aPatch;
-          });
-        skillsInstalled = installedVersions[0] || null;
+        // Compare the core actually used by this Desktop, not an unrelated agent host.
+        const { readSkillsExtraReceipt, getSkillsExtraRoot } = await import("./lib/skills-extra.mjs");
+        const receipt = await readSkillsExtraReceipt(path.join(getSkillsExtraRoot(), "packs", "topmind"));
+        skillsInstalled = receipt?.version || null;
         // Clip extension (managed dir)
         extensionInstalled = companionStatus?.clip?.version || null;
         // Obsidian plugin (vault)
@@ -526,6 +519,23 @@ export const SystemService = {
         },
       };
     }
+  },
+  async desktopUpdate({ action = "status" } = {}) {
+    if (!nativeDesktopUpdater) {
+      let supported = Boolean(app.isPackaged);
+      if (process.platform === "darwin" && supported) {
+        const signature = spawnSync("codesign", ["-dv", "--verbose=2", process.execPath], { encoding: "utf8" });
+        supported = signature.status === 0 && /Authority=/u.test(signature.stderr || "");
+      }
+      if (process.platform === "linux" && !process.env.APPIMAGE) supported = false;
+      const updater = supported ? require("electron-updater").autoUpdater : null;
+      nativeDesktopUpdater = createDesktopUpdater(updater, { packaged: supported });
+    }
+    if (action === "install") {
+      const result = await dialog.showMessageBox({ type: "question", buttons: ["稍后 / Later", "重启并安装 / Restart and install"], defaultId: 0, cancelId: 0, message: "保存工作后重启 topmind 安装更新？ / Save your work, then restart topmind to install?" });
+      if (result.response !== 1) return nativeDesktopUpdater.run("status");
+    }
+    return nativeDesktopUpdater.run(action);
   },
 
   /** Open the release page or a specific installer / pack download in the system browser. */
@@ -1056,6 +1066,7 @@ export const SystemService = {
       dest: dest || undefined,
     });
     if (!result.ok) throw new Error(result.error || "skills install failed");
+    (await import("./lib/skills-runtime.mjs")).invalidateSkillsCache();
     logInfo("system", "skills pack installed to extra root", {
       dest: result.dest,
       count: result.installed?.length,
@@ -1066,6 +1077,13 @@ export const SystemService = {
   async ensureSkillsExtraDir(_p, _ctx) {
     const root = await ensureSkillsExtraRoot();
     return { ok: true, path: root };
+  },
+  async restoreBundledWriting() {
+    const { restoreBundledWriting } = await import("./lib/skills-extra.mjs");
+    const result = await restoreBundledWriting();
+    if (!result.ok) throw new Error(result.error);
+    (await import("./lib/skills-runtime.mjs")).invalidateSkillsCache();
+    return result;
   },
 
   async openSkillsExtraDir(_p, _ctx) {
@@ -1706,9 +1724,9 @@ export const SystemService = {
     const applied = await withCompanionDownload(
       { surface, version, tag, assets },
       async (dlResult) => {
-        if (surface === "skills") {
+        if (surface === "skills" || surface === "writing") {
           const { installSkillsPackLocal } = await import("./lib/skills-extra.mjs");
-          const result = await installSkillsPackLocal(dlResult.zipPath || dlResult.packageDir);
+          const result = await installSkillsPackLocal(dlResult.zipPath || dlResult.packageDir, { expectedVersion: version });
           if (!result.ok) return { ...result, ok: false, claimedLatest: false };
           if (hostId) {
             const hostResult = await installSkillsToHost({
@@ -1734,9 +1752,11 @@ export const SystemService = {
           if (!versionsMatch(result.version, version)) {
             return { ok: false, claimedLatest: false, error: "installed skills receipt does not match the resolved version" };
           }
+          const runtime = await import("./lib/skills-runtime.mjs");
+          runtime.invalidateSkillsCache();
           return {
             ok: true,
-            surface: "skills",
+            surface,
             version: result.version,
             dest: result.dest,
             installed: result.installed,

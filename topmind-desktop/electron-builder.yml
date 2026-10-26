@@ -66,7 +66,10 @@ extraResources:
     to: topmind-engine
 
 # GitHub Releases are assembled by Actions (softprops), not electron-builder publish
-publish: null
+publish:
+  provider: github
+  owner: topmindspace
+  repo: topmind
 
 asar: true
 
@@ -92,7 +95,7 @@ mac:
 dmg:
   title: topmind ${version}
   # Skip fancy background if assets missing
-  writeUpdateInfo: false
+  writeUpdateInfo: true
 
 linux:
   category: Office

@@ -34,7 +34,7 @@
     "topmind-weread.settings": "API Key、同步类别与预算 · Key 加密存储",
     "topmind-x.settings": "Bearer 只读 + 本机 xurl 发帖",
     "topmind-ledger.settings": "按角色记账 · 账本在记忆平面 ledgers/",
-    "topmind-wechat.settings": "公众号选题包 · 改稿 · 质检 · 排版导出",
+    "topmind-wechat.settings": "当前文档 · 写作 · 排版与交付",
     "integrations": "已并入「扩展与集成」",
     "diagnostics": "已并入「关于与更新」"
   },
@@ -485,7 +485,22 @@
     "doctorPassed": "通过",
     "doctorErrors": "{{count}} 错误",
     "doctorError": "诊断失败：{{error}}",
-    "footerHelp": "本地优先 · Graphite · Tiptap · AI SDK · 1 RPC · 3 Store"
+    "footerHelp": "本地优先 · Graphite · Tiptap · AI SDK · 1 RPC · 3 Store",
+    "surfaceWriting": "写作技能",
+    "downloadApp": "下载应用更新",
+    "restartInstall": "重启并安装",
+    "manualFallback": "自动更新失败，请使用旁边的下载入口手动安装。",
+    "updaterPhases": {
+      "idle": "尚未检查",
+      "checking": "正在检查",
+      "available": "有可用更新",
+      "current": "当前版本已是最新",
+      "downloading": "正在下载",
+      "ready": "已下载，等待重启",
+      "restarting": "正在交接重启",
+      "error": "更新失败"
+    },
+    "restoreWriting": "恢复内置写作版本"
   },
   "plugins": {
     "titleLoaded": "已加载",

@@ -47,6 +47,7 @@ const DEFAULT_REPO = "topmindspace/topmind";
 /** Per-surface GitHub repos after the three-repo split. */
 export const SURFACE_REPOS = {
   desktop: "topmindspace/topmind",
+  writing: "topmindspace/topmind-writing-skills",
   extension: "topmindspace/topmind",
   skills: "topmindspace/topmind-skills",
   obsidian: "topmindspace/topmind-obsidian",
@@ -341,6 +342,7 @@ export function pickAssets(release, platform, arch) {
       size: a.size,
       url: a.browser_download_url,
       contentType: a.content_type,
+      digest: a.digest || null,
     }));
 }
 
@@ -358,6 +360,7 @@ function mapNamedAssets(assets, re) {
       size: a.size,
       url: a.browser_download_url || a.url || null,
       contentType: a.content_type,
+      digest: a.digest || null,
     }));
 }
 
@@ -382,12 +385,13 @@ export function pickPackAssets(release, surface) {
           size: a?.size,
           url: a?.browser_download_url || a?.url || null,
           contentType: a?.content_type,
+          digest: a?.digest || null,
         };
       });
     }
     return [];
   }
-  const re = surface === "skills" ? /^topmind-skills-\d/i : /^topmind-clip-extension-\d/i;
+  const re = surface === "writing" ? /^topmind-writing-skills-\d/i : surface === "skills" ? /^topmind-skills-\d/i : /^topmind-clip-extension-\d/i;
   const mapped = mapNamedAssets(assets, re).filter((a) =>
     /\.(zip|tar\.gz|tgz)$/i.test(String(a.name || "")),
   );
@@ -834,6 +838,7 @@ function syntheticReleaseFromLatest(latest, repoName) {
           size: a.size || 0,
           browser_download_url: a.browser_download_url || a.url || null,
           content_type: a.content_type,
+          digest: a.digest || null,
         }))
     : [];
   return {
@@ -1177,6 +1182,7 @@ export async function checkAllSurfaces(opts = {}) {
     ok: true,
     ...desktop,
     desktop,
+    writing: await checkWritingUpdate({ ...opts, fetchImpl }),
     skills: buildSurface("skills", currentSkills, skillsPickResolved, {
       bundledVersion: skillsBundled,
     }),
@@ -1200,6 +1206,23 @@ export async function checkAllSurfaces(opts = {}) {
       obsidianIsVaultPlugin: true,
     },
   };
+}
+
+/** Independent writing releases; never interpret their tags as Desktop/core versions. */
+export async function checkWritingUpdate(opts = {}) {
+  const { default: bundled } = await import("../data/writing-pack.json", { with: { type: "json" } });
+  const { readSkillsExtraReceipt, getSkillsExtraRoot } = await import("./skills-extra.mjs");
+  const receipt = await readSkillsExtraReceipt(path.join(getSkillsExtraRoot(), "packs", "topmind-writing-skills"));
+  const current = opts.writingVersion || receipt?.version || bundled.version;
+  const repo = SURFACE_REPOS.writing;
+  const base = { surface: "writing", repo, currentVersion: current, bundledVersion: bundled.version, updateAvailable: false, assets: [], checkedAt: new Date().toISOString() };
+  try {
+    const stamp = await fetchPublicLatestJson({ repo, fetchImpl: opts.fetchImpl, retries: 0, timeoutMs: opts.timeoutMs || 8000 });
+    if (!stamp?.version) return { ...base, ok: false, reason: "network" };
+    const release = syntheticReleaseFromLatest({ ...stamp, tag: stamp.tag || `v${stamp.version}` }, repo);
+    const assets = pickPackAssets(release, "writing");
+    return { ...base, ok: true, latestVersion: stamp.version, tagName: release.tag_name, releaseUrl: `https://github.com/${repo}/releases/tag/${release.tag_name}`, assets, updateAvailable: assets.length > 0 && compareSemver(stamp.version, current) > 0, reason: assets.length ? reasonFor(current, stamp.version) : "asset-not-found" };
+  } catch (error) { return { ...base, ok: false, reason: "network", error: error instanceof Error ? error.message : String(error) }; }
 }
 
 /** Running app version from Electron when available. */

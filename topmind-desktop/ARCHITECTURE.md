@@ -115,7 +115,7 @@ contextBridge.exposeInMainWorld('topmind', {
 | `ai-prompts.mjs` | **skill-first 协议** + Skills Discovery 目录 + 真实 tool 名 |
 | `lib/skills-runtime.mjs` | engine `skills/` + `ai.extraSkillsRoots` / `topmind_SKILLS_EXTRA`（catalog / body / resource） |
 | `lib/skills-extra.mjs` | Desktop 管理目录 `skills-extra/` 安装 · 回执 · pack summary |
-| `ai-tools.mjs` | 47 named tools（Kernel `../lib/agent-tool-catalog.mjs` 真源，`lib/ai-tool-names.mjs` 生成快照：skills · browse · windowed read/search · fs list/glob/stat · todos · recent memories · memory ADD/UPDATE/RETIRE/RESTORE/COMPACT-HISTORY · writeback writes）；Pi `read`/`write`/`edit`/`grep`/`list`/`glob`/`stat`/`mkdir`/`mv`/`cp`/`rm` 为围栏别名，无 bash |
+| `ai-tools.mjs` | 48 named tools（Kernel `../lib/agent-tool-catalog.mjs` 真源，`lib/ai-tool-names.mjs` 生成快照：skills · browse · windowed read/search · fs list/glob/stat · todos · recent memories · memory ADD/UPDATE/RETIRE/RESTORE/COMPACT-HISTORY · writeback writes）；Pi `read`/`write`/`edit`/`grep`/`list`/`glob`/`stat`/`mkdir`/`mv`/`cp`/`rm` 为围栏别名，无 bash |
 | `ai-stream.mjs` | **fallback** loop when Pi module fails to load：`streamText` + tool-call/result + **prepareStep steer** + **~16ms text/reasoning delta 合流** |
 | `lib/stream-delta-coalesce.mjs` | 纯合流缓冲：帧级节流 IPC；非 delta 事件先 flush |
 | `ai-service.mjs` `complete` | 行内 one-shot（无 tools）；`sanitizeInlineAiResult` 剥离思考标签/元话术后再返回 |
@@ -572,7 +572,7 @@ UI：消息内 **tool timeline**；输入区 Skill 芯片 + Agent 开关；会�
 
 ### 契约（`src/plugins/types.ts`）
 
-**7 种槽位类型**驱动整个 Shell（`sidebar` 槽位已删除 2026-08-30——插件 chrome 入口统一在 AI 工作区 **应用** pane）。可选记账 `topmind-ledger` 走 OverlaySlot `plugin-app`（看板 / 流水 / 分类 / 快捷记账），可选公众号创作 `topmind-wechat` 走 OverlaySlot `plugin-app`（包列表 / 改稿 / 质检 / 排版导出），**不是** PrimaryNav / 第六用户概念。
+**7 种槽位类型**驱动整个 Shell（`sidebar` 槽位已删除 2026-08-30——插件 chrome 入口统一在 AI 工作区 **应用** pane）。可选记账 `topmind-ledger` 走 OverlaySlot `plugin-app`（看板 / 流水 / 分类 / 快捷记账），写作与交付保留兼容 id `topmind-wechat`，走 OverlaySlot `plugin-app`（当前源稿 / 写作动作 / 平台预览 / 复制导出），**不是** PrimaryNav / 第六用户概念。
 
 | 槽位 | UI 呈现位置 | 说明 |
 |------|------------|------|
@@ -859,3 +859,9 @@ pack:verify → asar 入口 / zod / engine / monorepo-import 禁令
 工具 schema / 双语说明 / 读写分类以主仓 `lib/agent-tool-catalog.mjs` 为真源，预算与写回文案以 `lib/agent-policy.mjs` 为真源；`npm run sync:agent-contract` 更新 Desktop 的纯模块快照，根 `check:agent-contract` 防漂移。`ai-tools.mjs` 只绑定 AI SDK schema 与 Desktop 执行器；Obsidian 按宿主能力消费同一契约。
 
 通用文件工具的语义记忆围栏改用 Kernel `agent-tool-policy.mjs`，旧 Desktop `memory-fence.mjs` 已移除。待确认操作由 Kernel `pending-writes.mjs` 执行，Desktop 模块只解析 WorkspaceContext 并异步调用。确认删除执行真实删除；冲突/失败保留队列，成功后移除。状态 I/O 通过 `workspace-state.mjs` 原子替换，工作区每次显式传入，不使用全局队列缓存。该共享不替代宿主自己的会话存储、网络传输和 UI 生命周期。
+
+## 独立写作包与更新
+
+`electron/data/writing-pack.json` 和两端排版模块是 `npm run sync:writing` 从独立写作仓生成的发行快照；构建不动态读取姊妹源码。`npm run check:writing` 用于显式跨仓对齐。正文与资源按包解析，受管更新安装到 skills-extra/packs/<name>/，整包校验并替换；安装回执与 shared 不再跨包共用。
+
+`render_article` 使用同源排版模块和 WorkspaceService 围栏读取文件，返回真实诊断；内容写入仍通过现有保存工具。排版代码不从下载技能中动态执行。Desktop 本体更新由 electron-updater 负责下载、就绪与重启交接；发布上传 latest*.yml 与 blockmap，手动渠道保持可用。

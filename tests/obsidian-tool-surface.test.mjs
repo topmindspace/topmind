@@ -15,7 +15,7 @@ test("Obsidian catalog exposes its supported tools and preserves legacy calls", 
     "list_recent_stream", "list_pending_writes",
     "list_files", "stat_path",
     "glob_files", "workspace_health", "web_search", "fetch_url", "capture_url", "list_skills", "load_skill",
-    "read_file", "save_file", "save_note", "edit_file", "capture_to_inbox",
+    "read_file", "render_article", "save_file", "save_note", "edit_file", "capture_to_inbox",
     "add_todo", "toggle_todo", "update_todo", "set_todo_due", "delete_todo",
     "append_stream_entry",
     "delete_path", "rename_path",
@@ -32,6 +32,6 @@ test("Obsidian catalog exposes its supported tools and preserves legacy calls", 
   }
   // Desktop is the current execution superset; Obsidian has a reviewed proposal tool.
   assert.ok(names.has("propose_memory_change"));
-  assert.equal(AI_TOOL_NAMES_READ.length, 22);
+  assert.equal(AI_TOOL_NAMES_READ.length, 23);
   assert.equal(AI_TOOL_NAMES_WRITE.length, 25);
 });

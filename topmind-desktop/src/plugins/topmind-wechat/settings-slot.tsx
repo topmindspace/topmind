@@ -3,16 +3,16 @@ import type { PluginContext, SettingsSlot } from "../types";
 import type { AppSettings } from "../../types";
 import { SwitchField, Field, SettingsSection } from "../../components/settings/fields";
 import { Button } from "../../components/ui/Button";
-import { Input } from "../../components/ui/Input";
 import { useViewStore } from "../../stores/view-store";
 import { WECHAT_PLUGIN_ID, PLUGIN_APP_KIND } from "../../lib/plugin-launcher";
-import { WECHAT_THEME_IDS } from "../../lib/wechat-format";
+import { WRITING_THEMES } from "../../generated/writing/article-renderer.mjs";
+const WECHAT_THEME_IDS = Object.keys(WRITING_THEMES);
 
 export function createWechatSettingsSlot(_ctx: PluginContext): SettingsSlot {
   return {
     kind: "settings",
     id: "topmind-wechat.settings",
-    label: "WeChat",
+    label: "Writing",
     labelKey: "wechat:name",
     icon: "file-text",
     order: 221,
@@ -61,13 +61,6 @@ function WechatPanel({
               </button>
             ))}
           </div>
-        </Field>
-        <Field label={t("wechat:settings.packageRoot")} description={t("wechat:settings.packageRootDesc")}>
-          <Input
-            value={w.packageRoot || ""}
-            placeholder={t("wechat:settings.packageRootPlaceholder")}
-            onChange={(e) => update({ wechat: { ...w, packageRoot: e.target.value } })}
-          />
         </Field>
         <Button
           variant="secondary"

@@ -6,6 +6,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
+import { createHash } from "node:crypto";
+import JSZip from "jszip";
 import { mkdtemp, readFile, writeFile, mkdir } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -266,7 +268,7 @@ test("404 and hash mismatch do not report a successful download", async () => {
       version: "4.18.2",
       tag: "4.18.2",
       tempDir: okDir,
-      assets: obsidianRelease.assets.map((a) => ({ name: a.name, url: a.browser_download_url })),
+      assets: obsidianRelease.assets.map((a) => ({ name: a.name, url: a.browser_download_url, digest: `sha256:${createHash('sha256').update('x').digest('hex')}` })),
       fetchImpl: async (url) => {
         urls.push(String(url));
         return { ok: true, status: 200, body: readerFrom(Buffer.from("x")) };
@@ -359,7 +361,8 @@ test("locked or failed replace leaves the previous plugin and skills receipt", a
 test("windows unpack uses PowerShell when unzip is absent", async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), "tm-unpack-"));
   const archive = path.join(dir, "topmind-skills-4.14.0.zip");
-  await writeFile(archive, "zip-bytes", "utf8");
+  const zip = new JSZip(); zip.file("topmind-pack.json", JSON.stringify({ version: "4.14.0" }));
+  await writeFile(archive, await zip.generateAsync({ type: "nodebuffer" }));
   const dest = path.join(dir, "out");
   const calls = [];
   const result = await unpackArchive(archive, dest, {

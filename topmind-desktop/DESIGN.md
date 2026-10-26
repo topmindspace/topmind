@@ -232,16 +232,15 @@ ActivityBar（最左 48px · 三分组）：
 - **一站式界面（4.1）**：顶栏账本 chips + 当前余额；**常驻** `AI 一句话 | 表单` 记账区（AI 不完整 → 解析预览 + 预填表单）；表单收支 segmented + **分类 chips**；看板三卡 + 最近流水；次级 tab：看板 / 流水（分类筛选）/ 分类管理。「记一下」/动态 composer 仍可经 `LedgerQuickEntry` 注入。
 - **NL**：记账 / 记一笔 / 花了 / 存入；读：查看账单 / 账户余额。未点名账本落到默认个人本，不发明 ClassFund / Giggs / Mom。
 
-### 可选公众号创作（wechat mini-app · 非第六用户概念）
+### 写作与交付（兼容插件 id topmind-wechat）
 
-- **存储**：契约类别交付包 `{packageRoot}/YYYY-MM-DD-短名/公众号稿.md`（默认 `40-创作/YYYY-公众号/`）。写回仅 `api.ws.save` / `rename` / `readBinary`。
-- **入口**（`settings.wechat.enabled`，默认开）：AI 工作区 · 应用 pane · StatusBar chip · ⌘K「公众号创作」。**不是** PrimaryNav。
-- **壳层（DS 4.2 · 对齐 ledger）**：`v4-plugin-app-panel` 浅遮罩 · header（icon chip + title/subtitle + close）· 四步 stepper（包列表 / 改稿 / 质检 / 排版）· **布局吸顶条** `ConnectorToastBanner` · step 感知 body（edit/preview **填满**，packages/quality 滚动）。
-- **CTA 权重**：每步一个 default（新建 / 保存 / 去排版 / 导出）；复制·去味·定稿 ghost/outline；定稿前 `ConfirmDialog`。
-- **交互**：脏稿 `setOverlayCloseGuard` · ⌘S · 进步聚焦 · 包搜索 + 缺稿 pill · 改稿插入 `::: stat/pull/warn/note`。
-- **闭环**：质检三关（文字分 / lint / 事实逻辑）→ 预览（与复制同源 embed）→ `{slug}-公众号版.html` + `图片上传清单.md` → 定稿更新 `current` 路径。
-- **导出真源旁路**：`WechatService.exportViaScript` 在 skill `md2wechat.py` + Python 可用时优先；否则内置约束子集。lint/AI 文案走 `messageKey`/`nameKey` i18n。
-- **工具 chip + 回执**：header `ConnectorToolChip`（skill / Python）；脚本 stdout「合规自检 / 图片内嵌」解析进 sticky 状态条；去味后自动跳质检。
+- 默认提供八个写作动作，接入现有 AI 工作区；不增加八个应用或主导航概念。
+- 当前 Markdown 是源稿，主编辑器负责内容；交付面板只处理格式、主题、预览、复制和导出。
+- 桌面宽度并列源稿/格式/主题，窄屏折叠；动作自然换行，预览独立滚动，错误与真实路径可见。
+- 公众号/X/文本共用写作仓维护的纯排版模块，无 Python 探测、综合评分或独立包列表。预览与复制同源，HTML 在禁止脚本的 iframe 中展示。
+- 保留 `settings.wechat.enabled`、主题与公开命令 id；旧 packageRoot 配置留存兼容，新的导出从当前源稿定位，不批量迁移文章。
+- 导出使用 `api.ws.save` 写回源稿旁的 out/；复制与导出前重新核对源稿。缺图/扩展格式显示限制，不伪造完整交付。
+- 更新入口显示运行、生效与 bundled 版本，写作包独立更新；Desktop 下载和重启安装分开，正在运行 AI 任务时禁用重启入口。
 
 ### 长文大纲目录（EditorOutlinePanel · ⌘⌥O / Ctrl+Alt+O）
 

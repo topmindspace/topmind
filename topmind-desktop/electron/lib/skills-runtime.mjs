@@ -18,6 +18,7 @@ import path from "node:path";
 import { getEngineRoot } from "./workspace-home.mjs";
 import { defaultEngineCandidate } from "./engine-root.mjs";
 import { getSkillsExtraRoot } from "./skills-extra.mjs";
+import writingPack from "../data/writing-pack.json" with { type: "json" };
 
 const CORE_ACTION_IDS = [
   "topmind",
@@ -104,10 +105,27 @@ export function resolveExtraSkillsRoots(opts = {}) {
     const abs = path.resolve(p.trim());
     if (!out.includes(abs) && existsSync(abs)) out.push(abs);
   };
+  const managed = path.join(getSkillsExtraRoot(), "packs");
+  if (existsSync(managed)) {
+    for (const entry of readdirSync(managed, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+      if (entry.isDirectory() && !entry.name.startsWith(".")) {
+        const slot = path.join(managed, entry.name);
+        try {
+          if (existsSync(path.join(slot, "active.json"))) {
+            const active = JSON.parse(readFileSync(path.join(slot, "active.json"), "utf8"));
+            if (/^versions\/[A-Za-z0-9.-]+$/u.test(active.current || "")) push(path.join(slot, active.current));
+          } else push(slot);
+        } catch { /* malformed activation falls back to bundled */ }
+      }
+    }
+  }
   if (Array.isArray(opts.extraRoots)) {
     for (const r of opts.extraRoots) push(r);
   }
-  for (const r of configuredExtraRoots) push(r);
+  for (const r of configuredExtraRoots) {
+    // Old settings may point at an installed version; activation owns managed versions.
+    if (!path.resolve(r).startsWith(`${managed}${path.sep}`)) push(r);
+  }
   const env = process.env.topmind_SKILLS_EXTRA?.trim();
   if (env) {
     for (const part of env.split(sep)) push(part);
@@ -311,6 +329,7 @@ export function listSkillCatalog(opts = {}) {
   const byId = new Map();
 
   const ingest = (rootDir, source) => {
+    const rootPack = loadPackSync(rootDir);
     for (const id of listSkillDirsFromRoot(rootDir)) {
       const skillPath = path.join(rootDir, id, "SKILL.md");
       try {
@@ -329,6 +348,8 @@ export function listSkillCatalog(opts = {}) {
           version: meta.version,
           path: skillPath,
           source,
+          packId: rootPack?.name || null,
+          packVersion: rootPack?.version || null,
           skillsRoot: rootDir,
         });
       } catch {
@@ -338,6 +359,9 @@ export function listSkillCatalog(opts = {}) {
   };
 
   ingest(skillsRoot, "bundled");
+  for (const skill of writingPack.skills) {
+    byId.set(skill.id, { ...skill, directory: skill.id, actionCategory: "write", source: "bundled", skillsRoot: null, path: `${skill.id}/SKILL.md`, packVersion: writingPack.version, digest: writingPack.digest });
+  }
   for (const extra of extras) {
     ingest(extra, "external");
   }
@@ -387,8 +411,8 @@ export function loadSkillBody(skillId, opts = {}) {
   const catalog = listSkillCatalog({ engineRoot: opts.engineRoot, extraRoots: opts.extraRoots });
   const hit = catalog.find((s) => s.id === id || s.directory === id || s.name === id);
   if (!hit) throw new Error(`Skill not found: ${id}`);
-  const usedPath = containedResource(hit.skillsRoot, hit.path);
-  const raw = readFileSync(usedPath, "utf8");
+  const usedPath = hit.skillsRoot ? containedResource(hit.skillsRoot, hit.path) : hit.path;
+  const raw = hit.skillsRoot ? readFileSync(usedPath, "utf8") : writingPack.resources[hit.path];
 
   const parsed = parseSkillMarkdown(raw);
   const meta = resolveSkillMeta(parsed.frontmatter);
@@ -400,7 +424,7 @@ export function loadSkillBody(skillId, opts = {}) {
     entrypoint: meta.entrypoint,
     version: meta.version || undefined,
     body: parsed.body,
-    raw,
+    raw: hit.packId === "topmind-writing-skills" ? `${raw}\n\n${writingPack.resources["runtime/host-guide.md"]}` : raw,
     frontmatter: parsed.frontmatter,
   };
   return clipBody(result, opts.maxChars);
@@ -456,6 +480,13 @@ export function loadSkillResource(rel, opts = {}) {
     const catalog = listSkillCatalog({ engineRoot: opts.engineRoot, extraRoots: opts.extraRoots });
     const hit = catalog.find((s) => s.id === opts.skillId || s.directory === opts.skillId);
     if (!hit) throw new Error(`Skill not found: ${opts.skillId}`);
+    if (!hit.skillsRoot) {
+      const key = path.posix.normalize(path.posix.join(hit.directory, cleaned));
+      if (key.startsWith("../") || !Object.hasOwn(writingPack.resources, key)) throw new Error(`Resource not found: ${cleaned}`);
+      const raw = writingPack.resources[key];
+      const max = Math.min(Math.max(Number(opts.maxChars) || 12000, 1000), 40000);
+      return { path: cleaned, content: raw.slice(0, max), truncated: raw.length > max };
+    }
     roots = [hit.skillsRoot];
     skillDirectory = hit.directory;
   } else {

@@ -1,19 +1,20 @@
-# REPO-MAINTENANCE.md — 三仓维护 · 发版 · 集成
+# REPO-MAINTENANCE.md — 多仓维护 · 发版 · 集成
 
 > 配套 `PRODUCT-BOUNDARIES.md` §0（仓库边界）。本文是**维护者 runbook**。
 > 回滚点：git tag `pre-split-2026-09-23`（拆分前 monorepo HEAD）。
 
 ---
 
-## 1. 三仓职责
+## 1. 仓库职责
 
 | 仓库 | 版本真源 | 日常发版 | 渠道 |
 |------|----------|----------|------|
 | [topmind](https://github.com/topmindspace/topmind) | `topmind-desktop/package.json`（UTR 跟随） | tag `v*` | GitHub Releases · Homebrew |
 | [topmind-skills](https://github.com/topmindspace/topmind-skills) | `topmind-pack.json` | tag `v*` | skills.sh · npx skills · Release zip |
 | [topmind-obsidian](https://github.com/topmindspace/topmind-obsidian) | `manifest.json` | tag `<manifest-version>`（无 `v` 前缀） | 社区市场 · BRAT · Release |
+| [topmind-writing-skills](https://github.com/topmindspace/topmind-writing-skills) | 根 package.json；各技能独立版本 | tag v* | npm · 独立技能 ZIP · 宿主包 ZIP |
 
-大版本对齐（breaking → 全体 X.0）；小版本只 bump 有改动的表面。
+各仓独立迭代和版本。写作包不跟随 Desktop/Obsidian 强制升号；宿主提交受验证快照和兼容关系。有改动才发相应仓库，破坏性变更明确兼容范围。
 
 ---
 
@@ -76,6 +77,7 @@ Vault UI / 插件壳 / esbuild            → topmind-obsidian
 | desktop / extension | `topmindspace/topmind` |
 | skills | `topmindspace/topmind-skills` |
 | obsidian | `topmindspace/topmind-obsidian` |
+| writing | `topmindspace/topmind-writing-skills` |
 
 测试：`topmind-desktop/tests/companion-surface-repos.test.mjs`。改 repo 映射必须同步该测试。
 
@@ -157,3 +159,13 @@ Vault UI / 插件壳 / esbuild            → topmind-obsidian
 | Tailwind 4.3 | 保持 | — | 无 major 可升 |
 
 **结论**：Electron/React/Vite/TS 的 major **收益大于成本**，已升级并全量验证。Tailwind 停在 4.x（当前 latest）。
+
+## 写作包与宿主联合发布
+
+1. 写作仓先运行 npm test、既有 skill gates、shared/隐私/npm pack 检查和 npm run host:pack；发布独立版本。宿主包同时提供版本化 ZIP、SHA256SUMS 与 latest.json，原单技能 CLI 保持可用。
+2. 核心技能仓发布路由/能力说明。主仓显式 npm run sync:writing；插件显式 npm run sync:skills，提交快照及来源 digest；正常构建不拉取写作 HEAD。
+3. 主仓同步共享工具契约，插件 ensure-engine；分别完成质量门与可复现构建。Desktop 发布必须包含写作快照和 updater metadata。
+4. 先推主仓所需提交，再推插件；各仓 CI 通过后仅推本次版本标签。Obsidian tag 无 v 前缀。
+5. 核对远端 tag、Release 附件和 npm registry；构建与签名成功不等于跨平台安装、微信/X 粘贴已验收，发布记录明确实际验证范围。
+
+Desktop 本体使用 electron-updater；SHA/平台签名/宿主权限失败保留手动安装。声明式写作包整包替换，编译进宿主的 renderer 随宿主升级。Obsidian 核心代码通过原生插件发行，不下载执行新脚本。卸载或重装不删除用户稿件、工作区和模型设置。

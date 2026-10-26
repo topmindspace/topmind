@@ -21,7 +21,7 @@ export type SurfaceUpdateInfo = {
   releaseUrl: string | null;
   notes?: string | null;
   publishedAt?: string | null;
-  assets: { name: string; size: number; url: string; contentType?: string }[];
+  assets: { name: string; size: number; url: string; contentType?: string; digest?: string | null }[];
   reason?: string;
   error?: string;
   /** Version shipped with Desktop (from versions.json / engine). */
@@ -773,6 +773,8 @@ export const api = {
         chrome: string | null;
         node: string | null;
       }>("system.getAppInfo"),
+    desktopUpdate: (action: "status" | "check" | "download" | "install" = "status") => invoke<{ supported: boolean; phase: string; progress: number; version: string | null; error: string | null }>("system.desktopUpdate", { action }),
+    restoreBundledWriting: () => invoke<{ ok: boolean }>("system.restoreBundledWriting"),
     checkForUpdates: () =>
       invoke<{
         ok: boolean;
@@ -783,7 +785,7 @@ export const api = {
         releaseUrl: string | null;
         notes: string | null;
         publishedAt: string | null;
-        assets: { name: string; size: number; url: string; contentType?: string }[];
+        assets: { name: string; size: number; url: string; contentType?: string; digest?: string | null }[];
         error?: string;
         errorCode?: string;
         reason?: string;
@@ -792,6 +794,7 @@ export const api = {
         releasesUrl?: string;
         desktop?: SurfaceUpdateInfo;
         skills?: SurfaceUpdateInfo;
+        writing?: SurfaceUpdateInfo;
         extension?: SurfaceUpdateInfo;
         obsidian?: SurfaceUpdateInfo;
         model?: {
@@ -801,13 +804,13 @@ export const api = {
           obsidianIsVaultPlugin?: boolean;
         };
       }>("system.checkForUpdates"),
-    openUpdateDownload: (url?: string, surface?: "desktop" | "skills" | "extension" | "obsidian") =>
+    openUpdateDownload: (url?: string, surface?: "desktop" | "skills" | "writing" | "extension" | "obsidian") =>
       invoke<{ ok: true }>("system.openUpdateDownload", {
         ...(url ? { url } : {}),
         ...(surface ? { surface } : {}),
       }),
     downloadAndInstallCompanion: (
-      surface: "skills" | "obsidian" | "extension",
+      surface: "skills" | "writing" | "obsidian" | "extension",
       version: string,
       tag: string,
       opts?: { hostId?: string; vaultPath?: string; assets?: SurfaceUpdateInfo["assets"] },
@@ -1580,39 +1583,4 @@ export const api = {
       }>("workspace.clearOperationState", { id, scope }),
   },
 
-  /** WeChat studio — skill-script export bypass (md2wechat.py truth source). */
-  wechat: {
-    probeScripts: () =>
-      invoke<{
-        scripts: boolean;
-        python: boolean;
-        scriptsDir: string | null;
-        pythonLabel: string | null;
-        md2wechat: string | null;
-      }>("wechat.probeScripts"),
-    exportViaScript: (p: {
-      packageRel: string;
-      draftRel?: string;
-      slug: string;
-      title?: string;
-      theme?: string;
-      embedImages?: boolean;
-      assetRoot?: string;
-    }) =>
-      invoke<{
-        ok: boolean;
-        reason?: string;
-        via?: string;
-        pythonLabel?: string;
-        htmlRel?: string;
-        listRel?: string;
-        compliance?: "ok" | "warn" | null;
-        complianceNote?: string | null;
-        embedCount?: number | null;
-        stdout?: string;
-        stderr?: string;
-        scripts?: boolean;
-        python?: boolean;
-      }>("wechat.exportViaScript", p),
-  },
 };

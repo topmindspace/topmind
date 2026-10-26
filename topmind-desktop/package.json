@@ -1,6 +1,6 @@
 {
   "name": "topmind-desktop",
-  "version": "4.16.5",
+  "version": "4.17.0",
   "private": true,
   "description": "topmind local-first desktop workspace for AI-assisted project work.",
   "main": "electron/main.mjs",
@@ -76,6 +76,7 @@
     "chokidar": "^5.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "electron-updater": "^6.8.11",
     "i18next": "^26.4.2",
     "js-yaml": "^4.3.2",
     "jszip": "^3.10.2",

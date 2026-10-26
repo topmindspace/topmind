@@ -326,11 +326,12 @@ export async function buildDesktopAiTools(ctx) {
         loadSkillBody,
         loadSkillResource,
         setConfiguredExtraSkillsRoots,
+        resolveExtraSkillsRoots,
       } = await import("./lib/skills-runtime.mjs");
       const enabledIds = ctx.appSettings?.ai?.enabledSkillIds || null;
       const engineRoot = ctx.workspaceRoot?.engineRoot || ctx.engineRoot;
-      const extraRoots = ctx.appSettings?.ai?.extraSkillsRoots || [];
-      setConfiguredExtraSkillsRoots(extraRoots);
+      setConfiguredExtraSkillsRoots(ctx.appSettings?.ai?.extraSkillsRoots || []);
+      const extraRoots = resolveExtraSkillsRoots();
 
       tools.list_skills = tool({
         ...sharedTool("list_skills"),
@@ -372,6 +373,20 @@ export async function buildDesktopAiTools(ctx) {
       });
     }
 
+    tools.render_article = tool({
+      ...sharedTool("render_article"),
+      async execute({ sourcePath, platform, theme }) {
+        try {
+          const { prepareArticle } = await import("./writing/article-renderer.mjs");
+          const markdown = await WorkspaceService.readPath({ relativePath: sourcePath }, ctx);
+          const delivery = await prepareArticle({ sourcePath, markdown, platform, theme }, async relativePath => {
+            const image = await WorkspaceService.readBinary({ relativePath }, ctx);
+            return `data:${image.contentType};base64,${image.base64}`;
+          });
+          return { ok: true, ...delivery };
+        } catch (err) { return { ok: false, error: err?.message || String(err) }; }
+      },
+    });
     tools.list_categories = tool({
       ...sharedTool("list_categories"),
       async execute() {

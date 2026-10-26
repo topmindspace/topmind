@@ -117,7 +117,7 @@ topmind (router)
   └── optional: topmind-weread / topmind-x / topmind-ledger
 ```
 
-可选技能不是新的用户概念：`topmind-ledger` 是记账卫星。公众号能力自 topmind-skills 4.15.2 起只在写作包 topmind-writing-skills 的 `topmind-wechat-post`（外部 write 技能，经 extra skills roots 加载），不再随核心包分发。
+可选技能不是新的用户概念：`topmind-ledger` 是记账卫星。写作方法与平台知识在独立仓库 topmind-writing-skills 维护；Desktop 与 Obsidian 默认内置受验证快照，其他 Agent 可独立安装。公众号使用 `topmind-wechat-post`，不再随核心技能包重复分发。宿主只适配入口、工具、写回和资源生命周期。
 
 - 纯 Markdown + `topmind-pack.json`
 - 执行面：Host 文件工具 → 可选 UTR → 对话建议

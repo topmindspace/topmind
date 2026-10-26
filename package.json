@@ -41,7 +41,9 @@
     "validate": "npm run secrets:scan && npm run docs:guard && npm run check:agent-contract && npm run check:category-pattern && npm run root:test && npm run utr:test && npm run utr:doctor:engine && npm run desktop:validate",
     "pack": "npm run pack:all",
     "pack:extension": "npm run extension:pack",
-    "pack:all": "npm run extension:pack"
+    "pack:all": "npm run extension:pack",
+    "sync:writing": "node scripts/sync-writing-pack.mjs",
+    "check:writing": "node scripts/sync-writing-pack.mjs --check"
   },
   "dependencies": {
     "yaml": "^2.9.0"

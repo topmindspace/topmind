@@ -9,6 +9,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { validateArchive } from "./archive-guard.mjs";
 
 /**
  * Desktop installer handoff while this topmind process is the one running.
@@ -172,6 +173,8 @@ export async function replacePathAtomic(src, dest, opts = {}) {
  * @returns {Promise<{ ok: boolean, via?: string, error?: string }>}
  */
 export async function unpackArchive(archivePath, destDir, opts = {}) {
+  const inspected = await validateArchive(archivePath);
+  if (!inspected.ok) return inspected;
   await fs.mkdir(destDir, { recursive: true });
   const platform = opts.platform || process.platform;
   const abs = path.resolve(archivePath);
