@@ -892,21 +892,45 @@ export async function installObsidianPlugin(opts = {}) {
     } catch (e) {
       return { ok: false, error: `invalid manifest.json: ${e instanceof Error ? e.message : e}` };
     }
-    const pluginId = String(manifest.id || OBSIDIAN_PLUGIN_IDS[0]).trim();
-    if (!pluginId) return { ok: false, error: "manifest.id required" };
+    const pluginId = String(manifest.id || "").trim();
+    if (!/^[a-z0-9][a-z0-9-]*$/u.test(pluginId)) return { ok: false, error: "invalid manifest.id" };
 
     await fs.mkdir(pluginsRoot, { recursive: true });
     const dest = path.join(pluginsRoot, pluginId);
+    const hadPlugin = await pathExists(dest);
+    const statePath = path.join(dest, "data.json");
+    const readState = async () => {
+      try {
+        const stat = await fs.lstat(statePath);
+        if (!stat.isFile() || stat.isSymbolicLink()) throw new Error("plugin data.json must be a regular file");
+        return await fs.readFile(statePath);
+      } catch (error) { if (error.code === "ENOENT") return null; throw error; }
+    };
+    let savedState = null;
+    const stateUnchanged = async () => {
+      const current = await readState();
+      if (savedState === null ? current !== null : current === null || !savedState.equals(current)) throw new Error("plugin settings changed during installation — close Obsidian and retry");
+    };
     const swapped = await replacePathAtomic(pkgDir, dest, {
       probeLock: opts.probeLock,
-      renameImpl: opts.renameImpl,
-      copyImpl: opts.copyImpl || (async (from, to) => copyDirRecursive(from, to)),
+      renameImpl: async (from, to) => {
+        if (from === dest) await stateUnchanged();
+        return opts.renameImpl ? opts.renameImpl(from, to) : fs.rename(from, to);
+      },
+      copyImpl: async (from, to) => {
+        savedState = await readState();
+        await (opts.copyImpl || copyDirRecursive)(from, to);
+        // Release data never replaces local settings, including damaged installs without a manifest.
+        await fs.rm(path.join(to, "data.json"), { force: true });
+        if (savedState !== null) await fs.writeFile(path.join(to, "data.json"), savedState, { mode: 0o600 });
+        await stateUnchanged();
+      },
     });
     if (!swapped.ok) return { ...swapped, claimedLatest: false };
 
     // Ensure community-plugins enabled list includes id when community-plugins.json exists
     const communityPath = path.join(path.dirname(pluginsRoot), "community-plugins.json");
-    if (await pathExists(communityPath)) {
+    if (!hadPlugin && await pathExists(communityPath)) {
       try {
         const list = JSON.parse(await fs.readFile(communityPath, "utf8"));
         if (Array.isArray(list) && !list.includes(pluginId)) {

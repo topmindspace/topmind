@@ -218,6 +218,7 @@ test("install/uninstall Obsidian plugin in fixture vault", async () => {
     "utf8",
   );
   await fs.writeFile(path.join(pluginSrc, "main.js"), "/* plugin */\n", "utf8");
+  await fs.writeFile(path.join(pluginSrc, "data.json"), '{"fixture":"must-not-import"}', "utf8");
 
   const inst = await installObsidianPlugin({
     vaultRoot: vault,
@@ -226,6 +227,22 @@ test("install/uninstall Obsidian plugin in fixture vault", async () => {
   assert.equal(inst.ok, true);
   assert.equal(inst.pluginId, "topmind-stream");
   assert.equal(inst.version, "2.2.0");
+  const stateFile = path.join(vault, ".obsidian", "plugins", "topmind-stream", "data.json");
+  await assert.rejects(fs.access(stateFile), { code: "ENOENT" }, "initial install must not import release settings");
+  const stateBytes = '{"fixture":"preserve-settings","nested":{"enabled":false}}\n';
+  await fs.writeFile(stateFile, stateBytes, "utf8");
+  const enabledList = path.join(vault, ".obsidian", "community-plugins.json");
+  await fs.writeFile(enabledList, "[]\n", "utf8");
+  const upgraded = await installObsidianPlugin({ vaultRoot: vault, sourceDir: pluginSrc });
+  assert.equal(upgraded.ok, true);
+  assert.equal(await fs.readFile(stateFile, "utf8"), stateBytes, "upgrading must preserve the user's exact plugin state");
+  assert.deepEqual(JSON.parse(await fs.readFile(enabledList, "utf8")), [], "an upgrade must not re-enable a disabled plugin");
+  const concurrentlyChanged = await installObsidianPlugin({ vaultRoot: vault, sourceDir: pluginSrc, copyImpl: async (from, to) => {
+    await fs.cp(from, to, { recursive: true });
+    await fs.writeFile(stateFile, '{"fixture":"newer-settings"}', "utf8");
+  } });
+  assert.equal(concurrentlyChanged.ok, false, "concurrent settings changes abort replacement");
+  assert.equal(await fs.readFile(stateFile, "utf8"), '{"fixture":"newer-settings"}');
 
   const main = await fs.readFile(
     path.join(vault, ".obsidian", "plugins", "topmind-stream", "main.js"),
@@ -254,6 +271,22 @@ test("install/uninstall Obsidian plugin in fixture vault", async () => {
   );
   // other plugin kept
   await fs.access(path.join(vault, ".obsidian", "plugins", "other-plugin", "manifest.json"));
+});
+
+test("Obsidian installer rejects missing and path-like manifest ids before writing a plugin", async (t) => {
+  const root = await makeTempHome("tm-obs-id-");
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const sourceDir = path.join(root, "source");
+  const pluginsRoot = path.join(root, "plugins");
+  await fs.mkdir(sourceDir);
+  await fs.writeFile(path.join(sourceDir, "main.js"), "/* fixture */\n");
+  for (const id of [undefined, "../outside", "/absolute", "nested/plugin", "nested\\plugin"]) {
+    await fs.writeFile(path.join(sourceDir, "manifest.json"), JSON.stringify({ id, version: "1.0.0" }));
+    const result = await installObsidianPlugin({ sourceDir, pluginsRoot });
+    assert.equal(result.ok, false);
+    assert.equal(result.error, "invalid manifest.id");
+  }
+  await assert.rejects(fs.access(pluginsRoot), { code: "ENOENT" });
 });
 
 test("prepareClipExtensionInstall copies source and sets guidedInstall", async () => {
