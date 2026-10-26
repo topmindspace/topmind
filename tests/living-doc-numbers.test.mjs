@@ -47,14 +47,9 @@ test("activity-window and todo-engine expose the shipped corpus/window constants
   assert.equal(EXTRACT_CORPUS_MAX, SUGGEST_CORPUS_MAX_CHARS);
 });
 
-test("AGENTS.md activity-window numbers match shipped constants", () => {
-  const src = read("AGENTS.md");
-  assert.match(src, new RegExp(`${DEFAULT_WINDOW_DAYS} 天`));
-  assert.match(src, new RegExp(`${DEFAULT_MAX_FILES} 文件`));
-  assert.match(src, new RegExp(`${DEFAULT_MAX_PERIODS} 周期`));
-  assert.match(src, new RegExp(`suggest ${suggestK}K`));
-  assert.match(src, new RegExp(`todo extract ${extractK}K`));
-  assert.match(src, new RegExp(`maintain ${maintainK}K`));
+test("AGENTS routes budget details to the maintained Desktop design", () => {
+  assert.match(read("AGENTS.md"), /topmind-desktop\/DESIGN\.md/u);
+  assert.ok(existsSync(path.join(repo, "topmind-desktop", "DESIGN.md")));
 });
 
 test("Desktop DESIGN corpus budget matches todo-engine", () => {
@@ -110,7 +105,6 @@ test("optional 记账 is memory-plane satellite, not a sixth concept or ninth en
     ["DESIGN.md", design],
     ["PRODUCT-BOUNDARIES.md", boundaries],
     ["PROJECT-MODEL.md", model],
-    ["AGENTS.md", agents],
     ["docs/ARCHITECTURE-RESET.md", reset],
     ["TOOLS.md", tools],
     ["topmind-desktop/DESIGN.md", desktopDesign],
@@ -122,9 +116,9 @@ test("optional 记账 is memory-plane satellite, not a sixth concept or ninth en
   assert.ok(conceptTable, "DESIGN.md concept table");
   assert.doesNotMatch(conceptTable[0], /^\| \*\*记账\*\*/m);
   assert.match(design, /不是第六个用户概念/);
-  assert.match(agents, /ledger-engine/);
-  assert.match(agents, /不是第九引擎/);
-  assert.match(agents, /contract · workspace-model · stream · memory · lifecycle · \*\*writeback/);
+  assert.match(agents, /PRODUCT-BOUNDARIES\.md/);
+  assert.match(boundaries, /ledger-engine/);
+  assert.match(boundaries, /不是第九引擎/);
   assert.match(tools, /8 个 UTR 命令域/);
   assert.match(desktopDesign, /不是\*\* PrimaryNav|不是\*\*PrimaryNav|\*\*不是\*\* PrimaryNav/);
 });

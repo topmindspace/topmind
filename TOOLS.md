@@ -123,7 +123,9 @@ Living verdict for **Desktop named AI tools**, the **Skills pack**, and the **UT
 
 ### Desktop named AI tools — all **keep**
 
-Names are the shipped list in `topmind-desktop/electron/lib/ai-tool-names.mjs` (22 read + 25 write = 47). Builders in `electron/ai-tools.mjs`; every write uses `wrapWrite` → WorkspaceService → Kernel writeback.
+Names, bilingual descriptions, JSON schemas and read/write classification are maintained in Kernel `lib/agent-tool-catalog.mjs` (Desktop: 22 read + 25 write = 47). `topmind-desktop/electron/lib/ai-tool-names.mjs` is a generated snapshot. Obsidian uses the same catalog with a host capability subset; unsupported parameters are omitted. Builders in Desktop `electron/ai-tools.mjs` bind execution; writes pass `wrapWrite` → WorkspaceService → Kernel writeback. Run `npm run sync:agent-contract` after changing the catalog, goal protocol or agent policy; `npm run check:agent-contract` rejects drift.
+
+`lib/agent-tool-policy.mjs` owns the semantic-memory fence, including real-path aliases and custom memory directories. `lib/pending-writes.mjs` owns the review queue: the workspace is explicit, confirmed deletes execute deletion, conflicts retain the entry, and failed applications remain retryable. `.topmind` state uses `lib/workspace-state.mjs` for fenced atomic file replacement. This does not serialize transactions across multiple processes.
 
 | Class | Names | Verdict |
 |-------|-------|---------|

@@ -11,7 +11,7 @@
 |------|----------|----------|------|
 | [topmind](https://github.com/topmindspace/topmind) | `topmind-desktop/package.json`（UTR 跟随） | tag `v*` | GitHub Releases · Homebrew |
 | [topmind-skills](https://github.com/topmindspace/topmind-skills) | `topmind-pack.json` | tag `v*` | skills.sh · npx skills · Release zip |
-| [topmind-obsidian](https://github.com/topmindspace/topmind-obsidian) | `manifest.json` | tag `v*`（**必须 = manifest.version**） | 社区市场 · BRAT · Release |
+| [topmind-obsidian](https://github.com/topmindspace/topmind-obsidian) | `manifest.json` | tag `<manifest-version>`（无 `v` 前缀） | 社区市场 · BRAT · Release |
 
 大版本对齐（breaking → 全体 X.0）；小版本只 bump 有改动的表面。
 
@@ -36,28 +36,36 @@ Vault UI / 插件壳 / esbuild            → topmind-obsidian
 
 1. bump `topmind-desktop/package.json`（必要时 `browser-extension/manifest.json`）
 2. `npm run validate`
-3. `git tag v$(node -p "require('./topmind-desktop/package.json').version") && git push --tags`
+3. 创建 `v<desktop-version>` 标签，只推送本次标签：`git push origin refs/tags/v<desktop-version>`
 4. 验收：Releases 安装包 + `brew upgrade --cask topmind --greedy`
 5. 热修逃生口：`desktop-v*` / `extension-v*`（不标 Latest）
 
 ### 3.2 topmind-skills
 
-1. bump `topmind-pack.json`（+ skill frontmatter 版本如需）
+1. 同步 bump `topmind-pack.json`、`package.json`、所有 skill frontmatter 与 `evals/evals.json` 的版本
 2. `npm test && npm run pack`
-3. `git tag v<pack-version> && git push --tags`
+3. `git tag v<pack-version> && git push origin refs/tags/v<pack-version>`
 4. 验收：`npx skills add topmindspace/topmind-skills -l` · pack-aware 装后 `shared/` 可达
 
 ### 3.3 topmind-obsidian
 
 1. bump `manifest.json` **与** `package.json`（保持一致）
-2. 设置 `TOPMIND_SRC` 或 sibling `../topmind`，对齐引用的主仓 tag
-3. `npm run typecheck && npm test && npm run build && npm run pack:verify`
-4. `git tag <manifest-version> && git push --tags`（tag **必须等于** `manifest.version` 本身，如 `4.13.0`，**不要**加 `v` 前缀——社区目录按该 tag 找 Release 资产）
+2. 用 `TOPMIND_SRC` 或 sibling `../topmind` 对齐需要的主仓提交，运行 `npm run ensure-engine` 并提交 vendored `lib/`
+3. `npm run typecheck && npm run lint && npm run build:verify && npm test && npm run pack && npm run pack:verify`。生产构建不设置 `TOPMIND_SRC`，先构建再测试，保证资产检查实际执行
+4. 推送所需主仓提交，再推送插件 main；CI 通过后 `git tag <manifest-version> && git push origin refs/tags/<manifest-version>`（tag **必须等于** `manifest.version` 本身，如 `4.20.1`，**不要**加 `v` 前缀）
 5. 验收：空白 Vault 启用；社区收录后检查市场更新
 
 ---
 
 ## 4. 跨仓集成
+
+### 共享 Agent 契约与状态
+
+工具名称、schema 与说明维护在 `lib/agent-tool-catalog.mjs`，预算/写回文案在 `lib/agent-policy.mjs`，目标协议在 `lib/agent-goal-protocol.mjs`。改动后运行 `npm run sync:agent-contract`；`npm run check:agent-contract` 在根集成门中逐字校验 Desktop 快照。不要直接修改 `electron/lib/ai-tool-names.mjs` 或 `writeback-mode-copy.mjs`。
+
+记忆围栏、JSON 状态和待确认操作共用 Kernel `agent-tool-policy` / `workspace-state` / `pending-writes`。宿主只做上下文解析、调用与 UI 通知。Obsidian 改版前运行 `npm run ensure-engine` 更新 vendored `lib/`，不要手工补复制文件；正式构建只使用该快照。工作区路径每次显式传入，不能用全局变量串接不同 Vault。
+
+状态兼容升级保留旧用户文件；损坏文件报错并原样保留。原子文件替换不等于跨进程事务，两个宿主同时写入同一内容仍需冲突管理。跨端验证包含工具参数、真实删除、执行失败保留队列、符号链接和会话迟到结果。
 
 ### 4.0 Desktop 下载/更新源（硬约定）
 

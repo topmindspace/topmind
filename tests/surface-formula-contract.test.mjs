@@ -17,7 +17,7 @@ function absJoin(root, rel) {
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-const ENTRY_DOCS = ["README.md", "README.en.md", "README.zh-CN.md", "AGENTS.md", "CLAUDE.md"];
+const ENTRY_DOCS = ["README.md", "README.en.md", "README.zh-CN.md"];
 
 /** First ```text fenced block that introduces the topmind = Portable Skills formula. */
 function heroFormulaBlock(src) {
@@ -76,4 +76,13 @@ test("README matrix sections use four-cores + Clip distribution wording", () => 
   assert.doesNotMatch(zh, /## 🧩 五大表面/);
   assert.match(en, /four cores \+ Clip distribution/i);
   assert.doesNotMatch(en, /## 🧩 Five Surfaces/);
+});
+
+
+test("developer entrypoints route to maintained rules instead of copying the product formula", () => {
+  const agents = readFileSync(path.join(repo, "AGENTS.md"), "utf8");
+  const claude = readFileSync(path.join(repo, "CLAUDE.md"), "utf8");
+  assert.ok(agents.includes("PRODUCT-BOUNDARIES.md"));
+  assert.ok(claude.includes("AGENTS.md"));
+  assert.ok(readFileSync(path.join(repo, "PRODUCT-BOUNDARIES.md"), "utf8").includes("Skills Pack"));
 });

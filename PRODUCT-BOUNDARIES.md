@@ -71,7 +71,7 @@ topmind 是 Agent 时代的本地优先工作台，按需组合四条独立能�
 | derived-builder | `.derived/` 生成重建 | **Done 最小** — topic summary + **item-history**；AI 摘要可占位 |
 | ingest-pipeline | URL/文档路由语义 | **Done** 路由 — Desktop commit 经 `resolveIngestRoute`；HTML→MD 与 Clip 共用同一算法（Desktop `html-to-markdown.mjs`） |
 
-**卫星（不是第九引擎）**：`todo-engine` · `ai-operation-engine` · `suggest-engine` · `ledger-engine`（`memory/todo.md`：UTR `memory.list-todos/add-todo/toggle-todo` ≡ Desktop `list_todos/add_todo/toggle_todo`；账本可选 `{memory.dir}/ledgers/`，经 writeback）。记账不是第六个用户概念，也不是 UTR 域。技能侧自动建议阶梯见 skills pack `shared/auto-suggest.md`（L0 落盘 · L1 建议 · L2 确认）。
+**卫星（不是第九引擎）**：`todo-engine` · `ai-operation-engine` · `suggest-engine` · `ledger-engine`（`memory/todo.md`：UTR `memory.list-todos/add-todo/toggle-todo` ≡ Desktop `list_todos/add_todo/toggle_todo`；账本可选 `{memory.dir}/ledgers/`，经 writeback）。记账不是第六个用户概念，也不是 UTR 域。技能侧请求授权与主动建议见 skills pack `shared/auto-suggest.md`，不在此复制流程层级。
 
 **铁律（目标）**：Surface 不得平行实现业务语义。**Desktop / UTR / Obsidian / AI 耐久内容写** 必须经 writeback-engine。Skills 宿主文件工具与 Clip workspace-direct 属于 **capture-class 开放写**（用户手势即确认；无 Node 写闸），不是第二套保护/备份/回执实现。现状见 `docs/ARCHITECTURE-RESET.md` §2。
 
@@ -148,7 +148,7 @@ UTR = 软探测；写回不经 UTR
 
 面向无 Desktop、有 agent/脚本的确定性命令面。
 
-- **8 域 / 35 命令**；MCP 默认 **26**
+- 域与默认暴露清单以 `utr/core/contract-registry.mjs` 和 `TOOLS.md` 为准，不另抄数量。
 - 完整表：`TOOLS.md`
 - 目标：薄 adapter，业务在 Kernel
 

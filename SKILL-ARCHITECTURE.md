@@ -44,34 +44,16 @@ Skills 是一组纯 Markdown 指令集，告诉 AI 如何操作 topmind 工作�
 - **可移植**：同一套 skills 可以安装到 OpenCode、Claude Code、Codex 等任何支持 skill 的 Agent Host
 - **守边界**：Skill 只操作用户工作区数据，不碰 engine 代码
 
-### 0.4 与业界规范对比（Agent Skills 开放标准 · agentskills.io）
+### 0.4 按需披露与能力边界
 
-| 维度 | topmind Skills Pack | Agent Skills Open Standard | MCP | Claude Code Skills | OpenAI Codex Skills | Cursor Rules |
-|---|---|---|---|---|---|---|
-| 格式 | 每 skill 目录 + `SKILL.md` + 可选 `references/` | 同左 + 可选 `scripts/` / `assets/` | JSON tool schema | 同开放标准 `SKILL.md` | `.codex/skills/` 目录 | `.cursorrules` 单文件 |
-| Pack 契约 | **一份** `topmind-pack.json`（禁止每 skill 再拆 pack JSON） | 通常单 skill 分发 | server 清单 | skill install | skill-installer | 无 pack 概念 |
-| 入口 | 用户日常入口唯一 `topmind`；host/skills.sh 可直连索引全部 description | 每 skill 独立 discovery (npx skills / skills.sh) | 工具列表 | 每 skill 独立 | 每 skill 独立 | 全局规则文件 |
-| Progressive disclosure | Discovery=`name+description` → Activation=`SKILL.md` → Resources=`shared/`+`references/` | 同三阶段 | 无 | 同三阶段 | 两阶段（discovery + activation） | 单阶段（全量加载） |
-| description | ≤1024 字符；含 Use when + Do not use | 必填触发真源 | tool description | ≤1024 字符 + Use when + Do NOT | 类似 | 无限制 |
-| 降级 | Host 文件 → 可选 UTR → 对话 | 无内建降级 | 协议层 | 无内建降级 | 无内建降级 | 无 |
-| 错误处理 | 写入失败可逆 + 回执 + 错误指导 | 无内建错误恢复 | 协议层 | 无内建错误恢复 | 无内建错误恢复 | 无 |
-| 语义消歧 | `action_category`(skill) vs 笔记 `category`(大类目录) | 无数据大类概念 | n/a | 无 | 无 | 无 |
-| 行为契约 | 工作区根 `topmind.yaml`（顶层键白名单，机器可读） | 无 | 无 | 无 | 无 | 无 |
-| 可移植性 | 6 个安装目标（opencode/hermes/codex/claude-code/mimocode/universal），MCP/Obsidian 经各自宿主接入 | 按 host 独立 | MCP 协议层 | Claude-only | Codex-only | Cursor-only |
-| 数据模型 | 三平面（内容/语义/系统）+ 6 条规约 | 无 | 无 | 无 | 无 | 无 |
-| 写回安全 | writeback-engine 唯一写闸 + 保护级别 + 备份回执 | 无 | 无 | 无 | 无 | 无 |
+遵循 Agent Skills 的目录和 frontmatter 规范：发现时仅提供 name/description，激活时读正文，任务需要时读 resources。技能只补充产品特有知识，不重复通用计划、工具常识或每次固定流程。可参考 [OpenAI skills 指导](https://learn.chatgpt.com/docs/build-skills)。宿主路径和能力会变化，安装真源见姊妹仓 `INSTALL.md`，不在此维护比较矩阵。
 
-**设计选择说明**：
-- **Hybrid Pack**：skill 目录与 `topmind-pack.json` 的 `skills` 一一对应（兼容开放标准），**只有一份** pack 级 JSON；子 skill 自包含可激活，但不各自版本/内容模型。
-- **frontmatter 用 `action_category` 而非 `category`**：避免与用户笔记 `category`（物理大类）碰撞。
-- **`description` 是触发器**：What + Use when + Do NOT；≤1024 字符；不是 README 摘要。
-- **Router 勿过宽**：禁止「any knowledge task」淹没子 skill；单意图优先子 skill。
-- **三级降级是 topmind 独有**：见 `skills/shared/capability-degradation.md`。
-- **契约驱动而非散文复制**：规约语义从 `topmind.yaml` 求值；`shared/project-model-brief.md` 是给人/Agent 读的契约摘要，SKILL.md 不内联规约细节。
-- **Pack 级 `shared/`**：开放标准按 skill 目录分发；topmind 需 `shared/` 与 skill **同级**（见 `skills/shared/host-loading.md`）。
-- **纯 Markdown**：无 Loader/Registry；`topmind-pack.json` 是 pack 机器契约，不是运行时。
-- **写回安全链是 topmind 独有**：业界 skills 均无内建写入安全机制；topmind 通过 writeback-engine 实现保护判定 → 备份 → 原子落盘 → 回执的全链路可逆。
-- **多 host 可移植**：Claude/Codex/Cursor skills 均绑定单一 host；topmind 同一 pack 可安装到 6 个安装目标（opencode/hermes/codex/claude-code/mimocode/universal），共享内容约定与行为契约。
+- 包内技能与 `topmind-pack.json` 一一对应，保留公开 id 兼容；当前清单由该文件给出。
+- `description` 精确说明适用场景，仅在容易误选时给负向边界，不穷举同义词。
+- 单一明确任务可直达动作技能；router 只处理模糊或多意图，不强制双跳。
+- 工作区路径和写入策略是产品约定；提示词不是权限机制，程序写闸才负责实施。
+- 用户已授权的多步任务连续完成；没有请求的延伸工作只提案。细则在 skills `shared/auto-suggest.md`，不因技能切换再次征求同一授权。
+- `shared/` 随 pack 分发。安装器与 host 必须确保引用可达；资源按选中技能来源解析，不混用同名扩展与 bundled 规则。
 
 ---
 
@@ -170,7 +152,7 @@ skills/
 │   ├── output-language.md         # 模型输出语言：用户要求 → 原文 → 工作区 locale
 │   ├── capability-degradation.md  # 三级降级表（唯一）
 │   ├── writeback-receipt.md       # 写回回执形状
-│   ├── auto-suggest.md            # 自动建议阶梯（L0 落盘 · L1 建议 · L2 确认）
+│   ├── auto-suggest.md            # 请求授权与主动建议
 │   ├── trigger-disambiguation.md  # 触发词消歧
 │   ├── long-url-capture.md        # 长链/网页抓取
 │   └── document-ingest.md         # 本地文档 → Markdown 知识加工
@@ -358,7 +340,7 @@ Skill 路由时的最小读取顺序（**默认不加载整工作区**）：
 
 ---
 
-## 7. Engine → UTR 命令映射 (8 域 / 35 命令)
+## 7. Engine → UTR 命令映射
 
 Kernel 八引擎是内部领域逻辑；UTR 8 域是其 CLI/MCP adapter 暴露面。并非每个引擎都有独立 UTR 域——`stream` / `writeback` / `ingest` 是内部引擎，由其他 UTR 命令内部调用，不直接暴露。
 
@@ -386,9 +368,9 @@ writeback:
 ```
 
 - `auto` — 直接写入并返回 path + affected-files evidence。（默认）
-- `confirm` — 写入前打开 target/diff review。
+- `confirm` — 内容新建/编辑直接落盘，删除/归档进入待确认审阅。明确请求不等于可绕过写闸。
 
-**写入顺序（任何 Surface 一致）**：求值 protection → 影子暂存（大篇幅）→ 原子落盘 →（仅高影响）备份 →（仅高影响）回执。普通开放笔记的 create/update/move/rename 不写 `99-归档/receipts/`。
+**写入顺序（任何 Surface 一致）**：求值 protection 与授权 →（仅高影响）首写快照 → 影子暂存（大篇幅）→ 原子落盘 → 工具证据与必要恢复回执。普通开放笔记的 create/update/move/rename 不写 `99-归档/receipts/`。
 
 变更意图必须显式：
 
@@ -403,15 +385,11 @@ writeback:
 
 完整写回契约和 evidence 格式见 `TOOLS.md` §Writeback Contract。
 
-### 自动建议阶梯（skills `shared/auto-suggest.md`）
+### 请求与主动建议
 
-| 级 | 行为 | 例 |
-|----|------|----|
-| **L0** | 零提问落盘 + 路径回执 | capture 分类/周期本 append |
-| **L1** | 默认准备建议，一键接受 | 分类备选 · 待办提取 → `memory/todo.md` · 记忆候选 · 专题升级 |
-| **L2** | 确认后写 | profile / topics · 建专题 · 删档 |
+用户明确要求 capture → organize → write 时，按依赖连续完成，不在内部模块边界停顿。明确说“记住”或“建专题”已表达该项授权；从材料推测的记忆、分类和专题升级仍只提案。confirm 删除/归档和外部发布保留各自权限边界。
 
-与 Desktop Reset D 同义：**建议默认生成，高影响确认后执行**。待办是 `memory/todo.md` 卫星，不是第六概念。
+唯一操作语义维护在 skills `shared/auto-suggest.md`；保存与证据维护在 `shared/writeback-receipt.md`。不要再复制一份 L0/L1/L2 表。待办仍在 `memory/todo.md`。
 
 ---
 
