@@ -357,7 +357,9 @@ export async function runPiAgent(opts, registry) {
     locale: opts.locale || "zh-CN",
     max: 1,
   });
-  let goalState = foldGoalHistory(seedGoalFromMessages(messages), messages);
+  let goalState = opts.taskContract?.kind === "document"
+    ? { goal: opts.taskContract.request, kind: "task", plan: [], criteria: [], doneCriteria: [], pathReceipts: [], status: "working", blockReason: null }
+    : foldGoalHistory(seedGoalFromMessages(messages), messages);
   /** Pi CompactionDetails file ops (for post-run memory distill). */
   let compactFileOps = { readFiles: [], modifiedFiles: [] };
 
@@ -392,7 +394,10 @@ export async function runPiAgent(opts, registry) {
       tools: piTools,
       messages: prior,
     },
-    streamFn,
+    streamFn: (...args) => {
+      if (opts.taskGuard && !opts.taskGuard.beforeModel()) throw new Error("task-execution-stopped");
+      return streamFn(...args);
+    },
     transformContext: async (msgs) => {
       bumpIdle();
       const window = Number(contextWindow) > 0 ? Number(contextWindow) : 128000;
@@ -426,11 +431,16 @@ export async function runPiAgent(opts, registry) {
       }
       return msgs;
     },
-    beforeToolCall: async (ctx) => beforePiToolCall(ctx),
+    beforeToolCall: async (ctx) => {
+      const blocked = beforePiToolCall(ctx);
+      if (blocked?.block) opts.taskGuard?.stop("tool-failures");
+      return blocked;
+    },
     // pi-agent-core 0.87+ dropped shouldStopAfterTurn — finishTurn is the only
     // turn-budget hook. Returning { action: "end" } stops the run cleanly and
     // lets ai-service auto-continue with a fresh step budget + task ledger.
     finishTurn: (turn) => {
+      if (opts.taskGuard?.reason) return { action: "end" };
       const lastAsst = turn?.message;
       const stopReason = lastAsst?.stopReason;
       // Per Pi README: never score goals on error/aborted turns.
@@ -465,7 +475,7 @@ export async function runPiAgent(opts, registry) {
       // In-run goal follow-up (native finishTurn continue — Agent ignores a
       // constructor getFollowUpMessages). One extra request with a continue
       // prompt when acceptance criteria are still open.
-      const followUpText = maybeGoalFollowUp();
+      const followUpText = opts.taskGuard ? null : maybeGoalFollowUp();
       if (followUpText) {
         pendingGoalFollowUp = followUpText;
         return { action: "continue" };
@@ -500,7 +510,7 @@ export async function runPiAgent(opts, registry) {
       return messages.length ? { messages } : undefined;
     },
     // Re-assert sticky task ledger if compaction dropped it.
-    prepareRequest: createLedgerPrepareRequest({
+    prepareRequest: opts.taskContract?.kind === "document" ? undefined : createLedgerPrepareRequest({
       goalState: () => goalState,
       locale: opts.locale || "zh-CN",
     }),

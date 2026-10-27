@@ -44,6 +44,37 @@ beforeEach(async () => {
   useAiStore.setState({ ...initial, activeSessionId: "a", sessions: [{ id: "a", title: "A", updatedAt: "" }] }, true);
 });
 
+test("Send freezes the article before an asynchronous save and retry keeps that identity", async () => {
+  const { useViewStore } = await import("../src/stores/view-store");
+  const saved = deferred();
+  let saves = 0;
+  handlers.set("ai.saveMessages", () => ++saves === 1 ? saved.promise : { ok: true });
+  handlers.set("ai.invoke", () => ({ ok: true, text: "reviewed" }));
+  useViewStore.setState({ selection: { kind: "file", path: "A.md" } });
+  state().mountFile({ path: 'R1.md', name: 'R1' });
+  const run = state().sendMessage("调用 revise");
+  useViewStore.setState({ selection: { kind: "file", path: "B.md" } });
+  state().unmountFile('R1.md'); state().mountFile({ path: 'R2.md', name: 'R2' });
+  saved.resolve({ ok: true }); await run;
+  assert.equal(calls.find(c => c.method === "ai.invoke")?.params.focusPath, "A.md");
+  assert.deepEqual(calls.find(c => c.method === "ai.invoke")?.params.mountedFiles, ['R1.md']);
+  assert.equal(state().messages.find(m => m.role === "user")?.focusPath, "A.md");
+  await state().regenerate();
+  assert.equal(calls.filter(c => c.method === "ai.invoke").at(-1)?.params.focusPath, "A.md");
+});
+
+test('the displayed clarification reply target follows the saved task rather than the current tab', async () => {
+  const { useViewStore } = await import('../src/stores/view-store');
+  const { resolveTaskContract } = await import('../electron/lib/agent-task-contract.mjs');
+  const task = { ...resolveTaskContract({ userText: 'revise', focusPath: 'A.md' }), blockReason: 'needs-clarification', question: 'Shorter?' };
+  useAiStore.setState({ messages: [{ role: 'user', content: 'revise', focusPath: 'A.md' }, { role: 'assistant', content: 'Shorter?', goal: { task, goal: 'revise', plan: [], criteria: [], openCriteria: [], pathReceipts: [], status: 'blocked', blockReason: 'needs-clarification', autoContinues: 0 } }] });
+  useViewStore.setState({ selection: { kind: 'file', path: 'B.md' } });
+  handlers.set('ai.invoke', () => ({ ok: true, text: 'reviewed' }));
+  await state().sendMessage('Make it shorter.');
+  assert.equal(state().messages.filter(message => message.role === 'user').at(-1)?.focusPath, 'A.md');
+  assert.equal(calls.find(call => call.method === 'ai.invoke')?.params.focusPath, 'A.md');
+});
+
 test("final response drains pending deltas before stamping and persisting the result", async () => {
   const response = deferred();
   handlers.set("ai.invoke", () => response.promise);

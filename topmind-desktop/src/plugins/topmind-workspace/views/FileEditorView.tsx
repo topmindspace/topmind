@@ -958,6 +958,14 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
     } catch (error) { toastWritebackError(t("workspace:editor.saveFailedKeepDraft"), error); }
   };
 
+  const handleOpenWriting = async () => {
+    try {
+      await doSave();
+      if (pathRef.current !== path) return;
+      openOverlay("plugin-app:topmind-wechat", { pluginId: "topmind-wechat", sourcePath: path });
+    } catch (error) { toastWritebackError(t("workspace:editor.saveFailedKeepDraft"), error); }
+  };
+
   const handleAskNoteAi = async () => {
     try {
       await doSave();
@@ -1108,6 +1116,7 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
       focusMode={focusMode}
       onToggleFocus={toggleFocusMode}
       showFocus={!focusMode && !toolbarCompact}
+      onWriting={getCachedSettings()?.wechat?.enabled !== false ? () => void handleOpenWriting() : undefined}
     />
   );
 

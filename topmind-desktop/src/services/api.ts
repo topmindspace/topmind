@@ -663,6 +663,8 @@ export const api = {
       /** Open file path — included this turn without sticky mount UI */
       focusPath?: string;
       focusHint?: string;
+      taskIntent?: import("../types").AiMessage['taskIntent'];
+      focusUnsaved?: boolean;
       model?: string;
       sessionId: string;
       useTools?: boolean;

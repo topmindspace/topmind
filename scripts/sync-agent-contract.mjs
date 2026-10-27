@@ -9,10 +9,16 @@ const snapshots = [
   ["agent-tool-catalog.mjs", "ai-tool-names.mjs"],
   ["agent-policy.mjs", "writeback-mode-copy.mjs"],
   ["agent-goal-protocol.mjs", "agent-goal-protocol.mjs"],
+  ["agent-task-contract.mjs", "agent-task-contract.mjs"],
+  ["agent-task-contract.d.mts", "agent-task-contract.d.mts"],
 ];
 const check = process.argv.includes("--check");
 for (const [canonicalName, snapshotName] of snapshots) {
-  const canonical = fs.readFileSync(path.join(root, "lib", canonicalName), "utf8");
+  const source = fs.readFileSync(path.join(root, "lib", canonicalName), "utf8");
+  // Desktop keeps its public catalog filename; resolve the shared module's dependency locally.
+  const canonical = canonicalName === "agent-task-contract.mjs"
+    ? source.replace("'./agent-tool-catalog.mjs'", "'./ai-tool-names.mjs'")
+    : source;
   const target = path.join(root, "topmind-desktop/electron/lib", snapshotName);
   if (check) {
     if (!fs.existsSync(target) || fs.readFileSync(target, "utf8") !== canonical) {

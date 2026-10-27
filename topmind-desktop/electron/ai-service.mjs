@@ -1,6 +1,7 @@
 /** v4 AiService — sessions + invoke + one-shot complete (inline edit). */
 import path from "node:path";
-import { generateText } from "ai";
+import { randomUUID } from "node:crypto";
+import { generateText, jsonSchema } from "ai";
 import { readText } from "./lib/fs-utils.mjs";
 import { logInfo, logError, logWarn } from "./lib/writeback.mjs";
 import { buildSystemPrompt, assembleContext, resolvePromptLocale } from "./ai-prompts.mjs";
@@ -13,6 +14,7 @@ import { loadAppSettings } from "./settings.mjs";
 import { compactMessagesForModel, resolveCompactBudget } from "./lib/ai-session-compact.mjs";
 import { AiSessionStore, safeSessionId } from "./lib/ai-session-store.mjs";
 import { prepareTurnResources } from "./lib/tool-progressive.mjs";
+import { resolveTaskContract, createTaskExecutionGuard, taskContractPrompt, taskAllowsTool, taskStopMessage, documentTaskOutcome, bindTaskToolSchema } from "./lib/agent-task-contract.mjs";
 import { sanitizeInlineAiResult } from "./lib/inline-ai-result.mjs";
 import { rememberDistillHint } from "./lib/ai-tool-evidence.mjs";
 import {
@@ -30,6 +32,7 @@ import {
   rejectBareDone,
   resolveMaxAutoContinues,
   classifyTurn,
+  createGoalState,
   matchQueryIntents,
 } from "./lib/agent-goal-protocol.mjs";
 import {
@@ -161,6 +164,10 @@ async function resolveMountedFiles(workspaceContext, refs) {
     try {
       const abs = path.resolve(dataRoot, rel);
       await assertPathWithin(dataRoot, abs, { allowMissing: false });
+      if (/\.(?:png|jpe?g|webp|gif|svg|pdf|mp[34]|wav)$/iu.test(rel)) {
+        out.push({ name: rel, binary: true, content: "[Host attachment metadata only. Binary/image content has not been supplied to the model. Do not claim to have seen it.]" });
+        continue;
+      }
       out.push({ name: rel, content: await readText(abs) });
     } catch (err) {
       logWarn("ai", "mounted file skipped", { rel, error: err.message });
@@ -400,7 +407,7 @@ export const AiService = {
 
 async function executeAgentTurn({
     messages, topicId, mountedFiles, model, sessionId, useTools, writebackMode, activeSkillId,
-    focusPath, focusHint,
+    focusPath, focusHint, taskIntent, focusUnsaved,
   }, c, emitFromArg, invocation) {
   // Prefer ctx.emit (unified RPC bridge path); fall back to 3rd arg for direct calls.
   const emit = (chunk) => {
@@ -421,9 +428,26 @@ async function executeAgentTurn({
       ? lastUser.content.map((p) => (typeof p === "string" ? p : p?.text || "")).join("\n")
       : "";
 
+  const savedGoal = await AiSessionStore.loadGoal(sessionId, c).catch(() => null);
   // Ambient file: if UI passed focusPath and it is not already mounted, include for this turn only.
   const mountList = Array.isArray(mountedFiles) ? [...mountedFiles] : [];
-  const ambient = typeof focusPath === "string" ? focusPath.trim() : "";
+  let ambient = typeof focusPath === "string" ? focusPath.trim() : "";
+  const modelEntry = settings?.ai?.modelCache?.catalog?.find(p => p.id === res.provider)?.models?.find(m => m.id === res.modelId);
+  const task = resolveTaskContract({ userText: lastUserText, focusPath: ambient, referencePaths: mountList.map(f => typeof f === "string" ? f : f.path), skillId: activeSkillId, intent: taskIntent, priorTask: savedGoal?.task,
+    capabilities: { toolCalling: modelEntry?.toolCall, vision: false, imageGeneration: false, imageRendering: false } });
+  const toolLimit = Math.max(1, Math.min(task.kind === "document" ? 16 : 48, Number(settings?.ai?.maxAgentSteps) || 32));
+  const taskGuard = createTaskExecutionGuard(task, { maxCalls: toolLimit, maxModelCalls: toolLimit + 4 });
+  if (task.kind === "document" && task.targetKind === "file" && useTools === false) taskGuard.stop("tools-disabled");
+  if (task.kind === "document" && focusUnsaved) taskGuard.stop("unsaved-target");
+  const taskLocale = settings?.ui?.locale || "zh-CN";
+  const blockedTaskResult = async () => {
+    const goal = { task: { ...task, blockReason: taskGuard.reason }, goal: lastUserText.slice(0, 400), plan: [], criteria: [], openCriteria: [], pathReceipts: [], status: "blocked", blockReason: taskGuard.reason, autoContinues: 0, kind: "task" };
+    await AiSessionStore.saveGoal(sessionId, { ...goal, task: { ...task, blockReason: taskGuard.reason }, doneCriteria: [] }, c);
+    emit({ type: "goal-status", goal });
+    return { ok: true, text: taskStopMessage(taskGuard.reason, taskLocale, task.targetPath), goal, stopReason: "needs-user", followUps: [] };
+  };
+  if (taskGuard.reason) return blockedTaskResult();
+  if (task.kind === "document") ambient = task.targetPath;
   if (ambient && !mountList.some((m) => m === ambient || m?.path === ambient)) {
     mountList.push(ambient);
   }
@@ -469,7 +493,7 @@ async function executeAgentTurn({
     explicitWritebackMode: effectiveMode,
     appSettings: { ...settings, writebackMode: contractMode },
     // Once-per-task locked snapshot key for writeback-engine.
-    aiTaskId: sessionId,
+    aiTaskId: `${sessionId}:${randomUUID()}`,
     sessionId,
   };
 
@@ -477,11 +501,13 @@ async function executeAgentTurn({
   // buildAiTools always registers write tools; confirm mode → pending + 待确认写入.
   // Failures degrade to plain streaming. Tools never spawn child Electron processes.
   const enableTools = useTools !== false;
-  const { turnKind, files: ctxFiles, tools: preparedTools, context: aiContext } = await prepareTurnResources({
+  let targetVersion;
+  const { turnKind: resourceTurnKind, files: ctxFiles, tools: preparedTools, context: aiContext } = await prepareTurnResources({
     userText: lastUserText,
     enableTools,
     loadFiles: async () => {
       const files = await resolveMountedFiles(c.workspaceRoot, mountList);
+      targetVersion = files.find(file => file.name === task.targetPath)?.content;
       return assembleContext({ files, preferPaths: ambient ? [ambient] : [] }).files;
     },
     buildTools: async () => {
@@ -495,6 +521,7 @@ async function executeAgentTurn({
       }
     },
     loadContext: async () => {
+      if (task.kind === "document") return { overview: "", profile: "", topicContext: "" };
       try {
         const { loadAiContext } = await import("./lib/ai-context-loader.mjs");
         return await loadAiContext(c, topicId);
@@ -504,10 +531,24 @@ async function executeAgentTurn({
       }
     },
   });
+  const turnKind = task.kind === "document" ? task.output === "review" ? "query" : "task" : resourceTurnKind;
   let tools = preparedTools;
   let toolNames = tools ? Object.keys(tools) : [];
+  if (task.kind === "document" && ctxFiles.some(file => file.name === task.targetPath && file.binary)) {
+    taskGuard.stop("binary-input-unavailable");
+    return blockedTaskResult();
+  }
+  if (task.kind === "document" && task.targetKind === "file" && !ctxFiles.some(file => file.name === task.targetPath)) {
+    taskGuard.stop("target-unavailable");
+    return blockedTaskResult();
+  }
+  if (task.kind === "document" && task.targetKind === "file" && !tools) {
+    taskGuard.stop("tool-runtime-unavailable");
+    return blockedTaskResult();
+  }
 
   // System prompt: skill-first protocol + discovery catalog + actual tool names + pre-loaded context.
+  const fileOps = { readFiles: [], modifiedFiles: [] };
   const skillsEnabled = settings?.ai?.skillsEnabled !== false;
 
   // Progressive tool exposure + session-health instrumentation: each tool
@@ -522,7 +563,14 @@ async function executeAgentTurn({
       const filtered = filterToolsForTurn(tools, turnKind);
       /** @type {Record<string, unknown>} */
       const instrumented = {};
+      let toolQueue = Promise.resolve();
+      const serializeTool = (operation) => {
+        const pending = toolQueue.then(operation, operation);
+        toolQueue = pending.then(() => undefined, () => undefined);
+        return pending;
+      };
       for (const [name, t] of Object.entries(filtered)) {
+        if (!taskAllowsTool(task, name)) continue;
         const sdk = /** @type {{ execute?: Function }} */ (t);
         if (typeof sdk.execute !== "function") {
           instrumented[name] = t;
@@ -531,17 +579,44 @@ async function executeAgentTurn({
         const orig = sdk.execute.bind(sdk);
         instrumented[name] = {
           ...sdk,
-          execute: async (...a) => {
+          ...(sdk.inputSchema?.jsonSchema ? { inputSchema: jsonSchema(bindTaskToolSchema(task, name, sdk.inputSchema.jsonSchema)) } : {}),
+          execute: (...a) => serializeTool(async () => {
+            invocation.checkpoint();
+            const checked = taskGuard.beforeTool(name, a[0]);
+            if (!checked.ok) return { ok: false, error: checked.error, needsUser: true };
             try {
-              const r = await orig(...a);
+              const writing = task.kind === "document" && ["edit_file", "save_file", "append_stream_entry", "save_note"].includes(name);
+              const target = writing ? path.resolve(resolveDataRoot(c.workspaceRoot), task.targetPath) : null;
+              if (target) {
+                await assertPathWithin(resolveDataRoot(c.workspaceRoot), target, { allowMissing: false });
+                if (await readText(target) !== targetVersion) {
+                  taskGuard.stop("source-changed");
+                  return { ok: false, error: "source-changed" };
+                }
+              }
+              invocation.checkpoint();
+              const r = await orig(checked.args, ...a.slice(1));
+              if (target && r?.ok !== false && !r?.error && !r?.pending && !r?.needsConfirm) targetVersion = await readText(target);
+              const previousWrites = taskGuard.writes;
+              taskGuard.afterTool(name, checked.args, r);
+              if (taskGuard.writes > previousWrites) {
+                const root = resolveDataRoot(c.workspaceRoot);
+                for (const value of [checked.args?.relativePath, r?.relativePath, r?.path, r?.targetPath, ...(Array.isArray(r?.affectedFiles) ? r.affectedFiles : [])]) {
+                  if (typeof value !== "string" || !/\.(?:md|txt|json|ya?ml|csv)$/iu.test(value)) continue;
+                  const rel = path.relative(root, path.resolve(root, value)).replace(/\\/gu, "/");
+                  if (rel && rel !== ".." && !rel.startsWith("../") && !path.isAbsolute(rel) && !fileOps.modifiedFiles.includes(rel)) fileOps.modifiedFiles.push(rel);
+                }
+              }
               const ok = !(r && typeof r === "object" && (r.ok === false || r.error));
               sessionHealth = recordToolOutcome(sessionHealth, { name, ok });
+              if (sessionHealth.tripped) taskGuard.stop("tool-failures");
               return r;
             } catch (err) {
+              taskGuard.afterTool(name, checked.args, { ok: false, error: String(err?.message || err) });
               sessionHealth = recordToolOutcome(sessionHealth, { name, ok: false });
               throw err;
             }
-          },
+          }),
         };
       }
       tools = instrumented;
@@ -550,10 +625,12 @@ async function executeAgentTurn({
         logInfo("ai", "progressive tools", { sessionId, turnKind, toolCount: toolNames.length });
       }
     } catch (err) {
-      logWarn("ai", "progressive tool filter failed (keeping full set)", {
+      logWarn("ai", "tool contract setup failed (tools disabled)", {
         sessionId,
         error: err?.message || String(err),
       });
+      taskGuard.stop("tool-runtime-unavailable");
+      return blockedTaskResult();
     }
   }
   const [locale, outputLocale] = await Promise.all([
@@ -570,7 +647,7 @@ async function executeAgentTurn({
   let queryEvidenceBlock = null;
   try {
     const { buildQueryEvidence } = await import("./lib/query-evidence.mjs");
-    queryEvidenceBlock = await buildQueryEvidence({
+    queryEvidenceBlock = task.kind === "document" ? null : await buildQueryEvidence({
       userText: lastUserText,
       tools,
       locale,
@@ -589,8 +666,9 @@ async function executeAgentTurn({
     });
   }
   const sysPrompt = buildSystemPrompt({
+    documentTask: task.kind === "document",
     workspaceContext: c.workspaceRoot,
-    topicId,
+    topicId: task.kind === "document" ? undefined : topicId,
     mountedFiles: ctxFiles,
     writebackMode: contractMode,
     toolNames,
@@ -598,7 +676,7 @@ async function executeAgentTurn({
     enabledSkillIds: settings?.ai?.enabledSkillIds || null,
     extraSkillsRoots: settings?.ai?.extraSkillsRoots || [],
     engineRoot: c.workspaceRoot?.engineRoot || c.engineRoot,
-    activeSkillId: activeSkillId || null,
+    activeSkillId: task.skillId || activeSkillId || null,
     focusPath: ambient || null,
     focusHint: typeof focusHint === "string" ? focusHint : null,
     queryHint: matchQueryIntents(lastUserText)?.tools || null,
@@ -642,7 +720,7 @@ async function executeAgentTurn({
       error: err?.message || String(err),
     });
   }
-  const maxAgentSteps = sessionBudget.maxAgentSteps;
+  const maxAgentSteps = Math.min(toolLimit, sessionBudget.maxAgentSteps);
   logInfo("ai", "invoke started", {
     sessionId,
     model: res.modelId,
@@ -655,7 +733,7 @@ async function executeAgentTurn({
   const streamArgs = {
     model: res.model,
     modelId: res.modelId,
-    system: sysPrompt,
+    system: `${sysPrompt}\n\n${taskContractPrompt(task)}`,
     messages: compact.messages,
     tools,
     emit,
@@ -664,6 +742,9 @@ async function executeAgentTurn({
     workspaceRoot: workspaceRootOf(c.workspaceRoot),
     // Real model window when known — Pi stub otherwise defaults to 128k.
     contextWindow: modelContextWindow,
+    taskGuard,
+    taskContract: task,
+    locale: taskLocale,
   };
   let piRuntime = null;
   try {
@@ -681,7 +762,7 @@ async function executeAgentTurn({
   // forever; incomplete goals get a slightly higher budget.
   const BASE_MAX_AUTO_CONTINUES = sessionBudget.maxAutoContinues;
   let autoContinues = 0;
-  let workingMessages = compact.messages;
+  let workingMessages = task.kind === "document" ? [{ role: "user", content: task.targetKind === "inline" ? task.request : `${task.request}\n\nLatest user input:\n${lastUserText}` }] : compact.messages;
   // Dual injection: evidence lives in the system prompt AND the last user
   // turn. Some mid-size models weight the user tail far more than a system
   // appendix — without this they answer from priors and never open tools.
@@ -708,12 +789,10 @@ async function executeAgentTurn({
   let lastSteerApplyCount = 0;
   let lastRuntime = "ai-sdk";
   let lastUsage = null;
-  const savedGoal = await AiSessionStore.loadGoal(sessionId, c).catch(() => null);
   // Restore, fold history, and merge Pi's "继续" seed as one prelude.
-  let goalState = prepareTurnGoal({ saved: savedGoal, messages: compact.messages });
+  let goalState = task.kind === "document" ? createGoalState(task.request, "task") : prepareTurnGoal({ saved: savedGoal, messages: compact.messages });
   let contextRetries = 0;
-  /** File ops harvested from Pi compaction + tool path receipts (memory distill). */
-  const fileOps = { readFiles: [], modifiedFiles: [] };
+  // Actual tool writes above and runtime read evidence survive retries.
 
   for (;;) {
     invocation.checkpoint();
@@ -724,18 +803,17 @@ async function executeAgentTurn({
         : await runStream(runArgs, invocation.registry);
     } catch (piErr) {
       invocation.checkpoint();
-      // Pi runtime crashed mid-loop — degrade to AI SDK streamText once.
-      logError("ai", "pi-agent-core threw, falling back to ai-sdk", {
+      if (taskGuard.reason) {
+        result = { text: "", runtime: "pi-agent-core" };
+      } else {
+      // Never replay a partially executed tool task through another runtime.
+      logError("ai", "agent runtime threw; stopping this turn", {
         sessionId,
         error: piErr instanceof Error ? piErr.message : String(piErr),
       });
-      try {
-        result = await runStream(runArgs, invocation.registry);
-        lastRuntime = "ai-sdk";
-      } catch (sdkErr) {
-        result = {
+      result = {
           text: "",
-          error: sdkErr instanceof Error ? sdkErr : new Error(String(sdkErr)),
+          error: piErr instanceof Error ? piErr : new Error(String(piErr)),
           runtime: lastRuntime,
         };
       }
@@ -751,7 +829,7 @@ async function executeAgentTurn({
     const willOverflowRetry =
       Boolean(result.error) &&
       /context.?length|maximum context|too many tokens|context.?window/iu.test(errText0) &&
-      contextRetries < 3;
+      contextRetries < 3 && taskGuard.writes === 0;
     if (result.text && !willOverflowRetry) {
       combinedText = combinedText
         ? `${combinedText}\n\n${result.text}`
@@ -787,12 +865,7 @@ async function executeAgentTurn({
         if (p && !fileOps.modifiedFiles.includes(p)) fileOps.modifiedFiles.push(p);
       }
     }
-    // Path receipts are also distill candidates (written/updated this run).
-    for (const p of goalState.pathReceipts || []) {
-      if (p && !fileOps.modifiedFiles.includes(p) && /\.(?:md|txt|json|ya?ml|csv)$/iu.test(p)) {
-        fileOps.modifiedFiles.push(p);
-      }
-    }
+    // Assistant-cited paths are not evidence of modification.
     // Live goal chip: emit when plan/criteria first appear or status flips.
     if (
       (goalState.plan?.length || 0) !== prevPlan ||
@@ -817,10 +890,18 @@ async function executeAgentTurn({
       });
     }
 
+    if (taskGuard.reason) {
+      goalState = { ...goalState, status: "blocked", blockReason: taskGuard.reason };
+      combinedText = taskGuard.question || taskStopMessage(taskGuard.reason, taskLocale, task.targetPath);
+      result.error = null;
+      lastFollowUps = [];
+      break;
+    }
+
     // Context overflow: compact harder and retry (G8: up to 3, not tools-gated).
     const errText = result.error ? String(result.error.message || result.error) : "";
     const isContextOverflow = /context.?length|maximum context|too many tokens|context.?window/iu.test(errText);
-    if (result.error && isContextOverflow && contextRetries < 3) {
+    if (result.error && isContextOverflow && contextRetries < 3 && taskGuard.writes === 0) {
       contextRetries += 1;
       logWarn("ai", "context overflow — compacting and retrying", { sessionId, contextRetries });
       emit?.({ type: "status", status: "compacting", sessionId });
@@ -839,6 +920,13 @@ async function executeAgentTurn({
     }
 
     if (result.error || result.cancelled) break;
+    if (task.kind === "document") {
+      const outcome = documentTaskOutcome(task, taskGuard, { text: combinedText, stepLimitHit: result.stepLimitHit, locale: taskLocale });
+      goalState = { ...goalState, ...outcome, plan: [], criteria: [], doneCriteria: [] };
+      combinedText = outcome.text;
+      lastFollowUps = [];
+      break;
+    }
     const heuristic = assessGoalCompletion({
       state: goalState,
       lastBody: String(result.text || ""),
@@ -853,7 +941,7 @@ async function executeAgentTurn({
       (goalState.doneCriteria?.length > 0 ||
         heuristic.reason === "done-mark" ||
         heuristic.confidence === "medium");
-    if (wantsJudge && res.modelId && !heuristic.reason?.includes("incomplete-mark")) {
+    if (task.kind !== "document" && wantsJudge && res.modelId && !heuristic.reason?.includes("incomplete-mark") && taskGuard.beforeModel()) {
       try {
         const judge = await generateText({
           abortSignal: invocation.controller.signal,
@@ -1058,6 +1146,7 @@ async function executeAgentTurn({
   }
   // Goal-layer summary for the renderer (plan / open criteria / incomplete).
   const goalSummary = {
+    task: { ...task, question: taskGuard.question, blockReason: goalState.blockReason || taskGuard.reason },
     goal: goalState.goal || "",
     plan: goalState.plan || [],
     criteria: goalState.criteria || [],
@@ -1073,7 +1162,7 @@ async function executeAgentTurn({
   rememberDistillHint(fileOps);
   // Persist session-level GoalState so criteria survive user turns / restart.
   invocation.checkpoint();
-  await AiSessionStore.saveGoal(sessionId, goalState, c);
+  await AiSessionStore.saveGoal(sessionId, { ...goalState, task: { ...task, question: taskGuard.question, blockReason: goalState.blockReason || taskGuard.reason } }, c);
   // Stop-reason honesty (G4): cancel ≠ timeout ≠ stall ≠ incomplete.
   const cancelled = Boolean(result?.cancelled);
   const stopReason = result?.stopReason
@@ -1081,7 +1170,7 @@ async function executeAgentTurn({
   return {
     ok: !result?.error,
     cancelled,
-    stopReason,
+    stopReason: taskGuard.reason ? "needs-user" : stopReason,
     stepLimitHit: Boolean(result?.stepLimitHit),
     text: combinedText || result?.text || "",
     reasoning: combinedReasoning || result?.reasoning || "",

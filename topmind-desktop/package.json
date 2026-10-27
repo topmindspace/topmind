@@ -1,6 +1,6 @@
 {
   "name": "topmind-desktop",
-  "version": "4.17.1",
+  "version": "4.18.0",
   "private": true,
   "description": "topmind local-first desktop workspace for AI-assisted project work.",
   "main": "electron/main.mjs",

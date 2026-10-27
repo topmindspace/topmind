@@ -90,5 +90,6 @@ test("ai-service uses res.contextWindow and friendly errors", () => {
   assert.match(src, /res\.contextWindow/);
   assert.match(src, /friendlyError/);
   assert.match(src, /rate.?limit|限流/i);
-  assert.match(src, /pi-agent-core threw, falling back to ai-sdk/);
+  assert.match(src, /agent runtime threw; stopping this turn/);
+  assert.doesNotMatch(src, /pi-agent-core threw, falling back to ai-sdk/);
 });

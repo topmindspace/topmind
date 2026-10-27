@@ -1195,7 +1195,7 @@ export function ChatMessage({ message, streaming, streamStatus, streamToolName, 
         )}
       >
         {isUser ? (
-          <span className="whitespace-pre-wrap">{message.content}</span>
+          <><span className="whitespace-pre-wrap">{message.content}</span>{message.focusPath ? <div className="mt-2 break-all border-t border-border-subtle pt-1 text-xs text-text-secondary" data-task-target>{message.focusPath}</div> : null}</>
         ) : isError ? (
           <ErrorBlock message={message.content} onRetry={() => void regenerate()} />
         ) : (

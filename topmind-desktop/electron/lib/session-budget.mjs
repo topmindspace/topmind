@@ -49,7 +49,7 @@ function estimateWorkload(userText, goal) {
 
 /**
  * Resolve the adaptive budget for one invoke.
- * User settings override when explicitly larger (user asked for more room).
+ * User settings cap the derived budget; a maximum is never a minimum quota.
  *
  * @param {{
  *   userText: string,
@@ -110,9 +110,9 @@ export function resolveSessionBudget(p) {
     steps = Math.max(4, Math.floor(steps * 0.75));
   }
 
-  // Explicit user setting wins when it asks for more room (never shrinks below it).
+  // A configured maximum is a ceiling, never a quota the agent must spend.
   if (Number.isFinite(settingsSteps) && settingsSteps > 0) {
-    steps = Math.max(steps, Math.min(BUDGET_MAX_STEPS, Math.floor(settingsSteps)));
+    steps = Math.min(steps, Math.min(BUDGET_MAX_STEPS, Math.floor(settingsSteps)));
   }
 
   return {

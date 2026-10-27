@@ -49,6 +49,28 @@
       "container-as-text": "Container preserved as text"
     },
     "unsaved": "Save the source before generating or copying a delivery.",
-    "images": "Image checklist · {{count}} images"
+    "images": "Image checklist · {{count}} images",
+    "setupHint": "Select an article and action, then start explicitly. Preview does not call AI.",
+    "requirements": "Additional requirements (optional)",
+    "resultMode": "Expected result",
+    "reviewOnly": "Give suggestions in chat; do not edit the source",
+    "editSource": "Edit the selected article; preserve facts and author intent",
+    "taskScope": "Target: {{path}}. Use attached references only; stop when the target or a required capability is missing.",
+    "start": "Start AI task for this article",
+    "chooseAction": "Select an action to see what it does. AI has not started.",
+    "agentBusy": "AI is busy or loading. Stop or finish the current task first.",
+    "actionHelp": {
+      "topmind-revise": "Review the selected article while preserving facts and author intent.",
+      "topmind-format": "Adjust text formatting only. Use Preview below for WeChat/X rich text without AI.",
+      "topmind-briefs": "Prepare a brief from the selected article.",
+      "topmind-viral-posts": "Prepare a social post from this article; do not publish.",
+      "topmind-wechat-post": "Prepare a WeChat draft. Preview, copy and export below.",
+      "topmind-x-article": "Prepare an X Article from the selected document; do not publish.",
+      "topmind-cover": "No image-generation tool is connected. This prepares a cover prompt and composition only; vision is not image generation.",
+      "topmind-poster": "No PNG renderer is connected. This prepares HTML/layout only."
+    },
+    "aiTask": "AI writing task",
+    "localDelivery": "Local typography and delivery (no AI)",
+    "allowWeb": "Allow external fact checking and web research"
   }
 }

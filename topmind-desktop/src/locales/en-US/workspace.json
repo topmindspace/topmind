@@ -491,7 +491,9 @@
     "saveReasonPermission": "Check the file and folder write permissions.",
     "saveReasonSpace": "Free up disk space, then retry.",
     "saveReasonMissing": "The file or folder may have moved. Check its location.",
-    "saveReasonUnavailable": "Retry when the file is available."
+    "saveReasonUnavailable": "Retry when the file is available.",
+    "writing": "Writing",
+    "writingTip": "Review, preview, copy or export this article in Writing"
   },
   "skills": {
     "capture": "Note it — full capture",

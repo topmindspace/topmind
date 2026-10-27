@@ -6,6 +6,7 @@ import i18n from "../locales";
 import { api } from "../services/api";
 import { subscribe } from "../services/rpc";
 import { useViewStore } from "./view-store";
+import { resolveTaskContract } from "../../electron/lib/agent-task-contract.mjs";
 import type {
   AiSession,
   AiMessage,
@@ -75,7 +76,7 @@ interface AiState {
   messagesSaveError: string | null;
   retrySaveMessages: () => Promise<void>;
   loadMessages: (sessionId: string) => Promise<void>;
-  sendMessage: (text: string) => Promise<void>;
+  sendMessage: (text: string, context?: { focusPath?: string | null; taskIntent?: AiMessage['taskIntent'] }) => Promise<void>;
   /**
    * While streaming: steer (default) injects mid-turn; followUp queues after turn.
    * When not streaming: same as sendMessage.
@@ -370,6 +371,11 @@ async function performInvocation(
   apiMessages: AiMessage[],
 ): Promise<void> {
   const gen = ++streamGeneration;
+  const boundSelection = useViewStore.getState().selection;
+  const boundTopicId = currentTopicId();
+  const boundMessage = [...apiMessages].reverse().find(m => m.role === "user");
+  const boundReferences = Array.isArray(boundMessage?.referencePaths) ? [...boundMessage.referencePaths] : get().mountedFiles.map(file => file.path);
+  const boundFocusPath = boundMessage?.focusPath !== undefined ? boundMessage.focusPath : boundSelection.kind === "file" ? boundSelection.path : undefined;
   const workspaceGen = workspaceGeneration;
   stopAiDeltaScope();
   set({
@@ -602,10 +608,12 @@ async function performInvocation(
   try {
     await persistMessages(get, set, sessionId, apiMessages, workspaceGen);
     if (gen !== streamGeneration || get().activeSessionId !== sessionId) return;
-    const mountedFiles = get().mountedFiles.map((f) => f.path);
+    const mountedFiles = boundReferences;
     // Silent ambient focus: current open file is included this turn (no extra UI).
-    const sel = useViewStore.getState().selection;
-    const focusPath = sel.kind === "file" ? sel.path : undefined;
+    const sel = boundSelection;
+    const focusPath = boundFocusPath || undefined;
+    const target = boundMessage?.taskIntent?.targetPath || focusPath;
+    const focusUnsaved = typeof document !== "undefined" && target ? Array.from(document.querySelectorAll<HTMLElement>("[data-source-path][data-save-state]")).some(node => node.dataset.sourcePath === target && !["clean", "saved"].includes(node.dataset.saveState || "")) : false;
     const focusHint =
       sel.kind === "topic"
         ? i18n.t("ai:store.focusHintTopic", { topicId: sel.topicId })
@@ -625,8 +633,10 @@ async function performInvocation(
       })),
       sessionId,
       mountedFiles,
-      topicId: currentTopicId(),
+      topicId: boundTopicId,
       focusPath,
+      taskIntent: boundMessage?.taskIntent,
+      focusUnsaved,
       focusHint,
       model: get().model ?? undefined,
       useTools: get().agentEnabled,
@@ -935,7 +945,13 @@ export const useAiStore = create<AiState>((set, get) => ({
       if (isCurrent()) set({ messagesLoading: false });
     }
   },
-  async sendMessage(text) {
+  async sendMessage(text, context) {
+    const selection = useViewStore.getState().selection;
+    const ambient = context?.focusPath !== undefined ? context.focusPath : selection.kind === "file" ? selection.path : null;
+    const referencePaths = get().mountedFiles.map(file => file.path);
+    const priorTask = [...get().messages].reverse().find(message => message.role === "assistant")?.goal?.task;
+    const effective = resolveTaskContract({ userText: text, focusPath: ambient, referencePaths, intent: context?.taskIntent, priorTask, skillId: get().activeSkillId });
+    const focusPath = effective.kind === "document" ? effective.targetPath : ambient;
     if (get().messagesLoading || get().messagesError) return;
     let sessionId = get().activeSessionId;
     if (!sessionId) sessionId = await get().createSession();
@@ -959,7 +975,7 @@ export const useAiStore = create<AiState>((set, get) => ({
       }));
     }
 
-    const userMsg: AiMessage = { role: "user", content: text };
+    const userMsg: AiMessage = { role: "user", content: text, focusPath, referencePaths, ...(context?.taskIntent ? { taskIntent: { ...context.taskIntent } } : {}) };
     const assistantPlaceholder: AiMessage = { role: "assistant", content: "", toolCalls: [] };
     const nextMessages = [...get().messages, userMsg, assistantPlaceholder];
     set({ messages: nextMessages, paused: false });
@@ -1067,7 +1083,8 @@ export const useAiStore = create<AiState>((set, get) => ({
         ? "先更新/执行剩余步骤，再收尾。收尾时输出结论 + 路径回执 + [DONE]；若无法完成则 [INCOMPLETE 原因]。"
         : "Continue remaining steps first, then close. Finish with conclusion + path receipts + [DONE]; if blocked use [INCOMPLETE reason].",
     );
-    await get().sendMessage(parts.join("\n"));
+    const original = [...get().messages].reverse().find(m => m.role === "user");
+    await get().sendMessage(parts.join("\n"), { focusPath: original?.focusPath ?? null, taskIntent: original?.taskIntent });
   },
 
   async abandonPaused() {

@@ -32,6 +32,6 @@ test("Obsidian catalog exposes its supported tools and preserves legacy calls", 
   }
   // Desktop is the current execution superset; Obsidian has a reviewed proposal tool.
   assert.ok(names.has("propose_memory_change"));
-  assert.equal(AI_TOOL_NAMES_READ.length, 23);
+  assert.equal(AI_TOOL_NAMES_READ.length, 24);
   assert.equal(AI_TOOL_NAMES_WRITE.length, 25);
 });

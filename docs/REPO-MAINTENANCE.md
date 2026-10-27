@@ -62,7 +62,7 @@ Vault UI / 插件壳 / esbuild            → topmind-obsidian
 
 ### 共享 Agent 契约与状态
 
-工具名称、schema 与说明维护在 `lib/agent-tool-catalog.mjs`，预算/写回文案在 `lib/agent-policy.mjs`，目标协议在 `lib/agent-goal-protocol.mjs`。改动后运行 `npm run sync:agent-contract`；`npm run check:agent-contract` 在根集成门中逐字校验 Desktop 快照。不要直接修改 `electron/lib/ai-tool-names.mjs` 或 `writeback-mode-copy.mjs`。
+工具名称、schema 与说明维护在 `lib/agent-tool-catalog.mjs`，预算/写回文案在 `lib/agent-policy.mjs`，工作区目标协议在 `lib/agent-goal-protocol.mjs`；文章目标、权限、澄清与执行预算由 `lib/agent-task-contract.mjs` 管理。改动后运行 `npm run sync:agent-contract`；`npm run check:agent-contract` 校验 Desktop 生成快照（任务模块仅转换本地工具清单导入路径）。不要直接修改生成文件。
 
 记忆围栏、JSON 状态和待确认操作共用 Kernel `agent-tool-policy` / `workspace-state` / `pending-writes`。宿主只做上下文解析、调用与 UI 通知。Obsidian 改版前运行 `npm run ensure-engine` 更新 vendored `lib/`，不要手工补复制文件；正式构建只使用该快照。工作区路径每次显式传入，不能用全局变量串接不同 Vault。
 

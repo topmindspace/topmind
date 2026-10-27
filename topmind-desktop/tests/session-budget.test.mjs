@@ -32,12 +32,13 @@ test("task turns scale with workload; big briefs get more room", () => {
   assert.ok(big.maxAgentSteps <= 80);
 });
 
-test("user setting expands the cap but never shrinks below heuristics", () => {
+test("user setting is a ceiling rather than a minimum work quota", () => {
   const withSetting = resolveSessionBudget({
     userText: "把标题改一下",
     settings: { maxAgentSteps: 48 },
   });
-  assert.ok(withSetting.maxAgentSteps >= 48);
+  assert.ok(withSetting.maxAgentSteps < 48);
+  assert.equal(resolveSessionBudget({ userText: "把标题改一下", settings: { maxAgentSteps: 3 } }).maxAgentSteps, 3);
 });
 
 test("tiny context window tightens budget", () => {

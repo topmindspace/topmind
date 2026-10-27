@@ -6,6 +6,11 @@ export function buildAgentToolCatalog({ locale = "zh-CN", host } = {}) {
   const d = (zh, en) => String(locale).startsWith("en") ? en : zh;
   const strProp = (description) => ({ type: "string", description });
   const definitions = {
+    request_clarification: {
+      effect: "read", hosts: ["desktop", "obsidian"],
+      description: d("任务目标、范围或必要信息不明确时，向用户提出一个简短问题并停止本轮执行，等待回答。不能用猜测、全局遍历或无限重试代替澄清。", "Ask one concise question when the target, scope or required information is unclear. Stops this run until the user replies; do not guess or scan the workspace instead."),
+      inputSchema: { type: "object", properties: { question: { type: "string", minLength: 1 }, choices: { type: "array", items: { type: "string" }, maxItems: 4 } }, required: ["question"] },
+    },
     render_article: {
       effect: "read", hosts: ["desktop", "obsidian"],
       description: d("从工作区 Markdown 源稿生成公众号、X 长文或文本排版，返回 HTML、文本、图片状态和诊断；不修改原稿、不发布。需要落盘时另用文件写入工具。", "Render a workspace Markdown source for WeChat, X Article or text. Returns HTML, text, image status and diagnostics. Does not change or publish the source. Use a file write tool to persist a delivery."),
@@ -871,10 +876,10 @@ export function normalizeAgentToolCall(call) {
 }
 
 /** Human fallback protocol is generated from the same schemas used by native providers. */
-export function formatAgentToolGuide({ locale = "zh-CN", host = "obsidian", turnKind = "task" } = {}) {
+export function formatAgentToolGuide({ locale = "zh-CN", host = "obsidian", turnKind = "task", allowedTools } = {}) {
   const english = String(locale).startsWith("en");
   const catalog = filterAgentToolsForTurn(buildAgentToolCatalog({ locale, host }), turnKind);
-  const lines = Object.entries(catalog).map(([name, spec]) => {
+  const lines = Object.entries(catalog).filter(([name]) => !allowedTools || allowedTools.includes(name)).map(([name, spec]) => {
     const required = new Set(spec.inputSchema.required || []);
     const parameters = Object.entries(spec.inputSchema.properties || {}).map(([key, schema]) => `${key}${required.has(key) ? "" : "?"}:${schema.type || "value"}`).join(", ");
     return `- ${name}(${parameters}): ${spec.description}`;

@@ -167,7 +167,7 @@ function drainPendingUserMessages(registry, sessionId) {
   return [...leftoverSteers, ...followUps];
 }
 
-export async function runStream({ model, modelId, system, messages, tools, emit, sessionId, maxAgentSteps }, registry) {
+export async function runStream({ model, modelId, system, messages, tools, emit, sessionId, maxAgentSteps, taskGuard }, registry) {
   const controller = new AbortController();
   registry?.register(sessionId, controller);
   let collected = "";
@@ -225,12 +225,13 @@ export async function runStream({ model, modelId, system, messages, tools, emit,
       system,
       messages,
       tools,
-      stopWhen: tools ? stepCountIs(agentSteps) : stepCountIs(1),
+      stopWhen: [tools ? stepCountIs(agentSteps) : stepCountIs(1), () => Boolean(taskGuard?.reason)],
       abortSignal: controller.signal,
       providerOptions: reasoningProviderOptions(modelId),
       // Inject mid-turn steers; soft nudge near step budget (backend only, no UI).
       prepareStep: tools
         ? ({ messages: stepMessages, stepNumber }) => {
+          if (taskGuard && !taskGuard.beforeModel()) throw new Error("task-execution-stopped");
           const steers = registry?.drainSteers?.(sessionId) || [];
           const extras = [];
           if (steers.length > 0) {
@@ -252,7 +253,7 @@ export async function runStream({ model, modelId, system, messages, tools, emit,
           // Near step cap: do NOT force a premature finish. Nudge to keep
           // working the current goal; if steps run out the follow-up queue
           // can resume from the last path receipts (see autoContinue).
-          if (stepNumber === Math.max(2, agentSteps - 1)) {
+          if (!taskGuard && stepNumber === Math.max(2, agentSteps - 1)) {
             extras.push({
               role: "user",
               content:

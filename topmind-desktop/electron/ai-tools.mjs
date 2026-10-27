@@ -1159,6 +1159,10 @@ export async function buildDesktopAiTools(ctx) {
       });
     }
 
+    tools.request_clarification = tool({
+      ...sharedTool("request_clarification"),
+      execute: async ({ question, choices }) => ({ ok: true, needsUser: true, question: String(question).trim(), choices }),
+    });
     return tools;
   } catch (err) {
     logError("ai-tools", "buildDesktopAiTools failed", { error: err?.message || String(err) });

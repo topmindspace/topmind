@@ -196,6 +196,7 @@ export function EditorViewChrome({
   onOpenSettings,
   focusMode,
   onToggleFocus,
+  onWriting,
   showFocus = true,
 }: {
   showOutline: boolean;
@@ -204,11 +205,13 @@ export function EditorViewChrome({
   onOpenSettings?: () => void;
   focusMode: boolean;
   onToggleFocus: () => void;
+  onWriting?: () => void;
   showFocus?: boolean;
 }) {
   const { t } = useTranslation(["workspace", "common"]);
   return (
     <div className="flex items-center gap-0.5" data-editor-view-chrome>
+      {onWriting ? <button type="button" className="v4-editor-tool-btn gap-1 !w-auto px-2" onClick={onWriting} title={t("workspace:editor.writingTip")} aria-label={t("workspace:editor.writingTip")}><RiEditLine size={ICON.xs} /><span className="text-xs">{t("workspace:editor.writing")}</span></button> : null}
       <Tooltip content={showOutline ? t("workspace:outline.hideTip") : t("workspace:outline.showTip")}>
         <button
           type="button"

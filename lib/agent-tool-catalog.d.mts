@@ -16,7 +16,7 @@ export interface AgentToolDefinition {
 export declare function buildAgentToolCatalog(options?: { locale?: string; host?: string }): Record<string, AgentToolDefinition>;
 export declare function getAgentToolDefinition(name: string, options?: { locale?: string; host?: string }): AgentToolDefinition;
 export declare function normalizeAgentToolCall(call: Record<string, unknown>): Record<string, unknown> & { tool: string };
-export declare function formatAgentToolGuide(options?: { locale?: string; host?: string; turnKind?: "light" | "query" | "task" }): string;
+export declare function formatAgentToolGuide(options?: { locale?: string; host?: string; turnKind?: "light" | "query" | "task"; allowedTools?: string[] }): string;
 export declare const AI_TOOL_NAMES_READ: readonly string[];
 export declare const AI_TOOL_NAMES_WRITE: readonly string[];
 

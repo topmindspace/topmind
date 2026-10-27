@@ -491,7 +491,9 @@
     "saveReasonPermission": "请检查文件和所在文件夹的写入权限。",
     "saveReasonSpace": "请释放磁盘空间后重试。",
     "saveReasonMissing": "文件或文件夹可能已移动，请检查其位置。",
-    "saveReasonUnavailable": "请在文件恢复可用后重试。"
+    "saveReasonUnavailable": "请在文件恢复可用后重试。",
+    "writing": "写作",
+    "writingTip": "在写作应用中审校、排版预览、复制或导出当前文章"
   },
   "skills": {
     "capture": "记一下 — 完整捕获",

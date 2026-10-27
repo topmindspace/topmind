@@ -236,6 +236,10 @@ export interface AiToolCall {
   output?: Record<string, unknown>;
 }
 export interface AiMessage {
+/** Frozen at Send; null explicitly means there was no current article. */
+focusPath?: string | null;
+referencePaths?: string[];
+taskIntent?: { targetPath?: string; skillId?: string; output?: 'review' | 'edit'; allowWeb?: boolean };
 role: AiRole;
 content: string;
 /** Accumulated raw text-deltas (pre-split) for incremental thinking fold. */
@@ -260,6 +264,7 @@ usage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number
 modelId?: string;
 /** Goal-protocol snapshot for this turn (plan / open criteria / incomplete). */
 goal?: {
+  task?: import('../electron/lib/agent-task-contract.mjs').TaskContract;
   goal: string;
   plan: string[];
   criteria: string[];
@@ -794,6 +799,7 @@ export type OverlayKind =
    or 'memory' mode (→ append to a topic's Stable Memory) depending on intent. */
 export type OverlayIntent = 'capture' | 'memory';
 export interface OverlayContext {
+  sourcePath?: string;
   intent?: OverlayIntent;
   topicId?: string;
   /** Loop report payload when overlay kind is loop-report */

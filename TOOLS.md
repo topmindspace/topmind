@@ -123,12 +123,13 @@ Living verdict for **Desktop named AI tools**, the **Skills pack**, and the **UT
 
 ### Desktop named AI tools — all **keep**
 
-Names, bilingual descriptions, JSON schemas and read/write classification are maintained in Kernel `lib/agent-tool-catalog.mjs` (Desktop: 23 read + 25 write = 48). `topmind-desktop/electron/lib/ai-tool-names.mjs` is a generated snapshot. Obsidian uses the same catalog with a host capability subset; unsupported parameters are omitted. Builders in Desktop `electron/ai-tools.mjs` bind execution; writes pass `wrapWrite` → WorkspaceService → Kernel writeback. Run `npm run sync:agent-contract` after changing the catalog, goal protocol or agent policy; `npm run check:agent-contract` rejects drift.
+Names, bilingual descriptions, JSON schemas and read/write classification are maintained in Kernel `lib/agent-tool-catalog.mjs` (Desktop: 24 read + 25 write = 49). `topmind-desktop/electron/lib/ai-tool-names.mjs` is a generated snapshot. Obsidian uses the same catalog with a host capability subset; unsupported parameters are omitted. Builders in Desktop `electron/ai-tools.mjs` bind execution; writes pass `wrapWrite` → WorkspaceService → Kernel writeback. Run `npm run sync:agent-contract` after changing the catalog, goal protocol or agent policy; `npm run check:agent-contract` rejects drift.
 
 `lib/agent-tool-policy.mjs` owns the semantic-memory fence, including real-path aliases and custom memory directories. `lib/pending-writes.mjs` owns the review queue: the workspace is explicit, confirmed deletes execute deletion, conflicts retain the entry, and failed applications remain retryable. `.topmind` state uses `lib/workspace-state.mjs` for fenced atomic file replacement. This does not serialize transactions across multiple processes.
 
 | Class | Names | Verdict |
 |-------|-------|---------|
+| clarification | `request_clarification` | **keep** — asks a real question and stops the host run until the user replies |
 | writing | `render_article` | **keep** — deterministic local typography; returns HTML/text and diagnostics, no source writes or publishing |
 | skills | `list_skills` · `load_skill` · `load_skill_resource` | **keep** — portable pack, not `~/.pi` |
 | capture / fetch / search | `capture_to_inbox` · `web_search` · `fetch_url` · `capture_url` | **keep** — `web_search` = no-key DDG shortlist (scored + host-deduped); `fetch_url` = page→Markdown with source receipts; `capture_url` = one-shot fetch+ingest (source URL attached). Research loop: search → fetch → cite → optional capture. Not bash `curl` |
@@ -137,7 +138,7 @@ Names, bilingual descriptions, JSON schemas and read/write classification are ma
 
 **Progressive tool exposure（渐进/按需）**：按回合类型裁剪工具面——`light`（问候）= 0 域工具；`query`（任务/记忆/动态查询）= 仅读工具；`task` = 全量写面。真源 `topmind-desktop/electron/lib/tool-progressive.mjs`。查询类问题由宿主**强制取证**（`query-evidence.mjs` 先调工具再注入 system+user），不依赖模型自觉调工具。
 
-**Adaptive session budget（会话内自适应）**：`session-budget.mjs` 按回合类型 + 负载估算步数/续跑/紧凑度——light=0 步 · query=2–6 步 · task=8–48 步随负载伸缩；续跑 0–6；小上下文窗自动收紧。用户设置 `maxAgentSteps` 只增不减。无向量/语义检索。
+**Adaptive session budget（会话内自适应）**：`session-budget.mjs` 按回合类型 + 负载估算步数/续跑/紧凑度——light=0 步 · query=2–6 步 · task=8–48 步随负载伸缩；续跑 0–6；小上下文窗自动收紧。用户设置 `maxAgentSteps` 是上限，不再抬高简单任务的预算。宿主共享 `agent-task-contract.mjs` 对总调用、重复结果、失败及检索预算作执行约束，跨重试与续跑不重置；单篇文章不进入自动续跑/评审链。详见 [文章任务执行](docs/ARTICLE-TASK-EXECUTION-2026-10-27.md)。无向量/语义检索。
 
 **Adaptive retry hints（工具失败自愈）**：`tool-retry-hints.mjs` 按错误类别给**一条**可执行恢复步骤（edit hash-stale → read_file 刷 hash；no-match → 复制精确 oldText；write-blocked → 只输出正文；locked → 请用户；capture 空页 → render:true/换源）。Desktop `wrapWrite` 与 Obsidian edit/capture 共用。
 

@@ -49,6 +49,28 @@
       "container-as-text": "扩展容器按文本保留"
     },
     "unsaved": "请先保存源稿，再生成或复制交付。",
-    "images": "图片交付清单 · {{count}} 张"
+    "images": "图片交付清单 · {{count}} 张",
+    "setupHint": "先选择文章和动作，补充要求后点击开始。排版预览无需调用 AI。",
+    "requirements": "补充要求（可选）",
+    "resultMode": "预期结果",
+    "reviewOnly": "仅在对话中给出建议，不修改原文",
+    "editSource": "修改指定文章，保留事实与作者原意",
+    "taskScope": "目标：{{path}}。参考仅使用已挂载文件；缺少目标或能力时停止并说明。",
+    "start": "确认目标，开始 AI 任务",
+    "chooseAction": "选择上方动作查看用途，尚未启动 AI。",
+    "agentBusy": "AI 正在执行或载入会话，请先停止或等待当前任务结束。",
+    "actionHelp": {
+      "topmind-revise": "审校指定文章，保留事实、数字、归因与作者原意。",
+      "topmind-format": "只调整文字排版；公众号/X 富文本预览可直接使用下方预览按钮，无需 AI。",
+      "topmind-briefs": "基于指定文章准备短文，不扩展成全局资料收集。",
+      "topmind-viral-posts": "基于指定文章准备互动短帖，不代发。",
+      "topmind-wechat-post": "基于指定文章整理公众号稿；排版预览、复制与导出在下方完成。",
+      "topmind-x-article": "基于指定文章整理 X 长文，不代发。",
+      "topmind-cover": "当前宿主未接入生图工具，此入口只准备封面提示词和构图方案。支持读图的模型不等于支持生图。",
+      "topmind-poster": "当前宿主未接入 PNG 渲染工具，此入口只准备 HTML/排版方案。"
+    },
+    "aiTask": "AI 写作任务",
+    "localDelivery": "本地排版与交付（无需 AI）",
+    "allowWeb": "允许外部事实核查与联网检索"
   }
 }
