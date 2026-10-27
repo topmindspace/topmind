@@ -18,6 +18,7 @@ import {
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { useAiStore } from "../../stores/ai-store";
+import { activeDocumentPath } from "../../lib/active-document";
 import { useViewStore } from "../../stores/view-store";
 import { api } from "../../services/api";
 import { Button } from "../ui/Button";
@@ -259,6 +260,9 @@ export function ChatInput() {
 
   const openOverlay = useViewStore((s) => s.openOverlay);
   const selection = useViewStore((s) => s.selection);
+  const activeNote = useViewStore(s => activeDocumentPath(s));
+  const runTarget = useAiStore(s => [...s.messages].reverse().find(m => m.role === "user")?.focusPath);
+  const focusArticle = streaming ? runTarget : activeNote;
   const activeSkillId = useAiStore((s) => s.activeSkillId);
   const setActiveSkillId = useAiStore((s) => s.setActiveSkillId);
   const sessionLoadedSkills = useAiStore((s) => s.sessionLoadedSkills);
@@ -483,7 +487,7 @@ export function ChatInput() {
         const q = atMatch[2].toLowerCase();
         // Prefer the current selection path; fall back to mounted + skill names.
         const candidates: string[] = [];
-        if (selection.kind === "file" && selection.path) candidates.push(selection.path);
+        if (focusArticle) candidates.push(focusArticle);
         for (const f of useAiStore.getState().mountedFiles) candidates.push(f.path);
         const hits = [...new Set(candidates)].filter((p) => {
           const name = (p.split("/").pop() || p).toLowerCase();
@@ -573,12 +577,12 @@ export function ChatInput() {
       if (!name) return "";
       return name.length > 10 ? `${name.slice(0, 10)}…` : name;
     };
-    if (selection.kind === "topic") {
+    if (selection.kind === "topic" && !focusArticle) {
       const name = cap(selection.topicId?.split("/").slice(1).join("/") || selection.topicId || "");
       return name ? t("ai.focusPrefix", { name }) : "";
     }
-    if (selection.kind === "file") {
-      const fileName = cap(selection.path.split("/").pop() || selection.path);
+    if (focusArticle) {
+      const fileName = cap(focusArticle.split("/").pop() || focusArticle);
       return fileName ? t("ai.focusPrefix", { name: fileName }) : "";
     }
     if (selection.kind === "connector") {
@@ -586,7 +590,7 @@ export function ChatInput() {
       return id ? t("ai.focusPrefix", { name: id }) : "";
     }
     return "";
-  }, [selection, t]);
+  }, [selection, focusArticle, t]);
 
   if (!ready) {
     return (

@@ -463,3 +463,17 @@ test("navigating the primary editor makes the newly selected article active", as
     assert.equal(useViewStore.getState().focusedEditorPath,"C.md");
   } finally { useViewStore.setState({splitSecondaryPath:null,focusedEditorPath:null}); }
 });
+
+test("topic context is frozen with the article before save and survives retry", async () => {
+ const {useViewStore}=await import("../src/stores/view-store");
+ const saved=deferred(); let saves=0;
+ handlers.set("ai.saveMessages",()=>++saves===1?saved.promise:{ok:true});
+ handlers.set("ai.invoke",()=>({ok:true,text:"reviewed"}));
+ useViewStore.setState({selection:{kind:"file",path:"Research/Topic-A/A.md",topicId:"Research/Topic-A"},focusedEditorPath:null,splitSecondaryPath:null});
+ const run=state().sendMessage("summarize this note");
+ useViewStore.setState({selection:{kind:"file",path:"Research/Topic-B/B.md",topicId:"Research/Topic-B"}});
+ saved.resolve({ok:true}); await run;
+ assert.equal(calls.find(c=>c.method==="ai.invoke")?.params.topicId,"Research/Topic-A");
+ await state().regenerate();
+ assert.equal(calls.filter(c=>c.method==="ai.invoke").at(-1)?.params.topicId,"Research/Topic-A");
+});

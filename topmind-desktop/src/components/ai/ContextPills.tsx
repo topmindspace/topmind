@@ -13,14 +13,16 @@ export function ContextPills() {
   const activePath = useViewStore(s => activeDocumentPath(s));
   const streaming = useAiStore(s => s.streaming);
   const bound = useAiStore(s => [...s.messages].reverse().find(m => m.role === "user")?.focusPath);
+  const runReferences = useAiStore(s => [...s.messages].reverse().find(m => m.role === "user")?.referencePaths);
   const path = streaming ? bound : activePath;
+  const files = streaming ? (runReferences || []).map(path => ({path, name:path.split("/").pop() || path})) : mountedFiles;
   const { t: writing } = useTranslation("wechat");
-  if (!path && mountedFiles.length === 0) return null;
+  if (!path && files.length === 0) return null;
 
   return (
     <div className="flex flex-wrap gap-1 px-2.5 pb-1 pt-1">
       {path ? <Tooltip content={writing("delivery.activeContextHint", { path })}><span className="inline-flex max-w-full items-center gap-1 rounded-[var(--radius-full)] bg-accent-bg-faint px-2 py-1 text-2xs text-text-secondary"><RiFileTextLine size={ICON.micro} /><span className="min-w-0 truncate">{writing(streaming ? "delivery.boundNote" : "delivery.activeNote")} · {path.split("/").pop()}</span></span></Tooltip> : null}
-      {mountedFiles.filter(f => f.path !== path).map((f) => (
+      {files.filter(f => f.path !== path).map((f) => (
         <span
           key={f.path}
           className="inline-flex max-w-full items-center gap-1 rounded-[var(--radius-full)] border border-border-subtle/80 bg-surface px-1.5 py-px text-3xs text-text-secondary"
@@ -32,6 +34,7 @@ export function ContextPills() {
           <Tooltip content={t("ai.removeContextTooltip")}>
             <button
               type="button"
+              disabled={streaming}
               onClick={() => unmountFile(f.path)}
               aria-label={t("ai.removeContextTooltip")}
               className="rounded-full p-0.5 text-text-quaternary transition-colors hover:bg-state-hover hover:text-text-primary"

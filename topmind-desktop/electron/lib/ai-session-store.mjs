@@ -50,6 +50,7 @@ function validateMessages(messages) {
   if (!Array.isArray(messages) || messages.some((message) =>
     !message || typeof message !== "object" || typeof message.content !== "string" ||
     !["user", "assistant", "system"].includes(message.role) ||
+    (message.topicId != null && typeof message.topicId !== "string") ||
     (message.focusPath != null && typeof message.focusPath !== "string") ||
     (message.referencePaths !== undefined && (!Array.isArray(message.referencePaths) || message.referencePaths.some(value => typeof value !== "string")))
   )) throw new Error("Conversation data is not a valid message list.");

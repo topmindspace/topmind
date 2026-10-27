@@ -39,7 +39,11 @@ const MODELS_DEV_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 /** Derive the topicId of the current selection so the AI gains ambient
  * awareness of which category/topic the user is working in. */
-function currentTopicId(): string | undefined {
+function currentTopicId(focusPath?: string | null): string | undefined {
+  if (focusPath !== undefined) {
+    const parts = String(focusPath || "").split("/");
+    return parts.length >= 3 ? `${parts[0]}/${parts[1]}` : undefined;
+  }
   const sel = useViewStore.getState().selection;
   if (sel.kind === "topic") return sel.topicId;
   if (sel.kind === "file") return sel.topicId ?? undefined;
@@ -373,10 +377,10 @@ async function performInvocation(
 ): Promise<void> {
   const gen = ++streamGeneration;
   const boundSelection = useViewStore.getState().selection;
-  const boundTopicId = currentTopicId();
   const boundMessage = [...apiMessages].reverse().find(m => m.role === "user");
   const boundReferences = Array.isArray(boundMessage?.referencePaths) ? [...boundMessage.referencePaths] : get().mountedFiles.map(file => file.path);
   const boundFocusPath = boundMessage?.focusPath !== undefined ? boundMessage.focusPath : boundSelection.kind === "file" ? boundSelection.path : undefined;
+  const boundTopicId = boundMessage?.topicId !== undefined ? boundMessage.topicId || undefined : currentTopicId(boundFocusPath);
   const workspaceGen = workspaceGeneration;
   stopAiDeltaScope();
   set({
@@ -948,6 +952,7 @@ export const useAiStore = create<AiState>((set, get) => ({
   },
   async sendMessage(text, context) {
     const ambient = context?.focusPath !== undefined ? context.focusPath : activeDocumentPath(useViewStore.getState());
+    const topicId = currentTopicId(ambient || undefined) || null;
     const referencePaths = get().mountedFiles.map(file => file.path);
     const priorTask = [...get().messages].reverse().find(message => message.role === "assistant")?.goal?.task;
     const effective = resolveTaskContract({ userText: text, focusPath: ambient, referencePaths, intent: context?.taskIntent, priorTask, skillId: get().activeSkillId });
@@ -975,7 +980,7 @@ export const useAiStore = create<AiState>((set, get) => ({
       }));
     }
 
-    const userMsg: AiMessage = { role: "user", content: text, focusPath, referencePaths, ...(context?.taskIntent ? { taskIntent: { ...context.taskIntent } } : {}) };
+    const userMsg: AiMessage = { role: "user", content: text, focusPath, referencePaths, topicId, ...(context?.taskIntent ? { taskIntent: { ...context.taskIntent } } : {}) };
     const assistantPlaceholder: AiMessage = { role: "assistant", content: "", toolCalls: [] };
     const nextMessages = [...get().messages, userMsg, assistantPlaceholder];
     set({ messages: nextMessages, paused: false });

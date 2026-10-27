@@ -237,8 +237,9 @@ export interface AiToolCall {
 }
 export interface AiMessage {
 /** Frozen at Send; null explicitly means there was no current article. */
-focusPath?: string | null;
-referencePaths?: string[];
+  focusPath?: string | null;
+  topicId?: string | null;
+  referencePaths?: string[];
 taskIntent?: { targetPath?: string; skillId?: string; output?: 'review' | 'edit'; allowWeb?: boolean };
 role: AiRole;
 content: string;
