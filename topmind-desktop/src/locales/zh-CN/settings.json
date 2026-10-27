@@ -573,7 +573,7 @@
     "enableToolsDesc": "关闭后为纯对话；也可在 AI 面板切换",
     "routingDesc": "按 Skills 路由；清单见「Skills」页",
     "maxStepsLabel": "工具步数上限",
-    "maxStepsDesc": "单次对话 tool→reason 循环次数（3–80，默认 32）",
+    "maxStepsDesc": "本轮总调用上限；单篇文章另限最多16次。重复无进展或需要澄清时提前停止，重试和续跑不重置预算。",
     "titleAgent": "Agent",
     "skillFirst": "Skill-first",
     "refreshModelsDevTooltip": "从 models.dev 社区模型目录强制刷新（无需配置密钥，可预览所有模型）",
@@ -608,7 +608,12 @@
     "apiKeyLabel": "API Key",
     "providerMarkCurrent": "当前",
     "providerMarkConfigured": "已配置",
-    "entrypointMark": "主"
+    "entrypointMark": "主",
+    "useMemoryLabel": "自动使用全局记忆",
+    "useMemoryDesc": "提供少量活跃画像与偏好，完整记忆按需读取。记忆只作背景，当前要求优先；关闭不删除记忆。",
+    "contextWindowLabel": "上下文窗口上限",
+    "contextWindowDesc": "自动按模型容量分配历史、文章与工具结果，并预留回复空间。此设置只能收紧已知窗口；模型未知时采用保守预算。",
+    "contextWindowAuto": "自动（按模型）"
   },
   "tools": {
     "jsonErrorObject": "输入须为 JSON 对象",

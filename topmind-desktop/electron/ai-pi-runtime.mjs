@@ -23,7 +23,8 @@ import { AGENT_STEPS_DEFAULT, clampMaxAgentSteps } from "./lib/settings-core.mjs
 import { reasoningProviderOptions } from "./ai-provider-adapter.mjs";
 import { convertDesktopToolsToPi, beforePiToolCall } from "./lib/pi-agent-tools.mjs";
 import { createAiSdkStreamFn, sdkMessagesToPi } from "./lib/pi-sdk-stream.mjs";
-import { compactMessagesForModel, estimateTokens, resolveCompactBudget } from "./lib/ai-session-compact.mjs";
+import { resolveContextBudget } from "./lib/agent-context-policy.mjs";
+import { compactMessagesForModel, estimateTokens } from "./lib/ai-session-compact.mjs";
 import {
   applyGoalUpdate,
   assessGoalCompletion,
@@ -267,7 +268,7 @@ export function maybeCompactPiMessages(messages, opts = {}) {
     }, 0);
   const window = Number(opts.contextWindow) > 0 ? Number(opts.contextWindow) : 128000;
   const overWindow = contextOverReserve(tokens, window);
-  const budget = resolveCompactBudget(window);
+  const budget = resolveContextBudget(window, { fixedTokens: Number(opts.fixedTokens) || systemMsgs.reduce((n, m) => n + estimateTokens(flattenPiText(m)), 0) });
   const foldResult = compactMessagesForModel(flat, { locale: opts.locale, ...budget });
   if (!overWindow && !foldResult.compacted) {
     return { messages: list, compacted: false, note: null, estimatedTokens: tokens };
@@ -384,7 +385,10 @@ export async function runPiAgent(opts, registry) {
 
   const streamFn = streamFnOverride || createAiSdkStreamFn(model, {
     modelId,
-    reasoningProviderOptions: reasoningProviderOptions(modelId, "agent"),
+    reasoningProviderOptions: reasoningProviderOptions(modelId, "agent", opts.maxOutputTokens || 8192),
+    maxOutputTokens: opts.maxOutputTokens,
+    contextWindow,
+    taskGuard: opts.taskGuard,
   });
 
   const agent = new Agent({
@@ -423,7 +427,7 @@ export async function runPiAgent(opts, registry) {
         }
         return llmFolded.messages;
       }
-      const folded = maybeCompactPiMessages(msgs, { contextWindow: window, modelId });
+      const folded = maybeCompactPiMessages(msgs, { contextWindow: window, modelId, fixedTokens: opts.fixedTokens });
       if (folded.compacted) {
         emitOut({ type: "status", status: "compacting" });
         logInfo("ai-pi", "context compacted", { sessionId, note: folded.note });

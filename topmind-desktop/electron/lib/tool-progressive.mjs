@@ -42,8 +42,8 @@ export function resolveTurnKind(userText) {
 }
 
 /** Prepare only the resources this turn can use; independent reads overlap. */
-export async function prepareTurnResources({ userText, enableTools, loadFiles, buildTools, loadContext }) {
-  const turnKind = resolveTurnKind(userText);
+export async function prepareTurnResources({ userText, turnKind: overrideKind, enableTools, loadFiles, buildTools, loadContext }) {
+  const turnKind = overrideKind || resolveTurnKind(userText);
   const emptyContext = { overview: "", profile: "", topicContext: "" };
   if (turnKind === "light") return { turnKind, files: [], tools: null, context: emptyContext };
   const [files, tools, context] = await Promise.all([

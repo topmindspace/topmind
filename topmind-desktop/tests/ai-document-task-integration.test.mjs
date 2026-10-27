@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { AiService } from '../electron/ai-service.mjs';
 import { resolveWorkspaceStatePaths } from '../electron/lib/workspace-home.mjs';
 
-async function fixture(t, respond) {
+async function fixture(t, respond, aiSettings = {}) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'tm-document-agent-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const workspace = path.join(root, 'workspace');
@@ -22,6 +22,7 @@ async function fixture(t, respond) {
   await writeFile(path.join(workspace, 'memory/profile.md'), '# Profile\n\nUNRELATED_PROFILE_CANARY\n');
   await writeFile(workspaceStatePaths.settingsFilePath, JSON.stringify({ ui: { locale: 'en-US' }, ai: {
     sourcePreference: 'custom', defaultModel: 'task-fixture', maxAgentSteps: 80, skillsEnabled: true,
+    ...aiSettings,
     manual: { customBaseUrl: 'https://task-fixture.invalid/v1', customKey: 'offline-fixture-only' },
   } }));
   const requests = [];
@@ -44,7 +45,9 @@ test('real Desktop service + Pi + Kernel stops successful repeated reads before 
   assert.equal(result.goal.blockReason, 'repeated-result');
   assert.equal(requests.length, 3);
   assert.equal(result.autoContinues, 0);
-  assert.doesNotMatch(JSON.stringify(requests), /UNRELATED_ARTICLE_CANARY|UNRELATED_PROFILE_CANARY/);
+  assert.doesNotMatch(JSON.stringify(requests), /UNRELATED_ARTICLE_CANARY/);
+  assert.match(JSON.stringify(requests[0]), /UNRELATED_PROFILE_CANARY/);
+  assert.match(JSON.stringify(requests[0]), /User memory.*read-only/);
   assert.doesNotMatch(requests[0].messages.map(m => String(m.content)).join('\n'), /<available_skills>|list_categories|Use `list_categories`/);
   assert.ok(requests[0].tools.some(t => t.function.name === 'read_file'));
   assert.ok(!requests[0].tools.some(t => ['workspace_overview', 'list_files', 'web_search'].includes(t.function.name)));
@@ -103,4 +106,21 @@ test('clarification stops a same-step queued write; the answer resumes the origi
   assert.match(requests[1].messages.map(m => String(m.content)).join('\n'), /"targetPath":"A.md"/);
   assert.match(await readFile(path.join(workspace, 'A.md'), 'utf8'), /Shortened content/);
   assert.equal(await readFile(path.join(workspace, 'B.md'), 'utf8'), 'UNRELATED_ARTICLE_CANARY');
+});
+
+test('memory off prevents automatic profile injection and the document memory tool', async t => {
+  const { requests, invoke } = await fixture(t, async () => 'Suggestions.', {useMemory:false});
+  await invoke({taskIntent:{targetPath:'A.md',output:'review'}});
+  assert.equal(requests.length,1);
+  assert.doesNotMatch(JSON.stringify(requests), /UNRELATED_PROFILE_CANARY/);
+  assert.ok(!requests[0].tools.some(t => t.function.name === 'list_recent_memories'));
+});
+test('a constrained model window reserves output and refuses oversized user input before a model call', async t => {
+  const { requests, invoke } = await fixture(t, async () => 'Suggestions.', {contextWindowTokens:16384});
+  await invoke({taskIntent:{targetPath:'A.md',output:'review'}});
+  assert.equal(requests.length,1);
+  assert.ok(requests[0].max_tokens <= 3276);
+  const result=await invoke({messages:[{role:'user',content:'revise '+ '完整保留事实。'.repeat(6000)}]});
+  assert.equal(result.goal.blockReason,'context-budget');
+  assert.equal(requests.length,1);
 });

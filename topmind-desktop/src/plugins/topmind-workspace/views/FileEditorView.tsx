@@ -1158,6 +1158,8 @@ export function FileEditorView({ path, topicId, readOnly = false, focusHeading }
       data-editor-mode={viewMode}
       data-source-path={path}
       data-save-state={saveState}
+      onFocusCapture={() => useViewStore.getState().setFocusedEditorPath(path)}
+      onPointerDownCapture={() => useViewStore.getState().setFocusedEditorPath(path)}
       className="v4-editor-shell flex h-full min-h-0 flex-col"
       data-content-width={contentWidth}
       data-page-padding={pagePadding}

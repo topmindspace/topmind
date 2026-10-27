@@ -12,6 +12,7 @@ import { t as ei18n } from "./lib/electron-i18n.mjs";
 import { assertPathWithin } from "./lib/path-safety.mjs";
 import { loadAppSettings } from "./settings.mjs";
 import { compactMessagesForModel, resolveCompactBudget } from "./lib/ai-session-compact.mjs";
+import { estimateTokens, resolveContextWindow, resolveContextBudget, clipContext, articleHistory, boundToolResult, needsActiveDocument } from "./lib/agent-context-policy.mjs";
 import { AiSessionStore, safeSessionId } from "./lib/ai-session-store.mjs";
 import { prepareTurnResources } from "./lib/tool-progressive.mjs";
 import { resolveTaskContract, createTaskExecutionGuard, taskContractPrompt, taskAllowsTool, taskStopMessage, documentTaskOutcome, bindTaskToolSchema } from "./lib/agent-task-contract.mjs";
@@ -433,7 +434,7 @@ async function executeAgentTurn({
   const mountList = Array.isArray(mountedFiles) ? [...mountedFiles] : [];
   let ambient = typeof focusPath === "string" ? focusPath.trim() : "";
   const modelEntry = settings?.ai?.modelCache?.catalog?.find(p => p.id === res.provider)?.models?.find(m => m.id === res.modelId);
-  const task = resolveTaskContract({ userText: lastUserText, focusPath: ambient, referencePaths: mountList.map(f => typeof f === "string" ? f : f.path), skillId: activeSkillId, intent: taskIntent, priorTask: savedGoal?.task,
+  const task = resolveTaskContract({ userText: lastUserText, focusPath: ambient, referencePaths: mountList.map(f => typeof f === "string" ? f : f.path), skillId: activeSkillId, intent: taskIntent, priorTask: savedGoal?.task, memoryEnabled: settings?.ai?.useMemory !== false,
     capabilities: { toolCalling: modelEntry?.toolCall, vision: false, imageGeneration: false, imageRendering: false } });
   const toolLimit = Math.max(1, Math.min(task.kind === "document" ? 16 : 48, Number(settings?.ai?.maxAgentSteps) || 32));
   const taskGuard = createTaskExecutionGuard(task, { maxCalls: toolLimit, maxModelCalls: toolLimit + 4 });
@@ -453,33 +454,8 @@ async function executeAgentTurn({
   }
   // AI SDK v7: system prompt via `system` param; messages = user/assistant only.
   // Dynamic budget: scale by the model's real context window when known.
-  const modelContextWindow =
-    Number(res.contextWindow || res.model?.contextLimit || res.model?.contextWindow || 0) || undefined;
+  const modelContextWindow = resolveContextWindow(res.contextWindow || res.model?.contextLimit || res.model?.contextWindow, settings?.ai?.contextWindowTokens);
   const dynamicBudget = resolveCompactBudget(modelContextWindow);
-  // Smart compaction: long sessions keep recent turns + middle summary (not a hard cut).
-  // Explicit settings override the dynamic budget; otherwise scale with the model window.
-  const compact = compactMessagesForModel(cleanMsgs, {
-    maxMessages: settings?.ai?.maxContextMessages ?? dynamicBudget.maxMessages,
-    keepRecent: settings?.ai?.keepRecentMessages ?? dynamicBudget.keepRecent,
-    maxChars: settings?.ai?.maxContextChars ?? dynamicBudget.maxChars,
-    maxPerMessage: settings?.ai?.maxContextChars ? undefined : dynamicBudget.maxPerMessage,
-    locale: settings?.ui?.locale === "en-US" ? "en-US" : "zh-CN",
-  });
-  if (compact.compacted) {
-    emit?.({
-      type: "status",
-      status: "compacting",
-      sessionId,
-    });
-    logInfo("ai", "session compacted", {
-      sessionId,
-      dropped: compact.dropped,
-      note: compact.note,
-      before: cleanMsgs.length,
-      after: compact.messages.length,
-    });
-  }
-
   // Per-call override only when the invoke payload explicitly set auto|confirm.
   // Renderer must not send view-store defaults — yaml is the write policy.
   const { resolveWorkspaceWritebackMode, workspaceRootOf } = await import("./lib/kernel-api.mjs");
@@ -504,11 +480,12 @@ async function executeAgentTurn({
   let targetVersion;
   const { turnKind: resourceTurnKind, files: ctxFiles, tools: preparedTools, context: aiContext } = await prepareTurnResources({
     userText: lastUserText,
+    turnKind: task.kind === "document" ? "task" : ambient && needsActiveDocument(lastUserText) && classifyTurn(lastUserText) === "light" ? "query" : undefined,
     enableTools,
     loadFiles: async () => {
       const files = await resolveMountedFiles(c.workspaceRoot, mountList);
       targetVersion = files.find(file => file.name === task.targetPath)?.content;
-      return assembleContext({ files, preferPaths: ambient ? [ambient] : [] }).files;
+      return assembleContext({ files, maxChars: Math.min(40000, Math.floor(modelContextWindow * 0.3)), preferPaths: ambient ? [ambient] : [] }).files;
     },
     buildTools: async () => {
       try {
@@ -521,10 +498,11 @@ async function executeAgentTurn({
       }
     },
     loadContext: async () => {
-      if (task.kind === "document") return { overview: "", profile: "", topicContext: "" };
       try {
-        const { loadAiContext } = await import("./lib/ai-context-loader.mjs");
-        return await loadAiContext(c, topicId);
+        const { loadAiContext, loadMemoryProfile } = await import("./lib/ai-context-loader.mjs");
+        if (task.kind === "document") return { overview: "", profile: task.memoryEnabled ? clipContext(await loadMemoryProfile(c), Math.min(800, modelContextWindow * 0.04)) : "", topicContext: "" };
+        const loaded = await loadAiContext(c, topicId, { memoryEnabled: task.memoryEnabled, includeOverview: classifyTurn(lastUserText) === "task" });
+        return loaded;
       } catch (err) {
         logError("ai", "loadAiContext failed (non-fatal)", { sessionId, error: err.message });
         return { overview: "", profile: "", topicContext: "" };
@@ -610,7 +588,7 @@ async function executeAgentTurn({
               const ok = !(r && typeof r === "object" && (r.ok === false || r.error));
               sessionHealth = recordToolOutcome(sessionHealth, { name, ok });
               if (sessionHealth.tripped) taskGuard.stop("tool-failures");
-              return r;
+              return boundToolResult(r, Math.max(256, Math.floor(modelContextWindow * 0.12)));
             } catch (err) {
               taskGuard.afterTool(name, checked.args, { ok: false, error: String(err?.message || err) });
               sessionHealth = recordToolOutcome(sessionHealth, { name, ok: false });
@@ -684,6 +662,7 @@ async function executeAgentTurn({
     turnKind,
     workspaceOverview: aiContext.overview,
     memoryProfile: aiContext.profile,
+    contextWindow: modelContextWindow,
     topicContext: aiContext.topicContext,
     locale,
     outputLocale,
@@ -728,12 +707,23 @@ async function executeAgentTurn({
     writebackMode: effectiveMode,
     agent: Boolean(tools),
     maxAgentSteps: maxAgentSteps ?? undefined,
-    compacted: compact.compacted,
   });
+  const taskSystem = `${sysPrompt}\n\n${taskContractPrompt(task)}`;
+  const fixedTokens = estimateTokens(taskSystem) + estimateTokens(JSON.stringify(Object.fromEntries(Object.entries(tools || {}).map(([name, sdk]) => [name, {description: sdk.description, schema: sdk.inputSchema?.jsonSchema || {}}]))));
+  const requestBudget = resolveContextBudget(modelContextWindow, { fixedTokens });
+  if (estimateTokens(lastUserText) + 128 > requestBudget.maxTokens) {
+    taskGuard.stop("context-budget"); return blockedTaskResult();
+  }
+  const compact = compactMessagesForModel(task.kind === "document" ? articleHistory(cleanMsgs.slice(0, -1), task.targetPath) : cleanMsgs.slice(0, -1), {
+    ...requestBudget, maxTokens: Math.max(128, requestBudget.maxTokens - estimateTokens(lastUserText) - 128), locale: taskLocale,
+  });
+  if (compact.compacted) emit({ type: "status", status: "compacting", sessionId });
   const streamArgs = {
     model: res.model,
     modelId: res.modelId,
-    system: `${sysPrompt}\n\n${taskContractPrompt(task)}`,
+    system: taskSystem,
+    maxOutputTokens: requestBudget.responseTokens,
+    fixedTokens,
     messages: compact.messages,
     tools,
     emit,
@@ -762,7 +752,7 @@ async function executeAgentTurn({
   // forever; incomplete goals get a slightly higher budget.
   const BASE_MAX_AUTO_CONTINUES = sessionBudget.maxAutoContinues;
   let autoContinues = 0;
-  let workingMessages = task.kind === "document" ? [{ role: "user", content: task.targetKind === "inline" ? task.request : `${task.request}\n\nLatest user input:\n${lastUserText}` }] : compact.messages;
+  let workingMessages = [...compact.messages, { role: "user", content: task.kind === "document" && task.targetKind === "inline" ? task.request : lastUserText }];
   // Dual injection: evidence lives in the system prompt AND the last user
   // turn. Some mid-size models weight the user tail far more than a system
   // appendix — without this they answer from priors and never open tools.

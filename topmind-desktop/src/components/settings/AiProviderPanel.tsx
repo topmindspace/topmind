@@ -552,6 +552,12 @@ export function AiProviderPanel({
           onChange={(on) => patchAi({ skillsEnabled: on })}
           disabled={!agentEnabled}
         />
+        <SwitchField label={t("settings:ai.useMemoryLabel")} description={t("settings:ai.useMemoryDesc")}
+          checked={settings.ai.useMemory !== false} onChange={on => patchAi({ useMemory: on })} />
+        <Field label={t("settings:ai.contextWindowLabel")} description={t("settings:ai.contextWindowDesc")} compact>
+          <Select value={String(settings.ai.contextWindowTokens || 0)} onChange={e => patchAi({ contextWindowTokens: Number(e.target.value) })}
+            options={[{value:"0",label:t("settings:ai.contextWindowAuto")}, ...[...new Set([4096,8192,16384,32768,65536,131072,262144,...(settings.ai.contextWindowTokens ? [settings.ai.contextWindowTokens] : [])])].sort((a,b)=>a-b).map(n => ({value:String(n),label:`${n / 1024}K`}))]} />
+        </Field>
         <Field
           label={t("settings:ai.maxStepsLabel")}
           description={t("settings:ai.maxStepsDesc")}

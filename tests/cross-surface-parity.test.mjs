@@ -81,15 +81,15 @@ const desktopCompact = await import(
 );
 
 test("Desktop resolveCompactBudget scales with the model window", () => {
-  const { resolveCompactBudget, COMPACT_DEFAULT_MAX_MESSAGES, COMPACT_DEFAULT_KEEP_RECENT } = desktopCompact;
+  const { resolveCompactBudget } = desktopCompact;
   const unknown = resolveCompactBudget(0);
-  assert.equal(unknown.maxMessages, COMPACT_DEFAULT_MAX_MESSAGES);
-  assert.equal(unknown.keepRecent, COMPACT_DEFAULT_KEEP_RECENT);
+  assert.ok(unknown.maxTokens <= 32768 * 0.55);
+  assert.ok(unknown.maxChars < 50000);
   const big = resolveCompactBudget(200_000);
   assert.ok(big.maxMessages > unknown.maxMessages);
   assert.ok(big.maxChars > unknown.maxChars);
   const small = resolveCompactBudget(32_000);
-  assert.ok(small.maxMessages < unknown.maxMessages);
+  assert.ok(small.maxMessages <= unknown.maxMessages);
 });
 
 test("Obsidian resolveChatCompactBudget matches Desktop formula", async (t) => {

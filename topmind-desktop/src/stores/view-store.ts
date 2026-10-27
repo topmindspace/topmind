@@ -166,6 +166,8 @@ function sameSelection(a: Selection, b: Selection): boolean {
 interface ViewState {
   /* current selection — drives EditorArea view resolution */
   selection: Selection;
+  focusedEditorPath: string | null;
+  setFocusedEditorPath: (path: string) => void;
   select: (sel: Selection) => void;
 
   /* navigation history — workbench back/forward across any Selection */
@@ -296,15 +298,20 @@ function commitSelect(
     fileTabs = upsertFileTab(s.fileTabs, next.path, s.editorTabMode);
     persistFileTabs(s.workspaceRoot, fileTabs);
   }
-  return { selection: next, history: capped, historyIndex: capped.length - 1, fileTabs };
+  return { selection: next, focusedEditorPath: next.kind === "file" ? next.path : null, history: capped, historyIndex: capped.length - 1, fileTabs };
 }
 
 export const useViewStore = create<ViewState>((set, get) => ({
   selection: defaultCanvasSelection(),
+  focusedEditorPath: null,
+  setFocusedEditorPath: (focusedEditorPath) => set({ focusedEditorPath }),
   select: (sel) => {
     const next = normalizeSelection(sel);
     const prev = get().selection;
-    if (sameSelection(prev, next)) return;
+    if (sameSelection(prev, next)) {
+      if (next.kind === "file") set({ focusedEditorPath: next.path });
+      return;
+    }
 
     // Hold navigation until ConfirmDialog resolves — never navigate-then-block
     if (wouldAbandonInlineAi(prev, next)) {
@@ -318,7 +325,10 @@ export const useViewStore = create<ViewState>((set, get) => ({
   applySelectForced: (sel) => {
     const next = normalizeSelection(sel);
     const prev = get().selection;
-    if (sameSelection(prev, next)) return;
+    if (sameSelection(prev, next)) {
+      if (next.kind === "file") set({ focusedEditorPath: next.path });
+      return;
+    }
     set((s) => commitSelect(s, next));
   },
 
@@ -333,7 +343,7 @@ export const useViewStore = create<ViewState>((set, get) => ({
       useInlineAiStore.getState().requestNavConfirm({ kind: "back" });
       return;
     }
-    set({ historyIndex, selection: next });
+    set({ historyIndex, selection: next, focusedEditorPath: next.kind === "file" ? next.path : null });
   },
   forward: () => {
     const s = get();
@@ -344,19 +354,21 @@ export const useViewStore = create<ViewState>((set, get) => ({
       useInlineAiStore.getState().requestNavConfirm({ kind: "forward" });
       return;
     }
-    set({ historyIndex, selection: next });
+    set({ historyIndex, selection: next, focusedEditorPath: next.kind === "file" ? next.path : null });
   },
   applyHistoryForced: (dir) => {
     const s = get();
     if (dir === "back") {
       if (s.historyIndex <= 0) return;
       const historyIndex = s.historyIndex - 1;
-      set({ historyIndex, selection: normalizeSelection(s.history[historyIndex]) });
+      const selection = normalizeSelection(s.history[historyIndex]);
+      set({ historyIndex, selection, focusedEditorPath: selection.kind === "file" ? selection.path : null });
       return;
     }
     if (s.historyIndex >= s.history.length - 1) return;
     const historyIndex = s.historyIndex + 1;
-    set({ historyIndex, selection: normalizeSelection(s.history[historyIndex]) });
+    const selection = normalizeSelection(s.history[historyIndex]);
+    set({ historyIndex, selection, focusedEditorPath: selection.kind === "file" ? selection.path : null });
   },
 
   fileTabs: [],
@@ -630,7 +642,7 @@ export const useViewStore = create<ViewState>((set, get) => ({
     if (prev !== workspaceRoot) invalidateWorkspaceImagePaths();
     const { ids: nextExpanded } = loadExpandedState(workspaceRoot);
     const fileTabs = loadFileTabs(workspaceRoot);
-    set({ workspaceRoot, expandedNodeIds: nextExpanded, fileTabs });
+    set({ workspaceRoot, expandedNodeIds: nextExpanded, fileTabs, focusedEditorPath: null });
     if (prev && prev !== workspaceRoot) {
       queueMicrotask(() => {
         void import("./ai-store").then((m) => m.releaseAiWorkingSet());

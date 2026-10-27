@@ -11,6 +11,8 @@ const snapshots = [
   ["agent-goal-protocol.mjs", "agent-goal-protocol.mjs"],
   ["agent-task-contract.mjs", "agent-task-contract.mjs"],
   ["agent-task-contract.d.mts", "agent-task-contract.d.mts"],
+  ["agent-context-policy.mjs", "agent-context-policy.mjs"],
+  ["agent-context-policy.d.mts", "agent-context-policy.d.mts"],
 ];
 const check = process.argv.includes("--check");
 for (const [canonicalName, snapshotName] of snapshots) {

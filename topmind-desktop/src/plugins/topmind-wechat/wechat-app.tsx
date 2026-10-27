@@ -7,7 +7,10 @@ import { api } from "../../services/api";
 import { useViewStore } from "../../stores/view-store";
 import { useAiStore } from "../../stores/ai-store";
 import { Button } from "../../components/ui/Button";
-import { Input } from "../../components/ui/Input";
+import { Select } from "../../components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../components/ui/tabs";
+import { NoteSourcePicker } from "../../components/workspace/NoteSourcePicker";
+import { activeDocumentPath } from "../../lib/active-document";
 import { PluginAppHeader } from "../connector-ui";
 import { getCachedSettings } from "../../lib/settings-cache";
 import { prepareArticle, WRITING_ACTIONS, WRITING_THEMES, type ArticleDelivery, type WritingPlatform, type WritingTheme } from "../../generated/writing/article-renderer.mjs";
@@ -17,12 +20,12 @@ export function createWechatOverlaySlot(_ctx: PluginContext): OverlaySlot {
 }
 export function WechatApp() {
   const { t, i18n } = useTranslation("wechat");
-  const selection = useViewStore(s => s.selection);
+  const activePath = useViewStore(s => activeDocumentPath(s));
   const close = useViewStore(s => s.closeOverlay);
-  const selected = selection.kind === "file" ? selection.path : "";
+
   const entryPath = useViewStore(s => s.overlayContext?.sourcePath);
-  const [sourcePath, setSourcePath] = useState(entryPath || selected);
-  const [actionId, setActionId] = useState("");
+  const [sourcePath, setSourcePath] = useState(entryPath || activePath || "");
+  const [actionId, setActionId] = useState("topmind-revise");
   const [requirements, setRequirements] = useState("");
   const [output, setOutput] = useState<"review" | "edit">("review");
   const [allowWeb, setAllowWeb] = useState(false);
@@ -34,10 +37,24 @@ export function WechatApp() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [sourceLoading, setSourceLoading] = useState(false);
+  const [sourceExcerpt, setSourceExcerpt] = useState("");
+  const [sourceError, setSourceError] = useState("");
   const sourceRef = useRef("");
   const generation = useRef(0);
   useEffect(() => { generation.current++; setResult(null); setBusy(false); setMessage(""); setError(""); }, [sourcePath, platform, theme]);
   useEffect(() => () => { generation.current++; }, []);
+  useEffect(() => {
+    let cancelled = false;
+    setSourceExcerpt(""); setSourceError("");
+    if (!sourcePath) return;
+    setSourceLoading(true);
+    void api.ws.read(sourcePath).then(text => {
+      if (!cancelled) setSourceExcerpt(text.replace(/^---[\s\S]*?\n---\s*/u, "").replace(/[#>*`]/gu, "").trim().slice(0, 160));
+    }).catch(e => { if (!cancelled) setSourceError(e instanceof Error ? e.message : String(e)); })
+      .finally(() => { if (!cancelled) setSourceLoading(false); });
+    return () => { cancelled = true; };
+  }, [sourcePath]);
   const ensureSaved = () => {
     for (const node of document.querySelectorAll<HTMLElement>("[data-source-path][data-save-state]")) {
       if (node.dataset.sourcePath === sourcePath && node.dataset.saveState !== "clean") throw new Error(t("delivery.unsaved"));
@@ -91,7 +108,7 @@ export function WechatApp() {
   const runAction = async () => {
     const action = WRITING_ACTIONS.find(item => item.id === actionId);
     if (!action) return;
-    setError("");
+    setError(""); setBusy(true);
     try {
       ensureSaved();
       await api.ws.read(sourcePath);
@@ -105,38 +122,65 @@ export function WechatApp() {
         focusPath: sourcePath, taskIntent: { targetPath: sourcePath, skillId: action.id, output, allowWeb },
       });
     } catch (error) { setError(error instanceof Error ? error.message : String(error)); }
+    finally { setBusy(false); }
   };
+  const zh = i18n.language.startsWith("zh");
+  const currentAction = WRITING_ACTIONS.find(action => action.id === actionId);
+  const cannotStart = streaming || busy || sourceLoading || Boolean(sourceError) || !/\.md$/iu.test(sourcePath);
+  const groups = [
+    { key: "refine", ids: ["topmind-revise", "topmind-format"] },
+    { key: "adapt", ids: ["topmind-briefs", "topmind-viral-posts", "topmind-wechat-post", "topmind-x-article"] },
+    { key: "visual", ids: ["topmind-cover", "topmind-poster"] },
+  ];
   return <div className="v4-plugin-app-panel flex h-full min-h-0 flex-col" data-writing-app>
     <PluginAppHeader icon={<RiFileTextLine size={18} />} title={t("name")} subtitle={t("subtitle")} onClose={close} closeLabel={t("close")} />
-    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
-      <p className="text-sm text-text-secondary">{t("delivery.setupHint")}</p>
-      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
-        <label className="min-w-0 text-xs text-text-secondary">{t("delivery.source")}<Input value={sourcePath} onChange={event => setSourcePath(event.target.value)} placeholder={t("delivery.sourceHint")} /></label>
-      </div>
-      {error ? <p role="alert" className="text-sm text-error">{error}</p> : null}
-      <section aria-label={t("delivery.actions")} className="flex flex-col gap-3 rounded border border-border-subtle p-3">
-        <h2 className="text-sm font-medium">{t("delivery.aiTask")}</h2>
-        <div className="flex flex-wrap gap-2">{WRITING_ACTIONS.map(action => <Button key={action.id} variant={actionId === action.id ? "default" : "secondary"} size="sm" aria-pressed={actionId === action.id} onClick={() => { setActionId(action.id); if (["topmind-cover", "topmind-poster"].includes(action.id)) setOutput("review"); }}>{i18n.language.startsWith("zh") ? action.zh : action.en}</Button>)}</div>
-        {actionId ? <>
-          <p className="text-sm text-text-secondary">{t(`delivery.actionHelp.${actionId}`)}</p>
-          <label className="text-xs text-text-secondary">{t("delivery.requirements")}<textarea className="mt-1 block min-h-20 w-full rounded border border-border-subtle bg-surface p-2 text-sm text-text-primary" value={requirements} onChange={e => setRequirements(e.target.value)} /></label>
-          <label className="text-xs text-text-secondary">{t("delivery.resultMode")}<select className="ml-2 rounded bg-surface-wash-15 p-2" value={output} onChange={e => setOutput(e.target.value as "review" | "edit")}><option value="review">{t("delivery.reviewOnly")}</option>{!["topmind-cover", "topmind-poster"].includes(actionId) ? <option value="edit">{t("delivery.editSource")}</option> : null}</select></label>
-          <p className="break-all text-xs text-text-secondary">{t("delivery.taskScope", { path: sourcePath || t("delivery.sourceHint") })}</p>
-          <label className="flex items-center gap-2 text-xs text-text-secondary"><input type="checkbox" checked={allowWeb} onChange={e => setAllowWeb(e.target.checked)} />{t("delivery.allowWeb")}</label>
-          <Button disabled={streaming || busy || !/\.md$/iu.test(sourcePath)} onClick={() => void runAction()}>{t("delivery.start")}</Button>
-        </> : <p className="text-sm text-text-secondary">{t("delivery.chooseAction")}</p>}
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <section aria-label={t("delivery.source")} className="m-4 mb-0 flex flex-col gap-2 rounded-[var(--radius-lg)] bg-surface-wash-15 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="mb-1 text-2xs text-text-secondary">{sourcePath && sourcePath === activePath ? t("delivery.activeNote") : t("delivery.source")}</p>
+            <h2 className="break-words text-base font-medium">{sourcePath.split("/").pop() || t("delivery.chooseSource")}</h2>
+            {sourcePath ? <p className="mt-1 break-all text-2xs text-text-tertiary">{sourcePath}</p> : null}
+          </div>
+          <div className="flex flex-wrap gap-2"><NoteSourcePicker value={sourcePath} onChange={setSourcePath} />
+            {activePath && activePath !== sourcePath ? <Button variant="ghost" size="sm" onClick={() => setSourcePath(activePath)}>{t("delivery.useActiveNote")}</Button> : null}
+          </div>
+        </div>
+        {sourceLoading ? <p role="status" className="text-xs text-text-secondary">{t("delivery.loadingSource")}</p> : sourceError ? <p role="alert" className="text-xs text-error">{sourceError}</p> : sourceExcerpt ? <p className="line-clamp-2 break-words text-xs leading-relaxed text-text-secondary">{sourceExcerpt}</p> : <p className="text-xs text-text-secondary">{t("delivery.empty")}</p>}
       </section>
-      <h2 className="text-sm font-medium">{t("delivery.localDelivery")}</h2>
-      <div className="flex flex-wrap gap-3">
-        <label className="text-xs text-text-secondary">{t("delivery.format")}<select className="block h-9 rounded bg-surface-wash-15 px-2 text-sm" value={platform} onChange={event => setPlatform(event.target.value as WritingPlatform)}><option value="wechat">{t("delivery.wechat")}</option><option value="x">X Article</option><option value="text">{t("delivery.text")}</option></select></label>
-        <label className="text-xs text-text-secondary">{t("settings.theme")}<select className="block h-9 rounded bg-surface-wash-15 px-2 text-sm" value={theme} onChange={event => setTheme(event.target.value as WritingTheme)}>{Object.keys(WRITING_THEMES).map(id => <option key={id} value={id}>{t(`themes.${id}`)}</option>)}</select></label>
-      </div>
-      <div className="flex flex-wrap gap-2"><Button disabled={busy || !/\.md$/iu.test(sourcePath)} onClick={() => void generate()}>{busy ? t("delivery.working") : t("delivery.preview")}</Button><Button variant="secondary" disabled={busy || !result} onClick={() => void copy()}>{t("delivery.copy")}</Button><Button variant="secondary" disabled={busy || !result} onClick={() => void exportFile()}>{t("delivery.export")}</Button></div>
-      {message ? <p role="status" className="break-all text-sm text-success">{message}</p> : null}
-      {result?.diagnostics.length ? <p className="text-xs text-warning">{t("delivery.check", { count: result.diagnostics.length })} {Array.from(new Set(result.diagnostics.map(item => item.code))).map(code => t(`delivery.diagnostics.${code}`)).join(" · ")}</p> : null}
-      {result?.images.length ? <details className="text-xs text-text-secondary"><summary>{t("delivery.images", { count: result.images.length })}</summary><pre className="whitespace-pre-wrap break-all">{result.checklist}</pre></details> : null}
-      {result ? platform === "text" ? <pre className="whitespace-pre-wrap text-sm">{result.text}</pre> : <iframe title={t("delivery.preview")} sandbox="" srcDoc={result.html} className="min-h-[380px] w-full flex-1 rounded border border-border-subtle bg-surface" /> : <p className="text-sm text-text-secondary">{t("delivery.empty")}</p>}
-      <p className="text-xs text-text-tertiary">{t("delivery.boundary")}</p>
+      {error ? <p role="alert" className="mx-4 mt-3 text-sm text-error">{error}</p> : null}
+      <Tabs defaultValue="write" className="flex min-h-0 flex-1 flex-col p-4">
+        <TabsList aria-label={t("name")} className="w-full justify-start"><TabsTrigger value="write">{t("delivery.aiTask")}</TabsTrigger><TabsTrigger value="preview">{t("delivery.localDelivery")}</TabsTrigger></TabsList>
+        <TabsContent value="write" className="mt-4 flex flex-col gap-4">
+          <div className="grid gap-4 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+            <div className="space-y-4">{groups.map(group => <section key={group.key}>
+              <h3 className="mb-2 text-xs text-text-secondary">{t(`delivery.group.${group.key}`)}</h3>
+              <div className="grid grid-cols-2 gap-2">{WRITING_ACTIONS.filter(action => group.ids.includes(action.id)).map(action => <Button key={action.id} variant={actionId === action.id ? "default" : "secondary"} size="sm" className="justify-start" aria-pressed={actionId === action.id} onClick={() => { setActionId(action.id); if (["topmind-cover", "topmind-poster"].includes(action.id)) setOutput("review"); }}>{zh ? action.zh : action.en}</Button>)}</div>
+            </section>)}</div>
+            <section aria-label={t("delivery.requirements")} className="flex min-w-0 flex-col gap-4 rounded-[var(--radius-lg)] bg-surface-wash-15 p-4">
+              <div><h3 className="text-sm font-medium">{currentAction ? zh ? currentAction.zh : currentAction.en : t("delivery.chooseAction")}</h3><p className="mt-1 text-xs leading-relaxed text-text-secondary">{t(`delivery.actionHelp.${actionId}`)}</p></div>
+              <label className="text-xs text-text-secondary">{t("delivery.requirements")}<textarea className="v4-focus-ring mt-2 block min-h-24 w-full resize-y rounded-[var(--radius-md)] border border-border-subtle bg-surface p-3 text-sm text-text-primary" placeholder={t("delivery.requirementsHint")} value={requirements} onChange={e => setRequirements(e.target.value)} /></label>
+              <label className="text-xs text-text-secondary">{t("delivery.resultMode")}<Select className="mt-2" value={output} onChange={e => setOutput(e.target.value as "review" | "edit")} options={[{ value: "review", label: t("delivery.reviewOnly") }, ...(!["topmind-cover", "topmind-poster"].includes(actionId) ? [{ value: "edit", label: t("delivery.editSource") }] : [])]} /></label>
+              <label className="flex items-start gap-2 text-xs text-text-secondary"><input className="mt-0.5" type="checkbox" checked={allowWeb} onChange={e => setAllowWeb(e.target.checked)} /><span>{t("delivery.allowWeb")}</span></label>
+              <p className="text-2xs leading-relaxed text-text-tertiary">{t("delivery.contextHint")}</p>
+              <Button disabled={cannotStart} onClick={() => void runAction()}>{t("delivery.start")}</Button>
+            </section>
+          </div>
+        </TabsContent>
+        <TabsContent value="preview" className="mt-4 flex flex-col gap-4">
+          <p className="text-xs text-text-secondary">{t("delivery.previewHint")}</p>
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="min-w-[8rem] flex-1 text-xs text-text-secondary">{t("delivery.format")}<Select className="mt-2" value={platform} onChange={e => setPlatform(e.target.value as WritingPlatform)} options={[{value:"wechat",label:t("delivery.wechat")},{value:"x",label:"X Article"},{value:"text",label:t("delivery.text")}]} /></label>
+            <label className="min-w-[8rem] flex-1 text-xs text-text-secondary">{t("settings.theme")}<Select className="mt-2" value={theme} onChange={e => setTheme(e.target.value as WritingTheme)} options={Object.keys(WRITING_THEMES).map(id => ({value:id,label:t(`themes.${id}`)}))} /></label>
+            <Button disabled={busy || sourceLoading || Boolean(sourceError) || !sourcePath} onClick={() => void generate()}>{busy ? t("delivery.working") : t("delivery.preview")}</Button>
+          </div>
+          <div className="flex flex-wrap gap-2"><Button variant="secondary" disabled={busy || !result} onClick={() => void copy()}>{t("delivery.copy")}</Button><Button variant="secondary" disabled={busy || !result} onClick={() => void exportFile()}>{t("delivery.export")}</Button></div>
+          {message ? <p role="status" className="break-all text-sm text-success">{message}</p> : null}
+          {result?.diagnostics.length ? <p className="text-xs text-warning">{t("delivery.check", { count: result.diagnostics.length })} {Array.from(new Set(result.diagnostics.map(item => item.code))).map(code => t(`delivery.diagnostics.${code}`)).join(" · ")}</p> : null}
+          {result?.images.length ? <details className="text-xs text-text-secondary"><summary>{t("delivery.images", { count: result.images.length })}</summary><pre className="whitespace-pre-wrap break-all">{result.checklist}</pre></details> : null}
+          {result ? platform === "text" ? <pre className="whitespace-pre-wrap text-sm">{result.text}</pre> : <iframe title={t("delivery.preview")} sandbox="" srcDoc={result.html} className="min-h-[420px] w-full rounded-[var(--radius-lg)] border border-border-subtle bg-white" /> : <div className="flex min-h-40 items-center justify-center rounded-[var(--radius-lg)] bg-surface-wash-15 p-6 text-center text-sm text-text-secondary">{t("delivery.previewEmpty")}</div>}
+        </TabsContent>
+      </Tabs>
     </div>
   </div>;
 }

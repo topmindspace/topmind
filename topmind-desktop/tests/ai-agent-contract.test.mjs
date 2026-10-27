@@ -136,17 +136,14 @@ test("ai-service defaults useTools on and builds prompt with tool names", () => 
   assert.match(src, /steerStream|queueFollowUp/);
 });
 
-test("session compact default constants match ARCHITECTURE living copy", async () => {
+test("session compact keeps bounded history and documents the shared dynamic budget", async () => {
   const {
     COMPACT_DEFAULT_MAX_MESSAGES,
-    COMPACT_DEFAULT_KEEP_RECENT,
-    COMPACT_DEFAULT_MAX_CHARS,
     compactMessagesForModel,
   } = await import("../electron/lib/ai-session-compact.mjs");
   const arch = readFileSync(path.join(root, "ARCHITECTURE.md"), "utf8");
-  assert.match(arch, new RegExp(`maxMessages ${COMPACT_DEFAULT_MAX_MESSAGES}`));
-  assert.match(arch, new RegExp(`keepRecent ${COMPACT_DEFAULT_KEEP_RECENT}`));
-  assert.match(arch, new RegExp(`maxChars ${COMPACT_DEFAULT_MAX_CHARS / 1000}K`));
+  assert.match(arch, /agent-context-policy.*真实窗口预算/u);
+  assert.match(arch, /配置只能收紧已知容量/u);
   assert.doesNotMatch(arch, /maxMessages 40 \/ keepRecent 16 \/ maxChars 80K/);
 
   const many = [];
@@ -161,7 +158,7 @@ test("session compact default constants match ARCHITECTURE living copy", async (
 test("resolveCompactBudget scales with model context window", async () => {
   const { resolveCompactBudget, COMPACT_DEFAULT_MAX_CHARS } = await import("../electron/lib/ai-session-compact.mjs");
   const unknown = resolveCompactBudget(0);
-  assert.equal(unknown.maxChars, COMPACT_DEFAULT_MAX_CHARS);
+  assert.ok(unknown.maxChars < COMPACT_DEFAULT_MAX_CHARS, "unknown model capacity uses a conservative window");
 
   const large = resolveCompactBudget(1_000_000);
   assert.ok(large.maxChars > COMPACT_DEFAULT_MAX_CHARS, "1M window should keep more history");

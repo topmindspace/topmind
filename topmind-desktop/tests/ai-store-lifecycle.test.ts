@@ -445,3 +445,21 @@ test("failed pause persistence releases streaming while retaining recoverable te
   await run;
   assert.equal(state().messages.at(-1)?.content, "keep partial");
 });
+
+test("Send uses the focused split article and keeps it after panel focus changes", async () => {
+  const {useViewStore}=await import("../src/stores/view-store");
+  handlers.set("ai.invoke",()=>({ok:true,text:"reviewed"}));
+  useViewStore.setState({selection:{kind:"file",path:"A.md"},splitSecondaryPath:"B.md",focusedEditorPath:"B.md"});
+  try { await state().sendMessage("revise");
+    assert.equal(calls.find(c=>c.method==="ai.invoke")?.params.focusPath,"B.md");
+    assert.equal(state().messages.find(m=>m.role==="user")?.focusPath,"B.md");
+  } finally { useViewStore.setState({splitSecondaryPath:null,focusedEditorPath:null}); }
+});
+
+test("navigating the primary editor makes the newly selected article active", async () => {
+  const {useViewStore}=await import("../src/stores/view-store");
+  useViewStore.setState({selection:{kind:"file",path:"A.md"},splitSecondaryPath:"B.md",focusedEditorPath:"B.md"});
+  try { useViewStore.getState().select({kind:"file",path:"C.md"});
+    assert.equal(useViewStore.getState().focusedEditorPath,"C.md");
+  } finally { useViewStore.setState({splitSecondaryPath:null,focusedEditorPath:null}); }
+});

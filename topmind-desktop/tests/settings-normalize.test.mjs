@@ -280,3 +280,14 @@ test("mergeAppSettings patches agentEnabled / skillsEnabled without clearing key
   assert.equal(next5.ui.sidebarView, "timeline");
   assert.equal(next5.ui.sidebarWidth, 240);
 });
+
+test("context preferences survive normalization and merge without deleting memory or provider settings", () => {
+ const initial=createDefaultAppSettings("/tmp/ws");
+ assert.equal(initial.ai.useMemory,true); assert.equal(initial.ai.contextWindowTokens,0);
+ const normalized=normalizeAiSettings({...initial.ai,useMemory:false,contextWindowTokens:16384},initial.ai);
+ assert.equal(normalized.useMemory,false); assert.equal(normalized.contextWindowTokens,16384);
+ const merged=mergeAppSettings(initial,{ai:{useMemory:false,contextWindowTokens:8192}});
+ assert.equal(merged.ai.useMemory,false); assert.equal(merged.ai.contextWindowTokens,8192);
+ assert.equal(merged.ai.sourcePreference,initial.ai.sourcePreference);
+ assert.equal(normalizeAiSettings({...normalized,contextWindowTokens:-1},initial.ai).contextWindowTokens,0);
+});

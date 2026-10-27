@@ -93,3 +93,12 @@ test("ai-service uses res.contextWindow and friendly errors", () => {
   assert.match(src, /agent runtime threw; stopping this turn/);
   assert.doesNotMatch(src, /pi-agent-core threw, falling back to ai-sdk/);
 });
+
+test("thinking budgets leave actual response room and omit unsupported tiny budgets", () => {
+ for(const output of [2048,4096,8192]){
+  const thinking=reasoningProviderOptions("claude-sonnet-5","agent",output).anthropic.thinking.budgetTokens;
+  assert.ok(thinking>=1024); assert.ok(thinking<output);
+ }
+ assert.deepEqual(reasoningProviderOptions("claude-sonnet-5","agent",1024),{});
+ assert.ok(reasoningProviderOptions("gemini-2.5-pro","agent",2048).google.thinkingConfig.thinkingBudget < 2048);
+});

@@ -91,7 +91,7 @@ export function isReasoningModel(modelId) {
  * @param {"agent"|"inline"} [mode="agent"]
  * @returns {object} AI SDK v7 providerOptions
  */
-export function reasoningProviderOptions(modelId, mode = "agent") {
+export function reasoningProviderOptions(modelId, mode = "agent", maxOutputTokens) {
   const id = String(modelId || "").toLowerCase();
   const agent = mode !== "inline";
   // OpenAI o-series / GPT-5 reasoning — reasoning_effort
@@ -100,12 +100,14 @@ export function reasoningProviderOptions(modelId, mode = "agent") {
   }
   // Anthropic extended thinking (Claude 3.7+ / 4 / 5)
   if (/claude/.test(id) && /(3-7|sonnet|opus|haiku|4|5)/.test(id)) {
-    const budget = agent ? 8192 : 2048;
+    const output = Number(maxOutputTokens);
+    if (output > 0 && output < 2048) return {};
+    const budget = output > 0 ? Math.min(agent ? 8192 : 2048, Math.floor(output / 2)) : agent ? 8192 : 2048;
     return { anthropic: { thinking: { type: "enabled", budgetTokens: budget } } };
   }
   // Gemini 2.5+ / 3.x thinking budget
   if (/gemini/.test(id) && /(2\.5|3\.)/.test(id)) {
-    return { google: { thinkingConfig: { thinkingBudget: agent ? 4096 : 1024 } } };
+    return { google: { thinkingConfig: { thinkingBudget: Number(maxOutputTokens) > 0 ? Math.min(agent ? 4096 : 1024, Math.floor(Number(maxOutputTokens) / 2)) : agent ? 4096 : 1024 } } };
   }
   // DeepSeek Reasoner / QwQ always think — no extra provider option.
   return {};

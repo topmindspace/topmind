@@ -573,7 +573,7 @@
     "enableToolsDesc": "Pure chat when off; toggleable in AI panel",
     "routingDesc": "Routed by Skills; see 'Skills' page for roster",
     "maxStepsLabel": "Max Tool Steps",
-    "maxStepsDesc": "Max tool→reason loop iterations per turn (3–80, default 32)",
+    "maxStepsDesc": "Total calls per run; article tasks also cap at 16. Repetition or clarification stops earlier. Retries and continuations do not reset the budget.",
     "titleAgent": "Agent",
     "skillFirst": "Skill-first",
     "refreshModelsDevTooltip": "Force-refresh from models.dev community catalog (no keys needed, preview all models)",
@@ -608,7 +608,12 @@
     "apiKeyLabel": "API Key",
     "providerMarkCurrent": "Current",
     "providerMarkConfigured": "Configured",
-    "entrypointMark": "Primary"
+    "entrypointMark": "Primary",
+    "useMemoryLabel": "Use global memory automatically",
+    "useMemoryDesc": "Provides a small active profile and preference window. Read more only as needed. Current instructions take priority; turning this off does not delete memory.",
+    "contextWindowLabel": "Context window ceiling",
+    "contextWindowDesc": "Budgets history, documents and tool results with response space reserved. Can only reduce a known model window; unknown models use a conservative budget.",
+    "contextWindowAuto": "Automatic (model capacity)"
   },
   "tools": {
     "jsonErrorObject": "Input must be a JSON object",

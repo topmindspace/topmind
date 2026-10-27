@@ -616,6 +616,10 @@ export interface AppSettings {
      * Merged with env topmind_SKILLS_EXTRA and managed skills-extra installs.
      */
     extraSkillsRoots?: string[];
+    /** Read-only active user memory is loaded progressively. */
+    useMemory?: boolean;
+    /** 0 = model window; positive values can only reduce it. */
+    contextWindowTokens?: number;
     /** Multi-step agent loop cap (3–80). */
     maxAgentSteps?: number;
     manual: {

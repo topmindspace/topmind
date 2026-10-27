@@ -192,10 +192,10 @@ export async function loadTopicContext(ctx, topicId) {
  * @param {string} [topicId]
  * @returns {Promise<{overview: string, profile: string, topicContext: string}>}
  */
-export async function loadAiContext(ctx, topicId) {
+export async function loadAiContext(ctx, topicId, { memoryEnabled = true, includeOverview = true } = {}) {
   const [overview, profile, topicContext] = await Promise.all([
-    loadWorkspaceOverview(ctx),
-    loadMemoryProfile(ctx),
+    includeOverview ? loadWorkspaceOverview(ctx) : "",
+    memoryEnabled ? loadMemoryProfile(ctx) : "",
     loadTopicContext(ctx, topicId),
   ]);
   const loaded = Boolean(overview || profile || topicContext);

@@ -569,8 +569,8 @@ expectMatch(
 expectMatch(
   files.desktopArchitecture,
   desktopArch,
-  /maxMessages 60 \/ keepRecent 24 \/ maxChars 240K/u,
-  "Desktop ARCHITECTURE session compact defaults",
+  /agent-context-policy.*真实窗口预算/u,
+  "Desktop ARCHITECTURE shared context budget",
 );
 expectNoMatch(
   files.desktopArchitecture,

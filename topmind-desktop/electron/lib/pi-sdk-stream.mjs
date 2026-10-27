@@ -2,6 +2,7 @@
  * Pi StreamFn backed by the existing Vercel AI SDK model (keeps Desktop providers).
  * Tool *execution* stays in pi-agent-core; this adapter only lets the LLM emit calls.
  */
+import { estimateTokens, resolveContextBudget, fitSdkContext } from "./agent-context-policy.mjs";
 import { jsonSchema, stepCountIs, streamText, tool } from "ai";
 import {
   AssistantMessageEventStream,
@@ -171,13 +172,19 @@ export function createAiSdkStreamFn(aiSdkModel, meta = {}) {
       try {
         stream.push({ type: "start", partial });
         const request = readPiTranscript(context);
-        const sdkMessages = piContextToSdkMessages(request.messages);
+        let sdkMessages = piContextToSdkMessages(request.messages);
         const sdkTools = piToolsToSdkSchemas(request.tools);
+        if (meta.taskGuard) request.system += `\nHost execution checkpoint: ${meta.taskGuard.calls} tool calls consumed; ${meta.taskGuard.writes} successful writes. This budget is cumulative. Do not repeat completed writes; read the current source before editing omitted windows.`;
+        const budget = resolveContextBudget(meta.contextWindow, { fixedTokens: estimateTokens(request.system) + estimateTokens(JSON.stringify(request.tools || [])), responseTokens: meta.maxOutputTokens });
+        const fitted = fitSdkContext(sdkMessages, budget.maxTokens);
+        if (fitted.overflow && meta.taskGuard) { meta.taskGuard.stop("context-budget"); throw new Error("task-execution-stopped"); }
+        sdkMessages = fitted.messages;
         const result = runStreamText({
           model: aiSdkModel,
           system: request.system || undefined,
           messages: sdkMessages,
           tools: sdkTools,
+          maxOutputTokens: meta.maxOutputTokens || budget.responseTokens,
           abortSignal: signal,
           stopWhen: stepCountIs(1),
           providerOptions: meta.reasoningProviderOptions || {},

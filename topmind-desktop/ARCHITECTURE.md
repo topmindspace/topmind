@@ -122,7 +122,7 @@ contextBridge.exposeInMainWorld('topmind', {
 | `lib/inline-ai-result.mjs` | 行内结果清洗纯函数（主进程 + 单测）；渲染层 `src/lib/inline-ai-result.ts` 镜像 |
 | `ai-service.mjs` | invoke 默认 `runPiAgent`（`useTools!==false`）；模块加载失败才 `runStream`；`steerStream` / `queueFollowUp`；skills catalog；**错误标记 `isError` + `usage`/`modelId` 回传渲染层** |
 | `lib/ai-tool-evidence.mjs` | 写回回执归一化 + 工具摘要（路径/备份） |
-| `lib/ai-session-compact.mjs` | token 估算 + 工具时间线折叠 + 中间摘要（默认 maxMessages 60 / keepRecent 24 / maxChars 240K ≈ 80K tokens；另按模型 contextWindow 动态缩放，settings 显式值优先） |
+| `lib/ai-session-compact.mjs` | 历史投影与工具时间线折叠；`agent-context-policy` 共享CJK估算和真实窗口预算，未知32K，系统/工具/回复均计入；配置只能收紧已知容量 |
 | `ChatMessage.tsx` | **错误重试按钮**（`isError` → ErrorBlock + `regenerate()`）；**Token 用量徽章**（`usage.promptTokens ↑ / completionTokens ↓`）；**Run Card / ResultFooter**（计划进度 + `planBaseline` 计划变更 chips；变更足迹 ≠ Verified）|
 
 **工作循环（默认）**：Route（对照 catalog）→ Activate（`load_skill`）→ Execute（Workspace 工具）→ Receipt。  
@@ -868,6 +868,8 @@ pack:verify → asar 入口 / zod / engine / monorepo-import 禁令
 
 ## 文章任务入口与执行
 
-文章工具栏「写作」打开当前源稿；选择动作只展示用途、要求与结果模式，明确开始后才发送。排版预览不调用 AI。文章身份在 Send 时冻结，重试和恢复不重新取标签；仅给建议模式在执行层拒绝写入。单篇文章使用专用上下文与所选技能，不注入全量技能目录或工作区发现流程。
+写作窗口采用稿件栏与写作/排版预览双标签，默认载入实际活跃编辑器（包括分栏），提供搜索换稿、正文摘要及返回活跃笔记。选动作只更新设置，明确开始后发送；排版预览独立于 AI。发送时冻结对象，重试和恢复沿用；AI 上下文条显示下一轮文章或本轮目标。
 
-共享任务守卫管理总预算、重复结果、实际能力和显式澄清，工具串行执行，真实回执决定是否修改成功。实施和验证边界见 [文章任务执行整改](../docs/ARTICLE-TASK-EXECUTION-2026-10-27.md)。
+共享 `agent-task-contract` 管理目标、权限、澄清和累计执行预算；`agent-context-policy` 管理 CJK 估算、模型窗口上限、同稿历史及工具结果限窗。少量活跃画像为只读背景，完整参考和记忆按需读取。纯寒暄不加载工作区；超量必要输入停止，不无限压缩重试。模型压缩不改变真实写入回执或目标。
+
+实际行为、设置和验证边界统一维护在 [文章任务执行整改](../docs/ARTICLE-TASK-EXECUTION-2026-10-27.md)。

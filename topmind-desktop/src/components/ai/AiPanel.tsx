@@ -129,7 +129,7 @@ export function AiPanel({ hideComposer = false }: { hideComposer?: boolean } = {
           </button>
         </div>
       ) : null}
-      {mountedFiles.length > 0 ? <ContextPills /> : null}
+      <ContextPills />
 
       <div className="relative min-h-0 flex-1">
       <div

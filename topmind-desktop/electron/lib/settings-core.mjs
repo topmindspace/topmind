@@ -689,6 +689,8 @@ function normalizeAiSettings(value, fallback) {
     autoPrepareSuggestions: true,
     autoMaintainTodos: false,
     enabledSkillIds: null,
+    useMemory: true,
+    contextWindowTokens: 0,
     maxAgentSteps: AGENT_STEPS_DEFAULT,
     manual: defaultManualSettings(),
     modelCache: defaultModelCache(),
@@ -731,6 +733,8 @@ function normalizeAiSettings(value, fallback) {
         : (base.autoMaintainTodos === true),
     enabledSkillIds,
     extraSkillsRoots,
+    useMemory: value.useMemory !== undefined ? value.useMemory !== false : base.useMemory !== false,
+    contextWindowTokens: value.contextWindowTokens === undefined ? Number(base.contextWindowTokens) || 0 : Number(value.contextWindowTokens) >= 4096 ? Math.min(2000000, Math.floor(Number(value.contextWindowTokens))) : 0,
     maxAgentSteps:
       value.maxAgentSteps !== undefined
         ? clampMaxAgentSteps(value.maxAgentSteps)
@@ -1099,6 +1103,8 @@ function createDefaultAppSettings(defaultWorkspaceRoot) {
       enabledSkillIds: null,
       /** Absolute dirs merged into skill catalog (plus topmind_SKILLS_EXTRA env) */
       extraSkillsRoots: [],
+      useMemory: true,
+      contextWindowTokens: 0,
       maxAgentSteps: AGENT_STEPS_DEFAULT,
       manual: defaultManualSettings(),
       modelCache: defaultModelCache(),
@@ -1241,6 +1247,9 @@ function mergeAppSettings(baseSettings, patch, options = {}) {
         { ...next.ai, extraSkillsRoots: patch.ai.extraSkillsRoots },
         next.ai,
       );
+    }
+    for (const key of ["useMemory", "contextWindowTokens"]) {
+      if (patch.ai[key] !== undefined) next.ai = normalizeAiSettings({ ...next.ai, [key]: patch.ai[key] }, next.ai);
     }
     if (patch.ai.maxAgentSteps !== undefined) {
       next.ai.maxAgentSteps = clampMaxAgentSteps(patch.ai.maxAgentSteps);

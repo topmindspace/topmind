@@ -1,3 +1,5 @@
+import { estimateTokens, resolveContextBudget, clipContext } from "./agent-context-policy.mjs";
+export { estimateTokens };
 /**
  * Smart session compaction for AI model context.
  *
@@ -36,29 +38,7 @@ export const COMPACT_DEFAULT_MAX_PER_MESSAGE = 16_000;
  * @returns {{ maxMessages: number, keepRecent: number, maxChars: number, maxPerMessage: number, maxTokens: number }}
  */
 export function resolveCompactBudget(contextWindow) {
-  const cw = Number(contextWindow);
-  const known = Number.isFinite(cw) && cw > 0;
-  // Reserve ~40% of the window for system + tools + tools results + response.
-  const usableTokens = known ? Math.floor(cw * 0.55) : Math.floor(COMPACT_DEFAULT_MAX_CHARS / 3);
-  const maxChars = known
-    ? Math.max(40_000, Math.min(1_200_000, Math.floor(usableTokens * 2.2)))
-    : COMPACT_DEFAULT_MAX_CHARS;
-  const maxMessages = known
-    ? Math.max(24, Math.min(160, Math.round(usableTokens / 900)))
-    : COMPACT_DEFAULT_MAX_MESSAGES;
-  const keepRecent = known
-    ? Math.max(8, Math.min(48, Math.round(maxMessages * 0.4)))
-    : COMPACT_DEFAULT_KEEP_RECENT;
-  const maxPerMessage = known
-    ? Math.max(4_000, Math.min(64_000, Math.floor(maxChars / 12)))
-    : COMPACT_DEFAULT_MAX_PER_MESSAGE;
-  return {
-    maxMessages,
-    keepRecent,
-    maxChars,
-    maxPerMessage,
-    maxTokens: usableTokens,
-  };
+  return resolveContextBudget(contextWindow);
 }
 
 /** @typedef {{
@@ -69,26 +49,6 @@ export function resolveCompactBudget(contextWindow) {
  * }} CompactMessage */
 
 /** Rough token estimate: CJK denser than Latin (~1.5 chars/token vs ~4). */
-export function estimateTokens(text) {
-  if (!text) return 0;
-  const s = String(text);
-  let cjk = 0;
-  let other = 0;
-  for (const ch of s) {
-    const code = ch.codePointAt(0) || 0;
-    if (
-      (code >= 0x4e00 && code <= 0x9fff) ||
-      (code >= 0x3400 && code <= 0x4dbf) ||
-      (code >= 0x3040 && code <= 0x30ff) ||
-      (code >= 0xac00 && code <= 0xd7af)
-    ) {
-      cjk += 1;
-    } else {
-      other += 1;
-    }
-  }
-  return Math.ceil(cjk / 1.5 + other / 4);
-}
 
 /**
  * @param {CompactMessage[]} messages
@@ -135,9 +95,9 @@ function compactL10n(locale) {
 export function compactMessagesForModel(messages, opts = {}) {
   const maxMessages = Math.max(6, Number(opts.maxMessages) || COMPACT_DEFAULT_MAX_MESSAGES);
   const keepRecent = Math.max(4, Number(opts.keepRecent) || COMPACT_DEFAULT_KEEP_RECENT);
-  const maxChars = Math.max(8000, Number(opts.maxChars) || COMPACT_DEFAULT_MAX_CHARS);
-  const maxTokens = Math.max(2000, Number(opts.maxTokens) || Math.floor(maxChars / 3));
-  const maxPerMessage = Math.max(800, Number(opts.maxPerMessage) || COMPACT_DEFAULT_MAX_PER_MESSAGE);
+  const maxChars = Math.max(256, Number(opts.maxChars) || COMPACT_DEFAULT_MAX_CHARS);
+  const maxTokens = Math.max(128, Number(opts.maxTokens) || Math.floor(maxChars / 3));
+  const maxPerMessage = Math.max(256, Number(opts.maxPerMessage) || COMPACT_DEFAULT_MAX_PER_MESSAGE);
   const L = compactL10n(opts.locale);
 
   const cleaned = (Array.isArray(messages) ? messages : [])
@@ -237,6 +197,13 @@ export function compactMessagesForModel(messages, opts = {}) {
     }
     working = [head, ...rest];
     note = note ? `${note}; budget trim` : "budget trim";
+  }
+
+  while (working.length > 1 && working.reduce((n, m) => n + estimateTokens(m.content), 0) > maxTokens) {
+    working.splice(working.length > 2 ? 1 : 0, 1); dropped++; compacted = true;
+  }
+  if (working.length === 1 && estimateTokens(working[0].content) > maxTokens) {
+    working = [{ ...working[0], content: clipContext(working[0].content, maxTokens) }]; compacted = true;
   }
 
   // Guarantee strict role alternation (required by Anthropic, OpenAI, etc.)

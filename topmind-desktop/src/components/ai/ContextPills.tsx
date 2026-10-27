@@ -1,6 +1,8 @@
 import { RiCloseLine, RiFileTextLine } from "@remixicon/react";
 import { useTranslation } from "react-i18next";
 import { useAiStore } from "../../stores/ai-store";
+import { useViewStore } from "../../stores/view-store";
+import { activeDocumentPath } from "../../lib/active-document";
 import { ICON } from "../../lib/icons";
 import { Tooltip } from "../ui/tooltip";
 
@@ -8,11 +10,17 @@ export function ContextPills() {
   const { t } = useTranslation("editor");
   const mountedFiles = useAiStore((s) => s.mountedFiles);
   const unmountFile = useAiStore((s) => s.unmountFile);
-  if (mountedFiles.length === 0) return null;
+  const activePath = useViewStore(s => activeDocumentPath(s));
+  const streaming = useAiStore(s => s.streaming);
+  const bound = useAiStore(s => [...s.messages].reverse().find(m => m.role === "user")?.focusPath);
+  const path = streaming ? bound : activePath;
+  const { t: writing } = useTranslation("wechat");
+  if (!path && mountedFiles.length === 0) return null;
 
   return (
     <div className="flex flex-wrap gap-1 px-2.5 pb-1 pt-1">
-      {mountedFiles.map((f) => (
+      {path ? <Tooltip content={writing("delivery.activeContextHint", { path })}><span className="inline-flex max-w-full items-center gap-1 rounded-[var(--radius-full)] bg-accent-bg-faint px-2 py-1 text-2xs text-text-secondary"><RiFileTextLine size={ICON.micro} /><span className="min-w-0 truncate">{writing(streaming ? "delivery.boundNote" : "delivery.activeNote")} · {path.split("/").pop()}</span></span></Tooltip> : null}
+      {mountedFiles.filter(f => f.path !== path).map((f) => (
         <span
           key={f.path}
           className="inline-flex max-w-full items-center gap-1 rounded-[var(--radius-full)] border border-border-subtle/80 bg-surface px-1.5 py-px text-3xs text-text-secondary"

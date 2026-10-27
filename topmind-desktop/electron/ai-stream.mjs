@@ -7,6 +7,7 @@
  * - status changes (preparing → thinking → calling-tool → writing → steering → done)
  * - steer applied mid-turn (prepareStep injects user instructions between steps)
  */
+import { resolveContextBudget, fitSdkContext } from "./lib/agent-context-policy.mjs";
 import { streamText, stepCountIs } from "ai";
 import { sdkChunkText } from "./lib/pi-sdk-stream.mjs";
 import { logError, logInfo } from "./lib/writeback.mjs";
@@ -167,7 +168,7 @@ function drainPendingUserMessages(registry, sessionId) {
   return [...leftoverSteers, ...followUps];
 }
 
-export async function runStream({ model, modelId, system, messages, tools, emit, sessionId, maxAgentSteps, taskGuard }, registry) {
+export async function runStream({ model, modelId, system, messages, tools, emit, sessionId, maxAgentSteps, maxOutputTokens, contextWindow, fixedTokens, taskGuard }, registry) {
   const controller = new AbortController();
   registry?.register(sessionId, controller);
   let collected = "";
@@ -224,10 +225,11 @@ export async function runStream({ model, modelId, system, messages, tools, emit,
       model,
       system,
       messages,
+      maxOutputTokens,
       tools,
       stopWhen: [tools ? stepCountIs(agentSteps) : stepCountIs(1), () => Boolean(taskGuard?.reason)],
       abortSignal: controller.signal,
-      providerOptions: reasoningProviderOptions(modelId),
+      providerOptions: reasoningProviderOptions(modelId, "agent", maxOutputTokens || 8192),
       // Inject mid-turn steers; soft nudge near step budget (backend only, no UI).
       prepareStep: tools
         ? ({ messages: stepMessages, stepNumber }) => {
@@ -263,6 +265,12 @@ export async function runStream({ model, modelId, system, messages, tools, emit,
           // Flag budget exhaustion so ai-service can auto-continue.
           if (stepNumber >= agentSteps) {
             stepLimitHit = true;
+          }
+          if (taskGuard) {
+            const budget = resolveContextBudget(contextWindow, { fixedTokens, responseTokens: maxOutputTokens });
+            const fitted = fitSdkContext([...stepMessages, ...extras], budget.maxTokens);
+            if (fitted.overflow) { taskGuard.stop("context-budget"); throw new Error("task-execution-stopped"); }
+            return fitted.compacted || extras.length ? { messages: fitted.messages } : {};
           }
           if (extras.length === 0) return {};
           return { messages: [...stepMessages, ...extras] };

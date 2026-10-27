@@ -2,6 +2,7 @@
  * AiStore — sessions, messages, streaming, tool timeline, context, runtime.
  */
 import { create, type StoreApi } from "zustand";
+import { activeDocumentPath } from "../lib/active-document";
 import i18n from "../locales";
 import { api } from "../services/api";
 import { subscribe } from "../services/rpc";
@@ -946,8 +947,7 @@ export const useAiStore = create<AiState>((set, get) => ({
     }
   },
   async sendMessage(text, context) {
-    const selection = useViewStore.getState().selection;
-    const ambient = context?.focusPath !== undefined ? context.focusPath : selection.kind === "file" ? selection.path : null;
+    const ambient = context?.focusPath !== undefined ? context.focusPath : activeDocumentPath(useViewStore.getState());
     const referencePaths = get().mountedFiles.map(file => file.path);
     const priorTask = [...get().messages].reverse().find(message => message.role === "assistant")?.goal?.task;
     const effective = resolveTaskContract({ userText: text, focusPath: ambient, referencePaths, intent: context?.taskIntent, priorTask, skillId: get().activeSkillId });
