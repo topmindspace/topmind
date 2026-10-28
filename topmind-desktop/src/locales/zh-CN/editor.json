@@ -205,6 +205,7 @@
     "autoPopupOnTip": "选中自动弹出 · 点击关闭",
     "autoPopupOffTip": "自动弹出已关闭 · 点击开启",
     "copyPreview": "复制预览内容",
+    "copyFailed": "复制失败，请检查剪贴板权限后重试。",
     "copied": "已复制"
   },
   "ai": {

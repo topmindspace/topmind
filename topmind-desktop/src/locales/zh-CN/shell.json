@@ -513,6 +513,8 @@
   "todo": {
     "title": "清单",
     "loading": "加载清单…",
+    "loadFailed": "清单读取失败，请重试。",
+    "retry": "重试",
     "empty": "清单还是空的",
     "emptyHint": "输入下方添加 · 或点 AI 让 AI 从动态维护",
     "addPlaceholder": "添加一项…",

@@ -205,6 +205,7 @@
     "autoPopupOnTip": "Auto-popup on selection · Click to disable",
     "autoPopupOffTip": "Auto-popup disabled · Click to enable",
     "copyPreview": "Copy preview",
+    "copyFailed": "Copy failed. Check clipboard access and try again.",
     "copied": "Copied"
   },
   "ai": {

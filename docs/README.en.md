@@ -50,6 +50,7 @@
 | [`DESIGN.md`](../DESIGN.md) | **Product interaction** | User concepts ≤ 5: Note it / Stream / Topic / My profile / Delivery |
 | [`SECURITY.md`](../SECURITY.md) | **Security and key boundary** | Local API keys, no telemetry, network scope |
 | [`AGENTS.md`](../AGENTS.md) | **Agent behavior truth** | Quality gate, dead-code checks, multi-surface versioning |
+| [`Writing and AI workflow review`](./WRITING-UX-REVIEW-2026-10-28.md) | **Current user paths and acceptance** | Writing entry, AI interaction, new notes, skill upgrades, four-repo verification (Chinese) |
 
 ---
 
@@ -58,6 +59,7 @@
 | Guide | Notes |
 |-------|-------|
 | [`PACKAGING.md`](./PACKAGING.md) | Pack and release rules: installer names, GitHub Actions, Win/Mac/Linux |
+| [`REPO-MAINTENANCE.md`](./REPO-MAINTENANCE.md) | Four-repo maintenance and release runbook |
 | [`images/README.md`](./images/README.md) | Screenshot and demo media index |
 | [`capture-clip-matrix.md`](./capture-clip-matrix.md) | Capture · Clip · Ingest capability matrix |
 | [`topmind-vs-others.md`](./topmind-vs-others.md) | Knowledge-management comparison |

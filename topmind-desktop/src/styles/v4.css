@@ -1876,6 +1876,16 @@ html[data-overlay-open] body > [data-radix-popper-content-wrapper]:has([data-rad
 .v4-plugin-app-sheet[data-plugin-app] {
   min-height: min(78vh, 680px);
 }
+.v4-plugin-app-sheet[data-plugin-app="topmind-wechat"] {
+  width: min(100%, 760px);
+  height: min(86vh, 640px);
+  min-height: 0;
+}
+@media (max-width: 640px) {
+  .v4-plugin-app-sheet[data-plugin-app="topmind-wechat"] {
+    height: min(92vh, 720px);
+  }
+}
 html.dark .v4-plugin-app-sheet {
   box-shadow: var(--elevation-3, var(--shadow-overlay-hairline, var(--shadow-overlay)));
 }

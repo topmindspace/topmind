@@ -104,12 +104,20 @@ export function SelectionAiBar({
 
   // ── Copy preview to clipboard ──
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState(false);
+  useEffect(() => setCopyError(false), [preview]);
   const copyPreview = useCallback(() => {
     if (!preview) return;
-    void navigator.clipboard.writeText(preview).then(() => {
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1800);
-    });
+    setCopyError(false);
+    void (async () => {
+      try {
+        await navigator.clipboard.writeText(preview);
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 1800);
+      } catch {
+        setCopyError(true);
+      }
+    })();
   }, [preview]);
 
   if (overlay !== "none") return null;
@@ -349,6 +357,8 @@ export function SelectionAiBar({
         ) : null}
 
         {preview ? (
+          <>
+          {copyError ? <p role="alert" className="rounded-sm bg-status-error-bg px-2 py-1 text-xs text-error">{t("selectionAi.copyFailed")}</p> : null}
           <SelectionAiDiff
             preview={preview}
             targetScope={target.scope}
@@ -364,6 +374,7 @@ export function SelectionAiBar({
             onCopy={copyPreview}
             copied={copied}
           />
+          </>
         ) : null}
       </div>
     </div>

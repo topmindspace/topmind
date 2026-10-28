@@ -51,6 +51,7 @@
 | [`SECURITY.md`](../SECURITY.md) | **安全与密钥边界** | 约定 API Key 本地明文存储规范、无遥测声明、网络范围 |
 | [`AGENTS.md`](../AGENTS.md) | **Agent 行为纪律真源** | 定义质量门顺序、死代码检测、多表面版本发布策略 |
 | [`写作整合与安装升级设计`](./WRITING-INTEGRATION-AND-UPDATES-2026-10-26.md) | **实施架构与验证记录** | 写作包默认随包、两端交付、公众号迁移、组件与本体升级、分阶段验收 |
+| [`写作与 AI 工作流体验整改`](./WRITING-UX-REVIEW-2026-10-28.md) | **当前用户路径与验收** | 写作入口、AI 交互、新建笔记、技能升级和四仓验证 |
 
 ---
 
@@ -59,7 +60,7 @@
 | 指南文档 | 说明 |
 |----------|------|
 | [`PACKAGING.md`](./PACKAGING.md) | 打包与发布规范：安装包命名矩阵、GitHub Actions 独立/全量 Release 工作流、Win/Mac/Linux 构建说明 |
-| [`REPO-MAINTENANCE.md`](./REPO-MAINTENANCE.md) | 三仓维护手册与升级日志 |
+| [`REPO-MAINTENANCE.md`](./REPO-MAINTENANCE.md) | 四仓维护与发版手册 |
 | [`images/README.md`](./images/README.md) | 媒体与截图资源索引 |
 | [`capture-clip-matrix.md`](./capture-clip-matrix.md) | Capture · Clip · Ingest 能力矩阵 |
 | [`topmind-vs-others.md`](./topmind-vs-others.md) | 知识管理方案对比与选型指南 |

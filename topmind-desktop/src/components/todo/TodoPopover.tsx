@@ -27,6 +27,7 @@ import { useTranslation } from "react-i18next";
 import { cn } from "../../lib/kit";
 import { ICON } from "../../lib/icons";
 import { shouldCloseOnScroll } from "../../lib/scroll-dismiss";
+import { anchoredPopoverX, clampPopoverX } from "../../lib/popover-geometry";
 import { isMenuLayerActive } from "../../lib/menu-layer";
 import { useTodoStore } from "../../stores/todo-store";
 import { useActionStore } from "../../stores/action-store";
@@ -121,17 +122,22 @@ export function TodoPopover({ open, onOpenChange, children }: TodoPopoverProps) 
   // Compute initial position — right side of viewport, below title bar
   useEffect(() => {
     if (open && !pinned && !pos) {
-      const x = window.innerWidth - PANEL_WIDTH - 16;
+      const x = anchoredPopoverX(window.innerWidth, PANEL_WIDTH);
       const y = 52; // below title bar
       setPos({ x, y });
     }
   }, [open, pinned, pos]);
 
-  // Recompute position on window resize (unpinned only — pinned stays where user dragged)
+  // Preserve a pinned drag position when possible, but keep the panel visible on resize.
   useEffect(() => {
-    if (!open || pinned) return;
+    if (!open) return;
     const handle = () => {
-      setPos({ x: window.innerWidth - PANEL_WIDTH - 16, y: 52 });
+      setPos((current) => pinned && current
+        ? {
+            x: clampPopoverX(current.x, window.innerWidth, PANEL_WIDTH, DRAG_EDGE_MARGIN),
+            y: Math.max(DRAG_EDGE_MARGIN, Math.min(current.y, window.innerHeight - DRAG_BOTTOM_MARGIN)),
+          }
+        : { x: anchoredPopoverX(window.innerWidth, PANEL_WIDTH), y: 52 });
     };
     window.addEventListener("resize", handle);
     return () => window.removeEventListener("resize", handle);
@@ -212,7 +218,7 @@ export function TodoPopover({ open, onOpenChange, children }: TodoPopoverProps) 
       if (!dragStart.current) return;
       const dx = e.clientX - dragStart.current.mx;
       const dy = e.clientY - dragStart.current.my;
-      const nx = Math.max(DRAG_EDGE_MARGIN, Math.min(window.innerWidth - PANEL_WIDTH - DRAG_EDGE_MARGIN, dragStart.current.px + dx));
+      const nx = clampPopoverX(dragStart.current.px + dx, window.innerWidth, PANEL_WIDTH, DRAG_EDGE_MARGIN);
       const ny = Math.max(DRAG_EDGE_MARGIN, Math.min(window.innerHeight - DRAG_BOTTOM_MARGIN, dragStart.current.py + dy));
       setPos({ x: nx, y: ny });
     };

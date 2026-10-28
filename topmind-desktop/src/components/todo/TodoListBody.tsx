@@ -84,6 +84,7 @@ export function TodoListBody({ showPaneChrome = true }: { showPaneChrome?: boole
   const { t } = useTranslation("shell");
   const items = useTodoStore((s) => s.items);
   const loading = useTodoStore((s) => s.loading);
+  const loadError = useTodoStore((s) => s.loadError);
   const maintaining = useTodoStore((s) => s.maintaining);
   const maintainMessage = useTodoStore((s) => s.maintainMessage);
   const maintainReason = useTodoStore((s) => s.maintainReason);
@@ -213,6 +214,15 @@ export function TodoListBody({ showPaneChrome = true }: { showPaneChrome?: boole
         data-todo-scroll-body={showPaneChrome ? "" : undefined}
         data-scroll-stable-panel={showPaneChrome ? "" : undefined}
       >
+        {loadError ? (
+          <div role="alert" className="mb-2 flex items-center gap-2 rounded-md bg-status-error-bg px-2 py-1.5 text-xs text-error">
+            <RiErrorWarningLine size={ICON.micro} className="shrink-0" />
+            <span className="min-w-0 flex-1">{loadError}</span>
+            <button type="button" onClick={() => void refresh()} className="shrink-0 font-medium underline v4-focus-ring">
+              {t("todo.retry")}
+            </button>
+          </div>
+        ) : null}
         {/* AI maintain feedback */}
         {maintainMessage && maintaining !== "maintaining" ? (
           <div
@@ -330,7 +340,7 @@ export function TodoListBody({ showPaneChrome = true }: { showPaneChrome?: boole
             <RiLoader4Line size={ICON.micro} className="animate-spin" />
             {t("todo.loading")}
           </div>
-        ) : activeItems.length === 0 && completedItems.length === 0 ? (
+        ) : !loadError && activeItems.length === 0 && completedItems.length === 0 ? (
           <div className="flex flex-col items-center gap-1.5 py-6 text-center">
             <span className="text-xs text-text-tertiary">{t("todo.empty")}</span>
             <span className="px-3 text-xs leading-relaxed text-text-quaternary">

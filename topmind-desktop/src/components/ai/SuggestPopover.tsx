@@ -690,7 +690,7 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
       ) : bulkResult ? (
         <p className="shrink-0 px-3 py-1.5 text-xs text-accent-color bg-accent-bg-faint">{bulkResult}</p>
       ) : message ? (
-        <p className="shrink-0 px-3 py-1.5 text-xs text-text-tertiary">{message}</p>
+        <p role="status" className="shrink-0 px-3 py-1.5 text-xs text-text-tertiary">{message}</p>
       ) : null}
 
       {/* Body: suggestion list */}
@@ -699,7 +699,7 @@ export function SuggestPopover({ embedded = false }: { embedded?: boolean }) {
         data-scroll-stable-panel=""
         data-suggest-scroll-body=""
       >
-        {items.length === 0 ? (
+        {items.length === 0 && !message ? (
           <div className="flex flex-col items-center gap-2 py-8 text-center">
             {loading ? (
               <>

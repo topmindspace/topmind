@@ -96,7 +96,7 @@ Vault UI / 插件壳 / esbuild            → topmind-obsidian
 - [ ] obsidian 三种 Kernel 解析均可 build
 - [ ] obsidian 产物空白 Vault 启用
 - [ ] Desktop 托管装 Skills / Obsidian 走 Release 成功
-- [ ] 三仓 `latest.json` 形状一致
+- [ ] 各独立发布面的 `latest.json` 与版本真源一致
 
 ---
 

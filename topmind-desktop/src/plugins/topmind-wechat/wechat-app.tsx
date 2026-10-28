@@ -12,7 +12,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../components/ui/ta
 import { NoteSourcePicker } from "../../components/workspace/NoteSourcePicker";
 import { activeDocumentPath } from "../../lib/active-document";
 import { PluginAppHeader } from "../connector-ui";
-import { getCachedSettings } from "../../lib/settings-cache";
+import { getCachedSettings, setCachedSettings } from "../../lib/settings-cache";
+import { emitLocal } from "../host";
+import { writingTaskBlocker } from "./writing-task-state";
 import { prepareArticle, WRITING_ACTIONS, WRITING_THEMES, type ArticleDelivery, type WritingPlatform, type WritingTheme } from "../../generated/writing/article-renderer.mjs";
 
 export function createWechatOverlaySlot(_ctx: PluginContext): OverlaySlot {
@@ -30,6 +32,9 @@ export function WechatApp() {
   const [output, setOutput] = useState<"review" | "edit">("review");
   const [allowWeb, setAllowWeb] = useState(false);
   const streaming = useAiStore(s => s.streaming);
+  const messagesLoading = useAiStore(s => s.messagesLoading);
+  const messagesError = useAiStore(s => s.messagesError);
+  const agentEnabled = useAiStore(s => s.agentEnabled);
   const [platform, setPlatform] = useState<WritingPlatform>("wechat");
   const preferred = getCachedSettings()?.wechat?.theme || "minimal-ink";
   const [theme, setTheme] = useState<WritingTheme>(Object.prototype.hasOwnProperty.call(WRITING_THEMES, preferred) ? preferred as WritingTheme : "minimal-ink");
@@ -46,9 +51,8 @@ export function WechatApp() {
   useEffect(() => () => { generation.current++; }, []);
   useEffect(() => {
     let cancelled = false;
-    setSourceExcerpt(""); setSourceError("");
+    setSourceExcerpt(""); setSourceError(""); setSourceLoading(Boolean(sourcePath));
     if (!sourcePath) return;
-    setSourceLoading(true);
     void api.ws.read(sourcePath).then(text => {
       if (!cancelled) setSourceExcerpt(text.replace(/^---[\s\S]*?\n---\s*/u, "").replace(/[#>*`]/gu, "").trim().slice(0, 160));
     }).catch(e => { if (!cancelled) setSourceError(e instanceof Error ? e.message : String(e)); })
@@ -108,34 +112,49 @@ export function WechatApp() {
   const runAction = async () => {
     const action = WRITING_ACTIONS.find(item => item.id === actionId);
     if (!action) return;
+    const gate = writingTaskBlocker({ sourcePath, sourceLoading, sourceError, aiBusy: streaming || messagesLoading || busy, sessionError: Boolean(messagesError), skillsEnabled: getCachedSettings()?.ai?.skillsEnabled, enabledSkillIds: getCachedSettings()?.ai?.enabledSkillIds, actionId });
+    if (gate) return;
     setError(""); setBusy(true);
+    let launched = false;
     try {
       ensureSaved();
       await api.ws.read(sourcePath);
       if (useAiStore.getState().streaming || useAiStore.getState().messagesLoading) throw new Error(t("delivery.agentBusy"));
+      // The button names this settings change before running a tool-dependent task.
+      if (!useAiStore.getState().agentEnabled) {
+        const settings = await api.sys.update({ ai: { agentEnabled: true } });
+        setCachedSettings(settings);
+        useAiStore.getState().setAgentEnabled(true);
+      }
       const zh = i18n.language.startsWith("zh");
       const prompt = actionId === "topmind-cover" ? (zh ? "按 topmind-cover，只准备封面提示词和构图方案，不生成图片。" : "Use topmind-cover to prepare a cover prompt only; do not generate images.")
         : actionId === "topmind-poster" ? (zh ? "按 topmind-poster，只提供 HTML 排版方案，不生成 PNG。" : "Use topmind-poster to provide HTML/layout only; do not generate PNG.")
         : zh ? action.prompt : action.promptEn;
-      close(); useViewStore.getState().openAiWorkspace("chat");
+      close(); useViewStore.getState().openAiWorkspace("chat"); launched = true;
       await useAiStore.getState().sendMessage(`${prompt}\n${zh ? "目标文章" : "Target article"}：${sourcePath}\n${output === "review" ? t("delivery.reviewOnly") : t("delivery.editSource")}\n${requirements}`, {
         focusPath: sourcePath, taskIntent: { targetPath: sourcePath, skillId: action.id, output, allowWeb },
       });
-    } catch (error) { setError(error instanceof Error ? error.message : String(error)); }
+    } catch (error) {
+      const text = error instanceof Error ? error.message : String(error);
+      if (launched) emitLocal("toast:show", { text, kind: "error" });
+      else setError(text);
+    }
     finally { setBusy(false); }
   };
   const zh = i18n.language.startsWith("zh");
   const currentAction = WRITING_ACTIONS.find(action => action.id === actionId);
-  const cannotStart = streaming || busy || sourceLoading || Boolean(sourceError) || !/\.md$/iu.test(sourcePath);
-  const groups = [
-    { key: "refine", ids: ["topmind-revise", "topmind-format"] },
-    { key: "adapt", ids: ["topmind-briefs", "topmind-viral-posts", "topmind-wechat-post", "topmind-x-article"] },
-    { key: "visual", ids: ["topmind-cover", "topmind-poster"] },
-  ];
-  return <div className="v4-plugin-app-panel flex h-full min-h-0 flex-col" data-writing-app>
+  const taskBlocker = writingTaskBlocker({ sourcePath, sourceLoading, sourceError, aiBusy: streaming || messagesLoading || busy, sessionError: Boolean(messagesError), skillsEnabled: getCachedSettings()?.ai?.skillsEnabled, enabledSkillIds: getCachedSettings()?.ai?.enabledSkillIds, actionId });
+  const primaryActions = ["topmind-revise", "topmind-format", "topmind-briefs", "topmind-wechat-post"];
+  const otherActions = WRITING_ACTIONS.filter(action => !primaryActions.includes(action.id));
+  const chooseAction = (id: string) => {
+    setActionId(id);
+    if (id === "topmind-cover" || id === "topmind-poster") setOutput("review");
+  };
+  const actionButton = (action: typeof WRITING_ACTIONS[number]) => <Button key={action.id} variant={actionId === action.id ? "default" : "secondary"} size="sm" className="justify-start" aria-pressed={actionId === action.id} autoFocus={actionId === action.id && primaryActions.includes(action.id)} onClick={() => chooseAction(action.id)}>{zh ? action.zh : action.en}</Button>;
+  return <div className="v4-plugin-app-panel flex h-full min-h-0 flex-col" data-writing-app role="dialog" aria-modal="true" aria-label={t("name")}>
     <PluginAppHeader icon={<RiFileTextLine size={18} />} title={t("name")} subtitle={t("subtitle")} onClose={close} closeLabel={t("close")} />
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-      <section aria-label={t("delivery.source")} className="m-4 mb-0 flex flex-col gap-2 rounded-[var(--radius-lg)] bg-surface-wash-15 p-4">
+      <section aria-label={t("delivery.source")} className="m-3 mb-0 flex flex-col gap-2 rounded-[var(--radius-lg)] bg-surface-wash-15 p-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className="mb-1 text-2xs text-text-secondary">{sourcePath && sourcePath === activePath ? t("delivery.activeNote") : t("delivery.source")}</p>
@@ -146,24 +165,36 @@ export function WechatApp() {
             {activePath && activePath !== sourcePath ? <Button variant="ghost" size="sm" onClick={() => setSourcePath(activePath)}>{t("delivery.useActiveNote")}</Button> : null}
           </div>
         </div>
-        {sourceLoading ? <p role="status" className="text-xs text-text-secondary">{t("delivery.loadingSource")}</p> : sourceError ? <p role="alert" className="text-xs text-error">{sourceError}</p> : sourceExcerpt ? <p className="line-clamp-2 break-words text-xs leading-relaxed text-text-secondary">{sourceExcerpt}</p> : <p className="text-xs text-text-secondary">{t("delivery.empty")}</p>}
+        {sourceLoading ? <p role="status" className="text-xs text-text-secondary">{t("delivery.loadingSource")}</p> : sourceError ? <p role="alert" className="text-xs text-error">{sourceError}</p> : sourceExcerpt ? <p className="hidden truncate text-xs leading-relaxed text-text-secondary sm:block">{sourceExcerpt}</p> : <p className="text-xs text-text-secondary">{t("delivery.empty")}</p>}
       </section>
       {error ? <p role="alert" className="mx-4 mt-3 text-sm text-error">{error}</p> : null}
       <Tabs defaultValue="write" className="flex min-h-0 flex-1 flex-col p-4">
         <TabsList aria-label={t("name")} className="w-full justify-start"><TabsTrigger value="write">{t("delivery.aiTask")}</TabsTrigger><TabsTrigger value="preview">{t("delivery.localDelivery")}</TabsTrigger></TabsList>
         <TabsContent value="write" className="mt-4 flex flex-col gap-4">
           <div className="grid gap-4 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-            <div className="space-y-4">{groups.map(group => <section key={group.key}>
-              <h3 className="mb-2 text-xs text-text-secondary">{t(`delivery.group.${group.key}`)}</h3>
-              <div className="grid grid-cols-2 gap-2">{WRITING_ACTIONS.filter(action => group.ids.includes(action.id)).map(action => <Button key={action.id} variant={actionId === action.id ? "default" : "secondary"} size="sm" className="justify-start" aria-pressed={actionId === action.id} onClick={() => { setActionId(action.id); if (["topmind-cover", "topmind-poster"].includes(action.id)) setOutput("review"); }}>{zh ? action.zh : action.en}</Button>)}</div>
-            </section>)}</div>
-            <section aria-label={t("delivery.requirements")} className="flex min-w-0 flex-col gap-4 rounded-[var(--radius-lg)] bg-surface-wash-15 p-4">
+            <section aria-label={t("delivery.actions")} className="min-w-0">
+              <h3 className="mb-2 text-xs font-medium text-text-secondary">{t("delivery.chooseTask")}</h3>
+              <div className="grid grid-cols-2 gap-2">{WRITING_ACTIONS.filter(action => primaryActions.includes(action.id)).map(actionButton)}</div>
+              <details className="mt-3 rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface px-3 py-2 text-xs text-text-secondary">
+                <summary className="cursor-pointer select-none">{t("delivery.moreActions")}</summary>
+                <div className="mt-3 grid grid-cols-2 gap-2">{otherActions.map(actionButton)}</div>
+              </details>
+            </section>
+            <section aria-label={t("delivery.requirements")} className="flex min-w-0 flex-col gap-3 rounded-[var(--radius-lg)] bg-surface-wash-15 p-4">
               <div><h3 className="text-sm font-medium">{currentAction ? zh ? currentAction.zh : currentAction.en : t("delivery.chooseAction")}</h3><p className="mt-1 text-xs leading-relaxed text-text-secondary">{t(`delivery.actionHelp.${actionId}`)}</p></div>
               <label className="text-xs text-text-secondary">{t("delivery.requirements")}<textarea className="v4-focus-ring mt-2 block min-h-24 w-full resize-y rounded-[var(--radius-md)] border border-border-subtle bg-surface p-3 text-sm text-text-primary" placeholder={t("delivery.requirementsHint")} value={requirements} onChange={e => setRequirements(e.target.value)} /></label>
-              <label className="text-xs text-text-secondary">{t("delivery.resultMode")}<Select className="mt-2" value={output} onChange={e => setOutput(e.target.value as "review" | "edit")} options={[{ value: "review", label: t("delivery.reviewOnly") }, ...(!["topmind-cover", "topmind-poster"].includes(actionId) ? [{ value: "edit", label: t("delivery.editSource") }] : [])]} /></label>
-              <label className="flex items-start gap-2 text-xs text-text-secondary"><input className="mt-0.5" type="checkbox" checked={allowWeb} onChange={e => setAllowWeb(e.target.checked)} /><span>{t("delivery.allowWeb")}</span></label>
-              <p className="text-2xs leading-relaxed text-text-tertiary">{t("delivery.contextHint")}</p>
-              <Button disabled={cannotStart} onClick={() => void runAction()}>{t("delivery.start")}</Button>
+              <details className="rounded-[var(--radius-md)] border border-border-subtle-dim bg-surface px-3 py-2 text-xs text-text-secondary">
+                <summary className="cursor-pointer select-none">{t("delivery.moreOptions")}</summary>
+                <div className="mt-3 flex flex-col gap-3">
+                  <label>{t("delivery.resultMode")}<Select className="mt-2" value={output} onChange={e => setOutput(e.target.value as "review" | "edit")} options={[{ value: "review", label: t("delivery.reviewOnly") }, ...(!["topmind-cover", "topmind-poster"].includes(actionId) ? [{ value: "edit", label: t("delivery.editSource") }] : [])]} /></label>
+                  <label className="flex items-start gap-2"><input className="mt-0.5" type="checkbox" checked={allowWeb} onChange={e => setAllowWeb(e.target.checked)} /><span>{t("delivery.allowWeb")}</span></label>
+                  <p className="text-2xs leading-relaxed text-text-tertiary">{t("delivery.contextHint")}</p>
+                </div>
+              </details>
+              {taskBlocker === "skills-off" || taskBlocker === "skill-off" ? <div className="flex flex-wrap items-center gap-2 text-xs text-warning"><span>{t(taskBlocker === "skills-off" ? "delivery.skillsDisabled" : "delivery.skillDisabled")}</span><Button size="sm" variant="outline" onClick={() => useViewStore.getState().openOverlay("settings", { topicId: "skills" })}>{t("delivery.openSkillsSettings")}</Button></div> : null}
+              {taskBlocker === "ai-busy" ? <p className="text-xs text-warning">{t("delivery.agentBusy")}</p> : null}
+              {taskBlocker === "session-error" ? <div className="flex flex-wrap items-center gap-2 text-xs text-warning"><span>{t("delivery.sessionError")}</span><Button size="sm" variant="outline" onClick={() => { close(); useViewStore.getState().openAiWorkspace("chat"); }}>{t("delivery.openAiWorkspace")}</Button></div> : null}
+              <Button disabled={Boolean(taskBlocker)} onClick={() => void runAction()}>{busy ? t("delivery.working") : agentEnabled ? t("delivery.start") : t("delivery.enableAgentAndStart")}</Button>
             </section>
           </div>
         </TabsContent>

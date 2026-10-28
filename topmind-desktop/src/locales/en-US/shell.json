@@ -513,6 +513,8 @@
   "todo": {
     "title": "List",
     "loading": "Loading list…",
+    "loadFailed": "Could not load the list. Try again.",
+    "retry": "Retry",
     "empty": "List is empty",
     "emptyHint": "Add below · or click AI for AI maintenance from stream",
     "addPlaceholder": "Add an item…",

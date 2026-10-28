@@ -25,6 +25,7 @@ export type MaintainState = "idle" | "maintaining" | "done" | "error";
 interface TodoStore {
   items: TodoItem[];
   loading: boolean;
+  loadError: string | null;
   maintaining: MaintainState;
   maintainMessage: string | null;
   maintainReason: string | null;  // store the raw reason for better conditional logic
@@ -109,6 +110,7 @@ function emitSelfFileChanged() {
 export const useTodoStore = create<TodoStore>((set, get) => ({
   items: [],
   loading: false,
+  loadError: null,
   maintaining: "idle",
   maintainMessage: null,
   maintainReason: null,
@@ -133,7 +135,7 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
   refresh: async () => {
     // Capture previous items to avoid empty flash on transient IPC errors
     const prevItems = get().items;
-    set({ loading: true });
+    set({ loading: true, loadError: null });
     try {
       const result = await api.todo.list();
       const items = result?.items || [];
@@ -143,11 +145,17 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
       set({
         items,
         loading: false,
+        loadError: null,
         everLoaded: true,
       });
     } catch {
       // Graceful degradation: keep existing items on transient errors
-      set({ loading: false, everLoaded: true, items: prevItems });
+      set({
+        loading: false,
+        everLoaded: true,
+        items: prevItems,
+        loadError: i18n.t("shell:todo.loadFailed"),
+      });
     }
   },
 

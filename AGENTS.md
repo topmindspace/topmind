@@ -33,7 +33,7 @@
 | Agent / prompt / tool / boot | `topmind-desktop/ARCHITECTURE.md` 与 `docs/DEVELOPMENT.md` 对应小节 |
 | Kernel / UTR 写回 | `TOOLS.md` 相关契约及真实注册表 |
 | Obsidian | 姊妹仓 `topmind-obsidian` 的实现、ARCHITECTURE 与 DESIGN |
-| 发行、版本、三仓同步 | `docs/REPO-MAINTENANCE.md`；版本查 `npm run versions`，不抄数量/版本到规约 |
+| 发行、版本、四仓同步 | `docs/REPO-MAINTENANCE.md`；版本查 `npm run versions`，不抄数量/版本到规约 |
 | 演进方向与本轮审查 | `docs/ARCHITECTURE-AUDIT-2026-10-24.md`；历史决策见 `docs/ARCHITECTURE-RESET.md` |
 
 契约文档在主仓维护，Skills 操作语义在其 `shared/` 单一维护；Obsidian 的 `lib/` 是构建快照，通过 `ensure-engine` 同步，不手改副本。`skills/` 与 `obsidian-plugin/` 仅保留迁移入口。

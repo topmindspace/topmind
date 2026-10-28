@@ -23,6 +23,7 @@ import { ICON } from "../../lib/icons";
 import { Tooltip } from "../ui/tooltip";
 import { scheduleFlash } from "../../lib/kit";
 import { cn } from "../../lib/kit";
+import { useViewStore } from "../../stores/view-store";
 
 type SkillRow = {
   id: string;
@@ -228,16 +229,17 @@ export function SkillsPanel({
       <SettingsSection
         title={t("settings:skills.mode")}
         description={t("settings:skills.modeDesc")}
-        action={
+        action={<div className="flex flex-wrap items-center gap-2">
           <StatusDot
             ok={skillsEnabled && hasShared}
-            label={
-              skillsEnabled
-                ? t("settings:skills.statusOn", { ver: packVersion || "?", enabled: enabledCount, total: catalog.length })
-                : t("settings:skills.statusOff")
-            }
+            label={skillsEnabled
+              ? t("settings:skills.statusOn", { ver: packVersion || "?", enabled: enabledCount, total: catalog.length })
+              : t("settings:skills.statusOff")}
           />
-        }
+          <Button variant="outline" size="sm" onClick={() => useViewStore.getState().openOverlay("settings", { topicId: "about" })}>
+            <RiRefreshLine size={ICON.micro} /> {t("settings:skills.manageVersions")}
+          </Button>
+        </div>}
       >
         <SwitchField
           label={t("settings:skills.skillFirst")}
@@ -273,6 +275,10 @@ export function SkillsPanel({
         </div>
       </SettingsSection>
 
+      <details className="mt-3 rounded-[var(--radius-lg)] border border-border-subtle-dim bg-surface-wash-15 px-2 py-2">
+        <summary className="cursor-pointer select-none px-2 py-1 text-xs font-medium text-text-secondary">
+          {t("settings:skills.advanced", { count: catalog.length })}
+        </summary>
       <SettingsSection
         title={t("settings:skills.extraDirs")}
         description={t("settings:skills.extraDirsDesc")}
@@ -495,6 +501,7 @@ export function SkillsPanel({
           </ul>
         )}
       </SettingsSection>
+      </details>
 
       <ConfirmDialog
         open={Boolean(pendingAdd)}
