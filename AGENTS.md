@@ -13,7 +13,8 @@
 
 ## 不变量
 
-- 工作流：`收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整`。用户日常说自然语言，不必选择技能模块。
+- **方向大于约束**：引导、目标、已有经验与知识经验优先于固定操作剧本；规约只保留底线。用户概念仍 ≤5（记一下 · 动态 · 专题 · 我的情况 · 交付），文件仍是内容真源，不把「沉淀」教成产品 UI 里的第六个动词。硬闸仍在：写回分级、路径围栏、外部发布确认，以及禁止只做口头改写。
+- 工作流：`收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整`。用户日常说自然语言，不必选择技能模块。工作流原句里的「沉淀」不是第六个用户概念，产品 UI 不把它教成动词。
 - 用户数据在用户工作区，文件是内容真源。Desktop 状态、会话、缓存和索引不能替代内容文件。
 - 根 `topmind.yaml` 为行为契约；`memory/` 为语义内容，`.topmind/` 为可重建机器态。不要建立平行 truth store。
 - 耐久内容写入共用 Kernel `lib/writeback-engine.mjs`；路径围栏必须解析符号链接。写入返回真实 target path 与 affected files。
@@ -34,7 +35,7 @@
 | Kernel / UTR 写回 | `TOOLS.md` 相关契约及真实注册表 |
 | Obsidian | 姊妹仓 `topmind-obsidian` 的实现、ARCHITECTURE 与 DESIGN |
 | 发行、版本、四仓同步 | `docs/REPO-MAINTENANCE.md`；版本查 `npm run versions`，不抄数量/版本到规约 |
-| 演进方向与本轮审查 | `docs/ARCHITECTURE-AUDIT-2026-10-24.md`；历史决策见 `docs/ARCHITECTURE-RESET.md` |
+| 架构决策 | `docs/ARCHITECTURE-RESET.md`。`docs/ARCHITECTURE-AUDIT-2026-10-24.md` 是历史审查，不是现行规格 |
 
 契约文档在主仓维护，Skills 操作语义在其 `shared/` 单一维护；Obsidian 的 `lib/` 是构建快照，通过 `ensure-engine` 同步，不手改副本。`skills/` 与 `obsidian-plugin/` 仅保留迁移入口。
 

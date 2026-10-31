@@ -13,7 +13,8 @@ import type { AppSettings } from "../../types";
  * - Wait until agent is not streaming
  * - Wait until suggest prepare is not loading (soft — background lane also serializes)
  * - Cap wait ~45s then run once anyway (avoid permanent starve)
- * Manual path remains Stream ✨ / Todo panel (always available).
+ * When off, maintain only from the sidebar stream ✨ (this period has entries)
+ * or the list ✨ opened with ⌘⇧T. Empty periods hide the sidebar button.
  */
 export function useAutoTodoMaintain(settings: AppSettings): void {
   /** Once-per-session gate for settings.ai.autoMaintainTodos */

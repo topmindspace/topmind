@@ -4,7 +4,7 @@
  *
  * Pathed `![[attachments/a.png]]` resolves from the workspace root.
  * Pathless `![[Pasted image.png]]` resolves by basename (image extensions
- * only, case-insensitive, shortest workspace-relative path on a tie).
+ * only, case-insensitive; ambiguous basenames stay unresolved).
  * Desktop `![alt](relative)` stays note-relative.
  * Wikilink origin is kept in the image title (`tmw:`) so save can restore it.
  */
@@ -129,9 +129,9 @@ function parseWikilinkInner(inner) {
  */
 export function buildImageIndex(knownPaths) {
   const hasList = Array.isArray(knownPaths);
-  /** @type {Map<string, string>} */
+  /** @type {Map<string, string|null>} */
   const byLower = new Map();
-  /** @type {Map<string, string>} */
+  /** @type {Map<string, string|null>} */
   const byBase = new Map();
   if (!hasList) return { hasList: false, byLower, byBase };
   for (const raw of knownPaths) {
@@ -139,11 +139,10 @@ export function buildImageIndex(knownPaths) {
     if (!p || p.split("/").includes("..") || !isWorkspaceImageName(p)) continue;
     const lower = p.toLowerCase();
     if (!byLower.has(lower)) byLower.set(lower, p);
+    else if (byLower.get(lower) !== p) byLower.set(lower, null);
     const base = lower.split("/").pop() || lower;
-    const prev = byBase.get(base);
-    if (!prev || p.length < prev.length || (p.length === prev.length && p < prev)) {
-      byBase.set(base, p);
-    }
+    if (!byBase.has(base)) byBase.set(base, p);
+    else if (byBase.get(base) !== p) byBase.set(base, null);
   }
   return { hasList: true, byLower, byBase };
 }

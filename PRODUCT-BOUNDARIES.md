@@ -2,7 +2,7 @@
 
 > **边界唯一真源**。与 `PROJECT-MODEL.md`（内容约定）并列；实现与文档冲突时以二者为准。  
 > **实施与诚实状态**：`docs/ARCHITECTURE-RESET.md`（决策锁 · Target vs Done）。  
-> **仓库拓扑与维护**：`docs/REPO-MAINTENANCE.md`（三仓拆分 · 发版 · 集成）。
+> **仓库拓扑与维护**：`docs/REPO-MAINTENANCE.md`（多仓职责 · 发版 · 集成）。
 
 ---
 
@@ -13,10 +13,12 @@
 | **topmind**（本仓） | Desktop 安装包 · Clip · UTR | `lib/` Kernel · `templates/` · `topmind-desktop/` · `browser-extension/` · `utr/` |
 | **topmind-skills** | Agent Skills Pack | skill 目录 · `shared/` · installer · pack 构建 |
 | **topmind-obsidian** | Obsidian 社区插件 | 插件壳 · esbuild（构建时引用本仓 `lib/`） |
+| **topmind-writing-skills** | 独立写作技能与宿主包 | 写作技能 · 文章渲染/校验 runtime · 版本化 npm/ZIP 产物 |
+| **topmind-dsh**（本地开发中） | DeepSeek Harness 适配 bundle | UTR MCP 工作区绑定 · DSH 配置层 · 后续可视面板；不承载 Kernel 或稿件 |
 
 - **Kernel 不是独立交付面**：不单独安装、不发 npm 包；与 Desktop 同仓。
 - **契约文本单源**：`PROJECT-MODEL.md` / 本文 / `TOOLS.md` / `SKILL-ARCHITECTURE.md` 只在本仓；姊妹仓摘要 + 链接 + CI 断言。
-- **跨仓仅 3 通道**：Obsidian 构建时 checkout 本仓 tag；契约链接；Desktop `pack:prepare` 拉姊妹 Release 产物（可降级）。
+- **跨仓通道**：Obsidian 构建时 checkout 本仓 tag；契约链接；Desktop `pack:prepare` 拉姊妹 Release 产物（可降级）。写作包的独立发行与宿主快照见 `docs/REPO-MAINTENANCE.md`。DSH 本地 bundle 以 UTR `runtime-manifest.json` 绑定运行时和单个用户工作区；正式版本化分发及宿主验收尚未完成。
 - 原则：**交付面 = 仓库**。用户单独拿到 / 安装 / 更新 → 独立仓；否则留本仓子目录。
 
 ---
@@ -29,7 +31,7 @@
 
 **北极星**：**最低摩擦个人动态流** — 记下来尽可能简单；持续维护交给 AI **建议**（用户确认后执行）；找回尽可能自然。
 
-topmind 是 Agent 时代的本地优先工作台，按需组合四条独立能力，非强耦合单体：
+topmind 是 Agent 时代的本地优先工作台，按需组合以下独立能力：
 
 | 模块 | 是什么 | 不是什么 |
 |------|--------|----------|
@@ -37,6 +39,8 @@ topmind 是 Agent 时代的本地优先工作台，按需组合四条独立能�
 | **Desktop** | **富工作台**：浏览、深度编辑、捕获、AI 副驾、恢复、可扩展 | 不是必需前置壳；也不是薄聊天壳 |
 | **UTR** | 可选 CLI / MCP（Kernel 的 adapter） | 不是 Desktop 或 Skills 的强制依赖；不是第三套业务实现 |
 | **Obsidian Plugin** | Obsidian 内嵌动态流工作台 + AI 副驾 | 不是 Desktop 替代品；不是 Obsidian 编辑器重建 |
+| **Writing Skills** | 独立安装的写作方法与平台知识 | 不在各宿主重复维护方法正文 |
+| **DSH Plugin** | DeepSeek Harness 创作入口、可视交互与交接管理 | 不复制 Kernel、不作为用户稿件真源 |
 
 **共享**：
 
@@ -83,7 +87,7 @@ topmind 是 Agent 时代的本地优先工作台，按需组合四条独立能�
 |------|------|
 | Desktop 必须调 UTR 才能保存 / 捕获 / AI 写回？ | **否** — WorkspaceService → Kernel writeback-engine |
 | Skills 必须调 UTR？ | **否** — Host 文件工具 + 内容约定 |
-| 全部 UTR 命令日常必需？ | **否** — 注册表 35，MCP 默认 26 |
+| 全部 UTR 命令日常必需？ | **否** — 数量以注册表与 `TOOLS.md` 为准，不在这里另抄；其中包括只读 `creator.inspect` |
 | 无 UTR 时是否可用？ | **是** |
 | 保留 UTR 的理由？ | Agent Host / CI / doctor / 脚本的确定性命令面（Kernel adapter） |
 

@@ -11,7 +11,7 @@
     "removeLabel": "Remove {{name}} from list",
     "statusClosed": "Workspace closed · Pick one to continue",
     "statusInvalid": "Last workspace couldn't open · Please choose another path",
-    "statusInvalidEngine": "The app engine could not start · Check the install, then pick a workspace",
+    "statusInvalidEngine": "The app could not start · Check the install, then pick a workspace",
     "statusNoWorkspace": "Select or create a local folder as workspace",
     "footerLine1": "Workspace = your local folder (stream · topics · ship · archive)",
     "companionsHint": "After opening: Settings → Companions to install Agent Skills / Clip / Obsidian (optional, non-blocking)",
@@ -23,11 +23,11 @@
     "templateStreamName": "Minimal Stream",
     "templateStreamDesc": "Minimal: Inbox · Stream · Topics · Delivery · Archive",
     "templateBalancedName": "Balanced Knowledge",
-    "templateBalancedDesc": "Low-friction capture with knowledge sink",
+    "templateBalancedDesc": "Low-friction capture, and a place for long-term facts",
     "templateResearchName": "Academic Research",
     "templateResearchDesc": "Deep research · source tracking · references",
     "templatePeriodicName": "Periodic Review",
-    "templatePeriodicDesc": "Strong periodic review · memory sink",
+    "templatePeriodicDesc": "Strong periodic review · facts in My profile",
     "statusContractUnrepairable": "Workspace topmind.yaml is corrupt and cannot be auto-repaired. You can reseed the contract (notes are kept).",
     "reseedContract": "Backup & reseed topmind.yaml",
     "reseedContractHint": "The bad file is backed up under archive/contract or .topmind/contract-backups; content dirs are not deleted.",
@@ -188,7 +188,7 @@
     "outputsTipIdle": "Delivery · ⌘⇧O",
     "search": "Search",
     "searchTip": "Search notes · ⌘P",
-    "profile": "My situation",
+    "profile": "My profile",
     "workspace": "Workspace"
   },
   "statusBar": {
@@ -196,13 +196,12 @@
     "aiReady": "AI ready",
     "aiOffline": "AI offline · Click to configure",
     "initializing": "Initializing…",
-    "enginePath": "Engine: {{root}}",
+    "enginePath": "App path: {{root}}",
     "ready": "Ready",
     "workspaceOk": "Workspace OK",
     "workspaceOkTip": "Workspace ready · your files live in a local folder",
     "workspaceBad": "Workspace issue",
     "workspaceBadTip": "Can't reach the workspace — try opening the folder again",
-    "engineUnavailableTip": "Engine path unavailable — check installation and workspace",
     "unavailable": "Unavailable",
     "workspacePath": "Workspace: {{root}}",
     "workspacePathLabel": "Workspace path",
@@ -228,7 +227,7 @@
     "jobInline": "Inline AI",
     "taskRunning": "{{count}} background task(s)",
     "taskRunningTip": "Background tasks in progress · click for details and progress",
-    "taskPanelTip": "Task panel · engine tasks & history (⌘⇧J)",
+    "taskPanelTip": "Task panel · background tasks and history (⌘⇧J)",
     "taskPanelAria": "Task panel",
     "todoMaintaining": "AI organizing list",
     "todoMaintainingTip": "Extracting/updating the personal list from stream · click to open the list",
@@ -645,7 +644,7 @@
       "trashAllDupes": "Trash all confirmed duplicates",
       "partialOnly": "Partial hash only",
       "partialHint": "Large files skipped full hash — review before cleaning.",
-      "dupHint": "Default keep follows the suggestion (skips backup names, prefers year-dir + newer copies). Cleanup goes through the write gate (recoverable trash).",
+      "dupHint": "Default keep follows the suggestion (skips backup names, prefers year-dir + newer copies). Cleanup moves copies into recoverable trash.",
       "trash": "Recoverable deletes",
       "noTrash": "Trash is empty",
       "trashHint": "Locked/core deletes land here first; restore writes back to the original path.",
@@ -764,7 +763,7 @@
         },
         {
           "title": "Safe writes",
-          "body": "Default write access inside the workspace; AI cannot overwrite locked files; backups only for high-impact ops. Copy matches real recoverability."
+          "body": "The workspace is writable by default. Locked notes stay editable; the first change in a task keeps a snapshot. Only high-impact actions are backed up automatically. Delete copy matches what you can actually restore."
         }
       ]
     },
@@ -782,12 +781,12 @@
           "body": "Edit in stream/topics; AI can rewrite selections and discuss mounted files; confirm-gated suggestions organize Inbox and extract list items."
         },
         {
-          "title": "Deliver / remember",
-          "body": "Outputs go to 88-Delivery (flat names); long-term facts to memory; research notes stay in topics."
+          "title": "Deliver",
+          "body": "Outputs go to 88-Delivery (flat names); long-term facts go to My profile; research notes stay in topics."
         },
         {
           "title": "Find / adjust",
-          "body": "Search, tree, archive; Tools & Logs for health; lock critical notes against accidental edits."
+          "body": "Search, tree, archive; Tools & Logs for health. Locking a note keeps a snapshot the first time this task changes it."
         }
       ],
       "dirsTitle": "Directory conventions (short)",
@@ -815,7 +814,7 @@
         },
         {
           "title": "Suggestions ≠ auto-apply",
-          "body": "The system can propose organize, list, and memory changes — you confirm before write. AI cannot overwrite locked notes."
+          "body": "The system can propose organize, list, and memory changes — you can review them before they are saved. Locked notes stay editable; the first change in a task keeps a snapshot."
         },
         {
           "title": "Optional depth",
@@ -838,7 +837,7 @@
         },
         {
           "q": "Can AI break my notes?",
-          "a": "Durable writes go through the write gate: fenced to the workspace; AI cannot overwrite protection: locked files; confirm mode requires approval. Ordinary edits do not auto-backup; locked overwrites and core deletes land under 99-Archive and can be restored via Tools & Logs / restore receipts."
+          "a": "Notes stay in the folder you chose. Locked notes remain editable; the first change in a task keeps a snapshot. With “Ask before delete/archive”, delete and archive ask first. Ordinary edits are not backed up. Overwriting a locked note, or deleting memory, a topic home, or a delivery, goes to Archive and can be restored from Tools & Logs."
         },
         {
           "q": "How do I install dependencies?",
@@ -846,7 +845,7 @@
         },
         {
           "q": "How do plugins / connectors work?",
-          "a": "Settings → Plugins enables WeRead, X, bookkeeping, etc. Settings → Integrations installs Clip and Obsidian. Connector writes still follow the same conventions and write gate."
+          "a": "Settings → Plugins enables WeRead, X, bookkeeping, etc. Settings → Integrations installs Clip and Obsidian. Connector writes follow the same workspace rules."
         },
         {
           "q": "Where is my data?",
@@ -858,7 +857,7 @@
         },
         {
           "q": "I deleted something — can I restore?",
-          "a": "Ordinary open notes usually delete without trash (honest product policy). Locked or core notes (memory, topic home, delivery) go to 99-Archive trash and can be restored via Tools & Logs or UTR list-safety-receipts / restore. Lock important notes."
+          "a": "Ordinary notes usually delete with no trash. Locked notes, plus memory, topic home, and delivery, go to Archive and can be restored from Tools & Logs. Lock anything important."
         },
         {
           "q": "Can I use Obsidian too?",

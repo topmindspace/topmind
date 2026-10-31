@@ -607,7 +607,8 @@ export interface AppSettings {
     autoPrepareSuggestions?: boolean;
     /**
      * Auto-run AI todo maintain from stream (extract / complete / update).
-     * Default false — spends tokens; manual via Stream ✨ / Todo panel when off.
+     * Default false — spends tokens. When off, maintain only from the sidebar
+     * stream ✨ (this period has entries) or the list ✨ opened with ⌘⇧T.
      */
     autoMaintainTodos?: boolean;
     /** null = all pack skills; otherwise allow-list of skill ids */

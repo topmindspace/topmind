@@ -1,10 +1,13 @@
 /** Portable host renderer. Canonical source: topmind-writing-skills. No IO or executable HTML. */
+import { sha256, sha256Bytes } from './content-sha256.mjs';
 export const WRITING_THEMES = Object.freeze({
   'minimal-ink': { ink: '#252525', accent: '#955247', paper: '#ffffff', muted: '#666666' },
   'tech-blue': { ink: '#172033', accent: '#0369a1', paper: '#ffffff', muted: '#536174' },
   newsprint: { ink: '#24211c', accent: '#80502a', paper: '#fffdf8', muted: '#655f55' },
   graphite: { ink: '#222222', accent: '#444444', paper: '#ffffff', muted: '#666666' },
 });
+/** Version of the renderer's output semantics, independent from the npm package version. */
+export const ARTICLE_RENDERER_PROVIDER = Object.freeze({ id: 'topmind-writing-skills/article-renderer', version: '1.1.0' });
 export const WRITING_ACTIONS = Object.freeze([
   { id: 'topmind-revise', zh: '改稿', en: 'Revise', prompt: '按 topmind-revise 审校当前内容，保留事实、数字、归因和作者原意。' },
   { id: 'topmind-format', zh: '只排版', en: 'Format', prompt: '按 topmind-format 只调整当前内容的排版，不改写文字。' },
@@ -20,8 +23,17 @@ export function stripFrontmatter(value) {
   return String(value || '').replace(/^\uFEFF/u, '').replace(/\r\n?/gu, '\n').replace(/^---\n[\s\S]*?\n---(?:\n|$)/u, '');
 }
 export function resolveArticleImage(sourcePath, reference) {
-  if (!sourcePath || /[\\:]|^\//u.test(sourcePath) || /[\\:]|^\//u.test(reference)) throw new Error('Invalid workspace image path');
-  const parts = sourcePath.split('/').slice(0, -1);
+  if (typeof sourcePath !== 'string' || typeof reference !== 'string'
+    || !sourcePath || !reference || /[\\:\u0000-\u001f]|^\//u.test(sourcePath)
+    || /[\\:\u0000-\u001f]|^\//u.test(reference)) throw new Error('Invalid workspace image path');
+  const parts = [];
+  for (const segment of sourcePath.split('/')) {
+    if (!segment || segment === '.') continue;
+    if (segment === '..') { if (!parts.length) throw new Error('Source escapes workspace'); parts.pop(); }
+    else parts.push(segment);
+  }
+  if (!parts.length) throw new Error('Invalid workspace image path');
+  parts.pop();
   for (const segment of reference.split('/')) {
     if (!segment || segment === '.') continue;
     if (segment === '..') { if (!parts.length) throw new Error('Image escapes workspace'); parts.pop(); }
@@ -29,14 +41,19 @@ export function resolveArticleImage(sourcePath, reference) {
   }
   return parts.join('/');
 }
-export async function prepareArticle(input, readImage) {
+async function collectArticleImages(input, readImage) {
   const images = Object.create(null);
   for (const match of String(input.markdown).matchAll(/!\[[^\]]*\]\(([^\s)]+)(?:\s+"[^"]*")?\)/gu)) {
     const source = match[1];
     if (/^(https?:|data:)/iu.test(source) || Object.hasOwn(images, source)) continue;
-    try { images[source] = await readImage(resolveArticleImage(input.sourcePath, source)); }
+    const relativePath = resolveArticleImage(input.sourcePath, source);
+    try { images[source] = await readImage(relativePath); }
     catch { images[source] = ''; }
   }
+  return images;
+}
+export async function prepareArticle(input, readImage) {
+  const images = await collectArticleImages(input, readImage);
   return renderArticle({ ...input, images });
 }
 function safeUrl(value, image = false) {
@@ -127,4 +144,208 @@ export function renderArticle({ markdown = '', platform = 'wechat', theme = 'min
   const html = `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https:; style-src 'unsafe-inline';"><title>${esc(title || '文章预览')}</title></head><body style="max-width:720px;margin:0 auto;padding:24px;">${body}</body></html>`;
   const checklist = ['# 图片交付清单', '', '按正文出现顺序核对；内嵌不代表目标平台已托管或发布。', '', ...imageList.map((item, i) => `${i + 1}. ${item.status} · ${item.source.replace(/[\r\n]/gu, ' ')}`)].join('\n');
   return { platform, theme, html, body, text, images: imageList, diagnostics, checklist };
+}
+
+const ARTICLE_DIAGNOSTIC_MESSAGES = Object.freeze({
+  'image-unavailable': 'Image could not be loaded or embedded.',
+  'unsafe-link': 'Unsafe link was removed from the rendered output.',
+  'unclosed-code-fence': 'Code fence was not closed.',
+  'diagram-source-only': 'Diagram source needs a separate visual render.',
+  'table-paste-check': 'Check table layout after pasting into the target editor.',
+  'container-as-text': 'Unsupported container was rendered as text.',
+  'remote-image-unverified': 'Remote image was referenced but its availability was not verified.',
+});
+const MAX_BOUND_SOURCE_BYTES = 16 * 1024 * 1024;
+const MAX_BOUND_IMAGE_BASE64_CHARS = 48 * 1024 * 1024;
+function validBoundSourcePath(value) {
+  return typeof value === 'string' && value.length > 0 && value.length <= 2048
+    && /\.(?:md|markdown)$/iu.test(value) && !/[\\:\u0000-\u001f]/u.test(value)
+    && value.split('/').every(segment => segment && segment !== '.' && segment !== '..');
+}
+async function embeddedImageBytesSha256(value) {
+  if (typeof value !== 'string') return null;
+  const match = value.match(/^data:image\/(?:png|jpe?g|gif|webp);base64,([a-z0-9+/]+={0,2})$/iu);
+  if (!match || match[1].length > MAX_BOUND_IMAGE_BASE64_CHARS || typeof atob !== 'function') return null;
+  try {
+    const binary = atob(match[1]);
+    return await sha256Bytes(Uint8Array.from(binary, char => char.charCodeAt(0)));
+  } catch {
+    return null;
+  }
+}
+function articleInputSnapshot(input, delivery) {
+  const images = Object.entries(input.images ?? {})
+    .map(([source, value]) => [source, String(value)])
+    .sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0);
+  return {
+    markdown: String(input.markdown ?? ''),
+    platform: delivery.platform,
+    theme: delivery.theme,
+    title: String(input.title ?? ''),
+    sourcePath: input.sourcePath == null ? null : String(input.sourcePath),
+    images,
+    provider: ARTICLE_RENDERER_PROVIDER,
+  };
+}
+function articleFailure(error) {
+  const message = error instanceof Error ? error.message : '';
+  const known = {
+    'Unsupported delivery format': ['unsupported-platform', 'Unsupported delivery format.'],
+    'Unknown writing theme': ['unknown-theme', 'Unknown writing theme.'],
+    'Invalid workspace image path': ['invalid-image-path', 'Image path must remain inside the workspace.'],
+    'Source escapes workspace': ['invalid-image-path', 'Image path must remain inside the workspace.'],
+    'Image escapes workspace': ['invalid-image-path', 'Image path must remain inside the workspace.'],
+    'Invalid workspace source path': ['invalid-source-path', 'Source path must be a canonical workspace-relative Markdown path.'],
+    'Invalid source bytes': ['invalid-source-bytes', 'Source must be supplied as UTF-8 bytes.'],
+    'Invalid source encoding': ['invalid-source-encoding', 'Source bytes must be valid UTF-8.'],
+    'Source too large': ['source-too-large', 'Source exceeds the 16 MiB render limit.'],
+    'Invalid creation snapshot fingerprint': ['invalid-snapshot-fingerprint', 'Creation snapshot fingerprint must be SHA-256.'],
+    'Invalid article title': ['invalid-title', 'Article title must be a string.'],
+    'Unsupported bound renderer option': ['unsupported-render-option', 'Byte-bound rendering accepts only platform, theme and title options.'],
+  }[message];
+  return {
+    schemaVersion: 1,
+    capabilityId: 'article.render',
+    provider: ARTICLE_RENDERER_PROVIDER,
+    status: 'error',
+    input: { fingerprint: null },
+    artifacts: [],
+    images: [],
+    diagnostics: [{ code: known?.[0] ?? 'render-failed', severity: 'error', message: known?.[1] ?? 'Article could not be rendered.' }],
+  };
+}
+
+// Extract a local text fallback only from markup produced by renderArticle.
+// It is an estimate for preflight checks, never a target editor readback.
+function localClipboardText(html) {
+  return html
+    .replace(/<img\b[^>]*\/?\s*>/giu, '')
+    .replace(/<br\s*\/?\s*>/giu, '\n')
+    .replace(/<\/(?:p|h[1-6]|blockquote|li|tr|section|table)>/giu, '\n')
+    .replace(/<\/(?:th|td)>/giu, '\t')
+    .replace(/<hr\b[^>]*\/?\s*>/giu, '\n')
+    .replace(/<[^>]+>/gu, '')
+    .replace(/&lt;/gu, '<').replace(/&gt;/gu, '>')
+    .replace(/&quot;/gu, '"').replace(/&#39;/gu, "'")
+    .replace(/&amp;/gu, '&')
+    .replace(/[\t ]+\n/gu, '\n')
+    .replace(/\n{3,}/gu, '\n\n')
+    .trim();
+}
+
+/** Prepared local text for a length preflight; the target editor must be checked separately. */
+export function articleLocalTextDocument(result) {
+  if (result?.status === 'error' || !result?.input?.source) return null;
+  const artifact = result.artifacts?.find(item => item.role === 'local-clipboard-text');
+  if (artifact?.format !== 'text/plain' || typeof artifact.content !== 'string' ||
+      !/^[a-f0-9]{64}$/u.test(artifact.sha256 ?? '')) return null;
+  const title = result.input.localTextTitle;
+  if (title !== null && typeof title !== 'string') return null;
+  return { text_kind: 'platform_text', ...(title === null ? {} : { title }), body: artifact.content };
+}
+/** Deterministic, machine-readable delivery. The legacy renderArticle shape is unchanged. */
+export async function renderArticleResult(input = {}) {
+  try {
+    const delivery = renderArticle(input);
+    const fingerprint = await sha256(JSON.stringify(articleInputSnapshot(input, delivery)));
+    const artifacts = await Promise.all([
+      { role: 'preview', format: 'text/html', content: delivery.html },
+      { role: 'clipboard-html', format: 'text/html', content: delivery.body },
+      { role: 'source-markdown', format: 'text/markdown', content: delivery.text },
+      { role: 'image-checklist', format: 'text/markdown', content: delivery.checklist },
+    ].map(async artifact => ({ ...artifact, sha256: await sha256(artifact.content) })));
+    const diagnostics = [
+      ...delivery.diagnostics.map(diagnostic => ({
+        code: diagnostic.code,
+        severity: 'warning',
+        message: ARTICLE_DIAGNOSTIC_MESSAGES[diagnostic.code] ?? 'Review the rendered output.',
+        ...(diagnostic.source == null ? {} : { location: { source: diagnostic.source } }),
+      })),
+      ...delivery.images.filter(image => image.status === 'remote').map(image => ({
+        code: 'remote-image-unverified',
+        severity: 'warning',
+        message: ARTICLE_DIAGNOSTIC_MESSAGES['remote-image-unverified'],
+        location: { source: image.source },
+      })),
+    ];
+    return {
+      schemaVersion: 1,
+      capabilityId: 'article.render',
+      provider: ARTICLE_RENDERER_PROVIDER,
+      status: diagnostics.length ? 'warning' : 'ok',
+      input: { fingerprint, target: { platform: delivery.platform, theme: delivery.theme } },
+      artifacts,
+      images: delivery.images,
+      diagnostics,
+    };
+  } catch (error) {
+    return articleFailure(error);
+  }
+}
+/** Load local images through the host, then fingerprint their actual returned data. */
+export async function prepareArticleResult(input, readImage) {
+  try {
+    const images = await collectArticleImages(input, readImage);
+    return await renderArticleResult({ ...input, images });
+  } catch (error) {
+    return articleFailure(error);
+  }
+}
+
+/**
+ * Render exact UTF-8 source bytes supplied by a trusted host. The host compares
+ * input.source against the selected Kernel snapshot before using the artifacts.
+ */
+export async function prepareArticleResultFromSource({
+  sourcePath, sourceBytes, creationSnapshotFingerprint, ...options
+} = {}, readImage) {
+  if (!validBoundSourcePath(sourcePath)) return articleFailure(new Error('Invalid workspace source path'));
+  if (!(sourceBytes instanceof Uint8Array)) return articleFailure(new Error('Invalid source bytes'));
+  if (sourceBytes.byteLength > MAX_BOUND_SOURCE_BYTES) return articleFailure(new Error('Source too large'));
+  if (creationSnapshotFingerprint !== undefined &&
+      (typeof creationSnapshotFingerprint !== 'string' ||
+        !/^[a-f0-9]{64}$/u.test(creationSnapshotFingerprint))) {
+    return articleFailure(new Error('Invalid creation snapshot fingerprint'));
+  }
+  if (options.title !== undefined && typeof options.title !== 'string') {
+    return articleFailure(new Error('Invalid article title'));
+  }
+  if (Object.keys(options).some(key => !['platform', 'theme', 'title'].includes(key))) {
+    return articleFailure(new Error('Unsupported bound renderer option'));
+  }
+  // Own the bytes before the first await so caller mutation cannot split the
+  // hash from the Markdown actually rendered.
+  const stableBytes = Uint8Array.from(sourceBytes);
+  let markdown;
+  try {
+    markdown = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(stableBytes);
+  } catch {
+    return articleFailure(new Error('Invalid source encoding'));
+  }
+  const source = { relativePath: sourcePath, sha256: await sha256Bytes(stableBytes) };
+  const readImages = new Map();
+  const trackedReadImage = async relativePath => {
+    const dataUrl = await readImage(relativePath);
+    const sha256 = await embeddedImageBytesSha256(dataUrl);
+    if (sha256) readImages.set(relativePath, sha256);
+    return dataUrl;
+  };
+  const result = await prepareArticleResult({ ...options, sourcePath, markdown }, trackedReadImage);
+  if (result.status === 'error') return result;
+  const clipboard = result.artifacts.find(item => item.role === 'clipboard-html');
+  const localTextArtifact = { role: 'local-clipboard-text', format: 'text/plain',
+    content: localClipboardText(clipboard.content) };
+  localTextArtifact.sha256 = await sha256(localTextArtifact.content);
+  const localTextTitle = options.title ?? null;
+  const renderParameters = { theme: result.input.target.theme, title: options.title ?? '' };
+  const imageBytes = [...readImages].sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)
+    .map(([relativePath, sha256]) => ({ relativePath, sha256 }));
+  return { ...result, artifacts: [...result.artifacts, localTextArtifact], input: { ...result.input, source,
+    imageBytes,
+    localTextTitle,
+    renderParameters,
+    ...(creationSnapshotFingerprint === undefined ? {} : { creationSnapshotFingerprint }),
+    fingerprint: await sha256(JSON.stringify({ rendererFingerprint: result.input.fingerprint, source, imageBytes,
+      localTextTitle, renderParameters, localTextSha256: localTextArtifact.sha256,
+      ...(creationSnapshotFingerprint === undefined ? {} : { creationSnapshotFingerprint }) })) } };
 }

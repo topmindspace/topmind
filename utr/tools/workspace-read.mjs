@@ -211,6 +211,25 @@ async function filterOutputsByTopic(entries, topic, workspaceRoot) {
 
 // ── list-topic-files ──────────────────────────────────────────────────────
 
+async function listCategoryFiles(category, ctx) {
+  const workspaceRoot = userWorkspaceCategoriesRoot(ctx);
+  const available = discoverCategories(workspaceRoot, ctx.engineRoot || process.cwd());
+  if (!available.includes(category)) throw new Error(t("error.invalidCategoryWithAvailable", {
+    category, available: available.join(", ") || t("msg.noTopics"),
+  }));
+  const categoryDir = categoryRoot(ctx, category);
+  const ignore = loadVaultIgnoreSync(workspaceRoot);
+  const entries = await fs.readdir(categoryDir, { withFileTypes: true });
+  const selected = entries.filter((entry) => entry.isFile() && !entry.name.startsWith(".") &&
+    path.extname(entry.name).toLowerCase() === ".md" &&
+    !pathMatchesUserIgnore(workspaceRelative(path.join(categoryDir, entry.name), workspaceRoot), ignore));
+  selected.sort((left, right) => compareStrings(left.name, right.name));
+  return {
+    category,
+    files: await Promise.all(selected.map((entry) => fileInfo(path.join(categoryDir, entry.name), workspaceRoot, "note"))),
+  };
+}
+
 async function listTopicFiles(category, topic, scope, ctx) {
   const topicDir = topicRoot(ctx, category, topic);
   const workspaceRoot = userWorkspaceCategoriesRoot(ctx);
@@ -483,6 +502,8 @@ async function main() {
     data = await inspectTopic(args.category, args.topic, ctx);
   } else if (args.command === "list-topic-files") {
     data = await listTopicFiles(args.category, args.topic, args.scope || "all", ctx);
+  } else if (args.command === "list-category-files") {
+    data = await listCategoryFiles(args.category, ctx);
   } else if (args.command === "list-inbox") {
     data = await listInbox(inboxRootPath, args.limit || 100, categoriesRoot);
   } else if (args.command === "list-recent-captures") {

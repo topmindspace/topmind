@@ -1,6 +1,6 @@
 # 套件评审（2026-09-24）
 
-> **NON-LIVING · 历史快照**（2026-09-24）。文中的命令面数字以当时为准；现行注册表见 `TOOLS.md`（8 域 / 35 命令 · MCP 26）。
+> **NON-LIVING · 历史快照**（2026-09-24）。文中的命令面数字以当时为准；现行注册表见 `TOOLS.md`，不在本文抄数量。
 
 本次阅读的是当前工作区，不是旧 ADR 的复述。交付面仍是三仓：`topmind`（Kernel `lib/`、Desktop、UTR、Clip `browser-extension`）、`topmind-skills`（Skills pack）、`topmind-obsidian`（Obsidian plugin）。解决方案根上的 `index.html` 不在任何一仓里。
 

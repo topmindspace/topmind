@@ -18,6 +18,8 @@ import { parseArgs, resolveMode, resolveActor, isUserActor } from "../core/cli-a
 import { ensureDir, pathExists, workspaceRelative } from "../core/topic-files.mjs";
 import {
   parseFrontmatter,
+  replaceFrontmatterBody,
+  setFrontmatterField,
   stringifyFrontmatter,
   touchUpdatedFrontmatter,
 } from "../core/frontmatter.mjs";
@@ -435,26 +437,32 @@ async function updateTopic({ category, topic, content, replaceReason, mode }, ct
   let writeEvidence = null;
   if (mode === "auto") {
     await ensureDir(path.dirname(topicFile));
-    // Preserve existing protection (and other stable FM) so locked homes stay locked
-    // and Kernel high-impact backup still fires on overwrite.
-    let prev = {};
-    if (await pathExists(topicFile)) {
-      try {
-        prev = parseFrontmatter(await fs.readFile(topicFile, "utf8")).data || {};
-      } catch {
-        prev = {};
-      }
+    // Existing YAML is edited in place: parse→stringify would drop comments
+    // and could alter nested creation metadata unrelated to this operation.
+    const existing = await pathExists(topicFile) ? await fs.readFile(topicFile, "utf8") : null;
+    let stamped;
+    let fm;
+    if (existing !== null && parseFrontmatter(existing).hasFrontmatter) {
+      let next = existing;
+      const setIfChanged = (key, value) => {
+        if (parseFrontmatter(next).data[key] !== String(value)) {
+          next = setFrontmatterField(next, key, value);
+        }
+      };
+      setIfChanged("category", category);
+      setIfChanged("topic", topic);
+      if (!parseFrontmatter(next).data.status) setIfChanged("status", "active");
+      setIfChanged("last_replace_reason", replaceReason);
+      next = touchUpdatedFrontmatter(next);
+      const parsed = parseFrontmatter(next);
+      const eol = parsed.eol;
+      const replacement = String(content).replace(/\r\n?/gu, "\n").replace(/\n/gu, eol);
+      stamped = replaceFrontmatterBody(next, `${eol}${replacement}${eol}`);
+      fm = parseFrontmatter(stamped).data;
+    } else {
+      fm = { category, topic, status: "active", last_replace_reason: replaceReason };
+      stamped = touchUpdatedFrontmatter(stringifyFrontmatter({ data: fm, body: `\n${content}\n` }));
     }
-    const fm = {
-      ...prev,
-      category,
-      topic,
-      status: prev.status || "active",
-      last_replace_reason: replaceReason,
-    };
-    const stamped = touchUpdatedFrontmatter(
-      stringifyFrontmatter({ data: fm, body: `\n${content}\n` }),
-    );
     const contract = loadContract(ctx.userWorkspaceRoot);
     writeEvidence = executeWrite({
       targetPath: topicFile,

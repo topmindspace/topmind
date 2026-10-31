@@ -8,11 +8,15 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const source = path.resolve(process.env.TOPMIND_WRITING_SRC || path.join(root, '../topmind-writing-skills'));
 const { buildHostPack } = createRequire(import.meta.url)(path.join(source, 'lib/host-pack.cjs'));
 const { snapshot } = buildHostPack(source);
+const runtimeModules = Object.keys(snapshot.resources).filter(key => /^runtime\/[^/]+\.(?:mjs|mts)$/u.test(key)).sort();
 const outputs = new Map([
   ['topmind-desktop/electron/data/writing-pack.json', JSON.stringify(snapshot) + '\n'],
-  ['topmind-desktop/electron/writing/article-renderer.mjs', snapshot.resources['runtime/article-renderer.mjs']],
-  ...['article-renderer.mjs', 'article-renderer.d.mts'].map(name => [`topmind-desktop/src/generated/writing/${name}`, snapshot.resources[`runtime/${name}`]]),
 ]);
+for (const key of runtimeModules) {
+  const name = key.slice('runtime/'.length);
+  outputs.set(`topmind-desktop/electron/writing/${name}`, snapshot.resources[key]);
+  outputs.set(`topmind-desktop/src/generated/writing/${name}`, snapshot.resources[key]);
+}
 for (const [relative, content] of outputs) {
   const target = path.join(root, relative);
   if (process.argv.includes('--check')) {

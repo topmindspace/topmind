@@ -1,7 +1,7 @@
 {
   "templateId": "balanced",
   "name": "Balanced Knowledge",
-  "description": "For knowledge workers: Stream, Topics, balancing low-friction capture with knowledge consolidation.",
+  "description": "For knowledge workers: Stream and Topics, with low-friction capture and a place for long-term facts.",
   "categories": {
     "00": { "name": "Inbox" },
     "10": { "name": "Stream" },

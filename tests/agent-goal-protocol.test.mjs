@@ -3,6 +3,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { MODEL_A_FORBIDDEN_RE } from "../lib/agent-policy.mjs";
 import {
   applyGoalUpdate,
   assessGoalCompletion,
@@ -445,6 +446,39 @@ test("buildGoalProtocolPrompt teaches turn layers + query tool routing", () => {
   const en = buildGoalProtocolPrompt("en");
   assert.match(en, /Light turn/u);
   assert.match(en, /list_recent_memories/u);
+});
+
+test("buildGoalProtocolPrompt keeps direction over a rigid step script and the write floors", () => {
+  const zh = buildGoalProtocolPrompt("zh");
+  const en = buildGoalProtocolPrompt("en");
+  assert.match(zh, /方向大于约束/);
+  assert.match(zh, /目标/);
+  assert.match(zh, /引导/);
+  assert.match(zh, /经验|知识/);
+  assert.match(zh, /轻量回合与查询回合不套完整仪式/);
+  assert.match(zh, /查询回合/);
+  assert.match(zh, /任务回合/);
+  assert.match(zh, /\[DONE\]/);
+  assert.match(zh, /\[INCOMPLETE/);
+  assert.match(zh, /需要改文件时必须调用工具，禁止只做口头改写而不走工具。/);
+  assert.doesNotMatch(zh, /2\. 执行：用工具推进/);
+  assert.match(en, /Direction over constraints/);
+  assert.match(en, /goal/i);
+  assert.match(en, /guidance/);
+  assert.match(en, /experience|knowledge/);
+  assert.match(en, /Light turns and query turns do not take the full task ritual/);
+  assert.match(en, /Query turn/);
+  assert.match(en, /Task turn/);
+  assert.match(en, /\[DONE\]/);
+  assert.match(en, /\[INCOMPLETE/);
+  assert.match(en, /when files must change, you must call tools — never only rewrite verbally without tools\./);
+  assert.doesNotMatch(en, /2\. EXECUTE with tools/);
+  for (const prompt of [zh, en]) {
+    assert.equal(MODEL_A_FORBIDDEN_RE.test(prompt), false, prompt.slice(0, 80));
+  }
+  for (const forbidden of ["只读 — 只分析不写", "可粘贴草稿", "no write tools", "不注册写工具"]) {
+    assert.equal(MODEL_A_FORBIDDEN_RE.test(forbidden), true, forbidden);
+  }
 });
 
 test("harvestSourceUrls collects http(s) citations and skips junk", () => {

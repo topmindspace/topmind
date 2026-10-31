@@ -1,10 +1,12 @@
 # DESIGN.md — 产品设计与交互原则
 
 > **设计北极星**：任意外部工具打开工作区都能一眼看清结构；交互贴近口语；文件系统即真源；Desktop 是**富工作台**（非薄聊天壳）。  
-> **产品北极星**：**最低摩擦个人动态流** — 记下来尽可能简单；AI 默认可生成建议；用户确认后再沉淀。  
+> **产品北极星**：**最低摩擦个人动态流** — 记下来尽可能简单；AI 默认可生成建议；你确认后再写入。  
 > 四体边界：`PRODUCT-BOUNDARIES.md` · 内容约定：`PROJECT-MODEL.md` · 实施锁：`docs/ARCHITECTURE-RESET.md`  
 > Desktop 像素 / IA 细节：`topmind-desktop/DESIGN.md`（UI 唯一真源，本文不复制线框）。  
 > 产品入口：根 `README.md`（简体中文 default）· `README.en.md`（English）。各模块 README 同此约定。
+
+**方向大于约束**：引导、目标、已有经验与知识经验优先于固定操作剧本；规约只保留底线。用户概念仍 ≤5（记一下 · 动态 · 专题 · 我的情况 · 交付），文件仍是内容真源，不把「沉淀」教成产品 UI 里的第六个动词。硬闸仍在：写回分级、路径围栏、外部发布确认，以及禁止只做口头改写。
 
 ---
 
@@ -81,7 +83,7 @@ IA 真源见 `topmind-desktop/DESIGN.md` §0.0（ActivityBar 三分组 · Stream
 | 模式 | 行为 |
 |------|------|
 | **自动准备 AI 建议**（默认开 · 可关） | 工作区就绪后可扫描并生成建议卡片；已配置模型时可能调用 AI 提炼；**不静默执行高影响写** |
-| **自动 AI 整理待办**（默认**关**） | 可选：就绪后从动态提取/更新 `memory/todo.md`；关则仅 Stream ✨ / 待办面板手动触发，省 Token |
+| **自动 AI 整理待办**（默认**关**） | 可选：就绪后从动态提取/更新 `memory/todo.md`；默认关，省 Token。关掉后只在两处手动整理：侧栏切到动态且本周期有条目时的 ✨，以及 ⌘⇧T 打开的清单里的 ✨。 |
 | **手动触发** | 「整理本周」/ loop / 命令面板 / 建议刷新 / 待办 ✨ 随时可跑同一管线 |
 | **确认后执行** | 用户接受建议 → 再写；仍过 protection + writeback |
 
@@ -174,6 +176,8 @@ Desktop 是文件系统的智能视图层：
 
 ## 7. AI 内生原则（产品）
 
+**方向大于约束**：引导、目标、已有经验与知识经验优先于固定操作剧本；规约只保留底线。用户概念仍 ≤5（记一下 · 动态 · 专题 · 我的情况 · 交付），文件仍是内容真源，不把「沉淀」教成产品 UI 里的第六个动词。硬闸仍在：写回分级、路径围栏、外部发布确认，以及禁止只做口头改写。
+
 1. **副驾不是主角** — 正文区优先；AI 面板可折叠  
 2. **默认带上下文** — 当前文件 · 本周流 · profile 短摘  
 3. **建议默认、写入受约束** — 见 §2.3  
@@ -210,7 +214,7 @@ Desktop 是文件系统的智能视图层：
 - 不默认创建 outline / setting / style；专题极简 `*.md`  
 - 交付 `88-交付/`；安全层 `99-归档/`  
 - 不新增全局 `references/` · `sources/` · `library/` 根  
-- Loop / 建议可感知；UTR 域为 `workspace-*` / `memory.*` / `contract.*` / `lifecycle.*` / `derived.*`  
+- Loop / 建议可感知；UTR 域为 `workspace-*` / `creator.*` / `memory.*` / `contract.*` / `lifecycle.*` / `derived.*`  
 - **pending 不是目录或类别**  
 
 同步：`PROJECT-MODEL.md` · `SKILL-ARCHITECTURE.md` · `TOOLS.md` · `PRODUCT-BOUNDARIES.md` · `docs/ARCHITECTURE-RESET.md`。

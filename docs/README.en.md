@@ -4,7 +4,7 @@
 
 > **Product entry** [`../README.md`](../README.md) · **简体中文** [`../README.zh-CN.md`](../README.zh-CN.md)  
 > Architecture lock, ADRs, packaging rules, and per-surface guides.  
-> Workflow: `收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整` · durable writes go only through Kernel `writeback-engine` · UTR `8 域 / 35 命令`
+> Workflow: `收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整` · durable writes go only through Kernel `writeback-engine` · UTR `9 domains / 42 commands`
 
 **README convention:** every module uses `README.md` for Simplified Chinese (GitHub default) and `README.en.md` for English. `README.zh-CN.md` is a compatibility redirect.
 
@@ -50,7 +50,6 @@
 | [`DESIGN.md`](../DESIGN.md) | **Product interaction** | User concepts ≤ 5: Note it / Stream / Topic / My profile / Delivery |
 | [`SECURITY.md`](../SECURITY.md) | **Security and key boundary** | Local API keys, no telemetry, network scope |
 | [`AGENTS.md`](../AGENTS.md) | **Agent behavior truth** | Quality gate, dead-code checks, multi-surface versioning |
-| [`Writing and AI workflow review`](./WRITING-UX-REVIEW-2026-10-28.md) | **Current user paths and acceptance** | Writing entry, AI interaction, new notes, skill upgrades, four-repo verification (Chinese) |
 
 ---
 
@@ -64,6 +63,7 @@
 | [`capture-clip-matrix.md`](./capture-clip-matrix.md) | Capture · Clip · Ingest capability matrix |
 | [`topmind-vs-others.md`](./topmind-vs-others.md) | Knowledge-management comparison |
 | [`UIUX-AUDIT-2026-09-01.md`](./UIUX-AUDIT-2026-09-01.md) | **NON-LIVING** historical anchor (living IA: `topmind-desktop/DESIGN.md`) |
+| [`WRITING-UX-REVIEW-2026-10-28.md`](./WRITING-UX-REVIEW-2026-10-28.md) | Dated path notes (Chinese). Current interaction is in Desktop and Obsidian DESIGN |
 
 ---
 

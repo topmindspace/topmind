@@ -164,6 +164,7 @@ function resolveFieldValue(fieldName, commandName, pathContext, payload, cmd, sk
   if (fieldName in payload) {
     const value = payload[fieldName];
     if (value === undefined || value === null) return undefined;
+    if (cmd.inputs?.[fieldName]?.type === "object") return JSON.stringify(value);
     return value;
   }
 

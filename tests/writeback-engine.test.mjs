@@ -8,9 +8,11 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import { createHash } from "node:crypto";
 import {
   evaluateWritePermission,
   executeWrite,
+  executeBinaryCreate,
   executeDelete,
   isHighImpactContentWrite,
   isRecoverableLifecycle,
@@ -19,6 +21,7 @@ import {
   buildArchivedTopicName,
 } from "../lib/writeback-engine.mjs";
 import { buildDefaultContract } from "../lib/contract-engine.mjs";
+import { contentHash } from "../lib/content-hash.mjs";
 import { generateSuggestions, applySuggestion } from "../lib/suggest-engine.mjs";
 
 const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "topmind-wb-"));
@@ -72,6 +75,94 @@ describe("writeback-engine", () => {
 
   after(() => {
     fs.rmSync(tmpRoot, { recursive: true, force: true });
+  });
+
+  it("does not recreate a file that disappeared after a CAS-protected read", () => {
+    const target = path.join(env.ws, "10-动态/cas-deleted.md");
+    const original = "# 原稿\n";
+    fs.writeFileSync(target, original);
+    const expectedHash = contentHash(original);
+    fs.rmSync(target);
+    const evidence = executeWrite({
+      targetPath: target, content: original + "过期编辑\n", workspaceRoot: env.ws,
+      contract: env.contract, role: "loose-stream", actor: "user", expectedHash,
+      casRequiresExisting: true,
+    });
+    assert.equal(evidence.wroteFiles, false);
+    assert.equal(evidence.reason, "cas-mismatch");
+    assert.equal(fs.existsSync(target), false);
+  });
+
+  it("exact-byte CAS rejects a newline-only concurrent change", () => {
+    const target = path.join(env.ws, "10-动态/cas-eol.md");
+    const original = "---\r\ntitle: original\r\n---\r\n\r\nBody\r\n";
+    const changed = original.replace(/\r\n/gu, "\n");
+    fs.writeFileSync(target, original);
+    const expectedHash = contentHash(changed);
+    const expectedRawSha256 = createHash("sha256").update(original).digest("hex");
+    fs.writeFileSync(target, changed);
+
+    const evidence = executeWrite({
+      targetPath: target, content: changed + "More\n", workspaceRoot: env.ws,
+      contract: env.contract, role: "loose-stream", actor: "user",
+      expectedHash, expectedRawSha256, casRequiresExisting: true,
+    });
+    assert.equal(evidence.wroteFiles, false);
+    assert.equal(evidence.reason, "cas-mismatch");
+    assert.equal(fs.readFileSync(target, "utf8"), changed);
+    assert.throws(() => executeWrite({
+      targetPath: target, content: changed + "More\n", workspaceRoot: env.ws,
+      contract: env.contract, role: "loose-stream", actor: "user",
+      expectedHash, expectedRawSha256: "not-a-hash", casRequiresExisting: true,
+    }), /expectedRawSha256/u);
+  });
+
+  it("binary create is exclusive, hash-checked and leaves no staged file", () => {
+    const target = "10-动态/images/cover.png";
+    const absolute = path.join(env.ws, target);
+    const bytes = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 1]);
+    const expectedSha256 = createHash("sha256").update(bytes).digest("hex");
+    const options = { workspaceRoot: env.ws, targetPath: target, bytes,
+      expectedSha256, role: "loose-stream", actor: "user", confirmed: true };
+    assert.throws(() => executeBinaryCreate({ ...options, confirmed: false }), /explicit user action/u);
+    assert.throws(() => executeBinaryCreate({ ...options, expectedSha256: "0".repeat(64) }), /changed since inspection/u);
+    assert.equal(fs.existsSync(absolute), false);
+    const first = executeBinaryCreate(options);
+    assert.equal(first.wroteFiles, true);
+    assert.equal(first.targetPath, target);
+    assert.deepEqual(fs.readFileSync(absolute), bytes);
+    assert.deepEqual(fs.readdirSync(path.dirname(absolute)), ["cover.png"]);
+    const second = executeBinaryCreate({ ...options, bytes: Buffer.from("different"),
+      expectedSha256: createHash("sha256").update("different").digest("hex") });
+    assert.equal(second.wroteFiles, false);
+    assert.equal(second.reason, "target-exists");
+    assert.deepEqual(fs.readFileSync(absolute), bytes);
+  });
+
+  it("binary create refuses a symlinked parent outside the workspace", () => {
+    const outside = path.join(tmpRoot, "binary-escape");
+    fs.mkdirSync(outside, { recursive: true });
+    const alias = path.join(env.ws, "10-动态", "outside-images");
+    fs.symlinkSync(outside, alias);
+    const bytes = Buffer.from("image");
+    assert.throws(() => executeBinaryCreate({ workspaceRoot: env.ws,
+      targetPath: "10-动态/outside-images/cover.png", bytes,
+      expectedSha256: createHash("sha256").update(bytes).digest("hex"),
+      role: "loose-stream", actor: "user", confirmed: true }), /path-outside-workspace/u);
+    assert.equal(fs.existsSync(path.join(outside, "cover.png")), false);
+  });
+
+  it("binary create refuses an alias even when its symlink stays inside the workspace", () => {
+    const real = path.join(env.ws, "10-动态", "real-images");
+    const alias = path.join(env.ws, "10-动态", "image-alias");
+    fs.mkdirSync(real, { recursive: true });
+    fs.symlinkSync(real, alias);
+    const bytes = Buffer.from("image");
+    assert.throws(() => executeBinaryCreate({ workspaceRoot: env.ws,
+      targetPath: "10-动态/image-alias/cover.png", bytes,
+      expectedSha256: createHash("sha256").update(bytes).digest("hex"),
+      role: "loose-stream", actor: "user", confirmed: true }), /canonical workspace-relative path/u);
+    assert.equal(fs.existsSync(path.join(real, "cover.png")), false);
   });
 
   it("peekFrontmatter reads protection", () => {

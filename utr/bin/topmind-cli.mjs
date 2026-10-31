@@ -6,7 +6,7 @@
  * Usage:
  *   topmind-cli --version
  *   topmind-cli doctor [--json] [--mcp]
- *   topmind-cli tool list [--skill workspace-read|workspace-write|workspace-transform|workspace-maintain|contract|memory|lifecycle|derived]
+ *   topmind-cli tool list [--skill workspace-read|workspace-write|workspace-transform|workspace-maintain|contract|memory|lifecycle|derived|creator]
  *   topmind-cli tool inspect <kind>
  *   topmind-cli tool preview <kind> <command> --input-json '<json>'
  *   topmind-cli tool run <kind> <command> --input-json '<json>' [--reviewed] [--engine-root <path>] [--workspace-root <path>]
@@ -54,7 +54,7 @@ Usage:
 Options:
   --engine-root <path>     topmind engine root (auto-detected by default)
   --workspace-root <path>  topmind user workspace root (auto-detected by default)
-  --skill <name>           Filter by skill domain (workspace-read | workspace-write | workspace-transform | workspace-maintain | contract | memory | lifecycle | derived)
+  --skill <name>           Filter by skill domain (workspace-read | workspace-write | workspace-transform | workspace-maintain | contract | memory | lifecycle | derived | creator)
   --reviewed               Indicates confirm-mode review completed, allows execution
   --input-json '<json>'    Action parameters JSON (or - to read from stdin)
   --json                   doctor output as JSON

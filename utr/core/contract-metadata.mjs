@@ -21,6 +21,7 @@ function engineLabelForSkill(skill) {
 	if (skill === "memory") return t("skill.memory");
 	if (skill === "lifecycle") return t("skill.lifecycle");
 	if (skill === "derived") return t("skill.derived");
+	if (skill === "creator") return t("skill.creator");
 	return skill || t("skill.unknown");
 }
 

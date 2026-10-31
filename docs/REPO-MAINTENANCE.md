@@ -13,6 +13,7 @@
 | [topmind-skills](https://github.com/topmindspace/topmind-skills) | `topmind-pack.json` | tag `v*` | skills.sh · npx skills · Release zip |
 | [topmind-obsidian](https://github.com/topmindspace/topmind-obsidian) | `manifest.json` | tag `<manifest-version>`（无 `v` 前缀） | 社区市场 · BRAT · Release |
 | [topmind-writing-skills](https://github.com/topmindspace/topmind-writing-skills) | 根 package.json；各技能独立版本 | tag v* | npm · 独立技能 ZIP · 宿主包 ZIP |
+| `topmind-dsh`（本地仓，未创建远端） | 根 package.json；生成包版本 | 未发布 | DSH 本地 bundle 生成器；`0.2.1-rc.5` 开发态宿主已验收 |
 
 各仓独立迭代和版本。写作包不跟随 Desktop/Obsidian 强制升号；宿主提交受验证快照和兼容关系。有改动才发相应仓库，破坏性变更明确兼容范围。
 
@@ -22,8 +23,10 @@
 
 ```text
 Kernel / Desktop / Clip / UTR 代码     → topmind
-Skill 文案 / 路由 / shared / installer → topmind-skills
+核心 Skill 文案 / 路由 / shared / installer → topmind-skills
+写作 Skill / 平台知识 / 渲染校验        → topmind-writing-skills
 Vault UI / 插件壳 / esbuild            → topmind-obsidian
+DSH 配置层 / 适配器 / 面板             → topmind-dsh
 契约 / 用户概念 / writeback 语义        → 先 topmind 文档 → skills 断言 →（必要时）obsidian 对齐
 ```
 
@@ -87,6 +90,9 @@ Vault UI / 插件壳 / esbuild            → topmind-obsidian
 | A. Obsidian → Kernel | esbuild：`TOPMIND_SRC` → sibling `../topmind` → CI `.topmind-src` | 明确报错，不产出坏包 |
 | B. 契约对齐 | 主仓文档真源 + skills CI 断言 | PR 不合并 |
 | C. Desktop 姊妹产物 | `pack:prepare`：sibling / `TOPMIND_*_SRC` / `.sister/*` staging；CI `pack-desktop` 检出姊妹仓 | 无 sister 时跳过 staging；运行时安装再走 GitHub Release 下载 |
+| D. DSH → UTR | `topmind` 从干净提交构建 UTR 可移包，`topmind-dsh` 验证 manifest 后为一个用户工作区生成本地 DSH MCP bundle | 校验失败不生成；DSH 宿主不可用时不宣称安装成功 |
+
+D 通道当前只做本机绑定。`runtime-manifest.json` 格式 1 的文件清单、SHA256 与 `treeSha256` 是跨仓接口；它是完整性检查，不是来源签名。开发态已在隔离 DSH `0.2.1-rc.5` 验收 `plugin add`、配置合成、Web profile 连接保持与卸载；使用该安装随附的 MCP SDK 对生成补丁验收握手、工具发现、合成项目只读调用与退出清理，并将生成包 `engines.dsh` 锁定为该版本。发版还需固定干净主仓提交及运行时制品、验收 DSH 对话/侧栏内调用、写回确认、安装位置迁移与升级回滚。本地生成包含绝对路径，不进 Git/Release；工作区文件仍是用户真源。写作技能继续独立分发，由 DSH 技能发现而非 DSH 仓复制。
 
 集成测试清单：
 
@@ -129,6 +135,7 @@ Vault UI / 插件壳 / esbuild            → topmind-obsidian
 | Clip | `browser-extension/manifest.json` |
 | UTR | `utr/VERSION`（跟随 Desktop） |
 | Obsidian | `topmind-obsidian/manifest.json` |
+| DSH 适配 | `topmind-dsh/package.json`（本地开发中） |
 
 拆分迁移时以 `git tag pre-split-2026-09-23` 为回滚锚点。
 

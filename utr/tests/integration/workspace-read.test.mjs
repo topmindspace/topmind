@@ -41,6 +41,7 @@ updated: 2026-05-10
 Topic body.
 `);
   await fs.writeFile(path.join(topicRootPath, "source.md"), "# Source\n");
+  await fs.writeFile(path.join(userWorkspaceRoot, "20 研究", "独立稿.md"), "# 独立稿\n");
   await fs.writeFile(path.join(topicRootPath, "20260614-topic-capture.md"), `---
 title: Topic Capture
 source_type: external-capture
@@ -136,6 +137,7 @@ test("workspace-read commands are exposed as category-first UTR tools", () => {
   assert.deepEqual(commands.map((command) => command.command).sort(), [
     "inspect-topic",
     "list-categories",
+    "list-category-files",
     "list-inbox",
     "list-recent-captures",
     "list-safety-receipts",
@@ -194,6 +196,20 @@ test("workspace-read list-topics reads {category}/{topic}/topic.md", async () =>
   assert.equal(demoTopic.category, "20 研究");
   assert.equal(demoTopic.title, "2026-示例专题");
   assert.ok(demoTopic.hasTopicFile);
+});
+
+test("workspace-read lists only direct category Markdown for independent drafts", async () => {
+  const result = await executeTool({
+    registry,
+    kind: "workspace-read",
+    command: "list-category-files",
+    payload: { category: "20 研究" },
+    pathContext: workspace.pathContext,
+    reviewed: true,
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.wroteFiles, false);
+  assert.deepEqual(result.parsed.data.files.map((file) => file.relativePath), ["20 研究/独立稿.md"]);
 });
 
 test("workspace-read inspect-topic summarizes notes and outputs", async () => {

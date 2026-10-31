@@ -65,7 +65,7 @@ This ADR applies the 2026-07-21 re-open triggers to **current** Pi and records f
 - Prompts: `electron/ai-prompts.mjs` — skill-first, “do not launch external processes”, workspace-relative paths, writeback-mode copy, output-language policy.
 - Tools: `AI_TOOL_NAMES_READ` (15) + `AI_TOOL_NAMES_WRITE` (16) in `electron/lib/ai-tool-names.mjs`; builders in `electron/ai-tools.mjs`.
 - Fence: Kernel `isPathInsideWorkspace` + `evaluateWritePermission` (`lib/model-core.mjs`, `lib/writeback-engine.mjs`); Desktop `sp()` → `assertPathWithin` (`electron/lib/workspace-helpers.mjs`, `path-safety.mjs`); `fetch_url` rejects non-`http(s)` (`workspace-fetch-ops.mjs`); no bash tool. Outside local reads: `evaluateOutsideRead` (authorized until explicit). Tests: `tests/workspace-containment.test.mjs`.
-- Four-surface constraint: Skills pack + Obsidian + UTR stay Pi-independent. Obsidian chat is **not** this AI SDK stack. UTR remains optional (8 domains / 28 commands).
+- Four-surface constraint: Skills pack + Obsidian + UTR stay Pi-independent. Obsidian chat is **not** this AI SDK stack. UTR stays optional. On 2026-09-07 the registry was 8 domains / 28 commands; that count is historical. Current domains, commands, and MCP default are `TOOLS.md` and `utr/core/contract-registry.mjs`.
 
 ---
 

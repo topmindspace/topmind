@@ -122,6 +122,18 @@ test("workspace-write capture-note resolves inbox target without v2.x roots", ()
   assert.ok(!args.some((arg) => arg.includes("/projects")));
 });
 
+test("creator snapshot serializes typed object inputs without changing the UTR output format", () => {
+  const { contract, commandName } = getCommand(registry, "creator", "snapshot");
+  const args = resolveContractArgs(contract, commandName, pathContext, {
+    targetPath: "20-研究/文章.md", platform: "wechat", format: "article", entry: "copy-html",
+    ruleset: { id: "rules", version: "1" }, provider: { id: "renderer", version: "1" },
+  });
+  assert.deepEqual(args.slice(args.indexOf("--format"), args.indexOf("--format") + 2), ["--format", "json"]);
+  assert.deepEqual(args.slice(args.indexOf("--creation-format"), args.indexOf("--creation-format") + 2), ["--creation-format", "article"]);
+  assert.equal(args[args.indexOf("--ruleset") + 1], '{"id":"rules","version":"1"}');
+  assert.equal(args[args.indexOf("--provider") + 1], '{"id":"renderer","version":"1"}');
+});
+
 
 test("workspace-maintain archive-topic resolves 99 Archive source path", () => {
   const { contract, commandName } = getCommand(registry, "workspace-maintain", "archive-topic");

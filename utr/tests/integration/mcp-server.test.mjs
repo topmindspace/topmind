@@ -4,7 +4,7 @@
  * Tests the stdio JSON-RPC transport: initialize, tools/list, tools/call,
  * and the two-phase confirm-mode review flow within a single server process.
  *
- * Current UTR: 8 domains / 38 commands; MCP default 29.
+ * Current UTR: 9 domains / 42 commands; MCP default 33.
  * No v2.x commands (create-project / list-projects / archive-project / append-project-memory) — those are removed.
  */
 import test from "node:test";
@@ -92,8 +92,8 @@ test("initialize returns server capabilities", async () => {
   assert.equal(result.protocolVersion, "2024-11-05");
   assert.ok(result.capabilities.tools);
   assert.equal(result.serverInfo.name, "topmind-mcp");
-  assert.equal(result.capabilities.experimental?.gradedConfirm, true);
-  assert.match(result.capabilities.experimental?.confirmPattern, /needsConfirm/u);
+  assert.equal(result.capabilities.experimental?.gradedConfirm?.enabled, true);
+  assert.match(result.capabilities.experimental?.gradedConfirm?.confirmPattern, /needsConfirm/u);
   assert.equal(result.capabilities.experimental?.reviewSession, undefined);
 });
 
@@ -101,9 +101,12 @@ test("tools/list returns current MCP tool commands", async () => {
   const response = await client.request("tools/list");
 
   assert.ok(Array.isArray(response.result.tools));
-  // Default MCP surface: primary + danger only (29). Full 38 via topmind_MCP_ALL=1.
+  // Default MCP surface: primary + danger only. Advanced tools require topmind_MCP_ALL=1.
   const toolCount = response.result.tools.length;
-  assert.equal(toolCount, 29, `expected 29 primary+danger MCP tools, got ${toolCount}`);
+  assert.equal(toolCount, 33, `expected 33 primary+danger MCP tools, got ${toolCount}`);
+  assert.ok(response.result.tools.some((t) => t.name === "workspace-read.list-category-files"));
+  const creatorInspect = response.result.tools.find((t) => t.name === "creator.inspect");
+  assert.deepEqual(creatorInspect?.inputSchema?.required, ["targetPath"]);
   assert.ok(!response.result.tools.some((t) => t.name.includes("migrate-categories")), "advanced migrate should be hidden by default");
 
   // Check MCP tool schema shape for representative commands

@@ -164,7 +164,7 @@ export function ActivityBar({ onCapture }: { onCapture?: () => void }) {
     {
       id: "stream",
       icon: RiHome4Line,
-      labelKey: "primaryNav.workspace",
+      labelKey: "primaryNav.stream",
       onSelect: dest("stream"),
       active: streamActive,
     },

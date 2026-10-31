@@ -55,6 +55,11 @@ export function validateCommandPayload(command, payload = {}) {
       case "toggle":
         // Toggle values are booleans; coerce truthy/falsy
         break;
+      case "object":
+        if (!value || typeof value !== "object" || Array.isArray(value)) {
+          errors.push(t("error.mustBeObject", { label: fieldDef.label || fieldName }));
+        }
+        break;
 
       case "category":
         if (typeof value !== "string" || !CATEGORY_PATTERN.test(value)) {

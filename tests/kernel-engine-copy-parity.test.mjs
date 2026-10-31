@@ -22,6 +22,16 @@ const ENGINE_FILES = [
   "github-md.mjs",
   "github-md.d.mts",
   "memory-engine.mjs",
+  "creation-frontmatter.mjs",
+  "creation-frontmatter.d.mts",
+  "creation-context.mjs",
+  "creation-cover.mjs",
+  "creation-id.mjs",
+  "creation-identity.mjs",
+  "creation-image-embed.mjs",
+  "creation-image-metadata.mjs",
+  "creation-snapshot.mjs",
+  "creation-variant.mjs",
   "writeback-engine.mjs",
   "ai-operation-engine.mjs",
   "suggest-engine.mjs",
@@ -78,7 +88,21 @@ test("packaged engine snapshot carries the full Kernel engine set", () => {
     // pack:prepare not run in this tree — the per-copy tests above still guard lib vs obsidian.
     return;
   }
-  for (const rel of ["memory-engine.mjs", "writeback-engine.mjs", "ai-operation-engine.mjs", "suggest-engine.mjs"]) {
+  for (const rel of [
+    "memory-engine.mjs",
+    "creation-frontmatter.mjs",
+    "creation-context.mjs",
+    "creation-cover.mjs",
+    "creation-id.mjs",
+    "creation-identity.mjs",
+    "creation-image-embed.mjs",
+    "creation-image-metadata.mjs",
+    "creation-snapshot.mjs",
+    "creation-variant.mjs",
+    "writeback-engine.mjs",
+    "ai-operation-engine.mjs",
+    "suggest-engine.mjs",
+  ]) {
     assert.ok(existsSync(path.join(packaged, rel)), `resources/topmind-engine/lib/${rel} missing`);
     assert.equal(
       readFileSync(path.join(packaged, rel), "utf8"),

@@ -2,7 +2,7 @@
   "templateId": "periodic",
   "version": "4.0.0",
   "name": "周期回顾型",
-  "description": "同 balanced + 强周期回顾：动态、专题，强调周期复盘与记忆沉淀。",
+  "description": "同 balanced + 强周期回顾：动态、专题，强调周期复盘，并记到我的情况。",
   "categories": {
     "00": { "name": "Inbox", "role": "buffer", "required": true },
     "10": { "name": "动态", "role": "loose-stream", "specialBehavior": "flat-default" },

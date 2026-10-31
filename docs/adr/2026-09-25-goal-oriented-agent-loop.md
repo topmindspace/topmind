@@ -63,7 +63,7 @@ Pure helpers used by Desktop Pi/SDK loops and Obsidian chat (vendored under `top
 
 ### D8 — UTR memory triad parity (follow-up same day)
 
-Portable skills were append-only. Registry now exposes `memory.retire-profile` · `memory.update-profile` · `memory.compact-history` · `memory.restore-profile` (**8 域 / 32 命令**, MCP primary+danger **23**), matching Desktop ADD / UPDATE / RETIRE / RESTORE + history compact.
+Portable skills were append-only. On 2026-09-25 the registry exposed `memory.retire-profile` · `memory.update-profile` · `memory.compact-history` · `memory.restore-profile` (then **8 域 / 32 命令**, MCP primary+danger **23**), matching Desktop ADD / UPDATE / RETIRE / RESTORE + history compact. That count is historical. Current domains, commands, and MCP default are `TOOLS.md` and `utr/core/contract-registry.mjs`.
 
 ### D9 — Pi-native capabilities (follow-up same day)
 
@@ -96,11 +96,11 @@ Renderer previously never saw the goal protocol. Now:
 - **Skills discovery** uses Pi `formatSkillsForSystemPrompt` (`<available_skills>` with absolute `location`) plus the compact topmind routing line; activation still `load_skill` (progressive disclosure). `toPiSkills` maps catalog → Pi `Skill`.
 - **Memory distill hint**: Pi `CompactionDetails.readFiles/modifiedFiles` + path receipts → `memoryDistillHint` on invoke result → optional `distillHint` in `memory_organize` prompt (confirm-gated; never auto-writes).
 - **Obsidian compact budget** scales with `contextLimit` via `resolveChatCompactBudget` (Desktop `resolveCompactBudget` parity).
-- **UTR** `memory.restore-profile` completes the triad inverse (**8 域 / 32 命令**, MCP primary+danger **23**).
+- **UTR** `memory.restore-profile` completed the triad inverse on 2026-09-25 (then **8 域 / 32 命令**, MCP primary+danger **23**; historical, not the current surface).
 
 ### D13 — Cross-surface audit pass (2026-09-25 evening)
 
-- **Skills pack** (`topmind-skills`) now matches the live registry: `command_count: 32`, `mcp_default_count: 23`, memory vocabulary includes retire/update/compact/restore.
+- **Skills pack** (`topmind-skills`) on 2026-09-25 matched that day's registry: `command_count: 32`, `mcp_default_count: 23`, memory vocabulary includes retire/update/compact/restore. Historical; the current pack follows `TOOLS.md` and the registry.
 - **Capture name**: Obsidian accepts `capture` and Desktop `capture_to_inbox` (alias; logs as `capture`).
 - **Memory fence**: Obsidian honors contract `memory.dir` (not only hardcoded `memory/`); Desktop memory triad chat tools vs Obsidian Suggest-only is documented in AGENTS.md.
 - **Footprint**: merged `pi-native-compact.mjs` → `ai-pi-runtime.mjs`, `clip-dest-modes.mjs` → `fs-utils.mjs`; deleted unused exports (`listSkillCatalogAsync`, `kernelEnsureContract`, `describeWritebackModeBrief`, `peekNotesIndex`, `resetWorkspaceModelLibCache`).

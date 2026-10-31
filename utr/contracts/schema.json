@@ -32,9 +32,10 @@
         "contract",
         "memory",
         "lifecycle",
-        "derived"
+        "derived",
+        "creator"
       ],
-      "description": "Owning tool domain. The 8 kinds are stable internal identifiers; they are NOT project-type labels."
+      "description": "Owning tool domain. Kind names are stable internal identifiers; they are NOT project-type labels."
     },
     "label": {
       "type": "string",
@@ -78,7 +79,7 @@
     },
     "commands": {
       "type": "object",
-      "description": "Map of command name -> command definition. Current surface (32): list-categories, list-topics, inspect-topic, list-topic-files, list-inbox, list-recent-captures, list-safety-receipts, create-topic, capture-note, save-output, update-topic, normalize-note-metadata, plan-inbox-routing, migrate-v4, doctor-workspace, archive-topic, archive-stream-year, restore-safety-receipt, cleanup-empty-dirs, validate, ensure, reseed, promote, digest, append-profile, append-topic, retire-profile, update-profile, compact-history, restore-profile, scan, rebuild.",
+      "description": "Map of command name -> command definition. The contract files under utr/contracts are the command inventory.",
       "additionalProperties": {
         "type": "object",
         "required": [
@@ -162,7 +163,8 @@
                     "category",
                     "topic",
                     "category-and-topic",
-                    "path"
+                    "path",
+                    "object"
                   ],
                   "description": "v3.4 input types: category (大类目录名, e.g. '20-研究'), topic (专题目录名, e.g. '2026-示例记录'), category-and-topic (paired object), path (workspace-relative path)."
                 },

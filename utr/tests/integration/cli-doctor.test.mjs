@@ -59,8 +59,8 @@ test("topmind-cli doctor emits machine-readable UTR status for a clean workspace
     assert.equal(report.paths.categoriesRoot, fixture.workspaceRoot);
     assert.equal(report.paths.inboxRoot, path.join(fixture.workspaceRoot, "00-收件箱"));
     assert.equal(report.paths.archiveRoot, path.join(fixture.workspaceRoot, "99-归档"));
-    assert.equal(report.registry.toolCount, 8);
-    assert.equal(report.registry.commandCount, 38);
+    assert.equal(report.registry.toolCount, 9);
+    assert.equal(report.registry.commandCount, 42);
     assert.equal(report.checks.contracts.ok, true);
     assert.equal(report.checks.plugins.ok, true);
     assert.equal(report.checks.plugins.pluginCount, 0);

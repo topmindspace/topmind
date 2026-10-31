@@ -16,9 +16,29 @@ import {
   wikiImageDomAttrs,
 } from "../src/lib/editor-media.ts";
 import { streamMarkdownToPreviewHtml } from "../src/lib/stream-md-preview.ts";
+import { api } from "../src/services/api.ts";
+import {
+  ensureWorkspaceImagePaths, invalidateWorkspaceImagePaths, peekWorkspaceImagePaths,
+} from "../src/lib/workspace-image-paths.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const NOTE = "00-收件箱/clip.md";
+
+test("truncated image path lists never become a preview basename index", async () => {
+  const original = api.ws.listImagePaths;
+  try {
+    api.ws.listImagePaths = async () => ({ paths: ["z/dup.png"], truncated: true });
+    invalidateWorkspaceImagePaths();
+    assert.equal(await ensureWorkspaceImagePaths("truncated-workspace"), undefined);
+    assert.equal(peekWorkspaceImagePaths(), undefined);
+    api.ws.listImagePaths = async () => ({ paths: ["z/dup.png"], truncated: false });
+    invalidateWorkspaceImagePaths();
+    assert.deepEqual(await ensureWorkspaceImagePaths("complete-workspace"), ["z/dup.png"]);
+  } finally {
+    api.ws.listImagePaths = original;
+    invalidateWorkspaceImagePaths();
+  }
+});
 const PATHS = [
   "attachments/foo.png",
   "attachments/Pasted image x.png",
@@ -118,7 +138,6 @@ test("obsidian image embeds resolve on the editor path and round-trip as wikilin
     "![[attachments/foo.png]]",
     "![[attachments/foo.png|300]]",
     "![[attachments/foo.png|300x200]]",
-    "![[dup.png|caption]]",
     "![[foo.png|my caption]]",
   ];
   for (const disk of cases) {
@@ -149,12 +168,11 @@ test("obsidian image embeds resolve on the editor path and round-trip as wikilin
   assert.equal(caption.width, undefined);
   assert.match(caption.style, /max-width:100%/);
 
-  const shortest = mediaUrlsForEditor("![[dup.png]]", NOTE, PATHS);
-  assert.match(shortest, /topmind-asset:\/\/local\/z\/dup\.png/);
-  assert.doesNotMatch(shortest, /a\/b\/c\/dup\.png/);
+  const duplicate = mediaUrlsForEditor("![[dup.png]]", NOTE, PATHS);
+  assert.equal(duplicate, "![[dup.png]]");
 
   const tie = mediaUrlsForEditor("![[aa.png]]", NOTE, PATHS);
-  assert.match(tie, /topmind-asset:\/\/local\/b\/aa\.png/);
+  assert.equal(tie, "![[aa.png]]");
 
   const folded = mediaUrlsForEditor("![[photo.png]]", NOTE, PATHS);
   assert.match(folded, /topmind-asset:\/\/local\/Attachments\/Photo\.PNG/);
@@ -253,10 +271,8 @@ test("preview HTML renders resolved embeds as lazy capped images", () => {
   assert.doesNotMatch(box, /height="200"/);
 
   const caption = streamMarkdownToPreviewHtml("![[dup.png|caption]]", NOTE, PATHS);
-  assert.match(caption, /src="topmind-asset:\/\/local\/z\/dup\.png"/);
-  assert.match(caption, /alt="caption"/);
-  assert.match(caption, /loading="lazy"/);
-  assert.doesNotMatch(caption, /width="/);
+  assert.doesNotMatch(caption, /topmind-asset:\/\/local\//);
+  assert.match(caption, /dup\.png/);
 
   const pasted = streamMarkdownToPreviewHtml(
     "![[Pasted image 20241010120000.png]]",

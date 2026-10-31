@@ -11,7 +11,7 @@
     "removeLabel": "从列表移除 {{name}}",
     "statusClosed": "已关闭工作区 · 选择一个继续",
     "statusInvalid": "上次工作区无法打开 · 请选择其他路径",
-    "statusInvalidEngine": "应用引擎无法启动 · 检查安装后重试，或先选择工作区",
+    "statusInvalidEngine": "应用无法启动 · 检查安装后重试，或先选择工作区",
     "statusNoWorkspace": "选择或新建本地文件夹作为工作区",
     "footerLine1": "工作区 = 你自己的本地文件夹（动态 · 专题 · 交付 · 归档）",
     "companionsHint": "打开后可在 设置 → 集成 安装 Agent Skills / 剪藏扩展 / Obsidian 插件（可选，不阻塞）",
@@ -23,11 +23,11 @@
     "templateStreamName": "极简流式",
     "templateStreamDesc": "最少心智：Inbox · 动态 · 专题 · 交付 · 归档",
     "templateBalancedName": "平衡知识型",
-    "templateBalancedDesc": "兼顾低摩擦记录与知识沉淀",
+    "templateBalancedDesc": "兼顾低摩擦记录与长期事实",
     "templateResearchName": "学术研究型",
     "templateResearchDesc": "深度研究 · 来源追踪 · 参考资料",
     "templatePeriodicName": "周期回顾型",
-    "templatePeriodicDesc": "强周期复盘 · 记忆沉淀",
+    "templatePeriodicDesc": "强周期复盘 · 记到我的情况",
     "statusContractUnrepairable": "工作区 topmind.yaml 损坏且无法自动修复。可备份后重建契约（不删除笔记内容）。",
     "reseedContract": "备份并重建 topmind.yaml",
     "reseedContractHint": "坏文件会备份到归档/contract 或 .topmind/contract-backups；笔记目录不会删除。",
@@ -196,13 +196,12 @@
     "aiReady": "AI 就绪",
     "aiOffline": "AI 离线 · 点此配置",
     "initializing": "初始化…",
-    "enginePath": "引擎: {{root}}",
+    "enginePath": "程序位置: {{root}}",
     "ready": "就绪",
     "workspaceOk": "工作区正常",
     "workspaceOkTip": "工作区已就绪 · 文件在本地文件夹里",
     "workspaceBad": "工作区异常",
     "workspaceBadTip": "无法访问工作区 — 试试重新打开文件夹",
-    "engineUnavailableTip": "引擎路径不可用 — 检查安装与工作区",
     "unavailable": "不可用",
     "workspacePath": "工作区: {{root}}",
     "workspacePathLabel": "工作区路径",
@@ -228,7 +227,7 @@
     "needsYouTip": "智能体等待你的输入 · 点此打开对话",
     "taskRunning": "{{count}} 个后台任务",
     "taskRunningTip": "后台任务进行中 · 点此查看详情和进度",
-    "taskPanelTip": "任务面板 · 引擎任务与历史（⌘⇧J）",
+    "taskPanelTip": "任务面板 · 后台任务与历史（⌘⇧J）",
     "taskPanelAria": "任务面板",
     "todoMaintaining": "AI 整理待办中",
     "todoMaintainingTip": "正在从动态提取/更新个人清单 · 点此打开清单",
@@ -645,7 +644,7 @@
       "trashAllDupes": "一键清理全部确认重复",
       "partialOnly": "仅部分哈希",
       "partialHint": "大文件未做全文哈希，请人工确认后再清理。",
-      "dupHint": "默认按建议保留（跳过备份名、优先年目录与较新副本）；清理走写闸（可逆 trash）。",
+      "dupHint": "默认按建议保留（跳过备份名、优先年目录与较新副本）；清理会放进可找回的回收区。",
       "trash": "可恢复删除",
       "noTrash": "回收站为空",
       "trashHint": "锁定/核心笔记删除会先进这里；恢复会写回原路径。",
@@ -678,7 +677,7 @@
     "start": {
       "heroKicker": "topmind Desktop",
       "heroTitle": "欢迎使用 topmind",
-      "heroDesc": "topmind 是本地优先的个人动态流工作台：把碎片记进 Inbox / 动态，整理成专题，交付成果，用记忆沉淀长期事实。文件就是真源，可在任意编辑器中打开。",
+      "heroDesc": "topmind 是本地优先的个人动态流工作台：把碎片记进 Inbox / 动态，整理成专题，交付成果，把长期事实记到「我的情况」。文件就是真源，可在任意编辑器中打开。",
       "stepsTitle": "建议顺序",
       "steps": [
         {
@@ -752,7 +751,7 @@
         },
         {
           "title": "我的情况（记忆）",
-          "body": "画像 / 周期反思沉淀在 memory/ 平面。事实可追加、更新、退休归档——确认后写入，不静默改画像。"
+          "body": "画像和周期反思记在 memory/。事实可追加、更新或退休——确认后写入，不静默改画像。"
         },
         {
           "title": "工具与日志",
@@ -764,7 +763,7 @@
         },
         {
           "title": "写回安全",
-          "body": "工作区内默认可写；锁定文件 AI 不可覆盖；高影响操作才自动备份。删除文案与真实可恢复性一致。"
+          "body": "工作区内默认可写。锁定笔记仍可编辑，这次任务里第一次改它会留一份快照。只有高影响操作才自动备份。删除说明与真实能否找回一致。"
         }
       ]
     },
@@ -782,12 +781,12 @@
           "body": "在动态 / 专题编辑；AI 可改写选区、挂载文件讨论；确认式建议帮你归位 Inbox、提炼清单。"
         },
         {
-          "title": "交付 / 沉淀",
-          "body": "成果进 88-交付（扁平命名）；长期事实进「我的情况」；专题内沉淀研究笔记。"
+          "title": "交付",
+          "body": "成果进 88-交付（扁平命名）；长期事实记到「我的情况」；研究笔记留在专题里。"
         },
         {
           "title": "找回 / 调整",
-          "body": "全文搜索、侧栏树、归档；工具与日志做体检；锁定关键笔记防误改。"
+          "body": "全文搜索、侧栏树、归档；工具与日志做体检。锁定关键笔记后，这次任务里第一次改它会留一份快照。"
         }
       ],
       "dirsTitle": "目录约定（简表）",
@@ -815,7 +814,7 @@
         },
         {
           "title": "建议不等于自动执行",
-          "body": "系统可以生成整理建议、清单变更、记忆变更卡片，但落盘前可审阅。锁定笔记 AI 不能覆盖。"
+          "body": "系统可以生成整理建议、清单变更、记忆变更卡片，落盘前你可以审阅。锁定笔记仍可编辑：这次任务里第一次改它时会留一份快照。"
         },
         {
           "title": "可选能力不绑架主流程",
@@ -838,7 +837,7 @@
         },
         {
           "q": "AI 会不会改坏我的笔记？",
-          "a": "耐久写入统一走写闸：工作区围栏内写入；锁定（protection: locked）文件 AI 不能覆盖；confirm 模式下需确认。普通编辑不自动备份；锁定覆盖与核心删除会进 99-归档 并可从工具与日志 / 恢复入口找回。"
+          "a": "笔记写在你选的文件夹里。锁定笔记仍可编辑：这次任务里第一次改它时会留一份快照。选了「删除/归档前问我」时，删除和归档会先问你。普通编辑不自动备份。锁定笔记被覆盖，以及记忆、专题首页、交付被删除时，会进归档区，可从工具与日志找回。"
         },
         {
           "q": "如何安装依赖 / 本机工具？",
@@ -846,7 +845,7 @@
         },
         {
           "q": "插件 / 连接器怎么用？",
-          "a": "设置 → 扩展与集成：打开微信读书/X/记账等连接器，并安装或升级剪藏扩展、Obsidian 插件、Skills。连接器写入仍走同一工作区规约与写闸。"
+          "a": "设置 → 扩展与集成：打开微信读书/X/记账等连接器，并安装或升级剪藏扩展、Obsidian 插件、Skills。连接器写入仍遵守同一套工作区规则。"
         },
         {
           "q": "我的数据存在哪里？",
@@ -858,7 +857,7 @@
         },
         {
           "q": "忘记锁定 / 误删怎么办？",
-          "a": "普通开放笔记删除通常无回收站（产品诚实策略）。锁定或核心（记忆、专题首页、交付）删除会进 99-归档 回收区，可在工具与日志或 UTR list-safety-receipts / restore 找回。重要笔记请使用锁定。"
+          "a": "普通笔记删了通常没有回收站。锁定笔记，以及记忆、专题首页、交付，删除后会进归档区，可在工具与日志找回。重要内容可以锁定。"
         },
         {
           "q": "可以和 Obsidian 一起用吗？",

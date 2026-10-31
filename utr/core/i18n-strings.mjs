@@ -137,6 +137,7 @@ const STRINGS = {
     "skill.memory": "Memory",
     "skill.lifecycle": "Lifecycle",
     "skill.derived": "Derived",
+    "skill.creator": "Creation",
     "skill.unknown": "Unknown engine",
     // ── Contract validator ───────────────────────────────────────────
     "error.missingRequiredParam": "Missing required parameter: {{label}}",
@@ -147,6 +148,7 @@ const STRINGS = {
     "error.invalidCategoryPattern": "{{label}}: invalid category name, only letters, numbers, spaces, hyphens, CJK allowed",
     "error.invalidTopicPattern": "{{label}}: invalid topic name, only letters, numbers, spaces, dots, hyphens, underscores, CJK allowed",
     "error.mustBeText": "{{label}}: must be text",
+    "error.mustBeObject": "{{label}}: must be an object",
     "error.mustBeConfirmed": "{{label}}: must be explicitly confirmed",
     "error.missingRoutingCategory": "Missing required parameter: category (routing.category)",
     "error.invalidRoutingCategory": "Category (routing.category): invalid category name, only letters, numbers, spaces, hyphens, CJK allowed",
@@ -295,6 +297,7 @@ const STRINGS = {
     "skill.memory": "记忆",
     "skill.lifecycle": "生命周期",
     "skill.derived": "衍生",
+    "skill.creator": "创作",
     "skill.unknown": "未知引擎",
     // ── Contract validator ───────────────────────────────────────────
     "error.missingRequiredParam": "缺少必需参数: {{label}}",
@@ -305,6 +308,7 @@ const STRINGS = {
     "error.invalidCategoryPattern": "{{label}}: 无效的大类名，只允许文字、数字、空格、连字符、中文",
     "error.invalidTopicPattern": "{{label}}: 无效的专题名，只允许文字、数字、空格、点、横线、下划线、中文",
     "error.mustBeText": "{{label}}: 必须是文本",
+    "error.mustBeObject": "{{label}}：必须是对象",
     "error.mustBeConfirmed": "{{label}}: 必须明确确认",
     "error.missingRoutingCategory": "缺少必需参数: 大类（routing.category）",
     "error.invalidRoutingCategory": "大类（routing.category）: 无效的大类名，只允许文字、数字、空格、连字符、中文",

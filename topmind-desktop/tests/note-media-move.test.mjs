@@ -192,7 +192,7 @@ test("planNoteMedia includes wikilink and spaced image refs", async () => {
   assert.ok(plan.referencedImages.includes("00-收件箱/Pasted image x.png"));
   assert.ok(plan.referencedImages.includes("attachments/foo.png"));
   assert.ok(plan.referencedImages.includes("20-研究/deep/only-deep-embed.png"));
-  assert.ok(plan.referencedImages.includes("z/dup-embed.png"));
+  assert.ok(!plan.referencedImages.includes("z/dup-embed.png"));
   assert.ok(!plan.referencedImages.includes("a/b/c/dup-embed.png"));
   assert.ok(
     plan.referencedImages.some((p) => p.toLowerCase() === "attachments/photocase.png"),

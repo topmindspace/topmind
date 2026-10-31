@@ -8,7 +8,7 @@ import { normalizeContractCommand } from "./contract-metadata.mjs";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONTRACTS_DIR = path.resolve(__dirname, "..", "contracts");
 const SCHEMA_PATH = path.join(CONTRACTS_DIR, "schema.json");
-const WORKSPACE_TOOL_DOMAINS = ["workspace-read", "workspace-write", "workspace-transform", "workspace-maintain", "contract", "memory", "lifecycle", "derived"];
+const WORKSPACE_TOOL_DOMAINS = ["workspace-read", "workspace-write", "workspace-transform", "workspace-maintain", "contract", "memory", "lifecycle", "derived", "creator"];
 
 let _schemaCache = null;
 
@@ -201,8 +201,8 @@ export async function loadContractRegistry(options = {}) {
 }
 
 // v3.2: legacy v2.x project-* command aliases (previously injected by
-// injectLegacyCommandAliases) have been removed entirely. The 35 commands
-// are the source of truth. See contract files under utr/contracts/ for details.
+// injectLegacyCommandAliases) have been removed entirely. Contract files under
+// utr/contracts/ are the command inventory.
 
 /** Get a single tool contract by kind. */
 export function getTool(registry, kind) {

@@ -69,6 +69,13 @@ const saveOutputCmd = {
   },
 };
 
+test("structured snapshot inputs accept objects and reject arrays or JSON strings", () => {
+  const command = { inputs: { ruleset: { type: "object", label: "规则集", required: true } } };
+  assert.deepEqual(validateCommandPayload(command, { ruleset: { id: "rules", version: "1" } }), []);
+  assert.ok(validateCommandPayload(command, { ruleset: [] }).length > 0);
+  assert.ok(validateCommandPayload(command, { ruleset: '{"id":"rules"}' }).length > 0);
+});
+
 // --- Validation tests ---
 
 test("validateCommandPayload returns empty for valid payload", () => {

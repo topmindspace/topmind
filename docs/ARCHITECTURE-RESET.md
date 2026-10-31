@@ -1,6 +1,6 @@
 # Architecture Reset — 理想架构与实施计划
 
-> **状态**：Accepted · **日期**：2026-07-25 · **最后更新**：2026-09-28  
+> **状态**：Accepted · **日期**：2026-07-25 · **最后更新**：2026-10-31  
 > **角色**：架构决策锁 + 实施诚实表（唯一实施真源）  
 > **内容/边界真源**：`PROJECT-MODEL.md` · `PRODUCT-BOUNDARIES.md`  
 > **产品入口**：根 [`README.md`](../README.md)（简体中文）· [`README.en.md`](../README.en.md)（English）
@@ -27,7 +27,7 @@
 
 ### 对外一句话
 
-> **记下来尽可能简单；系统默默准备建议；你点头后再沉淀；文件永远是你的。**
+> **记下来尽可能简单；系统默默准备建议；你确认后再写入；文件永远是你的。**
 
 ### 用户概念硬上限（≤5）
 
@@ -39,7 +39,7 @@
 | **我的情况** | 关于我的稳定信息 | 记忆平面浏览（画像 + 周期反思 + 专题记忆）；点开条目仍落文件（默认 `memory/profile.md`） |
 | **交付** | 出成品 | `role:delivery`（常为 88-交付） |
 
-UI **不教**：protection、derived、writeback_mode、schema、engine、UTR 命令名。设置用白话（「删除/归档前问我」；锁定笔记可编辑——任务内首写快照，不是 AI 禁区）。
+UI **不教**：沉淀、protection、derived、writeback_mode、schema、engine、UTR 命令名。设置用白话（「删除/归档前问我」；锁定笔记可编辑——任务内首写快照，不是 AI 禁区）。
 
 工作流（不变）：`收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整`
 
@@ -246,7 +246,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 ### 3.3 扩展性
 
 - Kernel 动词稳定 → Surface 可换  
-- 插件 8 槽保留；新能力先问是否属 Kernel 动词再问 UI 槽  
+- 插件 7 槽保留（dataSource · view · action · settings · overlay · statusBar · contextMenu，见 `topmind-desktop/PLUGIN.md`）；新能力先问是否属 Kernel 动词再问 UI 槽  
 - 模板 4 Profile 不变；用户扩展类走 contract + FS  
 
 ---
@@ -309,7 +309,7 @@ UI **不教**：protection、derived、writeback_mode、schema、engine、UTR �
 
 1. **记一下**永远顺手  
 2. 打开 Desktop = **本周动态 + 建议数 + 一个主 CTA**  
-3. **我的情况**找得到；整理后会**问我**是否沉淀  
+3. **我的情况**找得到；整理后会**问我**是否写入  
 4. AI 改错了能从 **99-归档** 找回  
 5. 文件夹拷走换工具仍可读  
 

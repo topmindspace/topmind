@@ -179,7 +179,7 @@ protection: open
 
 ## 当前目标
 
-- 验证 topmind 动态主路径：记 → 增补 → 整理 → 确认沉淀
+- 验证 topmind 动态主路径：记 → 增补 → 整理 → 确认后再写入
 - 保持文件真源与 ≤5 用户概念
 
 ## 进行中的事
@@ -275,7 +275,7 @@ protection: open
 
 ## 摘要
 
-topmind 以动态流为默认主表面，AI 建议确认后再沉淀。
+topmind 以动态流为默认主表面，AI 建议确认后再写入。
 `;
 
 const written = [];

@@ -16,6 +16,7 @@ const TYPE_MAP = {
   number: "number",
   select: "string",
   toggle: "boolean",
+  object: "object",
 };
 
 function buildInputSchema(inputs, command = {}) {

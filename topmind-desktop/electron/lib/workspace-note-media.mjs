@@ -132,17 +132,21 @@ export async function planNoteMedia(noteRelativePath, markdown, ctx) {
   for (const ref of refs) addRef(ref);
 
   let index = buildImageIndex(undefined);
+  let indexComplete = true;
   if (embeds.some((e) => !e.target.includes("/"))) {
     const root = resolveDataRoot(ctx.workspaceRoot);
     const listed = await listWorkspaceImageFiles(root, { fresh: true });
-    index = buildImageIndex(listed);
+    indexComplete = listed.length < 8000;
+    index = buildImageIndex(indexComplete ? listed : undefined);
   }
   for (const emb of embeds) {
     const pathed = emb.target.includes("/");
     let ws = pathed
       ? resolveEmbedTarget(emb.target, buildImageIndex(undefined))
       : resolveEmbedTarget(emb.target, index);
-    if (!ws && !pathed) {
+    const ambiguous = !pathed && index.byBase.has(safeDecodePath(emb.target).toLowerCase()) &&
+      index.byBase.get(safeDecodePath(emb.target).toLowerCase()) === null;
+    if (!ws && !pathed && indexComplete && !ambiguous) {
       const guess = normalizePosixPath(
         noteDir ? `${noteDir}/${safeDecodePath(emb.target)}` : safeDecodePath(emb.target),
       );

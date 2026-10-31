@@ -88,7 +88,7 @@ UTR 命令必须支持该工作流，**不暴露** 大类/专题命名、命令 
 
 **Stream AI（产品路径）**：Desktop `runActivityOps` / `generateSuggestions` / `todo_maintain` / `memory_organize`（profile+periodic confirm）/ `topic_classify`（内容大类 `create_topic` confirm）均经 Kernel；UTR **无**平行 activity-window 业务实现（可选将来薄只读 adapter）。
 
-映射到 **8 个 UTR 命令域**：
+映射到 **9 个 UTR 命令域**（`creator` 是只读投影域，不是第九引擎）：
 
 ```text
 workspace-read
@@ -99,6 +99,7 @@ contract
 memory
 lifecycle
 derived
+creator
 ```
 
 未来扩展先问：是否属于
@@ -146,7 +147,7 @@ Names, bilingual descriptions, JSON schemas and read/write classification are ma
 
 **Session health circuit breaker（失败熔断）**：`session-health.mjs` 滑窗监测工具失败率；失败率 ≥60% 或同工具连败 ×3 → 熔断，停止 auto-continue，诚实收尾 `incomplete`（blockReason=`tool-thrash`）。
 
-**跨表面**：`web-search-core.mjs` / `tool-retry-hints.mjs`（纯函数）三份同步（engine `lib/` · Desktop `electron/lib/` · Obsidian `lib/`）。`capture_url` 两侧对齐（`url/title/note/forceInbox/forceAtom`，source 随笔记）。`agent-goal-protocol.mjs` 双拷贝字节一致。Skills pack **v4.15.0**。
+**跨表面**：`web-search-core.mjs` / `tool-retry-hints.mjs`（纯函数）三份同步（engine `lib/` · Desktop `electron/lib/` · Obsidian `lib/`）。`capture_url` 两侧对齐（`url/title/note/forceInbox/forceAtom`，source 随笔记）。`agent-goal-protocol.mjs` 双拷贝字节一致。Skills pack **v4.15.10**（以 `topmind-skills/topmind-pack.json` 为准）。
 | browse | `workspace_overview` · `list_categories` · `list_topics` · `list_topic_files` · `get_topic` · `list_inbox` · `list_outputs` | **keep** |
 | fs browse | `list_files` · `glob_files` · `stat_path` | **keep** — structured list/glob/stat (all planes); replaces bare `ls`/`find` |
 | read / search | `read_file` · `search` | **keep** — windowed / controlled grep; `encoding=` binary-friendly |
@@ -169,21 +170,22 @@ Daily entry `topmind`. Core: `topmind-capture` · `topmind-organize` · `topmind
 
 ### UTR commands — all **keep** (optional surface)
 
-**8 域 / 38 命令** as listed below. MCP default 29 (primary + danger). Not a second Desktop AI catalog. No bash command.
+**9 域 / 42 命令** as listed below. MCP default 33 (primary + danger). Not a second Desktop AI catalog. No bash command.
 
 ## Current Command Surface（命令面唯一真源）
 
-**8 域 / 38 命令**。Agent MCP **默认只暴露 primary + danger（29 个）**；`advanced` 需 `topmind_MCP_ALL=1`。
+**9 域 / 42 命令**。Agent MCP **默认只暴露 primary + danger（33 个）**；`advanced` 需 `topmind_MCP_ALL=1`。
 
-### Primary（Agent 日常 25）
+### Primary（Agent 日常 29）
 
 | Domain | Commands |
 |---|---|
-| `workspace-read` | `list-categories` · `list-topics` · `inspect-topic` · `list-topic-files` · `list-inbox` |
+| `workspace-read` | `list-categories` · `list-category-files` · `list-topics` · `inspect-topic` · `list-topic-files` · `list-inbox` |
 | `workspace-write` | `create-topic` · `capture-note` · `save-output` |
 | `workspace-transform` | `plan-inbox-routing` |
 | `workspace-maintain` | `doctor-workspace` |
 | `contract` | `validate` |
+| `creator` | `inspect` · `snapshot` · `matchLengthReport` |
 | `memory` | `promote` · `digest` · `append-profile` · `append-topic` · `retire-profile` · `update-profile` · `compact-history` · `restore-profile` · `list-todos` · `add-todo` · `toggle-todo` · `update-todo` · `set-todo-due` · `delete-todo` |
 
 ### Danger（高风险 4，MCP 默认可见）
@@ -209,6 +211,9 @@ Daily entry `topmind`. Core: `topmind-capture` · `topmind-organize` · `topmind
 
 | Command | Domain | 职责 |
 |---|---|---|
+| `creator.inspect` | creator | 只读检查工作区内显式指定的 Markdown 稿件，返回版本化创作视图、引用素材和诊断；不创建稳定创作 ID，不推断同目录变体 |
+| `creator.snapshot` | creator | 只读计算选稿、匹配变体、资源、规则和能力版本的输入指纹；输入完整不等于平台校验通过 |
+| `creator.matchLengthReport` | creator | 只读比较快照与长度报告；可选 `articleResult` 继续核对本地剪贴板文本产物，仍需核对目标编辑器 |
 | `contract.validate` | contract | 校验工作区 `topmind.yaml` schema、顶层键白名单、与 FS 一致性；诚实报告 on-disk 健康（不把内存默认值伪装成文件已好） |
 | `contract.ensure` | contract | 缺失创建 / 可修则合并默认重写 v4；损坏不可安全修复时返回 unrepairable。Desktop / Obsidian / UTR 共用 Kernel `ensureContract` |
 | `contract.reseed` | contract | 备份损坏的 `topmind.yaml` 后写入全新有效 v4 默认契约；**不**删除用户内容目录 |
@@ -230,6 +235,32 @@ Daily entry `topmind`. Core: `topmind-capture` · `topmind-organize` · `topmind
 | `derived.rebuild` | derived | 从真源全量重建各大类 `.derived/` 子目录 |
 | `workspace-transform.migrate-v4` | workspace-transform | 一次性迁移：config v3→topmind.yaml、旧专题首页→topic.md、我的情况.md→memory/profile.md 等 |
 | `workspace-maintain.archive-stream-year` | workspace-maintain | 将动态类别中完整年份的周期本目录原子移到 `99-归档/stream-archive/{year}/`；只允许归档当前年份之前；不另写 receipts YAML（`receiptPath` 为 null） |
+
+`creator.inspect` 接收 `{ "targetPath": "<工作区内相对路径>.md" }`，工作区根由 CLI/MCP 启动参数 `--workspace-root` 绑定。只读结果 `schemaVersion: 3` 包含 `target`、`category`、`topic`、`assets`、`variants`、`diagnostics`；`target.relativePath` 是重命名后会改变的临时身份。`target.creationId` 只有在 `creation_id` 合法且当前工作区内唯一时才有值，`identityStatus` 为 `none`、`valid`、`invalid`、`conflict` 或 `scan-incomplete`。`variants` 只列显式关联且 ID 唯一的变体。正文图片支持 Markdown、HTML 和 Obsidian 的 `![[...]]` 图片嵌入；有路径的嵌入按工作区相对路径解析，无路径的文件名只有在工作区内唯一时才解析。同名歧义返回 `asset-ambiguous`，用户应改为 `![[attachments/明确路径.png]]`。缺图、远程图、未完全解析的图片语法和库外引用也有稳定诊断，不能把空资源表当作完整证明。CLI 的领域结果在 `result.data`；MCP 保留现有工具包装，其 JSON 文本里的领域结果在 `result.data.data`。该命令不写用户工作区、不创建稳定创作 ID，也不表示内容已通过平台校验。
+
+`creator.snapshot` 接收 `targetPath`、`platform`、`format`、`entry`、对象型 `ruleset: {id, version, rules?}` 和 `provider: {id, version}`，可选 `accountCapabilities`、`parameters`、`lengthValidation` 对象。`rules` 是本次实际使用的 JSON 规则数据；Kernel 计算确定性 SHA-256 摘要，只在 `selection.ruleset.contentDigest` 返回摘要，不回传规则全文。对象在 MCP/CLI 请求中保持结构化，执行回执不展示对象参数值。领域结果 `schemaVersion: 5` 包含 `fingerprint`、`linked`、`assets`、`selection`、`rulesetBound`、`lengthValidationBound`、`inputsComplete` 和诊断。旧调用可只提供规则 ID/版本检查本地依赖，但此时 `rulesetBound: false`，快照比较不会返回未过期结论。`inputsComplete` 只表示已知本地依赖齐全；`variant-source-stale` 提示母稿自建立变体关系后已更新，需复核变体，但单独出现时不令本地输入不完整。母稿与变体当前字节仍进入指纹，旧报告失效。该标志不代表规则通过或允许发布。
+
+Kernel `inspectCreationSnapshotConsistency(snapshot)` 在使用快照前重算其已覆盖字段的指纹，并核对 `inputsComplete`、`rulesetBound`、`lengthValidationBound` 与内容是否一致。`compareCreationInputSnapshots`、文章结果与长度报告比对都会拒绝被改坏的快照；UTR `creator.matchLengthReport` 返回 `snapshot-inconsistent` 时，界面应要求重新读取并重算快照。此检查不访问磁盘、不是签名或来源认证，也不证明缓存的快照仍是当前文件状态。交接前必须从工作区重建快照；相同路径下的源稿或资源变化应导致旧报告失效。
+
+可选 `lengthValidation: { document, provider, asOf }` 绑定已准备的 `platform_text`、长度规则集能力提供者及 ISO 评估日期；此时 `accountCapabilities.account_capability` 必须是明确档位。Kernel 只返回 `selection.lengthValidation` 中的文本摘要、档位、提供者和日期。`compareCreationLengthReport(snapshot, report)` 核对规则 ID/版本与内容摘要、目标入口、账号档位、送检文本摘要、提供者和日期；即使返回 `matches: true`，也固定给出 `sourceLineageVerified: false`、`publishReady: false`。它只证明两份声明输入一致，尚不能证明送检文本从所选母稿或渲染产物产生。交接前仍须重算快照，且不能把匹配结果当成发布授权。
+
+生成工作区报告时，先用同一规则数据与送检文本调用 `creator.snapshot`，再以返回的 `fingerprint` 作为 writing-skills `length.ruleset.evaluate` 的 `creationSnapshotFingerprint`，最后调用 Kernel `compareCreationLengthReport` 或 UTR `creator.matchLengthReport`。匹配会要求报告所记快照指纹等于所提供的快照；源稿或资源变化后须从工作区重算快照，旧报告会得到 `snapshot-fingerprint-mismatch`。独立 writing-skills 调用可以不带快照指纹，但不能关联为当前工作区报告。对象型参数不展示在 UTR 命令回执中。
+
+本地文章渲染可把选中稿的原始 UTF-8 字节、规范工作区相对路径和当前快照指纹传给 writing-skills `prepareArticleResultFromSource`。该入口只接受 `platform`、`theme`、`title` 三项渲染选项；快照 `parameters` 应使用 `{theme: 实际主题, title: 实际标题或空串}`。Kernel `compareCreationArticleResult(snapshot, result)` 核对所选稿路径/字节摘要、渲染提供者、目标平台、主题与标题参数摘要、快照指纹、实际内嵌正文图片的字节摘要，以及预览、复制 HTML、源 Markdown、图片清单、本地剪贴板文本五份产物的内容哈希。读图回调若返回非可核对的内嵌图片，或 Kernel 发现当前渲染器未处理的正文图片写法，比较结果为 `rendered-assets-mismatch`。
+
+要将**本地文本**接入长度报告，宿主按顺序执行：①用同一份原始字节与图片数据调用 `article.renderFromSource`，通过 `article.localTextDocument` 取得本地文本；②以此文本、明确账号档位、规则集和评估日期建立 `creator.snapshot`；③使用快照指纹重新渲染，并用相同文本调用 `length.ruleset.evaluate`；④调用 `creator.matchLengthReport`，传入 `snapshot`、`report` 和可选 `articleResult`。带 `articleResult` 时 Kernel `compareCreationLocalLengthChain` 校验本地产物文本摘要与快照、长度报告一致；返回 `localTextChainMatched: true` 仍固定 `platformEditorVerified: false`、`sourceLineageVerified: false`、`publishReady: false`。这是本地预检，不是平台编辑器回读；粘贴后的真实文字、封面与图片仍须单独复核。宿主在交接前重新取快照。旧的双参数报告匹配继续只比较声明输入。
+
+规则内容摘要算法为 `SHA-256(UTF-8(JSON.stringify(canonical(rules))))`：`canonical` 递归按键名排序对象，保留数组顺序。跨仓测试向量 `[{"id":"a","check":{"max":5,"field":"body"}}]` 的摘要为 `83e4ff278a5b6eb76112c55654c54865b3a8a03dcef6bbebbb6c98ed88e29a49`。摘要一致只证明规则数据相同，不代表其证据、适用范围或判定正确。
+
+Kernel `assignCreationId` 是显式用户动作的写入口，要求刚检查的 `target.sha256`、`userConfirmed: true`；缺少 `title` 或 `source_type` 的旧稿由调用者明确补齐。返回实际写闸回执；若正文已写入但安全回执失败，状态为 `assigned-needs-review`、回执 `partial: true`，不得把它当成未写而重试。复制冲突、非法 frontmatter、旧哈希和不完整唯一性扫描均拒绝写入。目前未将此写动词暴露为 UTR 命令或 DSH UI 操作。
+
+Kernel `inspectCreationCoverPaths` 只读检查选中的现有原图与平台 rendition，返回两张图片的路径、格式、编码宽高、SHA-256 和诊断；界面先展示此结果。容器检查覆盖 PNG 块边界与 CRC、JPEG 帧/扫描/结束标记、WebP RIFF 块边界和尺寸，单图上限 32 MiB。Kernel `linkCreationCover` 要求已验证且未绑定封面的变体、两张图片和变体的当前 SHA-256，以及 `userConfirmed: true`，随后仅通过写闸向变体 frontmatter 增加 `creation_cover`。它不生成、裁切、复制或覆盖图片；写入后复查，如安全回执或关系复查不完整则返回 `linked-needs-review`。此写动词尚未暴露为 UTR 命令。
+
+封面诊断区分 `cover-format-unsupported`（签名或扩展名不匹配）、`cover-image-invalid`（已识别格式但容器损坏）和 `cover-too-large`（超过 32 MiB）；三者都会使快照输入不完整。界面应据此分别提示换格式、修复或重导出、压缩或缩小文件。
+
+Kernel `importCreationCoverRendition` 接收已渲染的图片字节、原图路径和三份当前 SHA-256；用户显式调用后，通过同一写闸的 `executeBinaryCreate` 在变体所在目录下的 `images/creation-covers/<variant-id>/` 独占创建内容哈希命名的平台版。大小上限 32 MiB，不覆盖已有文件；重复导入相同字节返回 `existing-unlinked`，已有路径内容不符则拒绝。返回 `imported-unlinked` 后，界面应展示图片并重新检查，再单独调用 `linkCreationCover`。导入不会改稿，关联失败时文件留在返回的路径供复核或重试。容器结构与编码尺寸检查不等于像素完整解码，也未处理 JPEG EXIF 方向、裁切或平台尺寸规则；这两个写动作均未暴露为代理可直接调用的 UTR 命令。
+
+Kernel `executeWrite` 对 `creation_id`、`creation_variant_id`、`creation_parent_id`、`creation_target`、`creation_source_sha256`、`creation_cover` 做内容级变更检查。普通新建或更新若新增、删除、改写这些关系字段会被拒绝；显式迁移须由用户动作传 `allowCreationMetadataChange: true`，同时提供 `expectedHash` 和 `casRequiresExisting: true`。三个已实现的创作关系写入口还传入检查时的原始字节 `expectedRawSha256`，因此仅换行符变化也会拒绝过期写入。若正文已落盘但安全回执写失败，写闸返回 `wroteFiles: true`、`partial: true`、`reason: receipt-write-failed`，调用方不得据此重复写入。
 
 ### Per-Command Contract Metadata
 
@@ -348,6 +379,11 @@ next_actions: optional string[]
 | 字段 | 取值 / 说明 |
 |------|-------------|
 | `source` | URL 或出处 |
+| `creation_id` | 可选；母稿稳定身份，小写 UUID v4。仅在用户显式建立跨平台创作关系时由 Kernel 写入；重命名保留，复制冲突需人工选择后修复；不得作为发布状态 |
+| `creation_variant_id` / `creation_parent_id` | 平台变体自己的小写 UUID v4、所关联母稿的 `creation_id`；由 Kernel 显式关联写入，不靠同目录猜关联 |
+| `creation_target` | 平台变体的 YAML 映射：`platform`、`format` 必填，`entrypoint` 可选；具体交付快照与规则校验仍须明确入口。普通未关联稿无须此字段 |
+| `creation_source_sha256` | 建立变体关系时母稿内容 SHA-256，不因后续编辑自动覆盖 |
+| `creation_cover` | 可选；仅用于已验证的平台变体，YAML 映射 `{ source_path, rendition_path }`，均为工作区相对路径且不得指向同一文件；原图与平台裁切版独立保存。只读检查支持 PNG/JPEG/WebP 容器结构、扩展名及编码宽高，尚不代替像素完整解码、EXIF 方向、平台尺寸与比例校验 |
 | `category` / `topic` | 类别名 / 专题名（推荐；亦可仅靠路径表达） |
 | `protection` | `open` \| `locked` **v4 new** |
 | `status` | 见下表；看板亦接受 `todo` / `in-progress` / `done` / `archived` |

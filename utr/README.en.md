@@ -25,19 +25,20 @@ UTR (Unified Tool Runtime) exposes **deterministic workspace commands**. The onl
 
 ```text
 workspace-read · workspace-write · workspace-transform · workspace-maintain
-contract · memory · lifecycle · derived
+contract · creator · memory · lifecycle · derived
 ```
 
-**8 域 / 38 命令** · MCP default **29** (primary + danger) · advanced 9 folded (`topmind_MCP_ALL=1` opens all)
+**9 domains / 42 commands** · MCP default **33** (primary + danger) · advanced 9 folded (`topmind_MCP_ALL=1` opens all)
 
 | Kind | Primary / Danger | Advanced |
 |------|------------------|----------|
-| `workspace-read` | `list-categories` · `list-topics` · `inspect-topic` · `list-topic-files` · `list-inbox` | `list-recent-captures` · `list-safety-receipts` |
+| `workspace-read` | `list-categories` · `list-category-files` · `list-topics` · `inspect-topic` · `list-topic-files` · `list-inbox` | `list-recent-captures` · `list-safety-receipts` |
 | `workspace-write` | `create-topic` · `capture-note` · `save-output` | `update-topic` |
 | `workspace-transform` | `plan-inbox-routing` | `normalize-note-metadata` · `migrate-v4` |
 | `workspace-maintain` | `doctor-workspace` · danger: `archive-topic` · `archive-stream-year` · `restore-safety-receipt` | `cleanup-empty-dirs` |
 | `contract` | `validate` · danger: `reseed` | `ensure` |
-| `memory` | `promote` · `digest` · `append-profile` · `append-topic` | — |
+| `creator` | `inspect` · `snapshot` · `matchLengthReport` | — |
+| `memory` | `promote` · `digest` · `append-profile` · `append-topic` · `retire-profile` · `update-profile` · `compact-history` · `restore-profile` · `list-todos` · `add-todo` · `toggle-todo` · `update-todo` · `set-todo-due` · `delete-todo` | — |
 | `lifecycle` | — | `scan` |
 | `derived` | — | `rebuild` |
 

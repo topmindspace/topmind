@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "kind": "creator",
+  "skill": "creator",
+  "label": "创作项目读取工具",
+  "description": "按明确选中的 Markdown 稿件读取创作上下文和资源状态，不写入工作区。",
+  "execution": {
+    "runtime": "node",
+    "cwd_mode": "engine_root",
+    "script": "utr/tools/creator.mjs",
+    "args_template": [
+      "--workspace-root",
+      "{workspace_root}",
+      "--engine-root",
+      "{engine_root}",
+      "--format",
+      "json",
+      "{command}"
+    ]
+  },
+  "commands": {
+    "inspect": {
+      "label": "检查创作上下文",
+      "description": "读取选中稿件、所属类别或专题及其引用资源。targetPath 必须是工作区相对的现有 Markdown 文件；不自动选择主稿。",
+      "group": "assistive",
+      "exposure": "primary",
+      "risk_level": "low",
+      "review_policy": "auto",
+      "requires_topic": false,
+      "idempotent": true,
+      "supports_dry_run": false,
+      "destructive": false,
+      "inputs": {
+        "targetPath": {
+          "type": "path",
+          "label": "稿件路径",
+          "required": true,
+          "hint": "相对于当前 Topmind 用户工作区，例如 40-创作/2026-主题/文章.md"
+        }
+      },
+      "args_extra": [
+        "--target-path",
+        "{targetPath}"
+      ],
+      "reads": [
+        "topmind.yaml",
+        "{targetPath}"
+      ],
+      "writes": [],
+      "contexts": [
+        "workspace",
+        "creation",
+        "assets"
+      ]
+    },
+    "snapshot": {
+      "label": "计算创作输入快照",
+      "description": "为选中稿件与交付目标计算只读输入指纹；不代表平台校验通过或允许发布。",
+      "group": "assistive",
+      "exposure": "primary",
+      "risk_level": "low",
+      "review_policy": "auto",
+      "requires_topic": false,
+      "idempotent": true,
+      "supports_dry_run": false,
+      "destructive": false,
+      "inputs": {
+        "targetPath": { "type": "path", "label": "稿件路径", "required": true },
+        "platform": { "type": "text", "label": "平台", "required": true },
+        "format": { "type": "text", "label": "内容形态", "required": true },
+        "entry": { "type": "text", "label": "交付入口", "required": true },
+        "ruleset": { "type": "object", "label": "规则集版本", "required": true },
+        "provider": { "type": "object", "label": "能力提供者版本", "required": true },
+        "accountCapabilities": { "type": "object", "label": "账号能力摘要" },
+        "lengthValidation": { "type": "object", "label": "长度校验输入" },
+        "parameters": { "type": "object", "label": "生成参数" }
+      },
+      "args_extra": [
+        "--target-path", "{targetPath}",
+        "--platform", "{platform}",
+        "--creation-format", "{format}",
+        "--entry", "{entry}",
+        "--ruleset", "{ruleset}",
+        "--provider", "{provider}",
+        "--account-capabilities", "{accountCapabilities}",
+        "--length-validation", "{lengthValidation}",
+        "--parameters", "{parameters}"
+      ],
+      "reads": ["topmind.yaml", "{targetPath}"],
+      "writes": [],
+      "contexts": ["workspace", "creation", "assets"]
+    },
+    "matchLengthReport": {
+      "label": "匹配创作长度报告",
+      "description": "只读核对 Kernel 快照与长度报告；提供 articleResult 时一并核对本地渲染文本链。目标编辑器仍需单独核对，不允许据此直接发布。",
+      "group": "assistive",
+      "exposure": "primary",
+      "risk_level": "low",
+      "review_policy": "auto",
+      "requires_topic": false,
+      "idempotent": true,
+      "supports_dry_run": false,
+      "destructive": false,
+      "inputs": {
+        "snapshot": { "type": "object", "label": "创作输入快照", "required": true },
+        "report": { "type": "object", "label": "长度规则报告", "required": true },
+        "articleResult": { "type": "object", "label": "本地文章渲染结果" }
+      },
+      "args_extra": ["--snapshot", "{snapshot}", "--report", "{report}", "--article-result", "{articleResult}"],
+      "reads": [],
+      "writes": [],
+      "contexts": ["workspace", "creation"]
+    }
+  }
+}

@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 
 import { loadContractRegistry, getCommand, listCommands } from "../../core/contract-registry.mjs";
 import { executeTool, previewTool } from "../../core/tool-executor.mjs";
+import { parseFrontmatter } from "../../core/frontmatter.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..", "..", "..");
@@ -99,8 +100,8 @@ test.after(async () => {
   if (workspace) await fs.rm(workspace.base, { recursive: true, force: true });
 });
 
-test("contract registry loads the eight category-first tool domains", () => {
-  assert.equal(registry.toolCount, 8);
+test("contract registry loads the nine tool domains", () => {
+  assert.equal(registry.toolCount, 9);
   assert.ok(registry.byKind.has("workspace-read"));
   assert.ok(registry.byKind.has("workspace-write"));
   assert.ok(registry.byKind.has("workspace-transform"));
@@ -109,7 +110,8 @@ test("contract registry loads the eight category-first tool domains", () => {
   assert.ok(registry.byKind.has("memory"));
   assert.ok(registry.byKind.has("lifecycle"));
   assert.ok(registry.byKind.has("derived"));
-  assert.equal(registry.commandCount, 38);
+  assert.ok(registry.byKind.has("creator"));
+  assert.equal(registry.commandCount, 42);
 });
 
 test("executeTool graded confirm: workspace-write capture-note content lands without review", async () => {
@@ -471,6 +473,81 @@ test("executeTool applies full topic replacement in auto mode with reason", asyn
   } catch {
     /* no backups dir is fine */
   }
+});
+
+test("workspace-write.update-topic preserves nested YAML and array metadata", async () => {
+  const topic = "2026-嵌套元数据";
+  const topicDir = path.join(workspace.categoryDir, topic);
+  const topicFile = path.join(topicDir, "topic.md");
+  await fs.mkdir(topicDir, { recursive: true });
+  const originalHeader = [
+    "---",
+    "# preserve this frontmatter comment",
+    "title: Nested",
+    "category: 20 研究",
+    `topic: ${topic}`,
+    "source_type: user-original",
+    "creation_id: 1f59ea30-226f-41c2-8891-71c237dc4462",
+    "tags:",
+    "  - writing",
+    "  - research",
+    "AIGC:",
+    "  model: synthetic-test",
+    "---",
+  ].join("\r\n");
+  await fs.writeFile(topicFile, `\ufeff${originalHeader}\r\n# Old body\r\n`);
+  const result = await executeTool({
+    registry,
+    kind: "workspace-write",
+    command: "update-topic",
+    payload: { category: workspace.category, topic, content: "# Updated body", replaceReason: "test metadata", dryRun: false },
+    pathContext: workspace.pathContext,
+    reviewed: true,
+  });
+  assert.equal(result.ok, true, result.stderr);
+  const updatedRaw = await fs.readFile(topicFile, "utf8");
+  const updated = parseFrontmatter(updatedRaw);
+  assert.equal(updated.data.creation_id, "1f59ea30-226f-41c2-8891-71c237dc4462");
+  assert.deepEqual(updated.data.tags, ["writing", "research"]);
+  assert.deepEqual(updated.data.AIGC, { model: "synthetic-test" });
+  assert.match(updated.body, /Updated body/u);
+  assert.ok(updatedRaw.startsWith(`\ufeff${originalHeader.slice(0, -3)}`), "existing YAML prefix, order and comment remain byte-identical");
+  assert.ok(!/(?<!\r)\n/u.test(updatedRaw), "CRLF style is preserved");
+});
+
+test("workspace-write.save-output replace cannot erase a creation identity", async () => {
+  const output = path.join(workspace.userWorkspaceRoot, "88 Outputs", "2026-10-28-Identity-Protected.md");
+  const original = "---\ntitle: Identity-Protected\nsource_type: user-original\ncreation_id: 7338e908-40b2-48dd-ad57-bad8e73ff7c8\n---\n\n# Original\n";
+  await fs.writeFile(output, original);
+  const result = await executeTool({
+    registry,
+    kind: "workspace-write",
+    command: "save-output",
+    payload: { category: workspace.category, topic: workspace.topic, title: "Identity-Protected", content: "Replacement", ifExists: "replace", dryRun: false },
+    pathContext: workspace.pathContext,
+    reviewed: true,
+  });
+  assert.equal(result.ok, false, "generic output replacement must not remove creation_id");
+  assert.equal(await fs.readFile(output, "utf8"), original);
+});
+
+test("workspace-write.update-topic refuses malformed frontmatter without rewriting it", async () => {
+  const topic = "2026-损坏头部";
+  const topicDir = path.join(workspace.categoryDir, topic);
+  const topicFile = path.join(topicDir, "topic.md");
+  const original = "---\ntitle: [broken\n---\n# Original body\n";
+  await fs.mkdir(topicDir, { recursive: true });
+  await fs.writeFile(topicFile, original);
+  const result = await executeTool({
+    registry,
+    kind: "workspace-write",
+    command: "update-topic",
+    payload: { category: workspace.category, topic, content: "# Replacement", replaceReason: "test invalid YAML", dryRun: false },
+    pathContext: workspace.pathContext,
+    reviewed: true,
+  });
+  assert.equal(result.ok, false);
+  assert.equal(await fs.readFile(topicFile, "utf8"), original);
 });
 
 test("executeTool appends stable memory without replacing topic.md", async () => {

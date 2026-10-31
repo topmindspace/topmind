@@ -10,6 +10,8 @@
 
 ## 0. 设计理念 (Design Philosophy)
 
+**方向大于约束**：引导、目标、已有经验与知识经验优先于固定操作剧本；规约只保留底线。用户概念仍 ≤5（记一下 · 动态 · 专题 · 我的情况 · 交付），文件仍是内容真源，不把「沉淀」教成产品 UI 里的第六个动词。硬闸仍在：写回分级、路径围栏、外部发布确认，以及禁止只做口头改写。
+
 ```text
 推荐引导，不强制约束。
 智能路由，不打断用户。
@@ -52,7 +54,7 @@ Skills 是一组纯 Markdown 指令集，告诉 AI 如何操作 topmind 工作�
 - `description` 精确说明适用场景，仅在容易误选时给负向边界，不穷举同义词。
 - 单一明确任务可直达动作技能；router 只处理模糊或多意图，不强制双跳。
 - 工作区路径和写入策略是产品约定；提示词不是权限机制，程序写闸才负责实施。
-- 用户已授权的多步任务连续完成；没有请求的延伸工作只提案。细则在 skills `shared/auto-suggest.md`，不因技能切换再次征求同一授权。
+- 用户已授权的多步任务连续完成；没有请求的延伸工作只提案。判断方式只在 skills `shared/auto-suggest.md`（与本节同一句「方向大于约束」），各 SKILL.md 不复制第二套阶梯，不因技能切换再次征求同一授权。
 - `shared/` 随 pack 分发。安装器与 host 必须确保引用可达；资源按选中技能来源解析，不混用同名扩展与 bundled 规则。
 
 ---
@@ -90,11 +92,13 @@ topmind 用户心智是**三平面工作区**上的**类别 + 专题 + 记忆**�
 ## 2. Target Layers
 
 ```text
-Layer 1: Engine repo
-  topmind/
-    skills/              agent skill modules (portable)
-    utr/                 deterministic tool runtime (optional accelerator)
-    topmind-desktop/     optional client
+Layer 1: Engine repo (topmind)
+  utr/                 deterministic tool runtime (optional accelerator)
+  topmind-desktop/     optional client
+  skills/README.md     move stub only
+
+Layer 1b: Skills pack (sister repo topmind-skills)
+  Portable Markdown. Not a directory inside this engine tree. Layout is §3.
 
 Layer 2: User data
   {workspace-root}/
@@ -142,8 +146,10 @@ Layer 2: User data
 
 ## 3. Skill Packages（Hybrid）
 
+下面这棵树在姊妹仓 `topmind-skills/`，不是引擎仓 `topmind/skills/`。引擎仓只留 `skills/README.md` 迁出说明。
+
 ```text
-skills/
+topmind-skills/
 ├── topmind-pack.json              # 唯一 pack 机器契约
 ├── install-targets/               # host 安装形状
 ├── shared/                        # 跨 skill 按需加载（须与 skill 目录同级安装）
@@ -342,18 +348,20 @@ Skill 路由时的最小读取顺序（**默认不加载整工作区**）：
 
 ## 7. Engine → UTR 命令映射
 
-Kernel 八引擎是内部领域逻辑；UTR 8 域是其 CLI/MCP adapter 暴露面。并非每个引擎都有独立 UTR 域——`stream` / `writeback` / `ingest` 是内部引擎，由其他 UTR 命令内部调用，不直接暴露。
+Kernel 八引擎是内部领域逻辑；UTR 有 9 个命令域（见 `TOOLS.md`，当前 9 域 / 42 命令）。并非每个引擎都有独立 UTR 域——`stream` / `writeback` / `ingest` 是内部引擎，由其他 UTR 命令内部调用，不直接暴露。`creator` 是只读投影域，不是第九引擎。
 
-| 引擎 (Engine) | 职责 | UTR 确定性命令（真实 8 域 / 35） | 降级边界 |
+| 引擎 (Engine) | 职责 | UTR 确定性命令（见 TOOLS.md，当前 9 域 / 42） | 降级边界 |
 |---|---|---|---|
 | **contract** | 契约加载/校验/ensure/reseed/求值 | `contract.validate` · `contract.ensure` · `contract.reseed` | Kernel `inspectContract` / `ensureContract` / `reseedContract`（v4 白名单） |
-| **workspace-model** | 类别/专题/路径 | `workspace-read`：`list-categories` · `list-topics` · `inspect-topic` · `list-topic-files` · `list-inbox` · `list-recent-captures` · `list-safety-receipts`；`workspace-write`：`create-topic` · `capture-note` · `save-output` · `update-topic`；`workspace-transform`：`plan-inbox-routing` · `normalize-note-metadata` · `migrate-v4`；`workspace-maintain`：`doctor-workspace` · `archive-topic` · `archive-stream-year` · `restore-safety-receipt` · `cleanup-empty-dirs` | 目录扫描 + 基础读写 |
+| **workspace-model** | 类别/专题/路径 | `workspace-read`：`list-categories` · `list-category-files` · `list-topics` · `inspect-topic` · `list-topic-files` · `list-inbox` · `list-recent-captures` · `list-safety-receipts`；`workspace-write`：`create-topic` · `capture-note` · `save-output` · `update-topic`；`workspace-transform`：`plan-inbox-routing` · `normalize-note-metadata` · `migrate-v4`；`workspace-maintain`：`doctor-workspace` · `archive-topic` · `archive-stream-year` · `restore-safety-receipt` · `cleanup-empty-dirs` | 目录扫描 + 基础读写 |
 | **stream** | 周期本/reconcile | （无独立 UTR 域；`workspace-write.capture-note` 内部走 stream-engine 落周期本） | 文本追加 |
 | **memory** | 分层记忆/提升 + 待办卫星 | `memory.promote` · `memory.digest` · `memory.append-profile` · `memory.append-topic` · `memory.retire-profile` · `memory.update-profile` · `memory.compact-history` · `memory.restore-profile` · `memory.list-todos` · `memory.add-todo` · `memory.toggle-todo` · `memory.update-todo` · `memory.set-todo-due` · `memory.delete-todo` | 跨层复制 + frontmatter 标记 + 确认式事实生命周期；todo=`memory/todo.md` 卫星 |
 | **lifecycle** | 归档/清理/回顾扫描 | `lifecycle.scan`；归档/恢复经 `workspace-maintain.archive-topic` · `restore-safety-receipt` · `cleanup-empty-dirs` | 文件移动操作 |
 | **writeback** | 保护/备份/回执（唯一写闸） | （无独立 UTR 域；所有 UTR 写命令内部经 writeback-engine） | 文件暂存与覆写 |
 | **derived** | `.derived/` 生成重建 | `derived.rebuild` | 从真源重新生成 |
 | **ingest** | URL/文档路由语义 | （无独立 UTR 域；路由经 `workspace-transform.plan-inbox-routing`；转换器在 Desktop） | 文件写入 + metadata 提取 |
+
+`creator.inspect` · `creator.snapshot` · `creator.matchLengthReport` 属于上表之外的只读投影域。数量以 `TOOLS.md` 与注册表为准。
 
 ---
 
@@ -419,7 +427,7 @@ Desktop 定位：**通用个人工作台**，不限于特定写作场景。
 
 ## 10. Cross-Agent Skill Topology
 
-引擎 Skills 在 `skills/`，可独立打包安装到任意 Agent Host：
+可移植 Skills 在姊妹仓 `topmind-skills`（布局见 §3）。引擎仓只留 `skills/README.md` 迁出桩。Pack 可独立安装到任意 Agent Host：
 
 - OpenCode — 通过 skills symlink + MCP
 - Claude Code — 通过 skill install

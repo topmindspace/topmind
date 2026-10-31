@@ -9,7 +9,7 @@
 [![Build Status](https://img.shields.io/github/actions/workflow/status/topmindspace/topmind/ci.yml?style=flat-square&label=CI)](https://github.com/topmindspace/topmind/actions)
 
 > **Local-first personal stream and knowledge workbench for the agent era**  
-> **Just log it** → **AI suggests, organizes, extracts todos, and maintains memory** → **You confirm before anything settles** → **Files stay yours**
+> **Just log it** → **AI suggests, organizes, extracts todos, and maintains memory** → **You confirm before it is written** → **Files stay yours**
 
 ---
 
@@ -27,7 +27,7 @@ About & updates tracks the application, core skills, independent writing pack an
 
 ### Three-column workbench (stream timeline + AI workspace)
 
-Navigation → stream timeline → AI workspace (**Chat · Suggest · List · Apps**). The weekly stream is the main narrative; AI proposes and waits for your confirmation before anything settles. Chrome ships in **Simplified Chinese and English** (follows the OS language; your notes stay in their own language).
+Navigation → stream timeline → AI workspace (**Chat · Suggest · List · Apps**). The weekly stream is the main narrative; AI proposes and waits for your confirmation before it is written. Chrome ships in **Simplified Chinese and English** (follows the OS language; your notes stay in their own language).
 
 <p align="center">
   <img src="./docs/images/desktop-stream-en.jpg" alt="topmind Desktop three-column workbench with AI chat todo panel (English)" width="820" />
@@ -140,7 +140,7 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Opti
 - Inspect the current action surface:
   ```bash
   npm run utr:doctor            # toolchain diagnosis
-  npm run utr:list              # 8 domains / 35 commands
+  npm run utr:list              # 9 domains / 42 commands
   ```
 - Guide: [`TOOLS.md`](./TOOLS.md) · [`utr/README.md`](./utr/README.md)（简体中文） · [English](./utr/README.en.md)
 

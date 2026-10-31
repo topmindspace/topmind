@@ -9,7 +9,7 @@
 [![Build Status](https://img.shields.io/github/actions/workflow/status/topmindspace/topmind/ci.yml?style=flat-square&label=CI)](https://github.com/topmindspace/topmind/actions)
 
 > **Agent 时代的本地优先个人动态流与知识工作台 · Personal Stream**  
-> **随便记下** → **AI 自动建议 / 整理 / 待办 / 记忆** → **用户确认后再沉淀** → **文件永远属于本地**
+> **随便记下** → **AI 自动建议 / 整理 / 待办 / 记忆** → **你确认后再写入** → **文件永远属于本地**
 
 ---
 
@@ -57,7 +57,7 @@ AI 工作区四页签：**对话**（多步工具智能体）· **建议**（确
 topmind 提供**极低摩擦**的个人动态流工作台：
 
 - **随手记录，无分类负担**：想法、网页剪藏、文档解析与起草，随手记下，不必在动笔前纠结“该放哪里”。
-- **先记后分，动态流优先**：默认主界面是时间轴动态流。随手记录，主题反复涌现时再沉淀为专题。
+- **先记后分，动态流优先**：默认主界面是时间轴动态流。随手记录，主题反复出现时再收成专题。
 - **主动且克制的 AI**：系统感知工作区上下文，主动准备恰到好处的整理与待办建议——**AI 提建议并承担琐碎操作，你做最终裁决**。
 - **本地优先，文件即真源**：纯标准 Markdown 与文件夹存储，数据 100% 留存在本地磁盘，无专有数据库绑定。
 
@@ -140,7 +140,7 @@ topmind  =  Portable Skills  ⊕  Optional Desktop  ⊕  Optional UTR  ⊕  Opti
 - 查看当前 UTR 动作域和命令：
   ```bash
   npm run utr:doctor            # UTR 工具链诊断
-  npm run utr:list              # 查看当前 8 域 / 35 命令
+  npm run utr:list              # 查看当前 9 域 / 42 命令
   ```
 - 详细指南：[`TOOLS.md`](./TOOLS.md) · [`utr/README.zh-CN.md`](./utr/README.zh-CN.md) · [English](./utr/README.md)
 
@@ -163,7 +163,7 @@ flowchart LR
 | 阶段 | 用户动作 | 默认落点 | 说明 |
 |------|----------|----------|------|
 | **① 收进来** | 快捷键速记 · 网页剪藏 · Office/PDF 入队 | 本周**动态**周期本（`10-动态/` 或现场 `role:loose-stream`）；不确定 ➔ Inbox（`00-Inbox/` / `role:buffer`） | 零摩擦极速捕捉 |
-| **② 继续做** | 编辑 · 行内 AI · 侧栏 Agent · 整理专题 | `{大类}/{YYYY-主题}/` | 动态卡片流与专题沉淀 |
+| **② 继续做** | 编辑 · 行内 AI · 侧栏 Agent · 整理专题 | `{大类}/{YYYY-主题}/` | 动态卡片流与专题目录 |
 | **③ 交付 / 沉淀** | 写出成品 · 确认后写入 profile / topics | `88-交付/` · `memory/profile.md` | 产出成品文件，更新个人画像 |
 | **④ 找回 / 调整** | 搜索 · 恢复 · 我的情况浏览 · 周期维护 | `99-归档/` · `memory/` · Loop 巡检 | 安全归档、记忆平面浏览与快速检索 |
 

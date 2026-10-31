@@ -6,14 +6,14 @@ import path from "node:path";
 
 import { loadContractRegistry, getTool, getCommand, listTools, listCommands } from "../../core/contract-registry.mjs";
 
-const CATEGORY_DOMAINS = ["contract", "derived", "lifecycle", "memory", "workspace-maintain", "workspace-read", "workspace-transform", "workspace-write"];
+const CATEGORY_DOMAINS = ["contract", "creator", "derived", "lifecycle", "memory", "workspace-maintain", "workspace-read", "workspace-transform", "workspace-write"];
 
 let registry;
 
 test("loadContractRegistry loads only category-first tool domains", async () => {
   registry = await loadContractRegistry();
-  assert.equal(registry.toolCount, 8);
-  assert.equal(registry.commandCount, 38);
+  assert.equal(registry.toolCount, 9);
+  assert.equal(registry.commandCount, 42);
   assert.deepEqual(Array.from(registry.byKind.keys()).sort(), CATEGORY_DOMAINS);
 });
 
@@ -31,6 +31,7 @@ test("workspace-read exposes read-only workspace commands", () => {
   assert.deepEqual(Object.keys(tool.commands).sort(), [
     "inspect-topic",
     "list-categories",
+    "list-category-files",
     "list-inbox",
     "list-recent-captures",
     "list-safety-receipts",
@@ -142,10 +143,12 @@ test("primary MCP surface is smaller than full registry (agent-friendly)", () =>
   const all = listCommands(registry);
   const primary = all.filter((c) => c.exposure === "primary" || c.exposure === "danger");
   const advanced = all.filter((c) => c.exposure === "advanced");
-  assert.equal(all.length, 38);
-  assert.equal(primary.length, 29);
+  assert.equal(all.length, 42);
+  assert.equal(primary.length, 33);
   assert.equal(advanced.length, 9);
   assert.ok(primary.some((c) => c.command === "capture-note"));
+  assert.ok(primary.some((c) => c.kind === "creator" && c.command === "inspect"));
+  assert.ok(primary.some((c) => c.kind === "creator" && c.command === "snapshot"));
   assert.ok(advanced.some((c) => c.command === "migrate-v4"));
   assert.throws(() => getCommand(registry, "workspace-transform", "normalize-topic"), /未知|Unknown|不存在|command/iu);
   assert.throws(() => getCommand(registry, "workspace-maintain", "repair-topic-index"), /未知|Unknown|不存在|command/iu);

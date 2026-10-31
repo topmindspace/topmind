@@ -38,16 +38,16 @@ ActivityBar（最左 48px · 三分组）：
 
 ### 0.0.1 捕获词汇与入口（强制 · 单一心智）
 
-| 用户说法 | 系统动作 | **唯一**主入口 | 禁止 |
+| 用户说法 | 系统动作 | 主入口 | 禁止 |
 |----------|----------|----------------|------|
 | **记一下** | 打开完整捕获（笔记 / 链接 / 附件） | **ActivityBar**（⌘N / 全局 ⌘⇧N） | 在动态页再堆一个同名主按钮；实心 teal CTA |
 | **记下** | 把输入框追加到**当前周期本** | 动态主区输入框主按钮（⌘↵） | 把「记下」标成「记一下」 |
 | **AI 润色** | 只改输入框通顺/格式 · **不落盘** | 输入框旁 AI 次级按钮 | 与「记一下」共用文案或图标语义 |
-| **AI 待办** | 从动态提取/更新 `memory/todo.md` | AI 工作区 清单 pane · ⌘⇧T | 与建议混称「待办」 |
+| **AI 待办** | 从动态提取/更新 `memory/todo.md` | 侧栏切到动态且本周期有条目时的 ✨，以及 AI 工作区 清单 pane · ⌘⇧T | 与建议混称「待办」；放在动态页头 |
 | **AI 建议** | 工作区整理候选 · 确认后写入 | 有条目时**状态栏计数 chip** → AI 工作区 **建议** pane（`SuggestPopover` 确认列表；专注模式仍浮动） | 嵌进 Stream 卡片；仅藏在 AI 聊天轨里才可操作；空态永久占位条 |
 | **增补** | 对已有动态条目续写（评论感 · 同文件） | 动态卡片上的增补入口 + 续写徽章 | 平行评论 DB / 新真源 |
 
-**动态页主路径**：输入 →（可选润色）→ **记下**（EN: Log it）→ 进**动态**；对旧条 **增补**。链接粘贴后展示共享 `LinkCaptureCard`：**记下**只记动态链接，**抓取**进 **Inbox 独立文章**。文档/完整捕获走 ActivityBar「记一下」（EN: Note it）。页头 **整理 · 刷新**（情境动作）。**个人清单 / AI 待办**不在页头——唯一入口是 ⌘⇧T → AI 工作区 清单 pane（pane 内 ✨ 维护）；专注模式才浮动。  
+**动态页主路径**：输入 →（可选润色）→ **记下**（EN: Log it）→ 进**动态**；对旧条 **增补**。链接粘贴后展示共享 `LinkCaptureCard`：**记下**只记动态链接，**抓取**进 **Inbox 独立文章**。文档/完整捕获走 ActivityBar「记一下」（EN: Note it）。页头 **整理 · 刷新**（情境动作）。**个人清单 / AI 待办**不在页头。关掉后只在两处手动整理：侧栏切到动态且本周期有条目时的 ✨，以及 ⌘⇧T 打开的清单里的 ✨。空周期本不显示侧栏这颗按钮。专注模式才把清单浮出。  
 **统一建议入口（全局）**：有 `items` 时**状态栏计数 chip**（**count=0 自动隐藏**）；点击 → `openSuggestSurface()` → AI 工作区 **建议** pane。画布顶 `SuggestEntryStrip` 已删除，不得再挂。无始终可点的标题栏 💡（安静 chrome）。  
 **唯一确认面**：AI 工作区 **建议** pane 内的 `SuggestPopover`（接受 / 忽略 / 待确认写入）；专注模式仍浮动（AI 列被藏）。不在对话 pane 再挂第二套完整列表。  
 **会话稳定**：软刷新 / 15s 轮询不得因 kernel 空 regenerate 清空已展示建议（`sessionSuggestionCache` + `mergeSuggestRefreshItems`）；dismiss/apply 仍可移除。  
@@ -58,8 +58,8 @@ ActivityBar（最左 48px · 三分组）：
 **信息流两种布局（`settings.ui.feedLayout` · 列表 / 卡片）**：开关在**信息流正文上方**（`data-feed-chrome`，与帖子同列），不在页头 AI 动作条。列表 = X 式单列紧凑帖（细线分隔）；卡片 = **同一套 chunks** 的单列等宽卡片——**不是** Pinterest/masonry 多列。记下输入框、列表、卡片共用 `--feed-column-max`（`.v4-feed-column`）。Inbox / 类别 / 专题 / 交付 共用同一开关。  
 **分块诚实**：日/周期段若是 markdown **列表**（`-` / `*` / `1.`）仍按条目拆帖；**无列表标记的长散文换行**是一条帖（空行分段仍是段落 `<p>`，不是每行一个 `<li>`）；timed/list 条目后续段落留在同一帖。列表与卡片消费同一 parse，切换布局不重拆。  
 **我的情况**：侧栏 Profile **与动态信息流上的「我的情况」** 打开记忆浏览（画像 / 周期反思 / 专题记忆 **分层芯片**）；点开条目仍落到真实相对路径；「在目录中显示」展开侧栏 `memory/`（不是第六用户概念）。**整理我的情况**走已有 `memory_organize` → `runActivityOps` → **AI 工作区建议 pane**；自动准备可生成建议，**从不静默写画像**。无平行记忆库。  
-**个人清单**：AI 工作区 **清单** pane（专注模式浮动 `TodoPopover`）· **≠** 建议。  
-**建议沉淀**：confirm 后 profile/periodic / 内容大类专题。
+**个人清单**：关掉后只在两处手动整理：侧栏切到动态且本周期有条目时的 ✨，以及 ⌘⇧T 打开的清单里的 ✨。专注模式才把清单浮成 `TodoPopover`。**≠** 建议。  
+**建议落点**：confirm 后 profile/periodic / 内容大类专题。
 
 #### 建议种类（Suggestion Kinds）
 
@@ -161,7 +161,7 @@ ActivityBar（最左 48px · 三分组）：
 | **设置白话** | 「删除/归档前问我」「自动准备 AI 建议」「自动 AI 整理待办（默认关）」 |
 | **扩展外围** | connector / 第三方插件不占默认主 chrome：入口统一在 **AI 工作区 · 应用** pane（`AppsLaunchList` · `lib/apps-menu`），侧栏只承载内容导航 |
 
-**IA 已收敛（Wave F–M · S\* · ActivityBar 2026-09-26 · 目的地去重 2026-09-28）**：打开工作区的主画布 = **Stream 工作台首页**（`StreamDetailView` · home≡stream：身份条、库存计数、hero compose、动态流）。**动态**即同一画布（按日分组 · 周期 chip · 条目增补），由 ActivityBar / ⌘⇧S 打开。旧仪表盘（问候、钉住、截止、材料条、连接器条）已删。侧栏主轨 = 动态安静列表 / 目录 / 时间；标签/看板在「更多」；**个人清单**在 AI 工作区 清单 pane（⌘⇧T；专注模式浮动）。**建议**在状态栏计数 → AI 工作区建议 pane（会话缓存防闪烁）；右列四 pane：**对话** · **建议** · **清单** · **应用**；后台仍是 TaskBadge + TaskPanel。交付列表展示 `published_at`。行内 AI 可拖动。
+**IA 已收敛（Wave F–M · S\* · ActivityBar 2026-09-26 · 目的地去重 2026-09-28）**：打开工作区的主画布 = **Stream 工作台首页**（`StreamDetailView` · home≡stream：身份条、库存计数、hero compose、动态流）。**动态**即同一画布（按日分组 · 周期 chip · 条目增补），由 ActivityBar / ⌘⇧S 打开。旧仪表盘（问候、钉住、截止、材料条、连接器条）已删。侧栏主轨 = 动态安静列表 / 目录 / 时间；标签/看板在「更多」；**个人清单**在 AI 工作区 清单 pane（⌘⇧T；专注模式浮动），侧栏动态视图在有条目时也可 ✨ 维护。**建议**在状态栏计数 → AI 工作区建议 pane（会话缓存防闪烁）；右列四 pane：**对话** · **建议** · **清单** · **应用**；后台仍是 TaskBadge + TaskPanel。交付列表展示 `published_at`。行内 AI 可拖动。
 
 ### 0.0.4 能力单家（Header homes）
 
@@ -173,7 +173,7 @@ ActivityBar（最左 48px · 三分组）：
 - **左 Sidebar 主 header**（顺序固定）：**工作区名+菜单 → 搜索 ⌘K**。macOS 这一行在红绿灯留白之内**右对齐**（`.v4-mac-titlebar-pad` 取代列的 8px 左内边距，全屏收起）；Windows/Linux **左对齐**，不留红绿灯空位。目的地/捕获/主题/设置不在侧栏头（在 ActivityBar）。
 - **左 Sidebar 次级 header**：各平台都从目录树左缘起（`pl-1.5`，不垫 72px）。ViewSwitcher（当前模式文案，如「目录」）**靠左**；树的排序 / 展开折叠 / 筛选 / 刷新 **靠右**。非目录模式隐藏树工具。
 - **中间 TitleBar**：三列顶栏共用 `.v4-column-chrome`（`--density-chrome-y` 44px · 控件 32px）对齐。左侧 = Toggle + 后退/前进 + 可点击祖先面包屑（第一层 `max-w-36`，后续更短）+ 当前页标题 + 该页统计；右侧 = 视图注入动作 slot（`data-titlebar-actions-slot`）+ AI 面板 toggle。集合页（动态 / Inbox / 交付 / 类别 / 专题 / 我的情况 / 归档）的身份与新建/整理/刷新等动作住在 TitleBar，画布不再重复 PageHeader 标题条。文件页把注入 AI / 发布 / 移动 / 记忆等原编辑器拖把右侧快捷键注入 TitleBar；拖把只留格式 + 编辑/源码/预览图标 + 大纲/阅读/专注 + 保存/⋯；窄栏的属性入口在 ⋯ 内。**大纲 / 阅读外观 / 专注模式住在编辑器工具栏右侧**（`EditorViewChrome`），不再挂在属性行——属性默认收起时它们仍常驻。文件标题**右键**承载页签操作（关闭 / 固定 / 对照 / 文件操作），单页签（无 Tab 条）时这是主路径。**目的地不进 TitleBar**（ActivityBar 常驻；`PrimaryNav variant="compact"` 已退役 2026-09-28）。
-- **StatusBar**：左端绿点 + **完整工作区路径**（`data-status-workspace-path`，不是 basename）；tooltip 含 engine 路径。**不含 PrimaryNav**（状态栏是状态，不是导航；主锚在 **ActivityBar**）。
+- **StatusBar**：左端绿点 + **完整工作区路径**（`data-status-workspace-path`，不是 basename）；tooltip 含程序位置（安装里的引擎根；用户文案不说「引擎」）。**不含 PrimaryNav**（状态栏是状态，不是导航；主锚在 **ActivityBar**）。
 
 | 能力 | 唯一主家 | 侧栏收起后如何到达 |
 |------|----------|-------------------|
@@ -294,7 +294,7 @@ ActivityBar（最左 48px · 三分组）：
 | **动效克制** | `duration-fast` 140ms · `duration-enter` 160ms；列表 stagger ≤8；`prefers-reduced-motion` 全关 |
 | **性能** | `content-visibility` 列表、panel `contain`、AI 面板 lazy、流式滚动尊重用户上滑 |
 | **响应式 chrome** | 操作按钮按宽度 **铺开 ↔ ⋯ 溢出**（`ChromeOverflowActions`）；右轨按分配宽度测量，扩大后恢复操作；文件 AI/发布/挂载/记忆共用此轨，移动与 AI 列开关独立；画布宽 <360px 时历史导航进具名菜单，<400px 时祖先面包屑收起，保留当前标题；纯图标按钮遵循 density 尺寸，**tooltip + aria-label 必在**；同一动作不同时出现在轨道和菜单 |
-| **StatusBar 可交互** | 工作区正常：绿点 + **完整工作区路径**（`data-status-workspace-path`，截断不溢出，tooltip 含 engine 路径）；异常才出错误文字。**不含 PrimaryNav**（主锚在 **ActivityBar**，常驻）。**AI 就绪 pill（唯一主控件）**：离线->设置 · 就绪->toggle AI 面板；流式时 pill 显示会话态；**命名 busy 单路径**（`deriveStatusBarBusy`：apply > tasks > todo > suggest > **inline** 最多一颗命名 chip；apply / tasks / todo / suggest / inline 任一独占时 AI pill 不显示「工作中」，pill 的「工作中」只表示 Agent 流）；**需要你**双态（`showNeedsYouChip`：goal blocked 且非 streaming，与「工作中」互斥）；**进度动效**：每个 busy chip 附带 `v4-ai-progress-dot` 脉动指示器；tooltip 含预期时长。**文件 chip 仅 file 选择时显示**（点击 reveal）。**建议计数在状态栏**（count>0 时 `showSuggestCountChip`；生成中走 busy chip；确认写入走 apply chip）。Chip 文案截断，不溢出。 |
+| **StatusBar 可交互** | 工作区正常：绿点 + **完整工作区路径**（`data-status-workspace-path`，截断不溢出，tooltip 含程序位置）；异常才出错误文字。**不含 PrimaryNav**（主锚在 **ActivityBar**，常驻）。**AI 就绪 pill（唯一主控件）**：离线->设置 · 就绪->toggle AI 面板；流式时 pill 显示会话态；**命名 busy 单路径**（`deriveStatusBarBusy`：apply > tasks > todo > suggest > **inline** 最多一颗命名 chip；apply / tasks / todo / suggest / inline 任一独占时 AI pill 不显示「工作中」，pill 的「工作中」只表示 Agent 流）；**需要你**双态（`showNeedsYouChip`：goal blocked 且非 streaming，与「工作中」互斥）；**进度动效**：每个 busy chip 附带 `v4-ai-progress-dot` 脉动指示器；tooltip 含预期时长。**文件 chip 仅 file 选择时显示**（点击 reveal）。**建议计数在状态栏**（count>0 时 `showSuggestCountChip`；生成中走 busy chip；确认写入走 apply chip）。Chip 文案截断，不溢出。 |
 | **TitleBar 右轨分层** | **L1** 视图注入动作（`data-titlebar-actions-slot`）+ AI 轨开关（`.v4-titlebar-btn-ai`）。记一下在 ActivityBar（不在 TitleBar）。建议 / 清单 / 应用在 AI 工作区 pane；主题 / 设置在 ActivityBar 底组 / WorkspaceSwitcher。`data-chrome-tier`；**badge 纪律：仅在需要行动时出现**——Inbox（分诊队列）+ 建议计数（状态栏 count>0）保留；交付计数（库存非行动）与清单常驻数字点（恒非零）已移除 |
 | **建议入口降噪** | 建议计数**恰好一处可见入口**：状态栏计数 chip（count>0 才出现）+ AI 工作区建议 tab；专注模式浮动 `SuggestPopover`；画布顶 strip 已删。禁止 strip + 轨 chip + 状态栏 三处等权 |
 | **编辑器默认 chrome** | 格式工具条 **默认展开**（`showFormat=true`，可收起）；**属性行默认收起**；**Tab 条仅 ≥2 文件时出现**；编辑/预览纯图标；Save clean 勾点；常驻 ≤2 条 full-width 分割 |
@@ -712,7 +712,7 @@ topmind 设计系统原生支持多语言排版（Simplified Chinese / English�
 - **文案**：「建议 / 待确认写入」；禁用「待办」作产品词  
 - **会话稳定**：软刷新 / 轮询用 `sessionSuggestionCache` + `mergeSuggestRefreshItems`，kernel 空 regenerate 不闪没未 dismiss 项  
 - **autoPrepare 门控**（`ai.autoPrepareSuggestions`，默认开）：关闭时不拉取建议；pending writes 始终拉取  
-- **autoMaintainTodos 门控**（`ai.autoMaintainTodos`，默认**关**）：开启后每会话就绪时自动 AI 整理待办；关则仅手动 ✨  
+- **autoMaintainTodos 门控**（`ai.autoMaintainTodos`，默认**关**）：开启后每会话就绪时自动 AI 整理待办。关掉后只在两处手动整理：侧栏切到动态且本周期有条目时的 ✨，以及 ⌘⇧T 打开的清单里的 ✨。  
 
 - **禁止**在对话 pane 内再挂第二套完整展开列表
 

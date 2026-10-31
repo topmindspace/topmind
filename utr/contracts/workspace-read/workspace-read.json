@@ -127,6 +127,37 @@
         "topic"
       ]
     },
+    "list-category-files": {
+      "label": "列出大类根目录稿件",
+      "description": "列出所选大类根目录的独立 Markdown 稿件，不递归进入专题或稿夹。",
+      "group": "assistive",
+      "exposure": "primary",
+      "risk_level": "low",
+      "review_policy": "auto",
+      "requires_topic": false,
+      "idempotent": true,
+      "supports_dry_run": false,
+      "destructive": false,
+      "inputs": {
+        "category": {
+          "type": "category",
+          "label": "大类",
+          "required": true
+        }
+      },
+      "args_extra": [
+        "--category",
+        "{category}"
+      ],
+      "reads": [
+        "{category_root}/*.md"
+      ],
+      "writes": [],
+      "contexts": [
+        "workspace",
+        "files"
+      ]
+    },
     "list-topic-files": {
       "label": "列出专题文件",
       "description": "按物理结构列出专题首页、根层笔记 + 交付层（role:delivery，常为 88-交付/）中该专题相关文件。",

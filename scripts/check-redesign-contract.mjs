@@ -96,8 +96,8 @@ const v3DeprecatedCommands = /\b(create-project|inspect-project|list-projects|li
 const v3DefaultAnchorsRequired = /(outline\.md|setting\.md|style\.md)[\s\S]{0,80}(?:必须|默认|会自动)(?:创建|生成|建立|新增)/u;
 const v3ProjectMd = /\bproject\.md\b/u;
 
-// v4 architecture command count: 8 域 / 38 commands (or 8 domains / 38 commands)
-const v4CommandCount = /8\s*(?:域|tools|道|工具|domains)\s*[\/／]\s*38\s*(?:commands|命令)/iu;
+// Current architecture command count after workspace-read.list-category-files: 9 域 / 42 commands.
+const currentCommandCount = /9\s*(?:域|tools|道|工具|domains)\s*[\/／]\s*42\s*(?:commands|命令)/iu;
 
 const requiredWorkflowDocs = [
   files.readme,
@@ -169,9 +169,11 @@ for (const [label, source] of [
   expectMatch(label, source, /receipt|回执/u, "receipt evidence");
 }
 
-// current v4 UTR command count: 8 域 / 38 commands
-expectMatch(files.tools, tools, v4CommandCount, "current UTR command count (8 域 / 38 commands)");
-expectMatch(files.utrReadme, read(files.utrReadme), v4CommandCount, "current UTR README command count (8 域 / 38 commands)");
+// current v4 UTR command count: 9 域 / 42 commands
+expectMatch(files.tools, tools, currentCommandCount, "current UTR command count (9 域 / 42 commands)");
+for (const readme of [files.utrReadme, "utr/README.en.md", "utr/README.zh-CN.md"]) {
+  expectMatch(readme, read(readme), currentCommandCount, "current UTR README command count (9 域 / 42 commands)");
+}
 
 expectMatch(files.tools, tools, /restore-safety-receipt/u, "restore command in tools");
 

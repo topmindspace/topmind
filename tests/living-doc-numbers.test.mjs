@@ -119,7 +119,8 @@ test("optional 记账 is memory-plane satellite, not a sixth concept or ninth en
   assert.match(agents, /PRODUCT-BOUNDARIES\.md/);
   assert.match(boundaries, /ledger-engine/);
   assert.match(boundaries, /不是第九引擎/);
-  assert.match(tools, /8 个 UTR 命令域/);
+  assert.match(tools, /9 个 UTR 命令域/);
+  assert.match(tools, /`creator` 是只读投影域，不是第九引擎/);
   assert.match(desktopDesign, /不是\*\* PrimaryNav|不是\*\*PrimaryNav|\*\*不是\*\* PrimaryNav/);
 });
 

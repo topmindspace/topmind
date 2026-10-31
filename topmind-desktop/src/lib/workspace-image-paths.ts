@@ -4,7 +4,7 @@
  */
 import { api } from "../services/api";
 
-let cache: { root: string; paths: readonly string[] } | null = null;
+let cache: { root: string; paths: readonly string[] | undefined } | null = null;
 let pending: { root: string; task: Promise<readonly string[] | undefined> } | null = null;
 
 export function peekWorkspaceImagePaths(): readonly string[] | undefined {
@@ -23,9 +23,11 @@ export function ensureWorkspaceImagePaths(root = ""): Promise<readonly string[] 
     .listImagePaths()
     .then((r) => {
       if (pending?.task !== task) return cache?.root === root ? cache.paths : undefined;
-      const paths = Array.isArray(r?.paths) ? r.paths : [];
+      // A partial index cannot establish a unique basename. `undefined`
+      // keeps pathless embeds unresolved while explicit paths stay usable.
+      const paths = r?.truncated === true ? undefined : Array.isArray(r?.paths) ? r.paths : [];
       cache = { root, paths };
-      return paths as readonly string[];
+      return paths as readonly string[] | undefined;
     })
     .catch(() => undefined)
     .finally(() => {

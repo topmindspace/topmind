@@ -4,7 +4,7 @@
 
 > **根目录入口** [`../README.md`](../README.md)（简体中文） · **English** [`../README.en.md`](../README.en.md)  
 > 本目录收录架构设计锁、ADR 决策记录、打包发布规范与全表面导览。  
-> 工作流：`收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整` · 写回只经 Kernel `writeback-engine`（唯一写闸）· UTR `8 域 / 35 命令`
+> 工作流：`收进来 -> 继续做 -> 交付/沉淀 -> 找回/调整` · 写回只经 Kernel `writeback-engine`（唯一写闸）· UTR `9 域 / 42 命令`
 
 **README 约定：** 各模块以 `README.md` 为简体中文主文档（GitHub 默认），`README.en.md` 为英文；`README.zh-CN.md` 与 `README.md` 字节一致（兼容副本）。
 
@@ -50,8 +50,6 @@
 | [`DESIGN.md`](../DESIGN.md) | **产品交互设计规范** | 约束用户概念 <= 5，定义"记一下/动态/专题/我的情况/交付" |
 | [`SECURITY.md`](../SECURITY.md) | **安全与密钥边界** | 约定 API Key 本地明文存储规范、无遥测声明、网络范围 |
 | [`AGENTS.md`](../AGENTS.md) | **Agent 行为纪律真源** | 定义质量门顺序、死代码检测、多表面版本发布策略 |
-| [`写作整合与安装升级设计`](./WRITING-INTEGRATION-AND-UPDATES-2026-10-26.md) | **实施架构与验证记录** | 写作包默认随包、两端交付、公众号迁移、组件与本体升级、分阶段验收 |
-| [`写作与 AI 工作流体验整改`](./WRITING-UX-REVIEW-2026-10-28.md) | **当前用户路径与验收** | 写作入口、AI 交互、新建笔记、技能升级和四仓验证 |
 
 ---
 
@@ -70,6 +68,8 @@
 | 文档 | 说明 |
 |------|------|
 | [`UIUX-AUDIT-2026-09-01.md`](./UIUX-AUDIT-2026-09-01.md) | 历史锚点；现行 IA 见 `topmind-desktop/DESIGN.md` |
+| [`WRITING-INTEGRATION-AND-UPDATES-2026-10-26.md`](./WRITING-INTEGRATION-AND-UPDATES-2026-10-26.md) | 2026-10-26 写作集成记录；现行交互见 Desktop / Obsidian DESIGN |
+| [`WRITING-UX-REVIEW-2026-10-28.md`](./WRITING-UX-REVIEW-2026-10-28.md) | 2026-10-28 路径记录；现行交互见 Desktop / Obsidian DESIGN |
 | [`suite-review-2026-09-24.md`](./suite-review-2026-09-24.md) | 套件评审快照（2026-09-24） |
 | [`AI-AGENT-PLATFORM-REMEDIATION-2026-09-25.md`](./AI-AGENT-PLATFORM-REMEDIATION-2026-09-25.md) | 智能体平台整改波次记录（已收官） |
 | monorepo `docs/design/UIUX-MD3-TRANSFORMATION-2026-09.md` | **SUPERSEDED** append-log；真源 `topmind-desktop/DESIGN.md` |

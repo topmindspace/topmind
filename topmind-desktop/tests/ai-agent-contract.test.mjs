@@ -9,6 +9,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildSystemPrompt } from "../electron/ai-prompts.mjs";
 import { AI_TOOL_NAMES_READ, AI_TOOL_NAMES_WRITE } from "../electron/lib/ai-tool-names.mjs";
+import { buildGoalProtocolPrompt } from "../electron/lib/agent-goal-protocol.mjs";
+import { MODEL_A_FORBIDDEN_RE } from "../electron/lib/writeback-mode-copy.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -41,6 +43,54 @@ test("system prompt does not include context section when not provided", () => {
   });
   assert.doesNotMatch(prompt, /工作区上下文/);
   assert.match(prompt, /类别用 `list_categories`/);
+});
+
+test("task system prompt embeds the shipped goal protocol; light and document turns skip it", () => {
+  for (const locale of ["zh", "en"]) {
+    const protocol = buildGoalProtocolPrompt(locale);
+    const prompt = buildSystemPrompt({
+      locale,
+      outputLocale: locale,
+      writebackMode: "confirm",
+      skillsEnabled: false,
+      turnKind: "task",
+      documentTask: false,
+    });
+    assert.ok(protocol.length > 200, locale);
+    assert.equal(prompt.includes(protocol), true, locale);
+    assert.equal(MODEL_A_FORBIDDEN_RE.test(prompt), false, locale);
+    const light = buildSystemPrompt({
+      locale,
+      outputLocale: locale,
+      turnKind: "light",
+      documentTask: false,
+    });
+    assert.equal(light.includes("[PLAN]"), false, locale);
+    assert.equal(light.includes("[DONE]"), false, locale);
+    const documentPrompt = buildSystemPrompt({
+      locale,
+      outputLocale: locale,
+      writebackMode: "confirm",
+      turnKind: "task",
+      documentTask: true,
+    });
+    assert.equal(documentPrompt.includes(protocol), false, locale);
+    assert.match(documentPrompt, locale === "en" ? /stop/i : /停止/);
+    const query = buildSystemPrompt({
+      locale,
+      outputLocale: locale,
+      writebackMode: "confirm",
+      skillsEnabled: false,
+      turnKind: "query",
+      documentTask: false,
+    });
+    assert.equal(query.includes(protocol), true, `${locale} query`);
+    assert.match(query, locale === "en" ? /call the matching read tool first/ : /先调对应读工具/);
+    assert.doesNotMatch(query, /这一轮必须输出\s*\[DONE\]|this turn must emit\s*\[DONE\]/iu);
+  }
+  for (const forbidden of ["只读 — 只分析不写", "可粘贴草稿", "no write tools", "不注册写工具"]) {
+    assert.equal(MODEL_A_FORBIDDEN_RE.test(forbidden), true, forbidden);
+  }
 });
 
 test("light system prompt omits skills, goal ceremony and unused workspace data", () => {

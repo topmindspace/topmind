@@ -27,6 +27,16 @@ function runtimeDisplayName(runtime) {
   return runtime === NODE_RUNTIME ? NODE_RUNTIME : runtime;
 }
 
+function displayArgsWithoutObjects(args, command) {
+  const flags = new Set();
+  const extra = command.args_extra || [];
+  for (let i = 0; i + 1 < extra.length; i += 1) {
+    const field = extra[i + 1].match(/^\{([^}]+)\}$/u)?.[1];
+    if (extra[i].startsWith("--") && command.inputs?.[field]?.type === "object") flags.add(extra[i]);
+  }
+  return args.map((item, index) => flags.has(args[index - 1]) ? "[object]" : item);
+}
+
 import { resolveReviewPolicy } from "./review-policy.mjs";
 import { resolveWritebackModeInput } from "./writeback-mode.mjs";
 
@@ -215,7 +225,7 @@ export async function executeTool(options) {
   // 7. Execute
   const executable = runtimeExecutable(runtime);
   const displayRuntime = runtimeDisplayName(runtime);
-  const displayCommand = [displayRuntime, ...args].join(" ");
+  const displayCommand = [displayRuntime, ...displayArgsWithoutObjects(args, cmdDef)].join(" ");
   try {
     // If the resolved executable is the Electron binary (fallback path in
     // packaged app where no system Node.js is available), set
@@ -391,9 +401,9 @@ export function previewTool(registry, kind, commandName, payload, pathContext) {
         : pathContext.engineRoot;
       invocationPlan = {
         command: displayRuntime,
-        args,
+        args: displayArgsWithoutObjects(args, cmdDef),
         cwd,
-        displayCommand: [displayRuntime, ...args].join(" "),
+        displayCommand: [displayRuntime, ...displayArgsWithoutObjects(args, cmdDef)].join(" "),
       };
     }
 

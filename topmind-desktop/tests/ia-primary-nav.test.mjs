@@ -331,7 +331,8 @@ it("Desktop README does not teach deleted ActionBar or Title-bar Note it", () =>
     const activity = read("src/components/shell/ActivityBar.tsx");
     assert.match(activity, /RiHome4Line/);
     assert.match(activity, /dest\("stream"\)/);
-    assert.match(activity, /primaryNav\.workspace|primaryNav\.home/);
+    assert.match(activity, /primaryNav\.stream/);
+    assert.doesNotMatch(activity, /primaryNav\.workspace/);
     assert.match(activity, /primaryNav\.inbox/);
     assert.match(activity, /primaryNav\.outputs/);
   });

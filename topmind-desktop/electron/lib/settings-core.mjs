@@ -1096,7 +1096,8 @@ function createDefaultAppSettings(defaultWorkspaceRoot) {
       autoPrepareSuggestions: true,
       /**
        * Auto-run AI todo maintain (extract / complete / update from stream).
-       * Default OFF — spends tokens; user triggers via Stream ✨ / Todo panel when off.
+       * Default OFF — spends tokens. When off, maintain only from the sidebar
+       * stream ✨ (this period has entries) or the list ✨ opened with ⌘⇧T.
        */
       autoMaintainTodos: false,
       /** null = all bundled skills enabled; else allow-list of skill ids */

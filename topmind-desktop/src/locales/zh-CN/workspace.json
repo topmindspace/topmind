@@ -502,7 +502,7 @@
     "hasTopic": " · 有 topic.md",
     "noTopic": " · 无 topic.md",
     "write": "交付 — 打开专题主页",
-    "memory": "专题记忆 — 追加沉淀",
+    "memory": "专题记忆 — 追加一条",
     "loop": "巡检 — 工作区健康",
     "loopToast": "巡检通过 · {{categories}} 类别 · {{topics}} 专题{{warnings}}",
     "warningsCount": " · {{count}} 警告"

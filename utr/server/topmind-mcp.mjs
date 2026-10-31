@@ -94,8 +94,10 @@ async function handleInitialize(id, params) {
       // needsConfirm/pending and the client re-invokes with confirmed:true.
       // No review-session two-phase store.
       experimental: {
-        gradedConfirm: true,
-        confirmPattern: "Content writes land; lifecycle returns needsConfirm+planned; re-call with confirmed:true to apply",
+        gradedConfirm: {
+          enabled: true,
+          confirmPattern: "Content writes land; lifecycle returns needsConfirm+planned; re-call with confirmed:true to apply",
+        },
       },
     },
     serverInfo: SERVER_INFO,
@@ -283,7 +285,6 @@ async function main() {
   });
 
   rl.on("close", () => {
-    clearInterval(cleanupTimer);
     process.stderr.write(t("msg.mcpTransportClosed") + "\n");
   });
 

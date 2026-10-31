@@ -105,6 +105,15 @@ test("UTR version follows Desktop exactly (same installer)", () => {
   assert.equal(utr, desktop, `UTR ${utr} must equal Desktop ${desktop}`);
 });
 
+test("changelog has a section for the shipped Desktop version", () => {
+  const desktop = readJson("topmind-desktop/package.json").version;
+  const changelog = readTrim("CHANGELOG.md");
+  assert.match(changelog, new RegExp(`^## ${desktop} — `, "mu"));
+  const writing = readJson("topmind-desktop/electron/data/writing-pack.json").version;
+  assert.match(writing, /^\d+\.\d+\.\d+$/u);
+  assert.match(changelog, new RegExp(`写作快照升至 ${writing}`, "u"));
+});
+
 test("UTR CLI --version reads utr/VERSION (no stale hardcoded constant)", () => {
   const src = fs.readFileSync(path.join(repoRoot, "utr/bin/topmind-cli.mjs"), "utf8");
   assert.match(src, /VERSION/);
