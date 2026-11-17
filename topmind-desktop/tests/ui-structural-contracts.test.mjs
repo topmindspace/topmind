@@ -284,7 +284,7 @@ test("docs and surfaces keep brand wash on the no-workspace gate only", () => {
   const css = read("src/styles/v4.css");
   assert.match(css, /\.v4-landing \{[\s\S]*?radial-gradient/);
   const bootAt = css.indexOf(".v4-boot {");
-  const boot = css.slice(bootAt, css.indexOf(".v4-brand-gradient"));
+  const boot = css.slice(bootAt, css.indexOf("}", bootAt) + 1);
   assert.ok(bootAt >= 0 && boot.length > 0);
   assert.doesNotMatch(boot, /radial-gradient|brand-mid/);
   const hubAt = css.indexOf(".v4-hub-page {");

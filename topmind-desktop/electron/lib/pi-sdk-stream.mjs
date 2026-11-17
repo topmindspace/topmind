@@ -133,27 +133,16 @@ export function sdkChunkText(chunk) {
   return String(chunk.delta || chunk.textDelta || chunk.text || "");
 }
 
-function makeAssistant({ text, thinking, toolCalls, modelId, stopReason }) {
-  const content = [];
-  if (thinking) content.push({ type: "thinking", thinking });
-  if (text) content.push({ type: "text", text });
-  for (const c of toolCalls) {
-    content.push({
-      type: "toolCall",
-      id: c.id,
-      name: c.name,
-      arguments: c.arguments || {},
-    });
-  }
+function makeAssistant({ content, modelId, stopReason, timestamp, usage = emptyUsage() }) {
   return {
     role: "assistant",
     content: content.length ? content : [{ type: "text", text: "" }],
     api: "openai-completions",
     provider: "openai",
     model: modelId || "desktop",
-    usage: emptyUsage(),
+    usage,
     stopReason,
-    timestamp: Date.now(),
+    timestamp,
   };
 }
 
@@ -168,9 +157,15 @@ export function createAiSdkStreamFn(aiSdkModel, meta = {}) {
     const stream = new AssistantMessageEventStream();
     const signal = options?.signal;
     (async () => {
-      let partial = makeAssistant({ text: "", thinking: "", toolCalls: [], modelId, stopReason: "pending" });
+      const content = [];
+      const timestamp = Date.now();
+      let usage = emptyUsage();
+      const message = (stopReason = "pending") => makeAssistant({
+        content: content.slice(), modelId, stopReason, timestamp, usage,
+      });
       try {
-        stream.push({ type: "start", partial });
+        stream.push({ type: "start", partial: message() });
+        signal?.throwIfAborted();
         const request = readPiTranscript(context);
         let sdkMessages = piContextToSdkMessages(request.messages);
         const sdkTools = piToolsToSdkSchemas(request.tools);
@@ -190,71 +185,73 @@ export function createAiSdkStreamFn(aiSdkModel, meta = {}) {
           providerOptions: meta.reasoningProviderOptions || {},
         });
 
-        let text = "";
-        let thinking = "";
-        let textStarted = false;
-        let thinkingStarted = false;
-        const toolCalls = [];
+        const deltaIndexes = new Map();
+        const toolIds = new Set();
+        let finishReason;
         const iterable = result.fullStream || result.toUIMessageStream?.({ sendReasoning: true }) || [];
 
         for await (const chunk of iterable) {
           const type = chunk?.type;
-          if (type === "text-delta" || type === "text_delta") {
+          const kind = type === "text-delta" || type === "text_delta" ? "text"
+            : type === "reasoning-delta" || type === "reasoning_delta" ? "thinking" : null;
+          if (kind) {
             const delta = sdkChunkText(chunk);
             if (!delta) continue;
-            if (!textStarted) {
-              stream.push({ type: "text_start", contentIndex: 0, partial });
-              textStarted = true;
+            let index = deltaIndexes.get(kind);
+            if (index === undefined) {
+              index = content.length;
+              deltaIndexes.set(kind, index);
+              content.push({ type: kind, [kind]: "" });
+              stream.push({ type: `${kind}_start`, contentIndex: index, partial: message() });
             }
-            text += delta;
-            partial = makeAssistant({ text, thinking, toolCalls, modelId, stopReason: "pending" });
-            stream.push({ type: "text_delta", contentIndex: 0, delta, partial });
-          } else if (type === "reasoning-delta" || type === "reasoning_delta") {
-            const delta = sdkChunkText(chunk);
-            if (!delta) continue;
-            if (!thinkingStarted) {
-              stream.push({ type: "thinking_start", contentIndex: 0, partial });
-              thinkingStarted = true;
-            }
-            thinking += delta;
-            partial = makeAssistant({ text, thinking, toolCalls, modelId, stopReason: "pending" });
-            stream.push({ type: "thinking_delta", contentIndex: 0, delta, partial });
-          } else if (type === "tool-call" || type === "tool-input-start") {
-            const id = chunk.toolCallId || chunk.id || `tc_${toolCalls.length + 1}`;
+            content[index] = { type: kind, [kind]: content[index][kind] + delta };
+            stream.push({ type: `${kind}_delta`, contentIndex: index, delta, partial: message() });
+          } else if (type === "tool-call") {
+            const id = chunk.toolCallId || chunk.id || `tc_${content.length + 1}`;
+            if (toolIds.has(id)) continue;
+            toolIds.add(id);
             const name = chunk.toolName || chunk.tool || "";
             const args = chunk.input || chunk.args || chunk.arguments || {};
-            if (type === "tool-call" || chunk.input) {
-              const call = { id, name, arguments: args };
-              toolCalls.push(call);
-              partial = makeAssistant({ text, thinking, toolCalls, modelId, stopReason: "pending" });
-              stream.push({ type: "toolcall_start", contentIndex: toolCalls.length - 1, partial });
-              stream.push({ type: "toolcall_end", contentIndex: toolCalls.length - 1, toolCall: { type: "toolCall", ...call }, partial });
+            const toolCall = { type: "toolCall", id, name, arguments: args };
+            const index = content.push(toolCall) - 1;
+            const partial = message();
+            stream.push({ type: "toolcall_start", contentIndex: index, partial });
+            stream.push({ type: "toolcall_end", contentIndex: index, toolCall, partial });
+          } else if (type === "finish" || type === "finish-step") {
+            finishReason = chunk.finishReason ?? finishReason;
+            const reported = chunk.totalUsage ?? chunk.usage;
+            if (reported) {
+              const cacheRead = reported.inputTokenDetails?.cacheReadTokens ?? 0;
+              const cacheWrite = reported.inputTokenDetails?.cacheWriteTokens ?? 0;
+              usage = {
+                ...usage,
+                input: reported.inputTokenDetails?.noCacheTokens
+                  ?? Math.max(0, (reported.inputTokens ?? 0) - cacheRead - cacheWrite),
+                output: reported.outputTokens ?? 0,
+                cacheRead,
+                cacheWrite,
+                totalTokens: reported.totalTokens ?? (reported.inputTokens ?? 0) + (reported.outputTokens ?? 0),
+              };
             }
+          } else if (type === "abort") {
+            throw Object.assign(new Error(chunk.reason || "Stream aborted"), { name: "AbortError" });
           } else if (type === "error") {
             throw chunk.error || new Error("stream error");
           }
         }
 
-        if (thinkingStarted) {
-          stream.push({ type: "thinking_end", contentIndex: 0, content: thinking, partial });
+        signal?.throwIfAborted();
+        if (finishReason === "error" || finishReason === "content-filter") {
+          throw new Error(finishReason === "content-filter" ? "model-content-filtered" : "Provider ended the stream with an error");
         }
-        if (textStarted) {
-          stream.push({ type: "text_end", contentIndex: 0, content: text, partial });
+        for (const [kind, index] of deltaIndexes) {
+          stream.push({ type: `${kind}_end`, contentIndex: index, content: content[index][kind], partial: message() });
         }
-        const stopReason = toolCalls.length ? "toolUse" : "stop";
-        const message = makeAssistant({ text, thinking, toolCalls, modelId, stopReason });
-        stream.push({ type: "done", reason: stopReason, message });
+        const stopReason = finishReason === "length" ? "length" : toolIds.size ? "toolUse" : "stop";
+        stream.push({ type: "done", reason: stopReason, message: message(stopReason) });
       } catch (err) {
-        const aborted = Boolean(signal?.aborted) || err?.name === "AbortError";
-        const errorMsg = makeAssistant({
-          text: "",
-          thinking: "",
-          toolCalls: [],
-          modelId,
-          stopReason: aborted ? "aborted" : "error",
-        });
-        errorMsg.errorMessage = err?.message || String(err);
-        stream.push({ type: "error", reason: aborted ? "aborted" : "error", error: errorMsg });
+        const reason = signal?.aborted || err?.name === "AbortError" ? "aborted" : "error";
+        stream.push({ type: "error", reason, error: { ...message(reason), errorMessage: err?.message || String(err) } });
       }
     })();
     return stream;

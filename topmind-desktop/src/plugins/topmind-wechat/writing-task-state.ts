@@ -25,6 +25,6 @@ export function writingTaskBlocker(input: {
   if (input.aiBusy) return "ai-busy";
   if (input.sessionError) return "session-error";
   if (input.skillsEnabled === false) return "skills-off";
-  if (input.enabledSkillIds?.length && !input.enabledSkillIds.includes(input.actionId)) return "skill-off";
+  if (input.enabledSkillIds && !input.enabledSkillIds.includes(input.actionId)) return "skill-off";
   return null;
 }

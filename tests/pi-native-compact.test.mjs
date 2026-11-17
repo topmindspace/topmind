@@ -1,13 +1,11 @@
 /**
- * Pi-native helpers: Models adapter + goal follow-ups + ledger prepareRequest.
+ * Pi transcript compaction, goal follow-ups and task ledger.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   createGoalFollowUps,
   createLedgerPrepareRequest,
-  createSummaryModels,
-  GOAL_SUMMARY_FOCUS,
 } from "../topmind-desktop/electron/ai-pi-runtime.mjs";
 import {
   createGoalState,
@@ -16,24 +14,6 @@ import {
   PLAN_OPEN,
   PLAN_CLOSE,
 } from "../lib/agent-goal-protocol.mjs";
-
-test("createSummaryModels.completeSimple maps generateText result to AssistantMessage", async () => {
-  const models = createSummaryModels({ id: "fake" }, {
-    generateText: async () => ({
-      text: "structured summary",
-      finishReason: "stop",
-      usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 },
-    }),
-  });
-  const msg = await models.completeSimple({}, {
-    systemPrompt: "sys",
-    messages: [{ role: "user", content: [{ type: "text", text: "hello" }] }],
-  }, {});
-  assert.equal(msg.role, "assistant");
-  assert.equal(msg.content[0].text, "structured summary");
-  assert.equal(msg.stopReason, "stop");
-  assert.equal(msg.usage.input, 10);
-});
 
 test("createGoalFollowUps injects continue once while criteria stay open", async () => {
   let state = createGoalState("整理交付稿");
@@ -71,34 +51,6 @@ test("createLedgerPrepareRequest re-injects sticky ledger when missing", async (
     context: { messages: [{ role: "user", content: [{ type: "text", text: ledger }] }] },
   });
   assert.equal(again, undefined);
-});
-
-test("GOAL_SUMMARY_FOCUS keeps receipts and open criteria", () => {
-  assert.match(GOAL_SUMMARY_FOCUS, /path receipt/i);
-  assert.match(GOAL_SUMMARY_FOCUS, /criteria/i);
-});
-
-test("compactPiMessagesLlm returns null — Pi 1.0 removed native compact", async () => {
-  const { compactPiMessagesLlm } = await import("../topmind-desktop/electron/ai-pi-runtime.mjs");
-  const short = [
-    { role: "user", content: [{ type: "text", text: "hi" }], timestamp: 1 },
-    { role: "assistant", content: [{ type: "text", text: "ok" }], timestamp: 2 },
-  ];
-  assert.equal(await compactPiMessagesLlm(short, { contextWindow: 128000 }), null);
-  assert.equal(await compactPiMessagesLlm(short, { model: {}, contextWindow: 128000 }), null);
-  const long = [];
-  for (let i = 0; i < 20; i++) {
-    long.push({
-      role: i % 2 === 0 ? "user" : "assistant",
-      content: [{ type: "text", text: "字".repeat(2000) }],
-      timestamp: i,
-    });
-  }
-  assert.equal(await compactPiMessagesLlm(long, {
-    model: { id: "fake" },
-    contextWindow: 4000,
-    generateText: async () => ({ text: "SUMMARY" }),
-  }), null);
 });
 
 test("over-window transcript folds deterministically and keeps the task ledger", async () => {

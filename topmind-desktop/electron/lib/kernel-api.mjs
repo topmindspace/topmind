@@ -139,6 +139,7 @@ export async function kernelDurableDelete(p, ctx, opts = {}) {
     confirmed: opts.confirmed === true || opts.actor === "user" || !opts.actor,
     role: opts.role,
     permanent: opts.permanent === true,
+    writebackModeOverride: ctx?.explicitWritebackMode === "confirm" ? "confirm" : undefined,
   });
 }
 

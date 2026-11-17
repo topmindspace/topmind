@@ -39,8 +39,8 @@ DSH 配置层 / 适配器 / 面板             → topmind-dsh
 ### 3.1 topmind（主仓）
 
 1. bump `topmind-desktop/package.json`（必要时 `browser-extension/manifest.json`）
-2. `npm run validate`
-3. 创建 `v<desktop-version>` 标签，只推送本次标签：`git push origin refs/tags/v<desktop-version>`
+2. 同步 `topmind-desktop/package-lock.json` 和 `utr/VERSION`，更新 CHANGELOG，然后运行 `npm run validate`
+3. 推送发行提交。主分支 CI 通过后，创建 `v<desktop-version>` 并推送该标签：`git push origin refs/tags/v<desktop-version>`
 4. 验收：Releases 安装包 + `brew upgrade --cask topmind --greedy`
 5. 热修逃生口：`desktop-v*` / `extension-v*`（不标 Latest）
 
@@ -53,7 +53,7 @@ DSH 配置层 / 适配器 / 面板             → topmind-dsh
 
 ### 3.3 topmind-obsidian
 
-1. bump `manifest.json` **与** `package.json`（保持一致）
+1. 对齐 `manifest.json`、`package.json` 和 `package-lock.json`，在 `versions.json` 增加版本对应的最低宿主版本
 2. 用 `TOPMIND_SRC` 或 sibling `../topmind` 对齐需要的主仓提交，运行 `npm run ensure-engine` 并提交 vendored `lib/`
 3. `npm run typecheck && npm run lint && npm run build:verify && npm test && npm run pack && npm run pack:verify`。生产构建不设置 `TOPMIND_SRC`，先构建再测试，保证资产检查实际执行
 4. 推送所需主仓提交，再推送插件 main；CI 通过后 `git tag <manifest-version> && git push origin refs/tags/<manifest-version>`（tag **必须等于** `manifest.version` 本身，如 `4.20.1`，**不要**加 `v` 前缀）
@@ -173,6 +173,6 @@ D 通道当前只做本机绑定。`runtime-manifest.json` 格式 1 的文件清
 2. 核心技能仓发布路由/能力说明。主仓显式 npm run sync:writing；插件显式 npm run sync:skills，提交快照及来源 digest；正常构建不拉取写作 HEAD。
 3. 主仓同步共享工具契约，插件 ensure-engine；分别完成质量门与可复现构建。Desktop 发布必须包含写作快照和 updater metadata。
 4. 先推主仓所需提交，再推插件；各仓 CI 通过后仅推本次版本标签。Obsidian tag 无 v 前缀。
-5. 核对远端 tag、Release 附件和 npm registry；构建与签名成功不等于跨平台安装、微信/X 粘贴已验收，发布记录明确实际验证范围。
+5. 等待标签触发的 Release 工作流结束，核对远端标签、附件、技能 npm 版本和桌面更新清单。分别记录构建、签名、实际安装与平台粘贴的验证结果。
 
 Desktop 本体使用 electron-updater；SHA/平台签名/宿主权限失败保留手动安装。声明式写作包整包替换，编译进宿主的 renderer 随宿主升级。Obsidian 核心代码通过原生插件发行，不下载执行新脚本。卸载或重装不删除用户稿件、工作区和模型设置。

@@ -9,6 +9,7 @@ const snapshots = [
   ["agent-tool-catalog.mjs", "ai-tool-names.mjs"],
   ["agent-policy.mjs", "writeback-mode-copy.mjs"],
   ["agent-goal-protocol.mjs", "agent-goal-protocol.mjs"],
+  ["agent-goal-protocol.d.mts", "agent-goal-protocol.d.mts"],
   ["agent-task-contract.mjs", "agent-task-contract.mjs"],
   ["agent-task-contract.d.mts", "agent-task-contract.d.mts"],
   ["agent-context-policy.mjs", "agent-context-policy.mjs"],

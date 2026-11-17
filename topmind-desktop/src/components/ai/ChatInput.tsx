@@ -33,6 +33,7 @@ import { ICON } from "../../lib/icons";
 import { formatChord } from "../../lib/chord";
 import { streamStatusLabel } from "../../lib/stream-status";
 import { revealChatThreadOnSend } from "../../lib/ai-workspace";
+import { onLocal } from "../../plugins/host";
 import { DropdownItem, DropdownMenu } from "../ui/DropdownMenu";
 
 
@@ -381,7 +382,7 @@ export function ChatInput() {
   const [slashHints, setSlashHints] = useState<string[]>([]);
   const [skillMenuOpen, setSkillMenuOpen] = useState(false);
   const [showSkills, setShowSkills] = useState(false);
-  const [skillSlash, setSkillSlash] = useState(() => getDefaultSkillSlash(t));
+  const [skillSlash, setSkillSlash] = useState<ReturnType<typeof getDefaultSkillSlash>>({});
   const [skillOptions, setSkillOptions] = useState<{ id: string; label: string }[]>([
     { id: "", label: t("ai.auto") },
   ]);
@@ -391,23 +392,29 @@ export function ChatInput() {
   );
 
   useEffect(() => {
-    void api.sys
-      .getSkillsStatus()
-      .then((st) => {
-        if (st.slash?.length) {
-          const next = { ...getDefaultSkillSlash(t) };
-          for (const row of st.slash) {
-            const cmd = row.command.startsWith("/") ? row.command : `/${row.command}`;
-            next[cmd] = {
-              label: next[cmd]?.label || row.skillId.replace(/^topmind-?/, "") || row.skillId,
-              tip: next[cmd]?.tip || row.skillId,
-              prompt: row.prompt,
-              skillId: row.skillId,
-            };
-          }
-          setSkillSlash(next);
+    let latest = 0;
+    const reload = async () => {
+      const request = ++latest;
+      try {
+        const st = await api.sys.getSkillsStatus();
+        if (request !== latest) return;
+        const labels = getDefaultSkillSlash(t);
+        const next: typeof labels = {};
+        for (const row of st.slash || []) {
+          const cmd = row.command.startsWith("/") ? row.command : `/${row.command}`;
+          next[cmd] = {
+            label: labels[cmd]?.label || row.skillId.replace(/^topmind-?/, "") || row.skillId,
+            tip: labels[cmd]?.tip || row.skillId,
+            prompt: row.prompt,
+            skillId: row.skillId,
+          };
         }
+        setSkillSlash(next);
         const cat = st.enabledCatalog || st.catalog || [];
+        const selected = useAiStore.getState().activeSkillId;
+        const available = new Set(cat.map((skill) => skill.id));
+        if (selected && !available.has(selected)) setActiveSkillId(null);
+        setFieldTokens((tokens) => tokens.filter((token) => token.kind !== "skill" || available.has(token.id)));
         setSkillOptions([
           { id: "", label: t("ai.auto") },
           ...cat.map((s) => ({
@@ -417,9 +424,14 @@ export function ChatInput() {
               : s.id.replace(/^topmind-?/, "") || s.id,
           })),
         ]);
-      })
-      .catch(() => {});
-  }, [t]);
+      } catch {
+        // Keep the last confirmed catalog if the host is temporarily unavailable.
+      }
+    };
+    void reload();
+    const unsubscribe = onLocal("ai:settings-changed", () => void reload());
+    return () => { latest++; unsubscribe(); };
+  }, [t, setActiveSkillId]);
 
   const applySlash = (key: string) => {
     const skill = skillSlash[key];

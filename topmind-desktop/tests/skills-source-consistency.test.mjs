@@ -4,9 +4,10 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync } from "node
 import os from "node:os";
 import path from "node:path";
 import {
-  loadSkillBody, loadSkillResource,
+  listSkillCatalog, loadSkillBody, loadSkillResource,
   invalidateSkillsCache, formatCatalogForPrompt,
 } from "../electron/lib/skills-runtime.mjs";
+import { buildSystemPrompt } from "../electron/ai-prompts.mjs";
 
 function fixture(t) {
   const tmp = mkdtempSync(path.join(os.tmpdir(), "tm-skill-source-"));
@@ -47,6 +48,24 @@ test("resources never silently fall back to a different skill pack", (t) => {
   assert.throws(() => loadSkillResource("references/bundled-only.md", { ...f.opts, skillId: "sample" }), /not found/);
 });
 
+test("resource windows preserve complete Unicode characters and mark oversized references", (t) => {
+  const f = fixture(t);
+  const copy = "文".repeat(999);
+  f.write(f.external, "sample/references/large.md", `${copy}🙂${"文".repeat(60000)}`);
+  const scope = { ...f.opts, skillId: "sample" };
+  const limited = loadSkillResource("references/large.md", { ...scope, maxChars: 1000 });
+  assert.equal(limited.truncated, true);
+  assert.equal(limited.content, `${copy}\n\n…(truncated)`);
+  f.write(f.external, "sample/references/exact.md", "文".repeat(1000));
+  assert.equal(loadSkillResource("references/exact.md", { ...scope, maxChars: 1000 }).truncated, false);
+});
+
+test("resource discovery excludes hidden pack files", (t) => {
+  const f = fixture(t);
+  f.write(f.external, "sample/.scratch.md", "draft");
+  assert.throws(() => loadSkillResource(".scratch.md", { ...f.opts, skillId: "sample" }), /Invalid resource path/);
+});
+
 test("skill resources fence traversal and escaping symlinks", (t) => {
   const f = fixture(t);
   f.write(f.tmp, "outside.md", "outside marker");
@@ -66,4 +85,34 @@ test("discovery includes each skill description once", () => {
   const prompt = formatCatalogForPrompt(catalog);
   assert.equal(prompt.split("UNIQUE_DISCOVERY_TEXT").length - 1, 1);
   assert.equal(prompt.split("<name>sample</name>").length - 1, 1);
+});
+
+test("the same selection applies to discovery, direct activation, resource paths and prompt preloads", (t) => {
+  const f = fixture(t);
+  const opts = { ...f.opts, enabledIds: ["topmind-format"] };
+  assert.deepEqual(listSkillCatalog(opts).map(skill => skill.id), ["topmind-format"]);
+  assert.deepEqual(listSkillCatalog({ ...opts, enabledIds: [] }), []);
+  assert.throws(() => loadSkillBody("sample", opts), /not enabled/);
+  assert.throws(() => loadSkillResource("references/detail.md", { ...opts, skillId: "sample" }), /not enabled/);
+  assert.throws(() => loadSkillResource("sample/SKILL.md", opts), /not enabled/);
+  assert.throws(() => loadSkillResource("../topmind-revise/SKILL.md", { ...opts, skillId: "topmind-format" }), /not enabled/);
+  const promptOpts = { ...f.opts, extraSkillsRoots: f.opts.extraRoots, enabledSkillIds: opts.enabledIds, activeSkillId: "sample", locale: "en" };
+  t.after(() => buildSystemPrompt({ extraSkillsRoots: [] }));
+  assert.doesNotMatch(buildSystemPrompt(promptOpts), /skill is pre-loaded: sample|load_skill\("topmind"\)/);
+  assert.doesNotMatch(buildSystemPrompt({ ...promptOpts, documentTask: true }), /Host-preloaded skill: sample/);
+  assert.doesNotMatch(buildSystemPrompt({ ...promptOpts, enabledSkillIds: [] }), /load_skill/);
+  assert.match(buildSystemPrompt({ ...promptOpts, documentTask: true, activeSkillId: "topmind-format" }), /Host-preloaded skill: topmind-format/);
+});
+
+test("writing guidance and resource paths use the selected pack", (t) => {
+  const f = fixture(t);
+  assert.match(loadSkillResource("topmind-wechat-post/references/workspace.md", f.opts).content, /源稿/u);
+  f.write(f.external, "topmind-pack.json", JSON.stringify({ name: "topmind-writing-skills" }));
+  f.write(f.external, "sample/SKILL.md", `---\nname: sample\ndescription: Writing\n---\n${"a".repeat(3000)}`);
+  f.write(f.external, "runtime/host-guide.md", "selected-pack-guide");
+  invalidateSkillsCache();
+  const body = loadSkillBody("sample", { ...f.opts, maxChars: 2000 });
+  assert.ok(body.truncated);
+  assert.ok(body.raw.startsWith("selected-pack-guide"));
+  assert.equal(loadSkillResource("runtime/host-guide.md", { ...f.opts, skillId: "sample" }).content, "selected-pack-guide");
 });

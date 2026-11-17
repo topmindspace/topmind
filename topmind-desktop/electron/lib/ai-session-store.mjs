@@ -134,6 +134,7 @@ export const AiSessionStore = {
           doneCriteria: goalState?.doneCriteria || [], pathReceipts: (goalState?.pathReceipts || []).slice(-24),
           kind: goalState?.kind, status: goalState?.status || "idle", blockReason: goalState?.blockReason || null,
           ...(goalState?.task ? { task: goalState.task } : {}),
+          ...(goalState?.execution ? { execution: goalState.execution } : {}),
           updatedAt: new Date().toISOString(),
         }, 2);
       });

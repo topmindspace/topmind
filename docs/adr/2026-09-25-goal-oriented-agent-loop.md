@@ -3,7 +3,7 @@
 Status: accepted
 Related: `2026-09-07-pi-engine-and-three-column-reevaluation.md`, `2026-09-17e-global-memory-quality.md`, `2026-08-16-memory-consolidation.md`
 
-> **Current state (2026-10-04, Pi 1.0.2):** `prepareCompaction`, `compact`, and `formatSkillsForSystemPrompt` are no longer exported by `pi-agent-core`. The loop still uses `finishTurn` and `prepareRequest`. An over-window transcript is folded by `maybeCompactPiMessages` (`resolveCompactBudget` + `compactMessagesForModel`). `compactPiMessagesLlm` returns null so there is no second summarizer. Skill discovery still injects name, description, and location; activation is still `load_skill`. The D9 / D12 rows below record the 0.87 wiring.
+> **Current state (2026-10-04, Pi 1.0.2):** `prepareCompaction`, `compact`, and `formatSkillsForSystemPrompt` are no longer exported by `pi-agent-core`. The loop still uses `finishTurn` and `prepareRequest`. An over-window transcript is folded by `maybeCompactPiMessages` (`resolveCompactBudget` + `compactMessagesForModel`). The host folds the transcript locally. The retired summarizer adapter was removed in 4.19.3. Skill discovery still injects name, description, and location; activation is still `load_skill`. The D9 / D12 rows below record the 0.87 wiring.
 
 ## Context
 

@@ -28,7 +28,6 @@ import { useViewStore } from "../../stores/view-store";
 type SkillRow = {
   id: string;
   description: string;
-  actionCategory?: string;
   entrypoint?: boolean;
   source?: string;
 };
@@ -83,6 +82,8 @@ export function SkillsPanel({
   const skillsEnabled = settings.ai.skillsEnabled !== false;
   const enabledIds = settings.ai.enabledSkillIds;
   const settingsExtra = settings.ai.extraSkillsRoots || [];
+  const selected = new Set(enabledIds ?? catalog.map((skill) => skill.id));
+  const enabledCount = catalog.filter((skill) => selected.has(skill.id)).length;
 
   const flashOk = (msg: string) => {
     if (flashTimer.current) clearTimeout(flashTimer.current);
@@ -125,24 +126,10 @@ export function SkillsPanel({
     onPatch({ ai: { extraSkillsRoots: roots } } as Partial<AppSettings>);
   };
 
-  const isSkillOn = (id: string) => {
-    if (!enabledIds || enabledIds.length === 0) return true;
-    return enabledIds.includes(id);
-  };
-
   const toggleSkill = (id: string) => {
-    const allIds = catalog.map((c) => c.id);
-    let next: string[] | null;
-    if (!enabledIds || enabledIds.length === 0) {
-      next = allIds.filter((x) => x !== id);
-    } else if (enabledIds.includes(id)) {
-      next = enabledIds.filter((x) => x !== id);
-    } else {
-      next = [...enabledIds, id];
-    }
-    if (next && next.length === allIds.length) next = null;
-    if (next && next.length === 0) next = [id];
-    onPatch({ ai: { enabledSkillIds: next } } as Partial<AppSettings>);
+    const next = new Set(selected);
+    if (!next.delete(id)) next.add(id);
+    onPatch({ ai: { enabledSkillIds: [...next] } } as Partial<AppSettings>);
   };
 
   const beginAddRoot = async () => {
@@ -220,7 +207,6 @@ export function SkillsPanel({
     flashOk(t("settings:skills.okRemoved"));
   };
 
-  const enabledCount = catalog.filter((s) => isSkillOn(s.id)).length;
   const extCount = catalog.filter((s) => s.source === "external").length;
   const receipt = extraReceipt;
 
@@ -445,6 +431,16 @@ export function SkillsPanel({
       <SettingsSection
         title={t("settings:skills.catalog")}
         description={t("settings:skills.catalogDesc")}
+        action={enabledIds && (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!skillsEnabled}
+            onClick={() => onPatch({ ai: { enabledSkillIds: null } } as Partial<AppSettings>)}
+          >
+            {t("settings:skills.enableAll")}
+          </Button>
+        )}
       >
         {loading && catalog.length === 0 ? (
           <div className="flex items-center gap-2 px-4 py-3 text-3xs text-text-tertiary">
@@ -457,15 +453,15 @@ export function SkillsPanel({
                 <label
                   className={cn(
                     "flex cursor-pointer items-start gap-2.5 rounded-[var(--radius-md)] border px-2.5 py-2 text-3xs transition-colors",
-                    isSkillOn(s.id)
+                    selected.has(s.id)
                       ? "border-border-subtle-dim bg-surface hover:border-border-subtle"
                       : "border-border-subtle-dim/60 bg-surface-wash-15 opacity-65",
                   )}
                 >
                   <input
                     type="checkbox"
-                    className="mt-0.5"
-                    checked={isSkillOn(s.id)}
+                    className="mt-0.5 accent-accent-color v4-focus-ring"
+                    checked={selected.has(s.id)}
                     disabled={!skillsEnabled}
                     onChange={() => toggleSkill(s.id)}
                   />
@@ -477,16 +473,13 @@ export function SkillsPanel({
                         <RiBookOpenLine size={ICON.xs} className="text-text-quaternary" />
                       )}
                       <span className="font-mono text-3xs">{s.id.replace(/^topmind-?/, "") || s.id}</span>
-                      {s.actionCategory ? (
+                      {s.source === "external" ? (
                         <span className="rounded bg-surface-wash-30 px-1.5 py-px text-3xs text-text-tertiary">
-                          {s.actionCategory}
+                          {t("settings:skills.externalBadge")}
                         </span>
                       ) : null}
-                      {s.source === "external" ? (
-                        <span className="rounded bg-status-warning-bg px-1.5 py-px text-3xs text-warning">ext</span>
-                      ) : null}
                     </span>
-                    <span className="mt-1 block leading-relaxed text-text-tertiary">
+                    <span className="mt-1 block wrap-break-word leading-relaxed text-text-tertiary">
                       {s.description}
                     </span>
                   </span>

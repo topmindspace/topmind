@@ -98,6 +98,22 @@ test("empty final payload still persists the last buffered text", async () => {
   assert.equal(calls.filter((c) => c.method === "ai.saveMessages").at(-1)?.params.messages.at(-1).content, "buffered answer");
 });
 
+test("a terminal provider error preserves the received draft, reason and usage in history", async () => {
+  const response = deferred();
+  handlers.set("ai.invoke", () => response.promise);
+  const run = state().sendMessage("Write a draft");
+  emit("text", "Partial draft");
+  const usage = { promptTokens: 21, completionTokens: 3, totalTokens: 24 };
+  response.resolve({ ok: false, error: "Output limit", text: "Partial draft", stopReason: "error", usage });
+  await run;
+  const message = state().messages.at(-1);
+  assert.equal(message?.content, "Partial draft");
+  assert.equal(message?.isError, true);
+  assert.equal(message?.errorMessage, "Output limit");
+  assert.deepEqual(message?.usage, usage);
+  assert.deepEqual(calls.filter(c => c.method === "ai.saveMessages").at(-1)?.params.messages.at(-1), message);
+});
+
 test("out-of-order session loads cannot overwrite the selected conversation", async () => {
   const a = deferred();
   const b = deferred();

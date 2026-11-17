@@ -191,10 +191,3 @@ test("formatCatalogForPrompt emits a single available_skills catalog", async () 
   assert.match(text, /<location>/);
   assert.match(text, /<name>topmind/);
 });
-
-test("toPiSkills maps catalog to Pi Skill shape", async () => {
-  const { toPiSkills } = await import("../electron/lib/skills-runtime.mjs");
-  const skills = toPiSkills([{ id: "topmind-memory", description: "d", path: "/x/SKILL.md" }]);
-  assert.equal(skills[0].name, "topmind-memory");
-  assert.equal(skills[0].filePath, "/x/SKILL.md");
-});

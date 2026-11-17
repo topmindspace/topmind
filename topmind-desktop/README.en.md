@@ -18,6 +18,10 @@ A reviewed release snapshot of [topmind-writing-skills](https://github.com/topmi
 
 Open a Markdown document and choose **Writing & delivery** from Apps, the status bar or the command palette. Edit the source in the main editor, choose a delivery format and theme, then preview, copy or export beside it in `out/`. Existing article folders and WeChat drafts work in place.
 
+Choose **Revise → Review only** for feedback. To change a sentence, choose **Edit source** and name the passage. For a finished draft, open **Layout preview**, choose WeChat, X Article or text, and check the image and layout report before copying or exporting.
+
+Use **Settings → Skills** to choose which skills the assistant can use. **Enable all** restores the full catalog. If a model hits its output limit, the app keeps the text received so far and shows why the turn stopped.
+
 Built-in HTML/text typography requires no Python. Preview and copy use the same output; changed sources or images require regeneration. Diagnostics identify missing images, diagram source, extended containers and table paste limitations. AI images, PNG rendering and publishing require their respective tools. Copying does not publish; wording scores do not decide editorial quality.
 
 About & updates tracks the application, core skills, independent writing pack and integrations separately. Writing resources can update independently; compiled renderer code follows the host release. Managed packs are isolated, local modifications block replacement and failed installs preserve the previous version. Supported Desktop installs can download an update and explicitly restart; manual downloads remain available when signing or the installation channel prevents automatic updates.

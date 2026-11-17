@@ -126,6 +126,7 @@ interface AiState {
     criteria: string[];
     openCriteria: string[];
     pathReceipts: string[];
+    modifiedPaths?: string[];
     status: string;
     blockReason?: string | null;
     autoContinues: number;
@@ -490,13 +491,15 @@ async function performInvocation(
       const name = p.tool || "tool";
       const paths = pathsFromToolResult(p.output, p.summary);
       const output = (p.output && typeof p.output === "object") ? p.output as Record<string, unknown> : undefined;
+      const status = output?.pending === true || output?.needsConfirm === true ? "pending"
+        : p.status === "error" || output?.ok === false || output?.error ? "error" : "done";
       set((s) => {
-        const nextCalls = s.streamToolCalls.map((t) => {
+        const nextCalls = s.streamToolCalls.map<AiToolCall>((t) => {
           if (id && t.id === id) {
-            return { ...t, status: "done" as const, summary: p.summary, paths: paths.length ? paths : t.paths, output };
+            return { ...t, status, summary: p.summary, paths: paths.length ? paths : t.paths, output };
           }
           if (!id && t.name === name && t.status === "running") {
-            return { ...t, status: "done" as const, summary: p.summary, paths: paths.length ? paths : t.paths, output };
+            return { ...t, status, summary: p.summary, paths: paths.length ? paths : t.paths, output };
           }
           return t;
         });
@@ -504,7 +507,7 @@ async function performInvocation(
           nextCalls.push({
             id,
             name,
-            status: "done",
+            status,
             summary: p.summary,
             paths: paths.length ? paths : undefined,
             output,
@@ -560,6 +563,7 @@ async function performInvocation(
           criteria?: string[];
           openCriteria?: string[];
           pathReceipts?: string[];
+          modifiedPaths?: string[];
           status?: string;
           blockReason?: string | null;
           autoContinues?: number;
@@ -586,6 +590,7 @@ async function performInvocation(
               criteria: goal.criteria || [],
               openCriteria: goal.openCriteria || [],
               pathReceipts: goal.pathReceipts || [],
+              modifiedPaths: goal.modifiedPaths || [],
               status: goal.status || "idle",
               blockReason: goal.blockReason || null,
               autoContinues: goal.autoContinues ?? 0,
@@ -654,18 +659,7 @@ async function performInvocation(
       deltaBatcher.flush();
       set((s) => {
         const updated = patchLastAssistant(s.messages, (last) => {
-          const partial = last.content;
-          if (result.ok === false) {
-            const errText = result.error?.trim() || i18n.t("ai:store.generationFailed");
-            return {
-              ...last,
-              content: errText,
-              isError: true,
-              toolCalls: last.toolCalls?.length ? last.toolCalls : s.streamToolCalls,
-              goal: s.streamGoal || last.goal || null,
-            };
-          }
-          const incoming = result.text || partial;
+          const incoming = result.text || last.content;
           const split = splitAssistantVisible(incoming);
           const resultReasoning = (result as { reasoning?: string }).reasoning || "";
           const resultGoal = (result as {
@@ -675,6 +669,7 @@ async function performInvocation(
               criteria: string[];
               openCriteria: string[];
               pathReceipts: string[];
+              modifiedPaths?: string[];
               status: string;
               blockReason?: string | null;
               autoContinues: number;
@@ -685,7 +680,8 @@ async function performInvocation(
             content: split.body,
             contentRaw: incoming,
             reasoning: mergeReasoning(resultReasoning || last.reasoningProvider, split.reasoning || last.reasoning),
-            isError: false,
+            isError: result.ok === false,
+            errorMessage: result.ok === false ? result.error?.trim() || i18n.t("ai:store.generationFailed") : undefined,
             cancelled: Boolean((result as { cancelled?: boolean }).cancelled) || last.cancelled,
             stopReason: (result as { stopReason?: string | null }).stopReason ?? last.stopReason ?? null,
             usage: (result as { usage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number } }).usage,
@@ -776,7 +772,7 @@ async function performInvocation(
       set((s) => ({
         messages: patchLastAssistant(s.messages, (last) => ({
           ...last,
-          content: errMsg,
+          errorMessage: errMsg || i18n.t("ai:store.generationFailed"),
           isError: true,
           goal: s.streamGoal || last.goal || null,
         })),

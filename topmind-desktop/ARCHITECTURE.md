@@ -271,6 +271,10 @@ AiService.invoke
 - 空闲超时：180 秒（无 chunk 时触发，足够覆盖 fetch + 多文件写）
 - 检查间隔：10 秒
 
+Pi 适配器把 SDK 正文、推理和工具调用映射到稳定的内容块索引。正文与推理的增量在约 16 ms 的窗口内合批，状态切换、工具事件和结束前冲刷，重复的同状态增量无需额外 IPC。SDK 报告的输入、输出和总量累加到助手消息；缺少用量时省略徽章。
+
+SDK 错误、取消和输出长度上限分别形成终态。输出被截断时，保留收到的正文和先前成功写入的回执，同一次截断响应内的工具调用不会执行。模型请求失败时向 UI 返回可重试错误，Pi 已经启动的回合沿用原有单一运行时。
+
 写/读工具：`edit_file`（Kernel `applyUniqueSpan`：精确 → 换行/行尾空白规范化；多处拒绝；失败带 nearby/context；**文本类白名单**；**不写 Archive**）· `save_file` 整文件覆盖（**文本类** .md/.txt/.json/.yaml/.csv/代码/配置；**仅 locked 覆盖备份**；open 不备份）· `delete_path` 跟 `isRecoverableLifecycle`（普通开放笔记无 trash；锁定 / 专题首页 / 交付 才进归档）· `read_file` 带行号窗口 + `around`/`heading` 中段定位 · `search`=`grepWorkspace`（可 scope、默认可跳过 Archive、行号命中）。  
 中途控制：`ai.steerStream` · `ai.queueFollowUp`；打开文件本轮自动带入（无需点挂载）。  
 ADR：`docs/adr/2026-07-16-desktop-agent-harness-upgrade.md`。
@@ -457,7 +461,7 @@ AiPanel 模型下拉选择器的 `onChange` 不仅更新内存 store，还同步
 
 ### AI 工具暴露策略（全能力 Agent，无 UTR）
 
-`buildDesktopAiTools`（`electron/ai-tools.mjs`）→ **WorkspaceService**。系统提示只列出实际加载的 snake_case 工具名。多步 tool loop：`maxAgentSteps` 默认 **32**（`AGENT_STEPS_DEFAULT` / `DEFAULT_MAX_AGENT_STEPS`，可配 3–80）；Pi 循环用 **`finishTurn`** 做步数闸（`shouldStopAfterTurn` 在 pi-agent-core 0.87 已移除，必须走 `finishTurn` → `{action:"end"}`）。Pi **1.0.2** 再移除 harness 压缩与 `formatSkillsForSystemPrompt`：超窗走 `maybeCompactPiMessages` + `resolveCompactBudget`（`compactPiMessagesLlm` 返回 null，不另起 LLM 摘要）；技能目录由 Desktop 注入 name/description/location，激活仍是 `load_skill`。流函数收到的是 transcript（系统提示和工具声明在 system message 上）。**目标协议**（`electron/lib/agent-goal-protocol.mjs`，与 `../lib/` 及 Obsidian 快照字节一致；禁 `../../lib` 静态导入）：多步任务先出 `[PLAN]`/`done-when`，收尾前验收；`assessGoalCompletion` 驱动 **goal-aware auto-continue**（未完成验收项最多 4 次，状态 `continuing`），续跑提示带任务台账与路径回执；上下文溢出时压缩预算递减 + 任务台账前插，**最多重试 3 次** 而不是直接报错。`edit_file` 的 `expectedHash` 为 **soft 乐观并发**（`contentHash` 来自 `read_file`/`edit_file`）：hash 过期但 unique-span 仍可匹配则放行（note 标注）；仅 matcher 也失败才报 hash-mismatch。**AI 写成功后主动 `ctx.emit("workspace:file-changed", { source: "ai:<tool>" })`**（保留工具来源归因；watcher 不再按时间窗吞掉相邻外部修改，编辑器按内容比较识别回声）。内容创建/更新/编辑恒 `confirmed:true`（分级 confirm 直接落盘）；仅 `delete_path`/`rename_path` 在 confirm 模式保持 pending。**模型窗口**：`resolveModel` 从 `ai.modelCache` 注入 `contextWindow`，驱动动态 compact 预算。**思考强度**：agent 模式默认 high（OpenAI `reasoningEffort` / Anthropic `thinking.budgetTokens` / Gemini `thinkingBudget`）。Pi 在初始化不可用时可选 AI SDK `streamText`；已经开始执行的任务遇到运行时异常立即停止，禁止切换运行时重放已执行写入。Skills 以 playbook + `/slash` 接入，不是第二进程。
+`buildDesktopAiTools`（`electron/ai-tools.mjs`）→ **WorkspaceService**。系统提示只列出实际加载的 snake_case 工具名。多步 tool loop：`maxAgentSteps` 默认 **32**（`AGENT_STEPS_DEFAULT` / `DEFAULT_MAX_AGENT_STEPS`，可配 3–80）；Pi 循环用 **`finishTurn`** 做步数闸（`shouldStopAfterTurn` 在 pi-agent-core 0.87 已移除，必须走 `finishTurn` → `{action:"end"}`）。Pi **1.0.2** 再移除 harness 压缩与 `formatSkillsForSystemPrompt`：超窗走 `maybeCompactPiMessages` + `resolveCompactBudget`，压缩由宿主在本机完成；技能目录由 Desktop 注入 name/description/location，激活仍是 `load_skill`。流函数收到的是 transcript（系统提示和工具声明在 system message 上）。**目标协议**（`electron/lib/agent-goal-protocol.mjs`，与 `../lib/` 及 Obsidian 快照字节一致；禁 `../../lib` 静态导入）：多步任务先出 `[PLAN]`/`done-when`，收尾前验收；`assessGoalCompletion` 驱动 **goal-aware auto-continue**（未完成验收项最多 4 次，状态 `continuing`），续跑提示带任务台账与路径回执；上下文溢出时压缩预算递减 + 任务台账前插，**最多重试 3 次** 而不是直接报错。`edit_file` 的 `expectedHash` 为 **soft 乐观并发**（`contentHash` 来自 `read_file`/`edit_file`）：hash 过期但 unique-span 仍可匹配则放行（note 标注）；仅 matcher 也失败才报 hash-mismatch。**AI 写成功后主动 `ctx.emit("workspace:file-changed", { source: "ai:<tool>" })`**（保留工具来源归因；watcher 不再按时间窗吞掉相邻外部修改，编辑器按内容比较识别回声）。内容创建/更新/编辑恒 `confirmed:true`（分级 confirm 直接落盘）；仅 `delete_path`/`rename_path` 在 confirm 模式保持 pending。**模型窗口**：`resolveModel` 从 `ai.modelCache` 注入 `contextWindow`，驱动动态 compact 预算。**思考强度**：agent 模式默认 high（OpenAI `reasoningEffort` / Anthropic `thinking.budgetTokens` / Gemini `thinkingBudget`）。Pi 在初始化不可用时可选 AI SDK `streamText`；已经开始执行的任务遇到运行时异常立即停止，禁止切换运行时重放已执行写入。Skills 以 playbook + `/slash` 接入，不是第二进程。
 
 | 写回模式 | 暴露的工具 | 说明 |
 |----------|-----------|------|
@@ -863,6 +867,8 @@ pack:verify → asar 入口 / zod / engine / monorepo-import 禁令
 ## 独立写作包与更新
 
 `electron/data/writing-pack.json` 和两端排版模块是 `npm run sync:writing` 从独立写作仓生成的发行快照；构建不动态读取姊妹源码。`npm run check:writing` 用于显式跨仓对齐。正文与资源按包解析，受管更新安装到 skills-extra/packs/<name>/，整包校验并替换；安装回执与 shared 不再跨包共用。
+
+`ai.enabledSkillIds` 的 `null` 表示启用全部，数组表示明确选择，空数组表示停用全部单项。`ai.skillsEnabled` 控制总开关。发现目录、预载和工具装配共用选择结果。专用写作入口会提示技能已停用，排版预览独立运行。
 
 `render_article` 使用同源排版模块和 WorkspaceService 围栏读取文件，返回真实诊断；内容写入仍通过现有保存工具。排版代码不从下载技能中动态执行。Desktop 本体更新由 electron-updater 负责下载、就绪与重启交接；发布上传 latest*.yml 与 blockmap，手动渠道保持可用。
 

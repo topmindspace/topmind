@@ -13,7 +13,7 @@
  *
  * No monorepo ../../skills static import (packaged asar-safe via engine root).
  */
-import { promises as fs, readFileSync, existsSync, readdirSync, realpathSync, statSync } from "node:fs";
+import { promises as fs, closeSync, openSync, readSync, readFileSync, existsSync, readdirSync, realpathSync, statSync } from "node:fs";
 import path from "node:path";
 import { getEngineRoot } from "./workspace-home.mjs";
 import { defaultEngineCandidate } from "./engine-root.mjs";
@@ -31,10 +31,9 @@ const CORE_ACTION_IDS = [
 ];
 const CONNECTOR_IDS = ["topmind-weread", "topmind-x"];
 
-/** @type {{ root: string|null, pack: object|null, catalog: object[]|null }} */
+/** @type {{ root: string|null, catalog: object[]|null }} */
 const cache = {
   root: null,
-  pack: null,
   catalog: null,
 };
 
@@ -149,7 +148,6 @@ function listSkillDirsFromRoot(skillsRoot) {
 function resetCacheIfRootChanged(skillsRoot) {
   if (cache.root !== skillsRoot) {
     cache.root = skillsRoot;
-    cache.pack = null;
     cache.catalog = null;
   }
 }
@@ -324,7 +322,6 @@ export function listSkillCatalog(opts = {}) {
   }
 
   const pack = loadPackSync(skillsRoot);
-  cache.pack = pack;
   /** @type {Map<string, object>} */
   const byId = new Map();
 
@@ -333,7 +330,7 @@ export function listSkillCatalog(opts = {}) {
     for (const id of listSkillDirsFromRoot(rootDir)) {
       const skillPath = path.join(rootDir, id, "SKILL.md");
       try {
-        const raw = readFileSync(containedResource(rootDir, skillPath), "utf8");
+        const raw = readUtf8Prefix(containedResource(rootDir, skillPath), 16000);
         const parsed = parseSkillMarkdown(raw);
         const meta = resolveSkillMeta(parsed.frontmatter);
         const name = parsed.name || id;
@@ -386,17 +383,29 @@ export function listSkillCatalog(opts = {}) {
 }
 
 function filterEnabled(catalog, enabledIds) {
-  if (!enabledIds || !Array.isArray(enabledIds) || enabledIds.length === 0) {
+  if (!Array.isArray(enabledIds)) {
     return catalog.slice();
   }
   const set = new Set(enabledIds);
   return catalog.filter((s) => set.has(s.id) || set.has(s.directory));
 }
 
+function findSkill(catalog, id) {
+  return catalog.find((skill) => skill.id === id)
+    || catalog.find((skill) => skill.directory === id);
+}
+
+function requireEnabledSkill(skill, enabledIds) {
+  if (skill && !filterEnabled([skill], enabledIds).length) {
+    throw new Error(`Skill not enabled: ${skill.id}`);
+  }
+  return skill;
+}
+
 /**
  * Load full skill body (level 2 activation).
  * @param {string} skillId
- * @param {{ engineRoot?: string, maxChars?: number, extraRoots?: string[] }} [opts]
+ * @param {{ engineRoot?: string, maxChars?: number, extraRoots?: string[], enabledIds?: string[]|null }} [opts]
  */
 export function loadSkillBody(skillId, opts = {}) {
   const id = String(skillId || "").trim().replace(/^\/+/, "");
@@ -409,13 +418,24 @@ export function loadSkillBody(skillId, opts = {}) {
   // Resolve with the same roots and precedence as discovery. Read activation
   // from disk rather than caching a body across installs or extension changes.
   const catalog = listSkillCatalog({ engineRoot: opts.engineRoot, extraRoots: opts.extraRoots });
-  const hit = catalog.find((s) => s.id === id || s.directory === id || s.name === id);
+  const hit = requireEnabledSkill(findSkill(catalog, id), opts.enabledIds);
   if (!hit) throw new Error(`Skill not found: ${id}`);
   const usedPath = hit.skillsRoot ? containedResource(hit.skillsRoot, hit.path) : hit.path;
-  const raw = hit.skillsRoot ? readFileSync(usedPath, "utf8") : writingPack.resources[hit.path];
+  const max = Math.trunc(Math.min(Math.max(Number(opts.maxChars) || 14000, 2000), 40000));
+  const raw = hit.skillsRoot ? readUtf8Prefix(usedPath, max) : writingPack.resources[hit.path];
 
   const parsed = parseSkillMarkdown(raw);
   const meta = resolveSkillMeta(parsed.frontmatter);
+  let hostGuide = "";
+  if (hit.packId === "topmind-writing-skills") {
+    const guide = "runtime/host-guide.md";
+    if (!hit.skillsRoot) {
+      hostGuide = writingPack.resources[guide];
+    } else {
+      const candidate = path.join(hit.skillsRoot, guide);
+      if (existsSync(candidate)) hostGuide = readUtf8Prefix(containedResource(hit.skillsRoot, candidate), max);
+    }
+  }
   const result = {
     id: parsed.name || id,
     path: usedPath,
@@ -424,21 +444,16 @@ export function loadSkillBody(skillId, opts = {}) {
     entrypoint: meta.entrypoint,
     version: meta.version || undefined,
     body: parsed.body,
-    raw: hit.packId === "topmind-writing-skills" ? `${raw}\n\n${writingPack.resources["runtime/host-guide.md"]}` : raw,
+    raw: hostGuide ? `${hostGuide}\n\n${raw}` : raw,
     frontmatter: parsed.frontmatter,
   };
-  return clipBody(result, opts.maxChars);
+  return clipBody(result, max);
 }
 
-function clipBody(result, maxChars) {
-  const max = Math.min(Math.max(Number(maxChars) || 14000, 2000), 40000);
-  if (typeof result === "string") {
-    if (result.length <= max) return { raw: result, body: result, truncated: false };
-    return { raw: result.slice(0, max), body: result.slice(0, max), truncated: true };
-  }
+function clipBody(result, max) {
   const out = { ...result };
   if (out.raw && out.raw.length > max) {
-    out.raw = `${out.raw.slice(0, max)}\n\n…(truncated ${out.raw.length - max} chars; use load_skill_resource for shared refs)`;
+    out.raw = `${clipUtf8Text(out.raw, max)}\n\n…(truncated; use load_skill_resource for shared refs)`;
     out.body = out.raw;
     out.truncated = true;
   } else {
@@ -461,56 +476,88 @@ function containedResource(root, candidate) {
     throw new Error("Invalid resource path: outside skills root");
   }
   // Lexical containment alone permits a symlink to expose arbitrary host files.
-  if (!isWithinRoot(realpathSync(root), realpathSync(candidate))) {
+  const realRoot = realpathSync(root);
+  const realCandidate = realpathSync(candidate);
+  if (!isWithinRoot(realRoot, realCandidate)) {
     throw new Error("Invalid resource path: symlink outside skills root");
   }
-  if (!statSync(candidate).isFile()) throw new Error("Resource is not a file");
-  return candidate;
+  if (path.relative(realRoot, realCandidate).split(path.sep).some((part) => part.startsWith("."))) {
+    throw new Error("Invalid resource path: hidden file");
+  }
+  if (!statSync(realCandidate).isFile()) throw new Error("Resource is not a file");
+  return realCandidate;
+}
+
+function readUtf8Prefix(file, maxChars) {
+  // Four bytes per UTF-16 code unit covers any UTF-8 sequence and leaves room
+  // for one extra character so the caller can tell whether truncation occurred.
+  const buffer = Buffer.alloc((maxChars + 1) * 4);
+  const fd = openSync(file, "r");
+  try {
+    let length = 0;
+    while (length < buffer.length) {
+      const read = readSync(fd, buffer, length, buffer.length - length, null);
+      if (read === 0) break;
+      length += read;
+    }
+    return buffer.toString("utf8", 0, length);
+  } finally {
+    closeSync(fd);
+  }
+}
+
+function clipUtf8Text(text, max) {
+  const end = text.charCodeAt(max - 1);
+  return text.slice(0, end >= 0xd800 && end <= 0xdbff ? max - 1 : max);
 }
 
 export function loadSkillResource(rel, opts = {}) {
-  const skillsRoot = resolveSkillsRoot(opts.engineRoot);
   const cleaned = String(rel || "").replace(/\\/gu, "/");
   if (!cleaned || path.isAbsolute(cleaned) || /^[A-Za-z]:/u.test(cleaned)) {
     throw new Error("Invalid resource path");
   }
-  let roots;
-  let skillDirectory = null;
-  if (opts.skillId) {
-    const catalog = listSkillCatalog({ engineRoot: opts.engineRoot, extraRoots: opts.extraRoots });
-    const hit = catalog.find((s) => s.id === opts.skillId || s.directory === opts.skillId);
-    if (!hit) throw new Error(`Skill not found: ${opts.skillId}`);
+  const parts = cleaned.split("/");
+  if (parts.some((part) => part.startsWith(".") && part !== "." && part !== "..")) throw new Error("Invalid resource path");
+  if (!opts.skillId && parts.includes("..")) throw new Error("Invalid resource path");
+  const catalog = listSkillCatalog({ engineRoot: opts.engineRoot, extraRoots: opts.extraRoots });
+  const prefix = path.posix.normalize(cleaned).split("/")[0];
+  const hit = requireEnabledSkill(findSkill(catalog, opts.skillId || prefix), opts.enabledIds);
+  if (opts.skillId && !hit) throw new Error(`Skill not found: ${opts.skillId}`);
+  let raw;
+  const max = Math.trunc(Math.min(Math.max(Number(opts.maxChars) || 12000, 1000), 40000));
+  if (hit) {
+    const packRelative = !opts.skillId || ["shared", "runtime", hit.directory, hit.id].includes(prefix);
+    const relative = prefix === hit.id && hit.id !== hit.directory
+      ? [hit.directory, ...path.posix.normalize(cleaned).split("/").slice(1)].join("/")
+      : cleaned;
+    const key = path.posix.normalize(packRelative ? relative : path.posix.join(hit.directory, relative));
+    if (key === ".." || key.startsWith("../")) throw new Error("Invalid resource path");
+    const owner = catalog.find((skill) => skill.skillsRoot === hit.skillsRoot && skill.directory === key.split("/")[0]);
+    requireEnabledSkill(owner, opts.enabledIds);
     if (!hit.skillsRoot) {
-      const key = path.posix.normalize(path.posix.join(hit.directory, cleaned));
-      if (key.startsWith("../") || !Object.hasOwn(writingPack.resources, key)) throw new Error(`Resource not found: ${cleaned}`);
-      const raw = writingPack.resources[key];
-      const max = Math.min(Math.max(Number(opts.maxChars) || 12000, 1000), 40000);
-      return { path: cleaned, content: raw.slice(0, max), truncated: raw.length > max };
+      if (Object.hasOwn(writingPack.resources, key)) raw = writingPack.resources[key];
+    } else {
+      const candidate = path.join(hit.skillsRoot, key);
+      if (existsSync(candidate)) raw = readUtf8Prefix(containedResource(hit.skillsRoot, candidate), max);
     }
-    roots = [hit.skillsRoot];
-    skillDirectory = hit.directory;
   } else {
-    if (cleaned.split("/").includes("..")) throw new Error("Invalid resource path");
-    // Later extension roots override earlier roots, just as in discovery.
-    roots = [skillsRoot, ...resolveExtraSkillsRoots({ extraRoots: opts.extraRoots })].reverse();
-  }
-  let abs = null;
-  for (const root of roots) {
-    const packRelative = cleaned.startsWith("shared/") || (skillDirectory && cleaned.startsWith(`${skillDirectory}/`));
-    const base = skillDirectory && !packRelative ? path.join(root, skillDirectory) : root;
-    const candidate = path.resolve(base, cleaned);
-    if (!isWithinRoot(path.resolve(root), candidate)) throw new Error("Invalid resource path");
-    if (existsSync(candidate)) {
-      abs = containedResource(root, candidate);
-      break;
+    const roots = [resolveSkillsRoot(opts.engineRoot), ...resolveExtraSkillsRoots({ extraRoots: opts.extraRoots })].reverse();
+    const enabledRoots = Array.isArray(opts.enabledIds)
+      ? new Set(filterEnabled(catalog, opts.enabledIds).map((skill) => skill.skillsRoot))
+      : null;
+    for (const root of roots) {
+      if (enabledRoots && !enabledRoots.has(root)) continue;
+      const candidate = path.join(root, cleaned);
+      if (existsSync(candidate)) {
+        raw = readUtf8Prefix(containedResource(root, candidate), max);
+        break;
+      }
     }
   }
-  if (!abs) throw new Error(`Resource not found: ${cleaned}`);
-  const raw = readFileSync(abs, "utf8");
-  const max = Math.min(Math.max(Number(opts.maxChars) || 12000, 1000), 40000);
+  if (raw === undefined) throw new Error(`Resource not found: ${cleaned}`);
   return {
     path: cleaned,
-    content: raw.length > max ? `${raw.slice(0, max)}\n\n…(truncated)` : raw,
+    content: raw.length > max ? `${clipUtf8Text(raw, max)}\n\n…(truncated)` : raw,
     truncated: raw.length > max,
   };
 }
@@ -540,7 +587,7 @@ export function getSkillsStatus(opts = {}) {
     hasShared,
     catalog: catalog.map((s) => ({
       id: s.id,
-      description: s.description.slice(0, 200),
+      description: s.description.length > 512 ? `${s.description.slice(0, 512)}…` : s.description,
       actionCategory: s.actionCategory,
       entrypoint: s.entrypoint,
       source: s.source || "bundled",
@@ -603,21 +650,6 @@ export function formatCatalogForPrompt(catalog) {
 }
 
 /**
- * Map catalog entries to Pi `Skill[]` (name / description / content / filePath).
- * Used by tests and any host that wants `formatSkillInvocation`.
- * @param {Array<{ id?: string, name?: string, description?: string, path?: string }>} catalog
- * @returns {Array<{ name: string, description: string, content: string, filePath: string }>}
- */
-export function toPiSkills(catalog) {
-  return (catalog || []).map((s) => ({
-    name: String(s.id || s.name || "skill"),
-    description: String(s.description || ""),
-    content: "",
-    filePath: String(s.path || ""),
-  }));
-}
-
-/**
  * Map slash command → skill id
  */
 export const SLASH_TO_SKILL = Object.freeze({
@@ -635,6 +667,5 @@ export const SLASH_TO_SKILL = Object.freeze({
 
 export function invalidateSkillsCache() {
   cache.root = null;
-  cache.pack = null;
   cache.catalog = null;
 }

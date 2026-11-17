@@ -708,10 +708,12 @@ export function rejectBareDone(state, opts = {}) {
 }
 
 /**
- * Honesty footer model. Path receipts are a change footprint, never Verified.
+ * Honesty footer model. Legacy path receipts contain references. Only the host
+ * records modified paths, and neither list implies verification.
  * Empty segments stay empty so the UI can say "none" instead of inventing checks.
  * @param {{
  *   pathReceipts?: string[],
+ *   modifiedPaths?: string[],
  *   checksRun?: string[],
  *   assumptions?: string[],
  *   openCriteria?: string[],
@@ -719,7 +721,7 @@ export function rejectBareDone(state, opts = {}) {
  *   status?: string,
  *   blockReason?: string|null,
  * }|null|undefined} goal
- * @returns {{ changes: string[], verified: string[], assumed: string[], couldNot: string[] }|null}
+ * @returns {{ changes: string[], references: string[], verified: string[], assumed: string[], couldNot: string[] }|null}
  */
 export function buildResultFooter(goal) {
   if (!goal) return null;
@@ -727,8 +729,10 @@ export function buildResultFooter(goal) {
   if (status !== "done" && status !== "incomplete" && status !== "blocked") return null;
   const couldNot = [...(goal.openCriteria?.length ? goal.openCriteria : (goal.doneCriteria || []))];
   if (status === "blocked" && goal.blockReason) couldNot.push(goal.blockReason);
+  const changes = [...(goal.modifiedPaths || [])];
   return {
-    changes: [...(goal.pathReceipts || [])],
+    changes,
+    references: (goal.pathReceipts || []).filter(p => !changes.includes(p)),
     verified: [...(goal.checksRun || [])],
     assumed: [...(goal.assumptions || [])],
     couldNot,
@@ -758,13 +762,13 @@ export function buildGoalEvaluatorPrompt({ state, lastBody, toolSummaries = [] }
     `GOAL: ${state.goal || "(none)"}`,
     `PLAN:\n- ${plan}`,
     `ACCEPTANCE CRITERIA (all must hold):\n- ${open}`,
-    `PATH RECEIPTS: ${receipts}`,
+    `REFERENCED PATHS: ${receipts}`,
     `RECENT TOOLS:\n- ${tools}`,
     `LAST WORKER REPLY:\n${String(lastBody || "").slice(0, 4000)}`,
     "",
     "Reply JSON only:",
     '{"verdict":"met|not_met|impossible","reason":"one sentence","openCriteria":["…"]}',
-    "- met = every acceptance criterion is satisfied by evidence (paths/tools).",
+    "- met = every acceptance criterion is satisfied by evidence. Referenced paths alone do not prove file changes.",
     "- not_met = work remains or evidence is missing.",
     "- impossible = blocked and cannot proceed without the user.",
   ].join("\n");

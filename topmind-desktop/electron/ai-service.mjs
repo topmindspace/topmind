@@ -15,7 +15,8 @@ import { compactMessagesForModel, resolveCompactBudget } from "./lib/ai-session-
 import { estimateTokens, resolveContextWindow, resolveContextBudget, clipContext, articleHistory, boundToolResult, needsActiveDocument } from "./lib/agent-context-policy.mjs";
 import { AiSessionStore, safeSessionId } from "./lib/ai-session-store.mjs";
 import { prepareTurnResources } from "./lib/tool-progressive.mjs";
-import { resolveTaskContract, createTaskExecutionGuard, taskContractPrompt, taskAllowsTool, taskStopMessage, documentTaskOutcome, bindTaskToolSchema } from "./lib/agent-task-contract.mjs";
+import { resolveTaskContract, createTaskExecutionGuard, taskContractPrompt, taskAllowsTool, taskStopMessage, documentTaskOutcome, workspaceWriteOutcome, bindTaskToolSchema, resumesWorkspaceTask, isTaskExecutionCheckpoint, resumeExecutionPrompt } from "./lib/agent-task-contract.mjs";
+import { getPendingWriteReviews } from "./lib/pending-writes.mjs";
 import { sanitizeInlineAiResult } from "./lib/inline-ai-result.mjs";
 import { rememberDistillHint } from "./lib/ai-tool-evidence.mjs";
 import {
@@ -430,25 +431,39 @@ async function executeAgentTurn({
       : "";
 
   const savedGoal = await AiSessionStore.loadGoal(sessionId, c).catch(() => null);
+  const resumes = resumesWorkspaceTask(lastUserText, savedGoal?.task, taskIntent);
+  const checkpoint = resumes && isTaskExecutionCheckpoint(savedGoal?.execution) ? savedGoal.execution : null;
+  const reviewIds = checkpoint?.reviews.map(entry => entry.id) || [];
+  const reviews = reviewIds.length ? await getPendingWriteReviews(c.workspaceRoot, reviewIds).catch(() => []) : [];
   // Ambient file: if UI passed focusPath and it is not already mounted, include for this turn only.
   const mountList = Array.isArray(mountedFiles) ? [...mountedFiles] : [];
   let ambient = typeof focusPath === "string" ? focusPath.trim() : "";
   const modelEntry = settings?.ai?.modelCache?.catalog?.find(p => p.id === res.provider)?.models?.find(m => m.id === res.modelId);
   const task = resolveTaskContract({ userText: lastUserText, focusPath: ambient, referencePaths: mountList.map(f => typeof f === "string" ? f : f.path), skillId: activeSkillId, intent: taskIntent, priorTask: savedGoal?.task, memoryEnabled: settings?.ai?.useMemory !== false,
     capabilities: { toolCalling: modelEntry?.toolCall, vision: false, imageGeneration: false, imageRendering: false } });
+  if (writebackMode === "auto" || writebackMode === "confirm") task.writebackMode = writebackMode;
   const toolLimit = Math.max(1, Math.min(task.kind === "document" ? 16 : 48, Number(settings?.ai?.maxAgentSteps) || 32));
-  const taskGuard = createTaskExecutionGuard(task, { maxCalls: toolLimit, maxModelCalls: toolLimit + 4 });
+  const workspaceRoot = resolveDataRoot(c.workspaceRoot);
+  const taskGuard = createTaskExecutionGuard(task, {
+    maxCalls: toolLimit, maxModelCalls: toolLimit + 4,
+    checkpoint, reviews, priorAwaitingReview: resumes && savedGoal?.blockReason === "awaiting_confirmation",
+    toWorkspacePath: (value) => {
+      if (typeof value !== "string" || !value) return null;
+      const rel = path.relative(workspaceRoot, path.resolve(workspaceRoot, value)).replace(/\\/gu, "/");
+      return rel && rel !== ".." && !rel.startsWith("../") && !path.isAbsolute(rel) ? rel : null;
+    },
+  });
   if (task.kind === "document" && task.targetKind === "file" && useTools === false) taskGuard.stop("tools-disabled");
   if (task.kind === "document" && focusUnsaved) taskGuard.stop("unsaved-target");
   const taskLocale = settings?.ui?.locale || "zh-CN";
   const blockedTaskResult = async () => {
-    const goal = { task: { ...task, blockReason: taskGuard.reason }, goal: lastUserText.slice(0, 400), plan: [], criteria: [], openCriteria: [], pathReceipts: [], status: "blocked", blockReason: taskGuard.reason, autoContinues: 0, kind: "task" };
-    await AiSessionStore.saveGoal(sessionId, { ...goal, task: { ...task, blockReason: taskGuard.reason }, doneCriteria: [] }, c);
+    const goal = { task: { ...task, blockReason: taskGuard.reason }, goal: (resumes ? savedGoal.goal || task.request : lastUserText).slice(0, 400), plan: resumes ? savedGoal.plan || [] : [], criteria: resumes ? savedGoal.criteria || [] : [], openCriteria: resumes ? savedGoal.doneCriteria || [] : [], pathReceipts: taskGuard.priorPaths, status: "blocked", blockReason: taskGuard.reason, autoContinues: 0, kind: "task" };
+    await AiSessionStore.saveGoal(sessionId, { ...goal, doneCriteria: goal.openCriteria, execution: taskGuard.execution }, c);
     emit({ type: "goal-status", goal });
     return { ok: true, text: taskStopMessage(taskGuard.reason, taskLocale, task.targetPath), goal, stopReason: "needs-user", followUps: [] };
   };
   if (taskGuard.reason) return blockedTaskResult();
-  if (task.kind === "document") ambient = task.targetPath;
+  if (task.kind === "document" || resumes) ambient = task.targetPath;
   if (ambient && !mountList.some((m) => m === ambient || m?.path === ambient)) {
     mountList.push(ambient);
   }
@@ -459,8 +474,7 @@ async function executeAgentTurn({
   // Per-call override only when the invoke payload explicitly set auto|confirm.
   // Renderer must not send view-store defaults — yaml is the write policy.
   const { resolveWorkspaceWritebackMode, workspaceRootOf } = await import("./lib/kernel-api.mjs");
-  const effectiveMode =
-    writebackMode === "confirm" || writebackMode === "auto" ? writebackMode : undefined;
+  const effectiveMode = task.writebackMode;
   const contractMode = await resolveWorkspaceWritebackMode(c, {
     writebackMode: effectiveMode,
   });
@@ -480,7 +494,8 @@ async function executeAgentTurn({
   let targetVersion;
   const { turnKind: resourceTurnKind, files: ctxFiles, tools: preparedTools, context: aiContext } = await prepareTurnResources({
     userText: lastUserText,
-    turnKind: task.kind === "document" ? "task" : ambient && needsActiveDocument(lastUserText) && classifyTurn(lastUserText) === "light" ? "query" : undefined,
+    turnKind: task.kind === "document" ? "task" : resumes ? classifyTurn(task.request)
+      : ambient && needsActiveDocument(lastUserText) && classifyTurn(lastUserText) === "light" ? "query" : undefined,
     enableTools,
     loadFiles: async () => {
       const files = await resolveMountedFiles(c.workspaceRoot, mountList);
@@ -526,7 +541,6 @@ async function executeAgentTurn({
   }
 
   // System prompt: skill-first protocol + discovery catalog + actual tool names + pre-loaded context.
-  const fileOps = { readFiles: [], modifiedFiles: [] };
   const skillsEnabled = settings?.ai?.skillsEnabled !== false;
 
   // Progressive tool exposure + session-health instrumentation: each tool
@@ -562,6 +576,7 @@ async function executeAgentTurn({
             invocation.checkpoint();
             const checked = taskGuard.beforeTool(name, a[0]);
             if (!checked.ok) return { ok: false, error: checked.error, needsUser: true };
+            if (checked.replay) return { ok: true, unchanged: true, wroteFiles: false, note: "Already completed in this task. Continue the remaining steps." };
             try {
               const writing = task.kind === "document" && ["edit_file", "save_file", "append_stream_entry", "save_note"].includes(name);
               const target = writing ? path.resolve(resolveDataRoot(c.workspaceRoot), task.targetPath) : null;
@@ -574,18 +589,13 @@ async function executeAgentTurn({
               }
               invocation.checkpoint();
               const r = await orig(checked.args, ...a.slice(1));
-              if (target && r?.ok !== false && !r?.error && !r?.pending && !r?.needsConfirm) targetVersion = await readText(target);
               const previousWrites = taskGuard.writes;
               taskGuard.afterTool(name, checked.args, r);
-              if (taskGuard.writes > previousWrites) {
-                const root = resolveDataRoot(c.workspaceRoot);
-                for (const value of [checked.args?.relativePath, r?.relativePath, r?.path, r?.targetPath, ...(Array.isArray(r?.affectedFiles) ? r.affectedFiles : [])]) {
-                  if (typeof value !== "string" || !/\.(?:md|txt|json|ya?ml|csv)$/iu.test(value)) continue;
-                  const rel = path.relative(root, path.resolve(root, value)).replace(/\\/gu, "/");
-                  if (rel && rel !== ".." && !rel.startsWith("../") && !path.isAbsolute(rel) && !fileOps.modifiedFiles.includes(rel)) fileOps.modifiedFiles.push(rel);
-                }
+              if (task.kind === "workspace" && (taskGuard.writes > previousWrites || r?.pending === true || r?.needsConfirm === true)) {
+                await saveWorkspaceCheckpoint();
               }
-              const ok = !(r && typeof r === "object" && (r.ok === false || r.error));
+              if (target && r?.ok !== false && !r?.error && !r?.pending && !r?.needsConfirm) targetVersion = await readText(target);
+              const ok = r?.pending === true || r?.needsConfirm === true || !(r && typeof r === "object" && (r.ok === false || r.error));
               sessionHealth = recordToolOutcome(sessionHealth, { name, ok });
               if (sessionHealth.tripped) taskGuard.stop("tool-failures");
               return boundToolResult(r, Math.max(256, Math.floor(modelContextWindow * 0.12)));
@@ -708,7 +718,7 @@ async function executeAgentTurn({
     agent: Boolean(tools),
     maxAgentSteps: maxAgentSteps ?? undefined,
   });
-  const taskSystem = `${sysPrompt}\n\n${taskContractPrompt(task)}`;
+  const taskSystem = [sysPrompt, taskContractPrompt(task), resumeExecutionPrompt(taskGuard.priorPaths)].filter(Boolean).join("\n\n");
   const fixedTokens = estimateTokens(taskSystem) + estimateTokens(JSON.stringify(Object.fromEntries(Object.entries(tools || {}).map(([name, sdk]) => [name, {description: sdk.description, schema: sdk.inputSchema?.jsonSchema || {}}]))));
   const requestBudget = resolveContextBudget(modelContextWindow, { fixedTokens });
   if (estimateTokens(lastUserText) + 128 > requestBudget.maxTokens) {
@@ -779,14 +789,27 @@ async function executeAgentTurn({
   let lastSteerApplyCount = 0;
   let lastRuntime = "ai-sdk";
   let lastUsage = null;
-  // Restore, fold history, and merge Pi's "继续" seed as one prelude.
-  let goalState = task.kind === "document" ? createGoalState(task.request, "task") : prepareTurnGoal({ saved: savedGoal, messages: compact.messages });
+  // The model transcript is compacted without the current user message.
+  // Query and light turns start fresh even when the preceding task had a plan.
+  let goalState = task.kind === "document" ? createGoalState(task.request, "task")
+    : turnKind !== "task" ? createGoalState(lastUserText, turnKind)
+    : prepareTurnGoal({ saved: savedGoal, messages: [...compact.messages, { role: "user", content: lastUserText }] });
+  if (resumes) {
+    goalState = { ...goalState, status: "working", blockReason: null,
+      pathReceipts: [...new Set([...goalState.pathReceipts, ...taskGuard.priorPaths])] };
+  }
+  async function saveWorkspaceCheckpoint() {
+    const blockReason = taskGuard.pending ? "awaiting_confirmation" : taskGuard.reason;
+    await AiSessionStore.saveGoal(sessionId, { ...goalState, status: blockReason ? "blocked" : "working", blockReason,
+      execution: taskGuard.execution, task: { ...task, question: taskGuard.question, blockReason } }, c);
+  }
+  if (task.kind === "workspace" && turnKind === "task") await saveWorkspaceCheckpoint();
   let contextRetries = 0;
   // Actual tool writes above and runtime read evidence survive retries.
 
   for (;;) {
     invocation.checkpoint();
-    const runArgs = { ...streamArgs, messages: workingMessages };
+    const runArgs = { ...streamArgs, messages: workingMessages, initialGoal: goalState };
     try {
       result = piRuntime?.isPiRuntimeAvailable?.()
         ? await piRuntime.runPiAgent(runArgs, invocation.registry)
@@ -809,7 +832,13 @@ async function executeAgentTurn({
       }
     }
     lastRuntime = result.runtime || lastRuntime;
-    lastUsage = result.usage || lastUsage;
+    if (result.usage) {
+      lastUsage = {
+        promptTokens: (lastUsage?.promptTokens ?? 0) + (result.usage.promptTokens ?? result.usage.inputTokens ?? 0),
+        completionTokens: (lastUsage?.completionTokens ?? 0) + (result.usage.completionTokens ?? result.usage.outputTokens ?? 0),
+        totalTokens: (lastUsage?.totalTokens ?? 0) + (result.usage.totalTokens ?? 0),
+      };
+    }
     lastSteerApplyCount += result.steerApplyCount || 0;
     if (Array.isArray(result.followUps) && result.followUps.length) {
       lastFollowUps = result.followUps;
@@ -847,23 +876,23 @@ async function executeAgentTurn({
       toolCallCount: Number(result.toolCallCount) || 0,
       lastBody: String(result.text || ""),
     });
-    if (result.fileOps) {
-      for (const p of result.fileOps.readFiles || []) {
-        if (p && !fileOps.readFiles.includes(p)) fileOps.readFiles.push(p);
-      }
-      for (const p of result.fileOps.modifiedFiles || []) {
-        if (p && !fileOps.modifiedFiles.includes(p)) fileOps.modifiedFiles.push(p);
+    if (!result.error && !result.cancelled && task.kind === "workspace" && turnKind !== "query") {
+      const outcome = workspaceWriteOutcome(taskGuard, taskLocale, goalState.status === "blocked");
+      if (outcome) {
+        goalState = { ...goalState, status: outcome.status, blockReason: outcome.blockReason, doneCriteria: [...(goalState.criteria || [])] };
+        combinedText = outcome.text;
+        lastFollowUps = [];
+        break;
       }
     }
-    // Assistant-cited paths are not evidence of modification.
     // Live goal chip: emit when plan/criteria first appear or status flips.
-    if (
+    if (task.kind !== "document" && !taskGuard.reason && !result.error && !result.cancelled && (
       (goalState.plan?.length || 0) !== prevPlan ||
       (goalState.doneCriteria?.length || 0) !== prevOpen ||
       goalState.status === "done" ||
       goalState.status === "incomplete" ||
       goalState.status === "blocked"
-    ) {
+    )) {
       emit?.({
         type: "goal-status",
         sessionId,
@@ -940,9 +969,10 @@ async function executeAgentTurn({
           prompt: buildGoalEvaluatorPrompt({
             state: goalState,
             lastBody: String(result.text || ""),
-            toolSummaries: (result.toolCallCount
-              ? [`toolCallCount=${result.toolCallCount}`]
-              : []).concat((goalState.pathReceipts || []).slice(-6)),
+            toolSummaries: [
+              `Tool calls: ${result.toolCallCount || 0}`,
+              `Confirmed modified paths: ${taskGuard.modifiedPaths.slice(-6).join(", ") || "(none)"}`,
+            ],
           }),
           maxOutputTokens: 200,
           temperature: 0,
@@ -963,9 +993,8 @@ async function executeAgentTurn({
       }
     }
     const assessment = reconcileGoalVerdicts({ heuristic, evaluator });
-    // Evaluator `met` is a completed verdict — clear open criteria so the
-    // persisted session goal does not look perpetually incomplete.
-    if (evaluator?.verdict === "met" && assessment.finished) {
+    // A completed read-only answer or evaluator verdict closes the session goal.
+    if (assessment.finished && (evaluator?.verdict === "met" || heuristic.reason === "query-answer")) {
       goalState = {
         ...goalState,
         status: "done",
@@ -1092,7 +1121,11 @@ async function executeAgentTurn({
   if (result?.error) {
     const raw = friendlyError.toLowerCase();
     const zh = locale === "zh";
-    if (/401|unauthorized|invalid.?api.?key|authentication/i.test(raw)) {
+    if (raw === "model-output-limit") {
+      friendlyError = zh ? "模型触及单次输出上限。已保留收到的内容，可以缩小任务范围后重试。" : "The model reached its output limit. The partial answer is available. Try asking for a smaller portion.";
+    } else if (raw === "model-content-filtered") {
+      friendlyError = zh ? "模型服务的内容过滤中断了本轮回复。" : "The provider’s content filter interrupted this response.";
+    } else if (/401|unauthorized|invalid.?api.?key|authentication/i.test(raw)) {
       friendlyError = zh
         ? "API Key 无效或未配置。请到「设置 → AI」检查密钥。"
         : "Invalid or missing API key. Check Settings → AI.";
@@ -1134,6 +1167,7 @@ async function executeAgentTurn({
   if (lastFollowUps.length) {
     emit?.({ type: "follow-up-ready", count: lastFollowUps.length, sessionId });
   }
+  if (result?.error && goalState.status !== "blocked") goalState = { ...goalState, status: "incomplete" };
   // Goal-layer summary for the renderer (plan / open criteria / incomplete).
   const goalSummary = {
     task: { ...task, question: taskGuard.question, blockReason: goalState.blockReason || taskGuard.reason },
@@ -1142,6 +1176,7 @@ async function executeAgentTurn({
     criteria: goalState.criteria || [],
     openCriteria: goalState.doneCriteria || [],
     pathReceipts: (goalState.pathReceipts || []).slice(-12),
+    modifiedPaths: taskGuard.modifiedPaths.slice(-24),
     sourceUrls: (goalState.sourceUrls || []).slice(-8),
     status: goalState.status || "idle",
     blockReason: goalState.blockReason || null,
@@ -1149,10 +1184,11 @@ async function executeAgentTurn({
     kind: goalState.kind || classifyTurn(goalState.goal || ""),
   };
   emit?.({ type: "goal-status", goal: goalSummary, sessionId });
-  rememberDistillHint(fileOps);
+  const memoryDistillHint = { readFiles: [], modifiedFiles: taskGuard.modifiedPaths.slice(0, 24) };
+  rememberDistillHint(memoryDistillHint);
   // Persist session-level GoalState so criteria survive user turns / restart.
   invocation.checkpoint();
-  await AiSessionStore.saveGoal(sessionId, { ...goalState, task: { ...task, question: taskGuard.question, blockReason: goalState.blockReason || taskGuard.reason } }, c);
+  await AiSessionStore.saveGoal(sessionId, { ...goalState, execution: taskGuard.execution, task: { ...task, question: taskGuard.question, blockReason: goalState.blockReason || taskGuard.reason } }, c);
   // Stop-reason honesty (G4): cancel ≠ timeout ≠ stall ≠ incomplete.
   const cancelled = Boolean(result?.cancelled);
   const stopReason = result?.stopReason
@@ -1160,7 +1196,7 @@ async function executeAgentTurn({
   return {
     ok: !result?.error,
     cancelled,
-    stopReason: taskGuard.reason ? "needs-user" : stopReason,
+    stopReason: taskGuard.reason || taskGuard.pending ? "needs-user" : stopReason,
     stepLimitHit: Boolean(result?.stepLimitHit),
     text: combinedText || result?.text || "",
     reasoning: combinedReasoning || result?.reasoning || "",
@@ -1173,11 +1209,7 @@ async function executeAgentTurn({
     autoContinues,
     goal: goalSummary,
     taskLedger: buildTaskLedger(goalState, locale === "en" ? "en-US" : "zh-CN"),
-    /** Post-run memory distill candidates (Pi CompactionDetails + path receipts). */
-    memoryDistillHint: {
-      readFiles: fileOps.readFiles.slice(0, 24),
-      modifiedFiles: fileOps.modifiedFiles.slice(0, 24),
-    },
+    memoryDistillHint,
     compactNote: compact.compacted ? compact.note : null,
     estimatedTokens: compact.estimatedTokens,
     runtime: lastRuntime,

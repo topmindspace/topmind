@@ -14,7 +14,7 @@ import { emitLocal } from "../../plugins/host";
 import { useViewStore } from "../../stores/view-store";
 import { useActionStore } from "../../stores/action-store";
 import { applyLocale } from "../../locales";
-import { applyThemeSeed, applyThemeTone } from "../../lib/theme";
+import { applyThemeSeed, applyThemeTone, DEFAULT_THEME_SEED } from "../../lib/theme";
 import { cn } from "../../lib/kit";
 
 const WRITEBACK_HELP_KEY: Record<string, string> = {
@@ -109,6 +109,7 @@ export function GeneralPanel({
             className="inline-flex items-center gap-0.5 rounded-full border border-border-subtle-dim bg-surface-wash-15 p-0.5"
           >
             {([
+              { value: "olive", label: t("settings:general.themeSeedOlive"), swatch: "bg-theme-swatch-olive" },
               { value: "light", label: t("settings:general.themeLight") },
               { value: "dark", label: t("settings:general.themeDark") },
               { value: "auto", label: t("settings:general.themeAuto") },
@@ -146,13 +147,14 @@ export function GeneralPanel({
               { value: "teal", label: t("settings:general.themeSeedTeal"), swatch: "bg-theme-swatch-teal" },
               { value: "graphite", label: t("settings:general.themeSeedGraphite"), swatch: "bg-theme-swatch-graphite" },
             ] as const).map((opt) => {
-              const active = (settings.themeSeed || "sky") === opt.value;
+              const active = (settings.themeSeed ?? DEFAULT_THEME_SEED) === opt.value;
               return (
                 <button
                   key={opt.value}
                   type="button"
                   role="radio"
                   aria-checked={active}
+                  aria-label={opt.label}
                   title={opt.label}
                   onClick={() => {
                     update({ themeSeed: opt.value });

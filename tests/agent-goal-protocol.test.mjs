@@ -346,15 +346,18 @@ test("继续 and the host resume prompt keep the saved ledger", () => {
   assert.equal(other.goal, "写一篇完全不同的周报");
 });
 
-test("result footer keeps receipts out of Verified and empty segments empty", () => {
+test("result footer keeps references and confirmed modifications distinct", () => {
   const footer = buildResultFooter({
     status: "done",
-    pathReceipts: ["88-交付/a.md"],
+    pathReceipts: ["00-Inbox/read.md", "88-交付/a.md"],
+    modifiedPaths: ["88-交付/a.md"],
     openCriteria: [],
     checksRun: [],
     assumptions: [],
   });
   assert.deepEqual(footer.changes, ["88-交付/a.md"]);
+  assert.deepEqual(footer.references, ["00-Inbox/read.md"]);
+  assert.deepEqual(buildResultFooter({ status: "done", pathReceipts: ["00-Inbox/read.md"] }).changes, []);
   assert.deepEqual(footer.verified, []);
   assert.deepEqual(footer.assumed, []);
   assert.deepEqual(footer.couldNot, []);

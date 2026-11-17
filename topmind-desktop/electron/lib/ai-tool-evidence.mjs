@@ -124,7 +124,7 @@ function inferOperation(toolName) {
 let lastDistillHint = null;
 
 /**
- * Remember Pi CompactionDetails + path receipts from the last agent run so
+ * Remember file receipts from the last agent run so
  * `memory_organize` can distill from files the user just touched.
  * @param {{ readFiles?: string[], modifiedFiles?: string[] } | null} hint
  */

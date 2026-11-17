@@ -66,6 +66,8 @@ test("mergeAppSettings persists themeTone / themeSeed and rejects unknown ids", 
   const next = mergeAppSettings(base, { themeTone: "cool", themeSeed: "teal" });
   assert.equal(next.themeTone, "cool");
   assert.equal(next.themeSeed, "teal");
+  assert.equal(mergeAppSettings(next, { themeSeed: "olive" }).themeSeed, "olive");
+  assert.equal(mergeAppSettings(next, { themeSeed: "sky" }).themeSeed, "sky");
 
   const rejected = mergeAppSettings(next, { themeTone: "neon", themeSeed: "rainbow" });
   assert.equal(rejected.themeTone, "cool");
@@ -248,22 +250,32 @@ test("normalizeAiSettings clamps maxAgentSteps", () => {
 test("mergeAppSettings patches agentEnabled / skillsEnabled without clearing keys", () => {
   const base = createDefaultAppSettings("/tmp/ws");
   base.ai.manual.openAiKey = "sk-test";
+  base.ai.sourcePreference = "custom";
+  base.ai.defaultModel = "custom-model";
   const next = mergeAppSettings(base, { ai: { agentEnabled: false, maxAgentSteps: 15, skillsEnabled: false } });
   assert.equal(next.ai.agentEnabled, false);
   assert.equal(next.ai.skillsEnabled, false);
   assert.equal(next.ai.maxAgentSteps, 15);
   assert.equal(next.ai.manual.openAiKey, "sk-test");
+  assert.equal(next.ai.sourcePreference, "custom");
+  assert.equal(next.ai.defaultModel, "custom-model");
+  assert.equal(normalizeAiSettings({ skillsEnabled: false }, base.ai).sourcePreference, "custom");
+  assert.equal(mergeAppSettings(next, { ai: { modelCache: {} } }).ai.sourcePreference, "custom");
+  assert.equal(mergeAppSettings(next, { ai: { sourcePreference: "" } }).ai.sourcePreference, "");
   const nextSkills = mergeAppSettings(base, {
     ai: { enabledSkillIds: ["topmind", "topmind-capture"] },
   });
   assert.deepEqual(nextSkills.ai.enabledSkillIds, ["topmind", "topmind-capture"]);
   assert.equal(nextSkills.ai.skillsEnabled, true);
+  const noSkills = mergeAppSettings(nextSkills, { ai: { enabledSkillIds: [] } });
+  assert.deepEqual(noSkills.ai.enabledSkillIds, []);
+  assert.deepEqual(mergeAppSettings(noSkills, { ai: { skillsEnabled: false } }).ai.enabledSkillIds, []);
   const clearSkills = mergeAppSettings(nextSkills, { ai: { enabledSkillIds: null } });
   assert.equal(clearSkills.ai.enabledSkillIds, null);
   // defaultModel undefined should not wipe
   const next2 = mergeAppSettings(base, { ai: { sourcePreference: "openai" } });
   assert.equal(next2.ai.sourcePreference, "openai");
-  assert.equal(next2.ai.defaultModel, null);
+  assert.equal(next2.ai.defaultModel, "custom-model");
   // partial weread patch keeps apiKey
   base.weread.apiKey = "wrk-keep";
   base.weread.enabled = true;

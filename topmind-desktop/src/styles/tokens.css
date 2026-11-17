@@ -115,6 +115,7 @@
   --color-badge-alert-foreground: #ffffff;
 
   /* Theme-seed picker swatches (settings appearance only — preview fills). */
+  --color-theme-swatch-olive: #506414;
   --color-theme-swatch-sky: #0369a1;
   --color-theme-swatch-teal: #0f766e;
   --color-theme-swatch-graphite: #3f3f46;
@@ -624,8 +625,34 @@ html.dark[data-theme-tone="slate"] {
 
 /* ── Pre-generated theme seeds (DS 4.0.3) ──
    Accent axis only — ink CTA, surfaces, density, IA unchanged.
-   sky = default (no attribute). Stops keep AA on the 4.0 surface ladder.
+   No attribute = TopMindSpace olive. Explicit sky uses the base sky stops.
    Inbox capture mode still wins via body[data-mode=inbox] overrides. */
+html:not([data-theme-seed]) {
+  --color-accent-color: #506414;
+  --color-accent-hover: #3e4d10;
+  --color-accent-muted: rgba(80, 100, 20, 0.10);
+  --color-accent-border-subtle: rgba(80, 100, 20, 0.25);
+  --color-accent-bg-subtle: rgba(80, 100, 20, 0.08);
+  --color-accent-bg-faint: rgba(80, 100, 20, 0.05);
+  --color-focus-ring: rgba(80, 100, 20, 0.85);
+  --color-focus-soft: rgba(80, 100, 20, 0.14);
+  --color-badge: #506414;
+  --color-brand-deep: #506414;
+  --color-brand-mid: #c5e650;
+  --color-brand-aqua: #8ca32f;
+}
+html.dark:not([data-theme-seed]) {
+  --color-accent-color: #d0e684;
+  --color-accent-hover: #e3f0b5;
+  --color-accent-muted: rgba(208, 230, 132, 0.16);
+  --color-accent-border-subtle: rgba(208, 230, 132, 0.30);
+  --color-accent-bg-subtle: rgba(208, 230, 132, 0.13);
+  --color-accent-bg-faint: rgba(208, 230, 132, 0.07);
+  --color-focus-ring: rgba(208, 230, 132, 0.90);
+  --color-focus-soft: rgba(208, 230, 132, 0.16);
+  --color-badge: #d0e684;
+  --color-badge-foreground: #1c2119;
+}
 html[data-theme-seed="teal"] {
   --color-accent-color: #0f766e;
   --color-accent-hover: #115e59;

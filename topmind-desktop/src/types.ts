@@ -228,7 +228,7 @@ export type AiRole = 'user' | 'assistant' | 'system';
 export interface AiToolCall {
   id: string;
   name: string;
-  status: 'running' | 'done' | 'error';
+  status: 'running' | 'done' | 'error' | 'pending';
   summary?: string;
   /** Workspace-relative paths for one-click open (from tool result). */
   paths?: string[];
@@ -251,6 +251,8 @@ reasoningProvider?: string;
 toolCalls?: AiToolCall[];
 /** Mark this assistant message as an error (network failure, abort, etc.). */
 isError?: boolean;
+/** Error shown alongside any received assistant text. Older messages store it in content. */
+errorMessage?: string;
 /** User cancelled this run mid-stream (honest stop marker). */
 cancelled?: boolean;
 /**
@@ -271,6 +273,7 @@ goal?: {
   criteria: string[];
   openCriteria: string[];
   pathReceipts: string[];
+  modifiedPaths?: string[];
   status: string;
   blockReason?: string | null;
   autoContinues: number;
@@ -585,7 +588,7 @@ export interface AppSettings {
    * Pre-generated color seed (DS 4.0.3). Optional — absent / 'sky' = default
    * brand sky axis. Does not replace theme light/dark/auto.
    */
-  themeSeed?: 'sky' | 'teal' | 'graphite';
+  themeSeed?: import('./lib/theme').ThemeSeed;
   workspaceRoot: string;
   writebackMode: WritebackMode | string;
   workspaces: { recent: RecentWorkspace[] };

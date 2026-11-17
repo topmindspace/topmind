@@ -256,9 +256,8 @@ export async function buildDesktopAiTools(ctx) {
             } catch (stashErr) {
               // Never claim pending without an id — the UI cannot accept/reject
               // a body that was never stored.
-              result.ok = false;
-              result.note = `pending stash failed: ${stashErr instanceof Error ? stashErr.message : String(stashErr)}`;
-              return result;
+              return { ...result, ok: false, pending: false, needsConfirm: false,
+                error: `pending stash failed: ${stashErr instanceof Error ? stashErr.message : String(stashErr)}` };
             }
           }
           result.note =
@@ -319,7 +318,8 @@ export async function buildDesktopAiTools(ctx) {
     };
 
     // ── Skills runtime (progressive disclosure) ──────────────────────────
-    const skillsOn = ctx.appSettings?.ai?.skillsEnabled !== false;
+    const enabledIds = ctx.appSettings?.ai?.enabledSkillIds ?? null;
+    const skillsOn = ctx.appSettings?.ai?.skillsEnabled !== false && enabledIds?.length !== 0;
     if (skillsOn) {
       const {
         listSkillCatalog,
@@ -328,7 +328,6 @@ export async function buildDesktopAiTools(ctx) {
         setConfiguredExtraSkillsRoots,
         resolveExtraSkillsRoots,
       } = await import("./lib/skills-runtime.mjs");
-      const enabledIds = ctx.appSettings?.ai?.enabledSkillIds || null;
       const engineRoot = ctx.workspaceRoot?.engineRoot || ctx.engineRoot;
       setConfiguredExtraSkillsRoots(ctx.appSettings?.ai?.extraSkillsRoots || []);
       const extraRoots = resolveExtraSkillsRoots();
@@ -352,7 +351,7 @@ export async function buildDesktopAiTools(ctx) {
       tools.load_skill = tool({
         ...sharedTool("load_skill"),
         async execute({ skillId }) {
-          const body = loadSkillBody(skillId, { engineRoot, maxChars: 14000, extraRoots });
+          const body = loadSkillBody(skillId, { engineRoot, maxChars: 14000, extraRoots, enabledIds });
           return summarizeForModel({
             id: body.id,
             actionCategory: body.actionCategory,
@@ -367,7 +366,7 @@ export async function buildDesktopAiTools(ctx) {
       tools.load_skill_resource = tool({
         ...sharedTool("load_skill_resource"),
         async execute({ path: rel, skillId }) {
-          const res = loadSkillResource(rel, { engineRoot, maxChars: 12000, extraRoots, skillId });
+          const res = loadSkillResource(rel, { engineRoot, maxChars: 12000, extraRoots, skillId, enabledIds });
           return summarizeForModel(res, 14000);
         },
       });

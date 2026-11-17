@@ -8,8 +8,6 @@ export { estimateTokens };
  * crosses the context reserve, and also for pre-invoke budgeting, overflow
  * hard-retry, the AI-SDK fallback path, and Obsidian chat history.
  * Never invents user content; drops only middle turns + truncates bodies.
- * `compactPiMessagesLlm` stays a null seam so the loop does not grow a second
- * summarizer.
  *
  * Token estimate here is CJK-aware (Pi `estimateTokens` is Latin-biased);
  * both feed the same budget formula (`resolveCompactBudget`).

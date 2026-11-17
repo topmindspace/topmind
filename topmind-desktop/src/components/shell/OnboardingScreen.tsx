@@ -76,6 +76,19 @@ function formatOpened(iso: string | undefined, locale: string) {
   }
 }
 
+function BrandMark() {
+  return (
+    <img
+      src="./topmindspace-mark.png"
+      alt=""
+      width={56}
+      height={56}
+      className="v4-brand-mark h-14 w-14 rounded-2xl"
+      draggable={false}
+    />
+  );
+}
+
 export function OnboardingScreen({
   settings: _settings,
   recent: recentProp,
@@ -284,22 +297,7 @@ export function OnboardingScreen({
     return (
       <TooltipProvider>
         <div className="v4-boot v4-drag flex h-screen flex-col items-center justify-center gap-3 p-6">
-          <div className="v4-brand-mark flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-surface-elevated shadow-(--shadow-md) ring-1 ring-border-subtle-dim">
-            <img
-              src="./favicon.svg"
-              alt=""
-              width={56}
-              height={56}
-              className="h-full w-full object-cover"
-              draggable={false}
-              onError={(e) => {
-                const el = e.currentTarget;
-                if (el.dataset.fb === "1") return;
-                el.dataset.fb = "1";
-                el.src = "./icon-256.png";
-              }}
-            />
-          </div>
+          <BrandMark />
           <RiLoader4Line size={ICON.sm} className="animate-spin text-text-tertiary" aria-hidden />
           <div className="text-sm font-medium text-text-primary">
             {busy === "reseed" ? t("shell:onboarding.reseedContract") : t("shell:onboarding.openingWorkspace")}
@@ -320,29 +318,14 @@ export function OnboardingScreen({
     <TooltipProvider>
       <div className="v4-landing v4-drag flex h-screen flex-col items-center justify-center p-6">
         <div className="v4-no-drag w-full max-w-100">
-          {/* Brand — logo-aligned mark; gradient reserved for brand title moment */}
           <div className="mb-10 text-center">
-            <div className="v4-brand-mark mx-auto mb-4 flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-surface-elevated shadow-(--shadow-md) ring-1 ring-border-subtle-dim">
-              <img
-                src="./favicon.svg"
-                alt="topmind"
-                width={56}
-                height={56}
-                className="h-full w-full object-cover"
-                draggable={false}
-                onError={(e) => {
-                  // Electron file:// / pack: try png fallbacks
-                  const el = e.currentTarget;
-                  if (el.dataset.fb === "1") return;
-                  el.dataset.fb = "1";
-                  el.src = "./icon-256.png";
-                }}
-              />
+            <div className="mb-4 flex justify-center">
+              <BrandMark />
             </div>
             <p className="mb-1 text-3xs font-medium uppercase tracking-wider text-text-quaternary">
               {greeting}
             </p>
-            <h1 className="v4-brand-gradient-text text-(--type-size-display) font-semibold tracking-tight">
+            <h1 className="text-(--type-size-display) font-semibold tracking-tight text-text-primary">
               topmind
             </h1>
             <p className="mt-2 text-xs leading-relaxed text-text-tertiary">

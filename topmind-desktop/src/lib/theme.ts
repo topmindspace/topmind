@@ -15,10 +15,11 @@ export type Theme = "auto" | "light" | "dark";
 /** Surface mood pack — neutral ladder only; ink CTA and accent stay put. */
 export type ThemeTone = "warm" | "cool" | "neutral" | "slate";
 /** Pre-generated brand seed — accent axis only; ink CTA stays monochrome. */
-export type ThemeSeed = "sky" | "teal" | "graphite";
+export const THEME_SEEDS = ["olive", "sky", "teal", "graphite"] as const;
+export type ThemeSeed = (typeof THEME_SEEDS)[number];
+export const DEFAULT_THEME_SEED: ThemeSeed = "olive";
 
 export const THEME_TONES: ThemeTone[] = ["warm", "cool", "neutral", "slate"];
-export const THEME_SEEDS: ThemeSeed[] = ["sky", "teal", "graphite"];
 
 let platformStamped = false;
 
@@ -46,7 +47,7 @@ export function applyTheme(theme: Theme): void {
 
 /**
  * Stamp surface-tone attribute. `warm` is the default ladder and clears the
- * attribute so CSS stays a single base block (same pattern as the sky seed).
+ * attribute so CSS uses its base surface palette.
  */
 export function applyThemeTone(tone?: ThemeTone | null): void {
   if (typeof document === "undefined") return;
@@ -60,7 +61,7 @@ export function applyThemeTone(tone?: ThemeTone | null): void {
 export function applyThemeSeed(seed?: ThemeSeed | null): void {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
-  const next: ThemeSeed = seed && THEME_SEEDS.includes(seed) ? seed : "sky";
-  if (next === "sky") root.removeAttribute("data-theme-seed");
+  const next = seed && THEME_SEEDS.includes(seed) ? seed : DEFAULT_THEME_SEED;
+  if (next === DEFAULT_THEME_SEED) root.removeAttribute("data-theme-seed");
   else root.setAttribute("data-theme-seed", next);
 }

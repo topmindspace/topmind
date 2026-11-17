@@ -11,6 +11,7 @@ import {
   RiFileCopyLine,
   RiLoader4Line,
   RiRefreshLine,
+  RiTimeLine,
   RiToolsLine,
 } from "@remixicon/react";
 import { useEffect, useRef, useState, useMemo } from "react";
@@ -346,15 +347,14 @@ function GoalStatusChip({
  * footprint. Receipts are risk-sorted (deletes → external → local edits) so
  * the one line that matters is not buried alphabetically.
  *
- * Honesty contract: path receipts are a write footprint — never label them
- * "Verified". Verified/Assumed show real evidence only (checksRun/assumptions);
- * empty sections read "none" so silence is never mistaken for success.
+ * Modified paths come from this turn's tool outcomes. Other paths are references.
  */
 function ResultFooter({
   goal,
 }: {
   goal: {
     pathReceipts: string[];
+    modifiedPaths?: string[];
     openCriteria: string[];
     status: string;
     blockReason?: string | null;
@@ -378,9 +378,10 @@ function ResultFooter({
     if (/\.(png|jpe?g|webp|pdf|html)$/i.test(p) || /88-交付|outputs/i.test(p)) return 1;
     return 2;
   };
-  const receipts = [...(goal.pathReceipts || [])].sort(
+  const receipts = [...(goal.modifiedPaths || [])].sort(
     (a, b) => riskRank(a) - riskRank(b) || a.localeCompare(b),
   );
+  const references = (goal.pathReceipts || []).filter(path => !receipts.includes(path));
   const sources = (goal.sourceUrls || []).slice(0, 6);
   const couldNot = [...(goal.openCriteria || [])];
   // Incomplete without open criteria still owes an explanation — otherwise the
@@ -390,6 +391,9 @@ function ResultFooter({
     if (code === "budget_exhausted") return t("ai.stopReasonBudget");
     if (code === "empty-turn") return t("ai.stopReasonEmptyTurn");
     if (code === "missing-path-receipts") return t("ai.stopReasonMissingReceipts");
+    if (code === "no-write-evidence") return t("ai.stopReasonNoWrite");
+    if (code === "partial-write") return t("ai.stopReasonPartialWrite");
+    if (code === "awaiting_confirmation") return t("ai.stopReasonAwaitingConfirmation");
     if (code === "incomplete-mark") return t("ai.goalIncomplete");
     return t("ai.goalIncomplete");
   };
@@ -406,6 +410,7 @@ function ResultFooter({
   if (
     goal.status === "done" &&
     receipts.length === 0 &&
+    references.length === 0 &&
     sources.length === 0 &&
     checks.length === 0 &&
     assumed.length === 0 &&
@@ -428,6 +433,14 @@ function ResultFooter({
             <dd className="min-w-0 flex-1 text-text-secondary">
               {receipts.map((p) => p.split("/").pop() || p).join(" · ")}
             </dd>
+          </div>
+        </dl>
+      ) : null}
+      {references.length ? (
+        <dl className="mb-1 space-y-0.5 text-xs" data-result-references>
+          <div className="flex items-start gap-2">
+            <dt className="w-16 shrink-0 text-text-tertiary">{t("ai.resultReferences")}</dt>
+            <dd className="min-w-0 flex-1 text-text-secondary">{references.map((p) => p.split("/").pop() || p).join(" · ")}</dd>
           </div>
         </dl>
       ) : null}
@@ -485,6 +498,14 @@ export function isAiWriteTool(name: string): boolean {
   );
 }
 
+function toolCallWroteFiles(call: AiToolCall): boolean {
+  const output = call.output;
+  if (call.status !== "done" || !isAiWriteTool(call.name) || !output || output.ok === false || output.error ||
+      output.pending || output.needsConfirm || output.unchanged) return false;
+  const wrote = output.wroteFiles ?? output.wrote_files;
+  return wrote === true || (wrote !== false && output.ok === true && Boolean(output.targetPath || output.relativePath || output.path));
+}
+
 function ToolCallTimeline({ tools }: { tools: AiToolCall[] }) {
   const { t } = useTranslation("editor");
   const [allOpen, setAllOpen] = useState(false);
@@ -493,7 +514,7 @@ function ToolCallTimeline({ tools }: { tools: AiToolCall[] }) {
   // Always surface the live step(s); collapse only the finished ones.
   const running = tools.filter((tc) => tc.status === "running");
   const finished = tools.filter((tc) => tc.status !== "running");
-  const writeCount = tools.filter((tc) => isAiWriteTool(tc.name)).length;
+  const writeCount = tools.filter(toolCallWroteFiles).length;
 
   // 3+ finished tools collapse to a summary that expands in place.
   if (finished.length >= 3 && !allOpen) {
@@ -559,7 +580,9 @@ function ToolCallCard({ tool }: { tool: AiToolCall }) {
     : tool.summary
       ? extractWorkspacePaths(tool.summary)
       : [];
-  const isWrite = isAiWriteTool(tool.name);
+  const wroteFiles = toolCallWroteFiles(tool);
+  const pending = tool.status === "pending" || tool.output?.pending === true || tool.output?.needsConfirm === true;
+  const failed = !pending && (tool.status === "error" || tool.output?.ok === false || Boolean(tool.output?.error));
   const shortName = tool.name.replace(/^topmind_/, "");
   const primary = paths[0];
 
@@ -575,7 +598,7 @@ function ToolCallCard({ tool }: { tool: AiToolCall }) {
         "rounded-[var(--radius-card)] px-2.5 py-1.5 text-xs shadow-[var(--shadow-card)] transition-colors",
         running
           ? "bg-accent-bg-subtle text-text-secondary"
-          : isWrite
+          : wroteFiles
             ? "bg-status-success-bg text-text-tertiary"
             : "bg-surface text-text-tertiary hover:bg-state-hover",
       )}
@@ -600,16 +623,20 @@ function ToolCallCard({ tool }: { tool: AiToolCall }) {
               "flex h-6 w-6 shrink-0 items-center justify-center rounded-[var(--radius-md)]",
               running
                 ? "bg-accent-bg-subtle"
-                : tool.status === "error"
+                : pending
+                  ? "bg-status-warning-bg"
+                : failed
                   ? "bg-status-error-bg"
-                  : isWrite
+                  : wroteFiles
                     ? "bg-status-success-bg"
                     : "bg-surface-wash-30",
             )}
           >
             {running ? (
               <RiLoader4Line size={ICON.micro} className="animate-spin text-accent-color" />
-            ) : tool.status === "error" ? (
+            ) : pending ? (
+              <RiTimeLine size={ICON.micro} className="text-warning" aria-label={t("ai.stopReasonAwaitingConfirmation")} />
+            ) : failed ? (
               <RiErrorWarningLine size={ICON.micro} className="text-error" />
             ) : (
               <RiCheckboxCircleLine size={ICON.micro} className="text-success" />
@@ -1010,7 +1037,7 @@ function UsageBadge({ usage, modelId }: { usage: NonNullable<AiMessage["usage"]>
 function ErrorBlock({ message, onRetry }: { message: string; onRetry: () => void }) {
   const { t } = useTranslation("editor");
   return (
-    <div className="flex flex-col gap-1.5 rounded-[var(--radius-md)] border border-border-subtle-dim bg-status-error-bg px-2.5 py-2 text-xs text-error">
+    <div role="alert" className="flex flex-col gap-1.5 rounded-[var(--radius-md)] border border-border-subtle-dim bg-status-error-bg px-2.5 py-2 text-xs text-error">
       <div className="flex items-start gap-1.5">
         <RiErrorWarningLine size={ICON.xs} className="mt-0.5 shrink-0" />
         <span className="min-w-0 flex-1 whitespace-pre-wrap">{message}</span>
@@ -1144,13 +1171,14 @@ export function ChatMessage({ message, streaming, streamStatus, streamToolName, 
   const isUser = message.role === "user";
   // Elapsed time lives in the ElapsedSeconds leaf — no 1s re-render of MessageRow.
   const isError = Boolean(message.isError);
+  const legacyError = isError && !message.errorMessage;
   const tools = message.toolCalls || [];
   // Hooks must run for every role — compute before the system early-return.
   const visible = useMemo(() => {
-    return !isUser && !isError
+    return !isUser && !legacyError
       ? visibleAssistantMessage(message.content, message.reasoning)
       : { body: message.content, reasoning: "" };
-  }, [isUser, isError, message.content, message.reasoning]);
+  }, [isUser, legacyError, message.content, message.reasoning]);
   const visibleBody = visible.body;
   const visibleReasoning = visible.reasoning;
   const hasReasoning = Boolean(visibleReasoning.trim());
@@ -1164,7 +1192,7 @@ export function ChatMessage({ message, streaming, streamStatus, streamToolName, 
   const showStatusIndicator =
     !isUser && streaming && !message.content && tools.length === 0 && streamStatus;
   const hasContent = Boolean(visibleBody);
-  const showUsage = !streaming && !isError && Boolean(message.usage);
+  const showUsage = !streaming && Boolean(message.usage);
 
   // No enter animation here — parent gates motion so stream deltas don't re-animate
   return (
@@ -1196,7 +1224,7 @@ export function ChatMessage({ message, streaming, streamStatus, streamToolName, 
       >
         {isUser ? (
           <><span className="whitespace-pre-wrap">{message.content}</span>{message.focusPath ? <div className="mt-2 break-all border-t border-border-subtle pt-1 text-xs text-text-secondary" data-task-target>{message.focusPath}</div> : null}</>
-        ) : isError ? (
+        ) : legacyError ? (
           <ErrorBlock message={message.content} onRetry={() => void regenerate()} />
         ) : (
           <div className="flex flex-col">
@@ -1233,12 +1261,15 @@ export function ChatMessage({ message, streaming, streamStatus, streamToolName, 
               <div className="whitespace-pre-wrap">{renderedMarkdown}</div>
             ) : streaming && tools.length === 0 && !showStatusIndicator && !hasReasoning ? (
               <StreamStatusIndicator status={streamStatus || "thinking"} toolName={streamToolName} count={streamToolCount} maxSteps={streamMaxSteps} autoContinues={goalContinues} />
-            ) : !streaming && !hasContent && tools.length === 0 ? (
+            ) : !streaming && !isError && !hasContent && tools.length === 0 ? (
               <span className="text-xs text-text-tertiary">
                 {goal && goal.status !== "done"
                   ? t("ai.noTextReplyIncomplete")
                   : t("ai.noTextReply")}
               </span>
+            ) : null}
+            {isError && message.errorMessage ? (
+              <ErrorBlock message={message.errorMessage} onRetry={() => void regenerate()} />
             ) : null}
             {!streaming && message.choices && message.choices.length > 0 ? (
               <ChoiceCardGroup

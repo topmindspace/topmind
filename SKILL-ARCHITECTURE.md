@@ -475,3 +475,17 @@ Source Connector → Object Adapter → Action Registry → Tool Contract → Su
 ## 独立写作包的宿主集成
 
 写作仓、npm 包与技能版本保持独立，宿主通过显式同步保存带 digest 的内置快照，正常构建不读取姊妹仓。Desktop 支持独立写作资源更新；可执行排版模块随宿主发行。Obsidian 通过原生插件发行升级内嵌快照。`render_article` 是共享只读排版工具，持久写入仍经过 Kernel。加载技能时附带宿主能力说明，脚本可读不代表 shell 可执行。
+
+| 入口 | 技能来源 | 运行方式 |
+| --- | --- | --- |
+| CLI Agent | 核心 Skills 与按需安装的 Writing Skills | 依照宿主文件、渲染和发布权限执行 |
+| Desktop | 核心技能、内置写作快照、设置中的扩展包 | Pi Agent Core 通过 AI SDK 调用模型，工具经过 WorkspaceService 与 Kernel |
+| Obsidian | 插件内的核心技能和写作快照 | 插件的 JSON 工具循环调用同源工具契约与 Kernel |
+
+目录用于选择技能，正文在匹配任务时加载，参考按当前问题读取。调用 `load_skill_resource` 时优先传 `skillId` 和技能 Markdown 里的相对链接，例如 `references/workspace.md` 或 `../shared/capability-degradation.md`。带技能目录的路径也可解析到对应包。Desktop 活跃扩展中的技能、参考与宿主说明沿用同一来源。两端对较长正文和资源标记截断，工具返回上限适用模型上下文预算。
+
+Desktop 按字符上限读取资源前缀，并保护截断处的完整 Unicode 字符。扩展的公开参考可通过该工具读取，隐藏文件和指向隐藏文件的链接会被拒绝。
+
+Desktop 的技能总开关保留单项选择。设置中的「启用全部」清除筛选，新安装的技能也会自动加入。取消勾选同时影响发现、预载和模型工具读取；本地排版仍可直接使用。
+
+用户只要查回旧决定时，读取已有记录并给出处。排版请求保留原稿的措辞和顺序；获准改稿时按指定范围调整。可复制稿件单独呈现，诊断和发布准备放在正文之外。

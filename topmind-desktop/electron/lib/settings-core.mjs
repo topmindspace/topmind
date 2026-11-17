@@ -115,7 +115,7 @@ const THEMES = new Set(["auto", "light", "dark"]);
 /** Surface tone packs (DS 4.1) — neutral ladder only. */
 const THEME_TONES = new Set(["warm", "cool", "neutral", "slate"]);
 /** Accent seed axis (DS 4.0.3) — does not replace theme mode. */
-const THEME_SEEDS = new Set(["sky", "teal", "graphite"]);
+const THEME_SEEDS = new Set(["olive", "sky", "teal", "graphite"]);
 const WRITEBACK_MODES = new Set(["auto", "confirm"]);
 const EDITOR_FONT_FAMILIES = new Set(["sans", "serif", "mono"]);
 const SIDEBAR_VIEWS = new Set(["stream", "category", "timeline", "tags", "kanban"]);
@@ -702,7 +702,6 @@ function normalizeAiSettings(value, fallback) {
     enabledSkillIds = value.enabledSkillIds
       .filter((id) => typeof id === "string" && id.trim())
       .map((id) => id.trim());
-    if (enabledSkillIds.length === 0) enabledSkillIds = null;
   }
   let extraSkillsRoots = Array.isArray(base.extraSkillsRoots) ? base.extraSkillsRoots.slice() : [];
   if (value.extraSkillsRoots !== undefined) {
@@ -715,7 +714,7 @@ function normalizeAiSettings(value, fallback) {
   }
   return {
     sourcePreference:
-      isAcceptedSourcePreference(value.sourcePreference)
+      value.sourcePreference !== undefined && isAcceptedSourcePreference(value.sourcePreference)
         ? String(value.sourcePreference || "")
         : base.sourcePreference,
     defaultModel: value.defaultModel !== undefined
@@ -1212,7 +1211,7 @@ function mergeAppSettings(baseSettings, patch, options = {}) {
   if (isObject(patch.window)) next.window = normalizeWindowSettings(patch.window, next.window);
 
   if (isObject(patch.ai)) {
-    if (isAcceptedSourcePreference(patch.ai.sourcePreference)) {
+    if (patch.ai.sourcePreference !== undefined && isAcceptedSourcePreference(patch.ai.sourcePreference)) {
       next.ai.sourcePreference = String(patch.ai.sourcePreference || "");
     }
     if (patch.ai.defaultModel === null || patch.ai.defaultModel === undefined) {
@@ -1240,7 +1239,7 @@ function mergeAppSettings(baseSettings, patch, options = {}) {
         const ids = patch.ai.enabledSkillIds
           .filter((id) => typeof id === "string" && id.trim())
           .map((id) => id.trim());
-        next.ai.enabledSkillIds = ids.length ? ids : null;
+        next.ai.enabledSkillIds = ids;
       }
     }
     if (patch.ai.extraSkillsRoots !== undefined) {

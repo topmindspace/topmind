@@ -992,7 +992,9 @@ export const SystemService = {
     rt.setConfiguredExtraSkillsRoots(extraRoots);
     const status = rt.getSkillsStatus({ engineRoot, extraRoots });
     const enabledIds = settings?.ai?.enabledSkillIds || null;
-    const catalog = rt.listSkillCatalog({ engineRoot, enabledIds, extraRoots });
+    const skillsEnabled = settings?.ai?.skillsEnabled !== false;
+    const catalog = skillsEnabled ? rt.listSkillCatalog({ engineRoot, enabledIds, extraRoots }) : [];
+    const available = new Set(catalog.map((skill) => skill.id));
     // UI locale when set; otherwise zh default (slash seeds are short prompt seeds)
     const uiLoc = settings?.ui?.locale;
     const skillLocale = uiLoc && uiLoc !== "auto" ? resolvePromptLocale(uiLoc) : "zh";
@@ -1000,7 +1002,7 @@ export const SystemService = {
     const slashFallback = skillLocale === "en"
       ? (skillId) => `Follow skill ${skillId} (load_skill first).`
       : (skillId) => `请按 ${skillId} skill 执行（先 load_skill）。`;
-    const slash = Object.entries(rt.SLASH_TO_SKILL).map(([cmd, skillId]) => {
+    const slash = Object.entries(rt.SLASH_TO_SKILL).filter(([, skillId]) => available.has(skillId)).map(([cmd, skillId]) => {
       const key = skillId === "topmind" ? "topmind" : skillId.replace(/^topmind-/, "");
       return {
         command: cmd,
@@ -1022,7 +1024,7 @@ export const SystemService = {
     }
     return {
       ...status,
-      skillsEnabled: settings?.ai?.skillsEnabled !== false,
+      skillsEnabled,
       enabledSkillIds: enabledIds,
       enabledCatalog: catalog,
       slash,

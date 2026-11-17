@@ -145,12 +145,6 @@ test("ai-store invoke does not send view-store writebackMode (yaml is policy)", 
   assert.match(src, /api\.ai\.invoke\(/);
 });
 
-test("ai.invoke only applies explicit auto|confirm override (not view-store default)", () => {
-  const src = readFileSync(path.join(root, "electron/ai-service.mjs"), "utf8");
-  assert.match(src, /writebackMode === "confirm" \|\| writebackMode === "auto"/);
-  assert.match(src, /explicitWritebackMode: effectiveMode/);
-});
-
 test("ai-tools.mjs defines full agent surface (source contract)", () => {
   const src = readFileSync(path.join(root, "electron/ai-tools.mjs"), "utf8");
   for (const name of [...READ_TOOLS, ...WRITE_TOOLS]) {

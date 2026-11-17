@@ -62,7 +62,6 @@ function promptCopy(locale) {
       useListCategories: "Use `list_categories` for categories.",
       skillsSection: "## Skills",
       activeSkill: (id) => `## This turn skill: ${id}`,
-      preloadFailed: "(preload failed → load_skill)",
       toolsSection: [
         "",
         "## Tools (by workflow stage)",
@@ -178,7 +177,6 @@ function promptCopy(locale) {
     useListCategories: "类别用 `list_categories`。",
     skillsSection: "## Skills",
     activeSkill: (id) => `## 本轮 skill: ${id}`,
-    preloadFailed: "（预加载失败 → load_skill）",
     toolsSection: [
       "",
       "## 工具（按工作流阶段）",
@@ -324,6 +322,7 @@ export function buildSystemPrompt(opts = {}) {
   if (Array.isArray(extraSkillsRoots)) {
     setConfiguredExtraSkillsRoots(extraSkillsRoots);
   }
+  const skillOptions = { engineRoot, extraRoots: extraSkillsRoots, enabledIds: enabledSkillIds };
 
   if (opts.documentTask) {
     const documentPrompt = [
@@ -340,9 +339,9 @@ export function buildSystemPrompt(opts = {}) {
     }
     if (skillsEnabled !== false && activeSkillId) {
       try {
-        const pinned = loadSkillBody(activeSkillId, { engineRoot, extraRoots: extraSkillsRoots, maxChars: 16000 });
+        const pinned = loadSkillBody(activeSkillId, { ...skillOptions, maxChars: 16000 });
         documentPrompt.push(`## Host-preloaded skill: ${activeSkillId}`, (pinned.raw || pinned.body || "").slice(0, 16000));
-      } catch { documentPrompt.push(P.preloadFailed); }
+      } catch { /* The host-bound task remains executable without optional skill guidance. */ }
     }
     return documentPrompt.join("\n\n");
   }
@@ -394,24 +393,28 @@ export function buildSystemPrompt(opts = {}) {
     }
   }
 
+  let catalog = [];
   if (skillsEnabled !== false) {
-    let catalog = [];
     try {
-      catalog = listSkillCatalog({
-        engineRoot,
-        enabledIds: enabledSkillIds,
-        extraRoots: extraSkillsRoots,
-      });
+      catalog = listSkillCatalog(skillOptions);
     } catch {
       catalog = [];
+    }
+  }
+  if (catalog.length) {
+    let pinned;
+    if (activeSkillId && catalog.some((skill) => skill.id === activeSkillId || skill.directory === activeSkillId)) {
+      try {
+        pinned = loadSkillBody(activeSkillId, { ...skillOptions, maxChars: 5500 });
+      } catch { /* Discovery still allows the model to choose an available skill. */ }
     }
     parts.push(
       "",
       P.protocolSection,
-      activeSkillId
-        ? P.skillPreloaded(activeSkillId)
+      pinned
+        ? P.skillPreloaded(pinned.id)
         : P.protocolSteps,
-      P.fuzzyIntent,
+      ...(catalog.some((skill) => skill.id === "topmind") ? [P.fuzzyIntent] : []),
       workspaceOverview
         ? P.overviewInlined
         : P.useListCategories,
@@ -419,20 +422,12 @@ export function buildSystemPrompt(opts = {}) {
       P.skillsSection,
       formatCatalogForPrompt(catalog),
     );
-    if (activeSkillId) {
-      parts.push("", P.activeSkill(activeSkillId));
-      try {
-        const pinned = loadSkillBody(activeSkillId, { engineRoot, extraRoots: extraSkillsRoots, maxChars: 14000 });
-        parts.push((pinned.raw || pinned.body || "").slice(0, 5500));
-      } catch {
-        parts.push(P.preloadFailed);
-      }
-    }
+    if (pinned) parts.push("", P.activeSkill(pinned.id), pinned.raw || pinned.body || "");
   }
 
   // When skills are off, do not advertise skill tools the model cannot call.
   const toolsLines =
-    skillsEnabled !== false
+    catalog.length
       ? P.toolsSection
       : P.toolsSection.filter((line) => {
           if (/^###\s*Skills\b/u.test(line)) return false;

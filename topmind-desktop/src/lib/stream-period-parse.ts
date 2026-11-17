@@ -469,6 +469,7 @@ export function softSplitContentEntries(
  * by clock time descending, keeping a same-minute batch in file order.
  * Replies stay nested on each post in file order.
  * - CRLF-safe frontmatter
+ * - A standalone document title before sections is not a feed entry
  * - Day / structural sections: first-level list items, 续 attached to the preceding item
  * - Named non-day ## → one 文章卡 (trailing 续 as replies)
  */
@@ -485,25 +486,22 @@ export function parsePeriodNote(markdown: string): StreamEntry[] {
 
   type Section = { heading: string; start: number; end: number };
   const sections: Section[] = [];
-  if (headingLines.length === 0) {
-    sections.push({ heading: "", start: 0, end: lines.length });
-  } else {
-    if (headingLines[0]! > 0) {
-      sections.push({ heading: "", start: 0, end: headingLines[0]! });
-    }
-    for (let h = 0; h < headingLines.length; h++) {
-      const idx = headingLines[h]!;
-      const heading = lines[idx].replace(/^##\s+/u, "").trim();
-      const start = idx + 1;
-      const end = h + 1 < headingLines.length ? headingLines[h + 1]! : lines.length;
-      sections.push({ heading, start, end });
-    }
+  const preambleEnd = headingLines[0] ?? lines.length;
+  const preamble = lines.slice(0, preambleEnd).join("\n").trim();
+  if (preamble && !/^# [^\n]+$/u.test(preamble)) {
+    sections.push({ heading: "", start: 0, end: preambleEnd });
+  }
+  for (let h = 0; h < headingLines.length; h++) {
+    const idx = headingLines[h]!;
+    const heading = lines[idx].replace(/^##\s+/u, "").trim();
+    const start = idx + 1;
+    const end = headingLines[h + 1] ?? lines.length;
+    sections.push({ heading, start, end });
   }
 
   const abs = (i: number) => bodyStart + i;
   const days: StreamEntry[][] = [];
   for (const sec of sections) {
-    if (!sec.heading && !lines.slice(sec.start, sec.end).some((l) => l.trim())) continue;
     const namedArticle =
       Boolean(sec.heading)
       && !STRUCTURAL_HEADINGS.has(sec.heading)

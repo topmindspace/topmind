@@ -78,27 +78,33 @@ export function WechatApp() {
     } catch (e) { if (generation.current === run) setError(e instanceof Error ? e.message : String(e)); }
     finally { if (generation.current === run) setBusy(false); }
   };
-  const withCurrent = async (operation: (delivery: ArticleDelivery) => Promise<void>) => {
+  const withCurrent = async (operation: (delivery: ArticleDelivery) => Promise<{ text: string; partial?: boolean }>) => {
     if (!result) return;
     const run = generation.current;
     setBusy(true); setError(""); setMessage("");
     try {
       ensureSaved();
-      if (await api.ws.read(sourcePath) !== sourceRef.current) { setResult(null); throw new Error(t("delivery.stale")); }
-      const fresh = await prepareArticle({ sourcePath, markdown: sourceRef.current, platform, theme }, async relative => {
+      const markdown = sourceRef.current;
+      if (await api.ws.read(sourcePath) !== markdown) {
+        if (run === generation.current) setResult(null);
+        throw new Error(t("delivery.stale"));
+      }
+      const fresh = await prepareArticle({ sourcePath, markdown, platform, theme }, async relative => {
         const image = await api.ws.readBinary(relative);
         return `data:${image.contentType};base64,${image.base64}`;
       });
-      if (fresh.html !== result.html) { setResult(null); throw new Error(t("delivery.stale")); }
       if (run !== generation.current) return;
-      await operation(result);
-    } catch (e) { setError(e instanceof Error ? e.message : String(e)); }
-    finally { setBusy(false); }
+      if (fresh.html !== result.html) { setResult(null); throw new Error(t("delivery.stale")); }
+      ensureSaved();
+      const receipt = await operation(result);
+      if (run === generation.current) (receipt.partial ? setError : setMessage)(receipt.text);
+    } catch (e) { if (run === generation.current) setError(e instanceof Error ? e.message : String(e)); }
+    finally { if (run === generation.current) setBusy(false); }
   };
   const copy = () => withCurrent(async delivery => {
     if (platform === "text") await navigator.clipboard.writeText(delivery.text);
     else await navigator.clipboard.write([new ClipboardItem({ "text/html": new Blob([delivery.body], { type: "text/html" }), "text/plain": new Blob([delivery.text], { type: "text/plain" }) })]);
-    setMessage(t("delivery.copied"));
+    return { text: t("delivery.copied") };
   });
   const exportFile = () => withCurrent(async delivery => {
     const folder = sourcePath.includes("/") ? sourcePath.slice(0, sourcePath.lastIndexOf("/") + 1) : "";
@@ -106,8 +112,17 @@ export function WechatApp() {
     const relativePath = `${folder}out/${name}-${platform}.${platform === "text" ? "txt" : "html"}`;
     const evidence = await api.ws.save({ relativePath, content: platform === "text" ? delivery.text : delivery.html });
     if (evidence.ok === false) throw new Error(t("delivery.failed"));
-    if (delivery.images.length) await api.ws.save({ relativePath: `${folder}out/${name}-${platform}-images.md`, content: delivery.checklist });
-    setMessage(t("delivery.exported", { path: relativePath }));
+    if (!delivery.images.length) {
+      return { text: t("delivery.exported", { path: relativePath }) };
+    }
+    const checklistPath = relativePath.replace(/\.[^.]+$/u, "-images.md");
+    try {
+      const checklist = await api.ws.save({ relativePath: checklistPath, content: delivery.checklist });
+      if (checklist.ok === false) throw new Error(t("delivery.failed"));
+    } catch {
+      return { text: t("delivery.exportPartial", { path: relativePath, checklistPath }), partial: true };
+    }
+    return { text: t("delivery.exportedWithChecklist", { path: relativePath, checklistPath }) };
   });
   const runAction = async () => {
     const action = WRITING_ACTIONS.find(item => item.id === actionId);
@@ -167,10 +182,10 @@ export function WechatApp() {
         </div>
         {sourceLoading ? <p role="status" className="text-xs text-text-secondary">{t("delivery.loadingSource")}</p> : sourceError ? <p role="alert" className="text-xs text-error">{sourceError}</p> : sourceExcerpt ? <p className="hidden truncate text-xs leading-relaxed text-text-secondary sm:block">{sourceExcerpt}</p> : <p className="text-xs text-text-secondary">{t("delivery.empty")}</p>}
       </section>
-      {error ? <p role="alert" className="mx-4 mt-3 text-sm text-error">{error}</p> : null}
       <Tabs defaultValue="write" className="flex min-h-0 flex-1 flex-col p-4">
         <TabsList aria-label={t("name")} className="w-full justify-start"><TabsTrigger value="write">{t("delivery.aiTask")}</TabsTrigger><TabsTrigger value="preview">{t("delivery.localDelivery")}</TabsTrigger></TabsList>
         <TabsContent value="write" className="mt-4 flex flex-col gap-4">
+          {error ? <p role="alert" className="break-words text-sm text-error">{error}</p> : null}
           <div className="grid gap-4 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
             <section aria-label={t("delivery.actions")} className="min-w-0">
               <h3 className="mb-2 text-xs font-medium text-text-secondary">{t("delivery.chooseTask")}</h3>
@@ -205,10 +220,24 @@ export function WechatApp() {
             <label className="min-w-[8rem] flex-1 text-xs text-text-secondary">{t("settings.theme")}<Select className="mt-2" value={theme} onChange={e => setTheme(e.target.value as WritingTheme)} options={Object.keys(WRITING_THEMES).map(id => ({value:id,label:t(`themes.${id}`)}))} /></label>
             <Button disabled={busy || sourceLoading || Boolean(sourceError) || !sourcePath} onClick={() => void generate()}>{busy ? t("delivery.working") : t("delivery.preview")}</Button>
           </div>
+          {result?.diagnostics.length ? <section data-writing-checks className="rounded-[var(--radius-md)] border border-border-subtle bg-surface-wash-15 p-3 text-xs text-text-secondary">
+            <p className="font-medium text-warning">{t("delivery.check", { count: result.diagnostics.length })}</p>
+            <ul className="mt-1 list-disc space-y-1 pl-4">
+              {Array.from(new Set(result.diagnostics.map(item => item.code))).map(code => <li key={code}>{t(`delivery.diagnostics.${code}`)}</li>)}
+            </ul>
+          </section> : null}
+          {result?.images.length ? <details data-writing-images className="text-xs text-text-secondary" open={result.images.some(image => image.status === "missing") || undefined}>
+            <summary>{t("delivery.images", { count: result.images.length })}</summary>
+            <ul className="mt-2 space-y-1">
+              {result.images.map((image, index) => <li key={index} className="flex flex-wrap items-baseline gap-x-2">
+                <span className={image.status === "missing" ? "text-warning" : ""}>{t(`delivery.imageStatus.${image.status}`)}</span>
+                <code className="min-w-0 break-all">{image.source}</code>
+              </li>)}
+            </ul>
+          </details> : null}
           <div className="flex flex-wrap gap-2"><Button variant="secondary" disabled={busy || !result} onClick={() => void copy()}>{t("delivery.copy")}</Button><Button variant="secondary" disabled={busy || !result} onClick={() => void exportFile()}>{t("delivery.export")}</Button></div>
-          {message ? <p role="status" className="break-all text-sm text-success">{message}</p> : null}
-          {result?.diagnostics.length ? <p className="text-xs text-warning">{t("delivery.check", { count: result.diagnostics.length })} {Array.from(new Set(result.diagnostics.map(item => item.code))).map(code => t(`delivery.diagnostics.${code}`)).join(" · ")}</p> : null}
-          {result?.images.length ? <details className="text-xs text-text-secondary"><summary>{t("delivery.images", { count: result.images.length })}</summary><pre className="whitespace-pre-wrap break-all">{result.checklist}</pre></details> : null}
+          <p role="status" data-writing-receipt className="break-all text-sm text-success empty:hidden">{message}</p>
+          {error ? <p role="alert" className="break-all text-sm text-error">{error}</p> : null}
           {result ? platform === "text" ? <pre className="whitespace-pre-wrap text-sm">{result.text}</pre> : <iframe title={t("delivery.preview")} sandbox="" srcDoc={result.html} className="min-h-[420px] w-full rounded-[var(--radius-lg)] border border-border-subtle bg-white" /> : <div className="flex min-h-40 items-center justify-center rounded-[var(--radius-lg)] bg-surface-wash-15 p-6 text-center text-sm text-text-secondary">{t("delivery.previewEmpty")}</div>}
         </TabsContent>
       </Tabs>

@@ -21,7 +21,7 @@ const { groupDayFeedRows } = presentMod;
 const { appendToStreamEntryDetailed } = await import(
   pathToFileURL(path.join(engineRoot, "lib/activity-window.mjs")).href
 );
-const { appendToPeriodBody } = await import(
+const { appendToPeriodBody, seedPeriodNoteBody } = await import(
   pathToFileURL(path.join(engineRoot, "lib/stream-period.mjs")).href
 );
 
@@ -31,6 +31,32 @@ function rowsFor(md) {
 }
 
 describe("stream append write/parse roundtrip", () => {
+  it("counts the first capture without counting the seeded period title", () => {
+    const date = new Date("2026-08-03T14:22:00");
+    for (const packing of ["daily", "weekly", "monthly"]) {
+      const frontmatter = '---\ntype: "stream-period"\n---\n\n';
+      const body = seedPeriodNoteBody(packing, date);
+      assert.deepEqual(parsePeriodNote(frontmatter + body), []);
+
+      const captured = frontmatter + appendToPeriodBody(body, {
+        content: "first capture",
+        packing,
+        appendHeading: packing === "daily" ? "none" : "day",
+        date,
+      });
+      const entries = parsePeriodNote(captured);
+      assert.equal(entries.length, 1, packing);
+      assert.match(entries[0].body, /first capture/u);
+      assert.match(captured.split("\n")[entries[0].startLine], /first capture/u);
+    }
+  });
+
+  it("preserves a period introduction that contains user text", () => {
+    const entries = parsePeriodNote("# Period title\n\nContext for this week.\n\n## 08-03 周一\n\n- 10:00 first capture\n");
+    assert.equal(entries.length, 2);
+    assert.match(entries[1].body, /Context for this week/u);
+  });
+
   const seed = [
     "---",
     "title: 2026-W32",

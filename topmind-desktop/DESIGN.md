@@ -4,7 +4,8 @@
 > **产品北极星**：最低摩擦个人动态流；导航与概念**清晰简单**；AI **内生副驾**（建议默认 · 确认执行）。  
 > **美学**：**Design System 4.3 — Soft Workbench + MD3**（2026-09-29 向 Muse/Cue 对齐）— 外观三轴（深浅 × 色调 × 种子）· 状态层 · surface container · **软圆角内容卡** · **内容页 ViewHero 大标题** · 列表去框线。主 CTA 仍为单色 ink；图标一律 Remix 线形（禁 emoji）。  
 > **栈**：Tailwind 4 · shadcn 风格 · Radix · RemixIcon · Design Tokens。  
-> **品牌色**：sky 轴 `#075985` → `#0ea5e9` + capture teal；强调 = sky-700 `#0369a1`（dark sky-400）。对比度见 §5.0.1。  
+> **品牌色**取自 TopMindSpace 官网。默认强调为橄榄绿 `#506414`（深色 `#d0e684`），欢迎与打开工作区的过渡页使用官网标记。对比度见 §5.0.1。
+>
 > **文档**：[`../docs/design/2026-09-17-md3-informed-ui-system.md`](../docs/design/2026-09-17-md3-informed-ui-system.md)  
 > **实施锁**：[`../docs/ARCHITECTURE-RESET.md`](../docs/ARCHITECTURE-RESET.md)
 
@@ -238,6 +239,7 @@ ActivityBar（最左 48px · 三分组）：
 - 当前 Markdown 是源稿，主编辑器负责内容；交付面板只处理格式、主题、预览、复制和导出。
 - 桌面宽度并列源稿/格式/主题，窄屏折叠；动作自然换行，预览独立滚动，错误与真实路径可见。
 - 公众号/X/文本共用写作仓维护的纯排版模块，无 Python 探测、综合评分或独立包列表。预览与复制同源，HTML 在禁止脚本的 iframe 中展示。
+- 排版检查和图片状态在复制、导出之前显示，缺图时展开清单并指出具体文件。保存回执在按钮下显示正文和清单路径。源稿或图片变化会使当前预览失效，重新生成后才可复制或导出。
 - 保留 `settings.wechat.enabled`、主题与公开命令 id；旧 packageRoot 配置留存兼容，新的导出从当前源稿定位，不批量迁移文章。
 - 导出使用 `api.ws.save` 写回源稿旁的 out/；复制与导出前重新核对源稿。缺图/扩展格式显示限制，不伪造完整交付。
 - 更新入口显示运行、生效与 bundled 版本，写作包独立更新；Desktop 下载和重启安装分开，正在运行 AI 任务时禁用重启入口。
@@ -255,7 +257,7 @@ ActivityBar（最左 48px · 三分组）：
 
 | 原则 | 落地 |
 |------|------|
-| **品牌对齐** | 实心主 CTA = **单色 ink**（`.v4-titlebar-btn-primary` / `bg-primary`，light 近黑 · dark 近白）；focus / 链接 / 选中 / accent wash = **sky**；**记一下** = 普通 chrome 按钮 + 捕获 teal / 渐变图标与文字（禁止 `.v4-titlebar-btn-capture` 实心）；AI 按钮 = deep→mid→aqua 轴；**禁止** indigo/purple 渐变 |
+| **品牌对齐** | 实心主 CTA = **单色 ink**（`.v4-titlebar-btn-primary` / `bg-primary`，light 近黑 · dark 近白）；焦点、链接与选中沿当前强调色；**记一下**使用捕获 teal；AI 按钮沿当前强调色系。 |
 | **安静 chrome** | 标题栏 / 状态栏 solid `app-chrome` + `border-subtle-dim`；侧栏与 AI 轨同色；**禁止**工作区主壳营销渐变；渐变仅 logo / boot 弱光晕 / Landing 品牌时刻；**标题栏扁平**（纯色 + 单 hairline，无渐变/高光叠层）；**品牌字标不进标题栏**（窗口/任务栏已标识，仅留 logo chip） |
 
 ### Mini-app / Hub 统一范式（全 APP 强制）
@@ -358,7 +360,7 @@ ActivityBar（最左 48px · 三分组）：
 |----|------|------|--------|
 | **显示** `theme` | auto \| light \| dark | `html.dark` | 深浅阶梯 |
 | **界面色调** `themeTone` | warm \| cool \| neutral \| slate | `html[data-theme-tone]` | surface/text/paper 中性阶梯（warm=默认不打标记） |
-| **强调色** `themeSeed` | sky \| teal \| graphite | `html[data-theme-seed]` | accent/badge/info 轴；**ink CTA 不变** |
+| **强调色** `themeSeed` | olive（默认）\| sky \| teal \| graphite | `html[data-theme-seed]` | 控制焦点、链接、选中和常规计数。 |
 
 Inbox 捕获 teal 身份仍优先于 seed。色调包只动中性轴，派生 `color-mix` 停止位自动跟随；对比度按「各包最苛刻平面」断言于 `tests/ui-token-compliance.test.mjs`。
 
@@ -686,6 +688,8 @@ topmind 设计系统原生支持多语言排版（Simplified Chinese / English�
 
 用户请求在调用模型前保存。暂停/取消保存最新快照，重新打开暂停会话可继续；最新内容保存失败时显示错误与「重试保存」，保留回答并阻止静默离开未保存会话。明确清空对话可丢弃该记录。准备阶段也必须响应取消，不允许前端显示暂停后后台才启动模型。
 
+多文件任务展示已成功的变更与仍失败的操作。继续同一任务时读取前一轮确认结果及成功回执，跳过已执行的同一操作。待确认操作仍在时留在「建议」，被拒绝或结果无法核实时请用户明确剩余步骤。
+
 ### 3.5 整理任务（AI 轨 TaskBadge + 可选浮动 TaskPanel）
 
 确定性引擎任务（当前：`reconcile` 整理周期本）与 AI 对话同属副驾面：
@@ -793,28 +797,26 @@ IA 分组（左侧 nav）：
 
 定义在 `src/styles/tokens.css` 的 `@theme` 块。浅色 + 深色（`.dark` 类）。语义别名见 `tailwind-theme.css`。
 
-**三轴叠加顺序**（后写覆盖）：`@theme` light warm 默认 → `.dark` → `html[data-theme-tone]` / `html.dark[data-theme-tone]` → `html[data-theme-seed]` → `body[data-mode=inbox]`（accent）→ `.dark.high-contrast`。
+浅深模式决定基础色阶，色调调整表面，强调色调整链接、选中和普通计数。未设置强调色时 `html:not([data-theme-seed])` 使用橄榄色。`body[data-mode=inbox]` 继续采用捕获色，高对比样式按系统或用户设置覆盖。
 
-### 5.0 品牌色板（sky 主轴 + 捕获 teal + 单色 ink）
+### 5.0 品牌色板
 
 | Token | Light 值（dark） | 用途 |
 |-------|------------------|------|
-| `--color-brand-deep` | `#075985` sky-800 | 渐变深停（logo / Landing） |
-| `--color-brand-mid` | `#0ea5e9` sky-500 | 渐变中停；**不作文字色**（白底 2.77:1） |
-| `--color-brand-aqua` | `#2fa89a` capture teal | 渐变尾停；**仅限捕获动作**身份 |
+| `--color-brand-deep` | `#506414` | 橄榄渐变深停 |
+| `--color-brand-mid` | `#c5e650` | 官网页品牌填充及渐变中停 |
+| `--color-brand-aqua` | `#8ca32f` | 橄榄渐变尾停（历史 token 名） |
 | `--color-ink` | `#1a1a1a`（dark `#f2f2f2`） | **实心主 CTA**（`bg-primary`，单色 ink） |
-| `--color-accent-color` | `#0369a1` sky-700（dark `#38bdf8` sky-400） | focus / 链接 / 选中 / accent wash |
+| `--color-accent-color` | `#506414`（dark `#d0e684`） | focus / 链接 / 选中 / accent wash |
 | `--color-accent-inbox` | `#115e59` teal-800（dark `#4fc2b0`） | Inbox 模式 / capture skill |
-| `--color-badge` | `#0369a1`（dark `#38bdf8`） | `CountBadge` 填充（见 §0.0.5） |
+| `--color-badge` | `#506414`（dark `#d0e684`） | `CountBadge` 填充（见 §0.0.5） |
 | `--color-badge-alert` | `#b45309` amber-700（dark `#fbbf24`） | 高优先建议计数角标 |
 
-**品牌渐变停不是文字色**。`brand-mid` / `brand-aqua` 为渐变与浅底淡彩而选，白底对比度只有 2.77 / 2.83:1；需要「强调色文字」时一律用 `accent-color` / `text-accent` 一档。
+文字使用语义色 `accent-color` 或正文墨色。渐变与标记填充使用品牌色停。
 
 **中性色**：Muse-soft 暖纸（light）与抬起的暖石墨（dark），避免纯黑纯白的长时眩光。light 画布 `#f6f5f2`，chrome `#f2f1ee`，elevated `#fffefb`；dark 画布 `#1c1a17` / elevated `#2e2b26` / sidebar `#141311`；dark prose `#d9d4cc`。四档文字在最苛刻表面上仍 ≥4.5:1（light quaternary `#635f59`，dark quaternary `#9c948c`）。编辑器纸张色 token：`--color-paper-soft|cream|sepia`（双主题自动切换）。
 
-**Dark**：accent = sky-400（`#38bdf8`）；`text-on-accent` 用深墨；**禁止**回退 lavender indigo。
-
-**渐变**：`.v4-brand-gradient` / `.v4-brand-gradient-text` / boot 弱光晕 — **仅** Landing / logo 邻域；壳层 rails **禁止**铺满**品牌**渐变。允许的是 chrome **深度**渐变（luminance only，见 §0.2 外观三轴）。
+标记源为官网的 [`assets/img/work/mark.png`](https://topmindspace.github.io/assets/img/work/mark.png)。欢迎页用墨色标题、标记与低饱和背景形成层级，壳层采用界面深度渐变。原生应用图标的生成与打包见 §0.4。
 
 ### 5.0.1 对比度基线（实测 · 硬约束）
 
@@ -827,25 +829,25 @@ IA 分组（左侧 nav）：
 3. 状态色几乎总是坐在**自己的 `-bg` 淡底**上，故基线按「字 @ 自身 9–12% 淡底 @ 最苛刻表面」核算，不能只算白底。
 4. 一个设计意图 = 一个 token。**禁止**用透明度表达严重度梯度（用 `text-text-tertiary → text-warning → text-error`）。
 
-**基线表（light · 画布 `#f6f5f2` · chrome `#f2f1ee` · 4.3）**
+**浅色天蓝与状态色的对照（画布 `#f6f5f2` · chrome `#f2f1ee`）**
 
 | 角色 | 停止位 | 白底 / elevated `#fffefb` | 画布 `#f6f5f2` | chrome `#f2f1ee` | 自身淡底 @chrome |
 |------|--------|----------------|----------------|------------------|------------------|
-| accent | `#0369a1` | 5.93 | ~5.5 | ~5.3 | ≥4.5 |
+| 天蓝 accent | `#0369a1` | 5.93 | ~5.5 | ~5.3 | ≥4.5 |
 | accent · inbox | `#115e59` | 7.58 | ~7.0 | ~6.8 | ≥4.5 |
 | success | `#166534` | 7.13 | ~6.6 | ~6.4 | ≥4.5 |
 | warning | `#92400e` | 7.09 | ~6.5 | ~6.3 | ≥4.5 |
 | error | `#b91c1c` | 6.47 | ~6.0 | ~5.8 | ≥4.5 |
-| badge 填充 | `#0369a1` + 白字 | 5.93 | — | — | — |
+| 天蓝 badge 填充 | `#0369a1` + 白字 | 5.93 | — | — | — |
 | badge-alert 填充 | `#b45309` + 白字 | 5.02 | — | — | — |
 
-> 精确数值由 `tests/ui-token-compliance.test.mjs` 以当前 `tokens.css` 实时计算并断言 ≥4.5:1；改 stop 必须跑该测试。表中 chrome 列为约数，**真源是 tokens.css**。
+> `tests/ui-token-compliance.test.mjs` 从 `tokens.css` 实时计算对比度。默认橄榄覆盖四种纸面、浅深主题、选择淡底、普通计数文字与焦点描边，焦点对比度至少 3:1。
 
 **基线表（dark · chrome `#171614` · canvas `#1c1a17` · elevated `#2e2b26`）**
 
 | 角色 | 停止位 | 备注 |
 |------|--------|------|
-| accent | `#38bdf8` | AA+ on graphite |
+| 默认 accent | `#d0e684` | 文字与焦点 |
 | success | `#4ade80` | 文本/状态点 |
 | warning | `#fbbf24` | 文本/状态点 |
 | error | `#fa8080` | 文本/状态点（AA on elevated + own wash） |

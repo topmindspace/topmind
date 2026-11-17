@@ -115,7 +115,14 @@ function readTokenPalettes() {
       dark: { ...dark, ...cssVars(cssBlock(css, 'html.dark[data-theme-tone="slate"]')) },
     },
   };
-  return { light, dark, inbox, darkInbox, tones };
+  const olive = {
+    light: cssVars(cssBlock(css, 'html:not([data-theme-seed])')),
+    dark: {
+      ...cssVars(cssBlock(css, 'html:not([data-theme-seed])')),
+      ...cssVars(cssBlock(css, 'html.dark:not([data-theme-seed])')),
+    },
+  };
+  return { light, dark, inbox, darkInbox, tones, olive };
 }
 
 test("UI Token & Modernization Compliance", async (t) => {
@@ -280,7 +287,7 @@ test("UI Token & Modernization Compliance", async (t) => {
     // always on the role's own wash). Measured then, worst plane: success 2.64:1,
     // warning 2.42:1, error 3.49:1; accent 3.59:1. All unreadable, none reported
     // by any other gate because CSS contrast failures are silent.
-    const { light, dark, inbox, darkInbox } = readTokenPalettes();
+    const { light, dark, inbox, darkInbox, tones, olive } = readTokenPalettes();
     const failures = [];
     const get = (palette, name) => {
       const raw = resolve(palette, name);
@@ -338,6 +345,20 @@ test("UI Token & Modernization Compliance", async (t) => {
         get(palette, "--color-accent-color"),
         over(parseColor(get(palette, "--color-accent-bg-subtle")), worst),
       );
+    }
+
+    for (const [tone, palettes] of Object.entries(tones)) {
+      for (const mode of ["light", "dark"]) {
+        const palette = { ...palettes[mode], ...olive[mode] };
+        const accent = get(palette, "--color-accent-color");
+        for (const plane of PLANES[mode]) {
+          const background = parseColor(get(palette, plane));
+          const wash = over(parseColor(get(palette, "--color-accent-bg-subtle")), background);
+          check(`${tone} ${mode} olive on ${plane} wash`, accent, wash);
+          check(`${tone} ${mode} olive focus on ${plane}`, get(palette, "--color-focus-ring"), background, 3);
+        }
+        check(`${tone} ${mode} olive badge`, get(palette, "--color-badge-foreground"), get(palette, "--color-badge"));
+      }
     }
 
     // Inbox mode swaps the accent hue; it must clear the same bar.

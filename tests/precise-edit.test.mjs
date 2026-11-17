@@ -142,6 +142,23 @@ describe("file-window mid-file locate", () => {
     assert.match(win.numbered, /UNIQUE_MIDDLE_PARAGRAPH_TARGET/);
     assert.match(win.numbered, /450\|/u);
   });
+
+  it("short around= windows retain the matching line, including at the end of a long note", () => {
+    const hay = "ordinary line\n".repeat(600) + "unique ending";
+    for (const [opts, lines] of [[{ limit: 1 }, 1], [{ limit: 30 }, 30], [{ maxLimit: 2 }, 2]]) {
+      const win = formatReadWindow(hay, { around: "unique ending", ...opts });
+      assert.match(win.numbered, /601\|unique ending/u);
+      assert.equal(win.endLine - win.startLine + 1, lines);
+    }
+  });
+
+  it("around= preserves a longer explicit window that already covers the match", () => {
+    const hay = "before\n".repeat(100) + "target\n" + "after\n".repeat(150);
+    const win = formatReadWindow(hay, { around: "target", limit: 120 });
+    assert.equal(win.startLine, 61);
+    assert.equal(win.endLine, 180);
+    assert.match(win.numbered, /101\|target/u);
+  });
 });
 
 describe("splitAssistantVisible", () => {

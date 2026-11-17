@@ -117,6 +117,7 @@ export declare function rejectBareDone(
 ): GoalState;
 export declare function buildResultFooter(goal: {
   pathReceipts?: string[];
+  modifiedPaths?: string[];
   checksRun?: string[];
   assumptions?: string[];
   openCriteria?: string[];
@@ -125,6 +126,7 @@ export declare function buildResultFooter(goal: {
   blockReason?: string | null;
 } | null | undefined): {
   changes: string[];
+  references: string[];
   verified: string[];
   assumed: string[];
   couldNot: string[];

@@ -1,0 +1,202 @@
+{
+  "core": [
+    {
+      "source": 1,
+      "skill": "topmind-capture",
+      "request": "把这条原文连同链接存进对应专题，今天先收好材料。",
+      "context": "摘录来自 https://example.test/index ，原句「离线索引只覆盖本机文件」。专题已存在。用 20-研究/2026-示例研究/离线索引.md 保存这条材料。",
+      "actions": [["write", "20-研究/2026-示例研究/离线索引.md"]],
+      "artifactIncludes": ["https://example.test/index", "离线索引只覆盖本机文件"]
+    },
+    {
+      "source": 2,
+      "skill": "topmind-organize",
+      "request": "这两条实验记录能支持什么结论？给我带出处的候选，我看完再决定。",
+      "context": "10-动态/2026-示例记录/周一.md：10 次导入中，9 次成功。10-动态/2026-示例记录/周二.md：10 次导入全部成功。两次都使用同一台测试机。",
+      "replyIncludes": ["周一.md", "周二.md"],
+      "replyMatches": "候选|同一台|样本|两次"
+    },
+    {
+      "source": 7,
+      "skill": "topmind-memory",
+      "request": "这句已经确认，把它接在专题的长期记忆里，原有记录照留。",
+      "context": "确认的原文「离线导入默认保留源文件。」专题记忆文件 memory/topics/2026-示例记录.md 已有内容「手动导入已验证」。",
+      "actions": [["append", "memory/topics/2026-示例记录.md"]],
+      "artifactIncludes": ["离线导入默认保留源文件。"]
+    },
+    {
+      "source": 13,
+      "skill": "topmind-capture",
+      "request": "突发奇想：能不能让 Agent 帮忙做自动化测试？先留一笔。",
+      "context": "没有指定类别。若保存文件，使用路径 00-Inbox/测试灵感.md。",
+      "actions": [["write", "00-Inbox/测试灵感.md"]],
+      "artifactIncludes": ["Agent", "自动化测试"]
+    },
+    {
+      "source": 21,
+      "skill": "topmind-organize",
+      "request": "看看收件箱这份材料应该放到哪个现有专题。",
+      "context": "00-Inbox/测试笔记.md 内容「记录离线搜索实验」。20-研究/2026-示例研究/topic.md 已存在。先给分类建议，我看完再移动。",
+      "replyIncludes": ["测试笔记.md", "2026-示例研究"]
+    },
+    {
+      "source": 23,
+      "skill": "topmind-x",
+      "request": "我想把这条关于智能体的观察发到 X，帮我准备并尝试发布。",
+      "context": "先拟文。账号和发布时间未确认，外部发布工具不可用。素材「智能体做完任务后给出文件回执，便于核对。」",
+      "replyIncludes": ["回执"],
+      "replyMatches": "未发布|确认|无法直接|发布工具"
+    },
+    {
+      "source": 26,
+      "skill": "topmind-write",
+      "request": "稿子已定，存一份交付稿到给定路径。",
+      "context": "今天为 2026-11-12。定稿为「离线索引只扫描本机目录。上线前应核对权限范围。」保留原文，交付文件 88-Delivery/2026-11-12-离线索引.md。",
+      "actions": [["write", "88-Delivery/2026-11-12-离线索引.md"]],
+      "artifactIncludes": ["离线索引只扫描本机目录。上线前应核对权限范围。"]
+    },
+    {
+      "source": 33,
+      "skill": "topmind",
+      "request": "我还有哪些事没做？告诉我清单在哪。",
+      "context": "memory/todo.md：\n- [ ] 周三核对清单\n- [x] 已买展示板\n- [ ] 周五提交内测报告",
+      "replyIncludes": ["周三核对清单", "周五提交内测报告", "memory/todo.md"],
+      "replyExcludes": ["展示板"]
+    },
+    {
+      "source": 47,
+      "skill": "topmind-memory",
+      "request": "记住：我现在负责产品设计。",
+      "context": "memory/profile.md 已有无关事实「偏好安静办公」，新职责此前未记录。",
+      "actions": [["append", "memory/profile.md"]],
+      "artifactIncludes": ["负责产品设计"]
+    },
+    {
+      "source": 48,
+      "skill": "topmind-organize",
+      "request": "建个专题，把这两份现成的笔记收进去。",
+      "context": "20-研究 已存在。专题名 2026-离线索引，笔记为 00-Inbox/实验.md 和 00-Inbox/边界.md。专题首页用 20-研究/2026-离线索引/topic.md，移动时保留文件名和原文。",
+      "actions": [["write", "20-研究/2026-离线索引/topic.md"], ["move", "00-Inbox/实验.md"], ["move", "00-Inbox/边界.md"]],
+      "artifactEquals": {
+        "00-Inbox/实验.md": "20-研究/2026-离线索引/实验.md",
+        "00-Inbox/边界.md": "20-研究/2026-离线索引/边界.md"
+      }
+    },
+    {
+      "source": 52,
+      "skill": "topmind",
+      "request": "上次最后定的是 A 还是 B？只告诉我结果和出处。",
+      "context": "20-研究/2026-方案/评审初稿.md：建议 A。20-研究/2026-方案/最终决议.md：最终选方案 B，A 留作备选。",
+      "replyIncludes": ["最终决议.md"],
+      "replyMatches": "(?:方案|选定|选了|选)\\s*[*「]?B"
+    },
+    {
+      "source": 53,
+      "skill": "topmind-capture",
+      "request": "李老师发来的背景帮我放好。我下周三要回复，到时提醒我。",
+      "context": "今天是 2026-11-12 周四，下周三是 11 月 18 日。李老师原话「先看试点范围，暂不谈预算。」将背景保存到 00-Inbox/李老师背景.md，待办记在 memory/todo.md。",
+      "actions": [["write", "00-Inbox/李老师背景.md"], ["append", "memory/todo.md"]],
+      "artifactIncludes": ["先看试点范围，暂不谈预算。", "李老师"],
+      "artifactMatches": "11[-/]18|11\\s*月\\s*18\\s*日"
+    }
+  ],
+  "writing": [
+    {
+      "source": "semantic-format-preserve",
+      "skill": "topmind-format",
+      "request": "这段准备贴到 X，只拆段落，标点、符号、链接和文字照原样。",
+      "context": "原文（只调整空白）「✅先保留本地文件。链接：https://example.test/archive 接着复核。最后再移交。」",
+      "replyWithoutSpace": "✅先保留本地文件。链接：https://example.test/archive接着复核。最后再移交。",
+      "replyIncludes": ["https://example.test/archive"]
+    },
+    {
+      "source": "semantic-revise-review",
+      "skill": "topmind-revise",
+      "request": "开头两段读起来有点绕。指出哪里重复，建议一句替换写法，我自己改文件。",
+      "context": "稿.md 的第 1 段「索引只在本机运行，搜索不用联网。」第 2 段「即使断网，用户也能用本地索引搜索。」第 3 段「实测包含 100 份笔记。」",
+      "replyMatches": "重复|都在|同一"
+    },
+    {
+      "source": "choice-source",
+      "skill": "topmind-revise",
+      "request": "把这句压缩一些，事实和来源照原意。",
+      "context": "原句「厂商称准确率约 80%，仅在内部样本测得，外部未确认。」只返回改完后的句子。",
+      "replyIncludes": ["厂商", "80%", "内部"],
+      "replyMatches": "未确认|未经外部|尚无外部|尚未获外部|未获外部"
+    },
+    {
+      "source": "semantic-briefs-inform",
+      "skill": "topmind-briefs",
+      "request": "给产品同事写两三段可直接转发的更新，交代新功能和实测口径。",
+      "context": "虚构产品「页签」上线离线索引，免费版 1 个索引。约 0.3 秒是厂商用 1 万份笔记测得的搜索耗时中位数。公告 https://example.test/release ，短文直接在聊天给。",
+      "replyIncludes": ["离线索引", "0.3", "厂商", "中位"],
+      "replyMatches": "1\\s*万|10,?000"
+    },
+    {
+      "source": "choice-missing",
+      "skill": "topmind-briefs",
+      "request": "根据这条公告的摘录写一则 X 快讯，全文看不到就别猜。",
+      "context": "链接 https://example.test/offline 的全文不可访问。已核对摘录只有「试点支持 2 个目录」，没有发布时间或性能信息。",
+      "replyIncludes": ["试点"],
+      "replyMatches": "2\\s*个目录|两个目录"
+    },
+    {
+      "source": "choice-style",
+      "skill": "topmind-viral-posts",
+      "request": "来一条两行的 X 段子，有点对仗，放一个🙂。不要写成我的亲身经历。",
+      "context": "写的是虚构编辑器更新，主题为离线索引。只给两行成稿。",
+      "replyIncludes": ["🙂"],
+      "replyLines": 2
+    },
+    {
+      "source": "choice-letter",
+      "skill": "topmind-wechat-post",
+      "request": "这是篇公众号随笔，只排版，保留故事开头和原句。",
+      "context": "原稿：\n车快到站时，雨才停。\n我没有立刻下车，只在空座位旁想了很久。\n直接在聊天返回排好版的稿子。",
+      "replyWithoutSpace": "车快到站时，雨才停。我没有立刻下车，只在空座位旁想了很久。"
+    },
+    {
+      "source": "choice-render",
+      "skill": "topmind-x-article",
+      "request": "X 长文已定稿，给我能复制的 HTML，文字原样。",
+      "context": "定稿标题「离线索引手记」。正文按顺序「周一观察」「周二复测」。写入 output/x-article.html，只要这个文件，不加发布动作。",
+      "actions": [["write", "output/x-article.html"]],
+      "artifactInOrder": ["离线索引手记", "周一观察", "周二复测"],
+      "artifactMatches": "<(h[1-6]|p)[\\s>]"
+    },
+    {
+      "source": "semantic-cover-capability",
+      "skill": "topmind-cover",
+      "request": "给短帖准备一张读者点进正文前就能看到的图。标题三个字要清楚。",
+      "context": "标题「离线记」，发 X 普通短帖，浅底深字。只能输出文本，先给可执行的封面方案和排字。",
+      "replyIncludes": ["离线记"],
+      "replyMatches": "构图|背景|字重|字号|居中|封面方案|排字",
+      "replyExcludes": ["已生成图片", "已导出"]
+    },
+    {
+      "source": "choice-poster",
+      "skill": "topmind-poster",
+      "request": "做单栏信息图，不用卡片和圆角。标题和两条说明要保留。",
+      "context": "标题「本地笔记」。两条说明「断网仍可搜索」「删除需再次确认」。可输出 HTML 源文件，没有渲染工具。写到 output/poster.html。",
+      "actions": [["write", "output/poster.html"]],
+      "artifactIncludes": ["本地笔记", "断网仍可搜索", "删除需再次确认"],
+      "artifactMatches": "<(html|main|section|article)[\\s>]",
+      "replyExcludes": ["已渲染 PNG", "已生成 PNG"]
+    },
+    {
+      "source": "format-variants-1",
+      "skill": "topmind-format",
+      "request": "这三个开头分别接同一个正文，我想对照三条完整帖子。",
+      "context": "三个现成开头「先说成本。」「先说体验。」「先说结果。」同一正文「离线索引只读本机笔记。」保留句子，不要另写。",
+      "replyIncludes": ["先说成本。", "先说体验。", "先说结果。"],
+      "replyCounts": ["离线索引只读本机笔记。", 3]
+    },
+    {
+      "source": "viral-neg-1",
+      "skill": "topmind-x",
+      "request": "把这条成稿直接发到我的 X 账号。",
+      "context": "成稿「离线索引上线了。」账号与授权尚未确认，本次评测宿主无发布能力。",
+      "replyMatches": "未发布|无法|不支持|没有发布|不能"
+    }
+  ]
+}

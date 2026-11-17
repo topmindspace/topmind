@@ -53,6 +53,14 @@ test('a confirmed delete executes deletion instead of saving an empty body',t=>{
  assert.equal(kernel.acceptPendingWrite(root,entry.id).ok,true);
  assert.equal(fs.existsSync(file),false);
  assert.equal(kernel.listPendingWrites(root).length,0);
+ assert.deepEqual(kernel.getPendingWriteReviews(root,[entry.id]),[{id:entry.id,status:'accepted',paths:['00-Inbox/delete.md']}]);
+});
+test('review lookup distinguishes rejection, unreviewed actions and legacy missing IDs',t=>{
+ const root=fixture(t);
+ const rejected=kernel.stashPendingWrite({workspaceRoot:root,relativePath:'00-Inbox/rejected.md',content:'rejected'});
+ const waiting=kernel.stashPendingWrite({workspaceRoot:root,relativePath:'00-Inbox/waiting.md',content:'waiting'});
+ assert.equal(kernel.rejectPendingWrite(root,rejected.id),true);
+ assert.deepEqual(kernel.getPendingWriteReviews(root,[rejected.id,waiting.id,'legacy-missing']).map(item=>item.status),['rejected','pending','unknown']);
 });
 test('a failed confirmed write remains available for retry',t=>{
  const root=fixture(t);fs.writeFileSync(path.join(root,'00-Inbox/blocked'),'not a directory');

@@ -7,7 +7,7 @@ import { AssistantMessageEventStream } from "@earendil-works/pi-ai";
 import { convertDesktopToolsToPi, beforePiToolCall } from "../electron/lib/pi-agent-tools.mjs";
 import { runPiAgent, isPiRuntimeAvailable, maybeCompactPiMessages } from "../electron/ai-pi-runtime.mjs";
 import { PI_READ_DEFAULT_LIMIT } from "../electron/lib/pi-fenced-fs.mjs";
-import { piContextToSdkMessages } from "../electron/lib/pi-sdk-stream.mjs";
+import { createAiSdkStreamFn, piContextToSdkMessages } from "../electron/lib/pi-sdk-stream.mjs";
 import { createStreamRegistry } from "../electron/ai-stream.mjs";
 import { workspaceRootOf } from "../electron/lib/kernel-api.mjs";
 import { readFileSync } from "node:fs";
@@ -76,6 +76,65 @@ function textStreamFn(reply) {
     return stream;
   };
 }
+
+function runSdkChunks(chunks, tools = null) {
+  const events = [];
+  const streamFn = createAiSdkStreamFn({}, {
+    streamText: () => ({ fullStream: (async function* () { yield* chunks; })() }),
+  });
+  return runPiAgent({
+    model: {}, system: "", messages: [{ role: "user", content: "Write the draft" }],
+    tools, emit: (event) => events.push(event), sessionId: "sdk-chunks", streamFn,
+  }, createStreamRegistry()).then((result) => ({ result, events }));
+}
+
+it("batches rapid Pi deltas into fewer IPC events and returns reported usage", async () => {
+  const tokens = Array.from({ length: 100 }, () => ({ type: "text-delta", text: "字" }));
+  const { result, events } = await runSdkChunks([
+    ...tokens,
+    { type: "finish", finishReason: "stop",
+      totalUsage: { inputTokens: 25, inputTokenDetails: { cacheReadTokens: 5 }, outputTokens: 100, totalTokens: 125 } },
+  ]);
+  const textEvents = events.filter((e) => e.type === "text");
+  assert.equal(textEvents.map(e => e.delta).join(""), "字".repeat(100));
+  assert.equal(result.text, "字".repeat(100));
+  assert.ok(textEvents.length < 10, `sent ${textEvents.length} text events`);
+  assert.equal(events.filter((e) => e.status === "writing").length, 1);
+  assert.deepEqual(result.usage, { promptTokens: 25, completionTokens: 100, totalTokens: 125 });
+});
+
+it("surfaces a provider error and preserves the streamed fragment", async () => {
+  const { result } = await runSdkChunks([
+    { type: "text-delta", text: "Partial draft" },
+    { type: "error", error: new Error("429 test provider") },
+  ]);
+  assert.equal(result.text, "Partial draft");
+  assert.match(result.error.message, /429 test provider/);
+  assert.notEqual(result.goalState.status, "done");
+});
+
+it("maps a provider abort to a cancelled turn and keeps arrived text", async () => {
+  const { result } = await runSdkChunks([
+    { type: "text-delta", text: "Partial draft" },
+    { type: "abort" },
+  ]);
+  assert.equal(result.text, "Partial draft");
+  assert.equal(result.error, null);
+  assert.equal(result.cancelled, true);
+  assert.equal(result.stopReason, "cancelled");
+});
+
+it("a length stop preserves partial output without executing emitted tools", async () => {
+  let calls = 0;
+  const { result } = await runSdkChunks([
+    { type: "text-delta", text: "Partial draft" },
+    { type: "tool-call", toolName: "probe", toolCallId: "one", input: {} },
+    { type: "finish", finishReason: "length" },
+  ], { probe: { inputSchema: { type: "object" }, execute: async () => { calls++; return "done"; } } });
+  assert.equal(calls, 0);
+  assert.equal(result.text, "Partial draft");
+  assert.equal(result.error.message, "model-output-limit");
+});
 
 describe("pi-agent-runtime", () => {
   it("is available once pi-agent-core is installed", () => {

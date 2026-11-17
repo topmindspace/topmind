@@ -11,6 +11,7 @@ function rootOf(value) {
 export function pendingWritesPath(root) { return path.join(rootOf(root), '.topmind/pending-writes.json'); }
 export async function stashPendingWrite(options) { return (await loadKernelApi()).stashPendingWrite({ ...options, workspaceRoot: rootOf(options.workspaceRoot) }); }
 export async function listPendingWrites(root) { return root ? (await loadKernelApi()).listPendingWrites(rootOf(root)) : []; }
+export async function getPendingWriteReviews(root, ids) { return (await loadKernelApi()).getPendingWriteReviews(rootOf(root), ids); }
 export async function takePendingWrite(root, id) { return (await loadKernelApi()).takePendingWrite(rootOf(root), id); }
 export async function rejectPendingWrite(root, id) { return (await loadKernelApi()).rejectPendingWrite(rootOf(root), id); }
 export async function acceptPendingWrite(root, id) { return (await loadKernelApi()).acceptPendingWrite(rootOf(root), id); }

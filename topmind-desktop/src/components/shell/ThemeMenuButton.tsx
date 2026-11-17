@@ -27,6 +27,7 @@ import {
 } from "../../lib/appearance";
 import { getCachedSettings } from "../../lib/settings-cache";
 import {
+  DEFAULT_THEME_SEED,
   THEME_SEEDS,
   THEME_TONES,
   type Theme,
@@ -51,6 +52,7 @@ const TONE_SWATCH: Record<ThemeTone, { light: string; dark: string; ink: string 
 
 /** Accent dots for seeds — matches the live accent stops. */
 const SEED_DOT: Record<ThemeSeed, { light: string; dark: string }> = {
+  olive: { light: "#506414", dark: "#d0e684" },
   sky: { light: "#0369a1", dark: "#38bdf8" },
   teal: { light: "#0f766e", dark: "#5eead4" },
   graphite: { light: "#3f3f46", dark: "#d4d4d8" },
@@ -106,7 +108,7 @@ export function ThemeMenuButton() {
   const [open, setOpen] = useState(false);
   const settings = getCachedSettings();
   const tone: ThemeTone = (settings?.themeTone as ThemeTone) || "warm";
-  const seed: ThemeSeed = (settings?.themeSeed as ThemeSeed) || "sky";
+  const seed = settings?.themeSeed ?? DEFAULT_THEME_SEED;
   const isDark =
     theme === "dark" ||
     (theme === "auto" && window.matchMedia("(prefers-color-scheme: dark)").matches);
@@ -198,7 +200,7 @@ export function ThemeMenuButton() {
 
       <div className="px-2 pb-2 pt-1">
         <DropdownSectionLabel>{t("themeMenu.seed")}</DropdownSectionLabel>
-        <div className="flex items-center gap-1" role="listbox" aria-label={t("themeMenu.seed")}>
+        <div className="grid grid-cols-2 items-center gap-1" role="listbox" aria-label={t("themeMenu.seed")}>
           {THEME_SEEDS.map((id) => {
             const dot = SEED_DOT[id];
             return (

@@ -58,70 +58,6 @@ function flattenPiMsg(m) {
 }
 
 /**
- * Models adapter over the Desktop AI SDK — only `completeSimple` is required
- * by Pi `compact`.
- */
-export function createSummaryModels(aiSdkModel, opts = {}) {
-  return {
-    async completeSimple(_model, aiContext, options) {
-      const generate =
-        typeof opts.generateText === "function"
-          ? opts.generateText
-          : (await import("ai")).generateText;
-      const system = aiContext?.systemPrompt || "";
-      const userText = (aiContext?.messages || [])
-        .map((m) => {
-          if (typeof m?.content === "string") return m.content;
-          const blocks = Array.isArray(m?.content) ? m.content : [];
-          return blocks.map((b) => b?.text || "").join("");
-        })
-        .join("\n");
-      const result = await generate({
-        model: aiSdkModel,
-        system: system || undefined,
-        messages: [{ role: "user", content: userText }],
-        maxOutputTokens: opts.maxOutputTokens || Math.min(8192, options?.maxTokens || 8192),
-        temperature: opts.temperature ?? 0.2,
-        abortSignal: options?.signal,
-      });
-      const text = result?.text || "";
-      return {
-        role: "assistant",
-        content: [{ type: "text", text }],
-        stopReason: result?.finishReason === "length" ? "length" : "stop",
-        usage: {
-          input: result?.usage?.promptTokens || result?.usage?.inputTokens || 0,
-          output: result?.usage?.completionTokens || result?.usage?.outputTokens || 0,
-          cacheRead: 0,
-          cacheWrite: 0,
-          totalTokens:
-            result?.usage?.totalTokens ||
-            (result?.usage?.promptTokens || 0) + (result?.usage?.completionTokens || 0),
-          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
-        },
-        timestamp: Date.now(),
-      };
-    },
-  };
-}
-
-/** Keep goal / plan / receipts / open criteria through LLM summary. */
-export const GOAL_SUMMARY_FOCUS = [
-  "Preserve exactly: original user goal, [PLAN] steps, done-when acceptance criteria,",
-  "which criteria are still open, and every workspace path receipt (file paths).",
-  "Drop tool chatter and reasoning. Never invent paths or mark open criteria done.",
-].join(" ");
-
-/**
- * Pi-native LLM summary seam. Pi 1.0 removed `prepareCompaction` / `compact`
- * from `pi-agent-core`. Returns null so the caller uses the deterministic fold.
- * Does not call the model — that would be a second summarizer stack.
- */
-export async function compactPiMessagesLlm(_messages, _opts = {}) {
-  return null;
-}
-
-/**
  * In-run goal follow-up: keep an incomplete goal moving inside the same Agent run.
  * pi-agent-core Agent ignores a constructor `getFollowUpMessages` option (it only
  * drains the internal followUpQueue). Call the returned helper from `finishTurn`
@@ -351,6 +287,8 @@ export async function runPiAgent(opts, registry) {
   let steerApplyCount = 0;
   let turns = 0;
   let stepLimitHit = false;
+  let terminalError = null;
+  let usage = null;
   /** @type {string|null} */
   let pendingGoalFollowUp = null;
   const maybeGoalFollowUp = createGoalFollowUps({
@@ -358,15 +296,20 @@ export async function runPiAgent(opts, registry) {
     locale: opts.locale || "zh-CN",
     max: 1,
   });
-  let goalState = opts.taskContract?.kind === "document"
+  let goalState = opts.initialGoal ?? (opts.taskContract?.kind === "document"
     ? { goal: opts.taskContract.request, kind: "task", plan: [], criteria: [], doneCriteria: [], pathReceipts: [], status: "working", blockReason: null }
-    : foldGoalHistory(seedGoalFromMessages(messages), messages);
-  /** Pi CompactionDetails file ops (for post-run memory distill). */
-  let compactFileOps = { readFiles: [], modifiedFiles: [] };
+    : foldGoalHistory(seedGoalFromMessages(messages), messages));
 
   const rawEmit = typeof emit === "function" ? emit : () => {};
   const deltaCoalescer = createDeltaCoalescer({ intervalMs: 16, emit: rawEmit });
-  const emitOut = (event) => deltaCoalescer.pushEvent(event);
+  let lastStatus;
+  const emitOut = (event) => {
+    if (event.type === "status") {
+      if (event.status === lastStatus && !event.tool) return;
+      lastStatus = event.status;
+    }
+    deltaCoalescer.pushEvent(event);
+  };
 
   const piTools = tools ? convertDesktopToolsToPi(tools, { workspaceRoot }) : [];
   const history = sdkMessagesToPi(messages, modelId);
@@ -405,28 +348,6 @@ export async function runPiAgent(opts, registry) {
     transformContext: async (msgs) => {
       bumpIdle();
       const window = Number(contextWindow) > 0 ? Number(contextWindow) : 128000;
-      // Pi 1.0 has no native compact API. compactPiMessagesLlm returns null;
-      // the deterministic fold is the compaction path.
-      const llmFolded = await compactPiMessagesLlm(msgs, {
-        model,
-        contextWindow: window,
-        modelId,
-        goalLedgerText: buildTaskLedger(goalState, opts.locale || "zh-CN"),
-        signal: controller.signal,
-      });
-      if (llmFolded?.compacted) {
-        emitOut({ type: "status", status: "compacting" });
-        logInfo("ai-pi", "context compacted", { sessionId, note: llmFolded.note });
-        if (llmFolded.fileOps) {
-          for (const p of llmFolded.fileOps.readFiles || []) {
-            if (p && !compactFileOps.readFiles.includes(p)) compactFileOps.readFiles.push(p);
-          }
-          for (const p of llmFolded.fileOps.modifiedFiles || []) {
-            if (p && !compactFileOps.modifiedFiles.includes(p)) compactFileOps.modifiedFiles.push(p);
-          }
-        }
-        return llmFolded.messages;
-      }
       const folded = maybeCompactPiMessages(msgs, { contextWindow: window, modelId, fixedTokens: opts.fixedTokens });
       if (folded.compacted) {
         emitOut({ type: "status", status: "compacting" });
@@ -444,11 +365,10 @@ export async function runPiAgent(opts, registry) {
     // turn-budget hook. Returning { action: "end" } stops the run cleanly and
     // lets ai-service auto-continue with a fresh step budget + task ledger.
     finishTurn: (turn) => {
-      if (opts.taskGuard?.reason) return { action: "end" };
+      if (opts.taskGuard?.reason || opts.taskGuard?.pending) return { action: "end" };
       const lastAsst = turn?.message;
       const stopReason = lastAsst?.stopReason;
-      // Per Pi README: never score goals on error/aborted turns.
-      if (stopReason === "error" || stopReason === "aborted") return { action: "end" };
+      if (["error", "aborted", "length"].includes(stopReason)) return { action: "end" };
       turns += 1;
       const asstText = assistantText(lastAsst) || "";
       if (asstText) {
@@ -464,11 +384,12 @@ export async function runPiAgent(opts, registry) {
       // is incomplete, and open criteria come back so the chip stays honest.
       goalState = rejectBareDone(goalState, { toolCallCount, lastBody: asstText });
       if (turns >= agentSteps) {
-        stepLimitHit = true;
+        // A final answer delivered on the last allowed turn completed within budget.
+        stepLimitHit = Boolean(turn?.toolResults?.length || stopReason === "toolUse");
         const assessment = assessGoalCompletion({
           state: goalState,
           lastBody: asstText,
-          stepLimitHit: true,
+          stepLimitHit,
           toolCallCount,
         });
         goalState = assessment.finished
@@ -537,13 +458,13 @@ export async function runPiAgent(opts, registry) {
       case "message_update": {
         const ev = event.assistantMessageEvent;
         if (ev?.type === "text_delta" && ev.delta) {
+          emitOut({ type: "status", status: "writing" });
           collected += ev.delta;
           deltaCoalescer.pushDelta("text", ev.delta);
-          emitOut({ type: "status", status: "writing" });
         } else if (ev?.type === "thinking_delta" && ev.delta) {
+          emitOut({ type: "status", status: "thinking" });
           reasoning += ev.delta;
           deltaCoalescer.pushDelta("reasoning", ev.delta);
-          emitOut({ type: "status", status: "thinking" });
         }
         break;
       }
@@ -572,13 +493,29 @@ export async function runPiAgent(opts, registry) {
         emitOut({ type: "status", status: "writing" });
         break;
       }
+      case "turn_end": {
+        const message = event.message;
+        const counts = message?.usage;
+        if (counts?.totalTokens) {
+          usage ||= { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+          usage.promptTokens += counts.input + counts.cacheRead + counts.cacheWrite;
+          usage.completionTokens += counts.output;
+          usage.totalTokens += counts.totalTokens;
+        }
+        if (message?.stopReason === "length") terminalError = new Error("model-output-limit");
+        if (message?.stopReason === "error" || message?.stopReason === "aborted") {
+          terminalError = new Error(message.errorMessage || "Model stream failed");
+          if (message.stopReason === "aborted") terminalError.name = "AbortError";
+        }
+        break;
+      }
       case "agent_end": {
         const msgs = event.messages || [];
         const lastAsst = [...msgs].reverse().find((m) => m.role === "assistant");
         if (lastAsst) {
           collected = assistantText(lastAsst) || collected;
           reasoning = assistantThinking(lastAsst) || reasoning;
-          goalState = applyGoalUpdate(goalState, { text: collected });
+          if (!terminalError) goalState = applyGoalUpdate(goalState, { text: collected });
         }
         break;
       }
@@ -588,7 +525,10 @@ export async function runPiAgent(opts, registry) {
   });
 
   try {
+    controller.signal.throwIfAborted();
     await agent.prompt(promptInput);
+    controller.signal.throwIfAborted();
+    if (terminalError) throw terminalError;
     deltaCoalescer.flush();
     logInfo("ai-pi", "completed", {
       sessionId,
@@ -602,13 +542,12 @@ export async function runPiAgent(opts, registry) {
     return {
       text: collected,
       reasoning,
-      usage: null,
+      usage,
       error: null,
       stepLimitHit,
       toolCallCount,
       goalState,
       taskLedger: buildTaskLedger(goalState, opts.locale || "zh-CN"),
-      fileOps: compactFileOps,
       followUps: [...leftoverSteers, ...followUps],
       steerApplyCount,
       runtime: "pi-agent-core",
@@ -626,7 +565,7 @@ export async function runPiAgent(opts, registry) {
       return {
         text: collected,
         reasoning,
-        usage: null,
+        usage,
         error: null,
         cancelled: true,
         stopReason,
@@ -640,7 +579,8 @@ export async function runPiAgent(opts, registry) {
     logError("ai-pi", "failed", { sessionId, error: err?.message || String(err) });
     return {
       text: collected,
-      usage: null,
+      reasoning,
+      usage,
       error: err,
       goalState,
       taskLedger: buildTaskLedger(goalState, opts.locale || "zh-CN"),

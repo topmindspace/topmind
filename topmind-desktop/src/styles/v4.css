@@ -1975,27 +1975,6 @@ html.dark .v4-overlay-sheet {
   background: var(--color-background);
 }
 
-/* Brand gradient utility — landing / logo-adjacent only; not for chrome fills */
-.v4-brand-gradient {
-  background-image: linear-gradient(
-    135deg,
-    var(--color-brand-deep) 0%,
-    var(--color-brand-mid) 48%,
-    var(--color-brand-aqua) 100%
-  );
-}
-.v4-brand-gradient-text {
-  background-image: linear-gradient(
-    135deg,
-    var(--color-brand-deep) 0%,
-    var(--color-brand-mid) 50%,
-    var(--color-brand-aqua) 100%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
 /* ── Sidebar rail — deepest plane (ZCode: sidebar darker than canvas) ──
    4.0: soft right edge so the rail separates from paper without a hard rule
    4.1: vertical depth wash matching shell chrome language
