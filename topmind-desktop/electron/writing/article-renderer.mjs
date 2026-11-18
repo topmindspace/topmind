@@ -7,7 +7,7 @@ export const WRITING_THEMES = Object.freeze({
   graphite: { ink: '#222222', accent: '#444444', paper: '#ffffff', muted: '#666666' },
 });
 /** Version of the renderer's output semantics, independent from the npm package version. */
-export const ARTICLE_RENDERER_PROVIDER = Object.freeze({ id: 'topmind-writing-skills/article-renderer', version: '1.1.0' });
+export const ARTICLE_RENDERER_PROVIDER = Object.freeze({ id: 'topmind-writing-skills/article-renderer', version: '1.1.1' });
 export const WRITING_ACTIONS = Object.freeze([
   { id: 'topmind-revise', zh: '改稿', en: 'Revise', prompt: '按 topmind-revise 审校当前内容，保留事实、数字、归因和作者原意。' },
   { id: 'topmind-format', zh: '只排版', en: 'Format', prompt: '按 topmind-format 只调整当前内容的排版，不改写文字。' },
@@ -41,14 +41,27 @@ export function resolveArticleImage(sourcePath, reference) {
   }
   return parts.join('/');
 }
+const codeFence = /^\s*```/u;
+const inlineCode = /`([^`]+)`/gu;
+const markdownImage = /!\[([^\]]*)\]\(([^\s)]+)(?:\s+"[^"]*")?\)/gu;
+
 async function collectArticleImages(input, readImage) {
   const images = Object.create(null);
-  for (const match of String(input.markdown).matchAll(/!\[[^\]]*\]\(([^\s)]+)(?:\s+"[^"]*")?\)/gu)) {
-    const source = match[1];
+  const visible = [];
+  const readByPath = new Map();
+  let insideFence = false;
+  for (const line of stripFrontmatter(input.markdown).split('\n')) {
+    if (codeFence.test(line)) insideFence = !insideFence;
+    else if (!insideFence) visible.push(line);
+  }
+  for (const [, , source] of visible.join('\n').replace(inlineCode, '').matchAll(markdownImage)) {
     if (/^(https?:|data:)/iu.test(source) || Object.hasOwn(images, source)) continue;
     const relativePath = resolveArticleImage(input.sourcePath, source);
-    try { images[source] = await readImage(relativePath); }
-    catch { images[source] = ''; }
+    if (!readByPath.has(relativePath)) {
+      try { readByPath.set(relativePath, await readImage(relativePath)); }
+      catch { readByPath.set(relativePath, ''); }
+    }
+    images[source] = readByPath.get(relativePath);
   }
   return images;
 }
@@ -78,8 +91,8 @@ export function renderArticle({ markdown = '', platform = 'wechat', theme = 'min
     const token = html => { stash.push(html); return `\u0001${stash.length - 1}\u0002`; };
     // Remove control characters so a source cannot impersonate a stash token.
     let value = String(raw).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/gu, '');
-    value = value.replace(/`([^`]+)`/gu, (_, code) => token(`<code style="font-family:monospace;background:#f1f1f1;padding:2px 4px;">${esc(code)}</code>`));
-    value = value.replace(/!\[([^\]]*)\]\(([^\s)]+)(?:\s+"[^"]*")?\)/gu, (_, alt, src) => {
+    value = value.replace(inlineCode, (_, code) => token(`<code style="font-family:monospace;background:#f1f1f1;padding:2px 4px;">${esc(code)}</code>`));
+    value = value.replace(markdownImage, (_, alt, src) => {
       const supplied = Object.hasOwn(images, src) ? images[src] : src;
       const url = safeUrl(supplied, true);
       const status = !url ? 'missing' : /^data:/iu.test(url) ? 'embedded' : 'remote';
@@ -105,9 +118,9 @@ export function renderArticle({ markdown = '', platform = 'wechat', theme = 'min
   const flush = () => { if (paragraph.length) out.push(`<p style="margin:0 0 18px;line-height:1.85;">${inline(paragraph.join('\n')).replace(/\n/gu, '<br />')}</p>`); paragraph = []; };
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    if (/^\s*```/u.test(line)) {
+    if (codeFence.test(line)) {
       flush(); const language = line.trim().slice(3); const code = [];
-      while (++i < lines.length && !/^\s*```/u.test(lines[i])) code.push(lines[i]);
+      while (++i < lines.length && !codeFence.test(lines[i])) code.push(lines[i]);
       if (i === lines.length) diagnostics.push({ code: 'unclosed-code-fence' });
       out.push(`<section style="font-family:monospace;white-space:pre-wrap;overflow-wrap:anywhere;background:#f4f4f4;padding:14px;margin:18px 0;">${esc(code.join('\n'))}</section>`);
       if (language === 'mermaid') diagnostics.push({ code: 'diagram-source-only' });

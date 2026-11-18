@@ -148,6 +148,7 @@ D 通道当前只做本机绑定。`runtime-manifest.json` 格式 1 的文件清
 | `@firecrawl/anydoc` | 文档转 MD sidecar | userData 热升级，`ANYDOC_NPM_SPEC` 无版本钉死（安装时取 latest） |
 | TipTap `@tiptap/*` | 富文本编辑器 | **整套同版本**（3.31.3）；`tiptap-markdown` 0.9.0 |
 | `ai` + `@ai-sdk/*` | LLM Provider | 同步升 minor/patch |
+| `xlsx` | Desktop 工作簿导入 | 使用 [SheetJS 官方发行源](https://docs.sheetjs.com/docs/getting-started/installation/nodejs/)，由 lockfile 校验归档完整性；更新后验证多工作表、文本 ID 与单元格换行 |
 | Electron / React / Vite / Tailwind | 壳与 UI | **已升 major**（2026-09-23）：Electron 44 · React 19 · Vite 8 · TS 7 |
 | esbuild（obsidian 仓） | 插件打包 | onResolve 必须返回 **绝对路径** |
 

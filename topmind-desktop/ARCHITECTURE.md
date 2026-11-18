@@ -273,6 +273,8 @@ AiService.invoke
 
 Pi 适配器把 SDK 正文、推理和工具调用映射到稳定的内容块索引。正文与推理的增量在约 16 ms 的窗口内合批，状态切换、工具事件和结束前冲刷，重复的同状态增量无需额外 IPC。SDK 报告的输入、输出和总量累加到助手消息；缺少用量时省略徽章。
 
+上下文超过预算时，用工具调用 ID 和工具名识别完整的历史调用与回执，只移除已完整配对的旧记录，保留最近一次工具调用和当前用户请求。
+
 SDK 错误、取消和输出长度上限分别形成终态。输出被截断时，保留收到的正文和先前成功写入的回执，同一次截断响应内的工具调用不会执行。模型请求失败时向 UI 返回可重试错误，Pi 已经启动的回合沿用原有单一运行时。
 
 写/读工具：`edit_file`（Kernel `applyUniqueSpan`：精确 → 换行/行尾空白规范化；多处拒绝；失败带 nearby/context；**文本类白名单**；**不写 Archive**）· `save_file` 整文件覆盖（**文本类** .md/.txt/.json/.yaml/.csv/代码/配置；**仅 locked 覆盖备份**；open 不备份）· `delete_path` 跟 `isRecoverableLifecycle`（普通开放笔记无 trash；锁定 / 专题首页 / 交付 才进归档）· `read_file` 带行号窗口 + `around`/`heading` 中段定位 · `search`=`grepWorkspace`（可 scope、默认可跳过 Archive、行号命中）。  

@@ -1,6 +1,6 @@
 {
   "name": "topmind-desktop",
-  "version": "4.19.3",
+  "version": "4.19.4",
   "private": true,
   "description": "topmind local-first desktop workspace for AI-assisted project work.",
   "main": "electron/main.mjs",
@@ -89,7 +89,7 @@
     "tiptap-markdown": "^0.9.0",
     "typebox": "^1.3.30",
     "unpdf": "^1.8.1",
-    "xlsx": "^0.18.5",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "yaml": "^2.9.1",
     "zod": "^4.6.6",
     "zustand": "^5.0.15"

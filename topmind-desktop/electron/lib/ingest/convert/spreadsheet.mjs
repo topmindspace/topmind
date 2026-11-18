@@ -27,9 +27,7 @@ export async function convertSpreadsheet(absPath, kind) {
   } catch {
     throw new Error("缺少 xlsx 依赖，无法转换表格");
   }
-  const wb = XLSX.readFile
-    ? XLSX.readFile(absPath)
-    : XLSX.read(await fs.readFile(absPath), { type: "buffer" });
+  const wb = XLSX.read(await fs.readFile(absPath), { type: "buffer" });
   const sheets = wb.SheetNames || [];
   if (!sheets.length) throw new Error("工作簿无工作表");
 
@@ -53,31 +51,47 @@ export async function convertSpreadsheet(absPath, kind) {
 }
 
 function csvToMarkdown(raw, sep = ",") {
-  const lines = String(raw || "").split(/\r?\n/u).filter((l) => l.length);
-  if (!lines.length) return "";
-  const rows = lines.map((line) => splitCsvLine(line, sep));
-  return rowsToMarkdownTable(rows);
+  const rows = sep === "\t"
+    ? raw.split(/\r?\n/u).filter(Boolean).map((line) => line.split("\t"))
+    : parseCsvRows(raw);
+  return rows.length ? rowsToMarkdownTable(rows) : "";
 }
 
-function splitCsvLine(line, sep) {
-  if (sep === "\t") return line.split("\t");
-  const out = [];
-  let cur = "";
-  let inQ = false;
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i];
-    if (c === '"') {
-      if (inQ && line[i + 1] === '"') {
-        cur += '"';
+function parseCsvRows(input) {
+  const text = input.replace(/^\uFEFF/u, "");
+  const rows = [];
+  let row = [];
+  let field = "";
+  let quoted = false;
+  let recordHasData = false;
+  const endRow = () => {
+    if (recordHasData) rows.push([...row, field]);
+    row = [];
+    field = "";
+    recordHasData = false;
+  };
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (quoted) {
+      if (char !== '"') field += char;
+      else if (text[i + 1] === '"') {
+        field += '"';
         i++;
-      } else inQ = !inQ;
-    } else if (c === sep && !inQ) {
-      out.push(cur);
-      cur = "";
-    } else cur += c;
+      } else quoted = false;
+    } else if (char === "\n" || char === "\r") {
+      endRow();
+      if (char === "\r" && text[i + 1] === "\n") i++;
+    } else {
+      recordHasData = true;
+      if (char === ",") {
+        row.push(field);
+        field = "";
+      } else if (char === '"' && field === "") quoted = true;
+      else field += char;
+    }
   }
-  out.push(cur);
-  return out;
+  endRow();
+  return rows;
 }
 
 function rowsToMarkdownTable(rows) {
@@ -106,6 +120,6 @@ function rowsToMarkdownTable(rows) {
 function cell(v) {
   return String(v ?? "")
     .replace(/\|/gu, "\\|")
-    .replace(/\r?\n/gu, " ")
+    .replace(/\r\n?|\n/gu, " ")
     .slice(0, 200);
 }

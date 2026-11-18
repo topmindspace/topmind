@@ -139,6 +139,29 @@ test("csv converts to markdown table", async () => {
   }
 });
 
+test("CSV keeps a multiline quoted value in the same record", async t => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "tm-csv-"));
+  t.after(() => fs.rm(dir, { recursive: true, force: true }));
+  const file = path.join(dir, "data.csv");
+  await fs.writeFile(file, '\uFEFFname,description\r\nAda,"one, two\r\nthree ""quoted"""\r\nBob,done\r\n');
+  const { markdown } = await convertSpreadsheet(file, "csv");
+  assert.equal(markdown, '| name | description |\n| --- | --- |\n| Ada | one, two three "quoted" |\n| Bob | done |');
+});
+
+test("SheetJS converts a real workbook with multiple sheets and preserves text IDs", async t => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "tm-xlsx-"));
+  t.after(() => fs.rm(dir, { recursive: true, force: true }));
+  const xlsx = await import("xlsx");
+  const book = xlsx.utils.book_new();
+  xlsx.utils.book_append_sheet(book, xlsx.utils.aoa_to_sheet([["ID", "说明"], ["00042", "两行\n文本"]]), "明细");
+  xlsx.utils.book_append_sheet(book, xlsx.utils.aoa_to_sheet([["数量"], [25]]), "汇总");
+  const file = path.join(dir, "workbook.xlsx");
+  await fs.writeFile(file, xlsx.write(book, { type: "buffer", bookType: "xlsx" }));
+  const { markdown } = await convertSpreadsheet(file, "xlsx");
+  assert.match(markdown, /## 明细[\s\S]*\| 00042 \| 两行 文本 \|/);
+  assert.match(markdown, /## 汇总[\s\S]*\| 25 \|/);
+});
+
 test("eml converts with subject", async () => {
   await fs.mkdir(fixtures, { recursive: true });
   const p = path.join(fixtures, "sample.eml");

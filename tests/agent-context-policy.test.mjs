@@ -52,3 +52,23 @@ test('oversized model-facing results preserve status and hashes without altering
   assert.equal(original.content.length, 20000);
   assert.ok(estimateTokens(JSON.stringify(bound)) < 650);
 });
+test('SDK folding keeps unmatched calls and removes only complete older cycles', () => {
+  const call = id => ({ type: 'tool-call', toolCallId: id, toolName: 'read_file' });
+  const result = (id, value) => ({ type: 'tool-result', toolCallId: id, toolName: 'read_file', output: { type: 'text', value } });
+  const messages = [
+    { role: 'user', content: 'Current request' },
+    { role: 'assistant', content: [call('pending'), call('missing')] },
+    { role: 'tool', content: [result('pending', 'incomplete'), result('unmatched', 'extra')] },
+    { role: 'assistant', content: [call('old-a'), call('old-b')] },
+    { role: 'tool', content: [result('old-b', 'a'.repeat(5000)), result('old-a', 'b'.repeat(5000))] },
+    { role: 'assistant', content: [call('latest')] },
+    { role: 'tool', content: [result('latest', 'newest evidence')] },
+  ];
+  const compact = fitSdkContext(messages, 650);
+  assert.equal(compact.compacted, true);
+  assert.equal(compact.overflow, false);
+  assert.match(JSON.stringify(compact.messages), /"missing"/);
+  assert.match(JSON.stringify(compact.messages), /newest evidence/);
+  assert.doesNotMatch(JSON.stringify(compact.messages), /old-a|old-b/);
+  assert.equal(messages[0].content, 'Current request');
+});
